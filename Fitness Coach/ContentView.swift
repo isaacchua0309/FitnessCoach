@@ -8,17 +8,18 @@
 import SwiftUI
 
 struct ContentView: View {
+
+    @StateObject private var todayModel: TodayModel
+
+    init(container: AppContainer) {
+        _todayModel = StateObject(wrappedValue: container.makeTodayModel())
+    }
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
+        TodayView(model: todayModel)
     }
 }
 
 #Preview {
-    ContentView()
+    ContentView(container: try! AppContainer(inMemory: true))
 }
