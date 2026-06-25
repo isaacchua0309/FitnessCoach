@@ -23,7 +23,7 @@ struct MacroProgressRow: View {
                     .foregroundStyle(.secondary)
             }
 
-            ProgressView(value: progress.progress)
+            SwiftUI.ProgressView(value: progress.progress)
 
             Text("\(formatted(progress.remaining)) \(unit) remaining")
                 .font(.caption)

@@ -159,6 +159,35 @@ final class WorkoutLogService {
         return try store.fetch(descriptor).map { $0.toModel() }
     }
 
+    func getExerciseSets(for workoutId: UUID) throws -> [ExerciseSet] {
+        guard let workout = try workoutEntity(id: workoutId) else {
+            throw ServiceError.workoutEntryNotFound
+        }
+        return workout.exerciseSets
+            .sorted {
+                if $0.exerciseName == $1.exerciseName {
+                    return $0.setNumber < $1.setNumber
+                }
+                return $0.exerciseName < $1.exerciseName
+            }
+            .map { $0.toModel() }
+    }
+
+    func getWorkoutDetail(id: UUID) throws -> (workout: WorkoutEntry, sets: [ExerciseSet])? {
+        guard let workout = try workoutEntity(id: id) else {
+            return nil
+        }
+        let sets = workout.exerciseSets
+            .sorted {
+                if $0.exerciseName == $1.exerciseName {
+                    return $0.setNumber < $1.setNumber
+                }
+                return $0.exerciseName < $1.exerciseName
+            }
+            .map { $0.toModel() }
+        return (workout.toModel(), sets)
+    }
+
     // MARK: Helpers
 
     private func workoutEntity(id: UUID) throws -> WorkoutEntryEntity? {

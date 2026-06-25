@@ -21,6 +21,11 @@ final class AppContainer {
     let waterLogService: WaterLogService
     let weightLogService: WeightLogService
     let workoutLogService: WorkoutLogService
+    let reviewService: ReviewService
+
+    let llmClient: LLMClient
+    let aiService: AIService
+    let aiCommandParsingEnabled: Bool
 
     init(inMemory: Bool = false) throws {
         modelContainer = try FitPilotModelContainer.makeContainer(inMemory: inMemory)
@@ -49,6 +54,24 @@ final class AppContainer {
             dailyLogService: dailyLogService,
             userProfileService: userProfileService
         )
+
+        // Local development uses the mock client so the app compiles and runs
+        // without a backend. The production backend gateway can be wired later
+        // via FitPilotAIBackendClient (no provider API keys live in the app).
+        llmClient = MockLLMClient()
+        aiService = AIService(llmClient: llmClient)
+        aiCommandParsingEnabled = true
+
+        reviewService = ReviewService(
+            store: store,
+            dailyLogService: dailyLogService,
+            foodLogService: foodLogService,
+            waterLogService: waterLogService,
+            weightLogService: weightLogService,
+            workoutLogService: workoutLogService,
+            userProfileService: userProfileService,
+            aiService: aiService
+        )
     }
 
     func makeTodayModel() -> TodayModel {
@@ -59,6 +82,37 @@ final class AppContainer {
             weightLogService: weightLogService,
             workoutLogService: workoutLogService,
             targetService: targetService
+        )
+    }
+
+    func makeCoachModel() -> CoachModel {
+        CoachModel(
+            dailyLogService: dailyLogService,
+            foodLogService: foodLogService,
+            waterLogService: waterLogService,
+            weightLogService: weightLogService,
+            workoutLogService: workoutLogService,
+            reviewService: reviewService,
+            aiService: aiService,
+            userProfileService: userProfileService,
+            aiCommandParsingEnabled: aiCommandParsingEnabled
+        )
+    }
+
+    func makeProgressModel() -> ProgressModel {
+        ProgressModel(
+            dailyLogService: dailyLogService,
+            weightLogService: weightLogService,
+            workoutLogService: workoutLogService,
+            userProfileService: userProfileService
+        )
+    }
+
+    func makeTrainingModel() -> TrainingModel {
+        TrainingModel(
+            workoutLogService: workoutLogService,
+            dailyLogService: dailyLogService,
+            userProfileService: userProfileService
         )
     }
 }

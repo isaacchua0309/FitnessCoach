@@ -1,17 +1,17 @@
 //
-//  TodayLoadingView.swift
+//  TrainingLoadingView.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Loading state for Today.
+//  FitPilot AI — Loading state for Training.
 //
 
 import SwiftUI
 
-struct TodayLoadingView: View {
+struct TrainingLoadingView: View {
     var body: some View {
         VStack(spacing: 12) {
             SwiftUI.ProgressView()
-            Text("Loading today's dashboard...")
+            Text("Loading workouts...")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -20,5 +20,5 @@ struct TodayLoadingView: View {
 }
 
 #Preview {
-    TodayLoadingView()
+    TrainingLoadingView()
 }

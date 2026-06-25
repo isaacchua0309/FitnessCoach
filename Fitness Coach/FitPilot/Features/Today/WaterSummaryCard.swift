@@ -25,7 +25,7 @@ struct WaterSummaryCard: View {
             Text("\(summary.consumedMl) / \(summary.targetMl) ml")
                 .font(.title3.weight(.semibold))
 
-            ProgressView(value: summary.progress)
+            SwiftUI.ProgressView(value: summary.progress)
                 .tint(.cyan)
 
             Text("\(summary.remainingMl) ml remaining")

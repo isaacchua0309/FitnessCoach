@@ -22,7 +22,7 @@ struct MacroSummaryCard: View {
                     .foregroundStyle(calories.isOverTarget ? .red : .primary)
             }
 
-            ProgressView(value: calories.progress)
+            SwiftUI.ProgressView(value: calories.progress)
                 .tint(calories.isOverTarget ? .red : .blue)
 
             Text("\(calories.remaining) kcal remaining")
