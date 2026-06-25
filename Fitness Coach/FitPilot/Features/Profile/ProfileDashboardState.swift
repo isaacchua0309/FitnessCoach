@@ -91,36 +91,3 @@ enum PlanGoalType: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 }
-
-// MARK: Legacy summaries (edit form)
-
-struct ProfileSummary: Equatable {
-    var nameText: String
-    var ageText: String
-    var sexText: String
-    var heightText: String
-    var currentWeightText: String
-    var goalWeightText: String
-    var bodyFatText: String?
-}
-
-struct TargetSummary: Equatable {
-    var calorieTargetText: String
-    var proteinTargetText: String
-    var carbTargetText: String
-    var fatTargetText: String
-    var waterTargetText: String
-    var aggressivenessText: String
-    var expectedWeeklyLossText: String?
-}
-
-struct ActivitySummary: Equatable {
-    var activityLevelText: String
-    var trainingFrequencyText: String
-    var averageStepsText: String
-}
-
-struct PreferenceSummary: Equatable {
-    var dietPreferenceText: String
-    var unitSystemText: String
-}

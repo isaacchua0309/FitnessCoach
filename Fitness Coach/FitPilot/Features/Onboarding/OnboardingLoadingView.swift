@@ -11,14 +11,18 @@ struct OnboardingLoadingView: View {
     let message: String
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 14) {
             SwiftUI.ProgressView()
+                .tint(OnboardingTheme.accent)
+
             Text(message)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(OnboardingTheme.secondaryText)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .padding()
+        .onboardingCard()
+        .accessibilityElement(children: .combine)
     }
 }
 

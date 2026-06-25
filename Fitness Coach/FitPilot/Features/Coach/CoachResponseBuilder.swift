@@ -244,9 +244,6 @@ enum CoachResponseBuilder {
 
     // MARK: Placeholders
 
-    static let dailyReviewPlaceholder =
-        "Daily review is coming in a later step. For now, I can show your current status with \"status\"."
-
     static let stepsPlaceholder =
         "Step logging is recognized, but saving steps will be added in a later step."
 
@@ -260,9 +257,6 @@ enum CoachResponseBuilder {
 
     static let unsupportedResponse =
         "I do not support that command locally yet."
-
-    static let ambiguousResponse =
-        "I'm not sure which action you wanted. Could you rephrase it?"
 
     static let aiNotUnderstood =
         "I could not confidently understand that yet. "

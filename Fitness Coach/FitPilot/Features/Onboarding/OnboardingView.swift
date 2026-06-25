@@ -21,36 +21,27 @@ struct OnboardingView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    OnboardingProgressHeader(currentStep: model.currentStep)
-
-                    if let errorMessage = model.errorMessage {
-                        OnboardingErrorView(message: errorMessage)
-                    }
-
-                    stepContent
-
-                    if isLoading {
-                        OnboardingLoadingView(
-                            message: model.viewState == .completing
-                                ? "Creating your profile..."
-                                : "Generating your plan..."
-                        )
-                    }
-
-                    OnboardingNavigationBar(
-                        currentStep: model.currentStep,
-                        isLoading: isLoading,
-                        onBack: { model.goBack() },
-                        onContinue: { model.goNext() },
-                        onComplete: { model.completeOnboarding() }
-                    )
-                }
-                .padding()
+            OnboardingStepContainer(
+                currentStep: model.currentStep,
+                errorMessage: model.errorMessage,
+                isLoading: isLoading
+            ) {
+                stepContent
+            }
+            .background(OnboardingTheme.background.ignoresSafeArea())
+            .safeAreaInset(edge: .bottom) {
+                OnboardingBottomBar(
+                    currentStep: model.currentStep,
+                    isLoading: isLoading,
+                    canContinue: model.formState.canAdvance(from: model.currentStep),
+                    onBack: { model.goBack() },
+                    onContinue: { model.goNext() },
+                    onComplete: { model.completeOnboarding() }
+                )
             }
             .navigationBarHidden(true)
         }
+        .preferredColorScheme(.dark)
     }
 
     @ViewBuilder

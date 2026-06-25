@@ -46,6 +46,26 @@ struct OnboardingFormState: Equatable {
         }
     }
 
+    func validationMessage(for step: OnboardingStep) -> String? {
+        do {
+            try validate(step: step)
+            return nil
+        } catch let error as OnboardingFormError {
+            return error.message
+        } catch {
+            return "Please check your inputs."
+        }
+    }
+
+    func canAdvance(from step: OnboardingStep) -> Bool {
+        switch step {
+        case .welcome, .preferences, .planPreview:
+            return true
+        case .body, .goal, .activity:
+            return validationMessage(for: step) == nil
+        }
+    }
+
     func makeCalorieTargetInput() throws -> CalorieTargetInput {
         CalorieTargetInput(
             age: try parsePositiveInt(ageText, message: "Please enter a valid age."),

@@ -38,6 +38,21 @@ enum OnboardingFormatter {
         }
     }
 
+    static func activityLevelDescription(_ level: ActivityLevel) -> String {
+        switch level {
+        case .sedentary:
+            return "Mostly sitting, minimal planned movement."
+        case .lightlyActive:
+            return "Light walking or occasional exercise."
+        case .moderatelyActive:
+            return "Regular training or active days most weeks."
+        case .veryActive:
+            return "Hard training, active job, or high step count."
+        case .athlete:
+            return "Structured performance training and high recovery demand."
+        }
+    }
+
     static func aggressiveness(_ aggressiveness: CalorieAggressiveness) -> String {
         switch aggressiveness {
         case .conservative:

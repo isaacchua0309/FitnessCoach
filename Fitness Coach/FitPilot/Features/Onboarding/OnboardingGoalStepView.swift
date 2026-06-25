@@ -9,57 +9,64 @@ import SwiftUI
 
 struct OnboardingGoalStepView: View {
     @Binding var formState: OnboardingFormState
+    @FocusState private var focusedField: Field?
+
+    private enum Field: Hashable {
+        case goalWeight
+    }
 
     var body: some View {
-        VStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Goal weight (kg)")
-                    .font(.subheadline.weight(.medium))
-                TextField("Goal weight (kg)", text: $formState.goalWeightKgText)
-                    .keyboardType(.decimalPad)
-                    .textFieldStyle(.roundedBorder)
-            }
+        VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
+            OnboardingSectionTitle(
+                title: "Set your destination",
+                subtitle: "Pick a realistic goal weight and a pace that will not wreck training or recovery."
+            )
+
+            OnboardingTextField(
+                title: "Goal weight",
+                placeholder: "76",
+                text: $formState.goalWeightKgText,
+                helper: "Kilograms",
+                keyboard: .decimalPad
+            )
+            .focused($focusedField, equals: .goalWeight)
+            .onboardingCard()
 
             VStack(alignment: .leading, spacing: 10) {
-                Text("Calorie pace")
-                    .font(.subheadline.weight(.medium))
+                OnboardingSectionTitle(
+                    title: "Calorie pace",
+                    subtitle: "You can adjust this later once FitPilot sees your trend."
+                )
 
                 ForEach(CalorieAggressiveness.allCases, id: \.self) { level in
-                    Button {
+                    OnboardingSelectionCard(
+                        title: OnboardingFormatter.aggressiveness(level),
+                        subtitle: OnboardingFormatter.aggressivenessDescription(level),
+                        icon: icon(for: level),
+                        isSelected: formState.aggressiveness == level
+                    ) {
+                        focusedField = nil
                         formState.aggressiveness = level
-                    } label: {
-                        HStack(alignment: .top, spacing: 12) {
-                            Image(systemName: formState.aggressiveness == level ? "largecircle.fill.circle" : "circle")
-                                .foregroundStyle(formState.aggressiveness == level ? .blue : .secondary)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(OnboardingFormatter.aggressiveness(level))
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(.primary)
-                                Text(OnboardingFormatter.aggressivenessDescription(level))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .multilineTextAlignment(.leading)
-                            }
-                            Spacer()
-                        }
-                        .padding()
-                        .background(
-                            formState.aggressiveness == level
-                                ? Color.blue.opacity(0.08)
-                                : Color.clear,
-                            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .stroke(
-                                    formState.aggressiveness == level ? Color.blue.opacity(0.3) : Color.secondary.opacity(0.2),
-                                    lineWidth: 1
-                                )
-                        )
                     }
-                    .buttonStyle(.plain)
                 }
             }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { focusedField = nil }
+            }
+        }
+    }
+
+    private func icon(for level: CalorieAggressiveness) -> String {
+        switch level {
+        case .conservative:
+            return "leaf.fill"
+        case .moderate:
+            return "gauge.medium"
+        case .aggressive:
+            return "flame.fill"
         }
     }
 }

@@ -84,25 +84,6 @@ final class ReviewService {
         return try persist(review, dailyLogEntity: dailyLogEntity)
     }
 
-    // MARK: Delete
-
-    func deleteDailyReview(for date: Date) throws {
-        guard let dailyLog = try dailyLogService.dailyLogEntity(for: date) else {
-            return
-        }
-        guard let review = try dailyReviewEntity(dailyLogId: dailyLog.id) else {
-            dailyLog.dailyReviewId = nil
-            dailyLog.dailyReview = nil
-            try save()
-            return
-        }
-
-        dailyLog.dailyReviewId = nil
-        dailyLog.dailyReview = nil
-        try store.delete(review)
-        try save()
-    }
-
     // MARK: Summary
 
     private func buildSummary(for dailyLog: DailyLog) throws -> DailyReviewSummary {

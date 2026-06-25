@@ -95,37 +95,6 @@ final class WorkoutLogService {
         return workoutEntity.toModel()
     }
 
-    // MARK: Update
-
-    func editWorkout(id: UUID, update: WorkoutUpdate) throws -> WorkoutEntry {
-        guard let entity = try workoutEntity(id: id) else {
-            throw ServiceError.workoutEntryNotFound
-        }
-
-        if let name = update.name { entity.name = name }
-        if let durationMinutes = update.durationMinutes {
-            guard durationMinutes > 0 else { throw ServiceError.invalidInput("Duration must be greater than zero.") }
-            entity.durationMinutes = durationMinutes
-        }
-        if let estimatedCaloriesBurned = update.estimatedCaloriesBurned {
-            guard estimatedCaloriesBurned >= 0 else {
-                throw ServiceError.invalidInput("Estimated calories cannot be negative.")
-            }
-            entity.estimatedCaloriesBurned = estimatedCaloriesBurned
-        }
-        if let intensity = update.intensity { entity.intensityRawValue = intensity.rawValue }
-        if let recoveryDemand = update.recoveryDemand { entity.recoveryDemandRawValue = recoveryDemand.rawValue }
-        if let notes = update.notes { entity.notes = notes }
-
-        entity.updatedAt = Date()
-        try save()
-
-        if let logDate = entity.dailyLog?.date {
-            try dailyLogService.recalculateDailyTotals(for: logDate)
-        }
-        return entity.toModel()
-    }
-
     // MARK: Delete
 
     func deleteWorkout(id: UUID) throws {

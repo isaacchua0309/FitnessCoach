@@ -9,42 +9,106 @@ import SwiftUI
 
 struct OnboardingBodyStepView: View {
     @Binding var formState: OnboardingFormState
+    @FocusState private var focusedField: Field?
 
-    var body: some View {
-        VStack(spacing: 16) {
-            inputField("Age", text: $formState.ageText, keyboard: .numberPad)
-            Picker("Sex", selection: $formState.sex) {
-                ForEach(Sex.allCases, id: \.self) { sex in
-                    Text(OnboardingFormatter.sex(sex)).tag(sex)
-                }
-            }
-            .pickerStyle(.menu)
-
-            inputField("Height (cm)", text: $formState.heightCmText, keyboard: .decimalPad)
-            inputField("Current weight (kg)", text: $formState.currentWeightKgText, keyboard: .decimalPad)
-            inputField("Body fat % (optional)", text: $formState.estimatedBodyFatPercentageText, keyboard: .decimalPad)
-
-            Picker("Unit system", selection: $formState.unitSystem) {
-                ForEach(UnitSystem.allCases, id: \.self) { system in
-                    Text(OnboardingFormatter.unitSystem(system)).tag(system)
-                }
-            }
-            .pickerStyle(.menu)
-
-            Text("Values are stored in metric. Imperial is a display preference for now.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
+    private enum Field: Hashable {
+        case age
+        case height
+        case weight
+        case bodyFat
     }
 
-    private func inputField(_ title: String, text: Binding<String>, keyboard: UIKeyboardType) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.subheadline.weight(.medium))
-            TextField(title, text: text)
-                .keyboardType(keyboard)
-                .textFieldStyle(.roundedBorder)
+    private let selectionColumns = [
+        GridItem(.adaptive(minimum: 136), spacing: 10, alignment: .top)
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
+            OnboardingSectionTitle(
+                title: "Body basics",
+                subtitle: "These numbers power your initial calorie, macro, and water targets."
+            )
+
+            VStack(spacing: OnboardingTheme.fieldSpacing) {
+                OnboardingTextField(
+                    title: "Age",
+                    placeholder: "28",
+                    text: $formState.ageText,
+                    keyboard: .numberPad
+                )
+                .focused($focusedField, equals: .age)
+
+                OnboardingTextField(
+                    title: "Height",
+                    placeholder: "175",
+                    text: $formState.heightCmText,
+                    helper: "Centimeters",
+                    keyboard: .decimalPad
+                )
+                .focused($focusedField, equals: .height)
+
+                OnboardingTextField(
+                    title: "Current weight",
+                    placeholder: "82.5",
+                    text: $formState.currentWeightKgText,
+                    helper: "Kilograms",
+                    keyboard: .decimalPad
+                )
+                .focused($focusedField, equals: .weight)
+            }
+            .onboardingCard()
+
+            VStack(alignment: .leading, spacing: 12) {
+                OnboardingSectionTitle(title: "Gender", subtitle: "Used only for target estimation.")
+
+                LazyVGrid(columns: selectionColumns, spacing: 10) {
+                    ForEach(Sex.allCases, id: \.self) { sex in
+                        OnboardingSelectionCard(
+                            title: OnboardingFormatter.sex(sex),
+                            icon: "person.crop.circle",
+                            isSelected: formState.sex == sex
+                        ) {
+                            focusedField = nil
+                            formState.sex = sex
+                        }
+                    }
+                }
+            }
+
+            VStack(spacing: OnboardingTheme.fieldSpacing) {
+                OnboardingTextField(
+                    title: "Body fat",
+                    placeholder: "Optional",
+                    text: $formState.estimatedBodyFatPercentageText,
+                    helper: "Optional percentage. Leave blank if you do not know.",
+                    keyboard: .decimalPad
+                )
+                .focused($focusedField, equals: .bodyFat)
+
+                VStack(alignment: .leading, spacing: 12) {
+                    OnboardingSectionTitle(title: "Units")
+
+                    ForEach(UnitSystem.allCases, id: \.self) { system in
+                        OnboardingSelectionCard(
+                            title: OnboardingFormatter.unitSystem(system),
+                            subtitle: system == .metric
+                                ? "Best for this setup flow."
+                                : "Display preference; values are still stored in metric.",
+                            icon: "ruler",
+                            isSelected: formState.unitSystem == system
+                        ) {
+                            focusedField = nil
+                            formState.unitSystem = system
+                        }
+                    }
+                }
+            }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { focusedField = nil }
+            }
         }
     }
 }

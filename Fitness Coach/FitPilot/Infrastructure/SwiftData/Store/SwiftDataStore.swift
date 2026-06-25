@@ -4,8 +4,7 @@
 //
 //  FitPilot AI — Lightweight local persistence wrapper.
 //
-//  This is intentionally generic. Domain-specific actions (addFoodEntry,
-//  startNewDay, logWeight, etc.) belong in services added in later steps.
+//  This is intentionally generic. Domain-specific actions belong in services.
 //
 
 import Foundation

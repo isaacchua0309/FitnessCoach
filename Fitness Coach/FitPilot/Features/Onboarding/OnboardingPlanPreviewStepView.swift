@@ -11,15 +11,21 @@ struct OnboardingPlanPreviewStepView: View {
     let plan: CalorieTargetResult?
 
     var body: some View {
-        if let plan {
-            GeneratedPlanSummaryCard(plan: plan)
-        } else {
-            Text("Your plan will appear here once generated.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
+            OnboardingSectionTitle(
+                title: "Review your starting targets",
+                subtitle: "These are your initial numbers. FitPilot will help you adjust as real progress data comes in."
+            )
+
+            if let plan {
+                GeneratedPlanSummaryCard(plan: plan)
+            } else {
+                OnboardingInfoCard(
+                    title: "Plan not generated yet",
+                    message: "Go back and generate your plan once your setup details are complete.",
+                    icon: "doc.text.magnifyingglass"
+                )
+            }
         }
     }
 }

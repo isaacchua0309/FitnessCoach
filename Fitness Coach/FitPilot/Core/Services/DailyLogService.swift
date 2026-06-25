@@ -61,21 +61,6 @@ final class DailyLogService {
         try getOrCreateLog(for: dateProvider.now)
     }
 
-    @available(*, deprecated, message: "Days start automatically via getTodayLog/getOrCreateLog.")
-    func startNewDay(weightKg: Double?) throws -> DailyLog {
-        let entity = try getOrCreateLogEntity(for: dateProvider.now)
-
-        if let weightKg {
-            guard weightKg > 0 else { throw ServiceError.invalidInput("Weight must be greater than zero.") }
-            entity.weightKg = weightKg
-        }
-
-        entity.updatedAt = dateProvider.now
-        try save()
-
-        return try recalculateDailyTotals(for: dateProvider.now)
-    }
-
     // MARK: Recalculation
 
     @discardableResult

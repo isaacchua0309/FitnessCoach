@@ -9,35 +9,63 @@ import SwiftUI
 
 struct OnboardingWelcomeStepView: View {
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "figure.run.circle.fill")
-                .font(.system(size: 72))
-                .foregroundStyle(.blue)
+        VStack(alignment: .leading, spacing: 22) {
+            ZStack {
+                Circle()
+                    .fill(OnboardingTheme.accent.opacity(0.16))
+                    .frame(width: 88, height: 88)
 
-            VStack(spacing: 8) {
-                Text("FitPilot AI")
-                    .font(.largeTitle.weight(.bold))
-                Text("Your local-first fitness coach for nutrition, hydration, weight, and training.")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                Image(systemName: "figure.run.circle.fill")
+                    .font(.system(size: 60))
+                    .foregroundStyle(OnboardingTheme.accent)
             }
+            .frame(maxWidth: .infinity)
+            .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 10) {
-                featureRow("Track calories, macros, water, and workouts")
-                featureRow("Get daily reviews and progress trends")
-                featureRow("Chat with your coach using simple commands")
+                Text("Your command center for getting leaner, stronger, and more consistent.")
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(OnboardingTheme.primaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+
+                Text("FitPilot builds your targets, keeps the day simple, and lets Coach handle food, water, weight, and training from natural language.")
+                    .font(.body)
+                    .foregroundStyle(OnboardingTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding()
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            VStack(spacing: 12) {
+                featureRow("Personal calorie and macro targets", icon: "target")
+                featureRow("Fast logging for meals, water, weight, and workouts", icon: "bolt.fill")
+                featureRow("Daily reviews and coach guidance", icon: "sparkles")
+            }
+
+            OnboardingInfoCard(
+                title: "Takes about a minute",
+                message: "Use your best estimates. You can adjust everything later in Profile.",
+                icon: "clock.fill"
+            )
         }
         .frame(maxWidth: .infinity)
     }
 
-    private func featureRow(_ text: String) -> some View {
-        Label(text, systemImage: "checkmark.circle.fill")
-            .font(.subheadline)
-            .foregroundStyle(.primary)
+    private func featureRow(_ text: String, icon: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .font(.headline)
+                .foregroundStyle(OnboardingTheme.accent)
+                .frame(width: 24)
+
+            Text(text)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(OnboardingTheme.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+        .onboardingCard()
+        .accessibilityElement(children: .combine)
     }
 }
 

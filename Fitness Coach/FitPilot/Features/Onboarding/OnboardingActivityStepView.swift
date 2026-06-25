@@ -9,31 +9,77 @@ import SwiftUI
 
 struct OnboardingActivityStepView: View {
     @Binding var formState: OnboardingFormState
+    @FocusState private var focusedField: Field?
+
+    private enum Field: Hashable {
+        case trainingDays
+        case steps
+    }
 
     var body: some View {
-        VStack(spacing: 16) {
-            Picker("Activity level", selection: $formState.activityLevel) {
+        VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
+            OnboardingSectionTitle(
+                title: "Training rhythm",
+                subtitle: "This helps FitPilot estimate your baseline burn and recovery needs."
+            )
+
+            VStack(alignment: .leading, spacing: 10) {
+                OnboardingSectionTitle(title: "Daily activity")
+
                 ForEach(ActivityLevel.allCases, id: \.self) { level in
-                    Text(OnboardingFormatter.activityLevel(level)).tag(level)
+                    OnboardingSelectionCard(
+                        title: OnboardingFormatter.activityLevel(level),
+                        subtitle: OnboardingFormatter.activityLevelDescription(level),
+                        icon: activityIcon(for: level),
+                        isSelected: formState.activityLevel == level
+                    ) {
+                        focusedField = nil
+                        formState.activityLevel = level
+                    }
                 }
             }
-            .pickerStyle(.menu)
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Training days per week")
-                    .font(.subheadline.weight(.medium))
-                TextField("Training days per week", text: $formState.trainingFrequencyPerWeekText)
-                    .keyboardType(.numberPad)
-                    .textFieldStyle(.roundedBorder)
-            }
+            VStack(spacing: OnboardingTheme.fieldSpacing) {
+                OnboardingTextField(
+                    title: "Training days per week",
+                    placeholder: "3",
+                    text: $formState.trainingFrequencyPerWeekText,
+                    helper: "Strength, sport, classes, or structured cardio.",
+                    keyboard: .numberPad
+                )
+                .focused($focusedField, equals: .trainingDays)
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Average steps per day")
-                    .font(.subheadline.weight(.medium))
-                TextField("Average steps per day", text: $formState.averageStepsText)
-                    .keyboardType(.numberPad)
-                    .textFieldStyle(.roundedBorder)
+                OnboardingTextField(
+                    title: "Average steps per day",
+                    placeholder: "5000",
+                    text: $formState.averageStepsText,
+                    helper: "A rough weekly average is enough.",
+                    keyboard: .numberPad
+                )
+                .focused($focusedField, equals: .steps)
             }
+            .onboardingCard()
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { focusedField = nil }
+            }
+        }
+    }
+
+    private func activityIcon(for level: ActivityLevel) -> String {
+        switch level {
+        case .sedentary:
+            return "chair.fill"
+        case .lightlyActive:
+            return "figure.walk"
+        case .moderatelyActive:
+            return "figure.run"
+        case .veryActive:
+            return "figure.strengthtraining.traditional"
+        case .athlete:
+            return "bolt.heart.fill"
         }
     }
 }
