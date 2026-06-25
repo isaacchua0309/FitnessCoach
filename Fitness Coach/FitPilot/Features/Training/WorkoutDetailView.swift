@@ -2,7 +2,7 @@
 //  WorkoutDetailView.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Read-only workout detail.
+//  FitPilot AI — Read-only workout detail from Coach-parsed data.
 //
 
 import SwiftUI
@@ -11,93 +11,79 @@ struct WorkoutDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     let workout: WorkoutDisplayItem
-    let onDelete: (UUID) async -> Void
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: TrainingLayout.sectionSpacing) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(workout.name)
-                            .font(.largeTitle.weight(.bold))
+                            .font(.title.weight(.bold))
                         Text(workout.dateText)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
 
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                        WorkoutMetricCard(
-                            title: "Duration",
-                            value: workout.durationText ?? "--",
-                            caption: nil,
-                            systemImage: "timer"
-                        )
-                        WorkoutMetricCard(
-                            title: "Calories",
-                            value: workout.estimatedCaloriesText ?? "--",
-                            caption: "estimated",
-                            systemImage: "flame"
-                        )
-                        WorkoutMetricCard(
-                            title: "Intensity",
-                            value: workout.intensityText ?? "--",
-                            caption: nil,
-                            systemImage: "bolt"
-                        )
-                        WorkoutMetricCard(
-                            title: "Volume",
-                            value: TrainingFormatter.volume(workout.totalVolumeKg),
-                            caption: "total",
-                            systemImage: "scalemass"
-                        )
-                    }
+                    VStack(alignment: .leading, spacing: TrainingLayout.itemSpacing) {
+                        TrainingSectionLabel(title: "Summary")
 
-                    if let recovery = workout.recoveryDemandText {
-                        Label(recovery, systemImage: "heart")
-                            .font(.subheadline.weight(.medium))
-                            .padding()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        if let calories = workout.estimatedCaloriesText {
+                            detailRow("Calories", value: calories)
+                        }
+                        if let duration = workout.durationText {
+                            detailRow("Duration", value: duration)
+                        }
+                        detailRow("Exercises", value: "\(workout.exerciseCount)")
+                        detailRow("Sets", value: "\(workout.setCount)")
+                        if let volume = workout.totalVolumeKg, volume > 0 {
+                            detailRow("Volume", value: TrainingFormatter.volume(volume))
+                        }
                     }
 
                     if let notes = workout.notes, !notes.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Notes")
-                                .font(.headline)
+                            TrainingSectionLabel(title: "Notes")
                             Text(notes)
-                                .font(.body)
+                                .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
                     }
 
                     ExerciseSetListView(sets: workout.exerciseSets)
+
+                    Text("Need a correction? Tell Coach.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .padding(.top, 8)
                 }
-                .padding()
+                .padding(.horizontal, TrainingLayout.horizontalPadding)
+                .padding(.vertical, 16)
             }
-            .navigationTitle("Workout Detail")
+            .navigationTitle("Workout")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") {
                         dismiss()
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(role: .destructive) {
-                        Task {
-                            await onDelete(workout.id)
-                            dismiss()
-                        }
-                    } label: {
-                        Image(systemName: "trash")
-                    }
-                    .accessibilityLabel("Delete workout")
-                }
             }
         }
+    }
+
+    private func detailRow(_ label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(value)
+                .font(.subheadline.weight(.medium))
+        }
+        .padding(.vertical, 4)
     }
 }
 
 #Preview {
-    WorkoutDetailView(workout: TrainingPreviewData.item, onDelete: { _ in })
+    WorkoutDetailView(workout: TrainingPreviewData.item)
 }

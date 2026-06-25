@@ -2,10 +2,9 @@
 //  TrainingModel.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Feature model for basic workout logging.
+//  FitPilot AI — Read-only Training intelligence dashboard.
 //
-//  TrainingModel calls services only. It does not access SwiftData directly,
-//  call AI, or coordinate with other feature models.
+//  All workout logging happens in Coach. This model only observes persisted data.
 //
 
 import Combine
@@ -15,27 +14,22 @@ import Foundation
 final class TrainingModel: ObservableObject {
 
     @Published private(set) var viewState: TrainingViewState = .loading
-    @Published var isShowingWorkoutEntrySheet = false
     @Published var selectedWorkout: WorkoutDisplayItem?
-    @Published private(set) var formErrorMessage: String?
 
     private let workoutLogService: WorkoutLogService
     private let dailyLogService: DailyLogService
-    private let userProfileService: UserProfileService
-    private let refreshCenter: AppRefreshCenter
 
     private let recentRangeDays = 28
+    private let weeklyRangeDays = 7
+    private let muscleRangeDays = 7
+    private let recentListLimit = 12
 
     init(
         workoutLogService: WorkoutLogService,
-        dailyLogService: DailyLogService,
-        userProfileService: UserProfileService,
-        refreshCenter: AppRefreshCenter
+        dailyLogService: DailyLogService
     ) {
         self.workoutLogService = workoutLogService
         self.dailyLogService = dailyLogService
-        self.userProfileService = userProfileService
-        self.refreshCenter = refreshCenter
     }
 
     // MARK: Loading
@@ -48,54 +42,9 @@ final class TrainingModel: ObservableObject {
     func refresh() async {
         do {
             let state = try makeDashboardState()
-            viewState = state.todaysWorkouts.isEmpty && state.recentWorkouts.isEmpty
-                ? .empty
-                : .loaded(state)
+            viewState = .loaded(state)
         } catch {
-            viewState = .error("Could not load workouts.")
-        }
-    }
-
-    // MARK: Sheet
-
-    func showAddWorkout() {
-        formErrorMessage = nil
-        isShowingWorkoutEntrySheet = true
-    }
-
-    func dismissAddWorkout() {
-        formErrorMessage = nil
-        isShowingWorkoutEntrySheet = false
-    }
-
-    // MARK: Mutations
-
-    func addWorkout(_ formState: WorkoutEntryFormState) async {
-        do {
-            let draft = try formState.makeDraft()
-            _ = try workoutLogService.addWorkout(draft, date: Date())
-            dismissAddWorkout()
-            await refresh()
-            refreshCenter.notifyDataChanged()
-        } catch let error as TrainingFormError {
-            formErrorMessage = error.message
-        } catch ServiceError.invalidInput(let message) {
-            formErrorMessage = message
-        } catch {
-            formErrorMessage = "Could not save workout."
-        }
-    }
-
-    func deleteWorkout(id: UUID) async {
-        do {
-            try workoutLogService.deleteWorkout(id: id)
-            if selectedWorkout?.id == id {
-                selectedWorkout = nil
-            }
-            await refresh()
-            refreshCenter.notifyDataChanged()
-        } catch {
-            viewState = .error("Could not delete workout.")
+            viewState = .error("Could not load training data.")
         }
     }
 
@@ -112,30 +61,34 @@ final class TrainingModel: ObservableObject {
     // MARK: State Building
 
     private func makeDashboardState() throws -> TrainingDashboardState {
-        // Touch these dependencies so the model owns the intended service seam,
-        // while all actual workout state still flows through WorkoutLogService.
-        _ = try? dailyLogService.getLog(for: Date())
-        _ = try? userProfileService.getCurrentProfile()
-
-        let todaysWorkouts = try workoutLogService.getWorkouts(for: Date())
-        let recentWorkouts = try workoutLogService.getWorkoutHistory(days: recentRangeDays)
+        let today = Date()
+        let todaysWorkouts = try workoutLogService.getWorkouts(for: today)
+        let history = try workoutLogService.getWorkoutHistory(days: recentRangeDays)
+        let weeklyWorkouts = workoutsInLastDays(history, days: weeklyRangeDays, asOf: today)
 
         let todaysItems = try todaysWorkouts.map { try makeDisplayItem(from: $0) }
-        let recentItems = try recentWorkouts.map { try makeDisplayItem(from: $0) }
+        let allItems = try history.map { try makeDisplayItem(from: $0) }
+        let sortedItems = allItems.sorted { $0.workout.createdAt > $1.workout.createdAt }
 
-        let todayVolume = todaysItems.reduce(0.0) { $0 + ($1.totalVolumeKg ?? 0) }
-        let todayCalories = todaysWorkouts.reduce(0) { $0 + ($1.estimatedCaloriesBurned ?? 0) }
+        let weeklySets = try sets(for: weeklyWorkouts)
+        let muscleSets = try sets(for: workoutsInLastDays(history, days: muscleRangeDays, asOf: today))
+
+        let streak = try trainingStreak(asOf: today)
 
         return TrainingDashboardState(
-            selectedDate: Date(),
-            todaysWorkouts: todaysItems,
-            recentWorkouts: recentItems,
-            summary: TrainingSummary(
-                workoutCountToday: todaysItems.count,
-                workoutCountInRecentRange: recentItems.count,
-                estimatedCaloriesBurnedToday: todayCalories,
-                totalVolumeTodayKg: todayVolume > 0 ? todayVolume : nil
-            )
+            hero: TrainingHeroState(
+                hasWorkoutToday: !todaysItems.isEmpty,
+                primaryWorkout: todaysItems.first,
+                lastWorkout: sortedItems.first
+            ),
+            weekly: TrainingWeeklySummary(
+                workoutsCompleted: weeklyWorkouts.count,
+                totalCalories: weeklyWorkouts.compactMap(\.estimatedCaloriesBurned).reduce(0, +),
+                totalDurationMinutes: weeklyWorkouts.compactMap(\.durationMinutes).reduce(0, +),
+                trainingStreak: streak
+            ),
+            muscleDistribution: TrainingMuscleDistributionBuilder.distribution(from: muscleSets),
+            recentWorkouts: Array(sortedItems.prefix(recentListLimit))
         )
     }
 
@@ -159,5 +112,27 @@ final class TrainingModel: ObservableObject {
             workout: workout,
             exerciseSets: sets
         )
+    }
+
+    private func workoutsInLastDays(
+        _ workouts: [WorkoutEntry],
+        days: Int,
+        asOf date: Date
+    ) -> [WorkoutEntry] {
+        let calendar = Calendar.current
+        let start = calendar.date(byAdding: .day, value: -(days - 1), to: calendar.startOfDay(for: date)) ?? date
+        return workouts.filter { $0.createdAt >= start }
+    }
+
+    private func sets(for workouts: [WorkoutEntry]) throws -> [ExerciseSet] {
+        try workouts.flatMap { try workoutLogService.getExerciseSets(for: $0.id) }
+    }
+
+    private func trainingStreak(asOf date: Date) throws -> Int {
+        let startDate = Calendar.current.date(byAdding: .day, value: -90, to: date) ?? date
+        let logs = try dailyLogService.getLogs(from: startDate, to: date)
+        let workouts = try workoutLogService.getWorkoutHistory(days: 90)
+        let workoutDates = Set(workouts.map { Calendar.current.startOfDay(for: $0.createdAt) })
+        return StreakCalculator.calculate(logs: logs, workoutDates: workoutDates, asOf: date).workoutStreak
     }
 }

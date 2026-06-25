@@ -22,6 +22,7 @@ final class AppContainer {
     let weightLogService: WeightLogService
     let workoutLogService: WorkoutLogService
     let reviewService: ReviewService
+    let actionCenter: FitnessActionCenter
 
     let llmClient: LLMClient
     let aiService: AIService
@@ -34,10 +35,13 @@ final class AppContainer {
         store = SwiftDataStore(container: modelContainer)
 
         userProfileService = UserProfileService(store: store)
-        targetService = TargetService(userProfileService: userProfileService)
         dailyLogService = DailyLogService(
             store: store,
             userProfileService: userProfileService
+        )
+        targetService = TargetService(
+            userProfileService: userProfileService,
+            dailyLogService: dailyLogService
         )
         foodLogService = FoodLogService(
             store: store,
@@ -74,33 +78,39 @@ final class AppContainer {
             userProfileService: userProfileService,
             aiService: aiService
         )
+
+        actionCenter = FitnessActionCenter(
+            foodLogService: foodLogService,
+            waterLogService: waterLogService,
+            weightLogService: weightLogService,
+            workoutLogService: workoutLogService,
+            dailyLogService: dailyLogService,
+            targetService: targetService,
+            userProfileService: userProfileService,
+            reviewService: reviewService,
+            refreshCenter: refreshCenter
+        )
     }
 
     func makeTodayModel() -> TodayModel {
         TodayModel(
             dailyLogService: dailyLogService,
             foodLogService: foodLogService,
-            waterLogService: waterLogService,
-            weightLogService: weightLogService,
             workoutLogService: workoutLogService,
-            targetService: targetService,
+            weightLogService: weightLogService,
             reviewService: reviewService,
-            refreshCenter: refreshCenter
+            userProfileService: userProfileService
         )
     }
 
     func makeCoachModel() -> CoachModel {
         CoachModel(
+            actionCenter: actionCenter,
             dailyLogService: dailyLogService,
-            foodLogService: foodLogService,
-            waterLogService: waterLogService,
-            weightLogService: weightLogService,
             workoutLogService: workoutLogService,
-            reviewService: reviewService,
             aiService: aiService,
             userProfileService: userProfileService,
-            aiCommandParsingEnabled: aiCommandParsingEnabled,
-            refreshCenter: refreshCenter
+            aiCommandParsingEnabled: aiCommandParsingEnabled
         )
     }
 
@@ -116,17 +126,15 @@ final class AppContainer {
     func makeTrainingModel() -> TrainingModel {
         TrainingModel(
             workoutLogService: workoutLogService,
-            dailyLogService: dailyLogService,
-            userProfileService: userProfileService,
-            refreshCenter: refreshCenter
+            dailyLogService: dailyLogService
         )
     }
 
     func makeProfileModel() -> ProfileModel {
         ProfileModel(
+            actionCenter: actionCenter,
             userProfileService: userProfileService,
-            targetService: targetService,
-            refreshCenter: refreshCenter
+            targetService: targetService
         )
     }
 

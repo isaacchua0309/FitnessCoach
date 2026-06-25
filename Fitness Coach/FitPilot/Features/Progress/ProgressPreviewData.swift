@@ -2,7 +2,7 @@
 //  ProgressPreviewData.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Static preview data for Progress UI previews.
+//  FitPilot AI — Static preview data for Journey UI previews.
 //
 
 import Foundation
@@ -12,53 +12,78 @@ enum ProgressPreviewData {
 
     static let state = ProgressDashboardState(
         selectedRangeDays: 28,
-        weightSummary: ProgressWeightSummary(
-            latestWeightKg: 88.9,
-            sevenDayAverageKg: 89.2,
-            previousSevenDayAverageKg: 90.1,
-            changeKg: -0.9,
-            direction: .decreasing,
-            hasSuddenSpike: false
+        transformation: JourneyTransformationState(
+            goalTitle: "Lose 15 kg",
+            startedLabel: "Started Jun 25",
+            currentWeightKg: 90,
+            goalWeightKg: 75,
+            progressPercent: 0,
+            estimatedCompletionLabel: "November",
+            currentPhase: "Getting started",
+            coachInsight: "You've started strong. Consistency this week matters more than scale movement."
         ),
-        weightChartPoints: makeWeightPoints(),
-        nutritionSummary: ProgressNutritionSummary(
-            loggedDays: 18,
-            averageCalories: 1_735,
-            averageProtein: 156.4,
-            averageCarbs: 148.2,
-            averageFat: 58.7,
-            averageFiber: 22.1
+        milestones: [
+            JourneyMilestone(id: "m-0", weightKg: 90, status: .current),
+            JourneyMilestone(id: "m-1", weightKg: 86.3, status: .upcoming),
+            JourneyMilestone(id: "m-2", weightKg: 82.5, status: .upcoming),
+            JourneyMilestone(id: "m-3", weightKg: 78.8, status: .upcoming),
+            JourneyMilestone(id: "m-4", weightKg: 75, status: .upcoming)
+        ],
+        weeklySnapshot: JourneyWeeklySnapshot(
+            workoutDays: 3,
+            proteinDaysAchieved: 5,
+            proteinDaysTotal: 7,
+            waterDaysAchieved: 4,
+            waterDaysTotal: 7,
+            averageCalorieDeficit: 320,
+            averageCaloriesBurned: 285,
+            averageTrainingDurationMinutes: 42
         ),
-        waterSummary: ProgressWaterSummary(
-            loggedDays: 18,
-            averageWaterMl: 2_650,
-            averageWaterTargetMl: 3_200,
-            consistencyPercent: 0.72
+        coachInsights: [
+            JourneyCoachInsight(id: "protein", message: "You maintained excellent protein intake this week."),
+            JourneyCoachInsight(id: "water", message: "Water intake decreased this week. Front-load hydration earlier in the day."),
+            JourneyCoachInsight(id: "training", message: "Training consistency is building — that's what compounds results.")
+        ],
+        consistencyCalendar: JourneyConsistencyCalendar(
+            monthTitle: today.formatted(.dateTime.month(.wide).year()),
+            weekdaySymbols: Calendar.current.shortWeekdaySymbols,
+            days: [],
+            completedCount: 12
         ),
-        maintenanceEstimate: MaintenanceEstimate(
-            days: 18,
-            averageCalories: 1_735,
-            weightChangeKg: -1.2,
-            estimatedDailyDeficit: 513,
-            estimatedMaintenanceCalories: 2_248,
-            confidence: .high,
-            hasEnoughData: true
+        achievements: [
+            JourneyAchievement(id: "first-workout", title: "First workout", isUnlocked: true),
+            JourneyAchievement(id: "first-week", title: "First week", isUnlocked: true),
+            JourneyAchievement(id: "first-kg", title: "Lost first kilogram", isUnlocked: false),
+            JourneyAchievement(id: "14-day", title: "14-day consistency", isUnlocked: false)
+        ],
+        weightTrend: JourneyWeightTrendState(
+            chartPoints: makeWeightPoints(),
+            interpretation: "The trend is moving toward your goal. Stay patient through normal daily fluctuations."
         ),
-        goalProjection: ProgressProjection(
-            currentWeightKg: 88.9,
-            goalWeightKg: 82.0,
-            remainingKg: -6.9,
-            weeklyRateKg: -0.5,
-            estimatedWeeksToGoal: 13.8,
-            projectedGoalDate: Calendar.current.date(byAdding: .day, value: 97, to: today),
-            confidence: .high
+        analytics: ProgressAnalyticsDetail(
+            nutritionSummary: ProgressNutritionSummary(
+                loggedDays: 18,
+                averageCalories: 1_735,
+                averageProtein: 156.4,
+                averageCarbs: 148.2,
+                averageFat: 58.7,
+                averageFiber: 22.1
+            ),
+            waterSummary: ProgressWaterSummary(
+                loggedDays: 18,
+                averageWaterMl: 2_650,
+                averageWaterTargetMl: 3_200,
+                consistencyPercent: 0.72
+            ),
+            workoutSummary: ProgressWorkoutSummary(
+                workoutCount: 9,
+                totalEstimatedCaloriesBurned: 2_850,
+                averageWorkoutsPerWeek: 2.25,
+                averageDurationMinutes: 42
+            ),
+            weightChartPoints: makeWeightPoints()
         ),
-        workoutSummary: ProgressWorkoutSummary(
-            workoutCount: 9,
-            totalEstimatedCaloriesBurned: 2_850,
-            averageWorkoutsPerWeek: 2.25
-        ),
-        hasEnoughData: true
+        hasProfile: true
     )
 
     private static func makeWeightPoints() -> [WeightChartPoint] {
@@ -66,11 +91,9 @@ enum ProgressPreviewData {
             guard let date = Calendar.current.date(byAdding: .day, value: -9 + index, to: today) else {
                 return nil
             }
-            let weight = 90.2 - (Double(index) * 0.14)
             return WeightChartPoint(
                 date: date,
-                weightKg: weight,
-                sevenDayAverageKg: weight + 0.1
+                weightKg: 90.2 - (Double(index) * 0.14)
             )
         }
     }

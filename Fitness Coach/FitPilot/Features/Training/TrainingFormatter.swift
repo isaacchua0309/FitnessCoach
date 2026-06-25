@@ -20,6 +20,19 @@ enum TrainingFormatter {
         return "\(minutes) min"
     }
 
+    static func totalDuration(_ minutes: Int) -> String {
+        guard minutes > 0 else { return "0 min" }
+        if minutes < 60 {
+            return "\(minutes) min"
+        }
+        let hours = minutes / 60
+        let remainder = minutes % 60
+        if remainder == 0 {
+            return "\(hours)h"
+        }
+        return "\(hours)h \(remainder)m"
+    }
+
     static func calories(_ calories: Int?) -> String? {
         guard let calories else { return nil }
         return "\(calories) kcal"

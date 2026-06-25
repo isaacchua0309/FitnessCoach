@@ -10,6 +10,11 @@
 import Foundation
 
 enum ProgressFormatter {
+    static func compactKg(_ value: Double?) -> String {
+        guard let value else { return "—" }
+        return String(format: "%.1f kg", value)
+    }
+
     static func kg(_ value: Double?) -> String {
         guard let value else { return "--" }
         return String(format: "%.2f kg", value)
@@ -55,6 +60,11 @@ enum ProgressFormatter {
         return value.formatted(date: .abbreviated, time: .omitted)
     }
 
+    static func monthYear(_ value: Date?) -> String {
+        guard let value else { return "—" }
+        return value.formatted(.dateTime.month(.abbreviated).year())
+    }
+
     static func trendDirection(_ direction: WeightTrendDirection) -> String {
         switch direction {
         case .decreasing:
@@ -76,6 +86,14 @@ enum ProgressFormatter {
             return "Medium confidence"
         case .low:
             return "Low confidence"
+        }
+    }
+
+    static func shortConfidence(_ confidence: ConfidenceLevel) -> String {
+        switch confidence {
+        case .high: return "High"
+        case .medium: return "Medium"
+        case .low: return "Low"
         }
     }
 }

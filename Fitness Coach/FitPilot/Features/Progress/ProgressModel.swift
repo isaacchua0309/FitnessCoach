@@ -2,10 +2,7 @@
 //  ProgressModel.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Feature model for read-only progress analytics.
-//
-//  ProgressModel reads through services and uses deterministic calculators. It
-//  does not access SwiftData directly, call AI, or mutate logs.
+//  FitPilot AI — Read-only Journey transformation state.
 //
 
 import Combine
@@ -46,9 +43,11 @@ final class ProgressModel: ObservableObject {
     func refresh() async {
         do {
             let state = try makeDashboardState(rangeDays: selectedRangeDays)
-            viewState = state.hasEnoughData ? .loaded(state) : .empty
+            viewState = state.hasProfile ? .loaded(state) : .empty
+        } catch ServiceError.missingUserProfile {
+            viewState = .empty
         } catch {
-            viewState = .error("Could not load progress trends.")
+            viewState = .error("Could not load your journey.")
         }
     }
 
@@ -60,67 +59,140 @@ final class ProgressModel: ObservableObject {
     // MARK: State Building
 
     private func makeDashboardState(rangeDays: Int) throws -> ProgressDashboardState {
+        let calendar = Calendar.current
         let endDate = Date()
-        let startDate = Calendar.current.date(
-            byAdding: .day,
-            value: -rangeDays + 1,
-            to: endDate
-        ) ?? endDate
+        let startDate = calendar.date(byAdding: .day, value: -rangeDays + 1, to: endDate) ?? endDate
+        let weekStart = calendar.date(byAdding: .day, value: -6, to: endDate) ?? endDate
+        let prevWeekStart = calendar.date(byAdding: .day, value: -13, to: endDate) ?? endDate
+        let prevWeekEnd = calendar.date(byAdding: .day, value: -7, to: endDate) ?? endDate
+        let allTimeStart = calendar.date(byAdding: .day, value: -365, to: endDate) ?? endDate
 
         let logs = try dailyLogService.getLogs(from: startDate, to: endDate)
+        let weekLogs = try dailyLogService.getLogs(from: weekStart, to: endDate)
+        let previousWeekLogs = try dailyLogService.getLogs(from: prevWeekStart, to: prevWeekEnd)
+        let maturityLogs = try dailyLogService.getLogs(from: allTimeStart, to: endDate)
+
         let weights = try weightLogService.getWeightEntries(from: startDate, to: endDate)
+        let allWeights = try weightLogService.getWeightEntries(from: allTimeStart, to: endDate)
+
         let workouts = try workoutLogService.getWorkoutHistory(days: rangeDays)
             .filter { $0.createdAt >= startDate && $0.createdAt <= endDate }
+        let weekWorkouts = try workoutLogService.getWorkoutHistory(days: 7)
+            .filter { $0.createdAt >= weekStart && $0.createdAt <= endDate }
+        let allWorkouts = try workoutLogService.getWorkoutHistory(days: 365)
+
         let profile = try userProfileService.getCurrentProfile()
 
         let weightTrend = WeightTrendCalculator.trend(from: weights, endingOn: endDate)
         let weightSummary = ProgressWeightSummary(
             latestWeightKg: weightTrend.latestWeightKg,
-            sevenDayAverageKg: weightTrend.sevenDayAverageKg,
-            previousSevenDayAverageKg: weightTrend.previousSevenDayAverageKg,
             changeKg: weightTrend.changeKg ?? WeightTrendCalculator.weightChange(from: weights),
             direction: weightTrend.direction,
             hasSuddenSpike: weightTrend.hasSuddenSpike
         )
 
-        let maintenanceEstimate = MaintenanceCalculator.estimateMaintenance(
-            logs: logs,
-            weights: weights
-        )
+        let currentWeight = weightSummary.latestWeightKg ?? profile?.currentWeightKg
+        let nutritionSummary = makeNutritionSummary(logs: logs)
+        let waterSummary = makeWaterSummary(logs: logs)
+        let workoutSummary = makeWorkoutSummary(workouts: workouts, rangeDays: rangeDays)
 
         let goalProjection = profile.map {
             ProgressProjectionCalculator.projection(
-                weights: weights,
+                weights: allWeights,
                 goalWeightKg: $0.goalWeightKg,
                 asOf: endDate
             )
         }
 
+        let loggedDays = meaningfulLoggedDays(from: maturityLogs, weights: allWeights)
+        let journeyStart = JourneyStateBuilder.journeyStartDate(
+            profile: profile,
+            logs: maturityLogs,
+            weights: allWeights
+        )
+
+        let sortedAllWeights = allWeights.sorted { $0.date < $1.date }
+        let startWeight = sortedAllWeights.first?.weightKg ?? profile?.currentWeightKg
+
+        let transformation = JourneyStateBuilder.transformation(
+            profile: profile,
+            currentWeightKg: currentWeight,
+            projection: goalProjection,
+            weightDirection: weightSummary.direction,
+            journeyStartDate: journeyStart,
+            loggedDays: loggedDays
+        )
+
+        let milestones = JourneyStateBuilder.milestones(
+            startWeight: startWeight,
+            currentWeight: currentWeight,
+            goalWeight: profile?.goalWeightKg
+        )
+
+        let weeklySnapshot = JourneyStateBuilder.weeklySnapshot(
+            weekLogs: weekLogs,
+            weekWorkouts: weekWorkouts
+        )
+
+        let coachInsights = JourneyStateBuilder.coachInsights(
+            weekLogs: weekLogs,
+            previousWeekLogs: previousWeekLogs,
+            weekWorkouts: weekWorkouts,
+            weightSummary: weightSummary,
+            nutrition: nutritionSummary,
+            water: waterSummary
+        )
+
+        let consistencyCalendar = JourneyStateBuilder.consistencyCalendar(
+            logs: maturityLogs,
+            workouts: allWorkouts,
+            weights: allWeights
+        )
+
+        let achievements = JourneyStateBuilder.achievements(
+            logs: maturityLogs,
+            workouts: allWorkouts,
+            weights: allWeights,
+            profile: profile
+        )
+
+        let weightChartPoints = makeWeightChartPoints(weights: weights)
+
         return ProgressDashboardState(
             selectedRangeDays: rangeDays,
-            weightSummary: weightSummary,
-            weightChartPoints: makeWeightChartPoints(weights: weights),
-            nutritionSummary: makeNutritionSummary(logs: logs),
-            waterSummary: makeWaterSummary(logs: logs),
-            maintenanceEstimate: maintenanceEstimate,
-            goalProjection: goalProjection,
-            workoutSummary: makeWorkoutSummary(workouts: workouts, rangeDays: rangeDays),
-            hasEnoughData: !logs.isEmpty || !weights.isEmpty
+            transformation: transformation,
+            milestones: milestones,
+            weeklySnapshot: weeklySnapshot,
+            coachInsights: coachInsights,
+            consistencyCalendar: consistencyCalendar,
+            achievements: achievements,
+            weightTrend: JourneyWeightTrendState(
+                chartPoints: weightChartPoints,
+                interpretation: JourneyStateBuilder.weightTrendInterpretation(summary: weightSummary)
+            ),
+            analytics: ProgressAnalyticsDetail(
+                nutritionSummary: nutritionSummary,
+                waterSummary: waterSummary,
+                workoutSummary: workoutSummary,
+                weightChartPoints: weightChartPoints
+            ),
+            hasProfile: profile != nil
         )
     }
 
+    // MARK: Helpers
+
+    private func meaningfulLoggedDays(from logs: [DailyLog], weights: [WeightEntry]) -> Int {
+        let logDays = Set(logs.filter { $0.totals.calories > 0 || $0.waterConsumedMl > 0 }.map {
+            Calendar.current.startOfDay(for: $0.date)
+        })
+        let weightDays = Set(weights.map { Calendar.current.startOfDay(for: $0.date) })
+        return logDays.union(weightDays).count
+    }
+
     private func makeWeightChartPoints(weights: [WeightEntry]) -> [WeightChartPoint] {
-        let sorted = weights.sorted { $0.date < $1.date }
-        return sorted.map { entry in
-            WeightChartPoint(
-                date: entry.date,
-                weightKg: entry.weightKg,
-                sevenDayAverageKg: WeightTrendCalculator.averageWeight(
-                    from: sorted,
-                    days: 7,
-                    endingOn: entry.date
-                )
-            )
+        weights.sorted { $0.date < $1.date }.map {
+            WeightChartPoint(date: $0.date, weightKg: $0.weightKg)
         }
     }
 
@@ -190,11 +262,16 @@ final class ProgressModel: ObservableObject {
 
         let totalCalories = workouts.reduce(0) { $0 + ($1.estimatedCaloriesBurned ?? 0) }
         let weeks = max(Double(rangeDays) / 7.0, 1.0)
+        let durations = workouts.compactMap(\.durationMinutes)
+        let avgDuration = durations.isEmpty
+            ? nil
+            : Int((Double(durations.reduce(0, +)) / Double(durations.count)).rounded())
 
         return ProgressWorkoutSummary(
             workoutCount: workouts.count,
             totalEstimatedCaloriesBurned: totalCalories,
-            averageWorkoutsPerWeek: Double(workouts.count) / weeks
+            averageWorkoutsPerWeek: Double(workouts.count) / weeks,
+            averageDurationMinutes: avgDuration
         )
     }
 

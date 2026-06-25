@@ -2,7 +2,7 @@
 //  ProfileView.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Profile and settings screen.
+//  FitPilot AI — Plan: what strategy am I following?
 //
 
 import SwiftUI
@@ -14,16 +14,7 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             content
-                .navigationTitle("Profile")
-                .toolbar {
-                    if case .loaded = model.viewState {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button("Edit") {
-                                model.showEditProfile()
-                            }
-                        }
-                    }
-                }
+                .navigationTitle("Plan")
                 .task {
                     await model.loadProfile()
                 }
@@ -40,20 +31,37 @@ struct ProfileView: View {
                 }
                 .sheet(isPresented: $model.isShowingEditSheet) {
                     if let formState = model.editFormState {
-                        ProfileEditSheet(
+                        PlanEditWizard(
                             formState: Binding(
                                 get: { model.editFormState ?? formState },
                                 set: { model.editFormState = $0 }
                             ),
                             errorMessage: model.formErrorMessage,
                             onSave: { state in
-                                await model.saveProfile(state)
+                                await model.savePlanFromWizard(state)
                             },
                             onCancel: {
-                                model.dismissEditProfile()
+                                model.dismissEditPlan()
                             },
                             onRegenerate: { state in
                                 await model.previewRegeneratedTargets(from: state)
+                            }
+                        )
+                    }
+                }
+                .sheet(isPresented: $model.isShowingSettingsSheet) {
+                    if let formState = model.editFormState {
+                        ProfileSettingsSheet(
+                            formState: Binding(
+                                get: { model.editFormState ?? formState },
+                                set: { model.editFormState = $0 }
+                            ),
+                            errorMessage: model.formErrorMessage,
+                            onSave: { state in
+                                await model.saveSettings(state)
+                            },
+                            onCancel: {
+                                model.dismissSettings()
                             }
                         )
                     }
@@ -98,57 +106,29 @@ struct ProfileView: View {
 
     private func dashboard(_ state: ProfileDashboardState) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                ProfileSummaryCard(summary: state.profileSummary)
-
-                readOnlySection(title: "Targets") {
-                    readOnlyRow("Calories", state.targetSummary.calorieTargetText)
-                    readOnlyRow("Protein", state.targetSummary.proteinTargetText)
-                    readOnlyRow("Carbs", state.targetSummary.carbTargetText)
-                    readOnlyRow("Fat", state.targetSummary.fatTargetText)
-                    readOnlyRow("Water", state.targetSummary.waterTargetText)
-                    readOnlyRow("Aggressiveness", state.targetSummary.aggressivenessText)
-                    if let weeklyLoss = state.targetSummary.expectedWeeklyLossText {
-                        readOnlyRow("Expected weekly loss", weeklyLoss)
-                    }
+            VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
+                PlanStrategyHeroSection(state: state.strategy) {
+                    model.showEditPlan()
                 }
 
-                readOnlySection(title: "Activity") {
-                    readOnlyRow("Activity level", state.activitySummary.activityLevelText)
-                    readOnlyRow("Training frequency", state.activitySummary.trainingFrequencyText)
-                    readOnlyRow("Average steps", state.activitySummary.averageStepsText)
-                }
+                PlanTodaysTargetsSection(targets: state.todaysTargets)
 
-                readOnlySection(title: "Preferences") {
-                    readOnlyRow("Diet preference", state.preferenceSummary.dietPreferenceText)
-                    readOnlyRow("Unit system", state.preferenceSummary.unitSystemText)
+                PlanRationaleSection(rationale: state.rationale)
+
+                PlanAdaptiveCoachSection(state: state.adaptiveCoach)
+
+                PlanLifestyleSection(lifestyle: state.lifestyle)
+
+                PlanTimelineSection(timeline: state.timeline)
+
+                PlanAboutYouSection(aboutYou: state.aboutYou)
+
+                PlanSettingsSection {
+                    model.showSettings()
                 }
             }
-            .padding()
-        }
-    }
-
-    private func readOnlySection(title: String, @ViewBuilder content: () -> some View) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.headline)
-            VStack(spacing: 10) {
-                content()
-            }
-            .padding()
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        }
-    }
-
-    private func readOnlyRow(_ title: String, _ value: String) -> some View {
-        HStack {
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            Spacer()
-            Text(value)
-                .font(.subheadline.weight(.medium))
-                .multilineTextAlignment(.trailing)
+            .padding(.horizontal, PlanLayout.horizontalPadding)
+            .padding(.vertical, 24)
         }
     }
 }
@@ -157,4 +137,17 @@ struct ProfileView: View {
     let container = try! AppContainer(inMemory: true)
     ProfileView(model: container.makeProfileModel())
         .environmentObject(container.refreshCenter)
+}
+
+#Preview("Loaded Plan") {
+    ScrollView {
+        VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
+            PlanStrategyHeroSection(state: ProfilePreviewData.state.strategy, onEditPlan: {})
+            PlanTodaysTargetsSection(targets: ProfilePreviewData.state.todaysTargets)
+            PlanRationaleSection(rationale: ProfilePreviewData.state.rationale)
+            PlanAdaptiveCoachSection(state: ProfilePreviewData.state.adaptiveCoach)
+        }
+        .padding(.horizontal, PlanLayout.horizontalPadding)
+        .padding(.vertical, 24)
+    }
 }

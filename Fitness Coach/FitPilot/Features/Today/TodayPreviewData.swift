@@ -43,7 +43,19 @@ enum TodayPreviewData {
         foodEntries: foodEntries,
         hasDailyLog: true,
         dailyReview: nil,
-        coachingNote: "Prioritize lean protein in your next meal."
+        coachingNote: "Prioritize lean protein in your next meal.",
+        dailyBrief: TodayDailyBrief(
+            greeting: "Good morning.",
+            priorities: [
+                "Aim for 170g protein today.",
+                "Drink 3.5L water.",
+                "Training day — fuel with 40–60g carbs pre-workout.",
+                "1090 kcal remaining for today."
+            ],
+            recommendation: "Prioritize lean protein in your next meal."
+        ),
+        streaks: StreakSummary(loggingStreak: 5, proteinStreak: 3, hydrationStreak: 2, workoutStreak: 1),
+        userName: "Isaac"
     )
 
     static let foodEntries: [FoodEntry] = [

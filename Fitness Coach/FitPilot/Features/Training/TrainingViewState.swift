@@ -2,7 +2,7 @@
 //  TrainingViewState.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Screen-level state for Training.
+//  FitPilot AI — Screen-level state for Training intelligence.
 //
 
 import Foundation
@@ -10,6 +10,5 @@ import Foundation
 enum TrainingViewState: Equatable {
     case loading
     case loaded(TrainingDashboardState)
-    case empty
     case error(String)
 }

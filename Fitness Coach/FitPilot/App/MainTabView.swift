@@ -19,6 +19,8 @@ struct MainTabView: View {
 
     private let container: AppContainer
 
+    @Environment(\.scenePhase) private var scenePhase
+
     @StateObject private var todayModel: TodayModel
     @StateObject private var coachModel: CoachModel
     @StateObject private var progressModel: ProgressModel
@@ -38,8 +40,9 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            TodayView(model: todayModel) {
-                selectedTab = .training
+            TodayView(model: todayModel) { prefill in
+                coachModel.prepareInput(prefill: prefill)
+                selectedTab = .coach
             }
             .tabItem {
                 Label("Today", systemImage: "house")
@@ -54,7 +57,7 @@ struct MainTabView: View {
 
             ProgressView(model: progressModel)
                 .tabItem {
-                    Label("Progress", systemImage: "chart.line.uptrend.xyaxis")
+                    Label("Journey", systemImage: "chart.line.uptrend.xyaxis")
                 }
             .tag(AppTab.progress)
 
@@ -66,11 +69,16 @@ struct MainTabView: View {
 
             ProfileView(model: profileModel)
                 .tabItem {
-                    Label("Profile", systemImage: "person.crop.circle")
+                    Label("Plan", systemImage: "target")
                 }
             .tag(AppTab.profile)
         }
         .environmentObject(container.refreshCenter)
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                container.refreshCenter.refreshIfDayChanged()
+            }
+        }
     }
 }
 

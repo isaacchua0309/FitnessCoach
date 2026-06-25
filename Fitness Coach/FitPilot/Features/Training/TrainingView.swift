@@ -2,7 +2,9 @@
 //  TrainingView.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Basic Training screen for workout logging.
+//  FitPilot AI — Read-only Training intelligence dashboard.
+//
+//  Answers: "How is my training going?" Workout logging lives in Coach only.
 //
 
 import SwiftUI
@@ -18,11 +20,11 @@ struct TrainingView: View {
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
-                            model.showAddWorkout()
+                            Task { await model.refresh() }
                         } label: {
-                            Image(systemName: "plus")
+                            Image(systemName: "arrow.clockwise")
                         }
-                        .accessibilityLabel("Add workout")
+                        .accessibilityLabel("Refresh training")
                     }
                 }
                 .task {
@@ -36,24 +38,8 @@ struct TrainingView: View {
                         Task { await model.refresh() }
                     }
                 }
-                .sheet(isPresented: $model.isShowingWorkoutEntrySheet) {
-                    WorkoutEntrySheet(
-                        errorMessage: model.formErrorMessage,
-                        onSave: { formState in
-                            await model.addWorkout(formState)
-                        },
-                        onCancel: {
-                            model.dismissAddWorkout()
-                        }
-                    )
-                }
                 .sheet(item: $model.selectedWorkout) { workout in
-                    WorkoutDetailView(
-                        workout: workout,
-                        onDelete: { id in
-                            await model.deleteWorkout(id: id)
-                        }
-                    )
+                    WorkoutDetailView(workout: workout)
                 }
         }
     }
@@ -63,15 +49,9 @@ struct TrainingView: View {
         switch model.viewState {
         case .loading:
             TrainingLoadingView()
-        case .empty:
-            TrainingEmptyStateView {
-                model.showAddWorkout()
-            }
         case .error(let message):
             TrainingErrorView(message: message) {
-                Task {
-                    await model.refresh()
-                }
+                Task { await model.refresh() }
             }
         case .loaded(let state):
             dashboard(state)
@@ -80,38 +60,16 @@ struct TrainingView: View {
 
     private func dashboard(_ state: TrainingDashboardState) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                TrainingWorkoutSummaryCard(summary: state.summary)
-
-                WorkoutListView(
-                    title: "Today",
-                    workouts: state.todaysWorkouts,
-                    emptyMessage: "No workouts today.",
-                    onSelect: { workout in
-                        model.selectWorkout(workout)
-                    },
-                    onDelete: { id in
-                        Task {
-                            await model.deleteWorkout(id: id)
-                        }
-                    }
-                )
-
-                WorkoutListView(
-                    title: "Recent Workouts",
-                    workouts: state.recentWorkouts,
-                    emptyMessage: "No recent workouts.",
-                    onSelect: { workout in
-                        model.selectWorkout(workout)
-                    },
-                    onDelete: { id in
-                        Task {
-                            await model.deleteWorkout(id: id)
-                        }
-                    }
-                )
+            VStack(alignment: .leading, spacing: TrainingLayout.sectionSpacing) {
+                TrainingHeroSection(hero: state.hero)
+                TrainingWeeklySummarySection(weekly: state.weekly)
+                TrainingMuscleDistributionSection(items: state.muscleDistribution)
+                TrainingRecentWorkoutsSection(workouts: state.recentWorkouts) { workout in
+                    model.selectWorkout(workout)
+                }
             }
-            .padding()
+            .padding(.horizontal, TrainingLayout.horizontalPadding)
+            .padding(.vertical, 16)
         }
         .refreshable {
             await model.refresh()

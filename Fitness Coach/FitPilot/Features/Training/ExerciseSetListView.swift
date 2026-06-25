@@ -17,29 +17,25 @@ struct ExerciseSetListView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Exercise Sets")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: TrainingLayout.itemSpacing) {
+            TrainingSectionLabel(title: "Exercises")
 
             if sets.isEmpty {
-                Text("No sets logged.")
+                Text("No exercise detail was parsed for this workout.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(groupedSets, id: \.0) { exerciseName, exerciseSets in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(exerciseName)
-                            .font(.subheadline.weight(.semibold))
+                VStack(alignment: .leading, spacing: 16) {
+                    ForEach(groupedSets, id: \.0) { exerciseName, exerciseSets in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(exerciseName)
+                                .font(.subheadline.weight(.semibold))
 
-                        ForEach(exerciseSets) { set in
-                            HStack {
+                            ForEach(exerciseSets) { set in
                                 Text(TrainingFormatter.setLine(set))
                                     .font(.subheadline)
-                                Spacer()
+                                    .foregroundStyle(.secondary)
                             }
-                            .padding(.vertical, 6)
-                            .padding(.horizontal, 10)
-                            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
                     }
                 }

@@ -31,6 +31,16 @@ enum TrainingPreviewData {
             weightKg: 90,
             rpe: 8.5,
             createdAt: now
+        ),
+        ExerciseSet(
+            id: UUID(),
+            workoutEntryId: workoutId,
+            exerciseName: "Barbell Row",
+            setNumber: 1,
+            reps: 8,
+            weightKg: 70,
+            rpe: 7.5,
+            createdAt: now
         )
     ]
 
@@ -55,7 +65,7 @@ enum TrainingPreviewData {
         estimatedCaloriesText: TrainingFormatter.calories(workout.estimatedCaloriesBurned),
         intensityText: TrainingFormatter.intensity(workout.intensity),
         recoveryDemandText: TrainingFormatter.recovery(workout.recoveryDemand),
-        exerciseCount: 1,
+        exerciseCount: 2,
         setCount: sets.count,
         totalVolumeKg: WorkoutCalorieCalculator.totalVolumeKg(from: sets),
         notes: workout.notes,
@@ -63,15 +73,32 @@ enum TrainingPreviewData {
         exerciseSets: sets
     )
 
+    static let muscleDistribution: [MuscleDistributionItem] = [
+        MuscleDistributionItem(name: "Chest", setCount: 2, progress: 1),
+        MuscleDistributionItem(name: "Back", setCount: 1, progress: 0.5)
+    ]
+
+    static let hero = TrainingHeroState(
+        hasWorkoutToday: true,
+        primaryWorkout: item,
+        lastWorkout: item
+    )
+
+    static let restDayHero = TrainingHeroState(
+        hasWorkoutToday: false,
+        primaryWorkout: nil,
+        lastWorkout: item
+    )
+
     static let state = TrainingDashboardState(
-        selectedDate: now,
-        todaysWorkouts: [item],
-        recentWorkouts: [item],
-        summary: TrainingSummary(
-            workoutCountToday: 1,
-            workoutCountInRecentRange: 1,
-            estimatedCaloriesBurnedToday: 310,
-            totalVolumeTodayKg: WorkoutCalorieCalculator.totalVolumeKg(from: sets)
-        )
+        hero: hero,
+        weekly: TrainingWeeklySummary(
+            workoutsCompleted: 3,
+            totalCalories: 890,
+            totalDurationMinutes: 165,
+            trainingStreak: 2
+        ),
+        muscleDistribution: muscleDistribution,
+        recentWorkouts: [item]
     )
 }

@@ -2,7 +2,7 @@
 //  TodayModel.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Feature model for the Today dashboard.
+//  FitPilot AI — Read-only Today status. All mutations happen in Coach.
 //
 
 import Combine
@@ -12,38 +12,28 @@ import Foundation
 final class TodayModel: ObservableObject {
 
     @Published private(set) var viewState: TodayViewState = .loading
-    @Published private(set) var isGeneratingDailyReview = false
-    @Published var isShowingFoodEntrySheet = false
-    @Published private(set) var editingFoodEntry: FoodEntry?
-    @Published private(set) var foodEntryErrorMessage: String?
 
     private let dailyLogService: DailyLogService
     private let foodLogService: FoodLogService
-    private let waterLogService: WaterLogService
-    private let weightLogService: WeightLogService
     private let workoutLogService: WorkoutLogService
-    private let targetService: TargetService
+    private let weightLogService: WeightLogService
     private let reviewService: ReviewService
-    private let refreshCenter: AppRefreshCenter
+    private let userProfileService: UserProfileService
 
     init(
         dailyLogService: DailyLogService,
         foodLogService: FoodLogService,
-        waterLogService: WaterLogService,
-        weightLogService: WeightLogService,
         workoutLogService: WorkoutLogService,
-        targetService: TargetService,
+        weightLogService: WeightLogService,
         reviewService: ReviewService,
-        refreshCenter: AppRefreshCenter
+        userProfileService: UserProfileService
     ) {
         self.dailyLogService = dailyLogService
         self.foodLogService = foodLogService
-        self.waterLogService = waterLogService
-        self.weightLogService = weightLogService
         self.workoutLogService = workoutLogService
-        self.targetService = targetService
+        self.weightLogService = weightLogService
         self.reviewService = reviewService
-        self.refreshCenter = refreshCenter
+        self.userProfileService = userProfileService
     }
 
     // MARK: Loading
@@ -69,144 +59,6 @@ final class TodayModel: ObservableObject {
         }
     }
 
-    // MARK: Actions
-
-    func startNewDay() async {
-        do {
-            _ = try dailyLogService.startNewDay(weightKg: nil)
-            try loadDashboard()
-            notifyDataChanged()
-        } catch ServiceError.missingUserProfile {
-            viewState = .empty
-        } catch {
-            viewState = .error("Could not start a new day.")
-        }
-    }
-
-    func addWater(amountMl: Int) async {
-        do {
-            _ = try waterLogService.addWater(amountMl: amountMl, date: Date())
-            try loadDashboard()
-            notifyDataChanged()
-        } catch ServiceError.missingUserProfile {
-            viewState = .empty
-        } catch ServiceError.invalidInput(let message) {
-            viewState = .error(message)
-        } catch {
-            viewState = .error("Could not save water entry.")
-        }
-    }
-
-    func undoLastWater() async {
-        do {
-            guard try waterLogService.undoLastWaterEntry(date: Date()) != nil else {
-                viewState = .error("There was no water entry to undo.")
-                return
-            }
-            try loadDashboard()
-            notifyDataChanged()
-        } catch ServiceError.missingUserProfile {
-            viewState = .empty
-        } catch {
-            viewState = .error("Could not undo water entry.")
-        }
-    }
-
-    func logWeight(_ weightKg: Double) async {
-        do {
-            _ = try weightLogService.logWeight(weightKg, date: Date())
-            try loadDashboard()
-            notifyDataChanged()
-        } catch {
-            viewState = .error("Could not log weight.")
-        }
-    }
-
-    func generateDailyReview() async {
-        guard !isGeneratingDailyReview else { return }
-        isGeneratingDailyReview = true
-        defer { isGeneratingDailyReview = false }
-
-        do {
-            _ = try await reviewService.generateDailyReview(for: Date())
-            try loadDashboard()
-            notifyDataChanged()
-        } catch ServiceError.missingUserProfile {
-            viewState = .empty
-        } catch {
-            viewState = .error("Could not generate your daily review.")
-        }
-    }
-
-    // MARK: Food Entry Sheet
-
-    func showAddFood() {
-        foodEntryErrorMessage = nil
-        editingFoodEntry = nil
-        isShowingFoodEntrySheet = true
-    }
-
-    func showEditFood(_ entry: FoodEntry) {
-        foodEntryErrorMessage = nil
-        editingFoodEntry = entry
-        isShowingFoodEntrySheet = true
-    }
-
-    func dismissFoodEditor() {
-        foodEntryErrorMessage = nil
-        editingFoodEntry = nil
-        isShowingFoodEntrySheet = false
-    }
-
-    func saveFoodEntry(_ formState: FoodEntryFormState) async {
-        do {
-            if let editingFoodEntry {
-                let update = try formState.makeFoodEntryUpdate()
-                _ = try foodLogService.editFoodEntry(id: editingFoodEntry.id, update: update)
-            } else {
-                let draft = try formState.makeFoodDraft()
-                _ = try foodLogService.addFoodEntry(draft, date: Date())
-            }
-            dismissFoodEditor()
-            try loadDashboard()
-            notifyDataChanged()
-        } catch let error as FoodEntryFormError {
-            foodEntryErrorMessage = error.localizedDescription
-        } catch ServiceError.invalidInput(let message) {
-            foodEntryErrorMessage = message
-        } catch ServiceError.foodEntryNotFound {
-            foodEntryErrorMessage = "That food entry could not be found."
-        } catch ServiceError.missingUserProfile {
-            viewState = .empty
-            dismissFoodEditor()
-        } catch {
-            foodEntryErrorMessage = "Could not save food entry."
-        }
-    }
-
-    func deleteFoodEntry(_ entry: FoodEntry) async {
-        do {
-            try foodLogService.deleteFoodEntry(id: entry.id)
-            if editingFoodEntry?.id == entry.id {
-                dismissFoodEditor()
-            }
-            try loadDashboard()
-            notifyDataChanged()
-        } catch ServiceError.foodEntryNotFound {
-            if isShowingFoodEntrySheet {
-                foodEntryErrorMessage = "That food entry could not be found."
-            } else {
-                viewState = .error("That food entry could not be found.")
-            }
-        } catch {
-            if isShowingFoodEntrySheet {
-                foodEntryErrorMessage = "Could not delete food entry."
-            } else {
-                viewState = .error("Could not delete food entry.")
-            }
-        }
-    }
-
     // MARK: State Building
 
     private func loadDashboard() throws {
@@ -217,7 +69,7 @@ final class TodayModel: ObservableObject {
         let dailyReview = try reviewService.getDailyReview(for: dailyLog.date)
 
         viewState = .loaded(
-            makeDashboardState(
+            try makeDashboardState(
                 dailyLog: dailyLog,
                 foodEntries: foodEntries,
                 workouts: workouts,
@@ -233,7 +85,7 @@ final class TodayModel: ObservableObject {
         workouts: [WorkoutEntry],
         latestWeight: WeightEntry?,
         dailyReview: DailyReview?
-    ) -> TodayDashboardState {
+    ) throws -> TodayDashboardState {
         let targets = MacroCalculator.macroTargets(from: dailyLog.targets)
         let remaining = MacroCalculator.remaining(targets: targets, totals: dailyLog.totals)
 
@@ -282,13 +134,25 @@ final class TodayModel: ObservableObject {
         let displayWeight = dailyLog.weightKg ?? latestWeight?.weightKg
         let weightSummary = TodayWeightSummary(
             weightKg: displayWeight,
-            displayText: displayWeight.map { String(format: "%.2f kg", $0) } ?? "No weight logged yet"
+            displayText: displayWeight.map { String(format: "%.2f kg", $0) }
+                ?? "Not logged today"
         )
 
         let workoutSummary = TodayWorkoutSummary(
             workoutCaloriesBurned: dailyLog.workoutCaloriesBurned,
             workoutCount: workouts.count,
             hasWorkout: !workouts.isEmpty
+        )
+
+        let profile = try? userProfileService.getCurrentProfile()
+        let streaks = try buildStreaks(asOf: dailyLog.date)
+        let dailyBrief = DailyBriefBuilder.todayBrief(
+            profile: profile,
+            caloriesRemaining: remaining.calories,
+            proteinRemaining: remaining.protein,
+            waterRemainingMl: waterSummary.remainingMl,
+            hasWorkoutToday: workoutSummary.hasWorkout,
+            trainingFrequency: profile?.trainingFrequencyPerWeek ?? 0
         )
 
         return TodayDashboardState(
@@ -302,32 +166,18 @@ final class TodayModel: ObservableObject {
             foodEntries: foodEntries,
             hasDailyLog: true,
             dailyReview: dailyReview,
-            coachingNote: coachingNote(
-                calorieSummary: calorieSummary,
-                macroSummary: macroSummary,
-                waterSummary: waterSummary
-            )
+            coachingNote: dailyBrief.recommendation,
+            dailyBrief: dailyBrief,
+            streaks: streaks,
+            userName: profile?.name
         )
     }
 
-    private func coachingNote(
-        calorieSummary: CalorieSummary,
-        macroSummary: MacroSummary,
-        waterSummary: WaterSummary
-    ) -> String {
-        if calorieSummary.isOverTarget {
-            return "You are over target today, but one day does not define progress. Keep logging honestly."
-        }
-        if macroSummary.protein.remaining > 40 {
-            return "Prioritize lean protein in your next meal."
-        }
-        if waterSummary.remainingMl > 1000 {
-            return "Try to pace your water earlier in the day."
-        }
-        return "You are on track today. Keep logging meals and water consistently."
-    }
-
-    private func notifyDataChanged() {
-        refreshCenter.notifyDataChanged()
+    private func buildStreaks(asOf date: Date) throws -> StreakSummary {
+        let startDate = Calendar.current.date(byAdding: .day, value: -90, to: date) ?? date
+        let logs = try dailyLogService.getLogs(from: startDate, to: date)
+        let workouts = try workoutLogService.getWorkoutHistory(days: 90)
+        let workoutDates = Set(workouts.map { Calendar.current.startOfDay(for: $0.createdAt) })
+        return StreakCalculator.calculate(logs: logs, workoutDates: workoutDates, asOf: date)
     }
 }

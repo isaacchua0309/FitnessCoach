@@ -12,7 +12,7 @@ enum CoachPreviewData {
         ChatMessage(
             id: UUID(),
             role: .user,
-            text: "new day 90.15",
+            text: "weight 90.15",
             createdAt: Date(timeIntervalSinceNow: -240),
             relatedDailyLogId: nil,
             relatedEntryId: nil
@@ -20,7 +20,7 @@ enum CoachPreviewData {
         ChatMessage(
             id: UUID(),
             role: .assistant,
-            text: "Started a new day and logged your weight as 90.15 kg.",
+            text: "Logged your weight as 90.15 kg.",
             createdAt: Date(timeIntervalSinceNow: -235),
             relatedDailyLogId: nil,
             relatedEntryId: nil
@@ -28,18 +28,24 @@ enum CoachPreviewData {
         ChatMessage(
             id: UUID(),
             role: .user,
-            text: "log chicken breast 413 calories 78 protein 0 carbs 4 fat",
+            text: "Add 500ml water",
             createdAt: Date(timeIntervalSinceNow: -180),
-            relatedDailyLogId: nil,
-            relatedEntryId: nil
-        ),
-        ChatMessage(
-            id: UUID(),
-            role: .assistant,
-            text: "Logged chicken breast: 413 kcal, 78g protein, 0g carbs, 4g fat. Today: 413 / 1800 kcal.",
-            createdAt: Date(timeIntervalSinceNow: -175),
             relatedDailyLogId: nil,
             relatedEntryId: nil
         )
     ]
+
+    static let confirmationMessage = ChatMessage(
+        id: UUID(),
+        role: .assistant,
+        text: """
+        Logged 500ml water.
+
+        Water: 1,500 / 3,150ml
+        Remaining: 1,650ml
+        """,
+        createdAt: Date(timeIntervalSinceNow: -175),
+        relatedDailyLogId: nil,
+        relatedEntryId: nil
+    )
 }

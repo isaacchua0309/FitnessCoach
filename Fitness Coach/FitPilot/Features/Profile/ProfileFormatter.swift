@@ -106,12 +106,26 @@ enum ProfileFormatter {
             : "\(String(format: "%.1f", value)) g"
     }
 
+    static func gramsCompact(_ value: Double) -> String {
+        value.truncatingRemainder(dividingBy: 1) == 0
+            ? "\(Int(value))g"
+            : "\(String(format: "%.1f", value))g"
+    }
+
     static func ml(_ value: Int) -> String {
         "\(value) ml"
     }
 
+    static func mlCompact(_ value: Int) -> String {
+        "\(value)ml"
+    }
+
     static func steps(_ value: Int) -> String {
         "\(value) steps/day"
+    }
+
+    static func stepsCompact(_ value: Int) -> String {
+        "\(value)/day"
     }
 
     static func trainingFrequency(_ value: Int) -> String {
@@ -125,36 +139,13 @@ enum ProfileFormatter {
             : "\(String(format: "%.1f", value)) kg/week"
     }
 
-    static func dashboardState(from profile: UserProfile) -> ProfileDashboardState {
-        ProfileDashboardState(
-            profile: profile,
-            profileSummary: ProfileSummary(
-                nameText: name(profile.name),
-                ageText: age(profile.age),
-                sexText: sex(profile.sex),
-                heightText: cm(profile.heightCm),
-                currentWeightText: kg(profile.currentWeightKg),
-                goalWeightText: kg(profile.goalWeightKg),
-                bodyFatText: percent(profile.estimatedBodyFatPercentage)
-            ),
-            targetSummary: TargetSummary(
-                calorieTargetText: kcal(profile.targets.calorieTarget),
-                proteinTargetText: grams(profile.targets.proteinTarget),
-                carbTargetText: grams(profile.targets.carbTarget),
-                fatTargetText: grams(profile.targets.fatTarget),
-                waterTargetText: ml(profile.targets.waterTargetMl),
-                aggressivenessText: aggressiveness(profile.targets.aggressiveness),
-                expectedWeeklyLossText: weeklyLoss(profile.targets.expectedWeeklyWeightLossKg)
-            ),
-            activitySummary: ActivitySummary(
-                activityLevelText: activityLevel(profile.activityLevel),
-                trainingFrequencyText: trainingFrequency(profile.trainingFrequencyPerWeek),
-                averageStepsText: steps(profile.averageSteps)
-            ),
-            preferenceSummary: PreferenceSummary(
-                dietPreferenceText: dietPreference(profile.dietPreference),
-                unitSystemText: unitSystem(profile.unitSystem)
-            )
-        )
+    static func monthYear(_ date: Date?) -> String {
+        guard let date else { return "—" }
+        return date.formatted(.dateTime.month(.abbreviated).year())
+    }
+
+    static func monthYearLong(_ date: Date?) -> String {
+        guard let date else { return "—" }
+        return date.formatted(.dateTime.month(.wide).year())
     }
 }

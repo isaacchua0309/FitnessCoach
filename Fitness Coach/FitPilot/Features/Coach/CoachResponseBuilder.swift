@@ -13,21 +13,20 @@ import Foundation
 
 enum CoachResponseBuilder {
 
-    // MARK: New Day
-
-    static func newDay(weightKg: Double?) -> String {
-        if let weightKg {
-            return "Started a new day and logged your weight as \(formatWeight(weightKg)) kg."
-        }
-        return "Started a new day."
-    }
+    static let automaticDayMessage =
+        "Your day updates automatically at midnight. Each calendar day gets its own log."
 
     // MARK: Water
 
     static func water(loggedMl: Int, log: DailyLog?) -> String {
         var response = "Logged \(loggedMl)ml water."
         if let log {
-            response += " You are now at \(log.waterConsumedMl) / \(log.targets.waterTargetMl) ml."
+            let remaining = max(log.targets.waterTargetMl - log.waterConsumedMl, 0)
+            response += """
+
+            Water: \(formatWater(log.waterConsumedMl)) / \(formatWater(log.targets.waterTargetMl))ml
+            Remaining: \(formatWater(remaining))ml
+            """
         }
         return response
     }
@@ -92,6 +91,102 @@ enum CoachResponseBuilder {
         DailyReviewFormatter.coachMessage(from: review)
     }
 
+    // MARK: Meal Advice
+
+    static func mealAdvice(
+        log: DailyLog?,
+        profile: UserProfile?,
+        hasWorkoutToday: Bool,
+        assistantMessage: String?
+    ) -> String {
+        if let assistantMessage,
+           !assistantMessage.isEmpty,
+           !isGenericPlaceholder(assistantMessage) {
+            return assistantMessage
+        }
+
+        guard let log else {
+            return "Tell me what you've eaten so far and I'll suggest your next move."
+        }
+
+        let targets = MacroCalculator.macroTargets(from: log.targets)
+        let remaining = MacroCalculator.remaining(targets: targets, totals: log.totals)
+        let waterRemaining = WaterTargetCalculator.remainingMl(
+            consumedMl: log.waterConsumedMl,
+            targetMl: log.targets.waterTargetMl
+        )
+
+        let brief = DailyBriefBuilder.todayBrief(
+            profile: profile,
+            caloriesRemaining: remaining.calories,
+            proteinRemaining: remaining.protein,
+            waterRemainingMl: waterRemaining,
+            hasWorkoutToday: hasWorkoutToday,
+            trainingFrequency: profile?.trainingFrequencyPerWeek ?? 0
+        )
+
+        var lines: [String] = [brief.recommendation]
+
+        if remaining.protein > 30 {
+            lines.append("You still need about \(formatMacro(remaining.protein))g protein today.")
+        } else {
+            lines.append("Protein is on track at \(formatMacro(log.totals.protein))g of \(formatMacro(targets.protein))g.")
+        }
+
+        if remaining.calories > 0 {
+            lines.append("\(remaining.calories) kcal left — use them for nutrient-dense food, not empty snacks.")
+        } else if remaining.calories < 0 {
+            lines.append("You're \(abs(remaining.calories)) kcal over target. Keep the next meal lean and portion-controlled.")
+        }
+
+        if waterRemaining > 400 {
+            lines.append("Drink \(formatWater(waterRemaining))ml more water to stay on pace.")
+        }
+
+        return lines.joined(separator: " ")
+    }
+
+    static func tomorrowFocus(
+        log: DailyLog?,
+        profile: UserProfile?,
+        hasWorkoutToday: Bool
+    ) -> String {
+        guard let log, let profile else {
+            return "Set up your plan first, then I can help you prioritize tomorrow."
+        }
+
+        let targets = MacroCalculator.macroTargets(from: log.targets)
+        let remaining = MacroCalculator.remaining(targets: targets, totals: log.totals)
+        let trainingDays = profile.trainingFrequencyPerWeek
+        let isTrainingTomorrow = !hasWorkoutToday && trainingDays >= 3
+
+        if isTrainingTomorrow {
+            return """
+            Tomorrow looks like a training day. Hit \(targets.calories) kcal with at least \(formatMacro(targets.protein))g protein, \
+            front-load water before noon, and log your morning weight if you haven't yet.
+            """
+        }
+
+        if remaining.protein > 40 {
+            return """
+            Close today with protein first — you still need about \(formatMacro(remaining.protein))g. \
+            Tomorrow, weigh in, log breakfast early, and keep calories near \(targets.calories) kcal.
+            """
+        }
+
+        return """
+        You're in a good rhythm today. Tomorrow: log breakfast, hit \(formatMacro(targets.protein))g protein, \
+        and keep water above \(formatWater(log.targets.waterTargetMl))ml.
+        """
+    }
+
+    private static func isGenericPlaceholder(_ message: String) -> Bool {
+        let lowered = message.lowercased()
+        return lowered.contains("quick guidance")
+            || lowered.contains("here is some")
+            || lowered == "here is some quick guidance based on your day."
+    }
+
     // MARK: Placeholders
 
     static let dailyReviewPlaceholder =
@@ -150,5 +245,11 @@ enum CoachResponseBuilder {
         value.truncatingRemainder(dividingBy: 1) == 0
             ? String(format: "%.0f", value)
             : String(format: "%.1f", value)
+    }
+
+    private static func formatWater(_ ml: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        return formatter.string(from: NSNumber(value: ml)) ?? "\(ml)"
     }
 }

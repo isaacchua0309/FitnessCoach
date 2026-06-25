@@ -19,7 +19,6 @@ enum UndoTarget: String, Codable, Equatable, Sendable {
 }
 
 enum CommandIntent: Codable, Equatable, Sendable {
-    case newDay(weightKg: Double?)
     case logWeight(WeightDraft)
     case logWater(WaterDraft)
     case logSteps(Int)

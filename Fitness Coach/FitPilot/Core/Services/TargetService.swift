@@ -11,9 +11,11 @@ import Foundation
 final class TargetService {
 
     private let userProfileService: UserProfileService
+    private let dailyLogService: DailyLogService
 
-    init(userProfileService: UserProfileService) {
+    init(userProfileService: UserProfileService, dailyLogService: DailyLogService) {
         self.userProfileService = userProfileService
+        self.dailyLogService = dailyLogService
     }
 
     // MARK: Generation
@@ -29,7 +31,9 @@ final class TargetService {
     // MARK: Current Targets
 
     func updateCurrentTargets(_ targets: UserTargets) throws -> UserProfile {
-        try userProfileService.updateTargets(targets)
+        let profile = try userProfileService.updateTargets(targets)
+        try dailyLogService.syncTodayTargetsFromProfile()
+        return profile
     }
 
     func getCurrentTargets() throws -> UserTargets {

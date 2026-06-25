@@ -2,7 +2,7 @@
 //  ProgressEmptyStateView.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Empty state for Progress.
+//  FitPilot AI — Compact empty state when profile is missing.
 //
 
 import SwiftUI
@@ -11,22 +11,18 @@ struct ProgressEmptyStateView: View {
     let onRefresh: () -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "chart.line.uptrend.xyaxis")
-                .font(.system(size: 44))
-                .foregroundStyle(.secondary)
+        VStack(spacing: 14) {
+            Text("Your transformation story starts in Coach")
+                .font(.title3.weight(.semibold))
 
-            Text("Build Your Trend")
-                .font(.title3.bold())
-
-            Text("Progress trends become more accurate after 14-28 days of consistent logging.")
+            Text("Log weight, food, or water with Coach to see how you're becoming healthier.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
             Button("Refresh", action: onRefresh)
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.bordered)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()

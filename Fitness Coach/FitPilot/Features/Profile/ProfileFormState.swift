@@ -128,7 +128,7 @@ struct ProfileFormState: Equatable {
             age: try parsePositiveInt(ageText, fieldName: "Age"),
             sex: sex,
             heightCm: try parsePositiveDouble(heightCmText, fieldName: "Height"),
-            currentWeightKg: try parsePositiveDouble(currentWeightKgText, fieldName: "Current weight"),
+            currentWeightKg: try parsePositiveDouble(currentWeightKgText, fieldName: "Baseline weight"),
             goalWeightKg: try parsePositiveDouble(goalWeightKgText, fieldName: "Goal weight"),
             estimatedBodyFatPercentage: try parseOptionalBodyFat(estimatedBodyFatPercentageText),
             activityLevel: activityLevel,
@@ -152,7 +152,7 @@ struct ProfileFormState: Equatable {
             age: try parsePositiveInt(ageText, fieldName: "Age"),
             sex: sex,
             heightCm: try parsePositiveDouble(heightCmText, fieldName: "Height"),
-            currentWeightKg: try parsePositiveDouble(currentWeightKgText, fieldName: "Current weight"),
+            currentWeightKg: try parsePositiveDouble(currentWeightKgText, fieldName: "Baseline weight"),
             goalWeightKg: try parsePositiveDouble(goalWeightKgText, fieldName: "Goal weight"),
             estimatedBodyFatPercentage: try parseOptionalBodyFat(estimatedBodyFatPercentageText),
             activityLevel: activityLevel,
@@ -172,7 +172,7 @@ struct ProfileFormState: Equatable {
             age: try parsePositiveInt(ageText, fieldName: "Age"),
             sex: sex,
             heightCm: try parsePositiveDouble(heightCmText, fieldName: "Height"),
-            weightKg: try parsePositiveDouble(currentWeightKgText, fieldName: "Current weight"),
+            weightKg: try parsePositiveDouble(currentWeightKgText, fieldName: "Baseline weight"),
             goalWeightKg: try parsePositiveDouble(goalWeightKgText, fieldName: "Goal weight"),
             estimatedBodyFatPercentage: try parseOptionalBodyFat(estimatedBodyFatPercentageText),
             activityLevel: activityLevel,
@@ -254,6 +254,16 @@ struct ProfileFormState: Equatable {
         value.truncatingRemainder(dividingBy: 1) == 0
             ? "\(Int(value))"
             : "\(value)"
+    }
+
+    mutating func applyGeneratedTargets(_ targets: UserTargets) {
+        calorieTargetText = "\(targets.calorieTarget)"
+        proteinTargetText = Self.formatDouble(targets.proteinTarget)
+        carbTargetText = Self.formatDouble(targets.carbTarget)
+        fatTargetText = Self.formatDouble(targets.fatTarget)
+        waterTargetMlText = "\(targets.waterTargetMl)"
+        expectedWeeklyWeightLossKgText = targets.expectedWeeklyWeightLossKg.map(Self.formatDouble) ?? ""
+        aggressiveness = targets.aggressiveness
     }
 }
 

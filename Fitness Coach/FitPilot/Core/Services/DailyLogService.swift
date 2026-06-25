@@ -32,7 +32,11 @@ final class DailyLogService {
     }
 
     func getLog(for date: Date) throws -> DailyLog? {
-        try dailyLogEntity(for: date)?.toModel()
+        guard let entity = try dailyLogEntity(for: date) else { return nil }
+        if isToday(date) {
+            try syncTargetsFromProfile(to: entity)
+        }
+        return entity.toModel()
     }
 
     func getOrCreateLog(for date: Date) throws -> DailyLog {
@@ -51,9 +55,15 @@ final class DailyLogService {
 
     // MARK: New Day
 
+    /// Ensures today's log exists. Days are keyed by calendar date and created
+    /// automatically when first accessed—there is no manual day reset.
+    func ensureTodayLog() throws -> DailyLog {
+        try getOrCreateLog(for: dateProvider.now)
+    }
+
+    @available(*, deprecated, message: "Days start automatically via getTodayLog/getOrCreateLog.")
     func startNewDay(weightKg: Double?) throws -> DailyLog {
-        let today = dateProvider.now
-        let entity = try getOrCreateLogEntity(for: today)
+        let entity = try getOrCreateLogEntity(for: dateProvider.now)
 
         if let weightKg {
             guard weightKg > 0 else { throw ServiceError.invalidInput("Weight must be greater than zero.") }
@@ -63,8 +73,7 @@ final class DailyLogService {
         entity.updatedAt = dateProvider.now
         try save()
 
-        // Reflect any existing structured entries in the day's summary values.
-        return try recalculateDailyTotals(for: today)
+        return try recalculateDailyTotals(for: dateProvider.now)
     }
 
     // MARK: Recalculation
@@ -110,6 +119,9 @@ final class DailyLogService {
 
     func getOrCreateLogEntity(for date: Date) throws -> DailyLogEntity {
         if let existing = try dailyLogEntity(for: date) {
+            if isToday(date) {
+                try syncTargetsFromProfile(to: existing)
+            }
             return existing
         }
 
@@ -136,6 +148,50 @@ final class DailyLogService {
         let entity = DailyLogEntity(model: log)
         try store.insert(entity)
         return entity
+    }
+
+    // MARK: Target Sync
+
+    /// Copies the current profile targets onto today's daily log. Past days keep
+    /// their snapshot so historical progress stays accurate.
+    func syncTodayTargetsFromProfile() throws {
+        guard let entity = try dailyLogEntity(for: dateProvider.now) else { return }
+        try syncTargetsFromProfile(to: entity)
+    }
+
+    private func syncTargetsFromProfile(to entity: DailyLogEntity) throws {
+        guard let profile = try userProfileService.getCurrentProfile() else {
+            throw ServiceError.missingUserProfile
+        }
+
+        let targets = profile.targets
+        guard entityTargets(entity) != targets else { return }
+
+        entity.calorieTarget = targets.calorieTarget
+        entity.proteinTarget = targets.proteinTarget
+        entity.carbTarget = targets.carbTarget
+        entity.fatTarget = targets.fatTarget
+        entity.waterTargetMl = targets.waterTargetMl
+        entity.expectedWeeklyWeightLossKg = targets.expectedWeeklyWeightLossKg
+        entity.aggressivenessRawValue = targets.aggressiveness.rawValue
+        entity.updatedAt = dateProvider.now
+        try save()
+    }
+
+    private func entityTargets(_ entity: DailyLogEntity) -> UserTargets {
+        UserTargets(
+            calorieTarget: entity.calorieTarget,
+            proteinTarget: entity.proteinTarget,
+            carbTarget: entity.carbTarget,
+            fatTarget: entity.fatTarget,
+            waterTargetMl: entity.waterTargetMl,
+            expectedWeeklyWeightLossKg: entity.expectedWeeklyWeightLossKg,
+            aggressiveness: CalorieAggressiveness(rawValue: entity.aggressivenessRawValue) ?? .moderate
+        )
+    }
+
+    private func isToday(_ date: Date) -> Bool {
+        dateProvider.startOfDay(for: date) == dateProvider.startOfDay(for: dateProvider.now)
     }
 
     // MARK: Helpers

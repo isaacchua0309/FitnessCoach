@@ -2,7 +2,7 @@
 //  ProfilePreviewData.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Static preview data for Profile UI previews.
+//  FitPilot AI — Static preview data for Plan UI previews.
 //
 
 import Foundation
@@ -14,28 +14,28 @@ enum ProfilePreviewData {
         age: 28,
         sex: .female,
         heightCm: 168,
-        currentWeightKg: 72,
-        goalWeightKg: 65,
+        currentWeightKg: 90,
+        goalWeightKg: 75,
         estimatedBodyFatPercentage: 24,
         activityLevel: .moderatelyActive,
-        trainingFrequencyPerWeek: 4,
-        averageSteps: 7500,
-        dietPreference: "High protein, flexible carbs",
+        trainingFrequencyPerWeek: 3,
+        averageSteps: 5000,
+        dietPreference: "High Protein",
         unitSystem: .metric,
         targets: UserTargets(
-            calorieTarget: 1850,
-            proteinTarget: 144,
+            calorieTarget: 2233,
+            proteinTarget: 180,
             carbTarget: 180,
             fatTarget: 58,
-            waterTargetMl: 2520,
-            expectedWeeklyWeightLossKg: 0.5,
-            aggressiveness: .moderate
+            waterTargetMl: 3150,
+            expectedWeeklyWeightLossKg: 0.8,
+            aggressiveness: .aggressive
         ),
-        createdAt: Date(),
+        createdAt: Calendar.current.date(from: DateComponents(year: 2025, month: 6, day: 25)) ?? Date(),
         updatedAt: Date()
     )
 
-    static let state = ProfileFormatter.dashboardState(from: profile)
+    static let state = PlanStateBuilder.dashboardState(profile: profile)
 
     static let formState = ProfileFormState(profile: profile)
 

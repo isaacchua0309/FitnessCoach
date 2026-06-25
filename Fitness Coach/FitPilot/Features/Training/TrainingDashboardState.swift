@@ -2,19 +2,29 @@
 //  TrainingDashboardState.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Read-focused state for the Training screen.
-//
-//  This contains domain models for display only. It contains no SwiftData
-//  entities and performs no persistence.
+//  FitPilot AI — Read-only intelligence state for the Training dashboard.
 //
 
 import Foundation
 
 struct TrainingDashboardState: Equatable {
-    var selectedDate: Date
-    var todaysWorkouts: [WorkoutDisplayItem]
+    var hero: TrainingHeroState
+    var weekly: TrainingWeeklySummary
+    var muscleDistribution: [MuscleDistributionItem]
     var recentWorkouts: [WorkoutDisplayItem]
-    var summary: TrainingSummary
+}
+
+struct TrainingHeroState: Equatable {
+    var hasWorkoutToday: Bool
+    var primaryWorkout: WorkoutDisplayItem?
+    var lastWorkout: WorkoutDisplayItem?
+}
+
+struct TrainingWeeklySummary: Equatable {
+    var workoutsCompleted: Int
+    var totalCalories: Int
+    var totalDurationMinutes: Int
+    var trainingStreak: Int
 }
 
 struct WorkoutDisplayItem: Identifiable, Equatable {
@@ -31,11 +41,4 @@ struct WorkoutDisplayItem: Identifiable, Equatable {
     var notes: String?
     var workout: WorkoutEntry
     var exerciseSets: [ExerciseSet]
-}
-
-struct TrainingSummary: Equatable {
-    var workoutCountToday: Int
-    var workoutCountInRecentRange: Int
-    var estimatedCaloriesBurnedToday: Int
-    var totalVolumeTodayKg: Double?
 }

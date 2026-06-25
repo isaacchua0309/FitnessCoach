@@ -67,10 +67,18 @@ struct LocalCommandParser {
         guard isNewDay else { return nil }
 
         let weight = CommandParserUtilities.firstDouble(in: normalized)
-        let weightKg = (weight ?? 0) > 0 ? weight : nil
+        if let weight, weight > 0 {
+            return .success(
+                ParsedCommand(
+                    intent: .logWeight(WeightDraft(weightKg: weight)),
+                    originalText: original
+                )
+            )
+        }
 
-        return .success(
-            ParsedCommand(intent: .newDay(weightKg: weightKg), originalText: original)
+        return .invalid(
+            originalText: original,
+            reason: "Your day starts automatically at midnight. Say \"status\" to see today."
         )
     }
 

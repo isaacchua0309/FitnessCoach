@@ -2,13 +2,7 @@
 //  CoachModel.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Feature model for the Coach chat shell.
-//
-//  CoachModel owns chat state, runs the deterministic LocalCommandParser first,
-//  and falls back to AIService only when needed. It executes supported commands
-//  through existing services. It does not import SwiftData, call the LLMClient
-//  directly, call backend directly, or call another feature model. It never
-//  trusts AI arithmetic as final daily totals.
+//  FitPilot AI — AI interface into shared fitness state (not a state owner).
 //
 
 import Combine
@@ -21,46 +15,40 @@ final class CoachModel: ObservableObject {
     @Published var inputText: String = ""
     @Published private(set) var isSending: Bool = false
     @Published private(set) var errorMessage: String?
+    @Published private(set) var toolbarActions: [CoachToolbarAction] = CoachToolbarBuilder.defaultActions()
     @Published private(set) var foodConfirmationState: AIFoodConfirmationState = .none
     @Published var isShowingFoodConfirmationSheet = false
     @Published private(set) var foodConfirmationErrorMessage: String?
 
     private let localCommandParser: LocalCommandParser
+    private let actionCenter: FitnessActionCenter
     private let dailyLogService: DailyLogService
-    private let foodLogService: FoodLogService
-    private let waterLogService: WaterLogService
-    private let weightLogService: WeightLogService
     private let workoutLogService: WorkoutLogService
-    private let reviewService: ReviewService
+    private let toolbarUsageStore: CoachToolbarUsageStore
 
     private let aiService: AIServiceProtocol?
     private let aiContextBuilder: CoachAIContextBuilder?
+    private let userProfileService: UserProfileService?
     private let aiCommandParsingEnabled: Bool
-    private let refreshCenter: AppRefreshCenter
 
     init(
         localCommandParser: LocalCommandParser = .standard,
+        actionCenter: FitnessActionCenter,
         dailyLogService: DailyLogService,
-        foodLogService: FoodLogService,
-        waterLogService: WaterLogService,
-        weightLogService: WeightLogService,
         workoutLogService: WorkoutLogService,
-        reviewService: ReviewService,
+        toolbarUsageStore: CoachToolbarUsageStore = .shared,
         aiService: AIServiceProtocol? = nil,
         userProfileService: UserProfileService? = nil,
-        aiCommandParsingEnabled: Bool = false,
-        refreshCenter: AppRefreshCenter
+        aiCommandParsingEnabled: Bool = false
     ) {
         self.localCommandParser = localCommandParser
+        self.actionCenter = actionCenter
         self.dailyLogService = dailyLogService
-        self.foodLogService = foodLogService
-        self.waterLogService = waterLogService
-        self.weightLogService = weightLogService
         self.workoutLogService = workoutLogService
-        self.reviewService = reviewService
+        self.toolbarUsageStore = toolbarUsageStore
         self.aiService = aiService
+        self.userProfileService = userProfileService
         self.aiCommandParsingEnabled = aiCommandParsingEnabled
-        self.refreshCenter = refreshCenter
         if let userProfileService {
             self.aiContextBuilder = CoachAIContextBuilder(
                 dailyLogService: dailyLogService,
@@ -69,6 +57,18 @@ final class CoachModel: ObservableObject {
         } else {
             self.aiContextBuilder = nil
         }
+    }
+
+    // MARK: Toolbar Context
+
+    func refreshToolbarContext() {
+        let log = try? dailyLogService.getTodayLog()
+        let hasWorkoutToday = (try? !workoutLogService.getWorkouts(for: Date()).isEmpty) ?? false
+        toolbarActions = CoachToolbarBuilder.build(
+            log: log,
+            hasWorkoutToday: hasWorkoutToday,
+            usageStore: toolbarUsageStore
+        )
     }
 
     // MARK: Intent
@@ -87,25 +87,48 @@ final class CoachModel: ObservableObject {
         appendUserMessage(trimmed)
 
         isSending = true
-        defer { isSending = false }
+        defer {
+            isSending = false
+            refreshToolbarContext()
+        }
 
         let result = localCommandParser.parse(trimmed)
         let response = await handle(result, originalText: trimmed)
         appendAssistantMessage(response)
     }
 
-    func tapQuickAction(_ action: CoachQuickAction) async {
-        if let prefill = action.prefillText {
-            inputText = prefill
-            return
+    func applyToolbarAction(_ action: CoachToolbarAction) async {
+        noteToolbarUse(action)
+
+        switch action.behavior {
+        case .prefill(let text):
+            inputText = text
+        case .send(let text):
+            await send(text)
+        case .openPhotoPicker:
+            break
         }
-        if let command = action.commandText {
-            await send(command)
-        }
+    }
+
+    func noteToolbarUse(_ action: CoachToolbarAction) {
+        toolbarUsageStore.recordUse(of: action)
+        refreshToolbarContext()
+    }
+
+    func applyExampleCommand(_ text: String) async {
+        await send(text)
+    }
+
+    func handlePhotoSelected() async {
+        await send("Should I eat this?")
     }
 
     func clearError() {
         errorMessage = nil
+    }
+
+    func prepareInput(prefill: String?) {
+        inputText = prefill ?? ""
     }
 
     // MARK: AI Food Confirmation
@@ -132,11 +155,11 @@ final class CoachModel: ObservableObject {
 
         do {
             let draft = try formState.makeAIFoodDraft(original: originalDraft)
-            let entry = try foodLogService.addFoodEntry(draft, date: Date())
+            let entry = try actionCenter.logFood(draft, date: Date())
             let log = try? dailyLogService.getLog(for: Date())
-            notifyDataChanged()
             clearFoodConfirmation()
             appendAssistantMessage(CoachResponseBuilder.food(entry, log: log))
+            refreshToolbarContext()
         } catch let error as FoodEntryFormError {
             foodConfirmationState = .error(pending, error.localizedDescription)
             foodConfirmationErrorMessage = error.localizedDescription
@@ -192,8 +215,6 @@ final class CoachModel: ObservableObject {
 
     private func execute(_ command: ParsedCommand) async -> String {
         switch command.intent {
-        case .newDay(let weightKg):
-            return executeNewDay(weightKg: weightKg)
         case .logWater(let draft):
             return executeLogWater(draft)
         case .logWeight(let draft):
@@ -218,6 +239,10 @@ final class CoachModel: ObservableObject {
     // MARK: AI Fallback
 
     private func handleAIFallback(_ text: String, localReason: String? = nil) async -> String {
+        if let coachingResponse = coachingResponseForNaturalLanguage(text) {
+            return coachingResponse
+        }
+
         guard aiCommandParsingEnabled, let aiService, let aiContextBuilder else {
             return localReason ?? CoachResponseBuilder.needsAIResponse
         }
@@ -232,6 +257,65 @@ final class CoachModel: ObservableObject {
         } catch {
             return AIServiceError.requestFailed(error.localizedDescription).userMessage
         }
+    }
+
+    private func coachingResponseForNaturalLanguage(_ text: String) -> String? {
+        let lowered = text.lowercased()
+
+        if lowered.contains("tomorrow") || lowered.contains("focus on tomorrow") {
+            return CoachResponseBuilder.tomorrowFocus(
+                log: try? dailyLogService.getTodayLog(),
+                profile: try? userProfileService?.getCurrentProfile(),
+                hasWorkoutToday: hasWorkoutToday()
+            )
+        }
+
+        if lowered.contains("recover") || lowered.contains("recovery") {
+            return recoveryAdvice()
+        }
+
+        if lowered.contains("what should i eat")
+            || lowered.contains("meal idea")
+            || lowered.contains("eat next") {
+            return CoachResponseBuilder.mealAdvice(
+                log: try? dailyLogService.getTodayLog(),
+                profile: try? userProfileService?.getCurrentProfile(),
+                hasWorkoutToday: hasWorkoutToday(),
+                assistantMessage: nil
+            )
+        }
+
+        return nil
+    }
+
+    private func recoveryAdvice() -> String {
+        guard hasWorkoutToday() else {
+            return "No workout logged today yet. If you trained, log it first and I'll tailor recovery advice."
+        }
+
+        let log = try? dailyLogService.getTodayLog()
+        let profile = try? userProfileService?.getCurrentProfile()
+        let proteinTarget = log.map { MacroCalculator.macroTargets(from: $0.targets).protein } ?? profile?.targets.proteinTarget ?? 0
+        let proteinConsumed = log?.totals.protein ?? 0
+        let proteinGap = max(proteinTarget - proteinConsumed, 0)
+
+        var advice = "Good work today. Prioritize 7–9 hours of sleep and a protein-rich meal within the next few hours."
+        if proteinGap > 20 {
+            advice += " You still need about \(Int(proteinGap.rounded()))g protein to support recovery."
+        }
+        if let waterRemaining = log.map({
+            WaterTargetCalculator.remainingMl(
+                consumedMl: $0.waterConsumedMl,
+                targetMl: $0.targets.waterTargetMl
+            )
+        }), waterRemaining > 300 {
+            advice += " Drink \(waterRemaining)ml more water before bed."
+        }
+        return advice
+    }
+
+    private func hasWorkoutToday() -> Bool {
+        (try? !workoutLogService.getWorkouts(for: Date()).isEmpty) ?? false
     }
 
     private func executeAICommand(_ command: AIParsedCommand) async -> String {
@@ -263,7 +347,6 @@ final class CoachModel: ObservableObject {
         }
     }
 
-    /// Executes a validated single non-food action through existing services.
     private func executeValidatedAIAction(_ command: AIParsedCommand) async -> String {
         guard let action = command.actions.first, command.actions.count == 1 else {
             return command.assistantMessage ?? CoachResponseBuilder.aiNeedsConfirmation
@@ -279,38 +362,43 @@ final class CoachModel: ObservableObject {
             guard let draft = action.weightDraft else { return CoachResponseBuilder.aiNotUnderstood }
             return executeLogWeight(draft)
         case .startNewDay:
-            return executeNewDay(weightKg: action.startNewDayWeightKg)
+            return ensureTodayLog(weightKg: action.startNewDayWeightKg)
         case .status:
             return executeStatus()
         case .dailyReview:
             return await executeDailyReview()
         case .mealAdvice:
-            return command.assistantMessage ?? "Here is some quick guidance based on your day."
+            return CoachResponseBuilder.mealAdvice(
+                log: try? dailyLogService.getTodayLog(),
+                profile: try? userProfileService?.getCurrentProfile(),
+                hasWorkoutToday: hasWorkoutToday(),
+                assistantMessage: command.assistantMessage
+            )
         case .logWorkout:
-            // Workouts are inferred and always confirmed before logging in this step.
             return command.assistantMessage ?? CoachResponseBuilder.aiNeedsConfirmation
         }
     }
 
     // MARK: Command Execution
 
-    private func executeNewDay(weightKg: Double?) -> String {
+    private func ensureTodayLog(weightKg: Double?) -> String {
         do {
-            _ = try dailyLogService.startNewDay(weightKg: weightKg)
-            notifyDataChanged()
-            return CoachResponseBuilder.newDay(weightKg: weightKg)
+            _ = try actionCenter.ensureTodayLog()
+            if let weightKg {
+                return executeLogWeight(WeightDraft(weightKg: weightKg))
+            }
+            return CoachResponseBuilder.automaticDayMessage
         } catch ServiceError.missingUserProfile {
-            return "I could not start a new day. Please check that your profile is set up."
+            return "I could not load today's log. Please check that your profile is set up."
         } catch {
-            return "I could not start a new day. Please try again."
+            return "I could not load today's log. Please try again."
         }
     }
 
     private func executeLogWater(_ draft: WaterDraft) -> String {
         do {
-            let entry = try waterLogService.addWater(draft, date: Date())
+            let entry = try actionCenter.logWater(draft, date: Date())
             let log = try? dailyLogService.getLog(for: Date())
-            notifyDataChanged()
             return CoachResponseBuilder.water(loggedMl: entry.amountMl, log: log)
         } catch ServiceError.invalidInput(let message) {
             return message
@@ -321,8 +409,7 @@ final class CoachModel: ObservableObject {
 
     private func executeLogWeight(_ draft: WeightDraft) -> String {
         do {
-            let entry = try weightLogService.logWeight(draft, date: Date())
-            notifyDataChanged()
+            let entry = try actionCenter.logDailyWeight(draft, date: Date())
             return CoachResponseBuilder.weight(entry.weightKg)
         } catch ServiceError.invalidInput(let message) {
             return message
@@ -333,9 +420,8 @@ final class CoachModel: ObservableObject {
 
     private func executeLogFood(_ draft: FoodDraft) -> String {
         do {
-            let entry = try foodLogService.addFoodEntry(draft, date: Date())
+            let entry = try actionCenter.logFood(draft, date: Date())
             let log = try? dailyLogService.getLog(for: Date())
-            notifyDataChanged()
             return CoachResponseBuilder.food(entry, log: log)
         } catch ServiceError.invalidInput(let message) {
             return message
@@ -350,16 +436,14 @@ final class CoachModel: ObservableObject {
         switch target {
         case .food:
             do {
-                let entry = try foodLogService.undoLastFoodEntry(date: Date())
-                notifyDataChanged()
+                let entry = try actionCenter.undoLastFoodEntry(date: Date())
                 return CoachResponseBuilder.undoFood(entry)
             } catch {
                 return "I could not undo your last food entry. Please try again."
             }
         case .water:
             do {
-                let entry = try waterLogService.undoLastWaterEntry(date: Date())
-                notifyDataChanged()
+                let entry = try actionCenter.undoLastWaterEntry(date: Date())
                 return CoachResponseBuilder.undoWater(entry)
             } catch {
                 return "I could not undo your last water entry. Please try again."
@@ -382,13 +466,12 @@ final class CoachModel: ObservableObject {
 
     private func executeDailyReview() async -> String {
         do {
-            let review = try await reviewService.generateDailyReview(for: Date())
-            notifyDataChanged()
+            let review = try await actionCenter.generateDailyReview(for: Date())
             return CoachResponseBuilder.dailyReview(review)
         } catch ServiceError.missingUserProfile {
             return "I could not generate your daily review yet. Please start a day and make sure your profile is set up."
         } catch ServiceError.dailyLogNotFound {
-            return "There is no daily log for today yet. Start a new day first."
+            return "There is no daily log for today yet. Open Today to load your dashboard."
         } catch {
             return "I could not generate your daily review yet. Please try again."
         }
@@ -420,9 +503,5 @@ final class CoachModel: ObservableObject {
                 relatedEntryId: nil
             )
         )
-    }
-
-    private func notifyDataChanged() {
-        refreshCenter.notifyDataChanged()
     }
 }

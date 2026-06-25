@@ -2,10 +2,7 @@
 //  ProfileModel.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Feature model for profile and settings.
-//
-//  ProfileModel calls services only. It does not access SwiftData directly,
-//  call AI, or coordinate with other feature models.
+//  FitPilot AI — Feature model for the user's fitness plan strategy.
 //
 
 import Combine
@@ -16,23 +13,24 @@ final class ProfileModel: ObservableObject {
 
     @Published private(set) var viewState: ProfileViewState = .loading
     @Published var isShowingEditSheet = false
+    @Published var isShowingSettingsSheet = false
     @Published var isShowingTargetRegenerationSheet = false
     @Published private(set) var generatedTargetPreview: CalorieTargetResult?
     @Published private(set) var formErrorMessage: String?
     @Published var editFormState: ProfileFormState?
 
+    private let actionCenter: FitnessActionCenter
     private let userProfileService: UserProfileService
     private let targetService: TargetService
-    private let refreshCenter: AppRefreshCenter
 
     init(
+        actionCenter: FitnessActionCenter,
         userProfileService: UserProfileService,
-        targetService: TargetService,
-        refreshCenter: AppRefreshCenter
+        targetService: TargetService
     ) {
+        self.actionCenter = actionCenter
         self.userProfileService = userProfileService
         self.targetService = targetService
-        self.refreshCenter = refreshCenter
     }
 
     // MARK: Loading
@@ -48,25 +46,37 @@ final class ProfileModel: ObservableObject {
                 viewState = .empty
                 return
             }
-            viewState = .loaded(ProfileFormatter.dashboardState(from: profile))
+            viewState = .loaded(PlanStateBuilder.dashboardState(profile: profile))
         } catch {
-            viewState = .error("Could not load your profile.")
+            viewState = .error("Could not load your plan.")
         }
     }
 
     // MARK: Sheets
 
-    func showEditProfile() {
+    func showEditPlan() {
         guard case .loaded(let state) = viewState else { return }
         formErrorMessage = nil
         editFormState = ProfileFormState(profile: state.profile)
         isShowingEditSheet = true
     }
 
-    func dismissEditProfile() {
+    func showSettings() {
+        guard case .loaded(let state) = viewState else { return }
+        formErrorMessage = nil
+        editFormState = ProfileFormState(profile: state.profile)
+        isShowingSettingsSheet = true
+    }
+
+    func dismissEditPlan() {
         formErrorMessage = nil
         editFormState = nil
         isShowingEditSheet = false
+    }
+
+    func dismissSettings() {
+        formErrorMessage = nil
+        isShowingSettingsSheet = false
     }
 
     func dismissTargetRegeneration() {
@@ -85,32 +95,55 @@ final class ProfileModel: ObservableObject {
             let formState = ProfileFormState.defaultDraftValues()
             let input = try formState.makeCalorieTargetInput()
             let result = targetService.generateInitialTargets(from: input)
-            let draft = try formState.makeDraft(targets: result.targets)
+            var draftForm = formState
+            draftForm.applyGeneratedTargets(result.targets)
+            let draft = try draftForm.makeDraft(targets: result.targets)
             _ = try userProfileService.createProfile(draft)
             await refresh()
-            refreshCenter.notifyDataChanged()
+            actionCenter.notifyDataChanged()
         } catch let error as ProfileFormError {
             viewState = .error(error.message)
         } catch ServiceError.invalidInput(let message) {
             viewState = .error(message)
         } catch {
-            viewState = .error("Could not save your profile.")
+            viewState = .error("Could not save your plan.")
         }
     }
 
-    func saveProfile(_ formState: ProfileFormState) async {
+    func savePlanFromWizard(_ formState: ProfileFormState) async {
         do {
-            let update = try formState.makeUpdate()
-            _ = try userProfileService.updateProfile(update)
-            dismissEditProfile()
+            var state = formState
+            let input = try state.makeCalorieTargetInput()
+            let result = targetService.generateInitialTargets(from: input)
+            state.applyGeneratedTargets(result.targets)
+            let update = try state.makeUpdate()
+            _ = try actionCenter.updatePlan(update)
+            dismissEditPlan()
+            dismissSettings()
             await refresh()
-            refreshCenter.notifyDataChanged()
+            actionCenter.notifyDataChanged()
         } catch let error as ProfileFormError {
             formErrorMessage = error.message
         } catch ServiceError.invalidInput(let message) {
             formErrorMessage = message
         } catch {
-            formErrorMessage = "Could not save your profile."
+            formErrorMessage = "Could not save your plan."
+        }
+    }
+
+    func saveSettings(_ formState: ProfileFormState) async {
+        do {
+            let update = try formState.makeUpdate()
+            _ = try actionCenter.updatePlan(update)
+            dismissSettings()
+            await refresh()
+            actionCenter.notifyDataChanged()
+        } catch let error as ProfileFormError {
+            formErrorMessage = error.message
+        } catch ServiceError.invalidInput(let message) {
+            formErrorMessage = message
+        } catch {
+            formErrorMessage = "Could not save settings."
         }
     }
 
@@ -130,40 +163,16 @@ final class ProfileModel: ObservableObject {
     func applyGeneratedTargets() async {
         guard let preview = generatedTargetPreview else { return }
         do {
-            _ = try targetService.updateCurrentTargets(preview.targets)
+            _ = try actionCenter.applyPlanTargets(preview.targets)
             dismissTargetRegeneration()
             if isShowingEditSheet, var formState = editFormState {
-                formState.calorieTargetText = "\(preview.targets.calorieTarget)"
-                formState.proteinTargetText = formatDouble(preview.targets.proteinTarget)
-                formState.carbTargetText = formatDouble(preview.targets.carbTarget)
-                formState.fatTargetText = formatDouble(preview.targets.fatTarget)
-                formState.waterTargetMlText = "\(preview.targets.waterTargetMl)"
-                formState.expectedWeeklyWeightLossKgText = preview.targets.expectedWeeklyWeightLossKg.map(formatDouble) ?? ""
-                formState.aggressiveness = preview.targets.aggressiveness
+                formState.applyGeneratedTargets(preview.targets)
                 editFormState = formState
             }
             await refresh()
-            refreshCenter.notifyDataChanged()
+            actionCenter.notifyDataChanged()
         } catch {
             formErrorMessage = "Could not regenerate targets."
         }
-    }
-
-    func updateTargets(_ targets: UserTargets) async {
-        do {
-            _ = try targetService.updateCurrentTargets(targets)
-            await refresh()
-            refreshCenter.notifyDataChanged()
-        } catch {
-            formErrorMessage = "Could not save your profile."
-        }
-    }
-
-    // MARK: Helpers
-
-    private func formatDouble(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(value))"
-            : "\(value)"
     }
 }

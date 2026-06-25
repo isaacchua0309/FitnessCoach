@@ -13,8 +13,8 @@ struct GoalSettingsView: View {
     @Binding var aggressiveness: CalorieAggressiveness
 
     var body: some View {
-        Section("Goals") {
-            TextField("Current weight (kg)", text: $currentWeightKgText)
+        Section {
+            TextField("Baseline weight (kg)", text: $currentWeightKgText)
                 .keyboardType(.decimalPad)
 
             TextField("Goal weight (kg)", text: $goalWeightKgText)
@@ -25,6 +25,10 @@ struct GoalSettingsView: View {
                     Text(ProfileFormatter.aggressiveness(level)).tag(level)
                 }
             }
+        } header: {
+            Text("Goals")
+        } footer: {
+            Text("Baseline weight is used for plan calculations. Log daily weigh-ins from Today or Coach — they are separate from this value.")
         }
     }
 }
