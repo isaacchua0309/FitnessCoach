@@ -28,6 +28,7 @@ struct TodayDashboardState: Equatable {
     var workoutSummary: TodayWorkoutSummary
     var foodEntries: [FoodEntry]
     var hasDailyLog: Bool
+    var dailyReview: DailyReview?
     var coachingNote: String?
 }
 

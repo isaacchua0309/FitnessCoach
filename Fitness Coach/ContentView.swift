@@ -9,39 +9,64 @@ import SwiftUI
 
 struct ContentView: View {
 
-    @StateObject private var todayModel: TodayModel
-    @StateObject private var coachModel: CoachModel
-    @StateObject private var progressModel: ProgressModel
-    @StateObject private var trainingModel: TrainingModel
+    @StateObject private var rootModel: RootModel
+    @State private var onboardingModel: OnboardingModel?
+    private let container: AppContainer
 
     init(container: AppContainer) {
-        _todayModel = StateObject(wrappedValue: container.makeTodayModel())
-        _coachModel = StateObject(wrappedValue: container.makeCoachModel())
-        _progressModel = StateObject(wrappedValue: container.makeProgressModel())
-        _trainingModel = StateObject(wrappedValue: container.makeTrainingModel())
+        self.container = container
+        _rootModel = StateObject(wrappedValue: container.makeRootModel())
     }
 
     var body: some View {
-        TabView {
-            TodayView(model: todayModel)
-                .tabItem {
-                    Label("Today", systemImage: "sun.max")
+        Group {
+            switch rootModel.state {
+            case .loading:
+                VStack(spacing: 12) {
+                    SwiftUI.ProgressView()
+                    Text("Loading...")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
+            case .onboarding:
+                Group {
+                    if let onboardingModel {
+                        OnboardingView(model: onboardingModel)
+                    } else {
+                        SwiftUI.ProgressView()
+                    }
+                }
+                .onAppear {
+                    ensureOnboardingModel()
+                }
+            case .main:
+                MainTabView(container: container)
+            case .error(let message):
+                VStack(spacing: 14) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 38, weight: .semibold))
+                        .foregroundStyle(.orange)
+                    Text(message)
+                        .font(.headline)
+                        .multilineTextAlignment(.center)
+                    Button("Try Again") {
+                        rootModel.retry()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding()
+            }
+        }
+        .task {
+            rootModel.load()
+        }
+    }
 
-            CoachView(model: coachModel)
-                .tabItem {
-                    Label("Coach", systemImage: "bubble.left.and.bubble.right")
-                }
-
-            ProgressView(model: progressModel)
-                .tabItem {
-                    Label("Progress", systemImage: "chart.line.uptrend.xyaxis")
-                }
-
-            TrainingView(model: trainingModel)
-                .tabItem {
-                    Label("Training", systemImage: "dumbbell")
-                }
+    private func ensureOnboardingModel() {
+        guard onboardingModel == nil else { return }
+        onboardingModel = container.makeOnboardingModel {
+            onboardingModel = nil
+            rootModel.didCompleteOnboarding()
         }
     }
 }

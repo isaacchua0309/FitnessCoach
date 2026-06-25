@@ -41,7 +41,7 @@ final class MockLLMClient: LLMClient {
                 intent: .logFood,
                 actions: [action],
                 confidence: .high,
-                requiresConfirmation: false,
+                requiresConfirmation: true,
                 assistantMessage: "I read this as 3 scoops of whey protein (about 360 kcal, 72g protein).",
                 reasoningSummary: "Known supplement with standard per-scoop macros."
             )

@@ -9,12 +9,21 @@ import SwiftUI
 
 struct TodayView: View {
 
-    @StateObject private var model: TodayModel
+    @ObservedObject var model: TodayModel
+    @EnvironmentObject private var refreshCenter: AppRefreshCenter
     @State private var isShowingWeightPrompt = false
     @State private var weightInput = ""
+    @State private var foodEntryPendingDelete: FoodEntry?
 
     init(model: TodayModel) {
-        _model = StateObject(wrappedValue: model)
+        self.model = model
+    }
+
+    private var foodEditorMode: FoodEntryEditorMode {
+        if let entry = model.editingFoodEntry {
+            return .edit(entry)
+        }
+        return .add
     }
 
     var body: some View {
@@ -33,8 +42,23 @@ struct TodayView: View {
                 .task {
                     await model.loadToday()
                 }
+                .onChange(of: refreshCenter.refreshToken) { _, _ in
+                    Task<Void, Never> {
+                        await model.refresh()
+                    }
+                }
+                .onAppear {
+                    if case .loaded = model.viewState {
+                        Task<Void, Never> {
+                            await model.refresh()
+                        }
+                    }
+                }
                 .refreshable {
                     await model.refresh()
+                }
+                .sheet(isPresented: $model.isShowingFoodEntrySheet) {
+                    foodEntrySheet
                 }
                 .alert("Log Weight", isPresented: $isShowingWeightPrompt) {
                     TextField("Weight in kg", text: $weightInput)
@@ -52,6 +76,52 @@ struct TodayView: View {
                 } message: {
                     Text("Enter today's morning weight.")
                 }
+                .alert("Delete Food", isPresented: deleteConfirmationBinding) {
+                    Button("Cancel", role: .cancel) {
+                        foodEntryPendingDelete = nil
+                    }
+                    Button("Delete", role: .destructive) {
+                        if let entry = foodEntryPendingDelete {
+                            foodEntryPendingDelete = nil
+                            Task { await model.deleteFoodEntry(entry) }
+                        }
+                    }
+                } message: {
+                    Text("This will remove the food from today's log.")
+                }
+        }
+    }
+
+    private var deleteConfirmationBinding: Binding<Bool> {
+        Binding(
+            get: { foodEntryPendingDelete != nil },
+            set: { isPresented in
+                if !isPresented {
+                    foodEntryPendingDelete = nil
+                }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var foodEntrySheet: some View {
+        ManualFoodEntrySheet(
+            mode: foodEditorMode,
+            errorMessage: model.foodEntryErrorMessage,
+            onSave: { formState in
+                await model.saveFoodEntry(formState)
+            },
+            onDelete: foodDeleteHandler,
+            onCancel: {
+                model.dismissFoodEditor()
+            }
+        )
+    }
+
+    private var foodDeleteHandler: (() async -> Void)? {
+        guard let entry = model.editingFoodEntry else { return nil }
+        return {
+            await model.deleteFoodEntry(entry)
         }
     }
 
@@ -95,8 +165,24 @@ struct TodayView: View {
                     isShowingWeightPrompt = true
                 }
                 WorkoutSummaryCard(summary: state.workoutSummary)
-                FoodTimelineView(entries: state.foodEntries)
+                TodayDailyReviewCard(
+                    review: state.dailyReview,
+                    isGenerating: model.isGeneratingDailyReview,
+                    onGenerate: {
+                        Task { await model.generateDailyReview() }
+                    }
+                )
+                FoodTimelineView(
+                    entries: state.foodEntries,
+                    onSelectFood: { entry in
+                        model.showEditFood(entry)
+                    },
+                    onDeleteFood: { entry in
+                        foodEntryPendingDelete = entry
+                    }
+                )
                 TodayQuickActionsView(
+                    onAddFood: { model.showAddFood() },
                     onStartNewDay: { Task { await model.startNewDay() } },
                     onAddWater: { Task { await model.addWater(amountMl: 500) } },
                     onLogWeight: { isShowingWeightPrompt = true },
@@ -120,5 +206,7 @@ struct TodayView: View {
 }
 
 #Preview {
-    TodayView(model: try! AppContainer(inMemory: true).makeTodayModel())
+    let container = try! AppContainer(inMemory: true)
+    TodayView(model: container.makeTodayModel())
+        .environmentObject(container.refreshCenter)
 }

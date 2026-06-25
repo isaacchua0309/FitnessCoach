@@ -9,6 +9,7 @@ import SwiftUI
 
 struct TrainingView: View {
     @ObservedObject var model: TrainingModel
+    @EnvironmentObject private var refreshCenter: AppRefreshCenter
 
     var body: some View {
         NavigationStack {
@@ -26,6 +27,14 @@ struct TrainingView: View {
                 }
                 .task {
                     await model.loadTraining()
+                }
+                .onChange(of: refreshCenter.refreshToken) { _, _ in
+                    Task { await model.refresh() }
+                }
+                .onAppear {
+                    if case .loaded = model.viewState {
+                        Task { await model.refresh() }
+                    }
                 }
                 .sheet(isPresented: $model.isShowingWorkoutEntrySheet) {
                     WorkoutEntrySheet(
@@ -111,5 +120,7 @@ struct TrainingView: View {
 }
 
 #Preview {
-    TrainingView(model: try! AppContainer(inMemory: true).makeTrainingModel())
+    let container = try! AppContainer(inMemory: true)
+    TrainingView(model: container.makeTrainingModel())
+        .environmentObject(container.refreshCenter)
 }

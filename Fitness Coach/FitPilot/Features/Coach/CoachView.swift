@@ -14,6 +14,7 @@ import SwiftUI
 struct CoachView: View {
 
     @StateObject private var model: CoachModel
+    @FocusState private var isInputFocused: Bool
 
     init(model: CoachModel) {
         _model = StateObject(wrappedValue: model)
@@ -22,7 +23,9 @@ struct CoachView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                CoachMessageListView(messages: model.messages)
+                CoachMessageListView(messages: model.messages) {
+                    dismissKeyboard()
+                }
 
                 if model.isSending {
                     CoachTypingIndicatorView()
@@ -34,19 +37,60 @@ struct CoachView: View {
                     }
                 }
 
+                if let draft = model.foodConfirmationState.pendingDraft,
+                   !model.isShowingFoodConfirmationSheet {
+                    AIFoodConfirmationCard(draft: draft) {
+                        dismissKeyboard()
+                        model.openFoodConfirmationSheet()
+                    }
+                }
+
                 Divider()
 
                 QuickActionChips(isDisabled: model.isSending) { action in
+                    dismissKeyboard()
                     Task { await model.tapQuickAction(action) }
                 }
 
                 CoachInputBar(
                     text: $model.inputText,
+                    isFocused: $isInputFocused,
                     isSending: model.isSending,
-                    onSend: { Task { await model.sendCurrentMessage() } }
+                    onSend: {
+                        Task {
+                            await model.sendCurrentMessage()
+                            dismissKeyboard()
+                        }
+                    }
                 )
             }
             .navigationTitle("Coach")
+            .sheet(isPresented: $model.isShowingFoodConfirmationSheet) {
+                foodConfirmationSheet
+            }
+        }
+    }
+
+    private func dismissKeyboard() {
+        isInputFocused = false
+    }
+
+    @ViewBuilder
+    private var foodConfirmationSheet: some View {
+        if let draft = model.foodConfirmationState.pendingDraft {
+            AIFoodConfirmationSheet(
+                draft: draft,
+                errorMessage: model.foodConfirmationErrorMessage,
+                onConfirm: { formState in
+                    await model.confirmAIFoodEstimate(formState)
+                },
+                onReject: {
+                    model.rejectAIFoodEstimate()
+                },
+                onCancel: {
+                    model.dismissFoodConfirmationSheet()
+                }
+            )
         }
     }
 }

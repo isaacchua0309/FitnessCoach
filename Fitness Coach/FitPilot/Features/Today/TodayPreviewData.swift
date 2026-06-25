@@ -42,6 +42,7 @@ enum TodayPreviewData {
         ),
         foodEntries: foodEntries,
         hasDailyLog: true,
+        dailyReview: nil,
         coachingNote: "Prioritize lean protein in your next meal."
     )
 

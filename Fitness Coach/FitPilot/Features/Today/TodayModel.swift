@@ -12,6 +12,10 @@ import Foundation
 final class TodayModel: ObservableObject {
 
     @Published private(set) var viewState: TodayViewState = .loading
+    @Published private(set) var isGeneratingDailyReview = false
+    @Published var isShowingFoodEntrySheet = false
+    @Published private(set) var editingFoodEntry: FoodEntry?
+    @Published private(set) var foodEntryErrorMessage: String?
 
     private let dailyLogService: DailyLogService
     private let foodLogService: FoodLogService
@@ -19,6 +23,8 @@ final class TodayModel: ObservableObject {
     private let weightLogService: WeightLogService
     private let workoutLogService: WorkoutLogService
     private let targetService: TargetService
+    private let reviewService: ReviewService
+    private let refreshCenter: AppRefreshCenter
 
     init(
         dailyLogService: DailyLogService,
@@ -26,7 +32,9 @@ final class TodayModel: ObservableObject {
         waterLogService: WaterLogService,
         weightLogService: WeightLogService,
         workoutLogService: WorkoutLogService,
-        targetService: TargetService
+        targetService: TargetService,
+        reviewService: ReviewService,
+        refreshCenter: AppRefreshCenter
     ) {
         self.dailyLogService = dailyLogService
         self.foodLogService = foodLogService
@@ -34,6 +42,8 @@ final class TodayModel: ObservableObject {
         self.weightLogService = weightLogService
         self.workoutLogService = workoutLogService
         self.targetService = targetService
+        self.reviewService = reviewService
+        self.refreshCenter = refreshCenter
     }
 
     // MARK: Loading
@@ -55,7 +65,7 @@ final class TodayModel: ObservableObject {
         } catch ServiceError.missingUserProfile {
             viewState = .empty
         } catch {
-            viewState = .error("Could not refresh today's log.")
+            viewState = .error("Could not refresh today's dashboard.")
         }
     }
 
@@ -65,6 +75,7 @@ final class TodayModel: ObservableObject {
         do {
             _ = try dailyLogService.startNewDay(weightKg: nil)
             try loadDashboard()
+            notifyDataChanged()
         } catch ServiceError.missingUserProfile {
             viewState = .empty
         } catch {
@@ -76,6 +87,7 @@ final class TodayModel: ObservableObject {
         do {
             _ = try waterLogService.addWater(amountMl: amountMl, date: Date())
             try loadDashboard()
+            notifyDataChanged()
         } catch ServiceError.missingUserProfile {
             viewState = .empty
         } catch {
@@ -87,8 +99,94 @@ final class TodayModel: ObservableObject {
         do {
             _ = try weightLogService.logWeight(weightKg, date: Date())
             try loadDashboard()
+            notifyDataChanged()
         } catch {
             viewState = .error("Could not log weight.")
+        }
+    }
+
+    func generateDailyReview() async {
+        guard !isGeneratingDailyReview else { return }
+        isGeneratingDailyReview = true
+        defer { isGeneratingDailyReview = false }
+
+        do {
+            _ = try await reviewService.generateDailyReview(for: Date())
+            try loadDashboard()
+            notifyDataChanged()
+        } catch ServiceError.missingUserProfile {
+            viewState = .empty
+        } catch {
+            viewState = .error("Could not generate your daily review.")
+        }
+    }
+
+    // MARK: Food Entry Sheet
+
+    func showAddFood() {
+        foodEntryErrorMessage = nil
+        editingFoodEntry = nil
+        isShowingFoodEntrySheet = true
+    }
+
+    func showEditFood(_ entry: FoodEntry) {
+        foodEntryErrorMessage = nil
+        editingFoodEntry = entry
+        isShowingFoodEntrySheet = true
+    }
+
+    func dismissFoodEditor() {
+        foodEntryErrorMessage = nil
+        editingFoodEntry = nil
+        isShowingFoodEntrySheet = false
+    }
+
+    func saveFoodEntry(_ formState: FoodEntryFormState) async {
+        do {
+            if let editingFoodEntry {
+                let update = try formState.makeFoodEntryUpdate()
+                _ = try foodLogService.editFoodEntry(id: editingFoodEntry.id, update: update)
+            } else {
+                let draft = try formState.makeFoodDraft()
+                _ = try foodLogService.addFoodEntry(draft, date: Date())
+            }
+            dismissFoodEditor()
+            try loadDashboard()
+            notifyDataChanged()
+        } catch let error as FoodEntryFormError {
+            foodEntryErrorMessage = error.localizedDescription
+        } catch ServiceError.invalidInput(let message) {
+            foodEntryErrorMessage = message
+        } catch ServiceError.foodEntryNotFound {
+            foodEntryErrorMessage = "That food entry could not be found."
+        } catch ServiceError.missingUserProfile {
+            viewState = .empty
+            dismissFoodEditor()
+        } catch {
+            foodEntryErrorMessage = "Could not save food entry."
+        }
+    }
+
+    func deleteFoodEntry(_ entry: FoodEntry) async {
+        do {
+            try foodLogService.deleteFoodEntry(id: entry.id)
+            if editingFoodEntry?.id == entry.id {
+                dismissFoodEditor()
+            }
+            try loadDashboard()
+            notifyDataChanged()
+        } catch ServiceError.foodEntryNotFound {
+            if isShowingFoodEntrySheet {
+                foodEntryErrorMessage = "That food entry could not be found."
+            } else {
+                viewState = .error("That food entry could not be found.")
+            }
+        } catch {
+            if isShowingFoodEntrySheet {
+                foodEntryErrorMessage = "Could not delete food entry."
+            } else {
+                viewState = .error("Could not delete food entry.")
+            }
         }
     }
 
@@ -99,13 +197,15 @@ final class TodayModel: ObservableObject {
         let foodEntries = try foodLogService.getFoodEntries(for: dailyLog.date)
         let workouts = try workoutLogService.getWorkouts(for: dailyLog.date)
         let latestWeight = dailyLog.weightKg == nil ? try weightLogService.getLatestWeight() : nil
+        let dailyReview = try reviewService.getDailyReview(for: dailyLog.date)
 
         viewState = .loaded(
             makeDashboardState(
                 dailyLog: dailyLog,
                 foodEntries: foodEntries,
                 workouts: workouts,
-                latestWeight: latestWeight
+                latestWeight: latestWeight,
+                dailyReview: dailyReview
             )
         )
     }
@@ -114,7 +214,8 @@ final class TodayModel: ObservableObject {
         dailyLog: DailyLog,
         foodEntries: [FoodEntry],
         workouts: [WorkoutEntry],
-        latestWeight: WeightEntry?
+        latestWeight: WeightEntry?,
+        dailyReview: DailyReview?
     ) -> TodayDashboardState {
         let targets = MacroCalculator.macroTargets(from: dailyLog.targets)
         let remaining = MacroCalculator.remaining(targets: targets, totals: dailyLog.totals)
@@ -183,6 +284,7 @@ final class TodayModel: ObservableObject {
             workoutSummary: workoutSummary,
             foodEntries: foodEntries,
             hasDailyLog: true,
+            dailyReview: dailyReview,
             coachingNote: coachingNote(
                 calorieSummary: calorieSummary,
                 macroSummary: macroSummary,
@@ -206,5 +308,9 @@ final class TodayModel: ObservableObject {
             return "Try to pace your water earlier in the day."
         }
         return "You are on track today. Keep logging meals and water consistently."
+    }
+
+    private func notifyDataChanged() {
+        refreshCenter.notifyDataChanged()
     }
 }

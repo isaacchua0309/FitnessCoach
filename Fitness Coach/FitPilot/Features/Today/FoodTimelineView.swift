@@ -9,6 +9,8 @@ import SwiftUI
 
 struct FoodTimelineView: View {
     let entries: [FoodEntry]
+    let onSelectFood: (FoodEntry) -> Void
+    let onDeleteFood: ((FoodEntry) -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -23,7 +25,23 @@ struct FoodTimelineView: View {
                     .padding(.vertical, 8)
             } else {
                 ForEach(entries) { entry in
-                    FoodTimelineRow(entry: entry)
+                    Button {
+                        onSelectFood(entry)
+                    } label: {
+                        FoodTimelineRow(entry: entry)
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button("Edit") {
+                            onSelectFood(entry)
+                        }
+                        if let onDeleteFood {
+                            Button("Delete", role: .destructive) {
+                                onDeleteFood(entry)
+                            }
+                        }
+                    }
+
                     if entry.id != entries.last?.id {
                         Divider()
                     }
@@ -37,6 +55,10 @@ struct FoodTimelineView: View {
 }
 
 #Preview {
-    FoodTimelineView(entries: TodayPreviewData.foodEntries)
-        .padding()
+    FoodTimelineView(
+        entries: TodayPreviewData.foodEntries,
+        onSelectFood: { _ in },
+        onDeleteFood: { _ in }
+    )
+    .padding()
 }

@@ -21,6 +21,9 @@ final class CoachModel: ObservableObject {
     @Published var inputText: String = ""
     @Published private(set) var isSending: Bool = false
     @Published private(set) var errorMessage: String?
+    @Published private(set) var foodConfirmationState: AIFoodConfirmationState = .none
+    @Published var isShowingFoodConfirmationSheet = false
+    @Published private(set) var foodConfirmationErrorMessage: String?
 
     private let localCommandParser: LocalCommandParser
     private let dailyLogService: DailyLogService
@@ -33,6 +36,7 @@ final class CoachModel: ObservableObject {
     private let aiService: AIServiceProtocol?
     private let aiContextBuilder: CoachAIContextBuilder?
     private let aiCommandParsingEnabled: Bool
+    private let refreshCenter: AppRefreshCenter
 
     init(
         localCommandParser: LocalCommandParser = .standard,
@@ -44,7 +48,8 @@ final class CoachModel: ObservableObject {
         reviewService: ReviewService,
         aiService: AIServiceProtocol? = nil,
         userProfileService: UserProfileService? = nil,
-        aiCommandParsingEnabled: Bool = false
+        aiCommandParsingEnabled: Bool = false,
+        refreshCenter: AppRefreshCenter
     ) {
         self.localCommandParser = localCommandParser
         self.dailyLogService = dailyLogService
@@ -55,6 +60,7 @@ final class CoachModel: ObservableObject {
         self.reviewService = reviewService
         self.aiService = aiService
         self.aiCommandParsingEnabled = aiCommandParsingEnabled
+        self.refreshCenter = refreshCenter
         if let userProfileService {
             self.aiContextBuilder = CoachAIContextBuilder(
                 dailyLogService: dailyLogService,
@@ -100,6 +106,68 @@ final class CoachModel: ObservableObject {
 
     func clearError() {
         errorMessage = nil
+    }
+
+    // MARK: AI Food Confirmation
+
+    func openFoodConfirmationSheet() {
+        guard foodConfirmationState.pendingDraft != nil else { return }
+        foodConfirmationErrorMessage = nil
+        isShowingFoodConfirmationSheet = true
+    }
+
+    func dismissFoodConfirmationSheet() {
+        isShowingFoodConfirmationSheet = false
+    }
+
+    func confirmAIFoodEstimate(_ formState: FoodEntryFormState) async {
+        guard let pending = foodConfirmationState.pendingDraft,
+              let originalDraft = pending.primaryFoodDraft else {
+            foodConfirmationErrorMessage = "I could not prepare that estimate for confirmation."
+            return
+        }
+
+        foodConfirmationState = .saving(pending)
+        foodConfirmationErrorMessage = nil
+
+        do {
+            let draft = try formState.makeAIFoodDraft(original: originalDraft)
+            let entry = try foodLogService.addFoodEntry(draft, date: Date())
+            let log = try? dailyLogService.getLog(for: Date())
+            notifyDataChanged()
+            clearFoodConfirmation()
+            appendAssistantMessage(CoachResponseBuilder.food(entry, log: log))
+        } catch let error as FoodEntryFormError {
+            foodConfirmationState = .error(pending, error.localizedDescription)
+            foodConfirmationErrorMessage = error.localizedDescription
+        } catch ServiceError.invalidInput(let message) {
+            foodConfirmationState = .error(pending, message)
+            foodConfirmationErrorMessage = message
+        } catch ServiceError.missingUserProfile {
+            clearFoodConfirmation()
+            appendAssistantMessage("I could not log that food entry. Please check that your profile is set up.")
+        } catch {
+            foodConfirmationState = .error(pending, CoachResponseBuilder.aiFoodSaveFailed)
+            foodConfirmationErrorMessage = CoachResponseBuilder.aiFoodSaveFailed
+        }
+    }
+
+    func rejectAIFoodEstimate() {
+        clearFoodConfirmation()
+        appendAssistantMessage(CoachResponseBuilder.aiFoodRejected)
+    }
+
+    private func clearFoodConfirmation() {
+        foodConfirmationState = .none
+        foodConfirmationErrorMessage = nil
+        isShowingFoodConfirmationSheet = false
+    }
+
+    private func presentAIFoodConfirmation(for command: AIParsedCommand, foodDraft: FoodDraft) {
+        let pending = AIFoodConfirmationDraft.from(command: command, foodDraft: foodDraft)
+        foodConfirmationState = .pending(pending)
+        foodConfirmationErrorMessage = nil
+        isShowingFoodConfirmationSheet = true
     }
 
     // MARK: Result Handling
@@ -167,20 +235,35 @@ final class CoachModel: ObservableObject {
     }
 
     private func executeAICommand(_ command: AIParsedCommand) async -> String {
+        if command.actions.count > 1 {
+            return CoachResponseBuilder.aiMultiActionDeferred
+        }
+
+        if let foodAction = command.actions.first(where: { $0.type == .logFood }),
+           let foodDraft = foodAction.foodDraft {
+            switch AIResponseValidator.validateFood(foodDraft, confidence: command.confidence) {
+            case .invalid(let message):
+                return message.isEmpty ? CoachResponseBuilder.aiNotUnderstood : message
+            case .requiresConfirmation:
+                presentAIFoodConfirmation(for: command, foodDraft: foodDraft)
+                return CoachResponseBuilder.aiFoodPendingMessage(assistantMessage: command.assistantMessage)
+            case .valid:
+                presentAIFoodConfirmation(for: command, foodDraft: foodDraft)
+                return CoachResponseBuilder.aiFoodPendingMessage(assistantMessage: command.assistantMessage)
+            }
+        }
+
         switch AIResponseValidator.validate(command) {
-        case .invalid:
-            return CoachResponseBuilder.aiNotUnderstood
+        case .invalid(let message):
+            return message.isEmpty ? CoachResponseBuilder.aiNotUnderstood : message
         case .requiresConfirmation:
-            return command.assistantMessage.map { "\($0)\n\nThis needs confirmation before logging. "
-                + "Full confirmation will be added in a later step." }
-                ?? CoachResponseBuilder.aiNeedsConfirmation
+            return command.assistantMessage ?? CoachResponseBuilder.aiNeedsConfirmation
         case .valid:
             return await executeValidatedAIAction(command)
         }
     }
 
-    /// Executes a validated, high-confidence single action through existing
-    /// services. Anything else returns guidance without mutating state.
+    /// Executes a validated single non-food action through existing services.
     private func executeValidatedAIAction(_ command: AIParsedCommand) async -> String {
         guard let action = command.actions.first, command.actions.count == 1 else {
             return command.assistantMessage ?? CoachResponseBuilder.aiNeedsConfirmation
@@ -188,8 +271,7 @@ final class CoachModel: ObservableObject {
 
         switch action.type {
         case .logFood:
-            guard let draft = action.foodDraft else { return CoachResponseBuilder.aiNotUnderstood }
-            return executeLogFood(draft)
+            return CoachResponseBuilder.aiNotUnderstood
         case .logWater:
             guard let draft = action.waterDraft else { return CoachResponseBuilder.aiNotUnderstood }
             return executeLogWater(draft)
@@ -215,6 +297,7 @@ final class CoachModel: ObservableObject {
     private func executeNewDay(weightKg: Double?) -> String {
         do {
             _ = try dailyLogService.startNewDay(weightKg: weightKg)
+            notifyDataChanged()
             return CoachResponseBuilder.newDay(weightKg: weightKg)
         } catch ServiceError.missingUserProfile {
             return "I could not start a new day. Please check that your profile is set up."
@@ -227,6 +310,7 @@ final class CoachModel: ObservableObject {
         do {
             let entry = try waterLogService.addWater(draft, date: Date())
             let log = try? dailyLogService.getLog(for: Date())
+            notifyDataChanged()
             return CoachResponseBuilder.water(loggedMl: entry.amountMl, log: log)
         } catch ServiceError.invalidInput(let message) {
             return message
@@ -238,6 +322,7 @@ final class CoachModel: ObservableObject {
     private func executeLogWeight(_ draft: WeightDraft) -> String {
         do {
             let entry = try weightLogService.logWeight(draft, date: Date())
+            notifyDataChanged()
             return CoachResponseBuilder.weight(entry.weightKg)
         } catch ServiceError.invalidInput(let message) {
             return message
@@ -250,6 +335,7 @@ final class CoachModel: ObservableObject {
         do {
             let entry = try foodLogService.addFoodEntry(draft, date: Date())
             let log = try? dailyLogService.getLog(for: Date())
+            notifyDataChanged()
             return CoachResponseBuilder.food(entry, log: log)
         } catch ServiceError.invalidInput(let message) {
             return message
@@ -265,6 +351,7 @@ final class CoachModel: ObservableObject {
         case .food:
             do {
                 let entry = try foodLogService.undoLastFoodEntry(date: Date())
+                notifyDataChanged()
                 return CoachResponseBuilder.undoFood(entry)
             } catch {
                 return "I could not undo your last food entry. Please try again."
@@ -272,6 +359,7 @@ final class CoachModel: ObservableObject {
         case .water:
             do {
                 let entry = try waterLogService.undoLastWaterEntry(date: Date())
+                notifyDataChanged()
                 return CoachResponseBuilder.undoWater(entry)
             } catch {
                 return "I could not undo your last water entry. Please try again."
@@ -295,6 +383,7 @@ final class CoachModel: ObservableObject {
     private func executeDailyReview() async -> String {
         do {
             let review = try await reviewService.generateDailyReview(for: Date())
+            notifyDataChanged()
             return CoachResponseBuilder.dailyReview(review)
         } catch ServiceError.missingUserProfile {
             return "I could not generate your daily review yet. Please start a day and make sure your profile is set up."
@@ -331,5 +420,9 @@ final class CoachModel: ObservableObject {
                 relatedEntryId: nil
             )
         )
+    }
+
+    private func notifyDataChanged() {
+        refreshCenter.notifyDataChanged()
     }
 }

@@ -22,17 +22,20 @@ final class TrainingModel: ObservableObject {
     private let workoutLogService: WorkoutLogService
     private let dailyLogService: DailyLogService
     private let userProfileService: UserProfileService
+    private let refreshCenter: AppRefreshCenter
 
     private let recentRangeDays = 28
 
     init(
         workoutLogService: WorkoutLogService,
         dailyLogService: DailyLogService,
-        userProfileService: UserProfileService
+        userProfileService: UserProfileService,
+        refreshCenter: AppRefreshCenter
     ) {
         self.workoutLogService = workoutLogService
         self.dailyLogService = dailyLogService
         self.userProfileService = userProfileService
+        self.refreshCenter = refreshCenter
     }
 
     // MARK: Loading
@@ -73,6 +76,7 @@ final class TrainingModel: ObservableObject {
             _ = try workoutLogService.addWorkout(draft, date: Date())
             dismissAddWorkout()
             await refresh()
+            refreshCenter.notifyDataChanged()
         } catch let error as TrainingFormError {
             formErrorMessage = error.message
         } catch ServiceError.invalidInput(let message) {
@@ -89,6 +93,7 @@ final class TrainingModel: ObservableObject {
                 selectedWorkout = nil
             }
             await refresh()
+            refreshCenter.notifyDataChanged()
         } catch {
             viewState = .error("Could not delete workout.")
         }

@@ -119,8 +119,26 @@ enum CoachResponseBuilder {
         + "Please try rephrasing or log it with explicit calories and macros."
 
     static let aiNeedsConfirmation =
-        "This is an estimate and needs confirmation before logging. "
-        + "Full confirmation will be added in a later step."
+        "This is an estimate and needs confirmation before logging."
+
+    static let aiFoodPendingConfirmation =
+        "I estimated this food, but I need your confirmation before logging it."
+
+    static let aiFoodRejected =
+        "No problem — I did not log that food."
+
+    static let aiFoodSaveFailed =
+        "I could not save that food entry. Please check the values and try again."
+
+    static let aiMultiActionDeferred =
+        "This looks like multiple actions. I'll wait for confirmation before logging food."
+
+    static func aiFoodPendingMessage(assistantMessage: String?) -> String {
+        guard let assistantMessage, !assistantMessage.isEmpty else {
+            return aiFoodPendingConfirmation
+        }
+        return "\(assistantMessage)\n\n\(aiFoodPendingConfirmation)"
+    }
 
     // MARK: Formatting Helpers
 

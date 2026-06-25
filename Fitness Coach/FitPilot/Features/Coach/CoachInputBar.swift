@@ -12,6 +12,7 @@ import SwiftUI
 
 struct CoachInputBar: View {
     @Binding var text: String
+    var isFocused: FocusState<Bool>.Binding
     let isSending: Bool
     let onSend: () -> Void
 
@@ -24,6 +25,7 @@ struct CoachInputBar: View {
             TextField("Message Coach", text: $text, axis: .vertical)
                 .textFieldStyle(.plain)
                 .lineLimit(1...4)
+                .focused(isFocused)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
                 .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 18))
@@ -46,5 +48,13 @@ struct CoachInputBar: View {
 }
 
 #Preview {
-    CoachInputBar(text: .constant("status"), isSending: false) {}
+    struct PreviewWrapper: View {
+        @FocusState private var isFocused: Bool
+
+        var body: some View {
+            CoachInputBar(text: .constant("status"), isFocused: $isFocused, isSending: false) {}
+        }
+    }
+
+    return PreviewWrapper()
 }

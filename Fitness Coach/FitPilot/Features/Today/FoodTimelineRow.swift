@@ -20,32 +20,31 @@ struct FoodTimelineRow: View {
                 HStack {
                     Text(entry.name)
                         .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
                     Spacer()
                     Text("\(entry.calories) kcal")
                         .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
                 }
 
-                Text("\(macroText) • \(confidenceText)")
+                Text(subtitleText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 6)
+        .contentShape(Rectangle())
     }
 
-    private var macroText: String {
-        "P \(format(entry.protein))g / C \(format(entry.carbs))g / F \(format(entry.fat))g"
-    }
-
-    private var confidenceText: String {
-        switch entry.confidence {
-        case .high:
-            return "High confidence"
-        case .medium:
-            return "Medium confidence"
-        case .low:
-            return "Low confidence"
-        }
+    private var subtitleText: String {
+        let mealType = FoodEntryFormFormatter.mealTypeLabel(entry.mealType)
+        let macros = FoodEntryFormFormatter.macroLine(
+            protein: entry.protein,
+            carbs: entry.carbs,
+            fat: entry.fat
+        )
+        let confidence = FoodEntryFormFormatter.confidenceLabel(entry.confidence)
+        return "\(mealType) • \(macros) • \(confidence)"
     }
 
     private var iconName: String {
@@ -61,12 +60,6 @@ struct FoodTimelineRow: View {
         case .unknown, nil:
             return "fork.knife"
         }
-    }
-
-    private func format(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? String(format: "%.0f", value)
-            : String(format: "%.1f", value)
     }
 }
 

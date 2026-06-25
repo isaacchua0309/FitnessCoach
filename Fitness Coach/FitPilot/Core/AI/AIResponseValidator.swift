@@ -111,14 +111,10 @@ enum AIResponseValidator {
             return .invalid("Macros cannot be negative.")
         }
 
-        // AI-estimated food is never high-trust enough to log silently.
-        if confidence != .high {
-            return .requiresConfirmation(
-                "This is an estimate and needs confirmation before logging."
-            )
-        }
-
-        return .valid
+        // AI-estimated food always requires user confirmation before logging.
+        return .requiresConfirmation(
+            "This is an estimate and needs confirmation before logging."
+        )
     }
 
     static func validateWater(_ draft: WaterDraft) -> AIValidationResult {

@@ -9,10 +9,16 @@ import SwiftUI
 
 struct CoachMessageListView: View {
     let messages: [ChatMessage]
+    var onDismissKeyboard: (() -> Void)?
 
     var body: some View {
         if messages.isEmpty {
             CoachEmptyStateView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    onDismissKeyboard?()
+                }
         } else {
             ScrollViewReader { proxy in
                 ScrollView {
@@ -24,6 +30,12 @@ struct CoachMessageListView: View {
                     }
                     .padding()
                 }
+                .scrollDismissesKeyboard(.interactively)
+                .simultaneousGesture(
+                    TapGesture().onEnded {
+                        onDismissKeyboard?()
+                    }
+                )
                 .onChange(of: messages.count) {
                     if let lastId = messages.last?.id {
                         withAnimation {

@@ -12,10 +12,11 @@ import SwiftUI
 
 struct ProgressView: View {
 
-    @StateObject private var model: ProgressModel
+    @ObservedObject var model: ProgressModel
+    @EnvironmentObject private var refreshCenter: AppRefreshCenter
 
     init(model: ProgressModel) {
-        _model = StateObject(wrappedValue: model)
+        self.model = model
     }
 
     var body: some View {
@@ -24,6 +25,14 @@ struct ProgressView: View {
                 .navigationTitle("Progress")
                 .task {
                     await model.loadProgress()
+                }
+                .onChange(of: refreshCenter.refreshToken) { _, _ in
+                    Task { await model.refresh() }
+                }
+                .onAppear {
+                    if case .loaded = model.viewState {
+                        Task { await model.refresh() }
+                    }
                 }
                 .refreshable {
                     await model.refresh()
@@ -106,5 +115,7 @@ struct ProgressView: View {
 }
 
 #Preview {
-    ProgressView(model: try! AppContainer(inMemory: true).makeProgressModel())
+    let container = try! AppContainer(inMemory: true)
+    ProgressView(model: container.makeProgressModel())
+        .environmentObject(container.refreshCenter)
 }

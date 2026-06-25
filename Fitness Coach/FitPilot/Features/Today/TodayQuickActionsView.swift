@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct TodayQuickActionsView: View {
+    let onAddFood: () -> Void
     let onStartNewDay: () -> Void
     let onAddWater: () -> Void
     let onLogWeight: () -> Void
@@ -19,6 +20,7 @@ struct TodayQuickActionsView: View {
                 .font(.headline)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                actionButton("Add Food", systemImage: "fork.knife", action: onAddFood)
                 actionButton("Start New Day", systemImage: "calendar.badge.plus", action: onStartNewDay)
                 actionButton("+500 ml Water", systemImage: "drop.fill", action: onAddWater)
                 actionButton("Log Weight", systemImage: "scalemass", action: onLogWeight)
@@ -42,6 +44,7 @@ struct TodayQuickActionsView: View {
 
 #Preview {
     TodayQuickActionsView(
+        onAddFood: {},
         onStartNewDay: {},
         onAddWater: {},
         onLogWeight: {},

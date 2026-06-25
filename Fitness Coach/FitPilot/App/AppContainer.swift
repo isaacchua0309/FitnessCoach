@@ -26,8 +26,10 @@ final class AppContainer {
     let llmClient: LLMClient
     let aiService: AIService
     let aiCommandParsingEnabled: Bool
+    let refreshCenter: AppRefreshCenter
 
     init(inMemory: Bool = false) throws {
+        refreshCenter = AppRefreshCenter()
         modelContainer = try FitPilotModelContainer.makeContainer(inMemory: inMemory)
         store = SwiftDataStore(container: modelContainer)
 
@@ -81,7 +83,9 @@ final class AppContainer {
             waterLogService: waterLogService,
             weightLogService: weightLogService,
             workoutLogService: workoutLogService,
-            targetService: targetService
+            targetService: targetService,
+            reviewService: reviewService,
+            refreshCenter: refreshCenter
         )
     }
 
@@ -95,7 +99,8 @@ final class AppContainer {
             reviewService: reviewService,
             aiService: aiService,
             userProfileService: userProfileService,
-            aiCommandParsingEnabled: aiCommandParsingEnabled
+            aiCommandParsingEnabled: aiCommandParsingEnabled,
+            refreshCenter: refreshCenter
         )
     }
 
@@ -112,7 +117,28 @@ final class AppContainer {
         TrainingModel(
             workoutLogService: workoutLogService,
             dailyLogService: dailyLogService,
-            userProfileService: userProfileService
+            userProfileService: userProfileService,
+            refreshCenter: refreshCenter
+        )
+    }
+
+    func makeProfileModel() -> ProfileModel {
+        ProfileModel(
+            userProfileService: userProfileService,
+            targetService: targetService,
+            refreshCenter: refreshCenter
+        )
+    }
+
+    func makeRootModel() -> RootModel {
+        RootModel(userProfileService: userProfileService)
+    }
+
+    func makeOnboardingModel(onCompletion: @escaping () -> Void) -> OnboardingModel {
+        OnboardingModel(
+            userProfileService: userProfileService,
+            targetService: targetService,
+            onCompletion: onCompletion
         )
     }
 }
