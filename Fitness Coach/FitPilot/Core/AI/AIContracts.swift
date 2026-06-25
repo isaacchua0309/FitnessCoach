@@ -15,6 +15,21 @@ import Foundation
 
 struct MealAdviceAIRequest: Codable, Equatable, Sendable {
     var question: String
+    var intentResult: CoachIntentResult?
+    var modelTier: CoachModelTier?
+    var modelName: String?
+
+    init(
+        question: String,
+        intentResult: CoachIntentResult? = nil,
+        modelTier: CoachModelTier? = nil,
+        modelName: String? = nil
+    ) {
+        self.question = question
+        self.intentResult = intentResult
+        self.modelTier = modelTier
+        self.modelName = modelName
+    }
 }
 
 struct DailyReviewAIInput: Codable, Equatable, Sendable {
@@ -65,6 +80,25 @@ struct AIParseCommandResponse: Codable, Equatable, Sendable {
     }
 }
 
+// MARK: Intent Classification
+
+struct AICoachIntentClassificationRequest: Codable, Equatable, Sendable {
+    var text: String
+    var context: AIContext
+    var modelName: String
+    var modelConfig: CoachModelConfig
+}
+
+struct AICoachIntentClassificationResponse: Codable, Equatable, Sendable {
+    var intentResult: CoachIntentResult
+    var usage: AIUsageMetadata?
+
+    init(intentResult: CoachIntentResult, usage: AIUsageMetadata? = nil) {
+        self.intentResult = intentResult
+        self.usage = usage
+    }
+}
+
 // MARK: Food Estimate
 
 struct AIFoodEstimateRequest: Codable, Equatable, Sendable {
@@ -99,6 +133,23 @@ struct AIFoodEstimateResponse: Codable, Equatable, Sendable {
 struct AIMealAdviceRequest: Codable, Equatable, Sendable {
     var question: String
     var context: AIContext
+    var intentResult: CoachIntentResult?
+    var modelTier: CoachModelTier?
+    var modelName: String?
+
+    init(
+        question: String,
+        context: AIContext,
+        intentResult: CoachIntentResult? = nil,
+        modelTier: CoachModelTier? = nil,
+        modelName: String? = nil
+    ) {
+        self.question = question
+        self.context = context
+        self.intentResult = intentResult
+        self.modelTier = modelTier
+        self.modelName = modelName
+    }
 }
 
 struct AIMealAdviceResponse: Codable, Equatable, Sendable {

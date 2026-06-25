@@ -32,6 +32,12 @@ final class FitPilotAIBackendClient: LLMClient {
         self.decoder = decoder
     }
 
+    func classifyCoachIntent(
+        request: AICoachIntentClassificationRequest
+    ) async throws -> AICoachIntentClassificationResponse {
+        try await post(endpoint: .classifyCoachIntent, body: request)
+    }
+
     func parseCommand(request: AIParseCommandRequest) async throws -> AIParseCommandResponse {
         try await post(endpoint: .parseCommand, body: request)
     }

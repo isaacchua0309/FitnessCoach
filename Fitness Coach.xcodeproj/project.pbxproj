@@ -6,8 +6,19 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		3A0000072FEE000100000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2B89F3F02FECF33300F9B990 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2B89F3F72FECF33300F9B990;
+			remoteInfo = "Fitness Coach";
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		2B89F3F82FECF33300F9B990 /* Fitness Coach.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Fitness Coach.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		3A0000012FEE000100000001 /* Fitness CoachTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Fitness CoachTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -16,10 +27,22 @@
 			path = "Fitness Coach";
 			sourceTree = "<group>";
 		};
+		3A0000022FEE000100000001 /* Fitness CoachTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Fitness CoachTests";
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		2B89F3F52FECF33300F9B990 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3A0000032FEE000100000001 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +56,7 @@
 			isa = PBXGroup;
 			children = (
 				2B89F3FA2FECF33300F9B990 /* Fitness Coach */,
+				3A0000022FEE000100000001 /* Fitness CoachTests */,
 				2B89F3F92FECF33300F9B990 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +65,7 @@
 			isa = PBXGroup;
 			children = (
 				2B89F3F82FECF33300F9B990 /* Fitness Coach.app */,
+				3A0000012FEE000100000001 /* Fitness CoachTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,6 +95,29 @@
 			productReference = 2B89F3F82FECF33300F9B990 /* Fitness Coach.app */;
 			productType = "com.apple.product-type.application";
 		};
+		3A0000062FEE000100000001 /* Fitness CoachTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3A0000092FEE000100000001 /* Build configuration list for PBXNativeTarget "Fitness CoachTests" */;
+			buildPhases = (
+				3A0000042FEE000100000001 /* Sources */,
+				3A0000032FEE000100000001 /* Frameworks */,
+				3A0000052FEE000100000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				3A0000082FEE000100000001 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				3A0000022FEE000100000001 /* Fitness CoachTests */,
+			);
+			name = "Fitness CoachTests";
+			packageProductDependencies = (
+			);
+			productName = "Fitness CoachTests";
+			productReference = 3A0000012FEE000100000001 /* Fitness CoachTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -81,6 +129,9 @@
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					2B89F3F72FECF33300F9B990 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					3A0000062FEE000100000001 = {
 						CreatedOnToolsVersion = 26.0;
 					};
 				};
@@ -100,12 +151,20 @@
 			projectRoot = "";
 			targets = (
 				2B89F3F72FECF33300F9B990 /* Fitness Coach */,
+				3A0000062FEE000100000001 /* Fitness CoachTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		2B89F3F62FECF33300F9B990 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3A0000052FEE000100000001 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +181,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		3A0000042FEE000100000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		3A0000082FEE000100000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2B89F3F72FECF33300F9B990 /* Fitness Coach */;
+			targetProxy = 3A0000072FEE000100000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		2B89F4012FECF33B00F9B990 /* Debug */ = {
@@ -310,6 +384,52 @@
 			};
 			name = Release;
 		};
+		3A00000A2FEE000100000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = C3PWC866NM;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+					"\"$(BUILT_PRODUCTS_DIR)/Fitness Coach.app\"",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = "\"$(BUILT_PRODUCTS_DIR)/Fitness Coach.app/Fitness Coach.debug.dylib\"";
+				PRODUCT_BUNDLE_IDENTIFIER = "TutorTrack.Fitness-CoachTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		3A00000B2FEE000100000001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = C3PWC866NM;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+					"\"$(BUILT_PRODUCTS_DIR)/Fitness Coach.app\"",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = "\"$(BUILT_PRODUCTS_DIR)/Fitness Coach.app/Fitness Coach.debug.dylib\"";
+				PRODUCT_BUNDLE_IDENTIFIER = "TutorTrack.Fitness-CoachTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -327,6 +447,15 @@
 			buildConfigurations = (
 				2B89F4042FECF33B00F9B990 /* Debug */,
 				2B89F4052FECF33B00F9B990 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3A0000092FEE000100000001 /* Build configuration list for PBXNativeTarget "Fitness CoachTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3A00000A2FEE000100000001 /* Debug */,
+				3A00000B2FEE000100000001 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

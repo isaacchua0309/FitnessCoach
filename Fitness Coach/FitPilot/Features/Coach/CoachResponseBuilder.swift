@@ -62,21 +62,6 @@ enum CoachResponseBuilder {
         """
     }
 
-    static func workoutPending(_ draft: WorkoutDraft) -> String {
-        let name = draft.name ?? "Workout"
-        let calories = draft.estimatedCaloriesBurned.map { "\($0) kcal" } ?? "calories estimated after saving"
-        let duration = draft.durationMinutes.map { "\($0) min" } ?? "duration not specified"
-
-        return """
-        I parsed this workout:
-
-        \(name)
-        \(duration) · \(calories)
-
-        Reply "confirm" to log it.
-        """
-    }
-
     static func workout(_ entry: WorkoutEntry) -> String {
         var lines = ["Logged workout."]
 
@@ -251,19 +236,14 @@ enum CoachResponseBuilder {
         "Undo last action is not fully supported yet. Try \"undo food\" or \"undo water\"."
 
     static let needsAIResponse =
-        "I understand this likely needs AI interpretation. AI parsing will be added in the next step. "
-        + "For now, you can log food with explicit calories and macros, for example: "
-        + "\"log chicken breast 413 calories 78 protein 0 carbs 4 fat\"."
+        "I couldn't reach the coach service. Try again in a moment."
 
     static let unsupportedResponse =
-        "I do not support that command locally yet."
+        "I can help with logging, calories, macros, meal choices, workouts, water, weight, and your daily targets."
 
     static let aiNotUnderstood =
         "I could not confidently understand that yet. "
         + "Please try rephrasing or log it with explicit calories and macros."
-
-    static let aiNeedsConfirmation =
-        "This is an estimate and needs confirmation before logging."
 
     static let aiFoodPendingConfirmation =
         "I estimated this food, but I need your confirmation before logging it."
@@ -274,14 +254,14 @@ enum CoachResponseBuilder {
     static let aiFoodSaveFailed =
         "I could not save that food entry. Please check the values and try again."
 
-    static let aiMultiActionDeferred =
-        "This looks like multiple actions. I'll wait for confirmation before logging food."
-
     static let tryFitnessPrompt =
         "Tell me what you ate, drank, weighed, trained, or ask what to do next."
 
     static let unknownResponse =
-        "I can help with food, water, weight, workouts, or meal decisions. Try: \"log 500g chicken breast\"."
+        "I'm best at fitness and nutrition. Ask about food, calories, protein, workouts, water, weight, or your FitPilot plan."
+
+    static let appHelpResponse =
+        "Ask me about meals, calories, macros, protein, workouts, water, weight, or today's targets. You can also say things like \"log 500g chicken breast\" or \"add 600ml water\"."
 
     static func aiFoodPendingMessage(assistantMessage: String?) -> String {
         guard let assistantMessage, !assistantMessage.isEmpty else {

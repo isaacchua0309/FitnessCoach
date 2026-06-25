@@ -19,9 +19,9 @@ enum AIServiceError: Error, Equatable {
     var userMessage: String {
         switch self {
         case .featureDisabled:
-            return "AI parsing is currently disabled. Please log with explicit calories and macros for now."
+            return "I couldn't reach the coach service. Try again in a moment."
         case .backendUnavailable, .requestFailed:
-            return "AI parsing is not available right now, but local logging still works."
+            return "I couldn't reach the coach service. Try again in a moment."
         case .invalidResponse, .decodingFailed, .validationFailed:
             return "I could not confidently understand that yet. "
                 + "Please try rephrasing or log it with explicit calories and macros."

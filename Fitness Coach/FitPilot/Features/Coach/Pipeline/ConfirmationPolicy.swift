@@ -38,14 +38,4 @@ enum ConfirmationPolicy {
         return .requiresConfirmation(message)
     }
 
-    static func decision(for command: AIParsedCommand) -> ConfirmationDecision {
-        switch AIResponseValidator.validate(command) {
-        case .valid:
-            return .executeImmediately
-        case .requiresConfirmation(let message):
-            return .requiresConfirmation(message)
-        case .invalid(let message):
-            return .reject(message)
-        }
-    }
 }

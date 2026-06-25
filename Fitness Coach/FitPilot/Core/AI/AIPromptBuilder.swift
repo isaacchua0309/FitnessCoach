@@ -47,6 +47,28 @@ enum AIPromptBuilder {
         """
     }
 
+    static func coachIntentClassificationSystemPrompt() -> String {
+        """
+        \(sharedRules)
+
+        Task: Classify the user's Coach message. You are not answering the user yet.
+        Return valid JSON only matching CoachIntentResult.
+        - Choose one intent: log_food, log_water, log_weight, log_workout, edit_log,
+          delete_log, daily_summary, calorie_lookup, macro_lookup, meal_decision,
+          nutrition_advice, workout_advice, weight_loss_advice, app_help,
+          general_conversation, unrelated_or_unsupported.
+        - Prefer app-domain intents for food, calories, weight, workouts, hydration,
+          meals, supplements, macros, and fitness. Do not classify valid fitness or
+          nutrition questions as unsupported.
+        - Set requiresAppMutation true only when the user wants to change FitPilot data.
+        - Include a typed action when mutation data is clear enough to validate.
+        - Set canAnswerWithCheapModel true for simple nutrition, calorie, macro,
+          supplement, meal-decision, workout, or general fitness questions.
+        - Set requiresEscalation true only for deeper planning, multi-step coaching,
+          medical nuance, high personalization, or ambiguous mutations.
+        """
+    }
+
     static func foodEstimationSystemPrompt() -> String {
         """
         \(sharedRules)
@@ -63,10 +85,16 @@ enum AIPromptBuilder {
         """
         \(sharedRules)
 
-        Task: Give brief, practical meal or nutrition advice for the user's question.
+        Task: Give brief, practical fitness, nutrition, calorie lookup, macro, or meal-decision advice for the user's question.
+        - Answer the actual question directly before adding context.
+        - Use the classifier result to stay on the intended task.
         - Use the provided context (targets and remaining macros) when relevant.
+        - For restaurant or branded foods, give realistic calorie/macro ranges and clearly state uncertainty.
+        - For meal decisions, use: direct answer, estimated calories/macros, FitPilot recommendation based on remaining targets, and a portion or alternative.
+        - For protein powder or supplement questions, call out when the dose is probably excessive and compare it with the user's remaining protein/calorie budget when available.
         - Frame guidance around weekly averages and sustainable choices.
         - Do not log anything. Return coaching text only.
+        - Keep the response concise, specific, and useful.
         """
     }
 

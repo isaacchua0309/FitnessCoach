@@ -38,13 +38,4 @@ struct AIFoodConfirmationDraft: Identifiable, Equatable {
         foodDrafts.first
     }
 
-    static func from(command: AIParsedCommand, foodDraft: FoodDraft) -> AIFoodConfirmationDraft {
-        AIFoodConfirmationDraft(
-            originalText: command.originalText,
-            assistantMessage: command.assistantMessage,
-            foodDrafts: [foodDraft],
-            confidence: command.confidence,
-            requiresConfirmation: true
-        )
-    }
 }

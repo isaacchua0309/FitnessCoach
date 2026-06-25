@@ -8,6 +8,7 @@
 import Foundation
 
 enum LLMEndpoint: String, Codable, Equatable, Sendable {
+    case classifyCoachIntent = "v1/ai/classify-coach-intent"
     case parseCommand = "v1/ai/parse-command"
     case estimateFood = "v1/ai/estimate-food"
     case mealAdvice = "v1/ai/generate-meal-advice"

@@ -17,6 +17,16 @@ final class FallbackLLMClient: LLMClient {
         self.fallback = fallback
     }
 
+    func classifyCoachIntent(
+        request: AICoachIntentClassificationRequest
+    ) async throws -> AICoachIntentClassificationResponse {
+        do {
+            return try await primary.classifyCoachIntent(request: request)
+        } catch {
+            return try await fallback.classifyCoachIntent(request: request)
+        }
+    }
+
     func parseCommand(request: AIParseCommandRequest) async throws -> AIParseCommandResponse {
         do {
             return try await primary.parseCommand(request: request)

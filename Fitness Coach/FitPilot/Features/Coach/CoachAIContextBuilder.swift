@@ -11,17 +11,26 @@
 import Foundation
 
 @MainActor
-struct CoachAIContextBuilder {
+struct CoachContextBuilder {
 
     private let dailyLogService: DailyLogService
     private let userProfileService: UserProfileService
+    private let actionCenter: FitnessActionCenter?
+    private let workoutLogService: WorkoutLogService?
 
     /// Number of recent messages included for lightweight conversational context.
     private let recentMessageLimit = 5
 
-    init(dailyLogService: DailyLogService, userProfileService: UserProfileService) {
+    init(
+        dailyLogService: DailyLogService,
+        userProfileService: UserProfileService,
+        actionCenter: FitnessActionCenter? = nil,
+        workoutLogService: WorkoutLogService? = nil
+    ) {
         self.dailyLogService = dailyLogService
         self.userProfileService = userProfileService
+        self.actionCenter = actionCenter
+        self.workoutLogService = workoutLogService
     }
 
     func makeContext(recentMessages: [ChatMessage]) -> AIContext {
@@ -68,16 +77,40 @@ struct CoachAIContextBuilder {
             caloriesRemaining: remaining.calories,
             proteinTarget: targets.protein,
             proteinConsumed: log.totals.protein,
+            proteinRemaining: remaining.protein,
             carbsTarget: targets.carbs,
             carbsConsumed: log.totals.carbs,
+            carbsRemaining: remaining.carbs,
             fatTarget: targets.fat,
             fatConsumed: log.totals.fat,
+            fatRemaining: remaining.fat,
             waterTargetMl: log.targets.waterTargetMl,
             waterConsumedMl: log.waterConsumedMl,
+            waterRemainingMl: WaterTargetCalculator.remainingMl(
+                consumedMl: log.waterConsumedMl,
+                targetMl: log.targets.waterTargetMl
+            ),
             weightKg: log.weightKg,
             steps: log.steps,
-            workoutCaloriesBurned: log.workoutCaloriesBurned
+            workoutCaloriesBurned: log.workoutCaloriesBurned,
+            workoutsToday: (try? workoutLogService?.getWorkouts(for: Date()).count) ?? 0,
+            recentMeals: makeRecentMeals()
         )
+    }
+
+    private func makeRecentMeals() -> [String] {
+        guard let entries = try? actionCenter?.getFoodEntries(for: Date()) else {
+            return []
+        }
+        return entries.suffix(6).map { entry in
+            [
+                entry.quantity.map { formatQuantity($0) },
+                entry.unit,
+                entry.name
+            ]
+            .compactMap(\.self)
+            .joined(separator: " ")
+        }
     }
 
     // MARK: Messages
@@ -87,4 +120,12 @@ struct CoachAIContextBuilder {
             .suffix(recentMessageLimit)
             .map { AIMessageContext(role: $0.role, text: $0.text) }
     }
+
+    private func formatQuantity(_ value: Double) -> String {
+        value.truncatingRemainder(dividingBy: 1) == 0
+            ? String(format: "%.0f", value)
+            : String(format: "%.1f", value)
+    }
 }
+
+typealias CoachAIContextBuilder = CoachContextBuilder

@@ -12,6 +12,7 @@
 import Foundation
 
 protocol LLMClient: Sendable {
+    func classifyCoachIntent(request: AICoachIntentClassificationRequest) async throws -> AICoachIntentClassificationResponse
     func parseCommand(request: AIParseCommandRequest) async throws -> AIParseCommandResponse
     func estimateFood(request: AIFoodEstimateRequest) async throws -> AIFoodEstimateResponse
     func generateMealAdvice(request: AIMealAdviceRequest) async throws -> AIMealAdviceResponse
