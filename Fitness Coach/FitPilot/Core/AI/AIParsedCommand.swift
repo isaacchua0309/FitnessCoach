@@ -19,7 +19,11 @@ enum AICommandIntent: String, Codable, Equatable, Sendable {
     case mealAdvice
     case status
     case dailyReview
+    case editEntry
+    case deleteEntry
+    case undo
     case multiAction
+    case casual
     case unknown
 }
 

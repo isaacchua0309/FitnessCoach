@@ -91,6 +91,32 @@ final class MockLLMClient: LLMClient {
             return AIParseCommandResponse(parsedCommand: command)
         }
 
+        if text.contains("bench") || text.contains("deadlift") || text.contains("5x5") {
+            let benchSets = (1...5).map {
+                ExerciseSetDraft(exerciseName: "Bench press", setNumber: $0, reps: 5, weightKg: 90, rpe: nil)
+            }
+            let draft = WorkoutDraft(
+                name: "Strength training",
+                durationMinutes: 45,
+                estimatedCaloriesBurned: 280,
+                intensity: .high,
+                recoveryDemand: .high,
+                notes: "Parsed from Coach text.",
+                exerciseSets: benchSets
+            )
+            let action = AICommandAction(type: .logWorkout, workoutDraft: draft)
+            let command = AIParsedCommand(
+                originalText: request.text,
+                intent: .logWorkout,
+                actions: [action],
+                confidence: .medium,
+                requiresConfirmation: true,
+                assistantMessage: "I parsed this as a strength workout. Please confirm before logging.",
+                reasoningSummary: "Strength set notation detected."
+            )
+            return AIParseCommandResponse(parsedCommand: command)
+        }
+
         let unknown = AIParsedCommand(
             originalText: request.text,
             intent: .unknown,

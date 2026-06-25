@@ -50,6 +50,53 @@ enum CoachResponseBuilder {
         return response
     }
 
+    static func localFoodEstimatePending(_ estimate: LocalFoodEstimate) -> String {
+        let draft = estimate.foodDraft
+        return """
+        I estimated:
+
+        \(draft.name)
+        \(draft.calories) kcal · \(formatMacro(draft.protein))g protein
+
+        Reply "confirm" to log it, or adjust the values before confirming.
+        """
+    }
+
+    static func workoutPending(_ draft: WorkoutDraft) -> String {
+        let name = draft.name ?? "Workout"
+        let calories = draft.estimatedCaloriesBurned.map { "\($0) kcal" } ?? "calories estimated after saving"
+        let duration = draft.durationMinutes.map { "\($0) min" } ?? "duration not specified"
+
+        return """
+        I parsed this workout:
+
+        \(name)
+        \(duration) · \(calories)
+
+        Reply "confirm" to log it.
+        """
+    }
+
+    static func workout(_ entry: WorkoutEntry) -> String {
+        var lines = ["Logged workout."]
+
+        if let name = entry.name {
+            lines.append(name)
+        }
+
+        let details = [
+            entry.durationMinutes.map { "\($0) min" },
+            entry.estimatedCaloriesBurned.map { "\($0) kcal burned" },
+            entry.recoveryDemand.map { "\($0.rawValue.capitalized) recovery demand" }
+        ].compactMap(\.self)
+
+        if !details.isEmpty {
+            lines.append(details.joined(separator: " · "))
+        }
+
+        return lines.joined(separator: "\n\n")
+    }
+
     // MARK: Undo
 
     static func undoFood(_ entry: FoodEntry?) -> String {
@@ -64,6 +111,14 @@ enum CoachResponseBuilder {
             return "There was no water entry to undo."
         }
         return "Undid your last water entry of \(entry.amountMl)ml."
+    }
+
+    static func deleteFood(_ entry: FoodEntry) -> String {
+        "Deleted \(entry.name)."
+    }
+
+    static func editFood(_ entry: FoodEntry) -> String {
+        "Updated \(entry.name)."
     }
 
     // MARK: Status
@@ -227,6 +282,12 @@ enum CoachResponseBuilder {
 
     static let aiMultiActionDeferred =
         "This looks like multiple actions. I'll wait for confirmation before logging food."
+
+    static let tryFitnessPrompt =
+        "Tell me what you ate, drank, weighed, trained, or ask what to do next."
+
+    static let unknownResponse =
+        "I can help with food, water, weight, workouts, or meal decisions. Try: \"log 500g chicken breast\"."
 
     static func aiFoodPendingMessage(assistantMessage: String?) -> String {
         guard let assistantMessage, !assistantMessage.isEmpty else {

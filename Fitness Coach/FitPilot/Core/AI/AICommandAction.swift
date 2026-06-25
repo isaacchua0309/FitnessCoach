@@ -20,6 +20,9 @@ enum AICommandActionType: String, Codable, Equatable, Sendable {
     case mealAdvice
     case status
     case dailyReview
+    case editEntry
+    case deleteEntry
+    case undo
 }
 
 struct AICommandAction: Codable, Equatable, Sendable {
@@ -30,6 +33,7 @@ struct AICommandAction: Codable, Equatable, Sendable {
     var workoutDraft: WorkoutDraft?
     var startNewDayWeightKg: Double?
     var adviceQuestion: String?
+    var targetEntrySelector: String?
 
     init(
         type: AICommandActionType,
@@ -38,7 +42,8 @@ struct AICommandAction: Codable, Equatable, Sendable {
         weightDraft: WeightDraft? = nil,
         workoutDraft: WorkoutDraft? = nil,
         startNewDayWeightKg: Double? = nil,
-        adviceQuestion: String? = nil
+        adviceQuestion: String? = nil,
+        targetEntrySelector: String? = nil
     ) {
         self.type = type
         self.foodDraft = foodDraft
@@ -47,5 +52,6 @@ struct AICommandAction: Codable, Equatable, Sendable {
         self.workoutDraft = workoutDraft
         self.startNewDayWeightKg = startNewDayWeightKg
         self.adviceQuestion = adviceQuestion
+        self.targetEntrySelector = targetEntrySelector
     }
 }

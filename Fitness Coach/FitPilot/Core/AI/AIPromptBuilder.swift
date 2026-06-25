@@ -33,7 +33,8 @@ enum AIPromptBuilder {
 
         Task: Parse the user's message into an AIParsedCommand.
         - Choose an intent from: logFood, logWater, logWeight, logWorkout, startNewDay,
-          mealAdvice, status, dailyReview, multiAction, unknown.
+          mealAdvice, status, dailyReview, editEntry, deleteEntry, undo, multiAction,
+          casual, unknown.
         - Days are keyed by calendar date and start automatically at midnight. Do not tell
           the user to manually start a new day. If they mention "new day" with a weight,
           use startNewDay with that weight; otherwise use status or explain that today

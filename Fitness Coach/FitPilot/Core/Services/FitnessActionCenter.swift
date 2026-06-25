@@ -72,6 +72,10 @@ final class FitnessActionCenter {
         notifyDataChanged()
     }
 
+    func getFoodEntries(for date: Date = Date()) throws -> [FoodEntry] {
+        try foodLogService.getFoodEntries(for: date)
+    }
+
     func undoLastFoodEntry(date: Date = Date()) throws -> FoodEntry? {
         let entry = try foodLogService.undoLastFoodEntry(date: date)
         notifyDataChanged()
@@ -98,6 +102,11 @@ final class FitnessActionCenter {
         let entry = try waterLogService.undoLastWaterEntry(date: date)
         notifyDataChanged()
         return entry
+    }
+
+    func deleteWaterEntry(id: UUID) throws {
+        try waterLogService.deleteWaterEntry(id: id)
+        notifyDataChanged()
     }
 
     // MARK: - Weight (canonical: daily weigh-in — not Plan baseline edits)

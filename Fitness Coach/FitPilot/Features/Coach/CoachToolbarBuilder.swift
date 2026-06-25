@@ -35,6 +35,7 @@ struct CoachToolbarContext: Equatable, Sendable {
     var waterRemainingMl: Int
 }
 
+@MainActor
 enum CoachToolbarBuilder {
 
     private static let usageWeight = 3
@@ -47,12 +48,13 @@ enum CoachToolbarBuilder {
     static func build(
         log: DailyLog?,
         hasWorkoutToday: Bool,
-        usageStore: CoachToolbarUsageStore = .shared,
+        usageStore: CoachToolbarUsageStore? = nil,
         calendar: Calendar = .current
     ) -> [CoachToolbarAction] {
         guard let log else {
             return defaultActions()
         }
+        let usageStore = usageStore ?? .shared
 
         let targets = MacroCalculator.macroTargets(from: log.targets)
         let remaining = MacroCalculator.remaining(targets: targets, totals: log.totals)
@@ -74,9 +76,10 @@ enum CoachToolbarBuilder {
 
     static func actions(
         for context: CoachToolbarContext,
-        usageStore: CoachToolbarUsageStore = .shared
+        usageStore: CoachToolbarUsageStore? = nil
     ) -> [CoachToolbarAction] {
         let candidates = eligibleActions(for: context)
+        let usageStore = usageStore ?? .shared
 
         return candidates
             .map { action in

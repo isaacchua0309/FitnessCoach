@@ -28,7 +28,7 @@ enum AIResponseValidator {
         guard !command.actions.isEmpty else {
             // No actions is acceptable for advice/status/review intents.
             switch command.intent {
-            case .mealAdvice, .status, .dailyReview, .unknown:
+            case .mealAdvice, .status, .dailyReview, .casual, .unknown:
                 return command.requiresConfirmation
                     ? .requiresConfirmation("Please confirm before continuing.")
                     : .valid
@@ -94,6 +94,8 @@ enum AIResponseValidator {
 
         case .mealAdvice, .status, .dailyReview:
             return .valid
+        case .editEntry, .deleteEntry, .undo:
+            return .requiresConfirmation("Please confirm before changing existing entries.")
         }
     }
 

@@ -85,7 +85,10 @@ struct LocalCommandParser {
     // MARK: Weight
 
     private func parseWeight(normalized: String, original: String) -> CommandParseResult? {
-        guard normalized.contains("weigh") else { return nil }
+        guard normalized.contains("weigh")
+            || normalized.hasPrefix("weight ")
+            || normalized.hasPrefix("log weight ")
+        else { return nil }
 
         let numbers = CommandParserUtilities.allDoubles(in: normalized)
         guard let weightKg = numbers.first else {
@@ -208,7 +211,8 @@ struct LocalCommandParser {
         guard CommandParserUtilities.containsWord("undo", in: normalized) else { return nil }
 
         let target: UndoTarget
-        if CommandParserUtilities.containsWord("food", in: normalized) {
+        if CommandParserUtilities.containsWord("food", in: normalized)
+            || CommandParserUtilities.containsWord("meal", in: normalized) {
             target = .food
         } else if CommandParserUtilities.containsWord("water", in: normalized) {
             target = .water
