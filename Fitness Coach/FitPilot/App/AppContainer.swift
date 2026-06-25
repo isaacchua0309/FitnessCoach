@@ -61,10 +61,25 @@ final class AppContainer {
             userProfileService: userProfileService
         )
 
-        // Local development uses the mock client so the app compiles and runs
-        // without a backend. The production backend gateway can be wired later
-        // via FitPilotAIBackendClient (no provider API keys live in the app).
+        // Debug builds use the local backend gateway when available. The
+        // gateway reads .env on the Mac and calls OpenAI, so provider keys still
+        // do not live in the iOS app bundle.
+        #if DEBUG
+        let backendURL = URL(
+            string: ProcessInfo.processInfo.environment["FITPILOT_AI_BACKEND_URL"]
+                ?? "http://127.0.0.1:8787"
+        )
+        if let backendURL {
+            llmClient = FallbackLLMClient(
+                primary: FitPilotAIBackendClient(baseURL: backendURL),
+                fallback: MockLLMClient()
+            )
+        } else {
+            llmClient = MockLLMClient()
+        }
+        #else
         llmClient = MockLLMClient()
+        #endif
         aiService = AIService(llmClient: llmClient)
         aiCommandParsingEnabled = true
 
