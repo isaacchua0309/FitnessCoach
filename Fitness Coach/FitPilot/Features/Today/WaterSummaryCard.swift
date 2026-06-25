@@ -9,7 +9,10 @@ import SwiftUI
 
 struct WaterSummaryCard: View {
     let summary: WaterSummary
+    let canUndoWater: Bool
     let onAddWater: () -> Void
+    let onUndoLastWater: () -> Void
+    let onLogCustomWater: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -17,9 +20,6 @@ struct WaterSummaryCard: View {
                 Label("Water", systemImage: "drop")
                     .font(.headline)
                 Spacer()
-                Button("+500 ml", action: onAddWater)
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
             }
 
             Text("\(summary.consumedMl) / \(summary.targetMl) ml")
@@ -31,6 +31,27 @@ struct WaterSummaryCard: View {
             Text("\(summary.remainingMl) ml remaining")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+
+            HStack(spacing: 8) {
+                Button("Undo last") {
+                    onUndoLastWater()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(!canUndoWater)
+
+                Button("+500 ml") {
+                    onAddWater()
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+
+                Button("Custom") {
+                    onLogCustomWater()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
         }
         .padding()
         .background(.background, in: RoundedRectangle(cornerRadius: 16))
@@ -39,6 +60,12 @@ struct WaterSummaryCard: View {
 }
 
 #Preview {
-    WaterSummaryCard(summary: TodayPreviewData.state.waterSummary) {}
-        .padding()
+    WaterSummaryCard(
+        summary: TodayPreviewData.state.waterSummary,
+        canUndoWater: true,
+        onAddWater: {},
+        onUndoLastWater: {},
+        onLogCustomWater: {}
+    )
+    .padding()
 }

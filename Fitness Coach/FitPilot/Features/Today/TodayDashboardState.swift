@@ -74,3 +74,13 @@ struct TodayWorkoutSummary: Equatable {
     var workoutCount: Int
     var hasWorkout: Bool
 }
+
+extension TodayDashboardState {
+    /// Enough logged data to make a daily review meaningful.
+    var hasMeaningfulLoggedData: Bool {
+        !foodEntries.isEmpty
+            || waterSummary.consumedMl > 0
+            || workoutSummary.hasWorkout
+            || weightSummary.weightKg != nil
+    }
+}

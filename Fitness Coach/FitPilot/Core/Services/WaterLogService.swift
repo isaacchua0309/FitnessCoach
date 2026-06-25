@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftData
 
 @MainActor
 final class WaterLogService {
@@ -60,6 +61,17 @@ final class WaterLogService {
         return model
     }
 
+    func deleteWaterEntry(id: UUID) throws {
+        guard let entity = try waterEntity(id: id) else {
+            throw ServiceError.waterEntryNotFound
+        }
+        let logDate = entity.dailyLog?.date
+        try store.delete(entity)
+        if let logDate {
+            try dailyLogService.recalculateDailyTotals(for: logDate)
+        }
+    }
+
     // MARK: Read
 
     func getWaterEntries(for date: Date) throws -> [WaterEntry] {
@@ -79,6 +91,14 @@ final class WaterLogService {
     }
 
     // MARK: Helpers
+
+    private func waterEntity(id: UUID) throws -> WaterEntryEntity? {
+        var descriptor = FetchDescriptor<WaterEntryEntity>(
+            predicate: #Predicate { $0.id == id }
+        )
+        descriptor.fetchLimit = 1
+        return try store.fetch(descriptor).first
+    }
 
     private func validate(amountMl: Int) throws {
         guard amountMl > 0 else { throw ServiceError.invalidInput("Water amount must be greater than zero.") }

@@ -7,6 +7,14 @@
 
 import SwiftUI
 
+private enum AppTab: Hashable {
+    case today
+    case coach
+    case progress
+    case training
+    case profile
+}
+
 struct MainTabView: View {
 
     private let container: AppContainer
@@ -16,6 +24,8 @@ struct MainTabView: View {
     @StateObject private var progressModel: ProgressModel
     @StateObject private var trainingModel: TrainingModel
     @StateObject private var profileModel: ProfileModel
+
+    @State private var selectedTab: AppTab = .today
 
     init(container: AppContainer) {
         self.container = container
@@ -27,31 +37,38 @@ struct MainTabView: View {
     }
 
     var body: some View {
-        TabView {
-            TodayView(model: todayModel)
-                .tabItem {
-                    Label("Today", systemImage: "house")
-                }
+        TabView(selection: $selectedTab) {
+            TodayView(model: todayModel) {
+                selectedTab = .training
+            }
+            .tabItem {
+                Label("Today", systemImage: "house")
+            }
+            .tag(AppTab.today)
 
             CoachView(model: coachModel)
                 .tabItem {
                     Label("Coach", systemImage: "bubble.left.and.bubble.right")
                 }
+            .tag(AppTab.coach)
 
             ProgressView(model: progressModel)
                 .tabItem {
                     Label("Progress", systemImage: "chart.line.uptrend.xyaxis")
                 }
+            .tag(AppTab.progress)
 
             TrainingView(model: trainingModel)
                 .tabItem {
                     Label("Training", systemImage: "dumbbell")
                 }
+            .tag(AppTab.training)
 
             ProfileView(model: profileModel)
                 .tabItem {
                     Label("Profile", systemImage: "person.crop.circle")
                 }
+            .tag(AppTab.profile)
         }
         .environmentObject(container.refreshCenter)
     }

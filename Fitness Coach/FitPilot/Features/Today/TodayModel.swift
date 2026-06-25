@@ -90,8 +90,25 @@ final class TodayModel: ObservableObject {
             notifyDataChanged()
         } catch ServiceError.missingUserProfile {
             viewState = .empty
+        } catch ServiceError.invalidInput(let message) {
+            viewState = .error(message)
         } catch {
             viewState = .error("Could not save water entry.")
+        }
+    }
+
+    func undoLastWater() async {
+        do {
+            guard try waterLogService.undoLastWaterEntry(date: Date()) != nil else {
+                viewState = .error("There was no water entry to undo.")
+                return
+            }
+            try loadDashboard()
+            notifyDataChanged()
+        } catch ServiceError.missingUserProfile {
+            viewState = .empty
+        } catch {
+            viewState = .error("Could not undo water entry.")
         }
     }
 

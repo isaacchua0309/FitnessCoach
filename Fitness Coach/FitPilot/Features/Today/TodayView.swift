@@ -11,12 +11,20 @@ struct TodayView: View {
 
     @ObservedObject var model: TodayModel
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
+
+    var onOpenTraining: (() -> Void)?
+
     @State private var isShowingWeightPrompt = false
     @State private var weightInput = ""
+    @State private var isShowingWaterPrompt = false
+    @State private var waterInput = ""
     @State private var foodEntryPendingDelete: FoodEntry?
+    @State private var isFoodTimelineExpanded = false
+    @State private var isDailyReviewExpanded = false
 
-    init(model: TodayModel) {
+    init(model: TodayModel, onOpenTraining: (() -> Void)? = nil) {
         self.model = model
+        self.onOpenTraining = onOpenTraining
     }
 
     private var foodEditorMode: FoodEntryEditorMode {
@@ -32,10 +40,19 @@ struct TodayView: View {
                 .navigationTitle("Today")
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            Task { await model.refresh() }
+                        Menu {
+                            Button {
+                                Task { await model.startNewDay() }
+                            } label: {
+                                Label("Start New Day", systemImage: "calendar.badge.plus")
+                            }
+                            Button {
+                                Task { await model.refresh() }
+                            } label: {
+                                Label("Refresh", systemImage: "arrow.clockwise")
+                            }
                         } label: {
-                            Image(systemName: "arrow.clockwise")
+                            Image(systemName: "ellipsis.circle")
                         }
                     }
                 }
@@ -75,6 +92,22 @@ struct TodayView: View {
                     }
                 } message: {
                     Text("Enter today's morning weight.")
+                }
+                .alert("Log Water", isPresented: $isShowingWaterPrompt) {
+                    TextField("Amount in ml", text: $waterInput)
+                        .keyboardType(.numberPad)
+                    Button("Cancel", role: .cancel) {
+                        waterInput = ""
+                    }
+                    Button("Save") {
+                        let value = Int(waterInput)
+                        waterInput = ""
+                        if let value {
+                            Task { await model.addWater(amountMl: value) }
+                        }
+                    }
+                } message: {
+                    Text("Enter how much water you drank.")
                 }
                 .alert("Delete Food", isPresented: deleteConfirmationBinding) {
                     Button("Cancel", role: .cancel) {
@@ -145,63 +178,77 @@ struct TodayView: View {
 
     private func dashboard(_ state: TodayDashboardState) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                header(for: state.date)
+            VStack(alignment: .leading, spacing: 12) {
+                Text(state.date.formatted(date: .complete, time: .omitted))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
 
-                if let coachingNote = state.coachingNote {
-                    Label(coachingNote, systemImage: "lightbulb")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
-                }
+                TodaySummaryCard(
+                    calories: state.calorieSummary,
+                    macros: state.macroSummary,
+                    water: state.waterSummary,
+                    coachingNote: state.coachingNote
+                )
 
-                MacroSummaryCard(summary: state.macroSummary, calories: state.calorieSummary)
-                WaterSummaryCard(summary: state.waterSummary) {
-                    Task { await model.addWater(amountMl: 500) }
-                }
-                WeightSummaryCard(summary: state.weightSummary) {
-                    isShowingWeightPrompt = true
-                }
-                WorkoutSummaryCard(summary: state.workoutSummary)
-                TodayDailyReviewCard(
-                    review: state.dailyReview,
-                    isGenerating: model.isGeneratingDailyReview,
-                    onGenerate: {
-                        Task { await model.generateDailyReview() }
-                    }
-                )
-                FoodTimelineView(
-                    entries: state.foodEntries,
-                    onSelectFood: { entry in
-                        model.showEditFood(entry)
-                    },
-                    onDeleteFood: { entry in
-                        foodEntryPendingDelete = entry
-                    }
-                )
-                TodayQuickActionsView(
+                TodayQuickActionBar(
                     onAddFood: { model.showAddFood() },
-                    onStartNewDay: { Task { await model.startNewDay() } },
                     onAddWater: { Task { await model.addWater(amountMl: 500) } },
                     onLogWeight: { isShowingWeightPrompt = true },
-                    onRefresh: { Task { await model.refresh() } }
+                    onOpenTraining: { onOpenTraining?() }
                 )
-            }
-            .padding()
-        }
-    }
 
-    private func header(for date: Date) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Daily Dashboard")
-                .font(.title2.bold())
-            Text(date.formatted(date: .complete, time: .omitted))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                HStack(spacing: 8) {
+                    CompactWaterCard(
+                        summary: state.waterSummary,
+                        canUndoWater: state.waterSummary.consumedMl > 0,
+                        onAddWater: { Task { await model.addWater(amountMl: 500) } },
+                        onUndoLastWater: { Task { await model.undoLastWater() } },
+                        onLogCustomWater: { isShowingWaterPrompt = true }
+                    )
+
+                    CompactMetricCard(
+                        icon: "scalemass",
+                        iconColor: .purple,
+                        title: "Weight",
+                        value: state.weightSummary.displayText,
+                        actionTitle: "Log",
+                        action: { isShowingWeightPrompt = true }
+                    )
+
+                    CompactMetricCard(
+                        icon: state.workoutSummary.hasWorkout ? "dumbbell.fill" : "dumbbell",
+                        iconColor: .green,
+                        title: "Workout",
+                        value: state.workoutSummary.hasWorkout
+                            ? "\(state.workoutSummary.workoutCount) logged"
+                            : "None yet",
+                        actionTitle: "Open",
+                        action: { onOpenTraining?() }
+                    )
+                }
+
+                FoodTimelinePreview(
+                    entries: state.foodEntries,
+                    previewLimit: 3,
+                    isExpanded: $isFoodTimelineExpanded,
+                    onSelectFood: { model.showEditFood($0) },
+                    onDeleteFood: { foodEntryPendingDelete = $0 }
+                )
+
+                if state.hasMeaningfulLoggedData {
+                    DailyReviewCollapsedCard(
+                        review: state.dailyReview,
+                        isGenerating: model.isGeneratingDailyReview,
+                        isExpanded: $isDailyReviewExpanded,
+                        onGenerate: {
+                            Task { await model.generateDailyReview() }
+                        }
+                    )
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
