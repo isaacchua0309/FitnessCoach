@@ -16,6 +16,6 @@ struct OnboardingErrorView: View {
 }
 
 #Preview {
-    OnboardingErrorView(message: "Please enter a valid age.")
+    OnboardingErrorView(message: FormaProductCopy.Onboarding.Validation.age)
         .padding()
 }

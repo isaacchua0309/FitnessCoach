@@ -18,7 +18,7 @@ struct LaunchLoadingView: View {
                     .controlSize(.large)
                     .tint(OnboardingTheme.accent)
 
-                Text("Loading...")
+                Text(FormaProductCopy.Loading.app)
                     .font(.subheadline)
                     .foregroundStyle(OnboardingTheme.secondaryText)
             }

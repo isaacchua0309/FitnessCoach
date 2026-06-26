@@ -100,7 +100,7 @@ struct LocalNutritionEstimator {
             draft: draft,
             confidence: confidence,
             requiresConfirmation: confidence != .high,
-            explanation: "Estimated from FitPilot's local common-food table."
+            explanation: "Estimated from Forma's local common-food table."
         )
     }
 

@@ -15,16 +15,16 @@ struct PlanTimelineSection: View {
             FitPilotPlanCard {
                 if timeline.phases.isEmpty {
                     Text("Phases will appear as your strategy evolves.")
-                        .font(.subheadline)
-                        .foregroundStyle(OnboardingTheme.secondaryText)
+                        .font(FormaTokens.Typography.sectionSubtitle)
+                        .foregroundStyle(FormaTokens.Color.textSecondary)
                 } else {
                     VStack(spacing: 0) {
                         ForEach(Array(timeline.phases.enumerated()), id: \.element.id) { index, phase in
-                            HStack(spacing: 12) {
+                            HStack(spacing: FormaTokens.Spacing.sm) {
                                 phaseNode(phase)
 
                                 Text(phase.name)
-                                    .font(phase.status == .current ? .subheadline.weight(.semibold) : .subheadline)
+                                    .font(phase.status == .current ? FormaTokens.Typography.sectionSubtitle.weight(.semibold) : FormaTokens.Typography.sectionSubtitle)
                                     .foregroundStyle(phaseForeground(for: phase.status))
 
                                 Spacer(minLength: 0)
@@ -45,9 +45,9 @@ struct PlanTimelineSection: View {
     private func phaseForeground(for status: PlanPhaseStatus) -> Color {
         switch status {
         case .upcoming:
-            return OnboardingTheme.tertiaryText
+            return FormaTokens.Color.textTertiary
         case .current, .past:
-            return OnboardingTheme.primaryText
+            return FormaTokens.Color.textPrimary
         }
     }
 
@@ -58,7 +58,7 @@ struct PlanTimelineSection: View {
             .overlay {
                 if phase.status == .current {
                     Circle()
-                        .strokeBorder(OnboardingTheme.border, lineWidth: 2)
+                        .strokeBorder(FormaTokens.Color.borderStrong, lineWidth: 2)
                         .frame(width: 18, height: 18)
                 }
             }
@@ -67,7 +67,7 @@ struct PlanTimelineSection: View {
 
     private func connector(isActive: Bool) -> some View {
         Rectangle()
-            .fill(isActive ? OnboardingTheme.border : OnboardingTheme.border.opacity(0.45))
+            .fill(isActive ? FormaTokens.Color.border : FormaTokens.Color.border.opacity(0.45))
             .frame(width: 2, height: 16)
             .padding(.leading, 8)
     }
@@ -75,11 +75,11 @@ struct PlanTimelineSection: View {
     private func nodeColor(for status: PlanPhaseStatus) -> Color {
         switch status {
         case .current:
-            return OnboardingTheme.primaryText
+            return FormaTokens.Color.textPrimary
         case .past:
-            return OnboardingTheme.secondaryText
+            return FormaTokens.Color.textSecondary
         case .upcoming:
-            return OnboardingTheme.tertiaryText
+            return FormaTokens.Color.textTertiary
         }
     }
 }

@@ -23,6 +23,7 @@ struct TrainingView: View {
                             Task { await model.refresh() }
                         } label: {
                             Image(systemName: "arrow.clockwise")
+                                .foregroundStyle(FormaTokens.Color.textSecondary)
                         }
                         .accessibilityLabel("Refresh training")
                     }
@@ -41,6 +42,8 @@ struct TrainingView: View {
                 .sheet(item: $model.selectedWorkout) { workout in
                     WorkoutDetailView(workout: workout)
                 }
+                .background(FormaTokens.Color.canvas)
+                .preferredColorScheme(.dark)
         }
     }
 
@@ -69,8 +72,10 @@ struct TrainingView: View {
                 }
             }
             .padding(.horizontal, TrainingLayout.horizontalPadding)
-            .padding(.vertical, 16)
+            .padding(.top, FormaTokens.Spacing.md)
+            .padding(.bottom, FormaTokens.Spacing.sm)
         }
+        .fitPilotScrollBottomInset()
         .refreshable {
             await model.refresh()
         }

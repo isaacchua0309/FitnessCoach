@@ -9,16 +9,19 @@ import SwiftUI
 
 struct ProgressLoadingView: View {
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: FormaTokens.Spacing.sm) {
             SwiftUI.ProgressView()
-            Text("Loading progress trends...")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .tint(FormaTokens.Color.accent)
+            Text(FormaProductCopy.Loading.journey)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(FormaTokens.Color.canvas)
     }
 }
 
 #Preview {
     ProgressLoadingView()
+        .preferredColorScheme(.dark)
 }

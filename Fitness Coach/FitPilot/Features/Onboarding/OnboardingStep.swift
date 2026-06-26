@@ -20,7 +20,7 @@ enum OnboardingStep: Int, CaseIterable, Identifiable, Equatable {
     var title: String {
         switch self {
         case .welcome:
-            return "Welcome to FitPilot"
+            return FormaProductCopy.Onboarding.welcomeTitle
         case .body:
             return "Your body details"
         case .goal:

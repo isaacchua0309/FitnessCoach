@@ -30,7 +30,7 @@ struct CoachErrorView: View {
                 if let retryAction {
                     Button(action: retryAction) {
                         HStack(spacing: CoachDesignTokens.Spacing.xs) {
-                            Text("Retry")
+                            Text(FormaProductCopy.Common.retry)
                             if isRetrying {
                                 SwiftUI.ProgressView()
                                     .controlSize(.small)

@@ -51,7 +51,7 @@ struct WorkoutDetailView: View {
 
                     ExerciseSetListView(sets: workout.exerciseSets)
 
-                    Text("Need a correction? Tell Coach.")
+                    Text(FormaProductCopy.Training.workoutCorrectionHint)
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .padding(.top, 8)

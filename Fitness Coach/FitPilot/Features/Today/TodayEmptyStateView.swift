@@ -11,28 +11,32 @@ struct TodayEmptyStateView: View {
     let onRetry: () -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: FormaTokens.Spacing.md) {
             Image(systemName: "person.crop.circle.badge.exclamationmark")
                 .font(.system(size: 44))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(FormaTokens.Color.textTertiary)
 
-            Text("Set Up Your Profile")
-                .font(.title3.bold())
+            Text(FormaProductCopy.EmptyState.todayTitle)
+                .font(FormaTokens.Typography.sectionTitle.weight(.bold))
+                .foregroundStyle(FormaTokens.Color.textPrimary)
 
-            Text("Create your profile first so FitPilot can generate targets and start today's log.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            Text(FormaProductCopy.EmptyState.todayProfileRequired)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
-            Button("Try Again", action: onRetry)
+            Button(FormaProductCopy.Common.tryAgain, action: onRetry)
                 .buttonStyle(.borderedProminent)
+                .tint(FormaTokens.Color.accent)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
+        .background(FormaTokens.Color.canvas)
     }
 }
 
 #Preview {
     TodayEmptyStateView {}
+        .preferredColorScheme(.dark)
 }

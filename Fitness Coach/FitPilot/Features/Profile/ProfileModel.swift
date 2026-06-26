@@ -48,7 +48,7 @@ final class ProfileModel: ObservableObject {
             }
             viewState = .loaded(PlanStateBuilder.dashboardState(profile: profile))
         } catch {
-            viewState = .error("Could not load your plan.")
+            viewState = .error(FormaProductCopy.Error.loadPlan)
         }
     }
 
@@ -106,7 +106,7 @@ final class ProfileModel: ObservableObject {
         } catch ServiceError.invalidInput(let message) {
             viewState = .error(message)
         } catch {
-            viewState = .error("Could not save your plan.")
+            viewState = .error(FormaProductCopy.Error.savePlan)
         }
     }
 
@@ -127,7 +127,7 @@ final class ProfileModel: ObservableObject {
         } catch ServiceError.invalidInput(let message) {
             formErrorMessage = message
         } catch {
-            formErrorMessage = "Could not save your plan."
+            formErrorMessage = FormaProductCopy.Error.savePlan
         }
     }
 
@@ -143,7 +143,7 @@ final class ProfileModel: ObservableObject {
         } catch ServiceError.invalidInput(let message) {
             formErrorMessage = message
         } catch {
-            formErrorMessage = "Could not save settings."
+            formErrorMessage = FormaProductCopy.Error.saveSettings
         }
     }
 
@@ -156,7 +156,7 @@ final class ProfileModel: ObservableObject {
         } catch let error as ProfileFormError {
             formErrorMessage = error.message
         } catch {
-            formErrorMessage = "Could not regenerate targets."
+            formErrorMessage = FormaProductCopy.Error.regenerateTargets
         }
     }
 
@@ -172,7 +172,7 @@ final class ProfileModel: ObservableObject {
             await refresh()
             actionCenter.notifyDataChanged()
         } catch {
-            formErrorMessage = "Could not regenerate targets."
+            formErrorMessage = FormaProductCopy.Error.regenerateTargets
         }
     }
 }

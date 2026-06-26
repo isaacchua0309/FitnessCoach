@@ -14,12 +14,13 @@ struct AuthDiagnosticsView: View {
         List {
             Section {
                 DebugAuthDiagnosticsView()
-                    .listRowBackground(OnboardingTheme.card)
+                    .fitPilotSettingsRowChrome()
             } header: {
                 FitPilotSettingsSectionHeader(title: "Session")
             } footer: {
                 Text("Debug only. Token values are never shown. Token check reports Available, Unavailable, or Checking...")
-                    .foregroundStyle(OnboardingTheme.tertiaryText)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaTokens.Color.textTertiary)
             }
         }
         .fitPilotDarkGroupedList()

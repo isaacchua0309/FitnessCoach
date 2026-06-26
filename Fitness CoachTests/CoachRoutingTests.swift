@@ -267,7 +267,7 @@ final class CoachRoutingTests: XCTestCase {
         await model.send("should I eat a kebab tonight?")
         XCTAssertEqual(
             model.messages.last?.text,
-            "I couldn't reach the coach service. Try again in a moment."
+            FormaProductCopy.Error.coachUnavailable
         )
         XCTAssertEqual(service.classifyCoachIntentCallCount, 1)
         XCTAssertEqual(service.estimateFoodCallCount, 0)

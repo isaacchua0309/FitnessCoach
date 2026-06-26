@@ -2,10 +2,10 @@
 //  AIPromptBuilder.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Centralized, stable system prompts for AI calls.
+//  Forma — Centralized, stable system prompts for AI calls.
 //
 //  Prompt versioning lives on the backend later. These prompts reinforce the
-//  FitPilot boundary rules: AI returns drafts/intents, never owns final
+//  Forma boundary rules: AI returns drafts/intents, never owns final
 //  arithmetic, asks for confirmation when uncertain, and stays supportive.
 //
 
@@ -14,7 +14,7 @@ import Foundation
 enum AIPromptBuilder {
 
     private static let sharedRules = """
-    You are FitPilot's parsing and coaching assistant.
+    You are Forma's parsing and coaching assistant.
     Rules you must always follow:
     - Return structured JSON only, matching the requested schema.
     - You parse, estimate, and explain. You never own final calorie or macro arithmetic.
@@ -60,7 +60,7 @@ enum AIPromptBuilder {
         - Prefer app-domain intents for food, calories, weight, workouts, hydration,
           meals, supplements, macros, and fitness. Do not classify valid fitness or
           nutrition questions as unsupported.
-        - Set requiresAppMutation true only when the user wants to change FitPilot data.
+        - Set requiresAppMutation true only when the user wants to change Forma data.
         - Include a typed action when mutation data is clear enough to validate.
         - Set canAnswerWithCheapModel true for simple nutrition, calorie, macro,
           supplement, meal-decision, workout, or general fitness questions.
@@ -90,7 +90,7 @@ enum AIPromptBuilder {
         - Use the classifier result to stay on the intended task.
         - Use the provided context (targets and remaining macros) when relevant.
         - For restaurant or branded foods, give realistic calorie/macro ranges and clearly state uncertainty.
-        - For meal decisions, use: direct answer, estimated calories/macros, FitPilot recommendation based on remaining targets, and a portion or alternative.
+        - For meal decisions, use: direct answer, estimated calories/macros, Forma recommendation based on remaining targets, and a portion or alternative.
         - For protein powder or supplement questions, call out when the dose is probably excessive and compare it with the user's remaining protein/calorie budget when available.
         - Frame guidance around weekly averages and sustainable choices.
         - Do not log anything. Return coaching text only.

@@ -12,23 +12,27 @@ struct ProfileErrorView: View {
     let onRetry: () -> Void
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: FormaTokens.Spacing.sm + 2) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 38, weight: .semibold))
-                .foregroundStyle(.orange)
+                .foregroundStyle(FormaTokens.Color.warning)
 
             Text(message)
-                .font(.headline)
+                .font(FormaTokens.Typography.sectionTitle)
+                .foregroundStyle(FormaTokens.Color.textPrimary)
                 .multilineTextAlignment(.center)
 
-            Button("Try Again", action: onRetry)
+            Button(FormaProductCopy.Common.tryAgain, action: onRetry)
                 .buttonStyle(.borderedProminent)
+                .tint(FormaTokens.Color.accent)
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(FormaTokens.Color.canvas)
     }
 }
 
 #Preview {
-    ProfileErrorView(message: "Could not load your profile.", onRetry: {})
+    ProfileErrorView(message: FormaProductCopy.Error.loadProfile, onRetry: {})
+        .preferredColorScheme(.dark)
 }

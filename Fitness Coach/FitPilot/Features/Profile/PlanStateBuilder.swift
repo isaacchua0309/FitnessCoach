@@ -70,12 +70,12 @@ enum PlanStateBuilder {
                 : "Designed for gradual progress without rushing recovery."
         case .moderate:
             return isLoss
-                ? "Designed to balance fat loss with strength and recovery."
-                : "Designed to support lean muscle gain with controlled surplus."
+                ? "Built around recovery and strength — not just fat loss."
+                : "Supports lean muscle gain with a controlled surplus."
         case .aggressive:
             return isLoss
-                ? "Designed to maximize fat loss while preserving strength."
-                : "Designed to push muscle gain — consistency and sleep matter most."
+                ? "A faster cut — protect sleep, protein, and training quality."
+                : "A stronger surplus — consistency and recovery matter most."
         }
     }
 

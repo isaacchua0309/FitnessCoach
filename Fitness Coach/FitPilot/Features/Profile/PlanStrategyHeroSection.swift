@@ -14,43 +14,44 @@ struct PlanStrategyHeroSection: View {
             PlanSectionLabel(title: "Current strategy")
 
             FitPilotPlanCard {
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
+                    HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
                         Text(state.strategyName)
-                            .font(.title.weight(.bold))
-                            .foregroundStyle(OnboardingTheme.primaryText)
+                            .font(FormaTokens.Typography.screenTitle.weight(.bold))
+                            .foregroundStyle(FormaTokens.Color.textPrimary)
                             .fixedSize(horizontal: false, vertical: true)
 
                         Spacer(minLength: 8)
 
                         Button("Edit", action: onEditPlan)
-                            .font(.subheadline.weight(.semibold))
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            .tint(OnboardingTheme.accent)
+                            .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                            .foregroundStyle(FormaTokens.Color.accent)
+                            .buttonStyle(.plain)
+                            .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
+                            .accessibilityLabel("Edit plan")
                     }
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text(state.calorieTargetText)
-                            .font(.headline.weight(.semibold))
-                            .foregroundStyle(OnboardingTheme.primaryText)
+                            .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
+                            .foregroundStyle(FormaTokens.Color.textPrimary)
                         Text(state.proteinTargetText)
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(OnboardingTheme.secondaryText)
+                            .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
+                            .foregroundStyle(FormaTokens.Color.textSecondary)
                         Text(state.trainingFrequencyText)
-                            .font(.subheadline)
-                            .foregroundStyle(OnboardingTheme.tertiaryText)
+                            .font(FormaTokens.Typography.sectionSubtitle)
+                            .foregroundStyle(FormaTokens.Color.textTertiary)
                     }
 
                     Text(state.startedLabel)
-                        .font(.caption)
-                        .foregroundStyle(OnboardingTheme.tertiaryText)
+                        .font(FormaTokens.Typography.caption)
+                        .foregroundStyle(FormaTokens.Color.textTertiary)
 
                     VStack(alignment: .leading, spacing: 4) {
                         PlanSectionLabel(title: "Coach")
                         Text(state.coachSummary)
-                            .font(.subheadline)
-                            .foregroundStyle(OnboardingTheme.secondaryText)
+                            .font(FormaTokens.Typography.sectionSubtitle)
+                            .foregroundStyle(FormaTokens.Color.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }

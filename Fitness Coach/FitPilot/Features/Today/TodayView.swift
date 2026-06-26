@@ -32,7 +32,9 @@ struct TodayView: View {
                             Task { await model.refresh() }
                         } label: {
                             Image(systemName: "arrow.clockwise")
+                                .foregroundStyle(FormaTokens.Color.textSecondary)
                         }
+                        .accessibilityLabel("Refresh today")
                     }
                 }
                 .task {
@@ -53,6 +55,8 @@ struct TodayView: View {
                 .refreshable {
                     await model.refresh()
                 }
+                .background(FormaTokens.Color.canvas)
+                .preferredColorScheme(.dark)
         }
     }
 
@@ -80,8 +84,10 @@ struct TodayView: View {
                 onOpenCoach?(prefill)
             }
             .padding(.horizontal, TodayLayout.horizontalPadding)
-            .padding(.vertical, 16)
+            .padding(.top, FormaTokens.Spacing.md)
+            .padding(.bottom, FormaTokens.Spacing.sm)
         }
+        .fitPilotScrollBottomInset()
     }
 }
 

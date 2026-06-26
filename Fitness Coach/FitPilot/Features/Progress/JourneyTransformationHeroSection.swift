@@ -9,22 +9,23 @@ struct JourneyTransformationHeroSection: View {
     let state: JourneyTransformationState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
             Text(state.goalTitle)
-                .font(.system(size: 34, weight: .bold, design: .rounded))
+                .font(FormaTokens.Typography.screenTitle)
+                .foregroundStyle(FormaTokens.Color.textPrimary)
 
             Text(state.startedLabel)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
 
-            HStack(alignment: .firstTextBaseline, spacing: 24) {
+            HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.xl) {
                 weightColumn("Current", state.currentWeightKg)
                 weightColumn("Goal", state.goalWeightKg)
             }
 
             if let progress = state.progressPercent {
                 SwiftUI.ProgressView(value: min(progress, 100) / 100)
-                    .tint(.primary)
+                    .tint(FormaTokens.Color.accent)
             }
 
             HStack {
@@ -36,14 +37,10 @@ struct JourneyTransformationHeroSection: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Coach")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                    .tracking(0.6)
+                FormaSectionLabel(title: "Coach")
                 Text(state.coachInsight)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(FormaTokens.Typography.sectionSubtitle)
+                    .foregroundStyle(FormaTokens.Color.textLegal)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.top, 4)
@@ -54,20 +51,22 @@ struct JourneyTransformationHeroSection: View {
     private func weightColumn(_ label: String, _ value: Double?) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(FormaTokens.Typography.caption)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
             Text(formatKg(value))
-                .font(.title2.weight(.semibold))
+                .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
+                .foregroundStyle(FormaTokens.Color.textPrimary)
         }
     }
 
     private func meta(_ label: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+                .font(FormaTokens.Typography.caption)
+                .foregroundStyle(FormaTokens.Color.textTertiary)
             Text(value)
-                .font(.subheadline.weight(.medium))
+                .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
+                .foregroundStyle(FormaTokens.Color.textPrimary)
         }
     }
 

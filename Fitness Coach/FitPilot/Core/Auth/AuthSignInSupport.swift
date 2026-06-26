@@ -20,8 +20,8 @@ enum AuthCapabilities {
 }
 
 enum AuthSignInUserMessage {
-    static let signInFailureTitle = "Sign-in failed"
-    static let signInFailureMessage = "We couldn't sign you in. Please check your connection and try again."
+    static let signInFailureTitle = FormaProductCopy.Error.signInTitle
+    static let signInFailureMessage = FormaProductCopy.Error.signInMessage
     /// Canonical failure token stored in `AuthState.failed` and shown to users.
     static let signInFailure = signInFailureMessage
 }

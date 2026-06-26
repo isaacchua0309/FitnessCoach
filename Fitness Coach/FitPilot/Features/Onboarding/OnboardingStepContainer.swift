@@ -30,8 +30,8 @@ struct OnboardingStepContainer<Content: View>: View {
                     if isLoading {
                         OnboardingLoadingView(
                             message: currentStep == .planPreview
-                                ? "Creating your profile..."
-                                : "Generating your plan..."
+                                ? FormaProductCopy.Loading.creatingProfile
+                                : FormaProductCopy.Loading.generatingPlan
                         )
                     }
                 }

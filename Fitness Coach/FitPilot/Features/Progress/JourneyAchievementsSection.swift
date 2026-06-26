@@ -12,15 +12,18 @@ struct JourneyAchievementsSection: View {
         VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
             JourneySectionLabel(title: "Achievements")
 
-            VStack(alignment: .leading, spacing: 10) {
-                ForEach(achievements) { achievement in
-                    HStack(spacing: 10) {
-                        Text(achievement.isUnlocked ? "✓" : "○")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(achievement.isUnlocked ? .primary : .tertiary)
-                        Text(achievement.title)
-                            .font(.subheadline)
-                            .foregroundStyle(achievement.isUnlocked ? .primary : .secondary)
+            FitPilotPlanCard {
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs + 2) {
+                    ForEach(achievements) { achievement in
+                        HStack(spacing: FormaTokens.Spacing.xs + 2) {
+                            Image(systemName: achievement.isUnlocked ? "checkmark.circle.fill" : "circle")
+                                .font(FormaTokens.Typography.sectionSubtitle)
+                                .foregroundStyle(achievement.isUnlocked ? FormaTokens.Color.success : FormaTokens.Color.textTertiary)
+                            Text(achievement.title)
+                                .font(FormaTokens.Typography.sectionSubtitle)
+                                .foregroundStyle(achievement.isUnlocked ? FormaTokens.Color.textPrimary : FormaTokens.Color.textSecondary)
+                        }
+                        .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .leading)
                     }
                 }
             }

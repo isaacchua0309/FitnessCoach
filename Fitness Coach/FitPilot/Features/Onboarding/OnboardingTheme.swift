@@ -8,27 +8,26 @@
 import SwiftUI
 
 enum OnboardingTheme {
-    static let background = Color(red: 0.03, green: 0.05, blue: 0.08)
-    static let card = Color.white.opacity(0.07)
-    static let cardElevated = Color.white.opacity(0.1)
-    static let border = Color.white.opacity(0.12)
-    static let selectedBorder = Color.blue.opacity(0.72)
-    static let primaryText = Color.white
-    static let secondaryText = Color.white.opacity(0.68)
-    static let tertiaryText = Color.white.opacity(0.48)
-    /// Footer and legal copy — slightly higher contrast than `tertiaryText` for readability.
-    static let legalText = Color.white.opacity(0.62)
-    static let accent = Color.blue
-    static let warning = Color.orange
-    static let cornerRadius: CGFloat = 18
-    static let compactCornerRadius: CGFloat = 14
-    static let pagePadding: CGFloat = 20
-    static let sectionSpacing: CGFloat = 18
-    static let fieldSpacing: CGFloat = 12
+    static let background = FormaTokens.Color.canvas
+    static let card = FormaTokens.Color.surface
+    static let cardElevated = FormaTokens.Color.surfaceElevated
+    static let border = FormaTokens.Color.border
+    static let selectedBorder = FormaTokens.Color.borderSelected
+    static let primaryText = FormaTokens.Color.textPrimary
+    static let secondaryText = FormaTokens.Color.textSecondary
+    static let tertiaryText = FormaTokens.Color.textTertiary
+    static let legalText = FormaTokens.Color.textLegal
+    static let accent = FormaTokens.Color.accent
+    static let warning = FormaTokens.Color.warning
+    static let cornerRadius = FormaTokens.Radius.card
+    static let compactCornerRadius = FormaTokens.Radius.compact
+    static let pagePadding = FormaTokens.Spacing.pageHorizontal
+    static let sectionSpacing = FormaTokens.Spacing.sectionSpacing
+    static let fieldSpacing = FormaTokens.Spacing.sm
 
     static func cardBackground(selected: Bool = false) -> some View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(selected ? accent.opacity(0.16) : card)
+            .fill(selected ? FormaTokens.Color.accentMuted : card)
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(selected ? selectedBorder : border, lineWidth: selected ? 1.4 : 1)
@@ -43,13 +42,13 @@ struct OnboardingSectionTitle: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(title)
-                .font(.headline)
+                .font(FormaTokens.Typography.sectionTitle)
                 .foregroundStyle(OnboardingTheme.primaryText)
                 .accessibilityAddTraits(.isHeader)
 
             if let subtitle {
                 Text(subtitle)
-                    .font(.subheadline)
+                    .font(FormaTokens.Typography.sectionSubtitle)
                     .foregroundStyle(OnboardingTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -60,7 +59,7 @@ struct OnboardingSectionTitle: View {
 
 extension View {
     func onboardingCard(selected: Bool = false) -> some View {
-        padding(16)
+        padding(FormaTokens.Spacing.cardPadding)
             .background(OnboardingTheme.cardBackground(selected: selected))
     }
 }

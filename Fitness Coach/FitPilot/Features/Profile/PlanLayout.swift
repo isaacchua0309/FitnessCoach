@@ -18,8 +18,8 @@ struct PlanSectionLabel: View {
 
     var body: some View {
         Text(title)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(OnboardingTheme.secondaryText)
+            .font(FormaTokens.Typography.caption.weight(.semibold))
+            .foregroundStyle(FormaTokens.Color.textSecondary)
             .textCase(.uppercase)
             .tracking(0.5)
     }

@@ -34,6 +34,8 @@ struct ProgressView: View {
                 .refreshable {
                     await model.refresh()
                 }
+                .background(FormaTokens.Color.canvas)
+                .preferredColorScheme(.dark)
         }
     }
 
@@ -82,8 +84,10 @@ struct ProgressView: View {
                 }
             }
             .padding(.horizontal, JourneyLayout.horizontalPadding)
-            .padding(.vertical, 24)
+            .padding(.top, FormaTokens.Spacing.md)
+            .padding(.bottom, FormaTokens.Spacing.sm)
         }
+        .fitPilotScrollBottomInset()
     }
 }
 

@@ -15,38 +15,46 @@ struct TodayGoalChecklist: View {
         VStack(alignment: .leading, spacing: TodayLayout.itemSpacing) {
             TodaySectionLabel(title: "Daily checklist")
 
-            VStack(alignment: .leading, spacing: 10) {
-                ForEach(goals) { goal in
-                    Button {
-                        onGoalTap(goal.kind)
-                    } label: {
-                        checklistRow(goal)
+            FitPilotPlanCard {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(goals.enumerated()), id: \.element.id) { index, goal in
+                        Button {
+                            onGoalTap(goal.kind)
+                        } label: {
+                            checklistRow(goal)
+                        }
+                        .buttonStyle(.plain)
+
+                        if index < goals.count - 1 {
+                            FitPilotPlanRowDivider()
+                        }
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }
     }
 
     private func checklistRow(_ goal: TodayGoalItem) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: FormaTokens.Spacing.sm) {
             Image(systemName: goal.isComplete ? "checkmark.circle.fill" : "circle")
-                .font(.body)
-                .foregroundStyle(goal.isComplete ? Color.green : Color.secondary.opacity(0.45))
+                .font(FormaTokens.Typography.body)
+                .foregroundStyle(goal.isComplete ? FormaTokens.Color.success : FormaTokens.Color.textTertiary)
 
             Text(goal.label)
-                .font(.subheadline)
-                .foregroundStyle(goal.isComplete ? .secondary : .primary)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(goal.isComplete ? FormaTokens.Color.textSecondary : FormaTokens.Color.textPrimary)
 
             Spacer(minLength: 0)
 
             if !goal.isComplete {
                 Image(systemName: "chevron.right")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.tertiary)
+                    .font(FormaTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(FormaTokens.Color.textTertiary)
             }
         }
+        .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .center)
         .contentShape(Rectangle())
+        .accessibilityLabel(goal.label + (goal.isComplete ? ", completed" : ", tap to log with Coach"))
     }
 }
 
@@ -56,4 +64,6 @@ struct TodayGoalChecklist: View {
         onGoalTap: { _ in }
     )
     .padding()
+    .background(FormaTokens.Color.canvas)
+    .preferredColorScheme(.dark)
 }

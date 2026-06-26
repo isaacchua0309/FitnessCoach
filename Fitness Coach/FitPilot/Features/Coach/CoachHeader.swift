@@ -14,7 +14,7 @@ struct CoachHeader: View {
                 .font(CoachDesignTokens.Typography.largeTitle)
                 .foregroundStyle(CoachDesignTokens.Color.primaryText)
 
-            Text("What would you like to do?")
+            Text(FormaProductCopy.Coach.headerSubtitle)
                 .font(CoachDesignTokens.Typography.subtitle)
                 .foregroundStyle(CoachDesignTokens.Color.secondaryText)
         }

@@ -14,8 +14,8 @@ struct PlanRationaleSection: View {
 
             FitPilotPlanCard {
                 Text(rationale)
-                    .font(.subheadline)
-                    .foregroundStyle(OnboardingTheme.primaryText)
+                    .font(FormaTokens.Typography.sectionSubtitle)
+                    .foregroundStyle(FormaTokens.Color.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

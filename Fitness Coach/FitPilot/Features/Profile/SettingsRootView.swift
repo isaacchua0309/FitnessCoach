@@ -32,9 +32,9 @@ struct SettingsRootView: View {
                 if let errorMessage {
                     Section {
                         Text(errorMessage)
-                            .font(.subheadline)
-                            .foregroundStyle(OnboardingTheme.warning)
-                            .listRowBackground(OnboardingTheme.card)
+                            .font(FormaTokens.Typography.sectionSubtitle)
+                            .foregroundStyle(FormaTokens.Color.warning)
+                            .fitPilotSettingsRowChrome()
                     }
                 }
             }
@@ -48,6 +48,7 @@ struct SettingsRootView: View {
                         dismiss()
                     }
                     .fontWeight(.semibold)
+                    .foregroundStyle(FormaTokens.Color.accent)
                 }
             }
             .fitPilotScrollBottomInset()
@@ -63,8 +64,7 @@ struct SettingsRootView: View {
             } label: {
                 settingsRowLabel("Account")
             }
-            .listRowInsets(settingsRowInsets)
-            .listRowBackground(OnboardingTheme.card)
+            .fitPilotSettingsRowChrome()
         } header: {
             FitPilotSettingsSectionHeader(title: "Account")
         }
@@ -80,12 +80,10 @@ struct SettingsRootView: View {
             } label: {
                 settingsRowLabel("Units")
             }
-            .listRowInsets(settingsRowInsets)
-            .listRowBackground(OnboardingTheme.card)
+            .fitPilotSettingsRowChrome()
 
             FitPilotComingSoonRow(title: "AI preferences")
-                .listRowInsets(settingsRowInsets)
-                .listRowBackground(OnboardingTheme.card.opacity(0.65))
+                .fitPilotSettingsRowChrome(isEnabled: false)
         } header: {
             FitPilotSettingsSectionHeader(title: "Preferences")
         }
@@ -94,11 +92,9 @@ struct SettingsRootView: View {
     private var notificationsSection: some View {
         Section {
             FitPilotComingSoonRow(title: "Daily reminders")
-                .listRowInsets(settingsRowInsets)
-                .listRowBackground(OnboardingTheme.card.opacity(0.65))
+                .fitPilotSettingsRowChrome(isEnabled: false)
             FitPilotComingSoonRow(title: "Coach check-ins")
-                .listRowInsets(settingsRowInsets)
-                .listRowBackground(OnboardingTheme.card.opacity(0.65))
+                .fitPilotSettingsRowChrome(isEnabled: false)
         } header: {
             FitPilotSettingsSectionHeader(title: "Notifications")
         }
@@ -107,8 +103,7 @@ struct SettingsRootView: View {
     private var integrationsSection: some View {
         Section {
             FitPilotComingSoonRow(title: "HealthKit")
-                .listRowInsets(settingsRowInsets)
-                .listRowBackground(OnboardingTheme.card.opacity(0.65))
+                .fitPilotSettingsRowChrome(isEnabled: false)
         } header: {
             FitPilotSettingsSectionHeader(title: "Integrations")
         }
@@ -117,11 +112,9 @@ struct SettingsRootView: View {
     private var privacySection: some View {
         Section {
             FitPilotComingSoonRow(title: "Data export")
-                .listRowInsets(settingsRowInsets)
-                .listRowBackground(OnboardingTheme.card.opacity(0.65))
+                .fitPilotSettingsRowChrome(isEnabled: false)
             FitPilotComingSoonRow(title: "Delete data")
-                .listRowInsets(settingsRowInsets)
-                .listRowBackground(OnboardingTheme.card.opacity(0.65))
+                .fitPilotSettingsRowChrome(isEnabled: false)
         } header: {
             FitPilotSettingsSectionHeader(title: "Privacy")
         }
@@ -135,27 +128,23 @@ struct SettingsRootView: View {
             } label: {
                 settingsRowLabel("Auth diagnostics")
             }
-            .listRowInsets(settingsRowInsets)
-            .listRowBackground(OnboardingTheme.card)
+            .fitPilotSettingsRowChrome()
         } header: {
             FitPilotSettingsSectionHeader(title: "Developer")
         } footer: {
             Text("Debug builds only.")
-                .foregroundStyle(OnboardingTheme.tertiaryText)
+                .font(FormaTokens.Typography.caption)
+                .foregroundStyle(FormaTokens.Color.textTertiary)
         }
     }
     #endif
 
     // MARK: - Row chrome
 
-    private var settingsRowInsets: EdgeInsets {
-        EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16)
-    }
-
     private func settingsRowLabel(_ title: String) -> some View {
         Text(title)
-            .font(.body)
-            .foregroundStyle(OnboardingTheme.primaryText)
+            .font(FormaTokens.Typography.body)
+            .foregroundStyle(FormaTokens.Color.textPrimary)
             .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .leading)
     }
 }

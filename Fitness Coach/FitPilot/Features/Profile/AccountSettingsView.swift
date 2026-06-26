@@ -14,26 +14,26 @@ struct AccountSettingsView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
                 profileHeader
                 accountDetailsSection
                 logoutSection
 
-                Text("Deleting app data is separate from signing out.")
-                    .font(.caption)
-                    .foregroundStyle(OnboardingTheme.tertiaryText.opacity(0.9))
+                Text(FormaProductCopy.Account.dataSeparateNote)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaTokens.Color.textTertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(.horizontal, FitPilotScreenStyle.horizontalPadding)
-            .padding(.top, 12)
-            .padding(.bottom, 8)
+            .padding(.top, FormaTokens.Spacing.sm)
+            .padding(.bottom, FormaTokens.Spacing.xs)
         }
         .fitPilotDarkScreenBackground()
         .navigationTitle("Account")
         .navigationBarTitleDisplayMode(.inline)
         .fitPilotScrollBottomInset()
         .confirmationDialog(
-            "Log out of FitPilot?",
+            FormaProductCopy.Account.logoutConfirmationTitle,
             isPresented: $showsLogoutConfirmation,
             titleVisibility: .visible
         ) {
@@ -49,21 +49,21 @@ struct AccountSettingsView: View {
     // MARK: - Profile header
 
     private var profileHeader: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: FormaTokens.Spacing.sm) {
             avatarView
 
             VStack(spacing: 4) {
                 if let displayName = accountDisplayName {
                     Text(displayName)
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(OnboardingTheme.primaryText)
+                        .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
+                        .foregroundStyle(FormaTokens.Color.textPrimary)
                         .multilineTextAlignment(.center)
                 }
 
                 if let email = accountEmail {
                     Text(email)
-                        .font(.subheadline)
-                        .foregroundStyle(OnboardingTheme.secondaryText)
+                        .font(FormaTokens.Typography.sectionSubtitle)
+                        .foregroundStyle(FormaTokens.Color.textSecondary)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
@@ -71,8 +71,8 @@ struct AccountSettingsView: View {
 
                 if showsSignedInBadge {
                     Label("Signed in with Google", systemImage: "checkmark.circle.fill")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(OnboardingTheme.tertiaryText)
+                        .font(FormaTokens.Typography.caption.weight(.medium))
+                        .foregroundStyle(FormaTokens.Color.textTertiary)
                         .padding(.top, 6)
                 }
             }
@@ -85,20 +85,20 @@ struct AccountSettingsView: View {
     private var avatarView: some View {
         ZStack {
             Circle()
-                .fill(OnboardingTheme.cardElevated)
+                .fill(FormaTokens.Color.surfaceElevated)
                 .frame(width: 72, height: 72)
                 .overlay(
                     Circle()
-                        .stroke(OnboardingTheme.border, lineWidth: 1)
+                        .stroke(FormaTokens.Color.border, lineWidth: 1)
                 )
 
             if showsStatusProgress {
                 SwiftUI.ProgressView()
-                    .tint(OnboardingTheme.primaryText)
+                    .tint(FormaTokens.Color.textPrimary)
             } else {
                 Text(profileInitials)
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(OnboardingTheme.primaryText)
+                    .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
+                    .foregroundStyle(FormaTokens.Color.textPrimary)
             }
         }
         .accessibilityLabel(avatarAccessibilityLabel)
@@ -129,21 +129,23 @@ struct AccountSettingsView: View {
             showsLogoutConfirmation = true
         } label: {
             Text("Log out")
-                .font(.body.weight(.medium))
-                .foregroundStyle(.red.opacity(canLogOut ? 0.95 : 0.5))
+                .font(FormaTokens.Typography.body.weight(.medium))
+                .foregroundStyle(FormaTokens.Color.destructive.opacity(canLogOut ? 0.95 : 0.5))
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
         }
         .buttonStyle(.plain)
         .background(
             RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
-                .fill(OnboardingTheme.card)
+                .fill(FormaTokens.Color.surface)
                 .overlay(
                     RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
-                        .stroke(OnboardingTheme.border, lineWidth: 1)
+                        .stroke(FormaTokens.Color.border, lineWidth: 1)
                 )
         )
         .disabled(!canLogOut)
+        .accessibilityLabel("Log out")
+        .accessibilityHint(canLogOut ? FormaProductCopy.Account.signOutHint : "Unavailable while signing in")
     }
 
     // MARK: - Helpers
@@ -198,7 +200,7 @@ struct AccountSettingsView: View {
     }
 
     private var logoutConfirmationMessage: String {
-        "You'll need to sign in again to use FitPilot. Your local data on this device will not be deleted."
+        FormaProductCopy.Account.logoutConfirmationMessage
     }
 }
 

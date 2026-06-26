@@ -32,10 +32,10 @@ struct PlanAboutYouSection: View {
                     .padding(.top, 6)
                 } label: {
                     Text("Your details")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(OnboardingTheme.primaryText)
+                        .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                        .foregroundStyle(FormaTokens.Color.textPrimary)
                 }
-                .tint(OnboardingTheme.accent)
+                .tint(FormaTokens.Color.accent)
             }
         }
     }

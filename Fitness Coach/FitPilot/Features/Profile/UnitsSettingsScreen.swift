@@ -23,10 +23,11 @@ struct UnitsSettingsScreen: View {
                     }
                 }
                 .disabled(isSaving)
-                .listRowBackground(OnboardingTheme.card)
+                .fitPilotSettingsRowChrome()
             } footer: {
                 Text("Values are stored in metric internally. Imperial is a display preference for now.")
-                    .foregroundStyle(OnboardingTheme.tertiaryText)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaTokens.Color.textTertiary)
             }
         }
         .fitPilotDarkGroupedList()

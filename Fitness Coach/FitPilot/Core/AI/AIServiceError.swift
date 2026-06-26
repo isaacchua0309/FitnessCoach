@@ -16,9 +16,8 @@ enum AIServiceError: Error, Equatable {
     case featureDisabled
     case authenticationFailed
 
-    static let coachSessionFailureTitle = "Unable to start coach session"
-    static let coachSessionFailureMessage =
-        "We couldn't verify your session. Please check your connection and try again."
+    static let coachSessionFailureTitle = FormaProductCopy.Error.coachSessionTitle
+    static let coachSessionFailureMessage = FormaProductCopy.Error.coachSessionMessage
 
     /// Calm, user-facing message. Never exposes raw backend payloads or keys.
     var userMessage: String {
@@ -26,12 +25,11 @@ enum AIServiceError: Error, Equatable {
         case .authenticationFailed:
             return Self.coachSessionFailureMessage
         case .featureDisabled:
-            return "I couldn't reach the coach service. Try again in a moment."
+            return FormaProductCopy.Error.coachUnavailable
         case .backendUnavailable, .requestFailed:
-            return "I couldn't reach the coach service. Try again in a moment."
+            return FormaProductCopy.Error.coachUnavailable
         case .invalidResponse, .decodingFailed, .validationFailed:
-            return "I could not confidently understand that yet. "
-                + "Please try rephrasing or log it with explicit calories and macros."
+            return FormaProductCopy.Error.coachNotUnderstood
         }
     }
 }

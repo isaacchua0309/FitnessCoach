@@ -91,7 +91,7 @@ final class OnboardingModel: ObservableObject {
             errorMessage = error.message
             viewState = .editing
         } catch {
-            errorMessage = "Could not generate your plan. Please check your inputs."
+            errorMessage = FormaProductCopy.Error.generatePlan
             viewState = .editing
         }
     }
@@ -100,7 +100,7 @@ final class OnboardingModel: ObservableObject {
 
     func completeOnboarding() {
         guard let generatedPlan else {
-            errorMessage = "Could not generate your plan. Please check your inputs."
+            errorMessage = FormaProductCopy.Error.generatePlan
             return
         }
 
@@ -109,7 +109,7 @@ final class OnboardingModel: ObservableObject {
 
         do {
             if try userProfileService.getCurrentProfile() != nil {
-                errorMessage = "A profile already exists."
+                errorMessage = FormaProductCopy.Error.profileExists
                 viewState = .editing
                 return
             }
@@ -124,7 +124,7 @@ final class OnboardingModel: ObservableObject {
             errorMessage = message
             viewState = .editing
         } catch {
-            errorMessage = "Could not create your profile. Please try again."
+            errorMessage = FormaProductCopy.Error.createProfile
             viewState = .editing
         }
     }
@@ -139,7 +139,7 @@ final class OnboardingModel: ObservableObject {
             errorMessage = error.message
             return false
         } catch {
-            errorMessage = "Please check your inputs."
+            errorMessage = FormaProductCopy.Error.checkInputs
             return false
         }
     }

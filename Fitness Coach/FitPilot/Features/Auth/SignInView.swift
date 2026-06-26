@@ -13,10 +13,9 @@ struct SignInView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.sectionSpacing) {
                 SignInHeroCard()
-
-                SignInBenefitsPanel()
+                SignInBenefitsCard()
 
                 if let failurePresentation {
                     SignInFailureBanner(
@@ -26,10 +25,10 @@ struct SignInView: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
-            .padding(.horizontal, OnboardingTheme.pagePadding)
-            .padding(.top, 8)
-            .padding(.bottom, 12)
-            .frame(maxWidth: SignInLayout.contentMaxWidth)
+            .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
+            .padding(.top, FormaTokens.Spacing.sm)
+            .padding(.bottom, FormaTokens.Spacing.md)
+            .frame(maxWidth: FormaTokens.Layout.maxContentWidth)
             .frame(maxWidth: .infinity, alignment: .top)
         }
         .scrollIndicators(.hidden)
@@ -37,13 +36,13 @@ struct SignInView: View {
         .background(SignInScreenBackground())
         .animation(.easeInOut(duration: 0.2), value: failurePresentation != nil)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            SignInBottomBar(
+            SignInCTAFooter(
                 isLoading: isSigningIn,
                 isDisabled: isButtonDisabled,
                 onSignIn: signInWithGoogle
             )
         }
-        .safeAreaPadding(.top, 4)
+        .safeAreaPadding(.top, FormaTokens.Spacing.xs)
         .preferredColorScheme(.dark)
     }
 
@@ -78,24 +77,19 @@ struct SignInView: View {
     }
 }
 
-private enum SignInLayout {
-    static let contentMaxWidth: CGFloat = 520
-    static let minTouchTarget: CGFloat = 44
-}
-
 // MARK: - Copy
 
 private enum SignInCopy {
-    static let appName = "FitPilot"
-    static let tagline = "Your AI fitness coach."
-    static let valueProposition = "Build your plan, log with Coach, and pick up where you left off."
-    static let continueWithGoogle = "Continue with Google"
-    static let signingIn = "Signing in…"
-    static let signingInAccessibility = "Signing in"
-    static let trustNote = "Your Google account is used to keep your plan available when you sign in."
-    static let legalIntro = "By continuing, you agree to FitPilot's"
-    static let termsLinkTitle = "Terms"
-    static let privacyPolicyLinkTitle = "Privacy Policy"
+    static let appName = FormaProductCopy.appName
+    static let tagline = FormaProductCopy.tagline
+    static let valueProposition = FormaProductCopy.SignIn.valueProposition
+    static let continueWithGoogle = FormaProductCopy.SignIn.continueWithGoogle
+    static let signingIn = FormaProductCopy.SignIn.signingIn
+    static let signingInAccessibility = FormaProductCopy.SignIn.signingInAccessibility
+    static let trustNote = FormaProductCopy.SignIn.trustNote
+    static let legalIntro = FormaProductCopy.SignIn.legalIntro
+    static let termsLinkTitle = FormaProductCopy.SignIn.termsLinkTitle
+    static let privacyPolicyLinkTitle = FormaProductCopy.SignIn.privacyPolicyLinkTitle
 }
 
 // MARK: - Screen chrome
@@ -103,26 +97,26 @@ private enum SignInCopy {
 private struct SignInScreenBackground: View {
     var body: some View {
         ZStack {
-            OnboardingTheme.background
+            FormaTokens.Color.canvas
 
             RadialGradient(
                 colors: [
-                    OnboardingTheme.accent.opacity(0.16),
-                    OnboardingTheme.accent.opacity(0.04),
+                    FormaTokens.Color.accent.opacity(0.14),
+                    FormaTokens.Color.accent.opacity(0.03),
                     .clear
                 ],
                 center: .top,
-                startRadius: 8,
-                endRadius: 380
+                startRadius: 4,
+                endRadius: 360
             )
 
             LinearGradient(
                 colors: [
-                    OnboardingTheme.accent.opacity(0.05),
+                    FormaTokens.Color.accent.opacity(0.04),
                     .clear
                 ],
                 startPoint: .top,
-                endPoint: UnitPoint(x: 0.5, y: 0.42)
+                endPoint: UnitPoint(x: 0.5, y: 0.38)
             )
         }
         .ignoresSafeArea()
@@ -134,18 +128,18 @@ private struct SignInSurfaceCard<Content: View>: View {
 
     var body: some View {
         content
-            .padding(18)
+            .padding(FormaTokens.Spacing.md)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background {
-                RoundedRectangle(cornerRadius: OnboardingTheme.cornerRadius, style: .continuous)
-                    .fill(OnboardingTheme.cardElevated)
+                RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
+                    .fill(FormaTokens.Color.surfaceElevated)
                     .overlay {
-                        RoundedRectangle(cornerRadius: OnboardingTheme.cornerRadius, style: .continuous)
+                        RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
                             .stroke(
                                 LinearGradient(
                                     colors: [
-                                        OnboardingTheme.accent.opacity(0.28),
-                                        OnboardingTheme.border
+                                        FormaTokens.Color.accent.opacity(0.24),
+                                        FormaTokens.Color.border
                                     ],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
@@ -164,10 +158,10 @@ private struct SignInFailureBanner: View {
     let message: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             Label {
                 Text(title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
             } icon: {
                 Image(systemName: "exclamationmark.triangle.fill")
@@ -175,20 +169,20 @@ private struct SignInFailureBanner: View {
             }
 
             Text(message)
-                .font(.subheadline)
-                .foregroundStyle(OnboardingTheme.secondaryText)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .foregroundStyle(OnboardingTheme.warning)
-        .padding(14)
+        .foregroundStyle(FormaTokens.Color.warning)
+        .padding(FormaTokens.Spacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: OnboardingTheme.compactCornerRadius, style: .continuous)
-                .fill(OnboardingTheme.warning.opacity(0.14))
+            RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
+                .fill(FormaTokens.Color.warning.opacity(0.14))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: OnboardingTheme.compactCornerRadius, style: .continuous)
-                .stroke(OnboardingTheme.warning.opacity(0.32), lineWidth: 1)
+            RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
+                .stroke(FormaTokens.Color.warning.opacity(0.32), lineWidth: 1)
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title). \(message)")
@@ -199,23 +193,23 @@ private struct SignInFailureBanner: View {
 // MARK: - Hero
 
 private struct SignInHeroCard: View {
-    @ScaledMetric(relativeTo: .largeTitle) private var orbSize: CGFloat = 64
-    @ScaledMetric(relativeTo: .largeTitle) private var orbRingSize: CGFloat = 76
-
     var body: some View {
         SignInSurfaceCard {
-            VStack(spacing: 16) {
-                brandOrb
+            VStack(spacing: FormaTokens.Spacing.md) {
+                FormaBrandMark(size: .medium)
+                    .frame(maxWidth: .infinity)
 
-                VStack(spacing: 6) {
+                VStack(spacing: FormaTokens.Spacing.xs) {
                     Text(SignInCopy.appName)
-                        .font(.largeTitle.weight(.bold))
-                        .foregroundStyle(OnboardingTheme.primaryText)
+                        .font(FormaTokens.Typography.screenTitle)
+                        .foregroundStyle(FormaTokens.Color.textPrimary)
                         .multilineTextAlignment(.center)
+                        .minimumScaleFactor(0.85)
+                        .lineLimit(1)
 
                     Text(SignInCopy.tagline)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(OnboardingTheme.secondaryText)
+                        .font(FormaTokens.Typography.bodyMedium)
+                        .foregroundStyle(FormaTokens.Color.textSecondary)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -225,8 +219,8 @@ private struct SignInHeroCard: View {
                 .accessibilityAddTraits(.isHeader)
 
                 Text(SignInCopy.valueProposition)
-                    .font(.subheadline)
-                    .foregroundStyle(OnboardingTheme.legalText)
+                    .font(FormaTokens.Typography.sectionSubtitle)
+                    .foregroundStyle(FormaTokens.Color.textLegal)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity)
@@ -235,54 +229,12 @@ private struct SignInHeroCard: View {
             .frame(maxWidth: .infinity)
         }
     }
-
-    private var brandOrb: some View {
-        ZStack {
-            Circle()
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            OnboardingTheme.accent.opacity(0.45),
-                            OnboardingTheme.accent.opacity(0.08)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1.2
-                )
-                .frame(width: orbRingSize, height: orbRingSize)
-
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [
-                            OnboardingTheme.accent.opacity(0.22),
-                            OnboardingTheme.accent.opacity(0.06)
-                        ],
-                        center: .center,
-                        startRadius: 2,
-                        endRadius: orbSize * 0.55
-                    )
-                )
-                .frame(width: orbSize, height: orbSize)
-
-            Image(systemName: "figure.run")
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.accent)
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityHidden(true)
-    }
 }
 
 // MARK: - Benefits
 
-private struct SignInBenefitsPanel: View {
-    private let benefits: [(icon: String, title: String)] = [
-        ("target", "Personalized plan and daily targets"),
-        ("bubble.left.and.bubble.right.fill", "Natural-language logging with Coach"),
-        ("chart.line.uptrend.xyaxis", "Progress across nutrition and training")
-    ]
+private struct SignInBenefitsCard: View {
+    private let benefits: [(icon: String, title: String)] = FormaProductCopy.SignIn.benefits
 
     var body: some View {
         SignInSurfaceCard {
@@ -292,7 +244,7 @@ private struct SignInBenefitsPanel: View {
 
                     if index < benefits.count - 1 {
                         Divider()
-                            .overlay(OnboardingTheme.border.opacity(0.85))
+                            .overlay(FormaTokens.Color.border)
                             .padding(.leading, 36)
                     }
                 }
@@ -307,40 +259,41 @@ private struct SignInBenefitRow: View {
     let title: String
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
             ZStack {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(OnboardingTheme.accent.opacity(0.12))
+                RoundedRectangle(cornerRadius: FormaTokens.Spacing.xs, style: .continuous)
+                    .fill(FormaTokens.Color.accentMuted)
                     .frame(width: 28, height: 28)
 
                 Image(systemName: icon)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(OnboardingTheme.accent)
+                    .font(FormaTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(FormaTokens.Color.accent)
             }
             .accessibilityHidden(true)
 
             Text(title)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(OnboardingTheme.primaryText)
+                .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
+                .foregroundStyle(FormaTokens.Color.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
 
             Spacer(minLength: 0)
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, FormaTokens.Spacing.xs + 2)
+        .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .center)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
     }
 }
 
-// MARK: - Bottom bar
+// MARK: - CTA footer
 
-private struct SignInBottomBar: View {
+private struct SignInCTAFooter: View {
     let isLoading: Bool
     let isDisabled: Bool
     let onSignIn: () -> Void
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: FormaTokens.Spacing.sm) {
             GoogleSignInButton(
                 isLoading: isLoading,
                 isDisabled: isDisabled,
@@ -349,20 +302,20 @@ private struct SignInBottomBar: View {
 
             SignInLegalFooter()
         }
-        .padding(.horizontal, OnboardingTheme.pagePadding)
-        .padding(.top, 14)
-        .padding(.bottom, 10)
-        .frame(maxWidth: SignInLayout.contentMaxWidth)
+        .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
+        .padding(.top, FormaTokens.Spacing.sm)
+        .padding(.bottom, FormaTokens.Spacing.xs)
+        .frame(maxWidth: FormaTokens.Layout.maxContentWidth)
         .frame(maxWidth: .infinity)
         .background {
             Rectangle()
-                .fill(OnboardingTheme.background.opacity(0.96))
+                .fill(FormaTokens.Color.canvas.opacity(0.94))
                 .background(.ultraThinMaterial)
                 .ignoresSafeArea(edges: .bottom)
         }
         .overlay(alignment: .top) {
             Divider()
-                .overlay(OnboardingTheme.border.opacity(0.9))
+                .overlay(FormaTokens.Color.border)
         }
         .accessibilityElement(children: .contain)
     }
@@ -375,29 +328,27 @@ private struct GoogleSignInButton: View {
 
     @ScaledMetric(relativeTo: .body) private var buttonMinHeight: CGFloat = 52
 
-    private let labelColor = Color(red: 0.24, green: 0.25, blue: 0.26)
     private let leadIconSize: CGFloat = 20
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 12) {
+            HStack(spacing: FormaTokens.Spacing.sm) {
                 leadIcon
-
                 label
             }
             .frame(maxWidth: .infinity)
-            .frame(minHeight: max(buttonMinHeight, SignInLayout.minTouchTarget))
-            .padding(.horizontal, 16)
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: OnboardingTheme.compactCornerRadius, style: .continuous))
+            .frame(minHeight: max(buttonMinHeight, FormaTokens.Layout.minTouchTarget))
+            .padding(.horizontal, FormaTokens.Spacing.md)
+            .background(FormaTokens.Color.googleButtonBackground)
+            .clipShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: OnboardingTheme.compactCornerRadius, style: .continuous)
-                    .stroke(OnboardingTheme.border.opacity(0.35), lineWidth: 1)
+                RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
+                    .stroke(FormaTokens.Color.googleButtonBorder, lineWidth: 1)
             )
             .opacity(isLoading ? 0.92 : 1)
-            .shadow(color: .black.opacity(isLoading ? 0.08 : 0.18), radius: 10, y: 4)
+            .shadow(color: .black.opacity(isLoading ? 0.08 : 0.16), radius: 8, y: 3)
             .contentShape(
-                RoundedRectangle(cornerRadius: OnboardingTheme.compactCornerRadius, style: .continuous)
+                RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
             )
         }
         .buttonStyle(.plain)
@@ -416,7 +367,7 @@ private struct GoogleSignInButton: View {
 
             SwiftUI.ProgressView()
                 .controlSize(.small)
-                .tint(labelColor)
+                .tint(FormaTokens.Color.googleButtonText)
                 .opacity(isLoading ? 1 : 0)
         }
         .frame(width: leadIconSize, height: leadIconSize)
@@ -430,8 +381,8 @@ private struct GoogleSignInButton: View {
 
             Text(isLoading ? SignInCopy.signingIn : SignInCopy.continueWithGoogle)
         }
-        .font(.body.weight(.semibold))
-        .foregroundStyle(labelColor)
+        .font(FormaTokens.Typography.body.weight(.semibold))
+        .foregroundStyle(FormaTokens.Color.googleButtonText)
         .multilineTextAlignment(.center)
         .minimumScaleFactor(0.85)
         .animation(nil, value: isLoading)
@@ -454,10 +405,10 @@ private struct SignInLegalFooter: View {
     @State private var presentedDocument: FitPilotLegalDocument?
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: FormaTokens.Spacing.xs + 2) {
             Text(SignInCopy.trustNote)
-                .font(.caption)
-                .foregroundStyle(OnboardingTheme.legalText)
+                .font(FormaTokens.Typography.caption)
+                .foregroundStyle(FormaTokens.Color.textLegal)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity)
@@ -475,7 +426,7 @@ private struct SignInLegalFooter: View {
             legalAgreementInline
             legalAgreementStacked
         }
-        .font(.caption)
+        .font(FormaTokens.Typography.caption)
         .multilineTextAlignment(.center)
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity)
@@ -485,28 +436,28 @@ private struct SignInLegalFooter: View {
     private var legalAgreementInline: some View {
         HStack(spacing: 4) {
             Text(SignInCopy.legalIntro)
-                .foregroundStyle(OnboardingTheme.legalText)
+                .foregroundStyle(FormaTokens.Color.textLegal)
             legalLinkButton(.terms)
             Text("and")
-                .foregroundStyle(OnboardingTheme.legalText)
+                .foregroundStyle(FormaTokens.Color.textLegal)
             legalLinkButton(.privacyPolicy)
             Text(".")
-                .foregroundStyle(OnboardingTheme.legalText)
+                .foregroundStyle(FormaTokens.Color.textLegal)
         }
     }
 
     private var legalAgreementStacked: some View {
         VStack(spacing: 4) {
             Text(SignInCopy.legalIntro)
-                .foregroundStyle(OnboardingTheme.legalText)
+                .foregroundStyle(FormaTokens.Color.textLegal)
 
             HStack(spacing: 4) {
                 legalLinkButton(.terms)
                 Text("and")
-                    .foregroundStyle(OnboardingTheme.legalText)
+                    .foregroundStyle(FormaTokens.Color.textLegal)
                 legalLinkButton(.privacyPolicy)
                 Text(".")
-                    .foregroundStyle(OnboardingTheme.legalText)
+                    .foregroundStyle(FormaTokens.Color.textLegal)
             }
         }
     }
@@ -516,12 +467,12 @@ private struct SignInLegalFooter: View {
             openLegalDocument(document)
         } label: {
             Text(document.linkTitle)
-                .font(.caption.weight(.semibold))
+                .font(FormaTokens.Typography.caption.weight(.semibold))
                 .underline()
-                .foregroundStyle(OnboardingTheme.accent)
+                .foregroundStyle(FormaTokens.Color.accent)
         }
         .buttonStyle(.plain)
-        .frame(minWidth: SignInLayout.minTouchTarget, minHeight: SignInLayout.minTouchTarget)
+        .frame(minWidth: FormaTokens.Layout.minTouchTarget, minHeight: FormaTokens.Layout.minTouchTarget)
         .contentShape(Rectangle())
         .accessibilityLabel(document.accessibilityTitle)
         .accessibilityHint(document.url == nil ? "Opens in app" : "Opens in browser")
@@ -544,31 +495,31 @@ private struct SignInLegalDocumentSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.sectionSpacing + 4) {
                     Text("Effective \(FitPilotLegalCopy.effectiveDate)")
-                        .font(.caption)
-                        .foregroundStyle(OnboardingTheme.tertiaryText)
+                        .font(FormaTokens.Typography.caption)
+                        .foregroundStyle(FormaTokens.Color.textTertiary)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     ForEach(document.sections) { section in
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
                             Text(section.title)
-                                .font(.headline)
-                                .foregroundStyle(OnboardingTheme.primaryText)
+                                .font(FormaTokens.Typography.sectionTitle)
+                                .foregroundStyle(FormaTokens.Color.textPrimary)
                                 .accessibilityAddTraits(.isHeader)
 
                             Text(section.body)
-                                .font(.subheadline)
-                                .foregroundStyle(OnboardingTheme.secondaryText)
+                                .font(FormaTokens.Typography.sectionSubtitle)
+                                .foregroundStyle(FormaTokens.Color.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         .accessibilityElement(children: .combine)
                     }
                 }
-                .padding(.horizontal, OnboardingTheme.pagePadding)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
-                .frame(maxWidth: SignInLayout.contentMaxWidth)
+                .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
+                .padding(.top, FormaTokens.Spacing.xs)
+                .padding(.bottom, FormaTokens.Spacing.xl)
+                .frame(maxWidth: FormaTokens.Layout.maxContentWidth)
                 .frame(maxWidth: .infinity)
             }
             .scrollIndicators(.visible)
@@ -631,7 +582,7 @@ private struct GoogleGMark: View {
 #Preview("Google Button — Loading") {
     GoogleSignInButton(isLoading: true, isDisabled: true, action: {})
         .padding()
-        .background(OnboardingTheme.background)
+        .background(FormaTokens.Color.canvas)
         .preferredColorScheme(.dark)
 }
 
@@ -641,14 +592,14 @@ private struct GoogleGMark: View {
         message: AuthSignInUserMessage.signInFailureMessage
     )
     .padding()
-    .background(OnboardingTheme.background)
+    .background(FormaTokens.Color.canvas)
     .preferredColorScheme(.dark)
 }
 
 #Preview("Legal Footer") {
     SignInLegalFooter()
         .padding()
-        .background(OnboardingTheme.background)
+        .background(FormaTokens.Color.canvas)
         .preferredColorScheme(.dark)
 }
 

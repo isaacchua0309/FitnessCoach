@@ -44,7 +44,7 @@ final class TrainingModel: ObservableObject {
             let state = try makeDashboardState()
             viewState = .loaded(state)
         } catch {
-            viewState = .error("Could not load training data.")
+            viewState = .error(FormaProductCopy.Error.loadTraining)
         }
     }
 

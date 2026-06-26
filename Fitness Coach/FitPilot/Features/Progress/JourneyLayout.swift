@@ -8,19 +8,15 @@
 import SwiftUI
 
 enum JourneyLayout {
-    static let sectionSpacing: CGFloat = 36
-    static let itemSpacing: CGFloat = 12
-    static let horizontalPadding: CGFloat = 20
+    static let sectionSpacing = FormaTokens.Spacing.xxl
+    static let itemSpacing = FormaTokens.Spacing.sm
+    static let horizontalPadding = FormaTokens.Spacing.pageHorizontal
 }
 
 struct JourneySectionLabel: View {
     let title: String
 
     var body: some View {
-        Text(title)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .textCase(.uppercase)
-            .tracking(0.6)
+        FormaSectionLabel(title: title)
     }
 }

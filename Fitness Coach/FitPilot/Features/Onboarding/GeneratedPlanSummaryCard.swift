@@ -17,7 +17,7 @@ struct GeneratedPlanSummaryCard: View {
             if plan.isAggressive || plan.warning != nil {
                 OnboardingWarningBanner(
                     message: plan.warning
-                        ?? "This target is aggressive. Watch energy, hunger, sleep, and training performance."
+                        ?? FormaProductCopy.Onboarding.aggressivePlanWarning
                 )
             }
 
@@ -31,7 +31,7 @@ struct GeneratedPlanSummaryCard: View {
             .onboardingCard()
 
             VStack(alignment: .leading, spacing: 12) {
-                sectionHeader("Plan math", icon: "function")
+                sectionHeader("Behind your numbers", icon: "function")
                 planRow("BMR", OnboardingFormatter.kcal(plan.estimatedBMR))
                 planRow("TDEE", OnboardingFormatter.kcal(plan.estimatedTDEE))
                 planRow("Daily deficit", OnboardingFormatter.kcal(plan.estimatedDailyDeficit))
@@ -47,7 +47,7 @@ struct GeneratedPlanSummaryCard: View {
 
             OnboardingInfoCard(
                 title: "Start here, then adapt",
-                message: "Your first week is a baseline. Use daily logs and weigh-ins so FitPilot can make better adjustments.",
+                message: FormaProductCopy.Onboarding.planBaselineMessage,
                 icon: "chart.line.uptrend.xyaxis"
             )
         }

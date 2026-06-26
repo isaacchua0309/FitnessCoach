@@ -287,15 +287,12 @@ enum CoachResponseBuilder {
     static let undoLastPlaceholder =
         "Undo last action is not fully supported yet. Try \"undo food\" or \"undo water\"."
 
-    static let needsAIResponse =
-        "I couldn't reach the coach service. Try again in a moment."
+    static let needsAIResponse = FormaProductCopy.Error.coachUnavailable
 
     static let unsupportedResponse =
         "I can help with logging, calories, macros, meal choices, workouts, water, weight, and your daily targets."
 
-    static let aiNotUnderstood =
-        "I could not confidently understand that yet. "
-        + "Please try rephrasing or log it with explicit calories and macros."
+    static let aiNotUnderstood = FormaProductCopy.Error.coachNotUnderstood
 
     static let aiFoodPendingConfirmation =
         "I estimated this food, but I need your confirmation before logging it."
@@ -307,7 +304,7 @@ enum CoachResponseBuilder {
         "I could not save that food entry. Please check the values and try again."
 
     static let greetingResponse =
-        "Hey — tell me what you ate, drank, weighed, trained, or ask what to do next."
+        "Tell me what you ate, drank, weighed, or trained — or ask what to focus on next."
 
     static let tryFitnessPrompt =
         "Tell me what you ate, drank, weighed, trained, or ask what to do next."
@@ -316,7 +313,7 @@ enum CoachResponseBuilder {
         "I can help with food, water, weight, workouts, or meal decisions. Try: 'log 500g chicken breast'."
 
     static let backendUnavailableResponse =
-        "AI unavailable — try a direct command like 'log 500ml water'."
+        "Coach is briefly unavailable — try a direct command like 'log 500ml water'."
 
     static let appHelpResponse =
         "Ask me about meals, calories, macros, protein, workouts, water, weight, or today's targets. You can also say things like \"log 500g chicken breast\" or \"add 600ml water\"."

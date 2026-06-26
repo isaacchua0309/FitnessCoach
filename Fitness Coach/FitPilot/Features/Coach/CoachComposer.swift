@@ -43,7 +43,7 @@ struct CoachComposer: View {
             HStack(alignment: .center, spacing: 0) {
                 attachmentButton
 
-                TextField("Message Coach...", text: $text, axis: .vertical)
+                TextField(FormaProductCopy.Coach.composerPlaceholder, text: $text, axis: .vertical)
                     .font(CoachDesignTokens.Typography.composer)
                     .foregroundStyle(CoachDesignTokens.Color.primaryText)
                     .textFieldStyle(.plain)

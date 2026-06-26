@@ -40,6 +40,10 @@ struct CoachMessageView: View {
                 .padding(.horizontal, CoachDesignTokens.Spacing.md)
                 .padding(.vertical, CoachDesignTokens.Spacing.sm)
                 .background(CoachDesignTokens.Color.userBubble, in: RoundedRectangle(cornerRadius: CoachDesignTokens.Radius.bubble, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: CoachDesignTokens.Radius.bubble, style: .continuous)
+                        .strokeBorder(CoachDesignTokens.Color.border.opacity(0.6), lineWidth: 0.5)
+                )
                 .frame(maxWidth: 280, alignment: .trailing)
         }
     }
@@ -49,7 +53,7 @@ struct CoachMessageView: View {
         HStack {
             Text(text)
                 .font(CoachDesignTokens.Typography.messageBody)
-                .foregroundStyle(CoachDesignTokens.Color.primaryText.opacity(0.92))
+                .foregroundStyle(CoachDesignTokens.Color.textLegal)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 32)

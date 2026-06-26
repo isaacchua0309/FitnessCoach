@@ -29,18 +29,18 @@ struct OnboardingFormState: Equatable {
         case .welcome:
             return
         case .body:
-            _ = try parsePositiveInt(ageText, message: "Please enter a valid age.")
-            _ = try parsePositiveDouble(heightCmText, message: "Please enter a valid height.")
-            _ = try parsePositiveDouble(currentWeightKgText, message: "Please enter your current weight.")
+            _ = try parsePositiveInt(ageText, message: FormaProductCopy.Onboarding.Validation.age)
+            _ = try parsePositiveDouble(heightCmText, message: FormaProductCopy.Onboarding.Validation.height)
+            _ = try parsePositiveDouble(currentWeightKgText, message: FormaProductCopy.Onboarding.Validation.currentWeight)
             _ = try parseOptionalBodyFat(estimatedBodyFatPercentageText)
         case .goal:
-            _ = try parsePositiveDouble(goalWeightKgText, message: "Please enter your goal weight.")
+            _ = try parsePositiveDouble(goalWeightKgText, message: FormaProductCopy.Onboarding.Validation.goalWeight)
         case .activity:
             _ = try parseNonNegativeInt(
                 trainingFrequencyPerWeekText,
-                message: "Training frequency must be zero or greater."
+                message: FormaProductCopy.Onboarding.Validation.trainingFrequency
             )
-            _ = try parseNonNegativeInt(averageStepsText, message: "Average steps must be zero or greater.")
+            _ = try parseNonNegativeInt(averageStepsText, message: FormaProductCopy.Onboarding.Validation.averageSteps)
         case .preferences, .planPreview:
             return
         }
@@ -53,7 +53,7 @@ struct OnboardingFormState: Equatable {
         } catch let error as OnboardingFormError {
             return error.message
         } catch {
-            return "Please check your inputs."
+            return FormaProductCopy.Error.checkInputs
         }
     }
 
@@ -68,20 +68,20 @@ struct OnboardingFormState: Equatable {
 
     func makeCalorieTargetInput() throws -> CalorieTargetInput {
         CalorieTargetInput(
-            age: try parsePositiveInt(ageText, message: "Please enter a valid age."),
+            age: try parsePositiveInt(ageText, message: FormaProductCopy.Onboarding.Validation.age),
             sex: sex,
-            heightCm: try parsePositiveDouble(heightCmText, message: "Please enter a valid height."),
-            weightKg: try parsePositiveDouble(currentWeightKgText, message: "Please enter your current weight."),
-            goalWeightKg: try parsePositiveDouble(goalWeightKgText, message: "Please enter your goal weight."),
+            heightCm: try parsePositiveDouble(heightCmText, message: FormaProductCopy.Onboarding.Validation.height),
+            weightKg: try parsePositiveDouble(currentWeightKgText, message: FormaProductCopy.Onboarding.Validation.currentWeight),
+            goalWeightKg: try parsePositiveDouble(goalWeightKgText, message: FormaProductCopy.Onboarding.Validation.goalWeight),
             estimatedBodyFatPercentage: try parseOptionalBodyFat(estimatedBodyFatPercentageText),
             activityLevel: activityLevel,
             trainingFrequencyPerWeek: try parseNonNegativeInt(
                 trainingFrequencyPerWeekText,
-                message: "Training frequency must be zero or greater."
+                message: FormaProductCopy.Onboarding.Validation.trainingFrequency
             ),
             averageSteps: try parseNonNegativeInt(
                 averageStepsText,
-                message: "Average steps must be zero or greater."
+                message: FormaProductCopy.Onboarding.Validation.averageSteps
             ),
             aggressiveness: aggressiveness
         )
@@ -93,20 +93,20 @@ struct OnboardingFormState: Equatable {
 
         return UserProfileDraft(
             name: trimmedName.isEmpty ? nil : trimmedName,
-            age: try parsePositiveInt(ageText, message: "Please enter a valid age."),
+            age: try parsePositiveInt(ageText, message: FormaProductCopy.Onboarding.Validation.age),
             sex: sex,
-            heightCm: try parsePositiveDouble(heightCmText, message: "Please enter a valid height."),
-            currentWeightKg: try parsePositiveDouble(currentWeightKgText, message: "Please enter your current weight."),
-            goalWeightKg: try parsePositiveDouble(goalWeightKgText, message: "Please enter your goal weight."),
+            heightCm: try parsePositiveDouble(heightCmText, message: FormaProductCopy.Onboarding.Validation.height),
+            currentWeightKg: try parsePositiveDouble(currentWeightKgText, message: FormaProductCopy.Onboarding.Validation.currentWeight),
+            goalWeightKg: try parsePositiveDouble(goalWeightKgText, message: FormaProductCopy.Onboarding.Validation.goalWeight),
             estimatedBodyFatPercentage: try parseOptionalBodyFat(estimatedBodyFatPercentageText),
             activityLevel: activityLevel,
             trainingFrequencyPerWeek: try parseNonNegativeInt(
                 trainingFrequencyPerWeekText,
-                message: "Training frequency must be zero or greater."
+                message: FormaProductCopy.Onboarding.Validation.trainingFrequency
             ),
             averageSteps: try parseNonNegativeInt(
                 averageStepsText,
-                message: "Average steps must be zero or greater."
+                message: FormaProductCopy.Onboarding.Validation.averageSteps
             ),
             dietPreference: trimmedDiet.isEmpty ? nil : trimmedDiet,
             unitSystem: unitSystem,
@@ -142,7 +142,7 @@ struct OnboardingFormState: Equatable {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
         guard let value = Double(trimmed), (0...80).contains(value) else {
-            throw OnboardingFormError.invalid("Body fat must be between 0 and 80.")
+            throw OnboardingFormError.invalid(FormaProductCopy.Onboarding.Validation.bodyFatRange)
         }
         return value
     }

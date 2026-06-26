@@ -11,24 +11,29 @@ struct ProgressEmptyStateView: View {
     let onRefresh: () -> Void
 
     var body: some View {
-        VStack(spacing: 14) {
-            Text("Your transformation story starts in Coach")
-                .font(.title3.weight(.semibold))
+        VStack(spacing: FormaTokens.Spacing.sm + 2) {
+            Text(FormaProductCopy.EmptyState.journeyTitle)
+                .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
+                .foregroundStyle(FormaTokens.Color.textPrimary)
+                .multilineTextAlignment(.center)
 
-            Text("Log weight, food, or water with Coach to see how you're becoming healthier.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            Text(FormaProductCopy.EmptyState.journeyBody)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
-            Button("Refresh", action: onRefresh)
+            Button(FormaProductCopy.Common.refresh, action: onRefresh)
                 .buttonStyle(.bordered)
+                .tint(FormaTokens.Color.accent)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
+        .background(FormaTokens.Color.canvas)
     }
 }
 
 #Preview {
     ProgressEmptyStateView {}
+        .preferredColorScheme(.dark)
 }

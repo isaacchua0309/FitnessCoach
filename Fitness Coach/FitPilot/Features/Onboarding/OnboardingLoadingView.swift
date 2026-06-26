@@ -27,5 +27,5 @@ struct OnboardingLoadingView: View {
 }
 
 #Preview {
-    OnboardingLoadingView(message: "Generating your plan...")
+    OnboardingLoadingView(message: FormaProductCopy.Loading.generatingPlan)
 }

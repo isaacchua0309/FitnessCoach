@@ -20,7 +20,7 @@ struct OnboardingGoalStepView: View {
         VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
             OnboardingSectionTitle(
                 title: "Set your destination",
-                subtitle: "Pick a realistic goal weight and a pace that will not wreck training or recovery."
+                subtitle: FormaProductCopy.Onboarding.goalSubtitle
             )
 
             OnboardingNumberField(
@@ -37,7 +37,7 @@ struct OnboardingGoalStepView: View {
             VStack(alignment: .leading, spacing: 10) {
                 OnboardingSectionTitle(
                     title: "Calorie pace",
-                    subtitle: "You can adjust this later once FitPilot sees your trend."
+                    subtitle: FormaProductCopy.Onboarding.goalPaceSubtitle
                 )
 
                 ForEach(CalorieAggressiveness.allCases, id: \.self) { level in

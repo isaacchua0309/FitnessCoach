@@ -133,8 +133,9 @@ struct CoachView: View {
         .fixedSize(horizontal: false, vertical: true)
         .background(
             CoachDesignTokens.Color.background
-                .shadow(color: .black.opacity(0.35), radius: 16, y: -6)
+                .shadow(color: .black.opacity(0.28), radius: 12, y: -4)
         )
+        .padding(.bottom, CoachDesignTokens.Layout.bottomChromeInset)
     }
 
     private func handleToolbarTap(_ action: CoachToolbarAction) {

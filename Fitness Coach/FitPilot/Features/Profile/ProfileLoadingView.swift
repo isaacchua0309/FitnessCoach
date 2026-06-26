@@ -9,16 +9,19 @@ import SwiftUI
 
 struct ProfileLoadingView: View {
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: FormaTokens.Spacing.sm) {
             SwiftUI.ProgressView()
-            Text("Loading profile...")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .tint(FormaTokens.Color.accent)
+            Text(FormaProductCopy.Loading.plan)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(FormaTokens.Color.canvas)
     }
 }
 
 #Preview {
     ProfileLoadingView()
+        .preferredColorScheme(.dark)
 }

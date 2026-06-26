@@ -12,12 +12,18 @@ struct JourneyCoachInsightsSection: View {
         VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
             JourneySectionLabel(title: "Coach insights")
 
-            VStack(alignment: .leading, spacing: 14) {
-                ForEach(insights) { insight in
-                    Text(insight.message)
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
+            FitPilotPlanCard {
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
+                    ForEach(Array(insights.enumerated()), id: \.element.id) { index, insight in
+                        Text(insight.message)
+                            .font(FormaTokens.Typography.sectionSubtitle)
+                            .foregroundStyle(FormaTokens.Color.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        if index < insights.count - 1 {
+                            FitPilotPlanRowDivider()
+                        }
+                    }
                 }
             }
         }

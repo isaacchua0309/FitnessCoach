@@ -82,21 +82,21 @@ struct DailyReviewSummaryBuilder {
         var notes: [String] = []
 
         if summary.isOverCalorieTarget {
-            notes.append("Calories finished over target.")
+            notes.append("Calories ended above target.")
         } else {
-            notes.append("Calories finished at or under target.")
+            notes.append("Calories stayed at or below target.")
         }
 
         if summary.hasMetProteinTarget {
-            notes.append("Protein target was met.")
+            notes.append("Protein target reached.")
         } else {
-            notes.append("Protein target was not met.")
+            notes.append("Protein came up short today.")
         }
 
         if summary.hasMetWaterTarget {
-            notes.append("Water target was met.")
+            notes.append("Hydration goal reached.")
         } else {
-            notes.append("Water target was not met.")
+            notes.append("Hydration goal not reached today.")
         }
 
         if summary.hasWorkout {

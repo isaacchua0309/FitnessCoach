@@ -8,12 +8,22 @@
 import SwiftUI
 
 enum FitPilotScreenStyle {
-    static let horizontalPadding = OnboardingTheme.pagePadding
+    static let horizontalPadding = FormaTokens.Spacing.pageHorizontal
     static let sectionSpacing: CGFloat = 22
-    static let rowMinHeight: CGFloat = 44
+    static let rowMinHeight = FormaTokens.Layout.minTouchTarget
     static let rowVerticalPadding: CGFloat = 11
-    static let cardCornerRadius = OnboardingTheme.compactCornerRadius
-    static let scrollBottomInset: CGFloat = 20
+    static let cardCornerRadius = FormaTokens.Radius.compact
+    static let scrollBottomInset = FormaTokens.Layout.tabBarScrollPadding
+
+    static let settingsRowInsets = EdgeInsets(
+        top: FitPilotScreenStyle.rowVerticalPadding,
+        leading: FormaTokens.Spacing.md,
+        bottom: FitPilotScreenStyle.rowVerticalPadding,
+        trailing: FormaTokens.Spacing.md
+    )
+
+    static let activeRowBackground = FormaTokens.Color.surface
+    static let disabledRowBackground = FormaTokens.Color.surfaceSubtle
 }
 
 // MARK: - Plan
@@ -23,15 +33,27 @@ struct FitPilotPlanCard<Content: View>: View {
 
     var body: some View {
         content
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, FormaTokens.Spacing.md)
+            .padding(.vertical, FormaTokens.Spacing.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(cardShape.fill(OnboardingTheme.card))
-            .overlay(cardShape.stroke(OnboardingTheme.border, lineWidth: 1))
-    }
-
-    private var cardShape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+            .background {
+                RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+                    .fill(FormaTokens.Color.surface)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        FormaTokens.Color.accent.opacity(0.14),
+                                        FormaTokens.Color.border
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    }
+            }
     }
 }
 
@@ -45,23 +67,23 @@ struct FitPilotPlanDisplayRow: View {
             if multilineValue {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(label)
-                        .font(.subheadline)
-                        .foregroundStyle(OnboardingTheme.secondaryText)
+                        .font(FormaTokens.Typography.sectionSubtitle)
+                        .foregroundStyle(FormaTokens.Color.textSecondary)
                     Text(value)
-                        .font(.subheadline)
-                        .foregroundStyle(OnboardingTheme.primaryText)
+                        .font(FormaTokens.Typography.sectionSubtitle)
+                        .foregroundStyle(FormaTokens.Color.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
                 }
             } else {
-                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
                     Text(label)
-                        .font(.subheadline)
-                        .foregroundStyle(OnboardingTheme.secondaryText)
+                        .font(FormaTokens.Typography.sectionSubtitle)
+                        .foregroundStyle(FormaTokens.Color.textSecondary)
                         .frame(width: 88, alignment: .leading)
                     Text(value)
-                        .font(.subheadline)
-                        .foregroundStyle(OnboardingTheme.primaryText)
+                        .font(FormaTokens.Typography.sectionSubtitle)
+                        .foregroundStyle(FormaTokens.Color.textPrimary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
@@ -74,7 +96,7 @@ struct FitPilotPlanDisplayRow: View {
 struct FitPilotPlanRowDivider: View {
     var body: some View {
         Divider()
-            .overlay(OnboardingTheme.border)
+            .overlay(FormaTokens.Color.border)
     }
 }
 
@@ -85,8 +107,8 @@ struct FitPilotSettingsSectionHeader: View {
 
     var body: some View {
         Text(title)
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(OnboardingTheme.secondaryText)
+            .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+            .foregroundStyle(FormaTokens.Color.textSecondary)
             .textCase(nil)
     }
 }
@@ -95,14 +117,14 @@ struct FitPilotComingSoonRow: View {
     let title: String
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: FormaTokens.Spacing.sm) {
             Text(title)
-                .font(.body)
-                .foregroundStyle(OnboardingTheme.tertiaryText)
+                .font(FormaTokens.Typography.body)
+                .foregroundStyle(FormaTokens.Color.textTertiary)
             Spacer(minLength: 8)
             Text("Coming soon")
-                .font(.caption)
-                .foregroundStyle(OnboardingTheme.tertiaryText.opacity(0.85))
+                .font(FormaTokens.Typography.caption)
+                .foregroundStyle(FormaTokens.Color.textTertiary.opacity(0.9))
         }
         .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
         .accessibilityElement(children: .combine)
@@ -116,19 +138,31 @@ extension View {
     func fitPilotDarkScreenBackground() -> some View {
         self
             .scrollContentBackground(.hidden)
-            .background(OnboardingTheme.background.ignoresSafeArea())
+            .background(FormaTokens.Color.canvas.ignoresSafeArea())
             .preferredColorScheme(.dark)
     }
 
     func fitPilotDarkGroupedList() -> some View {
         self
             .listStyle(.insetGrouped)
-            .fitPilotDarkScreenBackground()
+            .scrollContentBackground(.hidden)
+            .background(FormaTokens.Color.canvas.ignoresSafeArea())
+            .preferredColorScheme(.dark)
+            .tint(FormaTokens.Color.accent)
     }
 
     func fitPilotScrollBottomInset() -> some View {
         safeAreaInset(edge: .bottom, spacing: 0) {
             Color.clear.frame(height: FitPilotScreenStyle.scrollBottomInset)
         }
+    }
+
+    func fitPilotSettingsRowChrome(isEnabled: Bool = true) -> some View {
+        listRowInsets(FitPilotScreenStyle.settingsRowInsets)
+            .listRowBackground(
+                isEnabled
+                    ? FitPilotScreenStyle.activeRowBackground
+                    : FitPilotScreenStyle.disabledRowBackground
+            )
     }
 }

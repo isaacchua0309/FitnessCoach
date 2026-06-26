@@ -20,7 +20,7 @@ struct OnboardingBottomBar: View {
         case .preferences:
             return "Generate Plan"
         case .planPreview:
-            return "Start FitPilot"
+            return FormaProductCopy.Onboarding.startButton
         default:
             return "Continue"
         }
@@ -59,11 +59,11 @@ struct OnboardingBottomBar: View {
             }
 
             if !canContinue, !isLoading {
-                Text("Complete the required fields to continue.")
+                Text(FormaProductCopy.Common.completeRequiredFields)
                     .font(.caption)
                     .foregroundStyle(OnboardingTheme.tertiaryText)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityLabel("Complete the required fields to continue.")
+                    .accessibilityLabel(FormaProductCopy.Common.completeRequiredFields)
             }
         }
         .padding(.horizontal, OnboardingTheme.pagePadding)

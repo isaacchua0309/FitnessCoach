@@ -16,33 +16,38 @@ struct JourneyConsistencyCalendarSection: View {
                 JourneySectionLabel(title: "Consistency")
                 Spacer()
                 Text("\(calendar.completedCount) days")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaTokens.Color.textSecondary)
             }
 
-            Text(calendar.monthTitle)
-                .font(.subheadline.weight(.medium))
+            FitPilotPlanCard {
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+                    Text(calendar.monthTitle)
+                        .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
+                        .foregroundStyle(FormaTokens.Color.textPrimary)
 
-            LazyVGrid(columns: columns, spacing: 8) {
-                ForEach(calendar.weekdaySymbols, id: \.self) { symbol in
-                    Text(symbol.prefix(1))
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .frame(maxWidth: .infinity)
-                }
-
-                ForEach(calendar.days) { day in
-                    if let dayNumber = day.dayNumber {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(day.isCompleted ? Color.primary.opacity(0.75) : Color.secondary.opacity(0.12))
-                                .frame(height: 32)
-                            Text("\(dayNumber)")
-                                .font(.caption2.weight(day.isCompleted ? .semibold : .regular))
-                                .foregroundStyle(day.isCompleted ? Color(.systemBackground) : .secondary)
+                    LazyVGrid(columns: columns, spacing: 8) {
+                        ForEach(calendar.weekdaySymbols, id: \.self) { symbol in
+                            Text(symbol.prefix(1))
+                                .font(FormaTokens.Typography.caption)
+                                .foregroundStyle(FormaTokens.Color.textTertiary)
+                                .frame(maxWidth: .infinity)
                         }
-                    } else {
-                        Color.clear.frame(height: 32)
+
+                        ForEach(calendar.days) { day in
+                            if let dayNumber = day.dayNumber {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        .fill(day.isCompleted ? FormaTokens.Color.accent.opacity(0.85) : FormaTokens.Color.surfaceSubtle)
+                                        .frame(height: 32)
+                                    Text("\(dayNumber)")
+                                        .font(FormaTokens.Typography.caption.weight(day.isCompleted ? .semibold : .regular))
+                                        .foregroundStyle(day.isCompleted ? FormaTokens.Color.canvas : FormaTokens.Color.textSecondary)
+                                }
+                            } else {
+                                Color.clear.frame(height: 32)
+                            }
+                        }
                     }
                 }
             }

@@ -12,28 +12,39 @@ struct AskCoachCTA: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 10) {
+            HStack(spacing: FormaTokens.Spacing.xs + 2) {
                 Image(systemName: "bubble.left.and.bubble.right")
-                    .font(.body.weight(.medium))
-                Text("Need to update today? Ask Coach")
-                    .font(.subheadline.weight(.semibold))
+                    .font(FormaTokens.Typography.body.weight(.medium))
+                    .foregroundStyle(FormaTokens.Color.accent)
+                Text(FormaProductCopy.Today.askCoachCTA)
+                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                    .foregroundStyle(FormaTokens.Color.textPrimary)
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
+                    .font(FormaTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(FormaTokens.Color.textTertiary)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(.horizontal, FormaTokens.Spacing.md)
+            .padding(.vertical, FormaTokens.Spacing.sm + 2)
+            .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 0.5)
+                RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+                    .fill(FormaTokens.Color.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+                            .stroke(FormaTokens.Color.border, lineWidth: 1)
+                    )
             )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(FormaProductCopy.Today.askCoachCTA)
+        .accessibilityHint("Opens Coach")
     }
 }
 
 #Preview {
     AskCoachCTA(onTap: {})
         .padding()
+        .background(FormaTokens.Color.canvas)
+        .preferredColorScheme(.dark)
 }

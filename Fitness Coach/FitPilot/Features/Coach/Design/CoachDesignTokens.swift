@@ -12,46 +12,50 @@ enum CoachDesignTokens {
     // MARK: Color
 
     enum Color {
-        static let background = SwiftUI.Color.black
-        static let elevatedSurface = SwiftUI.Color(white: 0.11)
-        static let chipFill = SwiftUI.Color.white.opacity(0.08)
-        static let chipStroke = SwiftUI.Color.white.opacity(0.12)
-        static let composerFill = SwiftUI.Color(white: 0.14)
-        static let composerStroke = SwiftUI.Color.white.opacity(0.10)
-        static let primaryText = SwiftUI.Color.white
-        static let secondaryText = SwiftUI.Color.white.opacity(0.55)
-        static let tertiaryText = SwiftUI.Color.white.opacity(0.35)
-        static let accent = SwiftUI.Color(red: 0.35, green: 0.78, blue: 0.98)
-        static let userBubble = SwiftUI.Color(white: 0.18)
-        static let confirmationLabel = SwiftUI.Color.white.opacity(0.45)
-        static let confirmationValue = SwiftUI.Color.white.opacity(0.92)
+        static let background = FormaTokens.Color.canvas
+        static let elevatedSurface = FormaTokens.Color.surfaceElevated
+        static let chipFill = FormaTokens.Color.surface
+        static let chipStroke = FormaTokens.Color.border
+        static let composerFill = FormaTokens.Color.surfaceElevated
+        static let composerStroke = FormaTokens.Color.border
+        static let primaryText = FormaTokens.Color.textPrimary
+        static let secondaryText = FormaTokens.Color.textSecondary
+        static let tertiaryText = FormaTokens.Color.textTertiary
+        static let accent = FormaTokens.Color.accent
+        static let border = FormaTokens.Color.border
+        static let userBubble = FormaTokens.Color.surfaceElevated
+        static let confirmationLabel = FormaTokens.Color.textTertiary
+        static let confirmationValue = FormaTokens.Color.textLegal
+        static let textLegal = FormaTokens.Color.textLegal
     }
 
     // MARK: Spacing
 
     enum Spacing {
         static let xxs: CGFloat = 4
-        static let xs: CGFloat = 8
-        static let sm: CGFloat = 12
-        static let md: CGFloat = 16
-        static let lg: CGFloat = 20
-        static let xl: CGFloat = 28
+        static let xs = FormaTokens.Spacing.xs
+        static let sm = FormaTokens.Spacing.sm
+        static let md = FormaTokens.Spacing.md
+        static let lg = FormaTokens.Spacing.lg
+        static let xl = FormaTokens.Spacing.xl
+        /// Extra vertical breathing room in empty Coach state.
         static let xxl: CGFloat = 40
     }
 
     // MARK: Radius
 
     enum Radius {
-        static let chip: CGFloat = 999
+        static let chip = FormaTokens.Radius.pill
+        /// Rounded composer bar — taller than standard Forma buttons.
         static let composer: CGFloat = 24
-        static let bubble: CGFloat = 18
-        static let attachment: CGFloat = 14
+        static let bubble = FormaTokens.Radius.card
+        static let attachment = FormaTokens.Radius.compact
     }
 
     // MARK: Typography
 
     enum Typography {
-        static let largeTitle = Font.system(size: 34, weight: .bold, design: .default)
+        static let largeTitle = FormaTokens.Typography.screenTitle
         static let subtitle = Font.system(size: 15, weight: .regular, design: .default)
         static let chip = Font.system(size: 15, weight: .medium, design: .default)
         static let hint = Font.system(size: 15, weight: .regular, design: .default)
@@ -68,16 +72,17 @@ enum CoachDesignTokens {
 
     enum Layout {
         static let chipHeight: CGFloat = 36
-        static let chipMinTouch: CGFloat = 44
+        static let chipMinTouch = FormaTokens.Layout.minTouchTarget
         static let composerBarHeight: CGFloat = 48
         static let composerMinHeight: CGFloat = 48
         static let composerMaxHeight: CGFloat = 120
         static let composerMaxLines = 5
         static let composerTrailingWidth: CGFloat = 40
         static let composerButtonSize: CGFloat = 32
-        static let horizontalPadding: CGFloat = Spacing.lg
-        static let messageSpacing: CGFloat = Spacing.lg
+        static let horizontalPadding = FormaTokens.Spacing.pageHorizontal
+        static let messageSpacing = Spacing.lg
         static let maxBubbleWidthRatio: CGFloat = 0.82
+        static let bottomChromeInset: CGFloat = 4
     }
 
     // MARK: Animation

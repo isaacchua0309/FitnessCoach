@@ -22,8 +22,8 @@ struct ProfileView: View {
                                 model.showSettings()
                             } label: {
                                 Image(systemName: "gearshape")
-                                    .font(.body.weight(.medium))
-                                    .foregroundStyle(OnboardingTheme.secondaryText)
+                                    .font(FormaTokens.Typography.body.weight(.medium))
+                                    .foregroundStyle(FormaTokens.Color.textSecondary)
                             }
                             .accessibilityLabel("Settings")
                         }
@@ -93,7 +93,7 @@ struct ProfileView: View {
                         )
                     }
                 }
-                .background(OnboardingTheme.background)
+                .background(FormaTokens.Color.canvas)
                 .preferredColorScheme(.dark)
         }
     }
@@ -136,8 +136,8 @@ struct ProfileView: View {
                 PlanTimelineSection(timeline: state.timeline)
             }
             .padding(.horizontal, PlanLayout.horizontalPadding)
-            .padding(.top, 8)
-            .padding(.bottom, 12)
+            .padding(.top, FormaTokens.Spacing.xs)
+            .padding(.bottom, FormaTokens.Spacing.sm)
         }
         .fitPilotScrollBottomInset()
     }

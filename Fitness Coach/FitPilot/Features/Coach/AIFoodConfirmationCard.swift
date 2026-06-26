@@ -18,7 +18,7 @@ struct AIFoodConfirmationCard: View {
                 .foregroundStyle(.orange)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Food estimate pending")
+                Text(FormaProductCopy.Coach.foodEstimatePending)
                     .font(.subheadline.weight(.semibold))
 
                 if let foodDraft = draft.primaryFoodDraft {
@@ -27,7 +27,7 @@ struct AIFoodConfirmationCard: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Button("Review estimate") {
+                Button(FormaProductCopy.Coach.reviewEstimate) {
                     onReview()
                 }
                 .font(.subheadline.weight(.medium))

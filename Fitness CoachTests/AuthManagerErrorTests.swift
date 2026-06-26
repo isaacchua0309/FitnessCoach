@@ -13,11 +13,11 @@ final class AuthManagerErrorTests: XCTestCase {
     func testAuthManagerErrorDescriptions() {
         XCTAssertEqual(
             AuthManagerError.notSignedIn.errorDescription,
-            "No signed-in Firebase user."
+            "You're not signed in."
         )
         XCTAssertEqual(
             AuthManagerError.missingToken.errorDescription,
-            "Could not retrieve a Firebase ID token."
+            "We couldn't verify your session."
         )
     }
 
@@ -55,7 +55,7 @@ final class AuthManagerErrorTests: XCTestCase {
     func testCoachSessionFailureTitle() {
         XCTAssertEqual(
             AIServiceError.coachSessionFailureTitle,
-            "Unable to start coach session"
+            FormaProductCopy.Error.coachSessionTitle
         )
     }
 

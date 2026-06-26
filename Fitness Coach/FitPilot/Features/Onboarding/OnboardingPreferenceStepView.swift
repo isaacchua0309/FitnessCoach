@@ -21,7 +21,7 @@ struct OnboardingPreferenceStepView: View {
         VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
             OnboardingSectionTitle(
                 title: "Make it yours",
-                subtitle: "Optional details help Coach sound more personal and keep meal ideas relevant."
+                subtitle: FormaProductCopy.Onboarding.preferencesSubtitle
             )
 
             VStack(spacing: OnboardingTheme.fieldSpacing) {
@@ -57,13 +57,13 @@ struct OnboardingPreferenceStepView: View {
             VStack(spacing: 12) {
                 OnboardingInfoCard(
                     title: "Coach-first logging",
-                    message: "After setup, the Coach screen becomes your command center for food, water, weight, workouts, and daily decisions.",
+                    message: FormaProductCopy.Onboarding.coachFirstLoggingMessage,
                     icon: "message.fill"
                 )
 
                 OnboardingInfoCard(
                     title: "No pressure",
-                    message: "Skip these if you want. You can update your plan anytime.",
+                    message: FormaProductCopy.Onboarding.noPressureMessage,
                     icon: "slider.horizontal.3"
                 )
             }

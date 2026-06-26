@@ -21,7 +21,7 @@ struct OnboardingActivityStepView: View {
         VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
             OnboardingSectionTitle(
                 title: "Training rhythm",
-                subtitle: "This helps FitPilot estimate your baseline burn and recovery needs."
+                subtitle: FormaProductCopy.Onboarding.activityBaselineSubtitle
             )
 
             VStack(alignment: .leading, spacing: 10) {

@@ -14,14 +14,16 @@ struct TrainingWeeklySummarySection: View {
         VStack(alignment: .leading, spacing: TrainingLayout.itemSpacing) {
             TrainingSectionLabel(title: "This week")
 
-            VStack(spacing: 0) {
-                summaryRow("Workouts", value: "\(weekly.workoutsCompleted)")
-                Divider().padding(.leading, 4)
-                summaryRow("Calories burned", value: "\(weekly.totalCalories) kcal")
-                Divider().padding(.leading, 4)
-                summaryRow("Duration", value: TrainingFormatter.totalDuration(weekly.totalDurationMinutes))
-                Divider().padding(.leading, 4)
-                summaryRow("Training streak", value: "\(weekly.trainingStreak) days")
+            FitPilotPlanCard {
+                VStack(spacing: 0) {
+                    summaryRow("Workouts", value: "\(weekly.workoutsCompleted)")
+                    FitPilotPlanRowDivider()
+                    summaryRow("Calories burned", value: "\(weekly.totalCalories) kcal")
+                    FitPilotPlanRowDivider()
+                    summaryRow("Duration", value: TrainingFormatter.totalDuration(weekly.totalDurationMinutes))
+                    FitPilotPlanRowDivider()
+                    summaryRow("Training streak", value: "\(weekly.trainingStreak) days")
+                }
             }
         }
     }
@@ -29,17 +31,20 @@ struct TrainingWeeklySummarySection: View {
     private func summaryRow(_ label: String, value: String) -> some View {
         HStack {
             Text(label)
-                .font(.subheadline)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(FormaTokens.Color.textPrimary)
             Spacer()
             Text(value)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.secondary)
+                .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
+                .foregroundStyle(FormaTokens.Color.textSecondary)
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, FormaTokens.Spacing.xs + 2)
     }
 }
 
 #Preview {
     TrainingWeeklySummarySection(weekly: TrainingPreviewData.state.weekly)
         .padding()
+        .background(FormaTokens.Color.canvas)
+        .preferredColorScheme(.dark)
 }

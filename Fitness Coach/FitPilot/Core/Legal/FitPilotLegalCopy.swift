@@ -15,7 +15,7 @@ enum FitPilotLegalCopy {
 
     static let effectiveDate = "June 26, 2026"
     static let contactEmail = "support@fitpilot.app"
-    static let operatorName = "FitPilot"
+    static let operatorName = FormaProductCopy.Legal.productName
 
     // MARK: - Terms of Service
 
@@ -23,15 +23,15 @@ enum FitPilotLegalCopy {
         LegalDocumentSection(
             title: "Agreement",
             body: """
-            By creating an account or using FitPilot (the "App"), you agree to these Terms of Service ("Terms"). If you do not agree, do not use the App.
+            By creating an account or using \(operatorName) (the "App"), you agree to these Terms of Service ("Terms"). If you do not agree, do not use the App.
             """
         ),
         LegalDocumentSection(
             title: "The service",
             body: """
-            FitPilot is a fitness and nutrition planning tool with an AI-powered Coach feature. The App helps you set targets, log food, water, weight, and training, and receive coaching-style guidance based on information you provide.
+            \(operatorName) is a fitness and nutrition planning tool with an AI-powered Coach feature. The App helps you set targets, log food, water, weight, and training, and receive coaching-style guidance based on information you provide.
 
-            FitPilot is for general wellness and fitness support only. It is not a medical device and does not provide medical advice, diagnosis, or treatment.
+            \(operatorName) is for general wellness and fitness support only. It is not a medical device and does not provide medical advice, diagnosis, or treatment.
             """
         ),
         LegalDocumentSection(
@@ -45,7 +45,7 @@ enum FitPilotLegalCopy {
         LegalDocumentSection(
             title: "Your account",
             body: """
-            Sign-in is provided through Google Sign-In and Firebase Authentication. You are responsible for maintaining access to your Google account and for activity that occurs through your FitPilot account.
+            Sign-in is provided through Google Sign-In and Firebase Authentication. You are responsible for maintaining access to your Google account and for activity that occurs through your \(operatorName) account.
 
             You agree to provide accurate profile and logging information to the extent you choose to enter it, and to keep your account credentials secure.
             """
@@ -55,7 +55,7 @@ enum FitPilotLegalCopy {
             body: """
             Always consult a qualified healthcare professional before starting or changing a diet, exercise program, or supplement routine. Do not disregard professional medical advice because of something you read or receive in the App.
 
-            Coach responses are generated with artificial intelligence and may be incomplete, outdated, or inaccurate. You are solely responsible for decisions you make based on App output. FitPilot does not guarantee any particular fitness, weight, or health outcome.
+            Coach responses are generated with artificial intelligence and may be incomplete, outdated, or inaccurate. You are solely responsible for decisions you make based on App output. \(operatorName) does not guarantee any particular fitness, weight, or health outcome.
             """
         ),
         LegalDocumentSection(
@@ -73,7 +73,7 @@ enum FitPilotLegalCopy {
         LegalDocumentSection(
             title: "Intellectual property",
             body: """
-            The App, including its design, branding, and software, is owned by \(operatorName) or its licensors and is protected by applicable intellectual property laws. These Terms do not grant you any right to use FitPilot trademarks except as necessary to use the App.
+            The App, including its design, branding, and software, is owned by \(operatorName) or its licensors and is protected by applicable intellectual property laws. These Terms do not grant you any right to use \(operatorName) trademarks except as necessary to use the App.
             """
         ),
         LegalDocumentSection(
@@ -120,9 +120,9 @@ enum FitPilotLegalCopy {
         LegalDocumentSection(
             title: "Overview",
             body: """
-            This Privacy Policy explains how \(operatorName) ("we," "us") collects, uses, and shares information when you use the FitPilot mobile application.
+            This Privacy Policy explains how \(operatorName) ("we," "us") collects, uses, and shares information when you use the \(operatorName) mobile application.
 
-            We designed FitPilot so most fitness and logging data stays on your device. Account sign-in uses Google and Firebase Authentication.
+            We designed \(operatorName) so most fitness and logging data stays on your device. Account sign-in uses Google and Firebase Authentication.
             """
         ),
         LegalDocumentSection(
@@ -152,7 +152,7 @@ enum FitPilotLegalCopy {
         LegalDocumentSection(
             title: "Where data is stored",
             body: """
-            Most profile, log, and chat data you create in FitPilot is stored locally on your device using on-device storage (SwiftData).
+            Most profile, log, and chat data you create in \(operatorName) is stored locally on your device using on-device storage (SwiftData).
 
             Signing out ends your authenticated session but does not automatically delete on-device fitness data. Deleting the App from your device removes local App data subject to iOS behavior and backups.
 

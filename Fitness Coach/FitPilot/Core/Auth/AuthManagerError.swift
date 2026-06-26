@@ -14,9 +14,9 @@ enum AuthManagerError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notSignedIn:
-            return "No signed-in Firebase user."
+            return "You're not signed in."
         case .missingToken:
-            return "Could not retrieve a Firebase ID token."
+            return "We couldn't verify your session."
         }
     }
 }

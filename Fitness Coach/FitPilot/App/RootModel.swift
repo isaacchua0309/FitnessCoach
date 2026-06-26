@@ -32,7 +32,7 @@ final class RootModel: ObservableObject {
                 hasProfile: try userProfileService.getCurrentProfile() != nil
             )
         } catch {
-            state = .error("Could not load your profile.")
+            state = .error(FormaProductCopy.Error.loadProfile)
         }
     }
 

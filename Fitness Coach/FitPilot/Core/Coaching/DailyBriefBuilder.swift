@@ -49,13 +49,13 @@ enum DailyBriefBuilder {
 
         let recommendation: String
         if caloriesRemaining < 0 {
-            recommendation = "You're over target. Eat mindfully tonight and log honestly."
+            recommendation = "You're above today's target. Log honestly tonight — we care about the weekly trend, not one meal."
         } else if proteinRemaining > 50 {
-            recommendation = "Prioritize lean protein in your next meal."
+            recommendation = "Anchor your next meal with protein."
         } else if waterRemainingMl > 1_000 {
             recommendation = "Pace your water earlier — don't leave it all for evening."
         } else {
-            recommendation = "Stay consistent. Small wins compound."
+            recommendation = "Stay consistent today. Small wins compound."
         }
 
         return TodayDailyBrief(

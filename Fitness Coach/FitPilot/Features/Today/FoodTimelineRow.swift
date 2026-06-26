@@ -14,19 +14,20 @@ struct FoodTimelineRow: View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(entry.name)
-                    .font(.subheadline.weight(.medium))
+                    .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
+                    .foregroundStyle(FormaTokens.Color.textPrimary)
                 Text(subtitleText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaTokens.Color.textSecondary)
             }
 
             Spacer(minLength: 12)
 
             Text("\(entry.calories) kcal")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, FormaTokens.Spacing.xs)
         .contentShape(Rectangle())
     }
 

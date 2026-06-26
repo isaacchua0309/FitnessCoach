@@ -14,15 +14,15 @@ struct OnboardingPlanPreviewStepView: View {
         VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
             OnboardingSectionTitle(
                 title: "Review your starting targets",
-                subtitle: "These are your initial numbers. FitPilot will help you adjust as real progress data comes in."
+                subtitle: FormaProductCopy.Onboarding.planPreviewSubtitle
             )
 
             if let plan {
                 GeneratedPlanSummaryCard(plan: plan)
             } else {
                 OnboardingInfoCard(
-                    title: "Plan not generated yet",
-                    message: "Go back and generate your plan once your setup details are complete.",
+                    title: FormaProductCopy.Onboarding.planNotGeneratedTitle,
+                    message: FormaProductCopy.Onboarding.planNotGeneratedMessage,
                     icon: "doc.text.magnifyingglass"
                 )
             }

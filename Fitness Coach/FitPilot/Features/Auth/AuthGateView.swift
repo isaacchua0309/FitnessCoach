@@ -97,7 +97,7 @@ struct AuthGateView: View {
                     .font(.headline)
                     .foregroundStyle(OnboardingTheme.primaryText)
                     .multilineTextAlignment(.center)
-                Button("Try Again") {
+                Button(FormaProductCopy.Common.tryAgain) {
                     rootModel.retry()
                 }
                 .buttonStyle(.borderedProminent)

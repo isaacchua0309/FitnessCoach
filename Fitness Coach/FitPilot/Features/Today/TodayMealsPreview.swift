@@ -19,7 +19,7 @@ struct TodayMealsPreview: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: TodayLayout.itemSpacing) {
             HStack {
                 TodaySectionLabel(title: "Meals")
                 Spacer()
@@ -29,28 +29,35 @@ struct TodayMealsPreview: View {
                             isExpanded.toggle()
                         }
                     }
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
+                    .font(FormaTokens.Typography.caption.weight(.medium))
+                    .foregroundStyle(FormaTokens.Color.accent)
                 }
             }
 
-            if entries.isEmpty {
-                Button(action: onAskCoach) {
-                    Text("No meals logged yet. Ask Coach to log your first meal.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.plain)
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(visibleEntries) { entry in
-                        FoodTimelineRow(entry: entry)
+            FitPilotPlanCard {
+                if entries.isEmpty {
+                    Button(action: onAskCoach) {
+                        HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
+                            Image(systemName: "plus.message")
+                                .font(FormaTokens.Typography.sectionSubtitle)
+                                .foregroundStyle(FormaTokens.Color.accent)
+                            Text(FormaProductCopy.Today.mealsEmptyHint)
+                                .font(FormaTokens.Typography.sectionSubtitle)
+                                .foregroundStyle(FormaTokens.Color.textSecondary)
+                                .multilineTextAlignment(.leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(visibleEntries) { entry in
+                            FoodTimelineRow(entry: entry)
 
-                        if entry.id != visibleEntries.last?.id {
-                            Divider()
-                                .padding(.leading, 4)
+                            if entry.id != visibleEntries.last?.id {
+                                FitPilotPlanRowDivider()
+                            }
                         }
                     }
                 }
@@ -66,4 +73,6 @@ struct TodayMealsPreview: View {
         onAskCoach: {}
     )
     .padding()
+    .background(FormaTokens.Color.canvas)
+    .preferredColorScheme(.dark)
 }

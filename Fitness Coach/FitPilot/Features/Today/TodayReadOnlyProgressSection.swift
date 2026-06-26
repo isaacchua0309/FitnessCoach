@@ -17,46 +17,55 @@ struct TodayReadOnlyProgressSection: View {
         VStack(alignment: .leading, spacing: TodayLayout.itemSpacing) {
             TodaySectionLabel(title: "Progress")
 
-            progressRow(
-                title: "Protein",
-                consumed: macros.protein.consumed,
-                target: macros.protein.target,
-                unit: "g",
-                progress: macros.protein.progress
-            )
+            FitPilotPlanCard {
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+                    progressRow(
+                        title: "Protein",
+                        consumed: macros.protein.consumed,
+                        target: macros.protein.target,
+                        unit: "g",
+                        progress: macros.protein.progress
+                    )
 
-            progressRow(
-                title: "Water",
-                consumed: Double(water.consumedMl),
-                target: Double(water.targetMl),
-                unit: "ml",
-                progress: water.progress
-            )
+                    FitPilotPlanRowDivider()
 
-            if showsMacroDetail {
-                progressRow(
-                    title: "Carbs",
-                    consumed: macros.carbs.consumed,
-                    target: macros.carbs.target,
-                    unit: "g",
-                    progress: macros.carbs.progress
-                )
-                progressRow(
-                    title: "Fat",
-                    consumed: macros.fat.consumed,
-                    target: macros.fat.target,
-                    unit: "g",
-                    progress: macros.fat.progress
-                )
-            }
+                    progressRow(
+                        title: "Water",
+                        consumed: Double(water.consumedMl),
+                        target: Double(water.targetMl),
+                        unit: "ml",
+                        progress: water.progress
+                    )
 
-            Button(showsMacroDetail ? "Hide carbs & fat" : "Show carbs & fat") {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    showsMacroDetail.toggle()
+                    if showsMacroDetail {
+                        FitPilotPlanRowDivider()
+                        progressRow(
+                            title: "Carbs",
+                            consumed: macros.carbs.consumed,
+                            target: macros.carbs.target,
+                            unit: "g",
+                            progress: macros.carbs.progress
+                        )
+                        FitPilotPlanRowDivider()
+                        progressRow(
+                            title: "Fat",
+                            consumed: macros.fat.consumed,
+                            target: macros.fat.target,
+                            unit: "g",
+                            progress: macros.fat.progress
+                        )
+                    }
+
+                    Button(showsMacroDetail ? "Hide carbs & fat" : "Show carbs & fat") {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showsMacroDetail.toggle()
+                        }
+                    }
+                    .font(FormaTokens.Typography.caption.weight(.medium))
+                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .padding(.top, 2)
                 }
             }
-            .font(.caption.weight(.medium))
-            .foregroundStyle(.secondary)
         }
     }
 
@@ -70,14 +79,15 @@ struct TodayReadOnlyProgressSection: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(title)
-                    .font(.subheadline)
+                    .font(FormaTokens.Typography.sectionSubtitle)
+                    .foregroundStyle(FormaTokens.Color.textPrimary)
                 Spacer()
                 Text("\(formatValue(consumed)) / \(formatValue(target)) \(unit)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaTokens.Color.textSecondary)
             }
             SwiftUI.ProgressView(value: min(progress, 1))
-                .tint(Color.secondary.opacity(0.55))
+                .tint(FormaTokens.Color.accent)
         }
     }
 
@@ -94,4 +104,6 @@ struct TodayReadOnlyProgressSection: View {
         water: TodayPreviewData.state.waterSummary
     )
     .padding()
+    .background(FormaTokens.Color.canvas)
+    .preferredColorScheme(.dark)
 }

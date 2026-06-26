@@ -47,7 +47,7 @@ final class ProgressModel: ObservableObject {
         } catch ServiceError.missingUserProfile {
             viewState = .empty
         } catch {
-            viewState = .error("Could not load your journey.")
+            viewState = .error(FormaProductCopy.Error.loadJourney)
         }
     }
 

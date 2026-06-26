@@ -45,7 +45,7 @@ final class TodayModel: ObservableObject {
         } catch ServiceError.missingUserProfile {
             viewState = .empty
         } catch {
-            viewState = .error("Could not load today's log.")
+            viewState = .error(FormaProductCopy.Error.loadToday)
         }
     }
 
@@ -55,7 +55,7 @@ final class TodayModel: ObservableObject {
         } catch ServiceError.missingUserProfile {
             viewState = .empty
         } catch {
-            viewState = .error("Could not refresh today's dashboard.")
+            viewState = .error(FormaProductCopy.Error.refreshToday)
         }
     }
 
