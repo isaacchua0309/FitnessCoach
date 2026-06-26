@@ -1,3 +1,1035 @@
 ---
 alwaysApply: true
 ---
+---
+
+description: FitPilot AI architecture rules for a low-depth SwiftUI iOS codebase
+globs:
+
+* "**/*.swift"
+  alwaysApply: true
+
+---
+
+# FitPilot AI Architecture Rules
+
+You are working on FitPilot AI, a local-first SwiftUI iOS fitness coaching app.
+
+FitPilot is an AI-assisted fitness, nutrition, hydration, weight-loss, and workout tracking app. The app supports conversational logging, food/water/weight/workout tracking, daily reviews, weekly reviews, progress trends, and AI coaching.
+
+The architecture must stay shallow, modular, and maintainable.
+
+The guiding principle is:
+
+> Build FitPilot like a disciplined product, not an enterprise framework. Keep state ownership explicit, calculations deterministic, AI bounded, and feature modules simple.
+
+---
+
+# 1. Core Architecture Doctrine
+
+FitPilot uses a shallow local-first architecture.
+
+The architecture is:
+
+```text
+SwiftUI View
+↓
+Feature Model
+↓
+Service Facade
+↓
+Store / Calculator / AI Adapter
+```
+
+Do not introduce unnecessary enterprise layering.
+
+Avoid this unless explicitly requested:
+
+```text
+View → ViewModel → UseCase → Interactor → Repository → DataSource → Mapper → DTO → Entity
+```
+
+Preferred depth:
+
+```text
+View → FeatureModel → Service → Store
+View → FeatureModel → Service → Calculator
+View → FeatureModel → CommandRouter → Service
+View → FeatureModel → AIService → LLMClient
+```
+
+---
+
+# 2. Technology Choices
+
+Use:
+
+* SwiftUI for UI
+* SwiftData for local persistence
+* Swift Concurrency with async/await
+* Swift Charts for charts when needed
+* URLSession through a backend/AI client for network calls
+* Local-first state ownership
+* Pure Swift structs/functions for deterministic calculations
+
+Do not use:
+
+* Storyboards
+* Massive ViewControllers
+* UIKit-first architecture
+* Core Data directly unless explicitly requested
+* Realm/Firebase/Supabase unless explicitly requested
+* Redux/TCA unless explicitly requested
+* Heavy Clean Architecture layers unless complexity proves they are necessary
+
+UIKit may only be introduced as a small adapter when SwiftUI cannot support a specific interaction.
+
+---
+
+# 3. Folder Structure Rules
+
+Use this project structure:
+
+```text
+FitPilot/
+├── App/
+├── Features/
+├── Core/
+├── Infrastructure/
+└── DesignSystem/
+```
+
+Recommended layout:
+
+```text
+FitPilot/
+├── App/
+│   ├── FitPilotApp.swift
+│   ├── AppShellView.swift
+│   ├── MainTabView.swift
+│   ├── AppRouter.swift
+│   ├── AppContainer.swift
+│   ├── AppEnvironment.swift
+│   └── FeatureFlags.swift
+│
+├── Features/
+│   ├── Onboarding/
+│   ├── Today/
+│   ├── Coach/
+│   ├── Progress/
+│   ├── Training/
+│   └── Profile/
+│
+├── Core/
+│   ├── Models/
+│   ├── Drafts/
+│   ├── Services/
+│   ├── Calculators/
+│   ├── AI/
+│   ├── Validation/
+│   ├── Formatting/
+│   └── Debug/
+│
+├── Infrastructure/
+│   ├── SwiftData/
+│   ├── LLM/
+│   ├── HealthKit/
+│   ├── ImageStorage/
+│   └── CloudSync/
+│
+└── DesignSystem/
+    ├── Components/
+    ├── Tokens/
+    ├── Charts/
+    └── Modifiers/
+```
+
+Do not create excessive subfolders before they are needed.
+
+Do not create one Swift Package per feature for MVP.
+
+---
+
+# 4. App Shell Rules
+
+The app shell is an assembly layer.
+
+The app shell owns:
+
+* App composition
+* Tab structure
+* Top-level routing
+* Dependency injection
+* AppContainer creation
+* Global environment setup
+* Feature flag setup
+* Onboarding completion routing
+
+The app shell must not own:
+
+* Food logging logic
+* Water logging logic
+* Weight logging logic
+* Workout logging logic
+* AI parsing
+* Macro calculations
+* Daily review generation
+* SwiftData writes for specific user actions
+
+Use files such as:
+
+```text
+App/FitPilotApp.swift
+App/AppShellView.swift
+App/MainTabView.swift
+App/AppContainer.swift
+App/AppRouter.swift
+App/FeatureFlags.swift
+```
+
+---
+
+# 5. Feature Module Rules
+
+Each major product area should be a feature module.
+
+MVP features:
+
+* Onboarding
+* Today
+* Coach
+* Progress
+* Training
+* Profile
+
+Each feature owns:
+
+* SwiftUI views
+* One main feature model
+* Screen state
+* Loading state
+* Error state
+* User interaction handling
+
+Each feature may call services.
+
+A feature must not directly mutate another feature's state.
+
+Bad:
+
+```swift
+CoachModel directly updates TodayModel
+```
+
+Good:
+
+```swift
+CoachModel calls FoodLogService
+TodayModel reloads from DailyLogService
+```
+
+Prefer one main model per major feature:
+
+```text
+TodayModel
+CoachModel
+ProgressModel
+TrainingModel
+ProfileModel
+OnboardingModel
+```
+
+Do not create many tiny ViewModels unless the screen has real complexity that requires it.
+
+---
+
+# 6. SwiftUI View Rules
+
+SwiftUI views should be dumb.
+
+Views may:
+
+* Render state
+* Trigger user actions
+* Show loading/error states
+* Present sheets/navigation
+* Use DesignSystem components
+
+Views must not:
+
+* Write directly to SwiftData
+* Call LLM APIs directly
+* Perform calorie/macro/water/weight calculations
+* Own business rules
+* Own persistence logic
+* Mutate global app state directly
+* Call another feature model directly
+
+Bad:
+
+```swift
+Text("\(targetCalories - consumedCalories)")
+```
+
+Good:
+
+```swift
+Text("\(state.remainingCalories)")
+```
+
+Bad:
+
+```swift
+modelContext.insert(foodEntry)
+```
+
+Good:
+
+```swift
+await model.addFoodEntry(draft)
+```
+
+---
+
+# 7. Feature Model Rules
+
+Feature models own screen state and coordinate service calls.
+
+Feature models may:
+
+* Hold @Published or @Observable screen state
+* Call services
+* Transform service output into view state
+* Handle UI events
+* Manage loading/error states
+
+Feature models must not:
+
+* Write directly to SwiftData
+* Call raw LLMClient directly
+* Perform deterministic calculations directly if a calculator exists
+* Call another feature model
+* Become large business logic classes
+
+Example:
+
+```swift
+@MainActor
+final class TodayModel: ObservableObject {
+    @Published private(set) var state: TodayDashboardState = .loading
+
+    private let dailyLogService: DailyLogService
+
+    init(dailyLogService: DailyLogService) {
+        self.dailyLogService = dailyLogService
+    }
+
+    func loadToday() async {
+        // Call service, map result to TodayDashboardState
+    }
+}
+```
+
+---
+
+# 8. Service Facade Rules
+
+Services own business actions and state mutation.
+
+Use services such as:
+
+```text
+DailyLogService
+FoodLogService
+WaterLogService
+WeightLogService
+WorkoutLogService
+ReviewService
+MaintenanceService
+TargetService
+CommandRouter
+AIService
+UserProfileService
+```
+
+Services should expose simple verbs:
+
+```swift
+startNewDay()
+addFoodEntry()
+editFoodEntry()
+deleteFoodEntry()
+addWater()
+logWeight()
+addWorkout()
+generateDailyReview()
+estimateMaintenance()
+handleTextCommand()
+```
+
+Services may depend on:
+
+* SwiftData store
+* Calculators
+* Validators
+* AIService
+* DebugLogger
+* FeatureFlags
+
+Services must not:
+
+* Own SwiftUI state
+* Render UI
+* Depend on feature models
+* Become UI-specific
+* Hide unrelated business domains
+
+If a service becomes too large, split by responsibility, not by abstract architecture layers.
+
+---
+
+# 9. State Ownership Rules
+
+Structured logs are the source of truth.
+
+Chat messages are not the source of truth.
+
+Primary state owners:
+
+```text
+UserProfile → UserProfileService
+DailyLog → DailyLogService
+FoodEntry → FoodLogService
+WaterEntry → WaterLogService
+WeightEntry → WeightLogService
+WorkoutEntry → WorkoutLogService
+ExerciseSet → WorkoutLogService
+DailyReview → ReviewService
+WeeklyReview → ReviewService
+ChatMessage → CoachModel or ChatHistoryService
+```
+
+State mutation path should look like:
+
+```text
+Feature → Service → Store → Recalculate → Return updated state
+```
+
+Never mutate persistent state from AI output directly.
+
+Never use chat history as the only record of food, water, weight, or workouts.
+
+---
+
+# 10. Persistence Rules
+
+FitPilot is local-first.
+
+Use SwiftData as the MVP source of truth.
+
+SwiftData is responsible for:
+
+* UserProfile
+* DailyLog
+* FoodEntry
+* WaterEntry
+* WeightEntry
+* WorkoutEntry
+* ExerciseSet
+* DailyReview
+* WeeklyReview
+* DebugRecord
+
+SwiftData access should be contained inside Infrastructure/SwiftData and service/store boundaries.
+
+Do not let SwiftData entities leak across all views.
+
+Use app-facing models in Core/Models.
+
+Use lightweight mapping extensions if needed:
+
+```text
+Infrastructure/SwiftData/Mapping/
+```
+
+Do not create heavy repositories unless the app genuinely needs them.
+
+---
+
+# 11. Deterministic Calculator Rules
+
+All formula-based logic belongs in pure calculators.
+
+Use:
+
+```text
+MacroCalculator
+CalorieTargetCalculator
+WaterTargetCalculator
+MaintenanceCalculator
+WeightTrendCalculator
+WorkoutCalorieCalculator
+ProgressProjectionCalculator
+```
+
+Calculators must be:
+
+* Pure
+* Stateless
+* Testable
+* Independent from SwiftUI
+* Independent from SwiftData
+* Independent from AI
+* Independent from network calls
+
+Calculators own:
+
+* Macro totals
+* Remaining calories
+* Remaining protein/carbs/fat
+* Water targets
+* Calorie targets
+* Maintenance estimates
+* 7-day weight averages
+* Workout calorie estimates
+* Goal projections
+
+AI must not own final arithmetic.
+
+Services should call calculators, then persist or return the result.
+
+---
+
+# 12. AI Boundary Rules
+
+AI is an adapter, not the app brain.
+
+AI may:
+
+* Parse natural language
+* Classify user intent
+* Estimate food from text/photo
+* Generate coaching explanations
+* Generate meal advice
+* Generate daily review text
+* Generate weekly review text
+
+AI must not:
+
+* Directly write to SwiftData
+* Own final calorie/macro arithmetic
+* Own final daily totals
+* Mutate app state silently
+* Make destructive changes without confirmation
+* Be the only source of truth
+* Invent stored values
+
+AI should return structured drafts or intents.
+
+Use types such as:
+
+```swift
+enum UserIntent {
+    case startNewDay(weightKg: Double?)
+    case logFood(FoodDraft)
+    case logWater(amountMl: Int)
+    case logWeight(weightKg: Double)
+    case logWorkout(WorkoutDraft)
+    case askMealAdvice(String)
+    case dailyReview
+    case weeklyReview
+    case status
+    case unknown
+}
+```
+
+The correct flow is:
+
+```text
+User input
+↓
+LocalCommandParser or AIService
+↓
+Structured ParsedCommand/UserIntent
+↓
+CommandRouter
+↓
+Service validation
+↓
+SwiftData mutation
+↓
+Calculator recalculation
+↓
+Updated feature state
+```
+
+---
+
+# 13. AI Confirmation Rules
+
+Require user confirmation when:
+
+* Food estimate confidence is low
+* Photo meal estimation is used
+* Food portion is vague
+* Multiple items are inferred
+* Calories look unusually high or low
+* The action is destructive
+* The user is correcting/replacing previous entries
+* AI response is ambiguous
+* User intent is uncertain
+
+Do not log low-confidence AI food estimates silently.
+
+Use confirmation drafts:
+
+```text
+FoodEstimateDraft
+FoodConfirmationView
+WorkoutDraft
+CorrectionDraft
+```
+
+---
+
+# 14. Command Router Rules
+
+CommandRouter coordinates command handling.
+
+It may:
+
+* Try LocalCommandParser first
+* Fall back to AIService
+* Route structured intents to services
+* Return CommandResult to the feature model
+* Decide whether confirmation is needed
+
+CommandRouter must not:
+
+* Become the whole app
+* Own all food/water/workout logic
+* Write directly to SwiftData
+* Render UI
+* Own feature state
+
+If CommandRouter grows too large, move logic into the relevant service.
+
+---
+
+# 15. Async Task Rules
+
+All async tasks must have explicit boundaries.
+
+This applies to:
+
+* AI command parsing
+* Food estimation
+* Meal advice generation
+* Daily review generation
+* Weekly review generation
+* Photo meal estimation
+* Voice transcription
+* HealthKit sync
+* Cloud sync
+
+Every async task should define:
+
+* Input
+* Output
+* Loading state
+* Success state
+* Failure state
+* Retry behavior
+* User-visible error
+* Developer debug log
+
+Do not silently mutate persistent state from async results.
+
+---
+
+# 16. Backend and API Rules
+
+MVP is local-first.
+
+Do not make the backend the source of truth for daily logs unless explicitly requested.
+
+A backend may exist as a thin AI gateway.
+
+Backend responsibilities:
+
+* Protect LLM API keys
+* Own prompt versions
+* Control model selection
+* Apply safety filters
+* Apply rate limits
+* Track usage
+* Validate AI response shape
+* Support premium access later
+* Support cloud sync later
+
+The iOS app owns:
+
+* Local logs
+* Daily state
+* Deterministic calculations
+* User confirmation
+* Final persistence
+
+Use API contracts only for remote boundaries, such as:
+
+```text
+POST /v1/ai/parse-command
+POST /v1/ai/estimate-food
+POST /v1/ai/generate-daily-review
+POST /v1/ai/generate-meal-advice
+POST /v1/ai/estimate-photo-meal
+```
+
+Do not create network API contracts for internal local services such as:
+
+```text
+FoodLogService.addFoodEntry()
+WaterLogService.addWater()
+MacroCalculator.remaining()
+DailyLogService.startNewDay()
+```
+
+---
+
+# 17. Feature Flag Rules
+
+Use feature flags for risky, expensive, premium, or unfinished features.
+
+Good feature flags:
+
+```swift
+struct FeatureFlags {
+    var aiFoodLoggingEnabled: Bool
+    var photoMealEstimationEnabled: Bool
+    var weeklyReviewEnabled: Bool
+    var maintenanceCalculatorEnabled: Bool
+    var healthKitIntegrationEnabled: Bool
+    var cloudSyncEnabled: Bool
+    var premiumFeaturesEnabled: Bool
+    var debugLogViewerEnabled: Bool
+}
+```
+
+Do not overuse feature flags for stable MVP basics.
+
+Core MVP basics should not require flags:
+
+* Manual food logging
+* Water logging
+* Weight logging
+* Today dashboard
+* Local SwiftData storage
+
+Every feature flag should have:
+
+* Purpose
+* Default behavior
+* Fallback behavior
+* Risk controlled
+
+---
+
+# 18. Error Handling and Debug Logging Rules
+
+Use friendly user-visible errors and developer-only debug records.
+
+Log developer records for:
+
+* AI parsing failure
+* Food estimation failure
+* Persistence failure
+* Calculation validation failure
+* Daily review generation failure
+* HealthKit sync failure
+* Cloud sync failure
+
+Keep bounded local debug history.
+
+Default limit:
+
+```text
+50 latest debug records
+```
+
+User-facing errors should be calm and actionable.
+
+Examples:
+
+```text
+I could not confidently understand that log. Could you enter it manually or rephrase it?
+```
+
+```text
+This estimate may be rough. Please confirm or edit before logging.
+```
+
+```text
+I could not save this entry. Please try again.
+```
+
+Do not expose raw LLM errors, API keys, stack traces, or internal debug payloads to users.
+
+---
+
+# 19. Health and Safety Rules
+
+FitPilot is not a medical app.
+
+Do not generate medical diagnoses.
+
+Do not encourage starvation, extreme restriction, or shame-based dieting.
+
+The coaching tone should be:
+
+* Calm
+* Practical
+* Encouraging
+* Non-judgmental
+* Data-driven
+* Honest
+* Supportive
+
+The app should gently warn users when:
+
+* Calorie targets are very aggressive
+* Logged calories are repeatedly very low
+* Protein intake is too low during a cut
+* User asks for unsafe weight-loss speed
+* User asks for medical diagnosis or treatment
+
+Always prefer sustainable guidance.
+
+---
+
+# 20. Design System Rules
+
+Reusable UI belongs in DesignSystem.
+
+Use DesignSystem for:
+
+* Macro cards
+* Progress bars
+* Buttons
+* Chips
+* Input components
+* Empty states
+* Loading states
+* Chart wrappers
+* Typography tokens
+* Spacing tokens
+
+Do not duplicate the same UI styling across many feature files.
+
+Feature-specific views stay inside Features.
+
+Generic reusable components go into DesignSystem.
+
+---
+
+# 21. Testing Rules
+
+Prioritize tests in this order:
+
+1. Calculators
+2. Services
+3. AI boundary decoding and routing
+4. Persistence/store behavior
+5. Feature models
+6. UI tests
+
+Calculator tests are mandatory for:
+
+* MacroCalculator
+* CalorieTargetCalculator
+* WaterTargetCalculator
+* MaintenanceCalculator
+* WeightTrendCalculator
+* WorkoutCalorieCalculator
+
+AI tests should use mocked responses.
+
+Test that:
+
+* AI parsing failure does not mutate state
+* Low-confidence estimates require confirmation
+* Parsed commands route to the correct service
+* Daily review uses deterministic input
+* AI is not trusted for final arithmetic
+
+---
+
+# 22. Naming Rules
+
+Use clear names over abstract names.
+
+Prefer:
+
+```text
+FoodLogService
+WaterLogService
+DailyLogService
+MacroCalculator
+AICommandParser
+FoodEstimateDraft
+TodayDashboardState
+```
+
+Avoid vague architecture names unless justified:
+
+```text
+Interactor
+UseCase
+Manager
+Processor
+Handler
+Coordinator
+Repository
+DataSource
+EntityMapper
+```
+
+The name should reveal the responsibility.
+
+If using `Manager`, rename it to the specific thing it manages.
+
+---
+
+# 23. Code Depth Rules
+
+One user action should usually touch no more than 5–7 files.
+
+For example, logging water should involve roughly:
+
+```text
+CoachView or TodayView
+CoachModel or TodayModel
+CommandRouter, if text command
+WaterLogService
+SwiftDataStore
+DailyLogService recalculation, if needed
+```
+
+If a simple action requires 12+ files, the architecture is becoming too deep.
+
+Prefer direct, readable service calls over abstract indirection.
+
+---
+
+# 24. MVP Scope Discipline
+
+Do not overbuild MVP.
+
+MVP should focus on:
+
+* Onboarding
+* Today dashboard
+* New day reset
+* Weight logging
+* Text-based food logging
+* Macro tracking
+* Water tracking
+* Daily review
+* Basic workout logging
+* Local data persistence
+* Edit/delete food entries
+* Manual correction of calories/macros
+
+Do not implement unless explicitly requested:
+
+* Social feed
+* Public leaderboard
+* Full meal delivery integration
+* Coach marketplace
+* Complex recipe database
+* Full Apple Watch app
+* Full cloud sync
+* Advanced bodybuilding prep
+* Medical nutrition planning
+
+---
+
+# 25. Implementation Order
+
+When generating or modifying code, prefer this build order:
+
+1. Core models
+2. SwiftData local store
+3. Deterministic calculators
+4. DailyLogService, FoodLogService, WaterLogService
+5. Today dashboard
+6. Local command parser
+7. Coach chat shell
+8. AI command parser
+9. Daily review
+10. Progress trends
+11. Workout logging
+12. Feature flags and debug logs
+13. HealthKit integration
+14. Photo meal estimation
+15. Cloud sync
+
+Do not implement later phases before the core logging loop works.
+
+Core loop:
+
+```text
+Start day
+↓
+Log food/water/weight/workout
+↓
+Update dashboard
+↓
+Generate daily review
+↓
+Show progress trend
+```
+
+---
+
+# 26. File Creation Rules
+
+When creating a new file, place it according to responsibility.
+
+Examples:
+
+* New Today screen UI → `Features/Today/`
+* New Coach chat UI → `Features/Coach/`
+* New progress chart → `Features/Progress/` or `DesignSystem/Charts/` if reusable
+* New calculation formula → `Core/Calculators/`
+* New app model → `Core/Models/`
+* New draft type → `Core/Drafts/`
+* New service → `Core/Services/`
+* New AI prompt/parser type → `Core/AI/`
+* New LLM networking implementation → `Infrastructure/LLM/`
+* New SwiftData entity → `Infrastructure/SwiftData/`
+* New reusable component → `DesignSystem/Components/`
+
+If unsure, choose the shallowest reasonable location.
+
+Do not create new architectural folders unless there are at least 3 related files that justify the folder.
+
+---
+
+# 27. Final Non-Negotiable Rules
+
+1. No Storyboards.
+2. No SwiftUI view directly writes to SwiftData.
+3. No SwiftUI view performs calorie, macro, water, weight, or maintenance calculations.
+4. No feature model calls another feature model.
+5. No AI response directly mutates app state.
+6. No AI-generated arithmetic is treated as final truth.
+7. No backend-first architecture for daily logs in MVP.
+8. No heavy Clean Architecture stack unless explicitly requested.
+9. No chat-only source of truth for fitness logs.
+10. No low-confidence food estimate is logged without confirmation.
+11. Services own business actions.
+12. Calculators own deterministic math.
+13. SwiftData owns local persistence.
+14. AI adapters parse, estimate, and explain.
+15. The app shell owns composition, not business logic.
+16. Keep the architecture shallow until real complexity proves more depth is needed.

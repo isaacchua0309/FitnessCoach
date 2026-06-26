@@ -14,14 +14,17 @@ final class MockLLMClient: LLMClient {
     func classifyCoachIntent(
         request: AICoachIntentClassificationRequest
     ) async throws -> AICoachIntentClassificationResponse {
+        logMockHit(operation: "classifyCoachIntent")
         throw LLMClientError.backendUnavailable
     }
 
     func parseCommand(request: AIParseCommandRequest) async throws -> AIParseCommandResponse {
+        logMockHit(operation: "parseCommand")
         throw LLMClientError.backendUnavailable
     }
 
     func estimateFood(request: AIFoodEstimateRequest) async throws -> AIFoodEstimateResponse {
+        logMockHit(operation: "estimateFood")
         let draft = FoodDraft(
             mealType: nil,
             name: request.text,
@@ -47,7 +50,8 @@ final class MockLLMClient: LLMClient {
     }
 
     func generateMealAdvice(request: AIMealAdviceRequest) async throws -> AIMealAdviceResponse {
-        AIMealAdviceResponse(
+        logMockHit(operation: "generateMealAdvice")
+        return AIMealAdviceResponse(
             response: AICoachResponse(
                 message: "Test meal advice response.",
                 confidence: .medium
@@ -56,7 +60,8 @@ final class MockLLMClient: LLMClient {
     }
 
     func generateDailyReview(request: AIDailyReviewRequest) async throws -> AIDailyReviewResponse {
-        AIDailyReviewResponse(
+        logMockHit(operation: "generateDailyReview")
+        return AIDailyReviewResponse(
             response: AICoachResponse(
                 message: "Test daily review.",
                 confidence: .medium
@@ -65,7 +70,8 @@ final class MockLLMClient: LLMClient {
     }
 
     func parseWorkout(request: AIWorkoutParseRequest) async throws -> AIWorkoutParseResponse {
-        AIWorkoutParseResponse(
+        logMockHit(operation: "parseWorkout")
+        return AIWorkoutParseResponse(
             workoutDraft: WorkoutDraft(
                 name: "Test workout",
                 durationMinutes: 45,
@@ -81,6 +87,7 @@ final class MockLLMClient: LLMClient {
     }
 
     func parseEditOrDelete(request: AIEditDeleteParseRequest) async throws -> AIEditDeleteParseResponse {
+        logMockHit(operation: "parseEditOrDelete")
         let command = AIParsedCommand(
             originalText: request.text,
             intent: .editEntry,
@@ -95,6 +102,7 @@ final class MockLLMClient: LLMClient {
     }
 
     func parseMultiAction(request: AIMultiActionParseRequest) async throws -> AIMultiActionParseResponse {
+        logMockHit(operation: "parseMultiAction")
         let command = AIParsedCommand(
             originalText: request.text,
             intent: .multiAction,
@@ -104,5 +112,14 @@ final class MockLLMClient: LLMClient {
             assistantMessage: "This looks like multiple actions. Please confirm."
         )
         return AIMultiActionParseResponse(parsedCommand: command)
+    }
+
+    private func logMockHit(operation: String) {
+        FitPilotPipelineTracer.event(
+            stage: .mockLLM,
+            level: .warn,
+            message: "MockLLMClient invoked",
+            fields: ["operation": operation]
+        )
     }
 }

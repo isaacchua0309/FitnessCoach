@@ -24,58 +24,112 @@ struct CoachIntentRouter: Sendable {
         intentResult: CoachIntentResult,
         originalText: String
     ) -> CoachRoute {
+        let route: CoachRoute
         switch intentResult.intent {
         case .unrelatedOrUnsupported:
-            return .invalid(CoachResponseBuilder.unknownResponse)
+            route = .invalid(CoachResponseBuilder.unknownResponse)
 
         case .appHelp, .generalConversation:
-            return .noOp(.casual(CoachResponseBuilder.greetingResponse))
+            route = .noOp(.casual(CoachResponseBuilder.greetingResponse))
 
         case .dailySummary:
-            return .localCommand(ParsedCommand(intent: .status, originalText: originalText))
+            route = .localCommand(ParsedCommand(intent: .status, originalText: originalText))
 
         case .logWater, .logWeight, .undo:
             if let command = parsedCommand(from: intentResult.action, originalText: originalText) {
-                return .localCommand(command)
+                route = .localCommand(command)
+            } else {
+                route = .clarification(clarificationMessage(for: intentResult))
             }
-            return .clarification(clarificationMessage(for: intentResult))
 
         case .logFood:
-            if case .logFood(let draft) = intentResult.action {
-                return .classifiedFood(draft, originalText: originalText, intentResult: intentResult)
-            }
-            return aiRoute(.estimateFood(originalText), intentResult: intentResult)
+            route = aiRoute(.estimateFood(originalText), intentResult: intentResult)
 
         case .logWorkout:
-            return aiRoute(.parseWorkout(originalText), intentResult: intentResult)
+            route = aiRoute(.parseWorkout(originalText), intentResult: intentResult)
 
         case .editLog:
-            return aiRoute(.editEntry(originalText), intentResult: intentResult)
+            route = aiRoute(.editEntry(originalText), intentResult: intentResult)
 
         case .deleteLog:
-            return aiRoute(.deleteEntry(originalText), intentResult: intentResult)
+            route = aiRoute(.deleteEntry(originalText), intentResult: intentResult)
 
         case .calorieLookup, .macroLookup, .mealDecision, .nutritionAdvice:
-            return aiRoute(.mealAdvice(originalText), intentResult: intentResult)
+            route = aiRoute(.mealAdvice(originalText), intentResult: intentResult)
 
         case .workoutAdvice, .weightLossAdvice:
-            return aiRoute(.mealAdvice(originalText), intentResult: intentResult)
+            route = aiRoute(.mealAdvice(originalText), intentResult: intentResult)
         }
+
+        traceRoute(route, intentResult: intentResult)
+        return route
     }
 
     // MARK: - Helpers
 
     private func aiRoute(_ task: CoachAITask, intentResult: CoachIntentResult) -> CoachRoute {
-        guard let tier = modelTier(for: intentResult) else {
+        guard let tier = modelTier(for: intentResult, task: task) else {
             return .clarification(clarificationMessage(for: intentResult))
         }
         return .ai(RoutedAITask(task: task, tier: tier, intentResult: intentResult))
     }
 
-    private func modelTier(for result: CoachIntentResult) -> CoachModelTier? {
+    private func traceRoute(_ route: CoachRoute, intentResult: CoachIntentResult) {
+        var fields: [String: String] = [
+            "intent": intentResult.intent.rawValue,
+            "requiresEscalation": String(intentResult.requiresEscalation),
+            "canAnswerWithCheapModel": String(intentResult.canAnswerWithCheapModel),
+            "route": routeName(route)
+        ]
+        if case .ai(let task) = route {
+            fields["tier"] = task.tier.rawValue
+            fields["task"] = aiTaskName(task.task)
+        }
+        FitPilotPipelineTracer.event(
+            stage: .intentRoute,
+            level: .debug,
+            message: "Intent routed to handler",
+            fields: fields
+        )
+    }
+
+    private func routeName(_ route: CoachRoute) -> String {
+        switch route {
+        case .noOp: return "noOp"
+        case .localCommand: return "localCommand"
+        case .localFoodEstimate: return "localFoodEstimate"
+        case .classifiedFood: return "classifiedFood"
+        case .ai: return "ai"
+        case .clarification: return "clarification"
+        case .invalid: return "invalid"
+        }
+    }
+
+    private func aiTaskName(_ task: CoachAITask) -> String {
+        switch task {
+        case .estimateFood: return "estimateFood"
+        case .mealAdvice: return "mealAdvice"
+        case .parseWorkout: return "parseWorkout"
+        case .editEntry: return "editEntry"
+        case .deleteEntry: return "deleteEntry"
+        case .multiAction: return "multiAction"
+        case .photoFoodAnalysis: return "photoFoodAnalysis"
+        case .parseCommand: return "parseCommand"
+        }
+    }
+
+    private func modelTier(for result: CoachIntentResult, task: CoachAITask) -> CoachModelTier? {
         if result.requiresEscalation { return .strong }
-        if result.canAnswerWithCheapModel { return .cheap }
-        return nil
+
+        switch task {
+        case .estimateFood, .parseWorkout, .editEntry, .deleteEntry, .photoFoodAnalysis:
+            // Dedicated mutation endpoints always run; classifier uncertainty means
+            // "no inline draft", not "skip AI".
+            return .cheap
+        case .mealAdvice, .multiAction, .parseCommand:
+            if result.canAnswerWithCheapModel { return .cheap }
+            return nil
+        }
     }
 
     private func clarificationMessage(for result: CoachIntentResult) -> String {

@@ -12,15 +12,19 @@ struct UnitSettingsView: View {
 
     var body: some View {
         Section {
-            Picker("Unit system", selection: $unitSystem) {
+            FormaPickerRow(title: FormaProductCopy.ProfileForm.unitSystem, selection: $unitSystem) {
                 ForEach(UnitSystem.allCases, id: \.self) { system in
                     Text(ProfileFormatter.unitSystem(system)).tag(system)
                 }
             }
+            .padding(.vertical, FormaTokens.Spacing.xs)
+            .fitPilotFormSection()
         } header: {
-            Text("Units")
+            FitPilotSettingsSectionHeader(title: "Units")
         } footer: {
             Text("Values are stored in metric internally. Imperial is a display preference for now.")
+                .font(FormaTokens.Typography.caption)
+                .foregroundStyle(FormaTokens.Color.textTertiary)
         }
     }
 }
@@ -29,4 +33,5 @@ struct UnitSettingsView: View {
     Form {
         UnitSettingsView(unitSystem: .constant(.metric))
     }
+    .fitPilotDarkGroupedList()
 }

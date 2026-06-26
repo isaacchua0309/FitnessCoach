@@ -11,13 +11,16 @@ struct CoachConversationView: View {
     let messages: [ChatMessage]
     let isSending: Bool
     var onDismissKeyboard: (() -> Void)?
+    var onStarterTap: ((CoachStarterPrompt) -> Void)?
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     if messages.isEmpty {
-                        CoachEmptyState()
+                        CoachEmptyState(isDisabled: isSending) { prompt in
+                            onStarterTap?(prompt)
+                        }
                     } else {
                         LazyVStack(spacing: CoachDesignTokens.Layout.messageSpacing) {
                             ForEach(messages) { message in

@@ -11,9 +11,18 @@ struct WaterTargetSettingsView: View {
     @Binding var waterTargetMlText: String
 
     var body: some View {
-        Section("Water Target") {
-            TextField("Water target (ml)", text: $waterTargetMlText)
-                .keyboardType(.numberPad)
+        Section {
+            FormaLabeledNumberField(
+                title: FormaProductCopy.ProfileForm.waterTarget,
+                placeholder: "2500",
+                text: $waterTargetMlText,
+                unit: FormaProductCopy.FoodForm.mlUnit,
+                keyboard: .numberPad
+            )
+            .padding(.vertical, FormaTokens.Spacing.xs)
+            .fitPilotFormSection()
+        } header: {
+            FitPilotSettingsSectionHeader(title: "Water Target")
         }
     }
 }
@@ -22,4 +31,5 @@ struct WaterTargetSettingsView: View {
     Form {
         WaterTargetSettingsView(waterTargetMlText: .constant("2520"))
     }
+    .fitPilotDarkGroupedList()
 }

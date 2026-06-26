@@ -14,21 +14,35 @@ struct GoalSettingsView: View {
 
     var body: some View {
         Section {
-            TextField("Baseline weight (kg)", text: $currentWeightKgText)
-                .keyboardType(.decimalPad)
-
-            TextField("Goal weight (kg)", text: $goalWeightKgText)
-                .keyboardType(.decimalPad)
-
-            Picker("Calorie aggressiveness", selection: $aggressiveness) {
-                ForEach(CalorieAggressiveness.allCases, id: \.self) { level in
-                    Text(ProfileFormatter.aggressiveness(level)).tag(level)
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+                FormaLabeledNumberField(
+                    title: FormaProductCopy.ProfileForm.baselineWeight,
+                    placeholder: "70",
+                    text: $currentWeightKgText,
+                    unit: FormaProductCopy.FoodForm.kgUnit,
+                    keyboard: .decimalPad
+                )
+                FormaLabeledNumberField(
+                    title: FormaProductCopy.ProfileForm.goalWeight,
+                    placeholder: "65",
+                    text: $goalWeightKgText,
+                    unit: FormaProductCopy.FoodForm.kgUnit,
+                    keyboard: .decimalPad
+                )
+                FormaPickerRow(title: FormaProductCopy.ProfileForm.calorieAggressiveness, selection: $aggressiveness) {
+                    ForEach(CalorieAggressiveness.allCases, id: \.self) { level in
+                        Text(ProfileFormatter.aggressiveness(level)).tag(level)
+                    }
                 }
             }
+            .padding(.vertical, FormaTokens.Spacing.xs)
+            .fitPilotFormSection()
         } header: {
-            Text("Goals")
+            FitPilotSettingsSectionHeader(title: "Goals")
         } footer: {
             Text("Baseline weight is used for plan calculations. Log daily weigh-ins from Today or Coach — they are separate from this value.")
+                .font(FormaTokens.Typography.caption)
+                .foregroundStyle(FormaTokens.Color.textTertiary)
         }
     }
 }
@@ -41,4 +55,5 @@ struct GoalSettingsView: View {
             aggressiveness: .constant(.moderate)
         )
     }
+    .fitPilotDarkGroupedList()
 }

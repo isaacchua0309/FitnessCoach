@@ -34,7 +34,7 @@ struct CoachContextBuilder {
     }
 
     func makeContext(recentMessages: [ChatMessage]) -> AIContext {
-        AIContext(
+        let context = AIContext(
             date: Date(),
             timezoneIdentifier: TimeZone.current.identifier,
             userProfileSummary: makeProfileSummary(),
@@ -42,6 +42,17 @@ struct CoachContextBuilder {
             commonFoods: [],
             recentMessages: makeRecentMessages(from: recentMessages)
         )
+        FitPilotPipelineTracer.event(
+            stage: .context,
+            level: .debug,
+            message: "AI context assembled",
+            fields: [
+                "hasProfile": String(context.userProfileSummary != nil),
+                "hasTodaySummary": String(context.todaySummary != nil),
+                "recentMessageCount": String(context.recentMessages.count)
+            ]
+        )
+        return context
     }
 
     // MARK: Profile

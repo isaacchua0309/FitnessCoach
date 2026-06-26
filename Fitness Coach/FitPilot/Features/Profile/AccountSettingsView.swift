@@ -2,7 +2,7 @@
 //  AccountSettingsView.swift
 //  Fitness Coach
 //
-//  FitPilot — Consumer account screen (Settings → Account).
+//  Forma — Consumer account screen (Settings → Account).
 //
 
 import SwiftUI
@@ -12,21 +12,24 @@ struct AccountSettingsView: View {
     @EnvironmentObject private var authManager: AuthManager
     @State private var showsLogoutConfirmation = false
 
+    @ScaledMetric(relativeTo: .title2) private var avatarDiameter: CGFloat = 64
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
                 profileHeader
-                accountDetailsSection
+                accountDetailsCard
                 logoutSection
 
-                Text(FormaProductCopy.Account.dataSeparateNote)
+                Text(FormaProductCopy.Account.signOutDataNote)
                     .font(FormaTokens.Typography.caption)
                     .foregroundStyle(FormaTokens.Color.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(.horizontal, FitPilotScreenStyle.horizontalPadding)
-            .padding(.top, FormaTokens.Spacing.sm)
-            .padding(.bottom, FormaTokens.Spacing.xs)
+            .padding(.top, FormaTokens.Spacing.md)
+            .padding(.bottom, FormaTokens.Spacing.sm)
         }
         .fitPilotDarkScreenBackground()
         .navigationTitle("Account")
@@ -42,22 +45,24 @@ struct AccountSettingsView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text(logoutConfirmationMessage)
+            Text(FormaProductCopy.Account.logoutConfirmationMessage)
         }
     }
 
-    // MARK: - Profile header
+    // MARK: - Header
 
     private var profileHeader: some View {
         VStack(spacing: FormaTokens.Spacing.sm) {
             avatarView
 
-            VStack(spacing: 4) {
+            VStack(spacing: FormaTokens.Spacing.xs) {
                 if let displayName = accountDisplayName {
                     Text(displayName)
                         .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
                         .foregroundStyle(FormaTokens.Color.textPrimary)
                         .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
                 }
 
                 if let email = accountEmail {
@@ -65,61 +70,123 @@ struct AccountSettingsView: View {
                         .font(FormaTokens.Typography.sectionSubtitle)
                         .foregroundStyle(FormaTokens.Color.textSecondary)
                         .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.9)
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
                 }
-
-                if showsSignedInBadge {
-                    Label("Signed in with Google", systemImage: "checkmark.circle.fill")
-                        .font(FormaTokens.Typography.caption.weight(.medium))
-                        .foregroundStyle(FormaTokens.Color.textTertiary)
-                        .padding(.top, 6)
-                }
             }
-            .frame(maxWidth: .infinity)
+
+            if showsSignedInBadge {
+                signedInBadge
+            }
         }
         .frame(maxWidth: .infinity)
-        .padding(.bottom, 4)
     }
 
     private var avatarView: some View {
         ZStack {
             Circle()
-                .fill(FormaTokens.Color.surfaceElevated)
-                .frame(width: 72, height: 72)
-                .overlay(
-                    Circle()
-                        .stroke(FormaTokens.Color.border, lineWidth: 1)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            FormaTokens.Color.accent.opacity(0.5),
+                            FormaTokens.Color.accent.opacity(0.12)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.5
                 )
+                .frame(width: avatarDiameter + 6, height: avatarDiameter + 6)
+
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            FormaTokens.Color.accent.opacity(0.18),
+                            FormaTokens.Color.surfaceElevated
+                        ],
+                        center: .center,
+                        startRadius: 2,
+                        endRadius: avatarDiameter * 0.55
+                    )
+                )
+                .frame(width: avatarDiameter, height: avatarDiameter)
+                .overlay {
+                    Circle()
+                        .stroke(FormaTokens.Color.border, lineWidth: 0.5)
+                }
 
             if showsStatusProgress {
                 SwiftUI.ProgressView()
                     .tint(FormaTokens.Color.textPrimary)
             } else {
                 Text(profileInitials)
-                    .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textPrimary)
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(FormaTokens.Color.accent)
+                    .minimumScaleFactor(0.8)
+                    .lineLimit(1)
             }
         }
         .accessibilityLabel(avatarAccessibilityLabel)
     }
 
-    // MARK: - Account details
+    private var signedInBadge: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(FormaTokens.Typography.caption)
+            Text("Signed in with Google")
+                .font(FormaTokens.Typography.caption.weight(.medium))
+        }
+        .foregroundStyle(FormaTokens.Color.textSecondary)
+        .padding(.horizontal, FormaTokens.Spacing.sm)
+        .padding(.vertical, 6)
+        .background(
+            Capsule(style: .continuous)
+                .fill(FormaTokens.Color.surface)
+                .overlay {
+                    Capsule(style: .continuous)
+                        .stroke(FormaTokens.Color.border, lineWidth: 1)
+                }
+        )
+        .padding(.top, 2)
+        .accessibilityLabel("Signed in with Google")
+    }
 
-    private var accountDetailsSection: some View {
+    // MARK: - Details card
+
+    private var accountDetailsCard: some View {
         FitPilotPlanCard {
-            VStack(spacing: 0) {
-                FitPilotPlanDisplayRow(label: "Name", value: accountDisplayName ?? "—")
-                FitPilotPlanRowDivider()
-                FitPilotPlanDisplayRow(
+            VStack(alignment: .leading, spacing: 0) {
+                AccountInfoRow(
+                    label: "Name",
+                    value: accountDisplayName ?? "—"
+                )
+
+                accountRowDivider
+
+                AccountInfoRow(
                     label: "Email",
                     value: accountEmail ?? "—",
-                    multilineValue: true
+                    layout: .stacked,
+                    allowsTextSelection: true
                 )
-                FitPilotPlanRowDivider()
-                FitPilotPlanDisplayRow(label: "Sign-in method", value: "Google")
+
+                accountRowDivider
+
+                AccountInfoRow(
+                    label: "Sign-in",
+                    value: "Google"
+                )
             }
         }
+    }
+
+    private var accountRowDivider: some View {
+        Divider()
+            .overlay(FormaTokens.Color.border)
+            .padding(.vertical, FormaTokens.Spacing.xs)
     }
 
     // MARK: - Logout
@@ -198,9 +265,68 @@ struct AccountSettingsView: View {
         }
         return "Profile photo"
     }
+}
 
-    private var logoutConfirmationMessage: String {
-        FormaProductCopy.Account.logoutConfirmationMessage
+// MARK: - Account row
+
+private struct AccountInfoRow: View {
+
+    enum Layout {
+        case inline
+        case stacked
+    }
+
+    let label: String
+    let value: String
+    var layout: Layout = .inline
+    var allowsTextSelection: Bool = false
+
+    private let labelColumnWidth: CGFloat = 76
+
+    var body: some View {
+        Group {
+            switch layout {
+            case .inline:
+                HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.md) {
+                    labelText
+                        .frame(width: labelColumnWidth, alignment: .leading)
+
+                    valueText
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            case .stacked:
+                VStack(alignment: .leading, spacing: 4) {
+                    labelText
+                    valueText
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, FormaTokens.Spacing.xs)
+    }
+
+    private var labelText: some View {
+        Text(label)
+            .font(FormaTokens.Typography.sectionSubtitle)
+            .foregroundStyle(FormaTokens.Color.textSecondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.9)
+    }
+
+    @ViewBuilder
+    private var valueText: some View {
+        let text = Text(value)
+            .font(FormaTokens.Typography.sectionSubtitle)
+            .foregroundStyle(FormaTokens.Color.textPrimary)
+            .fixedSize(horizontal: false, vertical: true)
+            .multilineTextAlignment(.leading)
+
+        if allowsTextSelection {
+            text.textSelection(.enabled)
+        } else {
+            text
+        }
     }
 }
 

@@ -111,60 +111,110 @@ struct PlanEditWizard: View {
 
     private var goalWeightStep: some View {
         Section {
-            TextField("Goal weight (kg)", text: $formState.goalWeightKgText)
-                .keyboardType(.decimalPad)
+            FormaLabeledNumberField(
+                title: FormaProductCopy.ProfileForm.goalWeight,
+                placeholder: "65",
+                text: $formState.goalWeightKgText,
+                unit: FormaProductCopy.FoodForm.kgUnit,
+                keyboard: .decimalPad
+            )
+            .padding(.vertical, FormaTokens.Spacing.xs)
+            .fitPilotFormSection()
         } header: {
-            Text("Goal weight")
+            FitPilotSettingsSectionHeader(title: "Goal weight")
         } footer: {
             Text("Your baseline weight (\(formState.currentWeightKgText) kg) is used for calculations. Update it in Advanced Settings if needed.")
+                .font(FormaTokens.Typography.caption)
+                .foregroundStyle(FormaTokens.Color.textTertiary)
         }
     }
 
     private var trainingStep: some View {
         Section {
-            TextField("Strength sessions per week", text: $formState.trainingFrequencyPerWeekText)
-                .keyboardType(.numberPad)
+            FormaLabeledNumberField(
+                title: FormaProductCopy.ProfileForm.strengthSessions,
+                placeholder: "3",
+                text: $formState.trainingFrequencyPerWeekText,
+                keyboard: .numberPad
+            )
+            .padding(.vertical, FormaTokens.Spacing.xs)
+            .fitPilotFormSection()
         } header: {
-            Text("Training frequency")
+            FitPilotSettingsSectionHeader(title: "Training frequency")
         } footer: {
             Text("How many structured strength workouts you plan each week.")
+                .font(FormaTokens.Typography.caption)
+                .foregroundStyle(FormaTokens.Color.textTertiary)
         }
     }
 
     private var lifestyleStep: some View {
         Group {
             Section {
-                Picker("Activity level", selection: $formState.activityLevel) {
-                    ForEach(ActivityLevel.allCases, id: \.self) { level in
-                        Text(ProfileFormatter.activityLevel(level)).tag(level)
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+                    FormaPickerRow(title: FormaProductCopy.ProfileForm.activityLevel, selection: $formState.activityLevel) {
+                        ForEach(ActivityLevel.allCases, id: \.self) { level in
+                            Text(ProfileFormatter.activityLevel(level)).tag(level)
+                        }
                     }
+                    FormaLabeledNumberField(
+                        title: FormaProductCopy.ProfileForm.averageSteps,
+                        placeholder: "5000",
+                        text: $formState.averageStepsText,
+                        keyboard: .numberPad
+                    )
                 }
-
-                TextField("Average steps per day", text: $formState.averageStepsText)
-                    .keyboardType(.numberPad)
+                .padding(.vertical, FormaTokens.Spacing.xs)
+                .fitPilotFormSection()
             } header: {
-                Text("Lifestyle")
+                FitPilotSettingsSectionHeader(title: "Lifestyle")
             }
 
             FoodPreferencesView(dietPreference: $formState.dietPreference)
 
             Section {
                 DisclosureGroup("Advanced Settings", isExpanded: $showAdvanced) {
-                    TextField("Name", text: $formState.name)
-                        .textInputAutocapitalization(.words)
-                    TextField("Age", text: $formState.ageText)
-                        .keyboardType(.numberPad)
-                    Picker("Sex", selection: $formState.sex) {
-                        ForEach(Sex.allCases, id: \.self) { sex in
-                            Text(ProfileFormatter.sex(sex)).tag(sex)
+                    VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+                        FormaLabeledField(
+                            title: FormaProductCopy.ProfileForm.name,
+                            placeholder: "Your name",
+                            text: $formState.name,
+                            capitalization: .words
+                        )
+                        FormaLabeledNumberField(
+                            title: FormaProductCopy.ProfileForm.age,
+                            placeholder: "28",
+                            text: $formState.ageText,
+                            keyboard: .numberPad
+                        )
+                        FormaPickerRow(title: FormaProductCopy.ProfileForm.sex, selection: $formState.sex) {
+                            ForEach(Sex.allCases, id: \.self) { sex in
+                                Text(ProfileFormatter.sex(sex)).tag(sex)
+                            }
                         }
+                        FormaLabeledNumberField(
+                            title: FormaProductCopy.ProfileForm.height,
+                            placeholder: "175",
+                            text: $formState.heightCmText,
+                            unit: "cm",
+                            keyboard: .decimalPad
+                        )
+                        FormaLabeledNumberField(
+                            title: FormaProductCopy.ProfileForm.baselineWeight,
+                            placeholder: "70",
+                            text: $formState.currentWeightKgText,
+                            unit: FormaProductCopy.FoodForm.kgUnit,
+                            keyboard: .decimalPad
+                        )
+                        FormaLabeledNumberField(
+                            title: FormaProductCopy.ProfileForm.bodyFat,
+                            placeholder: "Optional",
+                            text: $formState.estimatedBodyFatPercentageText,
+                            unit: "%",
+                            keyboard: .decimalPad
+                        )
                     }
-                    TextField("Height (cm)", text: $formState.heightCmText)
-                        .keyboardType(.decimalPad)
-                    TextField("Baseline weight (kg)", text: $formState.currentWeightKgText)
-                        .keyboardType(.decimalPad)
-                    TextField("Body fat % (optional)", text: $formState.estimatedBodyFatPercentageText)
-                        .keyboardType(.decimalPad)
+                    .padding(.vertical, FormaTokens.Spacing.sm)
 
                     MacroTargetSettingsView(
                         calorieTargetText: $formState.calorieTargetText,

@@ -128,7 +128,7 @@ enum FormaProductCopy {
         static let logoutConfirmationTitle = "Log out of Forma?"
         static let logoutConfirmationMessage = "You'll need to sign in again to use Forma. Your local data on this device will not be deleted."
         static let signOutHint = "Sign out of Forma on this device"
-        static let dataSeparateNote = "Deleting app data is separate from signing out."
+        static let signOutDataNote = "Signing out won't delete your local data."
     }
 
     // MARK: - Empty states
@@ -179,16 +179,74 @@ enum FormaProductCopy {
 
     enum Coach {
         static let headerSubtitle = "What do you want to log or ask?"
-        static let emptyIntro = "Tell Forma what you ate, drank, weighed, or trained."
-        static let emptyToolbarHint = "Quick commands are in the toolbar below."
+        static let emptyIntro = "Tap a starter or type what you ate, drank, weighed, or trained."
         static let composerPlaceholder = "Message Coach…"
         static let foodEstimatePending = "Food estimate ready"
         static let reviewEstimate = "Review estimate"
-        static let examplePrompts = [
-            "Log chicken rice for lunch",
-            "I drank 600ml water",
-            "I did bench press today"
-        ]
+        static let logPending = "Log"
+        static let confirmPending = "Confirm"
+        static let editPending = "Edit"
+        static let discardPending = "Discard"
+        static let foodEditPortionFooter = "Edit if the portion or cut is different."
+        static let foodEditIngredientsFooter = "Edit if you know the ingredients."
+        static let foodConfirmBelowFooter = "Confirm below to add it."
+        static let pendingBarHint = "Use the bar below to log, edit, or discard."
+    }
+
+    // MARK: - Food form
+
+    enum FoodForm {
+        static let estimateSection = "Estimate"
+        static let whatYouAteSection = "What you ate"
+        static let portionSection = "Portion"
+        static let nutritionSection = "Nutrition"
+        static let advancedSection = "More details"
+
+        static let foodName = "Food name"
+        static let foodNamePlaceholder = "e.g. chicken rice"
+        static let mealType = "Meal type"
+        static let amount = "Amount"
+        static let amountPlaceholder = "1"
+        static let unit = "Unit"
+        static let unitPlaceholder = "g, pieces, bowl…"
+        static let calories = "Calories"
+        static let protein = "Protein"
+        static let carbs = "Carbs"
+        static let fat = "Fat"
+        static let fiber = "Fiber"
+        static let sodium = "Sodium"
+        static let notes = "Notes"
+        static let notesPlaceholder = "Optional notes"
+
+        static let kcalUnit = "kcal"
+        static let gramsUnit = "g"
+        static let mgUnit = "mg"
+        static let mlUnit = "ml"
+        static let kgUnit = "kg"
+    }
+
+    // MARK: - Profile form
+
+    enum ProfileForm {
+        static let baselineWeight = "Baseline weight"
+        static let goalWeight = "Goal weight"
+        static let calorieAggressiveness = "Calorie aggressiveness"
+        static let calorieTarget = "Calorie target"
+        static let proteinTarget = "Protein target"
+        static let carbTarget = "Carb target"
+        static let fatTarget = "Fat target"
+        static let weeklyLoss = "Expected weekly loss"
+        static let waterTarget = "Water target"
+        static let activityLevel = "Activity level"
+        static let trainingDays = "Training days per week"
+        static let averageSteps = "Average steps per day"
+        static let strengthSessions = "Strength sessions per week"
+        static let name = "Name"
+        static let age = "Age"
+        static let sex = "Sex"
+        static let height = "Height"
+        static let bodyFat = "Body fat"
+        static let unitSystem = "Unit system"
     }
 
     // MARK: - Legal

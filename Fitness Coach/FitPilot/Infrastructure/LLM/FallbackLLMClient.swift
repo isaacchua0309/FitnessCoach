@@ -77,6 +77,19 @@ final class FallbackLLMClient: LLMClient {
             throw error
         } catch {
             logger.info("LLM backend unavailable for \(operation, privacy: .public).")
+            var fields: [String: String] = [
+                "operation": operation,
+                "errorType": String(describing: type(of: error))
+            ]
+            if let llmError = error as? LLMClientError {
+                fields["llmError"] = String(describing: llmError)
+            }
+            fields["error"] = error.localizedDescription
+            FitPilotPipelineTracer.logError(
+                stage: .aiTask,
+                message: "Primary LLM client failed; marking backend unavailable",
+                fields: fields
+            )
             throw LLMClientError.backendUnavailable
         }
     }

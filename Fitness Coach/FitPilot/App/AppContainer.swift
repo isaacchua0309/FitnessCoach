@@ -69,22 +69,25 @@ final class AppContainer {
         // gateway reads .env on the Mac and calls OpenAI, so provider keys still
         // do not live in the iOS app bundle.
         // Set FITPILOT_USE_MOCK_LLM=1 in the scheme to skip the backend entirely.
+        // Physical device: set FITPILOT_AI_BACKEND_URL in the scheme or DeveloperLocal.plist.
         #if DEBUG
+        let wiring: (clientType: String, baseURL: URL?, authAttached: Bool)
         if ProcessInfo.processInfo.environment["FITPILOT_USE_MOCK_LLM"] == "1" {
             llmClient = MockLLMClient()
-        } else if let backendURL = URL(
-            string: ProcessInfo.processInfo.environment["FITPILOT_AI_BACKEND_URL"]
-                ?? "http://127.0.0.1:8787"
-        ) {
+            wiring = ("MockLLMClient", nil, false)
+        } else if let backendURL = LocalAIBackendConfiguration.debugBackendURL() {
             llmClient = FallbackLLMClient(
                 primary: FitPilotAIBackendClient(
                     baseURL: backendURL,
                     authTokenProvider: { try await authManager.idToken() }
                 )
             )
+            wiring = ("FallbackLLMClient+FitPilotAIBackendClient", backendURL, true)
         } else {
             llmClient = MockLLMClient()
+            wiring = ("MockLLMClient", nil, false)
         }
+        PipelineTracePersistence.install(on: store)
         #else
         if let backendURL = URL(
             string: ProcessInfo.processInfo.environment["FITPILOT_AI_BACKEND_URL"]
@@ -130,6 +133,14 @@ final class AppContainer {
             reviewService: reviewService,
             refreshCenter: refreshCenter
         )
+
+        #if DEBUG
+        Self.logLLMClientWiring(
+            clientType: wiring.clientType,
+            baseURL: wiring.baseURL,
+            authAttached: wiring.authAttached
+        )
+        #endif
     }
 
     func makeTodayModel() -> TodayModel {
@@ -187,6 +198,24 @@ final class AppContainer {
             userProfileService: userProfileService,
             targetService: targetService,
             onCompletion: onCompletion
+        )
+    }
+
+    private static func logLLMClientWiring(clientType: String, baseURL: URL?, authAttached: Bool) {
+        var fields: [String: String] = [
+            "clientType": clientType,
+            "authAttached": String(authAttached),
+            "traceEnabled": String(FitPilotPipelineTracer.isEnabled),
+            "traceVerbose": String(FitPilotPipelineTracer.isVerbose)
+        ]
+        if let baseURL {
+            fields["baseURL"] = baseURL.absoluteString
+        }
+        FitPilotPipelineTracer.event(
+            stage: .appWiring,
+            level: .info,
+            message: "LLM client wired",
+            fields: fields
         )
     }
 }

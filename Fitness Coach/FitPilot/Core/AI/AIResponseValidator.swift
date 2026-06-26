@@ -112,6 +112,9 @@ enum AIResponseValidator {
         guard draft.protein >= 0, draft.carbs >= 0, draft.fat >= 0 else {
             return .invalid("Macros cannot be negative.")
         }
+        guard draft.hasCompleteNutritionEstimate else {
+            return .invalid("Missing calorie and macro estimate.")
+        }
 
         // AI-estimated food always requires user confirmation before logging.
         return .requiresConfirmation(

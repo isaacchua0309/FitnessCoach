@@ -116,11 +116,22 @@ final class CoachRouteDecider: Sendable {
             )
 
         case .passToCheapLLM:
+            FitPilotPipelineTracer.event(
+                stage: .localGuard,
+                level: .info,
+                message: "Continuing to cheap LLM classifier"
+            )
             break
         }
 
         let classifyKey = classifyCacheKey(text: input.normalizedText, context: context)
         if isDuplicateClassify(key: classifyKey) {
+            FitPilotPipelineTracer.event(
+                stage: .classifyDedup,
+                level: .warn,
+                message: "Duplicate classify suppressed",
+                fields: ["cacheKey": classifyKey]
+            )
             return localDecision(
                 route: .clarification("I am still working on your last request. Give me a moment."),
                 input: input,
@@ -130,18 +141,45 @@ final class CoachRouteDecider: Sendable {
         }
         recordClassify(key: classifyKey)
 
+        let classifyStarted = Date()
         let classifier = CheapLLMIntentClassifier(aiService: aiService)
-        let intentResult = try await classifier.classify(
-            text: input.originalText,
-            context: context,
-            config: config
+        let intentResult: CoachIntentResult
+        do {
+            intentResult = try await classifier.classify(
+                text: input.originalText,
+                context: context,
+                config: config
+            )
+        } catch {
+            let durationMs = Int(Date().timeIntervalSince(classifyStarted) * 1_000)
+            FitPilotPipelineTracer.logError(
+                stage: .classify,
+                message: "Intent classification failed",
+                fields: [
+                    "durationMs": String(durationMs),
+                    "error": error.localizedDescription,
+                    "errorType": String(describing: type(of: error))
+                ]
+            )
+            throw error
+        }
+
+        let classifyDurationMs = Int(Date().timeIntervalSince(classifyStarted) * 1_000)
+        FitPilotPipelineTracer.event(
+            stage: .classify,
+            level: .info,
+            message: "Intent classification succeeded",
+            fields: [
+                "durationMs": String(classifyDurationMs),
+                "intent": intentResult.intent.rawValue,
+                "requiresEscalation": String(intentResult.requiresEscalation),
+                "canAnswerWithCheapModel": String(intentResult.canAnswerWithCheapModel)
+            ]
         )
 
-        #if DEBUG
         CoachRouteDebugLogger.logMessage(
             "classify intent=\(intentResult.intent.rawValue) escalation=\(intentResult.requiresEscalation)"
         )
-        #endif
 
         let route = intentRouter.route(intentResult: intentResult, originalText: input.originalText)
         let requiresAPI = routeRequiresAPI(route)

@@ -41,22 +41,35 @@ struct CoachView: View {
 
                     CoachConversationView(
                         messages: model.messages,
-                        isSending: model.isSending
-                    ) {
-                        dismissKeyboard()
-                    }
+                        isSending: model.isSending,
+                        onDismissKeyboard: {
+                            dismissKeyboard()
+                        },
+                        onStarterTap: { prompt in
+                            handleStarterTap(prompt)
+                        }
+                    )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                     coachErrorBanner
 
-                    if let draft = model.foodConfirmationState.pendingDraft,
-                       !model.isShowingFoodConfirmationSheet {
-                        AIFoodConfirmationCard(draft: draft) {
-                            dismissKeyboard()
-                            model.openFoodConfirmationSheet()
-                        }
-                        .padding(.horizontal, CoachDesignTokens.Layout.horizontalPadding)
-                        .padding(.bottom, CoachDesignTokens.Spacing.xs)
+                    if let pending = model.pendingConfirmation {
+                        CoachConfirmationBar(
+                            confirmation: pending,
+                            isConfirming: model.isConfirmingPending,
+                            onConfirm: {
+                                dismissKeyboard()
+                                Task { await model.confirmPendingFromBar() }
+                            },
+                            onReject: {
+                                dismissKeyboard()
+                                model.rejectPendingFromBar()
+                            },
+                            onEdit: pending.supportsEdit ? {
+                                dismissKeyboard()
+                                model.openFoodEditSheet()
+                            } : nil
+                        )
                     }
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -66,12 +79,6 @@ struct CoachView: View {
             .toolbar(.hidden, for: .navigationBar)
             .preferredColorScheme(.dark)
             .animation(CoachDesignTokens.Motion.standard, value: showEmptyChrome)
-            .task {
-                model.refreshToolbarContext()
-            }
-            .onChange(of: model.messageCount) { _, _ in
-                model.refreshToolbarContext()
-            }
             .photosPicker(isPresented: $isPhotoPickerPresented, selection: $photoPickerItem, matching: .images)
             .onChange(of: photoPickerItem) { _, item in
                 guard item != nil else { return }
@@ -84,8 +91,8 @@ struct CoachView: View {
                 }
                 .ignoresSafeArea()
             }
-            .sheet(isPresented: $model.isShowingFoodConfirmationSheet) {
-                foodConfirmationSheet
+            .sheet(isPresented: $model.isShowingFoodEditSheet) {
+                foodEditSheet
             }
         }
     }
@@ -106,30 +113,21 @@ struct CoachView: View {
     }
 
     private var composerChrome: some View {
-        VStack(spacing: 0) {
-            CoachToolbar(
-                actions: model.toolbarActions,
-                isDisabled: model.isSending
-            ) { action in
-                handleToolbarTap(action)
-            }
-
-            CoachComposer(
-                text: $model.inputText,
-                isFocused: $isInputFocused,
-                isSending: model.isSending,
-                onSend: {
-                    Task {
-                        await model.sendCurrentMessage()
-                        dismissKeyboard()
-                    }
-                },
-                onVoiceTap: {
-                    // Voice capture placeholder — wired when speech ships.
-                },
-                onAttachmentSelect: handleAttachmentSelection
-            )
-        }
+        CoachComposer(
+            text: $model.inputText,
+            isFocused: $isInputFocused,
+            isSending: model.isSending,
+            onSend: {
+                Task {
+                    await model.sendCurrentMessage()
+                    dismissKeyboard()
+                }
+            },
+            onVoiceTap: {
+                // Voice capture placeholder — wired when speech ships.
+            },
+            onAttachmentSelect: handleAttachmentSelection
+        )
         .fixedSize(horizontal: false, vertical: true)
         .background(
             CoachDesignTokens.Color.background
@@ -138,17 +136,16 @@ struct CoachView: View {
         .padding(.bottom, CoachDesignTokens.Layout.bottomChromeInset)
     }
 
-    private func handleToolbarTap(_ action: CoachToolbarAction) {
+    private func handleStarterTap(_ prompt: CoachStarterPrompt) {
         dismissKeyboard()
-        switch action.behavior {
+        switch prompt.behavior {
         case .openPhotoPicker:
-            model.noteToolbarUse(action)
             isPhotoPickerPresented = true
         case .prefill:
-            Task { await model.applyToolbarAction(action) }
+            Task { await model.applyStarterPrompt(prompt) }
             isInputFocused = true
         case .send:
-            Task { await model.applyToolbarAction(action) }
+            Task { await model.applyStarterPrompt(prompt) }
         }
     }
 
@@ -184,19 +181,16 @@ struct CoachView: View {
     }
 
     @ViewBuilder
-    private var foodConfirmationSheet: some View {
-        if let draft = model.foodConfirmationState.pendingDraft {
+    private var foodEditSheet: some View {
+        if let draft = model.pendingConfirmation?.foodDraft {
             AIFoodConfirmationSheet(
                 draft: draft,
-                errorMessage: model.foodConfirmationErrorMessage,
-                onConfirm: { formState in
-                    await model.confirmAIFoodEstimate(formState)
-                },
-                onReject: {
-                    model.rejectAIFoodEstimate()
+                errorMessage: model.foodEditErrorMessage,
+                onDone: { formState in
+                    model.saveFoodEdit(formState)
                 },
                 onCancel: {
-                    model.dismissFoodConfirmationSheet()
+                    model.dismissFoodEditSheet()
                 }
             )
         }

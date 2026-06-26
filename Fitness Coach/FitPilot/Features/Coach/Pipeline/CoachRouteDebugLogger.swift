@@ -6,27 +6,36 @@
 //
 
 import Foundation
-import OSLog
 
 enum CoachRouteDebugLogger {
-    private static let logger = Logger(subsystem: "FitPilot", category: "CoachRouting")
 
     static func log(_ decision: CoachRouteDecision) {
-        logger.debug(
-            """
-            raw=\(decision.rawMessage, privacy: .private) \
-            normalized=\(decision.normalizedMessage, privacy: .private) \
-            source=\(decision.routeSource.rawValue, privacy: .public) \
-            intent=\(decision.intent?.rawValue ?? "none", privacy: .public) \
-            tier=\(decision.modelTier?.rawValue ?? "none", privacy: .public) \
-            handler=\(decision.chosenHandler, privacy: .public) \
-            requiresAPI=\(decision.requiresAPI, privacy: .public) \
-            reason=\(decision.reason ?? "none", privacy: .public)
-            """
+        #if DEBUG
+        FitPilotPipelineTracer.event(
+            stage: .routeDecision,
+            level: .debug,
+            message: "Route decision",
+            fields: [
+                "raw": decision.rawMessage,
+                "normalized": decision.normalizedMessage,
+                "source": decision.routeSource.rawValue,
+                "intent": decision.intent?.rawValue ?? "none",
+                "tier": decision.modelTier?.rawValue ?? "none",
+                "handler": decision.chosenHandler,
+                "requiresAPI": String(decision.requiresAPI),
+                "reason": decision.reason ?? "none"
+            ]
         )
+        #endif
     }
 
     static func logMessage(_ message: String) {
-        logger.debug("\(message, privacy: .public)")
+        #if DEBUG
+        FitPilotPipelineTracer.event(
+            stage: .classify,
+            level: .debug,
+            message: message
+        )
+        #endif
     }
 }

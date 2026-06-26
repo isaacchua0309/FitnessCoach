@@ -2,7 +2,7 @@
 //  FormaBrandMark.swift
 //  Fitness Coach
 //
-//  Forma — Reusable premium brand orb for dark surfaces.
+//  Forma — In-app brand mark sourced from the App Icon asset.
 //
 
 import SwiftUI
@@ -25,115 +25,37 @@ struct FormaBrandMark: View {
     var size: Size = .medium
     var accessibilityMode: AccessibilityMode = .decorative
 
-    @ScaledMetric(relativeTo: .largeTitle) private var smallOrb: CGFloat = 40
-    @ScaledMetric(relativeTo: .largeTitle) private var mediumOrb: CGFloat = 64
-    @ScaledMetric(relativeTo: .largeTitle) private var largeOrb: CGFloat = 72
+    @ScaledMetric(relativeTo: .largeTitle) private var smallSide: CGFloat = 40
+    @ScaledMetric(relativeTo: .largeTitle) private var mediumSide: CGFloat = 64
+    @ScaledMetric(relativeTo: .largeTitle) private var largeSide: CGFloat = 72
 
     var body: some View {
-        ZStack {
-            outerRing
-
-            innerOrb
-
-            structureGlyph
-                .opacity(0.22)
-
-            monogram
-        }
-        .frame(width: ringDiameter, height: ringDiameter)
-        .accessibilityElement(children: .ignore)
-        .accessibilityHidden(accessibilityMode == .decorative)
-        .accessibilityLabel(FormaProductCopy.appName)
-        .accessibilityAddTraits(accessibilityMode == .branded ? .isImage : [])
-    }
-
-    // MARK: - Layers
-
-    private var outerRing: some View {
-        Circle()
-            .stroke(
-                LinearGradient(
-                    colors: [
-                        FormaTokens.Color.accent.opacity(0.45),
-                        FormaTokens.Color.accent.opacity(0.08)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ),
-                lineWidth: ringLineWidth
-            )
-            .frame(width: ringDiameter, height: ringDiameter)
-    }
-
-    private var innerOrb: some View {
-        Circle()
-            .fill(
-                RadialGradient(
-                    colors: [
-                        FormaTokens.Color.accent.opacity(0.22),
-                        FormaTokens.Color.accent.opacity(0.06)
-                    ],
-                    center: .center,
-                    startRadius: 2,
-                    endRadius: orbDiameter * 0.55
+        Image("FormaAppIcon")
+            .resizable()
+            .interpolation(.high)
+            .scaledToFit()
+            .frame(width: sideLength, height: sideLength)
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: sideLength * Self.iconCornerRadiusRatio,
+                    style: .continuous
                 )
             )
-            .frame(width: orbDiameter, height: orbDiameter)
-            .overlay {
-                Circle()
-                    .stroke(FormaTokens.Color.border, lineWidth: 0.5)
-                    .frame(width: orbDiameter, height: orbDiameter)
-            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityHidden(accessibilityMode == .decorative)
+            .accessibilityLabel(FormaProductCopy.appName)
+            .accessibilityAddTraits(accessibilityMode == .branded ? .isImage : [])
     }
 
-    private var structureGlyph: some View {
-        Image(systemName: "circle.hexagongrid")
-            .font(.system(size: glyphSize, weight: .light))
-            .foregroundStyle(FormaTokens.Color.textPrimary)
-    }
+    /// Matches the iOS app-icon squircle proportion.
+    private static let iconCornerRadiusRatio: CGFloat = 0.2237
 
-    private var monogram: some View {
-        Text("F")
-            .font(.system(size: monogramSize, weight: .semibold, design: .rounded))
-            .foregroundStyle(FormaTokens.Color.accent)
-    }
-
-    // MARK: - Metrics
-
-    private var orbDiameter: CGFloat {
+    private var sideLength: CGFloat {
         switch size {
-        case .small: smallOrb
-        case .medium: mediumOrb
-        case .large: largeOrb
+        case .small: smallSide
+        case .medium: mediumSide
+        case .large: largeSide
         }
-    }
-
-    private var ringDiameter: CGFloat {
-        orbDiameter + ringInset * 2
-    }
-
-    private var ringInset: CGFloat {
-        switch size {
-        case .small: 4
-        case .medium: 6
-        case .large: 8
-        }
-    }
-
-    private var ringLineWidth: CGFloat {
-        switch size {
-        case .small: 1
-        case .medium: 1.2
-        case .large: 1.4
-        }
-    }
-
-    private var monogramSize: CGFloat {
-        orbDiameter * 0.42
-    }
-
-    private var glyphSize: CGFloat {
-        orbDiameter * 0.78
     }
 }
 

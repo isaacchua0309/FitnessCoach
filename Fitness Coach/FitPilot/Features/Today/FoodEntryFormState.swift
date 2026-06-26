@@ -50,7 +50,7 @@ struct FoodEntryFormState: Equatable {
         notes = foodEntry.notes ?? ""
     }
 
-    init(foodDraft: FoodDraft) {
+    init(foodDraft: FoodDraft, excludeAINotes: Bool = false) {
         mealType = foodDraft.mealType
         name = foodDraft.name
         quantityText = FoodEntryFormFormatter.formatOptionalDouble(foodDraft.quantity)
@@ -61,7 +61,7 @@ struct FoodEntryFormState: Equatable {
         fatText = FoodEntryFormFormatter.formatMacro(foodDraft.fat)
         fiberText = FoodEntryFormFormatter.formatOptionalDouble(foodDraft.fiber)
         sodiumText = FoodEntryFormFormatter.formatOptionalDouble(foodDraft.sodium)
-        notes = foodDraft.notes ?? ""
+        notes = excludeAINotes ? "" : (foodDraft.notes ?? "")
     }
 
     func makeFoodDraft() throws -> FoodDraft {

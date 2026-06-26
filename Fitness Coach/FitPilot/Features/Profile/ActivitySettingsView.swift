@@ -13,18 +13,30 @@ struct ActivitySettingsView: View {
     @Binding var averageStepsText: String
 
     var body: some View {
-        Section("Activity") {
-            Picker("Activity level", selection: $activityLevel) {
-                ForEach(ActivityLevel.allCases, id: \.self) { level in
-                    Text(ProfileFormatter.activityLevel(level)).tag(level)
+        Section {
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+                FormaPickerRow(title: FormaProductCopy.ProfileForm.activityLevel, selection: $activityLevel) {
+                    ForEach(ActivityLevel.allCases, id: \.self) { level in
+                        Text(ProfileFormatter.activityLevel(level)).tag(level)
+                    }
                 }
+                FormaLabeledNumberField(
+                    title: FormaProductCopy.ProfileForm.trainingDays,
+                    placeholder: "3",
+                    text: $trainingFrequencyPerWeekText,
+                    keyboard: .numberPad
+                )
+                FormaLabeledNumberField(
+                    title: FormaProductCopy.ProfileForm.averageSteps,
+                    placeholder: "5000",
+                    text: $averageStepsText,
+                    keyboard: .numberPad
+                )
             }
-
-            TextField("Training days per week", text: $trainingFrequencyPerWeekText)
-                .keyboardType(.numberPad)
-
-            TextField("Average steps per day", text: $averageStepsText)
-                .keyboardType(.numberPad)
+            .padding(.vertical, FormaTokens.Spacing.xs)
+            .fitPilotFormSection()
+        } header: {
+            FitPilotSettingsSectionHeader(title: "Activity")
         }
     }
 }
@@ -37,4 +49,5 @@ struct ActivitySettingsView: View {
             averageStepsText: .constant("5000")
         )
     }
+    .fitPilotDarkGroupedList()
 }

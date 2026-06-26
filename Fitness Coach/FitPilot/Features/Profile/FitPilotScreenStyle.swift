@@ -157,6 +157,19 @@ extension View {
         }
     }
 
+    func fitPilotFormScreen() -> some View {
+        self
+            .background(FormaTokens.Color.canvas.ignoresSafeArea())
+            .preferredColorScheme(.dark)
+            .fitPilotScrollBottomInset()
+    }
+
+    func fitPilotFormSection() -> some View {
+        listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+    }
+
     func fitPilotSettingsRowChrome(isEnabled: Bool = true) -> some View {
         listRowInsets(FitPilotScreenStyle.settingsRowInsets)
             .listRowBackground(

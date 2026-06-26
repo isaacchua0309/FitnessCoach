@@ -129,10 +129,17 @@ struct SettingsRootView: View {
                 settingsRowLabel("Auth diagnostics")
             }
             .fitPilotSettingsRowChrome()
+
+            NavigationLink {
+                PipelineDiagnosticsView()
+            } label: {
+                settingsRowLabel("Pipeline traces")
+            }
+            .fitPilotSettingsRowChrome()
         } header: {
             FitPilotSettingsSectionHeader(title: "Developer")
         } footer: {
-            Text("Debug builds only.")
+            Text("Debug builds only. Pipeline traces help troubleshoot Coach AI routing and backend calls.")
                 .font(FormaTokens.Typography.caption)
                 .foregroundStyle(FormaTokens.Color.textTertiary)
         }

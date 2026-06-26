@@ -2,7 +2,7 @@
 //  AIFoodConfirmationSheet.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Sheet for confirming or rejecting an AI food estimate.
+//  FitPilot AI — Edit sheet for adjusting a pending food estimate before logging.
 //
 
 import SwiftUI
@@ -12,48 +12,69 @@ struct AIFoodConfirmationSheet: View {
 
     let draft: AIFoodConfirmationDraft
     let errorMessage: String?
-    let onConfirm: (FoodEntryFormState) async -> Void
-    let onReject: () -> Void
+    let onDone: (FoodEntryFormState) -> Void
     let onCancel: () -> Void
 
     @State private var formState: FoodEntryFormState
-    @State private var isSaving = false
 
     init(
         draft: AIFoodConfirmationDraft,
         errorMessage: String?,
-        onConfirm: @escaping (FoodEntryFormState) async -> Void,
-        onReject: @escaping () -> Void,
+        onDone: @escaping (FoodEntryFormState) -> Void,
         onCancel: @escaping () -> Void
     ) {
         self.draft = draft
         self.errorMessage = errorMessage
-        self.onConfirm = onConfirm
-        self.onReject = onReject
+        self.onDone = onDone
         self.onCancel = onCancel
 
         if let foodDraft = draft.primaryFoodDraft {
-            _formState = State(initialValue: FoodEntryFormState(foodDraft: foodDraft))
+            _formState = State(
+                initialValue: FoodEntryFormState(foodDraft: foodDraft, excludeAINotes: true)
+            )
         } else {
             _formState = State(initialValue: FoodEntryFormState())
         }
     }
 
+    private var estimateContext: String? {
+        let assistant = draft.assistantMessage?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let notes = draft.primaryFoodDraft?.notes?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let assistant, !assistant.isEmpty { return assistant }
+        if let notes, !notes.isEmpty { return notes }
+        return nil
+    }
+
     var body: some View {
         NavigationStack {
-            Form {
-                AIFoodEstimateSummaryView(draft: draft)
-                FoodEntryFormView(formState: $formState)
+            ScrollView {
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.sectionSpacing) {
+                    FoodEntryFormView(
+                        formState: $formState,
+                        mode: .coachEdit(
+                            estimateContext: estimateContext,
+                            confidence: draft.confidence
+                        )
+                    )
 
-                if let errorMessage {
-                    Section {
+                    if let errorMessage {
                         Text(errorMessage)
-                            .font(.subheadline)
-                            .foregroundStyle(.red)
+                            .font(FormaTokens.Typography.caption)
+                            .foregroundStyle(FormaTokens.Color.destructive)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(FormaTokens.Spacing.md)
+                            .background {
+                                RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
+                                    .fill(FormaTokens.Color.destructive.opacity(0.12))
+                            }
                     }
                 }
+                .padding(.horizontal, FitPilotScreenStyle.horizontalPadding)
+                .padding(.top, FormaTokens.Spacing.md)
+                .padding(.bottom, FormaTokens.Spacing.lg)
             }
-            .navigationTitle("Confirm Food")
+            .fitPilotFormScreen()
+            .navigationTitle("Edit food")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -61,39 +82,15 @@ struct AIFoodConfirmationSheet: View {
                         onCancel()
                         dismiss()
                     }
-                    .disabled(isSaving)
-                }
-
-                ToolbarItem(placement: .destructiveAction) {
-                    Button("Reject", role: .destructive) {
-                        onReject()
-                        dismiss()
-                    }
-                    .disabled(isSaving)
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        confirm()
-                    } label: {
-                        if isSaving {
-                            SwiftUI.ProgressView()
-                        } else {
-                            Text("Confirm Log")
-                        }
+                    Button("Done") {
+                        onDone(formState)
+                        dismiss()
                     }
-                    .disabled(isSaving)
                 }
             }
-        }
-    }
-
-    private func confirm() {
-        guard !isSaving else { return }
-        isSaving = true
-        Task {
-            await onConfirm(formState)
-            isSaving = false
         }
     }
 }

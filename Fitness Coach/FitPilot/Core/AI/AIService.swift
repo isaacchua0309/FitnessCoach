@@ -4,11 +4,6 @@
 //
 //  FitPilot AI — The AI boundary.
 //
-//  AIService parses, estimates, and explains. It returns structured drafts and
-//  intents only. It does NOT import SwiftData, access ModelContext, call app
-//  services (Food/Water/Weight/DailyLog/Workout), or own final arithmetic.
-//  Validation and mutation happen elsewhere.
-//
 
 import Foundation
 
@@ -54,23 +49,15 @@ final class AIService: AIServiceProtocol {
             modelName: config.cheapClassifierModel,
             modelConfig: config
         )
-        do {
-            return try await llmClient.classifyCoachIntent(request: request).intentResult
-        } catch let error as LLMClientError {
-            throw AICommandParser.map(error)
-        } catch {
-            throw AIServiceError.requestFailed(error.localizedDescription)
+        return try await traced(method: "classifyCoachIntent") {
+            try await llmClient.classifyCoachIntent(request: request).intentResult
         }
     }
 
     func estimateFood(prompt: String, context: AIContext) async throws -> AIFoodEstimateResponse {
         let request = AIFoodEstimateRequest(text: prompt, context: context)
-        do {
-            return try await llmClient.estimateFood(request: request)
-        } catch let error as LLMClientError {
-            throw AICommandParser.map(error)
-        } catch {
-            throw AIServiceError.requestFailed(error.localizedDescription)
+        return try await traced(method: "estimateFood") {
+            try await llmClient.estimateFood(request: request)
         }
     }
 
@@ -87,51 +74,31 @@ final class AIService: AIServiceProtocol {
             modelTier: tier,
             modelName: CoachModelConfig.default.modelName(for: tier)
         )
-        do {
-            return try await llmClient.generateMealAdvice(request: request).response
-        } catch let error as LLMClientError {
-            throw AICommandParser.map(error)
-        } catch {
-            throw AIServiceError.requestFailed(error.localizedDescription)
+        return try await traced(method: "generateMealAdvice") {
+            try await llmClient.generateMealAdvice(request: request).response
         }
     }
 
     func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
         let request = AIWorkoutParseRequest(text: prompt, context: context)
-        do {
-            return try await llmClient.parseWorkout(request: request)
-        } catch let error as LLMClientError {
-            throw AICommandParser.map(error)
-        } catch {
-            throw AIServiceError.requestFailed(error.localizedDescription)
+        return try await traced(method: "parseWorkout") {
+            try await llmClient.parseWorkout(request: request)
         }
     }
 
     func parseEditOrDelete(prompt: String, context: AIContext) async throws -> AIParsedCommand {
         let request = AIEditDeleteParseRequest(text: prompt, context: context)
-        do {
+        return try await traced(method: "parseEditOrDelete") {
             let response = try await llmClient.parseEditOrDelete(request: request)
             return try validated(response.parsedCommand)
-        } catch let error as LLMClientError {
-            throw AICommandParser.map(error)
-        } catch let error as AIServiceError {
-            throw error
-        } catch {
-            throw AIServiceError.requestFailed(error.localizedDescription)
         }
     }
 
     func parseMultiAction(prompt: String, context: AIContext) async throws -> AIParsedCommand {
         let request = AIMultiActionParseRequest(text: prompt, context: context)
-        do {
+        return try await traced(method: "parseMultiAction") {
             let response = try await llmClient.parseMultiAction(request: request)
             return try validated(response.parsedCommand)
-        } catch let error as LLMClientError {
-            throw AICommandParser.map(error)
-        } catch let error as AIServiceError {
-            throw error
-        } catch {
-            throw AIServiceError.requestFailed(error.localizedDescription)
         }
     }
 
@@ -178,17 +145,15 @@ final class AIService: AIServiceProtocol {
         context: AIContext
     ) async throws -> AICoachResponse {
         let request = AIDailyReviewRequest(input: input, context: context)
-        do {
-            return try await llmClient.generateDailyReview(request: request).response
-        } catch let error as LLMClientError {
-            throw AICommandParser.map(error)
-        } catch {
-            throw AIServiceError.requestFailed(error.localizedDescription)
+        return try await traced(method: "generateDailyReview") {
+            try await llmClient.generateDailyReview(request: request).response
         }
     }
 
     func parseCommand(_ text: String, context: AIContext) async throws -> AIParsedCommand {
-        try await commandParser.parseCommand(text, context: context)
+        try await traced(method: "parseCommand") {
+            try await commandParser.parseCommand(text, context: context)
+        }
     }
 
     private func validated(_ command: AIParsedCommand) throws -> AIParsedCommand {
@@ -196,5 +161,69 @@ final class AIService: AIServiceProtocol {
             throw AIServiceError.validationFailed(reason)
         }
         return command
+    }
+
+    private func traced<T>(
+        method: String,
+        work: () async throws -> T
+    ) async throws -> T {
+        let started = Date()
+        FitPilotPipelineTracer.event(
+            stage: .aiTask,
+            level: .debug,
+            message: "AIService call started",
+            fields: ["method": method]
+        )
+
+        do {
+            let result = try await work()
+            let durationMs = Int(Date().timeIntervalSince(started) * 1_000)
+            FitPilotPipelineTracer.event(
+                stage: .aiTask,
+                level: .info,
+                message: "AIService call succeeded",
+                fields: [
+                    "method": method,
+                    "durationMs": String(durationMs)
+                ]
+            )
+            return result
+        } catch let error as LLMClientError {
+            let durationMs = Int(Date().timeIntervalSince(started) * 1_000)
+            FitPilotPipelineTracer.logError(
+                stage: .aiTask,
+                message: "AIService LLM client error",
+                fields: [
+                    "method": method,
+                    "durationMs": String(durationMs),
+                    "llmError": String(describing: error)
+                ]
+            )
+            throw AICommandParser.map(error)
+        } catch let error as AIServiceError {
+            let durationMs = Int(Date().timeIntervalSince(started) * 1_000)
+            FitPilotPipelineTracer.logError(
+                stage: .aiTask,
+                message: "AIService validation error",
+                fields: [
+                    "method": method,
+                    "durationMs": String(durationMs),
+                    "error": String(describing: error)
+                ]
+            )
+            throw error
+        } catch {
+            let durationMs = Int(Date().timeIntervalSince(started) * 1_000)
+            FitPilotPipelineTracer.logError(
+                stage: .aiTask,
+                message: "AIService unexpected error",
+                fields: [
+                    "method": method,
+                    "durationMs": String(durationMs),
+                    "error": error.localizedDescription
+                ]
+            )
+            throw AIServiceError.requestFailed(error.localizedDescription)
+        }
     }
 }

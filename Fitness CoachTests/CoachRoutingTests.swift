@@ -42,13 +42,83 @@ final class CoachRoutingTests: XCTestCase {
         )
     }
 
-    func testCommonFoodEstimateRoutesLocally() async throws {
-        try await assertLocalGuard("log 500g chicken breast", expectedHandler: "local_food_estimate")
+    func testLogFoodWithoutNutritionRoutesToEstimateFood() async throws {
+        let draft = FoodDraft(
+            mealType: nil,
+            name: "McSpicy meal",
+            quantity: 1,
+            unit: "meal",
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fat: 0,
+            fiber: nil,
+            sodium: nil,
+            source: .manual,
+            confidence: .medium,
+            imageUrl: nil,
+            notes: nil
+        )
+        try await assertClassifierRoute(
+            "log mcspicy meal",
+            stub: stubIntent(.logFood, action: .logFood(draft)),
+            expectedHandler: "ai_estimate_food",
+            expectedTier: .cheap
+        )
+    }
+
+    func testClassifierCompleteDraftStillRoutesToEstimateFood() async throws {
+        let draft = FoodDraft(
+            mealType: nil,
+            name: "uncooked chicken breast",
+            quantity: 500,
+            unit: "g",
+            calories: 825,
+            protein: 155,
+            carbs: 0,
+            fat: 18,
+            fiber: nil,
+            sodium: nil,
+            source: .manual,
+            confidence: .high,
+            imageUrl: nil,
+            notes: nil
+        )
+        try await assertClassifierRoute(
+            "Log 500g uncooked chicken breast",
+            stub: stubIntent(.logFood, action: .logFood(draft)),
+            expectedHandler: "ai_estimate_food",
+            expectedTier: .cheap
+        )
+    }
+
+    func testCatalogFoodRoutesToClassifier() async throws {
+        try await assertClassifierRoute(
+            "log 500g chicken breast",
+            stub: stubIntent(.logFood),
+            expectedHandler: "ai_estimate_food",
+            expectedTier: .cheap
+        )
+        try await assertClassifierRoute(
+            "log 2 eggs",
+            stub: stubIntent(.logFood),
+            expectedHandler: "ai_estimate_food",
+            expectedTier: .cheap
+        )
+    }
+
+    func testLogFoodWithCheapModelFalseStillRoutesToEstimateFood() async throws {
+        try await assertClassifierRoute(
+            "log 5 pieces of kfc chicken - a mix of all different parts",
+            stub: stubIntent(.logFood, canAnswerWithCheapModel: false),
+            expectedHandler: "ai_estimate_food",
+            expectedTier: .cheap
+        )
     }
 
     func testMediumConfidenceFoodUsesClassifier() async throws {
         try await assertClassifierRoute(
-            "log 3 scoops whey",
+            "log a mystery protein bowl",
             stub: stubIntent(.logFood),
             expectedHandler: "ai_estimate_food",
             expectedTier: .cheap
@@ -229,16 +299,41 @@ final class CoachRoutingTests: XCTestCase {
     func testLocalRegressionMessagesSaveToInMemoryStore() async throws {
         let container = try AppContainer(inMemory: true)
         try seedProfile(in: container)
+        let chickenDraft = FoodDraft(
+            mealType: nil,
+            name: "Chicken breast",
+            quantity: 500,
+            unit: "g",
+            calories: 825,
+            protein: 155,
+            carbs: 0,
+            fat: 18,
+            fiber: nil,
+            sodium: nil,
+            source: .aiTextEstimate,
+            confidence: .high,
+            imageUrl: nil,
+            notes: nil
+        )
+        let service = StubClassifierAIService(
+            classifyResult: stubIntent(.logFood),
+            estimateFoodResponse: AIFoodEstimateResponse(
+                foodDrafts: [chickenDraft],
+                confidence: .high,
+                requiresConfirmation: false
+            )
+        )
         let model = CoachModel(
             actionCenter: container.actionCenter,
             dailyLogService: container.dailyLogService,
             workoutLogService: container.workoutLogService,
-            aiService: RecordingAIService(),
+            aiService: service,
             userProfileService: container.userProfileService,
             aiCommandParsingEnabled: true
         )
 
         await model.send("log 500g chicken breast")
+        await model.confirmPendingFromBar()
         XCTAssertEqual(try container.actionCenter.getFoodEntries(for: Date()).count, 1)
 
         await model.send("add 600ml water")
@@ -246,6 +341,206 @@ final class CoachRoutingTests: XCTestCase {
 
         await model.send("weight 89.2kg")
         XCTAssertEqual(try container.dailyLogService.getTodayLog().weightKg, 89.2)
+    }
+
+    func testLogFoodWithoutNutritionCallsEstimateFood() async throws {
+        let container = try AppContainer(inMemory: true)
+        try seedProfile(in: container)
+
+        let classifierDraft = FoodDraft(
+            mealType: nil,
+            name: "McSpicy upsize meal with fries and Coke Zero",
+            quantity: 1,
+            unit: "meal",
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fat: 0,
+            fiber: nil,
+            sodium: nil,
+            source: .manual,
+            confidence: .medium,
+            imageUrl: nil,
+            notes: nil
+        )
+        let estimatedDraft = FoodDraft(
+            mealType: nil,
+            name: "McSpicy upsize meal with fries and Coke Zero",
+            quantity: 1,
+            unit: "meal",
+            calories: 1_150,
+            protein: 42,
+            carbs: 128,
+            fat: 48,
+            fiber: nil,
+            sodium: nil,
+            source: .aiTextEstimate,
+            confidence: .medium,
+            imageUrl: nil,
+            notes: nil
+        )
+        let service = StubClassifierAIService(
+            classifyResult: stubIntent(.logFood, action: .logFood(classifierDraft)),
+            estimateFoodResponse: AIFoodEstimateResponse(
+                foodDrafts: [estimatedDraft],
+                confidence: .medium,
+                requiresConfirmation: true
+            )
+        )
+        let model = CoachModel(
+            actionCenter: container.actionCenter,
+            dailyLogService: container.dailyLogService,
+            workoutLogService: container.workoutLogService,
+            aiService: service,
+            userProfileService: container.userProfileService,
+            aiCommandParsingEnabled: true
+        )
+
+        await model.send("Log a full upsize mcspicy meal with fries and Coke Zero")
+
+        XCTAssertEqual(service.classifyCoachIntentCallCount, 1)
+        XCTAssertEqual(service.estimateFoodCallCount, 1)
+        XCTAssertFalse(model.isShowingFoodEditSheet)
+        if case .food(let draft) = model.pendingConfirmation {
+            XCTAssertEqual(draft.foodDrafts.first?.calories, 1_150)
+        } else {
+            XCTFail("Expected food pending confirmation")
+        }
+    }
+
+    func testWorkoutPendingUsesConfirmationBar() async throws {
+        let container = try AppContainer(inMemory: true)
+        try seedProfile(in: container)
+
+        let workoutDraft = WorkoutDraft(
+            name: "Run",
+            durationMinutes: 30,
+            estimatedCaloriesBurned: 300,
+            intensity: nil,
+            recoveryDemand: nil,
+            notes: nil,
+            exerciseSets: []
+        )
+        let service = StubClassifierAIService(
+            classifyResult: stubIntent(.logWorkout),
+            parseWorkoutResponse: AIWorkoutParseResponse(
+                workoutDraft: workoutDraft,
+                assistantMessage: "Drafted a 30-minute run.",
+                confidence: .medium
+            )
+        )
+        let model = CoachModel(
+            actionCenter: container.actionCenter,
+            dailyLogService: container.dailyLogService,
+            workoutLogService: container.workoutLogService,
+            aiService: service,
+            userProfileService: container.userProfileService,
+            aiCommandParsingEnabled: true
+        )
+
+        await model.send("30 min run")
+
+        XCTAssertEqual(service.classifyCoachIntentCallCount, 1)
+        XCTAssertEqual(service.parseWorkoutCallCount, 1)
+        if case .workout(let draft, _) = model.pendingConfirmation {
+            XCTAssertEqual(draft.durationMinutes, 30)
+        } else {
+            XCTFail("Expected workout pending confirmation")
+        }
+
+        await model.confirmPendingFromBar()
+        XCTAssertNil(model.pendingConfirmation)
+        XCTAssertEqual(try container.workoutLogService.getWorkouts(for: Date()).count, 1)
+    }
+
+    func testChatConfirmStillWorksForPendingWorkout() async throws {
+        let container = try AppContainer(inMemory: true)
+        try seedProfile(in: container)
+
+        let workoutDraft = WorkoutDraft(
+            name: "Run",
+            durationMinutes: 30,
+            estimatedCaloriesBurned: 300,
+            intensity: nil,
+            recoveryDemand: nil,
+            notes: nil,
+            exerciseSets: []
+        )
+        let service = StubClassifierAIService(
+            classifyResult: stubIntent(.logWorkout),
+            parseWorkoutResponse: AIWorkoutParseResponse(
+                workoutDraft: workoutDraft,
+                confidence: .medium
+            )
+        )
+        let model = CoachModel(
+            actionCenter: container.actionCenter,
+            dailyLogService: container.dailyLogService,
+            workoutLogService: container.workoutLogService,
+            aiService: service,
+            userProfileService: container.userProfileService,
+            aiCommandParsingEnabled: true
+        )
+
+        await model.send("30 min run")
+        await model.send("confirm")
+
+        XCTAssertNil(model.pendingConfirmation)
+        XCTAssertEqual(try container.workoutLogService.getWorkouts(for: Date()).count, 1)
+    }
+
+    func testFoodEditUpdatesPendingDraftBeforeLogging() async throws {
+        let container = try AppContainer(inMemory: true)
+        try seedProfile(in: container)
+
+        let estimatedDraft = FoodDraft(
+            mealType: nil,
+            name: "Chicken rice",
+            quantity: 1,
+            unit: "plate",
+            calories: 650,
+            protein: 35,
+            carbs: 75,
+            fat: 20,
+            fiber: nil,
+            sodium: nil,
+            source: .aiTextEstimate,
+            confidence: .medium,
+            imageUrl: nil,
+            notes: nil
+        )
+        let service = StubClassifierAIService(
+            classifyResult: stubIntent(.logFood),
+            estimateFoodResponse: AIFoodEstimateResponse(
+                foodDrafts: [estimatedDraft],
+                confidence: .medium,
+                requiresConfirmation: true
+            )
+        )
+        let model = CoachModel(
+            actionCenter: container.actionCenter,
+            dailyLogService: container.dailyLogService,
+            workoutLogService: container.workoutLogService,
+            aiService: service,
+            userProfileService: container.userProfileService,
+            aiCommandParsingEnabled: true
+        )
+
+        await model.send("log chicken rice")
+
+        var formState = FoodEntryFormState(foodDraft: estimatedDraft)
+        formState.caloriesText = "700"
+        model.saveFoodEdit(formState)
+
+        if case .food(let draft) = model.pendingConfirmation {
+            XCTAssertEqual(draft.foodDrafts.first?.calories, 700)
+        } else {
+            XCTFail("Expected food pending confirmation")
+        }
+
+        await model.confirmPendingFromBar()
+        let entry = try container.actionCenter.getFoodEntries(for: Date()).first
+        XCTAssertEqual(entry?.calories, 700)
     }
 
     func testAIFailureShowsGracefulMessage() async throws {
@@ -486,10 +781,19 @@ private final class StubClassifierAIService: AIServiceProtocol, @unchecked Senda
 
     let classifyResult: CoachIntentResult
     var mealAdviceError: Error?
+    var estimateFoodResponse: AIFoodEstimateResponse?
+    var parseWorkoutResponse: AIWorkoutParseResponse?
 
-    init(classifyResult: CoachIntentResult, mealAdviceError: Error? = nil) {
+    init(
+        classifyResult: CoachIntentResult,
+        mealAdviceError: Error? = nil,
+        estimateFoodResponse: AIFoodEstimateResponse? = nil,
+        parseWorkoutResponse: AIWorkoutParseResponse? = nil
+    ) {
         self.classifyResult = classifyResult
         self.mealAdviceError = mealAdviceError
+        self.estimateFoodResponse = estimateFoodResponse
+        self.parseWorkoutResponse = parseWorkoutResponse
     }
 
     func classifyCoachIntent(
@@ -503,6 +807,7 @@ private final class StubClassifierAIService: AIServiceProtocol, @unchecked Senda
 
     func estimateFood(prompt: String, context: AIContext) async throws -> AIFoodEstimateResponse {
         estimateFoodCallCount += 1
+        if let estimateFoodResponse { return estimateFoodResponse }
         throw AIServiceError.backendUnavailable
     }
 
@@ -519,6 +824,7 @@ private final class StubClassifierAIService: AIServiceProtocol, @unchecked Senda
 
     func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
         parseWorkoutCallCount += 1
+        if let parseWorkoutResponse { return parseWorkoutResponse }
         throw AIServiceError.backendUnavailable
     }
 

@@ -22,4 +22,15 @@ struct FoodDraft: Codable, Equatable, Sendable {
     var confidence: ConfidenceLevel
     var imageUrl: String?
     var notes: String?
+
+    /// True when the draft includes at least one non-zero nutrition value worth showing.
+    var hasUsableNutritionEstimate: Bool {
+        calories > 0 || protein > 0 || carbs > 0 || fat > 0
+    }
+
+    /// True when calories and macros form a loggable profile (not calorie-only or macro-only partial input).
+    var hasCompleteNutritionEstimate: Bool {
+        guard hasUsableNutritionEstimate, calories > 0 else { return false }
+        return protein > 0 || carbs > 0 || fat > 0
+    }
 }

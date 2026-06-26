@@ -19,26 +19,59 @@ struct MacroTargetSettingsView: View {
 
     var body: some View {
         Section {
-            TextField("Calorie target", text: $calorieTargetText)
-                .keyboardType(.numberPad)
-            TextField("Protein target (g)", text: $proteinTargetText)
-                .keyboardType(.decimalPad)
-            TextField("Carb target (g)", text: $carbTargetText)
-                .keyboardType(.decimalPad)
-            TextField("Fat target (g)", text: $fatTargetText)
-                .keyboardType(.decimalPad)
-            TextField("Expected weekly loss (kg)", text: $expectedWeeklyWeightLossKgText)
-                .keyboardType(.decimalPad)
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+                FormaLabeledNumberField(
+                    title: FormaProductCopy.ProfileForm.calorieTarget,
+                    placeholder: "2000",
+                    text: $calorieTargetText,
+                    unit: FormaProductCopy.FoodForm.kcalUnit,
+                    keyboard: .numberPad
+                )
+                FormaLabeledNumberField(
+                    title: FormaProductCopy.ProfileForm.proteinTarget,
+                    placeholder: "140",
+                    text: $proteinTargetText,
+                    unit: FormaProductCopy.FoodForm.gramsUnit,
+                    keyboard: .decimalPad
+                )
+                FormaLabeledNumberField(
+                    title: FormaProductCopy.ProfileForm.carbTarget,
+                    placeholder: "200",
+                    text: $carbTargetText,
+                    unit: FormaProductCopy.FoodForm.gramsUnit,
+                    keyboard: .decimalPad
+                )
+                FormaLabeledNumberField(
+                    title: FormaProductCopy.ProfileForm.fatTarget,
+                    placeholder: "60",
+                    text: $fatTargetText,
+                    unit: FormaProductCopy.FoodForm.gramsUnit,
+                    keyboard: .decimalPad
+                )
+                FormaLabeledNumberField(
+                    title: FormaProductCopy.ProfileForm.weeklyLoss,
+                    placeholder: "0.5",
+                    text: $expectedWeeklyWeightLossKgText,
+                    unit: FormaProductCopy.FoodForm.kgUnit,
+                    keyboard: .decimalPad
+                )
 
-            Button {
-                onRegenerate()
-            } label: {
-                Label("Regenerate Targets", systemImage: "arrow.triangle.2.circlepath")
+                Button {
+                    onRegenerate()
+                } label: {
+                    Label("Regenerate Targets", systemImage: "arrow.triangle.2.circlepath")
+                }
+                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                .foregroundStyle(FormaTokens.Color.accent)
             }
+            .padding(.vertical, FormaTokens.Spacing.xs)
+            .fitPilotFormSection()
         } header: {
-            Text("Macro Targets")
+            FitPilotSettingsSectionHeader(title: "Macro Targets")
         } footer: {
             Text("Manual edits are saved as-is. Regenerate to recalculate from your profile using \(ProfileFormatter.aggressiveness(aggressiveness).lowercased()) aggressiveness.")
+                .font(FormaTokens.Typography.caption)
+                .foregroundStyle(FormaTokens.Color.textTertiary)
         }
     }
 }
@@ -55,4 +88,5 @@ struct MacroTargetSettingsView: View {
             onRegenerate: {}
         )
     }
+    .fitPilotDarkGroupedList()
 }

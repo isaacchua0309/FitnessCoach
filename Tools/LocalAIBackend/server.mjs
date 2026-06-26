@@ -1,7 +1,9 @@
 import http from "node:http";
+import os from "node:os";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isTraceEnabled, isVerbose, logTrace, readTraceId, sanitizeSnippet } from "./trace.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = resolve(__dirname, "../..");
@@ -12,6 +14,7 @@ const apiKey = process.env.OPENAI_API_KEY;
 const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
 const classifierModel = process.env.OPENAI_CLASSIFIER_MODEL || model;
 const port = Number(process.env.FITPILOT_AI_BACKEND_PORT || 8787);
+const host = process.env.FITPILOT_AI_BACKEND_HOST || "127.0.0.1";
 
 if (!apiKey) {
   console.error("OPENAI_API_KEY is missing. Add it to .env before starting the gateway.");
@@ -19,51 +22,148 @@ if (!apiKey) {
 }
 
 const server = http.createServer(async (request, response) => {
+  const requestStarted = Date.now();
+  const traceId = readTraceId(request);
+
   try {
     if (request.method !== "POST") {
+      logTrace({
+        traceId,
+        stage: "httpRequest",
+        level: "warn",
+        message: "Method not allowed",
+        fields: { method: request.method, path: request.url ?? "unknown" }
+      });
       sendJSON(response, 405, { error: "Method not allowed." });
       return;
     }
 
-    const body = await readJSON(request);
+    const rawBody = await readRawBody(request);
+    logTrace({
+      traceId,
+      stage: "httpRequest",
+      message: "Gateway request received",
+      fields: {
+        path: request.url,
+        bodyBytes: rawBody.length,
+        requestBody: sanitizeSnippet(rawBody.toString("utf8"))
+      }
+    });
+
+    const body = JSON.parse(rawBody.toString("utf8") || "{}");
+    const handlerStarted = Date.now();
+    let payload;
 
     switch (request.url) {
       case "/v1/ai/classify-coach-intent":
-        sendJSON(response, 200, { intentResult: await classifyCoachIntent(body) });
-        return;
+        payload = { intentResult: await classifyCoachIntent(body, traceId) };
+        break;
       case "/v1/ai/parse-command":
-        sendJSON(response, 200, { parsedCommand: await parseCommand(body) });
-        return;
+        payload = { parsedCommand: await parseCommand(body, traceId) };
+        break;
       case "/v1/ai/estimate-food":
-        sendJSON(response, 200, await estimateFood(body));
-        return;
+        payload = await estimateFood(body, traceId);
+        break;
       case "/v1/ai/generate-meal-advice":
-        sendJSON(response, 200, { response: await coachResponse(body, mealAdviceInstructions()) });
-        return;
+        payload = { response: await coachResponse(body, mealAdviceInstructions(), traceId) };
+        break;
       case "/v1/ai/generate-daily-review":
-        sendJSON(response, 200, { response: await coachResponse(body, dailyReviewInstructions()) });
-        return;
+        payload = { response: await coachResponse(body, dailyReviewInstructions(), traceId) };
+        break;
       case "/v1/ai/parse-workout":
-        sendJSON(response, 200, await parseWorkout(body));
-        return;
+        payload = await parseWorkout(body, traceId);
+        break;
       case "/v1/ai/parse-edit-delete":
-        sendJSON(response, 200, { parsedCommand: await parseEditDelete(body) });
-        return;
+        payload = { parsedCommand: await parseEditDelete(body, traceId) };
+        break;
       case "/v1/ai/parse-multi-action":
-        sendJSON(response, 200, { parsedCommand: await parseMultiAction(body) });
-        return;
+        payload = { parsedCommand: await parseMultiAction(body, traceId) };
+        break;
       default:
+        logTrace({
+          traceId,
+          stage: "httpResponse",
+          level: "warn",
+          message: "Endpoint not found",
+          fields: { path: request.url, durationMs: Date.now() - requestStarted }
+        });
         sendJSON(response, 404, { error: "Endpoint not found." });
+        return;
     }
+
+    const handlerMs = Date.now() - handlerStarted;
+    logTrace({
+      traceId,
+      stage: "gatewayHandler",
+      message: "Gateway handler completed",
+      fields: { path: request.url, durationMs: handlerMs }
+    });
+
+    const responseBody = JSON.stringify(payload);
+    sendJSON(response, 200, payload);
+    logTrace({
+      traceId,
+      stage: "httpResponse",
+      message: "Gateway response sent",
+      fields: {
+        path: request.url,
+        status: 200,
+        responseBytes: responseBody.length,
+        durationMs: Date.now() - requestStarted,
+        responseBody: sanitizeSnippet(responseBody)
+      }
+    });
   } catch (error) {
+    logTrace({
+      traceId,
+      stage: "error",
+      level: "error",
+      message: error.message || "AI gateway failed.",
+      fields: {
+        path: request.url,
+        durationMs: Date.now() - requestStarted,
+        errorType: error.name || "Error"
+      }
+    });
     console.error(error);
     sendJSON(response, 500, { error: error.message || "AI gateway failed." });
   }
 });
 
-server.listen(port, "127.0.0.1", () => {
-  console.log(`FitPilot local AI backend listening on http://127.0.0.1:${port}`);
+server.listen(port, host, () => {
+  console.log(`FitPilot local AI backend listening on http://${host}:${port}`);
+  logTrace({
+    stage: "startup",
+    message: "Gateway configuration",
+    fields: {
+      host,
+      port: String(port),
+      model,
+      classifierModel,
+      traceEnabled: String(isTraceEnabled()),
+      traceVerbose: String(isVerbose())
+    }
+  });
+  if (host === "0.0.0.0") {
+    for (const address of lanIPv4Addresses()) {
+      console.log(`  Device / LAN URL: http://${address}:${port}`);
+    }
+    console.log("  iOS: set FITPILOT_AI_BACKEND_URL in the Xcode scheme, or run:");
+    console.log("    node Tools/LocalAIBackend/configure-device-backend.mjs --write");
+  }
 });
+
+function lanIPv4Addresses() {
+  const addresses = [];
+  for (const interfaces of Object.values(os.networkInterfaces())) {
+    for (const net of interfaces ?? []) {
+      if (net.family === "IPv4" && !net.internal) {
+        addresses.push(net.address);
+      }
+    }
+  }
+  return addresses;
+}
 
 function loadEnv(path) {
   let raw = "";
@@ -84,12 +184,17 @@ function loadEnv(path) {
   }
 }
 
-async function readJSON(request) {
+async function readRawBody(request) {
   const chunks = [];
   for await (const chunk of request) {
     chunks.push(chunk);
   }
-  return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
+  return Buffer.concat(chunks);
+}
+
+async function readJSON(request) {
+  const raw = await readRawBody(request);
+  return JSON.parse(raw.toString("utf8") || "{}");
 }
 
 function sendJSON(response, statusCode, payload) {
@@ -100,7 +205,20 @@ function sendJSON(response, statusCode, payload) {
   response.end(JSON.stringify(payload));
 }
 
-async function openAIJSON({ instructions, input, schema, maxOutputTokens = 1200, model: modelOverride }) {
+async function openAIJSON({ instructions, input, schema, maxOutputTokens = 1200, model: modelOverride, traceId }) {
+  const selectedModel = modelOverride || model;
+  const started = Date.now();
+  logTrace({
+    traceId,
+    stage: "openAIRequest",
+    message: "OpenAI request started",
+    fields: {
+      model: selectedModel,
+      maxOutputTokens: String(maxOutputTokens),
+      inputBytes: String(Buffer.byteLength(input ?? "", "utf8"))
+    }
+  });
+
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -108,7 +226,7 @@ async function openAIJSON({ instructions, input, schema, maxOutputTokens = 1200,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: modelOverride || model,
+      model: selectedModel,
       instructions,
       input,
       store: false,
@@ -125,15 +243,50 @@ async function openAIJSON({ instructions, input, schema, maxOutputTokens = 1200,
   });
 
   const payload = await response.json().catch(() => ({}));
+  const durationMs = Date.now() - started;
   if (!response.ok) {
     const message = payload?.error?.message || `OpenAI request failed with status ${response.status}.`;
+    logTrace({
+      traceId,
+      stage: "openAIResponse",
+      level: "error",
+      message: "OpenAI request failed",
+      fields: {
+        model: selectedModel,
+        status: String(response.status),
+        durationMs: String(durationMs),
+        errorType: payload?.error?.type ?? "unknown",
+        errorCode: payload?.error?.code ?? "unknown",
+        errorMessage: message
+      }
+    });
     throw new Error(message);
   }
 
   const text = payload.output_text || firstOutputText(payload);
   if (!text) {
+    logTrace({
+      traceId,
+      stage: "openAIResponse",
+      level: "error",
+      message: "OpenAI response missing output text",
+      fields: { model: selectedModel, durationMs: String(durationMs) }
+    });
     throw new Error("OpenAI response did not contain output text.");
   }
+
+  logTrace({
+    traceId,
+    stage: "openAIResponse",
+    message: "OpenAI request succeeded",
+    fields: {
+      model: selectedModel,
+      status: String(response.status),
+      durationMs: String(durationMs),
+      outputBytes: String(Buffer.byteLength(text, "utf8")),
+      outputPreview: sanitizeSnippet(text)
+    }
+  });
   return JSON.parse(text);
 }
 
@@ -148,7 +301,7 @@ function firstOutputText(payload) {
   return null;
 }
 
-async function classifyCoachIntent(request) {
+async function classifyCoachIntent(request, traceId) {
   return openAIJSON({
     instructions: coachIntentClassificationInstructions(),
     input: JSON.stringify({
@@ -157,11 +310,12 @@ async function classifyCoachIntent(request) {
     }),
     schema: coachIntentResultSchema(),
     maxOutputTokens: 900,
-    model: classifierModel
+    model: classifierModel,
+    traceId
   });
 }
 
-async function parseCommand(request) {
+async function parseCommand(request, traceId) {
   return openAIJSON({
     instructions: commandInstructions(),
     input: JSON.stringify({
@@ -169,11 +323,12 @@ async function parseCommand(request) {
       context: request.context
     }),
     schema: aiParsedCommandSchema(),
-    maxOutputTokens: 1800
+    maxOutputTokens: 1800,
+    traceId
   });
 }
 
-async function estimateFood(request) {
+async function estimateFood(request, traceId) {
   return openAIJSON({
     instructions: foodEstimateInstructions(),
     input: JSON.stringify({
@@ -181,11 +336,12 @@ async function estimateFood(request) {
       context: request.context
     }),
     schema: aiFoodEstimateResponseSchema(),
-    maxOutputTokens: 1200
+    maxOutputTokens: 1200,
+    traceId
   });
 }
 
-async function parseWorkout(request) {
+async function parseWorkout(request, traceId) {
   return openAIJSON({
     instructions: workoutParseInstructions(),
     input: JSON.stringify({
@@ -193,11 +349,12 @@ async function parseWorkout(request) {
       context: request.context
     }),
     schema: aiWorkoutParseResponseSchema(),
-    maxOutputTokens: 1800
+    maxOutputTokens: 1800,
+    traceId
   });
 }
 
-async function parseEditDelete(request) {
+async function parseEditDelete(request, traceId) {
   return openAIJSON({
     instructions: editDeleteInstructions(),
     input: JSON.stringify({
@@ -205,11 +362,12 @@ async function parseEditDelete(request) {
       context: request.context
     }),
     schema: aiParsedCommandSchema(),
-    maxOutputTokens: 1400
+    maxOutputTokens: 1400,
+    traceId
   });
 }
 
-async function parseMultiAction(request) {
+async function parseMultiAction(request, traceId) {
   return openAIJSON({
     instructions: multiActionInstructions(),
     input: JSON.stringify({
@@ -217,16 +375,18 @@ async function parseMultiAction(request) {
       context: request.context
     }),
     schema: aiParsedCommandSchema(),
-    maxOutputTokens: 1800
+    maxOutputTokens: 1800,
+    traceId
   });
 }
 
-async function coachResponse(request, instructions) {
+async function coachResponse(request, instructions, traceId) {
   return openAIJSON({
     instructions,
     input: JSON.stringify(request),
     schema: aiCoachResponseSchema(),
-    maxOutputTokens: 900
+    maxOutputTokens: 900,
+    traceId
   });
 }
 
@@ -256,7 +416,11 @@ function foodEstimateInstructions() {
 
 Task: Estimate nutrition for the described food.
 Return one FoodDraft in foodDrafts unless the user clearly described multiple foods.
-Use source aiTextEstimate and require confirmation unless the user supplied exact nutrition values.`;
+If the user supplied partial nutrition (only calories, only protein, or some macros missing), estimate the missing values and keep the user-provided numbers.
+quantity and unit must describe portion weight or count (e.g. 200g, 1 breast), never macro grams. "50g protein" is a nutrition value, not a 50g portion.
+Respect preparation state: raw/uncooked vs cooked weight at the same grams are different foods nutritionally (e.g. 500g raw chicken breast ≠ 500g cooked chicken breast).
+Every foodDraft must include calories > 0 and realistic protein, carbs, and fat for the food, portion, and preparation stated.
+Use source aiTextEstimate and require confirmation unless the user supplied exact complete nutrition values in their message.`;
 }
 
 function mealAdviceInstructions() {
@@ -277,6 +441,10 @@ Return valid JSON only matching CoachIntentResult.
 - Prefer app-domain intents for food, calories, weight, workouts, hydration, meals, and fitness.
 - Set requiresAppMutation true only when the user wants to change FitPilot data.
 - Include a typed action when mutation data is clear enough to validate.
+- For log_food actions: include food name, quantity, and unit when clear. Do not include calories or macros unless the user's message contains explicit numbers.
+  Never copy nutrition from chat history or prior assistant estimates. The estimate-food step handles nutrition.
+- For log_food actions: quantity and unit are portion size (e.g. 200g chicken breast). protein/carbs/fat/calories are nutrition values.
+  Never put macro grams into quantity. "50g protein" means proteinGrams=50, not quantity=50g.
 - Set canAnswerWithCheapModel true for simple nutrition, calorie, macro, meal-decision, or workout questions.
 - Set requiresEscalation true only for deeper planning, multi-step coaching, or ambiguous mutations.`;
 }

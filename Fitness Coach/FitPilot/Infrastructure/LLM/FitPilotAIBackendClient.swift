@@ -4,11 +4,6 @@
 //
 //  FitPilot AI — Thin HTTP client shell for the FitPilot backend AI gateway.
 //
-//  This client posts request contracts to the backend and decodes structured
-//  responses. It contains no provider API keys and no hardcoded production URL;
-//  the base URL is injected. If no backend exists yet, this client compiles but
-//  is not wired as the default (MockLLMClient is used for local development).
-//
 
 import Foundation
 
@@ -28,7 +23,7 @@ final class FitPilotAIBackendClient: LLMClient {
         authTokenProvider: AuthTokenProvider? = nil
     ) {
         self.baseURL = baseURL
-        self.urlSession = urlSession ?? Self.makeFastFailSession()
+        self.urlSession = urlSession ?? Self.makeSession()
         self.authTokenProvider = authTokenProvider
 
         let encoder = JSONEncoder()
@@ -81,52 +76,167 @@ final class FitPilotAIBackendClient: LLMClient {
         body: Body
     ) async throws -> Response {
         let url = baseURL.appendingPathComponent(endpoint.rawValue)
+        let traceId = await MainActor.run { FitPilotPipelineTracer.currentTraceId }
 
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.setValue("application/json", forHTTPHeaderField: "Accept")
 
+        if let traceId {
+            urlRequest.setValue(traceId.uuidString, forHTTPHeaderField: FitPilotPipelineTracer.traceHeaderName)
+        }
+
+        let requestBody: Data
         do {
-            urlRequest.httpBody = try encoder.encode(body)
+            requestBody = try encoder.encode(body)
+            urlRequest.httpBody = requestBody
         } catch {
+            FitPilotPipelineTracer.logError(
+                stage: .httpRequest,
+                message: "Request encoding failed",
+                fields: [
+                    "endpoint": endpoint.rawValue,
+                    "url": url.absoluteString,
+                    "error": error.localizedDescription
+                ]
+            )
             throw LLMClientError.decodingFailed("Could not encode request.")
         }
 
+        var authHeaderPresent = false
         if let authTokenProvider {
-            let token: String
             do {
-                token = try await authTokenProvider()
-            } catch is AuthManagerError {
+                let token = try await authTokenProvider()
+                urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                authHeaderPresent = true
+            } catch let error as AuthManagerError {
+                FitPilotPipelineTracer.logError(
+                    stage: .authToken,
+                    message: "Auth token unavailable for HTTP request",
+                    fields: [
+                        "endpoint": endpoint.rawValue,
+                        "authError": String(describing: error)
+                    ]
+                )
+                throw LLMClientError.authenticationFailed
+            } catch {
+                FitPilotPipelineTracer.logError(
+                    stage: .authToken,
+                    message: "Auth token fetch failed",
+                    fields: [
+                        "endpoint": endpoint.rawValue,
+                        "error": error.localizedDescription
+                    ]
+                )
                 throw LLMClientError.authenticationFailed
             }
-            urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
+        var requestFields: [String: String] = [
+            "endpoint": endpoint.rawValue,
+            "url": url.absoluteString,
+            "requestBytes": String(requestBody.count),
+            "authHeaderPresent": String(authHeaderPresent),
+            "extendedTimeout": String(FitPilotPipelineTracer.usesExtendedHTTPTimeout)
+        ]
+        if let snippet = FitPilotPipelineTracer.sanitizedJSONSnippet(requestBody) {
+            requestFields["requestBody"] = snippet
+        }
+        FitPilotPipelineTracer.event(
+            stage: .httpRequest,
+            level: .info,
+            message: "HTTP POST started",
+            fields: requestFields
+        )
+
+        let started = Date()
         let data: Data
         let response: URLResponse
         do {
             (data, response) = try await urlSession.data(for: urlRequest)
         } catch {
+            let durationMs = Int(Date().timeIntervalSince(started) * 1_000)
+            FitPilotPipelineTracer.logError(
+                stage: .httpResponse,
+                message: "HTTP request failed",
+                fields: [
+                    "endpoint": endpoint.rawValue,
+                    "url": url.absoluteString,
+                    "durationMs": String(durationMs),
+                    "error": error.localizedDescription,
+                    "errorType": String(describing: type(of: error))
+                ]
+            )
             throw LLMClientError.requestFailed(error.localizedDescription)
         }
 
-        if let httpResponse = response as? HTTPURLResponse,
-           !(200...299).contains(httpResponse.statusCode) {
-            throw LLMClientError.invalidStatusCode(httpResponse.statusCode)
+        let durationMs = Int(Date().timeIntervalSince(started) * 1_000)
+        let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+
+        if !(200...299).contains(statusCode) {
+            var errorFields: [String: String] = [
+                "endpoint": endpoint.rawValue,
+                "url": url.absoluteString,
+                "status": String(statusCode),
+                "durationMs": String(durationMs),
+                "responseBytes": String(data.count)
+            ]
+            if let snippet = FitPilotPipelineTracer.sanitizedJSONSnippet(data) {
+                errorFields["responseBody"] = snippet
+            }
+            FitPilotPipelineTracer.logError(
+                stage: .httpResponse,
+                message: "HTTP non-success status",
+                fields: errorFields
+            )
+            throw LLMClientError.invalidStatusCode(statusCode)
         }
+
+        var responseFields: [String: String] = [
+            "endpoint": endpoint.rawValue,
+            "url": url.absoluteString,
+            "status": String(statusCode),
+            "durationMs": String(durationMs),
+            "responseBytes": String(data.count)
+        ]
+        if let snippet = FitPilotPipelineTracer.sanitizedJSONSnippet(data) {
+            responseFields["responseBody"] = snippet
+        }
+        FitPilotPipelineTracer.event(
+            stage: .httpResponse,
+            level: .info,
+            message: "HTTP POST succeeded",
+            fields: responseFields
+        )
 
         do {
             return try decoder.decode(Response.self, from: data)
         } catch {
+            FitPilotPipelineTracer.logError(
+                stage: .httpResponse,
+                message: "Response decoding failed",
+                fields: [
+                    "endpoint": endpoint.rawValue,
+                    "url": url.absoluteString,
+                    "status": String(statusCode),
+                    "durationMs": String(durationMs),
+                    "error": error.localizedDescription
+                ]
+            )
             throw LLMClientError.decodingFailed("Could not decode backend response.")
         }
     }
 
-    private static func makeFastFailSession() -> URLSession {
+    private static func makeSession() -> URLSession {
         let configuration = URLSessionConfiguration.ephemeral
-        configuration.timeoutIntervalForRequest = 1.5
-        configuration.timeoutIntervalForResource = 2.0
+        if FitPilotPipelineTracer.usesExtendedHTTPTimeout {
+            configuration.timeoutIntervalForRequest = 8
+            configuration.timeoutIntervalForResource = 12
+        } else {
+            configuration.timeoutIntervalForRequest = 1.5
+            configuration.timeoutIntervalForResource = 2.0
+        }
         configuration.waitsForConnectivity = false
         return URLSession(configuration: configuration)
     }

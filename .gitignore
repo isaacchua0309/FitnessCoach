@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+Fitness Coach/DeveloperLocal.plist
 DerivedData/
 *.xcuserstate
 xcuserdata/

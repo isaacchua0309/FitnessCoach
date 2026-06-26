@@ -62,56 +62,52 @@ enum CoachResponseBuilder {
         return response
     }
 
-    static func localFoodEstimatePending(_ estimate: LocalFoodEstimate) -> String {
-        let draft = estimate.draft
-        return """
-        I estimated this as:
-
-        \(draft.name)
-        \(draft.calories) kcal · \(formatMacro(draft.protein))g protein
-
-        Confirm before I log it?
-        """
+    static func localFoodEstimatePending(
+        _ estimate: LocalFoodEstimate,
+        originalText: String
+    ) -> String {
+        let confidence: AIConfidence = estimate.confidence == .high ? .high : .medium
+        return CoachPendingCopyFormatter.foodPendingChatMessage(
+            draft: estimate.draft,
+            confidence: confidence,
+            originalText: originalText
+        )
     }
 
     static func aiFoodEstimatePending(
         draft: FoodDraft,
-        assistantMessage: String?
+        confidence: AIConfidence,
+        originalText: String
     ) -> String {
-        var lines: [String] = []
-        if let assistantMessage, !assistantMessage.isEmpty {
-            lines.append(assistantMessage)
-            lines.append("")
-        }
-        lines.append("I estimate this as:")
-        lines.append("")
-        lines.append(draft.name)
-        lines.append("\(draft.calories) kcal · \(formatMacro(draft.protein))g protein")
-        lines.append("")
-        lines.append("Confirm before I log it?")
-        return lines.joined(separator: "\n")
+        CoachPendingCopyFormatter.foodPendingChatMessage(
+            draft: draft,
+            confidence: confidence,
+            originalText: originalText
+        )
     }
 
     static func workoutPending(_ draft: WorkoutDraft, assistantMessage: String?) -> String {
-        var lines: [String] = []
-        if let assistantMessage, !assistantMessage.isEmpty {
-            lines.append(assistantMessage)
-            lines.append("")
+        CoachPendingCopyFormatter.workoutPendingChatMessage(
+            draft: draft,
+            assistantMessage: assistantMessage
+        )
+    }
+
+    static func waterPending(_ draft: WaterDraft, assistantMessage: String?) -> String {
+        "Log \(draft.amountMl)ml water?"
+    }
+
+    static func weightPending(_ draft: WeightDraft, assistantMessage: String?) -> String {
+        "Log \(formatWeight(draft.weightKg)) kg?"
+    }
+
+    static func mutationPending(assistantMessage: String?) -> String {
+        guard let message = assistantMessage?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !message.isEmpty
+        else {
+            return "Review this change before applying it."
         }
-        lines.append("I parsed this workout:")
-        if let name = draft.name {
-            lines.append(name)
-        }
-        let details = [
-            draft.durationMinutes.map { "\($0) min" },
-            draft.estimatedCaloriesBurned.map { "\($0) kcal burned" }
-        ].compactMap(\.self)
-        if !details.isEmpty {
-            lines.append(details.joined(separator: " · "))
-        }
-        lines.append("")
-        lines.append("Reply \"confirm\" to log it, or \"cancel\" to discard.")
-        return lines.joined(separator: "\n")
+        return message
     }
 
     static func workout(_ entry: WorkoutEntry) -> String {
@@ -299,6 +295,9 @@ enum CoachResponseBuilder {
 
     static let aiFoodRejected =
         "No problem — I did not log that food."
+
+    static let pendingRejected =
+        "No problem — I did not log it."
 
     static let aiFoodSaveFailed =
         "I could not save that food entry. Please check the values and try again."
