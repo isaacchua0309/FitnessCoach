@@ -21,12 +21,10 @@ struct DebugAuthDiagnosticsView: View {
         LabeledContent("Firebase user", value: authManager.user == nil ? "No" : "Yes")
         LabeledContent("UID", value: authManager.currentUID ?? "—")
             .textSelection(.enabled)
-        LabeledContent("Last error", value: authManager.errorMessage ?? "—")
+        LabeledContent("Last error", value: lastErrorLabel)
 
-        if case .completed(let outcome) = tokenCheckStatus {
-            LabeledContent("Token check", value: outcome.label)
-                .foregroundStyle(outcome.isSuccess ? Color.secondary : Color.red)
-        }
+        LabeledContent("Token check", value: tokenCheckLabel)
+            .foregroundStyle(tokenCheckForegroundColor)
 
         Button {
             checkTokenAvailability(forceRefresh: false)
@@ -67,8 +65,38 @@ struct DebugAuthDiagnosticsView: View {
             return "signingIn"
         case .signedIn(let uid):
             return "signedIn(\(uid))"
-        case .failed(let message):
-            return "failed(\(message))"
+        case .failed:
+            return "failed"
+        }
+    }
+
+    private var lastErrorLabel: String {
+        guard let errorMessage = authManager.errorMessage,
+              !errorMessage.isEmpty else {
+            return "—"
+        }
+        return errorMessage
+    }
+
+    private var tokenCheckLabel: String {
+        switch tokenCheckStatus {
+        case .idle:
+            return "—"
+        case .checking:
+            return "Checking..."
+        case .completed(.available):
+            return "Available"
+        case .completed(.unavailable):
+            return "Unavailable"
+        }
+    }
+
+    private var tokenCheckForegroundColor: Color {
+        switch tokenCheckStatus {
+        case .completed(.unavailable):
+            return .red
+        default:
+            return Color.secondary
         }
     }
 
@@ -95,7 +123,7 @@ struct DebugAuthDiagnosticsView: View {
                 _ = try await authManager.idToken(forceRefresh: forceRefresh)
                 tokenCheckStatus = .completed(.available)
             } catch {
-                tokenCheckStatus = .completed(.failed("Unavailable"))
+                tokenCheckStatus = .completed(.unavailable)
             }
         }
     }
@@ -111,21 +139,7 @@ private enum TokenCheckStatus: Equatable {
 
 private enum TokenCheckOutcome: Equatable {
     case available
-    case failed(String)
-
-    var label: String {
-        switch self {
-        case .available:
-            return "Available"
-        case .failed(let message):
-            return "Failed — \(message)"
-        }
-    }
-
-    var isSuccess: Bool {
-        if case .available = self { return true }
-        return false
-    }
+    case unavailable
 }
 
 #Preview {

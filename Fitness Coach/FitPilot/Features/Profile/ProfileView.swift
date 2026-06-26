@@ -15,6 +15,20 @@ struct ProfileView: View {
         NavigationStack {
             content
                 .navigationTitle("Plan")
+                .toolbar {
+                    if case .loaded = model.viewState {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                model.showSettings()
+                            } label: {
+                                Image(systemName: "gearshape")
+                                    .font(.body.weight(.medium))
+                                    .foregroundStyle(OnboardingTheme.secondaryText)
+                            }
+                            .accessibilityLabel("Settings")
+                        }
+                    }
+                }
                 .task {
                     await model.loadProfile()
                 }
@@ -51,16 +65,16 @@ struct ProfileView: View {
                 }
                 .sheet(isPresented: $model.isShowingSettingsSheet) {
                     if let formState = model.editFormState {
-                        ProfileSettingsSheet(
+                        SettingsRootView(
                             formState: Binding(
                                 get: { model.editFormState ?? formState },
                                 set: { model.editFormState = $0 }
                             ),
                             errorMessage: model.formErrorMessage,
-                            onSave: { state in
+                            onSaveUnits: { state in
                                 await model.saveSettings(state)
                             },
-                            onCancel: {
+                            onDismiss: {
                                 model.dismissSettings()
                             }
                         )
@@ -79,6 +93,8 @@ struct ProfileView: View {
                         )
                     }
                 }
+                .background(OnboardingTheme.background)
+                .preferredColorScheme(.dark)
         }
     }
 
@@ -115,21 +131,15 @@ struct ProfileView: View {
 
                 PlanRationaleSection(rationale: state.rationale)
 
-                PlanAdaptiveCoachSection(state: state.adaptiveCoach)
-
-                PlanLifestyleSection(lifestyle: state.lifestyle)
-
-                PlanTimelineSection(timeline: state.timeline)
-
                 PlanAboutYouSection(aboutYou: state.aboutYou)
 
-                PlanSettingsSection {
-                    model.showSettings()
-                }
+                PlanTimelineSection(timeline: state.timeline)
             }
             .padding(.horizontal, PlanLayout.horizontalPadding)
-            .padding(.vertical, 24)
+            .padding(.top, 8)
+            .padding(.bottom, 12)
         }
+        .fitPilotScrollBottomInset()
     }
 }
 
@@ -146,7 +156,8 @@ struct ProfileView: View {
             PlanStrategyHeroSection(state: ProfilePreviewData.state.strategy, onEditPlan: {})
             PlanTodaysTargetsSection(targets: ProfilePreviewData.state.todaysTargets)
             PlanRationaleSection(rationale: ProfilePreviewData.state.rationale)
-            PlanAdaptiveCoachSection(state: ProfilePreviewData.state.adaptiveCoach)
+            PlanAboutYouSection(aboutYou: ProfilePreviewData.state.aboutYou)
+            PlanTimelineSection(timeline: ProfilePreviewData.state.timeline)
         }
         .padding(.horizontal, PlanLayout.horizontalPadding)
         .padding(.vertical, 24)

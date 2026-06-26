@@ -135,9 +135,9 @@ final class ProfileModel: ObservableObject {
         do {
             let update = try formState.makeUpdate()
             _ = try actionCenter.updatePlan(update)
-            dismissSettings()
             await refresh()
             actionCenter.notifyDataChanged()
+            formErrorMessage = nil
         } catch let error as ProfileFormError {
             formErrorMessage = error.message
         } catch ServiceError.invalidInput(let message) {

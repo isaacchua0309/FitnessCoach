@@ -20,7 +20,7 @@ final class AppRouteResolverTests: XCTestCase {
             .signIn
         )
         XCTAssertEqual(
-            AppRouteResolver.resolve(authState: .failed("Couldn't sign in with Google. Please try again.")),
+            AppRouteResolver.resolve(authState: .failed(AuthSignInUserMessage.signInFailureMessage)),
             .signIn
         )
     }
@@ -182,20 +182,29 @@ final class AuthSignInPolicyTests: XCTestCase {
         XCTAssertFalse(AuthSignInErrorClassifier.shouldSurfaceSignInFailure(for: cancellation))
         XCTAssertEqual(AuthSignInErrorClassifier.userFacingSignInFailureMessage(for: cancellation), "")
         XCTAssertNil(
-            AuthSignInPresentationPolicy.failureBannerMessage(
-                authState: .signedOut,
-                errorMessage: nil
-            )
+            AuthSignInPresentationPolicy.failurePresentation(authState: .signedOut)
         )
     }
 
     func testFailedAuthStateUsesFriendlyBannerCopy() {
-        let message = AuthSignInPresentationPolicy.failureBannerMessage(
-            authState: .failed(AuthSignInUserMessage.signInFailure),
-            errorMessage: AuthSignInUserMessage.signInFailure
+        let presentation = AuthSignInPresentationPolicy.failurePresentation(
+            authState: .failed("com.google.GIDSignIn error -1.")
         )
 
-        XCTAssertEqual(message, AuthSignInUserMessage.signInFailure)
+        XCTAssertEqual(presentation?.title, AuthSignInUserMessage.signInFailureTitle)
+        XCTAssertEqual(presentation?.message, AuthSignInUserMessage.signInFailureMessage)
+    }
+
+    func testFailurePresentationIgnoresRawErrorMessage() {
+        let presentation = AuthSignInPresentationPolicy.failurePresentation(
+            authState: .failed("Firebase Auth error 17020.")
+        )
+
+        XCTAssertEqual(presentation?.title, AuthSignInUserMessage.signInFailureTitle)
+        XCTAssertEqual(presentation?.message, AuthSignInUserMessage.signInFailureMessage)
+        XCTAssertFalse(presentation!.message.localizedCaseInsensitiveContains("firebase"))
+        XCTAssertFalse(presentation!.message.localizedCaseInsensitiveContains("GIDSignIn"))
+        XCTAssertFalse(presentation!.message.localizedCaseInsensitiveContains("token"))
     }
 
     func testLaunchUsesStartListeningOnly() {

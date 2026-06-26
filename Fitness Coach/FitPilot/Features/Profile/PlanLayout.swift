@@ -8,9 +8,9 @@
 import SwiftUI
 
 enum PlanLayout {
-    static let sectionSpacing: CGFloat = 36
-    static let itemSpacing: CGFloat = 12
-    static let horizontalPadding: CGFloat = 20
+    static let sectionSpacing = FitPilotScreenStyle.sectionSpacing
+    static let itemSpacing: CGFloat = 10
+    static let horizontalPadding = FitPilotScreenStyle.horizontalPadding
 }
 
 struct PlanSectionLabel: View {
@@ -19,8 +19,8 @@ struct PlanSectionLabel: View {
     var body: some View {
         Text(title)
             .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(OnboardingTheme.secondaryText)
             .textCase(.uppercase)
-            .tracking(0.6)
+            .tracking(0.5)
     }
 }

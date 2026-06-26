@@ -20,10 +20,10 @@ enum AuthCapabilities {
 }
 
 enum AuthSignInUserMessage {
-    static let signInFailure = "Couldn't sign in with Google. Please try again."
-    static let configurationFailure = "Couldn't start Google Sign-In. Please try again."
-    static let presenterFailure = "Couldn't open Google Sign-In. Please try again."
-    static let credentialFailure = "Couldn't complete sign-in. Please try again."
+    static let signInFailureTitle = "Sign-in failed"
+    static let signInFailureMessage = "We couldn't sign you in. Please check your connection and try again."
+    /// Canonical failure token stored in `AuthState.failed` and shown to users.
+    static let signInFailure = signInFailureMessage
 }
 
 enum AuthSignInErrorClassifier {
@@ -120,6 +120,11 @@ enum AuthTokenPolicy {
 
 enum AuthSignInPresentationPolicy {
 
+    struct FailurePresentation: Equatable {
+        let title: String
+        let message: String
+    }
+
     static func shouldShowFailureBanner(authState: AuthState) -> Bool {
         if case .failed = authState {
             return true
@@ -127,16 +132,13 @@ enum AuthSignInPresentationPolicy {
         return false
     }
 
-    static func failureBannerMessage(
-        authState: AuthState,
-        errorMessage: String?
-    ) -> String? {
+    static func failurePresentation(authState: AuthState) -> FailurePresentation? {
         guard shouldShowFailureBanner(authState: authState) else {
             return nil
         }
-        if let errorMessage, !errorMessage.isEmpty {
-            return errorMessage
-        }
-        return AuthSignInUserMessage.signInFailure
+        return FailurePresentation(
+            title: AuthSignInUserMessage.signInFailureTitle,
+            message: AuthSignInUserMessage.signInFailureMessage
+        )
     }
 }

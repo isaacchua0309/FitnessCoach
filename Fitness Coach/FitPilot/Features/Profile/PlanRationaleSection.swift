@@ -12,10 +12,12 @@ struct PlanRationaleSection: View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
             PlanSectionLabel(title: "Why this plan?")
 
-            Text(rationale)
-                .font(.subheadline)
-                .foregroundStyle(.primary)
-                .fixedSize(horizontal: false, vertical: true)
+            FitPilotPlanCard {
+                Text(rationale)
+                    .font(.subheadline)
+                    .foregroundStyle(OnboardingTheme.primaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 }

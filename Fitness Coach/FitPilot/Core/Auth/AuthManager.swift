@@ -107,12 +107,12 @@ final class AuthManager: ObservableObject {
         defer { isSigningIn = false }
 
         guard configureGoogleSignInIfNeeded() else {
-            applyFailure(AuthSignInUserMessage.configurationFailure)
+            applyFailure(AuthSignInUserMessage.signInFailureMessage)
             return
         }
 
         guard let presenter = AuthPresenter.topViewController() else {
-            applyFailure(AuthSignInUserMessage.presenterFailure)
+            applyFailure(AuthSignInUserMessage.signInFailureMessage)
             return
         }
 
@@ -121,7 +121,7 @@ final class AuthManager: ObservableObject {
 
             guard let idToken = signInResult.user.idToken?.tokenString else {
                 GIDSignIn.sharedInstance.signOut()
-                applyFailure(AuthSignInUserMessage.credentialFailure)
+                applyFailure(AuthSignInUserMessage.signInFailureMessage)
                 return
             }
 
@@ -144,7 +144,7 @@ final class AuthManager: ObservableObject {
             #endif
 
             GIDSignIn.sharedInstance.signOut()
-            applyFailure(AuthSignInUserMessage.signInFailure)
+            applyFailure(AuthSignInUserMessage.signInFailureMessage)
         }
     }
 

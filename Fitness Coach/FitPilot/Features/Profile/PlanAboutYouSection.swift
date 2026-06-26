@@ -11,40 +11,32 @@ struct PlanAboutYouSection: View {
     @State private var isExpanded = false
 
     var body: some View {
-        DisclosureGroup(isExpanded: $isExpanded) {
-            VStack(spacing: 0) {
-                aboutRow("Age", aboutYou.age)
-                divider
-                aboutRow("Height", aboutYou.height)
-                divider
-                aboutRow("Sex", aboutYou.sex)
-                if let bodyFat = aboutYou.bodyFat {
-                    divider
-                    aboutRow("Body fat", bodyFat)
+        VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
+            PlanSectionLabel(title: "About you")
+
+            FitPilotPlanCard {
+                DisclosureGroup(isExpanded: $isExpanded) {
+                    VStack(spacing: 0) {
+                        FitPilotPlanDisplayRow(label: "Age", value: aboutYou.age)
+                        FitPilotPlanRowDivider()
+                        FitPilotPlanDisplayRow(label: "Height", value: aboutYou.height)
+                        FitPilotPlanRowDivider()
+                        FitPilotPlanDisplayRow(label: "Sex", value: aboutYou.sex)
+                        if let bodyFat = aboutYou.bodyFat {
+                            FitPilotPlanRowDivider()
+                            FitPilotPlanDisplayRow(label: "Body fat", value: bodyFat)
+                        }
+                        FitPilotPlanRowDivider()
+                        FitPilotPlanDisplayRow(label: "Units", value: aboutYou.units)
+                    }
+                    .padding(.top, 6)
+                } label: {
+                    Text("Your details")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(OnboardingTheme.primaryText)
                 }
-                divider
-                aboutRow("Units", aboutYou.units)
+                .tint(OnboardingTheme.accent)
             }
-            .padding(.top, 8)
-        } label: {
-            Text("About you")
-                .font(.subheadline.weight(.semibold))
         }
-    }
-
-    private var divider: some View {
-        Divider().padding(.leading, 4)
-    }
-
-    private func aboutRow(_ label: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.subheadline)
-            Text(value)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 8)
     }
 }

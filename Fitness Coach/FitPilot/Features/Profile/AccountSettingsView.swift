@@ -2,7 +2,7 @@
 //  AccountSettingsView.swift
 //  Fitness Coach
 //
-//  FitPilot — Google account status and sign-out (Settings).
+//  FitPilot — Consumer account screen (Settings → Account).
 //
 
 import SwiftUI
@@ -13,16 +13,25 @@ struct AccountSettingsView: View {
     @State private var showsLogoutConfirmation = false
 
     var body: some View {
-        Form {
-            statusSection
-            logoutSection
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                profileHeader
+                accountDetailsSection
+                logoutSection
 
-            #if DEBUG
-            debugSection
-            #endif
+                Text("Deleting app data is separate from signing out.")
+                    .font(.caption)
+                    .foregroundStyle(OnboardingTheme.tertiaryText.opacity(0.9))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, FitPilotScreenStyle.horizontalPadding)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
         }
+        .fitPilotDarkScreenBackground()
         .navigationTitle("Account")
         .navigationBarTitleDisplayMode(.inline)
+        .fitPilotScrollBottomInset()
         .confirmationDialog(
             "Log out of FitPilot?",
             isPresented: $showsLogoutConfirmation,
@@ -37,61 +46,109 @@ struct AccountSettingsView: View {
         }
     }
 
-    // MARK: - Sections
+    // MARK: - Profile header
 
-    private var statusSection: some View {
-        Section {
-            HStack(alignment: .center, spacing: 12) {
-                if showsStatusProgress {
-                    SwiftUI.ProgressView()
-                        .controlSize(.small)
+    private var profileHeader: some View {
+        VStack(spacing: 12) {
+            avatarView
+
+            VStack(spacing: 4) {
+                if let displayName = accountDisplayName {
+                    Text(displayName)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(OnboardingTheme.primaryText)
+                        .multilineTextAlignment(.center)
                 }
-                Text(statusHeadline)
-                    .font(.subheadline)
-            }
 
-            if let displayName = accountDisplayName {
-                LabeledContent("Name", value: displayName)
-            }
+                if let email = accountEmail {
+                    Text(email)
+                        .font(.subheadline)
+                        .foregroundStyle(OnboardingTheme.secondaryText)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                }
 
-            if let email = accountEmail {
-                LabeledContent("Email", value: email)
+                if showsSignedInBadge {
+                    Label("Signed in with Google", systemImage: "checkmark.circle.fill")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(OnboardingTheme.tertiaryText)
+                        .padding(.top, 6)
+                }
             }
-        } header: {
-            Text("Status")
-        } footer: {
-            if isSignedInWithGoogle {
-                Text("Your Google account is used to sign in to FitPilot on this device.")
+            .frame(maxWidth: .infinity)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, 4)
+    }
+
+    private var avatarView: some View {
+        ZStack {
+            Circle()
+                .fill(OnboardingTheme.cardElevated)
+                .frame(width: 72, height: 72)
+                .overlay(
+                    Circle()
+                        .stroke(OnboardingTheme.border, lineWidth: 1)
+                )
+
+            if showsStatusProgress {
+                SwiftUI.ProgressView()
+                    .tint(OnboardingTheme.primaryText)
+            } else {
+                Text(profileInitials)
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(OnboardingTheme.primaryText)
+            }
+        }
+        .accessibilityLabel(avatarAccessibilityLabel)
+    }
+
+    // MARK: - Account details
+
+    private var accountDetailsSection: some View {
+        FitPilotPlanCard {
+            VStack(spacing: 0) {
+                FitPilotPlanDisplayRow(label: "Name", value: accountDisplayName ?? "—")
+                FitPilotPlanRowDivider()
+                FitPilotPlanDisplayRow(
+                    label: "Email",
+                    value: accountEmail ?? "—",
+                    multilineValue: true
+                )
+                FitPilotPlanRowDivider()
+                FitPilotPlanDisplayRow(label: "Sign-in method", value: "Google")
             }
         }
     }
+
+    // MARK: - Logout
 
     private var logoutSection: some View {
-        Section {
-            Button("Log Out", role: .destructive) {
-                showsLogoutConfirmation = true
-            }
-            .disabled(!canLogOut)
-        } footer: {
-            Text("Deleting app data is separate from signing out. Use Privacy settings when data deletion is available.")
+        Button {
+            showsLogoutConfirmation = true
+        } label: {
+            Text("Log out")
+                .font(.body.weight(.medium))
+                .foregroundStyle(.red.opacity(canLogOut ? 0.95 : 0.5))
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
         }
+        .buttonStyle(.plain)
+        .background(
+            RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+                .fill(OnboardingTheme.card)
+                .overlay(
+                    RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+                        .stroke(OnboardingTheme.border, lineWidth: 1)
+                )
+        )
+        .disabled(!canLogOut)
     }
 
-    #if DEBUG
-    private var debugSection: some View {
-        Section {
-            DebugAuthDiagnosticsView()
-        } header: {
-            Text("Diagnostics")
-        } footer: {
-            Text("Debug builds only. Token values are never shown or logged.")
-        }
-    }
-    #endif
+    // MARK: - Helpers
 
-    // MARK: - Status
-
-    private var isSignedInWithGoogle: Bool {
+    private var showsSignedInBadge: Bool {
         if case .signedIn = authManager.authState {
             return true
         }
@@ -108,22 +165,7 @@ struct AccountSettingsView: View {
     }
 
     private var canLogOut: Bool {
-        isSignedInWithGoogle && !showsStatusProgress
-    }
-
-    private var statusHeadline: String {
-        switch authManager.authState {
-        case .unknown:
-            return "Checking your session…"
-        case .signedOut:
-            return "Not signed in."
-        case .signingIn:
-            return "Signing in…"
-        case .signedIn:
-            return "Signed in with Google"
-        case .failed:
-            return "Sign-in session unavailable."
-        }
+        showsSignedInBadge && !showsStatusProgress
     }
 
     private var accountDisplayName: String? {
@@ -134,14 +176,35 @@ struct AccountSettingsView: View {
         authManager.accountEmail
     }
 
+    private var profileInitials: String {
+        if let name = accountDisplayName {
+            let parts = name.split(whereSeparator: \.isWhitespace)
+            let initials = parts.prefix(2).compactMap(\.first)
+            if !initials.isEmpty {
+                return String(initials).uppercased()
+            }
+        }
+        if let email = accountEmail, let first = email.first {
+            return String(first).uppercased()
+        }
+        return "?"
+    }
+
+    private var avatarAccessibilityLabel: String {
+        if let name = accountDisplayName {
+            return "Profile photo for \(name)"
+        }
+        return "Profile photo"
+    }
+
     private var logoutConfirmationMessage: String {
-        "You'll need to sign in again to use FitPilot. Your local app data on this device will not be deleted."
+        "You'll need to sign in again to use FitPilot. Your local data on this device will not be deleted."
     }
 }
 
 // MARK: - Previews
 
-#Preview {
+#Preview("Signed in") {
     NavigationStack {
         AccountSettingsView()
     }

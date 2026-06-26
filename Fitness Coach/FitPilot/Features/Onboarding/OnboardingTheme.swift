@@ -16,6 +16,8 @@ enum OnboardingTheme {
     static let primaryText = Color.white
     static let secondaryText = Color.white.opacity(0.68)
     static let tertiaryText = Color.white.opacity(0.48)
+    /// Footer and legal copy — slightly higher contrast than `tertiaryText` for readability.
+    static let legalText = Color.white.opacity(0.62)
     static let accent = Color.blue
     static let warning = Color.orange
     static let cornerRadius: CGFloat = 18
