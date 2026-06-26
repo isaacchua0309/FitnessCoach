@@ -11,11 +11,13 @@ import SwiftUI
 struct CoachView: View {
 
     @StateObject private var model: CoachModel
+    @EnvironmentObject private var authManager: AuthManager
     @FocusState private var isInputFocused: Bool
 
     @State private var isPhotoPickerPresented = false
     @State private var isCameraPresented = false
     @State private var photoPickerItem: PhotosPickerItem?
+    @State private var isRetryingCoachSession = false
 
     init(model: CoachModel) {
         _model = StateObject(wrappedValue: model)
@@ -45,11 +47,7 @@ struct CoachView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                    if let errorMessage = model.errorMessage {
-                        CoachErrorView(message: errorMessage) {
-                            model.clearError()
-                        }
-                    }
+                    coachErrorBanner
 
                     if let draft = model.foodConfirmationState.pendingDraft,
                        !model.isShowingFoodConfirmationSheet {
@@ -71,7 +69,7 @@ struct CoachView: View {
             .task {
                 model.refreshToolbarContext()
             }
-            .onChange(of: model.messages.count) { _, _ in
+            .onChange(of: model.messageCount) { _, _ in
                 model.refreshToolbarContext()
             }
             .photosPicker(isPresented: $isPhotoPickerPresented, selection: $photoPickerItem, matching: .images)
@@ -89,6 +87,21 @@ struct CoachView: View {
             .sheet(isPresented: $model.isShowingFoodConfirmationSheet) {
                 foodConfirmationSheet
             }
+        }
+    }
+
+    @ViewBuilder
+    private var coachErrorBanner: some View {
+        if let errorMessage = model.errorMessage {
+            CoachErrorView(
+                title: model.errorTitle,
+                message: errorMessage,
+                retryAction: model.showsAuthRetry ? { retryCoachSession() } : nil,
+                isRetrying: isRetryingCoachSession,
+                onDismiss: {
+                    model.clearError()
+                }
+            )
         }
     }
 
@@ -151,6 +164,24 @@ struct CoachView: View {
         isInputFocused = false
     }
 
+    private func retryCoachSession() {
+        guard model.showsAuthRetry, !isRetryingCoachSession else { return }
+        isRetryingCoachSession = true
+        Task { @MainActor in
+            defer { isRetryingCoachSession = false }
+            guard case .signedIn = authManager.authState else {
+                model.clearError()
+                return
+            }
+            do {
+                _ = try await authManager.idToken(forceRefresh: true)
+                model.clearError()
+            } catch {
+                // Keep the session failure UI; AuthGateView handles signed-out routing.
+            }
+        }
+    }
+
     @ViewBuilder
     private var foodConfirmationSheet: some View {
         if let draft = model.foodConfirmationState.pendingDraft {
@@ -174,4 +205,5 @@ struct CoachView: View {
 #Preview {
     CoachView(model: try! AppContainer(inMemory: true).makeCoachModel())
         .environmentObject(AppRefreshCenter())
+        .environmentObject(AuthManager())
 }

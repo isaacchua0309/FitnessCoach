@@ -10,8 +10,9 @@ import SwiftUI
 struct OnboardingActivityStepView: View {
     @Binding var formState: OnboardingFormState
     @FocusState private var focusedField: Field?
+    @Environment(\.onboardingFieldNavigator) private var fieldNavigator
 
-    private enum Field: Hashable {
+    private enum Field: String, Hashable {
         case trainingDays
         case steps
     }
@@ -40,31 +41,61 @@ struct OnboardingActivityStepView: View {
             }
 
             VStack(spacing: OnboardingTheme.fieldSpacing) {
-                OnboardingTextField(
+                OnboardingNumberField(
                     title: "Training days per week",
                     placeholder: "3",
                     text: $formState.trainingFrequencyPerWeekText,
                     helper: "Strength, sport, classes, or structured cardio.",
-                    keyboard: .numberPad
+                    keyboard: .numberPad,
+                    isFocused: focusedField == .trainingDays
                 )
                 .focused($focusedField, equals: .trainingDays)
+                .id(Field.trainingDays)
 
-                OnboardingTextField(
+                OnboardingNumberField(
                     title: "Average steps per day",
                     placeholder: "5000",
                     text: $formState.averageStepsText,
                     helper: "A rough weekly average is enough.",
-                    keyboard: .numberPad
+                    keyboard: .numberPad,
+                    isFocused: focusedField == .steps
                 )
                 .focused($focusedField, equals: .steps)
+                .id(Field.steps)
             }
-            .onboardingCard()
         }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Done") { focusedField = nil }
-            }
+        .onChange(of: focusedField) { _, field in
+            syncNavigator(for: field)
+        }
+        .onAppear {
+            syncNavigator(for: focusedField)
+        }
+    }
+
+    private func syncNavigator(for field: Field?) {
+        guard let fieldNavigator else { return }
+
+        switch field {
+        case .trainingDays:
+            fieldNavigator.updateFocus(
+                fieldID: Field.trainingDays,
+                canPrevious: false,
+                canNext: true,
+                onPrevious: nil,
+                onNext: { focusedField = .steps },
+                onDismiss: { focusedField = nil }
+            )
+        case .steps:
+            fieldNavigator.updateFocus(
+                fieldID: Field.steps,
+                canPrevious: true,
+                canNext: false,
+                onPrevious: { focusedField = .trainingDays },
+                onNext: nil,
+                onDismiss: { focusedField = nil }
+            )
+        case nil:
+            fieldNavigator.clearFocus()
         }
     }
 
@@ -87,4 +118,5 @@ struct OnboardingActivityStepView: View {
 #Preview {
     OnboardingActivityStepView(formState: .constant(OnboardingPreviewData.formState))
         .padding()
+        .environment(\.onboardingFieldNavigator, OnboardingFieldNavigator())
 }

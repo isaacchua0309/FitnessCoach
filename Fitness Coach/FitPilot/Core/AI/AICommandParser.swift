@@ -39,7 +39,7 @@ struct AICommandParser {
 
     static func map(_ error: LLMClientError) -> AIServiceError {
         switch error {
-        case .invalidURL, .missingConfiguration:
+        case .invalidURL, .missingConfiguration, .backendUnavailable:
             return .backendUnavailable
         case .requestFailed(let message):
             return .requestFailed(message)
@@ -47,6 +47,8 @@ struct AICommandParser {
             return .requestFailed("Status code \(code).")
         case .decodingFailed(let message):
             return .decodingFailed(message)
+        case .authenticationFailed:
+            return .authenticationFailed
         }
     }
 }

@@ -137,6 +137,7 @@ struct ProfileView: View {
     let container = try! AppContainer(inMemory: true)
     ProfileView(model: container.makeProfileModel())
         .environmentObject(container.refreshCenter)
+        .environmentObject(container.authManager)
 }
 
 #Preview("Loaded Plan") {

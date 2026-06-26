@@ -16,11 +16,17 @@ enum CoachRouteDebugLogger {
             """
             raw=\(decision.rawMessage, privacy: .private) \
             normalized=\(decision.normalizedMessage, privacy: .private) \
-            intent=\(decision.detectedIntent.rawValue, privacy: .public) \
-            confidence=\(decision.confidence, privacy: .public) \
+            source=\(decision.routeSource.rawValue, privacy: .public) \
+            intent=\(decision.intent?.rawValue ?? "none", privacy: .public) \
+            tier=\(decision.modelTier?.rawValue ?? "none", privacy: .public) \
             handler=\(decision.chosenHandler, privacy: .public) \
-            fallback=\(decision.fallbackReason ?? "none", privacy: .public)
+            requiresAPI=\(decision.requiresAPI, privacy: .public) \
+            reason=\(decision.reason ?? "none", privacy: .public)
             """
         )
+    }
+
+    static func logMessage(_ message: String) {
+        logger.debug("\(message, privacy: .public)")
     }
 }

@@ -40,6 +40,7 @@ enum CoachIntent: String, Codable, Equatable, Sendable {
     case logWorkout = "log_workout"
     case editLog = "edit_log"
     case deleteLog = "delete_log"
+    case undo
     case dailySummary = "daily_summary"
     case calorieLookup = "calorie_lookup"
     case macroLookup = "macro_lookup"

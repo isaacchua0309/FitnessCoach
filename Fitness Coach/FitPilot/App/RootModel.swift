@@ -28,7 +28,9 @@ final class RootModel: ObservableObject {
 
     func load() {
         do {
-            state = try userProfileService.getCurrentProfile() == nil ? .onboarding : .main
+            state = RootProfileRouteResolver.resolve(
+                hasProfile: try userProfileService.getCurrentProfile() != nil
+            )
         } catch {
             state = .error("Could not load your profile.")
         }

@@ -10,6 +10,7 @@ loadEnv(resolve(rootDir, ".env"));
 
 const apiKey = process.env.OPENAI_API_KEY;
 const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
+const classifierModel = process.env.OPENAI_CLASSIFIER_MODEL || model;
 const port = Number(process.env.FITPILOT_AI_BACKEND_PORT || 8787);
 
 if (!apiKey) {
@@ -27,6 +28,9 @@ const server = http.createServer(async (request, response) => {
     const body = await readJSON(request);
 
     switch (request.url) {
+      case "/v1/ai/classify-coach-intent":
+        sendJSON(response, 200, { intentResult: await classifyCoachIntent(body) });
+        return;
       case "/v1/ai/parse-command":
         sendJSON(response, 200, { parsedCommand: await parseCommand(body) });
         return;
@@ -38,6 +42,15 @@ const server = http.createServer(async (request, response) => {
         return;
       case "/v1/ai/generate-daily-review":
         sendJSON(response, 200, { response: await coachResponse(body, dailyReviewInstructions()) });
+        return;
+      case "/v1/ai/parse-workout":
+        sendJSON(response, 200, await parseWorkout(body));
+        return;
+      case "/v1/ai/parse-edit-delete":
+        sendJSON(response, 200, { parsedCommand: await parseEditDelete(body) });
+        return;
+      case "/v1/ai/parse-multi-action":
+        sendJSON(response, 200, { parsedCommand: await parseMultiAction(body) });
         return;
       default:
         sendJSON(response, 404, { error: "Endpoint not found." });
@@ -87,7 +100,7 @@ function sendJSON(response, statusCode, payload) {
   response.end(JSON.stringify(payload));
 }
 
-async function openAIJSON({ instructions, input, schema, maxOutputTokens = 1200 }) {
+async function openAIJSON({ instructions, input, schema, maxOutputTokens = 1200, model: modelOverride }) {
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -95,7 +108,7 @@ async function openAIJSON({ instructions, input, schema, maxOutputTokens = 1200 
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model,
+      model: modelOverride || model,
       instructions,
       input,
       store: false,
@@ -135,6 +148,19 @@ function firstOutputText(payload) {
   return null;
 }
 
+async function classifyCoachIntent(request) {
+  return openAIJSON({
+    instructions: coachIntentClassificationInstructions(),
+    input: JSON.stringify({
+      text: request.text,
+      context: request.context
+    }),
+    schema: coachIntentResultSchema(),
+    maxOutputTokens: 900,
+    model: classifierModel
+  });
+}
+
 async function parseCommand(request) {
   return openAIJSON({
     instructions: commandInstructions(),
@@ -156,6 +182,42 @@ async function estimateFood(request) {
     }),
     schema: aiFoodEstimateResponseSchema(),
     maxOutputTokens: 1200
+  });
+}
+
+async function parseWorkout(request) {
+  return openAIJSON({
+    instructions: workoutParseInstructions(),
+    input: JSON.stringify({
+      text: request.text,
+      context: request.context
+    }),
+    schema: aiWorkoutParseResponseSchema(),
+    maxOutputTokens: 1800
+  });
+}
+
+async function parseEditDelete(request) {
+  return openAIJSON({
+    instructions: editDeleteInstructions(),
+    input: JSON.stringify({
+      text: request.text,
+      context: request.context
+    }),
+    schema: aiParsedCommandSchema(),
+    maxOutputTokens: 1400
+  });
+}
+
+async function parseMultiAction(request) {
+  return openAIJSON({
+    instructions: multiActionInstructions(),
+    input: JSON.stringify({
+      text: request.text,
+      context: request.context
+    }),
+    schema: aiParsedCommandSchema(),
+    maxOutputTokens: 1800
   });
 }
 
@@ -204,11 +266,49 @@ Task: Give brief meal advice using the provided fitness context.
 Do not log anything. Mention practical portions or tradeoffs when helpful.`;
 }
 
+function coachIntentClassificationInstructions() {
+  return `${sharedRules()}
+
+Task: Classify the user's Coach message. You are not answering the user yet.
+Return valid JSON only matching CoachIntentResult.
+- Choose one intent: log_food, log_water, log_weight, log_workout, edit_log, delete_log, undo,
+  daily_summary, calorie_lookup, macro_lookup, meal_decision, nutrition_advice,
+  workout_advice, weight_loss_advice, app_help, general_conversation, unrelated_or_unsupported.
+- Prefer app-domain intents for food, calories, weight, workouts, hydration, meals, and fitness.
+- Set requiresAppMutation true only when the user wants to change FitPilot data.
+- Include a typed action when mutation data is clear enough to validate.
+- Set canAnswerWithCheapModel true for simple nutrition, calorie, macro, meal-decision, or workout questions.
+- Set requiresEscalation true only for deeper planning, multi-step coaching, or ambiguous mutations.`;
+}
+
 function dailyReviewInstructions() {
   return `${sharedRules()}
 
 Task: Write a concise daily review using only the provided deterministic input.
 Use numbers as provided. Highlight one win and one next move.`;
+}
+
+function workoutParseInstructions() {
+  return `${sharedRules()}
+
+Task: Parse the workout description into a WorkoutDraft plus a short assistantMessage.
+Infer duration, calories burned, intensity, recovery demand, and exercise sets when possible.
+Always require user confirmation before logging.`;
+}
+
+function editDeleteInstructions() {
+  return `${sharedRules()}
+
+Task: Parse an edit or delete request into AIParsedCommand.
+Use editEntry or deleteEntry intent. Include targetEntrySelector and require confirmation.
+Never guess destructive deletes when ambiguous — ask for clarification in assistantMessage.`;
+}
+
+function multiActionInstructions() {
+  return `${sharedRules()}
+
+Task: Parse a multi-action command into AIParsedCommand with intent multiAction.
+Return all proposed actions and require confirmation.`;
 }
 
 function nullable(schema) {
@@ -371,6 +471,89 @@ function aiCoachResponseSchema() {
         message: { type: "string" },
         confidence,
         followUpSuggestions: { type: "array", items: { type: "string" } }
+      }
+    }
+  };
+}
+
+function aiWorkoutParseResponseSchema() {
+  return {
+    name: "ai_workout_parse_response",
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["workoutDraft", "assistantMessage", "confidence"],
+      properties: {
+        workoutDraft: workoutDraftSchema(),
+        assistantMessage: nullable({ type: "string" }),
+        confidence
+      }
+    }
+  };
+}
+
+function coachActionSchema() {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: ["type", "foodDraft", "waterDraft", "weightDraft", "workoutDraft", "selector", "undoTarget"],
+    properties: {
+      type: enumSchema(["log_food", "log_water", "log_weight", "log_workout", "edit_log", "delete_log", "undo", "status", "daily_review"]),
+      foodDraft: nullable(foodDraftSchema()),
+      waterDraft: nullable(waterDraftSchema()),
+      weightDraft: nullable(weightDraftSchema()),
+      workoutDraft: nullable(workoutDraftSchema()),
+      selector: nullable({ type: "string" }),
+      undoTarget: nullable(enumSchema(["food", "water", "workout", "weight", "last"]))
+    }
+  };
+}
+
+function coachIntentResultSchema() {
+  return {
+    name: "coach_intent_result",
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      required: [
+        "intent", "confidence", "domain", "requiresAppMutation", "requiresUserContext",
+        "canAnswerWithCheapModel", "requiresEscalation", "entities", "action", "reason"
+      ],
+      properties: {
+        intent: enumSchema([
+          "log_food", "log_water", "log_weight", "log_workout", "edit_log", "delete_log", "undo",
+          "daily_summary", "calorie_lookup", "macro_lookup", "meal_decision", "nutrition_advice",
+          "workout_advice", "weight_loss_advice", "app_help", "general_conversation",
+          "unrelated_or_unsupported"
+        ]),
+        confidence: { type: "number" },
+        domain: enumSchema(["nutrition", "fitness", "hydration", "body_metrics", "app", "general", "unrelated"]),
+        requiresAppMutation: { type: "boolean" },
+        requiresUserContext: { type: "boolean" },
+        canAnswerWithCheapModel: { type: "boolean" },
+        requiresEscalation: { type: "boolean" },
+        entities: {
+          type: "object",
+          additionalProperties: false,
+          required: ["food", "meal", "amountMl", "weightKg", "durationMinutes", "distanceKm", "calories", "proteinGrams", "carbsGrams", "fatGrams", "quantity", "unit", "notes"],
+          properties: {
+            food: nullable({ type: "string" }),
+            meal: nullable({ type: "string" }),
+            amountMl: nullable({ type: "integer" }),
+            weightKg: nullable({ type: "number" }),
+            durationMinutes: nullable({ type: "integer" }),
+            distanceKm: nullable({ type: "number" }),
+            calories: nullable({ type: "integer" }),
+            proteinGrams: nullable({ type: "number" }),
+            carbsGrams: nullable({ type: "number" }),
+            fatGrams: nullable({ type: "number" }),
+            quantity: nullable({ type: "number" }),
+            unit: nullable({ type: "string" }),
+            notes: nullable({ type: "string" })
+          }
+        },
+        action: nullable(coachActionSchema()),
+        reason: nullable({ type: "string" })
       }
     }
   };

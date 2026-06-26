@@ -178,3 +178,63 @@ struct AIDailyReviewResponse: Codable, Equatable, Sendable {
         self.usage = usage
     }
 }
+
+// MARK: Workout Parse
+
+struct AIWorkoutParseRequest: Codable, Equatable, Sendable {
+    var text: String
+    var context: AIContext
+}
+
+struct AIWorkoutParseResponse: Codable, Equatable, Sendable {
+    var workoutDraft: WorkoutDraft
+    var assistantMessage: String?
+    var confidence: AIConfidence
+    var usage: AIUsageMetadata?
+
+    init(
+        workoutDraft: WorkoutDraft,
+        assistantMessage: String? = nil,
+        confidence: AIConfidence,
+        usage: AIUsageMetadata? = nil
+    ) {
+        self.workoutDraft = workoutDraft
+        self.assistantMessage = assistantMessage
+        self.confidence = confidence
+        self.usage = usage
+    }
+}
+
+// MARK: Edit / Delete Parse
+
+struct AIEditDeleteParseRequest: Codable, Equatable, Sendable {
+    var text: String
+    var context: AIContext
+}
+
+struct AIEditDeleteParseResponse: Codable, Equatable, Sendable {
+    var parsedCommand: AIParsedCommand
+    var usage: AIUsageMetadata?
+
+    init(parsedCommand: AIParsedCommand, usage: AIUsageMetadata? = nil) {
+        self.parsedCommand = parsedCommand
+        self.usage = usage
+    }
+}
+
+// MARK: Multi Action Parse
+
+struct AIMultiActionParseRequest: Codable, Equatable, Sendable {
+    var text: String
+    var context: AIContext
+}
+
+struct AIMultiActionParseResponse: Codable, Equatable, Sendable {
+    var parsedCommand: AIParsedCommand
+    var usage: AIUsageMetadata?
+
+    init(parsedCommand: AIParsedCommand, usage: AIUsageMetadata? = nil) {
+        self.parsedCommand = parsedCommand
+        self.usage = usage
+    }
+}

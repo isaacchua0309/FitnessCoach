@@ -13,4 +13,6 @@ enum LLMClientError: Error, Equatable {
     case invalidStatusCode(Int)
     case decodingFailed(String)
     case missingConfiguration
+    case backendUnavailable
+    case authenticationFailed
 }

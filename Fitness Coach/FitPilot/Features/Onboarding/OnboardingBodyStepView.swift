@@ -10,8 +10,9 @@ import SwiftUI
 struct OnboardingBodyStepView: View {
     @Binding var formState: OnboardingFormState
     @FocusState private var focusedField: Field?
+    @Environment(\.onboardingFieldNavigator) private var fieldNavigator
 
-    private enum Field: Hashable {
+    private enum Field: String, Hashable {
         case age
         case height
         case weight
@@ -30,33 +31,49 @@ struct OnboardingBodyStepView: View {
             )
 
             VStack(spacing: OnboardingTheme.fieldSpacing) {
-                OnboardingTextField(
+                OnboardingNumberField(
                     title: "Age",
                     placeholder: "28",
                     text: $formState.ageText,
-                    keyboard: .numberPad
+                    keyboard: .numberPad,
+                    isFocused: focusedField == .age
                 )
                 .focused($focusedField, equals: .age)
+                .id(Field.age)
 
-                OnboardingTextField(
+                OnboardingNumberField(
                     title: "Height",
                     placeholder: "175",
                     text: $formState.heightCmText,
                     helper: "Centimeters",
-                    keyboard: .decimalPad
+                    keyboard: .decimalPad,
+                    isFocused: focusedField == .height
                 )
                 .focused($focusedField, equals: .height)
+                .id(Field.height)
 
-                OnboardingTextField(
+                OnboardingNumberField(
                     title: "Current weight",
                     placeholder: "82.5",
                     text: $formState.currentWeightKgText,
                     helper: "Kilograms",
-                    keyboard: .decimalPad
+                    keyboard: .decimalPad,
+                    isFocused: focusedField == .weight
                 )
                 .focused($focusedField, equals: .weight)
+                .id(Field.weight)
+
+                OnboardingNumberField(
+                    title: "Body fat",
+                    placeholder: "Optional",
+                    text: $formState.estimatedBodyFatPercentageText,
+                    helper: "Optional percentage. Leave blank if you do not know.",
+                    keyboard: .decimalPad,
+                    isFocused: focusedField == .bodyFat
+                )
+                .focused($focusedField, equals: .bodyFat)
+                .id(Field.bodyFat)
             }
-            .onboardingCard()
 
             VStack(alignment: .leading, spacing: 12) {
                 OnboardingSectionTitle(title: "Gender", subtitle: "Used only for target estimation.")
@@ -75,40 +92,74 @@ struct OnboardingBodyStepView: View {
                 }
             }
 
-            VStack(spacing: OnboardingTheme.fieldSpacing) {
-                OnboardingTextField(
-                    title: "Body fat",
-                    placeholder: "Optional",
-                    text: $formState.estimatedBodyFatPercentageText,
-                    helper: "Optional percentage. Leave blank if you do not know.",
-                    keyboard: .decimalPad
-                )
-                .focused($focusedField, equals: .bodyFat)
+            VStack(alignment: .leading, spacing: 12) {
+                OnboardingSectionTitle(title: "Units")
 
-                VStack(alignment: .leading, spacing: 12) {
-                    OnboardingSectionTitle(title: "Units")
-
-                    ForEach(UnitSystem.allCases, id: \.self) { system in
-                        OnboardingSelectionCard(
-                            title: OnboardingFormatter.unitSystem(system),
-                            subtitle: system == .metric
-                                ? "Best for this setup flow."
-                                : "Display preference; values are still stored in metric.",
-                            icon: "ruler",
-                            isSelected: formState.unitSystem == system
-                        ) {
-                            focusedField = nil
-                            formState.unitSystem = system
-                        }
+                ForEach(UnitSystem.allCases, id: \.self) { system in
+                    OnboardingSelectionCard(
+                        title: OnboardingFormatter.unitSystem(system),
+                        subtitle: system == .metric
+                            ? "Best for this setup flow."
+                            : "Display preference; values are still stored in metric.",
+                        icon: "ruler",
+                        isSelected: formState.unitSystem == system
+                    ) {
+                        focusedField = nil
+                        formState.unitSystem = system
                     }
                 }
             }
         }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Done") { focusedField = nil }
-            }
+        .onChange(of: focusedField) { _, field in
+            syncNavigator(for: field)
+        }
+        .onAppear {
+            syncNavigator(for: focusedField)
+        }
+    }
+
+    private func syncNavigator(for field: Field?) {
+        guard let fieldNavigator else { return }
+
+        switch field {
+        case .age:
+            fieldNavigator.updateFocus(
+                fieldID: Field.age,
+                canPrevious: false,
+                canNext: true,
+                onPrevious: nil,
+                onNext: { focusedField = .height },
+                onDismiss: { focusedField = nil }
+            )
+        case .height:
+            fieldNavigator.updateFocus(
+                fieldID: Field.height,
+                canPrevious: true,
+                canNext: true,
+                onPrevious: { focusedField = .age },
+                onNext: { focusedField = .weight },
+                onDismiss: { focusedField = nil }
+            )
+        case .weight:
+            fieldNavigator.updateFocus(
+                fieldID: Field.weight,
+                canPrevious: true,
+                canNext: true,
+                onPrevious: { focusedField = .height },
+                onNext: { focusedField = .bodyFat },
+                onDismiss: { focusedField = nil }
+            )
+        case .bodyFat:
+            fieldNavigator.updateFocus(
+                fieldID: Field.bodyFat,
+                canPrevious: true,
+                canNext: false,
+                onPrevious: { focusedField = .weight },
+                onNext: nil,
+                onDismiss: { focusedField = nil }
+            )
+        case nil:
+            fieldNavigator.clearFocus()
         }
     }
 }
@@ -116,4 +167,5 @@ struct OnboardingBodyStepView: View {
 #Preview {
     OnboardingBodyStepView(formState: .constant(OnboardingPreviewData.formState))
         .padding()
+        .environment(\.onboardingFieldNavigator, OnboardingFieldNavigator())
 }

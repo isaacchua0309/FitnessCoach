@@ -10,8 +10,9 @@ import SwiftUI
 struct OnboardingPreferenceStepView: View {
     @Binding var formState: OnboardingFormState
     @FocusState private var focusedField: Field?
+    @Environment(\.onboardingFieldNavigator) private var fieldNavigator
 
-    private enum Field: Hashable {
+    private enum Field: String, Hashable {
         case name
         case diet
     }
@@ -29,22 +30,29 @@ struct OnboardingPreferenceStepView: View {
                     placeholder: "Optional",
                     text: $formState.name,
                     helper: "Used for friendly Coach messages.",
-                    capitalization: .words
+                    capitalization: .words,
+                    isFocused: focusedField == .name,
+                    submitLabel: .next,
+                    onSubmit: { focusedField = .diet }
                 )
                 .focused($focusedField, equals: .name)
+                .id(Field.name)
 
                 OnboardingTextField(
                     title: "Diet preference",
                     placeholder: "High protein, halal, flexible carbs...",
                     text: $formState.dietPreference,
-                    helper: "Optional. Add allergies or strong preferences later in Profile if needed.",
+                    helper: "Optional. Add allergies or strong preferences later in Plan if needed.",
                     capitalization: .sentences,
                     axis: .vertical,
-                    lineLimit: 2...4
+                    lineLimit: 2...4,
+                    isFocused: focusedField == .diet,
+                    submitLabel: .done,
+                    onSubmit: { focusedField = nil }
                 )
                 .focused($focusedField, equals: .diet)
+                .id(Field.diet)
             }
-            .onboardingCard()
 
             VStack(spacing: 12) {
                 OnboardingInfoCard(
@@ -55,16 +63,43 @@ struct OnboardingPreferenceStepView: View {
 
                 OnboardingInfoCard(
                     title: "No pressure",
-                    message: "Skip these if you want. You can update your profile anytime.",
+                    message: "Skip these if you want. You can update your plan anytime.",
                     icon: "slider.horizontal.3"
                 )
             }
         }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Done") { focusedField = nil }
-            }
+        .onChange(of: focusedField) { _, field in
+            syncNavigator(for: field)
+        }
+        .onAppear {
+            syncNavigator(for: focusedField)
+        }
+    }
+
+    private func syncNavigator(for field: Field?) {
+        guard let fieldNavigator else { return }
+
+        switch field {
+        case .name:
+            fieldNavigator.updateFocus(
+                fieldID: Field.name,
+                canPrevious: false,
+                canNext: true,
+                onPrevious: nil,
+                onNext: { focusedField = .diet },
+                onDismiss: { focusedField = nil }
+            )
+        case .diet:
+            fieldNavigator.updateFocus(
+                fieldID: Field.diet,
+                canPrevious: true,
+                canNext: false,
+                onPrevious: { focusedField = .name },
+                onNext: nil,
+                onDismiss: { focusedField = nil }
+            )
+        case nil:
+            fieldNavigator.clearFocus()
         }
     }
 }
@@ -72,4 +107,5 @@ struct OnboardingPreferenceStepView: View {
 #Preview {
     OnboardingPreferenceStepView(formState: .constant(OnboardingPreviewData.formState))
         .padding()
+        .environment(\.onboardingFieldNavigator, OnboardingFieldNavigator())
 }

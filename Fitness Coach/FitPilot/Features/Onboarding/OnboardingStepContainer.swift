@@ -11,33 +11,45 @@ struct OnboardingStepContainer<Content: View>: View {
     let currentStep: OnboardingStep
     let errorMessage: String?
     let isLoading: Bool
+    @ObservedObject var fieldNavigator: OnboardingFieldNavigator
     @ViewBuilder let content: Content
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
-                OnboardingProgressHeader(currentStep: currentStep)
-                    .padding(.top, 12)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
+                    OnboardingProgressHeader(currentStep: currentStep)
+                        .padding(.top, 12)
 
-                if let errorMessage {
-                    OnboardingWarningBanner(message: errorMessage)
+                    if let errorMessage {
+                        OnboardingWarningBanner(message: errorMessage)
+                    }
+
+                    content
+
+                    if isLoading {
+                        OnboardingLoadingView(
+                            message: currentStep == .planPreview
+                                ? "Creating your profile..."
+                                : "Generating your plan..."
+                        )
+                    }
                 }
-
-                content
-
-                if isLoading {
-                    OnboardingLoadingView(
-                        message: currentStep == .planPreview
-                            ? "Creating your profile..."
-                            : "Generating your plan..."
-                    )
+                .padding(.horizontal, OnboardingTheme.pagePadding)
+                .padding(.bottom, 16)
+            }
+            .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.interactively)
+            .onChange(of: fieldNavigator.scrollToID) { _, target in
+                guard let target else { return }
+                withAnimation(.easeInOut(duration: 0.28)) {
+                    proxy.scrollTo(target, anchor: UnitPoint(x: 0.5, y: 0.32))
                 }
             }
-            .padding(.horizontal, OnboardingTheme.pagePadding)
-            .padding(.bottom, 120)
+            .onChange(of: currentStep) { _, _ in
+                fieldNavigator.clearFocus()
+                OnboardingKeyboard.dismiss()
+            }
         }
-        .scrollIndicators(.hidden)
-        .scrollDismissesKeyboard(.interactively)
-        .dismissKeyboardOnTap()
     }
 }

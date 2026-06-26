@@ -83,5 +83,7 @@ struct MainTabView: View {
 }
 
 #Preview {
-    MainTabView(container: try! AppContainer(inMemory: true))
+    let container = try! AppContainer(inMemory: true)
+    MainTabView(container: container)
+        .environmentObject(container.authManager)
 }

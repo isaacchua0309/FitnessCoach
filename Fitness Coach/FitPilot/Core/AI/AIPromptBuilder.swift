@@ -54,7 +54,7 @@ enum AIPromptBuilder {
         Task: Classify the user's Coach message. You are not answering the user yet.
         Return valid JSON only matching CoachIntentResult.
         - Choose one intent: log_food, log_water, log_weight, log_workout, edit_log,
-          delete_log, daily_summary, calorie_lookup, macro_lookup, meal_decision,
+          delete_log, undo, daily_summary, calorie_lookup, macro_lookup, meal_decision,
           nutrition_advice, workout_advice, weight_loss_advice, app_help,
           general_conversation, unrelated_or_unsupported.
         - Prefer app-domain intents for food, calories, weight, workouts, hydration,

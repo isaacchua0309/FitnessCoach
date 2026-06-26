@@ -10,8 +10,9 @@ import SwiftUI
 struct OnboardingGoalStepView: View {
     @Binding var formState: OnboardingFormState
     @FocusState private var focusedField: Field?
+    @Environment(\.onboardingFieldNavigator) private var fieldNavigator
 
-    private enum Field: Hashable {
+    private enum Field: String, Hashable {
         case goalWeight
     }
 
@@ -22,15 +23,16 @@ struct OnboardingGoalStepView: View {
                 subtitle: "Pick a realistic goal weight and a pace that will not wreck training or recovery."
             )
 
-            OnboardingTextField(
+            OnboardingNumberField(
                 title: "Goal weight",
                 placeholder: "76",
                 text: $formState.goalWeightKgText,
                 helper: "Kilograms",
-                keyboard: .decimalPad
+                keyboard: .decimalPad,
+                isFocused: focusedField == .goalWeight
             )
             .focused($focusedField, equals: .goalWeight)
-            .onboardingCard()
+            .id(Field.goalWeight)
 
             VStack(alignment: .leading, spacing: 10) {
                 OnboardingSectionTitle(
@@ -51,11 +53,29 @@ struct OnboardingGoalStepView: View {
                 }
             }
         }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Done") { focusedField = nil }
-            }
+        .onChange(of: focusedField) { _, field in
+            syncNavigator(for: field)
+        }
+        .onAppear {
+            syncNavigator(for: focusedField)
+        }
+    }
+
+    private func syncNavigator(for field: Field?) {
+        guard let fieldNavigator else { return }
+
+        switch field {
+        case .goalWeight:
+            fieldNavigator.updateFocus(
+                fieldID: Field.goalWeight,
+                canPrevious: false,
+                canNext: false,
+                onPrevious: nil,
+                onNext: nil,
+                onDismiss: { focusedField = nil }
+            )
+        case nil:
+            fieldNavigator.clearFocus()
         }
     }
 
@@ -74,4 +94,5 @@ struct OnboardingGoalStepView: View {
 #Preview {
     OnboardingGoalStepView(formState: .constant(OnboardingPreviewData.formState))
         .padding()
+        .environment(\.onboardingFieldNavigator, OnboardingFieldNavigator())
 }

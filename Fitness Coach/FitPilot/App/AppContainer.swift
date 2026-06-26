@@ -24,6 +24,7 @@ final class AppContainer {
     let reviewService: ReviewService
     let actionCenter: FitnessActionCenter
 
+    let authManager: AuthManager
     let llmClient: LLMClient
     let aiService: AIService
     let aiCommandParsingEnabled: Bool
@@ -31,6 +32,9 @@ final class AppContainer {
 
     init(inMemory: Bool = false) throws {
         refreshCenter = AppRefreshCenter()
+        let authManager = AuthManager()
+        self.authManager = authManager
+
         modelContainer = try FitPilotModelContainer.makeContainer(inMemory: inMemory)
         store = SwiftDataStore(container: modelContainer)
 
@@ -64,21 +68,42 @@ final class AppContainer {
         // Debug builds use the local backend gateway when available. The
         // gateway reads .env on the Mac and calls OpenAI, so provider keys still
         // do not live in the iOS app bundle.
+        // Set FITPILOT_USE_MOCK_LLM=1 in the scheme to skip the backend entirely.
         #if DEBUG
-        let backendURL = URL(
+        if ProcessInfo.processInfo.environment["FITPILOT_USE_MOCK_LLM"] == "1" {
+            llmClient = MockLLMClient()
+        } else if let backendURL = URL(
             string: ProcessInfo.processInfo.environment["FITPILOT_AI_BACKEND_URL"]
                 ?? "http://127.0.0.1:8787"
-        )
-        if let backendURL {
+        ) {
             llmClient = FallbackLLMClient(
-                primary: FitPilotAIBackendClient(baseURL: backendURL),
-                fallback: MockLLMClient()
+                primary: FitPilotAIBackendClient(
+                    baseURL: backendURL,
+                    authTokenProvider: { try await authManager.idToken() }
+                )
             )
         } else {
             llmClient = MockLLMClient()
         }
         #else
-        llmClient = MockLLMClient()
+        if let backendURL = URL(
+            string: ProcessInfo.processInfo.environment["FITPILOT_AI_BACKEND_URL"]
+                ?? "http://127.0.0.1:8787"
+        ) {
+            llmClient = FallbackLLMClient(
+                primary: FitPilotAIBackendClient(
+                    baseURL: backendURL,
+                    authTokenProvider: { try await authManager.idToken() }
+                )
+            )
+        } else {
+            llmClient = FallbackLLMClient(
+                primary: FitPilotAIBackendClient(
+                    baseURL: URL(string: "http://127.0.0.1:8787")!,
+                    authTokenProvider: { try await authManager.idToken() }
+                )
+            )
+        }
         #endif
         aiService = AIService(llmClient: llmClient)
         aiCommandParsingEnabled = true

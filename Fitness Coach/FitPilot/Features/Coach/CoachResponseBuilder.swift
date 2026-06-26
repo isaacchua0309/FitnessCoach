@@ -24,8 +24,9 @@ enum CoachResponseBuilder {
             let remaining = max(log.targets.waterTargetMl - log.waterConsumedMl, 0)
             response += """
 
-            Water: \(formatWater(log.waterConsumedMl)) / \(formatWater(log.targets.waterTargetMl))ml
-            Remaining: \(formatWater(remaining))ml
+            Water today:
+            \(formatWater(log.waterConsumedMl)) / \(formatWater(log.targets.waterTargetMl))ml
+            \(formatWater(remaining))ml remaining.
             """
         }
         return response
@@ -40,26 +41,77 @@ enum CoachResponseBuilder {
     // MARK: Food
 
     static func food(_ entry: FoodEntry, log: DailyLog?) -> String {
-        var response = "Logged \(entry.name): \(entry.calories) kcal, "
-            + "\(formatMacro(entry.protein))g protein, "
-            + "\(formatMacro(entry.carbs))g carbs, "
-            + "\(formatMacro(entry.fat))g fat."
+        var response = "Logged \(entry.name)."
+        response += """
+
+
+        \(entry.calories) kcal · \(formatMacro(entry.protein))g protein
+        """
         if let log {
-            response += " Today: \(log.totals.calories) / \(log.targets.calorieTarget) kcal."
+            let targets = MacroCalculator.macroTargets(from: log.targets)
+            let remaining = MacroCalculator.remaining(targets: targets, totals: log.totals)
+            let proteinRemaining = max(remaining.protein, 0)
+            response += """
+
+
+            Today:
+            \(log.totals.calories) / \(targets.calories) kcal
+            \(formatMacro(proteinRemaining))g protein remaining.
+            """
         }
         return response
     }
 
     static func localFoodEstimatePending(_ estimate: LocalFoodEstimate) -> String {
-        let draft = estimate.foodDraft
+        let draft = estimate.draft
         return """
-        I estimated:
+        I estimated this as:
 
         \(draft.name)
         \(draft.calories) kcal · \(formatMacro(draft.protein))g protein
 
-        Reply "confirm" to log it, or adjust the values before confirming.
+        Confirm before I log it?
         """
+    }
+
+    static func aiFoodEstimatePending(
+        draft: FoodDraft,
+        assistantMessage: String?
+    ) -> String {
+        var lines: [String] = []
+        if let assistantMessage, !assistantMessage.isEmpty {
+            lines.append(assistantMessage)
+            lines.append("")
+        }
+        lines.append("I estimate this as:")
+        lines.append("")
+        lines.append(draft.name)
+        lines.append("\(draft.calories) kcal · \(formatMacro(draft.protein))g protein")
+        lines.append("")
+        lines.append("Confirm before I log it?")
+        return lines.joined(separator: "\n")
+    }
+
+    static func workoutPending(_ draft: WorkoutDraft, assistantMessage: String?) -> String {
+        var lines: [String] = []
+        if let assistantMessage, !assistantMessage.isEmpty {
+            lines.append(assistantMessage)
+            lines.append("")
+        }
+        lines.append("I parsed this workout:")
+        if let name = draft.name {
+            lines.append(name)
+        }
+        let details = [
+            draft.durationMinutes.map { "\($0) min" },
+            draft.estimatedCaloriesBurned.map { "\($0) kcal burned" }
+        ].compactMap(\.self)
+        if !details.isEmpty {
+            lines.append(details.joined(separator: " · "))
+        }
+        lines.append("")
+        lines.append("Reply \"confirm\" to log it, or \"cancel\" to discard.")
+        return lines.joined(separator: "\n")
     }
 
     static func workout(_ entry: WorkoutEntry) -> String {
@@ -254,11 +306,17 @@ enum CoachResponseBuilder {
     static let aiFoodSaveFailed =
         "I could not save that food entry. Please check the values and try again."
 
+    static let greetingResponse =
+        "Hey — tell me what you ate, drank, weighed, trained, or ask what to do next."
+
     static let tryFitnessPrompt =
         "Tell me what you ate, drank, weighed, trained, or ask what to do next."
 
     static let unknownResponse =
-        "I'm best at fitness and nutrition. Ask about food, calories, protein, workouts, water, weight, or your FitPilot plan."
+        "I can help with food, water, weight, workouts, or meal decisions. Try: 'log 500g chicken breast'."
+
+    static let backendUnavailableResponse =
+        "AI unavailable — try a direct command like 'log 500ml water'."
 
     static let appHelpResponse =
         "Ask me about meals, calories, macros, protein, workouts, water, weight, or today's targets. You can also say things like \"log 500g chicken breast\" or \"add 600ml water\"."
@@ -267,7 +325,7 @@ enum CoachResponseBuilder {
         guard let assistantMessage, !assistantMessage.isEmpty else {
             return aiFoodPendingConfirmation
         }
-        return "\(assistantMessage)\n\n\(aiFoodPendingConfirmation)"
+        return "\(assistantMessage)\n\nConfirm before I log it?"
     }
 
     // MARK: Formatting Helpers

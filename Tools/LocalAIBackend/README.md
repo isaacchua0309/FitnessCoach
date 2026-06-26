@@ -16,6 +16,9 @@ Then run the app in the simulator. In debug builds, `AppContainer` points Coach
 AI traffic at `http://127.0.0.1:8787` and falls back to `MockLLMClient` if the
 gateway is unavailable.
 
+To skip the backend entirely (no connection-refused noise), set the scheme
+environment variable `FITPILOT_USE_MOCK_LLM=1`.
+
 ## Environment
 
 Create `.env` from `.env.example` and set:

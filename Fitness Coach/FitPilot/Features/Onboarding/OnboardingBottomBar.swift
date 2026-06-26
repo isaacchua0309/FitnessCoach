@@ -68,7 +68,11 @@ struct OnboardingBottomBar: View {
         }
         .padding(.horizontal, OnboardingTheme.pagePadding)
         .padding(.top, 12)
-        .padding(.bottom, 8)
-        .background(.ultraThinMaterial)
+        .padding(.bottom, 12)
+        .background {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea(edges: .bottom)
+        }
     }
 }

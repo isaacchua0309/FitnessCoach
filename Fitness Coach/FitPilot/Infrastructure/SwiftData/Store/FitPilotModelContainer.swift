@@ -27,10 +27,27 @@ enum FitPilotModelContainer {
     ])
 
     static func makeContainer(inMemory: Bool = false) throws -> ModelContainer {
+        if !inMemory {
+            try ensureApplicationSupportDirectoryExists()
+        }
         let configuration = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: inMemory
         )
         return try ModelContainer(for: schema, configurations: [configuration])
+    }
+
+    private static func ensureApplicationSupportDirectoryExists() throws {
+        let fileManager = FileManager.default
+        guard let url = fileManager.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first else {
+            throw CocoaError(.fileNoSuchFile)
+        }
+        try fileManager.createDirectory(
+            at: url,
+            withIntermediateDirectories: true
+        )
     }
 }

@@ -61,15 +61,4 @@ extension View {
         padding(16)
             .background(OnboardingTheme.cardBackground(selected: selected))
     }
-
-    func dismissKeyboardOnTap() -> some View {
-        onTapGesture {
-            UIApplication.shared.sendAction(
-                #selector(UIResponder.resignFirstResponder),
-                to: nil,
-                from: nil,
-                for: nil
-            )
-        }
-    }
 }

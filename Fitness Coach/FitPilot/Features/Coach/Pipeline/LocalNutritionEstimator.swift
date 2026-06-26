@@ -8,10 +8,12 @@
 import Foundation
 
 struct LocalFoodEstimate: Equatable, Sendable {
-    var foodDraft: FoodDraft
+    var draft: FoodDraft
     var confidence: ConfidenceLevel
     var requiresConfirmation: Bool
     var explanation: String
+
+    var foodDraft: FoodDraft { draft }
 }
 
 struct LocalNutritionEstimator {
@@ -43,8 +45,35 @@ struct LocalNutritionEstimator {
         self.items = Self.defaultItems
     }
 
-    func estimate(_ input: NormalizedInput) -> LocalFoodEstimate? {
+    private static let blockedCompoundPatterns = [
+        "chicken rice", "economy rice", "mixed rice", "nasi lemak", "kebab",
+        "shawarma", "burrito", "pad thai", "fried rice", "some chicken",
+        "a bit of", "bowl of", "plate of", "restaurant", "mcdonald", "shake shack"
+    ]
+
+    func isBlockedCompoundFood(_ text: String) -> Bool {
+        let lowered = text.lowercased()
+        if Self.blockedCompoundPatterns.contains(where: { lowered.contains($0) }) {
+            return true
+        }
+        if lowered.contains("bowl") && !lowered.contains("watermelon") {
+            return true
+        }
+        if lowered.contains("some ") || lowered.contains("a bit ") {
+            return true
+        }
+        return false
+    }
+
+    func userAskedToLog(_ input: NormalizedCoachInput) -> Bool {
+        let text = input.routingText
+        let verbs = ["log", "add", "track", "ate", "had", "eat"]
+        return verbs.contains(where: { text.hasPrefix($0) || text.contains(" \($0)") })
+    }
+
+    func estimate(_ input: NormalizedCoachInput) -> LocalFoodEstimate? {
         let foodText = stripFoodVerb(from: input.normalizedText)
+        guard !isBlockedCompoundFood(foodText) else { return nil }
         guard let quantity = extractQuantity(from: foodText) else { return nil }
         guard let item = bestItemMatch(in: foodText) else { return nil }
         guard let nutrition = nutrition(for: item, quantity: quantity) else { return nil }
@@ -68,7 +97,7 @@ struct LocalNutritionEstimator {
         )
 
         return LocalFoodEstimate(
-            foodDraft: draft,
+            draft: draft,
             confidence: confidence,
             requiresConfirmation: confidence != .high,
             explanation: "Estimated from FitPilot's local common-food table."
@@ -187,7 +216,7 @@ struct LocalNutritionEstimator {
         }
 
         if quantity.unit == "bowl" {
-            return .medium
+            return .low
         }
         if hasSpecificAlias {
             return .high

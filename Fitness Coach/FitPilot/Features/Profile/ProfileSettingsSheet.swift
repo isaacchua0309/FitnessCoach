@@ -20,6 +20,14 @@ struct ProfileSettingsSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    NavigationLink {
+                        AccountSettingsView()
+                    } label: {
+                        Text("Account")
+                    }
+                }
+
                 Section("Notifications") {
                     settingsPlaceholderRow("Daily reminders", detail: "Coming soon")
                     settingsPlaceholderRow("Coach check-ins", detail: "Coming soon")
@@ -101,4 +109,5 @@ struct ProfileSettingsSheet: View {
         onSave: { _ in },
         onCancel: {}
     )
+    .environmentObject(AuthManager())
 }

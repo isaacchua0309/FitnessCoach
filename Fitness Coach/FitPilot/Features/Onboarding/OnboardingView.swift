@@ -9,6 +9,8 @@ import SwiftUI
 
 struct OnboardingView: View {
     @ObservedObject var model: OnboardingModel
+    @StateObject private var keyboardMonitor = OnboardingKeyboardMonitor()
+    @StateObject private var fieldNavigator = OnboardingFieldNavigator()
 
     private var isLoading: Bool {
         switch model.viewState {
@@ -24,23 +26,41 @@ struct OnboardingView: View {
             OnboardingStepContainer(
                 currentStep: model.currentStep,
                 errorMessage: model.errorMessage,
-                isLoading: isLoading
+                isLoading: isLoading,
+                fieldNavigator: fieldNavigator
             ) {
                 stepContent
             }
             .background(OnboardingTheme.background.ignoresSafeArea())
-            .safeAreaInset(edge: .bottom) {
-                OnboardingBottomBar(
-                    currentStep: model.currentStep,
-                    isLoading: isLoading,
-                    canContinue: model.formState.canAdvance(from: model.currentStep),
-                    onBack: { model.goBack() },
-                    onContinue: { model.goNext() },
-                    onComplete: { model.completeOnboarding() }
-                )
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if !keyboardMonitor.isVisible {
+                    OnboardingBottomBar(
+                        currentStep: model.currentStep,
+                        isLoading: isLoading,
+                        canContinue: model.formState.canAdvance(from: model.currentStep),
+                        onBack: {
+                            fieldNavigator.dismissFocus()
+                            model.goBack()
+                        },
+                        onContinue: {
+                            fieldNavigator.dismissFocus()
+                            model.goNext()
+                        },
+                        onComplete: {
+                            fieldNavigator.dismissFocus()
+                            model.completeOnboarding()
+                        }
+                    )
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .animation(.easeInOut(duration: 0.25), value: keyboardMonitor.isVisible)
+            .toolbar {
+                OnboardingKeyboardToolbar(navigator: fieldNavigator)
             }
             .navigationBarHidden(true)
         }
+        .environment(\.onboardingFieldNavigator, fieldNavigator)
         .preferredColorScheme(.dark)
     }
 

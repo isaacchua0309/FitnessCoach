@@ -14,10 +14,17 @@ enum AIServiceError: Error, Equatable {
     case decodingFailed(String)
     case requestFailed(String)
     case featureDisabled
+    case authenticationFailed
+
+    static let coachSessionFailureTitle = "Unable to start coach session"
+    static let coachSessionFailureMessage =
+        "We couldn't verify your session. Please check your connection and try again."
 
     /// Calm, user-facing message. Never exposes raw backend payloads or keys.
     var userMessage: String {
         switch self {
+        case .authenticationFailed:
+            return Self.coachSessionFailureMessage
         case .featureDisabled:
             return "I couldn't reach the coach service. Try again in a moment."
         case .backendUnavailable, .requestFailed:

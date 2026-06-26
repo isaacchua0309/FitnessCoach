@@ -12,16 +12,24 @@
 
 import Foundation
 
+typealias AuthTokenProvider = () async throws -> String
+
 final class FitPilotAIBackendClient: LLMClient {
 
     private let baseURL: URL
     private let urlSession: URLSession
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
+    private let authTokenProvider: AuthTokenProvider?
 
-    init(baseURL: URL, urlSession: URLSession = .shared) {
+    init(
+        baseURL: URL,
+        urlSession: URLSession? = nil,
+        authTokenProvider: AuthTokenProvider? = nil
+    ) {
         self.baseURL = baseURL
-        self.urlSession = urlSession
+        self.urlSession = urlSession ?? Self.makeFastFailSession()
+        self.authTokenProvider = authTokenProvider
 
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -54,6 +62,18 @@ final class FitPilotAIBackendClient: LLMClient {
         try await post(endpoint: .dailyReview, body: request)
     }
 
+    func parseWorkout(request: AIWorkoutParseRequest) async throws -> AIWorkoutParseResponse {
+        try await post(endpoint: .parseWorkout, body: request)
+    }
+
+    func parseEditOrDelete(request: AIEditDeleteParseRequest) async throws -> AIEditDeleteParseResponse {
+        try await post(endpoint: .parseEditDelete, body: request)
+    }
+
+    func parseMultiAction(request: AIMultiActionParseRequest) async throws -> AIMultiActionParseResponse {
+        try await post(endpoint: .parseMultiAction, body: request)
+    }
+
     // MARK: HTTP
 
     private func post<Body: Encodable, Response: Decodable>(
@@ -71,6 +91,16 @@ final class FitPilotAIBackendClient: LLMClient {
             urlRequest.httpBody = try encoder.encode(body)
         } catch {
             throw LLMClientError.decodingFailed("Could not encode request.")
+        }
+
+        if let authTokenProvider {
+            let token: String
+            do {
+                token = try await authTokenProvider()
+            } catch is AuthManagerError {
+                throw LLMClientError.authenticationFailed
+            }
+            urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
         let data: Data
@@ -91,5 +121,13 @@ final class FitPilotAIBackendClient: LLMClient {
         } catch {
             throw LLMClientError.decodingFailed("Could not decode backend response.")
         }
+    }
+
+    private static func makeFastFailSession() -> URLSession {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 1.5
+        configuration.timeoutIntervalForResource = 2.0
+        configuration.waitsForConnectivity = false
+        return URLSession(configuration: configuration)
     }
 }

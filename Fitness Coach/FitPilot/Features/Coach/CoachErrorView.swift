@@ -8,15 +8,41 @@
 import SwiftUI
 
 struct CoachErrorView: View {
+    var title: String?
     let message: String
+    var retryAction: (() -> Void)?
+    var isRetrying: Bool = false
     let onDismiss: () -> Void
 
     var body: some View {
-        HStack(spacing: CoachDesignTokens.Spacing.sm) {
-            Text(message)
-                .font(CoachDesignTokens.Typography.confirmationMetric)
-                .foregroundStyle(CoachDesignTokens.Color.secondaryText)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        HStack(alignment: .top, spacing: CoachDesignTokens.Spacing.sm) {
+            VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.xs) {
+                if let title {
+                    Text(title)
+                        .font(CoachDesignTokens.Typography.confirmationValue)
+                        .foregroundStyle(CoachDesignTokens.Color.primaryText)
+                }
+
+                Text(message)
+                    .font(CoachDesignTokens.Typography.confirmationMetric)
+                    .foregroundStyle(CoachDesignTokens.Color.secondaryText)
+
+                if let retryAction {
+                    Button(action: retryAction) {
+                        HStack(spacing: CoachDesignTokens.Spacing.xs) {
+                            Text("Retry")
+                            if isRetrying {
+                                SwiftUI.ProgressView()
+                                    .controlSize(.small)
+                            }
+                        }
+                    }
+                    .font(CoachDesignTokens.Typography.confirmationMetric)
+                    .foregroundStyle(CoachDesignTokens.Color.accent)
+                    .disabled(isRetrying)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
@@ -31,7 +57,12 @@ struct CoachErrorView: View {
 }
 
 #Preview {
-    CoachErrorView(message: "Something went wrong.") {}
-        .background(CoachDesignTokens.Color.background)
-        .preferredColorScheme(.dark)
+    CoachErrorView(
+        title: AIServiceError.coachSessionFailureTitle,
+        message: AIServiceError.coachSessionFailureMessage,
+        retryAction: {},
+        onDismiss: {}
+    )
+    .background(CoachDesignTokens.Color.background)
+    .preferredColorScheme(.dark)
 }
