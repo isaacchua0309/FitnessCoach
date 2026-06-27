@@ -121,6 +121,7 @@ final class AppRouteResolverTests: XCTestCase {
 
     func testSignedInWithProfileRootStateRoutesToMain() {
         XCTAssertEqual(RootProfileRouteResolver.resolve(hasProfile: true), .main)
+        XCTAssertEqual(RootProfileRouteResolver.resolve(bootstrapResult: .main), .main)
         XCTAssertEqual(
             AppRouteResolver.resolve(
                 authState: .signedIn(uid: "test-user"),
@@ -128,6 +129,10 @@ final class AppRouteResolverTests: XCTestCase {
             ),
             .main
         )
+    }
+
+    func testBootstrapOnboardingRoutesToOnboarding() {
+        XCTAssertEqual(RootProfileRouteResolver.resolve(bootstrapResult: .onboarding), .onboarding)
     }
 
     func testLogoutDoesNotDeleteLocalProfilePolicy() {

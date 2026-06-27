@@ -20,19 +20,30 @@ final class RootModel: ObservableObject {
 
     @Published private(set) var state: RootViewState = .loading
 
-    private let userProfileService: UserProfileService
+    private let profileBootstrapService: ProfileBootstrapService
+    private var loadTask: Task<Void, Never>?
 
-    init(userProfileService: UserProfileService) {
-        self.userProfileService = userProfileService
+    init(profileBootstrapService: ProfileBootstrapService) {
+        self.profileBootstrapService = profileBootstrapService
     }
 
-    func load() {
-        do {
-            state = RootProfileRouteResolver.resolve(
-                hasProfile: try userProfileService.getCurrentProfile() != nil
-            )
-        } catch {
-            state = .error(FormaProductCopy.Error.loadProfile)
+    func load(uid: String) {
+        loadTask?.cancel()
+        state = .loading
+        loadTask = Task {
+            do {
+                let result = try await profileBootstrapService.resolve(uid: uid)
+                guard !Task.isCancelled else { return }
+                state = RootProfileRouteResolver.resolve(bootstrapResult: result)
+            } catch {
+                guard !Task.isCancelled else { return }
+                ProfileBootstrapDebugLogger.error(
+                    "Profile bootstrap failed",
+                    fields: ["uid": uid],
+                    underlying: error
+                )
+                state = .error(FormaProductCopy.Error.loadProfile)
+            }
         }
     }
 
@@ -40,7 +51,7 @@ final class RootModel: ObservableObject {
         state = .main
     }
 
-    func retry() {
-        load()
+    func retry(uid: String) {
+        load(uid: uid)
     }
 }

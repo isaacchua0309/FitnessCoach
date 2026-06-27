@@ -43,13 +43,16 @@ struct AuthGateView: View {
             let isSignedInNow = AppRouteResolver.isSignedIn(state)
 
             if isSignedInNow {
-                if AppRouteResolver.shouldRotateSignedInSession(
+                let isFreshSignIn = AppRouteResolver.shouldRotateSignedInSession(
                     wasSignedIn: wasSignedIn,
                     isSignedIn: isSignedInNow
-                ) {
+                )
+                if isFreshSignIn {
                     signedInSessionID = UUID()
                 }
-                rootModel.load()
+                if isFreshSignIn, case .signedIn(let uid) = state {
+                    rootModel.load(uid: uid)
+                }
             } else if AppRouteResolver.shouldClearOnboardingModel(
                 wasSignedIn: wasSignedIn,
                 isSignedIn: isSignedInNow
@@ -98,7 +101,7 @@ struct AuthGateView: View {
                     .foregroundStyle(OnboardingTheme.primaryText)
                     .multilineTextAlignment(.center)
                 Button(FormaProductCopy.Common.tryAgain) {
-                    rootModel.retry()
+                    retryProfileLoad()
                 }
                 .buttonStyle(.borderedProminent)
             }
@@ -110,9 +113,39 @@ struct AuthGateView: View {
     private func ensureOnboardingModel() {
         guard onboardingModel == nil else { return }
         onboardingModel = container.makeOnboardingModel {
+            completeOnboarding()
+        }
+    }
+
+    private func completeOnboarding() {
+        guard let uid = authManager.currentUID else {
+            ProfileBootstrapDebugLogger.warn(
+                "Skipping cloud save; no signed-in UID",
+                fields: [:]
+            )
+            onboardingModel = nil
+            rootModel.didCompleteOnboarding()
+            return
+        }
+
+        Task { @MainActor in
+            do {
+                try await container.profileBootstrapService.saveProfileToCloud(uid: uid)
+            } catch {
+                ProfileBootstrapDebugLogger.error(
+                    "Cloud profile save failed after onboarding",
+                    fields: ["uid": uid],
+                    underlying: error
+                )
+            }
             onboardingModel = nil
             rootModel.didCompleteOnboarding()
         }
+    }
+
+    private func retryProfileLoad() {
+        guard case .signedIn(let uid) = authManager.authState else { return }
+        rootModel.retry(uid: uid)
     }
 }
 

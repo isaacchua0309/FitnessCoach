@@ -25,6 +25,8 @@ final class AppContainer {
     let actionCenter: FitnessActionCenter
 
     let authManager: AuthManager
+    let cloudUserProfileStore: CloudUserProfileStoring
+    let profileBootstrapService: ProfileBootstrapService
     let llmClient: LLMClient
     let aiService: AIService
     let aiCommandParsingEnabled: Bool
@@ -53,6 +55,13 @@ final class AppContainer {
         store = SwiftDataStore(container: modelContainer)
 
         userProfileService = UserProfileService(store: store)
+        cloudUserProfileStore = inMemory
+            ? NoOpCloudUserProfileStore()
+            : FirestoreCloudUserProfileStore()
+        profileBootstrapService = ProfileBootstrapService(
+            userProfileService: userProfileService,
+            cloudStore: cloudUserProfileStore
+        )
         dailyLogService = DailyLogService(
             store: store,
             userProfileService: userProfileService
@@ -145,7 +154,9 @@ final class AppContainer {
             targetService: targetService,
             userProfileService: userProfileService,
             reviewService: reviewService,
-            refreshCenter: refreshCenter
+            refreshCenter: refreshCenter,
+            profileBootstrapService: profileBootstrapService,
+            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
         )
 
         #if DEBUG
@@ -214,7 +225,7 @@ final class AppContainer {
     }
 
     func makeRootModel() -> RootModel {
-        RootModel(userProfileService: userProfileService)
+        RootModel(profileBootstrapService: profileBootstrapService)
     }
 
     func makeOnboardingModel(onCompletion: @escaping () -> Void) -> OnboardingModel {

@@ -28,6 +28,8 @@ final class FitnessActionCenter {
     private let userProfileService: UserProfileService
     private let reviewService: ReviewService
     private let refreshCenter: AppRefreshCenter
+    private let profileBootstrapService: ProfileBootstrapService?
+    private let currentUIDProvider: (() -> String?)?
 
     init(
         foodLogService: FoodLogService,
@@ -38,7 +40,9 @@ final class FitnessActionCenter {
         targetService: TargetService,
         userProfileService: UserProfileService,
         reviewService: ReviewService,
-        refreshCenter: AppRefreshCenter
+        refreshCenter: AppRefreshCenter,
+        profileBootstrapService: ProfileBootstrapService? = nil,
+        currentUIDProvider: (() -> String?)? = nil
     ) {
         self.foodLogService = foodLogService
         self.waterLogService = waterLogService
@@ -49,6 +53,8 @@ final class FitnessActionCenter {
         self.userProfileService = userProfileService
         self.reviewService = reviewService
         self.refreshCenter = refreshCenter
+        self.profileBootstrapService = profileBootstrapService
+        self.currentUIDProvider = currentUIDProvider
     }
 
     // MARK: - Food (canonical: Coach + food capture flow)
@@ -163,6 +169,7 @@ final class FitnessActionCenter {
             try dailyLogService.syncTodayTargetsFromProfile()
         }
         notifyDataChanged()
+        syncProfileToCloudIfPossible()
         return profile
     }
 
@@ -170,6 +177,7 @@ final class FitnessActionCenter {
     func applyPlanTargets(_ targets: UserTargets) throws -> UserProfile {
         let profile = try targetService.updateCurrentTargets(targets)
         notifyDataChanged()
+        syncProfileToCloudIfPossible()
         return profile
     }
 
@@ -177,5 +185,20 @@ final class FitnessActionCenter {
 
     func notifyDataChanged() {
         refreshCenter.notifyDataChanged()
+    }
+
+    private func syncProfileToCloudIfPossible() {
+        guard let profileBootstrapService, let uid = currentUIDProvider?() else { return }
+        Task {
+            do {
+                try await profileBootstrapService.saveProfileToCloud(uid: uid)
+            } catch {
+                ProfileBootstrapDebugLogger.error(
+                    "Cloud profile refresh failed",
+                    fields: ["uid": uid],
+                    underlying: error
+                )
+            }
+        }
     }
 }

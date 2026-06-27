@@ -64,6 +64,15 @@ enum RootProfileRouteResolver {
     static func resolve(hasProfile: Bool) -> RootViewState {
         hasProfile ? .main : .onboarding
     }
+
+    static func resolve(bootstrapResult: ProfileBootstrapResult) -> RootViewState {
+        switch bootstrapResult {
+        case .main:
+            return .main
+        case .onboarding:
+            return .onboarding
+        }
+    }
 }
 
 enum AuthLogoutPolicy {

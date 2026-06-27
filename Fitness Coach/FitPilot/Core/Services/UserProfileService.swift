@@ -25,6 +25,19 @@ final class UserProfileService {
         try latestProfileEntity()?.toModel()
     }
 
+    // MARK: Restore
+
+    func restoreProfile(from document: CloudUserProfileDocument) throws -> UserProfile {
+        if try getCurrentProfile() != nil {
+            throw ServiceError.invalidInput("A profile already exists on this device.")
+        }
+
+        let profile = document.makeUserProfile()
+        let entity = UserProfileEntity(model: profile)
+        try store.insert(entity)
+        return entity.toModel()
+    }
+
     // MARK: Create
 
     func createProfile(_ draft: UserProfileDraft) throws -> UserProfile {
