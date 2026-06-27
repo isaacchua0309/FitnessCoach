@@ -82,7 +82,8 @@ enum CoachDesignTokens {
         static let horizontalPadding = FormaTokens.Spacing.pageHorizontal
         static let messageSpacing = Spacing.lg
         static let maxBubbleWidthRatio: CGFloat = 0.82
-        static let bottomChromeInset: CGFloat = 4
+        /// Lifts the composer above the floating main tab bar.
+        static let bottomChromeInset = FormaTokens.Layout.mainTabScrollBottomInset
     }
 
     // MARK: Animation

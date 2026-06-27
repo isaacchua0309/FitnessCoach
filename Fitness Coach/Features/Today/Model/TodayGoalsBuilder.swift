@@ -29,9 +29,21 @@ struct TodayGoalItem: Identifiable, Equatable {
     var isInformational: Bool
     var tapAction: TapAction?
 
-    /// Chevron is shown only when the row navigates somewhere (Coach, Training Insights, etc.).
-    var showsChevron: Bool { tapAction != nil }
-    var isActionable: Bool { showsChevron }
+    /// Chevron only when the row opens a screen or flow (Training Insights, Settings, etc.).
+    var showsChevron: Bool {
+        guard let tapAction, !isInformational else { return false }
+        if case .openTrainingInsights = tapAction { return true }
+        return false
+    }
+
+    /// Bordered chip for immediate Coach logging — not a navigation row.
+    var showsQuickActionButton: Bool {
+        guard !isComplete, !isInformational else { return false }
+        if case .coach = tapAction { return true }
+        return false
+    }
+
+    var isActionable: Bool { showsChevron || showsQuickActionButton }
 }
 
 enum TodayGoalsBuilder {
@@ -167,14 +179,14 @@ enum TodayGoalsBuilder {
             label: FormaProductCopy.Today.statusNoAppleHealthWorkoutToday,
             isComplete: true,
             isInformational: true,
-            tapAction: .openTrainingInsights
+            tapAction: nil
         )
     }
 
     private static func lockedTrainingLabel(for integration: TrainingIntegrationState) -> String {
         switch integration {
         case .denied, .failed:
-            return FormaProductCopy.Today.actionUnlockTrainingInsights
+            return FormaProductCopy.Today.actionManageHealthAccess
         case .notConnected:
             return FormaProductCopy.Training.Integration.connectAppleHealth
         case .unavailable, .requestingPermission, .connected:

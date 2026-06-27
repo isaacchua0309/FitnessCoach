@@ -7,10 +7,18 @@
 
 import Foundation
 
-enum CoachStarterPromptBehavior: Sendable {
+enum CoachStarterPromptBehavior: Equatable, Sendable {
     case prefill(String)
     case send(String)
     case openPhotoPicker
+}
+
+struct CoachStarterPromptSpec: Identifiable, Equatable, Sendable {
+    let id: String
+    let label: String
+    let symbolName: String
+    let behavior: CoachStarterPromptBehavior
+    let accessibilityHint: String
 }
 
 enum CoachStarterPrompt: String, Identifiable, CaseIterable, Sendable {
@@ -68,5 +76,27 @@ enum CoachStarterPrompt: String, Identifiable, CaseIterable, Sendable {
         case .send: return "Sends this command to Coach"
         case .openPhotoPicker: return "Opens photo picker for meal analysis"
         }
+    }
+
+    /// Curated starters for the Coach empty state (full set remains in `allCases`).
+    static let quickActions: [CoachStarterPrompt] = [
+        .logMeal,
+        .logWater,
+        .mealPhoto,
+        .dailyReview
+    ]
+
+    var spec: CoachStarterPromptSpec {
+        CoachStarterPromptSpec(
+            id: id,
+            label: label,
+            symbolName: symbolName,
+            behavior: behavior,
+            accessibilityHint: accessibilityHint
+        )
+    }
+
+    static var defaultQuickActionSpecs: [CoachStarterPromptSpec] {
+        quickActions.map(\.spec)
     }
 }

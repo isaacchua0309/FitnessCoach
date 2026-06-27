@@ -12,6 +12,7 @@ import Foundation
 final class MockCloudUserProfileStore: CloudUserProfileStoring, @unchecked Sendable {
 
     var storedDocument: CloudUserProfileDocument?
+    var fetchError: Error?
     private(set) var fetchCallCount = 0
     private(set) var saveCallCount = 0
     private(set) var lastSavedProfile: UserProfile?
@@ -20,6 +21,9 @@ final class MockCloudUserProfileStore: CloudUserProfileStoring, @unchecked Senda
     func fetch(uid: String) async throws -> CloudUserProfileDocument? {
         _ = uid
         fetchCallCount += 1
+        if let fetchError {
+            throw fetchError
+        }
         return storedDocument
     }
 

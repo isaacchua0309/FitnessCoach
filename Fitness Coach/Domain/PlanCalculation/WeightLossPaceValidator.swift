@@ -133,7 +133,8 @@ enum WeightLossPaceValidator {
     ) -> [PlanWarning] {
         guard goalDirection == .cut, weightKg > 0 else { return [] }
 
-        let fraction = pace.weeklyLossFraction(
+        let fraction = weeklyLossFractionForSafety(
+            pace: pace,
             weightKg: weightKg,
             goalWeightKg: goalWeightKg,
             referenceDate: referenceDate
@@ -150,17 +151,36 @@ enum WeightLossPaceValidator {
                     c.paceStrongWarnWeeklyLossFraction * 100
                 )
             ))
-        } else if fraction > c.paceWarnWeeklyLossFraction {
+        } else if fraction >= c.paceWarnWeeklyLossFraction {
             warnings.append(PlanWarning(
                 code: "paceAggressive",
                 severity: .warn,
                 message: String(
-                    format: "Target pace exceeds %.2f%% of body weight per week; monitor energy and recovery.",
+                    format: "Target pace is at or above %.2f%% of body weight per week; monitor energy and recovery.",
                     c.paceWarnWeeklyLossFraction * 100
                 )
             ))
         }
 
         return warnings
+    }
+
+    /// Presets use named fractions; advanced modes derive from absolute kg targets.
+    private static func weeklyLossFractionForSafety(
+        pace: WeightLossPace,
+        weightKg: Double,
+        goalWeightKg: Double,
+        referenceDate: Date
+    ) -> Double {
+        switch pace {
+        case .preset(let preset):
+            return preset.weeklyLossFraction
+        default:
+            return pace.weeklyLossFraction(
+                weightKg: weightKg,
+                goalWeightKg: goalWeightKg,
+                referenceDate: referenceDate
+            )
+        }
     }
 }

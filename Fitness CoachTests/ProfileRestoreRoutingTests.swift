@@ -15,9 +15,9 @@ final class ProfileRestoreRoutingTests: XCTestCase {
         let cloudStore = MockCloudUserProfileStore()
         cloudStore.storedDocument = ProfileTestFixtures.cloudDocument()
 
-        let container = try AppContainer(inMemory: true)
+        let harness = try DailyLogServiceTestSupport.makeHarness()
         let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
+            userProfileService: harness.profileService,
             cloudStore: cloudStore
         )
 
@@ -31,14 +31,14 @@ final class ProfileRestoreRoutingTests: XCTestCase {
         XCTAssertEqual(bootstrapResult, .main)
         XCTAssertEqual(rootState, .main)
         XCTAssertEqual(shellRoute, .main)
-        XCTAssertNotNil(try container.userProfileService.getCurrentProfile())
+        XCTAssertNotNil(try harness.profileService.getCurrentProfile())
     }
 
-    func testMissingLocalAndCloudSetsOnboardingRouteInputs() async throws {
+    func testMissingLocalAndCloudSetsMissingCloudProfileRouteInputs() async throws {
         let cloudStore = MockCloudUserProfileStore()
-        let container = try AppContainer(inMemory: true)
+        let harness = try DailyLogServiceTestSupport.makeHarness()
         let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
+            userProfileService: harness.profileService,
             cloudStore: cloudStore
         )
 
@@ -50,8 +50,37 @@ final class ProfileRestoreRoutingTests: XCTestCase {
             isOnboardingModelReady: true
         )
 
-        XCTAssertEqual(bootstrapResult, .onboarding)
-        XCTAssertEqual(rootState, .onboarding)
-        XCTAssertEqual(shellRoute, .onboarding)
+        XCTAssertEqual(bootstrapResult, .missingCloudProfile)
+        XCTAssertEqual(rootState, .missingCloudProfile)
+        XCTAssertEqual(shellRoute, .missingCloudProfile)
+    }
+
+    /// Signed-out v2 pre-auth routing is covered in `AppRouteResolverTests` and
+    /// `OnboardingShellRouteResolverTests` (pure, no SwiftData). This case documents
+    /// the composed inputs those resolvers expect after local profile resolution.
+    func testSignedOutV2RoutingInputsFromLocalProfileResolution() {
+        let rootWithProfile = RootProfileRouteResolver.resolve(hasProfile: true)
+        XCTAssertEqual(
+            AppRouteResolver.resolve(
+                authState: .signedOut,
+                rootState: rootWithProfile,
+                isOnboardingModelReady: true,
+                hasLocalProfile: true,
+                isOnboardingV2Enabled: true
+            ),
+            .localOnboarding
+        )
+
+        let rootWithoutProfile = RootProfileRouteResolver.resolve(hasProfile: false)
+        XCTAssertEqual(
+            AppRouteResolver.resolve(
+                authState: .signedOut,
+                rootState: rootWithoutProfile,
+                isOnboardingModelReady: true,
+                hasLocalProfile: false,
+                isOnboardingV2Enabled: true
+            ),
+            .localOnboarding
+        )
     }
 }

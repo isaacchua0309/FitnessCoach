@@ -23,7 +23,10 @@ struct TodayView: View {
     /// Optional prefill text for Coach input. `nil` opens Coach without prefilling.
     var onOpenCoach: ((String?) -> Void)?
 
-    init(model: TodayModel, onOpenCoach: ((String?) -> Void)? = nil) {
+    init(
+        model: TodayModel,
+        onOpenCoach: ((String?) -> Void)? = nil
+    ) {
         self.model = model
         self.onOpenCoach = onOpenCoach
     }
@@ -110,23 +113,25 @@ struct TodayView: View {
 
     private func dashboard(_ state: TodayDashboardState) -> some View {
         ScrollView {
-            TodayReadOnlyView(
-                state: state,
-                trainingIntegration: trainingInsightsStore.integrationState,
-                trainingDataSource: trainingInsightsStore.dataSource,
-                appleHealthWorkoutCount: appleHealthWorkoutCount,
-                onOpenCoach: { prefill in
-                    onOpenCoach?(prefill)
-                },
-                onOpenTrainingInsights: {
-                    isShowingTrainingInsights = true
-                }
-            )
+            VStack(alignment: .leading, spacing: TodayLayout.sectionSpacing) {
+                TodayReadOnlyView(
+                    state: state,
+                    trainingIntegration: trainingInsightsStore.integrationState,
+                    trainingDataSource: trainingInsightsStore.dataSource,
+                    appleHealthWorkoutCount: appleHealthWorkoutCount,
+                    onOpenCoach: { prefill in
+                        onOpenCoach?(prefill)
+                    },
+                    onOpenTrainingInsights: {
+                        isShowingTrainingInsights = true
+                    }
+                )
+            }
             .padding(.horizontal, TodayLayout.horizontalPadding)
             .padding(.top, FormaTokens.Spacing.md)
             .padding(.bottom, TodayLayout.bottomScrollPadding)
         }
-        .fitPilotScrollBottomInset()
+        .formaMainTabScrollInsets()
     }
 }
 

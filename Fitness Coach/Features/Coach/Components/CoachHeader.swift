@@ -13,10 +13,6 @@ struct CoachHeader: View {
             Text("Coach")
                 .font(CoachDesignTokens.Typography.largeTitle)
                 .foregroundStyle(CoachDesignTokens.Color.primaryText)
-
-            Text(FormaProductCopy.Coach.headerSubtitle)
-                .font(CoachDesignTokens.Typography.subtitle)
-                .foregroundStyle(CoachDesignTokens.Color.secondaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, CoachDesignTokens.Layout.horizontalPadding)

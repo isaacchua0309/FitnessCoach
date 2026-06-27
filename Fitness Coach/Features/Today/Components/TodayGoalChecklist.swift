@@ -2,7 +2,7 @@
 //  TodayGoalChecklist.swift
 //  Fitness Coach
 //
-//  Forma — State-aware next actions. Chevron = row has a destination.
+//  Forma — State-aware next actions. Chevron = navigation; chip = quick Coach action.
 //
 
 import SwiftUI
@@ -36,59 +36,86 @@ struct TodayGoalChecklist: View {
             Button {
                 onGoalTap(goal)
             } label: {
-                checklistRowContent(goal)
+                FormaActionRow(title: goal.label, style: .navigation) {
+                    rowLeadingIcon(goal)
+                }
             }
             .buttonStyle(.plain)
             .accessibilityLabel(accessibilityLabel(for: goal))
             .accessibilityHint(accessibilityHint(for: goal))
             .accessibilityAddTraits(.isButton)
+        } else if goal.showsQuickActionButton {
+            quickActionRow(goal)
         } else {
-            checklistRowContent(goal)
+            staticRowContent(goal)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(accessibilityLabel(for: goal))
                 .accessibilityAddTraits(.isStaticText)
         }
     }
 
-    private func checklistRowContent(_ goal: TodayGoalItem) -> some View {
+    private func quickActionRow(_ goal: TodayGoalItem) -> some View {
         HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
-            Image(systemName: rowIconName(for: goal))
-                .font(FormaTokens.Typography.body)
-                .foregroundStyle(rowIconColor(for: goal))
-                .frame(width: TodayLayout.actionIconColumnWidth, alignment: .center)
+            rowLeadingIcon(goal)
 
             Text(goal.label)
                 .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(goal.showsChevron ? FormaTokens.Color.textPrimary : FormaTokens.Color.textSecondary)
+                .foregroundStyle(FormaTokens.Color.textPrimary)
                 .multilineTextAlignment(.leading)
                 .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            if goal.showsChevron {
-                Image(systemName: "chevron.right")
-                    .font(FormaTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textTertiary)
-                    .accessibilityHidden(true)
-            }
+            FormaQuickActionChip(
+                title: FormaProductCopy.Today.nextActionQuickChipTitle,
+                action: { onGoalTap(goal) },
+                accessibilityHint: accessibilityHint(for: goal)
+            )
+            .accessibilityLabel(
+                "\(FormaProductCopy.Today.nextActionQuickChipTitle), \(goal.label)"
+            )
         }
         .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .center)
         .padding(.vertical, 2)
-        .contentShape(Rectangle())
+        .accessibilityElement(children: .contain)
+    }
+
+    private func staticRowContent(_ goal: TodayGoalItem) -> some View {
+        HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
+            rowLeadingIcon(goal)
+
+            Text(goal.label)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .multilineTextAlignment(.leading)
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .center)
+        .padding(.vertical, 2)
+    }
+
+    @ViewBuilder
+    private func rowLeadingIcon(_ goal: TodayGoalItem) -> some View {
+        Image(systemName: rowIconName(for: goal))
+            .font(FormaTokens.Typography.body)
+            .foregroundStyle(rowIconColor(for: goal))
+            .frame(width: TodayLayout.actionIconColumnWidth, alignment: .center)
     }
 
     private func rowIconName(for goal: TodayGoalItem) -> String {
-        if goal.showsChevron || goal.isInformational {
-            return "circle"
+        if goal.isComplete && !goal.isInformational {
+            return "checkmark.circle"
         }
-        return "checkmark.circle"
+        return "circle"
     }
 
     private func rowIconColor(for goal: TodayGoalItem) -> Color {
-        if goal.showsChevron || goal.isInformational {
-            return FormaTokens.Color.textTertiary
+        if goal.isComplete && !goal.isInformational {
+            return FormaTokens.Color.textSecondary
         }
-        return FormaTokens.Color.textSecondary
+        return FormaTokens.Color.textTertiary
     }
 
     private func accessibilityLabel(for goal: TodayGoalItem) -> String {
@@ -117,7 +144,7 @@ struct TodayGoalChecklist: View {
     let incomplete = TodayGoalsBuilder.goals(
         from: TodayPreviewData.state,
         trainingIntegration: .notConnected,
-        trainingDataSource: .unavailable
+        trainingDataSource: .appleHealth
     )
     TodayGoalChecklist(goals: incomplete, onGoalTap: { _ in })
         .padding()

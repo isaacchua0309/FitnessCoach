@@ -31,46 +31,74 @@ struct TodayReadOnlyView: View {
         self.onOpenTrainingInsights = onOpenTrainingInsights
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.sectionSpacing) {
-            TodayCaloriesHero(calories: state.calorieSummary)
+    private var goals: [TodayGoalItem] {
+        TodayGoalsBuilder.goals(
+            from: state,
+            trainingIntegration: trainingIntegration,
+            trainingDataSource: trainingDataSource,
+            appleHealthWorkoutCount: appleHealthWorkoutCount
+        )
+    }
 
-            VStack(alignment: .leading, spacing: TodayLayout.planBlockSpacing) {
-                TodayFocusSection(
-                    message: TodayFocusBuilder.focus(
-                        from: state,
-                        trainingIntegration: trainingIntegration,
-                        trainingDataSource: trainingDataSource
-                    )
-                )
+    private var showsGenericCoachCTA: Bool {
+        TodayCoachCTAPolicy.showsGenericCoachCTA(
+            foodEntries: state.foodEntries,
+            goals: goals
+        )
+    }
+
+    private var focusMessage: String {
+        TodayFocusBuilder.focus(
+            from: state,
+            trainingIntegration: trainingIntegration,
+            trainingDataSource: trainingDataSource
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: TodayLayout.zoneSpacing) {
+            statusZone
 
             TodayGoalChecklist(
-                goals: TodayGoalsBuilder.goals(
-                    from: state,
-                    trainingIntegration: trainingIntegration,
-                    trainingDataSource: trainingDataSource,
-                    appleHealthWorkoutCount: appleHealthWorkoutCount
-                ),
+                goals: goals,
                 onGoalTap: handleGoalTap
             )
 
-                TodayReadOnlyProgressSection(
-                    macros: state.macroSummary,
-                    water: state.waterSummary
-                )
+            loggedItemsZone
+
+            if showsGenericCoachCTA {
+                AskCoachCTA {
+                    onOpenCoach(nil)
+                }
             }
+        }
+    }
+
+    // MARK: - Zones
+
+    /// Status: calorie headline + one-line focus.
+    private var statusZone: some View {
+        VStack(alignment: .leading, spacing: TodayLayout.statusZoneSpacing) {
+            TodayCaloriesHero(calories: state.calorieSummary)
+            TodayFocusSection(message: focusMessage)
+        }
+    }
+
+    /// Logged items: measurement targets + meal timeline.
+    private var loggedItemsZone: some View {
+        VStack(alignment: .leading, spacing: TodayLayout.loggedZoneSpacing) {
+            TodayReadOnlyProgressSection(
+                macros: state.macroSummary,
+                water: state.waterSummary
+            )
 
             TodayMealsPreview(
                 entries: state.foodEntries,
                 previewLimit: 3,
-                onAskCoach: {
+                onLogMeal: {
                     onOpenCoach(TodayCoachPrompt.logMeal)
                 }
             )
-
-            AskCoachCTA {
-                onOpenCoach(nil)
-            }
         }
     }
 

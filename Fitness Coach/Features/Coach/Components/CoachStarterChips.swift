@@ -8,14 +8,14 @@
 import SwiftUI
 
 struct CoachStarterChips: View {
-    let prompts: [CoachStarterPrompt]
+    let prompts: [CoachStarterPromptSpec]
     let isDisabled: Bool
-    let onTap: (CoachStarterPrompt) -> Void
+    let onTap: (CoachStarterPromptSpec) -> Void
 
     init(
-        prompts: [CoachStarterPrompt] = CoachStarterPrompt.allCases,
+        prompts: [CoachStarterPromptSpec] = CoachStarterPrompt.defaultQuickActionSpecs,
         isDisabled: Bool = false,
-        onTap: @escaping (CoachStarterPrompt) -> Void
+        onTap: @escaping (CoachStarterPromptSpec) -> Void
     ) {
         self.prompts = prompts
         self.isDisabled = isDisabled

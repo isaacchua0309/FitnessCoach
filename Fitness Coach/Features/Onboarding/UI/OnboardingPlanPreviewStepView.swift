@@ -2,11 +2,13 @@
 //  OnboardingPlanPreviewStepView.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Generated plan preview step for onboarding.
+//  FitPilot AI — Legacy v1 generated plan preview (`.planPreview` step only).
+//  V2 onboarding uses `OnboardingPlanRevealStepView` instead; do not wire this into v2 flows.
 //
 
 import SwiftUI
 
+@available(*, deprecated, message: "Use OnboardingPlanRevealStepView for v2 onboarding.")
 struct OnboardingPlanPreviewStepView: View {
     let plan: CalorieTargetResult?
     let formState: OnboardingFormState

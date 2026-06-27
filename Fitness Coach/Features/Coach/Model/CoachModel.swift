@@ -25,12 +25,15 @@ final class CoachModel: ObservableObject {
     @Published var isShowingFoodEditSheet = false
     @Published private(set) var isConfirmingPending = false
     @Published private(set) var foodEditErrorMessage: String?
+    @Published private(set) var todayContext: CoachTodayContextState?
+    @Published private(set) var starterPromptSpecs: [CoachStarterPromptSpec] = CoachStarterPrompt.defaultQuickActionSpecs
 
     private let localCommandParser: LocalCommandParser
     private let localNutritionEstimator: LocalNutritionEstimator
     private let actionCenter: FitnessActionCenter
     private let dailyLogService: DailyLogService
     private let workoutLogService: WorkoutLogService
+    private let weightLogService: WeightLogService?
     private let mutationHistory = CoachMutationHistory()
 
     private let aiService: AIServiceProtocol?
@@ -47,6 +50,7 @@ final class CoachModel: ObservableObject {
         actionCenter: FitnessActionCenter,
         dailyLogService: DailyLogService,
         workoutLogService: WorkoutLogService,
+        weightLogService: WeightLogService? = nil,
         aiService: AIServiceProtocol? = nil,
         userProfileService: UserProfileService? = nil,
         aiCommandParsingEnabled: Bool = false,
@@ -59,6 +63,7 @@ final class CoachModel: ObservableObject {
         self.actionCenter = actionCenter
         self.dailyLogService = dailyLogService
         self.workoutLogService = workoutLogService
+        self.weightLogService = weightLogService
         self.aiService = aiService
         self.userProfileService = userProfileService
         self.aiCommandParsingEnabled = aiCommandParsingEnabled
@@ -74,6 +79,29 @@ final class CoachModel: ObservableObject {
             )
         } else {
             self.aiContextBuilder = nil
+        }
+    }
+
+    // MARK: Today context
+
+    func refreshTodayContext() {
+        do {
+            let dailyLog = try dailyLogService.getTodayLog()
+            let workouts = try workoutLogService.getWorkouts(for: dailyLog.date)
+            let latestWeight = dailyLog.weightKg == nil ? try weightLogService?.getLatestWeight() : nil
+            let weightLogged = (dailyLog.weightKg ?? latestWeight?.weightKg) != nil
+            let integration = trainingInsightsStore?.integrationState ?? .connected
+            let dataSource = trainingInsightsStore?.dataSource ?? .appleHealth
+
+            todayContext = CoachTodayContextBuilder.build(
+                dailyLog: dailyLog,
+                weightLogged: weightLogged,
+                hasWorkout: !workouts.isEmpty,
+                trainingIntegration: integration,
+                trainingDataSource: dataSource
+            )
+        } catch {
+            todayContext = nil
         }
     }
 
@@ -200,6 +228,10 @@ final class CoachModel: ObservableObject {
     }
 
     func applyStarterPrompt(_ prompt: CoachStarterPrompt) async {
+        await applyStarterPromptSpec(prompt.spec)
+    }
+
+    func applyStarterPromptSpec(_ prompt: CoachStarterPromptSpec) async {
         switch prompt.behavior {
         case .prefill(let text):
             inputText = text

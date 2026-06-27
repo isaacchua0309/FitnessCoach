@@ -11,6 +11,8 @@ struct ProgressDashboardState: Equatable {
     var selectedRangeDays: Int
     var transformation: JourneyTransformationState
     var milestones: [JourneyMilestone]
+    var nextCheckpointKg: Double?
+    var sectionVisibility: JourneySectionVisibility
     var weeklySnapshot: JourneyWeeklySnapshot
     var coachInsights: [JourneyCoachInsight]
     var consistencyCalendar: JourneyConsistencyCalendar
@@ -18,6 +20,13 @@ struct ProgressDashboardState: Equatable {
     var weightTrend: JourneyWeightTrendState
     var analytics: ProgressAnalyticsDetail
     var hasProfile: Bool
+}
+
+struct JourneySectionVisibility: Equatable {
+    /// Weight trend chart requires at least two logged weights.
+    var showsWeightTrendSection: Bool
+    /// Standalone milestone rail — hidden in current Journey polish pass.
+    var showsMilestonesSection: Bool
 }
 
 // MARK: Transformation Hero
@@ -72,6 +81,24 @@ struct JourneyConsistencyCalendar: Equatable {
     var weekdaySymbols: [String]
     var days: [JourneyCalendarDay]
     var completedCount: Int
+    /// Unique logged days in the maturity window (meals, water, weight, or workouts).
+    var totalLoggedDays: Int
+
+    var displayMode: JourneyConsistencyDisplayMode {
+        if totalLoggedDays == 0 {
+            return .momentumEmpty
+        }
+        if totalLoggedDays < JourneyLayout.minimumLoggedDaysForCalendar {
+            return .consistencySummary
+        }
+        return .fullCalendar
+    }
+}
+
+enum JourneyConsistencyDisplayMode: Equatable {
+    case momentumEmpty
+    case consistencySummary
+    case fullCalendar
 }
 
 struct JourneyCalendarDay: Identifiable, Equatable {

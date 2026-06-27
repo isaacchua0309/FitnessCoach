@@ -154,7 +154,7 @@ enum WeightLossPacePreviewBuilder {
     private static func formatKgPerWeek(_ value: Double) -> String {
         let amount = value.truncatingRemainder(dividingBy: 1) == 0
             ? "\(Int(value))"
-            : String(format: "%.1f", value)
+            : String(format: "%.2f", value)
         return "\(amount) kg/week"
     }
 

@@ -2,35 +2,74 @@
 //  CoachEmptyState.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Calm empty conversation state with tappable starters.
+//  FitPilot AI — Empty conversation with today context and quick actions.
 //
 
 import SwiftUI
 
 struct CoachEmptyState: View {
+    let todayContext: CoachTodayContextState?
+    let starterPrompts: [CoachStarterPromptSpec]
     let isDisabled: Bool
-    let onStarterTap: (CoachStarterPrompt) -> Void
+    let onStarterTap: (CoachStarterPromptSpec) -> Void
+
+    init(
+        todayContext: CoachTodayContextState?,
+        starterPrompts: [CoachStarterPromptSpec] = CoachStarterPrompt.defaultQuickActionSpecs,
+        isDisabled: Bool,
+        onStarterTap: @escaping (CoachStarterPromptSpec) -> Void
+    ) {
+        self.todayContext = todayContext
+        self.starterPrompts = starterPrompts
+        self.isDisabled = isDisabled
+        self.onStarterTap = onStarterTap
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.md) {
-            Spacer(minLength: CoachDesignTokens.Spacing.xl)
-
-            Text(FormaProductCopy.Coach.emptyIntro)
-                .font(CoachDesignTokens.Typography.hint)
+            Text(FormaProductCopy.EmptyState.CoachConversation.body)
+                .font(CoachDesignTokens.Typography.subtitle)
                 .foregroundStyle(CoachDesignTokens.Color.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
 
-            CoachStarterChips(isDisabled: isDisabled, onTap: onStarterTap)
+            if let todayContext {
+                CoachTodayContextCard(state: todayContext)
+            }
 
-            Spacer(minLength: CoachDesignTokens.Spacing.xl)
+            VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.xs) {
+                Text(FormaProductCopy.Coach.quickActionsSectionTitle)
+                    .font(CoachDesignTokens.Typography.hintLabel)
+                    .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
+                    .textCase(.uppercase)
+                    .tracking(0.4)
+                    .accessibilityAddTraits(.isHeader)
+
+                CoachStarterChips(
+                    prompts: starterPrompts,
+                    isDisabled: isDisabled,
+                    onTap: onStarterTap
+                )
+            }
         }
         .padding(.horizontal, CoachDesignTokens.Layout.horizontalPadding)
+        .padding(.top, CoachDesignTokens.Spacing.sm)
+        .padding(.bottom, CoachDesignTokens.Spacing.md)
         .accessibilityElement(children: .contain)
     }
 }
 
 #Preview {
-    CoachEmptyState(isDisabled: false) { _ in }
-        .background(CoachDesignTokens.Color.background)
-        .preferredColorScheme(.dark)
+    ScrollView {
+        CoachEmptyState(
+            todayContext: CoachTodayContextState(
+                caloriesLine: "0 eaten · 2,249 target",
+                proteinLine: "Protein 0 / 180 g",
+                waterLine: "Water 0 / 3150 ml",
+                suggestedFocus: FormaProductCopy.Today.focusProteinLow
+            ),
+            isDisabled: false
+        ) { _ in }
+    }
+    .background(CoachDesignTokens.Color.background)
+    .preferredColorScheme(.dark)
 }

@@ -14,20 +14,20 @@ struct WhatHappensNextSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
-            PlanSectionLabel(title: "What happens next")
+            PlanSectionLabel(title: FormaProductCopy.WhatHappensNext.sectionTitle)
 
             FitPilotPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
                     progressionBlock(
-                        label: "Current phase",
+                        label: FormaProductCopy.WhatHappensNext.currentPhase,
                         title: state.currentPhaseName,
-                        detail: state.currentPhaseGoal
+                        detail: state.currentPhaseFocus
                     )
 
                     FitPilotPlanRowDivider()
 
                     progressionBlock(
-                        label: "Next checkpoint",
+                        label: FormaProductCopy.WhatHappensNext.nextCheckpoint,
                         title: nil,
                         detail: state.nextCheckpoint
                     )
@@ -35,9 +35,9 @@ struct WhatHappensNextSection: View {
                     FitPilotPlanRowDivider()
 
                     progressionBlock(
-                        label: "Next phase",
-                        title: state.nextPhaseName,
-                        detail: state.nextPhaseGoal
+                        label: FormaProductCopy.WhatHappensNext.likelyNextStep,
+                        title: state.likelyNextStepName,
+                        detail: state.likelyNextStepDetail
                     )
 
                     if let roadmap = state.roadmapSummary {
@@ -50,7 +50,7 @@ struct WhatHappensNextSection: View {
                                 .fixedSize(horizontal: false, vertical: true)
                                 .padding(.top, 4)
                         } label: {
-                            Text("Possible roadmap")
+                            Text(FormaProductCopy.WhatHappensNext.possibleRoadmap)
                                 .font(FormaTokens.Typography.caption)
                                 .foregroundStyle(FormaTokens.Color.textSecondary)
                         }

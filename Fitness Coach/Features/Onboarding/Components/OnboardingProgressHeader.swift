@@ -2,7 +2,7 @@
 //  OnboardingProgressHeader.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Step progress header for Onboarding.
+//  FitPilot AI — Legacy step progress header (v1 onboarding).
 //
 
 import SwiftUI
@@ -21,7 +21,7 @@ struct OnboardingProgressHeader: View {
 
                 Spacer()
 
-                Text("\(Int(progress * 100))%")
+                Text("\(progressPercent)%")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(OnboardingTheme.secondaryText)
             }
@@ -33,7 +33,7 @@ struct OnboardingProgressHeader: View {
 
                     Capsule()
                         .fill(OnboardingTheme.accent)
-                        .frame(width: max(proxy.size.width * progress, 8))
+                        .frame(width: max(proxy.size.width * progressFraction, 8))
                 }
             }
             .frame(height: 7)
@@ -45,6 +45,7 @@ struct OnboardingProgressHeader: View {
                     .font(.system(.title, design: .rounded).weight(.bold))
                     .foregroundStyle(OnboardingTheme.primaryText)
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
 
                 Text(currentStep.subtitle)
                     .font(.subheadline)
@@ -55,12 +56,18 @@ struct OnboardingProgressHeader: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var progress: Double {
+    private var progressFraction: Double {
         Double(currentStep.progressIndex) / Double(OnboardingStep.totalSteps)
+    }
+
+    private var progressPercent: Int {
+        Int((progressFraction * 100).rounded())
     }
 }
 
 #Preview {
     OnboardingProgressHeader(currentStep: .body)
         .padding()
+        .background(OnboardingTheme.background)
+        .preferredColorScheme(.dark)
 }

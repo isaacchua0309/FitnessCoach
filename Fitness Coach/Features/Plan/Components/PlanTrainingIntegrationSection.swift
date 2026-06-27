@@ -19,30 +19,16 @@ struct PlanTrainingIntegrationSection: View {
 
                 Button(action: onTap) {
                     FitPilotPlanCard {
-                        HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
-                            Image(systemName: "heart.text.square.fill")
-                                .font(FormaTokens.Typography.body)
-                                .foregroundStyle(FormaTokens.Color.accent)
-
-                            VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-                                Text(
-                                    TrainingIntegrationCopy.planIntegrationMessage(
-                                        isAppleHealthConnected: integrationState.isConnected
-                                    )
-                                )
-                                .font(FormaTokens.Typography.sectionSubtitle)
-                                .foregroundStyle(FormaTokens.Color.textLegal)
-                                .multilineTextAlignment(.leading)
-                                .fixedSize(horizontal: false, vertical: true)
-                            }
-
-                            Spacer(minLength: 0)
-
-                            Image(systemName: "chevron.right")
-                                .font(FormaTokens.Typography.caption.weight(.semibold))
-                                .foregroundStyle(FormaTokens.Color.textTertiary)
-                                .accessibilityHidden(true)
-                        }
+                        FormaActionRow(
+                            title: TrainingIntegrationCopy.planIntegrationMessage(
+                                isAppleHealthConnected: integrationState.isConnected
+                            ),
+                            style: .card(
+                                systemImage: "heart.text.square.fill",
+                                usesLegalText: true,
+                                verticalAlignment: .top
+                            )
+                        )
                     }
                 }
                 .buttonStyle(.plain)

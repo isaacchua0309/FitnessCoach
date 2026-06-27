@@ -85,6 +85,16 @@ struct MainTabView: View {
                 container.refreshCenter.refreshIfDayChanged()
             }
         }
+        .task {
+            await bootstrapAfterEntry()
+        }
+    }
+
+    private func bootstrapAfterEntry() async {
+        coachModel.refreshTodayContext()
+        await todayModel.loadToday()
+        await profileModel.refresh()
+        container.actionCenter.notifyDataChanged()
     }
 
     // MARK: - Tab selection
@@ -93,12 +103,12 @@ struct MainTabView: View {
 
     /// Training was removed from the tab bar; `TrainingView` remains for future push navigation.
     private static func resolveInitialTab() -> AppTab {
-        let stored = UserDefaults.standard.string(forKey: selectedTabStorageKey)
-        let tab = AppTab.fromPersistedSelection(stored)
-        if stored == AppTab.legacyTrainingTabID {
+        let persisted = UserDefaults.standard.string(forKey: selectedTabStorageKey)
+        let destination = OnboardingCompletionPolicy.initialMainTab(persistedTabRawValue: persisted)
+        if persisted == AppTab.legacyTrainingTabID {
             UserDefaults.standard.set(AppTab.progress.rawValue, forKey: selectedTabStorageKey)
         }
-        return tab
+        return AppTab.fromPersistedSelection(destination.rawValue)
     }
 }
 

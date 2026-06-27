@@ -37,4 +37,8 @@ enum OnboardingPreviewData {
         isAggressive: false,
         warning: nil
     )
+
+    static var planRevealState: OnboardingPlanRevealState? {
+        OnboardingPlanRevealBuilder.build(formState: formState, plan: generatedPlan)
+    }
 }

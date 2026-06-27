@@ -8,18 +8,26 @@
 import SwiftUI
 
 enum TodayLayout {
-    /// Space between major blocks (hero, meals, Coach CTA).
-    static let sectionSpacing = FormaTokens.Spacing.xl
-    /// Tighter stack for focus → actions → targets.
-    static let planBlockSpacing = FormaTokens.Spacing.md
+    /// Space between the three Today zones (Status, Actions, Logged).
+    static let zoneSpacing = FormaTokens.Spacing.xl
+    /// Hero and focus within the Status zone.
+    static let statusZoneSpacing = FormaTokens.Spacing.sm
+    /// Targets and meals within the Logged zone.
+    static let loggedZoneSpacing = FormaTokens.Spacing.md
+    /// Space between major blocks when not using zones (legacy alias).
+    static let sectionSpacing = zoneSpacing
+    /// Tighter stack inside a zone.
+    static let planBlockSpacing = loggedZoneSpacing
     /// Label to card within a section.
     static let headerToCardSpacing = FormaTokens.Spacing.xs
+    /// Tight label-to-content gap in the status zone.
+    static let compactSpacing: CGFloat = 4
     static let itemSpacing = FormaTokens.Spacing.sm
     static let horizontalPadding = FormaTokens.Spacing.pageHorizontal
     static let actionIconColumnWidth: CGFloat = 22
-    static let metricsProgressHeight: CGFloat = 6
-    /// Scroll padding below the Coach CTA so content clears the tab bar.
-    static let bottomScrollPadding = FormaTokens.Spacing.xl + FormaTokens.Spacing.sm
+    static let metricsProgressHeight: CGFloat = 4
+    /// Scroll padding below the last Today section (see `FormaMainTabLayout`).
+    static let bottomScrollPadding = FormaMainTabLayout.scrollContentBottomPadding
 }
 
 struct TodaySectionLabel: View {
@@ -31,17 +39,17 @@ struct TodaySectionLabel: View {
     }
 }
 
-// MARK: - Focus
-
-struct TodayFocusCard<Content: View>: View {
-    @ViewBuilder var content: Content
+/// Softer section label for measurement rows (Targets).
+struct TodayMutedSectionLabel: View {
+    let title: String
 
     var body: some View {
-        content
-            .padding(.horizontal, FormaTokens.Spacing.md)
-            .padding(.vertical, FormaTokens.Spacing.sm)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(cardBackground(accentLeading: true))
+        Text(title)
+            .font(FormaTokens.Typography.caption.weight(.medium))
+            .foregroundStyle(FormaTokens.Color.textTertiary)
+            .textCase(.uppercase)
+            .tracking(0.4)
+            .accessibilityAddTraits(.isHeader)
     }
 }
 
@@ -59,7 +67,7 @@ struct TodayActionCard<Content: View>: View {
     }
 }
 
-// MARK: - Today's Targets
+// MARK: - Targets
 
 struct TodayMetricsCard<Content: View>: View {
     @ViewBuilder var content: Content
@@ -67,14 +75,15 @@ struct TodayMetricsCard<Content: View>: View {
     var body: some View {
         content
             .padding(.horizontal, FormaTokens.Spacing.md)
-            .padding(.vertical, FormaTokens.Spacing.sm)
+            .padding(.vertical, FormaTokens.Spacing.xs)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(cardBackground(accentLeading: false))
+            .background(metricsCardBackground())
     }
 }
 
 struct TodayMetricProgressBar: View {
     let progress: Double
+    var subdued: Bool = true
 
     private var clampedProgress: Double {
         min(max(progress, 0), 1)
@@ -83,12 +92,14 @@ struct TodayMetricProgressBar: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 3, style: .continuous)
-                    .fill(FormaTokens.Color.surfaceSubtle)
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    .fill(FormaTokens.Color.surface)
 
-                RoundedRectangle(cornerRadius: 3, style: .continuous)
-                    .fill(FormaTokens.Color.accent.opacity(0.78))
-                    .frame(width: max(geometry.size.width * clampedProgress, clampedProgress > 0 ? 4 : 0))
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    .fill(
+                        FormaTokens.Color.accent.opacity(subdued ? 0.42 : 0.78)
+                    )
+                    .frame(width: max(geometry.size.width * clampedProgress, clampedProgress > 0 ? 3 : 0))
             }
         }
         .frame(height: TodayLayout.metricsProgressHeight)
@@ -97,6 +108,15 @@ struct TodayMetricProgressBar: View {
 }
 
 // MARK: - Shared card chrome
+
+private func metricsCardBackground() -> some View {
+    RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+        .fill(FormaTokens.Color.surfaceSubtle)
+        .overlay {
+            RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+                .stroke(FormaTokens.Color.border.opacity(0.55), lineWidth: 0.5)
+        }
+}
 
 private func cardBackground(accentLeading: Bool) -> some View {
     RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)

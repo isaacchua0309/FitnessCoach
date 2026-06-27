@@ -108,10 +108,11 @@ final class WeightLossPaceTests: XCTestCase {
         XCTAssertEqual(result.safetyLevel, .ok)
     }
 
-    func testAggressivePresetNoPaceWarningAtThreshold() {
-        // 0.75% exactly — not above warn threshold (uses > not >=)
+    func testAggressivePresetWarnsAtThreshold() {
+        // 0.75% exactly — at the warn threshold (uses >=)
         let result = validate(pace: .preset(.aggressive))
-        XCTAssertFalse(result.warnings.contains { $0.code == "paceAggressive" })
+        XCTAssertTrue(result.warnings.contains { $0.code == "paceAggressive" })
+        XCTAssertEqual(result.safetyLevel, .caution)
     }
 
     func testWarnAbovePointSevenFivePercentBodyWeightPerWeek() {

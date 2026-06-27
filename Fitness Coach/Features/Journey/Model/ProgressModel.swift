@@ -182,11 +182,18 @@ final class ProgressModel: ObservableObject {
         )
 
         let weightChartPoints = makeWeightChartPoints(weights: weights)
+        let nextCheckpoint = ProgressFormatter.nextMilestone(from: milestones)?.weightKg
+        let weightLogCount = allWeights.count
 
         return ProgressDashboardState(
             selectedRangeDays: rangeDays,
             transformation: transformation,
             milestones: milestones,
+            nextCheckpointKg: nextCheckpoint,
+            sectionVisibility: JourneySectionVisibility(
+                showsWeightTrendSection: weightLogCount >= 2,
+                showsMilestonesSection: false
+            ),
             weeklySnapshot: weeklySnapshot,
             coachInsights: coachInsights,
             consistencyCalendar: consistencyCalendar,

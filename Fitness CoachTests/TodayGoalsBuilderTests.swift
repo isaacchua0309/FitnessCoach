@@ -30,14 +30,14 @@ final class TodayGoalsBuilderTests: XCTestCase {
             FormaProductCopy.Today.actionPlanProteinMeal,
             FormaProductCopy.Today.actionDrinkWater
         ])
-        XCTAssertTrue(goals.allSatisfy { $0.showsChevron && $0.isActionable })
+        XCTAssertTrue(goals.allSatisfy { $0.showsQuickActionButton && $0.isActionable && !$0.showsChevron })
     }
 
-    func testChevronMatchesTapActionAcrossRepresentativeStates() throws {
+    func testChevronMatchesNavigationActionsOnly() throws {
         let scenarios: [(TrainingIntegrationState, TrainingDataSource, Int?, [Bool])] = [
             (.notConnected, .appleHealth, nil, [false, false, false, true]),
             (.connected, .appleHealth, 1, [false, false, false, true]),
-            (.connected, .appleHealth, 0, [false, false, false, true]),
+            (.connected, .appleHealth, 0, [false, false, false, false]),
             (.connected, .appleHealth, 2, [false, false, false, true])
         ]
 
@@ -62,7 +62,11 @@ final class TodayGoalsBuilderTests: XCTestCase {
                 expectedChevrons,
                 "Unexpected chevron flags for integration=\(integration) source=\(dataSource) count=\(String(describing: workoutCount))"
             )
-            XCTAssertEqual(goals.map(\.showsChevron), goals.map { $0.tapAction != nil })
+            XCTAssertEqual(
+                goals.map(\.showsQuickActionButton),
+                [false, false, false, false],
+                "Completed nutrition goals should not show quick-action chips"
+            )
         }
     }
 
@@ -104,7 +108,7 @@ final class TodayGoalsBuilderTests: XCTestCase {
             trainingDataSource: .appleHealth
         )
         let workout = try XCTUnwrap(goals.last)
-        XCTAssertEqual(workout.label, FormaProductCopy.Today.actionUnlockTrainingInsights)
+        XCTAssertEqual(workout.label, FormaProductCopy.Today.actionManageHealthAccess)
         XCTAssertEqual(workout.tapAction, .openTrainingInsights)
     }
 
@@ -170,7 +174,8 @@ final class TodayGoalsBuilderTests: XCTestCase {
         XCTAssertEqual(workout.label, FormaProductCopy.Today.statusNoAppleHealthWorkoutToday)
         XCTAssertTrue(workout.isComplete)
         XCTAssertTrue(workout.isInformational)
-        XCTAssertEqual(workout.tapAction, .openTrainingInsights)
+        XCTAssertNil(workout.tapAction)
+        XCTAssertFalse(workout.showsChevron)
     }
 
     func testUnavailableDataSourceHidesTrainingRow() {

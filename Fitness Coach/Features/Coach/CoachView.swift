@@ -12,6 +12,7 @@ struct CoachView: View {
 
     @StateObject private var model: CoachModel
     @EnvironmentObject private var authManager: AuthManager
+    @EnvironmentObject private var refreshCenter: AppRefreshCenter
     @FocusState private var isInputFocused: Bool
 
     @State private var isPhotoPickerPresented = false
@@ -42,6 +43,8 @@ struct CoachView: View {
                     CoachConversationView(
                         messages: model.messages,
                         isSending: model.isSending,
+                        todayContext: model.todayContext,
+                        starterPrompts: model.starterPromptSpecs,
                         onDismissKeyboard: {
                             dismissKeyboard()
                         },
@@ -78,6 +81,15 @@ struct CoachView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
             .preferredColorScheme(.dark)
+            .task {
+                model.refreshTodayContext()
+            }
+            .onAppear {
+                model.refreshTodayContext()
+            }
+            .onChange(of: refreshCenter.refreshToken) { _, _ in
+                model.refreshTodayContext()
+            }
             .animation(CoachDesignTokens.Motion.standard, value: showEmptyChrome)
             .photosPicker(isPresented: $isPhotoPickerPresented, selection: $photoPickerItem, matching: .images)
             .onChange(of: photoPickerItem) { _, item in
@@ -136,16 +148,16 @@ struct CoachView: View {
         .padding(.bottom, CoachDesignTokens.Layout.bottomChromeInset)
     }
 
-    private func handleStarterTap(_ prompt: CoachStarterPrompt) {
+    private func handleStarterTap(_ prompt: CoachStarterPromptSpec) {
         dismissKeyboard()
         switch prompt.behavior {
         case .openPhotoPicker:
             isPhotoPickerPresented = true
         case .prefill:
-            Task { await model.applyStarterPrompt(prompt) }
+            Task { await model.applyStarterPromptSpec(prompt) }
             isInputFocused = true
         case .send:
-            Task { await model.applyStarterPrompt(prompt) }
+            Task { await model.applyStarterPromptSpec(prompt) }
         }
     }
 

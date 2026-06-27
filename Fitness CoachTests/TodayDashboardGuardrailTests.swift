@@ -43,6 +43,16 @@ final class TodayDashboardGuardrailTests: XCTestCase {
         XCTAssertTrue(goals.allSatisfy { !$0.showsChevron })
     }
 
+    func testIncompleteGoalsUseQuickActionChipsNotChevrons() {
+        let goals = TodayGoalsBuilder.goals(
+            from: TodayDashboardFixtures.dashboardState(),
+            trainingIntegration: .connected,
+            trainingDataSource: .unavailable
+        )
+
+        XCTAssertTrue(goals.allSatisfy { $0.showsQuickActionButton && !$0.showsChevron })
+    }
+
     func testIncompleteGoalsExposeCoachPrefillActions() {
         let state = TodayDashboardFixtures.dashboardState()
 
@@ -55,6 +65,52 @@ final class TodayDashboardGuardrailTests: XCTestCase {
         XCTAssertEqual(goals[0].tapAction, .coach(prefill: TodayCoachPrompt.logWeight))
         XCTAssertEqual(goals[1].tapAction, .coach(prefill: TodayCoachPrompt.logProtein))
         XCTAssertEqual(goals[2].tapAction, .coach(prefill: TodayCoachPrompt.logWater))
+    }
+
+    func testShowsGenericCoachCTAWhenMealsLoggedAndNextActionsComplete() {
+        let completeState = TodayDashboardFixtures.dashboardState(
+            proteinConsumed: 180,
+            proteinTarget: 180,
+            proteinRemaining: 0,
+            waterConsumedMl: 3_150,
+            waterTargetMl: 3_150,
+            waterRemainingMl: 0,
+            weightKg: 68.5
+        )
+        let goals = TodayGoalsBuilder.goals(
+            from: completeState,
+            trainingIntegration: .connected,
+            trainingDataSource: .unavailable
+        )
+
+        XCTAssertTrue(
+            TodayCoachCTAPolicy.showsGenericCoachCTA(
+                foodEntries: TodayPreviewData.foodEntries,
+                goals: goals
+            )
+        )
+    }
+
+    func testHidesGenericCoachCTAWhenMealsEmpty() {
+        let goals = TodayGoalsBuilder.goals(from: TodayDashboardFixtures.dashboardState())
+
+        XCTAssertFalse(
+            TodayCoachCTAPolicy.showsGenericCoachCTA(
+                foodEntries: [],
+                goals: goals
+            )
+        )
+    }
+
+    func testHidesGenericCoachCTAWhenNextActionsNeedCoach() {
+        let goals = TodayGoalsBuilder.goals(from: TodayDashboardFixtures.dashboardState())
+
+        XCTAssertFalse(
+            TodayCoachCTAPolicy.showsGenericCoachCTA(
+                foodEntries: TodayPreviewData.foodEntries,
+                goals: goals
+            )
+        )
     }
 
     func testFailedTrainingIntegrationShowsUnlockAction() throws {
@@ -75,7 +131,7 @@ final class TodayDashboardGuardrailTests: XCTestCase {
         )
 
         let workout = try XCTUnwrap(goals.last)
-        XCTAssertEqual(workout.label, FormaProductCopy.Today.actionUnlockTrainingInsights)
+        XCTAssertEqual(workout.label, FormaProductCopy.Today.actionManageHealthAccess)
         XCTAssertEqual(workout.tapAction, .openTrainingInsights)
         XCTAssertFalse(workout.isComplete)
     }

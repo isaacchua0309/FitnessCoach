@@ -171,7 +171,7 @@ final class TrainingIntegrationTests: XCTestCase {
         )
         XCTAssertEqual(
             FormaProductCopy.Training.Integration.poweredByAppleFitness,
-            "Training insights are powered by Apple Fitness."
+            TrainingIntegrationCopy.trainingInsightsUseAppleHealth
         )
     }
 

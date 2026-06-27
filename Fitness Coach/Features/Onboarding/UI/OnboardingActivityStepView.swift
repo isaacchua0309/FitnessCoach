@@ -2,7 +2,7 @@
 //  OnboardingActivityStepView.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Activity step for onboarding.
+//  Forma — Activity and training rhythm step for onboarding (v2 journey + legacy v1).
 //
 
 import SwiftUI
@@ -17,53 +17,38 @@ struct OnboardingActivityStepView: View {
         case steps
     }
 
+    private var isV2: Bool { OnboardingStepPolicy.isV2Enabled }
+
+    private var showsValidFeedback: Bool {
+        formState.canAdvance(from: .activity)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
-            OnboardingSectionTitle(
-                title: "Training rhythm",
-                subtitle: FormaProductCopy.Onboarding.activityBaselineSubtitle
-            )
-
-            VStack(alignment: .leading, spacing: 10) {
-                OnboardingSectionTitle(title: "Daily activity")
-
-                ForEach(ActivityLevel.allCases, id: \.self) { level in
-                    OnboardingSelectionCard(
-                        title: OnboardingFormatter.activityLevel(level),
-                        subtitle: OnboardingFormatter.activityLevelDescription(level),
-                        icon: activityIcon(for: level),
-                        isSelected: formState.activityLevel == level
-                    ) {
-                        focusedField = nil
-                        formState.activityLevel = level
-                    }
-                }
+            if !isV2 {
+                legacyHeader
             }
 
-            VStack(spacing: OnboardingTheme.fieldSpacing) {
-                OnboardingNumberField(
-                    title: "Training days per week",
-                    placeholder: "3",
-                    text: $formState.trainingFrequencyPerWeekText,
-                    helper: "Strength, sport, classes, or structured cardio.",
-                    keyboard: .numberPad,
-                    isFocused: focusedField == .trainingDays
-                )
-                .focused($focusedField, equals: .trainingDays)
-                .id(Field.trainingDays)
+            activityLevelSection
 
-                OnboardingNumberField(
-                    title: "Average steps per day",
-                    placeholder: "5000",
-                    text: $formState.averageStepsText,
-                    helper: "A rough weekly average is enough.",
-                    keyboard: .numberPad,
-                    isFocused: focusedField == .steps
+            trainingRhythmSection
+
+            if showsValidFeedback {
+                OnboardingFeedbackCard(
+                    icon: "figure.run",
+                    title: FormaProductCopy.Onboarding.V2.ActivityFeedback.title,
+                    message: OnboardingActivityFeedback.message(for: formState.activityLevel),
+                    style: .guidance
                 )
-                .focused($focusedField, equals: .steps)
-                .id(Field.steps)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+                .accessibilityLabel(
+                    "\(FormaProductCopy.Onboarding.V2.ActivityFeedback.title). \(OnboardingActivityFeedback.message(for: formState.activityLevel))"
+                )
             }
         }
+        .animation(.easeInOut(duration: 0.2), value: showsValidFeedback)
+        .animation(.easeInOut(duration: 0.2), value: formState.activityLevel)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .onChange(of: focusedField) { _, field in
             syncNavigator(for: field)
         }
@@ -71,6 +56,71 @@ struct OnboardingActivityStepView: View {
             syncNavigator(for: focusedField)
         }
     }
+
+    // MARK: - Legacy header
+
+    private var legacyHeader: some View {
+        OnboardingSectionTitle(
+            title: FormaProductCopy.Onboarding.V2.Activity.title,
+            subtitle: FormaProductCopy.Onboarding.V2.Activity.subtitle
+        )
+    }
+
+    // MARK: - Activity level
+
+    private var activityLevelSection: some View {
+        VStack(spacing: FormaTokens.Spacing.sm) {
+            ForEach(ActivityLevel.allCases, id: \.self) { level in
+                OnboardingSelectionCard(
+                    title: OnboardingFormatter.activityLevel(level),
+                    subtitle: OnboardingFormatter.activityLevelDescription(level),
+                    icon: activityIcon(for: level),
+                    isSelected: formState.activityLevel == level
+                ) {
+                    focusedField = nil
+                    formState.activityLevel = level
+                }
+            }
+        }
+        .accessibilityLabel("Activity level options")
+    }
+
+    // MARK: - Training rhythm
+
+    private var trainingRhythmSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(FormaProductCopy.Onboarding.V2.Activity.trainingRhythmSectionTitle)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(OnboardingTheme.primaryText)
+
+            VStack(spacing: OnboardingTheme.fieldSpacing) {
+                OnboardingNumberField(
+                    title: FormaProductCopy.Onboarding.V2.Activity.trainingDaysLabel,
+                    placeholder: "3",
+                    text: $formState.trainingFrequencyPerWeekText,
+                    helper: FormaProductCopy.Onboarding.V2.Activity.trainingDaysHelper,
+                    keyboard: .numberPad,
+                    isFocused: focusedField == .trainingDays
+                )
+                .focused($focusedField, equals: .trainingDays)
+                .id(Field.trainingDays)
+
+                OnboardingNumberField(
+                    title: FormaProductCopy.Onboarding.V2.Activity.averageStepsLabel,
+                    placeholder: "5000",
+                    text: $formState.averageStepsText,
+                    helper: FormaProductCopy.Onboarding.V2.Activity.averageStepsHelper,
+                    keyboard: .numberPad,
+                    isFocused: focusedField == .steps
+                )
+                .focused($focusedField, equals: .steps)
+                .id(Field.steps)
+            }
+            .onboardingCard()
+        }
+    }
+
+    // MARK: - Keyboard navigation
 
     private func syncNavigator(for field: Field?) {
         guard let fieldNavigator else { return }
@@ -115,8 +165,25 @@ struct OnboardingActivityStepView: View {
     }
 }
 
-#Preview {
+#Preview("Valid") {
     OnboardingActivityStepView(formState: .constant(OnboardingPreviewData.formState))
         .padding()
+        .background(OnboardingTheme.background)
         .environment(\.onboardingFieldNavigator, OnboardingFieldNavigator())
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Incomplete") {
+    OnboardingActivityStepView(
+        formState: .constant({
+            var state = OnboardingFormState()
+            state.trainingFrequencyPerWeekText = ""
+            state.averageStepsText = ""
+            return state
+        }())
+    )
+    .padding()
+    .background(OnboardingTheme.background)
+    .environment(\.onboardingFieldNavigator, OnboardingFieldNavigator())
+    .preferredColorScheme(.dark)
 }

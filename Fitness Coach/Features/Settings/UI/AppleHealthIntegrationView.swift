@@ -54,10 +54,18 @@ struct AppleHealthIntegrationView: View {
                     Button {
                         Task { await handlePrimaryAction() }
                     } label: {
-                        settingsRowLabel(actionTitle)
+                        settingsRowLabel(
+                            actionTitle,
+                            isEnabled: !insightsStore.integrationState.isRequestingPermission
+                        )
                     }
                     .fitPilotSettingsRowChrome()
                     .disabled(insightsStore.integrationState.isRequestingPermission)
+                    .accessibilityHint(
+                        insightsStore.integrationState.isRequestingPermission
+                            ? "Unavailable while connecting"
+                            : "Performs the primary Apple Health action"
+                    )
                 }
             }
 
@@ -112,10 +120,14 @@ struct AppleHealthIntegrationView: View {
         }
     }
 
-    private func settingsRowLabel(_ title: String) -> some View {
+    private func settingsRowLabel(_ title: String, isEnabled: Bool = true) -> some View {
         Text(title)
             .font(FormaTokens.Typography.body)
-            .foregroundStyle(FormaTokens.Color.accent)
+            .foregroundStyle(
+                isEnabled
+                    ? FormaTokens.Color.accent
+                    : FormaTokens.Color.textTertiary
+            )
             .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .leading)
     }
 

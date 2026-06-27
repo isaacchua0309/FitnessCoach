@@ -335,6 +335,8 @@ final class TodayTrainingRowStrategyTests: XCTestCase {
         )
         XCTAssertEqual(workout.label, FormaProductCopy.Today.statusNoAppleHealthWorkoutToday)
         XCTAssertTrue(workout.isInformational)
+        XCTAssertFalse(workout.showsChevron)
+        XCTAssertFalse(workout.isActionable)
     }
 
     private func workoutGoal(
@@ -402,7 +404,7 @@ final class JourneyTrainingRowStrategyTests: XCTestCase {
         XCTAssertEqual(snapshot.training, .locked)
         XCTAssertEqual(
             TrainingStrategyTestSupport.journeyWorkoutRowLabel(for: snapshot.training),
-            FormaProductCopy.Journey.trainingInsightsLocked
+            FormaProductCopy.Journey.WeeklySnapshot.trainingConnectAppleHealth
         )
         XCTAssertFalse(
             TrainingStrategyTestSupport.journeyWorkoutRowLabel(for: snapshot.training)
@@ -427,7 +429,7 @@ final class JourneyTrainingRowStrategyTests: XCTestCase {
         XCTAssertEqual(days, 2)
         XCTAssertEqual(
             TrainingStrategyTestSupport.journeyWorkoutRowLabel(for: snapshot.training),
-            ProgressFormatter.dayCount(2)
+            FormaProductCopy.Journey.WeeklySnapshot.workoutDaysLine(days: 2)
         )
     }
 
@@ -439,7 +441,7 @@ final class JourneyTrainingRowStrategyTests: XCTestCase {
 
         XCTAssertEqual(
             TrainingStrategyTestSupport.journeyWorkoutRowLabel(for: snapshot.training),
-            FormaProductCopy.Journey.noAppleHealthWorkoutsThisWeek
+            FormaProductCopy.Journey.WeeklySnapshot.statusNotStarted
         )
     }
 }

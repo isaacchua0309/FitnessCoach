@@ -23,10 +23,22 @@ struct OnboardingFormState: Equatable {
     var dietPreference: String = ""
     var unitSystem: UnitSystem = .metric
 
+    /// Optional v2 motivation selections — not required for plan calculation.
+    var selectedMotivations: Set<OnboardingMotivation> = []
+
+    /// Optional v2 logging style preferences — not required for plan calculation.
+    var loggingPreferences: Set<OnboardingLoggingPreference> = []
+
     /// Legacy field kept for target compatibility; synced from `weightLossPaceChoice`.
     var aggressiveness: CalorieAggressiveness = .moderate
     var weightLossPaceChoice: WeightLossPaceChoice = .moderate
     var advancedPaceDraft: WeightLossAdvancedPaceDraft = .default
+
+    /// Display preference for body/goal inputs. Values are always stored in metric internally.
+    var displayUnitSystem: UnitSystem {
+        get { unitSystem }
+        set { unitSystem = newValue }
+    }
 
     mutating func selectPaceChoice(_ choice: WeightLossPaceChoice) {
         weightLossPaceChoice = choice
@@ -72,7 +84,8 @@ struct OnboardingFormState: Equatable {
 
     func validate(step: OnboardingStep) throws {
         switch step {
-        case .welcome:
+        case .landing, .welcome, .motivation, .preferences, .summary,
+             .generatingPlan, .planReveal, .savePlan, .planPreview:
             return
         case .body:
             _ = try parsePositiveInt(ageText, message: FormaProductCopy.Onboarding.Validation.age)
@@ -80,14 +93,26 @@ struct OnboardingFormState: Equatable {
             _ = try parsePositiveDouble(currentWeightKgText, message: FormaProductCopy.Onboarding.Validation.currentWeight)
             _ = try parseOptionalBodyFat(estimatedBodyFatPercentageText)
         case .goal:
-            _ = try parsePositiveDouble(goalWeightKgText, message: FormaProductCopy.Onboarding.Validation.goalWeight)
+            let goalWeightKg = try parsePositiveDouble(
+                goalWeightKgText,
+                message: FormaProductCopy.Onboarding.Validation.goalWeight
+            )
             if isPaceApplicable() {
+                if let currentWeightKg = parsedCurrentWeightKg, goalWeightKg >= currentWeightKg {
+                    throw OnboardingFormError.invalid(
+                        FormaProductCopy.Onboarding.V2.Goal.goalMustBeBelowCurrent
+                    )
+                }
                 let preview = pacePreview()
                 guard preview.isSaveable else {
                     throw OnboardingFormError.invalid(
                         preview.validationError ?? FormaProductCopy.Error.checkInputs
                     )
                 }
+            } else if blocksWeightLossPaceForNonCutGoal() {
+                throw OnboardingFormError.invalid(
+                    FormaProductCopy.Onboarding.V2.Goal.goalMustBeBelowCurrent
+                )
             }
         case .activity:
             _ = try parseNonNegativeInt(
@@ -95,8 +120,6 @@ struct OnboardingFormState: Equatable {
                 message: FormaProductCopy.Onboarding.Validation.trainingFrequency
             )
             _ = try parseNonNegativeInt(averageStepsText, message: FormaProductCopy.Onboarding.Validation.averageSteps)
-        case .preferences, .planPreview:
-            return
         }
     }
 
@@ -113,7 +136,8 @@ struct OnboardingFormState: Equatable {
 
     func canAdvance(from step: OnboardingStep) -> Bool {
         switch step {
-        case .welcome, .preferences, .planPreview:
+        case .landing, .welcome, .motivation, .preferences, .summary,
+             .generatingPlan, .planReveal, .savePlan, .planPreview:
             return true
         case .body, .goal, .activity:
             return validationMessage(for: step) == nil
@@ -191,6 +215,65 @@ struct OnboardingFormState: Equatable {
         )
     }
 
+    func makeCoachingContext(capturedAt: Date = Date()) -> OnboardingCoachingContext {
+        OnboardingCoachingContext(
+            selectedMotivations: selectedMotivations,
+            selectedLoggingPreferences: loggingPreferences,
+            capturedAt: capturedAt
+        )
+    }
+
+    // MARK: - Unit display (metric storage)
+
+    enum BodyMetricField: Equatable {
+        case height
+        case currentWeight
+        case goalWeight
+    }
+
+    static let poundsPerKilogram = 2.2046226218
+    static let centimetersPerInch = 2.54
+
+    func displayText(for field: BodyMetricField) -> String {
+        let storedText = storedMetricText(for: field)
+        guard let metricValue = parsedPositiveDouble(storedText) else {
+            return storedText
+        }
+        return Self.formatDisplayNumber(displayValue(fromMetric: metricValue, for: field))
+    }
+
+    mutating func setDisplayText(_ text: String, for field: BodyMetricField) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            setStoredMetricText("", for: field)
+            return
+        }
+
+        guard let displayValue = Double(trimmed), displayValue > 0 else {
+            setStoredMetricText(trimmed, for: field)
+            return
+        }
+
+        let metricValue = metricValue(fromDisplay: displayValue, for: field)
+        setStoredMetricText(Self.formatStoredNumber(metricValue), for: field)
+    }
+
+    mutating func toggleMotivation(_ motivation: OnboardingMotivation) {
+        if selectedMotivations.contains(motivation) {
+            selectedMotivations.remove(motivation)
+        } else {
+            selectedMotivations.insert(motivation)
+        }
+    }
+
+    mutating func toggleLoggingPreference(_ preference: OnboardingLoggingPreference) {
+        if loggingPreferences.contains(preference) {
+            loggingPreferences.remove(preference)
+        } else {
+            loggingPreferences.insert(preference)
+        }
+    }
+
     // MARK: - Parsed helpers
 
     var parsedCurrentWeightKg: Double? {
@@ -199,6 +282,22 @@ struct OnboardingFormState: Equatable {
 
     var parsedGoalWeightKg: Double? {
         parsedPositiveDouble(goalWeightKgText)
+    }
+
+    /// Advanced fat-loss pace requires a goal below current weight.
+    func blocksWeightLossPaceForNonCutGoal() -> Bool {
+        guard !isPaceApplicable(),
+              let currentWeightKg = parsedCurrentWeightKg,
+              let goalWeightKg = parsedGoalWeightKg,
+              goalWeightKg >= currentWeightKg else {
+            return false
+        }
+
+        guard weightLossPaceChoice.isAdvanced else { return false }
+
+        let trimmed = advancedPaceDraft.amountText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let amount = Double(trimmed), amount > 0 else { return false }
+        return true
     }
 
     private func parsedPositiveDouble(_ text: String) -> Double? {
@@ -238,6 +337,70 @@ struct OnboardingFormState: Equatable {
             throw OnboardingFormError.invalid(FormaProductCopy.Onboarding.Validation.bodyFatRange)
         }
         return value
+    }
+
+    private func storedMetricText(for field: BodyMetricField) -> String {
+        switch field {
+        case .height:
+            return heightCmText
+        case .currentWeight:
+            return currentWeightKgText
+        case .goalWeight:
+            return goalWeightKgText
+        }
+    }
+
+    private mutating func setStoredMetricText(_ text: String, for field: BodyMetricField) {
+        switch field {
+        case .height:
+            heightCmText = text
+        case .currentWeight:
+            currentWeightKgText = text
+        case .goalWeight:
+            goalWeightKgText = text
+        }
+    }
+
+    private func displayValue(fromMetric metricValue: Double, for field: BodyMetricField) -> Double {
+        switch displayUnitSystem {
+        case .metric:
+            return metricValue
+        case .imperial:
+            switch field {
+            case .height:
+                return metricValue / Self.centimetersPerInch
+            case .currentWeight, .goalWeight:
+                return metricValue * Self.poundsPerKilogram
+            }
+        }
+    }
+
+    private func metricValue(fromDisplay displayValue: Double, for field: BodyMetricField) -> Double {
+        switch displayUnitSystem {
+        case .metric:
+            return displayValue
+        case .imperial:
+            switch field {
+            case .height:
+                return displayValue * Self.centimetersPerInch
+            case .currentWeight, .goalWeight:
+                return displayValue / Self.poundsPerKilogram
+            }
+        }
+    }
+
+    private static func formatDisplayNumber(_ value: Double) -> String {
+        if value.truncatingRemainder(dividingBy: 1) == 0 {
+            return String(Int(value.rounded()))
+        }
+        return String(format: "%.1f", value)
+    }
+
+    private static func formatStoredNumber(_ value: Double) -> String {
+        if value.truncatingRemainder(dividingBy: 0.1) == 0 {
+            return String(format: "%.1f", value)
+        }
+        return String(format: "%.2f", value)
     }
 }
 

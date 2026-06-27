@@ -13,6 +13,27 @@ final class WeightLossPacePreviewBuilderTests: XCTestCase {
     private let weightKg = 80.0
     private let goalWeightKg = 72.0
 
+    func testAggressivePresetAndMatchingAdvancedShareSafetyDisplay() {
+        let weightKg = 90.0
+        let aggressivePreview = WeightLossPacePreviewBuilder.build(
+            choice: .aggressive,
+            advancedDraft: .default,
+            weightKg: weightKg,
+            goalWeightKg: 72.0
+        )
+        let advancedPreview = WeightLossPacePreviewBuilder.build(
+            choice: .advanced,
+            advancedDraft: WeightLossAdvancedPaceDraft(period: .weekly, amountText: "0.7"),
+            weightKg: weightKg,
+            goalWeightKg: 72.0
+        )
+
+        XCTAssertEqual(aggressivePreview.safetyDisplay, .demanding)
+        XCTAssertEqual(advancedPreview.safetyDisplay, aggressivePreview.safetyDisplay)
+        XCTAssertNotEqual(aggressivePreview.weeklyLossKg ?? 0, 0.7, accuracy: 0.001)
+        XCTAssertEqual(advancedPreview.weeklyLossKg ?? 0, 0.7, accuracy: 0.001)
+    }
+
     func testModeratePresetPreviewIsSustainable() {
         let preview = WeightLossPacePreviewBuilder.build(
             choice: .moderate,
@@ -28,7 +49,7 @@ final class WeightLossPacePreviewBuilderTests: XCTestCase {
         XCTAssertEqual(preview.dailyDeficitKcal, 440)
         XCTAssertEqual(
             preview.deficitSummaryLine,
-            "0.4 kg/week is about a 440 kcal daily deficit."
+            "0.40 kg/week is about a 440 kcal daily deficit."
         )
     }
 
@@ -45,7 +66,7 @@ final class WeightLossPacePreviewBuilderTests: XCTestCase {
         XCTAssertEqual(preview.dailyDeficitKcal, 550)
         XCTAssertEqual(
             preview.deficitSummaryLine,
-            "0.5 kg/week is about a 550 kcal daily deficit."
+            "0.50 kg/week is about a 550 kcal daily deficit."
         )
     }
 

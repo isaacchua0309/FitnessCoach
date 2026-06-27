@@ -10,37 +10,39 @@ import Foundation
 enum TrainingIntegrationCopy {
 
     static let connectAppleHealth = "Connect Apple Health"
-    static let poweredByAppleFitness = "Training insights are powered by Apple Fitness."
-    static let poweredByAppleHealthStatus = "Powered by Apple Health"
+    static let includeWorkoutsInProgress =
+        "Connect Apple Health to include workouts in your progress."
+    static let trainingInsightsUseAppleHealth = "Training insights use Apple Health workouts."
+    static let poweredByAppleFitness = trainingInsightsUseAppleHealth
+    static let poweredByAppleHealthStatus = trainingInsightsUseAppleHealth
     static let valueProposition =
-        "Forma uses your workout data to show consistency, duration, and activity patterns."
+        "Forma uses Apple Health workouts to show consistency, duration, and activity patterns."
 
     static let screenTitle = "Training Insights"
 
-    // MARK: - Locked gate (Stage 3)
+    // MARK: - Connect gate
 
-    static let lockedTitle = "Unlock Training Insights"
-    static let lockedBody =
-        "Connect Apple Health to let Forma understand your workouts, activity, and recovery patterns."
+    static let lockedTitle = screenTitle
+    static let lockedBody = includeWorkoutsInProgress
 
     static let lockedBenefits: [String] = [
-        "Workout days and duration",
+        "Workout days and duration from Apple Health",
         "Active calories and workout types",
         "Training consistency over time"
     ]
 
     static let lockedSecondaryNote =
-        "Training data comes from Apple Health. Forma will not manually create workout records."
+        "Optional — Forma reads workouts from Apple Health. Workouts are not entered in Coach."
 
     static let healthShareUsageDescription =
         "Forma uses Apple Health workout data to show training consistency and progress insights."
 
-    static let connectedEmptyTitle = "Waiting for your workouts"
+    static let connectedEmptyTitle = "No workouts yet"
     static let connectedEmptyMessage =
-        "No Apple Health workouts found yet. Once your workouts appear in Apple Fitness, Forma will show your training insights here."
+        "When Apple Fitness records a workout, it will appear in Training Insights."
 
     static let healthIntegrationTitle = "Apple Health"
-    static let healthIntegrationBody = TrainingIntegrationCopy.valueProposition
+    static let healthIntegrationBody = valueProposition
     static let healthIntegrationFooter =
         "Forma reads workouts from Apple Health. It does not write or change your Health data."
     static let healthPermissionsLocationHint =
@@ -48,10 +50,10 @@ enum TrainingIntegrationCopy {
     static let manageHealthAccess = "Open Health app"
     static let manageConnection = "Manage Apple Health connection"
 
-    // MARK: - Plan & Settings (Stage 10)
+    // MARK: - Plan & Settings
 
-    static let planConnectPrompt = "Connect Apple Health for automatic training insights."
-    static let planConnectedNote = "Training insights powered by Apple Health."
+    static let planConnectPrompt = includeWorkoutsInProgress
+    static let planConnectedNote = trainingInsightsUseAppleHealth
     static let planIntegrationSectionTitle = "Training insights"
 
     static let settingsStatusConnected = "Connected"
@@ -81,7 +83,7 @@ enum TrainingIntegrationCopy {
         case .connected:
             return "Forma can read your workouts. Manage access in Health → Apps → Forma."
         case .notConnected:
-            return "Connect to see workout days, duration, and consistency in Forma."
+            return "Connect Apple Health to include workouts in your Journey and Training Insights."
         case .denied:
             return "Turn on workout access in Health → Apps → Forma."
         case .unavailable:
@@ -93,16 +95,16 @@ enum TrainingIntegrationCopy {
         }
     }
 
-    // MARK: - Coach redirect (Stage 7)
+    // MARK: - Coach redirect
 
     static let coachWorkoutLogNotConnected =
-        "Training insights come from Apple Health. Connect Apple Health to let Forma understand your workouts automatically."
+        "Training insights use Apple Health workouts. Connect Apple Health to include workouts in your progress."
 
     static let coachWorkoutLogConnected =
-        "Forma uses your Apple Health workouts for training insights. If this workout was recorded in Apple Fitness, it will appear in your Training Insights."
+        "Forma uses your Apple Health workouts for training insights. If this workout was recorded in Apple Fitness, it will appear in Training Insights."
 
     static let coachWorkoutMutationUnavailable =
-        "Forma doesn't log workouts in Coach. Training insights come from Apple Health."
+        "Forma doesn't log workouts in Coach. Training insights use Apple Health workouts."
 
     static func coachWorkoutLogMessage(isAppleHealthConnected: Bool) -> String {
         isAppleHealthConnected ? coachWorkoutLogConnected : coachWorkoutLogNotConnected
@@ -112,7 +114,6 @@ enum TrainingIntegrationCopy {
     static let deniedMessage =
         "Workout access is off. Open the Health app → Apps → Forma to turn it on."
 
-    static let gateTitle = "Training Insights"
     static let unavailableTitle = "Training insights unavailable"
     static let deniedTitle = "Health access is off"
     static let requestingMessage = "Connecting to Apple Health…"
@@ -143,9 +144,7 @@ enum TrainingIntegrationCopy {
             return unavailableTitle
         case .denied:
             return deniedTitle
-        case .notConnected, .failed, .requestingPermission:
-            return lockedTitle
-        case .connected:
+        case .notConnected, .failed, .requestingPermission, .connected:
             return screenTitle
         }
     }

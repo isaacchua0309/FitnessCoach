@@ -107,6 +107,51 @@ enum OnboardingFormatter {
         }
     }
 
+    static func heightUnitLabel(for unitSystem: UnitSystem) -> String {
+        switch unitSystem {
+        case .metric:
+            return "Centimeters"
+        case .imperial:
+            return "Inches"
+        }
+    }
+
+    static func weightUnitLabel(for unitSystem: UnitSystem) -> String {
+        switch unitSystem {
+        case .metric:
+            return "Kilograms"
+        case .imperial:
+            return "Pounds"
+        }
+    }
+
+    static func heightPlaceholder(for unitSystem: UnitSystem) -> String {
+        switch unitSystem {
+        case .metric:
+            return "175"
+        case .imperial:
+            return "69"
+        }
+    }
+
+    static func weightUnitAbbreviation(for unitSystem: UnitSystem) -> String {
+        switch unitSystem {
+        case .metric:
+            return "kg"
+        case .imperial:
+            return "lb"
+        }
+    }
+
+    static func weightPlaceholder(for unitSystem: UnitSystem) -> String {
+        switch unitSystem {
+        case .metric:
+            return "82.5"
+        case .imperial:
+            return "182"
+        }
+    }
+
     static func kcal(_ value: Int) -> String {
         "\(value) kcal"
     }
@@ -125,6 +170,6 @@ enum OnboardingFormatter {
         guard let value else { return nil }
         return value.truncatingRemainder(dividingBy: 1) == 0
             ? "\(Int(value)) kg/week"
-            : "\(String(format: "%.1f", value)) kg/week"
+            : "\(String(format: "%.2f", value)) kg/week"
     }
 }

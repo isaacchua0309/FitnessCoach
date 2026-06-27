@@ -12,13 +12,11 @@ enum JourneyLayout {
     static let itemSpacing = FormaTokens.Spacing.sm
     static let horizontalPadding = FormaTokens.Spacing.pageHorizontal
 
-    /// Extra scroll clearance above the tab bar: shared tab-bar inset plus breathing room.
-    static let scrollBottomInset =
-        FitPilotScreenStyle.scrollBottomInset + FormaTokens.Layout.bottomBarClearance
+    /// Logged days required before showing the full monthly calendar grid.
+    static let minimumLoggedDaysForCalendar = 3
 
-    /// Padding below the last Journey section before the scroll bottom inset.
-    static let scrollBottomContentPadding =
-        FormaTokens.Layout.bottomBarClearance + FormaTokens.Spacing.xs
+    /// Padding below the last Journey section (see `FormaMainTabLayout`).
+    static let scrollBottomContentPadding = FormaMainTabLayout.scrollContentBottomPadding
 }
 
 struct JourneySectionLabel: View {
@@ -29,13 +27,3 @@ struct JourneySectionLabel: View {
     }
 }
 
-// MARK: - Scroll inset
-
-extension View {
-    /// Journey scroll clearance above the tab bar (composes shared layout tokens).
-    func journeyScrollBottomInset() -> some View {
-        safeAreaInset(edge: .bottom, spacing: 0) {
-            Color.clear.frame(height: JourneyLayout.scrollBottomInset)
-        }
-    }
-}

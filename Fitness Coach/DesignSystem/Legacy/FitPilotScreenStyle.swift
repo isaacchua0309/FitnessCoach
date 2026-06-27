@@ -127,8 +127,10 @@ struct FitPilotComingSoonRow: View {
                 .foregroundStyle(FormaTokens.Color.textTertiary.opacity(0.9))
         }
         .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
+        .allowsHitTesting(false)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title), coming soon")
+        .accessibilityAddTraits(.isStaticText)
     }
 }
 
@@ -177,5 +179,6 @@ extension View {
                     ? FitPilotScreenStyle.activeRowBackground
                     : FitPilotScreenStyle.disabledRowBackground
             )
+            .allowsHitTesting(isEnabled)
     }
 }

@@ -2,7 +2,7 @@
 //  OnboardingBodyStepView.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Body details step for onboarding.
+//  Forma — Body basics step for onboarding (v2 journey + legacy v1).
 //
 
 import SwiftUI
@@ -19,97 +19,55 @@ struct OnboardingBodyStepView: View {
         case bodyFat
     }
 
-    private let selectionColumns = [
-        GridItem(.adaptive(minimum: 136), spacing: 10, alignment: .top)
-    ]
+    private var isV2: Bool { OnboardingStepPolicy.isV2Enabled }
+
+    private var showsValidFeedback: Bool {
+        formState.canAdvance(from: .body)
+    }
+
+    private var heightBinding: Binding<String> {
+        Binding(
+            get: { formState.displayText(for: .height) },
+            set: { formState.setDisplayText($0, for: .height) }
+        )
+    }
+
+    private var weightBinding: Binding<String> {
+        Binding(
+            get: { formState.displayText(for: .currentWeight) },
+            set: { formState.setDisplayText($0, for: .currentWeight) }
+        )
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
-            OnboardingSectionTitle(
-                title: "Body basics",
-                subtitle: "These numbers power your initial calorie, macro, and water targets."
-            )
-
-            VStack(spacing: OnboardingTheme.fieldSpacing) {
-                OnboardingNumberField(
-                    title: "Age",
-                    placeholder: "28",
-                    text: $formState.ageText,
-                    keyboard: .numberPad,
-                    isFocused: focusedField == .age
-                )
-                .focused($focusedField, equals: .age)
-                .id(Field.age)
-
-                OnboardingNumberField(
-                    title: "Height",
-                    placeholder: "175",
-                    text: $formState.heightCmText,
-                    helper: "Centimeters",
-                    keyboard: .decimalPad,
-                    isFocused: focusedField == .height
-                )
-                .focused($focusedField, equals: .height)
-                .id(Field.height)
-
-                OnboardingNumberField(
-                    title: "Current weight",
-                    placeholder: "82.5",
-                    text: $formState.currentWeightKgText,
-                    helper: "Kilograms",
-                    keyboard: .decimalPad,
-                    isFocused: focusedField == .weight
-                )
-                .focused($focusedField, equals: .weight)
-                .id(Field.weight)
-
-                OnboardingNumberField(
-                    title: "Body fat",
-                    placeholder: "Optional",
-                    text: $formState.estimatedBodyFatPercentageText,
-                    helper: "Optional percentage. Leave blank if you do not know.",
-                    keyboard: .decimalPad,
-                    isFocused: focusedField == .bodyFat
-                )
-                .focused($focusedField, equals: .bodyFat)
-                .id(Field.bodyFat)
+            if !isV2 {
+                legacyHeader
             }
 
-            VStack(alignment: .leading, spacing: 12) {
-                OnboardingSectionTitle(title: "Gender", subtitle: "Used only for target estimation.")
+            unitPicker
 
-                LazyVGrid(columns: selectionColumns, spacing: 10) {
-                    ForEach(Sex.allCases, id: \.self) { sex in
-                        OnboardingSelectionCard(
-                            title: OnboardingFormatter.sex(sex),
-                            icon: "person.crop.circle",
-                            isSelected: formState.sex == sex
-                        ) {
-                            focusedField = nil
-                            formState.sex = sex
-                        }
-                    }
-                }
-            }
+            measurementsGroup
 
-            VStack(alignment: .leading, spacing: 12) {
-                OnboardingSectionTitle(title: "Units")
+            genderSection
 
-                ForEach(UnitSystem.allCases, id: \.self) { system in
-                    OnboardingSelectionCard(
-                        title: OnboardingFormatter.unitSystem(system),
-                        subtitle: system == .metric
-                            ? "Best for this setup flow."
-                            : "Display preference; values are still stored in metric.",
-                        icon: "ruler",
-                        isSelected: formState.unitSystem == system
-                    ) {
-                        focusedField = nil
-                        formState.unitSystem = system
-                    }
-                }
+            bodyFatField
+
+            if showsValidFeedback {
+                OnboardingFeedbackCard(
+                    icon: "checkmark.circle.fill",
+                    title: FormaProductCopy.Onboarding.V2.BodyFeedback.title,
+                    message: FormaProductCopy.Onboarding.V2.BodyFeedback.message,
+                    style: .success
+                )
+                .transition(.opacity.combined(with: .move(edge: .top)))
+                .accessibilityLabel(
+                    "\(FormaProductCopy.Onboarding.V2.BodyFeedback.title). \(FormaProductCopy.Onboarding.V2.BodyFeedback.message)"
+                )
             }
         }
+        .animation(.easeInOut(duration: 0.2), value: showsValidFeedback)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .onChange(of: focusedField) { _, field in
             syncNavigator(for: field)
         }
@@ -117,6 +75,125 @@ struct OnboardingBodyStepView: View {
             syncNavigator(for: focusedField)
         }
     }
+
+    // MARK: - Legacy header
+
+    private var legacyHeader: some View {
+        OnboardingSectionTitle(
+            title: FormaProductCopy.Onboarding.V2.Body.title,
+            subtitle: FormaProductCopy.Onboarding.V2.Body.subtitle
+        )
+    }
+
+    // MARK: - Units
+
+    private var unitPicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(FormaProductCopy.Onboarding.V2.Body.unitSectionTitle)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(OnboardingTheme.primaryText)
+
+            Picker(FormaProductCopy.Onboarding.V2.Body.unitSectionTitle, selection: $formState.unitSystem) {
+                Text(FormaProductCopy.Onboarding.V2.Body.unitMetricLabel).tag(UnitSystem.metric)
+                Text(FormaProductCopy.Onboarding.V2.Body.unitImperialLabel).tag(UnitSystem.imperial)
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: formState.unitSystem) { _, _ in
+                focusedField = nil
+            }
+            .accessibilityLabel(FormaProductCopy.Onboarding.V2.Body.unitSectionTitle)
+        }
+    }
+
+    // MARK: - Core measurements
+
+    private var measurementsGroup: some View {
+        VStack(spacing: OnboardingTheme.fieldSpacing) {
+            OnboardingNumberField(
+                title: "Age",
+                placeholder: "28",
+                text: $formState.ageText,
+                keyboard: .numberPad,
+                isFocused: focusedField == .age
+            )
+            .focused($focusedField, equals: .age)
+            .id(Field.age)
+
+            OnboardingNumberField(
+                title: "Height",
+                placeholder: OnboardingFormatter.heightPlaceholder(for: formState.unitSystem),
+                text: heightBinding,
+                helper: OnboardingFormatter.heightUnitLabel(for: formState.unitSystem),
+                keyboard: .decimalPad,
+                isFocused: focusedField == .height
+            )
+            .focused($focusedField, equals: .height)
+            .id(Field.height)
+
+            OnboardingNumberField(
+                title: "Current weight",
+                placeholder: OnboardingFormatter.weightPlaceholder(for: formState.unitSystem),
+                text: weightBinding,
+                helper: OnboardingFormatter.weightUnitLabel(for: formState.unitSystem),
+                keyboard: .decimalPad,
+                isFocused: focusedField == .weight
+            )
+            .focused($focusedField, equals: .weight)
+            .id(Field.weight)
+        }
+        .onboardingCard()
+    }
+
+    // MARK: - Gender
+
+    private var genderSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(FormaProductCopy.Onboarding.V2.Body.genderLabel)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(OnboardingTheme.primaryText)
+
+                Text(FormaProductCopy.Onboarding.V2.Body.genderHelper)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(OnboardingTheme.tertiaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 136), spacing: FormaTokens.Spacing.sm, alignment: .top)],
+                spacing: FormaTokens.Spacing.sm
+            ) {
+                ForEach(Sex.allCases, id: \.self) { sex in
+                    OnboardingSelectionCard(
+                        title: OnboardingFormatter.sex(sex),
+                        icon: sexIcon(for: sex),
+                        isSelected: formState.sex == sex
+                    ) {
+                        focusedField = nil
+                        formState.sex = sex
+                    }
+                }
+            }
+            .accessibilityLabel(FormaProductCopy.Onboarding.V2.Body.genderLabel)
+        }
+    }
+
+    // MARK: - Optional body fat
+
+    private var bodyFatField: some View {
+        OnboardingNumberField(
+            title: FormaProductCopy.Onboarding.V2.Body.bodyFatLabel,
+            placeholder: FormaProductCopy.Onboarding.V2.Body.bodyFatPlaceholder,
+            text: $formState.estimatedBodyFatPercentageText,
+            helper: FormaProductCopy.Onboarding.V2.Body.bodyFatHelper,
+            keyboard: .decimalPad,
+            isFocused: focusedField == .bodyFat
+        )
+        .focused($focusedField, equals: .bodyFat)
+        .id(Field.bodyFat)
+    }
+
+    // MARK: - Keyboard navigation
 
     private func syncNavigator(for field: Field?) {
         guard let fieldNavigator else { return }
@@ -162,10 +239,33 @@ struct OnboardingBodyStepView: View {
             fieldNavigator.clearFocus()
         }
     }
+
+    private func sexIcon(for sex: Sex) -> String {
+        switch sex {
+        case .male:
+            return "figure.stand"
+        case .female:
+            return "figure.stand.dress"
+        case .other:
+            return "person.2.fill"
+        case .preferNotToSay:
+            return "person.crop.circle"
+        }
+    }
 }
 
-#Preview {
+#Preview("Empty") {
+    OnboardingBodyStepView(formState: .constant(OnboardingFormState()))
+        .padding()
+        .background(OnboardingTheme.background)
+        .environment(\.onboardingFieldNavigator, OnboardingFieldNavigator())
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Valid") {
     OnboardingBodyStepView(formState: .constant(OnboardingPreviewData.formState))
         .padding()
+        .background(OnboardingTheme.background)
         .environment(\.onboardingFieldNavigator, OnboardingFieldNavigator())
+        .preferredColorScheme(.dark)
 }

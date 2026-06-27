@@ -161,23 +161,6 @@ enum JourneyStateBuilder {
     ) -> [JourneyCoachInsight] {
         var insights: [JourneyCoachInsight] = []
 
-        let proteinEligible = weekLogs.filter { $0.targets.proteinTarget > 0 }
-        if !proteinEligible.isEmpty {
-            let hitCount = proteinEligible.filter { $0.totals.protein >= $0.targets.proteinTarget * 0.9 }.count
-            let ratio = Double(hitCount) / Double(proteinEligible.count)
-            if ratio >= 0.7 {
-                insights.append(JourneyCoachInsight(
-                    id: "protein-strong",
-                    message: "You maintained excellent protein intake this week."
-                ))
-            } else if ratio < 0.4 {
-                insights.append(JourneyCoachInsight(
-                    id: "protein-low",
-                    message: "Protein dipped this week — anchor each meal with a lean source."
-                ))
-            }
-        }
-
         let waterEligible = weekLogs.filter { $0.targets.waterTargetMl > 0 }
         let prevWaterEligible = previousWeekLogs.filter { $0.targets.waterTargetMl > 0 }
         if !waterEligible.isEmpty, !prevWaterEligible.isEmpty {
@@ -220,7 +203,7 @@ enum JourneyStateBuilder {
         if training == .locked {
             insights.append(JourneyCoachInsight(
                 id: "training-connect",
-                message: "Connect Apple Health when you're ready — Forma can reflect your training without manual logging."
+                message: TrainingIntegrationCopy.includeWorkoutsInProgress
             ))
         }
 
@@ -266,7 +249,8 @@ enum JourneyStateBuilder {
                 monthTitle: month.formatted(.dateTime.month(.wide).year()),
                 weekdaySymbols: calendar.shortWeekdaySymbols,
                 days: [],
-                completedCount: 0
+                completedCount: 0,
+                totalLoggedDays: 0
             )
         }
 
@@ -276,6 +260,7 @@ enum JourneyStateBuilder {
             weights: weights,
             calendar: calendar
         )
+        let totalLoggedDays = completedDays.count
 
         let firstWeekday = calendar.component(.weekday, from: monthInterval.start)
         let leadingBlanks = (firstWeekday - calendar.firstWeekday + 7) % 7
@@ -304,7 +289,8 @@ enum JourneyStateBuilder {
             monthTitle: month.formatted(.dateTime.month(.wide).year()),
             weekdaySymbols: calendar.shortWeekdaySymbols,
             days: days,
-            completedCount: monthCompleted
+            completedCount: monthCompleted,
+            totalLoggedDays: totalLoggedDays
         )
     }
 

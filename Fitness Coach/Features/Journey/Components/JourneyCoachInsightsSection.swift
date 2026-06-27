@@ -10,7 +10,7 @@ struct JourneyCoachInsightsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
-            JourneySectionLabel(title: FormaProductCopy.Journey.sectionCoachInsight)
+            JourneySectionLabel(title: FormaProductCopy.Journey.sectionCoachNote)
 
             FitPilotPlanCard {
                 Text(message)

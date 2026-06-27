@@ -172,6 +172,140 @@ final class OnboardingFormStateTests: XCTestCase {
         XCTAssertEqual(inferred.choice, .advanced)
     }
 
+    // MARK: - V2 optional fields
+
+    func testEmptyMotivationDoesNotBlockAdvanceOrCalculation() throws {
+        var state = OnboardingFormState()
+        XCTAssertTrue(state.selectedMotivations.isEmpty)
+        XCTAssertTrue(state.canAdvance(from: .motivation))
+        XCTAssertNil(state.validationMessage(for: .motivation))
+
+        state = filledCutOnboarding()
+        _ = try state.makeCalorieTargetInput()
+    }
+
+    func testEmptyLoggingPreferencesDoNotBlockAdvanceOrCalculation() throws {
+        var state = OnboardingFormState()
+        XCTAssertTrue(state.loggingPreferences.isEmpty)
+        XCTAssertTrue(state.canAdvance(from: .preferences))
+        XCTAssertNil(state.validationMessage(for: .preferences))
+
+        state = filledCutOnboarding()
+        _ = try state.makeCalorieTargetInput()
+    }
+
+    func testOptionalDietPreferenceDoesNotBreakCalorieTargetInput() throws {
+        var state = filledCutOnboarding()
+        state.dietPreference = "No shellfish, prefer high protein"
+
+        let input = try state.makeCalorieTargetInput()
+        let result = try PlanCalculationBridge.calorieTargetResult(from: input)
+
+        XCTAssertGreaterThan(result.targets.calorieTarget, 0)
+    }
+
+    func testOptionalPreferencesAndDietNotesDoNotChangeTargetMath() throws {
+        var baseline = filledCutOnboarding()
+        var withPreferences = filledCutOnboarding()
+        withPreferences.loggingPreferences = [.naturalLanguage, .dailyCheckIns]
+        withPreferences.dietPreference = "Gluten free"
+
+        let baselineResult = try PlanCalculationBridge.calorieTargetResult(
+            from: try baseline.makeCalorieTargetInput()
+        )
+        let withPreferencesResult = try PlanCalculationBridge.calorieTargetResult(
+            from: try withPreferences.makeCalorieTargetInput()
+        )
+
+        XCTAssertEqual(baselineResult, withPreferencesResult)
+    }
+
+    func testRequiredBodyFieldsStillBlockAdvance() {
+        var state = OnboardingFormState()
+        XCTAssertFalse(state.canAdvance(from: .body))
+        XCTAssertNotNil(state.validationMessage(for: .body))
+
+        state.ageText = "28"
+        state.heightCmText = "168"
+        state.currentWeightKgText = "72"
+        XCTAssertTrue(state.canAdvance(from: .body))
+    }
+
+    func testRequiredGoalFieldsStillBlockAdvance() {
+        var state = filledCutOnboarding()
+        state.goalWeightKgText = ""
+        XCTAssertFalse(state.canAdvance(from: .goal))
+        XCTAssertNotNil(state.validationMessage(for: .goal))
+    }
+
+    func testRequiredActivityFieldsStillBlockAdvance() {
+        var state = filledCutOnboarding()
+        state.trainingFrequencyPerWeekText = ""
+        XCTAssertFalse(state.canAdvance(from: .activity))
+        XCTAssertNotNil(state.validationMessage(for: .activity))
+
+        state.trainingFrequencyPerWeekText = "3"
+        state.averageStepsText = ""
+        XCTAssertFalse(state.canAdvance(from: .activity))
+        XCTAssertNotNil(state.validationMessage(for: .activity))
+    }
+
+    func testMakeCalorieTargetInputWorksForValidDraft() throws {
+        let state = filledCutOnboarding()
+        let input = try state.makeCalorieTargetInput()
+
+        XCTAssertEqual(input.age, 28)
+        XCTAssertEqual(input.sex, .female)
+        XCTAssertEqual(input.heightCm, 168)
+        XCTAssertEqual(input.weightKg, 72)
+        XCTAssertEqual(input.goalWeightKg, 65)
+        XCTAssertEqual(input.activityLevel, .moderatelyActive)
+        XCTAssertEqual(input.trainingFrequencyPerWeek, 3)
+        XCTAssertEqual(input.averageSteps, 5000)
+    }
+
+    func testMakeCoachingContextSerializesMotivationsAndLoggingPreferences() throws {
+        var state = filledCutOnboarding()
+        state.selectedMotivations = [.health, .energy]
+        state.loggingPreferences = [.naturalLanguage, .noPressure]
+
+        let capturedAt = referenceDate
+        let context = state.makeCoachingContext(capturedAt: capturedAt)
+
+        XCTAssertEqual(context.motivations, ["energy", "health"])
+        XCTAssertEqual(context.loggingPreferences, ["naturalLanguage", "noPressure"])
+        XCTAssertEqual(context.capturedAt, capturedAt)
+        XCTAssertEqual(context.motivationSet, state.selectedMotivations)
+        XCTAssertEqual(context.loggingPreferenceSet, state.loggingPreferences)
+
+        let encoded = try JSONEncoder().encode(context)
+        let decoded = try JSONDecoder().decode(OnboardingCoachingContext.self, from: encoded)
+        XCTAssertEqual(decoded, context)
+    }
+
+    func testDisplayUnitHelpersConvertWithoutChangingMetricStorage() {
+        var state = OnboardingFormState()
+        state.heightCmText = "180"
+        state.currentWeightKgText = "80"
+        state.displayUnitSystem = .imperial
+
+        let imperialWeight = state.displayText(for: .currentWeight)
+        state.setDisplayText(imperialWeight, for: .currentWeight)
+        XCTAssertEqual(Double(state.currentWeightKgText) ?? 0, 80, accuracy: 0.1)
+
+        let imperialHeight = state.displayText(for: .height)
+        state.setDisplayText(imperialHeight, for: .height)
+        XCTAssertEqual(Double(state.heightCmText) ?? 0, 180, accuracy: 0.5)
+    }
+
+    func testPreviewDataRemainsValid() throws {
+        let state = OnboardingPreviewData.formState
+        XCTAssertTrue(state.canAdvance(from: .body))
+        XCTAssertTrue(state.canAdvance(from: .goal))
+        XCTAssertTrue(state.canAdvance(from: .activity))
+        _ = try state.makeCalorieTargetInput()
+    }
+
     // MARK: - Helpers
 
     private func assertPresetParity(

@@ -10,7 +10,7 @@ import SwiftUI
 struct TodayMealsPreview: View {
     let entries: [FoodEntry]
     let previewLimit: Int
-    let onAskCoach: () -> Void
+    let onLogMeal: () -> Void
 
     @State private var isExpanded = false
 
@@ -34,23 +34,16 @@ struct TodayMealsPreview: View {
                 }
             }
 
-            FitPilotPlanCard {
-                if entries.isEmpty {
-                    Button(action: onAskCoach) {
-                        HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
-                            Image(systemName: "plus.message")
-                                .font(FormaTokens.Typography.sectionSubtitle)
-                                .foregroundStyle(FormaTokens.Color.accent)
-                            Text(FormaProductCopy.Today.mealsEmptyHint)
-                                .font(FormaTokens.Typography.sectionSubtitle)
-                                .foregroundStyle(FormaTokens.Color.textSecondary)
-                                .multilineTextAlignment(.leading)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .leading)
-                    }
-                    .buttonStyle(.plain)
-                } else {
+            if entries.isEmpty {
+                FormaEmptyStateCard(
+                    title: FormaProductCopy.EmptyState.Meals.title,
+                    message: FormaProductCopy.EmptyState.Meals.body,
+                    actionTitle: FormaProductCopy.EmptyState.Meals.action,
+                    action: onLogMeal,
+                    actionAccessibilityHint: FormaProductCopy.EmptyState.Meals.actionAccessibilityHint
+                )
+            } else {
+                FitPilotPlanCard {
                     VStack(spacing: 0) {
                         ForEach(visibleEntries) { entry in
                             FoodTimelineRow(entry: entry)
@@ -66,11 +59,18 @@ struct TodayMealsPreview: View {
     }
 }
 
-#Preview {
+#Preview("Empty") {
+    TodayMealsPreview(entries: [], previewLimit: 3, onLogMeal: {})
+        .padding()
+        .background(FormaTokens.Color.canvas)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("With meals") {
     TodayMealsPreview(
         entries: TodayPreviewData.foodEntries,
         previewLimit: 3,
-        onAskCoach: {}
+        onLogMeal: {}
     )
     .padding()
     .background(FormaTokens.Color.canvas)

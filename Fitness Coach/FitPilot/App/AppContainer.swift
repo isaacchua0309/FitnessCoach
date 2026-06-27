@@ -35,10 +35,36 @@ final class AppContainer {
     let trainingInsightsStore: TrainingInsightsStore
     let trainingInsightsModel: TrainingInsightsModel
 
-    init(inMemory: Bool = false) throws {
+    let onboardingUserDefaults: UserDefaults
+    let onboardingDraftStore: OnboardingDraftStore
+    let onboardingCoachingContextStore: OnboardingCoachingContextStore
+    let onboardingAnalyticsLogger: any OnboardingAnalyticsLogging
+    let onboardingRoutingConfiguration: OnboardingRoutingConfiguration
+
+    init(
+        inMemory: Bool = false,
+        onboardingUserDefaults: UserDefaults? = nil,
+        onboardingAnalyticsLogger: (any OnboardingAnalyticsLogging)? = nil,
+        onboardingRoutingConfiguration: OnboardingRoutingConfiguration = .production
+    ) throws {
         refreshCenter = AppRefreshCenter()
         let authManager = AuthManager()
         self.authManager = authManager
+
+        self.onboardingUserDefaults = Self.makeOnboardingUserDefaults(
+            inMemory: inMemory,
+            override: onboardingUserDefaults
+        )
+        onboardingDraftStore = OnboardingDraftStore(userDefaults: self.onboardingUserDefaults)
+        onboardingCoachingContextStore = OnboardingCoachingContextStore(
+            userDefaults: self.onboardingUserDefaults
+        )
+        #if DEBUG
+        self.onboardingAnalyticsLogger = onboardingAnalyticsLogger ?? OSLogOnboardingAnalyticsLogger()
+        #else
+        self.onboardingAnalyticsLogger = onboardingAnalyticsLogger ?? NoOpOnboardingAnalyticsLogger()
+        #endif
+        self.onboardingRoutingConfiguration = onboardingRoutingConfiguration
 
         healthTrainingService = HealthTrainingService()
         trainingInsightsStore = TrainingInsightsStore(integration: healthTrainingService)
@@ -178,6 +204,7 @@ final class AppContainer {
             actionCenter: actionCenter,
             dailyLogService: dailyLogService,
             workoutLogService: workoutLogService,
+            weightLogService: weightLogService,
             aiService: aiService,
             userProfileService: userProfileService,
             aiCommandParsingEnabled: aiCommandParsingEnabled,
@@ -222,12 +249,74 @@ final class AppContainer {
         RootModel(profileBootstrapService: profileBootstrapService)
     }
 
-    func makeOnboardingModel(onCompletion: @escaping () -> Void) -> OnboardingModel {
-        OnboardingModel(
+    func makeOnboardingModel(
+        entry: OnboardingAnalyticsEntry = .preAuth,
+        onCompletion: @escaping () -> Void
+    ) -> OnboardingModel {
+        let flowScope = OnboardingFlowScope.resolve(
+            routingMode: onboardingRoutingConfiguration.routingMode,
+            entry: entry,
+            isV2Enabled: onboardingRoutingConfiguration.isV2Enabled
+        )
+        return OnboardingModel(
             userProfileService: userProfileService,
             targetService: targetService,
-            onCompletion: onCompletion
+            onCompletion: onCompletion,
+            draftStore: onboardingDraftStore,
+            coachingContextStore: onboardingCoachingContextStore,
+            analyticsLogger: onboardingAnalyticsLogger,
+            analyticsEntry: entry,
+            flowScope: flowScope,
+            allowsLocalOnlyContinuation: onboardingRoutingConfiguration.allowsLocalOnlyContinuation
         )
+    }
+
+    func resolveAppShellRoute(
+        authState: AuthState,
+        rootState: RootViewState = .loading,
+        isOnboardingModelReady: Bool = false
+    ) -> AppShellRoute {
+        AppRouteResolver.resolve(
+            authState: authState,
+            rootState: rootState,
+            isOnboardingModelReady: isOnboardingModelReady,
+            hasLocalProfile: profileBootstrapService.hasLocalProfile(),
+            isOnboardingV2Enabled: onboardingRoutingConfiguration.isV2Enabled,
+            signedOutWithProfilePolicy: onboardingRoutingConfiguration.signedOutWithProfilePolicy
+        )
+    }
+
+    func resolveOnboardingShellRoute(
+        authState: AuthState,
+        hasLocalProfile: Bool,
+        rootState: RootViewState = .loading,
+        isOnboardingModelReady: Bool = false,
+        awaitingCloudSync: Bool = false
+    ) -> OnboardingShellRoute {
+        OnboardingShellRouting.resolve(
+            OnboardingShellRouteInput(
+                authState: authState,
+                hasLocalProfile: hasLocalProfile,
+                rootState: rootState,
+                isOnboardingModelReady: isOnboardingModelReady,
+                awaitingCloudSync: awaitingCloudSync
+            ),
+            configuration: onboardingRoutingConfiguration
+        )
+    }
+
+    private static func makeOnboardingUserDefaults(
+        inMemory: Bool,
+        override: UserDefaults?
+    ) -> UserDefaults {
+        if let override {
+            return override
+        }
+        if inMemory {
+            let suiteName = "FitnessCoach.onboarding.inMemory.\(UUID().uuidString)"
+            return UserDefaults(suiteName: suiteName) ?? .standard
+        }
+        return .standard
     }
 
     private static func logLLMClientWiring(clientType: String, baseURL: URL?, authAttached: Bool) {

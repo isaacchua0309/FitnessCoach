@@ -10,17 +10,24 @@ import SwiftUI
 struct CoachConversationView: View {
     let messages: [ChatMessage]
     let isSending: Bool
+    var todayContext: CoachTodayContextState?
+    var starterPrompts: [CoachStarterPromptSpec] = CoachStarterPrompt.defaultQuickActionSpecs
     var onDismissKeyboard: (() -> Void)?
-    var onStarterTap: ((CoachStarterPrompt) -> Void)?
+    var onStarterTap: ((CoachStarterPromptSpec) -> Void)?
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     if messages.isEmpty {
-                        CoachEmptyState(isDisabled: isSending) { prompt in
-                            onStarterTap?(prompt)
-                        }
+                        CoachEmptyState(
+                            todayContext: todayContext,
+                            starterPrompts: starterPrompts,
+                            isDisabled: isSending,
+                            onStarterTap: { prompt in
+                                onStarterTap?(prompt)
+                            }
+                        )
                     } else {
                         LazyVStack(spacing: CoachDesignTokens.Layout.messageSpacing) {
                             ForEach(messages) { message in

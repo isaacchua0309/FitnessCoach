@@ -9,16 +9,57 @@ import SwiftUI
 
 struct OnboardingStepContainer<Content: View>: View {
     let currentStep: OnboardingStep
+    let usesStageProgress: Bool
+    let viewState: OnboardingViewState
     let errorMessage: String?
-    let isLoading: Bool
     @ObservedObject var fieldNavigator: OnboardingFieldNavigator
     @ViewBuilder let content: Content
 
+    private var usesFullScreenShell: Bool {
+        currentStep.usesFullScreenChrome
+    }
+
+    private var showsLoadingOverlay: Bool {
+        guard viewState.showsLoadingOverlay else { return false }
+        switch currentStep {
+        case .generatingPlan, .planReveal, .savePlan:
+            return false
+        default:
+            return true
+        }
+    }
+
     var body: some View {
+        Group {
+            if usesFullScreenShell {
+                fullScreenShell
+            } else {
+                scrollableShell
+            }
+        }
+        .onChange(of: currentStep) { _, _ in
+            fieldNavigator.clearFocus()
+            OnboardingKeyboard.dismiss()
+        }
+    }
+
+    // MARK: - Full-screen (generating plan)
+
+    private var fullScreenShell: some View {
+        content
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .padding(.horizontal, OnboardingTheme.pagePadding)
+            .padding(.top, 12)
+            .padding(.bottom, 16)
+    }
+
+    // MARK: - Scrollable steps
+
+    private var scrollableShell: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
-                    OnboardingProgressHeader(currentStep: currentStep)
+                    progressHeader
                         .padding(.top, 12)
 
                     if let errorMessage {
@@ -27,16 +68,12 @@ struct OnboardingStepContainer<Content: View>: View {
 
                     content
 
-                    if isLoading {
-                        OnboardingLoadingView(
-                            message: currentStep == .planPreview
-                                ? FormaProductCopy.Loading.creatingProfile
-                                : FormaProductCopy.Loading.generatingPlan
-                        )
+                    if showsLoadingOverlay, let message = viewState.loadingOverlayMessage {
+                        OnboardingLoadingView(message: message)
                     }
                 }
-                .padding(.horizontal, OnboardingTheme.pagePadding)
-                .padding(.bottom, 16)
+                .padding(.horizontal, contentHorizontalPadding)
+                .padding(.bottom, 28)
             }
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)
@@ -46,10 +83,21 @@ struct OnboardingStepContainer<Content: View>: View {
                     proxy.scrollTo(target, anchor: UnitPoint(x: 0.5, y: 0.32))
                 }
             }
-            .onChange(of: currentStep) { _, _ in
-                fieldNavigator.clearFocus()
-                OnboardingKeyboard.dismiss()
+        }
+    }
+
+    @ViewBuilder
+    private var progressHeader: some View {
+        if currentStep.showsProgressHeader {
+            if usesStageProgress {
+                OnboardingStageProgressHeader(currentStep: currentStep)
+            } else {
+                OnboardingProgressHeader(currentStep: currentStep)
             }
         }
+    }
+
+    private var contentHorizontalPadding: CGFloat {
+        currentStep == .landing ? 0 : OnboardingTheme.pagePadding
     }
 }

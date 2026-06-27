@@ -110,17 +110,12 @@ enum PlanStateBuilder {
 
         return WhatHappensNextState(
             currentPhaseName: currentStrategyName,
-            currentPhaseGoal: phaseGoal(for: currentStrategyName, role: .current),
-            nextCheckpoint: "Review after 4 weeks or when your weight trend stalls.",
-            nextPhaseName: nextPhase.name,
-            nextPhaseGoal: nextPhase.goal,
+            currentPhaseFocus: phaseFocus(for: currentStrategyName),
+            nextCheckpoint: FormaProductCopy.WhatHappensNext.defaultCheckpoint,
+            likelyNextStepName: nextPhase.name,
+            likelyNextStepDetail: nextPhase.detail,
             roadmapSummary: roadmap.isEmpty ? nil : roadmap.joined(separator: " → ")
         )
-    }
-
-    private enum PhaseCopyRole {
-        case current
-        case next
     }
 
     private static func roadmapPhaseNames(
@@ -139,37 +134,46 @@ enum PlanStateBuilder {
         return ["Maintenance", "Lean Bulk", "Mini Cut", currentStrategyName]
     }
 
-    private static func phaseGoal(for phaseName: String, role: PhaseCopyRole) -> String {
+    private static func phaseFocus(for phaseName: String) -> String {
         let normalized = phaseName.lowercased()
 
         if normalized.contains("mini cut") {
-            return "Trim fat quickly while protecting muscle and recovery."
+            return FormaProductCopy.WhatHappensNext.miniCutFocus
         }
         if normalized.contains("cut") {
-            return "Lose fat while keeping strength and recovery stable."
+            return FormaProductCopy.WhatHappensNext.cutFocus
         }
         if normalized.contains("build") || normalized.contains("lean bulk") {
-            return "Add muscle gradually with a controlled surplus and solid recovery."
+            return FormaProductCopy.WhatHappensNext.buildFocus
         }
-        if role == .next {
-            return "Hold your new weight and recover before changing strategy."
-        }
-        return "Keep your weight stable while you train consistently."
+        return FormaProductCopy.WhatHappensNext.maintenanceFocus
     }
 
-    private static func nextLikelyPhase(after currentName: String) -> (name: String, goal: String) {
+    private static func likelyNextStepDetail(for phaseName: String) -> String {
+        let normalized = phaseName.lowercased()
+
+        if normalized.contains("mini cut") {
+            return FormaProductCopy.WhatHappensNext.miniCutNextStep
+        }
+        if normalized.contains("build") || normalized.contains("lean bulk") {
+            return FormaProductCopy.WhatHappensNext.leanBulkNextStep
+        }
+        return FormaProductCopy.WhatHappensNext.maintenanceNextStep
+    }
+
+    private static func nextLikelyPhase(after currentName: String) -> (name: String, detail: String) {
         let normalized = currentName.lowercased()
 
         if normalized.contains("mini cut") || normalized.contains("cut") {
-            return ("Maintenance", phaseGoal(for: "Maintenance", role: .next))
+            return ("Maintenance", likelyNextStepDetail(for: "Maintenance"))
         }
         if normalized == "maintenance" {
-            return ("Lean Bulk", phaseGoal(for: "Lean Bulk", role: .current))
+            return ("Lean Bulk", likelyNextStepDetail(for: "Lean Bulk"))
         }
         if normalized.contains("lean bulk") || normalized.contains("build") {
-            return ("Mini Cut", phaseGoal(for: "Mini Cut", role: .current))
+            return ("Mini Cut", likelyNextStepDetail(for: "Mini Cut"))
         }
-        return ("Maintenance", phaseGoal(for: "Maintenance", role: .next))
+        return ("Maintenance", likelyNextStepDetail(for: "Maintenance"))
     }
 
     static func goalType(for profile: UserProfile) -> PlanGoalType {

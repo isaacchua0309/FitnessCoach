@@ -16,22 +16,13 @@ struct TrainingInsightsEmptyConnectedView: View {
             VStack(alignment: .leading, spacing: TrainingLayout.sectionSpacing) {
                 TrainingInsightsConnectedHeader()
 
-                FitPilotPlanCard {
-                    VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                        Image(systemName: "heart.text.square")
-                            .font(.system(size: 28, weight: .medium))
-                            .foregroundStyle(FormaTokens.Color.accent)
-
-                        Text(TrainingIntegrationCopy.connectedEmptyTitle)
-                            .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
-                            .foregroundStyle(FormaTokens.Color.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text(TrainingIntegrationCopy.connectedEmptyMessage)
-                            .font(FormaTokens.Typography.sectionSubtitle)
-                            .foregroundStyle(FormaTokens.Color.textLegal)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                FormaEmptyStateCard(
+                    title: FormaProductCopy.EmptyState.TrainingInsights.connectedEmptyTitle,
+                    message: FormaProductCopy.EmptyState.TrainingInsights.connectedEmptyBody
+                ) {
+                    Image(systemName: "heart.text.square")
+                        .font(.system(size: 28, weight: .medium))
+                        .foregroundStyle(FormaTokens.Color.accent)
                 }
 
                 coachNoteCard
@@ -62,19 +53,13 @@ struct TrainingInsightsEmptyConnectedView: View {
         NavigationLink {
             AppleHealthIntegrationView(insightsStore: insightsStore)
         } label: {
-            HStack(spacing: FormaTokens.Spacing.sm) {
-                Text(TrainingIntegrationCopy.manageConnection)
-                    .font(FormaTokens.Typography.sectionSubtitle)
-                    .foregroundStyle(FormaTokens.Color.accent)
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(FormaTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textTertiary)
-            }
-            .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .center)
-            .contentShape(Rectangle())
+            FormaActionRow(
+                title: TrainingIntegrationCopy.manageConnection,
+                style: .linkAccent
+            )
         }
         .buttonStyle(.plain)
+        .accessibilityHint("Opens Apple Health integration settings")
     }
 }
 

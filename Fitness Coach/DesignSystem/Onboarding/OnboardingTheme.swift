@@ -44,6 +44,8 @@ struct OnboardingSectionTitle: View {
             Text(title)
                 .font(FormaTokens.Typography.sectionTitle)
                 .foregroundStyle(OnboardingTheme.primaryText)
+                .minimumScaleFactor(0.85)
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
 
             if let subtitle {

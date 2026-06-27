@@ -64,10 +64,24 @@ enum FormaTokens {
 
     enum Layout {
         static let minTouchTarget: CGFloat = 44
+        /// Legacy clearance token; prefer `mainTabScrollBottomInset` on tab-root screens.
         static let bottomBarClearance: CGFloat = 20
-        /// Extra scroll padding so tab-bar screens keep content visible above the bar.
+        /// Extra scroll padding for sheets and pushed screens (not the main tab bar).
         static let tabBarScrollPadding: CGFloat = 32
         static let maxContentWidth: CGFloat = 520
+
+        // MARK: Main tab bar (floating)
+
+        /// Approximate visual height of the system floating tab bar.
+        static let floatingTabBarHeight: CGFloat = 56
+        /// Gap between the last scroll content and the floating tab bar.
+        static let floatingTabBarBreathingRoom: CGFloat = Spacing.sm
+        /// `safeAreaInset` clearance for tab-root scroll views (bar + breathing room).
+        static var mainTabScrollBottomInset: CGFloat {
+            floatingTabBarHeight + floatingTabBarBreathingRoom
+        }
+        /// Padding below the last content block inside tab-root scroll views.
+        static let mainTabScrollContentPadding: CGFloat = Spacing.xs
     }
 
     // MARK: - Typography

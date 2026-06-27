@@ -41,16 +41,8 @@ enum TrainingStrategyTestSupport {
     }
 
     static func journeyWorkoutRowLabel(for training: JourneyWeeklyTrainingStatus) -> String {
-        switch training {
-        case .hidden:
-            return FormaProductCopy.Journey.statusNoData
-        case .locked:
-            return FormaProductCopy.Journey.trainingInsightsLocked
-        case .connectedEmpty:
-            return FormaProductCopy.Journey.noAppleHealthWorkoutsThisWeek
-        case .connected(let days, _, _):
-            return ProgressFormatter.dayCount(days)
-        }
+        JourneyWeeklySnapshotCopyBuilder.trainingDetail(for: training)
+            ?? FormaProductCopy.Journey.statusNoData
     }
 
     enum JourneyTrainingAnalyticsDisplay: Equatable {

@@ -58,10 +58,10 @@ struct PlanLifestyleState: Equatable {
 
 struct WhatHappensNextState: Equatable {
     var currentPhaseName: String
-    var currentPhaseGoal: String
+    var currentPhaseFocus: String
     var nextCheckpoint: String
-    var nextPhaseName: String
-    var nextPhaseGoal: String
+    var likelyNextStepName: String
+    var likelyNextStepDetail: String
     var roadmapSummary: String?
 }
 

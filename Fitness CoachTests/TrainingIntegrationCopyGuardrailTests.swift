@@ -91,6 +91,35 @@ final class TrainingIntegrationCopyGuardrailTests: XCTestCase {
         )
     }
 
+    func testTrainingIntegrationCopyAvoidsLockedLanguage() {
+        let samples = [
+            TrainingIntegrationCopy.lockedTitle,
+            TrainingIntegrationCopy.lockedBody,
+            TrainingIntegrationCopy.lockedSecondaryNote,
+            TrainingIntegrationCopy.planConnectPrompt,
+            TrainingIntegrationCopy.planConnectedNote,
+            TrainingIntegrationCopy.gateMessage(for: .notConnected),
+            TrainingIntegrationCopy.gateTitle(for: .notConnected),
+            TrainingIntegrationCopy.coachWorkoutLogNotConnected,
+            TrainingIntegrationCopy.coachWorkoutMutationUnavailable,
+            FormaProductCopy.Journey.noAppleHealthWorkoutsThisWeek,
+            FormaProductCopy.Journey.trainingDataFromAppleHealth,
+            FormaProductCopy.Today.actionConnectAppleHealth,
+            TrainingInsightsFormatter.noWorkoutsThisWeek()
+        ]
+
+        for sample in samples {
+            XCTAssertFalse(
+                sample.localizedCaseInsensitiveContains("locked"),
+                "Unexpected locked language in: \(sample)"
+            )
+            XCTAssertFalse(
+                sample.localizedCaseInsensitiveContains("unlock"),
+                "Unexpected unlock language in: \(sample)"
+            )
+        }
+    }
+
     private var allStates: [TrainingIntegrationState] {
         [
             .notConnected,

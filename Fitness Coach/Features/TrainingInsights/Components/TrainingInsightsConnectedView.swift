@@ -183,34 +183,17 @@ struct TrainingInsightsConnectedView: View {
         NavigationLink {
             AppleHealthIntegrationView(insightsStore: insightsStore)
         } label: {
-            HStack(spacing: FormaTokens.Spacing.sm) {
-                Text(TrainingIntegrationCopy.manageConnection)
-                    .font(FormaTokens.Typography.sectionSubtitle)
-                    .foregroundStyle(FormaTokens.Color.accent)
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(FormaTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textTertiary)
-            }
-            .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .center)
-            .contentShape(Rectangle())
+            FormaActionRow(
+                title: TrainingIntegrationCopy.manageConnection,
+                style: .linkAccent
+            )
         }
         .buttonStyle(.plain)
         .accessibilityHint("Opens Apple Health integration settings")
     }
 
     private func summaryRow(_ label: String, _ value: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
-            Text(label)
-                .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(FormaTokens.Color.textPrimary)
-            Spacer(minLength: FormaTokens.Spacing.xs)
-            Text(value)
-                .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
-                .foregroundStyle(FormaTokens.Color.textSecondary)
-                .multilineTextAlignment(.trailing)
-        }
-        .padding(.vertical, FormaTokens.Spacing.xs + 2)
+        FormaMetricRow(label: label, value: value, style: .trailingDetail)
     }
 }
 

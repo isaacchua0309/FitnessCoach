@@ -2,7 +2,7 @@
 //  TrainingInsightsGateView.swift
 //  Fitness Coach
 //
-//  Forma — Locked Training Insights when Apple Health is not connected (Stage 3).
+//  Forma — Training Insights when Apple Health is not connected.
 //
 
 import SwiftUI

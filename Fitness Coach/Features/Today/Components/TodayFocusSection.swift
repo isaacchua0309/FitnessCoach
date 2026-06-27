@@ -2,7 +2,7 @@
 //  TodayFocusSection.swift
 //  Fitness Coach
 //
-//  Forma — Coach guidance at the top of the Today plan block.
+//  Forma — One-line coach guidance in the Today status zone.
 //
 
 import SwiftUI
@@ -11,16 +11,14 @@ struct TodayFocusSection: View {
     let message: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
+        VStack(alignment: .leading, spacing: TodayLayout.compactSpacing) {
             TodaySectionLabel(title: FormaProductCopy.Today.focusSectionTitle)
 
-            TodayFocusCard {
-                Text(message)
-                    .font(FormaTokens.Typography.sectionSubtitle)
-                    .foregroundStyle(FormaTokens.Color.textLegal)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .lineLimit(4)
-            }
+            Text(message)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(FormaTokens.Color.textLegal)
+                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(3)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(FormaProductCopy.Today.focusSectionTitle): \(message)")

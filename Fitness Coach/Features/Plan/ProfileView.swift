@@ -164,9 +164,9 @@ struct ProfileView: View {
             }
             .padding(.horizontal, PlanLayout.horizontalPadding)
             .padding(.top, FormaTokens.Spacing.xs)
-            .padding(.bottom, FormaTokens.Spacing.sm)
+            .padding(.bottom, FormaMainTabLayout.scrollContentBottomPadding)
         }
-        .fitPilotScrollBottomInset()
+        .formaMainTabScrollInsets()
     }
 }
 

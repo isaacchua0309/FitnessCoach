@@ -29,6 +29,11 @@ enum ProgressPreviewData {
             JourneyMilestone(id: "m-3", weightKg: 78.8, status: .upcoming),
             JourneyMilestone(id: "m-4", weightKg: 75, status: .upcoming)
         ],
+        nextCheckpointKg: 86.3,
+        sectionVisibility: JourneySectionVisibility(
+            showsWeightTrendSection: true,
+            showsMilestonesSection: false
+        ),
         weeklySnapshot: JourneyWeeklySnapshot(
             training: .connected(
                 workoutDays: 3,
@@ -50,7 +55,8 @@ enum ProgressPreviewData {
             monthTitle: today.formatted(.dateTime.month(.wide).year()),
             weekdaySymbols: Calendar.current.shortWeekdaySymbols,
             days: [],
-            completedCount: 12
+            completedCount: 12,
+            totalLoggedDays: 12
         ),
         achievements: [
             JourneyAchievement(id: "first-workout", title: "First workout", isUnlocked: true),

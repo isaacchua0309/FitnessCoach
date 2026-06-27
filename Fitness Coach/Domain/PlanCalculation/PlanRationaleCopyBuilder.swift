@@ -7,10 +7,24 @@
 
 import Foundation
 
+struct PlanRationaleHighlight: Equatable, Sendable, Identifiable {
+    let id: String
+    let label: String
+    let value: String
+}
+
 struct PlanRationaleState: Equatable, Sendable {
+    /// Paragraph fallback when `highlights` is unavailable.
     let summary: String
+    /// Scannable label/value rows for the main Plan page.
+    let highlights: [PlanRationaleHighlight]?
     let sustainabilityNote: String?
     let calculationDetails: PlanCalculationDetailsState?
+
+    var usesHighlightLayout: Bool {
+        guard let highlights, !highlights.isEmpty else { return false }
+        return true
+    }
 
     static func fallback(for profile: UserProfile) -> PlanRationaleState {
         let activity = ProfileFormatter.activityLevel(profile.activityLevel).lowercased()
@@ -23,6 +37,7 @@ struct PlanRationaleState: Equatable, Sendable {
 
         return PlanRationaleState(
             summary: summary,
+            highlights: nil,
             sustainabilityNote: "Targets balance progress with recovery from strength training.",
             calculationDetails: nil
         )
@@ -58,9 +73,83 @@ enum PlanRationaleCopyBuilder {
 
         return PlanRationaleState(
             summary: summary,
+            highlights: highlights(profile: profile, result: result),
             sustainabilityNote: sustainabilityNote,
             calculationDetails: calculationDetails
         )
+    }
+
+    // MARK: - Highlights
+
+    static func highlights(profile: UserProfile, result: PlanCalculationResult) -> [PlanRationaleHighlight] {
+        var rows: [PlanRationaleHighlight] = [
+            PlanRationaleHighlight(
+                id: "maintenance",
+                label: FormaProductCopy.PlanRationale.maintenanceEstimate,
+                value: formatKcalPerDay(result.tdeeKcal)
+            )
+        ]
+
+        if result.goalDirection == .cut, result.dailyDeficitKcal > 0 {
+            rows.append(
+                PlanRationaleHighlight(
+                    id: "deficit",
+                    label: FormaProductCopy.PlanRationale.dailyDeficit,
+                    value: formatKcalPerDayValue(result.dailyDeficitKcal)
+                )
+            )
+        }
+
+        rows.append(
+            PlanRationaleHighlight(
+                id: "target",
+                label: FormaProductCopy.PlanRationale.target,
+                value: formatKcalPerDay(result.calorieTargetKcal)
+            )
+        )
+
+        rows.append(
+            PlanRationaleHighlight(
+                id: "protein",
+                label: FormaProductCopy.PlanRationale.protein,
+                value: proteinHighlightValue(result: result)
+            )
+        )
+
+        rows.append(
+            PlanRationaleHighlight(
+                id: "water",
+                label: FormaProductCopy.PlanRationale.water,
+                value: formatMlPerDay(result.waterTargetMl)
+            )
+        )
+
+        return rows
+    }
+
+    private static func proteinHighlightValue(result: PlanCalculationResult) -> String {
+        let grams = formatGramsCompact(result.proteinTargetG)
+        switch result.goalDirection {
+        case .cut, .maintain:
+            return "\(grams) \(FormaProductCopy.PlanRationale.proteinRecoverySuffix)"
+        case .gain:
+            return "\(grams) \(FormaProductCopy.PlanRationale.proteinGainSuffix)"
+        }
+    }
+
+    private static func formatGramsCompact(_ value: Double) -> String {
+        value.truncatingRemainder(dividingBy: 1) == 0
+            ? "\(Int(value))g"
+            : "\(Int(value.rounded()))g"
+    }
+
+    private static func formatMlPerDay(_ value: Int) -> String {
+        let formatted = decimalFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
+        return "\(formatted)ml/day"
+    }
+
+    private static func formatKcalPerDayValue(_ value: Int) -> String {
+        "\(formatKcal(value))/day"
     }
 
     // MARK: - Summary

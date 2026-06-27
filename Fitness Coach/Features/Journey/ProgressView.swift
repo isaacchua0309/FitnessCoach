@@ -66,23 +66,21 @@ struct ProgressView: View {
             VStack(alignment: .leading, spacing: JourneyLayout.sectionSpacing) {
                 JourneyTransformationHeroSection(
                     state: state.transformation,
-                    milestones: state.milestones
+                    nextCheckpointKg: state.nextCheckpointKg
                 )
 
                 if let coachMessage = coachInsightMessage(for: state) {
                     JourneyCoachInsightsSection(message: coachMessage)
                 }
 
-                if !state.milestones.isEmpty {
-                    JourneyMilestonesSection(milestones: state.milestones)
-                }
-
                 JourneyWeeklySnapshotSection(snapshot: state.weeklySnapshot)
 
-                JourneyConsistencyCalendarSection(calendar: state.consistencyCalendar)
+                JourneyConsistencyCalendarSection(calendar: state.consistencyCalendar) {
+                    onOpenCoach?(nil)
+                }
 
-                JourneyWeightTrendSection(state: state.weightTrend) {
-                    onOpenCoach?(TodayCoachPrompt.logWeight)
+                if state.sectionVisibility.showsWeightTrendSection {
+                    JourneyWeightTrendSection(state: state.weightTrend)
                 }
 
                 JourneyDetailedAnalyticsSection(
@@ -97,7 +95,7 @@ struct ProgressView: View {
             .padding(.top, FormaTokens.Spacing.md)
             .padding(.bottom, JourneyLayout.scrollBottomContentPadding)
         }
-        .journeyScrollBottomInset()
+        .formaMainTabScrollInsets()
     }
 
     private func coachInsightMessage(for state: ProgressDashboardState) -> String? {

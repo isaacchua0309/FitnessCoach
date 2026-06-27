@@ -15,7 +15,7 @@ struct TodayReadOnlyProgressSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
-            TodaySectionLabel(title: FormaProductCopy.Today.targetsSectionTitle)
+            TodayMutedSectionLabel(title: FormaProductCopy.Today.targetsSectionTitle)
 
             TodayMetricsCard {
                 VStack(alignment: .leading, spacing: 0) {
@@ -94,8 +94,8 @@ struct TodayReadOnlyProgressSection: View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
                 Text(title)
-                    .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
-                    .foregroundStyle(FormaTokens.Color.textPrimary)
+                    .font(FormaTokens.Typography.caption.weight(.medium))
+                    .foregroundStyle(FormaTokens.Color.textSecondary)
                     .layoutPriority(1)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -103,8 +103,8 @@ struct TodayReadOnlyProgressSection: View {
                 Spacer(minLength: FormaTokens.Spacing.xs)
 
                 Text(progressText)
-                    .font(FormaTokens.Typography.caption.weight(.medium))
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaTokens.Color.textTertiary)
                     .multilineTextAlignment(.trailing)
                     .lineLimit(2)
                     .minimumScaleFactor(0.8)
@@ -114,7 +114,7 @@ struct TodayReadOnlyProgressSection: View {
 
             TodayMetricProgressBar(progress: progress)
         }
-        .padding(.vertical, FormaTokens.Spacing.xs)
+        .padding(.vertical, TodayLayout.compactSpacing)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
         .accessibilityValue("\(progressText), \(progressAccessibilityValue(progress))")
