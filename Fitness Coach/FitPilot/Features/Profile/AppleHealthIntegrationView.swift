@@ -7,10 +7,6 @@
 
 import SwiftUI
 
-#if canImport(UIKit)
-import UIKit
-#endif
-
 struct AppleHealthIntegrationView: View {
 
     @ObservedObject var insightsStore: TrainingInsightsStore
@@ -74,7 +70,11 @@ struct AppleHealthIntegrationView: View {
                     }
                     .fitPilotSettingsRowChrome()
                 } footer: {
-                    Text(TrainingIntegrationCopy.healthIntegrationFooter)
+                    Text(
+                        insightsStore.integrationState.isConnected
+                            ? TrainingIntegrationCopy.healthPermissionsLocationHint
+                            : TrainingIntegrationCopy.healthIntegrationFooter
+                    )
                         .font(FormaTokens.Typography.caption)
                         .foregroundStyle(FormaTokens.Color.textTertiary)
                 }
@@ -120,10 +120,7 @@ struct AppleHealthIntegrationView: View {
     }
 
     private func openHealthAccessSettings() {
-        #if canImport(UIKit)
-        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-        UIApplication.shared.open(url)
-        #endif
+        HealthAppSettingsNavigator.openHealthPermissions()
     }
 }
 

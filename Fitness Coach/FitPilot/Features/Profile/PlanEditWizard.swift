@@ -65,6 +65,7 @@ struct PlanEditWizard: View {
                 ToolbarItem(placement: .confirmationAction) {
                     if step < stepTitles.count - 1 {
                         Button("Next") { advance() }
+                            .disabled(!canAdvanceFromCurrentStep)
                     } else {
                         Button {
                             save()
@@ -75,7 +76,7 @@ struct PlanEditWizard: View {
                                 Text("Save")
                             }
                         }
-                        .disabled(isSaving)
+                        .disabled(isSaving || !canSavePlan)
                     }
                 }
             }
@@ -88,25 +89,67 @@ struct PlanEditWizard: View {
     // MARK: Steps
 
     private var goalStep: some View {
-        Section {
-            Picker("Goal", selection: $goalType) {
-                ForEach(PlanGoalType.allCases) { type in
-                    Text(type.rawValue).tag(type)
+        Group {
+            Section {
+                Picker("Goal", selection: $goalType) {
+                    ForEach(PlanGoalType.allCases) { type in
+                        Text(type.rawValue).tag(type)
+                    }
                 }
-            }
-            .pickerStyle(.inline)
-            .onChange(of: goalType) { _, newValue in
-                applyGoalType(newValue)
+                .pickerStyle(.inline)
+                .onChange(of: goalType) { _, newValue in
+                    applyGoalType(newValue)
+                }
             }
 
-            Picker("Pace", selection: $formState.aggressiveness) {
-                ForEach(CalorieAggressiveness.allCases, id: \.self) { level in
-                    Text(ProfileFormatter.aggressiveness(level)).tag(level)
+            Section {
+                WeightLossPaceSettingsView(
+                    paceChoice: $formState.weightLossPaceChoice,
+                    advancedDraft: $formState.advancedPaceDraft,
+                    weightKg: parsedWeightKg,
+                    goalWeightKg: parsedGoalWeightKg,
+                    isPaceApplicable: goalType == .loseFat
+                )
+                .onChange(of: formState.weightLossPaceChoice) { _, _ in
+                    formState.syncAggressivenessFromPaceChoice()
+                }
+            } header: {
+                FitPilotSettingsSectionHeader(title: "Pace")
+            } footer: {
+                if goalType == .loseFat {
+                    Text("Forma computes calorie and macro targets from your pace, weight, and lifestyle.")
+                        .font(FormaTokens.Typography.caption)
+                        .foregroundStyle(FormaTokens.Color.textTertiary)
                 }
             }
-        } footer: {
-            Text("Coach will compute calorie and macro targets from your goal and lifestyle.")
         }
+    }
+
+    private var parsedWeightKg: Double {
+        Double(formState.currentWeightKgText.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 70
+    }
+
+    private var parsedGoalWeightKg: Double {
+        Double(formState.goalWeightKgText.trimmingCharacters(in: .whitespacesAndNewlines)) ?? parsedWeightKg
+    }
+
+    private var canAdvanceFromCurrentStep: Bool {
+        guard step == 0, goalType == .loseFat else { return true }
+        return pacePreview.isSaveable
+    }
+
+    private var canSavePlan: Bool {
+        guard goalType == .loseFat else { return true }
+        return pacePreview.isSaveable
+    }
+
+    private var pacePreview: WeightLossPacePreviewModel {
+        WeightLossPacePreviewBuilder.build(
+            choice: formState.weightLossPaceChoice,
+            advancedDraft: formState.advancedPaceDraft,
+            weightKg: parsedWeightKg,
+            goalWeightKg: parsedGoalWeightKg
+        )
     }
 
     private var goalWeightStep: some View {

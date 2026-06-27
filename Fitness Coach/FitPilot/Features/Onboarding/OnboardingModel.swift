@@ -84,11 +84,14 @@ final class OnboardingModel: ObservableObject {
         do {
             try formState.validate(step: .preferences)
             let input = try formState.makeCalorieTargetInput()
-            generatedPlan = targetService.generateInitialTargets(from: input)
+            generatedPlan = try targetService.generateInitialTargets(from: input)
             currentStep = .planPreview
             viewState = .editing
         } catch let error as OnboardingFormError {
             errorMessage = error.message
+            viewState = .editing
+        } catch let error as PlanCalculationError {
+            errorMessage = error.userMessage
             viewState = .editing
         } catch {
             errorMessage = FormaProductCopy.Error.generatePlan

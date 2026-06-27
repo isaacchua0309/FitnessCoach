@@ -30,6 +30,8 @@ struct ProfileFormState: Equatable {
     var waterTargetMlText: String
     var expectedWeeklyWeightLossKgText: String
     var aggressiveness: CalorieAggressiveness
+    var weightLossPaceChoice: WeightLossPaceChoice
+    var advancedPaceDraft: WeightLossAdvancedPaceDraft
 
     init(profile: UserProfile) {
         name = profile.name ?? ""
@@ -51,6 +53,14 @@ struct ProfileFormState: Equatable {
         waterTargetMlText = "\(profile.targets.waterTargetMl)"
         expectedWeeklyWeightLossKgText = profile.targets.expectedWeeklyWeightLossKg.map(Self.formatDouble) ?? ""
         aggressiveness = profile.targets.aggressiveness
+        let inferred = WeightLossPaceChoiceResolver.infer(
+            aggressiveness: profile.targets.aggressiveness,
+            expectedWeeklyLossKg: profile.targets.expectedWeeklyWeightLossKg,
+            weightKg: profile.currentWeightKg,
+            goalWeightKg: profile.goalWeightKg
+        )
+        weightLossPaceChoice = inferred.choice
+        advancedPaceDraft = inferred.advancedDraft
     }
 
     static func defaultDraftValues() -> ProfileFormState {
@@ -73,7 +83,9 @@ struct ProfileFormState: Equatable {
             fatTargetText: "56",
             waterTargetMlText: "2450",
             expectedWeeklyWeightLossKgText: "0.5",
-            aggressiveness: .moderate
+            aggressiveness: .moderate,
+            weightLossPaceChoice: .moderate,
+            advancedPaceDraft: .default
         )
     }
 
@@ -96,7 +108,9 @@ struct ProfileFormState: Equatable {
         fatTargetText: String,
         waterTargetMlText: String,
         expectedWeeklyWeightLossKgText: String,
-        aggressiveness: CalorieAggressiveness
+        aggressiveness: CalorieAggressiveness,
+        weightLossPaceChoice: WeightLossPaceChoice,
+        advancedPaceDraft: WeightLossAdvancedPaceDraft
     ) {
         self.name = name
         self.ageText = ageText
@@ -117,6 +131,8 @@ struct ProfileFormState: Equatable {
         self.waterTargetMlText = waterTargetMlText
         self.expectedWeeklyWeightLossKgText = expectedWeeklyWeightLossKgText
         self.aggressiveness = aggressiveness
+        self.weightLossPaceChoice = weightLossPaceChoice
+        self.advancedPaceDraft = advancedPaceDraft
     }
 
     func makeDraft(targets: UserTargets) throws -> UserProfileDraft {
@@ -168,7 +184,8 @@ struct ProfileFormState: Equatable {
     }
 
     func makeCalorieTargetInput() throws -> CalorieTargetInput {
-        CalorieTargetInput(
+        let pace = try resolvedWeightLossPace()
+        return CalorieTargetInput(
             age: try parsePositiveInt(ageText, fieldName: "Age"),
             sex: sex,
             heightCm: try parsePositiveDouble(heightCmText, fieldName: "Height"),
@@ -181,8 +198,28 @@ struct ProfileFormState: Equatable {
                 fieldName: "Training frequency"
             ),
             averageSteps: try parseNonNegativeInt(averageStepsText, fieldName: "Average steps"),
-            aggressiveness: aggressiveness
+            aggressiveness: weightLossPaceChoice.legacyAggressiveness,
+            weightLossPace: pace
         )
+    }
+
+    func resolvedWeightLossPace() throws -> WeightLossPace {
+        let weightKg = try parsePositiveDouble(currentWeightKgText, fieldName: "Baseline weight")
+        let goalWeightKg = try parsePositiveDouble(goalWeightKgText, fieldName: "Goal weight")
+        let isCut = goalWeightKg < weightKg - FormaCalculationConstants.goalDirectionEpsilonKg
+
+        guard isCut else {
+            return weightLossPaceChoice.weightLossPace ?? .preset(.moderate)
+        }
+
+        return try WeightLossPaceChoiceResolver.resolvedPace(
+            choice: weightLossPaceChoice,
+            advancedDraft: advancedPaceDraft
+        )
+    }
+
+    mutating func syncAggressivenessFromPaceChoice() {
+        aggressiveness = weightLossPaceChoice.legacyAggressiveness
     }
 
     private func makeTargets() throws -> UserTargets {
@@ -250,7 +287,7 @@ struct ProfileFormState: Equatable {
         return value
     }
 
-    private static func formatDouble(_ value: Double) -> String {
+    private nonisolated static func formatDouble(_ value: Double) -> String {
         value.truncatingRemainder(dividingBy: 1) == 0
             ? "\(Int(value))"
             : "\(value)"
@@ -264,6 +301,11 @@ struct ProfileFormState: Equatable {
         waterTargetMlText = "\(targets.waterTargetMl)"
         expectedWeeklyWeightLossKgText = targets.expectedWeeklyWeightLossKg.map(Self.formatDouble) ?? ""
         aggressiveness = targets.aggressiveness
+        if weightLossPaceChoice != .advanced {
+            weightLossPaceChoice = WeightLossPaceChoice(
+                preset: WeightLossPreset(legacy: targets.aggressiveness)
+            )
+        }
     }
 }
 

@@ -15,6 +15,10 @@ struct UnavailableHealthKitTrainingAuthorization: HealthKitTrainingAuthorizing, 
         .unavailable
     }
 
+    func resolveWorkoutReadAccess() async -> HealthTrainingAuthorizationStatus {
+        .unavailable
+    }
+
     func requestReadAuthorization() async -> HealthTrainingAuthorizationStatus {
         .unavailable
     }

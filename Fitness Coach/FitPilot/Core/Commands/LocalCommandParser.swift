@@ -13,6 +13,8 @@ import Foundation
 
 struct LocalCommandParser {
 
+    nonisolated init() {}
+
     /// Maximum millilitres allowed for a single water entry.
     static let maxSingleWaterMl = 5000
 
@@ -329,5 +331,5 @@ struct LocalCommandParser {
 }
 
 extension LocalCommandParser {
-    static let standard = LocalCommandParser()
+    nonisolated static let standard = LocalCommandParser()
 }

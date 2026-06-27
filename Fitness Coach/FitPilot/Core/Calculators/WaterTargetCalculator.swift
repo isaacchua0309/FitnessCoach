@@ -2,22 +2,22 @@
 //  WaterTargetCalculator.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Deterministic hydration target arithmetic.
+//  FitPilot AI — Hydration progress arithmetic; target generation delegates to WaterCalculator.
 //
 
 import Foundation
 
 struct WaterTargetCalculator {
 
-    /// Base hydration estimate of roughly 35 ml per kg of body weight, with an
-    /// additional allowance on workout days.
-    private static let mlPerKg = 35.0
-    private static let workoutDayBonusMl = 500
-
+    /// Delegates to `WaterCalculator` (FormaCalculationEngine). Uses moderate activity defaults
+    /// when lifestyle context is unavailable.
     static func targetMl(bodyWeightKg: Double, isWorkoutDay: Bool) -> Int {
-        guard bodyWeightKg > 0 else { return 0 }
-        let base = Int((bodyWeightKg * mlPerKg).rounded())
-        return base + (isWorkoutDay ? workoutDayBonusMl : 0)
+        PlanCalculationBridge.waterTargetMl(
+            bodyWeightKg: bodyWeightKg,
+            activityLevel: .moderatelyActive,
+            averageStepsPerDay: FormaCalculationConstants.stepBaselinePerDay,
+            isWorkoutDay: isWorkoutDay
+        )
     }
 
     static func remainingMl(consumedMl: Int, targetMl: Int) -> Int {

@@ -20,12 +20,24 @@ final class TargetService {
 
     // MARK: Generation
 
-    func generateInitialTargets(from input: CalorieTargetInput) -> CalorieTargetResult {
-        CalorieTargetCalculator.generateTargets(input: input)
+    /// Generates plan targets via `FormaCalculationEngine` (see `Docs/FormaCalculationSpec.md`).
+    /// Existing stored profiles are unchanged until the user saves or regenerates a plan.
+    func generateInitialTargets(from input: CalorieTargetInput) throws -> CalorieTargetResult {
+        try PlanCalculationBridge.calorieTargetResult(from: input)
     }
 
-    func generateWaterTarget(bodyWeightKg: Double, isWorkoutDay: Bool) -> Int {
-        WaterTargetCalculator.targetMl(bodyWeightKg: bodyWeightKg, isWorkoutDay: isWorkoutDay)
+    func generateWaterTarget(
+        bodyWeightKg: Double,
+        activityLevel: ActivityLevel = .moderatelyActive,
+        averageStepsPerDay: Int = FormaCalculationConstants.stepBaselinePerDay,
+        isWorkoutDay: Bool = false
+    ) -> Int {
+        PlanCalculationBridge.waterTargetMl(
+            bodyWeightKg: bodyWeightKg,
+            activityLevel: activityLevel,
+            averageStepsPerDay: averageStepsPerDay,
+            isWorkoutDay: isWorkoutDay
+        )
     }
 
     // MARK: Current Targets

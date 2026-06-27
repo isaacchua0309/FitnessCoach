@@ -69,7 +69,7 @@ struct MacroTargetSettingsView: View {
         } header: {
             FitPilotSettingsSectionHeader(title: "Macro Targets")
         } footer: {
-            Text("Manual edits are saved as-is. Regenerate to recalculate from your profile using \(ProfileFormatter.aggressiveness(aggressiveness).lowercased()) aggressiveness.")
+            Text("Manual edits are saved as-is. Regenerate to recalculate from your profile and pace settings.")
                 .font(FormaTokens.Typography.caption)
                 .foregroundStyle(FormaTokens.Color.textTertiary)
         }

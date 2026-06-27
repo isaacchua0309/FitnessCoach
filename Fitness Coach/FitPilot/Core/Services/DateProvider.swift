@@ -12,10 +12,12 @@ protocol DateProviding {
     func startOfDay(for date: Date) -> Date
 }
 
-struct SystemDateProvider: DateProviding {
-    var now: Date { Date() }
+struct SystemDateProvider: DateProviding, Sendable {
+    nonisolated init() {}
 
-    func startOfDay(for date: Date) -> Date {
+    nonisolated var now: Date { Date() }
+
+    nonisolated func startOfDay(for date: Date) -> Date {
         Calendar.current.startOfDay(for: date)
     }
 }

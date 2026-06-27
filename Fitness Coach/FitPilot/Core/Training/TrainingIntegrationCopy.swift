@@ -43,7 +43,9 @@ enum TrainingIntegrationCopy {
     static let healthIntegrationBody = TrainingIntegrationCopy.valueProposition
     static let healthIntegrationFooter =
         "Forma reads workouts from Apple Health. It does not write or change your Health data."
-    static let manageHealthAccess = "Manage Health access"
+    static let healthPermissionsLocationHint =
+        "Workout access is managed in the Health app (Sharing → Apps → Forma), not on Forma's page in Settings."
+    static let manageHealthAccess = "Open Health app"
     static let manageConnection = "Manage Apple Health connection"
 
     // MARK: - Plan & Settings (Stage 10)
@@ -77,11 +79,11 @@ enum TrainingIntegrationCopy {
     static func settingsDetailDescription(for state: TrainingIntegrationState) -> String {
         switch state {
         case .connected:
-            return "Forma can read your workouts to power Training Insights."
+            return "Forma can read your workouts. Manage access in Health → Apps → Forma."
         case .notConnected:
             return "Connect to see workout days, duration, and consistency in Forma."
         case .denied:
-            return "Turn on workout access for Forma in Settings to enable training insights."
+            return "Turn on workout access in Health → Apps → Forma."
         case .unavailable:
             return unavailableMessage
         case .requestingPermission:
@@ -107,7 +109,8 @@ enum TrainingIntegrationCopy {
     }
 
     static let unavailableMessage = "Apple Health is not available on this device."
-    static let deniedMessage = "Health access is off. You can enable it in Settings."
+    static let deniedMessage =
+        "Workout access is off. Open the Health app → Apps → Forma to turn it on."
 
     static let gateTitle = "Training Insights"
     static let unavailableTitle = "Training insights unavailable"

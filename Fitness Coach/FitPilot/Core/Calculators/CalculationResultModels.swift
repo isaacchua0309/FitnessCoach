@@ -20,6 +20,34 @@ struct CalorieTargetInput: Equatable, Sendable {
     let trainingFrequencyPerWeek: Int
     let averageSteps: Int
     let aggressiveness: CalorieAggressiveness
+    /// When set, overrides legacy `aggressiveness` mapping in the calculation engine.
+    let weightLossPace: WeightLossPace?
+
+    init(
+        age: Int,
+        sex: Sex,
+        heightCm: Double,
+        weightKg: Double,
+        goalWeightKg: Double,
+        estimatedBodyFatPercentage: Double?,
+        activityLevel: ActivityLevel,
+        trainingFrequencyPerWeek: Int,
+        averageSteps: Int,
+        aggressiveness: CalorieAggressiveness,
+        weightLossPace: WeightLossPace? = nil
+    ) {
+        self.age = age
+        self.sex = sex
+        self.heightCm = heightCm
+        self.weightKg = weightKg
+        self.goalWeightKg = goalWeightKg
+        self.estimatedBodyFatPercentage = estimatedBodyFatPercentage
+        self.activityLevel = activityLevel
+        self.trainingFrequencyPerWeek = trainingFrequencyPerWeek
+        self.averageSteps = averageSteps
+        self.aggressiveness = aggressiveness
+        self.weightLossPace = weightLossPace
+    }
 }
 
 struct CalorieTargetResult: Equatable, Sendable {

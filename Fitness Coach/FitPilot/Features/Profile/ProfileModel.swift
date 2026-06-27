@@ -94,7 +94,7 @@ final class ProfileModel: ObservableObject {
         do {
             let formState = ProfileFormState.defaultDraftValues()
             let input = try formState.makeCalorieTargetInput()
-            let result = targetService.generateInitialTargets(from: input)
+            let result = try targetService.generateInitialTargets(from: input)
             var draftForm = formState
             draftForm.applyGeneratedTargets(result.targets)
             let draft = try draftForm.makeDraft(targets: result.targets)
@@ -103,6 +103,8 @@ final class ProfileModel: ObservableObject {
             actionCenter.notifyDataChanged()
         } catch let error as ProfileFormError {
             viewState = .error(error.message)
+        } catch let error as PlanCalculationError {
+            viewState = .error(error.userMessage)
         } catch ServiceError.invalidInput(let message) {
             viewState = .error(message)
         } catch {
@@ -114,8 +116,9 @@ final class ProfileModel: ObservableObject {
         do {
             var state = formState
             let input = try state.makeCalorieTargetInput()
-            let result = targetService.generateInitialTargets(from: input)
+            let result = try targetService.generateInitialTargets(from: input)
             state.applyGeneratedTargets(result.targets)
+            state.syncAggressivenessFromPaceChoice()
             let update = try state.makeUpdate()
             _ = try actionCenter.updatePlan(update)
             dismissEditPlan()
@@ -124,6 +127,8 @@ final class ProfileModel: ObservableObject {
             actionCenter.notifyDataChanged()
         } catch let error as ProfileFormError {
             formErrorMessage = error.message
+        } catch let error as PlanCalculationError {
+            formErrorMessage = error.userMessage
         } catch ServiceError.invalidInput(let message) {
             formErrorMessage = message
         } catch {
@@ -140,6 +145,8 @@ final class ProfileModel: ObservableObject {
             formErrorMessage = nil
         } catch let error as ProfileFormError {
             formErrorMessage = error.message
+        } catch let error as PlanCalculationError {
+            formErrorMessage = error.userMessage
         } catch ServiceError.invalidInput(let message) {
             formErrorMessage = message
         } catch {
@@ -150,11 +157,13 @@ final class ProfileModel: ObservableObject {
     func previewRegeneratedTargets(from formState: ProfileFormState) async {
         do {
             let input = try formState.makeCalorieTargetInput()
-            generatedTargetPreview = targetService.generateInitialTargets(from: input)
+            generatedTargetPreview = try targetService.generateInitialTargets(from: input)
             isShowingTargetRegenerationSheet = true
             formErrorMessage = nil
         } catch let error as ProfileFormError {
             formErrorMessage = error.message
+        } catch let error as PlanCalculationError {
+            formErrorMessage = error.userMessage
         } catch {
             formErrorMessage = FormaProductCopy.Error.regenerateTargets
         }

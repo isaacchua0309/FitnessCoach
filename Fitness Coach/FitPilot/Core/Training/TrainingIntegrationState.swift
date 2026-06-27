@@ -51,7 +51,7 @@ extension TrainingIntegrationState {
 extension TrainingDataSource {
 
     /// Official product source is Apple Health on supported platforms.
-    static var preferredOnDevice: TrainingDataSource {
+    nonisolated static var preferredOnDevice: TrainingDataSource {
         #if os(iOS)
         return .appleHealth
         #else

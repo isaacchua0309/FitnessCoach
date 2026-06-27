@@ -40,8 +40,7 @@ final class OnboardingKeyboardMonitor: ObservableObject {
         guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else {
             return
         }
-        let screenHeight = UIScreen.main.bounds.height
-        let isKeyboardOnScreen = frame.minY < screenHeight - 1
+        let isKeyboardOnScreen = frame.height > 50 && frame.minY < frame.maxY
         guard isKeyboardOnScreen else {
             withAnimation(.easeOut(duration: 0.25)) {
                 isVisible = false

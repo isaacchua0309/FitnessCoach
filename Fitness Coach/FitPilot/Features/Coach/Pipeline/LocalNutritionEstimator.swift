@@ -41,7 +41,7 @@ struct LocalNutritionEstimator {
 
     private let items: [FoodItem]
 
-    init() {
+    nonisolated init() {
         self.items = Self.defaultItems
     }
 
@@ -273,7 +273,7 @@ struct LocalNutritionEstimator {
             : String(format: "%.1f", value)
     }
 
-    private static let defaultItems: [FoodItem] = [
+    nonisolated private static let defaultItems: [FoodItem] = [
         FoodItem(name: "Chicken breast", aliases: ["chicken breast", "chicken"], basis: .per100g(calories: 165, protein: 31, carbs: 0, fat: 3.6), defaultUnit: "g"),
         FoodItem(name: "Chicken thigh", aliases: ["chicken thigh"], basis: .per100g(calories: 209, protein: 26, carbs: 0, fat: 10.9), defaultUnit: "g"),
         FoodItem(name: "ON whey protein", aliases: ["on whey", "whey protein", "whey"], basis: .perScoop(calories: 120, protein: 24, carbs: 3, fat: 1.5), defaultUnit: "scoop"),
@@ -293,5 +293,5 @@ struct LocalNutritionEstimator {
 }
 
 extension LocalNutritionEstimator {
-    static let standard = LocalNutritionEstimator()
+    nonisolated static let standard = LocalNutritionEstimator()
 }

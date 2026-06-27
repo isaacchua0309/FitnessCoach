@@ -19,7 +19,7 @@ enum LocalNoAPIRoute: Equatable, Sendable {
 struct LocalNoAPIGuard: Sendable {
     private let localCommandParser: LocalCommandParser
 
-    init(localCommandParser: LocalCommandParser = .standard) {
+    nonisolated init(localCommandParser: LocalCommandParser = .standard) {
         self.localCommandParser = localCommandParser
     }
 

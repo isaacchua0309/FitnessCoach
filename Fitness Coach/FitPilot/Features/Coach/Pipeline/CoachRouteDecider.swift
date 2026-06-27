@@ -58,7 +58,7 @@ final class CoachRouteDecider: Sendable {
     private var recentClassifyCache: [String: Date] = [:]
     private let classifyDedupWindow: TimeInterval = 8
 
-    init(
+    nonisolated init(
         localGuard: LocalNoAPIGuard = LocalNoAPIGuard(),
         intentRouter: CoachIntentRouter = CoachIntentRouter()
     ) {

@@ -22,7 +22,6 @@ enum StreakCalculator {
         asOf date: Date = Date()
     ) -> StreakSummary {
         let calendar = Calendar.current
-        let sortedDays = Set(logs.map { calendar.startOfDay(for: $0.date) })
         let logByDay = Dictionary(uniqueKeysWithValues: logs.map {
             (calendar.startOfDay(for: $0.date), $0)
         })

@@ -70,7 +70,6 @@ final class TrainingModel: ObservableObject {
         let allItems = try history.map { try makeDisplayItem(from: $0) }
         let sortedItems = allItems.sorted { $0.workout.createdAt > $1.workout.createdAt }
 
-        let weeklySets = try sets(for: weeklyWorkouts)
         let muscleSets = try sets(for: workoutsInLastDays(history, days: muscleRangeDays, asOf: today))
 
         let streak = try trainingStreak(asOf: today)

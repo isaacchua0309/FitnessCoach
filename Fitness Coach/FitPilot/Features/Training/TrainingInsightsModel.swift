@@ -40,12 +40,17 @@ final class TrainingInsightsModel: ObservableObject {
     }
 
     func refresh() async {
+        HealthTrainingDebugLogger.event("TrainingInsightsModel.refresh started")
         do {
             let now = dateProvider.now
             let start = TrainingInsightsAggregator.lookbackStart(asOf: now, calendar: calendar)
             let workouts = try await workoutReader.fetchWorkouts(from: start, to: now)
 
             guard !workouts.isEmpty else {
+                HealthTrainingDebugLogger.event(
+                    "TrainingInsightsModel.refresh: no workouts in lookback window",
+                    fields: ["lookbackStart": ISO8601DateFormatter().string(from: start)]
+                )
                 viewState = .empty
                 return
             }
@@ -56,7 +61,18 @@ final class TrainingInsightsModel: ObservableObject {
                 calendar: calendar
             )
             viewState = .loaded(summary)
+            HealthTrainingDebugLogger.event(
+                "TrainingInsightsModel.refresh loaded summary",
+                fields: [
+                    "weeklyWorkoutCount": String(summary.weekly.workoutCount),
+                    "weeklyWorkoutDays": String(summary.weekly.workoutDays)
+                ]
+            )
         } catch {
+            HealthTrainingDebugLogger.error(
+                "TrainingInsightsModel.refresh failed",
+                underlying: error
+            )
             viewState = .error(FormaProductCopy.Error.loadTraining)
         }
     }

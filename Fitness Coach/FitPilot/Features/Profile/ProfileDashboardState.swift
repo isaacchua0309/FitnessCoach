@@ -11,7 +11,7 @@ struct ProfileDashboardState: Equatable {
     var profile: UserProfile
     var strategy: PlanStrategyState
     var todaysTargets: PlanTodaysTargetsState
-    var rationale: String
+    var rationale: PlanRationaleState
     var adaptiveCoach: PlanAdaptiveCoachState
     var lifestyle: PlanLifestyleState
     var whatHappensNext: WhatHappensNextState

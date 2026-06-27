@@ -17,7 +17,7 @@ struct CoachModelConfig: Codable, Equatable, Sendable {
     var cheapAnswerModel: String
     var strongCoachModel: String
 
-    static let `default` = CoachModelConfig(
+    nonisolated static let `default` = CoachModelConfig(
         cheapClassifierModel: "gpt-5-nano",
         cheapAnswerModel: "gpt-5-nano",
         strongCoachModel: "gpt-5.4-nano"

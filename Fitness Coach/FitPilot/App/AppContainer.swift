@@ -41,6 +41,13 @@ final class AppContainer {
         healthTrainingService = HealthTrainingService()
         trainingInsightsStore = TrainingInsightsStore(integration: healthTrainingService)
         trainingInsightsModel = TrainingInsightsModel()
+        HealthTrainingDebugLogger.event(
+            "Training integration wired",
+            fields: [
+                "bundleId": Bundle.main.bundleIdentifier ?? "unknown",
+                "initialDataSource": trainingInsightsStore.dataSource.rawValue
+            ]
+        )
 
         modelContainer = try FitPilotModelContainer.makeContainer(inMemory: inMemory)
         store = SwiftDataStore(container: modelContainer)

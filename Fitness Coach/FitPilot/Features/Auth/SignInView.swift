@@ -549,5 +549,4 @@ private struct SignInLegalDocumentSheet: View {
 #Preview("iPhone SE") {
     SignInView()
         .environmentObject(AuthManager())
-        .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
 }

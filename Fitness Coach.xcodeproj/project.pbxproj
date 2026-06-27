@@ -12,6 +12,7 @@
 		2B045F172FEE414C008A8666 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2B045F162FEE414C008A8666 /* FirebaseCore */; };
 		2B045F192FEE414C008A8666 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 2B045F182FEE414C008A8666 /* FirebaseFirestore */; };
 		2B045F1B2FEE414C008A8666 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 2B045F1A2FEE414C008A8666 /* FirebaseFunctions */; };
+		2BHEALTH012FEE414C008A8666 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2BHEALTH022FEE414C008A8666 /* HealthKit.framework */; };
 		3A00000C2FEE000100000001 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 2B045F142FEE414C008A8666 /* FirebaseAuth */; };
 		3A00000D2FEE000100000001 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2B045F162FEE414C008A8666 /* FirebaseCore */; };
 		3A00000E2FEE000100000001 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = C029C846955106DBDB3889A0 /* GoogleSignIn */; };
@@ -30,6 +31,7 @@
 
 /* Begin PBXFileReference section */
 		2B89F3F82FECF33300F9B990 /* Fitness Coach.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Fitness Coach.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		2BHEALTH022FEE414C008A8666 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		3A0000012FEE000100000001 /* Fitness CoachTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Fitness CoachTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -51,6 +53,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2BHEALTH012FEE414C008A8666 /* HealthKit.framework in Frameworks */,
 				2B045F132FEE414C008A8666 /* FirebaseAnalytics in Frameworks */,
 				2B045F192FEE414C008A8666 /* FirebaseFirestore in Frameworks */,
 				2B045F1B2FEE414C008A8666 /* FirebaseFunctions in Frameworks */,
@@ -79,6 +82,7 @@
 				2B89F3FA2FECF33300F9B990 /* Fitness Coach */,
 				3A0000022FEE000100000001 /* Fitness CoachTests */,
 				2B89F3F92FECF33300F9B990 /* Products */,
+				2BDB3B6D2FEF858200C9DB5D /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -89,6 +93,14 @@
 				3A0000012FEE000100000001 /* Fitness CoachTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		2BDB3B6D2FEF858200C9DB5D /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				2BHEALTH022FEE414C008A8666 /* HealthKit.framework */,
+			);
+			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -160,6 +172,11 @@
 				TargetAttributes = {
 					2B89F3F72FECF33300F9B990 = {
 						CreatedOnToolsVersion = 26.0;
+						SystemCapabilities = {
+							com.apple.HealthKit = {
+								enabled = 1;
+							};
+						};
 					};
 					3A0000062FEE000100000001 = {
 						CreatedOnToolsVersion = 26.0;
@@ -378,7 +395,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "TutorTrack.Fitness-Coach";
+				PRODUCT_BUNDLE_IDENTIFIER = com.isaacchua.forma;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -414,7 +431,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "TutorTrack.Fitness-Coach";
+				PRODUCT_BUNDLE_IDENTIFIER = com.isaacchua.forma;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;

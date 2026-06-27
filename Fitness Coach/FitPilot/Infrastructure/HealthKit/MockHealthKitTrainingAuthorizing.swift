@@ -30,6 +30,10 @@ final class MockHealthKitTrainingAuthorizing: HealthKitTrainingAuthorizing, @unc
         return status
     }
 
+    func resolveWorkoutReadAccess() async -> HealthTrainingAuthorizationStatus {
+        workoutReadAuthorizationStatus()
+    }
+
     func requestReadAuthorization() async -> HealthTrainingAuthorizationStatus {
         requestCallCount += 1
         guard isHealthDataAvailable else { return .unavailable }

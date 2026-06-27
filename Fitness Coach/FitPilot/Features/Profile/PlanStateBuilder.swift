@@ -29,7 +29,7 @@ enum PlanStateBuilder {
                 water: ProfileFormatter.mlCompact(targets.waterTargetMl),
                 trainingFrequency: trainingFrequencyLabel(profile.trainingFrequencyPerWeek)
             ),
-            rationale: planRationale(for: profile),
+            rationale: PlanRationaleCopyBuilder.build(for: profile),
             adaptiveCoach: adaptiveCoachState(),
             lifestyle: PlanLifestyleState(
                 activityLevel: ProfileFormatter.activityLevel(profile.activityLevel),
@@ -77,31 +77,6 @@ enum PlanStateBuilder {
                 ? "A faster cut — protect sleep, protein, and training quality."
                 : "A stronger surplus — consistency and recovery matter most."
         }
-    }
-
-    static func planRationale(for profile: UserProfile) -> String {
-        let activity = ProfileFormatter.activityLevel(profile.activityLevel).lowercased()
-        let training = profile.trainingFrequencyPerWeek
-        let isLoss = profile.goalWeightKg < profile.currentWeightKg - 0.5
-        let isGain = profile.goalWeightKg > profile.currentWeightKg + 0.5
-
-        let goalPhrase: String
-        if isLoss {
-            goalPhrase = "sustainable fat loss"
-        } else if isGain {
-            goalPhrase = "lean muscle gain"
-        } else {
-            goalPhrase = "weight maintenance"
-        }
-
-        if let bodyFat = profile.estimatedBodyFatPercentage {
-            let bfText = bodyFat.truncatingRemainder(dividingBy: 1) == 0
-                ? "\(Int(bodyFat))%"
-                : String(format: "%.1f%%", bodyFat)
-            return "Based on your current weight, body fat around \(bfText), \(activity) activity level, and \(training) strength sessions per week, this calorie target balances \(goalPhrase) with recovery from strength training."
-        }
-
-        return "Based on your current weight, \(activity) activity level, and goal, this calorie target balances \(goalPhrase) with recovery from strength training."
     }
 
     static func adaptiveCoachState() -> PlanAdaptiveCoachState {

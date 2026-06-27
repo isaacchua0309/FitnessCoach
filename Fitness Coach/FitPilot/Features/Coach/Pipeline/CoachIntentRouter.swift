@@ -20,6 +20,8 @@ struct RoutedAITask: Equatable, Sendable {
 
 struct CoachIntentRouter: Sendable {
 
+    nonisolated init() {}
+
     func route(
         intentResult: CoachIntentResult,
         originalText: String

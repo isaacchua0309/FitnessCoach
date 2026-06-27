@@ -76,7 +76,7 @@ struct TrainingInsightsView: View {
     private func handlePrimaryAction() {
         switch insightsStore.integrationState {
         case .denied:
-            openAppSettings()
+            HealthAppSettingsNavigator.openHealthPermissions()
         case .notConnected, .failed:
             Task { await insightsStore.connectAppleHealth() }
         case .unavailable, .requestingPermission, .connected:
@@ -85,10 +85,7 @@ struct TrainingInsightsView: View {
     }
 
     private func openAppSettings() {
-        #if canImport(UIKit)
-        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-        UIApplication.shared.open(url)
-        #endif
+        HealthAppSettingsNavigator.openAppSettings()
     }
 }
 
