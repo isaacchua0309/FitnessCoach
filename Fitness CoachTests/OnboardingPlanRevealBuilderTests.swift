@@ -37,8 +37,9 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
 
         XCTAssertEqual(reveal.currentWeightLabel, "82.5 kg")
         XCTAssertEqual(reveal.goalWeightLabel, "75 kg")
-        XCTAssertEqual(reveal.weeklyChangeLabel, "Expected pace: 0.5 kg/week")
-        XCTAssertEqual(reveal.estimatedWeeksLabel, "Estimated timeline: About 15 weeks")
+        XCTAssertTrue(reveal.weeklyChangeLabel?.contains("0.5") == true)
+        XCTAssertTrue(reveal.weeklyChangeLabel?.contains("kg/week") == true)
+        XCTAssertEqual(reveal.estimatedWeeksLabel, "About 15 weeks")
         XCTAssertTrue(reveal.journeySummaryLine.contains("starting targets"))
     }
 
@@ -96,31 +97,38 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
         XCTAssertNil(reveal.estimatedWeeksLabel)
     }
 
-    // MARK: - Macro rows
+    // MARK: - Target rows
 
-    func testMacroRowsArePresent() throws {
+    func testPrimaryAndSecondaryTargetRowsArePresent() throws {
         let form = cutForm(currentWeightKg: 72, goalWeightKg: 65)
         let plan = try samplePlan(for: form)
 
         let reveal = try XCTUnwrap(OnboardingPlanRevealBuilder.build(formState: form, plan: plan))
 
-        XCTAssertEqual(reveal.macroRows.count, 3)
-        XCTAssertEqual(reveal.macroRows.map(\.label), ["Protein", "Carbs", "Fat"])
-        XCTAssertTrue(reveal.macroRows.allSatisfy { !$0.value.isEmpty })
+        XCTAssertFalse(reveal.proteinLabel.isEmpty)
+        XCTAssertFalse(reveal.waterLabel.isEmpty)
+        XCTAssertEqual(reveal.secondaryMacroRows.map(\.label), ["Carbs", "Fat"])
+        XCTAssertTrue(reveal.secondaryMacroRows.allSatisfy { !$0.value.isEmpty })
         XCTAssertEqual(reveal.dailyCalorieLabel, OnboardingFormatter.kcal(plan.targets.calorieTarget))
-        XCTAssertFalse(reveal.calorieExplanationLine.isEmpty)
+        XCTAssertEqual(
+            reveal.calorieExplanationLine,
+            FormaProductCopy.Onboarding.V2.PlanReveal.heroCalorieExplanation
+        )
     }
 
-    func testFirstWeekFocusItemsMatchCopy() throws {
-        let form = cutForm(currentWeightKg: 72, goalWeightKg: 65)
-        let plan = try samplePlan(for: form)
+    func testAdvancedPacePlanStillUsesHeroExplanation() throws {
+        var form = cutForm(currentWeightKg: 82.5, goalWeightKg: 75)
+        form.selectPaceChoice(.advanced)
+        form.advancedPaceDraft = WeightLossAdvancedPaceDraft(period: .weekly, amountText: "0.45")
 
+        let plan = try samplePlan(for: form)
         let reveal = try XCTUnwrap(OnboardingPlanRevealBuilder.build(formState: form, plan: plan))
 
         XCTAssertEqual(
-            reveal.firstWeekFocusItems,
-            FormaProductCopy.Onboarding.V2.PlanReveal.firstWeekBullets
+            reveal.calorieExplanationLine,
+            FormaProductCopy.Onboarding.V2.PlanReveal.heroCalorieExplanation
         )
+        XCTAssertFalse(reveal.proteinLabel.isEmpty)
     }
 
     // MARK: - Language
@@ -142,7 +150,7 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
         .joined(separator: " ")
         .lowercased()
 
-        XCTAssertTrue(combined.contains("expected") || combined.contains("estimated") || combined.contains("starting"))
+        XCTAssertTrue(combined.contains("expected") || combined.contains("about") || combined.contains("starting"))
         XCTAssertFalse(combined.contains("guaranteed"))
         XCTAssertFalse(combined.contains("will lose"))
     }

@@ -9,14 +9,19 @@ import SwiftUI
 
 struct OnboardingStepContainer<Content: View>: View {
     let currentStep: OnboardingStep
+    var currentV3Step: OnboardingV3Step?
     let usesStageProgress: Bool
     let viewState: OnboardingViewState
-    let errorMessage: String?
+    let validationMessage: String?
+    var keyboardHeight: CGFloat = 0
     @ObservedObject var fieldNavigator: OnboardingFieldNavigator
     @ViewBuilder let content: Content
 
     private var usesFullScreenShell: Bool {
-        currentStep.usesFullScreenChrome
+        if let currentV3Step {
+            return currentV3Step.usesFullScreenChrome
+        }
+        return currentStep.usesFullScreenChrome
     }
 
     private var showsLoadingOverlay: Bool {
@@ -29,6 +34,23 @@ struct OnboardingStepContainer<Content: View>: View {
         }
     }
 
+    private var showsContainerValidationBanner: Bool {
+        guard let validationMessage, !validationMessage.isEmpty else { return false }
+        if currentV3Step == .review || currentV3Step == .savePlan {
+            return false
+        }
+        switch currentStep {
+        case .summary, .savePlan:
+            return false
+        default:
+            return true
+        }
+    }
+
+    private var scrollBottomInset: CGFloat {
+        OnboardingLayout.scrollContentBottomInset(keyboardHeight: keyboardHeight)
+    }
+
     var body: some View {
         Group {
             if usesFullScreenShell {
@@ -38,6 +60,10 @@ struct OnboardingStepContainer<Content: View>: View {
             }
         }
         .onChange(of: currentStep) { _, _ in
+            fieldNavigator.clearFocus()
+            OnboardingKeyboard.dismiss()
+        }
+        .onChange(of: currentV3Step) { _, _ in
             fieldNavigator.clearFocus()
             OnboardingKeyboard.dismiss()
         }
@@ -62,8 +88,8 @@ struct OnboardingStepContainer<Content: View>: View {
                     progressHeader
                         .padding(.top, OnboardingLayout.progressHeaderTop)
 
-                    if let errorMessage {
-                        OnboardingWarningBanner(message: errorMessage)
+                    if showsContainerValidationBanner {
+                        OnboardingWarningBanner(message: validationMessage ?? "")
                     }
 
                     content
@@ -73,28 +99,41 @@ struct OnboardingStepContainer<Content: View>: View {
                     }
                 }
                 .padding(.horizontal, contentHorizontalPadding)
-                .padding(.bottom, OnboardingLayout.scrollBottomPadding)
+                .padding(.bottom, scrollBottomInset)
             }
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: fieldNavigator.scrollToID) { _, target in
                 guard let target else { return }
+                let anchor = scrollAnchor
                 withAnimation(.easeInOut(duration: 0.28)) {
-                    proxy.scrollTo(target, anchor: UnitPoint(x: 0.5, y: 0.32))
+                    proxy.scrollTo(target, anchor: anchor)
                 }
             }
         }
     }
 
+    private var scrollAnchor: UnitPoint {
+        keyboardHeight > 0
+            ? UnitPoint(x: 0.5, y: 0.12)
+            : UnitPoint(x: 0.5, y: 0.38)
+    }
+
     @ViewBuilder
     private var progressHeader: some View {
-        if currentStep.showsProgressHeader {
-            if usesStageProgress {
+        if showsProgressHeader {
+            if let currentV3Step {
+                OnboardingV3StageProgressHeader(currentStep: currentV3Step)
+            } else if usesStageProgress {
                 OnboardingStageProgressHeader(currentStep: currentStep)
             } else {
                 OnboardingProgressHeader(currentStep: currentStep)
             }
         }
+    }
+
+    private var showsProgressHeader: Bool {
+        currentV3Step?.showsProgressHeader ?? currentStep.showsProgressHeader
     }
 
     private var contentHorizontalPadding: CGFloat {

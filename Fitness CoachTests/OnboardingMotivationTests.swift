@@ -78,6 +78,27 @@ final class OnboardingMotivationTests: XCTestCase {
         XCTAssertEqual(OnboardingMotivation.allCases.count, 6)
     }
 
+    func testToggleMotivationAllowsUpToTwoSelections() {
+        var state = OnboardingFormState()
+
+        state.toggleMotivation(.confidence)
+        state.toggleMotivation(.health)
+        XCTAssertEqual(state.selectedMotivations, [.confidence, .health])
+
+        state.toggleMotivation(.energy)
+        XCTAssertEqual(state.selectedMotivations, [.confidence, .health])
+
+        state.toggleMotivation(.confidence)
+        XCTAssertEqual(state.selectedMotivations, [.health])
+
+        state.toggleMotivation(.energy)
+        XCTAssertEqual(state.selectedMotivations, [.health, .energy])
+    }
+
+    func testMotivationMaxSelectionCountIsTwo() {
+        XCTAssertEqual(OnboardingMotivation.maxSelectionCount, 2)
+    }
+
     // MARK: - Helpers
 
     private func filledForm() -> OnboardingFormState {

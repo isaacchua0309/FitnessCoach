@@ -160,9 +160,10 @@ enum FormaProductCopy {
                 static let genderLabel = "Sex"
                 static let genderHelper = "Used only for target estimation."
                 static let bodyFatLabel = "Body fat estimate"
-                static let bodyFatHelper = "Leave blank if you do not know."
+                static let bodyFatHelper = "Optional · enter a percentage if you know it."
+                static let bodyFatOptionalLabel = "Optional"
                 static let bodyFatPlaceholder = "Optional, e.g. 24"
-                static let bodyFatDisclosureLabel = "Add body fat estimate (optional)"
+                static let bodyFatDisclosureLabel = "Add body fat estimate"
                 static let bodyFatUnit = "%"
             }
 
@@ -184,6 +185,13 @@ enum FormaProductCopy {
                 static let subtitle =
                     "Pick a target and pace that protect energy and training."
                 static let goalWeightLabel = "Goal weight"
+                static let currentWeightSummaryLabel = "Current"
+                static let goalWeightSummaryLabel = "Goal"
+                static let changeSummaryLabel = "Change"
+                static let changeMaintainLabel = "Maintain"
+                static let changeLosePrefix = "Lose"
+                static let changeGainPrefix = "Gain"
+                static let fineTuneGoalLabel = "Pick exact weight"
                 static let paceSectionTitle = "Weight-loss pace"
                 static let sustainableHeadline = "This looks sustainable."
                 static let demandingHeadline = "This pace is demanding — monitor energy and recovery."
@@ -220,6 +228,9 @@ enum FormaProductCopy {
                 static let subtitle =
                     "This helps Forma estimate your baseline burn and recovery needs."
                 static let trainingRhythmSectionTitle = "Training rhythm"
+                static let trainingRhythmSectionHint =
+                    "Suggested from your activity level. You can adjust this."
+                static let recommendedLabel = "Recommended"
                 static let trainingDaysLabel = "Training days per week"
                 static let trainingDaysHelper =
                     "Strength, sport, classes, or structured cardio."
@@ -230,18 +241,25 @@ enum FormaProductCopy {
             enum Preferences {
                 static let title = "Make Forma fit your life"
                 static let subtitle =
-                    "Optional details help Coach give more useful suggestions."
+                    "Optional details help Coach give better suggestions."
                 static let optionalHint =
                     "All optional — skip anything you're unsure about."
+                static let foodPreferencesSectionTitle = "Food preferences"
+                static let customPreferenceDisclosureLabel = "Add custom preference"
+                static let customPreferencePlaceholder = "e.g. gluten free, no shellfish"
+                static let customPreferenceHelper =
+                    "Optional. Add allergies or strong preferences later in Plan if needed."
+                static let loggingSectionTitle = "Logging style"
+                static let nameDisclosureLabel = "Add name for Coach"
                 static let nameLabel = "What should Coach call you?"
                 static let namePlaceholder = "Optional"
                 static let nameHelper = "Used for friendly Coach messages."
-                static let eatingSectionTitle = "Diet preferences"
+                static let eatingSectionTitle = "Food preferences"
                 static let dietPlaceholder =
                     "Example: halal, no pork, high protein, simple meals"
                 static let dietHelper =
                     "Optional. Add allergies or strong preferences later in Plan if needed."
-                static let loggingSectionTitle = "Logging preferences"
+                static let loggingPreferencesSectionTitle = "Logging preferences"
                 static let feedbackTitle = "Noted"
                 static let naturalLanguageFeedback =
                     "Coach will be ready to log meals, water, weight, and workouts from natural language."
@@ -258,10 +276,10 @@ enum FormaProductCopy {
                 static let goalLabel = "Goal"
                 static let paceLabel = "Pace"
                 static let activityLabel = "Activity"
-                static let loggingLabel = "Logging"
+                static let preferencesLabel = "Preferences"
                 static let motivationLabel = "Motivation"
+                static let noPreferencesAdded = "No preferences added"
                 static let motivationDefault = "Steady progress"
-                static let loggingDefault = "Flexible · use Coach when you're ready"
                 static let maintenancePaceSummary = "Maintenance · no weekly loss target"
             }
 
@@ -281,19 +299,16 @@ enum FormaProductCopy {
 
             enum PlanReveal {
                 static let title = "Your plan is ready"
-                static let subtitle = "These are your starting targets. \(Onboarding.V2.adjustsWithRealData)"
-                static let journeySectionTitle = "Your journey"
+                static let subtitle =
+                    "These are your starting targets. \(Onboarding.V2.adjustsWithRealData)"
+                static let journeySectionTitle = "Goal"
                 static let dailyTargetSectionTitle = "Daily target"
-                static let macrosSectionTitle = "Daily macros"
-                static let firstWeekSectionTitle = "Your first week"
+                static let heroCalorieExplanation =
+                    "Balanced around your selected pace and activity."
+                static let viewMacrosCTA = "View macros"
+                static let hideMacrosCTA = "Hide macros"
                 static let savePlanCTA = "Save plan"
                 static let adjustPlanCTA = "Adjust plan"
-                static let firstWeekBullets: [String] = [
-                    "Hit your calorie target most days",
-                    "Get enough protein",
-                    "Log meals with Coach",
-                    "Weigh in consistently"
-                ]
                 static let maintainCalorieExplanation =
                     "Balanced around maintenance while Forma learns your trend."
                 static let gainCalorieExplanation =
@@ -325,6 +340,67 @@ enum FormaProductCopy {
                 static let pace = "Choose a sustainable expected pace."
                 static let summaryIncomplete =
                     "Complete the required steps so Forma can build your starting targets."
+            }
+        }
+
+        // MARK: V3 (tap-first onboarding — Stage 1 structure)
+
+        enum V3 {
+            enum Age {
+                static let title = "How old are you?"
+                static let subtitle = "Used only to estimate your starting targets."
+            }
+
+            enum Sex {
+                static let title = "Sex"
+                static let subtitle = FormaProductCopy.Onboarding.V2.Body.genderHelper
+            }
+
+            enum Height {
+                static let title = "How tall are you?"
+                static let subtitle = "Pick the closest match — you can fine-tune later."
+            }
+
+            enum CurrentWeight {
+                static let title = "What's your current weight?"
+                static let subtitle = "Your best recent estimate is enough."
+            }
+
+            enum GoalWeight {
+                static let title = FormaProductCopy.Onboarding.V2.Goal.title
+                static let subtitle = FormaProductCopy.Onboarding.V2.Goal.subtitle
+            }
+
+            enum Pace {
+                static let title = "Choose your pace"
+                static let subtitle = "Gentle, moderate, or aggressive — pick what feels sustainable."
+            }
+
+            enum CustomPace {
+                static let title = "Custom pace"
+                static let subtitle = "Set a weekly or monthly target that fits your life."
+            }
+
+            enum TrainingRhythm {
+                static let title = "Your training rhythm"
+                static let subtitle = "How often you train and how much you move day to day."
+                static let trainingDaysSectionTitle = "Training days per week"
+                static let stepsSectionTitle = "Average daily steps"
+            }
+
+            enum Preferences {
+                static let title = FormaProductCopy.Onboarding.V2.Preferences.title
+                static let subtitle = "Optional chips only — skip anything you're unsure about."
+            }
+
+            enum PreferenceDetails {
+                static let title = "Add details"
+                static let subtitle = "Optional name or diet notes for Coach."
+            }
+
+            enum Review {
+                static let title = FormaProductCopy.Onboarding.V2.Summary.title
+                static let subtitle = FormaProductCopy.Onboarding.V2.Summary.subtitle
             }
         }
 

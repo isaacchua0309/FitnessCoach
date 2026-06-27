@@ -24,9 +24,10 @@ struct OnboardingPlanRevealState: Equatable, Sendable {
     let journeySummaryLine: String
     let dailyCalorieLabel: String
     let calorieExplanationLine: String
-    let macroRows: [OnboardingPlanRevealMetricRow]
+    let proteinLabel: String
+    let waterLabel: String
+    let secondaryMacroRows: [OnboardingPlanRevealMetricRow]
     let warningMessage: String?
-    let firstWeekFocusItems: [String]
 
     init(
         currentWeightLabel: String,
@@ -36,9 +37,10 @@ struct OnboardingPlanRevealState: Equatable, Sendable {
         journeySummaryLine: String,
         dailyCalorieLabel: String,
         calorieExplanationLine: String,
-        macroRows: [OnboardingPlanRevealMetricRow],
-        warningMessage: String? = nil,
-        firstWeekFocusItems: [String] = []
+        proteinLabel: String,
+        waterLabel: String,
+        secondaryMacroRows: [OnboardingPlanRevealMetricRow] = [],
+        warningMessage: String? = nil
     ) {
         self.currentWeightLabel = currentWeightLabel
         self.goalWeightLabel = goalWeightLabel
@@ -47,8 +49,9 @@ struct OnboardingPlanRevealState: Equatable, Sendable {
         self.journeySummaryLine = journeySummaryLine
         self.dailyCalorieLabel = dailyCalorieLabel
         self.calorieExplanationLine = calorieExplanationLine
-        self.macroRows = macroRows
+        self.proteinLabel = proteinLabel
+        self.waterLabel = waterLabel
+        self.secondaryMacroRows = secondaryMacroRows
         self.warningMessage = warningMessage
-        self.firstWeekFocusItems = firstWeekFocusItems
     }
 }

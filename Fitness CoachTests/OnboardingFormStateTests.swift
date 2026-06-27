@@ -397,6 +397,100 @@ final class OnboardingFormStateTests: XCTestCase {
         _ = try state.makeCalorieTargetInput()
     }
 
+    // MARK: - Activity training rhythm defaults
+
+    func testChangingActivityUpdatesBothFieldsWhenUntouched() {
+        var state = OnboardingFormState()
+
+        state.selectActivityLevel(.sedentary)
+        XCTAssertEqual(state.trainingFrequencyPerWeekText, "0")
+        XCTAssertEqual(state.averageStepsText, "3000")
+
+        state.selectActivityLevel(.lightlyActive)
+        XCTAssertEqual(state.trainingFrequencyPerWeekText, "1")
+        XCTAssertEqual(state.averageStepsText, "5000")
+
+        state.selectActivityLevel(.veryActive)
+        XCTAssertEqual(state.trainingFrequencyPerWeekText, "5")
+        XCTAssertEqual(state.averageStepsText, "10000")
+
+        state.selectActivityLevel(.athlete)
+        XCTAssertEqual(state.trainingFrequencyPerWeekText, "6")
+        XCTAssertEqual(state.averageStepsText, "12000")
+    }
+
+    func testManualTrainingDaysEditPreventsFutureAutoOverwriteOfTrainingDays() {
+        var state = OnboardingFormState()
+        state.selectActivityLevel(.moderatelyActive)
+        state.setTrainingFrequencyPerWeekText("4")
+
+        state.selectActivityLevel(.veryActive)
+
+        XCTAssertEqual(state.trainingFrequencyPerWeekText, "4")
+        XCTAssertEqual(state.averageStepsText, "10000")
+    }
+
+    func testManualStepsEditPreventsFutureAutoOverwriteOfSteps() {
+        var state = OnboardingFormState()
+        state.selectActivityLevel(.moderatelyActive)
+        state.setAverageStepsText("9000")
+
+        state.selectActivityLevel(.veryActive)
+
+        XCTAssertEqual(state.trainingFrequencyPerWeekText, "5")
+        XCTAssertEqual(state.averageStepsText, "9000")
+    }
+
+    func testManualStepsEditStillAllowsTrainingDaysToAutoUpdate() {
+        var state = OnboardingFormState()
+        state.selectActivityLevel(.moderatelyActive)
+        state.setAverageStepsText("9000")
+
+        state.selectActivityLevel(.sedentary)
+
+        XCTAssertEqual(state.trainingFrequencyPerWeekText, "0")
+        XCTAssertEqual(state.averageStepsText, "9000")
+    }
+
+    func testManualTrainingDaysEditStillAllowsStepsToAutoUpdate() {
+        var state = OnboardingFormState()
+        state.selectActivityLevel(.moderatelyActive)
+        state.setTrainingFrequencyPerWeekText("4")
+
+        state.selectActivityLevel(.sedentary)
+
+        XCTAssertEqual(state.trainingFrequencyPerWeekText, "4")
+        XCTAssertEqual(state.averageStepsText, "3000")
+    }
+
+    func testMakeCalorieTargetInputStillWorksAfterActivityRhythmChanges() throws {
+        var state = filledCutOnboarding()
+        state.selectActivityLevel(.athlete)
+        state.setAverageStepsText("11000")
+
+        let input = try state.makeCalorieTargetInput()
+        let result = try PlanCalculationBridge.calorieTargetResult(from: input)
+
+        XCTAssertEqual(input.activityLevel, .athlete)
+        XCTAssertEqual(input.trainingFrequencyPerWeek, 6)
+        XCTAssertEqual(input.averageSteps, 11_000)
+        XCTAssertGreaterThan(result.targets.calorieTarget, 0)
+    }
+
+    func testDraftRestoreMarksCustomTrainingRhythmAsManuallyEdited() {
+        var fields = OnboardingDraftFormFields(formState: OnboardingFormState())
+        fields.activityLevelRawValue = ActivityLevel.moderatelyActive.rawValue
+        fields.trainingFrequencyPerWeekText = "4"
+        fields.averageStepsText = "9000"
+
+        let restored = fields.makeFormState()
+
+        XCTAssertTrue(restored.hasManuallyEditedTrainingDays)
+        XCTAssertTrue(restored.hasManuallyEditedAverageSteps)
+        XCTAssertEqual(restored.trainingFrequencyPerWeekText, "4")
+        XCTAssertEqual(restored.averageStepsText, "9000")
+    }
+
     // MARK: - Helpers
 
     private func assertPresetParity(

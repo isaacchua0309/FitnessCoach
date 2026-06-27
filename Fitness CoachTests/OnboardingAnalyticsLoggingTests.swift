@@ -38,11 +38,12 @@ final class OnboardingAnalyticsContextBuilderTests: XCTestCase {
         let reveal = OnboardingPlanRevealState(
             currentWeightLabel: "72 kg",
             goalWeightLabel: "65 kg",
-            estimatedWeeksLabel: "Estimated timeline: About 15 weeks",
+            estimatedWeeksLabel: "About 15 weeks",
             journeySummaryLine: "Cut to 65 kg",
             dailyCalorieLabel: "1,800 kcal",
-            calorieExplanationLine: "Moderate deficit",
-            macroRows: []
+            calorieExplanationLine: "Balanced around your selected pace and activity.",
+            proteinLabel: "150 g",
+            waterLabel: "2,800 ml"
         )
         XCTAssertEqual(
             OnboardingAnalyticsContextBuilder.estimatedWeeks(from: reveal),

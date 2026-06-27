@@ -2,96 +2,65 @@
 //  OnboardingJourneyHeroCard.swift
 //  Fitness Coach
 //
-//  Forma — Journey-first hero for onboarding plan reveal.
+//  Forma — Compact goal journey summary for onboarding plan reveal.
 //
 
 import SwiftUI
 
-struct OnboardingJourneyHeroCard: View {
+struct OnboardingPlanJourneySummary: View {
     let state: OnboardingPlanRevealState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
-            sectionLabel
-
-            weightJourneyRow
-
-            if let weeklyChangeLabel = state.weeklyChangeLabel {
-                timelineRow(icon: "speedometer", text: weeklyChangeLabel)
-            }
-
-            if let estimatedWeeksLabel = state.estimatedWeeksLabel {
-                timelineRow(icon: "calendar", text: estimatedWeeksLabel)
-            }
-
-            Text(state.journeySummaryLine)
-                .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(OnboardingTheme.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .onboardingCard(selected: true)
-        .accessibilityElement(children: .contain)
-    }
-
-    private var sectionLabel: some View {
-        Label {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
             Text(FormaProductCopy.Onboarding.V2.PlanReveal.journeySectionTitle)
-                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                .font(FormaTokens.Typography.caption.weight(.semibold))
                 .foregroundStyle(OnboardingTheme.secondaryText)
-        } icon: {
-            Image(systemName: "arrow.triangle.swap")
-                .accessibilityHidden(true)
+                .accessibilityAddTraits(.isHeader)
+
+            HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
+                Text(state.currentWeightLabel)
+                    .font(FormaTokens.Typography.body.weight(.semibold))
+                    .foregroundStyle(OnboardingTheme.primaryText)
+                    .minimumScaleFactor(0.85)
+                    .lineLimit(1)
+
+                Image(systemName: "arrow.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(OnboardingTheme.tertiaryText)
+                    .accessibilityHidden(true)
+
+                Text(state.goalWeightLabel)
+                    .font(FormaTokens.Typography.body.weight(.semibold))
+                    .foregroundStyle(OnboardingTheme.primaryText)
+                    .minimumScaleFactor(0.85)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(journeyAccessibilityLabel)
+
+            if let timelineLine = compactTimelineLine {
+                Text(timelineLine)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(OnboardingTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel(timelineLine)
+            }
         }
-        .labelStyle(.titleAndIcon)
-        .foregroundStyle(OnboardingTheme.accent)
-        .accessibilityAddTraits(.isHeader)
+        .onboardingCompactCard()
     }
 
-    private var weightJourneyRow: some View {
-        HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
-            weightColumn(label: "Current", value: state.currentWeightLabel)
-
-            Image(systemName: "arrow.right")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(OnboardingTheme.tertiaryText)
-                .accessibilityHidden(true)
-
-            weightColumn(label: "Goal", value: state.goalWeightLabel)
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(journeyAccessibilityLabel)
+    private var compactTimelineLine: String? {
+        let parts = [state.estimatedWeeksLabel, compactPaceLabel]
+            .compactMap { $0 }
+            .filter { !$0.isEmpty }
+        guard !parts.isEmpty else { return nil }
+        return parts.joined(separator: " · ")
     }
 
-    private func weightColumn(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(OnboardingTheme.tertiaryText)
-
-            Text(value)
-                .font(.system(.title2, design: .rounded).weight(.bold))
-                .foregroundStyle(OnboardingTheme.primaryText)
-                .minimumScaleFactor(0.8)
-                .lineLimit(1)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func timelineRow(icon: String, text: String) -> some View {
-        Label {
-            Text(text)
-                .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(OnboardingTheme.primaryText)
-                .fixedSize(horizontal: false, vertical: true)
-        } icon: {
-            Image(systemName: icon)
-                .font(.caption.weight(.semibold))
-                .accessibilityHidden(true)
-        }
-        .labelStyle(.titleAndIcon)
-        .foregroundStyle(OnboardingTheme.accent)
-        .accessibilityLabel(text)
+    private var compactPaceLabel: String? {
+        guard let weeklyChangeLabel = state.weeklyChangeLabel else { return nil }
+        return weeklyChangeLabel.replacingOccurrences(of: "Expected pace: ", with: "")
     }
 
     private var journeyAccessibilityLabel: String {
@@ -99,19 +68,19 @@ struct OnboardingJourneyHeroCard: View {
             "Current weight \(state.currentWeightLabel)",
             "Goal weight \(state.goalWeightLabel)"
         ]
-        if let weeklyChangeLabel = state.weeklyChangeLabel {
-            parts.append(weeklyChangeLabel)
-        }
-        if let estimatedWeeksLabel = state.estimatedWeeksLabel {
-            parts.append(estimatedWeeksLabel)
+        if let timelineLine = compactTimelineLine {
+            parts.append(timelineLine)
         }
         return parts.joined(separator: ". ")
     }
 }
 
+/// Legacy name retained for any existing references.
+typealias OnboardingJourneyHeroCard = OnboardingPlanJourneySummary
+
 #Preview {
     if let state = OnboardingPreviewData.planRevealState {
-        OnboardingJourneyHeroCard(state: state)
+        OnboardingPlanJourneySummary(state: state)
             .padding()
             .background(OnboardingTheme.background)
             .preferredColorScheme(.dark)

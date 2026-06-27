@@ -42,13 +42,11 @@ enum OnboardingPlanRevealBuilder {
                 goalWeightKg: goalWeightKg
             ),
             dailyCalorieLabel: OnboardingFormatter.kcal(plan.targets.calorieTarget),
-            calorieExplanationLine: calorieExplanationLine(
-                direction: direction,
-                plan: plan
-            ),
-            macroRows: macroRows(from: plan),
-            warningMessage: warningMessage(plan: plan, pacePreview: pacePreview),
-            firstWeekFocusItems: FormaProductCopy.Onboarding.V2.PlanReveal.firstWeekBullets
+            calorieExplanationLine: FormaProductCopy.Onboarding.V2.PlanReveal.heroCalorieExplanation,
+            proteinLabel: OnboardingFormatter.grams(plan.targets.proteinTarget),
+            waterLabel: OnboardingFormatter.ml(plan.targets.waterTargetMl),
+            secondaryMacroRows: secondaryMacroRows(from: plan),
+            warningMessage: warningMessage(plan: plan, pacePreview: pacePreview)
         )
     }
 
@@ -122,42 +120,17 @@ enum OnboardingPlanRevealBuilder {
         }
     }
 
-    private static func calorieExplanationLine(
-        direction: PlanGoalDirection,
-        plan: CalorieTargetResult
-    ) -> String {
-        switch direction {
-        case .cut:
-            let deficit = plan.estimatedDailyDeficit
-            guard deficit > 0 else {
-                return "A moderate deficit designed to protect energy and training."
-            }
-            if plan.isAggressive {
-                return "About \(deficit) kcal/day below maintenance — demanding, so watch energy and recovery."
-            }
-            return "About \(deficit) kcal/day below your estimated maintenance."
-        case .maintain:
-            return FormaProductCopy.Onboarding.V2.PlanReveal.maintainCalorieExplanation
-        case .gain:
-            return FormaProductCopy.Onboarding.V2.PlanReveal.gainCalorieExplanation
-        }
-    }
-
     private static func expectedPaceLabel(weeklyKg: Double) -> String {
         let pace = OnboardingFormatter.weeklyLoss(weeklyKg) ?? formattedWeeklyLoss(weeklyKg)
         return "Expected pace: \(pace)"
     }
 
     private static func estimatedTimelineLabel(weeks: Int) -> String {
-        "Estimated timeline: About \(weeks) weeks"
+        "About \(weeks) weeks"
     }
 
-    private static func macroRows(from plan: CalorieTargetResult) -> [OnboardingPlanRevealMetricRow] {
+    private static func secondaryMacroRows(from plan: CalorieTargetResult) -> [OnboardingPlanRevealMetricRow] {
         [
-            OnboardingPlanRevealMetricRow(
-                label: "Protein",
-                value: OnboardingFormatter.grams(plan.targets.proteinTarget)
-            ),
             OnboardingPlanRevealMetricRow(
                 label: "Carbs",
                 value: OnboardingFormatter.grams(plan.targets.carbTarget)

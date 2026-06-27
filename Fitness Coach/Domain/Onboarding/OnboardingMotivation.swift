@@ -93,6 +93,9 @@ extension OnboardingMotivation {
     /// Motivation is optional during onboarding; empty selection is always valid.
     static var allowsEmptySelection: Bool { true }
 
+    /// Maximum motivations the user can pick during onboarding.
+    static let maxSelectionCount = 2
+
     static func fromStoredValues(_ values: [String]) -> Set<OnboardingMotivation> {
         Set(values.compactMap(OnboardingMotivation.init(rawValue:)))
     }

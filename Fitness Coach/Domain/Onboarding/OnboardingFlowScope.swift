@@ -27,6 +27,19 @@ enum OnboardingFlowScope: Equatable, Sendable {
         }
     }
 
+    /// Tap-first v3 step graph (requires v2 shell; gated by `OnboardingV3FeatureFlag`).
+    var usesV3Steps: Bool {
+        usesV2Steps && OnboardingV3FeatureFlag.isActive
+    }
+
+    var v3Flow: [OnboardingV3Step] {
+        OnboardingV3Step.flow(for: self)
+    }
+
+    var entryV3Step: OnboardingV3Step {
+        v3Flow.first ?? .landing
+    }
+
     var entryStep: OnboardingStep {
         switch self {
         case .legacy:

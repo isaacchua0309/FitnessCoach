@@ -123,6 +123,7 @@ struct OnboardingDraftFormFields: Codable, Equatable, Sendable {
         state.syncAggressivenessFromPaceChoice()
         state.selectedMotivations = OnboardingMotivation.fromStoredValues(selectedMotivationRawValues)
         state.loggingPreferences = OnboardingLoggingPreference.fromStoredValues(selectedLoggingPreferenceRawValues)
+        state.reconcileTrainingRhythmAfterRestore()
         return state
     }
 }

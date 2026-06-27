@@ -2,7 +2,7 @@
 //  OnboardingPersonalizationSummaryBuilder.swift
 //  Fitness Coach
 //
-//  Forma — Recap lines for onboarding personalization summary (display only).
+//  Forma — Recap lines for onboarding review (display only).
 //
 
 import Foundation
@@ -36,9 +36,9 @@ enum OnboardingPersonalizationSummaryBuilder {
                 value: activityLine(for: formState)
             ),
             OnboardingPersonalizationSummaryRecap(
-                id: "logging",
-                title: copy.loggingLabel,
-                value: loggingLine(for: formState)
+                id: "preferences",
+                title: copy.preferencesLabel,
+                value: preferencesLine(for: formState)
             ),
             OnboardingPersonalizationSummaryRecap(
                 id: "motivation",
@@ -97,24 +97,31 @@ enum OnboardingPersonalizationSummaryBuilder {
         guard !trainingDays.isEmpty else {
             return activity
         }
-        let dayLabel = trainingDays == "1" ? "day" : "days"
-        return "\(activity) · \(trainingDays) training \(dayLabel)/week"
+        return "\(activity) · \(trainingDays) training days/week"
     }
 
-    private static func loggingLine(for formState: OnboardingFormState) -> String {
+    private static func preferencesLine(for formState: OnboardingFormState) -> String {
         let copy = FormaProductCopy.Onboarding.V2.Summary.self
-        guard !formState.loggingPreferences.isEmpty else {
-            return copy.loggingDefault
+
+        if formState.selectedDietChips.contains(.addLater) {
+            return OnboardingDietPreferenceChip.addLater.title
         }
 
-        let labels = OnboardingLoggingPreference.allCases
-            .filter { formState.loggingPreferences.contains($0) }
+        var parts: [String] = OnboardingDietPreferenceChip.multiSelectOptions
+            .filter { formState.selectedDietChips.contains($0) }
             .map(\.title)
 
-        if labels.count == 1 {
-            return labels[0]
+        let custom = formState.customDietPreferenceText
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if !custom.isEmpty {
+            parts.append(custom)
         }
-        return labels.joined(separator: " or ")
+
+        if parts.isEmpty {
+            return copy.noPreferencesAdded
+        }
+
+        return parts.joined(separator: " · ")
     }
 
     private static func motivationLine(for formState: OnboardingFormState) -> String {
@@ -136,9 +143,14 @@ enum OnboardingPersonalizationSummaryBuilder {
     }
 
     private static func weeklyPacePhrase(_ weeklyKg: Double) -> String {
-        let amount = weeklyKg.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(weeklyKg))"
-            : String(format: "%.1f", weeklyKg)
+        let amount: String
+        if weeklyKg.truncatingRemainder(dividingBy: 1) == 0 {
+            amount = "\(Int(weeklyKg))"
+        } else if (weeklyKg * 100).truncatingRemainder(dividingBy: 10) == 0 {
+            amount = String(format: "%.1f", weeklyKg)
+        } else {
+            amount = String(format: "%.2f", weeklyKg)
+        }
         return "about \(amount) kg/week"
     }
 }

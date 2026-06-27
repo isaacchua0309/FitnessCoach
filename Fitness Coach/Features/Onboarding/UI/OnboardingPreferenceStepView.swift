@@ -2,69 +2,48 @@
 //  OnboardingPreferenceStepView.swift
 //  Fitness Coach
 //
-//  Forma — Eating and logging preferences step for onboarding (v2 journey + legacy v1).
+//  Forma — Optional chip-based preferences (no keyboard by default).
 //
 
 import SwiftUI
 
 struct OnboardingPreferenceStepView: View {
     @Binding var formState: OnboardingFormState
-    @FocusState private var focusedField: Field?
-    @Environment(\.onboardingFieldNavigator) private var fieldNavigator
-
-    private enum Field: String, Hashable {
-        case name
-        case diet
-    }
+    @State private var showsCustomDietField = false
+    @State private var showsNameField = false
+    @FocusState private var isCustomDietFocused: Bool
+    @FocusState private var isNameFocused: Bool
 
     private var isV2: Bool { OnboardingStepPolicy.isV2Enabled }
 
-    private var feedbackMessage: String? {
-        OnboardingLoggingPreferenceFeedback.message(for: formState.loggingPreferences)
-    }
+    private let foodPreferenceColumns = [
+        GridItem(.flexible(), spacing: OnboardingLayout.compactFieldSpacing),
+        GridItem(.flexible(), spacing: OnboardingLayout.compactFieldSpacing)
+    ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
-            if !isV2 {
+        VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
+            if !isV2, !OnboardingV3StepPolicy.isActive {
                 legacyHeader
             }
 
-            Text(FormaProductCopy.Onboarding.V2.Preferences.optionalHint)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(OnboardingTheme.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityLabel(FormaProductCopy.Onboarding.V2.Preferences.optionalHint)
-
+            foodPreferencesSection
+            loggingStyleSection
             nameSection
-
-            dietSection
-
-            loggingPreferencesSection
-
-            if let feedbackMessage {
-                OnboardingFeedbackCard(
-                    icon: "bubble.left.and.bubble.right.fill",
-                    title: FormaProductCopy.Onboarding.V2.Preferences.feedbackTitle,
-                    message: feedbackMessage,
-                    style: .guidance
-                )
-                .transition(.opacity.combined(with: .move(edge: .top)))
-                .accessibilityLabel(
-                    "\(FormaProductCopy.Onboarding.V2.Preferences.feedbackTitle). \(feedbackMessage)"
-                )
-            }
         }
-        .animation(.easeInOut(duration: 0.2), value: formState.loggingPreferences)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .onChange(of: focusedField) { _, field in
-            syncNavigator(for: field)
-        }
         .onAppear {
-            syncNavigator(for: focusedField)
+            syncDisclosureExpansion()
+        }
+        .onChange(of: formState.dietPreference) { _, _ in
+            syncDisclosureExpansion()
+        }
+        .onChange(of: formState.name) { _, _ in
+            syncDisclosureExpansion()
         }
     }
 
-    // MARK: - Legacy header
+    // MARK: - Header
 
     private var legacyHeader: some View {
         OnboardingSectionTitle(
@@ -73,95 +52,146 @@ struct OnboardingPreferenceStepView: View {
         )
     }
 
-    // MARK: - Name
+    // MARK: - Food preferences
 
-    private var nameSection: some View {
-        OnboardingTextField(
-            title: FormaProductCopy.Onboarding.V2.Preferences.nameLabel,
-            placeholder: FormaProductCopy.Onboarding.V2.Preferences.namePlaceholder,
-            text: $formState.name,
-            helper: FormaProductCopy.Onboarding.V2.Preferences.nameHelper,
-            capitalization: .words,
-            isFocused: focusedField == .name,
-            submitLabel: .next,
-            onSubmit: { focusedField = .diet }
-        )
-        .focused($focusedField, equals: .name)
-        .id(Field.name)
-        .onboardingCard()
+    private var foodPreferencesSection: some View {
+        VStack(alignment: .leading, spacing: OnboardingLayout.compactLabelGap) {
+            Text(FormaProductCopy.Onboarding.V2.Preferences.foodPreferencesSectionTitle)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(OnboardingTheme.primaryText)
+
+            LazyVGrid(columns: foodPreferenceColumns, spacing: OnboardingLayout.compactFieldSpacing) {
+                ForEach(OnboardingDietPreferenceChip.foodPreferenceOptions) { chip in
+                    OnboardingPillButton(
+                        title: chip.title,
+                        isSelected: formState.selectedDietChips.contains(chip)
+                    ) {
+                        formState.toggleDietChip(chip)
+                    }
+                    .accessibilityLabel(
+                        formState.selectedDietChips.contains(chip)
+                            ? "\(chip.title), selected"
+                            : chip.title
+                    )
+                }
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(FormaProductCopy.Onboarding.V2.Preferences.foodPreferencesSectionTitle)
+
+            if !showsCustomDietField {
+                disclosureButton(
+                    title: FormaProductCopy.Onboarding.V2.Preferences.customPreferenceDisclosureLabel
+                ) {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showsCustomDietField = true
+                    }
+                }
+            } else {
+                OnboardingTextField(
+                    title: FormaProductCopy.Onboarding.V2.Preferences.customPreferenceDisclosureLabel,
+                    placeholder: FormaProductCopy.Onboarding.V2.Preferences.customPreferencePlaceholder,
+                    text: customDietBinding,
+                    helper: FormaProductCopy.Onboarding.V2.Preferences.customPreferenceHelper,
+                    capitalization: .sentences,
+                    axis: .vertical,
+                    lineLimit: 2...3,
+                    isFocused: isCustomDietFocused
+                )
+                .focused($isCustomDietFocused)
+                .onboardingScrollTarget(id: "preferences-custom-diet", isFocused: isCustomDietFocused)
+            }
+        }
     }
 
-    // MARK: - Diet
-
-    private var dietSection: some View {
-        OnboardingTextField(
-            title: FormaProductCopy.Onboarding.V2.Preferences.eatingSectionTitle,
-            placeholder: FormaProductCopy.Onboarding.V2.Preferences.dietPlaceholder,
-            text: $formState.dietPreference,
-            helper: FormaProductCopy.Onboarding.V2.Preferences.dietHelper,
-            capitalization: .sentences,
-            axis: .vertical,
-            lineLimit: 2...4,
-            isFocused: focusedField == .diet,
-            submitLabel: .done,
-            onSubmit: { focusedField = nil }
+    private var customDietBinding: Binding<String> {
+        Binding(
+            get: { formState.customDietPreferenceText },
+            set: { formState.customDietPreferenceText = $0 }
         )
-        .focused($focusedField, equals: .diet)
-        .id(Field.diet)
-        .onboardingCard()
     }
 
-    // MARK: - Logging preferences
+    // MARK: - Logging style
 
-    private var loggingPreferencesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+    private var loggingStyleSection: some View {
+        VStack(alignment: .leading, spacing: OnboardingLayout.compactLabelGap) {
             Text(FormaProductCopy.Onboarding.V2.Preferences.loggingSectionTitle)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(OnboardingTheme.primaryText)
 
-            VStack(spacing: FormaTokens.Spacing.sm) {
-                ForEach(OnboardingLoggingPreference.allCases) { preference in
-                    OnboardingSelectionCard(
-                        title: preference.title,
-                        subtitle: preference.subtitle,
-                        icon: preference.symbolName,
-                        isSelected: formState.loggingPreferences.contains(preference)
-                    ) {
-                        focusedField = nil
-                        formState.toggleLoggingPreference(preference)
-                    }
+            HStack(spacing: OnboardingLayout.compactFieldSpacing) {
+                ForEach(OnboardingLoggingStyleChoice.allCases) { style in
+                    loggingStylePill(style)
                 }
             }
+            .accessibilityElement(children: .contain)
             .accessibilityLabel(FormaProductCopy.Onboarding.V2.Preferences.loggingSectionTitle)
         }
     }
 
-    // MARK: - Keyboard navigation
+    private func loggingStylePill(_ style: OnboardingLoggingStyleChoice) -> some View {
+        let isSelected = formState.loggingStyleChoice == style
 
-    private func syncNavigator(for field: Field?) {
-        guard let fieldNavigator else { return }
+        return OnboardingPillButton(
+            title: style.title,
+            isSelected: isSelected
+        ) {
+            if isSelected {
+                formState.selectLoggingStyle(nil)
+            } else {
+                formState.selectLoggingStyle(style)
+            }
+        }
+        .accessibilityLabel(isSelected ? "\(style.title), selected" : style.title)
+    }
 
-        switch field {
-        case .name:
-            fieldNavigator.updateFocus(
-                fieldID: Field.name,
-                canPrevious: false,
-                canNext: true,
-                onPrevious: nil,
-                onNext: { focusedField = .diet },
-                onDismiss: { focusedField = nil }
-            )
-        case .diet:
-            fieldNavigator.updateFocus(
-                fieldID: Field.diet,
-                canPrevious: true,
-                canNext: false,
-                onPrevious: { focusedField = .name },
-                onNext: nil,
-                onDismiss: { focusedField = nil }
-            )
-        case nil:
-            fieldNavigator.clearFocus()
+    // MARK: - Name
+
+    private var nameSection: some View {
+        VStack(alignment: .leading, spacing: OnboardingLayout.compactLabelGap) {
+            if !showsNameField {
+                disclosureButton(
+                    title: FormaProductCopy.Onboarding.V2.Preferences.nameDisclosureLabel
+                ) {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showsNameField = true
+                    }
+                }
+            } else {
+                OnboardingTextField(
+                    title: FormaProductCopy.Onboarding.V2.Preferences.nameLabel,
+                    placeholder: FormaProductCopy.Onboarding.V2.Preferences.namePlaceholder,
+                    text: $formState.name,
+                    helper: FormaProductCopy.Onboarding.V2.Preferences.nameHelper,
+                    capitalization: .words,
+                    isFocused: isNameFocused
+                )
+                .focused($isNameFocused)
+                .onboardingScrollTarget(id: "preferences-name", isFocused: isNameFocused)
+            }
+        }
+    }
+
+    private func disclosureButton(title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(OnboardingTheme.accent)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .center)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+    }
+
+    private func syncDisclosureExpansion() {
+        if !formState.customDietPreferenceText
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .isEmpty {
+            showsCustomDietField = true
+        }
+
+        if !formState.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            showsNameField = true
         }
     }
 }
@@ -170,22 +200,75 @@ struct OnboardingPreferenceStepView: View {
     OnboardingPreferenceStepView(formState: .constant(OnboardingFormState()))
         .padding()
         .background(OnboardingTheme.background)
-        .environment(\.onboardingFieldNavigator, OnboardingFieldNavigator())
         .preferredColorScheme(.dark)
 }
 
-#Preview("With selections") {
+#Preview("Multiple chips") {
     OnboardingPreferenceStepView(
         formState: .constant({
             var state = OnboardingFormState()
-            state.name = "Alex"
-            state.dietPreference = "High protein, simple meals"
-            state.loggingPreferences = [.naturalLanguage, .quickTaps]
+            state.toggleDietChip(.highProtein)
+            state.toggleDietChip(.simpleMeals)
+            state.selectLoggingStyle(.both)
             return state
         }())
     )
     .padding()
     .background(OnboardingTheme.background)
-    .environment(\.onboardingFieldNavigator, OnboardingFieldNavigator())
     .preferredColorScheme(.dark)
+}
+
+#Preview("Custom preference") {
+    OnboardingPreferenceStepView(
+        formState: .constant({
+            var state = OnboardingFormState()
+            state.customDietPreferenceText = "Gluten free"
+            return state
+        }())
+    )
+    .padding()
+    .background(OnboardingTheme.background)
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Logging style") {
+    OnboardingPreferenceStepView(
+        formState: .constant({
+            var state = OnboardingFormState()
+            state.selectLoggingStyle(.chatWithCoach)
+            return state
+        }())
+    )
+    .padding()
+    .background(OnboardingTheme.background)
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Name expanded") {
+    OnboardingPreferenceStepView(
+        formState: .constant({
+            var state = OnboardingFormState()
+            state.name = "Alex"
+            return state
+        }())
+    )
+    .padding()
+    .background(OnboardingTheme.background)
+    .preferredColorScheme(.dark)
+}
+
+#Preview("iPhone SE") {
+    OnboardingPreferenceStepView(formState: .constant(OnboardingFormState()))
+        .padding()
+        .background(OnboardingTheme.background)
+        .preferredColorScheme(.dark)
+        .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
+}
+
+#Preview("Large iPhone") {
+    OnboardingPreferenceStepView(formState: .constant(OnboardingPreviewData.formState))
+        .padding()
+        .background(OnboardingTheme.background)
+        .preferredColorScheme(.dark)
+        .previewDevice(PreviewDevice(rawValue: "iPhone 15 Pro Max"))
 }

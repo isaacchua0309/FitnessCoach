@@ -10,6 +10,9 @@
 import Foundation
 
 struct OnboardingFormState: Equatable {
+    private static let trainingDefaultsResolver = ActivityTrainingDefaultsResolver()
+    private static let initialTrainingDefaults = trainingDefaultsResolver.defaults(for: .moderatelyActive)
+
     var name: String = ""
     var ageText: String = ""
     var sex: Sex = .preferNotToSay
@@ -18,8 +21,11 @@ struct OnboardingFormState: Equatable {
     var goalWeightKgText: String = ""
     var estimatedBodyFatPercentageText: String = ""
     var activityLevel: ActivityLevel = .moderatelyActive
-    var trainingFrequencyPerWeekText: String = "3"
-    var averageStepsText: String = "5000"
+    var trainingFrequencyPerWeekText: String = String(initialTrainingDefaults.trainingDaysPerWeek)
+    var averageStepsText: String = String(initialTrainingDefaults.averageStepsPerDay)
+    var hasManuallyEditedTrainingDays: Bool = false
+    var hasManuallyEditedAverageSteps: Bool = false
+    var lastAutoTrainingDefaults: TrainingRhythmDefaults? = initialTrainingDefaults
     var dietPreference: String = ""
     var unitSystem: UnitSystem = .metric
 
@@ -261,7 +267,7 @@ struct OnboardingFormState: Equatable {
     mutating func toggleMotivation(_ motivation: OnboardingMotivation) {
         if selectedMotivations.contains(motivation) {
             selectedMotivations.remove(motivation)
-        } else {
+        } else if selectedMotivations.count < OnboardingMotivation.maxSelectionCount {
             selectedMotivations.insert(motivation)
         }
     }
@@ -274,7 +280,60 @@ struct OnboardingFormState: Equatable {
         }
     }
 
+    // MARK: - Activity training rhythm
+
+    mutating func selectActivityLevel(_ level: ActivityLevel) {
+        guard level != activityLevel else { return }
+
+        let newDefaults = Self.trainingDefaultsResolver.defaults(for: level)
+        let previousDefaults = lastAutoTrainingDefaults
+
+        activityLevel = level
+
+        if shouldAutoUpdateTrainingDays(previousDefaults: previousDefaults) {
+            trainingFrequencyPerWeekText = String(newDefaults.trainingDaysPerWeek)
+        }
+
+        if shouldAutoUpdateAverageSteps(previousDefaults: previousDefaults) {
+            averageStepsText = String(newDefaults.averageStepsPerDay)
+        }
+
+        lastAutoTrainingDefaults = newDefaults
+    }
+
+    mutating func setTrainingFrequencyPerWeekText(_ text: String) {
+        trainingFrequencyPerWeekText = text
+        hasManuallyEditedTrainingDays = true
+    }
+
+    mutating func setAverageStepsText(_ text: String) {
+        averageStepsText = text
+        hasManuallyEditedAverageSteps = true
+    }
+
+    /// Reconciles manual-override flags after restoring persisted onboarding drafts.
+    mutating func reconcileTrainingRhythmAfterRestore() {
+        let expected = Self.trainingDefaultsResolver.defaults(for: activityLevel)
+        lastAutoTrainingDefaults = expected
+
+        if let currentDays = parsedTrainingDays, currentDays != expected.trainingDaysPerWeek {
+            hasManuallyEditedTrainingDays = true
+        }
+
+        if let currentSteps = parsedAverageSteps, currentSteps != expected.averageStepsPerDay {
+            hasManuallyEditedAverageSteps = true
+        }
+    }
+
     // MARK: - Parsed helpers
+
+    var parsedTrainingDays: Int? {
+        parsedNonNegativeInt(trainingFrequencyPerWeekText)
+    }
+
+    var parsedAverageSteps: Int? {
+        parsedNonNegativeInt(averageStepsText)
+    }
 
     var parsedCurrentWeightKg: Double? {
         parsedPositiveDouble(currentWeightKgText)
@@ -409,6 +468,114 @@ struct OnboardingFormState: Equatable {
             return String(format: "%.1f", value)
         }
         return String(format: "%.2f", value)
+    }
+
+    private func parsedNonNegativeInt(_ text: String) -> Int? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let value = Int(trimmed), value >= 0 else { return nil }
+        return value
+    }
+
+    private func shouldAutoUpdateTrainingDays(previousDefaults: TrainingRhythmDefaults?) -> Bool {
+        if !hasManuallyEditedTrainingDays { return true }
+        guard let previousDefaults, let currentDays = parsedTrainingDays else { return false }
+        return currentDays == previousDefaults.trainingDaysPerWeek
+    }
+
+    private func shouldAutoUpdateAverageSteps(previousDefaults: TrainingRhythmDefaults?) -> Bool {
+        if !hasManuallyEditedAverageSteps { return true }
+        guard let previousDefaults, let currentSteps = parsedAverageSteps else { return false }
+        return currentSteps == previousDefaults.averageStepsPerDay
+    }
+
+    // MARK: - V3 per-step validation (tap-first flow; same stored fields)
+
+    func canAdvanceV3(from step: OnboardingV3Step) -> Bool {
+        validationMessageV3(for: step) == nil
+    }
+
+    func validationMessageV3(for step: OnboardingV3Step) -> String? {
+        do {
+            try validateV3(step: step)
+            return nil
+        } catch let error as OnboardingFormError {
+            return error.message
+        } catch {
+            return FormaProductCopy.Error.checkInputs
+        }
+    }
+
+    func validateV3(step: OnboardingV3Step) throws {
+        switch step {
+        case .landing, .motivation, .sex, .activityLevel,
+             .preferences, .preferenceDetails, .review,
+             .generatingPlan, .planReveal, .savePlan:
+            return
+        case .bodyBasics:
+            _ = try parsePositiveInt(ageText, message: FormaProductCopy.Onboarding.Validation.age)
+            _ = try parsePositiveDouble(heightCmText, message: FormaProductCopy.Onboarding.Validation.height)
+            _ = try parsePositiveDouble(
+                currentWeightKgText,
+                message: FormaProductCopy.Onboarding.Validation.currentWeight
+            )
+            _ = try parseOptionalBodyFat(estimatedBodyFatPercentageText)
+        case .age:
+            _ = try parsePositiveInt(ageText, message: FormaProductCopy.Onboarding.Validation.age)
+        case .height:
+            _ = try parsePositiveDouble(heightCmText, message: FormaProductCopy.Onboarding.Validation.height)
+        case .currentWeight:
+            _ = try parsePositiveDouble(
+                currentWeightKgText,
+                message: FormaProductCopy.Onboarding.Validation.currentWeight
+            )
+        case .goalWeight:
+            try validateV3GoalPace()
+        case .pace, .customPace:
+            try validateV3GoalPace()
+        case .trainingRhythm:
+            _ = try parseNonNegativeInt(
+                trainingFrequencyPerWeekText,
+                message: FormaProductCopy.Onboarding.Validation.trainingFrequency
+            )
+            _ = try parseNonNegativeInt(
+                averageStepsText,
+                message: FormaProductCopy.Onboarding.Validation.averageSteps
+            )
+        }
+    }
+
+    private func validateV3GoalPace() throws {
+        let goalWeightKg = try parsePositiveDouble(
+            goalWeightKgText,
+            message: FormaProductCopy.Onboarding.Validation.goalWeight
+        )
+        if isPaceApplicable() {
+            if let currentWeightKg = parsedCurrentWeightKg, goalWeightKg >= currentWeightKg {
+                throw OnboardingFormError.invalid(
+                    FormaProductCopy.Onboarding.V2.Goal.goalMustBeBelowCurrent
+                )
+            }
+            let preview = pacePreview()
+            guard preview.isSaveable else {
+                throw OnboardingFormError.invalid(
+                    preview.validationError ?? FormaProductCopy.Error.checkInputs
+                )
+            }
+        } else if blocksWeightLossPaceForNonCutGoal() {
+            throw OnboardingFormError.invalid(
+                FormaProductCopy.Onboarding.V2.Goal.goalMustBeBelowCurrent
+            )
+        }
+    }
+
+    static func firstInvalidRequiredV3Step(for formState: OnboardingFormState) -> OnboardingV3Step? {
+        let required: [OnboardingV3Step] = [
+            .bodyBasics,
+            .goalWeight, .activityLevel, .trainingRhythm
+        ]
+        return required.first { step in
+            formState.validationMessageV3(for: step) != nil
+        }
     }
 }
 

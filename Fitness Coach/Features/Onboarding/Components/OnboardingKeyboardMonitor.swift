@@ -12,6 +12,7 @@ import UIKit
 @MainActor
 final class OnboardingKeyboardMonitor: ObservableObject {
     @Published private(set) var isVisible = false
+    @Published private(set) var keyboardHeight: CGFloat = 0
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -31,6 +32,7 @@ final class OnboardingKeyboardMonitor: ObservableObject {
             .sink { [weak self] _ in
                 withAnimation(.easeOut(duration: 0.25)) {
                     self?.isVisible = false
+                    self?.keyboardHeight = 0
                 }
             }
             .store(in: &cancellables)
@@ -40,15 +42,19 @@ final class OnboardingKeyboardMonitor: ObservableObject {
         guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else {
             return
         }
-        let isKeyboardOnScreen = frame.height > 50 && frame.minY < frame.maxY
+        let isKeyboardOnScreen = frame.height > 50 && frame.minY < UIScreen.main.bounds.height
         guard isKeyboardOnScreen else {
             withAnimation(.easeOut(duration: 0.25)) {
                 isVisible = false
+                keyboardHeight = 0
             }
             return
         }
+
+        let overlap = max(0, UIScreen.main.bounds.height - frame.minY)
         withAnimation(.easeOut(duration: 0.25)) {
             isVisible = showing
+            keyboardHeight = overlap
         }
     }
 }

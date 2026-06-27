@@ -12,6 +12,7 @@ struct OnboardingTextField: View {
     let placeholder: String
     @Binding var text: String
     var helper: String?
+    var statusLabel: String?
     var trailingUnit: String?
     var keyboard: UIKeyboardType = .default
     var capitalization: TextInputAutocapitalization = .never
@@ -23,9 +24,17 @@ struct OnboardingTextField: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: OnboardingLayout.compactLabelGap) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.primaryText)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(OnboardingTheme.primaryText)
+
+                if let statusLabel {
+                    Text(statusLabel)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(OnboardingTheme.tertiaryText)
+                }
+            }
 
             field
 
@@ -94,6 +103,7 @@ struct OnboardingNumberField: View {
     let placeholder: String
     @Binding var text: String
     var helper: String?
+    var statusLabel: String?
     var trailingUnit: String?
     var keyboard: UIKeyboardType = .numberPad
     var isFocused: Bool = false
@@ -105,6 +115,7 @@ struct OnboardingNumberField: View {
             placeholder: placeholder,
             text: $text,
             helper: helper,
+            statusLabel: statusLabel,
             trailingUnit: trailingUnit,
             keyboard: keyboard,
             isFocused: isFocused,

@@ -17,7 +17,7 @@ struct OnboardingSavePlanStepView: View {
     let onBack: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
+        VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
             Button(action: onBack) {
                 Label(FormaProductCopy.Common.back, systemImage: "chevron.left")
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
@@ -38,17 +38,21 @@ struct OnboardingSavePlanStepView: View {
 
     @ViewBuilder
     private var preAuthContent: some View {
-        OnboardingInfoCard(
-            title: FormaProductCopy.Onboarding.V2.SavePlan.planSavedOnDeviceTitle,
-            message: FormaProductCopy.Onboarding.V2.SavePlan.localOnlyHint,
-            icon: "iphone"
-        )
+        VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
+            Text(FormaProductCopy.Onboarding.V2.SavePlan.planSavedOnDeviceTitle)
+                .font(FormaTokens.Typography.body.weight(.semibold))
+                .foregroundStyle(OnboardingTheme.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
 
-        if let errorMessage {
-            OnboardingWarningBanner(message: errorMessage)
-        }
+            Text(FormaProductCopy.Onboarding.V2.SavePlan.localOnlyHint)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(OnboardingTheme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
 
-        VStack(spacing: FormaTokens.Spacing.sm) {
+            if let errorMessage {
+                OnboardingWarningBanner(message: errorMessage)
+            }
+
             FormaGoogleSignInButton(
                 isLoading: isBusy,
                 isDisabled: isBusy,
@@ -82,31 +86,37 @@ struct OnboardingSavePlanStepView: View {
 
     @ViewBuilder
     private var signedInContent: some View {
-        OnboardingInfoCard(
-            title: FormaProductCopy.Onboarding.V2.SavePlan.planSavedOnDeviceTitle,
-            message: FormaProductCopy.Onboarding.V2.SavePlan.signedInSubtitle,
-            icon: "icloud.and.arrow.up"
-        )
-
-        if let errorMessage {
-            OnboardingWarningBanner(message: errorMessage)
-        }
-
-        Button(action: onContinue) {
-            Text(FormaProductCopy.Onboarding.V2.SavePlan.signedInContinueCTA)
+        VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
+            Text(FormaProductCopy.Onboarding.V2.SavePlan.planSavedOnDeviceTitle)
                 .font(FormaTokens.Typography.body.weight(.semibold))
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: FormaTokens.Layout.minTouchTarget)
+                .foregroundStyle(OnboardingTheme.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(FormaProductCopy.Onboarding.V2.SavePlan.signedInSubtitle)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(OnboardingTheme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let errorMessage {
+                OnboardingWarningBanner(message: errorMessage)
+            }
+
+            Button(action: onContinue) {
+                Text(FormaProductCopy.Onboarding.V2.SavePlan.signedInContinueCTA)
+                    .font(FormaTokens.Typography.body.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: FormaTokens.Layout.minTouchTarget)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(OnboardingTheme.accent)
+            .disabled(isBusy)
+            .accessibilityLabel(FormaProductCopy.Onboarding.V2.SavePlan.signedInContinueCTA)
+            .accessibilityHint("Save your plan to your Google account")
         }
-        .buttonStyle(.borderedProminent)
-        .tint(OnboardingTheme.accent)
-        .disabled(isBusy)
-        .accessibilityLabel(FormaProductCopy.Onboarding.V2.SavePlan.signedInContinueCTA)
-        .accessibilityHint("Save your plan to your Google account")
     }
 }
 
-#Preview("Sign-in required") {
+#Preview("Signed-out flow") {
     OnboardingSavePlanStepView(
         requiresGoogleSignIn: true,
         isBusy: false,
@@ -121,7 +131,7 @@ struct OnboardingSavePlanStepView: View {
     .preferredColorScheme(.dark)
 }
 
-#Preview("Signed in") {
+#Preview("Signed-in flow") {
     OnboardingSavePlanStepView(
         requiresGoogleSignIn: false,
         isBusy: false,
@@ -149,4 +159,20 @@ struct OnboardingSavePlanStepView: View {
     .padding()
     .background(OnboardingTheme.background)
     .preferredColorScheme(.dark)
+}
+
+#Preview("iPhone SE — signed out") {
+    OnboardingSavePlanStepView(
+        requiresGoogleSignIn: true,
+        isBusy: false,
+        allowsLocalOnlyContinuation: false,
+        errorMessage: nil,
+        onContinue: {},
+        onContinueWithoutAccount: {},
+        onBack: {}
+    )
+    .padding()
+    .background(OnboardingTheme.background)
+    .preferredColorScheme(.dark)
+    .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
 }
