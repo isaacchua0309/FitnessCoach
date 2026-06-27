@@ -137,7 +137,7 @@ enum FormaProductCopy {
 
             enum Motivation {
                 static let title = "What are you doing this for?"
-                static let subtitle = "Optional — this helps Coach match your tone, not your math."
+                static let subtitle = "Optional — this helps Coach personalize your tone."
                 static let optionalHint = "Optional — pick what fits, or continue whenever you're ready."
                 static let feedbackTitle = "Noted"
                 static let confidenceFeedback =
@@ -153,15 +153,17 @@ enum FormaProductCopy {
 
             enum Body {
                 static let title = "Your body basics"
-                static let subtitle = "Age, height, and weight help estimate your starting targets."
+                static let subtitle = "Used to estimate your starting targets."
                 static let unitSectionTitle = "Units"
                 static let unitMetricLabel = "Metric"
                 static let unitImperialLabel = "Imperial"
                 static let genderLabel = "Sex"
                 static let genderHelper = "Used only for target estimation."
-                static let bodyFatLabel = "Know your body fat?"
-                static let bodyFatHelper = "Optional. Leave blank if you do not know."
-                static let bodyFatPlaceholder = "Optional"
+                static let bodyFatLabel = "Body fat estimate"
+                static let bodyFatHelper = "Leave blank if you do not know."
+                static let bodyFatPlaceholder = "Optional, e.g. 24"
+                static let bodyFatDisclosureLabel = "Add body fat estimate (optional)"
+                static let bodyFatUnit = "%"
             }
 
             enum BodyFeedback {
@@ -319,7 +321,7 @@ enum FormaProductCopy {
                 static let goalWeight = "Enter your goal weight."
                 static let trainingFrequency = "Training days per week should be 0 or more."
                 static let averageSteps = "Average steps should be 0 or more."
-                static let bodyFatRange = "Enter a body fat percentage between 0 and 80, or leave it blank."
+                static let bodyFatRange = "Enter a percentage between 3 and 70, or leave it blank."
                 static let pace = "Choose a sustainable expected pace."
                 static let summaryIncomplete =
                     "Complete the required steps so Forma can build your starting targets."

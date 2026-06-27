@@ -42,6 +42,7 @@ struct OnboardingView: View {
                         currentStep: model.currentStep,
                         isLoading: isBottomBarBusy,
                         canContinue: model.formState.canAdvance(from: model.currentStep),
+                        showsRequiredFieldsHint: model.errorMessage != nil,
                         onBack: {
                             fieldNavigator.dismissFocus()
                             model.goBack()

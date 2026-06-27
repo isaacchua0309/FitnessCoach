@@ -69,6 +69,15 @@ final class OnboardingMotivationTests: XCTestCase {
         XCTAssertEqual(withoutInput, withInput)
     }
 
+    func testMotivationFromStoredValuesDropsUnknownRawValues() {
+        let motivations = OnboardingMotivation.fromStoredValues(["health", "other", "energy"])
+        XCTAssertEqual(motivations, [.health, .energy])
+    }
+
+    func testMotivationCaseCountMatchesProductOptions() {
+        XCTAssertEqual(OnboardingMotivation.allCases.count, 6)
+    }
+
     // MARK: - Helpers
 
     private func filledForm() -> OnboardingFormState {

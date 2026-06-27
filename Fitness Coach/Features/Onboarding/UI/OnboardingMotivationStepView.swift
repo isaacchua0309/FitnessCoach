@@ -16,16 +16,14 @@ struct OnboardingMotivationStepView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
-            Text(FormaProductCopy.Onboarding.V2.Motivation.optionalHint)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(OnboardingTheme.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityLabel(FormaProductCopy.Onboarding.V2.Motivation.optionalHint)
+        VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
+            OnboardingCompactSelectionList {
+                ForEach(Array(OnboardingMotivation.allCases.enumerated()), id: \.element.id) { index, motivation in
+                    if index > 0 {
+                        Divider().overlay(OnboardingTheme.border)
+                    }
 
-            VStack(spacing: FormaTokens.Spacing.sm) {
-                ForEach(OnboardingMotivation.allCases) { motivation in
-                    OnboardingSelectionCard(
+                    OnboardingCompactSelectionRow(
                         title: motivation.title,
                         subtitle: motivation.subtitle,
                         icon: motivation.symbolName,
@@ -38,16 +36,14 @@ struct OnboardingMotivationStepView: View {
             .accessibilityLabel("Motivation options")
 
             if let feedbackMessage {
-                OnboardingFeedbackCard(
-                    icon: "sparkles",
-                    title: FormaProductCopy.Onboarding.V2.Motivation.feedbackTitle,
-                    message: feedbackMessage,
-                    style: .guidance
-                )
-                .transition(.opacity.combined(with: .move(edge: .top)))
-                .accessibilityLabel(
-                    "\(FormaProductCopy.Onboarding.V2.Motivation.feedbackTitle). \(feedbackMessage)"
-                )
+                Text(feedbackMessage)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(OnboardingTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .accessibilityLabel(
+                        "\(FormaProductCopy.Onboarding.V2.Motivation.feedbackTitle). \(feedbackMessage)"
+                    )
             }
         }
         .animation(.easeInOut(duration: 0.2), value: formState.selectedMotivations)
@@ -73,4 +69,26 @@ struct OnboardingMotivationStepView: View {
     .padding()
     .background(OnboardingTheme.background)
     .preferredColorScheme(.dark)
+}
+
+#Preview("iPhone SE") {
+    OnboardingMotivationStepView(formState: .constant(OnboardingFormState()))
+        .padding()
+        .background(OnboardingTheme.background)
+        .preferredColorScheme(.dark)
+        .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
+}
+
+#Preview("Large Dynamic Type") {
+    OnboardingMotivationStepView(
+        formState: .constant({
+            var state = OnboardingFormState()
+            state.selectedMotivations = [.health]
+            return state
+        }())
+    )
+    .padding()
+    .background(OnboardingTheme.background)
+    .preferredColorScheme(.dark)
+    .dynamicTypeSize(.accessibility2)
 }

@@ -14,7 +14,6 @@ enum OnboardingMotivation: String, Codable, CaseIterable, Equatable, Sendable, I
     case performance
     case discipline
     case lowStress
-    case other
 
     var id: String { rawValue }
 
@@ -32,27 +31,23 @@ enum OnboardingMotivation: String, Codable, CaseIterable, Equatable, Sendable, I
             return "Build discipline"
         case .lowStress:
             return "Reduce stress around food"
-        case .other:
-            return "Something else"
         }
     }
 
     var subtitle: String {
         switch self {
         case .confidence:
-            return "Steady progress you can trust, without extremes."
+            return "Steady progress without extremes."
         case .health:
-            return "Support markers like sleep, recovery, and how you feel."
+            return "Support sleep, recovery, and how you feel."
         case .energy:
-            return "Fuel your days without running on empty."
+            return "Fuel your day without running empty."
         case .performance:
-            return "Protect training while nutrition supports your goal."
+            return "Protect performance while cutting."
         case .discipline:
             return "Small repeats beat perfect weeks."
         case .lowStress:
-            return "No streak guilt — just honest logging when you can."
-        case .other:
-            return "Forma adapts as your reason becomes clearer."
+            return "Log honestly without guilt."
         }
     }
 
@@ -71,8 +66,6 @@ enum OnboardingMotivation: String, Codable, CaseIterable, Equatable, Sendable, I
             return "calendar"
         case .lowStress:
             return "leaf.fill"
-        case .other:
-            return "ellipsis.circle"
         }
     }
 
@@ -91,8 +84,6 @@ enum OnboardingMotivation: String, Codable, CaseIterable, Equatable, Sendable, I
             return "Discipline"
         case .lowStress:
             return "Low stress"
-        case .other:
-            return "Personal reasons"
         }
     }
 }

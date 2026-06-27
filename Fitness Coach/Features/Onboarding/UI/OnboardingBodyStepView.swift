@@ -11,6 +11,7 @@ struct OnboardingBodyStepView: View {
     @Binding var formState: OnboardingFormState
     @FocusState private var focusedField: Field?
     @Environment(\.onboardingFieldNavigator) private var fieldNavigator
+    @State private var isBodyFatExpanded = false
 
     private enum Field: String, Hashable {
         case age
@@ -20,10 +21,6 @@ struct OnboardingBodyStepView: View {
     }
 
     private var isV2: Bool { OnboardingStepPolicy.isV2Enabled }
-
-    private var showsValidFeedback: Bool {
-        formState.canAdvance(from: .body)
-    }
 
     private var heightBinding: Binding<String> {
         Binding(
@@ -39,8 +36,22 @@ struct OnboardingBodyStepView: View {
         )
     }
 
+    private var bodyFatValidationMessage: String? {
+        let message = formState.validationMessage(for: .body)
+        guard message == FormaProductCopy.Onboarding.Validation.bodyFatRange else { return nil }
+        return message
+    }
+
+    private var shouldShowBodyFatField: Bool {
+        isBodyFatExpanded
+            || !formState.estimatedBodyFatPercentageText
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .isEmpty
+            || bodyFatValidationMessage != nil
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
+        VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
             if !isV2 {
                 legacyHeader
             }
@@ -51,28 +62,26 @@ struct OnboardingBodyStepView: View {
 
             genderSection
 
-            bodyFatField
-
-            if showsValidFeedback {
-                OnboardingFeedbackCard(
-                    icon: "checkmark.circle.fill",
-                    title: FormaProductCopy.Onboarding.V2.BodyFeedback.title,
-                    message: FormaProductCopy.Onboarding.V2.BodyFeedback.message,
-                    style: .success
-                )
-                .transition(.opacity.combined(with: .move(edge: .top)))
-                .accessibilityLabel(
-                    "\(FormaProductCopy.Onboarding.V2.BodyFeedback.title). \(FormaProductCopy.Onboarding.V2.BodyFeedback.message)"
-                )
-            }
+            bodyFatSection
         }
-        .animation(.easeInOut(duration: 0.2), value: showsValidFeedback)
         .frame(maxWidth: .infinity, alignment: .leading)
         .onChange(of: focusedField) { _, field in
             syncNavigator(for: field)
         }
         .onAppear {
+            syncBodyFatExpansion()
             syncNavigator(for: focusedField)
+        }
+        .onChange(of: formState.estimatedBodyFatPercentageText) { _, _ in
+            syncBodyFatExpansion()
+        }
+        .onChange(of: bodyFatValidationMessage) { _, _ in
+            syncBodyFatExpansion()
+        }
+        .onChange(of: isBodyFatExpanded) { _, _ in
+            if focusedField == .weight {
+                syncNavigator(for: .weight)
+            }
         }
     }
 
@@ -88,7 +97,7 @@ struct OnboardingBodyStepView: View {
     // MARK: - Units
 
     private var unitPicker: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: OnboardingLayout.compactLabelGap) {
             Text(FormaProductCopy.Onboarding.V2.Body.unitSectionTitle)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(OnboardingTheme.primaryText)
@@ -108,7 +117,7 @@ struct OnboardingBodyStepView: View {
     // MARK: - Core measurements
 
     private var measurementsGroup: some View {
-        VStack(spacing: OnboardingTheme.fieldSpacing) {
+        VStack(spacing: OnboardingLayout.compactFieldSpacing) {
             OnboardingNumberField(
                 title: "Age",
                 placeholder: "28",
@@ -141,59 +150,72 @@ struct OnboardingBodyStepView: View {
             .focused($focusedField, equals: .weight)
             .id(Field.weight)
         }
-        .onboardingCard()
+        .onboardingCompactCard()
     }
 
     // MARK: - Gender
 
     private var genderSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(FormaProductCopy.Onboarding.V2.Body.genderLabel)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(OnboardingTheme.primaryText)
+        VStack(alignment: .leading, spacing: OnboardingLayout.compactFieldSpacing) {
+            Text(FormaProductCopy.Onboarding.V2.Body.genderLabel)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(OnboardingTheme.primaryText)
 
-                Text(FormaProductCopy.Onboarding.V2.Body.genderHelper)
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(OnboardingTheme.tertiaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 136), spacing: FormaTokens.Spacing.sm, alignment: .top)],
-                spacing: FormaTokens.Spacing.sm
-            ) {
-                ForEach(Sex.allCases, id: \.self) { sex in
-                    OnboardingSelectionCard(
-                        title: OnboardingFormatter.sex(sex),
-                        icon: sexIcon(for: sex),
-                        isSelected: formState.sex == sex
-                    ) {
-                        focusedField = nil
-                        formState.sex = sex
-                    }
+            OnboardingSexPillGrid(selection: $formState.sex)
+                .onChange(of: formState.sex) { _, _ in
+                    focusedField = nil
                 }
-            }
-            .accessibilityLabel(FormaProductCopy.Onboarding.V2.Body.genderLabel)
         }
     }
 
     // MARK: - Optional body fat
 
-    private var bodyFatField: some View {
-        OnboardingNumberField(
-            title: FormaProductCopy.Onboarding.V2.Body.bodyFatLabel,
-            placeholder: FormaProductCopy.Onboarding.V2.Body.bodyFatPlaceholder,
-            text: $formState.estimatedBodyFatPercentageText,
-            helper: FormaProductCopy.Onboarding.V2.Body.bodyFatHelper,
-            keyboard: .decimalPad,
-            isFocused: focusedField == .bodyFat
-        )
-        .focused($focusedField, equals: .bodyFat)
-        .id(Field.bodyFat)
+    private var bodyFatSection: some View {
+        VStack(alignment: .leading, spacing: OnboardingLayout.compactFieldSpacing) {
+            if shouldShowBodyFatField {
+                OnboardingNumberField(
+                    title: FormaProductCopy.Onboarding.V2.Body.bodyFatLabel,
+                    placeholder: FormaProductCopy.Onboarding.V2.Body.bodyFatPlaceholder,
+                    text: $formState.estimatedBodyFatPercentageText,
+                    helper: FormaProductCopy.Onboarding.V2.Body.bodyFatHelper,
+                    trailingUnit: FormaProductCopy.Onboarding.V2.Body.bodyFatUnit,
+                    keyboard: .decimalPad,
+                    isFocused: focusedField == .bodyFat
+                )
+                .focused($focusedField, equals: .bodyFat)
+                .id(Field.bodyFat)
+            } else {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isBodyFatExpanded = true
+                    }
+                } label: {
+                    HStack(spacing: OnboardingLayout.compactLabelGap) {
+                        Image(systemName: "plus.circle")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(OnboardingTheme.accent)
+
+                        Text(FormaProductCopy.Onboarding.V2.Body.bodyFatDisclosureLabel)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(OnboardingTheme.secondaryText)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(minHeight: OnboardingLayout.selectionRowMinHeight, alignment: .center)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(FormaProductCopy.Onboarding.V2.Body.bodyFatDisclosureLabel)
+            }
+        }
     }
 
     // MARK: - Keyboard navigation
+
+    private func syncBodyFatExpansion() {
+        if shouldShowBodyFatField {
+            isBodyFatExpanded = true
+        }
+    }
 
     private func syncNavigator(for field: Field?) {
         guard let fieldNavigator else { return }
@@ -221,9 +243,9 @@ struct OnboardingBodyStepView: View {
             fieldNavigator.updateFocus(
                 fieldID: Field.weight,
                 canPrevious: true,
-                canNext: true,
+                canNext: shouldShowBodyFatField,
                 onPrevious: { focusedField = .height },
-                onNext: { focusedField = .bodyFat },
+                onNext: shouldShowBodyFatField ? { focusedField = .bodyFat } : nil,
                 onDismiss: { focusedField = nil }
             )
         case .bodyFat:
@@ -240,18 +262,6 @@ struct OnboardingBodyStepView: View {
         }
     }
 
-    private func sexIcon(for sex: Sex) -> String {
-        switch sex {
-        case .male:
-            return "figure.stand"
-        case .female:
-            return "figure.stand.dress"
-        case .other:
-            return "person.2.fill"
-        case .preferNotToSay:
-            return "person.crop.circle"
-        }
-    }
 }
 
 #Preview("Empty") {
@@ -268,4 +278,50 @@ struct OnboardingBodyStepView: View {
         .background(OnboardingTheme.background)
         .environment(\.onboardingFieldNavigator, OnboardingFieldNavigator())
         .preferredColorScheme(.dark)
+}
+
+#Preview("Body fat expanded") {
+    OnboardingBodyStepView(
+        formState: .constant({
+            var state = OnboardingPreviewData.formState
+            state.estimatedBodyFatPercentageText = "24"
+            return state
+        }())
+    )
+    .padding()
+    .background(OnboardingTheme.background)
+    .environment(\.onboardingFieldNavigator, OnboardingFieldNavigator())
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Body fat invalid") {
+    OnboardingBodyStepView(
+        formState: .constant({
+            var state = OnboardingPreviewData.formState
+            state.estimatedBodyFatPercentageText = "71"
+            return state
+        }())
+    )
+    .padding()
+    .background(OnboardingTheme.background)
+    .environment(\.onboardingFieldNavigator, OnboardingFieldNavigator())
+    .preferredColorScheme(.dark)
+}
+
+#Preview("iPhone SE") {
+    OnboardingBodyStepView(formState: .constant(OnboardingFormState()))
+        .padding()
+        .background(OnboardingTheme.background)
+        .environment(\.onboardingFieldNavigator, OnboardingFieldNavigator())
+        .preferredColorScheme(.dark)
+        .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
+}
+
+#Preview("Large iPhone") {
+    OnboardingBodyStepView(formState: .constant(OnboardingPreviewData.formState))
+        .padding()
+        .background(OnboardingTheme.background)
+        .environment(\.onboardingFieldNavigator, OnboardingFieldNavigator())
+        .preferredColorScheme(.dark)
+        .previewDevice(PreviewDevice(rawValue: "iPhone 15 Pro Max"))
 }

@@ -15,12 +15,12 @@ struct OnboardingStageProgressHeader: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: OnboardingLayout.progressBarSpacing) {
             stageSegmentBar
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: OnboardingLayout.progressTitleSpacing) {
                 Text(currentStep.title)
-                    .font(.system(.title, design: .rounded).weight(.bold))
+                    .font(.system(.title2, design: .rounded).weight(.bold))
                     .foregroundStyle(OnboardingTheme.primaryText)
                     .minimumScaleFactor(0.85)
                     .fixedSize(horizontal: false, vertical: true)
@@ -29,6 +29,7 @@ struct OnboardingStageProgressHeader: View {
                 Text(currentStep.subtitle)
                     .font(.subheadline)
                     .foregroundStyle(OnboardingTheme.secondaryText)
+                    .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -43,7 +44,7 @@ struct OnboardingStageProgressHeader: View {
             ForEach(OnboardingStage.allCases) { stage in
                 Capsule()
                     .fill(segmentFill(for: stage))
-                    .frame(height: 5)
+                    .frame(height: OnboardingLayout.progressSegmentHeight)
                     .accessibilityHidden(true)
             }
         }

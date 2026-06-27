@@ -11,6 +11,7 @@ struct OnboardingBottomBar: View {
     let currentStep: OnboardingStep
     let isLoading: Bool
     let canContinue: Bool
+    var showsRequiredFieldsHint: Bool = false
     let onBack: () -> Void
     let onContinue: () -> Void
     let onComplete: () -> Void
@@ -44,7 +45,7 @@ struct OnboardingBottomBar: View {
     }
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: OnboardingLayout.footerInnerSpacing) {
             HStack(spacing: 12) {
                 if showsBackButton {
                     Button(action: onBack) {
@@ -87,7 +88,7 @@ struct OnboardingBottomBar: View {
                 .accessibilityLabel(FormaProductCopy.Onboarding.V2.PlanReveal.adjustPlanCTA)
             }
 
-            if !canContinue, !isLoading {
+            if !canContinue, !isLoading, showsRequiredFieldsHint {
                 Text(FormaProductCopy.Common.completeRequiredFields)
                     .font(.caption)
                     .foregroundStyle(OnboardingTheme.tertiaryText)
@@ -96,12 +97,40 @@ struct OnboardingBottomBar: View {
             }
         }
         .padding(.horizontal, OnboardingTheme.pagePadding)
-        .padding(.top, 12)
-        .padding(.bottom, 12)
+        .padding(.top, OnboardingLayout.footerVerticalPadding)
+        .padding(.bottom, OnboardingLayout.footerVerticalPadding)
         .background {
             Rectangle()
                 .fill(.ultraThinMaterial)
                 .ignoresSafeArea(edges: .bottom)
         }
     }
+}
+
+#Preview("Continue disabled") {
+    OnboardingBottomBar(
+        currentStep: .body,
+        isLoading: false,
+        canContinue: false,
+        showsRequiredFieldsHint: true,
+        onBack: {},
+        onContinue: {},
+        onComplete: {}
+    )
+    .background(OnboardingTheme.background)
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Continue enabled") {
+    OnboardingBottomBar(
+        currentStep: .body,
+        isLoading: false,
+        canContinue: true,
+        showsRequiredFieldsHint: false,
+        onBack: {},
+        onContinue: {},
+        onComplete: {}
+    )
+    .background(OnboardingTheme.background)
+    .preferredColorScheme(.dark)
 }

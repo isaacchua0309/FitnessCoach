@@ -62,6 +62,8 @@ final class OnboardingV2CopyGuardrailTests: XCTestCase {
             v2.Motivation.lowStressFeedback,
             v2.Motivation.defaultFeedback,
             v2.Body.subtitle,
+            v2.Body.bodyFatHelper,
+            v2.Body.bodyFatDisclosureLabel,
             v2.BodyFeedback.message,
             v2.Goal.subtitle,
             v2.Goal.goalMustBeBelowCurrent,

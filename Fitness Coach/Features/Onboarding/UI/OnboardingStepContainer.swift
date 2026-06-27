@@ -58,9 +58,9 @@ struct OnboardingStepContainer<Content: View>: View {
     private var scrollableShell: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
+                VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
                     progressHeader
-                        .padding(.top, 12)
+                        .padding(.top, OnboardingLayout.progressHeaderTop)
 
                     if let errorMessage {
                         OnboardingWarningBanner(message: errorMessage)
@@ -73,7 +73,7 @@ struct OnboardingStepContainer<Content: View>: View {
                     }
                 }
                 .padding(.horizontal, contentHorizontalPadding)
-                .padding(.bottom, 28)
+                .padding(.bottom, OnboardingLayout.scrollBottomPadding)
             }
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)

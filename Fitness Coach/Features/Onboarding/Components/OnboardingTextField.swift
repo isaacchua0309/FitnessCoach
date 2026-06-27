@@ -12,6 +12,7 @@ struct OnboardingTextField: View {
     let placeholder: String
     @Binding var text: String
     var helper: String?
+    var trailingUnit: String?
     var keyboard: UIKeyboardType = .default
     var capitalization: TextInputAutocapitalization = .never
     var axis: Axis = .horizontal
@@ -21,7 +22,7 @@ struct OnboardingTextField: View {
     var onSubmit: (() -> Void)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: OnboardingLayout.compactLabelGap) {
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(OnboardingTheme.primaryText)
@@ -39,7 +40,7 @@ struct OnboardingTextField: View {
 
     @ViewBuilder
     private var field: some View {
-        let base = TextField(placeholder, text: $text, axis: axis)
+        let textField = TextField(placeholder, text: $text, axis: axis)
             .keyboardType(keyboard)
             .textInputAutocapitalization(capitalization)
             .submitLabel(submitLabel)
@@ -49,27 +50,42 @@ struct OnboardingTextField: View {
             .font(.body.weight(.medium))
             .foregroundStyle(OnboardingTheme.primaryText)
             .tint(OnboardingTheme.accent)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 14)
-            .background(
-                RoundedRectangle(cornerRadius: OnboardingTheme.compactCornerRadius, style: .continuous)
-                    .fill(isFocused ? Color.white.opacity(0.1) : Color.white.opacity(0.08))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: OnboardingTheme.compactCornerRadius, style: .continuous)
-                    .stroke(
-                        isFocused ? OnboardingTheme.selectedBorder : OnboardingTheme.border,
-                        lineWidth: isFocused ? 1.5 : 1
-                    )
-            )
-            .animation(.easeOut(duration: 0.15), value: isFocused)
             .accessibilityLabel(title)
 
-        if let lineLimit {
-            base.lineLimit(lineLimit)
-        } else {
-            base
+        Group {
+            if let trailingUnit {
+                HStack(spacing: OnboardingLayout.compactLabelGap) {
+                    if let lineLimit {
+                        textField.lineLimit(lineLimit)
+                    } else {
+                        textField
+                    }
+
+                    Text(trailingUnit)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(OnboardingTheme.secondaryText)
+                        .accessibilityHidden(true)
+                }
+            } else if let lineLimit {
+                textField.lineLimit(lineLimit)
+            } else {
+                textField
+            }
         }
+        .padding(.horizontal, OnboardingLayout.compactFieldHorizontalPadding)
+        .padding(.vertical, OnboardingLayout.compactFieldVerticalPadding)
+        .background(
+            RoundedRectangle(cornerRadius: OnboardingTheme.compactCornerRadius, style: .continuous)
+                .fill(isFocused ? Color.white.opacity(0.1) : Color.white.opacity(0.08))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: OnboardingTheme.compactCornerRadius, style: .continuous)
+                .stroke(
+                    isFocused ? OnboardingTheme.selectedBorder : OnboardingTheme.border,
+                    lineWidth: isFocused ? 1.5 : 1
+                )
+        )
+        .animation(.easeOut(duration: 0.15), value: isFocused)
     }
 }
 
@@ -78,6 +94,7 @@ struct OnboardingNumberField: View {
     let placeholder: String
     @Binding var text: String
     var helper: String?
+    var trailingUnit: String?
     var keyboard: UIKeyboardType = .numberPad
     var isFocused: Bool = false
     var onSubmit: (() -> Void)?
@@ -88,6 +105,7 @@ struct OnboardingNumberField: View {
             placeholder: placeholder,
             text: $text,
             helper: helper,
+            trailingUnit: trailingUnit,
             keyboard: keyboard,
             isFocused: isFocused,
             submitLabel: .next,

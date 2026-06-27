@@ -331,12 +331,20 @@ struct OnboardingFormState: Equatable {
     }
 
     private func parseOptionalBodyFat(_ text: String) throws -> Double? {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        guard let value = Double(trimmed), (0...80).contains(value) else {
+        let normalized = Self.normalizedBodyFatText(text)
+        guard !normalized.isEmpty else { return nil }
+        guard let value = Double(normalized), (3...70).contains(value) else {
             throw OnboardingFormError.invalid(FormaProductCopy.Onboarding.Validation.bodyFatRange)
         }
         return value
+    }
+
+    static func normalizedBodyFatText(_ text: String) -> String {
+        var trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.hasSuffix("%") {
+            trimmed = String(trimmed.dropLast()).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return trimmed
     }
 
     private func storedMetricText(for field: BodyMetricField) -> String {

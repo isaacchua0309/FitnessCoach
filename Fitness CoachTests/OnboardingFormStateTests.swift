@@ -231,6 +231,97 @@ final class OnboardingFormStateTests: XCTestCase {
         XCTAssertTrue(state.canAdvance(from: .body))
     }
 
+    func testBodyFatBlankAllowsAdvance() {
+        var state = filledBodyBasics()
+        state.estimatedBodyFatPercentageText = ""
+        XCTAssertTrue(state.canAdvance(from: .body))
+        XCTAssertNil(state.validationMessage(for: .body))
+    }
+
+    func testBodyFatAccepts24() throws {
+        var state = filledBodyBasics()
+        state.estimatedBodyFatPercentageText = "24"
+        XCTAssertTrue(state.canAdvance(from: .body))
+        XCTAssertNoThrow(try state.validate(step: .body))
+
+        var full = filledCutOnboarding()
+        full.estimatedBodyFatPercentageText = "24"
+        let input = try full.makeCalorieTargetInput()
+        XCTAssertEqual(input.estimatedBodyFatPercentage, 24)
+    }
+
+    func testBodyFatAccepts24Percent() throws {
+        var state = filledBodyBasics()
+        state.estimatedBodyFatPercentageText = "24%"
+        XCTAssertTrue(state.canAdvance(from: .body))
+        XCTAssertNoThrow(try state.validate(step: .body))
+
+        var full = filledCutOnboarding()
+        full.estimatedBodyFatPercentageText = "24%"
+        let input = try full.makeCalorieTargetInput()
+        XCTAssertEqual(input.estimatedBodyFatPercentage, 24)
+    }
+
+    func testBodyFatAcceptsBoundaryValues() throws {
+        var low = filledBodyBasics()
+        low.estimatedBodyFatPercentageText = "3"
+        XCTAssertTrue(low.canAdvance(from: .body))
+
+        var high = filledBodyBasics()
+        high.estimatedBodyFatPercentageText = "70"
+        XCTAssertTrue(high.canAdvance(from: .body))
+
+        var fullLow = filledCutOnboarding()
+        fullLow.estimatedBodyFatPercentageText = "3"
+        XCTAssertEqual(try fullLow.makeCalorieTargetInput().estimatedBodyFatPercentage, 3)
+
+        var fullHigh = filledCutOnboarding()
+        fullHigh.estimatedBodyFatPercentageText = "70"
+        XCTAssertEqual(try fullHigh.makeCalorieTargetInput().estimatedBodyFatPercentage, 70)
+    }
+
+    func testBodyFatRejectsBelowMinimum() {
+        var state = filledBodyBasics()
+        state.estimatedBodyFatPercentageText = "2"
+        XCTAssertFalse(state.canAdvance(from: .body))
+        XCTAssertEqual(
+            state.validationMessage(for: .body),
+            FormaProductCopy.Onboarding.Validation.bodyFatRange
+        )
+    }
+
+    func testBodyFatRejectsAboveMaximum() {
+        var state = filledBodyBasics()
+        state.estimatedBodyFatPercentageText = "71"
+        XCTAssertFalse(state.canAdvance(from: .body))
+        XCTAssertEqual(
+            state.validationMessage(for: .body),
+            FormaProductCopy.Onboarding.Validation.bodyFatRange
+        )
+    }
+
+    func testBodyFatRejectsNonNumericValues() {
+        var state = filledBodyBasics()
+        state.estimatedBodyFatPercentageText = "abc"
+        XCTAssertFalse(state.canAdvance(from: .body))
+        XCTAssertEqual(
+            state.validationMessage(for: .body),
+            FormaProductCopy.Onboarding.Validation.bodyFatRange
+        )
+    }
+
+    func testBodyFatInvalidBlocksAdvanceWhenNonEmpty() {
+        var state = filledBodyBasics()
+        state.estimatedBodyFatPercentageText = "100"
+        XCTAssertFalse(state.canAdvance(from: .body))
+        XCTAssertNotNil(state.validationMessage(for: .body))
+    }
+
+    func testNormalizedBodyFatTextStripsPercentSuffix() {
+        XCTAssertEqual(OnboardingFormState.normalizedBodyFatText("24%"), "24")
+        XCTAssertEqual(OnboardingFormState.normalizedBodyFatText(" 24 % "), "24")
+    }
+
     func testRequiredGoalFieldsStillBlockAdvance() {
         var state = filledCutOnboarding()
         state.goalWeightKgText = ""
@@ -333,6 +424,15 @@ final class OnboardingFormStateTests: XCTestCase {
         let newResult = try PlanCalculationBridge.calorieTargetResult(from: newInput)
 
         XCTAssertEqual(legacyResult, newResult)
+    }
+
+    private func filledBodyBasics() -> OnboardingFormState {
+        var state = OnboardingFormState()
+        state.ageText = "28"
+        state.sex = .female
+        state.heightCmText = "168"
+        state.currentWeightKgText = "72"
+        return state
     }
 
     private func filledCutOnboarding(

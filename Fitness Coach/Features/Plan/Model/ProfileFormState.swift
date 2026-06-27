@@ -270,10 +270,10 @@ struct ProfileFormState: Equatable {
     }
 
     private func parseOptionalBodyFat(_ text: String) throws -> Double? {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        guard let value = Double(trimmed), (0...80).contains(value) else {
-            throw ProfileFormError.invalid("Body fat must be between 0 and 80.")
+        let normalized = OnboardingFormState.normalizedBodyFatText(text)
+        guard !normalized.isEmpty else { return nil }
+        guard let value = Double(normalized), (3...70).contains(value) else {
+            throw ProfileFormError.invalid(FormaProductCopy.Onboarding.Validation.bodyFatRange)
         }
         return value
     }
