@@ -12,7 +12,7 @@ struct PlanCalculationDetailsState: Equatable, Sendable {
     let disclaimer: String
 
     nonisolated static let defaultDisclaimer =
-        "These are estimates. Forma adjusts best when you log consistently."
+        "These are estimates. Forma works best when you log consistently."
 }
 
 struct PlanCalculationDetailsSection: Equatable, Sendable, Identifiable {
@@ -61,7 +61,11 @@ enum PlanCalculationDetailsBuilder {
                 id: "bmr",
                 label: "Resting burn (BMR)",
                 value: formatKcalPerDay(result.bmrKcal),
-                footnote: "Estimated from your age, height, weight, and sex."
+                footnote: PlanExplanationFootnotes.footnote(
+                    for: "bmr",
+                    result: result,
+                    fallback: "Estimated from your age, height, weight, and sex."
+                )
             ),
             row(
                 id: "activity",
@@ -76,9 +80,13 @@ enum PlanCalculationDetailsBuilder {
             ),
             row(
                 id: "maintenance",
-                label: "Estimated maintenance",
+                label: "Estimated maintenance (TDEE)",
                 value: formatKcalPerDay(result.tdeeKcal),
-                footnote: "Approximate calories to maintain weight at your current activity."
+                footnote: PlanExplanationFootnotes.footnote(
+                    for: "maintenance",
+                    result: result,
+                    fallback: "Approximate calories to maintain weight at your current activity."
+                )
             )
         ]
 
@@ -100,8 +108,16 @@ enum PlanCalculationDetailsBuilder {
                 row(
                     id: "pace",
                     label: "Weight-loss pace",
-                    value: paceValue(profile: profile, result: result),
-                    footnote: paceFootnote(result: result)
+                    value: PlanPaceLabelFormatter.label(
+                        profile: profile,
+                        result: result,
+                        style: .details
+                    ),
+                    footnote: PlanExplanationFootnotes.footnote(
+                        for: "pace",
+                        result: result,
+                        fallback: paceFootnote(result: result)
+                    )
                 )
             )
             rows.append(
@@ -109,7 +125,11 @@ enum PlanCalculationDetailsBuilder {
                     id: "deficit",
                     label: "Daily deficit",
                     value: formatKcal(result.dailyDeficitKcal),
-                    footnote: deficitFootnote(result: result)
+                    footnote: PlanExplanationFootnotes.footnote(
+                        for: "deficit",
+                        result: result,
+                        fallback: deficitFootnote(result: result)
+                    )
                 )
             )
         }
@@ -119,7 +139,11 @@ enum PlanCalculationDetailsBuilder {
                 id: "calories",
                 label: "Calorie target",
                 value: formatKcalPerDay(result.calorieTargetKcal),
-                footnote: calorieTargetFootnote(result: result)
+                footnote: PlanExplanationFootnotes.footnote(
+                    for: "calories",
+                    result: result,
+                    fallback: calorieTargetFootnote(result: result)
+                )
             )
         )
 
@@ -128,7 +152,11 @@ enum PlanCalculationDetailsBuilder {
                 id: "protein",
                 label: "Protein target",
                 value: formatGrams(result.proteinTargetG),
-                footnote: proteinFootnote(result: result, weightKg: profile.currentWeightKg)
+                footnote: PlanExplanationFootnotes.footnote(
+                    for: "protein",
+                    result: result,
+                    fallback: proteinFootnote(result: result, weightKg: profile.currentWeightKg)
+                )
             )
         )
 
@@ -137,7 +165,11 @@ enum PlanCalculationDetailsBuilder {
                 id: "water",
                 label: "Water target",
                 value: formatMl(result.waterTargetMl),
-                footnote: waterFootnote(profile: profile)
+                footnote: PlanExplanationFootnotes.footnote(
+                    for: "water",
+                    result: result,
+                    fallback: waterFootnote(profile: profile)
+                )
             )
         )
 
@@ -154,7 +186,7 @@ enum PlanCalculationDetailsBuilder {
 
         return PlanCalculationDetailsSection(
             id: "safety",
-            title: "Safety notes",
+            title: "Sustainability & safety",
             rows: notes.enumerated().map { index, note in
                 row(
                     id: "safety-\(index)",
@@ -167,23 +199,6 @@ enum PlanCalculationDetailsBuilder {
     }
 
     // MARK: - Copy helpers
-
-    private static func paceValue(profile: UserProfile, result: PlanCalculationResult) -> String {
-        let inferred = WeightLossPaceChoiceResolver.infer(
-            aggressiveness: profile.targets.aggressiveness,
-            expectedWeeklyLossKg: profile.targets.expectedWeeklyWeightLossKg,
-            weightKg: profile.currentWeightKg,
-            goalWeightKg: profile.goalWeightKg
-        )
-
-        let weekly = formatKg(result.weightLossRateKgPerWeek)
-        switch inferred.choice {
-        case .gentle, .moderate, .aggressive:
-            return "\(inferred.choice.displayName) (about \(weekly)/week)"
-        case .advanced:
-            return "Custom (about \(weekly)/week)"
-        }
-    }
 
     private static func paceFootnote(result: PlanCalculationResult) -> String {
         guard let pace = result.pace else {

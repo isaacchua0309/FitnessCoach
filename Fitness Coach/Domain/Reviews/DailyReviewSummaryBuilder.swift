@@ -19,12 +19,7 @@ struct DailyReviewSummaryBuilder {
         latestWeightEntry: WeightEntry?,
         workouts: [WorkoutEntry]
     ) -> DailyReviewSummary {
-        let targets = MacroCalculator.macroTargets(from: dailyLog.targets)
-        let remaining = MacroCalculator.remaining(targets: targets, totals: dailyLog.totals)
-        let waterRemainingMl = WaterTargetCalculator.remainingMl(
-            consumedMl: dailyLog.waterConsumedMl,
-            targetMl: dailyLog.targets.waterTargetMl
-        )
+        let nutrition = DailyNutritionSummaryBuilder.build(from: dailyLog)
         let workoutCalories = workouts.reduce(0) { $0 + ($1.estimatedCaloriesBurned ?? 0) }
         let lowConfidenceFoodCount = foodEntries.filter { $0.confidence == .low }.count
         let topProteinFoodNames = foodEntries
@@ -35,30 +30,24 @@ struct DailyReviewSummaryBuilder {
 
         let summary = DailyReviewSummary(
             date: dailyLog.date,
-            calorieTarget: targets.calories,
-            caloriesConsumed: dailyLog.totals.calories,
-            caloriesRemaining: remaining.calories,
-            isOverCalorieTarget: MacroCalculator.isOverCalories(
-                totals: dailyLog.totals,
-                targets: targets
-            ),
-            proteinTarget: targets.protein,
-            proteinConsumed: dailyLog.totals.protein,
-            proteinRemaining: remaining.protein,
-            hasMetProteinTarget: MacroCalculator.hasMetProteinTarget(
-                totals: dailyLog.totals,
-                targets: targets
-            ),
-            carbsTarget: targets.carbs,
-            carbsConsumed: dailyLog.totals.carbs,
-            carbsRemaining: remaining.carbs,
-            fatTarget: targets.fat,
-            fatConsumed: dailyLog.totals.fat,
-            fatRemaining: remaining.fat,
-            waterTargetMl: dailyLog.targets.waterTargetMl,
-            waterConsumedMl: dailyLog.waterConsumedMl,
-            waterRemainingMl: waterRemainingMl,
-            hasMetWaterTarget: waterRemainingMl == 0,
+            calorieTarget: nutrition.targets.calories,
+            caloriesConsumed: nutrition.totals.calories,
+            caloriesRemaining: nutrition.remaining.calories,
+            isOverCalorieTarget: nutrition.isOverCalories,
+            proteinTarget: nutrition.targets.protein,
+            proteinConsumed: nutrition.totals.protein,
+            proteinRemaining: nutrition.remaining.protein,
+            hasMetProteinTarget: nutrition.hasMetProteinTarget,
+            carbsTarget: nutrition.targets.carbs,
+            carbsConsumed: nutrition.totals.carbs,
+            carbsRemaining: nutrition.remaining.carbs,
+            fatTarget: nutrition.targets.fat,
+            fatConsumed: nutrition.totals.fat,
+            fatRemaining: nutrition.remaining.fat,
+            waterTargetMl: nutrition.water.targetMl,
+            waterConsumedMl: nutrition.water.consumedMl,
+            waterRemainingMl: nutrition.water.remainingMl,
+            hasMetWaterTarget: nutrition.hasMetWaterTarget,
             weightKg: dailyLog.weightKg ?? weightEntry?.weightKg,
             latestWeightKg: latestWeightEntry?.weightKg,
             steps: dailyLog.steps,

@@ -136,24 +136,7 @@ enum PlanRationaleCopyBuilder {
     // MARK: - Pace label
 
     private static func paceLabel(for profile: UserProfile, result: PlanCalculationResult) -> String {
-        let inferred = WeightLossPaceChoiceResolver.infer(
-            aggressiveness: profile.targets.aggressiveness,
-            expectedWeeklyLossKg: profile.targets.expectedWeeklyWeightLossKg,
-            weightKg: profile.currentWeightKg,
-            goalWeightKg: profile.goalWeightKg
-        )
-
-        switch inferred.choice {
-        case .gentle:
-            return "gentle"
-        case .moderate:
-            return "moderate"
-        case .aggressive:
-            return "aggressive"
-        case .advanced:
-            let weekly = formatKg(result.weightLossRateKgPerWeek)
-            return "custom pace of about \(weekly) kg/week"
-        }
+        PlanPaceLabelFormatter.label(profile: profile, result: result, style: .summary)
     }
 
     // MARK: - Sustainability

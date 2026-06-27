@@ -9,6 +9,7 @@ import SwiftUI
 
 struct OnboardingPlanPreviewStepView: View {
     let plan: CalorieTargetResult?
+    let formState: OnboardingFormState
 
     var body: some View {
         VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
@@ -18,7 +19,11 @@ struct OnboardingPlanPreviewStepView: View {
             )
 
             if let plan {
-                GeneratedPlanSummaryCard(plan: plan)
+                GeneratedPlanSummaryCard(
+                    plan: plan,
+                    pacePreview: formState.pacePreview(),
+                    paceLabel: formState.paceDisplayLabel(result: plan)
+                )
             } else {
                 OnboardingInfoCard(
                     title: FormaProductCopy.Onboarding.planNotGeneratedTitle,
@@ -31,6 +36,9 @@ struct OnboardingPlanPreviewStepView: View {
 }
 
 #Preview {
-    OnboardingPlanPreviewStepView(plan: OnboardingPreviewData.generatedPlan)
-        .padding()
+    OnboardingPlanPreviewStepView(
+        plan: OnboardingPreviewData.generatedPlan,
+        formState: OnboardingPreviewData.formState
+    )
+    .padding()
 }

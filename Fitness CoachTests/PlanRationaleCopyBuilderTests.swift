@@ -28,6 +28,56 @@ final class PlanRationaleCopyBuilderTests: XCTestCase {
         XCTAssertNotNil(rationale.calculationDetails)
     }
 
+    func testModerateCutSummaryUsesEngineNumbers() throws {
+        let input = FormaCalculationTestFixtures.maleModerateCut
+        let result = try FormaCalculationEngine.calculate(input)
+        let profile = profileMatching(fixtureInput: input, result: result, aggressiveness: .moderate)
+
+        let rationale = PlanRationaleCopyBuilder.build(profile: profile, result: result)
+
+        XCTAssertTrue(rationale.summary.contains("moderate"))
+        XCTAssertTrue(rationale.summary.contains("deficit"))
+        XCTAssertTrue(rationale.summary.contains("maintenance"))
+
+        let formattedTarget = NumberFormatter.localizedString(
+            from: NSNumber(value: result.calorieTargetKcal),
+            number: .decimal
+        )
+        XCTAssertTrue(rationale.summary.contains(formattedTarget))
+
+        let formattedDeficit = NumberFormatter.localizedString(
+            from: NSNumber(value: result.dailyDeficitKcal),
+            number: .decimal
+        )
+        XCTAssertTrue(rationale.summary.contains(formattedDeficit))
+        XCTAssertNotNil(rationale.sustainabilityNote)
+    }
+
+    func testAdvancedPaceSummaryMentionsCustomPace() throws {
+        let input = FormaCalculationTestFixtures.advancedWeeklyCut
+        let result = try FormaCalculationEngine.calculate(input)
+        let profile = profileMatching(
+            fixtureInput: input,
+            result: result,
+            aggressiveness: .moderate,
+            expectedWeeklyLossKg: 0.55
+        )
+
+        let rationale = PlanRationaleCopyBuilder.build(profile: profile, result: result)
+
+        XCTAssertTrue(rationale.summary.contains("custom pace"))
+        XCTAssertTrue(rationale.summary.contains("kg/week"))
+        XCTAssertEqual(
+            rationale.calculationDetails?
+                .sections
+                .flatMap(\.rows)
+                .first { $0.id == "pace" }?
+                .value
+                .contains("Custom"),
+            true
+        )
+    }
+
     func testSummaryUsesEngineCalorieTarget() throws {
         let profile = ProfilePreviewData.profile
         let result = try PlanCalculationBridge.planResult(from: profile)
@@ -50,7 +100,10 @@ final class PlanRationaleCopyBuilderTests: XCTestCase {
 
         let rationale = PlanRationaleCopyBuilder.build(profile: profile, result: result)
 
-        XCTAssertEqual(rationale.sustainabilityNote, "This pace is designed to be sustainable alongside your training and recovery.")
+        XCTAssertEqual(
+            rationale.sustainabilityNote,
+            "This pace is designed to be sustainable alongside your training and recovery."
+        )
     }
 
     func testFallbackWhenCalculationFails() {
@@ -85,12 +138,14 @@ final class PlanRationaleCopyBuilderTests: XCTestCase {
 
         XCTAssertTrue(rationale.summary.contains("2,000 kcal/day") || rationale.summary.contains("2000 kcal/day"))
         XCTAssertNil(rationale.calculationDetails)
+        XCTAssertNotNil(rationale.sustainabilityNote)
     }
 
     private func profileMatching(
         fixtureInput input: PlanCalculationInput,
         result: PlanCalculationResult,
-        aggressiveness: CalorieAggressiveness
+        aggressiveness: CalorieAggressiveness,
+        expectedWeeklyLossKg: Double? = nil
     ) -> UserProfile {
         UserProfile(
             id: UUID(),
@@ -112,7 +167,7 @@ final class PlanRationaleCopyBuilderTests: XCTestCase {
                 carbTarget: result.carbTargetG,
                 fatTarget: result.fatTargetG,
                 waterTargetMl: result.waterTargetMl,
-                expectedWeeklyWeightLossKg: result.weightLossRateKgPerWeek,
+                expectedWeeklyWeightLossKg: expectedWeeklyLossKg ?? result.weightLossRateKgPerWeek,
                 aggressiveness: aggressiveness
             ),
             createdAt: Date(),

@@ -20,7 +20,7 @@ final class PlanCalculationDetailsBuilderTests: XCTestCase {
         let labels = details.sections.flatMap(\.rows).map(\.label)
         XCTAssertTrue(labels.contains("Resting burn (BMR)"))
         XCTAssertTrue(labels.contains("Activity level"))
-        XCTAssertTrue(labels.contains("Estimated maintenance"))
+        XCTAssertTrue(labels.contains(where: { $0.contains("Estimated maintenance") }))
         XCTAssertTrue(labels.contains("Weight-loss pace"))
         XCTAssertTrue(labels.contains("Daily deficit"))
         XCTAssertTrue(labels.contains("Calorie target"))
@@ -28,30 +28,80 @@ final class PlanCalculationDetailsBuilderTests: XCTestCase {
         XCTAssertTrue(labels.contains("Water target"))
     }
 
-    func testProteinRowIncludesPerKgFootnote() throws {
+    func testModerateCutDetailsUseEngineExplanationFootnotes() throws {
         let input = FormaCalculationTestFixtures.maleModerateCut
         let result = try FormaCalculationEngine.calculate(input)
         let profile = profileMatching(fixtureInput: input, result: result)
 
         let details = PlanCalculationDetailsBuilder.build(profile: profile, result: result)
-        let proteinRow = details.sections
-            .flatMap(\.rows)
-            .first { $0.label == "Protein target" }
+        let rowsByID = Dictionary(
+            uniqueKeysWithValues: details.sections.flatMap(\.rows).map { ($0.id, $0) }
+        )
 
-        XCTAssertNotNil(proteinRow?.footnote)
-        XCTAssertTrue(proteinRow?.footnote?.contains("g per kg") == true)
+        XCTAssertEqual(rowsByID["bmr"]?.footnote, result.explanation.bmrLine)
+        XCTAssertEqual(rowsByID["maintenance"]?.footnote, result.explanation.tdeeLine)
+        XCTAssertEqual(rowsByID["pace"]?.footnote, result.explanation.lossRateLine)
+        XCTAssertEqual(rowsByID["deficit"]?.footnote, result.explanation.dailyDeficitLine)
+        XCTAssertEqual(rowsByID["calories"]?.footnote, result.explanation.calorieTargetLine)
+        XCTAssertEqual(rowsByID["protein"]?.footnote, result.explanation.proteinLine)
+        XCTAssertEqual(rowsByID["water"]?.footnote, result.explanation.waterLine)
+    }
+
+    func testAdvancedPaceDetailsUseCustomPaceLabel() throws {
+        let input = FormaCalculationTestFixtures.advancedWeeklyCut
+        let result = try FormaCalculationEngine.calculate(input)
+        let profile = profileMatching(
+            fixtureInput: input,
+            result: result,
+            aggressiveness: .moderate,
+            expectedWeeklyLossKg: 0.55
+        )
+
+        let details = PlanCalculationDetailsBuilder.build(profile: profile, result: result)
+        let paceRow = details.sections
+            .flatMap(\.rows)
+            .first { $0.id == "pace" }
+
+        XCTAssertNotNil(paceRow)
+        XCTAssertTrue(paceRow?.value.contains("Custom") == true)
+        XCTAssertEqual(paceRow?.footnote, result.explanation.lossRateLine)
+    }
+
+    func testWaterAndProteinRowsArePresentWithFootnotes() throws {
+        let profile = ProfilePreviewData.profile
+        let result = try PlanCalculationBridge.planResult(from: profile)
+        let details = PlanCalculationDetailsBuilder.build(profile: profile, result: result)
+
+        let proteinRow = details.sections.flatMap(\.rows).first { $0.id == "protein" }
+        let waterRow = details.sections.flatMap(\.rows).first { $0.id == "water" }
+
+        XCTAssertNotNil(proteinRow)
+        XCTAssertNotNil(waterRow)
+        XCTAssertFalse(proteinRow?.value.isEmpty ?? true)
+        XCTAssertFalse(waterRow?.value.isEmpty ?? true)
+        XCTAssertEqual(proteinRow?.footnote, result.explanation.proteinLine)
+        XCTAssertEqual(waterRow?.footnote, result.explanation.waterLine)
     }
 
     func testRationaleIncludesCalculationDetails() throws {
         let profile = ProfilePreviewData.profile
-        let rationale = PlanRationaleCopyBuilder.build(for: profile)
+        let result = try PlanCalculationBridge.planResult(from: profile)
+        let rationale = PlanRationaleCopyBuilder.build(profile: profile, result: result)
 
         XCTAssertNotNil(rationale.calculationDetails)
         XCTAssertFalse(rationale.calculationDetails?.sections.isEmpty ?? true)
     }
 
     func testFallbackRationaleOmitsCalculationDetails() {
-        let profile = UserProfile(
+        let profile = invalidProfileForFallback()
+
+        let rationale = PlanRationaleCopyBuilder.build(for: profile)
+
+        XCTAssertNil(rationale.calculationDetails)
+    }
+
+    private func invalidProfileForFallback() -> UserProfile {
+        UserProfile(
             id: UUID(),
             name: nil,
             age: 0,
@@ -77,15 +127,13 @@ final class PlanCalculationDetailsBuilderTests: XCTestCase {
             createdAt: Date(),
             updatedAt: Date()
         )
-
-        let rationale = PlanRationaleCopyBuilder.build(for: profile)
-
-        XCTAssertNil(rationale.calculationDetails)
     }
 
     private func profileMatching(
         fixtureInput input: PlanCalculationInput,
-        result: PlanCalculationResult
+        result: PlanCalculationResult,
+        aggressiveness: CalorieAggressiveness = .moderate,
+        expectedWeeklyLossKg: Double? = nil
     ) -> UserProfile {
         UserProfile(
             id: UUID(),
@@ -107,8 +155,8 @@ final class PlanCalculationDetailsBuilderTests: XCTestCase {
                 carbTarget: result.carbTargetG,
                 fatTarget: result.fatTargetG,
                 waterTargetMl: result.waterTargetMl,
-                expectedWeeklyWeightLossKg: result.weightLossRateKgPerWeek,
-                aggressiveness: .moderate
+                expectedWeeklyWeightLossKg: expectedWeeklyLossKg ?? result.weightLossRateKgPerWeek,
+                aggressiveness: aggressiveness
             ),
             createdAt: Date(),
             updatedAt: Date()

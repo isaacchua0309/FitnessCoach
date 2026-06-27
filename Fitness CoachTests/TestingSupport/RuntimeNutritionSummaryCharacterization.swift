@@ -2,8 +2,7 @@
 //  RuntimeNutritionSummaryCharacterization.swift
 //  Fitness CoachTests
 //
-//  Mirrors current production nutrition summary assembly (TodayModel, Coach AI
-//  context, DailyReviewSummaryBuilder) until DailyNutritionSummaryBuilder exists.
+//  Mirrors legacy production nutrition assembly for regression comparison.
 //
 
 import Foundation

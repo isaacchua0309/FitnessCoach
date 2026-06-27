@@ -78,7 +78,10 @@ struct OnboardingView: View {
         case .preferences:
             OnboardingPreferenceStepView(formState: $model.formState)
         case .planPreview:
-            OnboardingPlanPreviewStepView(plan: model.generatedPlan)
+            OnboardingPlanPreviewStepView(
+                plan: model.generatedPlan,
+                formState: model.formState
+            )
         }
     }
 }

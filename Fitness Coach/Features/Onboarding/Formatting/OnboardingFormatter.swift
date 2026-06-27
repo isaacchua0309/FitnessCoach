@@ -75,6 +75,29 @@ enum OnboardingFormatter {
         }
     }
 
+    static func paceChoiceTitle(_ choice: WeightLossPaceChoice) -> String {
+        switch choice {
+        case .gentle:
+            return "Gentle"
+        case .moderate:
+            return "Moderate"
+        case .aggressive:
+            return "Aggressive"
+        case .advanced:
+            return "Advanced"
+        }
+    }
+
+    static func safetyDisplay(_ display: WeightLossPaceSafetyDisplay) -> String {
+        display.rawValue
+    }
+
+    static func monthlyLoss(_ value: Double) -> String {
+        value.truncatingRemainder(dividingBy: 1) == 0
+            ? "\(Int(value)) kg/month"
+            : String(format: "%.1f kg/month", value)
+    }
+
     static func unitSystem(_ unitSystem: UnitSystem) -> String {
         switch unitSystem {
         case .metric:

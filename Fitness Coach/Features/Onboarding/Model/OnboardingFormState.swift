@@ -22,7 +22,53 @@ struct OnboardingFormState: Equatable {
     var averageStepsText: String = "5000"
     var dietPreference: String = ""
     var unitSystem: UnitSystem = .metric
+
+    /// Legacy field kept for target compatibility; synced from `weightLossPaceChoice`.
     var aggressiveness: CalorieAggressiveness = .moderate
+    var weightLossPaceChoice: WeightLossPaceChoice = .moderate
+    var advancedPaceDraft: WeightLossAdvancedPaceDraft = .default
+
+    mutating func selectPaceChoice(_ choice: WeightLossPaceChoice) {
+        weightLossPaceChoice = choice
+        syncAggressivenessFromPaceChoice()
+    }
+
+    mutating func syncAggressivenessFromPaceChoice() {
+        aggressiveness = weightLossPaceChoice.legacyAggressiveness
+    }
+
+    func isPaceApplicable() -> Bool {
+        guard let current = parsedCurrentWeightKg, let goal = parsedGoalWeightKg else {
+            return false
+        }
+        return goal < current - FormaCalculationConstants.goalDirectionEpsilonKg
+    }
+
+    func pacePreview(referenceDate: Date = Date()) -> WeightLossPacePreviewModel {
+        guard isPaceApplicable(),
+              let weightKg = parsedCurrentWeightKg,
+              let goalWeightKg = parsedGoalWeightKg else {
+            return .empty
+        }
+
+        return WeightLossPacePreviewBuilder.build(
+            choice: weightLossPaceChoice,
+            advancedDraft: advancedPaceDraft,
+            weightKg: weightKg,
+            goalWeightKg: goalWeightKg,
+            referenceDate: referenceDate
+        )
+    }
+
+    func paceDisplayLabel(result: CalorieTargetResult? = nil) -> String? {
+        guard isPaceApplicable() else { return nil }
+
+        if weightLossPaceChoice == .advanced {
+            return "Custom"
+        }
+
+        return weightLossPaceChoice.displayName
+    }
 
     func validate(step: OnboardingStep) throws {
         switch step {
@@ -35,6 +81,14 @@ struct OnboardingFormState: Equatable {
             _ = try parseOptionalBodyFat(estimatedBodyFatPercentageText)
         case .goal:
             _ = try parsePositiveDouble(goalWeightKgText, message: FormaProductCopy.Onboarding.Validation.goalWeight)
+            if isPaceApplicable() {
+                let preview = pacePreview()
+                guard preview.isSaveable else {
+                    throw OnboardingFormError.invalid(
+                        preview.validationError ?? FormaProductCopy.Error.checkInputs
+                    )
+                }
+            }
         case .activity:
             _ = try parseNonNegativeInt(
                 trainingFrequencyPerWeekText,
@@ -67,7 +121,8 @@ struct OnboardingFormState: Equatable {
     }
 
     func makeCalorieTargetInput() throws -> CalorieTargetInput {
-        CalorieTargetInput(
+        let pace = try resolvedWeightLossPace()
+        return CalorieTargetInput(
             age: try parsePositiveInt(ageText, message: FormaProductCopy.Onboarding.Validation.age),
             sex: sex,
             heightCm: try parsePositiveDouble(heightCmText, message: FormaProductCopy.Onboarding.Validation.height),
@@ -83,7 +138,29 @@ struct OnboardingFormState: Equatable {
                 averageStepsText,
                 message: FormaProductCopy.Onboarding.Validation.averageSteps
             ),
-            aggressiveness: aggressiveness
+            aggressiveness: weightLossPaceChoice.legacyAggressiveness,
+            weightLossPace: pace
+        )
+    }
+
+    func resolvedWeightLossPace() throws -> WeightLossPace {
+        let weightKg = try parsePositiveDouble(
+            currentWeightKgText,
+            message: FormaProductCopy.Onboarding.Validation.currentWeight
+        )
+        let goalWeightKg = try parsePositiveDouble(
+            goalWeightKgText,
+            message: FormaProductCopy.Onboarding.Validation.goalWeight
+        )
+        let isCut = goalWeightKg < weightKg - FormaCalculationConstants.goalDirectionEpsilonKg
+
+        guard isCut else {
+            return weightLossPaceChoice.weightLossPace ?? .preset(.moderate)
+        }
+
+        return try WeightLossPaceChoiceResolver.resolvedPace(
+            choice: weightLossPaceChoice,
+            advancedDraft: advancedPaceDraft
         )
     }
 
@@ -112,6 +189,22 @@ struct OnboardingFormState: Equatable {
             unitSystem: unitSystem,
             targets: targets
         )
+    }
+
+    // MARK: - Parsed helpers
+
+    var parsedCurrentWeightKg: Double? {
+        parsedPositiveDouble(currentWeightKgText)
+    }
+
+    var parsedGoalWeightKg: Double? {
+        parsedPositiveDouble(goalWeightKgText)
+    }
+
+    private func parsedPositiveDouble(_ text: String) -> Double? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let value = Double(trimmed), value > 0 else { return nil }
+        return value
     }
 
     private func parsePositiveInt(_ text: String, message: String) throws -> Int {

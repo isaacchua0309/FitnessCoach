@@ -9,16 +9,19 @@ import SwiftUI
 
 struct GeneratedPlanSummaryCard: View {
     let plan: CalorieTargetResult
+    var pacePreview: WeightLossPacePreviewModel?
+    var paceLabel: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: OnboardingTheme.sectionSpacing) {
             heroTargets
 
-            if plan.isAggressive || plan.warning != nil {
-                OnboardingWarningBanner(
-                    message: plan.warning
-                        ?? FormaProductCopy.Onboarding.aggressivePlanWarning
-                )
+            if let warningMessage = planWarningMessage {
+                OnboardingWarningBanner(message: warningMessage)
+            }
+
+            if let pacePreview, pacePreview.isSaveable, paceLabel != nil {
+                paceSummaryCard(pacePreview)
             }
 
             VStack(alignment: .leading, spacing: 12) {
@@ -35,10 +38,9 @@ struct GeneratedPlanSummaryCard: View {
                 planRow("BMR", OnboardingFormatter.kcal(plan.estimatedBMR))
                 planRow("TDEE", OnboardingFormatter.kcal(plan.estimatedTDEE))
                 planRow("Daily deficit", OnboardingFormatter.kcal(plan.estimatedDailyDeficit))
-                planRow(
-                    "Aggressiveness",
-                    OnboardingFormatter.aggressiveness(plan.targets.aggressiveness)
-                )
+                if let paceLabel {
+                    planRow("Pace", paceLabel)
+                }
                 if let weeklyLoss = OnboardingFormatter.weeklyLoss(plan.targets.expectedWeeklyWeightLossKg) {
                     planRow("Expected weekly loss", weeklyLoss)
                 }
@@ -51,6 +53,16 @@ struct GeneratedPlanSummaryCard: View {
                 icon: "chart.line.uptrend.xyaxis"
             )
         }
+    }
+
+    private var planWarningMessage: String? {
+        if let warning = pacePreview?.warningMessage {
+            return warning
+        }
+        if plan.isAggressive {
+            return WeightLossPacePreviewBuilder.paceWarningCopy
+        }
+        return nil
     }
 
     private var heroTargets: some View {
@@ -75,6 +87,35 @@ struct GeneratedPlanSummaryCard: View {
         .onboardingCard(selected: true)
     }
 
+    private func paceSummaryCard(_ preview: WeightLossPacePreviewModel) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader("Your pace", icon: "speedometer")
+
+            if let safety = preview.safetyDisplay {
+                Text(OnboardingFormatter.safetyDisplay(safety))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(OnboardingTheme.warning)
+            }
+
+            if let summary = preview.deficitSummaryLine {
+                Text(summary)
+                    .font(.subheadline)
+                    .foregroundStyle(OnboardingTheme.primaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let weekly = preview.weeklyLossKg,
+               let monthly = preview.monthlyLossKg {
+                planRow("Weekly", OnboardingFormatter.weeklyLoss(weekly) ?? "")
+                planRow("Monthly", OnboardingFormatter.monthlyLoss(monthly))
+                if let deficit = preview.dailyDeficitKcal {
+                    planRow("Deficit", "\(deficit) kcal/day")
+                }
+            }
+        }
+        .onboardingCard()
+    }
+
     private func sectionHeader(_ title: String, icon: String) -> some View {
         Label(title, systemImage: icon)
             .font(.headline)
@@ -97,6 +138,10 @@ struct GeneratedPlanSummaryCard: View {
 }
 
 #Preview {
-    GeneratedPlanSummaryCard(plan: OnboardingPreviewData.generatedPlan)
-        .padding()
+    GeneratedPlanSummaryCard(
+        plan: OnboardingPreviewData.generatedPlan,
+        pacePreview: OnboardingPreviewData.formState.pacePreview(),
+        paceLabel: "Moderate"
+    )
+    .padding()
 }

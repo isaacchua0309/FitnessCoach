@@ -29,7 +29,7 @@ enum PlanStateBuilder {
                 water: ProfileFormatter.mlCompact(targets.waterTargetMl),
                 trainingFrequency: trainingFrequencyLabel(profile.trainingFrequencyPerWeek)
             ),
-            rationale: PlanRationaleCopyBuilder.build(for: profile),
+            rationale: planRationaleState(for: profile),
             adaptiveCoach: adaptiveCoachState(),
             lifestyle: PlanLifestyleState(
                 activityLevel: ProfileFormatter.activityLevel(profile.activityLevel),
@@ -46,6 +46,15 @@ enum PlanStateBuilder {
                 units: ProfileFormatter.unitSystem(profile.unitSystem)
             )
         )
+    }
+
+    private static func planRationaleState(for profile: UserProfile) -> PlanRationaleState {
+        do {
+            let result = try PlanCalculationBridge.planResult(from: profile)
+            return PlanRationaleCopyBuilder.build(profile: profile, result: result)
+        } catch {
+            return PlanRationaleState.fallback(for: profile)
+        }
     }
 
     // MARK: Strategy
