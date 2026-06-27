@@ -118,11 +118,8 @@ enum JourneyStateBuilder {
 
     static func weeklySnapshot(
         weekLogs: [DailyLog],
-        weekWorkouts: [WorkoutEntry]
+        training: JourneyWeeklyTrainingStatus
     ) -> JourneyWeeklySnapshot {
-        let calendar = Calendar.current
-        let workoutDays = Set(weekWorkouts.map { calendar.startOfDay(for: $0.createdAt) }).count
-
         let proteinEligible = weekLogs.filter { $0.targets.proteinTarget > 0 }
         let proteinDays = proteinEligible.filter {
             $0.totals.protein >= $0.targets.proteinTarget * 0.9
@@ -142,25 +139,13 @@ enum JourneyStateBuilder {
             ? nil
             : Int((Double(deficits.reduce(0, +)) / Double(deficits.count)).rounded())
 
-        let burnValues = weekWorkouts.compactMap(\.estimatedCaloriesBurned)
-        let avgBurn = burnValues.isEmpty
-            ? nil
-            : Int((Double(burnValues.reduce(0, +)) / Double(burnValues.count)).rounded())
-
-        let durations = weekWorkouts.compactMap(\.durationMinutes)
-        let avgDuration = durations.isEmpty
-            ? nil
-            : Int((Double(durations.reduce(0, +)) / Double(durations.count)).rounded())
-
         return JourneyWeeklySnapshot(
-            workoutDays: workoutDays,
+            training: training,
             proteinDaysAchieved: proteinDays,
             proteinDaysTotal: max(proteinEligible.count, weekLogs.count),
             waterDaysAchieved: waterDays,
             waterDaysTotal: max(waterEligible.count, weekLogs.count),
-            averageCalorieDeficit: avgDeficit,
-            averageCaloriesBurned: avgBurn,
-            averageTrainingDurationMinutes: avgDuration
+            averageCalorieDeficit: avgDeficit
         )
     }
 
@@ -169,7 +154,7 @@ enum JourneyStateBuilder {
     static func coachInsights(
         weekLogs: [DailyLog],
         previousWeekLogs: [DailyLog],
-        weekWorkouts: [WorkoutEntry],
+        training: JourneyWeeklyTrainingStatus,
         weightSummary: ProgressWeightSummary,
         nutrition: ProgressNutritionSummary,
         water: ProgressWaterSummary
@@ -211,7 +196,9 @@ enum JourneyStateBuilder {
             }
         }
 
-        if weightSummary.direction == .stable, !weekWorkouts.isEmpty {
+        if weightSummary.direction == .stable,
+           case .connected(let days, _, _) = training,
+           days > 0 {
             insights.append(JourneyCoachInsight(
                 id: "weight-stable-training",
                 message: "Weight remained stable after heavy strength training — normal with glycogen and water shifts."
@@ -223,10 +210,24 @@ enum JourneyStateBuilder {
             ))
         }
 
-        if weekWorkouts.count >= 3 {
+        if case .connected(let days, _, _) = training, days >= 3 {
             insights.append(JourneyCoachInsight(
                 id: "training-consistency",
                 message: "Training consistency is building — that's what compounds results."
+            ))
+        }
+
+        if training == .locked {
+            insights.append(JourneyCoachInsight(
+                id: "training-connect",
+                message: "Connect Apple Health when you're ready — Forma can reflect your training without manual logging."
+            ))
+        }
+
+        if case .connectedEmpty = training {
+            insights.append(JourneyCoachInsight(
+                id: "training-waiting",
+                message: "When Apple Fitness records a workout, your training patterns will show up here."
             ))
         }
 
@@ -247,14 +248,14 @@ enum JourneyStateBuilder {
             ))
         }
 
-        return Array(insights.prefix(4))
+        return Array(insights.prefix(1))
     }
 
     // MARK: Consistency Calendar
 
     static func consistencyCalendar(
         logs: [DailyLog],
-        workouts: [WorkoutEntry],
+        healthWorkoutDayStarts: Set<Date> = [],
         weights: [WeightEntry],
         month: Date = Date()
     ) -> JourneyConsistencyCalendar {
@@ -269,7 +270,12 @@ enum JourneyStateBuilder {
             )
         }
 
-        let completedDays = completedDaySet(logs: logs, workouts: workouts, weights: weights, calendar: calendar)
+        let completedDays = completedDaySet(
+            logs: logs,
+            healthWorkoutDayStarts: healthWorkoutDayStarts,
+            weights: weights,
+            calendar: calendar
+        )
 
         let firstWeekday = calendar.component(.weekday, from: monthInterval.start)
         let leadingBlanks = (firstWeekday - calendar.firstWeekday + 7) % 7
@@ -306,14 +312,14 @@ enum JourneyStateBuilder {
 
     static func achievements(
         logs: [DailyLog],
-        workouts: [WorkoutEntry],
+        hasAppleHealthWorkout: Bool,
         weights: [WeightEntry],
         profile: UserProfile?,
         calendar: Calendar = .current
     ) -> [JourneyAchievement] {
         let completedDays = completedDaySet(
             logs: logs,
-            workouts: workouts,
+            healthWorkoutDayStarts: [],
             weights: weights,
             calendar: calendar
         )
@@ -328,10 +334,18 @@ enum JourneyStateBuilder {
         }()
 
         return [
-            JourneyAchievement(id: "first-workout", title: "First workout", isUnlocked: !workouts.isEmpty),
-            JourneyAchievement(id: "first-week", title: "First week", isUnlocked: streak >= 7 || completedDays.count >= 7),
-            JourneyAchievement(id: "first-kg", title: "Lost first kilogram", isUnlocked: lostFirstKg),
-            JourneyAchievement(id: "14-day", title: "14-day consistency", isUnlocked: streak >= 14 || completedDays.count >= 14)
+            JourneyAchievement(id: "first-workout", title: "First workout", isUnlocked: hasAppleHealthWorkout),
+            JourneyAchievement(
+                id: "first-week",
+                title: "Complete your first week",
+                isUnlocked: streak >= 7 || completedDays.count >= 7
+            ),
+            JourneyAchievement(id: "first-kg", title: "Lose your first kilogram", isUnlocked: lostFirstKg),
+            JourneyAchievement(
+                id: "14-day",
+                title: "Build a 14-day streak",
+                isUnlocked: streak >= 14 || completedDays.count >= 14
+            )
         ]
     }
 
@@ -353,7 +367,7 @@ enum JourneyStateBuilder {
         case .stable:
             return "Weight is holding steady — recomposition and maintenance both show up here first."
         case .insufficientData:
-            return "Log weight a few times in Coach to reveal your trend."
+            return FormaProductCopy.Journey.weightTrendEmpty
         }
     }
 
@@ -416,7 +430,7 @@ enum JourneyStateBuilder {
 
     private static func completedDaySet(
         logs: [DailyLog],
-        workouts: [WorkoutEntry],
+        healthWorkoutDayStarts: Set<Date>,
         weights: [WeightEntry],
         calendar: Calendar
     ) -> Set<Date> {
@@ -428,9 +442,7 @@ enum JourneyStateBuilder {
         for weight in weights {
             days.insert(calendar.startOfDay(for: weight.date))
         }
-        for workout in workouts {
-            days.insert(calendar.startOfDay(for: workout.createdAt))
-        }
+        days.formUnion(healthWorkoutDayStarts)
 
         return days
     }

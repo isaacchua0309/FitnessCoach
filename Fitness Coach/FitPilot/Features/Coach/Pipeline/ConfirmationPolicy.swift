@@ -34,14 +34,7 @@ enum ConfirmationPolicy {
     }
 
     static func decision(forWorkout draft: WorkoutDraft) -> ConfirmationDecision {
-        switch AIResponseValidator.validateWorkout(draft) {
-        case .valid:
-            return .requiresConfirmation("Please confirm this workout before logging.")
-        case .requiresConfirmation(let message):
-            return .requiresConfirmation(message)
-        case .invalid(let message):
-            return .reject(message)
-        }
+        .reject(TrainingIntegrationCopy.coachWorkoutMutationUnavailable)
     }
 
     static func decision(for food: FoodDraft) -> ConfirmationDecision {
@@ -75,10 +68,7 @@ enum ConfirmationPolicy {
             }
             return decision(for: draft)
         case .logWorkout:
-            guard let draft = action.workoutDraft else {
-                return .reject("Missing workout details.")
-            }
-            return decision(forWorkout: draft)
+            return .reject(TrainingIntegrationCopy.coachWorkoutMutationUnavailable)
         case .editEntry, .deleteEntry, .undo:
             return .requiresConfirmation("Please confirm before changing existing entries.")
         case .logWater, .logWeight:

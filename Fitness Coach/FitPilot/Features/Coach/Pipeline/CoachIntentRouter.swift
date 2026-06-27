@@ -46,7 +46,7 @@ struct CoachIntentRouter: Sendable {
             route = aiRoute(.estimateFood(originalText), intentResult: intentResult)
 
         case .logWorkout:
-            route = aiRoute(.parseWorkout(originalText), intentResult: intentResult)
+            route = .trainingLogRedirect
 
         case .editLog:
             route = aiRoute(.editEntry(originalText), intentResult: intentResult)
@@ -100,6 +100,7 @@ struct CoachIntentRouter: Sendable {
         case .localFoodEstimate: return "localFoodEstimate"
         case .classifiedFood: return "classifiedFood"
         case .ai: return "ai"
+        case .trainingLogRedirect: return "trainingLogRedirect"
         case .clarification: return "clarification"
         case .invalid: return "invalid"
         }

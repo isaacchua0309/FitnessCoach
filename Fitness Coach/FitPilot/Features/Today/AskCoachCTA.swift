@@ -12,33 +12,40 @@ struct AskCoachCTA: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: FormaTokens.Spacing.xs + 2) {
-                Image(systemName: "bubble.left.and.bubble.right")
-                    .font(FormaTokens.Typography.body.weight(.medium))
-                    .foregroundStyle(FormaTokens.Color.accent)
-                Text(FormaProductCopy.Today.askCoachCTA)
-                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textPrimary)
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(FormaTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textTertiary)
+            FitPilotPlanCard {
+                HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
+                    Image(systemName: "bubble.left.and.bubble.right")
+                        .font(FormaTokens.Typography.body.weight(.medium))
+                        .foregroundStyle(FormaTokens.Color.accent)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(FormaProductCopy.Today.askCoachCTATitle)
+                            .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                            .foregroundStyle(FormaTokens.Color.textPrimary)
+                            .multilineTextAlignment(.leading)
+
+                        Text(FormaProductCopy.Today.askCoachCTASubtitle)
+                            .font(FormaTokens.Typography.caption)
+                            .foregroundStyle(FormaTokens.Color.textSecondary)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "chevron.right")
+                        .font(FormaTokens.Typography.caption.weight(.semibold))
+                        .foregroundStyle(FormaTokens.Color.textTertiary)
+                }
+                .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .center)
             }
-            .padding(.horizontal, FormaTokens.Spacing.md)
-            .padding(.vertical, FormaTokens.Spacing.sm + 2)
-            .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
-            .background(
-                RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
-                    .fill(FormaTokens.Color.surface)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
-                            .stroke(FormaTokens.Color.border, lineWidth: 1)
-                    )
-            )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(FormaProductCopy.Today.askCoachCTA)
-        .accessibilityHint("Opens Coach")
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "\(FormaProductCopy.Today.askCoachCTATitle). \(FormaProductCopy.Today.askCoachCTASubtitle)"
+        )
+        .accessibilityHint(FormaProductCopy.Today.askCoachCTAAccessibilityHint)
     }
 }
 

@@ -29,11 +29,18 @@ final class AppContainer {
     let aiService: AIService
     let aiCommandParsingEnabled: Bool
     let refreshCenter: AppRefreshCenter
+    let healthTrainingService: HealthTrainingService
+    let trainingInsightsStore: TrainingInsightsStore
+    let trainingInsightsModel: TrainingInsightsModel
 
     init(inMemory: Bool = false) throws {
         refreshCenter = AppRefreshCenter()
         let authManager = AuthManager()
         self.authManager = authManager
+
+        healthTrainingService = HealthTrainingService()
+        trainingInsightsStore = TrainingInsightsStore(integration: healthTrainingService)
+        trainingInsightsModel = TrainingInsightsModel()
 
         modelContainer = try FitPilotModelContainer.makeContainer(inMemory: inMemory)
         store = SwiftDataStore(container: modelContainer)
@@ -161,7 +168,8 @@ final class AppContainer {
             workoutLogService: workoutLogService,
             aiService: aiService,
             userProfileService: userProfileService,
-            aiCommandParsingEnabled: aiCommandParsingEnabled
+            aiCommandParsingEnabled: aiCommandParsingEnabled,
+            trainingInsightsStore: trainingInsightsStore
         )
     }
 
@@ -170,7 +178,9 @@ final class AppContainer {
             dailyLogService: dailyLogService,
             weightLogService: weightLogService,
             workoutLogService: workoutLogService,
-            userProfileService: userProfileService
+            userProfileService: userProfileService,
+            trainingInsightsStore: trainingInsightsStore,
+            workoutReader: trainingInsightsModel.workoutReaderForToday
         )
     }
 
@@ -178,6 +188,13 @@ final class AppContainer {
         TrainingModel(
             workoutLogService: workoutLogService,
             dailyLogService: dailyLogService
+        )
+    }
+
+    func makeTrainingInsightsView() -> TrainingInsightsView {
+        TrainingInsightsView(
+            insightsStore: trainingInsightsStore,
+            insightsModel: trainingInsightsModel
         )
     }
 

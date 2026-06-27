@@ -37,7 +37,7 @@ enum PlanStateBuilder {
                 averageSteps: ProfileFormatter.stepsCompact(profile.averageSteps),
                 dietPreference: ProfileFormatter.dietPreference(profile.dietPreference)
             ),
-            timeline: timeline(for: profile, currentStrategyName: strategyName),
+            whatHappensNext: whatHappensNext(for: profile, currentStrategyName: strategyName),
             aboutYou: PlanAboutYouState(
                 age: ProfileFormatter.age(profile.age),
                 height: ProfileFormatter.cm(profile.heightCm),
@@ -115,30 +115,77 @@ enum PlanStateBuilder {
         )
     }
 
-    // MARK: Timeline
+    // MARK: What Happens Next
 
-    static func timeline(for profile: UserProfile, currentStrategyName: String) -> PlanTimelineState {
+    static func whatHappensNext(
+        for profile: UserProfile,
+        currentStrategyName: String
+    ) -> WhatHappensNextState {
+        let nextPhase = nextLikelyPhase(after: currentStrategyName)
+        let roadmap = roadmapPhaseNames(for: profile, currentStrategyName: currentStrategyName)
+
+        return WhatHappensNextState(
+            currentPhaseName: currentStrategyName,
+            currentPhaseGoal: phaseGoal(for: currentStrategyName, role: .current),
+            nextCheckpoint: "Review after 4 weeks or when your weight trend stalls.",
+            nextPhaseName: nextPhase.name,
+            nextPhaseGoal: nextPhase.goal,
+            roadmapSummary: roadmap.isEmpty ? nil : roadmap.joined(separator: " → ")
+        )
+    }
+
+    private enum PhaseCopyRole {
+        case current
+        case next
+    }
+
+    private static func roadmapPhaseNames(
+        for profile: UserProfile,
+        currentStrategyName: String
+    ) -> [String] {
         let isLoss = profile.goalWeightKg < profile.currentWeightKg - 0.5
         let isGain = profile.goalWeightKg > profile.currentWeightKg + 0.5
 
-        let phaseNames: [String]
         if isLoss {
-            phaseNames = [currentStrategyName, "Maintenance", "Lean Bulk", "Mini Cut"]
-        } else if isGain {
-            phaseNames = [currentStrategyName, "Maintenance", "Mini Cut", "Lean Bulk"]
-        } else {
-            phaseNames = ["Maintenance", "Lean Bulk", "Mini Cut", currentStrategyName]
+            return [currentStrategyName, "Maintenance", "Lean Bulk", "Mini Cut"]
         }
-
-        let phases = phaseNames.enumerated().map { index, name in
-            PlanPhase(
-                id: "phase-\(index)",
-                name: name,
-                status: index == 0 ? .current : .upcoming
-            )
+        if isGain {
+            return [currentStrategyName, "Maintenance", "Mini Cut", "Lean Bulk"]
         }
+        return ["Maintenance", "Lean Bulk", "Mini Cut", currentStrategyName]
+    }
 
-        return PlanTimelineState(phases: phases)
+    private static func phaseGoal(for phaseName: String, role: PhaseCopyRole) -> String {
+        let normalized = phaseName.lowercased()
+
+        if normalized.contains("mini cut") {
+            return "Trim fat quickly while protecting muscle and recovery."
+        }
+        if normalized.contains("cut") {
+            return "Lose fat while keeping strength and recovery stable."
+        }
+        if normalized.contains("build") || normalized.contains("lean bulk") {
+            return "Add muscle gradually with a controlled surplus and solid recovery."
+        }
+        if role == .next {
+            return "Hold your new weight and recover before changing strategy."
+        }
+        return "Keep your weight stable while you train consistently."
+    }
+
+    private static func nextLikelyPhase(after currentName: String) -> (name: String, goal: String) {
+        let normalized = currentName.lowercased()
+
+        if normalized.contains("mini cut") || normalized.contains("cut") {
+            return ("Maintenance", phaseGoal(for: "Maintenance", role: .next))
+        }
+        if normalized == "maintenance" {
+            return ("Lean Bulk", phaseGoal(for: "Lean Bulk", role: .current))
+        }
+        if normalized.contains("lean bulk") || normalized.contains("build") {
+            return ("Mini Cut", phaseGoal(for: "Mini Cut", role: .current))
+        }
+        return ("Maintenance", phaseGoal(for: "Maintenance", role: .next))
     }
 
     static func goalType(for profile: UserProfile) -> PlanGoalType {

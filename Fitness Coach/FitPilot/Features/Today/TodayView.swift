@@ -5,6 +5,7 @@
 //  FitPilot AI — Read-only daily status. Answers: "Am I on track today?"
 //
 //  All logging and updates route to Coach via onOpenCoach.
+//  Production sync: pull-to-refresh, AppRefreshCenter after Coach logs, and onAppear reload.
 //
 
 import SwiftUI
@@ -12,7 +13,12 @@ import SwiftUI
 struct TodayView: View {
 
     @ObservedObject var model: TodayModel
+    @EnvironmentObject private var trainingInsightsStore: TrainingInsightsStore
+    @EnvironmentObject private var trainingInsightsModel: TrainingInsightsModel
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
+
+    @State private var appleHealthWorkoutCount: Int?
+    @State private var isShowingTrainingInsights = false
 
     /// Optional prefill text for Coach input. `nil` opens Coach without prefilling.
     var onOpenCoach: ((String?) -> Void)?
@@ -27,37 +33,61 @@ struct TodayView: View {
             content
                 .navigationTitle("Today")
                 .toolbar {
+                    #if DEBUG
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
-                            Task { await model.refresh() }
+                            Task { await refreshDashboard() }
                         } label: {
                             Image(systemName: "arrow.clockwise")
-                                .foregroundStyle(FormaTokens.Color.textSecondary)
+                                .font(FormaTokens.Typography.caption)
+                                .foregroundStyle(FormaTokens.Color.textTertiary)
                         }
-                        .accessibilityLabel("Refresh today")
+                        .accessibilityLabel(FormaProductCopy.Today.syncAccessibilityLabel)
+                        .accessibilityHint(FormaProductCopy.Today.syncAccessibilityHint)
                     }
+                    #endif
                 }
                 .task {
+                    await trainingInsightsStore.refresh()
                     await model.loadToday()
                 }
                 .onChange(of: refreshCenter.refreshToken) { _, _ in
                     Task<Void, Never> {
-                        await model.refresh()
+                        await refreshDashboard()
                     }
                 }
                 .onAppear {
                     if case .loaded = model.viewState {
                         Task<Void, Never> {
-                            await model.refresh()
+                            await refreshDashboard()
                         }
                     }
                 }
                 .refreshable {
-                    await model.refresh()
+                    await refreshDashboard()
+                }
+                .sheet(isPresented: $isShowingTrainingInsights) {
+                    TrainingInsightsView(
+                        insightsStore: trainingInsightsStore,
+                        insightsModel: trainingInsightsModel
+                    )
+                    .environmentObject(refreshCenter)
                 }
                 .background(FormaTokens.Color.canvas)
                 .preferredColorScheme(.dark)
         }
+    }
+
+    private func refreshDashboard() async {
+        await trainingInsightsStore.refresh()
+        if trainingInsightsStore.integrationState.isConnected {
+            appleHealthWorkoutCount = try? await TodayHealthWorkoutResolver.workoutCountToday(
+                reader: trainingInsightsModel.workoutReaderForToday
+            )
+        } else {
+            appleHealthWorkoutCount = nil
+        }
+        await model.refresh()
     }
 
     @ViewBuilder
@@ -67,11 +97,11 @@ struct TodayView: View {
             TodayLoadingView()
         case .empty:
             TodayEmptyStateView {
-                Task { await model.refresh() }
+                Task { await refreshDashboard() }
             }
         case .error(let message):
             TodayErrorView(message: message) {
-                Task { await model.refresh() }
+                Task { await refreshDashboard() }
             }
         case .loaded(let state):
             dashboard(state)
@@ -80,12 +110,21 @@ struct TodayView: View {
 
     private func dashboard(_ state: TodayDashboardState) -> some View {
         ScrollView {
-            TodayReadOnlyView(state: state) { prefill in
-                onOpenCoach?(prefill)
-            }
+            TodayReadOnlyView(
+                state: state,
+                trainingIntegration: trainingInsightsStore.integrationState,
+                trainingDataSource: trainingInsightsStore.dataSource,
+                appleHealthWorkoutCount: appleHealthWorkoutCount,
+                onOpenCoach: { prefill in
+                    onOpenCoach?(prefill)
+                },
+                onOpenTrainingInsights: {
+                    isShowingTrainingInsights = true
+                }
+            )
             .padding(.horizontal, TodayLayout.horizontalPadding)
             .padding(.top, FormaTokens.Spacing.md)
-            .padding(.bottom, FormaTokens.Spacing.sm)
+            .padding(.bottom, TodayLayout.bottomScrollPadding)
         }
         .fitPilotScrollBottomInset()
     }
@@ -95,4 +134,6 @@ struct TodayView: View {
     let container = try! AppContainer(inMemory: true)
     TodayView(model: container.makeTodayModel())
         .environmentObject(container.refreshCenter)
+        .environmentObject(container.trainingInsightsStore)
+        .environmentObject(container.trainingInsightsModel)
 }

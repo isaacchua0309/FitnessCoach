@@ -11,7 +11,7 @@ enum TodayCoachPrompt {
     static let logMeal = "Log my meal"
     static let logWater = "Log 500ml water"
     static let logWeight = "Log my weight"
-    static let logWorkout = "Log my workout"
+    static let logWorkout = "Log training"
     static let logProtein = "Log a high-protein meal"
 
     static func forGoal(_ kind: TodayGoalItem.Kind) -> String {

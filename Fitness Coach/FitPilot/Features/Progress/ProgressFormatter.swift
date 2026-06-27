@@ -96,4 +96,34 @@ enum ProgressFormatter {
         case .low: return "Low"
         }
     }
+
+    // MARK: Journey display
+
+    static func journeyKg(_ value: Double?) -> String {
+        guard let value else { return "—" }
+        return value.truncatingRemainder(dividingBy: 1) == 0
+            ? "\(Int(value))kg"
+            : String(format: "%.1fkg", value)
+    }
+
+    static func dayCount(_ count: Int) -> String {
+        count == 1 ? "1 day" : "\(count) days"
+    }
+
+    static func remainingKg(current: Double?, goal: Double?) -> String? {
+        guard let current, let goal, abs(current - goal) > 0.05 else { return nil }
+        let remaining = abs(current - goal)
+        return FormaProductCopy.Journey.remainingToGo(journeyKg(remaining))
+    }
+
+    /// Next weight checkpoint on the milestone timeline (display only).
+    static func nextMilestone(from milestones: [JourneyMilestone]) -> JourneyMilestone? {
+        if let currentIndex = milestones.firstIndex(where: { $0.status == .current }) {
+            let nextIndex = currentIndex + 1
+            if nextIndex < milestones.count {
+                return milestones[nextIndex]
+            }
+        }
+        return milestones.first { $0.status == .upcoming }
+    }
 }

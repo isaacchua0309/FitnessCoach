@@ -50,14 +50,12 @@ struct JourneyMilestone: Identifiable, Equatable {
 // MARK: Weekly Snapshot
 
 struct JourneyWeeklySnapshot: Equatable {
-    var workoutDays: Int
+    var training: JourneyWeeklyTrainingStatus
     var proteinDaysAchieved: Int
     var proteinDaysTotal: Int
     var waterDaysAchieved: Int
     var waterDaysTotal: Int
     var averageCalorieDeficit: Int?
-    var averageCaloriesBurned: Int?
-    var averageTrainingDurationMinutes: Int?
 }
 
 // MARK: Coach Insights
@@ -136,7 +134,9 @@ struct ProgressWaterSummary: Equatable {
 
 struct ProgressWorkoutSummary: Equatable {
     var workoutCount: Int
+    var workoutDays: Int?
     var totalEstimatedCaloriesBurned: Int
     var averageWorkoutsPerWeek: Double
     var averageDurationMinutes: Int?
+    var isFromAppleHealth: Bool = false
 }

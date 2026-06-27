@@ -2,7 +2,7 @@
 //  TodayReadOnlyProgressSection.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Compact read-only macro and hydration progress.
+//  Forma — Today's Targets: exact macro and hydration progress.
 //
 
 import SwiftUI
@@ -14,96 +14,138 @@ struct TodayReadOnlyProgressSection: View {
     @State private var showsMacroDetail = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.itemSpacing) {
-            TodaySectionLabel(title: "Progress")
+        VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
+            TodaySectionLabel(title: FormaProductCopy.Today.targetsSectionTitle)
 
-            FitPilotPlanCard {
-                VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                    progressRow(
+            TodayMetricsCard {
+                VStack(alignment: .leading, spacing: 0) {
+                    targetRow(
                         title: "Protein",
-                        consumed: macros.protein.consumed,
-                        target: macros.protein.target,
-                        unit: "g",
+                        progressText: TodayTargetsFormatter.macroProgress(
+                            consumed: macros.protein.consumed,
+                            target: macros.protein.target
+                        ),
                         progress: macros.protein.progress
                     )
 
                     FitPilotPlanRowDivider()
 
-                    progressRow(
+                    targetRow(
                         title: "Water",
-                        consumed: Double(water.consumedMl),
-                        target: Double(water.targetMl),
-                        unit: "ml",
+                        progressText: TodayTargetsFormatter.waterProgress(
+                            consumedMl: water.consumedMl,
+                            targetMl: water.targetMl
+                        ),
                         progress: water.progress
                     )
 
                     if showsMacroDetail {
                         FitPilotPlanRowDivider()
-                        progressRow(
+
+                        targetRow(
                             title: "Carbs",
-                            consumed: macros.carbs.consumed,
-                            target: macros.carbs.target,
-                            unit: "g",
+                            progressText: TodayTargetsFormatter.macroProgress(
+                                consumed: macros.carbs.consumed,
+                                target: macros.carbs.target
+                            ),
                             progress: macros.carbs.progress
                         )
+
                         FitPilotPlanRowDivider()
-                        progressRow(
+
+                        targetRow(
                             title: "Fat",
-                            consumed: macros.fat.consumed,
-                            target: macros.fat.target,
-                            unit: "g",
+                            progressText: TodayTargetsFormatter.macroProgress(
+                                consumed: macros.fat.consumed,
+                                target: macros.fat.target
+                            ),
                             progress: macros.fat.progress
                         )
                     }
 
-                    Button(showsMacroDetail ? "Hide carbs & fat" : "Show carbs & fat") {
+                    Button(
+                        showsMacroDetail
+                            ? FormaProductCopy.Today.hideCarbsAndFat
+                            : FormaProductCopy.Today.showCarbsAndFat
+                    ) {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             showsMacroDetail.toggle()
                         }
                     }
                     .font(FormaTokens.Typography.caption.weight(.medium))
                     .foregroundStyle(FormaTokens.Color.textSecondary)
-                    .padding(.top, 2)
+                    .padding(.top, FormaTokens.Spacing.xs)
+                    .accessibilityLabel(
+                        showsMacroDetail
+                            ? FormaProductCopy.Today.hideCarbsAndFat
+                            : FormaProductCopy.Today.showCarbsAndFat
+                    )
                 }
             }
         }
+        .accessibilityElement(children: .contain)
     }
 
-    private func progressRow(
+    private func targetRow(
         title: String,
-        consumed: Double,
-        target: Double,
-        unit: String,
+        progressText: String,
         progress: Double
     ) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+            HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
                 Text(title)
-                    .font(FormaTokens.Typography.sectionSubtitle)
+                    .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
                     .foregroundStyle(FormaTokens.Color.textPrimary)
-                Spacer()
-                Text("\(formatValue(consumed)) / \(formatValue(target)) \(unit)")
-                    .font(FormaTokens.Typography.caption)
+                    .layoutPriority(1)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Spacer(minLength: FormaTokens.Spacing.xs)
+
+                Text(progressText)
+                    .font(FormaTokens.Typography.caption.weight(.medium))
                     .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .multilineTextAlignment(.trailing)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                    .monospacedDigit()
+                    .layoutPriority(0)
             }
-            SwiftUI.ProgressView(value: min(progress, 1))
-                .tint(FormaTokens.Color.accent)
+
+            TodayMetricProgressBar(progress: progress)
         }
+        .padding(.vertical, FormaTokens.Spacing.xs)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityValue("\(progressText), \(progressAccessibilityValue(progress))")
     }
 
-    private func formatValue(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? String(format: "%.0f", value)
-            : String(format: "%.1f", value)
+    private func progressAccessibilityValue(_ progress: Double) -> String {
+        "\(Int((min(max(progress, 0), 1) * 100).rounded())) percent of target"
     }
 }
 
-#Preview {
+#Preview("Today's targets") {
     TodayReadOnlyProgressSection(
         macros: TodayPreviewData.state.macroSummary,
         water: TodayPreviewData.state.waterSummary
     )
-    .padding()
+    .padding(.horizontal, TodayLayout.horizontalPadding)
+    .background(FormaTokens.Color.canvas)
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Small width") {
+    TodayReadOnlyProgressSection(
+        macros: MacroSummary(
+            protein: MacroProgress(consumed: 31, target: 180, remaining: 149, progress: 0.17),
+            carbs: MacroProgress(consumed: 55, target: 160, remaining: 105, progress: 0.34),
+            fat: MacroProgress(consumed: 19.5, target: 60, remaining: 40.5, progress: 0.33)
+        ),
+        water: WaterSummary(consumedMl: 500, targetMl: 3_150, remainingMl: 2_650, progress: 0.16)
+    )
+    .frame(width: 320)
+    .padding(.horizontal, TodayLayout.horizontalPadding)
     .background(FormaTokens.Color.canvas)
     .preferredColorScheme(.dark)
 }

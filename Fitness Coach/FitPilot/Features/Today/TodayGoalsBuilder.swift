@@ -2,7 +2,7 @@
 //  TodayGoalsBuilder.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Read-only daily goal status from dashboard state.
+//  Forma — State-aware next actions from dashboard data (no AI).
 //
 
 import Foundation
@@ -15,46 +15,179 @@ struct TodayGoalItem: Identifiable, Equatable {
         case workout
     }
 
+    enum TapAction: Equatable {
+        case coach(prefill: String)
+        case openTrainingInsights
+    }
+
     var id: String { kind.rawValue }
     let kind: Kind
     var label: String
+    /// Row reflects a met goal or calm status — not an open action.
     var isComplete: Bool
+    /// Neutral status (e.g. rest day) — circle icon, no chevron.
+    var isInformational: Bool
+    var tapAction: TapAction?
+
+    /// Chevron is shown only when the row navigates somewhere (Coach, Training Insights, etc.).
+    var showsChevron: Bool { tapAction != nil }
+    var isActionable: Bool { showsChevron }
 }
 
 enum TodayGoalsBuilder {
 
-    static func goals(from state: TodayDashboardState) -> [TodayGoalItem] {
-        return [
-            TodayGoalItem(
-                kind: .weight,
-                label: state.weightSummary.weightKg != nil ? "Weight logged" : "Weight not logged",
-                isComplete: state.weightSummary.weightKg != nil
-            ),
-            TodayGoalItem(
-                kind: .protein,
-                label: state.macroSummary.protein.progress >= 0.9
-                    ? "Protein goal met"
-                    : "Protein · \(formatGrams(state.macroSummary.protein.consumed)) / \(formatGrams(state.macroSummary.protein.target))",
-                isComplete: state.macroSummary.protein.progress >= 0.9
-            ),
-            TodayGoalItem(
-                kind: .water,
-                label: state.waterSummary.progress >= 0.8
-                    ? "Hydration on track"
-                    : "Water · \(state.waterSummary.consumedMl) / \(state.waterSummary.targetMl) ml",
-                isComplete: state.waterSummary.progress >= 0.8
-            ),
-            TodayGoalItem(
-                kind: .workout,
-                label: state.workoutSummary.hasWorkout ? "Workout logged" : "No workout logged",
-                isComplete: state.workoutSummary.hasWorkout
-            )
+    static func goals(
+        from state: TodayDashboardState,
+        trainingIntegration: TrainingIntegrationState = .connected,
+        trainingDataSource: TrainingDataSource = .appleHealth,
+        appleHealthWorkoutCount: Int? = nil
+    ) -> [TodayGoalItem] {
+        let protein = state.macroSummary.protein
+        let water = state.waterSummary
+        let proteinComplete = protein.progress >= TodayFocusBuilder.proteinOnTrackThreshold
+        let waterComplete = water.progress >= TodayFocusBuilder.waterOnTrackThreshold
+        let weightLogged = state.weightSummary.weightKg != nil
+
+        var items: [TodayGoalItem] = [
+            weightGoal(weightLogged: weightLogged),
+            proteinGoal(proteinComplete: proteinComplete),
+            waterGoal(waterComplete: waterComplete)
         ]
+
+        if let workout = workoutGoal(
+            trainingDataSource: trainingDataSource,
+            trainingIntegration: trainingIntegration,
+            appleHealthWorkoutCount: appleHealthWorkoutCount
+        ) {
+            items.append(workout)
+        }
+
+        return items
     }
 
-    private static func formatGrams(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(value))g"
-            : String(format: "%.0fg", value)
+    private static func weightGoal(weightLogged: Bool) -> TodayGoalItem {
+        if weightLogged {
+            return TodayGoalItem(
+                kind: .weight,
+                label: FormaProductCopy.Today.statusWeightLogged,
+                isComplete: true,
+                isInformational: false,
+                tapAction: nil
+            )
+        }
+        return TodayGoalItem(
+            kind: .weight,
+            label: FormaProductCopy.Today.actionLogWeight,
+            isComplete: false,
+            isInformational: false,
+            tapAction: .coach(prefill: TodayCoachPrompt.logWeight)
+        )
+    }
+
+    private static func proteinGoal(proteinComplete: Bool) -> TodayGoalItem {
+        if proteinComplete {
+            return TodayGoalItem(
+                kind: .protein,
+                label: FormaProductCopy.Today.statusProteinOnTrack,
+                isComplete: true,
+                isInformational: false,
+                tapAction: nil
+            )
+        }
+        return TodayGoalItem(
+            kind: .protein,
+            label: FormaProductCopy.Today.actionPlanProteinMeal,
+            isComplete: false,
+            isInformational: false,
+            tapAction: .coach(prefill: TodayCoachPrompt.logProtein)
+        )
+    }
+
+    private static func waterGoal(waterComplete: Bool) -> TodayGoalItem {
+        if waterComplete {
+            return TodayGoalItem(
+                kind: .water,
+                label: FormaProductCopy.Today.statusHydrationOnTrack,
+                isComplete: true,
+                isInformational: false,
+                tapAction: nil
+            )
+        }
+        return TodayGoalItem(
+            kind: .water,
+            label: FormaProductCopy.Today.actionDrinkWater,
+            isComplete: false,
+            isInformational: false,
+            tapAction: .coach(prefill: TodayCoachPrompt.logWater)
+        )
+    }
+
+    private static func workoutGoal(
+        trainingDataSource: TrainingDataSource,
+        trainingIntegration: TrainingIntegrationState,
+        appleHealthWorkoutCount: Int?
+    ) -> TodayGoalItem? {
+        switch trainingDataSource {
+        case .appleHealth:
+            return appleHealthWorkoutGoal(
+                workoutCount: appleHealthWorkoutCount ?? 0,
+                trainingIntegration: trainingIntegration
+            )
+        case .unavailable:
+            return nil
+        }
+    }
+
+    private static func appleHealthWorkoutGoal(
+        workoutCount: Int,
+        trainingIntegration: TrainingIntegrationState
+    ) -> TodayGoalItem {
+        if trainingIntegration.showsConnectionGate {
+            return TodayGoalItem(
+                kind: .workout,
+                label: lockedTrainingLabel(for: trainingIntegration),
+                isComplete: false,
+                isInformational: false,
+                tapAction: .openTrainingInsights
+            )
+        }
+
+        if workoutCount > 0 {
+            return TodayGoalItem(
+                kind: .workout,
+                label: connectedWorkoutLabel(count: workoutCount),
+                isComplete: true,
+                isInformational: false,
+                tapAction: .openTrainingInsights
+            )
+        }
+
+        return TodayGoalItem(
+            kind: .workout,
+            label: FormaProductCopy.Today.statusNoAppleHealthWorkoutToday,
+            isComplete: true,
+            isInformational: true,
+            tapAction: .openTrainingInsights
+        )
+    }
+
+    private static func lockedTrainingLabel(for integration: TrainingIntegrationState) -> String {
+        switch integration {
+        case .denied, .failed:
+            return FormaProductCopy.Today.actionUnlockTrainingInsights
+        case .notConnected:
+            return FormaProductCopy.Training.Integration.connectAppleHealth
+        case .unavailable, .requestingPermission, .connected:
+            return FormaProductCopy.Training.Integration.connectAppleHealth
+        }
+    }
+
+    private static func connectedWorkoutLabel(count: Int) -> String {
+        switch count {
+        case 1:
+            return FormaProductCopy.Today.workoutsToday(1)
+        default:
+            return FormaProductCopy.Today.workoutsToday(count)
+        }
     }
 }

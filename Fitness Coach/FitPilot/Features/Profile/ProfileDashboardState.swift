@@ -14,7 +14,7 @@ struct ProfileDashboardState: Equatable {
     var rationale: String
     var adaptiveCoach: PlanAdaptiveCoachState
     var lifestyle: PlanLifestyleState
-    var timeline: PlanTimelineState
+    var whatHappensNext: WhatHappensNextState
     var aboutYou: PlanAboutYouState
 }
 
@@ -54,22 +54,15 @@ struct PlanLifestyleState: Equatable {
     var dietPreference: String
 }
 
-// MARK: Timeline
+// MARK: What Happens Next
 
-enum PlanPhaseStatus: Equatable, Sendable {
-    case current
-    case upcoming
-    case past
-}
-
-struct PlanPhase: Identifiable, Equatable {
-    var id: String
-    var name: String
-    var status: PlanPhaseStatus
-}
-
-struct PlanTimelineState: Equatable {
-    var phases: [PlanPhase]
+struct WhatHappensNextState: Equatable {
+    var currentPhaseName: String
+    var currentPhaseGoal: String
+    var nextCheckpoint: String
+    var nextPhaseName: String
+    var nextPhaseGoal: String
+    var roadmapSummary: String?
 }
 
 // MARK: About You

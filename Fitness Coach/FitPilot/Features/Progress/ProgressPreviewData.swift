@@ -30,14 +30,16 @@ enum ProgressPreviewData {
             JourneyMilestone(id: "m-4", weightKg: 75, status: .upcoming)
         ],
         weeklySnapshot: JourneyWeeklySnapshot(
-            workoutDays: 3,
+            training: .connected(
+                workoutDays: 3,
+                averageCaloriesBurned: 285,
+                averageTrainingDurationMinutes: 42
+            ),
             proteinDaysAchieved: 5,
             proteinDaysTotal: 7,
             waterDaysAchieved: 4,
             waterDaysTotal: 7,
-            averageCalorieDeficit: 320,
-            averageCaloriesBurned: 285,
-            averageTrainingDurationMinutes: 42
+            averageCalorieDeficit: 320
         ),
         coachInsights: [
             JourneyCoachInsight(id: "protein", message: "You maintained excellent protein intake this week."),
@@ -52,9 +54,9 @@ enum ProgressPreviewData {
         ),
         achievements: [
             JourneyAchievement(id: "first-workout", title: "First workout", isUnlocked: true),
-            JourneyAchievement(id: "first-week", title: "First week", isUnlocked: true),
-            JourneyAchievement(id: "first-kg", title: "Lost first kilogram", isUnlocked: false),
-            JourneyAchievement(id: "14-day", title: "14-day consistency", isUnlocked: false)
+            JourneyAchievement(id: "first-week", title: "Complete your first week", isUnlocked: true),
+            JourneyAchievement(id: "first-kg", title: "Lose your first kilogram", isUnlocked: false),
+            JourneyAchievement(id: "14-day", title: "Build a 14-day streak", isUnlocked: false)
         ],
         weightTrend: JourneyWeightTrendState(
             chartPoints: makeWeightPoints(),
@@ -77,9 +79,11 @@ enum ProgressPreviewData {
             ),
             workoutSummary: ProgressWorkoutSummary(
                 workoutCount: 9,
+                workoutDays: 6,
                 totalEstimatedCaloriesBurned: 2_850,
                 averageWorkoutsPerWeek: 2.25,
-                averageDurationMinutes: 42
+                averageDurationMinutes: 42,
+                isFromAppleHealth: true
             ),
             weightChartPoints: makeWeightPoints()
         ),

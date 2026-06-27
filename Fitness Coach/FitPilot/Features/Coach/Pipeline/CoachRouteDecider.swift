@@ -35,6 +35,7 @@ enum CoachRoute: Equatable, Sendable {
     case localFoodEstimate(LocalFoodEstimateRequest)
     case classifiedFood(FoodDraft, originalText: String, intentResult: CoachIntentResult)
     case ai(RoutedAITask)
+    case trainingLogRedirect
     case clarification(String)
     case invalid(String)
 }
@@ -246,7 +247,7 @@ final class CoachRouteDecider: Sendable {
         switch route {
         case .ai: return true
         case .classifiedFood: return true
-        case .noOp, .localCommand, .localFoodEstimate, .clarification, .invalid:
+        case .noOp, .localCommand, .localFoodEstimate, .clarification, .invalid, .trainingLogRedirect:
             return false
         }
     }
@@ -282,6 +283,8 @@ final class CoachRouteDecider: Sendable {
             return "clarification"
         case .invalid:
             return "unsupported"
+        case .trainingLogRedirect:
+            return "training_log_redirect"
         }
     }
 }

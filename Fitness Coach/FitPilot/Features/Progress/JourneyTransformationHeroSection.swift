@@ -7,73 +7,100 @@ import SwiftUI
 
 struct JourneyTransformationHeroSection: View {
     let state: JourneyTransformationState
+    let milestones: [JourneyMilestone]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
-            Text(state.goalTitle)
-                .font(FormaTokens.Typography.screenTitle)
-                .foregroundStyle(FormaTokens.Color.textPrimary)
+        FitPilotPlanCard {
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
+                HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
+                    Text(state.goalTitle)
+                        .font(FormaTokens.Typography.screenTitle)
+                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
 
-            Text(state.startedLabel)
-                .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(FormaTokens.Color.textSecondary)
+                    Spacer(minLength: FormaTokens.Spacing.xs)
 
-            HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.xl) {
-                weightColumn("Current", state.currentWeightKg)
-                weightColumn("Goal", state.goalWeightKg)
-            }
-
-            if let progress = state.progressPercent {
-                SwiftUI.ProgressView(value: min(progress, 100) / 100)
-                    .tint(FormaTokens.Color.accent)
-            }
-
-            HStack {
-                if let eta = state.estimatedCompletionLabel {
-                    meta("Estimated", eta)
+                    phaseBadge
                 }
-                Spacer()
-                meta("Phase", state.currentPhase)
-            }
 
-            VStack(alignment: .leading, spacing: 6) {
-                FormaSectionLabel(title: "Coach")
-                Text(state.coachInsight)
+                Text(state.startedLabel)
                     .font(FormaTokens.Typography.sectionSubtitle)
-                    .foregroundStyle(FormaTokens.Color.textLegal)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .foregroundStyle(FormaTokens.Color.textSecondary)
+
+                Text(weightRangeLine)
+                    .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
+                    .foregroundStyle(FormaTokens.Color.textPrimary)
+                    .accessibilityLabel(weightRangeAccessibilityLabel)
+
+                if let remaining = ProgressFormatter.remainingKg(
+                    current: state.currentWeightKg,
+                    goal: state.goalWeightKg
+                ) {
+                    Text(remaining)
+                        .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
+                        .foregroundStyle(FormaTokens.Color.textLegal)
+                }
+
+                if let nextMilestone = ProgressFormatter.nextMilestone(from: milestones) {
+                    Text(FormaProductCopy.Journey.nextMilestone(
+                        ProgressFormatter.journeyKg(nextMilestone.weightKg)
+                    ))
+                    .font(FormaTokens.Typography.sectionSubtitle)
+                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                }
+
+                progressSection
+
+                if let eta = state.estimatedCompletionLabel {
+                    Text("Estimated \(eta)")
+                        .font(FormaTokens.Typography.caption)
+                        .foregroundStyle(FormaTokens.Color.textTertiary)
+                }
             }
-            .padding(.top, 4)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func weightColumn(_ label: String, _ value: Double?) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textSecondary)
-            Text(formatKg(value))
-                .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.textPrimary)
         }
     }
 
-    private func meta(_ label: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textTertiary)
-            Text(value)
-                .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
-                .foregroundStyle(FormaTokens.Color.textPrimary)
+    private var weightRangeLine: String {
+        let current = ProgressFormatter.journeyKg(state.currentWeightKg)
+        let goal = ProgressFormatter.journeyKg(state.goalWeightKg)
+        return "\(current) → \(goal)"
+    }
+
+    private var weightRangeAccessibilityLabel: String {
+        let current = ProgressFormatter.journeyKg(state.currentWeightKg)
+        let goal = ProgressFormatter.journeyKg(state.goalWeightKg)
+        return "Current weight \(current), goal \(goal)"
+    }
+
+    @ViewBuilder
+    private var progressSection: some View {
+        if state.progressPercent != nil || state.goalWeightKg != nil {
+            let progress = state.progressPercent ?? 0
+            let barValue = progress > 0 ? min(progress, 100) / 100 : 0.02
+
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+                SwiftUI.ProgressView(value: barValue)
+                    .tint(FormaTokens.Color.accent)
+
+                if progress < 1 {
+                    Text(FormaProductCopy.Journey.progressEarlyDays)
+                        .font(FormaTokens.Typography.caption)
+                        .foregroundStyle(FormaTokens.Color.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.top, 2)
         }
     }
 
-    private func formatKg(_ value: Double?) -> String {
-        guard let value else { return "—" }
-        return value.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(value))kg"
-            : String(format: "%.1fkg", value)
+    private var phaseBadge: some View {
+        Text(state.currentPhase)
+            .font(FormaTokens.Typography.caption.weight(.semibold))
+            .foregroundStyle(FormaTokens.Color.accent)
+            .padding(.horizontal, FormaTokens.Spacing.xs + 2)
+            .padding(.vertical, 4)
+            .background(FormaTokens.Color.accentMuted)
+            .clipShape(Capsule())
+            .accessibilityLabel("Phase: \(state.currentPhase)")
     }
 }

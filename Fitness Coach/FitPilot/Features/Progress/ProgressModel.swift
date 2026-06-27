@@ -16,8 +16,9 @@ final class ProgressModel: ObservableObject {
 
     private let dailyLogService: DailyLogService
     private let weightLogService: WeightLogService
-    private let workoutLogService: WorkoutLogService
     private let userProfileService: UserProfileService
+    private let trainingInsightsStore: TrainingInsightsStore
+    private let workoutReader: HealthKitWorkoutReading
 
     private let supportedRanges = [7, 14, 28]
 
@@ -25,12 +26,16 @@ final class ProgressModel: ObservableObject {
         dailyLogService: DailyLogService,
         weightLogService: WeightLogService,
         workoutLogService: WorkoutLogService,
-        userProfileService: UserProfileService
+        userProfileService: UserProfileService,
+        trainingInsightsStore: TrainingInsightsStore,
+        workoutReader: HealthKitWorkoutReading? = nil
     ) {
         self.dailyLogService = dailyLogService
         self.weightLogService = weightLogService
-        self.workoutLogService = workoutLogService
         self.userProfileService = userProfileService
+        self.trainingInsightsStore = trainingInsightsStore
+        self.workoutReader = workoutReader ?? MockHealthKitWorkoutReader(workouts: [])
+        _ = workoutLogService
     }
 
     // MARK: Loading
@@ -42,7 +47,8 @@ final class ProgressModel: ObservableObject {
 
     func refresh() async {
         do {
-            let state = try makeDashboardState(rangeDays: selectedRangeDays)
+            await trainingInsightsStore.refresh()
+            let state = try await makeDashboardState(rangeDays: selectedRangeDays)
             viewState = state.hasProfile ? .loaded(state) : .empty
         } catch ServiceError.missingUserProfile {
             viewState = .empty
@@ -58,7 +64,7 @@ final class ProgressModel: ObservableObject {
 
     // MARK: State Building
 
-    private func makeDashboardState(rangeDays: Int) throws -> ProgressDashboardState {
+    private func makeDashboardState(rangeDays: Int) async throws -> ProgressDashboardState {
         let calendar = Calendar.current
         let endDate = Date()
         let startDate = calendar.date(byAdding: .day, value: -rangeDays + 1, to: endDate) ?? endDate
@@ -75,11 +81,20 @@ final class ProgressModel: ObservableObject {
         let weights = try weightLogService.getWeightEntries(from: startDate, to: endDate)
         let allWeights = try weightLogService.getWeightEntries(from: allTimeStart, to: endDate)
 
-        let workouts = try workoutLogService.getWorkoutHistory(days: rangeDays)
-            .filter { $0.createdAt >= startDate && $0.createdAt <= endDate }
-        let weekWorkouts = try workoutLogService.getWorkoutHistory(days: 7)
-            .filter { $0.createdAt >= weekStart && $0.createdAt <= endDate }
-        let allWorkouts = try workoutLogService.getWorkoutHistory(days: 365)
+        let integrationState = trainingInsightsStore.integrationState
+        let dataSource = trainingInsightsStore.dataSource
+
+        let rangeHealthWorkouts = try await fetchHealthWorkouts(from: startDate, to: endDate)
+        let weekHealthWorkouts = try await fetchHealthWorkouts(from: weekStart, to: endDate)
+        let allHealthWorkouts = try await fetchHealthWorkouts(from: allTimeStart, to: endDate)
+
+        let weeklyTraining = JourneyTrainingSummaryBuilder.weeklyTrainingStatus(
+            integrationState: integrationState,
+            dataSource: dataSource,
+            weekWorkouts: weekHealthWorkouts,
+            asOf: endDate,
+            calendar: calendar
+        )
 
         let profile = try userProfileService.getCurrentProfile()
 
@@ -94,7 +109,13 @@ final class ProgressModel: ObservableObject {
         let currentWeight = weightSummary.latestWeightKg ?? profile?.currentWeightKg
         let nutritionSummary = makeNutritionSummary(logs: logs)
         let waterSummary = makeWaterSummary(logs: logs)
-        let workoutSummary = makeWorkoutSummary(workouts: workouts, rangeDays: rangeDays)
+        let workoutSummary = JourneyTrainingSummaryBuilder.workoutAnalytics(
+            integrationState: integrationState,
+            dataSource: dataSource,
+            workouts: rangeHealthWorkouts,
+            rangeDays: rangeDays,
+            calendar: calendar
+        )
 
         let goalProjection = profile.map {
             ProgressProjectionCalculator.projection(
@@ -131,27 +152,31 @@ final class ProgressModel: ObservableObject {
 
         let weeklySnapshot = JourneyStateBuilder.weeklySnapshot(
             weekLogs: weekLogs,
-            weekWorkouts: weekWorkouts
+            training: weeklyTraining
         )
 
         let coachInsights = JourneyStateBuilder.coachInsights(
             weekLogs: weekLogs,
             previousWeekLogs: previousWeekLogs,
-            weekWorkouts: weekWorkouts,
+            training: weeklyTraining,
             weightSummary: weightSummary,
             nutrition: nutritionSummary,
             water: waterSummary
         )
 
+        let healthWorkoutDays = integrationState.isConnected
+            ? JourneyTrainingSummaryBuilder.healthWorkoutDayStarts(from: allHealthWorkouts, calendar: calendar)
+            : []
+
         let consistencyCalendar = JourneyStateBuilder.consistencyCalendar(
             logs: maturityLogs,
-            workouts: allWorkouts,
+            healthWorkoutDayStarts: healthWorkoutDays,
             weights: allWeights
         )
 
         let achievements = JourneyStateBuilder.achievements(
             logs: maturityLogs,
-            workouts: allWorkouts,
+            hasAppleHealthWorkout: integrationState.isConnected && !allHealthWorkouts.isEmpty,
             weights: allWeights,
             profile: profile
         )
@@ -181,6 +206,13 @@ final class ProgressModel: ObservableObject {
     }
 
     // MARK: Helpers
+
+    private func fetchHealthWorkouts(from startDate: Date, to endDate: Date) async throws -> [HealthWorkoutRecord] {
+        guard trainingInsightsStore.integrationState.isConnected else {
+            return []
+        }
+        return try await workoutReader.fetchWorkouts(from: startDate, to: endDate)
+    }
 
     private func meaningfulLoggedDays(from logs: [DailyLog], weights: [WeightEntry]) -> Int {
         let logDays = Set(logs.filter { $0.totals.calories > 0 || $0.waterConsumedMl > 0 }.map {
@@ -251,27 +283,6 @@ final class ProgressModel: ObservableObject {
             averageWaterMl: Int((Double(totalWater) / Double(logs.count)).rounded()),
             averageWaterTargetMl: Int((Double(totalTargets) / Double(logs.count)).rounded()),
             consistencyPercent: consistency
-        )
-    }
-
-    private func makeWorkoutSummary(
-        workouts: [WorkoutEntry],
-        rangeDays: Int
-    ) -> ProgressWorkoutSummary? {
-        guard !workouts.isEmpty else { return nil }
-
-        let totalCalories = workouts.reduce(0) { $0 + ($1.estimatedCaloriesBurned ?? 0) }
-        let weeks = max(Double(rangeDays) / 7.0, 1.0)
-        let durations = workouts.compactMap(\.durationMinutes)
-        let avgDuration = durations.isEmpty
-            ? nil
-            : Int((Double(durations.reduce(0, +)) / Double(durations.count)).rounded())
-
-        return ProgressWorkoutSummary(
-            workoutCount: workouts.count,
-            totalEstimatedCaloriesBurned: totalCalories,
-            averageWorkoutsPerWeek: Double(workouts.count) / weeks,
-            averageDurationMinutes: avgDuration
         )
     }
 

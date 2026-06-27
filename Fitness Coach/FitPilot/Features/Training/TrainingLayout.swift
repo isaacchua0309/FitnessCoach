@@ -11,6 +11,7 @@ enum TrainingLayout {
     static let sectionSpacing = FormaTokens.Spacing.xxl
     static let itemSpacing = FormaTokens.Spacing.sm
     static let horizontalPadding = FormaTokens.Spacing.pageHorizontal
+    static let scrollBottomPadding = FormaTokens.Layout.tabBarScrollPadding + FormaTokens.Spacing.md
 }
 
 struct TrainingSectionLabel: View {

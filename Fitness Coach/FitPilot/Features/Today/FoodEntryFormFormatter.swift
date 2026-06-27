@@ -9,6 +9,7 @@ import Foundation
 
 enum FoodEntryFormFormatter {
 
+    /// Picker / form label. Unknown is shown only in edit UI, not on Today meal rows.
     static func mealTypeLabel(_ mealType: MealType?) -> String {
         switch mealType {
         case .breakfast:
@@ -20,8 +21,65 @@ enum FoodEntryFormFormatter {
         case .snack:
             return "Snack"
         case .unknown, nil:
-            return "Unknown"
+            return "Not set"
         }
+    }
+
+    /// Meal type for read-only lists. Omits unknown / unset values.
+    static func displayMealTypeLabel(_ mealType: MealType?) -> String? {
+        switch mealType {
+        case .breakfast:
+            return "Breakfast"
+        case .lunch:
+            return "Lunch"
+        case .dinner:
+            return "Dinner"
+        case .snack:
+            return "Snack"
+        case .unknown, nil:
+            return nil
+        }
+    }
+
+    /// Sentence-style title for logged food names (e.g. "chicken breast" → "Chicken breast").
+    static func displayFoodName(_ name: String) -> String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return name }
+        guard trimmed == trimmed.lowercased() else { return trimmed }
+        let first = trimmed.prefix(1).uppercased()
+        let rest = trimmed.dropFirst().lowercased()
+        return first + rest
+    }
+
+    /// Subtitle for Today meal rows — readable macros, optional meal type, never "Unknown".
+    static func timelineSubtitle(
+        mealType: MealType?,
+        protein: Double,
+        carbs: Double,
+        fat: Double
+    ) -> String? {
+        let parts = [displayMealTypeLabel(mealType), timelineMacroSummary(protein: protein, carbs: carbs, fat: fat)]
+            .compactMap { $0 }
+            .filter { !$0.isEmpty }
+        guard !parts.isEmpty else { return nil }
+        return parts.joined(separator: " · ")
+    }
+
+    static func timelineMacroSummary(protein: Double, carbs: Double, fat: Double) -> String? {
+        let hasProtein = protein > 0
+        let hasCarbs = carbs > 0
+        let hasFat = fat > 0
+        guard hasProtein || hasCarbs || hasFat else { return nil }
+
+        if hasCarbs || hasFat {
+            return [
+                "\(formatMacro(protein))g protein",
+                "\(formatMacro(carbs))g carbs",
+                "\(formatMacro(fat))g fat"
+            ].joined(separator: " · ")
+        }
+
+        return "\(formatMacro(protein))g protein"
     }
 
     static func confidenceLabel(_ confidence: ConfidenceLevel) -> String {

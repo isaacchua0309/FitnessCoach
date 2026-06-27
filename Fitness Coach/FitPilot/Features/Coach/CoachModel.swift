@@ -39,6 +39,7 @@ final class CoachModel: ObservableObject {
     private let coachModelConfig: CoachModelConfig
     private let userProfileService: UserProfileService?
     private let aiCommandParsingEnabled: Bool
+    private let trainingInsightsStore: TrainingInsightsStore?
 
     init(
         localCommandParser: LocalCommandParser = .standard,
@@ -50,7 +51,8 @@ final class CoachModel: ObservableObject {
         userProfileService: UserProfileService? = nil,
         aiCommandParsingEnabled: Bool = false,
         coachModelConfig: CoachModelConfig = .default,
-        routeDecider: CoachRouteDecider = CoachRouteDecider()
+        routeDecider: CoachRouteDecider = CoachRouteDecider(),
+        trainingInsightsStore: TrainingInsightsStore? = nil
     ) {
         self.localCommandParser = localCommandParser
         self.localNutritionEstimator = localNutritionEstimator
@@ -62,6 +64,7 @@ final class CoachModel: ObservableObject {
         self.aiCommandParsingEnabled = aiCommandParsingEnabled
         self.coachModelConfig = coachModelConfig
         self.routeDecider = routeDecider
+        self.trainingInsightsStore = trainingInsightsStore
         if let userProfileService {
             self.aiContextBuilder = CoachContextBuilder(
                 dailyLogService: dailyLogService,
@@ -310,12 +313,14 @@ final class CoachModel: ObservableObject {
         )
     }
 
-    private func presentWorkoutPending(
-        _ draft: WorkoutDraft,
-        assistantMessage: String?
-    ) -> String {
-        setPendingConfirmation(.workout(draft, assistantMessage: assistantMessage))
-        return CoachResponseBuilder.workoutPending(draft, assistantMessage: assistantMessage)
+    private func trainingLogRedirectMessage() async -> String {
+        if let trainingInsightsStore {
+            await trainingInsightsStore.refresh()
+            return TrainingIntegrationCopy.coachWorkoutLogMessage(
+                isAppleHealthConnected: trainingInsightsStore.integrationState.isConnected
+            )
+        }
+        return TrainingIntegrationCopy.coachWorkoutLogMessage(isAppleHealthConnected: false)
     }
 
     private func presentWaterPending(
@@ -341,8 +346,8 @@ final class CoachModel: ObservableObject {
                 return CoachResponseBuilder.aiNotUnderstood
             }
             return executeLogFood(foodDraft)
-        case .workout(let draft, _):
-            return executeLogWorkout(draft)
+        case .workout:
+            return TrainingIntegrationCopy.coachWorkoutMutationUnavailable
         case .water(let draft, _):
             return executeLogWater(draft)
         case .weight(let draft, _):
@@ -415,6 +420,9 @@ final class CoachModel: ObservableObject {
 
         case .ai(let task):
             return try await handleAITask(task, context: context)
+
+        case .trainingLogRedirect:
+            return await trainingLogRedirectMessage()
 
         case .clarification(let message), .invalid(let message):
             return message
@@ -490,17 +498,8 @@ final class CoachModel: ObservableObject {
                 assistantMessage: advice.message
             )
 
-        case .parseWorkout(let prompt):
-            let response = try await aiService.parseWorkout(prompt: prompt, context: context)
-            switch ConfirmationPolicy.decision(forWorkout: response.workoutDraft) {
-            case .executeImmediately, .requiresConfirmation:
-                return presentWorkoutPending(
-                    response.workoutDraft,
-                    assistantMessage: response.assistantMessage
-                )
-            case .reject(let message):
-                return message
-            }
+        case .parseWorkout:
+            return await trainingLogRedirectMessage()
 
         case .editEntry(let prompt), .deleteEntry(let prompt):
             let parsed = try await aiService.parseEditOrDelete(prompt: prompt, context: context)
@@ -551,8 +550,8 @@ final class CoachModel: ObservableObject {
                 confidence: parsed.confidence
             )
         case .logWorkout:
-            guard let draft = action.workoutDraft else { return fallback }
-            return presentWorkoutPending(draft, assistantMessage: parsed.assistantMessage)
+            guard action.workoutDraft != nil else { return fallback }
+            return await trainingLogRedirectMessage()
         case .logWater:
             guard let draft = action.waterDraft else { return fallback }
             return presentWaterPending(draft, assistantMessage: parsed.assistantMessage)
@@ -596,13 +595,8 @@ final class CoachModel: ObservableObject {
                     responses.append(executeLogWeight(draft))
                 }
             case .logWorkout:
-                if let draft = action.workoutDraft {
-                    switch ConfirmationPolicy.decision(forWorkout: draft) {
-                    case .executeImmediately, .requiresConfirmation:
-                        return presentWorkoutPending(draft, assistantMessage: nil)
-                    case .reject(let message):
-                        responses.append(message)
-                    }
+                if action.workoutDraft != nil {
+                    responses.append(await trainingLogRedirectMessage())
                 }
             case .editEntry, .deleteEntry, .undo, .mealAdvice, .status, .dailyReview, .startNewDay:
                 break
@@ -660,7 +654,7 @@ final class CoachModel: ObservableObject {
             return executeUndo(.water)
         }
         if selector.contains("workout") {
-            return executeUndo(.workout)
+            return TrainingIntegrationCopy.coachWorkoutMutationUnavailable
         }
         return executeUndo(.last)
     }
@@ -775,24 +769,6 @@ final class CoachModel: ObservableObject {
         }
     }
 
-    private func executeLogWorkout(_ draft: WorkoutDraft) -> String {
-        do {
-            let entry = try actionCenter.logWorkout(draft, date: Date())
-            mutationHistory.record(
-                entryId: entry.id,
-                type: .workout,
-                summary: entry.name ?? "Workout"
-            )
-            return CoachResponseBuilder.workout(entry)
-        } catch ServiceError.invalidInput(let message) {
-            return message
-        } catch ServiceError.missingUserProfile {
-            return "I could not log that workout. Please check that your profile is set up."
-        } catch {
-            return "I could not log that workout. Please try again."
-        }
-    }
-
     private func executeUndo(_ target: UndoTarget) -> String {
         switch target {
         case .food:
@@ -812,7 +788,7 @@ final class CoachModel: ObservableObject {
         case .last:
             return executeUndoLastMutation()
         case .workout:
-            return executeUndoLastWorkout()
+            return TrainingIntegrationCopy.coachWorkoutMutationUnavailable
         case .weight:
             return "Weight undo is not available yet. Log the corrected weight instead."
         }
@@ -830,7 +806,7 @@ final class CoachModel: ObservableObject {
             case .water:
                 try actionCenter.deleteWaterEntry(id: record.entryId)
             case .workout:
-                try actionCenter.deleteWorkout(id: record.entryId)
+                return TrainingIntegrationCopy.coachWorkoutMutationUnavailable
             case .weight:
                 return "Weight undo is not available yet. Log the corrected weight instead."
             }
@@ -838,20 +814,6 @@ final class CoachModel: ObservableObject {
             return "Undid \(record.summary)."
         } catch {
             return "I could not undo that last action. Please try again."
-        }
-    }
-
-    private func executeUndoLastWorkout() -> String {
-        guard let record = mutationHistory.latest(type: .workout) else {
-            return "There is no recent Coach workout to undo."
-        }
-
-        do {
-            try actionCenter.deleteWorkout(id: record.entryId)
-            mutationHistory.remove(id: record.id)
-            return "Undid \(record.summary)."
-        } catch {
-            return "I could not undo your last workout. Please try again."
         }
     }
 

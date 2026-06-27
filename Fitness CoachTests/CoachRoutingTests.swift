@@ -158,13 +158,25 @@ final class CoachRoutingTests: XCTestCase {
         )
     }
 
-    func testWorkoutRoutesToParseWorkout() async throws {
-        try await assertClassifierRoute(
-            "bench 5x5 90kg",
-            stub: stubIntent(.logWorkout),
-            expectedHandler: "ai_parse_workout",
-            expectedTier: .cheap
+    func testWorkoutRoutesToTrainingLogRedirect() async throws {
+        let service = StubClassifierAIService(classifyResult: stubIntent(.logWorkout))
+        let decision = try await CoachRouteDecider().decide(
+            text: "bench 5x5 90kg",
+            context: .test,
+            aiService: service,
+            config: .default
         )
+
+        XCTAssertEqual(service.classifyCoachIntentCallCount, 1)
+        XCTAssertFalse(decision.requiresAPI)
+        XCTAssertEqual(decision.routeSource, .cheapClassifier)
+        XCTAssertEqual(decision.intent, .logWorkout)
+        XCTAssertEqual(decision.chosenHandler, "training_log_redirect")
+        if case .trainingLogRedirect = decision.route {
+            XCTAssertTrue(true)
+        } else {
+            XCTFail("Expected trainingLogRedirect route, got \(decision.route)")
+        }
     }
 
     func testDeleteRoutesToParseEditDelete() async throws {
@@ -287,10 +299,10 @@ final class CoachRoutingTests: XCTestCase {
             notes: nil,
             exerciseSets: []
         )
-        if case .requiresConfirmation = ConfirmationPolicy.decision(forWorkout: draft) {
+        if case .reject = ConfirmationPolicy.decision(forWorkout: draft) {
             XCTAssertTrue(true)
         } else {
-            XCTFail("Workout should require confirmation")
+            XCTFail("Coach workout logging should be rejected")
         }
     }
 
@@ -408,23 +420,24 @@ final class CoachRoutingTests: XCTestCase {
         }
     }
 
-    func testWorkoutPendingUsesConfirmationBar() async throws {
+    func testWorkoutLogRedirectsWithoutConfirmationBar() async throws {
         let container = try AppContainer(inMemory: true)
         try seedProfile(in: container)
+        container.healthTrainingService.resetStubFlags()
+        await container.trainingInsightsStore.refresh()
 
-        let workoutDraft = WorkoutDraft(
-            name: "Run",
-            durationMinutes: 30,
-            estimatedCaloriesBurned: 300,
-            intensity: nil,
-            recoveryDemand: nil,
-            notes: nil,
-            exerciseSets: []
-        )
         let service = StubClassifierAIService(
             classifyResult: stubIntent(.logWorkout),
             parseWorkoutResponse: AIWorkoutParseResponse(
-                workoutDraft: workoutDraft,
+                workoutDraft: WorkoutDraft(
+                    name: "Run",
+                    durationMinutes: 30,
+                    estimatedCaloriesBurned: 300,
+                    intensity: nil,
+                    recoveryDemand: nil,
+                    notes: nil,
+                    exerciseSets: []
+                ),
                 assistantMessage: "Drafted a 30-minute run.",
                 confidence: .medium
             )
@@ -435,58 +448,68 @@ final class CoachRoutingTests: XCTestCase {
             workoutLogService: container.workoutLogService,
             aiService: service,
             userProfileService: container.userProfileService,
-            aiCommandParsingEnabled: true
+            aiCommandParsingEnabled: true,
+            trainingInsightsStore: container.trainingInsightsStore
         )
 
         await model.send("30 min run")
 
         XCTAssertEqual(service.classifyCoachIntentCallCount, 1)
-        XCTAssertEqual(service.parseWorkoutCallCount, 1)
-        if case .workout(let draft, _) = model.pendingConfirmation {
-            XCTAssertEqual(draft.durationMinutes, 30)
-        } else {
-            XCTFail("Expected workout pending confirmation")
-        }
-
-        await model.confirmPendingFromBar()
+        XCTAssertEqual(service.parseWorkoutCallCount, 0)
         XCTAssertNil(model.pendingConfirmation)
-        XCTAssertEqual(try container.workoutLogService.getWorkouts(for: Date()).count, 1)
+        XCTAssertEqual(
+            model.messages.last?.text,
+            TrainingIntegrationCopy.coachWorkoutLogNotConnected
+        )
+        XCTAssertEqual(try container.workoutLogService.getWorkouts(for: Date()).count, 0)
     }
 
-    func testChatConfirmStillWorksForPendingWorkout() async throws {
+    func testWorkoutLogConnectedCopyWhenAppleHealthLinked() async throws {
         let container = try AppContainer(inMemory: true)
         try seedProfile(in: container)
+        container.healthTrainingService.setStubConnected(true)
+        await container.trainingInsightsStore.refresh()
 
-        let workoutDraft = WorkoutDraft(
-            name: "Run",
-            durationMinutes: 30,
-            estimatedCaloriesBurned: 300,
-            intensity: nil,
-            recoveryDemand: nil,
-            notes: nil,
-            exerciseSets: []
-        )
-        let service = StubClassifierAIService(
-            classifyResult: stubIntent(.logWorkout),
-            parseWorkoutResponse: AIWorkoutParseResponse(
-                workoutDraft: workoutDraft,
-                confidence: .medium
-            )
-        )
+        let service = StubClassifierAIService(classifyResult: stubIntent(.logWorkout))
         let model = CoachModel(
             actionCenter: container.actionCenter,
             dailyLogService: container.dailyLogService,
             workoutLogService: container.workoutLogService,
             aiService: service,
             userProfileService: container.userProfileService,
-            aiCommandParsingEnabled: true
+            aiCommandParsingEnabled: true,
+            trainingInsightsStore: container.trainingInsightsStore
         )
 
         await model.send("30 min run")
-        await model.send("confirm")
 
         XCTAssertNil(model.pendingConfirmation)
-        XCTAssertEqual(try container.workoutLogService.getWorkouts(for: Date()).count, 1)
+        XCTAssertEqual(
+            model.messages.last?.text,
+            TrainingIntegrationCopy.coachWorkoutLogConnected
+        )
+    }
+
+    func testUndoWorkoutDoesNotDeleteRecords() async throws {
+        let container = try AppContainer(inMemory: true)
+        try seedProfile(in: container)
+
+        let model = CoachModel(
+            actionCenter: container.actionCenter,
+            dailyLogService: container.dailyLogService,
+            workoutLogService: container.workoutLogService,
+            aiService: StubClassifierAIService(classifyResult: stubIntent(.logFood)),
+            userProfileService: container.userProfileService,
+            aiCommandParsingEnabled: true,
+            trainingInsightsStore: container.trainingInsightsStore
+        )
+
+        await model.send("undo workout")
+
+        XCTAssertEqual(
+            model.messages.last?.text,
+            TrainingIntegrationCopy.coachWorkoutMutationUnavailable
+        )
     }
 
     func testFoodEditUpdatesPendingDraftBeforeLogging() async throws {

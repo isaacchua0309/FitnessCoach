@@ -10,6 +10,10 @@ import SwiftUI
 struct ProfileView: View {
     @ObservedObject var model: ProfileModel
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
+    @EnvironmentObject private var trainingInsightsStore: TrainingInsightsStore
+    @EnvironmentObject private var trainingInsightsModel: TrainingInsightsModel
+
+    @State private var isShowingTrainingInsights = false
 
     var body: some View {
         NavigationStack {
@@ -30,18 +34,33 @@ struct ProfileView: View {
                     }
                 }
                 .task {
+                    await trainingInsightsStore.refresh()
                     await model.loadProfile()
                 }
                 .onChange(of: refreshCenter.refreshToken) { _, _ in
-                    Task { await model.refresh() }
+                    Task {
+                        await trainingInsightsStore.refresh()
+                        await model.refresh()
+                    }
                 }
                 .onAppear {
                     if case .loaded = model.viewState {
-                        Task { await model.refresh() }
+                        Task {
+                            await trainingInsightsStore.refresh()
+                            await model.refresh()
+                        }
                     }
                 }
                 .refreshable {
+                    await trainingInsightsStore.refresh()
                     await model.refresh()
+                }
+                .sheet(isPresented: $isShowingTrainingInsights) {
+                    TrainingInsightsView(
+                        insightsStore: trainingInsightsStore,
+                        insightsModel: trainingInsightsModel
+                    )
+                    .environmentObject(refreshCenter)
                 }
                 .sheet(isPresented: $model.isShowingEditSheet) {
                     if let formState = model.editFormState {
@@ -129,11 +148,19 @@ struct ProfileView: View {
 
                 PlanTodaysTargetsSection(targets: state.todaysTargets)
 
+                PlanTrainingIntegrationSection(
+                    integrationState: trainingInsightsStore.integrationState,
+                    dataSource: trainingInsightsStore.dataSource,
+                    onTap: {
+                        isShowingTrainingInsights = true
+                    }
+                )
+
                 PlanRationaleSection(rationale: state.rationale)
 
                 PlanAboutYouSection(aboutYou: state.aboutYou)
 
-                PlanTimelineSection(timeline: state.timeline)
+                WhatHappensNextSection(state: state.whatHappensNext)
             }
             .padding(.horizontal, PlanLayout.horizontalPadding)
             .padding(.top, FormaTokens.Spacing.xs)
@@ -148,6 +175,8 @@ struct ProfileView: View {
     ProfileView(model: container.makeProfileModel())
         .environmentObject(container.refreshCenter)
         .environmentObject(container.authManager)
+        .environmentObject(container.trainingInsightsStore)
+        .environmentObject(container.trainingInsightsModel)
 }
 
 #Preview("Loaded Plan") {
@@ -157,7 +186,7 @@ struct ProfileView: View {
             PlanTodaysTargetsSection(targets: ProfilePreviewData.state.todaysTargets)
             PlanRationaleSection(rationale: ProfilePreviewData.state.rationale)
             PlanAboutYouSection(aboutYou: ProfilePreviewData.state.aboutYou)
-            PlanTimelineSection(timeline: ProfilePreviewData.state.timeline)
+            WhatHappensNextSection(state: ProfilePreviewData.state.whatHappensNext)
         }
         .padding(.horizontal, PlanLayout.horizontalPadding)
         .padding(.vertical, 24)

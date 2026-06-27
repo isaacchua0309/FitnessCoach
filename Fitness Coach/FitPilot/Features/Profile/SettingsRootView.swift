@@ -10,6 +10,7 @@ import SwiftUI
 struct SettingsRootView: View {
 
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var insightsStore: TrainingInsightsStore
 
     @Binding var formState: ProfileFormState
     let errorMessage: String?
@@ -102,10 +103,34 @@ struct SettingsRootView: View {
 
     private var integrationsSection: some View {
         Section {
-            FitPilotComingSoonRow(title: "HealthKit")
-                .fitPilotSettingsRowChrome(isEnabled: false)
+            NavigationLink {
+                AppleHealthIntegrationView(insightsStore: insightsStore)
+            } label: {
+                HStack(spacing: FormaTokens.Spacing.sm) {
+                    Text("Apple Health")
+                        .font(FormaTokens.Typography.body)
+                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                    Spacer(minLength: FormaTokens.Spacing.xs)
+                    Text(
+                        TrainingIntegrationCopy.settingsStatusLabel(
+                            for: insightsStore.integrationState
+                        )
+                    )
+                    .font(FormaTokens.Typography.sectionSubtitle)
+                    .foregroundStyle(FormaTokens.Color.textTertiary)
+                }
+                .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .center)
+            }
+            .fitPilotSettingsRowChrome()
         } header: {
             FitPilotSettingsSectionHeader(title: "Integrations")
+        } footer: {
+            Text(TrainingIntegrationCopy.healthIntegrationFooter)
+                .font(FormaTokens.Typography.caption)
+                .foregroundStyle(FormaTokens.Color.textTertiary)
+        }
+        .task {
+            await insightsStore.refresh()
         }
     }
 
@@ -164,4 +189,9 @@ struct SettingsRootView: View {
         onDismiss: {}
     )
     .environmentObject(AuthManager())
+    .environmentObject(
+        TrainingInsightsStore(
+            integration: StubTrainingIntegrationProvider(refreshResult: .connected)
+        )
+    )
 }

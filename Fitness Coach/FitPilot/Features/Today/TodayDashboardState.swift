@@ -30,6 +30,7 @@ struct TodayDashboardState: Equatable {
     var hasDailyLog: Bool
     var dailyReview: DailyReview?
     var coachingNote: String?
+    var todayFocus: String
     var dailyBrief: TodayDailyBrief
     var streaks: StreakSummary
     var userName: String?

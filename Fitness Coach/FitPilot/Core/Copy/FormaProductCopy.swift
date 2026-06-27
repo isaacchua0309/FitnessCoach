@@ -11,7 +11,7 @@ enum FormaProductCopy {
 
     static let appName = "Forma"
     static let tagline = "Fitness, shaped around you."
-    static let shortValueProp = "Build your plan, log with Coach, and make steady progress across nutrition and training."
+    static let shortValueProp = "Build your plan, log with Coach, and make steady progress."
 
     // MARK: - Common
 
@@ -70,15 +70,15 @@ enum FormaProductCopy {
         static let signingIn = "Signing in…"
         static let signingInAccessibility = "Signing in"
         static let signInCancelled = "Sign-in was cancelled."
-        static let trustNote = "Your Google account keeps your plan available when you sign in."
+        static let trustNote = "Your Google account keeps your plan available."
         static let legalIntro = "By continuing, you agree to Forma's"
         static let termsLinkTitle = "Terms"
         static let privacyPolicyLinkTitle = "Privacy Policy"
 
         static let benefits: [(icon: String, title: String)] = [
-            ("target", "A plan and daily targets shaped to you"),
+            ("target", "Personalized daily targets"),
             ("bubble.left.and.bubble.right.fill", "Natural-language logging with Coach"),
-            ("chart.line.uptrend.xyaxis", "Progress across nutrition and training")
+            ("chart.line.uptrend.xyaxis", "Progress across nutrition and habits")
         ]
     }
 
@@ -145,11 +145,44 @@ enum FormaProductCopy {
     // MARK: - Today
 
     enum Today {
-        static let askCoachCTA = "Need to update today? Ask Coach"
+        static let askCoachCTATitle = "Update today with Coach"
+        static let askCoachCTASubtitle = "Log meals, water, weight, or training."
+        static let askCoachCTAAccessibilityHint = "Opens Coach"
         static let mealsEmptyHint = "No meals logged yet. Ask Coach to log your first meal."
         static let caloriesRemaining = "Calories remaining"
         static let caloriesAboveTarget = "Above today's target"
         static let defaultCoachNote = "Anchor your next meal with protein."
+        static let focusSectionTitle = "Today's focus"
+        static let focusProteinLow = "Anchor your next meal with protein."
+        static let focusWaterLow = "Drink water before your next meal."
+        static let focusLogWeight = "Log your weight to keep your trend accurate."
+        static let focusTraining = "Keep training simple and consistent."
+        static let focusOnTrack = "You're on track. Keep the next choice simple."
+        static let nextActionsSectionTitle = "Next actions"
+        static let targetsSectionTitle = "Today's targets"
+        static let actionLogWeight = "Log weight"
+        static let actionPlanProteinMeal = "Plan a protein meal"
+        static let actionDrinkWater = "Drink water"
+        static let actionLogTraining = "Log training"
+        static let actionUnlockTrainingInsights = "Unlock training insights"
+        static let statusWeightLogged = "Weight logged"
+        static let statusProteinOnTrack = "Protein on track"
+        static let statusHydrationOnTrack = "Hydration on track"
+        static let statusTrainingLogged = "Training logged"
+        static let statusWorkoutRecorded = "Workout recorded"
+        static let statusNoWorkoutToday = "No workout today"
+        static let statusNoAppleHealthWorkoutToday = "No Apple Health workout today"
+        static let nextActionCoachHint = "Opens Coach"
+        static let nextActionConnectAppleHealthHint = "Connects Apple Health for training"
+        static let nextActionTrainingInsightsHint = "Opens Training Insights"
+
+        static func workoutsToday(_ count: Int) -> String {
+            count == 1 ? "1 workout today" : "\(count) workouts today"
+        }
+        static let showCarbsAndFat = "Show carbs & fat"
+        static let hideCarbsAndFat = "Hide carbs & fat"
+        static let syncAccessibilityLabel = "Sync today"
+        static let syncAccessibilityHint = "Reloads your local food, water, and workout log."
     }
 
     // MARK: - Training
@@ -159,20 +192,56 @@ enum FormaProductCopy {
         static let noWorkoutsHint = "No workouts yet. Tell Coach what you trained."
         static let muscleEmptyHint = "Log workouts in Coach to see muscle balance."
         static let workoutCorrectionHint = "Need a correction? Tell Coach."
+
+        enum Integration {
+            static let connectAppleHealth = TrainingIntegrationCopy.connectAppleHealth
+            static let poweredByAppleFitness = TrainingIntegrationCopy.poweredByAppleFitness
+            static let valueProposition = TrainingIntegrationCopy.valueProposition
+            static let screenTitle = TrainingIntegrationCopy.screenTitle
+            static let lockedTitle = TrainingIntegrationCopy.lockedTitle
+            static let lockedBody = TrainingIntegrationCopy.lockedBody
+            static let lockedSecondaryNote = TrainingIntegrationCopy.lockedSecondaryNote
+        }
     }
 
     // MARK: - Journey
 
     enum Journey {
-        static let proteinStrong = "Hit most days"
-        static let proteinWeak = "Anchor your next meal with protein"
-        static let waterStrong = "Hydration on track"
-        static let waterWeak = "Front-load water earlier in the day"
-        static let logMealsToTrack = "Log meals in Coach to track"
-        static let noWorkoutsYet = "None yet — log training in Coach"
-        static let kcalUnderTarget = "kcal under target"
-        static let kcalAboveTarget = "kcal above target"
+        static let sectionCoachInsight = "Coach insight"
+        static let sectionThisWeek = "This week"
+        static let sectionConsistency = "Consistency"
+        static let statusOnTrack = "On track"
+        static let statusNeedsAttention = "Needs attention"
+        static let statusBehind = "Behind"
+        static let statusUnderTarget = "Under target"
+        static let statusAboveTarget = "Above target"
+        static let statusNoData = "—"
+        static let workoutNone = "None yet"
+        static let trainingInsightsLocked = "Training insights locked"
+        static let noAppleHealthWorkoutsThisWeek = "No Apple Health workouts found this week."
+        static let trainingDataFromAppleHealth = "Training data from Apple Health."
+        static let progressEarlyDays = "Early days — each log sharpens your trend."
+        static let milestoneCurrent = "Current"
+        static let milestoneNext = "Next"
+        static let milestoneGoal = "Goal"
+        static let consistencySubtitle = "Logged days help Forma understand your trend."
+        static let weightTrendEmpty = "Log weight a few times to reveal your trend."
+        static let logWeightWithCoach = "Log weight with Coach"
+        static let coachInsightFallback = "Keep logging meals and training so Forma can show better patterns."
+        static let coachInsightGettingStarted = "You're getting started. A few consistent logs will make your trend clearer."
+        static let achievementUnlocked = "Completed"
+        static let achievementLocked = "Not yet completed"
         static let milestonesNeedGoal = "Set a goal in Plan to see your weight roadmap."
+
+        static func remainingToGo(_ kg: String) -> String { "\(kg) to go" }
+        static func nextMilestone(_ kg: String) -> String { "Next milestone: \(kg)" }
+        static func nextStop(_ kg: String) -> String { "Next stop: \(kg)" }
+        static func loggedDaysThisMonth(_ count: Int) -> String {
+            count == 1 ? "1 day logged this month" : "\(count) days logged this month"
+        }
+        static func analyticsBasedOnDays(_ days: Int) -> String {
+            days == 1 ? "Based on 1 logged day" : "Based on \(days) logged days"
+        }
     }
 
     // MARK: - Coach

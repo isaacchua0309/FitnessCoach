@@ -1,0 +1,254 @@
+//
+//  TodayGoalsBuilderTests.swift
+//  Fitness CoachTests
+//
+
+import XCTest
+@testable import Fitness_Coach
+
+final class TodayGoalsBuilderTests: XCTestCase {
+
+    func testIncompleteNutritionGoalsUseActionOrientedCopy() {
+        let state = makeState(
+            proteinConsumed: 31,
+            proteinTarget: 180,
+            proteinRemaining: 149,
+            waterConsumedMl: 500,
+            waterTargetMl: 3_150,
+            waterRemainingMl: 2_650,
+            weightKg: nil,
+            hasWorkout: false
+        )
+
+        let goals = TodayGoalsBuilder.goals(
+            from: state,
+            trainingIntegration: .connected,
+            trainingDataSource: .unavailable
+        )
+        XCTAssertEqual(goals.map(\.label), [
+            FormaProductCopy.Today.actionLogWeight,
+            FormaProductCopy.Today.actionPlanProteinMeal,
+            FormaProductCopy.Today.actionDrinkWater
+        ])
+        XCTAssertTrue(goals.allSatisfy { $0.showsChevron && $0.isActionable })
+    }
+
+    func testChevronMatchesTapActionAcrossRepresentativeStates() throws {
+        let scenarios: [(TrainingIntegrationState, TrainingDataSource, Int?, [Bool])] = [
+            (.notConnected, .appleHealth, nil, [false, false, false, true]),
+            (.connected, .appleHealth, 1, [false, false, false, true]),
+            (.connected, .appleHealth, 0, [false, false, false, true]),
+            (.connected, .appleHealth, 2, [false, false, false, true])
+        ]
+
+        for (integration, dataSource, workoutCount, expectedChevrons) in scenarios {
+            let goals = TodayGoalsBuilder.goals(
+                from: makeState(
+                    proteinConsumed: 170,
+                    proteinTarget: 180,
+                    proteinRemaining: 10,
+                    waterConsumedMl: 3_000,
+                    waterTargetMl: 3_150,
+                    waterRemainingMl: 150,
+                    weightKg: 90.15,
+                    hasWorkout: (workoutCount ?? 0) > 0
+                ),
+                trainingIntegration: integration,
+                trainingDataSource: dataSource,
+                appleHealthWorkoutCount: workoutCount
+            )
+            XCTAssertEqual(
+                goals.map(\.showsChevron),
+                expectedChevrons,
+                "Unexpected chevron flags for integration=\(integration) source=\(dataSource) count=\(String(describing: workoutCount))"
+            )
+            XCTAssertEqual(goals.map(\.showsChevron), goals.map { $0.tapAction != nil })
+        }
+    }
+
+    func testAppleHealthNotConnectedShowsConnectAction() throws {
+        let goals = TodayGoalsBuilder.goals(
+            from: makeState(
+                proteinConsumed: 170,
+                proteinTarget: 180,
+                proteinRemaining: 10,
+                waterConsumedMl: 3_000,
+                waterTargetMl: 3_150,
+                waterRemainingMl: 150,
+                weightKg: 90.15,
+                hasWorkout: false
+            ),
+            trainingIntegration: .notConnected,
+            trainingDataSource: .appleHealth
+        )
+        let workout = try XCTUnwrap(goals.last)
+        XCTAssertEqual(workout.label, FormaProductCopy.Training.Integration.connectAppleHealth)
+        XCTAssertEqual(workout.tapAction, .openTrainingInsights)
+        XCTAssertFalse(workout.isComplete)
+        XCTAssertTrue(workout.isActionable)
+    }
+
+    func testAppleHealthDeniedShowsUnlockInsightsAction() throws {
+        let goals = TodayGoalsBuilder.goals(
+            from: makeState(
+                proteinConsumed: 170,
+                proteinTarget: 180,
+                proteinRemaining: 10,
+                waterConsumedMl: 3_000,
+                waterTargetMl: 3_150,
+                waterRemainingMl: 150,
+                weightKg: 90.15,
+                hasWorkout: false
+            ),
+            trainingIntegration: .denied,
+            trainingDataSource: .appleHealth
+        )
+        let workout = try XCTUnwrap(goals.last)
+        XCTAssertEqual(workout.label, FormaProductCopy.Today.actionUnlockTrainingInsights)
+        XCTAssertEqual(workout.tapAction, .openTrainingInsights)
+    }
+
+    func testAppleHealthConnectedWithOneWorkoutShowsCountLabel() throws {
+        let goals = TodayGoalsBuilder.goals(
+            from: makeState(
+                proteinConsumed: 170,
+                proteinTarget: 180,
+                proteinRemaining: 10,
+                waterConsumedMl: 3_000,
+                waterTargetMl: 3_150,
+                waterRemainingMl: 150,
+                weightKg: 90.15,
+                hasWorkout: false
+            ),
+            trainingIntegration: .connected,
+            trainingDataSource: .appleHealth,
+            appleHealthWorkoutCount: 1
+        )
+        let workout = try XCTUnwrap(goals.last)
+        XCTAssertEqual(workout.label, FormaProductCopy.Today.workoutsToday(1))
+        XCTAssertTrue(workout.isComplete)
+        XCTAssertEqual(workout.tapAction, .openTrainingInsights)
+    }
+
+    func testAppleHealthConnectedWithMultipleWorkoutsShowsCountLabel() throws {
+        let goals = TodayGoalsBuilder.goals(
+            from: makeState(
+                proteinConsumed: 170,
+                proteinTarget: 180,
+                proteinRemaining: 10,
+                waterConsumedMl: 3_000,
+                waterTargetMl: 3_150,
+                waterRemainingMl: 150,
+                weightKg: 90.15,
+                hasWorkout: false
+            ),
+            trainingIntegration: .connected,
+            trainingDataSource: .appleHealth,
+            appleHealthWorkoutCount: 2
+        )
+        let workout = try XCTUnwrap(goals.last)
+        XCTAssertEqual(workout.label, FormaProductCopy.Today.workoutsToday(2))
+    }
+
+    func testAppleHealthConnectedWithoutWorkoutShowsNeutralStatus() throws {
+        let goals = TodayGoalsBuilder.goals(
+            from: makeState(
+                proteinConsumed: 170,
+                proteinTarget: 180,
+                proteinRemaining: 10,
+                waterConsumedMl: 3_000,
+                waterTargetMl: 3_150,
+                waterRemainingMl: 150,
+                weightKg: 90.15,
+                hasWorkout: false
+            ),
+            trainingIntegration: .connected,
+            trainingDataSource: .appleHealth,
+            appleHealthWorkoutCount: 0
+        )
+        let workout = try XCTUnwrap(goals.last)
+        XCTAssertEqual(workout.label, FormaProductCopy.Today.statusNoAppleHealthWorkoutToday)
+        XCTAssertTrue(workout.isComplete)
+        XCTAssertTrue(workout.isInformational)
+        XCTAssertEqual(workout.tapAction, .openTrainingInsights)
+    }
+
+    func testUnavailableDataSourceHidesTrainingRow() {
+        let goals = TodayGoalsBuilder.goals(
+            from: makeState(
+                proteinConsumed: 31,
+                proteinTarget: 180,
+                proteinRemaining: 149,
+                waterConsumedMl: 500,
+                waterTargetMl: 3_150,
+                waterRemainingMl: 2_650,
+                weightKg: nil,
+                hasWorkout: false
+            ),
+            trainingIntegration: .connected,
+            trainingDataSource: .unavailable
+        )
+        XCTAssertEqual(goals.count, 3)
+        XCTAssertFalse(goals.contains(where: { $0.kind == .workout }))
+    }
+
+    private func makeState(
+        proteinConsumed: Double,
+        proteinTarget: Double,
+        proteinRemaining: Double,
+        waterConsumedMl: Int,
+        waterTargetMl: Int,
+        waterRemainingMl: Int,
+        weightKg: Double?,
+        hasWorkout: Bool
+    ) -> TodayDashboardState {
+        TodayDashboardState(
+            date: Date(),
+            calorieSummary: CalorieSummary(
+                consumed: 500,
+                target: 1_800,
+                remaining: 1_300,
+                progress: 0.28,
+                isOverTarget: false
+            ),
+            macroSummary: MacroSummary(
+                protein: MacroProgress(
+                    consumed: proteinConsumed,
+                    target: proteinTarget,
+                    remaining: proteinRemaining,
+                    progress: proteinConsumed / proteinTarget
+                ),
+                carbs: MacroProgress(consumed: 0, target: 160, remaining: 160, progress: 0),
+                fat: MacroProgress(consumed: 0, target: 60, remaining: 60, progress: 0)
+            ),
+            waterSummary: WaterSummary(
+                consumedMl: waterConsumedMl,
+                targetMl: waterTargetMl,
+                remainingMl: waterRemainingMl,
+                progress: Double(waterConsumedMl) / Double(waterTargetMl)
+            ),
+            weightSummary: TodayWeightSummary(
+                weightKg: weightKg,
+                displayText: weightKg.map { String(format: "%.2f kg", $0) } ?? "Not logged today"
+            ),
+            stepsSummary: nil,
+            workoutSummary: TodayWorkoutSummary(
+                workoutCaloriesBurned: hasWorkout ? 200 : 0,
+                workoutCount: hasWorkout ? 1 : 0,
+                hasWorkout: hasWorkout
+            ),
+            foodEntries: [],
+            hasDailyLog: true,
+            dailyReview: nil,
+            coachingNote: nil,
+            todayFocus: FormaProductCopy.Today.focusOnTrack,
+            dailyBrief: TodayDailyBrief(
+                greeting: "Good morning.",
+                priorities: [],
+                recommendation: "Stay consistent today."
+            ),
+            streaks: StreakSummary(loggingStreak: 0, proteinStreak: 0, hydrationStreak: 0, workoutStreak: 0),
+            userName: nil
+        )
+    }
+}

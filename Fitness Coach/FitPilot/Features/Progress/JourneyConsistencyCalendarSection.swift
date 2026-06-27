@@ -9,16 +9,11 @@ struct JourneyConsistencyCalendarSection: View {
     let calendar: JourneyConsistencyCalendar
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 7)
+    @ScaledMetric(relativeTo: .caption) private var dayCellHeight: CGFloat = 30
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
-            HStack {
-                JourneySectionLabel(title: "Consistency")
-                Spacer()
-                Text("\(calendar.completedCount) days")
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
-            }
+            headerBlock
 
             FitPilotPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
@@ -26,31 +21,84 @@ struct JourneyConsistencyCalendarSection: View {
                         .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
                         .foregroundStyle(FormaTokens.Color.textPrimary)
 
-                    LazyVGrid(columns: columns, spacing: 8) {
+                    LazyVGrid(columns: columns, spacing: 6) {
                         ForEach(calendar.weekdaySymbols, id: \.self) { symbol in
                             Text(symbol.prefix(1))
                                 .font(FormaTokens.Typography.caption)
                                 .foregroundStyle(FormaTokens.Color.textTertiary)
                                 .frame(maxWidth: .infinity)
+                                .minimumScaleFactor(0.8)
+                                .lineLimit(1)
                         }
 
                         ForEach(calendar.days) { day in
                             if let dayNumber = day.dayNumber {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                        .fill(day.isCompleted ? FormaTokens.Color.accent.opacity(0.85) : FormaTokens.Color.surfaceSubtle)
-                                        .frame(height: 32)
-                                    Text("\(dayNumber)")
-                                        .font(FormaTokens.Typography.caption.weight(day.isCompleted ? .semibold : .regular))
-                                        .foregroundStyle(day.isCompleted ? FormaTokens.Color.canvas : FormaTokens.Color.textSecondary)
-                                }
+                                dayCell(dayNumber: dayNumber, isCompleted: day.isCompleted)
                             } else {
-                                Color.clear.frame(height: 32)
+                                Color.clear.frame(height: dayCellHeight)
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    private var headerBlock: some View {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
+                    JourneySectionLabel(title: FormaProductCopy.Journey.sectionConsistency)
+                    Spacer(minLength: FormaTokens.Spacing.xs)
+                    loggedDaysStat(alignment: .trailing)
+                }
+
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+                    JourneySectionLabel(title: FormaProductCopy.Journey.sectionConsistency)
+                    loggedDaysStat(alignment: .leading)
+                }
+            }
+
+            Text(FormaProductCopy.Journey.consistencySubtitle)
+                .font(FormaTokens.Typography.caption)
+                .foregroundStyle(FormaTokens.Color.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func loggedDaysStat(alignment: TextAlignment) -> some View {
+        Text(FormaProductCopy.Journey.loggedDaysThisMonth(calendar.completedCount))
+            .font(FormaTokens.Typography.caption)
+            .foregroundStyle(FormaTokens.Color.textSecondary)
+            .multilineTextAlignment(alignment)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func dayCell(dayNumber: Int, isCompleted: Bool) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(
+                    isCompleted
+                        ? FormaTokens.Color.accent.opacity(0.8)
+                        : FormaTokens.Color.surfaceSubtle
+                )
+                .frame(height: dayCellHeight)
+
+            Text("\(dayNumber)")
+                .font(FormaTokens.Typography.caption.weight(isCompleted ? .semibold : .regular))
+                .foregroundStyle(
+                    isCompleted
+                        ? FormaTokens.Color.canvas
+                        : FormaTokens.Color.textSecondary
+                )
+                .minimumScaleFactor(0.75)
+                .lineLimit(1)
+        }
+        .accessibilityLabel(
+            isCompleted
+                ? "\(dayNumber), logged"
+                : "\(dayNumber), not logged"
+        )
     }
 }

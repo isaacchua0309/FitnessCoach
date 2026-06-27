@@ -145,6 +145,7 @@ final class TodayModel: ObservableObject {
         )
 
         let profile = try? userProfileService.getCurrentProfile()
+        let trainingFrequency = profile?.trainingFrequencyPerWeek ?? 0
         let streaks = try buildStreaks(asOf: dailyLog.date)
         let dailyBrief = DailyBriefBuilder.todayBrief(
             profile: profile,
@@ -152,7 +153,13 @@ final class TodayModel: ObservableObject {
             proteinRemaining: remaining.protein,
             waterRemainingMl: waterSummary.remainingMl,
             hasWorkoutToday: workoutSummary.hasWorkout,
-            trainingFrequency: profile?.trainingFrequencyPerWeek ?? 0
+            trainingFrequency: trainingFrequency
+        )
+        let todayFocus = TodayFocusBuilder.focus(
+            proteinProgress: macroSummary.protein.progress,
+            waterProgress: waterSummary.progress,
+            weightLogged: weightSummary.weightKg != nil,
+            hasWorkout: workoutSummary.hasWorkout
         )
 
         return TodayDashboardState(
@@ -166,7 +173,8 @@ final class TodayModel: ObservableObject {
             foodEntries: foodEntries,
             hasDailyLog: true,
             dailyReview: dailyReview,
-            coachingNote: dailyBrief.recommendation,
+            coachingNote: todayFocus,
+            todayFocus: todayFocus,
             dailyBrief: dailyBrief,
             streaks: streaks,
             userName: profile?.name

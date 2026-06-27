@@ -11,8 +11,16 @@ const rootDir = resolve(__dirname, "../..");
 loadEnv(resolve(rootDir, ".env"));
 
 const apiKey = process.env.OPENAI_API_KEY;
-const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
-const classifierModel = process.env.OPENAI_CLASSIFIER_MODEL || model;
+
+const MODELS = {
+  cheap: process.env.OPENAI_CLASSIFIER_MODEL || process.env.OPENAI_MODEL || "gpt-5-nano",
+  default: process.env.OPENAI_MODEL || "gpt-5-nano",
+  strong: process.env.OPENAI_STRONG_MODEL || "gpt-5.4-nano",
+  fallback: process.env.OPENAI_FALLBACK_MODEL || "gpt-5.4-mini",
+};
+
+const ALLOWED_MODELS = new Set(Object.values(MODELS));
+
 const port = Number(process.env.FITPILOT_AI_BACKEND_PORT || 8787);
 const host = process.env.FITPILOT_AI_BACKEND_HOST || "127.0.0.1";
 
@@ -68,7 +76,7 @@ const server = http.createServer(async (request, response) => {
         payload = { response: await coachResponse(body, mealAdviceInstructions(), traceId) };
         break;
       case "/v1/ai/generate-daily-review":
-        payload = { response: await coachResponse(body, dailyReviewInstructions(), traceId) };
+        payload = { response: await coachResponse(body, dailyReviewInstructions(), traceId, { tier: "cheap" }) };
         break;
       case "/v1/ai/parse-workout":
         payload = await parseWorkout(body, traceId);
@@ -138,8 +146,10 @@ server.listen(port, host, () => {
     fields: {
       host,
       port: String(port),
-      model,
-      classifierModel,
+      modelCheap: MODELS.cheap,
+      modelDefault: MODELS.default,
+      modelStrong: MODELS.strong,
+      modelFallback: MODELS.fallback,
       traceEnabled: String(isTraceEnabled()),
       traceVerbose: String(isVerbose())
     }
@@ -205,8 +215,29 @@ function sendJSON(response, statusCode, payload) {
   response.end(JSON.stringify(payload));
 }
 
+function modelForTier(tier) {
+  switch (tier) {
+    case "cheap":
+      return MODELS.cheap;
+    case "strong":
+      return MODELS.strong;
+    default:
+      return MODELS.default;
+  }
+}
+
+function resolveModel({ tier, modelName } = {}) {
+  if (tier === "cheap" || tier === "strong") {
+    return modelForTier(tier);
+  }
+  if (typeof modelName === "string" && ALLOWED_MODELS.has(modelName)) {
+    return modelName;
+  }
+  return MODELS.default;
+}
+
 async function openAIJSON({ instructions, input, schema, maxOutputTokens = 1200, model: modelOverride, traceId }) {
-  const selectedModel = modelOverride || model;
+  const selectedModel = modelOverride || MODELS.default;
   const started = Date.now();
   logTrace({
     traceId,
@@ -310,7 +341,7 @@ async function classifyCoachIntent(request, traceId) {
     }),
     schema: coachIntentResultSchema(),
     maxOutputTokens: 900,
-    model: classifierModel,
+    model: resolveModel({ tier: "cheap", modelName: request.modelName }),
     traceId
   });
 }
@@ -324,6 +355,7 @@ async function parseCommand(request, traceId) {
     }),
     schema: aiParsedCommandSchema(),
     maxOutputTokens: 1800,
+    model: resolveModel({ tier: "cheap" }),
     traceId
   });
 }
@@ -337,6 +369,7 @@ async function estimateFood(request, traceId) {
     }),
     schema: aiFoodEstimateResponseSchema(),
     maxOutputTokens: 1200,
+    model: resolveModel({ tier: "cheap" }),
     traceId
   });
 }
@@ -350,6 +383,7 @@ async function parseWorkout(request, traceId) {
     }),
     schema: aiWorkoutParseResponseSchema(),
     maxOutputTokens: 1800,
+    model: resolveModel({ tier: "cheap" }),
     traceId
   });
 }
@@ -363,6 +397,7 @@ async function parseEditDelete(request, traceId) {
     }),
     schema: aiParsedCommandSchema(),
     maxOutputTokens: 1400,
+    model: resolveModel({ tier: "cheap" }),
     traceId
   });
 }
@@ -376,16 +411,21 @@ async function parseMultiAction(request, traceId) {
     }),
     schema: aiParsedCommandSchema(),
     maxOutputTokens: 1800,
+    model: resolveModel({ tier: "cheap" }),
     traceId
   });
 }
 
-async function coachResponse(request, instructions, traceId) {
+async function coachResponse(request, instructions, traceId, { tier } = {}) {
   return openAIJSON({
     instructions,
     input: JSON.stringify(request),
     schema: aiCoachResponseSchema(),
     maxOutputTokens: 900,
+    model: resolveModel({
+      tier: request.modelTier ?? tier,
+      modelName: request.modelName
+    }),
     traceId
   });
 }

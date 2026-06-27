@@ -9,7 +9,6 @@ import SwiftUI
 
 struct TodayCaloriesHero: View {
     let calories: CalorieSummary
-    let coachSummary: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
@@ -34,13 +33,6 @@ struct TodayCaloriesHero: View {
             Text("\(calories.consumed) eaten · \(calories.target) target")
                 .font(FormaTokens.Typography.caption)
                 .foregroundStyle(FormaTokens.Color.textTertiary)
-
-            Text(coachSummary)
-                .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(FormaTokens.Color.textLegal)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 4)
-                .accessibilityLabel("Coach guidance: \(coachSummary)")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -51,11 +43,8 @@ struct TodayCaloriesHero: View {
 }
 
 #Preview {
-    TodayCaloriesHero(
-        calories: TodayPreviewData.state.calorieSummary,
-        coachSummary: TodayPreviewData.state.coachingNote ?? FormaProductCopy.Today.defaultCoachNote
-    )
-    .padding()
-    .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    TodayCaloriesHero(calories: TodayPreviewData.state.calorieSummary)
+        .padding()
+        .background(FormaTokens.Color.canvas)
+        .preferredColorScheme(.dark)
 }

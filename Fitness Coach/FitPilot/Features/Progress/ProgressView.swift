@@ -12,8 +12,12 @@ struct ProgressView: View {
     @ObservedObject var model: ProgressModel
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
 
-    init(model: ProgressModel) {
+    /// Optional prefill text for Coach input. `nil` opens Coach without prefilling.
+    var onOpenCoach: ((String?) -> Void)?
+
+    init(model: ProgressModel, onOpenCoach: ((String?) -> Void)? = nil) {
         self.model = model
+        self.onOpenCoach = onOpenCoach
     }
 
     var body: some View {
@@ -60,7 +64,14 @@ struct ProgressView: View {
     private func dashboard(_ state: ProgressDashboardState) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: JourneyLayout.sectionSpacing) {
-                JourneyTransformationHeroSection(state: state.transformation)
+                JourneyTransformationHeroSection(
+                    state: state.transformation,
+                    milestones: state.milestones
+                )
+
+                if let coachMessage = coachInsightMessage(for: state) {
+                    JourneyCoachInsightsSection(message: coachMessage)
+                }
 
                 if !state.milestones.isEmpty {
                     JourneyMilestonesSection(milestones: state.milestones)
@@ -68,16 +79,15 @@ struct ProgressView: View {
 
                 JourneyWeeklySnapshotSection(snapshot: state.weeklySnapshot)
 
-                JourneyCoachInsightsSection(insights: state.coachInsights)
-
                 JourneyConsistencyCalendarSection(calendar: state.consistencyCalendar)
 
-                JourneyAchievementsSection(achievements: state.achievements)
-
-                JourneyWeightTrendSection(state: state.weightTrend)
+                JourneyWeightTrendSection(state: state.weightTrend) {
+                    onOpenCoach?(TodayCoachPrompt.logWeight)
+                }
 
                 JourneyDetailedAnalyticsSection(
                     analytics: state.analytics,
+                    weeklySnapshot: state.weeklySnapshot,
                     selectedRangeDays: state.selectedRangeDays
                 ) { days in
                     Task { await model.selectRange(days: days) }
@@ -85,9 +95,19 @@ struct ProgressView: View {
             }
             .padding(.horizontal, JourneyLayout.horizontalPadding)
             .padding(.top, FormaTokens.Spacing.md)
-            .padding(.bottom, FormaTokens.Spacing.sm)
+            .padding(.bottom, JourneyLayout.scrollBottomContentPadding)
         }
-        .fitPilotScrollBottomInset()
+        .journeyScrollBottomInset()
+    }
+
+    private func coachInsightMessage(for state: ProgressDashboardState) -> String? {
+        if let insight = state.coachInsights.first?.message, !insight.isEmpty {
+            return insight
+        }
+        if state.transformation.currentPhase == "Getting started" {
+            return FormaProductCopy.Journey.coachInsightGettingStarted
+        }
+        return FormaProductCopy.Journey.coachInsightFallback
     }
 }
 
@@ -95,4 +115,5 @@ struct ProgressView: View {
     let container = try! AppContainer(inMemory: true)
     ProgressView(model: container.makeProgressModel())
         .environmentObject(container.refreshCenter)
+        .environmentObject(container.trainingInsightsStore)
 }

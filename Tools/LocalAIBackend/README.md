@@ -44,12 +44,18 @@ environment variable `FITPILOT_USE_MOCK_LLM=1`.
 Create `.env` from `.env.example` and set:
 
 - `OPENAI_API_KEY`
-- `OPENAI_MODEL` (optional)
+- `OPENAI_CLASSIFIER_MODEL` (default `gpt-5-nano`) — intent classification and cheap-tier tasks
+- `OPENAI_MODEL` (default `gpt-5-nano`) — default for parsing, food estimate, daily review
+- `OPENAI_STRONG_MODEL` (default `gpt-5.4-nano`) — complex coaching when iOS sends `modelTier: strong`
+- `OPENAI_FALLBACK_MODEL` (default `gpt-5.4-mini`) — reserved for rare manual/eval fallback; not used as default
 - `FITPILOT_AI_BACKEND_PORT` (default `8787`)
 - `FITPILOT_AI_BACKEND_HOST` — use `0.0.0.0` for device testing over Wi‑Fi
-- `OPENAI_CLASSIFIER_MODEL` (optional) — model for `/v1/ai/classify-coach-intent` only
 - `FITPILOT_AI_BACKEND_TRACE` — set `0` to disable gateway JSON trace logs (default on)
 - `FITPILOT_AI_BACKEND_TRACE_VERBOSE` — set `1` to include truncated request/response bodies
+
+The gateway maps iOS `modelTier` (`cheap` / `strong`) to these env vars through a safe
+allowlist. Untrusted `modelName` values from the client are ignored unless they match
+one of the configured models.
 
 ### Pipeline tracing
 

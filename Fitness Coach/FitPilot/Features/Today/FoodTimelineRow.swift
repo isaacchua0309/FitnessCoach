@@ -13,12 +13,14 @@ struct FoodTimelineRow: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(entry.name)
+                Text(FoodEntryFormFormatter.displayFoodName(entry.name))
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
                     .foregroundStyle(FormaTokens.Color.textPrimary)
-                Text(subtitleText)
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                if let subtitleText {
+                    Text(subtitleText)
+                        .font(FormaTokens.Typography.caption)
+                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                }
             }
 
             Spacer(minLength: 12)
@@ -31,14 +33,13 @@ struct FoodTimelineRow: View {
         .contentShape(Rectangle())
     }
 
-    private var subtitleText: String {
-        let mealType = FoodEntryFormFormatter.mealTypeLabel(entry.mealType)
-        let macros = FoodEntryFormFormatter.macroLine(
+    private var subtitleText: String? {
+        FoodEntryFormFormatter.timelineSubtitle(
+            mealType: entry.mealType,
             protein: entry.protein,
             carbs: entry.carbs,
             fat: entry.fat
         )
-        return "\(mealType) · \(macros)"
     }
 }
 

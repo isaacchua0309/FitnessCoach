@@ -19,7 +19,7 @@ struct TodayMealsPreview: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.itemSpacing) {
+        VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             HStack {
                 TodaySectionLabel(title: "Meals")
                 Spacer()
