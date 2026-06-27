@@ -6,7 +6,7 @@
 //
 //  This builder only formats display text from domain models. It does not call
 //  services, access SwiftData, call AI, or own calculations beyond simple
-//  display formatting (it may use MacroCalculator for remaining values).
+//  display formatting. Nutrition values come from DailyNutritionSummaryBuilder.
 //
 
 import Foundation
@@ -16,17 +16,21 @@ enum CoachResponseBuilder {
     static let automaticDayMessage =
         "Your day updates automatically at midnight. Each calendar day gets its own log."
 
+    private static func nutritionSummary(from log: DailyLog) -> DailyNutritionSummary {
+        DailyNutritionSummaryBuilder.build(from: log)
+    }
+
     // MARK: Water
 
     static func water(loggedMl: Int, log: DailyLog?) -> String {
         var response = "Logged \(loggedMl)ml water."
         if let log {
-            let remaining = max(log.targets.waterTargetMl - log.waterConsumedMl, 0)
+            let water = nutritionSummary(from: log).water
             response += """
 
             Water today:
-            \(formatWater(log.waterConsumedMl)) / \(formatWater(log.targets.waterTargetMl))ml
-            \(formatWater(remaining))ml remaining.
+            \(formatWater(water.consumedMl)) / \(formatWater(water.targetMl))ml
+            \(formatWater(water.remainingMl))ml remaining.
             """
         }
         return response
@@ -48,14 +52,13 @@ enum CoachResponseBuilder {
         \(entry.calories) kcal · \(formatMacro(entry.protein))g protein
         """
         if let log {
-            let targets = MacroCalculator.macroTargets(from: log.targets)
-            let remaining = MacroCalculator.remaining(targets: targets, totals: log.totals)
-            let proteinRemaining = max(remaining.protein, 0)
+            let nutrition = nutritionSummary(from: log)
+            let proteinRemaining = max(nutrition.remaining.protein, 0)
             response += """
 
 
             Today:
-            \(log.totals.calories) / \(targets.calories) kcal
+            \(nutrition.totals.calories) / \(nutrition.targets.calories) kcal
             \(formatMacro(proteinRemaining))g protein remaining.
             """
         }
@@ -157,17 +160,16 @@ enum CoachResponseBuilder {
     // MARK: Status
 
     static func status(_ log: DailyLog) -> String {
-        let targets = MacroCalculator.macroTargets(from: log.targets)
-        let remaining = MacroCalculator.remaining(targets: targets, totals: log.totals)
-        let remainingCalories = max(remaining.calories, 0)
+        let nutrition = nutritionSummary(from: log)
+        let remainingCalories = max(nutrition.remaining.calories, 0)
 
         return """
         Today so far:
-        Calories: \(log.totals.calories) / \(targets.calories) kcal
-        Protein: \(formatMacro(log.totals.protein)) / \(formatMacro(targets.protein))g
-        Carbs: \(formatMacro(log.totals.carbs)) / \(formatMacro(targets.carbs))g
-        Fat: \(formatMacro(log.totals.fat)) / \(formatMacro(targets.fat))g
-        Water: \(log.waterConsumedMl) / \(log.targets.waterTargetMl)ml
+        Calories: \(nutrition.totals.calories) / \(nutrition.targets.calories) kcal
+        Protein: \(formatMacro(nutrition.totals.protein)) / \(formatMacro(nutrition.targets.protein))g
+        Carbs: \(formatMacro(nutrition.totals.carbs)) / \(formatMacro(nutrition.targets.carbs))g
+        Fat: \(formatMacro(nutrition.totals.fat)) / \(formatMacro(nutrition.targets.fat))g
+        Water: \(nutrition.water.consumedMl) / \(nutrition.water.targetMl)ml
 
         You still have \(remainingCalories) kcal remaining.
         """
@@ -197,38 +199,35 @@ enum CoachResponseBuilder {
             return "Tell me what you've eaten so far and I'll suggest your next move."
         }
 
-        let targets = MacroCalculator.macroTargets(from: log.targets)
-        let remaining = MacroCalculator.remaining(targets: targets, totals: log.totals)
-        let waterRemaining = WaterTargetCalculator.remainingMl(
-            consumedMl: log.waterConsumedMl,
-            targetMl: log.targets.waterTargetMl
-        )
+        let nutrition = nutritionSummary(from: log)
 
         let brief = DailyBriefBuilder.todayBrief(
             profile: profile,
-            caloriesRemaining: remaining.calories,
-            proteinRemaining: remaining.protein,
-            waterRemainingMl: waterRemaining,
+            nutrition: nutrition,
             hasWorkoutToday: hasWorkoutToday,
             trainingFrequency: profile?.trainingFrequencyPerWeek ?? 0
         )
 
         var lines: [String] = [brief.recommendation]
 
-        if remaining.protein > 30 {
-            lines.append("You still need about \(formatMacro(remaining.protein))g protein today.")
+        if nutrition.remaining.protein > 30 {
+            lines.append("You still need about \(formatMacro(nutrition.remaining.protein))g protein today.")
         } else {
-            lines.append("Protein is on track at \(formatMacro(log.totals.protein))g of \(formatMacro(targets.protein))g.")
+            lines.append(
+                "Protein is on track at \(formatMacro(nutrition.totals.protein))g of \(formatMacro(nutrition.targets.protein))g."
+            )
         }
 
-        if remaining.calories > 0 {
-            lines.append("\(remaining.calories) kcal left — use them for nutrient-dense food, not empty snacks.")
-        } else if remaining.calories < 0 {
-            lines.append("You're \(abs(remaining.calories)) kcal over target. Keep the next meal lean and portion-controlled.")
+        if nutrition.remaining.calories > 0 {
+            lines.append("\(nutrition.remaining.calories) kcal left — use them for nutrient-dense food, not empty snacks.")
+        } else if nutrition.remaining.calories < 0 {
+            lines.append(
+                "You're \(abs(nutrition.remaining.calories)) kcal over target. Keep the next meal lean and portion-controlled."
+            )
         }
 
-        if waterRemaining > 400 {
-            lines.append("Drink \(formatWater(waterRemaining))ml more water to stay on pace.")
+        if nutrition.water.remainingMl > 400 {
+            lines.append("Drink \(formatWater(nutrition.water.remainingMl))ml more water to stay on pace.")
         }
 
         return lines.joined(separator: " ")
@@ -243,28 +242,27 @@ enum CoachResponseBuilder {
             return "Set up your plan first, then I can help you prioritize tomorrow."
         }
 
-        let targets = MacroCalculator.macroTargets(from: log.targets)
-        let remaining = MacroCalculator.remaining(targets: targets, totals: log.totals)
+        let nutrition = nutritionSummary(from: log)
         let trainingDays = profile.trainingFrequencyPerWeek
         let isTrainingTomorrow = !hasWorkoutToday && trainingDays >= 3
 
         if isTrainingTomorrow {
             return """
-            Tomorrow looks like a training day. Hit \(targets.calories) kcal with at least \(formatMacro(targets.protein))g protein, \
+            Tomorrow looks like a training day. Hit \(nutrition.targets.calories) kcal with at least \(formatMacro(nutrition.targets.protein))g protein, \
             front-load water before noon, and log your morning weight if you haven't yet.
             """
         }
 
-        if remaining.protein > 40 {
+        if nutrition.remaining.protein > 40 {
             return """
-            Close today with protein first — you still need about \(formatMacro(remaining.protein))g. \
-            Tomorrow, weigh in, log breakfast early, and keep calories near \(targets.calories) kcal.
+            Close today with protein first — you still need about \(formatMacro(nutrition.remaining.protein))g. \
+            Tomorrow, weigh in, log breakfast early, and keep calories near \(nutrition.targets.calories) kcal.
             """
         }
 
         return """
-        You're in a good rhythm today. Tomorrow: log breakfast, hit \(formatMacro(targets.protein))g protein, \
-        and keep water above \(formatWater(log.targets.waterTargetMl))ml.
+        You're in a good rhythm today. Tomorrow: log breakfast, hit \(formatMacro(nutrition.targets.protein))g protein, \
+        and keep water above \(formatWater(nutrition.water.targetMl))ml.
         """
     }
 
@@ -311,8 +309,7 @@ enum CoachResponseBuilder {
     static let unknownResponse =
         "I can help with food, water, weight, workouts, or meal decisions. Try: 'log 500g chicken breast'."
 
-    static let backendUnavailableResponse =
-        "Coach is briefly unavailable — try a direct command like 'log 500ml water'."
+    static let backendUnavailableResponse = FormaProductCopy.Error.coachUnavailable
 
     static let appHelpResponse =
         "Ask me about meals, calories, macros, protein, workouts, water, weight, or today's targets. You can also say things like \"log 500g chicken breast\" or \"add 600ml water\"."

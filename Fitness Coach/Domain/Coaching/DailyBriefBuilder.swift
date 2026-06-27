@@ -17,6 +17,22 @@ enum DailyBriefBuilder {
 
     static func todayBrief(
         profile: UserProfile?,
+        nutrition: DailyNutritionSummary,
+        hasWorkoutToday: Bool,
+        trainingFrequency: Int
+    ) -> TodayDailyBrief {
+        todayBrief(
+            profile: profile,
+            caloriesRemaining: nutrition.remaining.calories,
+            proteinRemaining: nutrition.remaining.protein,
+            waterRemainingMl: nutrition.water.remainingMl,
+            hasWorkoutToday: hasWorkoutToday,
+            trainingFrequency: trainingFrequency
+        )
+    }
+
+    static func todayBrief(
+        profile: UserProfile?,
         caloriesRemaining: Int,
         proteinRemaining: Double,
         waterRemainingMl: Int,

@@ -112,10 +112,7 @@ final class AppContainer {
         }
         PipelineTracePersistence.install(on: store)
         #else
-        if let backendURL = URL(
-            string: ProcessInfo.processInfo.environment["FITPILOT_AI_BACKEND_URL"]
-                ?? "http://127.0.0.1:8787"
-        ) {
+        if let backendURL = ReleaseAIBackendConfiguration.releaseBackendURL() {
             llmClient = FallbackLLMClient(
                 primary: FitPilotAIBackendClient(
                     baseURL: backendURL,
@@ -123,11 +120,8 @@ final class AppContainer {
                 )
             )
         } else {
-            llmClient = FallbackLLMClient(
-                primary: FitPilotAIBackendClient(
-                    baseURL: URL(string: "http://127.0.0.1:8787")!,
-                    authTokenProvider: { try await authManager.idToken() }
-                )
+            llmClient = UnavailableLLMClient(
+                reason: ReleaseAIBackendConfiguration.unavailableReason()
             )
         }
         #endif

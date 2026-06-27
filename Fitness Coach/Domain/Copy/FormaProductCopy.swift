@@ -55,7 +55,8 @@ enum FormaProductCopy {
         static let checkInputs = "Please check your inputs and try again."
         static let coachSessionTitle = "Couldn't start Coach"
         static let coachSessionMessage = "We couldn't verify your session. Check your connection and try again."
-        static let coachUnavailable = "Coach is briefly unavailable. Try again in a moment."
+        static let coachUnavailable =
+            "Coach is temporarily unavailable. Please try again later."
         static let coachNotUnderstood =
             "I couldn't quite follow that. Try rephrasing, or log with explicit calories and macros."
         static let signInTitle = "Couldn't sign in"

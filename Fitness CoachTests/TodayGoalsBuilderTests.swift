@@ -9,7 +9,7 @@ import XCTest
 final class TodayGoalsBuilderTests: XCTestCase {
 
     func testIncompleteNutritionGoalsUseActionOrientedCopy() {
-        let state = makeState(
+        let state = TodayDashboardFixtures.dashboardState(
             proteinConsumed: 31,
             proteinTarget: 180,
             proteinRemaining: 149,
@@ -43,7 +43,7 @@ final class TodayGoalsBuilderTests: XCTestCase {
 
         for (integration, dataSource, workoutCount, expectedChevrons) in scenarios {
             let goals = TodayGoalsBuilder.goals(
-                from: makeState(
+                from: TodayDashboardFixtures.dashboardState(
                     proteinConsumed: 170,
                     proteinTarget: 180,
                     proteinRemaining: 10,
@@ -68,7 +68,7 @@ final class TodayGoalsBuilderTests: XCTestCase {
 
     func testAppleHealthNotConnectedShowsConnectAction() throws {
         let goals = TodayGoalsBuilder.goals(
-            from: makeState(
+            from: TodayDashboardFixtures.dashboardState(
                 proteinConsumed: 170,
                 proteinTarget: 180,
                 proteinRemaining: 10,
@@ -90,7 +90,7 @@ final class TodayGoalsBuilderTests: XCTestCase {
 
     func testAppleHealthDeniedShowsUnlockInsightsAction() throws {
         let goals = TodayGoalsBuilder.goals(
-            from: makeState(
+            from: TodayDashboardFixtures.dashboardState(
                 proteinConsumed: 170,
                 proteinTarget: 180,
                 proteinRemaining: 10,
@@ -110,7 +110,7 @@ final class TodayGoalsBuilderTests: XCTestCase {
 
     func testAppleHealthConnectedWithOneWorkoutShowsCountLabel() throws {
         let goals = TodayGoalsBuilder.goals(
-            from: makeState(
+            from: TodayDashboardFixtures.dashboardState(
                 proteinConsumed: 170,
                 proteinTarget: 180,
                 proteinRemaining: 10,
@@ -132,7 +132,7 @@ final class TodayGoalsBuilderTests: XCTestCase {
 
     func testAppleHealthConnectedWithMultipleWorkoutsShowsCountLabel() throws {
         let goals = TodayGoalsBuilder.goals(
-            from: makeState(
+            from: TodayDashboardFixtures.dashboardState(
                 proteinConsumed: 170,
                 proteinTarget: 180,
                 proteinRemaining: 10,
@@ -152,7 +152,7 @@ final class TodayGoalsBuilderTests: XCTestCase {
 
     func testAppleHealthConnectedWithoutWorkoutShowsNeutralStatus() throws {
         let goals = TodayGoalsBuilder.goals(
-            from: makeState(
+            from: TodayDashboardFixtures.dashboardState(
                 proteinConsumed: 170,
                 proteinTarget: 180,
                 proteinRemaining: 10,
@@ -175,7 +175,7 @@ final class TodayGoalsBuilderTests: XCTestCase {
 
     func testUnavailableDataSourceHidesTrainingRow() {
         let goals = TodayGoalsBuilder.goals(
-            from: makeState(
+            from: TodayDashboardFixtures.dashboardState(
                 proteinConsumed: 31,
                 proteinTarget: 180,
                 proteinRemaining: 149,
@@ -190,65 +190,5 @@ final class TodayGoalsBuilderTests: XCTestCase {
         )
         XCTAssertEqual(goals.count, 3)
         XCTAssertFalse(goals.contains(where: { $0.kind == .workout }))
-    }
-
-    private func makeState(
-        proteinConsumed: Double,
-        proteinTarget: Double,
-        proteinRemaining: Double,
-        waterConsumedMl: Int,
-        waterTargetMl: Int,
-        waterRemainingMl: Int,
-        weightKg: Double?,
-        hasWorkout: Bool
-    ) -> TodayDashboardState {
-        TodayDashboardState(
-            date: Date(),
-            calorieSummary: CalorieSummary(
-                consumed: 500,
-                target: 1_800,
-                remaining: 1_300,
-                progress: 0.28,
-                isOverTarget: false
-            ),
-            macroSummary: MacroSummary(
-                protein: MacroProgress(
-                    consumed: proteinConsumed,
-                    target: proteinTarget,
-                    remaining: proteinRemaining,
-                    progress: proteinConsumed / proteinTarget
-                ),
-                carbs: MacroProgress(consumed: 0, target: 160, remaining: 160, progress: 0),
-                fat: MacroProgress(consumed: 0, target: 60, remaining: 60, progress: 0)
-            ),
-            waterSummary: WaterSummary(
-                consumedMl: waterConsumedMl,
-                targetMl: waterTargetMl,
-                remainingMl: waterRemainingMl,
-                progress: Double(waterConsumedMl) / Double(waterTargetMl)
-            ),
-            weightSummary: TodayWeightSummary(
-                weightKg: weightKg,
-                displayText: weightKg.map { String(format: "%.2f kg", $0) } ?? "Not logged today"
-            ),
-            stepsSummary: nil,
-            workoutSummary: TodayWorkoutSummary(
-                workoutCaloriesBurned: hasWorkout ? 200 : 0,
-                workoutCount: hasWorkout ? 1 : 0,
-                hasWorkout: hasWorkout
-            ),
-            foodEntries: [],
-            hasDailyLog: true,
-            dailyReview: nil,
-            coachingNote: nil,
-            todayFocus: FormaProductCopy.Today.focusOnTrack,
-            dailyBrief: TodayDailyBrief(
-                greeting: "Good morning.",
-                priorities: [],
-                recommendation: "Stay consistent today."
-            ),
-            streaks: StreakSummary(loggingStreak: 0, proteinStreak: 0, hydrationStreak: 0, workoutStreak: 0),
-            userName: nil
-        )
     }
 }

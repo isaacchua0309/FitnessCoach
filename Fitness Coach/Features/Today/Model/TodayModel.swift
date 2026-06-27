@@ -86,50 +86,7 @@ final class TodayModel: ObservableObject {
         latestWeight: WeightEntry?,
         dailyReview: DailyReview?
     ) throws -> TodayDashboardState {
-        let targets = MacroCalculator.macroTargets(from: dailyLog.targets)
-        let remaining = MacroCalculator.remaining(targets: targets, totals: dailyLog.totals)
-
-        let calorieSummary = CalorieSummary(
-            consumed: dailyLog.totals.calories,
-            target: targets.calories,
-            remaining: remaining.calories,
-            progress: MacroCalculator.calorieProgress(totals: dailyLog.totals, targets: targets),
-            isOverTarget: MacroCalculator.isOverCalories(totals: dailyLog.totals, targets: targets)
-        )
-
-        let macroSummary = MacroSummary(
-            protein: MacroProgress(
-                consumed: dailyLog.totals.protein,
-                target: targets.protein,
-                remaining: remaining.protein,
-                progress: MacroCalculator.proteinProgress(totals: dailyLog.totals, targets: targets)
-            ),
-            carbs: MacroProgress(
-                consumed: dailyLog.totals.carbs,
-                target: targets.carbs,
-                remaining: remaining.carbs,
-                progress: MacroCalculator.progress(consumed: dailyLog.totals.carbs, target: targets.carbs)
-            ),
-            fat: MacroProgress(
-                consumed: dailyLog.totals.fat,
-                target: targets.fat,
-                remaining: remaining.fat,
-                progress: MacroCalculator.progress(consumed: dailyLog.totals.fat, target: targets.fat)
-            )
-        )
-
-        let waterSummary = WaterSummary(
-            consumedMl: dailyLog.waterConsumedMl,
-            targetMl: dailyLog.targets.waterTargetMl,
-            remainingMl: WaterTargetCalculator.remainingMl(
-                consumedMl: dailyLog.waterConsumedMl,
-                targetMl: dailyLog.targets.waterTargetMl
-            ),
-            progress: WaterTargetCalculator.progress(
-                consumedMl: dailyLog.waterConsumedMl,
-                targetMl: dailyLog.targets.waterTargetMl
-            )
-        )
+        let (calorieSummary, macroSummary, waterSummary) = TodayDashboardNutritionMapper.maps(from: dailyLog)
 
         let displayWeight = dailyLog.weightKg ?? latestWeight?.weightKg
         let weightSummary = TodayWeightSummary(
@@ -149,8 +106,8 @@ final class TodayModel: ObservableObject {
         let streaks = try buildStreaks(asOf: dailyLog.date)
         let dailyBrief = DailyBriefBuilder.todayBrief(
             profile: profile,
-            caloriesRemaining: remaining.calories,
-            proteinRemaining: remaining.protein,
+            caloriesRemaining: calorieSummary.remaining,
+            proteinRemaining: macroSummary.protein.remaining,
             waterRemainingMl: waterSummary.remainingMl,
             hasWorkoutToday: workoutSummary.hasWorkout,
             trainingFrequency: trainingFrequency

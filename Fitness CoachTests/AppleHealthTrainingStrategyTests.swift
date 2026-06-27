@@ -83,7 +83,7 @@ final class TrainingIntegrationStateFormattingTests: XCTestCase {
         )
         XCTAssertEqual(
             TrainingIntegrationCopy.settingsDetailDescription(for: .denied),
-            "Turn on workout access for Forma in Settings to enable training insights."
+            "Turn on workout access in Health → Apps → Forma."
         )
     }
 

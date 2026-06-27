@@ -9,12 +9,15 @@ import Foundation
 
 enum LocalAIBackendConfiguration {
 
+    static let environmentVariableName = "FITPILOT_AI_BACKEND_URL"
     static let defaultPort = 8787
 
     /// Priority: Xcode scheme env → `DeveloperLocal.plist` → simulator localhost.
     /// Physical devices return `nil` when unset so debug builds fall back to `MockLLMClient`.
-    static func debugBackendURL() -> URL? {
-        if let url = url(from: ProcessInfo.processInfo.environment["FITPILOT_AI_BACKEND_URL"]) {
+    static func debugBackendURL(
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> URL? {
+        if let url = url(from: environment[environmentVariableName]) {
             return url
         }
         if let url = url(from: bundledURLString) {
@@ -30,7 +33,7 @@ enum LocalAIBackendConfiguration {
     private static var bundledURLString: String? {
         guard let path = Bundle.main.path(forResource: "DeveloperLocal", ofType: "plist"),
               let dictionary = NSDictionary(contentsOfFile: path),
-              let value = dictionary["FITPILOT_AI_BACKEND_URL"] as? String,
+              let value = dictionary[environmentVariableName] as? String,
               !value.isEmpty else {
             return nil
         }

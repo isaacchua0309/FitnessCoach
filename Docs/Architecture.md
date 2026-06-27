@@ -385,6 +385,7 @@ Tracked for later stages. **Do not treat as blockers for feature work** — but 
 - Source folder: `FitPilot/`
 - Types: `FitPilotModelContainer`, `FitPilotScreenStyle`, `FitPilotPlanCard`, `FitPilotPipelineTracer`, `FitPilotAIBackendClient`, `FitPilotLegalCopy`
 - Env vars: `FITPILOT_USE_MOCK_LLM`, `FITPILOT_AI_BACKEND_URL`, `FITPILOT_PIPELINE_TRACE*`
+- **Release AI:** see [ReleaseAI.md](./ReleaseAI.md) — Release must not default to localhost; requires explicit `FITPILOT_AI_BACKEND_URL`.
 - Xcode target / app struct: `Fitness Coach`, `Fitness_CoachApp`
 - Product copy already uses Forma (`FormaProductCopy`, `FormaTokens`).
 - **Action:** rename in a dedicated stage; avoid mixing renames with behavior changes.

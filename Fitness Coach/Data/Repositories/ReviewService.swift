@@ -193,22 +193,7 @@ final class ReviewService {
             date: summary.date,
             timezoneIdentifier: TimeZone.current.identifier,
             userProfileSummary: makeProfileSummary(),
-            todaySummary: TodayAISummary(
-                calorieTarget: summary.calorieTarget,
-                caloriesConsumed: summary.caloriesConsumed,
-                caloriesRemaining: summary.caloriesRemaining,
-                proteinTarget: summary.proteinTarget,
-                proteinConsumed: summary.proteinConsumed,
-                carbsTarget: summary.carbsTarget,
-                carbsConsumed: summary.carbsConsumed,
-                fatTarget: summary.fatTarget,
-                fatConsumed: summary.fatConsumed,
-                waterTargetMl: summary.waterTargetMl,
-                waterConsumedMl: summary.waterConsumedMl,
-                weightKg: summary.weightKg,
-                steps: summary.steps,
-                workoutCaloriesBurned: summary.workoutCaloriesBurned
-            ),
+            todaySummary: TodayAISummaryMapper.from(reviewSummary: summary),
             commonFoods: [],
             recentMessages: []
         )

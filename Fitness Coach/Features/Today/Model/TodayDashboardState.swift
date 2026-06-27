@@ -5,8 +5,8 @@
 //  FitPilot AI — View state for the Today dashboard.
 //
 //  This is app-facing view state only. It contains no SwiftData entities and
-//  performs no business calculations; values are produced by TodayModel using
-//  services and calculators.
+//  performs no business calculations; nutrition values are mapped from
+//  DailyNutritionSummaryBuilder via TodayDashboardNutritionMapper.
 //
 
 import Foundation

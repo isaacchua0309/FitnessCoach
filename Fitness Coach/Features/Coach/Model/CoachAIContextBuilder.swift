@@ -79,31 +79,8 @@ struct CoachContextBuilder {
             return nil
         }
 
-        let targets = MacroCalculator.macroTargets(from: log.targets)
-        let remaining = MacroCalculator.remaining(targets: targets, totals: log.totals)
-
-        return TodayAISummary(
-            calorieTarget: targets.calories,
-            caloriesConsumed: log.totals.calories,
-            caloriesRemaining: remaining.calories,
-            proteinTarget: targets.protein,
-            proteinConsumed: log.totals.protein,
-            proteinRemaining: remaining.protein,
-            carbsTarget: targets.carbs,
-            carbsConsumed: log.totals.carbs,
-            carbsRemaining: remaining.carbs,
-            fatTarget: targets.fat,
-            fatConsumed: log.totals.fat,
-            fatRemaining: remaining.fat,
-            waterTargetMl: log.targets.waterTargetMl,
-            waterConsumedMl: log.waterConsumedMl,
-            waterRemainingMl: WaterTargetCalculator.remainingMl(
-                consumedMl: log.waterConsumedMl,
-                targetMl: log.targets.waterTargetMl
-            ),
-            weightKg: log.weightKg,
-            steps: log.steps,
-            workoutCaloriesBurned: log.workoutCaloriesBurned,
+        return TodayAISummaryMapper.from(
+            dailyLog: log,
             workoutsToday: (try? workoutLogService?.getWorkouts(for: Date()).count) ?? 0,
             recentMeals: makeRecentMeals()
         )
