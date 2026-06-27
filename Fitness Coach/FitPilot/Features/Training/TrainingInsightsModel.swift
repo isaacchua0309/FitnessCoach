@@ -26,11 +26,11 @@ final class TrainingInsightsModel: ObservableObject {
 
     init(
         workoutReader: HealthKitWorkoutReading? = nil,
-        dateProvider: DateProviding = SystemDateProvider(),
+        dateProvider: DateProviding? = nil,
         calendar: Calendar = .current
     ) {
         self.workoutReader = workoutReader ?? Self.makeDefaultReader()
-        self.dateProvider = dateProvider
+        self.dateProvider = dateProvider ?? SystemDateProvider()
         self.calendar = calendar
     }
 

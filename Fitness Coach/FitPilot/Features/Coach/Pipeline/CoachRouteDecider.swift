@@ -59,19 +59,20 @@ final class CoachRouteDecider: Sendable {
     private let classifyDedupWindow: TimeInterval = 8
 
     nonisolated init(
-        localGuard: LocalNoAPIGuard = LocalNoAPIGuard(),
-        intentRouter: CoachIntentRouter = CoachIntentRouter()
+        localGuard: LocalNoAPIGuard? = nil,
+        intentRouter: CoachIntentRouter? = nil
     ) {
-        self.localGuard = localGuard
-        self.intentRouter = intentRouter
+        self.localGuard = localGuard ?? LocalNoAPIGuard()
+        self.intentRouter = intentRouter ?? CoachIntentRouter()
     }
 
     func decide(
         text: String,
         context: AIContext,
         aiService: AIServiceProtocol,
-        config: CoachModelConfig = .default
+        config: CoachModelConfig? = nil
     ) async throws -> CoachRouteDecision {
+        let resolvedConfig = config ?? .default
         let input = InputNormalizer.normalize(text)
         let guardRoute = localGuard.evaluate(input)
 
@@ -149,7 +150,7 @@ final class CoachRouteDecider: Sendable {
             intentResult = try await classifier.classify(
                 text: input.originalText,
                 context: context,
-                config: config
+                config: resolvedConfig
             )
         } catch {
             let durationMs = Int(Date().timeIntervalSince(classifyStarted) * 1_000)

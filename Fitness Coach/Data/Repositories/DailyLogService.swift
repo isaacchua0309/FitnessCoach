@@ -18,11 +18,11 @@ final class DailyLogService {
     init(
         store: SwiftDataStore,
         userProfileService: UserProfileService,
-        dateProvider: DateProviding = SystemDateProvider()
+        dateProvider: DateProviding? = nil
     ) {
         self.store = store
         self.userProfileService = userProfileService
-        self.dateProvider = dateProvider
+        self.dateProvider = dateProvider ?? SystemDateProvider()
     }
 
     // MARK: Read

@@ -16,7 +16,7 @@ enum HealthTrainingAuthorizationStatus: Equatable, Sendable {
 
 extension HealthTrainingAuthorizationStatus {
 
-    var integrationState: TrainingIntegrationState {
+    nonisolated var integrationState: TrainingIntegrationState {
         switch self {
         case .unavailable:
             return .unavailable

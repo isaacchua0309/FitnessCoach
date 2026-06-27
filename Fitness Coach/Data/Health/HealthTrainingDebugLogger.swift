@@ -14,7 +14,7 @@ import OSLog
 enum HealthTrainingDebugLogger {
 
     /// Emits `[HealthTraining]` lines to the Xcode debug console (DEBUG builds only).
-    static func event(_ message: String, fields: [String: String] = [:]) {
+    nonisolated static func event(_ message: String, fields: [String: String] = [:]) {
         #if DEBUG
         guard isEnabled else { return }
 
@@ -32,14 +32,14 @@ enum HealthTrainingDebugLogger {
         #endif
     }
 
-    static func warn(_ message: String, fields: [String: String] = [:]) {
+    nonisolated static func warn(_ message: String, fields: [String: String] = [:]) {
         #if DEBUG
         guard isEnabled else { return }
         emit(level: "warn", message: message, fields: fields, osLog: { logger.warning("\($0, privacy: .public)") })
         #endif
     }
 
-    static func error(_ message: String, fields: [String: String] = [:], underlying: Error? = nil) {
+    nonisolated static func error(_ message: String, fields: [String: String] = [:], underlying: Error? = nil) {
         #if DEBUG
         guard isEnabled else { return }
 
@@ -58,7 +58,7 @@ enum HealthTrainingDebugLogger {
         #endif
     }
 
-    private static func emit(
+    nonisolated private static func emit(
         level: String,
         message: String,
         fields: [String: String],
@@ -81,7 +81,7 @@ enum HealthTrainingDebugLogger {
         #endif
     }
 
-    static func logAuthorizationStatus(
+    nonisolated static func logAuthorizationStatus(
         _ status: HealthTrainingAuthorizationStatus,
         context: String,
         fields: [String: String] = [:]
@@ -91,7 +91,7 @@ enum HealthTrainingDebugLogger {
         merged["authorizationStatus"] = status.debugLabel
         merged["integrationState"] = status.integrationState.debugLabel
 
-        if status == .sharingDenied {
+        if case .sharingDenied = status {
             warn("Workout read access denied", fields: merged)
             event(
                 "Denied troubleshooting: open Health app → Apps → Forma (Settings → Forma will not list Health)"
@@ -101,7 +101,7 @@ enum HealthTrainingDebugLogger {
         }
     }
 
-    static func logIntegrationTransition(
+    nonisolated static func logIntegrationTransition(
         from previous: TrainingIntegrationState?,
         to next: TrainingIntegrationState,
         action: String,
@@ -127,17 +127,17 @@ enum HealthTrainingDebugLogger {
     }
 
     #if DEBUG
-    private static let logger = Logger(subsystem: "FitPilot", category: "HealthTraining")
+    nonisolated private static let logger = Logger(subsystem: "FitPilot", category: "HealthTraining")
 
     /// Enabled in DEBUG unless `FITPILOT_HEALTH_TRACE=0`.
-    static var isEnabled: Bool {
+    nonisolated static var isEnabled: Bool {
         ProcessInfo.processInfo.environment["FITPILOT_HEALTH_TRACE"] != "0"
     }
     #endif
 }
 
 extension HealthTrainingAuthorizationStatus {
-    var debugLabel: String {
+    nonisolated var debugLabel: String {
         switch self {
         case .unavailable: return "unavailable"
         case .notDetermined: return "notDetermined"
@@ -148,7 +148,7 @@ extension HealthTrainingAuthorizationStatus {
 }
 
 extension TrainingIntegrationState {
-    var debugLabel: String {
+    nonisolated var debugLabel: String {
         switch self {
         case .unavailable: return "unavailable"
         case .notConnected: return "notConnected"
@@ -164,7 +164,7 @@ extension TrainingIntegrationState {
 import HealthKit
 
 extension HealthTrainingDebugLogger {
-    static func logHKAuthorizationStatus(
+    nonisolated static func logHKAuthorizationStatus(
         _ status: HKAuthorizationStatus,
         context: String,
         typeName: String = "workout"
@@ -177,7 +177,7 @@ extension HealthTrainingDebugLogger {
         logAuthorizationStatus(mapped, context: context, fields: fields)
     }
 
-    private static func mapHKStatus(_ status: HKAuthorizationStatus) -> HealthTrainingAuthorizationStatus {
+    nonisolated private static func mapHKStatus(_ status: HKAuthorizationStatus) -> HealthTrainingAuthorizationStatus {
         switch status {
         case .notDetermined: return .notDetermined
         case .sharingDenied: return .sharingDenied
@@ -186,7 +186,7 @@ extension HealthTrainingDebugLogger {
         }
     }
 
-    private static func hkStatusLabel(_ status: HKAuthorizationStatus) -> String {
+    nonisolated private static func hkStatusLabel(_ status: HKAuthorizationStatus) -> String {
         switch status {
         case .notDetermined: return "notDetermined"
         case .sharingDenied: return "sharingDenied"

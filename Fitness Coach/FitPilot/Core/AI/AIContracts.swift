@@ -13,25 +13,6 @@ import Foundation
 
 // MARK: Supporting Inputs
 
-struct MealAdviceAIRequest: Codable, Equatable, Sendable {
-    var question: String
-    var intentResult: CoachIntentResult?
-    var modelTier: CoachModelTier?
-    var modelName: String?
-
-    init(
-        question: String,
-        intentResult: CoachIntentResult? = nil,
-        modelTier: CoachModelTier? = nil,
-        modelName: String? = nil
-    ) {
-        self.question = question
-        self.intentResult = intentResult
-        self.modelTier = modelTier
-        self.modelName = modelName
-    }
-}
-
 struct DailyReviewAIInput: Codable, Equatable, Sendable {
     var date: Date
     var calorieTarget: Int

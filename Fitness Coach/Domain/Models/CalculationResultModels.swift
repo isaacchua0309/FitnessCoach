@@ -59,18 +59,6 @@ struct CalorieTargetResult: Equatable, Sendable {
     let warning: String?
 }
 
-// MARK: - Maintenance
-
-struct MaintenanceEstimate: Equatable, Sendable {
-    let days: Int
-    let averageCalories: Int
-    let weightChangeKg: Double?
-    let estimatedDailyDeficit: Int?
-    let estimatedMaintenanceCalories: Int?
-    let confidence: ConfidenceLevel
-    let hasEnoughData: Bool
-}
-
 // MARK: - Weight Trend
 
 enum WeightTrendDirection: String, Codable, Equatable, Sendable {

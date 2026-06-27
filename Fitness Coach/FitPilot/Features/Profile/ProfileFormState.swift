@@ -40,7 +40,7 @@ struct ProfileFormState: Equatable {
         heightCmText = Self.formatDouble(profile.heightCm)
         currentWeightKgText = Self.formatDouble(profile.currentWeightKg)
         goalWeightKgText = Self.formatDouble(profile.goalWeightKg)
-        estimatedBodyFatPercentageText = profile.estimatedBodyFatPercentage.map(Self.formatDouble) ?? ""
+        estimatedBodyFatPercentageText = profile.estimatedBodyFatPercentage.map { Self.formatDouble($0) } ?? ""
         activityLevel = profile.activityLevel
         trainingFrequencyPerWeekText = "\(profile.trainingFrequencyPerWeek)"
         averageStepsText = "\(profile.averageSteps)"
@@ -51,7 +51,7 @@ struct ProfileFormState: Equatable {
         carbTargetText = Self.formatDouble(profile.targets.carbTarget)
         fatTargetText = Self.formatDouble(profile.targets.fatTarget)
         waterTargetMlText = "\(profile.targets.waterTargetMl)"
-        expectedWeeklyWeightLossKgText = profile.targets.expectedWeeklyWeightLossKg.map(Self.formatDouble) ?? ""
+        expectedWeeklyWeightLossKgText = profile.targets.expectedWeeklyWeightLossKg.map { Self.formatDouble($0) } ?? ""
         aggressiveness = profile.targets.aggressiveness
         let inferred = WeightLossPaceChoiceResolver.infer(
             aggressiveness: profile.targets.aggressiveness,
@@ -299,7 +299,7 @@ struct ProfileFormState: Equatable {
         carbTargetText = Self.formatDouble(targets.carbTarget)
         fatTargetText = Self.formatDouble(targets.fatTarget)
         waterTargetMlText = "\(targets.waterTargetMl)"
-        expectedWeeklyWeightLossKgText = targets.expectedWeeklyWeightLossKg.map(Self.formatDouble) ?? ""
+        expectedWeeklyWeightLossKgText = targets.expectedWeeklyWeightLossKg.map { Self.formatDouble($0) } ?? ""
         aggressiveness = targets.aggressiveness
         if weightLossPaceChoice != .advanced {
             weightLossPaceChoice = WeightLossPaceChoice(

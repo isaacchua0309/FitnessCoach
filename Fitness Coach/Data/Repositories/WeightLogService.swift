@@ -18,11 +18,11 @@ final class WeightLogService {
     init(
         store: SwiftDataStore,
         dailyLogService: DailyLogService,
-        dateProvider: DateProviding = SystemDateProvider()
+        dateProvider: DateProviding? = nil
     ) {
         self.store = store
         self.dailyLogService = dailyLogService
-        self.dateProvider = dateProvider
+        self.dateProvider = dateProvider ?? SystemDateProvider()
     }
 
     // MARK: Create

@@ -14,9 +14,9 @@ final class UserProfileService {
     private let store: SwiftDataStore
     private let dateProvider: DateProviding
 
-    init(store: SwiftDataStore, dateProvider: DateProviding = SystemDateProvider()) {
+    init(store: SwiftDataStore, dateProvider: DateProviding? = nil) {
         self.store = store
-        self.dateProvider = dateProvider
+        self.dateProvider = dateProvider ?? SystemDateProvider()
     }
 
     // MARK: Read

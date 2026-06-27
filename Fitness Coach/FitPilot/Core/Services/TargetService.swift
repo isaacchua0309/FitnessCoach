@@ -29,13 +29,13 @@ final class TargetService {
     func generateWaterTarget(
         bodyWeightKg: Double,
         activityLevel: ActivityLevel = .moderatelyActive,
-        averageStepsPerDay: Int = FormaCalculationConstants.stepBaselinePerDay,
+        averageStepsPerDay: Int? = nil,
         isWorkoutDay: Bool = false
     ) -> Int {
         PlanCalculationBridge.waterTargetMl(
             bodyWeightKg: bodyWeightKg,
             activityLevel: activityLevel,
-            averageStepsPerDay: averageStepsPerDay,
+            averageStepsPerDay: averageStepsPerDay ?? FormaCalculationConstants.stepBaselinePerDay,
             isWorkoutDay: isWorkoutDay
         )
     }

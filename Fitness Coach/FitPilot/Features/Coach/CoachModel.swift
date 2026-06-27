@@ -42,28 +42,28 @@ final class CoachModel: ObservableObject {
     private let trainingInsightsStore: TrainingInsightsStore?
 
     init(
-        localCommandParser: LocalCommandParser = .standard,
-        localNutritionEstimator: LocalNutritionEstimator = .standard,
+        localCommandParser: LocalCommandParser? = nil,
+        localNutritionEstimator: LocalNutritionEstimator? = nil,
         actionCenter: FitnessActionCenter,
         dailyLogService: DailyLogService,
         workoutLogService: WorkoutLogService,
         aiService: AIServiceProtocol? = nil,
         userProfileService: UserProfileService? = nil,
         aiCommandParsingEnabled: Bool = false,
-        coachModelConfig: CoachModelConfig = .default,
-        routeDecider: CoachRouteDecider = CoachRouteDecider(),
+        coachModelConfig: CoachModelConfig? = nil,
+        routeDecider: CoachRouteDecider? = nil,
         trainingInsightsStore: TrainingInsightsStore? = nil
     ) {
-        self.localCommandParser = localCommandParser
-        self.localNutritionEstimator = localNutritionEstimator
+        self.localCommandParser = localCommandParser ?? .standard
+        self.localNutritionEstimator = localNutritionEstimator ?? .standard
         self.actionCenter = actionCenter
         self.dailyLogService = dailyLogService
         self.workoutLogService = workoutLogService
         self.aiService = aiService
         self.userProfileService = userProfileService
         self.aiCommandParsingEnabled = aiCommandParsingEnabled
-        self.coachModelConfig = coachModelConfig
-        self.routeDecider = routeDecider
+        self.coachModelConfig = coachModelConfig ?? .default
+        self.routeDecider = routeDecider ?? CoachRouteDecider()
         self.trainingInsightsStore = trainingInsightsStore
         if let userProfileService {
             self.aiContextBuilder = CoachContextBuilder(

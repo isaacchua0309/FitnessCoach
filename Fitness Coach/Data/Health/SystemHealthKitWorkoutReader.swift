@@ -87,19 +87,7 @@ final class SystemHealthKitWorkoutReader: HealthKitWorkoutReading, @unchecked Se
 
     private static func map(_ workout: HKWorkout) -> HealthWorkoutRecord {
         let durationMinutes = max(Int((workout.duration / 60.0).rounded()), 1)
-        let calories: Int?
-        if #available(iOS 18.0, *) {
-            let energyType = HKQuantityType(.activeEnergyBurned)
-            if let sum = workout.statistics(for: energyType)?.sumQuantity() {
-                calories = Int(sum.doubleValue(for: .kilocalorie()).rounded())
-            } else {
-                calories = nil
-            }
-        } else if let quantity = workout.totalEnergyBurned {
-            calories = Int(quantity.doubleValue(for: .kilocalorie()).rounded())
-        } else {
-            calories = nil
-        }
+        let calories = activeCalories(from: workout)
 
         return HealthWorkoutRecord(
             id: workout.uuid,
@@ -109,6 +97,12 @@ final class SystemHealthKitWorkoutReader: HealthKitWorkoutReading, @unchecked Se
             durationMinutes: durationMinutes,
             activeCalories: calories
         )
+    }
+
+    private static func activeCalories(from workout: HKWorkout) -> Int? {
+        let energyType = HKQuantityType(.activeEnergyBurned)
+        guard let sum = workout.statistics(for: energyType)?.sumQuantity() else { return nil }
+        return Int(sum.doubleValue(for: .kilocalorie()).rounded())
     }
 }
 

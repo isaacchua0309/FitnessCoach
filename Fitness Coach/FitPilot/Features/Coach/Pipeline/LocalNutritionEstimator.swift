@@ -16,7 +16,7 @@ struct LocalFoodEstimate: Equatable, Sendable {
     var foodDraft: FoodDraft { draft }
 }
 
-struct LocalNutritionEstimator {
+struct LocalNutritionEstimator: Sendable {
 
     private enum NutritionBasis: Equatable, Sendable {
         case per100g(calories: Double, protein: Double, carbs: Double, fat: Double)
