@@ -2,7 +2,7 @@
 //  TodayModel.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Read-only Today status. All mutations happen in Coach.
+//  FitPilot AI — Today Mission Control status. Mutations route through TodayActionCoordinator (future).
 //
 
 import Combine
@@ -19,6 +19,8 @@ final class TodayModel: ObservableObject {
     private let weightLogService: WeightLogService
     private let reviewService: ReviewService
     private let userProfileService: UserProfileService
+
+    private var activityContext: TodayActivityContext = .default
 
     init(
         dailyLogService: DailyLogService,
@@ -38,7 +40,8 @@ final class TodayModel: ObservableObject {
 
     // MARK: Loading
 
-    func loadToday() async {
+    func loadToday(activityContext: TodayActivityContext = .default) async {
+        self.activityContext = activityContext
         viewState = .loading
         do {
             try loadDashboard()
@@ -49,7 +52,10 @@ final class TodayModel: ObservableObject {
         }
     }
 
-    func refresh() async {
+    func refresh(activityContext: TodayActivityContext? = nil) async {
+        if let activityContext {
+            self.activityContext = activityContext
+        }
         do {
             try loadDashboard()
         } catch ServiceError.missingUserProfile {
@@ -88,12 +94,16 @@ final class TodayModel: ObservableObject {
     ) throws -> TodayDashboardState {
         let (calorieSummary, macroSummary, waterSummary) = TodayDashboardNutritionMapper.maps(from: dailyLog)
 
+        let profile = try? userProfileService.getCurrentProfile()
+
         let displayWeight = dailyLog.weightKg ?? latestWeight?.weightKg
         let weightSummary = TodayWeightSummary(
             weightKg: displayWeight,
             displayText: displayWeight.map { String(format: "%.2f kg", $0) }
                 ?? "Not logged today"
         )
+        let weightLoggedToday = dailyLog.weightKg != nil
+        let hasRecentWeight = latestWeight != nil || profile?.currentWeightKg != nil
 
         let workoutSummary = TodayWorkoutSummary(
             workoutCaloriesBurned: dailyLog.workoutCaloriesBurned,
@@ -101,7 +111,6 @@ final class TodayModel: ObservableObject {
             hasWorkout: !workouts.isEmpty
         )
 
-        let profile = try? userProfileService.getCurrentProfile()
         let trainingFrequency = profile?.trainingFrequencyPerWeek ?? 0
         let streaks = try buildStreaks(asOf: dailyLog.date)
         let dailyBrief = DailyBriefBuilder.todayBrief(
@@ -112,29 +121,26 @@ final class TodayModel: ObservableObject {
             hasWorkoutToday: workoutSummary.hasWorkout,
             trainingFrequency: trainingFrequency
         )
-        let todayFocus = TodayFocusBuilder.focus(
-            proteinProgress: macroSummary.protein.progress,
-            waterProgress: waterSummary.progress,
-            weightLogged: weightSummary.weightKg != nil,
-            hasWorkout: workoutSummary.hasWorkout
-        )
 
-        return TodayDashboardState(
-            date: dailyLog.date,
-            calorieSummary: calorieSummary,
-            macroSummary: macroSummary,
-            waterSummary: waterSummary,
-            weightSummary: weightSummary,
-            stepsSummary: dailyLog.steps.map { StepsSummary(steps: $0) },
-            workoutSummary: workoutSummary,
-            foodEntries: foodEntries,
-            hasDailyLog: true,
-            dailyReview: dailyReview,
-            coachingNote: todayFocus,
-            todayFocus: todayFocus,
-            dailyBrief: dailyBrief,
-            streaks: streaks,
-            userName: profile?.name
+        return TodayMissionControlStateBuilder.build(
+            from: TodayMissionControlInputs(
+                date: dailyLog.date,
+                calorieSummary: calorieSummary,
+                macroSummary: macroSummary,
+                waterSummary: waterSummary,
+                weightSummary: weightSummary,
+                weightLoggedToday: weightLoggedToday,
+                hasRecentWeight: hasRecentWeight,
+                workoutSummary: workoutSummary,
+                foodEntries: foodEntries,
+                streaks: streaks,
+                dailyBrief: dailyBrief,
+                dailyReview: dailyReview,
+                goalWeightKg: profile?.goalWeightKg,
+                profileWeightKg: profile?.currentWeightKg,
+                userName: profile?.name,
+                activityContext: activityContext
+            )
         )
     }
 

@@ -14,6 +14,8 @@ struct OnboardingFormState: Equatable {
     private static let initialTrainingDefaults = trainingDefaultsResolver.defaults(for: .moderatelyActive)
 
     var name: String = ""
+    /// Source of truth for age in v4 onboarding. Legacy v2/v3 drafts may only have `ageText`.
+    var birthDate: Date?
     var ageText: String = ""
     var sex: Sex = .preferNotToSay
     var heightCmText: String = ""
@@ -150,10 +152,10 @@ struct OnboardingFormState: Equatable {
         }
     }
 
-    func makeCalorieTargetInput() throws -> CalorieTargetInput {
+    func makeCalorieTargetInput(referenceDate: Date = Date()) throws -> CalorieTargetInput {
         let pace = try resolvedWeightLossPace()
         return CalorieTargetInput(
-            age: try parsePositiveInt(ageText, message: FormaProductCopy.Onboarding.Validation.age),
+            age: try resolvedAge(referenceDate: referenceDate),
             sex: sex,
             heightCm: try parsePositiveDouble(heightCmText, message: FormaProductCopy.Onboarding.Validation.height),
             weightKg: try parsePositiveDouble(currentWeightKgText, message: FormaProductCopy.Onboarding.Validation.currentWeight),
@@ -194,13 +196,15 @@ struct OnboardingFormState: Equatable {
         )
     }
 
-    func makeUserProfileDraft(targets: UserTargets) throws -> UserProfileDraft {
+    func makeUserProfileDraft(targets: UserTargets, referenceDate: Date = Date()) throws -> UserProfileDraft {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedDiet = dietPreference.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedAge = try resolvedAge(referenceDate: referenceDate)
 
         return UserProfileDraft(
             name: trimmedName.isEmpty ? nil : trimmedName,
-            age: try parsePositiveInt(ageText, message: FormaProductCopy.Onboarding.Validation.age),
+            birthDate: birthDate,
+            age: resolvedAge,
             sex: sex,
             heightCm: try parsePositiveDouble(heightCmText, message: FormaProductCopy.Onboarding.Validation.height),
             currentWeightKg: try parsePositiveDouble(currentWeightKgText, message: FormaProductCopy.Onboarding.Validation.currentWeight),
@@ -323,6 +327,34 @@ struct OnboardingFormState: Equatable {
         if let currentSteps = parsedAverageSteps, currentSteps != expected.averageStepsPerDay {
             hasManuallyEditedAverageSteps = true
         }
+    }
+
+    /// Migrates legacy age-only drafts and keeps `ageText` in sync when `birthDate` is present.
+    mutating func reconcileBirthDateAfterRestore(referenceDate: Date = Date()) {
+        if birthDate == nil {
+            let trimmedAge = ageText.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let legacyAge = Int(trimmedAge), legacyAge > 0 {
+                birthDate = BirthDateAgeResolver.syntheticBirthDate(
+                    fromAge: legacyAge,
+                    referenceDate: referenceDate
+                )
+            }
+        }
+        syncAgeTextFromBirthDate(referenceDate: referenceDate)
+    }
+
+    mutating func syncAgeTextFromBirthDate(referenceDate: Date = Date()) {
+        guard let birthDate else { return }
+        ageText = String(
+            BirthDateAgeResolver.age(from: birthDate, referenceDate: referenceDate)
+        )
+    }
+
+    func resolvedAge(referenceDate: Date = Date()) throws -> Int {
+        if let birthDate {
+            return BirthDateAgeResolver.age(from: birthDate, referenceDate: referenceDate)
+        }
+        return try parsePositiveInt(ageText, message: FormaProductCopy.Onboarding.Validation.age)
     }
 
     // MARK: - Parsed helpers
@@ -575,6 +607,48 @@ struct OnboardingFormState: Equatable {
         ]
         return required.first { step in
             formState.validationMessageV3(for: step) != nil
+        }
+    }
+
+    // MARK: - V4 per-step validation (activity mode only; training rhythm derived internally)
+
+    func canAdvanceV4(from step: OnboardingV4Step) -> Bool {
+        validationMessageV4(for: step) == nil
+    }
+
+    func validationMessageV4(for step: OnboardingV4Step) -> String? {
+        do {
+            try validateV4(step: step)
+            return nil
+        } catch let error as OnboardingFormError {
+            return error.message
+        } catch {
+            return FormaProductCopy.Error.checkInputs
+        }
+    }
+
+    func validateV4(step: OnboardingV4Step) throws {
+        switch step {
+        case .heightWeight:
+            try OnboardingV4HeightWeightValues.validate(formState: self)
+        case .targetWeight:
+            try OnboardingV4TargetWeightValues.validate(formState: self)
+        case .birthday:
+            try OnboardingV4BirthdayValues.validate(formState: self)
+        case .introProof, .targetEncouragement,
+             .appleHealth, .almostThere, .formaProof, .review,
+             .generatingPlan, .planReveal, .savePlan:
+            return
+        case .activityLevel:
+            return
+        }
+    }
+
+    /// Steps that must pass validation before plan generation in v4.
+    static func firstInvalidRequiredV4Step(for formState: OnboardingFormState) -> OnboardingV4Step? {
+        let required: [OnboardingV4Step] = [.heightWeight, .targetWeight, .birthday, .activityLevel]
+        return required.first { step in
+            formState.validationMessageV4(for: step) != nil
         }
     }
 }

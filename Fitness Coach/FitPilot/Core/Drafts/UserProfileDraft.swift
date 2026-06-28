@@ -9,6 +9,7 @@ import Foundation
 
 struct UserProfileDraft: Codable, Equatable, Sendable {
     var name: String?
+    var birthDate: Date? = nil
     var age: Int
     var sex: Sex
     var heightCm: Double

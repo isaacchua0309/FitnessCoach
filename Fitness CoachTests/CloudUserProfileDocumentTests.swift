@@ -22,6 +22,7 @@ final class CloudUserProfileDocumentTests: XCTestCase {
         let restored = document.makeUserProfile()
 
         XCTAssertEqual(restored.name, profile.name)
+        XCTAssertEqual(restored.birthDate, profile.birthDate)
         XCTAssertEqual(restored.age, profile.age)
         XCTAssertEqual(restored.sex, profile.sex)
         XCTAssertEqual(restored.heightCm, profile.heightCm)

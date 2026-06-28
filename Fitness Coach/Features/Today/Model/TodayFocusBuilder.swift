@@ -45,10 +45,10 @@ enum TodayFocusBuilder {
         trainingDataSource: TrainingDataSource = .appleHealth
     ) -> String {
         focus(
-            proteinProgress: state.macroSummary.protein.progress,
-            waterProgress: state.waterSummary.progress,
-            weightLogged: state.weightSummary.weightKg != nil,
-            hasWorkout: state.workoutSummary.hasWorkout,
+            proteinProgress: state.macroBalance.macroSummary.protein.progress,
+            waterProgress: state.macroBalance.waterSummary.progress,
+            weightLogged: state.mission.weightSummary.weightKg != nil,
+            hasWorkout: state.activity.legacyWorkoutSummary.hasWorkout,
             trainingIntegration: trainingIntegration,
             trainingDataSource: trainingDataSource
         )

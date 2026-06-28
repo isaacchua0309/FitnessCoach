@@ -19,6 +19,9 @@ enum OnboardingAnalyticsEvent: String, Sendable {
     case signInCompleted = "onboarding_sign_in_completed"
     case signInCancelled = "onboarding_sign_in_cancelled"
     case completed = "onboarding_completed"
+    case appleHealthPromptViewed = "apple_health_prompt_viewed"
+    case appleHealthPermissionRequested = "apple_health_permission_requested"
+    case appleHealthPermissionResult = "apple_health_permission_result"
 }
 
 enum OnboardingAnalyticsEntry: String, Sendable {
@@ -38,6 +41,7 @@ struct OnboardingAnalyticsProperties: Sendable {
     var feedbackKind: String?
     var completionPath: String?
     var v2Enabled: String?
+    var permissionResult: String?
 
     func asParameters() -> [String: String] {
         var parameters: [String: String] = [:]
@@ -52,6 +56,7 @@ struct OnboardingAnalyticsProperties: Sendable {
         if let feedbackKind { parameters["feedbackKind"] = feedbackKind }
         if let completionPath { parameters["completionPath"] = completionPath }
         if let v2Enabled { parameters["v2Enabled"] = v2Enabled }
+        if let permissionResult { parameters["permissionResult"] = permissionResult }
         return parameters
     }
 }

@@ -24,6 +24,7 @@ final class OnboardingModel: ObservableObject {
 
     @Published private(set) var currentStep: OnboardingStep
     @Published private(set) var currentV3Step: OnboardingV3Step?
+    @Published private(set) var currentV4Step: OnboardingV4Step?
     @Published var v3UISession = OnboardingV3UISessionState()
     @Published var formState = OnboardingFormState()
     @Published private(set) var viewState: OnboardingViewState = .editing
@@ -41,6 +42,10 @@ final class OnboardingModel: ObservableObject {
         flowScope != .v2PostAuth
     }
 
+    var usesV4Steps: Bool {
+        flowScope.usesV4Steps
+    }
+
     var usesV3Steps: Bool {
         flowScope.usesV3Steps
     }
@@ -55,6 +60,8 @@ final class OnboardingModel: ObservableObject {
     private let analyticsLogger: any OnboardingAnalyticsLogging
     private let analyticsEntry: OnboardingAnalyticsEntry
     private let generationDelay: any OnboardingGenerationDelayProviding
+    private let healthTrainingIntegration: TrainingIntegrationProviding
+    private let trainingInsightsStore: TrainingInsightsStore?
     private let onCompletion: () -> Void
     private var generationTask: Task<Void, Never>?
     private var stepEnteredAt = Date()
@@ -64,38 +71,54 @@ final class OnboardingModel: ObservableObject {
         userProfileService: UserProfileService,
         targetService: TargetService,
         onCompletion: @escaping () -> Void,
-        draftStore: OnboardingDraftStore = OnboardingDraftStore(),
-        coachingContextStore: OnboardingCoachingContextStore = OnboardingCoachingContextStore(),
-        analyticsLogger: any OnboardingAnalyticsLogging = NoOpOnboardingAnalyticsLogger(),
+        draftStore: OnboardingDraftStore? = nil,
+        coachingContextStore: OnboardingCoachingContextStore? = nil,
+        analyticsLogger: (any OnboardingAnalyticsLogging)? = nil,
         analyticsEntry: OnboardingAnalyticsEntry = .preAuth,
         flowScope: OnboardingFlowScope? = nil,
-        generationDelay: any OnboardingGenerationDelayProviding = SystemOnboardingGenerationDelayProvider(),
-        allowsLocalOnlyContinuation: Bool = OnboardingRoutingConfiguration.production.allowsLocalOnlyContinuation
+        generationDelay: (any OnboardingGenerationDelayProviding)? = nil,
+        allowsLocalOnlyContinuation: Bool? = nil,
+        healthTrainingIntegration: TrainingIntegrationProviding? = nil,
+        trainingInsightsStore: TrainingInsightsStore? = nil
     ) {
+        let resolvedDraftStore = draftStore ?? OnboardingDraftStore()
+        let resolvedCoachingContextStore = coachingContextStore ?? OnboardingCoachingContextStore()
+        let resolvedAnalyticsLogger = analyticsLogger ?? NoOpOnboardingAnalyticsLogger()
+        let resolvedGenerationDelay = generationDelay ?? SystemOnboardingGenerationDelayProvider()
+        let resolvedAllowsLocalOnlyContinuation = allowsLocalOnlyContinuation
+            ?? OnboardingRoutingConfiguration.production.allowsLocalOnlyContinuation
         let resolvedFlowScope = flowScope ?? OnboardingFlowScope.resolve(
             routingMode: OnboardingV2FeatureFlag.routingMode,
             entry: analyticsEntry
         )
         self.userProfileService = userProfileService
         self.targetService = targetService
-        self.draftStore = draftStore
-        self.coachingContextStore = coachingContextStore
-        self.analyticsLogger = analyticsLogger
+        self.draftStore = resolvedDraftStore
+        self.coachingContextStore = resolvedCoachingContextStore
+        self.analyticsLogger = resolvedAnalyticsLogger
         self.analyticsEntry = analyticsEntry
         self.flowScope = resolvedFlowScope
-        self.generationDelay = generationDelay
-        self.allowsLocalOnlyContinuation = allowsLocalOnlyContinuation
+        self.generationDelay = resolvedGenerationDelay
+        self.allowsLocalOnlyContinuation = resolvedAllowsLocalOnlyContinuation
+        self.healthTrainingIntegration = healthTrainingIntegration ?? HealthTrainingService()
+        self.trainingInsightsStore = trainingInsightsStore
         self.onCompletion = onCompletion
         self.restoredFromDraft = false
-        if resolvedFlowScope.usesV3Steps {
+        if resolvedFlowScope.usesV4Steps {
+            self.currentV4Step = resolvedFlowScope.entryV4Step
+            self.currentV3Step = nil
+            self.currentStep = OnboardingV4DraftBridge.persistedLegacyStep(for: resolvedFlowScope.entryV4Step)
+        } else if resolvedFlowScope.usesV3Steps {
             self.currentV3Step = resolvedFlowScope.entryV3Step
+            self.currentV4Step = nil
             self.currentStep = OnboardingV3DraftBridge.persistedLegacyStep(for: resolvedFlowScope.entryV3Step)
         } else {
             self.currentStep = resolvedFlowScope.entryStep
             self.currentV3Step = nil
+            self.currentV4Step = nil
         }
 
-        if let draft = draftStore.loadDraft(), shouldRestoreDraft(draft) {
+        if let draft = resolvedDraftStore.loadDraft(), shouldRestoreDraft(draft) {
             formState = draft.makeFormState()
             generatedPlan = draft.makeGeneratedPlan()
             if let restoredPlan = generatedPlan {
@@ -105,7 +128,19 @@ final class OnboardingModel: ObservableObject {
                 )
             }
             currentStep = restoredStep(from: draft)
-            if resolvedFlowScope.usesV3Steps {
+            if resolvedFlowScope.usesV4Steps {
+                currentV4Step = OnboardingV4DraftBridge.restoredV4Step(
+                    legacyStep: currentStep,
+                    formState: formState,
+                    flow: resolvedFlowScope.v4Flow
+                )
+                currentV3Step = nil
+                currentStep = OnboardingV4DraftBridge.persistedLegacyStep(
+                    for: currentV4Step ?? resolvedFlowScope.entryV4Step,
+                    formState: formState
+                )
+            } else if resolvedFlowScope.usesV3Steps {
+                currentV4Step = nil
                 currentV3Step = OnboardingV3DraftBridge.restoredV3Step(
                     legacyStep: currentStep,
                     formState: formState,
@@ -119,7 +154,7 @@ final class OnboardingModel: ObservableObject {
             hasLocalProfile = (try? userProfileService.getCurrentProfile()) != nil
             if resolvedFlowScope.usesV2Steps, currentStep == .savePlan, hasLocalProfile {
                 hasCommittedLocalProfile = true
-                draftStore.clearDraft()
+                resolvedDraftStore.clearDraft()
             }
             viewState = resolvedViewState(for: currentStep)
             restoredFromDraft = true
@@ -133,7 +168,9 @@ final class OnboardingModel: ObservableObject {
     func goNext() {
         clearError()
 
-        if flowScope.usesV3Steps {
+        if flowScope.usesV4Steps {
+            goNextV4()
+        } else if flowScope.usesV3Steps {
             goNextV3()
         } else if flowScope.usesV2Steps {
             goNextV2()
@@ -144,6 +181,11 @@ final class OnboardingModel: ObservableObject {
 
     func goBack() {
         clearError()
+
+        if flowScope.usesV4Steps {
+            goBackV4()
+            return
+        }
 
         if flowScope.usesV3Steps {
             goBackV3()
@@ -165,6 +207,138 @@ final class OnboardingModel: ObservableObject {
     func clearError() {
         errorMessage = nil
         if case .error = viewState {
+            viewState = .editing
+        }
+    }
+
+    // MARK: V4 navigation graph
+
+    private func goNextV4() {
+        guard let step = currentV4Step else { return }
+        let completedStep = step
+
+        switch step {
+        case .introProof:
+            if flowScope.completesWithSignInAfterWelcome {
+                recordStepCompletedV4(for: completedStep)
+                draftStore.saveDraft(
+                    OnboardingDraft(formState: formState, currentStep: .body)
+                )
+                pendingCompletionIntent = .signIn
+                onCompletion()
+            } else if let next = nextV4Step(after: step) {
+                advanceV4(to: next, completing: completedStep)
+            }
+        case .heightWeight, .birthday, .targetWeight:
+            guard validateV4CurrentStep() else { return }
+            if let next = nextV4Step(after: step) {
+                advanceV4(to: next, completing: completedStep)
+            }
+        case .targetEncouragement,
+             .almostThere, .formaProof:
+            if let next = nextV4Step(after: step) {
+                advanceV4(to: next, completing: completedStep)
+            }
+        case .appleHealth:
+            continueFromAppleHealth(completedStep: completedStep)
+        case .activityLevel:
+            formState.applyTrainingRhythmDefaultsForCurrentActivity()
+            guard validateV4CurrentStep() else { return }
+            if let next = nextV4Step(after: step) {
+                advanceV4(to: next, completing: completedStep)
+            }
+        case .review:
+            recordStepCompletedV4(for: completedStep)
+            beginGeneration()
+        case .planReveal:
+            prepareForSavePlan()
+        case .savePlan:
+            awaitSignInAndFinish()
+        case .generatingPlan:
+            break
+        }
+    }
+
+    private func goBackV4() {
+        guard let step = currentV4Step else { return }
+        guard let previous = backTargetV4(for: step) else { return }
+
+        if step.clearsGeneratedPlanWhenNavigatingBack(in: flowScope.v4Flow) {
+            clearGeneratedPlan()
+        }
+
+        currentV4Step = previous
+        currentStep = OnboardingV4DraftBridge.persistedLegacyStep(for: previous, formState: formState)
+        viewState = resolvedViewState(for: currentStep)
+        if OnboardingV4InteractionPolicy.rules(for: previous).dismissesKeyboardOnAppear {
+            OnboardingKeyboard.dismiss()
+        }
+        recordStepViewedV4(previous)
+        autosaveDraft()
+    }
+
+    private func nextV4Step(after step: OnboardingV4Step) -> OnboardingV4Step? {
+        OnboardingV4StepPolicy.next(after: step, in: flowScope.v4Flow)
+    }
+
+    private func backTargetV4(for step: OnboardingV4Step) -> OnboardingV4Step? {
+        OnboardingV4StepPolicy.back(from: step, in: flowScope.v4Flow)
+    }
+
+    private func advanceV4(
+        to step: OnboardingV4Step,
+        persistDraft: Bool = true,
+        completing completedStep: OnboardingV4Step? = nil
+    ) {
+        if let completedStep {
+            recordStepCompletedV4(for: completedStep)
+        }
+        currentV4Step = step
+        currentStep = OnboardingV4DraftBridge.persistedLegacyStep(for: step, formState: formState)
+        viewState = resolvedViewState(for: currentStep)
+        if OnboardingV4InteractionPolicy.rules(for: step).dismissesKeyboardOnAppear {
+            OnboardingKeyboard.dismiss()
+        }
+        recordStepViewedV4(step)
+        if persistDraft, shouldPersistDraft {
+            autosaveDraft()
+        }
+    }
+
+    private func continueFromAppleHealth(completedStep: OnboardingV4Step) {
+        guard currentV4Step == .appleHealth else { return }
+        guard viewState == .editing else { return }
+
+        viewState = .connectingAppleHealth
+        logAppleHealthAnalytics(.appleHealthPermissionRequested)
+
+        Task { [weak self] in
+            await self?.performAppleHealthPermissionFlow(completedStep: completedStep)
+        }
+    }
+
+    private func performAppleHealthPermissionFlow(completedStep: OnboardingV4Step) async {
+        let resultState: TrainingIntegrationState
+        if let trainingInsightsStore {
+            resultState = await OnboardingV4AppleHealthFlow.requestPermission(
+                trainingInsightsStore: trainingInsightsStore
+            )
+        } else {
+            resultState = await OnboardingV4AppleHealthFlow.requestPermission(
+                using: healthTrainingIntegration
+            )
+        }
+
+        logAppleHealthAnalytics(
+            .appleHealthPermissionResult,
+            permissionResult: OnboardingV4AppleHealthFlow.analyticsResult(for: resultState)
+        )
+
+        guard currentV4Step == .appleHealth else { return }
+
+        if let next = nextV4Step(after: .appleHealth) {
+            advanceV4(to: next, completing: completedStep)
+        } else {
             viewState = .editing
         }
     }
@@ -276,6 +450,20 @@ final class OnboardingModel: ObservableObject {
         }
     }
 
+    private func validateV4CurrentStep() -> Bool {
+        guard let step = currentV4Step else { return true }
+        do {
+            try formState.validateV4(step: step)
+            return true
+        } catch let error as OnboardingFormError {
+            errorMessage = error.message
+            return false
+        } catch {
+            errorMessage = FormaProductCopy.Error.checkInputs
+            return false
+        }
+    }
+
     // MARK: V2 navigation graph
 
     private func goNextV2() {
@@ -349,7 +537,15 @@ final class OnboardingModel: ObservableObject {
     }
 
     func beginGeneration() {
-        if flowScope.usesV3Steps,
+        if flowScope.usesV4Steps {
+            formState.applyTrainingRhythmDefaultsForCurrentActivity()
+            if let invalidV4 = OnboardingFormState.firstInvalidRequiredV4Step(for: formState) {
+                errorMessage = formState.validationMessageV4(for: invalidV4)
+                    ?? FormaProductCopy.Onboarding.V2.Validation.summaryIncomplete
+                advanceV4(to: invalidV4, persistDraft: true, completing: nil)
+                return
+            }
+        } else if flowScope.usesV3Steps,
            let invalidV3 = OnboardingFormState.firstInvalidRequiredV3Step(for: formState) {
             errorMessage = formState.validationMessageV3(for: invalidV3)
                 ?? FormaProductCopy.Onboarding.V2.Validation.summaryIncomplete
@@ -357,7 +553,8 @@ final class OnboardingModel: ObservableObject {
             return
         }
 
-        if let invalidStep = Self.firstInvalidRequiredStep(for: formState) {
+        if !flowScope.usesV4Steps,
+           let invalidStep = Self.firstInvalidRequiredStep(for: formState) {
             errorMessage = formState.validationMessage(for: invalidStep)
                 ?? FormaProductCopy.Onboarding.V2.Validation.summaryIncomplete
             currentStep = invalidStep
@@ -367,14 +564,18 @@ final class OnboardingModel: ObservableObject {
         }
 
         generationTask?.cancel()
-        if flowScope.usesV3Steps {
+        if flowScope.usesV4Steps {
+            currentV4Step = .generatingPlan
+        } else if flowScope.usesV3Steps {
             currentV3Step = .generatingPlan
         }
         currentStep = .generatingPlan
         viewState = .generatingPlanAnimated
         errorMessage = nil
         recordStepViewed(.generatingPlan)
-        if flowScope.usesV3Steps {
+        if flowScope.usesV4Steps {
+            recordStepViewedV4(.generatingPlan)
+        } else if flowScope.usesV3Steps {
             recordStepViewedV3(.generatingPlan)
         }
         autosaveDraft()
@@ -418,12 +619,16 @@ final class OnboardingModel: ObservableObject {
                 currentStep = .planPreview
                 recordStepViewed(.planPreview)
             } else {
-                if flowScope.usesV3Steps {
+                if flowScope.usesV4Steps {
+                    currentV4Step = .planReveal
+                } else if flowScope.usesV3Steps {
                     currentV3Step = .planReveal
                 }
                 currentStep = .planReveal
                 recordStepViewed(.planReveal)
-                if flowScope.usesV3Steps {
+                if flowScope.usesV4Steps {
+                    recordStepViewedV4(.planReveal)
+                } else if flowScope.usesV3Steps {
                     recordStepViewedV3(.planReveal)
                 }
                 logAnalytics(.planRevealed, properties: planAnalyticsProperties(plan: plan))
@@ -440,8 +645,12 @@ final class OnboardingModel: ObservableObject {
     }
 
     func returnToSummaryAfterGenerationFailure() {
-        guard currentStep == .generatingPlan || currentV3Step == .generatingPlan else { return }
-        if flowScope.usesV3Steps {
+        guard currentStep == .generatingPlan
+            || currentV3Step == .generatingPlan
+            || currentV4Step == .generatingPlan else { return }
+        if flowScope.usesV4Steps {
+            advanceV4(to: .review, persistDraft: true, completing: nil)
+        } else if flowScope.usesV3Steps {
             advanceV3(to: .review, persistDraft: true, completing: nil)
         } else {
             currentStep = .summary
@@ -451,9 +660,13 @@ final class OnboardingModel: ObservableObject {
     }
 
     func adjustPlanFromReveal() {
-        guard currentStep == .planReveal || currentV3Step == .planReveal else { return }
+        guard currentStep == .planReveal
+            || currentV3Step == .planReveal
+            || currentV4Step == .planReveal else { return }
         clearGeneratedPlan()
-        if flowScope.usesV3Steps {
+        if flowScope.usesV4Steps {
+            advanceV4(to: .targetWeight, persistDraft: true, completing: nil)
+        } else if flowScope.usesV3Steps {
             advanceV3(to: .goalWeight, persistDraft: true, completing: nil)
         } else {
             currentStep = .goal
@@ -491,7 +704,9 @@ final class OnboardingModel: ObservableObject {
     func prepareForSavePlan() {
         commitLocalProfileForSavePlan()
         guard errorMessage == nil else { return }
-        if flowScope.usesV3Steps {
+        if flowScope.usesV4Steps {
+            advanceV4(to: .savePlan, persistDraft: false, completing: .planReveal)
+        } else if flowScope.usesV3Steps {
             advanceV3(to: .savePlan, persistDraft: false, completing: .planReveal)
         } else {
             advance(to: .savePlan, persistDraft: false, completing: .planReveal)
@@ -718,7 +933,9 @@ final class OnboardingModel: ObservableObject {
 
     private func bootstrapAnalyticsSession() {
         if restoredFromDraft {
-            if let currentV3Step {
+            if let currentV4Step {
+                recordStepViewedV4(currentV4Step)
+            } else if let currentV3Step {
                 recordStepViewedV3(currentV3Step)
             } else {
                 recordStepViewed(currentStep)
@@ -726,7 +943,9 @@ final class OnboardingModel: ObservableObject {
             return
         }
         logAnalytics(.started)
-        if let currentV3Step {
+        if let currentV4Step {
+            recordStepViewedV4(currentV4Step)
+        } else if let currentV3Step {
             recordStepViewedV3(currentV3Step)
         } else {
             recordStepViewed(currentStep)
@@ -747,6 +966,19 @@ final class OnboardingModel: ObservableObject {
         logAnalytics(.stepViewed, properties: properties)
     }
 
+    private func recordStepViewedV4(_ step: OnboardingV4Step) {
+        stepEnteredAt = Date()
+        var properties = baseAnalyticsProperties(step: currentStep)
+        properties.step = OnboardingV4DraftBridge.analyticsStepName(step)
+        properties.stage = step.stage.rawValue
+        properties.v2Enabled = "v4"
+        logAnalytics(.stepViewed, properties: properties)
+
+        if step == .appleHealth {
+            logAppleHealthAnalytics(.appleHealthPromptViewed)
+        }
+    }
+
     private func recordStepCompleted(for step: OnboardingStep) {
         var properties = baseAnalyticsProperties(step: step)
         properties.durationMs = stepDurationMs
@@ -764,6 +996,20 @@ final class OnboardingModel: ObservableObject {
         properties.stage = step.stage.rawValue
         properties.durationMs = stepDurationMs
         properties.v2Enabled = "v3"
+        logAnalytics(.stepCompleted, properties: properties)
+
+        if let feedbackKind = OnboardingAnalyticsContextBuilder.feedbackKind(for: currentStep, formState: formState) {
+            properties.feedbackKind = feedbackKind
+            logAnalytics(.feedbackShown, properties: properties)
+        }
+    }
+
+    private func recordStepCompletedV4(for step: OnboardingV4Step) {
+        var properties = baseAnalyticsProperties(step: currentStep)
+        properties.step = OnboardingV4DraftBridge.analyticsStepName(step)
+        properties.stage = step.stage.rawValue
+        properties.durationMs = stepDurationMs
+        properties.v2Enabled = "v4"
         logAnalytics(.stepCompleted, properties: properties)
 
         if let feedbackKind = OnboardingAnalyticsContextBuilder.feedbackKind(for: currentStep, formState: formState) {
@@ -811,6 +1057,18 @@ final class OnboardingModel: ObservableObject {
     ) {
         let resolvedProperties = properties ?? baseAnalyticsProperties(step: step ?? currentStep)
         analyticsLogger.log(event, properties: resolvedProperties)
+    }
+
+    private func logAppleHealthAnalytics(
+        _ event: OnboardingAnalyticsEvent,
+        permissionResult: String? = nil
+    ) {
+        var properties = baseAnalyticsProperties(step: currentStep)
+        properties.step = OnboardingV4DraftBridge.analyticsStepName(.appleHealth)
+        properties.stage = OnboardingV4Step.appleHealth.stage.rawValue
+        properties.v2Enabled = "v4"
+        properties.permissionResult = permissionResult
+        logAnalytics(event, properties: properties)
     }
 
     private func analyticsStepName(_ step: OnboardingStep) -> String {

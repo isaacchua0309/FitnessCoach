@@ -10,6 +10,7 @@ import SwiftUI
 struct OnboardingStepContainer<Content: View>: View {
     let currentStep: OnboardingStep
     var currentV3Step: OnboardingV3Step?
+    var currentV4Step: OnboardingV4Step?
     let usesStageProgress: Bool
     let viewState: OnboardingViewState
     let validationMessage: String?
@@ -18,6 +19,9 @@ struct OnboardingStepContainer<Content: View>: View {
     @ViewBuilder let content: Content
 
     private var usesFullScreenShell: Bool {
+        if let currentV4Step {
+            return currentV4Step.usesFullScreenChrome
+        }
         if let currentV3Step {
             return currentV3Step.usesFullScreenChrome
         }
@@ -36,6 +40,9 @@ struct OnboardingStepContainer<Content: View>: View {
 
     private var showsContainerValidationBanner: Bool {
         guard let validationMessage, !validationMessage.isEmpty else { return false }
+        if currentV4Step == .review || currentV4Step == .savePlan {
+            return false
+        }
         if currentV3Step == .review || currentV3Step == .savePlan {
             return false
         }
@@ -64,6 +71,10 @@ struct OnboardingStepContainer<Content: View>: View {
             OnboardingKeyboard.dismiss()
         }
         .onChange(of: currentV3Step) { _, _ in
+            fieldNavigator.clearFocus()
+            OnboardingKeyboard.dismiss()
+        }
+        .onChange(of: currentV4Step) { _, _ in
             fieldNavigator.clearFocus()
             OnboardingKeyboard.dismiss()
         }
@@ -122,7 +133,9 @@ struct OnboardingStepContainer<Content: View>: View {
     @ViewBuilder
     private var progressHeader: some View {
         if showsProgressHeader {
-            if let currentV3Step {
+            if let currentV4Step {
+                OnboardingV4StageProgressHeader(currentStep: currentV4Step)
+            } else if let currentV3Step {
                 OnboardingV3StageProgressHeader(currentStep: currentV3Step)
             } else if usesStageProgress {
                 OnboardingStageProgressHeader(currentStep: currentStep)
@@ -133,7 +146,9 @@ struct OnboardingStepContainer<Content: View>: View {
     }
 
     private var showsProgressHeader: Bool {
-        currentV3Step?.showsProgressHeader ?? currentStep.showsProgressHeader
+        currentV4Step?.showsProgressHeader
+            ?? currentV3Step?.showsProgressHeader
+            ?? currentStep.showsProgressHeader
     }
 
     private var contentHorizontalPadding: CGFloat {

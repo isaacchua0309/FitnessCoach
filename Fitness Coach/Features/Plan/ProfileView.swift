@@ -129,11 +129,11 @@ struct ProfileView: View {
                 }
             }
         case .error(let message):
-            FormaScreenErrorView(message: message, style: .detailScreen) {
+            FormaScreenErrorView(message: message, onRetry: {
                 Task {
                     await model.refresh()
                 }
-            }
+            }, style: .detailScreen)
         case .loaded(let state):
             dashboard(state)
         }

@@ -3,11 +3,12 @@
 //  Fitness Coach
 //
 
+import Charts
 import SwiftUI
 
 struct JourneyDetailedAnalyticsSection: View {
-    let analytics: ProgressAnalyticsDetail
-    let weeklySnapshot: JourneyWeeklySnapshot
+    let analytics: JourneyDetailedAnalyticsState
+    let weeklyReview: JourneyWeeklyReviewState
     let selectedRangeDays: Int
     let onSelectRange: (Int) -> Void
 
@@ -29,6 +30,15 @@ struct JourneyDetailedAnalyticsSection: View {
                             selectedRangeDays: selectedRangeDays,
                             onSelect: onSelectRange
                         )
+                    }
+
+                    if analytics.showsWeightChart {
+                        analyticsBlock(title: "Weight trend") {
+                            JourneyWeightTrendChart(
+                                chartPoints: analytics.weightChartPoints,
+                                interpretation: analytics.weightTrendInterpretation
+                            )
+                        }
                     }
 
                     analyticsBlock(title: "Nutrition") {
@@ -65,11 +75,16 @@ struct JourneyDetailedAnalyticsSection: View {
             }
             .tint(FormaTokens.Color.accent)
         }
+        .onAppear {
+            if !isExpanded, analytics.isCollapsedByDefault {
+                isExpanded = false
+            }
+        }
     }
 
     @ViewBuilder
     private var trainingAnalyticsBlock: some View {
-        switch weeklySnapshot.training {
+        switch weeklyReview.training {
         case .hidden, .locked:
             EmptyView()
         case .connectedEmpty:
@@ -107,14 +122,14 @@ struct JourneyDetailedAnalyticsSection: View {
 
     @ViewBuilder
     private var weeklyAveragesBlock: some View {
-        let training = weeklySnapshot.training
-        let hasWeeklyAverages = weeklySnapshot.averageCalorieDeficit != nil
+        let training = weeklyReview.training
+        let hasWeeklyAverages = weeklyReview.averageCalorieDeficit != nil
             || (training.averageCaloriesBurned ?? 0) > 0
             || (training.averageTrainingDurationMinutes ?? 0) > 0
 
         if hasWeeklyAverages {
             analyticsBlock(title: "This week averages") {
-                if let deficit = weeklySnapshot.averageCalorieDeficit {
+                if let deficit = weeklyReview.averageCalorieDeficit {
                     let label = deficit > 0
                         ? "\(deficit) kcal under target"
                         : "\(abs(deficit)) kcal above target"
@@ -151,6 +166,45 @@ struct JourneyDetailedAnalyticsSection: View {
                 .font(FormaTokens.Typography.sectionSubtitle)
                 .foregroundStyle(FormaTokens.Color.textSecondary)
                 .multilineTextAlignment(.trailing)
+        }
+    }
+}
+
+// MARK: - Weight chart (analytics only)
+
+private struct JourneyWeightTrendChart: View {
+    let chartPoints: [WeightChartPoint]
+    let interpretation: String
+
+    @ScaledMetric(relativeTo: .body) private var chartHeight: CGFloat = 120
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+            Chart {
+                ForEach(chartPoints) { point in
+                    LineMark(
+                        x: .value("Date", point.date),
+                        y: .value("Weight", point.weightKg)
+                    )
+                    .foregroundStyle(FormaTokens.Color.accent.opacity(0.8))
+                    .interpolationMethod(.catmullRom)
+
+                    PointMark(
+                        x: .value("Date", point.date),
+                        y: .value("Weight", point.weightKg)
+                    )
+                    .foregroundStyle(point.isSynthetic ? FormaTokens.Color.textSecondary : FormaTokens.Color.accent)
+                    .symbolSize(point.isSynthetic ? 28 : 20)
+                }
+            }
+            .chartYAxisLabel("kg")
+            .chartXAxis(.hidden)
+            .frame(minHeight: chartHeight)
+
+            Text(interpretation)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

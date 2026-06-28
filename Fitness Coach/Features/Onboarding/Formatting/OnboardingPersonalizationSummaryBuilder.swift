@@ -17,7 +17,18 @@ enum OnboardingPersonalizationSummaryBuilder {
 
     private static let requiredSteps: [OnboardingStep] = [.body, .goal, .activity]
 
-    static func recapCards(for formState: OnboardingFormState) -> [OnboardingPersonalizationSummaryRecap] {
+    static func recapCards(
+        for formState: OnboardingFormState,
+        usesV4Steps: Bool = false,
+        referenceDate: Date = Date()
+    ) -> [OnboardingPersonalizationSummaryRecap] {
+        if usesV4Steps {
+            return OnboardingV4PersonalizationSummaryBuilder.recapCards(
+                for: formState,
+                referenceDate: referenceDate
+            )
+        }
+
         let copy = FormaProductCopy.Onboarding.V2.Summary.self
         return [
             OnboardingPersonalizationSummaryRecap(
@@ -48,18 +59,42 @@ enum OnboardingPersonalizationSummaryBuilder {
         ]
     }
 
-    static func firstInvalidRequiredStep(for formState: OnboardingFormState) -> OnboardingStep? {
-        requiredSteps.first { formState.validationMessage(for: $0) != nil }
+    static func firstInvalidRequiredStep(
+        for formState: OnboardingFormState,
+        usesV4Steps: Bool = false
+    ) -> OnboardingStep? {
+        if usesV4Steps {
+            guard let v4Step = OnboardingFormState.firstInvalidRequiredV4Step(for: formState) else {
+                return nil
+            }
+            return OnboardingV4DraftBridge.persistedLegacyStep(for: v4Step, formState: formState)
+        }
+
+        return requiredSteps.first { formState.validationMessage(for: $0) != nil }
     }
 
-    static func validationMessage(for formState: OnboardingFormState) -> String? {
-        guard let step = firstInvalidRequiredStep(for: formState) else { return nil }
+    static func validationMessage(
+        for formState: OnboardingFormState,
+        usesV4Steps: Bool = false
+    ) -> String? {
+        if usesV4Steps {
+            return OnboardingV4PersonalizationSummaryBuilder.validationMessage(for: formState)
+        }
+
+        guard let step = firstInvalidRequiredStep(for: formState, usesV4Steps: false) else { return nil }
         return formState.validationMessage(for: step)
             ?? FormaProductCopy.Onboarding.V2.Validation.summaryIncomplete
     }
 
-    static func isReadyToGenerate(for formState: OnboardingFormState) -> Bool {
-        firstInvalidRequiredStep(for: formState) == nil
+    static func isReadyToGenerate(
+        for formState: OnboardingFormState,
+        usesV4Steps: Bool = false
+    ) -> Bool {
+        if usesV4Steps {
+            return OnboardingV4PersonalizationSummaryBuilder.isReadyToGenerate(for: formState)
+        }
+
+        return firstInvalidRequiredStep(for: formState, usesV4Steps: false) == nil
     }
 
     // MARK: - Lines

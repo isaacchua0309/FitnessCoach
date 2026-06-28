@@ -17,14 +17,38 @@ enum CloudProfileWriteIntent: Equatable, Sendable {
     case userConfirmedReplace
 }
 
-enum CloudProfileWriteBlockedReason: Equatable, Sendable {
+enum CloudProfileWriteBlockedReason: Sendable {
     case ownerMismatch(localOwnerUID: String?, signedInUID: String)
     case cloudProfileExists
     case cloudLookupFailed
 }
 
-enum CloudProfileWriteError: Error, Equatable {
+extension CloudProfileWriteBlockedReason: Equatable {
+    nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
+        switch (lhs, rhs) {
+        case let (.ownerMismatch(localL, signedL), .ownerMismatch(localR, signedR)):
+            return localL == localR && signedL == signedR
+        case (.cloudProfileExists, .cloudProfileExists):
+            return true
+        case (.cloudLookupFailed, .cloudLookupFailed):
+            return true
+        default:
+            return false
+        }
+    }
+}
+
+enum CloudProfileWriteError: Error, Sendable {
     case blocked(CloudProfileWriteBlockedReason)
+}
+
+extension CloudProfileWriteError: Equatable {
+    nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
+        switch (lhs, rhs) {
+        case let (.blocked(lhsReason), .blocked(rhsReason)):
+            return lhsReason == rhsReason
+        }
+    }
 }
 
 extension CloudProfileWriteIntent {

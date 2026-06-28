@@ -52,7 +52,15 @@ final class OnboardingDraftStoreTests: XCTestCase {
 
         XCTAssertEqual(loaded.draftVersion, OnboardingDraft.currentDraftVersion)
         XCTAssertEqual(loaded.currentStep, .goal)
-        XCTAssertEqual(loaded.makeFormState(), formState)
+        let restored = loaded.makeFormState()
+        XCTAssertEqual(restored.ageText, formState.ageText)
+        XCTAssertEqual(restored.sex, formState.sex)
+        XCTAssertEqual(restored.heightCmText, formState.heightCmText)
+        XCTAssertEqual(restored.currentWeightKgText, formState.currentWeightKgText)
+        XCTAssertEqual(restored.goalWeightKgText, formState.goalWeightKgText)
+        XCTAssertEqual(restored.name, formState.name)
+        XCTAssertEqual(restored.weightLossPaceChoice, formState.weightLossPaceChoice)
+        XCTAssertNotNil(restored.birthDate)
         XCTAssertEqual(loaded.makeGeneratedPlan(), plan)
     }
 

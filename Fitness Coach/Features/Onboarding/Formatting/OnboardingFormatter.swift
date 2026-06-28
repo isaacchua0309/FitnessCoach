@@ -28,13 +28,13 @@ enum OnboardingFormatter {
         case .sedentary:
             return "Sedentary"
         case .lightlyActive:
-            return "Lightly active"
+            return "Lightly Active"
         case .moderatelyActive:
-            return "Moderately active"
+            return "Moderately Active"
         case .veryActive:
-            return "Very active"
+            return "Very Active"
         case .athlete:
-            return "Athlete"
+            return "Extra Active"
         }
     }
 

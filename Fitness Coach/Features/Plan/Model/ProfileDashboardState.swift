@@ -9,6 +9,8 @@ import Foundation
 
 struct ProfileDashboardState: Equatable {
     var profile: UserProfile
+    /// Product-facing Mission Control read model for the Plan dashboard redesign.
+    var missionControl: PlanMissionControlDashboard
     var strategy: PlanStrategyState
     var todaysTargets: PlanTodaysTargetsState
     var rationale: PlanRationaleState

@@ -52,7 +52,7 @@ struct TodayView: View {
                 }
                 .task {
                     await trainingInsightsStore.refresh()
-                    await model.loadToday()
+                    await model.loadToday(activityContext: currentActivityContext)
                 }
                 .onChange(of: refreshCenter.refreshToken) { _, _ in
                     Task<Void, Never> {
@@ -90,7 +90,15 @@ struct TodayView: View {
         } else {
             appleHealthWorkoutCount = nil
         }
-        await model.refresh()
+        await model.refresh(activityContext: currentActivityContext)
+    }
+
+    private var currentActivityContext: TodayActivityContext {
+        TodayActivityContext(
+            trainingIntegration: trainingInsightsStore.integrationState,
+            trainingDataSource: trainingInsightsStore.dataSource,
+            appleHealthWorkoutCount: appleHealthWorkoutCount
+        )
     }
 
     @ViewBuilder
@@ -103,9 +111,9 @@ struct TodayView: View {
                 Task { await refreshDashboard() }
             }
         case .error(let message):
-            FormaScreenErrorView(message: message, style: .tabRoot) {
+            FormaScreenErrorView(message: message, onRetry: {
                 Task { await refreshDashboard() }
-            }
+            }, style: .tabRoot)
         case .loaded(let state):
             dashboard(state)
         }

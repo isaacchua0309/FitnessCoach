@@ -40,7 +40,11 @@ struct OnboardingDraft: Codable, Equatable, Sendable {
         draftVersion = Self.currentDraftVersion
         currentStepRawValue = currentStep.rawValue
         form = OnboardingDraftFormFields(formState: formState)
-        self.generatedPlan = generatedPlan.map(OnboardingDraftGeneratedPlan.init(result:))
+        if let generatedPlan {
+            self.generatedPlan = OnboardingDraftGeneratedPlan(result: generatedPlan)
+        } else {
+            self.generatedPlan = nil
+        }
         self.savedAt = savedAt
     }
 
@@ -60,6 +64,7 @@ struct OnboardingDraft: Codable, Equatable, Sendable {
 struct OnboardingDraftFormFields: Codable, Equatable, Sendable {
     var name: String
     var ageText: String
+    var birthDateISO8601: String? = nil
     var sexRawValue: String
     var heightCmText: String
     var currentWeightKgText: String
@@ -80,6 +85,7 @@ struct OnboardingDraftFormFields: Codable, Equatable, Sendable {
     init(formState: OnboardingFormState) {
         name = formState.name
         ageText = formState.ageText
+        birthDateISO8601 = formState.birthDate.map(BirthDatePersistence.encode)
         sexRawValue = formState.sex.rawValue
         heightCmText = formState.heightCmText
         currentWeightKgText = formState.currentWeightKgText
@@ -102,6 +108,9 @@ struct OnboardingDraftFormFields: Codable, Equatable, Sendable {
         var state = OnboardingFormState()
         state.name = name
         state.ageText = ageText
+        if let birthDateISO8601 {
+            state.birthDate = BirthDatePersistence.decode(birthDateISO8601)
+        }
         state.sex = Sex(rawValue: sexRawValue) ?? .preferNotToSay
         state.heightCmText = heightCmText
         state.currentWeightKgText = currentWeightKgText
@@ -124,6 +133,7 @@ struct OnboardingDraftFormFields: Codable, Equatable, Sendable {
         state.selectedMotivations = OnboardingMotivation.fromStoredValues(selectedMotivationRawValues)
         state.loggingPreferences = OnboardingLoggingPreference.fromStoredValues(selectedLoggingPreferenceRawValues)
         state.reconcileTrainingRhythmAfterRestore()
+        state.reconcileBirthDateAfterRestore()
         return state
     }
 }
@@ -136,7 +146,7 @@ struct OnboardingDraftGeneratedPlan: Codable, Equatable, Sendable {
     var warning: String?
     var targets: UserTargets
 
-    init(result: CalorieTargetResult) {
+    nonisolated init(result: CalorieTargetResult) {
         estimatedBMR = result.estimatedBMR
         estimatedTDEE = result.estimatedTDEE
         estimatedDailyDeficit = result.estimatedDailyDeficit

@@ -10,6 +10,7 @@ import SwiftUI
 struct OnboardingBottomBar: View {
     let currentStep: OnboardingStep
     var currentV3Step: OnboardingV3Step?
+    var currentV4Step: OnboardingV4Step?
     let isLoading: Bool
     let canContinue: Bool
     var showsRequiredFieldsHint: Bool = false
@@ -23,12 +24,16 @@ struct OnboardingBottomBar: View {
 
     private var isV2: Bool { OnboardingStepPolicy.isV2Enabled }
     private var usesV3: Bool { currentV3Step != nil }
+    private var usesV4: Bool { currentV4Step != nil }
 
     private var resolvedButtonHeight: CGFloat {
         max(buttonHeight, FormaTokens.Layout.minTouchTarget)
     }
 
     private var showsBackButton: Bool {
+        if let currentV4Step {
+            return currentV4Step.allowsBackNavigation(in: OnboardingV4Step.flowForActiveScope())
+        }
         if let currentV3Step {
             return currentV3Step.allowsBackNavigation(in: OnboardingV3Step.flowForActiveScope())
         }
@@ -40,16 +45,33 @@ struct OnboardingBottomBar: View {
     }
 
     private var showsAdjustPlan: Bool {
-        (currentV3Step == .planReveal || currentStep == .planReveal) && onAdjustPlan != nil
+        (currentV4Step == .planReveal || currentV3Step == .planReveal || currentStep == .planReveal)
+            && onAdjustPlan != nil
     }
 
     private var primaryTitle: String {
+        if let currentV4Step {
+            switch currentV4Step {
+            case .review:
+                return FormaProductCopy.Onboarding.V2.Summary.buildPlanCTA
+            case .planReveal:
+                return FormaProductCopy.Onboarding.V3.PlanReveal.savePlanCTA
+            case .targetEncouragement:
+                return FormaProductCopy.Onboarding.V4.TargetEncouragement.continueCTA
+            case .almostThere:
+                return FormaProductCopy.Onboarding.V4.AlmostThere.continueCTA
+            case .formaProof:
+                return FormaProductCopy.Onboarding.V4.FormaProof.continueCTA
+            default:
+                return FormaProductCopy.Common.continueAction
+            }
+        }
         if let currentV3Step {
             switch currentV3Step {
             case .review:
                 return FormaProductCopy.Onboarding.V2.Summary.buildPlanCTA
             case .planReveal:
-                return FormaProductCopy.Onboarding.V2.PlanReveal.savePlanCTA
+                return FormaProductCopy.Onboarding.V3.PlanReveal.savePlanCTA
             default:
                 return FormaProductCopy.Common.continueAction
             }

@@ -35,7 +35,7 @@ struct ProfileFormState: Equatable {
 
     init(profile: UserProfile) {
         name = profile.name ?? ""
-        ageText = "\(profile.age)"
+        ageText = "\(profile.resolvedAge())"
         sex = profile.sex
         heightCmText = Self.formatDouble(profile.heightCm)
         currentWeightKgText = Self.formatDouble(profile.currentWeightKg)

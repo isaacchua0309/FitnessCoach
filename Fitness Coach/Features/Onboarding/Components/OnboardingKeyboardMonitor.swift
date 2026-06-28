@@ -42,7 +42,7 @@ final class OnboardingKeyboardMonitor: ObservableObject {
         guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else {
             return
         }
-        let isKeyboardOnScreen = frame.height > 50 && frame.minY < UIScreen.main.bounds.height
+        let isKeyboardOnScreen = frame.height > 50 && frame.minY < screenHeight(for: notification)
         guard isKeyboardOnScreen else {
             withAnimation(.easeOut(duration: 0.25)) {
                 isVisible = false
@@ -51,11 +51,21 @@ final class OnboardingKeyboardMonitor: ObservableObject {
             return
         }
 
-        let overlap = max(0, UIScreen.main.bounds.height - frame.minY)
+        let overlap = max(0, screenHeight(for: notification) - frame.minY)
         withAnimation(.easeOut(duration: 0.25)) {
             isVisible = showing
             keyboardHeight = overlap
         }
+    }
+
+    private func screenHeight(for notification: Notification) -> CGFloat {
+        if let window = notification.object as? UIWindow {
+            return window.windowScene?.screen.bounds.height ?? window.bounds.height
+        }
+        return UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?
+            .screen.bounds.height ?? 0
     }
 }
 

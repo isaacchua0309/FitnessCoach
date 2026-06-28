@@ -12,11 +12,6 @@
 import Foundation
 import SwiftData
 
-@available(
-    *,
-    deprecated,
-    message: "Manual workout logging is retired. Official training data comes from Apple Health."
-)
 @MainActor
 final class WorkoutLogService {
 

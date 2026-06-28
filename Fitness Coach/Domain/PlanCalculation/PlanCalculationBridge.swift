@@ -48,7 +48,7 @@ enum PlanCalculationBridge {
         isWorkoutDay: Bool = false
     ) -> PlanCalculationInput {
         PlanCalculationInput(
-            ageYears: profile.age,
+            ageYears: profile.resolvedAge(referenceDate: referenceDate),
             sex: profile.sex,
             heightCm: profile.heightCm,
             weightKg: profile.currentWeightKg,

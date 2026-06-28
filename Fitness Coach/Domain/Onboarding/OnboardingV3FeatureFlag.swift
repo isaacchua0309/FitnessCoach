@@ -15,7 +15,7 @@ enum OnboardingV3FeatureFlag {
     static let debugEnabledEnvironmentKey = "FORMA_ONBOARDING_V3"
     #endif
 
-    /// Master switch for onboarding v3. Defaults to `false` until screens are migrated.
+    /// Master switch for onboarding v3. Defaults to `true` for new installs; set `false` in UserDefaults to roll back.
     static var isEnabled: Bool {
         #if DEBUG
         if let override = ProcessInfo.processInfo.environment[debugEnabledEnvironmentKey] {
@@ -24,7 +24,7 @@ enum OnboardingV3FeatureFlag {
         #endif
         let defaults = UserDefaults.standard
         guard defaults.object(forKey: enabledKey) != nil else {
-            return false
+            return true
         }
         return defaults.bool(forKey: enabledKey)
     }

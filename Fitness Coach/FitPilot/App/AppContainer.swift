@@ -48,8 +48,9 @@ final class AppContainer {
         inMemory: Bool = false,
         onboardingUserDefaults: UserDefaults? = nil,
         onboardingAnalyticsLogger: (any OnboardingAnalyticsLogging)? = nil,
-        onboardingRoutingConfiguration: OnboardingRoutingConfiguration = .production
+        onboardingRoutingConfiguration: OnboardingRoutingConfiguration? = nil
     ) throws {
+        let resolvedOnboardingRoutingConfiguration = onboardingRoutingConfiguration ?? .production
         refreshCenter = AppRefreshCenter()
         let authManager = AuthManager()
         self.authManager = authManager
@@ -67,7 +68,7 @@ final class AppContainer {
         #else
         self.onboardingAnalyticsLogger = onboardingAnalyticsLogger ?? NoOpOnboardingAnalyticsLogger()
         #endif
-        self.onboardingRoutingConfiguration = onboardingRoutingConfiguration
+        self.onboardingRoutingConfiguration = resolvedOnboardingRoutingConfiguration
 
         healthTrainingService = HealthTrainingService()
         trainingInsightsStore = TrainingInsightsStore(integration: healthTrainingService)
@@ -265,7 +266,9 @@ final class AppContainer {
             analyticsLogger: onboardingAnalyticsLogger,
             analyticsEntry: entry,
             flowScope: flowScope,
-            allowsLocalOnlyContinuation: onboardingRoutingConfiguration.allowsLocalOnlyContinuation
+            allowsLocalOnlyContinuation: onboardingRoutingConfiguration.allowsLocalOnlyContinuation,
+            healthTrainingIntegration: healthTrainingService,
+            trainingInsightsStore: trainingInsightsStore
         )
     }
 

@@ -37,9 +37,9 @@ struct TrainingInsightsConnectedView: View {
             TrainingInsightsEmptyConnectedView(insightsStore: insightsStore)
                 .refreshable { await model.refresh() }
         case .error(let message):
-            FormaScreenErrorView(message: message, style: .detailScreen) {
+            FormaScreenErrorView(message: message, onRetry: {
                 Task { await model.refresh() }
-            }
+            }, style: .detailScreen)
         case .loaded(let summary):
             dashboard(summary)
         }

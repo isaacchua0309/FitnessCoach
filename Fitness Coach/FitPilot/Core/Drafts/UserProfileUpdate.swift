@@ -11,6 +11,7 @@ import Foundation
 
 struct UserProfileUpdate: Codable, Equatable, Sendable {
     var name: String?
+    var birthDate: Date?
     var age: Int?
     var sex: Sex?
     var heightCm: Double?

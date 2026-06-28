@@ -36,11 +36,12 @@ final class JourneyConsistencyCalendarTests: XCTestCase {
             makeLog(on: yesterday, waterMl: 1_000)
         ]
 
-        let result = JourneyStateBuilder.consistencyCalendar(
+        let result = JourneyDashboardBuilder.consistencyCalendar(
             logs: logs,
             healthWorkoutDayStarts: [],
             weights: [],
-            month: today
+            month: today,
+            calendar: calendar
         )
 
         XCTAssertEqual(result.totalLoggedDays, 2)

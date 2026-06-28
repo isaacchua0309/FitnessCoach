@@ -10,6 +10,8 @@ import SwiftUI
 struct OnboardingActivityLevelStepView: View {
     @Binding var formState: OnboardingFormState
     var showsEmbeddedHeader: Bool = false
+    /// When true (v4 onboarding), always sync hidden steps/training defaults from the selected mode.
+    var forcesActivityTrainingDefaults: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
@@ -31,6 +33,9 @@ struct OnboardingActivityLevelStepView: View {
                         isSelected: formState.activityLevel == level
                     ) {
                         formState.selectActivityLevel(level)
+                        if forcesActivityTrainingDefaults {
+                            formState.applyTrainingRhythmDefaultsForCurrentActivity()
+                        }
                     }
                 }
             }

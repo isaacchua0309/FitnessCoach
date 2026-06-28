@@ -20,6 +20,8 @@ struct PlanRationaleState: Equatable, Sendable {
     let highlights: [PlanRationaleHighlight]?
     let sustainabilityNote: String?
     let calculationDetails: PlanCalculationDetailsState?
+    /// Structured energy/target metrics for Mission Control.
+    let metrics: PlanRationaleMetrics?
 
     var usesHighlightLayout: Bool {
         guard let highlights, !highlights.isEmpty else { return false }
@@ -39,7 +41,8 @@ struct PlanRationaleState: Equatable, Sendable {
             summary: summary,
             highlights: nil,
             sustainabilityNote: "Targets balance progress with recovery from strength training.",
-            calculationDetails: nil
+            calculationDetails: nil,
+            metrics: nil
         )
     }
 }
@@ -52,30 +55,37 @@ enum PlanRationaleCopyBuilder {
                 from: profile,
                 referenceDate: referenceDate
             )
-            return build(profile: profile, result: result)
+            return build(profile: profile, result: result, referenceDate: referenceDate)
         } catch {
             return .fallback(for: profile)
         }
     }
 
-    static func build(profile: UserProfile, result: PlanCalculationResult) -> PlanRationaleState {
+    static func build(
+        profile: UserProfile,
+        result: PlanCalculationResult,
+        referenceDate: Date = Date()
+    ) -> PlanRationaleState {
         let paceLabel = paceLabel(for: profile, result: result)
         let summary = summaryParagraph(
             profile: profile,
             result: result,
-            paceLabel: paceLabel
+            paceLabel: paceLabel,
+            referenceDate: referenceDate
         )
         let sustainabilityNote = sustainabilityNote(for: result)
         let calculationDetails = PlanCalculationDetailsBuilder.build(
             profile: profile,
             result: result
         )
+        let metrics = PlanRationaleMetricsBuilder.build(profile: profile, result: result)
 
         return PlanRationaleState(
             summary: summary,
             highlights: highlights(profile: profile, result: result),
             sustainabilityNote: sustainabilityNote,
-            calculationDetails: calculationDetails
+            calculationDetails: calculationDetails,
+            metrics: metrics
         )
     }
 
@@ -142,7 +152,8 @@ enum PlanRationaleCopyBuilder {
     private static func summaryParagraph(
         profile: UserProfile,
         result: PlanCalculationResult,
-        paceLabel: String
+        paceLabel: String,
+        referenceDate: Date
     ) -> String {
         let weight = PlanDisplayFormatter.formatKg(profile.currentWeightKg)
         let activity = ProfileFormatter.activityLevel(profile.activityLevel).lowercased()
@@ -151,7 +162,7 @@ enum PlanRationaleCopyBuilder {
         let contextLine = contextOpening(
             weight: weight,
             heightCm: profile.heightCm,
-            age: profile.age,
+            age: profile.resolvedAge(referenceDate: referenceDate),
             activity: activity,
             maintenance: maintenance
         )

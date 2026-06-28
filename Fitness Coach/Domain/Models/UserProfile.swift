@@ -18,6 +18,8 @@ struct UserProfile: Codable, Identifiable, Equatable, Sendable {
     // MARK: Baseline
 
     var name: String?
+    /// Source of truth for age when set. Legacy profiles may have `nil` until edited.
+    var birthDate: Date? = nil
     var age: Int
     var sex: Sex
     var heightCm: Double

@@ -67,7 +67,7 @@ final class TodayDashboardGuardrailTests: XCTestCase {
         XCTAssertEqual(goals[2].tapAction, .coach(prefill: TodayCoachPrompt.logWater))
     }
 
-    func testShowsGenericCoachCTAWhenMealsLoggedAndNextActionsComplete() {
+    func testShowsGenericCoachCTAWhenMealsLoggedAndNextActionComplete() {
         let completeState = TodayDashboardFixtures.dashboardState(
             proteinConsumed: 180,
             proteinTarget: 180,
@@ -75,40 +75,36 @@ final class TodayDashboardGuardrailTests: XCTestCase {
             waterConsumedMl: 3_150,
             waterTargetMl: 3_150,
             waterRemainingMl: 0,
-            weightKg: 68.5
-        )
-        let goals = TodayGoalsBuilder.goals(
-            from: completeState,
-            trainingIntegration: .connected,
-            trainingDataSource: .unavailable
+            weightKg: 68.5,
+            foodEntries: TodayPreviewData.foodEntries
         )
 
         XCTAssertTrue(
             TodayCoachCTAPolicy.showsGenericCoachCTA(
                 foodEntries: TodayPreviewData.foodEntries,
-                goals: goals
+                nextBestAction: completeState.nextBestAction
             )
         )
     }
 
     func testHidesGenericCoachCTAWhenMealsEmpty() {
-        let goals = TodayGoalsBuilder.goals(from: TodayDashboardFixtures.dashboardState())
+        let state = TodayDashboardFixtures.dashboardState()
 
         XCTAssertFalse(
             TodayCoachCTAPolicy.showsGenericCoachCTA(
                 foodEntries: [],
-                goals: goals
+                nextBestAction: state.nextBestAction
             )
         )
     }
 
-    func testHidesGenericCoachCTAWhenNextActionsNeedCoach() {
-        let goals = TodayGoalsBuilder.goals(from: TodayDashboardFixtures.dashboardState())
+    func testHidesGenericCoachCTAWhenNextActionNeedsCoach() {
+        let state = TodayDashboardFixtures.dashboardState()
 
         XCTAssertFalse(
             TodayCoachCTAPolicy.showsGenericCoachCTA(
                 foodEntries: TodayPreviewData.foodEntries,
-                goals: goals
+                nextBestAction: state.nextBestAction
             )
         )
     }

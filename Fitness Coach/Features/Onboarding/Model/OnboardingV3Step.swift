@@ -204,9 +204,9 @@ enum OnboardingV3Step: Int, Equatable, Identifiable, Sendable, CaseIterable {
         case .generatingPlan:
             return FormaProductCopy.Onboarding.V2.Generating.title
         case .planReveal:
-            return FormaProductCopy.Onboarding.V2.PlanReveal.title
+            return FormaProductCopy.Onboarding.V3.PlanReveal.title
         case .savePlan:
-            return FormaProductCopy.Onboarding.V2.SavePlan.title
+            return FormaProductCopy.Onboarding.V3.SavePlan.title
         }
     }
 
@@ -246,9 +246,9 @@ enum OnboardingV3Step: Int, Equatable, Identifiable, Sendable, CaseIterable {
         case .generatingPlan:
             return FormaProductCopy.Loading.generatingPlan
         case .planReveal:
-            return FormaProductCopy.Onboarding.V2.PlanReveal.subtitle
+            return FormaProductCopy.Onboarding.V3.PlanReveal.subtitle
         case .savePlan:
-            return FormaProductCopy.Onboarding.V2.SavePlan.subtitle
+            return FormaProductCopy.Onboarding.V3.SavePlan.subtitle
         }
     }
 
@@ -347,7 +347,7 @@ enum OnboardingV3Step: Int, Equatable, Identifiable, Sendable, CaseIterable {
 
     var showsProgressHeader: Bool {
         switch self {
-        case .landing, .generatingPlan:
+        case .landing, .generatingPlan, .planReveal, .savePlan:
             return false
         default:
             return true

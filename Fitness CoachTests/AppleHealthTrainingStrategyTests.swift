@@ -353,37 +353,15 @@ final class TodayTrainingRowStrategyTests: XCTestCase {
         return try XCTUnwrap(goals.last { $0.kind == .workout })
     }
 
-    private static let dashboardState = TodayDashboardState(
-        date: Date(),
-        calorieSummary: CalorieSummary(
-            consumed: 500, target: 1_800, remaining: 1_300, progress: 0.28, isOverTarget: false
-        ),
-        macroSummary: MacroSummary(
-            protein: MacroProgress(consumed: 170, target: 180, remaining: 10, progress: 0.94),
-            carbs: MacroProgress(consumed: 0, target: 160, remaining: 160, progress: 0),
-            fat: MacroProgress(consumed: 0, target: 60, remaining: 60, progress: 0)
-        ),
-        waterSummary: WaterSummary(
-            consumedMl: 3_000, targetMl: 3_150, remainingMl: 150,
-            progress: Double(3_000) / Double(3_150)
-        ),
-        weightSummary: TodayWeightSummary(weightKg: 90.15, displayText: "90.15 kg"),
-        stepsSummary: nil,
-        workoutSummary: TodayWorkoutSummary(
-            workoutCaloriesBurned: 0, workoutCount: 0, hasWorkout: false
-        ),
-        foodEntries: [],
-        hasDailyLog: true,
-        dailyReview: nil,
-        coachingNote: nil,
-        todayFocus: FormaProductCopy.Today.focusOnTrack,
-        dailyBrief: TodayDailyBrief(
-            greeting: "Good morning.", priorities: [], recommendation: "Stay consistent today."
-        ),
-        streaks: StreakSummary(
-            loggingStreak: 0, proteinStreak: 0, hydrationStreak: 0, workoutStreak: 0
-        ),
-        userName: nil
+    private static let dashboardState = TodayDashboardFixtures.partialDay(
+        proteinConsumed: 170,
+        proteinTarget: 180,
+        proteinRemaining: 10,
+        waterConsumedMl: 3_000,
+        waterTargetMl: 3_150,
+        waterRemainingMl: 150,
+        weightKg: 90.15,
+        hasWorkout: false
     )
 }
 
@@ -396,18 +374,12 @@ final class JourneyTrainingRowStrategyTests: XCTestCase {
     private let referenceNow = TrainingStrategyTestSupport.referenceNow
 
     func testNotConnectedDoesNotShowMisleadingZeroWorkoutDays() {
-        let snapshot = JourneyStateBuilder.weeklySnapshot(
-            weekLogs: [],
-            training: .locked
-        )
-
-        XCTAssertEqual(snapshot.training, .locked)
         XCTAssertEqual(
-            TrainingStrategyTestSupport.journeyWorkoutRowLabel(for: snapshot.training),
+            TrainingStrategyTestSupport.journeyWorkoutRowLabel(for: .locked),
             FormaProductCopy.Journey.WeeklySnapshot.trainingConnectAppleHealth
         )
         XCTAssertFalse(
-            TrainingStrategyTestSupport.journeyWorkoutRowLabel(for: snapshot.training)
+            TrainingStrategyTestSupport.journeyWorkoutRowLabel(for: .locked)
                 .contains(FormaProductCopy.Journey.workoutNone)
         )
     }
@@ -421,26 +393,19 @@ final class JourneyTrainingRowStrategyTests: XCTestCase {
             calendar: calendar
         )
 
-        let snapshot = JourneyStateBuilder.weeklySnapshot(weekLogs: [], training: status)
-
-        guard case .connected(let days, _, _) = snapshot.training else {
+        guard case .connected(let days, _, _) = status else {
             return XCTFail("Expected connected training status")
         }
         XCTAssertEqual(days, 2)
         XCTAssertEqual(
-            TrainingStrategyTestSupport.journeyWorkoutRowLabel(for: snapshot.training),
+            TrainingStrategyTestSupport.journeyWorkoutRowLabel(for: status),
             FormaProductCopy.Journey.WeeklySnapshot.workoutDaysLine(days: 2)
         )
     }
 
     func testConnectedEmptyShowsCalmEmptyCopyNotZeroDays() {
-        let snapshot = JourneyStateBuilder.weeklySnapshot(
-            weekLogs: [],
-            training: .connectedEmpty
-        )
-
         XCTAssertEqual(
-            TrainingStrategyTestSupport.journeyWorkoutRowLabel(for: snapshot.training),
+            TrainingStrategyTestSupport.journeyWorkoutRowLabel(for: .connectedEmpty),
             FormaProductCopy.Journey.WeeklySnapshot.statusNotStarted
         )
     }

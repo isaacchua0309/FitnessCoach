@@ -20,6 +20,7 @@ final class UserProfileEntity {
     // MARK: Baseline
 
     var name: String?
+    var birthDate: Date?
     var age: Int
     var sexRawValue: String
     var heightCm: Double
@@ -57,6 +58,7 @@ final class UserProfileEntity {
         id: UUID,
         ownerUID: String? = nil,
         name: String?,
+        birthDate: Date? = nil,
         age: Int,
         sexRawValue: String,
         heightCm: Double,
@@ -81,6 +83,7 @@ final class UserProfileEntity {
         self.id = id
         self.ownerUID = ownerUID
         self.name = name
+        self.birthDate = birthDate
         self.age = age
         self.sexRawValue = sexRawValue
         self.heightCm = heightCm

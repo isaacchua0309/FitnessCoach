@@ -54,11 +54,11 @@ enum TodayGoalsBuilder {
         trainingDataSource: TrainingDataSource = .appleHealth,
         appleHealthWorkoutCount: Int? = nil
     ) -> [TodayGoalItem] {
-        let protein = state.macroSummary.protein
-        let water = state.waterSummary
+        let protein = state.macroBalance.macroSummary.protein
+        let water = state.macroBalance.waterSummary
         let proteinComplete = protein.progress >= TodayFocusBuilder.proteinOnTrackThreshold
         let waterComplete = water.progress >= TodayFocusBuilder.waterOnTrackThreshold
-        let weightLogged = state.weightSummary.weightKg != nil
+        let weightLogged = state.mission.weightSummary.weightKg != nil
 
         var items: [TodayGoalItem] = [
             weightGoal(weightLogged: weightLogged),

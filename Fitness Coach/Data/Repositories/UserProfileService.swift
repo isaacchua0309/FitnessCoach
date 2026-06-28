@@ -79,11 +79,17 @@ final class UserProfileService {
         try validate(draft)
 
         let now = dateProvider.now
+        let resolvedAge = BirthDateAgeResolver.resolvedAge(
+            birthDate: draft.birthDate,
+            legacyAge: draft.age,
+            referenceDate: now
+        )
         let profile = UserProfile(
             id: UUID(),
             ownerUID: ownerUID,
             name: draft.name,
-            age: draft.age,
+            birthDate: draft.birthDate,
+            age: resolvedAge,
             sex: draft.sex,
             heightCm: draft.heightCm,
             currentWeightKg: draft.currentWeightKg,
@@ -123,6 +129,14 @@ final class UserProfileService {
         }
 
         if let name = update.name { entity.name = name }
+        if let birthDate = update.birthDate {
+            entity.birthDate = birthDate
+            entity.age = BirthDateAgeResolver.resolvedAge(
+                birthDate: birthDate,
+                legacyAge: entity.age,
+                referenceDate: dateProvider.now
+            )
+        }
         if let age = update.age {
             guard age > 0 else { throw ServiceError.invalidInput("Age must be greater than zero.") }
             entity.age = age
@@ -188,7 +202,11 @@ final class UserProfileService {
     }
 
     private func validate(_ draft: UserProfileDraft) throws {
-        guard draft.age > 0 else { throw ServiceError.invalidInput("Age must be greater than zero.") }
+        let resolvedAge = BirthDateAgeResolver.resolvedAge(
+            birthDate: draft.birthDate,
+            legacyAge: draft.age
+        )
+        guard resolvedAge > 0 else { throw ServiceError.invalidInput("Age must be greater than zero.") }
         guard draft.heightCm > 0 else { throw ServiceError.invalidInput("Height must be greater than zero.") }
         guard draft.currentWeightKg > 0 else { throw ServiceError.invalidInput("Weight must be greater than zero.") }
         guard draft.goalWeightKg > 0 else { throw ServiceError.invalidInput("Goal weight must be greater than zero.") }

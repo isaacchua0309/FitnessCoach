@@ -2,7 +2,7 @@
 //  ProgressView.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Journey: am I becoming healthier?
+//  FitPilot AI — Journey: your fitness story.
 //
 
 import SwiftUI
@@ -53,9 +53,9 @@ struct ProgressView: View {
                 Task { await model.refresh() }
             }
         case .error(let message):
-            FormaScreenErrorView(message: message, style: .tabRoot) {
+            FormaScreenErrorView(message: message, onRetry: {
                 Task { await model.refresh() }
-            }
+            }, style: .tabRoot)
         case .loaded(let state):
             dashboard(state)
         }
@@ -64,28 +64,27 @@ struct ProgressView: View {
     private func dashboard(_ state: ProgressDashboardState) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: JourneyLayout.sectionSpacing) {
-                JourneyTransformationHeroSection(
-                    state: state.transformation,
-                    nextCheckpointKg: state.nextCheckpointKg
-                )
+                JourneyTransformationHeroSection(state: state.transformation)
 
-                if let coachMessage = coachInsightMessage(for: state) {
-                    JourneyCoachInsightsSection(message: coachMessage)
+                JourneyWeeklySnapshotSection(review: state.weeklyReview)
+
+                if !state.milestones.items.isEmpty {
+                    JourneyMilestonesSection(milestones: state.milestones.items)
                 }
 
-                JourneyWeeklySnapshotSection(snapshot: state.weeklySnapshot)
+                JourneyCoachInsightsSection(message: state.habitInsights.habitInsightExplanation)
 
-                JourneyConsistencyCalendarSection(calendar: state.consistencyCalendar) {
+                JourneyCoachInsightsSection(message: state.progressAttribution.primaryReason)
+
+                JourneyConsistencyCalendarSection(calendar: state.monthlyRecap.calendar) {
                     onOpenCoach?(nil)
                 }
 
-                if state.sectionVisibility.showsWeightTrendSection {
-                    JourneyWeightTrendSection(state: state.weightTrend)
-                }
+                JourneyAchievementsSection(records: state.personalRecords)
 
                 JourneyDetailedAnalyticsSection(
-                    analytics: state.analytics,
-                    weeklySnapshot: state.weeklySnapshot,
+                    analytics: state.detailedAnalytics,
+                    weeklyReview: state.weeklyReview,
                     selectedRangeDays: state.selectedRangeDays
                 ) { days in
                     Task { await model.selectRange(days: days) }
@@ -96,16 +95,6 @@ struct ProgressView: View {
             .padding(.bottom, JourneyLayout.scrollBottomContentPadding)
         }
         .formaMainTabScrollInsets()
-    }
-
-    private func coachInsightMessage(for state: ProgressDashboardState) -> String? {
-        if let insight = state.coachInsights.first?.message, !insight.isEmpty {
-            return insight
-        }
-        if state.transformation.currentPhase == "Getting started" {
-            return FormaProductCopy.Journey.coachInsightGettingStarted
-        }
-        return FormaProductCopy.Journey.coachInsightFallback
     }
 }
 

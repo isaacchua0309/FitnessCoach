@@ -10,6 +10,7 @@ import Foundation
 struct CloudUserProfileDocument: Codable, Equatable, Sendable {
 
     var name: String?
+    var birthDate: Date?
     var age: Int
     var sex: String
     var heightCm: Double
@@ -42,7 +43,8 @@ extension CloudUserProfileDocument {
 
     init(profile: UserProfile, onboardingCompletedAt: Date, updatedAt: Date) {
         name = profile.name
-        age = profile.age
+        birthDate = profile.birthDate
+        age = profile.resolvedAge(referenceDate: updatedAt)
         sex = profile.sex.rawValue
         heightCm = profile.heightCm
         currentWeightKg = profile.currentWeightKg
@@ -62,6 +64,7 @@ extension CloudUserProfileDocument {
         UserProfile(
             id: UUID(),
             name: name,
+            birthDate: birthDate,
             age: age,
             sex: Sex(rawValue: sex) ?? .preferNotToSay,
             heightCm: heightCm,

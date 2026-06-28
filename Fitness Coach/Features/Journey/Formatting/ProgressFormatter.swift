@@ -92,6 +92,21 @@ enum ProgressFormatter {
 
     // MARK: Journey display
 
+    static func heroWeightKg(_ value: Double?) -> String {
+        guard let value else { return "—" }
+        if value.truncatingRemainder(dividingBy: 1) == 0 {
+            return "\(Int(value)) kg"
+        }
+        return String(format: "%.1f kg", value)
+    }
+
+    static func heroChangeKg(_ value: Double) -> String {
+        if value.truncatingRemainder(dividingBy: 1) == 0 {
+            return "\(Int(value)) kg"
+        }
+        return String(format: "%.1f kg", value)
+    }
+
     static func journeyKg(_ value: Double?) -> String {
         guard let value else { return "—" }
         return value.truncatingRemainder(dividingBy: 1) == 0

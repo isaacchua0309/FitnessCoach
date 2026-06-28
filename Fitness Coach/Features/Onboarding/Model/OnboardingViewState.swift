@@ -22,6 +22,8 @@ enum OnboardingViewState: Equatable {
     case savingProfile
     /// Legacy plan-preview completion flow creating the profile.
     case completing
+    /// Apple Health permission request in progress on the v4 connect step.
+    case connectingAppleHealth
     case error(String)
 }
 
@@ -32,7 +34,7 @@ extension OnboardingViewState {
         switch self {
         case .generatingPlan, .completing, .savingProfile:
             return true
-        case .editing, .generatingPlanAnimated, .generationFailed, .awaitingSignIn, .error:
+        case .editing, .generatingPlanAnimated, .generationFailed, .awaitingSignIn, .error, .connectingAppleHealth:
             return false
         }
     }
@@ -40,7 +42,7 @@ extension OnboardingViewState {
     /// Whether bottom-bar primary actions should show a busy spinner.
     var isBottomBarBusy: Bool {
         switch self {
-        case .generatingPlan, .generatingPlanAnimated, .completing, .savingProfile:
+        case .generatingPlan, .generatingPlanAnimated, .completing, .savingProfile, .connectingAppleHealth:
             return true
         case .editing, .generationFailed, .awaitingSignIn, .error:
             return false
@@ -53,7 +55,7 @@ extension OnboardingViewState {
             return FormaProductCopy.Loading.generatingPlan
         case .completing, .savingProfile:
             return FormaProductCopy.Loading.creatingProfile
-        case .editing, .generatingPlanAnimated, .generationFailed, .awaitingSignIn, .error:
+        case .editing, .generatingPlanAnimated, .generationFailed, .awaitingSignIn, .error, .connectingAppleHealth:
             return nil
         }
     }
@@ -62,7 +64,7 @@ extension OnboardingViewState {
         switch self {
         case .editing, .awaitingSignIn, .generationFailed:
             return true
-        case .generatingPlan, .generatingPlanAnimated, .savingProfile, .completing, .error:
+        case .generatingPlan, .generatingPlanAnimated, .savingProfile, .completing, .error, .connectingAppleHealth:
             return false
         }
     }

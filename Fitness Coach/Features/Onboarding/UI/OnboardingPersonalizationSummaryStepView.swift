@@ -10,9 +10,13 @@ import SwiftUI
 struct OnboardingPersonalizationSummaryStepView: View {
     let formState: OnboardingFormState
     let validationMessage: String?
+    var usesV4Recap: Bool = false
 
     private var recapCards: [OnboardingPersonalizationSummaryRecap] {
-        OnboardingPersonalizationSummaryBuilder.recapCards(for: formState)
+        OnboardingPersonalizationSummaryBuilder.recapCards(
+            for: formState,
+            usesV4Steps: usesV4Recap
+        )
     }
 
     private var showsValidationBanner: Bool {
@@ -21,7 +25,10 @@ struct OnboardingPersonalizationSummaryStepView: View {
 
     private var bannerMessage: String {
         validationMessage
-            ?? OnboardingPersonalizationSummaryBuilder.validationMessage(for: formState)
+            ?? OnboardingPersonalizationSummaryBuilder.validationMessage(
+                for: formState,
+                usesV4Steps: usesV4Recap
+            )
             ?? FormaProductCopy.Onboarding.V2.Validation.summaryIncomplete
     }
 

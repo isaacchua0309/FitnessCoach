@@ -2,7 +2,7 @@
 //  JourneyWeeklySnapshotCopyBuilder.swift
 //  Fitness Coach
 //
-//  Forma — Compact weekly snapshot copy from existing JourneyWeeklySnapshot data.
+//  Forma — Compact weekly snapshot copy from JourneyWeeklyReviewState.
 //
 
 import Foundation
@@ -15,35 +15,68 @@ struct JourneyWeeklySnapshotRow: Equatable, Identifiable {
 
 enum JourneyWeeklySnapshotCopyBuilder {
 
-    static func rows(for snapshot: JourneyWeeklySnapshot) -> [JourneyWeeklySnapshotRow] {
+    static func rows(for review: JourneyWeeklyReviewState) -> [JourneyWeeklySnapshotRow] {
         var rows: [JourneyWeeklySnapshotRow] = [
+            targetRow(
+                id: "food",
+                label: "Food logged",
+                achieved: review.foodLoggedDays,
+                total: review.foodLoggedDaysTotal
+            ),
             targetRow(
                 id: "protein",
                 label: FormaProductCopy.Journey.WeeklySnapshot.protein,
-                achieved: snapshot.proteinDaysAchieved,
-                total: snapshot.proteinDaysTotal
+                achieved: review.proteinGoalDays,
+                total: review.proteinGoalDaysTotal
             ),
             targetRow(
                 id: "water",
                 label: FormaProductCopy.Journey.WeeklySnapshot.water,
-                achieved: snapshot.waterDaysAchieved,
-                total: snapshot.waterDaysTotal
+                achieved: review.waterGoalDays,
+                total: review.waterGoalDaysTotal
             )
         ]
 
-        if let trainingRow = trainingRow(for: snapshot.training) {
+        if let trainingRow = trainingRow(for: review) {
             rows.append(trainingRow)
         }
 
-        rows.append(caloriesRow(deficit: snapshot.averageCalorieDeficit))
+        rows.append(caloriesRow(review: review))
         return rows
     }
 
+    static func trainingDetail(for review: JourneyWeeklyReviewState) -> String? {
+        trainingRow(for: review)?.detail
+    }
+
     static func trainingDetail(for training: JourneyWeeklyTrainingStatus) -> String? {
-        trainingRow(for: training)?.detail
+        trainingDetail(for: previewReview(training: training))
     }
 
     // MARK: - Private
+
+    private static func previewReview(training: JourneyWeeklyTrainingStatus) -> JourneyWeeklyReviewState {
+        JourneyWeeklyReviewState(
+            foodLoggedDays: 0,
+            foodLoggedDaysTotal: weekDayCount,
+            proteinGoalDays: 0,
+            proteinGoalDaysTotal: weekDayCount,
+            waterGoalDays: 0,
+            waterGoalDaysTotal: weekDayCount,
+            trainingDays: training.workoutDays ?? 0,
+            expectedTrainingDays: 0,
+            training: training,
+            weightDeltaThisWeekKg: nil,
+            calorieAdherenceDays: 0,
+            calorieAdherenceDaysTotal: weekDayCount,
+            strongestPositiveSignal: "",
+            weakestSignal: "",
+            weekSummaryCopy: "",
+            averageCalorieDeficit: nil
+        )
+    }
+
+    private static let weekDayCount = 7
 
     private static func targetRow(
         id: String,
@@ -68,8 +101,9 @@ enum JourneyWeeklySnapshotCopyBuilder {
         )
     }
 
-    private static func trainingRow(for training: JourneyWeeklyTrainingStatus) -> JourneyWeeklySnapshotRow? {
+    private static func trainingRow(for review: JourneyWeeklyReviewState) -> JourneyWeeklySnapshotRow? {
         let copy = FormaProductCopy.Journey.WeeklySnapshot.self
+        let training = review.training
 
         switch training {
         case .hidden:
@@ -81,24 +115,49 @@ enum JourneyWeeklySnapshotCopyBuilder {
                 detail: copy.trainingConnectAppleHealth
             )
         case .connectedEmpty:
+            if review.expectedTrainingDays > 0 {
+                return JourneyWeeklySnapshotRow(
+                    id: "training",
+                    label: copy.training,
+                    detail: "0 of \(review.expectedTrainingDays) expected days"
+                )
+            }
             return JourneyWeeklySnapshotRow(
                 id: "training",
                 label: copy.training,
                 detail: copy.statusNotStarted
             )
-        case .connected(let days, _, _):
+        case .connected:
+            if review.expectedTrainingDays > 0 {
+                return JourneyWeeklySnapshotRow(
+                    id: "training",
+                    label: copy.training,
+                    detail: "\(review.trainingDays) of \(review.expectedTrainingDays) expected days"
+                )
+            }
             return JourneyWeeklySnapshotRow(
                 id: "training",
                 label: copy.training,
-                detail: copy.workoutDaysLine(days: days)
+                detail: copy.workoutDaysLine(days: review.trainingDays)
             )
         }
     }
 
-    private static func caloriesRow(deficit: Int?) -> JourneyWeeklySnapshotRow {
+    private static func caloriesRow(review: JourneyWeeklyReviewState) -> JourneyWeeklySnapshotRow {
         let copy = FormaProductCopy.Journey.WeeklySnapshot.self
 
-        guard let deficit else {
+        if review.calorieAdherenceDaysTotal > 0, review.calorieAdherenceDays > 0 {
+            return JourneyWeeklySnapshotRow(
+                id: "calories",
+                label: copy.calories,
+                detail: copy.daysAchieved(
+                    achieved: review.calorieAdherenceDays,
+                    total: review.calorieAdherenceDaysTotal
+                )
+            )
+        }
+
+        guard let deficit = review.averageCalorieDeficit else {
             return JourneyWeeklySnapshotRow(
                 id: "calories",
                 label: copy.calories,

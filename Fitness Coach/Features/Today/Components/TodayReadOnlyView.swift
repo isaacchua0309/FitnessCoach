@@ -9,9 +9,6 @@ import SwiftUI
 
 struct TodayReadOnlyView: View {
     let state: TodayDashboardState
-    let trainingIntegration: TrainingIntegrationState
-    let trainingDataSource: TrainingDataSource
-    let appleHealthWorkoutCount: Int?
     let onOpenCoach: (String?) -> Void
     let onOpenTrainingInsights: () -> Void
 
@@ -24,34 +21,14 @@ struct TodayReadOnlyView: View {
         onOpenTrainingInsights: @escaping () -> Void = {}
     ) {
         self.state = state
-        self.trainingIntegration = trainingIntegration
-        self.trainingDataSource = trainingDataSource
-        self.appleHealthWorkoutCount = appleHealthWorkoutCount
         self.onOpenCoach = onOpenCoach
         self.onOpenTrainingInsights = onOpenTrainingInsights
     }
 
-    private var goals: [TodayGoalItem] {
-        TodayGoalsBuilder.goals(
-            from: state,
-            trainingIntegration: trainingIntegration,
-            trainingDataSource: trainingDataSource,
-            appleHealthWorkoutCount: appleHealthWorkoutCount
-        )
-    }
-
     private var showsGenericCoachCTA: Bool {
         TodayCoachCTAPolicy.showsGenericCoachCTA(
-            foodEntries: state.foodEntries,
-            goals: goals
-        )
-    }
-
-    private var focusMessage: String {
-        TodayFocusBuilder.focus(
-            from: state,
-            trainingIntegration: trainingIntegration,
-            trainingDataSource: trainingDataSource
+            foodEntries: state.meals.entries,
+            nextBestAction: state.nextBestAction
         )
     }
 
@@ -59,9 +36,9 @@ struct TodayReadOnlyView: View {
         VStack(alignment: .leading, spacing: TodayLayout.zoneSpacing) {
             statusZone
 
-            TodayGoalChecklist(
-                goals: goals,
-                onGoalTap: handleGoalTap
+            TodayNextActionSection(
+                action: state.nextBestAction,
+                onCTA: handleNextActionCTA
             )
 
             loggedItemsZone
@@ -76,39 +53,48 @@ struct TodayReadOnlyView: View {
 
     // MARK: - Zones
 
-    /// Status: calorie headline + one-line focus.
+    /// Status: Today's Mission hero.
     private var statusZone: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.statusZoneSpacing) {
-            TodayCaloriesHero(calories: state.calorieSummary)
-            TodayFocusSection(message: focusMessage)
-        }
+        TodayMissionHero(
+            mission: state.mission,
+            proteinProgress: state.macroBalance.macroSummary.protein,
+            mealsEmpty: state.meals.isEmpty
+        )
     }
 
     /// Logged items: measurement targets + meal timeline.
     private var loggedItemsZone: some View {
         VStack(alignment: .leading, spacing: TodayLayout.loggedZoneSpacing) {
             TodayReadOnlyProgressSection(
-                macros: state.macroSummary,
-                water: state.waterSummary
+                macros: state.macroBalance.macroSummary,
+                water: state.macroBalance.waterSummary
             )
 
             TodayMealsPreview(
-                entries: state.foodEntries,
+                entries: state.meals.entries,
                 previewLimit: 3,
                 onLogMeal: {
-                    onOpenCoach(TodayCoachPrompt.logMeal)
+                    onOpenCoach(TodayCoachPrompt.logMeal())
                 }
             )
         }
     }
 
-    private func handleGoalTap(_ goal: TodayGoalItem) {
-        switch goal.tapAction {
-        case .coach(let prefill):
+    private func handleNextActionCTA(_ cta: NextBestActionCTA) {
+        switch cta {
+        case .logMeal(let prefill):
             onOpenCoach(prefill)
-        case .openTrainingInsights:
+        case .scanFood:
+            onOpenCoach(TodayCoachPrompt.scanFood)
+        case .addWater:
+            onOpenCoach(TodayCoachPrompt.logWater)
+        case .logWeight:
+            onOpenCoach(TodayCoachPrompt.logWeight)
+        case .openHealth:
             onOpenTrainingInsights()
-        case nil:
+        case .reviewToday:
+            onOpenCoach(TodayCoachPrompt.reviewToday)
+        case .none:
             break
         }
     }

@@ -9,12 +9,25 @@ import Foundation
 
 enum PlanStateBuilder {
 
-    static func dashboardState(profile: UserProfile) -> ProfileDashboardState {
+    static func dashboardState(
+        profile: UserProfile,
+        context: PlanDashboardContext? = nil,
+        referenceDate: Date = Date()
+    ) -> ProfileDashboardState {
         let strategyName = strategyName(for: profile)
         let targets = profile.targets
+        let dashboardContext = context ?? PlanDashboardContext.profileOnly(
+            profile: profile,
+            referenceDate: referenceDate
+        )
+        let missionControl = PlanDashboardBuilder.missionControlDashboard(
+            context: dashboardContext,
+            referenceDate: referenceDate
+        )
 
         return ProfileDashboardState(
             profile: profile,
+            missionControl: missionControl,
             strategy: PlanStrategyState(
                 strategyName: strategyName,
                 calorieTargetText: "\(targets.calorieTarget) kcal/day",
@@ -29,7 +42,7 @@ enum PlanStateBuilder {
                 water: ProfileFormatter.mlCompact(targets.waterTargetMl),
                 trainingFrequency: trainingFrequencyLabel(profile.trainingFrequencyPerWeek)
             ),
-            rationale: planRationaleState(for: profile),
+            rationale: missionControl.rationale,
             adaptiveCoach: adaptiveCoachState(),
             lifestyle: PlanLifestyleState(
                 activityLevel: ProfileFormatter.activityLevel(profile.activityLevel),
@@ -39,7 +52,7 @@ enum PlanStateBuilder {
             ),
             whatHappensNext: whatHappensNext(for: profile, currentStrategyName: strategyName),
             aboutYou: PlanAboutYouState(
-                age: ProfileFormatter.age(profile.age),
+                age: ProfileFormatter.age(profile.resolvedAge(referenceDate: referenceDate)),
                 height: ProfileFormatter.cm(profile.heightCm),
                 sex: ProfileFormatter.sex(profile.sex),
                 bodyFat: ProfileFormatter.percent(profile.estimatedBodyFatPercentage),

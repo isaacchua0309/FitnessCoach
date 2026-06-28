@@ -6,89 +6,117 @@
 import SwiftUI
 
 struct JourneyTransformationHeroSection: View {
-    let state: JourneyTransformationState
-    let nextCheckpointKg: Double?
+    let state: JourneyTransformationHeroState
+
+    @ScaledMetric(relativeTo: .largeTitle) private var heroValueSize: CGFloat = 52
 
     var body: some View {
-        VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
-            FormaSectionLabel(title: FormaProductCopy.Journey.sectionGoalProgress)
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+            statusRow
 
-            FitPilotPlanCard {
-                VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
-                    HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
-                        Text(state.goalTitle)
-                            .font(FormaTokens.Typography.screenTitle)
-                            .foregroundStyle(FormaTokens.Color.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+                Text(state.headlineCopy)
+                    .font(FormaTokens.Typography.sectionTitle)
+                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .accessibilityHidden(true)
 
-                        Spacer(minLength: FormaTokens.Spacing.xs)
+                Text(state.changeValueCopy)
+                    .font(.system(size: heroValueSize, weight: .bold, design: .rounded))
+                    .foregroundStyle(FormaTokens.Color.textPrimary)
+                    .minimumScaleFactor(0.65)
+                    .lineLimit(1)
+                    .accessibilityHidden(true)
+            }
 
-                        phaseBadge
-                    }
+            progressBlock
 
-                    Text(state.startedLabel)
-                        .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
+            anchorColumns
 
-                    weightMetricsRow
+            Text(state.paceForecastText)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityHidden(true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(state.accessibilitySummary)
+    }
 
-                    if let nextCheckpointKg {
-                        Text(FormaProductCopy.Journey.nextCheckpoint(
-                            ProgressFormatter.journeyKg(nextCheckpointKg)
-                        ))
-                        .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
-                    }
+    private var statusRow: some View {
+        HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
+            Text(state.emotionalStatusLabel)
+                .font(FormaTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(FormaTokens.Color.accent)
+                .padding(.horizontal, FormaTokens.Spacing.sm)
+                .padding(.vertical, 5)
+                .background(FormaTokens.Color.accentMuted)
+                .clipShape(Capsule())
+                .accessibilityHidden(true)
 
-                    progressSection
+            Spacer(minLength: FormaTokens.Spacing.xs)
 
-                    if let eta = state.estimatedCompletionLabel {
-                        Text("Estimated \(eta)")
-                            .font(FormaTokens.Typography.caption)
-                            .foregroundStyle(FormaTokens.Color.textTertiary)
-                    }
-                }
+            if state.streakChip.isVisible {
+                Text(state.streakChip.label)
+                    .font(FormaTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(FormaTokens.Color.success)
+                    .padding(.horizontal, FormaTokens.Spacing.sm)
+                    .padding(.vertical, 5)
+                    .background(FormaTokens.Color.success.opacity(0.15))
+                    .clipShape(Capsule())
+                    .accessibilityHidden(true)
             }
         }
     }
 
-    private var weightMetricsRow: some View {
+    private var progressBlock: some View {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+            SwiftUI.ProgressView(value: progressBarFill)
+                .tint(FormaTokens.Color.accent)
+                .accessibilityLabel(FormaProductCopy.Journey.Transformation.progressAccessibilityLabel)
+                .accessibilityValue(state.progressBarAccessibilityValue)
+
+            Text(state.progressLabel)
+                .font(FormaTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(FormaTokens.Color.textTertiary)
+                .accessibilityHidden(true)
+        }
+        .padding(.top, FormaTokens.Spacing.xs)
+    }
+
+    private var progressBarFill: Double {
+        let percent = max(state.progressBarPercent, 0)
+        if percent <= 0, state.goalWeightCopy != "—" {
+            return 0.02
+        }
+        return min(percent, 100) / 100
+    }
+
+    private var anchorColumns: some View {
         HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
-            weightMetric(
-                label: FormaProductCopy.Journey.metricCurrent,
-                value: ProgressFormatter.journeyKg(state.currentWeightKg)
+            anchorColumn(
+                title: FormaProductCopy.Journey.Transformation.columnStarted,
+                value: state.startedWeightCopy,
+                footnote: state.startedFootnote
             )
-            weightMetric(
-                label: FormaProductCopy.Journey.metricGoal,
-                value: ProgressFormatter.journeyKg(state.goalWeightKg)
+            anchorColumn(
+                title: FormaProductCopy.Journey.Transformation.columnToday,
+                value: state.todayWeightCopy,
+                footnote: nil
             )
-            if let toGo = toGoValue {
-                weightMetric(label: FormaProductCopy.Journey.metricToGo, value: toGo)
-            }
+            anchorColumn(
+                title: FormaProductCopy.Journey.Transformation.columnGoal,
+                value: state.goalWeightCopy,
+                footnote: nil
+            )
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(weightMetricsAccessibilityLabel)
+        .padding(.top, FormaTokens.Spacing.xs)
+        .accessibilityHidden(true)
     }
 
-    private var toGoValue: String? {
-        guard let current = state.currentWeightKg,
-              let goal = state.goalWeightKg,
-              abs(current - goal) > 0.05 else { return nil }
-        return ProgressFormatter.journeyKg(abs(current - goal))
-    }
-
-    private var weightMetricsAccessibilityLabel: String {
-        let current = ProgressFormatter.journeyKg(state.currentWeightKg)
-        let goal = ProgressFormatter.journeyKg(state.goalWeightKg)
-        if let toGo = toGoValue {
-            return "Current weight \(current), goal \(goal), \(toGo) to go"
-        }
-        return "Current weight \(current), goal \(goal)"
-    }
-
-    private func weightMetric(label: String, value: String) -> some View {
+    private func anchorColumn(title: String, value: String, footnote: String?) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label)
+            Text(title)
                 .font(FormaTokens.Typography.caption)
                 .foregroundStyle(FormaTokens.Color.textTertiary)
 
@@ -97,39 +125,50 @@ struct JourneyTransformationHeroSection: View {
                 .foregroundStyle(FormaTokens.Color.textPrimary)
                 .minimumScaleFactor(0.85)
                 .lineLimit(1)
+
+            if let footnote {
+                Text(footnote)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaTokens.Color.textTertiary)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
+}
 
-    @ViewBuilder
-    private var progressSection: some View {
-        if state.progressPercent != nil || state.goalWeightKg != nil {
-            let progress = state.progressPercent ?? 0
-            let barValue = progress > 0 ? min(progress, 100) / 100 : 0.02
+// MARK: - Previews
 
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-                SwiftUI.ProgressView(value: barValue)
-                    .tint(FormaTokens.Color.accent)
+#Preview("New user") {
+    JourneyTransformationHeroSection(state: ProgressPreviewData.transformationNewUser)
+        .padding()
+        .background(FormaTokens.Color.canvas)
+        .preferredColorScheme(.dark)
+}
 
-                if progress < 1 {
-                    Text(FormaProductCopy.Journey.progressEarlyDays)
-                        .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaTokens.Color.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .padding(.top, 2)
-        }
-    }
+#Preview("Active fat loss") {
+    JourneyTransformationHeroSection(state: ProgressPreviewData.transformationActiveFatLoss)
+        .padding()
+        .background(FormaTokens.Color.canvas)
+        .preferredColorScheme(.dark)
+}
 
-    private var phaseBadge: some View {
-        Text(state.currentPhase)
-            .font(FormaTokens.Typography.caption.weight(.semibold))
-            .foregroundStyle(FormaTokens.Color.accent)
-            .padding(.horizontal, FormaTokens.Spacing.xs + 2)
-            .padding(.vertical, 4)
-            .background(FormaTokens.Color.accentMuted)
-            .clipShape(Capsule())
-            .accessibilityLabel("Phase: \(state.currentPhase)")
-    }
+#Preview("Near goal") {
+    JourneyTransformationHeroSection(state: ProgressPreviewData.transformationNearGoal)
+        .padding()
+        .background(FormaTokens.Color.canvas)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Gain goal") {
+    JourneyTransformationHeroSection(state: ProgressPreviewData.transformationGainGoal)
+        .padding()
+        .background(FormaTokens.Color.canvas)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Maintain goal") {
+    JourneyTransformationHeroSection(state: ProgressPreviewData.transformationMaintainGoal)
+        .padding()
+        .background(FormaTokens.Color.canvas)
+        .preferredColorScheme(.dark)
 }

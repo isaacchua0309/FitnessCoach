@@ -11,12 +11,15 @@ import XCTest
 final class OnboardingV3StructureTests: XCTestCase {
 
     private var v3FlagPrevious: Bool?
+    private var v4FlagPrevious: Bool?
 
     override func setUp() {
         super.setUp()
         v3FlagPrevious = UserDefaults.standard.object(forKey: OnboardingV3FeatureFlag.enabledKey) as? Bool
+        v4FlagPrevious = UserDefaults.standard.object(forKey: OnboardingV4FeatureFlag.enabledKey) as? Bool
         UserDefaults.standard.set(true, forKey: OnboardingV2FeatureFlag.enabledKey)
         UserDefaults.standard.set(true, forKey: OnboardingV3FeatureFlag.enabledKey)
+        UserDefaults.standard.set(false, forKey: OnboardingV4FeatureFlag.enabledKey)
     }
 
     override func tearDown() {
@@ -25,7 +28,34 @@ final class OnboardingV3StructureTests: XCTestCase {
         } else {
             UserDefaults.standard.removeObject(forKey: OnboardingV3FeatureFlag.enabledKey)
         }
+        if let v4FlagPrevious {
+            UserDefaults.standard.set(v4FlagPrevious, forKey: OnboardingV4FeatureFlag.enabledKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: OnboardingV4FeatureFlag.enabledKey)
+        }
         super.tearDown()
+    }
+
+    func testV3EnabledByDefaultWhenKeyAbsent() {
+        UserDefaults.standard.removeObject(forKey: OnboardingV3FeatureFlag.enabledKey)
+        XCTAssertTrue(OnboardingV3FeatureFlag.isEnabled)
+    }
+
+    func testPlanRevealAndSaveHideProgressHeader() {
+        XCTAssertFalse(OnboardingV3Step.planReveal.showsProgressHeader)
+        XCTAssertFalse(OnboardingV3Step.savePlan.showsProgressHeader)
+        XCTAssertTrue(OnboardingV3Step.review.showsProgressHeader)
+    }
+
+    func testV3PlanRevealCopyUsesConversionFocusedStrings() {
+        XCTAssertEqual(
+            OnboardingV3Step.planReveal.title,
+            FormaProductCopy.Onboarding.V3.PlanReveal.title
+        )
+        XCTAssertEqual(
+            OnboardingV3Step.savePlan.title,
+            FormaProductCopy.Onboarding.V3.SavePlan.title
+        )
     }
 
     func testFullV3FlowOrder() {
@@ -97,9 +127,11 @@ final class OnboardingV3StructureTests: XCTestCase {
         )
     }
 
-    func testFlowScopeUsesV3WhenFlagActive() {
+    func testFlowScopeUsesV3WhenFlagActiveAndV4Off() {
+        UserDefaults.standard.set(false, forKey: OnboardingV4FeatureFlag.enabledKey)
         let scope = OnboardingFlowScope.v2Full
         XCTAssertTrue(scope.usesV3Steps)
+        XCTAssertFalse(scope.usesV4Steps)
         XCTAssertEqual(scope.entryV3Step, .landing)
     }
 

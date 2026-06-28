@@ -88,18 +88,53 @@ final class JourneyTrainingSummaryBuilderTests: XCTestCase {
         XCTAssertEqual(analytics?.workoutDays, 3)
     }
 
-    func testCoachInsightsDoNotShameMissingWorkouts() {
-        let insights = JourneyStateBuilder.coachInsights(
+    func testProgressAttributionDoesNotShameMissingWorkouts() {
+        let context = JourneyDashboardBuilder.Context(
+            profile: nil,
+            baseline: JourneyBaseline(
+                startWeightKg: 80,
+                startDate: Date(),
+                currentWeightKg: 80,
+                goalWeightKg: 75,
+                goalDirection: .lose,
+                totalChangeKg: 0,
+                remainingChangeKg: 5,
+                progressPercent: 0,
+                estimatedCompletionDate: nil,
+                estimatedCompletionMonthLabel: nil,
+                hasRealWeightEntries: true,
+                usesSyntheticBaselinePoint: false,
+                onboardingBaselineWeightKg: 80,
+                chartPoints: [],
+                showsWeightChart: false
+            ),
+            maturityLogs: [],
             weekLogs: [],
             previousWeekLogs: [],
-            training: .connectedEmpty,
+            monthLogs: [],
+            rangeLogs: [],
+            allWeights: [],
+            weekWeights: [],
+            rangeWeights: [],
+            streakSummary: StreakSummary(
+                loggingStreak: 0,
+                proteinStreak: 0,
+                hydrationStreak: 0,
+                workoutStreak: 0
+            ),
+            weeklyTraining: .connectedEmpty,
             weightSummary: ProgressWeightSummary(
                 latestWeightKg: 80,
                 changeKg: nil,
                 direction: .stable,
                 hasSuddenSpike: false
             ),
-            nutrition: ProgressNutritionSummary(
+            goalProjection: nil,
+            healthWorkoutDayStarts: [],
+            monthHealthWorkoutCount: 0,
+            weekHealthWorkoutCount: 0,
+            loggedDays: 0,
+            nutritionSummary: ProgressNutritionSummary(
                 loggedDays: 0,
                 averageCalories: nil,
                 averageProtein: nil,
@@ -107,22 +142,27 @@ final class JourneyTrainingSummaryBuilderTests: XCTestCase {
                 averageFat: nil,
                 averageFiber: nil
             ),
-            water: ProgressWaterSummary(
+            waterSummary: ProgressWaterSummary(
                 loggedDays: 0,
                 averageWaterMl: nil,
                 averageWaterTargetMl: nil,
                 consistencyPercent: nil
-            )
+            ),
+            workoutSummary: nil,
+            selectedRangeDays: 28,
+            asOf: Date(),
+            calendar: Calendar.current
         )
 
-        XCTAssertFalse(insights.contains { $0.message.localizedCaseInsensitiveContains("behind") })
-        XCTAssertFalse(insights.contains { $0.message.localizedCaseInsensitiveContains("missed") })
-        if let message = insights.first?.message {
-            XCTAssertTrue(
-                message.contains("Apple Fitness")
-                    || message.contains("building the habit")
-                    || message.contains("Consistency")
-            )
-        }
+        let attribution = JourneyDashboardBuilder.progressAttribution(context: context)
+        let messages = [attribution.primaryReason] + attribution.supportingReasons
+
+        XCTAssertFalse(messages.contains { $0.localizedCaseInsensitiveContains("behind") })
+        XCTAssertFalse(messages.contains { $0.localizedCaseInsensitiveContains("missed") })
+        XCTAssertTrue(
+            attribution.primaryReason.contains("habit")
+                || attribution.primaryReason.contains("Consistency")
+                || attribution.primaryReason.contains("building")
+        )
     }
 }

@@ -127,8 +127,8 @@ struct TodayReadOnlyProgressSection: View {
 
 #Preview("Today's targets") {
     TodayReadOnlyProgressSection(
-        macros: TodayPreviewData.state.macroSummary,
-        water: TodayPreviewData.state.waterSummary
+        macros: TodayPreviewData.state.macroBalance.macroSummary,
+        water: TodayPreviewData.state.macroBalance.waterSummary
     )
     .padding(.horizontal, TodayLayout.horizontalPadding)
     .background(FormaTokens.Color.canvas)

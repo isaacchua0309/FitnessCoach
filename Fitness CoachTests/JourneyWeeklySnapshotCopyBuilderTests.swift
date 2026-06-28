@@ -2,8 +2,6 @@
 //  JourneyWeeklySnapshotCopyBuilderTests.swift
 //  Fitness CoachTests
 //
-//  Forma — Weekly snapshot copy and status mapping.
-//
 
 import XCTest
 @testable import Fitness_Coach
@@ -11,30 +9,18 @@ import XCTest
 final class JourneyWeeklySnapshotCopyBuilderTests: XCTestCase {
 
     func testLockedTrainingShowsConnectAppleHealthCopy() {
-        let snapshot = JourneyWeeklySnapshot(
-            training: .locked,
-            proteinDaysAchieved: 0,
-            proteinDaysTotal: 0,
-            waterDaysAchieved: 0,
-            waterDaysTotal: 0,
-            averageCalorieDeficit: nil
-        )
+        let review = makeReview(training: .locked)
 
-        let trainingRow = JourneyWeeklySnapshotCopyBuilder.rows(for: snapshot).first { $0.id == "training" }
+        let trainingRow = JourneyWeeklySnapshotCopyBuilder.rows(for: review).first { $0.id == "training" }
         XCTAssertEqual(trainingRow?.detail, FormaProductCopy.Journey.WeeklySnapshot.trainingConnectAppleHealth)
     }
 
     func testProteinUsesCompactDayCount() {
-        let snapshot = JourneyWeeklySnapshot(
-            training: .hidden,
-            proteinDaysAchieved: 2,
-            proteinDaysTotal: 5,
-            waterDaysAchieved: 0,
-            waterDaysTotal: 0,
-            averageCalorieDeficit: nil
-        )
+        var review = makeReview(training: .hidden)
+        review.proteinGoalDays = 2
+        review.proteinGoalDaysTotal = 5
 
-        let protein = JourneyWeeklySnapshotCopyBuilder.rows(for: snapshot).first { $0.id == "protein" }
+        let protein = JourneyWeeklySnapshotCopyBuilder.rows(for: review).first { $0.id == "protein" }
         XCTAssertEqual(
             protein?.detail,
             FormaProductCopy.Journey.WeeklySnapshot.daysAchieved(achieved: 2, total: 5)
@@ -43,30 +29,19 @@ final class JourneyWeeklySnapshotCopyBuilderTests: XCTestCase {
     }
 
     func testWaterNotStartedShowsCompactStatus() {
-        let snapshot = JourneyWeeklySnapshot(
-            training: .hidden,
-            proteinDaysAchieved: 0,
-            proteinDaysTotal: 3,
-            waterDaysAchieved: 0,
-            waterDaysTotal: 3,
-            averageCalorieDeficit: nil
-        )
+        var review = makeReview(training: .hidden)
+        review.proteinGoalDaysTotal = 3
+        review.waterGoalDaysTotal = 3
 
-        let water = JourneyWeeklySnapshotCopyBuilder.rows(for: snapshot).first { $0.id == "water" }
+        let water = JourneyWeeklySnapshotCopyBuilder.rows(for: review).first { $0.id == "water" }
         XCTAssertEqual(water?.detail, FormaProductCopy.Journey.WeeklySnapshot.statusNotStarted)
     }
 
     func testCalorieDeficitMapsToUnderTarget() {
-        let snapshot = JourneyWeeklySnapshot(
-            training: .hidden,
-            proteinDaysAchieved: 0,
-            proteinDaysTotal: 0,
-            waterDaysAchieved: 0,
-            waterDaysTotal: 0,
-            averageCalorieDeficit: 120
-        )
+        var review = makeReview(training: .hidden)
+        review.averageCalorieDeficit = 120
 
-        let calories = JourneyWeeklySnapshotCopyBuilder.rows(for: snapshot).first { $0.id == "calories" }
+        let calories = JourneyWeeklySnapshotCopyBuilder.rows(for: review).first { $0.id == "calories" }
         XCTAssertEqual(calories?.detail, FormaProductCopy.Journey.WeeklySnapshot.statusUnderTarget)
     }
 
@@ -80,6 +55,27 @@ final class JourneyWeeklySnapshotCopyBuilderTests: XCTestCase {
         XCTAssertEqual(
             detail,
             FormaProductCopy.Journey.WeeklySnapshot.workoutDaysLine(days: 2)
+        )
+    }
+
+    private func makeReview(training: JourneyWeeklyTrainingStatus) -> JourneyWeeklyReviewState {
+        JourneyWeeklyReviewState(
+            foodLoggedDays: 0,
+            foodLoggedDaysTotal: 7,
+            proteinGoalDays: 0,
+            proteinGoalDaysTotal: 7,
+            waterGoalDays: 0,
+            waterGoalDaysTotal: 7,
+            trainingDays: training.workoutDays ?? 0,
+            expectedTrainingDays: 0,
+            training: training,
+            weightDeltaThisWeekKg: nil,
+            calorieAdherenceDays: 0,
+            calorieAdherenceDaysTotal: 7,
+            strongestPositiveSignal: "",
+            weakestSignal: "",
+            weekSummaryCopy: "",
+            averageCalorieDeficit: nil
         )
     }
 }

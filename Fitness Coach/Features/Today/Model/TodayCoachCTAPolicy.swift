@@ -9,19 +9,20 @@ import Foundation
 
 enum TodayCoachCTAPolicy {
 
-    /// Generic “Update today with Coach” only when Meals and Next Actions have no better CTA.
+    /// Generic “Update today with Coach” only when meals exist and the next-best action has no Coach CTA.
     static func showsGenericCoachCTA(
         foodEntries: [FoodEntry],
-        goals: [TodayGoalItem]
+        nextBestAction: NextBestActionState
     ) -> Bool {
         if foodEntries.isEmpty {
             return false
         }
 
-        let hasCoachNextAction = goals.contains { goal in
-            if case .coach = goal.tapAction { return true }
+        switch nextBestAction.primaryCTA {
+        case .logMeal, .scanFood, .addWater, .logWeight:
             return false
+        case .openHealth, .reviewToday, .none:
+            return true
         }
-        return !hasCoachNextAction
     }
 }

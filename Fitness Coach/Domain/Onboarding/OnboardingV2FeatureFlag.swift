@@ -14,7 +14,7 @@ enum OnboardingV2RoutingMode: String, Equatable, Sendable, CaseIterable {
     /// Value-first teaser: landing + welcome before Google, then motivation onward post-sign-in.
     case valueFirstFallback
 
-    var usesPreAuthShell: Bool {
+    nonisolated var usesPreAuthShell: Bool {
         switch self {
         case .preAuth, .valueFirstFallback:
             return true
@@ -24,16 +24,16 @@ enum OnboardingV2RoutingMode: String, Equatable, Sendable, CaseIterable {
 
 enum OnboardingV2FeatureFlag {
 
-    static let enabledKey = "forma.onboarding.v2.enabled"
-    static let routingModeKey = "forma.onboarding.v2.routingMode"
+    nonisolated static let enabledKey = "forma.onboarding.v2.enabled"
+    nonisolated static let routingModeKey = "forma.onboarding.v2.routingMode"
 
     #if DEBUG
-    static let debugEnabledEnvironmentKey = "FORMA_ONBOARDING_V2"
-    static let debugRoutingEnvironmentKey = "FORMA_ONBOARDING_V2_ROUTING"
+    nonisolated static let debugEnabledEnvironmentKey = "FORMA_ONBOARDING_V2"
+    nonisolated static let debugRoutingEnvironmentKey = "FORMA_ONBOARDING_V2_ROUTING"
     #endif
 
     /// Master switch — defaults to `true` for new installs; set `false` in UserDefaults to roll back.
-    static var isEnabled: Bool {
+    nonisolated static var isEnabled: Bool {
         #if DEBUG
         if let override = ProcessInfo.processInfo.environment[debugEnabledEnvironmentKey] {
             return override == "1"
@@ -47,16 +47,16 @@ enum OnboardingV2FeatureFlag {
     }
 
     /// Active routing mode when `isEnabled`; `.preAuth` when disabled (legacy path).
-    static var routingMode: OnboardingV2RoutingMode {
+    nonisolated static var routingMode: OnboardingV2RoutingMode {
         guard isEnabled else { return .preAuth }
         return resolvedRoutingMode()
     }
 
     /// Whether any v2 onboarding UI/logic should run (master flag only).
-    static var isV2Active: Bool { isEnabled }
+    nonisolated static var isV2Active: Bool { isEnabled }
 
     /// Whether shell routing should use the signed-out onboarding route.
-    static var usesPreAuthShellRouting: Bool {
+    nonisolated static var usesPreAuthShellRouting: Bool {
         isEnabled && routingMode.usesPreAuthShell
     }
 
@@ -74,7 +74,7 @@ enum OnboardingV2FeatureFlag {
     }
     #endif
 
-    private static func resolvedRoutingMode() -> OnboardingV2RoutingMode {
+    nonisolated private static func resolvedRoutingMode() -> OnboardingV2RoutingMode {
         #if DEBUG
         if let override = ProcessInfo.processInfo.environment[debugRoutingEnvironmentKey],
            let mode = OnboardingV2RoutingMode(rawValue: override) {

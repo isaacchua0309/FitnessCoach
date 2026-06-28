@@ -27,9 +27,22 @@ enum OnboardingFlowScope: Equatable, Sendable {
         }
     }
 
+    /// Marketing-first v4 step graph (requires v2 shell; gated by `OnboardingV4FeatureFlag`).
+    var usesV4Steps: Bool {
+        usesV2Steps && OnboardingV4FeatureFlag.isActive
+    }
+
     /// Tap-first v3 step graph (requires v2 shell; gated by `OnboardingV3FeatureFlag`).
     var usesV3Steps: Bool {
-        usesV2Steps && OnboardingV3FeatureFlag.isActive
+        usesV2Steps && OnboardingV3FeatureFlag.isActive && !usesV4Steps
+    }
+
+    var v4Flow: [OnboardingV4Step] {
+        OnboardingV4Step.flow(for: self)
+    }
+
+    var entryV4Step: OnboardingV4Step {
+        v4Flow.first ?? .introProof
     }
 
     var v3Flow: [OnboardingV3Step] {

@@ -70,14 +70,17 @@ final class ProgressModel: ObservableObject {
         let prevWeekStart = calendar.date(byAdding: .day, value: -13, to: endDate) ?? endDate
         let prevWeekEnd = calendar.date(byAdding: .day, value: -7, to: endDate) ?? endDate
         let allTimeStart = calendar.date(byAdding: .day, value: -365, to: endDate) ?? endDate
+        let monthStart = calendar.dateInterval(of: .month, for: endDate)?.start ?? endDate
 
         let logs = try dailyLogService.getLogs(from: startDate, to: endDate)
         let weekLogs = try dailyLogService.getLogs(from: weekStart, to: endDate)
         let previousWeekLogs = try dailyLogService.getLogs(from: prevWeekStart, to: prevWeekEnd)
         let maturityLogs = try dailyLogService.getLogs(from: allTimeStart, to: endDate)
+        let monthLogs = try dailyLogService.getLogs(from: monthStart, to: endDate)
 
         let weights = try weightLogService.getWeightEntries(from: startDate, to: endDate)
         let allWeights = try weightLogService.getWeightEntries(from: allTimeStart, to: endDate)
+        let weekWeights = try weightLogService.getWeightEntries(from: weekStart, to: endDate)
 
         let integrationState = trainingInsightsStore.integrationState
         let dataSource = trainingInsightsStore.dataSource
@@ -85,6 +88,7 @@ final class ProgressModel: ObservableObject {
         let rangeHealthWorkouts = try await fetchHealthWorkouts(from: startDate, to: endDate)
         let weekHealthWorkouts = try await fetchHealthWorkouts(from: weekStart, to: endDate)
         let allHealthWorkouts = try await fetchHealthWorkouts(from: allTimeStart, to: endDate)
+        let monthHealthWorkouts = try await fetchHealthWorkouts(from: monthStart, to: endDate)
 
         let weeklyTraining = JourneyTrainingSummaryBuilder.weeklyTrainingStatus(
             integrationState: integrationState,
@@ -104,7 +108,6 @@ final class ProgressModel: ObservableObject {
             hasSuddenSpike: weightTrend.hasSuddenSpike
         )
 
-        let currentWeight = weightSummary.latestWeightKg ?? profile?.currentWeightKg
         let nutritionSummary = ProgressLogSummaryBuilder.nutritionSummary(from: logs)
         let waterSummary = ProgressLogSummaryBuilder.waterSummary(from: logs)
         let workoutSummary = JourneyTrainingSummaryBuilder.workoutAnalytics(
@@ -123,90 +126,78 @@ final class ProgressModel: ObservableObject {
             )
         }
 
-        let loggedDays = meaningfulLoggedDays(from: maturityLogs, weights: allWeights)
-        let journeyStart = JourneyStateBuilder.journeyStartDate(
-            profile: profile,
-            logs: maturityLogs,
-            weights: allWeights
-        )
-
-        let sortedAllWeights = allWeights.sorted { $0.date < $1.date }
-        let startWeight = sortedAllWeights.first?.weightKg ?? profile?.currentWeightKg
-
-        let transformation = JourneyStateBuilder.transformation(
-            profile: profile,
-            currentWeightKg: currentWeight,
-            projection: goalProjection,
-            weightDirection: weightSummary.direction,
-            journeyStartDate: journeyStart,
-            loggedDays: loggedDays
-        )
-
-        let milestones = JourneyStateBuilder.milestones(
-            startWeight: startWeight,
-            currentWeight: currentWeight,
-            goalWeight: profile?.goalWeightKg
-        )
-
-        let weeklySnapshot = JourneyStateBuilder.weeklySnapshot(
-            weekLogs: weekLogs,
-            training: weeklyTraining
-        )
-
-        let coachInsights = JourneyStateBuilder.coachInsights(
-            weekLogs: weekLogs,
-            previousWeekLogs: previousWeekLogs,
-            training: weeklyTraining,
-            weightSummary: weightSummary,
-            nutrition: nutritionSummary,
-            water: waterSummary
+        let baseline = JourneyBaselineResolver.resolve(
+            JourneyBaselineResolver.Input(
+                profile: profile,
+                allWeights: allWeights,
+                maturityLogs: maturityLogs,
+                goalProjection: goalProjection,
+                asOf: endDate,
+                calendar: calendar
+            )
         )
 
         let healthWorkoutDays = integrationState.isConnected
             ? JourneyTrainingSummaryBuilder.healthWorkoutDayStarts(from: allHealthWorkouts, calendar: calendar)
             : []
 
-        let consistencyCalendar = JourneyStateBuilder.consistencyCalendar(
+        let streakSummary = StreakCalculator.calculate(
             logs: maturityLogs,
+            workoutDates: healthWorkoutDays,
+            asOf: endDate
+        )
+
+        let loggedDays = meaningfulLoggedDays(from: maturityLogs, weights: allWeights)
+        let weightInterpretation = JourneyDashboardBuilder.weightTrendInterpretation(summary: weightSummary)
+
+        let builderContext = JourneyDashboardBuilder.Context(
+            profile: profile,
+            baseline: baseline,
+            maturityLogs: maturityLogs,
+            weekLogs: weekLogs,
+            previousWeekLogs: previousWeekLogs,
+            monthLogs: monthLogs,
+            rangeLogs: logs,
+            allWeights: allWeights,
+            weekWeights: weekWeights,
+            rangeWeights: weights,
+            streakSummary: streakSummary,
+            weeklyTraining: weeklyTraining,
+            weightSummary: weightSummary,
+            goalProjection: goalProjection,
             healthWorkoutDayStarts: healthWorkoutDays,
-            weights: allWeights
+            monthHealthWorkoutCount: monthHealthWorkouts.count,
+            weekHealthWorkoutCount: weekHealthWorkouts.count,
+            loggedDays: loggedDays,
+            nutritionSummary: nutritionSummary,
+            waterSummary: waterSummary,
+            workoutSummary: workoutSummary,
+            selectedRangeDays: rangeDays,
+            asOf: endDate,
+            calendar: calendar
         )
-
-        let achievements = JourneyStateBuilder.achievements(
-            logs: maturityLogs,
-            hasAppleHealthWorkout: integrationState.isConnected && !allHealthWorkouts.isEmpty,
-            weights: allWeights,
-            profile: profile
-        )
-
-        let weightChartPoints = ProgressLogSummaryBuilder.weightChartPoints(from: weights)
-        let nextCheckpoint = ProgressFormatter.nextMilestone(from: milestones)?.weightKg
-        let weightLogCount = allWeights.count
 
         return ProgressDashboardState(
             selectedRangeDays: rangeDays,
-            transformation: transformation,
-            milestones: milestones,
-            nextCheckpointKg: nextCheckpoint,
-            sectionVisibility: JourneySectionVisibility(
-                showsWeightTrendSection: weightLogCount >= 2,
-                showsMilestonesSection: false
+            hasProfile: profile != nil,
+            baseline: baseline,
+            transformation: JourneyDashboardBuilder.transformation(
+                context: builderContext,
+                loggedDays: loggedDays
             ),
-            weeklySnapshot: weeklySnapshot,
-            coachInsights: coachInsights,
-            consistencyCalendar: consistencyCalendar,
-            achievements: achievements,
-            weightTrend: JourneyWeightTrendState(
-                chartPoints: weightChartPoints,
-                interpretation: JourneyStateBuilder.weightTrendInterpretation(summary: weightSummary)
-            ),
-            analytics: ProgressAnalyticsDetail(
-                nutritionSummary: nutritionSummary,
-                waterSummary: waterSummary,
-                workoutSummary: workoutSummary,
-                weightChartPoints: weightChartPoints
-            ),
-            hasProfile: profile != nil
+            weeklyReview: JourneyDashboardBuilder.weeklyReview(context: builderContext),
+            milestones: JourneyDashboardBuilder.milestones(context: builderContext),
+            storyTimeline: JourneyDashboardBuilder.storyTimeline(context: builderContext),
+            habitInsights: JourneyDashboardBuilder.habitInsights(context: builderContext),
+            progressAttribution: JourneyDashboardBuilder.progressAttribution(context: builderContext),
+            beforeToday: JourneyDashboardBuilder.beforeToday(context: builderContext),
+            personalRecords: JourneyDashboardBuilder.personalRecords(context: builderContext),
+            monthlyRecap: JourneyDashboardBuilder.monthlyRecap(context: builderContext),
+            journeyLevel: JourneyDashboardBuilder.journeyLevel(context: builderContext),
+            detailedAnalytics: JourneyDashboardBuilder.detailedAnalytics(
+                context: builderContext,
+                weightInterpretation: weightInterpretation
+            )
         )
     }
 
