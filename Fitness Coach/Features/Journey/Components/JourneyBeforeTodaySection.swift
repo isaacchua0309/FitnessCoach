@@ -117,12 +117,12 @@ struct JourneyBeforeTodaySection: View {
     JourneyBeforeTodaySection(state: ProgressPreviewData.beforeTodayActive)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Weights only") {
     JourneyBeforeTodaySection(state: ProgressPreviewData.beforeTodayWeightsOnly)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }

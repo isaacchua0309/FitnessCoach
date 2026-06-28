@@ -21,7 +21,33 @@ final class OnboardingStageProgressTests: XCTestCase {
     }
 
     func testSavePlanIsFinalStage() {
-        XCTAssertEqual(OnboardingStep.savePlan.stage.progressIndex, OnboardingStage.stageCount)
+        XCTAssertEqual(OnboardingStep.savePlan.flowProgressIndex, OnboardingStage.stageCount)
+    }
+
+    func testFlowProgressIndexIncreasesMonotonicallyThroughCanonicalFlow() {
+        let indices = OnboardingStep.flow.map(\.flowProgressIndex)
+        for index in 1..<indices.count {
+            XCTAssertGreaterThanOrEqual(
+                indices[index],
+                indices[index - 1],
+                "Progress regressed at \(OnboardingStep.flow[index])"
+            )
+            let delta = indices[index] - indices[index - 1]
+            XCTAssertLessThanOrEqual(
+                delta,
+                1,
+                "Progress jumped \(delta) segments at \(OnboardingStep.flow[index])"
+            )
+        }
+    }
+
+    func testBirthdayToActivityAdvancesOneSegment() {
+        XCTAssertEqual(OnboardingStep.birthday.flowProgressIndex, 4)
+        XCTAssertEqual(OnboardingStep.activityLevel.flowProgressIndex, 5)
+        XCTAssertEqual(
+            OnboardingStep.activityLevel.flowProgressIndex - OnboardingStep.birthday.flowProgressIndex,
+            1
+        )
     }
 
     func testGeneratingPlanDisallowsBackNavigation() {

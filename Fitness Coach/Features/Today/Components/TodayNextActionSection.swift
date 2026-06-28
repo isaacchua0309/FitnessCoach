@@ -72,7 +72,7 @@ struct TodayNextActionSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Log lunch") {
@@ -88,7 +88,7 @@ struct TodayNextActionSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("On track") {
@@ -104,5 +104,5 @@ struct TodayNextActionSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

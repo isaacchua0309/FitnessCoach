@@ -24,5 +24,5 @@ struct CoachHeader: View {
 #Preview {
     CoachHeader()
         .background(CoachDesignTokens.Color.background)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }

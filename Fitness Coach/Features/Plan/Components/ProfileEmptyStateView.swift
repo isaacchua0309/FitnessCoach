@@ -26,7 +26,7 @@ struct ProfileEmptyStateView: View {
 
             Button(FormaProductCopy.Common.getStarted, action: onCreateProfile)
                 .buttonStyle(.borderedProminent)
-                .tint(FormaTokens.Color.accent)
+                .tint(FormaTokens.Color.ctaBackground)
                 .accessibilityHint(FormaProductCopy.EmptyState.planGetStartedAccessibilityHint)
         }
         .padding()
@@ -38,11 +38,11 @@ struct ProfileEmptyStateView: View {
 
 #Preview {
     ProfileEmptyStateView(onCreateProfile: {})
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Large Dynamic Type") {
     ProfileEmptyStateView(onCreateProfile: {})
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
         .dynamicTypeSize(.accessibility3)
 }

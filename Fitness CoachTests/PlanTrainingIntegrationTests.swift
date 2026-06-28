@@ -16,7 +16,7 @@ final class PlanTrainingIntegrationTests: XCTestCase {
         XCTAssertEqual(presentation.sectionTitle, "Apple Health")
         XCTAssertTrue(presentation.showsStatusCheckmark)
         XCTAssertEqual(presentation.statusLabel, "Connected")
-        XCTAssertEqual(presentation.bodyCopy, "Using workouts to improve your insights.")
+        XCTAssertEqual(presentation.bodyCopy, TrainingIntegrationCopy.planCardConnectedBody)
         XCTAssertNil(presentation.ctaTitle)
     }
 
@@ -29,7 +29,7 @@ final class PlanTrainingIntegrationTests: XCTestCase {
         XCTAssertEqual(presentation.statusLabel, "Not connected")
         XCTAssertEqual(
             presentation.bodyCopy,
-            "Connect Apple Health to improve activity insights."
+            TrainingIntegrationCopy.planCardDisconnectedBody
         )
         XCTAssertEqual(presentation.ctaTitle, "Connect Apple Health")
     }
@@ -41,7 +41,7 @@ final class PlanTrainingIntegrationTests: XCTestCase {
 
         XCTAssertEqual(
             presentation.bodyCopy,
-            "Connect Apple Health to improve activity insights."
+            TrainingIntegrationCopy.planCardDisconnectedBody
         )
         XCTAssertEqual(presentation.ctaTitle, "Connect Apple Health")
     }

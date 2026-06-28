@@ -60,8 +60,13 @@ final class ExistingUserSignInTests: XCTestCase {
     }
 
     func testFailedAnalyticsIncludesReasonParameter() {
-        let properties = PublicEntryAnalyticsProperties(reason: ExistingUserSignInFailureKind.authCancelled.analyticsReason)
-        XCTAssertEqual(properties.asParameters(), ["reason": "authCancelled"])
+        let properties = PublicEntryAnalyticsProperties(
+            authProvider: PublicEntryAnalyticsAuthProvider.google,
+            hasLocalProfile: false,
+            reason: ExistingUserSignInFailureKind.authCancelled.analyticsReason
+        )
+        XCTAssertEqual(properties.asParameters()["reason"], "authCancelled")
+        XCTAssertEqual(properties.asParameters()["auth_provider"], "google")
     }
 
     // MARK: - Auth failure classification

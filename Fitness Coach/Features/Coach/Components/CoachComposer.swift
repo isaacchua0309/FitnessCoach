@@ -173,7 +173,7 @@ private struct CoachComposerButtonStyle: ButtonStyle {
                 )
             }
             .background(CoachDesignTokens.Color.background)
-            .preferredColorScheme(.dark)
+            .formaThemePreview()
         }
     }
 

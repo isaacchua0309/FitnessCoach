@@ -74,13 +74,13 @@ final class OnboardingProfileRoutingSafetyTests: XCTestCase {
         )
     }
 
-    func testPendingOnboardingCompletionDefersLocalMainShortCircuit() {
+    func testPendingOnboardingCompletionDefersWelcomeForSavePlanHandoff() {
         XCTAssertEqual(
             AppRouteResolver.resolve(
                 authState: .signedOut,
                 isOnboardingModelReady: true,
                 hasLocalProfile: true,
-                signedOutWithProfilePolicy: .allowLocalMain,
+                signedOutWithProfilePolicy: .requireSignIn,
                 localProfileAwaitingSignIn: true,
                 pendingOnboardingCompletion: true
             ),

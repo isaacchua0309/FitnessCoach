@@ -71,5 +71,5 @@ private struct CoachStarterChipButtonStyle: ButtonStyle {
     CoachStarterChips(isDisabled: false) { _ in }
         .padding()
         .background(CoachDesignTokens.Color.background)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }

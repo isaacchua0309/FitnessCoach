@@ -64,12 +64,12 @@ struct OnboardingIntroProofStepView: View {
     private var legendBlock: some View {
         HStack(alignment: .center, spacing: FormaTokens.Spacing.lg) {
             legendItem(
-                color: OnboardingTheme.accent,
+                color: OnboardingTheme.chartPrimary,
                 label: model.formaLabel,
                 isDashed: false
             )
             legendItem(
-                color: OnboardingTheme.secondaryText.opacity(0.72),
+                color: OnboardingTheme.chartSecondary,
                 label: model.traditionalLabel,
                 isDashed: true
             )
@@ -139,6 +139,6 @@ struct OnboardingIntroProofStepView: View {
     OnboardingIntroProofStepView()
         .padding(.horizontal, OnboardingTheme.pagePadding)
         .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 #endif

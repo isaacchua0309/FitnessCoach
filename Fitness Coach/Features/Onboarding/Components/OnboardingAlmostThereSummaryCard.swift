@@ -43,6 +43,6 @@ struct OnboardingAlmostThereSummaryCard: View {
     )
     .padding()
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 #endif

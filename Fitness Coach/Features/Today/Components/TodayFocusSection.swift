@@ -29,5 +29,5 @@ struct TodayFocusSection: View {
     TodayFocusSection(message: FormaProductCopy.Today.focusProteinLow)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }

@@ -110,17 +110,19 @@ struct OnboardingFormaProofComparisonModel: Equatable, Sendable {
     let disclaimer: String
     let chartAccessibilityLabel: String
 
+    /// Legacy preview model — not used by the forma proof step.
     static var `default`: Self {
-        let copy = FormaProductCopy.Onboarding.Flow.Proof.WeightLossComparison.self
+        let comparison = FormaProductCopy.Onboarding.Flow.FormaProof.Comparison.self
+        let disclaimer = FormaProductCopy.Onboarding.Flow.Proof.WeightLossComparison.disclaimer
         return OnboardingFormaProofComparisonModel(
-            withoutFormaLabel: copy.withoutFormaLabel,
-            withFormaLabel: copy.withFormaLabel,
-            withoutFormaValue: copy.withoutFormaValue,
-            withFormaValue: copy.withFormaValue,
-            withoutFormaFill: copy.withoutFormaBarFill,
-            withFormaFill: copy.withFormaBarFill,
-            disclaimer: copy.disclaimer,
-            chartAccessibilityLabel: copy.chartAccessibilityLabel
+            withoutFormaLabel: comparison.withoutStructureTitle,
+            withFormaLabel: comparison.withFormaTitle,
+            withoutFormaValue: comparison.withoutBullets[0],
+            withFormaValue: comparison.withFormaBullets[0],
+            withoutFormaFill: 0.4,
+            withFormaFill: 1.0,
+            disclaimer: disclaimer,
+            chartAccessibilityLabel: "\(comparison.withoutStructureTitle). \(comparison.withFormaTitle)."
         )
     }
 }
@@ -142,7 +144,7 @@ struct OnboardingWeightMaintenanceProofCard: View {
 
             OnboardingProofLineChart(
                 points: model.points,
-                strokeColor: OnboardingTheme.accent,
+                strokeColor: OnboardingTheme.chartPrimary,
                 showsPointMarkers: true
             )
             .frame(height: 132)
@@ -169,9 +171,9 @@ struct OnboardingWeightTrajectoryComparisonProofCard: View {
                 .accessibilityLabel(model.chartAccessibilityLabel)
 
             HStack(spacing: FormaTokens.Spacing.lg) {
-                legendSwatch(color: OnboardingTheme.accent, label: model.formaLabel, dashed: false)
+                legendSwatch(color: OnboardingTheme.chartPrimary, label: model.formaLabel, dashed: false)
                 legendSwatch(
-                    color: OnboardingTheme.secondaryText.opacity(0.72),
+                    color: OnboardingTheme.chartSecondary,
                     label: model.traditionalLabel,
                     dashed: true
                 )

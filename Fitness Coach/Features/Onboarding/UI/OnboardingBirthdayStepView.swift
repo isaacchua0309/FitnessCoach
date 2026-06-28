@@ -26,16 +26,22 @@ struct OnboardingBirthdayStepView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: OnboardingLayout.birthdaySectionSpacing) {
+        VStack(alignment: .leading, spacing: 0) {
             headerSection
+
             birthdaySection
-            agePreviewSection
-            sexSection
-            trustSection
-            Spacer(minLength: 0)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+
+            VStack(alignment: .leading, spacing: OnboardingLayout.birthdaySectionSpacing) {
+                agePreviewSection
+                sexSection
+                trustSection
+            }
+            .padding(.top, OnboardingLayout.birthdaySectionSpacing)
         }
         .padding(.horizontal, OnboardingTheme.pagePadding)
         .padding(.top, OnboardingLayout.progressHeaderTop)
+        .padding(.bottom, FormaTokens.Spacing.md)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(
@@ -59,14 +65,16 @@ struct OnboardingBirthdayStepView: View {
     }
 
     private var birthdaySection: some View {
-        VStack(alignment: .leading, spacing: OnboardingLayout.compactLabelGap) {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
             Text(copy.birthdayLabel)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.secondaryText)
+                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                .foregroundStyle(OnboardingTheme.primaryText)
                 .textCase(.uppercase)
 
             OnboardingBirthdayWheelPicker(birthDate: $formState.birthDate)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
+        .padding(.top, OnboardingLayout.birthdaySectionSpacing)
         .opacity(pickerVisible ? 1 : 0)
         .offset(y: pickerVisible ? 0 : 8)
         .accessibilityElement(children: .contain)
@@ -135,7 +143,7 @@ struct OnboardingBirthdayStepView: View {
         }())
     )
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Birthday — Complete") {
@@ -148,12 +156,12 @@ struct OnboardingBirthdayStepView: View {
         }())
     )
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Birthday — Incomplete") {
     OnboardingBirthdayStepView(formState: .constant(OnboardingFormState()))
         .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 #endif

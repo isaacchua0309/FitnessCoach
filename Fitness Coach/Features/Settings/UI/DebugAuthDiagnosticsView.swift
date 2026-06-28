@@ -94,9 +94,9 @@ struct DebugAuthDiagnosticsView: View {
     private var tokenCheckForegroundColor: Color {
         switch tokenCheckStatus {
         case .completed(.unavailable):
-            return .red
+            return FormaTokens.Color.destructive
         default:
-            return Color.secondary
+            return FormaTokens.Color.textSecondary
         }
     }
 

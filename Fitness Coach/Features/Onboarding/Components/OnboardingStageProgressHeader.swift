@@ -10,8 +10,8 @@ import SwiftUI
 struct OnboardingStageProgressHeader: View {
     let currentStep: OnboardingStep
 
-    private var currentStage: OnboardingStage {
-        currentStep.stage
+    private var progressIndex: Int {
+        currentStep.flowProgressIndex
     }
 
     var body: some View {
@@ -36,27 +36,27 @@ struct OnboardingStageProgressHeader: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Onboarding progress")
-        .accessibilityValue(currentStage.progressAccessibilityLabel)
+        .accessibilityValue(currentStep.flowProgressAccessibilityLabel)
     }
 
     private var stageSegmentBar: some View {
         HStack(spacing: 4) {
-            ForEach(OnboardingStage.allCases) { stage in
+            ForEach(1...OnboardingStage.stageCount, id: \.self) { index in
                 Capsule()
-                    .fill(segmentFill(for: stage))
+                    .fill(segmentFill(for: index))
                     .frame(height: OnboardingLayout.progressSegmentHeight)
                     .accessibilityHidden(true)
             }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Progress")
-        .accessibilityValue(currentStage.progressAccessibilityLabel)
+        .accessibilityValue(currentStep.flowProgressAccessibilityLabel)
     }
 
-    private func segmentFill(for stage: OnboardingStage) -> Color {
-        if stage.progressIndex <= currentStage.progressIndex {
-            return OnboardingTheme.accent
+    private func segmentFill(for index: Int) -> Color {
+        if index <= progressIndex {
+            return OnboardingTheme.progress
         }
-        return Color.white.opacity(0.12)
+        return OnboardingTheme.progressTrack
     }
 }

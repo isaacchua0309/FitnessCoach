@@ -16,15 +16,15 @@ struct OnboardingBiologicalSexSelector: View {
     private let options: [Sex] = [.male, .female]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: OnboardingLayout.compactLabelGap) {
-            VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
                 Text(sectionTitle)
-                    .font(FormaTokens.Typography.body.weight(.semibold))
+                    .font(FormaTokens.Typography.sectionTitle)
                     .foregroundStyle(OnboardingTheme.primaryText)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text(explanation)
-                    .font(FormaTokens.Typography.caption)
+                    .font(FormaTokens.Typography.sectionSubtitle)
                     .foregroundStyle(OnboardingTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -47,29 +47,37 @@ struct OnboardingBiologicalSexSelector: View {
             selection = sex
             OnboardingHaptics.selectionChanged()
         } label: {
-            Text(label)
-                .font(FormaTokens.Typography.body.weight(.semibold))
-                .foregroundStyle(isSelected ? OnboardingTheme.primaryText : OnboardingTheme.secondaryText)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: 44)
-                .padding(.horizontal, FormaTokens.Spacing.sm)
-                .background(
-                    RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
-                        .fill(isSelected ? FormaTokens.Color.accentMuted : FormaTokens.Color.surfaceSubtle)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
-                        .stroke(
-                            isSelected ? OnboardingTheme.selectedBorder : Color.clear,
-                            lineWidth: isSelected ? 1.5 : 0
-                        )
-                )
+            HStack(spacing: FormaTokens.Spacing.xs) {
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(FormaTokens.Typography.body.weight(.semibold))
+                        .foregroundStyle(OnboardingTheme.accent)
+                        .accessibilityHidden(true)
+                }
+
+                Text(label)
+                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                    .foregroundStyle(isSelected ? OnboardingTheme.primaryText : OnboardingTheme.secondaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: FormaTokens.Layout.minTouchTarget + 8)
+            .padding(.horizontal, FormaTokens.Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
+                    .fill(isSelected ? FormaTokens.Color.accentMuted : FormaTokens.Color.surfaceSubtle)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
+                    .stroke(
+                        isSelected ? OnboardingTheme.selectedBorder : Color.clear,
+                        lineWidth: isSelected ? 1.5 : 0
+                    )
+            )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Select \(label)")
-        .accessibilityValue(isSelected ? "Selected" : "")
+        .accessibilityLabel(isSelected ? "\(label), selected" : label)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }
@@ -79,6 +87,6 @@ struct OnboardingBiologicalSexSelector: View {
     OnboardingBiologicalSexSelector(selection: .constant(.female))
         .padding()
         .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 #endif

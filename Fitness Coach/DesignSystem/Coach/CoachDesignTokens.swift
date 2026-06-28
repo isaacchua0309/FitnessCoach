@@ -11,22 +11,45 @@ enum CoachDesignTokens {
 
     // MARK: Color
 
+    /// Semantic colors resolved from the active Forma theme on each access.
     enum Color {
-        static let background = FormaTokens.Color.canvas
-        static let elevatedSurface = FormaTokens.Color.surfaceElevated
-        static let chipFill = FormaTokens.Color.surface
-        static let chipStroke = FormaTokens.Color.border
-        static let composerFill = FormaTokens.Color.surfaceElevated
-        static let composerStroke = FormaTokens.Color.border
-        static let primaryText = FormaTokens.Color.textPrimary
-        static let secondaryText = FormaTokens.Color.textSecondary
-        static let tertiaryText = FormaTokens.Color.textTertiary
-        static let accent = FormaTokens.Color.accent
-        static let border = FormaTokens.Color.border
-        static let userBubble = FormaTokens.Color.surfaceElevated
-        static let confirmationLabel = FormaTokens.Color.textTertiary
-        static let confirmationValue = FormaTokens.Color.textLegal
-        static let textLegal = FormaTokens.Color.textLegal
+        @MainActor
+        private static var active: FormaThemeColors { FormaThemeAccess.currentColors }
+
+        @MainActor
+        static var background: SwiftUI.Color { active.canvas }
+        @MainActor
+        static var elevatedSurface: SwiftUI.Color { active.surfaceElevated }
+        @MainActor
+        static var chipFill: SwiftUI.Color { active.surface }
+        @MainActor
+        static var chipStroke: SwiftUI.Color { active.border }
+        @MainActor
+        static var composerFill: SwiftUI.Color { active.surfaceElevated }
+        @MainActor
+        static var composerStroke: SwiftUI.Color { active.border }
+        @MainActor
+        static var primaryText: SwiftUI.Color { active.textPrimary }
+        @MainActor
+        static var secondaryText: SwiftUI.Color { active.textSecondary }
+        @MainActor
+        static var tertiaryText: SwiftUI.Color { active.textTertiary }
+        @MainActor
+        static var accent: SwiftUI.Color { active.accent }
+        @MainActor
+        static var ctaBackground: SwiftUI.Color { active.ctaBackground }
+        @MainActor
+        static var border: SwiftUI.Color { active.border }
+        @MainActor
+        static var userBubble: SwiftUI.Color { active.surfaceElevated }
+        @MainActor
+        static var confirmationLabel: SwiftUI.Color { active.textTertiary }
+        @MainActor
+        static var confirmationValue: SwiftUI.Color { active.textLegal }
+        @MainActor
+        static var textLegal: SwiftUI.Color { active.textLegal }
+        @MainActor
+        static var warning: SwiftUI.Color { active.warning }
     }
 
     // MARK: Spacing

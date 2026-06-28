@@ -20,26 +20,13 @@ enum AuthProfileRouteSafetyTestSupport {
     }
 
     static func makeServiceHarness() throws -> ServiceHarness {
-        let base = try DailyLogServiceTestSupport.makeHarness()
-        let cloudStore = MockCloudUserProfileStore()
-        let syncStore = ProfileCloudSyncStore(
-            userDefaults: UserDefaults(suiteName: "AuthProfileRouteSafety.\(UUID().uuidString)")!
-        )
-        let bootstrapService = ProfileBootstrapService(
-            userProfileService: base.profileService,
-            cloudStore: cloudStore,
-            cloudSyncStore: syncStore
-        )
-        let coordinator = ProfileBootstrapCoordinatorService(
-            profileBootstrapService: bootstrapService,
-            cloudSyncStore: syncStore
-        )
+        let harness = try ProfileBootstrapTestSupport.makeHarness()
         return ServiceHarness(
-            profileService: base.profileService,
-            cloudStore: cloudStore,
-            syncStore: syncStore,
-            bootstrapService: bootstrapService,
-            coordinator: coordinator
+            profileService: harness.profileService,
+            cloudStore: harness.cloudStore,
+            syncStore: harness.syncStore,
+            bootstrapService: harness.bootstrapService,
+            coordinator: harness.makeCoordinator()
         )
     }
 

@@ -10,12 +10,10 @@ import SwiftUI
 struct OnboardingSavePlanStepView: View {
     let requiresGoogleSignIn: Bool
     let isBusy: Bool
-    let allowsLocalOnlyContinuation: Bool
     let errorMessage: String?
     var planRecap: OnboardingPlanRevealState?
     var usesCompactLayout: Bool = false
     let onContinue: () -> Void
-    let onContinueWithoutAccount: () -> Void
     let onBack: () -> Void
 
     var body: some View {
@@ -69,10 +67,13 @@ struct OnboardingSavePlanStepView: View {
 
             if requiresGoogleSignIn {
                 FormaGoogleSignInButton(
+                    title: ProfileSignInCopyPolicy.googleButtonTitle(for: .onboardingCompletion),
                     isLoading: isBusy,
                     isDisabled: isBusy,
                     action: onContinue,
-                    accessibilityHint: "Save your plan and sync with Google"
+                    accessibilityHint: ProfileSignInCopyPolicy.googleButtonAccessibilityHint(
+                        for: .onboardingCompletion
+                    )
                 )
 
                 Text(copy.trustNote)
@@ -82,20 +83,6 @@ struct OnboardingSavePlanStepView: View {
                     .frame(maxWidth: .infinity)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityLabel(copy.trustNote)
-
-                if allowsLocalOnlyContinuation {
-                    Button(action: onContinueWithoutAccount) {
-                        Text(FormaProductCopy.Onboarding.V2.SavePlan.continueWithoutAccountCTA)
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .frame(minHeight: FormaTokens.Layout.minTouchTarget)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(OnboardingTheme.secondaryText)
-                    .disabled(isBusy)
-                    .accessibilityLabel(FormaProductCopy.Onboarding.V2.SavePlan.continueWithoutAccountCTA)
-                    .accessibilityHint("Use the app on this device without signing in")
-                }
             } else {
                 Button(action: onContinue) {
                     Text(FormaProductCopy.Onboarding.V2.SavePlan.signedInContinueCTA)
@@ -155,10 +142,13 @@ struct OnboardingSavePlanStepView: View {
             }
 
             FormaGoogleSignInButton(
+                title: ProfileSignInCopyPolicy.googleButtonTitle(for: .onboardingCompletion),
                 isLoading: isBusy,
                 isDisabled: isBusy,
                 action: onContinue,
-                accessibilityHint: "Save your plan and sync with Google"
+                accessibilityHint: ProfileSignInCopyPolicy.googleButtonAccessibilityHint(
+                    for: .onboardingCompletion
+                )
             )
 
             Text(FormaProductCopy.Onboarding.V2.SavePlan.trustNote)
@@ -168,20 +158,6 @@ struct OnboardingSavePlanStepView: View {
                 .frame(maxWidth: .infinity)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityLabel(FormaProductCopy.Onboarding.V2.SavePlan.trustNote)
-
-            if allowsLocalOnlyContinuation {
-                Button(action: onContinueWithoutAccount) {
-                    Text(FormaProductCopy.Onboarding.V2.SavePlan.continueWithoutAccountCTA)
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .frame(minHeight: FormaTokens.Layout.minTouchTarget)
-                }
-                .buttonStyle(.bordered)
-                .tint(OnboardingTheme.secondaryText)
-                .disabled(isBusy)
-                .accessibilityLabel(FormaProductCopy.Onboarding.V2.SavePlan.continueWithoutAccountCTA)
-                .accessibilityHint("Use the app on this device without signing in")
-            }
         }
     }
 
@@ -221,60 +197,39 @@ struct OnboardingSavePlanStepView: View {
     OnboardingSavePlanStepView(
         requiresGoogleSignIn: true,
         isBusy: false,
-        allowsLocalOnlyContinuation: false,
         errorMessage: nil,
         onContinue: {},
-        onContinueWithoutAccount: {},
         onBack: {}
     )
     .padding()
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Compact signed-out") {
     OnboardingSavePlanStepView(
         requiresGoogleSignIn: true,
         isBusy: false,
-        allowsLocalOnlyContinuation: true,
         errorMessage: nil,
         planRecap: OnboardingPreviewData.planRevealState,
         usesCompactLayout: true,
         onContinue: {},
-        onContinueWithoutAccount: {},
         onBack: {}
     )
     .padding()
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Signed-in flow") {
     OnboardingSavePlanStepView(
         requiresGoogleSignIn: false,
         isBusy: false,
-        allowsLocalOnlyContinuation: false,
         errorMessage: nil,
         onContinue: {},
-        onContinueWithoutAccount: {},
         onBack: {}
     )
     .padding()
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
-}
-
-#Preview("Local-only available") {
-    OnboardingSavePlanStepView(
-        requiresGoogleSignIn: true,
-        isBusy: false,
-        allowsLocalOnlyContinuation: true,
-        errorMessage: nil,
-        onContinue: {},
-        onContinueWithoutAccount: {},
-        onBack: {}
-    )
-    .padding()
-    .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

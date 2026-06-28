@@ -234,8 +234,13 @@ final class OnboardingBirthdayTests: XCTestCase {
         }
     }
 
-    func testBirthdayWheelUsesCompactHeight() {
-        XCTAssertLessThanOrEqual(OnboardingLayout.birthdayWheelHeight, 140)
+    func testBirthdayWheelUsesReadableHeight() {
+        XCTAssertGreaterThanOrEqual(OnboardingLayout.birthdayWheelHeight, 180)
+        XCTAssertGreaterThanOrEqual(
+            OnboardingLayout.birthdayWheelHeight,
+            OnboardingLayout.measurementWheelHeight * 0.85,
+            "Birthday wheel should be nearly as tall as height/weight pickers for legibility"
+        )
     }
 
     func testBirthdayFooterInsetDoesNotDoubleCountFooterHeight() {

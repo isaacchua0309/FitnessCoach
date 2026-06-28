@@ -14,6 +14,7 @@ struct ProfileView: View {
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
     @EnvironmentObject private var trainingInsightsStore: TrainingInsightsStore
     @EnvironmentObject private var trainingInsightsModel: TrainingInsightsModel
+    @EnvironmentObject private var themeStore: ThemeStore
 
     @State private var isShowingTrainingInsights = false
 
@@ -102,6 +103,7 @@ struct ProfileView: View {
                                 model.dismissSettings()
                             }
                         )
+                        .environmentObject(themeStore)
                     }
                 }
                 .sheet(isPresented: $model.isShowingTargetRegenerationSheet) {
@@ -118,7 +120,6 @@ struct ProfileView: View {
                     }
                 }
                 .background(FormaTokens.Color.canvas)
-                .preferredColorScheme(.dark)
         }
     }
 
@@ -248,6 +249,8 @@ struct ProfileView: View {
         .environmentObject(container.authManager)
         .environmentObject(container.trainingInsightsStore)
         .environmentObject(container.trainingInsightsModel)
+        .environmentObject(container.themeStore)
+        .formaThemePreview()
 }
 
 #Preview("Loaded Plan") {
@@ -285,5 +288,5 @@ struct ProfileView: View {
         .padding(.vertical, 24)
     }
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

@@ -33,5 +33,5 @@ struct TrainingInsightsConnectedHeader: View {
     TrainingInsightsConnectedHeader()
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }

@@ -23,10 +23,20 @@ struct ProgressRangeSelector: View {
             }
         }
         .pickerStyle(.segmented)
+        .tint(FormaTokens.Color.accent)
     }
 }
 
-#Preview {
+#Preview("Dark") {
     ProgressRangeSelector(selectedRangeDays: 28) { _ in }
         .padding()
+        .background(FormaTokens.Color.canvas)
+        .formaThemePreview(appearance: .dark)
+}
+
+#Preview("Light") {
+    ProgressRangeSelector(selectedRangeDays: 14) { _ in }
+        .padding()
+        .background(FormaTokens.Color.canvas)
+        .formaThemePreview(appearance: .light)
 }

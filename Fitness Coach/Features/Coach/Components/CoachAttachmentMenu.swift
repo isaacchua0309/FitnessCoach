@@ -67,5 +67,5 @@ struct CoachAttachmentMenu: View {
     CoachAttachmentMenu(isPresented: .constant(true)) { _ in }
         .padding()
         .background(CoachDesignTokens.Color.background)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }

@@ -12,7 +12,15 @@ enum OnboardingComponentsPreviewCatalog {
 
     @ViewBuilder
     static var formaProof: some View {
-        OnboardingFormaProofStepView()
+        OnboardingFormaProofStepView(
+            formState: {
+                var state = OnboardingFormState()
+                OnboardingHeightWeightValues.setWeightKg(70, in: &state)
+                OnboardingTargetWeightValues.setGoalFromLossKg(3.5, in: &state)
+                return state
+            }()
+        )
+        .padding(.horizontal, OnboardingTheme.pagePadding)
     }
 
     @ViewBuilder

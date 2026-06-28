@@ -117,19 +117,19 @@ struct JourneyWeeklyReviewSection: View {
     JourneyWeeklyReviewSection(review: ProgressPreviewData.weeklyReviewFullWeek)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Partial week") {
     JourneyWeeklyReviewSection(review: ProgressPreviewData.weeklyReviewPartialWeek)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Apple Health locked") {
     JourneyWeeklyReviewSection(review: ProgressPreviewData.weeklyReviewTrainingLocked)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }

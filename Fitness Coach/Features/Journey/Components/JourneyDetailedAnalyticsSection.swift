@@ -186,14 +186,18 @@ private struct JourneyWeightTrendChart: View {
                         x: .value("Date", point.date),
                         y: .value("Weight", point.weightKg)
                     )
-                    .foregroundStyle(FormaTokens.Color.accent.opacity(0.8))
+                    .foregroundStyle(FormaTokens.Color.chartPrimary.opacity(0.8))
                     .interpolationMethod(.catmullRom)
 
                     PointMark(
                         x: .value("Date", point.date),
                         y: .value("Weight", point.weightKg)
                     )
-                    .foregroundStyle(point.isSynthetic ? FormaTokens.Color.textSecondary : FormaTokens.Color.accent)
+                    .foregroundStyle(
+                        point.isSynthetic
+                            ? FormaTokens.Color.chartSecondary
+                            : FormaTokens.Color.chartPrimary
+                    )
                     .symbolSize(point.isSynthetic ? 28 : 20)
                 }
             }
@@ -222,7 +226,7 @@ private struct JourneyWeightTrendChart: View {
         .padding()
     }
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Detailed analytics") {
@@ -234,6 +238,6 @@ private struct JourneyWeightTrendChart: View {
         .padding()
     }
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 #endif

@@ -16,8 +16,6 @@ enum AppShellRoute: Equatable {
     /// Signed-out onboarding funnel entry.
     case onboardingStart
     case onboardingStartInitializing
-    /// Signed-out user with a local profile allowed to enter main without auth.
-    case localMain
     case signedInProfileLoading
     /// Signed-in user with no local/cloud profile — invite into onboarding.
     case noExistingProfileFound
@@ -42,6 +40,7 @@ struct AppRouteInput: Equatable, Sendable {
     var pendingOnboardingCompletion: Bool
     var publicEntryDestination: PublicEntryRoute
     var hasPersistedOnboardingDraft: Bool
+    var suppressAutomaticPublicEntryResume: Bool
 
     init(
         authState: AuthState,
@@ -52,7 +51,8 @@ struct AppRouteInput: Equatable, Sendable {
         localProfileAwaitingSignIn: Bool = false,
         pendingOnboardingCompletion: Bool = false,
         publicEntryDestination: PublicEntryRoute = .welcome,
-        hasPersistedOnboardingDraft: Bool = false
+        hasPersistedOnboardingDraft: Bool = false,
+        suppressAutomaticPublicEntryResume: Bool = false
     ) {
         self.authState = authState
         self.hasLocalProfile = hasLocalProfile
@@ -63,6 +63,7 @@ struct AppRouteInput: Equatable, Sendable {
         self.pendingOnboardingCompletion = pendingOnboardingCompletion
         self.publicEntryDestination = publicEntryDestination
         self.hasPersistedOnboardingDraft = hasPersistedOnboardingDraft
+        self.suppressAutomaticPublicEntryResume = suppressAutomaticPublicEntryResume
     }
 }
 
@@ -77,7 +78,8 @@ enum AppRouteResolver {
         localProfileAwaitingSignIn: Bool = false,
         pendingOnboardingCompletion: Bool = false,
         publicEntryDestination: PublicEntryRoute = .welcome,
-        hasPersistedOnboardingDraft: Bool = false
+        hasPersistedOnboardingDraft: Bool = false,
+        suppressAutomaticPublicEntryResume: Bool = false
     ) -> AppShellRoute {
         resolve(
             AppRouteInput(
@@ -89,7 +91,8 @@ enum AppRouteResolver {
                 localProfileAwaitingSignIn: localProfileAwaitingSignIn,
                 pendingOnboardingCompletion: pendingOnboardingCompletion,
                 publicEntryDestination: publicEntryDestination,
-                hasPersistedOnboardingDraft: hasPersistedOnboardingDraft
+                hasPersistedOnboardingDraft: hasPersistedOnboardingDraft,
+                suppressAutomaticPublicEntryResume: suppressAutomaticPublicEntryResume
             )
         )
     }
@@ -139,7 +142,8 @@ enum AppRouteResolver {
                 hasPersistedOnboardingDraft: input.hasPersistedOnboardingDraft,
                 hasLocalProfile: input.hasLocalProfile,
                 pendingOnboardingCompletion: input.pendingOnboardingCompletion,
-                signedOutWithProfilePolicy: input.signedOutWithProfilePolicy
+                signedOutWithProfilePolicy: input.signedOutWithProfilePolicy,
+                suppressAutomaticPublicEntryResume: input.suppressAutomaticPublicEntryResume
             )
         )
     }
@@ -197,6 +201,23 @@ enum AuthLogoutPolicy {
         guard clearsCloudSyncMetadataOnSignOut else { return }
         cloudSyncStore.clear()
     }
+
+    static func applyExplicitSignOut(sessionStore: PublicEntrySessionStore) {
+        sessionStore.markExplicitSignOut()
+    }
+
+    static func publicEntryDestinationAfterSignOut(
+        returnToExistingUserSignIn: Bool,
+        hasExistingUserSignInError: Bool
+    ) -> PublicEntryRoute {
+        if returnToExistingUserSignIn {
+            return NoExistingProfileFoundPolicy.useAnotherAccountDestination
+        }
+        if hasExistingUserSignInError {
+            return .existingUserSignIn
+        }
+        return .welcome
+    }
 }
 
 extension AppRouteInput {
@@ -211,7 +232,8 @@ extension AppRouteInput {
             localProfileAwaitingSignIn: shellInput.localProfileAwaitingSignIn,
             pendingOnboardingCompletion: shellInput.pendingOnboardingCompletion,
             publicEntryDestination: shellInput.publicEntryDestination,
-            hasPersistedOnboardingDraft: shellInput.hasPersistedOnboardingDraft
+            hasPersistedOnboardingDraft: shellInput.hasPersistedOnboardingDraft,
+            suppressAutomaticPublicEntryResume: shellInput.suppressAutomaticPublicEntryResume
         )
     }
 }
@@ -230,8 +252,6 @@ extension OnboardingShellRoute {
             self = .onboardingStart
         case .onboardingStartInitializing:
             self = .onboardingStartInitializing
-        case .localMain:
-            self = .localMain
         case .signedInProfileLoading:
             self = .signedInProfileLoading
         case .noExistingProfileFound:
@@ -272,8 +292,6 @@ extension AppShellRoute {
             self = .onboardingStart
         case .onboardingStartInitializing:
             self = .onboardingStartInitializing
-        case .localMain:
-            self = .localMain
         case .signedInProfileLoading:
             self = .signedInProfileLoading
         case .noExistingProfileFound:

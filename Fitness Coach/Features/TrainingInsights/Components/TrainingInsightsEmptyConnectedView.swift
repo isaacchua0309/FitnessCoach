@@ -72,5 +72,5 @@ struct TrainingInsightsEmptyConnectedView: View {
         )
     }
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

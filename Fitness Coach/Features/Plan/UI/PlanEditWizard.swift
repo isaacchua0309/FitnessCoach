@@ -65,7 +65,7 @@ struct PlanEditWizard: View {
                         Section {
                             Text(errorMessage)
                                 .font(.subheadline)
-                                .foregroundStyle(.red)
+                                .foregroundStyle(FormaTokens.Color.destructive)
                         }
                     }
                 }
@@ -342,20 +342,20 @@ struct PlanEditWizard: View {
                 if review.changes.isEmpty {
                     Text("No plan inputs changed.")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(FormaTokens.Color.textSecondary)
                 } else {
                     ForEach(review.changes) { change in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(change.label)
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(FormaTokens.Color.textSecondary)
                             HStack {
                                 Text(change.before)
                                     .strikethrough()
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(FormaTokens.Color.textSecondary)
                                 Image(systemName: "arrow.right")
                                     .font(.caption)
-                                    .foregroundStyle(.tertiary)
+                                    .foregroundStyle(FormaTokens.Color.textTertiary)
                                 Text(change.after)
                                     .fontWeight(.medium)
                             }
@@ -397,7 +397,7 @@ struct PlanEditWizard: View {
                         systemImage: "exclamationmark.triangle.fill"
                     )
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(FormaTokens.Color.warning)
                 }
             }
 
@@ -406,14 +406,14 @@ struct PlanEditWizard: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(row.label)
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(FormaTokens.Color.textSecondary)
                         HStack {
                             Text(row.before)
                                 .strikethrough()
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(FormaTokens.Color.textSecondary)
                             Image(systemName: "arrow.right")
                                 .font(.caption)
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(FormaTokens.Color.textTertiary)
                             Text(row.after)
                                 .fontWeight(.medium)
                         }
@@ -431,7 +431,7 @@ struct PlanEditWizard: View {
         } else {
             Section {
                 Text("Unable to preview targets. Go back and check your inputs.")
-                    .foregroundStyle(.secondary)
+                                .foregroundStyle(FormaTokens.Color.textSecondary)
             }
         }
     }
@@ -477,7 +477,7 @@ struct PlanEditWizard: View {
         HStack(spacing: 6) {
             ForEach(flow.indices, id: \.self) { index in
                 Capsule()
-                    .fill(index <= stepIndex ? Color.primary : Color.secondary.opacity(0.2))
+                    .fill(index <= stepIndex ? FormaTokens.Color.progress : FormaTokens.Color.progressTrack)
                     .frame(height: 3)
             }
         }

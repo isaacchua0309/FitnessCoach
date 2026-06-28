@@ -64,6 +64,32 @@ enum OnboardingStep: Int, Equatable, Identifiable, Sendable, CaseIterable {
         }
     }
 
+    /// Monotonic 1-based index for the segmented progress header.
+    /// Unlike `stage.progressIndex`, this follows canonical flow order so the bar
+    /// never jumps backward or skips segments when continuing through the wizard.
+    var flowProgressIndex: Int {
+        switch self {
+        case .introProof:
+            return 1
+        case .heightWeight:
+            return 2
+        case .targetWeight, .targetEncouragement:
+            return 3
+        case .birthday:
+            return 4
+        case .activityLevel, .appleHealth:
+            return 5
+        case .almostThere, .formaProof:
+            return 6
+        case .review, .generatingPlan, .planReveal, .savePlan:
+            return 7
+        }
+    }
+
+    var flowProgressAccessibilityLabel: String {
+        "\(title), \(flowProgressIndex) of \(OnboardingStage.stageCount)"
+    }
+
     // MARK: - Copy
 
     var title: String {
@@ -200,7 +226,7 @@ enum OnboardingStep: Int, Equatable, Identifiable, Sendable, CaseIterable {
     /// Steps that fit in one viewport and should not scroll.
     var usesFixedViewportShell: Bool {
         switch self {
-        case .birthday:
+        case .birthday, .activityLevel:
             return true
         default:
             return false
@@ -209,7 +235,7 @@ enum OnboardingStep: Int, Equatable, Identifiable, Sendable, CaseIterable {
 
     var showsProgressHeader: Bool {
         switch self {
-        case .introProof, .generatingPlan, .planReveal, .savePlan, .targetEncouragement, .heightWeight, .targetWeight, .birthday, .activityLevel, .appleHealth, .almostThere:
+        case .introProof, .generatingPlan, .planReveal, .savePlan, .targetEncouragement, .heightWeight, .targetWeight, .birthday, .activityLevel, .appleHealth, .almostThere, .formaProof, .review:
             return false
         default:
             return true

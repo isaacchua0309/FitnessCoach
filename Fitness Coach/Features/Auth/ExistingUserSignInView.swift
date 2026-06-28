@@ -10,9 +10,10 @@ import SwiftUI
 struct ExistingUserSignInView: View {
 
     @EnvironmentObject private var authManager: AuthManager
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.formaResolvedTheme) private var resolvedTheme
 
     let analyticsLogger: any PublicEntryAnalyticsLogging
+    var analyticsProperties: PublicEntryAnalyticsProperties = PublicEntryAnalyticsProperties()
     let localError: ExistingUserSignInFailureKind?
     let onBack: () -> Void
     let onCreateMyPlan: () -> Void
@@ -23,18 +24,30 @@ struct ExistingUserSignInView: View {
     private let copy = FormaProductCopy.PublicEntry.ExistingUserSignIn.self
 
     private var palette: PublicWelcomeTheme.Palette {
-        PublicWelcomeTheme.palette(colorScheme: colorScheme)
+        PublicWelcomeTheme.palette(from: resolvedTheme)
     }
 
     var body: some View {
         ScrollView {
             VStack(spacing: FormaTokens.Spacing.md) {
                 backButton
-                brandMark
-                titleBlock
+
+                PublicEntryBrandMark(style: .appIcon, palette: palette)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, FormaTokens.Spacing.xs)
+                    .accessibilityHidden(true)
+
+                PublicEntryTitleBlock(
+                    title: copy.title,
+                    subtitle: copy.subtitle,
+                    supportingCopy: copy.supportingCopy,
+                    palette: palette
+                )
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(copy.title). \(copy.subtitle) \(copy.supportingCopy)")
 
                 if let failurePresentation = activeFailurePresentation {
-                    ExistingUserSignInFailureBanner(
+                    PublicEntryFailureBanner(
                         title: failurePresentation.title,
                         message: failurePresentation.message,
                         palette: palette
@@ -43,9 +56,13 @@ struct ExistingUserSignInView: View {
                 }
 
                 FormaGoogleSignInButton(
+                    title: ProfileSignInCopyPolicy.googleButtonTitle(for: .existingUserRestore),
                     isLoading: isSigningIn,
                     isDisabled: isButtonDisabled,
-                    action: signInWithGoogle
+                    action: signInWithGoogle,
+                    accessibilityHint: ProfileSignInCopyPolicy.googleButtonAccessibilityHint(
+                        for: .existingUserRestore
+                    )
                 )
                 .padding(.top, FormaTokens.Spacing.xs)
 
@@ -76,42 +93,7 @@ struct ExistingUserSignInView: View {
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity, alignment: .leading)
         .disabled(isSigningIn)
-        .accessibilityLabel("Back to welcome")
-    }
-
-    private var brandMark: some View {
-        ExistingUserSignInBrandMark(palette: palette)
-            .frame(maxWidth: .infinity)
-            .padding(.bottom, FormaTokens.Spacing.xs)
-            .accessibilityHidden(true)
-    }
-
-    private var titleBlock: some View {
-        VStack(spacing: FormaTokens.Spacing.sm) {
-            Text(copy.title)
-                .font(.system(.largeTitle, design: .rounded).weight(.bold))
-                .foregroundStyle(palette.textPrimary)
-                .multilineTextAlignment(.center)
-                .minimumScaleFactor(0.84)
-                .lineLimit(2)
-                .accessibilityAddTraits(.isHeader)
-
-            Text(copy.subtitle)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(palette.textPrimary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .minimumScaleFactor(0.88)
-
-            Text(copy.supportingCopy)
-                .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(palette.textSecondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(copy.title). \(copy.subtitle) \(copy.supportingCopy)")
+        .accessibilityLabel(copy.backAccessibilityLabel)
     }
 
     private var secondaryCreatePlan: some View {
@@ -120,14 +102,13 @@ struct ExistingUserSignInView: View {
                 .font(FormaTokens.Typography.sectionSubtitle)
                 .foregroundStyle(palette.textSecondary)
 
-            Button(action: onCreateMyPlan) {
-                Text(copy.createMyPlanCTA)
-                    .font(FormaTokens.Typography.body.weight(.semibold))
-                    .foregroundStyle(palette.accent)
-            }
-            .buttonStyle(.plain)
-            .frame(minHeight: FormaTokens.Layout.minTouchTarget)
-            .accessibilityHint(copy.createMyPlanAccessibilityHint)
+            PublicEntrySecondaryLink(
+                title: copy.createMyPlanCTA,
+                palette: palette,
+                action: onCreateMyPlan,
+                font: FormaTokens.Typography.body.weight(.semibold),
+                accessibilityHint: copy.createMyPlanAccessibilityHint
+            )
         }
         .frame(maxWidth: .infinity)
         .padding(.top, FormaTokens.Spacing.sm)
@@ -170,7 +151,7 @@ struct ExistingUserSignInView: View {
     private func logViewedIfNeeded() {
         guard !didLogView else { return }
         didLogView = true
-        analyticsLogger.log(.existingSignInViewed, properties: PublicEntryAnalyticsProperties())
+        analyticsLogger.log(.existingSignInViewed, properties: analyticsProperties)
     }
 }
 
@@ -178,106 +159,16 @@ struct ExistingUserSignInView: View {
 
 struct ExistingUserSignInResolvingView: View {
 
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.formaResolvedTheme) private var resolvedTheme
 
     private var palette: PublicWelcomeTheme.Palette {
-        PublicWelcomeTheme.palette(colorScheme: colorScheme)
+        PublicWelcomeTheme.palette(from: resolvedTheme)
     }
 
     var body: some View {
-        ZStack {
-            PublicEntryScreenBackground(palette: palette)
-
-            VStack(spacing: FormaTokens.Spacing.sm) {
-                SwiftUI.ProgressView()
-                    .controlSize(.large)
-                    .tint(palette.accent)
-
-                Text(FormaProductCopy.PublicEntry.ExistingUserSignIn.resolvingMessage)
-                    .font(FormaTokens.Typography.sectionSubtitle)
-                    .foregroundStyle(palette.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
-            .frame(maxWidth: FormaTokens.Layout.maxContentWidth)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(FormaProductCopy.PublicEntry.ExistingUserSignIn.resolvingMessage)
+        PublicEntryLoadingView(
+            message: FormaProductCopy.PublicEntry.Loading.restoringPlan,
+            palette: palette
+        )
     }
-}
-
-// MARK: - Chrome
-
-private struct ExistingUserSignInBrandMark: View {
-    let palette: PublicWelcomeTheme.Palette
-
-    @ScaledMetric(relativeTo: .largeTitle) private var markDiameter: CGFloat = 56
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .fill(palette.accentSoft)
-                .frame(width: markDiameter * 1.18, height: markDiameter * 1.18)
-
-            Image("FormaAppIcon")
-                .resizable()
-                .interpolation(.high)
-                .scaledToFit()
-                .frame(width: markDiameter, height: markDiameter)
-                .clipShape(RoundedRectangle(cornerRadius: markDiameter * 0.22, style: .continuous))
-                .shadow(color: palette.accent.opacity(0.16), radius: 12, y: 4)
-        }
-    }
-}
-
-private struct ExistingUserSignInFailureBanner: View {
-    let title: String
-    let message: String
-    let palette: PublicWelcomeTheme.Palette
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-            Label {
-                Text(title)
-                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .fixedSize(horizontal: false, vertical: true)
-            } icon: {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .accessibilityHidden(true)
-            }
-
-            Text(message)
-                .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(palette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .foregroundStyle(palette.accent)
-        .padding(FormaTokens.Spacing.sm)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                .fill(palette.accentSoft)
-                .overlay {
-                    RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                        .stroke(palette.surfaceBorder, lineWidth: 1)
-                }
-        }
-        .accessibilityElement(children: .combine)
-    }
-}
-
-#Preview("Sign In") {
-    ExistingUserSignInView(
-        analyticsLogger: OSLogPublicEntryAnalyticsLogger(),
-        localError: nil,
-        onBack: {},
-        onCreateMyPlan: {},
-        onSignInRequested: {}
-    )
-    .environmentObject(AuthManager())
-}
-
-#Preview("Resolving") {
-    ExistingUserSignInResolvingView()
 }

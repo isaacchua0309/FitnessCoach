@@ -41,6 +41,38 @@ final class ProfileBootstrapCoordinatorTests: XCTestCase {
         )
     }
 
+    func testExistingSignInWithNoLocalProfileDoesNotUpload() {
+        let decision = ProfileBootstrapCoordinator.reconcileDecision(
+            reconcileInput(
+                pendingExistingUserSignIn: true,
+                hasLocalProfile: false,
+                localOwnerUID: nil,
+                isFreshSignIn: true,
+                rootState: .loading,
+                cloudResult: .missing
+            )
+        )
+
+        XCTAssertEqual(decision, .presentMissingCloudProfile(uid: "signed-in-user"))
+        XCTAssertNotEqual(decision, .syncLocalProfileToCloud(uid: "signed-in-user"))
+    }
+
+    func testExistingSignInCloudLookupFailureDoesNotUpload() {
+        let decision = ProfileBootstrapCoordinator.reconcileDecision(
+            reconcileInput(
+                pendingExistingUserSignIn: true,
+                hasLocalProfile: false,
+                localOwnerUID: nil,
+                isFreshSignIn: true,
+                rootState: .loading,
+                cloudResult: .failed
+            )
+        )
+
+        XCTAssertEqual(decision, .showCloudFetchFailed(uid: "signed-in-user"))
+        XCTAssertNotEqual(decision, .syncLocalProfileToCloud(uid: "signed-in-user"))
+    }
+
     // MARK: - Ownership reconcile (Stage 4)
 
     func testSameOwnerUIDRoutesToMain() {

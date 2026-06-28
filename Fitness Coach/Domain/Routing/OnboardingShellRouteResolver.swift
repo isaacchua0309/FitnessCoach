@@ -14,7 +14,6 @@ enum OnboardingShellRoute: Equatable {
     case existingUserSignIn
     case onboardingStart
     case onboardingStartInitializing
-    case localMain
     case signedInProfileLoading
     case noExistingProfileFound
     case onboardingCloudProfileConflict
@@ -30,12 +29,9 @@ enum OnboardingShellRoute: Equatable {
     case profileError(String)
 }
 
-/// Policy when a signed-out user already has a local profile.
+/// Policy when a signed-out user already has a local profile — always require sign-in.
 enum SignedOutWithProfilePolicy: Equatable, Sendable {
-    /// Current production behavior — require Google sign-in.
     case requireSignIn
-    /// Optional future path — enter main tabs locally without auth.
-    case allowLocalMain
 }
 
 struct OnboardingShellRouteInput: Equatable, Sendable {
@@ -49,6 +45,7 @@ struct OnboardingShellRouteInput: Equatable, Sendable {
     var pendingOnboardingCompletion: Bool
     var publicEntryDestination: PublicEntryRoute
     var hasPersistedOnboardingDraft: Bool
+    var suppressAutomaticPublicEntryResume: Bool
 
     init(
         authState: AuthState,
@@ -60,7 +57,8 @@ struct OnboardingShellRouteInput: Equatable, Sendable {
         localProfileAwaitingSignIn: Bool = false,
         pendingOnboardingCompletion: Bool = false,
         publicEntryDestination: PublicEntryRoute = .welcome,
-        hasPersistedOnboardingDraft: Bool = false
+        hasPersistedOnboardingDraft: Bool = false,
+        suppressAutomaticPublicEntryResume: Bool = false
     ) {
         self.authState = authState
         self.hasLocalProfile = hasLocalProfile
@@ -72,6 +70,7 @@ struct OnboardingShellRouteInput: Equatable, Sendable {
         self.pendingOnboardingCompletion = pendingOnboardingCompletion
         self.publicEntryDestination = publicEntryDestination
         self.hasPersistedOnboardingDraft = hasPersistedOnboardingDraft
+        self.suppressAutomaticPublicEntryResume = suppressAutomaticPublicEntryResume
     }
 }
 
@@ -100,12 +99,5 @@ enum OnboardingShellRouteResolver {
                 awaitingCloudSync: awaitingCloudSync
             )
         )
-    }
-}
-
-extension OnboardingShellRouteResolver {
-
-    static func legacyEquivalent(for route: OnboardingShellRoute) -> AppShellRoute? {
-        AppShellRoute(onboardingShellRoute: route)
     }
 }

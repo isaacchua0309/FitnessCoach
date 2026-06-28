@@ -8,19 +8,7 @@
 import Foundation
 
 struct OnboardingRoutingConfiguration: Equatable, Sendable {
-    var signedOutWithProfilePolicy: SignedOutWithProfilePolicy
-
-    init(signedOutWithProfilePolicy: SignedOutWithProfilePolicy = .requireSignIn) {
-        self.signedOutWithProfilePolicy = signedOutWithProfilePolicy
-    }
-
     static let production = OnboardingRoutingConfiguration()
-}
-
-extension OnboardingRoutingConfiguration {
-    var allowsLocalOnlyContinuation: Bool {
-        signedOutWithProfilePolicy == .allowLocalMain
-    }
 }
 
 enum OnboardingShellRouting {
@@ -28,17 +16,7 @@ enum OnboardingShellRouting {
         _ input: OnboardingShellRouteInput,
         configuration: OnboardingRoutingConfiguration = .production
     ) -> OnboardingShellRoute {
-        OnboardingShellRouteResolver.resolve(
-            OnboardingShellRouteInput(
-                authState: input.authState,
-                hasLocalProfile: input.hasLocalProfile,
-                rootState: input.rootState,
-                isOnboardingModelReady: input.isOnboardingModelReady,
-                signedOutWithProfilePolicy: configuration.signedOutWithProfilePolicy,
-                awaitingCloudSync: input.awaitingCloudSync,
-                localProfileAwaitingSignIn: input.localProfileAwaitingSignIn,
-                pendingOnboardingCompletion: input.pendingOnboardingCompletion
-            )
-        )
+        _ = configuration
+        return OnboardingShellRouteResolver.resolve(input)
     }
 }

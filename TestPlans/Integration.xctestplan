@@ -1,0 +1,91 @@
+{
+  "configurations": [
+    {
+      "id": "948C2F85-430E-44B8-ABFF-2AD3BF429757",
+      "name": "Configuration 1",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "testTimeoutsEnabled": false
+  },
+  "testTargets": [
+    {
+      "parallelizable": false,
+      "target": {
+        "containerPath": "container:Fitness Coach.xcodeproj",
+        "identifier": "3A0000062FEE000100000001",
+        "name": "Fitness CoachTests"
+      },
+      "selectedTests": [
+        "CoachRoutingTests/testLocalRegressionMessagesSaveToInMemoryStore",
+        "CoachRoutingTests/testLogFoodWithoutNutritionCallsEstimateFood",
+        "CoachRoutingTests/testWorkoutLogRedirectsWithoutConfirmationBar",
+        "CoachRoutingTests/testWorkoutLogConnectedCopyWhenAppleHealthLinked",
+        "CoachRoutingTests/testUndoWorkoutDoesNotDeleteRecords",
+        "CoachRoutingTests/testFoodEditUpdatesPendingDraftBeforeLogging",
+        "CoachRoutingTests/testAIFailureShowsGracefulMessage",
+        "CoachRoutingTests/testAuthenticationFailureSetsInlineRetryStateNotChatBubble",
+        "AccountProfileMismatchTests",
+        "AuthProfileBootstrapRouteSafetyTests",
+        "AuthProfileOnboardingConflictRouteSafetyTests",
+        "AuthProfileOwnershipRouteSafetyTests",
+        "AuthProfilePreAuthRouteSafetyTests",
+        "AuthProfileUploadFailureRouteSafetyTests",
+        "CloudProfileResolutionTests",
+        "CloudProfileUploadFailureTests",
+        "CloudProfileWriteGuardTests",
+        "CoachMealPhotoAnalysisTests",
+        "CoachWorkoutIntentPolicyTests",
+        "DailyLogServiceTests",
+        "ExistingUserSignInTests",
+        "FitnessActionCenterTests",
+        "JourneyDetailedAnalyticsTrainingStrategyTests",
+        "JourneyManualQAChecklistTests",
+        "JourneyTrainingRowStrategyTests",
+        "NoExistingProfileFoundAnalyticsTests",
+        "NoExistingProfileFoundCopyTests",
+        "NoExistingProfileFoundPolicyTests",
+        "OnboardingAlmostThereAnalyticsTests",
+        "OnboardingAppleHealthAnalyticsTests",
+        "OnboardingAppleHealthFlowTests",
+        "OnboardingAuthFlowCopyTests",
+        "OnboardingAuthFlowModelTests",
+        "OnboardingCloudProfileCompatibilityTests",
+        "OnboardingCommittedProfileRestorerTests",
+        "OnboardingCompletionPathTests",
+        "OnboardingCompletionProfileFlowTests",
+        "OnboardingExistingAccountRoutingPolicyTests",
+        "OnboardingFlowSelectionTests",
+        "OnboardingFormaProofAnalyticsTests",
+        "OnboardingModelAnalyticsTests",
+        "OnboardingModelCommittedProfileResumeTests",
+        "OnboardingPersonalizationSummaryTests",
+        "OnboardingProfileCloudPersistenceSafetyTests",
+        "OnboardingProfileRoutingSafetyTests",
+        "PipelineTracerTests",
+        "PlanAdjustPlanEntryTests",
+        "PlanAdjustmentTests",
+        "PlanAnalyticsContextBuilderTests",
+        "PlanAnalyticsEventTests",
+        "PlanEditWizardTests",
+        "ProfileBootstrapCoordinatorTests",
+        "ProfileBootstrapServiceTests",
+        "ProfilePlanConflictFlowTests",
+        "ProfileRestoreRoutingTests",
+        "ReleaseAIBackendConfigurationTests",
+        "SignOutHygieneTests",
+        "TodayActionCoordinatorTests",
+        "TodayAnalyticsEventEmissionTests",
+        "TodayAnalyticsTests",
+        "TodayTrainingRowStrategyTests",
+        "TrainingIntegrationStateFormattingTests",
+        "TrainingIntegrationTests",
+        "TrainingSummaryAggregationStrategyTests",
+        "WelcomeOnboardingHandoffModelTests",
+        "WelcomeOnboardingHandoffPolicyTests"
+      ]
+    }
+  ],
+  "version": 1
+}

@@ -52,13 +52,24 @@ struct OnboardingCompactSelectionRow: View {
             .padding(.vertical, 8)
             .padding(.horizontal, OnboardingLayout.compactCardPadding)
             .frame(minHeight: OnboardingLayout.selectionRowMinHeight, alignment: .center)
-            .background(isSelected ? FormaTokens.Color.accentMuted : Color.clear)
+            .background(isSelected ? OnboardingTheme.accentMuted : Color.clear)
+            .overlay {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: OnboardingTheme.compactCornerRadius, style: .continuous)
+                        .stroke(OnboardingTheme.selectedBorder, lineWidth: 1.2)
+                }
+            }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(subtitle.map { "\(title), \($0)" } ?? title)
+        .accessibilityLabel(accessibilityLabel)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+
+    private var accessibilityLabel: String {
+        let base = subtitle.map { "\(title), \($0)" } ?? title
+        return isSelected ? "\(base), selected" : base
     }
 }
 
@@ -95,5 +106,5 @@ struct OnboardingCompactSelectionList<Content: View>: View {
     }
     .padding()
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

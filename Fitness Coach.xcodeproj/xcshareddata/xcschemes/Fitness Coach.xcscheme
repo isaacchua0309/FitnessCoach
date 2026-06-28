@@ -42,19 +42,20 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
-      <Testables>
-         <TestableReference
-            skipped = "NO"
-            useTestSelectionWhitelist = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "3A0000062FEE000100000001"
-               BuildableName = "Fitness CoachTests.xctest"
-               BlueprintName = "Fitness CoachTests"
-               ReferencedContainer = "container:Fitness Coach.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-      </Testables>
+      <TestPlans>
+         <TestPlanReference
+            reference = "container:TestPlans/Fast-Core.xctestplan"
+            default = "YES">
+         </TestPlanReference>
+         <TestPlanReference
+            reference = "container:TestPlans/Integration.xctestplan"
+            default = "NO">
+         </TestPlanReference>
+         <TestPlanReference
+            reference = "container:TestPlans/Full.xctestplan"
+            default = "NO">
+         </TestPlanReference>
+      </TestPlans>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"

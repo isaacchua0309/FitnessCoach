@@ -35,5 +35,5 @@ struct ProgressEmptyStateView: View {
 
 #Preview {
     ProgressEmptyStateView {}
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }

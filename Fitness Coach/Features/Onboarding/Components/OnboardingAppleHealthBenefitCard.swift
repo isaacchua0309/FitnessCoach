@@ -53,6 +53,6 @@ struct OnboardingAppleHealthBenefitCard: View {
     )
     .padding()
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 #endif

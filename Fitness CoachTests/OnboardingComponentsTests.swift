@@ -128,11 +128,14 @@ final class OnboardingComponentsTests: XCTestCase {
 
     func testFormaProofComparisonModelUsesCopyNotHardcodedClaims() {
         let model = OnboardingFormaProofComparisonModel.default
-        let copy = FormaProductCopy.Onboarding.Flow.Proof.WeightLossComparison.self
+        let comparison = FormaProductCopy.Onboarding.Flow.FormaProof.Comparison.self
+        let disclaimer = FormaProductCopy.Onboarding.Flow.Proof.WeightLossComparison.disclaimer
 
-        XCTAssertEqual(model.withoutFormaValue, copy.withoutFormaValue)
-        XCTAssertEqual(model.withFormaValue, copy.withFormaValue)
-        XCTAssertEqual(model.disclaimer, copy.disclaimer)
+        XCTAssertEqual(model.withoutFormaLabel, comparison.withoutStructureTitle)
+        XCTAssertEqual(model.withFormaLabel, comparison.withFormaTitle)
+        XCTAssertEqual(model.withoutFormaValue, comparison.withoutBullets[0])
+        XCTAssertEqual(model.withFormaValue, comparison.withFormaBullets[0])
+        XCTAssertEqual(model.disclaimer, disclaimer)
     }
 
     func testTrajectoryComparisonModelUsesIntroProofCopy() {
@@ -147,6 +150,24 @@ final class OnboardingComponentsTests: XCTestCase {
         XCTAssertEqual(model.chartAccessibilityLabel, trajectory.chartAccessibilityLabel)
         XCTAssertEqual(model.formaSeries.count, 5)
         XCTAssertEqual(model.traditionalSeries.count, 5)
+    }
+
+    func testTrajectoryComparisonChartYAxisDomainFocusesOnDataRange() {
+        let model = OnboardingWeightTrajectoryComparisonModel.introProofDefault
+        let domain = OnboardingWeightTrajectoryChartLayout.yAxisDomain(
+            formaSeries: model.formaSeries,
+            traditionalSeries: model.traditionalSeries
+        )
+
+        let weights = (model.formaSeries + model.traditionalSeries).map(\.weightKg)
+        let minWeight = weights.min()!
+        let maxWeight = weights.max()!
+
+        XCTAssertGreaterThan(domain.lowerBound, minWeight - 5)
+        XCTAssertLessThan(domain.lowerBound, minWeight)
+        XCTAssertGreaterThan(domain.upperBound, maxWeight)
+        XCTAssertLessThan(domain.upperBound, maxWeight + 5)
+        XCTAssertFalse(domain.contains(0), "Y-axis should not anchor at zero for illustrative weight trajectories")
     }
 
     func testIntroProofStepCopyMatchesProductConstants() {

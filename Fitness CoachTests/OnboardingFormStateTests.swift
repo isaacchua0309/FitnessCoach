@@ -46,6 +46,7 @@ final class OnboardingFormStateTests: XCTestCase {
         )
 
         var profileForm = ProfileFormState.defaultDraftValues()
+        profileForm.birthDate = onboarding.birthDate
         profileForm.ageText = onboarding.ageText
         profileForm.sex = onboarding.sex
         profileForm.heightCmText = onboarding.heightCmText
@@ -260,6 +261,7 @@ final class OnboardingFormStateTests: XCTestCase {
     func testMakeCalorieTargetInputWorksForValidDraft() throws {
         let state = filledCutOnboarding()
         let input = try state.makeCalorieTargetInput()
+        let rhythm = ActivityTrainingDefaultsResolver().defaults(for: .moderatelyActive)
 
         XCTAssertEqual(input.age, 28)
         XCTAssertEqual(input.sex, .female)
@@ -267,8 +269,8 @@ final class OnboardingFormStateTests: XCTestCase {
         XCTAssertEqual(input.weightKg, 72)
         XCTAssertEqual(input.goalWeightKg, 65)
         XCTAssertEqual(input.activityLevel, .moderatelyActive)
-        XCTAssertEqual(input.trainingFrequencyPerWeek, 3)
-        XCTAssertEqual(input.averageSteps, 5000)
+        XCTAssertEqual(input.trainingFrequencyPerWeek, rhythm.trainingDaysPerWeek)
+        XCTAssertEqual(input.averageSteps, rhythm.averageStepsPerDay)
     }
 
     func testMakeCoachingContextSerializesMotivationsAndLoggingPreferences() throws {
@@ -359,6 +361,7 @@ final class OnboardingFormStateTests: XCTestCase {
         paceChoice: WeightLossPaceChoice
     ) throws {
         let state = filledCutOnboarding(paceChoice: paceChoice)
+        let rhythm = ActivityTrainingDefaultsResolver().defaults(for: state.activityLevel)
 
         let legacyInput = CalorieTargetInput(
             age: 28,
@@ -368,8 +371,8 @@ final class OnboardingFormStateTests: XCTestCase {
             goalWeightKg: 65,
             estimatedBodyFatPercentage: nil,
             activityLevel: .moderatelyActive,
-            trainingFrequencyPerWeek: 3,
-            averageSteps: 5000,
+            trainingFrequencyPerWeek: rhythm.trainingDaysPerWeek,
+            averageSteps: rhythm.averageStepsPerDay,
             aggressiveness: legacyAggressiveness,
             weightLossPace: nil
         )

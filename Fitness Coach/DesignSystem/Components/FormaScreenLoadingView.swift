@@ -25,5 +25,5 @@ struct FormaScreenLoadingView: View {
 
 #Preview {
     FormaScreenLoadingView(message: FormaProductCopy.Loading.today)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }

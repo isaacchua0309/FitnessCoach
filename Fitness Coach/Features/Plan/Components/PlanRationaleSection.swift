@@ -183,5 +183,5 @@ struct PlanRationaleSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

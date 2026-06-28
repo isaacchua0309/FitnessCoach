@@ -10,6 +10,7 @@ import SwiftUI
 struct OnboardingView: View {
     @ObservedObject var model: OnboardingModel
     var onExistingAccount: (() -> Void)?
+    var onExitToWelcome: (() -> Void)?
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var fieldNavigator = OnboardingFieldNavigator()
     @StateObject private var keyboardMonitor = OnboardingKeyboardMonitor()
@@ -26,6 +27,9 @@ struct OnboardingView: View {
 
     private var canContinue: Bool {
         let rules = OnboardingInteractionPolicy.rules(for: model.currentStep)
+        if model.currentStep == .review {
+            return OnboardingPersonalizationSummaryBuilder.isReadyToGenerate(for: model.formState)
+        }
         if rules.isOptional, !rules.validatesOnContinue {
             return true
         }
@@ -58,6 +62,9 @@ struct OnboardingView: View {
         hasAttemptedContinueOnStep = true
         if model.currentStep == .appleHealth {
             model.connectAppleHealth()
+        } else if model.currentStep == .review {
+            OnboardingHaptics.selectionChanged()
+            model.goNext()
         } else {
             model.goNext()
         }
@@ -117,6 +124,8 @@ struct OnboardingView: View {
                             }
                             : nil,
                         saveTrustNote: planRevealSaveTrustNote,
+                        canExitToWelcome: model.canExitToWelcome,
+                        onExitToWelcome: onExitToWelcome,
                         flowFloor: model.flowFloor
                     )
                 }
@@ -127,7 +136,6 @@ struct OnboardingView: View {
             .navigationBarHidden(true)
         }
         .environment(\.onboardingFieldNavigator, fieldNavigator)
-        .preferredColorScheme(.dark)
         .onChange(of: model.currentStep) { _, _ in
             hasAttemptedContinueOnStep = false
         }
@@ -162,7 +170,7 @@ struct OnboardingView: View {
         case .almostThere:
             OnboardingAlmostThereStepView()
         case .formaProof:
-            OnboardingFormaProofStepView()
+            OnboardingFormaProofStepView(formState: model.formState)
         case .activityLevel:
             OnboardingActivityLevelStepView(formState: $model.formState)
         case .review:
@@ -188,17 +196,12 @@ struct OnboardingView: View {
             OnboardingSavePlanStepView(
                 requiresGoogleSignIn: model.requiresGoogleSignInAtSavePlan,
                 isBusy: model.viewState == .savingProfile || model.viewState == .completing,
-                allowsLocalOnlyContinuation: model.allowsLocalOnlyContinuation,
                 errorMessage: model.errorMessage,
                 planRecap: model.planRevealState,
                 usesCompactLayout: true,
                 onContinue: {
                     fieldNavigator.dismissFocus()
                     model.goNext()
-                },
-                onContinueWithoutAccount: {
-                    fieldNavigator.dismissFocus()
-                    model.completeWithoutAccount()
                 },
                 onBack: {
                     fieldNavigator.dismissFocus()

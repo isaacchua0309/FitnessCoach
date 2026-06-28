@@ -150,6 +150,6 @@ struct OnboardingAlmostThereStepView: View {
     OnboardingAlmostThereStepView()
         .padding(.horizontal, OnboardingTheme.pagePadding)
         .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 #endif

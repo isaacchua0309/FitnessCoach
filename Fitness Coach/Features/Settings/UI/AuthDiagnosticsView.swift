@@ -23,7 +23,7 @@ struct AuthDiagnosticsView: View {
                     .foregroundStyle(FormaTokens.Color.textTertiary)
             }
         }
-        .fitPilotDarkGroupedList()
+        .fitPilotGroupedList()
         .navigationTitle("Auth diagnostics")
         .navigationBarTitleDisplayMode(.inline)
         .fitPilotScrollBottomInset()

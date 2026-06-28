@@ -50,7 +50,7 @@ struct CloudProfileUploadFailedView: View {
                         Group {
                             if isRetrying {
                                 SwiftUI.ProgressView()
-                                    .tint(.white)
+                                    .tint(OnboardingTheme.ctaText)
                             } else {
                                 Text(copy.retryCTA)
                             }
@@ -59,7 +59,7 @@ struct CloudProfileUploadFailedView: View {
                         .frame(minHeight: FormaTokens.Layout.minTouchTarget)
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(OnboardingTheme.accent)
+                    .tint(OnboardingTheme.ctaBackground)
                     .disabled(isRetrying)
 
                     Button(action: onContinue) {
@@ -78,10 +78,10 @@ struct CloudProfileUploadFailedView: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .preferredColorScheme(.dark)
     }
 }
 
 #Preview {
     CloudProfileUploadFailedView(isRetrying: false, onRetry: {}, onContinue: {})
+        .formaThemePreview()
 }

@@ -43,7 +43,7 @@ struct PipelineTraceDetailView: View {
                 FitPilotSettingsSectionHeader(title: "Timeline")
             }
         }
-        .fitPilotDarkGroupedList()
+        .fitPilotGroupedList()
         .navigationTitle("Trace detail")
         .navigationBarTitleDisplayMode(.inline)
         .fitPilotScrollBottomInset()

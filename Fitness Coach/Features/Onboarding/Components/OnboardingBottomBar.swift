@@ -23,6 +23,8 @@ struct OnboardingBottomBar: View {
     let onComplete: () -> Void
     var onAdjustPlan: (() -> Void)? = nil
     var saveTrustNote: String? = nil
+    var canExitToWelcome: Bool = false
+    var onExitToWelcome: (() -> Void)? = nil
     var flowFloor: OnboardingStep = .introProof
 
     @ScaledMetric(relativeTo: .body) private var buttonHeight: CGFloat = 48
@@ -32,7 +34,12 @@ struct OnboardingBottomBar: View {
     }
 
     private var showsBackButton: Bool {
-        currentStep.allowsBackNavigation(in: OnboardingStep.flow, notBefore: flowFloor)
+        showsWelcomeExitBackButton
+            || currentStep.allowsBackNavigation(in: OnboardingStep.flow, notBefore: flowFloor)
+    }
+
+    private var showsWelcomeExitBackButton: Bool {
+        canExitToWelcome && onExitToWelcome != nil
     }
 
     private var showsAdjustPlan: Bool {
@@ -71,7 +78,13 @@ struct OnboardingBottomBar: View {
         VStack(spacing: OnboardingLayout.footerInnerSpacing) {
             HStack(spacing: FormaTokens.Spacing.md) {
                 if showsBackButton {
-                    Button(action: onBack) {
+                    Button {
+                        if showsWelcomeExitBackButton, let onExitToWelcome {
+                            onExitToWelcome()
+                        } else {
+                            onBack()
+                        }
+                    } label: {
                         Image(systemName: "chevron.left")
                             .font(.body.weight(.semibold))
                             .foregroundStyle(OnboardingTheme.secondaryText)
@@ -87,14 +100,14 @@ struct OnboardingBottomBar: View {
                     HStack(spacing: 8) {
                         if isLoading {
                             SwiftUI.ProgressView()
-                                .tint(.white)
+                                .tint(OnboardingTheme.ctaText)
                         }
                         Text(primaryTitle)
                             .font(FormaTokens.Typography.body.weight(.semibold))
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
                     }
-                    .foregroundStyle(isPrimaryActionEnabled && !isLoading ? FormaTokens.Color.textPrimary : OnboardingTheme.secondaryText)
+                    .foregroundStyle(isPrimaryActionEnabled && !isLoading ? OnboardingTheme.ctaText : OnboardingTheme.secondaryText)
                     .frame(maxWidth: .infinity)
                     .frame(height: resolvedButtonHeight)
                     .background(primaryBackground)
@@ -164,6 +177,27 @@ struct OnboardingBottomBar: View {
         .padding(.horizontal, OnboardingTheme.pagePadding)
         .padding(.top, OnboardingLayout.footerVerticalPadding)
         .padding(.bottom, OnboardingLayout.footerVerticalPadding)
+        .background(alignment: .top) {
+            VStack(spacing: 0) {
+                LinearGradient(
+                    colors: [
+                        OnboardingTheme.background.opacity(0),
+                        OnboardingTheme.background
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 14)
+
+                OnboardingTheme.background
+            }
+            .ignoresSafeArea(edges: .bottom)
+        }
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(OnboardingTheme.border.opacity(0.3))
+                .frame(height: 0.5)
+        }
         .onboardingMeasureFooterHeight()
     }
 
@@ -174,16 +208,16 @@ struct OnboardingBottomBar: View {
     private var primaryBackground: some View {
         Group {
             if isPrimaryActionEnabled && !isLoading {
-                OnboardingTheme.accent
+                OnboardingTheme.ctaBackground
             } else {
-                FormaTokens.Color.surfaceElevated
+                OnboardingTheme.cardElevated
             }
         }
     }
 
     private var footerSecondaryBackground: some View {
         RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
-            .fill(FormaTokens.Color.surface)
+            .fill(OnboardingTheme.card)
             .overlay(
                 RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
                     .stroke(OnboardingTheme.border, lineWidth: 1)
@@ -202,7 +236,7 @@ struct OnboardingBottomBar: View {
         onComplete: {}
     )
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Plan reveal") {
@@ -217,5 +251,5 @@ struct OnboardingBottomBar: View {
         saveTrustNote: FormaProductCopy.Onboarding.Flow.PlanReveal.signedOutSaveTrustNote
     )
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

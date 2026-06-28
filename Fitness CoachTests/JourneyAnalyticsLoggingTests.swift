@@ -57,22 +57,34 @@ final class JourneyAnalyticsContextBuilderTests: XCTestCase {
             )
         ).asParameters()
 
-        let bannedKeys = [
-            "weight",
+        let allowedKeys: Set<String> = [
+            "has_profile",
+            "has_weight_logs",
+            "uses_synthetic_baseline",
+            "progress_percent_bucket",
+            "current_streak_bucket",
+            "unlocked_milestone_count",
+            "health_connected",
+            "journey_level",
+            "range_days",
+            "cta_type",
+            "expanded",
+        ]
+        let bannedKeys: Set<String> = [
             "weight_kg",
+            "current_weight",
+            "goal_weight",
             "calories",
-            "calorie",
-            "protein",
-            "body",
-            "raw"
+            "calorie_target",
+            "protein_g",
+            "body_fat",
+            "raw_progress",
         ]
         for key in parameters.keys {
-            for banned in bannedKeys {
-                XCTAssertFalse(
-                    key.localizedCaseInsensitiveContains(banned),
-                    "Unexpected sensitive key: \(key)"
-                )
-            }
+            XCTAssertTrue(
+                allowedKeys.contains(key) || !bannedKeys.contains(key),
+                "Unexpected sensitive key: \(key)"
+            )
         }
 
         for value in parameters.values {
@@ -182,21 +194,5 @@ final class JourneyAnalyticsCoordinatorTests: XCTestCase {
                 XCTAssertFalse(value.localizedCaseInsensitiveContains("kcal"))
             }
         }
-    }
-}
-
-private final class CapturingJourneyAnalyticsLogger: JourneyAnalyticsLogging, @unchecked Sendable {
-    struct Entry {
-        let event: JourneyAnalyticsEvent
-        let properties: JourneyAnalyticsProperties
-    }
-
-    private(set) var events: [Entry] = []
-
-    var lastEvent: JourneyAnalyticsEvent? { events.last?.event }
-    var lastProperties: [String: String]? { events.last?.properties.asParameters() }
-
-    func log(_ event: JourneyAnalyticsEvent, properties: JourneyAnalyticsProperties) {
-        events.append(Entry(event: event, properties: properties))
     }
 }

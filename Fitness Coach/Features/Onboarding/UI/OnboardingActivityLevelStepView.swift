@@ -31,6 +31,8 @@ struct OnboardingActivityLevelStepView: View {
             Spacer(minLength: FormaTokens.Spacing.sm)
             explanationSection
         }
+        .padding(.horizontal, OnboardingTheme.pagePadding)
+        .padding(.top, OnboardingLayout.progressHeaderTop)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: formState.activityLevel)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: formState.hasConfirmedActivityLevelSelection)
@@ -42,28 +44,10 @@ struct OnboardingActivityLevelStepView: View {
     }
 
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: OnboardingLayout.progressBarSpacing) {
-            OnboardingStageProgressHeader(currentStep: .activityLevel)
-                .opacity(headerVisible ? 1 : 0)
-                .offset(y: headerVisible ? 0 : 6)
-
-            VStack(alignment: .leading, spacing: OnboardingLayout.progressTitleSpacing) {
-                Text(copy.title)
-                    .font(.system(.title2, design: .rounded).weight(.bold))
-                    .foregroundStyle(OnboardingTheme.primaryText)
-                    .minimumScaleFactor(0.85)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
-
-                Text(copy.subtitle)
-                    .font(FormaTokens.Typography.body)
-                    .foregroundStyle(OnboardingTheme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+        OnboardingStageProgressHeader(currentStep: .activityLevel)
             .opacity(headerVisible ? 1 : 0)
-            .offset(y: headerVisible ? 0 : 4)
-        }
-        .accessibilityElement(children: .contain)
+            .offset(y: headerVisible ? 0 : 6)
+            .accessibilityElement(children: .contain)
     }
 
     private var cardsSection: some View {
@@ -136,13 +120,13 @@ struct OnboardingActivityLevelStepView: View {
     )
     .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Activity Level — Unselected") {
     OnboardingActivityLevelStepView(formState: .constant(OnboardingFormState()))
         .padding(.horizontal, OnboardingTheme.pagePadding)
         .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 #endif

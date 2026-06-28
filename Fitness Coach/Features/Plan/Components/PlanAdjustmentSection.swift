@@ -63,7 +63,7 @@ struct PlanAdjustmentSection: View {
                                 .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(FormaTokens.Color.accent)
+                        .tint(FormaTokens.Color.ctaBackground)
                         .padding(.top, FormaTokens.Spacing.sm)
                         .accessibilityLabel(state.adjustPlanTitle)
                         .accessibilityHint(FormaProductCopy.PlanMissionControl.adjustPlanAccessibilityHint)
@@ -106,7 +106,7 @@ struct PlanAdjustmentSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("New user") {
@@ -116,5 +116,5 @@ struct PlanAdjustmentSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

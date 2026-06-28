@@ -40,13 +40,17 @@ final class AppContainer {
 
     let onboardingUserDefaults: UserDefaults
     let onboardingDraftStore: OnboardingDraftStore
+    let publicEntrySessionStore: PublicEntrySessionStore
     let onboardingCoachingContextStore: OnboardingCoachingContextStore
     let onboardingAnalyticsLogger: any OnboardingAnalyticsLogging
     let todayAnalyticsLogger: any TodayAnalyticsLogging
     let planAnalyticsLogger: any PlanAnalyticsLogging
     let journeyAnalyticsLogger: any JourneyAnalyticsLogging
     let publicEntryAnalyticsLogger: any PublicEntryAnalyticsLogging
+    let themeAnalyticsLogger: any ThemeAnalyticsLogging
     let onboardingRoutingConfiguration: OnboardingRoutingConfiguration
+
+    let themeStore: ThemeStore
 
     init(
         inMemory: Bool = false,
@@ -56,6 +60,7 @@ final class AppContainer {
         planAnalyticsLogger: (any PlanAnalyticsLogging)? = nil,
         journeyAnalyticsLogger: (any JourneyAnalyticsLogging)? = nil,
         publicEntryAnalyticsLogger: (any PublicEntryAnalyticsLogging)? = nil,
+        themeAnalyticsLogger: (any ThemeAnalyticsLogging)? = nil,
         onboardingRoutingConfiguration: OnboardingRoutingConfiguration? = nil
     ) throws {
         let resolvedOnboardingRoutingConfiguration = onboardingRoutingConfiguration ?? .production
@@ -68,6 +73,7 @@ final class AppContainer {
             override: onboardingUserDefaults
         )
         onboardingDraftStore = OnboardingDraftStore(userDefaults: self.onboardingUserDefaults)
+        publicEntrySessionStore = PublicEntrySessionStore(userDefaults: self.onboardingUserDefaults)
         onboardingCoachingContextStore = OnboardingCoachingContextStore(
             userDefaults: self.onboardingUserDefaults
         )
@@ -77,14 +83,18 @@ final class AppContainer {
         self.planAnalyticsLogger = planAnalyticsLogger ?? OSLogPlanAnalyticsLogger()
         self.journeyAnalyticsLogger = journeyAnalyticsLogger ?? OSLogJourneyAnalyticsLogger()
         self.publicEntryAnalyticsLogger = publicEntryAnalyticsLogger ?? OSLogPublicEntryAnalyticsLogger()
+        self.themeAnalyticsLogger = themeAnalyticsLogger ?? OSLogThemeAnalyticsLogger()
         #else
         self.onboardingAnalyticsLogger = onboardingAnalyticsLogger ?? NoOpOnboardingAnalyticsLogger()
         self.todayAnalyticsLogger = todayAnalyticsLogger ?? NoOpTodayAnalyticsLogger()
         self.planAnalyticsLogger = planAnalyticsLogger ?? NoOpPlanAnalyticsLogger()
         self.journeyAnalyticsLogger = journeyAnalyticsLogger ?? NoOpJourneyAnalyticsLogger()
         self.publicEntryAnalyticsLogger = publicEntryAnalyticsLogger ?? NoOpPublicEntryAnalyticsLogger()
+        self.themeAnalyticsLogger = themeAnalyticsLogger ?? NoOpThemeAnalyticsLogger()
         #endif
         self.onboardingRoutingConfiguration = resolvedOnboardingRoutingConfiguration
+
+        themeStore = ThemeStore(analyticsLogger: self.themeAnalyticsLogger)
 
         healthTrainingService = HealthTrainingService()
         trainingInsightsStore = TrainingInsightsStore(integration: healthTrainingService)
@@ -292,7 +302,6 @@ final class AppContainer {
             coachingContextStore: onboardingCoachingContextStore,
             analyticsLogger: onboardingAnalyticsLogger,
             analyticsEntry: entry,
-            allowsLocalOnlyContinuation: onboardingRoutingConfiguration.allowsLocalOnlyContinuation,
             healthTrainingIntegration: healthTrainingService,
             trainingInsightsStore: trainingInsightsStore
         )
@@ -317,11 +326,12 @@ final class AppContainer {
             rootState: rootState,
             isOnboardingModelReady: isOnboardingModelReady,
             hasLocalProfile: profileBootstrapService.hasLocalProfile(),
-            signedOutWithProfilePolicy: onboardingRoutingConfiguration.signedOutWithProfilePolicy,
+            signedOutWithProfilePolicy: .requireSignIn,
             localProfileAwaitingSignIn: profileBootstrapService.localProfileAwaitingSignIn(),
             pendingOnboardingCompletion: pendingOnboardingCompletion,
             publicEntryDestination: publicEntryDestination,
-            hasPersistedOnboardingDraft: onboardingDraftStore.hasDraft
+            hasPersistedOnboardingDraft: onboardingDraftStore.hasDraft,
+            suppressAutomaticPublicEntryResume: publicEntrySessionStore.suppressAutomaticPublicEntryResume
         )
     }
 

@@ -109,5 +109,5 @@ struct CoachMessageView: View {
         .padding()
     }
     .background(CoachDesignTokens.Color.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

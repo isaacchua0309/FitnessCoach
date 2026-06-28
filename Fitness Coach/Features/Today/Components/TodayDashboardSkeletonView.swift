@@ -57,5 +57,5 @@ struct TodayDashboardSkeletonView: View {
             .padding(.vertical, FormaTokens.Spacing.md)
     }
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

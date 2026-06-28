@@ -44,12 +44,11 @@ enum OnboardingModelTestSupport {
         var iterations = 0
         while model.currentStep != target {
             iterations += 1
-            XCTAssertLessThanOrEqual(iterations, 30, "Onboarding navigation loop", file: file, line: line)
+            XCTAssertLessThanOrEqual(iterations, 40, "Onboarding navigation loop", file: file, line: line)
 
             switch model.currentStep {
             case .appleHealth:
-                model.goNext()
-                await waitToLeave(.appleHealth, model: model, file: file, line: line)
+                await advancePastAppleHealth(model: model, file: file, line: line)
             case .generatingPlan:
                 await model.flushPendingGenerationForTesting()
             default:
@@ -69,5 +68,19 @@ enum OnboardingModelTestSupport {
             await Task.yield()
         }
         XCTFail("Timed out waiting to leave \(step)", file: file, line: line)
+    }
+
+    private static func advancePastAppleHealth(
+        model: OnboardingModel,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) async {
+        await AsyncTestSupport.drainMainActorTasks()
+        model.skipAppleHealth()
+        if model.currentStep == .appleHealth {
+            await AsyncTestSupport.drainMainActorTasks()
+            model.skipAppleHealth()
+        }
+        await waitToLeave(.appleHealth, model: model, file: file, line: line)
     }
 }

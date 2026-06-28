@@ -51,7 +51,7 @@ struct AccountProfileMismatchView: View {
                         Group {
                             if isResolving {
                                 SwiftUI.ProgressView()
-                                    .tint(.white)
+                                    .tint(OnboardingTheme.ctaText)
                             } else {
                                 Text(copy.restoreCTA)
                             }
@@ -60,7 +60,7 @@ struct AccountProfileMismatchView: View {
                         .frame(minHeight: FormaTokens.Layout.minTouchTarget)
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(OnboardingTheme.accent)
+                    .tint(OnboardingTheme.ctaBackground)
                     .disabled(isResolving)
 
                     Button(action: onUseDeviceProfile) {
@@ -89,7 +89,6 @@ struct AccountProfileMismatchView: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .preferredColorScheme(.dark)
     }
 }
 
@@ -100,4 +99,5 @@ struct AccountProfileMismatchView: View {
         onUseDeviceProfile: {},
         onSignOut: {}
     )
+    .formaThemePreview()
 }

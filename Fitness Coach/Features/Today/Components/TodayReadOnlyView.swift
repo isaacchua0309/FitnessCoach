@@ -153,7 +153,7 @@ struct TodayReadOnlyView: View {
         .padding(.vertical, FormaTokens.Spacing.md)
     }
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("New day") {
@@ -169,7 +169,7 @@ struct TodayReadOnlyView: View {
         .padding(.vertical, FormaTokens.Spacing.md)
     }
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Complete day") {
@@ -185,5 +185,5 @@ struct TodayReadOnlyView: View {
         .padding(.vertical, FormaTokens.Spacing.md)
     }
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

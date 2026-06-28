@@ -21,5 +21,8 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView(container: try! AppContainer(inMemory: true))
+    let container = try! AppContainer(inMemory: true)
+    ContentView(container: container)
+        .environmentObject(container.themeStore)
+        .formaRootTheme(store: container.themeStore)
 }

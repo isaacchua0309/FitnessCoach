@@ -105,14 +105,14 @@ final class OnboardingAuthFlowModelTests: XCTestCase {
 
 final class OnboardingExistingAccountRoutingPolicyTests: XCTestCase {
 
-    func testExistingAccountRoutingPolicyPrefersActiveOnboardingSession() {
+    func testExistingUserSignInWinsOverActiveOnboardingSession() {
         XCTAssertEqual(
             AuthGateRoutingPolicy.effectiveRoute(
                 baseRoute: .existingUserSignIn,
                 isSignedIn: false,
                 hasActiveOnboardingSession: true
             ),
-            .onboardingStart
+            .existingUserSignIn
         )
     }
 

@@ -1,0 +1,23 @@
+{
+  "configurations": [
+    {
+      "id": "A48F7D99-137E-4A50-BD0B-D9B059CC44AE",
+      "name": "Configuration 1",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "testTimeoutsEnabled": false
+  },
+  "testTargets": [
+    {
+      "parallelizable": true,
+      "target": {
+        "containerPath": "container:Fitness Coach.xcodeproj",
+        "identifier": "3A0000062FEE000100000001",
+        "name": "Fitness CoachTests"
+      }
+    }
+  ],
+  "version": 1
+}

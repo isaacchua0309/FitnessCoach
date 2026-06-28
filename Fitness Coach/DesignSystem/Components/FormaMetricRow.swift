@@ -70,12 +70,12 @@ struct FormaMetricRow: View {
   FormaMetricRow(label: "Protein", value: "2 of 5 days", style: .snapshot)
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Trailing detail") {
   FormaMetricRow(label: "Workout days", value: "3 days", style: .trailingDetail)
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

@@ -80,7 +80,7 @@ final class OnboardingModelAnalyticsTests: XCTestCase {
 
     func testStepCompletedIncludesDuration() throws {
         let model = try makeModel()
-        seedValidForm(&model.formState)
+        OnboardingModelTestSupport.seedCanonicalForm(&model.formState)
         model.goNext()
 
         XCTAssertTrue(analytics.contains(.stepCompleted, step: "intro_proof"))
@@ -90,7 +90,7 @@ final class OnboardingModelAnalyticsTests: XCTestCase {
 
     func testStepEventsOmitLegacyPreferenceAnalytics() throws {
         let model = try makeModel()
-        seedValidForm(&model.formState)
+        OnboardingModelTestSupport.seedCanonicalForm(&model.formState)
         model.formState.loggingPreferences = [.quickTaps, .noPressure]
         model.goNext()
 
@@ -101,8 +101,7 @@ final class OnboardingModelAnalyticsTests: XCTestCase {
 
     func testPlanGenerationLogsPlanContext() async throws {
         let model = try makeModel()
-        seedValidForm(&model.formState)
-        navigateToReview(model)
+        await OnboardingModelTestSupport.advanceTo(.review, model: model)
         model.beginGeneration()
         await model.flushPendingGenerationForTesting()
 
@@ -114,8 +113,7 @@ final class OnboardingModelAnalyticsTests: XCTestCase {
 
     func testSignInCancelledLogsDedicatedEvent() async throws {
         let model = try makeModel()
-        seedValidForm(&model.formState)
-        navigateToReview(model)
+        await OnboardingModelTestSupport.advanceTo(.review, model: model)
         model.beginGeneration()
         await model.flushPendingGenerationForTesting()
         model.prepareForSavePlan()
@@ -139,59 +137,5 @@ final class OnboardingModelAnalyticsTests: XCTestCase {
             analyticsEntry: entry,
             generationDelay: ImmediateOnboardingGenerationDelayProvider()
         )
-    }
-
-    private func seedValidForm(_ formState: inout OnboardingFormState) {
-        OnboardingHeightWeightValues.applyDefaultsIfNeeded(to: &formState)
-        OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &formState)
-        OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &formState)
-        formState.sex = .female
-        formState.activityLevel = .moderatelyActive
-        OnboardingActivityLevelValues.applyDefaultsIfNeeded(to: &formState)
-        formState.selectPaceChoice(.moderate)
-    }
-
-    private func navigateToReview(_ model: OnboardingModel) {
-        seedValidForm(&model.formState)
-        while model.currentStep != .review {
-            model.goNext()
-        }
-    }
-}
-
-private final class CapturingOnboardingAnalyticsLogger: OnboardingAnalyticsLogging, @unchecked Sendable {
-
-    struct Record: Sendable {
-        let event: OnboardingAnalyticsEvent
-        let properties: OnboardingAnalyticsProperties
-    }
-
-    private let lock = NSLock()
-    private var records: [Record] = []
-
-    func log(_ event: OnboardingAnalyticsEvent, properties: OnboardingAnalyticsProperties) {
-        lock.lock()
-        records.append(Record(event: event, properties: properties))
-        lock.unlock()
-    }
-
-    func contains(
-        _ event: OnboardingAnalyticsEvent,
-        step: String? = nil
-    ) -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return records.contains { record in
-            guard record.event == event else { return false }
-            if let step, record.properties.step != step { return false }
-            return true
-        }
-    }
-
-    func lastProperties(for event: OnboardingAnalyticsEvent) -> [String: String]? {
-        lock.lock()
-        defer { lock.unlock() }
-        guard let record = records.last(where: { $0.event == event }) else { return nil }
-        return record.properties.asParameters()
     }
 }

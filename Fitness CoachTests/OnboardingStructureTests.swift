@@ -44,6 +44,7 @@ final class OnboardingStructureTests: XCTestCase {
         XCTAssertFalse(OnboardingStep.targetWeight.showsProgressHeader)
         XCTAssertFalse(OnboardingStep.birthday.showsProgressHeader)
         XCTAssertTrue(OnboardingStep.birthday.usesFixedViewportShell)
+        XCTAssertTrue(OnboardingStep.activityLevel.usesFixedViewportShell)
         XCTAssertFalse(OnboardingStep.activityLevel.showsProgressHeader)
         XCTAssertFalse(OnboardingStep.appleHealth.showsProgressHeader)
         XCTAssertFalse(OnboardingStep.almostThere.showsProgressHeader)

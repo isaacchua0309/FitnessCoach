@@ -35,7 +35,13 @@ struct FormaGoogleSignInButton: View {
                     .stroke(FormaTokens.Color.googleButtonBorder, lineWidth: 1)
             )
             .opacity(isLoading ? 0.92 : 1)
-            .shadow(color: .black.opacity(isLoading ? 0.08 : 0.14), radius: 6, y: 2)
+            .shadow(
+                color: isLoading
+                    ? FormaTokens.Color.googleButtonShadowLoading
+                    : FormaTokens.Color.googleButtonShadow,
+                radius: 6,
+                y: 2
+            )
             .contentShape(
                 RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
             )
@@ -99,20 +105,20 @@ struct FormaGoogleSignInButton: View {
     FormaGoogleSignInButton(isLoading: false, isDisabled: false, action: {})
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Loading") {
     FormaGoogleSignInButton(isLoading: true, isDisabled: true, action: {})
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Large Dynamic Type") {
     FormaGoogleSignInButton(isLoading: false, isDisabled: false, action: {})
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
         .dynamicTypeSize(.accessibility3)
 }

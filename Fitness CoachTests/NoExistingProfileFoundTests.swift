@@ -49,19 +49,14 @@ final class NoExistingProfileFoundAnalyticsTests: XCTestCase {
     }
 
     func testRecordingLoggerCapturesViewAndCTAEvents() {
-        let logger = RecordingNoExistingProfileAnalyticsLogger()
-        logger.log(.noExistingProfileViewed, properties: PublicEntryAnalyticsProperties())
-        logger.log(
-            .noExistingProfileStartOnboardingTapped,
-            properties: PublicEntryAnalyticsProperties()
-        )
-        logger.log(
-            .noExistingProfileUseAnotherAccountTapped,
-            properties: PublicEntryAnalyticsProperties()
-        )
+        let logger = CapturingPublicEntryAnalyticsLogger()
+        let properties = PublicEntryAnalyticsContextBuilder.baseProperties(hasLocalProfile: false)
+        logger.log(.noExistingProfileViewed, properties: properties)
+        logger.log(.noExistingProfileStartOnboardingTapped, properties: properties)
+        logger.log(.noExistingProfileUseAnotherAccountTapped, properties: properties)
 
         XCTAssertEqual(
-            logger.events,
+            logger.events.map(\.event),
             [
                 .noExistingProfileViewed,
                 .noExistingProfileStartOnboardingTapped,
@@ -73,12 +68,45 @@ final class NoExistingProfileFoundAnalyticsTests: XCTestCase {
 
 final class NoExistingProfileFoundPolicyTests: XCTestCase {
 
+    func testSignedInNoCloudProfileRoutesToNoExistingProfileFound() {
+        XCTAssertEqual(
+            AppRouteResolver.resolve(
+                authState: .signedIn(uid: "new-user"),
+                rootState: .missingCloudProfile
+            ),
+            .noExistingProfileFound
+        )
+        XCTAssertNotEqual(
+            AppRouteResolver.resolve(
+                authState: .signedIn(uid: "new-user"),
+                rootState: .missingCloudProfile,
+                isOnboardingModelReady: true
+            ),
+            .onboarding
+        )
+    }
+
+    func testStartOnboardingFromNoProfileWorks() {
+        XCTAssertEqual(
+            NoExistingProfileFoundPolicy.onboardingEntry(isSignedIn: true),
+            .postAuth
+        )
+    }
+
     func testStartOnboardingUsesPostAuthEntryWhenSignedIn() {
         XCTAssertEqual(
             NoExistingProfileFoundPolicy.onboardingEntry(isSignedIn: true),
             .postAuth
         )
         XCTAssertEqual(OnboardingEntry.initialStep(for: .postAuth), .heightWeight)
+        XCTAssertEqual(
+            AppRouteResolver.resolve(
+                authState: .signedIn(uid: "new-user"),
+                rootState: .onboarding,
+                isOnboardingModelReady: true
+            ),
+            .onboarding
+        )
     }
 
     func testStartOnboardingUsesPreAuthEntryWhenSignedOut() {
@@ -108,13 +136,5 @@ final class NoExistingProfileFoundPolicyTests: XCTestCase {
             ),
             .existingUserSignIn
         )
-    }
-}
-
-private final class RecordingNoExistingProfileAnalyticsLogger: PublicEntryAnalyticsLogging {
-    private(set) var events: [PublicEntryAnalyticsEvent] = []
-
-    func log(_ event: PublicEntryAnalyticsEvent, properties: PublicEntryAnalyticsProperties) {
-        events.append(event)
     }
 }

@@ -83,7 +83,7 @@ struct JourneyTransformationHeroSection: View {
     private var progressBlock: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             SwiftUI.ProgressView(value: state.progressBarFill)
-                .tint(FormaTokens.Color.accent)
+                .tint(FormaTokens.Color.progress)
                 .accessibilityLabel(FormaProductCopy.Journey.Transformation.progressAccessibilityLabel)
                 .accessibilityValue(state.progressBarAccessibilityValue)
 
@@ -145,40 +145,40 @@ struct JourneyTransformationHeroSection: View {
     JourneyTransformationHeroSection(state: ProgressPreviewData.transformationNewUser)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Active fat loss") {
     JourneyTransformationHeroSection(state: ProgressPreviewData.transformationActiveFatLoss)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Near goal") {
     JourneyTransformationHeroSection(state: ProgressPreviewData.transformationNearGoal)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Gain goal") {
     JourneyTransformationHeroSection(state: ProgressPreviewData.transformationGainGoal)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Plateau") {
     JourneyTransformationHeroSection(state: ProgressPreviewData.transformationPlateau)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Maintain goal") {
     JourneyTransformationHeroSection(state: ProgressPreviewData.transformationMaintainGoal)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }

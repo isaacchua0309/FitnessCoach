@@ -80,7 +80,6 @@ struct CoachView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
-            .preferredColorScheme(.dark)
             .task {
                 model.refreshTodayContext()
             }
@@ -144,7 +143,7 @@ struct CoachView: View {
         .fixedSize(horizontal: false, vertical: true)
         .background(
             CoachDesignTokens.Color.background
-                .shadow(color: .black.opacity(0.28), radius: 12, y: -4)
+                .shadow(color: FormaTokens.Color.shadow, radius: 12, y: -4)
         )
         .padding(.bottom, CoachDesignTokens.Layout.bottomChromeInset)
     }
@@ -214,4 +213,5 @@ struct CoachView: View {
     CoachView(model: try! AppContainer(inMemory: true).makeCoachModel())
         .environmentObject(AppRefreshCenter())
         .environmentObject(AuthManager())
+        .formaThemePreview()
 }

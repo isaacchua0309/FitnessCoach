@@ -81,7 +81,7 @@ struct PlanTrainingIntegrationSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Not connected") {
@@ -92,7 +92,7 @@ struct PlanTrainingIntegrationSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Denied") {
@@ -103,7 +103,7 @@ struct PlanTrainingIntegrationSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Unavailable") {
@@ -114,5 +114,5 @@ struct PlanTrainingIntegrationSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

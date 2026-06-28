@@ -57,7 +57,7 @@ struct ProfilePlanConflictView: View {
                         Group {
                             if isResolving {
                                 SwiftUI.ProgressView()
-                                    .tint(.white)
+                                    .tint(OnboardingTheme.ctaText)
                             } else {
                                 Text(copy.restoreCTA)
                             }
@@ -66,7 +66,7 @@ struct ProfilePlanConflictView: View {
                         .frame(minHeight: FormaTokens.Layout.minTouchTarget)
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(OnboardingTheme.accent)
+                    .tint(OnboardingTheme.ctaBackground)
                     .disabled(isResolving)
 
                     Button(action: onUseDevicePlan) {
@@ -85,7 +85,6 @@ struct ProfilePlanConflictView: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .preferredColorScheme(.dark)
     }
 
     private var comparisonCard: some View {
@@ -170,4 +169,5 @@ struct ProfilePlanConflictView: View {
         onRestoreExisting: {},
         onUseDevicePlan: {}
     )
+    .formaThemePreview()
 }

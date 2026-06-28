@@ -11,6 +11,7 @@ struct SettingsRootView: View {
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var insightsStore: TrainingInsightsStore
+    @EnvironmentObject private var themeStore: ThemeStore
 
     @Binding var formState: ProfileFormState
     let errorMessage: String?
@@ -39,7 +40,7 @@ struct SettingsRootView: View {
                     }
                 }
             }
-            .fitPilotDarkGroupedList()
+            .fitPilotGroupedList()
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -90,10 +91,17 @@ struct SettingsRootView: View {
             }
             .fitPilotSettingsRowChrome()
 
+            NavigationLink {
+                ThemeSettingsView()
+            } label: {
+                settingsRowLabel(SettingsPreferencesCatalog.themeRowTitle)
+            }
+            .fitPilotSettingsRowChrome()
+
             FitPilotComingSoonRow(title: "AI preferences")
                 .fitPilotSettingsRowChrome(isEnabled: false)
         } header: {
-            FitPilotSettingsSectionHeader(title: "Preferences")
+            FitPilotSettingsSectionHeader(title: SettingsPreferencesCatalog.sectionTitle)
         }
     }
 
@@ -201,4 +209,6 @@ struct SettingsRootView: View {
             integration: StubTrainingIntegrationProvider(refreshResult: .connected)
         )
     )
+    .environmentObject(ThemeStore(userDefaults: UserDefaults(suiteName: "SettingsRootPreview")!))
+    .formaThemePreview()
 }

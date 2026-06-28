@@ -66,7 +66,7 @@ struct FormaScreenErrorView: View {
     private func retryButton(title: String) -> some View {
         Button(title, action: onRetry)
             .buttonStyle(.borderedProminent)
-            .tint(FormaTokens.Color.accent)
+            .tint(FormaTokens.Color.ctaBackground)
     }
 }
 
@@ -76,7 +76,7 @@ struct FormaScreenErrorView: View {
         onRetry: {},
         style: .tabRoot
     )
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Detail screen") {
@@ -85,5 +85,5 @@ struct FormaScreenErrorView: View {
         onRetry: {},
         style: .detailScreen
     )
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

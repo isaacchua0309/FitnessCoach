@@ -10,6 +10,7 @@ import SwiftUI
 struct AccountSettingsView: View {
 
     @EnvironmentObject private var authManager: AuthManager
+    @Environment(\.publicEntrySessionStore) private var publicEntrySessionStore
     @State private var showsLogoutConfirmation = false
 
     @ScaledMetric(relativeTo: .title2) private var avatarDiameter: CGFloat = 64
@@ -31,7 +32,7 @@ struct AccountSettingsView: View {
             .padding(.top, FormaTokens.Spacing.md)
             .padding(.bottom, FormaTokens.Spacing.sm)
         }
-        .fitPilotDarkScreenBackground()
+        .fitPilotScreenBackground()
         .navigationTitle("Account")
         .navigationBarTitleDisplayMode(.inline)
         .fitPilotScrollBottomInset()
@@ -41,6 +42,7 @@ struct AccountSettingsView: View {
             titleVisibility: .visible
         ) {
             Button("Log Out", role: .destructive) {
+                publicEntrySessionStore?.markUserInitiatedLogout()
                 authManager.signOut()
             }
             Button("Cancel", role: .cancel) {}

@@ -71,7 +71,14 @@ final class PlanRationaleVisualFlowTests: XCTestCase {
         )
 
         let steps = try XCTUnwrap(rationale.flowSteps)
-        XCTAssertEqual(steps.map(\.label), ["Estimated Maintenance", "Healthy Surplus", "Daily Target"])
+        XCTAssertEqual(steps.first?.label, "Estimated Maintenance")
+        XCTAssertEqual(steps.last?.label, "Daily Target")
+        let surplus = max(result.calorieTargetKcal - result.tdeeKcal, 0)
+        if surplus > 0 {
+            XCTAssertEqual(steps.map(\.label), ["Estimated Maintenance", "Healthy Surplus", "Daily Target"])
+        } else {
+            XCTAssertEqual(steps.map(\.label), ["Estimated Maintenance", "Daily Target"])
+        }
         XCTAssertFalse(steps.contains { $0.label == "Healthy Deficit" })
     }
 

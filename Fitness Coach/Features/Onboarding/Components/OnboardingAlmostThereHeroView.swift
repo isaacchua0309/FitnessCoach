@@ -44,6 +44,6 @@ struct OnboardingAlmostThereHeroView: View {
     OnboardingAlmostThereHeroView()
         .padding()
         .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 #endif

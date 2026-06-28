@@ -2,7 +2,7 @@
 //  PublicWelcomeTheme.swift
 //  Fitness Coach
 //
-//  Forma — Adaptive palette for the public welcome screen (light-first).
+//  Forma — Shared palette for public entry screens (resolved Forma theme).
 //
 
 import SwiftUI
@@ -16,47 +16,54 @@ enum PublicWelcomeTheme {
         var surfaceBorder: Color
         var accent: Color
         var accentSoft: Color
-        var accentForeground: Color
+        var ctaBackground: Color
+        var ctaText: Color
+        var warning: Color
+        var warningSoft: Color
         var textPrimary: Color
         var textSecondary: Color
         var textTertiary: Color
         var chipBackground: Color
         var chipIconBackground: Color
+
+        /// Text on accent-tinted primary CTAs.
+        var accentForeground: Color { ctaText }
     }
 
+    /// Builds a public-entry palette from the fully resolved app theme.
+    @MainActor
+    static func palette(from resolved: ResolvedAppTheme) -> Palette {
+        let colors = ThemeColorProvider.colors(from: resolved)
+        return Palette(
+            canvas: colors.canvas,
+            canvasGlow: colors.accent.opacity(0.10),
+            surface: colors.surfaceSubtle,
+            surfaceBorder: colors.border,
+            accent: colors.accent,
+            accentSoft: colors.accentMuted,
+            ctaBackground: colors.ctaBackground,
+            ctaText: colors.ctaText,
+            warning: colors.warning,
+            warningSoft: colors.warning.opacity(0.14),
+            textPrimary: colors.textPrimary,
+            textSecondary: colors.textSecondary,
+            textTertiary: colors.textTertiary,
+            chipBackground: .clear,
+            chipIconBackground: colors.accentMuted
+        )
+    }
+
+    /// Resolves palette for the active theme preferences and the given system color scheme.
+    ///
+    /// Prefer `palette(from:)` with `@Environment(\.formaResolvedTheme)` in views when possible.
+    @MainActor
     static func palette(colorScheme: ColorScheme) -> Palette {
-        switch colorScheme {
-        case .dark:
-            return Palette(
-                canvas: Color(red: 0.05, green: 0.07, blue: 0.10),
-                canvasGlow: Color(red: 0.16, green: 0.48, blue: 0.54).opacity(0.22),
-                surface: Color.white.opacity(0.06),
-                surfaceBorder: Color.white.opacity(0.10),
-                accent: Color(red: 0.34, green: 0.74, blue: 0.78),
-                accentSoft: Color(red: 0.34, green: 0.74, blue: 0.78).opacity(0.16),
-                accentForeground: Color(red: 0.04, green: 0.10, blue: 0.12),
-                textPrimary: Color.white,
-                textSecondary: Color.white.opacity(0.72),
-                textTertiary: Color.white.opacity(0.50),
-                chipBackground: Color.white.opacity(0.05),
-                chipIconBackground: Color(red: 0.34, green: 0.74, blue: 0.78).opacity(0.18)
-            )
-        default:
-            return Palette(
-                canvas: Color(red: 0.98, green: 0.98, blue: 0.96),
-                canvasGlow: Color(red: 0.20, green: 0.58, blue: 0.62).opacity(0.14),
-                surface: Color.white,
-                surfaceBorder: Color(red: 0.86, green: 0.90, blue: 0.91),
-                accent: Color(red: 0.12, green: 0.52, blue: 0.58),
-                accentSoft: Color(red: 0.12, green: 0.52, blue: 0.58).opacity(0.10),
-                accentForeground: Color.white,
-                textPrimary: Color(red: 0.10, green: 0.13, blue: 0.16),
-                textSecondary: Color(red: 0.28, green: 0.33, blue: 0.38),
-                textTertiary: Color(red: 0.45, green: 0.50, blue: 0.55),
-                chipBackground: Color.white,
-                chipIconBackground: Color(red: 0.12, green: 0.52, blue: 0.58).opacity(0.10)
-            )
-        }
+        let preferences = FormaThemeAccess.currentResolvedTheme.preferences
+        let resolved = ThemeResolver.resolve(
+            preferences: preferences,
+            systemColorScheme: colorScheme
+        )
+        return palette(from: resolved)
     }
 }
 
@@ -70,20 +77,21 @@ struct PublicEntryScreenBackground: View {
             RadialGradient(
                 colors: [
                     palette.canvasGlow,
+                    palette.accent.opacity(0.02),
                     .clear
                 ],
                 center: .top,
-                startRadius: 8,
-                endRadius: 420
+                startRadius: 4,
+                endRadius: 380
             )
 
             LinearGradient(
                 colors: [
-                    palette.accentSoft.opacity(0.55),
+                    palette.accent.opacity(0.03),
                     .clear
                 ],
                 startPoint: .top,
-                endPoint: UnitPoint(x: 0.5, y: 0.38)
+                endPoint: UnitPoint(x: 0.5, y: 0.42)
             )
         }
         .ignoresSafeArea()

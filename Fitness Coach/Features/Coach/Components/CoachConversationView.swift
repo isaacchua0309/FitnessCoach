@@ -73,7 +73,7 @@ struct CoachConversationView: View {
 #Preview("Empty") {
     CoachConversationView(messages: [], isSending: false)
         .background(CoachDesignTokens.Color.background)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Conversation") {
@@ -82,5 +82,5 @@ struct CoachConversationView: View {
         isSending: false
     )
     .background(CoachDesignTokens.Color.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

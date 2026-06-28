@@ -78,7 +78,7 @@ struct TodayGoalConnectionRow: View {
     )
     .padding(.horizontal, TodayLayout.horizontalPadding)
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Maintain") {
@@ -94,5 +94,5 @@ struct TodayGoalConnectionRow: View {
     )
     .padding(.horizontal, TodayLayout.horizontalPadding)
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

@@ -136,7 +136,6 @@ struct TodayView: View {
                     Text(FormaProductCopy.Today.Meals.deleteConfirmationMessage)
                 }
                 .background(FormaTokens.Color.canvas)
-                .preferredColorScheme(.dark)
         }
     }
 
@@ -266,4 +265,6 @@ struct TodayView: View {
     .environmentObject(container.refreshCenter)
     .environmentObject(container.trainingInsightsStore)
     .environmentObject(container.trainingInsightsModel)
+    .environmentObject(container.themeStore)
+    .formaThemePreview()
 }

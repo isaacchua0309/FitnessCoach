@@ -24,19 +24,6 @@ extension SignedInProfileReconcileInput {
 
 extension ProfileBootstrapCoordinator {
 
-    static func signInContext(for input: SignedInProfileReconcileInput) -> SignInContext {
-        if input.pendingOnboardingCompletion {
-            return .onboardingCompletion
-        }
-        if input.pendingExistingUserSignIn {
-            return .existingUserEntry
-        }
-        if input.isFreshSignIn {
-            return .returningUser
-        }
-        return .normalLaunch
-    }
-
     static func mapOwnershipOutcome(
         _ outcome: ProfileOwnershipOutcome,
         input: SignedInProfileReconcileInput

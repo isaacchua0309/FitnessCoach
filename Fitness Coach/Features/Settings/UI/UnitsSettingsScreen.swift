@@ -30,7 +30,7 @@ struct UnitsSettingsScreen: View {
                     .foregroundStyle(FormaTokens.Color.textTertiary)
             }
         }
-        .fitPilotDarkGroupedList()
+        .fitPilotGroupedList()
         .navigationTitle("Units")
         .navigationBarTitleDisplayMode(.inline)
         .fitPilotScrollBottomInset()

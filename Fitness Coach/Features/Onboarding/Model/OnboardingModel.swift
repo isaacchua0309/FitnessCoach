@@ -10,7 +10,6 @@ import Foundation
 
 enum OnboardingCompletionIntent: Equatable, Sendable {
     case signIn
-    case localOnly
 }
 
 @MainActor
@@ -30,7 +29,6 @@ final class OnboardingModel: ObservableObject {
     @Published private(set) var appleHealthPresentation: OnboardingAppleHealthPresentationState = .ready
     @Published private(set) var appleHealthDeviceState: TrainingIntegrationState = .notConnected
 
-    let allowsLocalOnlyContinuation: Bool
     let flowFloor: OnboardingStep
 
     var requiresGoogleSignInAtSavePlan: Bool {
@@ -62,7 +60,6 @@ final class OnboardingModel: ObservableObject {
         analyticsLogger: (any OnboardingAnalyticsLogging)? = nil,
         analyticsEntry: OnboardingAnalyticsEntry = .preAuth,
         generationDelay: (any OnboardingGenerationDelayProviding)? = nil,
-        allowsLocalOnlyContinuation: Bool? = nil,
         healthTrainingIntegration: TrainingIntegrationProviding? = nil,
         trainingInsightsStore: TrainingInsightsStore? = nil
     ) {
@@ -70,8 +67,6 @@ final class OnboardingModel: ObservableObject {
         let resolvedCoachingContextStore = coachingContextStore ?? OnboardingCoachingContextStore()
         let resolvedAnalyticsLogger = analyticsLogger ?? NoOpOnboardingAnalyticsLogger()
         let resolvedGenerationDelay = generationDelay ?? SystemOnboardingGenerationDelayProvider()
-        let resolvedAllowsLocalOnlyContinuation = allowsLocalOnlyContinuation
-            ?? OnboardingRoutingConfiguration.production.allowsLocalOnlyContinuation
         self.userProfileService = userProfileService
         self.targetService = targetService
         self.draftStore = resolvedDraftStore
@@ -79,7 +74,6 @@ final class OnboardingModel: ObservableObject {
         self.analyticsLogger = resolvedAnalyticsLogger
         self.analyticsEntry = analyticsEntry
         self.generationDelay = resolvedGenerationDelay
-        self.allowsLocalOnlyContinuation = resolvedAllowsLocalOnlyContinuation
         self.healthTrainingIntegration = healthTrainingIntegration ?? HealthTrainingService()
         self.trainingInsightsStore = trainingInsightsStore
         self.onCompletion = onCompletion
@@ -214,6 +208,13 @@ final class OnboardingModel: ObservableObject {
 
     var canGoBack: Bool {
         currentStep.allowsBackNavigation(in: OnboardingStep.flow, notBefore: flowFloor)
+    }
+
+    var canExitToWelcome: Bool {
+        WelcomeOnboardingHandoffPolicy.canExitToWelcome(
+            step: currentStep,
+            analyticsEntry: analyticsEntry
+        )
     }
 
     func goBack() {
@@ -377,6 +378,9 @@ final class OnboardingModel: ObservableObject {
     }
 
     func beginGeneration() {
+        guard currentStep == .review else { return }
+        guard viewState == .editing || viewState == .generationFailed else { return }
+
         formState.applyTrainingRhythmDefaultsForCurrentActivity()
         if let invalidStep = OnboardingFormState.firstInvalidRequiredStep(for: formState) {
             errorMessage = formState.validationMessage(for: invalidStep)
@@ -508,21 +512,6 @@ final class OnboardingModel: ObservableObject {
         onCompletion()
     }
 
-    func completeWithoutAccount() {
-        guard allowsLocalOnlyContinuation else { return }
-        guard currentStep == .savePlan else { return }
-        if !(hasCommittedLocalProfile || hasLocalProfile) {
-            commitLocalProfileForSavePlan()
-            guard errorMessage == nil else { return }
-        }
-
-        pendingCompletionIntent = .localOnly
-        viewState = .awaitingSignIn
-        errorMessage = nil
-        finalizeLocalOnboarding()
-        onCompletion()
-    }
-
     func beginSignInForCompletion() {
         viewState = .savingProfile
         errorMessage = nil
@@ -580,10 +569,6 @@ final class OnboardingModel: ObservableObject {
 
     private func persistCoachingContext() {
         coachingContextStore.save(formState.makeCoachingContext())
-    }
-
-    private func finalizeLocalOnboarding() {
-        recordOnboardingFinished(completionPath: "local_only")
     }
 
     private func recordOnboardingFinished(completionPath: String) {

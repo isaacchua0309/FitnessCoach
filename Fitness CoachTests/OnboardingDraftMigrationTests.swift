@@ -44,7 +44,7 @@ final class OnboardingDraftMigrationTests: XCTestCase {
             formState: formState,
             flow: OnboardingStep.flow
         )
-        XCTAssertEqual(restored, .targetWeight)
+        XCTAssertEqual(restored, .activityLevel)
     }
 
     func testLegacyGoalRoutesToTargetWeightWhenInvalid() {
@@ -90,7 +90,7 @@ final class OnboardingDraftMigrationTests: XCTestCase {
             formState: formState,
             flow: OnboardingStep.flow
         )
-        XCTAssertEqual(restored, .birthday)
+        XCTAssertEqual(restored, .targetWeight)
     }
 
     func testLegacyGeneratingPlanRoutesToReview() {
@@ -218,8 +218,8 @@ final class OnboardingDraftMigrationTests: XCTestCase {
         OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &state)
         OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &state)
         state.sex = .female
-        state.activityLevel = .moderatelyActive
-        OnboardingActivityLevelValues.applyDefaultsIfNeeded(to: &state)
+        OnboardingActivityLevelValues.select(.moderatelyActive, in: &state)
+        state.selectPaceChoice(.moderate)
         return state
     }
 }

@@ -88,7 +88,7 @@ struct AppleHealthIntegrationView: View {
                 }
             }
         }
-        .fitPilotDarkGroupedList()
+        .fitPilotGroupedList()
         .navigationTitle("Apple Health")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -146,5 +146,5 @@ struct AppleHealthIntegrationView: View {
             )
         )
     }
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

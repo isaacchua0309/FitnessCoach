@@ -63,7 +63,7 @@ struct TodayMomentumSection: View {
     )
     .padding(.horizontal, TodayLayout.horizontalPadding)
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("New user") {
@@ -80,5 +80,5 @@ struct TodayMomentumSection: View {
     )
     .padding(.horizontal, TodayLayout.horizontalPadding)
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

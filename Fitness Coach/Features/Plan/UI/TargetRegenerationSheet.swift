@@ -26,10 +26,13 @@ struct TargetRegenerationSheet: View {
                             systemImage: "exclamationmark.triangle.fill"
                         )
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(FormaTokens.Color.warning)
                         .padding()
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .background(
+                            FormaTokens.Color.warning.opacity(0.14),
+                            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        )
                     }
 
                     VStack(alignment: .leading, spacing: 12) {
@@ -40,7 +43,10 @@ struct TargetRegenerationSheet: View {
                         previewRow("Daily deficit", "\(preview.estimatedDailyDeficit) kcal")
                     }
                     .padding()
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .background(
+                        FormaTokens.Color.surfaceElevated,
+                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    )
 
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Generated Targets")
@@ -59,10 +65,14 @@ struct TargetRegenerationSheet: View {
                         }
                     }
                     .padding()
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .background(
+                        FormaTokens.Color.surfaceElevated,
+                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    )
                 }
                 .padding()
             }
+            .background(FormaTokens.Color.canvas)
             .navigationTitle("Regenerated Targets")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -92,10 +102,11 @@ struct TargetRegenerationSheet: View {
         HStack {
             Text(title)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
             Spacer()
             Text(value)
                 .font(.subheadline.weight(.medium))
+                .foregroundStyle(FormaTokens.Color.textPrimary)
         }
     }
 
@@ -116,4 +127,5 @@ struct TargetRegenerationSheet: View {
         onApply: {},
         onCancel: {}
     )
+    .formaThemePreview()
 }

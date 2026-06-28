@@ -11,28 +11,74 @@ enum FormaTokens {
 
     // MARK: - Color
 
+    /// Semantic color facade over the active resolved theme.
+    ///
+    /// Values resolve through `FormaThemeAccess.currentColors`, which tracks the root theme.
+    /// In SwiftUI views, prefer `@Environment(\.formaColors)` when possible.
     enum Color {
-        static let canvas = SwiftUI.Color(red: 0.03, green: 0.05, blue: 0.08)
-        static let surface = SwiftUI.Color.white.opacity(0.07)
-        static let surfaceElevated = SwiftUI.Color.white.opacity(0.10)
-        static let surfaceSubtle = SwiftUI.Color.white.opacity(0.05)
-        static let border = SwiftUI.Color.white.opacity(0.12)
-        static let borderStrong = SwiftUI.Color.white.opacity(0.20)
-        static let accent = SwiftUI.Color.blue
-        static let accentMuted = accent.opacity(0.16)
-        static let textPrimary = SwiftUI.Color.white
-        static let textSecondary = SwiftUI.Color.white.opacity(0.68)
-        static let textTertiary = SwiftUI.Color.white.opacity(0.48)
-        static let textLegal = SwiftUI.Color.white.opacity(0.62)
-        static let destructive = SwiftUI.Color.red
-        static let warning = SwiftUI.Color.orange
-        static let success = SwiftUI.Color.green
-        static let googleButtonBackground = SwiftUI.Color.white
-        static let googleButtonText = SwiftUI.Color(red: 0.24, green: 0.25, blue: 0.26)
-        static let googleButtonBorder = border.opacity(0.35)
+        @MainActor
+        private static var active: FormaThemeColors { FormaThemeAccess.currentColors }
+
+        @MainActor
+        static var canvas: SwiftUI.Color { active.canvas }
+        @MainActor
+        static var surface: SwiftUI.Color { active.surface }
+        @MainActor
+        static var surfaceElevated: SwiftUI.Color { active.surfaceElevated }
+        @MainActor
+        static var surfaceSubtle: SwiftUI.Color { active.surfaceSubtle }
+        @MainActor
+        static var border: SwiftUI.Color { active.border }
+        @MainActor
+        static var borderStrong: SwiftUI.Color { active.borderStrong }
+        @MainActor
+        static var accent: SwiftUI.Color { active.accent }
+        @MainActor
+        static var accentMuted: SwiftUI.Color { active.accentMuted }
+        @MainActor
+        static var textPrimary: SwiftUI.Color { active.textPrimary }
+        @MainActor
+        static var textSecondary: SwiftUI.Color { active.textSecondary }
+        @MainActor
+        static var textTertiary: SwiftUI.Color { active.textTertiary }
+        @MainActor
+        static var textLegal: SwiftUI.Color { active.textLegal }
+        @MainActor
+        static var ctaBackground: SwiftUI.Color { active.ctaBackground }
+        @MainActor
+        static var ctaText: SwiftUI.Color { active.ctaText }
+        @MainActor
+        static var progress: SwiftUI.Color { active.progress }
+        @MainActor
+        static var progressTrack: SwiftUI.Color { active.progressTrack }
+        @MainActor
+        static var chartPrimary: SwiftUI.Color { active.chartPrimary }
+        @MainActor
+        static var chartSecondary: SwiftUI.Color { active.chartSecondary }
+        @MainActor
+        static var shadow: SwiftUI.Color { active.shadow }
+        @MainActor
+        static var destructive: SwiftUI.Color { active.destructive }
+        @MainActor
+        static var warning: SwiftUI.Color { active.warning }
+        @MainActor
+        static var success: SwiftUI.Color { active.success }
+        @MainActor
+        static var googleButtonBackground: SwiftUI.Color { active.googleButtonBackground }
+        @MainActor
+        static var googleButtonForeground: SwiftUI.Color { active.googleButtonForeground }
+        @MainActor
+        static var googleButtonText: SwiftUI.Color { active.googleButtonText }
+        @MainActor
+        static var googleButtonBorder: SwiftUI.Color { active.googleButtonBorder }
+        @MainActor
+        static var googleButtonShadow: SwiftUI.Color { active.googleButtonShadow }
+        @MainActor
+        static var googleButtonShadowLoading: SwiftUI.Color { active.googleButtonShadowLoading }
 
         /// Selected card/chip border — accent at onboarding contrast.
-        static let borderSelected = accent.opacity(0.72)
+        @MainActor
+        static var borderSelected: SwiftUI.Color { active.borderSelected }
     }
 
     // MARK: - Spacing

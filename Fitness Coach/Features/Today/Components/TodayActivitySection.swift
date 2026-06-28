@@ -165,7 +165,7 @@ struct TodayActivitySection: View {
     )
     .padding(.horizontal, TodayLayout.horizontalPadding)
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Disconnected") {
@@ -190,5 +190,5 @@ struct TodayActivitySection: View {
     )
     .padding(.horizontal, TodayLayout.horizontalPadding)
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

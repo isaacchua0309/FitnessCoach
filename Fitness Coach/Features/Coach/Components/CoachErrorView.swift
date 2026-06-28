@@ -64,5 +64,5 @@ struct CoachErrorView: View {
         onDismiss: {}
     )
     .background(CoachDesignTokens.Color.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

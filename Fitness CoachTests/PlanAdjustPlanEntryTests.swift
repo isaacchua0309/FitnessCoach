@@ -104,18 +104,3 @@ final class PlanAdjustPlanEntryTests: XCTestCase {
         _ = try container.userProfileService.createProfile(draft)
     }
 }
-
-// MARK: - Test doubles
-
-private final class CapturingPlanAnalyticsLogger: PlanAnalyticsLogging, @unchecked Sendable {
-    struct Entry {
-        let event: PlanAnalyticsEvent
-        let properties: PlanAnalyticsProperties
-    }
-
-    private(set) var events: [Entry] = []
-
-    func log(_ event: PlanAnalyticsEvent, properties: PlanAnalyticsProperties) {
-        events.append(Entry(event: event, properties: properties))
-    }
-}

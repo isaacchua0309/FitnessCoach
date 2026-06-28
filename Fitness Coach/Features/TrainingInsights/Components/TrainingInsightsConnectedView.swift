@@ -200,7 +200,7 @@ struct TrainingInsightsConnectedView: View {
 #Preview {
     InsightsConnectedPreviewHost()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 @MainActor

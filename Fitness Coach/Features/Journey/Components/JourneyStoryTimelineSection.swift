@@ -86,12 +86,12 @@ struct JourneyStoryTimelineSection: View {
     JourneyStoryTimelineSection(state: ProgressPreviewData.storyTimelineNewUser)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Active story") {
     JourneyStoryTimelineSection(state: ProgressPreviewData.storyTimelineActive)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }

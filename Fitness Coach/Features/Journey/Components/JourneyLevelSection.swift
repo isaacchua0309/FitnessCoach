@@ -43,7 +43,7 @@ struct JourneyLevelSection: View {
             )
 
             SwiftUI.ProgressView(value: min(max(state.progressPercent / 100, 0), 1))
-                .tint(FormaTokens.Color.accent)
+                .tint(FormaTokens.Color.progress)
                 .accessibilityLabel(FormaProductCopy.Journey.Level.xpLabel)
                 .accessibilityValue(
                     FormaProductCopy.Journey.Level.xpProgress(
@@ -83,6 +83,6 @@ struct JourneyLevelSection: View {
             .padding()
     }
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 #endif

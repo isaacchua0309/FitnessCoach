@@ -137,7 +137,7 @@ struct OnboardingTargetEncouragementStepView: View {
     )
     .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Target Encouragement — Maintain") {
@@ -151,13 +151,13 @@ struct OnboardingTargetEncouragementStepView: View {
     )
     .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Target Encouragement — Fallback") {
     OnboardingTargetEncouragementStepView(formState: OnboardingFormState())
         .padding(.horizontal, OnboardingTheme.pagePadding)
         .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 #endif

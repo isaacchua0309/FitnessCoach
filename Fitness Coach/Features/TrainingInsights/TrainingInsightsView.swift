@@ -54,7 +54,6 @@ struct TrainingInsightsView: View {
                     }
                 }
                 .background(FormaTokens.Color.canvas)
-                .preferredColorScheme(.dark)
         }
     }
 
@@ -96,7 +95,7 @@ struct TrainingInsightsView: View {
 
 #Preview("Connected stub") {
     TrainingInsightsConnectedScreenPreview()
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 @MainActor

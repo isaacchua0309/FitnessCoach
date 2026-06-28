@@ -86,5 +86,5 @@ struct TodayAddWaterSheet: View {
         errorMessage: nil,
         onAdd: { _ in }
     )
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

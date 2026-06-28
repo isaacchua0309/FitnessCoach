@@ -57,6 +57,9 @@ enum ProfileOwnershipResolver {
         case .found:
             return .restoreCloudProfile
         case .missing:
+            if input.signInContext == .onboardingCompletion, input.hasLocalProfile {
+                return .uploadLocalProfile
+            }
             return .showMissingCloudProfile
         case .failed:
             return .showCloudFetchFailed

@@ -160,5 +160,5 @@ private struct CoachConfirmationSecondaryButtonStyle: ButtonStyle {
         )
     }
     .background(CoachDesignTokens.Color.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

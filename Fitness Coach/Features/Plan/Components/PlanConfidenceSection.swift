@@ -92,12 +92,12 @@ struct PlanConfidenceSection: View {
     PlanConfidenceSection(state: PlanMissionControlFixtures.newUserDashboard.confidence)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Strong history") {
     PlanConfidenceSection(state: PlanMissionControlFixtures.activeUserDashboard.confidence)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }

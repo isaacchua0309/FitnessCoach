@@ -9,12 +9,6 @@ import Foundation
 
 enum AuthGateRoutingPolicy {
 
-    /// Signed-in users tapping "Sign in with Google" on the landing screen need a fresh
-    /// sign-in flow instead of clearing the onboarding model into a signed-in initializing shell.
-    static func shouldSignOutBeforeExistingAccountSignIn(isSignedIn: Bool) -> Bool {
-        isSignedIn
-    }
-
     /// Whether a signed-in session without a local profile should (re)run cloud bootstrap.
     static func shouldReloadSignedInCloudProfile(
         isFreshSignIn: Bool,
@@ -57,8 +51,11 @@ enum AuthGateRoutingPolicy {
     ) -> Bool {
         guard hasActiveOnboardingSession, !isSignedIn else { return false }
         switch baseRoute {
-        case .welcome, .existingUserSignIn, .onboardingStart, .onboardingStartInitializing:
+        case .welcome, .onboardingStart, .onboardingStartInitializing:
             return true
+        case .existingUserSignIn:
+            // Returning-member sign-in must not be replaced by an in-progress draft session.
+            return false
         default:
             return false
         }
@@ -75,13 +72,12 @@ enum AuthGateRoutingPolicy {
     static func shouldClearOnboardingModelOnSignOut(
         wasSignedIn: Bool,
         isSignedIn: Bool,
-        hasLocalProfile: Bool,
-        hasPersistedOnboardingDraft: Bool
+        hasLocalProfile: Bool = false,
+        hasPersistedOnboardingDraft: Bool = false
     ) -> Bool {
         guard wasSignedIn, !isSignedIn else { return false }
-        if hasPersistedOnboardingDraft, !hasLocalProfile {
-            return false
-        }
+        _ = hasLocalProfile
+        _ = hasPersistedOnboardingDraft
         return true
     }
 }

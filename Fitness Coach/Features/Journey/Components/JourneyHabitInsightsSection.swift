@@ -147,19 +147,19 @@ struct JourneyHabitInsightsSection: View {
     JourneyHabitInsightsSection(state: ProgressPreviewData.habitInsightsActive)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Week one unlocked") {
     JourneyHabitInsightsSection(state: ProgressPreviewData.habitInsightsWeekOne)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Locked") {
     JourneyHabitInsightsSection(state: .locked)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }

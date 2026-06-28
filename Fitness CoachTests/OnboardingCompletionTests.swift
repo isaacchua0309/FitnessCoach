@@ -16,11 +16,15 @@ final class OnboardingPersonalizationSummaryTests: XCTestCase {
     func testReviewStepUsesDedicatedCopy() {
         XCTAssertEqual(
             OnboardingStep.review.title,
-            FormaProductCopy.Onboarding.Flow.Summary.title
+            "Your plan blueprint is ready"
         )
         XCTAssertEqual(
             OnboardingStep.review.subtitle,
             FormaProductCopy.Onboarding.Flow.Summary.subtitle
+        )
+        XCTAssertEqual(
+            FormaProductCopy.Onboarding.Flow.Summary.buildPlanCTA,
+            "Build my plan"
         )
     }
 
@@ -133,7 +137,7 @@ final class OnboardingCompletionPathTests: XCTestCase {
 
     private var draftDefaults: UserDefaults!
     private var draftStore: OnboardingDraftStore!
-    private let analytics = CapturingOnboardingCompletionAnalyticsLogger()
+    private let analytics = CapturingOnboardingAnalyticsLogger()
     private let calendar = Calendar(identifier: .gregorian)
     private let referenceDate = FormaCalculationTestFixtures.referenceDate
 
@@ -241,6 +245,23 @@ final class OnboardingCompletionPathTests: XCTestCase {
         XCTAssertTrue(analytics.contains(.planRevealed))
     }
 
+    func testDuplicateBuildPlanTapDoesNotRestartGeneration() async throws {
+        let integration = StubTrainingIntegrationProvider(requestConnectionResult: .denied)
+        let model = try makeOnboardingModel(integration: integration)
+
+        seedValidOnboardingForm(&model.formState)
+        await OnboardingModelTestSupport.advanceTo(.review, model: model, seedForm: false)
+
+        model.goNext()
+        XCTAssertEqual(model.currentStep, .generatingPlan)
+
+        model.goNext()
+        XCTAssertEqual(model.currentStep, .generatingPlan)
+
+        model.generatePlanPreview()
+        XCTAssertEqual(model.currentStep, .generatingPlan)
+    }
+
     // MARK: - Helpers
 
     private func makeOnboardingModel(
@@ -265,32 +286,5 @@ final class OnboardingCompletionPathTests: XCTestCase {
         birthDate: Date? = nil
     ) {
         OnboardingModelTestSupport.seedCanonicalForm(&formState, birthDate: birthDate)
-    }
-}
-
-private final class CapturingOnboardingCompletionAnalyticsLogger: OnboardingAnalyticsLogging, @unchecked Sendable {
-
-    struct Record: Sendable {
-        let event: OnboardingAnalyticsEvent
-        let properties: OnboardingAnalyticsProperties
-    }
-
-    private let lock = NSLock()
-    private var records: [Record] = []
-
-    func log(_ event: OnboardingAnalyticsEvent, properties: OnboardingAnalyticsProperties) {
-        lock.lock()
-        records.append(Record(event: event, properties: properties))
-        lock.unlock()
-    }
-
-    func contains(_ event: OnboardingAnalyticsEvent, step: String? = nil) -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return records.contains { record in
-            guard record.event == event else { return false }
-            if let step, record.properties.step != step { return false }
-            return true
-        }
     }
 }

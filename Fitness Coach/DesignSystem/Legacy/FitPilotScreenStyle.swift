@@ -22,8 +22,8 @@ enum FitPilotScreenStyle {
         trailing: FormaTokens.Spacing.md
     )
 
-    static let activeRowBackground = FormaTokens.Color.surface
-    static let disabledRowBackground = FormaTokens.Color.surfaceSubtle
+    static var activeRowBackground: Color { FormaTokens.Color.surface }
+    static var disabledRowBackground: Color { FormaTokens.Color.surfaceSubtle }
 }
 
 // MARK: - Plan
@@ -137,19 +137,17 @@ struct FitPilotComingSoonRow: View {
 // MARK: - Screen chrome
 
 extension View {
-    func fitPilotDarkScreenBackground() -> some View {
+    func fitPilotScreenBackground() -> some View {
         self
             .scrollContentBackground(.hidden)
             .background(FormaTokens.Color.canvas.ignoresSafeArea())
-            .preferredColorScheme(.dark)
     }
 
-    func fitPilotDarkGroupedList() -> some View {
+    func fitPilotGroupedList() -> some View {
         self
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
             .background(FormaTokens.Color.canvas.ignoresSafeArea())
-            .preferredColorScheme(.dark)
             .tint(FormaTokens.Color.accent)
     }
 
@@ -162,7 +160,6 @@ extension View {
     func fitPilotFormScreen() -> some View {
         self
             .background(FormaTokens.Color.canvas.ignoresSafeArea())
-            .preferredColorScheme(.dark)
             .fitPilotScrollBottomInset()
     }
 

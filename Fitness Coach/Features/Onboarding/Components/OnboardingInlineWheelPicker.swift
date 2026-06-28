@@ -13,6 +13,7 @@ struct OnboardingInlineWheelPicker<Value: Hashable>: View {
     var wheelHeight: CGFloat = OnboardingLayout.measurementWheelHeight
     var showsCardChrome: Bool = true
     var verticalPadding: CGFloat = FormaTokens.Spacing.sm
+    var wheelItemFont: Font = FormaTokens.Typography.body
 
     var body: some View {
         HStack(spacing: FormaTokens.Spacing.sm) {
@@ -38,6 +39,7 @@ struct OnboardingInlineWheelPicker<Value: Hashable>: View {
             Picker(column.accessibilityLabel, selection: binding(for: column)) {
                 ForEach(column.values, id: \.self) { value in
                     Text(column.format(value))
+                        .font(wheelItemFont)
                         .tag(value)
                 }
             }
@@ -67,7 +69,8 @@ struct OnboardingInlineWheelPicker<Value: Hashable>: View {
 struct OnboardingBirthdayWheelPicker: View {
     @Binding var birthDate: Date?
     var wheelHeight: CGFloat = OnboardingLayout.birthdayWheelHeight
-    var showsCardChrome: Bool = false
+    var showsCardChrome: Bool = true
+    var wheelItemFont: Font = .system(.title3, design: .rounded).weight(.medium)
 
     @State private var month: Int
     @State private var day: Int
@@ -79,12 +82,14 @@ struct OnboardingBirthdayWheelPicker: View {
     init(
         birthDate: Binding<Date?>,
         wheelHeight: CGFloat = OnboardingLayout.birthdayWheelHeight,
-        showsCardChrome: Bool = false,
+        showsCardChrome: Bool = true,
+        wheelItemFont: Font = .system(.title3, design: .rounded).weight(.medium),
         calendar: Calendar = .current
     ) {
         _birthDate = birthDate
         self.wheelHeight = wheelHeight
         self.showsCardChrome = showsCardChrome
+        self.wheelItemFont = wheelItemFont
         self.calendar = calendar
 
         let reference = birthDate.wrappedValue ?? BirthDateAgeResolver.syntheticBirthDate(
@@ -119,7 +124,8 @@ struct OnboardingBirthdayWheelPicker: View {
             ),
             wheelHeight: wheelHeight,
             showsCardChrome: showsCardChrome,
-            verticalPadding: OnboardingLayout.birthdayWheelVerticalPadding
+            verticalPadding: OnboardingLayout.birthdayWheelVerticalPadding,
+            wheelItemFont: wheelItemFont
         )
         .onAppear {
             syncBirthDate()

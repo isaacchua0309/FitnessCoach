@@ -33,5 +33,5 @@ struct UnitSettingsView: View {
     Form {
         UnitSettingsView(unitSystem: .constant(.metric))
     }
-    .fitPilotDarkGroupedList()
+    .fitPilotGroupedList()
 }

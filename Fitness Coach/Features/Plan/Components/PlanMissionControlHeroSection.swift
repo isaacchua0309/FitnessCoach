@@ -53,7 +53,7 @@ struct PlanMissionControlHeroSection: View {
 
             if state.showsProgressBar {
                 SwiftUI.ProgressView(value: progressBarFill)
-                    .tint(FormaTokens.Color.accent)
+                    .tint(FormaTokens.Color.progress)
                     .accessibilityLabel(FormaProductCopy.PlanMissionControl.heroSectionTitle)
                     .accessibilityValue(progressBarAccessibilityValue)
 
@@ -114,7 +114,7 @@ struct PlanMissionControlHeroSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Large Dynamic Type") {
@@ -123,7 +123,7 @@ struct PlanMissionControlHeroSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
     .dynamicTypeSize(.accessibility3)
 }
 
@@ -133,7 +133,7 @@ struct PlanMissionControlHeroSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Maintain") {
@@ -142,5 +142,5 @@ struct PlanMissionControlHeroSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

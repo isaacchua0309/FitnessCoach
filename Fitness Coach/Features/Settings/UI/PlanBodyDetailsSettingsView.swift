@@ -50,7 +50,7 @@ struct PlanBodyDetailsSettingsView: View {
             .padding(.horizontal, FitPilotScreenStyle.horizontalPadding)
             .padding(.vertical, FormaTokens.Spacing.md)
         }
-        .fitPilotDarkScreenBackground()
+        .fitPilotScreenBackground()
         .navigationTitle(FormaProductCopy.PlanCalculation.bodyDetailsSettingsTitle)
         .navigationBarTitleDisplayMode(.inline)
         .fitPilotScrollBottomInset()
@@ -65,5 +65,5 @@ struct PlanBodyDetailsSettingsView: View {
     NavigationStack {
         PlanBodyDetailsSettingsView(formState: ProfilePreviewData.formState)
     }
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

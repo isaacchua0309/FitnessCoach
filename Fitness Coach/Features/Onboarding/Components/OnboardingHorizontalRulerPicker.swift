@@ -53,6 +53,7 @@ struct OnboardingHorizontalRulerPicker: View {
     var accessibilityValueText: String?
 
     @State private var selectedIndex: Int = 0
+    @State private var scrollPositionID: Int?
     @State private var suppressSelectionHaptics = true
 
     @ScaledMetric(relativeTo: .body) private var standardIndicatorHeight: CGFloat = 36
@@ -74,8 +75,29 @@ struct OnboardingHorizontalRulerPicker: View {
         self.presentation = presentation
         self.centerDisplayText = centerDisplayText
         self.accessibilityValueText = accessibilityValueText
-        let initialIndex = OnboardingRulerMath.index(for: value.wrappedValue, in: configuration.values) ?? 0
-        _selectedIndex = State(initialValue: initialIndex)
+        let resolvedIndex = Self.resolvedInitialIndex(
+            value: value.wrappedValue,
+            values: configuration.values
+        )
+        _selectedIndex = State(initialValue: resolvedIndex)
+        _scrollPositionID = State(initialValue: resolvedIndex)
+    }
+
+    private static func resolvedInitialIndex(value: Double, values: [Double]) -> Int {
+        guard !values.isEmpty else { return 0 }
+        if let index = OnboardingRulerMath.index(for: value, in: values) {
+            #if DEBUG
+            let snapped = values[index]
+            let tolerance = 0.25
+            if abs(snapped - value) > tolerance {
+                assertionFailure(
+                    "OnboardingHorizontalRulerPicker value is outside configuration range."
+                )
+            }
+            #endif
+            return index
+        }
+        return 0
     }
 
     private var isHero: Bool { presentation == .hero }
@@ -90,7 +112,7 @@ struct OnboardingHorizontalRulerPicker: View {
 
             ZStack {
                 RoundedRectangle(cornerRadius: isHero ? FormaTokens.Radius.card : OnboardingTheme.compactCornerRadius, style: .continuous)
-                    .fill(FormaTokens.Color.surfaceSubtle)
+                    .fill(OnboardingTheme.surfaceSubtle)
                     .overlay {
                         if !isHero {
                             RoundedRectangle(cornerRadius: OnboardingTheme.compactCornerRadius, style: .continuous)
@@ -109,13 +131,21 @@ struct OnboardingHorizontalRulerPicker: View {
             .frame(height: rulerHeight)
         }
         .onAppear {
-            syncIndexFromValue()
+            alignScrollToSelectedValue()
             DispatchQueue.main.async {
+                alignScrollToSelectedValue()
                 suppressSelectionHaptics = false
             }
         }
+        .onChange(of: configuration.values) { _, _ in
+            alignScrollToSelectedValue()
+        }
         .onChange(of: value) { _, _ in
-            syncIndexFromValue()
+            alignScrollToSelectedValue()
+        }
+        .onChange(of: scrollPositionID) { _, newID in
+            guard let newID, newID != selectedIndex else { return }
+            applyIndex(newID)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(FormaProductCopy.Onboarding.Flow.Components.rulerAccessibilityLabel)
@@ -153,7 +183,7 @@ struct OnboardingHorizontalRulerPicker: View {
                 .accessibilityHidden(true)
 
             Capsule()
-                .fill(OnboardingTheme.accent)
+                .fill(OnboardingTheme.progress)
                 .frame(width: 2, height: indicatorHeight * 0.55)
                 .accessibilityHidden(true)
         }
@@ -180,28 +210,59 @@ struct OnboardingHorizontalRulerPicker: View {
 
     private var rulerScrollView: some View {
         GeometryReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 0) {
-                    ForEach(configuration.values.indices, id: \.self) { index in
-                        tickView(for: index)
-                            .frame(width: configuration.tickSpacing)
-                            .id(index)
+            ScrollViewReader { scrollProxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 0) {
+                        ForEach(configuration.values.indices, id: \.self) { index in
+                            tickView(for: index)
+                                .frame(width: configuration.tickSpacing)
+                                .id(index)
+                        }
                     }
+                    .scrollTargetLayout()
+                    .padding(.horizontal, rulerHorizontalPadding(in: proxy.size.width))
                 }
-                .scrollTargetLayout()
-                .padding(.horizontal, rulerHorizontalPadding(in: proxy.size.width))
+                .scrollTargetBehavior(.viewAligned)
+                .scrollPosition(id: $scrollPositionID, anchor: .center)
+                .accessibilityHidden(true)
+                .onAppear {
+                    scrollRulerToSelectedIndex(
+                        using: scrollProxy,
+                        containerWidth: proxy.size.width
+                    )
+                }
+                .onChange(of: proxy.size.width) { _, width in
+                    scrollRulerToSelectedIndex(
+                        using: scrollProxy,
+                        containerWidth: width
+                    )
+                }
+                .onChange(of: selectedIndex) { _, index in
+                    guard scrollPositionID != index else { return }
+                    scrollPositionID = index
+                    scrollProxy.scrollTo(index, anchor: .center)
+                }
             }
-            .scrollTargetBehavior(.viewAligned)
-            .scrollPosition(id: Binding(
-                get: { selectedIndex as Int? },
-                set: { newIndex in
-                    guard let newIndex else { return }
-                    applyIndex(newIndex)
-                }
-            ))
-            .accessibilityHidden(true)
         }
         .padding(.top, isHero ? 44 : 0)
+    }
+
+    private func alignScrollToSelectedValue() {
+        syncIndexFromValue()
+        scrollPositionID = selectedIndex
+    }
+
+    private func scrollRulerToSelectedIndex(
+        using scrollProxy: ScrollViewProxy,
+        containerWidth: CGFloat
+    ) {
+        guard containerWidth > 1 else { return }
+        alignScrollToSelectedValue()
+        let targetIndex = selectedIndex
+        scrollPositionID = targetIndex
+        DispatchQueue.main.async {
+            scrollProxy.scrollTo(targetIndex, anchor: .center)
+        }
     }
 
     private func rulerHorizontalPadding(in width: CGFloat) -> CGFloat {
@@ -212,7 +273,7 @@ struct OnboardingHorizontalRulerPicker: View {
         Group {
             if !isHero {
                 Rectangle()
-                    .fill(OnboardingTheme.accent)
+                    .fill(OnboardingTheme.progress)
                     .frame(width: 2, height: indicatorHeight)
             }
         }
@@ -245,12 +306,27 @@ struct OnboardingHorizontalRulerPicker: View {
     }
 
     private func syncIndexFromValue() {
+        guard !configuration.values.isEmpty else { return }
+
+        #if DEBUG
+        if let first = configuration.values.first,
+           let last = configuration.values.last,
+           value < first - 0.25 || value > last + 0.25 {
+            assertionFailure(
+                "OnboardingHorizontalRulerPicker value is outside configuration range."
+            )
+        }
+        #endif
+
         let snapped = OnboardingRulerMath.snapValue(value, in: configuration.values)
         if snapped != value {
             value = snapped
         }
         if let index = OnboardingRulerMath.index(for: snapped, in: configuration.values) {
             selectedIndex = index
+            if scrollPositionID != index {
+                scrollPositionID = index
+            }
         }
     }
 
@@ -372,6 +448,124 @@ enum OnboardingRulerPickerFactory {
         )
     }
 
+    static func targetWeightLossKg(
+        value: Binding<Double>,
+        range: ClosedRange<Double>,
+        presentation: OnboardingRulerPresentation = .standard,
+        centerDisplayText: String? = nil,
+        accessibilityValueText: String? = nil
+    ) -> OnboardingHorizontalRulerPicker {
+        OnboardingHorizontalRulerPicker(
+            configuration: rulerConfiguration(
+                range: range,
+                step: OnboardingTargetWeightValues.rulerStepKg,
+                unitSystem: .metric,
+                presentation: presentation
+            ),
+            value: value,
+            presentation: presentation,
+            centerDisplayText: centerDisplayText,
+            accessibilityValueText: accessibilityValueText
+        )
+    }
+
+    static func targetWeightLossLb(
+        value: Binding<Double>,
+        range: ClosedRange<Double>,
+        presentation: OnboardingRulerPresentation = .standard,
+        centerDisplayText: String? = nil,
+        accessibilityValueText: String? = nil
+    ) -> OnboardingHorizontalRulerPicker {
+        OnboardingHorizontalRulerPicker(
+            configuration: rulerConfiguration(
+                range: range,
+                step: OnboardingTargetWeightValues.rulerStepLb,
+                unitSystem: .imperial,
+                presentation: presentation
+            ),
+            value: value,
+            presentation: presentation,
+            centerDisplayText: centerDisplayText,
+            accessibilityValueText: accessibilityValueText
+        )
+    }
+
+    static func targetWeightGainKg(
+        value: Binding<Double>,
+        range: ClosedRange<Double>,
+        presentation: OnboardingRulerPresentation = .standard,
+        centerDisplayText: String? = nil,
+        accessibilityValueText: String? = nil
+    ) -> OnboardingHorizontalRulerPicker {
+        targetWeightLossKg(
+            value: value,
+            range: range,
+            presentation: presentation,
+            centerDisplayText: centerDisplayText,
+            accessibilityValueText: accessibilityValueText
+        )
+    }
+
+    static func targetWeightGainLb(
+        value: Binding<Double>,
+        range: ClosedRange<Double>,
+        presentation: OnboardingRulerPresentation = .standard,
+        centerDisplayText: String? = nil,
+        accessibilityValueText: String? = nil
+    ) -> OnboardingHorizontalRulerPicker {
+        targetWeightLossLb(
+            value: value,
+            range: range,
+            presentation: presentation,
+            centerDisplayText: centerDisplayText,
+            accessibilityValueText: accessibilityValueText
+        )
+    }
+
+    static func targetWeightGoalKg(
+        value: Binding<Double>,
+        range: ClosedRange<Double>,
+        presentation: OnboardingRulerPresentation = .standard,
+        centerDisplayText: String? = nil,
+        accessibilityValueText: String? = nil
+    ) -> OnboardingHorizontalRulerPicker {
+        OnboardingHorizontalRulerPicker(
+            configuration: goalWeightRulerConfiguration(
+                range: range,
+                step: OnboardingTargetWeightValues.rulerStepKg,
+                unitSystem: .metric,
+                presentation: presentation
+            ),
+            value: value,
+            formatValue: OnboardingTargetWeightValues.targetWeightTickFormatter,
+            presentation: presentation,
+            centerDisplayText: centerDisplayText,
+            accessibilityValueText: accessibilityValueText
+        )
+    }
+
+    static func targetWeightGoalLb(
+        value: Binding<Double>,
+        range: ClosedRange<Double>,
+        presentation: OnboardingRulerPresentation = .standard,
+        centerDisplayText: String? = nil,
+        accessibilityValueText: String? = nil
+    ) -> OnboardingHorizontalRulerPicker {
+        OnboardingHorizontalRulerPicker(
+            configuration: goalWeightRulerConfiguration(
+                range: range,
+                step: OnboardingTargetWeightValues.rulerStepLb,
+                unitSystem: .imperial,
+                presentation: presentation
+            ),
+            value: value,
+            formatValue: OnboardingTargetWeightValues.targetWeightTickFormatter,
+            presentation: presentation,
+            centerDisplayText: centerDisplayText,
+            accessibilityValueText: accessibilityValueText
+        )
+    }
+
     static func weightKg(
         value: Binding<Double>,
         range: ClosedRange<Double> = OnboardingPickerDefaults.metricWeightKgRange
@@ -415,6 +609,31 @@ enum OnboardingRulerPickerFactory {
             unitLabel: OnboardingFormatter.weightUnitAbbreviation(for: unitSystem),
             tickSpacing: tickSpacing,
             majorTickEvery: presentation == .hero ? 4 : 5
+        )
+    }
+
+    private static func goalWeightRulerConfiguration(
+        range: ClosedRange<Double>,
+        step: Double,
+        unitSystem: UnitSystem,
+        presentation: OnboardingRulerPresentation
+    ) -> OnboardingRulerConfiguration {
+        let tickSpacing = presentation == .hero
+            ? OnboardingLayout.heroRulerTickSpacing
+            : 12
+        let majorTickEvery: Int
+        switch unitSystem {
+        case .metric:
+            majorTickEvery = presentation == .hero ? 10 : 5
+        case .imperial:
+            majorTickEvery = presentation == .hero ? 5 : 5
+        }
+        return OnboardingRulerConfiguration(
+            range: range,
+            step: step,
+            unitLabel: OnboardingFormatter.weightUnitAbbreviation(for: unitSystem),
+            tickSpacing: tickSpacing,
+            majorTickEvery: majorTickEvery
         )
     }
 }

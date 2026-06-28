@@ -106,6 +106,6 @@ struct JourneyPersonalRecordsSection: View {
             .padding()
     }
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 #endif

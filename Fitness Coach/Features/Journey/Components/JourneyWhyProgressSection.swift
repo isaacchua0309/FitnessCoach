@@ -72,19 +72,19 @@ struct JourneyWhyProgressSection: View {
     JourneyWhyProgressSection(state: ProgressPreviewData.progressAttributionActive)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Plateau attribution") {
     JourneyWhyProgressSection(state: ProgressPreviewData.progressAttributionPlateau)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Insufficient data") {
     JourneyWhyProgressSection(state: .insufficientData)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }

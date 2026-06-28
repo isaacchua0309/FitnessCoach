@@ -31,5 +31,5 @@ struct WaterTargetSettingsView: View {
     Form {
         WaterTargetSettingsView(waterTargetMlText: .constant("2520"))
     }
-    .fitPilotDarkGroupedList()
+    .fitPilotGroupedList()
 }

@@ -88,5 +88,5 @@ struct MacroTargetSettingsView: View {
             onRegenerate: {}
         )
     }
-    .fitPilotDarkGroupedList()
+    .fitPilotGroupedList()
 }

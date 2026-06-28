@@ -19,8 +19,10 @@ enum OnboardingGoalWeightBounds {
         let healthyMinimum = minimumGoalKg(forHeightCm: heightCm) ?? minimumWeightKg
         let lower = max(minimumWeightKg, healthyMinimum)
         let upper = min(maximumWeightKg, currentWeightKg + gainHeadroomKg)
-        if lower <= upper {
-            return lower...upper
+        let inclusiveLower = min(lower, currentWeightKg)
+        let inclusiveUpper = max(upper, currentWeightKg)
+        if inclusiveLower <= inclusiveUpper {
+            return inclusiveLower...inclusiveUpper
         }
         return currentWeightKg...currentWeightKg
     }

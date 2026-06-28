@@ -59,6 +59,6 @@ struct OnboardingActivityLevelExplanationCard: View {
     }
     .padding()
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 #endif

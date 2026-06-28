@@ -229,9 +229,10 @@ final class OnboardingAppleHealthAnalyticsTests: XCTestCase {
 
         model.connectAppleHealth()
 
-        _ = await AsyncTestSupport.waitUntil(maxYields: 2_000) {
+        let advanced = await AsyncTestSupport.waitUntilWallClock(timeout: 2.0) {
             model.currentStep != .appleHealth
         }
+        XCTAssertTrue(advanced, "Expected auto-advance after Apple Health authorization")
 
         XCTAssertEqual(model.currentStep, .almostThere)
         XCTAssertEqual(integration.requestConnectionCallCount, 1)
@@ -279,45 +280,5 @@ final class OnboardingAppleHealthAnalyticsTests: XCTestCase {
     private func advanceModelToAppleHealth(_ model: OnboardingModel) async {
         OnboardingModelTestSupport.seedCanonicalForm(&model.formState)
         await OnboardingModelTestSupport.advanceTo(.appleHealth, model: model, seedForm: false)
-    }
-}
-
-private final class CapturingOnboardingAnalyticsLogger: OnboardingAnalyticsLogging, @unchecked Sendable {
-
-    struct Record: Sendable {
-        let event: OnboardingAnalyticsEvent
-        let properties: OnboardingAnalyticsProperties
-    }
-
-    private let lock = NSLock()
-    private var records: [Record] = []
-
-    func log(_ event: OnboardingAnalyticsEvent, properties: OnboardingAnalyticsProperties) {
-        lock.lock()
-        records.append(Record(event: event, properties: properties))
-        lock.unlock()
-    }
-
-    func contains(_ event: OnboardingAnalyticsEvent, step: String? = nil) -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return records.contains { record in
-            guard record.event == event else { return false }
-            if let step, record.properties.step != step { return false }
-            return true
-        }
-    }
-
-    func lastProperties(for event: OnboardingAnalyticsEvent) -> [String: String]? {
-        lock.lock()
-        defer { lock.unlock() }
-        guard let record = records.last(where: { $0.event == event }) else { return nil }
-        return record.properties.asParameters()
-    }
-}
-
-private extension OnboardingAnalyticsProperties {
-    subscript(key: String) -> String? {
-        asParameters()[key]
     }
 }

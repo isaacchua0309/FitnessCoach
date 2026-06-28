@@ -155,7 +155,7 @@ struct FormaNavigationChevron: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Card") {
@@ -168,5 +168,5 @@ struct FormaNavigationChevron: View {
     }
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

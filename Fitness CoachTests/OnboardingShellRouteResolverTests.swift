@@ -98,17 +98,6 @@ final class OnboardingShellRouteResolverTests: XCTestCase {
         )
     }
 
-    func testSignedOutHasProfileCanRouteToLocalMainWhenAllowed() {
-        XCTAssertEqual(
-            resolve(
-                authState: .signedOut,
-                hasLocalProfile: true,
-                signedOutWithProfilePolicy: .allowLocalMain
-            ),
-            .localMain
-        )
-    }
-
     // MARK: - Signed in, no profile
 
     func testSignedInNoCloudProfileRoutesToNoExistingProfileFound() {
@@ -236,10 +225,6 @@ final class OnboardingShellRouteResolverTests: XCTestCase {
                 signedOutWithProfilePolicy: .requireSignIn
             ),
             .welcome
-        )
-        XCTAssertEqual(
-            resolve(authState: .signedOut, hasLocalProfile: true, signedOutWithProfilePolicy: .allowLocalMain),
-            .localMain
         )
 
         // signed in / no profile → onboarding

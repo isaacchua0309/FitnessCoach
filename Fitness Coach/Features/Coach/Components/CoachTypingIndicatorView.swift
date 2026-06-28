@@ -30,5 +30,5 @@ struct CoachTypingIndicatorView: View {
     CoachTypingIndicatorView()
         .padding()
         .background(CoachDesignTokens.Color.background)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }

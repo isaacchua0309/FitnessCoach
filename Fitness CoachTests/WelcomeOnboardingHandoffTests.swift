@@ -40,6 +40,27 @@ final class WelcomeOnboardingHandoffPolicyTests: XCTestCase {
         XCTAssertTrue(WelcomeOnboardingHandoffPolicy.requiresGoogleSignInAtSavePlan)
     }
 
+    func testIntroProofAllowsExitToWelcomeForPreAuthOnly() {
+        XCTAssertTrue(
+            WelcomeOnboardingHandoffPolicy.canExitToWelcome(
+                step: .introProof,
+                analyticsEntry: .preAuth
+            )
+        )
+        XCTAssertFalse(
+            WelcomeOnboardingHandoffPolicy.canExitToWelcome(
+                step: .introProof,
+                analyticsEntry: .postAuth
+            )
+        )
+        XCTAssertFalse(
+            WelcomeOnboardingHandoffPolicy.canExitToWelcome(
+                step: .heightWeight,
+                analyticsEntry: .preAuth
+            )
+        )
+    }
+
     func testPersistedDraftBypassesWelcomeOnColdLaunch() {
         let input = PublicEntryRouteResolver.Input(
             destination: .welcome,
@@ -109,32 +130,36 @@ final class WelcomeOnboardingHandoffModelTests: XCTestCase {
         super.tearDown()
     }
 
-    func testWelcomeCreatePlanStartsPreAuthOnboardingAtIntroProof() throws {
+    func testWelcomeCreatePlanStartsPreAuthOnboardingAtIntroProof() async throws {
         let container = try AppContainer(inMemory: true)
-        let model = container.makeOnboardingModel(
-            entry: WelcomeOnboardingHandoffPolicy.preAuthEntry,
-            onCompletion: {}
+        let model = OnboardingModel(
+            userProfileService: container.userProfileService,
+            targetService: container.targetService,
+            onCompletion: {},
+            draftStore: draftStore,
+            analyticsEntry: WelcomeOnboardingHandoffPolicy.preAuthEntry,
+            generationDelay: ImmediateOnboardingGenerationDelayProvider()
         )
 
         XCTAssertEqual(model.currentStep, .introProof)
         XCTAssertEqual(model.flowFloor, .introProof)
         XCTAssertTrue(model.requiresGoogleSignInAtSavePlan)
-        XCTAssertFalse(container.profileBootstrapService.hasLocalProfile())
     }
 
-    func testDraftResumesAtSavedStepWithoutShowingLegacyWelcome() throws {
+    func testDraftResumesAtSavedStepWithoutShowingLegacyWelcome() async throws {
         var formState = OnboardingFormState()
         OnboardingHeightWeightValues.applyDefaultsIfNeeded(to: &formState)
         draftStore.saveDraft(
             OnboardingDraft(formState: formState, step: .targetWeight)
         )
 
-        let container = try AppContainer(inMemory: true, onboardingUserDefaults: draftDefaults)
+        let container = try AppContainer(inMemory: true)
         let model = OnboardingModel(
             userProfileService: container.userProfileService,
             targetService: container.targetService,
             onCompletion: {},
-            draftStore: draftStore
+            draftStore: draftStore,
+            generationDelay: ImmediateOnboardingGenerationDelayProvider()
         )
 
         XCTAssertEqual(model.currentStep, .targetWeight)
@@ -153,7 +178,10 @@ final class WelcomeOnboardingHandoffModelTests: XCTestCase {
 
     func testPreAuthCompletionStillCommitsProfileAndRequestsSignIn() async throws {
         let container = try AppContainer(inMemory: true)
-        let integration = StubTrainingIntegrationProvider(requestConnectionResult: .denied)
+        var formState = OnboardingFormState()
+        OnboardingModelTestSupport.seedCanonicalForm(&formState)
+        draftStore.saveDraft(OnboardingDraft(formState: formState, step: .review))
+
         let model = OnboardingModel(
             userProfileService: container.userProfileService,
             targetService: container.targetService,
@@ -161,11 +189,14 @@ final class WelcomeOnboardingHandoffModelTests: XCTestCase {
             draftStore: draftStore,
             analyticsEntry: WelcomeOnboardingHandoffPolicy.preAuthEntry,
             generationDelay: ImmediateOnboardingGenerationDelayProvider(),
-            healthTrainingIntegration: integration
+            healthTrainingIntegration: StubTrainingIntegrationProvider(requestConnectionResult: .denied)
         )
 
-        OnboardingModelTestSupport.seedCanonicalForm(&model.formState)
-        await OnboardingModelTestSupport.advanceTo(.planReveal, model: model, seedForm: false)
+        XCTAssertEqual(model.currentStep, .review)
+
+        model.goNext()
+        await model.flushPendingGenerationForTesting()
+        XCTAssertEqual(model.currentStep, .planReveal)
 
         model.goNext()
         XCTAssertEqual(model.currentStep, .savePlan)

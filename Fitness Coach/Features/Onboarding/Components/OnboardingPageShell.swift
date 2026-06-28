@@ -134,7 +134,7 @@ struct OnboardingPageShell<Content: View>: View {
                     HStack(spacing: 8) {
                         if isPrimaryLoading {
                             SwiftUI.ProgressView()
-                                .tint(.white)
+                                .tint(OnboardingTheme.ctaText)
                         }
                         Text(primaryTitle)
                             .font(FormaTokens.Typography.body.weight(.semibold))
@@ -143,7 +143,7 @@ struct OnboardingPageShell<Content: View>: View {
                     }
                     .foregroundStyle(
                         isPrimaryEnabled && !isPrimaryLoading
-                            ? FormaTokens.Color.textPrimary
+                            ? OnboardingTheme.ctaText
                             : OnboardingTheme.secondaryText
                     )
                     .frame(maxWidth: .infinity)
@@ -163,7 +163,7 @@ struct OnboardingPageShell<Content: View>: View {
         .padding(.bottom, OnboardingLayout.footerVerticalPadding)
         .background {
             Rectangle()
-                .fill(.ultraThinMaterial)
+                .fill(OnboardingTheme.cardElevated)
                 .ignoresSafeArea(edges: .bottom)
         }
     }
@@ -171,16 +171,16 @@ struct OnboardingPageShell<Content: View>: View {
     private var primaryBackground: some View {
         Group {
             if isPrimaryEnabled && !isPrimaryLoading {
-                OnboardingTheme.accent
+                OnboardingTheme.ctaBackground
             } else {
-                FormaTokens.Color.surfaceElevated
+                OnboardingTheme.cardElevated
             }
         }
     }
 
     private var footerSecondaryBackground: some View {
         RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
-            .fill(FormaTokens.Color.surface)
+            .fill(OnboardingTheme.card)
             .overlay(
                 RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
                     .stroke(OnboardingTheme.border, lineWidth: 1)

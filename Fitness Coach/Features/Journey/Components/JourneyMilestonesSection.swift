@@ -50,7 +50,7 @@ struct JourneyMilestonesSection: View {
 
             if let progress = state.nextProgressFraction {
                 SwiftUI.ProgressView(value: min(max(progress, 0), 1))
-                    .tint(FormaTokens.Color.accent)
+                    .tint(FormaTokens.Color.progress)
                     .accessibilityLabel(FormaProductCopy.Journey.Milestones.nextUp)
                     .accessibilityValue(
                         FormaProductCopy.Journey.Milestones.Accessibility.progressPercent(
@@ -86,7 +86,7 @@ struct JourneyMilestonesSection: View {
                let progress = milestone.progressFraction,
                isNext {
                 SwiftUI.ProgressView(value: min(max(progress, 0), 1))
-                    .tint(FormaTokens.Color.accent)
+                    .tint(FormaTokens.Color.progress)
                     .accessibilityHidden(true)
             }
         }
@@ -155,19 +155,19 @@ struct JourneyMilestonesSection: View {
     JourneyMilestonesSection(state: ProgressPreviewData.milestonesNewUser)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Active progress") {
     JourneyMilestonesSection(state: ProgressPreviewData.milestonesActive)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Near goal") {
     JourneyMilestonesSection(state: ProgressPreviewData.milestonesNearGoal)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }

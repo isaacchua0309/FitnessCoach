@@ -73,5 +73,5 @@ struct TodayQuickActionsSection: View {
     )
     .padding(.horizontal, TodayLayout.horizontalPadding)
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

@@ -95,7 +95,7 @@ struct TodayReadOnlyProgressSection: View {
     )
     .padding(.horizontal, TodayLayout.horizontalPadding)
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Small width") {
@@ -106,5 +106,5 @@ struct TodayReadOnlyProgressSection: View {
     .frame(width: 320)
     .padding(.horizontal, TodayLayout.horizontalPadding)
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

@@ -163,7 +163,7 @@ struct OnboardingGeneratingPlanStepView: View {
     )
     .padding()
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Failed") {
@@ -173,5 +173,5 @@ struct OnboardingGeneratingPlanStepView: View {
     )
     .padding()
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

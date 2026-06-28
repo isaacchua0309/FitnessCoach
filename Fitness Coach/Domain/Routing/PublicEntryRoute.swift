@@ -24,32 +24,49 @@ enum PublicEntryRouteResolver {
         var hasLocalProfile: Bool
         var pendingOnboardingCompletion: Bool
         var signedOutWithProfilePolicy: SignedOutWithProfilePolicy
+        /// When true (after explicit sign-out), draft/save-plan handoff must not bypass welcome.
+        var suppressAutomaticPublicEntryResume: Bool
+
+        init(
+            destination: PublicEntryRoute,
+            isOnboardingModelReady: Bool,
+            localProfileAwaitingSignIn: Bool,
+            hasPersistedOnboardingDraft: Bool,
+            hasLocalProfile: Bool,
+            pendingOnboardingCompletion: Bool,
+            signedOutWithProfilePolicy: SignedOutWithProfilePolicy,
+            suppressAutomaticPublicEntryResume: Bool = false
+        ) {
+            self.destination = destination
+            self.isOnboardingModelReady = isOnboardingModelReady
+            self.localProfileAwaitingSignIn = localProfileAwaitingSignIn
+            self.hasPersistedOnboardingDraft = hasPersistedOnboardingDraft
+            self.hasLocalProfile = hasLocalProfile
+            self.pendingOnboardingCompletion = pendingOnboardingCompletion
+            self.signedOutWithProfilePolicy = signedOutWithProfilePolicy
+            self.suppressAutomaticPublicEntryResume = suppressAutomaticPublicEntryResume
+        }
     }
 
     /// Resolves the signed-out app shell route from public entry state.
     static func resolveSignedOutShell(_ input: Input) -> AppShellRoute {
-        if input.hasLocalProfile,
-           input.signedOutWithProfilePolicy == .allowLocalMain,
-           !input.pendingOnboardingCompletion {
-            return .localMain
-        }
-
-        if shouldBypassWelcome(input) {
-            return onboardingShell(isOnboardingModelReady: input.isOnboardingModelReady)
-        }
-
+        // Explicit navigation beats automatic draft / save-plan resume.
         switch input.destination {
-        case .welcome:
-            return .welcome
         case .existingUserSignIn:
             return .existingUserSignIn
         case .onboardingStart:
             return onboardingShell(isOnboardingModelReady: input.isOnboardingModelReady)
+        case .welcome:
+            if shouldBypassWelcome(input) {
+                return onboardingShell(isOnboardingModelReady: input.isOnboardingModelReady)
+            }
+            return .welcome
         }
     }
 
     /// Resume save-plan handoff or in-progress draft without showing welcome.
     static func shouldBypassWelcome(_ input: Input) -> Bool {
+        if input.suppressAutomaticPublicEntryResume { return false }
         if input.pendingOnboardingCompletion { return true }
         if input.localProfileAwaitingSignIn { return true }
         if input.hasPersistedOnboardingDraft, !input.hasLocalProfile { return true }

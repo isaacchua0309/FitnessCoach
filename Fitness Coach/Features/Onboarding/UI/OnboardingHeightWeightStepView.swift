@@ -132,7 +132,7 @@ struct OnboardingHeightWeightStepView: View {
     )
     .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Height & Weight — Imperial") {
@@ -146,6 +146,6 @@ struct OnboardingHeightWeightStepView: View {
     )
     .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 #endif

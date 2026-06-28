@@ -353,7 +353,7 @@ struct OnboardingPlanRevealStepView: View {
         )
         .padding()
         .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
     }
 }
 
@@ -366,7 +366,7 @@ struct OnboardingPlanRevealStepView: View {
         )
         .padding()
         .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
     }
 }
 
@@ -377,7 +377,7 @@ struct OnboardingPlanRevealStepView: View {
     )
     .padding()
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Advanced pace plan") {
@@ -387,7 +387,7 @@ struct OnboardingPlanRevealStepView: View {
     )
     .padding()
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 
@@ -399,7 +399,7 @@ struct OnboardingPlanRevealStepView: View {
         )
         .padding()
         .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
         .dynamicTypeSize(.accessibility2)
     }
 }

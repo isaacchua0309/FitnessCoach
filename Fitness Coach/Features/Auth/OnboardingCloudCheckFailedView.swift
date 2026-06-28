@@ -48,17 +48,17 @@ struct OnboardingCloudCheckFailedView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(OnboardingTheme.accent)
+                .tint(OnboardingTheme.ctaBackground)
                 .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
                 .padding(.bottom, FormaTokens.Spacing.lg)
                 .frame(maxWidth: FormaTokens.Layout.maxContentWidth)
             }
             .frame(maxWidth: .infinity)
         }
-        .preferredColorScheme(.dark)
     }
 }
 
 #Preview {
     OnboardingCloudCheckFailedView(onRetry: {})
+        .formaThemePreview()
 }

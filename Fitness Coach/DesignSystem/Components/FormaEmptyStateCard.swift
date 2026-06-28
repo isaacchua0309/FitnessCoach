@@ -82,7 +82,7 @@ struct FormaEmptyStateCard<Leading: View>: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("With leading icon") {
@@ -96,5 +96,5 @@ struct FormaEmptyStateCard<Leading: View>: View {
     }
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

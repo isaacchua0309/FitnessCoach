@@ -77,7 +77,7 @@ struct OnboardingActivityLevelCard: View {
 
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-            .fill(isSelected ? FormaTokens.Color.accentMuted : FormaTokens.Color.surfaceSubtle)
+            .fill(isSelected ? OnboardingTheme.accentMuted : OnboardingTheme.surfaceSubtle)
     }
 
     private var cardBorder: some View {
@@ -97,6 +97,6 @@ struct OnboardingActivityLevelCard: View {
     }
     .padding()
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 #endif

@@ -41,22 +41,17 @@ final class PublicWelcomeAnalyticsTests: XCTestCase {
     }
 
     func testRecordingLoggerCapturesEvents() {
-        let logger = RecordingPublicEntryAnalyticsLogger()
-        logger.log(.welcomeViewed, properties: PublicEntryAnalyticsProperties())
-        logger.log(.welcomeCreatePlanTapped, properties: PublicEntryAnalyticsProperties())
-        logger.log(.welcomeSignInTapped, properties: PublicEntryAnalyticsProperties())
+        let logger = CapturingPublicEntryAnalyticsLogger()
+        let properties = PublicEntryAnalyticsContextBuilder.baseProperties(hasLocalProfile: false)
+        logger.log(.welcomeViewed, properties: properties)
+        logger.log(.welcomeCreatePlanTapped, properties: properties)
+        logger.log(.welcomeSignInTapped, properties: properties)
 
-        XCTAssertEqual(
-            logger.events,
-            [.welcomeViewed, .welcomeCreatePlanTapped, .welcomeSignInTapped]
-        )
-    }
-}
-
-private final class RecordingPublicEntryAnalyticsLogger: PublicEntryAnalyticsLogging {
-    private(set) var events: [PublicEntryAnalyticsEvent] = []
-
-    func log(_ event: PublicEntryAnalyticsEvent, properties: PublicEntryAnalyticsProperties) {
-        events.append(event)
+        XCTAssertEqual(logger.events.map(\.event), [
+            .welcomeViewed,
+            .welcomeCreatePlanTapped,
+            .welcomeSignInTapped
+        ])
+        XCTAssertEqual(logger.lastProperties(for: .welcomeViewed)?["auth_provider"], "google")
     }
 }

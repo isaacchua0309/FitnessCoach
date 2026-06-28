@@ -8,25 +8,17 @@
 import SwiftUI
 
 struct LaunchLoadingView: View {
-    var body: some View {
-        ZStack {
-            OnboardingTheme.background
-                .ignoresSafeArea()
 
-            VStack(spacing: 14) {
-                SwiftUI.ProgressView()
-                    .controlSize(.large)
-                    .tint(OnboardingTheme.accent)
+    @Environment(\.formaResolvedTheme) private var resolvedTheme
 
-                Text(FormaProductCopy.Loading.app)
-                    .font(.subheadline)
-                    .foregroundStyle(OnboardingTheme.secondaryText)
-            }
-        }
-        .preferredColorScheme(.dark)
+    private var palette: PublicWelcomeTheme.Palette {
+        PublicWelcomeTheme.palette(from: resolvedTheme)
     }
-}
 
-#Preview {
-    LaunchLoadingView()
+    var body: some View {
+        PublicEntryLoadingView(
+            message: FormaProductCopy.PublicEntry.Loading.appLaunch,
+            palette: palette
+        )
+    }
 }

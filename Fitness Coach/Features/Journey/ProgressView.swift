@@ -52,7 +52,6 @@ struct ProgressView: View {
                     await model.refresh()
                 }
                 .background(FormaTokens.Color.canvas)
-                .preferredColorScheme(.dark)
         }
     }
 

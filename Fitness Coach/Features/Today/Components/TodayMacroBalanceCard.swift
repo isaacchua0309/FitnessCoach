@@ -138,7 +138,7 @@ private func macroBalanceCardBackground() -> some View {
     TodayMacroBalanceCard(macros: TodayPreviewData.state.macroBalance.macroSummary)
         .padding(.horizontal, TodayLayout.horizontalPadding)
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Below target") {
@@ -151,5 +151,5 @@ private func macroBalanceCardBackground() -> some View {
     )
     .padding(.horizontal, TodayLayout.horizontalPadding)
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

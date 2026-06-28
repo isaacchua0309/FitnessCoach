@@ -16,11 +16,12 @@ struct FoodTimelineView: View {
         VStack(alignment: .leading, spacing: 12) {
             Label("Food Timeline", systemImage: "list.bullet.rectangle")
                 .font(.headline)
+                .foregroundStyle(FormaTokens.Color.textPrimary)
 
             if entries.isEmpty {
                 Text("No food logged yet.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(FormaTokens.Color.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, 8)
             } else {
@@ -49,8 +50,8 @@ struct FoodTimelineView: View {
             }
         }
         .padding()
-        .background(.background, in: RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.06), radius: 8, y: 3)
+        .background(FormaTokens.Color.surfaceElevated, in: RoundedRectangle(cornerRadius: 16))
+        .shadow(color: FormaTokens.Color.shadow, radius: 8, y: 3)
     }
 }
 
@@ -61,4 +62,5 @@ struct FoodTimelineView: View {
         onDeleteFood: { _ in }
     )
     .padding()
+    .formaThemePreview()
 }

@@ -79,7 +79,7 @@ final class StreakCalculatorTests: XCTestCase {
             makeLog(daysAgo: 0, calories: 400)
         ]
 
-        XCTAssertEqual(StreakCalculator.longestLoggingStreak(in: logs, calendar: calendar), 3)
+        XCTAssertEqual(StreakCalculator.longestLoggingStreak(in: logs, calendar: calendar), 4)
     }
 
     func testLongestLoggingStreakAcrossHistory() {

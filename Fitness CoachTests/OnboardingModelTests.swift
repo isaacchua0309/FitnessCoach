@@ -49,10 +49,10 @@ final class OnboardingModelTests: XCTestCase {
 
     func testBeginGenerationRoutesToInvalidStepWhenBirthdayMissing() async throws {
         let model = try makeModel()
-        seedValidForm(&model.formState)
+        await navigateToReview(model)
+
         model.formState.birthDate = nil
         model.formState.ageText = ""
-        await navigateToReview(model, preserveForm: true)
 
         model.beginGeneration()
         await model.flushPendingGenerationForTesting()
@@ -146,36 +146,6 @@ final class OnboardingModelTests: XCTestCase {
         XCTAssertNotNil(model.generatedPlan)
     }
 
-    func testCompleteWithoutAccountClearsDraftWhenAllowed() async throws {
-        let container = try AppContainer(
-            inMemory: true,
-            onboardingUserDefaults: draftDefaults,
-            onboardingRoutingConfiguration: OnboardingRoutingConfiguration(
-                signedOutWithProfilePolicy: .allowLocalMain
-            )
-        )
-        let model = OnboardingModel(
-            userProfileService: container.userProfileService,
-            targetService: container.targetService,
-            onCompletion: {},
-            draftStore: draftStore,
-            generationDelay: ImmediateOnboardingGenerationDelayProvider(),
-            allowsLocalOnlyContinuation: true
-        )
-        seedValidForm(&model.formState)
-        await navigateToReview(model)
-        model.beginGeneration()
-        await model.flushPendingGenerationForTesting()
-        model.goNext()
-
-        model.completeWithoutAccount()
-
-        XCTAssertEqual(model.pendingCompletionIntent, .localOnly)
-        XCTAssertNil(draftStore.loadDraft())
-        XCTAssertTrue(model.hasLocalProfile)
-        XCTAssertNotNil(try container.userProfileService.getCurrentProfile())
-    }
-
     // MARK: - Draft autosave
 
     func testDraftAutosavesOnMeaningfulStepChange() throws {
@@ -226,8 +196,7 @@ final class OnboardingModelTests: XCTestCase {
             onCompletion: {},
             draftStore: draftStore,
             analyticsEntry: entry,
-            generationDelay: ImmediateOnboardingGenerationDelayProvider(),
-            allowsLocalOnlyContinuation: container.onboardingRoutingConfiguration.allowsLocalOnlyContinuation
+            generationDelay: ImmediateOnboardingGenerationDelayProvider()
         )
     }
 

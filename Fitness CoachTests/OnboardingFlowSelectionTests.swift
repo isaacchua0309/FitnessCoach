@@ -28,9 +28,8 @@ final class OnboardingFlowSelectionTests: XCTestCase {
         super.tearDown()
     }
 
-    func testProductionRoutingConfigurationHasNoVersionFlags() {
-        let config = OnboardingRoutingConfiguration.production
-        XCTAssertEqual(config.signedOutWithProfilePolicy, .requireSignIn)
+    func testProductionRoutingConfigurationIsDefault() {
+        XCTAssertEqual(OnboardingRoutingConfiguration.production, OnboardingRoutingConfiguration())
     }
 
     func testNewSignedOutUserStartsAtIntroProof() throws {

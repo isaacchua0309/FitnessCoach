@@ -40,7 +40,6 @@ struct PlanCalculationDetailsSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private func sectionCard(_ section: PlanCalculationDetailsSection) -> some View {

@@ -54,7 +54,7 @@ struct PipelineDiagnosticsView: View {
                     .foregroundStyle(FormaTokens.Color.textTertiary)
             }
         }
-        .fitPilotDarkGroupedList()
+        .fitPilotGroupedList()
         .navigationTitle("Pipeline traces")
         .navigationBarTitleDisplayMode(.inline)
         .fitPilotScrollBottomInset()

@@ -53,6 +53,6 @@ struct OnboardingTargetWeightGuidanceCard: View {
     )
     .padding()
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 #endif

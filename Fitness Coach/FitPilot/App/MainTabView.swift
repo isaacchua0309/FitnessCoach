@@ -104,9 +104,11 @@ struct MainTabView: View {
                 }
             .tag(AppTab.profile)
         }
+        .tint(FormaTokens.Color.accent)
         .environmentObject(container.refreshCenter)
         .environmentObject(container.trainingInsightsStore)
         .environmentObject(container.trainingInsightsModel)
+        .environmentObject(container.themeStore)
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 container.refreshCenter.refreshIfDayChanged()
@@ -145,4 +147,6 @@ struct MainTabView: View {
         .environmentObject(container.authManager)
         .environmentObject(container.trainingInsightsStore)
         .environmentObject(container.trainingInsightsModel)
+        .environmentObject(container.themeStore)
+        .formaThemePreview()
 }

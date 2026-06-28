@@ -94,5 +94,5 @@ private struct CoachContextDivider: View {
     )
     .padding()
     .background(CoachDesignTokens.Color.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

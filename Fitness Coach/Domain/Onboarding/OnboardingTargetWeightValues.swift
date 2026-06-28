@@ -2,7 +2,7 @@
 //  OnboardingTargetWeightValues.swift
 //  Fitness Coach
 //
-//  Forma — Target weight math for onboarding (delta ruler → goal weight).
+//  Forma — Target weight math for onboarding (absolute goal ruler).
 //
 
 import Foundation
@@ -11,6 +11,10 @@ enum OnboardingTargetWeightValues {
 
     static let rulerStepKg = 0.1
     static let rulerStepLb = 0.2
+    private static let rulerLossWindowFraction = 0.33
+    private static let rulerGainWindowFraction = 0.25
+    private static let rulerMinimumLossSpanKg = 25.0
+    private static let rulerMinimumGainSpanKg = 15.0
 
     static func applyDefaultsIfNeeded(to formState: inout OnboardingFormState) {
         formState.selectPaceChoice(.moderate)
@@ -65,6 +69,169 @@ enum OnboardingTargetWeightValues {
 
     static func rulerStep(for unitSystem: UnitSystem) -> Double {
         unitSystem == .metric ? rulerStepKg : rulerStepLb
+    }
+
+    // MARK: - Goal-weight ruler (absolute scale)
+
+    static func goalWeightRangeKg(
+        currentWeightKg: Double,
+        heightCm: Double?
+    ) -> ClosedRange<Double> {
+        OnboardingGoalWeightBounds.rangeKg(
+            currentWeightKg: currentWeightKg,
+            heightCm: heightCm
+        )
+    }
+
+    static func goalWeightRangeDisplay(
+        currentWeightKg: Double,
+        heightCm: Double?,
+        unitSystem: UnitSystem,
+        selectedGoalKg: Double? = nil
+    ) -> ClosedRange<Double> {
+        let safety = OnboardingGoalWeightBounds.rangeKg(
+            currentWeightKg: currentWeightKg,
+            heightCm: heightCm
+        )
+        let currentMetric = snapToRulerStep(currentWeightKg, step: rulerStepKg)
+        let goalMetric = snapToRulerStep(selectedGoalKg ?? currentMetric, step: rulerStepKg)
+
+        let maxLossKg = currentMetric - safety.lowerBound
+        let maxGainKg = safety.upperBound - currentMetric
+
+        let lossSpan = min(
+            maxLossKg,
+            max(rulerMinimumLossSpanKg, currentMetric * rulerLossWindowFraction)
+        )
+        let gainSpan = min(
+            maxGainKg,
+            max(rulerMinimumGainSpanKg, currentMetric * rulerGainWindowFraction)
+        )
+
+        var lowerMetric = currentMetric - lossSpan
+        var upperMetric = currentMetric + gainSpan
+
+        lowerMetric = min(lowerMetric, currentMetric, goalMetric)
+        upperMetric = max(upperMetric, currentMetric, goalMetric)
+
+        lowerMetric = max(safety.lowerBound, lowerMetric)
+        upperMetric = min(safety.upperBound, upperMetric)
+
+        lowerMetric = min(lowerMetric, currentMetric, goalMetric)
+        upperMetric = max(upperMetric, currentMetric, goalMetric)
+
+        switch unitSystem {
+        case .metric:
+            let alignedLower = floor(lowerMetric)
+            let alignedUpper = ceil(upperMetric)
+            return alignedGoalWeightRange(
+                lower: alignedLower,
+                upper: alignedUpper,
+                step: rulerStepKg
+            )
+        case .imperial:
+            let lower = OnboardingGoalWeightBounds.displayValue(
+                fromKg: lowerMetric,
+                unitSystem: .imperial
+            )
+            let upper = OnboardingGoalWeightBounds.displayValue(
+                fromKg: upperMetric,
+                unitSystem: .imperial
+            )
+            return alignedGoalWeightRange(
+                lower: lower,
+                upper: upper,
+                step: rulerStepLb
+            )
+        }
+    }
+
+    static func goalWeightRangeDisplay(from formState: OnboardingFormState) -> ClosedRange<Double>? {
+        guard let currentKg = formState.parsedCurrentWeightKg else { return nil }
+        return goalWeightRangeDisplay(
+            currentWeightKg: currentKg,
+            heightCm: formState.parsedHeightCm,
+            unitSystem: formState.unitSystem,
+            selectedGoalKg: resolvedGoalKg(from: formState)
+        )
+    }
+
+    static func rulerValues(from formState: OnboardingFormState) -> [Double] {
+        guard let range = goalWeightRangeDisplay(from: formState) else { return [] }
+        return OnboardingRulerMath.buildValues(
+            in: range,
+            step: rulerStep(for: formState.unitSystem)
+        )
+    }
+
+    static func resolvedRulerDisplayValue(from formState: OnboardingFormState) -> Double {
+        if let display = resolvedGoalDisplay(from: formState) {
+            return display
+        }
+        guard let currentKg = formState.parsedCurrentWeightKg else { return 0 }
+        return OnboardingGoalWeightBounds.displayValue(
+            fromKg: currentKg,
+            unitSystem: formState.unitSystem
+        )
+    }
+
+    static func resolvedGoalDisplayIsInRulerRange(from formState: OnboardingFormState) -> Bool {
+        let values = rulerValues(from: formState)
+        guard !values.isEmpty else { return false }
+        let display = resolvedRulerDisplayValue(from: formState)
+        guard let index = OnboardingRulerMath.index(for: display, in: values) else { return false }
+        return abs(values[index] - display) <= rulerStep(for: formState.unitSystem) / 2
+    }
+
+    static func rulerIdentity(for formState: OnboardingFormState) -> String {
+        let current = formState.parsedCurrentWeightKg.map { String(format: "%.1f", $0) } ?? "nil"
+        let goal = formState.parsedGoalWeightKg.map { String(format: "%.1f", $0) } ?? "nil"
+        return "\(current)-\(goal)-\(formState.unitSystem.rawValue)"
+    }
+
+    static func resolvedGoalDisplay(from formState: OnboardingFormState) -> Double? {
+        guard let goalKg = resolvedGoalKg(from: formState) else { return nil }
+        return OnboardingGoalWeightBounds.displayValue(
+            fromKg: goalKg,
+            unitSystem: formState.unitSystem
+        )
+    }
+
+    static func setGoalFromDisplay(_ display: Double, in formState: inout OnboardingFormState) {
+        let kg = OnboardingGoalWeightBounds.metricValue(
+            fromDisplay: display,
+            unitSystem: formState.unitSystem
+        )
+        setGoalWeightKg(kg, in: &formState)
+    }
+
+    static func targetWeightTickFormatter(_ value: Double) -> String {
+        if value.truncatingRemainder(dividingBy: 1) == 0 {
+            return "\(Int(value.rounded()))"
+        }
+        return String(format: "%.1f", value)
+    }
+
+    static func rulerIndexForGoalWeight(
+        goalKg: Double,
+        currentWeightKg: Double,
+        heightCm: Double?,
+        unitSystem: UnitSystem
+    ) -> Int? {
+        let displayGoal = OnboardingGoalWeightBounds.displayValue(
+            fromKg: goalKg,
+            unitSystem: unitSystem
+        )
+        let values = OnboardingRulerMath.buildValues(
+            in: goalWeightRangeDisplay(
+                currentWeightKg: currentWeightKg,
+                heightCm: heightCm,
+                unitSystem: unitSystem,
+                selectedGoalKg: goalKg
+            ),
+            step: rulerStep(for: unitSystem)
+        )
+        return OnboardingRulerMath.index(for: displayGoal, in: values)
     }
 
     // MARK: - Resolved values
@@ -133,7 +300,17 @@ enum OnboardingTargetWeightValues {
         heightCm: Double?
     ) -> ClosedRange<Double> {
         let deltaRange = deltaRangeKg(currentWeightKg: currentWeightKg, heightCm: heightCm)
-        return 0...max(0, -deltaRange.lowerBound)
+        let maxLoss = max(0, -deltaRange.lowerBound)
+        return alignedDeltaRange(minDelta: 0, maxDelta: maxLoss, step: rulerStepKg)
+    }
+
+    static func gainRangeKg(
+        currentWeightKg: Double,
+        heightCm: Double?
+    ) -> ClosedRange<Double> {
+        let deltaRange = deltaRangeKg(currentWeightKg: currentWeightKg, heightCm: heightCm)
+        let maxGain = max(0, deltaRange.upperBound)
+        return alignedDeltaRange(minDelta: 0, maxDelta: maxGain, step: rulerStepKg)
     }
 
     static func lossRangeDisplay(
@@ -148,7 +325,23 @@ enum OnboardingTargetWeightValues {
         case .imperial:
             let lower = OnboardingGoalWeightBounds.displayValue(fromKg: metricRange.lowerBound, unitSystem: .imperial)
             let upper = OnboardingGoalWeightBounds.displayValue(fromKg: metricRange.upperBound, unitSystem: .imperial)
-            return lower...upper
+            return alignedDeltaRange(minDelta: lower, maxDelta: upper, step: rulerStepLb)
+        }
+    }
+
+    static func gainRangeDisplay(
+        currentWeightKg: Double,
+        heightCm: Double?,
+        unitSystem: UnitSystem
+    ) -> ClosedRange<Double> {
+        let metricRange = gainRangeKg(currentWeightKg: currentWeightKg, heightCm: heightCm)
+        switch unitSystem {
+        case .metric:
+            return metricRange
+        case .imperial:
+            let lower = OnboardingGoalWeightBounds.displayValue(fromKg: metricRange.lowerBound, unitSystem: .imperial)
+            let upper = OnboardingGoalWeightBounds.displayValue(fromKg: metricRange.upperBound, unitSystem: .imperial)
+            return alignedDeltaRange(minDelta: lower, maxDelta: upper, step: rulerStepLb)
         }
     }
 
@@ -170,6 +363,46 @@ enum OnboardingTargetWeightValues {
             fromKg: lossKg,
             unitSystem: formState.unitSystem
         )
+    }
+
+    static func resolvedGainKg(from formState: OnboardingFormState) -> Double {
+        max(0, resolvedDeltaKg(from: formState))
+    }
+
+    static func resolvedGainDisplay(from formState: OnboardingFormState) -> Double {
+        let gainKg = resolvedGainKg(from: formState)
+        return OnboardingGoalWeightBounds.displayValue(
+            fromKg: gainKg,
+            unitSystem: formState.unitSystem
+        )
+    }
+
+    static func setGoalFromGainDisplay(_ gainDisplay: Double, in formState: inout OnboardingFormState) {
+        let gainKg = OnboardingGoalWeightBounds.metricValue(
+            fromDisplay: gainDisplay,
+            unitSystem: formState.unitSystem
+        )
+        setGoalFromDeltaKg(max(0, gainKg), in: &formState)
+    }
+
+    static func usesGainRuler(for formState: OnboardingFormState) -> Bool {
+        resolvedDeltaKg(from: formState) > FormaCalculationConstants.goalDirectionEpsilonKg
+    }
+
+    static func rulerIndexForZeroLoss(
+        currentWeightKg: Double,
+        heightCm: Double?,
+        unitSystem: UnitSystem
+    ) -> Int? {
+        let values = OnboardingRulerMath.buildValues(
+            in: lossRangeDisplay(
+                currentWeightKg: currentWeightKg,
+                heightCm: heightCm,
+                unitSystem: unitSystem
+            ),
+            step: rulerStep(for: unitSystem)
+        )
+        return OnboardingRulerMath.index(for: 0, in: values)
     }
 
     // MARK: - Validation
@@ -306,6 +539,25 @@ enum OnboardingTargetWeightValues {
             return lower...upper
         }
         return 0...0
+    }
+
+    private static func alignedGoalWeightRange(
+        lower: Double,
+        upper: Double,
+        step: Double
+    ) -> ClosedRange<Double> {
+        guard step > 0 else { return lower...upper }
+        let alignedLower = floor(lower / step + 1e-9) * step
+        let alignedUpper = ceil(upper / step - 1e-9) * step
+        if alignedLower <= alignedUpper {
+            return alignedLower...alignedUpper
+        }
+        return lower...lower
+    }
+
+    private static func snapToRulerStep(_ valueKg: Double, step: Double) -> Double {
+        guard step > 0 else { return valueKg }
+        return (valueKg / step).rounded() * step
     }
 
     private static func clampedGoalKg(

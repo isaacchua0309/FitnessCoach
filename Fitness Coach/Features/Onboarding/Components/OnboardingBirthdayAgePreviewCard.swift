@@ -11,20 +11,20 @@ struct OnboardingBirthdayAgePreviewCard: View {
     let state: OnboardingBirthdayAgePreviewState
 
     var body: some View {
-        HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
-            Image(systemName: state.isPlaceholder ? "calendar" : "person.crop.circle")
-                .font(.body.weight(.semibold))
+        HStack(alignment: .center, spacing: FormaTokens.Spacing.md) {
+            Image(systemName: state.isPlaceholder ? "calendar" : "person.crop.circle.fill")
+                .font(.title2.weight(.semibold))
                 .foregroundStyle(
                     state.isPlaceholder
                         ? OnboardingTheme.secondaryText
                         : OnboardingTheme.accent
                 )
-                .frame(width: 20, height: 20)
+                .frame(width: 32, height: 32)
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
                 Text(state.headline)
-                    .font(FormaTokens.Typography.body.weight(.semibold))
+                    .font(.system(.title3, design: .rounded).weight(.bold))
                     .foregroundStyle(
                         state.isPlaceholder
                             ? OnboardingTheme.secondaryText
@@ -36,13 +36,13 @@ struct OnboardingBirthdayAgePreviewCard: View {
                     .animation(.easeOut(duration: 0.18), value: state.headline)
 
                 Text(state.supportingCopy)
-                    .font(FormaTokens.Typography.caption)
+                    .font(FormaTokens.Typography.sectionSubtitle)
                     .foregroundStyle(OnboardingTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.horizontal, OnboardingLayout.compactCardPadding)
-        .padding(.vertical, 10)
+        .padding(.horizontal, FormaTokens.Spacing.md)
+        .padding(.vertical, FormaTokens.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
@@ -71,6 +71,6 @@ struct OnboardingBirthdayAgePreviewCard: View {
     }
     .padding()
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 #endif

@@ -194,7 +194,7 @@ private enum OnboardingAppleHealthPreviewFactory {
     )
     .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Apple Health — Requesting") {
@@ -203,7 +203,7 @@ private enum OnboardingAppleHealthPreviewFactory {
     )
     .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Apple Health — Connected") {
@@ -212,7 +212,7 @@ private enum OnboardingAppleHealthPreviewFactory {
     )
     .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Apple Health — Denied") {
@@ -221,7 +221,7 @@ private enum OnboardingAppleHealthPreviewFactory {
     )
     .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Apple Health — Unavailable") {
@@ -230,7 +230,7 @@ private enum OnboardingAppleHealthPreviewFactory {
     )
     .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Apple Health — Failed") {
@@ -241,6 +241,6 @@ private enum OnboardingAppleHealthPreviewFactory {
     )
     .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 #endif

@@ -114,7 +114,7 @@ struct TrainingInsightsGateView: View {
                 .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
         }
         .buttonStyle(.borderedProminent)
-        .tint(FormaTokens.Color.accent)
+        .tint(FormaTokens.Color.ctaBackground)
         .disabled(state.isRequestingPermission)
     }
 
@@ -162,17 +162,17 @@ struct TrainingInsightsGateView: View {
 #Preview("Not connected") {
     TrainingInsightsGateView(state: .notConnected, onPrimaryAction: {})
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Denied") {
     TrainingInsightsGateView(state: .denied, onPrimaryAction: {})
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Unavailable") {
     TrainingInsightsGateView(state: .unavailable, onPrimaryAction: {})
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }

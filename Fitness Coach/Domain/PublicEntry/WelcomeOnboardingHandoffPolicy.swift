@@ -7,15 +7,6 @@
 
 import Foundation
 
-enum WelcomeOnboardingHandoffSource: Equatable, Sendable {
-    /// User tapped Create My Plan on the public welcome screen.
-    case welcomeCreatePlan
-    /// Cold launch resumed an in-progress draft without showing welcome.
-    case coldLaunchResume
-    /// Save-plan handoff while signed out (local profile awaiting sign-in).
-    case savePlanHandoff
-}
-
 enum WelcomeOnboardingHandoffPolicy {
 
     static let createPlanDestination: PublicEntryRoute = .onboardingStart
@@ -38,4 +29,12 @@ enum WelcomeOnboardingHandoffPolicy {
 
     /// Save-plan completion for pre-auth onboarding still uses Google sign-in at the tail.
     static var requiresGoogleSignInAtSavePlan: Bool { true }
+
+    /// Pre-auth intro proof may return to the public welcome screen.
+    static func canExitToWelcome(
+        step: OnboardingStep,
+        analyticsEntry: OnboardingAnalyticsEntry
+    ) -> Bool {
+        analyticsEntry == .preAuth && step == .introProof
+    }
 }

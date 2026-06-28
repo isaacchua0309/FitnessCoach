@@ -234,7 +234,7 @@ struct TodayMealsPreview: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Partial day") {
@@ -249,5 +249,5 @@ struct TodayMealsPreview: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

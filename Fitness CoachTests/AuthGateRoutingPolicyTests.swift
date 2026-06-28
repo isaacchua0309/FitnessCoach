@@ -32,15 +32,6 @@ final class AuthGateRoutingPolicyTests: XCTestCase {
         )
     }
 
-    func testExistingAccountHandoffSignsOutWhenSessionAlreadyActive() {
-        XCTAssertTrue(
-            AuthGateRoutingPolicy.shouldSignOutBeforeExistingAccountSignIn(isSignedIn: true)
-        )
-        XCTAssertFalse(
-            AuthGateRoutingPolicy.shouldSignOutBeforeExistingAccountSignIn(isSignedIn: false)
-        )
-    }
-
     func testShouldClearOnboardingModelOnSignOutWhenSignedInSessionEnds() {
         XCTAssertTrue(
             AuthGateRoutingPolicy.shouldClearOnboardingModelOnSignOut(
@@ -52,8 +43,8 @@ final class AuthGateRoutingPolicyTests: XCTestCase {
         )
     }
 
-    func testShouldNotClearOnboardingModelWhenDraftExistsWithoutProfile() {
-        XCTAssertFalse(
+    func testShouldClearOnboardingModelOnSignOutEvenWhenDraftExists() {
+        XCTAssertTrue(
             AuthGateRoutingPolicy.shouldClearOnboardingModelOnSignOut(
                 wasSignedIn: true,
                 isSignedIn: false,
@@ -78,14 +69,95 @@ final class AuthGateRoutingPolicyTests: XCTestCase {
         )
     }
 
-    func testPrefersActiveOnboardingSessionOverExistingUserSignInWhenDraftExists() {
+    func testDraftDoesNotOverrideExistingUserSignIn() {
         XCTAssertEqual(
             AuthGateRoutingPolicy.effectiveRoute(
                 baseRoute: .existingUserSignIn,
                 isSignedIn: false,
                 hasActiveOnboardingSession: true
             ),
+            .existingUserSignIn
+        )
+        XCTAssertFalse(
+            AuthGateRoutingPolicy.shouldPreferActiveOnboardingSession(
+                isSignedIn: false,
+                hasActiveOnboardingSession: true,
+                baseRoute: .existingUserSignIn
+            )
+        )
+    }
+
+    func testActiveOnboardingSessionOverridesWelcomeButNotExistingUserSignIn() {
+        XCTAssertEqual(
+            AuthGateRoutingPolicy.effectiveRoute(
+                baseRoute: .welcome,
+                isSignedIn: false,
+                hasActiveOnboardingSession: true
+            ),
             .onboardingStart
+        )
+        XCTAssertTrue(
+            AuthGateRoutingPolicy.shouldPreferActiveOnboardingSession(
+                isSignedIn: false,
+                hasActiveOnboardingSession: true,
+                baseRoute: .welcome
+            )
+        )
+    }
+
+    // MARK: - Silent auth restore (launch)
+
+    func testShouldReloadCloudProfileOnFreshSignInWithoutLocalProfile() {
+        XCTAssertTrue(
+            AuthGateRoutingPolicy.shouldReloadSignedInCloudProfile(
+                isFreshSignIn: true,
+                rootState: .loading,
+                hasLocalProfile: false
+            )
+        )
+    }
+
+    func testShouldReloadCloudProfileOnSilentLaunchWhileLoading() {
+        XCTAssertTrue(
+            AuthGateRoutingPolicy.shouldReloadSignedInCloudProfile(
+                isFreshSignIn: false,
+                rootState: .loading,
+                hasLocalProfile: false
+            )
+        )
+    }
+
+    func testShouldNotReloadCloudProfileWhenLocalProfileExists() {
+        XCTAssertFalse(
+            AuthGateRoutingPolicy.shouldReloadSignedInCloudProfile(
+                isFreshSignIn: false,
+                rootState: .loading,
+                hasLocalProfile: true
+            )
+        )
+    }
+
+    func testShouldNotReloadCloudProfileWhenRootAlreadyTerminal() {
+        XCTAssertFalse(
+            AuthGateRoutingPolicy.shouldReloadSignedInCloudProfile(
+                isFreshSignIn: false,
+                rootState: .main,
+                hasLocalProfile: false
+            )
+        )
+        XCTAssertFalse(
+            AuthGateRoutingPolicy.shouldReloadSignedInCloudProfile(
+                isFreshSignIn: false,
+                rootState: .missingCloudProfile,
+                hasLocalProfile: false
+            )
+        )
+        XCTAssertFalse(
+            AuthGateRoutingPolicy.shouldReloadSignedInCloudProfile(
+                isFreshSignIn: false,
+                rootState: .existingUserProfileLookupFailed,
+                hasLocalProfile: false
+            )
         )
     }
 }

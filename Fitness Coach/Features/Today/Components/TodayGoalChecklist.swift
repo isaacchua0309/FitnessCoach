@@ -149,7 +149,7 @@ struct TodayGoalChecklist: View {
     TodayGoalChecklist(goals: incomplete, onGoalTap: { _ in })
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Completed states") {
@@ -159,5 +159,5 @@ struct TodayGoalChecklist: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

@@ -2,7 +2,7 @@
 //  OnboardingTargetWeightStepView.swift
 //  Fitness Coach
 //
-//  Forma — target weight via horizontal loss ruler.
+//  Forma — target weight via horizontal goal-weight ruler.
 //
 
 import SwiftUI
@@ -16,6 +16,7 @@ struct OnboardingTargetWeightStepView: View {
     @State private var summaryVisible = false
     @State private var rulerVisible = false
     @State private var guidanceVisible = false
+    @State private var isRulerPrepared = false
 
     private var guidanceState: OnboardingTargetWeightGuidanceState? {
         OnboardingTargetWeightGuidanceBuilder.guidanceState(for: formState)
@@ -25,9 +26,13 @@ struct OnboardingTargetWeightStepView: View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
             headerSection
 
-            if formState.parsedCurrentWeightKg != nil {
+            if isRulerPrepared, formState.parsedCurrentWeightKg != nil {
                 heroSummarySection
-                rulerSection
+
+                if rulerVisible {
+                    lossRuler
+                }
+
                 guidanceSection
             }
 
@@ -36,6 +41,7 @@ struct OnboardingTargetWeightStepView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {
             OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &formState)
+            isRulerPrepared = true
             runEntranceAnimation()
         }
     }
@@ -68,13 +74,6 @@ struct OnboardingTargetWeightStepView: View {
     }
 
     @ViewBuilder
-    private var rulerSection: some View {
-        lossRuler
-            .opacity(rulerVisible ? 1 : 0)
-            .offset(y: rulerVisible ? 0 : 12)
-    }
-
-    @ViewBuilder
     private var guidanceSection: some View {
         if let guidanceState {
             OnboardingTargetWeightGuidanceCard(state: guidanceState)
@@ -90,46 +89,44 @@ struct OnboardingTargetWeightStepView: View {
             ?? centerLabel
             ?? copy.lossRulerAccessibilityLabel
 
-        if formState.unitSystem == .metric {
-            if let current = formState.parsedCurrentWeightKg {
-                let range = OnboardingTargetWeightValues.deltaRangeDisplay(
-                    currentWeightKg: current,
-                    heightCm: formState.parsedHeightCm,
-                    unitSystem: .metric
-                )
-                OnboardingRulerPickerFactory.weightDeltaKg(
-                    value: deltaDisplayBinding,
+        if let current = formState.parsedCurrentWeightKg {
+            let range = OnboardingTargetWeightValues.goalWeightRangeDisplay(
+                currentWeightKg: current,
+                heightCm: formState.parsedHeightCm,
+                unitSystem: formState.unitSystem,
+                selectedGoalKg: OnboardingTargetWeightValues.resolvedGoalKg(from: formState)
+            )
+            if formState.unitSystem == .metric {
+                OnboardingRulerPickerFactory.targetWeightGoalKg(
+                    value: goalWeightDisplayBinding,
                     range: range,
                     presentation: .hero,
                     centerDisplayText: centerLabel,
                     accessibilityValueText: accessibilityTarget
                 )
                 .accessibilityLabel(copy.lossRulerAccessibilityLabel)
+                .id(OnboardingTargetWeightValues.rulerIdentity(for: formState))
+            } else {
+                OnboardingRulerPickerFactory.targetWeightGoalLb(
+                    value: goalWeightDisplayBinding,
+                    range: range,
+                    presentation: .hero,
+                    centerDisplayText: centerLabel,
+                    accessibilityValueText: accessibilityTarget
+                )
+                .accessibilityLabel(copy.lossRulerAccessibilityLabel)
+                .id(OnboardingTargetWeightValues.rulerIdentity(for: formState))
             }
-        } else if let current = formState.parsedCurrentWeightKg {
-            let range = OnboardingTargetWeightValues.deltaRangeDisplay(
-                currentWeightKg: current,
-                heightCm: formState.parsedHeightCm,
-                unitSystem: .imperial
-            )
-            OnboardingRulerPickerFactory.weightDeltaLb(
-                value: deltaDisplayBinding,
-                range: range,
-                presentation: .hero,
-                centerDisplayText: centerLabel,
-                accessibilityValueText: accessibilityTarget
-            )
-            .accessibilityLabel(copy.lossRulerAccessibilityLabel)
         }
     }
 
-    private var deltaDisplayBinding: Binding<Double> {
+    private var goalWeightDisplayBinding: Binding<Double> {
         Binding(
             get: {
-                OnboardingTargetWeightValues.resolvedDeltaDisplay(from: formState)
+                OnboardingTargetWeightValues.resolvedRulerDisplayValue(from: formState)
             },
             set: { newValue in
-                OnboardingTargetWeightValues.setGoalFromDeltaDisplay(newValue, in: &formState)
+                OnboardingTargetWeightValues.setGoalFromDisplay(newValue, in: &formState)
             }
         )
     }
@@ -164,7 +161,55 @@ struct OnboardingTargetWeightStepView: View {
     )
     .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
+}
+
+#Preview("Target Weight — Maintain") {
+    OnboardingTargetWeightStepView(
+        formState: .constant({
+            var state = OnboardingFormState()
+            OnboardingHeightWeightValues.setHeightCm(170, in: &state)
+            OnboardingHeightWeightValues.setWeightKg(90, in: &state)
+            state.unitSystem = .metric
+            OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &state)
+            return state
+        }())
+    )
+    .padding(.horizontal, OnboardingTheme.pagePadding)
+    .background(OnboardingTheme.background)
+    .formaThemePreview()
+}
+
+#Preview("Target Weight — Gain") {
+    OnboardingTargetWeightStepView(
+        formState: .constant({
+            var state = OnboardingFormState()
+            OnboardingHeightWeightValues.setHeightCm(170, in: &state)
+            OnboardingHeightWeightValues.setWeightKg(90, in: &state)
+            state.unitSystem = .metric
+            OnboardingTargetWeightValues.setGoalWeightKg(93, in: &state)
+            return state
+        }())
+    )
+    .padding(.horizontal, OnboardingTheme.pagePadding)
+    .background(OnboardingTheme.background)
+    .formaThemePreview()
+}
+
+#Preview("Target Weight — Heavy loss") {
+    OnboardingTargetWeightStepView(
+        formState: .constant({
+            var state = OnboardingFormState()
+            OnboardingHeightWeightValues.setHeightCm(170, in: &state)
+            OnboardingHeightWeightValues.setWeightKg(90, in: &state)
+            state.unitSystem = .metric
+            OnboardingTargetWeightValues.setGoalWeightKg(85.3, in: &state)
+            return state
+        }())
+    )
+    .padding(.horizontal, OnboardingTheme.pagePadding)
+    .background(OnboardingTheme.background)
+    .formaThemePreview()
 }
 
 #Preview("Target Weight — Imperial") {
@@ -180,6 +225,6 @@ struct OnboardingTargetWeightStepView: View {
     )
     .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 #endif

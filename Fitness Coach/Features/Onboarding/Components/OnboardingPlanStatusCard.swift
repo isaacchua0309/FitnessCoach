@@ -95,7 +95,7 @@ struct OnboardingPlanStatusCard: View {
     )
     .padding()
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Caution") {
@@ -108,5 +108,5 @@ struct OnboardingPlanStatusCard: View {
     )
     .padding()
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

@@ -62,7 +62,7 @@ struct TodayMissionHero: View {
                 .tint(
                     display.isOverTarget
                         ? FormaTokens.Color.destructive
-                        : FormaTokens.Color.accent
+                        : FormaTokens.Color.progress
                 )
 
             subMetricsBlock
@@ -105,7 +105,7 @@ struct TodayMissionHero: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Partial day") {
@@ -117,7 +117,7 @@ struct TodayMissionHero: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Over target") {
@@ -129,5 +129,5 @@ struct TodayMissionHero: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

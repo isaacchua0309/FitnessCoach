@@ -11,13 +11,25 @@ import SwiftUI
 enum JourneyPreviewScreens {
 
   @ViewBuilder
-  static func dashboard(_ scenario: ProgressPreviewData.Scenario) -> some View {
+  static func dashboard(_ scenario: ProgressPreviewData.Scenario, palette: AppThemePalette = .default) -> some View {
     ScrollView {
       JourneyDashboardContent(state: ProgressPreviewData.dashboard(scenario))
     }
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview(palette: palette)
     .navigationTitle("Journey")
+  }
+}
+
+#Preview("Journey — Pink") {
+  NavigationStack {
+    JourneyPreviewScreens.dashboard(.strongMomentum, palette: .pink)
+  }
+}
+
+#Preview("Journey — Cool Blue") {
+  NavigationStack {
+    JourneyPreviewScreens.dashboard(.strongMomentum, palette: .coolBlue)
   }
 }
 

@@ -76,12 +76,12 @@ struct PlanThisWeekSection: View {
     PlanThisWeekSection(state: PlanMissionControlFixtures.newUserDashboard.week)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }
 
 #Preview("Active week") {
     PlanThisWeekSection(state: PlanMissionControlFixtures.activeUserDashboard.week)
         .padding()
         .background(FormaTokens.Color.canvas)
-        .preferredColorScheme(.dark)
+        .formaThemePreview()
 }

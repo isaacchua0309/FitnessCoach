@@ -88,6 +88,11 @@ enum FormaProductCopy {
 
     enum PublicEntry {
 
+        enum Loading {
+            static let appLaunch = FormaProductCopy.Loading.app
+            static let restoringPlan = ExistingUserSignIn.resolvingMessage
+        }
+
         enum Welcome {
             static let title = "Welcome to Forma"
             static let headline = "The smarter way to lose weight without restrictive diets."
@@ -120,6 +125,10 @@ enum FormaProductCopy {
             static let createMyPlanCTA = "Create My Plan"
             static let createMyPlanAccessibilityHint =
                 "Start building a new Forma plan"
+            static let backAccessibilityLabel = "Back to welcome"
+            static let googleSignInCTA = FormaProductCopy.SignIn.continueWithGoogle
+            static let googleSignInAccessibilityHint =
+                "Sign in to restore your Forma plan"
 
             enum Error {
                 static let cancelledTitle = "Sign-in cancelled"
@@ -149,6 +158,9 @@ enum FormaProductCopy {
             static let supportingCopy = "New to Forma? This only takes about 2 minutes."
             static let startOnboardingCTA = "Start Onboarding"
             static let useAnotherAccountCTA = "Use another account"
+            static let startOnboardingAccessibilityHint = "Begin building your Forma plan"
+            static let useAnotherAccountAccessibilityHint =
+                "Sign out and choose a different account"
         }
     }
 
@@ -324,9 +336,11 @@ enum FormaProductCopy {
                     "Your plan is saved on this device. Sign in with Google to sync it across devices."
                 static let trustNote = "Sign-in backs up your plan — your starting targets stay the same."
                 static let localOnlyHint = "Everything stays on this device until you sign in."
-                static let continueWithoutAccountCTA = "Continue without account"
                 static let planSavedOnDeviceTitle = "Your plan is saved on this device"
                 static let signInRetryMessage = "Sign-in didn't finish. Your plan is still saved on this device — try again when you're ready."
+                static let googleSignInCTA = "Save & continue"
+                static let googleSignInAccessibilityHint =
+                    "Save your plan and sync with Google"
                 static let signedInSubtitle =
                     "Your plan will be saved to your Google account so you can pick up on any device."
                 static let signedInContinueCTA = Common.continueAction
@@ -554,15 +568,113 @@ enum FormaProductCopy {
             }
 
             enum FormaProof {
-                static let title = "Lose more weight with Forma than on your own"
-                static let subtitle = "Forma makes it easy and holds you accountable."
-                static let continueCTA = "Next"
+                static let continueCTA = "Continue"
+                static var title: String { Fallback.title }
+                static var subtitle: String { Fallback.subtitle }
+
+                enum Fallback {
+                    static let title = "Forma turns your goal into a daily plan"
+                    static let subtitle =
+                        "Clear targets, simple logging, and progress tracking help you stay consistent."
+                    static let heroMetric = "Your personalized plan"
+                    static let heroSupporting =
+                        "Forma helps you stay consistent with clear daily actions."
+                    static let trustStrip = "Built for consistency, not restriction."
+                }
+
+                enum Loss {
+                    static let title = "Your plan is built for steady weight loss"
+                    static let subtitle =
+                        "Forma helps you stay consistent with clear daily targets."
+                    static let heroSupporting =
+                        "Small consistent habits make progress easier to maintain."
+                    static let withoutHeadline =
+                        "Progress can be slower and harder to maintain."
+                    static let withHeadline =
+                        "Your plan gives you calories, protein, and progress tracking."
+                }
+
+                enum Gain {
+                    static let title = "Your plan is built for steady weight gain"
+                    static let subtitle =
+                        "Forma helps you eat enough consistently without guessing."
+                    static let heroSupporting =
+                        "Consistency matters more than forcing extreme changes."
+                    static let withoutHeadline = "Progress can be inconsistent."
+                    static let withHeadline =
+                        "Your plan gives you daily targets to support steady gain."
+                }
+
+                enum Maintain {
+                    static let title = "Your plan is built to help you maintain"
+                    static let subtitle =
+                        "Forma helps you stay consistent without overthinking every meal."
+                    static let heroSupporting =
+                        "Clear daily targets make maintenance easier."
+                    static let withoutHeadline = "Weight can drift without clear habits."
+                    static let withHeadline =
+                        "Your plan helps you stay near your target range."
+                }
+
+                enum Comparison {
+                    static let withoutStructureTitle = "Without structure"
+                    static let withFormaTitle = "With Forma"
+                    static let withoutBullets = [
+                        "Harder to know what to eat",
+                        "Progress can be inconsistent",
+                        "Habits are harder to maintain"
+                    ]
+                    static let withFormaBullets = [
+                        "Daily calorie and macro targets",
+                        "Fast meal logging",
+                        "Progress and habit tracking"
+                    ]
+                }
+
+                enum Trust {
+                    static let personalized =
+                        "Your plan is based on your body, goal, and activity level."
+                    static let consistency = "Built for consistency, not restriction."
+                }
+
+                static func maintainHero(targetWeightLabel: String) -> String {
+                    "Maintain around \(targetWeightLabel)"
+                }
             }
 
             enum Summary {
-                static let title = "Almost ready"
-                static let subtitle = "Review your details — Forma will build starting targets from these."
+                static let title = "Your plan blueprint is ready"
+                static let subtitle = "One last check before we build your personalized plan."
                 static let buildPlanCTA = "Build my plan"
+                static let goalSectionTitle = "Your goal"
+                static let goalFallbackHero = "Your goal is set"
+                static let goalFallbackSubtitle =
+                    "We'll build your starting targets from your answers."
+                static let maintainGoalSubtitle = "We'll help you stay consistent."
+
+                enum Insight {
+                    static let loss = "We'll build a steady target around sustainable progress."
+                    static let gain = "We'll build daily targets to help you gain consistently."
+                    static let maintain =
+                        "We'll help you stay near your target range with clear daily goals."
+                    static let fallback = "We'll build your starting targets from your answers."
+                }
+
+                enum Basis {
+                    static let title = "Your plan will be based on"
+                    static let bodyMeasurements = "Body measurements"
+                    static let age = "Birthday-derived age"
+                    static let sex = "Biological sex for calorie calculation"
+                    static let activity = "Activity level"
+                    static let targetWeight = "Target weight"
+                }
+
+                enum Details {
+                    static let title = "Review details"
+                    static let collapsedAccessibilityHint =
+                        "Expand to review height, weight, age, sex, and activity."
+                }
+
                 static let heightLabel = "Height"
                 static let currentWeightLabel = "Current weight"
                 static let targetWeightLabel = "Target weight"
@@ -653,15 +765,7 @@ enum FormaProductCopy {
                 }
 
                 enum WeightLossComparison {
-                    static let withoutFormaLabel = "Without Forma"
-                    static let withFormaLabel = "With Forma"
-                    static let withoutFormaValue = "~2 kg lost"
-                    static let withFormaValue = "~5 kg lost"
-                    static let withoutFormaBarFill = 0.4
-                    static let withFormaBarFill = 1.0
                     static let disclaimer = "Illustrative example — individual results vary."
-                    static let chartAccessibilityLabel =
-                        "Illustrative weight loss comparison. With Forma about five kilograms lost versus about two kilograms without Forma."
                 }
             }
         }
@@ -2034,6 +2138,95 @@ enum FormaProductCopy {
         static let bodyDetailsSettingsTitle = "Body & stats"
         static let bodyDetailsSettingsFootnote =
             "To update these, use Adjust Plan on the Plan tab."
+    }
+
+    // MARK: - Settings
+
+    enum Settings {
+
+        /// Theme preferences screen and color palette copy.
+        enum Theme {
+            static let screenTitle = "Theme"
+            static let navigationRowTitle = "Theme"
+            static let appearanceSectionTitle = "Appearance"
+            static let colorThemeSectionTitle = "Color Theme"
+
+            enum Appearance {
+                static let systemTitle = "System"
+                static let systemDescription = "Match device appearance"
+                static let lightTitle = "Light"
+                static let lightDescription = "Always use light appearance"
+                static let darkTitle = "Dark"
+                static let darkDescription = "Always use dark appearance"
+            }
+
+            enum ColorPalette {
+                static let defaultTitle = "Default Forma"
+                static let defaultDescription = "Forma's signature palette."
+                static let pinkTitle = "Pink"
+                static let pinkDescription = "Warm rose tones."
+                static let coolBlueTitle = "Cool Blue"
+                static let coolBlueDescription = "Calm blue tones."
+            }
+
+            enum Error {
+                static let loadFailedTitle = "Couldn't load your theme"
+                static let loadFailedMessage =
+                    "We restored Forma's default look. You can pick a color theme below."
+            }
+
+            static func appearanceTitle(for mode: AppAppearanceMode) -> String {
+                switch mode {
+                case .system: Appearance.systemTitle
+                case .light: Appearance.lightTitle
+                case .dark: Appearance.darkTitle
+                }
+            }
+
+            static func appearanceDescription(for mode: AppAppearanceMode) -> String {
+                switch mode {
+                case .system: Appearance.systemDescription
+                case .light: Appearance.lightDescription
+                case .dark: Appearance.darkDescription
+                }
+            }
+
+            static func colorPaletteTitle(for palette: AppThemePalette) -> String {
+                switch palette {
+                case .default: ColorPalette.defaultTitle
+                case .pink: ColorPalette.pinkTitle
+                case .coolBlue: ColorPalette.coolBlueTitle
+                }
+            }
+
+            static func colorPaletteDescription(for palette: AppThemePalette) -> String {
+                switch palette {
+                case .default: ColorPalette.defaultDescription
+                case .pink: ColorPalette.pinkDescription
+                case .coolBlue: ColorPalette.coolBlueDescription
+                }
+            }
+
+            static func appearanceAccessibilityLabel(
+                for mode: AppAppearanceMode,
+                isSelected: Bool
+            ) -> String {
+                let selection = isSelected ? "selected, " : ""
+                return "\(appearanceTitle(for: mode)), \(selection)\(appearanceDescription(for: mode))"
+            }
+
+            static func colorPaletteAccessibilityLabel(
+                for palette: AppThemePalette,
+                isSelected: Bool
+            ) -> String {
+                let selection = isSelected ? "selected, " : ""
+                let normalizedDescription = colorPaletteDescription(for: palette)
+                    .replacingOccurrences(of: ",", with: "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .trimmingCharacters(in: CharacterSet(charactersIn: "."))
+                return "\(colorPaletteTitle(for: palette)), \(selection)\(normalizedDescription)"
+            }
+        }
     }
 
     // MARK: - Profile form

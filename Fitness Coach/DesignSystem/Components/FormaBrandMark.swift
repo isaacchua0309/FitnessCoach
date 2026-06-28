@@ -68,5 +68,5 @@ struct FormaBrandMark: View {
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

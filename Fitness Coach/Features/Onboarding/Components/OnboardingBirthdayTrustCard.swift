@@ -11,15 +11,15 @@ struct OnboardingBirthdayTrustNote: View {
     let copy: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: FormaTokens.Spacing.xs) {
+        HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
             Image(systemName: "lock.shield")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.tertiaryText)
+                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                .foregroundStyle(OnboardingTheme.secondaryText)
                 .accessibilityHidden(true)
 
             Text(copy)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(OnboardingTheme.tertiaryText)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(OnboardingTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -38,6 +38,6 @@ typealias OnboardingBirthdayTrustCard = OnboardingBirthdayTrustNote
     )
     .padding()
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 #endif

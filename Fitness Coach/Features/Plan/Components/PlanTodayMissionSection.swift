@@ -85,7 +85,7 @@ struct PlanTodayMissionSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Large Dynamic Type") {
@@ -95,7 +95,7 @@ struct PlanTodayMissionSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
     .dynamicTypeSize(.accessibility3)
 }
 
@@ -106,5 +106,5 @@ struct PlanTodayMissionSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

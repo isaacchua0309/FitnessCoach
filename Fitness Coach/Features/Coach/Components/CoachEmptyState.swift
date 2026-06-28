@@ -71,5 +71,5 @@ struct CoachEmptyState: View {
         ) { _ in }
     }
     .background(CoachDesignTokens.Color.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

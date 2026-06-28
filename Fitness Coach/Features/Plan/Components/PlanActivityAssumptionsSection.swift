@@ -60,7 +60,7 @@ struct PlanActivityAssumptionsSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Large Dynamic Type") {
@@ -70,6 +70,6 @@ struct PlanActivityAssumptionsSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
     .dynamicTypeSize(.accessibility3)
 }

@@ -80,6 +80,29 @@ final class PublicEntryRouteTests: XCTestCase {
         )
     }
 
+    func testWelcomeSignInRoutesToExistingUserSignInEvenWhenDraftExists() {
+        XCTAssertEqual(
+            AppRouteResolver.resolve(
+                authState: .signedOut,
+                isOnboardingModelReady: true,
+                hasLocalProfile: false,
+                publicEntryDestination: .existingUserSignIn,
+                hasPersistedOnboardingDraft: true
+            ),
+            .existingUserSignIn
+        )
+        XCTAssertNotEqual(
+            AppRouteResolver.resolve(
+                authState: .signedOut,
+                isOnboardingModelReady: true,
+                hasLocalProfile: false,
+                publicEntryDestination: .existingUserSignIn,
+                hasPersistedOnboardingDraft: true
+            ),
+            .onboardingStart
+        )
+    }
+
     // MARK: - Signed-in outcomes
 
     func testSuccessfulSignInWithProfileRoutesToMain() {

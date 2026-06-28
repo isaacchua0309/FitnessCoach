@@ -12,7 +12,7 @@ enum OnboardingDraftMigration {
     static let legacyDraftVersion = 1
 
     static func upgrade(from v1: OnboardingDraftV1) -> OnboardingDraft {
-        let formState = migrateFormState(from: v1.form)
+        let formState = migrateFormState(from: v1.form, referenceDate: v1.savedAt)
         let flow = OnboardingStep.flow
         let step = OnboardingDraftStepResolver.restoredStep(
             rawValue: v1.currentStepRawValue,
@@ -29,7 +29,10 @@ enum OnboardingDraftMigration {
         )
     }
 
-    static func migrateFormState(from legacy: OnboardingDraftV1FormFields) -> OnboardingFormState {
+    static func migrateFormState(
+        from legacy: OnboardingDraftV1FormFields,
+        referenceDate: Date = Date()
+    ) -> OnboardingFormState {
         var state = OnboardingFormState()
         state.name = legacy.name
         state.ageText = legacy.ageText
@@ -68,9 +71,12 @@ enum OnboardingDraftMigration {
         state.loggingPreferences = OnboardingLoggingPreference.fromStoredValues(
             legacy.selectedLoggingPreferenceRawValues
         )
-        state.reconcileBirthDateAfterRestore()
+        state.reconcileBirthDateAfterRestore(referenceDate: referenceDate)
         state.reconcileTrainingRhythmAfterRestore()
-        state.syncAgeTextFromBirthDate()
+        if !legacy.activityLevelRawValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            state.hasConfirmedActivityLevelSelection = true
+        }
+        state.syncAgeTextFromBirthDate(referenceDate: referenceDate)
         return state
     }
 }

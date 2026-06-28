@@ -120,8 +120,8 @@ final class AppRouteResolverTests: XCTestCase {
         )
     }
 
-    func testShouldRetainOnboardingModelWhenDraftExistsWithoutLocalProfile() {
-        XCTAssertFalse(
+    func testShouldAlwaysClearOnboardingModelAfterSignOut() {
+        XCTAssertTrue(
             AppRouteResolver.shouldClearOnboardingModel(
                 wasSignedIn: true,
                 isSignedIn: false,
@@ -254,17 +254,6 @@ final class AppRouteResolverTests: XCTestCase {
                 localProfileAwaitingSignIn: true
             ),
             .onboardingStart
-        )
-    }
-
-    func testSignedOutWithLocalProfileCanRouteToLocalMainWhenAllowed() {
-        XCTAssertEqual(
-            AppRouteResolver.resolve(
-                authState: .signedOut,
-                hasLocalProfile: true,
-                signedOutWithProfilePolicy: .allowLocalMain
-            ),
-            .localMain
         )
     }
 }

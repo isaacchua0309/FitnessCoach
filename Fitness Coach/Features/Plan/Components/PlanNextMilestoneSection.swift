@@ -59,7 +59,7 @@ struct PlanNextMilestoneSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 
 #Preview("Weight milestone") {
@@ -69,5 +69,5 @@ struct PlanNextMilestoneSection: View {
     )
     .padding()
     .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }

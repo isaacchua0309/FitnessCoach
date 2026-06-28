@@ -2,7 +2,7 @@
 //  OnboardingFormaProofTests.swift
 //  Fitness CoachTests
 //
-//  Forma — forma proof comparison copy, routing, and analytics tests.
+//  Forma — forma proof copy, builder, routing, and analytics tests.
 //
 
 import XCTest
@@ -10,18 +10,27 @@ import XCTest
 
 final class OnboardingFormaProofTests: XCTestCase {
 
-    func testFormaProofStepUsesProductCopy() {
+    private let unsafeCopyFragments = [
+        "~2 kg",
+        "~5 kg",
+        "Lose 2X more",
+        "Lose more weight with Forma",
+        "Dynamic Calories",
+        "automatic calorie adjustment"
+    ]
+
+    func testFormaProofStepUsesFallbackShellCopy() {
         XCTAssertEqual(
             OnboardingStep.formaProof.title,
-            FormaProductCopy.Onboarding.Flow.FormaProof.title
+            FormaProductCopy.Onboarding.Flow.FormaProof.Fallback.title
         )
         XCTAssertEqual(
             OnboardingStep.formaProof.subtitle,
-            FormaProductCopy.Onboarding.Flow.FormaProof.subtitle
+            FormaProductCopy.Onboarding.Flow.FormaProof.Fallback.subtitle
         )
         XCTAssertEqual(
             FormaProductCopy.Onboarding.Flow.FormaProof.continueCTA,
-            "Next"
+            "Continue"
         )
     }
 
@@ -30,6 +39,135 @@ final class OnboardingFormaProofTests: XCTestCase {
             OnboardingStep.formaProof.next(in: OnboardingStep.flow),
             .review
         )
+    }
+
+    func testFormaProofDoesNotShowDuplicateProgressHeader() {
+        XCTAssertFalse(OnboardingStep.formaProof.showsProgressHeader)
+    }
+
+    func testLossCopyIsGoalAware() {
+        let state = makeFormState(currentKg: 70, goalDeltaKg: -3.5, unitSystem: .metric)
+        let proof = OnboardingFormaProofBuilder.build(from: state)
+
+        XCTAssertEqual(proof.title, FormaProductCopy.Onboarding.Flow.FormaProof.Loss.title)
+        XCTAssertEqual(proof.subtitle, FormaProductCopy.Onboarding.Flow.FormaProof.Loss.subtitle)
+        XCTAssertEqual(proof.heroMetric, "Lose 3.5 kg")
+        XCTAssertEqual(proof.journeyLine, "70 kg → 66.5 kg")
+        XCTAssertEqual(proof.pathStyle, .loss)
+        XCTAssertTrue(proof.isPersonalized)
+        XCTAssertTrue(proof.accessibilityLabel.contains("steady weight loss"))
+    }
+
+    func testGainCopyIsGoalAware() {
+        let state = makeFormState(currentKg: 66, goalDeltaKg: 4, unitSystem: .metric)
+        let proof = OnboardingFormaProofBuilder.build(from: state)
+
+        XCTAssertEqual(proof.title, FormaProductCopy.Onboarding.Flow.FormaProof.Gain.title)
+        XCTAssertEqual(proof.heroMetric, "Gain 4 kg")
+        XCTAssertEqual(proof.journeyLine, "66 kg → 70 kg")
+        XCTAssertEqual(proof.pathStyle, .gain)
+        XCTAssertEqual(proof.comparison.withoutHeadline, FormaProductCopy.Onboarding.Flow.FormaProof.Gain.withoutHeadline)
+    }
+
+    func testMaintainCopyIsGoalAware() {
+        let state = makeFormState(currentKg: 70, goalDeltaKg: 0, unitSystem: .metric)
+        let proof = OnboardingFormaProofBuilder.build(from: state)
+
+        XCTAssertEqual(proof.title, FormaProductCopy.Onboarding.Flow.FormaProof.Maintain.title)
+        XCTAssertEqual(proof.heroMetric, "Maintain around 70 kg")
+        XCTAssertEqual(proof.pathStyle, .maintain)
+        XCTAssertEqual(proof.comparison.withHeadline, FormaProductCopy.Onboarding.Flow.FormaProof.Maintain.withHeadline)
+    }
+
+    func testFallbackCopyWhenWeightsMissing() {
+        let proof = OnboardingFormaProofBuilder.build(from: OnboardingFormState())
+
+        XCTAssertEqual(proof.title, FormaProductCopy.Onboarding.Flow.FormaProof.Fallback.title)
+        XCTAssertNil(proof.journeyLine)
+        XCTAssertFalse(proof.isPersonalized)
+        XCTAssertEqual(proof.pathStyle, .fallback)
+    }
+
+    func testImperialFormatting() {
+        let state = makeFormState(currentKg: 70, goalDeltaKg: -3.5, unitSystem: .imperial)
+        let proof = OnboardingFormaProofBuilder.build(from: state)
+
+        XCTAssertTrue(proof.heroMetric.contains("lb"))
+        XCTAssertTrue(proof.journeyLine?.contains("lb") == true)
+    }
+
+    func testFormaProofCopyAvoidsUnsafeClaims() {
+        let samples = allFormaProofCopySamples()
+        for sample in samples {
+            let lowered = sample.lowercased()
+            for fragment in unsafeCopyFragments {
+                XCTAssertFalse(
+                    lowered.contains(fragment.lowercased()),
+                    "Unsafe fragment \"\(fragment)\" found in: \(sample)"
+                )
+            }
+        }
+    }
+
+    func testRestoredDraftValuesProducePersonalizedProof() throws {
+        let defaults = UserDefaults(suiteName: "OnboardingFormaProofTests.\(UUID().uuidString)")!
+        defer { defaults.removePersistentDomain(forName: defaults.description) }
+
+        var formState = OnboardingFormState()
+        OnboardingHeightWeightValues.setWeightKg(78, in: &formState)
+        OnboardingTargetWeightValues.setGoalFromLossKg(5, in: &formState)
+
+        let store = OnboardingDraftStore(userDefaults: defaults)
+        store.saveDraft(OnboardingDraft(formState: formState, step: .formaProof))
+        let restored = try XCTUnwrap(store.loadDraft()?.makeFormState())
+        let proof = OnboardingFormaProofBuilder.build(from: restored)
+
+        XCTAssertEqual(proof.heroMetric, "Lose 5 kg")
+        XCTAssertTrue(proof.isPersonalized)
+    }
+
+    // MARK: - Helpers
+
+    private func makeFormState(
+        currentKg: Double,
+        goalDeltaKg: Double,
+        unitSystem: UnitSystem
+    ) -> OnboardingFormState {
+        var state = OnboardingFormState()
+        state.unitSystem = unitSystem
+        OnboardingHeightWeightValues.setWeightKg(currentKg, in: &state)
+        OnboardingTargetWeightValues.setGoalFromDeltaKg(goalDeltaKg, in: &state)
+        return state
+    }
+
+    private func allFormaProofCopySamples() -> [String] {
+        let copy = FormaProductCopy.Onboarding.Flow.FormaProof.self
+        let comparison = copy.Comparison.self
+        return [
+            copy.Fallback.title,
+            copy.Fallback.subtitle,
+            copy.Fallback.heroMetric,
+            copy.Fallback.heroSupporting,
+            copy.Loss.title,
+            copy.Loss.subtitle,
+            copy.Loss.heroSupporting,
+            copy.Loss.withoutHeadline,
+            copy.Loss.withHeadline,
+            copy.Gain.title,
+            copy.Gain.subtitle,
+            copy.Gain.withoutHeadline,
+            copy.Gain.withHeadline,
+            copy.Maintain.title,
+            copy.Maintain.subtitle,
+            copy.Maintain.withoutHeadline,
+            copy.Maintain.withHeadline,
+            comparison.withoutStructureTitle,
+            comparison.withFormaTitle,
+            comparison.withoutBullets.joined(separator: " "),
+            comparison.withFormaBullets.joined(separator: " "),
+            copy.Trust.personalized,
+            copy.Trust.consistency
+        ]
     }
 }
 
@@ -70,6 +208,16 @@ final class OnboardingFormaProofAnalyticsTests: XCTestCase {
         XCTAssertTrue(analytics.contains(.stepViewed, step: "review"))
     }
 
+    func testFormaProofBackRoutesToAlmostThere() async throws {
+        let integration = StubTrainingIntegrationProvider(requestConnectionResult: .denied)
+        let model = try makeOnboardingModel(integration: integration)
+        await OnboardingModelTestSupport.advanceTo(.formaProof, model: model, seedForm: true)
+
+        model.goBack()
+
+        XCTAssertEqual(model.currentStep, .almostThere)
+    }
+
     private func makeOnboardingModel(
         integration: TrainingIntegrationProviding
     ) throws -> OnboardingModel {
@@ -84,45 +232,5 @@ final class OnboardingFormaProofAnalyticsTests: XCTestCase {
             generationDelay: ImmediateOnboardingGenerationDelayProvider(),
             healthTrainingIntegration: integration
         )
-    }
-}
-
-private final class CapturingOnboardingAnalyticsLogger: OnboardingAnalyticsLogging, @unchecked Sendable {
-
-    struct Record: Sendable {
-        let event: OnboardingAnalyticsEvent
-        let properties: OnboardingAnalyticsProperties
-    }
-
-    private let lock = NSLock()
-    private var records: [Record] = []
-
-    func log(_ event: OnboardingAnalyticsEvent, properties: OnboardingAnalyticsProperties) {
-        lock.lock()
-        records.append(Record(event: event, properties: properties))
-        lock.unlock()
-    }
-
-    func contains(_ event: OnboardingAnalyticsEvent, step: String? = nil) -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return records.contains { record in
-            guard record.event == event else { return false }
-            if let step, record.properties.step != step { return false }
-            return true
-        }
-    }
-
-    func lastProperties(for event: OnboardingAnalyticsEvent) -> [String: String]? {
-        lock.lock()
-        defer { lock.unlock() }
-        guard let record = records.last(where: { $0.event == event }) else { return nil }
-        return record.properties.asParameters()
-    }
-}
-
-private extension OnboardingAnalyticsProperties {
-    subscript(key: String) -> String? {
-        asParameters()[key]
     }
 }

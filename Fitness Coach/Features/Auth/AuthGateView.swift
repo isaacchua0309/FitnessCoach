@@ -29,6 +29,9 @@ struct AuthGateView: View {
     @State private var awaitingCloudSync = false
     @State private var pendingUploadFailureContext: CloudProfileUploadFailureContext?
     @State private var isRetryingCloudUpload = false
+    @State private var didLogColdStartWelcome = false
+    @State private var suppressSignOutEntrySourceAnnotation = false
+    @State private var lastExistingUserResolutionResult: ExistingUserSignInResolutionResult?
 
     private let container: AppContainer
 
@@ -58,12 +61,14 @@ struct AuthGateView: View {
             case .welcome:
                 PublicWelcomeView(
                     analyticsLogger: container.publicEntryAnalyticsLogger,
+                    analyticsProperties: publicEntryAnalyticsProperties(),
                     onCreateMyPlan: beginOnboardingFromWelcome,
                     onSignIn: beginExistingUserSignInFromWelcome
                 )
             case .existingUserSignIn:
                 ExistingUserSignInView(
                     analyticsLogger: container.publicEntryAnalyticsLogger,
+                    analyticsProperties: publicEntryAnalyticsProperties(),
                     localError: existingUserSignInError,
                     onBack: returnToWelcomeFromExistingUserSignIn,
                     onCreateMyPlan: beginOnboardingFromExistingUserSignIn,
@@ -71,11 +76,12 @@ struct AuthGateView: View {
                 )
             case .onboardingStart:
                 preAuthOnboardingContent
-            case .localMain:
-                MainTabView(container: container)
             case .noExistingProfileFound:
                 NoExistingProfileFoundView(
                     analyticsLogger: container.publicEntryAnalyticsLogger,
+                    analyticsProperties: publicEntryAnalyticsProperties(
+                        profileResolutionResult: .noProfileFound
+                    ),
                     onStartOnboarding: beginOnboardingAfterNoExistingPlan,
                     onUseAnotherAccount: useAnotherAccountAfterNoExistingPlan
                 )
@@ -108,8 +114,14 @@ struct AuthGateView: View {
             }
         }
         .environmentObject(authManager)
+        .environment(\.publicEntrySessionStore, container.publicEntrySessionStore)
         .task {
             authManager.startListening()
+        }
+        .onChange(of: effectiveRoute) { _, route in
+            if route == .welcome {
+                logWelcomeScreenAnalytics()
+            }
         }
         .onChange(of: authManager.authState, initial: true) { previous, state in
             handleAuthStateChange(from: previous, to: state)
@@ -174,10 +186,12 @@ struct AuthGateView: View {
     // MARK: - Public entry actions
 
     private func beginOnboardingFromWelcome() {
-        startPreAuthOnboarding(handoff: .welcomeCreatePlan)
+        startPreAuthOnboarding()
     }
 
     private func beginExistingUserSignInFromWelcome() {
+        onboardingModel = nil
+        existingUserSignInError = nil
         publicEntryDestination = .existingUserSignIn
     }
 
@@ -188,17 +202,23 @@ struct AuthGateView: View {
         publicEntryDestination = .welcome
     }
 
+    private func returnToWelcomeFromOnboarding() {
+        onboardingModel = nil
+        container.onboardingDraftStore.clearDraft()
+        publicEntryDestination = .welcome
+    }
+
     private func beginOnboardingFromExistingUserSignIn() {
         pendingExistingUserSignIn = false
         existingUserSignInSessionActive = false
         existingUserSignInError = nil
-        startPreAuthOnboarding(handoff: .welcomeCreatePlan)
+        startPreAuthOnboarding()
     }
 
-    private func startPreAuthOnboarding(handoff: WelcomeOnboardingHandoffSource) {
-        _ = handoff
+    private func startPreAuthOnboarding() {
         pendingExistingUserSignIn = false
         existingUserSignInSessionActive = false
+        container.publicEntrySessionStore.clearExplicitSignOut()
         publicEntryDestination = WelcomeOnboardingHandoffPolicy.createPlanDestination
         onboardingModel = nil
         rootModel.resolveLocalProfile()
@@ -229,6 +249,7 @@ struct AuthGateView: View {
         pendingExistingUserSignIn = false
         existingUserSignInError = nil
         onboardingModel = nil
+        suppressSignOutEntrySourceAnnotation = true
         Task {
             await authManager.signOut()
         }
@@ -252,7 +273,11 @@ struct AuthGateView: View {
 
     @ViewBuilder
     private func onboardingShell(for model: OnboardingModel) -> some View {
-        OnboardingView(model: model)
+        if AppRouteResolver.isSignedIn(authManager.authState) {
+            OnboardingView(model: model)
+        } else {
+            OnboardingView(model: model, onExitToWelcome: returnToWelcomeFromOnboarding)
+        }
     }
 
     private func preparePreAuthOnboardingIfNeeded() {
@@ -316,13 +341,13 @@ struct AuthGateView: View {
                     retryProfileLoad()
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(OnboardingTheme.ctaBackground)
                 .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
                 .padding(.bottom, FormaTokens.Spacing.lg)
                 .frame(maxWidth: FormaTokens.Layout.maxContentWidth)
             }
             .frame(maxWidth: .infinity)
         }
-        .preferredColorScheme(.dark)
     }
 
     @ViewBuilder
@@ -405,6 +430,7 @@ struct AuthGateView: View {
     }
 
     private func signOutFromAccountMismatch() {
+        container.publicEntrySessionStore.markUserInitiatedLogout()
         authManager.signOut()
     }
 
@@ -421,11 +447,10 @@ struct AuthGateView: View {
     // MARK: - Onboarding model lifecycle
 
     /// Ensures the onboarding model exists whenever routing targets an initializing onboarding shell.
-    /// Without this, `.onboardingInitializing` / `.localOnboardingInitializing` show only
+    /// Without this, `.onboardingInitializing` shows only
     /// `LaunchLoadingView` and never reach the views whose `onAppear` used to create the model.
     private func bootstrapOnboardingIfNeeded() {
         let signedIn = AppRouteResolver.isSignedIn(authManager.authState)
-        let config = container.onboardingRoutingConfiguration
 
         let hasLocalProfile = container.profileBootstrapService.hasLocalProfile()
         let awaitingSignInHandoff = container.profileBootstrapService.localProfileAwaitingSignIn()
@@ -439,7 +464,9 @@ struct AuthGateView: View {
                         hasPersistedOnboardingDraft: container.onboardingDraftStore.hasDraft,
                         hasLocalProfile: hasLocalProfile,
                         pendingOnboardingCompletion: pendingSignInForOnboardingCompletion,
-                        signedOutWithProfilePolicy: config.signedOutWithProfilePolicy
+                        signedOutWithProfilePolicy: .requireSignIn,
+                        suppressAutomaticPublicEntryResume:
+                            container.publicEntrySessionStore.suppressAutomaticPublicEntryResume
                     )
                 )
         )
@@ -479,11 +506,6 @@ struct AuthGateView: View {
     }
 
     private func handleOnboardingCompletionRequest() {
-        if onboardingModel?.pendingCompletionIntent == .localOnly {
-            completeOnboardingLocallyWithoutSignIn()
-            return
-        }
-
         if AppRouteResolver.isSignedIn(authManager.authState) {
             guard let uid = authManager.currentUID else {
                 finishOnboardingLocally()
@@ -652,12 +674,6 @@ struct AuthGateView: View {
         Task { await resolveOnboardingCompletionAfterSignIn(uid: uid) }
     }
 
-    private func completeOnboardingLocallyWithoutSignIn() {
-        onboardingModel = nil
-        rootModel.resolveLocalProfile()
-        rootModel.didCompleteOnboarding()
-    }
-
     private func finishOnboardingLocally() {
         onboardingModel?.finalizeAfterSuccessfulSignIn()
         onboardingModel = nil
@@ -821,6 +837,14 @@ struct AuthGateView: View {
             AuthLogoutPolicy.clearTransientSessionMetadata(
                 cloudSyncStore: container.profileCloudSyncStore
             )
+            if !suppressSignOutEntrySourceAnnotation,
+               container.publicEntrySessionStore.pendingEntrySource == nil {
+                container.publicEntrySessionStore.markSessionExpiredLogout()
+            }
+            suppressSignOutEntrySourceAnnotation = false
+            AuthLogoutPolicy.applyExplicitSignOut(
+                sessionStore: container.publicEntrySessionStore
+            )
         }
 
         if AppRouteResolver.shouldClearOnboardingModel(
@@ -834,24 +858,18 @@ struct AuthGateView: View {
 
         rootModel.resolveLocalProfile()
 
+        publicEntryDestination = AuthLogoutPolicy.publicEntryDestinationAfterSignOut(
+            returnToExistingUserSignIn: returnToExistingUserSignInAfterSignOut,
+            hasExistingUserSignInError: existingUserSignInError != nil
+        )
         if returnToExistingUserSignInAfterSignOut {
             returnToExistingUserSignInAfterSignOut = false
-            publicEntryDestination = NoExistingProfileFoundPolicy.useAnotherAccountDestination
             existingUserSignInError = nil
-        } else if existingUserSignInError != nil {
-            publicEntryDestination = .existingUserSignIn
-        } else if container.onboardingDraftStore.hasDraft,
-           !container.profileBootstrapService.hasLocalProfile() {
+        } else if !wasSignedIn,
+                  !container.publicEntrySessionStore.suppressAutomaticPublicEntryResume,
+                  container.onboardingDraftStore.hasDraft,
+                  !container.profileBootstrapService.hasLocalProfile() {
             publicEntryDestination = .onboardingStart
-            ensureOnboardingModel()
-        } else if !container.profileBootstrapService.localProfileAwaitingSignIn() {
-            publicEntryDestination = .welcome
-        }
-
-        if !container.profileBootstrapService.hasLocalProfile(),
-           onboardingModel == nil,
-           container.onboardingDraftStore.hasDraft {
-            ensureOnboardingModel()
         }
     }
 
@@ -896,6 +914,7 @@ struct AuthGateView: View {
         _ result: ExistingUserSignInResolutionResult,
         uid: String
     ) {
+        lastExistingUserResolutionResult = result
         switch result {
         case .profileFound:
             clearStaleOnboardingDraftIfSafe()
@@ -913,7 +932,11 @@ struct AuthGateView: View {
             pendingExistingUserSignIn = false
             rootModel.presentMissingCloudProfile()
         case .lookupFailed:
-            logExistingUserSignIn(.existingSignInFailed, reason: .profileLookupFailed)
+            logExistingUserSignIn(
+                .existingSignInFailed,
+                reason: .profileLookupFailed,
+                profileResolutionResult: .lookupFailed
+            )
             existingUserSignInSessionActive = false
             pendingExistingUserSignIn = false
             awaitingCloudSync = false
@@ -1013,7 +1036,11 @@ struct AuthGateView: View {
                 rootModel.presentProfilePlanConflict()
             case .missing, .failed:
                 if existingUserSignInSessionActive {
-                    logExistingUserSignIn(.existingSignInFailed, reason: .profileLookupFailed)
+                    logExistingUserSignIn(
+                        .existingSignInFailed,
+                        reason: .profileLookupFailed,
+                        profileResolutionResult: .lookupFailed
+                    )
                     existingUserSignInSessionActive = false
                     rootModel.presentExistingUserProfileLookupFailed()
                 } else {
@@ -1043,20 +1070,69 @@ struct AuthGateView: View {
         }
     }
 
+    // MARK: - Public entry analytics
+
+    private func publicEntryAnalyticsProperties(
+        profileResolutionResult: ExistingUserSignInResolutionResult? = nil,
+        reason: String? = nil
+    ) -> PublicEntryAnalyticsProperties {
+        PublicEntryAnalyticsContextBuilder.properties(
+            hasLocalProfile: container.profileBootstrapService.hasLocalProfile(),
+            profileResolutionResult: profileResolutionResult ?? lastExistingUserResolutionResult,
+            reason: reason
+        )
+    }
+
+    private func logWelcomeScreenAnalytics() {
+        let base = publicEntryAnalyticsProperties()
+        if let pending = container.publicEntrySessionStore.consumePendingEntrySource() {
+            var properties = base
+            properties.entrySource = pending.rawValue
+            logPublicEntry(.welcomeViewed, properties: properties)
+            if pending == .logout {
+                logPublicEntry(.logoutCompletedPublicEntryShown, properties: properties)
+            }
+            return
+        }
+
+        guard !didLogColdStartWelcome else {
+            logPublicEntry(.welcomeViewed, properties: base)
+            return
+        }
+
+        didLogColdStartWelcome = true
+        var properties = base
+        properties.entrySource = PublicEntryEntrySource.freshInstall.rawValue
+        logPublicEntry(.welcomeViewed, properties: properties)
+    }
+
+    private func logPublicEntry(
+        _ event: PublicEntryAnalyticsEvent,
+        properties: PublicEntryAnalyticsProperties
+    ) {
+        container.publicEntryAnalyticsLogger.log(event, properties: properties)
+    }
+
     // MARK: - Existing user sign-in analytics
 
     private func logExistingUserSignIn(
         _ event: PublicEntryAnalyticsEvent,
-        reason: ExistingUserSignInFailureKind? = nil
+        reason: ExistingUserSignInFailureKind? = nil,
+        profileResolutionResult: ExistingUserSignInResolutionResult? = nil
     ) {
-        var properties = PublicEntryAnalyticsProperties()
-        properties.reason = reason?.analyticsReason
+        let properties = publicEntryAnalyticsProperties(
+            profileResolutionResult: profileResolutionResult,
+            reason: reason?.analyticsReason
+        )
         container.publicEntryAnalyticsLogger.log(event, properties: properties)
     }
 
     private func completeExistingUserSignInSuccessIfNeeded() {
         guard existingUserSignInSessionActive else { return }
-        logExistingUserSignIn(.existingSignInSucceeded)
+        logExistingUserSignIn(
+            .existingSignInSucceeded,
+            profileResolutionResult: lastExistingUserResolutionResult
+        )
         existingUserSignInSessionActive = false
         existingUserSignInError = nil
         pendingExistingUserSignIn = false
@@ -1064,7 +1140,10 @@ struct AuthGateView: View {
 
     private func completeExistingUserSignInNoProfileIfNeeded() {
         guard existingUserSignInSessionActive else { return }
-        logExistingUserSignIn(.existingSignInNoProfileFound)
+        logExistingUserSignIn(
+            .existingSignInNoProfileFound,
+            profileResolutionResult: .noProfileFound
+        )
         existingUserSignInSessionActive = false
         existingUserSignInError = nil
     }
@@ -1077,6 +1156,7 @@ struct AuthGateView: View {
         publicEntryDestination = .existingUserSignIn
 
         if AppRouteResolver.isSignedIn(authManager.authState) {
+            suppressSignOutEntrySourceAnnotation = true
             Task {
                 await authManager.signOut()
             }
@@ -1108,4 +1188,5 @@ struct AuthGateView: View {
 
 #Preview {
     AuthGateView(container: try! AppContainer(inMemory: true))
+        .formaThemePreview()
 }

@@ -139,16 +139,3 @@ final class TodayAnalyticsEventEmissionTests: XCTestCase {
         XCTAssertNil(saved.properties.asParameters()["name"])
     }
 }
-
-private final class CapturingTodayAnalyticsLogger: TodayAnalyticsLogging, @unchecked Sendable {
-    struct Event {
-        let event: TodayAnalyticsEvent
-        let properties: TodayAnalyticsProperties
-    }
-
-    private(set) var events: [Event] = []
-
-    func log(_ event: TodayAnalyticsEvent, properties: TodayAnalyticsProperties) {
-        events.append(Event(event: event, properties: properties))
-    }
-}

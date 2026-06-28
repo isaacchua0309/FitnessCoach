@@ -29,4 +29,22 @@ enum AsyncTestSupport {
             await Task.yield()
         }
     }
+
+    /// Polls until `condition` is true or `timeout` elapses (for production delays like Task.sleep).
+    static func waitUntilWallClock(
+        timeout: TimeInterval = 2.0,
+        interval: TimeInterval = 0.05,
+        _ condition: () -> Bool
+    ) async -> Bool {
+        if condition() { return true }
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            await Task.yield()
+            if condition() { return true }
+            let remaining = deadline.timeIntervalSinceNow
+            guard remaining > 0 else { break }
+            try? await Task.sleep(nanoseconds: UInt64(min(interval, remaining) * 1_000_000_000))
+        }
+        return condition()
+    }
 }

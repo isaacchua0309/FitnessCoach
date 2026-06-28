@@ -42,6 +42,13 @@ struct OnboardingWeightTrajectoryHeroChart: View {
         model.formaSeries.map(\.weekLabel)
     }
 
+    private var yAxisDomain: ClosedRange<Double> {
+        OnboardingWeightTrajectoryChartLayout.yAxisDomain(
+            formaSeries: model.formaSeries,
+            traditionalSeries: model.traditionalSeries
+        )
+    }
+
     var body: some View {
         Chart(chartPoints) { point in
             LineMark(
@@ -53,10 +60,11 @@ struct OnboardingWeightTrajectoryHeroChart: View {
             .lineStyle(lineStyle(for: point.series))
         }
         .chartForegroundStyleScale([
-            Series.forma.rawValue: OnboardingTheme.accent,
-            Series.traditional.rawValue: OnboardingTheme.secondaryText.opacity(0.72)
+            Series.forma.rawValue: OnboardingTheme.chartPrimary,
+            Series.traditional.rawValue: OnboardingTheme.chartSecondary
         ])
         .chartXScale(domain: 0...(max(model.formaSeries.count - 1, 0)))
+        .chartYScale(domain: yAxisDomain)
         .chartXAxis {
             AxisMarks(values: .automatic) { value in
                 if let index = value.as(Int.self), weekLabels.indices.contains(index) {
@@ -69,7 +77,7 @@ struct OnboardingWeightTrajectoryHeroChart: View {
             }
         }
         .chartYAxis {
-            AxisMarks(position: .leading) { _ in
+            AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { _ in
                 AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [4, 6]))
                     .foregroundStyle(OnboardingTheme.border.opacity(0.35))
                 AxisValueLabel()
@@ -85,7 +93,7 @@ struct OnboardingWeightTrajectoryHeroChart: View {
         .chartLegend(.hidden)
         .chartPlotStyle { plotArea in
             plotArea
-                .background(FormaTokens.Color.surfaceSubtle.opacity(0.4))
+                .background(OnboardingTheme.surfaceSubtle.opacity(0.4))
                 .clipShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous))
         }
         .mask(alignment: .leading) {
@@ -112,6 +120,33 @@ struct OnboardingWeightTrajectoryHeroChart: View {
     }
 }
 
+// MARK: - Y-axis layout
+
+enum OnboardingWeightTrajectoryChartLayout {
+
+    /// Pads the combined series range so divergence is visible (avoids 0-based auto-scale).
+    static func yAxisDomain(
+        formaSeries: [OnboardingWeightTrendPoint],
+        traditionalSeries: [OnboardingWeightTrendPoint],
+        paddingRatio: Double = 0.12,
+        minimumPadding: Double = 2.5
+    ) -> ClosedRange<Double> {
+        let weights = (formaSeries + traditionalSeries).map(\.weightKg)
+        guard let minWeight = weights.min(), let maxWeight = weights.max() else {
+            return 0...100
+        }
+
+        guard maxWeight > minWeight else {
+            let center = minWeight
+            return (center - minimumPadding)...(center + minimumPadding)
+        }
+
+        let span = maxWeight - minWeight
+        let padding = max(span * paddingRatio, minimumPadding)
+        return (minWeight - padding)...(maxWeight + padding)
+    }
+}
+
 #if DEBUG
 #Preview("Trajectory Hero Chart") {
     OnboardingWeightTrajectoryHeroChart(
@@ -121,6 +156,6 @@ struct OnboardingWeightTrajectoryHeroChart: View {
     .frame(height: 320)
     .padding()
     .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
+    .formaThemePreview()
 }
 #endif
