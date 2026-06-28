@@ -130,32 +130,12 @@ struct OnboardingPageShell<Content: View>: View {
                     .accessibilityLabel(FormaProductCopy.Common.back)
                 }
 
-                Button(action: onPrimary) {
-                    HStack(spacing: 8) {
-                        if isPrimaryLoading {
-                            SwiftUI.ProgressView()
-                                .tint(OnboardingTheme.ctaText)
-                        }
-                        Text(primaryTitle)
-                            .font(FormaTokens.Typography.body.weight(.semibold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
-                    }
-                    .foregroundStyle(
-                        isPrimaryEnabled && !isPrimaryLoading
-                            ? OnboardingTheme.ctaText
-                            : OnboardingTheme.secondaryText
-                    )
-                    .frame(maxWidth: .infinity)
-                    .frame(height: resolvedButtonHeight)
-                    .background(primaryBackground)
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
-                    )
-                }
-                .buttonStyle(.plain)
-                .disabled(isPrimaryLoading || !isPrimaryEnabled)
-                .accessibilityLabel(primaryTitle)
+                OnboardingPrimaryCTA(
+                    title: primaryTitle,
+                    isEnabled: isPrimaryEnabled,
+                    isLoading: isPrimaryLoading,
+                    action: onPrimary
+                )
             }
         }
         .padding(.horizontal, OnboardingTheme.pagePadding)
@@ -165,16 +145,6 @@ struct OnboardingPageShell<Content: View>: View {
             Rectangle()
                 .fill(OnboardingTheme.cardElevated)
                 .ignoresSafeArea(edges: .bottom)
-        }
-    }
-
-    private var primaryBackground: some View {
-        Group {
-            if isPrimaryEnabled && !isPrimaryLoading {
-                OnboardingTheme.ctaBackground
-            } else {
-                OnboardingTheme.cardElevated
-            }
         }
     }
 

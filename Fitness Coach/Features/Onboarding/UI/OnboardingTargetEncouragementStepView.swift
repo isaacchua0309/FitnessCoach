@@ -46,18 +46,13 @@ struct OnboardingTargetEncouragementStepView: View {
 
     private var heroSection: some View {
         VStack(spacing: FormaTokens.Spacing.sm) {
-            Text(displayState.heroMetric)
-                .font(.system(size: 44, weight: .bold, design: .rounded))
-                .foregroundStyle(OnboardingTheme.primaryText)
-                .minimumScaleFactor(0.8)
-                .lineLimit(2)
+            OnboardingMetricHighlight(value: displayState.heroMetric)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
                 .scaleEffect(heroVisible ? 1 : 0.94)
                 .opacity(heroVisible ? 1 : 0)
                 .contentTransition(.numericText())
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: displayState.heroMetric)
-                .accessibilityAddTraits(.isHeader)
 
             if let journeyLine = displayState.journeyLine {
                 Text(journeyLine)

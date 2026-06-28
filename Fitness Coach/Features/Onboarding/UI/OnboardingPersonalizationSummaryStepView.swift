@@ -2,7 +2,7 @@
 //  OnboardingPersonalizationSummaryStepView.swift
 //  Fitness Coach
 //
-//  Forma — Plan blueprint milestone before generation.
+//  Forma — Plan-learned milestone before generation.
 //
 
 import SwiftUI
@@ -13,13 +13,11 @@ struct OnboardingPersonalizationSummaryStepView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @State private var headerVisible = false
-    @State private var goalVisible = false
-    @State private var mirrorVisible = false
-    @State private var insightVisible = false
-    @State private var anticipationVisible = false
-    @State private var detailsVisible = false
-    @State private var isDetailsExpanded = false
+    @State private var chromeVisible = false
+    @State private var headlineVisible = false
+    @State private var supportingVisible = false
+    @State private var summaryVisible = false
+    @State private var pillarsVisible = false
     @State private var didPlayAppearHaptic = false
 
     private var displayState: OnboardingPlanBlueprintState {
@@ -39,32 +37,29 @@ struct OnboardingPersonalizationSummaryStepView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            headerSection
+            progressChrome
                 .padding(.bottom, FormaTokens.Spacing.md)
 
             if showsValidationBanner {
                 OnboardingWarningBanner(message: bannerMessage)
-                    .opacity(headerVisible ? 1 : 0)
+                    .opacity(chromeVisible ? 1 : 0)
                     .padding(.bottom, FormaTokens.Spacing.sm)
             }
 
             Spacer(minLength: FormaTokens.Spacing.xs)
 
-            goalSection
+            headlineSection
+                .padding(.bottom, FormaTokens.Spacing.md)
+
+            supportingSection
                 .padding(.bottom, FormaTokens.Spacing.lg)
 
-            mirrorSection
-                .padding(.bottom, FormaTokens.Spacing.md)
-
-            insightSection
-                .padding(.bottom, FormaTokens.Spacing.md)
+            summarySection
+                .padding(.bottom, FormaTokens.Spacing.lg)
 
             Spacer(minLength: FormaTokens.Spacing.sm)
 
-            anticipationSection
-                .padding(.bottom, FormaTokens.Spacing.sm)
-
-            detailsSection
+            pillarsSection
 
             Spacer(minLength: 0)
         }
@@ -79,90 +74,81 @@ struct OnboardingPersonalizationSummaryStepView: View {
         }
     }
 
-    private var headerSection: some View {
-        OnboardingStageProgressHeader(currentStep: .review)
-            .opacity(headerVisible ? 1 : 0)
-            .offset(y: headerVisible ? 0 : 6)
+    private var progressChrome: some View {
+        OnboardingStageProgressHeader(currentStep: .review, showsTitles: false)
+            .opacity(chromeVisible ? 1 : 0)
+            .offset(y: chromeVisible ? 0 : 4)
     }
 
-    private var goalSection: some View {
-        OnboardingPlanBlueprintGoalCard(
-            badge: displayState.goalBadge,
-            heroMetric: displayState.goalHero,
-            subtitle: displayState.goalSubtitle
+    private var headlineSection: some View {
+        Text(displayState.headline)
+            .font(.system(.largeTitle, design: .rounded).weight(.bold))
+            .foregroundStyle(OnboardingTheme.primaryText)
+            .multilineTextAlignment(.center)
+            .minimumScaleFactor(0.72)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity)
+            .opacity(headlineVisible ? 1 : 0)
+            .offset(y: headlineVisible ? 0 : 8)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private var supportingSection: some View {
+        Text(displayState.supportingParagraph)
+            .font(.title3.weight(.medium))
+            .foregroundStyle(OnboardingTheme.secondaryText)
+            .multilineTextAlignment(.center)
+            .minimumScaleFactor(0.85)
+            .lineLimit(4)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity)
+            .opacity(supportingVisible ? 1 : 0)
+            .offset(y: supportingVisible ? 0 : 8)
+    }
+
+    private var summarySection: some View {
+        OnboardingPlanBlueprintPersonalizationSummaryCard(
+            summary: displayState.personalizationSummary
         )
-        .opacity(goalVisible ? 1 : 0)
-        .offset(y: goalVisible ? 0 : 8)
-        .scaleEffect(goalVisible ? 1 : 0.96)
+        .opacity(summaryVisible ? 1 : 0)
+        .offset(y: summaryVisible ? 0 : 8)
+        .scaleEffect(summaryVisible ? 1 : 0.97)
     }
 
-    @ViewBuilder
-    private var mirrorSection: some View {
-        if !displayState.profileSignals.isEmpty {
-            OnboardingPlanBlueprintProfileMirrorCard(
-                title: displayState.profileMirrorTitle,
-                signals: displayState.profileSignals
-            )
-            .opacity(mirrorVisible ? 1 : 0)
-            .offset(y: mirrorVisible ? 0 : 8)
-        }
-    }
-
-    private var insightSection: some View {
-        OnboardingPlanBlueprintCoachInsightCard(
-            title: displayState.coachInsightTitle,
-            bodyCopy: displayState.coachInsightBody
+    private var pillarsSection: some View {
+        OnboardingPlanBlueprintPillarsSection(
+            pillars: displayState.pillars,
+            accessibilityLabel: FormaProductCopy.Onboarding.Flow.Summary.Pillars.accessibilityLabel
         )
-        .opacity(insightVisible ? 1 : 0)
-        .offset(y: insightVisible ? 0 : 6)
-    }
-
-    private var anticipationSection: some View {
-        OnboardingPlanBlueprintAnticipationSection(
-            title: FormaProductCopy.Onboarding.Flow.Summary.Anticipation.sectionTitle,
-            bullets: displayState.anticipationBullets,
-            accessibilityLabel: FormaProductCopy.Onboarding.Flow.Summary.Anticipation.accessibilityLabel
-        )
-        .opacity(anticipationVisible ? 1 : 0)
-        .offset(y: anticipationVisible ? 0 : 6)
-    }
-
-    private var detailsSection: some View {
-        OnboardingPlanBlueprintDetailsCard(
-            rows: displayState.detailRows,
-            isExpanded: $isDetailsExpanded
-        )
-        .opacity(detailsVisible ? 1 : 0)
+        .opacity(pillarsVisible ? 1 : 0)
+        .offset(y: pillarsVisible ? 0 : 10)
     }
 
     private func runEntranceAnimation() {
         if reduceMotion {
-            headerVisible = true
-            goalVisible = true
-            mirrorVisible = true
-            insightVisible = true
-            anticipationVisible = true
-            detailsVisible = true
+            chromeVisible = true
+            headlineVisible = true
+            supportingVisible = true
+            summaryVisible = true
+            pillarsVisible = true
             return
         }
 
         withAnimation(.easeOut(duration: 0.22)) {
-            headerVisible = true
+            chromeVisible = true
         }
-        withAnimation(.easeOut(duration: 0.30).delay(0.06)) {
-            goalVisible = true
+        withAnimation(.easeOut(duration: 0.28).delay(0.06)) {
+            headlineVisible = true
         }
-        withAnimation(.easeOut(duration: 0.24).delay(0.14)) {
-            mirrorVisible = true
+        withAnimation(.easeOut(duration: 0.26).delay(0.14)) {
+            supportingVisible = true
         }
-        withAnimation(.easeOut(duration: 0.22).delay(0.22)) {
-            insightVisible = true
+        withAnimation(.easeOut(duration: 0.28).delay(0.24)) {
+            summaryVisible = true
         }
-        withAnimation(.easeOut(duration: 0.20).delay(0.30)) {
-            anticipationVisible = true
-        }
-        withAnimation(.easeOut(duration: 0.18).delay(0.38)) {
-            detailsVisible = true
+        withAnimation(.easeOut(duration: 0.24).delay(0.36)) {
+            pillarsVisible = true
         }
     }
 

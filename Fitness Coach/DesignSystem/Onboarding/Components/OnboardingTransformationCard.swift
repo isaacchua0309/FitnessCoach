@@ -1,27 +1,26 @@
 //
-//  OnboardingAlmostThereBenefitReel.swift
+//  OnboardingTransformationCard.swift
 //  Fitness Coach
 //
-//  Forma — Progressive benefit disclosure for the almost-there milestone.
+//  Forma — Progressive benefit disclosure card for onboarding marketing screens.
 //
 
 import SwiftUI
 
-struct OnboardingAlmostThereBenefitReel: View {
-    let benefits: [OnboardingAlmostThereBenefit]
+struct OnboardingTransformationCard: View {
+    let benefits: [OnboardingBenefitItem]
     let accessibilityLabel: String
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var activeIndex = 0
     @State private var advanceTask: Task<Void, Never>?
 
-    @ScaledMetric(relativeTo: .title2) private var iconSize: CGFloat = 28
-    @ScaledMetric(relativeTo: .title2) private var reelHeight: CGFloat = 88
-
-    private let advanceInterval: Duration = .seconds(3.2)
+    @ScaledMetric(relativeTo: .title2) private var iconSize = OnboardingVisual.benefitIconHero
 
     var body: some View {
         VStack(spacing: FormaTokens.Spacing.md) {
+            Spacer(minLength: FormaTokens.Spacing.xs)
+
             ZStack {
                 if let benefit = activeBenefit {
                     benefitPanel(benefit)
@@ -36,57 +35,70 @@ struct OnboardingAlmostThereBenefitReel: View {
                         )
                 }
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: reelHeight, alignment: .center)
-            .animation(reduceMotion ? nil : .easeInOut(duration: 0.32), value: activeIndex)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .animation(reduceMotion ? nil : OnboardingMotion.transitionEase, value: activeIndex)
             .contentShape(Rectangle())
-            .onTapGesture {
-                advanceManually()
-            }
+            .onTapGesture { advanceManually() }
 
             pageIndicator
+                .padding(.bottom, FormaTokens.Spacing.xs)
         }
         .padding(.horizontal, FormaTokens.Spacing.lg)
         .padding(.vertical, FormaTokens.Spacing.md)
-        .frame(maxWidth: .infinity)
-        .background(reelBackground)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(cardBackground)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityAdjustableAction { direction in
             switch direction {
-            case .increment:
-                setActiveIndex(activeIndex + 1)
-            case .decrement:
-                setActiveIndex(activeIndex - 1)
-            @unknown default:
-                break
+            case .increment: setActiveIndex(activeIndex + 1)
+            case .decrement: setActiveIndex(activeIndex - 1)
+            @unknown default: break
             }
         }
-        .onAppear {
-            startAutoAdvance()
-        }
+        .onAppear { startAutoAdvance() }
         .onDisappear {
             advanceTask?.cancel()
             advanceTask = nil
         }
     }
 
-    private var activeBenefit: OnboardingAlmostThereBenefit? {
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
+            .fill(OnboardingGradients.cardAccentWash)
+            .overlay(
+                RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
+                    .stroke(OnboardingTheme.accent.opacity(OnboardingVisual.accentCardBorderOpacity), lineWidth: 1)
+            )
+            .shadow(
+                color: OnboardingTheme.accent.opacity(0.1),
+                radius: OnboardingVisual.cardShadowRadius,
+                y: OnboardingVisual.cardShadowY
+            )
+    }
+
+    private var activeBenefit: OnboardingBenefitItem? {
         guard !benefits.isEmpty else { return nil }
         let wrapped = ((activeIndex % benefits.count) + benefits.count) % benefits.count
         return benefits[wrapped]
     }
 
-    private func benefitPanel(_ benefit: OnboardingAlmostThereBenefit) -> some View {
-        VStack(spacing: FormaTokens.Spacing.sm) {
-            Image(systemName: benefit.icon)
-                .font(.system(size: iconSize, weight: .semibold))
-                .foregroundStyle(OnboardingTheme.accent)
-                .symbolRenderingMode(.hierarchical)
-                .accessibilityHidden(true)
+    private func benefitPanel(_ benefit: OnboardingBenefitItem) -> some View {
+        VStack(spacing: FormaTokens.Spacing.md) {
+            ZStack {
+                Circle()
+                    .fill(OnboardingTheme.accent.opacity(0.14))
+                    .frame(width: iconSize + 28, height: iconSize + 28)
+
+                Image(systemName: benefit.icon)
+                    .font(.system(size: iconSize, weight: .semibold))
+                    .foregroundStyle(OnboardingTheme.accent)
+                    .symbolRenderingMode(.hierarchical)
+            }
+            .accessibilityHidden(true)
 
             Text(benefit.title)
-                .font(.system(.title3, design: .rounded).weight(.semibold))
+                .font(OnboardingMarketingTypography.benefitTitle)
                 .foregroundStyle(OnboardingTheme.primaryText)
                 .multilineTextAlignment(.center)
                 .minimumScaleFactor(0.8)
@@ -106,8 +118,8 @@ struct OnboardingAlmostThereBenefitReel: View {
                             ? OnboardingTheme.accent
                             : OnboardingTheme.progressTrack.opacity(0.85)
                     )
-                    .frame(width: index == normalizedActiveIndex ? 18 : 6, height: 6)
-                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: activeIndex)
+                    .frame(width: index == normalizedActiveIndex ? 20 : 7, height: 7)
+                    .animation(reduceMotion ? nil : OnboardingMotion.indicatorEase, value: activeIndex)
             }
         }
         .accessibilityHidden(true)
@@ -118,22 +130,12 @@ struct OnboardingAlmostThereBenefitReel: View {
         return ((activeIndex % benefits.count) + benefits.count) % benefits.count
     }
 
-    private var reelBackground: some View {
-        RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-            .fill(OnboardingTheme.cardElevated)
-            .overlay(
-                RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-                    .stroke(OnboardingTheme.accent.opacity(0.22), lineWidth: 1)
-            )
-            .shadow(color: OnboardingTheme.accent.opacity(0.08), radius: 16, y: 8)
-    }
-
     private func startAutoAdvance() {
         guard !reduceMotion, benefits.count > 1 else { return }
         advanceTask?.cancel()
         advanceTask = Task { @MainActor in
             while !Task.isCancelled {
-                try? await Task.sleep(for: advanceInterval)
+                try? await Task.sleep(for: OnboardingMotion.benefitReelInterval)
                 guard !Task.isCancelled else { return }
                 setActiveIndex(activeIndex + 1)
             }
@@ -153,10 +155,11 @@ struct OnboardingAlmostThereBenefitReel: View {
 
 #if DEBUG
 #Preview {
-    OnboardingAlmostThereBenefitReel(
+    OnboardingTransformationCard(
         benefits: OnboardingAlmostThereValues.benefits,
         accessibilityLabel: OnboardingAlmostThereValues.benefitsAccessibilityLabel
     )
+    .frame(height: 200)
     .padding()
     .background(OnboardingTheme.background)
     .formaThemePreview()

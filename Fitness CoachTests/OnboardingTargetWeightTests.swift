@@ -355,4 +355,29 @@ final class OnboardingTargetWeightTests: XCTestCase {
             .targetEncouragement
         )
     }
+
+    func testSelectorIdentityStaysStableWhileGoalChanges() {
+        var state = sampleForm(currentKg: 90, heightCm: 170)
+        let identityBefore = OnboardingTargetWeightValues.selectorIdentity(for: state)
+
+        OnboardingTargetWeightValues.setGoalFromDisplay(70.1, in: &state)
+
+        XCTAssertEqual(
+            OnboardingTargetWeightValues.selectorIdentity(for: state),
+            identityBefore
+        )
+        XCTAssertEqual(state.parsedGoalWeightKg ?? 0, 70.1, accuracy: 0.01)
+    }
+
+    func testSelectorIdentityChangesWhenUnitSystemChanges() {
+        var state = sampleForm(currentKg: 90, heightCm: 170)
+        let metricIdentity = OnboardingTargetWeightValues.selectorIdentity(for: state)
+
+        state.unitSystem = .imperial
+
+        XCTAssertNotEqual(
+            OnboardingTargetWeightValues.selectorIdentity(for: state),
+            metricIdentity
+        )
+    }
 }

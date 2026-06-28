@@ -39,7 +39,7 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
         XCTAssertEqual(reveal.currentWeightLabel, "82.5 kg")
         XCTAssertEqual(reveal.goalWeightLabel, "75 kg")
         XCTAssertEqual(reveal.goalProgressLabel, "82.5 kg → 75 kg")
-        XCTAssertEqual(reveal.goalHeroHeadline, "Lose toward 75 kg")
+        XCTAssertEqual(reveal.goalHeroHeadline, "Reach 75 kg")
         XCTAssertEqual(reveal.goalHeroProgressLine, "From 82.5 kg to 75 kg")
         XCTAssertEqual(
             reveal.goalHeroSupport,
@@ -66,7 +66,7 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
         XCTAssertNil(reveal.paceLabel)
         XCTAssertNil(reveal.estimatedWeeksLabel)
         XCTAssertNil(reveal.goalHeroProgressLine)
-        XCTAssertEqual(reveal.goalHeroHeadline, "Maintain around 72 kg")
+        XCTAssertEqual(reveal.goalHeroHeadline, "Maintain 72 kg")
         XCTAssertEqual(
             reveal.goalHeroSupport,
             FormaProductCopy.Onboarding.V2.PlanReveal.GoalHero.maintainSupport
@@ -89,7 +89,7 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
         XCTAssertNil(reveal.weeklyChangeLabel)
         XCTAssertNil(reveal.paceLabel)
         XCTAssertNil(reveal.estimatedWeeksLabel)
-        XCTAssertEqual(reveal.goalHeroHeadline, "Gain toward 78 kg")
+        XCTAssertEqual(reveal.goalHeroHeadline, "Build toward 78 kg")
         XCTAssertEqual(reveal.goalHeroProgressLine, "From 72 kg to 78 kg")
         XCTAssertEqual(
             reveal.focusTitle,
@@ -283,15 +283,30 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
         XCTAssertFalse(combined.contains("automatic"))
     }
 
-    func testAccessibilitySummaryIncludesGoalAndDailyMission() throws {
+    func testAccessibilitySummaryLeadsWithGoalBeforeDailyFuel() throws {
         let form = bodyForm(currentWeightKg: 70, goalWeightKg: 70)
         let plan = try samplePlan(for: form)
         let reveal = try XCTUnwrap(OnboardingPlanRevealBuilder.build(formState: form, plan: plan))
 
         XCTAssertTrue(reveal.accessibilitySummary.contains("Your Forma plan is ready"))
-        XCTAssertTrue(reveal.accessibilitySummary.contains("maintain around"))
-        XCTAssertTrue(reveal.accessibilitySummary.contains("daily mission"))
-        XCTAssertTrue(reveal.accessibilitySummary.contains("calories per day"))
+        XCTAssertTrue(reveal.accessibilitySummary.contains("maintain"))
+        XCTAssertTrue(reveal.accessibilitySummary.contains("Daily fuel"))
+        XCTAssertTrue(reveal.accessibilitySummary.contains("First mission"))
+        XCTAssertFalse(reveal.accessibilitySummary.contains("daily mission"))
+        let goalRange = reveal.accessibilitySummary.range(of: "maintain")!
+        let fuelRange = reveal.accessibilitySummary.range(of: "Daily fuel")!
+        XCTAssertTrue(goalRange.lowerBound < fuelRange.lowerBound)
+    }
+
+    func testFirstWeekMissionsAndCoachMessageArePopulated() throws {
+        let form = cutForm(currentWeightKg: 82.5, goalWeightKg: 75)
+        let plan = try samplePlan(for: form)
+        let reveal = try XCTUnwrap(OnboardingPlanRevealBuilder.build(formState: form, plan: plan))
+
+        XCTAssertEqual(reveal.firstWeekMissions.count, 3)
+        XCTAssertFalse(reveal.coachMessage.isEmpty)
+        XCTAssertFalse(reveal.journeyBeliefLine.isEmpty)
+        XCTAssertTrue(reveal.journeyBeliefLine.contains("Moderate cut"))
     }
 
     // MARK: - Fixtures

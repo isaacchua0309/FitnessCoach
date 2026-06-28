@@ -74,14 +74,6 @@ struct OnboardingBottomBar: View {
         return canContinue
     }
 
-    private var showsBuildPlanHint: Bool {
-        currentStep == .review
-    }
-
-    private var buildPlanHint: String? {
-        showsBuildPlanHint ? FormaProductCopy.Onboarding.Flow.Summary.buildPlanCTAHint : nil
-    }
-
     var body: some View {
         VStack(spacing: OnboardingLayout.footerInnerSpacing) {
             if let saveTrustNote, showsAdjustPlan {
@@ -92,16 +84,6 @@ struct OnboardingBottomBar: View {
                     .frame(maxWidth: .infinity)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityLabel(saveTrustNote)
-            }
-
-            if let buildPlanHint, showsBuildPlanHint {
-                Text(buildPlanHint)
-                    .font(FormaTokens.Typography.caption.weight(.medium))
-                    .foregroundStyle(OnboardingTheme.secondaryText)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityLabel(buildPlanHint)
             }
 
             HStack(spacing: FormaTokens.Spacing.md) {
@@ -124,27 +106,13 @@ struct OnboardingBottomBar: View {
                     .accessibilityLabel(FormaProductCopy.Common.back)
                 }
 
-                Button(action: onContinue) {
-                    HStack(spacing: 8) {
-                        if isLoading {
-                            SwiftUI.ProgressView()
-                                .tint(OnboardingTheme.ctaText)
-                        }
-                        Text(primaryTitle)
-                            .font(FormaTokens.Typography.body.weight(.semibold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
-                    }
-                    .foregroundStyle(isPrimaryActionEnabled && !isLoading ? OnboardingTheme.ctaText : OnboardingTheme.secondaryText)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: resolvedButtonHeight)
-                    .background(primaryBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .disabled(isLoading || (currentStep == .appleHealth ? !isAppleHealthPrimaryEnabled : false))
-                .accessibilityLabel(primaryTitle)
-                .accessibilityHint(canContinue ? "" : resolvedRequiredFieldsHint)
+                OnboardingPrimaryCTA(
+                    title: primaryTitle,
+                    isEnabled: currentStep == .appleHealth ? isAppleHealthPrimaryEnabled : isPrimaryActionEnabled,
+                    isLoading: isLoading,
+                    accessibilityHint: canContinue ? "" : resolvedRequiredFieldsHint,
+                    action: onContinue
+                )
             }
 
             if showsAdjustPlan, let onAdjustPlan {
@@ -196,15 +164,8 @@ struct OnboardingBottomBar: View {
         .padding(.bottom, OnboardingLayout.footerVerticalPadding)
         .background(alignment: .top) {
             VStack(spacing: 0) {
-                LinearGradient(
-                    colors: [
-                        OnboardingTheme.background.opacity(0),
-                        OnboardingTheme.background
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 14)
+                OnboardingGradients.footerFade
+                    .frame(height: 14)
 
                 OnboardingTheme.background
             }
@@ -220,16 +181,6 @@ struct OnboardingBottomBar: View {
 
     private var resolvedRequiredFieldsHint: String {
         requiredFieldsHint ?? FormaProductCopy.Common.completeRequiredFields
-    }
-
-    private var primaryBackground: some View {
-        Group {
-            if isPrimaryActionEnabled && !isLoading {
-                OnboardingTheme.ctaBackground
-            } else {
-                OnboardingTheme.cardElevated
-            }
-        }
     }
 }
 

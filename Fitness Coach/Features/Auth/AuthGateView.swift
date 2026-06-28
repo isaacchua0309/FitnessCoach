@@ -118,10 +118,11 @@ struct AuthGateView: View {
         .task {
             authManager.startListening()
         }
-        .onChange(of: effectiveRoute) { _, route in
+        .onChange(of: effectiveRoute, initial: true) { _, route in
             if route == .welcome {
                 logWelcomeScreenAnalytics()
             }
+            logAppShellRouteDecision(selectedRoute: route)
         }
         .onChange(of: authManager.authState, initial: true) { previous, state in
             handleAuthStateChange(from: previous, to: state)
@@ -170,7 +171,6 @@ struct AuthGateView: View {
     private var effectiveRoute: AppShellRoute {
         let suppressAutomaticPublicEntryResume =
             container.publicEntrySessionStore.suppressAutomaticPublicEntryResume
-        let hasLocalProfile = container.profileBootstrapService.hasLocalProfile()
         let base = container.resolveAppShellRoute(
             authState: authManager.authState,
             rootState: rootModel.state,
@@ -179,26 +179,12 @@ struct AuthGateView: View {
             pendingOnboardingCompletion: pendingSignInForOnboardingCompletion,
             publicEntryDestination: publicEntryDestination
         )
-        let selected = AuthGateRoutingPolicy.effectiveRoute(
+        return AuthGateRoutingPolicy.effectiveRoute(
             baseRoute: base,
             isSignedIn: AppRouteResolver.isSignedIn(authManager.authState),
             hasActiveOnboardingSession: onboardingModel != nil,
             suppressAutomaticPublicEntryResume: suppressAutomaticPublicEntryResume
         )
-        AppShellRoutingLogger.logDecision(
-            authState: authManager.authState,
-            rootState: rootModel.state,
-            hasLocalProfile: hasLocalProfile,
-            localProfileAwaitingSignIn: container.profileBootstrapService.localProfileAwaitingSignIn(),
-            hasPersistedOnboardingDraft: container.onboardingDraftStore.hasDraft,
-            suppressAutomaticPublicEntryResume: suppressAutomaticPublicEntryResume,
-            publicEntryDestination: publicEntryDestination,
-            isOnboardingModelReady: onboardingModel != nil,
-            baseRoute: base,
-            selectedRoute: selected,
-            trigger: "auth_gate_effective_route"
-        )
-        return selected
     }
 
     // MARK: - Public entry actions
@@ -1120,6 +1106,32 @@ struct AuthGateView: View {
 
     // MARK: - Public entry analytics
 
+    private func logAppShellRouteDecision(selectedRoute: AppShellRoute) {
+        let suppressAutomaticPublicEntryResume =
+            container.publicEntrySessionStore.suppressAutomaticPublicEntryResume
+        let base = container.resolveAppShellRoute(
+            authState: authManager.authState,
+            rootState: rootModel.state,
+            isOnboardingModelReady: onboardingModel != nil,
+            awaitingCloudSync: awaitingCloudSync,
+            pendingOnboardingCompletion: pendingSignInForOnboardingCompletion,
+            publicEntryDestination: publicEntryDestination
+        )
+        AppShellRoutingLogger.logDecision(
+            authState: authManager.authState,
+            rootState: rootModel.state,
+            hasLocalProfile: container.profileBootstrapService.hasLocalProfile(),
+            localProfileAwaitingSignIn: container.profileBootstrapService.localProfileAwaitingSignIn(),
+            hasPersistedOnboardingDraft: container.onboardingDraftStore.hasDraft,
+            suppressAutomaticPublicEntryResume: suppressAutomaticPublicEntryResume,
+            publicEntryDestination: publicEntryDestination,
+            isOnboardingModelReady: onboardingModel != nil,
+            baseRoute: base,
+            selectedRoute: selectedRoute,
+            trigger: "auth_gate_effective_route"
+        )
+    }
+
     private func publicEntryAnalyticsProperties(
         profileResolutionResult: ExistingUserSignInResolutionResult? = nil,
         reason: String? = nil
@@ -1205,9 +1217,8 @@ struct AuthGateView: View {
 
         if AppRouteResolver.isSignedIn(authManager.authState) {
             suppressSignOutEntrySourceAnnotation = true
-            Task {
-                await authManager.signOut()
-            }
+            prepareAuthenticatedSignOut(source: "existing_user_sign_in_failure")
+            authManager.signOut()
         }
     }
 

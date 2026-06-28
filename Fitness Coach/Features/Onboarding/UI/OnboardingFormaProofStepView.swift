@@ -2,7 +2,7 @@
 //  OnboardingFormaProofStepView.swift
 //  Fitness Coach
 //
-//  Forma — goal-aware proof screen before plan review.
+//  Forma — Future-vision screen before plan review.
 //
 
 import SwiftUI
@@ -10,13 +10,6 @@ import SwiftUI
 struct OnboardingFormaProofStepView: View {
     let formState: OnboardingFormState
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    @State private var headerVisible = false
-    @State private var titleVisible = false
-    @State private var heroVisible = false
-    @State private var comparisonVisible = false
-    @State private var trustVisible = false
     @State private var didPlayAppearHaptic = false
 
     private var displayState: OnboardingFormaProofState {
@@ -24,101 +17,55 @@ struct OnboardingFormaProofStepView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
-            headerSection
-            titleSection
-            heroSection
-            comparisonSection
-            trustSection
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, OnboardingTheme.pagePadding)
-        .padding(.top, OnboardingLayout.progressHeaderTop)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(displayState.accessibilityLabel)
-        .onAppear {
-            runEntranceAnimation()
-            playAppearHapticIfNeeded()
-        }
-    }
+        OnboardingVisionScreenShell(
+            accessibilityLabel: displayState.accessibilityLabel,
+            atmosphereStyle: .futureVision,
+            onAppear: playAppearHapticIfNeeded
+        ) {
+            OnboardingStageProgressHeader(currentStep: .formaProof, showsTitles: false)
+        } content: {
+            VStack(spacing: FormaTokens.Spacing.sm) {
+                OnboardingHeroSection(
+                    headline: displayState.visionHeadline,
+                    headlineStyle: .vision
+                )
+                .onboardingVisionZone(.headline)
+                .onboardingStageEntrance(.headline)
 
-    private var headerSection: some View {
-        OnboardingStageProgressHeader(currentStep: .formaProof, showsTitles: false)
-            .opacity(headerVisible ? 1 : 0)
-            .offset(y: headerVisible ? 0 : 6)
-    }
+                OnboardingIllustrationContainer(
+                    style: .targetRing(
+                        intentLabel: displayState.goalIntentLabel,
+                        weightLabel: displayState.targetWeightLabel,
+                        pathStyle: displayState.pathStyle,
+                        ringProgress: displayState.ringProgress
+                    )
+                )
+                .onboardingVisionZone(.hero)
+                .onboardingStageEntrance(.hero)
 
-    private var titleSection: some View {
-        VStack(alignment: .leading, spacing: OnboardingLayout.compactLabelGap) {
-            Text(displayState.title)
-                .font(.system(.title2, design: .rounded).weight(.bold))
-                .foregroundStyle(OnboardingTheme.primaryText)
-                .minimumScaleFactor(0.85)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
+                Text(displayState.visionSupporting)
+                    .font(OnboardingMarketingTypography.supporting)
+                    .foregroundStyle(OnboardingTheme.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.85)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity)
+                    .onboardingVisionZone(.narrative)
+                    .onboardingStageEntrance(.supporting)
 
-            Text(displayState.subtitle)
-                .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(OnboardingTheme.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .opacity(titleVisible ? 1 : 0)
-        .offset(y: titleVisible ? 0 : 4)
-    }
+                OnboardingBenefitGrid(
+                    benefits: OnboardingFormaProofBuilder.benefitItems(from: displayState),
+                    accessibilityLabel: displayState.benefitsAccessibilityLabel
+                )
+                .onboardingVisionZone(.benefits)
+                .onboardingStageEntrance(.benefits)
 
-    private var heroSection: some View {
-        OnboardingFormaProofHeroCard(
-            heroMetric: displayState.heroMetric,
-            journeyLine: displayState.journeyLine,
-            supportingCopy: displayState.heroSupporting
-        )
-        .opacity(heroVisible ? 1 : 0)
-        .offset(y: heroVisible ? 0 : 6)
-        .scaleEffect(heroVisible ? 1 : 0.98)
-    }
-
-    private var comparisonSection: some View {
-        OnboardingFormaProofStructuredComparisonCard(state: displayState.comparison)
-            .opacity(comparisonVisible ? 1 : 0)
-            .offset(y: comparisonVisible ? 0 : 6)
-    }
-
-    private var trustSection: some View {
-        Text(displayState.trustStrip)
-            .font(FormaTokens.Typography.caption)
-            .foregroundStyle(OnboardingTheme.tertiaryText)
-            .multilineTextAlignment(.leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityLabel(displayState.trustStrip)
-            .opacity(trustVisible ? 1 : 0)
-            .offset(y: trustVisible ? 0 : 4)
-    }
-
-    private func runEntranceAnimation() {
-        if reduceMotion {
-            headerVisible = true
-            titleVisible = true
-            heroVisible = true
-            comparisonVisible = true
-            trustVisible = true
-            return
-        }
-
-        withAnimation(.easeOut(duration: 0.22)) {
-            headerVisible = true
-        }
-        withAnimation(.easeOut(duration: 0.24).delay(0.06)) {
-            titleVisible = true
-        }
-        withAnimation(.easeOut(duration: 0.26).delay(0.12)) {
-            heroVisible = true
-        }
-        withAnimation(.easeOut(duration: 0.24).delay(0.24)) {
-            comparisonVisible = true
-        }
-        withAnimation(.easeOut(duration: 0.22).delay(0.36)) {
-            trustVisible = true
+                OnboardingFooterMessage(message: displayState.trustFooter)
+                    .onboardingVisionZone(.footer)
+                    .onboardingStageEntrance(.footer)
+            }
+            .onboardingVisionZoneWeights(OnboardingVisionZoneWeights.formaProof)
         }
     }
 
@@ -177,26 +124,12 @@ struct OnboardingFormaProofStepView: View {
         .formaThemePreview()
 }
 
-#Preview("Forma Proof — Small iPhone") {
-    OnboardingFormaProofStepView(
-        formState: {
-            var state = OnboardingFormState()
-            OnboardingHeightWeightValues.setWeightKg(70, in: &state)
-            OnboardingTargetWeightValues.setGoalFromDeltaKg(-3.5, in: &state)
-            return state
-        }()
-    )
-    .background(OnboardingTheme.background)
-    .formaThemePreview()
-    .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
-}
-
 #Preview("Forma Proof — Large Dynamic Type") {
     OnboardingFormaProofStepView(
         formState: {
             var state = OnboardingFormState()
             OnboardingHeightWeightValues.setWeightKg(70, in: &state)
-            OnboardingTargetWeightValues.setGoalFromDeltaKg(-3.5, in: &state)
+            OnboardingTargetWeightValues.setGoalFromDeltaKg(0, in: &state)
             return state
         }()
     )

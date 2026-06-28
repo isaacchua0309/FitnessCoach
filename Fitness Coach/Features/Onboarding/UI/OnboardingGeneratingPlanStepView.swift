@@ -18,9 +18,7 @@ struct OnboardingGeneratingPlanStepView: View {
     @State private var titleVisible = false
     @State private var activeStepIndex = -1
     @State private var completedStepCount = 0
-    @State private var showsSuccess = false
     @State private var showsSlowMessage = false
-    @State private var didPlayCompletionHaptic = false
     @State private var lastAnnouncedStepIndex = -1
 
     private let checklist = FormaProductCopy.Onboarding.V2.Generating.checklist
@@ -36,13 +34,11 @@ struct OnboardingGeneratingPlanStepView: View {
 
     private var heroStyle: OnboardingGeneratingPlanHeroView.Style {
         if showsFailure { return .failure }
-        if showsSuccess { return .success }
         return .generating
     }
 
     private var progress: Double {
         guard !checklist.isEmpty else { return 0 }
-        if showsSuccess { return 1 }
         return Double(completedStepCount) / Double(checklist.count)
     }
 
@@ -63,7 +59,7 @@ struct OnboardingGeneratingPlanStepView: View {
 
             if showsFailure {
                 failureContent
-            } else if !showsSuccess {
+            } else {
                 stepSection
             }
 
@@ -74,7 +70,7 @@ struct OnboardingGeneratingPlanStepView: View {
             }
         }
         .padding(.horizontal, OnboardingTheme.pagePadding)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilitySummary)
         .task(id: viewState) {
@@ -96,7 +92,7 @@ struct OnboardingGeneratingPlanStepView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
 
-            if !showsFailure, !showsSuccess {
+            if !showsFailure {
                 Text(presentation.subtitle)
                     .font(FormaTokens.Typography.sectionSubtitle)
                     .foregroundStyle(OnboardingTheme.secondaryText)
@@ -109,9 +105,6 @@ struct OnboardingGeneratingPlanStepView: View {
     }
 
     private var currentTitle: String {
-        if showsSuccess {
-            return FormaProductCopy.Onboarding.V2.Generating.successTitle
-        }
         if showsFailure {
             return FormaProductCopy.Onboarding.V2.Generating.failureTitle
         }
@@ -304,8 +297,6 @@ struct OnboardingGeneratingPlanStepView: View {
             .font(FormaTokens.Typography.caption)
             .foregroundStyle(OnboardingTheme.tertiaryText)
             .multilineTextAlignment(.center)
-            .opacity(showsSuccess ? 0 : 1)
-            .accessibilityHidden(showsSuccess)
     }
 
     // MARK: - Accessibility
@@ -316,9 +307,6 @@ struct OnboardingGeneratingPlanStepView: View {
                 FormaProductCopy.Onboarding.V2.Generating.failureTitle,
                 FormaProductCopy.Onboarding.V2.Generating.failureMessage
             ].joined(separator: ". ")
-        }
-        if showsSuccess {
-            return FormaProductCopy.Onboarding.V2.Generating.successTitle
         }
         if let activeStepLabel {
             return [
@@ -399,15 +387,6 @@ struct OnboardingGeneratingPlanStepView: View {
         }
 
         guard !Task.isCancelled, isGenerating else { return }
-        playCompletionHapticIfNeeded()
-
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.24)) {
-            showsSuccess = true
-        }
-
-        try? await Task.sleep(
-            nanoseconds: UInt64(OnboardingGeneratingPlanTiming.successHold * 1_000_000_000)
-        )
     }
 
     @MainActor
@@ -415,7 +394,7 @@ struct OnboardingGeneratingPlanStepView: View {
         try? await Task.sleep(
             nanoseconds: UInt64(OnboardingGeneratingPlanTiming.slowGenerationThreshold * 1_000_000_000)
         )
-        guard !Task.isCancelled, isGenerating, !showsSuccess else { return }
+        guard !Task.isCancelled, isGenerating, completedStepCount < checklist.count else { return }
         withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) {
             showsSlowMessage = true
         }
@@ -427,16 +406,8 @@ struct OnboardingGeneratingPlanStepView: View {
         titleVisible = reduceMotion
         activeStepIndex = -1
         completedStepCount = 0
-        showsSuccess = false
         showsSlowMessage = false
-        didPlayCompletionHaptic = false
         lastAnnouncedStepIndex = -1
-    }
-
-    private func playCompletionHapticIfNeeded() {
-        guard !didPlayCompletionHaptic else { return }
-        didPlayCompletionHaptic = true
-        OnboardingHaptics.selectionChanged()
     }
 }
 

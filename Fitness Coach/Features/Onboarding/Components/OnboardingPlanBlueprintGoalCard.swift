@@ -2,70 +2,50 @@
 //  OnboardingPlanBlueprintGoalCard.swift
 //  Fitness Coach
 //
-//  Forma — Goal hero for plan blueprint milestone.
+//  Forma — Personalization summary for plan-learned milestone.
 //
 
 import SwiftUI
 
-struct OnboardingPlanBlueprintGoalCard: View {
-    let badge: String
-    let heroMetric: String
-    let subtitle: String
+struct OnboardingPlanBlueprintPersonalizationSummaryCard: View {
+    let summary: String
 
     var body: some View {
-        VStack(spacing: FormaTokens.Spacing.sm) {
-            Text(badge.uppercased())
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.accent)
-                .tracking(0.6)
-                .accessibilityHidden(true)
-
-            Text(heroMetric)
-                .font(.system(size: 44, weight: .bold, design: .rounded))
-                .foregroundStyle(OnboardingTheme.primaryText)
-                .minimumScaleFactor(0.72)
-                .lineLimit(2)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-
-            Text(subtitle)
-                .font(.title3.weight(.medium))
-                .foregroundStyle(OnboardingTheme.secondaryText)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.vertical, FormaTokens.Spacing.lg)
-        .padding(.horizontal, FormaTokens.Spacing.md)
-        .frame(maxWidth: .infinity)
-        .background {
-            RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            FormaTokens.Color.accentMuted.opacity(0.85),
-                            FormaTokens.Color.surfaceSubtle
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+        Text(summary)
+            .font(.system(.title3, design: .rounded).weight(.semibold))
+            .foregroundStyle(OnboardingTheme.primaryText)
+            .multilineTextAlignment(.center)
+            .minimumScaleFactor(0.8)
+            .lineLimit(4)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity)
+            .padding(FormaTokens.Spacing.cardPadding)
+            .background {
+                RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                FormaTokens.Color.accentMuted.opacity(0.85),
+                                FormaTokens.Color.surfaceSubtle
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
                     )
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-                        .stroke(OnboardingTheme.accent.opacity(0.18), lineWidth: 1)
-                }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(badge). \(heroMetric). \(subtitle)")
+                    .overlay {
+                        RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
+                            .stroke(OnboardingTheme.accent.opacity(0.18), lineWidth: 1)
+                    }
+            }
+            .accessibilityAddTraits(.isHeader)
+            .accessibilityLabel("Your plan: \(summary)")
     }
 }
 
 #if DEBUG
 #Preview {
-    OnboardingPlanBlueprintGoalCard(
-        badge: FormaProductCopy.Onboarding.Flow.Summary.goalSectionTitle,
-        heroMetric: "Lose 3.5 kg",
-        subtitle: "70 kg → 66.5 kg"
+    OnboardingPlanBlueprintPersonalizationSummaryCard(
+        summary: "Lose 3.5 kg · 70 kg → 66.5 kg · 175 cm, 70 kg · Moderately active"
     )
     .padding()
     .background(OnboardingTheme.background)

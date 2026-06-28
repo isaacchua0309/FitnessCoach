@@ -131,8 +131,13 @@ struct OnboardingView: View {
                         onExitToWelcome: onExitToWelcome,
                         flowFloor: model.flowFloor
                     )
+                    .transition(.opacity)
                 }
             }
+            .animation(
+                .easeOut(duration: OnboardingGeneratingPlanTiming.stepTransitionAnimation),
+                value: showsBottomBar
+            )
             .toolbar {
                 OnboardingKeyboardToolbar(navigator: fieldNavigator)
             }
@@ -197,8 +202,7 @@ struct OnboardingView: View {
         case .planReveal:
             OnboardingPlanRevealStepView(
                 revealState: model.planRevealState,
-                plan: model.generatedPlan,
-                usesCompactLayout: true
+                plan: model.generatedPlan
             )
         case .savePlan:
             OnboardingSavePlanStepView(

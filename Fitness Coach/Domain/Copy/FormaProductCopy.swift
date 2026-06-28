@@ -311,18 +311,25 @@ enum FormaProductCopy {
                 static let nextStepLine =
                     "Next: log your first meal and watch Today update your progress."
 
+                enum Cards {
+                    static let destinationBadge = "Your destination"
+                    static let journeyTitle = "Your journey"
+                    static let firstWeekTitle = "Your first mission"
+                    static let dailyFuelTitle = "Daily fuel"
+                }
+
                 enum GoalHero {
-                    static let sectionTitle = "Your goal"
+                    static let sectionTitle = Cards.destinationBadge
 
                     static func maintainHeadline(targetWeight: String) -> String {
-                        "Maintain around \(targetWeight)"
+                        "Maintain \(targetWeight)"
                     }
 
                     static let maintainSupport =
                         "We'll help you stay consistent with clear daily targets."
 
                     static func lossHeadline(targetWeight: String) -> String {
-                        "Lose toward \(targetWeight)"
+                        "Reach \(targetWeight)"
                     }
 
                     static func lossProgress(currentWeight: String, targetWeight: String) -> String {
@@ -332,7 +339,7 @@ enum FormaProductCopy {
                     static let lossSupport = "Designed for steady, sustainable progress."
 
                     static func gainHeadline(targetWeight: String) -> String {
-                        "Gain toward \(targetWeight)"
+                        "Build toward \(targetWeight)"
                     }
 
                     static func gainProgress(currentWeight: String, targetWeight: String) -> String {
@@ -341,6 +348,43 @@ enum FormaProductCopy {
 
                     static let gainSupport =
                         "Designed to help you eat enough consistently."
+                }
+
+                enum JourneyBelief {
+                    static func cut(strategyLabel: String) -> String {
+                        "\(strategyLabel) — a pace you chose, realistic and sustainable."
+                    }
+
+                    static let maintain =
+                        "Stay steady with a rhythm built around your activity and goal."
+                    static let gain =
+                        "Build gradually with consistent fuel and recovery."
+                }
+
+                enum FirstWeek {
+                    static let logMealsCut = "Log 4 meals this week"
+                    static let proteinCut = "Hit protein most days"
+                    static let weighCut = "Weigh in twice"
+                    static let logDaysMaintain = "Log 4 days this week"
+                    static let caloriesMaintain = "Stay near your calories"
+                    static let waterMaintain = "Drink your water goal"
+                    static let mealsGain = "Eat 3 solid meals daily"
+                    static let proteinGain = "Hit protein every day"
+                    static let weighGain = "Log weight once"
+                }
+
+                enum Coach {
+                    static func cut(goalWeight: String) -> String {
+                        "You've got a clear path to \(goalWeight). Start by logging your next meal."
+                    }
+
+                    static func maintain(goalWeight: String) -> String {
+                        "Your plan is set to keep you around \(goalWeight). Consistency beats perfection."
+                    }
+
+                    static func gain(goalWeight: String) -> String {
+                        "Building toward \(goalWeight) starts with fueling today well."
+                    }
                 }
 
                 enum Focus {
@@ -686,59 +730,48 @@ enum FormaProductCopy {
             }
 
             enum Summary {
-                static let title = "We understand you"
-                static let subtitle =
-                    "Your body, goal, and lifestyle — shaped into one plan."
+                static let title = "We listened."
+                static let subtitle = ""
+                static let supportingParagraph =
+                    "This plan was built specifically for you. Every recommendation adapts to your lifestyle — not a generic calorie calculator."
                 static let buildPlanCTA = "Build my plan"
-                static let buildPlanCTAHint =
-                    "Daily calories, macros, and your pace — next."
-                static let goalSectionTitle = "Your goal"
-                static let goalFallbackHero = "Your goal is set"
-                static let goalFallbackSubtitle =
-                    "We'll shape your starting targets from what you've shared."
-                static let maintainGoalSubtitle = "We'll help you stay consistent."
+                static let fallbackPersonalizationSummary =
+                    "Your plan reflects your body, goal, and how you move."
 
-                enum Insight {
-                    static let lossTitle = "A realistic target — smart choice"
-                    static let loss =
-                        "You picked steady progress over extremes. We'll shape daily habits you can actually keep."
-                    static let gainTitle = "Built for consistency"
-                    static let gain =
-                        "We'll turn your goal into daily fuel targets that support steady progress."
-                    static let maintainTitle = "Stay in your range"
-                    static let maintain =
-                        "Clear daily goals help you stay near where you want to be — without guesswork."
-                    static let fallbackTitle = "Ready when you are"
-                    static let fallback =
-                        "We'll shape your starting targets from what you've shared so far."
-                }
-
-                enum ProfileMirror {
-                    static let title = "What we heard"
-                    static let measurements = "Your measurements"
-                    static let profile = "Your profile"
-                    static let activity = "How you move"
-                    static let target = "Where you're headed"
-                    static let accessibilityList =
-                        "your measurements, profile, activity level, and target weight"
-                }
-
-                enum Anticipation {
-                    static let sectionTitle = "What you'll unlock"
-                    static let bullets: [(icon: String, title: String)] = [
-                        ("flame.fill", "Daily calorie target"),
-                        ("chart.line.uptrend.xyaxis", "Your progress pace"),
-                        ("calendar", "Habits you can keep")
+                enum Pillars {
+                    static let items: [(icon: String, title: String)] = [
+                        ("person.fill", "Targets tuned to your body"),
+                        ("figure.walk", "Recommendations for your lifestyle"),
+                        ("arrow.triangle.2.circlepath", "Adapts as you progress")
                     ]
                     static let accessibilityLabel =
-                        "What you'll unlock: daily calorie target, your progress pace, habits you can keep."
+                        "Your plan: targets tuned to your body, recommendations for your lifestyle, adapts as you progress."
                 }
 
-                enum Details {
-                    static let title = "Edit your answers"
-                    static let collapsedSummary = "Height, weight, birthday, sex, activity"
-                    static let collapsedAccessibilityHint =
-                        "Expand to edit height, weight, birthday, sex, and activity."
+                static func lossPersonalizationSummary(
+                    goalChange: String,
+                    journeyLine: String,
+                    bodyLine: String,
+                    activity: String
+                ) -> String {
+                    "\(goalChange) · \(journeyLine) · \(bodyLine) · \(activity)"
+                }
+
+                static func gainPersonalizationSummary(
+                    goalChange: String,
+                    journeyLine: String,
+                    bodyLine: String,
+                    activity: String
+                ) -> String {
+                    "\(goalChange) · \(journeyLine) · \(bodyLine) · \(activity)"
+                }
+
+                static func maintainPersonalizationSummary(
+                    targetLabel: String,
+                    bodyLine: String,
+                    activity: String
+                ) -> String {
+                    "Stay near \(targetLabel) · \(bodyLine) · \(activity)"
                 }
 
                 static let heightLabel = "Height"

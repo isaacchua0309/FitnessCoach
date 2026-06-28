@@ -15,6 +15,13 @@ struct OnboardingPlanRevealMetricRow: Equatable, Sendable, Identifiable {
     var id: String { label }
 }
 
+struct OnboardingPlanRevealMission: Equatable, Sendable, Identifiable {
+    let icon: String
+    let title: String
+
+    var id: String { title }
+}
+
 struct OnboardingPlanRevealState: Equatable, Sendable {
 
     let goalDirection: PlanGoalDirection
@@ -41,6 +48,9 @@ struct OnboardingPlanRevealState: Equatable, Sendable {
     let proteinLabel: String
     let waterLabel: String
     let secondaryMacroRows: [OnboardingPlanRevealMetricRow]
+    let journeyBeliefLine: String
+    let firstWeekMissions: [OnboardingPlanRevealMission]
+    let coachMessage: String
     let planStatus: OnboardingPlanRevealStatus
 
     init(
@@ -68,6 +78,9 @@ struct OnboardingPlanRevealState: Equatable, Sendable {
         proteinLabel: String,
         waterLabel: String,
         secondaryMacroRows: [OnboardingPlanRevealMetricRow] = [],
+        journeyBeliefLine: String,
+        firstWeekMissions: [OnboardingPlanRevealMission],
+        coachMessage: String,
         planStatus: OnboardingPlanRevealStatus
     ) {
         self.goalDirection = goalDirection
@@ -94,6 +107,9 @@ struct OnboardingPlanRevealState: Equatable, Sendable {
         self.proteinLabel = proteinLabel
         self.waterLabel = waterLabel
         self.secondaryMacroRows = secondaryMacroRows
+        self.journeyBeliefLine = journeyBeliefLine
+        self.firstWeekMissions = firstWeekMissions
+        self.coachMessage = coachMessage
         self.planStatus = planStatus
     }
 }

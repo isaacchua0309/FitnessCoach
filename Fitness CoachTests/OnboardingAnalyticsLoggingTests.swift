@@ -46,6 +46,16 @@ final class OnboardingAnalyticsContextBuilderTests: XCTestCase {
             calorieExplanationLine: FormaProductCopy.Onboarding.V2.PlanReveal.cutCalorieExplanation,
             proteinLabel: "150 g",
             waterLabel: "2,800 ml",
+            journeyBeliefLine: FormaProductCopy.Onboarding.V2.PlanReveal.JourneyBelief.cut(
+                strategyLabel: FormaProductCopy.Onboarding.V2.PlanReveal.Strategy.moderateCut
+            ),
+            firstWeekMissions: [
+                OnboardingPlanRevealMission(
+                    icon: "fork.knife",
+                    title: FormaProductCopy.Onboarding.V2.PlanReveal.FirstWeek.logMealsCut
+                )
+            ],
+            coachMessage: FormaProductCopy.Onboarding.V2.PlanReveal.Coach.cut(goalWeight: "65 kg"),
             planStatus: OnboardingPlanRevealStatus(
                 title: FormaProductCopy.Onboarding.V2.PlanReveal.Status.sustainableTitle,
                 body: nil,

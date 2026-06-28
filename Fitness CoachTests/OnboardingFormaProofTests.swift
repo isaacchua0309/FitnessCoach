@@ -25,7 +25,7 @@ final class OnboardingFormaProofTests: XCTestCase {
         XCTAssertTrue(OnboardingStep.formaProof.usesFixedViewportShell)
         XCTAssertEqual(
             FormaProductCopy.Onboarding.Flow.FormaProof.continueCTA,
-            "Continue"
+            "Review my blueprint"
         )
     }
 
@@ -40,9 +40,8 @@ final class OnboardingFormaProofTests: XCTestCase {
         XCTAssertFalse(
             OnboardingStep.formaProof.subtitle.contains(removedSupport)
         )
-        XCTAssertNotEqual(
-            FormaProductCopy.Onboarding.Flow.FormaProof.Fallback.title,
-            removedIntro
+        XCTAssertFalse(
+            FormaProductCopy.Onboarding.Flow.FormaProof.Fallback.supporting.contains(removedIntro)
         )
     }
 
@@ -61,41 +60,44 @@ final class OnboardingFormaProofTests: XCTestCase {
         let state = makeFormState(currentKg: 70, goalDeltaKg: -3.5, unitSystem: .metric)
         let proof = OnboardingFormaProofBuilder.build(from: state)
 
-        XCTAssertEqual(proof.title, FormaProductCopy.Onboarding.Flow.FormaProof.Loss.title)
-        XCTAssertEqual(proof.subtitle, FormaProductCopy.Onboarding.Flow.FormaProof.Loss.subtitle)
-        XCTAssertEqual(proof.heroMetric, "Lose toward 66.5 kg")
-        XCTAssertEqual(proof.journeyLine, "70 kg → 66.5 kg")
+        XCTAssertEqual(proof.goalIntentLabel, "Lose")
+        XCTAssertEqual(proof.targetWeightLabel, "66.5 kg")
+        XCTAssertEqual(proof.visionHeadline, FormaProductCopy.Onboarding.Flow.FormaProof.visionHeadline)
+        XCTAssertEqual(
+            proof.visionSupporting,
+            FormaProductCopy.Onboarding.Flow.FormaProof.Loss.supporting(targetWeightLabel: "66.5 kg")
+        )
         XCTAssertEqual(proof.pathStyle, .loss)
         XCTAssertTrue(proof.isPersonalized)
-        XCTAssertTrue(proof.accessibilityLabel.contains("lose weight steadily"))
+        XCTAssertTrue(proof.accessibilityLabel.contains("Lose target 66.5 kg"))
     }
 
     func testGainCopyIsGoalAware() {
         let state = makeFormState(currentKg: 66, goalDeltaKg: 4, unitSystem: .metric)
         let proof = OnboardingFormaProofBuilder.build(from: state)
 
-        XCTAssertEqual(proof.title, FormaProductCopy.Onboarding.Flow.FormaProof.Gain.title)
-        XCTAssertEqual(proof.heroMetric, "Gain toward 70 kg")
-        XCTAssertEqual(proof.journeyLine, "66 kg → 70 kg")
+        XCTAssertEqual(proof.goalIntentLabel, "Gain")
+        XCTAssertEqual(proof.targetWeightLabel, "70 kg")
         XCTAssertEqual(proof.pathStyle, .gain)
-        XCTAssertEqual(proof.comparison.withoutHeadline, FormaProductCopy.Onboarding.Flow.FormaProof.Gain.withoutHeadline)
+        XCTAssertEqual(proof.benefits[0].title, "Fuel targets that make sense")
     }
 
     func testMaintainCopyIsGoalAware() {
         let state = makeFormState(currentKg: 70, goalDeltaKg: 0, unitSystem: .metric)
         let proof = OnboardingFormaProofBuilder.build(from: state)
 
-        XCTAssertEqual(proof.title, FormaProductCopy.Onboarding.Flow.FormaProof.Maintain.title)
-        XCTAssertEqual(proof.heroMetric, "Maintain around 70 kg")
+        XCTAssertEqual(proof.goalIntentLabel, "Maintain")
+        XCTAssertEqual(proof.targetWeightLabel, "70 kg")
         XCTAssertEqual(proof.pathStyle, .maintain)
-        XCTAssertEqual(proof.comparison.withHeadline, FormaProductCopy.Onboarding.Flow.FormaProof.Maintain.withHeadline)
+        XCTAssertEqual(proof.ringProgress, 1)
+        XCTAssertEqual(proof.benefits[0].title, "Guardrails, not restrictions")
     }
 
     func testFallbackCopyWhenWeightsMissing() {
         let proof = OnboardingFormaProofBuilder.build(from: OnboardingFormState())
 
-        XCTAssertEqual(proof.title, FormaProductCopy.Onboarding.Flow.FormaProof.Fallback.title)
-        XCTAssertNil(proof.journeyLine)
+        XCTAssertEqual(proof.visionHeadline, FormaProductCopy.Onboarding.Flow.FormaProof.visionHeadline)
+        XCTAssertEqual(proof.goalIntentLabel, FormaProductCopy.Onboarding.Flow.FormaProof.Fallback.intentLabel)
         XCTAssertFalse(proof.isPersonalized)
         XCTAssertEqual(proof.pathStyle, .fallback)
     }
@@ -104,8 +106,8 @@ final class OnboardingFormaProofTests: XCTestCase {
         let state = makeFormState(currentKg: 70, goalDeltaKg: -3.5, unitSystem: .imperial)
         let proof = OnboardingFormaProofBuilder.build(from: state)
 
-        XCTAssertTrue(proof.heroMetric.contains("lb"))
-        XCTAssertTrue(proof.journeyLine?.contains("lb") == true)
+        XCTAssertTrue(proof.targetWeightLabel.contains("lb"))
+        XCTAssertTrue(proof.accessibilityLabel.contains("pounds"))
     }
 
     func testFormaProofCopyAvoidsUnsafeClaims() {
@@ -134,7 +136,8 @@ final class OnboardingFormaProofTests: XCTestCase {
         let restored = try XCTUnwrap(store.loadDraft()?.makeFormState())
         let proof = OnboardingFormaProofBuilder.build(from: restored)
 
-        XCTAssertEqual(proof.heroMetric, "Lose toward 73 kg")
+        XCTAssertEqual(proof.targetWeightLabel, "73 kg")
+        XCTAssertEqual(proof.goalIntentLabel, "Lose")
         XCTAssertTrue(proof.isPersonalized)
     }
 
@@ -156,23 +159,15 @@ final class OnboardingFormaProofTests: XCTestCase {
         let copy = FormaProductCopy.Onboarding.Flow.FormaProof.self
         let comparison = copy.Comparison.self
         return [
-            copy.Fallback.title,
-            copy.Fallback.subtitle,
-            copy.Fallback.heroMetric,
-            copy.Fallback.heroSupporting,
-            copy.Loss.title,
-            copy.Loss.subtitle,
-            copy.Loss.heroSupporting,
-            copy.Loss.withoutHeadline,
-            copy.Loss.withHeadline,
-            copy.Gain.title,
-            copy.Gain.subtitle,
-            copy.Gain.withoutHeadline,
-            copy.Gain.withHeadline,
-            copy.Maintain.title,
-            copy.Maintain.subtitle,
-            copy.Maintain.withoutHeadline,
-            copy.Maintain.withHeadline,
+            copy.visionHeadline,
+            copy.Fallback.supporting,
+            copy.Fallback.trustNote,
+            copy.Loss.supporting(targetWeightLabel: "70 kg"),
+            copy.Gain.supporting(targetWeightLabel: "70 kg"),
+            copy.Maintain.supporting(targetWeightLabel: "70 kg"),
+            copy.Loss.benefits.map(\.title).joined(separator: " "),
+            copy.Gain.benefits.map(\.title).joined(separator: " "),
+            copy.Maintain.benefits.map(\.title).joined(separator: " "),
             comparison.withoutStructureTitle,
             comparison.withFormaTitle,
             comparison.withoutBullets.joined(separator: " "),

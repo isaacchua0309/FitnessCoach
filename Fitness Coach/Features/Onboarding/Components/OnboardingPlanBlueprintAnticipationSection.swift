@@ -2,70 +2,63 @@
 //  OnboardingPlanBlueprintAnticipationSection.swift
 //  Fitness Coach
 //
-//  Forma — Anticipation bridge before plan generation.
+//  Forma — Personalization pillars for plan-learned milestone.
 //
 
 import SwiftUI
 
-struct OnboardingPlanBlueprintAnticipationSection: View {
-    let title: String
-    let bullets: [OnboardingFeatureBullet]
+struct OnboardingPlanBlueprintPillarsSection: View {
+    let pillars: [OnboardingPlanBlueprintPillar]
     let accessibilityLabel: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-            Text(title)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.tertiaryText)
-                .textCase(.uppercase)
-                .tracking(0.4)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-
-            HStack(spacing: FormaTokens.Spacing.xs) {
-                ForEach(bullets) { bullet in
-                    anticipationChip(bullet)
-                }
+        VStack(spacing: FormaTokens.Spacing.sm) {
+            ForEach(pillars) { pillar in
+                pillarRow(pillar)
             }
         }
+        .padding(FormaTokens.Spacing.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
+                .fill(FormaTokens.Color.surfaceSubtle)
+        )
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilityLabel)
     }
 
-    private func anticipationChip(_ bullet: OnboardingFeatureBullet) -> some View {
-        HStack(spacing: 5) {
-            Image(systemName: bullet.icon)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.accent)
-                .accessibilityHidden(true)
+    private func pillarRow(_ pillar: OnboardingPlanBlueprintPillar) -> some View {
+        HStack(spacing: FormaTokens.Spacing.sm) {
+            ZStack {
+                Circle()
+                    .fill(FormaTokens.Color.accentMuted)
+                    .frame(width: 30, height: 30)
 
-            Text(bullet.title)
-                .font(FormaTokens.Typography.caption.weight(.medium))
-                .foregroundStyle(OnboardingTheme.secondaryText)
-                .lineLimit(2)
-                .minimumScaleFactor(0.85)
+                Image(systemName: pillar.icon)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(OnboardingTheme.accent.opacity(0.92))
+            }
+            .accessibilityHidden(true)
+
+            Text(pillar.title)
+                .font(FormaTokens.Typography.body.weight(.semibold))
+                .foregroundStyle(OnboardingTheme.primaryText)
                 .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                .fill(FormaTokens.Color.accentMuted.opacity(0.55))
-        )
-        .accessibilityLabel(bullet.title)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(pillar.title)
     }
 }
 
 #if DEBUG
 #Preview {
-    OnboardingPlanBlueprintAnticipationSection(
-        title: FormaProductCopy.Onboarding.Flow.Summary.Anticipation.sectionTitle,
-        bullets: OnboardingPlanBlueprintBuilder.build(
+    OnboardingPlanBlueprintPillarsSection(
+        pillars: OnboardingPlanBlueprintBuilder.build(
             from: OnboardingPreviewData.formState
-        ).anticipationBullets,
-        accessibilityLabel: FormaProductCopy.Onboarding.Flow.Summary.Anticipation.accessibilityLabel
+        ).pillars,
+        accessibilityLabel: FormaProductCopy.Onboarding.Flow.Summary.Pillars.accessibilityLabel
     )
     .padding()
     .background(OnboardingTheme.background)

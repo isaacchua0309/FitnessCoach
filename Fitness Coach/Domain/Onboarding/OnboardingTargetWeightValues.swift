@@ -121,11 +121,11 @@ enum OnboardingTargetWeightValues {
         )
     }
 
-    /// Stable view identity when current weight, goal, or units change.
+    /// Stable view identity when current weight or units change — not goal.
+    /// Goal is excluded so dragging does not remount the ruler and kill scroll momentum.
     static func selectorIdentity(for formState: OnboardingFormState) -> String {
         let current = formState.parsedCurrentWeightKg.map { String(format: "%.1f", $0) } ?? "nil"
-        let goal = formState.parsedGoalWeightKg.map { String(format: "%.1f", $0) } ?? "nil"
-        return "\(current)-\(goal)-\(formState.unitSystem.rawValue)"
+        return "\(current)-\(formState.unitSystem.rawValue)"
     }
 
     static func resolvedGoalDisplay(from formState: OnboardingFormState) -> Double? {

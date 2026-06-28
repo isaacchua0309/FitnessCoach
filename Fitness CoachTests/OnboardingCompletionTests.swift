@@ -16,7 +16,7 @@ final class OnboardingPersonalizationSummaryTests: XCTestCase {
     func testReviewStepUsesDedicatedCopy() {
         XCTAssertEqual(
             OnboardingStep.review.title,
-            "We understand you"
+            "We listened."
         )
         XCTAssertEqual(
             OnboardingStep.review.subtitle,
@@ -26,32 +26,24 @@ final class OnboardingPersonalizationSummaryTests: XCTestCase {
             FormaProductCopy.Onboarding.Flow.Summary.buildPlanCTA,
             "Build my plan"
         )
-        XCTAssertEqual(
-            FormaProductCopy.Onboarding.Flow.Summary.buildPlanCTAHint,
-            "Daily calories, macros, and your pace — next."
-        )
     }
 
-    func testBlueprintUsesPersonalizedProfileMirror() throws {
+    func testBlueprintUsesPersonalizedSummary() throws {
         let state = try validOnboardingFormState()
         let blueprint = OnboardingPlanBlueprintBuilder.build(from: state, referenceDate: referenceDate)
-        let mirror = FormaProductCopy.Onboarding.Flow.Summary.ProfileMirror.self
 
-        XCTAssertEqual(blueprint.profileMirrorTitle, mirror.title)
-        XCTAssertEqual(blueprint.profileSignals.count, 4)
-        XCTAssertTrue(blueprint.profileSignals[0].headline.contains("kg"))
-        XCTAssertEqual(blueprint.profileSignals[0].supporting, mirror.measurements)
+        XCTAssertTrue(blueprint.personalizationSummary.contains("kg"))
+        XCTAssertTrue(blueprint.personalizationSummary.contains("→"))
+        XCTAssertEqual(blueprint.pillars.count, 3)
     }
 
     func testBlueprintCopyAvoidsForbiddenClaims() throws {
         let state = try validOnboardingFormState()
         let blueprint = OnboardingPlanBlueprintBuilder.build(from: state, referenceDate: referenceDate)
         let joined = [
-            blueprint.goalHero,
-            blueprint.goalSubtitle,
-            blueprint.coachInsightTitle,
-            blueprint.coachInsightBody,
-            blueprint.profileMirrorTitle,
+            blueprint.headline,
+            blueprint.supportingParagraph,
+            blueprint.personalizationSummary,
             blueprint.accessibilityLabel
         ].joined(separator: " ").lowercased()
 

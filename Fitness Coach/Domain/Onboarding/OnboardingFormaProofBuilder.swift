@@ -24,6 +24,12 @@ struct OnboardingFormaProofBenefit: Equatable, Identifiable, Sendable {
         self.icon = icon
         self.title = title
     }
+
+    init(_ item: OnboardingBenefitItem) {
+        self.id = item.id
+        self.icon = item.icon
+        self.title = item.title
+    }
 }
 
 struct OnboardingFormaProofState: Equatable, Sendable {
@@ -171,6 +177,10 @@ enum OnboardingFormaProofBuilder {
         from items: [(icon: String, title: String)]
     ) -> [OnboardingFormaProofBenefit] {
         items.map { OnboardingFormaProofBenefit(icon: $0.icon, title: $0.title) }
+    }
+
+    static func benefitItems(from state: OnboardingFormaProofState) -> [OnboardingBenefitItem] {
+        state.benefits.map { OnboardingBenefitItem(icon: $0.icon, title: $0.title) }
     }
 
     private static func benefitsAccessibilityLabel(

@@ -96,11 +96,28 @@ final class AuthGateRoutingPolicyTests: XCTestCase {
             ),
             .onboardingStart
         )
+        XCTAssertEqual(
+            AuthGateRoutingPolicy.effectiveRoute(
+                baseRoute: .welcome,
+                isSignedIn: false,
+                hasActiveOnboardingSession: true,
+                suppressAutomaticPublicEntryResume: true
+            ),
+            .welcome
+        )
         XCTAssertTrue(
             AuthGateRoutingPolicy.shouldPreferActiveOnboardingSession(
                 isSignedIn: false,
                 hasActiveOnboardingSession: true,
                 baseRoute: .welcome
+            )
+        )
+        XCTAssertFalse(
+            AuthGateRoutingPolicy.shouldPreferActiveOnboardingSession(
+                isSignedIn: false,
+                hasActiveOnboardingSession: true,
+                baseRoute: .welcome,
+                suppressAutomaticPublicEntryResume: true
             )
         )
     }

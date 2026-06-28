@@ -10,7 +10,23 @@ import SwiftUI
 struct OnboardingPlanRevealStepView: View {
     let revealState: OnboardingPlanRevealState?
     let plan: CalorieTargetResult?
-    var usesCompactLayout: Bool = false
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    @State private var celebrationVisible = false
+    @State private var goalVisible = false
+    @State private var journeyVisible = false
+    @State private var actionCardsVisible = false
+    @State private var coachVisible = false
+    @State private var didPlayAppearHaptic = false
+
+    private let copy = FormaProductCopy.Onboarding.Flow.PlanReveal.self
+    private let cardCopy = FormaProductCopy.Onboarding.V2.PlanReveal.Cards.self
+
+    private var usesStackedActionCards: Bool {
+        dynamicTypeSize >= .accessibility1
+    }
 
     var body: some View {
         Group {
@@ -26,46 +42,117 @@ struct OnboardingPlanRevealStepView: View {
                 fallbackContent
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .onAppear {
+            runEntranceAnimation()
+            playAppearHapticIfNeeded()
+        }
     }
 
     // MARK: - Reveal layout
 
     private func revealContent(_ state: OnboardingPlanRevealState) -> some View {
-        VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
-            headerSection
+        VStack(spacing: sectionSpacing) {
+            celebrationSection
+                .opacity(celebrationVisible ? 1 : 0)
+                .offset(y: celebrationVisible ? 0 : 6)
 
-            goalHeroCard(state)
-            dailyMissionCard(state)
-            focusAndNextCard(state)
+            OnboardingPlanRevealGoalHeroCard(
+                badge: state.goalHeroSectionTitle,
+                headline: state.goalHeroHeadline,
+                strategyLabel: state.strategyLabel,
+                direction: state.goalDirection
+            )
+            .opacity(goalVisible ? 1 : 0)
+            .offset(y: goalVisible ? 0 : 6)
+            .scaleEffect(goalVisible ? 1 : 0.98)
 
-            if state.planStatus.style == .caution {
-                OnboardingPlanStatusCard(status: state.planStatus)
-            }
+            OnboardingPlanRevealJourneyCard(
+                sectionTitle: cardCopy.journeyTitle,
+                progressLabel: state.goalProgressLabel,
+                paceLabel: state.paceLabel,
+                estimatedWeeksLabel: state.estimatedWeeksLabel,
+                beliefLine: state.journeyBeliefLine,
+                planStatus: state.planStatus.style == .caution ? state.planStatus : nil
+            )
+            .opacity(journeyVisible ? 1 : 0)
+            .offset(y: journeyVisible ? 0 : 6)
+
+            actionCardsSection(state)
+                .opacity(actionCardsVisible ? 1 : 0)
+                .offset(y: actionCardsVisible ? 0 : 6)
+
+            OnboardingPlanRevealCoachCard(message: state.coachMessage)
+                .opacity(coachVisible ? 1 : 0)
+                .offset(y: coachVisible ? 0 : 6)
+
+            Spacer(minLength: 0)
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilitySummary)
     }
 
-    private var headerSection: some View {
-        let copy = FormaProductCopy.Onboarding.Flow.PlanReveal.self
-        return VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+    private var celebrationSection: some View {
+        VStack(spacing: FormaTokens.Spacing.xs) {
             Text(copy.title)
                 .font(.system(.title2, design: .rounded).weight(.bold))
                 .foregroundStyle(OnboardingTheme.primaryText)
+                .multilineTextAlignment(.center)
+                .minimumScaleFactor(0.85)
+                .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity)
                 .accessibilityAddTraits(.isHeader)
 
             Text(copy.subtitle)
-                .font(FormaTokens.Typography.sectionSubtitle)
+                .font(FormaTokens.Typography.caption)
                 .foregroundStyle(OnboardingTheme.secondaryText)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
                 .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity)
         }
     }
 
+    @ViewBuilder
+    private func actionCardsSection(_ state: OnboardingPlanRevealState) -> some View {
+        let firstWeek = OnboardingPlanRevealFirstWeekCard(
+            sectionTitle: cardCopy.firstWeekTitle,
+            missions: state.firstWeekMissions
+        )
+        let dailyFuel = OnboardingPlanRevealNutritionCard(
+            sectionTitle: cardCopy.dailyFuelTitle,
+            explanationLine: state.calorieExplanationLine,
+            calorieLabel: state.dailyCalorieLabel,
+            proteinLabel: state.proteinLabel,
+            waterLabel: state.waterLabel,
+            secondaryMacroRows: state.secondaryMacroRows
+        )
+
+        if usesStackedActionCards {
+            VStack(spacing: sectionSpacing) {
+                firstWeek
+                dailyFuel
+            }
+        } else {
+            HStack(alignment: .top, spacing: sectionSpacing) {
+                firstWeek
+                    .frame(maxWidth: .infinity)
+                dailyFuel
+                    .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
+    private var sectionSpacing: CGFloat {
+        dynamicTypeSize.isAccessibilitySize
+            ? FormaTokens.Spacing.sm
+            : FormaTokens.Spacing.xs + 2
+    }
+
     private var fallbackContent: some View {
-        let copy = FormaProductCopy.Onboarding.Flow.PlanReveal.self
-        return VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             Text(copy.fallbackTitle)
                 .font(.system(.title2, design: .rounded).weight(.bold))
                 .foregroundStyle(OnboardingTheme.primaryText)
@@ -83,115 +170,37 @@ struct OnboardingPlanRevealStepView: View {
         }
     }
 
-    private func goalHeroCard(_ state: OnboardingPlanRevealState) -> some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-            Text(state.goalHeroSectionTitle)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.secondaryText)
-                .accessibilityAddTraits(.isHeader)
-
-            Text(state.goalHeroHeadline)
-                .font(.system(.title3, design: .rounded).weight(.bold))
-                .foregroundStyle(OnboardingTheme.primaryText)
-                .fixedSize(horizontal: false, vertical: true)
-
-            if let progressLine = state.goalHeroProgressLine {
-                Text(progressLine)
-                    .font(FormaTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(OnboardingTheme.accent)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Text(state.goalHeroSupport)
-                .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(OnboardingTheme.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
+    private func runEntranceAnimation() {
+        if reduceMotion {
+            celebrationVisible = true
+            goalVisible = true
+            journeyVisible = true
+            actionCardsVisible = true
+            coachVisible = true
+            return
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .onboardingCompactCard(selected: true)
-        .accessibilityElement(children: .combine)
+
+        withAnimation(.easeOut(duration: 0.22)) {
+            celebrationVisible = true
+        }
+        withAnimation(.easeOut(duration: 0.28).delay(0.08)) {
+            goalVisible = true
+        }
+        withAnimation(.easeOut(duration: 0.24).delay(0.20)) {
+            journeyVisible = true
+        }
+        withAnimation(.easeOut(duration: 0.24).delay(0.32)) {
+            actionCardsVisible = true
+        }
+        withAnimation(.easeOut(duration: 0.22).delay(0.44)) {
+            coachVisible = true
+        }
     }
 
-    private func dailyMissionCard(_ state: OnboardingPlanRevealState) -> some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-            Text(state.dailyMissionSectionTitle)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.secondaryText)
-                .accessibilityAddTraits(.isHeader)
-
-            Text(state.dailyMissionCalorieLine)
-                .font(.system(.largeTitle, design: .rounded).weight(.bold))
-                .foregroundStyle(OnboardingTheme.primaryText)
-                .minimumScaleFactor(0.75)
-                .lineLimit(1)
-
-            HStack(spacing: FormaTokens.Spacing.sm) {
-                missionTargetPill(label: "Protein", value: state.proteinLabel)
-                missionTargetPill(label: "Water", value: state.waterLabel)
-            }
-
-            if !state.secondaryMacroRows.isEmpty {
-                HStack(spacing: FormaTokens.Spacing.sm) {
-                    ForEach(state.secondaryMacroRows) { row in
-                        missionTargetPill(label: row.label, value: row.value)
-                    }
-                }
-            }
-        }
-        .onboardingCompactCard()
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(
-            "\(state.dailyMissionSectionTitle), \(state.dailyMissionCalorieLine), protein \(state.proteinLabel), water \(state.waterLabel)"
-        )
-    }
-
-    private func focusAndNextCard(_ state: OnboardingPlanRevealState) -> some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-            Text(state.focusTitle)
-                .font(FormaTokens.Typography.body.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.primaryText)
-                .accessibilityAddTraits(.isHeader)
-
-            Text(state.focusBody)
-                .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(OnboardingTheme.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(state.nextStepLine)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.accent)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, FormaTokens.Spacing.xs)
-        }
-        .padding(OnboardingLayout.compactCardPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-                .fill(FormaTokens.Color.surfaceSubtle)
-        )
-        .accessibilityElement(children: .combine)
-    }
-
-    private func missionTargetPill(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.secondaryText)
-            Text(value)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.primaryText)
-                .minimumScaleFactor(0.85)
-                .lineLimit(1)
-        }
-        .padding(.horizontal, FormaTokens.Spacing.sm)
-        .padding(.vertical, FormaTokens.Spacing.xs)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                .fill(FormaTokens.Color.surface)
-        )
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(label), \(value)")
+    private func playAppearHapticIfNeeded() {
+        guard !didPlayAppearHaptic else { return }
+        didPlayAppearHaptic = true
+        OnboardingHaptics.selectionChanged()
     }
 }
 
@@ -199,10 +208,10 @@ struct OnboardingPlanRevealStepView: View {
     if let state = OnboardingPreviewData.planRevealState {
         OnboardingPlanRevealStepView(
             revealState: state,
-            plan: OnboardingPreviewData.generatedPlan,
-            usesCompactLayout: true
+            plan: OnboardingPreviewData.generatedPlan
         )
-        .padding()
+        .padding(.horizontal, OnboardingTheme.pagePadding)
+        .padding(.top, OnboardingLayout.progressHeaderTop)
         .background(OnboardingTheme.background)
         .formaThemePreview()
     }
@@ -211,10 +220,10 @@ struct OnboardingPlanRevealStepView: View {
 #Preview("Maintenance plan") {
     OnboardingPlanRevealStepView(
         revealState: maintenanceRevealState(),
-        plan: maintenancePlan(),
-        usesCompactLayout: true
+        plan: maintenancePlan()
     )
-    .padding()
+    .padding(.horizontal, OnboardingTheme.pagePadding)
+    .padding(.top, OnboardingLayout.progressHeaderTop)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
@@ -222,10 +231,10 @@ struct OnboardingPlanRevealStepView: View {
 #Preview("Gain plan") {
     OnboardingPlanRevealStepView(
         revealState: gainRevealState(),
-        plan: maintenancePlan(),
-        usesCompactLayout: true
+        plan: maintenancePlan()
     )
-    .padding()
+    .padding(.horizontal, OnboardingTheme.pagePadding)
+    .padding(.top, OnboardingLayout.progressHeaderTop)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
@@ -233,10 +242,10 @@ struct OnboardingPlanRevealStepView: View {
 #Preview("Imperial loss") {
     OnboardingPlanRevealStepView(
         revealState: imperialLossRevealState(),
-        plan: OnboardingPreviewData.generatedPlan,
-        usesCompactLayout: true
+        plan: OnboardingPreviewData.generatedPlan
     )
-    .padding()
+    .padding(.horizontal, OnboardingTheme.pagePadding)
+    .padding(.top, OnboardingLayout.progressHeaderTop)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
@@ -244,10 +253,10 @@ struct OnboardingPlanRevealStepView: View {
 #Preview("Advanced pace caution") {
     OnboardingPlanRevealStepView(
         revealState: advancedPaceRevealState(),
-        plan: aggressivePlan(),
-        usesCompactLayout: true
+        plan: aggressivePlan()
     )
-    .padding()
+    .padding(.horizontal, OnboardingTheme.pagePadding)
+    .padding(.top, OnboardingLayout.progressHeaderTop)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
@@ -255,10 +264,10 @@ struct OnboardingPlanRevealStepView: View {
 #Preview("Missing reveal state") {
     OnboardingPlanRevealStepView(
         revealState: nil,
-        plan: nil,
-        usesCompactLayout: true
+        plan: nil
     )
-    .padding()
+    .padding(.horizontal, OnboardingTheme.pagePadding)
+    .padding(.top, OnboardingLayout.progressHeaderTop)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
@@ -267,10 +276,10 @@ struct OnboardingPlanRevealStepView: View {
     if let state = OnboardingPreviewData.planRevealState {
         OnboardingPlanRevealStepView(
             revealState: state,
-            plan: OnboardingPreviewData.generatedPlan,
-            usesCompactLayout: true
+            plan: OnboardingPreviewData.generatedPlan
         )
-        .padding()
+        .padding(.horizontal, OnboardingTheme.pagePadding)
+        .padding(.top, OnboardingLayout.progressHeaderTop)
         .background(OnboardingTheme.background)
         .formaThemePreview()
         .dynamicTypeSize(.accessibility2)

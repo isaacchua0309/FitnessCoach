@@ -130,15 +130,18 @@ private struct FormaThemedHorizontalRuler: UIViewRepresentable {
             coordinator?.handleValueChange(newValue)
         }
         host.ruler.setValue(value, animated: false)
-        host.applyFormaTheme()
+        host.applyFormaThemeIfNeeded()
         return host
     }
 
     func updateUIView(_ host: FormaThemedHorizontalRulerHostView, context: Context) {
         context.coordinator.parent = self
-        host.applyFormaTheme()
 
-        guard !host.ruler.isDragging, !host.ruler.isDecelerating else { return }
+        let isInteracting = host.ruler.isDragging || host.ruler.isDecelerating
+        guard !isInteracting else { return }
+
+        host.applyFormaThemeIfNeeded()
+
         if abs(host.ruler.currentValue - value) > config.minorIncrement {
             host.ruler.setValue(value, animated: false)
         }
@@ -178,15 +181,14 @@ private final class FormaThemedHorizontalRulerHostView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         ruler.frame = bounds
-        applyFormaTheme()
     }
 
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
-        applyFormaTheme()
+        applyFormaThemeIfNeeded()
     }
 
-    func applyFormaTheme() {
+    func applyFormaThemeIfNeeded() {
         OnboardingTargetWeightRulerUIKitBridge.apply(to: ruler)
     }
 }
