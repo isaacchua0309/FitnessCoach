@@ -17,6 +17,7 @@
 		3A00000D2FEE000100000001 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2B045F162FEE414C008A8666 /* FirebaseCore */; };
 		3A00000E2FEE000100000001 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = C029C846955106DBDB3889A0 /* GoogleSignIn */; };
 		3A00000F2FEE000100000001 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 2B045F182FEE414C008A8666 /* FirebaseFirestore */; };
+		5CF927B65664223A23A021D8 /* SwiftHorizontalRuler in Frameworks */ = {isa = PBXBuildFile; productRef = 5BA7C20FB689E2E375B3EEDD /* SwiftHorizontalRuler */; };
 		75EC5E70E9C4E331BF8061C8 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 72ED41A4B099004FBA38E42A /* GoogleService-Info.plist */; };
 		A8A81B9E5B3728580EF61D19 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = C029C846955106DBDB3889A0 /* GoogleSignIn */; };
 /* End PBXBuildFile section */
@@ -63,6 +64,7 @@
 				2B045F172FEE414C008A8666 /* FirebaseCore in Frameworks */,
 				2B045F152FEE414C008A8666 /* FirebaseAuth in Frameworks */,
 				A8A81B9E5B3728580EF61D19 /* GoogleSignIn in Frameworks */,
+				5CF927B65664223A23A021D8 /* SwiftHorizontalRuler in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -134,6 +136,7 @@
 				2B045F182FEE414C008A8666 /* FirebaseFirestore */,
 				2B045F1A2FEE414C008A8666 /* FirebaseFunctions */,
 				C029C846955106DBDB3889A0 /* GoogleSignIn */,
+				5BA7C20FB689E2E375B3EEDD /* SwiftHorizontalRuler */,
 			);
 			productName = "Fitness Coach";
 			productReference = 2B89F3F82FECF33300F9B990 /* Fitness Coach.app */;
@@ -201,6 +204,7 @@
 			packageReferences = (
 				2B045F112FEE414C008A8666 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				20FB786BAFCA63B76D979247 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				7346DDDF76BAC004994C5C7C /* XCRemoteSwiftPackageReference "SwiftHorizontalRuler" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2B89F3F92FECF33300F9B990 /* Products */;
@@ -547,6 +551,14 @@
 				minimumVersion = 12.15.0;
 			};
 		};
+		7346DDDF76BAC004994C5C7C /* XCRemoteSwiftPackageReference "SwiftHorizontalRuler" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/unibrix/SwiftHorizontalRuler";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -574,6 +586,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 2B045F112FEE414C008A8666 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFunctions;
+		};
+		5BA7C20FB689E2E375B3EEDD /* SwiftHorizontalRuler */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7346DDDF76BAC004994C5C7C /* XCRemoteSwiftPackageReference "SwiftHorizontalRuler" */;
+			productName = SwiftHorizontalRuler;
 		};
 		C029C846955106DBDB3889A0 /* GoogleSignIn */ = {
 			isa = XCSwiftPackageProductDependency;

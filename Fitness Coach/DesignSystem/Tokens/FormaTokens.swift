@@ -139,5 +139,6 @@ enum FormaTokens {
         static let body = Font.body
         static let bodyMedium = Font.body.weight(.medium)
         static let caption = Font.caption
+        static let caption2 = Font.caption2
     }
 }

@@ -2,7 +2,7 @@
 //  OnboardingPlanBlueprintBasisCard.swift
 //  Fitness Coach
 //
-//  Forma — Plan basis rows for blueprint review.
+//  Forma — Compact chip basis for blueprint review.
 //
 
 import SwiftUI
@@ -12,40 +12,44 @@ struct OnboardingPlanBlueprintBasisCard: View {
     let items: [OnboardingPlanBlueprintBasisItem]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+        VStack(alignment: .leading, spacing: OnboardingLayout.compactLabelGap) {
             Text(title)
-                .font(FormaTokens.Typography.body.weight(.semibold))
+                .font(FormaTokens.Typography.caption.weight(.semibold))
                 .foregroundStyle(OnboardingTheme.primaryText)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
 
-            VStack(spacing: FormaTokens.Spacing.sm) {
+            CoachFlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
                 ForEach(items) { item in
-                    HStack(spacing: FormaTokens.Spacing.md) {
-                        Image(systemName: item.icon)
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(OnboardingTheme.accent)
-                            .frame(width: 24, height: 24)
-                            .accessibilityHidden(true)
-
-                        Text(item.title)
-                            .font(FormaTokens.Typography.body)
-                            .foregroundStyle(OnboardingTheme.secondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel(item.title)
+                    chip(title: item.title)
                 }
             }
         }
-        .padding(FormaTokens.Spacing.cardPadding)
+        .padding(OnboardingLayout.compactCardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
                 .fill(FormaTokens.Color.surfaceSubtle.opacity(0.72))
         )
         .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(title). \(items.map(\.title).joined(separator: ", "))")
+    }
+
+    private func chip(title: String) -> some View {
+        Text(title)
+            .font(FormaTokens.Typography.caption.weight(.medium))
+            .foregroundStyle(OnboardingTheme.secondaryText)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(FormaTokens.Color.surfaceSubtle.opacity(0.9))
+            )
+            .overlay(
+                Capsule(style: .continuous)
+                    .stroke(OnboardingTheme.border.opacity(0.45), lineWidth: 0.5)
+            )
+            .accessibilityLabel(title)
     }
 }
 

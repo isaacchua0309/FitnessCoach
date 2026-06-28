@@ -9,6 +9,7 @@ import SwiftUI
 
 struct OnboardingStageProgressHeader: View {
     let currentStep: OnboardingStep
+    var showsTitles: Bool = true
 
     private var progressIndex: Int {
         currentStep.flowProgressIndex
@@ -18,19 +19,21 @@ struct OnboardingStageProgressHeader: View {
         VStack(alignment: .leading, spacing: OnboardingLayout.progressBarSpacing) {
             stageSegmentBar
 
-            VStack(alignment: .leading, spacing: OnboardingLayout.progressTitleSpacing) {
-                Text(currentStep.title)
-                    .font(.system(.title2, design: .rounded).weight(.bold))
-                    .foregroundStyle(OnboardingTheme.primaryText)
-                    .minimumScaleFactor(0.85)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
+            if showsTitles {
+                VStack(alignment: .leading, spacing: OnboardingLayout.progressTitleSpacing) {
+                    Text(currentStep.title)
+                        .font(.system(.title2, design: .rounded).weight(.bold))
+                        .foregroundStyle(OnboardingTheme.primaryText)
+                        .minimumScaleFactor(0.85)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
 
-                Text(currentStep.subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(OnboardingTheme.secondaryText)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                    Text(currentStep.subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(OnboardingTheme.secondaryText)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

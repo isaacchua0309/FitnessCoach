@@ -26,13 +26,12 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
         let state = makeFormState(currentKg: 70, goalDeltaKg: -3.5)
         let blueprint = OnboardingPlanBlueprintBuilder.build(from: state, referenceDate: referenceDate)
 
-        XCTAssertEqual(blueprint.screenTitle, FormaProductCopy.Onboarding.Flow.Summary.title)
         XCTAssertEqual(blueprint.goalHero, "Lose 3.5 kg")
-        XCTAssertEqual(blueprint.goalSubtitle, "From 70 kg to 66.5 kg")
+        XCTAssertEqual(blueprint.goalSubtitle, "70 kg → 66.5 kg")
         XCTAssertEqual(blueprint.insight, FormaProductCopy.Onboarding.Flow.Summary.Insight.loss)
         XCTAssertTrue(blueprint.isPersonalized)
-        XCTAssertTrue(blueprint.accessibilityLabel.contains("steady target") == false)
         XCTAssertTrue(blueprint.accessibilityLabel.contains("Your plan blueprint is ready"))
+        XCTAssertTrue(blueprint.accessibilityLabel.contains("Built from your measurements"))
     }
 
     func testGainGoalCopy() {
@@ -40,7 +39,7 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
         let blueprint = OnboardingPlanBlueprintBuilder.build(from: state, referenceDate: referenceDate)
 
         XCTAssertEqual(blueprint.goalHero, "Gain 4 kg")
-        XCTAssertEqual(blueprint.goalSubtitle, "From 66 kg to 70 kg")
+        XCTAssertEqual(blueprint.goalSubtitle, "66 kg → 70 kg")
         XCTAssertEqual(blueprint.insight, FormaProductCopy.Onboarding.Flow.Summary.Insight.gain)
     }
 
@@ -76,7 +75,7 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
         XCTAssertTrue(blueprint.goalSubtitle.contains("lb"))
     }
 
-    func testBasisItemsCoverPlanInputs() {
+    func testBasisItemsUseCompactChipLabels() {
         let blueprint = OnboardingPlanBlueprintBuilder.build(
             from: makeFormState(currentKg: 70, goalDeltaKg: -2),
             referenceDate: referenceDate
@@ -84,6 +83,7 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
         let basis = FormaProductCopy.Onboarding.Flow.Summary.Basis.self
 
         XCTAssertEqual(blueprint.basisItems.count, 5)
+        XCTAssertEqual(blueprint.basisTitle, basis.title)
         XCTAssertEqual(blueprint.basisItems.map(\.title), [
             basis.bodyMeasurements,
             basis.age,
@@ -152,8 +152,22 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
         XCTAssertTrue(blueprint.isPersonalized)
     }
 
+    func testReviewStepUsesFixedViewportShell() {
+        XCTAssertTrue(OnboardingStep.review.usesFixedViewportShell)
+    }
+
     func testReviewStepHidesDuplicateProgressHeader() {
         XCTAssertFalse(OnboardingStep.review.showsProgressHeader)
+    }
+
+    func testMaintainAccessibilityLabelMatchesVoiceOverSpec() {
+        let state = makeFormState(currentKg: 70, goalDeltaKg: 0)
+        let blueprint = OnboardingPlanBlueprintBuilder.build(from: state, referenceDate: referenceDate)
+
+        XCTAssertEqual(
+            blueprint.accessibilityLabel,
+            "Your plan blueprint is ready. Maintain around 70 kilograms. Built from your measurements, birthday, biological sex, activity level, and target weight."
+        )
     }
 
     // MARK: - Helpers
@@ -197,7 +211,9 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
             copy.Basis.sex,
             copy.Basis.activity,
             copy.Basis.targetWeight,
-            copy.Details.title
+            copy.Basis.accessibilityList,
+            copy.Details.title,
+            copy.Details.collapsedSummary
         ]
     }
 }

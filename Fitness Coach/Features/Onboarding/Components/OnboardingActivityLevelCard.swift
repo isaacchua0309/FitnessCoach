@@ -10,7 +10,10 @@ import SwiftUI
 struct OnboardingActivityLevelCard: View {
     let level: ActivityLevel
     let isSelected: Bool
+    var selectedExplanation: String?
     let action: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var title: String {
         OnboardingFormatter.activityLevel(level)
@@ -26,11 +29,12 @@ struct OnboardingActivityLevelCard: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(alignment: .center, spacing: FormaTokens.Spacing.md) {
+            HStack(alignment: .top, spacing: FormaTokens.Spacing.md) {
                 Image(systemName: icon)
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(isSelected ? OnboardingTheme.accent : OnboardingTheme.secondaryText)
                     .frame(width: 28, height: 28)
+                    .padding(.top, 2)
                     .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
@@ -47,12 +51,27 @@ struct OnboardingActivityLevelCard: View {
                         .lineLimit(2)
                         .minimumScaleFactor(0.9)
                         .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if isSelected, let selectedExplanation, !selectedExplanation.isEmpty {
+                        Text(selectedExplanation)
+                            .font(FormaTokens.Typography.caption)
+                            .foregroundStyle(OnboardingTheme.primaryText.opacity(0.82))
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, FormaTokens.Spacing.xs)
+                            .transition(
+                                reduceMotion
+                                    ? .opacity
+                                    : .opacity.combined(with: .move(edge: .top))
+                            )
+                    }
                 }
 
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(OnboardingTheme.accent)
+                        .padding(.top, 2)
                         .transition(.scale.combined(with: .opacity))
                         .accessibilityHidden(true)
                 }
@@ -65,6 +84,7 @@ struct OnboardingActivityLevelCard: View {
             .contentShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous))
         }
         .buttonStyle(.plain)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: isSelected)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
             OnboardingActivityLevelExplanationBuilder.voiceOverLabel(
@@ -92,7 +112,14 @@ struct OnboardingActivityLevelCard: View {
 #if DEBUG
 #Preview("Activity Cards") {
     VStack(spacing: 12) {
-        OnboardingActivityLevelCard(level: .moderatelyActive, isSelected: true, action: {})
+        OnboardingActivityLevelCard(
+            level: .moderatelyActive,
+            isSelected: true,
+            selectedExplanation: OnboardingActivityLevelExplanationBuilder.selectedExplanation(
+                for: .moderatelyActive
+            ),
+            action: {}
+        )
         OnboardingActivityLevelCard(level: .sedentary, isSelected: false, action: {})
     }
     .padding()

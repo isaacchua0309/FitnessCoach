@@ -609,7 +609,12 @@ final class OnboardingTargetWeightTests: XCTestCase {
         let copy = FormaProductCopy.Onboarding.Flow.TargetWeight.self
 
         XCTAssertEqual(step.title, copy.title)
+        XCTAssertEqual(step.title, "What's your target weight?")
         XCTAssertEqual(step.subtitle, copy.subtitle)
         XCTAssertEqual(copy.subtitle, "Pick a realistic goal for your plan.")
+        XCTAssertEqual(copy.interactionHint, "Slide to choose the weight you want to reach.")
+        XCTAssertEqual(copy.maintainGoalTitle, "You're maintaining your current weight.")
+        XCTAssertEqual(copy.realisticTargetTitle, "This is a realistic target.")
+        XCTAssertEqual(copy.gainGoalTitle, "We'll build targets to help you gain steadily.")
     }
 }

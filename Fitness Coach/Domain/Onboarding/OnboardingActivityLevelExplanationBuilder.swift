@@ -22,19 +22,23 @@ enum OnboardingActivityLevelExplanationBuilder {
         guard formState.hasConfirmedActivityLevelSelection else {
             return OnboardingActivityLevelExplanationState(
                 headline: copy.explanationPlaceholder,
-                supportingCopy: copy.explanationSupporting,
+                supportingCopy: "",
                 isPlaceholder: true,
                 accessibilityLabel: copy.explanationPlaceholder
             )
         }
 
-        let headline = explanationHeadline(for: formState.activityLevel)
+        let headline = selectedExplanation(for: formState.activityLevel)
         return OnboardingActivityLevelExplanationState(
             headline: headline,
-            supportingCopy: copy.explanationSupporting,
+            supportingCopy: "",
             isPlaceholder: false,
-            accessibilityLabel: "\(headline) \(copy.explanationSupporting)"
+            accessibilityLabel: headline
         )
+    }
+
+    static func selectedExplanation(for level: ActivityLevel) -> String {
+        explanationHeadline(for: level)
     }
 
     static func voiceOverLabel(
@@ -44,9 +48,10 @@ enum OnboardingActivityLevelExplanationBuilder {
         let title = OnboardingFormatter.activityLevel(level)
         let description = OnboardingActivityLevelValues.optionDescription(for: level)
         if isSelected {
-            return "\(title), \(description), selected."
+            let explanation = selectedExplanation(for: level)
+            return "\(title), \(description), selected. \(explanation)"
         }
-        return "Select \(title)"
+        return "Select \(title), \(description)"
     }
 
     private static func explanationHeadline(for level: ActivityLevel) -> String {

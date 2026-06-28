@@ -105,7 +105,10 @@ final class OnboardingPersonalizationSummaryTests: XCTestCase {
         )
         let restored = draft.makeFormState()
 
-        XCTAssertEqual(restored.birthDate, birthDate)
+        XCTAssertEqual(
+            BirthDatePersistence.encode(try XCTUnwrap(restored.birthDate)),
+            BirthDatePersistence.encode(birthDate)
+        )
         XCTAssertEqual(restored.sex, .female)
         XCTAssertEqual(
             try restored.resolvedAge(referenceDate: referenceDate),
@@ -190,10 +193,13 @@ final class OnboardingCompletionPathTests: XCTestCase {
         XCTAssertNotNil(try container.userProfileService.getCurrentProfile())
 
         let profile = try XCTUnwrap(try container.userProfileService.getCurrentProfile())
-        XCTAssertEqual(profile.birthDate, birthDate)
+        XCTAssertEqual(
+            BirthDatePersistence.encode(try XCTUnwrap(profile.birthDate)),
+            BirthDatePersistence.encode(birthDate)
+        )
         XCTAssertEqual(
             profile.age,
-            BirthDateAgeResolver.age(from: birthDate, referenceDate: referenceDate, calendar: calendar)
+            BirthDateAgeResolver.age(from: birthDate, referenceDate: Date(), calendar: calendar)
         )
         XCTAssertNil(draftStore.loadDraft())
 

@@ -11,8 +11,8 @@ struct OnboardingAlmostThereHeroView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulse = false
 
-    private let orbSize: CGFloat = 88
-    private let iconSize: CGFloat = 36
+    private let orbSize: CGFloat = 56
+    private let iconSize: CGFloat = 24
 
     var body: some View {
         ZStack {
@@ -31,6 +31,7 @@ struct OnboardingAlmostThereHeroView: View {
                 .symbolRenderingMode(.hierarchical)
         }
         .frame(maxWidth: .infinity)
+        .padding(.vertical, 2)
         .accessibilityHidden(true)
         .onAppear {
             guard !reduceMotion else { return }

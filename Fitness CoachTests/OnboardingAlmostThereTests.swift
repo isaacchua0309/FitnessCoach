@@ -20,8 +20,42 @@ final class OnboardingAlmostThereTests: XCTestCase {
             "We've got what we need to build your personalized plan."
         )
         XCTAssertEqual(
+            FormaProductCopy.Onboarding.Flow.AlmostThere.summaryHeadline,
+            "Forma turns your plan into daily actions."
+        )
+        XCTAssertEqual(
+            FormaProductCopy.Onboarding.Flow.AlmostThere.summarySupporting,
+            "Track meals, follow your targets, and see progress over time."
+        )
+        XCTAssertEqual(
+            FormaProductCopy.Onboarding.Flow.AlmostThere.valueSectionTitle,
+            "What you'll get"
+        )
+        XCTAssertEqual(
             FormaProductCopy.Onboarding.Flow.AlmostThere.continueCTA,
             "Continue"
+        )
+    }
+
+    func testAlmostThereUsesFixedViewportShell() {
+        XCTAssertTrue(OnboardingStep.almostThere.usesFixedViewportShell)
+    }
+
+    func testAlmostThereValueRowsMatchFeatureTitles() {
+        let rows = OnboardingAlmostThereValues.valueRows
+        XCTAssertEqual(rows.count, 4)
+        XCTAssertEqual(rows, [
+            "Fast meal tracking",
+            "Daily targets",
+            "Progress journey",
+            "Smart coaching"
+        ])
+    }
+
+    func testAlmostThereValueSectionAccessibilityLabel() {
+        XCTAssertEqual(
+            OnboardingAlmostThereValues.valueSectionAccessibilityLabel,
+            "What you'll get: Fast meal tracking, Daily targets, Progress journey, Smart coaching."
         )
     }
 
@@ -48,6 +82,8 @@ final class OnboardingAlmostThereTests: XCTestCase {
             copy.subtitle,
             copy.summaryHeadline,
             copy.summarySupporting,
+            copy.valueSectionTitle,
+            copy.valueSectionAccessibilityLabel,
             copy.trustStrip,
             copy.accessibilitySummary
         ].joined(separator: " ")

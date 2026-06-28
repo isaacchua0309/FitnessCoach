@@ -66,14 +66,15 @@ enum OnboardingFormaProofBuilder {
 
         switch direction {
         case .cut:
+            let targetLabel = OnboardingGoalWeightBounds.weightSummary(
+                valueKg: goalKg,
+                unitSystem: formState.unitSystem
+            )
+            let heroMetric = shared.lossHero(targetWeightLabel: targetLabel)
             return OnboardingFormaProofState(
                 title: shared.Loss.title,
                 subtitle: shared.Loss.subtitle,
-                heroMetric: OnboardingGoalWeightBounds.changeSummary(
-                    currentKg: currentKg,
-                    goalKg: goalKg,
-                    unitSystem: formState.unitSystem
-                ),
+                heroMetric: heroMetric,
                 heroSupporting: shared.Loss.heroSupporting,
                 journeyLine: journeyLine,
                 comparison: comparison,
@@ -81,11 +82,7 @@ enum OnboardingFormaProofBuilder {
                 pathStyle: .loss,
                 accessibilityLabel: accessibilityLabel(
                     title: shared.Loss.title,
-                    heroMetric: OnboardingGoalWeightBounds.changeSummary(
-                        currentKg: currentKg,
-                        goalKg: goalKg,
-                        unitSystem: formState.unitSystem
-                    ),
+                    heroMetric: heroMetric,
                     currentKg: currentKg,
                     goalKg: goalKg,
                     unitSystem: formState.unitSystem
@@ -93,14 +90,15 @@ enum OnboardingFormaProofBuilder {
                 isPersonalized: true
             )
         case .gain:
+            let targetLabel = OnboardingGoalWeightBounds.weightSummary(
+                valueKg: goalKg,
+                unitSystem: formState.unitSystem
+            )
+            let heroMetric = shared.gainHero(targetWeightLabel: targetLabel)
             return OnboardingFormaProofState(
                 title: shared.Gain.title,
                 subtitle: shared.Gain.subtitle,
-                heroMetric: OnboardingGoalWeightBounds.changeSummary(
-                    currentKg: currentKg,
-                    goalKg: goalKg,
-                    unitSystem: formState.unitSystem
-                ),
+                heroMetric: heroMetric,
                 heroSupporting: shared.Gain.heroSupporting,
                 journeyLine: journeyLine,
                 comparison: comparison,
@@ -108,11 +106,7 @@ enum OnboardingFormaProofBuilder {
                 pathStyle: .gain,
                 accessibilityLabel: accessibilityLabel(
                     title: shared.Gain.title,
-                    heroMetric: OnboardingGoalWeightBounds.changeSummary(
-                        currentKg: currentKg,
-                        goalKg: goalKg,
-                        unitSystem: formState.unitSystem
-                    ),
+                    heroMetric: heroMetric,
                     currentKg: currentKg,
                     goalKg: goalKg,
                     unitSystem: formState.unitSystem
@@ -161,7 +155,7 @@ enum OnboardingFormaProofBuilder {
                 shared: shared,
                 comparisonCopy: comparisonCopy
             ),
-            trustStrip: shared.Fallback.trustStrip,
+            trustStrip: shared.Fallback.trustNote,
             pathStyle: .fallback,
             accessibilityLabel: "\(shared.Fallback.title). \(shared.Fallback.subtitle)",
             isPersonalized: false

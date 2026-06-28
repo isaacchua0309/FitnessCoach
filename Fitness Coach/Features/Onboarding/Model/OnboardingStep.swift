@@ -112,7 +112,7 @@ enum OnboardingStep: Int, Equatable, Identifiable, Sendable, CaseIterable {
         case .almostThere:
             return copy.AlmostThere.title
         case .formaProof:
-            return copy.FormaProof.title
+            return ""
         case .review:
             return copy.Summary.title
         case .generatingPlan:
@@ -144,7 +144,7 @@ enum OnboardingStep: Int, Equatable, Identifiable, Sendable, CaseIterable {
         case .almostThere:
             return copy.AlmostThere.subtitle
         case .formaProof:
-            return copy.FormaProof.subtitle
+            return ""
         case .review:
             return copy.Summary.subtitle
         case .generatingPlan:
@@ -226,7 +226,7 @@ enum OnboardingStep: Int, Equatable, Identifiable, Sendable, CaseIterable {
     /// Steps that fit in one viewport and should not scroll.
     var usesFixedViewportShell: Bool {
         switch self {
-        case .birthday, .activityLevel:
+        case .birthday, .activityLevel, .appleHealth, .almostThere, .formaProof, .review:
             return true
         default:
             return false

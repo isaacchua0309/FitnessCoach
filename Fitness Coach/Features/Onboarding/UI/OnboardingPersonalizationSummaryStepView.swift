@@ -16,7 +16,7 @@ struct OnboardingPersonalizationSummaryStepView: View {
     @State private var headerVisible = false
     @State private var goalVisible = false
     @State private var basisVisible = false
-    @State private var insightVisible = false
+    @State private var trustVisible = false
     @State private var detailsVisible = false
     @State private var isDetailsExpanded = false
     @State private var didPlayAppearHaptic = false
@@ -37,9 +37,8 @@ struct OnboardingPersonalizationSummaryStepView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+        VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
             headerSection
-            titleSection
 
             if showsValidationBanner {
                 OnboardingWarningBanner(message: bannerMessage)
@@ -48,10 +47,12 @@ struct OnboardingPersonalizationSummaryStepView: View {
 
             goalSection
             basisSection
-            insightSection
+            trustSection
             detailsSection
             Spacer(minLength: 0)
         }
+        .padding(.horizontal, OnboardingTheme.pagePadding)
+        .padding(.top, OnboardingLayout.progressHeaderTop)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(displayState.accessibilityLabel)
@@ -67,33 +68,14 @@ struct OnboardingPersonalizationSummaryStepView: View {
             .offset(y: headerVisible ? 0 : 6)
     }
 
-    private var titleSection: some View {
-        VStack(alignment: .leading, spacing: OnboardingLayout.progressTitleSpacing) {
-            Text(displayState.screenTitle)
-                .font(.system(.title2, design: .rounded).weight(.bold))
-                .foregroundStyle(OnboardingTheme.primaryText)
-                .minimumScaleFactor(0.85)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-
-            Text(displayState.screenSubtitle)
-                .font(FormaTokens.Typography.body)
-                .foregroundStyle(OnboardingTheme.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .opacity(headerVisible ? 1 : 0)
-        .offset(y: headerVisible ? 0 : 4)
-    }
-
     private var goalSection: some View {
         OnboardingPlanBlueprintGoalCard(
-            sectionTitle: displayState.goalSectionTitle,
             heroMetric: displayState.goalHero,
             subtitle: displayState.goalSubtitle
         )
         .opacity(goalVisible ? 1 : 0)
-        .offset(y: goalVisible ? 0 : 8)
-        .scaleEffect(goalVisible ? 1 : 0.97)
+        .offset(y: goalVisible ? 0 : 6)
+        .scaleEffect(goalVisible ? 1 : 0.98)
     }
 
     private var basisSection: some View {
@@ -102,13 +84,13 @@ struct OnboardingPersonalizationSummaryStepView: View {
             items: displayState.basisItems
         )
         .opacity(basisVisible ? 1 : 0)
-        .offset(y: basisVisible ? 0 : 8)
+        .offset(y: basisVisible ? 0 : 6)
     }
 
-    private var insightSection: some View {
-        OnboardingPlanBlueprintInsightCard(copy: displayState.insight)
-            .opacity(insightVisible ? 1 : 0)
-            .offset(y: insightVisible ? 0 : 6)
+    private var trustSection: some View {
+        OnboardingPlanBlueprintTrustLine(copy: displayState.insight)
+            .opacity(trustVisible ? 1 : 0)
+            .offset(y: trustVisible ? 0 : 4)
     }
 
     private var detailsSection: some View {
@@ -117,7 +99,7 @@ struct OnboardingPersonalizationSummaryStepView: View {
             isExpanded: $isDetailsExpanded
         )
         .opacity(detailsVisible ? 1 : 0)
-        .offset(y: detailsVisible ? 0 : 8)
+        .offset(y: detailsVisible ? 0 : 6)
     }
 
     private func runEntranceAnimation() {
@@ -125,7 +107,7 @@ struct OnboardingPersonalizationSummaryStepView: View {
             headerVisible = true
             goalVisible = true
             basisVisible = true
-            insightVisible = true
+            trustVisible = true
             detailsVisible = true
             return
         }
@@ -133,16 +115,16 @@ struct OnboardingPersonalizationSummaryStepView: View {
         withAnimation(.easeOut(duration: 0.22)) {
             headerVisible = true
         }
-        withAnimation(.easeOut(duration: 0.28).delay(0.10)) {
+        withAnimation(.easeOut(duration: 0.24).delay(0.06)) {
             goalVisible = true
         }
-        withAnimation(.easeOut(duration: 0.26).delay(0.24)) {
+        withAnimation(.easeOut(duration: 0.22).delay(0.12)) {
             basisVisible = true
         }
-        withAnimation(.easeOut(duration: 0.24).delay(0.38)) {
-            insightVisible = true
+        withAnimation(.easeOut(duration: 0.20).delay(0.18)) {
+            trustVisible = true
         }
-        withAnimation(.easeOut(duration: 0.24).delay(0.52)) {
+        withAnimation(.easeOut(duration: 0.20).delay(0.24)) {
             detailsVisible = true
         }
     }
@@ -154,6 +136,7 @@ struct OnboardingPersonalizationSummaryStepView: View {
     }
 }
 
+#if DEBUG
 #Preview("Loss goal") {
     OnboardingPersonalizationSummaryStepView(
         formState: {
@@ -164,7 +147,6 @@ struct OnboardingPersonalizationSummaryStepView: View {
         }(),
         validationMessage: nil
     )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
@@ -179,7 +161,6 @@ struct OnboardingPersonalizationSummaryStepView: View {
         }(),
         validationMessage: nil
     )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
@@ -194,24 +175,37 @@ struct OnboardingPersonalizationSummaryStepView: View {
         }(),
         validationMessage: nil
     )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
 
-#Preview("Imperial") {
+#Preview("Collapsed details") {
     OnboardingPersonalizationSummaryStepView(
-        formState: {
-            var state = OnboardingPreviewData.formState
-            state.unitSystem = .imperial
-            OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &state)
-            return state
-        }(),
+        formState: OnboardingPreviewData.formState,
         validationMessage: nil
     )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
     .formaThemePreview()
+}
+
+#Preview("Small iPhone") {
+    OnboardingPersonalizationSummaryStepView(
+        formState: OnboardingPreviewData.formState,
+        validationMessage: nil
+    )
+    .background(OnboardingTheme.background)
+    .formaThemePreview()
+    .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
+}
+
+#Preview("Large Dynamic Type") {
+    OnboardingPersonalizationSummaryStepView(
+        formState: OnboardingPreviewData.formState,
+        validationMessage: nil
+    )
+    .background(OnboardingTheme.background)
+    .formaThemePreview()
+    .dynamicTypeSize(.accessibility2)
 }
 
 #Preview("Fallback") {
@@ -219,7 +213,6 @@ struct OnboardingPersonalizationSummaryStepView: View {
         formState: OnboardingFormState(),
         validationMessage: nil
     )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
@@ -233,7 +226,7 @@ struct OnboardingPersonalizationSummaryStepView: View {
         }(),
         validationMessage: FormaProductCopy.Onboarding.V2.Validation.summaryIncomplete
     )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
+#endif

@@ -62,18 +62,31 @@ final class OnboardingAppleHealthPresentationBuilderTests: XCTestCase {
         let joined = [
             copy.title,
             copy.subtitle,
-            copy.optionalNote,
             copy.privacyBody,
             copy.connectedMessage,
             copy.deniedMessage,
             copy.unavailableMessage,
-            copy.failedMessage
+            copy.failedMessage,
+            copy.summaryCardTitle
         ].joined(separator: " ")
-            + copy.benefits.map { "\($0.title) \($0.subtitle)" }.joined(separator: " ")
+            + copy.readableDataRows.joined(separator: " ")
 
         XCTAssertFalse(joined.localizedCaseInsensitiveContains("dynamic calories"))
         XCTAssertFalse(joined.localizedCaseInsensitiveContains("automatic calorie"))
         XCTAssertFalse(joined.localizedCaseInsensitiveContains("automatically change"))
         XCTAssertFalse(joined.localizedCaseInsensitiveContains("calorie target"))
+        XCTAssertFalse(joined.localizedCaseInsensitiveContains("required"))
+    }
+
+    func testAccessibilitySummaryAnnouncesOptionalConnection() {
+        let state = OnboardingAppleHealthPresentationBuilder.build(
+            presentation: .ready,
+            deviceState: .notConnected
+        )
+
+        XCTAssertEqual(
+            state.accessibilitySummary,
+            "Connect Apple Health. Optional. Sync workouts and activity to improve your progress insights."
+        )
     }
 }

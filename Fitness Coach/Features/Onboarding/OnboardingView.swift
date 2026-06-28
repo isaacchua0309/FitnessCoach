@@ -62,7 +62,7 @@ struct OnboardingView: View {
         hasAttemptedContinueOnStep = true
         if model.currentStep == .appleHealth {
             model.connectAppleHealth()
-        } else if model.currentStep == .review {
+        } else if model.currentStep == .review || model.currentStep == .almostThere {
             OnboardingHaptics.selectionChanged()
             model.goNext()
         } else {

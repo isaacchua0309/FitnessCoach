@@ -107,7 +107,7 @@ final class OnboardingModelAnalyticsTests: XCTestCase {
 
         XCTAssertTrue(analytics.contains(.planGenerated))
         XCTAssertTrue(analytics.contains(.planRevealed, step: "plan_reveal"))
-        XCTAssertEqual(analytics.lastProperties(for: .planGenerated)?["goalDirection"], "cut")
+        XCTAssertEqual(analytics.lastProperties(for: .planGenerated)?["goalDirection"], "maintain")
         XCTAssertNil(analytics.lastProperties(for: .planGenerated)?["loggingMode"])
     }
 

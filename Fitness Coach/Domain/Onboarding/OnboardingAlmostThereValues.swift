@@ -19,6 +19,14 @@ enum OnboardingAlmostThereValues {
         }
     }
 
+    static var valueRows: [String] {
+        FormaProductCopy.Onboarding.Flow.AlmostThereFeatures.bullets.map(\.title)
+    }
+
+    static var valueSectionAccessibilityLabel: String {
+        FormaProductCopy.Onboarding.Flow.AlmostThere.valueSectionAccessibilityLabel
+    }
+
     static var accessibilitySummary: String {
         FormaProductCopy.Onboarding.Flow.AlmostThere.accessibilitySummary
     }

@@ -1,5 +1,5 @@
 {
-  "originHash" : "fc056ca7916ed818ce8cf28eaf37caf5bd27786a890a91807960ad4069819601",
+  "originHash" : "e4b4cd17947cfa1b170856ca5389098ce873c9eaaa5d18dbff65b1fb5e88b4a3",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -143,6 +143,15 @@
       "state" : {
         "revision" : "f4a19a3c313dc2616c70bb49d29a799fb16be837",
         "version" : "2.4.1"
+      }
+    },
+    {
+      "identity" : "swifthorizontalruler",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/unibrix/SwiftHorizontalRuler",
+      "state" : {
+        "revision" : "da77f72099d66c169b1c20ce01935c6fc4546120",
+        "version" : "1.0.1"
       }
     }
   ],

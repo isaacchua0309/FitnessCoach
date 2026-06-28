@@ -119,6 +119,27 @@ final class OnboardingActivityTests: XCTestCase {
             state.headline,
             FormaProductCopy.Onboarding.Flow.Activity.explanationPlaceholder
         )
+        XCTAssertEqual(
+            FormaProductCopy.Onboarding.Flow.Activity.explanationPlaceholder,
+            "Choose the option that best matches a typical week."
+        )
+    }
+
+    func testSelectedExplanationForEachActivityLevel() {
+        let expectations: [(ActivityLevel, String)] = [
+            (.sedentary, FormaProductCopy.Onboarding.Flow.Activity.sedentaryExplanationHeadline),
+            (.lightlyActive, FormaProductCopy.Onboarding.Flow.Activity.lightlyActiveExplanationHeadline),
+            (.moderatelyActive, FormaProductCopy.Onboarding.Flow.Activity.moderatelyActiveExplanationHeadline),
+            (.veryActive, FormaProductCopy.Onboarding.Flow.Activity.veryActiveExplanationHeadline),
+            (.athlete, FormaProductCopy.Onboarding.Flow.Activity.extraActiveExplanationHeadline),
+        ]
+
+        for (level, expected) in expectations {
+            XCTAssertEqual(
+                OnboardingActivityLevelExplanationBuilder.selectedExplanation(for: level),
+                expected
+            )
+        }
     }
 
     func testExplanationUpdatesForSelectedLevel() {
@@ -134,6 +155,23 @@ final class OnboardingActivityTests: XCTestCase {
         )
     }
 
+    func testSwitchingSelectionUpdatesSelectedExplanation() {
+        var state = OnboardingFormState()
+        OnboardingActivityLevelValues.select(.sedentary, in: &state)
+
+        XCTAssertEqual(
+            OnboardingActivityLevelExplanationBuilder.selectedExplanation(for: state.activityLevel),
+            FormaProductCopy.Onboarding.Flow.Activity.sedentaryExplanationHeadline
+        )
+
+        OnboardingActivityLevelValues.select(.veryActive, in: &state)
+
+        XCTAssertEqual(
+            OnboardingActivityLevelExplanationBuilder.selectedExplanation(for: state.activityLevel),
+            FormaProductCopy.Onboarding.Flow.Activity.veryActiveExplanationHeadline
+        )
+    }
+
     func testVoiceOverReportsSelectedState() {
         let label = OnboardingActivityLevelExplanationBuilder.voiceOverLabel(
             for: .moderatelyActive,
@@ -142,6 +180,9 @@ final class OnboardingActivityTests: XCTestCase {
 
         XCTAssertTrue(label.contains("Moderately Active"))
         XCTAssertTrue(label.contains("selected"))
+        XCTAssertTrue(
+            label.contains(FormaProductCopy.Onboarding.Flow.Activity.moderatelyActiveExplanationHeadline)
+        )
     }
 
     func testActivityLevelStepDoesNotShowProgressHeaderInShell() {

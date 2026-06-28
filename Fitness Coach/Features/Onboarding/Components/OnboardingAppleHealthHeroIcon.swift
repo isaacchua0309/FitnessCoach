@@ -13,8 +13,8 @@ struct OnboardingAppleHealthHeroIcon: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulse = false
 
-    private let orbSize: CGFloat = 96
-    private let iconSize: CGFloat = 40
+    private let orbSize: CGFloat = 64
+    private let iconSize: CGFloat = 28
 
     var body: some View {
         ZStack {
@@ -27,7 +27,7 @@ struct OnboardingAppleHealthHeroIcon: View {
             switch style {
             case .loading:
                 SwiftUI.ProgressView()
-                    .controlSize(.large)
+                    .controlSize(.regular)
                     .tint(OnboardingTheme.accent)
             case .success:
                 Image(systemName: "checkmark.circle.fill")
@@ -42,6 +42,7 @@ struct OnboardingAppleHealthHeroIcon: View {
             }
         }
         .frame(maxWidth: .infinity)
+        .padding(.vertical, 2)
         .accessibilityHidden(true)
         .onAppear {
             guard style == .heart, !reduceMotion else { return }
@@ -52,7 +53,7 @@ struct OnboardingAppleHealthHeroIcon: View {
 
 #if DEBUG
 #Preview("Hero States") {
-    VStack(spacing: 32) {
+    VStack(spacing: 24) {
         OnboardingAppleHealthHeroIcon(style: .heart)
         OnboardingAppleHealthHeroIcon(style: .loading)
         OnboardingAppleHealthHeroIcon(style: .success)

@@ -105,16 +105,32 @@ final class OnboardingAppleHealthFlowTests: XCTestCase {
         )
         XCTAssertEqual(
             OnboardingStep.appleHealth.subtitle,
-            "Sync workouts and activity to make your progress insights more accurate."
+            "Sync workouts and activity to improve your progress insights."
         )
     }
 
-    func testAppleHealthBenefitsUseSeparateCardsCopy() {
-        let benefits = FormaProductCopy.Onboarding.Flow.AppleHealth.benefits
-        XCTAssertEqual(benefits.count, 3)
-        XCTAssertEqual(benefits[0].title, "Workout tracking")
-        XCTAssertEqual(benefits[1].title, "Activity insights")
-        XCTAssertEqual(benefits[2].title, "Progress patterns")
+    func testAppleHealthReadableDataRowsUseCompactSummaryCopy() {
+        let copy = FormaProductCopy.Onboarding.Flow.AppleHealth.self
+        XCTAssertEqual(copy.summaryCardTitle, "What Forma can read")
+        XCTAssertEqual(copy.readableDataRows, [
+            "Workouts and duration",
+            "Active calories",
+            "Training consistency"
+        ])
+        XCTAssertEqual(
+            copy.readableDataAccessibilityLabel,
+            "What Forma can read: workouts and duration, active calories, training consistency."
+        )
+    }
+
+    func testAppleHealthCopyHasSingleTitleReference() {
+        let copy = FormaProductCopy.Onboarding.Flow.AppleHealth.self
+        XCTAssertEqual(copy.title, OnboardingStep.appleHealth.title)
+        XCTAssertEqual(copy.subtitle, OnboardingStep.appleHealth.subtitle)
+    }
+
+    func testAppleHealthStepUsesFixedViewportShell() {
+        XCTAssertTrue(OnboardingStep.appleHealth.usesFixedViewportShell)
     }
 
     func testHealthKitAuthorizationRequestsReadOnlyTypes() {

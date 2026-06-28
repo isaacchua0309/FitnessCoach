@@ -26,7 +26,14 @@ enum OnboardingComponentsPreviewCatalog {
     @ViewBuilder
     static var almostThere: some View {
         OnboardingAlmostThereStepView()
-            .padding(.horizontal, OnboardingTheme.pagePadding)
+    }
+
+    @ViewBuilder
+    static var planBlueprint: some View {
+        OnboardingPersonalizationSummaryStepView(
+            formState: OnboardingPreviewData.formState,
+            validationMessage: nil
+        )
     }
 
     @ViewBuilder
@@ -37,7 +44,6 @@ enum OnboardingComponentsPreviewCatalog {
                 deviceState: .notConnected
             )
         )
-        .padding(.horizontal, OnboardingTheme.pagePadding)
     }
 
     @ViewBuilder
@@ -205,6 +211,11 @@ enum OnboardingComponentsPreviewCatalog {
 #Preview("Almost There Screen") {
     OnboardingComponentsPreviewCatalog.almostThere
         .padding()
+        .background(OnboardingTheme.background)
+}
+
+#Preview("Plan Blueprint Screen") {
+    OnboardingComponentsPreviewCatalog.planBlueprint
         .background(OnboardingTheme.background)
 }
 

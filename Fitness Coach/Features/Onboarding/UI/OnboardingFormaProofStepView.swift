@@ -13,9 +13,9 @@ struct OnboardingFormaProofStepView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var headerVisible = false
+    @State private var titleVisible = false
     @State private var heroVisible = false
     @State private var comparisonVisible = false
-    @State private var pathVisible = false
     @State private var trustVisible = false
     @State private var didPlayAppearHaptic = false
 
@@ -24,15 +24,16 @@ struct OnboardingFormaProofStepView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+        VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
             headerSection
             titleSection
             heroSection
             comparisonSection
-            pathSection
             trustSection
             Spacer(minLength: 0)
         }
+        .padding(.horizontal, OnboardingTheme.pagePadding)
+        .padding(.top, OnboardingLayout.progressHeaderTop)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(displayState.accessibilityLabel)
@@ -43,13 +44,13 @@ struct OnboardingFormaProofStepView: View {
     }
 
     private var headerSection: some View {
-        OnboardingStageProgressHeader(currentStep: .formaProof)
+        OnboardingStageProgressHeader(currentStep: .formaProof, showsTitles: false)
             .opacity(headerVisible ? 1 : 0)
             .offset(y: headerVisible ? 0 : 6)
     }
 
     private var titleSection: some View {
-        VStack(alignment: .leading, spacing: OnboardingLayout.progressTitleSpacing) {
+        VStack(alignment: .leading, spacing: OnboardingLayout.compactLabelGap) {
             Text(displayState.title)
                 .font(.system(.title2, design: .rounded).weight(.bold))
                 .foregroundStyle(OnboardingTheme.primaryText)
@@ -58,12 +59,12 @@ struct OnboardingFormaProofStepView: View {
                 .accessibilityAddTraits(.isHeader)
 
             Text(displayState.subtitle)
-                .font(FormaTokens.Typography.body)
+                .font(FormaTokens.Typography.sectionSubtitle)
                 .foregroundStyle(OnboardingTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .opacity(headerVisible ? 1 : 0)
-        .offset(y: headerVisible ? 0 : 4)
+        .opacity(titleVisible ? 1 : 0)
+        .offset(y: titleVisible ? 0 : 4)
     }
 
     private var heroSection: some View {
@@ -73,37 +74,33 @@ struct OnboardingFormaProofStepView: View {
             supportingCopy: displayState.heroSupporting
         )
         .opacity(heroVisible ? 1 : 0)
-        .offset(y: heroVisible ? 0 : 8)
-        .scaleEffect(heroVisible ? 1 : 0.97)
+        .offset(y: heroVisible ? 0 : 6)
+        .scaleEffect(heroVisible ? 1 : 0.98)
     }
 
     private var comparisonSection: some View {
         OnboardingFormaProofStructuredComparisonCard(state: displayState.comparison)
             .opacity(comparisonVisible ? 1 : 0)
-            .offset(y: comparisonVisible ? 0 : 8)
-    }
-
-    private var pathSection: some View {
-        OnboardingFormaProofPathVisual(
-            style: displayState.pathStyle,
-            animatePlannedPath: pathVisible
-        )
-        .opacity(pathVisible ? 1 : 0)
-        .offset(y: pathVisible ? 0 : 6)
+            .offset(y: comparisonVisible ? 0 : 6)
     }
 
     private var trustSection: some View {
-        OnboardingAlmostThereTrustStrip(copy: displayState.trustStrip)
+        Text(displayState.trustStrip)
+            .font(FormaTokens.Typography.caption)
+            .foregroundStyle(OnboardingTheme.tertiaryText)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityLabel(displayState.trustStrip)
             .opacity(trustVisible ? 1 : 0)
-            .offset(y: trustVisible ? 0 : 8)
+            .offset(y: trustVisible ? 0 : 4)
     }
 
     private func runEntranceAnimation() {
         if reduceMotion {
             headerVisible = true
+            titleVisible = true
             heroVisible = true
             comparisonVisible = true
-            pathVisible = true
             trustVisible = true
             return
         }
@@ -111,16 +108,16 @@ struct OnboardingFormaProofStepView: View {
         withAnimation(.easeOut(duration: 0.22)) {
             headerVisible = true
         }
-        withAnimation(.easeOut(duration: 0.28).delay(0.10)) {
+        withAnimation(.easeOut(duration: 0.24).delay(0.06)) {
+            titleVisible = true
+        }
+        withAnimation(.easeOut(duration: 0.26).delay(0.12)) {
             heroVisible = true
         }
-        withAnimation(.easeOut(duration: 0.26).delay(0.26)) {
+        withAnimation(.easeOut(duration: 0.24).delay(0.24)) {
             comparisonVisible = true
         }
-        withAnimation(.easeOut(duration: 0.24).delay(0.40)) {
-            pathVisible = true
-        }
-        withAnimation(.easeOut(duration: 0.24).delay(0.54)) {
+        withAnimation(.easeOut(duration: 0.22).delay(0.36)) {
             trustVisible = true
         }
     }
@@ -137,13 +134,12 @@ struct OnboardingFormaProofStepView: View {
     OnboardingFormaProofStepView(
         formState: {
             var state = OnboardingFormState()
-            OnboardingHeightWeightValues.setWeightKg(70, in: &state)
-            OnboardingTargetWeightValues.setGoalFromLossKg(3.5, in: &state)
+            OnboardingHeightWeightValues.setWeightKg(90, in: &state)
+            OnboardingTargetWeightValues.setGoalFromLossKg(15, in: &state)
             state.unitSystem = .metric
             return state
         }()
     )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
@@ -152,13 +148,12 @@ struct OnboardingFormaProofStepView: View {
     OnboardingFormaProofStepView(
         formState: {
             var state = OnboardingFormState()
-            OnboardingHeightWeightValues.setWeightKg(66, in: &state)
-            OnboardingTargetWeightValues.setGoalFromDeltaKg(4, in: &state)
+            OnboardingHeightWeightValues.setWeightKg(70, in: &state)
+            OnboardingTargetWeightValues.setGoalFromDeltaKg(8, in: &state)
             state.unitSystem = .metric
             return state
         }()
     )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
@@ -172,30 +167,41 @@ struct OnboardingFormaProofStepView: View {
             return state
         }()
     )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
 
 #Preview("Forma Proof — Fallback") {
     OnboardingFormaProofStepView(formState: OnboardingFormState())
-        .padding(.horizontal, OnboardingTheme.pagePadding)
         .background(OnboardingTheme.background)
         .formaThemePreview()
 }
 
-#Preview("Forma Proof — Imperial") {
+#Preview("Forma Proof — Small iPhone") {
     OnboardingFormaProofStepView(
         formState: {
             var state = OnboardingFormState()
-            state.unitSystem = .imperial
             OnboardingHeightWeightValues.setWeightKg(70, in: &state)
             OnboardingTargetWeightValues.setGoalFromLossKg(3.5, in: &state)
             return state
         }()
     )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
     .formaThemePreview()
+    .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
+}
+
+#Preview("Forma Proof — Large Dynamic Type") {
+    OnboardingFormaProofStepView(
+        formState: {
+            var state = OnboardingFormState()
+            OnboardingHeightWeightValues.setWeightKg(70, in: &state)
+            OnboardingTargetWeightValues.setGoalFromLossKg(3.5, in: &state)
+            return state
+        }()
+    )
+    .background(OnboardingTheme.background)
+    .formaThemePreview()
+    .dynamicTypeSize(.accessibility2)
 }
 #endif

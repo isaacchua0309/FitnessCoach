@@ -14,27 +14,27 @@ struct OnboardingAppleHealthPrivacyCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
             Image(systemName: "lock.shield")
-                .font(.body.weight(.semibold))
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(OnboardingTheme.accent)
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(FormaTokens.Typography.body.weight(.semibold))
+                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                     .foregroundStyle(OnboardingTheme.primaryText)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text(bodyCopy)
-                    .font(FormaTokens.Typography.body)
+                    .font(FormaTokens.Typography.caption)
                     .foregroundStyle(OnboardingTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(FormaTokens.Spacing.cardPadding)
+        .padding(OnboardingLayout.compactCardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-                .fill(FormaTokens.Color.surfaceSubtle)
+                .fill(FormaTokens.Color.surfaceSubtle.opacity(0.72))
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title). \(bodyCopy)")

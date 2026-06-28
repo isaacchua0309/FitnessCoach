@@ -9,24 +9,31 @@ import Foundation
 
 enum OnboardingGeneratingPlanTiming {
 
-    static let initialDelay: TimeInterval = 0.35
-    static let itemRevealAnimation: TimeInterval = 0.30
+    static let heroAppearDelay: TimeInterval = 0
+    static let titleSubtitleDelay: TimeInterval = 0.30
+    static let firstStepDelay: TimeInterval = 0.60
+    static let stepTransitionAnimation: TimeInterval = 0.28
 
-    /// Pause after each checklist item is revealed; later items linger slightly longer.
-    static let intervalsAfterReveal: [TimeInterval] = [0.42, 0.46, 0.50, 0.54, 0.58]
+    /// Pause while each step is active before advancing to the next.
+    static let stepActiveDurations: [TimeInterval] = [0.58, 0.62, 0.66, 0.62, 0.58]
 
-    /// Brief beat after the final item so the transition to plan reveal does not feel abrupt.
-    static let postCompleteHold: TimeInterval = 0.35
+    /// Brief success beat after the final step before routing to plan reveal.
+    static let successHold: TimeInterval = 0.55
+
+    /// Reassuring copy when generation outlasts the staged animation.
+    static let slowGenerationThreshold: TimeInterval = 3.5
 
     /// Minimum time the generating screen stays visible while the plan is computed.
     static var minimumDisplayDuration: TimeInterval {
-        initialDelay + intervalsAfterReveal.reduce(0, +) + postCompleteHold
+        firstStepDelay
+            + stepActiveDurations.reduce(0, +)
+            + successHold
     }
 
     static func validateChecklistAlignment() {
         assert(
-            intervalsAfterReveal.count == FormaProductCopy.Onboarding.V2.Generating.checklist.count,
-            "Generating checklist timing must match checklist copy count."
+            stepActiveDurations.count == FormaProductCopy.Onboarding.V2.Generating.checklist.count,
+            "Generating step timing must match checklist copy count."
         )
     }
 }

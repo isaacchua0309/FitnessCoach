@@ -13,9 +13,9 @@ struct OnboardingFormaProofHeroCard: View {
     let supportingCopy: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
             Text(heroMetric)
-                .font(.system(size: 40, weight: .bold, design: .rounded))
+                .font(.system(.title, design: .rounded).weight(.bold))
                 .foregroundStyle(OnboardingTheme.primaryText)
                 .minimumScaleFactor(0.8)
                 .lineLimit(2)
@@ -24,17 +24,18 @@ struct OnboardingFormaProofHeroCard: View {
 
             if let journeyLine {
                 Text(journeyLine)
-                    .font(.title3.weight(.medium))
+                    .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
                     .foregroundStyle(OnboardingTheme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .minimumScaleFactor(0.85)
+                    .lineLimit(1)
             }
 
             Text(supportingCopy)
-                .font(FormaTokens.Typography.body)
-                .foregroundStyle(OnboardingTheme.secondaryText)
+                .font(FormaTokens.Typography.caption)
+                .foregroundStyle(OnboardingTheme.tertiaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(FormaTokens.Spacing.cardPadding)
+        .padding(OnboardingLayout.compactCardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
@@ -47,7 +48,7 @@ struct OnboardingFormaProofHeroCard: View {
 #if DEBUG
 #Preview {
     OnboardingFormaProofHeroCard(
-        heroMetric: "Lose 3.5 kg",
+        heroMetric: "Lose toward 66.5 kg",
         journeyLine: "70 kg → 66.5 kg",
         supportingCopy: FormaProductCopy.Onboarding.Flow.FormaProof.Loss.heroSupporting
     )

@@ -210,38 +210,26 @@ struct OnboardingHorizontalRulerPicker: View {
 
     private var rulerScrollView: some View {
         GeometryReader { proxy in
-            ScrollViewReader { scrollProxy in
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 0) {
-                        ForEach(configuration.values.indices, id: \.self) { index in
-                            tickView(for: index)
-                                .frame(width: configuration.tickSpacing)
-                                .id(index)
-                        }
+            let sideInset = rulerSideInset(in: proxy.size.width)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 0) {
+                    ForEach(configuration.values.indices, id: \.self) { index in
+                        tickView(for: index)
+                            .frame(width: configuration.tickSpacing)
+                            .id(index)
                     }
-                    .scrollTargetLayout()
-                    .padding(.horizontal, rulerHorizontalPadding(in: proxy.size.width))
                 }
-                .scrollTargetBehavior(.viewAligned)
-                .scrollPosition(id: $scrollPositionID, anchor: .center)
-                .accessibilityHidden(true)
-                .onAppear {
-                    scrollRulerToSelectedIndex(
-                        using: scrollProxy,
-                        containerWidth: proxy.size.width
-                    )
-                }
-                .onChange(of: proxy.size.width) { _, width in
-                    scrollRulerToSelectedIndex(
-                        using: scrollProxy,
-                        containerWidth: width
-                    )
-                }
-                .onChange(of: selectedIndex) { _, index in
-                    guard scrollPositionID != index else { return }
-                    scrollPositionID = index
-                    scrollProxy.scrollTo(index, anchor: .center)
-                }
+                .scrollTargetLayout()
+            }
+            .contentMargins(.horizontal, sideInset, for: .scrollContent)
+            .scrollTargetBehavior(.viewAligned)
+            .scrollPosition(id: $scrollPositionID, anchor: .center)
+            .accessibilityHidden(true)
+            .onAppear {
+                alignScrollToSelectedValue()
+            }
+            .onChange(of: proxy.size.width) { _, _ in
+                alignScrollToSelectedValue()
             }
         }
         .padding(.top, isHero ? 44 : 0)
@@ -249,24 +237,14 @@ struct OnboardingHorizontalRulerPicker: View {
 
     private func alignScrollToSelectedValue() {
         syncIndexFromValue()
-        scrollPositionID = selectedIndex
-    }
-
-    private func scrollRulerToSelectedIndex(
-        using scrollProxy: ScrollViewProxy,
-        containerWidth: CGFloat
-    ) {
-        guard containerWidth > 1 else { return }
-        alignScrollToSelectedValue()
-        let targetIndex = selectedIndex
-        scrollPositionID = targetIndex
-        DispatchQueue.main.async {
-            scrollProxy.scrollTo(targetIndex, anchor: .center)
+        if scrollPositionID != selectedIndex {
+            scrollPositionID = selectedIndex
         }
     }
 
-    private func rulerHorizontalPadding(in width: CGFloat) -> CGFloat {
-        max(width / 2, configuration.tickSpacing)
+    /// Inset so the first/last tick can scroll under the fixed center indicator.
+    private func rulerSideInset(in width: CGFloat) -> CGFloat {
+        max((width - configuration.tickSpacing) / 2, configuration.tickSpacing)
     }
 
     private var centerIndicator: some View {

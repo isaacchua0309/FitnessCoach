@@ -11,7 +11,7 @@ struct OnboardingFormaProofStructuredComparisonCard: View {
     let state: OnboardingFormaProofComparisonState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+        VStack(alignment: .leading, spacing: OnboardingLayout.compactFieldSpacing) {
             comparisonColumn(
                 title: state.withoutTitle,
                 headline: state.withoutHeadline,
@@ -29,7 +29,7 @@ struct OnboardingFormaProofStructuredComparisonCard: View {
                 accent: OnboardingTheme.accent
             )
         }
-        .padding(FormaTokens.Spacing.cardPadding)
+        .padding(OnboardingLayout.compactCardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
@@ -45,29 +45,29 @@ struct OnboardingFormaProofStructuredComparisonCard: View {
         bullets: [String],
         accent: Color
     ) -> some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             Text(title)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
+                .font(FormaTokens.Typography.caption2.weight(.semibold))
                 .foregroundStyle(accent)
                 .textCase(.uppercase)
                 .accessibilityAddTraits(.isHeader)
 
             Text(headline)
-                .font(FormaTokens.Typography.body.weight(.semibold))
+                .font(FormaTokens.Typography.caption.weight(.semibold))
                 .foregroundStyle(OnboardingTheme.primaryText)
                 .fixedSize(horizontal: false, vertical: true)
 
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+            VStack(alignment: .leading, spacing: 4) {
                 ForEach(bullets, id: \.self) { bullet in
-                    HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
+                    HStack(alignment: .top, spacing: FormaTokens.Spacing.xs) {
                         Circle()
                             .fill(accent.opacity(0.85))
-                            .frame(width: 5, height: 5)
-                            .padding(.top, 7)
+                            .frame(width: 4, height: 4)
+                            .padding(.top, 6)
                             .accessibilityHidden(true)
 
                         Text(bullet)
-                            .font(FormaTokens.Typography.body)
+                            .font(FormaTokens.Typography.caption)
                             .foregroundStyle(OnboardingTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
                     }

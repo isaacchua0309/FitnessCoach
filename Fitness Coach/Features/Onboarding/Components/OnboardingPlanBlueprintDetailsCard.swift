@@ -12,6 +12,7 @@ struct OnboardingPlanBlueprintDetailsCard: View {
     @Binding var isExpanded: Bool
 
     private let copy = FormaProductCopy.Onboarding.Flow.Summary.Details.self
+    private let expandedMaxHeight: CGFloat = 132
 
     var body: some View {
         VStack(spacing: 0) {
@@ -21,42 +22,57 @@ struct OnboardingPlanBlueprintDetailsCard: View {
                 }
             } label: {
                 HStack(spacing: FormaTokens.Spacing.sm) {
-                    Text(copy.title)
-                        .font(FormaTokens.Typography.body.weight(.semibold))
-                        .foregroundStyle(OnboardingTheme.primaryText)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(copy.title)
+                            .font(FormaTokens.Typography.caption.weight(.semibold))
+                            .foregroundStyle(OnboardingTheme.primaryText)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        if !isExpanded {
+                            Text(copy.collapsedSummary)
+                                .font(FormaTokens.Typography.caption)
+                                .foregroundStyle(OnboardingTheme.tertiaryText)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
 
                     Image(systemName: "chevron.down")
-                        .font(.caption.weight(.semibold))
+                        .font(.caption2.weight(.semibold))
                         .foregroundStyle(OnboardingTheme.secondaryText)
                         .rotationEffect(.degrees(isExpanded ? 180 : 0))
                         .accessibilityHidden(true)
                 }
-                .padding(.horizontal, FormaTokens.Spacing.cardPadding)
-                .padding(.vertical, FormaTokens.Spacing.md)
+                .padding(.horizontal, OnboardingLayout.compactCardPadding)
+                .padding(.vertical, 10)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(copy.title)
+            .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
             .accessibilityHint(isExpanded ? "" : copy.collapsedAccessibilityHint)
             .accessibilityAddTraits(.isButton)
 
             if isExpanded {
                 Divider()
                     .opacity(0.35)
-                    .padding(.horizontal, FormaTokens.Spacing.cardPadding)
+                    .padding(.horizontal, OnboardingLayout.compactCardPadding)
 
-                VStack(spacing: 0) {
-                    ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
-                        if index > 0 {
-                            Divider()
-                                .opacity(0.25)
-                                .padding(.horizontal, FormaTokens.Spacing.cardPadding)
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                            if index > 0 {
+                                Divider()
+                                    .opacity(0.25)
+                                    .padding(.horizontal, OnboardingLayout.compactCardPadding)
+                            }
+                            detailRow(row)
                         }
-                        detailRow(row)
                     }
                 }
-                .padding(.bottom, FormaTokens.Spacing.sm)
+                .frame(maxHeight: expandedMaxHeight)
+                .padding(.bottom, FormaTokens.Spacing.xs)
             }
         }
         .background(
@@ -71,7 +87,7 @@ struct OnboardingPlanBlueprintDetailsCard: View {
             Text(row.title)
                 .font(FormaTokens.Typography.caption.weight(.semibold))
                 .foregroundStyle(OnboardingTheme.tertiaryText)
-                .frame(width: 88, alignment: .leading)
+                .frame(width: 84, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
 
             Text(row.value)
@@ -82,15 +98,35 @@ struct OnboardingPlanBlueprintDetailsCard: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, FormaTokens.Spacing.cardPadding)
-        .padding(.vertical, FormaTokens.Spacing.sm)
+        .padding(.horizontal, OnboardingLayout.compactCardPadding)
+        .padding(.vertical, 8)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(row.title), \(row.value)")
     }
 }
 
 #if DEBUG
-#Preview {
+#Preview("Collapsed") {
+    struct PreviewWrapper: View {
+        @State private var isExpanded = false
+
+        var body: some View {
+            OnboardingPlanBlueprintDetailsCard(
+                rows: OnboardingPersonalizationSummaryBuilder.recapCards(
+                    for: OnboardingPreviewData.formState
+                ),
+                isExpanded: $isExpanded
+            )
+            .padding()
+            .background(OnboardingTheme.background)
+            .formaThemePreview()
+        }
+    }
+
+    return PreviewWrapper()
+}
+
+#Preview("Expanded") {
     struct PreviewWrapper: View {
         @State private var isExpanded = true
 

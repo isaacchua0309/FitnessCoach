@@ -259,17 +259,28 @@ enum FormaProductCopy {
             }
 
             enum Generating {
-                static let title = "Building your Forma plan…"
+                static let title = "Building your Forma plan"
+                static let successTitle = "Your plan is ready"
                 static let checklist: [String] = [
                     "Estimating your baseline",
                     "Setting your calorie target",
-                    "Balancing macros",
-                    "Preparing Coach",
-                    "Outlining your first-week focus"
+                    "Balancing your macros",
+                    "Preparing daily guidance",
+                    "Getting your plan ready"
                 ]
-                static let failureMessage =
-                    "We couldn't build your plan just now. Check your details and try again."
-                static let reviewDetailsCTA = "Review details"
+                static let anticipationText = "Your daily targets are almost ready."
+                static let slowGenerationMessage = "Still preparing your plan…"
+                static let failureTitle = "We couldn't build your plan yet."
+                static let failureMessage = "Please try again."
+                static let tryAgainCTA = "Try again"
+                static let goBackCTA = "Go back"
+
+                enum Subtitle {
+                    static let loss = "Preparing targets for steady, sustainable progress."
+                    static let gain = "Preparing targets to help you gain consistently."
+                    static let maintain = "Preparing targets to help you stay consistent."
+                    static let fallback = "Turning your answers into daily targets."
+                }
             }
 
             enum PlanReveal {
@@ -392,8 +403,8 @@ enum FormaProductCopy {
             enum TargetWeight {
                 static let title = "What's your target weight?"
                 static let subtitle = "Pick a realistic goal for your plan."
-                static let lossRulerAccessibilityLabel = "Target weight change"
-                static let lossRulerHint = "Drag the ruler to choose your target weight."
+                static let rulerAccessibilityLabel = "Target weight"
+                static let interactionHint = "Slide to choose the weight you want to reach."
                 static let realisticTargetTitle = "This is a realistic target."
                 static let realisticTargetBody = "Small steady progress is easier to maintain."
                 static let maintainGoalTitle = "You're maintaining your current weight."
@@ -491,8 +502,7 @@ enum FormaProductCopy {
             enum AppleHealth {
                 static let title = "Connect Apple Health"
                 static let subtitle =
-                    "Sync workouts and activity to make your progress insights more accurate."
-                static let optionalNote = "You can skip this for now and connect later."
+                    "Sync workouts and activity to improve your progress insights."
                 static let connectCTA = "Connect Apple Health"
                 static let skipCTA = "Skip for now"
                 static let unavailableCTA = "Apple Health unavailable"
@@ -505,27 +515,17 @@ enum FormaProductCopy {
                     "Apple Health isn't available on this device."
                 static let failedMessage =
                     "Something went wrong. Try again or skip for now."
+                static let summaryCardTitle = "What Forma can read"
+                static let readableDataRows: [String] = [
+                    "Workouts and duration",
+                    "Active calories",
+                    "Training consistency"
+                ]
+                static let readableDataAccessibilityLabel =
+                    "What Forma can read: workouts and duration, active calories, training consistency."
                 static let privacyTitle = "Private by design"
                 static let privacyBody =
-                    "Forma only reads the activity data you allow. You can change this anytime in Settings."
-                static let benefitsAccessibilityLabel = "Apple Health benefits"
-                static let benefits: [(icon: String, title: String, subtitle: String)] = [
-                    (
-                        "figure.run",
-                        "Workout tracking",
-                        "See workout days, duration, and training consistency."
-                    ),
-                    (
-                        "figure.walk.motion",
-                        "Activity insights",
-                        "Understand how your movement supports your plan."
-                    ),
-                    (
-                        "chart.line.uptrend.xyaxis",
-                        "Progress patterns",
-                        "Spot trends that help you stay consistent."
-                    )
-                ]
+                    "Forma only reads data you allow. You can connect later."
             }
 
             enum AlmostThere {
@@ -533,9 +533,12 @@ enum FormaProductCopy {
                 static let subtitle =
                     "We've got what we need to build your personalized plan."
                 static let summaryHeadline =
-                    "Forma turns your plan into simple daily actions."
+                    "Forma turns your plan into daily actions."
                 static let summarySupporting =
-                    "Track meals, follow your targets, and stay consistent over time."
+                    "Track meals, follow your targets, and see progress over time."
+                static let valueSectionTitle = "What you'll get"
+                static let valueSectionAccessibilityLabel =
+                    "What you'll get: Fast meal tracking, Daily targets, Progress journey, Smart coaching."
                 static let trustStrip = "Built for consistency, not restriction."
                 static let continueCTA = "Continue"
                 static let accessibilitySummary =
@@ -569,44 +572,43 @@ enum FormaProductCopy {
 
             enum FormaProof {
                 static let continueCTA = "Continue"
-                static var title: String { Fallback.title }
-                static var subtitle: String { Fallback.subtitle }
 
                 enum Fallback {
-                    static let title = "Forma turns your goal into a daily plan"
+                    static let title = "Your plan is built for you."
                     static let subtitle =
-                        "Clear targets, simple logging, and progress tracking help you stay consistent."
+                        "Forma helps you stay consistent with clear daily targets."
                     static let heroMetric = "Your personalized plan"
                     static let heroSupporting =
-                        "Forma helps you stay consistent with clear daily actions."
-                    static let trustStrip = "Built for consistency, not restriction."
+                        "Clear daily targets make progress easier to sustain."
+                    static let trustNote = "Built from your body, goal, and activity level."
                 }
 
                 enum Loss {
-                    static let title = "Your plan is built for steady weight loss"
+                    static let title = "Your plan is built to help you lose weight steadily."
                     static let subtitle =
-                        "Forma helps you stay consistent with clear daily targets."
+                        "Forma helps you make progress with habits you can actually maintain."
                     static let heroSupporting =
-                        "Small consistent habits make progress easier to maintain."
+                        "Clear daily targets make fat loss easier to sustain."
                     static let withoutHeadline =
-                        "Progress can be slower and harder to maintain."
+                        "Weight loss often stalls without structure."
                     static let withHeadline =
-                        "Your plan gives you calories, protein, and progress tracking."
+                        "Your plan keeps your daily actions focused."
                 }
 
                 enum Gain {
-                    static let title = "Your plan is built for steady weight gain"
+                    static let title = "Your plan is built to help you gain weight steadily."
                     static let subtitle =
-                        "Forma helps you eat enough consistently without guessing."
+                        "Forma helps you increase consistently without guessing what to eat."
                     static let heroSupporting =
-                        "Consistency matters more than forcing extreme changes."
-                    static let withoutHeadline = "Progress can be inconsistent."
+                        "Clear daily targets make healthy weight gain easier."
+                    static let withoutHeadline =
+                        "Weight gain can feel inconsistent without structure."
                     static let withHeadline =
-                        "Your plan gives you daily targets to support steady gain."
+                        "Your plan gives you clear daily targets to grow steadily."
                 }
 
                 enum Maintain {
-                    static let title = "Your plan is built to help you maintain"
+                    static let title = "Your plan is built to help you maintain."
                     static let subtitle =
                         "Forma helps you stay consistent without overthinking every meal."
                     static let heroSupporting =
@@ -621,7 +623,7 @@ enum FormaProductCopy {
                     static let withFormaTitle = "With Forma"
                     static let withoutBullets = [
                         "Harder to know what to eat",
-                        "Progress can be inconsistent",
+                        "Progress can feel inconsistent",
                         "Habits are harder to maintain"
                     ]
                     static let withFormaBullets = [
@@ -633,12 +635,19 @@ enum FormaProductCopy {
 
                 enum Trust {
                     static let personalized =
-                        "Your plan is based on your body, goal, and activity level."
-                    static let consistency = "Built for consistency, not restriction."
+                        "Built from your body, goal, and activity level."
                 }
 
                 static func maintainHero(targetWeightLabel: String) -> String {
                     "Maintain around \(targetWeightLabel)"
+                }
+
+                static func lossHero(targetWeightLabel: String) -> String {
+                    "Lose toward \(targetWeightLabel)"
+                }
+
+                static func gainHero(targetWeightLabel: String) -> String {
+                    "Gain toward \(targetWeightLabel)"
                 }
             }
 
@@ -656,23 +665,26 @@ enum FormaProductCopy {
                     static let loss = "We'll build a steady target around sustainable progress."
                     static let gain = "We'll build daily targets to help you gain consistently."
                     static let maintain =
-                        "We'll help you stay near your target range with clear daily goals."
+                        "Clear daily goals help you stay near your target range."
                     static let fallback = "We'll build your starting targets from your answers."
                 }
 
                 enum Basis {
-                    static let title = "Your plan will be based on"
-                    static let bodyMeasurements = "Body measurements"
-                    static let age = "Birthday-derived age"
-                    static let sex = "Biological sex for calorie calculation"
-                    static let activity = "Activity level"
-                    static let targetWeight = "Target weight"
+                    static let title = "Built from your answers"
+                    static let bodyMeasurements = "Measurements"
+                    static let age = "Birthday"
+                    static let sex = "Sex"
+                    static let activity = "Activity"
+                    static let targetWeight = "Target"
+                    static let accessibilityList =
+                        "your measurements, birthday, biological sex, activity level, and target weight"
                 }
 
                 enum Details {
                     static let title = "Review details"
+                    static let collapsedSummary = "Height, weight, birthday, sex, activity"
                     static let collapsedAccessibilityHint =
-                        "Expand to review height, weight, age, sex, and activity."
+                        "Expand to review height, weight, birthday, sex, and activity."
                 }
 
                 static let heightLabel = "Height"

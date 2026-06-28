@@ -13,23 +13,22 @@ struct OnboardingActivityLevelStepView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var headerVisible = false
+    @State private var helperVisible = false
     @State private var cardsVisible: [Bool] = Array(repeating: false, count: ActivityLevel.allCases.count)
-    @State private var explanationVisible = false
     @State private var didPlayAppearHaptic = false
 
     private let copy = FormaProductCopy.Onboarding.Flow.Activity.self
     private let levels = OnboardingActivityLevelValues.orderedLevels
 
-    private var explanationState: OnboardingActivityLevelExplanationState {
-        OnboardingActivityLevelExplanationBuilder.build(from: formState)
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
             headerSection
+
+            if !formState.hasConfirmedActivityLevelSelection {
+                preSelectionHelper
+            }
+
             cardsSection
-            Spacer(minLength: FormaTokens.Spacing.sm)
-            explanationSection
         }
         .padding(.horizontal, OnboardingTheme.pagePadding)
         .padding(.top, OnboardingLayout.progressHeaderTop)
@@ -50,12 +49,23 @@ struct OnboardingActivityLevelStepView: View {
             .accessibilityElement(children: .contain)
     }
 
+    private var preSelectionHelper: some View {
+        Text(copy.explanationPlaceholder)
+            .font(FormaTokens.Typography.body)
+            .foregroundStyle(OnboardingTheme.secondaryText)
+            .fixedSize(horizontal: false, vertical: true)
+            .opacity(helperVisible ? 1 : 0)
+            .offset(y: helperVisible ? 0 : 4)
+            .accessibilityAddTraits(.isStaticText)
+    }
+
     private var cardsSection: some View {
         VStack(spacing: FormaTokens.Spacing.sm) {
             ForEach(Array(levels.enumerated()), id: \.element) { index, level in
                 OnboardingActivityLevelCard(
                     level: level,
-                    isSelected: isLevelSelected(level)
+                    isSelected: isLevelSelected(level),
+                    selectedExplanation: selectedExplanation(for: level)
                 ) {
                     OnboardingActivityLevelValues.select(level, in: &formState)
                     OnboardingHaptics.selectionChanged()
@@ -68,21 +78,20 @@ struct OnboardingActivityLevelStepView: View {
         .accessibilityLabel(copy.optionsAccessibilityLabel)
     }
 
-    private var explanationSection: some View {
-        OnboardingActivityLevelExplanationCard(state: explanationState)
-            .opacity(explanationVisible ? 1 : 0)
-            .offset(y: explanationVisible ? 0 : 8)
-    }
-
     private func isLevelSelected(_ level: ActivityLevel) -> Bool {
         formState.hasConfirmedActivityLevelSelection && formState.activityLevel == level
+    }
+
+    private func selectedExplanation(for level: ActivityLevel) -> String? {
+        guard isLevelSelected(level) else { return nil }
+        return OnboardingActivityLevelExplanationBuilder.selectedExplanation(for: level)
     }
 
     private func runEntranceAnimation() {
         if reduceMotion {
             headerVisible = true
+            helperVisible = true
             cardsVisible = Array(repeating: true, count: levels.count)
-            explanationVisible = true
             return
         }
 
@@ -90,15 +99,14 @@ struct OnboardingActivityLevelStepView: View {
             headerVisible = true
         }
 
+        withAnimation(.easeOut(duration: 0.22).delay(0.08)) {
+            helperVisible = true
+        }
+
         for index in levels.indices {
             withAnimation(.easeOut(duration: 0.24).delay(0.10 + Double(index) * 0.06)) {
                 cardsVisible[index] = true
             }
-        }
-
-        let explanationDelay = 0.10 + Double(levels.count) * 0.06 + 0.12
-        withAnimation(.easeOut(duration: 0.26).delay(explanationDelay)) {
-            explanationVisible = true
         }
     }
 
@@ -110,23 +118,47 @@ struct OnboardingActivityLevelStepView: View {
 }
 
 #if DEBUG
-#Preview("Activity Level") {
+private enum OnboardingActivityLevelStepPreviewSupport {
+    static func formState(selected level: ActivityLevel?) -> OnboardingFormState {
+        var state = OnboardingFormState()
+        if let level {
+            OnboardingActivityLevelValues.select(level, in: &state)
+        }
+        return state
+    }
+}
+
+#Preview("Activity Level — Unselected") {
     OnboardingActivityLevelStepView(
-        formState: .constant({
-            var state = OnboardingFormState()
-            OnboardingActivityLevelValues.select(.moderatelyActive, in: &state)
-            return state
-        }())
+        formState: .constant(OnboardingActivityLevelStepPreviewSupport.formState(selected: nil))
     )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
 
-#Preview("Activity Level — Unselected") {
-    OnboardingActivityLevelStepView(formState: .constant(OnboardingFormState()))
-        .padding(.horizontal, OnboardingTheme.pagePadding)
-        .background(OnboardingTheme.background)
-        .formaThemePreview()
+#Preview("Activity Level — Sedentary") {
+    OnboardingActivityLevelStepView(
+        formState: .constant(OnboardingActivityLevelStepPreviewSupport.formState(selected: .sedentary))
+    )
+    .background(OnboardingTheme.background)
+    .formaThemePreview()
+}
+
+#Preview("Activity Level — Moderately Active") {
+    OnboardingActivityLevelStepView(
+        formState: .constant(
+            OnboardingActivityLevelStepPreviewSupport.formState(selected: .moderatelyActive)
+        )
+    )
+    .background(OnboardingTheme.background)
+    .formaThemePreview()
+}
+
+#Preview("Activity Level — Extra Active") {
+    OnboardingActivityLevelStepView(
+        formState: .constant(OnboardingActivityLevelStepPreviewSupport.formState(selected: .athlete))
+    )
+    .background(OnboardingTheme.background)
+    .formaThemePreview()
 }
 #endif

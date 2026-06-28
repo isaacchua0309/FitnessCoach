@@ -12,19 +12,19 @@ struct OnboardingAlmostThereSummaryCard: View {
     let supportingCopy: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+        VStack(alignment: .leading, spacing: OnboardingLayout.compactLabelGap) {
             Text(headline)
-                .font(.system(.title3, design: .rounded).weight(.semibold))
+                .font(FormaTokens.Typography.body.weight(.semibold))
                 .foregroundStyle(OnboardingTheme.primaryText)
                 .minimumScaleFactor(0.85)
                 .fixedSize(horizontal: false, vertical: true)
 
             Text(supportingCopy)
-                .font(FormaTokens.Typography.body)
+                .font(FormaTokens.Typography.sectionSubtitle)
                 .foregroundStyle(OnboardingTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(FormaTokens.Spacing.cardPadding)
+        .padding(OnboardingLayout.compactCardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)

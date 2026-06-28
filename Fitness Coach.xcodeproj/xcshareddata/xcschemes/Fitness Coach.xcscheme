@@ -44,18 +44,18 @@
       shouldUseLaunchSchemeArgsEnv = "YES">
       <TestPlans>
          <TestPlanReference
-            reference = "container:TestPlans/Fast-Core.xctestplan"
-            default = "YES">
+            default = "YES"
+            reference = "container:TestPlans/Fast-Core.xctestplan">
          </TestPlanReference>
          <TestPlanReference
-            reference = "container:TestPlans/Integration.xctestplan"
-            default = "NO">
+            reference = "container:TestPlans/Integration.xctestplan">
          </TestPlanReference>
          <TestPlanReference
-            reference = "container:TestPlans/Full.xctestplan"
-            default = "NO">
+            reference = "container:TestPlans/Full.xctestplan">
          </TestPlanReference>
       </TestPlans>
+      <Testables>
+      </Testables>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"

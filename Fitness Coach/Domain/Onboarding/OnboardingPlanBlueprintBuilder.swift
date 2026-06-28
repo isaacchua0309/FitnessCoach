@@ -14,9 +14,6 @@ struct OnboardingPlanBlueprintBasisItem: Equatable, Identifiable, Sendable {
 }
 
 struct OnboardingPlanBlueprintState: Equatable, Sendable {
-    let screenTitle: String
-    let screenSubtitle: String
-    let goalSectionTitle: String
     let goalHero: String
     let goalSubtitle: String
     let insight: String
@@ -63,9 +60,6 @@ enum OnboardingPlanBlueprintBuilder {
                 unitSystem: formState.unitSystem
             )
             return OnboardingPlanBlueprintState(
-                screenTitle: copy.title,
-                screenSubtitle: copy.subtitle,
-                goalSectionTitle: copy.goalSectionTitle,
                 goalHero: hero,
                 goalSubtitle: journeyLine,
                 insight: copy.Insight.loss,
@@ -74,9 +68,7 @@ enum OnboardingPlanBlueprintBuilder {
                 detailRows: detailRows,
                 accessibilityLabel: accessibilityLabel(
                     screenTitle: copy.title,
-                    goalHero: hero,
-                    goalSubtitle: journeyLine,
-                    basisTitle: copy.Basis.title
+                    goalHero: hero
                 ),
                 isPersonalized: true
             )
@@ -87,9 +79,6 @@ enum OnboardingPlanBlueprintBuilder {
                 unitSystem: formState.unitSystem
             )
             return OnboardingPlanBlueprintState(
-                screenTitle: copy.title,
-                screenSubtitle: copy.subtitle,
-                goalSectionTitle: copy.goalSectionTitle,
                 goalHero: hero,
                 goalSubtitle: journeyLine,
                 insight: copy.Insight.gain,
@@ -98,9 +87,7 @@ enum OnboardingPlanBlueprintBuilder {
                 detailRows: detailRows,
                 accessibilityLabel: accessibilityLabel(
                     screenTitle: copy.title,
-                    goalHero: hero,
-                    goalSubtitle: journeyLine,
-                    basisTitle: copy.Basis.title
+                    goalHero: hero
                 ),
                 isPersonalized: true
             )
@@ -113,9 +100,6 @@ enum OnboardingPlanBlueprintBuilder {
                 targetWeightLabel: targetLabel
             )
             return OnboardingPlanBlueprintState(
-                screenTitle: copy.title,
-                screenSubtitle: copy.subtitle,
-                goalSectionTitle: copy.goalSectionTitle,
                 goalHero: hero,
                 goalSubtitle: copy.maintainGoalSubtitle,
                 insight: copy.Insight.maintain,
@@ -124,9 +108,7 @@ enum OnboardingPlanBlueprintBuilder {
                 detailRows: detailRows,
                 accessibilityLabel: accessibilityLabel(
                     screenTitle: copy.title,
-                    goalHero: hero,
-                    goalSubtitle: copy.maintainGoalSubtitle,
-                    basisTitle: copy.Basis.title
+                    goalHero: hero
                 ),
                 isPersonalized: true
             )
@@ -139,16 +121,16 @@ enum OnboardingPlanBlueprintBuilder {
         basisItems: [OnboardingPlanBlueprintBasisItem]
     ) -> OnboardingPlanBlueprintState {
         OnboardingPlanBlueprintState(
-            screenTitle: copy.title,
-            screenSubtitle: copy.subtitle,
-            goalSectionTitle: copy.goalSectionTitle,
             goalHero: copy.goalFallbackHero,
             goalSubtitle: copy.goalFallbackSubtitle,
             insight: copy.Insight.fallback,
             basisTitle: copy.Basis.title,
             basisItems: basisItems,
             detailRows: detailRows,
-            accessibilityLabel: "\(copy.title). \(copy.goalFallbackHero). \(copy.Basis.title).",
+            accessibilityLabel: accessibilityLabel(
+                screenTitle: copy.title,
+                goalHero: copy.goalFallbackHero
+            ),
             isPersonalized: false
         )
     }
@@ -198,21 +180,17 @@ enum OnboardingPlanBlueprintBuilder {
             valueKg: goalKg,
             unitSystem: unitSystem
         )
-        return "From \(currentLabel) to \(goalLabel)"
+        return "\(currentLabel) → \(goalLabel)"
     }
 
     private static func accessibilityLabel(
         screenTitle: String,
-        goalHero: String,
-        goalSubtitle: String,
-        basisTitle: String
+        goalHero: String
     ) -> String {
         let spokenHero = goalHero
             .replacingOccurrences(of: " kg", with: " kilograms")
             .replacingOccurrences(of: " lb", with: " pounds")
-        let spokenSubtitle = goalSubtitle
-            .replacingOccurrences(of: " kg", with: " kilograms")
-            .replacingOccurrences(of: " lb", with: " pounds")
-        return "\(screenTitle). Your goal is \(spokenHero). \(spokenSubtitle). \(basisTitle)."
+        let basisList = FormaProductCopy.Onboarding.Flow.Summary.Basis.accessibilityList
+        return "\(screenTitle). \(spokenHero). Built from \(basisList)."
     }
 }

@@ -19,18 +19,30 @@ final class OnboardingFormaProofTests: XCTestCase {
         "automatic calorie adjustment"
     ]
 
-    func testFormaProofStepUsesFallbackShellCopy() {
-        XCTAssertEqual(
-            OnboardingStep.formaProof.title,
-            FormaProductCopy.Onboarding.Flow.FormaProof.Fallback.title
-        )
-        XCTAssertEqual(
-            OnboardingStep.formaProof.subtitle,
-            FormaProductCopy.Onboarding.Flow.FormaProof.Fallback.subtitle
-        )
+    func testFormaProofStepUsesEmptyShellCopy() {
+        XCTAssertEqual(OnboardingStep.formaProof.title, "")
+        XCTAssertEqual(OnboardingStep.formaProof.subtitle, "")
+        XCTAssertTrue(OnboardingStep.formaProof.usesFixedViewportShell)
         XCTAssertEqual(
             FormaProductCopy.Onboarding.Flow.FormaProof.continueCTA,
             "Continue"
+        )
+    }
+
+    func testFormaProofDoesNotUseRedundantIntroParagraph() {
+        let removedIntro = "Forma turns your goal into a daily plan"
+        let removedSupport =
+            "Clear targets, simple logging, and progress tracking help you stay consistent."
+
+        XCTAssertFalse(
+            OnboardingStep.formaProof.title.contains(removedIntro)
+        )
+        XCTAssertFalse(
+            OnboardingStep.formaProof.subtitle.contains(removedSupport)
+        )
+        XCTAssertNotEqual(
+            FormaProductCopy.Onboarding.Flow.FormaProof.Fallback.title,
+            removedIntro
         )
     }
 
@@ -51,11 +63,11 @@ final class OnboardingFormaProofTests: XCTestCase {
 
         XCTAssertEqual(proof.title, FormaProductCopy.Onboarding.Flow.FormaProof.Loss.title)
         XCTAssertEqual(proof.subtitle, FormaProductCopy.Onboarding.Flow.FormaProof.Loss.subtitle)
-        XCTAssertEqual(proof.heroMetric, "Lose 3.5 kg")
+        XCTAssertEqual(proof.heroMetric, "Lose toward 66.5 kg")
         XCTAssertEqual(proof.journeyLine, "70 kg → 66.5 kg")
         XCTAssertEqual(proof.pathStyle, .loss)
         XCTAssertTrue(proof.isPersonalized)
-        XCTAssertTrue(proof.accessibilityLabel.contains("steady weight loss"))
+        XCTAssertTrue(proof.accessibilityLabel.contains("lose weight steadily"))
     }
 
     func testGainCopyIsGoalAware() {
@@ -63,7 +75,7 @@ final class OnboardingFormaProofTests: XCTestCase {
         let proof = OnboardingFormaProofBuilder.build(from: state)
 
         XCTAssertEqual(proof.title, FormaProductCopy.Onboarding.Flow.FormaProof.Gain.title)
-        XCTAssertEqual(proof.heroMetric, "Gain 4 kg")
+        XCTAssertEqual(proof.heroMetric, "Gain toward 70 kg")
         XCTAssertEqual(proof.journeyLine, "66 kg → 70 kg")
         XCTAssertEqual(proof.pathStyle, .gain)
         XCTAssertEqual(proof.comparison.withoutHeadline, FormaProductCopy.Onboarding.Flow.FormaProof.Gain.withoutHeadline)
@@ -122,7 +134,7 @@ final class OnboardingFormaProofTests: XCTestCase {
         let restored = try XCTUnwrap(store.loadDraft()?.makeFormState())
         let proof = OnboardingFormaProofBuilder.build(from: restored)
 
-        XCTAssertEqual(proof.heroMetric, "Lose 5 kg")
+        XCTAssertEqual(proof.heroMetric, "Lose toward 73 kg")
         XCTAssertTrue(proof.isPersonalized)
     }
 
@@ -165,8 +177,7 @@ final class OnboardingFormaProofTests: XCTestCase {
             comparison.withFormaTitle,
             comparison.withoutBullets.joined(separator: " "),
             comparison.withFormaBullets.joined(separator: " "),
-            copy.Trust.personalized,
-            copy.Trust.consistency
+            copy.Trust.personalized
         ]
     }
 }

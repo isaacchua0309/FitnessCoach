@@ -2,7 +2,7 @@
 //  OnboardingTargetWeightStepView.swift
 //  Fitness Coach
 //
-//  Forma — target weight via horizontal goal-weight ruler.
+//  Forma — target weight step (absolute goal-weight ruler).
 //
 
 import SwiftUI
@@ -16,7 +16,7 @@ struct OnboardingTargetWeightStepView: View {
     @State private var summaryVisible = false
     @State private var rulerVisible = false
     @State private var guidanceVisible = false
-    @State private var isRulerPrepared = false
+    @State private var isContentPrepared = false
 
     private var guidanceState: OnboardingTargetWeightGuidanceState? {
         OnboardingTargetWeightGuidanceBuilder.guidanceState(for: formState)
@@ -26,11 +26,11 @@ struct OnboardingTargetWeightStepView: View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
             headerSection
 
-            if isRulerPrepared, formState.parsedCurrentWeightKg != nil {
+            if isContentPrepared, formState.parsedCurrentWeightKg != nil {
                 heroSummarySection
 
                 if rulerVisible {
-                    lossRuler
+                    targetWeightRuler
                 }
 
                 guidanceSection
@@ -41,7 +41,7 @@ struct OnboardingTargetWeightStepView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {
             OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &formState)
-            isRulerPrepared = true
+            isContentPrepared = true
             runEntranceAnimation()
         }
     }
@@ -52,7 +52,7 @@ struct OnboardingTargetWeightStepView: View {
                 .opacity(headerVisible ? 1 : 0)
                 .offset(y: headerVisible ? 0 : 6)
 
-            Text(copy.lossRulerHint)
+            Text(copy.interactionHint)
                 .font(FormaTokens.Typography.body)
                 .foregroundStyle(OnboardingTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -64,10 +64,23 @@ struct OnboardingTargetWeightStepView: View {
     @ViewBuilder
     private var heroSummarySection: some View {
         if let headline = OnboardingTargetWeightValues.heroHeadline(for: formState) {
-            OnboardingTargetWeightHeroSummary(
-                headline: headline,
-                journeyLine: OnboardingTargetWeightValues.currentToTargetSummary(for: formState)
-            )
+            VStack(spacing: FormaTokens.Spacing.sm) {
+                OnboardingTargetWeightHeroSummary(
+                    headline: headline,
+                    journeyLine: OnboardingTargetWeightValues.currentToTargetSummary(for: formState)
+                )
+
+                if let changeLine = OnboardingTargetWeightValues.differenceLabel(for: formState) {
+                    Text(changeLine)
+                        .font(FormaTokens.Typography.bodyMedium.weight(.semibold))
+                        .foregroundStyle(OnboardingTheme.primaryText)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .contentTransition(.numericText())
+                        .animation(.easeOut(duration: 0.2), value: changeLine)
+                        .accessibilityLabel(changeLine)
+                }
+            }
             .opacity(summaryVisible ? 1 : 0)
             .offset(y: summaryVisible ? 0 : 8)
         }
@@ -83,52 +96,8 @@ struct OnboardingTargetWeightStepView: View {
     }
 
     @ViewBuilder
-    private var lossRuler: some View {
-        let centerLabel = OnboardingTargetWeightValues.rulerCenterLabel(for: formState)
-        let accessibilityTarget = OnboardingTargetWeightValues.currentToTargetSummary(for: formState)
-            ?? centerLabel
-            ?? copy.lossRulerAccessibilityLabel
-
-        if let current = formState.parsedCurrentWeightKg {
-            let range = OnboardingTargetWeightValues.goalWeightRangeDisplay(
-                currentWeightKg: current,
-                heightCm: formState.parsedHeightCm,
-                unitSystem: formState.unitSystem,
-                selectedGoalKg: OnboardingTargetWeightValues.resolvedGoalKg(from: formState)
-            )
-            if formState.unitSystem == .metric {
-                OnboardingRulerPickerFactory.targetWeightGoalKg(
-                    value: goalWeightDisplayBinding,
-                    range: range,
-                    presentation: .hero,
-                    centerDisplayText: centerLabel,
-                    accessibilityValueText: accessibilityTarget
-                )
-                .accessibilityLabel(copy.lossRulerAccessibilityLabel)
-                .id(OnboardingTargetWeightValues.rulerIdentity(for: formState))
-            } else {
-                OnboardingRulerPickerFactory.targetWeightGoalLb(
-                    value: goalWeightDisplayBinding,
-                    range: range,
-                    presentation: .hero,
-                    centerDisplayText: centerLabel,
-                    accessibilityValueText: accessibilityTarget
-                )
-                .accessibilityLabel(copy.lossRulerAccessibilityLabel)
-                .id(OnboardingTargetWeightValues.rulerIdentity(for: formState))
-            }
-        }
-    }
-
-    private var goalWeightDisplayBinding: Binding<Double> {
-        Binding(
-            get: {
-                OnboardingTargetWeightValues.resolvedRulerDisplayValue(from: formState)
-            },
-            set: { newValue in
-                OnboardingTargetWeightValues.setGoalFromDisplay(newValue, in: &formState)
-            }
-        )
+    private var targetWeightRuler: some View {
+        OnboardingTargetWeightRulerSelector(formState: $formState)
     }
 
     private func runEntranceAnimation() {
