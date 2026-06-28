@@ -97,13 +97,13 @@ struct TodayView: View {
     private var content: some View {
         switch model.viewState {
         case .loading:
-            TodayLoadingView()
+            FormaScreenLoadingView(message: FormaProductCopy.Loading.today)
         case .empty:
             TodayEmptyStateView {
                 Task { await refreshDashboard() }
             }
         case .error(let message):
-            TodayErrorView(message: message) {
+            FormaScreenErrorView(message: message, style: .tabRoot) {
                 Task { await refreshDashboard() }
             }
         case .loaded(let state):

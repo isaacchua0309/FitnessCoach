@@ -6,7 +6,7 @@
 //
 //  Action ownership:
 //  - Food / water / weight daily logs → Quick Capture (Today shortcuts, Coach parser)
-//  - Workouts → Training flow (Today shortcuts route to Training)
+//  - Training → Apple Health via Training Insights (read-only; Coach redirects workout intents)
 //  - Plan targets & profile baseline → Plan screen only
 //  - Progress reads → Journey (read-only; no mutations here)
 //
@@ -134,8 +134,13 @@ final class FitnessActionCenter {
         return entry
     }
 
-    // MARK: - Workout (canonical: Training flow)
+    // MARK: - Workout (legacy SwiftData — official training data is Apple Health)
 
+    @available(
+        *,
+        deprecated,
+        message: "Manual workout logging is retired. Official training data comes from Apple Health."
+    )
     @discardableResult
     func logWorkout(_ draft: WorkoutDraft, date: Date = Date()) throws -> WorkoutEntry {
         let entry = try workoutLogService.addWorkout(draft, date: date)
@@ -143,6 +148,11 @@ final class FitnessActionCenter {
         return entry
     }
 
+    @available(
+        *,
+        deprecated,
+        message: "Manual workout logging is retired. Official training data comes from Apple Health."
+    )
     func deleteWorkout(id: UUID) throws {
         try workoutLogService.deleteWorkout(id: id)
         notifyDataChanged()

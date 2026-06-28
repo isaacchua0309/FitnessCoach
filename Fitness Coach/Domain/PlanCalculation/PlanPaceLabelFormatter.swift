@@ -50,7 +50,7 @@ enum PlanPaceLabelFormatter {
         case .aggressive:
             return "aggressive"
         case .advanced:
-            let weekly = formatKg(result.weightLossRateKgPerWeek)
+            let weekly = PlanDisplayFormatter.formatKg(result.weightLossRateKgPerWeek)
             return "custom pace of about \(weekly) kg/week"
         }
     }
@@ -59,18 +59,12 @@ enum PlanPaceLabelFormatter {
         choice: WeightLossPaceChoice,
         result: PlanCalculationResult
     ) -> String {
-        let weekly = formatKg(result.weightLossRateKgPerWeek)
+        let weekly = PlanDisplayFormatter.formatKg(result.weightLossRateKgPerWeek)
         switch choice {
         case .gentle, .moderate, .aggressive:
             return "\(choice.displayName) (about \(weekly)/week)"
         case .advanced:
             return "Custom (about \(weekly)/week)"
         }
-    }
-
-    private static func formatKg(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(value)) kg"
-            : String(format: "%.1f kg", value)
     }
 }

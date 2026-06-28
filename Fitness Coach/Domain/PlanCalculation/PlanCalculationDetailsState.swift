@@ -54,13 +54,13 @@ enum PlanCalculationDetailsBuilder {
     ) -> PlanCalculationDetailsSection {
         let energy = result.energy
         let activityName = ProfileFormatter.activityLevel(profile.activityLevel)
-        let multiplier = formatMultiplier(energy.activityMultiplier)
+        let multiplier = PlanDisplayFormatter.formatMultiplier(energy.activityMultiplier)
 
         let rows: [PlanCalculationDetailsRow] = [
             row(
                 id: "bmr",
                 label: "Resting burn (BMR)",
-                value: formatKcalPerDay(result.bmrKcal),
+                value: PlanDisplayFormatter.formatKcalPerDay(result.bmrKcal),
                 footnote: PlanExplanationFootnotes.footnote(
                     for: "bmr",
                     result: result,
@@ -81,7 +81,7 @@ enum PlanCalculationDetailsBuilder {
             row(
                 id: "maintenance",
                 label: "Estimated maintenance (TDEE)",
-                value: formatKcalPerDay(result.tdeeKcal),
+                value: PlanDisplayFormatter.formatKcalPerDay(result.tdeeKcal),
                 footnote: PlanExplanationFootnotes.footnote(
                     for: "maintenance",
                     result: result,
@@ -124,7 +124,7 @@ enum PlanCalculationDetailsBuilder {
                 row(
                     id: "deficit",
                     label: "Daily deficit",
-                    value: formatKcal(result.dailyDeficitKcal),
+                    value: PlanDisplayFormatter.formatKcal(result.dailyDeficitKcal),
                     footnote: PlanExplanationFootnotes.footnote(
                         for: "deficit",
                         result: result,
@@ -138,7 +138,7 @@ enum PlanCalculationDetailsBuilder {
             row(
                 id: "calories",
                 label: "Calorie target",
-                value: formatKcalPerDay(result.calorieTargetKcal),
+                value: PlanDisplayFormatter.formatKcalPerDay(result.calorieTargetKcal),
                 footnote: PlanExplanationFootnotes.footnote(
                     for: "calories",
                     result: result,
@@ -151,7 +151,7 @@ enum PlanCalculationDetailsBuilder {
             row(
                 id: "protein",
                 label: "Protein target",
-                value: formatGrams(result.proteinTargetG),
+                value: PlanDisplayFormatter.formatGrams(result.proteinTargetG),
                 footnote: PlanExplanationFootnotes.footnote(
                     for: "protein",
                     result: result,
@@ -164,7 +164,7 @@ enum PlanCalculationDetailsBuilder {
             row(
                 id: "water",
                 label: "Water target",
-                value: formatMl(result.waterTargetMl),
+                value: PlanDisplayFormatter.formatMl(result.waterTargetMl),
                 footnote: PlanExplanationFootnotes.footnote(
                     for: "water",
                     result: result,
@@ -231,7 +231,7 @@ enum PlanCalculationDetailsBuilder {
         let perKgText = perKg.truncatingRemainder(dividingBy: 1) == 0
             ? "\(Int(perKg))"
             : String(format: "%.1f", perKg)
-        return "About \(perKgText) g per kg of body weight (\(formatKg(weightKg))) to support training and recovery."
+        return "About \(perKgText) g per kg of body weight (\(PlanDisplayFormatter.formatKg(weightKg))) to support training and recovery."
     }
 
     private static func waterFootnote(profile: UserProfile) -> String {
@@ -280,8 +280,6 @@ enum PlanCalculationDetailsBuilder {
         return result.warnings.map(\.message)
     }
 
-    // MARK: - Formatting
-
     private static func row(
         id: String,
         label: String,
@@ -290,40 +288,4 @@ enum PlanCalculationDetailsBuilder {
     ) -> PlanCalculationDetailsRow {
         PlanCalculationDetailsRow(id: id, label: label, value: value, footnote: footnote)
     }
-
-    private static func formatKcalPerDay(_ value: Int) -> String {
-        "\(formatKcal(value))/day"
-    }
-
-    private static func formatKcal(_ value: Int) -> String {
-        let formatted = decimalFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
-        return "\(formatted) kcal"
-    }
-
-    private static func formatGrams(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(value)) g"
-            : String(format: "%.0f g", value)
-    }
-
-    private static func formatMl(_ value: Int) -> String {
-        let formatted = decimalFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
-        return "\(formatted) ml"
-    }
-
-    private static func formatKg(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(value)) kg"
-            : String(format: "%.1f kg", value)
-    }
-
-    private static func formatMultiplier(_ value: Double) -> String {
-        String(format: "×%.2f", value)
-    }
-
-    private static let decimalFormatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        return formatter
-    }()
 }

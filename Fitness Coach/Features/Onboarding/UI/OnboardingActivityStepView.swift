@@ -49,10 +49,3 @@ struct OnboardingActivityStepView: View {
     .preferredColorScheme(.dark)
 }
 
-#Preview("iPhone SE") {
-    OnboardingActivityStepView(formState: .constant(OnboardingPreviewData.formState))
-        .padding()
-        .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
-        .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
-}

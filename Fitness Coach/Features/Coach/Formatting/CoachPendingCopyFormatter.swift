@@ -54,14 +54,14 @@ enum CoachPendingCopyFormatter {
 
     static func chatNutritionLine(for draft: FoodDraft, style: NutritionLineStyle) -> String {
         let calories = "\(draft.calories) kcal"
-        let protein = "\(formatMacro(draft.protein))g protein"
+        let protein = "\(FoodEntryFormFormatter.formatMacro(draft.protein))g protein"
 
         switch style {
         case .compact:
             return "\(calories) · \(protein)"
         case .full:
-            let carbs = "\(formatMacro(draft.carbs))g carbs"
-            let fat = "\(formatMacro(draft.fat))g fat"
+            let carbs = "\(FoodEntryFormFormatter.formatMacro(draft.carbs))g carbs"
+            let fat = "\(FoodEntryFormFormatter.formatMacro(draft.fat))g fat"
             return "\(calories) · \(protein) · \(carbs) · \(fat)"
         }
     }
@@ -172,11 +172,5 @@ enum CoachPendingCopyFormatter {
             return nil
         }
         return trimmed
-    }
-
-    private static func formatMacro(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? String(format: "%.0f", value)
-            : String(format: "%.1f", value)
     }
 }

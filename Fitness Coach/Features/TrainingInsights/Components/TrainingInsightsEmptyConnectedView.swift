@@ -38,7 +38,7 @@ struct TrainingInsightsEmptyConnectedView: View {
 
     private var coachNoteCard: some View {
         VStack(alignment: .leading, spacing: TrainingLayout.itemSpacing) {
-            TrainingSectionLabel(title: "Coach note")
+            FormaSectionLabel(title: "Coach note")
 
             FitPilotPlanCard {
                 Text(TrainingInsightsCoachNoteBuilder.note(weeklyWorkoutCount: 0))

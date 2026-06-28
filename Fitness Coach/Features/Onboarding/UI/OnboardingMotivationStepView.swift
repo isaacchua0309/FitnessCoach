@@ -143,27 +143,7 @@ private struct MotivationCompactRow: View {
     .preferredColorScheme(.dark)
 }
 
-#Preview("iPhone SE") {
-    OnboardingMotivationStepView(formState: .constant(OnboardingFormState()))
-        .padding()
-        .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
-        .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
-}
 
-#Preview("Large iPhone") {
-    OnboardingMotivationStepView(
-        formState: .constant({
-            var state = OnboardingFormState()
-            state.selectedMotivations = [.health]
-            return state
-        }())
-    )
-    .padding()
-    .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
-    .previewDevice(PreviewDevice(rawValue: "iPhone 15 Pro Max"))
-}
 
 #Preview("Large Dynamic Type") {
     OnboardingMotivationStepView(

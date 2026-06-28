@@ -175,12 +175,15 @@ extension PlanCalculationError {
 }
 
 #if DEBUG
+import OSLog
+
 enum FormaCalculationDebug {
 
+    private static let logger = Logger(subsystem: "Forma", category: "Calculation")
+
     static func logGeneration(result: PlanCalculationResult) {
-        print(
-            "[FormaCalculation] goal=\(result.goalDirection.rawValue) " +
-            "safety=\(result.safetyLevel.rawValue) warnings=\(result.warnings.count)"
+        logger.info(
+            "goal=\(result.goalDirection.rawValue, privacy: .public) safety=\(result.safetyLevel.rawValue, privacy: .public) warnings=\(result.warnings.count, privacy: .public)"
         )
     }
 }

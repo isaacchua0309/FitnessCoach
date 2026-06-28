@@ -2,10 +2,10 @@
 //  DebugRecordEntity+Mapping.swift
 //  Fitness Coach
 //
-//  FitPilot AI — SwiftData mapping between entity and domain model.
+//  Mapping for dormant `DebugRecordEntity`. See `Docs/PersistenceCleanupNotes.md`.
 //
 //  The domain context dictionary is encoded to/from a JSON string so SwiftData
-//  only needs to persist a plain String.
+//  only needs to persist a plain String when persistence is re-enabled.
 //
 
 import Foundation

@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// Describes how a v3 step should behave before its dedicated UI exists.
+/// Per-screen interaction rules for tap-first onboarding v3.
 struct OnboardingV3InteractionRules: Equatable, Sendable {
     /// Primary user-facing job for this screen (one question / one decision).
     let primaryJob: String

@@ -11,7 +11,7 @@ struct JourneyTransformationHeroSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
-            JourneySectionLabel(title: FormaProductCopy.Journey.sectionGoalProgress)
+            FormaSectionLabel(title: FormaProductCopy.Journey.sectionGoalProgress)
 
             FitPilotPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {

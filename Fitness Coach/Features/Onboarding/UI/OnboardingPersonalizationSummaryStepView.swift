@@ -146,24 +146,4 @@ struct OnboardingPersonalizationSummaryStepView: View {
     .preferredColorScheme(.dark)
 }
 
-#Preview("iPhone SE") {
-    OnboardingPersonalizationSummaryStepView(
-        formState: OnboardingPreviewData.formState,
-        validationMessage: nil
-    )
-    .padding()
-    .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
-    .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
-}
 
-#Preview("Large iPhone") {
-    OnboardingPersonalizationSummaryStepView(
-        formState: OnboardingPreviewData.formState,
-        validationMessage: nil
-    )
-    .padding()
-    .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
-    .previewDevice(PreviewDevice(rawValue: "iPhone 15 Pro Max"))
-}

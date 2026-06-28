@@ -101,7 +101,7 @@ struct MainTabView: View {
 
     private static let selectedTabStorageKey = "forma.mainTab.selectedTab"
 
-    /// Training was removed from the tab bar; `TrainingView` remains for future push navigation.
+    /// Training was removed from the tab bar; open Training Insights from Today, Plan, or Journey.
     private static func resolveInitialTab() -> AppTab {
         let persisted = UserDefaults.standard.string(forKey: selectedTabStorageKey)
         let destination = OnboardingCompletionPolicy.initialMainTab(persistedTabRawValue: persisted)

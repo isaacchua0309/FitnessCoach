@@ -96,18 +96,4 @@ struct OnboardingActivityLevelStepView: View {
     .preferredColorScheme(.dark)
 }
 
-#Preview("iPhone SE") {
-    OnboardingActivityLevelStepView(formState: .constant(OnboardingPreviewData.formState))
-        .padding()
-        .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
-        .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
-}
 
-#Preview("Large iPhone") {
-    OnboardingActivityLevelStepView(formState: .constant(OnboardingPreviewData.formState))
-        .padding()
-        .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
-        .previewDevice(PreviewDevice(rawValue: "iPhone 15 Pro Max"))
-}

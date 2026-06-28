@@ -555,10 +555,3 @@ struct OnboardingBodyStepView: View {
     .preferredColorScheme(.dark)
 }
 
-#Preview("iPhone SE") {
-    OnboardingBodyStepView(formState: .constant(OnboardingPreviewData.formState))
-        .padding()
-        .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
-        .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
-}

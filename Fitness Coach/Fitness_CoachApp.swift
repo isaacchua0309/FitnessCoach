@@ -32,7 +32,7 @@ struct Fitness_CoachApp: App {
         do {
             container = try AppContainer()
         } catch {
-            fatalError("Could not create FitPilot app container: \(error)")
+            fatalError("Could not create Forma app container: \(error)")
         }
     }
 

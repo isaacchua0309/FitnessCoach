@@ -2,7 +2,7 @@
 //  WeeklyReviewEntity+Mapping.swift
 //  Fitness Coach
 //
-//  FitPilot AI — SwiftData mapping between entity and domain model.
+//  Mapping for dormant `WeeklyReviewEntity`. See `Docs/PersistenceCleanupNotes.md`.
 //
 
 import Foundation

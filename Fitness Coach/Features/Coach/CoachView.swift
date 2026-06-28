@@ -135,9 +135,7 @@ struct CoachView: View {
                     dismissKeyboard()
                 }
             },
-            onVoiceTap: {
-                // Voice capture placeholder — wired when speech ships.
-            },
+            onVoiceTap: {},
             onAttachmentSelect: handleAttachmentSelection
         )
         .fixedSize(horizontal: false, vertical: true)

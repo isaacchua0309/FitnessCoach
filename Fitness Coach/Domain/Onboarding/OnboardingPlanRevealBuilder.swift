@@ -152,7 +152,7 @@ enum OnboardingPlanRevealBuilder {
     }
 
     private static func estimatedTimelineLabel(weeks: Int) -> String {
-        "About \(weeks) weeks"
+        OnboardingGoalProjectionBuilder.estimatedTimelineLabel(weeks: weeks)
     }
 
     private static func secondaryMacroRows(from plan: CalorieTargetResult) -> [OnboardingPlanRevealMetricRow] {

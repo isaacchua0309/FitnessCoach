@@ -512,13 +512,6 @@ struct OnboardingGoalStepView: View {
     .preferredColorScheme(.dark)
 }
 
-#Preview("Advanced closed") {
-    OnboardingGoalStepView(formState: .constant(OnboardingPreviewData.formState))
-        .padding()
-        .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
-}
-
 #Preview("Advanced open") {
     OnboardingGoalStepView(
         formState: .constant({
@@ -560,18 +553,4 @@ struct OnboardingGoalStepView: View {
     .preferredColorScheme(.dark)
 }
 
-#Preview("iPhone SE") {
-    OnboardingGoalStepView(formState: .constant(OnboardingPreviewData.formState))
-        .padding()
-        .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
-        .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
-}
 
-#Preview("Large iPhone") {
-    OnboardingGoalStepView(formState: .constant(OnboardingPreviewData.formState))
-        .padding()
-        .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
-        .previewDevice(PreviewDevice(rawValue: "iPhone 15 Pro Max"))
-}

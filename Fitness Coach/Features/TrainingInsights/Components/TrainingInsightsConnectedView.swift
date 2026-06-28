@@ -32,12 +32,12 @@ struct TrainingInsightsConnectedView: View {
     private var content: some View {
         switch model.viewState {
         case .loading:
-            TrainingLoadingView()
+            FormaScreenLoadingView(message: FormaProductCopy.Loading.training)
         case .empty:
             TrainingInsightsEmptyConnectedView(insightsStore: insightsStore)
                 .refreshable { await model.refresh() }
         case .error(let message):
-            TrainingErrorView(message: message) {
+            FormaScreenErrorView(message: message, style: .detailScreen) {
                 Task { await model.refresh() }
             }
         case .loaded(let summary):
@@ -71,7 +71,7 @@ struct TrainingInsightsConnectedView: View {
 
     private func weeklySection(_ weekly: TrainingInsightsWeeklySummary) -> some View {
         VStack(alignment: .leading, spacing: TrainingLayout.itemSpacing) {
-            TrainingSectionLabel(title: "This week")
+            FormaSectionLabel(title: "This week")
 
             FitPilotPlanCard {
                 if weekly.hasActivity {
@@ -106,7 +106,7 @@ struct TrainingInsightsConnectedView: View {
 
     private func recentWorkoutSection(_ workout: HealthWorkoutRecord) -> some View {
         VStack(alignment: .leading, spacing: TrainingLayout.itemSpacing) {
-            TrainingSectionLabel(title: "Recent workout")
+            FormaSectionLabel(title: "Recent workout")
 
             FitPilotPlanCard {
                 VStack(spacing: 0) {
@@ -129,7 +129,7 @@ struct TrainingInsightsConnectedView: View {
         note: String
     ) -> some View {
         VStack(alignment: .leading, spacing: TrainingLayout.itemSpacing) {
-            TrainingSectionLabel(title: "Consistency")
+            FormaSectionLabel(title: "Consistency")
 
             FitPilotPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
@@ -168,7 +168,7 @@ struct TrainingInsightsConnectedView: View {
 
     private func coachNoteSection(_ note: String) -> some View {
         VStack(alignment: .leading, spacing: TrainingLayout.itemSpacing) {
-            TrainingSectionLabel(title: "Coach note")
+            FormaSectionLabel(title: "Coach note")
 
             FitPilotPlanCard {
                 Text(note)

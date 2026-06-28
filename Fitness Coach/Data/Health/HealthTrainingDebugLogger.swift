@@ -27,7 +27,6 @@ enum HealthTrainingDebugLogger {
             ? "[HealthTraining] \(message)"
             : "[HealthTraining] \(message) \(fieldLine)"
 
-        print(line)
         logger.info("\(line, privacy: .public)")
         #endif
     }
@@ -76,7 +75,6 @@ enum HealthTrainingDebugLogger {
         let line = fieldLine.isEmpty
             ? "[HealthTraining] \(message)"
             : "[HealthTraining] \(message) \(fieldLine)"
-        print(line)
         osLog(line)
         #endif
     }

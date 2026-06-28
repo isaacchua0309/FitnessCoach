@@ -47,13 +47,13 @@ struct ProgressView: View {
     private var content: some View {
         switch model.viewState {
         case .loading:
-            ProgressLoadingView()
+            FormaScreenLoadingView(message: FormaProductCopy.Loading.journey)
         case .empty:
             ProgressEmptyStateView {
                 Task { await model.refresh() }
             }
         case .error(let message):
-            ProgressErrorView(message: message) {
+            FormaScreenErrorView(message: message, style: .tabRoot) {
                 Task { await model.refresh() }
             }
         case .loaded(let state):

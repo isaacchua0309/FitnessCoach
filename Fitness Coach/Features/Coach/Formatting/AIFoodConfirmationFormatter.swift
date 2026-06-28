@@ -12,11 +12,11 @@ enum AIFoodConfirmationFormatter {
     static func confidenceLabel(_ confidence: AIConfidence) -> String {
         switch confidence {
         case .high:
-            return "High confidence"
+            return FoodEntryFormFormatter.confidenceLabel(.high)
         case .medium:
-            return "Medium confidence"
+            return FoodEntryFormFormatter.confidenceLabel(.medium)
         case .low:
-            return "Low confidence"
+            return FoodEntryFormFormatter.confidenceLabel(.low)
         }
     }
 

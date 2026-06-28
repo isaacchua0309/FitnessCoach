@@ -13,7 +13,7 @@ struct JourneyWeightTrendSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
-            JourneySectionLabel(title: "Weight trend")
+            FormaSectionLabel(title: "Weight trend")
 
             FitPilotPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {

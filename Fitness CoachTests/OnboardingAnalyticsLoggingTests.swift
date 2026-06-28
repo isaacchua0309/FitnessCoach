@@ -103,7 +103,7 @@ final class OnboardingModelAnalyticsTests: XCTestCase {
     }
 
     func testFreshSessionLogsStartedAndStepViewed() throws {
-        let model = try makeModel(entry: .preAuth)
+        _ = try makeModel(entry: .preAuth)
 
         XCTAssertTrue(analytics.contains(.started))
         XCTAssertTrue(analytics.contains(.stepViewed, step: "landing"))

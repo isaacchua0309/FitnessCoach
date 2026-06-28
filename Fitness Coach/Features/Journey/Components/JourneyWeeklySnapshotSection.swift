@@ -14,7 +14,7 @@ struct JourneyWeeklySnapshotSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
-            JourneySectionLabel(title: FormaProductCopy.Journey.sectionThisWeek)
+            FormaSectionLabel(title: FormaProductCopy.Journey.sectionThisWeek)
 
             FitPilotPlanCard {
                 VStack(spacing: 0) {

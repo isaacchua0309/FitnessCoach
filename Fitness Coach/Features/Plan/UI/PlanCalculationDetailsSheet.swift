@@ -45,7 +45,7 @@ struct PlanCalculationDetailsSheet: View {
 
     private func sectionCard(_ section: PlanCalculationDetailsSection) -> some View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
-            PlanSectionLabel(title: section.title)
+            FormaSectionLabel(title: section.title)
 
             FitPilotPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {

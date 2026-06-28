@@ -11,7 +11,7 @@ struct PlanStrategyHeroSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
-            PlanSectionLabel(title: "Current strategy")
+            FormaSectionLabel(title: "Current strategy")
 
             FitPilotPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
@@ -48,7 +48,7 @@ struct PlanStrategyHeroSection: View {
                         .foregroundStyle(FormaTokens.Color.textTertiary)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        PlanSectionLabel(title: "Coach")
+                        FormaSectionLabel(title: "Coach")
                         Text(state.coachSummary)
                             .font(FormaTokens.Typography.sectionSubtitle)
                             .foregroundStyle(FormaTokens.Color.textSecondary)

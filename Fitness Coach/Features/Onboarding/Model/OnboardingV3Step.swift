@@ -4,10 +4,6 @@
 //
 //  Forma — Tap-first onboarding v3 step graph (one main job per screen).
 //
-//  Stage 1 defines structure and interaction rules. Individual picker screens
-//  are wired incrementally in later stages; legacy step views may serve as
-//  temporary placeholders until split.
-//
 
 import Foundation
 
@@ -379,9 +375,6 @@ enum OnboardingV3Step: Int, Equatable, Identifiable, Sendable, CaseIterable {
             return true
         }
     }
-
-    /// Body-basics sub-steps in display order (legacy split flow).
-    static let bodyBasicsSubSteps: [OnboardingV3Step] = [.age, .sex, .height, .currentWeight]
 
     /// First incomplete body-basics step, or `nil` when satisfied.
     static func firstIncompleteBodyBasicsSubStep(for formState: OnboardingFormState) -> OnboardingV3Step? {

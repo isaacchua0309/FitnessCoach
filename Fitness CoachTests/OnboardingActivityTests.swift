@@ -68,7 +68,7 @@ final class OnboardingActivityTests: XCTestCase {
     }
 
     func testV3ActivityLevelAlwaysAllowsContinue() {
-        var state = OnboardingFormState()
+        let state = OnboardingFormState()
         XCTAssertTrue(state.canAdvanceV3(from: .activityLevel))
     }
 }

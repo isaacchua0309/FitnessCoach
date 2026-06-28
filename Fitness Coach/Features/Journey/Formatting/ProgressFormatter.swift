@@ -79,14 +79,7 @@ enum ProgressFormatter {
     }
 
     static func confidence(_ confidence: ConfidenceLevel) -> String {
-        switch confidence {
-        case .high:
-            return "High confidence"
-        case .medium:
-            return "Medium confidence"
-        case .low:
-            return "Low confidence"
-        }
+        FoodEntryFormFormatter.confidenceLabel(confidence)
     }
 
     static func shortConfidence(_ confidence: ConfidenceLevel) -> String {

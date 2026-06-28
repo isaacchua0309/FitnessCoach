@@ -13,8 +13,8 @@ import Foundation
 
 enum FitPilotLegalCopy {
 
-    static let effectiveDate = "June 26, 2026"
-    static let contactEmail = "support@fitpilot.app"
+    static let effectiveDate = FormaProductCopy.Legal.effectiveDate
+    static let contactEmail = FormaProductCopy.Legal.supportEmail
     static let operatorName = FormaProductCopy.Legal.productName
 
     // MARK: - Terms of Service

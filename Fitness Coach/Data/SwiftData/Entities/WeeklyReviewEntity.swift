@@ -2,7 +2,15 @@
 //  WeeklyReviewEntity.swift
 //  Fitness Coach
 //
-//  FitPilot AI — SwiftData persistence entity.
+//  DORMANT — registered in `FitPilotModelContainer.schema` only.
+//
+//  No service creates or reads this entity today. `ReviewService` uses
+//  `DailyReviewEntity` for Coach daily reviews. Mapping and `WeeklyReview`
+//  exist for a planned Journey weekly review feature.
+//
+//  TODO(migration): Product must choose — implement `WeeklyReviewService` or
+//  remove this entity via a versioned SwiftData migration. See
+//  `Docs/PersistenceCleanupNotes.md`.
 //
 
 import Foundation

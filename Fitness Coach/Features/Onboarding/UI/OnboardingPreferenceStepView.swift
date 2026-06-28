@@ -257,18 +257,4 @@ struct OnboardingPreferenceStepView: View {
     .preferredColorScheme(.dark)
 }
 
-#Preview("iPhone SE") {
-    OnboardingPreferenceStepView(formState: .constant(OnboardingFormState()))
-        .padding()
-        .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
-        .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
-}
 
-#Preview("Large iPhone") {
-    OnboardingPreferenceStepView(formState: .constant(OnboardingPreviewData.formState))
-        .padding()
-        .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
-        .previewDevice(PreviewDevice(rawValue: "iPhone 15 Pro Max"))
-}

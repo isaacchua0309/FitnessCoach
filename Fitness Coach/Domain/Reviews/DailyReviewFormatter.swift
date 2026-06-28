@@ -19,12 +19,12 @@ enum DailyReviewFormatter {
     }
 
     static func proteinSummary(from summary: DailyReviewSummary) -> String {
-        let consumed = formatMacro(summary.proteinConsumed)
-        let target = formatMacro(summary.proteinTarget)
+        let consumed = FoodEntryFormFormatter.formatMacro(summary.proteinConsumed)
+        let target = FoodEntryFormFormatter.formatMacro(summary.proteinTarget)
         if summary.hasMetProteinTarget {
             return "Protein: \(consumed) / \(target)g. You met your protein target."
         }
-        return "Protein: \(consumed) / \(target)g. You are \(formatMacro(max(summary.proteinRemaining, 0)))g short of target."
+        return "Protein: \(consumed) / \(target)g. You are \(FoodEntryFormFormatter.formatMacro(max(summary.proteinRemaining, 0)))g short of target."
     }
 
     static func hydrationSummary(from summary: DailyReviewSummary) -> String {
@@ -42,10 +42,10 @@ enum DailyReviewFormatter {
 
     static func weightSummary(from summary: DailyReviewSummary) -> String? {
         if let weightKg = summary.weightKg {
-            return "Weight logged: \(formatWeight(weightKg)) kg."
+            return "Weight logged: \(FoodEntryFormFormatter.formatWeight(weightKg)) kg."
         }
         if let latestWeightKg = summary.latestWeightKg {
-            return "Latest weight: \(formatWeight(latestWeightKg)) kg."
+            return "Latest weight: \(FoodEntryFormFormatter.formatWeight(latestWeightKg)) kg."
         }
         return nil
     }
@@ -126,15 +126,5 @@ enum DailyReviewFormatter {
             topProteinFoodNames: summary.topProteinFoodNames,
             deterministicNotes: summary.deterministicNotes
         )
-    }
-
-    private static func formatWeight(_ value: Double) -> String {
-        String(format: "%.2f", value)
-    }
-
-    private static func formatMacro(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? String(format: "%.0f", value)
-            : String(format: "%.1f", value)
     }
 }

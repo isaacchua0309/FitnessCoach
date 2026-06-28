@@ -19,7 +19,7 @@ struct FormaFormCard<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
             if let title {
-                FormaSectionHeader(title: title)
+                FormaSectionLabel(title: title)
             }
 
             FitPilotPlanCard {
@@ -28,13 +28,5 @@ struct FormaFormCard<Content: View>: View {
                 }
             }
         }
-    }
-}
-
-struct FormaSectionHeader: View {
-    let title: String
-
-    var body: some View {
-        FormaSectionLabel(title: title)
     }
 }

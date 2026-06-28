@@ -837,5 +837,8 @@ enum FormaProductCopy {
 
     enum Legal {
         static var productName: String { appName }
+        /// Placeholder support address shown in Terms and Privacy. Confirm before App Store release.
+        static let supportEmail = "support@forma.app"
+        static let effectiveDate = "June 26, 2026"
     }
 }

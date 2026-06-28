@@ -235,7 +235,7 @@ enum OnboardingDietPreferenceChip: String, CaseIterable, Equatable, Identifiable
     }
 }
 
-// MARK: - Picker defaults (Stage 2+ screens will bind to these ranges)
+// MARK: - Picker defaults
 
 enum OnboardingV3PickerDefaults {
     static let ageRange = 16...90

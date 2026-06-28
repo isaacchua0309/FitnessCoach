@@ -12,7 +12,7 @@ struct PlanAboutYouSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
-            PlanSectionLabel(title: "About you")
+            FormaSectionLabel(title: "About you")
 
             FitPilotPlanCard {
                 DisclosureGroup(isExpanded: $isExpanded) {

@@ -121,7 +121,7 @@ struct ProfileView: View {
     private var content: some View {
         switch model.viewState {
         case .loading:
-            ProfileLoadingView()
+            FormaScreenLoadingView(message: FormaProductCopy.Loading.plan)
         case .empty:
             ProfileEmptyStateView {
                 Task {
@@ -129,7 +129,7 @@ struct ProfileView: View {
                 }
             }
         case .error(let message):
-            ProfileErrorView(message: message) {
+            FormaScreenErrorView(message: message, style: .detailScreen) {
                 Task {
                     await model.refresh()
                 }

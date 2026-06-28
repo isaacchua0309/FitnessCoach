@@ -2,10 +2,15 @@
 //  DebugRecordEntity.swift
 //  Fitness Coach
 //
-//  FitPilot AI — SwiftData persistence entity.
+//  DORMANT — registered in `FitPilotModelContainer.schema` only.
 //
-//  The domain DebugRecord.context is [String: String]; it is persisted here as
-//  a JSON string to avoid SwiftData dictionary persistence edge cases.
+//  Pipeline diagnostics use in-memory `FitPilotPipelineTracer` buffers.
+//  Disk persistence via `PipelineTracePersistence` is disabled (Stage 14) because
+//  no UI reads stored rows. Context is stored as JSON to avoid SwiftData
+//  dictionary edge cases when persistence is re-enabled.
+//
+//  TODO(migration): Re-enable persistence + Settings UI, or remove entity. See
+//  `Docs/PersistenceCleanupNotes.md`.
 //
 
 import Foundation

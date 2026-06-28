@@ -83,10 +83,6 @@ struct TrainingInsightsView: View {
             break
         }
     }
-
-    private func openAppSettings() {
-        HealthAppSettingsNavigator.openAppSettings()
-    }
 }
 
 #Preview("Locked") {

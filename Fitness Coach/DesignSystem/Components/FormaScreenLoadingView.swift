@@ -1,18 +1,20 @@
 //
-//  ProgressLoadingView.swift
+//  FormaScreenLoadingView.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Loading state for Progress.
+//  Forma — Full-screen loading state for tab dashboards.
 //
 
 import SwiftUI
 
-struct ProgressLoadingView: View {
+struct FormaScreenLoadingView: View {
+    let message: String
+
     var body: some View {
         VStack(spacing: FormaTokens.Spacing.sm) {
             SwiftUI.ProgressView()
                 .tint(FormaTokens.Color.accent)
-            Text(FormaProductCopy.Loading.journey)
+            Text(message)
                 .font(FormaTokens.Typography.sectionSubtitle)
                 .foregroundStyle(FormaTokens.Color.textSecondary)
         }
@@ -22,6 +24,6 @@ struct ProgressLoadingView: View {
 }
 
 #Preview {
-    ProgressLoadingView()
+    FormaScreenLoadingView(message: FormaProductCopy.Loading.today)
         .preferredColorScheme(.dark)
 }

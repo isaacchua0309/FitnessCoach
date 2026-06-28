@@ -156,8 +156,6 @@ struct ProfilePlanConflictView: View {
     }
 }
 
-typealias OnboardingProfileConflictView = ProfilePlanConflictView
-
 #Preview {
     ProfilePlanConflictView(
         summary: ProfilePlanConflictSummary(

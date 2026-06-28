@@ -205,7 +205,7 @@ final class OnboardingFormStateTests: XCTestCase {
     }
 
     func testOptionalPreferencesAndDietNotesDoNotChangeTargetMath() throws {
-        var baseline = filledCutOnboarding()
+        let baseline = filledCutOnboarding()
         var withPreferences = filledCutOnboarding()
         withPreferences.loggingPreferences = [.naturalLanguage, .dailyCheckIns]
         withPreferences.dietPreference = "Gluten free"

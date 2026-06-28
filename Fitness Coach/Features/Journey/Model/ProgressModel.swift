@@ -25,7 +25,6 @@ final class ProgressModel: ObservableObject {
     init(
         dailyLogService: DailyLogService,
         weightLogService: WeightLogService,
-        workoutLogService: WorkoutLogService,
         userProfileService: UserProfileService,
         trainingInsightsStore: TrainingInsightsStore,
         workoutReader: HealthKitWorkoutReading? = nil
@@ -35,7 +34,6 @@ final class ProgressModel: ObservableObject {
         self.userProfileService = userProfileService
         self.trainingInsightsStore = trainingInsightsStore
         self.workoutReader = workoutReader ?? MockHealthKitWorkoutReader(workouts: [])
-        _ = workoutLogService
     }
 
     // MARK: Loading
@@ -107,8 +105,8 @@ final class ProgressModel: ObservableObject {
         )
 
         let currentWeight = weightSummary.latestWeightKg ?? profile?.currentWeightKg
-        let nutritionSummary = makeNutritionSummary(logs: logs)
-        let waterSummary = makeWaterSummary(logs: logs)
+        let nutritionSummary = ProgressLogSummaryBuilder.nutritionSummary(from: logs)
+        let waterSummary = ProgressLogSummaryBuilder.waterSummary(from: logs)
         let workoutSummary = JourneyTrainingSummaryBuilder.workoutAnalytics(
             integrationState: integrationState,
             dataSource: dataSource,
@@ -181,7 +179,7 @@ final class ProgressModel: ObservableObject {
             profile: profile
         )
 
-        let weightChartPoints = makeWeightChartPoints(weights: weights)
+        let weightChartPoints = ProgressLogSummaryBuilder.weightChartPoints(from: weights)
         let nextCheckpoint = ProgressFormatter.nextMilestone(from: milestones)?.weightKg
         let weightLogCount = allWeights.count
 
@@ -227,74 +225,5 @@ final class ProgressModel: ObservableObject {
         })
         let weightDays = Set(weights.map { Calendar.current.startOfDay(for: $0.date) })
         return logDays.union(weightDays).count
-    }
-
-    private func makeWeightChartPoints(weights: [WeightEntry]) -> [WeightChartPoint] {
-        weights.sorted { $0.date < $1.date }.map {
-            WeightChartPoint(date: $0.date, weightKg: $0.weightKg)
-        }
-    }
-
-    private func makeNutritionSummary(logs: [DailyLog]) -> ProgressNutritionSummary {
-        guard !logs.isEmpty else {
-            return ProgressNutritionSummary(
-                loggedDays: 0,
-                averageCalories: nil,
-                averageProtein: nil,
-                averageCarbs: nil,
-                averageFat: nil,
-                averageFiber: nil
-            )
-        }
-
-        let count = Double(logs.count)
-        let totalCalories = logs.reduce(0) { $0 + $1.totals.calories }
-        let totalProtein = logs.reduce(0.0) { $0 + $1.totals.protein }
-        let totalCarbs = logs.reduce(0.0) { $0 + $1.totals.carbs }
-        let totalFat = logs.reduce(0.0) { $0 + $1.totals.fat }
-        let fiberValues = logs.compactMap(\.totals.fiber)
-
-        return ProgressNutritionSummary(
-            loggedDays: logs.count,
-            averageCalories: Int((Double(totalCalories) / count).rounded()),
-            averageProtein: totalProtein / count,
-            averageCarbs: totalCarbs / count,
-            averageFat: totalFat / count,
-            averageFiber: average(fiberValues)
-        )
-    }
-
-    private func makeWaterSummary(logs: [DailyLog]) -> ProgressWaterSummary {
-        guard !logs.isEmpty else {
-            return ProgressWaterSummary(
-                loggedDays: 0,
-                averageWaterMl: nil,
-                averageWaterTargetMl: nil,
-                consistencyPercent: nil
-            )
-        }
-
-        let totalWater = logs.reduce(0) { $0 + $1.waterConsumedMl }
-        let totalTargets = logs.reduce(0) { $0 + $1.targets.waterTargetMl }
-        let eligible = logs.filter { $0.targets.waterTargetMl > 0 }
-        let consistentDays = eligible.filter {
-            Double($0.waterConsumedMl) >= Double($0.targets.waterTargetMl) * 0.8
-        }.count
-
-        let consistency: Double? = eligible.isEmpty
-            ? nil
-            : Double(consistentDays) / Double(eligible.count)
-
-        return ProgressWaterSummary(
-            loggedDays: logs.count,
-            averageWaterMl: Int((Double(totalWater) / Double(logs.count)).rounded()),
-            averageWaterTargetMl: Int((Double(totalTargets) / Double(logs.count)).rounded()),
-            consistencyPercent: consistency
-        )
-    }
-
-    private func average(_ values: [Double]) -> Double? {
-        guard !values.isEmpty else { return nil }
-        return values.reduce(0, +) / Double(values.count)
     }
 }

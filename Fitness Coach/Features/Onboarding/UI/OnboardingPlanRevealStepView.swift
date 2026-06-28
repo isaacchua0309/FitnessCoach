@@ -237,18 +237,6 @@ struct OnboardingPlanRevealStepView: View {
     .preferredColorScheme(.dark)
 }
 
-#Preview("iPhone SE") {
-    if let state = OnboardingPreviewData.planRevealState {
-        OnboardingPlanRevealStepView(
-            revealState: state,
-            plan: OnboardingPreviewData.generatedPlan
-        )
-        .padding()
-        .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
-        .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
-    }
-}
 
 #Preview("Large Dynamic Type") {
     if let state = OnboardingPreviewData.planRevealState {
@@ -304,7 +292,7 @@ private func maintenancePlan() -> CalorieTargetResult {
 }
 
 private func aggressivePlan() -> CalorieTargetResult {
-    var plan = OnboardingPreviewData.generatedPlan
+    let plan = OnboardingPreviewData.generatedPlan
     return CalorieTargetResult(
         estimatedBMR: plan.estimatedBMR,
         estimatedTDEE: plan.estimatedTDEE,

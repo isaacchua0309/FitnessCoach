@@ -14,7 +14,7 @@ struct JourneyMilestonesSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
-            JourneySectionLabel(title: "Milestones")
+            FormaSectionLabel(title: "Milestones")
 
             if milestones.isEmpty {
                 Text(FormaProductCopy.Journey.milestonesNeedGoal)

@@ -2,10 +2,14 @@
 //  ChatMessageEntity.swift
 //  Fitness Coach
 //
-//  FitPilot AI — SwiftData persistence entity.
+//  DORMANT — registered in `FitPilotModelContainer.schema` only.
 //
-//  ChatMessageEntity is conversational history only. It is not the source of
-//  truth for food, water, weight, or workout logs.
+//  Coach renders in-memory `ChatMessage` values (`CoachModel.messages`); nothing
+//  persists to this table yet. Conversational history is not the source of truth
+//  for food, water, weight, or workout logs.
+//
+//  TODO(migration): Wire Coach persistence or remove via versioned migration. See
+//  `Docs/PersistenceCleanupNotes.md`.
 //
 
 import Foundation

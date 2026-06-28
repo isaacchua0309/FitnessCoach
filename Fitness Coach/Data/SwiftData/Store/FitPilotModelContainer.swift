@@ -12,6 +12,10 @@ enum FitPilotModelContainer {
 
     /// Every persisted entity type must be listed here so SwiftData can build
     /// the full local schema.
+    ///
+    /// Dormant schema-only types (`WeeklyReviewEntity`, `ChatMessageEntity`,
+    /// `DebugRecordEntity`) and legacy workout tables are documented in
+    /// `Docs/PersistenceCleanupNotes.md`.
     static let schema = Schema([
         UserProfileEntity.self,
         DailyLogEntity.self,

@@ -103,6 +103,11 @@ enum FoodEntryFormFormatter {
             : String(format: "%.1f", value)
     }
 
+    /// Logged body weight in kg (two decimal places).
+    static func formatWeight(_ value: Double) -> String {
+        String(format: "%.2f", value)
+    }
+
     static func formatOptionalDouble(_ value: Double?) -> String {
         guard let value else { return "" }
         return formatMacro(value)

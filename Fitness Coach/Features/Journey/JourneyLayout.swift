@@ -19,11 +19,3 @@ enum JourneyLayout {
     static let scrollBottomContentPadding = FormaMainTabLayout.scrollContentBottomPadding
 }
 
-struct JourneySectionLabel: View {
-    let title: String
-
-    var body: some View {
-        FormaSectionLabel(title: title)
-    }
-}
-

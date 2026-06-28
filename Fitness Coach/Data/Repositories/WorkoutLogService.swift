@@ -2,12 +2,21 @@
 //  WorkoutLogService.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Owns workout and exercise set logging.
+//  Legacy SwiftData service for on-device manual workout entries.
+//
+//  Official training insights come from Apple Health (`HealthTrainingService`,
+//  `TrainingInsightsModel`). This service remains for historical rows, daily-log
+//  rollups, and tests until a schema migration retires manual workout storage.
 //
 
 import Foundation
 import SwiftData
 
+@available(
+    *,
+    deprecated,
+    message: "Manual workout logging is retired. Official training data comes from Apple Health."
+)
 @MainActor
 final class WorkoutLogService {
 
@@ -27,6 +36,11 @@ final class WorkoutLogService {
 
     // MARK: Create
 
+    @available(
+        *,
+        deprecated,
+        message: "Manual workout logging is retired. Official training data comes from Apple Health."
+    )
     func addWorkout(_ draft: WorkoutDraft, date: Date) throws -> WorkoutEntry {
         try validate(draft)
 
@@ -97,6 +111,11 @@ final class WorkoutLogService {
 
     // MARK: Delete
 
+    @available(
+        *,
+        deprecated,
+        message: "Manual workout logging is retired. Official training data comes from Apple Health."
+    )
     func deleteWorkout(id: UUID) throws {
         guard let entity = try workoutEntity(id: id) else {
             throw ServiceError.workoutEntryNotFound
@@ -128,35 +147,6 @@ final class WorkoutLogService {
         return try store.fetch(descriptor).map { $0.toModel() }
     }
 
-    func getExerciseSets(for workoutId: UUID) throws -> [ExerciseSet] {
-        guard let workout = try workoutEntity(id: workoutId) else {
-            throw ServiceError.workoutEntryNotFound
-        }
-        return workout.exerciseSets
-            .sorted {
-                if $0.exerciseName == $1.exerciseName {
-                    return $0.setNumber < $1.setNumber
-                }
-                return $0.exerciseName < $1.exerciseName
-            }
-            .map { $0.toModel() }
-    }
-
-    func getWorkoutDetail(id: UUID) throws -> (workout: WorkoutEntry, sets: [ExerciseSet])? {
-        guard let workout = try workoutEntity(id: id) else {
-            return nil
-        }
-        let sets = workout.exerciseSets
-            .sorted {
-                if $0.exerciseName == $1.exerciseName {
-                    return $0.setNumber < $1.setNumber
-                }
-                return $0.exerciseName < $1.exerciseName
-            }
-            .map { $0.toModel() }
-        return (workout.toModel(), sets)
-    }
-
     // MARK: Helpers
 
     private func workoutEntity(id: UUID) throws -> WorkoutEntryEntity? {
@@ -175,14 +165,6 @@ final class WorkoutLogService {
             let trimmed = set.exerciseName.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { throw ServiceError.invalidInput("Exercise name cannot be empty.") }
             guard set.reps > 0 else { throw ServiceError.invalidInput("Reps must be greater than zero.") }
-        }
-    }
-
-    private func save() throws {
-        do {
-            try store.save()
-        } catch {
-            throw ServiceError.persistenceFailed("Could not save the workout.")
         }
     }
 }

@@ -11,7 +11,7 @@ import XCTest
 final class OnboardingBodyBasicsTests: XCTestCase {
 
     func testBodyBasicsBlocksAdvanceWhenRequiredFieldsEmpty() {
-        var state = OnboardingFormState()
+        let state = OnboardingFormState()
         XCTAssertFalse(state.canAdvanceV3(from: .bodyBasics))
         XCTAssertFalse(state.canAdvance(from: .body))
     }

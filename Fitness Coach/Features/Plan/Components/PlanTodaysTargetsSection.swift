@@ -10,7 +10,7 @@ struct PlanTodaysTargetsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
-            PlanSectionLabel(title: "Today's targets")
+            FormaSectionLabel(title: "Today's targets")
 
             FitPilotPlanCard {
                 VStack(spacing: 0) {

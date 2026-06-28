@@ -14,7 +14,7 @@ struct JourneyAchievementsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
-            JourneySectionLabel(title: "Achievements")
+            FormaSectionLabel(title: "Achievements")
 
             FitPilotPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {

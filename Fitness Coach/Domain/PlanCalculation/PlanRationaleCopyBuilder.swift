@@ -86,7 +86,7 @@ enum PlanRationaleCopyBuilder {
             PlanRationaleHighlight(
                 id: "maintenance",
                 label: FormaProductCopy.PlanRationale.maintenanceEstimate,
-                value: formatKcalPerDay(result.tdeeKcal)
+                value: PlanDisplayFormatter.formatKcalPerDay(result.tdeeKcal)
             )
         ]
 
@@ -95,7 +95,7 @@ enum PlanRationaleCopyBuilder {
                 PlanRationaleHighlight(
                     id: "deficit",
                     label: FormaProductCopy.PlanRationale.dailyDeficit,
-                    value: formatKcalPerDayValue(result.dailyDeficitKcal)
+                    value: PlanDisplayFormatter.formatKcalPerDay(result.dailyDeficitKcal)
                 )
             )
         }
@@ -104,7 +104,7 @@ enum PlanRationaleCopyBuilder {
             PlanRationaleHighlight(
                 id: "target",
                 label: FormaProductCopy.PlanRationale.target,
-                value: formatKcalPerDay(result.calorieTargetKcal)
+                value: PlanDisplayFormatter.formatKcalPerDay(result.calorieTargetKcal)
             )
         )
 
@@ -120,7 +120,7 @@ enum PlanRationaleCopyBuilder {
             PlanRationaleHighlight(
                 id: "water",
                 label: FormaProductCopy.PlanRationale.water,
-                value: formatMlPerDay(result.waterTargetMl)
+                value: PlanDisplayFormatter.formatMlPerDay(result.waterTargetMl)
             )
         )
 
@@ -128,28 +128,13 @@ enum PlanRationaleCopyBuilder {
     }
 
     private static func proteinHighlightValue(result: PlanCalculationResult) -> String {
-        let grams = formatGramsCompact(result.proteinTargetG)
+        let grams = PlanDisplayFormatter.formatGramsCompactHighlight(result.proteinTargetG)
         switch result.goalDirection {
         case .cut, .maintain:
             return "\(grams) \(FormaProductCopy.PlanRationale.proteinRecoverySuffix)"
         case .gain:
             return "\(grams) \(FormaProductCopy.PlanRationale.proteinGainSuffix)"
         }
-    }
-
-    private static func formatGramsCompact(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(value))g"
-            : "\(Int(value.rounded()))g"
-    }
-
-    private static func formatMlPerDay(_ value: Int) -> String {
-        let formatted = decimalFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
-        return "\(formatted)ml/day"
-    }
-
-    private static func formatKcalPerDayValue(_ value: Int) -> String {
-        "\(formatKcal(value))/day"
     }
 
     // MARK: - Summary
@@ -159,9 +144,9 @@ enum PlanRationaleCopyBuilder {
         result: PlanCalculationResult,
         paceLabel: String
     ) -> String {
-        let weight = formatKg(profile.currentWeightKg)
+        let weight = PlanDisplayFormatter.formatKg(profile.currentWeightKg)
         let activity = ProfileFormatter.activityLevel(profile.activityLevel).lowercased()
-        let maintenance = formatKcalPerDay(result.tdeeKcal)
+        let maintenance = PlanDisplayFormatter.formatKcalPerDay(result.tdeeKcal)
 
         let contextLine = contextOpening(
             weight: weight,
@@ -188,18 +173,18 @@ enum PlanRationaleCopyBuilder {
         activity: String,
         maintenance: String
     ) -> String {
-        let height = formatCm(heightCm)
+        let height = PlanDisplayFormatter.formatCm(heightCm)
         return """
         Based on your weight (\(weight)), height (\(height)), age (\(age)), and \(activity) activity level, Forma estimates your maintenance at about \(maintenance).
         """
     }
 
     private static func targetSentence(result: PlanCalculationResult, paceLabel: String) -> String {
-        let target = formatKcalPerDay(result.calorieTargetKcal)
+        let target = PlanDisplayFormatter.formatKcalPerDay(result.calorieTargetKcal)
 
         switch result.goalDirection {
         case .cut:
-            let deficit = formatKcal(result.dailyDeficitKcal)
+            let deficit = PlanDisplayFormatter.formatKcal(result.dailyDeficitKcal)
             return """
             Your \(paceLabel) pace creates a daily deficit of about \(deficit), giving you a target of \(target).
             """
@@ -211,8 +196,8 @@ enum PlanRationaleCopyBuilder {
     }
 
     private static func macroSentence(result: PlanCalculationResult) -> String {
-        let protein = formatGrams(result.proteinTargetG)
-        let water = formatMl(result.waterTargetMl)
+        let protein = PlanDisplayFormatter.formatGrams(result.proteinTargetG)
+        let water = PlanDisplayFormatter.formatMl(result.waterTargetMl)
 
         switch result.goalDirection {
         case .cut, .maintain:
@@ -249,43 +234,4 @@ enum PlanRationaleCopyBuilder {
         }
     }
 
-    // MARK: - Formatting
-
-    private static func formatKcalPerDay(_ value: Int) -> String {
-        "\(formatKcal(value))/day"
-    }
-
-    private static func formatKcal(_ value: Int) -> String {
-        let formatted = decimalFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
-        return "\(formatted) kcal"
-    }
-
-    private static func formatKg(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(value)) kg"
-            : String(format: "%.1f kg", value)
-    }
-
-    private static func formatCm(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(value)) cm"
-            : String(format: "%.1f cm", value)
-    }
-
-    private static func formatGrams(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(value)) g"
-            : String(format: "%.0f g", value)
-    }
-
-    private static func formatMl(_ value: Int) -> String {
-        let formatted = decimalFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
-        return "\(formatted) ml"
-    }
-
-    private static let decimalFormatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        return formatter
-    }()
 }

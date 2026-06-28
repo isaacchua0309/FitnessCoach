@@ -11,7 +11,7 @@ import XCTest
 final class OnboardingMotivationTests: XCTestCase {
 
     func testEmptyMotivationNeverBlocksAdvanceOrValidation() {
-        var state = OnboardingFormState()
+        let state = OnboardingFormState()
 
         XCTAssertTrue(OnboardingMotivation.allowsEmptySelection)
         XCTAssertTrue(state.selectedMotivations.isEmpty)
@@ -59,7 +59,7 @@ final class OnboardingMotivationTests: XCTestCase {
     }
 
     func testMotivationDoesNotAffectCalorieTargetInput() throws {
-        var without = filledForm()
+        let without = filledForm()
         var withMotivation = filledForm()
         withMotivation.selectedMotivations = [.performance, .discipline]
 

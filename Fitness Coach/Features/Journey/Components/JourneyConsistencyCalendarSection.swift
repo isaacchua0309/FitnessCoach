@@ -27,7 +27,7 @@ struct JourneyConsistencyCalendarSection: View {
 
     private var momentumEmptySection: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
-            JourneySectionLabel(title: FormaProductCopy.Journey.sectionBuildRhythm)
+            FormaSectionLabel(title: FormaProductCopy.Journey.sectionBuildRhythm)
 
             FormaEmptyStateCard(
                 message: FormaProductCopy.EmptyState.Consistency.body,
@@ -63,13 +63,13 @@ struct JourneyConsistencyCalendarSection: View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
-                    JourneySectionLabel(title: FormaProductCopy.Journey.sectionConsistency)
+                    FormaSectionLabel(title: FormaProductCopy.Journey.sectionConsistency)
                     Spacer(minLength: FormaTokens.Spacing.xs)
                     loggedDaysStat(alignment: .trailing)
                 }
 
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-                    JourneySectionLabel(title: FormaProductCopy.Journey.sectionConsistency)
+                    FormaSectionLabel(title: FormaProductCopy.Journey.sectionConsistency)
                     loggedDaysStat(alignment: .leading)
                 }
             }

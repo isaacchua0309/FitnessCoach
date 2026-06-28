@@ -12,7 +12,7 @@ struct PlanRationaleSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
-            PlanSectionLabel(title: FormaProductCopy.PlanRationale.sectionTitle)
+            FormaSectionLabel(title: FormaProductCopy.PlanRationale.sectionTitle)
 
             FitPilotPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {

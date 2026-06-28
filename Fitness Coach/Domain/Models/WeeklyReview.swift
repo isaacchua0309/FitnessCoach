@@ -2,7 +2,10 @@
 //  WeeklyReview.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Core app-facing model.
+//  Domain model for `WeeklyReviewEntity` (schema-only today).
+//
+//  TODO(migration): Implement weekly review generation or remove with entity.
+//  See `Docs/PersistenceCleanupNotes.md`.
 //
 
 import Foundation

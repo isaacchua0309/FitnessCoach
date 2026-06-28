@@ -39,7 +39,7 @@ enum CoachResponseBuilder {
     // MARK: Weight
 
     static func weight(_ weightKg: Double) -> String {
-        "Logged your weight as \(formatWeight(weightKg)) kg."
+        "Logged your weight as \(FoodEntryFormFormatter.formatWeight(weightKg)) kg."
     }
 
     // MARK: Food
@@ -49,7 +49,7 @@ enum CoachResponseBuilder {
         response += """
 
 
-        \(entry.calories) kcal · \(formatMacro(entry.protein))g protein
+        \(entry.calories) kcal · \(FoodEntryFormFormatter.formatMacro(entry.protein))g protein
         """
         if let log {
             let nutrition = nutritionSummary(from: log)
@@ -59,7 +59,7 @@ enum CoachResponseBuilder {
 
             Today:
             \(nutrition.totals.calories) / \(nutrition.targets.calories) kcal
-            \(formatMacro(proteinRemaining))g protein remaining.
+            \(FoodEntryFormFormatter.formatMacro(proteinRemaining))g protein remaining.
             """
         }
         return response
@@ -101,7 +101,7 @@ enum CoachResponseBuilder {
     }
 
     static func weightPending(_ draft: WeightDraft, assistantMessage: String?) -> String {
-        "Log \(formatWeight(draft.weightKg)) kg?"
+        "Log \(FoodEntryFormFormatter.formatWeight(draft.weightKg)) kg?"
     }
 
     static func mutationPending(assistantMessage: String?) -> String {
@@ -166,9 +166,9 @@ enum CoachResponseBuilder {
         return """
         Today so far:
         Calories: \(nutrition.totals.calories) / \(nutrition.targets.calories) kcal
-        Protein: \(formatMacro(nutrition.totals.protein)) / \(formatMacro(nutrition.targets.protein))g
-        Carbs: \(formatMacro(nutrition.totals.carbs)) / \(formatMacro(nutrition.targets.carbs))g
-        Fat: \(formatMacro(nutrition.totals.fat)) / \(formatMacro(nutrition.targets.fat))g
+        Protein: \(FoodEntryFormFormatter.formatMacro(nutrition.totals.protein)) / \(FoodEntryFormFormatter.formatMacro(nutrition.targets.protein))g
+        Carbs: \(FoodEntryFormFormatter.formatMacro(nutrition.totals.carbs)) / \(FoodEntryFormFormatter.formatMacro(nutrition.targets.carbs))g
+        Fat: \(FoodEntryFormFormatter.formatMacro(nutrition.totals.fat)) / \(FoodEntryFormFormatter.formatMacro(nutrition.targets.fat))g
         Water: \(nutrition.water.consumedMl) / \(nutrition.water.targetMl)ml
 
         You still have \(remainingCalories) kcal remaining.
@@ -211,10 +211,10 @@ enum CoachResponseBuilder {
         var lines: [String] = [brief.recommendation]
 
         if nutrition.remaining.protein > 30 {
-            lines.append("You still need about \(formatMacro(nutrition.remaining.protein))g protein today.")
+            lines.append("You still need about \(FoodEntryFormFormatter.formatMacro(nutrition.remaining.protein))g protein today.")
         } else {
             lines.append(
-                "Protein is on track at \(formatMacro(nutrition.totals.protein))g of \(formatMacro(nutrition.targets.protein))g."
+                "Protein is on track at \(FoodEntryFormFormatter.formatMacro(nutrition.totals.protein))g of \(FoodEntryFormFormatter.formatMacro(nutrition.targets.protein))g."
             )
         }
 
@@ -248,20 +248,20 @@ enum CoachResponseBuilder {
 
         if isTrainingTomorrow {
             return """
-            Tomorrow looks like a training day. Hit \(nutrition.targets.calories) kcal with at least \(formatMacro(nutrition.targets.protein))g protein, \
+            Tomorrow looks like a training day. Hit \(nutrition.targets.calories) kcal with at least \(FoodEntryFormFormatter.formatMacro(nutrition.targets.protein))g protein, \
             front-load water before noon, and log your morning weight if you haven't yet.
             """
         }
 
         if nutrition.remaining.protein > 40 {
             return """
-            Close today with protein first — you still need about \(formatMacro(nutrition.remaining.protein))g. \
+            Close today with protein first — you still need about \(FoodEntryFormFormatter.formatMacro(nutrition.remaining.protein))g. \
             Tomorrow, weigh in, log breakfast early, and keep calories near \(nutrition.targets.calories) kcal.
             """
         }
 
         return """
-        You're in a good rhythm today. Tomorrow: log breakfast, hit \(formatMacro(nutrition.targets.protein))g protein, \
+        You're in a good rhythm today. Tomorrow: log breakfast, hit \(FoodEntryFormFormatter.formatMacro(nutrition.targets.protein))g protein, \
         and keep water above \(formatWater(nutrition.water.targetMl))ml.
         """
     }
@@ -323,19 +323,7 @@ enum CoachResponseBuilder {
 
     // MARK: Formatting Helpers
 
-    private static func formatWeight(_ value: Double) -> String {
-        String(format: "%.2f", value)
-    }
-
-    private static func formatMacro(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? String(format: "%.0f", value)
-            : String(format: "%.1f", value)
-    }
-
     private static func formatWater(_ ml: Int) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        return formatter.string(from: NSNumber(value: ml)) ?? "\(ml)"
+        PlanDisplayFormatter.formatGroupedInteger(ml)
     }
 }

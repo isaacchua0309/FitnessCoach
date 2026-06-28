@@ -382,7 +382,7 @@ private struct SignInLegalDocumentSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sectionSpacing + 4) {
-                    Text("Effective \(FitPilotLegalCopy.effectiveDate)")
+                    Text("Effective \(FormaProductCopy.Legal.effectiveDate)")
                         .font(FormaTokens.Typography.caption)
                         .foregroundStyle(FormaTokens.Color.textTertiary)
                         .frame(maxWidth: .infinity, alignment: .leading)

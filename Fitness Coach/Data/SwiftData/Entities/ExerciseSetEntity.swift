@@ -2,7 +2,10 @@
 //  ExerciseSetEntity.swift
 //  Fitness Coach
 //
-//  FitPilot AI — SwiftData persistence entity.
+//  SwiftData entity for legacy manual workout sets (child of `WorkoutEntryEntity`).
+//
+//  Official training insights read from Apple Health. Retain until migration
+//  retires manual workout storage.
 //
 
 import Foundation

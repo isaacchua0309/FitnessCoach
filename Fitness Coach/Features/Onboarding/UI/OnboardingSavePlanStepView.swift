@@ -161,18 +161,3 @@ struct OnboardingSavePlanStepView: View {
     .preferredColorScheme(.dark)
 }
 
-#Preview("iPhone SE — signed out") {
-    OnboardingSavePlanStepView(
-        requiresGoogleSignIn: true,
-        isBusy: false,
-        allowsLocalOnlyContinuation: false,
-        errorMessage: nil,
-        onContinue: {},
-        onContinueWithoutAccount: {},
-        onBack: {}
-    )
-    .padding()
-    .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
-    .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
-}

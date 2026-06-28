@@ -14,7 +14,7 @@ struct WhatHappensNextSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
-            PlanSectionLabel(title: FormaProductCopy.WhatHappensNext.sectionTitle)
+            FormaSectionLabel(title: FormaProductCopy.WhatHappensNext.sectionTitle)
 
             FitPilotPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {

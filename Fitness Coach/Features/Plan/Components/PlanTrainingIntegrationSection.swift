@@ -15,7 +15,7 @@ struct PlanTrainingIntegrationSection: View {
     var body: some View {
         if dataSource == .appleHealth {
             VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
-                PlanSectionLabel(title: TrainingIntegrationCopy.planIntegrationSectionTitle)
+                FormaSectionLabel(title: TrainingIntegrationCopy.planIntegrationSectionTitle)
 
                 Button(action: onTap) {
                     FitPilotPlanCard {

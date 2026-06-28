@@ -22,7 +22,16 @@ enum TrainingInsightsFormatter {
     }
 
     static func durationMinutes(_ minutes: Int) -> String {
-        TrainingFormatter.totalDuration(minutes)
+        guard minutes > 0 else { return "0 min" }
+        if minutes < 60 {
+            return "\(minutes) min"
+        }
+        let hours = minutes / 60
+        let remainder = minutes % 60
+        if remainder == 0 {
+            return "\(hours)h"
+        }
+        return "\(hours)h \(remainder)m"
     }
 
     static func activeCalories(_ calories: Int?) -> String? {

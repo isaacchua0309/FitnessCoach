@@ -21,8 +21,6 @@ struct ProfilePlanConflictSummary: Equatable, Sendable {
     }
 }
 
-typealias OnboardingProfileConflictSummary = ProfilePlanConflictSummary
-
 enum ProfilePlanConflictSummaryBuilder {
 
     static func build(
@@ -61,8 +59,6 @@ enum ProfilePlanConflictSummaryBuilder {
         return label.isEmpty ? nil : label
     }
 }
-
-typealias OnboardingProfileConflictSummaryBuilder = ProfilePlanConflictSummaryBuilder
 
 private extension DateFormatter {
     static let profilePlanConflictUpdatedAt: DateFormatter = {

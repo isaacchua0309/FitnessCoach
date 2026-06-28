@@ -280,7 +280,7 @@ struct OnboardingView: View {
                     model.goBack()
                 }
             )
-        case .planPreview:
+        default:
             EmptyView()
         }
     }

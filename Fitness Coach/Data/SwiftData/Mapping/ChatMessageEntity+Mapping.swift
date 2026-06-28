@@ -2,7 +2,7 @@
 //  ChatMessageEntity+Mapping.swift
 //  Fitness Coach
 //
-//  FitPilot AI — SwiftData mapping between entity and domain model.
+//  Mapping for dormant `ChatMessageEntity`. See `Docs/PersistenceCleanupNotes.md`.
 //
 
 import Foundation

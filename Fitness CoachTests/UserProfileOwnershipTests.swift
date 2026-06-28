@@ -65,7 +65,6 @@ final class UserProfileOwnershipTests: XCTestCase {
     }
 
     func testModelToEntityMappingPreservesOwnerUID() throws {
-        let container = try AppContainer(inMemory: true)
         var profile = ProfileTestFixtures.sampleProfile
         profile.ownerUID = "owner-b"
 

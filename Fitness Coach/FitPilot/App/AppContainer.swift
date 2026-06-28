@@ -229,24 +229,9 @@ final class AppContainer {
         ProgressModel(
             dailyLogService: dailyLogService,
             weightLogService: weightLogService,
-            workoutLogService: workoutLogService,
             userProfileService: userProfileService,
             trainingInsightsStore: trainingInsightsStore,
             workoutReader: trainingInsightsModel.workoutReaderForToday
-        )
-    }
-
-    func makeTrainingModel() -> TrainingModel {
-        TrainingModel(
-            workoutLogService: workoutLogService,
-            dailyLogService: dailyLogService
-        )
-    }
-
-    func makeTrainingInsightsView() -> TrainingInsightsView {
-        TrainingInsightsView(
-            insightsStore: trainingInsightsStore,
-            insightsModel: trainingInsightsModel
         )
     }
 
