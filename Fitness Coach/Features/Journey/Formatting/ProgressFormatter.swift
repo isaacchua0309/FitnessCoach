@@ -131,7 +131,7 @@ enum ProgressFormatter {
     static func remainingKg(current: Double?, goal: Double?) -> String? {
         guard let current, let goal, abs(current - goal) > 0.05 else { return nil }
         let remaining = abs(current - goal)
-        return FormaProductCopy.Journey.remainingToGo(journeyKg(remaining))
+        return FormaProductCopy.Journey.Transformation.remainingToGo(journeyKg(remaining))
     }
 
     /// Next weight checkpoint on the milestone timeline (display only).

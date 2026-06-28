@@ -7,17 +7,30 @@
 
 import SwiftUI
 
+@MainActor
 struct ProgressView: View {
 
     @ObservedObject var model: ProgressModel
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
+    @EnvironmentObject private var trainingInsightsStore: TrainingInsightsStore
+
+    let analyticsCoordinator: JourneyAnalyticsCoordinator
 
     /// Optional prefill text for Coach input. `nil` opens Coach without prefilling.
     var onOpenCoach: ((String?) -> Void)?
+    /// Opens the Plan tab for goal edits or Apple Health connection.
+    var onOpenPlan: (() -> Void)?
 
-    init(model: ProgressModel, onOpenCoach: ((String?) -> Void)? = nil) {
+    init(
+        model: ProgressModel,
+        analyticsCoordinator: JourneyAnalyticsCoordinator,
+        onOpenCoach: ((String?) -> Void)? = nil,
+        onOpenPlan: (() -> Void)? = nil
+    ) {
         self.model = model
+        self.analyticsCoordinator = analyticsCoordinator
         self.onOpenCoach = onOpenCoach
+        self.onOpenPlan = onOpenPlan
     }
 
     var body: some View {
@@ -52,6 +65,10 @@ struct ProgressView: View {
             ProgressEmptyStateView {
                 Task { await model.refresh() }
             }
+            .onAppear {
+                syncAnalyticsContextForEmpty()
+                analyticsCoordinator.logScreenViewed()
+            }
         case .error(let message):
             FormaScreenErrorView(message: message, onRetry: {
                 Task { await model.refresh() }
@@ -63,48 +80,65 @@ struct ProgressView: View {
 
     private func dashboard(_ state: ProgressDashboardState) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: JourneyLayout.sectionSpacing) {
-                JourneyTransformationHeroSection(state: state.transformation)
-
-                JourneyWeeklyReviewSection(review: state.weeklyReview)
-
-                JourneyMilestonesSection(state: state.milestones)
-
-                JourneyStoryTimelineSection(state: state.storyTimeline)
-
-                JourneyHabitInsightsSection(state: state.habitInsights)
-
-                JourneyWhyProgressSection(state: state.progressAttribution)
-
-                JourneyBeforeTodaySection(state: state.beforeToday)
-
-                JourneyPersonalRecordsSection(state: state.personalRecords)
-
-                JourneyMonthlyRecapSection(state: state.monthlyRecap)
-
-                JourneyConsistencyCalendarSection(calendar: state.monthlyRecap.calendar) {
-                    onOpenCoach?(nil)
-                }
-
-                JourneyDetailedAnalyticsSection(
-                    analytics: state.detailedAnalytics,
-                    weeklyReview: state.weeklyReview,
-                    selectedRangeDays: state.selectedRangeDays
-                ) { days in
+            JourneyDashboardContent(
+                state: state,
+                analyticsCoordinator: analyticsCoordinator,
+                onCTA: handleCTA,
+                onSelectRange: { days in
+                    analyticsCoordinator.logRangeChanged(days: days)
                     Task { await model.selectRange(days: days) }
+                },
+                onAnalyticsExpanded: {
+                    analyticsCoordinator.logAnalyticsExpanded()
                 }
-            }
-            .padding(.horizontal, JourneyLayout.horizontalPadding)
-            .padding(.top, FormaTokens.Spacing.md)
-            .padding(.bottom, JourneyLayout.scrollBottomContentPadding)
+            )
         }
         .formaMainTabScrollInsets()
+        .accessibilityIdentifier("journey-scroll")
+        .onAppear {
+            syncAnalyticsContext(for: state)
+            analyticsCoordinator.logScreenViewed()
+        }
+        .onChange(of: state.selectedRangeDays) { _, _ in
+            syncAnalyticsContext(for: state)
+        }
+    }
+
+    private func handleCTA(_ cta: JourneyCTA) {
+        analyticsCoordinator.logCTATapped(cta)
+        JourneyCTAHandler.perform(cta, onOpenCoach: onOpenCoach, onOpenPlan: onOpenPlan)
+    }
+
+    private func syncAnalyticsContext(for state: ProgressDashboardState) {
+        analyticsCoordinator.updateContext(
+            from: state,
+            healthConnected: trainingInsightsStore.integrationState.isConnected
+        )
+    }
+
+    private func syncAnalyticsContextForEmpty() {
+        analyticsCoordinator.updateContextForEmptyProfile(
+            healthConnected: trainingInsightsStore.integrationState.isConnected
+        )
     }
 }
 
-#Preview {
+#Preview("Strong momentum") {
     let container = try! AppContainer(inMemory: true)
-    ProgressView(model: container.makeProgressModel())
-        .environmentObject(container.refreshCenter)
-        .environmentObject(container.trainingInsightsStore)
+    ProgressView(
+        model: ProgressModel.preview(scenario: .strongMomentum),
+        analyticsCoordinator: container.makeJourneyAnalyticsCoordinator()
+    )
+    .environmentObject(container.refreshCenter)
+    .environmentObject(container.trainingInsightsStore)
+}
+
+#Preview("Plateau") {
+    let container = try! AppContainer(inMemory: true)
+    ProgressView(
+        model: ProgressModel.preview(scenario: .plateau),
+        analyticsCoordinator: container.makeJourneyAnalyticsCoordinator()
+    )
+    .environmentObject(container.refreshCenter)
+    .environmentObject(container.trainingInsightsStore)
 }

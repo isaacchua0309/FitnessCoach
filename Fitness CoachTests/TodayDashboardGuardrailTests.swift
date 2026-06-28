@@ -67,48 +67,6 @@ final class TodayDashboardGuardrailTests: XCTestCase {
         XCTAssertEqual(goals[2].tapAction, .coach(prefill: TodayCoachPrompt.logWater))
     }
 
-    func testShowsGenericCoachCTAWhenMealsLoggedAndNextActionComplete() {
-        let completeState = TodayDashboardFixtures.dashboardState(
-            proteinConsumed: 180,
-            proteinTarget: 180,
-            proteinRemaining: 0,
-            waterConsumedMl: 3_150,
-            waterTargetMl: 3_150,
-            waterRemainingMl: 0,
-            weightKg: 68.5,
-            foodEntries: TodayPreviewData.foodEntries
-        )
-
-        XCTAssertTrue(
-            TodayCoachCTAPolicy.showsGenericCoachCTA(
-                foodEntries: TodayPreviewData.foodEntries,
-                nextBestAction: completeState.nextBestAction
-            )
-        )
-    }
-
-    func testHidesGenericCoachCTAWhenMealsEmpty() {
-        let state = TodayDashboardFixtures.dashboardState()
-
-        XCTAssertFalse(
-            TodayCoachCTAPolicy.showsGenericCoachCTA(
-                foodEntries: [],
-                nextBestAction: state.nextBestAction
-            )
-        )
-    }
-
-    func testHidesGenericCoachCTAWhenNextActionNeedsCoach() {
-        let state = TodayDashboardFixtures.dashboardState()
-
-        XCTAssertFalse(
-            TodayCoachCTAPolicy.showsGenericCoachCTA(
-                foodEntries: TodayPreviewData.foodEntries,
-                nextBestAction: state.nextBestAction
-            )
-        )
-    }
-
     func testFailedTrainingIntegrationShowsUnlockAction() throws {
         let state = TodayDashboardFixtures.dashboardState(
             proteinConsumed: 170,

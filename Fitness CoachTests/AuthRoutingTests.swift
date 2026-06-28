@@ -10,18 +10,18 @@ import XCTest
 
 final class AppRouteResolverTests: XCTestCase {
 
-    func testSignedOutRoutesToSignIn() {
+    func testSignedOutRoutesToWelcome() {
         XCTAssertEqual(
             AppRouteResolver.resolve(authState: .signedOut),
-            .signIn
+            .welcome
         )
         XCTAssertEqual(
             AppRouteResolver.resolve(authState: .signingIn),
-            .signIn
+            .welcome
         )
         XCTAssertEqual(
             AppRouteResolver.resolve(authState: .failed(AuthSignInUserMessage.signInFailureMessage)),
-            .signIn
+            .welcome
         )
     }
 
@@ -38,7 +38,7 @@ final class AppRouteResolverTests: XCTestCase {
                 authState: .signedIn(uid: "google-user"),
                 rootState: .missingCloudProfile
             ),
-            .missingCloudProfile
+            .noExistingProfileFound
         )
     }
 
@@ -180,7 +180,7 @@ final class AppRouteResolverTests: XCTestCase {
                 authState: .signedIn(uid: "user-1"),
                 rootState: .missingCloudProfile
             ),
-            .missingCloudProfile
+            .noExistingProfileFound
         )
     }
 
@@ -195,43 +195,65 @@ final class AppRouteResolverTests: XCTestCase {
         )
     }
 
-    // MARK: - Pre-auth v2 routing
+    // MARK: - Public entry routing
 
-    func testSignedOutNoProfileRoutesToLocalOnboardingWhenV2Enabled() {
+    func testSignedOutNoProfileRoutesToWelcomeByDefault() {
         XCTAssertEqual(
             AppRouteResolver.resolve(
                 authState: .signedOut,
                 isOnboardingModelReady: true,
-                hasLocalProfile: false,
+                hasLocalProfile: false
             ),
-            .localOnboarding
+            .welcome
         )
         XCTAssertEqual(
             AppRouteResolver.resolve(
                 authState: .signedOut,
                 isOnboardingModelReady: false,
-                hasLocalProfile: false,
+                hasLocalProfile: false
             ),
-            .localOnboardingInitializing
+            .welcome
         )
     }
 
-    func testSignedOutWithLocalProfileRoutesToPreAuthLandingWhenV2Enabled() {
+    func testSignedOutCreatePlanRoutesToOnboardingStart() {
+        XCTAssertEqual(
+            AppRouteResolver.resolve(
+                authState: .signedOut,
+                isOnboardingModelReady: true,
+                hasLocalProfile: false,
+                publicEntryDestination: .onboardingStart
+            ),
+            .onboardingStart
+        )
         XCTAssertEqual(
             AppRouteResolver.resolve(
                 authState: .signedOut,
                 isOnboardingModelReady: false,
-                hasLocalProfile: true,
+                hasLocalProfile: false,
+                publicEntryDestination: .onboardingStart
             ),
-            .localOnboardingInitializing
+            .onboardingStartInitializing
+        )
+    }
+
+    func testSignedOutWithLocalProfileRoutesToWelcomeUnlessSavePlanPending() {
+        XCTAssertEqual(
+            AppRouteResolver.resolve(
+                authState: .signedOut,
+                isOnboardingModelReady: true,
+                hasLocalProfile: true
+            ),
+            .welcome
         )
         XCTAssertEqual(
             AppRouteResolver.resolve(
                 authState: .signedOut,
                 isOnboardingModelReady: true,
                 hasLocalProfile: true,
+                localProfileAwaitingSignIn: true
             ),
-            .localOnboarding
+            .onboardingStart
         )
     }
 

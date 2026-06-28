@@ -54,6 +54,27 @@ enum JourneyBeforeTodayBuilder {
         let showsAdaptedTargetCopy = showsTargetRow
             && abs((startingTarget ?? 0) - (currentTarget ?? 0)) > adaptedTargetToleranceKcal
 
+        let startedWeightCopy = ProgressFormatter.journeyKg(baseline.startWeightKg)
+        let currentWeightCopy = ProgressFormatter.journeyKg(baseline.currentWeightKg)
+        let goalWeightCopy = ProgressFormatter.journeyKg(baseline.goalWeightKg)
+        let startingMaintenanceCopy = showsMaintenanceRow
+            ? formattedKcal(startingMaintenance) : nil
+        let currentMaintenanceCopy = showsMaintenanceRow
+            ? formattedKcal(currentMaintenance) : nil
+        let startingTargetCopy = showsTargetRow ? formattedKcal(startingTarget) : nil
+        let currentTargetCopy = showsTargetRow ? formattedKcal(currentTarget) : nil
+
+        let accessibilitySummary = accessibilitySummary(
+            startedWeight: startedWeightCopy,
+            currentWeight: currentWeightCopy,
+            goalWeight: goalWeightCopy,
+            startingMaintenance: startingMaintenanceCopy,
+            currentMaintenance: currentMaintenanceCopy,
+            startingTarget: startingTargetCopy,
+            currentTarget: currentTargetCopy,
+            showsAdaptedTargetCopy: showsAdaptedTargetCopy
+        )
+
         return JourneyBeforeTodayState(
             startedWeightKg: baseline.startWeightKg,
             currentWeightKg: baseline.currentWeightKg,
@@ -65,8 +86,51 @@ enum JourneyBeforeTodayBuilder {
             daysOnJourney: daysOnJourney,
             showsMaintenanceRow: showsMaintenanceRow,
             showsTargetRow: showsTargetRow,
-            showsAdaptedTargetCopy: showsAdaptedTargetCopy
+            showsAdaptedTargetCopy: showsAdaptedTargetCopy,
+            startedWeightCopy: startedWeightCopy,
+            currentWeightCopy: currentWeightCopy,
+            goalWeightCopy: goalWeightCopy,
+            startingMaintenanceCopy: startingMaintenanceCopy,
+            currentMaintenanceCopy: currentMaintenanceCopy,
+            startingTargetCopy: startingTargetCopy,
+            currentTargetCopy: currentTargetCopy,
+            accessibilitySummary: accessibilitySummary
         )
+    }
+
+    // MARK: - Display copies
+
+    private static func formattedKcal(_ value: Int?) -> String? {
+        guard let value else { return nil }
+        return PlanDisplayFormatter.formatGroupedInteger(value)
+    }
+
+    private static func accessibilitySummary(
+        startedWeight: String,
+        currentWeight: String,
+        goalWeight: String,
+        startingMaintenance: String?,
+        currentMaintenance: String?,
+        startingTarget: String?,
+        currentTarget: String?,
+        showsAdaptedTargetCopy: Bool
+    ) -> String {
+        let copy = FormaProductCopy.Journey.BeforeToday.self
+        var parts = [
+            "\(FormaProductCopy.Journey.Transformation.columnStarted), \(startedWeight)",
+            "\(FormaProductCopy.Journey.Transformation.columnToday), \(currentWeight)",
+            "\(FormaProductCopy.Journey.Transformation.columnGoal), \(goalWeight)"
+        ]
+        if let startingMaintenance, let currentMaintenance {
+            parts.append("\(copy.maintenanceLabel), started \(startingMaintenance), today \(currentMaintenance)")
+        }
+        if let startingTarget, let currentTarget {
+            parts.append("\(copy.targetLabel), started \(startingTarget), today \(currentTarget)")
+        }
+        if showsAdaptedTargetCopy {
+            parts.append(copy.adaptedTargetCopy)
+        }
+        return parts.joined(separator: ". ")
     }
 
     // MARK: - Estimation

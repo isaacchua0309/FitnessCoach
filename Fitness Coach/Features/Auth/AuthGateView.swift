@@ -14,7 +14,11 @@ struct AuthGateView: View {
     @State private var onboardingModel: OnboardingModel?
     @State private var signedInSessionID = UUID()
     @State private var pendingSignInForOnboardingCompletion = false
-    @State private var preAuthRouteOverride: AppShellRoute?
+    @State private var pendingExistingUserSignIn = false
+    @State private var existingUserSignInSessionActive = false
+    @State private var existingUserSignInError: ExistingUserSignInFailureKind?
+    @State private var returnToExistingUserSignInAfterSignOut = false
+    @State private var publicEntryDestination: PublicEntryRoute = .welcome
     @State private var conflictCloudDocument: CloudUserProfileDocument?
     @State private var profileConflictContext: ProfileConflictResolutionContext = .accountOrOwnershipReconcile
     @State private var isResolvingProfileConflict = false
@@ -37,27 +41,53 @@ struct AuthGateView: View {
     var body: some View {
         Group {
             switch effectiveRoute {
-            case .launchLoading, .localOnboardingInitializing, .onboardingInitializing, .signedInProfileLoading:
+            case .launchLoading, .onboardingStartInitializing, .onboardingInitializing:
                 LaunchLoadingView()
                     .onAppear {
                         bootstrapOnboardingIfNeeded()
                     }
-            case .signIn:
-                SignInView()
-            case .localOnboarding:
+            case .signedInProfileLoading:
+                if pendingExistingUserSignIn {
+                    ExistingUserSignInResolvingView()
+                } else {
+                    LaunchLoadingView()
+                        .onAppear {
+                            bootstrapOnboardingIfNeeded()
+                        }
+                }
+            case .welcome:
+                PublicWelcomeView(
+                    analyticsLogger: container.publicEntryAnalyticsLogger,
+                    onCreateMyPlan: beginOnboardingFromWelcome,
+                    onSignIn: beginExistingUserSignInFromWelcome
+                )
+            case .existingUserSignIn:
+                ExistingUserSignInView(
+                    analyticsLogger: container.publicEntryAnalyticsLogger,
+                    localError: existingUserSignInError,
+                    onBack: returnToWelcomeFromExistingUserSignIn,
+                    onCreateMyPlan: beginOnboardingFromExistingUserSignIn,
+                    onSignInRequested: signInAsExistingUser
+                )
+            case .onboardingStart:
                 preAuthOnboardingContent
             case .localMain:
                 MainTabView(container: container)
-            case .missingCloudProfile:
-                MissingCloudProfileView {
-                    onboardingModel = nil
-                    rootModel.continueFromMissingCloudProfile()
-                }
+            case .noExistingProfileFound:
+                NoExistingProfileFoundView(
+                    analyticsLogger: container.publicEntryAnalyticsLogger,
+                    onStartOnboarding: beginOnboardingAfterNoExistingPlan,
+                    onUseAnotherAccount: useAnotherAccountAfterNoExistingPlan
+                )
             case .onboardingCloudProfileConflict:
                 profilePlanConflictContent
             case .onboardingCloudCheckFailed:
                 OnboardingCloudCheckFailedView {
                     retryAccountMismatchOrOnboardingCloudCheck()
+                }
+            case .existingUserProfileLookupFailed:
+                ExistingUserProfileLookupFailedView {
+                    retryExistingUserProfileResolution()
                 }
             case .cloudProfileUploadFailed:
                 CloudProfileUploadFailedView(
@@ -126,23 +156,82 @@ struct AuthGateView: View {
     // MARK: - Routing
 
     private var effectiveRoute: AppShellRoute {
-        if let preAuthRouteOverride,
-           !AppRouteResolver.isSignedIn(authManager.authState) {
-            return preAuthRouteOverride
-        }
-
         let base = container.resolveAppShellRoute(
             authState: authManager.authState,
             rootState: rootModel.state,
             isOnboardingModelReady: onboardingModel != nil,
             awaitingCloudSync: awaitingCloudSync,
-            pendingOnboardingCompletion: pendingSignInForOnboardingCompletion
+            pendingOnboardingCompletion: pendingSignInForOnboardingCompletion,
+            publicEntryDestination: publicEntryDestination
         )
         return AuthGateRoutingPolicy.effectiveRoute(
             baseRoute: base,
             isSignedIn: AppRouteResolver.isSignedIn(authManager.authState),
             hasActiveOnboardingSession: onboardingModel != nil
         )
+    }
+
+    // MARK: - Public entry actions
+
+    private func beginOnboardingFromWelcome() {
+        startPreAuthOnboarding(handoff: .welcomeCreatePlan)
+    }
+
+    private func beginExistingUserSignInFromWelcome() {
+        publicEntryDestination = .existingUserSignIn
+    }
+
+    private func returnToWelcomeFromExistingUserSignIn() {
+        pendingExistingUserSignIn = false
+        existingUserSignInSessionActive = false
+        existingUserSignInError = nil
+        publicEntryDestination = .welcome
+    }
+
+    private func beginOnboardingFromExistingUserSignIn() {
+        pendingExistingUserSignIn = false
+        existingUserSignInSessionActive = false
+        existingUserSignInError = nil
+        startPreAuthOnboarding(handoff: .welcomeCreatePlan)
+    }
+
+    private func startPreAuthOnboarding(handoff: WelcomeOnboardingHandoffSource) {
+        _ = handoff
+        pendingExistingUserSignIn = false
+        existingUserSignInSessionActive = false
+        publicEntryDestination = WelcomeOnboardingHandoffPolicy.createPlanDestination
+        onboardingModel = nil
+        rootModel.resolveLocalProfile()
+        ensurePreAuthOnboardingModel()
+    }
+
+    private func signInAsExistingUser() {
+        existingUserSignInError = nil
+        pendingExistingUserSignIn = true
+        existingUserSignInSessionActive = true
+        logExistingUserSignIn(.existingSignInStarted)
+        Task {
+            await authManager.signInWithGoogle()
+        }
+    }
+
+    private func beginOnboardingAfterNoExistingPlan() {
+        onboardingModel = nil
+        pendingExistingUserSignIn = false
+        existingUserSignInSessionActive = false
+        rootModel.continueFromMissingCloudProfile()
+        ensureOnboardingModel()
+    }
+
+    private func useAnotherAccountAfterNoExistingPlan() {
+        returnToExistingUserSignInAfterSignOut = true
+        existingUserSignInSessionActive = false
+        pendingExistingUserSignIn = false
+        existingUserSignInError = nil
+        onboardingModel = nil
+        Task {
+            await authManager.signOut()
+        }
     }
 
     // MARK: - Pre-auth onboarding
@@ -166,21 +255,14 @@ struct AuthGateView: View {
         OnboardingView(model: model)
     }
 
-    private func showExistingAccountSignIn() {
-        if AuthGateRoutingPolicy.shouldSignOutBeforeExistingAccountSignIn(
-            isSignedIn: AppRouteResolver.isSignedIn(authManager.authState)
-        ) {
-            authManager.signOut()
-        }
-        Task {
-            await authManager.signInWithGoogle()
-        }
-    }
-
     private func preparePreAuthOnboardingIfNeeded() {
         guard !AppRouteResolver.isSignedIn(authManager.authState) else { return }
         rootModel.resolveLocalProfile()
-        ensureOnboardingModel()
+        if publicEntryDestination == WelcomeOnboardingHandoffPolicy.createPlanDestination {
+            ensurePreAuthOnboardingModel()
+        } else {
+            ensureOnboardingModel()
+        }
     }
 
     // MARK: - Signed-in flow
@@ -347,26 +429,50 @@ struct AuthGateView: View {
 
         let hasLocalProfile = container.profileBootstrapService.hasLocalProfile()
         let awaitingSignInHandoff = container.profileBootstrapService.localProfileAwaitingSignIn()
-        let needsPreAuthOnboarding = !signedIn
-            && (!hasLocalProfile || awaitingSignInHandoff)
-            && !(config.allowsLocalOnlyContinuation && hasLocalProfile && !awaitingSignInHandoff)
+        let shouldBootstrapPreAuth = !signedIn && (
+            publicEntryDestination == WelcomeOnboardingHandoffPolicy.createPlanDestination
+                || WelcomeOnboardingHandoffPolicy.shouldBypassWelcome(
+                    PublicEntryRouteResolver.Input(
+                        destination: publicEntryDestination,
+                        isOnboardingModelReady: onboardingModel != nil,
+                        localProfileAwaitingSignIn: awaitingSignInHandoff,
+                        hasPersistedOnboardingDraft: container.onboardingDraftStore.hasDraft,
+                        hasLocalProfile: hasLocalProfile,
+                        pendingOnboardingCompletion: pendingSignInForOnboardingCompletion,
+                        signedOutWithProfilePolicy: config.signedOutWithProfilePolicy
+                    )
+                )
+        )
 
         let needsSignedInOnboarding = signedIn && rootModel.state == .onboarding
 
-        if needsPreAuthOnboarding {
+        if shouldBootstrapPreAuth {
             rootModel.resolveLocalProfile()
+            if publicEntryDestination == WelcomeOnboardingHandoffPolicy.createPlanDestination {
+                ensurePreAuthOnboardingModel()
+            } else {
+                ensureOnboardingModel()
+            }
         }
 
-        if needsPreAuthOnboarding || needsSignedInOnboarding {
+        if needsSignedInOnboarding {
             ensureOnboardingModel()
         }
     }
 
+    private func ensurePreAuthOnboardingModel() {
+        guard onboardingModel == nil else { return }
+        onboardingModel = container.makeOnboardingModel(
+            entry: WelcomeOnboardingHandoffPolicy.preAuthEntry,
+            onCompletion: { handleOnboardingCompletionRequest() }
+        )
+    }
+
     private func ensureOnboardingModel() {
         guard onboardingModel == nil else { return }
-        let entry: OnboardingAnalyticsEntry = AppRouteResolver.isSignedIn(authManager.authState)
-            ? .postAuth
-            : .preAuth
+        let entry = NoExistingProfileFoundPolicy.onboardingEntry(
+            isSignedIn: AppRouteResolver.isSignedIn(authManager.authState)
+        )
         onboardingModel = container.makeOnboardingModel(entry: entry) {
             handleOnboardingCompletionRequest()
         }
@@ -520,6 +626,8 @@ struct AuthGateView: View {
             clearOnboardingCompletionState()
         case .accountOrOwnershipReconcile:
             clearProfileConflictState()
+            clearStaleOnboardingDraftIfSafe()
+            completeExistingUserSignInSuccessIfNeeded()
         }
         awaitingCloudSync = false
         rootModel.didCompleteOnboarding()
@@ -532,6 +640,8 @@ struct AuthGateView: View {
             clearOnboardingCompletionState()
         case .accountOrOwnershipReconcile:
             clearProfileConflictState()
+            clearStaleOnboardingDraftIfSafe()
+            completeExistingUserSignInSuccessIfNeeded()
         }
         awaitingCloudSync = false
         rootModel.didCompleteOnboarding()
@@ -652,7 +762,7 @@ struct AuthGateView: View {
         let isSignedInNow = AppRouteResolver.isSignedIn(state)
 
         if isSignedInNow {
-            preAuthRouteOverride = nil
+            publicEntryDestination = .welcome
             let isFreshSignIn = AppRouteResolver.shouldRotateSignedInSession(
                 wasSignedIn: wasSignedIn,
                 isSignedIn: isSignedInNow
@@ -675,6 +785,13 @@ struct AuthGateView: View {
         to state: AuthState,
         wasSignedIn: Bool
     ) {
+        if pendingExistingUserSignIn || existingUserSignInSessionActive,
+           didSignInAttemptFail(from: previous, to: state) {
+            if let failureKind = ExistingUserSignInPolicy.failureKind(from: previous, to: state) {
+                completeExistingUserSignInFailure(failureKind)
+            }
+        }
+
         if pendingSignInForOnboardingCompletion, didSignInAttemptFail(from: previous, to: state) {
             pendingSignInForOnboardingCompletion = false
             conflictCloudDocument = nil
@@ -692,7 +809,8 @@ struct AuthGateView: View {
         }
 
         if wasSignedIn {
-            preAuthRouteOverride = nil
+            pendingExistingUserSignIn = false
+            existingUserSignInSessionActive = false
             pendingSignInForOnboardingCompletion = false
             conflictCloudDocument = nil
             isResolvingProfileConflict = false
@@ -716,6 +834,20 @@ struct AuthGateView: View {
 
         rootModel.resolveLocalProfile()
 
+        if returnToExistingUserSignInAfterSignOut {
+            returnToExistingUserSignInAfterSignOut = false
+            publicEntryDestination = NoExistingProfileFoundPolicy.useAnotherAccountDestination
+            existingUserSignInError = nil
+        } else if existingUserSignInError != nil {
+            publicEntryDestination = .existingUserSignIn
+        } else if container.onboardingDraftStore.hasDraft,
+           !container.profileBootstrapService.hasLocalProfile() {
+            publicEntryDestination = .onboardingStart
+            ensureOnboardingModel()
+        } else if !container.profileBootstrapService.localProfileAwaitingSignIn() {
+            publicEntryDestination = .welcome
+        }
+
         if !container.profileBootstrapService.hasLocalProfile(),
            onboardingModel == nil,
            container.onboardingDraftStore.hasDraft {
@@ -724,13 +856,90 @@ struct AuthGateView: View {
     }
 
     private func reconcileSignedInProfile(uid: String, isFreshSignIn: Bool) {
+        if existingUserSignInSessionActive, !pendingSignInForOnboardingCompletion {
+            Task { await runExistingUserSignInResolution(uid: uid, isFreshSignIn: isFreshSignIn) }
+            return
+        }
+
         let decision = container.profileBootstrapCoordinatorService.reconcileDecision(
             uid: uid,
             pendingOnboardingCompletion: pendingSignInForOnboardingCompletion,
+            pendingExistingUserSignIn: pendingExistingUserSignIn,
             isFreshSignIn: isFreshSignIn,
             rootState: rootModel.state
         )
         applyReconcileDecision(decision, uid: uid, isFreshSignIn: isFreshSignIn)
+    }
+
+    @MainActor
+    private func runExistingUserSignInResolution(uid: String, isFreshSignIn: Bool) async {
+        pendingExistingUserSignIn = true
+        rootModel.beginOnboardingCompletionCloudCheck()
+
+        let outcome = await container.profileBootstrapCoordinatorService.resolveExistingUserSignIn(
+            uid: uid,
+            isFreshSignIn: isFreshSignIn,
+            rootState: rootModel.state
+        )
+
+        switch outcome {
+        case .resolution(let result):
+            applyExistingUserSignInResolution(result, uid: uid)
+        case .accountMismatch:
+            awaitingCloudSync = false
+            pendingExistingUserSignIn = false
+            rootModel.presentAccountProfileMismatch()
+        }
+    }
+
+    private func applyExistingUserSignInResolution(
+        _ result: ExistingUserSignInResolutionResult,
+        uid: String
+    ) {
+        switch result {
+        case .profileFound:
+            clearStaleOnboardingDraftIfSafe()
+            onboardingModel = nil
+            awaitingCloudSync = false
+            completeExistingUserSignInSuccessIfNeeded()
+            pendingExistingUserSignIn = false
+            try? container.dailyLogService.syncTodayTargetsFromProfile()
+            container.onboardingCoachingContextStore.clear()
+            rootModel.didCompleteOnboarding()
+        case .noProfileFound:
+            onboardingModel = nil
+            awaitingCloudSync = false
+            completeExistingUserSignInNoProfileIfNeeded()
+            pendingExistingUserSignIn = false
+            rootModel.presentMissingCloudProfile()
+        case .lookupFailed:
+            logExistingUserSignIn(.existingSignInFailed, reason: .profileLookupFailed)
+            existingUserSignInSessionActive = false
+            pendingExistingUserSignIn = false
+            awaitingCloudSync = false
+            rootModel.presentExistingUserProfileLookupFailed()
+        case .conflict:
+            awaitingCloudSync = false
+            pendingExistingUserSignIn = false
+            profileConflictContext = .accountOrOwnershipReconcile
+            presentProfileConflictAfterLookup(uid: uid)
+        }
+    }
+
+    private func retryExistingUserProfileResolution() {
+        guard let uid = authManager.currentUID else { return }
+        existingUserSignInSessionActive = true
+        existingUserSignInError = nil
+        Task { await runExistingUserSignInResolution(uid: uid, isFreshSignIn: false) }
+    }
+
+    private func clearStaleOnboardingDraftIfSafe() {
+        guard OnboardingDraftPolicy.shouldClearStaleDraftAfterExistingUserRestore(
+            hasPersistedDraft: container.onboardingDraftStore.hasDraft
+        ) else {
+            return
+        }
+        container.onboardingDraftStore.clearDraft()
     }
 
     private func applyReconcileDecision(
@@ -743,6 +952,8 @@ struct AuthGateView: View {
             Task { await resolveOnboardingCompletionAfterSignIn(uid: uid) }
         case .routeToMain:
             awaitingCloudSync = false
+            completeExistingUserSignInSuccessIfNeeded()
+            pendingExistingUserSignIn = false
             rootModel.didCompleteOnboarding()
         case .syncLocalProfileToCloud(let uid):
             syncUnsyncedLocalProfile(uid: uid)
@@ -764,6 +975,8 @@ struct AuthGateView: View {
         case .presentMissingCloudProfile:
             onboardingModel = nil
             awaitingCloudSync = false
+            completeExistingUserSignInNoProfileIfNeeded()
+            pendingExistingUserSignIn = false
             rootModel.presentMissingCloudProfile()
         case .skip:
             break
@@ -779,6 +992,7 @@ struct AuthGateView: View {
             let decision = container.profileBootstrapCoordinatorService.reconcileDecision(
                 uid: uid,
                 pendingOnboardingCompletion: pendingSignInForOnboardingCompletion,
+                pendingExistingUserSignIn: pendingExistingUserSignIn,
                 isFreshSignIn: isFreshSignIn,
                 rootState: rootModel.state,
                 cloudResult: cloudResult
@@ -798,14 +1012,26 @@ struct AuthGateView: View {
                 profileConflictContext = .accountOrOwnershipReconcile
                 rootModel.presentProfilePlanConflict()
             case .missing, .failed:
-                rootModel.presentOnboardingCloudCheckFailed()
+                if existingUserSignInSessionActive {
+                    logExistingUserSignIn(.existingSignInFailed, reason: .profileLookupFailed)
+                    existingUserSignInSessionActive = false
+                    rootModel.presentExistingUserProfileLookupFailed()
+                } else {
+                    rootModel.presentOnboardingCloudCheckFailed()
+                }
             }
         }
     }
 
     private func handleRootStateChange(_ state: RootViewState) {
+        if state == .main {
+            completeExistingUserSignInSuccessIfNeeded()
+        }
+
         if state == .missingCloudProfile {
             onboardingModel = nil
+            pendingExistingUserSignIn = false
+            existingUserSignInSessionActive = false
         }
 
         if state == .accountProfileMismatch {
@@ -814,6 +1040,46 @@ struct AuthGateView: View {
 
         if state == .onboarding {
             bootstrapOnboardingIfNeeded()
+        }
+    }
+
+    // MARK: - Existing user sign-in analytics
+
+    private func logExistingUserSignIn(
+        _ event: PublicEntryAnalyticsEvent,
+        reason: ExistingUserSignInFailureKind? = nil
+    ) {
+        var properties = PublicEntryAnalyticsProperties()
+        properties.reason = reason?.analyticsReason
+        container.publicEntryAnalyticsLogger.log(event, properties: properties)
+    }
+
+    private func completeExistingUserSignInSuccessIfNeeded() {
+        guard existingUserSignInSessionActive else { return }
+        logExistingUserSignIn(.existingSignInSucceeded)
+        existingUserSignInSessionActive = false
+        existingUserSignInError = nil
+        pendingExistingUserSignIn = false
+    }
+
+    private func completeExistingUserSignInNoProfileIfNeeded() {
+        guard existingUserSignInSessionActive else { return }
+        logExistingUserSignIn(.existingSignInNoProfileFound)
+        existingUserSignInSessionActive = false
+        existingUserSignInError = nil
+    }
+
+    private func completeExistingUserSignInFailure(_ kind: ExistingUserSignInFailureKind) {
+        logExistingUserSignIn(.existingSignInFailed, reason: kind)
+        existingUserSignInSessionActive = false
+        pendingExistingUserSignIn = false
+        existingUserSignInError = kind
+        publicEntryDestination = .existingUserSignIn
+
+        if AppRouteResolver.isSignedIn(authManager.authState) {
+            Task {
+                await authManager.signOut()
+            }
         }
     }
 

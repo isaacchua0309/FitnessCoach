@@ -49,7 +49,7 @@ final class ProgressFormatterTests: XCTestCase {
         XCTAssertNil(ProgressFormatter.remainingKg(current: 70, goal: 70.04))
         XCTAssertEqual(
             ProgressFormatter.remainingKg(current: 70, goal: 65),
-            FormaProductCopy.Journey.remainingToGo("5kg")
+            FormaProductCopy.Journey.Transformation.remainingToGo("5kg")
         )
     }
 

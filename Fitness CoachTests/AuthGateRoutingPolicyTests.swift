@@ -10,14 +10,14 @@ import XCTest
 
 final class AuthGateRoutingPolicyTests: XCTestCase {
 
-    func testPrefersActiveOnboardingSessionOverSignInWhenLocalProfileExists() {
+    func testPrefersActiveOnboardingSessionOverWelcomeWhenSessionActive() {
         XCTAssertEqual(
             AuthGateRoutingPolicy.effectiveRoute(
-                baseRoute: .signIn,
+                baseRoute: .welcome,
                 isSignedIn: false,
                 hasActiveOnboardingSession: true
             ),
-            .localOnboarding
+            .onboardingStart
         )
     }
 
@@ -78,14 +78,14 @@ final class AuthGateRoutingPolicyTests: XCTestCase {
         )
     }
 
-    func testPrefersActiveOnboardingSessionOverSignInShellWhenDraftExists() {
+    func testPrefersActiveOnboardingSessionOverExistingUserSignInWhenDraftExists() {
         XCTAssertEqual(
             AuthGateRoutingPolicy.effectiveRoute(
-                baseRoute: .signIn,
+                baseRoute: .existingUserSignIn,
                 isSignedIn: false,
                 hasActiveOnboardingSession: true
             ),
-            .localOnboarding
+            .onboardingStart
         )
     }
 }

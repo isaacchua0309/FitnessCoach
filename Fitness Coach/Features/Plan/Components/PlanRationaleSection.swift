@@ -7,6 +7,7 @@ import SwiftUI
 
 struct PlanRationaleSection: View {
     let rationale: PlanRationaleState
+    var onCalculationDetailsOpened: (() -> Void)? = nil
 
     @State private var showsCalculationDetailsSheet = false
 
@@ -16,25 +17,7 @@ struct PlanRationaleSection: View {
 
             FitPilotPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
-                    if rationale.usesVisualFlowLayout, let flowSteps = rationale.flowSteps {
-                        visualFlowContent(flowSteps)
-
-                        if let basedOnItems = rationale.basedOnItems {
-                            basedOnBlock(basedOnItems)
-                        }
-                    } else if rationale.usesHighlightLayout, let highlights = rationale.highlights {
-                        highlightsContent(highlights)
-                    } else {
-                        paragraphContent
-                    }
-
-                    if let sustainabilityNote = rationale.sustainabilityNote {
-                        Text(sustainabilityNote)
-                            .font(FormaTokens.Typography.caption)
-                            .foregroundStyle(FormaTokens.Color.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.top, FormaTokens.Spacing.xs)
-                    }
+                    rationaleContent
 
                     if rationale.calculationDetails != nil {
                         calculationDetailsButton
@@ -42,13 +25,38 @@ struct PlanRationaleSection: View {
                 }
             }
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(rationale.accessibilitySummary)
         .sheet(isPresented: $showsCalculationDetailsSheet) {
             if let details = rationale.calculationDetails {
                 PlanCalculationDetailsSheet(details: details)
             }
         }
+    }
+
+    @ViewBuilder
+    private var rationaleContent: some View {
+        Group {
+            if rationale.usesVisualFlowLayout, let flowSteps = rationale.flowSteps {
+                visualFlowContent(flowSteps)
+
+                if let basedOnItems = rationale.basedOnItems {
+                    basedOnBlock(basedOnItems)
+                }
+            } else if rationale.usesHighlightLayout, let highlights = rationale.highlights {
+                highlightsContent(highlights)
+            } else {
+                paragraphContent
+            }
+
+            if let sustainabilityNote = rationale.sustainabilityNote {
+                Text(sustainabilityNote)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, FormaTokens.Spacing.xs)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(rationale.accessibilitySummary)
     }
 
     private var paragraphContent: some View {
@@ -153,6 +161,7 @@ struct PlanRationaleSection: View {
 
     private var calculationDetailsButton: some View {
         Button {
+            onCalculationDetailsOpened?()
             showsCalculationDetailsSheet = true
         } label: {
             Text(rationale.seeCalculationTitle)
@@ -164,6 +173,7 @@ struct PlanRationaleSection: View {
         .buttonStyle(.plain)
         .padding(.top, FormaTokens.Spacing.xs)
         .accessibilityLabel(rationale.seeCalculationTitle)
+        .accessibilityHint(FormaProductCopy.PlanMissionControl.seeCalculationAccessibilityHint)
     }
 }
 

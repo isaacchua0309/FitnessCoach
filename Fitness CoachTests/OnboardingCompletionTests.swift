@@ -123,8 +123,7 @@ final class OnboardingPersonalizationSummaryTests: XCTestCase {
             OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &state)
         }
         state.sex = .female
-        state.activityLevel = .moderatelyActive
-        OnboardingActivityLevelValues.applyDefaultsIfNeeded(to: &state)
+        OnboardingActivityLevelValues.select(.moderatelyActive, in: &state)
         return state
     }
 }
@@ -159,7 +158,7 @@ final class OnboardingCompletionPathTests: XCTestCase {
         let birthDate = calendar.date(from: DateComponents(year: 1990, month: 6, day: 15))!
 
         seedValidOnboardingForm(&model.formState, birthDate: birthDate)
-        try await advanceModelToFormaProof(model)
+        await OnboardingModelTestSupport.advanceTo(.formaProof, model: model, seedForm: false)
 
         model.goNext()
         XCTAssertEqual(model.currentStep, .review)
@@ -167,8 +166,7 @@ final class OnboardingCompletionPathTests: XCTestCase {
         XCTAssertNil(try container.userProfileService.getCurrentProfile())
 
         model.goNext()
-        try await waitForPlanReveal(model)
-
+        await model.flushPendingGenerationForTesting()
         XCTAssertEqual(model.currentStep, .planReveal)
         XCTAssertNotNil(model.generatedPlan)
         XCTAssertFalse(model.hasCommittedLocalProfile)
@@ -209,10 +207,11 @@ final class OnboardingCompletionPathTests: XCTestCase {
         seedValidOnboardingForm(&model.formState, birthDate: birthDate)
         model.formState.averageStepsText = ""
         model.formState.trainingFrequencyPerWeekText = ""
-        try await advanceModelToReview(model)
+        await OnboardingModelTestSupport.advanceTo(.review, model: model, seedForm: false)
 
         model.goNext()
-        try await waitForPlanReveal(model)
+        await model.flushPendingGenerationForTesting()
+        XCTAssertEqual(model.currentStep, .planReveal)
 
         let input = try model.formState.makeCalorieTargetInput(referenceDate: referenceDate)
         XCTAssertGreaterThan(input.trainingFrequencyPerWeek, 0)
@@ -228,10 +227,11 @@ final class OnboardingCompletionPathTests: XCTestCase {
         let model = try makeOnboardingModel(integration: integration)
 
         seedValidOnboardingForm(&model.formState)
-        try await advanceModelToReview(model)
+        await OnboardingModelTestSupport.advanceTo(.review, model: model, seedForm: false)
 
         model.goNext()
-        try await waitForPlanReveal(model)
+        await model.flushPendingGenerationForTesting()
+        XCTAssertEqual(model.currentStep, .planReveal)
 
         XCTAssertTrue(analytics.contains(.stepCompleted, step: "review"))
         XCTAssertTrue(analytics.contains(.stepViewed, step: "generating_plan"))
@@ -260,59 +260,11 @@ final class OnboardingCompletionPathTests: XCTestCase {
         )
     }
 
-    private func advanceModelToReview(_ model: OnboardingModel) async throws {
-        try await advanceModelToFormaProof(model)
-        model.goNext()
-        XCTAssertEqual(model.currentStep, .review)
-    }
-
-    private func advanceModelToFormaProof(_ model: OnboardingModel) async throws {
-        try await advanceModelToAlmostThere(model)
-        model.goNext()
-        XCTAssertEqual(model.currentStep, .formaProof)
-    }
-
-    private func advanceModelToAlmostThere(_ model: OnboardingModel) async throws {
-        model.goNext() // introProof -> heightWeight
-        model.goNext() // heightWeight
-        model.goNext() // targetWeight
-        model.goNext() // targetEncouragement
-        model.goNext() // birthday
-        model.goNext() // activityLevel
-        model.goNext() // appleHealth
-
-        for _ in 0..<50 {
-            if model.currentStep == .almostThere { break }
-            try await Task.sleep(nanoseconds: 20_000_000)
-        }
-        XCTAssertEqual(model.currentStep, .almostThere)
-    }
-
-    private func waitForPlanReveal(_ model: OnboardingModel) async throws {
-        XCTAssertEqual(model.currentStep, .generatingPlan)
-
-        for _ in 0..<100 {
-            if model.currentStep == .planReveal { break }
-            try await Task.sleep(nanoseconds: 20_000_000)
-        }
-        XCTAssertEqual(model.currentStep, .planReveal)
-    }
-
     private func seedValidOnboardingForm(
         _ formState: inout OnboardingFormState,
         birthDate: Date? = nil
     ) {
-        OnboardingHeightWeightValues.applyDefaultsIfNeeded(to: &formState)
-        OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &formState)
-        if let birthDate {
-            formState.birthDate = birthDate
-            formState.syncAgeTextFromBirthDate(referenceDate: referenceDate)
-        } else {
-            OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &formState)
-        }
-        formState.sex = .female
-        formState.activityLevel = .moderatelyActive
-        OnboardingActivityLevelValues.applyDefaultsIfNeeded(to: &formState)
+        OnboardingModelTestSupport.seedCanonicalForm(&formState, birthDate: birthDate)
     }
 }
 

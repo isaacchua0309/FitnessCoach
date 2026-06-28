@@ -44,6 +44,25 @@ struct OnboardingView: View {
         hasAttemptedContinueOnStep && !canContinue
     }
 
+    private var continueRequiredFieldsHint: String? {
+        guard showsRequiredFieldsHint else { return nil }
+        return model.formState.validationMessage(for: model.currentStep)
+    }
+
+    private var appleHealthScreenState: OnboardingAppleHealthScreenState {
+        model.appleHealthScreenState
+    }
+
+    private func handleContinueTapped() {
+        fieldNavigator.dismissFocus()
+        hasAttemptedContinueOnStep = true
+        if model.currentStep == .appleHealth {
+            model.connectAppleHealth()
+        } else {
+            model.goNext()
+        }
+    }
+
     var body: some View {
         NavigationStack {
             OnboardingStepContainer(
@@ -63,15 +82,30 @@ struct OnboardingView: View {
                         isLoading: isBottomBarBusy,
                         canContinue: canContinue,
                         showsRequiredFieldsHint: showsRequiredFieldsHint,
+                        requiredFieldsHint: continueRequiredFieldsHint,
+                        appleHealthPrimaryTitle: model.currentStep == .appleHealth
+                            ? appleHealthScreenState.primaryTitle
+                            : nil,
+                        appleHealthSecondaryTitle: model.currentStep == .appleHealth
+                            ? appleHealthScreenState.secondaryTitle
+                            : nil,
+                        isAppleHealthPrimaryEnabled: model.currentStep == .appleHealth
+                            ? appleHealthScreenState.isPrimaryEnabled
+                            : true,
+                        isAppleHealthSkipEnabled: model.currentStep == .appleHealth
+                            ? appleHealthScreenState.isSkipEnabled
+                            : true,
+                        onAppleHealthSkip: model.currentStep == .appleHealth
+                            ? {
+                                fieldNavigator.dismissFocus()
+                                model.skipAppleHealth()
+                            }
+                            : nil,
                         onBack: {
                             fieldNavigator.dismissFocus()
                             model.goBack()
                         },
-                        onContinue: {
-                            fieldNavigator.dismissFocus()
-                            hasAttemptedContinueOnStep = true
-                            model.goNext()
-                        },
+                        onContinue: handleContinueTapped,
                         onComplete: {
                             fieldNavigator.dismissFocus()
                             model.completeOnboarding()
@@ -114,12 +148,7 @@ struct OnboardingView: View {
     private var stepContent: some View {
         switch model.currentStep {
         case .introProof:
-            OnboardingIntroProofStepView(
-                onNext: {
-                    fieldNavigator.dismissFocus()
-                    model.goNext()
-                }
-            )
+            OnboardingIntroProofStepView()
         case .heightWeight:
             OnboardingHeightWeightStepView(formState: $model.formState)
         case .targetWeight:
@@ -129,9 +158,7 @@ struct OnboardingView: View {
         case .birthday:
             OnboardingBirthdayStepView(formState: $model.formState)
         case .appleHealth:
-            OnboardingAppleHealthStepView(
-                isRequestingPermission: model.viewState == .connectingAppleHealth
-            )
+            OnboardingAppleHealthStepView(screenState: model.appleHealthScreenState)
         case .almostThere:
             OnboardingAlmostThereStepView()
         case .formaProof:

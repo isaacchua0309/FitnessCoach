@@ -9,17 +9,21 @@ import Foundation
 
 enum AppShellRoute: Equatable {
     case launchLoading
-    case signIn
-    /// Signed-out pre-auth onboarding.
-    case localOnboarding
-    case localOnboardingInitializing
+    /// Logged-out public entry landing.
+    case welcome
+    /// Dedicated returning-user sign-in (not onboarding save-plan sign-in).
+    case existingUserSignIn
+    /// Signed-out onboarding funnel entry.
+    case onboardingStart
+    case onboardingStartInitializing
     /// Signed-out user with a local profile allowed to enter main without auth.
     case localMain
     case signedInProfileLoading
-    /// Signed-in user with no local/cloud profile before setup onboarding.
-    case missingCloudProfile
+    /// Signed-in user with no local/cloud profile — invite into onboarding.
+    case noExistingProfileFound
     case onboardingCloudProfileConflict
     case onboardingCloudCheckFailed
+    case existingUserProfileLookupFailed
     case cloudProfileUploadFailed
     case accountProfileMismatch
     case onboarding
@@ -36,6 +40,8 @@ struct AppRouteInput: Equatable, Sendable {
     var signedOutWithProfilePolicy: SignedOutWithProfilePolicy
     var localProfileAwaitingSignIn: Bool
     var pendingOnboardingCompletion: Bool
+    var publicEntryDestination: PublicEntryRoute
+    var hasPersistedOnboardingDraft: Bool
 
     init(
         authState: AuthState,
@@ -44,7 +50,9 @@ struct AppRouteInput: Equatable, Sendable {
         isOnboardingModelReady: Bool = false,
         signedOutWithProfilePolicy: SignedOutWithProfilePolicy = .requireSignIn,
         localProfileAwaitingSignIn: Bool = false,
-        pendingOnboardingCompletion: Bool = false
+        pendingOnboardingCompletion: Bool = false,
+        publicEntryDestination: PublicEntryRoute = .welcome,
+        hasPersistedOnboardingDraft: Bool = false
     ) {
         self.authState = authState
         self.hasLocalProfile = hasLocalProfile
@@ -53,6 +61,8 @@ struct AppRouteInput: Equatable, Sendable {
         self.signedOutWithProfilePolicy = signedOutWithProfilePolicy
         self.localProfileAwaitingSignIn = localProfileAwaitingSignIn
         self.pendingOnboardingCompletion = pendingOnboardingCompletion
+        self.publicEntryDestination = publicEntryDestination
+        self.hasPersistedOnboardingDraft = hasPersistedOnboardingDraft
     }
 }
 
@@ -65,7 +75,9 @@ enum AppRouteResolver {
         hasLocalProfile: Bool = false,
         signedOutWithProfilePolicy: SignedOutWithProfilePolicy = .requireSignIn,
         localProfileAwaitingSignIn: Bool = false,
-        pendingOnboardingCompletion: Bool = false
+        pendingOnboardingCompletion: Bool = false,
+        publicEntryDestination: PublicEntryRoute = .welcome,
+        hasPersistedOnboardingDraft: Bool = false
     ) -> AppShellRoute {
         resolve(
             AppRouteInput(
@@ -75,7 +87,9 @@ enum AppRouteResolver {
                 isOnboardingModelReady: isOnboardingModelReady,
                 signedOutWithProfilePolicy: signedOutWithProfilePolicy,
                 localProfileAwaitingSignIn: localProfileAwaitingSignIn,
-                pendingOnboardingCompletion: pendingOnboardingCompletion
+                pendingOnboardingCompletion: pendingOnboardingCompletion,
+                publicEntryDestination: publicEntryDestination,
+                hasPersistedOnboardingDraft: hasPersistedOnboardingDraft
             )
         )
     }
@@ -117,25 +131,16 @@ enum AppRouteResolver {
     }
 
     private static func resolveSignedOutPreAuth(_ input: AppRouteInput) -> AppShellRoute {
-        if input.hasLocalProfile,
-           input.signedOutWithProfilePolicy == .allowLocalMain,
-           !shouldDeferLocalProfileShortCircuit(input) {
-            return .localMain
-        }
-
-        if input.hasLocalProfile, !input.localProfileAwaitingSignIn {
-            return .signIn
-        }
-
-        return input.isOnboardingModelReady
-            ? .localOnboarding
-            : .localOnboardingInitializing
-    }
-
-    private static func shouldDeferLocalProfileShortCircuit(_ input: AppRouteInput) -> Bool {
-        AuthGateRoutingPolicy.shouldDeferLocalProfileShortCircuit(
-            pendingOnboardingCompletion: input.pendingOnboardingCompletion,
-            hasLocalProfile: input.hasLocalProfile
+        PublicEntryRouteResolver.resolveSignedOutShell(
+            PublicEntryRouteResolver.Input(
+                destination: input.publicEntryDestination,
+                isOnboardingModelReady: input.isOnboardingModelReady,
+                localProfileAwaitingSignIn: input.localProfileAwaitingSignIn,
+                hasPersistedOnboardingDraft: input.hasPersistedOnboardingDraft,
+                hasLocalProfile: input.hasLocalProfile,
+                pendingOnboardingCompletion: input.pendingOnboardingCompletion,
+                signedOutWithProfilePolicy: input.signedOutWithProfilePolicy
+            )
         )
     }
 
@@ -146,11 +151,13 @@ enum AppRouteResolver {
         case .loading:
             return .signedInProfileLoading
         case .missingCloudProfile:
-            return .missingCloudProfile
+            return .noExistingProfileFound
         case .onboardingCloudProfileConflict:
             return .onboardingCloudProfileConflict
         case .onboardingCloudCheckFailed:
             return .onboardingCloudCheckFailed
+        case .existingUserProfileLookupFailed:
+            return .existingUserProfileLookupFailed
         case .cloudProfileUploadFailed:
             return .cloudProfileUploadFailed
         case .accountProfileMismatch:
@@ -202,7 +209,9 @@ extension AppRouteInput {
             isOnboardingModelReady: shellInput.isOnboardingModelReady,
             signedOutWithProfilePolicy: shellInput.signedOutWithProfilePolicy,
             localProfileAwaitingSignIn: shellInput.localProfileAwaitingSignIn,
-            pendingOnboardingCompletion: shellInput.pendingOnboardingCompletion
+            pendingOnboardingCompletion: shellInput.pendingOnboardingCompletion,
+            publicEntryDestination: shellInput.publicEntryDestination,
+            hasPersistedOnboardingDraft: shellInput.hasPersistedOnboardingDraft
         )
     }
 }
@@ -213,22 +222,26 @@ extension OnboardingShellRoute {
         switch appShellRoute {
         case .launchLoading:
             self = .launchLoading
-        case .signIn:
-            self = .signIn
-        case .localOnboarding:
-            self = .preAuthOnboarding
-        case .localOnboardingInitializing:
-            self = .preAuthOnboardingInitializing
+        case .welcome:
+            self = .welcome
+        case .existingUserSignIn:
+            self = .existingUserSignIn
+        case .onboardingStart:
+            self = .onboardingStart
+        case .onboardingStartInitializing:
+            self = .onboardingStartInitializing
         case .localMain:
             self = .localMain
         case .signedInProfileLoading:
             self = .signedInProfileLoading
-        case .missingCloudProfile:
-            self = .missingCloudProfile
+        case .noExistingProfileFound:
+            self = .noExistingProfileFound
         case .onboardingCloudProfileConflict:
             self = .onboardingCloudProfileConflict
         case .onboardingCloudCheckFailed:
             self = .onboardingCloudCheckFailed
+        case .existingUserProfileLookupFailed:
+            self = .existingUserProfileLookupFailed
         case .cloudProfileUploadFailed:
             self = .cloudProfileUploadFailed
         case .accountProfileMismatch:
@@ -251,22 +264,26 @@ extension AppShellRoute {
         switch onboardingShellRoute {
         case .launchLoading:
             self = .launchLoading
-        case .signIn:
-            self = .signIn
-        case .preAuthOnboarding:
-            self = .localOnboarding
-        case .preAuthOnboardingInitializing:
-            self = .localOnboardingInitializing
+        case .welcome:
+            self = .welcome
+        case .existingUserSignIn:
+            self = .existingUserSignIn
+        case .onboardingStart:
+            self = .onboardingStart
+        case .onboardingStartInitializing:
+            self = .onboardingStartInitializing
         case .localMain:
             self = .localMain
         case .signedInProfileLoading:
             self = .signedInProfileLoading
-        case .missingCloudProfile:
-            self = .missingCloudProfile
+        case .noExistingProfileFound:
+            self = .noExistingProfileFound
         case .onboardingCloudProfileConflict:
             self = .onboardingCloudProfileConflict
         case .onboardingCloudCheckFailed:
             self = .onboardingCloudCheckFailed
+        case .existingUserProfileLookupFailed:
+            self = .existingUserProfileLookupFailed
         case .cloudProfileUploadFailed:
             self = .cloudProfileUploadFailed
         case .accountProfileMismatch:

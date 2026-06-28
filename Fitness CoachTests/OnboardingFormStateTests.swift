@@ -167,7 +167,7 @@ final class OnboardingFormStateTests: XCTestCase {
         XCTAssertEqual(inferred.choice, .advanced)
     }
 
-    // MARK: - V2 optional fields
+    // MARK: - Optional fields not collected in canonical onboarding
 
     func testEmptyMotivationDoesNotBlockAdvanceOrCalculation() throws {
         var state = OnboardingFormState()
@@ -225,63 +225,21 @@ final class OnboardingFormStateTests: XCTestCase {
         XCTAssertTrue(state.canAdvance(from: .heightWeight))
     }
 
-    func testBodyFatBlankAllowsCalorieTargetInput() throws {
+    func testCanonicalOnboardingLeavesBodyFatUnsetAtHeightWeight() {
+        var state = OnboardingFormState()
+        OnboardingHeightWeightValues.applyDefaultsIfNeeded(to: &state)
+
+        XCTAssertTrue(state.estimatedBodyFatPercentageText.isEmpty)
+        XCTAssertTrue(state.ageText.isEmpty)
+        XCTAssertNil(state.birthDate)
+    }
+
+    func testCalorieTargetInputOmitsBodyFatWhenUnset() throws {
         var state = filledCutOnboarding()
         state.estimatedBodyFatPercentageText = ""
-        _ = try state.makeCalorieTargetInput()
-    }
 
-    func testBodyFatAccepts24() throws {
-        var state = filledCutOnboarding()
-        state.estimatedBodyFatPercentageText = "24"
         let input = try state.makeCalorieTargetInput()
-        XCTAssertEqual(input.estimatedBodyFatPercentage, 24)
-    }
-
-    func testBodyFatAccepts24Percent() throws {
-        var state = filledCutOnboarding()
-        state.estimatedBodyFatPercentageText = "24%"
-        let input = try state.makeCalorieTargetInput()
-        XCTAssertEqual(input.estimatedBodyFatPercentage, 24)
-    }
-
-    func testBodyFatAcceptsBoundaryValues() throws {
-        var fullLow = filledCutOnboarding()
-        fullLow.estimatedBodyFatPercentageText = "3"
-        XCTAssertEqual(try fullLow.makeCalorieTargetInput().estimatedBodyFatPercentage, 3)
-
-        var fullHigh = filledCutOnboarding()
-        fullHigh.estimatedBodyFatPercentageText = "70"
-        XCTAssertEqual(try fullHigh.makeCalorieTargetInput().estimatedBodyFatPercentage, 70)
-    }
-
-    func testBodyFatRejectsBelowMinimum() {
-        var state = filledCutOnboarding()
-        state.estimatedBodyFatPercentageText = "2"
-        XCTAssertThrowsError(try state.makeCalorieTargetInput())
-    }
-
-    func testBodyFatRejectsAboveMaximum() {
-        var state = filledCutOnboarding()
-        state.estimatedBodyFatPercentageText = "71"
-        XCTAssertThrowsError(try state.makeCalorieTargetInput())
-    }
-
-    func testBodyFatRejectsNonNumericValues() {
-        var state = filledCutOnboarding()
-        state.estimatedBodyFatPercentageText = "abc"
-        XCTAssertThrowsError(try state.makeCalorieTargetInput())
-    }
-
-    func testBodyFatInvalidBlocksCalorieTargetInputWhenNonEmpty() {
-        var state = filledCutOnboarding()
-        state.estimatedBodyFatPercentageText = "100"
-        XCTAssertThrowsError(try state.makeCalorieTargetInput())
-    }
-
-    func testNormalizedBodyFatTextStripsPercentSuffix() {
-        XCTAssertEqual(OnboardingFormState.normalizedBodyFatText("24%"), "24")
-        XCTAssertEqual(OnboardingFormState.normalizedBodyFatText(" 24 % "), "24")
+        XCTAssertNil(input.estimatedBodyFatPercentage)
     }
 
     func testRequiredTargetWeightFieldsStillBlockAdvance() {
@@ -364,6 +322,8 @@ final class OnboardingFormStateTests: XCTestCase {
         state.selectActivityLevel(.sedentary)
         XCTAssertEqual(state.trainingFrequencyPerWeekText, "0")
         XCTAssertEqual(state.averageStepsText, "3000")
+        XCTAssertFalse(state.hasManuallyEditedTrainingDays)
+        XCTAssertFalse(state.hasManuallyEditedAverageSteps)
 
         state.selectActivityLevel(.lightlyActive)
         XCTAssertEqual(state.trainingFrequencyPerWeekText, "1")
@@ -376,64 +336,6 @@ final class OnboardingFormStateTests: XCTestCase {
         state.selectActivityLevel(.athlete)
         XCTAssertEqual(state.trainingFrequencyPerWeekText, "6")
         XCTAssertEqual(state.averageStepsText, "12000")
-    }
-
-    func testManualTrainingDaysEditPreventsFutureAutoOverwriteOfTrainingDays() {
-        var state = OnboardingFormState()
-        state.selectActivityLevel(.moderatelyActive)
-        state.setTrainingFrequencyPerWeekText("4")
-
-        state.selectActivityLevel(.veryActive)
-
-        XCTAssertEqual(state.trainingFrequencyPerWeekText, "4")
-        XCTAssertEqual(state.averageStepsText, "10000")
-    }
-
-    func testManualStepsEditPreventsFutureAutoOverwriteOfSteps() {
-        var state = OnboardingFormState()
-        state.selectActivityLevel(.moderatelyActive)
-        state.setAverageStepsText("9000")
-
-        state.selectActivityLevel(.veryActive)
-
-        XCTAssertEqual(state.trainingFrequencyPerWeekText, "5")
-        XCTAssertEqual(state.averageStepsText, "9000")
-    }
-
-    func testManualStepsEditStillAllowsTrainingDaysToAutoUpdate() {
-        var state = OnboardingFormState()
-        state.selectActivityLevel(.moderatelyActive)
-        state.setAverageStepsText("9000")
-
-        state.selectActivityLevel(.sedentary)
-
-        XCTAssertEqual(state.trainingFrequencyPerWeekText, "0")
-        XCTAssertEqual(state.averageStepsText, "9000")
-    }
-
-    func testManualTrainingDaysEditStillAllowsStepsToAutoUpdate() {
-        var state = OnboardingFormState()
-        state.selectActivityLevel(.moderatelyActive)
-        state.setTrainingFrequencyPerWeekText("4")
-
-        state.selectActivityLevel(.sedentary)
-
-        XCTAssertEqual(state.trainingFrequencyPerWeekText, "4")
-        XCTAssertEqual(state.averageStepsText, "3000")
-    }
-
-    func testMakeCalorieTargetInputStillWorksAfterActivityRhythmChanges() throws {
-        var state = filledCutOnboarding()
-        state.selectActivityLevel(.athlete)
-        state.setAverageStepsText("11000")
-
-        let input = try state.makeCalorieTargetInput()
-        let result = try PlanCalculationBridge.calorieTargetResult(from: input)
-
-        XCTAssertEqual(input.activityLevel, .athlete)
-        XCTAssertEqual(input.trainingFrequencyPerWeek, 6)
-        XCTAssertEqual(input.averageSteps, 11_000)
-        XCTAssertGreaterThan(result.targets.calorieTarget, 0)
     }
 
     func testDraftRestoreMarksCustomTrainingRhythmAsManuallyEdited() {
@@ -491,9 +393,7 @@ final class OnboardingFormStateTests: XCTestCase {
         state.goalWeightKgText = String(goal)
         OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &state)
         state.sex = .female
-        state.activityLevel = .moderatelyActive
-        state.trainingFrequencyPerWeekText = "3"
-        state.averageStepsText = "5000"
+        OnboardingActivityLevelValues.select(.moderatelyActive, in: &state)
         state.selectPaceChoice(paceChoice)
         return state
     }

@@ -73,9 +73,14 @@ enum JourneyHabitInsightsBuilder {
             strongestScorePercent: strongestPercent,
             strongestQualitative: copy.strongestQualitative(percent: strongestPercent),
             weakestHabitLabel: habitLabel(for: weakest.kind),
+            weakestHabitKind: weakest.kind,
             weakestScorePercent: weakestPercent,
-            weakestScorePrefix: copy.weakestScorePrefix(percent: weakestPercent),
-            suggestedNextAction: suggestedAction(for: weakest.kind, input: input)
+            weakestScorePrefix: nil,
+            suggestedNextAction: suggestedAction(for: weakest.kind, input: input),
+            suggestionCTA: JourneyCTARouter.habitSuggestionCTA(
+                weakestKind: weakest.kind,
+                isAppleHealthConnected: input.isAppleHealthConnected
+            )
         )
     }
 

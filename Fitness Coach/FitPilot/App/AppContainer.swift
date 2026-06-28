@@ -43,6 +43,9 @@ final class AppContainer {
     let onboardingCoachingContextStore: OnboardingCoachingContextStore
     let onboardingAnalyticsLogger: any OnboardingAnalyticsLogging
     let todayAnalyticsLogger: any TodayAnalyticsLogging
+    let planAnalyticsLogger: any PlanAnalyticsLogging
+    let journeyAnalyticsLogger: any JourneyAnalyticsLogging
+    let publicEntryAnalyticsLogger: any PublicEntryAnalyticsLogging
     let onboardingRoutingConfiguration: OnboardingRoutingConfiguration
 
     init(
@@ -50,6 +53,9 @@ final class AppContainer {
         onboardingUserDefaults: UserDefaults? = nil,
         onboardingAnalyticsLogger: (any OnboardingAnalyticsLogging)? = nil,
         todayAnalyticsLogger: (any TodayAnalyticsLogging)? = nil,
+        planAnalyticsLogger: (any PlanAnalyticsLogging)? = nil,
+        journeyAnalyticsLogger: (any JourneyAnalyticsLogging)? = nil,
+        publicEntryAnalyticsLogger: (any PublicEntryAnalyticsLogging)? = nil,
         onboardingRoutingConfiguration: OnboardingRoutingConfiguration? = nil
     ) throws {
         let resolvedOnboardingRoutingConfiguration = onboardingRoutingConfiguration ?? .production
@@ -68,9 +74,15 @@ final class AppContainer {
         #if DEBUG
         self.onboardingAnalyticsLogger = onboardingAnalyticsLogger ?? OSLogOnboardingAnalyticsLogger()
         self.todayAnalyticsLogger = todayAnalyticsLogger ?? OSLogTodayAnalyticsLogger()
+        self.planAnalyticsLogger = planAnalyticsLogger ?? OSLogPlanAnalyticsLogger()
+        self.journeyAnalyticsLogger = journeyAnalyticsLogger ?? OSLogJourneyAnalyticsLogger()
+        self.publicEntryAnalyticsLogger = publicEntryAnalyticsLogger ?? OSLogPublicEntryAnalyticsLogger()
         #else
         self.onboardingAnalyticsLogger = onboardingAnalyticsLogger ?? NoOpOnboardingAnalyticsLogger()
         self.todayAnalyticsLogger = todayAnalyticsLogger ?? NoOpTodayAnalyticsLogger()
+        self.planAnalyticsLogger = planAnalyticsLogger ?? NoOpPlanAnalyticsLogger()
+        self.journeyAnalyticsLogger = journeyAnalyticsLogger ?? NoOpJourneyAnalyticsLogger()
+        self.publicEntryAnalyticsLogger = publicEntryAnalyticsLogger ?? NoOpPublicEntryAnalyticsLogger()
         #endif
         self.onboardingRoutingConfiguration = resolvedOnboardingRoutingConfiguration
 
@@ -237,6 +249,10 @@ final class AppContainer {
         )
     }
 
+    func makeJourneyAnalyticsCoordinator() -> JourneyAnalyticsCoordinator {
+        JourneyAnalyticsCoordinator(analyticsLogger: journeyAnalyticsLogger)
+    }
+
     func makeProgressModel() -> ProgressModel {
         ProgressModel(
             dailyLogService: dailyLogService,
@@ -255,7 +271,8 @@ final class AppContainer {
             dailyLogService: dailyLogService,
             weightLogService: weightLogService,
             trainingInsightsStore: trainingInsightsStore,
-            workoutReader: trainingInsightsModel.workoutReaderForToday
+            workoutReader: trainingInsightsModel.workoutReaderForToday,
+            analyticsLogger: planAnalyticsLogger
         )
     }
 
@@ -286,7 +303,8 @@ final class AppContainer {
         rootState: RootViewState = .loading,
         isOnboardingModelReady: Bool = false,
         awaitingCloudSync: Bool = false,
-        pendingOnboardingCompletion: Bool = false
+        pendingOnboardingCompletion: Bool = false,
+        publicEntryDestination: PublicEntryRoute = .welcome
     ) -> AppShellRoute {
         if awaitingCloudSync,
            AppRouteResolver.isSignedIn(authState),
@@ -301,7 +319,9 @@ final class AppContainer {
             hasLocalProfile: profileBootstrapService.hasLocalProfile(),
             signedOutWithProfilePolicy: onboardingRoutingConfiguration.signedOutWithProfilePolicy,
             localProfileAwaitingSignIn: profileBootstrapService.localProfileAwaitingSignIn(),
-            pendingOnboardingCompletion: pendingOnboardingCompletion
+            pendingOnboardingCompletion: pendingOnboardingCompletion,
+            publicEntryDestination: publicEntryDestination,
+            hasPersistedOnboardingDraft: onboardingDraftStore.hasDraft
         )
     }
 

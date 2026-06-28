@@ -136,12 +136,22 @@ final class JourneyProgressAttributionBuilderTests: XCTestCase {
             .joined(separator: " ")
             .lowercased()
 
-        for banned in ["proved", "caused", "guaranteed", "definitely", "medical", "cure", "certain"] {
-            XCTAssertFalse(combined.contains(banned), "Unexpected overclaiming word '\(banned)'")
+        let bannedWholeWords = ["caused", "guaranteed", "definitely", "medical", "cure", "certain"]
+        for banned in bannedWholeWords {
+            XCTAssertFalse(containsWholeWord(banned, in: combined), "Unexpected overclaiming word '\(banned)'")
         }
+        XCTAssertFalse(
+            containsWholeWord("proved", in: combined),
+            "Attribution should not claim proof"
+        )
         if state.primaryReasonTitle.contains("likely") {
             XCTAssertTrue(state.primaryReasonTitle.contains("likely helped"))
         }
+    }
+
+    private func containsWholeWord(_ word: String, in text: String) -> Bool {
+        let pattern = "\\b\(NSRegularExpression.escapedPattern(for: word))\\b"
+        return text.range(of: pattern, options: .regularExpression) != nil
     }
 
     func testGainGoalUsesGainWeightTrendCopy() {

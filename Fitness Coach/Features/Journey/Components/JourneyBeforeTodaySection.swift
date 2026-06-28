@@ -26,6 +26,8 @@ struct JourneyBeforeTodaySection: View {
                     goalRow
                 }
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(state.accessibilitySummary)
         }
     }
 
@@ -33,16 +35,16 @@ struct JourneyBeforeTodaySection: View {
         HStack(alignment: .top, spacing: FormaTokens.Spacing.md) {
             column(
                 title: FormaProductCopy.Journey.Transformation.columnStarted,
-                weightKg: state.startedWeightKg,
-                maintenanceKcal: state.showsMaintenanceRow ? state.startingMaintenanceCaloriesKcal : nil,
-                targetKcal: state.showsTargetRow ? state.startingTargetCaloriesKcal : nil
+                weight: state.startedWeightCopy,
+                maintenance: state.showsMaintenanceRow ? state.startingMaintenanceCopy : nil,
+                target: state.showsTargetRow ? state.startingTargetCopy : nil
             )
 
             column(
                 title: FormaProductCopy.Journey.Transformation.columnToday,
-                weightKg: state.currentWeightKg,
-                maintenanceKcal: state.showsMaintenanceRow ? state.currentMaintenanceCaloriesKcal : nil,
-                targetKcal: state.showsTargetRow ? state.currentTargetCaloriesKcal : nil
+                weight: state.currentWeightCopy,
+                maintenance: state.showsMaintenanceRow ? state.currentMaintenanceCopy : nil,
+                target: state.showsTargetRow ? state.currentTargetCopy : nil
             )
         }
     }
@@ -55,7 +57,7 @@ struct JourneyBeforeTodaySection: View {
                 .font(FormaTokens.Typography.caption)
                 .foregroundStyle(FormaTokens.Color.textTertiary)
 
-            Text(formattedWeight(state.goalWeightKg))
+            Text(state.goalWeightCopy)
                 .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
                 .foregroundStyle(FormaTokens.Color.textPrimary)
         }
@@ -64,28 +66,28 @@ struct JourneyBeforeTodaySection: View {
 
     private func column(
         title: String,
-        weightKg: Double?,
-        maintenanceKcal: Int?,
-        targetKcal: Int?
+        weight: String,
+        maintenance: String?,
+        target: String?
     ) -> some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
             Text(title)
                 .font(FormaTokens.Typography.caption.weight(.semibold))
                 .foregroundStyle(FormaTokens.Color.textTertiary)
 
-            metricLine(value: formattedWeight(weightKg))
+            metricLine(value: weight)
 
-            if let maintenanceKcal {
+            if let maintenance {
                 metricLine(
                     label: FormaProductCopy.Journey.BeforeToday.maintenanceLabel,
-                    value: formattedKcal(maintenanceKcal)
+                    value: maintenance
                 )
             }
 
-            if let targetKcal {
+            if let target {
                 metricLine(
                     label: FormaProductCopy.Journey.BeforeToday.targetLabel,
-                    value: formattedKcal(targetKcal)
+                    value: target
                 )
             }
         }
@@ -106,17 +108,6 @@ struct JourneyBeforeTodaySection: View {
                 .minimumScaleFactor(0.85)
                 .lineLimit(1)
         }
-    }
-
-    private func formattedWeight(_ value: Double?) -> String {
-        guard let value else { return "—" }
-        return value.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(value))kg"
-            : String(format: "%.1fkg", value)
-    }
-
-    private func formattedKcal(_ value: Int) -> String {
-        PlanDisplayFormatter.formatGroupedInteger(value)
     }
 }
 

@@ -51,11 +51,18 @@ struct JourneyMilestonesSection: View {
             if let progress = state.nextProgressFraction {
                 SwiftUI.ProgressView(value: min(max(progress, 0), 1))
                     .tint(FormaTokens.Color.accent)
+                    .accessibilityLabel(FormaProductCopy.Journey.Milestones.nextUp)
+                    .accessibilityValue(
+                        FormaProductCopy.Journey.Milestones.Accessibility.progressPercent(
+                            Int((progress * 100).rounded())
+                        )
+                    )
                 Text(FormaProductCopy.Journey.Milestones.progressLabel(
                     percent: Int((progress * 100).rounded())
                 ))
                 .font(FormaTokens.Typography.caption)
                 .foregroundStyle(FormaTokens.Color.textSecondary)
+                .accessibilityHidden(true)
             }
         }
     }
@@ -80,6 +87,7 @@ struct JourneyMilestonesSection: View {
                isNext {
                 SwiftUI.ProgressView(value: min(max(progress, 0), 1))
                     .tint(FormaTokens.Color.accent)
+                    .accessibilityHidden(true)
             }
         }
         .frame(width: 148, alignment: .leading)
@@ -127,14 +135,15 @@ struct JourneyMilestonesSection: View {
     }
 
     private func accessibilityLabel(for milestone: JourneyMilestone, isNext: Bool) -> String {
+        let accessibility = FormaProductCopy.Journey.Milestones.Accessibility.self
         let status: String
         switch milestone.status {
-        case .completed: status = "Unlocked"
-        case .current: status = "Next up"
-        case .upcoming: status = isNext ? "Next up" : "Locked"
+        case .completed: status = accessibility.unlocked
+        case .current: status = accessibility.nextUp
+        case .upcoming: status = isNext ? accessibility.nextUp : accessibility.upcoming
         }
         if let progress = milestone.progressFraction, milestone.status != .completed {
-            return "\(status). \(milestone.title). \(Int((progress * 100).rounded())) percent there."
+            return "\(status). \(milestone.title). \(accessibility.progressPercent(Int((progress * 100).rounded())))."
         }
         return "\(status). \(milestone.title)."
     }

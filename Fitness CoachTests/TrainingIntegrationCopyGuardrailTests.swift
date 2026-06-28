@@ -104,8 +104,8 @@ final class TrainingIntegrationCopyGuardrailTests: XCTestCase {
             TrainingIntegrationCopy.gateTitle(for: .notConnected),
             TrainingIntegrationCopy.coachWorkoutLogNotConnected,
             TrainingIntegrationCopy.coachWorkoutMutationUnavailable,
-            FormaProductCopy.Journey.noAppleHealthWorkoutsThisWeek,
-            FormaProductCopy.Journey.trainingDataFromAppleHealth,
+            FormaProductCopy.Journey.DetailedAnalytics.noWorkoutsThisWeek,
+            FormaProductCopy.Journey.DetailedAnalytics.trainingSourceNote,
             FormaProductCopy.Today.actionConnectAppleHealth,
             TrainingInsightsFormatter.noWorkoutsThisWeek()
         ]

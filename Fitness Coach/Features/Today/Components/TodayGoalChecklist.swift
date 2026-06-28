@@ -2,7 +2,7 @@
 //  TodayGoalChecklist.swift
 //  Fitness Coach
 //
-//  Forma — State-aware next actions. Chevron = navigation; chip = quick Coach action.
+//  Forma — Legacy goal checklist. Retained for previews and TodayGoalsBuilder tests.
 //
 
 import SwiftUI

@@ -11,10 +11,20 @@ import XCTest
 @MainActor
 final class FitnessActionCenterTests: XCTestCase {
 
+    private var harness: FitnessActionCenterTestSupport.Harness!
+
+    override func setUp() async throws {
+        harness = try FitnessActionCenterTestSupport.makeHarness(cloudUID: nil)
+    }
+
+    override func tearDown() {
+        harness = nil
+        super.tearDown()
+    }
+
     // MARK: - Food
 
     func testLogFoodCreatesFoodEntryAndUpdatesDailyTotals() async throws {
-        let harness = try FitnessActionCenterTestSupport.makeHarness(cloudUID: nil)
         try harness.seedProfile()
         _ = try harness.actionCenter.ensureTodayLog()
 
@@ -40,7 +50,6 @@ final class FitnessActionCenterTests: XCTestCase {
     }
 
     func testLogFoodNotifiesRefreshCenter() async throws {
-        let harness = try FitnessActionCenterTestSupport.makeHarness(cloudUID: nil)
         try harness.seedProfile()
         _ = try harness.actionCenter.ensureTodayLog()
 
@@ -54,7 +63,6 @@ final class FitnessActionCenterTests: XCTestCase {
     }
 
     func testDeleteFoodEntryRecalculatesDailyTotals() async throws {
-        let harness = try FitnessActionCenterTestSupport.makeHarness(cloudUID: nil)
         try harness.seedProfile()
         _ = try harness.actionCenter.ensureTodayLog()
 
@@ -76,7 +84,6 @@ final class FitnessActionCenterTests: XCTestCase {
     // MARK: - Water
 
     func testLogWaterCreatesWaterEntryAndUpdatesDailyWaterTotal() async throws {
-        let harness = try FitnessActionCenterTestSupport.makeHarness(cloudUID: nil)
         try harness.seedProfile()
         _ = try harness.actionCenter.ensureTodayLog()
 
@@ -90,7 +97,6 @@ final class FitnessActionCenterTests: XCTestCase {
     // MARK: - Weight
 
     func testLogDailyWeightStoresWeightEntryForTheDay() async throws {
-        let harness = try FitnessActionCenterTestSupport.makeHarness(cloudUID: nil)
         try harness.seedProfile()
         _ = try harness.actionCenter.ensureTodayLog()
 
@@ -116,7 +122,6 @@ final class FitnessActionCenterTests: XCTestCase {
     // MARK: - Plan targets
 
     func testApplyPlanTargetsUpdatesProfileAndTodayDailyLogTargets() async throws {
-        let harness = try FitnessActionCenterTestSupport.makeHarness(cloudUID: nil)
         try harness.seedProfile()
         _ = try harness.actionCenter.ensureTodayLog()
 
@@ -130,7 +135,6 @@ final class FitnessActionCenterTests: XCTestCase {
     }
 
     func testUpdatePlanWithoutTargetsDoesNotSyncDailyLogTargets() async throws {
-        let harness = try FitnessActionCenterTestSupport.makeHarness(cloudUID: nil)
         let originalTargets = ProfileTestFixtures.sampleTargets
         try harness.seedProfile(targets: originalTargets)
         _ = try harness.actionCenter.ensureTodayLog()
@@ -152,24 +156,23 @@ final class FitnessActionCenterTests: XCTestCase {
     }
 
     func testUpdatePlanWithTargetChangesTriggersCloudProfileSync() async throws {
-        let harness = try FitnessActionCenterTestSupport.makeHarness()
-        try harness.seedProfile()
-        _ = try harness.actionCenter.ensureTodayLog()
+        let cloudHarness = try FitnessActionCenterTestSupport.makeHarness()
+        try cloudHarness.seedProfile()
+        _ = try cloudHarness.actionCenter.ensureTodayLog()
 
         let newTargets = DailyLogServiceTestSupport.alternateTargets
-        _ = try harness.actionCenter.updatePlan(UserProfileUpdate(targets: newTargets))
+        _ = try cloudHarness.actionCenter.updatePlan(UserProfileUpdate(targets: newTargets))
 
-        try await harness.waitForCloudSave()
+        await cloudHarness.waitForCloudSave()
 
-        XCTAssertEqual(harness.cloudStore.saveCallCount, 1)
-        XCTAssertEqual(harness.cloudStore.lastSavedUID, "test-user-1")
-        XCTAssertEqual(harness.cloudStore.lastSavedProfile?.targets, newTargets)
+        XCTAssertEqual(cloudHarness.cloudStore.saveCallCount, 1)
+        XCTAssertEqual(cloudHarness.cloudStore.lastSavedUID, "test-user-1")
+        XCTAssertEqual(cloudHarness.cloudStore.lastSavedProfile?.targets, newTargets)
     }
 
     // MARK: - Failure handling
 
     func testMutationFailuresSurfaceErrorsWithoutCorruptingState() async throws {
-        let harness = try FitnessActionCenterTestSupport.makeHarness(cloudUID: nil)
         try harness.seedProfile()
         _ = try harness.actionCenter.ensureTodayLog()
         let tokenBefore = harness.refreshCenter.refreshToken

@@ -179,19 +179,14 @@ final class ProgressModel: ObservableObject {
             previousWeekWeights: previousWeekWeights,
             previousWeekTrainingDays: previousWeekTrainingDays,
             monthLogs: monthLogs,
-            rangeLogs: logs,
             allWeights: allWeights,
             weekWeights: weekWeights,
-            rangeWeights: weights,
-            streakSummary: streakSummary,
             journeyStreaks: journeyStreaks,
             weeklyTraining: weeklyTraining,
             weightSummary: weightSummary,
             goalProjection: goalProjection,
             healthWorkoutDayStarts: healthWorkoutDays,
             monthHealthWorkoutCount: monthHealthWorkouts.count,
-            weekHealthWorkoutCount: weekHealthWorkouts.count,
-            loggedDays: loggedDays,
             nutritionSummary: nutritionSummary,
             waterSummary: waterSummary,
             workoutSummary: workoutSummary,
@@ -241,4 +236,21 @@ final class ProgressModel: ObservableObject {
         let weightDays = Set(weights.map { Calendar.current.startOfDay(for: $0.date) })
         return logDays.union(weightDays).count
     }
+
+#if DEBUG
+    /// Applies a static dashboard for SwiftUI previews without loading services.
+    func applyPreviewState(_ state: ProgressDashboardState) {
+        selectedRangeDays = state.selectedRangeDays
+        viewState = .loaded(state)
+    }
+
+    static func preview(
+        scenario: ProgressPreviewData.Scenario = .strongMomentum
+    ) -> ProgressModel {
+        let container = try! AppContainer(inMemory: true)
+        let model = container.makeProgressModel()
+        model.applyPreviewState(ProgressPreviewData.dashboard(scenario))
+        return model
+    }
+#endif
 }

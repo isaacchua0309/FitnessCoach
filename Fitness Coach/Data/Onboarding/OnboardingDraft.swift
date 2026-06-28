@@ -53,7 +53,15 @@ struct OnboardingDraft: Codable, Equatable, Sendable {
     }
 
     func makeFormState() -> OnboardingFormState {
-        form.makeFormState()
+        var state = form.makeFormState()
+        if !state.hasConfirmedActivityLevelSelection,
+           let step,
+           let stepIndex = OnboardingStep.flow.firstIndex(of: step),
+           let activityIndex = OnboardingStep.flow.firstIndex(of: .activityLevel),
+           stepIndex > activityIndex {
+            state.hasConfirmedActivityLevelSelection = true
+        }
+        return state
     }
 
     func makeGeneratedPlan() -> CalorieTargetResult? {
@@ -78,6 +86,7 @@ struct OnboardingDraftFormFields: Codable, Equatable, Sendable {
     var advancedPaceAmountText: String
     var selectedMotivationRawValues: [String] = []
     var selectedLoggingPreferenceRawValues: [String] = []
+    var hasConfirmedActivityLevelSelection: Bool = false
 
     init(formState: OnboardingFormState) {
         name = formState.name
@@ -96,6 +105,7 @@ struct OnboardingDraftFormFields: Codable, Equatable, Sendable {
         advancedPaceAmountText = formState.advancedPaceDraft.amountText
         selectedMotivationRawValues = formState.selectedMotivations.map(\.rawValue).sorted()
         selectedLoggingPreferenceRawValues = formState.loggingPreferences.map(\.rawValue).sorted()
+        hasConfirmedActivityLevelSelection = formState.hasConfirmedActivityLevelSelection
     }
 
     func makeFormState() -> OnboardingFormState {
@@ -125,6 +135,7 @@ struct OnboardingDraftFormFields: Codable, Equatable, Sendable {
         state.loggingPreferences = OnboardingLoggingPreference.fromStoredValues(
             selectedLoggingPreferenceRawValues
         )
+        state.hasConfirmedActivityLevelSelection = hasConfirmedActivityLevelSelection
         state.reconcileTrainingRhythmAfterRestore()
         state.syncAgeTextFromBirthDate()
         return state

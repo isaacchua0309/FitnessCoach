@@ -42,6 +42,7 @@ struct TodayMissionHeroDisplayModel: Equatable {
     var statusLine: String
     var progress: Double
     var isOverTarget: Bool
+    var showsLogMealCTA: Bool
     var accessibilityLabel: String
 }
 
@@ -53,13 +54,13 @@ enum TodayMissionHeroFormatter {
     static func displayModel(
         mission: TodayMissionState,
         proteinProgress: MacroProgress,
-        mealsEmpty: Bool
+        mealsEmptyKind: TodayMealsEmptyKind
     ) -> TodayMissionHeroDisplayModel {
         let calories = mission.calorieSummary
-        let statusLine = statusLine(
+        let statusLine = TodayEmptyStateFormatting.missionStatusLine(
+            mealsEmptyKind: mealsEmptyKind,
             calorieSummary: calories,
-            proteinProgress: proteinProgress,
-            mealsEmpty: mealsEmpty
+            proteinProgress: proteinProgress
         )
         let proteinLine = proteinSubMetricLine(for: proteinProgress)
 
@@ -74,6 +75,7 @@ enum TodayMissionHeroFormatter {
             statusLine: statusLine,
             progress: min(max(calories.progress, 0), 1),
             isOverTarget: calories.isOverTarget,
+            showsLogMealCTA: TodayEmptyStateFormatting.missionShowsLogCTA(mealsEmptyKind: mealsEmptyKind),
             accessibilityLabel: accessibilityLabel(
                 primaryMetricLabel: calories.isOverTarget
                     ? FormaProductCopy.Today.Mission.caloriesOverLabel
@@ -97,26 +99,6 @@ enum TodayMissionHeroFormatter {
 
     static func proteinRemainingLine(_ grams: Double) -> String {
         "Protein remaining: \(TodayMissionHeroFormatting.proteinGrams(grams))g"
-    }
-
-    static func statusLine(
-        calorieSummary: CalorieSummary,
-        proteinProgress: MacroProgress,
-        mealsEmpty: Bool
-    ) -> String {
-        if mealsEmpty {
-            return FormaProductCopy.Today.Mission.statusStartFirstMeal
-        }
-        if calorieSummary.isOverTarget {
-            return FormaProductCopy.Today.Mission.statusOverTarget
-        }
-        if proteinProgress.progress < TodayFocusBuilder.proteinOnTrackThreshold {
-            return FormaProductCopy.Today.Mission.statusProteinGap
-        }
-        if isNearTarget(calorieSummary) {
-            return FormaProductCopy.Today.Mission.statusNearTarget
-        }
-        return FormaProductCopy.Today.Mission.statusOnTrack
     }
 
     static func isNearTarget(_ summary: CalorieSummary) -> Bool {

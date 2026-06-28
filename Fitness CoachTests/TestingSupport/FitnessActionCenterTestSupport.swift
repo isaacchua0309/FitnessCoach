@@ -42,13 +42,14 @@ enum FitnessActionCenterTestSupport {
             return profile
         }
 
-        func waitForCloudSave(timeoutNanoseconds: UInt64 = 500_000_000) async throws {
-            let step: UInt64 = 10_000_000
-            var elapsed: UInt64 = 0
-            while cloudStore.saveCallCount == 0, elapsed < timeoutNanoseconds {
-                try await Task.sleep(nanoseconds: step)
-                elapsed += step
+        func waitForCloudSave(maxYields: Int = 100) async {
+            _ = await AsyncTestSupport.waitUntil(maxYields: maxYields) {
+                cloudStore.saveCallCount > 0
             }
+        }
+
+        func waitForPendingCloudWork(maxYields: Int = 80) async {
+            await AsyncTestSupport.drainMainActorTasks(maxYields: maxYields)
         }
     }
 

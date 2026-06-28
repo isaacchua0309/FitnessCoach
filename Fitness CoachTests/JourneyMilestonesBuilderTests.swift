@@ -22,7 +22,7 @@ final class JourneyMilestonesBuilderTests: XCTestCase {
         XCTAssertFalse(state.items.isEmpty)
         XCTAssertEqual(state.unlocked.count, 0)
         XCTAssertEqual(state.next?.id, "first-meal")
-        XCTAssertEqual(state.next?.title, "Logged first meal")
+        XCTAssertEqual(state.next?.title, FormaProductCopy.Journey.Milestones.loggedFirstMeal)
         XCTAssertEqual(state.next?.status, .current)
     }
 
@@ -72,7 +72,7 @@ final class JourneyMilestonesBuilderTests: XCTestCase {
 
         XCTAssertEqual(
             state.items.first(where: { $0.id == "first-kg" })?.title,
-            "Lost first kilogram"
+            FormaProductCopy.Journey.Milestones.firstKilogramTitle(direction: .lose)
         )
     }
 
@@ -88,7 +88,7 @@ final class JourneyMilestonesBuilderTests: XCTestCase {
 
         XCTAssertEqual(
             state.items.first(where: { $0.id == "first-kg" })?.title,
-            "Gained first kilogram"
+            FormaProductCopy.Journey.Milestones.firstKilogramTitle(direction: .gain)
         )
     }
 
@@ -104,7 +104,7 @@ final class JourneyMilestonesBuilderTests: XCTestCase {
 
         XCTAssertEqual(
             state.items.first(where: { $0.id == "first-week" })?.title,
-            "Stayed consistent for first week"
+            FormaProductCopy.Journey.Milestones.firstWeekTitle(direction: .maintain)
         )
         XCTAssertFalse(state.items.contains(where: { $0.id == "halfway" }))
     }
@@ -139,6 +139,24 @@ final class JourneyMilestonesBuilderTests: XCTestCase {
         XCTAssertTrue(state.unlocked.contains(where: { $0.id == "first-workout" }))
     }
 
+    func testLockedMilestonesStayUpcomingAfterCurrent() {
+        let state = build(foodLogDays: 0, direction: .lose)
+
+        XCTAssertEqual(state.unlocked.count, 0)
+        XCTAssertEqual(state.next?.status, .current)
+        XCTAssertTrue(state.items.filter { $0.status == .upcoming }.count >= 2)
+    }
+
+    func testLoggingStreakSevenUnlocksStreakMilestone() {
+        let state = build(
+            foodLogDays: 7,
+            proteinGoalDays: 4,
+            direction: .lose
+        )
+
+        XCTAssertTrue(state.unlocked.contains(where: { $0.id == "logging-streak-seven" }))
+    }
+
     func testTenKgMilestoneOnlyWhenSpanIsLargeEnough() {
         let smallSpan = build(
             foodLogDays: 50,
@@ -167,7 +185,7 @@ final class JourneyMilestonesBuilderTests: XCTestCase {
         foodLogDays: Int,
         proteinGoalDays: Int = 0,
         waterHitsGoal: Bool = true,
-        workoutCalories: Double = 0,
+        workoutCalories: Int = 0,
         startWeight: Double = 90,
         currentWeight: Double = 90,
         goalWeight: Double = 75,
@@ -211,7 +229,6 @@ final class JourneyMilestonesBuilderTests: XCTestCase {
             heroStreakChip: .hidden,
             weeklyConsistencyHeadline: "",
             weeklyConsistencyDetail: nil,
-            habitInsightStreakCopy: "",
             keepStreakAliveCopy: nil
         )
 
@@ -230,7 +247,7 @@ final class JourneyMilestonesBuilderTests: XCTestCase {
         daysAgo: Int,
         protein: Double,
         waterMl: Int = 2_000,
-        workoutCalories: Double = 0
+        workoutCalories: Int = 0
     ) -> DailyLog {
         let date = calendar.date(byAdding: .day, value: -daysAgo, to: asOf)!
         return DailyLog(

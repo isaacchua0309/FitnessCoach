@@ -23,27 +23,32 @@ struct PlanThisWeekSection: View {
                         .accessibilityHidden(true)
                 } else {
                     VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
+                        weekStatusBlock
+
                         metricLines
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(state.overallHeadline)
-                                .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
-                                .foregroundStyle(FormaTokens.Color.textSecondary)
-                                .accessibilityHidden(true)
-
-                            Text(state.overallStatusCopy)
-                                .font(FormaTokens.Typography.sectionSubtitle)
-                                .foregroundStyle(FormaTokens.Color.textPrimary)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .accessibilityHidden(true)
-                        }
-                        .padding(.top, FormaTokens.Spacing.xs)
+                            .padding(.top, FormaTokens.Spacing.xs)
                     }
                 }
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(state.accessibilitySummary)
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(state.accessibilitySummary)
+    }
+
+    private var weekStatusBlock: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(state.overallHeadline)
+                .font(FormaTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(FormaTokens.Color.textTertiary)
+                .textCase(.uppercase)
+                .accessibilityHidden(true)
+
+            Text(state.overallStatusCopy)
+                .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
+                .foregroundStyle(FormaTokens.Color.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityHidden(true)
+        }
     }
 
     private var metricLines: some View {
@@ -60,7 +65,7 @@ struct PlanThisWeekSection: View {
     private func metricLine(_ text: String) -> some View {
         Text(text)
             .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
-            .foregroundStyle(FormaTokens.Color.textPrimary)
+            .foregroundStyle(FormaTokens.Color.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
     }
 }

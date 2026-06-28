@@ -34,7 +34,8 @@ extension UserProfileEntity {
             expectedWeeklyWeightLossKg: model.targets.expectedWeeklyWeightLossKg,
             aggressivenessRawValue: model.targets.aggressiveness.rawValue,
             createdAt: model.createdAt,
-            updatedAt: model.updatedAt
+            updatedAt: model.updatedAt,
+            lastPlanUpdateReasonRawValue: model.lastPlanUpdateReason?.rawValue
         )
     }
 
@@ -65,7 +66,8 @@ extension UserProfileEntity {
                 aggressiveness: CalorieAggressiveness(rawValue: aggressivenessRawValue) ?? .moderate
             ),
             createdAt: createdAt,
-            updatedAt: updatedAt
+            updatedAt: updatedAt,
+            lastPlanUpdateReason: lastPlanUpdateReasonRawValue.flatMap(PlanLastUpdateReason.init(rawValue:))
         )
     }
 }

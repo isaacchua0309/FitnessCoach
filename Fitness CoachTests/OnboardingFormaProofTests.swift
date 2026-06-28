@@ -25,20 +25,6 @@ final class OnboardingFormaProofTests: XCTestCase {
         )
     }
 
-    func testFormaProofComparisonModelUsesProductCopy() {
-        let model = OnboardingFormaProofComparisonModel.default
-        let copy = FormaProductCopy.Onboarding.Flow.Proof.WeightLossComparison.self
-
-        XCTAssertEqual(model.withoutFormaLabel, copy.withoutFormaLabel)
-        XCTAssertEqual(model.withoutFormaValue, copy.withoutFormaValue)
-        XCTAssertEqual(model.withFormaLabel, copy.withFormaLabel)
-        XCTAssertEqual(model.withFormaValue, copy.withFormaValue)
-        XCTAssertEqual(model.withoutFormaFill, copy.withoutFormaBarFill)
-        XCTAssertEqual(model.withFormaFill, copy.withFormaBarFill)
-        XCTAssertEqual(model.disclaimer, copy.disclaimer)
-        XCTAssertEqual(model.chartAccessibilityLabel, copy.chartAccessibilityLabel)
-    }
-
     func testFormaProofRoutesNextToReview() {
         XCTAssertEqual(
             OnboardingStep.formaProof.next(in: OnboardingStep.flow),
@@ -50,12 +36,28 @@ final class OnboardingFormaProofTests: XCTestCase {
 @MainActor
 final class OnboardingFormaProofAnalyticsTests: XCTestCase {
 
+    private var draftDefaults: UserDefaults!
+    private var draftStore: OnboardingDraftStore!
+    private let analytics = CapturingOnboardingAnalyticsLogger()
+
+    override func setUp() {
+        super.setUp()
+        draftDefaults = UserDefaults(suiteName: "OnboardingFormaProofAnalyticsTests.\(UUID().uuidString)")!
+        draftStore = OnboardingDraftStore(userDefaults: draftDefaults)
+    }
+
+    override func tearDown() {
+        draftStore.clearDraft()
+        draftDefaults.removePersistentDomain(forName: draftDefaults.description)
+        draftDefaults = nil
+        draftStore = nil
+        super.tearDown()
     }
 
     func testFormaProofLogsStepViewedAndCompletedOnNext() async throws {
         let integration = StubTrainingIntegrationProvider(requestConnectionResult: .denied)
         let model = try makeOnboardingModel(integration: integration)
-        try await advanceModelToFormaProof(model)
+        await OnboardingModelTestSupport.advanceTo(.formaProof, model: model, seedForm: true)
 
         XCTAssertEqual(model.currentStep, .formaProof)
         XCTAssertTrue(analytics.contains(.stepViewed, step: "forma_proof"))
@@ -82,39 +84,6 @@ final class OnboardingFormaProofAnalyticsTests: XCTestCase {
             generationDelay: ImmediateOnboardingGenerationDelayProvider(),
             healthTrainingIntegration: integration
         )
-    }
-
-    private func advanceModelToFormaProof(_ model: OnboardingModel) async throws {
-        try await advanceModelToAlmostThere(model)
-        model.goNext()
-        XCTAssertEqual(model.currentStep, .formaProof)
-    }
-
-    private func advanceModelToAlmostThere(_ model: OnboardingModel) async throws {
-        seedValidOnboardingForm(&model.formState)
-
-        model.goNext() // introProof -> heightWeight
-        model.goNext() // heightWeight
-        model.goNext() // targetWeight
-        model.goNext() // targetEncouragement
-        model.goNext() // birthday
-        model.goNext() // activityLevel
-        model.goNext() // appleHealth
-
-        for _ in 0..<50 {
-            if model.currentStep == .almostThere { break }
-            try await Task.sleep(nanoseconds: 20_000_000)
-        }
-        XCTAssertEqual(model.currentStep, .almostThere)
-    }
-
-    private func seedValidOnboardingForm(_ formState: inout OnboardingFormState) {
-        OnboardingHeightWeightValues.applyDefaultsIfNeeded(to: &formState)
-        OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &formState)
-        OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &formState)
-        formState.sex = .female
-        formState.activityLevel = .moderatelyActive
-        OnboardingActivityLevelValues.applyDefaultsIfNeeded(to: &formState)
     }
 }
 

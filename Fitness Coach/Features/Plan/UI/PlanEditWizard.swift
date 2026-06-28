@@ -11,21 +11,30 @@ struct PlanEditWizard: View {
     @Environment(\.dismiss) private var dismiss
 
     @Binding var formState: ProfileFormState
-    var initialStep: Int = 0
+    let baselineProfile: UserProfile
+    var initialStep: PlanEditWizardStep = .goalAndTargetWeight
     let errorMessage: String?
     let onSave: (ProfileFormState) async -> Void
     let onCancel: () -> Void
-    let onRegenerate: (ProfileFormState) async -> Void
+    let onPrepareTargets: (ProfileFormState) async throws -> CalorieTargetResult
 
-    @State private var step = 0
+    @State private var stepIndex = 0
     @State private var goalType: PlanGoalType = .loseFat
     @State private var isSaving = false
-    @State private var showAdvanced = false
+    @State private var isGeneratingTargets = false
+    @State private var showExpertAdjustments = false
+    @State private var targetPreview: CalorieTargetResult?
 
-    private let stepTitles = ["Goal", "Goal weight", "Training", "Lifestyle"]
+    /// Activity step — used by Plan tab deep links.
+    static let activityLevelStep: PlanEditWizardStep = .activityLevel
 
-    /// Lifestyle step — activity level, steps, and diet preferences.
-    static let lifestyleStepIndex = 3
+    private var flow: [PlanEditWizardStep] {
+        PlanEditWizardFlow.steps(for: formState)
+    }
+
+    private var currentStep: PlanEditWizardStep? {
+        PlanEditWizardFlow.step(at: stepIndex, formState: formState)
+    }
 
     var body: some View {
         NavigationStack {
@@ -35,16 +44,20 @@ struct PlanEditWizard: View {
                     .padding(.top, 8)
 
                 Form {
-                    switch step {
-                    case 0:
-                        goalStep
-                    case 1:
-                        goalWeightStep
-                    case 2:
-                        trainingStep
-                    case 3:
-                        lifestyleStep
-                    default:
+                    switch currentStep {
+                    case .goalAndTargetWeight:
+                        goalAndTargetWeightStep
+                    case .birthdayAndSex:
+                        birthdayAndSexStep
+                    case .heightAndWeight:
+                        heightAndWeightStep
+                    case .activityLevel:
+                        activityLevelStep
+                    case .reviewChanges:
+                        reviewChangesStep
+                    case .confirmTargets:
+                        confirmTargetsStep
+                    case .none:
                         EmptyView()
                     }
 
@@ -67,33 +80,27 @@ struct PlanEditWizard: View {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    if step < stepTitles.count - 1 {
-                        Button("Next") { advance() }
-                            .disabled(!canAdvanceFromCurrentStep)
-                    } else {
-                        Button {
-                            save()
-                        } label: {
-                            if isSaving {
-                                SwiftUI.ProgressView()
-                            } else {
-                                Text("Save")
-                            }
-                        }
-                        .disabled(isSaving || !canSavePlan)
-                    }
+                    toolbarConfirmationButton
                 }
             }
             .onAppear {
-                step = min(max(initialStep, 0), stepTitles.count - 1)
                 goalType = PlanStateBuilder.goalType(for: formState.asProfileSnapshot())
+                if let index = PlanEditWizardFlow.index(of: initialStep, formState: formState) {
+                    stepIndex = index
+                } else {
+                    stepIndex = 0
+                }
+                formState.applyTrainingRhythmDefaultsForCurrentActivity()
+            }
+            .onChange(of: formState.birthDate) { _, _ in
+                formState.syncAgeTextFromBirthDate()
             }
         }
     }
 
     // MARK: Steps
 
-    private var goalStep: some View {
+    private var goalAndTargetWeightStep: some View {
         Group {
             Section {
                 Picker("Goal", selection: $goalType) {
@@ -105,6 +112,20 @@ struct PlanEditWizard: View {
                 .onChange(of: goalType) { _, newValue in
                     applyGoalType(newValue)
                 }
+            }
+
+            Section {
+                FormaLabeledNumberField(
+                    title: FormaProductCopy.ProfileForm.goalWeight,
+                    placeholder: "65",
+                    text: $formState.goalWeightKgText,
+                    unit: FormaProductCopy.FoodForm.kgUnit,
+                    keyboard: .decimalPad
+                )
+                .padding(.vertical, FormaTokens.Spacing.xs)
+                .fitPilotFormSection()
+            } header: {
+                FitPilotSettingsSectionHeader(title: "Target weight")
             }
 
             Section {
@@ -130,6 +151,340 @@ struct PlanEditWizard: View {
         }
     }
 
+    private var birthdayAndSexStep: some View {
+        Group {
+            Section {
+                OnboardingBirthdayWheelPicker(birthDate: $formState.birthDate)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+            } header: {
+                FitPilotSettingsSectionHeader(title: "Birthday")
+            } footer: {
+                if let birthDate = formState.birthDate {
+                    Text("Age used for calculations: \(ProfileFormatter.age(BirthDateAgeResolver.age(from: birthDate)))")
+                        .font(FormaTokens.Typography.caption)
+                        .foregroundStyle(FormaTokens.Color.textTertiary)
+                } else {
+                    Text(FormaProductCopy.Onboarding.Flow.Birthday.birthDateRequiredMessage)
+                        .font(FormaTokens.Typography.caption)
+                        .foregroundStyle(FormaTokens.Color.textTertiary)
+                }
+            }
+
+            Section {
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+                    ForEach([Sex.male, .female, .other], id: \.self) { sex in
+                        Button {
+                            formState.sex = sex
+                        } label: {
+                            HStack {
+                                Text(ProfileFormatter.sex(sex))
+                                    .foregroundStyle(FormaTokens.Color.textPrimary)
+                                Spacer()
+                                if formState.sex == sex {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(FormaTokens.Color.accent)
+                                }
+                            }
+                            .padding(.vertical, FormaTokens.Spacing.xs)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.vertical, FormaTokens.Spacing.xs)
+                .fitPilotFormSection()
+            } header: {
+                FitPilotSettingsSectionHeader(title: FormaProductCopy.ProfileForm.sex)
+            } footer: {
+                Text("Biological sex is required for calorie and macro calculations.")
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaTokens.Color.textTertiary)
+            }
+        }
+    }
+
+    private var heightAndWeightStep: some View {
+        Section {
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+                FormaLabeledNumberField(
+                    title: FormaProductCopy.ProfileForm.height,
+                    placeholder: "175",
+                    text: $formState.heightCmText,
+                    unit: "cm",
+                    keyboard: .decimalPad
+                )
+                FormaLabeledNumberField(
+                    title: FormaProductCopy.ProfileForm.baselineWeight,
+                    placeholder: "70",
+                    text: $formState.currentWeightKgText,
+                    unit: FormaProductCopy.FoodForm.kgUnit,
+                    keyboard: .decimalPad
+                )
+            }
+            .padding(.vertical, FormaTokens.Spacing.xs)
+            .fitPilotFormSection()
+        } header: {
+            FitPilotSettingsSectionHeader(title: "Height & weight")
+        } footer: {
+            Text("Current weight drives your maintenance and target calculations.")
+                .font(FormaTokens.Typography.caption)
+                .foregroundStyle(FormaTokens.Color.textTertiary)
+        }
+    }
+
+    private var activityLevelStep: some View {
+        Group {
+            Section {
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+                    ForEach(Array(OnboardingActivityLevelValues.orderedLevels.enumerated()), id: \.element) { index, level in
+                        if index > 0 {
+                            Divider()
+                        }
+
+                        Button {
+                            formState.selectActivityLevel(level)
+                        } label: {
+                            HStack(alignment: .top, spacing: FormaTokens.Spacing.md) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(ProfileFormatter.activityLevel(level))
+                                        .font(FormaTokens.Typography.body.weight(.medium))
+                                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                                    Text(OnboardingActivityLevelValues.optionDescription(for: level))
+                                        .font(FormaTokens.Typography.caption)
+                                        .foregroundStyle(FormaTokens.Color.textTertiary)
+                                        .multilineTextAlignment(.leading)
+                                }
+                                Spacer(minLength: 0)
+                                if formState.activityLevel == level {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(FormaTokens.Color.accent)
+                                }
+                            }
+                            .padding(.vertical, FormaTokens.Spacing.xs)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.vertical, FormaTokens.Spacing.xs)
+                .fitPilotFormSection()
+            } header: {
+                FitPilotSettingsSectionHeader(title: FormaProductCopy.ProfileForm.activityLevel)
+            } footer: {
+                let rhythm = ActivityTrainingDefaultsResolver().defaults(for: formState.activityLevel)
+                Text("Defaults: \(rhythm.trainingDaysPerWeek) training days/week, \(rhythm.averageStepsPerDay.formatted()) steps/day.")
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaTokens.Color.textTertiary)
+            }
+
+            Section {
+                DisclosureGroup("Expert adjustments", isExpanded: $showExpertAdjustments) {
+                    VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+                        FormaLabeledNumberField(
+                            title: FormaProductCopy.ProfileForm.bodyFat,
+                            placeholder: "Optional",
+                            text: $formState.estimatedBodyFatPercentageText,
+                            unit: "%",
+                            keyboard: .decimalPad
+                        )
+
+                        FormaLabeledNumberField(
+                            title: FormaProductCopy.ProfileForm.trainingDays,
+                            placeholder: "3",
+                            text: Binding(
+                                get: { formState.trainingFrequencyPerWeekText },
+                                set: { formState.setTrainingFrequencyPerWeekText($0) }
+                            ),
+                            keyboard: .numberPad
+                        )
+
+                        FormaLabeledNumberField(
+                            title: FormaProductCopy.ProfileForm.averageSteps,
+                            placeholder: "5000",
+                            text: Binding(
+                                get: { formState.averageStepsText },
+                                set: { formState.setAverageStepsText($0) }
+                            ),
+                            keyboard: .numberPad
+                        )
+
+                        MacroTargetSettingsView(
+                            calorieTargetText: $formState.calorieTargetText,
+                            proteinTargetText: $formState.proteinTargetText,
+                            carbTargetText: $formState.carbTargetText,
+                            fatTargetText: $formState.fatTargetText,
+                            expectedWeeklyWeightLossKgText: $formState.expectedWeeklyWeightLossKgText,
+                            aggressiveness: $formState.aggressiveness,
+                            onRegenerate: {
+                                Task { await regenerateTargetsForExpertSection() }
+                            }
+                        )
+                    }
+                    .padding(.vertical, FormaTokens.Spacing.sm)
+                }
+            } footer: {
+                Text("Optional overrides for body fat, macros, and training assumptions.")
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaTokens.Color.textTertiary)
+            }
+        }
+    }
+
+    private var reviewChangesStep: some View {
+        let review = PlanEditReviewBuilder.build(
+            baseline: baselineProfile,
+            formState: formState
+        )
+
+        return Group {
+            Section {
+                if review.changes.isEmpty {
+                    Text("No plan inputs changed.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(review.changes) { change in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(change.label)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                            HStack {
+                                Text(change.before)
+                                    .strikethrough()
+                                    .foregroundStyle(.secondary)
+                                Image(systemName: "arrow.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                                Text(change.after)
+                                    .fontWeight(.medium)
+                            }
+                            .font(.subheadline)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+            } header: {
+                FitPilotSettingsSectionHeader(title: "Review changes")
+            } footer: {
+                Text("Next, Forma will regenerate your daily targets from these inputs.")
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaTokens.Color.textTertiary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var confirmTargetsStep: some View {
+        if isGeneratingTargets {
+            Section {
+                HStack {
+                    Spacer()
+                    SwiftUI.ProgressView("Calculating targets…")
+                    Spacer()
+                }
+            }
+        } else if let preview = targetPreview {
+            let comparison = PlanEditReviewBuilder.buildTargetComparison(
+                before: baselineProfile.targets,
+                preview: preview
+            )
+
+            if comparison.isAggressive || comparison.warning != nil {
+                Section {
+                    Label(
+                        comparison.warning ?? "These targets may be aggressive. Review before saving.",
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.orange)
+                }
+            }
+
+            Section {
+                ForEach(comparison.rows) { row in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(row.label)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        HStack {
+                            Text(row.before)
+                                .strikethrough()
+                                .foregroundStyle(.secondary)
+                            Image(systemName: "arrow.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                            Text(row.after)
+                                .fontWeight(.medium)
+                        }
+                        .font(.subheadline)
+                    }
+                    .padding(.vertical, 2)
+                }
+            } header: {
+                FitPilotSettingsSectionHeader(title: "Target changes")
+            } footer: {
+                Text("Saving updates your plan and today's targets.")
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaTokens.Color.textTertiary)
+            }
+        } else {
+            Section {
+                Text("Unable to preview targets. Go back and check your inputs.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    // MARK: Chrome
+
+    @ViewBuilder
+    private var toolbarConfirmationButton: some View {
+        switch currentStep {
+        case .confirmTargets:
+            Button {
+                save()
+            } label: {
+                if isSaving {
+                    SwiftUI.ProgressView()
+                } else {
+                    Text("Save Plan")
+                }
+            }
+            .disabled(isSaving || targetPreview == nil || isGeneratingTargets)
+        case .reviewChanges:
+            Button {
+                advanceFromReview()
+            } label: {
+                if isGeneratingTargets {
+                    SwiftUI.ProgressView()
+                } else {
+                    Text("Next")
+                }
+            }
+            .disabled(isGeneratingTargets || !canAdvanceFromCurrentStep)
+        default:
+            if stepIndex < flow.count - 1 {
+                Button("Next") { advance() }
+                    .disabled(!canAdvanceFromCurrentStep)
+            } else {
+                EmptyView()
+            }
+        }
+    }
+
+    private var stepIndicator: some View {
+        HStack(spacing: 6) {
+            ForEach(flow.indices, id: \.self) { index in
+                Capsule()
+                    .fill(index <= stepIndex ? Color.primary : Color.secondary.opacity(0.2))
+                    .frame(height: 3)
+            }
+        }
+    }
+
+    // MARK: Validation
+
     private var parsedWeightKg: Double {
         Double(formState.currentWeightKgText.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 70
     }
@@ -139,13 +494,23 @@ struct PlanEditWizard: View {
     }
 
     private var canAdvanceFromCurrentStep: Bool {
-        guard step == 0, goalType == .loseFat else { return true }
-        return pacePreview.isSaveable
-    }
-
-    private var canSavePlan: Bool {
-        guard goalType == .loseFat else { return true }
-        return pacePreview.isSaveable
+        switch currentStep {
+        case .goalAndTargetWeight:
+            guard goalType == .loseFat else { return true }
+            return pacePreview.isSaveable
+        case .birthdayAndSex:
+            guard let birthDate = formState.birthDate else { return false }
+            return BirthDateAgeResolver.isValidBirthDate(birthDate) && formState.sex != .preferNotToSay
+        case .heightAndWeight:
+            return parsedPositive(formState.heightCmText) != nil
+                && parsedPositive(formState.currentWeightKgText) != nil
+        case .activityLevel, .reviewChanges:
+            return true
+        case .confirmTargets:
+            return targetPreview != nil
+        case .none:
+            return false
+        }
     }
 
     private var pacePreview: WeightLossPacePreviewModel {
@@ -157,149 +522,26 @@ struct PlanEditWizard: View {
         )
     }
 
-    private var goalWeightStep: some View {
-        Section {
-            FormaLabeledNumberField(
-                title: FormaProductCopy.ProfileForm.goalWeight,
-                placeholder: "65",
-                text: $formState.goalWeightKgText,
-                unit: FormaProductCopy.FoodForm.kgUnit,
-                keyboard: .decimalPad
-            )
-            .padding(.vertical, FormaTokens.Spacing.xs)
-            .fitPilotFormSection()
-        } header: {
-            FitPilotSettingsSectionHeader(title: "Goal weight")
-        } footer: {
-            Text("Your baseline weight (\(formState.currentWeightKgText) kg) is used for calculations. Update it in Advanced Settings if needed.")
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textTertiary)
-        }
-    }
-
-    private var trainingStep: some View {
-        Section {
-            FormaLabeledNumberField(
-                title: FormaProductCopy.ProfileForm.strengthSessions,
-                placeholder: "3",
-                text: $formState.trainingFrequencyPerWeekText,
-                keyboard: .numberPad
-            )
-            .padding(.vertical, FormaTokens.Spacing.xs)
-            .fitPilotFormSection()
-        } header: {
-            FitPilotSettingsSectionHeader(title: "Training frequency")
-        } footer: {
-            Text("How many structured strength workouts you plan each week.")
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textTertiary)
-        }
-    }
-
-    private var lifestyleStep: some View {
-        Group {
-            Section {
-                VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
-                    FormaPickerRow(title: FormaProductCopy.ProfileForm.activityLevel, selection: $formState.activityLevel) {
-                        ForEach(ActivityLevel.allCases, id: \.self) { level in
-                            Text(ProfileFormatter.activityLevel(level)).tag(level)
-                        }
-                    }
-                    FormaLabeledNumberField(
-                        title: FormaProductCopy.ProfileForm.averageSteps,
-                        placeholder: "5000",
-                        text: $formState.averageStepsText,
-                        keyboard: .numberPad
-                    )
-                }
-                .padding(.vertical, FormaTokens.Spacing.xs)
-                .fitPilotFormSection()
-            } header: {
-                FitPilotSettingsSectionHeader(title: "Lifestyle")
-            }
-
-            FoodPreferencesView(dietPreference: $formState.dietPreference)
-
-            Section {
-                DisclosureGroup("Advanced Settings", isExpanded: $showAdvanced) {
-                    VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
-                        FormaLabeledField(
-                            title: FormaProductCopy.ProfileForm.name,
-                            placeholder: "Your name",
-                            text: $formState.name,
-                            capitalization: .words
-                        )
-                        FormaLabeledNumberField(
-                            title: FormaProductCopy.ProfileForm.age,
-                            placeholder: "28",
-                            text: $formState.ageText,
-                            keyboard: .numberPad
-                        )
-                        FormaPickerRow(title: FormaProductCopy.ProfileForm.sex, selection: $formState.sex) {
-                            ForEach(Sex.allCases, id: \.self) { sex in
-                                Text(ProfileFormatter.sex(sex)).tag(sex)
-                            }
-                        }
-                        FormaLabeledNumberField(
-                            title: FormaProductCopy.ProfileForm.height,
-                            placeholder: "175",
-                            text: $formState.heightCmText,
-                            unit: "cm",
-                            keyboard: .decimalPad
-                        )
-                        FormaLabeledNumberField(
-                            title: FormaProductCopy.ProfileForm.baselineWeight,
-                            placeholder: "70",
-                            text: $formState.currentWeightKgText,
-                            unit: FormaProductCopy.FoodForm.kgUnit,
-                            keyboard: .decimalPad
-                        )
-                        FormaLabeledNumberField(
-                            title: FormaProductCopy.ProfileForm.bodyFat,
-                            placeholder: "Optional",
-                            text: $formState.estimatedBodyFatPercentageText,
-                            unit: "%",
-                            keyboard: .decimalPad
-                        )
-                    }
-                    .padding(.vertical, FormaTokens.Spacing.sm)
-
-                    MacroTargetSettingsView(
-                        calorieTargetText: $formState.calorieTargetText,
-                        proteinTargetText: $formState.proteinTargetText,
-                        carbTargetText: $formState.carbTargetText,
-                        fatTargetText: $formState.fatTargetText,
-                        expectedWeeklyWeightLossKgText: $formState.expectedWeeklyWeightLossKgText,
-                        aggressiveness: $formState.aggressiveness,
-                        onRegenerate: {
-                            Task { await onRegenerate(formState) }
-                        }
-                    )
-
-                    WaterTargetSettingsView(waterTargetMlText: $formState.waterTargetMlText)
-                    UnitSettingsView(unitSystem: $formState.unitSystem)
-                }
-            }
-        }
-    }
-
-    // MARK: Chrome
-
-    private var stepIndicator: some View {
-        HStack(spacing: 6) {
-            ForEach(stepTitles.indices, id: \.self) { index in
-                Capsule()
-                    .fill(index <= step ? Color.primary : Color.secondary.opacity(0.2))
-                    .frame(height: 3)
-            }
-        }
-    }
-
     // MARK: Actions
 
     private func advance() {
         withAnimation(.easeInOut(duration: 0.2)) {
-            step = min(step + 1, stepTitles.count - 1)
+            stepIndex = min(stepIndex + 1, flow.count - 1)
+        }
+    }
+
+    private func advanceFromReview() {
+        isGeneratingTargets = true
+        Task {
+            do {
+                let preview = try await onPrepareTargets(formState)
+                targetPreview = preview
+                formState.applyGeneratedTargets(preview.targets)
+                isGeneratingTargets = false
+                advance()
+            } catch {
+                isGeneratingTargets = false
+            }
         }
     }
 
@@ -330,6 +572,17 @@ struct PlanEditWizard: View {
         }
     }
 
+    private func regenerateTargetsForExpertSection() async {
+        guard let preview = try? await onPrepareTargets(formState) else { return }
+        formState.applyGeneratedTargets(preview.targets)
+    }
+
+    private func parsedPositive(_ text: String) -> Double? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let value = Double(trimmed), value > 0 else { return nil }
+        return value
+    }
+
     private func formatDouble(_ value: Double) -> String {
         value.truncatingRemainder(dividingBy: 1) == 0
             ? "\(Int(value))"
@@ -342,10 +595,12 @@ struct PlanEditWizard: View {
 private extension ProfileFormState {
     func asProfileSnapshot() -> UserProfile {
         let now = Date()
+        let age = (try? resolvedAge()) ?? 24
         return UserProfile(
             id: UUID(),
             name: name.isEmpty ? nil : name,
-            age: Int(ageText) ?? 24,
+            birthDate: birthDate,
+            age: age,
             sex: sex,
             heightCm: Double(heightCmText) ?? 170,
             currentWeightKg: Double(currentWeightKgText) ?? 70,
@@ -374,9 +629,10 @@ private extension ProfileFormState {
 #Preview {
     PlanEditWizard(
         formState: .constant(ProfilePreviewData.formState),
+        baselineProfile: ProfilePreviewData.profile,
         errorMessage: nil,
         onSave: { _ in },
         onCancel: {},
-        onRegenerate: { _ in }
+        onPrepareTargets: { _ in ProfilePreviewData.generatedPreview }
     )
 }

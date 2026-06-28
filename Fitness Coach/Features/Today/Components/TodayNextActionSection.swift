@@ -2,7 +2,7 @@
 //  TodayNextActionSection.swift
 //  Fitness Coach
 //
-//  Forma — Single highest-value next action for Today (Mission Control).
+//  Forma — Next Best Action card for Today (Mission Control item 2).
 //
 
 import SwiftUI
@@ -10,6 +10,7 @@ import SwiftUI
 struct TodayNextActionSection: View {
     let action: NextBestActionState
     let onPrimaryCTA: () -> Void
+    var onViewed: (() -> Void)?
 
     private var display: TodayNextActionDisplayModel {
         TodayNextActionFormatting.displayModel(for: action)
@@ -25,12 +26,16 @@ struct TodayNextActionSection: View {
                         .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                         .foregroundStyle(FormaTokens.Color.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(nil)
+                        .minimumScaleFactor(0.85)
 
                     if let subtitle = display.subtitle {
                         Text(subtitle)
                             .font(FormaTokens.Typography.body)
                             .foregroundStyle(FormaTokens.Color.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
+                            .lineLimit(nil)
+                            .minimumScaleFactor(0.85)
                     }
 
                     if display.showsPrimaryButton, let buttonTitle = display.primaryButtonTitle {
@@ -48,6 +53,9 @@ struct TodayNextActionSection: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(display.accessibilityLabel)
+        .onAppear {
+            onViewed?()
+        }
     }
 }
 

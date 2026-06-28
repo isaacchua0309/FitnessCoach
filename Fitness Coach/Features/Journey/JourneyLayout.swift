@@ -12,8 +12,8 @@ enum JourneyLayout {
     static let itemSpacing = FormaTokens.Spacing.sm
     static let horizontalPadding = FormaTokens.Spacing.pageHorizontal
 
-    /// Logged days required before showing the full monthly calendar grid.
-    static let minimumLoggedDaysForCalendar = 3
+    /// Extra breathing room after the flagship transformation hero.
+    static let heroBottomSpacing = FormaTokens.Spacing.md
 
     /// Padding below the last Journey section (see `FormaMainTabLayout`).
     static let scrollBottomContentPadding = FormaMainTabLayout.scrollContentBottomPadding

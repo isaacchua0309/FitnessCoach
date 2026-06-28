@@ -16,6 +16,11 @@ enum TodayViewState: Equatable {
     case loaded(TodayDashboardState)
     case empty
     case error(String)
+
+    var isLoaded: Bool {
+        if case .loaded = self { return true }
+        return false
+    }
 }
 
 // MARK: - Dashboard root
@@ -23,6 +28,7 @@ enum TodayViewState: Equatable {
 struct TodayDashboardState: Equatable {
     var date: Date
     var hasDailyLog: Bool
+    var emptyContext: TodayDashboardEmptyContext
     var mission: TodayMissionState
     var goalConnection: TodayGoalConnectionState?
     var nextBestAction: NextBestActionState
@@ -33,6 +39,11 @@ struct TodayDashboardState: Equatable {
     var dailyScorecard: TodayDailySummaryScorecardState
     var dailySummary: DailySummaryState
     var aiCoachTip: AICoachTipState
+}
+
+struct TodayDashboardEmptyContext: Equatable, Sendable {
+    var mealsEmptyKind: TodayMealsEmptyKind
+    var showsWeightReminder: Bool
 }
 
 extension TodayDashboardState {

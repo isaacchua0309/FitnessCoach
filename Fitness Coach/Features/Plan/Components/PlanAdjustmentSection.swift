@@ -17,39 +17,60 @@ struct PlanAdjustmentSection: View {
 
             FitPilotPlanCard {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(state.currentHeading)
-                        .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
-                        .padding(.bottom, FormaTokens.Spacing.xs)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(state.lastUpdatedLabel)
+                            .font(FormaTokens.Typography.caption)
+                            .foregroundStyle(FormaTokens.Color.textSecondary)
+                            .padding(.bottom, 4)
+                            .accessibilityHidden(true)
+
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text(state.lastUpdateReasonHeading)
+                                .font(FormaTokens.Typography.caption.weight(.semibold))
+                                .foregroundStyle(FormaTokens.Color.textSecondary)
+                            Text(state.lastUpdateReasonCopy)
+                                .font(FormaTokens.Typography.caption)
+                                .foregroundStyle(FormaTokens.Color.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.bottom, FormaTokens.Spacing.sm)
                         .accessibilityHidden(true)
 
-                    summaryRows
-                        .accessibilityHidden(true)
+                        Text(state.currentHeading)
+                            .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
+                            .foregroundStyle(FormaTokens.Color.textSecondary)
+                            .padding(.bottom, FormaTokens.Spacing.xs)
+                            .accessibilityHidden(true)
+
+                        summaryRows
+                            .accessibilityHidden(true)
+
+                        Text(state.editSafetyCopy)
+                            .font(FormaTokens.Typography.caption)
+                            .foregroundStyle(FormaTokens.Color.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.top, FormaTokens.Spacing.xs)
+                            .accessibilityHidden(true)
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(readOnlyAccessibilitySummary)
 
                     if state.canEditPlan {
                         Button(action: onAdjustPlan) {
                             Text(state.adjustPlanTitle)
                                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                                .foregroundStyle(FormaTokens.Color.accent)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .frame(maxWidth: .infinity)
                                 .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.borderedProminent)
+                        .tint(FormaTokens.Color.accent)
                         .padding(.top, FormaTokens.Spacing.sm)
                         .accessibilityLabel(state.adjustPlanTitle)
+                        .accessibilityHint(FormaProductCopy.PlanMissionControl.adjustPlanAccessibilityHint)
                     }
-
-                    Text(state.editSafetyCopy)
-                        .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, FormaTokens.Spacing.xs)
-                        .accessibilityHidden(true)
                 }
             }
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(state.accessibilitySummary)
     }
 
     private var summaryRows: some View {
@@ -61,6 +82,18 @@ struct PlanAdjustmentSection: View {
                 FitPilotPlanDisplayRow(label: row.label, value: row.value)
             }
         }
+    }
+
+    private var readOnlyAccessibilitySummary: String {
+        var parts = [
+            state.sectionTitle,
+            state.lastUpdatedLabel,
+            "\(state.lastUpdateReasonHeading) \(state.lastUpdateReasonCopy)",
+            state.currentHeading
+        ]
+        parts.append(contentsOf: state.summaryRows.map { "\($0.label), \($0.value)" })
+        parts.append(state.editSafetyCopy)
+        return parts.joined(separator: ". ")
     }
 }
 

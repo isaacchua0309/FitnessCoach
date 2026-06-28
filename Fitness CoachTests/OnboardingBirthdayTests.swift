@@ -123,7 +123,129 @@ final class OnboardingBirthdayTests: XCTestCase {
         )
     }
 
-    func testSexRequiredForBirthdayStep() {
+    func testBirthdayStepCopyUsesPersonalizationBasics() {
+        let copy = FormaProductCopy.Onboarding.Flow.Birthday.self
+        XCTAssertEqual(copy.title, "Let's personalize your plan")
+        XCTAssertEqual(
+            copy.subtitle,
+            "We use this to estimate your calorie target."
+        )
+        XCTAssertEqual(OnboardingStep.birthday.title, copy.title)
+        XCTAssertEqual(OnboardingStep.birthday.subtitle, copy.subtitle)
+    }
+
+    func testBirthdayStepUsesFixedViewportShell() {
+        XCTAssertTrue(OnboardingStep.birthday.usesFixedViewportShell)
+        XCTAssertFalse(OnboardingStep.heightWeight.usesFixedViewportShell)
+    }
+
+    func testBirthdayCompactTrustNoteCopy() {
+        XCTAssertEqual(
+            FormaProductCopy.Onboarding.Flow.Birthday.trustNote,
+            "Used only to build your plan. You can update this later."
+        )
+    }
+
+    func testBirthdayAgeExplanationCopy() {
+        XCTAssertEqual(
+            FormaProductCopy.Onboarding.Flow.Birthday.ageExplanation,
+            "Age helps estimate energy needs."
+        )
+    }
+
+    func testBirthdayValidationDisablesContinueWhenSexMissing() {
+        let birthDate = calendar.date(from: DateComponents(year: 1995, month: 7, day: 4))!
+        var state = OnboardingFormState()
+        state.birthDate = birthDate
+        state.syncAgeTextFromBirthDate(referenceDate: referenceDate)
+
+        XCTAssertFalse(state.canAdvance(from: .birthday))
+        XCTAssertEqual(
+            state.validationMessage(for: .birthday),
+            FormaProductCopy.Onboarding.Flow.Birthday.sexRequiredMessage
+        )
+    }
+
+    func testBirthdayValidationDisablesContinueWhenBirthDateMissing() {
+        var state = OnboardingFormState()
+        state.sex = .male
+
+        XCTAssertFalse(state.canAdvance(from: .birthday))
+        XCTAssertEqual(
+            state.validationMessage(for: .birthday),
+            FormaProductCopy.Onboarding.Flow.Birthday.birthDateRequiredMessage
+        )
+    }
+
+    func testBirthdayValidBirthDateAndSexEnablesContinue() {
+        let birthDate = calendar.date(from: DateComponents(year: 1998, month: 6, day: 26))!
+        var state = validFormState(birthDate: birthDate, sex: .male)
+
+        XCTAssertTrue(state.canAdvance(from: .birthday))
+        XCTAssertEqual(
+            OnboardingBirthdayValues.derivedAge(
+                from: state,
+                referenceDate: referenceDate,
+                calendar: calendar
+            ),
+            28
+        )
+    }
+
+    func testBirthdayDraftRestorePreservesBirthDateAndSex() {
+        let birthDate = calendar.date(from: DateComponents(year: 1992, month: 11, day: 8))!
+        var formState = validFormState(birthDate: birthDate, sex: .male)
+
+        let draft = OnboardingDraft(formState: formState, step: .birthday)
+        let restored = draft.makeFormState()
+
+        XCTAssertEqual(restored.birthDate, birthDate)
+        XCTAssertEqual(restored.sex, .male)
+        XCTAssertEqual(try restored.resolvedAge(referenceDate: referenceDate), 33)
+    }
+
+    func testBirthdayStepDoesNotUseManualAgeInputCopy() {
+        let forbidden = [
+            "body fat",
+            "gym sessions",
+            "manual age",
+            "enter your age"
+        ]
+        let copyStrings = [
+            FormaProductCopy.Onboarding.Flow.Birthday.title,
+            FormaProductCopy.Onboarding.Flow.Birthday.subtitle,
+            FormaProductCopy.Onboarding.Flow.Birthday.birthdayLabel,
+            FormaProductCopy.Onboarding.Flow.Birthday.sexSectionTitle,
+            FormaProductCopy.Onboarding.Flow.Birthday.sexExplanation,
+            FormaProductCopy.Onboarding.Flow.Birthday.ageExplanation,
+            FormaProductCopy.Onboarding.Flow.Birthday.trustNote,
+            FormaProductCopy.Onboarding.Flow.Birthday.agePreviewPlaceholder,
+            FormaProductCopy.Onboarding.Flow.Birthday.birthDateRequiredMessage,
+            FormaProductCopy.Onboarding.Flow.Birthday.sexRequiredMessage
+        ]
+        .map { $0.lowercased() }
+        .joined(separator: " ")
+
+        for term in forbidden {
+            XCTAssertFalse(
+                copyStrings.contains(term),
+                "Birthday step copy should not mention '\(term)'"
+            )
+        }
+    }
+
+    func testBirthdayWheelUsesCompactHeight() {
+        XCTAssertLessThanOrEqual(OnboardingLayout.birthdayWheelHeight, 140)
+    }
+
+    func testBirthdayFooterInsetDoesNotDoubleCountFooterHeight() {
+        XCTAssertEqual(
+            OnboardingLayout.scrollContentBottomInset(keyboardHeight: 0),
+            OnboardingLayout.scrollContentBreathingRoom
+        )
+    }
+
+    func testBirthdayValidationRequiresSex() {
         let birthDate = calendar.date(from: DateComponents(year: 1995, month: 7, day: 4))!
         var state = validFormState(birthDate: birthDate, sex: .preferNotToSay)
 
@@ -161,7 +283,7 @@ final class OnboardingBirthdayTests: XCTestCase {
         XCTAssertEqual(try state.resolvedAge(referenceDate: referenceDate), OnboardingPickerDefaults.defaultAge)
     }
 
-    func testCalorieInputUsesDerivedAgeFromBirthDate() throws {
+    func testBirthdayIsSourceOfTruthOverStaleAgeText() throws {
         let birthDate = calendar.date(from: DateComponents(year: 1998, month: 1, day: 1))!
         var state = validFormState(birthDate: birthDate)
         state.ageText = "99"

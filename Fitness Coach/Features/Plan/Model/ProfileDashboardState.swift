@@ -2,7 +2,7 @@
 //  ProfileDashboardState.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Strategy-first view state for the Plan screen.
+//  FitPilot AI — Mission Control view state for the Plan screen.
 //
 
 import Foundation
@@ -14,7 +14,6 @@ struct ProfileDashboardState: Equatable {
     var strategy: PlanStrategyState
     var todaysTargets: PlanTodaysTargetsState
     var rationale: PlanRationaleState
-    var adaptiveCoach: PlanAdaptiveCoachState
     var lifestyle: PlanLifestyleState
 }
 
@@ -36,13 +35,6 @@ struct PlanTodaysTargetsState: Equatable {
     var protein: String
     var water: String
     var trainingFrequency: String
-}
-
-// MARK: Adaptive Coach
-
-struct PlanAdaptiveCoachState: Equatable {
-    var currentStatus: String
-    var futureTriggers: [String]
 }
 
 // MARK: Lifestyle

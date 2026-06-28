@@ -13,8 +13,8 @@ final class EmptyStateCopyTests: XCTestCase {
     func testMealsEmptyStateUsesCentralizedCopy() {
         XCTAssertEqual(FormaProductCopy.Today.mealsEmptyTitle, FormaProductCopy.EmptyState.Meals.title)
         XCTAssertEqual(FormaProductCopy.Today.mealsEmptyBody, FormaProductCopy.EmptyState.Meals.body)
-        XCTAssertEqual(FormaProductCopy.Journey.weightTrendEmpty, FormaProductCopy.EmptyState.WeightTrend.body)
-        XCTAssertEqual(FormaProductCopy.Journey.momentumEmptyBody, FormaProductCopy.EmptyState.Consistency.body)
+        XCTAssertEqual(FormaProductCopy.Journey.EmptyState.weightTrendBody, FormaProductCopy.EmptyState.WeightTrend.body)
+        XCTAssertEqual(FormaProductCopy.Journey.EmptyState.consistencyBody, FormaProductCopy.EmptyState.Consistency.body)
         XCTAssertEqual(FormaProductCopy.Coach.emptyIntro, FormaProductCopy.EmptyState.CoachConversation.body)
     }
 
@@ -22,6 +22,11 @@ final class EmptyStateCopyTests: XCTestCase {
         let samples = [
             FormaProductCopy.EmptyState.Meals.title,
             FormaProductCopy.EmptyState.Meals.body,
+            FormaProductCopy.Today.EmptyState.newProfileMealsBody,
+            FormaProductCopy.Today.EmptyState.newDayMealsBody,
+            FormaProductCopy.Today.EmptyState.loadErrorLocalBody,
+            FormaProductCopy.Today.EmptyState.noActivityBody,
+            FormaProductCopy.Today.EmptyState.noRecentWeightBody,
             FormaProductCopy.EmptyState.WeightTrend.body,
             FormaProductCopy.EmptyState.Consistency.body,
             FormaProductCopy.EmptyState.CoachConversation.body,

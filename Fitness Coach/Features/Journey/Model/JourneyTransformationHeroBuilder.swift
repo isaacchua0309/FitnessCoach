@@ -27,8 +27,13 @@ enum JourneyTransformationHeroBuilder {
         let headline = headlineCopy(goalDirection: baseline.goalDirection)
         let changeValueCopy = ProgressFormatter.heroChangeKg(changeKg)
         let progressPercent = baseline.progressPercent ?? 0
+        let goalWeightCopy = ProgressFormatter.heroWeightKg(baseline.goalWeightKg)
         let progressLabel = Self.progressLabel(percent: baseline.progressPercent)
         let progressBarAccessibilityValue = Self.progressBarAccessibilityValue(percent: baseline.progressPercent)
+        let progressBarFill = Self.progressBarFill(
+            percent: progressPercent,
+            hasGoal: baseline.goalWeightKg != nil
+        )
         let emotionalStatus = emotionalStatusLabel(
             baseline: baseline,
             loggedDays: input.loggedDays,
@@ -42,7 +47,7 @@ enum JourneyTransformationHeroBuilder {
             ? FormaProductCopy.Journey.Transformation.onboardingBaseline
             : nil
 
-        let accessibilitySummary = accessibilitySummary(
+        let accessibilitySummary = FormaProductCopy.Journey.Transformation.accessibilitySummary(
             headline: headline,
             changeValue: changeValueCopy,
             started: ProgressFormatter.heroWeightKg(baseline.startWeightKg),
@@ -57,16 +62,17 @@ enum JourneyTransformationHeroBuilder {
             headlineCopy: headline,
             changeValueCopy: changeValueCopy,
             emotionalStatusLabel: emotionalStatus,
-            progressBarPercent: progressPercent,
+            progressBarFill: progressBarFill,
             progressLabel: progressLabel,
             progressBarAccessibilityValue: progressBarAccessibilityValue,
             startedWeightCopy: ProgressFormatter.heroWeightKg(baseline.startWeightKg),
             todayWeightCopy: ProgressFormatter.heroWeightKg(baseline.currentWeightKg),
-            goalWeightCopy: ProgressFormatter.heroWeightKg(baseline.goalWeightKg),
+            goalWeightCopy: goalWeightCopy,
             startedFootnote: startedFootnote,
             paceForecastText: paceForecast,
             streakChip: streakChip,
             usesSyntheticBaseline: baseline.usesSyntheticBaselinePoint,
+            showsUpdateGoalCTA: baseline.goalWeightKg != nil,
             accessibilitySummary: accessibilitySummary
         )
     }
@@ -114,6 +120,14 @@ enum JourneyTransformationHeroBuilder {
         guard let percent else { return "0 percent" }
         let clampedDisplay = Int(min(max(percent, 0), 999).rounded())
         return "\(clampedDisplay) percent complete"
+    }
+
+    static func progressBarFill(percent: Double, hasGoal: Bool) -> Double {
+        let clamped = max(percent, 0)
+        if clamped <= 0, hasGoal {
+            return 0.02
+        }
+        return min(clamped, 100) / 100
     }
 
     // MARK: - Emotional status
@@ -204,29 +218,5 @@ enum JourneyTransformationHeroBuilder {
             return FormaProductCopy.Journey.Transformation.paceForecast(month: monthLabel)
         }
         return FormaProductCopy.Journey.Transformation.paceForecastFallback
-    }
-
-    // MARK: - Accessibility
-
-    private static func accessibilitySummary(
-        headline: String,
-        changeValue: String,
-        started: String,
-        today: String,
-        goal: String,
-        progressLabel: String,
-        emotionalStatus: String,
-        startedFootnote: String?
-    ) -> String {
-        var parts = [
-            "\(headline) \(changeValue).",
-            "Started \(started), today \(today), goal \(goal).",
-            progressLabel + ".",
-            emotionalStatus + "."
-        ]
-        if let startedFootnote {
-            parts.insert("Started weight from \(startedFootnote.lowercased()).", at: 2)
-        }
-        return parts.joined(separator: " ")
     }
 }

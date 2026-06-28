@@ -65,6 +65,7 @@ final class SignOutHygieneTests: XCTestCase {
             SignedInProfileReconcileInput(
                 uid: "signed-in-user",
                 pendingOnboardingCompletion: false,
+                pendingExistingUserSignIn: false,
                 hasLocalProfile: true,
                 localOwnerUID: "signed-in-user",
                 isFreshSignIn: true,
@@ -81,6 +82,7 @@ final class SignOutHygieneTests: XCTestCase {
             SignedInProfileReconcileInput(
                 uid: "other-user",
                 pendingOnboardingCompletion: false,
+                pendingExistingUserSignIn: false,
                 hasLocalProfile: true,
                 localOwnerUID: "signed-in-user",
                 isFreshSignIn: true,
@@ -98,6 +100,7 @@ final class SignOutHygieneTests: XCTestCase {
             SignedInProfileReconcileInput(
                 uid: "signed-in-user",
                 pendingOnboardingCompletion: false,
+                pendingExistingUserSignIn: false,
                 hasLocalProfile: true,
                 localOwnerUID: nil,
                 isFreshSignIn: true,

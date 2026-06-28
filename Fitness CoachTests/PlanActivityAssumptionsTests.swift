@@ -8,62 +8,39 @@ import XCTest
 
 final class PlanActivityAssumptionsTests: XCTestCase {
 
-    // MARK: - Display
-
-    func testAssumptionsShowActivityStepsAndTraining() {
+    func testAssumptionsShowActivityLevelOnlyInPrimarySummary() {
         let assumptions = PlanMissionControlFixtures.loseDashboard.activityAssumptions
 
-        XCTAssertEqual(assumptions.sectionTitle, "Plan Assumptions")
+        XCTAssertEqual(assumptions.sectionTitle, "Activity Assumptions")
         XCTAssertEqual(assumptions.activityLevel, "Moderately active")
-        XCTAssertEqual(assumptions.estimatedStepsLabel, "7,500/day")
-        XCTAssertEqual(assumptions.trainingSessionsLabel, "3 sessions/week")
-        XCTAssertEqual(assumptions.adjustActivityTitle, "Adjust activity")
+        XCTAssertEqual(assumptions.activityFieldLabel, "Activity level")
+        XCTAssertEqual(assumptions.adjustActivityTitle, "Update activity level")
     }
 
-    func testAssumptionsNoteMentionsOnboardingAndNoAutoChange() {
+    func testAssumptionsNoteAvoidsOnboardingAndAutoTargetChanges() {
         let note = PlanMissionControlFixtures.loseDashboard.activityAssumptions.assumptionsNote
 
-        XCTAssertTrue(note.contains("onboarding"))
-        XCTAssertTrue(note.contains("will not auto-change"))
-        XCTAssertFalse(note.lowercased().contains("dynamic calor"))
-        XCTAssertFalse(note.lowercased().contains("automatically adjust"))
+        XCTAssertFalse(note.lowercased().contains("onboarding"))
+        XCTAssertTrue(note.lowercased().contains("won't change"))
+        XCTAssertNil(PlanCopySafetyPolicy.forbiddenViolation(in: note))
     }
 
-    // MARK: - Apple Health connected
-
-    func testConnectedStateShowsAppleHealthStatus() {
-        let assumptions = PlanMissionControlFixtures.connectedDashboard.activityAssumptions
-
-        XCTAssertTrue(assumptions.showsAppleHealthStatus)
-        XCTAssertTrue(assumptions.isAppleHealthConnected)
-        XCTAssertEqual(assumptions.appleHealthStatusLabel, "Connected")
-        XCTAssertFalse(assumptions.showsConnectAppleHealthCTA)
-    }
-
-    // MARK: - Apple Health disconnected
-
-    func testDisconnectedStateShowsConnectCTA() {
-        let assumptions = PlanMissionControlFixtures.loseDashboard.activityAssumptions
-
-        XCTAssertTrue(assumptions.showsAppleHealthStatus)
-        XCTAssertFalse(assumptions.isAppleHealthConnected)
-        XCTAssertEqual(assumptions.appleHealthStatusLabel, "Not connected")
-        XCTAssertTrue(assumptions.showsConnectAppleHealthCTA)
-        XCTAssertEqual(assumptions.connectAppleHealthTitle, "Connect Apple Health")
-    }
-
-    func testAccessibilitySummaryIncludesAssumptionValues() {
+    func testAccessibilitySummaryFocusesOnActivityLevel() {
         let summary = PlanMissionControlFixtures.loseDashboard.activityAssumptions.accessibilitySummary
 
-        XCTAssertTrue(summary.contains("Plan Assumptions"))
+        XCTAssertTrue(summary.contains("Activity Assumptions"))
         XCTAssertTrue(summary.contains("Moderately active"))
-        XCTAssertTrue(summary.contains("7,500/day"))
-        XCTAssertTrue(summary.contains("3 sessions/week"))
+        XCTAssertFalse(summary.contains("7,500/day"))
+        XCTAssertFalse(summary.contains("sessions/week"))
     }
 
-    // MARK: - Edit wizard entry
+    func testActivityStepIndexMatchesEditFlowWhenBirthdayRequired() {
+        var formState = ProfileFormState(profile: PlanMissionControlFixtures.loseProfile)
+        formState.birthDate = nil
 
-    func testLifestyleStepIndexMatchesActivityEditFlow() {
-        XCTAssertEqual(PlanEditWizard.lifestyleStepIndex, 3)
+        XCTAssertEqual(
+            PlanEditWizardFlow.index(of: .activityLevel, formState: formState),
+            3
+        )
     }
 }

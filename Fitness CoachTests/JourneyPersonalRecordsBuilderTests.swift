@@ -11,6 +11,7 @@ final class JourneyPersonalRecordsBuilderTests: XCTestCase {
     private var calendar: Calendar = {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        calendar.locale = Locale(identifier: "en_US_POSIX")
         return calendar
     }()
 
@@ -184,7 +185,7 @@ final class JourneyPersonalRecordsBuilderTests: XCTestCase {
 
     private func makeLog(
         daysAgo: Int,
-        calories: Double,
+        calories: Int,
         protein: Double,
         waterMl: Int = 500
     ) -> DailyLog {

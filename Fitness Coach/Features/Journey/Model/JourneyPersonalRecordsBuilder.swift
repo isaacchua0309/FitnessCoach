@@ -31,7 +31,7 @@ enum JourneyPersonalRecordsBuilder {
 
         var records: [JourneyPersonalRecord] = []
 
-        if let streak = longestLoggingStreak(in: input.maturityLogs, calendar: input.calendar) {
+        if let streak = longestLoggingStreak(logs: input.maturityLogs, calendar: input.calendar) {
             records.append(
                 JourneyPersonalRecord(
                     id: "logging-streak",

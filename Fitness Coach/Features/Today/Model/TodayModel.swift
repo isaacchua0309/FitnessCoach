@@ -42,13 +42,17 @@ final class TodayModel: ObservableObject {
 
     func loadToday(activityContext: TodayActivityContext = .default) async {
         self.activityContext = activityContext
-        viewState = .loading
+        if !viewState.isLoaded {
+            viewState = .loading
+        }
         do {
             try loadDashboard()
         } catch ServiceError.missingUserProfile {
             viewState = .empty
         } catch {
-            viewState = .error(FormaProductCopy.Error.loadToday)
+            if !viewState.isLoaded {
+                viewState = .error(TodayLoadErrorFormatting.message(for: error, isRefresh: false))
+            }
         }
     }
 
@@ -56,12 +60,16 @@ final class TodayModel: ObservableObject {
         if let activityContext {
             self.activityContext = activityContext
         }
+        let previousState = viewState
         do {
             try loadDashboard()
         } catch ServiceError.missingUserProfile {
             viewState = .empty
         } catch {
-            viewState = .error(FormaProductCopy.Error.refreshToday)
+            guard case .loaded = previousState else {
+                viewState = .error(TodayLoadErrorFormatting.message(for: error, isRefresh: true))
+                return
+            }
         }
     }
 
@@ -113,6 +121,7 @@ final class TodayModel: ObservableObject {
 
         let trainingFrequency = profile?.trainingFrequencyPerWeek ?? 0
         let (streaks, weekLoggedDays) = try buildMomentumMetrics(asOf: dailyLog.date)
+        let hasPriorFoodLogs = try hasPriorFoodLogs(before: dailyLog.date)
         let dailyBrief = DailyBriefBuilder.todayBrief(
             profile: profile,
             caloriesRemaining: calorieSummary.remaining,
@@ -133,6 +142,7 @@ final class TodayModel: ObservableObject {
                 hasRecentWeight: hasRecentWeight,
                 workoutSummary: workoutSummary,
                 foodEntries: foodEntries,
+                hasPriorFoodLogs: hasPriorFoodLogs,
                 streaks: streaks,
                 weekLoggedDays: weekLoggedDays,
                 dailyBrief: dailyBrief,
@@ -163,5 +173,21 @@ final class TodayModel: ObservableObject {
             asOf: date
         )
         return (streaks, weekLoggedDays)
+    }
+
+    private func hasPriorFoodLogs(before date: Date) throws -> Bool {
+        let calendar = Calendar.current
+        let todayStart = calendar.startOfDay(for: date)
+        guard let lookbackStart = calendar.date(byAdding: .day, value: -365, to: todayStart) else {
+            return false
+        }
+        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: todayStart) else {
+            return false
+        }
+
+        let logs = try dailyLogService.getLogs(from: lookbackStart, to: yesterday)
+        return logs.contains { log in
+            calendar.startOfDay(for: log.date) < todayStart && log.totals.calories > 0
+        }
     }
 }

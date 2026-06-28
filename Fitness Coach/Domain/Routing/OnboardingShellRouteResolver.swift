@@ -10,17 +10,16 @@ import Foundation
 /// Shell destinations for onboarding routing.
 enum OnboardingShellRoute: Equatable {
     case launchLoading
-    /// Signed-out user with no local profile — onboarding before auth.
-    case preAuthOnboarding
-    case preAuthOnboardingInitializing
-    /// Returning user with a local profile who chose sign-in from the pre-auth landing.
-    case signIn
-    /// Signed-out user with a local profile allowed to use the app locally.
+    case welcome
+    case existingUserSignIn
+    case onboardingStart
+    case onboardingStartInitializing
     case localMain
     case signedInProfileLoading
-    case missingCloudProfile
+    case noExistingProfileFound
     case onboardingCloudProfileConflict
     case onboardingCloudCheckFailed
+    case existingUserProfileLookupFailed
     case cloudProfileUploadFailed
     case accountProfileMismatch
     case onboarding
@@ -48,6 +47,8 @@ struct OnboardingShellRouteInput: Equatable, Sendable {
     var awaitingCloudSync: Bool
     var localProfileAwaitingSignIn: Bool
     var pendingOnboardingCompletion: Bool
+    var publicEntryDestination: PublicEntryRoute
+    var hasPersistedOnboardingDraft: Bool
 
     init(
         authState: AuthState,
@@ -57,7 +58,9 @@ struct OnboardingShellRouteInput: Equatable, Sendable {
         signedOutWithProfilePolicy: SignedOutWithProfilePolicy = .requireSignIn,
         awaitingCloudSync: Bool = false,
         localProfileAwaitingSignIn: Bool = false,
-        pendingOnboardingCompletion: Bool = false
+        pendingOnboardingCompletion: Bool = false,
+        publicEntryDestination: PublicEntryRoute = .welcome,
+        hasPersistedOnboardingDraft: Bool = false
     ) {
         self.authState = authState
         self.hasLocalProfile = hasLocalProfile
@@ -67,6 +70,8 @@ struct OnboardingShellRouteInput: Equatable, Sendable {
         self.awaitingCloudSync = awaitingCloudSync
         self.localProfileAwaitingSignIn = localProfileAwaitingSignIn
         self.pendingOnboardingCompletion = pendingOnboardingCompletion
+        self.publicEntryDestination = publicEntryDestination
+        self.hasPersistedOnboardingDraft = hasPersistedOnboardingDraft
     }
 }
 

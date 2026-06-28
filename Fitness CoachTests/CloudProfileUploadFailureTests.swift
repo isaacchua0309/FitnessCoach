@@ -11,40 +11,18 @@ import XCTest
 @MainActor
 final class CloudProfileUploadFailureTests: XCTestCase {
 
-    private struct Harness {
-        let container: AppContainer
-        let cloudStore: MockCloudUserProfileStore
-        let syncStore: ProfileCloudSyncStore
-        let coordinator: ProfileBootstrapCoordinatorService
-    }
+    private typealias Harness = ProfileBootstrapTestSupport.Harness
 
     private func makeHarness() throws -> Harness {
-        let cloudStore = MockCloudUserProfileStore()
-        let container = try AppContainer(inMemory: true)
-        let syncStore = container.profileCloudSyncStore
-        let bootstrapService = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
-            cloudStore: cloudStore,
-            cloudSyncStore: syncStore
-        )
-        let coordinator = ProfileBootstrapCoordinatorService(
-            profileBootstrapService: bootstrapService,
-            cloudSyncStore: syncStore
-        )
-        return Harness(
-            container: container,
-            cloudStore: cloudStore,
-            syncStore: syncStore,
-            coordinator: coordinator
-        )
+        try ProfileBootstrapTestSupport.makeHarness()
     }
 
     func testOnboardingUploadFailureMapsToUploadFailedState() async throws {
         let harness = try makeHarness()
         harness.cloudStore.saveError = NSError(domain: "test", code: 1)
-        _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
 
-        let outcome = await harness.coordinator.resolveOnboardingCompletion(uid: "signed-in-user")
+        let outcome = await harness.makeCoordinator().resolveOnboardingCompletion(uid: "signed-in-user")
 
         XCTAssertEqual(outcome, .cloudSyncFailed)
 
@@ -65,9 +43,9 @@ final class CloudProfileUploadFailureTests: XCTestCase {
     func testOnboardingCloudCheckFailureStillMapsToCheckFailedState() async throws {
         let harness = try makeHarness()
         harness.cloudStore.fetchError = NSError(domain: "test", code: 1)
-        _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
 
-        let outcome = await harness.coordinator.resolveOnboardingCompletion(uid: "signed-in-user")
+        let outcome = await harness.makeCoordinator().resolveOnboardingCompletion(uid: "signed-in-user")
 
         XCTAssertEqual(outcome, .cloudCheckFailed)
         XCTAssertEqual(harness.cloudStore.saveCallCount, 0)
@@ -81,17 +59,17 @@ final class CloudProfileUploadFailureTests: XCTestCase {
 
     func testReconcileUploadFailureDoesNotMarkSynced() async throws {
         let harness = try makeHarness()
-        _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
         harness.cloudStore.saveError = NSError(domain: "test", code: 1)
 
         do {
-            try await harness.coordinator.syncLocalProfileToCloud(uid: "signed-in-user")
+            try await harness.makeCoordinator().syncLocalProfileToCloud(uid: "signed-in-user")
             XCTFail("Expected reconcile upload to fail")
         } catch {
             XCTAssertFalse(harness.syncStore.isSyncedForUID("signed-in-user"))
         }
 
-        XCTAssertNotNil(try harness.container.userProfileService.getCurrentProfile())
+        XCTAssertNotNil(try harness.profileService.getCurrentProfile())
 
         let route = AppRouteResolver.resolve(
             authState: .signedIn(uid: "signed-in-user"),
@@ -102,9 +80,9 @@ final class CloudProfileUploadFailureTests: XCTestCase {
 
     func testRetrySuccessMarksSyncedAndAllowsMain() async throws {
         let harness = try makeHarness()
-        _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
 
-        try await harness.coordinator.retryCloudProfileUpload(
+        try await harness.makeCoordinator().retryCloudProfileUpload(
             uid: "signed-in-user",
             context: .reconcileUpload
         )
@@ -114,8 +92,8 @@ final class CloudProfileUploadFailureTests: XCTestCase {
     }
 
     func testRootModelContinueDespiteUploadFailureRoutesMain() throws {
-        let container = try AppContainer(inMemory: true)
-        let rootModel = RootModel(profileBootstrapService: container.profileBootstrapService)
+        let bootstrapHarness = try ProfileBootstrapTestSupport.makeHarness()
+        let rootModel = RootModel(profileBootstrapService: bootstrapHarness.bootstrapService)
 
         rootModel.presentCloudProfileUploadFailed()
         XCTAssertEqual(rootModel.state, .cloudProfileUploadFailed)
@@ -136,13 +114,13 @@ final class CloudProfileUploadFailureTests: XCTestCase {
     func testUploadFailureDoesNotOverwriteCloud() async throws {
         let harness = try makeHarness()
         harness.cloudStore.storedDocument = ProfileTestFixtures.cloudDocument()
-        _ = try harness.container.userProfileService.createProfile(
+        _ = try harness.profileService.createProfile(
             ProfileTestFixtures.sampleDraft,
             ownerUID: "other-user"
         )
 
         do {
-            try await harness.coordinator.retryCloudProfileUpload(
+            try await harness.makeCoordinator().retryCloudProfileUpload(
                 uid: "signed-in-user",
                 context: .profileEdit
             )
@@ -167,7 +145,9 @@ final class CloudProfileUploadFailureTests: XCTestCase {
         _ = try harness.actionCenter.updatePlan(
             UserProfileUpdate(targets: DailyLogServiceTestSupport.alternateTargets)
         )
-        try await Task.sleep(nanoseconds: 150_000_000)
+        _ = await AsyncTestSupport.waitUntil {
+            harness.cloudUploadFailureNotifier.pendingContext == .profileEdit
+        }
 
         XCTAssertEqual(harness.cloudUploadFailureNotifier.pendingContext, .profileEdit)
         XCTAssertFalse(harness.syncStore.isSyncedForUID("test-user-1"))

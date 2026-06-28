@@ -2,7 +2,7 @@
 //  TodayQuickActionKind.swift
 //  Fitness Coach
 //
-//  Forma — Quick log actions available from the Today FAB menu.
+//  Forma — Quick log actions on Today.
 //
 
 import Foundation

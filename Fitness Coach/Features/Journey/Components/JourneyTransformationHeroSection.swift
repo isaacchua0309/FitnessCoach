@@ -7,38 +7,49 @@ import SwiftUI
 
 struct JourneyTransformationHeroSection: View {
     let state: JourneyTransformationHeroState
+    var onCTA: ((JourneyCTA) -> Void)?
 
     @ScaledMetric(relativeTo: .largeTitle) private var heroValueSize: CGFloat = 52
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
-            statusRow
+        FitPilotPlanCard {
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+                statusRow
 
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-                Text(state.headlineCopy)
-                    .font(FormaTokens.Typography.sectionTitle)
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+                    Text(state.headlineCopy)
+                        .font(FormaTokens.Typography.sectionTitle)
+                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .accessibilityHidden(true)
+
+                    Text(state.changeValueCopy)
+                        .font(.system(size: heroValueSize, weight: .bold, design: .rounded))
+                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                        .minimumScaleFactor(0.65)
+                        .lineLimit(1)
+                        .accessibilityHidden(true)
+                }
+
+                progressBlock
+
+                anchorColumns
+
+                Text(state.paceForecastText)
+                    .font(FormaTokens.Typography.sectionSubtitle)
                     .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityHidden(true)
 
-                Text(state.changeValueCopy)
-                    .font(.system(size: heroValueSize, weight: .bold, design: .rounded))
-                    .foregroundStyle(FormaTokens.Color.textPrimary)
-                    .minimumScaleFactor(0.65)
-                    .lineLimit(1)
+                if state.showsUpdateGoalCTA, let onCTA {
+                    JourneyCTAButton(cta: .updateGoal) {
+                        onCTA(.updateGoal)
+                    }
+                    .padding(.top, FormaTokens.Spacing.xs)
                     .accessibilityHidden(true)
+                }
             }
-
-            progressBlock
-
-            anchorColumns
-
-            Text(state.paceForecastText)
-                .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(FormaTokens.Color.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityHidden(true)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(state.accessibilitySummary)
     }
@@ -71,7 +82,7 @@ struct JourneyTransformationHeroSection: View {
 
     private var progressBlock: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-            SwiftUI.ProgressView(value: progressBarFill)
+            SwiftUI.ProgressView(value: state.progressBarFill)
                 .tint(FormaTokens.Color.accent)
                 .accessibilityLabel(FormaProductCopy.Journey.Transformation.progressAccessibilityLabel)
                 .accessibilityValue(state.progressBarAccessibilityValue)
@@ -82,14 +93,6 @@ struct JourneyTransformationHeroSection: View {
                 .accessibilityHidden(true)
         }
         .padding(.top, FormaTokens.Spacing.xs)
-    }
-
-    private var progressBarFill: Double {
-        let percent = max(state.progressBarPercent, 0)
-        if percent <= 0, state.goalWeightCopy != "—" {
-            return 0.02
-        }
-        return min(percent, 100) / 100
     }
 
     private var anchorColumns: some View {
@@ -161,6 +164,13 @@ struct JourneyTransformationHeroSection: View {
 
 #Preview("Gain goal") {
     JourneyTransformationHeroSection(state: ProgressPreviewData.transformationGainGoal)
+        .padding()
+        .background(FormaTokens.Color.canvas)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Plateau") {
+    JourneyTransformationHeroSection(state: ProgressPreviewData.transformationPlateau)
         .padding()
         .background(FormaTokens.Color.canvas)
         .preferredColorScheme(.dark)

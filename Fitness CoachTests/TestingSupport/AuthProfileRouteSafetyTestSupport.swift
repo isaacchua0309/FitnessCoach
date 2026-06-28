@@ -46,6 +46,7 @@ enum AuthProfileRouteSafetyTestSupport {
     static func reconcileInput(
         uid: String = "signed-in-user",
         pendingOnboardingCompletion: Bool = false,
+        pendingExistingUserSignIn: Bool = false,
         hasLocalProfile: Bool = true,
         localOwnerUID: String? = nil,
         isFreshSignIn: Bool = false,
@@ -56,6 +57,7 @@ enum AuthProfileRouteSafetyTestSupport {
         SignedInProfileReconcileInput(
             uid: uid,
             pendingOnboardingCompletion: pendingOnboardingCompletion,
+            pendingExistingUserSignIn: pendingExistingUserSignIn,
             hasLocalProfile: hasLocalProfile,
             localOwnerUID: localOwnerUID,
             isFreshSignIn: isFreshSignIn,

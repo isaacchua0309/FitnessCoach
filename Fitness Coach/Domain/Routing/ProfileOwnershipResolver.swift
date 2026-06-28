@@ -111,7 +111,7 @@ enum ProfileOwnershipResolver {
         switch input.signInContext {
         case .onboardingCompletion:
             return .uploadLocalProfile
-        case .accountSwitch:
+        case .accountSwitch, .existingUserEntry:
             return .showAccountMismatch
         case .normalLaunch, .returningUser:
             if input.isSyncedForCurrentUID {

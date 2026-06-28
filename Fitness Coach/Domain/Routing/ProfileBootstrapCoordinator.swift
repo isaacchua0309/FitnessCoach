@@ -47,6 +47,7 @@ enum SignedInProfileReconcileDecision: Equatable, Sendable {
 struct SignedInProfileReconcileInput: Equatable, Sendable {
     var uid: String
     var pendingOnboardingCompletion: Bool
+    var pendingExistingUserSignIn: Bool
     var hasLocalProfile: Bool
     var localOwnerUID: String?
     var isFreshSignIn: Bool
@@ -92,7 +93,8 @@ enum ProfileBootstrapCoordinator {
             return .checkingCloud(redactedUID: redacted)
         case .missingCloudProfile:
             return .needsOnboardingAfterCloudMiss
-        case .onboardingCloudProfileConflict, .onboardingCloudCheckFailed, .cloudProfileUploadFailed, .accountProfileMismatch:
+        case .onboardingCloudProfileConflict, .onboardingCloudCheckFailed, .existingUserProfileLookupFailed,
+             .cloudProfileUploadFailed, .accountProfileMismatch:
             return .checkingCloud(redactedUID: redacted)
         case .onboarding:
             return .needsOnboardingAfterCloudMiss
@@ -121,6 +123,7 @@ final class ProfileBootstrapCoordinatorService {
     func reconcileDecision(
         uid: String,
         pendingOnboardingCompletion: Bool,
+        pendingExistingUserSignIn: Bool = false,
         isFreshSignIn: Bool,
         rootState: RootViewState,
         cloudResult: CloudProfileLookupResult? = nil
@@ -130,6 +133,7 @@ final class ProfileBootstrapCoordinatorService {
             SignedInProfileReconcileInput(
                 uid: uid,
                 pendingOnboardingCompletion: pendingOnboardingCompletion,
+                pendingExistingUserSignIn: pendingExistingUserSignIn,
                 hasLocalProfile: profileBootstrapService.hasLocalProfile(),
                 localOwnerUID: localOwnerUID,
                 isFreshSignIn: isFreshSignIn,
@@ -327,6 +331,74 @@ final class ProfileBootstrapCoordinatorService {
             "profile_conflict_upload_completed",
             fields: ["uid": uid]
         )
+    }
+
+  /// Returning-member sign-in: probe ownership/cloud and restore without creating profiles.
+    func resolveExistingUserSignIn(
+        uid: String,
+        isFreshSignIn: Bool,
+        rootState: RootViewState
+    ) async -> ExistingUserSignInServiceOutcome {
+        var cloudResult: CloudProfileLookupResult?
+
+        for _ in 0..<4 {
+            let decision = reconcileDecision(
+                uid: uid,
+                pendingOnboardingCompletion: false,
+                pendingExistingUserSignIn: true,
+                isFreshSignIn: isFreshSignIn,
+                rootState: rootState,
+                cloudResult: cloudResult
+            )
+
+            switch decision {
+            case .routeToMain:
+                return .resolution(.profileFound(.localOwned))
+
+            case .loadCloudProfile:
+                do {
+                    let bootstrapResult = try await profileBootstrapService.resolve(uid: uid)
+                    return .resolution(
+                        ExistingUserSignInResolutionMapper.fromBootstrapResult(bootstrapResult)
+                    )
+                } catch {
+                    ProfileBootstrapDebugLogger.error(
+                        "existing_user_sign_in_bootstrap_failed",
+                        fields: ["uid": uid],
+                        underlying: error
+                    )
+                    return .resolution(.lookupFailed)
+                }
+
+            case .requireOwnershipCloudLookup:
+                cloudResult = await ownershipCloudLookup(
+                    uid: uid,
+                    context: .ownershipResolution
+                )
+                continue
+
+            case .presentMissingCloudProfile:
+                return .resolution(.noProfileFound)
+
+            case .showCloudFetchFailed:
+                return .resolution(.lookupFailed)
+
+            case .showProfileConflict:
+                return .resolution(.conflict)
+
+            case .showAccountMismatch:
+                return .accountMismatch
+
+            case .resolveOnboardingCompletion, .syncLocalProfileToCloud, .skip:
+                ProfileBootstrapDebugLogger.event(
+                    "existing_user_sign_in_unexpected_decision",
+                    fields: ["uid": uid, "decision": String(describing: decision)]
+                )
+                return .resolution(.lookupFailed)
+            }
+        }
+
+        return .resolution(.lookupFailed)
     }
 
     func retryCloudProfileUpload(

@@ -10,7 +10,9 @@ import SwiftUI
 struct OnboardingInlineWheelPicker<Value: Hashable>: View {
     let columns: [OnboardingWheelColumn<Value>]
     @Binding var selections: [String: Value]
-    var wheelHeight: CGFloat = 164
+    var wheelHeight: CGFloat = OnboardingLayout.measurementWheelHeight
+    var showsCardChrome: Bool = true
+    var verticalPadding: CGFloat = FormaTokens.Spacing.sm
 
     var body: some View {
         HStack(spacing: FormaTokens.Spacing.sm) {
@@ -19,8 +21,8 @@ struct OnboardingInlineWheelPicker<Value: Hashable>: View {
                     .frame(maxWidth: .infinity)
             }
         }
-        .padding(.vertical, FormaTokens.Spacing.sm)
-        .onboardingCompactCard()
+        .padding(.vertical, verticalPadding)
+        .modifier(OnboardingWheelCardChrome(enabled: showsCardChrome))
         .accessibilityElement(children: .contain)
         .accessibilityLabel(FormaProductCopy.Onboarding.Flow.Components.wheelPickerAccessibilityLabel)
     }
@@ -64,15 +66,25 @@ struct OnboardingInlineWheelPicker<Value: Hashable>: View {
 
 struct OnboardingBirthdayWheelPicker: View {
     @Binding var birthDate: Date?
+    var wheelHeight: CGFloat = OnboardingLayout.birthdayWheelHeight
+    var showsCardChrome: Bool = false
 
     @State private var month: Int
     @State private var day: Int
     @State private var year: Int
+    @State private var suppressSelectionHaptics = true
 
     private let calendar: Calendar
 
-    init(birthDate: Binding<Date?>, calendar: Calendar = .current) {
+    init(
+        birthDate: Binding<Date?>,
+        wheelHeight: CGFloat = OnboardingLayout.birthdayWheelHeight,
+        showsCardChrome: Bool = false,
+        calendar: Calendar = .current
+    ) {
         _birthDate = birthDate
+        self.wheelHeight = wheelHeight
+        self.showsCardChrome = showsCardChrome
         self.calendar = calendar
 
         let reference = birthDate.wrappedValue ?? BirthDateAgeResolver.syntheticBirthDate(
@@ -104,10 +116,20 @@ struct OnboardingBirthdayWheelPicker: View {
                     if let newYear = newValues[columns.year.id] { year = newYear }
                     syncBirthDate()
                 }
-            )
+            ),
+            wheelHeight: wheelHeight,
+            showsCardChrome: showsCardChrome,
+            verticalPadding: OnboardingLayout.birthdayWheelVerticalPadding
         )
         .onAppear {
             syncBirthDate()
+            DispatchQueue.main.async {
+                suppressSelectionHaptics = false
+            }
+        }
+        .onChange(of: birthDate) { _, _ in
+            guard !suppressSelectionHaptics else { return }
+            OnboardingHaptics.selectionChanged()
         }
     }
 
@@ -127,16 +149,18 @@ enum OnboardingHeightWeightWheelPicker {
 
     @ViewBuilder
     static func metric(formState: Binding<OnboardingFormState>) -> some View {
-        HStack(spacing: FormaTokens.Spacing.sm) {
+        pairedMeasurementCard {
             labeledColumn(title: FormaProductCopy.Onboarding.Flow.HeightWeight.heightLabel) {
                 OnboardingMetricWheelPicker.heightCm(
-                    selection: heightCmBinding(formState)
+                    selection: heightCmBinding(formState),
+                    showsCardChrome: false
                 )
             }
 
             labeledColumn(title: FormaProductCopy.Onboarding.Flow.HeightWeight.weightLabel) {
                 OnboardingMetricWheelPicker.weightKg(
-                    selection: weightKgBinding(formState)
+                    selection: weightKgBinding(formState),
+                    showsCardChrome: false
                 )
             }
         }
@@ -144,7 +168,7 @@ enum OnboardingHeightWeightWheelPicker {
 
     @ViewBuilder
     static func imperial(formState: Binding<OnboardingFormState>) -> some View {
-        HStack(spacing: FormaTokens.Spacing.sm) {
+        pairedMeasurementCard {
             labeledColumn(title: FormaProductCopy.Onboarding.Flow.HeightWeight.heightLabel) {
                 OnboardingInlineWheelPicker(
                     columns: [
@@ -161,13 +185,15 @@ enum OnboardingHeightWeightWheelPicker {
                             format: { "\($0) in" }
                         )
                     ],
-                    selections: imperialHeightSelectionsBinding(formState)
+                    selections: imperialHeightSelectionsBinding(formState),
+                    showsCardChrome: false
                 )
             }
 
             labeledColumn(title: FormaProductCopy.Onboarding.Flow.HeightWeight.weightLabel) {
                 OnboardingImperialWheelPicker.weightLb(
-                    selection: weightLbBinding(formState)
+                    selection: weightLbBinding(formState),
+                    showsCardChrome: false
                 )
             }
         }
@@ -217,6 +243,23 @@ enum OnboardingHeightWeightWheelPicker {
     }
 
     @ViewBuilder
+    private static func pairedMeasurementCard<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        HStack(alignment: .top, spacing: FormaTokens.Spacing.md) {
+            content()
+        }
+        .padding(FormaTokens.Spacing.sm)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
+                .fill(FormaTokens.Color.surfaceSubtle)
+        )
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(FormaProductCopy.Onboarding.Flow.HeightWeight.title)
+    }
+
+    @ViewBuilder
     private static func labeledColumn<Content: View>(
         title: String,
         @ViewBuilder content: () -> Content
@@ -225,6 +268,7 @@ enum OnboardingHeightWeightWheelPicker {
             Text(title)
                 .font(FormaTokens.Typography.caption.weight(.semibold))
                 .foregroundStyle(OnboardingTheme.secondaryText)
+                .textCase(.uppercase)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             content()
@@ -233,9 +277,24 @@ enum OnboardingHeightWeightWheelPicker {
     }
 }
 
+private struct OnboardingWheelCardChrome: ViewModifier {
+    let enabled: Bool
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content.onboardingCompactCard()
+        } else {
+            content
+        }
+    }
+}
+
 enum OnboardingMetricWheelPicker {
 
-    static func heightCm(selection: Binding<Double>) -> some View {
+    static func heightCm(
+        selection: Binding<Double>,
+        showsCardChrome: Bool = true
+    ) -> some View {
         singleColumn(
             id: "heightCm",
             accessibilityLabel: FormaProductCopy.Onboarding.Validation.height,
@@ -249,13 +308,15 @@ enum OnboardingMetricWheelPicker {
                     ? "\(Int(value))"
                     : String(format: "%.1f", value)
             },
-            suffix: "cm"
+            suffix: "cm",
+            showsCardChrome: showsCardChrome
         )
     }
 
     static func weightKg(
         selection: Binding<Double>,
-        range: ClosedRange<Double> = OnboardingPickerDefaults.metricWeightKgRange
+        range: ClosedRange<Double> = OnboardingPickerDefaults.metricWeightKgRange,
+        showsCardChrome: Bool = true
     ) -> some View {
         singleColumn(
             id: "weightKg",
@@ -267,7 +328,8 @@ enum OnboardingMetricWheelPicker {
                     ? "\(Int(value))"
                     : String(format: "%.1f", value)
             },
-            suffix: "kg"
+            suffix: "kg",
+            showsCardChrome: showsCardChrome
         )
     }
 
@@ -277,7 +339,8 @@ enum OnboardingMetricWheelPicker {
         values: [Double],
         selection: Binding<Double>,
         format: @escaping (Double) -> String,
-        suffix: String
+        suffix: String,
+        showsCardChrome: Bool
     ) -> some View {
         OnboardingInlineWheelPicker(
             columns: [
@@ -297,7 +360,8 @@ enum OnboardingMetricWheelPicker {
                         selection.wrappedValue = updated
                     }
                 }
-            )
+            ),
+            showsCardChrome: showsCardChrome
         )
     }
 }
@@ -306,7 +370,8 @@ enum OnboardingImperialWheelPicker {
 
     static func weightLb(
         selection: Binding<Double>,
-        range: ClosedRange<Double> = OnboardingPickerDefaults.imperialWeightLbRange
+        range: ClosedRange<Double> = OnboardingPickerDefaults.imperialWeightLbRange,
+        showsCardChrome: Bool = true
     ) -> some View {
         OnboardingInlineWheelPicker(
             columns: [
@@ -328,7 +393,8 @@ enum OnboardingImperialWheelPicker {
                         selection.wrappedValue = updated
                     }
                 }
-            )
+            ),
+            showsCardChrome: showsCardChrome
         )
     }
 }

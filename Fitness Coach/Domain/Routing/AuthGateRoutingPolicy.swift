@@ -27,12 +27,13 @@ enum AuthGateRoutingPolicy {
         case .loading, .onboarding:
             return true
         case .missingCloudProfile, .onboardingCloudProfileConflict, .onboardingCloudCheckFailed,
-             .cloudProfileUploadFailed, .accountProfileMismatch, .main, .error:
+             .existingUserProfileLookupFailed, .cloudProfileUploadFailed, .accountProfileMismatch,
+             .main, .error:
             return false
         }
     }
 
-    /// Keep the user on pre-auth onboarding instead of the standalone sign-in screen
+    /// Keep the user on onboarding instead of welcome or sign-in
     /// while an onboarding session is active (e.g. save-plan sign-in or in-progress draft).
     static func effectiveRoute(
         baseRoute: AppShellRoute,
@@ -46,7 +47,7 @@ enum AuthGateRoutingPolicy {
         ) else {
             return baseRoute
         }
-        return hasActiveOnboardingSession ? .localOnboarding : .localOnboardingInitializing
+        return hasActiveOnboardingSession ? .onboardingStart : .onboardingStartInitializing
     }
 
     static func shouldPreferActiveOnboardingSession(
@@ -56,7 +57,7 @@ enum AuthGateRoutingPolicy {
     ) -> Bool {
         guard hasActiveOnboardingSession, !isSignedIn else { return false }
         switch baseRoute {
-        case .signIn, .localOnboarding, .localOnboardingInitializing:
+        case .welcome, .existingUserSignIn, .onboardingStart, .onboardingStartInitializing:
             return true
         default:
             return false

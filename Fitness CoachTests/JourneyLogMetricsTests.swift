@@ -16,24 +16,6 @@ final class JourneyLogMetricsTests: XCTestCase {
         XCTAssertEqual(JourneyLogMetrics.proteinGoalDays(in: [miss]), 0)
     }
 
-    func testBestProteinDaysInRollingWeekFindsPeakWindow() {
-        let calendar = Calendar.current
-        let start = calendar.startOfDay(for: Date())
-        let logs = (0..<7).map { offset -> DailyLog in
-            let date = calendar.date(byAdding: .day, value: offset, to: start)!
-            return makeLog(
-                date: date,
-                protein: offset < 5 ? 140 : 50,
-                target: 150
-            )
-        }
-
-        XCTAssertEqual(
-            JourneyLogMetrics.bestProteinDaysInRollingWeek(logs: logs, calendar: calendar),
-            5
-        )
-    }
-
     private func makeLog(
         date: Date = Date(),
         protein: Double,

@@ -19,6 +19,7 @@ struct PlanConfidenceSection: View {
                     Text(state.scoreLabel)
                         .font(FormaTokens.Typography.sectionTitle.weight(.bold))
                         .foregroundStyle(FormaTokens.Color.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
                         .accessibilityHidden(true)
 
                     if !state.whyItems.isEmpty {

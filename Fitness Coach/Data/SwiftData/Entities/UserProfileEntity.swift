@@ -53,6 +53,7 @@ final class UserProfileEntity {
 
     var createdAt: Date
     var updatedAt: Date
+    var lastPlanUpdateReasonRawValue: String?
 
     init(
         id: UUID,
@@ -78,7 +79,8 @@ final class UserProfileEntity {
         expectedWeeklyWeightLossKg: Double?,
         aggressivenessRawValue: String,
         createdAt: Date,
-        updatedAt: Date
+        updatedAt: Date,
+        lastPlanUpdateReasonRawValue: String? = nil
     ) {
         self.id = id
         self.ownerUID = ownerUID
@@ -104,5 +106,6 @@ final class UserProfileEntity {
         self.aggressivenessRawValue = aggressivenessRawValue
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.lastPlanUpdateReasonRawValue = lastPlanUpdateReasonRawValue
     }
 }

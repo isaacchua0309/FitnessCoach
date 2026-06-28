@@ -42,7 +42,8 @@ enum PlanMissionControlFixtures {
                 aggressiveness: .aggressive
             ),
             createdAt: calendar.date(from: DateComponents(year: 2026, month: 1, day: 10))!,
-            updatedAt: referenceDate
+            updatedAt: referenceDate,
+            lastPlanUpdateReason: .goalChanged
         )
     }
 
@@ -104,7 +105,8 @@ enum PlanMissionControlFixtures {
                 aggressiveness: .moderate
             ),
             createdAt: referenceDate,
-            updatedAt: referenceDate
+            updatedAt: referenceDate,
+            lastPlanUpdateReason: .onboarding
         )
     }
 

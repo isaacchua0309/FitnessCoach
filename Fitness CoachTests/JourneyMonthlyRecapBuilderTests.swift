@@ -11,6 +11,7 @@ final class JourneyMonthlyRecapBuilderTests: XCTestCase {
     private var calendar: Calendar = {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        calendar.locale = Locale(identifier: "en_US_POSIX")
         return calendar
     }()
 
@@ -42,12 +43,12 @@ final class JourneyMonthlyRecapBuilderTests: XCTestCase {
         XCTAssertTrue(state.isComplete)
         XCTAssertNil(state.buildingMessage)
         XCTAssertEqual(state.loggedDays, 15)
-        XCTAssertEqual(state.monthWeightDeltaKg, -2.4, accuracy: 0.01)
-        XCTAssertEqual(state.proteinAdherencePercent, 1.0, accuracy: 0.01)
+        XCTAssertEqual(state.monthWeightDeltaKg ?? 0, -2.4, accuracy: 0.01)
+        XCTAssertEqual(state.proteinAdherencePercent ?? 0, 1.0, accuracy: 0.01)
         XCTAssertEqual(state.trainingSessions, 13)
         XCTAssertTrue(state.showsTrainingRow)
         XCTAssertTrue(state.summaryCopy.contains("15 days"))
-        XCTAssertEqual(state.bestHabitCopy, FormaProductCopy.Journey.MonthlyRecap.bestHabit(for: .protein))
+        XCTAssertEqual(state.bestHabitCopy, FormaProductCopy.Journey.MonthlyRecap.bestHabit(for: .training))
 
         XCTAssertEqual(state.rows.first { $0.id == "weight" }?.value, "↓ 2.4kg")
         XCTAssertEqual(state.rows.first { $0.id == "calories" }?.value, "80% adherence")
@@ -163,7 +164,7 @@ final class JourneyMonthlyRecapBuilderTests: XCTestCase {
 
         let state = build(monthLogs: logs, maturityLogs: logs)
 
-        XCTAssertEqual(state.proteinAdherencePercent, 2.0 / 3.0, accuracy: 0.01)
+        XCTAssertEqual(state.proteinAdherencePercent ?? 0, 2.0 / 3.0, accuracy: 0.01)
         XCTAssertEqual(state.rows.first { $0.id == "protein" }?.value, "67%")
         XCTAssertEqual(state.rows.first { $0.id == "water" }?.value, "67%")
     }
@@ -207,9 +208,9 @@ final class JourneyMonthlyRecapBuilderTests: XCTestCase {
 
     private func makeLog(
         daysAgo: Int,
-        calories: Double,
+        calories: Int,
         protein: Double,
-        waterMl: Int
+        waterMl: Int = 2_000
     ) -> DailyLog {
         let date = calendar.date(byAdding: .day, value: -daysAgo, to: asOf)!
         return DailyLog(

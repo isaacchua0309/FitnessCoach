@@ -37,9 +37,9 @@ struct PlanMissionControlHeroSection: View {
                         .accessibilityHidden(true)
                 }
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(state.accessibilitySummary)
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(state.accessibilitySummary)
     }
 
     @ViewBuilder
@@ -110,18 +110,26 @@ struct PlanMissionControlHeroSection: View {
 
 #Preview("Lose weight") {
     PlanMissionControlHeroSection(
-        state: PlanMissionControlFixtures.loseDashboard.mission,
-        onAdjustPlan: {}
+        state: PlanMissionControlFixtures.loseDashboard.mission
     )
     .padding()
     .background(FormaTokens.Color.canvas)
     .preferredColorScheme(.dark)
 }
 
+#Preview("Large Dynamic Type") {
+    PlanMissionControlHeroSection(
+        state: PlanMissionControlFixtures.loseDashboard.mission
+    )
+    .padding()
+    .background(FormaTokens.Color.canvas)
+    .preferredColorScheme(.dark)
+    .dynamicTypeSize(.accessibility3)
+}
+
 #Preview("Active user") {
     PlanMissionControlHeroSection(
-        state: PlanMissionControlFixtures.activeUserDashboard.mission,
-        onAdjustPlan: {}
+        state: PlanMissionControlFixtures.activeUserDashboard.mission
     )
     .padding()
     .background(FormaTokens.Color.canvas)
@@ -130,8 +138,7 @@ struct PlanMissionControlHeroSection: View {
 
 #Preview("Maintain") {
     PlanMissionControlHeroSection(
-        state: PlanMissionControlFixtures.maintainDashboard.mission,
-        onAdjustPlan: {}
+        state: PlanMissionControlFixtures.maintainDashboard.mission
     )
     .padding()
     .background(FormaTokens.Color.canvas)

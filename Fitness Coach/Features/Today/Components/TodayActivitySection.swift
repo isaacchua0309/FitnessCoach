@@ -34,19 +34,15 @@ struct TodayActivitySection: View {
     @ViewBuilder
     private func disconnectedContent(_ model: TodayActivityDisconnectedDisplayModel) -> some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-            HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
-                if model.showsLockedIcon {
-                    Image(systemName: "lock.fill")
-                        .font(.caption)
-                        .foregroundStyle(FormaTokens.Color.textTertiary)
-                        .accessibilityHidden(true)
-                }
+            Text(model.title)
+                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                .foregroundStyle(FormaTokens.Color.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
 
-                Text(model.message)
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            Text(model.message)
+                .font(FormaTokens.Typography.caption)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             Button(model.actionTitle) {
                 onConnectAppleHealth()
@@ -63,12 +59,20 @@ struct TodayActivitySection: View {
 
     @ViewBuilder
     private func connectedContent(_ model: TodayActivityConnectedDisplayModel) -> some View {
-        if model.showsEmptyState, let emptyStateLine = model.emptyStateLine {
-            Text(emptyStateLine)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textSecondary)
-                .padding(.vertical, FormaTokens.Spacing.xs)
-                .accessibilityLabel(model.accessibilitySummary)
+        if model.showsEmptyState,
+           let emptyStateLine = model.emptyStateLine,
+           let emptyStateTitle = model.emptyStateTitle {
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+                Text(emptyStateTitle)
+                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                    .foregroundStyle(FormaTokens.Color.textPrimary)
+
+                Text(emptyStateLine)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaTokens.Color.textSecondary)
+            }
+            .padding(.vertical, FormaTokens.Spacing.xs)
+            .accessibilityLabel(model.accessibilitySummary)
         } else {
             VStack(alignment: .leading, spacing: 0) {
                 if let stepsLine = model.stepsLine {

@@ -66,20 +66,6 @@ final class ProgressLogSummaryBuilderTests: XCTestCase {
         XCTAssertNil(summary.consistencyPercent)
     }
 
-    func testWeightChartPointsSortsByDateAscending() {
-        let earlier = Date(timeIntervalSince1970: 1_000)
-        let later = Date(timeIntervalSince1970: 2_000)
-        let weights = [
-            WeightEntry(id: UUID(), date: later, weightKg: 80, note: nil, createdAt: later),
-            WeightEntry(id: UUID(), date: earlier, weightKg: 81, note: nil, createdAt: earlier)
-        ]
-
-        let points = ProgressLogSummaryBuilder.weightChartPoints(from: weights)
-
-        XCTAssertEqual(points.map(\.weightKg), [81, 80])
-        XCTAssertEqual(points.map(\.date), [earlier, later])
-    }
-
     private func makeLog(
         calories: Int = 0,
         protein: Double = 0,

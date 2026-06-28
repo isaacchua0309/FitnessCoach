@@ -45,6 +45,7 @@ enum TodayPreviewData {
                 hasWorkout: false
             ),
             foodEntries: [],
+            hasPriorFoodLogs: false,
             streaks: StreakSummary(loggingStreak: 0, proteinStreak: 0, hydrationStreak: 0, workoutStreak: 0),
             weekLoggedDays: 0,
             dailyBrief: TodayDailyBrief(
@@ -97,6 +98,7 @@ enum TodayPreviewData {
                 hasWorkout: true
             ),
             foodEntries: foodEntries,
+            hasPriorFoodLogs: true,
             streaks: StreakSummary(loggingStreak: 5, proteinStreak: 3, hydrationStreak: 2, workoutStreak: 1),
             weekLoggedDays: 4,
             dailyBrief: TodayDailyBrief(
@@ -158,6 +160,7 @@ enum TodayPreviewData {
                 hasWorkout: true
             ),
             foodEntries: foodEntries,
+            hasPriorFoodLogs: true,
             streaks: StreakSummary(loggingStreak: 12, proteinStreak: 8, hydrationStreak: 5, workoutStreak: 4),
             weekLoggedDays: 6,
             dailyBrief: TodayDailyBrief(
@@ -214,6 +217,7 @@ enum TodayPreviewData {
                 hasWorkout: false
             ),
             foodEntries: foodEntries,
+            hasPriorFoodLogs: true,
             streaks: StreakSummary(loggingStreak: 3, proteinStreak: 1, hydrationStreak: 0, workoutStreak: 0),
             weekLoggedDays: 2,
             dailyBrief: TodayDailyBrief(

@@ -26,6 +26,21 @@ enum OnboardingActivityLevelValues {
         }
     }
 
+    static func icon(for level: ActivityLevel) -> String {
+        switch level {
+        case .sedentary:
+            return "chair.fill"
+        case .lightlyActive:
+            return "figure.walk"
+        case .moderatelyActive:
+            return "figure.run"
+        case .veryActive:
+            return "figure.strengthtraining.traditional"
+        case .athlete:
+            return "bolt.heart.fill"
+        }
+    }
+
     static func applyDefaultsIfNeeded(to formState: inout OnboardingFormState) {
         formState.applyTrainingRhythmDefaultsForCurrentActivity()
     }
@@ -33,6 +48,14 @@ enum OnboardingActivityLevelValues {
     static func select(_ level: ActivityLevel, in formState: inout OnboardingFormState) {
         formState.selectActivityLevel(level)
         formState.applyTrainingRhythmDefaultsForCurrentActivity()
+    }
+
+    static func validate(formState: OnboardingFormState) throws {
+        guard formState.hasConfirmedActivityLevelSelection else {
+            throw OnboardingFormError.invalid(
+                FormaProductCopy.Onboarding.Flow.Activity.selectionRequiredMessage
+            )
+        }
     }
 
     static func expectedDefaults(for level: ActivityLevel) -> TrainingRhythmDefaults {

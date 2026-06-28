@@ -10,7 +10,7 @@ import XCTest
 
 final class OnboardingActivityTests: XCTestCase {
 
-    func testFlowDoesNotIncludeTrainingRhythmStep() {
+    func testCanonicalFlowDoesNotIncludeManualRhythmOrMotivationSteps() {
         let flowStepNames = OnboardingStep.flow.map {
             OnboardingDraftBridge.analyticsStepName($0)
         }
@@ -23,11 +23,11 @@ final class OnboardingActivityTests: XCTestCase {
     func testActivityStepUsesDedicatedCopy() {
         XCTAssertEqual(
             OnboardingStep.activityLevel.title,
-            FormaProductCopy.Onboarding.Flow.Activity.title
+            "How active are you?"
         )
         XCTAssertEqual(
             OnboardingStep.activityLevel.subtitle,
-            FormaProductCopy.Onboarding.Flow.Activity.subtitle
+            "This helps us estimate your daily calorie target."
         )
     }
 
@@ -59,14 +59,114 @@ final class OnboardingActivityTests: XCTestCase {
         XCTAssertEqual(OnboardingStep.activityLevel.next(in: flow), .appleHealth)
     }
 
-    func testDoesNotRequireManualTrainingRhythmFields() {
+    func testActivityStepDoesNotRequireManualStepsOrGymSessionInput() {
         var state = OnboardingFormState()
-        state.activityLevel = .moderatelyActive
+        OnboardingActivityLevelValues.select(.moderatelyActive, in: &state)
         state.trainingFrequencyPerWeekText = ""
         state.averageStepsText = ""
 
         XCTAssertTrue(state.canAdvance(from: .activityLevel))
         XCTAssertNil(state.validationMessage(for: .activityLevel))
+    }
+
+    func testContinueDisabledUntilActivitySelected() {
+        var state = OnboardingFormState()
+
+        XCTAssertFalse(state.canAdvance(from: .activityLevel))
+        XCTAssertEqual(
+            state.validationMessage(for: .activityLevel),
+            FormaProductCopy.Onboarding.Flow.Activity.selectionRequiredMessage
+        )
+    }
+
+    func testTappingSameActivityKeepsSelectionConfirmed() {
+        var state = OnboardingFormState()
+        OnboardingActivityLevelValues.select(.moderatelyActive, in: &state)
+        OnboardingActivityLevelValues.select(.moderatelyActive, in: &state)
+
+        XCTAssertTrue(state.hasConfirmedActivityLevelSelection)
+        XCTAssertEqual(state.activityLevel, .moderatelyActive)
+        XCTAssertTrue(state.canAdvance(from: .activityLevel))
+    }
+
+    func testDraftRoundTripPersistsActivitySelectionConfirmation() {
+        var formState = OnboardingFormState()
+        OnboardingActivityLevelValues.select(.veryActive, in: &formState)
+
+        let draft = OnboardingDraft(formState: formState, step: .activityLevel)
+        let restored = draft.makeFormState()
+
+        XCTAssertEqual(restored.activityLevel, .veryActive)
+        XCTAssertTrue(restored.hasConfirmedActivityLevelSelection)
+        XCTAssertTrue(restored.canAdvance(from: .activityLevel))
+    }
+
+    func testRestoredDraftPastActivityStepInfersConfirmation() {
+        var formState = OnboardingFormState()
+        formState.activityLevel = .lightlyActive
+
+        let draft = OnboardingDraft(formState: formState, step: .appleHealth)
+        let restored = draft.makeFormState()
+
+        XCTAssertTrue(restored.hasConfirmedActivityLevelSelection)
+    }
+
+    func testExplanationPlaceholderWhenUnselected() {
+        let state = OnboardingActivityLevelExplanationBuilder.build(from: OnboardingFormState())
+
+        XCTAssertTrue(state.isPlaceholder)
+        XCTAssertEqual(
+            state.headline,
+            FormaProductCopy.Onboarding.Flow.Activity.explanationPlaceholder
+        )
+    }
+
+    func testExplanationUpdatesForSelectedLevel() {
+        var state = OnboardingFormState()
+        OnboardingActivityLevelValues.select(.moderatelyActive, in: &state)
+
+        let explanation = OnboardingActivityLevelExplanationBuilder.build(from: state)
+
+        XCTAssertFalse(explanation.isPlaceholder)
+        XCTAssertEqual(
+            explanation.headline,
+            FormaProductCopy.Onboarding.Flow.Activity.moderatelyActiveExplanationHeadline
+        )
+    }
+
+    func testVoiceOverReportsSelectedState() {
+        let label = OnboardingActivityLevelExplanationBuilder.voiceOverLabel(
+            for: .moderatelyActive,
+            isSelected: true
+        )
+
+        XCTAssertTrue(label.contains("Moderately Active"))
+        XCTAssertTrue(label.contains("selected"))
+    }
+
+    func testActivityLevelStepDoesNotShowProgressHeaderInShell() {
+        XCTAssertFalse(OnboardingStep.activityLevel.showsProgressHeader)
+    }
+
+    func testEachActivityOptionCanBeSelected() {
+        for level in OnboardingActivityLevelValues.orderedLevels {
+            var state = OnboardingFormState()
+            OnboardingActivityLevelValues.select(level, in: &state)
+
+            XCTAssertEqual(state.activityLevel, level)
+            XCTAssertTrue(state.hasConfirmedActivityLevelSelection)
+            XCTAssertTrue(state.canAdvance(from: .activityLevel))
+        }
+    }
+
+    func testActivitySelectionAutoFillsRhythmWithoutManualEditFlags() {
+        var state = OnboardingFormState()
+        OnboardingActivityLevelValues.select(.veryActive, in: &state)
+
+        XCTAssertEqual(state.parsedTrainingDays, 5)
+        XCTAssertEqual(state.parsedAverageSteps, 10_000)
+        XCTAssertFalse(state.hasManuallyEditedTrainingDays)
+        XCTAssertFalse(state.hasManuallyEditedAverageSteps)
     }
 
     func testApplyDefaultsIfNeededWritesHiddenTrainingRhythmFields() {

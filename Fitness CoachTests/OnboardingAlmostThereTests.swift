@@ -13,24 +13,16 @@ final class OnboardingAlmostThereTests: XCTestCase {
     func testAlmostThereStepUsesProductCopy() {
         XCTAssertEqual(
             OnboardingStep.almostThere.title,
-            FormaProductCopy.Onboarding.Flow.AlmostThere.title
+            "Your plan is almost ready"
         )
         XCTAssertEqual(
             OnboardingStep.almostThere.subtitle,
-            FormaProductCopy.Onboarding.Flow.AlmostThere.subtitle
+            "We've got what we need to build your personalized plan."
         )
         XCTAssertEqual(
             FormaProductCopy.Onboarding.Flow.AlmostThere.continueCTA,
-            "Next"
+            "Continue"
         )
-    }
-
-    func testAlmostThereFeatureBulletsMatchProductCopy() {
-        let bullets = OnboardingFeatureBullet.almostThereDefaults
-        let expected = FormaProductCopy.Onboarding.Flow.AlmostThereFeatures.bullets
-
-        XCTAssertEqual(bullets.map(\.title), expected.map(\.title))
-        XCTAssertEqual(bullets.map(\.subtitle), expected.map(\.subtitle))
     }
 
     func testAlmostThereRoutesNextToFormaProof() {
@@ -39,17 +31,76 @@ final class OnboardingAlmostThereTests: XCTestCase {
             .formaProof
         )
     }
+
+    func testAlmostThereFeaturesUseProductionSafeCopy() {
+        let features = OnboardingAlmostThereValues.features
+        XCTAssertEqual(features.count, 4)
+        XCTAssertEqual(features[0].title, "Fast meal tracking")
+        XCTAssertEqual(features[1].title, "Daily targets")
+        XCTAssertEqual(features[2].title, "Progress journey")
+        XCTAssertEqual(features[3].title, "Smart coaching")
+    }
+
+    func testAlmostThereCopyAvoidsUnimplementedClaims() {
+        let copy = FormaProductCopy.Onboarding.Flow.AlmostThere.self
+        let joined = [
+            copy.title,
+            copy.subtitle,
+            copy.summaryHeadline,
+            copy.summarySupporting,
+            copy.trustStrip,
+            copy.accessibilitySummary
+        ].joined(separator: " ")
+            + OnboardingAlmostThereValues.features.map { "\($0.title) \($0.subtitle)" }.joined(separator: " ")
+
+        XCTAssertFalse(joined.localizedCaseInsensitiveContains("challenge friends"))
+        XCTAssertFalse(joined.localizedCaseInsensitiveContains("leaderboard"))
+        XCTAssertFalse(joined.localizedCaseInsensitiveContains("adaptive goal"))
+        XCTAssertFalse(joined.localizedCaseInsensitiveContains("dynamic calories"))
+        XCTAssertFalse(joined.localizedCaseInsensitiveContains("adjust automatically"))
+        XCTAssertFalse(joined.localizedCaseInsensitiveContains("adjust to your lifestyle"))
+    }
+
+    func testAlmostThereAccessibilitySummary() {
+        XCTAssertEqual(
+            OnboardingAlmostThereValues.accessibilitySummary,
+            FormaProductCopy.Onboarding.Flow.AlmostThere.accessibilitySummary
+        )
+        XCTAssertTrue(
+            OnboardingAlmostThereValues.accessibilitySummary.contains("Your plan is almost ready")
+        )
+    }
+
+    func testAlmostThereStepDoesNotShowProgressHeaderInShell() {
+        XCTAssertFalse(OnboardingStep.almostThere.showsProgressHeader)
+    }
 }
 
 @MainActor
 final class OnboardingAlmostThereAnalyticsTests: XCTestCase {
 
+    private var draftDefaults: UserDefaults!
+    private var draftStore: OnboardingDraftStore!
+    private let analytics = CapturingOnboardingAnalyticsLogger()
+
+    override func setUp() {
+        super.setUp()
+        draftDefaults = UserDefaults(suiteName: "OnboardingAlmostThereAnalyticsTests.\(UUID().uuidString)")!
+        draftStore = OnboardingDraftStore(userDefaults: draftDefaults)
+    }
+
+    override func tearDown() {
+        draftStore.clearDraft()
+        draftDefaults.removePersistentDomain(forName: draftDefaults.description)
+        draftDefaults = nil
+        draftStore = nil
+        super.tearDown()
     }
 
     func testAlmostThereLogsStepViewedAndCompletedOnNext() async throws {
         let integration = StubTrainingIntegrationProvider(requestConnectionResult: .denied)
         let model = try makeOnboardingModel(integration: integration)
-        try await advanceModelToAlmostThere(model)
+        await OnboardingModelTestSupport.advanceTo(.almostThere, model: model, seedForm: true)
 
         XCTAssertEqual(model.currentStep, .almostThere)
         XCTAssertTrue(analytics.contains(.stepViewed, step: "almost_there"))
@@ -76,34 +127,6 @@ final class OnboardingAlmostThereAnalyticsTests: XCTestCase {
             generationDelay: ImmediateOnboardingGenerationDelayProvider(),
             healthTrainingIntegration: integration
         )
-    }
-
-    private func advanceModelToAlmostThere(_ model: OnboardingModel) async throws {
-        seedValidOnboardingForm(&model.formState)
-
-        model.goNext() // introProof -> heightWeight
-        model.goNext() // heightWeight
-        model.goNext() // targetWeight
-        model.goNext() // targetEncouragement
-        model.goNext() // birthday
-        model.goNext() // activityLevel
-        model.goNext() // appleHealth (async permission)
-
-        for _ in 0..<50 {
-            if model.currentStep == .almostThere { return }
-            try await Task.sleep(nanoseconds: 20_000_000)
-        }
-
-        XCTFail("Expected onboarding to reach almostThere step")
-    }
-
-    private func seedValidOnboardingForm(_ formState: inout OnboardingFormState) {
-        OnboardingHeightWeightValues.applyDefaultsIfNeeded(to: &formState)
-        OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &formState)
-        OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &formState)
-        formState.sex = .female
-        formState.activityLevel = .moderatelyActive
-        OnboardingActivityLevelValues.applyDefaultsIfNeeded(to: &formState)
     }
 }
 

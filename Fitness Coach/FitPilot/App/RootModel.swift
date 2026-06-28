@@ -16,6 +16,8 @@ enum RootViewState: Equatable {
     case onboardingCloudProfileConflict
     /// Cloud presence check failed during onboarding-completion sign-in.
     case onboardingCloudCheckFailed
+    /// Cloud profile lookup failed during returning-member sign-in.
+    case existingUserProfileLookupFailed
     /// Local profile saved but cloud backup failed.
     case cloudProfileUploadFailed
     /// Local profile belongs to a different Google account than the signed-in session.
@@ -99,6 +101,11 @@ final class RootModel: ObservableObject {
     func presentOnboardingCloudCheckFailed() {
         loadTask?.cancel()
         applyState(.onboardingCloudCheckFailed)
+    }
+
+    func presentExistingUserProfileLookupFailed() {
+        loadTask?.cancel()
+        applyState(.existingUserProfileLookupFailed)
     }
 
     func presentCloudProfileUploadFailed() {

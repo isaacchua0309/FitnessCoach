@@ -10,9 +10,11 @@ import SwiftUI
 struct TodayMealsPreview: View {
     let entries: [FoodEntry]
     let date: Date
+    let mealsEmptyKind: TodayMealsEmptyKind
     let onAddMeal: (MealType) -> Void
     let onEditEntry: (FoodEntry) -> Void
     let onDeleteEntry: (FoodEntry) -> Void
+    let onLogFirstMeal: () -> Void
 
     @State private var expandedGroups: Set<MealType> = []
 
@@ -20,19 +22,22 @@ struct TodayMealsPreview: View {
         TodayMealsGroupingEngine.build(entries: entries, date: date)
     }
 
+    private var emptyCopy: TodayEmptyStateCopy? {
+        guard mealsEmptyKind != .hasMeals else { return nil }
+        return TodayEmptyStateFormatting.mealsEmptyCopy(for: mealsEmptyKind)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: FormaProductCopy.Today.Meals.sectionTitle)
 
-            if section.isFullyEmpty {
-                Text(FormaProductCopy.Today.Meals.emptyDayHint)
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
             FitPilotPlanCard {
                 VStack(spacing: 0) {
+                    if section.isFullyEmpty, let emptyCopy, !emptyCopy.title.isEmpty {
+                        mealsEmptyHeader(emptyCopy)
+                        FitPilotPlanRowDivider()
+                    }
+
                     ForEach(section.groups) { group in
                         mealGroupRow(group)
 
@@ -43,6 +48,24 @@ struct TodayMealsPreview: View {
                 }
             }
         }
+    }
+
+    private func mealsEmptyHeader(_ copy: TodayEmptyStateCopy) -> some View {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+            Text(copy.title)
+                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                .foregroundStyle(FormaTokens.Color.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(copy.body)
+                .font(FormaTokens.Typography.caption)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, FormaTokens.Spacing.md)
+        .padding(.vertical, FormaTokens.Spacing.sm)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder
@@ -199,13 +222,15 @@ struct TodayMealsPreview: View {
     }
 }
 
-#Preview("Empty day") {
+#Preview("New profile") {
     TodayMealsPreview(
         entries: [],
         date: Date(),
+        mealsEmptyKind: .newProfileNoMeals,
         onAddMeal: { _ in },
         onEditEntry: { _ in },
-        onDeleteEntry: { _ in }
+        onDeleteEntry: { _ in },
+        onLogFirstMeal: {}
     )
     .padding()
     .background(FormaTokens.Color.canvas)
@@ -216,9 +241,11 @@ struct TodayMealsPreview: View {
     TodayMealsPreview(
         entries: TodayPreviewData.foodEntries,
         date: Date(),
+        mealsEmptyKind: .hasMeals,
         onAddMeal: { _ in },
         onEditEntry: { _ in },
-        onDeleteEntry: { _ in }
+        onDeleteEntry: { _ in },
+        onLogFirstMeal: {}
     )
     .padding()
     .background(FormaTokens.Color.canvas)

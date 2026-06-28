@@ -30,7 +30,7 @@ enum OnboardingInteractionPolicy {
                 isOptional: false,
                 validatesOnContinue: false,
                 prefersCompactLayout: true,
-                showsSharedBottomBar: false,
+                showsSharedBottomBar: true,
                 dismissesKeyboardOnAppear: true
             )
         case .heightWeight, .targetWeight, .birthday:
@@ -44,17 +44,6 @@ enum OnboardingInteractionPolicy {
                 showsSharedBottomBar: true,
                 dismissesKeyboardOnAppear: true
             )
-        case .targetEncouragement, .appleHealth, .almostThere, .formaProof:
-            return OnboardingInteractionRules(
-                primaryJob: step.title,
-                allowsKeyboardForRequiredInput: false,
-                showsFreeTextByDefault: false,
-                isOptional: true,
-                validatesOnContinue: false,
-                prefersCompactLayout: true,
-                showsSharedBottomBar: true,
-                dismissesKeyboardOnAppear: true
-            )
         case .activityLevel:
             return OnboardingInteractionRules(
                 primaryJob: "Choose activity level",
@@ -62,6 +51,17 @@ enum OnboardingInteractionPolicy {
                 showsFreeTextByDefault: false,
                 isOptional: false,
                 validatesOnContinue: true,
+                prefersCompactLayout: false,
+                showsSharedBottomBar: true,
+                dismissesKeyboardOnAppear: true
+            )
+        case .targetEncouragement, .appleHealth, .almostThere, .formaProof:
+            return OnboardingInteractionRules(
+                primaryJob: step.title,
+                allowsKeyboardForRequiredInput: false,
+                showsFreeTextByDefault: false,
+                isOptional: true,
+                validatesOnContinue: false,
                 prefersCompactLayout: true,
                 showsSharedBottomBar: true,
                 dismissesKeyboardOnAppear: true

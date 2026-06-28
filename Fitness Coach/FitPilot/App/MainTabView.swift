@@ -26,6 +26,7 @@ private enum AppTab: String, Hashable {
 struct MainTabView: View {
 
     private let container: AppContainer
+    private let journeyAnalyticsCoordinator: JourneyAnalyticsCoordinator
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -38,6 +39,7 @@ struct MainTabView: View {
 
     init(container: AppContainer) {
         self.container = container
+        self.journeyAnalyticsCoordinator = container.makeJourneyAnalyticsCoordinator()
         _todayModel = StateObject(wrappedValue: container.makeTodayModel())
         _coachModel = StateObject(wrappedValue: container.makeCoachModel())
         _progressModel = StateObject(wrappedValue: container.makeProgressModel())
@@ -72,10 +74,17 @@ struct MainTabView: View {
                 }
             .tag(AppTab.coach)
 
-            ProgressView(model: progressModel) { prefill in
-                coachModel.prepareInput(prefill: prefill)
-                selectedTab = .coach
-            }
+            ProgressView(
+                model: progressModel,
+                analyticsCoordinator: journeyAnalyticsCoordinator,
+                onOpenCoach: { prefill in
+                    coachModel.prepareInput(prefill: prefill)
+                    selectedTab = .coach
+                },
+                onOpenPlan: {
+                    selectedTab = .profile
+                }
+            )
                 .tabItem {
                     Label("Journey", systemImage: "chart.line.uptrend.xyaxis")
                 }

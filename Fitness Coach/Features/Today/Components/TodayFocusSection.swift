@@ -2,7 +2,7 @@
 //  TodayFocusSection.swift
 //  Fitness Coach
 //
-//  Forma — One-line coach guidance in the Today status zone.
+//  Forma — Legacy one-line focus row. Retained for previews; replaced by Coach Tip on Today.
 //
 
 import SwiftUI

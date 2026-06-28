@@ -24,7 +24,7 @@ SwiftData requires every on-disk model type to stay listed in `FitPilotModelCont
 
 | Entity | Why kept |
 |--------|----------|
-| `WeeklyReviewEntity` | Reserved for a future Journey weekly review feature; mapping + domain model exist but no service. |
+| `WeeklyReviewEntity` | Orphan schema; Journey **This week** is computed in-memory via `JourneyWeeklyReviewBuilder` + `DailyLog` (see [JourneyArchitecture.md](./JourneyArchitecture.md)). Entity kept until migration removes table. |
 | `ChatMessageEntity` | Reserved for Coach conversation persistence across app restarts. |
 | `DebugRecordEntity` | Reserved for optional persisted pipeline error logs; in-memory tracing is sufficient today. |
 | `WorkoutEntryEntity` / `ExerciseSetEntity` | Historical manual workout rows on user devices; Today streaks and daily-review workout summaries still read SwiftData workouts. |
@@ -47,7 +47,7 @@ Steps: bump model version, remove types from `FitPilotModelContainer.schema`, sh
 
 | Entity | Work |
 |--------|------|
-| `WeeklyReviewEntity` | Add `WeeklyReviewService`, Journey UI, AI generation endpoint. |
+| `WeeklyReviewEntity` | **Not planned:** remove via Option A migration when product signs off (Journey uses log-derived weekly review, not persisted `WeeklyReviewEntity`). |
 | `ChatMessageEntity` | Persist/load Coach thread in `CoachModel`; define retention policy. |
 | `DebugRecordEntity` | Re-enable `PipelineTracePersistence` and surface rows in Settings diagnostics. |
 
@@ -90,7 +90,7 @@ Before removing **any** entity from `FitPilotModelContainer.schema`:
 
 ## Open product decisions
 
-1. **Weekly review** — ship Journey weekly review or remove `WeeklyReviewEntity`?
+1. **Weekly review entity** — remove `WeeklyReviewEntity` via migration (Journey weekly review is log-derived; no AI recap) or keep dormant indefinitely?
 2. **Coach chat history** — persist across launches or keep session-only?
 3. **Manual workouts** — when can Today streaks stop reading SwiftData workouts?
 4. **Debug persistence** — re-enable disk archival for Settings or remove entity?

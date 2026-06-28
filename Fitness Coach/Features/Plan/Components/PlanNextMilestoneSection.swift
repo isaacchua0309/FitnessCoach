@@ -13,7 +13,12 @@ struct PlanNextMilestoneSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
-            headerRow
+            PlanSectionHeader(
+                title: state.sectionTitle,
+                actionTitle: state.showsJourneyCTA ? state.goToJourneyTitle : nil,
+                actionAccessibilityHint: FormaProductCopy.PlanMissionControl.goToJourneyAccessibilityHint,
+                action: onGoToJourney
+            )
 
             FitPilotPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
@@ -39,25 +44,8 @@ struct PlanNextMilestoneSection: View {
                     }
                 }
             }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(state.accessibilitySummary)
-    }
-
-    private var headerRow: some View {
-        HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
-            FormaSectionLabel(title: state.sectionTitle)
-
-            Spacer(minLength: 8)
-
-            if state.showsJourneyCTA, let onGoToJourney {
-                Button(state.goToJourneyTitle, action: onGoToJourney)
-                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.accent)
-                    .buttonStyle(.plain)
-                    .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
-                    .accessibilityLabel(state.goToJourneyTitle)
-            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(state.accessibilitySummary)
         }
     }
 }

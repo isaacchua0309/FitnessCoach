@@ -59,12 +59,6 @@ enum JourneyStreakBuilder {
             trainingWeeks: trainingWeeks,
             copy: copy
         )
-        let habitInsightStreakCopy = habitInsightStreakCopy(
-            currentLogging: currentLogging,
-            longestLogging: longestLogging,
-            keepStreakAliveCopy: keepStreakAliveCopy,
-            copy: copy
-        )
 
         return JourneyStreakState(
             currentLoggingStreakDays: currentLogging,
@@ -76,7 +70,6 @@ enum JourneyStreakBuilder {
             heroStreakChip: heroStreakChip,
             weeklyConsistencyHeadline: weeklyConsistency.headline,
             weeklyConsistencyDetail: weeklyConsistency.detail,
-            habitInsightStreakCopy: habitInsightStreakCopy,
             keepStreakAliveCopy: keepStreakAliveCopy
         )
     }
@@ -137,23 +130,5 @@ enum JourneyStreakBuilder {
         }
 
         return (copy.buildingConsistency, nil)
-    }
-
-    private static func habitInsightStreakCopy(
-        currentLogging: Int,
-        longestLogging: Int,
-        keepStreakAliveCopy: String?,
-        copy: FormaProductCopy.Journey.Streaks.Type
-    ) -> String {
-        if let keepStreakAliveCopy {
-            return keepStreakAliveCopy
-        }
-        if currentLogging > 0 {
-            return copy.loggingStreak(days: currentLogging)
-        }
-        if longestLogging > 0 {
-            return copy.longestLoggingStreak(days: longestLogging)
-        }
-        return copy.buildingConsistency
     }
 }

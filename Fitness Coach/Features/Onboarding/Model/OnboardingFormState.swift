@@ -23,6 +23,7 @@ struct OnboardingFormState: Equatable {
     var goalWeightKgText: String = ""
     var estimatedBodyFatPercentageText: String = ""
     var activityLevel: ActivityLevel = .moderatelyActive
+    var hasConfirmedActivityLevelSelection: Bool = false
     var trainingFrequencyPerWeekText: String = String(initialTrainingDefaults.trainingDaysPerWeek)
     var averageStepsText: String = String(initialTrainingDefaults.averageStepsPerDay)
     var hasManuallyEditedTrainingDays: Bool = false
@@ -103,7 +104,7 @@ struct OnboardingFormState: Equatable {
              .generatingPlan, .planReveal, .savePlan:
             return
         case .activityLevel:
-            return
+            try OnboardingActivityLevelValues.validate(formState: self)
         }
     }
 
@@ -264,6 +265,7 @@ struct OnboardingFormState: Equatable {
     // MARK: - Activity training rhythm
 
     mutating func selectActivityLevel(_ level: ActivityLevel) {
+        hasConfirmedActivityLevelSelection = true
         guard level != activityLevel else { return }
 
         let newDefaults = Self.trainingDefaultsResolver.defaults(for: level)

@@ -2,7 +2,7 @@
 //  PlanStateBuilder.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Builds strategy-first Plan state from profile.
+//  FitPilot AI — Builds Mission Control Plan state from profile.
 //
 
 import Foundation
@@ -43,7 +43,6 @@ enum PlanStateBuilder {
                 trainingFrequency: trainingFrequencyLabel(profile.trainingFrequencyPerWeek)
             ),
             rationale: missionControl.rationale,
-            adaptiveCoach: adaptiveCoachState(),
             lifestyle: PlanLifestyleState(
                 activityLevel: ProfileFormatter.activityLevel(profile.activityLevel),
                 trainingFrequency: trainingFrequencyLabel(profile.trainingFrequencyPerWeek),
@@ -82,17 +81,6 @@ enum PlanStateBuilder {
                 ? "A faster cut — protect sleep, protein, and training quality."
                 : "A stronger surplus — consistency and recovery matter most."
         }
-    }
-
-    static func adaptiveCoachState() -> PlanAdaptiveCoachState {
-        PlanAdaptiveCoachState(
-            currentStatus: "No changes recommended.",
-            futureTriggers: [
-                "Calories may automatically adjust if weight plateaus",
-                "Targets may change if weight drops too quickly",
-                "Activity shifts will recalibrate your plan"
-            ]
-        )
     }
 
     static func goalType(for profile: UserProfile) -> PlanGoalType {

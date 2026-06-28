@@ -45,7 +45,7 @@ final class AppRouteResolverGuardrailTests: XCTestCase {
                 authState: .signedIn(uid: "user-1"),
                 rootState: root
             ),
-            .missingCloudProfile
+            .noExistingProfileFound
         )
     }
 
@@ -60,8 +60,9 @@ final class AppRouteResolverGuardrailTests: XCTestCase {
                 rootState: .loading,
                 isOnboardingModelReady: true,
                 hasLocalProfile: false,
+                publicEntryDestination: .onboardingStart
             ),
-            .localOnboarding
+            .onboardingStart
         )
     }
 
@@ -78,12 +79,12 @@ final class AppRouteResolverGuardrailTests: XCTestCase {
 
     func testOnboardingShellRouteMapsToLocalOnboardingAppShellRoute() {
         XCTAssertEqual(
-            AppShellRoute(onboardingShellRoute: .preAuthOnboarding),
-            .localOnboarding
+            AppShellRoute(onboardingShellRoute: .onboardingStart),
+            .onboardingStart
         )
         XCTAssertEqual(
-            AppShellRoute(onboardingShellRoute: .preAuthOnboardingInitializing),
-            .localOnboardingInitializing
+            AppShellRoute(onboardingShellRoute: .onboardingStartInitializing),
+            .onboardingStartInitializing
         )
     }
 
@@ -99,8 +100,9 @@ final class AppRouteResolverGuardrailTests: XCTestCase {
                 rootState: .loading,
                 isOnboardingModelReady: true,
                 hasLocalProfile: false,
+                publicEntryDestination: .onboardingStart
             ),
-            .localOnboarding
+            .onboardingStart
         )
         XCTAssertEqual(
             OnboardingShellRouteResolver.resolve(
@@ -108,7 +110,7 @@ final class AppRouteResolverGuardrailTests: XCTestCase {
                 hasLocalProfile: false,
                 isOnboardingModelReady: true,
             ),
-            .preAuthOnboarding
+            .welcome
         )
     }
 

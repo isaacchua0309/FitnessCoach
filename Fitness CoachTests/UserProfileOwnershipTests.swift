@@ -11,56 +11,57 @@ import XCTest
 @MainActor
 final class UserProfileOwnershipTests: XCTestCase {
 
+    private var harness: DailyLogServiceTestSupport.Harness!
+
+    override func setUp() async throws {
+        harness = try DailyLogServiceTestSupport.makeHarness()
+    }
+
+    override func tearDown() {
+        harness = nil
+        super.tearDown()
+    }
+
     func testLegacyProfileLoadsWithNilOwnerUID() async throws {
-        let container = try AppContainer(inMemory: true)
-        let profile = try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        let profile = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
 
         XCTAssertNil(profile.ownerUID)
-        XCTAssertNil(try container.userProfileService.getCurrentProfileOwnerUID())
+        XCTAssertNil(try harness.profileService.getCurrentProfileOwnerUID())
         XCTAssertEqual(
-            try container.userProfileService.currentProfileOwnership(for: "any-uid"),
+            try harness.profileService.currentProfileOwnership(for: "any-uid"),
             .unowned
         )
     }
 
     func testPreAuthCreateProfileHasNilOwnerUID() throws {
-        let container = try AppContainer(inMemory: true)
-
-        let profile = try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        let profile = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
 
         XCTAssertNil(profile.ownerUID)
-        let loaded = try XCTUnwrap(try container.userProfileService.getCurrentProfile())
+        let loaded = try XCTUnwrap(try harness.profileService.getCurrentProfile())
         XCTAssertNil(loaded.ownerUID)
     }
 
     func testRestoredCloudProfileHasSignedInOwnerUID() async throws {
-        let cloudStore = MockCloudUserProfileStore()
-        cloudStore.storedDocument = ProfileTestFixtures.cloudDocument()
-        let container = try AppContainer(inMemory: true)
-        let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
-            cloudStore: cloudStore,
-            cloudSyncStore: ProfileCloudSyncStore(userDefaults: container.onboardingUserDefaults)
-        )
+        let bootstrapHarness = try ProfileBootstrapTestSupport.makeHarness()
+        bootstrapHarness.cloudStore.storedDocument = ProfileTestFixtures.cloudDocument()
 
-        _ = try await service.resolve(uid: "signed-in-user")
+        _ = try await bootstrapHarness.bootstrapService.resolve(uid: "signed-in-user")
 
-        let restored = try XCTUnwrap(try container.userProfileService.getCurrentProfile())
+        let restored = try XCTUnwrap(try bootstrapHarness.profileService.getCurrentProfile())
         XCTAssertEqual(restored.ownerUID, "signed-in-user")
         XCTAssertEqual(
-            try container.userProfileService.currentProfileOwnership(for: "signed-in-user"),
+            try bootstrapHarness.profileService.currentProfileOwnership(for: "signed-in-user"),
             .matchesSession
         )
     }
 
     func testEntityToModelMappingPreservesOwnerUID() throws {
-        let container = try AppContainer(inMemory: true)
-        _ = try container.userProfileService.createProfile(
+        _ = try harness.profileService.createProfile(
             ProfileTestFixtures.sampleDraft,
             ownerUID: "owner-a"
         )
 
-        let loaded = try XCTUnwrap(try container.userProfileService.getCurrentProfile())
+        let loaded = try XCTUnwrap(try harness.profileService.getCurrentProfile())
         XCTAssertEqual(loaded.ownerUID, "owner-a")
     }
 
@@ -74,41 +75,33 @@ final class UserProfileOwnershipTests: XCTestCase {
     }
 
     func testAssignOwnerUIDUpdatesCurrentProfile() throws {
-        let container = try AppContainer(inMemory: true)
-        _ = try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
 
-        let assigned = try container.userProfileService.assignOwnerUID("linked-user")
+        let assigned = try harness.profileService.assignOwnerUID("linked-user")
 
         XCTAssertEqual(assigned.ownerUID, "linked-user")
         XCTAssertEqual(
-            try container.userProfileService.currentProfileOwnership(for: "linked-user"),
+            try harness.profileService.currentProfileOwnership(for: "linked-user"),
             .matchesSession
         )
         XCTAssertEqual(
-            try container.userProfileService.currentProfileOwnership(for: "other-user"),
+            try harness.profileService.currentProfileOwnership(for: "other-user"),
             .mismatched(localOwnerUID: "linked-user")
         )
     }
 
     func testOnboardingCloudSyncAssignsOwnerUID() async throws {
-        let cloudStore = MockCloudUserProfileStore()
-        let container = try AppContainer(inMemory: true)
-        let syncStore = ProfileCloudSyncStore(userDefaults: container.onboardingUserDefaults)
-        let bootstrapService = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
-            cloudStore: cloudStore,
-            cloudSyncStore: syncStore
-        )
-        let coordinator = ProfileBootstrapCoordinatorService(
-            profileBootstrapService: bootstrapService,
-            cloudSyncStore: syncStore
-        )
+        let bootstrapHarness = try ProfileBootstrapTestSupport.makeHarness()
+        let coordinator = bootstrapHarness.makeCoordinator()
 
-        _ = try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
-        XCTAssertNil(try container.userProfileService.getCurrentProfileOwnerUID())
+        _ = try bootstrapHarness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
+        XCTAssertNil(try bootstrapHarness.profileService.getCurrentProfileOwnerUID())
 
         try await coordinator.syncOnboardingProfileToCloud(uid: "save-plan-user")
 
-        XCTAssertEqual(try container.userProfileService.getCurrentProfileOwnerUID(), "save-plan-user")
+        XCTAssertEqual(
+            try bootstrapHarness.profileService.getCurrentProfileOwnerUID(),
+            "save-plan-user"
+        )
     }
 }

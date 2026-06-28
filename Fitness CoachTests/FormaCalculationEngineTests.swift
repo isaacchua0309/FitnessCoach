@@ -140,14 +140,6 @@ final class FormaCalculationEngineTests: XCTestCase {
         }
     }
 
-    // MARK: - Legacy pace mapping
-
-    func testLegacyAggressivenessMapping() {
-        XCTAssertEqual(WeightLossPace(legacy: .conservative), .preset(.gentle))
-        XCTAssertEqual(WeightLossPace(legacy: .moderate), .preset(.moderate))
-        XCTAssertEqual(WeightLossPace(legacy: .aggressive), .preset(.aggressive))
-    }
-
     // MARK: - Helpers
 
     private func baseInput(

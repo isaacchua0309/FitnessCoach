@@ -84,6 +84,7 @@ enum TodayDashboardFixtures {
                     hasWorkout: false
                 ),
                 foodEntries: [],
+                hasPriorFoodLogs: false,
                 streaks: StreakSummary(
                     loggingStreak: 0,
                     proteinStreak: 0,
@@ -156,6 +157,7 @@ enum TodayDashboardFixtures {
                     hasWorkout: hasWorkout
                 ),
                 foodEntries: foodEntries,
+                hasPriorFoodLogs: !foodEntries.isEmpty,
                 streaks: StreakSummary(
                     loggingStreak: 0,
                     proteinStreak: 0,
@@ -211,6 +213,7 @@ enum TodayDashboardFixtures {
                     hasWorkout: true
                 ),
                 foodEntries: TodayPreviewData.foodEntries,
+                hasPriorFoodLogs: true,
                 streaks: StreakSummary(
                     loggingStreak: 7,
                     proteinStreak: 5,
@@ -270,6 +273,7 @@ enum TodayDashboardFixtures {
                     hasWorkout: false
                 ),
                 foodEntries: TodayPreviewData.foodEntries,
+                hasPriorFoodLogs: true,
                 streaks: StreakSummary(
                     loggingStreak: 2,
                     proteinStreak: 0,

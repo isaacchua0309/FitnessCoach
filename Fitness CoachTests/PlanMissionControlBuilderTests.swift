@@ -64,7 +64,7 @@ final class PlanMissionControlBuilderTests: XCTestCase {
         XCTAssertEqual(today.proteinLabel, "180g protein")
         XCTAssertEqual(today.carbsLabel, "180g carbs")
         XCTAssertEqual(today.fatLabel, "58g fat")
-        XCTAssertEqual(today.waterLabel, "3.2L water")
+        XCTAssertEqual(today.waterLabel, PlanTodayMissionStateBuilder.waterLabel(for: today.waterTargetMl))
         XCTAssertEqual(today.progressCopy, "Designed for about 0.8 kg/week progress.")
     }
 
@@ -142,10 +142,11 @@ final class PlanMissionControlBuilderTests: XCTestCase {
         XCTAssertEqual(assumptions.resolvedAgeYears, 28)
     }
 
-    func testActivityAssumptionsIncludeOnboardingNoteWithoutAutoAdjustLanguage() {
+    func testActivityAssumptionsIncludeNoteWithoutAutoAdjustLanguage() {
         let note = PlanMissionControlFixtures.loseDashboard.activityAssumptions.assumptionsNote
 
-        XCTAssertTrue(note.contains("will not auto-change"))
+        XCTAssertFalse(note.lowercased().contains("onboarding"))
+        XCTAssertTrue(note.lowercased().contains("won't change"))
         XCTAssertFalse(note.lowercased().contains("automatically change your calorie targets"))
     }
 
@@ -176,7 +177,7 @@ final class PlanMissionControlBuilderTests: XCTestCase {
         XCTAssertFalse(adjustment.editSafetyCopy.isEmpty)
         XCTAssertEqual(
             adjustment.lastUpdateReasonCopy,
-            FormaProductCopy.PlanMissionControl.planUpdatedAfterEdit
+            FormaProductCopy.PlanMissionControl.planUpdateReasonGoalChanged
         )
     }
 

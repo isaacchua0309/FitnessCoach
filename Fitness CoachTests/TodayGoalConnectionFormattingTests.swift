@@ -140,6 +140,7 @@ final class TodayGoalConnectionFormattingTests: XCTestCase {
                     hasWorkout: false
                 ),
                 foodEntries: [],
+                hasPriorFoodLogs: false,
                 streaks: StreakSummary(
                     loggingStreak: 0,
                     proteinStreak: 0,
@@ -164,7 +165,10 @@ final class TodayGoalConnectionFormattingTests: XCTestCase {
         )
 
         XCTAssertEqual(state.mission.goalProgress?.currentWeightKg, 87.4)
-        XCTAssertEqual(state.mission.goalProgress?.kgToGo, 12.4, accuracy: 0.001)
+        guard let goalProgress = state.mission.goalProgress else {
+            return XCTFail("Expected goal progress")
+        }
+        XCTAssertEqual(goalProgress.kgToGo, 12.4, accuracy: 0.001)
         XCTAssertEqual(state.goalConnection?.message, "12.4kg to your goal.")
     }
 }

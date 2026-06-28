@@ -28,6 +28,9 @@ extension ProfileBootstrapCoordinator {
         if input.pendingOnboardingCompletion {
             return .onboardingCompletion
         }
+        if input.pendingExistingUserSignIn {
+            return .existingUserEntry
+        }
         if input.isFreshSignIn {
             return .returningUser
         }

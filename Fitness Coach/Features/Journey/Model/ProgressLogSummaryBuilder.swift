@@ -67,12 +67,6 @@ enum ProgressLogSummaryBuilder {
         )
     }
 
-    static func weightChartPoints(from weights: [WeightEntry]) -> [WeightChartPoint] {
-        weights.sorted { $0.date < $1.date }.map {
-            WeightChartPoint(date: $0.date, weightKg: $0.weightKg)
-        }
-    }
-
     private static func average(_ values: [Double]) -> Double? {
         guard !values.isEmpty else { return nil }
         return values.reduce(0, +) / Double(values.count)

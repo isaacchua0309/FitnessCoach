@@ -114,16 +114,8 @@ final class JourneyTrainingSummaryBuilderTests: XCTestCase {
             previousWeekWeights: [],
             previousWeekTrainingDays: 0,
             monthLogs: [],
-            rangeLogs: [],
             allWeights: [],
             weekWeights: [],
-            rangeWeights: [],
-            streakSummary: StreakSummary(
-                loggingStreak: 0,
-                proteinStreak: 0,
-                hydrationStreak: 0,
-                workoutStreak: 0
-            ),
             journeyStreaks: JourneyStreakBuilder.build(
                 JourneyStreakBuilder.Input(
                     streakSummary: StreakSummary(
@@ -149,8 +141,6 @@ final class JourneyTrainingSummaryBuilderTests: XCTestCase {
             goalProjection: nil,
             healthWorkoutDayStarts: [],
             monthHealthWorkoutCount: 0,
-            weekHealthWorkoutCount: 0,
-            loggedDays: 0,
             nutritionSummary: ProgressNutritionSummary(
                 loggedDays: 0,
                 averageCalories: nil,

@@ -39,53 +39,80 @@ struct OnboardingRulerConfiguration: Equatable, Sendable {
     }
 }
 
+enum OnboardingRulerPresentation: Equatable {
+    case standard
+    case hero
+}
+
 struct OnboardingHorizontalRulerPicker: View {
     let configuration: OnboardingRulerConfiguration
     @Binding var value: Double
     let formatValue: (Double) -> String
+    var presentation: OnboardingRulerPresentation = .standard
     var centerDisplayText: String?
     var accessibilityValueText: String?
 
     @State private var selectedIndex: Int = 0
+    @State private var suppressSelectionHaptics = true
 
-    private let indicatorHeight: CGFloat = 36
+    @ScaledMetric(relativeTo: .body) private var standardIndicatorHeight: CGFloat = 36
+    @ScaledMetric(relativeTo: .title) private var heroIndicatorHeight: CGFloat = 52
+    @ScaledMetric(relativeTo: .caption) private var standardTickLabelSize: CGFloat = 9
+    @ScaledMetric(relativeTo: .body) private var heroTickLabelSize: CGFloat = 11
 
     init(
         configuration: OnboardingRulerConfiguration,
         value: Binding<Double>,
         formatValue: @escaping (Double) -> String = OnboardingHorizontalRulerPicker.defaultFormatter,
+        presentation: OnboardingRulerPresentation = .standard,
         centerDisplayText: String? = nil,
         accessibilityValueText: String? = nil
     ) {
         self.configuration = configuration
         _value = value
         self.formatValue = formatValue
+        self.presentation = presentation
         self.centerDisplayText = centerDisplayText
         self.accessibilityValueText = accessibilityValueText
         let initialIndex = OnboardingRulerMath.index(for: value.wrappedValue, in: configuration.values) ?? 0
         _selectedIndex = State(initialValue: initialIndex)
     }
 
+    private var isHero: Bool { presentation == .hero }
+    private var rulerHeight: CGFloat { isHero ? OnboardingLayout.heroRulerHeight : 88 }
+    private var indicatorHeight: CGFloat { isHero ? heroIndicatorHeight : standardIndicatorHeight }
+
     var body: some View {
         VStack(spacing: FormaTokens.Spacing.sm) {
-            selectedValueLabel
+            if !isHero {
+                selectedValueLabel
+            }
 
             ZStack {
-                RoundedRectangle(cornerRadius: OnboardingTheme.compactCornerRadius, style: .continuous)
+                RoundedRectangle(cornerRadius: isHero ? FormaTokens.Radius.card : OnboardingTheme.compactCornerRadius, style: .continuous)
                     .fill(FormaTokens.Color.surfaceSubtle)
                     .overlay {
-                        RoundedRectangle(cornerRadius: OnboardingTheme.compactCornerRadius, style: .continuous)
-                            .stroke(OnboardingTheme.border.opacity(0.55), lineWidth: 1)
+                        if !isHero {
+                            RoundedRectangle(cornerRadius: OnboardingTheme.compactCornerRadius, style: .continuous)
+                                .stroke(OnboardingTheme.border.opacity(0.55), lineWidth: 1)
+                        }
                     }
 
                 rulerScrollView
 
+                if isHero {
+                    heroCenterValue
+                }
+
                 centerIndicator
             }
-            .frame(height: 88)
+            .frame(height: rulerHeight)
         }
         .onAppear {
             syncIndexFromValue()
+            DispatchQueue.main.async {
+                suppressSelectionHaptics = false
+            }
         }
         .onChange(of: value) { _, _ in
             syncIndexFromValue()
@@ -112,6 +139,25 @@ struct OnboardingHorizontalRulerPicker: View {
             .minimumScaleFactor(0.85)
             .frame(maxWidth: .infinity)
             .accessibilityHidden(true)
+    }
+
+    private var heroCenterValue: some View {
+        VStack(spacing: FormaTokens.Spacing.xs) {
+            Text(displayLabel)
+                .font(.system(.title, design: .rounded).weight(.bold))
+                .foregroundStyle(OnboardingTheme.primaryText)
+                .minimumScaleFactor(0.82)
+                .lineLimit(1)
+                .contentTransition(.numericText())
+                .animation(.easeOut(duration: 0.18), value: displayLabel)
+                .accessibilityHidden(true)
+
+            Capsule()
+                .fill(OnboardingTheme.accent)
+                .frame(width: 2, height: indicatorHeight * 0.55)
+                .accessibilityHidden(true)
+        }
+        .allowsHitTesting(false)
     }
 
     private var displayLabel: String {
@@ -155,6 +201,7 @@ struct OnboardingHorizontalRulerPicker: View {
             ))
             .accessibilityHidden(true)
         }
+        .padding(.top, isHero ? 44 : 0)
     }
 
     private func rulerHorizontalPadding(in width: CGFloat) -> CGFloat {
@@ -162,28 +209,36 @@ struct OnboardingHorizontalRulerPicker: View {
     }
 
     private var centerIndicator: some View {
-        Rectangle()
-            .fill(OnboardingTheme.accent)
-            .frame(width: 2, height: indicatorHeight)
-            .accessibilityHidden(true)
+        Group {
+            if !isHero {
+                Rectangle()
+                    .fill(OnboardingTheme.accent)
+                    .frame(width: 2, height: indicatorHeight)
+            }
+        }
+        .accessibilityHidden(true)
     }
 
     @ViewBuilder
     private func tickView(for index: Int) -> some View {
         let isMajor = index % configuration.majorTickEvery == 0
+        let majorHeight: CGFloat = isHero ? 30 : 22
+        let minorHeight: CGFloat = isHero ? 16 : 12
+        let labelSize = isHero ? heroTickLabelSize : standardTickLabelSize
+
         VStack(spacing: 4) {
             Spacer(minLength: 0)
             Rectangle()
                 .fill(isMajor ? OnboardingTheme.secondaryText : OnboardingTheme.border)
-                .frame(width: 1, height: isMajor ? 22 : 12)
+                .frame(width: isMajor ? 1.5 : 1, height: isMajor ? majorHeight : minorHeight)
             if isMajor, let tickValue = configuration.values[safe: index] {
                 Text(formatValue(tickValue))
-                    .font(.system(size: 9, weight: .medium, design: .rounded))
+                    .font(.system(size: labelSize, weight: .semibold, design: .rounded))
                     .foregroundStyle(OnboardingTheme.tertiaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             } else {
-                Color.clear.frame(height: 12)
+                Color.clear.frame(height: isHero ? 14 : 12)
             }
         }
         .frame(maxHeight: .infinity, alignment: .bottom)
@@ -201,9 +256,13 @@ struct OnboardingHorizontalRulerPicker: View {
 
     private func applyIndex(_ index: Int) {
         let clamped = OnboardingRulerMath.clampedIndex(index, count: configuration.values.count)
+        let previous = value
         selectedIndex = clamped
         if let updated = OnboardingRulerMath.value(at: clamped, in: configuration.values) {
             value = updated
+            if updated != previous, !suppressSelectionHaptics {
+                OnboardingHaptics.selectionChanged()
+            }
         }
     }
 
@@ -229,19 +288,64 @@ private extension Array {
 
 enum OnboardingRulerPickerFactory {
 
-    static func weightLossKg(
+    static func weightDeltaKg(
         value: Binding<Double>,
         range: ClosedRange<Double>,
+        presentation: OnboardingRulerPresentation = .standard,
         centerDisplayText: String? = nil,
         accessibilityValueText: String? = nil
     ) -> OnboardingHorizontalRulerPicker {
         OnboardingHorizontalRulerPicker(
-            configuration: .init(
+            configuration: rulerConfiguration(
                 range: range,
-                step: OnboardingGoalWeightBounds.metricStepKg,
-                unitLabel: OnboardingFormatter.weightUnitAbbreviation(for: .metric)
+                step: OnboardingTargetWeightValues.rulerStepKg,
+                unitSystem: .metric,
+                presentation: presentation
             ),
             value: value,
+            presentation: presentation,
+            centerDisplayText: centerDisplayText,
+            accessibilityValueText: accessibilityValueText
+        )
+    }
+
+    static func weightDeltaLb(
+        value: Binding<Double>,
+        range: ClosedRange<Double>,
+        presentation: OnboardingRulerPresentation = .standard,
+        centerDisplayText: String? = nil,
+        accessibilityValueText: String? = nil
+    ) -> OnboardingHorizontalRulerPicker {
+        OnboardingHorizontalRulerPicker(
+            configuration: rulerConfiguration(
+                range: range,
+                step: OnboardingTargetWeightValues.rulerStepLb,
+                unitSystem: .imperial,
+                presentation: presentation
+            ),
+            value: value,
+            presentation: presentation,
+            centerDisplayText: centerDisplayText,
+            accessibilityValueText: accessibilityValueText
+        )
+    }
+
+    static func weightLossKg(
+        value: Binding<Double>,
+        range: ClosedRange<Double>,
+        presentation: OnboardingRulerPresentation = .standard,
+        centerDisplayText: String? = nil,
+        accessibilityValueText: String? = nil
+    ) -> OnboardingHorizontalRulerPicker {
+        OnboardingHorizontalRulerPicker(
+            configuration: rulerConfiguration(
+                range: range,
+                step: OnboardingGoalWeightBounds.metricStepKg,
+                unitSystem: .metric,
+                presentation: presentation
+            ),
+            value: value,
+            presentation: presentation,
             centerDisplayText: centerDisplayText,
             accessibilityValueText: accessibilityValueText
         )
@@ -250,16 +354,19 @@ enum OnboardingRulerPickerFactory {
     static func weightLossLb(
         value: Binding<Double>,
         range: ClosedRange<Double>,
+        presentation: OnboardingRulerPresentation = .standard,
         centerDisplayText: String? = nil,
         accessibilityValueText: String? = nil
     ) -> OnboardingHorizontalRulerPicker {
         OnboardingHorizontalRulerPicker(
-            configuration: .init(
+            configuration: rulerConfiguration(
                 range: range,
                 step: OnboardingGoalWeightBounds.imperialStepLb,
-                unitLabel: OnboardingFormatter.weightUnitAbbreviation(for: .imperial)
+                unitSystem: .imperial,
+                presentation: presentation
             ),
             value: value,
+            presentation: presentation,
             centerDisplayText: centerDisplayText,
             accessibilityValueText: accessibilityValueText
         )
@@ -290,6 +397,24 @@ enum OnboardingRulerPickerFactory {
                 unitLabel: OnboardingFormatter.weightUnitAbbreviation(for: .imperial)
             ),
             value: value
+        )
+    }
+
+    private static func rulerConfiguration(
+        range: ClosedRange<Double>,
+        step: Double,
+        unitSystem: UnitSystem,
+        presentation: OnboardingRulerPresentation
+    ) -> OnboardingRulerConfiguration {
+        let tickSpacing = presentation == .hero
+            ? OnboardingLayout.heroRulerTickSpacing
+            : 12
+        return OnboardingRulerConfiguration(
+            range: range,
+            step: step,
+            unitLabel: OnboardingFormatter.weightUnitAbbreviation(for: unitSystem),
+            tickSpacing: tickSpacing,
+            majorTickEvery: presentation == .hero ? 4 : 5
         )
     }
 }

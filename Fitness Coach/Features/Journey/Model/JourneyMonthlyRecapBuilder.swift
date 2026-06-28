@@ -29,7 +29,6 @@ enum JourneyMonthlyRecapBuilder {
         let monthName = input.asOf.formatted(
             .dateTime.month(.wide).locale(input.calendar.locale ?? .current)
         )
-        let monthLabel = input.asOf.formatted(.dateTime.month(.wide).year())
         let sectionTitle = copy.sectionTitle(monthName: monthName)
 
         let monthWeights = input.allWeights.filter {
@@ -56,14 +55,6 @@ enum JourneyMonthlyRecapBuilder {
 
         let foodLoggedDays = JourneyLogMetrics.foodLoggedDays(in: input.monthLogs)
         let isComplete = foodLoggedDays >= minimumFoodLogDaysForCompleteRecap
-
-        let calendar = JourneyDashboardBuilder.consistencyCalendar(
-            logs: input.maturityLogs,
-            healthWorkoutDayStarts: input.healthWorkoutDayStarts,
-            weights: input.allWeights,
-            month: input.asOf,
-            calendar: input.calendar
-        )
 
         let bestHabit = bestHabitKind(input: input, daysElapsedInMonth: daysElapsedInMonth(input: input))
         let bestHabitCopy = bestHabit.map { copy.bestHabit(for: $0) }
@@ -95,7 +86,6 @@ enum JourneyMonthlyRecapBuilder {
             sectionTitle: sectionTitle,
             isComplete: isComplete,
             buildingMessage: isComplete ? nil : copy.buildingBody,
-            monthLabel: monthLabel,
             monthWeightDeltaKg: monthWeightDelta,
             calorieAdherencePercent: caloriePercent,
             proteinAdherencePercent: proteinPercent,
@@ -105,8 +95,7 @@ enum JourneyMonthlyRecapBuilder {
             loggedDays: foodLoggedDays,
             bestHabitCopy: isComplete ? bestHabitCopy : nil,
             summaryCopy: summaryCopy,
-            rows: rows,
-            calendar: calendar
+            rows: rows
         )
     }
 

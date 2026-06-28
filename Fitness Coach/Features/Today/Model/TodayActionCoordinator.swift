@@ -34,6 +34,7 @@ final class TodayActionCoordinator: ObservableObject {
     private let actionCenter: FitnessActionCenter
     private let analyticsLogger: any TodayAnalyticsLogging
     private let logDate: () -> Date
+    private var analyticsSnapshot: TodayAnalyticsSnapshot = .empty
 
     var onOpenCoach: ((String?) -> Void)?
     var onOpenTrainingInsights: (() -> Void)?
@@ -48,17 +49,44 @@ final class TodayActionCoordinator: ObservableObject {
         self.logDate = logDate
     }
 
+    // MARK: - Analytics context
+
+    func updateAnalyticsContext(from state: TodayDashboardState, healthConnected: Bool) {
+        analyticsSnapshot = TodayAnalyticsContextBuilder.snapshot(
+            from: state,
+            healthConnected: healthConnected
+        )
+    }
+
+    func logTodayViewed() {
+        log(.viewed)
+    }
+
+    func logNextActionViewed(for action: NextBestActionState) {
+        log(
+            .nextActionViewed,
+            reason: TodayNextActionFormatting.analyticsReason(action.reason)
+        )
+    }
+
+    func logGoalConnectionTapped(destination: TodayGoalConnectionDestination) {
+        log(
+            .goalConnectionTapped,
+            actionType: "goal_connection",
+            destination: TodayAnalyticsContextBuilder.goalConnectionDestination(destination)
+        )
+    }
+
     // MARK: - Next Best Action
 
     func handleCTA(_ cta: NextBestActionCTA, from action: NextBestActionState) {
         let route = TodayNextActionFormatting.route(for: cta)
-        analyticsLogger.log(
-            .nextActionCTATapped,
-            properties: TodayAnalyticsProperties(
-                reason: TodayNextActionFormatting.analyticsReason(action.reason),
-                cta: TodayNextActionFormatting.analyticsCTA(cta),
-                route: TodayNextActionFormatting.analyticsRoute(route)
-            )
+        log(
+            .nextActionTapped,
+            actionType: "next_best_action",
+            reason: TodayNextActionFormatting.analyticsReason(action.reason),
+            cta: TodayNextActionFormatting.analyticsCTA(cta),
+            route: TodayNextActionFormatting.analyticsRoute(route)
         )
         perform(route)
     }
@@ -68,15 +96,15 @@ final class TodayActionCoordinator: ObservableObject {
     func performQuickAction(_ kind: TodayQuickActionKind) {
         guard TodayQuickActionPolicy.isVisible(kind) else { return }
 
-        analyticsLogger.log(
+        let route = route(for: kind)
+        log(
             .quickActionTapped,
-            properties: TodayAnalyticsProperties(
-                route: TodayNextActionFormatting.analyticsRoute(route(for: kind)),
-                action: kind.rawValue
-            )
+            actionType: "quick_action",
+            route: TodayNextActionFormatting.analyticsRoute(route),
+            action: kind.rawValue
         )
 
-        perform(route(for: kind))
+        perform(route)
     }
 
     func logMeal(for mealType: MealType) {
@@ -86,6 +114,11 @@ final class TodayActionCoordinator: ObservableObject {
     func openEditFood(_ entry: FoodEntry) {
         foodEditErrorMessage = nil
         editFoodPresentation = EditFoodPresentation(entry: entry)
+        log(
+            .mealEditStarted,
+            actionType: "edit_meal",
+            mealType: TodayAnalyticsContextBuilder.mealTypeAction(entry.mealType)
+        )
     }
 
     func dismissEditFoodSheet() {
@@ -110,6 +143,12 @@ final class TodayActionCoordinator: ObservableObject {
             if editFoodPresentation?.entry.id == entry.id {
                 editFoodPresentation = nil
             }
+            TodayHaptics.deleteSucceeded()
+            log(
+                .mealDeleted,
+                actionType: "delete_meal",
+                mealType: TodayAnalyticsContextBuilder.mealTypeAction(entry.mealType)
+            )
         } catch {
             foodEditErrorMessage = FormaProductCopy.Error.checkInputs
             pendingDeleteFoodEntry = nil
@@ -126,6 +165,12 @@ final class TodayActionCoordinator: ObservableObject {
             _ = try actionCenter.editFoodEntry(id: presentation.entry.id, update: update)
             foodEditErrorMessage = nil
             editFoodPresentation = nil
+            TodayHaptics.saveSucceeded()
+            log(
+                .mealEditSaved,
+                actionType: "edit_meal",
+                mealType: TodayAnalyticsContextBuilder.mealTypeAction(formState.mealType)
+            )
         } catch let error as FoodEntryFormError {
             foodEditErrorMessage = error.localizedDescription
         } catch {
@@ -151,6 +196,12 @@ final class TodayActionCoordinator: ObservableObject {
             _ = try actionCenter.logFood(draft, date: logDate())
             lastErrorMessage = nil
             logMealPresentation = nil
+            TodayHaptics.saveSucceeded()
+            log(
+                .logMealSaved,
+                actionType: "log_meal",
+                mealType: TodayAnalyticsContextBuilder.mealTypeAction(formState.mealType)
+            )
         } catch let error as FoodEntryFormError {
             lastErrorMessage = error.localizedDescription
         } catch {
@@ -163,6 +214,8 @@ final class TodayActionCoordinator: ObservableObject {
             _ = try actionCenter.logDailyWeight(weightKg, date: logDate())
             lastErrorMessage = nil
             isPresentingLogWeightSheet = false
+            TodayHaptics.saveSucceeded()
+            log(.weightLogged, actionType: "log_weight")
         } catch {
             lastErrorMessage = FormaProductCopy.Error.checkInputs
         }
@@ -196,21 +249,64 @@ final class TodayActionCoordinator: ObservableObject {
             do {
                 _ = try actionCenter.logWater(amountMl: amountMl, date: logDate())
                 lastErrorMessage = nil
+                TodayHaptics.saveSucceeded()
+                log(
+                    .waterAdded,
+                    actionType: "add_water",
+                    waterAmountBucket: TodayAnalyticsContextBuilder.waterAmountBucket(amountMl)
+                )
             } catch {
                 lastErrorMessage = FormaProductCopy.Error.checkInputs
             }
         case .presentLogMeal(let mealType):
+            log(
+                .logMealStarted,
+                actionType: "log_meal",
+                mealType: TodayAnalyticsContextBuilder.mealTypeAction(mealType)
+            )
             logMealPresentation = LogMealPresentation(mealType: mealType)
         case .presentLogWeight:
             isPresentingLogWeightSheet = true
         case .presentAddWater:
             isPresentingAddWaterSheet = true
         case .openCoach(let prefill):
+            if prefill == TodayCoachPrompt.scanFood {
+                log(.scanFoodTapped, actionType: "scan_food", route: "open_coach")
+            }
             onOpenCoach?(prefill)
         case .openTrainingInsights:
             onOpenTrainingInsights?()
         case .none:
             break
         }
+    }
+
+    // MARK: - Analytics helpers
+
+    private func log(
+        _ event: TodayAnalyticsEvent,
+        actionType: String? = nil,
+        reason: String? = nil,
+        cta: String? = nil,
+        route: String? = nil,
+        action: String? = nil,
+        mealType: String? = nil,
+        waterAmountBucket: String? = nil,
+        destination: String? = nil
+    ) {
+        analyticsLogger.log(
+            event,
+            properties: .from(
+                snapshot: analyticsSnapshot,
+                actionType: actionType,
+                reason: reason,
+                cta: cta,
+                route: route,
+                action: action,
+                mealType: mealType,
+                waterAmountBucket: waterAmountBucket,
+                destination: destination
+            )
+        )
     }
 }

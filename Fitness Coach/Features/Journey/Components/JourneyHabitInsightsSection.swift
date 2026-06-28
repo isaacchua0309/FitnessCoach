@@ -7,6 +7,7 @@ import SwiftUI
 
 struct JourneyHabitInsightsSection: View {
     let state: JourneyHabitInsightsState
+    var onCTA: ((JourneyCTA) -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
@@ -42,7 +43,7 @@ struct JourneyHabitInsightsSection: View {
             )
 
             habitCard(
-                eyebrow: FormaProductCopy.Journey.HabitInsights.weakestTitle,
+                eyebrow: FormaProductCopy.Journey.HabitInsights.nextFocusTitle,
                 habitLabel: state.weakestHabitLabel,
                 percent: state.weakestScorePercent,
                 percentPrefix: state.weakestScorePrefix,
@@ -60,6 +61,12 @@ struct JourneyHabitInsightsSection: View {
                         .font(FormaTokens.Typography.sectionSubtitle)
                         .foregroundStyle(FormaTokens.Color.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
+
+                    if let cta = state.suggestionCTA, let onCTA {
+                        JourneyCTAButton(cta: cta) {
+                            onCTA(cta)
+                        }
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -138,6 +145,13 @@ struct JourneyHabitInsightsSection: View {
 
 #Preview("Unlocked") {
     JourneyHabitInsightsSection(state: ProgressPreviewData.habitInsightsActive)
+        .padding()
+        .background(FormaTokens.Color.canvas)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Week one unlocked") {
+    JourneyHabitInsightsSection(state: ProgressPreviewData.habitInsightsWeekOne)
         .padding()
         .background(FormaTokens.Color.canvas)
         .preferredColorScheme(.dark)

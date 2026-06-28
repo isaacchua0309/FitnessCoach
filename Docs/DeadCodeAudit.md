@@ -67,13 +67,18 @@ Production training UX is **`TrainingInsightsView`** (Apple Health). The SwiftDa
 | `Legacy/TrainingLoadingView.swift` | View | `TrainingInsightsConnectedView` | Active loading state | **High** | **move** | Connected view smoke |
 | `Legacy/TrainingErrorView.swift` | View | `TrainingInsightsConnectedView` | Active error state | **High** | **move** | Connected view smoke |
 
-### B2 — Journey UI hidden from production scroll
+### B2 — Journey UI (resolved 2026-06-28)
 
-| File path | Type | Reference search | Reason verify | Risk | Action | Validation |
-|-----------|------|------------------|---------------|------|--------|------------|
-| `Features/Journey/Components/JourneyAchievementsSection.swift` | View | Not in `ProgressView`; `#Preview` only; TODO: intentionally hidden | Product may re-enable Option A | **Medium** | **delete** or keep until ship | Product confirm |
-| `Features/Journey/Components/JourneyMilestonesSection.swift` | View | Not in `ProgressView`; `showsMilestonesSection: false` | Milestone **data** still used for hero `nextCheckpointKg` | **Medium** | **delete view only** | Journey hero checkpoint |
-| `Features/Journey/Model/ProgressModel.swift` | `achievements` build | Written to state; **no view reads** `state.achievements` | Dead computation, not dead file | **Low–Medium** | **remove computation + field** after product OK | `ProgressModel` / Journey tests |
+**Status:** Journey redesign shipped a single canonical scroll. Milestones, achievements gallery, consistency calendar, and duplicate timeline views were removed. Live layout is documented in [JourneyArchitecture.md](./JourneyArchitecture.md).
+
+| Former candidate | Resolution |
+|------------------|------------|
+| `JourneyAchievementsSection` | Deleted — milestones rail is the checkpoint UX |
+| Hidden `JourneyMilestonesSection` | Replaced by mounted `JourneyMilestonesSection` in `JourneyDashboardContent` |
+| `state.achievements` dead field | Removed from `ProgressDashboardState` / builders |
+| `JourneyTimelineView` | Deleted (Stage 3) |
+
+**Keep:** `JourneyMilestonesBuilder`, `JourneyDashboardBuilder`, all live `Journey*Builder` types — see `Fitness CoachTests/JourneyManualQAChecklistTests.swift`.
 
 ### B3 — Onboarding / preview tooling
 
@@ -115,7 +120,7 @@ Migration-sensitive, cloud/auth, feature-flagged flows, debug tooling, or near-t
 | `Domain/Onboarding/OnboardingFlowScope.swift`, `OnboardingStep.swift` | Canonical flow | Production onboarding | Single onboarding path | **High** | **keep** |
 | `Features/Settings/UI/*Diagnostics*` | Debug views | `SettingsRootView` | Engineering diagnostics | **Low** | **keep** |
 | `Data/Firebase/NoOpCloudUserProfileStore.swift` | Store | `AppContainer` preview / no-Firebase builds | Test & preview wiring | **Medium** | **keep** |
-| `Features/Journey/Model/JourneyStateBuilder.swift` | `milestones(...)` | `ProgressModel` → `nextCheckpointKg` | Hero checkpoint math | **Medium** | **keep** (even if milestone UI deleted) |
+| `Features/Journey/Model/JourneyMilestonesBuilder.swift` | Milestones + checkpoints | `JourneyDashboardBuilder` → `ProgressModel` | Live Journey section | **High** | **keep** | `JourneyMilestonesTests`, manual QA checklist |
 | `FitPilot/App/AppContainer.swift` | DI root | App entry | Runtime wiring | **High** | **keep** |
 | `ContentView.swift` | Root view | `Fitness_CoachApp` | App shell | **High** | **keep** |
 
@@ -162,7 +167,7 @@ Also removed: `makeTrainingInsightsView()`, `openAppSettings()`.
 2. **Legacy onboarding rollback paths** — removed; single canonical flow only (2026-06-28).
 3. **Deleting `TrainingLayout` / `TrainingFormatter` / `TrainingLoadingView` / `TrainingErrorView` with the Legacy folder** — breaks active `TrainingInsightsConnectedView`.
 4. **Auth / profile / cloud files** — out of scope for deletion.
-5. **`JourneyStateBuilder.milestones`** — still feeds `nextCheckpointKg` even if milestone UI is deleted.
+5. **`JourneyMilestonesBuilder`** — live milestones rail; do not delete with legacy cleanup.
 
 ### 3. Biggest bloat sources
 
@@ -179,7 +184,7 @@ Also removed: `makeTrainingInsightsView()`, `openAppSettings()`.
 
 **Stage 3 completed 2026-06-28** — see [Stage 3 log](#stage-3-deletions-2026-06-28) below.
 
-**Defer to batch 4 (next):** Legacy manual-training cluster (move shared `TrainingLayout` / `TrainingFormatter` / loading / error first), Journey hidden sections, `makeTrainingModel()` + `TrainingModel` file group.
+**Defer to batch 4 (next):** Legacy manual-training cluster (move shared `TrainingLayout` / `TrainingFormatter` / loading / error first), `makeTrainingModel()` + `TrainingModel` file group. *(Journey hidden-section batch completed — see B2.)*
 
 ---
 
@@ -224,9 +229,10 @@ Deleting `TrainingIntegrationPreviewData.swift` **whole-file** initially broke t
 | `TrainingIntegrationTests` | 14/14 passed |
 | `ProfilePlanConflictFlowTests` | 4/5 completed; `testRestoreExistingReplacesLocalAndSetsOwnerUID` **simulator crash** (pre-existing AppContainer/Firebase duplicate-class flake) |
 
-### Stale doc references (not updated in Stage 3)
+### Stale doc references (updated 2026-06-28)
 
-- `Docs/Architecture.md` still mentions `makeTrainingInsightsView()` and `JourneyTimelineView` — update in a docs pass.
+- Journey architecture: [JourneyArchitecture.md](./JourneyArchitecture.md)
+- `Docs/Architecture.md` — Journey section and `Features/Journey` paths updated
 
 ---
 

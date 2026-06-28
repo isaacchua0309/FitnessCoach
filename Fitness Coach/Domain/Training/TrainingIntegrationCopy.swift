@@ -53,8 +53,10 @@ enum TrainingIntegrationCopy {
     // MARK: - Plan & Settings
 
     static let planCardSectionTitle = healthIntegrationTitle
-    static let planCardConnectedBody = "Using workouts to improve your insights."
-    static let planCardDisconnectedBody = "Connect Apple Health to improve activity insights."
+    static let planCardConnectedBody =
+        "Workouts from Apple Health improve training insights on Plan and Journey."
+    static let planCardDisconnectedBody =
+        "Connect to show workouts alongside your plan progress."
     static let planCardDeniedBody =
         "Turn on workout access in Health to improve activity insights."
     static let planCardUnavailableBody = "Apple Health is not available on this device."

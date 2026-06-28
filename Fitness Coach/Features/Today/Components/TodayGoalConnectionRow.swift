@@ -11,6 +11,7 @@ struct TodayGoalConnectionRow: View {
     let connection: TodayGoalConnectionState
     let onOpenJourney: () -> Void
     let onOpenPlan: () -> Void
+    var onTapped: ((TodayGoalConnectionDestination) -> Void)?
 
     var body: some View {
         Button(action: handleTap) {
@@ -54,6 +55,7 @@ struct TodayGoalConnectionRow: View {
     }
 
     private func handleTap() {
+        onTapped?(connection.destination)
         switch connection.destination {
         case .journey:
             onOpenJourney()

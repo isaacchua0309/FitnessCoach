@@ -80,7 +80,7 @@ final class JourneyStreakBuilderTests: XCTestCase {
         let state = build(loggingStreak: 0)
 
         XCTAssertEqual(
-            state.habitInsightStreakCopy,
+            state.weeklyConsistencyHeadline,
             FormaProductCopy.Journey.Streaks.buildingConsistency
         )
         XCTAssertFalse(state.heroStreakChip.isVisible)

@@ -34,13 +34,7 @@ extension OnboardingFeatureBullet {
     }
 
     static var almostThereDefaults: [OnboardingFeatureBullet] {
-        FormaProductCopy.Onboarding.Flow.AlmostThereFeatures.bullets.map { bullet in
-            OnboardingFeatureBullet(
-                icon: bullet.icon,
-                title: bullet.title,
-                subtitle: bullet.subtitle
-            )
-        }
+        OnboardingAlmostThereValues.features
     }
 }
 

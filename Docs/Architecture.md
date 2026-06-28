@@ -2,7 +2,7 @@
 
 This document describes how the Forma iOS app is composed today, the layering conventions we are moving toward, and known cleanup areas from the maintainability audit (Stage 1 — documentation only; no code moves yet).
 
-**Related:** [FormaCalculationSpec.md](./FormaCalculationSpec.md) — canonical plan-target formulas.
+**Related:** [JourneyArchitecture.md](./JourneyArchitecture.md) — Journey tab product contract; [FormaCalculationSpec.md](./FormaCalculationSpec.md) — canonical plan-target formulas.
 
 ---
 
@@ -79,7 +79,7 @@ After auth and profile bootstrap, the signed-in shell is a four-tab `TabView`:
 |----------|----------|----------------|---------------|----------------|
 | `.today` | Today | `Features/Today` | `TodayModel` | Am I on track today? |
 | `.coach` | Coach | `Features/Coach` | `CoachModel` | Log, edit, ask — mutations entry point |
-| `.progress` | Journey | `Features/Progress` | `ProgressModel` | How is my transformation going? |
+| `.progress` | Journey | `Features/Journey` | `ProgressModel` | What is my fitness story? |
 | `.profile` | Plan | `Features/Profile` | `ProfileModel` | What strategy am I following? |
 
 **Environment objects** injected at tab level:
@@ -88,7 +88,9 @@ After auth and profile bootstrap, the signed-in shell is a four-tab `TabView`:
 - `TrainingInsightsStore` — HealthKit authorization / connection state
 - `TrainingInsightsModel` — aggregated workout insights for sheets
 
-**Legacy note:** The former Training tab (`AppTab.legacyTrainingTabID = "training"`) was demoted. Persisted selection migrates to Journey (`.progress`). `TrainingView` remains in the codebase for future push navigation but is not in the tab bar.
+**Journey tab:** See [JourneyArchitecture.md](./JourneyArchitecture.md) for section order, baseline rules, XP, analytics, and read-only contract.
+
+**Legacy note:** The former Training tab (`AppTab.legacyTrainingTabID = "training"`) was demoted. Persisted selection migrates to Journey (`.progress`). `TrainingView` remains in the codebase for future push navigation but is not in the tab bar. Journey UI types still use the `Progress*` prefix (`ProgressView`, `ProgressModel`) — product name is **Journey**.
 
 ### Feature tabs (responsibilities)
 
@@ -104,11 +106,16 @@ After auth and profile bootstrap, the signed-in shell is a four-tab `TabView`:
 - AI chat, local command parsing, intent routing (`Features/Coach/Pipeline/`), food confirmation sheets.
 - `CoachModel` is the largest feature model (~900+ lines).
 
-#### Journey / Progress (read-only analytics)
+#### Journey (read-only fitness story)
 
-- Long-horizon weight trends, consistency, milestones, training summaries.
-- `JourneyStateBuilder` assembles dashboard state from services + `TrainingInsightsStore`.
-- Can deep-link prompts to Coach.
+Long-horizon narrative: transformation, weekly consistency, milestones, timeline, habit insight, attribution, records, level/XP, and collapsible detailed analytics.
+
+- **Docs:** [JourneyArchitecture.md](./JourneyArchitecture.md)
+- `ProgressView` + `ProgressModel` assemble `ProgressDashboardState` from services.
+- `JourneyDashboardBuilder` + per-section `Journey*Builder` types; `JourneyBaselineResolver` owns baseline/chart/progress %.
+- `JourneyDashboardContent` renders `JourneyProductLayout.sectionOrder`.
+- CTAs route to Coach / Plan; no mutations on this tab.
+- Apple Health training via `TrainingInsightsStore` + `JourneyTrainingSummaryBuilder`.
 
 #### Plan / Profile (strategy)
 
@@ -175,9 +182,8 @@ SwiftUI views, feature models (`*Model`), view state, formatters, and feature-lo
 | `Onboarding` | 27 | First-run flow |
 | `Today` | 27 | Daily dashboard |
 | `Training` | 25 | Health insights + demoted manual training UI |
-| `Progress` | 22 | Journey tab UI |
+| `Journey` | 44 | Journey tab UI (`ProgressView` — legacy type name) |
 | `Auth` | 3 | Gate and sign-in |
-| `Shared` | 1 | `JourneyTimelineView` |
 
 Features may import Core and (today, inconsistently) reach toward Infrastructure in views or models.
 
@@ -201,7 +207,7 @@ Shared business concepts not tied to a single feature screen.
 | **Legal** | `Core/Legal/` | `FitPilotLegalCopy` (legacy name) |
 | **Diagnostics** | `Core/Diagnostics/` | `FitPilotPipelineTracer`, trace persistence |
 
-**Note:** Domain logic also appears inside Features (e.g. `JourneyStateBuilder`, `CoachRouteDecider`, `LocalNutritionEstimator`). This is a boundary inconsistency to resolve over time.
+**Note:** Domain logic also appears inside Features (e.g. `JourneyDashboardBuilder`, `CoachRouteDecider`, `LocalNutritionEstimator`). Prefer `Domain/Journey/` for cross-cutting Journey analytics; section builders live under `Features/Journey/Model/`.
 
 ### Data / persistence
 
@@ -238,7 +244,7 @@ Platform and external system adapters. Must not import SwiftUI.
 | **Plan/settings chrome** | `Features/Profile/FitPilotScreenStyle.swift` | `FitPilotPlanCard`, settings rows (legacy FitPilot name) |
 | **Onboarding theme** | `Features/Onboarding/OnboardingTheme.swift` | Onboarding-specific wrappers over `FormaTokens` |
 | **Coach theme** | `Features/Coach/Design/CoachDesignTokens.swift` | Coach layout tokens |
-| **Per-feature layout** | `*Layout.swift` in Profile, Today, Progress, Training | Section spacing constants |
+| **Per-feature layout** | `*Layout.swift` in Profile, Today, Journey, Training | Section spacing constants |
 
 `FormaTokens` is the intended single source of truth; other theme files are compatibility layers pending consolidation.
 
@@ -325,14 +331,15 @@ Forma/
 ├── Features/
 │   ├── Today/
 │   ├── Coach/
-│   ├── Journey/            # rename from Progress
+│   ├── Journey/            # Journey tab (types: ProgressView, ProgressModel)
 │   ├── Plan/               # rename from Profile
 │   ├── Onboarding/
 │   ├── TrainingInsights/   # split from demoted Training/
 │   └── Auth/
 ├── TestingSupport/         # Fixtures, mocks, test builders
-└── Docs/
+    └── Docs/
     ├── Architecture.md     # this file
+    ├── JourneyArchitecture.md
     └── FormaCalculationSpec.md
 ```
 
@@ -444,4 +451,5 @@ Items that need confirmation before deletion or large refactors:
 
 | Date | Change |
 |------|--------|
+| 2026-06-28 | Journey section: link to `JourneyArchitecture.md`; fix `Features/Journey` path; replace stale `JourneyStateBuilder` / hidden-milestones notes |
 | 2026-06-27 | Initial architecture doc (Stage 1 audit) |

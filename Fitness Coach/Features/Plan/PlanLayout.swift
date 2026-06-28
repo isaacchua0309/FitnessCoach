@@ -2,7 +2,7 @@
 //  PlanLayout.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Shared spacing for the Plan strategy screen.
+//  FitPilot AI — Shared spacing for the Plan Mission Control screen.
 //
 
 import SwiftUI

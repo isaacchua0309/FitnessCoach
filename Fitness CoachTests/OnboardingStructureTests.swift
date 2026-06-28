@@ -40,7 +40,13 @@ final class OnboardingStructureTests: XCTestCase {
         XCTAssertFalse(OnboardingStep.planReveal.showsProgressHeader)
         XCTAssertFalse(OnboardingStep.savePlan.showsProgressHeader)
         XCTAssertFalse(OnboardingStep.introProof.showsProgressHeader)
-        XCTAssertTrue(OnboardingStep.heightWeight.showsProgressHeader)
+        XCTAssertFalse(OnboardingStep.heightWeight.showsProgressHeader)
+        XCTAssertFalse(OnboardingStep.targetWeight.showsProgressHeader)
+        XCTAssertFalse(OnboardingStep.birthday.showsProgressHeader)
+        XCTAssertTrue(OnboardingStep.birthday.usesFixedViewportShell)
+        XCTAssertFalse(OnboardingStep.activityLevel.showsProgressHeader)
+        XCTAssertFalse(OnboardingStep.appleHealth.showsProgressHeader)
+        XCTAssertFalse(OnboardingStep.almostThere.showsProgressHeader)
     }
 
     func testDraftStoresCanonicalStepRawValues() {
@@ -101,5 +107,48 @@ final class OnboardingStructureTests: XCTestCase {
         for step in removedSteps {
             XCTAssertFalse(flowRawValues.contains(step.rawValue))
         }
+    }
+
+    func testCanonicalFlowExcludesRemovedOnboardingScreens() {
+        let flowStepNames = OnboardingStep.flow.map {
+            OnboardingDraftBridge.analyticsStepName($0)
+        }
+
+        let removedScreenSlugs = [
+            "landing",
+            "motivation",
+            "body_basics",
+            "bodyBasics",
+            "training_rhythm",
+            "trainingRhythm",
+            "preferences",
+            "about_you",
+            "aboutYou",
+            "dynamic_calories",
+            "dynamicCalories",
+            "body_fat",
+            "bodyFat",
+            "manual_age",
+            "manualAge"
+        ]
+
+        for slug in removedScreenSlugs {
+            XCTAssertFalse(
+                flowStepNames.contains(slug),
+                "Canonical flow must not include removed screen \(slug)"
+            )
+        }
+    }
+
+    func testCanonicalFlowMatchesProductStages() {
+        XCTAssertEqual(OnboardingStep.introProof.stage, .start)
+        XCTAssertEqual(OnboardingStep.heightWeight.stage, .body)
+        XCTAssertEqual(OnboardingStep.targetWeight.stage, .destination)
+        XCTAssertEqual(OnboardingStep.birthday.stage, .body)
+        XCTAssertEqual(OnboardingStep.activityLevel.stage, .activity)
+        XCTAssertEqual(OnboardingStep.almostThere.stage, .proof)
+        XCTAssertEqual(OnboardingStep.formaProof.stage, .proof)
+        XCTAssertEqual(OnboardingStep.review.stage, .plan)
+        XCTAssertEqual(OnboardingStep.savePlan.stage, .save)
     }
 }

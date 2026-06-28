@@ -18,7 +18,10 @@ final class ProfileModel: ObservableObject {
     @Published private(set) var generatedTargetPreview: CalorieTargetResult?
     @Published private(set) var formErrorMessage: String?
     @Published var editFormState: ProfileFormState?
-    @Published var editPlanInitialStep = 0
+    @Published var editPlanInitialStep: PlanEditWizardStep = .goalAndTargetWeight
+    @Published private(set) var editBaselineProfile: UserProfile?
+
+    private var loggedSectionImpressions = Set<PlanAnalyticsSectionImpression>()
 
     private let actionCenter: FitnessActionCenter
     private let userProfileService: UserProfileService
@@ -66,6 +69,7 @@ final class ProfileModel: ObservableObject {
             viewState = .loaded(
                 PlanStateBuilder.dashboardState(profile: profile, context: context)
             )
+            loggedSectionImpressions.removeAll()
         } catch {
             viewState = .error(FormaProductCopy.Error.loadPlan)
         }
@@ -117,26 +121,29 @@ final class ProfileModel: ObservableObject {
     // MARK: Sheets
 
     func showEditPlan(
-        initialStep: Int = 0,
+        initialStep: PlanEditWizardStep = .goalAndTargetWeight,
         entryPoint: String = PlanAdjustPlanEntryPoint.dashboard
     ) {
         guard case .loaded(let state) = viewState else { return }
+        let formState = ProfileFormState(profile: state.profile)
+        let stepIndex = PlanEditWizardFlow.index(of: initialStep, formState: formState) ?? 0
         analyticsLogger.log(
-            .adjustPlanStarted,
-            properties: PlanAnalyticsProperties(
-                entryPoint: entryPoint,
-                initialStep: initialStep
-            )
+            .adjustStarted,
+            properties: makeAnalyticsProperties(healthConnected: trainingInsightsStore.integrationState.isConnected) {
+                $0.entryPoint = entryPoint
+                $0.initialStep = stepIndex
+            }
         )
         formErrorMessage = nil
-        editFormState = ProfileFormState(profile: state.profile)
+        editFormState = formState
+        editBaselineProfile = state.profile
         editPlanInitialStep = initialStep
         isShowingEditSheet = true
     }
 
     func showEditPlanActivity() {
         showEditPlan(
-            initialStep: PlanEditWizard.lifestyleStepIndex,
+            initialStep: PlanEditWizard.activityLevelStep,
             entryPoint: PlanAdjustPlanEntryPoint.activityAssumptions
         )
     }
@@ -151,7 +158,8 @@ final class ProfileModel: ObservableObject {
     func dismissEditPlan() {
         formErrorMessage = nil
         editFormState = nil
-        editPlanInitialStep = 0
+        editBaselineProfile = nil
+        editPlanInitialStep = .goalAndTargetWeight
         isShowingEditSheet = false
     }
 
@@ -200,8 +208,20 @@ final class ProfileModel: ObservableObject {
             let result = try targetService.generateInitialTargets(from: input)
             state.applyGeneratedTargets(result.targets)
             state.syncAggressivenessFromPaceChoice()
-            let update = try state.makeUpdate()
+            var update = try state.makeUpdate()
+            if let baseline = editBaselineProfile {
+                update.lastPlanUpdateReason = PlanUpdateReasonResolver.resolve(
+                    baseline: baseline,
+                    update: update
+                )
+            }
             _ = try actionCenter.updatePlan(update)
+            analyticsLogger.log(
+                .editSaved,
+                properties: makeAnalyticsProperties(
+                    healthConnected: trainingInsightsStore.integrationState.isConnected
+                )
+            )
             dismissEditPlan()
             dismissSettings()
             await refresh()
@@ -235,6 +255,23 @@ final class ProfileModel: ObservableObject {
         }
     }
 
+    func prepareTargetPreview(from formState: ProfileFormState) async throws -> CalorieTargetResult {
+        do {
+            formErrorMessage = nil
+            let input = try formState.makeCalorieTargetInput()
+            return try targetService.generateInitialTargets(from: input)
+        } catch let error as ProfileFormError {
+            formErrorMessage = error.message
+            throw error
+        } catch let error as PlanCalculationError {
+            formErrorMessage = error.userMessage
+            throw error
+        } catch {
+            formErrorMessage = FormaProductCopy.Error.regenerateTargets
+            throw error
+        }
+    }
+
     func previewRegeneratedTargets(from formState: ProfileFormState) async {
         do {
             let input = try formState.makeCalorieTargetInput()
@@ -253,7 +290,18 @@ final class ProfileModel: ObservableObject {
     func applyGeneratedTargets() async {
         guard let preview = generatedTargetPreview else { return }
         do {
-            _ = try actionCenter.applyPlanTargets(preview.targets)
+            _ = try actionCenter.updatePlan(
+                UserProfileUpdate(
+                    targets: preview.targets,
+                    lastPlanUpdateReason: .targetsRegenerated
+                )
+            )
+            analyticsLogger.log(
+                .targetsRegenerated,
+                properties: makeAnalyticsProperties(
+                    healthConnected: trainingInsightsStore.integrationState.isConnected
+                )
+            )
             dismissTargetRegeneration()
             if isShowingEditSheet, var formState = editFormState {
                 formState.applyGeneratedTargets(preview.targets)
@@ -264,5 +312,84 @@ final class ProfileModel: ObservableObject {
         } catch {
             formErrorMessage = FormaProductCopy.Error.regenerateTargets
         }
+    }
+
+    // MARK: - Analytics
+
+    func logPlanViewed(healthConnected: Bool) {
+        analyticsLogger.log(
+            .viewed,
+            properties: makeAnalyticsProperties(healthConnected: healthConnected)
+        )
+    }
+
+    func logSectionImpression(_ section: PlanAnalyticsSectionImpression, healthConnected: Bool) {
+        guard case .loaded = viewState else { return }
+        guard loggedSectionImpressions.insert(section).inserted else { return }
+
+        let event: PlanAnalyticsEvent = switch section {
+        case .goalCard: .goalCardViewed
+        case .todayMission: .todayMissionViewed
+        case .weekSection: .weekSectionViewed
+        case .rationale: .rationaleOpened
+        case .activityAssumptions: .activityAssumptionsViewed
+        }
+
+        analyticsLogger.log(
+            event,
+            properties: makeAnalyticsProperties(healthConnected: healthConnected)
+        )
+    }
+
+    func logPlanTodayTapped(healthConnected: Bool) {
+        analyticsLogger.log(
+            .todayTapped,
+            properties: makeAnalyticsProperties(healthConnected: healthConnected)
+        )
+    }
+
+    func logPlanJourneyTapped(healthConnected: Bool) {
+        analyticsLogger.log(
+            .journeyTapped,
+            properties: makeAnalyticsProperties(healthConnected: healthConnected)
+        )
+    }
+
+    func logPlanHealthConnectTapped(
+        entryPoint: PlanAnalyticsHealthConnectEntryPoint,
+        healthConnected: Bool
+    ) {
+        analyticsLogger.log(
+            .healthConnectTapped,
+            properties: makeAnalyticsProperties(healthConnected: healthConnected) {
+                $0.entryPoint = entryPoint.rawValue
+            }
+        )
+    }
+
+    func logPlanCalculationDetailsOpened(healthConnected: Bool) {
+        analyticsLogger.log(
+            .calculationDetailsOpened,
+            properties: makeAnalyticsProperties(healthConnected: healthConnected)
+        )
+    }
+
+    private func makeAnalyticsProperties(
+        healthConnected: Bool,
+        configure: (inout PlanAnalyticsProperties) -> Void = { _ in }
+    ) -> PlanAnalyticsProperties {
+        var properties: PlanAnalyticsProperties
+        if case .loaded(let state) = viewState {
+            properties = PlanAnalyticsProperties.from(
+                snapshot: PlanAnalyticsContextBuilder.snapshot(
+                    from: state,
+                    healthConnected: healthConnected
+                )
+            )
+        } else {
+            properties = PlanAnalyticsProperties(healthConnected: healthConnected)
+        }
+        configure(&properties)
+        return properties
     }
 }

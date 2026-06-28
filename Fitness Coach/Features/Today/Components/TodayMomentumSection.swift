@@ -34,7 +34,7 @@ struct TodayMomentumSection: View {
                 .padding(.vertical, FormaTokens.Spacing.xs)
             }
         }
-        .accessibilityElement(children: .contain)
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel(display.accessibilitySummary)
     }
 
@@ -43,8 +43,9 @@ struct TodayMomentumSection: View {
             .font(FormaTokens.Typography.caption)
             .foregroundStyle(FormaTokens.Color.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
+            .lineLimit(nil)
+            .minimumScaleFactor(0.85)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityLabel(text)
     }
 }
 

@@ -179,6 +179,9 @@ struct TodayView: View {
             appleHealthStepsToday = nil
         }
         await model.refresh(activityContext: currentActivityContext)
+        if case .loaded(let state) = model.viewState {
+            syncAnalyticsContext(for: state)
+        }
     }
 
     private var currentActivityContext: TodayActivityContext {
@@ -195,10 +198,16 @@ struct TodayView: View {
     private var content: some View {
         switch model.viewState {
         case .loading:
-            FormaScreenLoadingView(message: FormaProductCopy.Loading.today)
+            ScrollView {
+                TodayDashboardSkeletonView()
+                    .padding(.horizontal, TodayLayout.horizontalPadding)
+                    .padding(.top, FormaTokens.Spacing.md)
+                    .padding(.bottom, TodayLayout.bottomScrollPadding)
+            }
+            .formaMainTabScrollInsets()
         case .empty:
             TodayEmptyStateView {
-                Task { await refreshDashboard() }
+                onOpenPlan?()
             }
         case .error(let message):
             FormaScreenErrorView(message: message, onRetry: {
@@ -228,19 +237,23 @@ struct TodayView: View {
             }
             .padding(.horizontal, TodayLayout.horizontalPadding)
             .padding(.top, FormaTokens.Spacing.md)
-            .padding(.bottom, TodayLayout.bottomScrollPadding + TodayLayout.quickActionFABClearance)
+            .padding(.bottom, TodayLayout.bottomScrollPadding)
         }
         .formaMainTabScrollInsets()
-        .overlay(alignment: .bottomTrailing) {
-            TodayQuickActionButton(
-                menuItems: TodayQuickActionPolicy.menuItems(),
-                onSelect: { kind in
-                    actionCoordinator.performQuickAction(kind)
-                }
-            )
-            .padding(.trailing, TodayLayout.horizontalPadding)
-            .padding(.bottom, TodayLayout.quickActionFABBottomPadding)
+        .onAppear {
+            syncAnalyticsContext(for: state)
+            actionCoordinator.logTodayViewed()
         }
+        .onChange(of: state.date) { _, _ in
+            syncAnalyticsContext(for: state)
+        }
+    }
+
+    private func syncAnalyticsContext(for state: TodayDashboardState) {
+        actionCoordinator.updateAnalyticsContext(
+            from: state,
+            healthConnected: trainingInsightsStore.integrationState.isConnected
+        )
     }
 }
 

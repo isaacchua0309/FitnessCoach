@@ -51,7 +51,9 @@ enum PlanDashboardBuilder {
             ),
             adjustment: PlanAdjustmentStateBuilder.build(
                 profile: context.profile,
-                planResult: planResult
+                planResult: planResult,
+                referenceDate: context.asOf,
+                calendar: context.calendar
             )
         )
     }
@@ -500,17 +502,11 @@ enum PlanActivityAssumptionsStateBuilder {
     }
 
     private static func accessibilitySummary(for state: PlanActivityAssumptionsState) -> String {
-        var parts = [
+        [
             state.sectionTitle,
             "\(state.activityFieldLabel), \(state.activityLevel)",
-            "\(state.estimatedStepsFieldLabel), \(state.estimatedStepsLabel)",
-            "\(state.trainingFieldLabel), \(state.trainingSessionsLabel)",
             state.assumptionsNote
-        ]
-        if state.showsAppleHealthStatus {
-            parts.append("\(state.appleHealthFieldLabel), \(state.appleHealthStatusLabel)")
-        }
-        return parts.joined(separator: ". ")
+        ].joined(separator: ". ")
     }
 
     private static func trainingSessionsLabel(_ count: Int) -> String {
@@ -765,7 +761,9 @@ enum PlanAdjustmentStateBuilder {
 
     static func build(
         profile: UserProfile,
-        planResult: PlanCalculationResult?
+        planResult: PlanCalculationResult?,
+        referenceDate: Date = Date(),
+        calendar: Calendar = .current
     ) -> PlanAdjustmentState {
         let showsHint: Bool
         if let result = planResult {
@@ -777,18 +775,19 @@ enum PlanAdjustmentStateBuilder {
             showsHint = false
         }
 
-        let lastUpdateReasonCopy = resolveLastUpdateReason(
-            profile: profile,
-            explicitReason: nil
+        let relativeUpdatedLabel = PlanLastUpdatedLabelFormatter.label(
+            for: profile.updatedAt,
+            referenceDate: referenceDate,
+            calendar: calendar
         )
+        let lastUpdateReasonCopy = resolveLastUpdateReason(profile: profile)
+
         let summaryRows = summaryRows(for: profile)
 
         var state = PlanAdjustmentState(
             canEditPlan: true,
             lastUpdated: profile.updatedAt,
-            lastUpdatedLabel: FormaProductCopy.PlanMissionControl.lastUpdated(
-                profile.updatedAt.formatted(.dateTime.month(.abbreviated).day().year())
-            ),
+            lastUpdatedLabel: FormaProductCopy.PlanMissionControl.lastUpdated(relativeUpdatedLabel),
             lastUpdateReason: lastUpdateReasonCopy,
             editSafetyCopy: FormaProductCopy.PlanMissionControl.editSafetyCopy,
             showsTargetRecalculateHint: showsHint,
@@ -796,6 +795,7 @@ enum PlanAdjustmentStateBuilder {
             currentHeading: FormaProductCopy.PlanMissionControl.adjustPlanCurrentHeading,
             summaryRows: summaryRows,
             lastUpdateReasonCopy: lastUpdateReasonCopy,
+            lastUpdateReasonHeading: FormaProductCopy.PlanMissionControl.lastUpdateReasonHeading,
             adjustPlanTitle: FormaProductCopy.PlanMissionControl.adjustPlan,
             accessibilitySummary: ""
         )
@@ -839,15 +839,9 @@ enum PlanAdjustmentStateBuilder {
         }
     }
 
-    static func resolveLastUpdateReason(
-        profile: UserProfile,
-        explicitReason: String?
-    ) -> String {
-        if let explicitReason {
-            let trimmed = explicitReason.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty {
-                return trimmed
-            }
+    static func resolveLastUpdateReason(profile: UserProfile) -> String {
+        if let reason = profile.lastPlanUpdateReason {
+            return FormaProductCopy.PlanMissionControl.planUpdateReason(reason)
         }
 
         if profile.updatedAt.timeIntervalSince(profile.createdAt) > profileEditGraceInterval {
@@ -858,7 +852,12 @@ enum PlanAdjustmentStateBuilder {
     }
 
     private static func accessibilitySummary(for state: PlanAdjustmentState) -> String {
-        var parts = [state.sectionTitle, state.currentHeading]
+        var parts = [
+            state.sectionTitle,
+            state.lastUpdatedLabel,
+            "\(state.lastUpdateReasonHeading) \(state.lastUpdateReasonCopy)",
+            state.currentHeading
+        ]
         parts.append(contentsOf: state.summaryRows.map { "\($0.label), \($0.value)" })
         parts.append(state.editSafetyCopy)
         return parts.joined(separator: ". ")

@@ -91,9 +91,9 @@ enum JourneyWeeklyReviewBuilder {
         }
 
         if highlights.isEmpty {
-            return "You logged food \(foodDays) of 7 days this week."
+            return copy.foodLoggedDaysSummary(foodDays)
         }
-        return "Strong week for \(englishList(highlights))."
+        return copy.strongWeekSummary(highlights: englishList(highlights))
     }
 
     static func weekOverWeekDetail(
@@ -102,29 +102,45 @@ enum JourneyWeeklyReviewBuilder {
     ) -> String? {
         guard let previousWeek, previousWeek.hasComparableData else { return nil }
 
+        let copy = FormaProductCopy.Journey.WeeklyReview.self
         var comparisons: [String] = []
 
         if previousWeek.foodLoggedDays > 0 || review.foodLoggedDays > 0 {
             comparisons.append(
-                "Food \(review.foodLoggedDays)/\(review.foodLoggedDaysTotal) vs \(previousWeek.foodLoggedDays)/\(review.foodLoggedDaysTotal) last week"
+                copy.weekOverWeekFood(
+                    achieved: review.foodLoggedDays,
+                    total: review.foodLoggedDaysTotal,
+                    previousAchieved: previousWeek.foodLoggedDays
+                )
             )
         }
 
         if previousWeek.proteinGoalDays > 0 || review.proteinGoalDays > 0 {
             comparisons.append(
-                "Protein \(review.proteinGoalDays)/\(review.proteinGoalDaysTotal) vs \(previousWeek.proteinGoalDays)/\(review.proteinGoalDaysTotal) last week"
+                copy.weekOverWeekProtein(
+                    achieved: review.proteinGoalDays,
+                    total: review.proteinGoalDaysTotal,
+                    previousAchieved: previousWeek.proteinGoalDays
+                )
             )
         }
 
         if previousWeek.waterGoalDays > 0 || review.waterGoalDays > 0 {
             comparisons.append(
-                "Water \(review.waterGoalDays)/\(review.waterGoalDaysTotal) vs \(previousWeek.waterGoalDays)/\(review.waterGoalDaysTotal) last week"
+                copy.weekOverWeekWater(
+                    achieved: review.waterGoalDays,
+                    total: review.waterGoalDaysTotal,
+                    previousAchieved: previousWeek.waterGoalDays
+                )
             )
         }
 
         if previousWeek.trainingDays > 0 || review.trainingDays > 0 {
             comparisons.append(
-                "Training \(review.trainingDays) vs \(previousWeek.trainingDays) last week"
+                copy.weekOverWeekTraining(
+                    achieved: review.trainingDays,
+                    previousAchieved: previousWeek.trainingDays
+                )
             )
         }
 
@@ -147,10 +163,7 @@ enum JourneyWeeklyReviewBuilder {
                 weightDeltaThisWeekKg: nil,
                 calorieAdherenceDays: 0,
                 calorieAdherenceDaysTotal: 7,
-                strongestPositiveSignal: "",
-                weakestSignal: "",
                 weekSummaryCopy: "",
-                averageCalorieDeficit: nil,
                 rows: [],
                 weekOverWeekDetail: nil
             )
@@ -238,7 +251,7 @@ enum JourneyWeeklyReviewBuilder {
                 value = copy.gymFraction(achieved: review.trainingDays, expected: expected)
                 score = winScore(achieved: review.trainingDays, total: expected)
             } else {
-                value = review.trainingDays == 1 ? "1 day" : "\(review.trainingDays) days"
+                value = copy.trainingDays(review.trainingDays)
                 score = review.trainingDays > 0 ? 1 : 0
             }
             return JourneyWeeklyReviewRow(

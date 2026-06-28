@@ -18,16 +18,30 @@ enum OnboardingComponentsPreviewCatalog {
     @ViewBuilder
     static var almostThere: some View {
         OnboardingAlmostThereStepView()
+            .padding(.horizontal, OnboardingTheme.pagePadding)
     }
 
     @ViewBuilder
     static var appleHealth: some View {
-        OnboardingAppleHealthStepView()
+        OnboardingAppleHealthStepView(
+            screenState: OnboardingAppleHealthPresentationBuilder.build(
+                presentation: .ready,
+                deviceState: .notConnected
+            )
+        )
+        .padding(.horizontal, OnboardingTheme.pagePadding)
     }
 
     @ViewBuilder
     static var activityLevel: some View {
-        OnboardingActivityLevelStepView(formState: .constant(OnboardingPreviewData.formState))
+        OnboardingActivityLevelStepView(
+            formState: .constant({
+                var state = OnboardingFormState()
+                OnboardingActivityLevelValues.select(.moderatelyActive, in: &state)
+                return state
+            }())
+        )
+        .padding(.horizontal, OnboardingTheme.pagePadding)
     }
 
     @ViewBuilder
@@ -40,6 +54,7 @@ enum OnboardingComponentsPreviewCatalog {
                 return state
             }())
         )
+        .padding(.horizontal, OnboardingTheme.pagePadding)
     }
 
     @ViewBuilder
@@ -47,11 +62,12 @@ enum OnboardingComponentsPreviewCatalog {
         OnboardingTargetEncouragementStepView(
             formState: {
                 var state = OnboardingFormState()
-                OnboardingHeightWeightValues.setWeightKg(72, in: &state)
-                OnboardingTargetWeightValues.setGoalFromLossKg(3.4, in: &state)
+                OnboardingHeightWeightValues.setWeightKg(70, in: &state)
+                OnboardingTargetWeightValues.setGoalFromLossKg(3.5, in: &state)
                 return state
             }()
         )
+        .padding(.horizontal, OnboardingTheme.pagePadding)
     }
 
     @ViewBuilder
@@ -65,6 +81,7 @@ enum OnboardingComponentsPreviewCatalog {
                 return state
             }())
         )
+        .padding(.horizontal, OnboardingTheme.pagePadding)
     }
 
     @ViewBuilder
@@ -76,11 +93,13 @@ enum OnboardingComponentsPreviewCatalog {
                 return state
             }())
         )
+        .padding(.horizontal, OnboardingTheme.pagePadding)
     }
 
     @ViewBuilder
     static var introProof: some View {
-        OnboardingIntroProofStepView(onNext: {})
+        OnboardingIntroProofStepView()
+            .padding(.horizontal, OnboardingTheme.pagePadding)
     }
 
     @ViewBuilder

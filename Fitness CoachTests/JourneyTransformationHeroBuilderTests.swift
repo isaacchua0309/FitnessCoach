@@ -26,6 +26,7 @@ final class JourneyTransformationHeroBuilderTests: XCTestCase {
 
         XCTAssertEqual(state.headlineCopy, "You've lost")
         XCTAssertEqual(state.changeValueCopy, "4 kg")
+        XCTAssertTrue(state.showsUpdateGoalCTA)
     }
 
     func testGainGoalHeadline() {

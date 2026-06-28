@@ -24,7 +24,7 @@ enum JourneyTimelineBuilder {
     private static let displayEventLimit = 5
 
     static func build(_ input: Input) -> JourneyStoryTimelineState {
-        let copy = FormaProductCopy.Journey.StoryTimeline.self
+        let copy = FormaProductCopy.Journey.Timeline.self
         var events: [JourneyTimelineEvent] = []
 
         if let profile = input.profile {
@@ -269,7 +269,7 @@ enum JourneyTimelineBuilder {
 
         let displayEvents = buildDisplayEvents(from: sortedNewestFirst)
         let emptyStateMessage = shouldShowEmptyStateMessage(events: sortedNewestFirst)
-            ? FormaProductCopy.Journey.StoryTimeline.emptyBody
+            ? FormaProductCopy.Journey.Timeline.emptyBody
             : nil
 
         return JourneyStoryTimelineState(

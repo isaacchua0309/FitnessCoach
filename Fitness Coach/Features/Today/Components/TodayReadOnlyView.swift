@@ -4,6 +4,9 @@
 //
 //  FitPilot AI — Read-only Today dashboard. Mutations route through TodayActionCoordinator.
 //
+//  Section order: Mission → Next Best Action → Quick Actions → Meals → Activity
+//  → Macro Balance → Momentum → Daily Summary → Coach Tip
+//
 
 import SwiftUI
 
@@ -13,6 +16,14 @@ struct TodayReadOnlyView: View {
     let onOpenCoach: (String?) -> Void
     let onOpenJourney: () -> Void
     let onOpenPlan: () -> Void
+
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
+    private var sectionSpacing: CGFloat {
+        verticalSizeClass == .compact
+            ? FormaTokens.Spacing.lg
+            : TodayLayout.sectionSpacing
+    }
 
     init(
         state: TodayDashboardState,
@@ -31,16 +42,9 @@ struct TodayReadOnlyView: View {
         self.onOpenPlan = onOpenPlan
     }
 
-    private var showsGenericCoachCTA: Bool {
-        TodayCoachCTAPolicy.showsGenericCoachCTA(
-            foodEntries: state.meals.entries,
-            nextBestAction: state.nextBestAction
-        )
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.zoneSpacing) {
-            statusZone
+        VStack(alignment: .leading, spacing: sectionSpacing) {
+            missionBlock
 
             TodayNextActionSection(
                 action: state.nextBestAction,
@@ -49,49 +53,23 @@ struct TodayReadOnlyView: View {
                         state.nextBestAction.primaryCTA,
                         from: state.nextBestAction
                     )
+                },
+                onViewed: {
+                    actionCoordinator.logNextActionViewed(for: state.nextBestAction)
                 }
             )
 
-            loggedItemsZone
-
-            if showsGenericCoachCTA {
-                AskCoachCTA {
-                    onOpenCoach(nil)
+            TodayQuickActionsSection(
+                menuItems: TodayQuickActionPolicy.menuItems(),
+                onSelect: { kind in
+                    actionCoordinator.performQuickAction(kind)
                 }
-            }
-        }
-    }
-
-    // MARK: - Zones
-
-    private var statusZone: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.statusZoneSpacing) {
-            TodayMissionHero(
-                mission: state.mission,
-                proteinProgress: state.macroBalance.macroSummary.protein,
-                mealsEmpty: state.meals.isEmpty
-            )
-
-            if let goalConnection = state.goalConnection {
-                TodayGoalConnectionRow(
-                    connection: goalConnection,
-                    onOpenJourney: onOpenJourney,
-                    onOpenPlan: onOpenPlan
-                )
-            }
-        }
-    }
-
-    private var loggedItemsZone: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.loggedZoneSpacing) {
-            TodayReadOnlyProgressSection(
-                macros: state.macroBalance.macroSummary,
-                water: state.macroBalance.waterSummary
             )
 
             TodayMealsPreview(
                 entries: state.meals.entries,
                 date: state.date,
+                mealsEmptyKind: state.emptyContext.mealsEmptyKind,
                 onAddMeal: { mealType in
                     actionCoordinator.logMeal(for: mealType)
                 },
@@ -100,6 +78,9 @@ struct TodayReadOnlyView: View {
                 },
                 onDeleteEntry: { entry in
                     actionCoordinator.requestDeleteFood(entry)
+                },
+                onLogFirstMeal: {
+                    actionCoordinator.performQuickAction(.manualEntry)
                 }
             )
 
@@ -108,6 +89,11 @@ struct TodayReadOnlyView: View {
                 onConnectAppleHealth: {
                     actionCoordinator.onOpenTrainingInsights?()
                 }
+            )
+
+            TodayReadOnlyProgressSection(
+                macros: state.macroBalance.macroSummary,
+                water: state.macroBalance.waterSummary
             )
 
             TodayMomentumSection(momentum: state.momentum)
@@ -119,12 +105,77 @@ struct TodayReadOnlyView: View {
             }
         }
     }
+
+    private var missionBlock: some View {
+        VStack(alignment: .leading, spacing: TodayLayout.statusZoneSpacing) {
+            TodayMissionHero(
+                mission: state.mission,
+                proteinProgress: state.macroBalance.macroSummary.protein,
+                mealsEmptyKind: state.emptyContext.mealsEmptyKind,
+                onLogMeal: {
+                    actionCoordinator.performQuickAction(.manualEntry)
+                }
+            )
+
+            if state.emptyContext.showsWeightReminder {
+                TodayInlineEmptyCard(
+                    copy: TodayEmptyStateFormatting.copy(for: .noRecentWeight),
+                    onAction: {
+                        actionCoordinator.performQuickAction(.logWeight)
+                    }
+                )
+            }
+
+            if let goalConnection = state.goalConnection {
+                TodayGoalConnectionRow(
+                    connection: goalConnection,
+                    onOpenJourney: onOpenJourney,
+                    onOpenPlan: onOpenPlan,
+                    onTapped: { destination in
+                        actionCoordinator.logGoalConnectionTapped(destination: destination)
+                    }
+                )
+            }
+        }
+    }
 }
 
-#Preview {
+#Preview("Partial day") {
     ScrollView {
         TodayReadOnlyView(
             state: TodayPreviewData.state,
+            actionCoordinator: TodayActionCoordinator(
+                actionCenter: try! AppContainer(inMemory: true).actionCenter
+            ),
+            onOpenCoach: { _ in }
+        )
+        .padding(.horizontal, TodayLayout.horizontalPadding)
+        .padding(.vertical, FormaTokens.Spacing.md)
+    }
+    .background(FormaTokens.Color.canvas)
+    .preferredColorScheme(.dark)
+}
+
+#Preview("New day") {
+    ScrollView {
+        TodayReadOnlyView(
+            state: TodayPreviewData.emptyDay,
+            actionCoordinator: TodayActionCoordinator(
+                actionCenter: try! AppContainer(inMemory: true).actionCenter
+            ),
+            onOpenCoach: { _ in }
+        )
+        .padding(.horizontal, TodayLayout.horizontalPadding)
+        .padding(.vertical, FormaTokens.Spacing.md)
+    }
+    .background(FormaTokens.Color.canvas)
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Complete day") {
+    ScrollView {
+        TodayReadOnlyView(
+            state: TodayPreviewData.completeDay,
             actionCoordinator: TodayActionCoordinator(
                 actionCenter: try! AppContainer(inMemory: true).actionCenter
             ),

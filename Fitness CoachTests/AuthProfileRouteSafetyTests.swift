@@ -13,26 +13,26 @@ import XCTest
 
 final class AuthProfilePreAuthRouteSafetyTests: XCTestCase {
 
-    func testScenario01_SignedOutNoLocalProfileRoutesToPreAuthOnboarding() {
+    func testScenario01_SignedOutNoLocalProfileRoutesToWelcome() {
         XCTAssertEqual(
             AppRouteResolver.resolve(
                 authState: .signedOut,
                 isOnboardingModelReady: true,
-                hasLocalProfile: false,
+                hasLocalProfile: false
             ),
-            .localOnboarding
+            .welcome
         )
         XCTAssertEqual(
             OnboardingShellRouteResolver.resolve(
                 authState: .signedOut,
                 hasLocalProfile: false,
-                isOnboardingModelReady: true,
+                isOnboardingModelReady: true
             ),
-            .preAuthOnboarding
+            .welcome
         )
     }
 
-    func testScenario02_SignedOutLocalProfileRequireSignInRoutesToPreAuthNotMain() {
+    func testScenario02_SignedOutLocalProfileRequireSignInRoutesToOnboardingStartWhenSavePlanPending() {
         let productionRoute = AppRouteResolver.resolve(
             authState: .signedOut,
             isOnboardingModelReady: true,
@@ -40,7 +40,7 @@ final class AuthProfilePreAuthRouteSafetyTests: XCTestCase {
             signedOutWithProfilePolicy: .requireSignIn,
             localProfileAwaitingSignIn: true
         )
-        XCTAssertEqual(productionRoute, .localOnboarding)
+        XCTAssertEqual(productionRoute, .onboardingStart)
         XCTAssertNotEqual(productionRoute, .main)
         XCTAssertNotEqual(productionRoute, .localMain)
 
@@ -55,7 +55,7 @@ final class AuthProfilePreAuthRouteSafetyTests: XCTestCase {
         )
     }
 
-    func testScenario02b_SignedOutOwnedLocalProfileRoutesToSignIn() {
+    func testScenario02b_SignedOutOwnedLocalProfileRoutesToWelcome() {
         XCTAssertEqual(
             AppRouteResolver.resolve(
                 authState: .signedOut,
@@ -64,7 +64,7 @@ final class AuthProfilePreAuthRouteSafetyTests: XCTestCase {
                 signedOutWithProfilePolicy: .requireSignIn,
                 localProfileAwaitingSignIn: false
             ),
-            .signIn
+            .welcome
         )
     }
 }
@@ -106,7 +106,7 @@ final class AuthProfileBootstrapRouteSafetyTests: XCTestCase {
 
         XCTAssertEqual(result, .missingCloudProfile)
         XCTAssertEqual(rootState, .missingCloudProfile)
-        XCTAssertEqual(shellRoute, .missingCloudProfile)
+        XCTAssertEqual(shellRoute, .noExistingProfileFound)
         XCTAssertNotEqual(shellRoute, .onboarding)
     }
 

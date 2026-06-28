@@ -52,22 +52,19 @@ final class ProfileRestoreRoutingTests: XCTestCase {
 
         XCTAssertEqual(bootstrapResult, .missingCloudProfile)
         XCTAssertEqual(rootState, .missingCloudProfile)
-        XCTAssertEqual(shellRoute, .missingCloudProfile)
+        XCTAssertEqual(shellRoute, .noExistingProfileFound)
     }
 
-    /// Signed-out v2 pre-auth routing is covered in `AppRouteResolverTests` and
-    /// `OnboardingShellRouteResolverTests` (pure, no SwiftData). This case documents
-    /// the composed inputs those resolvers expect after local profile resolution.
-    func testSignedOutV2RoutingInputsFromLocalProfileResolution() {
+    func testSignedOutRoutingInputsFromLocalProfileResolution() {
         let rootWithProfile = RootProfileRouteResolver.resolve(hasProfile: true)
         XCTAssertEqual(
             AppRouteResolver.resolve(
                 authState: .signedOut,
                 rootState: rootWithProfile,
                 isOnboardingModelReady: true,
-                hasLocalProfile: true,
+                hasLocalProfile: true
             ),
-            .localOnboarding
+            .welcome
         )
 
         let rootWithoutProfile = RootProfileRouteResolver.resolve(hasProfile: false)
@@ -76,9 +73,9 @@ final class ProfileRestoreRoutingTests: XCTestCase {
                 authState: .signedOut,
                 rootState: rootWithoutProfile,
                 isOnboardingModelReady: true,
-                hasLocalProfile: false,
+                hasLocalProfile: false
             ),
-            .localOnboarding
+            .welcome
         )
     }
 }

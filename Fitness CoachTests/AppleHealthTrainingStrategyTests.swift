@@ -380,7 +380,7 @@ final class JourneyTrainingRowStrategyTests: XCTestCase {
         )
         XCTAssertFalse(
             TrainingStrategyTestSupport.journeyWorkoutRowLabel(for: .locked)
-                .contains(FormaProductCopy.Journey.workoutNone)
+                .contains(FormaProductCopy.Journey.WeeklyReview.trainingNone)
         )
     }
 

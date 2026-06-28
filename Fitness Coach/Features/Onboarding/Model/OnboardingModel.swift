@@ -27,6 +27,8 @@ final class OnboardingModel: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published private(set) var hasLocalProfile = false
     @Published private(set) var pendingCompletionIntent: OnboardingCompletionIntent?
+    @Published private(set) var appleHealthPresentation: OnboardingAppleHealthPresentationState = .ready
+    @Published private(set) var appleHealthDeviceState: TrainingIntegrationState = .notConnected
 
     let allowsLocalOnlyContinuation: Bool
     let flowFloor: OnboardingStep
@@ -83,18 +85,32 @@ final class OnboardingModel: ObservableObject {
         self.onCompletion = onCompletion
         self.restoredFromDraft = false
 
+        var resolvedFormState = OnboardingFormState()
+        var resolvedGeneratedPlan: CalorieTargetResult?
+        var resolvedPlanRevealState: OnboardingPlanRevealState?
+        var resolvedHasLocalProfile = false
+        var resolvedHasCommittedLocalProfile = false
+        var resolvedRestoredFromDraft = false
+
         let initialStep = Self.resolveInitialStep(
             analyticsEntry: analyticsEntry,
             draftStore: resolvedDraftStore,
             userProfileService: userProfileService,
-            formState: &formState,
-            generatedPlan: &generatedPlan,
-            planRevealState: &planRevealState,
-            hasLocalProfile: &hasLocalProfile,
-            hasCommittedLocalProfile: &hasCommittedLocalProfile,
-            restoredFromDraft: &restoredFromDraft,
+            formState: &resolvedFormState,
+            generatedPlan: &resolvedGeneratedPlan,
+            planRevealState: &resolvedPlanRevealState,
+            hasLocalProfile: &resolvedHasLocalProfile,
+            hasCommittedLocalProfile: &resolvedHasCommittedLocalProfile,
+            restoredFromDraft: &resolvedRestoredFromDraft,
             draftStoreForClear: resolvedDraftStore
         )
+
+        formState = resolvedFormState
+        generatedPlan = resolvedGeneratedPlan
+        planRevealState = resolvedPlanRevealState
+        hasLocalProfile = resolvedHasLocalProfile
+        hasCommittedLocalProfile = resolvedHasCommittedLocalProfile
+        restoredFromDraft = resolvedRestoredFromDraft
         currentStep = initialStep
         flowFloor = OnboardingEntry.flowFloor(
             analyticsEntry: analyticsEntry,
@@ -176,7 +192,7 @@ final class OnboardingModel: ObservableObject {
                 advance(to: next, completing: completedStep)
             }
         case .appleHealth:
-            continueFromAppleHealth(completedStep: completedStep)
+            connectAppleHealth()
         case .activityLevel:
             formState.applyTrainingRhythmDefaultsForCurrentActivity()
             guard validateCurrentStep() else { return }
@@ -224,15 +240,61 @@ final class OnboardingModel: ObservableObject {
         }
     }
 
-    private func continueFromAppleHealth(completedStep: OnboardingStep) {
-        guard currentStep == .appleHealth else { return }
-        guard viewState == .editing else { return }
+    var appleHealthScreenState: OnboardingAppleHealthScreenState {
+        OnboardingAppleHealthPresentationBuilder.build(
+            presentation: appleHealthPresentation,
+            deviceState: appleHealthDeviceState
+        )
+    }
 
+    func prepareAppleHealthStep() {
+        guard currentStep == .appleHealth else { return }
+        appleHealthPresentation = .ready
+
+        Task { [weak self] in
+            guard let self else { return }
+            let refreshed = await healthTrainingIntegration.refreshState()
+            guard currentStep == .appleHealth else { return }
+            appleHealthDeviceState = refreshed
+            if refreshed == .connected {
+                appleHealthPresentation = .connected
+            } else if refreshed == .unavailable {
+                appleHealthPresentation = .unavailable
+            }
+        }
+    }
+
+    func connectAppleHealth() {
+        guard currentStep == .appleHealth else { return }
+        guard viewState != .connectingAppleHealth else { return }
+        guard appleHealthScreenState.isPrimaryEnabled else { return }
+
+        let completedStep = currentStep
         viewState = .connectingAppleHealth
+        appleHealthPresentation = .requesting
+        logAppleHealthAnalytics(.appleHealthConnectTapped)
         logAppleHealthAnalytics(.appleHealthPermissionRequested)
 
         Task { [weak self] in
             await self?.performAppleHealthPermissionFlow(completedStep: completedStep)
+        }
+    }
+
+    func skipAppleHealth() {
+        guard currentStep == .appleHealth else { return }
+        guard viewState != .connectingAppleHealth else { return }
+        guard appleHealthScreenState.isSkipEnabled else { return }
+
+        logAppleHealthAnalytics(.appleHealthSkipTapped)
+        advanceFromAppleHealth(completedStep: .appleHealth)
+    }
+
+    private func advanceFromAppleHealth(completedStep: OnboardingStep) {
+        guard currentStep == .appleHealth else { return }
+        viewState = .editing
+        appleHealthPresentation = .ready
+        if let next = nextStep(after: .appleHealth) {
+            advance(to: next, completing: completedStep)
         }
     }
 
@@ -255,10 +317,16 @@ final class OnboardingModel: ObservableObject {
 
         guard currentStep == .appleHealth else { return }
 
-        if let next = nextStep(after: .appleHealth) {
-            advance(to: next, completing: completedStep)
-        } else {
-            viewState = .editing
+        appleHealthDeviceState = resultState
+        let presentation = OnboardingAppleHealthPresentationBuilder.mapPermissionResult(resultState)
+        appleHealthPresentation = presentation
+        viewState = .editing
+
+        if presentation == .connected {
+            OnboardingHaptics.selectionChanged()
+            try? await Task.sleep(nanoseconds: 900_000_000)
+            guard currentStep == .appleHealth, appleHealthPresentation == .connected else { return }
+            advanceFromAppleHealth(completedStep: completedStep)
         }
     }
 
@@ -544,6 +612,8 @@ final class OnboardingModel: ObservableObject {
 
         if step == .appleHealth {
             logAppleHealthAnalytics(.appleHealthPromptViewed)
+            logAppleHealthAnalytics(.appleHealthOnboardingViewed)
+            prepareAppleHealthStep()
         }
     }
 

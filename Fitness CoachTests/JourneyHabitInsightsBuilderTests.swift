@@ -47,12 +47,15 @@ final class JourneyHabitInsightsBuilderTests: XCTestCase {
     func testWeakestWeekendLoggingWhenWeekendsAreMissed() {
         let logs = weekdayLogs(count: 12, protein: 140, waterMl: 2_000)
 
-        let state = build(maturityLogs: logs)
+        let state = build(
+            maturityLogs: logs,
+            profileCreatedDaysAgo: 1
+        )
 
         XCTAssertTrue(state.isUnlocked)
         XCTAssertEqual(state.weakestHabitLabel, FormaProductCopy.Journey.HabitInsights.weekendLabel)
         XCTAssertLessThan(state.weakestScorePercent, 60)
-        XCTAssertEqual(state.weakestScorePrefix, "Only")
+        XCTAssertNil(state.weakestScorePrefix)
         XCTAssertEqual(
             state.suggestedNextAction,
             FormaProductCopy.Journey.HabitInsights.suggestWeekendLogging
@@ -61,7 +64,7 @@ final class JourneyHabitInsightsBuilderTests: XCTestCase {
 
     func testHealthDisconnectedDoesNotTreatTrainingAsFailure() {
         let logs = (0..<10).map { offset in
-            makeLog(daysAgo: offset, calories: 1_800, protein: 80, waterMl: 500)
+            makeLog(daysAgo: offset, calories: 1_800, protein: 140, waterMl: 2_500)
         }
 
         let disconnected = build(
@@ -108,6 +111,17 @@ final class JourneyHabitInsightsBuilderTests: XCTestCase {
         XCTAssertEqual(first.strongestHabitLabel, second.strongestHabitLabel)
         XCTAssertEqual(first.weakestHabitLabel, second.weakestHabitLabel)
         XCTAssertEqual(first.strongestScorePercent, second.strongestScorePercent)
+    }
+
+    func testWeakestWeekendLoggingSuggestsFoodCoachCTA() {
+        let logs = weekdayLogs(count: 12, protein: 140, waterMl: 2_000)
+        let state = build(
+            maturityLogs: logs,
+            profileCreatedDaysAgo: 1
+        )
+
+        XCTAssertEqual(state.weakestHabitKind, .weekendLogging)
+        XCTAssertEqual(state.suggestionCTA, .logFood)
     }
 
     func testWeightLoggingNotWeakestEarlyInJourney() {

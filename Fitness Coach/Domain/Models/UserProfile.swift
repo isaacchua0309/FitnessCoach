@@ -46,4 +46,6 @@ struct UserProfile: Codable, Identifiable, Equatable, Sendable {
 
     var createdAt: Date
     var updatedAt: Date
+    /// Why the plan was last recalculated, when known.
+    var lastPlanUpdateReason: PlanLastUpdateReason? = nil
 }

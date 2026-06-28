@@ -12,6 +12,7 @@ final class JourneyTimelineBuilderTests: XCTestCase {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         calendar.locale = Locale(identifier: "en_US_POSIX")
+        calendar.firstWeekday = 2
         return calendar
     }()
 
@@ -20,11 +21,11 @@ final class JourneyTimelineBuilderTests: XCTestCase {
     func testEmptyLogsWithProfileShowsStartedFormaAndEmptyMessage() {
         let state = build(foodLogDays: 0)
 
-        XCTAssertEqual(state.emptyStateMessage, FormaProductCopy.Journey.StoryTimeline.emptyBody)
+        XCTAssertEqual(state.emptyStateMessage, FormaProductCopy.Journey.Timeline.emptyBody)
         XCTAssertTrue(state.displayEvents.contains(where: { $0.type == .onboardingStarted }))
         XCTAssertEqual(
             state.displayEvents.last(where: { $0.type == .onboardingStarted })?.title,
-            FormaProductCopy.Journey.StoryTimeline.startedForma
+            FormaProductCopy.Journey.Timeline.startedForma
         )
     }
 
@@ -38,7 +39,7 @@ final class JourneyTimelineBuilderTests: XCTestCase {
 
         let mealEvent = state.events.first { $0.type == .firstMealLogged }
         XCTAssertNotNil(mealEvent)
-        XCTAssertEqual(mealEvent?.title, FormaProductCopy.Journey.StoryTimeline.loggedFirstMeal)
+        XCTAssertEqual(mealEvent?.title, FormaProductCopy.Journey.Timeline.loggedFirstMeal)
         XCTAssertEqual(
             calendar.startOfDay(for: mealEvent!.date),
             calendar.startOfDay(for: mealDate)
@@ -90,7 +91,7 @@ final class JourneyTimelineBuilderTests: XCTestCase {
 
         let firstKg = state.events.first { $0.type == .firstKgTowardGoal }
         XCTAssertNotNil(firstKg)
-        XCTAssertEqual(firstKg?.title, FormaProductCopy.Journey.StoryTimeline.lostFirstKilogram())
+        XCTAssertEqual(firstKg?.title, FormaProductCopy.Journey.Timeline.lostFirstKilogram())
         XCTAssertEqual(
             calendar.startOfDay(for: firstKg!.date),
             calendar.startOfDay(for: unlockDate)
@@ -158,13 +159,38 @@ final class JourneyTimelineBuilderTests: XCTestCase {
     }
 
     func testCalorieGoalFiveDaysEventAppears() {
-        let logs = (0..<5).map { offset in
+        // Offset logs from onboarding day so the fifth adherence day is not deduped against it.
+        let logs = (1..<6).map { offset in
             makeLog(daysAgo: offset, calories: 1_800, protein: 80)
         }
+
+        XCTAssertEqual(JourneyLogMetrics.calorieAdherenceDays(in: logs), 5)
 
         let state = build(maturityLogs: logs)
 
         XCTAssertTrue(state.events.contains(where: { $0.type == .calorieGoalFiveDays }))
+    }
+
+    func testMilestoneDerivedEventAppearsInTimeline() {
+        let logs = (0..<12).map { offset in
+            makeLog(daysAgo: offset, calories: 1_800, protein: 140)
+        }
+        let weights = [
+            makeWeight(daysAgo: 12, kg: 90),
+            makeWeight(daysAgo: 4, kg: 88.5)
+        ]
+
+        let state = build(
+            maturityLogs: logs,
+            allWeights: weights,
+            startWeight: 90,
+            currentWeight: 88.5,
+            goalWeight: 75,
+            direction: .lose,
+            progressPercent: 10
+        )
+
+        XCTAssertTrue(state.events.contains(where: { $0.type == .firstKgTowardGoal }))
     }
 
     // MARK: - Helpers
@@ -211,7 +237,6 @@ final class JourneyTimelineBuilderTests: XCTestCase {
             heroStreakChip: .hidden,
             weeklyConsistencyHeadline: "",
             weeklyConsistencyDetail: nil,
-            habitInsightStreakCopy: "",
             keepStreakAliveCopy: nil
         )
 

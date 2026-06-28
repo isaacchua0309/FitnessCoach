@@ -8,15 +8,25 @@ import SwiftUI
 struct JourneyWhyProgressSection: View {
     let state: JourneyProgressAttributionState
 
+    private var isInsufficientData: Bool {
+        state.confidence == .low
+            && state.supportingReasons.isEmpty
+            && state.primaryReasonTitle == FormaProductCopy.Journey.WhyProgress.insufficientTitle
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
-            FormaSectionLabel(title: FormaProductCopy.Journey.WhyProgress.sectionTitle)
+            FormaSectionLabel(title: FormaProductCopy.Journey.ProgressAttribution.sectionTitle)
 
             FitPilotPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     Text(state.primaryReasonTitle)
-                        .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                        .font(FormaTokens.Typography.sectionSubtitle.weight(isInsufficientData ? .medium : .semibold))
+                        .foregroundStyle(
+                            isInsufficientData
+                                ? FormaTokens.Color.textSecondary
+                                : FormaTokens.Color.textPrimary
+                        )
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text(state.primaryReasonDetail)
@@ -60,6 +70,13 @@ struct JourneyWhyProgressSection: View {
 
 #Preview("Active attribution") {
     JourneyWhyProgressSection(state: ProgressPreviewData.progressAttributionActive)
+        .padding()
+        .background(FormaTokens.Color.canvas)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Plateau attribution") {
+    JourneyWhyProgressSection(state: ProgressPreviewData.progressAttributionPlateau)
         .padding()
         .background(FormaTokens.Color.canvas)
         .preferredColorScheme(.dark)

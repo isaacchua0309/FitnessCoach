@@ -14,11 +14,9 @@ struct OnboardingWeightTrendPoint: Equatable, Identifiable, Sendable {
 }
 
 struct OnboardingWeightTrajectoryComparisonModel: Equatable, Sendable {
-    let caption: String
+    let takeaway: String
     let formaLabel: String
     let traditionalLabel: String
-    let formaDescription: String
-    let traditionalDescription: String
     let disclaimer: String
     let chartAccessibilityLabel: String
     let formaSeries: [OnboardingWeightTrendPoint]
@@ -28,11 +26,9 @@ struct OnboardingWeightTrajectoryComparisonModel: Equatable, Sendable {
         let copy = FormaProductCopy.Onboarding.Flow.self
         let trajectory = copy.Proof.TrajectoryComparison.self
         return OnboardingWeightTrajectoryComparisonModel(
-            caption: copy.IntroProof.caption,
+            takeaway: copy.IntroProof.takeaway,
             formaLabel: trajectory.formaLabel,
             traditionalLabel: trajectory.traditionalLabel,
-            formaDescription: trajectory.formaDescription,
-            traditionalDescription: trajectory.traditionalDescription,
             disclaimer: trajectory.disclaimer,
             chartAccessibilityLabel: trajectory.chartAccessibilityLabel,
             formaSeries: [
@@ -167,64 +163,49 @@ struct OnboardingWeightTrajectoryComparisonProofCard: View {
     let model: OnboardingWeightTrajectoryComparisonModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-            OnboardingProofDualLineChart(
-                primarySeries: model.formaSeries,
-                secondarySeries: model.traditionalSeries,
-                primaryColor: OnboardingTheme.accent,
-                secondaryColor: OnboardingTheme.secondaryText.opacity(0.85)
-            )
-            .frame(height: 140)
-            .accessibilityLabel(model.chartAccessibilityLabel)
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+            OnboardingWeightTrajectoryHeroChart(model: model)
+                .frame(height: 220)
+                .accessibilityLabel(model.chartAccessibilityLabel)
 
-            legendRow(
-                color: OnboardingTheme.accent,
-                title: model.formaLabel,
-                subtitle: model.formaDescription
-            )
+            HStack(spacing: FormaTokens.Spacing.lg) {
+                legendSwatch(color: OnboardingTheme.accent, label: model.formaLabel, dashed: false)
+                legendSwatch(
+                    color: OnboardingTheme.secondaryText.opacity(0.72),
+                    label: model.traditionalLabel,
+                    dashed: true
+                )
+            }
 
-            legendRow(
-                color: OnboardingTheme.secondaryText.opacity(0.85),
-                title: model.traditionalLabel,
-                subtitle: model.traditionalDescription
-            )
-
-            Text(model.disclaimer)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(OnboardingTheme.tertiaryText)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(model.caption)
-                .font(FormaTokens.Typography.caption.weight(.medium))
-                .foregroundStyle(OnboardingTheme.secondaryText)
+            Text(model.takeaway)
+                .font(FormaTokens.Typography.bodyMedium)
+                .foregroundStyle(OnboardingTheme.primaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(OnboardingLayout.compactCardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(proofCardBackground)
         .accessibilityElement(children: .contain)
     }
 
-    private func legendRow(color: Color, title: String, subtitle: String) -> some View {
-        HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
-            Capsule()
-                .fill(color)
-                .frame(width: 18, height: 3)
-                .padding(.top, 7)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(FormaTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(OnboardingTheme.primaryText)
-                Text(subtitle)
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(OnboardingTheme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
+    private func legendSwatch(color: Color, label: String, dashed: Bool) -> some View {
+        HStack(spacing: FormaTokens.Spacing.sm) {
+            Group {
+                if dashed {
+                    HStack(spacing: 3) {
+                        Capsule().fill(color).frame(width: 8, height: 3)
+                        Capsule().fill(color).frame(width: 5, height: 3)
+                    }
+                } else {
+                    Capsule().fill(color).frame(width: 18, height: 3)
+                }
             }
+            .accessibilityHidden(true)
+
+            Text(label)
+                .font(FormaTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(OnboardingTheme.primaryText)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(title). \(subtitle)")
+        .accessibilityLabel(label)
     }
 }
 
@@ -403,70 +384,7 @@ private struct OnboardingProofLineChart: View {
     }
 }
 
-private struct OnboardingProofDualLineChart: View {
-    let primarySeries: [OnboardingWeightTrendPoint]
-    let secondarySeries: [OnboardingWeightTrendPoint]
-    let primaryColor: Color
-    let secondaryColor: Color
-
-    var body: some View {
-        GeometryReader { proxy in
-            let combinedPoints = primarySeries + secondarySeries
-            let primaryNormalized = OnboardingProofChartLayout.normalizedPoints(
-                for: primarySeries,
-                in: proxy.size,
-                valueRange: OnboardingProofChartLayout.valueRange(for: combinedPoints)
-            )
-            let secondaryNormalized = OnboardingProofChartLayout.normalizedPoints(
-                for: secondarySeries,
-                in: proxy.size,
-                valueRange: OnboardingProofChartLayout.valueRange(for: combinedPoints)
-            )
-
-            ZStack {
-                OnboardingProofChartLayout.baseline(in: proxy.size)
-                    .stroke(OnboardingTheme.border.opacity(0.6), lineWidth: 1)
-
-                linePath(for: secondaryNormalized)
-                    .stroke(
-                        secondaryColor,
-                        style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round, dash: [5, 4])
-                    )
-
-                linePath(for: primaryNormalized)
-                    .stroke(
-                        primaryColor,
-                        style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
-                    )
-
-                ForEach(Array(primarySeries.enumerated()), id: \.offset) { index, point in
-                    if index == 0 || index == primarySeries.count - 1 {
-                        Text(point.weekLabel)
-                            .font(.system(size: 9, weight: .medium, design: .rounded))
-                            .foregroundStyle(OnboardingTheme.tertiaryText)
-                            .position(
-                                x: primaryNormalized.indices.contains(index)
-                                    ? primaryNormalized[index].x
-                                    : proxy.size.width / 2,
-                                y: proxy.size.height - 4
-                            )
-                            .accessibilityHidden(true)
-                    }
-                }
-            }
-        }
-    }
-
-    private func linePath(for points: [CGPoint]) -> Path {
-        Path { path in
-            guard let first = points.first else { return }
-            path.move(to: first)
-            for point in points.dropFirst() {
-                path.addLine(to: point)
-            }
-        }
-    }
-}
+// MARK: - Chart layout helpers
 
 private enum OnboardingProofChartLayout {
     static func valueRange(for points: [OnboardingWeightTrendPoint]) -> ClosedRange<Double>? {

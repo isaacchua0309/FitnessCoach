@@ -8,13 +8,12 @@
 import SwiftUI
 
 enum TodayLayout {
-    /// Space between the three Today zones (Status, Actions, Logged).
+    /// Space between major Today sections.
     static let zoneSpacing = FormaTokens.Spacing.xl
-    /// Hero and focus within the Status zone.
+    /// Hero and goal connection within the mission block.
     static let statusZoneSpacing = FormaTokens.Spacing.sm
-    /// Targets and meals within the Logged zone.
+    /// Legacy alias — prefer `sectionSpacing` for the flat section stack.
     static let loggedZoneSpacing = FormaTokens.Spacing.md
-    /// Space between major blocks when not using zones (legacy alias).
     static let sectionSpacing = zoneSpacing
     /// Tighter stack inside a zone.
     static let planBlockSpacing = loggedZoneSpacing
@@ -28,12 +27,6 @@ enum TodayLayout {
     static let metricsProgressHeight: CGFloat = 4
     /// Scroll padding below the last Today section (see `FormaMainTabLayout`).
     static let bottomScrollPadding = FormaMainTabLayout.scrollContentBottomPadding
-    /// Extra scroll clearance so the floating quick-log button does not cover content.
-    static let quickActionFABClearance: CGFloat = 64
-    /// Bottom inset for the quick-log FAB above the floating tab bar.
-    static var quickActionFABBottomPadding: CGFloat {
-        FormaMainTabLayout.scrollBottomInset + FormaTokens.Spacing.sm
-    }
 }
 
 struct TodaySectionLabel: View {

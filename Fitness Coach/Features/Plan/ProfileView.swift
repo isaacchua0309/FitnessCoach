@@ -2,7 +2,7 @@
 //  ProfileView.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Plan: what strategy am I following?
+//  FitPilot AI — Plan Mission Control dashboard.
 //
 
 import SwiftUI
@@ -65,12 +65,14 @@ struct ProfileView: View {
                     .environmentObject(refreshCenter)
                 }
                 .sheet(isPresented: $model.isShowingEditSheet) {
-                    if let formState = model.editFormState {
+                    if let formState = model.editFormState,
+                       let baselineProfile = model.editBaselineProfile {
                         PlanEditWizard(
                             formState: Binding(
                                 get: { model.editFormState ?? formState },
                                 set: { model.editFormState = $0 }
                             ),
+                            baselineProfile: baselineProfile,
                             initialStep: model.editPlanInitialStep,
                             errorMessage: model.formErrorMessage,
                             onSave: { state in
@@ -79,8 +81,8 @@ struct ProfileView: View {
                             onCancel: {
                                 model.dismissEditPlan()
                             },
-                            onRegenerate: { state in
-                                await model.previewRegeneratedTargets(from: state)
+                            onPrepareTargets: { state in
+                                try await model.prepareTargetPreview(from: state)
                             }
                         )
                     }
@@ -142,45 +144,88 @@ struct ProfileView: View {
         }
     }
 
+    @ViewBuilder
     private func dashboard(_ state: ProfileDashboardState) -> some View {
+        let healthConnected = trainingInsightsStore.integrationState.isConnected
+
         ScrollView {
             VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
+                // 1. Mission Control / Goal Progress
                 PlanMissionControlHeroSection(state: state.missionControl.mission)
+                    .onAppear {
+                        model.logSectionImpression(.goalCard, healthConnected: healthConnected)
+                    }
 
+                // 2. Today's Mission
                 PlanTodayMissionSection(
                     state: state.missionControl.todayMission,
-                    onGoToToday: onGoToToday
+                    onGoToToday: onGoToToday.map { handler in
+                        {
+                            model.logPlanTodayTapped(healthConnected: healthConnected)
+                            handler()
+                        }
+                    }
                 )
+                .onAppear {
+                    model.logSectionImpression(.todayMission, healthConnected: healthConnected)
+                }
 
+                // 3. This Week
                 PlanThisWeekSection(state: state.missionControl.week)
+                    .onAppear {
+                        model.logSectionImpression(.weekSection, healthConnected: healthConnected)
+                    }
 
+                // 4. Next Milestone
                 PlanNextMilestoneSection(
                     state: state.missionControl.nextMilestone,
-                    onGoToJourney: onGoToJourney
-                )
-
-                PlanTrainingIntegrationSection(
-                    integrationState: trainingInsightsStore.integrationState,
-                    dataSource: trainingInsightsStore.dataSource,
-                    onTap: {
-                        isShowingTrainingInsights = true
+                    onGoToJourney: onGoToJourney.map { handler in
+                        {
+                            model.logPlanJourneyTapped(healthConnected: healthConnected)
+                            handler()
+                        }
                     }
                 )
 
+                // 5. Why This Works
+                PlanRationaleSection(
+                    rationale: state.rationale,
+                    onCalculationDetailsOpened: {
+                        model.logPlanCalculationDetailsOpened(healthConnected: healthConnected)
+                    }
+                )
+                .onAppear {
+                    model.logSectionImpression(.rationale, healthConnected: healthConnected)
+                }
+
+                // 6. Activity Assumptions
                 PlanActivityAssumptionsSection(
                     state: state.missionControl.activityAssumptions,
                     onAdjustActivity: {
                         model.showEditPlanActivity()
-                    },
-                    onConnectAppleHealth: state.missionControl.activityAssumptions.showsConnectAppleHealthCTA
-                        ? { isShowingTrainingInsights = true }
-                        : nil
+                    }
                 )
+                .onAppear {
+                    model.logSectionImpression(.activityAssumptions, healthConnected: healthConnected)
+                }
 
-                PlanRationaleSection(rationale: state.rationale)
-
+                // 7. Plan Confidence
                 PlanConfidenceSection(state: state.missionControl.confidence)
 
+                // 8. Apple Health
+                PlanTrainingIntegrationSection(
+                    integrationState: trainingInsightsStore.integrationState,
+                    dataSource: trainingInsightsStore.dataSource,
+                    onTap: {
+                        model.logPlanHealthConnectTapped(
+                            entryPoint: .trainingIntegrationCard,
+                            healthConnected: healthConnected
+                        )
+                        isShowingTrainingInsights = true
+                    }
+                )
+
+                // 9. Adjust Plan
                 PlanAdjustmentSection(state: state.missionControl.adjustment) {
                     model.showEditPlan()
                 }
@@ -190,6 +235,9 @@ struct ProfileView: View {
             .padding(.bottom, FormaMainTabLayout.scrollContentBottomPadding)
         }
         .formaMainTabScrollInsets()
+        .onAppear {
+            model.logPlanViewed(healthConnected: healthConnected)
+        }
     }
 }
 
@@ -206,8 +254,7 @@ struct ProfileView: View {
     ScrollView {
         VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
             PlanMissionControlHeroSection(
-                state: ProfilePreviewData.state.missionControl.mission,
-                onAdjustPlan: {}
+                state: ProfilePreviewData.state.missionControl.mission
             )
             PlanTodayMissionSection(
                 state: ProfilePreviewData.state.missionControl.todayMission,
@@ -218,12 +265,17 @@ struct ProfileView: View {
                 state: ProfilePreviewData.state.missionControl.nextMilestone,
                 onGoToJourney: {}
             )
+            PlanRationaleSection(rationale: ProfilePreviewData.state.rationale)
             PlanActivityAssumptionsSection(
                 state: ProfilePreviewData.state.missionControl.activityAssumptions,
                 onAdjustActivity: {}
             )
-            PlanRationaleSection(rationale: ProfilePreviewData.state.rationale)
             PlanConfidenceSection(state: ProfilePreviewData.state.missionControl.confidence)
+            PlanTrainingIntegrationSection(
+                integrationState: .notConnected,
+                dataSource: .appleHealth,
+                onTap: {}
+            )
             PlanAdjustmentSection(
                 state: ProfilePreviewData.state.missionControl.adjustment,
                 onAdjustPlan: {}
@@ -232,4 +284,6 @@ struct ProfileView: View {
         .padding(.horizontal, PlanLayout.horizontalPadding)
         .padding(.vertical, 24)
     }
+    .background(FormaTokens.Color.canvas)
+    .preferredColorScheme(.dark)
 }

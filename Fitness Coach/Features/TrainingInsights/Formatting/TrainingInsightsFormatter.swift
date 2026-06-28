@@ -72,6 +72,6 @@ enum TrainingInsightsFormatter {
     }
 
     static func noWorkoutsThisWeek() -> String {
-        FormaProductCopy.Journey.noAppleHealthWorkoutsThisWeek
+        FormaProductCopy.Journey.DetailedAnalytics.noWorkoutsThisWeek
     }
 }

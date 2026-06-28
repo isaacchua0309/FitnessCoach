@@ -19,6 +19,9 @@ enum OnboardingAnalyticsEvent: String, Sendable {
     case signInCancelled = "onboarding_sign_in_cancelled"
     case completed = "onboarding_completed"
     case appleHealthPromptViewed = "apple_health_prompt_viewed"
+    case appleHealthOnboardingViewed = "apple_health_onboarding_viewed"
+    case appleHealthConnectTapped = "apple_health_connect_tapped"
+    case appleHealthSkipTapped = "apple_health_skip_tapped"
     case appleHealthPermissionRequested = "apple_health_permission_requested"
     case appleHealthPermissionResult = "apple_health_permission_result"
 }

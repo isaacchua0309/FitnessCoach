@@ -1,0 +1,23 @@
+//
+//  JourneyCTAButton.swift
+//  Fitness Coach
+//
+
+import SwiftUI
+
+struct JourneyCTAButton: View {
+    let cta: JourneyCTA
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            Text(cta.title)
+                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                .foregroundStyle(FormaTokens.Color.accent)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint(cta.accessibilityHint ?? "")
+    }
+}

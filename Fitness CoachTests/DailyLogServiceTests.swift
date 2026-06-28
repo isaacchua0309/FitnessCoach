@@ -11,10 +11,20 @@ import XCTest
 @MainActor
 final class DailyLogServiceTests: XCTestCase {
 
+    private var harness: DailyLogServiceTestSupport.Harness!
+
+    override func setUp() async throws {
+        harness = try DailyLogServiceTestSupport.makeHarness()
+    }
+
+    override func tearDown() {
+        harness = nil
+        super.tearDown()
+    }
+
     // MARK: - Target seeding and sync
 
     func testGetOrCreateLogEntitySeedsTargetsFromCurrentProfile() async throws {
-        let harness = try DailyLogServiceTestSupport.makeHarness()
         let profile = try harness.seedProfile()
 
         let entity = try harness.dailyLogService.getOrCreateLogEntity(for: harness.today)
@@ -24,7 +34,6 @@ final class DailyLogServiceTests: XCTestCase {
     }
 
     func testSyncTodayTargetsFromProfileUpdatesTodayLogTargetFields() async throws {
-        let harness = try DailyLogServiceTestSupport.makeHarness()
         try harness.seedProfile()
         _ = try harness.dailyLogService.getOrCreateLogEntity(for: harness.today)
 
@@ -37,7 +46,6 @@ final class DailyLogServiceTests: XCTestCase {
     }
 
     func testSyncTodayTargetsFromProfileIsNoOpWhenValuesUnchanged() async throws {
-        let harness = try DailyLogServiceTestSupport.makeHarness()
         try harness.seedProfile()
         let entity = try harness.dailyLogService.getOrCreateLogEntity(for: harness.today)
         let beforeUpdatedAt = entity.updatedAt
@@ -50,7 +58,6 @@ final class DailyLogServiceTests: XCTestCase {
     }
 
     func testSyncTodayTargetsFromProfileUpdatesAllTargetFields() async throws {
-        let harness = try DailyLogServiceTestSupport.makeHarness()
         try harness.seedProfile(targets: ProfileTestFixtures.sampleTargets)
         _ = try harness.dailyLogService.getOrCreateLogEntity(for: harness.today)
 
@@ -69,7 +76,6 @@ final class DailyLogServiceTests: XCTestCase {
     }
 
     func testSyncTodayTargetsFromProfileDoesNotChangePastDayLogs() async throws {
-        let harness = try DailyLogServiceTestSupport.makeHarness()
         let originalTargets = ProfileTestFixtures.sampleTargets
         try harness.seedProfile(targets: originalTargets)
 
@@ -91,7 +97,6 @@ final class DailyLogServiceTests: XCTestCase {
     // MARK: - Recalculation
 
     func testRecalculateDailyTotalsSumsFoodEntriesCorrectly() async throws {
-        let harness = try DailyLogServiceTestSupport.makeHarness()
         try harness.seedProfile()
 
         _ = try harness.foodLogService.addFoodEntry(
@@ -127,7 +132,6 @@ final class DailyLogServiceTests: XCTestCase {
     }
 
     func testRecalculateDailyTotalsSumsWaterEntriesCorrectly() async throws {
-        let harness = try DailyLogServiceTestSupport.makeHarness()
         try harness.seedProfile()
 
         _ = try harness.waterLogService.addWater(amountMl: 350, date: harness.today)
@@ -138,7 +142,6 @@ final class DailyLogServiceTests: XCTestCase {
     }
 
     func testRecalculateDailyTotalsPreservesWorkoutTotalsFromWorkoutEntries() async throws {
-        let harness = try DailyLogServiceTestSupport.makeHarness()
         try harness.seedProfile()
 
         _ = try harness.workoutLogService.addWorkout(

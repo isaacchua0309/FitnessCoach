@@ -37,7 +37,7 @@ final class OnboardingHeightWeightValuesTests: XCTestCase {
         XCTAssertEqual(state.parsedCurrentWeightKg ?? 0, expectedKg, accuracy: 0.01)
     }
 
-    func testDefaultsOnlyFillHeightAndWeightNotAgeOrSex() {
+    func testDefaultsOnlyFillHeightAndWeightNotBirthdaySexOrBodyFat() {
         var state = OnboardingFormState()
         OnboardingHeightWeightValues.applyDefaultsIfNeeded(to: &state)
 

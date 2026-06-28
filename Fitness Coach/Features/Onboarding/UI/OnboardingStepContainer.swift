@@ -19,6 +19,10 @@ struct OnboardingStepContainer<Content: View>: View {
         currentStep.usesFullScreenChrome
     }
 
+    private var usesFixedViewportShell: Bool {
+        currentStep.usesFixedViewportShell
+    }
+
     private var showsLoadingOverlay: Bool {
         guard viewState.showsLoadingOverlay else { return false }
         switch currentStep {
@@ -45,6 +49,8 @@ struct OnboardingStepContainer<Content: View>: View {
         Group {
             if usesFullScreenShell {
                 fullScreenShell
+            } else if usesFixedViewportShell {
+                fixedViewportShell
             } else {
                 scrollableShell
             }
@@ -61,6 +67,25 @@ struct OnboardingStepContainer<Content: View>: View {
             .padding(.horizontal, OnboardingTheme.pagePadding)
             .padding(.top, 12)
             .padding(.bottom, 16)
+    }
+
+    private var fixedViewportShell: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if showsContainerValidationBanner {
+                OnboardingWarningBanner(message: validationMessage ?? "")
+                    .padding(.horizontal, OnboardingTheme.pagePadding)
+                    .padding(.top, OnboardingLayout.progressHeaderTop)
+            }
+
+            content
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
+            if showsLoadingOverlay, let message = viewState.loadingOverlayMessage {
+                OnboardingLoadingView(message: message)
+                    .padding(.horizontal, OnboardingTheme.pagePadding)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private var scrollableShell: some View {

@@ -73,7 +73,7 @@ final class JourneyDashboardBuilderTests: XCTestCase {
         let emptyLevel = JourneyDashboardBuilder.journeyLevel(context: emptyContext)
         let loggedLevel = JourneyDashboardBuilder.journeyLevel(context: loggedContext)
 
-        XCTAssertGreaterThan(loggedLevel.currentXP, emptyLevel.currentXP)
+        XCTAssertGreaterThan(loggedLevel.totalXP, emptyLevel.totalXP)
         XCTAssertFalse(loggedLevel.xpEarnedExplanation.isEmpty)
     }
 
@@ -93,11 +93,80 @@ final class JourneyDashboardBuilderTests: XCTestCase {
         XCTAssertTrue(analytics.showsWeightChart)
         XCTAssertGreaterThanOrEqual(analytics.weightChartPoints.count, 1)
         XCTAssertTrue(analytics.weightChartPoints.contains(where: \.isSynthetic))
+        XCTAssertNil(analytics.weightLogCTA)
+    }
+
+    func testDetailedAnalyticsWithoutWeightChartIncludesLogWeightCTA() {
+        let logs = (0..<4).map { makeLog(daysAgo: $0, calories: 1_800) }
+        let context = makeContext(
+            profile: nil,
+            maturityLogs: logs,
+            allWeights: []
+        )
+
+        let analytics = JourneyDashboardBuilder.detailedAnalytics(
+            context: context,
+            weightInterpretation: FormaProductCopy.Journey.DetailedAnalytics.WeightTrend.insufficientData
+        )
+
+        XCTAssertFalse(analytics.showsWeightChart)
+        XCTAssertEqual(analytics.weightLogCTA, .logWeight)
+    }
+
+    func testDetailedAnalyticsWithSyntheticBaselineHidesLogWeightCTA() {
+        let logs = (0..<4).map { makeLog(daysAgo: $0, calories: 1_800) }
+        let context = makeContext(maturityLogs: logs, allWeights: [])
+
+        let analytics = JourneyDashboardBuilder.detailedAnalytics(
+            context: context,
+            weightInterpretation: FormaProductCopy.Journey.DetailedAnalytics.WeightTrend.insufficientData
+        )
+
+        XCTAssertTrue(analytics.showsWeightChart)
+        XCTAssertNil(analytics.weightLogCTA)
+    }
+
+    func testDetailedAnalyticsRangeSelectionChangesChartWindow() {
+        let early = WeightEntry(
+            id: UUID(),
+            date: calendar.date(byAdding: .day, value: -20, to: asOf)!,
+            weightKg: 82,
+            note: nil,
+            createdAt: calendar.date(byAdding: .day, value: -20, to: asOf)!
+        )
+        let recent = WeightEntry(
+            id: UUID(),
+            date: calendar.date(byAdding: .day, value: -2, to: asOf)!,
+            weightKg: 80,
+            note: nil,
+            createdAt: calendar.date(byAdding: .day, value: -2, to: asOf)!
+        )
+        let weights = [early, recent]
+        let logs = (0..<5).map { makeLog(daysAgo: $0, calories: 1_800) }
+
+        var shortRange = makeContext(maturityLogs: logs, allWeights: weights)
+        shortRange.selectedRangeDays = 7
+        var longRange = makeContext(maturityLogs: logs, allWeights: weights)
+        longRange.selectedRangeDays = 28
+
+        let shortAnalytics = JourneyDashboardBuilder.detailedAnalytics(
+            context: shortRange,
+            weightInterpretation: "Short"
+        )
+        let longAnalytics = JourneyDashboardBuilder.detailedAnalytics(
+            context: longRange,
+            weightInterpretation: "Long"
+        )
+
+        XCTAssertTrue(shortAnalytics.showsWeightChart)
+        XCTAssertTrue(longAnalytics.showsWeightChart)
+        XCTAssertLessThanOrEqual(shortAnalytics.weightChartPoints.count, longAnalytics.weightChartPoints.count)
     }
 
     // MARK: - Helpers
 
     private func makeContext(
+        profile: UserProfile? = ProfileTestFixtures.sampleProfile,
         baseline: JourneyBaseline? = nil,
         weekLogs: [DailyLog] = [],
         maturityLogs: [DailyLog] = [],
@@ -105,7 +174,7 @@ final class JourneyDashboardBuilderTests: XCTestCase {
     ) -> JourneyDashboardBuilder.Context {
         let resolvedBaseline = baseline ?? JourneyBaselineResolver.resolve(
             JourneyBaselineResolver.Input(
-                profile: ProfileTestFixtures.sampleProfile,
+                profile: profile,
                 allWeights: allWeights,
                 maturityLogs: maturityLogs,
                 goalProjection: nil,
@@ -115,7 +184,7 @@ final class JourneyDashboardBuilderTests: XCTestCase {
         )
 
         return JourneyDashboardBuilder.Context(
-            profile: ProfileTestFixtures.sampleProfile,
+            profile: profile,
             baseline: resolvedBaseline,
             maturityLogs: maturityLogs,
             weekLogs: weekLogs,
@@ -123,16 +192,8 @@ final class JourneyDashboardBuilderTests: XCTestCase {
             previousWeekWeights: [],
             previousWeekTrainingDays: 0,
             monthLogs: maturityLogs,
-            rangeLogs: maturityLogs,
             allWeights: allWeights,
             weekWeights: allWeights,
-            rangeWeights: allWeights,
-            streakSummary: StreakSummary(
-                loggingStreak: 2,
-                proteinStreak: 1,
-                hydrationStreak: 0,
-                workoutStreak: 0
-            ),
             journeyStreaks: JourneyStreakBuilder.build(
                 JourneyStreakBuilder.Input(
                     streakSummary: StreakSummary(
@@ -158,8 +219,6 @@ final class JourneyDashboardBuilderTests: XCTestCase {
             goalProjection: nil,
             healthWorkoutDayStarts: [],
             monthHealthWorkoutCount: 0,
-            weekHealthWorkoutCount: 0,
-            loggedDays: maturityLogs.count,
             nutritionSummary: ProgressLogSummaryBuilder.nutritionSummary(from: maturityLogs),
             waterSummary: ProgressLogSummaryBuilder.waterSummary(from: maturityLogs),
             workoutSummary: nil,

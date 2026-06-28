@@ -11,17 +11,24 @@ import XCTest
 @MainActor
 final class ProfileBootstrapServiceTests: XCTestCase {
 
+    private var harness: ProfileBootstrapTestSupport.Harness!
+
+    override func setUp() async throws {
+        harness = try ProfileBootstrapTestSupport.makeHarness()
+    }
+
+    override func tearDown() {
+        harness = nil
+        super.tearDown()
+    }
+
     func testLocalProfileExistsSkipsCloudFetchWhenOwnerMatches() async throws {
-        let cloudStore = MockCloudUserProfileStore()
-        let container = try AppContainer(inMemory: true)
-        let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
-            cloudStore: cloudStore
-        )
+        let service = harness.bootstrapService
+        let cloudStore = harness.cloudStore
 
         XCTAssertFalse(service.hasLocalProfile())
 
-        _ = try container.userProfileService.createProfile(
+        _ = try harness.profileService.createProfile(
             ProfileTestFixtures.sampleDraft,
             ownerUID: "user-1"
         )
@@ -35,14 +42,10 @@ final class ProfileBootstrapServiceTests: XCTestCase {
     }
 
     func testUnownedLocalProfileDoesNotSkipCloudFetch() async throws {
-        let cloudStore = MockCloudUserProfileStore()
-        let container = try AppContainer(inMemory: true)
-        let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
-            cloudStore: cloudStore
-        )
+        let service = harness.bootstrapService
+        let cloudStore = harness.cloudStore
 
-        _ = try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
 
         do {
             _ = try await service.resolve(uid: "user-1")
@@ -53,12 +56,8 @@ final class ProfileBootstrapServiceTests: XCTestCase {
     }
 
     func testMissingLocalAndCloudRoutesToMissingCloudProfile() async throws {
-        let cloudStore = MockCloudUserProfileStore()
-        let container = try AppContainer(inMemory: true)
-        let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
-            cloudStore: cloudStore
-        )
+        let service = harness.bootstrapService
+        let cloudStore = harness.cloudStore
 
         let result = try await service.resolve(uid: "user-1")
 
@@ -67,13 +66,9 @@ final class ProfileBootstrapServiceTests: XCTestCase {
     }
 
     func testCloudFetchFailureThrows() async throws {
-        let cloudStore = MockCloudUserProfileStore()
-        cloudStore.fetchError = NSError(domain: "test", code: 1)
-        let container = try AppContainer(inMemory: true)
-        let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
-            cloudStore: cloudStore
-        )
+        harness.cloudStore.fetchError = NSError(domain: "test", code: 1)
+        let service = harness.bootstrapService
+        let cloudStore = harness.cloudStore
 
         do {
             _ = try await service.resolve(uid: "user-1")
@@ -91,20 +86,14 @@ final class ProfileBootstrapServiceTests: XCTestCase {
     }
 
     func testMissingLocalWithCloudProfileRestoresLocally() async throws {
-        let cloudStore = MockCloudUserProfileStore()
-        let container = try AppContainer(inMemory: true)
-        let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
-            cloudStore: cloudStore
-        )
-
+        let service = harness.bootstrapService
         let profile = ProfileTestFixtures.sampleProfile
-        cloudStore.storedDocument = ProfileTestFixtures.cloudDocument(for: profile)
+        harness.cloudStore.storedDocument = ProfileTestFixtures.cloudDocument(for: profile)
 
         let result = try await service.resolve(uid: "user-1")
 
         XCTAssertEqual(result, .main)
-        let restored = try XCTUnwrap(try container.userProfileService.getCurrentProfile())
+        let restored = try XCTUnwrap(try harness.profileService.getCurrentProfile())
         XCTAssertEqual(restored.age, profile.age)
         XCTAssertEqual(restored.currentWeightKg, profile.currentWeightKg)
         XCTAssertEqual(restored.targets, profile.targets)
@@ -112,14 +101,10 @@ final class ProfileBootstrapServiceTests: XCTestCase {
     }
 
     func testOwnedProfileUpdateUploadsWhenOwnerMatches() async throws {
-        let cloudStore = MockCloudUserProfileStore()
-        let container = try AppContainer(inMemory: true)
-        let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
-            cloudStore: cloudStore
-        )
+        let service = harness.bootstrapService
+        let cloudStore = harness.cloudStore
 
-        _ = try container.userProfileService.createProfile(
+        _ = try harness.profileService.createProfile(
             ProfileTestFixtures.sampleDraft,
             ownerUID: "user-1"
         )
@@ -132,14 +117,10 @@ final class ProfileBootstrapServiceTests: XCTestCase {
     }
 
     func testOwnedProfileUpdateBlockedWhenOwnerMismatch() async throws {
-        let cloudStore = MockCloudUserProfileStore()
-        let container = try AppContainer(inMemory: true)
-        let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
-            cloudStore: cloudStore
-        )
+        let service = harness.bootstrapService
+        let cloudStore = harness.cloudStore
 
-        _ = try container.userProfileService.createProfile(
+        _ = try harness.profileService.createProfile(
             ProfileTestFixtures.sampleDraft,
             ownerUID: "other-user"
         )
@@ -158,14 +139,10 @@ final class ProfileBootstrapServiceTests: XCTestCase {
     }
 
     func testSyncOnboardingProfileToCloudUploadsWhenCloudMissing() async throws {
-        let cloudStore = MockCloudUserProfileStore()
-        let container = try AppContainer(inMemory: true)
-        let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
-            cloudStore: cloudStore
-        )
+        let service = harness.bootstrapService
+        let cloudStore = harness.cloudStore
 
-        _ = try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
 
         try await service.syncOnboardingProfileToCloud(uid: "user-1", intent: .newProfileInitialUpload)
 
@@ -175,12 +152,8 @@ final class ProfileBootstrapServiceTests: XCTestCase {
     }
 
     func testFetchCloudProfilePresenceAbsentWhenDocumentMissing() async throws {
-        let cloudStore = MockCloudUserProfileStore()
-        let container = try AppContainer(inMemory: true)
-        let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
-            cloudStore: cloudStore
-        )
+        let service = harness.bootstrapService
+        let cloudStore = harness.cloudStore
 
         let presence = try await service.fetchCloudProfilePresence(uid: "user-1")
 
@@ -189,13 +162,9 @@ final class ProfileBootstrapServiceTests: XCTestCase {
     }
 
     func testFetchCloudProfilePresencePresentWhenDocumentExists() async throws {
-        let cloudStore = MockCloudUserProfileStore()
-        cloudStore.storedDocument = ProfileTestFixtures.cloudDocument()
-        let container = try AppContainer(inMemory: true)
-        let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
-            cloudStore: cloudStore
-        )
+        harness.cloudStore.storedDocument = ProfileTestFixtures.cloudDocument()
+        let service = harness.bootstrapService
+        let cloudStore = harness.cloudStore
 
         let presence = try await service.fetchCloudProfilePresence(uid: "user-1")
 
@@ -207,13 +176,9 @@ final class ProfileBootstrapServiceTests: XCTestCase {
     }
 
     func testFetchCloudProfilePresenceThrowsOnFetchFailure() async throws {
-        let cloudStore = MockCloudUserProfileStore()
-        cloudStore.fetchError = NSError(domain: "test", code: 1)
-        let container = try AppContainer(inMemory: true)
-        let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
-            cloudStore: cloudStore
-        )
+        harness.cloudStore.fetchError = NSError(domain: "test", code: 1)
+        let service = harness.bootstrapService
+        let cloudStore = harness.cloudStore
 
         do {
             _ = try await service.fetchCloudProfilePresence(uid: "user-1")
@@ -224,14 +189,10 @@ final class ProfileBootstrapServiceTests: XCTestCase {
     }
 
     func testLocalProfileWithoutAuthSkipsCloudFetchWhenOwnerMatches() async throws {
-        let cloudStore = MockCloudUserProfileStore()
-        let container = try AppContainer(inMemory: true)
-        let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
-            cloudStore: cloudStore
-        )
+        let service = harness.bootstrapService
+        let cloudStore = harness.cloudStore
 
-        _ = try container.userProfileService.createProfile(
+        _ = try harness.profileService.createProfile(
             ProfileTestFixtures.sampleDraft,
             ownerUID: "offline-local-user"
         )
@@ -248,13 +209,8 @@ final class ProfileBootstrapServiceTests: XCTestCase {
     }
 
     func testExistingCloudProfileRestoreStillWorksAfterFreshInstall() async throws {
-        let cloudStore = MockCloudUserProfileStore()
-        let container = try AppContainer(inMemory: true)
-        let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
-            cloudStore: cloudStore
-        )
-
+        let service = harness.bootstrapService
+        let cloudStore = harness.cloudStore
         let profile = ProfileTestFixtures.sampleProfile
         cloudStore.storedDocument = ProfileTestFixtures.cloudDocument(for: profile)
 
@@ -264,11 +220,11 @@ final class ProfileBootstrapServiceTests: XCTestCase {
         XCTAssertEqual(firstResolve, .main)
         XCTAssertTrue(service.hasLocalProfile())
 
-        let restored = try XCTUnwrap(try container.userProfileService.getCurrentProfile())
+        let restored = try XCTUnwrap(try harness.profileService.getCurrentProfile())
         XCTAssertEqual(restored.goalWeightKg, profile.goalWeightKg)
 
         let fetchCountAfterRestore = cloudStore.fetchCallCount
-        _ = try container.userProfileService.assignOwnerUID("returning-user")
+        _ = try harness.profileService.assignOwnerUID("returning-user")
         let secondResolve = try await service.resolve(uid: "returning-user")
         XCTAssertEqual(secondResolve, .main)
         XCTAssertEqual(cloudStore.fetchCallCount, fetchCountAfterRestore)

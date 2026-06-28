@@ -10,7 +10,12 @@
 import Foundation
 
 struct ProfileFormState: Equatable {
+    private static let trainingDefaultsResolver = ActivityTrainingDefaultsResolver()
+    private static let initialTrainingDefaults = trainingDefaultsResolver.defaults(for: .moderatelyActive)
+
     var name: String
+    /// Source of truth for age in plan editing. Legacy profiles may only have `ageText`.
+    var birthDate: Date?
     var ageText: String
     var sex: Sex
     var heightCmText: String
@@ -33,8 +38,13 @@ struct ProfileFormState: Equatable {
     var weightLossPaceChoice: WeightLossPaceChoice
     var advancedPaceDraft: WeightLossAdvancedPaceDraft
 
+    var hasManuallyEditedTrainingDays: Bool = false
+    var hasManuallyEditedAverageSteps: Bool = false
+    var lastAutoTrainingDefaults: TrainingRhythmDefaults? = initialTrainingDefaults
+
     init(profile: UserProfile) {
         name = profile.name ?? ""
+        birthDate = profile.birthDate
         ageText = "\(profile.resolvedAge())"
         sex = profile.sex
         heightCmText = Self.formatDouble(profile.heightCm)
@@ -61,11 +71,14 @@ struct ProfileFormState: Equatable {
         )
         weightLossPaceChoice = inferred.choice
         advancedPaceDraft = inferred.advancedDraft
+        reconcileBirthDateAfterRestore()
+        reconcileTrainingRhythmAfterRestore()
     }
 
     static func defaultDraftValues() -> ProfileFormState {
-        ProfileFormState(
+        var state = ProfileFormState(
             name: "",
+            birthDate: BirthDateAgeResolver.syntheticBirthDate(fromAge: 24),
             ageText: "24",
             sex: .preferNotToSay,
             heightCmText: "170",
@@ -87,10 +100,13 @@ struct ProfileFormState: Equatable {
             weightLossPaceChoice: .moderate,
             advancedPaceDraft: .default
         )
+        state.reconcileTrainingRhythmAfterRestore()
+        return state
     }
 
     private init(
         name: String,
+        birthDate: Date?,
         ageText: String,
         sex: Sex,
         heightCmText: String,
@@ -113,6 +129,7 @@ struct ProfileFormState: Equatable {
         advancedPaceDraft: WeightLossAdvancedPaceDraft
     ) {
         self.name = name
+        self.birthDate = birthDate
         self.ageText = ageText
         self.sex = sex
         self.heightCmText = heightCmText
@@ -141,7 +158,8 @@ struct ProfileFormState: Equatable {
 
         return UserProfileDraft(
             name: trimmedName.isEmpty ? nil : trimmedName,
-            age: try parsePositiveInt(ageText, fieldName: "Age"),
+            birthDate: birthDate,
+            age: try resolvedAge(),
             sex: sex,
             heightCm: try parsePositiveDouble(heightCmText, fieldName: "Height"),
             currentWeightKg: try parsePositiveDouble(currentWeightKgText, fieldName: "Baseline weight"),
@@ -165,7 +183,8 @@ struct ProfileFormState: Equatable {
 
         return UserProfileUpdate(
             name: trimmedName.isEmpty ? nil : trimmedName,
-            age: try parsePositiveInt(ageText, fieldName: "Age"),
+            birthDate: birthDate,
+            age: try resolvedAge(),
             sex: sex,
             heightCm: try parsePositiveDouble(heightCmText, fieldName: "Height"),
             currentWeightKg: try parsePositiveDouble(currentWeightKgText, fieldName: "Baseline weight"),
@@ -186,7 +205,7 @@ struct ProfileFormState: Equatable {
     func makeCalorieTargetInput() throws -> CalorieTargetInput {
         let pace = try resolvedWeightLossPace()
         return CalorieTargetInput(
-            age: try parsePositiveInt(ageText, fieldName: "Age"),
+            age: try resolvedAge(),
             sex: sex,
             heightCm: try parsePositiveDouble(heightCmText, fieldName: "Height"),
             weightKg: try parsePositiveDouble(currentWeightKgText, fieldName: "Baseline weight"),
@@ -220,6 +239,116 @@ struct ProfileFormState: Equatable {
 
     mutating func syncAggressivenessFromPaceChoice() {
         aggressiveness = weightLossPaceChoice.legacyAggressiveness
+    }
+
+    // MARK: - Birthday
+
+    mutating func reconcileBirthDateAfterRestore(referenceDate: Date = Date()) {
+        if birthDate == nil {
+            let trimmedAge = ageText.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let legacyAge = Int(trimmedAge), legacyAge > 0 {
+                birthDate = BirthDateAgeResolver.syntheticBirthDate(
+                    fromAge: legacyAge,
+                    referenceDate: referenceDate
+                )
+            }
+        }
+        syncAgeTextFromBirthDate(referenceDate: referenceDate)
+    }
+
+    mutating func syncAgeTextFromBirthDate(referenceDate: Date = Date()) {
+        guard let birthDate else { return }
+        ageText = String(
+            BirthDateAgeResolver.age(from: birthDate, referenceDate: referenceDate)
+        )
+    }
+
+    func resolvedAge(referenceDate: Date = Date()) throws -> Int {
+        if let birthDate {
+            let age = BirthDateAgeResolver.age(from: birthDate, referenceDate: referenceDate)
+            guard BirthDateAgeResolver.isValidAge(age) else {
+                throw ProfileFormError.invalid(FormaProductCopy.Onboarding.Validation.age)
+            }
+            return age
+        }
+        return try parsePositiveInt(ageText, fieldName: "Age")
+    }
+
+    // MARK: - Activity training rhythm
+
+    mutating func selectActivityLevel(_ level: ActivityLevel) {
+        guard level != activityLevel else { return }
+
+        let newDefaults = Self.trainingDefaultsResolver.defaults(for: level)
+        let previousDefaults = lastAutoTrainingDefaults
+
+        activityLevel = level
+
+        if shouldAutoUpdateTrainingDays(previousDefaults: previousDefaults) {
+            trainingFrequencyPerWeekText = String(newDefaults.trainingDaysPerWeek)
+        }
+
+        if shouldAutoUpdateAverageSteps(previousDefaults: previousDefaults) {
+            averageStepsText = String(newDefaults.averageStepsPerDay)
+        }
+
+        lastAutoTrainingDefaults = newDefaults
+    }
+
+    mutating func applyTrainingRhythmDefaultsForCurrentActivity() {
+        let newDefaults = Self.trainingDefaultsResolver.defaults(for: activityLevel)
+        let previousDefaults = lastAutoTrainingDefaults
+
+        if shouldAutoUpdateTrainingDays(previousDefaults: previousDefaults) {
+            trainingFrequencyPerWeekText = String(newDefaults.trainingDaysPerWeek)
+        }
+
+        if shouldAutoUpdateAverageSteps(previousDefaults: previousDefaults) {
+            averageStepsText = String(newDefaults.averageStepsPerDay)
+        }
+
+        lastAutoTrainingDefaults = newDefaults
+    }
+
+    mutating func setTrainingFrequencyPerWeekText(_ text: String) {
+        trainingFrequencyPerWeekText = text
+        hasManuallyEditedTrainingDays = true
+    }
+
+    mutating func setAverageStepsText(_ text: String) {
+        averageStepsText = text
+        hasManuallyEditedAverageSteps = true
+    }
+
+    mutating func reconcileTrainingRhythmAfterRestore() {
+        let expected = Self.trainingDefaultsResolver.defaults(for: activityLevel)
+        lastAutoTrainingDefaults = expected
+
+        if let currentDays = Int(trainingFrequencyPerWeekText.trimmingCharacters(in: .whitespacesAndNewlines)),
+           currentDays != expected.trainingDaysPerWeek {
+            hasManuallyEditedTrainingDays = true
+        }
+
+        if let currentSteps = Int(averageStepsText.trimmingCharacters(in: .whitespacesAndNewlines)),
+           currentSteps != expected.averageStepsPerDay {
+            hasManuallyEditedAverageSteps = true
+        }
+    }
+
+    private func shouldAutoUpdateTrainingDays(previousDefaults: TrainingRhythmDefaults?) -> Bool {
+        if !hasManuallyEditedTrainingDays { return true }
+        guard let previousDefaults,
+              let currentDays = Int(trainingFrequencyPerWeekText.trimmingCharacters(in: .whitespacesAndNewlines))
+        else { return false }
+        return currentDays == previousDefaults.trainingDaysPerWeek
+    }
+
+    private func shouldAutoUpdateAverageSteps(previousDefaults: TrainingRhythmDefaults?) -> Bool {
+        if !hasManuallyEditedAverageSteps { return true }
+        guard let previousDefaults,
+              let currentSteps = Int(averageStepsText.trimmingCharacters(in: .whitespacesAndNewlines))
+        else { return false }
+        return currentSteps == previousDefaults.averageStepsPerDay
     }
 
     private func makeTargets() throws -> UserTargets {

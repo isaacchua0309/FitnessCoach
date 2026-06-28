@@ -59,7 +59,8 @@ struct JourneyTransformationHeroState: Equatable {
     var headlineCopy: String
     var changeValueCopy: String
     var emotionalStatusLabel: String
-    var progressBarPercent: Double
+    /// Normalized 0...1 fill for the SwiftUI progress bar (includes a visible sliver at 0%).
+    var progressBarFill: Double
     var progressLabel: String
     var progressBarAccessibilityValue: String
     var startedWeightCopy: String
@@ -69,6 +70,7 @@ struct JourneyTransformationHeroState: Equatable {
     var paceForecastText: String
     var streakChip: JourneyStreakChipState
     var usesSyntheticBaseline: Bool
+    var showsUpdateGoalCTA: Bool
     var accessibilitySummary: String
 }
 
@@ -84,7 +86,6 @@ struct JourneyStreakState: Equatable {
     var heroStreakChip: JourneyStreakChipState
     var weeklyConsistencyHeadline: String
     var weeklyConsistencyDetail: String?
-    var habitInsightStreakCopy: String
     var keepStreakAliveCopy: String?
 }
 
@@ -103,10 +104,7 @@ struct JourneyWeeklyReviewState: Equatable {
     var weightDeltaThisWeekKg: Double?
     var calorieAdherenceDays: Int
     var calorieAdherenceDaysTotal: Int
-    var strongestPositiveSignal: String
-    var weakestSignal: String
     var weekSummaryCopy: String
-    var averageCalorieDeficit: Int?
     var rows: [JourneyWeeklyReviewRow]
     var weekOverWeekDetail: String?
     var consistencyHeadline: String?
@@ -188,7 +186,6 @@ struct JourneyMilestonesState: Equatable {
     var upcoming: [JourneyMilestone]
     var next: JourneyMilestone?
     var nextProgressFraction: Double?
-    var progressPercent: Double
     var items: [JourneyMilestone]
 
     static let empty = JourneyMilestonesState(
@@ -196,7 +193,6 @@ struct JourneyMilestonesState: Equatable {
         upcoming: [],
         next: nil,
         nextProgressFraction: nil,
-        progressPercent: 0,
         items: []
     )
 }
@@ -262,10 +258,12 @@ struct JourneyHabitInsightsState: Equatable {
     var strongestQualitative: String?
 
     var weakestHabitLabel: String
+    var weakestHabitKind: JourneyHabitKind?
     var weakestScorePercent: Int
     var weakestScorePrefix: String?
 
     var suggestedNextAction: String
+    var suggestionCTA: JourneyCTA?
 
     static let locked = JourneyHabitInsightsState(
         isUnlocked: false,
@@ -274,9 +272,11 @@ struct JourneyHabitInsightsState: Equatable {
         strongestScorePercent: 0,
         strongestQualitative: nil,
         weakestHabitLabel: "",
+        weakestHabitKind: nil,
         weakestScorePercent: 0,
         weakestScorePrefix: nil,
-        suggestedNextAction: ""
+        suggestedNextAction: "",
+        suggestionCTA: nil
     )
 }
 
@@ -316,6 +316,14 @@ struct JourneyBeforeTodayState: Equatable {
     var showsMaintenanceRow: Bool
     var showsTargetRow: Bool
     var showsAdaptedTargetCopy: Bool
+    var startedWeightCopy: String
+    var currentWeightCopy: String
+    var goalWeightCopy: String
+    var startingMaintenanceCopy: String?
+    var currentMaintenanceCopy: String?
+    var startingTargetCopy: String?
+    var currentTargetCopy: String?
+    var accessibilitySummary: String
 }
 
 // MARK: - Personal records
@@ -358,7 +366,6 @@ struct JourneyMonthlyRecapState: Equatable {
     var sectionTitle: String
     var isComplete: Bool
     var buildingMessage: String?
-    var monthLabel: String
     var monthWeightDeltaKg: Double?
     var calorieAdherencePercent: Double?
     var proteinAdherencePercent: Double?
@@ -369,7 +376,6 @@ struct JourneyMonthlyRecapState: Equatable {
     var bestHabitCopy: String?
     var summaryCopy: String
     var rows: [JourneyMonthlyRecapMetricRow]
-    var calendar: JourneyConsistencyCalendar
 }
 
 // MARK: - Journey level / XP
@@ -387,54 +393,21 @@ struct JourneyLevelState: Equatable {
 
 // MARK: - Detailed analytics
 
+enum JourneyDetailedAnalyticsTrainingDisplay: Equatable {
+    case hidden
+    case connectedEmpty
+    case metrics(ProgressWorkoutSummary)
+}
+
 struct JourneyDetailedAnalyticsState: Equatable {
     var isCollapsedByDefault: Bool
     var nutritionSummary: ProgressNutritionSummary
     var waterSummary: ProgressWaterSummary
-    var workoutSummary: ProgressWorkoutSummary?
+    var trainingDisplay: JourneyDetailedAnalyticsTrainingDisplay
     var weightChartPoints: [WeightChartPoint]
     var weightTrendInterpretation: String
     var showsWeightChart: Bool
-}
-
-// MARK: - Consistency calendar (shared by monthly recap & habit insights)
-
-struct JourneyConsistencyCalendar: Equatable {
-    var monthTitle: String
-    var weekdaySymbols: [String]
-    var days: [JourneyCalendarDay]
-    var completedCount: Int
-    var totalLoggedDays: Int
-
-    var displayMode: JourneyConsistencyDisplayMode {
-        if totalLoggedDays == 0 {
-            return .momentumEmpty
-        }
-        if totalLoggedDays < JourneyLayout.minimumLoggedDaysForCalendar {
-            return .consistencySummary
-        }
-        return .fullCalendar
-    }
-
-    static let empty = JourneyConsistencyCalendar(
-        monthTitle: "",
-        weekdaySymbols: [],
-        days: [],
-        completedCount: 0,
-        totalLoggedDays: 0
-    )
-}
-
-enum JourneyConsistencyDisplayMode: Equatable {
-    case momentumEmpty
-    case consistencySummary
-    case fullCalendar
-}
-
-struct JourneyCalendarDay: Identifiable, Equatable {
-    var id: String
-    var dayNumber: Int?
-    var isCompleted: Bool
+    var weightLogCTA: JourneyCTA?
 }
 
 // MARK: - Weight chart

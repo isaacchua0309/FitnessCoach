@@ -101,12 +101,20 @@ final class OnboardingAppleHealthFlowTests: XCTestCase {
     func testAppleHealthStepUsesDedicatedCopy() {
         XCTAssertEqual(
             OnboardingStep.appleHealth.title,
-            FormaProductCopy.Onboarding.Flow.AppleHealth.title
+            "Connect Apple Health"
         )
         XCTAssertEqual(
             OnboardingStep.appleHealth.subtitle,
-            FormaProductCopy.Onboarding.Flow.AppleHealth.subtitle
+            "Sync workouts and activity to make your progress insights more accurate."
         )
+    }
+
+    func testAppleHealthBenefitsUseSeparateCardsCopy() {
+        let benefits = FormaProductCopy.Onboarding.Flow.AppleHealth.benefits
+        XCTAssertEqual(benefits.count, 3)
+        XCTAssertEqual(benefits[0].title, "Workout tracking")
+        XCTAssertEqual(benefits[1].title, "Activity insights")
+        XCTAssertEqual(benefits[2].title, "Progress patterns")
     }
 
     func testHealthKitAuthorizationRequestsReadOnlyTypes() {
@@ -152,31 +160,104 @@ final class OnboardingAppleHealthFlowTests: XCTestCase {
 @MainActor
 final class OnboardingAppleHealthAnalyticsTests: XCTestCase {
 
+    private var draftDefaults: UserDefaults!
+    private var draftStore: OnboardingDraftStore!
+    private let analytics = CapturingOnboardingAnalyticsLogger()
+
+    override func setUp() {
+        super.setUp()
+        draftDefaults = UserDefaults(suiteName: "OnboardingAppleHealthAnalyticsTests.\(UUID().uuidString)")!
+        draftStore = OnboardingDraftStore(userDefaults: draftDefaults)
     }
 
-    func testAppleHealthContinueLogsPermissionEventsAndAdvancesDespiteDenial() async throws {
+    override func tearDown() {
+        draftStore.clearDraft()
+        draftDefaults.removePersistentDomain(forName: draftDefaults.description)
+        draftDefaults = nil
+        draftStore = nil
+        super.tearDown()
+    }
+
+    func testAppleHealthContinueLogsPermissionEventsAndAllowsSkipAfterDenial() async throws {
         let integration = StubTrainingIntegrationProvider(requestConnectionResult: .denied)
         let model = try makeOnboardingModel(integration: integration)
-        advanceModelToAppleHealth(model)
+        await advanceModelToAppleHealth(model)
 
         XCTAssertTrue(analytics.contains(.appleHealthPromptViewed, step: "apple_health"))
+        XCTAssertTrue(analytics.contains(.appleHealthOnboardingViewed, step: "apple_health"))
 
-        model.goNext()
+        model.connectAppleHealth()
 
-        for _ in 0..<50 {
-            if model.currentStep == .almostThere { break }
-            try await Task.sleep(nanoseconds: 20_000_000)
+        _ = await AsyncTestSupport.waitUntil(maxYields: 200) {
+            model.viewState != .connectingAppleHealth
         }
 
-        XCTAssertEqual(model.currentStep, .almostThere)
+        XCTAssertEqual(model.appleHealthPresentation, .denied)
+        XCTAssertEqual(model.currentStep, .appleHealth)
         XCTAssertEqual(integration.requestConnectionCallCount, 1)
+        XCTAssertTrue(analytics.contains(.appleHealthConnectTapped, step: "apple_health"))
         XCTAssertTrue(analytics.contains(.appleHealthPermissionRequested, step: "apple_health"))
         XCTAssertTrue(analytics.contains(.appleHealthPermissionResult, step: "apple_health"))
         XCTAssertEqual(
             analytics.lastProperties(for: .appleHealthPermissionResult)?["permissionResult"],
             "denied"
         )
+
+        model.skipAppleHealth()
+
+        XCTAssertEqual(model.currentStep, .almostThere)
+        XCTAssertTrue(analytics.contains(.appleHealthSkipTapped, step: "apple_health"))
         XCTAssertTrue(analytics.contains(.stepCompleted, step: "apple_health"))
+    }
+
+    func testAppleHealthSkipRoutesForwardWithoutRequestingPermission() async throws {
+        let integration = StubTrainingIntegrationProvider(requestConnectionResult: .connected)
+        let model = try makeOnboardingModel(integration: integration)
+        await advanceModelToAppleHealth(model)
+
+        model.skipAppleHealth()
+
+        XCTAssertEqual(model.currentStep, .almostThere)
+        XCTAssertEqual(integration.requestConnectionCallCount, 0)
+        XCTAssertTrue(analytics.contains(.appleHealthSkipTapped, step: "apple_health"))
+    }
+
+    func testAppleHealthAuthorizedAutoAdvances() async throws {
+        let integration = StubTrainingIntegrationProvider(requestConnectionResult: .connected)
+        let model = try makeOnboardingModel(integration: integration)
+        await advanceModelToAppleHealth(model)
+
+        model.connectAppleHealth()
+
+        _ = await AsyncTestSupport.waitUntil(maxYields: 2_000) {
+            model.currentStep != .appleHealth
+        }
+
+        XCTAssertEqual(model.currentStep, .almostThere)
+        XCTAssertEqual(integration.requestConnectionCallCount, 1)
+    }
+
+    func testAppleHealthUnavailableStillAllowsSkip() async throws {
+        let integration = StubTrainingIntegrationProvider(
+            dataSource: .unavailable,
+            refreshResult: .unavailable,
+            requestConnectionResult: .unavailable
+        )
+        let model = try makeOnboardingModel(integration: integration)
+        await advanceModelToAppleHealth(model)
+
+        model.prepareAppleHealthStep()
+        _ = await AsyncTestSupport.waitUntil(maxYields: 200) {
+            model.appleHealthDeviceState == .unavailable
+        }
+
+        XCTAssertEqual(model.appleHealthPresentation, .unavailable)
+        model.skipAppleHealth()
+        XCTAssertEqual(model.currentStep, .almostThere)
+    }
+
+    func testAppleHealthStepDoesNotShowProgressHeaderInShell() {
+        XCTAssertFalse(OnboardingStep.appleHealth.showsProgressHeader)
     }
 
     private func makeOnboardingModel(
@@ -195,25 +276,9 @@ final class OnboardingAppleHealthAnalyticsTests: XCTestCase {
         )
     }
 
-    private func advanceModelToAppleHealth(_ model: OnboardingModel) {
-        seedValidOnboardingForm(&model.formState)
-
-        model.goNext() // introProof -> heightWeight
-        model.goNext() // heightWeight
-        model.goNext() // targetWeight
-        model.goNext() // targetEncouragement
-        model.goNext() // birthday
-        model.goNext() // activityLevel
-        XCTAssertEqual(model.currentStep, .appleHealth)
-    }
-
-    private func seedValidOnboardingForm(_ formState: inout OnboardingFormState) {
-        OnboardingHeightWeightValues.applyDefaultsIfNeeded(to: &formState)
-        OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &formState)
-        OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &formState)
-        formState.sex = .female
-        formState.activityLevel = .moderatelyActive
-        OnboardingActivityLevelValues.applyDefaultsIfNeeded(to: &formState)
+    private func advanceModelToAppleHealth(_ model: OnboardingModel) async {
+        OnboardingModelTestSupport.seedCanonicalForm(&model.formState)
+        await OnboardingModelTestSupport.advanceTo(.appleHealth, model: model, seedForm: false)
     }
 }
 

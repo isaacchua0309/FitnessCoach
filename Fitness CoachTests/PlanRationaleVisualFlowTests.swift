@@ -124,7 +124,7 @@ final class PlanRationaleVisualFlowTests: XCTestCase {
             referenceDate: referenceDate
         )
 
-        XCTAssertTrue(rationale.accessibilitySummary.contains("Why This Plan Works"))
+        XCTAssertTrue(rationale.accessibilitySummary.contains("Why This Works"))
         XCTAssertTrue(rationale.accessibilitySummary.contains("Based on:"))
         XCTAssertTrue(rationale.accessibilitySummary.contains("Birthday-derived age"))
     }

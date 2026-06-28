@@ -90,7 +90,8 @@ final class PlanNextMilestoneTests: XCTestCase {
     // MARK: - Protein adherence
 
     func testProteinMilestoneSelectedWhenWeightUnavailableAndProteinIncomplete() {
-        let logs = lowProteinWeekLogs(days: 3)
+        // Logging wins over protein when the week still has open log days (priority 95 vs 60).
+        let logs = lowProteinWeekLogs(days: 7)
         let milestone = PlanMissionControlFixtures.dashboard(
             for: PlanMissionControlFixtures.loseProfile,
             weekLogs: logs

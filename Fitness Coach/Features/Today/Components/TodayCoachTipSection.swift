@@ -30,6 +30,8 @@ struct TodayCoachTipSection: View {
                             .foregroundStyle(FormaTokens.Color.textPrimary)
                             .multilineTextAlignment(.leading)
                             .fixedSize(horizontal: false, vertical: true)
+                            .lineLimit(nil)
+                            .minimumScaleFactor(0.85)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .padding(.vertical, FormaTokens.Spacing.xs)

@@ -7,10 +7,11 @@ import SwiftUI
 
 struct JourneyWeeklyReviewSection: View {
     let review: JourneyWeeklyReviewState
+    var onCTA: ((JourneyCTA) -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
-            FormaSectionLabel(title: FormaProductCopy.Journey.sectionThisWeek)
+            FormaSectionLabel(title: FormaProductCopy.Journey.WeeklyReview.sectionTitle)
 
             FitPilotPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
@@ -18,6 +19,7 @@ struct JourneyWeeklyReviewSection: View {
                         .font(FormaTokens.Typography.sectionSubtitle)
                         .foregroundStyle(FormaTokens.Color.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
 
                     if let headline = review.consistencyHeadline {
                         consistencyBlock(headline: headline, detail: review.consistencyDetail)
@@ -39,6 +41,14 @@ struct JourneyWeeklyReviewSection: View {
                             .font(FormaTokens.Typography.caption)
                             .foregroundStyle(FormaTokens.Color.textTertiary)
                             .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    if let cta = JourneyCTARouter.weeklyTrainingCTA(training: review.training),
+                       let onCTA {
+                        FitPilotPlanRowDivider()
+                        JourneyCTAButton(cta: cta) {
+                            onCTA(cta)
+                        }
                     }
                 }
             }

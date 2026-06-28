@@ -2,7 +2,7 @@
 //  OnboardingTargetEncouragementStepView.swift
 //  Fitness Coach
 //
-//  Forma — encouragement after target weight selection.
+//  Forma — goal confirmation after target weight selection.
 //
 
 import SwiftUI
@@ -10,35 +10,117 @@ import SwiftUI
 struct OnboardingTargetEncouragementStepView: View {
     let formState: OnboardingFormState
 
-    private var displayCopy: OnboardingTargetEncouragementDisplayCopy {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    @State private var headerVisible = false
+    @State private var heroVisible = false
+    @State private var journeyVisible = false
+    @State private var reassuranceVisible = false
+    @State private var benefitsVisible = false
+    @State private var didPlayAppearHaptic = false
+
+    private var displayState: OnboardingTargetEncouragementState {
         OnboardingTargetEncouragementCopyBuilder.build(from: formState)
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
-            headline
-                .font(.system(.title2, design: .rounded).weight(.bold))
-                .foregroundStyle(OnboardingTheme.primaryText)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-                .accessibilityLabel(displayCopy.accessibilityHeadline)
-
-            Text(displayCopy.subtitle)
-                .font(.subheadline)
-                .foregroundStyle(OnboardingTheme.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
+            headerSection
+            heroSection
+            reassuranceSection
+            benefitsSection
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .onAppear {
+            runEntranceAnimation()
+            playAppearHapticIfNeeded()
+        }
     }
 
-    @ViewBuilder
-    private var headline: some View {
-        switch displayCopy.headline {
-        case .lossAmount(let prefix, let amount, let suffix):
-            (Text(prefix) + Text(amount).foregroundStyle(OnboardingTheme.accent) + Text(suffix))
-        case .fallback(let title):
-            Text(title)
+    private var headerSection: some View {
+        OnboardingStageProgressHeader(currentStep: .targetEncouragement)
+            .opacity(headerVisible ? 1 : 0)
+            .offset(y: headerVisible ? 0 : 6)
+    }
+
+    private var heroSection: some View {
+        VStack(spacing: FormaTokens.Spacing.sm) {
+            Text(displayState.heroMetric)
+                .font(.system(size: 44, weight: .bold, design: .rounded))
+                .foregroundStyle(OnboardingTheme.primaryText)
+                .minimumScaleFactor(0.8)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .scaleEffect(heroVisible ? 1 : 0.94)
+                .opacity(heroVisible ? 1 : 0)
+                .contentTransition(.numericText())
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: displayState.heroMetric)
+                .accessibilityAddTraits(.isHeader)
+
+            if let journeyLine = displayState.journeyLine {
+                Text(journeyLine)
+                    .font(.title3.weight(.medium))
+                    .foregroundStyle(OnboardingTheme.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .opacity(journeyVisible ? 1 : 0)
+                    .offset(y: journeyVisible ? 0 : 6)
+                    .contentTransition(.numericText())
+                    .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: journeyLine)
+            }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(displayState.accessibilityLabel)
+    }
+
+    private var reassuranceSection: some View {
+        OnboardingTargetEncouragementReassuranceCard(
+            title: displayState.reassuranceTitle,
+            bodyCopy: displayState.reassuranceBody
+        )
+        .opacity(reassuranceVisible ? 1 : 0)
+        .offset(y: reassuranceVisible ? 0 : 8)
+    }
+
+    private var benefitsSection: some View {
+        OnboardingTargetEncouragementBenefitsSection(benefits: displayState.benefits)
+            .opacity(benefitsVisible ? 1 : 0)
+            .offset(y: benefitsVisible ? 0 : 8)
+    }
+
+    private func runEntranceAnimation() {
+        if reduceMotion {
+            headerVisible = true
+            heroVisible = true
+            journeyVisible = true
+            reassuranceVisible = true
+            benefitsVisible = true
+            return
+        }
+
+        withAnimation(.easeOut(duration: 0.22)) {
+            headerVisible = true
+        }
+        withAnimation(.easeOut(duration: 0.28).delay(0.10)) {
+            heroVisible = true
+        }
+        withAnimation(.easeOut(duration: 0.24).delay(0.24)) {
+            journeyVisible = true
+        }
+        withAnimation(.easeOut(duration: 0.26).delay(0.38)) {
+            reassuranceVisible = true
+        }
+        withAnimation(.easeOut(duration: 0.26).delay(0.52)) {
+            benefitsVisible = true
+        }
+    }
+
+    private func playAppearHapticIfNeeded() {
+        guard !didPlayAppearHaptic else { return }
+        didPlayAppearHaptic = true
+        OnboardingHaptics.selectionChanged()
     }
 }
 
@@ -47,19 +129,35 @@ struct OnboardingTargetEncouragementStepView: View {
     OnboardingTargetEncouragementStepView(
         formState: {
             var state = OnboardingFormState()
-            OnboardingHeightWeightValues.setWeightKg(72, in: &state)
-            OnboardingTargetWeightValues.setGoalFromLossKg(3.4, in: &state)
+            OnboardingHeightWeightValues.setWeightKg(70, in: &state)
+            OnboardingTargetWeightValues.setGoalFromLossKg(3.5, in: &state)
             state.unitSystem = .metric
             return state
         }()
     )
-    .padding()
+    .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Target Encouragement — Maintain") {
+    OnboardingTargetEncouragementStepView(
+        formState: {
+            var state = OnboardingFormState()
+            OnboardingHeightWeightValues.setWeightKg(72, in: &state)
+            OnboardingTargetWeightValues.setGoalFromLossKg(0, in: &state)
+            return state
+        }()
+    )
+    .padding(.horizontal, OnboardingTheme.pagePadding)
+    .background(OnboardingTheme.background)
+    .preferredColorScheme(.dark)
 }
 
 #Preview("Target Encouragement — Fallback") {
     OnboardingTargetEncouragementStepView(formState: OnboardingFormState())
-        .padding()
+        .padding(.horizontal, OnboardingTheme.pagePadding)
         .background(OnboardingTheme.background)
+        .preferredColorScheme(.dark)
 }
 #endif

@@ -11,13 +11,28 @@ struct PlanTodayMissionSection: View {
     let state: PlanTodayMissionState
     var onGoToToday: (() -> Void)?
 
+    @ScaledMetric(relativeTo: .title) private var calorieTargetSize: CGFloat = 30
+
     var body: some View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
-            headerRow
+            PlanSectionHeader(
+                title: state.sectionTitle,
+                actionTitle: onGoToToday == nil ? nil : state.goToTodayTitle,
+                actionAccessibilityHint: FormaProductCopy.PlanMissionControl.goToTodayAccessibilityHint,
+                action: onGoToToday
+            )
 
             FitPilotPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
-                    macroTargetsBlock
+                    Text(state.caloriesLabel)
+                        .font(.system(size: calorieTargetSize, weight: .bold, design: .rounded))
+                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                        .minimumScaleFactor(0.75)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityHidden(true)
+
+                    secondaryMacroTargetsBlock
 
                     Text(state.progressCopy)
                         .font(FormaTokens.Typography.sectionSubtitle)
@@ -26,44 +41,38 @@ struct PlanTodayMissionSection: View {
                         .accessibilityHidden(true)
                 }
             }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(state.accessibilitySummary)
-    }
-
-    private var headerRow: some View {
-        HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
-            FormaSectionLabel(title: state.sectionTitle)
-
-            Spacer(minLength: 8)
-
-            if let onGoToToday {
-                Button(state.goToTodayTitle, action: onGoToToday)
-                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.accent)
-                    .buttonStyle(.plain)
-                    .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
-                    .accessibilityLabel(state.goToTodayTitle)
-            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(cardAccessibilitySummary)
         }
     }
 
-    private var macroTargetsBlock: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            macroLine(state.caloriesLabel)
-            macroLine(state.proteinLabel)
-            macroLine(state.carbsLabel)
-            macroLine(state.fatLabel)
-            macroLine(state.waterLabel)
+    private var secondaryMacroTargetsBlock: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            secondaryMacroLine(state.proteinLabel)
+            secondaryMacroLine(state.carbsLabel)
+            secondaryMacroLine(state.fatLabel)
+            secondaryMacroLine(state.waterLabel)
         }
         .accessibilityHidden(true)
     }
 
-    private func macroLine(_ text: String) -> some View {
+    private func secondaryMacroLine(_ text: String) -> some View {
         Text(text)
-            .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
-            .foregroundStyle(FormaTokens.Color.textPrimary)
+            .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
+            .foregroundStyle(FormaTokens.Color.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var cardAccessibilitySummary: String {
+        [
+            state.sectionTitle,
+            state.caloriesLabel,
+            state.proteinLabel,
+            state.carbsLabel,
+            state.fatLabel,
+            state.waterLabel,
+            state.progressCopy
+        ].joined(separator: ". ")
     }
 }
 
@@ -77,6 +86,17 @@ struct PlanTodayMissionSection: View {
     .padding()
     .background(FormaTokens.Color.canvas)
     .preferredColorScheme(.dark)
+}
+
+#Preview("Large Dynamic Type") {
+    PlanTodayMissionSection(
+        state: PlanMissionControlFixtures.loseDashboard.todayMission,
+        onGoToToday: {}
+    )
+    .padding()
+    .background(FormaTokens.Color.canvas)
+    .preferredColorScheme(.dark)
+    .dynamicTypeSize(.accessibility3)
 }
 
 #Preview("Maintain") {

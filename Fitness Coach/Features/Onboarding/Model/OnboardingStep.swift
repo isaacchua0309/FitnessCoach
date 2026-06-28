@@ -76,7 +76,7 @@ enum OnboardingStep: Int, Equatable, Identifiable, Sendable, CaseIterable {
         case .targetWeight:
             return copy.TargetWeight.title
         case .targetEncouragement:
-            return copy.TargetEncouragement.fallbackTitle
+            return copy.TargetEncouragement.title
         case .birthday:
             return copy.Birthday.title
         case .activityLevel:
@@ -190,7 +190,17 @@ enum OnboardingStep: Int, Equatable, Identifiable, Sendable, CaseIterable {
 
     var usesFullScreenChrome: Bool {
         switch self {
-        case .generatingPlan, .introProof:
+        case .generatingPlan:
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// Steps that fit in one viewport and should not scroll.
+    var usesFixedViewportShell: Bool {
+        switch self {
+        case .birthday:
             return true
         default:
             return false
@@ -199,7 +209,7 @@ enum OnboardingStep: Int, Equatable, Identifiable, Sendable, CaseIterable {
 
     var showsProgressHeader: Bool {
         switch self {
-        case .introProof, .generatingPlan, .planReveal, .savePlan, .targetEncouragement:
+        case .introProof, .generatingPlan, .planReveal, .savePlan, .targetEncouragement, .heightWeight, .targetWeight, .birthday, .activityLevel, .appleHealth, .almostThere:
             return false
         default:
             return true

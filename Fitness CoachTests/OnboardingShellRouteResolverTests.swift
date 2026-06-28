@@ -2,7 +2,7 @@
 //  OnboardingShellRouteResolverTests.swift
 //  Fitness CoachTests
 //
-//  Forma — Pure onboarding v2 shell routing tests.
+//  Forma — Canonical public-entry and onboarding shell routing tests.
 //
 
 import XCTest
@@ -25,16 +25,16 @@ final class OnboardingShellRouteResolverTests: XCTestCase {
         )
     }
 
-    // MARK: - Signed out, no profile (v2)
+    // MARK: - Signed out, no profile
 
-    func testSignedOutNoProfileRoutesToPreAuthOnboarding() {
+    func testSignedOutNoProfileRoutesToWelcome() {
         XCTAssertEqual(
             resolve(
                 authState: .signedOut,
                 hasLocalProfile: false,
                 isOnboardingModelReady: true
             ),
-            .preAuthOnboarding
+            .welcome
         )
         XCTAssertEqual(
             resolve(
@@ -42,7 +42,7 @@ final class OnboardingShellRouteResolverTests: XCTestCase {
                 hasLocalProfile: false,
                 isOnboardingModelReady: false
             ),
-            .preAuthOnboardingInitializing
+            .welcome
         )
         XCTAssertEqual(
             resolve(
@@ -50,13 +50,34 @@ final class OnboardingShellRouteResolverTests: XCTestCase {
                 hasLocalProfile: false,
                 isOnboardingModelReady: true
             ),
-            .preAuthOnboarding
+            .welcome
         )
     }
 
-    // MARK: - Signed out, has profile (v2)
+    func testSignedOutCreatePlanRoutesToOnboardingStart() {
+        XCTAssertEqual(
+            resolve(
+                authState: .signedOut,
+                hasLocalProfile: false,
+                isOnboardingModelReady: true,
+                publicEntryDestination: .onboardingStart
+            ),
+            .onboardingStart
+        )
+        XCTAssertEqual(
+            resolve(
+                authState: .signedOut,
+                hasLocalProfile: false,
+                isOnboardingModelReady: false,
+                publicEntryDestination: .onboardingStart
+            ),
+            .onboardingStartInitializing
+        )
+    }
 
-    func testSignedOutHasProfileRoutesToPreAuthLandingByDefault() {
+    // MARK: - Signed out, has profile
+
+    func testSignedOutHasProfileRoutesToWelcomeByDefault() {
         XCTAssertEqual(
             resolve(
                 authState: .signedOut,
@@ -64,7 +85,7 @@ final class OnboardingShellRouteResolverTests: XCTestCase {
                 isOnboardingModelReady: false,
                 signedOutWithProfilePolicy: .requireSignIn
             ),
-            .preAuthOnboardingInitializing
+            .welcome
         )
         XCTAssertEqual(
             resolve(
@@ -73,7 +94,7 @@ final class OnboardingShellRouteResolverTests: XCTestCase {
                 isOnboardingModelReady: true,
                 signedOutWithProfilePolicy: .requireSignIn
             ),
-            .preAuthOnboarding
+            .welcome
         )
     }
 
@@ -90,14 +111,14 @@ final class OnboardingShellRouteResolverTests: XCTestCase {
 
     // MARK: - Signed in, no profile
 
-    func testSignedInNoCloudProfileRoutesToMissingCloudProfileInterstitial() {
+    func testSignedInNoCloudProfileRoutesToNoExistingProfileFound() {
         XCTAssertEqual(
             resolve(
                 authState: signedInUser,
                 hasLocalProfile: false,
                 rootState: .missingCloudProfile
             ),
-            .missingCloudProfile
+            .noExistingProfileFound
         )
     }
 
@@ -200,13 +221,13 @@ final class OnboardingShellRouteResolverTests: XCTestCase {
             .launchLoading
         )
 
-        // signed out / no profile → pre-auth onboarding (v2 on)
+        // signed out / no profile → welcome
         XCTAssertEqual(
             resolve(authState: .signedOut, hasLocalProfile: false, isOnboardingModelReady: true),
-            .preAuthOnboarding
+            .welcome
         )
 
-        // signed out / has profile → pre-auth landing or local main per policy
+        // signed out / has profile → welcome or local main per policy
         XCTAssertEqual(
             resolve(
                 authState: .signedOut,
@@ -214,7 +235,7 @@ final class OnboardingShellRouteResolverTests: XCTestCase {
                 isOnboardingModelReady: true,
                 signedOutWithProfilePolicy: .requireSignIn
             ),
-            .preAuthOnboarding
+            .welcome
         )
         XCTAssertEqual(
             resolve(authState: .signedOut, hasLocalProfile: true, signedOutWithProfilePolicy: .allowLocalMain),
@@ -242,15 +263,19 @@ final class OnboardingShellRouteResolverTests: XCTestCase {
         rootState: RootViewState = .loading,
         isOnboardingModelReady: Bool = false,
         signedOutWithProfilePolicy: SignedOutWithProfilePolicy = .requireSignIn,
-        awaitingCloudSync: Bool = false
+        awaitingCloudSync: Bool = false,
+        publicEntryDestination: PublicEntryRoute = .welcome
     ) -> OnboardingShellRoute {
         OnboardingShellRouteResolver.resolve(
-            authState: authState,
-            hasLocalProfile: hasLocalProfile,
-            rootState: rootState,
-            isOnboardingModelReady: isOnboardingModelReady,
-            signedOutWithProfilePolicy: signedOutWithProfilePolicy,
-            awaitingCloudSync: awaitingCloudSync
+            OnboardingShellRouteInput(
+                authState: authState,
+                hasLocalProfile: hasLocalProfile,
+                rootState: rootState,
+                isOnboardingModelReady: isOnboardingModelReady,
+                signedOutWithProfilePolicy: signedOutWithProfilePolicy,
+                awaitingCloudSync: awaitingCloudSync,
+                publicEntryDestination: publicEntryDestination
+            )
         )
     }
 }

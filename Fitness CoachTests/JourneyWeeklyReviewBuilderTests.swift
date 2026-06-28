@@ -209,6 +209,62 @@ final class JourneyWeeklyReviewBuilderTests: XCTestCase {
         XCTAssertTrue(review.rows.first?.winScore ?? 0 >= review.rows.last?.winScore ?? 0)
     }
 
+    // MARK: - Metric day counts
+
+    func testFoodLoggedDaysCountedFromWeekLogs() {
+        let logs = (0..<4).map { makeLog(daysAgo: $0, calories: 1_800, protein: 80, waterMl: 2_500) }
+        let context = makeContext(weekLogs: logs, maturityLogs: logs)
+        let review = JourneyDashboardBuilder.weeklyReview(context: context)
+
+        XCTAssertEqual(review.foodLoggedDays, 4)
+        XCTAssertEqual(enrich(review).rows.first { $0.id == "food" }?.value, "4/7 days")
+    }
+
+    func testProteinGoalDaysCountedFromWeekLogs() {
+        let logs = (0..<3).map { makeLog(daysAgo: $0, calories: 1_800, protein: 150, waterMl: 500) }
+        let context = makeContext(weekLogs: logs, maturityLogs: logs)
+        let review = JourneyDashboardBuilder.weeklyReview(context: context)
+
+        XCTAssertEqual(review.proteinGoalDays, 3)
+    }
+
+    func testWaterGoalDaysCountedFromWeekLogs() {
+        let logs = (0..<2).map { makeLog(daysAgo: $0, calories: 1_800, protein: 80, waterMl: 2_500) }
+        let context = makeContext(weekLogs: logs, maturityLogs: logs)
+        let review = JourneyDashboardBuilder.weeklyReview(context: context)
+
+        XCTAssertEqual(review.waterGoalDays, 2)
+    }
+
+    func testCalorieAdherenceDaysCountedFromWeekLogs() {
+        let logs = (0..<5).map { makeLog(daysAgo: $0, calories: 1_800, protein: 80, waterMl: 500) }
+        let context = makeContext(weekLogs: logs, maturityLogs: logs)
+        let review = JourneyDashboardBuilder.weeklyReview(context: context)
+
+        XCTAssertEqual(review.calorieAdherenceDays, 5)
+    }
+
+    func testTrainingExpectedVersusActualDays() {
+        var profile = ProfileTestFixtures.sampleProfile
+        profile.trainingFrequencyPerWeek = 4
+        let logs = (0..<3).map { makeLog(daysAgo: $0, calories: 1_800, protein: 80) }
+        let context = makeContext(
+            weekLogs: logs,
+            profile: profile,
+            weeklyTraining: .connected(
+                workoutDays: 2,
+                averageCaloriesBurned: 250,
+                averageTrainingDurationMinutes: 35
+            )
+        )
+
+        let review = JourneyDashboardBuilder.weeklyReview(context: context)
+
+        XCTAssertEqual(review.expectedTrainingDays, 4)
+        XCTAssertEqual(review.trainingDays, 2)
+        XCTAssertEqual(enrich(review).rows.first { $0.id == "training" }?.value, "2/4")
+    }
+
     // MARK: - Dashboard integration
 
     func testDashboardWeeklyReviewUsesValidWeightDelta() {
@@ -282,8 +338,6 @@ final class JourneyWeeklyReviewBuilderTests: XCTestCase {
             weightDeltaThisWeekKg: weightDeltaThisWeekKg,
             calorieAdherenceDays: calorieAdherenceDays,
             calorieAdherenceDaysTotal: 7,
-            strongestPositiveSignal: "Food logging",
-            weakestSignal: "Water",
             weekSummaryCopy: JourneyWeeklyReviewBuilder.weekSummaryCopy(
                 foodDays: foodLoggedDays,
                 proteinDays: proteinGoalDays,
@@ -291,7 +345,6 @@ final class JourneyWeeklyReviewBuilderTests: XCTestCase {
                 goalDirection: .lose,
                 weightDelta: weightDeltaThisWeekKg
             ),
-            averageCalorieDeficit: nil,
             rows: [],
             weekOverWeekDetail: nil
         )
@@ -303,13 +356,17 @@ final class JourneyWeeklyReviewBuilderTests: XCTestCase {
 
     private func makeContext(
         weekLogs: [DailyLog],
-        allWeights: [WeightEntry]
+        maturityLogs: [DailyLog]? = nil,
+        allWeights: [WeightEntry] = [],
+        profile: UserProfile = ProfileTestFixtures.sampleProfile,
+        weeklyTraining: JourneyWeeklyTrainingStatus = .connectedEmpty
     ) -> JourneyDashboardBuilder.Context {
+        let logs = maturityLogs ?? weekLogs
         let baseline = JourneyBaselineResolver.resolve(
             JourneyBaselineResolver.Input(
-                profile: ProfileTestFixtures.sampleProfile,
+                profile: profile,
                 allWeights: allWeights,
-                maturityLogs: weekLogs,
+                maturityLogs: logs,
                 goalProjection: nil,
                 asOf: asOf,
                 calendar: calendar
@@ -317,24 +374,16 @@ final class JourneyWeeklyReviewBuilderTests: XCTestCase {
         )
 
         return JourneyDashboardBuilder.Context(
-            profile: ProfileTestFixtures.sampleProfile,
+            profile: profile,
             baseline: baseline,
-            maturityLogs: weekLogs,
+            maturityLogs: logs,
             weekLogs: weekLogs,
             previousWeekLogs: [],
             previousWeekWeights: [],
             previousWeekTrainingDays: 0,
-            monthLogs: weekLogs,
-            rangeLogs: weekLogs,
+            monthLogs: logs,
             allWeights: allWeights,
             weekWeights: allWeights,
-            rangeWeights: allWeights,
-            streakSummary: StreakSummary(
-                loggingStreak: 1,
-                proteinStreak: 1,
-                hydrationStreak: 0,
-                workoutStreak: 0
-            ),
             journeyStreaks: JourneyStreakBuilder.build(
                 JourneyStreakBuilder.Input(
                     streakSummary: StreakSummary(
@@ -343,14 +392,14 @@ final class JourneyWeeklyReviewBuilderTests: XCTestCase {
                         hydrationStreak: 0,
                         workoutStreak: 0
                     ),
-                    maturityLogs: weekLogs,
+                    maturityLogs: logs,
                     workoutDates: [],
                     isAppleHealthConnected: false,
                     asOf: asOf,
                     calendar: calendar
                 )
             ),
-            weeklyTraining: .connectedEmpty,
+            weeklyTraining: weeklyTraining,
             weightSummary: ProgressWeightSummary(
                 latestWeightKg: allWeights.last?.weightKg,
                 changeKg: JourneyLogMetrics.weightDelta(in: allWeights),
@@ -360,8 +409,6 @@ final class JourneyWeeklyReviewBuilderTests: XCTestCase {
             goalProjection: nil,
             healthWorkoutDayStarts: [],
             monthHealthWorkoutCount: 0,
-            weekHealthWorkoutCount: 0,
-            loggedDays: weekLogs.count,
             nutritionSummary: ProgressLogSummaryBuilder.nutritionSummary(from: weekLogs),
             waterSummary: ProgressLogSummaryBuilder.waterSummary(from: weekLogs),
             workoutSummary: nil,
@@ -374,7 +421,8 @@ final class JourneyWeeklyReviewBuilderTests: XCTestCase {
     private func makeLog(
         daysAgo: Int,
         calories: Int,
-        protein: Double
+        protein: Double,
+        waterMl: Int = 2_000
     ) -> DailyLog {
         let date = calendar.date(byAdding: .day, value: -daysAgo, to: asOf)!
         return DailyLog(
@@ -390,7 +438,7 @@ final class JourneyWeeklyReviewBuilderTests: XCTestCase {
                 fiber: nil,
                 sodium: nil
             ),
-            waterConsumedMl: 2_000,
+            waterConsumedMl: waterMl,
             steps: nil,
             workoutCaloriesBurned: 0,
             dailyReviewId: nil,

@@ -52,6 +52,12 @@ enum OnboardingLayout {
     static let selectionRowMinHeight: CGFloat = 48
     static let footerVerticalPadding: CGFloat = 6
     static let footerInnerSpacing: CGFloat = 6
+    static let measurementWheelHeight: CGFloat = 220
+    static let birthdayWheelHeight: CGFloat = 132
+    static let birthdaySectionSpacing: CGFloat = 10
+    static let birthdayWheelVerticalPadding: CGFloat = 2
+    static let heroRulerHeight: CGFloat = 156
+    static let heroRulerTickSpacing: CGFloat = 16
 }
 
 struct OnboardingSectionTitle: View {

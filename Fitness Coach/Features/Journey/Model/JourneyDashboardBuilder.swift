@@ -20,19 +20,14 @@ enum JourneyDashboardBuilder {
         var previousWeekWeights: [WeightEntry]
         var previousWeekTrainingDays: Int
         var monthLogs: [DailyLog]
-        var rangeLogs: [DailyLog]
         var allWeights: [WeightEntry]
         var weekWeights: [WeightEntry]
-        var rangeWeights: [WeightEntry]
-        var streakSummary: StreakSummary
         var journeyStreaks: JourneyStreakState
         var weeklyTraining: JourneyWeeklyTrainingStatus
         var weightSummary: ProgressWeightSummary
         var goalProjection: ProgressProjection?
         var healthWorkoutDayStarts: Set<Date>
         var monthHealthWorkoutCount: Int
-        var weekHealthWorkoutCount: Int
-        var loggedDays: Int
         var nutritionSummary: ProgressNutritionSummary
         var waterSummary: ProgressWaterSummary
         var workoutSummary: ProgressWorkoutSummary?
@@ -80,25 +75,6 @@ enum JourneyDashboardBuilder {
 
         let weightDelta = JourneyLogMetrics.weightDelta(in: context.weekWeights)
 
-        let deficits: [Int] = weekLogs.compactMap { log in
-            let target = log.targets.calorieTarget
-            guard target > 0 else { return nil }
-            return target - log.totals.calories
-        }
-        let avgDeficit = deficits.isEmpty
-            ? nil
-            : Int((Double(deficits.reduce(0, +)) / Double(deficits.count)).rounded())
-
-        let signals = weeklyHabitSignals(
-            foodDays: foodDays,
-            proteinDays: proteinDays,
-            waterDays: waterDays,
-            calorieDays: calorieDays,
-            trainingDays: trainingDays,
-            expectedTraining: expectedTraining,
-            previousWeekLogs: previousWeekLogs
-        )
-
         let weekSummaryCopy = JourneyWeeklyReviewBuilder.weekSummaryCopy(
             foodDays: foodDays,
             proteinDays: proteinDays,
@@ -126,10 +102,7 @@ enum JourneyDashboardBuilder {
             weightDeltaThisWeekKg: weightDelta,
             calorieAdherenceDays: calorieDays,
             calorieAdherenceDaysTotal: max(calorieEligible.count, total),
-            strongestPositiveSignal: signals.strongest,
-            weakestSignal: signals.weakest,
             weekSummaryCopy: weekSummaryCopy,
-            averageCalorieDeficit: avgDeficit,
             rows: [],
             weekOverWeekDetail: nil
         )
@@ -266,41 +239,16 @@ enum JourneyDashboardBuilder {
     // MARK: - Journey level
 
     static func journeyLevel(context: Context) -> JourneyLevelState {
-        let logs = context.maturityLogs
-        let foodDays = JourneyLogMetrics.foodLoggedDays(in: logs)
-        let proteinDays = JourneyLogMetrics.proteinGoalDays(in: logs)
-        let waterDays = JourneyLogMetrics.waterGoalDays(in: logs)
-        let workoutDays = context.healthWorkoutDayStarts.count
         let unlockedMilestones = milestones(context: context).unlocked.count
-
-        var xp = 0
-        xp += foodDays * 10
-        xp += proteinDays * 8
-        xp += waterDays * 5
-        xp += workoutDays * 15
-        xp += unlockedMilestones * 40
-        xp += min(context.streakSummary.loggingStreak, 30) * 3
-
-        let levelThresholds = [0, 100, 250, 500, 900, 1_400, 2_000]
-        let currentLevel = levelThresholds.lastIndex(where: { xp >= $0 }) ?? 0
-        let levelNumber = currentLevel + 1
-        let currentThreshold = levelThresholds[currentLevel]
-        let nextThreshold = currentLevel + 1 < levelThresholds.count
-            ? levelThresholds[currentLevel + 1]
-            : currentThreshold + 500
-        let span = max(nextThreshold - currentThreshold, 1)
-        let progress = Double(xp - currentThreshold) / Double(span)
-
-        let title = levelTitle(for: levelNumber)
-        let explanation = "XP comes from logged meals, protein and water targets, workouts, milestones, and streaks."
-
-        return JourneyLevelState(
-            currentLevel: levelNumber,
-            levelTitle: title,
-            currentXP: xp,
-            xpRequiredForNextLevel: nextThreshold,
-            progressPercent: min(max(progress * 100, 0), 100),
-            xpEarnedExplanation: explanation
+        return JourneyLevelBuilder.build(
+            JourneyLevelBuilder.Input(
+                maturityLogs: context.maturityLogs,
+                allWeights: context.allWeights,
+                healthWorkoutDayStarts: context.healthWorkoutDayStarts,
+                isAppleHealthConnected: context.weeklyTraining.isConnected,
+                unlockedMilestoneCount: unlockedMilestones,
+                calendar: context.calendar
+            )
         )
     }
 
@@ -327,151 +275,54 @@ enum JourneyDashboardBuilder {
             isCollapsedByDefault: true,
             nutritionSummary: context.nutritionSummary,
             waterSummary: context.waterSummary,
-            workoutSummary: context.workoutSummary,
+            trainingDisplay: trainingAnalyticsDisplay(
+                weeklyTraining: context.weeklyTraining,
+                workoutSummary: context.workoutSummary
+            ),
             weightChartPoints: chartPoints,
             weightTrendInterpretation: weightInterpretation,
-            showsWeightChart: context.baseline.showsWeightChart && !chartPoints.isEmpty
+            showsWeightChart: context.baseline.showsWeightChart && !chartPoints.isEmpty,
+            weightLogCTA: context.baseline.showsWeightChart && !chartPoints.isEmpty
+                ? nil
+                : .logWeight
         )
     }
 
-    // MARK: - Consistency calendar
-
-    static func consistencyCalendar(
-        logs: [DailyLog],
-        healthWorkoutDayStarts: Set<Date>,
-        weights: [WeightEntry],
-        month: Date,
-        calendar: Calendar
-    ) -> JourneyConsistencyCalendar {
-        guard let monthInterval = calendar.dateInterval(of: .month, for: month),
-              let dayRange = calendar.range(of: .day, in: .month, for: month) else {
-            return JourneyConsistencyCalendar(
-                monthTitle: month.formatted(.dateTime.month(.wide).year()),
-                weekdaySymbols: calendar.shortWeekdaySymbols,
-                days: [],
-                completedCount: 0,
-                totalLoggedDays: 0
-            )
-        }
-
-        let completedDays = JourneyLogMetrics.completedDaySet(
-            logs: logs,
-            healthWorkoutDayStarts: healthWorkoutDayStarts,
-            weights: weights,
-            calendar: calendar
-        )
-        let totalLoggedDays = completedDays.count
-
-        let firstWeekday = calendar.component(.weekday, from: monthInterval.start)
-        let leadingBlanks = (firstWeekday - calendar.firstWeekday + 7) % 7
-
-        var days: [JourneyCalendarDay] = []
-        for _ in 0..<leadingBlanks {
-            days.append(JourneyCalendarDay(id: UUID().uuidString, dayNumber: nil, isCompleted: false))
-        }
-
-        var monthCompleted = 0
-        for day in dayRange {
-            guard let date = calendar.date(byAdding: .day, value: day - 1, to: monthInterval.start) else {
-                continue
+    static func trainingAnalyticsDisplay(
+        weeklyTraining: JourneyWeeklyTrainingStatus,
+        workoutSummary: ProgressWorkoutSummary?
+    ) -> JourneyDetailedAnalyticsTrainingDisplay {
+        switch weeklyTraining {
+        case .hidden, .locked:
+            return .hidden
+        case .connectedEmpty:
+            return .connectedEmpty
+        case .connected:
+            if let workoutSummary, workoutSummary.isFromAppleHealth {
+                return .metrics(workoutSummary)
             }
-            let dayStart = calendar.startOfDay(for: date)
-            let isCompleted = completedDays.contains(dayStart)
-            if isCompleted { monthCompleted += 1 }
-            days.append(JourneyCalendarDay(
-                id: "d-\(day)",
-                dayNumber: day,
-                isCompleted: isCompleted
-            ))
-        }
-
-        return JourneyConsistencyCalendar(
-            monthTitle: month.formatted(.dateTime.month(.wide).year()),
-            weekdaySymbols: calendar.shortWeekdaySymbols,
-            days: days,
-            completedCount: monthCompleted,
-            totalLoggedDays: totalLoggedDays
-        )
-    }
-
-    // MARK: - Private helpers
-
-    private static func weeklyHabitSignals(
-        foodDays: Int,
-        proteinDays: Int,
-        waterDays: Int,
-        calorieDays: Int,
-        trainingDays: Int,
-        expectedTraining: Int,
-        previousWeekLogs: [DailyLog]
-    ) -> (strongest: String, weakest: String) {
-        let prevProtein = JourneyLogMetrics.proteinGoalDays(in: previousWeekLogs)
-        let scores: [(String, Int)] = [
-            ("Food logging", foodDays),
-            ("Protein", proteinDays),
-            ("Water", waterDays),
-            ("Calorie balance", calorieDays),
-            ("Training", trainingDays)
-        ]
-        let strongest = scores.max(by: { $0.1 < $1.1 })?.0 ?? "Showing up"
-        let weakest = scores.min(by: { $0.1 < $1.1 })?.0 ?? "Consistency"
-
-        if proteinDays > prevProtein {
-            return ("Protein improved vs last week", weakest == "Protein" ? "Water" : weakest)
-        }
-        return (strongest, weakest)
-    }
-
-    private static func movedTowardGoal(
-        start: Double,
-        current: Double,
-        direction: JourneyGoalDirection
-    ) -> Bool {
-        weightDeltaMovedTowardGoal(current - start, direction: direction)
-    }
-
-    private static func weightDeltaMovedTowardGoal(
-        _ delta: Double,
-        direction: JourneyGoalDirection
-    ) -> Bool {
-        switch direction {
-        case .lose:
-            return delta < -0.05
-        case .gain:
-            return delta > 0.05
-        case .maintain:
-            return abs(delta) < 0.5
-        }
-    }
-
-    private static func levelTitle(for level: Int) -> String {
-        switch level {
-        case 1: return "Getting started"
-        case 2: return "Building rhythm"
-        case 3: return "Finding momentum"
-        case 4: return "Consistent athlete"
-        case 5: return "Dedicated journeyman"
-        default: return "Seasoned storyteller"
+            return .hidden
         }
     }
 
     static func weightTrendInterpretation(summary: ProgressWeightSummary) -> String {
+        let copy = FormaProductCopy.Journey.DetailedAnalytics.WeightTrend.self
         if summary.hasSuddenSpike {
             if let change = summary.changeKg, change > 0 {
-                return "A recent bump is likely water retention — your longer trend matters more."
+                return copy.spikeUp
             }
-            return "Daily weight jumped — often water or sodium. Keep logging and watch the weekly shape."
+            return copy.spikeGeneral
         }
 
         switch summary.direction {
         case .decreasing:
-            return "The trend is moving toward your goal. Stay patient through normal daily fluctuations."
+            return copy.decreasing
         case .increasing:
-            return "Weight has drifted up recently. Review intake and recovery if that wasn't the plan."
+            return copy.increasing
         case .stable:
-            return "Weight is holding steady — recomposition and maintenance both show up here first."
+            return copy.stable
         case .insufficientData:
-            return FormaProductCopy.Journey.weightTrendEmpty
+            return copy.insufficientData
         }
     }
 }

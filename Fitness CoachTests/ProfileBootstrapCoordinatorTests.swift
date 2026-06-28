@@ -11,39 +11,16 @@ import XCTest
 @MainActor
 final class ProfileBootstrapCoordinatorTests: XCTestCase {
 
-    private struct Harness {
-        let container: AppContainer
-        let cloudStore: MockCloudUserProfileStore
-        let syncStore: ProfileCloudSyncStore
-        let bootstrapService: ProfileBootstrapService
-        let coordinator: ProfileBootstrapCoordinatorService
-    }
+    private typealias Harness = ProfileBootstrapTestSupport.Harness
 
     private func makeHarness() throws -> Harness {
-        let cloudStore = MockCloudUserProfileStore()
-        let container = try AppContainer(inMemory: true)
-        let syncStore = ProfileCloudSyncStore(userDefaults: container.onboardingUserDefaults)
-        let bootstrapService = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
-            cloudStore: cloudStore,
-            cloudSyncStore: syncStore
-        )
-        let coordinator = ProfileBootstrapCoordinatorService(
-            profileBootstrapService: bootstrapService,
-            cloudSyncStore: syncStore
-        )
-        return Harness(
-            container: container,
-            cloudStore: cloudStore,
-            syncStore: syncStore,
-            bootstrapService: bootstrapService,
-            coordinator: coordinator
-        )
+        try ProfileBootstrapTestSupport.makeHarness()
     }
 
     private func reconcileInput(
         uid: String = "signed-in-user",
         pendingOnboardingCompletion: Bool = false,
+        pendingExistingUserSignIn: Bool = false,
         hasLocalProfile: Bool = true,
         localOwnerUID: String? = nil,
         isFreshSignIn: Bool = false,
@@ -54,6 +31,7 @@ final class ProfileBootstrapCoordinatorTests: XCTestCase {
         SignedInProfileReconcileInput(
             uid: uid,
             pendingOnboardingCompletion: pendingOnboardingCompletion,
+            pendingExistingUserSignIn: pendingExistingUserSignIn,
             hasLocalProfile: hasLocalProfile,
             localOwnerUID: localOwnerUID,
             isFreshSignIn: isFreshSignIn,
@@ -222,23 +200,23 @@ final class ProfileBootstrapCoordinatorTests: XCTestCase {
 
     func testOnboardingCompletionUploadsProfileAndMarksSynced() async throws {
         let harness = try makeHarness()
-        _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
 
-        let outcome = await harness.coordinator.resolveOnboardingCompletion(uid: "device-a-user")
+        let outcome = await harness.makeCoordinator().resolveOnboardingCompletion(uid: "device-a-user")
 
         XCTAssertEqual(outcome, .uploadedToCloud)
         XCTAssertEqual(harness.cloudStore.saveCallCount, 1)
         XCTAssertEqual(harness.cloudStore.lastSavedUID, "device-a-user")
-        XCTAssertEqual(try harness.container.userProfileService.getCurrentProfile()?.ownerUID, "device-a-user")
+        XCTAssertEqual(try harness.profileService.getCurrentProfile()?.ownerUID, "device-a-user")
         XCTAssertTrue(harness.syncStore.isSyncedForUID("device-a-user"))
     }
 
     func testOnboardingCompletionCloudFoundReturnsConflict() async throws {
         let harness = try makeHarness()
         harness.cloudStore.storedDocument = ProfileTestFixtures.cloudDocument()
-        _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
 
-        let outcome = await harness.coordinator.resolveOnboardingCompletion(uid: "device-a-user")
+        let outcome = await harness.makeCoordinator().resolveOnboardingCompletion(uid: "device-a-user")
 
         guard case .cloudProfileConflict = outcome else {
             return XCTFail("Expected cloud profile conflict")
@@ -249,9 +227,9 @@ final class ProfileBootstrapCoordinatorTests: XCTestCase {
     func testOnboardingCompletionCloudFailureDoesNotUpload() async throws {
         let harness = try makeHarness()
         harness.cloudStore.fetchError = NSError(domain: "test", code: 1)
-        _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
 
-        let outcome = await harness.coordinator.resolveOnboardingCompletion(uid: "device-a-user")
+        let outcome = await harness.makeCoordinator().resolveOnboardingCompletion(uid: "device-a-user")
 
         XCTAssertEqual(outcome, .cloudCheckFailed)
         XCTAssertEqual(harness.cloudStore.saveCallCount, 0)
@@ -271,9 +249,9 @@ final class ProfileBootstrapCoordinatorTests: XCTestCase {
         XCTAssertEqual(bootstrapResult, .main)
         XCTAssertEqual(rootState, .main)
         XCTAssertEqual(shellRoute, .main)
-        XCTAssertNotNil(try harness.container.userProfileService.getCurrentProfile())
+        XCTAssertNotNil(try harness.profileService.getCurrentProfile())
         XCTAssertEqual(
-            try harness.container.userProfileService.getCurrentProfile()?.ownerUID,
+            try harness.profileService.getCurrentProfile()?.ownerUID,
             "device-b-user"
         )
         XCTAssertTrue(harness.syncStore.isSyncedForUID("device-b-user"))
@@ -311,40 +289,40 @@ final class ProfileBootstrapCoordinatorTests: XCTestCase {
 
         XCTAssertEqual(loadingRoute, .signedInProfileLoading)
         XCTAssertEqual(bootstrapResult, .missingCloudProfile)
-        XCTAssertEqual(resolvedRoute, .missingCloudProfile)
+        XCTAssertEqual(resolvedRoute, .noExistingProfileFound)
         XCTAssertNotEqual(resolvedRoute, .onboarding)
     }
 
     func testLocalProfileRetainedAfterFailedCloudSync() async throws {
         let harness = try makeHarness()
-        _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
         harness.cloudStore.saveError = NSError(domain: "test", code: 1)
 
-        let outcome = await harness.coordinator.resolveOnboardingCompletion(uid: "user-1")
+        let outcome = await harness.makeCoordinator().resolveOnboardingCompletion(uid: "user-1")
 
         XCTAssertEqual(outcome, .cloudSyncFailed)
         XCTAssertFalse(harness.syncStore.isSyncedForUID("user-1"))
-        XCTAssertNotNil(try harness.container.userProfileService.getCurrentProfile())
+        XCTAssertNotNil(try harness.profileService.getCurrentProfile())
     }
 
     func testPreAuthLocalProfileSyncMarksUID() async throws {
         let harness = try makeHarness()
-        _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
 
-        try await harness.coordinator.syncLocalProfileToCloud(uid: "linked-user")
+        try await harness.makeCoordinator().syncLocalProfileToCloud(uid: "linked-user")
 
         XCTAssertEqual(harness.cloudStore.saveCallCount, 1)
-        XCTAssertEqual(try harness.container.userProfileService.getCurrentProfile()?.ownerUID, "linked-user")
+        XCTAssertEqual(try harness.profileService.getCurrentProfile()?.ownerUID, "linked-user")
         XCTAssertTrue(harness.syncStore.isSyncedForUID("linked-user"))
     }
 
     func testCloudSaveFailureDoesNotMarkSynced() async throws {
         let harness = try makeHarness()
-        _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
         harness.cloudStore.saveError = NSError(domain: "test", code: 1)
 
         do {
-            try await harness.coordinator.syncOnboardingProfileToCloud(uid: "user-1")
+            try await harness.makeCoordinator().syncOnboardingProfileToCloud(uid: "user-1")
             XCTFail("Expected sync to throw")
         } catch {
             XCTAssertFalse(harness.syncStore.isSyncedForUID("user-1"))
@@ -365,7 +343,7 @@ final class ProfileBootstrapCoordinatorTests: XCTestCase {
 
     func testOwnedLocalProfileSkipsCloudFetchInBootstrapResolve() async throws {
         let harness = try makeHarness()
-        _ = try harness.container.userProfileService.createProfile(
+        _ = try harness.profileService.createProfile(
             ProfileTestFixtures.sampleDraft,
             ownerUID: "offline-local-user"
         )
@@ -379,7 +357,7 @@ final class ProfileBootstrapCoordinatorTests: XCTestCase {
 
     func testUnownedLocalProfileDoesNotSkipCloudFetchInBootstrapResolve() async throws {
         let harness = try makeHarness()
-        _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
 
         do {
             _ = try await harness.bootstrapService.resolve(uid: "signed-in-user")

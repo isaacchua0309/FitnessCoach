@@ -17,7 +17,7 @@ enum JourneyMilestonesBuilder {
         var calendar: Calendar
     }
 
-    private struct Definition: Equatable {
+    private struct Definition {
         var id: String
         var category: JourneyMilestoneCategory
         var title: (JourneyGoalDirection) -> String
@@ -77,16 +77,12 @@ enum JourneyMilestonesBuilder {
         let upcoming = items.filter { $0.status != .completed }
         let next = items.first { $0.status == .current }
         let nextProgress = next?.progressFraction
-        let progressPercent = items.isEmpty
-            ? 0
-            : (Double(unlocked.count) / Double(items.count)) * 100
 
         return JourneyMilestonesState(
             unlocked: unlocked,
             upcoming: upcoming,
             next: next,
             nextProgressFraction: nextProgress,
-            progressPercent: progressPercent,
             items: items
         )
     }
@@ -94,11 +90,12 @@ enum JourneyMilestonesBuilder {
     // MARK: - Definitions
 
     private static func milestoneDefinitions(for metrics: Metrics) -> [Definition] {
+        let copy = FormaProductCopy.Journey.Milestones.self
         var definitions: [Definition] = [
             Definition(
                 id: "first-meal",
                 category: .foodLogging,
-                title: { _ in "Logged first meal" },
+                title: { _ in copy.loggedFirstMeal },
                 isUnlocked: { $0.foodLogDays >= 1 },
                 progress: { min(1, Double($0.foodLogDays)) },
                 isApplicable: { _ in true }
@@ -106,11 +103,7 @@ enum JourneyMilestonesBuilder {
             Definition(
                 id: "first-week",
                 category: .onboarding,
-                title: { direction in
-                    direction == .maintain
-                        ? "Stayed consistent for first week"
-                        : "First week complete"
-                },
+                title: { copy.firstWeekTitle(direction: $0) },
                 isUnlocked: { $0.foodLogDays >= 7 },
                 progress: { min(1, Double($0.foodLogDays) / 7) },
                 isApplicable: { _ in true }
@@ -118,13 +111,7 @@ enum JourneyMilestonesBuilder {
             Definition(
                 id: "first-kg",
                 category: .weightProgress,
-                title: { direction in
-                    switch direction {
-                    case .lose: return "Lost first kilogram"
-                    case .gain: return "Gained first kilogram"
-                    case .maintain: return "Stayed consistent for first week"
-                    }
-                },
+                title: { copy.firstKilogramTitle(direction: $0) },
                 isUnlocked: { metrics in
                     switch metrics.goalDirection {
                     case .lose, .gain:
@@ -146,7 +133,7 @@ enum JourneyMilestonesBuilder {
             Definition(
                 id: "protein-five",
                 category: .proteinConsistency,
-                title: { _ in "Hit protein target 5 days" },
+                title: { _ in copy.proteinFiveDays },
                 isUnlocked: { $0.proteinGoalDays >= 5 },
                 progress: { min(1, Double($0.proteinGoalDays) / 5) },
                 isApplicable: { _ in true }
@@ -154,7 +141,7 @@ enum JourneyMilestonesBuilder {
             Definition(
                 id: "water-five",
                 category: .waterConsistency,
-                title: { _ in "Hit water target 5 days" },
+                title: { _ in copy.waterFiveDays },
                 isUnlocked: { $0.waterGoalDays >= 5 },
                 progress: { min(1, Double($0.waterGoalDays) / 5) },
                 isApplicable: { _ in true }
@@ -162,7 +149,7 @@ enum JourneyMilestonesBuilder {
             Definition(
                 id: "first-workout",
                 category: .trainingConsistency,
-                title: { _ in "Logged first workout" },
+                title: { _ in copy.loggedFirstWorkout },
                 isUnlocked: { $0.trainingWorkoutDays >= 1 },
                 progress: { min(1, Double($0.trainingWorkoutDays)) },
                 isApplicable: { _ in true }
@@ -170,7 +157,7 @@ enum JourneyMilestonesBuilder {
             Definition(
                 id: "logging-streak-seven",
                 category: .streaks,
-                title: { _ in "7-day logging streak" },
+                title: { _ in copy.loggingStreakSeven },
                 isUnlocked: { max($0.currentLoggingStreak, $0.longestLoggingStreak) >= 7 },
                 progress: { min(1, Double(max($0.currentLoggingStreak, $0.longestLoggingStreak)) / 7) },
                 isApplicable: { _ in true }
@@ -178,7 +165,7 @@ enum JourneyMilestonesBuilder {
             Definition(
                 id: "thirty-meals",
                 category: .foodLogging,
-                title: { _ in "Logged 30 meals" },
+                title: { _ in copy.loggedThirtyMeals },
                 isUnlocked: { $0.foodLogDays >= 30 },
                 progress: { min(1, Double($0.foodLogDays) / 30) },
                 isApplicable: { _ in true }
@@ -186,7 +173,7 @@ enum JourneyMilestonesBuilder {
             Definition(
                 id: "halfway",
                 category: .weightProgress,
-                title: { _ in "Halfway to goal" },
+                title: { _ in copy.halfwayToGoal },
                 isUnlocked: { $0.goalProgressPercent >= 50 },
                 progress: { min(1, $0.goalProgressPercent / 100) },
                 isApplicable: { $0.goalDirection != .maintain && $0.weightSpanKg > 0.1 }
@@ -194,7 +181,7 @@ enum JourneyMilestonesBuilder {
             Definition(
                 id: "hundred-meals",
                 category: .foodLogging,
-                title: { _ in "Logged 100 meals" },
+                title: { _ in copy.loggedHundredMeals },
                 isUnlocked: { $0.foodLogDays >= 100 },
                 progress: { min(1, Double($0.foodLogDays) / 100) },
                 isApplicable: { _ in true }
@@ -202,13 +189,7 @@ enum JourneyMilestonesBuilder {
             Definition(
                 id: "ten-kg",
                 category: .weightProgress,
-                title: { direction in
-                    switch direction {
-                    case .lose: return "10 kg lost"
-                    case .gain: return "10 kg gained"
-                    case .maintain: return "10 kg tracked"
-                    }
-                },
+                title: { copy.tenKilogramTitle(direction: $0) },
                 isUnlocked: { $0.weightChangeTowardGoalKg >= 10 },
                 progress: { min(1, $0.weightChangeTowardGoalKg / 10) },
                 isApplicable: { $0.goalDirection != .maintain && $0.weightSpanKg >= 10 }

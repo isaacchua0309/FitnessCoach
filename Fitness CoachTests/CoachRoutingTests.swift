@@ -309,8 +309,8 @@ final class CoachRoutingTests: XCTestCase {
     // MARK: - Integration
 
     func testLocalRegressionMessagesSaveToInMemoryStore() async throws {
-        let container = try AppContainer(inMemory: true)
-        try seedProfile(in: container)
+        let harness = try CoachRoutingIntegrationTestSupport.makeHarness()
+        try CoachRoutingIntegrationTestSupport.seedCoachProfile(in: harness)
         let chickenDraft = FoodDraft(
             mealType: nil,
             name: "Chicken breast",
@@ -335,29 +335,22 @@ final class CoachRoutingTests: XCTestCase {
                 requiresConfirmation: false
             )
         )
-        let model = CoachModel(
-            actionCenter: container.actionCenter,
-            dailyLogService: container.dailyLogService,
-            workoutLogService: container.workoutLogService,
-            aiService: service,
-            userProfileService: container.userProfileService,
-            aiCommandParsingEnabled: true
-        )
+        let model = harness.makeCoach(aiService: service)
 
         await model.send("log 500g chicken breast")
         await model.confirmPendingFromBar()
-        XCTAssertEqual(try container.actionCenter.getFoodEntries(for: Date()).count, 1)
+        XCTAssertEqual(try harness.actionCenter.getFoodEntries(for: harness.today).count, 1)
 
         await model.send("add 600ml water")
-        XCTAssertEqual(try container.dailyLogService.getTodayLog().waterConsumedMl, 600)
+        XCTAssertEqual(try harness.dailyLogService.getTodayLog().waterConsumedMl, 600)
 
         await model.send("weight 89.2kg")
-        XCTAssertEqual(try container.dailyLogService.getTodayLog().weightKg, 89.2)
+        XCTAssertEqual(try harness.dailyLogService.getTodayLog().weightKg, 89.2)
     }
 
     func testLogFoodWithoutNutritionCallsEstimateFood() async throws {
-        let container = try AppContainer(inMemory: true)
-        try seedProfile(in: container)
+        let harness = try CoachRoutingIntegrationTestSupport.makeHarness()
+        try CoachRoutingIntegrationTestSupport.seedCoachProfile(in: harness)
 
         let classifierDraft = FoodDraft(
             mealType: nil,
@@ -399,14 +392,7 @@ final class CoachRoutingTests: XCTestCase {
                 requiresConfirmation: true
             )
         )
-        let model = CoachModel(
-            actionCenter: container.actionCenter,
-            dailyLogService: container.dailyLogService,
-            workoutLogService: container.workoutLogService,
-            aiService: service,
-            userProfileService: container.userProfileService,
-            aiCommandParsingEnabled: true
-        )
+        let model = harness.makeCoach(aiService: service)
 
         await model.send("Log a full upsize mcspicy meal with fries and Coke Zero")
 
@@ -421,10 +407,10 @@ final class CoachRoutingTests: XCTestCase {
     }
 
     func testWorkoutLogRedirectsWithoutConfirmationBar() async throws {
-        let container = try AppContainer(inMemory: true)
-        try seedProfile(in: container)
-        container.healthTrainingService.resetStubFlags()
-        await container.trainingInsightsStore.refresh()
+        let harness = try CoachRoutingIntegrationTestSupport.makeHarness()
+        try CoachRoutingIntegrationTestSupport.seedCoachProfile(in: harness)
+        harness.healthTrainingService.resetStubFlags()
+        await harness.trainingInsightsStore.refresh()
 
         let service = StubClassifierAIService(
             classifyResult: stubIntent(.logWorkout),
@@ -442,15 +428,7 @@ final class CoachRoutingTests: XCTestCase {
                 confidence: .medium
             )
         )
-        let model = CoachModel(
-            actionCenter: container.actionCenter,
-            dailyLogService: container.dailyLogService,
-            workoutLogService: container.workoutLogService,
-            aiService: service,
-            userProfileService: container.userProfileService,
-            aiCommandParsingEnabled: true,
-            trainingInsightsStore: container.trainingInsightsStore
-        )
+        let model = harness.makeCoach(aiService: service, includeTrainingInsights: true)
 
         await model.send("30 min run")
 
@@ -461,25 +439,17 @@ final class CoachRoutingTests: XCTestCase {
             model.messages.last?.text,
             TrainingIntegrationCopy.coachWorkoutLogNotConnected
         )
-        XCTAssertEqual(try container.workoutLogService.getWorkouts(for: Date()).count, 0)
+        XCTAssertEqual(try harness.workoutLogService.getWorkouts(for: harness.today).count, 0)
     }
 
     func testWorkoutLogConnectedCopyWhenAppleHealthLinked() async throws {
-        let container = try AppContainer(inMemory: true)
-        try seedProfile(in: container)
-        container.healthTrainingService.setStubConnected(true)
-        await container.trainingInsightsStore.refresh()
+        let harness = try CoachRoutingIntegrationTestSupport.makeHarness()
+        try CoachRoutingIntegrationTestSupport.seedCoachProfile(in: harness)
+        harness.healthTrainingService.setStubConnected(true)
+        await harness.trainingInsightsStore.refresh()
 
         let service = StubClassifierAIService(classifyResult: stubIntent(.logWorkout))
-        let model = CoachModel(
-            actionCenter: container.actionCenter,
-            dailyLogService: container.dailyLogService,
-            workoutLogService: container.workoutLogService,
-            aiService: service,
-            userProfileService: container.userProfileService,
-            aiCommandParsingEnabled: true,
-            trainingInsightsStore: container.trainingInsightsStore
-        )
+        let model = harness.makeCoach(aiService: service, includeTrainingInsights: true)
 
         await model.send("30 min run")
 
@@ -491,17 +461,12 @@ final class CoachRoutingTests: XCTestCase {
     }
 
     func testUndoWorkoutDoesNotDeleteRecords() async throws {
-        let container = try AppContainer(inMemory: true)
-        try seedProfile(in: container)
+        let harness = try CoachRoutingIntegrationTestSupport.makeHarness()
+        try CoachRoutingIntegrationTestSupport.seedCoachProfile(in: harness)
 
-        let model = CoachModel(
-            actionCenter: container.actionCenter,
-            dailyLogService: container.dailyLogService,
-            workoutLogService: container.workoutLogService,
+        let model = harness.makeCoach(
             aiService: StubClassifierAIService(classifyResult: stubIntent(.logFood)),
-            userProfileService: container.userProfileService,
-            aiCommandParsingEnabled: true,
-            trainingInsightsStore: container.trainingInsightsStore
+            includeTrainingInsights: true
         )
 
         await model.send("undo workout")
@@ -513,8 +478,8 @@ final class CoachRoutingTests: XCTestCase {
     }
 
     func testFoodEditUpdatesPendingDraftBeforeLogging() async throws {
-        let container = try AppContainer(inMemory: true)
-        try seedProfile(in: container)
+        let harness = try CoachRoutingIntegrationTestSupport.makeHarness()
+        try CoachRoutingIntegrationTestSupport.seedCoachProfile(in: harness)
 
         let estimatedDraft = FoodDraft(
             mealType: nil,
@@ -540,14 +505,7 @@ final class CoachRoutingTests: XCTestCase {
                 requiresConfirmation: true
             )
         )
-        let model = CoachModel(
-            actionCenter: container.actionCenter,
-            dailyLogService: container.dailyLogService,
-            workoutLogService: container.workoutLogService,
-            aiService: service,
-            userProfileService: container.userProfileService,
-            aiCommandParsingEnabled: true
-        )
+        let model = harness.makeCoach(aiService: service)
 
         await model.send("log chicken rice")
 
@@ -562,25 +520,18 @@ final class CoachRoutingTests: XCTestCase {
         }
 
         await model.confirmPendingFromBar()
-        let entry = try container.actionCenter.getFoodEntries(for: Date()).first
+        let entry = try harness.actionCenter.getFoodEntries(for: harness.today).first
         XCTAssertEqual(entry?.calories, 700)
     }
 
     func testAIFailureShowsGracefulMessage() async throws {
-        let container = try AppContainer(inMemory: true)
-        try seedProfile(in: container)
+        let harness = try CoachRoutingIntegrationTestSupport.makeHarness()
+        try CoachRoutingIntegrationTestSupport.seedCoachProfile(in: harness)
         let service = StubClassifierAIService(
             classifyResult: stubIntent(.mealDecision),
             mealAdviceError: AIServiceError.backendUnavailable
         )
-        let model = CoachModel(
-            actionCenter: container.actionCenter,
-            dailyLogService: container.dailyLogService,
-            workoutLogService: container.workoutLogService,
-            aiService: service,
-            userProfileService: container.userProfileService,
-            aiCommandParsingEnabled: true
-        )
+        let model = harness.makeCoach(aiService: service)
 
         await model.send("should I eat a kebab tonight?")
         XCTAssertEqual(
@@ -593,20 +544,13 @@ final class CoachRoutingTests: XCTestCase {
     }
 
     func testAuthenticationFailureSetsInlineRetryStateNotChatBubble() async throws {
-        let container = try AppContainer(inMemory: true)
-        try seedProfile(in: container)
+        let harness = try CoachRoutingIntegrationTestSupport.makeHarness()
+        try CoachRoutingIntegrationTestSupport.seedCoachProfile(in: harness)
         let service = StubClassifierAIService(
             classifyResult: stubIntent(.mealDecision),
             mealAdviceError: AIServiceError.authenticationFailed
         )
-        let model = CoachModel(
-            actionCenter: container.actionCenter,
-            dailyLogService: container.dailyLogService,
-            workoutLogService: container.workoutLogService,
-            aiService: service,
-            userProfileService: container.userProfileService,
-            aiCommandParsingEnabled: true
-        )
+        let model = harness.makeCoach(aiService: service)
 
         await model.send("should I eat a kebab tonight?")
 
@@ -693,35 +637,6 @@ final class CoachRoutingTests: XCTestCase {
             requiresEscalation: requiresEscalation,
             action: action
         )
-    }
-
-    private func seedProfile(in container: AppContainer) throws {
-        let targets = UserTargets(
-            calorieTarget: 2_100,
-            proteinTarget: 160,
-            carbTarget: 220,
-            fatTarget: 65,
-            waterTargetMl: 2_500,
-            expectedWeeklyWeightLossKg: 0.4,
-            aggressiveness: .moderate
-        )
-        let draft = UserProfileDraft(
-            name: "Test",
-            age: 30,
-            sex: .male,
-            heightCm: 178,
-            currentWeightKg: 90,
-            goalWeightKg: 82,
-            estimatedBodyFatPercentage: nil,
-            activityLevel: .moderatelyActive,
-            trainingFrequencyPerWeek: 4,
-            averageSteps: 7_000,
-            dietPreference: nil,
-            unitSystem: .metric,
-            targets: targets
-        )
-        _ = try container.userProfileService.createProfile(draft)
-        _ = try container.dailyLogService.ensureTodayLog()
     }
 }
 

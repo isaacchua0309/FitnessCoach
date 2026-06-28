@@ -65,6 +65,7 @@ final class ProfilePlanConflictFlowTests: XCTestCase {
             SignedInProfileReconcileInput(
                 uid: "signed-in-user",
                 pendingOnboardingCompletion: false,
+                pendingExistingUserSignIn: false,
                 hasLocalProfile: true,
                 localOwnerUID: nil,
                 isFreshSignIn: true,
@@ -82,6 +83,7 @@ final class ProfilePlanConflictFlowTests: XCTestCase {
             SignedInProfileReconcileInput(
                 uid: "signed-in-user",
                 pendingOnboardingCompletion: false,
+                pendingExistingUserSignIn: false,
                 hasLocalProfile: true,
                 localOwnerUID: "other-user",
                 isFreshSignIn: true,

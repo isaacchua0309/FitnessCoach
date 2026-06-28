@@ -39,6 +39,28 @@ final class OnboardingCopyGuardrailTests: XCTestCase {
         XCTAssertEqual(OnboardingStep.flow.first, .introProof)
     }
 
+    func testOnboardingCopyAvoidsRemovedManualCollectionLanguage() {
+        let samples = onboardingCopySamples()
+        let forbidden = [
+            "dynamic calor",
+            "body fat",
+            "enter your age",
+            "gym session",
+            "log your steps",
+            "training rhythm"
+        ]
+
+        for sample in samples {
+            let lowered = sample.lowercased()
+            for term in forbidden {
+                XCTAssertFalse(
+                    lowered.contains(term),
+                    "Unexpected removed-flow term \"\(term)\" in: \(sample)"
+                )
+            }
+        }
+    }
+
     // MARK: - Helpers
 
     private func onboardingCopySamples() -> [String] {
@@ -47,15 +69,49 @@ final class OnboardingCopyGuardrailTests: XCTestCase {
         return [
             flow.IntroProof.title,
             flow.IntroProof.subtitle,
-            flow.IntroProof.caption,
+            flow.IntroProof.takeaway,
             flow.HeightWeight.subtitle,
             flow.HeightWeight.helper,
             flow.TargetWeight.subtitle,
+            flow.TargetEncouragement.title,
             flow.TargetEncouragement.subtitle,
+            flow.TargetEncouragement.reassuranceTitle,
+            flow.TargetEncouragement.reassuranceBody,
+            flow.TargetEncouragement.fallbackHero,
+            flow.TargetEncouragement.maintainHero,
+            flow.TargetEncouragement.benefits.map(\.title).joined(separator: " "),
+            flow.TargetEncouragement.benefits.map(\.subtitle).joined(separator: " "),
+            flow.Birthday.title,
             flow.Birthday.subtitle,
+            flow.Birthday.birthdayLabel,
+            flow.Birthday.sexExplanation,
+            flow.Birthday.ageExplanation,
+            flow.Birthday.trustNote,
+            flow.Birthday.trustCardCopy,
+            flow.Birthday.agePreviewPlaceholder,
+            flow.Birthday.birthDateRequiredMessage,
+            flow.Birthday.sexRequiredMessage,
             flow.Activity.subtitle,
+            flow.Activity.selectionRequiredMessage,
+            flow.Activity.explanationPlaceholder,
+            flow.Activity.explanationSupporting,
+            flow.Activity.moderatelyActiveExplanationHeadline,
             flow.AppleHealth.subtitle,
+            flow.AppleHealth.optionalNote,
+            flow.AppleHealth.privacyTitle,
+            flow.AppleHealth.privacyBody,
+            flow.AppleHealth.connectCTA,
+            flow.AppleHealth.skipCTA,
+            flow.AppleHealth.deniedMessage,
+            flow.AppleHealth.benefits.map(\.title).joined(separator: " "),
+            flow.AppleHealth.benefits.map(\.subtitle).joined(separator: " "),
             flow.AlmostThere.subtitle,
+            flow.AlmostThere.summaryHeadline,
+            flow.AlmostThere.summarySupporting,
+            flow.AlmostThere.trustStrip,
+            flow.AlmostThere.accessibilitySummary,
+            flow.AlmostThereFeatures.bullets.map(\.title).joined(separator: " "),
+            flow.AlmostThereFeatures.bullets.map(\.subtitle).joined(separator: " "),
             flow.FormaProof.subtitle,
             flow.Summary.subtitle,
             flow.Summary.buildPlanCTA,

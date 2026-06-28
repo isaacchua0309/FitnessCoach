@@ -11,39 +11,15 @@ import XCTest
 @MainActor
 final class CloudProfileWriteGuardTests: XCTestCase {
 
-    private struct Harness {
-        let container: AppContainer
-        let cloudStore: MockCloudUserProfileStore
-        let syncStore: ProfileCloudSyncStore
-        let bootstrapService: ProfileBootstrapService
-        let coordinator: ProfileBootstrapCoordinatorService
-    }
+    private typealias Harness = ProfileBootstrapTestSupport.Harness
 
     private func makeHarness() throws -> Harness {
-        let cloudStore = MockCloudUserProfileStore()
-        let container = try AppContainer(inMemory: true)
-        let syncStore = ProfileCloudSyncStore(userDefaults: container.onboardingUserDefaults)
-        let bootstrapService = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
-            cloudStore: cloudStore,
-            cloudSyncStore: syncStore
-        )
-        let coordinator = ProfileBootstrapCoordinatorService(
-            profileBootstrapService: bootstrapService,
-            cloudSyncStore: syncStore
-        )
-        return Harness(
-            container: container,
-            cloudStore: cloudStore,
-            syncStore: syncStore,
-            bootstrapService: bootstrapService,
-            coordinator: coordinator
-        )
+        try ProfileBootstrapTestSupport.makeHarness()
     }
 
     func testSameOwnerProfileEditUploads() async throws {
         let harness = try makeHarness()
-        _ = try harness.container.userProfileService.createProfile(
+        _ = try harness.profileService.createProfile(
             ProfileTestFixtures.sampleDraft,
             ownerUID: "signed-in-user"
         )
@@ -59,14 +35,14 @@ final class CloudProfileWriteGuardTests: XCTestCase {
 
     func testNewOnboardingCloudMissingUploads() async throws {
         let harness = try makeHarness()
-        _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
 
-        let outcome = await harness.coordinator.resolveOnboardingCompletion(uid: "signed-in-user")
+        let outcome = await harness.makeCoordinator().resolveOnboardingCompletion(uid: "signed-in-user")
 
         XCTAssertEqual(outcome, .uploadedToCloud)
         XCTAssertEqual(harness.cloudStore.saveCallCount, 1)
         XCTAssertEqual(
-            try harness.container.userProfileService.getCurrentProfile()?.ownerUID,
+            try harness.profileService.getCurrentProfile()?.ownerUID,
             "signed-in-user"
         )
     }
@@ -74,20 +50,20 @@ final class CloudProfileWriteGuardTests: XCTestCase {
     func testUserConfirmedReplaceUploadsDespiteExistingCloud() async throws {
         let harness = try makeHarness()
         harness.cloudStore.storedDocument = ProfileTestFixtures.cloudDocument()
-        _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
 
-        try await harness.coordinator.uploadDevicePlanAfterConflict(uid: "signed-in-user")
+        try await harness.makeCoordinator().uploadDevicePlanAfterConflict(uid: "signed-in-user")
 
         XCTAssertEqual(harness.cloudStore.saveCallCount, 1)
         XCTAssertEqual(
-            try harness.container.userProfileService.getCurrentProfile()?.ownerUID,
+            try harness.profileService.getCurrentProfile()?.ownerUID,
             "signed-in-user"
         )
     }
 
     func testOwnerMismatchUploadIsBlocked() async throws {
         let harness = try makeHarness()
-        _ = try harness.container.userProfileService.createProfile(
+        _ = try harness.profileService.createProfile(
             ProfileTestFixtures.sampleDraft,
             ownerUID: "other-user"
         )
@@ -110,7 +86,7 @@ final class CloudProfileWriteGuardTests: XCTestCase {
 
     func testUnownedLocalCloudUnknownUploadIsBlocked() async throws {
         let harness = try makeHarness()
-        _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
         harness.cloudStore.storedDocument = ProfileTestFixtures.cloudDocument()
 
         do {
@@ -128,7 +104,7 @@ final class CloudProfileWriteGuardTests: XCTestCase {
 
     func testCloudFetchFailureBlocksUpload() async throws {
         let harness = try makeHarness()
-        _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try harness.profileService.createProfile(ProfileTestFixtures.sampleDraft)
         harness.cloudStore.fetchError = NSError(domain: "test", code: 1)
 
         do {
@@ -152,7 +128,7 @@ final class CloudProfileWriteGuardTests: XCTestCase {
         let newTargets = DailyLogServiceTestSupport.alternateTargets
         _ = try harness.actionCenter.updatePlan(UserProfileUpdate(targets: newTargets))
 
-        try await Task.sleep(nanoseconds: 100_000_000)
+        await harness.waitForPendingCloudWork()
 
         XCTAssertEqual(harness.cloudStore.saveCallCount, 0)
     }
@@ -165,7 +141,7 @@ final class CloudProfileWriteGuardTests: XCTestCase {
         let newTargets = DailyLogServiceTestSupport.alternateTargets
         _ = try harness.actionCenter.updatePlan(UserProfileUpdate(targets: newTargets))
 
-        try await harness.waitForCloudSave()
+        await harness.waitForCloudSave()
 
         XCTAssertEqual(harness.cloudStore.saveCallCount, 1)
         XCTAssertEqual(harness.cloudStore.lastSavedUID, "test-user-1")

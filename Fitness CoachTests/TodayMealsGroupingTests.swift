@@ -25,7 +25,7 @@ final class TodayMealsGroupingTests: XCTestCase {
         let entries = [Self.entry(name: "Oatmeal", mealType: .breakfast, calories: 320, protein: 18)]
         let section = TodayMealsGroupingEngine.build(
             entries: entries,
-            date: date(hour: 14),
+            date: date(hour: 16),
             calendar: calendar
         )
 

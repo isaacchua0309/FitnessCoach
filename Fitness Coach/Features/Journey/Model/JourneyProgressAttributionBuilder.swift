@@ -33,7 +33,7 @@ enum JourneyProgressAttributionBuilder {
     private static let maximumSupportingReasons = 3
 
     static func build(_ input: Input) -> JourneyProgressAttributionState {
-        let copy = FormaProductCopy.Journey.WhyProgress.self
+        let copy = FormaProductCopy.Journey.ProgressAttribution.self
         let foodLogDays = uniqueFoodLogDays(in: input.currentPeriodLogs, calendar: input.calendar)
 
         guard foodLogDays >= minimumFoodLogDaysToUnlock else {
@@ -65,7 +65,7 @@ enum JourneyProgressAttributionBuilder {
 
     private static func rankedCandidates(
         input: Input,
-        copy: FormaProductCopy.Journey.WhyProgress.Type
+        copy: FormaProductCopy.Journey.ProgressAttribution.Type
     ) -> [Candidate] {
         var candidates: [Candidate] = []
 

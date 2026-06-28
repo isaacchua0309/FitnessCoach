@@ -41,4 +41,25 @@ final class ActivityTrainingDefaultsResolverTests: XCTestCase {
         XCTAssertEqual(defaults.trainingDaysPerWeek, 6)
         XCTAssertEqual(defaults.averageStepsPerDay, 12_000)
     }
+
+    func testProfileResolvedTrainingRhythmFallsBackWhenBothFieldsUnset() {
+        var profile = ProfileTestFixtures.sampleProfile
+        profile.activityLevel = .moderatelyActive
+        profile.trainingFrequencyPerWeek = 0
+        profile.averageSteps = 0
+
+        let rhythm = profile.resolvedTrainingRhythm(defaultsResolver: resolver)
+        XCTAssertEqual(rhythm.trainingDaysPerWeek, 3)
+        XCTAssertEqual(rhythm.averageStepsPerDay, 7500)
+    }
+
+    func testProfileResolvedTrainingRhythmPreservesExplicitValues() {
+        var profile = ProfileTestFixtures.sampleProfile
+        profile.trainingFrequencyPerWeek = 2
+        profile.averageSteps = 4200
+
+        let rhythm = profile.resolvedTrainingRhythm(defaultsResolver: resolver)
+        XCTAssertEqual(rhythm.trainingDaysPerWeek, 2)
+        XCTAssertEqual(rhythm.averageStepsPerDay, 4200)
+    }
 }

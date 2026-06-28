@@ -10,7 +10,6 @@ import SwiftUI
 struct PlanActivityAssumptionsSection: View {
     let state: PlanActivityAssumptionsState
     var onAdjustActivity: () -> Void
-    var onConnectAppleHealth: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
@@ -18,39 +17,22 @@ struct PlanActivityAssumptionsSection: View {
 
             FitPilotPlanCard {
                 VStack(alignment: .leading, spacing: 0) {
-                    assumptionRows
-                        .accessibilityHidden(true)
-
-                    Text(state.assumptionsNote)
-                        .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, FormaTokens.Spacing.sm)
-                        .accessibilityHidden(true)
-
-                    if state.showsAppleHealthStatus {
-                        FitPilotPlanRowDivider()
-                            .padding(.top, FormaTokens.Spacing.xs)
-
+                    VStack(alignment: .leading, spacing: 0) {
                         FitPilotPlanDisplayRow(
-                            label: state.appleHealthFieldLabel,
-                            value: state.appleHealthStatusLabel
+                            label: state.activityFieldLabel,
+                            value: state.activityLevel
                         )
                         .accessibilityHidden(true)
-                    }
 
-                    if state.showsConnectAppleHealthCTA, let onConnectAppleHealth {
-                        Button(action: onConnectAppleHealth) {
-                            Text(state.connectAppleHealthTitle)
-                                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                                .foregroundStyle(FormaTokens.Color.accent)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.top, FormaTokens.Spacing.xs)
-                        .accessibilityLabel(state.connectAppleHealthTitle)
+                        Text(state.assumptionsNote)
+                            .font(FormaTokens.Typography.caption)
+                            .foregroundStyle(FormaTokens.Color.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.top, FormaTokens.Spacing.sm)
+                            .accessibilityHidden(true)
                     }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(state.accessibilitySummary)
 
                     Button(action: onAdjustActivity) {
                         Text(state.adjustActivityTitle)
@@ -60,54 +42,34 @@ struct PlanActivityAssumptionsSection: View {
                             .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
                     }
                     .buttonStyle(.plain)
-                    .padding(.top, FormaTokens.Spacing.xs)
+                    .padding(.top, FormaTokens.Spacing.sm)
                     .accessibilityLabel(state.adjustActivityTitle)
+                    .accessibilityHint(FormaProductCopy.PlanMissionControl.updateActivityAccessibilityHint)
                 }
             }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(state.accessibilitySummary)
-    }
-
-    private var assumptionRows: some View {
-        VStack(spacing: 0) {
-            FitPilotPlanDisplayRow(
-                label: state.activityFieldLabel,
-                value: state.activityLevel
-            )
-            FitPilotPlanRowDivider()
-            FitPilotPlanDisplayRow(
-                label: state.estimatedStepsFieldLabel,
-                value: state.estimatedStepsLabel
-            )
-            FitPilotPlanRowDivider()
-            FitPilotPlanDisplayRow(
-                label: state.trainingFieldLabel,
-                value: state.trainingSessionsLabel
-            )
         }
     }
 }
 
 // MARK: - Previews
 
-#Preview("Disconnected") {
+#Preview("Activity assumptions") {
     PlanActivityAssumptionsSection(
         state: PlanMissionControlFixtures.loseDashboard.activityAssumptions,
-        onAdjustActivity: {},
-        onConnectAppleHealth: {}
+        onAdjustActivity: {}
     )
     .padding()
     .background(FormaTokens.Color.canvas)
     .preferredColorScheme(.dark)
 }
 
-#Preview("Connected") {
+#Preview("Large Dynamic Type") {
     PlanActivityAssumptionsSection(
-        state: PlanMissionControlFixtures.connectedDashboard.activityAssumptions,
+        state: PlanMissionControlFixtures.loseDashboard.activityAssumptions,
         onAdjustActivity: {}
     )
     .padding()
     .background(FormaTokens.Color.canvas)
     .preferredColorScheme(.dark)
+    .dynamicTypeSize(.accessibility3)
 }

@@ -10,53 +10,66 @@ import SwiftUI
 struct OnboardingBiologicalSexSelector: View {
     @Binding var selection: Sex
 
+    var sectionTitle: String = FormaProductCopy.Onboarding.Flow.Birthday.sexSectionTitle
+    var explanation: String = FormaProductCopy.Onboarding.Flow.Birthday.sexExplanation
+
     private let options: [Sex] = [.male, .female]
 
     var body: some View {
         VStack(alignment: .leading, spacing: OnboardingLayout.compactLabelGap) {
-            Text(FormaProductCopy.Onboarding.Flow.Birthday.sexSectionTitle)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.primaryText)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(sectionTitle)
+                    .font(FormaTokens.Typography.body.weight(.semibold))
+                    .foregroundStyle(OnboardingTheme.primaryText)
+                    .fixedSize(horizontal: false, vertical: true)
 
-            HStack(spacing: OnboardingLayout.compactFieldSpacing) {
+                Text(explanation)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(OnboardingTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack(spacing: FormaTokens.Spacing.sm) {
                 ForEach(options, id: \.self) { sex in
                     sexPill(for: sex)
                 }
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(FormaProductCopy.Onboarding.Flow.Birthday.sexSectionTitle)
+        .accessibilityLabel(sectionTitle)
     }
 
     private func sexPill(for sex: Sex) -> some View {
         let isSelected = selection == sex
+        let label = OnboardingFormatter.sex(sex)
 
         return Button {
             selection = sex
+            OnboardingHaptics.selectionChanged()
         } label: {
-            Text(OnboardingFormatter.sex(sex))
-                .font(.subheadline.weight(.semibold))
+            Text(label)
+                .font(FormaTokens.Typography.body.weight(.semibold))
                 .foregroundStyle(isSelected ? OnboardingTheme.primaryText : OnboardingTheme.secondaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
                 .frame(maxWidth: .infinity)
-                .frame(minHeight: FormaTokens.Layout.minTouchTarget)
-                .padding(.horizontal, 10)
+                .frame(minHeight: 44)
+                .padding(.horizontal, FormaTokens.Spacing.sm)
                 .background(
-                    RoundedRectangle(cornerRadius: OnboardingTheme.compactCornerRadius, style: .continuous)
-                        .fill(isSelected ? FormaTokens.Color.accentMuted : Color.white.opacity(0.08))
+                    RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
+                        .fill(isSelected ? FormaTokens.Color.accentMuted : FormaTokens.Color.surfaceSubtle)
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: OnboardingTheme.compactCornerRadius, style: .continuous)
+                    RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
                         .stroke(
-                            isSelected ? OnboardingTheme.selectedBorder : OnboardingTheme.border,
-                            lineWidth: isSelected ? 1.4 : 1
+                            isSelected ? OnboardingTheme.selectedBorder : Color.clear,
+                            lineWidth: isSelected ? 1.5 : 0
                         )
                 )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(OnboardingFormatter.sex(sex))
+        .accessibilityLabel("Select \(label)")
+        .accessibilityValue(isSelected ? "Selected" : "")
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }

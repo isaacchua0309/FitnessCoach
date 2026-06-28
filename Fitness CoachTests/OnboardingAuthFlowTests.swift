@@ -10,14 +10,15 @@ import XCTest
 
 final class OnboardingAuthFlowCopyTests: XCTestCase {
 
-    func testMissingCloudProfileHandoffCopy() {
-        let copy = FormaProductCopy.Onboarding.V2.MissingCloudProfile.self
-        XCTAssertEqual(copy.title, "Looks like you're new")
+    func testNoExistingPlanHandoffCopy() {
+        let copy = FormaProductCopy.PublicEntry.NoExistingPlan.self
+        XCTAssertEqual(copy.title, "We couldn't find a Forma plan for this account")
         XCTAssertEqual(
-            copy.body,
-            "We couldn't find a saved Forma plan for this Google account. Let's set up your account."
+            copy.subtitle,
+            "This account doesn't have a saved plan yet. Let's build one now."
         )
-        XCTAssertEqual(copy.continueCTA, "Continue")
+        XCTAssertEqual(copy.startOnboardingCTA, "Start Onboarding")
+        XCTAssertEqual(copy.useAnotherAccountCTA, "Use another account")
     }
 
     func testBootstrapFetchFailureCopy() {
@@ -31,15 +32,26 @@ final class OnboardingAuthFlowCopyTests: XCTestCase {
 @MainActor
 final class OnboardingAuthFlowModelTests: XCTestCase {
 
+    private var draftDefaults: UserDefaults!
+    private var draftStore: OnboardingDraftStore!
+
+    override func setUp() {
+        super.setUp()
+        draftDefaults = UserDefaults(suiteName: "OnboardingAuthFlowModelTests.\(UUID().uuidString)")!
+        draftStore = OnboardingDraftStore(userDefaults: draftDefaults)
+    }
+
+    override func tearDown() {
+        draftStore.clearDraft()
+        draftDefaults.removePersistentDomain(forName: draftDefaults.description)
+        draftDefaults = nil
+        draftStore = nil
+        super.tearDown()
+    }
+
     func testPostAuthSavePlanUsesEditingViewState() async throws {
         let container = try AppContainer(inMemory: true)
-        let model = OnboardingModel(
-            userProfileService: container.userProfileService,
-            targetService: container.targetService,
-            onCompletion: {},
-            analyticsEntry: .postAuth,
-            generationDelay: ImmediateOnboardingGenerationDelayProvider()
-        )
+        let model = try makePostAuthModel(container: container)
 
         try await advancePostAuthModelToSavePlan(model)
         XCTAssertEqual(model.currentStep, OnboardingStep.savePlan)
@@ -49,13 +61,9 @@ final class OnboardingAuthFlowModelTests: XCTestCase {
     func testPostAuthSavePlanCompletionInvokesHandlerWithoutSignInIntent() async throws {
         var completionCount = 0
         let container = try AppContainer(inMemory: true)
-        let model = OnboardingModel(
-            userProfileService: container.userProfileService,
-            targetService: container.targetService,
-            onCompletion: { completionCount += 1 },
-            analyticsEntry: .postAuth,
-            generationDelay: ImmediateOnboardingGenerationDelayProvider()
-        )
+        let model = try makePostAuthModel(container: container) {
+            completionCount += 1
+        }
 
         try await advancePostAuthModelToSavePlan(model)
         model.goNext()
@@ -64,22 +72,30 @@ final class OnboardingAuthFlowModelTests: XCTestCase {
         XCTAssertEqual(model.pendingCompletionIntent, OnboardingCompletionIntent.signIn)
     }
 
+    private func makePostAuthModel(
+        container: AppContainer,
+        onCompletion: @escaping () -> Void = {}
+    ) throws -> OnboardingModel {
+        let integration = StubTrainingIntegrationProvider(requestConnectionResult: .denied)
+        return OnboardingModel(
+            userProfileService: container.userProfileService,
+            targetService: container.targetService,
+            onCompletion: onCompletion,
+            draftStore: draftStore,
+            analyticsEntry: .postAuth,
+            generationDelay: ImmediateOnboardingGenerationDelayProvider(),
+            healthTrainingIntegration: integration
+        )
+    }
+
     private func fillValidPostAuthForm(_ model: OnboardingModel) {
-        OnboardingHeightWeightValues.applyDefaultsIfNeeded(to: &model.formState)
-        OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &model.formState)
-        OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &model.formState)
-        model.formState.sex = .female
-        model.formState.activityLevel = .moderatelyActive
-        OnboardingActivityLevelValues.applyDefaultsIfNeeded(to: &model.formState)
-        model.formState.selectPaceChoice(.moderate)
+        OnboardingModelTestSupport.seedCanonicalForm(&model.formState)
     }
 
     private func advancePostAuthModelToSavePlan(_ model: OnboardingModel) async throws {
         fillValidPostAuthForm(model)
         XCTAssertEqual(model.currentStep, .heightWeight)
-        while model.currentStep != .review {
-            model.goNext()
-        }
+        await OnboardingModelTestSupport.advanceTo(.review, model: model, seedForm: false)
         model.beginGeneration()
         await model.flushPendingGenerationForTesting()
         model.goNext()
@@ -92,21 +108,21 @@ final class OnboardingExistingAccountRoutingPolicyTests: XCTestCase {
     func testExistingAccountRoutingPolicyPrefersActiveOnboardingSession() {
         XCTAssertEqual(
             AuthGateRoutingPolicy.effectiveRoute(
-                baseRoute: .signIn,
+                baseRoute: .existingUserSignIn,
                 isSignedIn: false,
                 hasActiveOnboardingSession: true
             ),
-            .localOnboarding
+            .onboardingStart
         )
     }
 
-    func testSignedInMissingCloudProfileRoutesToInterstitialNotOnboarding() {
+    func testSignedInMissingCloudProfileRoutesToNoExistingProfileFoundNotOnboarding() {
         XCTAssertEqual(
             AppRouteResolver.resolve(
                 authState: .signedIn(uid: "user-1"),
                 rootState: .missingCloudProfile
             ),
-            .missingCloudProfile
+            .noExistingProfileFound
         )
         XCTAssertNotEqual(
             AppRouteResolver.resolve(
@@ -132,7 +148,7 @@ final class OnboardingExistingAccountRoutingPolicyTests: XCTestCase {
                 authState: .signedIn(uid: "user-1"),
                 rootState: .error(bootstrapBody)
             ),
-            .missingCloudProfile
+            .noExistingProfileFound
         )
     }
 

@@ -1,5 +1,7 @@
 # FitPilot AI Architecture Document
 
+> **Journey tab (2026-06):** Product name is **Journey** (“your fitness story”). Implementation still uses `ProgressView`, `ProgressModel`, and `Features/Journey/`. For the current Journey contract (sections, baseline, XP, analytics, read-only rule), see **[Docs/JourneyArchitecture.md](./Docs/JourneyArchitecture.md)** — it supersedes Journey/Progress sections in this legacy document.
+
 ## 1. Document Purpose
 
 This document defines the architecture for **FitPilot AI**, a local-first AI fitness coaching iOS application.

@@ -52,7 +52,7 @@ final class OnboardingModelTests: XCTestCase {
         seedValidForm(&model.formState)
         model.formState.birthDate = nil
         model.formState.ageText = ""
-        navigateToReview(model)
+        await navigateToReview(model, preserveForm: true)
 
         model.beginGeneration()
         await model.flushPendingGenerationForTesting()
@@ -64,7 +64,7 @@ final class OnboardingModelTests: XCTestCase {
 
     func testBeginGenerationBuildsPlanAndRevealState() async throws {
         let model = try makeModel()
-        navigateToReview(model)
+        await navigateToReview(model)
 
         model.beginGeneration()
         XCTAssertEqual(model.currentStep, .generatingPlan)
@@ -91,7 +91,7 @@ final class OnboardingModelTests: XCTestCase {
 
     func testGeneratingPlanStepDisallowsBack() async throws {
         let model = try makeModel()
-        navigateToReview(model)
+        await navigateToReview(model)
 
         model.beginGeneration()
         XCTAssertEqual(model.currentStep, .generatingPlan)
@@ -163,7 +163,7 @@ final class OnboardingModelTests: XCTestCase {
             allowsLocalOnlyContinuation: true
         )
         seedValidForm(&model.formState)
-        navigateToReview(model)
+        await navigateToReview(model)
         model.beginGeneration()
         await model.flushPendingGenerationForTesting()
         model.goNext()
@@ -232,24 +232,18 @@ final class OnboardingModelTests: XCTestCase {
     }
 
     private func seedValidForm(_ formState: inout OnboardingFormState) {
-        OnboardingHeightWeightValues.applyDefaultsIfNeeded(to: &formState)
-        OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &formState)
-        OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &formState)
-        formState.sex = .female
-        formState.activityLevel = .moderatelyActive
-        OnboardingActivityLevelValues.applyDefaultsIfNeeded(to: &formState)
-        formState.selectPaceChoice(.moderate)
+        OnboardingModelTestSupport.seedCanonicalForm(&formState)
     }
 
-    private func navigateToReview(_ model: OnboardingModel) {
-        seedValidForm(&model.formState)
-        while model.currentStep != .review {
-            model.goNext()
+    private func navigateToReview(_ model: OnboardingModel, preserveForm: Bool = false) async {
+        if !preserveForm {
+            seedValidForm(&model.formState)
         }
+        await OnboardingModelTestSupport.advanceTo(.review, model: model, seedForm: false)
     }
 
     private func advanceToPlanReveal(_ model: OnboardingModel) async throws {
-        navigateToReview(model)
+        await navigateToReview(model)
         model.beginGeneration()
         await model.flushPendingGenerationForTesting()
         XCTAssertEqual(model.currentStep, .planReveal)

@@ -65,14 +65,19 @@ final class OnboardingStageProgressTests: XCTestCase {
 
     func testGeneratingPlanUsesFullScreenChrome() {
         XCTAssertTrue(OnboardingStep.generatingPlan.usesFullScreenChrome)
-        XCTAssertTrue(OnboardingStep.introProof.usesFullScreenChrome)
+        XCTAssertFalse(OnboardingStep.introProof.usesFullScreenChrome)
     }
 
     func testProgressHeaderVisibility() {
         XCTAssertFalse(OnboardingStep.introProof.showsProgressHeader)
+        XCTAssertFalse(OnboardingStep.heightWeight.showsProgressHeader)
+        XCTAssertFalse(OnboardingStep.targetWeight.showsProgressHeader)
+        XCTAssertFalse(OnboardingStep.birthday.showsProgressHeader)
+        XCTAssertFalse(OnboardingStep.activityLevel.showsProgressHeader)
+        XCTAssertFalse(OnboardingStep.appleHealth.showsProgressHeader)
+        XCTAssertFalse(OnboardingStep.almostThere.showsProgressHeader)
         XCTAssertFalse(OnboardingStep.generatingPlan.showsProgressHeader)
         XCTAssertFalse(OnboardingStep.savePlan.showsProgressHeader)
-        XCTAssertTrue(OnboardingStep.heightWeight.showsProgressHeader)
     }
 
     func testGeneratingPlanTimingMatchesChecklist() {

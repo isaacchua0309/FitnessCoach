@@ -140,11 +140,9 @@ final class OnboardingComponentsTests: XCTestCase {
         let intro = FormaProductCopy.Onboarding.Flow.IntroProof.self
         let trajectory = FormaProductCopy.Onboarding.Flow.Proof.TrajectoryComparison.self
 
-        XCTAssertEqual(model.caption, intro.caption)
+        XCTAssertEqual(model.takeaway, intro.takeaway)
         XCTAssertEqual(model.formaLabel, trajectory.formaLabel)
         XCTAssertEqual(model.traditionalLabel, trajectory.traditionalLabel)
-        XCTAssertEqual(model.formaDescription, trajectory.formaDescription)
-        XCTAssertEqual(model.traditionalDescription, trajectory.traditionalDescription)
         XCTAssertEqual(model.disclaimer, trajectory.disclaimer)
         XCTAssertEqual(model.chartAccessibilityLabel, trajectory.chartAccessibilityLabel)
         XCTAssertEqual(model.formaSeries.count, 5)
@@ -157,5 +155,6 @@ final class OnboardingComponentsTests: XCTestCase {
 
         XCTAssertEqual(step.title, copy.title)
         XCTAssertEqual(step.subtitle, copy.subtitle)
+        XCTAssertEqual(copy.takeaway, "Small consistent habits beat restrictive dieting.")
     }
 }

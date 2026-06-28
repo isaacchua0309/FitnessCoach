@@ -75,6 +75,7 @@ final class OnboardingModelAnalyticsTests: XCTestCase {
         XCTAssertTrue(analytics.contains(.started))
         XCTAssertTrue(analytics.contains(.stepViewed, step: "intro_proof"))
         XCTAssertEqual(analytics.lastProperties(for: .stepViewed)?["entry"], "preAuth")
+        XCTAssertNil(analytics.lastProperties(for: .stepViewed)?["v2Enabled"])
     }
 
     func testStepCompletedIncludesDuration() throws {
@@ -84,6 +85,7 @@ final class OnboardingModelAnalyticsTests: XCTestCase {
 
         XCTAssertTrue(analytics.contains(.stepCompleted, step: "intro_proof"))
         XCTAssertNotNil(analytics.lastProperties(for: .stepCompleted)?["durationMs"])
+        XCTAssertNil(analytics.lastProperties(for: .stepCompleted)?["v2Enabled"])
     }
 
     func testStepEventsOmitLegacyPreferenceAnalytics() throws {

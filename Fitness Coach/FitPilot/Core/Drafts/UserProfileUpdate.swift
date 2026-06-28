@@ -24,4 +24,5 @@ struct UserProfileUpdate: Codable, Equatable, Sendable {
     var dietPreference: String?
     var unitSystem: UnitSystem?
     var targets: UserTargets?
+    var lastPlanUpdateReason: PlanLastUpdateReason?
 }

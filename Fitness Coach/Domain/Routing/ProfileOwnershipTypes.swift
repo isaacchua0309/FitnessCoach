@@ -22,6 +22,7 @@ enum SignInContext: Equatable, Sendable {
     case normalLaunch
     case returningUser
     case onboardingCompletion
+    case existingUserEntry
     case accountSwitch
 }
 

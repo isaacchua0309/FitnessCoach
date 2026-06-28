@@ -12,6 +12,12 @@ struct OnboardingBottomBar: View {
     let isLoading: Bool
     let canContinue: Bool
     var showsRequiredFieldsHint: Bool = false
+    var requiredFieldsHint: String? = nil
+    var appleHealthPrimaryTitle: String? = nil
+    var appleHealthSecondaryTitle: String? = nil
+    var isAppleHealthPrimaryEnabled: Bool = true
+    var isAppleHealthSkipEnabled: Bool = true
+    var onAppleHealthSkip: (() -> Void)? = nil
     let onBack: () -> Void
     let onContinue: () -> Void
     let onComplete: () -> Void
@@ -43,23 +49,34 @@ struct OnboardingBottomBar: View {
             return FormaProductCopy.Onboarding.Flow.TargetEncouragement.continueCTA
         case .almostThere:
             return FormaProductCopy.Onboarding.Flow.AlmostThere.continueCTA
+        case .introProof:
+            return FormaProductCopy.Onboarding.Flow.IntroProof.continueCTA
         case .formaProof:
             return FormaProductCopy.Onboarding.Flow.FormaProof.continueCTA
+        case .appleHealth:
+            return appleHealthPrimaryTitle ?? FormaProductCopy.Onboarding.Flow.AppleHealth.connectCTA
         default:
             return FormaProductCopy.Common.continueAction
         }
     }
 
+    private var isPrimaryActionEnabled: Bool {
+        if currentStep == .appleHealth {
+            return isAppleHealthPrimaryEnabled
+        }
+        return canContinue
+    }
+
     var body: some View {
         VStack(spacing: OnboardingLayout.footerInnerSpacing) {
-            HStack(spacing: FormaTokens.Spacing.sm) {
+            HStack(spacing: FormaTokens.Spacing.md) {
                 if showsBackButton {
                     Button(action: onBack) {
                         Image(systemName: "chevron.left")
                             .font(.body.weight(.semibold))
+                            .foregroundStyle(OnboardingTheme.secondaryText)
                             .frame(width: resolvedButtonHeight, height: resolvedButtonHeight)
-                            .background(footerSecondaryBackground)
-                            .clipShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous))
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .disabled(isLoading)
@@ -77,16 +94,35 @@ struct OnboardingBottomBar: View {
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
                     }
-                    .foregroundStyle(canContinue && !isLoading ? FormaTokens.Color.textPrimary : OnboardingTheme.secondaryText)
+                    .foregroundStyle(isPrimaryActionEnabled && !isLoading ? FormaTokens.Color.textPrimary : OnboardingTheme.secondaryText)
                     .frame(maxWidth: .infinity)
                     .frame(height: resolvedButtonHeight)
                     .background(primaryBackground)
                     .clipShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .disabled(isLoading || !canContinue)
+                .disabled(isLoading || (currentStep == .appleHealth ? !isAppleHealthPrimaryEnabled : false))
                 .accessibilityLabel(primaryTitle)
-                .accessibilityHint(canContinue ? "" : FormaProductCopy.Common.completeRequiredFields)
+                .accessibilityHint(canContinue ? "" : resolvedRequiredFieldsHint)
+            }
+
+            if currentStep == .appleHealth,
+               let appleHealthSecondaryTitle,
+               let onAppleHealthSkip {
+                Button(action: onAppleHealthSkip) {
+                    Text(appleHealthSecondaryTitle)
+                        .font(FormaTokens.Typography.body.weight(.semibold))
+                        .foregroundStyle(
+                            isAppleHealthSkipEnabled && !isLoading
+                                ? OnboardingTheme.secondaryText
+                                : OnboardingTheme.tertiaryText
+                        )
+                        .frame(maxWidth: .infinity)
+                        .frame(height: resolvedButtonHeight)
+                }
+                .buttonStyle(.plain)
+                .disabled(isLoading || !isAppleHealthSkipEnabled)
+                .accessibilityLabel(appleHealthSecondaryTitle)
             }
 
             if let saveTrustNote, showsAdjustPlan {
@@ -116,29 +152,28 @@ struct OnboardingBottomBar: View {
             }
 
             if showsRequiredFieldsHint, !canContinue, !isLoading {
-                Text(FormaProductCopy.Common.completeRequiredFields)
+                Text(resolvedRequiredFieldsHint)
                     .font(FormaTokens.Typography.caption)
                     .foregroundStyle(OnboardingTheme.tertiaryText)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityLabel(FormaProductCopy.Common.completeRequiredFields)
+                    .accessibilityLabel(resolvedRequiredFieldsHint)
             }
         }
         .padding(.horizontal, OnboardingTheme.pagePadding)
         .padding(.top, OnboardingLayout.footerVerticalPadding)
         .padding(.bottom, OnboardingLayout.footerVerticalPadding)
-        .background {
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .ignoresSafeArea(edges: .bottom)
-        }
         .onboardingMeasureFooterHeight()
+    }
+
+    private var resolvedRequiredFieldsHint: String {
+        requiredFieldsHint ?? FormaProductCopy.Common.completeRequiredFields
     }
 
     private var primaryBackground: some View {
         Group {
-            if canContinue && !isLoading {
+            if isPrimaryActionEnabled && !isLoading {
                 OnboardingTheme.accent
             } else {
                 FormaTokens.Color.surfaceElevated

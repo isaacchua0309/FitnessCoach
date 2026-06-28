@@ -13,6 +13,7 @@ enum TodayActivitySectionPresentation: Equatable {
 }
 
 struct TodayActivityDisconnectedDisplayModel: Equatable {
+    var title: String
     var message: String
     var actionTitle: String
     var showsLockedIcon: Bool
@@ -25,6 +26,7 @@ struct TodayActivityConnectedDisplayModel: Equatable {
     var workoutStatusLine: String
     var weeklyProgressLine: String?
     var showsEmptyState: Bool
+    var emptyStateTitle: String?
     var emptyStateLine: String?
     var accessibilitySummary: String
 }
@@ -50,27 +52,28 @@ enum TodayActivitySectionFormatting {
     }
 
     static func disconnectedModel(for activity: ActivityTodayState) -> TodayActivityDisconnectedDisplayModel {
+        let copy = TodayEmptyStateFormatting.copy(for: .appleHealthUnavailable)
         let message: String
         let actionTitle: String
-        let showsLockedIcon: Bool
+        let showsLockedIcon = false
 
         switch activity.trainingIntegration {
         case .denied, .failed:
             message = FormaProductCopy.Today.Activity.disconnectedDeniedMessage
             actionTitle = FormaProductCopy.Today.actionManageHealthAccess
-            showsLockedIcon = true
         case .notConnected, .unavailable, .requestingPermission, .connected:
-            message = FormaProductCopy.Today.Activity.disconnectedMessage
-            actionTitle = FormaProductCopy.Training.Integration.connectAppleHealth
-            showsLockedIcon = true
+            message = copy.body
+            actionTitle = copy.actionTitle ?? FormaProductCopy.Training.Integration.connectAppleHealth
         }
 
         return TodayActivityDisconnectedDisplayModel(
+            title: copy.title,
             message: message,
             actionTitle: actionTitle,
             showsLockedIcon: showsLockedIcon,
             accessibilitySummary: [
                 FormaProductCopy.Today.Activity.sectionTitle,
+                copy.title,
                 message,
                 actionTitle
             ].joined(separator: ". ")
@@ -85,6 +88,7 @@ enum TodayActivitySectionFormatting {
         let workoutStatusLine = workoutStatus(for: activity)
         let weeklyProgressLine = weeklyProgressLine(for: activity)
         let showsEmptyState = hasNoActivityData(activity)
+        let emptyCopy = TodayEmptyStateFormatting.copy(for: .noActivityData)
 
         return TodayActivityConnectedDisplayModel(
             stepsLine: stepsLine,
@@ -92,7 +96,8 @@ enum TodayActivitySectionFormatting {
             workoutStatusLine: workoutStatusLine,
             weeklyProgressLine: weeklyProgressLine,
             showsEmptyState: showsEmptyState,
-            emptyStateLine: showsEmptyState ? FormaProductCopy.Today.Activity.noDataYet : nil,
+            emptyStateTitle: showsEmptyState ? emptyCopy.title : nil,
+            emptyStateLine: showsEmptyState ? emptyCopy.body : nil,
             accessibilitySummary: accessibilitySummary(
                 stepsLine: stepsLine,
                 stepAssumptionLine: stepAssumptionLine,
@@ -150,7 +155,8 @@ enum TodayActivitySectionFormatting {
         if showsEmptyState {
             return [
                 FormaProductCopy.Today.Activity.sectionTitle,
-                FormaProductCopy.Today.Activity.noDataYet
+                FormaProductCopy.Today.EmptyState.noActivityTitle,
+                FormaProductCopy.Today.EmptyState.noActivityBody
             ].joined(separator: ". ")
         }
 

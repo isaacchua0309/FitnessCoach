@@ -92,26 +92,14 @@ final class OnboardingFlowSelectionTests: XCTestCase {
         XCTAssertEqual(shellRoute, .main)
     }
 
-    func testSignedOutUsersWithoutProfileRouteToOnboarding() {
+    func testSignedOutUsersWithoutProfileRouteToWelcome() {
         XCTAssertEqual(
             AppRouteResolver.resolve(
                 authState: .signedOut,
-                hasLocalProfile: false,
-                isOnboardingModelReady: true
+                isOnboardingModelReady: true,
+                hasLocalProfile: false
             ),
-            .localOnboarding
+            .welcome
         )
-    }
-
-    func testLegacyRoutingUserDefaultsKeyDoesNotChangeEntryStep() throws {
-        let defaults = UserDefaults(suiteName: "OnboardingFlowSelectionTests.legacy.\(UUID().uuidString)")!
-        defer { defaults.removePersistentDomain(forName: defaults.description) }
-
-        defaults.set("valueFirstFallback", forKey: "forma.onboarding.routingMode")
-
-        let container = try AppContainer(inMemory: true, onboardingUserDefaults: defaults)
-        let model = container.makeOnboardingModel(onCompletion: {})
-
-        XCTAssertEqual(model.currentStep, .introProof)
     }
 }

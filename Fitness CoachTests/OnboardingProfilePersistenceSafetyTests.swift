@@ -48,7 +48,7 @@ final class OnboardingCommittedProfileRestorerTests: XCTestCase {
 @MainActor
 final class OnboardingProfileRoutingSafetyTests: XCTestCase {
 
-    func testUnownedLocalProfileAwaitingSignInRoutesToPreAuthOnboarding() {
+    func testUnownedLocalProfileAwaitingSignInRoutesToOnboardingStart() {
         XCTAssertEqual(
             AppRouteResolver.resolve(
                 authState: .signedOut,
@@ -57,11 +57,11 @@ final class OnboardingProfileRoutingSafetyTests: XCTestCase {
                 signedOutWithProfilePolicy: .requireSignIn,
                 localProfileAwaitingSignIn: true
             ),
-            .localOnboarding
+            .onboardingStart
         )
     }
 
-    func testOwnedLocalProfileSignedOutRoutesToSignInNotIntroOnboarding() {
+    func testOwnedLocalProfileSignedOutRoutesToWelcome() {
         XCTAssertEqual(
             AppRouteResolver.resolve(
                 authState: .signedOut,
@@ -70,7 +70,7 @@ final class OnboardingProfileRoutingSafetyTests: XCTestCase {
                 signedOutWithProfilePolicy: .requireSignIn,
                 localProfileAwaitingSignIn: false
             ),
-            .signIn
+            .welcome
         )
     }
 
@@ -84,7 +84,7 @@ final class OnboardingProfileRoutingSafetyTests: XCTestCase {
                 localProfileAwaitingSignIn: true,
                 pendingOnboardingCompletion: true
             ),
-            .localOnboarding
+            .onboardingStart
         )
     }
 
@@ -205,6 +205,7 @@ final class OnboardingProfileCloudPersistenceSafetyTests: XCTestCase {
             SignedInProfileReconcileInput(
                 uid: "returning-user",
                 pendingOnboardingCompletion: false,
+                pendingExistingUserSignIn: false,
                 hasLocalProfile: false,
                 localOwnerUID: nil,
                 isFreshSignIn: true,
@@ -244,8 +245,6 @@ final class OnboardingProfileCloudPersistenceSafetyTests: XCTestCase {
 
 @MainActor
 final class OnboardingModelCommittedProfileResumeTests: XCTestCase {
-
-    }
 
     func testCommittedProfileWithoutDraftResumesAtSavePlan() throws {
         let suiteName = "OnboardingModelCommittedProfileResumeTests.\(UUID().uuidString)"

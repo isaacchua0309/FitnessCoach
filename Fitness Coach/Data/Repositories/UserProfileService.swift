@@ -102,7 +102,8 @@ final class UserProfileService {
             unitSystem: draft.unitSystem,
             targets: draft.targets,
             createdAt: now,
-            updatedAt: now
+            updatedAt: now,
+            lastPlanUpdateReason: .onboarding
         )
 
         let entity = UserProfileEntity(model: profile)
@@ -163,6 +164,9 @@ final class UserProfileService {
         if let dietPreference = update.dietPreference { entity.dietPreference = dietPreference }
         if let unitSystem = update.unitSystem { entity.unitSystemRawValue = unitSystem.rawValue }
         if let targets = update.targets { apply(targets: targets, to: entity) }
+        if let reason = update.lastPlanUpdateReason {
+            entity.lastPlanUpdateReasonRawValue = reason.rawValue
+        }
 
         entity.updatedAt = dateProvider.now
         try save()

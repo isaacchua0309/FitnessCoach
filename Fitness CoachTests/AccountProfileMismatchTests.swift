@@ -46,6 +46,7 @@ final class AccountProfileMismatchTests: XCTestCase {
             SignedInProfileReconcileInput(
                 uid: "signed-in-user",
                 pendingOnboardingCompletion: false,
+                pendingExistingUserSignIn: false,
                 hasLocalProfile: true,
                 localOwnerUID: "other-user",
                 isFreshSignIn: true,

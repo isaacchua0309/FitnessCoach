@@ -17,6 +17,7 @@ struct TodayMissionControlInputs: Equatable {
     var hasRecentWeight: Bool
     var workoutSummary: TodayWorkoutSummary
     var foodEntries: [FoodEntry]
+    var hasPriorFoodLogs: Bool
     var streaks: StreakSummary
     var weekLoggedDays: Int
     var dailyBrief: TodayDailyBrief
@@ -57,6 +58,7 @@ enum TodayMissionControlStateBuilder {
         return TodayDashboardState(
             date: inputs.date,
             hasDailyLog: true,
+            emptyContext: buildEmptyContext(from: inputs),
             mission: mission,
             goalConnection: buildGoalConnection(from: inputs),
             nextBestAction: buildNextBestAction(from: inputs),
@@ -273,6 +275,19 @@ enum TodayMissionControlStateBuilder {
         TodayMomentumState(
             streaks: streaks,
             weekLoggedDays: weekLoggedDays
+        )
+    }
+
+    static func buildEmptyContext(from inputs: TodayMissionControlInputs) -> TodayDashboardEmptyContext {
+        TodayDashboardEmptyContext(
+            mealsEmptyKind: TodayEmptyStateFormatting.mealsEmptyKind(
+                mealsEmpty: inputs.foodEntries.isEmpty,
+                hasPriorFoodLogs: inputs.hasPriorFoodLogs
+            ),
+            showsWeightReminder: TodayEmptyStateFormatting.shouldShowWeightReminder(
+                weightLoggedToday: inputs.weightLoggedToday,
+                hasRecentWeight: inputs.hasRecentWeight
+            )
         )
     }
 

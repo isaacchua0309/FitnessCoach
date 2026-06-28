@@ -253,8 +253,8 @@ struct PlanAdjustmentState: Equatable, Sendable {
     var currentHeading: String
     var summaryRows: [PlanAdjustmentSummaryRow]
     var lastUpdateReasonCopy: String
+    var lastUpdateReasonHeading: String
     var adjustPlanTitle: String
-    var editSafetyCopy: String
     var accessibilitySummary: String
 }
 
