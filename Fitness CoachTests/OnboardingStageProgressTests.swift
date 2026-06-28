@@ -207,4 +207,16 @@ final class OnboardingStageProgressTests: XCTestCase {
         XCTAssertFalse(OnboardingStep.savePlan.usesFullScreenChrome)
         XCTAssertTrue(OnboardingStep.savePlan.showsProgressHeader)
     }
+
+    func testGeneratingPlanTimingMatchesChecklist() {
+        XCTAssertEqual(
+            OnboardingGeneratingPlanTiming.intervalsAfterReveal.count,
+            FormaProductCopy.Onboarding.V2.Generating.checklist.count
+        )
+        XCTAssertEqual(
+            OnboardingModel.minimumGenerationDisplayDuration,
+            OnboardingGeneratingPlanTiming.minimumDisplayDuration
+        )
+        XCTAssertGreaterThanOrEqual(OnboardingGeneratingPlanTiming.minimumDisplayDuration, 2.5)
+    }
 }

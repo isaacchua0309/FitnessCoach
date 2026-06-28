@@ -116,6 +116,24 @@ enum FormaProductCopy {
                 static let continueCTA = Common.continueAction
             }
 
+            enum ProfileConflict {
+                static let title = "We found an existing Forma plan"
+                static let body =
+                    "This Google account already has a saved plan. You can restore it, or replace it with the plan you just created."
+                static let restoreCTA = "Restore existing plan"
+                static let useNewPlanCTA = "Use this new plan instead"
+                static let existingPlanLabel = "Saved plan"
+                static let newPlanLabel = "New plan"
+                static let dailyTargetLabel = "Daily target"
+                static let goalWeightLabel = "Goal weight"
+            }
+
+            enum CloudCheckFailed {
+                static let title = BootstrapError.title
+                static let body = BootstrapError.body
+                static let retryCTA = BootstrapError.retryCTA
+            }
+
             enum BootstrapError {
                 static let title = "Couldn't check your saved plan"
                 static let body = "Check your connection and try again."
@@ -298,21 +316,61 @@ enum FormaProductCopy {
             }
 
             enum PlanReveal {
-                static let title = "Your plan is ready"
+                static let title = "Your starting plan is ready"
                 static let subtitle =
-                    "These are your starting targets. \(Onboarding.V2.adjustsWithRealData)"
+                    "Built around your body, goal, activity, and selected pace."
                 static let journeySectionTitle = "Goal"
                 static let dailyTargetSectionTitle = "Daily target"
                 static let heroCalorieExplanation =
                     "Balanced around your selected pace and activity."
+                static let cutCalorieExplanation =
+                    "A realistic target designed to support fat loss while protecting energy and training."
                 static let viewMacrosCTA = "View macros"
                 static let hideMacrosCTA = "Hide macros"
-                static let savePlanCTA = "Save plan"
+                static let savePlanCTA = "Save my plan"
                 static let adjustPlanCTA = "Adjust plan"
                 static let maintainCalorieExplanation =
                     "Balanced around maintenance while Forma learns your trend."
                 static let gainCalorieExplanation =
                     "A modest surplus to support steady progress."
+                static let keyTargetsSectionTitle = "Your daily targets"
+                static let signedOutSaveTrustNote =
+                    "Save your plan with Google so you can pick up where you left off."
+                static let signedInSaveTrustNote =
+                    "Your plan will be saved to your account."
+
+                enum Strategy {
+                    static let gentleCut = "Gentle cut"
+                    static let moderateCut = "Moderate cut"
+                    static let fasterCut = "Faster cut"
+                    static let customCut = "Custom cut"
+                    static let maintenance = "Maintenance"
+                    static let leanGain = "Lean gain"
+                }
+
+                enum Status {
+                    static let sustainableTitle = "Sustainable starting point"
+                    static let aggressiveDeficitTitle = "This pace is more demanding"
+                    static let aggressiveDeficitBody =
+                        "You can still continue, but a slower pace may be easier to sustain."
+                    static let lowCalorieTitle = "This target may be too low"
+                    static let lowCalorieBody =
+                        "Consider adjusting your pace to protect energy and recovery."
+                    static let maintenanceTitle = "Maintenance target"
+                    static let maintenanceBody =
+                        "Forma will help you hold steady while it learns your trend."
+                }
+
+                enum Reassurance {
+                    static let title = "Ready to start simple"
+                    static let body =
+                        "Log honestly, follow the daily targets, and Forma will adjust as your real progress comes in."
+                    static let bullets = [
+                        "No crash dieting",
+                        "Targets can be adjusted later",
+                        "Your plan improves with consistent logs"
+                    ]
+                }
             }
 
             enum SavePlan {

@@ -122,6 +122,55 @@ final class ProfileBootstrapServiceTests: XCTestCase {
         XCTAssertEqual(cloudStore.lastSavedUID, "user-1")
     }
 
+    func testFetchCloudProfilePresenceAbsentWhenDocumentMissing() async throws {
+        let cloudStore = MockCloudUserProfileStore()
+        let container = try AppContainer(inMemory: true)
+        let service = ProfileBootstrapService(
+            userProfileService: container.userProfileService,
+            cloudStore: cloudStore
+        )
+
+        let presence = try await service.fetchCloudProfilePresence(uid: "user-1")
+
+        XCTAssertEqual(presence, .absent)
+        XCTAssertEqual(cloudStore.fetchCallCount, 1)
+    }
+
+    func testFetchCloudProfilePresencePresentWhenDocumentExists() async throws {
+        let cloudStore = MockCloudUserProfileStore()
+        cloudStore.storedDocument = ProfileTestFixtures.cloudDocument()
+        let container = try AppContainer(inMemory: true)
+        let service = ProfileBootstrapService(
+            userProfileService: container.userProfileService,
+            cloudStore: cloudStore
+        )
+
+        let presence = try await service.fetchCloudProfilePresence(uid: "user-1")
+
+        guard case .present(let document) = presence else {
+            return XCTFail("Expected present cloud profile")
+        }
+        XCTAssertEqual(document.age, ProfileTestFixtures.sampleProfile.age)
+        XCTAssertEqual(cloudStore.fetchCallCount, 1)
+    }
+
+    func testFetchCloudProfilePresenceThrowsOnFetchFailure() async throws {
+        let cloudStore = MockCloudUserProfileStore()
+        cloudStore.fetchError = NSError(domain: "test", code: 1)
+        let container = try AppContainer(inMemory: true)
+        let service = ProfileBootstrapService(
+            userProfileService: container.userProfileService,
+            cloudStore: cloudStore
+        )
+
+        do {
+            _ = try await service.fetchCloudProfilePresence(uid: "user-1")
+            XCTFail("Expected fetchCloudProfilePresence to throw")
+        } catch {
+            XCTAssertEqual(cloudStore.fetchCallCount, 1)
+        }
+    }
+
     func testLocalProfileWithoutAuthSkipsCloudFetchAndRoutesToMain() async throws {
         let cloudStore = MockCloudUserProfileStore()
         let container = try AppContainer(inMemory: true)

@@ -17,6 +17,7 @@ struct OnboardingBottomBar: View {
     let onContinue: () -> Void
     let onComplete: () -> Void
     var onAdjustPlan: (() -> Void)? = nil
+    var saveTrustNote: String? = nil
 
     @ScaledMetric(relativeTo: .body) private var buttonHeight: CGFloat = 48
 
@@ -107,6 +108,16 @@ struct OnboardingBottomBar: View {
                 .disabled(isLoading || !canContinue)
                 .accessibilityLabel(primaryTitle)
                 .accessibilityHint(canContinue ? "" : FormaProductCopy.Common.completeRequiredFields)
+            }
+
+            if let saveTrustNote, showsAdjustPlan {
+                Text(saveTrustNote)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(OnboardingTheme.tertiaryText)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel(saveTrustNote)
             }
 
             if showsAdjustPlan, let onAdjustPlan {
@@ -202,7 +213,23 @@ struct OnboardingBottomBar: View {
         onBack: {},
         onContinue: {},
         onComplete: {},
-        onAdjustPlan: {}
+        onAdjustPlan: {},
+        saveTrustNote: FormaProductCopy.Onboarding.V2.PlanReveal.signedOutSaveTrustNote
+    )
+    .background(OnboardingTheme.background)
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Plan reveal signed in") {
+    OnboardingBottomBar(
+        currentStep: .planReveal,
+        isLoading: false,
+        canContinue: true,
+        onBack: {},
+        onContinue: {},
+        onComplete: {},
+        onAdjustPlan: {},
+        saveTrustNote: FormaProductCopy.Onboarding.V2.PlanReveal.signedInSaveTrustNote
     )
     .background(OnboardingTheme.background)
     .preferredColorScheme(.dark)

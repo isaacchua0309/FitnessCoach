@@ -32,6 +32,18 @@ final class UserProfileService {
             throw ServiceError.invalidInput("A profile already exists on this device.")
         }
 
+        return try insertProfile(from: document)
+    }
+
+    /// Replaces the on-device profile with a cloud snapshot (onboarding conflict resolution).
+    func replaceLocalProfile(with document: CloudUserProfileDocument) throws -> UserProfile {
+        if let existing = try latestProfileEntity() {
+            try store.delete(existing)
+        }
+        return try insertProfile(from: document)
+    }
+
+    private func insertProfile(from document: CloudUserProfileDocument) throws -> UserProfile {
         let profile = document.makeUserProfile()
         let entity = UserProfileEntity(model: profile)
         try store.insert(entity)

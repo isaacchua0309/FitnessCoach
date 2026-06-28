@@ -26,7 +26,7 @@ enum AuthGateRoutingPolicy {
         switch rootState {
         case .loading, .onboarding:
             return true
-        case .missingCloudProfile, .main, .error:
+        case .missingCloudProfile, .onboardingCloudProfileConflict, .onboardingCloudCheckFailed, .main, .error:
             return false
         }
     }
@@ -63,6 +63,14 @@ enum AuthGateRoutingPolicy {
         default:
             return false
         }
+    }
+
+    /// Defer the signed-in local-profile short-circuit while onboarding completion sign-in resolves cloud presence.
+    static func shouldDeferLocalProfileShortCircuit(
+        pendingOnboardingCompletion: Bool,
+        hasLocalProfile: Bool
+    ) -> Bool {
+        pendingOnboardingCompletion && hasLocalProfile
     }
 
     static func shouldClearOnboardingModelOnSignOut(

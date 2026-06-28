@@ -19,7 +19,8 @@ enum OnboardingCompletionIntent: Equatable, Sendable {
 @MainActor
 final class OnboardingModel: ObservableObject {
 
-    static let minimumGenerationDisplayDuration: TimeInterval = 1.2
+    static let minimumGenerationDisplayDuration: TimeInterval =
+        OnboardingGeneratingPlanTiming.minimumDisplayDuration
 
     @Published private(set) var currentStep: OnboardingStep
     @Published private(set) var currentV3Step: OnboardingV3Step?
@@ -588,6 +589,12 @@ final class OnboardingModel: ObservableObject {
         recordOnboardingFinished(completionPath: "sign_in")
     }
 
+    /// Called when the user restores an existing cloud profile instead of uploading onboarding data.
+    func finalizeAfterRestoredExistingPlan() {
+        logAnalytics(.signInCompleted)
+        recordOnboardingFinished(completionPath: "restored_existing")
+    }
+
     private func finalizeLocalOnboarding() {
         recordOnboardingFinished(completionPath: "local_only")
     }
@@ -913,5 +920,9 @@ struct OnboardingCoachingContextStore: Sendable {
             return nil
         }
         return try? JSONDecoder().decode(OnboardingCoachingContext.self, from: data)
+    }
+
+    func clear() {
+        userDefaults.removeObject(forKey: OnboardingCoachingContext.userDefaultsKey)
     }
 }

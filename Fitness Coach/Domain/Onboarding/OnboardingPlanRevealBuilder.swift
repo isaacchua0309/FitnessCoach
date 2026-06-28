@@ -35,18 +35,33 @@ enum OnboardingPlanRevealBuilder {
         return OnboardingPlanRevealState(
             currentWeightLabel: weightLabel(currentWeightKg),
             goalWeightLabel: weightLabel(goalWeightKg),
+            goalProgressLabel: goalProgressLabel(
+                current: weightLabel(currentWeightKg),
+                goal: weightLabel(goalWeightKg)
+            ),
             weeklyChangeLabel: timeline.weeklyChangeLabel,
+            paceLabel: timeline.paceLabel,
             estimatedWeeksLabel: timeline.estimatedWeeksLabel,
             journeySummaryLine: journeySummaryLine(
                 direction: direction,
                 goalWeightKg: goalWeightKg
             ),
+            strategyLabel: OnboardingPlanRevealStrategyFormatter.label(
+                goalDirection: direction,
+                paceChoice: formState.weightLossPaceChoice
+            ),
             dailyCalorieLabel: OnboardingFormatter.kcal(plan.targets.calorieTarget),
-            calorieExplanationLine: FormaProductCopy.Onboarding.V2.PlanReveal.heroCalorieExplanation,
+            calorieExplanationLine: OnboardingPlanRevealStrategyFormatter.calorieExplanation(
+                goalDirection: direction
+            ),
             proteinLabel: OnboardingFormatter.grams(plan.targets.proteinTarget),
             waterLabel: OnboardingFormatter.ml(plan.targets.waterTargetMl),
             secondaryMacroRows: secondaryMacroRows(from: plan),
-            warningMessage: warningMessage(plan: plan, pacePreview: pacePreview)
+            planStatus: OnboardingPlanRevealStatusFormatter.resolve(
+                plan: plan,
+                pacePreview: pacePreview,
+                goalDirection: direction
+            )
         )
     }
 
@@ -70,6 +85,7 @@ enum OnboardingPlanRevealBuilder {
 
     private struct CutTimeline {
         let weeklyChangeLabel: String?
+        let paceLabel: String?
         let estimatedWeeksLabel: String?
     }
 
@@ -81,25 +97,27 @@ enum OnboardingPlanRevealBuilder {
         pacePreview: WeightLossPacePreviewModel
     ) -> CutTimeline {
         guard direction == .cut else {
-            return CutTimeline(weeklyChangeLabel: nil, estimatedWeeksLabel: nil)
+            return CutTimeline(weeklyChangeLabel: nil, paceLabel: nil, estimatedWeeksLabel: nil)
         }
 
         let weeklyKg = plan.targets.expectedWeeklyWeightLossKg ?? pacePreview.weeklyLossKg
         guard let weeklyKg, weeklyKg > 0 else {
-            return CutTimeline(weeklyChangeLabel: nil, estimatedWeeksLabel: nil)
+            return CutTimeline(weeklyChangeLabel: nil, paceLabel: nil, estimatedWeeksLabel: nil)
         }
 
         let remainingKg = currentWeightKg - goalWeightKg
         guard remainingKg > 0 else {
-            return CutTimeline(weeklyChangeLabel: nil, estimatedWeeksLabel: nil)
+            return CutTimeline(weeklyChangeLabel: nil, paceLabel: nil, estimatedWeeksLabel: nil)
         }
 
+        let paceLabel = compactPaceLabel(weeklyKg: weeklyKg)
         let weeklyChangeLabel = expectedPaceLabel(weeklyKg: weeklyKg)
         let estimatedWeeks = Int(ceil(remainingKg / weeklyKg))
         let estimatedWeeksLabel = estimatedTimelineLabel(weeks: estimatedWeeks)
 
         return CutTimeline(
             weeklyChangeLabel: weeklyChangeLabel,
+            paceLabel: paceLabel,
             estimatedWeeksLabel: estimatedWeeksLabel
         )
     }
@@ -120,9 +138,17 @@ enum OnboardingPlanRevealBuilder {
         }
     }
 
+    private static func goalProgressLabel(current: String, goal: String) -> String {
+        "\(current) → \(goal)"
+    }
+
     private static func expectedPaceLabel(weeklyKg: Double) -> String {
         let pace = OnboardingFormatter.weeklyLoss(weeklyKg) ?? formattedWeeklyLoss(weeklyKg)
         return "Expected pace: \(pace)"
+    }
+
+    private static func compactPaceLabel(weeklyKg: Double) -> String {
+        OnboardingFormatter.weeklyLoss(weeklyKg) ?? formattedWeeklyLoss(weeklyKg)
     }
 
     private static func estimatedTimelineLabel(weeks: Int) -> String {
@@ -140,23 +166,6 @@ enum OnboardingPlanRevealBuilder {
                 value: OnboardingFormatter.grams(plan.targets.fatTarget)
             )
         ]
-    }
-
-    private static func warningMessage(
-        plan: CalorieTargetResult,
-        pacePreview: WeightLossPacePreviewModel
-    ) -> String? {
-        if let planWarning = plan.warning?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !planWarning.isEmpty {
-            return planWarning
-        }
-        if let paceWarning = pacePreview.warningMessage {
-            return paceWarning
-        }
-        if plan.isAggressive {
-            return FormaProductCopy.Onboarding.aggressivePlanWarning
-        }
-        return nil
     }
 
     // MARK: - Formatting

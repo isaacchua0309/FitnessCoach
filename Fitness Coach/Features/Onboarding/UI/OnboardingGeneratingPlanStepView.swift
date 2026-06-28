@@ -14,8 +14,7 @@ struct OnboardingGeneratingPlanStepView: View {
     @State private var revealedChecklistCount = 0
 
     private let checklist = FormaProductCopy.Onboarding.V2.Generating.checklist
-    private let checklistItemInterval: TimeInterval = 0.35
-    private let checklistInitialDelay: TimeInterval = 0.2
+    private let intervalsAfterReveal = OnboardingGeneratingPlanTiming.intervalsAfterReveal
 
     private var isGenerating: Bool {
         viewState == .generatingPlanAnimated
@@ -101,7 +100,10 @@ struct OnboardingGeneratingPlanStepView: View {
                 .accessibilityHidden(true)
         }
         .labelStyle(.titleAndIcon)
-        .animation(.easeInOut(duration: 0.25), value: isComplete)
+        .animation(
+            .easeInOut(duration: OnboardingGeneratingPlanTiming.itemRevealAnimation),
+            value: isComplete
+        )
     }
 
     // MARK: - Failure
@@ -130,19 +132,27 @@ struct OnboardingGeneratingPlanStepView: View {
     @MainActor
     private func runChecklistAnimation() async {
         guard viewState == .generatingPlanAnimated else { return }
+        OnboardingGeneratingPlanTiming.validateChecklistAlignment()
         revealedChecklistCount = 0
 
-        let initialNanoseconds = UInt64(checklistInitialDelay * 1_000_000_000)
-        try? await Task.sleep(nanoseconds: initialNanoseconds)
+        try? await Task.sleep(
+            nanoseconds: UInt64(OnboardingGeneratingPlanTiming.initialDelay * 1_000_000_000)
+        )
 
-        for index in checklist.indices {
+        for (index, interval) in intervalsAfterReveal.enumerated() {
             guard !Task.isCancelled, viewState == .generatingPlanAnimated else { return }
-            withAnimation(.easeInOut(duration: 0.25)) {
+            withAnimation(
+                .easeInOut(duration: OnboardingGeneratingPlanTiming.itemRevealAnimation)
+            ) {
                 revealedChecklistCount = index + 1
             }
-            let intervalNanoseconds = UInt64(checklistItemInterval * 1_000_000_000)
-            try? await Task.sleep(nanoseconds: intervalNanoseconds)
+            try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
         }
+
+        guard !Task.isCancelled, viewState == .generatingPlanAnimated else { return }
+        try? await Task.sleep(
+            nanoseconds: UInt64(OnboardingGeneratingPlanTiming.postCompleteHold * 1_000_000_000)
+        )
     }
 }
 

@@ -16,6 +16,8 @@ struct AuthGateView: View {
     @State private var pendingSignInForOnboardingCompletion = false
     @State private var pendingSignInForValueFirstHandoff = false
     @State private var preAuthRouteOverride: AppShellRoute?
+    @State private var conflictCloudDocument: CloudUserProfileDocument?
+    @State private var isResolvingProfileConflict = false
 
     private let container: AppContainer
 
@@ -43,6 +45,12 @@ struct AuthGateView: View {
                 MissingCloudProfileView {
                     onboardingModel = nil
                     rootModel.continueFromMissingCloudProfile()
+                }
+            case .onboardingCloudProfileConflict:
+                onboardingProfileConflictContent
+            case .onboardingCloudCheckFailed:
+                OnboardingCloudCheckFailedView {
+                    retryOnboardingCompletionCloudCheck()
                 }
             case .onboarding:
                 signedInOnboardingContent
@@ -244,7 +252,11 @@ struct AuthGateView: View {
         }
 
         if AppRouteResolver.isSignedIn(authManager.authState) {
-            syncOnboardingToCloudAndFinish()
+            guard let uid = authManager.currentUID else {
+                finishOnboardingLocally()
+                return
+            }
+            Task { await resolveOnboardingCompletionAfterSignIn(uid: uid) }
             return
         }
 
@@ -273,27 +285,111 @@ struct AuthGateView: View {
         }
     }
 
+    /// Signed-in onboarding completion: probe cloud, then sync or show conflict UI.
+    private func resolveOnboardingCompletionAfterSignIn(uid: String) async {
+        rootModel.beginOnboardingCompletionCloudCheck()
+
+        do {
+            let presence = try await container.profileBootstrapService.fetchCloudProfilePresence(uid: uid)
+            switch presence {
+            case .absent:
+                await finishOnboardingCompletionWithCloudUpload(uid: uid)
+            case .present(let document):
+                conflictCloudDocument = document
+                rootModel.presentOnboardingCloudProfileConflict()
+            }
+        } catch {
+            ProfileBootstrapDebugLogger.error(
+                "Cloud profile presence check failed during onboarding completion",
+                fields: ["uid": uid],
+                underlying: error
+            )
+            rootModel.presentOnboardingCloudCheckFailed()
+        }
+    }
+
+    private func finishOnboardingCompletionWithCloudUpload(uid: String) async {
+        await syncOnboardingProfileToCloud(uid: uid)
+        if container.onboardingRoutingConfiguration.isV2Enabled {
+            onboardingModel?.finalizeAfterSuccessfulSignIn()
+        }
+        clearOnboardingCompletionState()
+        rootModel.didCompleteOnboarding()
+    }
+
+    private func clearOnboardingCompletionState() {
+        pendingSignInForOnboardingCompletion = false
+        conflictCloudDocument = nil
+        isResolvingProfileConflict = false
+        onboardingModel = nil
+    }
+
+    @ViewBuilder
+    private var onboardingProfileConflictContent: some View {
+        if let cloudDocument = conflictCloudDocument,
+           let localProfile = try? container.userProfileService.getCurrentProfile() {
+            let summary = OnboardingProfileConflictSummaryBuilder.build(
+                localProfile: localProfile,
+                cloudDocument: cloudDocument
+            )
+            OnboardingProfileConflictView(
+                summary: summary,
+                isResolving: isResolvingProfileConflict,
+                onRestoreExisting: { restoreExistingPlanAfterConflict() },
+                onUseNewPlan: { useNewPlanAfterConflict() }
+            )
+        } else {
+            LaunchLoadingView()
+        }
+    }
+
+    private func restoreExistingPlanAfterConflict() {
+        guard let cloudDocument = conflictCloudDocument,
+              let uid = authManager.currentUID else { return }
+
+        isResolvingProfileConflict = true
+
+        Task { @MainActor in
+            do {
+                _ = try container.userProfileService.replaceLocalProfile(with: cloudDocument)
+                try container.dailyLogService.syncTodayTargetsFromProfile()
+                container.onboardingCoachingContextStore.clear()
+                if container.onboardingRoutingConfiguration.isV2Enabled {
+                    onboardingModel?.finalizeAfterRestoredExistingPlan()
+                }
+                clearOnboardingCompletionState()
+                rootModel.didCompleteOnboarding()
+            } catch {
+                isResolvingProfileConflict = false
+                ProfileBootstrapDebugLogger.error(
+                    "Failed to restore existing cloud profile after onboarding conflict",
+                    fields: ["uid": uid],
+                    underlying: error
+                )
+                rootModel.presentOnboardingCloudCheckFailed()
+            }
+        }
+    }
+
+    private func useNewPlanAfterConflict() {
+        guard let uid = authManager.currentUID else { return }
+
+        isResolvingProfileConflict = true
+
+        Task { @MainActor in
+            await finishOnboardingCompletionWithCloudUpload(uid: uid)
+        }
+    }
+
+    private func retryOnboardingCompletionCloudCheck() {
+        guard let uid = authManager.currentUID else { return }
+        Task { await resolveOnboardingCompletionAfterSignIn(uid: uid) }
+    }
+
     private func completeOnboardingLocallyWithoutSignIn() {
         onboardingModel = nil
         rootModel.resolveLocalProfile()
         rootModel.didCompleteOnboarding()
-    }
-
-    /// Signed-in onboarding completion: upload locally committed profile then enter main.
-    private func syncOnboardingToCloudAndFinish() {
-        guard let uid = authManager.currentUID else {
-            finishOnboardingLocally()
-            return
-        }
-
-        Task { @MainActor in
-            await syncOnboardingProfileToCloud(uid: uid)
-            if container.onboardingRoutingConfiguration.isV2Enabled {
-                onboardingModel?.finalizeAfterSuccessfulSignIn()
-            }
-            onboardingModel = nil
-            rootModel.didCompleteOnboarding()
-        }
     }
 
     private func finishOnboardingLocally() {
@@ -352,6 +448,8 @@ struct AuthGateView: View {
     ) {
         if pendingSignInForOnboardingCompletion, didSignInAttemptFail(from: previous, to: state) {
             pendingSignInForOnboardingCompletion = false
+            conflictCloudDocument = nil
+            isResolvingProfileConflict = false
             let wasCancelled: Bool
             if case .signedOut = state {
                 wasCancelled = true
@@ -371,6 +469,9 @@ struct AuthGateView: View {
 
         if wasSignedIn {
             preAuthRouteOverride = nil
+            pendingSignInForOnboardingCompletion = false
+            conflictCloudDocument = nil
+            isResolvingProfileConflict = false
         }
 
         if AppRouteResolver.shouldClearOnboardingModel(
@@ -393,6 +494,14 @@ struct AuthGateView: View {
     }
 
     private func reconcileSignedInProfile(uid: String, isFreshSignIn: Bool) {
+        if AuthGateRoutingPolicy.shouldDeferLocalProfileShortCircuit(
+            pendingOnboardingCompletion: pendingSignInForOnboardingCompletion,
+            hasLocalProfile: container.profileBootstrapService.hasLocalProfile()
+        ) {
+            Task { await resolveOnboardingCompletionAfterSignIn(uid: uid) }
+            return
+        }
+
         if container.profileBootstrapService.hasLocalProfile() {
             rootModel.didCompleteOnboarding()
             return
@@ -420,13 +529,6 @@ struct AuthGateView: View {
         if state == .onboarding {
             bootstrapOnboardingIfNeeded()
         }
-
-        guard pendingSignInForOnboardingCompletion else { return }
-        guard AppRouteResolver.isSignedIn(authManager.authState) else { return }
-        guard state == .main else { return }
-
-        pendingSignInForOnboardingCompletion = false
-        syncOnboardingToCloudAndFinish()
     }
 
     private func didSignInAttemptFail(from previous: AuthState, to state: AuthState) -> Bool {

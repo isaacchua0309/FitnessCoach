@@ -91,7 +91,8 @@ struct OnboardingView: View {
                                 fieldNavigator.dismissFocus()
                                 model.adjustPlanFromReveal()
                             }
-                            : nil
+                            : nil,
+                        saveTrustNote: planRevealSaveTrustNote
                     )
                 }
             }
@@ -134,6 +135,14 @@ struct OnboardingView: View {
 
     private var isPlanRevealStep: Bool {
         model.currentV3Step == .planReveal || model.currentStep == .planReveal
+    }
+
+    private var planRevealSaveTrustNote: String? {
+        guard isPlanRevealStep else { return nil }
+        if model.requiresGoogleSignInAtSavePlan {
+            return FormaProductCopy.Onboarding.V2.PlanReveal.signedOutSaveTrustNote
+        }
+        return FormaProductCopy.Onboarding.V2.PlanReveal.signedInSaveTrustNote
     }
 
     @ViewBuilder

@@ -68,4 +68,26 @@ final class ProfileBootstrapService {
     func syncOnboardingProfileToCloud(uid: String) async throws {
         try await saveProfileToCloud(uid: uid)
     }
+
+    /// Probes Firestore for an existing profile without treating fetch errors as absence.
+    func fetchCloudProfilePresence(uid: String) async throws -> CloudProfilePresence {
+        ProfileBootstrapDebugLogger.event(
+            "Probing cloud profile for onboarding completion",
+            fields: ["uid": uid]
+        )
+
+        guard let cloudDocument = try await cloudStore.fetch(uid: uid) else {
+            ProfileBootstrapDebugLogger.event(
+                "No cloud profile for onboarding completion",
+                fields: ["uid": uid]
+            )
+            return .absent
+        }
+
+        ProfileBootstrapDebugLogger.event(
+            "Cloud profile found for onboarding completion",
+            fields: ["uid": uid]
+        )
+        return .present(cloudDocument)
+    }
 }

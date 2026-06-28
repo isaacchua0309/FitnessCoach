@@ -12,6 +12,10 @@ enum RootViewState: Equatable {
     case loading
     /// Signed-in user acknowledged no cloud profile; awaiting setup onboarding.
     case missingCloudProfile
+    /// Onboarding-completion sign-in found an existing cloud profile; user must choose.
+    case onboardingCloudProfileConflict
+    /// Cloud presence check failed during onboarding-completion sign-in.
+    case onboardingCloudCheckFailed
     case onboarding
     case main
     case error(String)
@@ -61,6 +65,21 @@ final class RootModel: ObservableObject {
     func didCompleteOnboarding() {
         loadTask?.cancel()
         state = .main
+    }
+
+    func presentOnboardingCloudProfileConflict() {
+        loadTask?.cancel()
+        state = .onboardingCloudProfileConflict
+    }
+
+    func presentOnboardingCloudCheckFailed() {
+        loadTask?.cancel()
+        state = .onboardingCloudCheckFailed
+    }
+
+    func beginOnboardingCompletionCloudCheck() {
+        loadTask?.cancel()
+        state = .loading
     }
 
     /// Transitions from the post-sign-in missing-cloud interstitial into setup onboarding.

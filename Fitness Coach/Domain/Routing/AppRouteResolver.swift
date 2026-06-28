@@ -18,6 +18,8 @@ enum AppShellRoute: Equatable {
     case signedInProfileLoading
     /// Signed-in user with no local/cloud profile before setup onboarding.
     case missingCloudProfile
+    case onboardingCloudProfileConflict
+    case onboardingCloudCheckFailed
     case onboarding
     case onboardingInitializing
     case main
@@ -145,6 +147,10 @@ enum AppRouteResolver {
             return .signedInProfileLoading
         case .missingCloudProfile:
             return .missingCloudProfile
+        case .onboardingCloudProfileConflict:
+            return .onboardingCloudProfileConflict
+        case .onboardingCloudCheckFailed:
+            return .onboardingCloudCheckFailed
         case .onboarding:
             return input.isOnboardingModelReady ? .onboarding : .onboardingInitializing
         case .main:
@@ -207,6 +213,10 @@ extension OnboardingShellRoute {
             self = .signedInProfileLoading
         case .missingCloudProfile:
             self = .missingCloudProfile
+        case .onboardingCloudProfileConflict:
+            self = .onboardingCloudProfileConflict
+        case .onboardingCloudCheckFailed:
+            self = .onboardingCloudCheckFailed
         case .onboarding:
             self = .onboarding
         case .onboardingInitializing:
@@ -237,6 +247,10 @@ extension AppShellRoute {
             self = .signedInProfileLoading
         case .missingCloudProfile:
             self = .missingCloudProfile
+        case .onboardingCloudProfileConflict:
+            self = .onboardingCloudProfileConflict
+        case .onboardingCloudCheckFailed:
+            self = .onboardingCloudCheckFailed
         case .onboarding:
             self = .onboarding
         case .onboardingInitializing:

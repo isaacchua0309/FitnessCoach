@@ -38,12 +38,19 @@ final class OnboardingAnalyticsContextBuilderTests: XCTestCase {
         let reveal = OnboardingPlanRevealState(
             currentWeightLabel: "72 kg",
             goalWeightLabel: "65 kg",
+            goalProgressLabel: "72 kg → 65 kg",
             estimatedWeeksLabel: "About 15 weeks",
             journeySummaryLine: "Cut to 65 kg",
+            strategyLabel: FormaProductCopy.Onboarding.V2.PlanReveal.Strategy.moderateCut,
             dailyCalorieLabel: "1,800 kcal",
-            calorieExplanationLine: "Balanced around your selected pace and activity.",
+            calorieExplanationLine: FormaProductCopy.Onboarding.V2.PlanReveal.cutCalorieExplanation,
             proteinLabel: "150 g",
-            waterLabel: "2,800 ml"
+            waterLabel: "2,800 ml",
+            planStatus: OnboardingPlanRevealStatus(
+                title: FormaProductCopy.Onboarding.V2.PlanReveal.Status.sustainableTitle,
+                body: nil,
+                style: .positive
+            )
         )
         XCTAssertEqual(
             OnboardingAnalyticsContextBuilder.estimatedWeeks(from: reveal),

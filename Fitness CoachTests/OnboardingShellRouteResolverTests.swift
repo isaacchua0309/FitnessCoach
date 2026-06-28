@@ -102,6 +102,28 @@ final class OnboardingShellRouteResolverTests: XCTestCase {
         )
     }
 
+    func testSignedInOnboardingCloudProfileConflictRoutesToConflictShell() {
+        XCTAssertEqual(
+            resolve(
+                authState: signedInUser,
+                hasLocalProfile: true,
+                rootState: .onboardingCloudProfileConflict
+            ),
+            .onboardingCloudProfileConflict
+        )
+    }
+
+    func testSignedInOnboardingCloudCheckFailedRoutesToRetryShell() {
+        XCTAssertEqual(
+            resolve(
+                authState: signedInUser,
+                hasLocalProfile: true,
+                rootState: .onboardingCloudCheckFailed
+            ),
+            .onboardingCloudCheckFailed
+        )
+    }
+
     func testSignedInNoProfileRoutesToOnboarding() {
         XCTAssertEqual(
             resolve(

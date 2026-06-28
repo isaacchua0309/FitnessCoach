@@ -37,10 +37,14 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
 
         XCTAssertEqual(reveal.currentWeightLabel, "82.5 kg")
         XCTAssertEqual(reveal.goalWeightLabel, "75 kg")
+        XCTAssertEqual(reveal.goalProgressLabel, "82.5 kg → 75 kg")
         XCTAssertTrue(reveal.weeklyChangeLabel?.contains("0.5") == true)
         XCTAssertTrue(reveal.weeklyChangeLabel?.contains("kg/week") == true)
+        XCTAssertTrue(reveal.paceLabel?.contains("0.5") == true)
+        XCTAssertTrue(reveal.paceLabel?.contains("kg/week") == true)
         XCTAssertEqual(reveal.estimatedWeeksLabel, "About 15 weeks")
         XCTAssertTrue(reveal.journeySummaryLine.contains("starting targets"))
+        XCTAssertEqual(reveal.strategyLabel, FormaProductCopy.Onboarding.V2.PlanReveal.Strategy.moderateCut)
     }
 
     // MARK: - Maintain / gain
@@ -52,8 +56,11 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
         let reveal = try XCTUnwrap(OnboardingPlanRevealBuilder.build(formState: form, plan: plan))
 
         XCTAssertNil(reveal.weeklyChangeLabel)
+        XCTAssertNil(reveal.paceLabel)
         XCTAssertNil(reveal.estimatedWeeksLabel)
         XCTAssertTrue(reveal.journeySummaryLine.contains("maintaining around 72 kg"))
+        XCTAssertEqual(reveal.strategyLabel, FormaProductCopy.Onboarding.V2.PlanReveal.Strategy.maintenance)
+        XCTAssertEqual(reveal.planStatus.title, FormaProductCopy.Onboarding.V2.PlanReveal.Status.maintenanceTitle)
     }
 
     func testGainGoalHidesLossTimeline() throws {
@@ -63,8 +70,10 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
         let reveal = try XCTUnwrap(OnboardingPlanRevealBuilder.build(formState: form, plan: plan))
 
         XCTAssertNil(reveal.weeklyChangeLabel)
+        XCTAssertNil(reveal.paceLabel)
         XCTAssertNil(reveal.estimatedWeeksLabel)
         XCTAssertTrue(reveal.journeySummaryLine.contains("building toward 78 kg"))
+        XCTAssertEqual(reveal.strategyLabel, FormaProductCopy.Onboarding.V2.PlanReveal.Strategy.leanGain)
     }
 
     // MARK: - Missing weekly loss
@@ -94,6 +103,7 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
         let reveal = try XCTUnwrap(OnboardingPlanRevealBuilder.build(formState: form, plan: plan))
 
         XCTAssertNil(reveal.weeklyChangeLabel)
+        XCTAssertNil(reveal.paceLabel)
         XCTAssertNil(reveal.estimatedWeeksLabel)
     }
 
@@ -112,11 +122,11 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
         XCTAssertEqual(reveal.dailyCalorieLabel, OnboardingFormatter.kcal(plan.targets.calorieTarget))
         XCTAssertEqual(
             reveal.calorieExplanationLine,
-            FormaProductCopy.Onboarding.V2.PlanReveal.heroCalorieExplanation
+            FormaProductCopy.Onboarding.V2.PlanReveal.cutCalorieExplanation
         )
     }
 
-    func testAdvancedPacePlanStillUsesHeroExplanation() throws {
+    func testAdvancedPacePlanUsesCutExplanation() throws {
         var form = cutForm(currentWeightKg: 82.5, goalWeightKg: 75)
         form.selectPaceChoice(.advanced)
         form.advancedPaceDraft = WeightLossAdvancedPaceDraft(period: .weekly, amountText: "0.45")
@@ -126,9 +136,57 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
 
         XCTAssertEqual(
             reveal.calorieExplanationLine,
-            FormaProductCopy.Onboarding.V2.PlanReveal.heroCalorieExplanation
+            FormaProductCopy.Onboarding.V2.PlanReveal.cutCalorieExplanation
         )
+        XCTAssertEqual(reveal.strategyLabel, FormaProductCopy.Onboarding.V2.PlanReveal.Strategy.customCut)
         XCTAssertFalse(reveal.proteinLabel.isEmpty)
+    }
+
+    // MARK: - Status mapping
+
+    func testAggressiveDeficitKeyMapsToUserFacingStatus() throws {
+        let form = cutForm(currentWeightKg: 90, goalWeightKg: 79.5)
+        let plan = CalorieTargetResult(
+            estimatedBMR: 1800,
+            estimatedTDEE: 2600,
+            targets: UserTargets(
+                calorieTarget: 2080,
+                proteinTarget: 180,
+                carbTarget: 200,
+                fatTarget: 60,
+                waterTargetMl: 2950,
+                expectedWeeklyWeightLossKg: 0.26,
+                aggressiveness: .moderate
+            ),
+            estimatedDailyDeficit: 520,
+            isAggressive: true,
+            warning: "aggressiveDeficit"
+        )
+
+        let reveal = try XCTUnwrap(OnboardingPlanRevealBuilder.build(formState: form, plan: plan))
+
+        XCTAssertEqual(
+            reveal.planStatus.title,
+            FormaProductCopy.Onboarding.V2.PlanReveal.Status.aggressiveDeficitTitle
+        )
+        XCTAssertEqual(
+            reveal.planStatus.body,
+            FormaProductCopy.Onboarding.V2.PlanReveal.Status.aggressiveDeficitBody
+        )
+        XCTAssertEqual(reveal.planStatus.style, .caution)
+        XCTAssertFalse(reveal.planStatus.title.contains("aggressiveDeficit"))
+    }
+
+    func testSustainablePlanShowsPositiveStatus() throws {
+        let form = cutForm(currentWeightKg: 72, goalWeightKg: 65)
+        let plan = try samplePlan(for: form)
+        let reveal = try XCTUnwrap(OnboardingPlanRevealBuilder.build(formState: form, plan: plan))
+
+        XCTAssertEqual(
+            reveal.planStatus.title,
+            FormaProductCopy.Onboarding.V2.PlanReveal.Status.sustainableTitle
+        )
+        XCTAssertEqual(reveal.planStatus.style, .positive)
     }
 
     // MARK: - Language
@@ -144,7 +202,9 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
             reveal.weeklyChangeLabel,
             reveal.estimatedWeeksLabel,
             reveal.dailyCalorieLabel,
-            reveal.calorieExplanationLine
+            reveal.calorieExplanationLine,
+            reveal.planStatus.title,
+            reveal.planStatus.body
         ]
         .compactMap { $0 }
         .joined(separator: " ")
@@ -153,6 +213,7 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
         XCTAssertTrue(combined.contains("expected") || combined.contains("about") || combined.contains("starting"))
         XCTAssertFalse(combined.contains("guaranteed"))
         XCTAssertFalse(combined.contains("will lose"))
+        XCTAssertFalse(combined.contains("aggressivedeficit"))
     }
 
     // MARK: - Fixtures

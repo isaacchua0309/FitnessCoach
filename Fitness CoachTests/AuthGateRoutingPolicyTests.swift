@@ -55,6 +55,21 @@ final class AuthGateRoutingPolicyTests: XCTestCase {
         )
     }
 
+    func testDeferLocalProfileShortCircuitDuringOnboardingCompletion() {
+        XCTAssertTrue(
+            AuthGateRoutingPolicy.shouldDeferLocalProfileShortCircuit(
+                pendingOnboardingCompletion: true,
+                hasLocalProfile: true
+            )
+        )
+        XCTAssertFalse(
+            AuthGateRoutingPolicy.shouldDeferLocalProfileShortCircuit(
+                pendingOnboardingCompletion: false,
+                hasLocalProfile: true
+            )
+        )
+    }
+
     func testReloadSignedInCloudProfileWhenPreAuthOnboardingIsActive() {
         XCTAssertTrue(
             AuthGateRoutingPolicy.shouldReloadSignedInCloudProfile(
