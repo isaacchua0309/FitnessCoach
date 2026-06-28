@@ -23,17 +23,6 @@ final class OnboardingAnalyticsContextBuilderTests: XCTestCase {
         XCTAssertEqual(OnboardingAnalyticsContextBuilder.goalDirection(from: form), "gain")
     }
 
-    func testLoggingModeOmitsDietNotes() {
-        var form = OnboardingFormState()
-        form.dietPreference = "No shellfish — private note"
-        form.loggingPreferences = [.quickTaps, .noPressure]
-
-        XCTAssertEqual(
-            OnboardingAnalyticsContextBuilder.loggingMode(from: form),
-            "noPressure,quickTaps"
-        )
-    }
-
     func testEstimatedWeeksExtractsDigitsOnly() {
         let reveal = OnboardingPlanRevealState(
             currentWeightLabel: "72 kg",
@@ -57,87 +46,74 @@ final class OnboardingAnalyticsContextBuilderTests: XCTestCase {
             "15"
         )
     }
-
-    func testFeedbackKindForPreferencesIgnoresFreeTextDietNotes() {
-        var form = OnboardingFormState()
-        form.dietPreference = "Allergic to peanuts"
-
-        XCTAssertNil(
-            OnboardingAnalyticsContextBuilder.feedbackKind(for: .preferences, formState: form)
-        )
-
-        form.loggingPreferences = [.quickTaps]
-        XCTAssertEqual(
-            OnboardingAnalyticsContextBuilder.feedbackKind(for: .preferences, formState: form),
-            "preferences"
-        )
-    }
 }
 
 @MainActor
 final class OnboardingModelAnalyticsTests: XCTestCase {
 
-    private var v2FlagPrevious = false
-    private var draftSuiteName: String!
     private var draftDefaults: UserDefaults!
     private var draftStore: OnboardingDraftStore!
-    private var analytics: CapturingOnboardingAnalyticsLogger!
+    private let analytics = CapturingOnboardingAnalyticsLogger()
 
-    override func setUp() async throws {
-        try await super.setUp()
-        v2FlagPrevious = UserDefaults.standard.bool(forKey: OnboardingStepPolicy.featureFlagKey)
-        UserDefaults.standard.set(true, forKey: OnboardingStepPolicy.featureFlagKey)
-
-        draftSuiteName = "OnboardingModelAnalyticsTests.\(UUID().uuidString)"
-        draftDefaults = UserDefaults(suiteName: draftSuiteName)!
+    override func setUp() {
+        super.setUp()
+        draftDefaults = UserDefaults(suiteName: "OnboardingModelAnalyticsTests.\(UUID().uuidString)")!
         draftStore = OnboardingDraftStore(userDefaults: draftDefaults)
-        draftStore.clearDraft()
-        analytics = CapturingOnboardingAnalyticsLogger()
     }
 
-    override func tearDown() async throws {
+    override func tearDown() {
         draftStore.clearDraft()
-        draftDefaults.removePersistentDomain(forName: draftSuiteName)
-        UserDefaults.standard.set(v2FlagPrevious, forKey: OnboardingStepPolicy.featureFlagKey)
-        try await super.tearDown()
+        draftDefaults.removePersistentDomain(forName: draftDefaults.description)
+        draftDefaults = nil
+        draftStore = nil
+        super.tearDown()
     }
 
     func testFreshSessionLogsStartedAndStepViewed() throws {
         _ = try makeModel(entry: .preAuth)
 
         XCTAssertTrue(analytics.contains(.started))
-        XCTAssertTrue(analytics.contains(.stepViewed, step: "landing"))
+        XCTAssertTrue(analytics.contains(.stepViewed, step: "intro_proof"))
         XCTAssertEqual(analytics.lastProperties(for: .stepViewed)?["entry"], "preAuth")
     }
 
-    func testStepCompletedIncludesDurationAndFeedback() throws {
+    func testStepCompletedIncludesDuration() throws {
         let model = try makeModel()
-        fillValidForm(model)
-        while model.currentStep != .activity {
-            model.goNext()
-        }
+        seedValidForm(&model.formState)
         model.goNext()
 
-        XCTAssertTrue(analytics.contains(.stepCompleted, step: "activity"))
+        XCTAssertTrue(analytics.contains(.stepCompleted, step: "intro_proof"))
         XCTAssertNotNil(analytics.lastProperties(for: .stepCompleted)?["durationMs"])
-        XCTAssertTrue(analytics.contains(.feedbackShown, feedbackKind: "activity"))
     }
 
-    func testPlanGenerationLogsPlanEvents() async throws {
+    func testStepEventsOmitLegacyPreferenceAnalytics() throws {
         let model = try makeModel()
-        fillValidForm(model)
-        navigateToSummary(model)
+        seedValidForm(&model.formState)
+        model.formState.loggingPreferences = [.quickTaps, .noPressure]
+        model.goNext()
+
+        let completed = analytics.lastProperties(for: .stepCompleted)
+        XCTAssertNil(completed?["loggingMode"])
+        XCTAssertNil(completed?["goalDirection"])
+    }
+
+    func testPlanGenerationLogsPlanContext() async throws {
+        let model = try makeModel()
+        seedValidForm(&model.formState)
+        navigateToReview(model)
         model.beginGeneration()
         await model.flushPendingGenerationForTesting()
 
         XCTAssertTrue(analytics.contains(.planGenerated))
-        XCTAssertTrue(analytics.contains(.planRevealed, step: "planReveal"))
+        XCTAssertTrue(analytics.contains(.planRevealed, step: "plan_reveal"))
         XCTAssertEqual(analytics.lastProperties(for: .planGenerated)?["goalDirection"], "cut")
+        XCTAssertNil(analytics.lastProperties(for: .planGenerated)?["loggingMode"])
     }
 
     func testSignInCancelledLogsDedicatedEvent() async throws {
         let model = try makeModel()
-        navigateToSummary(model)
+        seedValidForm(&model.formState)
+        navigateToReview(model)
         model.beginGeneration()
         await model.flushPendingGenerationForTesting()
         model.prepareForSavePlan()
@@ -163,23 +139,19 @@ final class OnboardingModelAnalyticsTests: XCTestCase {
         )
     }
 
-    private func fillValidForm(_ model: OnboardingModel) {
-        var state = OnboardingFormState()
-        state.ageText = "28"
-        state.sex = .female
-        state.heightCmText = "168"
-        state.currentWeightKgText = "72"
-        state.goalWeightKgText = "65"
-        state.activityLevel = .moderatelyActive
-        state.trainingFrequencyPerWeekText = "3"
-        state.averageStepsText = "5000"
-        state.selectPaceChoice(.moderate)
-        model.formState = state
+    private func seedValidForm(_ formState: inout OnboardingFormState) {
+        OnboardingHeightWeightValues.applyDefaultsIfNeeded(to: &formState)
+        OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &formState)
+        OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &formState)
+        formState.sex = .female
+        formState.activityLevel = .moderatelyActive
+        OnboardingActivityLevelValues.applyDefaultsIfNeeded(to: &formState)
+        formState.selectPaceChoice(.moderate)
     }
 
-    private func navigateToSummary(_ model: OnboardingModel) {
-        fillValidForm(model)
-        while model.currentStep != .summary {
+    private func navigateToReview(_ model: OnboardingModel) {
+        seedValidForm(&model.formState)
+        while model.currentStep != .review {
             model.goNext()
         }
     }
@@ -203,15 +175,13 @@ private final class CapturingOnboardingAnalyticsLogger: OnboardingAnalyticsLoggi
 
     func contains(
         _ event: OnboardingAnalyticsEvent,
-        step: String? = nil,
-        feedbackKind: String? = nil
+        step: String? = nil
     ) -> Bool {
         lock.lock()
         defer { lock.unlock() }
         return records.contains { record in
             guard record.event == event else { return false }
             if let step, record.properties.step != step { return false }
-            if let feedbackKind, record.properties.feedbackKind != feedbackKind { return false }
             return true
         }
     }
@@ -221,11 +191,5 @@ private final class CapturingOnboardingAnalyticsLogger: OnboardingAnalyticsLoggi
         defer { lock.unlock() }
         guard let record = records.last(where: { $0.event == event }) else { return nil }
         return record.properties.asParameters()
-    }
-}
-
-private extension OnboardingAnalyticsProperties {
-    subscript(key: String) -> String? {
-        asParameters()[key]
     }
 }

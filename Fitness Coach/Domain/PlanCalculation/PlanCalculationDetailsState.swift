@@ -30,10 +30,15 @@ struct PlanCalculationDetailsRow: Equatable, Sendable, Identifiable {
 
 enum PlanCalculationDetailsBuilder {
 
-    static func build(profile: UserProfile, result: PlanCalculationResult) -> PlanCalculationDetailsState {
+    static func build(
+        profile: UserProfile,
+        result: PlanCalculationResult,
+        referenceDate: Date = Date()
+    ) -> PlanCalculationDetailsState {
         var sections: [PlanCalculationDetailsSection] = [
             energySection(profile: profile, result: result),
-            targetsSection(profile: profile, result: result)
+            targetsSection(profile: profile, result: result),
+            personalDetailsSection(profile: profile, referenceDate: referenceDate)
         ]
 
         if let safety = safetySection(result: result) {
@@ -176,6 +181,54 @@ enum PlanCalculationDetailsBuilder {
         return PlanCalculationDetailsSection(
             id: "targets",
             title: "Your targets",
+            rows: rows
+        )
+    }
+
+    private static func personalDetailsSection(
+        profile: UserProfile,
+        referenceDate: Date
+    ) -> PlanCalculationDetailsSection {
+        let ageFootnote = profile.birthDate != nil
+            ? FormaProductCopy.PlanCalculation.personalDetailsAgeFromBirthday
+            : FormaProductCopy.PlanCalculation.personalDetailsAgeLegacy
+
+        let rows: [PlanCalculationDetailsRow] = [
+            row(
+                id: "age",
+                label: FormaProductCopy.ProfileForm.age,
+                value: ProfileFormatter.age(profile.resolvedAge(referenceDate: referenceDate)),
+                footnote: ageFootnote
+            ),
+            row(
+                id: "height",
+                label: FormaProductCopy.ProfileForm.height,
+                value: PlanDisplayFormatter.formatCm(profile.heightCm),
+                footnote: nil
+            ),
+            row(
+                id: "sex",
+                label: FormaProductCopy.ProfileForm.sex,
+                value: ProfileFormatter.sex(profile.sex),
+                footnote: nil
+            ),
+            row(
+                id: "weight",
+                label: FormaProductCopy.ProfileForm.baselineWeight,
+                value: PlanDisplayFormatter.formatKg(profile.currentWeightKg),
+                footnote: nil
+            ),
+            row(
+                id: "units",
+                label: FormaProductCopy.ProfileForm.unitSystem,
+                value: ProfileFormatter.unitSystem(profile.unitSystem),
+                footnote: nil
+            )
+        ]
+
+        return PlanCalculationDetailsSection(
+            id: "personal",
+            title: FormaProductCopy.PlanCalculation.personalDetailsSectionTitle,
             rows: rows
         )
     }

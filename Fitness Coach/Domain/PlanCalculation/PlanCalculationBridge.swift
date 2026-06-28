@@ -47,15 +47,16 @@ enum PlanCalculationBridge {
         referenceDate: Date = Date(),
         isWorkoutDay: Bool = false
     ) -> PlanCalculationInput {
-        PlanCalculationInput(
+        let rhythm = profile.resolvedTrainingRhythm()
+        return PlanCalculationInput(
             ageYears: profile.resolvedAge(referenceDate: referenceDate),
             sex: profile.sex,
             heightCm: profile.heightCm,
             weightKg: profile.currentWeightKg,
             goalWeightKg: profile.goalWeightKg,
             activityLevel: profile.activityLevel,
-            trainingFrequencyPerWeek: profile.trainingFrequencyPerWeek,
-            averageStepsPerDay: profile.averageSteps,
+            trainingFrequencyPerWeek: rhythm.trainingDaysPerWeek,
+            averageStepsPerDay: rhythm.averageStepsPerDay,
             bodyFatPercent: profile.estimatedBodyFatPercentage,
             dietPreference: profile.dietPreference,
             weightLossPace: resolvedWeightLossPace(for: profile),

@@ -33,7 +33,7 @@ struct TodayLogMealSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sectionSpacing) {
-                    FoodEntryFormView(formState: $formState, mode: .manualEntry)
+                    FoodEntryFormView(formState: $formState, mode: .todayManualEntry)
 
                     if let errorMessage {
                         Text(errorMessage)

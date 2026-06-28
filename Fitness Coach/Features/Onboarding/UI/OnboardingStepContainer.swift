@@ -9,9 +9,6 @@ import SwiftUI
 
 struct OnboardingStepContainer<Content: View>: View {
     let currentStep: OnboardingStep
-    var currentV3Step: OnboardingV3Step?
-    var currentV4Step: OnboardingV4Step?
-    let usesStageProgress: Bool
     let viewState: OnboardingViewState
     let validationMessage: String?
     var keyboardHeight: CGFloat = 0
@@ -19,13 +16,7 @@ struct OnboardingStepContainer<Content: View>: View {
     @ViewBuilder let content: Content
 
     private var usesFullScreenShell: Bool {
-        if let currentV4Step {
-            return currentV4Step.usesFullScreenChrome
-        }
-        if let currentV3Step {
-            return currentV3Step.usesFullScreenChrome
-        }
-        return currentStep.usesFullScreenChrome
+        currentStep.usesFullScreenChrome
     }
 
     private var showsLoadingOverlay: Bool {
@@ -40,18 +31,10 @@ struct OnboardingStepContainer<Content: View>: View {
 
     private var showsContainerValidationBanner: Bool {
         guard let validationMessage, !validationMessage.isEmpty else { return false }
-        if currentV4Step == .review || currentV4Step == .savePlan {
+        if currentStep == .review || currentStep == .savePlan {
             return false
         }
-        if currentV3Step == .review || currentV3Step == .savePlan {
-            return false
-        }
-        switch currentStep {
-        case .summary, .savePlan:
-            return false
-        default:
-            return true
-        }
+        return true
     }
 
     private var scrollBottomInset: CGFloat {
@@ -70,17 +53,7 @@ struct OnboardingStepContainer<Content: View>: View {
             fieldNavigator.clearFocus()
             OnboardingKeyboard.dismiss()
         }
-        .onChange(of: currentV3Step) { _, _ in
-            fieldNavigator.clearFocus()
-            OnboardingKeyboard.dismiss()
-        }
-        .onChange(of: currentV4Step) { _, _ in
-            fieldNavigator.clearFocus()
-            OnboardingKeyboard.dismiss()
-        }
     }
-
-    // MARK: - Full-screen (generating plan)
 
     private var fullScreenShell: some View {
         content
@@ -89,8 +62,6 @@ struct OnboardingStepContainer<Content: View>: View {
             .padding(.top, 12)
             .padding(.bottom, 16)
     }
-
-    // MARK: - Scrollable steps
 
     private var scrollableShell: some View {
         ScrollViewReader { proxy in
@@ -109,7 +80,7 @@ struct OnboardingStepContainer<Content: View>: View {
                         OnboardingLoadingView(message: message)
                     }
                 }
-                .padding(.horizontal, contentHorizontalPadding)
+                .padding(.horizontal, OnboardingTheme.pagePadding)
                 .padding(.bottom, scrollBottomInset)
             }
             .scrollIndicators(.hidden)
@@ -132,26 +103,8 @@ struct OnboardingStepContainer<Content: View>: View {
 
     @ViewBuilder
     private var progressHeader: some View {
-        if showsProgressHeader {
-            if let currentV4Step {
-                OnboardingV4StageProgressHeader(currentStep: currentV4Step)
-            } else if let currentV3Step {
-                OnboardingV3StageProgressHeader(currentStep: currentV3Step)
-            } else if usesStageProgress {
-                OnboardingStageProgressHeader(currentStep: currentStep)
-            } else {
-                OnboardingProgressHeader(currentStep: currentStep)
-            }
+        if currentStep.showsProgressHeader {
+            OnboardingStageProgressHeader(currentStep: currentStep)
         }
-    }
-
-    private var showsProgressHeader: Bool {
-        currentV4Step?.showsProgressHeader
-            ?? currentV3Step?.showsProgressHeader
-            ?? currentStep.showsProgressHeader
-    }
-
-    private var contentHorizontalPadding: CGFloat {
-        currentStep == .landing ? 0 : OnboardingTheme.pagePadding
     }
 }

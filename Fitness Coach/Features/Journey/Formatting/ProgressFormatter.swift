@@ -65,6 +65,16 @@ enum ProgressFormatter {
         return value.formatted(.dateTime.month(.abbreviated).year())
     }
 
+    /// Journey story timeline day label, e.g. "Jun 18".
+    static func timelineDayLabel(_ value: Date, calendar: Calendar = .current) -> String {
+        value.formatted(
+            .dateTime
+                .month(.abbreviated)
+                .day()
+                .locale(calendar.locale ?? .current)
+        )
+    }
+
     static func trendDirection(_ direction: WeightTrendDirection) -> String {
         switch direction {
         case .decreasing:

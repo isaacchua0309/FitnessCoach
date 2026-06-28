@@ -518,7 +518,11 @@ private final class StrategyStubClassifierAIService: AIServiceProtocol, @uncheck
         return classifyResult
     }
 
-    func estimateFood(prompt: String, context: AIContext) async throws -> AIFoodEstimateResponse {
+    func estimateFood(
+        prompt: String,
+        context: AIContext,
+        imageJPEGData: Data?
+    ) async throws -> AIFoodEstimateResponse {
         throw AIServiceError.backendUnavailable
     }
 

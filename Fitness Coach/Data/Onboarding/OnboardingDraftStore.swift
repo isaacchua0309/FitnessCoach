@@ -27,7 +27,11 @@ struct OnboardingDraftStore: Sendable {
     }
 
     func saveDraft(_ draft: OnboardingDraft) {
-        guard let data = try? encoder.encode(draft) else { return }
+        guard draft.draftVersion == Self.supportedDraftVersion,
+              OnboardingStep(rawValue: draft.currentStepRawValue) != nil,
+              let data = try? encoder.encode(draft) else {
+            return
+        }
         userDefaults.set(data, forKey: Self.userDefaultsKey)
     }
 
@@ -36,17 +40,21 @@ struct OnboardingDraftStore: Sendable {
             return nil
         }
 
-        do {
-            let draft = try decoder.decode(OnboardingDraft.self, from: data)
-            guard isSupported(draft) else {
-                clearDraft()
-                return nil
-            }
+        if let draft = try? decoder.decode(OnboardingDraft.self, from: data),
+           draft.draftVersion == Self.supportedDraftVersion,
+           OnboardingStep(rawValue: draft.currentStepRawValue) != nil {
             return draft
-        } catch {
-            clearDraft()
-            return nil
         }
+
+        if let legacy = try? decoder.decode(OnboardingDraftV1.self, from: data),
+           legacy.draftVersion == OnboardingDraftMigration.legacyDraftVersion {
+            let migrated = OnboardingDraftMigration.upgrade(from: legacy)
+            saveDraft(migrated)
+            return migrated
+        }
+
+        clearDraft()
+        return nil
     }
 
     func clearDraft() {
@@ -55,10 +63,5 @@ struct OnboardingDraftStore: Sendable {
 
     var hasDraft: Bool {
         loadDraft() != nil
-    }
-
-    private func isSupported(_ draft: OnboardingDraft) -> Bool {
-        draft.draftVersion == Self.supportedDraftVersion
-            && OnboardingStep.fromPersistedRawValue(draft.currentStepRawValue) != nil
     }
 }

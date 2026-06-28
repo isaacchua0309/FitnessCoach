@@ -19,4 +19,16 @@ enum TodayHealthWorkoutResolver {
         let workouts = try await reader.fetchWorkouts(from: dayStart, to: dayEnd)
         return workouts.count
     }
+
+    static func workoutCountThisWeek(
+        reader: HealthKitWorkoutReading,
+        on date: Date = Date(),
+        calendar: Calendar = .current
+    ) async throws -> Int {
+        let todayStart = calendar.startOfDay(for: date)
+        let weekStart = calendar.date(byAdding: .day, value: -6, to: todayStart) ?? todayStart
+        let dayEnd = calendar.date(byAdding: .day, value: 1, to: todayStart) ?? date
+        let workouts = try await reader.fetchWorkouts(from: weekStart, to: dayEnd)
+        return workouts.count
+    }
 }

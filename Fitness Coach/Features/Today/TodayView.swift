@@ -16,19 +16,27 @@ struct TodayView: View {
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
 
     @State private var appleHealthWorkoutCount: Int?
+    @State private var appleHealthWeeklyWorkoutCount: Int?
+    @State private var appleHealthStepsToday: Int?
     @State private var isShowingTrainingInsights = false
 
     /// Opens Coach with optional prefill when an action requires conversational AI.
     var onOpenCoach: ((String?) -> Void)?
+    var onOpenJourney: (() -> Void)?
+    var onOpenPlan: (() -> Void)?
 
     init(
         model: TodayModel,
         actionCoordinator: TodayActionCoordinator,
-        onOpenCoach: ((String?) -> Void)? = nil
+        onOpenCoach: ((String?) -> Void)? = nil,
+        onOpenJourney: (() -> Void)? = nil,
+        onOpenPlan: (() -> Void)? = nil
     ) {
         self.model = model
         _actionCoordinator = StateObject(wrappedValue: actionCoordinator)
         self.onOpenCoach = onOpenCoach
+        self.onOpenJourney = onOpenJourney
+        self.onOpenPlan = onOpenPlan
     }
 
     var body: some View {
@@ -90,9 +98,57 @@ struct TodayView: View {
                         onSave: { actionCoordinator.saveWeight($0) }
                     )
                 }
+                .sheet(isPresented: $actionCoordinator.isPresentingAddWaterSheet) {
+                    TodayAddWaterSheet(
+                        presetAmountsMl: TodayActionCoordinator.defaultWaterPresetAmountsMl,
+                        errorMessage: actionCoordinator.lastErrorMessage,
+                        onAdd: { actionCoordinator.addWater(amountMl: $0) }
+                    )
+                }
+                .sheet(item: $actionCoordinator.editFoodPresentation) { presentation in
+                    TodayEditFoodEntrySheet(
+                        entry: presentation.entry,
+                        errorMessage: actionCoordinator.foodEditErrorMessage,
+                        onSave: { actionCoordinator.saveFoodEdit(from: $0) },
+                        onDelete: {
+                            actionCoordinator.requestDeleteFood(presentation.entry)
+                        },
+                        onCancel: {
+                            actionCoordinator.dismissEditFoodSheet()
+                        }
+                    )
+                }
+                .confirmationDialog(
+                    FormaProductCopy.Today.Meals.deleteConfirmationTitle,
+                    isPresented: deleteConfirmationBinding,
+                    titleVisibility: .visible
+                ) {
+                    Button(
+                        FormaProductCopy.Today.Meals.deleteConfirmAction,
+                        role: .destructive
+                    ) {
+                        actionCoordinator.confirmDeleteFood()
+                    }
+                    Button(FormaProductCopy.Today.Meals.deleteCancelAction, role: .cancel) {
+                        actionCoordinator.cancelDeleteFood()
+                    }
+                } message: {
+                    Text(FormaProductCopy.Today.Meals.deleteConfirmationMessage)
+                }
                 .background(FormaTokens.Color.canvas)
                 .preferredColorScheme(.dark)
         }
+    }
+
+    private var deleteConfirmationBinding: Binding<Bool> {
+        Binding(
+            get: { actionCoordinator.pendingDeleteFoodEntry != nil },
+            set: { isPresented in
+                if !isPresented {
+                    actionCoordinator.cancelDeleteFood()
+                }
+            }
+        )
     }
 
     private func wireActionCoordinator() {
@@ -107,11 +163,20 @@ struct TodayView: View {
     private func refreshDashboard() async {
         await trainingInsightsStore.refresh()
         if trainingInsightsStore.integrationState.isConnected {
+            let workoutReader = trainingInsightsModel.workoutReaderForToday
             appleHealthWorkoutCount = try? await TodayHealthWorkoutResolver.workoutCountToday(
-                reader: trainingInsightsModel.workoutReaderForToday
+                reader: workoutReader
+            )
+            appleHealthWeeklyWorkoutCount = try? await TodayHealthWorkoutResolver.workoutCountThisWeek(
+                reader: workoutReader
+            )
+            appleHealthStepsToday = try? await TodayHealthStepResolver.stepsToday(
+                reader: trainingInsightsModel.stepReaderForToday
             )
         } else {
             appleHealthWorkoutCount = nil
+            appleHealthWeeklyWorkoutCount = nil
+            appleHealthStepsToday = nil
         }
         await model.refresh(activityContext: currentActivityContext)
     }
@@ -120,7 +185,9 @@ struct TodayView: View {
         TodayActivityContext(
             trainingIntegration: trainingInsightsStore.integrationState,
             trainingDataSource: trainingInsightsStore.dataSource,
-            appleHealthWorkoutCount: appleHealthWorkoutCount
+            appleHealthWorkoutCount: appleHealthWorkoutCount,
+            stepsToday: appleHealthStepsToday,
+            weeklyWorkoutCount: appleHealthWeeklyWorkoutCount
         )
     }
 
@@ -151,19 +218,29 @@ struct TodayView: View {
                     onOpenCoach: { prefill in
                         onOpenCoach?(prefill)
                     },
-                    onLogMealFromPreview: {
-                        actionCoordinator.handleCTA(
-                            .logMeal(TodayCoachPrompt.logMeal()),
-                            from: state.nextBestAction
-                        )
+                    onOpenJourney: {
+                        onOpenJourney?()
+                    },
+                    onOpenPlan: {
+                        onOpenPlan?()
                     }
                 )
             }
             .padding(.horizontal, TodayLayout.horizontalPadding)
             .padding(.top, FormaTokens.Spacing.md)
-            .padding(.bottom, TodayLayout.bottomScrollPadding)
+            .padding(.bottom, TodayLayout.bottomScrollPadding + TodayLayout.quickActionFABClearance)
         }
         .formaMainTabScrollInsets()
+        .overlay(alignment: .bottomTrailing) {
+            TodayQuickActionButton(
+                menuItems: TodayQuickActionPolicy.menuItems(),
+                onSelect: { kind in
+                    actionCoordinator.performQuickAction(kind)
+                }
+            )
+            .padding(.trailing, TodayLayout.horizontalPadding)
+            .padding(.bottom, TodayLayout.quickActionFABBottomPadding)
+        }
     }
 }
 

@@ -2,7 +2,7 @@
 //  AuthGateView.swift
 //  Fitness Coach
 //
-//  FitPilot — Auth-gated shell with optional v2 pre-auth onboarding.
+//  FitPilot — Auth-gated shell with pre-auth onboarding.
 //
 
 import SwiftUI
@@ -14,7 +14,6 @@ struct AuthGateView: View {
     @State private var onboardingModel: OnboardingModel?
     @State private var signedInSessionID = UUID()
     @State private var pendingSignInForOnboardingCompletion = false
-    @State private var pendingSignInForValueFirstHandoff = false
     @State private var preAuthRouteOverride: AppShellRoute?
     @State private var conflictCloudDocument: CloudUserProfileDocument?
     @State private var profileConflictContext: ProfileConflictResolutionContext = .accountOrOwnershipReconcile
@@ -141,13 +140,12 @@ struct AuthGateView: View {
         )
         return AuthGateRoutingPolicy.effectiveRoute(
             baseRoute: base,
-            isV2Enabled: container.onboardingRoutingConfiguration.isV2Enabled,
             isSignedIn: AppRouteResolver.isSignedIn(authManager.authState),
             hasActiveOnboardingSession: onboardingModel != nil
         )
     }
 
-    // MARK: - Pre-auth onboarding (v2)
+    // MARK: - Pre-auth onboarding
 
     @ViewBuilder
     private var preAuthOnboardingContent: some View {
@@ -165,24 +163,7 @@ struct AuthGateView: View {
 
     @ViewBuilder
     private func onboardingShell(for model: OnboardingModel) -> some View {
-        if container.onboardingRoutingConfiguration.isV2Enabled {
-            if showsSignInFromLanding(for: model) {
-                OnboardingView(model: model, onExistingAccount: showExistingAccountSignIn)
-            } else {
-                OnboardingView(model: model)
-            }
-        } else {
-            OnboardingView(model: model)
-        }
-    }
-
-    private func showsSignInFromLanding(for model: OnboardingModel) -> Bool {
-        switch model.flowScope {
-        case .v2Full, .v2ValueFirstTeaser:
-            return true
-        case .legacy, .v2PostAuth:
-            return false
-        }
+        OnboardingView(model: model)
     }
 
     private func showExistingAccountSignIn() {
@@ -367,7 +348,6 @@ struct AuthGateView: View {
         let hasLocalProfile = container.profileBootstrapService.hasLocalProfile()
         let awaitingSignInHandoff = container.profileBootstrapService.localProfileAwaitingSignIn()
         let needsPreAuthOnboarding = !signedIn
-            && config.usesPreAuthShellRouting
             && (!hasLocalProfile || awaitingSignInHandoff)
             && !(config.allowsLocalOnlyContinuation && hasLocalProfile && !awaitingSignInHandoff)
 
@@ -407,24 +387,6 @@ struct AuthGateView: View {
             return
         }
 
-        if onboardingModel?.expectsValueFirstSignInHandoff == true {
-            pendingSignInForValueFirstHandoff = true
-            Task {
-                await authManager.signInWithGoogle()
-            }
-            return
-        }
-
-        guard container.onboardingRoutingConfiguration.isV2Enabled else {
-            ProfileBootstrapDebugLogger.warn(
-                "Onboarding completion without signed-in session in legacy mode",
-                fields: [:]
-            )
-            onboardingModel = nil
-            rootModel.didCompleteOnboarding()
-            return
-        }
-
         pendingSignInForOnboardingCompletion = true
         onboardingModel?.beginSignInForCompletion()
         Task {
@@ -461,9 +423,7 @@ struct AuthGateView: View {
     }
 
     private func finishOnboardingCompletionAfterSuccessfulSync() {
-        if container.onboardingRoutingConfiguration.isV2Enabled {
-            onboardingModel?.finalizeAfterSuccessfulSignIn()
-        }
+        onboardingModel?.finalizeAfterSuccessfulSignIn()
         clearOnboardingCompletionState()
         awaitingCloudSync = false
         rootModel.didCompleteOnboarding()
@@ -556,9 +516,7 @@ struct AuthGateView: View {
     private func finishProfileConflictAfterRestore() {
         switch profileConflictContext {
         case .onboardingCompletion:
-            if container.onboardingRoutingConfiguration.isV2Enabled {
-                onboardingModel?.finalizeAfterRestoredExistingPlan()
-            }
+            onboardingModel?.finalizeAfterRestoredExistingPlan()
             clearOnboardingCompletionState()
         case .accountOrOwnershipReconcile:
             clearProfileConflictState()
@@ -570,9 +528,7 @@ struct AuthGateView: View {
     private func finishProfileConflictAfterUpload() {
         switch profileConflictContext {
         case .onboardingCompletion:
-            if container.onboardingRoutingConfiguration.isV2Enabled {
-                onboardingModel?.finalizeAfterSuccessfulSignIn()
-            }
+            onboardingModel?.finalizeAfterSuccessfulSignIn()
             clearOnboardingCompletionState()
         case .accountOrOwnershipReconcile:
             clearProfileConflictState()
@@ -593,9 +549,7 @@ struct AuthGateView: View {
     }
 
     private func finishOnboardingLocally() {
-        if container.onboardingRoutingConfiguration.isV2Enabled {
-            onboardingModel?.finalizeAfterSuccessfulSignIn()
-        }
+        onboardingModel?.finalizeAfterSuccessfulSignIn()
         onboardingModel = nil
         awaitingCloudSync = false
         rootModel.didCompleteOnboarding()
@@ -679,9 +633,7 @@ struct AuthGateView: View {
 
         switch context {
         case .onboardingCompletion:
-            if container.onboardingRoutingConfiguration.isV2Enabled {
-                onboardingModel?.finalizeAfterSuccessfulSignIn()
-            }
+            onboardingModel?.finalizeAfterSuccessfulSignIn()
             clearOnboardingCompletionState()
         case .reconcileUpload, .conflictReplace:
             clearProfileConflictState()
@@ -706,10 +658,6 @@ struct AuthGateView: View {
                 isSignedIn: isSignedInNow
             )
             if isFreshSignIn {
-                if pendingSignInForValueFirstHandoff {
-                    pendingSignInForValueFirstHandoff = false
-                    onboardingModel = nil
-                }
                 signedInSessionID = UUID()
             }
             if isSignedInNow, case .signedIn(let uid) = state {
@@ -743,11 +691,6 @@ struct AuthGateView: View {
             )
         }
 
-        if pendingSignInForValueFirstHandoff, didSignInAttemptFail(from: previous, to: state) {
-            pendingSignInForValueFirstHandoff = false
-            onboardingModel?.clearError()
-        }
-
         if wasSignedIn {
             preAuthRouteOverride = nil
             pendingSignInForOnboardingCompletion = false
@@ -773,8 +716,7 @@ struct AuthGateView: View {
 
         rootModel.resolveLocalProfile()
 
-        if container.onboardingRoutingConfiguration.usesPreAuthShellRouting,
-           !container.profileBootstrapService.hasLocalProfile(),
+        if !container.profileBootstrapService.hasLocalProfile(),
            onboardingModel == nil,
            container.onboardingDraftStore.hasDraft {
             ensureOnboardingModel()

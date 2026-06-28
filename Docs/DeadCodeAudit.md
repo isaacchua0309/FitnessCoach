@@ -10,7 +10,7 @@
 - Plan calculation engine and formulas
 - AI pipeline / LLM contracts
 - SwiftData entities registered in `FitPilotModelContainer` (migration-sensitive)
-- Active onboarding v2/v3 code behind feature flags
+- Canonical onboarding flow (single path; version flags removed 2026-06-28)
 
 ---
 
@@ -112,10 +112,7 @@ Migration-sensitive, cloud/auth, feature-flagged flows, debug tooling, or near-t
 | `Domain/Routing/*`, `Features/Auth/*` | Routing / UI | Entire signed-in shell | Auth sprint surface | **High** | **keep** |
 | `Domain/PlanCalculation/*`, `FormaCalculationEngine.swift` | Engine | Extensive test suite | Product math | **High** | **keep** |
 | `FitPilot/Infrastructure/LLM/*`, `Features/Coach/Pipeline/*` | AI pipeline | `CoachModel`, `AIService`, tests | Coach behavior | **High** | **keep** |
-| `Domain/Onboarding/OnboardingV2FeatureFlag.swift` | Flag (default **on**) | Shell routing | Production onboarding | **High** | **keep** |
-| `Domain/Onboarding/OnboardingV3FeatureFlag.swift` | Flag (default **off**) | `OnboardingFlowScope`, v3 steps | Near-term v3 rollout | **High** | **keep** |
-| `Features/Onboarding/Model/OnboardingV3Step.swift`, `OnboardingV3UIState.swift`, `OnboardingV3DraftBridge.swift` | v3 graph | Tests + model when flag on | v3 structure | **High** | **keep** |
-| `Features/Onboarding/Model/OnboardingStep.swift` (`legacyFlow`) | v1 steps | Active when v2 disabled | Rollback path | **High** | **keep** |
+| `Domain/Onboarding/OnboardingFlowScope.swift`, `OnboardingStep.swift` | Canonical flow | Production onboarding | Single onboarding path | **High** | **keep** |
 | `Features/Settings/UI/*Diagnostics*` | Debug views | `SettingsRootView` | Engineering diagnostics | **Low** | **keep** |
 | `Data/Firebase/NoOpCloudUserProfileStore.swift` | Store | `AppContainer` preview / no-Firebase builds | Test & preview wiring | **Medium** | **keep** |
 | `Features/Journey/Model/JourneyStateBuilder.swift` | `milestones(...)` | `ProgressModel` → `nextCheckpointKg` | Hero checkpoint math | **Medium** | **keep** (even if milestone UI deleted) |
@@ -162,7 +159,7 @@ Also removed: `makeTrainingInsightsView()`, `openAppSettings()`.
 ### 2. Riskiest candidates
 
 1. **Any SwiftData entity removal** (`ChatMessageEntity`, `WeeklyReviewEntity`) — schema migration required.
-2. **`OnboardingPlanPreviewStepView` / v1 `legacyStepContent`** — active when `OnboardingV2FeatureFlag` is off.
+2. **Legacy onboarding rollback paths** — removed; single canonical flow only (2026-06-28).
 3. **Deleting `TrainingLayout` / `TrainingFormatter` / `TrainingLoadingView` / `TrainingErrorView` with the Legacy folder** — breaks active `TrainingInsightsConnectedView`.
 4. **Auth / profile / cloud files** — out of scope for deletion.
 5. **`JourneyStateBuilder.milestones`** — still feeds `nextCheckpointKg` even if milestone UI is deleted.

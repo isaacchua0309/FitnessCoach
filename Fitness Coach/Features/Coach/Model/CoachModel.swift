@@ -246,8 +246,101 @@ final class CoachModel: ObservableObject {
         await send(text)
     }
 
+    func handleMealPhotoSelection(_ result: Result<Data, CoachMealPhotoError>) async {
+        switch result {
+        case .failure(.userCancelled):
+            return
+        case .failure(let error):
+            appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
+        case .success(let rawData):
+            await analyzeMealPhoto(rawData)
+        }
+    }
+
+    /// Legacy entry point — prefer `handleMealPhotoSelection`.
     func handlePhotoSelected() async {
-        await send("Should I eat this?")
+        await handleMealPhotoSelection(.failure(.noImage))
+    }
+
+    private func analyzeMealPhoto(_ rawData: Data) async {
+        let prepared = CoachMealPhotoPipeline.prepareJPEG(from: rawData)
+        guard case .success(let jpegData) = prepared else {
+            if case .failure(let error) = prepared {
+                appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
+            }
+            return
+        }
+
+        CoachMealPhotoPipeline.assertImagePayloadPresent(jpegData)
+
+        guard !isSending else { return }
+
+        appendUserMessage(CoachMealPhotoPipeline.userMessageLabel)
+
+        let traceId = FitPilotPipelineTracer.beginTrace(userMessage: CoachMealPhotoPipeline.userMessageLabel)
+        let traceStarted = Date()
+        var traceOutcome = "photoAnalysis"
+
+        isSending = true
+        defer {
+            isSending = false
+            FitPilotPipelineTracer.endTrace(
+                traceId: traceId,
+                outcome: traceOutcome,
+                durationMs: Int(Date().timeIntervalSince(traceStarted) * 1_000)
+            )
+        }
+
+        guard aiCommandParsingEnabled,
+              let aiContextBuilder,
+              let aiService else {
+            traceOutcome = "aiDisabled"
+            appendAssistantMessage(CoachResponseBuilder.backendUnavailableResponse)
+            return
+        }
+
+        FitPilotPipelineTracer.event(
+            stage: .coachSend,
+            level: .info,
+            message: "Meal photo analysis started",
+            fields: [
+                "jpegBytes": String(jpegData.count),
+                "hasImagePayload": String(CoachMealPhotoPipeline.hasImagePayload(jpegData))
+            ]
+        )
+
+        let priorChatMessages = Array(messages.dropLast())
+        let context = aiContextBuilder.makeContext(recentMessages: priorChatMessages)
+        let routed = RoutedAITask(
+            task: .photoFoodAnalysis(
+                imageData: jpegData,
+                prompt: CoachMealPhotoPipeline.defaultAnalysisPrompt
+            ),
+            tier: .cheap,
+            intentResult: CoachMealPhotoPipeline.photoAnalysisIntentResult
+        )
+
+        do {
+            let response = try await handleAITask(routed, context: context)
+            traceOutcome = "photoAnalysisCompleted"
+            if !response.isEmpty {
+                appendAssistantMessage(response)
+            }
+        } catch let error as AIServiceError {
+            traceOutcome = "aiServiceError"
+            FitPilotPipelineTracer.logError(
+                traceId: traceId,
+                stage: .error,
+                message: "Meal photo analysis failed",
+                fields: ["error": error.userMessage]
+            )
+            appendAssistantMessage(CoachResponseBuilder.mealPhotoAnalysisFailed(error))
+        } catch {
+            traceOutcome = "unexpectedError"
+            appendAssistantMessage(CoachResponseBuilder.mealPhotoAnalysisFailed(
+                AIServiceError.requestFailed(error.localizedDescription)
+            ))
+        }
     }
 
     func clearError() {
@@ -492,28 +585,34 @@ final class CoachModel: ObservableObject {
         }
 
         switch routed.task {
-        case .estimateFood(let prompt), .photoFoodAnalysis(_, let prompt):
-            let classifierDraft: FoodDraft? = {
-                if case .logFood(let draft) = routed.intentResult.action { return draft }
-                return nil
-            }()
+        case .estimateFood(let prompt):
+            let response = try await aiService.estimateFood(
+                prompt: prompt,
+                context: context,
+                imageJPEGData: nil
+            )
+            return presentEstimateFoodResponse(
+                response,
+                prompt: prompt,
+                routed: routed
+            )
 
-            let response = try await aiService.estimateFood(prompt: prompt, context: context)
-            guard var draft = response.foodDrafts.first else {
-                return CoachResponseBuilder.aiNotUnderstood
+        case .photoFoodAnalysis(let imageData, let prompt):
+            guard CoachMealPhotoPipeline.hasImagePayload(imageData) else {
+                return CoachResponseBuilder.mealPhotoError(.noImage)
             }
-            if let classifierDraft, !classifierDraft.hasCompleteNutritionEstimate {
-                draft = FoodDraftNutritionCompleter.mergeExplicit(
-                    classifierDraft,
-                    into: draft,
-                    hintText: prompt
-                )
-            }
-            return presentAIFoodEstimate(
-                draft: draft,
-                originalText: prompt,
-                assistantMessage: response.assistantMessage,
-                confidence: response.confidence
+            CoachMealPhotoPipeline.assertImagePayloadPresent(imageData!)
+
+            let response = try await aiService.estimateFood(
+                prompt: prompt,
+                context: context,
+                imageJPEGData: imageData
+            )
+            return presentEstimateFoodResponse(
+                response,
+                prompt: prompt,
+                routed: routed,
+                photoAnalysis: true
             )
 
         case .mealAdvice(let prompt):
@@ -545,6 +644,41 @@ final class CoachModel: ObservableObject {
             let parsed = try await aiService.parseCommand(prompt, context: context)
             return try await handleParsedAICommand(parsed, context: context)
         }
+    }
+
+    private func presentEstimateFoodResponse(
+        _ response: AIFoodEstimateResponse,
+        prompt: String,
+        routed: RoutedAITask,
+        photoAnalysis: Bool = false
+    ) -> String {
+        let classifierDraft: FoodDraft? = {
+            if case .logFood(let draft) = routed.intentResult.action { return draft }
+            return nil
+        }()
+
+        guard var draft = response.foodDrafts.first else {
+            return CoachResponseBuilder.aiNotUnderstood
+        }
+
+        if photoAnalysis {
+            draft.source = .aiPhotoEstimate
+        }
+
+        if let classifierDraft, !classifierDraft.hasCompleteNutritionEstimate {
+            draft = FoodDraftNutritionCompleter.mergeExplicit(
+                classifierDraft,
+                into: draft,
+                hintText: prompt
+            )
+        }
+
+        return presentAIFoodEstimate(
+            draft: draft,
+            originalText: prompt,
+            assistantMessage: response.assistantMessage,
+            confidence: response.confidence
+        )
     }
 
     private func handleParsedAICommand(

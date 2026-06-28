@@ -18,19 +18,35 @@ final class ProfileModel: ObservableObject {
     @Published private(set) var generatedTargetPreview: CalorieTargetResult?
     @Published private(set) var formErrorMessage: String?
     @Published var editFormState: ProfileFormState?
+    @Published var editPlanInitialStep = 0
 
     private let actionCenter: FitnessActionCenter
     private let userProfileService: UserProfileService
     private let targetService: TargetService
+    private let dailyLogService: DailyLogService
+    private let weightLogService: WeightLogService
+    private let trainingInsightsStore: TrainingInsightsStore
+    private let workoutReader: HealthKitWorkoutReading
+    private let analyticsLogger: any PlanAnalyticsLogging
 
     init(
         actionCenter: FitnessActionCenter,
         userProfileService: UserProfileService,
-        targetService: TargetService
+        targetService: TargetService,
+        dailyLogService: DailyLogService,
+        weightLogService: WeightLogService,
+        trainingInsightsStore: TrainingInsightsStore,
+        workoutReader: HealthKitWorkoutReading? = nil,
+        analyticsLogger: (any PlanAnalyticsLogging)? = nil
     ) {
         self.actionCenter = actionCenter
         self.userProfileService = userProfileService
         self.targetService = targetService
+        self.dailyLogService = dailyLogService
+        self.weightLogService = weightLogService
+        self.trainingInsightsStore = trainingInsightsStore
+        self.workoutReader = workoutReader ?? MockHealthKitWorkoutReader(workouts: [])
+        self.analyticsLogger = analyticsLogger ?? NoOpPlanAnalyticsLogger()
     }
 
     // MARK: Loading
@@ -46,19 +62,83 @@ final class ProfileModel: ObservableObject {
                 viewState = .empty
                 return
             }
-            viewState = .loaded(PlanStateBuilder.dashboardState(profile: profile))
+            let context = try await makePlanDashboardContext(profile: profile)
+            viewState = .loaded(
+                PlanStateBuilder.dashboardState(profile: profile, context: context)
+            )
         } catch {
             viewState = .error(FormaProductCopy.Error.loadPlan)
         }
     }
 
+    // MARK: Dashboard context
+
+    private func makePlanDashboardContext(profile: UserProfile) async throws -> PlanDashboardContext {
+        let calendar = Calendar.current
+        let endDate = Date()
+        let weekStart = calendar.date(byAdding: .day, value: -6, to: endDate) ?? endDate
+        let allTimeStart = calendar.date(byAdding: .day, value: -365, to: endDate) ?? endDate
+
+        let weekLogs = try dailyLogService.getLogs(from: weekStart, to: endDate)
+        let allWeights = try weightLogService.getWeightEntries(from: allTimeStart, to: endDate)
+        let weekWeights = try weightLogService.getWeightEntries(from: weekStart, to: endDate)
+
+        let integrationState = trainingInsightsStore.integrationState
+        let dataSource = trainingInsightsStore.dataSource
+        let weekHealthWorkouts = try await fetchHealthWorkouts(from: weekStart, to: endDate)
+        let weeklyTraining = JourneyTrainingSummaryBuilder.weeklyTrainingStatus(
+            integrationState: integrationState,
+            dataSource: dataSource,
+            weekWorkouts: weekHealthWorkouts,
+            asOf: endDate,
+            calendar: calendar
+        )
+
+        return PlanDashboardContext(
+            profile: profile,
+            weekLogs: weekLogs,
+            weekWeights: weekWeights,
+            allWeights: allWeights,
+            weeklyTraining: weeklyTraining,
+            integrationState: integrationState,
+            dataSource: dataSource,
+            asOf: endDate,
+            calendar: calendar
+        )
+    }
+
+    private func fetchHealthWorkouts(from startDate: Date, to endDate: Date) async throws -> [HealthWorkoutRecord] {
+        guard trainingInsightsStore.integrationState.isConnected else {
+            return []
+        }
+        return try await workoutReader.fetchWorkouts(from: startDate, to: endDate)
+    }
+
     // MARK: Sheets
 
-    func showEditPlan() {
+    func showEditPlan(
+        initialStep: Int = 0,
+        entryPoint: String = PlanAdjustPlanEntryPoint.dashboard
+    ) {
         guard case .loaded(let state) = viewState else { return }
+        analyticsLogger.log(
+            .adjustPlanStarted,
+            properties: PlanAnalyticsProperties(
+                entryPoint: entryPoint,
+                initialStep: initialStep
+            )
+        )
         formErrorMessage = nil
         editFormState = ProfileFormState(profile: state.profile)
+        editPlanInitialStep = initialStep
         isShowingEditSheet = true
+    }
+
+    func showEditPlanActivity() {
+        showEditPlan(
+            initialStep: PlanEditWizard.lifestyleStepIndex,
+            entryPoint: PlanAdjustPlanEntryPoint.activityAssumptions
+        )
     }
 
     func showSettings() {
@@ -71,6 +151,7 @@ final class ProfileModel: ObservableObject {
     func dismissEditPlan() {
         formErrorMessage = nil
         editFormState = nil
+        editPlanInitialStep = 0
         isShowingEditSheet = false
     }
 

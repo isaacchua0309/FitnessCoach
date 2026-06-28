@@ -44,7 +44,7 @@ final class TodayMissionControlStateBuilderTests: XCTestCase {
         XCTAssertEqual(state.mission.status, .overBudget)
         XCTAssertTrue(state.mission.calorieSummary.isOverTarget)
         XCTAssertTrue(
-            state.aiCoachTip.message.contains("weekly trend"),
+            state.aiCoachTip.message.contains("Weekly consistency"),
             "Over-target coach tip should use non-shaming copy"
         )
     }
@@ -57,12 +57,16 @@ final class TodayMissionControlStateBuilderTests: XCTestCase {
         XCTAssertEqual(state.mission.goalProgress?.direction, .lose)
     }
 
-    func testMomentumSurfacesLoggingStreak() {
+    func testMomentumSurfacesLoggingStreakAndWeekProgress() {
         let state = TodayDashboardFixtures.completeDay()
 
         XCTAssertEqual(state.momentum.streaks.loggingStreak, 7)
-        XCTAssertEqual(state.momentum.headline, "7-day logging streak")
-        XCTAssertFalse(state.momentum.detailLines.isEmpty)
+        XCTAssertEqual(state.momentum.weekLoggedDays, 5)
+
+        let display = TodayMomentumSectionFormatting.displayModel(for: state.momentum)
+        XCTAssertEqual(display.loggingStreakLine, "Logging streak: 7 days")
+        XCTAssertEqual(display.weekProgressLine, "This week: 5 of 7 days logged")
+        XCTAssertFalse(display.optionalStreakLines.isEmpty)
     }
 
     func testDailySummaryPreservesBriefPriorities() {

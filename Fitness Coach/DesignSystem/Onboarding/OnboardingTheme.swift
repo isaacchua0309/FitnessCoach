@@ -52,10 +52,6 @@ enum OnboardingLayout {
     static let selectionRowMinHeight: CGFloat = 48
     static let footerVerticalPadding: CGFloat = 6
     static let footerInnerSpacing: CGFloat = 6
-    static let compactFooterTopPadding: CGFloat = 6
-    static let compactFooterBottomPadding: CGFloat = 8
-    /// Approximate height of `OnboardingCompactFooter` for scroll insets.
-    static let compactFooterHeight: CGFloat = 72
 }
 
 struct OnboardingSectionTitle: View {

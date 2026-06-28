@@ -90,6 +90,7 @@ enum TodayDashboardFixtures {
                     hydrationStreak: 0,
                     workoutStreak: 0
                 ),
+                weekLoggedDays: 0,
                 dailyBrief: TodayDailyBrief(
                     greeting: "Good morning.",
                     priorities: [],
@@ -161,6 +162,7 @@ enum TodayDashboardFixtures {
                     hydrationStreak: 0,
                     workoutStreak: 0
                 ),
+                weekLoggedDays: 0,
                 dailyBrief: TodayDailyBrief(
                     greeting: "Good morning.",
                     priorities: [],
@@ -215,6 +217,7 @@ enum TodayDashboardFixtures {
                     hydrationStreak: 3,
                     workoutStreak: 2
                 ),
+                weekLoggedDays: 5,
                 dailyBrief: TodayDailyBrief(
                     greeting: "Good evening.",
                     priorities: ["Protein is on track — keep it up."],
@@ -273,6 +276,7 @@ enum TodayDashboardFixtures {
                     hydrationStreak: 0,
                     workoutStreak: 0
                 ),
+                weekLoggedDays: 2,
                 dailyBrief: TodayDailyBrief(
                     greeting: "Good evening.",
                     priorities: ["0 kcal remaining for today."],

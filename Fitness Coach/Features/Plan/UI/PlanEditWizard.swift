@@ -11,6 +11,7 @@ struct PlanEditWizard: View {
     @Environment(\.dismiss) private var dismiss
 
     @Binding var formState: ProfileFormState
+    var initialStep: Int = 0
     let errorMessage: String?
     let onSave: (ProfileFormState) async -> Void
     let onCancel: () -> Void
@@ -22,6 +23,9 @@ struct PlanEditWizard: View {
     @State private var showAdvanced = false
 
     private let stepTitles = ["Goal", "Goal weight", "Training", "Lifestyle"]
+
+    /// Lifestyle step — activity level, steps, and diet preferences.
+    static let lifestyleStepIndex = 3
 
     var body: some View {
         NavigationStack {
@@ -81,6 +85,7 @@ struct PlanEditWizard: View {
                 }
             }
             .onAppear {
+                step = min(max(initialStep, 0), stepTitles.count - 1)
                 goalType = PlanStateBuilder.goalType(for: formState.asProfileSnapshot())
             }
         }

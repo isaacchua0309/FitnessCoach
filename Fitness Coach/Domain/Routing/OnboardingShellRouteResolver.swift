@@ -2,12 +2,12 @@
 //  OnboardingShellRouteResolver.swift
 //  Fitness Coach
 //
-//  Forma — Pure onboarding v2 shell routing (testable without SwiftUI).
+//  Forma — Pure onboarding shell routing (testable without SwiftUI).
 //
 
 import Foundation
 
-/// Shell destinations for onboarding v2 routing.
+/// Shell destinations for onboarding routing.
 enum OnboardingShellRoute: Equatable {
     case launchLoading
     /// Signed-out user with no local profile — onboarding before auth.
@@ -44,7 +44,6 @@ struct OnboardingShellRouteInput: Equatable, Sendable {
     var hasLocalProfile: Bool
     var rootState: RootViewState
     var isOnboardingModelReady: Bool
-    var isOnboardingV2Enabled: Bool
     var signedOutWithProfilePolicy: SignedOutWithProfilePolicy
     var awaitingCloudSync: Bool
     var localProfileAwaitingSignIn: Bool
@@ -55,7 +54,6 @@ struct OnboardingShellRouteInput: Equatable, Sendable {
         hasLocalProfile: Bool,
         rootState: RootViewState = .loading,
         isOnboardingModelReady: Bool = false,
-        isOnboardingV2Enabled: Bool = false,
         signedOutWithProfilePolicy: SignedOutWithProfilePolicy = .requireSignIn,
         awaitingCloudSync: Bool = false,
         localProfileAwaitingSignIn: Bool = false,
@@ -65,7 +63,6 @@ struct OnboardingShellRouteInput: Equatable, Sendable {
         self.hasLocalProfile = hasLocalProfile
         self.rootState = rootState
         self.isOnboardingModelReady = isOnboardingModelReady
-        self.isOnboardingV2Enabled = isOnboardingV2Enabled
         self.signedOutWithProfilePolicy = signedOutWithProfilePolicy
         self.awaitingCloudSync = awaitingCloudSync
         self.localProfileAwaitingSignIn = localProfileAwaitingSignIn
@@ -77,8 +74,7 @@ enum OnboardingShellRouteResolver {
 
     static func resolve(_ input: OnboardingShellRouteInput) -> OnboardingShellRoute {
         let appRoute = AppRouteResolver.resolve(AppRouteInput(input))
-        let awaitingSync = input.isOnboardingV2Enabled && input.awaitingCloudSync
-        return OnboardingShellRoute(appShellRoute: appRoute, awaitingCloudSync: awaitingSync)
+        return OnboardingShellRoute(appShellRoute: appRoute, awaitingCloudSync: input.awaitingCloudSync)
     }
 
     static func resolve(
@@ -86,7 +82,6 @@ enum OnboardingShellRouteResolver {
         hasLocalProfile: Bool,
         rootState: RootViewState = .loading,
         isOnboardingModelReady: Bool = false,
-        isOnboardingV2Enabled: Bool = false,
         signedOutWithProfilePolicy: SignedOutWithProfilePolicy = .requireSignIn,
         awaitingCloudSync: Bool = false
     ) -> OnboardingShellRoute {
@@ -96,7 +91,6 @@ enum OnboardingShellRouteResolver {
                 hasLocalProfile: hasLocalProfile,
                 rootState: rootState,
                 isOnboardingModelReady: isOnboardingModelReady,
-                isOnboardingV2Enabled: isOnboardingV2Enabled,
                 signedOutWithProfilePolicy: signedOutWithProfilePolicy,
                 awaitingCloudSync: awaitingCloudSync
             )
@@ -106,7 +100,6 @@ enum OnboardingShellRouteResolver {
 
 extension OnboardingShellRouteResolver {
 
-    /// Maps a v2 shell route to the legacy `AppShellRoute` when the shell still uses v1 types.
     static func legacyEquivalent(for route: OnboardingShellRoute) -> AppShellRoute? {
         AppShellRoute(onboardingShellRoute: route)
     }

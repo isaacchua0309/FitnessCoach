@@ -2,7 +2,7 @@
 //  OnboardingMotivation.swift
 //  Fitness Coach
 //
-//  Forma — Optional motivation selections for onboarding v2 (not required for plan math).
+//  Forma — Optional motivation selections for onboarding (not required for plan math).
 //
 
 import Foundation
@@ -98,20 +98,5 @@ extension OnboardingMotivation {
 
     static func fromStoredValues(_ values: [String]) -> Set<OnboardingMotivation> {
         Set(values.compactMap(OnboardingMotivation.init(rawValue:)))
-    }
-
-    /// Chooses calm feedback when one or more motivations are selected.
-    static func feedbackMessage(for selections: Set<OnboardingMotivation>) -> String {
-        let copy = FormaProductCopy.Onboarding.V2.Motivation.self
-        if selections.contains(.confidence) {
-            return copy.confidenceFeedback
-        }
-        if selections.contains(.performance) {
-            return copy.performanceFeedback
-        }
-        if selections.contains(.lowStress) {
-            return copy.lowStressFeedback
-        }
-        return copy.defaultFeedback
     }
 }

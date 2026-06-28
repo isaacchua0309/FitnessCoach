@@ -2,7 +2,7 @@
 //  OnboardingGeneratingPlanStepView.swift
 //  Fitness Coach
 //
-//  Forma — Full-screen deterministic plan generation moment for onboarding v2.
+//  Forma — Full-screen deterministic plan generation moment for onboarding.
 //
 
 import SwiftUI

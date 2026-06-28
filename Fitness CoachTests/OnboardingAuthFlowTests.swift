@@ -10,13 +10,6 @@ import XCTest
 
 final class OnboardingAuthFlowCopyTests: XCTestCase {
 
-    func testLandingUsesGetStartedAndExistingAccountActions() {
-        let landing = FormaProductCopy.Onboarding.V2.Landing.self
-        XCTAssertEqual(landing.cta, "Get started")
-        XCTAssertEqual(landing.existingAccountAction, "I already have an account")
-        XCTAssertFalse(landing.existingAccountAction.localizedCaseInsensitiveContains("Google"))
-    }
-
     func testMissingCloudProfileHandoffCopy() {
         let copy = FormaProductCopy.Onboarding.V2.MissingCloudProfile.self
         XCTAssertEqual(copy.title, "Looks like you're new")
@@ -45,7 +38,6 @@ final class OnboardingAuthFlowModelTests: XCTestCase {
             targetService: container.targetService,
             onCompletion: {},
             analyticsEntry: .postAuth,
-            flowScope: .v2PostAuth,
             generationDelay: ImmediateOnboardingGenerationDelayProvider()
         )
 
@@ -62,7 +54,6 @@ final class OnboardingAuthFlowModelTests: XCTestCase {
             targetService: container.targetService,
             onCompletion: { completionCount += 1 },
             analyticsEntry: .postAuth,
-            flowScope: .v2PostAuth,
             generationDelay: ImmediateOnboardingGenerationDelayProvider()
         )
 
@@ -74,39 +65,34 @@ final class OnboardingAuthFlowModelTests: XCTestCase {
     }
 
     private func fillValidPostAuthForm(_ model: OnboardingModel) {
-        model.formState.ageText = "28"
+        OnboardingHeightWeightValues.applyDefaultsIfNeeded(to: &model.formState)
+        OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &model.formState)
+        OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &model.formState)
         model.formState.sex = .female
-        model.formState.heightCmText = "168"
-        model.formState.currentWeightKgText = "72"
-        model.formState.goalWeightKgText = "65"
         model.formState.activityLevel = .moderatelyActive
-        model.formState.trainingFrequencyPerWeekText = "3"
-        model.formState.averageStepsText = "5000"
+        OnboardingActivityLevelValues.applyDefaultsIfNeeded(to: &model.formState)
         model.formState.selectPaceChoice(.moderate)
     }
 
     private func advancePostAuthModelToSavePlan(_ model: OnboardingModel) async throws {
         fillValidPostAuthForm(model)
-        XCTAssertEqual(model.currentStep, OnboardingStep.motivation)
-        model.goNext() // body
-        model.goNext() // goal
-        model.goNext() // activity
-        model.goNext() // preferences
-        model.goNext() // summary
+        XCTAssertEqual(model.currentStep, .heightWeight)
+        while model.currentStep != .review {
+            model.goNext()
+        }
         model.beginGeneration()
         await model.flushPendingGenerationForTesting()
-        model.goNext() // planReveal -> savePlan prep
+        model.goNext()
         model.prepareForSavePlan()
     }
 }
 
 final class OnboardingExistingAccountRoutingPolicyTests: XCTestCase {
 
-    func testV2DoesNotPreferSignInShellWhenOnboardingSessionIsActive() {
+    func testExistingAccountRoutingPolicyPrefersActiveOnboardingSession() {
         XCTAssertEqual(
             AuthGateRoutingPolicy.effectiveRoute(
                 baseRoute: .signIn,
-                isV2Enabled: true,
                 isSignedIn: false,
                 hasActiveOnboardingSession: true
             ),
@@ -150,12 +136,11 @@ final class OnboardingExistingAccountRoutingPolicyTests: XCTestCase {
         )
     }
 
-    func testV2PostAuthFlowScopeSkipsGoogleSignInAtSavePlan() {
-        XCTAssertEqual(OnboardingFlowScope.v2PostAuth.entryStep, .motivation)
-        XCTAssertNotEqual(OnboardingFlowScope.v2PostAuth, OnboardingFlowScope.v2Full)
+    func testSignedInEntryStartsAtHeightWeight() {
+        XCTAssertEqual(OnboardingEntry.initialStep(for: .postAuth), .heightWeight)
     }
 
-    func testV2FullFlowScopeUsesLandingEntryForPreAuth() {
-        XCTAssertEqual(OnboardingFlowScope.v2Full.entryStep, .landing)
+    func testSignedOutEntryStartsAtIntroProof() {
+        XCTAssertEqual(OnboardingEntry.initialStep(for: .preAuth), .introProof)
     }
 }

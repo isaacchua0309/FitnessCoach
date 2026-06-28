@@ -25,9 +25,10 @@ final class MockLLMClient: LLMClient {
 
     func estimateFood(request: AIFoodEstimateRequest) async throws -> AIFoodEstimateResponse {
         logMockHit(operation: "estimateFood")
+        let isPhoto = request.imageJPEGBase64?.isEmpty == false
         let draft = FoodDraft(
             mealType: nil,
-            name: request.text,
+            name: isPhoto ? "Photo meal" : request.text,
             quantity: nil,
             unit: nil,
             calories: 500,
@@ -36,10 +37,10 @@ final class MockLLMClient: LLMClient {
             fat: 18,
             fiber: nil,
             sodium: nil,
-            source: .aiTextEstimate,
+            source: isPhoto ? .aiPhotoEstimate : .aiTextEstimate,
             confidence: .medium,
             imageUrl: nil,
-            notes: "Test estimate."
+            notes: isPhoto ? "Photo estimate." : "Test estimate."
         )
         return AIFoodEstimateResponse(
             foodDrafts: [draft],

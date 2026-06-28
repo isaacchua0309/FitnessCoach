@@ -751,7 +751,11 @@ private final class RecordingAIService: AIServiceProtocol, @unchecked Sendable {
         )
     }
 
-    func estimateFood(prompt: String, context: AIContext) async throws -> AIFoodEstimateResponse {
+    func estimateFood(
+        prompt: String,
+        context: AIContext,
+        imageJPEGData: Data?
+    ) async throws -> AIFoodEstimateResponse {
         estimateFoodCallCount += 1
         throw AIServiceError.backendUnavailable
     }
@@ -828,7 +832,11 @@ private final class StubClassifierAIService: AIServiceProtocol, @unchecked Senda
         return classifyResult
     }
 
-    func estimateFood(prompt: String, context: AIContext) async throws -> AIFoodEstimateResponse {
+    func estimateFood(
+        prompt: String,
+        context: AIContext,
+        imageJPEGData: Data?
+    ) async throws -> AIFoodEstimateResponse {
         estimateFoodCallCount += 1
         if let estimateFoodResponse { return estimateFoodResponse }
         throw AIServiceError.backendUnavailable

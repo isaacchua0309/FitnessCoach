@@ -62,9 +62,9 @@ final class ProgressFormatterTests: XCTestCase {
 
     func testNextMilestoneSkipsCurrentToUpcoming() {
         let milestones = [
-            JourneyMilestone(id: "m0", title: "Start", weightKg: 90, status: .current),
-            JourneyMilestone(id: "m1", title: "Next", weightKg: 86, status: .upcoming),
-            JourneyMilestone(id: "m2", title: "Goal", weightKg: 82, status: .upcoming)
+            JourneyMilestone(id: "m0", title: "Start", status: .current, weightKg: 90),
+            JourneyMilestone(id: "m1", title: "Next", status: .upcoming, weightKg: 86),
+            JourneyMilestone(id: "m2", title: "Goal", status: .upcoming, weightKg: 82)
         ]
 
         XCTAssertEqual(ProgressFormatter.nextMilestone(from: milestones)?.id, "m1")
@@ -72,8 +72,8 @@ final class ProgressFormatterTests: XCTestCase {
 
     func testNextMilestoneFallsBackToFirstUpcomingWhenNoCurrent() {
         let milestones = [
-            JourneyMilestone(id: "m0", title: "Start", weightKg: 90, status: .completed),
-            JourneyMilestone(id: "m1", title: "Next", weightKg: 86, status: .upcoming)
+            JourneyMilestone(id: "m0", title: "Start", status: .completed, weightKg: 90),
+            JourneyMilestone(id: "m1", title: "Next", status: .upcoming, weightKg: 86)
         ]
 
         XCTAssertEqual(ProgressFormatter.nextMilestone(from: milestones)?.id, "m1")

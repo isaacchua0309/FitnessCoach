@@ -32,16 +32,14 @@ enum AuthGateRoutingPolicy {
         }
     }
 
-    /// When v2 pre-auth onboarding is active, keep the user on onboarding instead of
-    /// the standalone sign-in screen (e.g. savePlan sign-in or in-progress draft).
+    /// Keep the user on pre-auth onboarding instead of the standalone sign-in screen
+    /// while an onboarding session is active (e.g. save-plan sign-in or in-progress draft).
     static func effectiveRoute(
         baseRoute: AppShellRoute,
-        isV2Enabled: Bool,
         isSignedIn: Bool,
         hasActiveOnboardingSession: Bool
     ) -> AppShellRoute {
         guard shouldPreferActiveOnboardingSession(
-            isV2Enabled: isV2Enabled,
             isSignedIn: isSignedIn,
             hasActiveOnboardingSession: hasActiveOnboardingSession,
             baseRoute: baseRoute
@@ -52,12 +50,11 @@ enum AuthGateRoutingPolicy {
     }
 
     static func shouldPreferActiveOnboardingSession(
-        isV2Enabled: Bool,
         isSignedIn: Bool,
         hasActiveOnboardingSession: Bool,
         baseRoute: AppShellRoute
     ) -> Bool {
-        guard isV2Enabled, hasActiveOnboardingSession, !isSignedIn else { return false }
+        guard hasActiveOnboardingSession, !isSignedIn else { return false }
         switch baseRoute {
         case .signIn, .localOnboarding, .localOnboardingInitializing:
             return true

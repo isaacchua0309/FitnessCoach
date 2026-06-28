@@ -217,7 +217,15 @@ final class JourneyTransformationHeroBuilderTests: XCTestCase {
         loggingStreak: Int = 3,
         weightTrendDirection: WeightTrendDirection = .decreasing
     ) -> JourneyTransformationHeroState {
-        JourneyTransformationHeroBuilder.build(
+        let heroStreakChip: JourneyStreakChipState = loggingStreak > 0
+            ? JourneyStreakChipState(
+                isVisible: true,
+                days: loggingStreak,
+                label: FormaProductCopy.Journey.Streaks.loggingStreak(days: loggingStreak)
+            )
+            : .hidden
+
+        return JourneyTransformationHeroBuilder.build(
             JourneyTransformationHeroBuilder.Input(
                 baseline: baseline ?? self.baseline(
                     start: 90,
@@ -227,7 +235,7 @@ final class JourneyTransformationHeroBuilderTests: XCTestCase {
                     progress: 27
                 ),
                 loggedDays: loggedDays,
-                loggingStreak: loggingStreak,
+                heroStreakChip: heroStreakChip,
                 weightTrendDirection: weightTrendDirection,
                 asOf: asOf,
                 calendar: calendar

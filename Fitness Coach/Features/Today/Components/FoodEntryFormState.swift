@@ -91,9 +91,9 @@ struct FoodEntryFormState: Equatable {
             quantity: try parseOptionalPositiveDouble(quantityText),
             unit: optionalTrimmedString(unit),
             calories: try parseNonNegativeInt(caloriesText),
-            protein: try parseNonNegativeDouble(proteinText, error: .invalidProtein),
-            carbs: try parseNonNegativeDouble(carbsText, error: .invalidCarbs),
-            fat: try parseNonNegativeDouble(fatText, error: .invalidFat),
+            protein: try parseMacro(proteinText, error: .invalidProtein),
+            carbs: try parseMacro(carbsText, error: .invalidCarbs),
+            fat: try parseMacro(fatText, error: .invalidFat),
             fiber: try parseOptionalNonNegativeDouble(fiberText, error: .invalidFiber),
             sodium: try parseOptionalNonNegativeDouble(sodiumText, error: .invalidSodium),
             source: source,
@@ -129,9 +129,9 @@ struct FoodEntryFormState: Equatable {
             quantity: try parseOptionalPositiveDouble(quantityText),
             unit: optionalTrimmedString(unit),
             calories: try parseNonNegativeInt(caloriesText),
-            protein: try parseNonNegativeDouble(proteinText, error: .invalidProtein),
-            carbs: try parseNonNegativeDouble(carbsText, error: .invalidCarbs),
-            fat: try parseNonNegativeDouble(fatText, error: .invalidFat),
+            protein: try parseMacro(proteinText, error: .invalidProtein),
+            carbs: try parseMacro(carbsText, error: .invalidCarbs),
+            fat: try parseMacro(fatText, error: .invalidFat),
             fiber: try parseOptionalNonNegativeDouble(fiberText, error: .invalidFiber),
             sodium: try parseOptionalNonNegativeDouble(sodiumText, error: .invalidSodium),
             source: .manual,
@@ -163,6 +163,16 @@ struct FoodEntryFormState: Equatable {
             throw error
         }
         return value
+    }
+
+    /// Empty macro fields default to zero so calories-only logging stays valid.
+    private func parseMacro(
+        _ text: String,
+        error: FoodEntryFormError
+    ) throws -> Double {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return 0 }
+        return try parseNonNegativeDouble(text, error: error)
     }
 
     private func parseOptionalPositiveDouble(_ text: String) throws -> Double? {

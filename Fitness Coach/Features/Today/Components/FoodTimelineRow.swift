@@ -9,6 +9,7 @@ import SwiftUI
 
 struct FoodTimelineRow: View {
     let entry: FoodEntry
+    var showsMealType: Bool = true
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
@@ -35,7 +36,7 @@ struct FoodTimelineRow: View {
 
     private var subtitleText: String? {
         FoodEntryFormFormatter.timelineSubtitle(
-            mealType: entry.mealType,
+            mealType: showsMealType ? entry.mealType : nil,
             protein: entry.protein,
             carbs: entry.carbs,
             fat: entry.fat

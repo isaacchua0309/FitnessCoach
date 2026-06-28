@@ -12,9 +12,9 @@ enum OnboardingViewState: Equatable {
     case editing
     /// Legacy inline generation overlay while still on the preferences step.
     case generatingPlan
-    /// V2 dedicated generating-plan screen owns loading UI (no scroll overlay).
+    /// Dedicated generating-plan screen owns loading UI (no scroll overlay).
     case generatingPlanAnimated
-    /// V2 generating-plan screen failed; user can return to summary.
+    /// Generating-plan screen failed; user can return to summary.
     case generationFailed
     /// Save-plan step waiting for Google sign-in.
     case awaitingSignIn
@@ -22,7 +22,7 @@ enum OnboardingViewState: Equatable {
     case savingProfile
     /// Legacy plan-preview completion flow creating the profile.
     case completing
-    /// Apple Health permission request in progress on the v4 connect step.
+    /// Apple Health permission request in progress on the connect step.
     case connectingAppleHealth
     case error(String)
 }

@@ -89,6 +89,26 @@ enum CoachResponseBuilder {
         )
     }
 
+    static func mealPhotoError(_ error: CoachMealPhotoError) -> String {
+        switch error {
+        case .userCancelled:
+            return ""
+        case .noImage:
+            return "I couldn't read that photo. Try another image or log the meal manually."
+        case .loadFailed:
+            return "That photo couldn't be prepared for analysis. Try again or use manual entry."
+        }
+    }
+
+    static func mealPhotoAnalysisFailed(_ error: AIServiceError) -> String {
+        switch error {
+        case .authenticationFailed:
+            return AIServiceError.coachSessionFailureMessage
+        default:
+            return "I couldn't analyze that photo right now. \(error.userMessage) You can try again or log manually."
+        }
+    }
+
     static func workoutPending(_ draft: WorkoutDraft, assistantMessage: String?) -> String {
         CoachPendingCopyFormatter.workoutPendingChatMessage(
             draft: draft,

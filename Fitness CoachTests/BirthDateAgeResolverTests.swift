@@ -127,15 +127,34 @@ final class BirthDateAgeResolverTests: XCTestCase {
         XCTAssertEqual(input.age, 31)
     }
 
-    func testDraftMigrationSynthesizesBirthDateFromAgeText() throws {
-        var original = OnboardingFormState()
-        original.ageText = "30"
-        original.heightCmText = "170"
-        original.currentWeightKgText = "70"
-        original.goalWeightKgText = "65"
+    func testLegacyDraftMigrationSynthesizesBirthDateFromAgeText() throws {
+        let legacy = OnboardingDraftV1(
+            draftVersion: 1,
+            currentStepRawValue: OnboardingLegacyPersistedStep.body.rawValue,
+            form: OnboardingDraftV1FormFields(
+                name: "",
+                ageText: "30",
+                birthDateISO8601: nil,
+                sexRawValue: Sex.female.rawValue,
+                heightCmText: "170",
+                currentWeightKgText: "70",
+                goalWeightKgText: "65",
+                estimatedBodyFatPercentageText: "",
+                activityLevelRawValue: ActivityLevel.moderatelyActive.rawValue,
+                trainingFrequencyPerWeekText: "3",
+                averageStepsText: "5000",
+                dietPreference: "",
+                unitSystemRawValue: UnitSystem.metric.rawValue,
+                aggressivenessRawValue: CalorieAggressiveness.moderate.rawValue,
+                weightLossPaceChoiceRawValue: WeightLossPaceChoice.moderate.rawValue,
+                advancedPacePeriodRawValue: WeightLossAdvancedPaceDraft.default.period.rawValue,
+                advancedPaceAmountText: ""
+            ),
+            generatedPlan: nil,
+            savedAt: referenceDate
+        )
 
-        let draft = OnboardingDraft(formState: original, currentStep: .body)
-        let restored = draft.makeFormState()
+        let restored = OnboardingDraftMigration.upgrade(from: legacy).makeFormState()
 
         XCTAssertNotNil(restored.birthDate)
         XCTAssertEqual(try restored.resolvedAge(referenceDate: referenceDate), 30)
@@ -149,7 +168,7 @@ final class BirthDateAgeResolverTests: XCTestCase {
         formState.currentWeightKgText = "70"
         formState.goalWeightKgText = "65"
 
-        let draft = OnboardingDraft(formState: formState, currentStep: .body)
+        let draft = OnboardingDraft(formState: formState, step: .birthday)
         let restored = draft.makeFormState()
 
         XCTAssertEqual(restored.birthDate, formState.birthDate)

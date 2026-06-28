@@ -83,6 +83,13 @@ struct SettingsRootView: View {
             }
             .fitPilotSettingsRowChrome()
 
+            NavigationLink {
+                PlanBodyDetailsSettingsView(formState: formState)
+            } label: {
+                settingsRowLabel(FormaProductCopy.PlanCalculation.bodyDetailsSettingsTitle)
+            }
+            .fitPilotSettingsRowChrome()
+
             FitPilotComingSoonRow(title: "AI preferences")
                 .fitPilotSettingsRowChrome(isEnabled: false)
         } header: {

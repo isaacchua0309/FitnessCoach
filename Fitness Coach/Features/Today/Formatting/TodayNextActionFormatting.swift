@@ -20,6 +20,7 @@ enum TodayNextActionRoute: Equatable {
     case logWater(amountMl: Int)
     case presentLogMeal(mealType: MealType?)
     case presentLogWeight
+    case presentAddWater
     case openCoach(String?)
     case openTrainingInsights
     case none
@@ -84,6 +85,8 @@ enum TodayNextActionFormatting {
             return .logWater(amountMl: amountMl)
         case .logWeight:
             return .presentLogWeight
+        case .addWater:
+            return .presentAddWater
         case .openHealth:
             return .openTrainingInsights
         case .reviewToday:
@@ -133,6 +136,7 @@ enum TodayNextActionFormatting {
         case .logWater: return "native_log_water"
         case .presentLogMeal: return "native_log_meal_sheet"
         case .presentLogWeight: return "native_log_weight_sheet"
+        case .presentAddWater: return "native_add_water_sheet"
         case .openCoach: return "open_coach"
         case .openTrainingInsights: return "open_training_insights"
         case .none: return "none"

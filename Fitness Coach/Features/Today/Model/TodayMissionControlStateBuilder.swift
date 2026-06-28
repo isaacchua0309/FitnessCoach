@@ -18,12 +18,16 @@ struct TodayMissionControlInputs: Equatable {
     var workoutSummary: TodayWorkoutSummary
     var foodEntries: [FoodEntry]
     var streaks: StreakSummary
+    var weekLoggedDays: Int
     var dailyBrief: TodayDailyBrief
     var dailyReview: DailyReview?
     var goalWeightKg: Double?
     var profileWeightKg: Double?
+    var latestWeightKg: Double?
     var userName: String?
     var activityContext: TodayActivityContext
+    var stepGoalAssumption: Int?
+    var trainingFrequencyPerWeek: Int?
 }
 
 enum TodayMissionControlStateBuilder {
@@ -45,6 +49,7 @@ enum TodayMissionControlStateBuilder {
             weightSummary: inputs.weightSummary,
             foodEntries: inputs.foodEntries,
             goalWeightKg: inputs.goalWeightKg,
+            latestWeightKg: inputs.latestWeightKg,
             profileWeightKg: inputs.profileWeightKg,
             focusMessage: focusMessage
         )
@@ -53,6 +58,7 @@ enum TodayMissionControlStateBuilder {
             date: inputs.date,
             hasDailyLog: true,
             mission: mission,
+            goalConnection: buildGoalConnection(from: inputs),
             nextBestAction: buildNextBestAction(from: inputs),
             meals: buildMeals(from: inputs.foodEntries),
             activity: buildActivity(from: inputs),
@@ -60,14 +66,27 @@ enum TodayMissionControlStateBuilder {
                 macroSummary: inputs.macroSummary,
                 waterSummary: inputs.waterSummary
             ),
-            momentum: buildMomentum(from: inputs.streaks),
+            momentum: buildMomentum(
+                streaks: inputs.streaks,
+                weekLoggedDays: inputs.weekLoggedDays
+            ),
+            dailyScorecard: buildDailyScorecard(from: inputs),
             dailySummary: DailySummaryState(
                 greeting: inputs.dailyBrief.greeting,
                 priorities: inputs.dailyBrief.priorities,
                 userName: inputs.userName,
                 dailyReview: inputs.dailyReview
             ),
-            aiCoachTip: buildCoachTip(from: inputs.dailyBrief, focusMessage: focusMessage)
+            aiCoachTip: TodayCoachTipBuilder.build(
+                from: TodayCoachTipInput(
+                    date: inputs.date,
+                    calendar: .current,
+                    calorieSummary: inputs.calorieSummary,
+                    macroSummary: inputs.macroSummary,
+                    waterSummary: inputs.waterSummary,
+                    foodEntries: inputs.foodEntries
+                )
+            )
         )
     }
 
@@ -80,6 +99,7 @@ enum TodayMissionControlStateBuilder {
         weightSummary: TodayWeightSummary,
         foodEntries: [FoodEntry],
         goalWeightKg: Double?,
+        latestWeightKg: Double?,
         profileWeightKg: Double?,
         focusMessage: String
     ) -> TodayMissionState {
@@ -93,6 +113,7 @@ enum TodayMissionControlStateBuilder {
             calorieSummary: calorieSummary,
             weightSummary: weightSummary,
             goalProgress: goalProgress(
+                latestWeightKg: latestWeightKg,
                 profileWeightKg: profileWeightKg,
                 goalWeightKg: goalWeightKg
             ),
@@ -121,12 +142,15 @@ enum TodayMissionControlStateBuilder {
     }
 
     static func goalProgress(
+        latestWeightKg: Double?,
         profileWeightKg: Double?,
         goalWeightKg: Double?
     ) -> TodayGoalProgressState? {
-        guard let currentWeightKg = profileWeightKg,
+        guard let currentWeightKg = TodayGoalConnectionFormatting.resolvedCurrentWeight(
+            latestWeightKg: latestWeightKg,
+            profileWeightKg: profileWeightKg
+        ),
               let goalWeightKg,
-              currentWeightKg > 0,
               goalWeightKg > 0 else {
             return nil
         }
@@ -136,13 +160,25 @@ enum TodayMissionControlStateBuilder {
             goalWeightKg: goalWeightKg
         )
         let kgToGo = abs(currentWeightKg - goalWeightKg)
-        guard direction != .maintain, kgToGo > 0.1 else { return nil }
+        guard direction != .maintain, kgToGo > TodayGoalConnectionFormatting.maintainToleranceKg else {
+            return nil
+        }
 
         return TodayGoalProgressState(
             currentWeightKg: currentWeightKg,
             goalWeightKg: goalWeightKg,
             kgToGo: kgToGo,
             direction: direction
+        )
+    }
+
+    static func buildGoalConnection(from inputs: TodayMissionControlInputs) -> TodayGoalConnectionState? {
+        TodayGoalConnectionFormatting.displayModel(
+            for: TodayGoalConnectionInput(
+                latestWeightKg: inputs.latestWeightKg,
+                profileWeightKg: inputs.profileWeightKg,
+                goalWeightKg: inputs.goalWeightKg
+            )
         )
     }
 
@@ -190,6 +226,10 @@ enum TodayMissionControlStateBuilder {
             trainingIntegration: context.trainingIntegration,
             trainingDataSource: context.trainingDataSource,
             appleHealthWorkoutCount: context.appleHealthWorkoutCount,
+            stepsToday: context.stepsToday,
+            weeklyWorkoutCount: context.weeklyWorkoutCount,
+            stepGoalAssumption: inputs.stepGoalAssumption,
+            trainingFrequencyPerWeek: inputs.trainingFrequencyPerWeek,
             displayLine: displayLine,
             showsConnectCTA: showsConnectCTA
         )
@@ -226,58 +266,28 @@ enum TodayMissionControlStateBuilder {
 
     // MARK: - Momentum
 
-    static func buildMomentum(from streaks: StreakSummary) -> TodayMomentumState {
-        var detailLines: [String] = []
-
-        if streaks.proteinStreak > 0 {
-            detailLines.append("\(streaks.proteinStreak)-day protein streak")
-        }
-        if streaks.hydrationStreak > 0 {
-            detailLines.append("\(streaks.hydrationStreak)-day hydration streak")
-        }
-        if streaks.workoutStreak > 0 {
-            detailLines.append("\(streaks.workoutStreak)-day workout streak")
-        }
-
-        let headline: String
-        if streaks.loggingStreak > 0 {
-            headline = streaks.loggingStreak == 1
-                ? "1-day logging streak"
-                : "\(streaks.loggingStreak)-day logging streak"
-        } else {
-            headline = "Start today's log to build momentum"
-        }
-
-        return TodayMomentumState(
+    static func buildMomentum(
+        streaks: StreakSummary,
+        weekLoggedDays: Int
+    ) -> TodayMomentumState {
+        TodayMomentumState(
             streaks: streaks,
-            headline: headline,
-            detailLines: detailLines
+            weekLoggedDays: weekLoggedDays
+        )
+    }
+
+    static func buildDailyScorecard(from inputs: TodayMissionControlInputs) -> TodayDailySummaryScorecardState {
+        TodayDailySummaryScoring.scorecard(
+            from: TodayDailySummaryScoreInput(
+                calorieSummary: inputs.calorieSummary,
+                macroSummary: inputs.macroSummary,
+                waterSummary: inputs.waterSummary,
+                activity: buildActivity(from: inputs)
+            )
         )
     }
 
     // MARK: - Coach Tip
 
-    static func buildCoachTip(
-        from dailyBrief: TodayDailyBrief,
-        focusMessage: String
-    ) -> AICoachTipState {
-        let message = dailyBrief.recommendation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? focusMessage
-            : dailyBrief.recommendation
-
-        return AICoachTipState(
-            message: message,
-            coachPrefill: coachPrefill(for: message)
-        )
-    }
-
-    private static func coachPrefill(for message: String) -> String? {
-        if message == FormaProductCopy.Today.focusProteinLow {
-            return TodayCoachPrompt.logProtein
-        }
-        if message == FormaProductCopy.Today.focusWaterLow {
-            return TodayCoachPrompt.logWater
-        }
-        return nil
-    }
+    // Tip generation lives in TodayCoachTipBuilder (deterministic, no API).
 }

@@ -68,19 +68,23 @@ struct ProgressView: View {
 
                 JourneyWeeklyReviewSection(review: state.weeklyReview)
 
-                if !state.milestones.items.isEmpty {
-                    JourneyMilestonesSection(milestones: state.milestones.items)
-                }
+                JourneyMilestonesSection(state: state.milestones)
 
-                JourneyCoachInsightsSection(message: state.habitInsights.habitInsightExplanation)
+                JourneyStoryTimelineSection(state: state.storyTimeline)
 
-                JourneyCoachInsightsSection(message: state.progressAttribution.primaryReason)
+                JourneyHabitInsightsSection(state: state.habitInsights)
+
+                JourneyWhyProgressSection(state: state.progressAttribution)
+
+                JourneyBeforeTodaySection(state: state.beforeToday)
+
+                JourneyPersonalRecordsSection(state: state.personalRecords)
+
+                JourneyMonthlyRecapSection(state: state.monthlyRecap)
 
                 JourneyConsistencyCalendarSection(calendar: state.monthlyRecap.calendar) {
                     onOpenCoach?(nil)
                 }
-
-                JourneyAchievementsSection(records: state.personalRecords)
 
                 JourneyDetailedAnalyticsSection(
                     analytics: state.detailedAnalytics,

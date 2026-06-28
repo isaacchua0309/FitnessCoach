@@ -11,7 +11,8 @@ struct TodayReadOnlyView: View {
     let state: TodayDashboardState
     let actionCoordinator: TodayActionCoordinator
     let onOpenCoach: (String?) -> Void
-    let onLogMealFromPreview: () -> Void
+    let onOpenJourney: () -> Void
+    let onOpenPlan: () -> Void
 
     init(
         state: TodayDashboardState,
@@ -20,12 +21,14 @@ struct TodayReadOnlyView: View {
         trainingDataSource: TrainingDataSource = .appleHealth,
         appleHealthWorkoutCount: Int? = nil,
         onOpenCoach: @escaping (String?) -> Void,
-        onLogMealFromPreview: @escaping () -> Void = {}
+        onOpenJourney: @escaping () -> Void = {},
+        onOpenPlan: @escaping () -> Void = {}
     ) {
         self.state = state
         self.actionCoordinator = actionCoordinator
         self.onOpenCoach = onOpenCoach
-        self.onLogMealFromPreview = onLogMealFromPreview
+        self.onOpenJourney = onOpenJourney
+        self.onOpenPlan = onOpenPlan
     }
 
     private var showsGenericCoachCTA: Bool {
@@ -62,11 +65,21 @@ struct TodayReadOnlyView: View {
     // MARK: - Zones
 
     private var statusZone: some View {
-        TodayMissionHero(
-            mission: state.mission,
-            proteinProgress: state.macroBalance.macroSummary.protein,
-            mealsEmpty: state.meals.isEmpty
-        )
+        VStack(alignment: .leading, spacing: TodayLayout.statusZoneSpacing) {
+            TodayMissionHero(
+                mission: state.mission,
+                proteinProgress: state.macroBalance.macroSummary.protein,
+                mealsEmpty: state.meals.isEmpty
+            )
+
+            if let goalConnection = state.goalConnection {
+                TodayGoalConnectionRow(
+                    connection: goalConnection,
+                    onOpenJourney: onOpenJourney,
+                    onOpenPlan: onOpenPlan
+                )
+            }
+        }
     }
 
     private var loggedItemsZone: some View {
@@ -78,9 +91,32 @@ struct TodayReadOnlyView: View {
 
             TodayMealsPreview(
                 entries: state.meals.entries,
-                previewLimit: 3,
-                onLogMeal: onLogMealFromPreview
+                date: state.date,
+                onAddMeal: { mealType in
+                    actionCoordinator.logMeal(for: mealType)
+                },
+                onEditEntry: { entry in
+                    actionCoordinator.openEditFood(entry)
+                },
+                onDeleteEntry: { entry in
+                    actionCoordinator.requestDeleteFood(entry)
+                }
             )
+
+            TodayActivitySection(
+                activity: state.activity,
+                onConnectAppleHealth: {
+                    actionCoordinator.onOpenTrainingInsights?()
+                }
+            )
+
+            TodayMomentumSection(momentum: state.momentum)
+
+            TodayDailySummarySection(scorecard: state.dailyScorecard)
+
+            TodayCoachTipSection(tip: state.aiCoachTip) { prefill in
+                onOpenCoach(prefill)
+            }
         }
     }
 }

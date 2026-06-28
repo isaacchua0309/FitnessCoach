@@ -49,14 +49,6 @@ enum PlanStateBuilder {
                 trainingFrequency: trainingFrequencyLabel(profile.trainingFrequencyPerWeek),
                 averageSteps: ProfileFormatter.stepsCompact(profile.averageSteps),
                 dietPreference: ProfileFormatter.dietPreference(profile.dietPreference)
-            ),
-            whatHappensNext: whatHappensNext(for: profile, currentStrategyName: strategyName),
-            aboutYou: PlanAboutYouState(
-                age: ProfileFormatter.age(profile.resolvedAge(referenceDate: referenceDate)),
-                height: ProfileFormatter.cm(profile.heightCm),
-                sex: ProfileFormatter.sex(profile.sex),
-                bodyFat: ProfileFormatter.percent(profile.estimatedBodyFatPercentage),
-                units: ProfileFormatter.unitSystem(profile.unitSystem)
             )
         )
     }
@@ -101,83 +93,6 @@ enum PlanStateBuilder {
                 "Activity shifts will recalibrate your plan"
             ]
         )
-    }
-
-    // MARK: What Happens Next
-
-    static func whatHappensNext(
-        for profile: UserProfile,
-        currentStrategyName: String
-    ) -> WhatHappensNextState {
-        let nextPhase = nextLikelyPhase(after: currentStrategyName)
-        let roadmap = roadmapPhaseNames(for: profile, currentStrategyName: currentStrategyName)
-
-        return WhatHappensNextState(
-            currentPhaseName: currentStrategyName,
-            currentPhaseFocus: phaseFocus(for: currentStrategyName),
-            nextCheckpoint: FormaProductCopy.WhatHappensNext.defaultCheckpoint,
-            likelyNextStepName: nextPhase.name,
-            likelyNextStepDetail: nextPhase.detail,
-            roadmapSummary: roadmap.isEmpty ? nil : roadmap.joined(separator: " → ")
-        )
-    }
-
-    private static func roadmapPhaseNames(
-        for profile: UserProfile,
-        currentStrategyName: String
-    ) -> [String] {
-        let isLoss = profile.goalWeightKg < profile.currentWeightKg - 0.5
-        let isGain = profile.goalWeightKg > profile.currentWeightKg + 0.5
-
-        if isLoss {
-            return [currentStrategyName, "Maintenance", "Lean Bulk", "Mini Cut"]
-        }
-        if isGain {
-            return [currentStrategyName, "Maintenance", "Mini Cut", "Lean Bulk"]
-        }
-        return ["Maintenance", "Lean Bulk", "Mini Cut", currentStrategyName]
-    }
-
-    private static func phaseFocus(for phaseName: String) -> String {
-        let normalized = phaseName.lowercased()
-
-        if normalized.contains("mini cut") {
-            return FormaProductCopy.WhatHappensNext.miniCutFocus
-        }
-        if normalized.contains("cut") {
-            return FormaProductCopy.WhatHappensNext.cutFocus
-        }
-        if normalized.contains("build") || normalized.contains("lean bulk") {
-            return FormaProductCopy.WhatHappensNext.buildFocus
-        }
-        return FormaProductCopy.WhatHappensNext.maintenanceFocus
-    }
-
-    private static func likelyNextStepDetail(for phaseName: String) -> String {
-        let normalized = phaseName.lowercased()
-
-        if normalized.contains("mini cut") {
-            return FormaProductCopy.WhatHappensNext.miniCutNextStep
-        }
-        if normalized.contains("build") || normalized.contains("lean bulk") {
-            return FormaProductCopy.WhatHappensNext.leanBulkNextStep
-        }
-        return FormaProductCopy.WhatHappensNext.maintenanceNextStep
-    }
-
-    private static func nextLikelyPhase(after currentName: String) -> (name: String, detail: String) {
-        let normalized = currentName.lowercased()
-
-        if normalized.contains("mini cut") || normalized.contains("cut") {
-            return ("Maintenance", likelyNextStepDetail(for: "Maintenance"))
-        }
-        if normalized == "maintenance" {
-            return ("Lean Bulk", likelyNextStepDetail(for: "Lean Bulk"))
-        }
-        if normalized.contains("lean bulk") || normalized.contains("build") {
-            return ("Mini Cut", likelyNextStepDetail(for: "Mini Cut"))
-        }
-        return ("Maintenance", likelyNextStepDetail(for: "Maintenance"))
     }
 
     static func goalType(for profile: UserProfile) -> PlanGoalType {

@@ -93,13 +93,16 @@ struct CoachView: View {
             .animation(CoachDesignTokens.Motion.standard, value: showEmptyChrome)
             .photosPicker(isPresented: $isPhotoPickerPresented, selection: $photoPickerItem, matching: .images)
             .onChange(of: photoPickerItem) { _, item in
-                guard item != nil else { return }
+                guard let item else { return }
                 photoPickerItem = nil
-                Task { await model.handlePhotoSelected() }
+                Task {
+                    let result = await CoachMealPhotoPipeline.loadJPEG(from: item)
+                    await model.handleMealPhotoSelection(result)
+                }
             }
             .fullScreenCover(isPresented: $isCameraPresented) {
-                CoachCameraPicker {
-                    Task { await model.handlePhotoSelected() }
+                CoachCameraPicker { result in
+                    Task { await model.handleMealPhotoSelection(result) }
                 }
                 .ignoresSafeArea()
             }

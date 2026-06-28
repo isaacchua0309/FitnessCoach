@@ -94,12 +94,7 @@ final class OnboardingFormStateTests: XCTestCase {
         )
 
         XCTAssertFalse(state.pacePreview().isSaveable)
-        XCTAssertFalse(state.canAdvance(from: .goal))
-
         XCTAssertThrowsError(try state.makeCalorieTargetInput())
-        XCTAssertThrowsError(
-            try PlanCalculationBridge.calorieTargetResult(from: try state.makeCalorieTargetInput())
-        )
     }
 
     func testGeneratedTargetsStoreExpectedWeeklyWeightLossForAdvancedPace() throws {
@@ -177,8 +172,8 @@ final class OnboardingFormStateTests: XCTestCase {
     func testEmptyMotivationDoesNotBlockAdvanceOrCalculation() throws {
         var state = OnboardingFormState()
         XCTAssertTrue(state.selectedMotivations.isEmpty)
-        XCTAssertTrue(state.canAdvance(from: .motivation))
-        XCTAssertNil(state.validationMessage(for: .motivation))
+        XCTAssertTrue(state.canAdvance(from: .review))
+        XCTAssertNil(state.validationMessage(for: .review))
 
         state = filledCutOnboarding()
         _ = try state.makeCalorieTargetInput()
@@ -187,8 +182,8 @@ final class OnboardingFormStateTests: XCTestCase {
     func testEmptyLoggingPreferencesDoNotBlockAdvanceOrCalculation() throws {
         var state = OnboardingFormState()
         XCTAssertTrue(state.loggingPreferences.isEmpty)
-        XCTAssertTrue(state.canAdvance(from: .preferences))
-        XCTAssertNil(state.validationMessage(for: .preferences))
+        XCTAssertTrue(state.canAdvance(from: .review))
+        XCTAssertNil(state.validationMessage(for: .review))
 
         state = filledCutOnboarding()
         _ = try state.makeCalorieTargetInput()
@@ -220,57 +215,37 @@ final class OnboardingFormStateTests: XCTestCase {
         XCTAssertEqual(baselineResult, withPreferencesResult)
     }
 
-    func testRequiredBodyFieldsStillBlockAdvance() {
+    func testRequiredHeightWeightFieldsBlockAdvance() {
         var state = OnboardingFormState()
-        XCTAssertFalse(state.canAdvance(from: .body))
-        XCTAssertNotNil(state.validationMessage(for: .body))
+        XCTAssertFalse(state.canAdvance(from: .heightWeight))
+        XCTAssertNotNil(state.validationMessage(for: .heightWeight))
 
-        state.ageText = "28"
         state.heightCmText = "168"
         state.currentWeightKgText = "72"
-        XCTAssertTrue(state.canAdvance(from: .body))
+        XCTAssertTrue(state.canAdvance(from: .heightWeight))
     }
 
-    func testBodyFatBlankAllowsAdvance() {
-        var state = filledBodyBasics()
+    func testBodyFatBlankAllowsCalorieTargetInput() throws {
+        var state = filledCutOnboarding()
         state.estimatedBodyFatPercentageText = ""
-        XCTAssertTrue(state.canAdvance(from: .body))
-        XCTAssertNil(state.validationMessage(for: .body))
+        _ = try state.makeCalorieTargetInput()
     }
 
     func testBodyFatAccepts24() throws {
-        var state = filledBodyBasics()
+        var state = filledCutOnboarding()
         state.estimatedBodyFatPercentageText = "24"
-        XCTAssertTrue(state.canAdvance(from: .body))
-        XCTAssertNoThrow(try state.validate(step: .body))
-
-        var full = filledCutOnboarding()
-        full.estimatedBodyFatPercentageText = "24"
-        let input = try full.makeCalorieTargetInput()
+        let input = try state.makeCalorieTargetInput()
         XCTAssertEqual(input.estimatedBodyFatPercentage, 24)
     }
 
     func testBodyFatAccepts24Percent() throws {
-        var state = filledBodyBasics()
+        var state = filledCutOnboarding()
         state.estimatedBodyFatPercentageText = "24%"
-        XCTAssertTrue(state.canAdvance(from: .body))
-        XCTAssertNoThrow(try state.validate(step: .body))
-
-        var full = filledCutOnboarding()
-        full.estimatedBodyFatPercentageText = "24%"
-        let input = try full.makeCalorieTargetInput()
+        let input = try state.makeCalorieTargetInput()
         XCTAssertEqual(input.estimatedBodyFatPercentage, 24)
     }
 
     func testBodyFatAcceptsBoundaryValues() throws {
-        var low = filledBodyBasics()
-        low.estimatedBodyFatPercentageText = "3"
-        XCTAssertTrue(low.canAdvance(from: .body))
-
-        var high = filledBodyBasics()
-        high.estimatedBodyFatPercentageText = "70"
-        XCTAssertTrue(high.canAdvance(from: .body))
-
         var fullLow = filledCutOnboarding()
         fullLow.estimatedBodyFatPercentageText = "3"
         XCTAssertEqual(try fullLow.makeCalorieTargetInput().estimatedBodyFatPercentage, 3)
@@ -281,40 +256,27 @@ final class OnboardingFormStateTests: XCTestCase {
     }
 
     func testBodyFatRejectsBelowMinimum() {
-        var state = filledBodyBasics()
+        var state = filledCutOnboarding()
         state.estimatedBodyFatPercentageText = "2"
-        XCTAssertFalse(state.canAdvance(from: .body))
-        XCTAssertEqual(
-            state.validationMessage(for: .body),
-            FormaProductCopy.Onboarding.Validation.bodyFatRange
-        )
+        XCTAssertThrowsError(try state.makeCalorieTargetInput())
     }
 
     func testBodyFatRejectsAboveMaximum() {
-        var state = filledBodyBasics()
+        var state = filledCutOnboarding()
         state.estimatedBodyFatPercentageText = "71"
-        XCTAssertFalse(state.canAdvance(from: .body))
-        XCTAssertEqual(
-            state.validationMessage(for: .body),
-            FormaProductCopy.Onboarding.Validation.bodyFatRange
-        )
+        XCTAssertThrowsError(try state.makeCalorieTargetInput())
     }
 
     func testBodyFatRejectsNonNumericValues() {
-        var state = filledBodyBasics()
+        var state = filledCutOnboarding()
         state.estimatedBodyFatPercentageText = "abc"
-        XCTAssertFalse(state.canAdvance(from: .body))
-        XCTAssertEqual(
-            state.validationMessage(for: .body),
-            FormaProductCopy.Onboarding.Validation.bodyFatRange
-        )
+        XCTAssertThrowsError(try state.makeCalorieTargetInput())
     }
 
-    func testBodyFatInvalidBlocksAdvanceWhenNonEmpty() {
-        var state = filledBodyBasics()
+    func testBodyFatInvalidBlocksCalorieTargetInputWhenNonEmpty() {
+        var state = filledCutOnboarding()
         state.estimatedBodyFatPercentageText = "100"
-        XCTAssertFalse(state.canAdvance(from: .body))
-        XCTAssertNotNil(state.validationMessage(for: .body))
+        XCTAssertThrowsError(try state.makeCalorieTargetInput())
     }
 
     func testNormalizedBodyFatTextStripsPercentSuffix() {
@@ -322,23 +284,19 @@ final class OnboardingFormStateTests: XCTestCase {
         XCTAssertEqual(OnboardingFormState.normalizedBodyFatText(" 24 % "), "24")
     }
 
-    func testRequiredGoalFieldsStillBlockAdvance() {
+    func testRequiredTargetWeightFieldsStillBlockAdvance() {
         var state = filledCutOnboarding()
         state.goalWeightKgText = ""
-        XCTAssertFalse(state.canAdvance(from: .goal))
-        XCTAssertNotNil(state.validationMessage(for: .goal))
+        XCTAssertFalse(state.canAdvance(from: .targetWeight))
+        XCTAssertNotNil(state.validationMessage(for: .targetWeight))
     }
 
-    func testRequiredActivityFieldsStillBlockAdvance() {
+    func testActivityLevelStepDoesNotRequireManualRhythmFields() {
         var state = filledCutOnboarding()
         state.trainingFrequencyPerWeekText = ""
-        XCTAssertFalse(state.canAdvance(from: .activity))
-        XCTAssertNotNil(state.validationMessage(for: .activity))
-
-        state.trainingFrequencyPerWeekText = "3"
         state.averageStepsText = ""
-        XCTAssertFalse(state.canAdvance(from: .activity))
-        XCTAssertNotNil(state.validationMessage(for: .activity))
+        XCTAssertTrue(state.canAdvance(from: .activityLevel))
+        XCTAssertNil(state.validationMessage(for: .activityLevel))
     }
 
     func testMakeCalorieTargetInputWorksForValidDraft() throws {
@@ -390,10 +348,11 @@ final class OnboardingFormStateTests: XCTestCase {
     }
 
     func testPreviewDataRemainsValid() throws {
-        let state = OnboardingPreviewData.formState
-        XCTAssertTrue(state.canAdvance(from: .body))
-        XCTAssertTrue(state.canAdvance(from: .goal))
-        XCTAssertTrue(state.canAdvance(from: .activity))
+        var state = OnboardingPreviewData.formState
+        OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &state)
+        XCTAssertTrue(state.canAdvance(from: .heightWeight))
+        XCTAssertTrue(state.canAdvance(from: .targetWeight))
+        XCTAssertTrue(state.canAdvance(from: .birthday))
         _ = try state.makeCalorieTargetInput()
     }
 
@@ -520,26 +479,18 @@ final class OnboardingFormStateTests: XCTestCase {
         XCTAssertEqual(legacyResult, newResult)
     }
 
-    private func filledBodyBasics() -> OnboardingFormState {
-        var state = OnboardingFormState()
-        state.ageText = "28"
-        state.sex = .female
-        state.heightCmText = "168"
-        state.currentWeightKgText = "72"
-        return state
-    }
-
     private func filledCutOnboarding(
         weight: Double = 72,
         goal: Double = 65,
         paceChoice: WeightLossPaceChoice = .moderate
     ) -> OnboardingFormState {
         var state = OnboardingFormState()
-        state.ageText = "28"
-        state.sex = .female
-        state.heightCmText = "168"
+        OnboardingHeightWeightValues.applyDefaultsIfNeeded(to: &state)
         state.currentWeightKgText = String(weight)
+        state.heightCmText = "168"
         state.goalWeightKgText = String(goal)
+        OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &state)
+        state.sex = .female
         state.activityLevel = .moderatelyActive
         state.trainingFrequencyPerWeekText = "3"
         state.averageStepsText = "5000"

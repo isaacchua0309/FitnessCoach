@@ -30,20 +30,22 @@ struct FoodEntryFormView: View {
                 mealTypePicker
             }
 
-            FormaFormCard(title: FormaProductCopy.FoodForm.portionSection) {
-                HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
-                    FormaLabeledNumberField(
-                        title: FormaProductCopy.FoodForm.amount,
-                        placeholder: FormaProductCopy.FoodForm.amountPlaceholder,
-                        text: $formState.quantityText,
-                        keyboard: .decimalPad
-                    )
-                    FormaLabeledField(
-                        title: FormaProductCopy.FoodForm.unit,
-                        placeholder: FormaProductCopy.FoodForm.unitPlaceholder,
-                        text: $formState.unit,
-                        capitalization: .never
-                    )
+            if mode.showsPortionFields {
+                FormaFormCard(title: FormaProductCopy.FoodForm.portionSection) {
+                    HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
+                        FormaLabeledNumberField(
+                            title: FormaProductCopy.FoodForm.amount,
+                            placeholder: FormaProductCopy.FoodForm.amountPlaceholder,
+                            text: $formState.quantityText,
+                            keyboard: .decimalPad
+                        )
+                        FormaLabeledField(
+                            title: FormaProductCopy.FoodForm.unit,
+                            placeholder: FormaProductCopy.FoodForm.unitPlaceholder,
+                            text: $formState.unit,
+                            capitalization: .never
+                        )
+                    }
                 }
             }
 

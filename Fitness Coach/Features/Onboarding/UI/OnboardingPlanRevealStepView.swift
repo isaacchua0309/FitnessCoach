@@ -2,7 +2,7 @@
 //  OnboardingPlanRevealStepView.swift
 //  Fitness Coach
 //
-//  Forma — Personal plan payoff screen for onboarding v2/v3.
+//  Forma — Personal plan payoff screen for onboarding.
 //
 
 import SwiftUI
@@ -39,10 +39,10 @@ struct OnboardingPlanRevealStepView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: - V3 compact (fits without scroll)
+    // MARK: - Compact layout (fits without scroll)
 
     private func compactContent(_ state: OnboardingPlanRevealState) -> some View {
-        let copy = FormaProductCopy.Onboarding.V3.PlanReveal.self
+        let copy = FormaProductCopy.Onboarding.Flow.PlanReveal.self
         return VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
                 Text(copy.title)
@@ -160,13 +160,13 @@ struct OnboardingPlanRevealStepView: View {
 
     private func compactTimelineLine(for state: OnboardingPlanRevealState) -> String? {
         guard let estimatedWeeksLabel = state.estimatedWeeksLabel else { return nil }
-        return FormaProductCopy.Onboarding.V3.PlanReveal.timelineLine(
+        return FormaProductCopy.Onboarding.Flow.PlanReveal.timelineLine(
             estimatedWeeksLabel: estimatedWeeksLabel,
             goalWeightLabel: state.goalWeightLabel
         )
     }
 
-    // MARK: - V2 standard
+    // MARK: - Standard layout
 
     private func standardContent(_ state: OnboardingPlanRevealState) -> some View {
         VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
@@ -357,7 +357,7 @@ struct OnboardingPlanRevealStepView: View {
     }
 }
 
-#Preview("V3 compact") {
+#Preview("Compact") {
     if let state = OnboardingPreviewData.planRevealState {
         OnboardingPlanRevealStepView(
             revealState: state,

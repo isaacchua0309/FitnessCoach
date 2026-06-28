@@ -124,6 +124,21 @@ final class JourneyTrainingSummaryBuilderTests: XCTestCase {
                 hydrationStreak: 0,
                 workoutStreak: 0
             ),
+            journeyStreaks: JourneyStreakBuilder.build(
+                JourneyStreakBuilder.Input(
+                    streakSummary: StreakSummary(
+                        loggingStreak: 0,
+                        proteinStreak: 0,
+                        hydrationStreak: 0,
+                        workoutStreak: 0
+                    ),
+                    maturityLogs: [],
+                    workoutDates: [],
+                    isAppleHealthConnected: false,
+                    asOf: Date(),
+                    calendar: Calendar.current
+                )
+            ),
             weeklyTraining: .connectedEmpty,
             weightSummary: ProgressWeightSummary(
                 latestWeightKg: 80,
@@ -157,14 +172,17 @@ final class JourneyTrainingSummaryBuilderTests: XCTestCase {
         )
 
         let attribution = JourneyDashboardBuilder.progressAttribution(context: context)
-        let messages = [attribution.primaryReason] + attribution.supportingReasons
+        let messages = [
+            attribution.primaryReasonTitle,
+            attribution.primaryReasonDetail
+        ] + attribution.supportingReasons
 
         XCTAssertFalse(messages.contains { $0.localizedCaseInsensitiveContains("behind") })
         XCTAssertFalse(messages.contains { $0.localizedCaseInsensitiveContains("missed") })
         XCTAssertTrue(
-            attribution.primaryReason.contains("habit")
-                || attribution.primaryReason.contains("Consistency")
-                || attribution.primaryReason.contains("building")
+            attribution.primaryReasonTitle.contains("consistency")
+                || attribution.primaryReasonTitle.contains("pattern")
+                || attribution.primaryReasonDetail.contains("logging")
         )
     }
 }

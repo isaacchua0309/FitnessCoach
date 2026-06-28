@@ -16,8 +16,6 @@ struct ProfileDashboardState: Equatable {
     var rationale: PlanRationaleState
     var adaptiveCoach: PlanAdaptiveCoachState
     var lifestyle: PlanLifestyleState
-    var whatHappensNext: WhatHappensNextState
-    var aboutYou: PlanAboutYouState
 }
 
 // MARK: Strategy Hero
@@ -54,27 +52,6 @@ struct PlanLifestyleState: Equatable {
     var trainingFrequency: String
     var averageSteps: String
     var dietPreference: String
-}
-
-// MARK: What Happens Next
-
-struct WhatHappensNextState: Equatable {
-    var currentPhaseName: String
-    var currentPhaseFocus: String
-    var nextCheckpoint: String
-    var likelyNextStepName: String
-    var likelyNextStepDetail: String
-    var roadmapSummary: String?
-}
-
-// MARK: About You
-
-struct PlanAboutYouState: Equatable {
-    var age: String
-    var height: String
-    var sex: String
-    var bodyFat: String?
-    var units: String
 }
 
 // MARK: Wizard

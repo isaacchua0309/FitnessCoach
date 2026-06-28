@@ -13,11 +13,27 @@ struct PlanRationaleHighlight: Equatable, Sendable, Identifiable {
     let value: String
 }
 
+struct PlanRationaleFlowStep: Equatable, Sendable, Identifiable {
+    let id: String
+    let label: String
+    let value: String
+}
+
+struct PlanRationaleBasedOnItem: Equatable, Sendable, Identifiable {
+    let id: String
+    let label: String
+    let value: String
+}
+
 struct PlanRationaleState: Equatable, Sendable {
-    /// Paragraph fallback when `highlights` is unavailable.
+    /// Paragraph fallback when visual flow is unavailable.
     let summary: String
-    /// Scannable label/value rows for the main Plan page.
+    /// Legacy scannable rows retained for tests and transitional callers.
     let highlights: [PlanRationaleHighlight]?
+    let flowSteps: [PlanRationaleFlowStep]?
+    let basedOnItems: [PlanRationaleBasedOnItem]?
+    let seeCalculationTitle: String
+    let accessibilitySummary: String
     let sustainabilityNote: String?
     let calculationDetails: PlanCalculationDetailsState?
     /// Structured energy/target metrics for Mission Control.
@@ -25,6 +41,11 @@ struct PlanRationaleState: Equatable, Sendable {
 
     var usesHighlightLayout: Bool {
         guard let highlights, !highlights.isEmpty else { return false }
+        return true
+    }
+
+    var usesVisualFlowLayout: Bool {
+        guard let flowSteps, !flowSteps.isEmpty else { return false }
         return true
     }
 
@@ -40,6 +61,10 @@ struct PlanRationaleState: Equatable, Sendable {
         return PlanRationaleState(
             summary: summary,
             highlights: nil,
+            flowSteps: nil,
+            basedOnItems: nil,
+            seeCalculationTitle: FormaProductCopy.PlanRationale.seeCalculation,
+            accessibilitySummary: summary,
             sustainabilityNote: "Targets balance progress with recovery from strength training.",
             calculationDetails: nil,
             metrics: nil
@@ -76,17 +101,137 @@ enum PlanRationaleCopyBuilder {
         let sustainabilityNote = sustainabilityNote(for: result)
         let calculationDetails = PlanCalculationDetailsBuilder.build(
             profile: profile,
-            result: result
+            result: result,
+            referenceDate: referenceDate
         )
-        let metrics = PlanRationaleMetricsBuilder.build(profile: profile, result: result)
+        let metrics = PlanRationaleMetricsBuilder.build(
+            profile: profile,
+            result: result,
+            referenceDate: referenceDate
+        )
+        let flowSteps = visualFlowSteps(profile: profile, result: result)
+        let basedOnItems = basedOnItems(profile: profile, referenceDate: referenceDate)
 
         return PlanRationaleState(
             summary: summary,
             highlights: highlights(profile: profile, result: result),
+            flowSteps: flowSteps,
+            basedOnItems: basedOnItems,
+            seeCalculationTitle: FormaProductCopy.PlanRationale.seeCalculation,
+            accessibilitySummary: accessibilitySummary(
+                flowSteps: flowSteps,
+                basedOnItems: basedOnItems
+            ),
             sustainabilityNote: sustainabilityNote,
             calculationDetails: calculationDetails,
             metrics: metrics
         )
+    }
+
+    // MARK: - Visual flow
+
+    static func visualFlowSteps(
+        profile: UserProfile,
+        result: PlanCalculationResult
+    ) -> [PlanRationaleFlowStep] {
+        var steps = [
+            PlanRationaleFlowStep(
+                id: "maintenance",
+                label: FormaProductCopy.PlanRationale.maintenanceEstimate,
+                value: PlanDisplayFormatter.formatKcal(result.tdeeKcal)
+            )
+        ]
+
+        switch result.goalDirection {
+        case .cut where result.dailyDeficitKcal > 0:
+            steps.append(
+                PlanRationaleFlowStep(
+                    id: "adjustment",
+                    label: FormaProductCopy.PlanRationale.healthyDeficit,
+                    value: PlanDisplayFormatter.formatKcal(result.dailyDeficitKcal)
+                )
+            )
+        case .gain:
+            let surplus = max(result.calorieTargetKcal - result.tdeeKcal, 0)
+            if surplus > 0 {
+                steps.append(
+                    PlanRationaleFlowStep(
+                        id: "adjustment",
+                        label: FormaProductCopy.PlanRationale.healthySurplus,
+                        value: PlanDisplayFormatter.formatKcal(surplus)
+                    )
+                )
+            }
+        case .maintain:
+            steps.append(
+                PlanRationaleFlowStep(
+                    id: "target",
+                    label: FormaProductCopy.PlanRationale.maintenanceTarget,
+                    value: PlanDisplayFormatter.formatKcal(result.calorieTargetKcal)
+                )
+            )
+            return steps
+        case .cut:
+            break
+        }
+
+        steps.append(
+            PlanRationaleFlowStep(
+                id: "target",
+                label: FormaProductCopy.PlanRationale.dailyTarget,
+                value: PlanDisplayFormatter.formatKcal(result.calorieTargetKcal)
+            )
+        )
+        return steps
+    }
+
+    static func basedOnItems(
+        profile: UserProfile,
+        referenceDate: Date
+    ) -> [PlanRationaleBasedOnItem] {
+        [
+            PlanRationaleBasedOnItem(
+                id: "age",
+                label: FormaProductCopy.PlanRationale.birthdayDerivedAge,
+                value: "\(profile.resolvedAge(referenceDate: referenceDate)) years"
+            ),
+            PlanRationaleBasedOnItem(
+                id: "weight",
+                label: FormaProductCopy.PlanRationale.currentWeight,
+                value: PlanDisplayFormatter.formatKg(profile.currentWeightKg)
+            ),
+            PlanRationaleBasedOnItem(
+                id: "height",
+                label: FormaProductCopy.PlanRationale.height,
+                value: PlanDisplayFormatter.formatCm(profile.heightCm)
+            ),
+            PlanRationaleBasedOnItem(
+                id: "sex",
+                label: FormaProductCopy.PlanRationale.biologicalSex,
+                value: ProfileFormatter.sex(profile.sex)
+            ),
+            PlanRationaleBasedOnItem(
+                id: "activity",
+                label: FormaProductCopy.PlanRationale.activityLevel,
+                value: ProfileFormatter.activityLevel(profile.activityLevel)
+            ),
+            PlanRationaleBasedOnItem(
+                id: "goal",
+                label: FormaProductCopy.PlanRationale.goalWeight,
+                value: PlanDisplayFormatter.formatKg(profile.goalWeightKg)
+            )
+        ]
+    }
+
+    static func accessibilitySummary(
+        flowSteps: [PlanRationaleFlowStep],
+        basedOnItems: [PlanRationaleBasedOnItem]
+    ) -> String {
+        var parts = [FormaProductCopy.PlanRationale.sectionTitle]
+        parts.append(contentsOf: flowSteps.map { "\($0.label), \($0.value)" })
+        parts.append(FormaProductCopy.PlanRationale.basedOnHeading)
+        parts.append(contentsOf: basedOnItems.map { "\($0.label), \($0.value)" })
+        return parts.joined(separator: ". ")
     }
 
     // MARK: - Highlights
@@ -96,7 +241,7 @@ enum PlanRationaleCopyBuilder {
             PlanRationaleHighlight(
                 id: "maintenance",
                 label: FormaProductCopy.PlanRationale.maintenanceEstimate,
-                value: PlanDisplayFormatter.formatKcalPerDay(result.tdeeKcal)
+                value: PlanDisplayFormatter.formatKcal(result.tdeeKcal)
             )
         ]
 
@@ -104,17 +249,30 @@ enum PlanRationaleCopyBuilder {
             rows.append(
                 PlanRationaleHighlight(
                     id: "deficit",
-                    label: FormaProductCopy.PlanRationale.dailyDeficit,
-                    value: PlanDisplayFormatter.formatKcalPerDay(result.dailyDeficitKcal)
+                    label: FormaProductCopy.PlanRationale.healthyDeficit,
+                    value: PlanDisplayFormatter.formatKcal(result.dailyDeficitKcal)
                 )
             )
+        } else if result.goalDirection == .gain {
+            let surplus = max(result.calorieTargetKcal - result.tdeeKcal, 0)
+            if surplus > 0 {
+                rows.append(
+                    PlanRationaleHighlight(
+                        id: "surplus",
+                        label: FormaProductCopy.PlanRationale.healthySurplus,
+                        value: PlanDisplayFormatter.formatKcal(surplus)
+                    )
+                )
+            }
         }
 
         rows.append(
             PlanRationaleHighlight(
                 id: "target",
-                label: FormaProductCopy.PlanRationale.target,
-                value: PlanDisplayFormatter.formatKcalPerDay(result.calorieTargetKcal)
+                label: result.goalDirection == .maintain
+                    ? FormaProductCopy.PlanRationale.maintenanceTarget
+                    : FormaProductCopy.PlanRationale.dailyTarget,
+                value: PlanDisplayFormatter.formatKcal(result.calorieTargetKcal)
             )
         )
 

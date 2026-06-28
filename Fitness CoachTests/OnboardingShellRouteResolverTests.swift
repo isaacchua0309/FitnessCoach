@@ -10,7 +10,6 @@ import XCTest
 
 final class OnboardingShellRouteResolverTests: XCTestCase {
 
-    private let v2Disabled = false
     private let signedInUser = AuthState.signedIn(uid: "google-user")
 
     // MARK: - Unknown auth
@@ -192,65 +191,9 @@ final class OnboardingShellRouteResolverTests: XCTestCase {
         )
     }
 
-    // MARK: - Legacy / feature flag off
-
-    func testFeatureFlagOffPreservesLegacySignedOutRouting() {
-        XCTAssertEqual(
-            resolve(
-                authState: .signedOut,
-                hasLocalProfile: false,
-                isOnboardingV2Enabled: v2Disabled
-            ),
-            .signIn
-        )
-        XCTAssertEqual(
-            resolve(
-                authState: .signedOut,
-                hasLocalProfile: true,
-                isOnboardingV2Enabled: v2Disabled,
-                signedOutWithProfilePolicy: .allowLocalMain
-            ),
-            .signIn
-        )
-    }
-
-    func testFeatureFlagOffPreservesLegacySignedInRouting() {
-        XCTAssertEqual(
-            resolve(
-                authState: signedInUser,
-                hasLocalProfile: false,
-                rootState: .onboarding,
-                isOnboardingModelReady: true,
-                isOnboardingV2Enabled: v2Disabled
-            ),
-            .onboarding
-        )
-        XCTAssertEqual(
-            resolve(
-                authState: signedInUser,
-                hasLocalProfile: true,
-                rootState: .main,
-                isOnboardingV2Enabled: v2Disabled,
-                awaitingCloudSync: true
-            ),
-            .main
-        )
-    }
-
-    func testFeatureFlagOffUnknownStillRoutesToLaunchLoading() {
-        XCTAssertEqual(
-            resolve(
-                authState: .unknown,
-                hasLocalProfile: false,
-                isOnboardingV2Enabled: v2Disabled
-            ),
-            .launchLoading
-        )
-    }
-
     // MARK: - G1 routing matrix
 
-    func testG1RoutingMatrixCoversSignedOutSignedInAndFlagOff() {
+    func testG1RoutingMatrixCoversSignedOutAndSignedInPaths() {
         // auth unknown → loading
         XCTAssertEqual(
             resolve(authState: .unknown, hasLocalProfile: false),
@@ -289,12 +232,6 @@ final class OnboardingShellRouteResolverTests: XCTestCase {
             resolve(authState: signedInUser, hasLocalProfile: true, rootState: .main),
             .main
         )
-
-        // flag off → legacy sign-in for signed-out users
-        XCTAssertEqual(
-            resolve(authState: .signedOut, hasLocalProfile: false, isOnboardingV2Enabled: v2Disabled),
-            .signIn
-        )
     }
 
     // MARK: - Helpers
@@ -304,7 +241,6 @@ final class OnboardingShellRouteResolverTests: XCTestCase {
         hasLocalProfile: Bool,
         rootState: RootViewState = .loading,
         isOnboardingModelReady: Bool = false,
-        isOnboardingV2Enabled: Bool = true,
         signedOutWithProfilePolicy: SignedOutWithProfilePolicy = .requireSignIn,
         awaitingCloudSync: Bool = false
     ) -> OnboardingShellRoute {
@@ -313,7 +249,6 @@ final class OnboardingShellRouteResolverTests: XCTestCase {
             hasLocalProfile: hasLocalProfile,
             rootState: rootState,
             isOnboardingModelReady: isOnboardingModelReady,
-            isOnboardingV2Enabled: isOnboardingV2Enabled,
             signedOutWithProfilePolicy: signedOutWithProfilePolicy,
             awaitingCloudSync: awaitingCloudSync
         )

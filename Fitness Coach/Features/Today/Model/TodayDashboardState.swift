@@ -24,11 +24,13 @@ struct TodayDashboardState: Equatable {
     var date: Date
     var hasDailyLog: Bool
     var mission: TodayMissionState
+    var goalConnection: TodayGoalConnectionState?
     var nextBestAction: NextBestActionState
     var meals: MealStatusState
     var activity: ActivityTodayState
     var macroBalance: MacroBalanceState
     var momentum: TodayMomentumState
+    var dailyScorecard: TodayDailySummaryScorecardState
     var dailySummary: DailySummaryState
     var aiCoachTip: AICoachTipState
 }
@@ -112,11 +114,15 @@ struct TodayActivityContext: Equatable, Sendable {
     var trainingIntegration: TrainingIntegrationState
     var trainingDataSource: TrainingDataSource
     var appleHealthWorkoutCount: Int?
+    var stepsToday: Int?
+    var weeklyWorkoutCount: Int?
 
     static let `default` = TodayActivityContext(
         trainingIntegration: .connected,
         trainingDataSource: .appleHealth,
-        appleHealthWorkoutCount: nil
+        appleHealthWorkoutCount: nil,
+        stepsToday: nil,
+        weeklyWorkoutCount: nil
     )
 }
 
@@ -125,6 +131,10 @@ struct ActivityTodayState: Equatable {
     var trainingIntegration: TrainingIntegrationState
     var trainingDataSource: TrainingDataSource
     var appleHealthWorkoutCount: Int?
+    var stepsToday: Int?
+    var weeklyWorkoutCount: Int?
+    var stepGoalAssumption: Int?
+    var trainingFrequencyPerWeek: Int?
     var displayLine: String
     var showsConnectCTA: Bool
 }
@@ -140,8 +150,8 @@ struct MacroBalanceState: Equatable {
 
 struct TodayMomentumState: Equatable {
     var streaks: StreakSummary
-    var headline: String
-    var detailLines: [String]
+    var weekLoggedDays: Int
+    static let weekTotalDays = 7
 }
 
 // MARK: - Section 7: Daily Summary

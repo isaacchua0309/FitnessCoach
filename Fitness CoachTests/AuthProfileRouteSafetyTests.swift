@@ -19,7 +19,6 @@ final class AuthProfilePreAuthRouteSafetyTests: XCTestCase {
                 authState: .signedOut,
                 isOnboardingModelReady: true,
                 hasLocalProfile: false,
-                isOnboardingV2Enabled: true
             ),
             .localOnboarding
         )
@@ -28,7 +27,6 @@ final class AuthProfilePreAuthRouteSafetyTests: XCTestCase {
                 authState: .signedOut,
                 hasLocalProfile: false,
                 isOnboardingModelReady: true,
-                isOnboardingV2Enabled: true
             ),
             .preAuthOnboarding
         )
@@ -39,8 +37,8 @@ final class AuthProfilePreAuthRouteSafetyTests: XCTestCase {
             authState: .signedOut,
             isOnboardingModelReady: true,
             hasLocalProfile: true,
-            isOnboardingV2Enabled: true,
-            signedOutWithProfilePolicy: .requireSignIn
+            signedOutWithProfilePolicy: .requireSignIn,
+            localProfileAwaitingSignIn: true
         )
         XCTAssertEqual(productionRoute, .localOnboarding)
         XCTAssertNotEqual(productionRoute, .main)
@@ -50,10 +48,23 @@ final class AuthProfilePreAuthRouteSafetyTests: XCTestCase {
             AppRouteResolver.resolve(
                 authState: .signedOut,
                 hasLocalProfile: true,
-                isOnboardingV2Enabled: true,
-                signedOutWithProfilePolicy: .allowLocalMain
+                signedOutWithProfilePolicy: .allowLocalMain,
+                localProfileAwaitingSignIn: false
             ),
             .localMain
+        )
+    }
+
+    func testScenario02b_SignedOutOwnedLocalProfileRoutesToSignIn() {
+        XCTAssertEqual(
+            AppRouteResolver.resolve(
+                authState: .signedOut,
+                isOnboardingModelReady: true,
+                hasLocalProfile: true,
+                signedOutWithProfilePolicy: .requireSignIn,
+                localProfileAwaitingSignIn: false
+            ),
+            .signIn
         )
     }
 }

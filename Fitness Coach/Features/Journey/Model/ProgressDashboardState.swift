@@ -14,6 +14,7 @@ struct ProgressDashboardState: Equatable {
     var baseline: JourneyBaseline
     var transformation: JourneyTransformationHeroState
     var weeklyReview: JourneyWeeklyReviewState
+    var streaks: JourneyStreakState
     var milestones: JourneyMilestonesState
     var storyTimeline: JourneyStoryTimelineState
     var habitInsights: JourneyHabitInsightsState

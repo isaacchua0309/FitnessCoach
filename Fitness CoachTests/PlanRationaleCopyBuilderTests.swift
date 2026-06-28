@@ -19,13 +19,13 @@ final class PlanRationaleCopyBuilderTests: XCTestCase {
         let highlights = try XCTUnwrap(rationale.highlights)
         XCTAssertEqual(highlights.map(\.id), ["maintenance", "deficit", "target", "protein", "water"])
         XCTAssertEqual(highlights[0].label, FormaProductCopy.PlanRationale.maintenanceEstimate)
-        XCTAssertEqual(highlights[1].label, FormaProductCopy.PlanRationale.dailyDeficit)
-        XCTAssertEqual(highlights[2].label, FormaProductCopy.PlanRationale.target)
-        XCTAssertTrue(highlights[0].value.contains("kcal/day"))
-        XCTAssertTrue(highlights[1].value.contains("kcal/day"))
+        XCTAssertEqual(highlights[1].label, FormaProductCopy.PlanRationale.healthyDeficit)
+        XCTAssertEqual(highlights[2].label, FormaProductCopy.PlanRationale.dailyTarget)
+        XCTAssertTrue(highlights[0].value.contains("kcal"))
         XCTAssertTrue(highlights[3].value.contains("g"))
         XCTAssertTrue(highlights[3].value.contains(FormaProductCopy.PlanRationale.proteinRecoverySuffix))
         XCTAssertTrue(highlights[4].value.contains("ml/day"))
+        XCTAssertTrue(rationale.usesVisualFlowLayout)
         XCTAssertNotNil(rationale.calculationDetails)
     }
 

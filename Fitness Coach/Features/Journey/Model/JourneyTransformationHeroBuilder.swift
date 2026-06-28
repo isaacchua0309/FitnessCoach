@@ -12,7 +12,7 @@ enum JourneyTransformationHeroBuilder {
     struct Input: Equatable {
         var baseline: JourneyBaseline
         var loggedDays: Int
-        var loggingStreak: Int
+        var heroStreakChip: JourneyStreakChipState
         var weightTrendDirection: WeightTrendDirection
         var asOf: Date
         var calendar: Calendar
@@ -37,7 +37,7 @@ enum JourneyTransformationHeroBuilder {
             calendar: input.calendar
         )
         let paceForecast = paceForecastText(baseline: baseline)
-        let streakChip = streakChip(loggingStreak: input.loggingStreak)
+        let streakChip = input.heroStreakChip
         let startedFootnote = baseline.usesSyntheticBaselinePoint
             ? FormaProductCopy.Journey.Transformation.onboardingBaseline
             : nil
@@ -204,15 +204,6 @@ enum JourneyTransformationHeroBuilder {
             return FormaProductCopy.Journey.Transformation.paceForecast(month: monthLabel)
         }
         return FormaProductCopy.Journey.Transformation.paceForecastFallback
-    }
-
-    private static func streakChip(loggingStreak: Int) -> JourneyStreakChipState {
-        guard loggingStreak > 0 else { return .hidden }
-        return JourneyStreakChipState(
-            isVisible: true,
-            days: loggingStreak,
-            label: FormaProductCopy.Journey.Transformation.loggingStreak(days: loggingStreak)
-        )
     }
 
     // MARK: - Accessibility

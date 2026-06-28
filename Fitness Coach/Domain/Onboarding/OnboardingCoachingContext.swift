@@ -2,7 +2,7 @@
 //  OnboardingCoachingContext.swift
 //  Fitness Coach
 //
-//  Forma — Optional coaching context captured during onboarding v2.
+//  Forma — Optional coaching context captured during onboarding.
 //  Stored separately from UserProfile (UserDefaults) until cloud schema extends.
 //
 
@@ -10,7 +10,7 @@ import Foundation
 
 struct OnboardingCoachingContext: Codable, Equatable, Sendable {
 
-    static let currentOnboardingVersion = 2
+    static let currentOnboardingVersion = 4
     static let userDefaultsKey = "forma.onboarding.coachingContext"
 
     var motivations: [String]

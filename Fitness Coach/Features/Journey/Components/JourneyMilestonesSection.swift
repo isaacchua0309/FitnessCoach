@@ -6,112 +6,159 @@
 import SwiftUI
 
 struct JourneyMilestonesSection: View {
-    let milestones: [JourneyMilestone]
-
-    private var nextMilestone: JourneyMilestone? {
-        ProgressFormatter.nextMilestone(from: milestones)
-    }
+    let state: JourneyMilestonesState
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
-            FormaSectionLabel(title: "Milestones")
+            FormaSectionLabel(title: FormaProductCopy.Journey.Milestones.sectionTitle)
 
-            if milestones.isEmpty {
-                Text(FormaProductCopy.Journey.milestonesNeedGoal)
-                    .font(FormaTokens.Typography.sectionSubtitle)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
+            if state.items.isEmpty {
+                FitPilotPlanCard {
+                    Text(FormaProductCopy.Journey.Milestones.emptyBody)
+                        .font(FormaTokens.Typography.sectionSubtitle)
+                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             } else {
-                if let nextMilestone {
-                    Text(FormaProductCopy.Journey.nextStop(
-                        ProgressFormatter.journeyKg(nextMilestone.weightKg)
-                    ))
-                    .font(FormaTokens.Typography.sectionSubtitle)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                if let next = state.next {
+                    nextMilestoneHeader(next)
                 }
 
                 FitPilotPlanCard {
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 0) {
-                            ForEach(Array(milestones.enumerated()), id: \.element.id) { index, milestone in
-                                HStack(spacing: 0) {
-                                    milestoneNode(milestone, index: index)
-                                    if index < milestones.count - 1 {
-                                        connector(from: milestone, to: milestones[index + 1])
-                                    }
-                                }
+                        HStack(spacing: FormaTokens.Spacing.sm) {
+                            ForEach(state.items) { milestone in
+                                milestoneCard(milestone, isNext: milestone.id == state.next?.id)
                             }
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, FormaTokens.Spacing.xs)
                     }
                 }
             }
         }
     }
 
-    private func milestoneNode(_ milestone: JourneyMilestone, index: Int) -> some View {
-        let isNext = milestone.id == nextMilestone?.id
-        let role = roleLabel(for: milestone, index: index, isNext: isNext)
+    private func nextMilestoneHeader(_ milestone: JourneyMilestone) -> some View {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+            Text(FormaProductCopy.Journey.Milestones.nextUp)
+                .font(FormaTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(FormaTokens.Color.textTertiary)
 
-        return VStack(spacing: 6) {
-            if let role {
-                Text(role)
-                    .font(FormaTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(
-                        milestone.status == .current || isNext
-                            ? FormaTokens.Color.accent
-                            : FormaTokens.Color.textTertiary
-                    )
+            Text(milestone.title)
+                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                .foregroundStyle(FormaTokens.Color.textPrimary)
+
+            if let progress = state.nextProgressFraction {
+                SwiftUI.ProgressView(value: min(max(progress, 0), 1))
+                    .tint(FormaTokens.Color.accent)
+                Text(FormaProductCopy.Journey.Milestones.progressLabel(
+                    percent: Int((progress * 100).rounded())
+                ))
+                .font(FormaTokens.Typography.caption)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
+            }
+        }
+    }
+
+    private func milestoneCard(_ milestone: JourneyMilestone, isNext: Bool) -> some View {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+            HStack(spacing: FormaTokens.Spacing.xs) {
+                Text(statusIcon(for: milestone.status))
+                    .font(FormaTokens.Typography.sectionSubtitle)
+                    .accessibilityHidden(true)
+
+                Text(milestone.title)
+                    .font(FormaTokens.Typography.caption.weight(milestone.status == .completed ? .semibold : .medium))
+                    .foregroundStyle(titleColor(for: milestone.status, isNext: isNext))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(3)
+                    .multilineTextAlignment(.leading)
             }
 
-            Circle()
-                .fill(fillColor(for: milestone.status, isNext: isNext))
-                .frame(width: nodeSize(for: milestone.status, isNext: isNext), height: nodeSize(for: milestone.status, isNext: isNext))
-                .overlay {
-                    if milestone.status == .current || isNext {
-                        Circle()
-                            .strokeBorder(FormaTokens.Color.accent.opacity(0.45), lineWidth: 2)
-                            .frame(width: nodeSize(for: milestone.status, isNext: isNext) + 6)
-                    }
-                }
-
-            Text(ProgressFormatter.journeyKg(milestone.weightKg))
-                .font(
-                    milestone.status == .current || isNext
-                        ? FormaTokens.Typography.sectionSubtitle.weight(.semibold)
-                        : FormaTokens.Typography.caption
-                )
-                .foregroundStyle(
-                    milestone.status == .upcoming && !isNext
-                        ? FormaTokens.Color.textTertiary
-                        : FormaTokens.Color.textPrimary
-                )
+            if milestone.status != .completed,
+               let progress = milestone.progressFraction,
+               isNext {
+                SwiftUI.ProgressView(value: min(max(progress, 0), 1))
+                    .tint(FormaTokens.Color.accent)
+            }
         }
-        .frame(minWidth: 64)
+        .frame(width: 148, alignment: .leading)
+        .padding(FormaTokens.Spacing.sm)
+        .background(cardBackground(for: milestone.status, isNext: isNext))
+        .clipShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous))
+        .overlay {
+            if isNext {
+                RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
+                    .strokeBorder(FormaTokens.Color.accent.opacity(0.45), lineWidth: 1)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityLabel(for: milestone, isNext: isNext))
     }
 
-    private func roleLabel(for milestone: JourneyMilestone, index: Int, isNext: Bool) -> String? {
-        if milestone.status == .current { return FormaProductCopy.Journey.milestoneCurrent }
-        if isNext { return FormaProductCopy.Journey.milestoneNext }
-        if index == milestones.count - 1 { return FormaProductCopy.Journey.milestoneGoal }
-        return nil
-    }
-
-    private func nodeSize(for status: JourneyMilestoneStatus, isNext: Bool) -> CGFloat {
-        status == .current || isNext ? 14 : 10
-    }
-
-    private func connector(from: JourneyMilestone, to: JourneyMilestone) -> some View {
-        Rectangle()
-            .fill(from.status == .completed ? FormaTokens.Color.borderStrong : FormaTokens.Color.border)
-            .frame(width: 28, height: 2)
-            .padding(.bottom, 22)
-    }
-
-    private func fillColor(for status: JourneyMilestoneStatus, isNext: Bool) -> Color {
+    private func statusIcon(for status: JourneyMilestoneStatus) -> String {
         switch status {
-        case .completed: return FormaTokens.Color.textSecondary
-        case .current: return FormaTokens.Color.accent
-        case .upcoming: return isNext ? FormaTokens.Color.accent.opacity(0.55) : FormaTokens.Color.surfaceSubtle
+        case .completed: return "✓"
+        case .current: return "◎"
+        case .upcoming: return "⬜"
         }
     }
+
+    private func titleColor(for status: JourneyMilestoneStatus, isNext: Bool) -> Color {
+        switch status {
+        case .completed:
+            return FormaTokens.Color.textPrimary
+        case .current:
+            return FormaTokens.Color.accent
+        case .upcoming:
+            return isNext ? FormaTokens.Color.textPrimary : FormaTokens.Color.textSecondary
+        }
+    }
+
+    private func cardBackground(for status: JourneyMilestoneStatus, isNext: Bool) -> Color {
+        switch status {
+        case .completed:
+            return FormaTokens.Color.success.opacity(0.12)
+        case .current:
+            return FormaTokens.Color.accentMuted
+        case .upcoming:
+            return isNext ? FormaTokens.Color.surfaceSubtle : FormaTokens.Color.canvas
+        }
+    }
+
+    private func accessibilityLabel(for milestone: JourneyMilestone, isNext: Bool) -> String {
+        let status: String
+        switch milestone.status {
+        case .completed: status = "Unlocked"
+        case .current: status = "Next up"
+        case .upcoming: status = isNext ? "Next up" : "Locked"
+        }
+        if let progress = milestone.progressFraction, milestone.status != .completed {
+            return "\(status). \(milestone.title). \(Int((progress * 100).rounded())) percent there."
+        }
+        return "\(status). \(milestone.title)."
+    }
+}
+
+// MARK: - Previews
+
+#Preview("New user") {
+    JourneyMilestonesSection(state: ProgressPreviewData.milestonesNewUser)
+        .padding()
+        .background(FormaTokens.Color.canvas)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Active progress") {
+    JourneyMilestonesSection(state: ProgressPreviewData.milestonesActive)
+        .padding()
+        .background(FormaTokens.Color.canvas)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Near goal") {
+    JourneyMilestonesSection(state: ProgressPreviewData.milestonesNearGoal)
+        .padding()
+        .background(FormaTokens.Color.canvas)
+        .preferredColorScheme(.dark)
 }

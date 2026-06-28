@@ -10,7 +10,7 @@ import UIKit
 
 struct CoachCameraPicker: UIViewControllerRepresentable {
     @Environment(\.dismiss) private var dismiss
-    let onCapture: () -> Void
+    let onResult: (Result<Data, CoachMealPhotoError>) -> Void
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
@@ -23,20 +23,21 @@ struct CoachCameraPicker: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onCapture: onCapture, dismiss: dismiss)
+        Coordinator(onResult: onResult, dismiss: dismiss)
     }
 
     final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        let onCapture: () -> Void
+        let onResult: (Result<Data, CoachMealPhotoError>) -> Void
         let dismiss: DismissAction
 
-        init(onCapture: @escaping () -> Void, dismiss: DismissAction) {
-            self.onCapture = onCapture
+        init(onResult: @escaping (Result<Data, CoachMealPhotoError>) -> Void, dismiss: DismissAction) {
+            self.onResult = onResult
             self.dismiss = dismiss
         }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             dismiss()
+            onResult(.failure(.userCancelled))
         }
 
         func imagePickerController(
@@ -44,7 +45,25 @@ struct CoachCameraPicker: UIViewControllerRepresentable {
             didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
         ) {
             dismiss()
-            onCapture()
+            guard let image = info[.originalImage] as? UIImage else {
+                onResult(.failure(.noImage))
+                return
+            }
+            switch CoachMealPhotoPipeline.prepareJPEG(from: image) {
+            case .success(let data):
+                onResult(.success(data))
+            case .failure(let error):
+                onResult(.failure(error))
+            }
         }
+    }
+}
+
+private extension CoachMealPhotoPipeline {
+    static func prepareJPEG(from image: UIImage) -> Result<Data, CoachMealPhotoError> {
+        guard let data = image.jpegData(compressionQuality: 0.85) else {
+            return .failure(.loadFailed)
+        }
+        return prepareJPEG(from: data)
     }
 }

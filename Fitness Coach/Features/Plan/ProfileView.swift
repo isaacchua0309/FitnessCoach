@@ -9,6 +9,8 @@ import SwiftUI
 
 struct ProfileView: View {
     @ObservedObject var model: ProfileModel
+    var onGoToToday: (() -> Void)? = nil
+    var onGoToJourney: (() -> Void)? = nil
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
     @EnvironmentObject private var trainingInsightsStore: TrainingInsightsStore
     @EnvironmentObject private var trainingInsightsModel: TrainingInsightsModel
@@ -69,6 +71,7 @@ struct ProfileView: View {
                                 get: { model.editFormState ?? formState },
                                 set: { model.editFormState = $0 }
                             ),
+                            initialStep: model.editPlanInitialStep,
                             errorMessage: model.formErrorMessage,
                             onSave: { state in
                                 await model.savePlanFromWizard(state)
@@ -142,11 +145,19 @@ struct ProfileView: View {
     private func dashboard(_ state: ProfileDashboardState) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
-                PlanStrategyHeroSection(state: state.strategy) {
-                    model.showEditPlan()
-                }
+                PlanMissionControlHeroSection(state: state.missionControl.mission)
 
-                PlanTodaysTargetsSection(targets: state.todaysTargets)
+                PlanTodayMissionSection(
+                    state: state.missionControl.todayMission,
+                    onGoToToday: onGoToToday
+                )
+
+                PlanThisWeekSection(state: state.missionControl.week)
+
+                PlanNextMilestoneSection(
+                    state: state.missionControl.nextMilestone,
+                    onGoToJourney: onGoToJourney
+                )
 
                 PlanTrainingIntegrationSection(
                     integrationState: trainingInsightsStore.integrationState,
@@ -156,11 +167,23 @@ struct ProfileView: View {
                     }
                 )
 
+                PlanActivityAssumptionsSection(
+                    state: state.missionControl.activityAssumptions,
+                    onAdjustActivity: {
+                        model.showEditPlanActivity()
+                    },
+                    onConnectAppleHealth: state.missionControl.activityAssumptions.showsConnectAppleHealthCTA
+                        ? { isShowingTrainingInsights = true }
+                        : nil
+                )
+
                 PlanRationaleSection(rationale: state.rationale)
 
-                PlanAboutYouSection(aboutYou: state.aboutYou)
+                PlanConfidenceSection(state: state.missionControl.confidence)
 
-                WhatHappensNextSection(state: state.whatHappensNext)
+                PlanAdjustmentSection(state: state.missionControl.adjustment) {
+                    model.showEditPlan()
+                }
             }
             .padding(.horizontal, PlanLayout.horizontalPadding)
             .padding(.top, FormaTokens.Spacing.xs)
@@ -182,11 +205,29 @@ struct ProfileView: View {
 #Preview("Loaded Plan") {
     ScrollView {
         VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
-            PlanStrategyHeroSection(state: ProfilePreviewData.state.strategy, onEditPlan: {})
-            PlanTodaysTargetsSection(targets: ProfilePreviewData.state.todaysTargets)
+            PlanMissionControlHeroSection(
+                state: ProfilePreviewData.state.missionControl.mission,
+                onAdjustPlan: {}
+            )
+            PlanTodayMissionSection(
+                state: ProfilePreviewData.state.missionControl.todayMission,
+                onGoToToday: {}
+            )
+            PlanThisWeekSection(state: ProfilePreviewData.state.missionControl.week)
+            PlanNextMilestoneSection(
+                state: ProfilePreviewData.state.missionControl.nextMilestone,
+                onGoToJourney: {}
+            )
+            PlanActivityAssumptionsSection(
+                state: ProfilePreviewData.state.missionControl.activityAssumptions,
+                onAdjustActivity: {}
+            )
             PlanRationaleSection(rationale: ProfilePreviewData.state.rationale)
-            PlanAboutYouSection(aboutYou: ProfilePreviewData.state.aboutYou)
-            WhatHappensNextSection(state: ProfilePreviewData.state.whatHappensNext)
+            PlanConfidenceSection(state: ProfilePreviewData.state.missionControl.confidence)
+            PlanAdjustmentSection(
+                state: ProfilePreviewData.state.missionControl.adjustment,
+                onAdjustPlan: {}
+            )
         }
         .padding(.horizontal, PlanLayout.horizontalPadding)
         .padding(.vertical, 24)

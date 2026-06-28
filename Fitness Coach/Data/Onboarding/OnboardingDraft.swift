@@ -9,7 +9,7 @@ import Foundation
 
 struct OnboardingDraft: Codable, Equatable, Sendable {
 
-    static let currentDraftVersion = 1
+    static let currentDraftVersion = 2
 
     var draftVersion: Int
     var currentStepRawValue: Int
@@ -33,12 +33,12 @@ struct OnboardingDraft: Codable, Equatable, Sendable {
 
     init(
         formState: OnboardingFormState,
-        currentStep: OnboardingStep,
+        step: OnboardingStep,
         generatedPlan: CalorieTargetResult? = nil,
         savedAt: Date = Date()
     ) {
         draftVersion = Self.currentDraftVersion
-        currentStepRawValue = currentStep.rawValue
+        currentStepRawValue = step.rawValue
         form = OnboardingDraftFormFields(formState: formState)
         if let generatedPlan {
             self.generatedPlan = OnboardingDraftGeneratedPlan(result: generatedPlan)
@@ -48,7 +48,7 @@ struct OnboardingDraft: Codable, Equatable, Sendable {
         self.savedAt = savedAt
     }
 
-    var currentStep: OnboardingStep? {
+    var step: OnboardingStep? {
         OnboardingStep(rawValue: currentStepRawValue)
     }
 
@@ -63,19 +63,16 @@ struct OnboardingDraft: Codable, Equatable, Sendable {
 
 struct OnboardingDraftFormFields: Codable, Equatable, Sendable {
     var name: String
-    var ageText: String
-    var birthDateISO8601: String? = nil
+    var birthDateISO8601: String?
     var sexRawValue: String
     var heightCmText: String
     var currentWeightKgText: String
     var goalWeightKgText: String
-    var estimatedBodyFatPercentageText: String
     var activityLevelRawValue: String
     var trainingFrequencyPerWeekText: String
     var averageStepsText: String
     var dietPreference: String
     var unitSystemRawValue: String
-    var aggressivenessRawValue: String
     var weightLossPaceChoiceRawValue: String
     var advancedPacePeriodRawValue: String
     var advancedPaceAmountText: String
@@ -84,19 +81,16 @@ struct OnboardingDraftFormFields: Codable, Equatable, Sendable {
 
     init(formState: OnboardingFormState) {
         name = formState.name
-        ageText = formState.ageText
         birthDateISO8601 = formState.birthDate.map(BirthDatePersistence.encode)
         sexRawValue = formState.sex.rawValue
         heightCmText = formState.heightCmText
         currentWeightKgText = formState.currentWeightKgText
         goalWeightKgText = formState.goalWeightKgText
-        estimatedBodyFatPercentageText = formState.estimatedBodyFatPercentageText
         activityLevelRawValue = formState.activityLevel.rawValue
         trainingFrequencyPerWeekText = formState.trainingFrequencyPerWeekText
         averageStepsText = formState.averageStepsText
         dietPreference = formState.dietPreference
         unitSystemRawValue = formState.unitSystem.rawValue
-        aggressivenessRawValue = formState.aggressiveness.rawValue
         weightLossPaceChoiceRawValue = formState.weightLossPaceChoice.rawValue
         advancedPacePeriodRawValue = formState.advancedPaceDraft.period.rawValue
         advancedPaceAmountText = formState.advancedPaceDraft.amountText
@@ -107,7 +101,6 @@ struct OnboardingDraftFormFields: Codable, Equatable, Sendable {
     func makeFormState() -> OnboardingFormState {
         var state = OnboardingFormState()
         state.name = name
-        state.ageText = ageText
         if let birthDateISO8601 {
             state.birthDate = BirthDatePersistence.decode(birthDateISO8601)
         }
@@ -115,13 +108,11 @@ struct OnboardingDraftFormFields: Codable, Equatable, Sendable {
         state.heightCmText = heightCmText
         state.currentWeightKgText = currentWeightKgText
         state.goalWeightKgText = goalWeightKgText
-        state.estimatedBodyFatPercentageText = estimatedBodyFatPercentageText
         state.activityLevel = ActivityLevel(rawValue: activityLevelRawValue) ?? .moderatelyActive
         state.trainingFrequencyPerWeekText = trainingFrequencyPerWeekText
         state.averageStepsText = averageStepsText
         state.dietPreference = dietPreference
         state.unitSystem = UnitSystem(rawValue: unitSystemRawValue) ?? .metric
-        state.aggressiveness = CalorieAggressiveness(rawValue: aggressivenessRawValue) ?? .moderate
         if let paceChoice = WeightLossPaceChoice(rawValue: weightLossPaceChoiceRawValue) {
             state.weightLossPaceChoice = paceChoice
         }
@@ -131,9 +122,11 @@ struct OnboardingDraftFormFields: Codable, Equatable, Sendable {
         )
         state.syncAggressivenessFromPaceChoice()
         state.selectedMotivations = OnboardingMotivation.fromStoredValues(selectedMotivationRawValues)
-        state.loggingPreferences = OnboardingLoggingPreference.fromStoredValues(selectedLoggingPreferenceRawValues)
+        state.loggingPreferences = OnboardingLoggingPreference.fromStoredValues(
+            selectedLoggingPreferenceRawValues
+        )
         state.reconcileTrainingRhythmAfterRestore()
-        state.reconcileBirthDateAfterRestore()
+        state.syncAgeTextFromBirthDate()
         return state
     }
 }

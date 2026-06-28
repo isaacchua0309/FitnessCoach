@@ -52,17 +52,65 @@ enum TrainingIntegrationCopy {
 
     // MARK: - Plan & Settings
 
+    static let planCardSectionTitle = healthIntegrationTitle
+    static let planCardConnectedBody = "Using workouts to improve your insights."
+    static let planCardDisconnectedBody = "Connect Apple Health to improve activity insights."
+    static let planCardDeniedBody =
+        "Turn on workout access in Health to improve activity insights."
+    static let planCardUnavailableBody = "Apple Health is not available on this device."
+    static let planCardRequestingBody = "Connecting to Apple Health…"
+
     static let planConnectPrompt = includeWorkoutsInProgress
     static let planConnectedNote = trainingInsightsUseAppleHealth
-    static let planIntegrationSectionTitle = "Training insights"
+    static let planIntegrationSectionTitle = planCardSectionTitle
 
     static let settingsStatusConnected = "Connected"
     static let settingsStatusNotConnected = "Not connected"
     static let settingsStatusAccessDenied = "Access denied"
     static let settingsStatusUnavailable = "Unavailable"
 
+    static func planCardStatusLabel(for state: TrainingIntegrationState) -> String {
+        switch state {
+        case .connected:
+            return settingsStatusConnected
+        case .denied:
+            return settingsStatusAccessDenied
+        case .unavailable:
+            return settingsStatusUnavailable
+        case .requestingPermission:
+            return "Connecting"
+        case .failed, .notConnected:
+            return settingsStatusNotConnected
+        }
+    }
+
+    static func planCardBodyCopy(for state: TrainingIntegrationState) -> String {
+        switch state {
+        case .connected:
+            return planCardConnectedBody
+        case .notConnected:
+            return planCardDisconnectedBody
+        case .denied:
+            return planCardDeniedBody
+        case .unavailable:
+            return planCardUnavailableBody
+        case .requestingPermission:
+            return planCardRequestingBody
+        case .failed(let message):
+            return message.isEmpty ? planCardDisconnectedBody : message
+        }
+    }
+
+    static func planCardShowsStatusCheckmark(for state: TrainingIntegrationState) -> Bool {
+        state.isConnected
+    }
+
+    static func planCardCTATitle(for state: TrainingIntegrationState) -> String? {
+        connectButtonTitle(for: state)
+    }
+
     static func planIntegrationMessage(isAppleHealthConnected: Bool) -> String {
-        isAppleHealthConnected ? planConnectedNote : planConnectPrompt
+        isAppleHealthConnected ? planCardConnectedBody : planCardDisconnectedBody
     }
 
     static func settingsStatusLabel(for state: TrainingIntegrationState) -> String {

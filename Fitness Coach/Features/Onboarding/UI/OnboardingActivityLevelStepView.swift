@@ -2,54 +2,38 @@
 //  OnboardingActivityLevelStepView.swift
 //  Fitness Coach
 //
-//  Forma — Activity level only (Screen A of tap-first activity onboarding).
+//  Forma — simplified activity level selection (no manual training rhythm).
 //
 
 import SwiftUI
 
 struct OnboardingActivityLevelStepView: View {
     @Binding var formState: OnboardingFormState
-    var showsEmbeddedHeader: Bool = false
-    /// When true (v4 onboarding), always sync hidden steps/training defaults from the selected mode.
-    var forcesActivityTrainingDefaults: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
-            if showsEmbeddedHeader {
-                embeddedHeader
-            }
+        OnboardingCompactSelectionList {
+            ForEach(Array(OnboardingActivityLevelValues.orderedLevels.enumerated()), id: \.element) { index, level in
+                if index > 0 {
+                    Divider()
+                        .overlay(OnboardingTheme.border.opacity(0.55))
+                }
 
-            OnboardingCompactSelectionList {
-                ForEach(Array(ActivityLevel.allCases.enumerated()), id: \.element) { index, level in
-                    if index > 0 {
-                        Divider()
-                            .overlay(OnboardingTheme.border.opacity(0.55))
-                    }
-
-                    OnboardingCompactSelectionRow(
-                        title: OnboardingFormatter.activityLevel(level),
-                        subtitle: OnboardingFormatter.activityLevelDescription(level),
-                        icon: activityIcon(for: level),
-                        isSelected: formState.activityLevel == level
-                    ) {
-                        formState.selectActivityLevel(level)
-                        if forcesActivityTrainingDefaults {
-                            formState.applyTrainingRhythmDefaultsForCurrentActivity()
-                        }
-                    }
+                OnboardingCompactSelectionRow(
+                    title: OnboardingFormatter.activityLevel(level),
+                    subtitle: OnboardingActivityLevelValues.optionDescription(for: level),
+                    icon: activityIcon(for: level),
+                    isSelected: formState.activityLevel == level
+                ) {
+                    OnboardingActivityLevelValues.select(level, in: &formState)
                 }
             }
-            .accessibilityLabel("Activity level options")
         }
+        .accessibilityLabel(FormaProductCopy.Onboarding.Flow.Activity.optionsAccessibilityLabel)
         .animation(.easeInOut(duration: 0.18), value: formState.activityLevel)
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var embeddedHeader: some View {
-        OnboardingSectionTitle(
-            title: FormaProductCopy.Onboarding.V2.Activity.title,
-            subtitle: FormaProductCopy.Onboarding.V2.Activity.subtitle
-        )
+        .onAppear {
+            OnboardingActivityLevelValues.applyDefaultsIfNeeded(to: &formState)
+        }
     }
 
     private func activityIcon(for level: ActivityLevel) -> String {
@@ -68,37 +52,11 @@ struct OnboardingActivityLevelStepView: View {
     }
 }
 
-#Preview("Sedentary") {
-    OnboardingActivityLevelStepView(
-        formState: .constant({
-            var state = OnboardingFormState()
-            state.activityLevel = .sedentary
-            return state
-        }())
-    )
-    .padding()
-    .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
-}
-
-#Preview("Moderately active") {
+#if DEBUG
+#Preview("Activity Level") {
     OnboardingActivityLevelStepView(formState: .constant(OnboardingPreviewData.formState))
         .padding()
         .background(OnboardingTheme.background)
         .preferredColorScheme(.dark)
 }
-
-#Preview("Athlete") {
-    OnboardingActivityLevelStepView(
-        formState: .constant({
-            var state = OnboardingFormState()
-            state.activityLevel = .athlete
-            return state
-        }())
-    )
-    .padding()
-    .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
-}
-
-
+#endif

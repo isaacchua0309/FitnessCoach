@@ -2,7 +2,7 @@
 //  OnboardingActivityTests.swift
 //  Fitness CoachTests
 //
-//  Forma — Tap-first activity and training rhythm chip tests.
+//  Forma — activity mode selection and validation tests.
 //
 
 import XCTest
@@ -10,65 +10,160 @@ import XCTest
 
 final class OnboardingActivityTests: XCTestCase {
 
-    func testEachActivityLevelSelectable() {
-        for level in ActivityLevel.allCases {
-            var state = OnboardingFormState()
-            state.selectActivityLevel(level)
-            XCTAssertEqual(state.activityLevel, level)
+    func testFlowDoesNotIncludeTrainingRhythmStep() {
+        let flowStepNames = OnboardingStep.flow.map {
+            OnboardingDraftBridge.analyticsStepName($0)
         }
+        XCTAssertFalse(flowStepNames.contains("training_rhythm"))
+        XCTAssertFalse(flowStepNames.contains("trainingRhythm"))
+        XCTAssertFalse(flowStepNames.contains("preferences"))
+        XCTAssertFalse(flowStepNames.contains("motivation"))
     }
 
-    func testActivityLevelUpdatesTrainingDefaults() {
-        var state = OnboardingFormState()
-        state.selectActivityLevel(.sedentary)
-        XCTAssertEqual(state.trainingDaysSelection, 0)
-        XCTAssertEqual(state.parsedAverageSteps, 3_000)
-
-        state.selectActivityLevel(.athlete)
-        XCTAssertEqual(state.trainingDaysSelection, 6)
-        XCTAssertEqual(state.parsedAverageSteps, 12_000)
+    func testActivityStepUsesDedicatedCopy() {
+        XCTAssertEqual(
+            OnboardingStep.activityLevel.title,
+            FormaProductCopy.Onboarding.Flow.Activity.title
+        )
+        XCTAssertEqual(
+            OnboardingStep.activityLevel.subtitle,
+            FormaProductCopy.Onboarding.Flow.Activity.subtitle
+        )
     }
 
-    func testTrainingDaysChipMapping() {
-        var state = OnboardingFormState()
-        state.trainingDaysChip = .four
-        XCTAssertEqual(state.trainingFrequencyPerWeekText, "4")
-        XCTAssertEqual(state.trainingDaysChip, .four)
-
-        state.trainingDaysChip = .fivePlus
-        XCTAssertEqual(state.trainingFrequencyPerWeekText, "5")
-        XCTAssertEqual(state.trainingDaysChip, .fivePlus)
+    func testActivityOptionDescriptionsMatchProductCopy() {
+        XCTAssertEqual(
+            OnboardingActivityLevelValues.optionDescription(for: .sedentary),
+            FormaProductCopy.Onboarding.Flow.Activity.sedentaryDescription
+        )
+        XCTAssertEqual(
+            OnboardingActivityLevelValues.optionDescription(for: .lightlyActive),
+            FormaProductCopy.Onboarding.Flow.Activity.lightlyActiveDescription
+        )
+        XCTAssertEqual(
+            OnboardingActivityLevelValues.optionDescription(for: .moderatelyActive),
+            FormaProductCopy.Onboarding.Flow.Activity.moderatelyActiveDescription
+        )
+        XCTAssertEqual(
+            OnboardingActivityLevelValues.optionDescription(for: .veryActive),
+            FormaProductCopy.Onboarding.Flow.Activity.veryActiveDescription
+        )
+        XCTAssertEqual(
+            OnboardingActivityLevelValues.optionDescription(for: .athlete),
+            FormaProductCopy.Onboarding.Flow.Activity.extraActiveDescription
+        )
     }
 
-    func testDailyStepsBandMappings() {
-        XCTAssertEqual(OnboardingDailyStepsBand.notSure.representativeSteps, 5_000)
-        XCTAssertEqual(OnboardingDailyStepsBand.low.representativeSteps, 3_000)
-        XCTAssertEqual(OnboardingDailyStepsBand.moderate.representativeSteps, 6_000)
-        XCTAssertEqual(OnboardingDailyStepsBand.high.representativeSteps, 9_000)
+    func testActivityRoutesNextToAppleHealth() {
+        let flow = OnboardingStep.flow
+        XCTAssertEqual(OnboardingStep.activityLevel.next(in: flow), .appleHealth)
     }
 
-    func testNotSureStepsBandStoresDefaultValue() {
-        var state = OnboardingFormState()
-        state.dailyStepsBand = .notSure
-        XCTAssertEqual(state.averageStepsText, "5000")
-        XCTAssertEqual(state.dailyStepsBand, .notSure)
-        XCTAssertTrue(state.canAdvance(from: .activity))
-        XCTAssertTrue(state.canAdvanceV3(from: .trainingRhythm))
-    }
-
-    func testEnsureTrainingRhythmValuesFillsEmptyFields() {
+    func testDoesNotRequireManualTrainingRhythmFields() {
         var state = OnboardingFormState()
         state.activityLevel = .moderatelyActive
         state.trainingFrequencyPerWeekText = ""
         state.averageStepsText = ""
-        state.ensureTrainingRhythmValues()
 
-        XCTAssertEqual(state.trainingFrequencyPerWeekText, "3")
-        XCTAssertEqual(state.parsedAverageSteps, 7_500)
+        XCTAssertTrue(state.canAdvance(from: .activityLevel))
+        XCTAssertNil(state.validationMessage(for: .activityLevel))
     }
 
-    func testV3ActivityLevelAlwaysAllowsContinue() {
-        let state = OnboardingFormState()
-        XCTAssertTrue(state.canAdvanceV3(from: .activityLevel))
+    func testApplyDefaultsIfNeededWritesHiddenTrainingRhythmFields() {
+        var state = OnboardingFormState()
+        state.activityLevel = .lightlyActive
+        state.trainingFrequencyPerWeekText = ""
+        state.averageStepsText = ""
+
+        OnboardingActivityLevelValues.applyDefaultsIfNeeded(to: &state)
+
+        XCTAssertEqual(state.parsedTrainingDays, 1)
+        XCTAssertEqual(state.parsedAverageSteps, 5_000)
+    }
+
+    func testSedentarySelectionMapsToDefaults() {
+        assertActivitySelectionMapsToDefaults(
+            level: .sedentary,
+            expectedDays: 0,
+            expectedSteps: 3_000
+        )
+    }
+
+    func testLightlyActiveSelectionMapsToDefaults() {
+        assertActivitySelectionMapsToDefaults(
+            level: .lightlyActive,
+            expectedDays: 1,
+            expectedSteps: 5_000
+        )
+    }
+
+    func testModeratelyActiveSelectionMapsToDefaults() {
+        assertActivitySelectionMapsToDefaults(
+            level: .moderatelyActive,
+            expectedDays: 3,
+            expectedSteps: 7_500
+        )
+    }
+
+    func testVeryActiveSelectionMapsToDefaults() {
+        assertActivitySelectionMapsToDefaults(
+            level: .veryActive,
+            expectedDays: 5,
+            expectedSteps: 10_000
+        )
+    }
+
+    func testExtraActiveSelectionMapsToDefaults() {
+        assertActivitySelectionMapsToDefaults(
+            level: .athlete,
+            expectedDays: 6,
+            expectedSteps: 12_000
+        )
+        XCTAssertEqual(OnboardingFormatter.activityLevel(.athlete), "Extra Active")
+    }
+
+    func testActivitySelectionReplacesPreviousSelection() {
+        var state = OnboardingFormState()
+        OnboardingActivityLevelValues.select(.sedentary, in: &state)
+        OnboardingActivityLevelValues.select(.veryActive, in: &state)
+
+        XCTAssertEqual(state.activityLevel, .veryActive)
+        XCTAssertEqual(state.parsedTrainingDays, 5)
+        XCTAssertEqual(state.parsedAverageSteps, 10_000)
+    }
+
+    func testAthleteRawValueDisplaysAsExtraActiveInOnboarding() {
+        XCTAssertEqual(OnboardingFormatter.activityLevel(.athlete), "Extra Active")
+        XCTAssertEqual(ActivityLevel.athlete.rawValue, "athlete")
+    }
+
+    private func assertActivitySelectionMapsToDefaults(
+        level: ActivityLevel,
+        expectedDays: Int,
+        expectedSteps: Int,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        var state = OnboardingFormState()
+        state.trainingFrequencyPerWeekText = ""
+        state.averageStepsText = ""
+
+        OnboardingActivityLevelValues.select(level, in: &state)
+
+        XCTAssertEqual(state.activityLevel, level, file: file, line: line)
+        XCTAssertEqual(state.parsedTrainingDays, expectedDays, file: file, line: line)
+        XCTAssertEqual(state.parsedAverageSteps, expectedSteps, file: file, line: line)
+        XCTAssertEqual(
+            OnboardingActivityLevelValues.expectedDefaults(for: level).trainingDaysPerWeek,
+            expectedDays,
+            file: file,
+            line: line
+        )
+        XCTAssertEqual(
+            OnboardingActivityLevelValues.expectedDefaults(for: level).averageStepsPerDay,
+            expectedSteps,
+            file: file,
+            line: line
+        )
     }
 }

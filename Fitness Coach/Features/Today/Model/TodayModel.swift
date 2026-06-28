@@ -112,7 +112,7 @@ final class TodayModel: ObservableObject {
         )
 
         let trainingFrequency = profile?.trainingFrequencyPerWeek ?? 0
-        let streaks = try buildStreaks(asOf: dailyLog.date)
+        let (streaks, weekLoggedDays) = try buildMomentumMetrics(asOf: dailyLog.date)
         let dailyBrief = DailyBriefBuilder.todayBrief(
             profile: profile,
             caloriesRemaining: calorieSummary.remaining,
@@ -134,21 +134,34 @@ final class TodayModel: ObservableObject {
                 workoutSummary: workoutSummary,
                 foodEntries: foodEntries,
                 streaks: streaks,
+                weekLoggedDays: weekLoggedDays,
                 dailyBrief: dailyBrief,
                 dailyReview: dailyReview,
                 goalWeightKg: profile?.goalWeightKg,
                 profileWeightKg: profile?.currentWeightKg,
+                latestWeightKg: displayWeight,
                 userName: profile?.name,
-                activityContext: activityContext
+                activityContext: activityContext,
+                stepGoalAssumption: profile.flatMap { $0.averageSteps > 0 ? $0.averageSteps : nil },
+                trainingFrequencyPerWeek: profile.flatMap { $0.trainingFrequencyPerWeek > 0 ? $0.trainingFrequencyPerWeek : nil }
             )
         )
     }
 
-    private func buildStreaks(asOf date: Date) throws -> StreakSummary {
+    private func buildMomentumMetrics(asOf date: Date) throws -> (StreakSummary, Int) {
         let startDate = Calendar.current.date(byAdding: .day, value: -90, to: date) ?? date
         let logs = try dailyLogService.getLogs(from: startDate, to: date)
         let workouts = try workoutLogService.getWorkoutHistory(days: 90)
         let workoutDates = Set(workouts.map { Calendar.current.startOfDay(for: $0.createdAt) })
-        return StreakCalculator.calculate(logs: logs, workoutDates: workoutDates, asOf: date)
+        let streaks = StreakCalculator.calculate(
+            logs: logs,
+            workoutDates: workoutDates,
+            asOf: date
+        )
+        let weekLoggedDays = StreakCalculator.loggedDaysInRollingWindow(
+            logs: logs,
+            asOf: date
+        )
+        return (streaks, weekLoggedDays)
     }
 }

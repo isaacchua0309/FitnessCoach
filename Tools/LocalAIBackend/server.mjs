@@ -361,12 +361,36 @@ async function parseCommand(request, traceId) {
 }
 
 async function estimateFood(request, traceId) {
+  const payload = {
+    text: request.text,
+    context: request.context
+  };
+
+  if (request.imageJPEGBase64) {
+    return openAIJSON({
+      instructions: foodPhotoEstimateInstructions(),
+      input: [
+        {
+          role: "user",
+          content: [
+            { type: "input_text", text: JSON.stringify(payload) },
+            {
+              type: "input_image",
+              image_url: `data:image/jpeg;base64,${request.imageJPEGBase64}`
+            }
+          ]
+        }
+      ],
+      schema: aiFoodEstimateResponseSchema(),
+      maxOutputTokens: 1200,
+      model: resolveModel({ tier: "cheap" }),
+      traceId
+    });
+  }
+
   return openAIJSON({
     instructions: foodEstimateInstructions(),
-    input: JSON.stringify({
-      text: request.text,
-      context: request.context
-    }),
+    input: JSON.stringify(payload),
     schema: aiFoodEstimateResponseSchema(),
     maxOutputTokens: 1200,
     model: resolveModel({ tier: "cheap" }),
@@ -461,6 +485,16 @@ quantity and unit must describe portion weight or count (e.g. 200g, 1 breast), n
 Respect preparation state: raw/uncooked vs cooked weight at the same grams are different foods nutritionally (e.g. 500g raw chicken breast ≠ 500g cooked chicken breast).
 Every foodDraft must include calories > 0 and realistic protein, carbs, and fat for the food, portion, and preparation stated.
 Use source aiTextEstimate and require confirmation unless the user supplied exact complete nutrition values in their message.`;
+}
+
+function foodPhotoEstimateInstructions() {
+  return `${sharedRules()}
+
+Task: Analyze the attached meal photo and estimate nutrition.
+Identify visible foods, reasonable portion size, and preparation when inferable from the image.
+Return one FoodDraft in foodDrafts unless the photo clearly shows multiple distinct items that should be logged separately.
+Every foodDraft must include calories > 0 and realistic protein, carbs, and fat for what is visible.
+Use source aiPhotoEstimate and always require confirmation before logging.`;
 }
 
 function mealAdviceInstructions() {

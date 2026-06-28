@@ -18,7 +18,7 @@ enum PlanMissionControlFixtures {
 
     static var loseProfile: UserProfile {
         UserProfile(
-            id: UUID(uuidString: "A1A1A1A1-A1A1-A1A1-A1A1-A1A1A1A1A1")!,
+            id: UUID(),
             name: "Alex",
             birthDate: calendar.date(from: DateComponents(year: 1998, month: 3, day: 15)),
             age: 28,
@@ -80,7 +80,7 @@ enum PlanMissionControlFixtures {
 
     static var newUserProfile: UserProfile {
         UserProfile(
-            id: UUID(uuidString: "B2B2B2B2-B2B2-B2B2-B2B2-B2B2B2B2B2B2")!,
+            id: UUID(),
             name: nil,
             birthDate: calendar.date(from: DateComponents(year: 2000, month: 7, day: 4)),
             age: 25,
@@ -110,7 +110,7 @@ enum PlanMissionControlFixtures {
 
     static var legacyAgeOnlyProfile: UserProfile {
         UserProfile(
-            id: UUID(uuidString: "C3C3C3C3-C3C3-C3C3-C3C3-C3C3C3C3C3C3")!,
+            id: UUID(),
             name: "Legacy",
             birthDate: nil,
             age: 45,
@@ -145,6 +145,7 @@ enum PlanMissionControlFixtures {
         weekLogs: [DailyLog] = [],
         weekWeights: [WeightEntry] = [],
         allWeights: [WeightEntry] = [],
+        weeklyTraining: JourneyWeeklyTrainingStatus = .hidden,
         integrationState: TrainingIntegrationState = .notConnected
     ) -> PlanMissionControlDashboard {
         let context = PlanDashboardContext(
@@ -152,7 +153,7 @@ enum PlanMissionControlFixtures {
             weekLogs: weekLogs,
             weekWeights: weekWeights,
             allWeights: allWeights,
-            weeklyTraining: .hidden,
+            weeklyTraining: weeklyTraining,
             integrationState: integrationState,
             dataSource: .appleHealth,
             asOf: referenceDate,
@@ -166,6 +167,10 @@ enum PlanMissionControlFixtures {
 
     static var loseDashboard: PlanMissionControlDashboard {
         dashboard(for: loseProfile)
+    }
+
+    static var connectedDashboard: PlanMissionControlDashboard {
+        dashboard(for: loseProfile, integrationState: .connected)
     }
 
     static var gainDashboard: PlanMissionControlDashboard {
@@ -187,12 +192,43 @@ enum PlanMissionControlFixtures {
             weekLogs: activeWeekLogs,
             weekWeights: weights,
             allWeights: weights,
+            weeklyTraining: .connected(
+                workoutDays: 2,
+                averageCaloriesBurned: 320,
+                averageTrainingDurationMinutes: 45
+            ),
             integrationState: .connected
         )
     }
 
     static var incompleteDataDashboard: PlanMissionControlDashboard {
         dashboard(for: legacyAgeOnlyProfile)
+    }
+
+    static var staleWeightDashboard: PlanMissionControlDashboard {
+        let staleDate = calendar.date(byAdding: .day, value: -30, to: referenceDate)!
+        let staleWeight = WeightEntry(
+            id: UUID(),
+            date: staleDate,
+            weightKg: 88.5,
+            note: nil,
+            createdAt: staleDate
+        )
+        return dashboard(
+            for: loseProfile,
+            weekLogs: [],
+            weekWeights: [staleWeight],
+            allWeights: [staleWeight]
+        )
+    }
+
+    static var noLogsDashboard: PlanMissionControlDashboard {
+        dashboard(
+            for: loseProfile,
+            weekLogs: [],
+            weekWeights: [],
+            allWeights: []
+        )
     }
 
     // MARK: - Sample logs

@@ -2,7 +2,7 @@
 //  OnboardingSavePlanStepView.swift
 //  Fitness Coach
 //
-//  Forma — Save plan + Google sign-in step for onboarding v2.
+//  Forma — Save plan + Google sign-in step for onboarding.
 //
 
 import SwiftUI
@@ -40,11 +40,11 @@ struct OnboardingSavePlanStepView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: - V3 compact
+    // MARK: - Compact layout
 
     @ViewBuilder
     private var compactContent: some View {
-        let copy = FormaProductCopy.Onboarding.V3.SavePlan.self
+        let copy = FormaProductCopy.Onboarding.Flow.SavePlan.self
         VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
                 Text(copy.title)
@@ -113,7 +113,7 @@ struct OnboardingSavePlanStepView: View {
     }
 
     private func planRecapCard(_ state: OnboardingPlanRevealState) -> some View {
-        let copy = FormaProductCopy.Onboarding.V3.SavePlan.self
+        let copy = FormaProductCopy.Onboarding.Flow.SavePlan.self
         return VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             Text(copy.recapSectionTitle)
                 .font(FormaTokens.Typography.caption.weight(.semibold))
@@ -135,7 +135,7 @@ struct OnboardingSavePlanStepView: View {
         .accessibilityLabel("\(copy.recapSectionTitle), \(state.dailyCalorieLabel), goal \(state.goalProgressLabel)")
     }
 
-    // MARK: - V2 standard
+    // MARK: - Standard layout
 
     @ViewBuilder
     private var preAuthContent: some View {
@@ -232,7 +232,7 @@ struct OnboardingSavePlanStepView: View {
     .preferredColorScheme(.dark)
 }
 
-#Preview("V3 compact signed-out") {
+#Preview("Compact signed-out") {
     OnboardingSavePlanStepView(
         requiresGoogleSignIn: true,
         isBusy: false,

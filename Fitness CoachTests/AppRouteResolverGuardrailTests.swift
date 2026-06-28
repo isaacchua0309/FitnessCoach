@@ -60,7 +60,6 @@ final class AppRouteResolverGuardrailTests: XCTestCase {
                 rootState: .loading,
                 isOnboardingModelReady: true,
                 hasLocalProfile: false,
-                isOnboardingV2Enabled: true
             ),
             .localOnboarding
         )
@@ -72,7 +71,6 @@ final class AppRouteResolverGuardrailTests: XCTestCase {
                 authState: .signedIn(uid: "existing-user"),
                 rootState: .main,
                 hasLocalProfile: true,
-                isOnboardingV2Enabled: true
             ),
             .main
         )
@@ -101,7 +99,6 @@ final class AppRouteResolverGuardrailTests: XCTestCase {
                 rootState: .loading,
                 isOnboardingModelReady: true,
                 hasLocalProfile: false,
-                isOnboardingV2Enabled: true
             ),
             .localOnboarding
         )
@@ -110,29 +107,20 @@ final class AppRouteResolverGuardrailTests: XCTestCase {
                 authState: .signedOut,
                 hasLocalProfile: false,
                 isOnboardingModelReady: true,
-                isOnboardingV2Enabled: true
             ),
             .preAuthOnboarding
         )
     }
 
-    func testExistingSignedInUserWithProfileSkipsOnboardingRegardlessOfV2Flag() {
-        for v2Enabled in [false, true] {
-            XCTAssertEqual(
-                AppRouteResolver.resolve(
-                    authState: .signedIn(uid: "existing-user"),
-                    rootState: .main,
-                    hasLocalProfile: true,
-                    isOnboardingV2Enabled: v2Enabled
-                ),
-                .main,
-                "Expected main for returning user when v2Enabled=\(v2Enabled)"
-            )
-            XCTAssertEqual(
-                RootProfileRouteResolver.resolve(hasProfile: true),
-                .main,
-                "Expected root main for returning user when v2Enabled=\(v2Enabled)"
-            )
-        }
+    func testExistingSignedInUserWithProfileSkipsOnboarding() {
+        XCTAssertEqual(
+            AppRouteResolver.resolve(
+                authState: .signedIn(uid: "existing-user"),
+                rootState: .main,
+                hasLocalProfile: true
+            ),
+            .main
+        )
+        XCTAssertEqual(RootProfileRouteResolver.resolve(hasProfile: true), .main)
     }
 }

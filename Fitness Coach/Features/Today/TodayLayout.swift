@@ -28,6 +28,12 @@ enum TodayLayout {
     static let metricsProgressHeight: CGFloat = 4
     /// Scroll padding below the last Today section (see `FormaMainTabLayout`).
     static let bottomScrollPadding = FormaMainTabLayout.scrollContentBottomPadding
+    /// Extra scroll clearance so the floating quick-log button does not cover content.
+    static let quickActionFABClearance: CGFloat = 64
+    /// Bottom inset for the quick-log FAB above the floating tab bar.
+    static var quickActionFABBottomPadding: CGFloat {
+        FormaMainTabLayout.scrollBottomInset + FormaTokens.Spacing.sm
+    }
 }
 
 struct TodaySectionLabel: View {

@@ -13,7 +13,11 @@ protocol AIServiceProtocol: Sendable {
         context: AIContext,
         config: CoachModelConfig
     ) async throws -> CoachIntentResult
-    func estimateFood(prompt: String, context: AIContext) async throws -> AIFoodEstimateResponse
+    func estimateFood(
+        prompt: String,
+        context: AIContext,
+        imageJPEGData: Data?
+    ) async throws -> AIFoodEstimateResponse
     func generateMealAdvice(
         prompt: String,
         context: AIContext,
@@ -54,8 +58,16 @@ final class AIService: AIServiceProtocol {
         }
     }
 
-    func estimateFood(prompt: String, context: AIContext) async throws -> AIFoodEstimateResponse {
-        let request = AIFoodEstimateRequest(text: prompt, context: context)
+    func estimateFood(
+        prompt: String,
+        context: AIContext,
+        imageJPEGData: Data? = nil
+    ) async throws -> AIFoodEstimateResponse {
+        let request = AIFoodEstimateRequest(
+            text: prompt,
+            context: context,
+            imageJPEGBase64: imageJPEGData.map { $0.base64EncodedString() }
+        )
         return try await traced(method: "estimateFood") {
             try await llmClient.estimateFood(request: request)
         }

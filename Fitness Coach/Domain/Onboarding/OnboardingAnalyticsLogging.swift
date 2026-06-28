@@ -11,7 +11,6 @@ enum OnboardingAnalyticsEvent: String, Sendable {
     case started = "onboarding_started"
     case stepViewed = "onboarding_step_viewed"
     case stepCompleted = "onboarding_step_completed"
-    case feedbackShown = "onboarding_feedback_shown"
     case planGenerated = "onboarding_plan_generated"
     case planRevealed = "onboarding_plan_revealed"
     case profileSavedLocal = "onboarding_profile_saved_local"
@@ -37,10 +36,7 @@ struct OnboardingAnalyticsProperties: Sendable {
     var goalDirection: String?
     var isAggressive: String?
     var estimatedWeeks: String?
-    var loggingMode: String?
-    var feedbackKind: String?
     var completionPath: String?
-    var v2Enabled: String?
     var permissionResult: String?
 
     func asParameters() -> [String: String] {
@@ -52,10 +48,7 @@ struct OnboardingAnalyticsProperties: Sendable {
         if let goalDirection { parameters["goalDirection"] = goalDirection }
         if let isAggressive { parameters["isAggressive"] = isAggressive }
         if let estimatedWeeks { parameters["estimatedWeeks"] = estimatedWeeks }
-        if let loggingMode { parameters["loggingMode"] = loggingMode }
-        if let feedbackKind { parameters["feedbackKind"] = feedbackKind }
         if let completionPath { parameters["completionPath"] = completionPath }
-        if let v2Enabled { parameters["v2Enabled"] = v2Enabled }
         if let permissionResult { parameters["permissionResult"] = permissionResult }
         return parameters
     }
@@ -82,12 +75,6 @@ enum OnboardingAnalyticsContextBuilder {
         }
     }
 
-    static func loggingMode(from formState: OnboardingFormState) -> String? {
-        let modes = formState.loggingPreferences.map(\.rawValue).sorted()
-        guard !modes.isEmpty else { return nil }
-        return modes.joined(separator: ",")
-    }
-
     static func estimatedWeeks(from revealState: OnboardingPlanRevealState?) -> String? {
         guard let label = revealState?.estimatedWeeksLabel else { return nil }
         let digits = label.filter(\.isNumber)
@@ -102,25 +89,8 @@ enum OnboardingAnalyticsContextBuilder {
         OnboardingAnalyticsProperties(
             goalDirection: goalDirection(from: formState),
             isAggressive: String(plan.isAggressive),
-            estimatedWeeks: estimatedWeeks(from: revealState),
-            loggingMode: loggingMode(from: formState)
+            estimatedWeeks: estimatedWeeks(from: revealState)
         )
     }
 
-    static func feedbackKind(for step: OnboardingStep, formState: OnboardingFormState) -> String? {
-        switch step {
-        case .motivation:
-            return formState.selectedMotivations.isEmpty ? nil : "motivation"
-        case .body:
-            return formState.canAdvance(from: .body) ? "body" : nil
-        case .goal:
-            return formState.canAdvance(from: .goal) ? "goal" : nil
-        case .activity:
-            return "activity"
-        case .preferences:
-            return formState.loggingPreferences.isEmpty ? nil : "preferences"
-        default:
-            return nil
-        }
-    }
 }

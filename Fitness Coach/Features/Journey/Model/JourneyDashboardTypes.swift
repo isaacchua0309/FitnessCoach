@@ -72,6 +72,22 @@ struct JourneyTransformationHeroState: Equatable {
     var accessibilitySummary: String
 }
 
+// MARK: - Streaks
+
+struct JourneyStreakState: Equatable {
+    var currentLoggingStreakDays: Int
+    var longestLoggingStreakDays: Int
+    var currentProteinStreakDays: Int
+    var currentWaterStreakDays: Int
+    var currentTrainingStreakWeeks: Int?
+    var isTodayLogged: Bool
+    var heroStreakChip: JourneyStreakChipState
+    var weeklyConsistencyHeadline: String
+    var weeklyConsistencyDetail: String?
+    var habitInsightStreakCopy: String
+    var keepStreakAliveCopy: String?
+}
+
 // MARK: - Weekly review
 
 struct JourneyWeeklyReviewState: Equatable {
@@ -93,6 +109,8 @@ struct JourneyWeeklyReviewState: Equatable {
     var averageCalorieDeficit: Int?
     var rows: [JourneyWeeklyReviewRow]
     var weekOverWeekDetail: String?
+    var consistencyHeadline: String?
+    var consistencyDetail: String?
 }
 
 struct JourneyWeeklyReviewRow: Equatable, Identifiable {
@@ -124,6 +142,16 @@ struct JourneyWeeklyReviewPreviousWeek: Equatable {
 
 // MARK: - Milestones
 
+enum JourneyMilestoneCategory: Equatable, Sendable {
+    case weightProgress
+    case foodLogging
+    case proteinConsistency
+    case waterConsistency
+    case trainingConsistency
+    case streaks
+    case onboarding
+}
+
 enum JourneyMilestoneStatus: Equatable, Sendable {
     case completed
     case current
@@ -133,14 +161,33 @@ enum JourneyMilestoneStatus: Equatable, Sendable {
 struct JourneyMilestone: Identifiable, Equatable {
     var id: String
     var title: String
-    var weightKg: Double
+    var category: JourneyMilestoneCategory
     var status: JourneyMilestoneStatus
+    var progressFraction: Double?
+    var weightKg: Double?
+
+    init(
+        id: String,
+        title: String,
+        category: JourneyMilestoneCategory = .weightProgress,
+        status: JourneyMilestoneStatus,
+        progressFraction: Double? = nil,
+        weightKg: Double? = nil
+    ) {
+        self.id = id
+        self.title = title
+        self.category = category
+        self.status = status
+        self.progressFraction = progressFraction
+        self.weightKg = weightKg
+    }
 }
 
 struct JourneyMilestonesState: Equatable {
     var unlocked: [JourneyMilestone]
     var upcoming: [JourneyMilestone]
     var next: JourneyMilestone?
+    var nextProgressFraction: Double?
     var progressPercent: Double
     var items: [JourneyMilestone]
 
@@ -148,6 +195,7 @@ struct JourneyMilestonesState: Equatable {
         unlocked: [],
         upcoming: [],
         next: nil,
+        nextProgressFraction: nil,
         progressPercent: 0,
         items: []
     )
@@ -155,57 +203,103 @@ struct JourneyMilestonesState: Equatable {
 
 // MARK: - Story timeline
 
-enum JourneyTimelineEventKind: Equatable, Sendable {
+enum JourneyTimelineEventType: Equatable, Sendable {
     case onboardingStarted
     case firstMealLogged
+    case firstWaterLogged
     case firstWeightLogged
+    case firstWorkoutWeek
     case firstWeekComplete
     case firstKgTowardGoal
-    case streakMilestone
-    case weightMilestone
-    case personalRecord
-    case monthlyRecap
+    case calorieGoalFiveDays
+    case proteinGoalFiveDays
+    case thirtyMealsLogged
+    case halfwayToGoal
+    case longestStreakAchieved
+    case monthlyRecapCompleted
 }
 
 struct JourneyTimelineEvent: Identifiable, Equatable {
     var id: String
     var date: Date
-    var kind: JourneyTimelineEventKind
+    var type: JourneyTimelineEventType
     var title: String
-    var subtitle: String
+    var subtitle: String?
+    var icon: String
+    var isMajorEvent: Bool
 }
 
 struct JourneyStoryTimelineState: Equatable {
     var events: [JourneyTimelineEvent]
+    var displayEvents: [JourneyTimelineEvent]
+    var emptyStateMessage: String?
 
-    static let empty = JourneyStoryTimelineState(events: [])
+    static let empty = JourneyStoryTimelineState(
+        events: [],
+        displayEvents: [],
+        emptyStateMessage: nil
+    )
 }
 
 // MARK: - Habit insights
 
-enum JourneyHabitKind: Equatable, Sendable {
+enum JourneyHabitKind: Equatable, Sendable, CaseIterable {
     case foodLogging
     case protein
     case water
+    case calorieAdherence
     case training
     case weightLogging
+    case weekendLogging
 }
 
 struct JourneyHabitInsightsState: Equatable {
-    var strongestHabit: JourneyHabitKind
-    var strongestHabitPercentage: Double
-    var weakestHabit: JourneyHabitKind
-    var weakestHabitPercentage: Double
+    var isUnlocked: Bool
+    var lockedMessage: String?
+
+    var strongestHabitLabel: String
+    var strongestScorePercent: Int
+    var strongestQualitative: String?
+
+    var weakestHabitLabel: String
+    var weakestScorePercent: Int
+    var weakestScorePrefix: String?
+
     var suggestedNextAction: String
-    var habitInsightExplanation: String
-    var loggingStreakDays: Int
+
+    static let locked = JourneyHabitInsightsState(
+        isUnlocked: false,
+        lockedMessage: FormaProductCopy.Journey.HabitInsights.lockedBody,
+        strongestHabitLabel: "",
+        strongestScorePercent: 0,
+        strongestQualitative: nil,
+        weakestHabitLabel: "",
+        weakestScorePercent: 0,
+        weakestScorePrefix: nil,
+        suggestedNextAction: ""
+    )
 }
 
 // MARK: - Progress attribution
 
+enum JourneyProgressAttributionConfidence: Equatable, Sendable {
+    case low
+    case medium
+    case high
+}
+
 struct JourneyProgressAttributionState: Equatable {
-    var primaryReason: String
+    var primaryReasonTitle: String
+    var primaryReasonDetail: String
     var supportingReasons: [String]
+    var confidence: JourneyProgressAttributionConfidence
+
+    static let insufficientData = JourneyProgressAttributionState(
+        primaryReasonTitle: FormaProductCopy.Journey.WhyProgress.insufficientTitle,
+        primaryReasonDetail: FormaProductCopy.Journey.WhyProgress.insufficientDetail,
+        supportingReasons: [],
+        confidence: .low
+    )
 }
 
 // MARK: - Before vs today
@@ -219,6 +313,9 @@ struct JourneyBeforeTodayState: Equatable {
     var currentTargetCaloriesKcal: Int?
     var goalWeightKg: Double?
     var daysOnJourney: Int
+    var showsMaintenanceRow: Bool
+    var showsTargetRow: Bool
+    var showsAdaptedTargetCopy: Bool
 }
 
 // MARK: - Personal records
@@ -227,26 +324,51 @@ struct JourneyPersonalRecord: Identifiable, Equatable {
     var id: String
     var title: String
     var value: String
+    var subtitle: String?
+    var periodLabel: String?
     var isActive: Bool
+    var isEarlyRecord: Bool
 }
 
 struct JourneyPersonalRecordsState: Equatable {
+    var isUnlocked: Bool
+    var lockedMessage: String?
     var records: [JourneyPersonalRecord]
 
-    static let empty = JourneyPersonalRecordsState(records: [])
+    var displayRecords: [JourneyPersonalRecord] {
+        records.filter(\.isActive)
+    }
+
+    static let locked = JourneyPersonalRecordsState(
+        isUnlocked: false,
+        lockedMessage: FormaProductCopy.Journey.PersonalRecords.lockedBody,
+        records: []
+    )
 }
 
 // MARK: - Monthly recap
 
+struct JourneyMonthlyRecapMetricRow: Identifiable, Equatable {
+    var id: String
+    var title: String
+    var value: String
+}
+
 struct JourneyMonthlyRecapState: Equatable {
+    var sectionTitle: String
+    var isComplete: Bool
+    var buildingMessage: String?
     var monthLabel: String
     var monthWeightDeltaKg: Double?
     var calorieAdherencePercent: Double?
     var proteinAdherencePercent: Double?
     var waterAdherencePercent: Double?
-    var trainingSessions: Int
+    var trainingSessions: Int?
+    var showsTrainingRow: Bool
     var loggedDays: Int
+    var bestHabitCopy: String?
     var summaryCopy: String
+    var rows: [JourneyMonthlyRecapMetricRow]
     var calendar: JourneyConsistencyCalendar
 }
 
@@ -257,8 +379,10 @@ struct JourneyLevelState: Equatable {
     var levelTitle: String
     var currentXP: Int
     var xpRequiredForNextLevel: Int
+    var totalXP: Int
     var progressPercent: Double
     var xpEarnedExplanation: String
+    var hasData: Bool
 }
 
 // MARK: - Detailed analytics

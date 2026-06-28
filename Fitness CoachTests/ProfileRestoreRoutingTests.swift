@@ -66,7 +66,6 @@ final class ProfileRestoreRoutingTests: XCTestCase {
                 rootState: rootWithProfile,
                 isOnboardingModelReady: true,
                 hasLocalProfile: true,
-                isOnboardingV2Enabled: true
             ),
             .localOnboarding
         )
@@ -78,7 +77,6 @@ final class ProfileRestoreRoutingTests: XCTestCase {
                 rootState: rootWithoutProfile,
                 isOnboardingModelReady: true,
                 hasLocalProfile: false,
-                isOnboardingV2Enabled: true
             ),
             .localOnboarding
         )

@@ -251,7 +251,11 @@ final class AppContainer {
         ProfileModel(
             actionCenter: actionCenter,
             userProfileService: userProfileService,
-            targetService: targetService
+            targetService: targetService,
+            dailyLogService: dailyLogService,
+            weightLogService: weightLogService,
+            trainingInsightsStore: trainingInsightsStore,
+            workoutReader: trainingInsightsModel.workoutReaderForToday
         )
     }
 
@@ -263,11 +267,6 @@ final class AppContainer {
         entry: OnboardingAnalyticsEntry = .preAuth,
         onCompletion: @escaping () -> Void
     ) -> OnboardingModel {
-        let flowScope = OnboardingFlowScope.resolve(
-            routingMode: onboardingRoutingConfiguration.routingMode,
-            entry: entry,
-            isV2Enabled: onboardingRoutingConfiguration.isV2Enabled
-        )
         return OnboardingModel(
             userProfileService: userProfileService,
             targetService: targetService,
@@ -276,7 +275,6 @@ final class AppContainer {
             coachingContextStore: onboardingCoachingContextStore,
             analyticsLogger: onboardingAnalyticsLogger,
             analyticsEntry: entry,
-            flowScope: flowScope,
             allowsLocalOnlyContinuation: onboardingRoutingConfiguration.allowsLocalOnlyContinuation,
             healthTrainingIntegration: healthTrainingService,
             trainingInsightsStore: trainingInsightsStore
@@ -301,7 +299,6 @@ final class AppContainer {
             rootState: rootState,
             isOnboardingModelReady: isOnboardingModelReady,
             hasLocalProfile: profileBootstrapService.hasLocalProfile(),
-            isOnboardingV2Enabled: onboardingRoutingConfiguration.isV2Enabled,
             signedOutWithProfilePolicy: onboardingRoutingConfiguration.signedOutWithProfilePolicy,
             localProfileAwaitingSignIn: profileBootstrapService.localProfileAwaitingSignIn(),
             pendingOnboardingCompletion: pendingOnboardingCompletion

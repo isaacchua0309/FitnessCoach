@@ -2,7 +2,7 @@
 //  OnboardingDestinationTests.swift
 //  Fitness CoachTests
 //
-//  Forma — Picker-first destination step validation and goal weight helpers.
+//  Forma — Target weight validation and goal weight helpers.
 //
 
 import XCTest
@@ -10,44 +10,22 @@ import XCTest
 
 final class OnboardingDestinationTests: XCTestCase {
 
-    func testGoalBelowCurrentRequiresPaceValidation() {
-        var state = filledDestinationBasics()
+    func testTargetWeightBelowCurrentIsValid() {
+        var state = filledBasics()
         state.goalWeightKgText = "65"
-        state.selectPaceChoice(.moderate)
 
-        XCTAssertTrue(state.isPaceApplicable())
-        XCTAssertTrue(state.canAdvance(from: .goal))
-        XCTAssertTrue(state.canAdvanceV3(from: .goalWeight))
+        XCTAssertTrue(state.canAdvance(from: .targetWeight))
     }
 
-    func testGoalEqualsCurrentAllowsMaintenanceAdvance() {
-        var state = filledDestinationBasics()
+    func testTargetWeightEqualsCurrentAllowsMaintenanceAdvance() {
+        var state = filledBasics()
         state.goalWeightKgText = state.currentWeightKgText
 
-        XCTAssertFalse(state.isPaceApplicable())
-        XCTAssertTrue(state.canAdvance(from: .goal))
-        XCTAssertTrue(state.canAdvanceV3(from: .goalWeight))
-    }
-
-    func testVisiblePaceChoicesExcludeAdvanced() {
-        XCTAssertEqual(
-            OnboardingV3InteractionPolicy.visiblePaceChoices,
-            [.gentle, .moderate, .aggressive]
-        )
-    }
-
-    func testAdvancedPaceInvalidBlocksAdvance() {
-        var state = filledDestinationBasics()
-        state.goalWeightKgText = "65"
-        state.selectPaceChoice(.advanced)
-        state.advancedPaceDraft = WeightLossAdvancedPaceDraft(period: .weekly, amountText: "")
-
-        XCTAssertFalse(state.canAdvance(from: .goal))
-        XCTAssertFalse(state.canAdvanceV3(from: .goalWeight))
+        XCTAssertTrue(state.canAdvance(from: .targetWeight))
     }
 
     func testGoalWeightDefaultUsesCurrentWeight() {
-        var state = filledDestinationBasics()
+        var state = filledBasics()
         state.goalWeightKgText = ""
         state.applyGoalWeightDefaultIfNeeded()
 
@@ -74,12 +52,12 @@ final class OnboardingDestinationTests: XCTestCase {
         XCTAssertEqual(summary, FormaProductCopy.Onboarding.V2.Goal.changeMaintainLabel)
     }
 
-    private func filledDestinationBasics() -> OnboardingFormState {
+    private func filledBasics() -> OnboardingFormState {
         var state = OnboardingFormState()
-        state.ageText = "28"
         state.heightCmText = "168"
         state.currentWeightKgText = "72"
         state.goalWeightKgText = "65"
+        state.birthDate = BirthDatePersistence.decode("1996-01-15T00:00:00Z")
         return state
     }
 }

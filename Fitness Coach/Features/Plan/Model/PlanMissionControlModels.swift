@@ -50,6 +50,17 @@ struct PlanMissionState: Equatable, Sendable {
     var startWeightLabel: String?
     var progressPercentLabel: String?
     var totalChangeLabel: String?
+
+    // MARK: Hero presentation
+
+    var sectionTitle: String
+    var headlineValue: String
+    var progressRouteLabel: String
+    var progressCompleteLabel: String?
+    var progressBarFill: Double
+    var showsProgressBar: Bool
+    var accessibilitySummary: String
+    var adjustPlanTitle: String
 }
 
 // MARK: - 2. Today's mission
@@ -67,6 +78,12 @@ struct PlanTodayMissionState: Equatable, Sendable {
     var fatLabel: String
     var waterLabel: String
     var progressCopy: String
+
+    // MARK: Presentation
+
+    var sectionTitle: String
+    var goToTodayTitle: String
+    var accessibilitySummary: String
 }
 
 // MARK: - 3. This week
@@ -100,6 +117,19 @@ struct PlanWeekState: Equatable, Sendable {
     var overallStatus: PlanWeekOverallStatus
     var overallStatusCopy: String
     var hasWeeklyData: Bool
+
+    // MARK: Presentation
+
+    var sectionTitle: String
+    var caloriesLine: String
+    var proteinLine: String
+    var waterLine: String
+    var trainingLine: String
+    var weightLine: String
+    var overallHeadline: String
+    var emptyStateCopy: String?
+    var showsEmptyState: Bool
+    var accessibilitySummary: String
 }
 
 // MARK: - 4. Next milestone
@@ -108,6 +138,17 @@ enum PlanMilestoneType: String, Equatable, Sendable {
     case weightCheckpoint
     case goalWeight
     case phaseReview
+    case loggingConsistency
+    case proteinAdherence
+    case trainingAdherence
+}
+
+enum PlanNextMilestoneKind: String, Equatable, Sendable {
+    case weightCheckpoint
+    case goalWeight
+    case loggingConsistency
+    case proteinAdherence
+    case trainingAdherence
 }
 
 struct PlanNextMilestoneState: Equatable, Sendable {
@@ -119,6 +160,15 @@ struct PlanNextMilestoneState: Equatable, Sendable {
     var milestoneType: PlanMilestoneType?
     var detailCopy: String?
     var showsEmptyState: Bool
+
+    // MARK: Presentation
+
+    var sectionTitle: String
+    var headline: String
+    var showsJourneyCTA: Bool
+    var goToJourneyTitle: String
+    var accessibilitySummary: String
+    var kind: PlanNextMilestoneKind?
 }
 
 // MARK: - 5. Rationale metrics (extends display-oriented PlanRationaleState)
@@ -148,17 +198,45 @@ struct PlanActivityAssumptionsState: Equatable, Sendable {
     var ageLabel: String
     var heightLabel: String
     var sexLabel: String
+
+    var sectionTitle: String
+    var activityFieldLabel: String
+    var estimatedStepsFieldLabel: String
+    var trainingFieldLabel: String
+    var assumptionsNote: String
+    var adjustActivityTitle: String
+    var showsAppleHealthStatus: Bool
+    var appleHealthFieldLabel: String
+    var appleHealthStatusLabel: String
+    var showsConnectAppleHealthCTA: Bool
+    var connectAppleHealthTitle: String
+    var accessibilitySummary: String
 }
 
 // MARK: - 7. Confidence
+
+struct PlanConfidenceReasonItem: Equatable, Sendable, Identifiable {
+    var id: String
+    var text: String
+}
 
 struct PlanConfidenceState: Equatable, Sendable {
     /// Deterministic score 0...100 for display.
     var confidenceScore: Int
     var confidenceLevel: ConfidenceLevel
+    /// Legacy string lists retained for transitional callers.
     var confidenceReasons: [String]
     var missingSignals: [String]
     var safeCopy: String
+
+    var sectionTitle: String
+    var scoreLabel: String
+    var whyHeading: String
+    var missingHeading: String
+    var whyItems: [PlanConfidenceReasonItem]
+    var missingItems: [PlanConfidenceReasonItem]
+    var footerCopy: String
+    var accessibilitySummary: String
 }
 
 // MARK: - 8. Adjustment
@@ -170,4 +248,18 @@ struct PlanAdjustmentState: Equatable, Sendable {
     var lastUpdateReason: String?
     var editSafetyCopy: String
     var showsTargetRecalculateHint: Bool
+
+    var sectionTitle: String
+    var currentHeading: String
+    var summaryRows: [PlanAdjustmentSummaryRow]
+    var lastUpdateReasonCopy: String
+    var adjustPlanTitle: String
+    var editSafetyCopy: String
+    var accessibilitySummary: String
+}
+
+struct PlanAdjustmentSummaryRow: Equatable, Sendable, Identifiable {
+    var id: String
+    var label: String
+    var value: String
 }

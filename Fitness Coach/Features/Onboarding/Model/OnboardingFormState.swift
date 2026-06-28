@@ -14,7 +14,7 @@ struct OnboardingFormState: Equatable {
     private static let initialTrainingDefaults = trainingDefaultsResolver.defaults(for: .moderatelyActive)
 
     var name: String = ""
-    /// Source of truth for age in v4 onboarding. Legacy v2/v3 drafts may only have `ageText`.
+    /// Source of truth for age in onboarding. Legacy v2/v3 drafts may only have `ageText`.
     var birthDate: Date?
     var ageText: String = ""
     var sex: Sex = .preferNotToSay
@@ -31,10 +31,10 @@ struct OnboardingFormState: Equatable {
     var dietPreference: String = ""
     var unitSystem: UnitSystem = .metric
 
-    /// Optional v2 motivation selections — not required for plan calculation.
+    /// Optional motivation selections — not required for plan calculation.
     var selectedMotivations: Set<OnboardingMotivation> = []
 
-    /// Optional v2 logging style preferences — not required for plan calculation.
+    /// Optional logging style preferences — not required for plan calculation.
     var loggingPreferences: Set<OnboardingLoggingPreference> = []
 
     /// Legacy field kept for target compatibility; synced from `weightLossPaceChoice`.
@@ -92,42 +92,18 @@ struct OnboardingFormState: Equatable {
 
     func validate(step: OnboardingStep) throws {
         switch step {
-        case .landing, .welcome, .motivation, .preferences, .summary,
-             .generatingPlan, .planReveal, .savePlan, .planPreview:
+        case .heightWeight:
+            try OnboardingHeightWeightValues.validate(formState: self)
+        case .targetWeight:
+            try OnboardingTargetWeightValues.validate(formState: self)
+        case .birthday:
+            try OnboardingBirthdayValues.validate(formState: self)
+        case .introProof, .targetEncouragement,
+             .appleHealth, .almostThere, .formaProof, .review,
+             .generatingPlan, .planReveal, .savePlan:
             return
-        case .body:
-            _ = try parsePositiveInt(ageText, message: FormaProductCopy.Onboarding.Validation.age)
-            _ = try parsePositiveDouble(heightCmText, message: FormaProductCopy.Onboarding.Validation.height)
-            _ = try parsePositiveDouble(currentWeightKgText, message: FormaProductCopy.Onboarding.Validation.currentWeight)
-            _ = try parseOptionalBodyFat(estimatedBodyFatPercentageText)
-        case .goal:
-            let goalWeightKg = try parsePositiveDouble(
-                goalWeightKgText,
-                message: FormaProductCopy.Onboarding.Validation.goalWeight
-            )
-            if isPaceApplicable() {
-                if let currentWeightKg = parsedCurrentWeightKg, goalWeightKg >= currentWeightKg {
-                    throw OnboardingFormError.invalid(
-                        FormaProductCopy.Onboarding.V2.Goal.goalMustBeBelowCurrent
-                    )
-                }
-                let preview = pacePreview()
-                guard preview.isSaveable else {
-                    throw OnboardingFormError.invalid(
-                        preview.validationError ?? FormaProductCopy.Error.checkInputs
-                    )
-                }
-            } else if blocksWeightLossPaceForNonCutGoal() {
-                throw OnboardingFormError.invalid(
-                    FormaProductCopy.Onboarding.V2.Goal.goalMustBeBelowCurrent
-                )
-            }
-        case .activity:
-            _ = try parseNonNegativeInt(
-                trainingFrequencyPerWeekText,
-                message: FormaProductCopy.Onboarding.Validation.trainingFrequency
-            )
-            _ = try parseNonNegativeInt(averageStepsText, message: FormaProductCopy.Onboarding.Validation.averageSteps)
+        case .activityLevel:
+            return
         }
     }
 
@@ -143,12 +119,13 @@ struct OnboardingFormState: Equatable {
     }
 
     func canAdvance(from step: OnboardingStep) -> Bool {
-        switch step {
-        case .landing, .welcome, .motivation, .preferences, .summary,
-             .generatingPlan, .planReveal, .savePlan, .planPreview:
-            return true
-        case .body, .goal, .activity:
-            return validationMessage(for: step) == nil
+        validationMessage(for: step) == nil
+    }
+
+    static func firstInvalidRequiredStep(for formState: OnboardingFormState) -> OnboardingStep? {
+        let required: [OnboardingStep] = [.heightWeight, .targetWeight, .birthday, .activityLevel]
+        return required.first { step in
+            formState.validationMessage(for: step) != nil
         }
     }
 
@@ -293,6 +270,21 @@ struct OnboardingFormState: Equatable {
         let previousDefaults = lastAutoTrainingDefaults
 
         activityLevel = level
+
+        if shouldAutoUpdateTrainingDays(previousDefaults: previousDefaults) {
+            trainingFrequencyPerWeekText = String(newDefaults.trainingDaysPerWeek)
+        }
+
+        if shouldAutoUpdateAverageSteps(previousDefaults: previousDefaults) {
+            averageStepsText = String(newDefaults.averageStepsPerDay)
+        }
+
+        lastAutoTrainingDefaults = newDefaults
+    }
+
+    mutating func applyTrainingRhythmDefaultsForCurrentActivity() {
+        let newDefaults = Self.trainingDefaultsResolver.defaults(for: activityLevel)
+        let previousDefaults = lastAutoTrainingDefaults
 
         if shouldAutoUpdateTrainingDays(previousDefaults: previousDefaults) {
             trainingFrequencyPerWeekText = String(newDefaults.trainingDaysPerWeek)
@@ -520,137 +512,6 @@ struct OnboardingFormState: Equatable {
         return currentSteps == previousDefaults.averageStepsPerDay
     }
 
-    // MARK: - V3 per-step validation (tap-first flow; same stored fields)
-
-    func canAdvanceV3(from step: OnboardingV3Step) -> Bool {
-        validationMessageV3(for: step) == nil
-    }
-
-    func validationMessageV3(for step: OnboardingV3Step) -> String? {
-        do {
-            try validateV3(step: step)
-            return nil
-        } catch let error as OnboardingFormError {
-            return error.message
-        } catch {
-            return FormaProductCopy.Error.checkInputs
-        }
-    }
-
-    func validateV3(step: OnboardingV3Step) throws {
-        switch step {
-        case .landing, .motivation, .sex, .activityLevel,
-             .preferences, .preferenceDetails, .review,
-             .generatingPlan, .planReveal, .savePlan:
-            return
-        case .bodyBasics:
-            _ = try parsePositiveInt(ageText, message: FormaProductCopy.Onboarding.Validation.age)
-            _ = try parsePositiveDouble(heightCmText, message: FormaProductCopy.Onboarding.Validation.height)
-            _ = try parsePositiveDouble(
-                currentWeightKgText,
-                message: FormaProductCopy.Onboarding.Validation.currentWeight
-            )
-            _ = try parseOptionalBodyFat(estimatedBodyFatPercentageText)
-        case .age:
-            _ = try parsePositiveInt(ageText, message: FormaProductCopy.Onboarding.Validation.age)
-        case .height:
-            _ = try parsePositiveDouble(heightCmText, message: FormaProductCopy.Onboarding.Validation.height)
-        case .currentWeight:
-            _ = try parsePositiveDouble(
-                currentWeightKgText,
-                message: FormaProductCopy.Onboarding.Validation.currentWeight
-            )
-        case .goalWeight:
-            try validateV3GoalPace()
-        case .pace, .customPace:
-            try validateV3GoalPace()
-        case .trainingRhythm:
-            _ = try parseNonNegativeInt(
-                trainingFrequencyPerWeekText,
-                message: FormaProductCopy.Onboarding.Validation.trainingFrequency
-            )
-            _ = try parseNonNegativeInt(
-                averageStepsText,
-                message: FormaProductCopy.Onboarding.Validation.averageSteps
-            )
-        }
-    }
-
-    private func validateV3GoalPace() throws {
-        let goalWeightKg = try parsePositiveDouble(
-            goalWeightKgText,
-            message: FormaProductCopy.Onboarding.Validation.goalWeight
-        )
-        if isPaceApplicable() {
-            if let currentWeightKg = parsedCurrentWeightKg, goalWeightKg >= currentWeightKg {
-                throw OnboardingFormError.invalid(
-                    FormaProductCopy.Onboarding.V2.Goal.goalMustBeBelowCurrent
-                )
-            }
-            let preview = pacePreview()
-            guard preview.isSaveable else {
-                throw OnboardingFormError.invalid(
-                    preview.validationError ?? FormaProductCopy.Error.checkInputs
-                )
-            }
-        } else if blocksWeightLossPaceForNonCutGoal() {
-            throw OnboardingFormError.invalid(
-                FormaProductCopy.Onboarding.V2.Goal.goalMustBeBelowCurrent
-            )
-        }
-    }
-
-    static func firstInvalidRequiredV3Step(for formState: OnboardingFormState) -> OnboardingV3Step? {
-        let required: [OnboardingV3Step] = [
-            .bodyBasics,
-            .goalWeight, .activityLevel, .trainingRhythm
-        ]
-        return required.first { step in
-            formState.validationMessageV3(for: step) != nil
-        }
-    }
-
-    // MARK: - V4 per-step validation (activity mode only; training rhythm derived internally)
-
-    func canAdvanceV4(from step: OnboardingV4Step) -> Bool {
-        validationMessageV4(for: step) == nil
-    }
-
-    func validationMessageV4(for step: OnboardingV4Step) -> String? {
-        do {
-            try validateV4(step: step)
-            return nil
-        } catch let error as OnboardingFormError {
-            return error.message
-        } catch {
-            return FormaProductCopy.Error.checkInputs
-        }
-    }
-
-    func validateV4(step: OnboardingV4Step) throws {
-        switch step {
-        case .heightWeight:
-            try OnboardingV4HeightWeightValues.validate(formState: self)
-        case .targetWeight:
-            try OnboardingV4TargetWeightValues.validate(formState: self)
-        case .birthday:
-            try OnboardingV4BirthdayValues.validate(formState: self)
-        case .introProof, .targetEncouragement,
-             .appleHealth, .almostThere, .formaProof, .review,
-             .generatingPlan, .planReveal, .savePlan:
-            return
-        case .activityLevel:
-            return
-        }
-    }
-
-    /// Steps that must pass validation before plan generation in v4.
-    static func firstInvalidRequiredV4Step(for formState: OnboardingFormState) -> OnboardingV4Step? {
-        let required: [OnboardingV4Step] = [.heightWeight, .targetWeight, .birthday, .activityLevel]
-        return required.first { step in
-            formState.validationMessageV4(for: step) != nil
-        }
-    }
 }
 
 enum OnboardingFormError: Error, Equatable {

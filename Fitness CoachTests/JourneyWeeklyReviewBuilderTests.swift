@@ -236,7 +236,26 @@ final class JourneyWeeklyReviewBuilderTests: XCTestCase {
         JourneyWeeklyReviewBuilder.enrich(
             review: review,
             previousWeek: previousWeek,
-            goalDirection: .lose
+            goalDirection: .lose,
+            streaks: emptyStreaks()
+        )
+    }
+
+    private func emptyStreaks() -> JourneyStreakState {
+        JourneyStreakBuilder.build(
+            JourneyStreakBuilder.Input(
+                streakSummary: StreakSummary(
+                    loggingStreak: 0,
+                    proteinStreak: 0,
+                    hydrationStreak: 0,
+                    workoutStreak: 0
+                ),
+                maturityLogs: [],
+                workoutDates: [],
+                isAppleHealthConnected: false,
+                asOf: asOf,
+                calendar: calendar
+            )
         )
     }
 
@@ -315,6 +334,21 @@ final class JourneyWeeklyReviewBuilderTests: XCTestCase {
                 proteinStreak: 1,
                 hydrationStreak: 0,
                 workoutStreak: 0
+            ),
+            journeyStreaks: JourneyStreakBuilder.build(
+                JourneyStreakBuilder.Input(
+                    streakSummary: StreakSummary(
+                        loggingStreak: 1,
+                        proteinStreak: 1,
+                        hydrationStreak: 0,
+                        workoutStreak: 0
+                    ),
+                    maturityLogs: weekLogs,
+                    workoutDates: [],
+                    isAppleHealthConnected: false,
+                    asOf: asOf,
+                    calendar: calendar
+                )
             ),
             weeklyTraining: .connectedEmpty,
             weightSummary: ProgressWeightSummary(

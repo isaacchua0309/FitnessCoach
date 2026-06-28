@@ -152,7 +152,19 @@ final class ProgressModel: ObservableObject {
         let streakSummary = StreakCalculator.calculate(
             logs: maturityLogs,
             workoutDates: healthWorkoutDays,
-            asOf: endDate
+            asOf: endDate,
+            calendar: calendar
+        )
+
+        let journeyStreaks = JourneyStreakBuilder.build(
+            JourneyStreakBuilder.Input(
+                streakSummary: streakSummary,
+                maturityLogs: maturityLogs,
+                workoutDates: healthWorkoutDays,
+                isAppleHealthConnected: integrationState.isConnected,
+                asOf: endDate,
+                calendar: calendar
+            )
         )
 
         let loggedDays = meaningfulLoggedDays(from: maturityLogs, weights: allWeights)
@@ -172,6 +184,7 @@ final class ProgressModel: ObservableObject {
             weekWeights: weekWeights,
             rangeWeights: weights,
             streakSummary: streakSummary,
+            journeyStreaks: journeyStreaks,
             weeklyTraining: weeklyTraining,
             weightSummary: weightSummary,
             goalProjection: goalProjection,
@@ -196,6 +209,7 @@ final class ProgressModel: ObservableObject {
                 loggedDays: loggedDays
             ),
             weeklyReview: JourneyDashboardBuilder.weeklyReview(context: builderContext),
+            streaks: builderContext.journeyStreaks,
             milestones: JourneyDashboardBuilder.milestones(context: builderContext),
             storyTimeline: JourneyDashboardBuilder.storyTimeline(context: builderContext),
             habitInsights: JourneyDashboardBuilder.habitInsights(context: builderContext),

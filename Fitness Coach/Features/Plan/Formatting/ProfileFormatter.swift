@@ -120,6 +120,10 @@ enum ProfileFormatter {
         "\(value)ml"
     }
 
+    nonisolated static func litersCompact(_ ml: Int) -> String {
+        String(format: "%.1fL", Double(ml) / 1000.0)
+    }
+
     nonisolated static func steps(_ value: Int) -> String {
         "\(value) steps/day"
     }

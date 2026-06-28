@@ -9,13 +9,11 @@ import Foundation
 
 enum TodayPhotoScanAvailability {
 
-    /// True when a meal photo can be analyzed and logged without a broken Coach handoff.
-    /// Today hides Scan Food until image bytes reach the AI photo pipeline.
+    /// True when meal photos reach the AI photo pipeline with image bytes attached.
     static var isPipelineReady: Bool {
-        #if DEBUG
-        return ProcessInfo.processInfo.environment["FORMA_TODAY_SCAN_FOOD_ENABLED"] == "1"
-        #else
-        return false
-        #endif
+        if ProcessInfo.processInfo.environment["FORMA_TODAY_SCAN_FOOD_DISABLED"] == "1" {
+            return false
+        }
+        return CoachMealPhotoPipeline.isClientPipelineReady
     }
 }

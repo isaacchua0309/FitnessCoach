@@ -35,24 +35,4 @@ extension View {
             }
         }
     }
-
-    func onboardingScrollTarget<ID: Hashable>(id: ID, isFocused: Bool) -> some View {
-        modifier(OnboardingScrollTargetModifier(id: id, isFocused: isFocused))
-    }
-}
-
-private struct OnboardingScrollTargetModifier<ID: Hashable>: ViewModifier {
-    @Environment(\.onboardingFieldNavigator) private var navigator
-
-    let id: ID
-    let isFocused: Bool
-
-    func body(content: Content) -> some View {
-        content
-            .id(id)
-            .onChange(of: isFocused) { _, focused in
-                guard focused else { return }
-                navigator?.scrollTo(AnyHashable(id))
-            }
-    }
 }

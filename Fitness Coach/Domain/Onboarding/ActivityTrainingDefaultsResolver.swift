@@ -28,3 +28,20 @@ struct ActivityTrainingDefaultsResolver: Equatable, Sendable {
         }
     }
 }
+
+extension UserProfile {
+
+    /// Uses stored rhythm values when present; falls back to activity-level defaults for legacy profiles.
+    func resolvedTrainingRhythm(
+        defaultsResolver: ActivityTrainingDefaultsResolver = ActivityTrainingDefaultsResolver()
+    ) -> TrainingRhythmDefaults {
+        let defaults = defaultsResolver.defaults(for: activityLevel)
+        if averageSteps == 0, trainingFrequencyPerWeek == 0 {
+            return defaults
+        }
+        return TrainingRhythmDefaults(
+            trainingDaysPerWeek: trainingFrequencyPerWeek,
+            averageStepsPerDay: averageSteps > 0 ? averageSteps : defaults.averageStepsPerDay
+        )
+    }
+}

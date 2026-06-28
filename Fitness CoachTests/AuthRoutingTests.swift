@@ -203,7 +203,6 @@ final class AppRouteResolverTests: XCTestCase {
                 authState: .signedOut,
                 isOnboardingModelReady: true,
                 hasLocalProfile: false,
-                isOnboardingV2Enabled: true
             ),
             .localOnboarding
         )
@@ -212,7 +211,6 @@ final class AppRouteResolverTests: XCTestCase {
                 authState: .signedOut,
                 isOnboardingModelReady: false,
                 hasLocalProfile: false,
-                isOnboardingV2Enabled: true
             ),
             .localOnboardingInitializing
         )
@@ -224,7 +222,6 @@ final class AppRouteResolverTests: XCTestCase {
                 authState: .signedOut,
                 isOnboardingModelReady: false,
                 hasLocalProfile: true,
-                isOnboardingV2Enabled: true
             ),
             .localOnboardingInitializing
         )
@@ -233,7 +230,6 @@ final class AppRouteResolverTests: XCTestCase {
                 authState: .signedOut,
                 isOnboardingModelReady: true,
                 hasLocalProfile: true,
-                isOnboardingV2Enabled: true
             ),
             .localOnboarding
         )
@@ -244,30 +240,9 @@ final class AppRouteResolverTests: XCTestCase {
             AppRouteResolver.resolve(
                 authState: .signedOut,
                 hasLocalProfile: true,
-                isOnboardingV2Enabled: true,
                 signedOutWithProfilePolicy: .allowLocalMain
             ),
             .localMain
-        )
-    }
-
-    func testV2DisabledPreservesLegacySignedOutSignInRouting() {
-        XCTAssertEqual(
-            AppRouteResolver.resolve(
-                authState: .signedOut,
-                hasLocalProfile: false,
-                isOnboardingV2Enabled: false
-            ),
-            .signIn
-        )
-        XCTAssertEqual(
-            AppRouteResolver.resolve(
-                authState: .signedOut,
-                hasLocalProfile: true,
-                isOnboardingV2Enabled: false,
-                signedOutWithProfilePolicy: .allowLocalMain
-            ),
-            .signIn
         )
     }
 }

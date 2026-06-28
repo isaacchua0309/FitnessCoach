@@ -9,8 +9,6 @@ import SwiftUI
 
 struct OnboardingBottomBar: View {
     let currentStep: OnboardingStep
-    var currentV3Step: OnboardingV3Step?
-    var currentV4Step: OnboardingV4Step?
     let isLoading: Bool
     let canContinue: Bool
     var showsRequiredFieldsHint: Bool = false
@@ -19,75 +17,34 @@ struct OnboardingBottomBar: View {
     let onComplete: () -> Void
     var onAdjustPlan: (() -> Void)? = nil
     var saveTrustNote: String? = nil
+    var flowFloor: OnboardingStep = .introProof
 
     @ScaledMetric(relativeTo: .body) private var buttonHeight: CGFloat = 48
-
-    private var isV2: Bool { OnboardingStepPolicy.isV2Enabled }
-    private var usesV3: Bool { currentV3Step != nil }
-    private var usesV4: Bool { currentV4Step != nil }
 
     private var resolvedButtonHeight: CGFloat {
         max(buttonHeight, FormaTokens.Layout.minTouchTarget)
     }
 
     private var showsBackButton: Bool {
-        if let currentV4Step {
-            return currentV4Step.allowsBackNavigation(in: OnboardingV4Step.flowForActiveScope())
-        }
-        if let currentV3Step {
-            return currentV3Step.allowsBackNavigation(in: OnboardingV3Step.flowForActiveScope())
-        }
-        return currentStep.allowsBackNavigation(isV2Enabled: OnboardingStepPolicy.isV2Enabled)
-    }
-
-    private var usesCompleteAction: Bool {
-        currentStep == .planPreview && !isV2
+        currentStep.allowsBackNavigation(in: OnboardingStep.flow, notBefore: flowFloor)
     }
 
     private var showsAdjustPlan: Bool {
-        (currentV4Step == .planReveal || currentV3Step == .planReveal || currentStep == .planReveal)
-            && onAdjustPlan != nil
+        currentStep == .planReveal && onAdjustPlan != nil
     }
 
     private var primaryTitle: String {
-        if let currentV4Step {
-            switch currentV4Step {
-            case .review:
-                return FormaProductCopy.Onboarding.V4.Summary.buildPlanCTA
-            case .planReveal:
-                return FormaProductCopy.Onboarding.V3.PlanReveal.savePlanCTA
-            case .targetEncouragement:
-                return FormaProductCopy.Onboarding.V4.TargetEncouragement.continueCTA
-            case .almostThere:
-                return FormaProductCopy.Onboarding.V4.AlmostThere.continueCTA
-            case .formaProof:
-                return FormaProductCopy.Onboarding.V4.FormaProof.continueCTA
-            default:
-                return FormaProductCopy.Common.continueAction
-            }
-        }
-        if let currentV3Step {
-            switch currentV3Step {
-            case .review:
-                return FormaProductCopy.Onboarding.V2.Summary.buildPlanCTA
-            case .planReveal:
-                return FormaProductCopy.Onboarding.V3.PlanReveal.savePlanCTA
-            default:
-                return FormaProductCopy.Common.continueAction
-            }
-        }
-
         switch currentStep {
-        case .landing:
-            return FormaProductCopy.Onboarding.V2.Landing.cta
-        case .preferences where !isV2:
-            return "Generate Plan"
-        case .summary:
-            return FormaProductCopy.Onboarding.V2.Summary.buildPlanCTA
+        case .review:
+            return FormaProductCopy.Onboarding.Flow.Summary.buildPlanCTA
         case .planReveal:
-            return FormaProductCopy.Onboarding.V2.PlanReveal.savePlanCTA
-        case .planPreview:
-            return FormaProductCopy.Onboarding.startButton
+            return FormaProductCopy.Onboarding.Flow.PlanReveal.savePlanCTA
+        case .targetEncouragement:
+            return FormaProductCopy.Onboarding.Flow.TargetEncouragement.continueCTA
+        case .almostThere:
+            return FormaProductCopy.Onboarding.Flow.AlmostThere.continueCTA
+        case .formaProof:
+            return FormaProductCopy.Onboarding.Flow.FormaProof.continueCTA
         default:
             return FormaProductCopy.Common.continueAction
         }
@@ -109,7 +66,7 @@ struct OnboardingBottomBar: View {
                     .accessibilityLabel(FormaProductCopy.Common.back)
                 }
 
-                Button(action: usesCompleteAction ? onComplete : onContinue) {
+                Button(action: onContinue) {
                     HStack(spacing: 8) {
                         if isLoading {
                             SwiftUI.ProgressView()
@@ -201,24 +158,10 @@ struct OnboardingBottomBar: View {
 
 #Preview("Continue disabled") {
     OnboardingBottomBar(
-        currentStep: .body,
+        currentStep: .heightWeight,
         isLoading: false,
         canContinue: false,
         showsRequiredFieldsHint: true,
-        onBack: {},
-        onContinue: {},
-        onComplete: {}
-    )
-    .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
-}
-
-#Preview("Continue enabled") {
-    OnboardingBottomBar(
-        currentStep: .body,
-        isLoading: false,
-        canContinue: true,
-        showsRequiredFieldsHint: false,
         onBack: {},
         onContinue: {},
         onComplete: {}
@@ -236,37 +179,8 @@ struct OnboardingBottomBar: View {
         onContinue: {},
         onComplete: {},
         onAdjustPlan: {},
-        saveTrustNote: FormaProductCopy.Onboarding.V2.PlanReveal.signedOutSaveTrustNote
+        saveTrustNote: FormaProductCopy.Onboarding.Flow.PlanReveal.signedOutSaveTrustNote
     )
     .background(OnboardingTheme.background)
     .preferredColorScheme(.dark)
-}
-
-#Preview("Plan reveal signed in") {
-    OnboardingBottomBar(
-        currentStep: .planReveal,
-        isLoading: false,
-        canContinue: true,
-        onBack: {},
-        onContinue: {},
-        onComplete: {},
-        onAdjustPlan: {},
-        saveTrustNote: FormaProductCopy.Onboarding.V2.PlanReveal.signedInSaveTrustNote
-    )
-    .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
-}
-
-#Preview("Large Dynamic Type") {
-    OnboardingBottomBar(
-        currentStep: .goal,
-        isLoading: false,
-        canContinue: true,
-        onBack: {},
-        onContinue: {},
-        onComplete: {}
-    )
-    .background(OnboardingTheme.background)
-    .preferredColorScheme(.dark)
-    .dynamicTypeSize(.accessibility2)
 }

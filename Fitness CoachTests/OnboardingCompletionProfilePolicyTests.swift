@@ -35,7 +35,6 @@ final class OnboardingCompletionProfilePolicyTests: XCTestCase {
                 authState: .signedIn(uid: "user-1"),
                 rootState: .onboardingCloudProfileConflict,
                 isOnboardingModelReady: true,
-                isOnboardingV2Enabled: true
             ),
             .onboardingCloudProfileConflict
         )
@@ -47,7 +46,6 @@ final class OnboardingCompletionProfilePolicyTests: XCTestCase {
                 authState: .signedIn(uid: "user-1"),
                 rootState: .onboardingCloudCheckFailed,
                 isOnboardingModelReady: true,
-                isOnboardingV2Enabled: true
             ),
             .onboardingCloudCheckFailed
         )

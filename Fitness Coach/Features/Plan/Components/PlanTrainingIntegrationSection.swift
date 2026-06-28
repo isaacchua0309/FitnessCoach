@@ -2,7 +2,7 @@
 //  PlanTrainingIntegrationSection.swift
 //  Fitness Coach
 //
-//  Forma — Apple Health training integration on Plan (Stage 10).
+//  Forma — Apple Health insights card on the Plan dashboard.
 //
 
 import SwiftUI
@@ -12,38 +12,76 @@ struct PlanTrainingIntegrationSection: View {
     let dataSource: TrainingDataSource
     let onTap: () -> Void
 
+    private var presentation: PlanTrainingIntegrationPresentation {
+        PlanTrainingIntegrationPresentationBuilder.build(integrationState: integrationState)
+    }
+
     var body: some View {
         if dataSource == .appleHealth {
             VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
-                FormaSectionLabel(title: TrainingIntegrationCopy.planIntegrationSectionTitle)
+                FormaSectionLabel(title: presentation.sectionTitle)
 
                 Button(action: onTap) {
                     FitPilotPlanCard {
-                        FormaActionRow(
-                            title: TrainingIntegrationCopy.planIntegrationMessage(
-                                isAppleHealthConnected: integrationState.isConnected
-                            ),
-                            style: .card(
-                                systemImage: "heart.text.square.fill",
-                                usesLegalText: true,
-                                verticalAlignment: .top
-                            )
-                        )
+                        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+                            statusRow
+                                .accessibilityHidden(true)
+
+                            Text(presentation.bodyCopy)
+                                .font(FormaTokens.Typography.sectionSubtitle)
+                                .foregroundStyle(FormaTokens.Color.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .accessibilityHidden(true)
+
+                            if let ctaTitle = presentation.ctaTitle {
+                                Text(ctaTitle)
+                                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                                    .foregroundStyle(FormaTokens.Color.accent)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
+                                    .padding(.top, FormaTokens.Spacing.xs)
+                                    .accessibilityHidden(true)
+                            }
+                        }
                     }
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(planAccessibilityLabel)
+                .accessibilityLabel(presentation.accessibilitySummary)
                 .accessibilityHint("Opens Training Insights")
             }
         }
     }
 
-    private var planAccessibilityLabel: String {
-        if integrationState.isConnected {
-            return TrainingIntegrationCopy.planConnectedNote
+    private var statusRow: some View {
+        HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.xs) {
+            if presentation.showsStatusCheckmark {
+                Text("✓")
+                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                    .foregroundStyle(FormaTokens.Color.accent)
+            }
+
+            Text(presentation.statusLabel)
+                .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
+                .foregroundStyle(
+                    presentation.showsStatusCheckmark
+                        ? FormaTokens.Color.textPrimary
+                        : FormaTokens.Color.textSecondary
+                )
         }
-        return TrainingIntegrationCopy.planConnectPrompt
     }
+}
+
+// MARK: - Previews
+
+#Preview("Connected") {
+    PlanTrainingIntegrationSection(
+        integrationState: .connected,
+        dataSource: .appleHealth,
+        onTap: {}
+    )
+    .padding()
+    .background(FormaTokens.Color.canvas)
+    .preferredColorScheme(.dark)
 }
 
 #Preview("Not connected") {
@@ -57,9 +95,20 @@ struct PlanTrainingIntegrationSection: View {
     .preferredColorScheme(.dark)
 }
 
-#Preview("Connected") {
+#Preview("Denied") {
     PlanTrainingIntegrationSection(
-        integrationState: .connected,
+        integrationState: .denied,
+        dataSource: .appleHealth,
+        onTap: {}
+    )
+    .padding()
+    .background(FormaTokens.Color.canvas)
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Unavailable") {
+    PlanTrainingIntegrationSection(
+        integrationState: .unavailable,
         dataSource: .appleHealth,
         onTap: {}
     )

@@ -14,7 +14,6 @@ final class AuthGateRoutingPolicyTests: XCTestCase {
         XCTAssertEqual(
             AuthGateRoutingPolicy.effectiveRoute(
                 baseRoute: .signIn,
-                isV2Enabled: true,
                 isSignedIn: false,
                 hasActiveOnboardingSession: true
             ),
@@ -22,23 +21,10 @@ final class AuthGateRoutingPolicyTests: XCTestCase {
         )
     }
 
-    func testDoesNotPreferOnboardingWhenV2Disabled() {
-        XCTAssertEqual(
-            AuthGateRoutingPolicy.effectiveRoute(
-                baseRoute: .signIn,
-                isV2Enabled: false,
-                isSignedIn: false,
-                hasActiveOnboardingSession: true
-            ),
-            .signIn
-        )
-    }
-
     func testDoesNotPreferOnboardingWhenSignedIn() {
         XCTAssertEqual(
             AuthGateRoutingPolicy.effectiveRoute(
                 baseRoute: .onboarding,
-                isV2Enabled: true,
                 isSignedIn: true,
                 hasActiveOnboardingSession: true
             ),
@@ -55,7 +41,29 @@ final class AuthGateRoutingPolicyTests: XCTestCase {
         )
     }
 
-    func testDeferLocalProfileShortCircuitDuringOnboardingCompletion() {
+    func testShouldClearOnboardingModelOnSignOutWhenSignedInSessionEnds() {
+        XCTAssertTrue(
+            AuthGateRoutingPolicy.shouldClearOnboardingModelOnSignOut(
+                wasSignedIn: true,
+                isSignedIn: false,
+                hasLocalProfile: true,
+                hasPersistedOnboardingDraft: false
+            )
+        )
+    }
+
+    func testShouldNotClearOnboardingModelWhenDraftExistsWithoutProfile() {
+        XCTAssertFalse(
+            AuthGateRoutingPolicy.shouldClearOnboardingModelOnSignOut(
+                wasSignedIn: true,
+                isSignedIn: false,
+                hasLocalProfile: false,
+                hasPersistedOnboardingDraft: true
+            )
+        )
+    }
+
+    func testShouldDeferLocalProfileShortCircuitWhilePendingCompletion() {
         XCTAssertTrue(
             AuthGateRoutingPolicy.shouldDeferLocalProfileShortCircuit(
                 pendingOnboardingCompletion: true,
@@ -70,66 +78,14 @@ final class AuthGateRoutingPolicyTests: XCTestCase {
         )
     }
 
-    func testReloadSignedInCloudProfileWhenPreAuthOnboardingIsActive() {
-        XCTAssertTrue(
-            AuthGateRoutingPolicy.shouldReloadSignedInCloudProfile(
-                isFreshSignIn: false,
-                rootState: .onboarding,
-                hasLocalProfile: false
-            )
-        )
-    }
-
-    func testSkipsReloadWhenMissingCloudProfileInterstitialIsShowing() {
-        XCTAssertFalse(
-            AuthGateRoutingPolicy.shouldReloadSignedInCloudProfile(
-                isFreshSignIn: false,
-                rootState: .missingCloudProfile,
-                hasLocalProfile: false
-            )
-        )
-    }
-
-    func testPreAuthInitializingWhenModelNotReady() {
+    func testPrefersActiveOnboardingSessionOverSignInShellWhenDraftExists() {
         XCTAssertEqual(
             AuthGateRoutingPolicy.effectiveRoute(
-                baseRoute: .localOnboardingInitializing,
-                isV2Enabled: true,
+                baseRoute: .signIn,
                 isSignedIn: false,
-                hasActiveOnboardingSession: false
+                hasActiveOnboardingSession: true
             ),
-            .localOnboardingInitializing
-        )
-    }
-
-    func testRetainsOnboardingModelWhenDraftExistsWithoutLocalProfile() {
-        XCTAssertFalse(
-            AuthGateRoutingPolicy.shouldClearOnboardingModelOnSignOut(
-                wasSignedIn: true,
-                isSignedIn: false,
-                hasLocalProfile: false,
-                hasPersistedOnboardingDraft: true
-            )
-        )
-    }
-
-    func testClearsOnboardingModelAfterSignOutWhenProfileSaved() {
-        XCTAssertTrue(
-            AuthGateRoutingPolicy.shouldClearOnboardingModelOnSignOut(
-                wasSignedIn: true,
-                isSignedIn: false,
-                hasLocalProfile: true,
-                hasPersistedOnboardingDraft: true
-            )
-        )
-    }
-
-    func testClearsOnboardingModelAfterSignOutWithoutDraft() {
-        XCTAssertTrue(
-            AppRouteResolver.shouldClearOnboardingModel(
-                wasSignedIn: true,
-                isSignedIn: false
-            )
+            .localOnboarding
         )
     }
 }

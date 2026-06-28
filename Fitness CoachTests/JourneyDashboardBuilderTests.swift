@@ -39,12 +39,12 @@ final class JourneyDashboardBuilderTests: XCTestCase {
             baseline: JourneyBaseline(
                 startWeightKg: 90,
                 startDate: asOf,
-                currentWeightKg: 88,
+                currentWeightKg: 88.5,
                 goalWeightKg: 75,
                 goalDirection: .lose,
-                totalChangeKg: -2,
-                remainingChangeKg: 13,
-                progressPercent: 13,
+                totalChangeKg: -1.5,
+                remainingChangeKg: 13.5,
+                progressPercent: 10,
                 estimatedCompletionDate: nil,
                 estimatedCompletionMonthLabel: nil,
                 hasRealWeightEntries: true,
@@ -52,12 +52,16 @@ final class JourneyDashboardBuilderTests: XCTestCase {
                 onboardingBaselineWeightKg: 90,
                 chartPoints: [],
                 showsWeightChart: true
-            )
+            ),
+            maturityLogs: (0..<10).map { makeLog(daysAgo: $0, calories: 1_800, protein: 150) }
         )
 
         let milestones = JourneyDashboardBuilder.milestones(context: context)
         XCTAssertFalse(milestones.items.isEmpty)
-        XCTAssertEqual(milestones.items.last?.title, "Goal")
+        XCTAssertEqual(
+            milestones.items.first(where: { $0.id == "first-kg" })?.title,
+            "Lost first kilogram"
+        )
         XCTAssertNotNil(milestones.next)
     }
 
@@ -128,6 +132,21 @@ final class JourneyDashboardBuilderTests: XCTestCase {
                 proteinStreak: 1,
                 hydrationStreak: 0,
                 workoutStreak: 0
+            ),
+            journeyStreaks: JourneyStreakBuilder.build(
+                JourneyStreakBuilder.Input(
+                    streakSummary: StreakSummary(
+                        loggingStreak: 2,
+                        proteinStreak: 1,
+                        hydrationStreak: 0,
+                        workoutStreak: 0
+                    ),
+                    maturityLogs: maturityLogs,
+                    workoutDates: [],
+                    isAppleHealthConnected: false,
+                    asOf: asOf,
+                    calendar: calendar
+                )
             ),
             weeklyTraining: .connectedEmpty,
             weightSummary: ProgressWeightSummary(

@@ -178,11 +178,11 @@ final class TrainingIntegrationTests: XCTestCase {
     func testPlanAndSettingsIntegrationCopy() {
         XCTAssertEqual(
             TrainingIntegrationCopy.planIntegrationMessage(isAppleHealthConnected: false),
-            TrainingIntegrationCopy.planConnectPrompt
+            TrainingIntegrationCopy.planCardDisconnectedBody
         )
         XCTAssertEqual(
             TrainingIntegrationCopy.planIntegrationMessage(isAppleHealthConnected: true),
-            TrainingIntegrationCopy.planConnectedNote
+            TrainingIntegrationCopy.planCardConnectedBody
         )
         XCTAssertEqual(
             TrainingIntegrationCopy.settingsStatusLabel(for: .connected),

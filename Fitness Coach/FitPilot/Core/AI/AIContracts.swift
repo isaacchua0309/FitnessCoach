@@ -85,6 +85,14 @@ struct AICoachIntentClassificationResponse: Codable, Equatable, Sendable {
 struct AIFoodEstimateRequest: Codable, Equatable, Sendable {
     var text: String
     var context: AIContext
+    /// Base64-encoded JPEG sent for vision-based meal analysis.
+    var imageJPEGBase64: String?
+
+    init(text: String, context: AIContext, imageJPEGBase64: String? = nil) {
+        self.text = text
+        self.context = context
+        self.imageJPEGBase64 = imageJPEGBase64
+    }
 }
 
 struct AIFoodEstimateResponse: Codable, Equatable, Sendable {

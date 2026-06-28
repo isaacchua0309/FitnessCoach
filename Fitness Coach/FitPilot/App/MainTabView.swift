@@ -47,10 +47,20 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            TodayView(model: todayModel, actionCoordinator: container.makeTodayActionCoordinator()) { prefill in
-                coachModel.prepareInput(prefill: prefill)
-                selectedTab = .coach
-            }
+            TodayView(
+                model: todayModel,
+                actionCoordinator: container.makeTodayActionCoordinator(),
+                onOpenCoach: { prefill in
+                    coachModel.prepareInput(prefill: prefill)
+                    selectedTab = .coach
+                },
+                onOpenJourney: {
+                    selectedTab = .progress
+                },
+                onOpenPlan: {
+                    selectedTab = .profile
+                }
+            )
             .tabItem {
                 Label("Today", systemImage: "house")
             }
@@ -71,7 +81,15 @@ struct MainTabView: View {
                 }
             .tag(AppTab.progress)
 
-            ProfileView(model: profileModel)
+            ProfileView(
+                model: profileModel,
+                onGoToToday: {
+                    selectedTab = .today
+                },
+                onGoToJourney: {
+                    selectedTab = .progress
+                }
+            )
                 .tabItem {
                     Label("Plan", systemImage: "target")
                 }

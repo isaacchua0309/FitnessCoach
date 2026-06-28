@@ -19,6 +19,10 @@ struct JourneyWeeklyReviewSection: View {
                         .foregroundStyle(FormaTokens.Color.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
 
+                    if let headline = review.consistencyHeadline {
+                        consistencyBlock(headline: headline, detail: review.consistencyDetail)
+                    }
+
                     ForEach(Array(review.rows.enumerated()), id: \.element.id) { index, row in
                         if index == 0 {
                             FitPilotPlanRowDivider()
@@ -73,6 +77,27 @@ struct JourneyWeeklyReviewSection: View {
         .padding(.vertical, FormaTokens.Spacing.xs)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(row.title), \(row.value)")
+    }
+
+    private func consistencyBlock(headline: String, detail: String?) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
+                Text("🔥")
+                    .font(FormaTokens.Typography.sectionSubtitle)
+                    .accessibilityHidden(true)
+                Text(headline)
+                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                    .foregroundStyle(FormaTokens.Color.textPrimary)
+            }
+
+            if let detail {
+                Text(detail)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaTokens.Color.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.top, FormaTokens.Spacing.xs)
     }
 }
 

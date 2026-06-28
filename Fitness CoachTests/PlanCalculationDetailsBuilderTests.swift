@@ -28,6 +28,42 @@ final class PlanCalculationDetailsBuilderTests: XCTestCase {
         XCTAssertTrue(labels.contains("Water target"))
     }
 
+    func testPersonalDetailsSectionUsesBirthdayDerivedAge() throws {
+        let calendar = Calendar.current
+        let referenceDate = calendar.date(from: DateComponents(year: 2026, month: 6, day: 28))!
+        let profile = PlanMissionControlFixtures.loseProfile
+        let result = try PlanCalculationBridge.planResult(
+            from: profile,
+            referenceDate: referenceDate
+        )
+
+        let details = PlanCalculationDetailsBuilder.build(
+            profile: profile,
+            result: result,
+            referenceDate: referenceDate
+        )
+        let personalSection = try XCTUnwrap(
+            details.sections.first { $0.id == "personal" }
+        )
+        let ageRow = try XCTUnwrap(personalSection.rows.first { $0.id == "age" })
+
+        XCTAssertEqual(ageRow.value, "28 years")
+        XCTAssertEqual(ageRow.footnote, FormaProductCopy.PlanCalculation.personalDetailsAgeFromBirthday)
+        XCTAssertFalse(personalSection.rows.contains { $0.label == FormaProductCopy.ProfileForm.bodyFat })
+    }
+
+    func testPersonalDetailsLegacyAgeUsesFallbackFootnote() throws {
+        let profile = PlanMissionControlFixtures.legacyAgeOnlyProfile
+        let result = try PlanCalculationBridge.planResult(from: profile)
+        let details = PlanCalculationDetailsBuilder.build(profile: profile, result: result)
+        let ageRow = details.sections
+            .flatMap(\.rows)
+            .first { $0.id == "age" }
+
+        XCTAssertNotNil(ageRow)
+        XCTAssertEqual(ageRow?.footnote, FormaProductCopy.PlanCalculation.personalDetailsAgeLegacy)
+    }
+
     func testModerateCutDetailsUseEngineExplanationFootnotes() throws {
         let input = FormaCalculationTestFixtures.maleModerateCut
         let result = try FormaCalculationEngine.calculate(input)

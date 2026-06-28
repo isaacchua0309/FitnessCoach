@@ -30,20 +30,21 @@ final class OnboardingDraftStoreTests: XCTestCase {
         super.tearDown()
     }
 
-    func testDraftSaveLoadRoundTrip() throws {
+    func testDraftSaveLoadRoundTripPreservesCanonicalFlowFields() throws {
         var formState = OnboardingFormState()
-        formState.ageText = "30"
+        OnboardingHeightWeightValues.applyDefaultsIfNeeded(to: &formState)
+        OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &formState)
+        OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &formState)
         formState.sex = .female
-        formState.heightCmText = "170"
-        formState.currentWeightKgText = "82.5"
-        formState.goalWeightKgText = "75"
         formState.name = "Alex"
         formState.selectPaceChoice(.moderate)
+        formState.activityLevel = .moderatelyActive
+        OnboardingActivityLevelValues.applyDefaultsIfNeeded(to: &formState)
 
         let plan = OnboardingPreviewData.generatedPlan
         let draft = OnboardingDraft(
             formState: formState,
-            currentStep: .goal,
+            step: .targetWeight,
             generatedPlan: plan
         )
 
@@ -51,23 +52,23 @@ final class OnboardingDraftStoreTests: XCTestCase {
         let loaded = try XCTUnwrap(store.loadDraft())
 
         XCTAssertEqual(loaded.draftVersion, OnboardingDraft.currentDraftVersion)
-        XCTAssertEqual(loaded.currentStep, .goal)
+        XCTAssertEqual(loaded.step, .targetWeight)
         let restored = loaded.makeFormState()
-        XCTAssertEqual(restored.ageText, formState.ageText)
+        XCTAssertEqual(restored.birthDate, formState.birthDate)
         XCTAssertEqual(restored.sex, formState.sex)
         XCTAssertEqual(restored.heightCmText, formState.heightCmText)
         XCTAssertEqual(restored.currentWeightKgText, formState.currentWeightKgText)
         XCTAssertEqual(restored.goalWeightKgText, formState.goalWeightKgText)
         XCTAssertEqual(restored.name, formState.name)
         XCTAssertEqual(restored.weightLossPaceChoice, formState.weightLossPaceChoice)
-        XCTAssertNotNil(restored.birthDate)
+        XCTAssertEqual(restored.activityLevel, formState.activityLevel)
         XCTAssertEqual(loaded.makeGeneratedPlan(), plan)
     }
 
     func testDraftClear() {
         let draft = OnboardingDraft(
             formState: OnboardingFormState(),
-            currentStep: .welcome
+            step: .introProof
         )
 
         store.saveDraft(draft)
@@ -85,46 +86,47 @@ final class OnboardingDraftStoreTests: XCTestCase {
         XCTAssertNil(userDefaults.data(forKey: OnboardingDraftStore.userDefaultsKey))
     }
 
-    func testVersionMismatchFallback() {
+    func testUnsupportedVersionFallback() throws {
         let draft = OnboardingDraft(
             draftVersion: 99,
-            currentStepRawValue: OnboardingStep.body.rawValue,
+            currentStepRawValue: OnboardingStep.heightWeight.rawValue,
             form: OnboardingDraftFormFields(formState: OnboardingFormState())
         )
 
-        store.saveDraft(draft)
+        let data = try JSONEncoder().encode(draft)
+        userDefaults.set(data, forKey: OnboardingDraftStore.userDefaultsKey)
+
         XCTAssertNil(store.loadDraft())
         XCTAssertNil(userDefaults.data(forKey: OnboardingDraftStore.userDefaultsKey))
     }
 
-    func testInvalidStepRawValueFallback() {
+    func testInvalidStepRawValueFallback() throws {
         let draft = OnboardingDraft(
             draftVersion: OnboardingDraft.currentDraftVersion,
             currentStepRawValue: 999,
             form: OnboardingDraftFormFields(formState: OnboardingFormState())
         )
 
-        store.saveDraft(draft)
+        let data = try JSONEncoder().encode(draft)
+        userDefaults.set(data, forKey: OnboardingDraftStore.userDefaultsKey)
+
         XCTAssertNil(store.loadDraft())
         XCTAssertNil(userDefaults.data(forKey: OnboardingDraftStore.userDefaultsKey))
     }
 
-    func testSaveLoadRoundTripIncludesV2OptionalFields() throws {
+    func testSaveLoadRoundTripIncludesOptionalCoachingContextFields() throws {
         var formState = OnboardingFormState()
         formState.selectedMotivations = [.health, .energy]
         formState.loggingPreferences = [.quickTaps, .noPressure]
         formState.dietPreference = "Vegetarian"
 
-        let draft = OnboardingDraft(
-            formState: formState,
-            currentStep: .motivation
-        )
+        let draft = OnboardingDraft(formState: formState, step: .review)
 
         store.saveDraft(draft)
         let loaded = try XCTUnwrap(store.loadDraft())
         let restored = loaded.makeFormState()
 
-        XCTAssertEqual(loaded.currentStep, .motivation)
+        XCTAssertEqual(loaded.step, .review)
         XCTAssertEqual(restored.selectedMotivations, formState.selectedMotivations)
         XCTAssertEqual(restored.loggingPreferences, formState.loggingPreferences)
         XCTAssertEqual(restored.dietPreference, "Vegetarian")

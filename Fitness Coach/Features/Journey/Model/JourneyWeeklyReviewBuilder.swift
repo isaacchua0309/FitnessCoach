@@ -26,7 +26,8 @@ enum JourneyWeeklyReviewBuilder {
     static func enrich(
         review: JourneyWeeklyReviewState,
         previousWeek: JourneyWeeklyReviewPreviousWeek?,
-        goalDirection: JourneyGoalDirection
+        goalDirection: JourneyGoalDirection,
+        streaks: JourneyStreakState
     ) -> JourneyWeeklyReviewState {
         var enriched = review
         enriched.rows = rows(for: review, goalDirection: goalDirection)
@@ -34,6 +35,9 @@ enum JourneyWeeklyReviewBuilder {
             review: review,
             previousWeek: previousWeek
         )
+        enriched.consistencyHeadline = streaks.weeklyConsistencyHeadline
+        enriched.consistencyDetail = streaks.weeklyConsistencyDetail
+            ?? streaks.keepStreakAliveCopy
         return enriched
     }
 

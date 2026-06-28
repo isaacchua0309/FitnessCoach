@@ -123,6 +123,9 @@ final class SystemHealthKitTrainingAuthorization: HealthKitTrainingAuthorizing, 
         if let exerciseTime = HKQuantityType.quantityType(forIdentifier: .appleExerciseTime) {
             types.insert(exerciseTime)
         }
+        if let stepCount = HKQuantityType.quantityType(forIdentifier: .stepCount) {
+            types.insert(stepCount)
+        }
 
         return types
     }

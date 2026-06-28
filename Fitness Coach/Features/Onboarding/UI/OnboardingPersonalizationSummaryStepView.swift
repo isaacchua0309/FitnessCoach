@@ -10,13 +10,8 @@ import SwiftUI
 struct OnboardingPersonalizationSummaryStepView: View {
     let formState: OnboardingFormState
     let validationMessage: String?
-    var usesV4Recap: Bool = false
-
     private var recapCards: [OnboardingPersonalizationSummaryRecap] {
-        OnboardingPersonalizationSummaryBuilder.recapCards(
-            for: formState,
-            usesV4Steps: usesV4Recap
-        )
+        OnboardingPersonalizationSummaryBuilder.recapCards(for: formState)
     }
 
     private var showsValidationBanner: Bool {
@@ -25,10 +20,7 @@ struct OnboardingPersonalizationSummaryStepView: View {
 
     private var bannerMessage: String {
         validationMessage
-            ?? OnboardingPersonalizationSummaryBuilder.validationMessage(
-                for: formState,
-                usesV4Steps: usesV4Recap
-            )
+            ?? OnboardingPersonalizationSummaryBuilder.validationMessage(for: formState)
             ?? FormaProductCopy.Onboarding.V2.Validation.summaryIncomplete
     }
 
@@ -88,9 +80,7 @@ struct OnboardingPersonalizationSummaryStepView: View {
     OnboardingPersonalizationSummaryStepView(
         formState: {
             var state = OnboardingPreviewData.formState
-            state.toggleDietChip(.highProtein)
-            state.toggleDietChip(.simpleMeals)
-            state.selectedMotivations = [.confidence]
+            OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &state)
             return state
         }(),
         validationMessage: nil

@@ -46,6 +46,7 @@ enum TodayPreviewData {
             ),
             foodEntries: [],
             streaks: StreakSummary(loggingStreak: 0, proteinStreak: 0, hydrationStreak: 0, workoutStreak: 0),
+            weekLoggedDays: 0,
             dailyBrief: TodayDailyBrief(
                 greeting: "Good morning.",
                 priorities: [
@@ -97,6 +98,7 @@ enum TodayPreviewData {
             ),
             foodEntries: foodEntries,
             streaks: StreakSummary(loggingStreak: 5, proteinStreak: 3, hydrationStreak: 2, workoutStreak: 1),
+            weekLoggedDays: 4,
             dailyBrief: TodayDailyBrief(
                 greeting: "Good morning.",
                 priorities: [
@@ -114,8 +116,12 @@ enum TodayPreviewData {
             activityContext: TodayActivityContext(
                 trainingIntegration: .connected,
                 trainingDataSource: .appleHealth,
-                appleHealthWorkoutCount: 1
-            )
+                appleHealthWorkoutCount: 1,
+                stepsToday: 8_432,
+                weeklyWorkoutCount: 1
+            ),
+            stepGoalAssumption: 7_500,
+            trainingFrequencyPerWeek: 4
         )
     )
 
@@ -153,6 +159,7 @@ enum TodayPreviewData {
             ),
             foodEntries: foodEntries,
             streaks: StreakSummary(loggingStreak: 12, proteinStreak: 8, hydrationStreak: 5, workoutStreak: 4),
+            weekLoggedDays: 6,
             dailyBrief: TodayDailyBrief(
                 greeting: "Good evening.",
                 priorities: [
@@ -208,6 +215,7 @@ enum TodayPreviewData {
             ),
             foodEntries: foodEntries,
             streaks: StreakSummary(loggingStreak: 3, proteinStreak: 1, hydrationStreak: 0, workoutStreak: 0),
+            weekLoggedDays: 2,
             dailyBrief: TodayDailyBrief(
                 greeting: "Good evening.",
                 priorities: [

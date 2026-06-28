@@ -2,7 +2,7 @@
 //  OnboardingStageProgressHeader.swift
 //  Fitness Coach
 //
-//  Forma — Stage-based onboarding progress (v2 journey header).
+//  Forma — Stage-based progress header for onboarding.
 //
 
 import SwiftUI
@@ -59,26 +59,4 @@ struct OnboardingStageProgressHeader: View {
         }
         return Color.white.opacity(0.12)
     }
-}
-
-#Preview("Basics") {
-    OnboardingStageProgressHeader(currentStep: .body)
-        .padding()
-        .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
-}
-
-#Preview("Plan reveal") {
-    OnboardingStageProgressHeader(currentStep: .planReveal)
-        .padding()
-        .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
-}
-
-#Preview("Large Dynamic Type") {
-    OnboardingStageProgressHeader(currentStep: .goal)
-        .padding()
-        .background(OnboardingTheme.background)
-        .preferredColorScheme(.dark)
-        .dynamicTypeSize(.accessibility2)
 }
