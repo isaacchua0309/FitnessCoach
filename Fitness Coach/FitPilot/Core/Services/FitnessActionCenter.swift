@@ -29,6 +29,7 @@ final class FitnessActionCenter {
     private let reviewService: ReviewService
     private let refreshCenter: AppRefreshCenter
     private let profileBootstrapService: ProfileBootstrapService?
+    private let cloudUploadFailureNotifier: ProfileCloudUploadFailureNotifier?
     private let currentUIDProvider: (() -> String?)?
 
     init(
@@ -42,6 +43,7 @@ final class FitnessActionCenter {
         reviewService: ReviewService,
         refreshCenter: AppRefreshCenter,
         profileBootstrapService: ProfileBootstrapService? = nil,
+        cloudUploadFailureNotifier: ProfileCloudUploadFailureNotifier? = nil,
         currentUIDProvider: (() -> String?)? = nil
     ) {
         self.foodLogService = foodLogService
@@ -54,6 +56,7 @@ final class FitnessActionCenter {
         self.reviewService = reviewService
         self.refreshCenter = refreshCenter
         self.profileBootstrapService = profileBootstrapService
+        self.cloudUploadFailureNotifier = cloudUploadFailureNotifier
         self.currentUIDProvider = currentUIDProvider
     }
 
@@ -191,13 +194,22 @@ final class FitnessActionCenter {
         guard let profileBootstrapService, let uid = currentUIDProvider?() else { return }
         Task {
             do {
-                try await profileBootstrapService.saveProfileToCloud(uid: uid)
+                try await profileBootstrapService.saveProfileToCloud(
+                    uid: uid,
+                    intent: .ownedProfileUpdate
+                )
+            } catch is CloudProfileWriteError {
+                ProfileBootstrapDebugLogger.event(
+                    "Cloud profile refresh blocked",
+                    fields: ["uid": uid]
+                )
             } catch {
                 ProfileBootstrapDebugLogger.error(
                     "Cloud profile refresh failed",
                     fields: ["uid": uid],
                     underlying: error
                 )
+                cloudUploadFailureNotifier?.reportFailure(.profileEdit)
             }
         }
     }

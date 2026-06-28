@@ -22,6 +22,7 @@ enum FormaProductCopy {
         static let getStarted = "Get started"
         static let continueAction = "Continue"
         static let back = "Back"
+        static let cancel = "Cancel"
         static let completeRequiredFields = "Fill in the required fields to continue."
     }
 
@@ -119,13 +120,24 @@ enum FormaProductCopy {
             enum ProfileConflict {
                 static let title = "We found an existing Forma plan"
                 static let body =
-                    "This Google account already has a saved plan. You can restore it, or replace it with the plan you just created."
+                    "This Google account already has a saved plan. You can restore it, or replace it with the plan on this device."
                 static let restoreCTA = "Restore existing plan"
-                static let useNewPlanCTA = "Use this new plan instead"
-                static let existingPlanLabel = "Saved plan"
-                static let newPlanLabel = "New plan"
+                static let useDevicePlanCTA = "Use this device plan"
+                /// Legacy alias retained for older call sites.
+                static let useNewPlanCTA = useDevicePlanCTA
+                static let existingPlanLabel = "Existing plan"
+                static let devicePlanLabel = "This device plan"
+                /// Legacy alias retained for older call sites.
+                static let newPlanLabel = devicePlanLabel
                 static let dailyTargetLabel = "Daily target"
                 static let goalWeightLabel = "Goal weight"
+                static let updatedLabel = "Updated"
+                static let paceLabel = "Selected pace"
+                static let useDevicePlanConfirmTitle = "Replace your saved plan?"
+                static let useDevicePlanConfirmBody =
+                    "This will replace the plan saved to your Google account with the profile on this device."
+                static let useDevicePlanConfirmAction = "Use this device plan"
+                static let cancelAction = Common.cancel
             }
 
             enum CloudCheckFailed {
@@ -134,10 +146,32 @@ enum FormaProductCopy {
                 static let retryCTA = BootstrapError.retryCTA
             }
 
+            enum CloudUploadFailed {
+                static let title = "Plan saved on this device"
+                static let body =
+                    "We couldn't back it up to your Google account yet. Check your connection and try again."
+                static let retryCTA = Common.tryAgain
+                static let continueCTA = "Continue for now"
+            }
+
             enum BootstrapError {
                 static let title = "Couldn't check your saved plan"
                 static let body = "Check your connection and try again."
                 static let retryCTA = Common.tryAgain
+            }
+
+            enum AccountProfileMismatch {
+                static let title = "This device has another Forma profile"
+                static let body =
+                    "The profile saved on this device does not match the Google account you just signed in with."
+                static let restoreCTA = "Restore my Google account plan"
+                static let useDeviceProfileCTA = "Use this device profile"
+                static let signOutCTA = "Sign out"
+                static let useDeviceProfileConfirmTitle = "Use this device profile?"
+                static let useDeviceProfileConfirmBody =
+                    "Your Google account does not have a saved plan yet. Forma will keep using the profile on this device and link it to your account. Nothing is uploaded until you choose to save."
+                static let useDeviceProfileConfirmAction = "Use this device profile"
+                static let cancelAction = Common.cancel
             }
 
             enum Welcome {

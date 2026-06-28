@@ -2,7 +2,7 @@
 //  ProfileBootstrapCoordinatorTests.swift
 //  Fitness CoachTests
 //
-//  Profile bootstrap coordinator — cross-device restore and sync decisions.
+//  Profile bootstrap coordinator — ownership-aware reconcile decisions.
 //
 
 import XCTest
@@ -41,7 +41,185 @@ final class ProfileBootstrapCoordinatorTests: XCTestCase {
         )
     }
 
-    // 1. Device A onboarding + sign-in saves cloud profile under UID.
+    private func reconcileInput(
+        uid: String = "signed-in-user",
+        pendingOnboardingCompletion: Bool = false,
+        hasLocalProfile: Bool = true,
+        localOwnerUID: String? = nil,
+        isFreshSignIn: Bool = false,
+        rootState: RootViewState = .main,
+        isSyncedForCurrentUID: Bool = false,
+        cloudResult: CloudProfileLookupResult? = nil
+    ) -> SignedInProfileReconcileInput {
+        SignedInProfileReconcileInput(
+            uid: uid,
+            pendingOnboardingCompletion: pendingOnboardingCompletion,
+            hasLocalProfile: hasLocalProfile,
+            localOwnerUID: localOwnerUID,
+            isFreshSignIn: isFreshSignIn,
+            rootState: rootState,
+            isSyncedForCurrentUID: isSyncedForCurrentUID,
+            cloudResult: cloudResult
+        )
+    }
+
+    // MARK: - Ownership reconcile (Stage 4)
+
+    func testSameOwnerUIDRoutesToMain() {
+        let decision = ProfileBootstrapCoordinator.reconcileDecision(
+            reconcileInput(
+                uid: "existing-user",
+                localOwnerUID: "existing-user"
+            )
+        )
+
+        XCTAssertEqual(decision, .routeToMain)
+    }
+
+    func testUnownedLocalRequiresCloudLookupBeforeUpload() {
+        let decision = ProfileBootstrapCoordinator.reconcileDecision(
+            reconcileInput(
+                uid: "linked-user",
+                localOwnerUID: nil,
+                isFreshSignIn: true,
+                rootState: .onboarding,
+                isSyncedForCurrentUID: false,
+                cloudResult: nil
+            )
+        )
+
+        XCTAssertEqual(decision, .requireOwnershipCloudLookup(uid: "linked-user"))
+    }
+
+    func testUnownedLocalUploadsOnlyAfterCloudMissingLookup() {
+        let decision = ProfileBootstrapCoordinator.reconcileDecision(
+            reconcileInput(
+                uid: "linked-user",
+                localOwnerUID: nil,
+                isFreshSignIn: true,
+                rootState: .onboarding,
+                isSyncedForCurrentUID: false,
+                cloudResult: .missing
+            )
+        )
+
+        XCTAssertEqual(decision, .syncLocalProfileToCloud(uid: "linked-user"))
+    }
+
+    func testOwnerMismatchShowsAccountMismatch() {
+        let decision = ProfileBootstrapCoordinator.reconcileDecision(
+            reconcileInput(
+                uid: "signed-in-user",
+                localOwnerUID: "other-user",
+                isSyncedForCurrentUID: true
+            )
+        )
+
+        XCTAssertEqual(decision, .showAccountMismatch(uid: "signed-in-user"))
+    }
+
+    func testOnboardingCompletionCloudFoundShowsConflict() {
+        let decision = ProfileBootstrapCoordinator.reconcileDecision(
+            reconcileInput(
+                pendingOnboardingCompletion: true,
+                localOwnerUID: nil,
+                cloudResult: .found(CloudProfileSummary(updatedAt: ProfileTestFixtures.referenceDate))
+            )
+        )
+
+        XCTAssertEqual(decision, .showProfileConflict(uid: "signed-in-user"))
+    }
+
+    func testOnboardingCompletionCloudMissingUploadsLocal() {
+        let decision = ProfileBootstrapCoordinator.reconcileDecision(
+            reconcileInput(
+                pendingOnboardingCompletion: true,
+                localOwnerUID: nil,
+                cloudResult: .missing
+            )
+        )
+
+        XCTAssertEqual(decision, .syncLocalProfileToCloud(uid: "signed-in-user"))
+    }
+
+    func testOnboardingCompletionCloudFailureDoesNotUpload() {
+        let decision = ProfileBootstrapCoordinator.reconcileDecision(
+            reconcileInput(
+                pendingOnboardingCompletion: true,
+                localOwnerUID: nil,
+                cloudResult: .failed
+            )
+        )
+
+        XCTAssertEqual(decision, .showCloudFetchFailed(uid: "signed-in-user"))
+    }
+
+    func testUnownedLocalCloudFailureDoesNotUpload() {
+        let decision = ProfileBootstrapCoordinator.reconcileDecision(
+            reconcileInput(
+                localOwnerUID: nil,
+                isFreshSignIn: true,
+                cloudResult: .failed
+            )
+        )
+
+        XCTAssertEqual(decision, .showCloudFetchFailed(uid: "signed-in-user"))
+    }
+
+    func testPendingOnboardingCompletionWithoutCloudResultDefersToCompletionFlow() {
+        let decision = ProfileBootstrapCoordinator.reconcileDecision(
+            reconcileInput(
+                pendingOnboardingCompletion: true,
+                localOwnerUID: nil,
+                isFreshSignIn: true,
+                rootState: .loading,
+                cloudResult: nil
+            )
+        )
+
+        XCTAssertEqual(decision, .resolveOnboardingCompletion(uid: "signed-in-user"))
+    }
+
+    func testEmptyLocalProfileLoadsCloudOnFreshSignIn() {
+        let decision = ProfileBootstrapCoordinator.reconcileDecision(
+            reconcileInput(
+                hasLocalProfile: false,
+                localOwnerUID: nil,
+                isFreshSignIn: true,
+                rootState: .onboarding,
+                cloudResult: nil
+            )
+        )
+
+        XCTAssertEqual(decision, .loadCloudProfile(uid: "signed-in-user"))
+    }
+
+    func testUnownedLocalCloudFoundShowsConflict() {
+        let decision = ProfileBootstrapCoordinator.reconcileDecision(
+            reconcileInput(
+                localOwnerUID: nil,
+                cloudResult: .found(CloudProfileSummary(updatedAt: ProfileTestFixtures.referenceDate))
+            )
+        )
+
+        XCTAssertEqual(decision, .showProfileConflict(uid: "signed-in-user"))
+    }
+
+    func testLegacySyncedHintUsesLocalAfterCloudMissingLookup() {
+        let decision = ProfileBootstrapCoordinator.reconcileDecision(
+            reconcileInput(
+                localOwnerUID: nil,
+                isFreshSignIn: false,
+                isSyncedForCurrentUID: true,
+                cloudResult: .missing
+            )
+        )
+
+        XCTAssertEqual(decision, .routeToMain)
+    }
+
+    // MARK: - Integration flows
+
     func testOnboardingCompletionUploadsProfileAndMarksSynced() async throws {
         let harness = try makeHarness()
         _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
@@ -51,10 +229,34 @@ final class ProfileBootstrapCoordinatorTests: XCTestCase {
         XCTAssertEqual(outcome, .uploadedToCloud)
         XCTAssertEqual(harness.cloudStore.saveCallCount, 1)
         XCTAssertEqual(harness.cloudStore.lastSavedUID, "device-a-user")
+        XCTAssertEqual(try harness.container.userProfileService.getCurrentProfile()?.ownerUID, "device-a-user")
         XCTAssertTrue(harness.syncStore.isSyncedForUID("device-a-user"))
     }
 
-    // 2. Device B same UID with empty local store restores cloud profile and routes main.
+    func testOnboardingCompletionCloudFoundReturnsConflict() async throws {
+        let harness = try makeHarness()
+        harness.cloudStore.storedDocument = ProfileTestFixtures.cloudDocument()
+        _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+
+        let outcome = await harness.coordinator.resolveOnboardingCompletion(uid: "device-a-user")
+
+        guard case .cloudProfileConflict = outcome else {
+            return XCTFail("Expected cloud profile conflict")
+        }
+        XCTAssertEqual(harness.cloudStore.saveCallCount, 0)
+    }
+
+    func testOnboardingCompletionCloudFailureDoesNotUpload() async throws {
+        let harness = try makeHarness()
+        harness.cloudStore.fetchError = NSError(domain: "test", code: 1)
+        _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+
+        let outcome = await harness.coordinator.resolveOnboardingCompletion(uid: "device-a-user")
+
+        XCTAssertEqual(outcome, .cloudCheckFailed)
+        XCTAssertEqual(harness.cloudStore.saveCallCount, 0)
+    }
+
     func testDeviceBRestoresCloudProfileAndRoutesMain() async throws {
         let harness = try makeHarness()
         harness.cloudStore.storedDocument = ProfileTestFixtures.cloudDocument()
@@ -70,10 +272,13 @@ final class ProfileBootstrapCoordinatorTests: XCTestCase {
         XCTAssertEqual(rootState, .main)
         XCTAssertEqual(shellRoute, .main)
         XCTAssertNotNil(try harness.container.userProfileService.getCurrentProfile())
+        XCTAssertEqual(
+            try harness.container.userProfileService.getCurrentProfile()?.ownerUID,
+            "device-b-user"
+        )
         XCTAssertTrue(harness.syncStore.isSyncedForUID("device-b-user"))
     }
 
-    // 3. Signed-in user with cloud profile does not enter onboarding even if local profile missing.
     func testSignedInCloudProfileRoutesMainWithoutOnboarding() async throws {
         let harness = try makeHarness()
         harness.cloudStore.storedDocument = ProfileTestFixtures.cloudDocument()
@@ -89,7 +294,6 @@ final class ProfileBootstrapCoordinatorTests: XCTestCase {
         XCTAssertNotEqual(shellRoute, .onboarding)
     }
 
-    // 4. Signed-in user with no local and no cloud enters onboarding only after lookup completes.
     func testMissingCloudProfileOnlyAfterLookupCompletes() async throws {
         let harness = try makeHarness()
 
@@ -111,7 +315,6 @@ final class ProfileBootstrapCoordinatorTests: XCTestCase {
         XCTAssertNotEqual(resolvedRoute, .onboarding)
     }
 
-    // 5. Sign-in failure after onboarding does not clear generated plan/draft.
     func testLocalProfileRetainedAfterFailedCloudSync() async throws {
         let harness = try makeHarness()
         _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
@@ -124,23 +327,6 @@ final class ProfileBootstrapCoordinatorTests: XCTestCase {
         XCTAssertNotNil(try harness.container.userProfileService.getCurrentProfile())
     }
 
-    // 6. Pre-auth local profile is linked/synced after auth UID becomes available.
-    func testUnsyncedLocalProfileTriggersSyncDecision() async throws {
-        _ = try makeHarness()
-        let decision = ProfileBootstrapCoordinator.reconcileDecision(
-            SignedInProfileReconcileInput(
-                uid: "linked-user",
-                pendingOnboardingCompletion: false,
-                hasLocalProfile: true,
-                isFreshSignIn: true,
-                rootState: .onboarding,
-                isSyncedForCurrentUID: false
-            )
-        )
-
-        XCTAssertEqual(decision, .syncLocalProfileToCloud(uid: "linked-user"))
-    }
-
     func testPreAuthLocalProfileSyncMarksUID() async throws {
         let harness = try makeHarness()
         _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
@@ -148,10 +334,10 @@ final class ProfileBootstrapCoordinatorTests: XCTestCase {
         try await harness.coordinator.syncLocalProfileToCloud(uid: "linked-user")
 
         XCTAssertEqual(harness.cloudStore.saveCallCount, 1)
+        XCTAssertEqual(try harness.container.userProfileService.getCurrentProfile()?.ownerUID, "linked-user")
         XCTAssertTrue(harness.syncStore.isSyncedForUID("linked-user"))
     }
 
-    // 7. Cloud save failure does not falsely mark onboarding as fully synced.
     func testCloudSaveFailureDoesNotMarkSynced() async throws {
         let harness = try makeHarness()
         _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
@@ -165,39 +351,6 @@ final class ProfileBootstrapCoordinatorTests: XCTestCase {
         }
     }
 
-    // 8. Existing local profile still routes main when synced for UID.
-    func testSyncedLocalProfileRoutesMain() {
-        let decision = ProfileBootstrapCoordinator.reconcileDecision(
-            SignedInProfileReconcileInput(
-                uid: "existing-user",
-                pendingOnboardingCompletion: false,
-                hasLocalProfile: true,
-                isFreshSignIn: false,
-                rootState: .main,
-                isSyncedForCurrentUID: true
-            )
-        )
-
-        XCTAssertEqual(decision, .routeToMain)
-    }
-
-    // 9. Legacy existing users still skip onboarding.
-    func testLegacyLocalProfileWithSyncRoutesMain() {
-        let decision = ProfileBootstrapCoordinator.reconcileDecision(
-            SignedInProfileReconcileInput(
-                uid: "legacy-user",
-                pendingOnboardingCompletion: false,
-                hasLocalProfile: true,
-                isFreshSignIn: true,
-                rootState: .main,
-                isSyncedForCurrentUID: true
-            )
-        )
-
-        XCTAssertEqual(decision, .routeToMain)
-    }
-
-    // 10. ProfileBootstrapService does not swallow decode/network errors as “new user”.
     func testFetchFailureThrowsInsteadOfMissingCloudProfile() async throws {
         let harness = try makeHarness()
         harness.cloudStore.fetchError = NSError(domain: "test", code: 1)
@@ -210,34 +363,30 @@ final class ProfileBootstrapCoordinatorTests: XCTestCase {
         }
     }
 
-    func testPendingOnboardingCompletionDefersLocalShortCircuit() {
-        let decision = ProfileBootstrapCoordinator.reconcileDecision(
-            SignedInProfileReconcileInput(
-                uid: "onboarding-user",
-                pendingOnboardingCompletion: true,
-                hasLocalProfile: true,
-                isFreshSignIn: true,
-                rootState: .loading,
-                isSyncedForCurrentUID: false
-            )
+    func testOwnedLocalProfileSkipsCloudFetchInBootstrapResolve() async throws {
+        let harness = try makeHarness()
+        _ = try harness.container.userProfileService.createProfile(
+            ProfileTestFixtures.sampleDraft,
+            ownerUID: "offline-local-user"
         )
 
-        XCTAssertEqual(decision, .resolveOnboardingCompletion(uid: "onboarding-user"))
+        XCTAssertTrue(harness.bootstrapService.hasLocalProfile())
+        let result = try await harness.bootstrapService.resolve(uid: "offline-local-user")
+
+        XCTAssertEqual(result, .main)
+        XCTAssertEqual(harness.cloudStore.fetchCallCount, 0)
     }
 
-    func testEmptyLocalProfileLoadsCloudOnFreshSignIn() {
-        let decision = ProfileBootstrapCoordinator.reconcileDecision(
-            SignedInProfileReconcileInput(
-                uid: "device-b-user",
-                pendingOnboardingCompletion: false,
-                hasLocalProfile: false,
-                isFreshSignIn: true,
-                rootState: .onboarding,
-                isSyncedForCurrentUID: false
-            )
-        )
+    func testUnownedLocalProfileDoesNotSkipCloudFetchInBootstrapResolve() async throws {
+        let harness = try makeHarness()
+        _ = try harness.container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
 
-        XCTAssertEqual(decision, .loadCloudProfile(uid: "device-b-user"))
+        do {
+            _ = try await harness.bootstrapService.resolve(uid: "signed-in-user")
+            XCTFail("Expected ownership resolution required")
+        } catch {
+            XCTAssertEqual(harness.cloudStore.fetchCallCount, 0)
+        }
     }
 }
 

@@ -14,6 +14,8 @@ final class UserProfileEntity {
     // MARK: Identity
 
     @Attribute(.unique) var id: UUID
+    /// Firebase UID that owns this on-device profile, when known.
+    var ownerUID: String?
 
     // MARK: Baseline
 
@@ -53,6 +55,7 @@ final class UserProfileEntity {
 
     init(
         id: UUID,
+        ownerUID: String? = nil,
         name: String?,
         age: Int,
         sexRawValue: String,
@@ -76,6 +79,7 @@ final class UserProfileEntity {
         updatedAt: Date
     ) {
         self.id = id
+        self.ownerUID = ownerUID
         self.name = name
         self.age = age
         self.sexRawValue = sexRawValue

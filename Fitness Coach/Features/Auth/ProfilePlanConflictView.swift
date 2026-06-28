@@ -1,17 +1,17 @@
 //
-//  OnboardingProfileConflictView.swift
+//  ProfilePlanConflictView.swift
 //  Fitness Coach
 //
-//  Forma — Resolve onboarding vs existing cloud profile after sign-in.
+//  Forma — Resolve local vs cloud profile when both exist for a signed-in account.
 //
 
 import SwiftUI
 
-struct OnboardingProfileConflictView: View {
-    let summary: OnboardingProfileConflictSummary
+struct ProfilePlanConflictView: View {
+    let summary: ProfilePlanConflictSummary
     let isResolving: Bool
     let onRestoreExisting: () -> Void
-    let onUseNewPlan: () -> Void
+    let onUseDevicePlan: () -> Void
 
     private let copy = FormaProductCopy.Onboarding.V2.ProfileConflict.self
 
@@ -69,8 +69,8 @@ struct OnboardingProfileConflictView: View {
                     .tint(OnboardingTheme.accent)
                     .disabled(isResolving)
 
-                    Button(action: onUseNewPlan) {
-                        Text(copy.useNewPlanCTA)
+                    Button(action: onUseDevicePlan) {
+                        Text(copy.useDevicePlanCTA)
                             .font(FormaTokens.Typography.body.weight(.semibold))
                             .frame(maxWidth: .infinity)
                             .frame(minHeight: FormaTokens.Layout.minTouchTarget)
@@ -93,16 +93,20 @@ struct OnboardingProfileConflictView: View {
             comparisonColumn(
                 title: copy.existingPlanLabel,
                 dailyTarget: summary.existingDailyTargetLabel,
-                goalWeight: summary.existingGoalWeightLabel
+                goalWeight: summary.existingGoalWeightLabel,
+                updatedAt: summary.existingUpdatedAtLabel,
+                pace: nil
             )
 
             Divider()
                 .overlay(OnboardingTheme.border.opacity(0.55))
 
             comparisonColumn(
-                title: copy.newPlanLabel,
-                dailyTarget: summary.newDailyTargetLabel,
-                goalWeight: summary.newGoalWeightLabel
+                title: copy.devicePlanLabel,
+                dailyTarget: summary.deviceDailyTargetLabel,
+                goalWeight: summary.deviceGoalWeightLabel,
+                updatedAt: nil,
+                pace: summary.devicePaceLabel
             )
         }
         .onboardingCompactCard()
@@ -110,7 +114,13 @@ struct OnboardingProfileConflictView: View {
         .accessibilityLabel("Plan comparison")
     }
 
-    private func comparisonColumn(title: String, dailyTarget: String, goalWeight: String) -> some View {
+    private func comparisonColumn(
+        title: String,
+        dailyTarget: String,
+        goalWeight: String,
+        updatedAt: String?,
+        pace: String?
+    ) -> some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             Text(title)
                 .font(FormaTokens.Typography.caption.weight(.semibold))
@@ -119,6 +129,12 @@ struct OnboardingProfileConflictView: View {
 
             comparisonRow(label: copy.dailyTargetLabel, value: dailyTarget)
             comparisonRow(label: copy.goalWeightLabel, value: goalWeight)
+            if let updatedAt {
+                comparisonRow(label: copy.updatedLabel, value: updatedAt)
+            }
+            if let pace {
+                comparisonRow(label: copy.paceLabel, value: pace)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -140,16 +156,20 @@ struct OnboardingProfileConflictView: View {
     }
 }
 
+typealias OnboardingProfileConflictView = ProfilePlanConflictView
+
 #Preview {
-    OnboardingProfileConflictView(
-        summary: OnboardingProfileConflictSummary(
+    ProfilePlanConflictView(
+        summary: ProfilePlanConflictSummary(
             existingDailyTargetLabel: "1,950 kcal",
             existingGoalWeightLabel: "72 kg",
-            newDailyTargetLabel: "2,080 kcal",
-            newGoalWeightLabel: "79.5 kg"
+            existingUpdatedAtLabel: "Jun 1, 2025",
+            deviceDailyTargetLabel: "2,080 kcal",
+            deviceGoalWeightLabel: "79.5 kg",
+            devicePaceLabel: "Moderate"
         ),
         isResolving: false,
         onRestoreExisting: {},
-        onUseNewPlan: {}
+        onUseDevicePlan: {}
     )
 }

@@ -29,6 +29,7 @@ final class AppContainer {
     let profileBootstrapService: ProfileBootstrapService
     let profileCloudSyncStore: ProfileCloudSyncStore
     let profileBootstrapCoordinatorService: ProfileBootstrapCoordinatorService
+    let cloudUploadFailureNotifier: ProfileCloudUploadFailureNotifier
     let llmClient: LLMClient
     let aiService: AIService
     let aiCommandParsingEnabled: Bool
@@ -95,6 +96,9 @@ final class AppContainer {
         profileBootstrapCoordinatorService = ProfileBootstrapCoordinatorService(
             profileBootstrapService: profileBootstrapService,
             cloudSyncStore: profileCloudSyncStore
+        )
+        cloudUploadFailureNotifier = ProfileCloudUploadFailureNotifier(
+            syncStore: profileCloudSyncStore
         )
         dailyLogService = DailyLogService(
             store: store,
@@ -184,6 +188,7 @@ final class AppContainer {
             reviewService: reviewService,
             refreshCenter: refreshCenter,
             profileBootstrapService: profileBootstrapService,
+            cloudUploadFailureNotifier: cloudUploadFailureNotifier,
             currentUIDProvider: { [weak authManager] in authManager?.currentUID }
         )
 

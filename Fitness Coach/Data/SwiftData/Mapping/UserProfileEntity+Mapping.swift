@@ -12,6 +12,7 @@ extension UserProfileEntity {
     convenience init(model: UserProfile) {
         self.init(
             id: model.id,
+            ownerUID: model.ownerUID,
             name: model.name,
             age: model.age,
             sexRawValue: model.sex.rawValue,
@@ -39,6 +40,7 @@ extension UserProfileEntity {
     func toModel() -> UserProfile {
         UserProfile(
             id: id,
+            ownerUID: ownerUID,
             name: name,
             age: age,
             sex: Sex(rawValue: sexRawValue) ?? .preferNotToSay,

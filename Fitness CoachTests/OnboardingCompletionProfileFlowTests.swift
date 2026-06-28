@@ -24,7 +24,7 @@ final class OnboardingCompletionProfileFlowTests: XCTestCase {
         let presence = try await service.fetchCloudProfilePresence(uid: "user-1")
         XCTAssertEqual(presence, .absent)
 
-        try await service.syncOnboardingProfileToCloud(uid: "user-1")
+        try await service.syncOnboardingProfileToCloud(uid: "user-1", intent: .newProfileInitialUpload)
         XCTAssertEqual(cloudStore.saveCallCount, 1)
     }
 
@@ -110,8 +110,12 @@ final class OnboardingCompletionProfileFlowTests: XCTestCase {
             return XCTFail("Expected cloud profile")
         }
 
-        let restored = try container.userProfileService.replaceLocalProfile(with: document)
+        let restored = try container.userProfileService.replaceLocalProfile(
+            with: document,
+            ownerUID: "user-1"
+        )
         XCTAssertEqual(restored.targets.calorieTarget, 1_888)
+        XCTAssertEqual(restored.ownerUID, "user-1")
         XCTAssertEqual(cloudStore.saveCallCount, 0)
     }
 }

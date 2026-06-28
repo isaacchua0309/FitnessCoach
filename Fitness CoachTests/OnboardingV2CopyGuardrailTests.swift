@@ -94,9 +94,12 @@ final class OnboardingV2CopyGuardrailTests: XCTestCase {
             v2.ProfileConflict.title,
             v2.ProfileConflict.body,
             v2.ProfileConflict.restoreCTA,
-            v2.ProfileConflict.useNewPlanCTA,
+            v2.ProfileConflict.useDevicePlanCTA,
             v2.CloudCheckFailed.title,
             v2.CloudCheckFailed.body,
+            v2.CloudUploadFailed.title,
+            v2.CloudUploadFailed.body,
+            v2.CloudUploadFailed.continueCTA,
             FormaProductCopy.Common.completeRequiredFields
         ] + OnboardingMotivation.allCases.flatMap { [$0.title, $0.subtitle] }
     }

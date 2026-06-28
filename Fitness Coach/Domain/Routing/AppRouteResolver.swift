@@ -20,6 +20,8 @@ enum AppShellRoute: Equatable {
     case missingCloudProfile
     case onboardingCloudProfileConflict
     case onboardingCloudCheckFailed
+    case cloudProfileUploadFailed
+    case accountProfileMismatch
     case onboarding
     case onboardingInitializing
     case main
@@ -151,6 +153,10 @@ enum AppRouteResolver {
             return .onboardingCloudProfileConflict
         case .onboardingCloudCheckFailed:
             return .onboardingCloudCheckFailed
+        case .cloudProfileUploadFailed:
+            return .cloudProfileUploadFailed
+        case .accountProfileMismatch:
+            return .accountProfileMismatch
         case .onboarding:
             return input.isOnboardingModelReady ? .onboarding : .onboardingInitializing
         case .main:
@@ -217,6 +223,10 @@ extension OnboardingShellRoute {
             self = .onboardingCloudProfileConflict
         case .onboardingCloudCheckFailed:
             self = .onboardingCloudCheckFailed
+        case .cloudProfileUploadFailed:
+            self = .cloudProfileUploadFailed
+        case .accountProfileMismatch:
+            self = .accountProfileMismatch
         case .onboarding:
             self = .onboarding
         case .onboardingInitializing:
@@ -251,6 +261,10 @@ extension AppShellRoute {
             self = .onboardingCloudProfileConflict
         case .onboardingCloudCheckFailed:
             self = .onboardingCloudCheckFailed
+        case .cloudProfileUploadFailed:
+            self = .cloudProfileUploadFailed
+        case .accountProfileMismatch:
+            self = .accountProfileMismatch
         case .onboarding:
             self = .onboarding
         case .onboardingInitializing:

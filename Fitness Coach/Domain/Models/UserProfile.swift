@@ -12,6 +12,8 @@ struct UserProfile: Codable, Identifiable, Equatable, Sendable {
     // MARK: Identity
 
     let id: UUID
+    /// Firebase UID that owns this on-device profile, when known. `nil` for pre-auth, legacy, or uncertain ownership.
+    var ownerUID: String? = nil
 
     // MARK: Baseline
 

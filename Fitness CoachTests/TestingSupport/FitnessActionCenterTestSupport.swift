@@ -19,7 +19,10 @@ enum FitnessActionCenterTestSupport {
         let refreshCenter: AppRefreshCenter
         let cloudStore: MockCloudUserProfileStore
         let profileBootstrapService: ProfileBootstrapService
+        let syncStore: ProfileCloudSyncStore
+        let cloudUploadFailureNotifier: ProfileCloudUploadFailureNotifier
         let actionCenter: FitnessActionCenter
+        let cloudUID: String?
 
         var store: SwiftDataStore { base.store }
         var profileService: UserProfileService { base.profileService }
@@ -28,9 +31,15 @@ enum FitnessActionCenterTestSupport {
 
         @discardableResult
         func seedProfile(
-            targets: UserTargets = ProfileTestFixtures.sampleTargets
+            targets: UserTargets = ProfileTestFixtures.sampleTargets,
+            ownerUID: String? = nil
         ) throws -> UserProfile {
-            try base.seedProfile(targets: targets)
+            let profile = try base.seedProfile(targets: targets)
+            let resolvedOwner = ownerUID ?? cloudUID
+            if let resolvedOwner {
+                return try profileService.assignOwnerUID(resolvedOwner)
+            }
+            return profile
         }
 
         func waitForCloudSave(timeoutNanoseconds: UInt64 = 500_000_000) async throws {
@@ -59,10 +68,13 @@ enum FitnessActionCenterTestSupport {
         )
         let refreshCenter = AppRefreshCenter(now: referenceNow)
         let cloudStore = MockCloudUserProfileStore()
+        let syncStore = ProfileCloudSyncStore(userDefaults: UserDefaults(suiteName: UUID().uuidString)!)
         let profileBootstrapService = ProfileBootstrapService(
             userProfileService: base.profileService,
-            cloudStore: cloudStore
+            cloudStore: cloudStore,
+            cloudSyncStore: syncStore
         )
+        let cloudUploadFailureNotifier = ProfileCloudUploadFailureNotifier(syncStore: syncStore)
         let reviewService = ReviewService(
             store: base.store,
             dailyLogService: base.dailyLogService,
@@ -85,6 +97,7 @@ enum FitnessActionCenterTestSupport {
             reviewService: reviewService,
             refreshCenter: refreshCenter,
             profileBootstrapService: cloudUID == nil ? nil : profileBootstrapService,
+            cloudUploadFailureNotifier: cloudUID == nil ? nil : cloudUploadFailureNotifier,
             currentUIDProvider: cloudUID.map { uid in { uid } }
         )
 
@@ -95,7 +108,10 @@ enum FitnessActionCenterTestSupport {
             refreshCenter: refreshCenter,
             cloudStore: cloudStore,
             profileBootstrapService: profileBootstrapService,
-            actionCenter: actionCenter
+            syncStore: syncStore,
+            cloudUploadFailureNotifier: cloudUploadFailureNotifier,
+            actionCenter: actionCenter,
+            cloudUID: cloudUID
         )
     }
 }

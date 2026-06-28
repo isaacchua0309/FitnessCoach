@@ -21,6 +21,8 @@ enum OnboardingShellRoute: Equatable {
     case missingCloudProfile
     case onboardingCloudProfileConflict
     case onboardingCloudCheckFailed
+    case cloudProfileUploadFailed
+    case accountProfileMismatch
     case onboarding
     case onboardingInitializing
     case main

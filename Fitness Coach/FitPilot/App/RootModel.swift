@@ -16,6 +16,10 @@ enum RootViewState: Equatable {
     case onboardingCloudProfileConflict
     /// Cloud presence check failed during onboarding-completion sign-in.
     case onboardingCloudCheckFailed
+    /// Local profile saved but cloud backup failed.
+    case cloudProfileUploadFailed
+    /// Local profile belongs to a different Google account than the signed-in session.
+    case accountProfileMismatch
     case onboarding
     case main
     case error(String)
@@ -84,6 +88,10 @@ final class RootModel: ObservableObject {
     }
 
     func presentOnboardingCloudProfileConflict() {
+        presentProfilePlanConflict()
+    }
+
+    func presentProfilePlanConflict() {
         loadTask?.cancel()
         applyState(.onboardingCloudProfileConflict)
     }
@@ -91,6 +99,17 @@ final class RootModel: ObservableObject {
     func presentOnboardingCloudCheckFailed() {
         loadTask?.cancel()
         applyState(.onboardingCloudCheckFailed)
+    }
+
+    func presentCloudProfileUploadFailed() {
+        loadTask?.cancel()
+        applyState(.cloudProfileUploadFailed)
+    }
+
+    func continueDespiteCloudUploadFailure() {
+        loadTask?.cancel()
+        applyState(.main)
+        bootstrapPhase = .localProfileReady
     }
 
     func beginOnboardingCompletionCloudCheck() {
@@ -111,6 +130,23 @@ final class RootModel: ObservableObject {
     func continueFromMissingCloudProfile() {
         applyState(.onboarding)
         bootstrapPhase = .needsOnboardingAfterCloudMiss
+    }
+
+    func presentMissingCloudProfile() {
+        loadTask?.cancel()
+        applyState(.missingCloudProfile)
+        bootstrapPhase = .needsOnboardingAfterCloudMiss
+    }
+
+    func presentAccountProfileMismatch() {
+        loadTask?.cancel()
+        applyState(.accountProfileMismatch)
+        bootstrapPhase = .checkingCloud(redactedUID: currentUID.map(ProfileBootstrapDebugLogger.redactedUID) ?? "none")
+    }
+
+    func presentAccountMismatchCloudCheckFailed() {
+        loadTask?.cancel()
+        applyState(.onboardingCloudCheckFailed)
     }
 
     func retry(uid: String) {

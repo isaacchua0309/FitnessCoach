@@ -11,7 +11,7 @@ import XCTest
 @MainActor
 final class ProfileBootstrapServiceTests: XCTestCase {
 
-    func testLocalProfileExistsSkipsCloudFetch() async throws {
+    func testLocalProfileExistsSkipsCloudFetchWhenOwnerMatches() async throws {
         let cloudStore = MockCloudUserProfileStore()
         let container = try AppContainer(inMemory: true)
         let service = ProfileBootstrapService(
@@ -21,7 +21,10 @@ final class ProfileBootstrapServiceTests: XCTestCase {
 
         XCTAssertFalse(service.hasLocalProfile())
 
-        _ = try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try container.userProfileService.createProfile(
+            ProfileTestFixtures.sampleDraft,
+            ownerUID: "user-1"
+        )
 
         XCTAssertTrue(service.hasLocalProfile())
 
@@ -29,6 +32,24 @@ final class ProfileBootstrapServiceTests: XCTestCase {
 
         XCTAssertEqual(result, .main)
         XCTAssertEqual(cloudStore.fetchCallCount, 0)
+    }
+
+    func testUnownedLocalProfileDoesNotSkipCloudFetch() async throws {
+        let cloudStore = MockCloudUserProfileStore()
+        let container = try AppContainer(inMemory: true)
+        let service = ProfileBootstrapService(
+            userProfileService: container.userProfileService,
+            cloudStore: cloudStore
+        )
+
+        _ = try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+
+        do {
+            _ = try await service.resolve(uid: "user-1")
+            XCTFail("Expected resolve to require ownership resolution")
+        } catch {
+            XCTAssertEqual(cloudStore.fetchCallCount, 0)
+        }
     }
 
     func testMissingLocalAndCloudRoutesToMissingCloudProfile() async throws {
@@ -87,9 +108,10 @@ final class ProfileBootstrapServiceTests: XCTestCase {
         XCTAssertEqual(restored.age, profile.age)
         XCTAssertEqual(restored.currentWeightKg, profile.currentWeightKg)
         XCTAssertEqual(restored.targets, profile.targets)
+        XCTAssertEqual(restored.ownerUID, "user-1")
     }
 
-    func testSaveProfileToCloudUsesCurrentLocalProfile() async throws {
+    func testOwnedProfileUpdateUploadsWhenOwnerMatches() async throws {
         let cloudStore = MockCloudUserProfileStore()
         let container = try AppContainer(inMemory: true)
         let service = ProfileBootstrapService(
@@ -97,16 +119,45 @@ final class ProfileBootstrapServiceTests: XCTestCase {
             cloudStore: cloudStore
         )
 
-        _ = try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try container.userProfileService.createProfile(
+            ProfileTestFixtures.sampleDraft,
+            ownerUID: "user-1"
+        )
 
-        try await service.saveProfileToCloud(uid: "user-1")
+        try await service.saveProfileToCloud(uid: "user-1", intent: .ownedProfileUpdate)
 
         XCTAssertEqual(cloudStore.saveCallCount, 1)
         XCTAssertEqual(cloudStore.lastSavedUID, "user-1")
         XCTAssertEqual(cloudStore.lastSavedProfile?.age, ProfileTestFixtures.sampleDraft.age)
     }
 
-    func testSyncOnboardingProfileToCloudUploadsCommittedLocalProfile() async throws {
+    func testOwnedProfileUpdateBlockedWhenOwnerMismatch() async throws {
+        let cloudStore = MockCloudUserProfileStore()
+        let container = try AppContainer(inMemory: true)
+        let service = ProfileBootstrapService(
+            userProfileService: container.userProfileService,
+            cloudStore: cloudStore
+        )
+
+        _ = try container.userProfileService.createProfile(
+            ProfileTestFixtures.sampleDraft,
+            ownerUID: "other-user"
+        )
+
+        do {
+            try await service.saveProfileToCloud(uid: "user-1", intent: .ownedProfileUpdate)
+            XCTFail("Expected owned update to be blocked")
+        } catch let error as CloudProfileWriteError {
+            XCTAssertEqual(
+                error,
+                .blocked(.ownerMismatch(localOwnerUID: "other-user", signedInUID: "user-1"))
+            )
+        }
+
+        XCTAssertEqual(cloudStore.saveCallCount, 0)
+    }
+
+    func testSyncOnboardingProfileToCloudUploadsWhenCloudMissing() async throws {
         let cloudStore = MockCloudUserProfileStore()
         let container = try AppContainer(inMemory: true)
         let service = ProfileBootstrapService(
@@ -116,10 +167,11 @@ final class ProfileBootstrapServiceTests: XCTestCase {
 
         _ = try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
 
-        try await service.syncOnboardingProfileToCloud(uid: "user-1")
+        try await service.syncOnboardingProfileToCloud(uid: "user-1", intent: .newProfileInitialUpload)
 
         XCTAssertEqual(cloudStore.saveCallCount, 1)
         XCTAssertEqual(cloudStore.lastSavedUID, "user-1")
+        XCTAssertEqual(cloudStore.fetchCallCount, 2)
     }
 
     func testFetchCloudProfilePresenceAbsentWhenDocumentMissing() async throws {
@@ -171,7 +223,7 @@ final class ProfileBootstrapServiceTests: XCTestCase {
         }
     }
 
-    func testLocalProfileWithoutAuthSkipsCloudFetchAndRoutesToMain() async throws {
+    func testLocalProfileWithoutAuthSkipsCloudFetchWhenOwnerMatches() async throws {
         let cloudStore = MockCloudUserProfileStore()
         let container = try AppContainer(inMemory: true)
         let service = ProfileBootstrapService(
@@ -179,7 +231,10 @@ final class ProfileBootstrapServiceTests: XCTestCase {
             cloudStore: cloudStore
         )
 
-        _ = try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        _ = try container.userProfileService.createProfile(
+            ProfileTestFixtures.sampleDraft,
+            ownerUID: "offline-local-user"
+        )
 
         XCTAssertTrue(service.hasLocalProfile())
         let result = try await service.resolve(uid: "offline-local-user")
@@ -213,6 +268,7 @@ final class ProfileBootstrapServiceTests: XCTestCase {
         XCTAssertEqual(restored.goalWeightKg, profile.goalWeightKg)
 
         let fetchCountAfterRestore = cloudStore.fetchCallCount
+        _ = try container.userProfileService.assignOwnerUID("returning-user")
         let secondResolve = try await service.resolve(uid: "returning-user")
         XCTAssertEqual(secondResolve, .main)
         XCTAssertEqual(cloudStore.fetchCallCount, fetchCountAfterRestore)

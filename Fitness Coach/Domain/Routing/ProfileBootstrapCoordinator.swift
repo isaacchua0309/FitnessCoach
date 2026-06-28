@@ -24,12 +24,22 @@ enum ProfileBootstrapPhase: Equatable, Sendable {
 enum SignedInProfileReconcileDecision: Equatable, Sendable {
     /// Onboarding save-plan sign-in: probe cloud then upload or conflict.
     case resolveOnboardingCompletion(uid: String)
-    /// Local profile already synced for this UID.
+    /// Local profile ownership matches the signed-in UID.
     case routeToMain
-    /// Local profile exists but has not been confirmed for this UID.
+    /// Upload local profile after ownership resolution allows linking.
     case syncLocalProfileToCloud(uid: String)
     /// No local profile: fetch cloud and restore or route to missing-cloud flow.
     case loadCloudProfile(uid: String)
+    /// Unowned or uncertain local profile needs read-only cloud lookup first.
+    case requireOwnershipCloudLookup(uid: String)
+    /// Local profile belongs to a different Firebase account.
+    case showAccountMismatch(uid: String)
+    /// Local and cloud profiles both exist; user must choose.
+    case showProfileConflict(uid: String)
+    /// Cloud fetch failed during ownership resolution.
+    case showCloudFetchFailed(uid: String)
+    /// Confirmed no cloud profile for a user without local data.
+    case presentMissingCloudProfile(uid: String)
     /// No bootstrap action required for the current root/auth combination.
     case skip
 }
@@ -38,9 +48,13 @@ struct SignedInProfileReconcileInput: Equatable, Sendable {
     var uid: String
     var pendingOnboardingCompletion: Bool
     var hasLocalProfile: Bool
+    var localOwnerUID: String?
     var isFreshSignIn: Bool
     var rootState: RootViewState
+    /// Transitional hint only — not used as proof when `localOwnerUID` is set.
     var isSyncedForCurrentUID: Bool
+    /// Populated after `requireOwnershipCloudLookup` completes.
+    var cloudResult: CloudProfileLookupResult?
 }
 
 enum OnboardingCompletionOutcome: Equatable, Sendable {
@@ -58,50 +72,17 @@ enum ProfileBootstrapCoordinator {
             fields: [
                 "uid": input.uid,
                 "hasLocalProfile": String(input.hasLocalProfile),
+                "localOwnerUID": input.localOwnerUID ?? "nil",
                 "pendingOnboardingCompletion": String(input.pendingOnboardingCompletion),
                 "isFreshSignIn": String(input.isFreshSignIn),
                 "isSyncedForCurrentUID": String(input.isSyncedForCurrentUID),
+                "cloudResult": input.cloudResult.map(String.init(describing:)) ?? "pending",
                 "rootState": String(describing: input.rootState)
             ]
         )
 
-        if AuthGateRoutingPolicy.shouldDeferLocalProfileShortCircuit(
-            pendingOnboardingCompletion: input.pendingOnboardingCompletion,
-            hasLocalProfile: input.hasLocalProfile
-        ) {
-            return .resolveOnboardingCompletion(uid: input.uid)
-        }
-
-        if input.hasLocalProfile {
-            if input.isSyncedForCurrentUID {
-                ProfileBootstrapDebugLogger.event(
-                    "local_profile_found",
-                    fields: ["uid": input.uid, "route": "main"]
-                )
-                return .routeToMain
-            }
-
-            ProfileBootstrapDebugLogger.event(
-                "local_profile_found",
-                fields: ["uid": input.uid, "route": "syncRequired"]
-            )
-            return .syncLocalProfileToCloud(uid: input.uid)
-        }
-
-        ProfileBootstrapDebugLogger.event(
-            "local_profile_missing",
-            fields: ["uid": input.uid]
-        )
-
-        let shouldLoadCloudProfile = AuthGateRoutingPolicy.shouldReloadSignedInCloudProfile(
-            isFreshSignIn: input.isFreshSignIn,
-            rootState: input.rootState,
-            hasLocalProfile: input.hasLocalProfile
-        )
-
-        guard shouldLoadCloudProfile else { return .skip }
-
-        return .loadCloudProfile(uid: input.uid)
+        let outcome = ProfileOwnershipResolver.resolve(input.ownershipInput)
+        return mapOwnershipOutcome(outcome, input: input)
     }
 
     static func bootstrapPhase(for rootState: RootViewState, uid: String?) -> ProfileBootstrapPhase {
@@ -111,7 +92,7 @@ enum ProfileBootstrapCoordinator {
             return .checkingCloud(redactedUID: redacted)
         case .missingCloudProfile:
             return .needsOnboardingAfterCloudMiss
-        case .onboardingCloudProfileConflict, .onboardingCloudCheckFailed:
+        case .onboardingCloudProfileConflict, .onboardingCloudCheckFailed, .cloudProfileUploadFailed, .accountProfileMismatch:
             return .checkingCloud(redactedUID: redacted)
         case .onboarding:
             return .needsOnboardingAfterCloudMiss
@@ -141,54 +122,58 @@ final class ProfileBootstrapCoordinatorService {
         uid: String,
         pendingOnboardingCompletion: Bool,
         isFreshSignIn: Bool,
-        rootState: RootViewState
+        rootState: RootViewState,
+        cloudResult: CloudProfileLookupResult? = nil
     ) -> SignedInProfileReconcileDecision {
-        ProfileBootstrapCoordinator.reconcileDecision(
+        let localOwnerUID = try? profileBootstrapService.currentProfile()?.ownerUID
+        return ProfileBootstrapCoordinator.reconcileDecision(
             SignedInProfileReconcileInput(
                 uid: uid,
                 pendingOnboardingCompletion: pendingOnboardingCompletion,
                 hasLocalProfile: profileBootstrapService.hasLocalProfile(),
+                localOwnerUID: localOwnerUID,
                 isFreshSignIn: isFreshSignIn,
                 rootState: rootState,
-                isSyncedForCurrentUID: cloudSyncStore.isSyncedForUID(uid)
+                isSyncedForCurrentUID: cloudSyncStore.isSyncedForUID(uid),
+                cloudResult: cloudResult
             )
         )
     }
 
-    func syncOnboardingProfileToCloud(uid: String) async throws {
+    func ownershipCloudLookup(
+        uid: String,
+        context: CloudProfileLookupContext
+    ) async -> CloudProfileLookupResult {
+        await profileBootstrapService.ownershipCloudLookup(uid: uid, context: context)
+    }
+
+    func syncOnboardingProfileToCloud(
+        uid: String,
+        intent: CloudProfileWriteIntent = .newProfileInitialUpload
+    ) async throws {
         ProfileBootstrapDebugLogger.event(
             "onboarding_cloud_sync_started",
-            fields: ["uid": uid]
+            fields: ["uid": uid, "intent": intent.logLabel]
         )
 
-        try await profileBootstrapService.syncOnboardingProfileToCloud(uid: uid)
-
-        if let profile = try profileBootstrapService.currentProfile() {
-            cloudSyncStore.markSynced(uid: uid, updatedAt: profile.updatedAt)
-        }
+        try await profileBootstrapService.syncOnboardingProfileToCloud(uid: uid, intent: intent)
+        try finalizeAfterCloudUpload(uid: uid)
 
         ProfileBootstrapDebugLogger.event(
             "onboarding_cloud_sync_completed",
-            fields: ["uid": uid]
+            fields: ["uid": uid, "intent": intent.logLabel]
         )
     }
 
     func syncLocalProfileToCloud(uid: String) async throws {
-        ProfileBootstrapDebugLogger.event(
-            "onboarding_cloud_sync_started",
-            fields: ["uid": uid, "context": "reconcile"]
-        )
+        try await syncOnboardingProfileToCloud(uid: uid, intent: .newProfileInitialUpload)
+    }
 
-        try await profileBootstrapService.syncOnboardingProfileToCloud(uid: uid)
-
+    private func finalizeAfterCloudUpload(uid: String) throws {
         if let profile = try profileBootstrapService.currentProfile() {
             cloudSyncStore.markSynced(uid: uid, updatedAt: profile.updatedAt)
         }
-
-        ProfileBootstrapDebugLogger.event(
-            "onboarding_cloud_sync_completed",
-            fields: ["uid": uid, "context": "reconcile"]
-        )
+        _ = try profileBootstrapService.assignProfileOwner(uid: uid)
     }
 
     func markSyncedFromCloudRestore(uid: String, updatedAt: Date) {
@@ -205,39 +190,172 @@ final class ProfileBootstrapCoordinatorService {
             fields: ["uid": uid, "context": "onboardingCompletion"]
         )
 
-        do {
-            let presence = try await profileBootstrapService.fetchCloudProfilePresence(uid: uid)
-            switch presence {
-            case .absent:
-                ProfileBootstrapDebugLogger.event(
-                    "cloud_profile_missing",
-                    fields: ["uid": uid, "context": "onboardingCompletion"]
+        let resolution = await profileBootstrapService.resolveCloudProfile(
+            uid: uid,
+            context: .onboardingCompletion
+        )
+
+        switch resolution {
+        case .missing:
+            ProfileBootstrapDebugLogger.event(
+                "cloud_profile_missing",
+                fields: ["uid": uid, "context": "onboardingCompletion"]
+            )
+            do {
+                try await syncOnboardingProfileToCloud(uid: uid)
+                return .uploadedToCloud
+            } catch {
+                ProfileBootstrapDebugLogger.error(
+                    "onboarding_cloud_sync_failed",
+                    fields: ["uid": uid],
+                    underlying: error
                 )
-                do {
-                    try await syncOnboardingProfileToCloud(uid: uid)
-                    return .uploadedToCloud
-                } catch {
-                    ProfileBootstrapDebugLogger.error(
-                        "onboarding_cloud_sync_failed",
-                        fields: ["uid": uid],
-                        underlying: error
-                    )
-                    return .cloudSyncFailed
-                }
-            case .present(let document):
-                ProfileBootstrapDebugLogger.event(
-                    "cloud_profile_found",
-                    fields: ["uid": uid, "context": "onboardingCompletion"]
-                )
-                return .cloudProfileConflict(document)
+                return .cloudSyncFailed
             }
-        } catch {
+        case .found(let document):
+            ProfileBootstrapDebugLogger.event(
+                "cloud_profile_found",
+                fields: ["uid": uid, "context": "onboardingCompletion"]
+            )
+            return .cloudProfileConflict(document)
+        case .failed(let failure):
             ProfileBootstrapDebugLogger.error(
-                "cloud_profile_lookup_started",
-                fields: ["uid": uid, "result": "failed"],
-                underlying: error
+                "cloud_profile_lookup_failed",
+                fields: ["uid": uid, "context": "onboardingCompletion"],
+                underlying: failure
             )
             return .cloudCheckFailed
         }
+    }
+
+    func restoreGoogleAccountPlan(uid: String) async -> AccountMismatchRestoreOutcome {
+        ProfileBootstrapDebugLogger.event(
+            "account_mismatch_restore_started",
+            fields: ["uid": uid]
+        )
+
+        switch await profileBootstrapService.resolveCloudProfile(uid: uid, context: .accountSwitch) {
+        case .found(let document):
+            do {
+                _ = try profileBootstrapService.adoptCloudProfile(document, uid: uid)
+                ProfileBootstrapDebugLogger.event(
+                    "account_mismatch_restore_completed",
+                    fields: ["uid": uid]
+                )
+                return .restoredToMain
+            } catch {
+                ProfileBootstrapDebugLogger.error(
+                    "account_mismatch_restore_failed",
+                    fields: ["uid": uid],
+                    underlying: error
+                )
+                return .cloudFetchFailed
+            }
+        case .missing:
+            ProfileBootstrapDebugLogger.event(
+                "account_mismatch_restore_missing_cloud",
+                fields: ["uid": uid]
+            )
+            return .missingCloudProfile
+        case .failed(let failure):
+            ProfileBootstrapDebugLogger.error(
+                "account_mismatch_restore_lookup_failed",
+                fields: ["uid": uid],
+                underlying: failure
+            )
+            return .cloudFetchFailed
+        }
+    }
+
+    func prepareUseDeviceProfile(uid: String) async -> AccountMismatchUseDeviceOutcome {
+        ProfileBootstrapDebugLogger.event(
+            "account_mismatch_use_device_started",
+            fields: ["uid": uid]
+        )
+
+        switch await profileBootstrapService.resolveCloudProfile(uid: uid, context: .accountSwitch) {
+        case .found(let document):
+            ProfileBootstrapDebugLogger.event(
+                "account_mismatch_use_device_conflict",
+                fields: ["uid": uid]
+            )
+            return .cloudProfileConflict(document)
+        case .missing:
+            ProfileBootstrapDebugLogger.event(
+                "account_mismatch_use_device_confirmation_required",
+                fields: ["uid": uid]
+            )
+            return .requiresLocalLinkConfirmation
+        case .failed(let failure):
+            ProfileBootstrapDebugLogger.error(
+                "account_mismatch_use_device_lookup_failed",
+                fields: ["uid": uid],
+                underlying: failure
+            )
+            return .cloudFetchFailed
+        }
+    }
+
+    func confirmLinkLocalProfileToAccount(uid: String) throws -> UserProfile {
+        let profile = try profileBootstrapService.linkLocalProfileToAccount(uid: uid)
+        ProfileBootstrapDebugLogger.event(
+            "account_mismatch_use_device_linked_local_only",
+            fields: ["uid": uid]
+        )
+        return profile
+    }
+
+    func restoreExistingPlanAfterConflict(
+        uid: String,
+        cloudDocument: CloudUserProfileDocument
+    ) throws -> UserProfile {
+        let profile = try profileBootstrapService.adoptCloudProfile(cloudDocument, uid: uid)
+        ProfileBootstrapDebugLogger.event(
+            "profile_conflict_restore_completed",
+            fields: ["uid": uid]
+        )
+        return profile
+    }
+
+    func uploadDevicePlanAfterConflict(uid: String) async throws {
+        ProfileBootstrapDebugLogger.event(
+            "profile_conflict_upload_started",
+            fields: ["uid": uid]
+        )
+        try await syncOnboardingProfileToCloud(uid: uid, intent: .userConfirmedReplace)
+        ProfileBootstrapDebugLogger.event(
+            "profile_conflict_upload_completed",
+            fields: ["uid": uid]
+        )
+    }
+
+    func retryCloudProfileUpload(
+        uid: String,
+        context: CloudProfileUploadFailureContext
+    ) async throws {
+        ProfileBootstrapDebugLogger.event(
+            "cloud_profile_upload_retry_started",
+            fields: ["uid": uid, "context": String(describing: context)]
+        )
+
+        switch context {
+        case .onboardingCompletion, .reconcileUpload:
+            try await syncOnboardingProfileToCloud(uid: uid, intent: .newProfileInitialUpload)
+        case .conflictReplace:
+            try await syncOnboardingProfileToCloud(uid: uid, intent: .userConfirmedReplace)
+        case .profileEdit:
+            try await profileBootstrapService.saveProfileToCloud(
+                uid: uid,
+                intent: .ownedProfileUpdate
+            )
+            if let profile = try profileBootstrapService.currentProfile() {
+                cloudSyncStore.markSynced(uid: uid, updatedAt: profile.updatedAt)
+            }
+        }
+
+        ProfileBootstrapDebugLogger.event(
+            "cloud_profile_upload_retry_completed",
+            fields: ["uid": uid, "context": String(describing: context)]
+        )
     }
 }

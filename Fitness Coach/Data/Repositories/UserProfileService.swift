@@ -25,26 +25,49 @@ final class UserProfileService {
         try latestProfileEntity()?.toModel()
     }
 
+    func getCurrentProfileOwnerUID() throws -> String? {
+        try getCurrentProfile()?.ownerUID
+    }
+
+    func currentProfileOwnership(for sessionUID: String) throws -> ProfileOwnershipStatus {
+        guard let profile = try getCurrentProfile() else {
+            return .unowned
+        }
+        guard let ownerUID = profile.ownerUID else {
+            return .unowned
+        }
+        return ownerUID == sessionUID
+            ? .matchesSession
+            : .mismatched(localOwnerUID: ownerUID)
+    }
+
     // MARK: Restore
 
-    func restoreProfile(from document: CloudUserProfileDocument) throws -> UserProfile {
+    func restoreProfile(from document: CloudUserProfileDocument, ownerUID: String) throws -> UserProfile {
         if try getCurrentProfile() != nil {
             throw ServiceError.invalidInput("A profile already exists on this device.")
         }
 
-        return try insertProfile(from: document)
+        return try insertProfile(from: document, ownerUID: ownerUID)
     }
 
     /// Replaces the on-device profile with a cloud snapshot (onboarding conflict resolution).
-    func replaceLocalProfile(with document: CloudUserProfileDocument) throws -> UserProfile {
+    func replaceLocalProfile(
+        with document: CloudUserProfileDocument,
+        ownerUID: String
+    ) throws -> UserProfile {
         if let existing = try latestProfileEntity() {
             try store.delete(existing)
         }
-        return try insertProfile(from: document)
+        return try insertProfile(from: document, ownerUID: ownerUID)
     }
 
-    private func insertProfile(from document: CloudUserProfileDocument) throws -> UserProfile {
-        let profile = document.makeUserProfile()
+    private func insertProfile(
+        from document: CloudUserProfileDocument,
+        ownerUID: String
+    ) throws -> UserProfile {
+        var profile = document.makeUserProfile()
+        profile.ownerUID = ownerUID
         let entity = UserProfileEntity(model: profile)
         try store.insert(entity)
         return entity.toModel()
@@ -52,12 +75,13 @@ final class UserProfileService {
 
     // MARK: Create
 
-    func createProfile(_ draft: UserProfileDraft) throws -> UserProfile {
+    func createProfile(_ draft: UserProfileDraft, ownerUID: String? = nil) throws -> UserProfile {
         try validate(draft)
 
         let now = dateProvider.now
         let profile = UserProfile(
             id: UUID(),
+            ownerUID: ownerUID,
             name: draft.name,
             age: draft.age,
             sex: draft.sex,
@@ -77,6 +101,17 @@ final class UserProfileService {
 
         let entity = UserProfileEntity(model: profile)
         try store.insert(entity)
+        return entity.toModel()
+    }
+
+    /// Binds the current on-device profile to a signed-in Firebase account after successful cloud resolution.
+    func assignOwnerUID(_ uid: String) throws -> UserProfile {
+        guard let entity = try latestProfileEntity() else {
+            throw ServiceError.missingUserProfile
+        }
+        entity.ownerUID = uid
+        entity.updatedAt = dateProvider.now
+        try save()
         return entity.toModel()
     }
 

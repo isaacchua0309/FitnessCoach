@@ -26,7 +26,8 @@ enum AuthGateRoutingPolicy {
         switch rootState {
         case .loading, .onboarding:
             return true
-        case .missingCloudProfile, .onboardingCloudProfileConflict, .onboardingCloudCheckFailed, .main, .error:
+        case .missingCloudProfile, .onboardingCloudProfileConflict, .onboardingCloudCheckFailed,
+             .cloudProfileUploadFailed, .accountProfileMismatch, .main, .error:
             return false
         }
     }
