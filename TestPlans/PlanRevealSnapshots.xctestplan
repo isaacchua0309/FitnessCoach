@@ -1,0 +1,32 @@
+{
+  "configurations": [
+    {
+      "id": "PLAN-REVEAL-SNAPSHOT-CONFIG",
+      "name": "Configuration 1",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "environmentVariableEntries": [
+      {
+        "key": "PLAN_REVEAL_SNAPSHOTS",
+        "value": "1",
+        "enabled": true
+      }
+    ],
+    "testTimeoutsEnabled": false
+  },
+  "testTargets": [
+    {
+      "target": {
+        "containerPath": "container:Fitness Coach.xcodeproj",
+        "identifier": "3A0000062FEE000100000001",
+        "name": "Fitness CoachTests"
+      },
+      "selectedTests": [
+        "OnboardingPlanRevealSnapshotTests/testPlanRevealSnapshotMatrix"
+      ]
+    }
+  ],
+  "version": 1
+}

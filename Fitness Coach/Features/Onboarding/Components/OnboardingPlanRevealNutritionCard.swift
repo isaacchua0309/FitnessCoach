@@ -49,7 +49,7 @@ struct OnboardingPlanRevealNutritionCard: View {
     }
 
     private func fuelMetric(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
+        VStack(alignment: .leading, spacing: OnboardingLayout.savePlanFooterBottomInset) {
             Text(label)
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(OnboardingTheme.tertiaryText)
@@ -61,7 +61,7 @@ struct OnboardingPlanRevealNutritionCard: View {
                 .lineLimit(1)
         }
         .padding(.horizontal, FormaTokens.Spacing.xs)
-        .padding(.vertical, 4)
+        .padding(.vertical, OnboardingLayout.savePlanFooterBottomInset)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)

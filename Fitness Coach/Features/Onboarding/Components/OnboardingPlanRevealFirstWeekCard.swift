@@ -17,7 +17,7 @@ struct OnboardingPlanRevealFirstWeekCard: View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             OnboardingPlanRevealSectionHeader(title: sectionTitle)
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: OnboardingLayout.compactLabelGap) {
                 ForEach(missions) { mission in
                     missionRow(mission)
                 }

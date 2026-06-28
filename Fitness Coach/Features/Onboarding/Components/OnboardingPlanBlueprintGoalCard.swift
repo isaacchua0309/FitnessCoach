@@ -12,7 +12,21 @@ struct OnboardingPlanBlueprintGoalHeroCard: View {
     var launchReady: Bool = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.onboardingVisionLayoutProfile) private var layoutProfile
+    @Environment(\.onboardingVisionZoneHeight) private var zoneHeight
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var launchPulse = false
+
+    @ScaledMetric(relativeTo: .largeTitle) private var targetWeightFontSize: CGFloat = 32
+    @ScaledMetric(relativeTo: .caption2) private var metricBarHeight: CGFloat = 4
+
+    private var verticalPadding: CGFloat {
+        layoutProfile == .compact ? 6 : 10
+    }
+
+    private var metricsMaxWidth: CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? 168 : (layoutProfile == .compact ? 132 : 148)
+    }
 
     var body: some View {
         HStack(spacing: FormaTokens.Spacing.md) {
@@ -22,25 +36,28 @@ struct OnboardingPlanBlueprintGoalHeroCard: View {
                     .foregroundStyle(OnboardingTheme.accent)
                     .textCase(.uppercase)
                     .tracking(0.45)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
 
                 Text(state.targetWeight)
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.system(size: targetWeightFontSize, weight: .bold, design: .rounded))
                     .foregroundStyle(OnboardingTheme.primaryText)
-                    .minimumScaleFactor(0.75)
+                    .minimumScaleFactor(0.7)
                     .lineLimit(1)
             }
+            .layoutPriority(1)
 
             Spacer(minLength: 0)
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: layoutProfile == .compact ? 6 : 8) {
                 visualMetric(caption: state.paceCaption, value: state.paceValue, fill: 0.68)
                 visualMetric(caption: state.timelineCaption, value: state.timelineValue, fill: 0.82)
             }
-            .frame(maxWidth: 148)
+            .frame(maxWidth: metricsMaxWidth)
         }
         .padding(.horizontal, FormaTokens.Spacing.md)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, verticalPadding)
+        .frame(maxWidth: .infinity, maxHeight: zoneHeight > 0 ? zoneHeight : nil, alignment: .center)
         .background {
             RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
                 .fill(
@@ -84,10 +101,11 @@ struct OnboardingPlanBlueprintGoalHeroCard: View {
     private func visualMetric(caption: String, value: String, fill: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(caption)
-                .font(.system(size: 9, weight: .semibold))
+                .font(.caption2.weight(.semibold))
                 .foregroundStyle(OnboardingTheme.tertiaryText)
                 .textCase(.uppercase)
                 .lineLimit(1)
+                .minimumScaleFactor(0.85)
 
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
@@ -107,13 +125,13 @@ struct OnboardingPlanBlueprintGoalHeroCard: View {
                         .frame(width: proxy.size.width * (launchPulse ? min(fill + 0.04, 0.96) : fill))
                 }
             }
-            .frame(height: 4)
+            .frame(height: metricBarHeight)
 
             Text(value)
-                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                .font(.system(.caption2, design: .rounded).weight(.semibold))
                 .foregroundStyle(OnboardingTheme.primaryText)
                 .minimumScaleFactor(0.75)
-                .lineLimit(2)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 2)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

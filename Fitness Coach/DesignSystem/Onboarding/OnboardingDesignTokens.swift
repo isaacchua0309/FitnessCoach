@@ -258,6 +258,19 @@ struct OnboardingEntranceModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .opacity(isVisible ? 1 : 0)
+            .offset(y: isVisible || reduceMotion ? 0 : stageEntranceOffset)
+            .scaleEffect(isVisible || reduceMotion || !stage.usesScale ? 1 : 0.96)
+    }
+
+    private var stageEntranceOffset: CGFloat {
+        switch stage {
+        case .chrome, .headline:
+            return 4
+        case .hero:
+            return 0
+        case .supporting, .benefits, .footer:
+            return 6
+        }
     }
 }
 

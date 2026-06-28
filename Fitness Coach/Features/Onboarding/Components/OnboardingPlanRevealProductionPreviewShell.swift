@@ -17,9 +17,9 @@ struct OnboardingPlanRevealProductionPreviewShell: View {
             OnboardingPlanRevealStepView(
                 revealState: revealState,
                 plan: plan,
-                showsSuccessHandoff: true
+                showsSuccessHandoff: true,
+                revealsEntranceImmediately: showsAllEntranceStages
             )
-            .modifier(PlanRevealEntranceStagesModifier(enabled: showsAllEntranceStages))
 
             OnboardingBottomBar(
                 currentStep: .planReveal,
@@ -31,21 +31,6 @@ struct OnboardingPlanRevealProductionPreviewShell: View {
                 onAdjustPlan: {},
                 saveTrustNote: FormaProductCopy.Onboarding.Flow.PlanReveal.signedOutSaveTrustNote
             )
-        }
-    }
-}
-
-private struct PlanRevealEntranceStagesModifier: ViewModifier {
-    let enabled: Bool
-
-    func body(content: Content) -> some View {
-        if enabled {
-            content.environment(
-                \.onboardingPlanRevealVisibleStages,
-                Set(OnboardingPlanRevealEntranceStage.allCases)
-            )
-        } else {
-            content
         }
     }
 }

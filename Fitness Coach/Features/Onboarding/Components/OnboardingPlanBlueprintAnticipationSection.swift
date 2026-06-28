@@ -12,7 +12,12 @@ struct OnboardingPlanBlueprintPremiumFeatureRow: View {
     let accessibilityLabel: String
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.onboardingVisionLayoutProfile) private var layoutProfile
+    @Environment(\.onboardingVisionZoneHeight) private var zoneHeight
     @State private var animateBars = false
+
+    @ScaledMetric(relativeTo: .caption) private var visualHeight: CGFloat = 28
+    @ScaledMetric(relativeTo: .caption2) private var cardVerticalPadding: CGFloat = 7
 
     var body: some View {
         HStack(spacing: FormaTokens.Spacing.xs) {
@@ -20,6 +25,7 @@ struct OnboardingPlanBlueprintPremiumFeatureRow: View {
                 featureCard(feature)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: zoneHeight > 0 ? zoneHeight : nil, alignment: .center)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilityLabel)
         .onAppear {
@@ -28,9 +34,9 @@ struct OnboardingPlanBlueprintPremiumFeatureRow: View {
     }
 
     private func featureCard(_ feature: OnboardingPlanBlueprintPremiumFeature) -> some View {
-        VStack(spacing: 5) {
+        VStack(spacing: layoutProfile == .compact ? 3 : 5) {
             featureVisual(feature)
-                .frame(height: 28)
+                .frame(height: visualHeight)
 
             Text(feature.title)
                 .font(.caption2.weight(.semibold))
@@ -38,9 +44,9 @@ struct OnboardingPlanBlueprintPremiumFeatureRow: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 7)
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, layoutProfile == .compact ? 4 : 6)
+        .padding(.vertical, cardVerticalPadding)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
             RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
                 .fill(
@@ -125,7 +131,7 @@ struct OnboardingPlanBlueprintPremiumFeatureRow: View {
                 ),
                 style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
             )
-            .frame(width: 42, height: 18)
+            .frame(width: 42, height: min(visualHeight, 18))
     }
 }
 

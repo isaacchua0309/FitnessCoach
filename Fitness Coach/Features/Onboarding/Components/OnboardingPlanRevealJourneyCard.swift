@@ -77,7 +77,7 @@ struct OnboardingPlanRevealJourneyCard: View {
                 .font(.caption2.weight(.semibold))
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: OnboardingLayout.savePlanFooterBottomInset) {
                 Text(status.title)
                     .font(FormaTokens.Typography.caption.weight(.semibold))
                 if let body = status.body {
@@ -88,7 +88,7 @@ struct OnboardingPlanRevealJourneyCard: View {
             }
         }
         .foregroundStyle(OnboardingTheme.warning)
-        .padding(.top, 2)
+        .padding(.top, OnboardingLayout.savePlanFooterBottomInset)
         .accessibilityLabel(
             [status.title, status.body].compactMap { $0 }.joined(separator: ", ")
         )

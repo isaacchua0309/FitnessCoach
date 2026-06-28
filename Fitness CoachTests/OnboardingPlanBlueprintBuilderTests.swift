@@ -153,6 +153,23 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
         XCTAssertFalse(OnboardingStep.review.showsProgressHeader)
     }
 
+    func testPlanBlueprintZoneWeightsFillViewport() {
+        for profile in [OnboardingVisionLayoutProfile.regular, .compact] {
+            let weights = OnboardingVisionZoneWeights.weights(for: .planBlueprint, profile: profile)
+            let total = weights.values.reduce(0, +)
+            XCTAssertGreaterThanOrEqual(
+                total,
+                OnboardingVisionLayoutMetrics.targetFillRange.lowerBound,
+                "Expected regular fill for \(profile)"
+            )
+            XCTAssertLessThanOrEqual(
+                total,
+                OnboardingVisionLayoutMetrics.targetFillRange.upperBound,
+                "Expected regular fill for \(profile)"
+            )
+        }
+    }
+
     func testAccessibilityLabelIncludesGoalAndFeatures() {
         let state = makeFormState(currentKg: 70, goalDeltaKg: 0)
         let blueprint = OnboardingPlanBlueprintBuilder.build(from: state, referenceDate: referenceDate)

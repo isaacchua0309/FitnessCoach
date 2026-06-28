@@ -112,11 +112,6 @@ enum OnboardingPlanRevealLayoutProfile: Equatable {
         }
     }
 
-    /// Protect-progress step reuses plan reveal zones; footer needs more room for sign-in.
-    var savePlanZoneWeights: [OnboardingPlanRevealZone: CGFloat] {
-        savePlanUpperZoneWeights(showsJourney: savePlanShowsJourneyCard)
-    }
-
     /// Journey card drops on compact viewports so the protect CTA stays visible without scrolling.
     var savePlanShowsJourneyCard: Bool {
         self != .compact

@@ -20,13 +20,23 @@ struct OnboardingPlanBlueprintVisualCanvas: View {
     var launchReady: Bool = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.onboardingVisionZoneHeight) private var zoneHeight
+    @Environment(\.onboardingVisionLayoutProfile) private var layoutProfile
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var routeTrim: CGFloat = 0
     @State private var travelerProgress: CGFloat = 0
     @State private var glowPulse = false
     @State private var launchAccent = false
     @State private var particlePhase: CGFloat = 0
 
-    @ScaledMetric(relativeTo: .title2) private var canvasHeight: CGFloat = 108
+    @ScaledMetric(relativeTo: .title2) private var fallbackCanvasHeight: CGFloat = 108
+
+    private var resolvedCanvasHeight: CGFloat {
+        guard zoneHeight > 0 else { return fallbackCanvasHeight }
+        let inset: CGFloat = layoutProfile == .compact ? 2 : 4
+        let minimum: CGFloat = layoutProfile == .compact ? 64 : 72
+        return max(zoneHeight - inset, minimum)
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -44,8 +54,8 @@ struct OnboardingPlanBlueprintVisualCanvas: View {
                 particles(in: size)
             }
         }
-        .frame(height: canvasHeight)
-        .frame(maxWidth: .infinity)
+        .frame(height: resolvedCanvasHeight)
+        .frame(maxWidth: .infinity, maxHeight: zoneHeight > 0 ? zoneHeight : nil)
         .clipShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)

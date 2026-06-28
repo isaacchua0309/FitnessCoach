@@ -37,14 +37,8 @@ enum OnboardingPlanRevealBuilder {
         let goalLabel = weightLabel(goalWeightKg, unitSystem: unitSystem)
         let heroCopy = goalHeroCopy(
             direction: direction,
-            currentLabel: currentLabel,
             goalLabel: goalLabel
         )
-        let focusCopy = focusCopy(for: direction)
-        let copy = FormaProductCopy.Onboarding.V2.PlanReveal.self
-        let calorieLabel = OnboardingFormatter.kcal(plan.targets.calorieTarget)
-        let proteinLabel = OnboardingFormatter.grams(plan.targets.proteinTarget)
-        let waterLabel = OnboardingFormatter.ml(plan.targets.waterTargetMl)
         let strategyLabel = OnboardingPlanRevealStrategyFormatter.label(
             goalDirection: direction,
             paceChoice: formState.weightLossPaceChoice
@@ -61,6 +55,9 @@ enum OnboardingPlanRevealBuilder {
         let calorieExplanation = OnboardingPlanRevealStrategyFormatter.calorieExplanation(
             goalDirection: direction
         )
+        let calorieLabel = OnboardingFormatter.kcal(plan.targets.calorieTarget)
+        let proteinLabel = OnboardingFormatter.grams(plan.targets.proteinTarget)
+        let waterLabel = OnboardingFormatter.ml(plan.targets.waterTargetMl)
 
         return OnboardingPlanRevealState(
             goalDirection: direction,
@@ -69,13 +66,6 @@ enum OnboardingPlanRevealBuilder {
             goalProgressLabel: goalProgressLabel(current: currentLabel, goal: goalLabel),
             goalHeroSectionTitle: heroCopy.sectionTitle,
             goalHeroHeadline: heroCopy.headline,
-            goalHeroProgressLine: heroCopy.progressLine,
-            goalHeroSupport: heroCopy.support,
-            dailyMissionSectionTitle: copy.dailyMissionSectionTitle,
-            dailyMissionCalorieLine: "\(calorieLabel) / day",
-            focusTitle: focusCopy.title,
-            focusBody: focusCopy.body,
-            nextStepLine: copy.nextStepLine,
             accessibilitySummary: accessibilitySummary(
                 celebrationTitle: FormaProductCopy.Onboarding.Flow.PlanReveal.title,
                 celebrationSubtitle: FormaProductCopy.Onboarding.Flow.PlanReveal.subtitle,
@@ -92,13 +82,8 @@ enum OnboardingPlanRevealBuilder {
                 firstWeekMissions: missions,
                 coachMessage: coach
             ),
-            weeklyChangeLabel: timeline.weeklyChangeLabel,
             paceLabel: timeline.paceLabel,
             estimatedWeeksLabel: timeline.estimatedWeeksLabel,
-            journeySummaryLine: journeySummaryLine(
-                direction: direction,
-                goalLabel: goalLabel
-            ),
             strategyLabel: strategyLabel,
             dailyCalorieLabel: calorieLabel,
             calorieExplanationLine: calorieExplanation,
@@ -131,7 +116,6 @@ enum OnboardingPlanRevealBuilder {
     // MARK: - Cut timeline
 
     private struct CutTimeline {
-        let weeklyChangeLabel: String?
         let paceLabel: String?
         let estimatedWeeksLabel: String?
     }
@@ -144,26 +128,24 @@ enum OnboardingPlanRevealBuilder {
         pacePreview: WeightLossPacePreviewModel
     ) -> CutTimeline {
         guard direction == .cut else {
-            return CutTimeline(weeklyChangeLabel: nil, paceLabel: nil, estimatedWeeksLabel: nil)
+            return CutTimeline(paceLabel: nil, estimatedWeeksLabel: nil)
         }
 
         let weeklyKg = plan.targets.expectedWeeklyWeightLossKg ?? pacePreview.weeklyLossKg
         guard let weeklyKg, weeklyKg > 0 else {
-            return CutTimeline(weeklyChangeLabel: nil, paceLabel: nil, estimatedWeeksLabel: nil)
+            return CutTimeline(paceLabel: nil, estimatedWeeksLabel: nil)
         }
 
         let remainingKg = currentWeightKg - goalWeightKg
         guard remainingKg > 0 else {
-            return CutTimeline(weeklyChangeLabel: nil, paceLabel: nil, estimatedWeeksLabel: nil)
+            return CutTimeline(paceLabel: nil, estimatedWeeksLabel: nil)
         }
 
         let paceLabel = compactPaceLabel(weeklyKg: weeklyKg)
-        let weeklyChangeLabel = expectedPaceLabel(weeklyKg: weeklyKg)
         let estimatedWeeks = Int(ceil(remainingKg / weeklyKg))
         let estimatedWeeksLabel = estimatedTimelineLabel(weeks: estimatedWeeks)
 
         return CutTimeline(
-            weeklyChangeLabel: weeklyChangeLabel,
             paceLabel: paceLabel,
             estimatedWeeksLabel: estimatedWeeksLabel
         )
@@ -174,18 +156,10 @@ enum OnboardingPlanRevealBuilder {
     private struct GoalHeroCopy {
         let sectionTitle: String
         let headline: String
-        let progressLine: String?
-        let support: String
-    }
-
-    private struct FocusCopy {
-        let title: String
-        let body: String
     }
 
     private static func goalHeroCopy(
         direction: PlanGoalDirection,
-        currentLabel: String,
         goalLabel: String
     ) -> GoalHeroCopy {
         let copy = FormaProductCopy.Onboarding.V2.PlanReveal.GoalHero.self
@@ -193,60 +167,23 @@ enum OnboardingPlanRevealBuilder {
         case .maintain:
             return GoalHeroCopy(
                 sectionTitle: copy.sectionTitle,
-                headline: copy.maintainHeadline(targetWeight: goalLabel),
-                progressLine: nil,
-                support: copy.maintainSupport
+                headline: copy.maintainHeadline(targetWeight: goalLabel)
             )
         case .cut:
             return GoalHeroCopy(
                 sectionTitle: copy.sectionTitle,
-                headline: copy.lossHeadline(targetWeight: goalLabel),
-                progressLine: copy.lossProgress(currentWeight: currentLabel, targetWeight: goalLabel),
-                support: copy.lossSupport
+                headline: copy.lossHeadline(targetWeight: goalLabel)
             )
         case .gain:
             return GoalHeroCopy(
                 sectionTitle: copy.sectionTitle,
-                headline: copy.gainHeadline(targetWeight: goalLabel),
-                progressLine: copy.gainProgress(currentWeight: currentLabel, targetWeight: goalLabel),
-                support: copy.gainSupport
+                headline: copy.gainHeadline(targetWeight: goalLabel)
             )
-        }
-    }
-
-    private static func focusCopy(for direction: PlanGoalDirection) -> FocusCopy {
-        let copy = FormaProductCopy.Onboarding.V2.PlanReveal.Focus.self
-        switch direction {
-        case .maintain:
-            return FocusCopy(title: copy.maintainTitle, body: copy.maintainBody)
-        case .cut:
-            return FocusCopy(title: copy.lossTitle, body: copy.lossBody)
-        case .gain:
-            return FocusCopy(title: copy.gainTitle, body: copy.gainBody)
-        }
-    }
-
-    private static func journeySummaryLine(
-        direction: PlanGoalDirection,
-        goalLabel: String
-    ) -> String {
-        switch direction {
-        case .cut:
-            return "Lose toward \(goalLabel) with clear daily targets."
-        case .maintain:
-            return "Maintain around \(goalLabel) with clear daily targets."
-        case .gain:
-            return "Gain toward \(goalLabel) with clear daily targets."
         }
     }
 
     private static func goalProgressLabel(current: String, goal: String) -> String {
         "\(current) → \(goal)"
-    }
-
-    private static func expectedPaceLabel(weeklyKg: Double) -> String {
-        let pace = OnboardingFormatter.weeklyLoss(weeklyKg) ?? formattedWeeklyLoss(weeklyKg)
-        return "Expected pace: \(pace)"
     }
 
     private static func compactPaceLabel(weeklyKg: Double) -> String {

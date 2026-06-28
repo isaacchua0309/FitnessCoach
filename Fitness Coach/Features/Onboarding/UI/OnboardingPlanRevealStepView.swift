@@ -12,15 +12,35 @@ struct OnboardingPlanRevealStepView: View {
     let plan: CalorieTargetResult?
     var showsSuccessHandoff: Bool = true
     var defersEntranceForGenerationHandoff: Bool = false
+    var revealsEntranceImmediately: Bool = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    @State private var visibleStages: Set<OnboardingPlanRevealEntranceStage> = []
+    @State private var visibleStages: Set<OnboardingPlanRevealEntranceStage>
     @State private var goalSweepActive = false
     @State private var didPlayAppearHaptic = false
     @State private var entranceAnimationToken = UUID()
     @State private var entranceTask: Task<Void, Never>?
+
+    init(
+        revealState: OnboardingPlanRevealState?,
+        plan: CalorieTargetResult?,
+        showsSuccessHandoff: Bool = true,
+        defersEntranceForGenerationHandoff: Bool = false,
+        revealsEntranceImmediately: Bool = false
+    ) {
+        self.revealState = revealState
+        self.plan = plan
+        self.showsSuccessHandoff = showsSuccessHandoff
+        self.defersEntranceForGenerationHandoff = defersEntranceForGenerationHandoff
+        self.revealsEntranceImmediately = revealsEntranceImmediately
+        _visibleStages = State(
+            initialValue: revealsEntranceImmediately
+                ? Set(OnboardingPlanRevealEntranceStage.allCases)
+                : []
+        )
+    }
 
     private let copy = FormaProductCopy.Onboarding.Flow.PlanReveal.self
     private let cardCopy = FormaProductCopy.Onboarding.V2.PlanReveal.Cards.self
@@ -29,8 +49,6 @@ struct OnboardingPlanRevealStepView: View {
         Group {
             if let revealState {
                 adaptiveRevealContent(revealState)
-            } else if let plan {
-                legacyPlanFallback(plan)
             } else {
                 missingStateFallback
             }
@@ -46,6 +64,7 @@ struct OnboardingPlanRevealStepView: View {
     }
 
     private func scheduleEntranceAnimation() {
+        guard !revealsEntranceImmediately else { return }
         entranceTask?.cancel()
         entranceTask = Task { @MainActor in
             if defersEntranceForGenerationHandoff, !reduceMotion {
@@ -171,16 +190,6 @@ struct OnboardingPlanRevealStepView: View {
     }
 
     // MARK: - Fallbacks
-
-    private func legacyPlanFallback(_ plan: CalorieTargetResult) -> some View {
-        GeneratedPlanSummaryCard(
-            plan: plan,
-            pacePreview: nil,
-            paceLabel: nil
-        )
-        .padding(.horizontal, OnboardingTheme.pagePadding)
-        .padding(.top, OnboardingLayout.progressHeaderTop)
-    }
 
     private var missingStateFallback: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {

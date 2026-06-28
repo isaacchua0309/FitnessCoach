@@ -12,31 +12,51 @@ struct OnboardingPlanBlueprintPersonalizationSignalStrip: View {
     var launchReady: Bool = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.onboardingVisionLayoutProfile) private var layoutProfile
+    @Environment(\.onboardingVisionZoneHeight) private var zoneHeight
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var cardPulse = false
 
-    private let columns = Array(
-        repeating: GridItem(.flexible(), spacing: FormaTokens.Spacing.xs),
-        count: 3
-    )
+    @ScaledMetric(relativeTo: .caption) private var iconContainerSize: CGFloat = 30
+    @ScaledMetric(relativeTo: .caption2) private var cardVerticalPadding: CGFloat = 6
+
+    private var usesLandscapeRow: Bool {
+        layoutProfile == .compact && horizontalSizeClass == .regular
+    }
+
+    private var gridColumns: [GridItem] {
+        let count = usesLandscapeRow ? 6 : 3
+        return Array(
+            repeating: GridItem(.flexible(), spacing: FormaTokens.Spacing.xs),
+            count: count
+        )
+    }
+
+    private var gridSpacing: CGFloat {
+        usesLandscapeRow ? 4 : FormaTokens.Spacing.xs
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: layoutProfile == .compact ? 4 : 6) {
             Text(FormaProductCopy.Onboarding.Flow.Summary.GeneratedSummary.title)
-                .font(.system(size: 10, weight: .semibold))
+                .font(.caption2.weight(.semibold))
                 .foregroundStyle(OnboardingTheme.secondaryText)
                 .textCase(.uppercase)
                 .tracking(0.55)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityAddTraits(.isHeader)
 
-            LazyVGrid(columns: columns, spacing: FormaTokens.Spacing.xs) {
+            LazyVGrid(columns: gridColumns, spacing: gridSpacing) {
                 ForEach(signals) { signal in
                     factorCard(signal)
                 }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: zoneHeight > 0 ? zoneHeight : nil, alignment: .top)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(accessibilitySummary)
         .onChange(of: launchReady) { _, ready in
             guard ready, !reduceMotion else { return }
             withAnimation(
@@ -48,47 +68,43 @@ struct OnboardingPlanBlueprintPersonalizationSignalStrip: View {
         }
     }
 
-    private var accessibilitySummary: String {
-        let spokenFactors = signals
-            .filter(\.isIncluded)
-            .map { "\($0.label): \($0.detail)" }
-            .joined(separator: ". ")
-        return "\(FormaProductCopy.Onboarding.Flow.Summary.GeneratedSummary.title). \(spokenFactors)"
-    }
-
     private func factorCard(_ signal: OnboardingPlanBlueprintGeneratedSignal) -> some View {
         let accentColor = accent(for: signal.accent)
         let isActive = signal.isIncluded
+        let showsDetail = !usesLandscapeRow || !dynamicTypeSize.isAccessibilitySize
 
-        return VStack(spacing: 4) {
+        return VStack(spacing: usesLandscapeRow ? 2 : 4) {
             ZStack {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(accentColor.opacity(isActive ? 0.2 : 0.08))
-                    .frame(width: 30, height: 30)
+                    .frame(width: iconContainerSize, height: iconContainerSize)
                 Image(systemName: signal.icon)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: iconContainerSize * 0.42, weight: .semibold))
                     .foregroundStyle(isActive ? accentColor : OnboardingTheme.tertiaryText)
             }
+            .accessibilityHidden(true)
 
             Text(signal.label)
-                .font(.system(size: 9, weight: .semibold))
+                .font(.caption2.weight(.semibold))
                 .foregroundStyle(isActive ? OnboardingTheme.primaryText : OnboardingTheme.tertiaryText)
                 .multilineTextAlignment(.center)
-                .lineLimit(2)
+                .lineLimit(usesLandscapeRow ? 1 : 2)
                 .minimumScaleFactor(0.8)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text(signal.detail)
-                .font(.system(size: 8, weight: .medium, design: .rounded))
-                .foregroundStyle(isActive ? OnboardingTheme.secondaryText : OnboardingTheme.tertiaryText)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .minimumScaleFactor(0.75)
-                .fixedSize(horizontal: false, vertical: true)
+            if showsDetail {
+                Text(signal.detail)
+                    .font(.system(.caption2, design: .rounded).weight(.medium))
+                    .foregroundStyle(isActive ? OnboardingTheme.secondaryText : OnboardingTheme.tertiaryText)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(usesLandscapeRow ? 1 : 2)
+                    .minimumScaleFactor(0.75)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 6)
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, usesLandscapeRow ? 2 : 4)
+        .padding(.vertical, cardVerticalPadding)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
             RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
                 .fill(
@@ -124,9 +140,17 @@ struct OnboardingPlanBlueprintPersonalizationSignalStrip: View {
                 }
         }
         .scaleEffect(isActive && cardPulse && !reduceMotion ? 1.015 : 1)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(signal.label), \(signal.detail)")
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel(for: signal, isActive: isActive))
         .accessibilityHint(isActive ? "Included in your plan" : "Pending")
+    }
+
+    private func accessibilityLabel(
+        for signal: OnboardingPlanBlueprintGeneratedSignal,
+        isActive: Bool
+    ) -> String {
+        let status = isActive ? "included" : "pending"
+        return "\(signal.label), \(signal.detail), \(status)"
     }
 
     @MainActor

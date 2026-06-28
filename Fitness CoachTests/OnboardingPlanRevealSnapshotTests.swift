@@ -14,7 +14,10 @@ import XCTest
 final class OnboardingPlanRevealSnapshotTests: XCTestCase {
 
     private var writesSnapshots: Bool {
-        ProcessInfo.processInfo.environment["PLAN_REVEAL_SNAPSHOTS"] == "1"
+        if ProcessInfo.processInfo.environment["PLAN_REVEAL_SNAPSHOTS"] == "1" {
+            return true
+        }
+        return FileManager.default.fileExists(atPath: "/tmp/export-plan-reveal")
     }
 
     func testPlanRevealSnapshotMatrix() throws {

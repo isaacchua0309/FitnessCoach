@@ -40,13 +40,6 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
         XCTAssertEqual(reveal.goalWeightLabel, "75 kg")
         XCTAssertEqual(reveal.goalProgressLabel, "82.5 kg → 75 kg")
         XCTAssertEqual(reveal.goalHeroHeadline, "Reach 75 kg")
-        XCTAssertEqual(reveal.goalHeroProgressLine, "From 82.5 kg to 75 kg")
-        XCTAssertEqual(
-            reveal.goalHeroSupport,
-            FormaProductCopy.Onboarding.V2.PlanReveal.GoalHero.lossSupport
-        )
-        XCTAssertTrue(reveal.weeklyChangeLabel?.contains("0.5") == true)
-        XCTAssertTrue(reveal.weeklyChangeLabel?.contains("kg/week") == true)
         XCTAssertTrue(reveal.paceLabel?.contains("0.5") == true)
         XCTAssertTrue(reveal.paceLabel?.contains("kg/week") == true)
         XCTAssertEqual(reveal.estimatedWeeksLabel, "About 15 weeks")
@@ -62,19 +55,9 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
         let reveal = try XCTUnwrap(OnboardingPlanRevealBuilder.build(formState: form, plan: plan))
 
         XCTAssertEqual(reveal.goalDirection, .maintain)
-        XCTAssertNil(reveal.weeklyChangeLabel)
         XCTAssertNil(reveal.paceLabel)
         XCTAssertNil(reveal.estimatedWeeksLabel)
-        XCTAssertNil(reveal.goalHeroProgressLine)
         XCTAssertEqual(reveal.goalHeroHeadline, "Maintain around 72 kg")
-        XCTAssertEqual(
-            reveal.goalHeroSupport,
-            FormaProductCopy.Onboarding.V2.PlanReveal.GoalHero.maintainSupport
-        )
-        XCTAssertEqual(
-            reveal.focusTitle,
-            FormaProductCopy.Onboarding.V2.PlanReveal.Focus.maintainTitle
-        )
         XCTAssertEqual(reveal.strategyLabel, FormaProductCopy.Onboarding.V2.PlanReveal.Strategy.maintenance)
         XCTAssertEqual(reveal.planStatus.title, FormaProductCopy.Onboarding.V2.PlanReveal.Status.maintenanceTitle)
     }
@@ -86,15 +69,9 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
         let reveal = try XCTUnwrap(OnboardingPlanRevealBuilder.build(formState: form, plan: plan))
 
         XCTAssertEqual(reveal.goalDirection, .gain)
-        XCTAssertNil(reveal.weeklyChangeLabel)
         XCTAssertNil(reveal.paceLabel)
         XCTAssertNil(reveal.estimatedWeeksLabel)
         XCTAssertEqual(reveal.goalHeroHeadline, "Build toward 78 kg")
-        XCTAssertEqual(reveal.goalHeroProgressLine, "From 72 kg to 78 kg")
-        XCTAssertEqual(
-            reveal.focusTitle,
-            FormaProductCopy.Onboarding.V2.PlanReveal.Focus.gainTitle
-        )
         XCTAssertEqual(reveal.strategyLabel, FormaProductCopy.Onboarding.V2.PlanReveal.Strategy.leanGain)
     }
 
@@ -106,7 +83,6 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
         let reveal = try XCTUnwrap(OnboardingPlanRevealBuilder.build(formState: form, plan: plan))
 
         XCTAssertTrue(reveal.goalHeroHeadline.contains("lb"))
-        XCTAssertTrue(reveal.goalHeroProgressLine?.contains("lb") == true)
         XCTAssertTrue(reveal.accessibilitySummary.contains("Goal:"))
         XCTAssertTrue(reveal.accessibilitySummary.contains("lb"))
     }
@@ -137,7 +113,6 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
 
         let reveal = try XCTUnwrap(OnboardingPlanRevealBuilder.build(formState: form, plan: plan))
 
-        XCTAssertNil(reveal.weeklyChangeLabel)
         XCTAssertNil(reveal.paceLabel)
         XCTAssertNil(reveal.estimatedWeeksLabel)
     }
@@ -155,15 +130,6 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
         XCTAssertEqual(reveal.secondaryMacroRows.map(\.label), ["Carbs", "Fat"])
         XCTAssertTrue(reveal.secondaryMacroRows.allSatisfy { !$0.value.isEmpty })
         XCTAssertEqual(reveal.dailyCalorieLabel, OnboardingFormatter.kcal(plan.targets.calorieTarget))
-        XCTAssertEqual(reveal.dailyMissionCalorieLine, "\(OnboardingFormatter.kcal(plan.targets.calorieTarget)) / day")
-        XCTAssertEqual(
-            reveal.dailyMissionSectionTitle,
-            FormaProductCopy.Onboarding.V2.PlanReveal.dailyMissionSectionTitle
-        )
-        XCTAssertEqual(
-            reveal.nextStepLine,
-            FormaProductCopy.Onboarding.V2.PlanReveal.nextStepLine
-        )
     }
 
     func testAdvancedPacePlanUsesCutExplanation() throws {
@@ -238,14 +204,10 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
         let reveal = try XCTUnwrap(OnboardingPlanRevealBuilder.build(formState: form, plan: plan))
 
         let combined = [
-            reveal.journeySummaryLine,
-            reveal.weeklyChangeLabel,
             reveal.estimatedWeeksLabel,
             reveal.dailyCalorieLabel,
             reveal.calorieExplanationLine,
-            reveal.goalHeroSupport,
-            reveal.focusBody,
-            reveal.nextStepLine,
+            reveal.journeyBeliefLine,
             reveal.accessibilitySummary,
             reveal.planStatus.title,
             reveal.planStatus.body
@@ -266,11 +228,8 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
         let reveal = try XCTUnwrap(OnboardingPlanRevealBuilder.build(formState: form, plan: plan))
 
         let combined = [
-            reveal.goalHeroSupport,
             reveal.calorieExplanationLine,
-            reveal.journeySummaryLine,
-            reveal.focusBody,
-            reveal.nextStepLine,
+            reveal.journeyBeliefLine,
             reveal.planStatus.body,
             reveal.accessibilitySummary
         ]

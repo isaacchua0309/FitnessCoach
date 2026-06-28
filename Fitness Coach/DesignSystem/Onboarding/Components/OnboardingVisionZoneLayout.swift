@@ -58,6 +58,15 @@ enum OnboardingVisionZoneWeights {
         .footer: 0.07
     ]
 
+    /// Plan blueprint: title + canvas + goal card + premium row + factor grid.
+    static let planBlueprint: [OnboardingVisionZone: CGFloat] = [
+        .headline: 0.09,
+        .hero: 0.26,
+        .narrative: 0.17,
+        .benefits: 0.13,
+        .footer: 0.32
+    ]
+
     /// Landscape / short viewport — hero compresses, benefits expand.
     static let almostThereCompact: [OnboardingVisionZone: CGFloat] = [
         .hero: 0.28,
@@ -74,6 +83,14 @@ enum OnboardingVisionZoneWeights {
         .footer: 0.06
     ]
 
+    static let planBlueprintCompact: [OnboardingVisionZone: CGFloat] = [
+        .headline: 0.08,
+        .hero: 0.20,
+        .narrative: 0.14,
+        .benefits: 0.10,
+        .footer: 0.40
+    ]
+
     static func weights(
         for screen: OnboardingVisionScreen,
         profile: OnboardingVisionLayoutProfile
@@ -83,6 +100,8 @@ enum OnboardingVisionZoneWeights {
         case (.almostThere, .compact): almostThereCompact
         case (.formaProof, .regular): formaProof
         case (.formaProof, .compact): formaProofCompact
+        case (.planBlueprint, .regular): planBlueprint
+        case (.planBlueprint, .compact): planBlueprintCompact
         }
     }
 
@@ -94,6 +113,7 @@ enum OnboardingVisionZoneWeights {
 enum OnboardingVisionScreen: Equatable {
     case almostThere
     case formaProof
+    case planBlueprint
 }
 
 enum OnboardingVisionLayoutMetrics {
@@ -206,7 +226,9 @@ struct OnboardingVisionZoneLayout: ViewModifier {
 
     private var zoneAlignment: Alignment {
         switch zone {
-        case .hero, .headline, .narrative, .benefits:
+        case .headline:
+            return .top
+        case .hero, .narrative, .benefits:
             return .center
         case .footer:
             return .bottom
