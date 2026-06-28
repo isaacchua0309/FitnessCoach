@@ -750,6 +750,13 @@ struct AuthGateView: View {
             pendingSignInForOnboardingCompletion = false
             conflictCloudDocument = nil
             isResolvingProfileConflict = false
+            pendingUploadFailureContext = nil
+            isRetryingCloudUpload = false
+            retryFromAccountMismatch = false
+            container.cloudUploadFailureNotifier.clear()
+            AuthLogoutPolicy.clearTransientSessionMetadata(
+                cloudSyncStore: container.profileCloudSyncStore
+            )
         }
 
         if AppRouteResolver.shouldClearOnboardingModel(

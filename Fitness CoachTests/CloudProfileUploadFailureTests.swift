@@ -113,22 +113,24 @@ final class CloudProfileUploadFailureTests: XCTestCase {
         XCTAssertEqual(harness.cloudStore.saveCallCount, 1)
     }
 
-    func testContinueDespiteFailureClearsSyncMetadata() throws {
-        let harness = try makeHarness()
-        _ = try harness.container.userProfileService.createProfile(
-            ProfileTestFixtures.sampleDraft,
-            ownerUID: "signed-in-user"
-        )
-        harness.syncStore.markSynced(uid: "signed-in-user", updatedAt: ProfileTestFixtures.referenceDate)
-        harness.syncStore.clear()
+    func testRootModelContinueDespiteUploadFailureRoutesMain() throws {
+        let container = try AppContainer(inMemory: true)
+        let rootModel = RootModel(profileBootstrapService: container.profileBootstrapService)
 
-        let rootModel = harness.container.makeRootModel()
         rootModel.presentCloudProfileUploadFailed()
-        XCTAssertFalse(harness.syncStore.isSyncedForUID("signed-in-user"))
+        XCTAssertEqual(rootModel.state, .cloudProfileUploadFailed)
 
         rootModel.continueDespiteCloudUploadFailure()
         XCTAssertEqual(rootModel.state, .main)
-        XCTAssertFalse(harness.syncStore.isSyncedForUID("signed-in-user"))
+    }
+
+    func testContinueForNowLeavesProfileNotMarkedSynced() {
+        let syncStore = ProfileCloudSyncStore(
+            userDefaults: UserDefaults(suiteName: "CloudProfileUploadFailureTests.\(UUID().uuidString)")!
+        )
+        syncStore.markSynced(uid: "signed-in-user", updatedAt: ProfileTestFixtures.referenceDate)
+        syncStore.clear()
+        XCTAssertFalse(syncStore.isSyncedForUID("signed-in-user"))
     }
 
     func testUploadFailureDoesNotOverwriteCloud() async throws {

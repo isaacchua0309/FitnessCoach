@@ -185,6 +185,13 @@ enum RootProfileRouteResolver {
 
 enum AuthLogoutPolicy {
     static let deletesLocalProfileOnSignOut = false
+    /// Session-scoped cloud sync hints must not survive sign-out; `ownerUID` remains authoritative.
+    static let clearsCloudSyncMetadataOnSignOut = true
+
+    static func clearTransientSessionMetadata(cloudSyncStore: ProfileCloudSyncStore) {
+        guard clearsCloudSyncMetadataOnSignOut else { return }
+        cloudSyncStore.clear()
+    }
 }
 
 extension AppRouteInput {

@@ -535,9 +535,10 @@ enum FormaProductCopy {
 
     enum Account {
         static let logoutConfirmationTitle = "Log out of Forma?"
-        static let logoutConfirmationMessage = "You'll need to sign in again to use Forma. Your local data on this device will not be deleted."
+        static let logoutConfirmationMessage =
+            "Signing out keeps this device's local data unless you delete it. If another account signs in, Forma will ask before using or replacing this profile."
         static let signOutHint = "Sign out of Forma on this device"
-        static let signOutDataNote = "Signing out won't delete your local data."
+        static let signOutDataNote = logoutConfirmationMessage
     }
 
     // MARK: - Empty states
