@@ -111,6 +111,8 @@ final class JourneyTrainingSummaryBuilderTests: XCTestCase {
             maturityLogs: [],
             weekLogs: [],
             previousWeekLogs: [],
+            previousWeekWeights: [],
+            previousWeekTrainingDays: 0,
             monthLogs: [],
             rangeLogs: [],
             allWeights: [],

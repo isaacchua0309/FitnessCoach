@@ -9,71 +9,74 @@ import SwiftUI
 
 struct TodayNextActionSection: View {
     let action: NextBestActionState
-    let onCTA: (NextBestActionCTA) -> Void
+    let onPrimaryCTA: () -> Void
+
+    private var display: TodayNextActionDisplayModel {
+        TodayNextActionFormatting.displayModel(for: action)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
-            TodaySectionLabel(title: FormaProductCopy.Today.NextAction.sectionTitle)
+            TodaySectionLabel(title: display.sectionTitle)
 
             TodayActionCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                    Text(action.title)
+                    Text(display.headline)
                         .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                         .foregroundStyle(FormaTokens.Color.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    if let subtitle = action.subtitle {
+                    if let subtitle = display.subtitle {
                         Text(subtitle)
                             .font(FormaTokens.Typography.body)
                             .foregroundStyle(FormaTokens.Color.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
-                    actionButtons
+                    if display.showsPrimaryButton, let buttonTitle = display.primaryButtonTitle {
+                        FormaQuickActionChip(
+                            title: buttonTitle,
+                            action: onPrimaryCTA,
+                            accessibilityHint: FormaProductCopy.Today.NextAction.primaryButtonHint
+                        )
+                        .padding(.top, FormaTokens.Spacing.xs)
+                        .accessibilityLabel(buttonTitle)
+                    }
                 }
                 .padding(.vertical, FormaTokens.Spacing.xs)
             }
         }
         .accessibilityElement(children: .contain)
-    }
-
-    @ViewBuilder
-    private var actionButtons: some View {
-        let primaryLabel = FormaProductCopy.Today.NextAction.primaryButtonLabel(for: action.primaryCTA)
-
-        if let primaryLabel {
-            HStack(spacing: FormaTokens.Spacing.sm) {
-                FormaQuickActionChip(
-                    title: primaryLabel,
-                    action: { onCTA(action.primaryCTA) },
-                    accessibilityHint: FormaProductCopy.Today.nextActionCoachHint
-                )
-
-                ForEach(Array(action.secondaryCTAs.enumerated()), id: \.offset) { _, cta in
-                    if let label = FormaProductCopy.Today.NextAction.primaryButtonLabel(for: cta) {
-                        FormaQuickActionChip(
-                            title: label,
-                            action: { onCTA(cta) },
-                            accessibilityHint: FormaProductCopy.Today.nextActionCoachHint
-                        )
-                    }
-                }
-            }
-            .padding(.top, FormaTokens.Spacing.xs)
-        }
+        .accessibilityLabel(display.accessibilityLabel)
     }
 }
 
-#Preview("Log meal") {
+#Preview("Protein") {
     TodayNextActionSection(
         action: NextBestActionState(
-            title: FormaProductCopy.Today.NextAction.logFirstMealTitle,
-            subtitle: FormaProductCopy.Today.NextAction.logFirstMealSubtitle,
-            reason: .logFirstMeal,
-            primaryCTA: .logMeal(TodayCoachPrompt.logMeal()),
-            secondaryCTAs: [.scanFood]
+            title: FormaProductCopy.Today.NextAction.eatProteinTitle(grams: 35),
+            subtitle: FormaProductCopy.Today.NextAction.eatProteinSubtitle,
+            reason: .eatProtein,
+            primaryCTA: .logMeal(TodayCoachPrompt.logProtein),
+            secondaryCTAs: []
         ),
-        onCTA: { _ in }
+        onPrimaryCTA: {}
+    )
+    .padding()
+    .background(FormaTokens.Color.canvas)
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Log lunch") {
+    TodayNextActionSection(
+        action: NextBestActionState(
+            title: FormaProductCopy.Today.NextAction.logMissedMealTitle(.lunch),
+            subtitle: FormaProductCopy.Today.NextAction.logMissedMealSubtitle(.lunch),
+            reason: .logMissedMeal(.lunch),
+            primaryCTA: .logMeal(TodayCoachPrompt.logMeal(.lunch)),
+            secondaryCTAs: []
+        ),
+        onPrimaryCTA: {}
     )
     .padding()
     .background(FormaTokens.Color.canvas)
@@ -89,7 +92,7 @@ struct TodayNextActionSection: View {
             primaryCTA: .none,
             secondaryCTAs: []
         ),
-        onCTA: { _ in }
+        onPrimaryCTA: {}
     )
     .padding()
     .background(FormaTokens.Color.canvas)

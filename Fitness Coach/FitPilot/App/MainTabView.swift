@@ -47,7 +47,7 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            TodayView(model: todayModel) { prefill in
+            TodayView(model: todayModel, actionCoordinator: container.makeTodayActionCoordinator()) { prefill in
                 coachModel.prepareInput(prefill: prefill)
                 selectedTab = .coach
             }

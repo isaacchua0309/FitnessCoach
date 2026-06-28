@@ -47,6 +47,8 @@ struct OnboardingShellRouteInput: Equatable, Sendable {
     var isOnboardingV2Enabled: Bool
     var signedOutWithProfilePolicy: SignedOutWithProfilePolicy
     var awaitingCloudSync: Bool
+    var localProfileAwaitingSignIn: Bool
+    var pendingOnboardingCompletion: Bool
 
     init(
         authState: AuthState,
@@ -55,7 +57,9 @@ struct OnboardingShellRouteInput: Equatable, Sendable {
         isOnboardingModelReady: Bool = false,
         isOnboardingV2Enabled: Bool = false,
         signedOutWithProfilePolicy: SignedOutWithProfilePolicy = .requireSignIn,
-        awaitingCloudSync: Bool = false
+        awaitingCloudSync: Bool = false,
+        localProfileAwaitingSignIn: Bool = false,
+        pendingOnboardingCompletion: Bool = false
     ) {
         self.authState = authState
         self.hasLocalProfile = hasLocalProfile
@@ -64,6 +68,8 @@ struct OnboardingShellRouteInput: Equatable, Sendable {
         self.isOnboardingV2Enabled = isOnboardingV2Enabled
         self.signedOutWithProfilePolicy = signedOutWithProfilePolicy
         self.awaitingCloudSync = awaitingCloudSync
+        self.localProfileAwaitingSignIn = localProfileAwaitingSignIn
+        self.pendingOnboardingCompletion = pendingOnboardingCompletion
     }
 }
 

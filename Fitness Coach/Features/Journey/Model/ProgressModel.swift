@@ -81,12 +81,14 @@ final class ProgressModel: ObservableObject {
         let weights = try weightLogService.getWeightEntries(from: startDate, to: endDate)
         let allWeights = try weightLogService.getWeightEntries(from: allTimeStart, to: endDate)
         let weekWeights = try weightLogService.getWeightEntries(from: weekStart, to: endDate)
+        let previousWeekWeights = try weightLogService.getWeightEntries(from: prevWeekStart, to: prevWeekEnd)
 
         let integrationState = trainingInsightsStore.integrationState
         let dataSource = trainingInsightsStore.dataSource
 
         let rangeHealthWorkouts = try await fetchHealthWorkouts(from: startDate, to: endDate)
         let weekHealthWorkouts = try await fetchHealthWorkouts(from: weekStart, to: endDate)
+        let previousWeekHealthWorkouts = try await fetchHealthWorkouts(from: prevWeekStart, to: prevWeekEnd)
         let allHealthWorkouts = try await fetchHealthWorkouts(from: allTimeStart, to: endDate)
         let monthHealthWorkouts = try await fetchHealthWorkouts(from: monthStart, to: endDate)
 
@@ -97,6 +99,12 @@ final class ProgressModel: ObservableObject {
             asOf: endDate,
             calendar: calendar
         )
+        let previousWeekTrainingDays = integrationState.isConnected
+            ? JourneyTrainingSummaryBuilder.healthWorkoutDayStarts(
+                from: previousWeekHealthWorkouts,
+                calendar: calendar
+            ).count
+            : 0
 
         let profile = try userProfileService.getCurrentProfile()
 
@@ -156,6 +164,8 @@ final class ProgressModel: ObservableObject {
             maturityLogs: maturityLogs,
             weekLogs: weekLogs,
             previousWeekLogs: previousWeekLogs,
+            previousWeekWeights: previousWeekWeights,
+            previousWeekTrainingDays: previousWeekTrainingDays,
             monthLogs: monthLogs,
             rangeLogs: logs,
             allWeights: allWeights,

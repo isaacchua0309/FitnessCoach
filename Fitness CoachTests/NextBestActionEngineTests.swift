@@ -22,7 +22,7 @@ final class NextBestActionEngineTests: XCTestCase {
 
         XCTAssertEqual(action.reason, .logFirstMeal)
         XCTAssertEqual(action.primaryCTA, .logMeal(TodayCoachPrompt.logMeal()))
-        XCTAssertEqual(action.secondaryCTAs, [.scanFood])
+        XCTAssertTrue(action.secondaryCTAs.isEmpty)
     }
 
     func testLogMissedBreakfastAfterWindowWithNoMeals() {
@@ -78,7 +78,8 @@ final class NextBestActionEngineTests: XCTestCase {
 
         XCTAssertEqual(action.reason, .eatProtein)
         XCTAssertEqual(action.primaryCTA, .logMeal(TodayCoachPrompt.logProtein))
-        XCTAssertEqual(action.secondaryCTAs, [.scanFood])
+        XCTAssertTrue(action.secondaryCTAs.isEmpty)
+        XCTAssertTrue(action.title.contains("protein"))
     }
 
     func testProteinLowButOnPaceDoesNotTriggerProteinAction() {

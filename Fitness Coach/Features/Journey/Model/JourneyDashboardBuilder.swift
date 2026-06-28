@@ -17,6 +17,8 @@ enum JourneyDashboardBuilder {
         var maturityLogs: [DailyLog]
         var weekLogs: [DailyLog]
         var previousWeekLogs: [DailyLog]
+        var previousWeekWeights: [WeightEntry]
+        var previousWeekTrainingDays: Int
         var monthLogs: [DailyLog]
         var rangeLogs: [DailyLog]
         var allWeights: [WeightEntry]
@@ -73,7 +75,7 @@ enum JourneyDashboardBuilder {
         let calorieEligible = weekLogs.filter { $0.targets.calorieTarget > 0 }
 
         let trainingDays = context.weeklyTraining.workoutDays ?? 0
-        let expectedTraining = max(context.profile?.trainingFrequencyPerWeek ?? 0, 0)
+        let expectedTraining = JourneyWeeklyReviewBuilder.expectedTrainingDays(profile: context.profile)
 
         let weightDelta = JourneyLogMetrics.weightDelta(in: context.weekWeights)
 
@@ -96,15 +98,21 @@ enum JourneyDashboardBuilder {
             previousWeekLogs: previousWeekLogs
         )
 
-        let weekSummaryCopy = weekSummary(
+        let weekSummaryCopy = JourneyWeeklyReviewBuilder.weekSummaryCopy(
             foodDays: foodDays,
             proteinDays: proteinDays,
             trainingDays: trainingDays,
-            weightDelta: weightDelta,
-            goalDirection: context.baseline.goalDirection
+            goalDirection: context.baseline.goalDirection,
+            weightDelta: weightDelta
         )
 
-        return JourneyWeeklyReviewState(
+        let previousWeek = JourneyWeeklyReviewBuilder.previousWeekMetrics(
+            logs: previousWeekLogs,
+            weekWeights: context.previousWeekWeights,
+            trainingDays: context.previousWeekTrainingDays
+        )
+
+        var review = JourneyWeeklyReviewState(
             foodLoggedDays: foodDays,
             foodLoggedDaysTotal: total,
             proteinGoalDays: proteinDays,
@@ -120,7 +128,15 @@ enum JourneyDashboardBuilder {
             strongestPositiveSignal: signals.strongest,
             weakestSignal: signals.weakest,
             weekSummaryCopy: weekSummaryCopy,
-            averageCalorieDeficit: avgDeficit
+            averageCalorieDeficit: avgDeficit,
+            rows: [],
+            weekOverWeekDetail: nil
+        )
+
+        return JourneyWeeklyReviewBuilder.enrich(
+            review: review,
+            previousWeek: previousWeek.hasComparableData ? previousWeek : nil,
+            goalDirection: context.baseline.goalDirection
         )
     }
 
@@ -828,30 +844,6 @@ enum JourneyDashboardBuilder {
             return ("Protein improved vs last week", weakest == "Protein" ? "Water" : weakest)
         }
         return (strongest, weakest)
-    }
-
-    private static func weekSummary(
-        foodDays: Int,
-        proteinDays: Int,
-        trainingDays: Int,
-        weightDelta: Double?,
-        goalDirection: JourneyGoalDirection
-    ) -> String {
-        if foodDays == 0 {
-            return "Log a meal or weight to start this week's chapter."
-        }
-        var parts: [String] = []
-        parts.append("You logged food \(foodDays) of 7 days")
-        if proteinDays > 0 {
-            parts.append("hit protein on \(proteinDays)")
-        }
-        if trainingDays > 0 {
-            parts.append("\(trainingDays) training day\(trainingDays == 1 ? "" : "s")")
-        }
-        if let weightDelta, abs(weightDelta) >= 0.1, weightDeltaMovedTowardGoal(weightDelta, direction: goalDirection) {
-            parts.append(String(format: "%.1f kg toward your goal this week", abs(weightDelta)))
-        }
-        return parts.joined(separator: ", ") + "."
     }
 
     private static func monthlySummaryCopy(

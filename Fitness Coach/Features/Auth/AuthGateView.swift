@@ -136,7 +136,8 @@ struct AuthGateView: View {
             authState: authManager.authState,
             rootState: rootModel.state,
             isOnboardingModelReady: onboardingModel != nil,
-            awaitingCloudSync: awaitingCloudSync
+            awaitingCloudSync: awaitingCloudSync,
+            pendingOnboardingCompletion: pendingSignInForOnboardingCompletion
         )
         return AuthGateRoutingPolicy.effectiveRoute(
             baseRoute: base,
@@ -364,9 +365,11 @@ struct AuthGateView: View {
         let config = container.onboardingRoutingConfiguration
 
         let hasLocalProfile = container.profileBootstrapService.hasLocalProfile()
+        let awaitingSignInHandoff = container.profileBootstrapService.localProfileAwaitingSignIn()
         let needsPreAuthOnboarding = !signedIn
             && config.usesPreAuthShellRouting
-            && !(config.allowsLocalOnlyContinuation && hasLocalProfile)
+            && (!hasLocalProfile || awaitingSignInHandoff)
+            && !(config.allowsLocalOnlyContinuation && hasLocalProfile && !awaitingSignInHandoff)
 
         let needsSignedInOnboarding = signedIn && rootModel.state == .onboarding
 

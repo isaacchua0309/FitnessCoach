@@ -53,7 +53,7 @@ struct OnboardingBottomBar: View {
         if let currentV4Step {
             switch currentV4Step {
             case .review:
-                return FormaProductCopy.Onboarding.V2.Summary.buildPlanCTA
+                return FormaProductCopy.Onboarding.V4.Summary.buildPlanCTA
             case .planReveal:
                 return FormaProductCopy.Onboarding.V3.PlanReveal.savePlanCTA
             case .targetEncouragement:

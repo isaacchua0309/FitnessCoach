@@ -2,27 +2,30 @@
 //  TodayReadOnlyView.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Read-only Today dashboard. All updates route to Coach.
+//  FitPilot AI — Read-only Today dashboard. Mutations route through TodayActionCoordinator.
 //
 
 import SwiftUI
 
 struct TodayReadOnlyView: View {
     let state: TodayDashboardState
+    let actionCoordinator: TodayActionCoordinator
     let onOpenCoach: (String?) -> Void
-    let onOpenTrainingInsights: () -> Void
+    let onLogMealFromPreview: () -> Void
 
     init(
         state: TodayDashboardState,
+        actionCoordinator: TodayActionCoordinator,
         trainingIntegration: TrainingIntegrationState = .connected,
         trainingDataSource: TrainingDataSource = .appleHealth,
         appleHealthWorkoutCount: Int? = nil,
         onOpenCoach: @escaping (String?) -> Void,
-        onOpenTrainingInsights: @escaping () -> Void = {}
+        onLogMealFromPreview: @escaping () -> Void = {}
     ) {
         self.state = state
+        self.actionCoordinator = actionCoordinator
         self.onOpenCoach = onOpenCoach
-        self.onOpenTrainingInsights = onOpenTrainingInsights
+        self.onLogMealFromPreview = onLogMealFromPreview
     }
 
     private var showsGenericCoachCTA: Bool {
@@ -38,7 +41,12 @@ struct TodayReadOnlyView: View {
 
             TodayNextActionSection(
                 action: state.nextBestAction,
-                onCTA: handleNextActionCTA
+                onPrimaryCTA: {
+                    actionCoordinator.handleCTA(
+                        state.nextBestAction.primaryCTA,
+                        from: state.nextBestAction
+                    )
+                }
             )
 
             loggedItemsZone
@@ -53,7 +61,6 @@ struct TodayReadOnlyView: View {
 
     // MARK: - Zones
 
-    /// Status: Today's Mission hero.
     private var statusZone: some View {
         TodayMissionHero(
             mission: state.mission,
@@ -62,7 +69,6 @@ struct TodayReadOnlyView: View {
         )
     }
 
-    /// Logged items: measurement targets + meal timeline.
     private var loggedItemsZone: some View {
         VStack(alignment: .leading, spacing: TodayLayout.loggedZoneSpacing) {
             TodayReadOnlyProgressSection(
@@ -73,48 +79,23 @@ struct TodayReadOnlyView: View {
             TodayMealsPreview(
                 entries: state.meals.entries,
                 previewLimit: 3,
-                onLogMeal: {
-                    onOpenCoach(TodayCoachPrompt.logMeal())
-                }
+                onLogMeal: onLogMealFromPreview
             )
-        }
-    }
-
-    private func handleNextActionCTA(_ cta: NextBestActionCTA) {
-        switch cta {
-        case .logMeal(let prefill):
-            onOpenCoach(prefill)
-        case .scanFood:
-            onOpenCoach(TodayCoachPrompt.scanFood)
-        case .addWater:
-            onOpenCoach(TodayCoachPrompt.logWater)
-        case .logWeight:
-            onOpenCoach(TodayCoachPrompt.logWeight)
-        case .openHealth:
-            onOpenTrainingInsights()
-        case .reviewToday:
-            onOpenCoach(TodayCoachPrompt.reviewToday)
-        case .none:
-            break
         }
     }
 }
 
 #Preview {
     ScrollView {
-        TodayReadOnlyView(state: TodayPreviewData.state) { _ in }
-            .padding(.horizontal, TodayLayout.horizontalPadding)
-            .padding(.vertical, FormaTokens.Spacing.md)
-    }
-    .background(FormaTokens.Color.canvas)
-    .preferredColorScheme(.dark)
-}
-
-#Preview("Small phone") {
-    ScrollView {
-        TodayReadOnlyView(state: TodayPreviewData.state) { _ in }
-            .padding(.horizontal, TodayLayout.horizontalPadding)
-            .frame(width: 320)
+        TodayReadOnlyView(
+            state: TodayPreviewData.state,
+            actionCoordinator: TodayActionCoordinator(
+                actionCenter: try! AppContainer(inMemory: true).actionCenter
+            ),
+            onOpenCoach: { _ in }
+        )
+        .padding(.horizontal, TodayLayout.horizontalPadding)
+        .padding(.vertical, FormaTokens.Spacing.md)
     }
     .background(FormaTokens.Color.canvas)
     .preferredColorScheme(.dark)

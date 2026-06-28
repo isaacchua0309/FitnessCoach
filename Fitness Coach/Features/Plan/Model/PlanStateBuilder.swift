@@ -61,15 +61,6 @@ enum PlanStateBuilder {
         )
     }
 
-    private static func planRationaleState(for profile: UserProfile) -> PlanRationaleState {
-        do {
-            let result = try PlanCalculationBridge.planResult(from: profile)
-            return PlanRationaleCopyBuilder.build(profile: profile, result: result)
-        } catch {
-            return PlanRationaleState.fallback(for: profile)
-        }
-    }
-
     // MARK: Strategy
 
     static func strategyName(for profile: UserProfile) -> String {

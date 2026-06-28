@@ -35,6 +35,12 @@ final class ProfileBootstrapService {
         (try? userProfileService.getCurrentProfile()) != nil
     }
 
+    /// True when a local profile exists but has not been linked to a Firebase account yet.
+    func localProfileAwaitingSignIn() -> Bool {
+        guard let profile = try? userProfileService.getCurrentProfile() else { return false }
+        return OnboardingCommittedProfileRestorer.shouldResumeSavePlan(profile: profile)
+    }
+
     func currentProfile() throws -> UserProfile? {
         try userProfileService.getCurrentProfile()
     }

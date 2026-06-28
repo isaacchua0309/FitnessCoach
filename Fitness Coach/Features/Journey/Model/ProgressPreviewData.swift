@@ -128,33 +128,67 @@ enum ProgressPreviewData {
         weightTrendDirection: .stable
     )
 
+    static let weeklyReviewFullWeek = makeWeeklyReview(
+        foodLoggedDays: 7,
+        proteinGoalDays: 6,
+        waterGoalDays: 5,
+        trainingDays: 4,
+        expectedTrainingDays: 4,
+        training: .connected(
+            workoutDays: 4,
+            averageCaloriesBurned: 310,
+            averageTrainingDurationMinutes: 45
+        ),
+        weightDeltaThisWeekKg: -0.6,
+        calorieAdherenceDays: 6,
+        strongestPositiveSignal: "Food logging",
+        weakestSignal: "Water",
+        previousWeek: JourneyWeeklyReviewPreviousWeek(
+            foodLoggedDays: 5,
+            proteinGoalDays: 4,
+            waterGoalDays: 3,
+            calorieAdherenceDays: 4,
+            trainingDays: 3,
+            weightDeltaKg: -0.3
+        )
+    )
+
+    static let weeklyReviewPartialWeek = makeWeeklyReview(
+        foodLoggedDays: 3,
+        proteinGoalDays: 2,
+        waterGoalDays: 1,
+        trainingDays: 1,
+        expectedTrainingDays: 3,
+        training: .connected(
+            workoutDays: 1,
+            averageCaloriesBurned: 220,
+            averageTrainingDurationMinutes: 35
+        ),
+        weightDeltaThisWeekKg: nil,
+        calorieAdherenceDays: 2,
+        strongestPositiveSignal: "Food logging",
+        weakestSignal: "Water"
+    )
+
+    static let weeklyReviewTrainingLocked = makeWeeklyReview(
+        foodLoggedDays: 4,
+        proteinGoalDays: 3,
+        waterGoalDays: 2,
+        trainingDays: 0,
+        expectedTrainingDays: 3,
+        training: .locked,
+        weightDeltaThisWeekKg: -0.2,
+        calorieAdherenceDays: 3,
+        strongestPositiveSignal: "Food logging",
+        weakestSignal: "Training"
+    )
+
     static let state = ProgressDashboardState(
         selectedRangeDays: 28,
         hasProfile: true,
         baseline: baseline,
         transformation: transformationActiveFatLoss,
-        weeklyReview: JourneyWeeklyReviewState(
-            foodLoggedDays: 6,
-            foodLoggedDaysTotal: 7,
-            proteinGoalDays: 5,
-            proteinGoalDaysTotal: 7,
-            waterGoalDays: 4,
-            waterGoalDaysTotal: 7,
-            trainingDays: 3,
-            expectedTrainingDays: 3,
-            training: .connected(
-                workoutDays: 3,
-                averageCaloriesBurned: 285,
-                averageTrainingDurationMinutes: 42
-            ),
-            weightDeltaThisWeekKg: -0.4,
-            calorieAdherenceDays: 5,
-            calorieAdherenceDaysTotal: 7,
-            strongestPositiveSignal: "Protein",
-            weakestSignal: "Water",
-            weekSummaryCopy: "You logged food 6 of 7 days, hit protein on 5, 3 training days.",
-            averageCalorieDeficit: 320
-        ),
+        weeklyReview: weeklyReviewFullWeek,
         milestones: JourneyMilestonesState(
             unlocked: [],
             upcoming: [
@@ -264,6 +298,53 @@ enum ProgressPreviewData {
             showsWeightChart: true
         )
     )
+
+    private static func makeWeeklyReview(
+        foodLoggedDays: Int,
+        proteinGoalDays: Int,
+        waterGoalDays: Int,
+        trainingDays: Int,
+        expectedTrainingDays: Int,
+        training: JourneyWeeklyTrainingStatus,
+        weightDeltaThisWeekKg: Double?,
+        calorieAdherenceDays: Int,
+        strongestPositiveSignal: String,
+        weakestSignal: String,
+        previousWeek: JourneyWeeklyReviewPreviousWeek? = nil
+    ) -> JourneyWeeklyReviewState {
+        let base = JourneyWeeklyReviewState(
+            foodLoggedDays: foodLoggedDays,
+            foodLoggedDaysTotal: 7,
+            proteinGoalDays: proteinGoalDays,
+            proteinGoalDaysTotal: 7,
+            waterGoalDays: waterGoalDays,
+            waterGoalDaysTotal: 7,
+            trainingDays: trainingDays,
+            expectedTrainingDays: expectedTrainingDays,
+            training: training,
+            weightDeltaThisWeekKg: weightDeltaThisWeekKg,
+            calorieAdherenceDays: calorieAdherenceDays,
+            calorieAdherenceDaysTotal: 7,
+            strongestPositiveSignal: strongestPositiveSignal,
+            weakestSignal: weakestSignal,
+            weekSummaryCopy: JourneyWeeklyReviewBuilder.weekSummaryCopy(
+                foodDays: foodLoggedDays,
+                proteinDays: proteinGoalDays,
+                trainingDays: trainingDays,
+                goalDirection: .lose,
+                weightDelta: weightDeltaThisWeekKg
+            ),
+            averageCalorieDeficit: 280,
+            rows: [],
+            weekOverWeekDetail: nil
+        )
+
+        return JourneyWeeklyReviewBuilder.enrich(
+            review: base,
+            previousWeek: previousWeek,
+            goalDirection: .lose
+        )
+    }
 
     private static func makeTransformation(
         baseline: JourneyBaseline,

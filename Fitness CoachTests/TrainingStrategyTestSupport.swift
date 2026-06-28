@@ -41,7 +41,7 @@ enum TrainingStrategyTestSupport {
     }
 
     static func journeyWorkoutRowLabel(for training: JourneyWeeklyTrainingStatus) -> String {
-        JourneyWeeklySnapshotCopyBuilder.trainingDetail(for: training)
+        JourneyWeeklyReviewBuilder.trainingValue(for: training)
             ?? FormaProductCopy.Journey.statusNoData
     }
 

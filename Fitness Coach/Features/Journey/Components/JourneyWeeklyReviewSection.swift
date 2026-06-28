@@ -1,0 +1,100 @@
+//
+//  JourneyWeeklyReviewSection.swift
+//  Fitness Coach
+//
+
+import SwiftUI
+
+struct JourneyWeeklyReviewSection: View {
+    let review: JourneyWeeklyReviewState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
+            FormaSectionLabel(title: FormaProductCopy.Journey.sectionThisWeek)
+
+            FitPilotPlanCard {
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+                    Text(review.weekSummaryCopy)
+                        .font(FormaTokens.Typography.sectionSubtitle)
+                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    ForEach(Array(review.rows.enumerated()), id: \.element.id) { index, row in
+                        if index == 0 {
+                            FitPilotPlanRowDivider()
+                        }
+                        reviewRow(row)
+                        if index < review.rows.count - 1 {
+                            FitPilotPlanRowDivider()
+                        }
+                    }
+
+                    if let weekOverWeekDetail = review.weekOverWeekDetail {
+                        FitPilotPlanRowDivider()
+                        Text(weekOverWeekDetail)
+                            .font(FormaTokens.Typography.caption)
+                            .foregroundStyle(FormaTokens.Color.textTertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+    }
+
+    private func reviewRow(_ row: JourneyWeeklyReviewRow) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
+            Text(row.icon)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.xs) {
+                    Text(row.title)
+                        .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
+                        .foregroundStyle(FormaTokens.Color.textPrimary)
+
+                    Spacer(minLength: FormaTokens.Spacing.xs)
+
+                    Text(row.value)
+                        .font(FormaTokens.Typography.sectionSubtitle)
+                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .multilineTextAlignment(.trailing)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                if let detail = row.detail {
+                    Text(detail)
+                        .font(FormaTokens.Typography.caption)
+                        .foregroundStyle(FormaTokens.Color.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(.vertical, FormaTokens.Spacing.xs)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(row.title), \(row.value)")
+    }
+}
+
+// MARK: - Previews
+
+#Preview("Full week") {
+    JourneyWeeklyReviewSection(review: ProgressPreviewData.weeklyReviewFullWeek)
+        .padding()
+        .background(FormaTokens.Color.canvas)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Partial week") {
+    JourneyWeeklyReviewSection(review: ProgressPreviewData.weeklyReviewPartialWeek)
+        .padding()
+        .background(FormaTokens.Color.canvas)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Apple Health locked") {
+    JourneyWeeklyReviewSection(review: ProgressPreviewData.weeklyReviewTrainingLocked)
+        .padding()
+        .background(FormaTokens.Color.canvas)
+        .preferredColorScheme(.dark)
+}

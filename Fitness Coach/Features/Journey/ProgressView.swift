@@ -66,7 +66,7 @@ struct ProgressView: View {
             VStack(alignment: .leading, spacing: JourneyLayout.sectionSpacing) {
                 JourneyTransformationHeroSection(state: state.transformation)
 
-                JourneyWeeklySnapshotSection(review: state.weeklyReview)
+                JourneyWeeklyReviewSection(review: state.weeklyReview)
 
                 if !state.milestones.items.isEmpty {
                     JourneyMilestonesSection(milestones: state.milestones.items)

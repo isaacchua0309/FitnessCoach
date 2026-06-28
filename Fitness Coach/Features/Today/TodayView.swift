@@ -2,10 +2,7 @@
 //  TodayView.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Read-only daily status. Answers: "Am I on track today?"
-//
-//  All logging and updates route to Coach via onOpenCoach.
-//  Production sync: pull-to-refresh, AppRefreshCenter after Coach logs, and onAppear reload.
+//  FitPilot AI — Today Mission Control. Native actions via TodayActionCoordinator; Coach when required.
 //
 
 import SwiftUI
@@ -13,6 +10,7 @@ import SwiftUI
 struct TodayView: View {
 
     @ObservedObject var model: TodayModel
+    @StateObject private var actionCoordinator: TodayActionCoordinator
     @EnvironmentObject private var trainingInsightsStore: TrainingInsightsStore
     @EnvironmentObject private var trainingInsightsModel: TrainingInsightsModel
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
@@ -20,14 +18,16 @@ struct TodayView: View {
     @State private var appleHealthWorkoutCount: Int?
     @State private var isShowingTrainingInsights = false
 
-    /// Optional prefill text for Coach input. `nil` opens Coach without prefilling.
+    /// Opens Coach with optional prefill when an action requires conversational AI.
     var onOpenCoach: ((String?) -> Void)?
 
     init(
         model: TodayModel,
+        actionCoordinator: TodayActionCoordinator,
         onOpenCoach: ((String?) -> Void)? = nil
     ) {
         self.model = model
+        _actionCoordinator = StateObject(wrappedValue: actionCoordinator)
         self.onOpenCoach = onOpenCoach
     }
 
@@ -60,6 +60,7 @@ struct TodayView: View {
                     }
                 }
                 .onAppear {
+                    wireActionCoordinator()
                     if case .loaded = model.viewState {
                         Task<Void, Never> {
                             await refreshDashboard()
@@ -76,8 +77,30 @@ struct TodayView: View {
                     )
                     .environmentObject(refreshCenter)
                 }
+                .sheet(item: $actionCoordinator.logMealPresentation) { presentation in
+                    TodayLogMealSheet(
+                        initialMealType: presentation.mealType,
+                        errorMessage: actionCoordinator.lastErrorMessage,
+                        onSave: { actionCoordinator.saveMeal(from: $0) }
+                    )
+                }
+                .sheet(isPresented: $actionCoordinator.isPresentingLogWeightSheet) {
+                    TodayLogWeightSheet(
+                        errorMessage: actionCoordinator.lastErrorMessage,
+                        onSave: { actionCoordinator.saveWeight($0) }
+                    )
+                }
                 .background(FormaTokens.Color.canvas)
                 .preferredColorScheme(.dark)
+        }
+    }
+
+    private func wireActionCoordinator() {
+        actionCoordinator.onOpenCoach = { prefill in
+            onOpenCoach?(prefill)
+        }
+        actionCoordinator.onOpenTrainingInsights = {
+            isShowingTrainingInsights = true
         }
     }
 
@@ -124,14 +147,15 @@ struct TodayView: View {
             VStack(alignment: .leading, spacing: TodayLayout.sectionSpacing) {
                 TodayReadOnlyView(
                     state: state,
-                    trainingIntegration: trainingInsightsStore.integrationState,
-                    trainingDataSource: trainingInsightsStore.dataSource,
-                    appleHealthWorkoutCount: appleHealthWorkoutCount,
+                    actionCoordinator: actionCoordinator,
                     onOpenCoach: { prefill in
                         onOpenCoach?(prefill)
                     },
-                    onOpenTrainingInsights: {
-                        isShowingTrainingInsights = true
+                    onLogMealFromPreview: {
+                        actionCoordinator.handleCTA(
+                            .logMeal(TodayCoachPrompt.logMeal()),
+                            from: state.nextBestAction
+                        )
                     }
                 )
             }
@@ -145,8 +169,11 @@ struct TodayView: View {
 
 #Preview {
     let container = try! AppContainer(inMemory: true)
-    TodayView(model: container.makeTodayModel())
-        .environmentObject(container.refreshCenter)
-        .environmentObject(container.trainingInsightsStore)
-        .environmentObject(container.trainingInsightsModel)
+    TodayView(
+        model: container.makeTodayModel(),
+        actionCoordinator: container.makeTodayActionCoordinator()
+    )
+    .environmentObject(container.refreshCenter)
+    .environmentObject(container.trainingInsightsStore)
+    .environmentObject(container.trainingInsightsModel)
 }

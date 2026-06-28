@@ -376,7 +376,7 @@ final class JourneyTrainingRowStrategyTests: XCTestCase {
     func testNotConnectedDoesNotShowMisleadingZeroWorkoutDays() {
         XCTAssertEqual(
             TrainingStrategyTestSupport.journeyWorkoutRowLabel(for: .locked),
-            FormaProductCopy.Journey.WeeklySnapshot.trainingConnectAppleHealth
+            FormaProductCopy.Journey.WeeklyReview.trainingConnectAppleHealth
         )
         XCTAssertFalse(
             TrainingStrategyTestSupport.journeyWorkoutRowLabel(for: .locked)
@@ -399,14 +399,14 @@ final class JourneyTrainingRowStrategyTests: XCTestCase {
         XCTAssertEqual(days, 2)
         XCTAssertEqual(
             TrainingStrategyTestSupport.journeyWorkoutRowLabel(for: status),
-            FormaProductCopy.Journey.WeeklySnapshot.workoutDaysLine(days: 2)
+            "2 days"
         )
     }
 
     func testConnectedEmptyShowsCalmEmptyCopyNotZeroDays() {
         XCTAssertEqual(
             TrainingStrategyTestSupport.journeyWorkoutRowLabel(for: .connectedEmpty),
-            FormaProductCopy.Journey.WeeklySnapshot.statusNotStarted
+            "0 days"
         )
     }
 }

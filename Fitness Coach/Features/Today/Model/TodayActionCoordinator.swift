@@ -5,6 +5,7 @@
 //  Forma — Routes Today Next Best Action CTAs to native mutations or Coach when required.
 //
 
+import Combine
 import Foundation
 
 @MainActor
@@ -15,8 +16,8 @@ final class TodayActionCoordinator: ObservableObject {
         var mealType: MealType?
     }
 
-    @Published private(set) var logMealPresentation: LogMealPresentation?
-    @Published private(set) var isPresentingLogWeightSheet = false
+    @Published var logMealPresentation: LogMealPresentation?
+    @Published var isPresentingLogWeightSheet = false
     @Published private(set) var lastErrorMessage: String?
 
     private let actionCenter: FitnessActionCenter
@@ -66,7 +67,7 @@ final class TodayActionCoordinator: ObservableObject {
         } catch let error as FoodEntryFormError {
             lastErrorMessage = error.localizedDescription
         } catch {
-            lastErrorMessage = FormaProductCopy.Error.saveFoodEntry
+            lastErrorMessage = FormaProductCopy.Error.checkInputs
         }
     }
 
@@ -76,7 +77,7 @@ final class TodayActionCoordinator: ObservableObject {
             lastErrorMessage = nil
             isPresentingLogWeightSheet = false
         } catch {
-            lastErrorMessage = FormaProductCopy.Error.saveWeightEntry
+            lastErrorMessage = FormaProductCopy.Error.checkInputs
         }
     }
 
@@ -87,7 +88,7 @@ final class TodayActionCoordinator: ObservableObject {
                 _ = try actionCenter.logWater(amountMl: amountMl, date: logDate())
                 lastErrorMessage = nil
             } catch {
-                lastErrorMessage = FormaProductCopy.Error.saveWaterEntry
+                lastErrorMessage = FormaProductCopy.Error.checkInputs
             }
         case .presentLogMeal(let mealType):
             logMealPresentation = LogMealPresentation(mealType: mealType)

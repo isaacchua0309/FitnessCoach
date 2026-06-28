@@ -35,6 +35,8 @@ struct AppRouteInput: Equatable, Sendable {
     var isOnboardingModelReady: Bool
     var isOnboardingV2Enabled: Bool
     var signedOutWithProfilePolicy: SignedOutWithProfilePolicy
+    var localProfileAwaitingSignIn: Bool
+    var pendingOnboardingCompletion: Bool
 
     init(
         authState: AuthState,
@@ -42,7 +44,9 @@ struct AppRouteInput: Equatable, Sendable {
         rootState: RootViewState = .loading,
         isOnboardingModelReady: Bool = false,
         isOnboardingV2Enabled: Bool = false,
-        signedOutWithProfilePolicy: SignedOutWithProfilePolicy = .requireSignIn
+        signedOutWithProfilePolicy: SignedOutWithProfilePolicy = .requireSignIn,
+        localProfileAwaitingSignIn: Bool = false,
+        pendingOnboardingCompletion: Bool = false
     ) {
         self.authState = authState
         self.hasLocalProfile = hasLocalProfile
@@ -50,6 +54,8 @@ struct AppRouteInput: Equatable, Sendable {
         self.isOnboardingModelReady = isOnboardingModelReady
         self.isOnboardingV2Enabled = isOnboardingV2Enabled
         self.signedOutWithProfilePolicy = signedOutWithProfilePolicy
+        self.localProfileAwaitingSignIn = localProfileAwaitingSignIn
+        self.pendingOnboardingCompletion = pendingOnboardingCompletion
     }
 }
 
@@ -61,7 +67,9 @@ enum AppRouteResolver {
         isOnboardingModelReady: Bool = false,
         hasLocalProfile: Bool = false,
         isOnboardingV2Enabled: Bool = false,
-        signedOutWithProfilePolicy: SignedOutWithProfilePolicy = .requireSignIn
+        signedOutWithProfilePolicy: SignedOutWithProfilePolicy = .requireSignIn,
+        localProfileAwaitingSignIn: Bool = false,
+        pendingOnboardingCompletion: Bool = false
     ) -> AppShellRoute {
         resolve(
             AppRouteInput(
@@ -70,7 +78,9 @@ enum AppRouteResolver {
                 rootState: rootState,
                 isOnboardingModelReady: isOnboardingModelReady,
                 isOnboardingV2Enabled: isOnboardingV2Enabled,
-                signedOutWithProfilePolicy: signedOutWithProfilePolicy
+                signedOutWithProfilePolicy: signedOutWithProfilePolicy,
+                localProfileAwaitingSignIn: localProfileAwaitingSignIn,
+                pendingOnboardingCompletion: pendingOnboardingCompletion
             )
         )
     }
@@ -121,13 +131,26 @@ enum AppRouteResolver {
     }
 
     private static func resolveSignedOutV2(_ input: AppRouteInput) -> AppShellRoute {
-        if input.hasLocalProfile, input.signedOutWithProfilePolicy == .allowLocalMain {
+        if input.hasLocalProfile,
+           input.signedOutWithProfilePolicy == .allowLocalMain,
+           !shouldDeferLocalProfileShortCircuit(input) {
             return .localMain
+        }
+
+        if input.hasLocalProfile, !input.localProfileAwaitingSignIn {
+            return .signIn
         }
 
         return input.isOnboardingModelReady
             ? .localOnboarding
             : .localOnboardingInitializing
+    }
+
+    private static func shouldDeferLocalProfileShortCircuit(_ input: AppRouteInput) -> Bool {
+        AuthGateRoutingPolicy.shouldDeferLocalProfileShortCircuit(
+            pendingOnboardingCompletion: input.pendingOnboardingCompletion,
+            hasLocalProfile: input.hasLocalProfile
+        )
     }
 
     // MARK: - Legacy / shared signed-in
@@ -203,7 +226,9 @@ extension AppRouteInput {
             rootState: shellInput.rootState,
             isOnboardingModelReady: shellInput.isOnboardingModelReady,
             isOnboardingV2Enabled: shellInput.isOnboardingV2Enabled,
-            signedOutWithProfilePolicy: shellInput.signedOutWithProfilePolicy
+            signedOutWithProfilePolicy: shellInput.signedOutWithProfilePolicy,
+            localProfileAwaitingSignIn: shellInput.localProfileAwaitingSignIn,
+            pendingOnboardingCompletion: shellInput.pendingOnboardingCompletion
         )
     }
 }

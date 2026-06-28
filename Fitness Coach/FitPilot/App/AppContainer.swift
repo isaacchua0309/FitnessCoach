@@ -42,12 +42,14 @@ final class AppContainer {
     let onboardingDraftStore: OnboardingDraftStore
     let onboardingCoachingContextStore: OnboardingCoachingContextStore
     let onboardingAnalyticsLogger: any OnboardingAnalyticsLogging
+    let todayAnalyticsLogger: any TodayAnalyticsLogging
     let onboardingRoutingConfiguration: OnboardingRoutingConfiguration
 
     init(
         inMemory: Bool = false,
         onboardingUserDefaults: UserDefaults? = nil,
         onboardingAnalyticsLogger: (any OnboardingAnalyticsLogging)? = nil,
+        todayAnalyticsLogger: (any TodayAnalyticsLogging)? = nil,
         onboardingRoutingConfiguration: OnboardingRoutingConfiguration? = nil
     ) throws {
         let resolvedOnboardingRoutingConfiguration = onboardingRoutingConfiguration ?? .production
@@ -65,8 +67,10 @@ final class AppContainer {
         )
         #if DEBUG
         self.onboardingAnalyticsLogger = onboardingAnalyticsLogger ?? OSLogOnboardingAnalyticsLogger()
+        self.todayAnalyticsLogger = todayAnalyticsLogger ?? OSLogTodayAnalyticsLogger()
         #else
         self.onboardingAnalyticsLogger = onboardingAnalyticsLogger ?? NoOpOnboardingAnalyticsLogger()
+        self.todayAnalyticsLogger = todayAnalyticsLogger ?? NoOpTodayAnalyticsLogger()
         #endif
         self.onboardingRoutingConfiguration = resolvedOnboardingRoutingConfiguration
 
@@ -202,6 +206,13 @@ final class AppContainer {
         #endif
     }
 
+    func makeTodayActionCoordinator() -> TodayActionCoordinator {
+        TodayActionCoordinator(
+            actionCenter: actionCenter,
+            analyticsLogger: todayAnalyticsLogger
+        )
+    }
+
     func makeTodayModel() -> TodayModel {
         TodayModel(
             dailyLogService: dailyLogService,
@@ -276,7 +287,8 @@ final class AppContainer {
         authState: AuthState,
         rootState: RootViewState = .loading,
         isOnboardingModelReady: Bool = false,
-        awaitingCloudSync: Bool = false
+        awaitingCloudSync: Bool = false,
+        pendingOnboardingCompletion: Bool = false
     ) -> AppShellRoute {
         if awaitingCloudSync,
            AppRouteResolver.isSignedIn(authState),
@@ -290,7 +302,9 @@ final class AppContainer {
             isOnboardingModelReady: isOnboardingModelReady,
             hasLocalProfile: profileBootstrapService.hasLocalProfile(),
             isOnboardingV2Enabled: onboardingRoutingConfiguration.isV2Enabled,
-            signedOutWithProfilePolicy: onboardingRoutingConfiguration.signedOutWithProfilePolicy
+            signedOutWithProfilePolicy: onboardingRoutingConfiguration.signedOutWithProfilePolicy,
+            localProfileAwaitingSignIn: profileBootstrapService.localProfileAwaitingSignIn(),
+            pendingOnboardingCompletion: pendingOnboardingCompletion
         )
     }
 

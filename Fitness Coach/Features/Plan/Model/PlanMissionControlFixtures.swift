@@ -187,7 +187,7 @@ enum PlanMissionControlFixtures {
             weekLogs: activeWeekLogs,
             weekWeights: weights,
             allWeights: weights,
-            integrationState: .connected(workoutDays: 2, averageCaloriesBurned: 320, averageTrainingDurationMinutes: 45)
+            integrationState: .connected
         )
     }
 
@@ -200,10 +200,22 @@ enum PlanMissionControlFixtures {
     private static var activeWeightEntries: [WeightEntry] {
         let start = calendar.date(byAdding: .day, value: -21, to: referenceDate)!
         return [
-            WeightEntry(id: UUID(), weightKg: 91.2, date: start),
-            WeightEntry(id: UUID(), weightKg: 90.8, date: calendar.date(byAdding: .day, value: -14, to: referenceDate)!),
-            WeightEntry(id: UUID(), weightKg: 90.1, date: calendar.date(byAdding: .day, value: -7, to: referenceDate)!),
-            WeightEntry(id: UUID(), weightKg: 89.6, date: referenceDate)
+            WeightEntry(id: UUID(), date: start, weightKg: 91.2, note: nil, createdAt: start),
+            WeightEntry(
+                id: UUID(),
+                date: calendar.date(byAdding: .day, value: -14, to: referenceDate)!,
+                weightKg: 90.8,
+                note: nil,
+                createdAt: calendar.date(byAdding: .day, value: -14, to: referenceDate)!
+            ),
+            WeightEntry(
+                id: UUID(),
+                date: calendar.date(byAdding: .day, value: -7, to: referenceDate)!,
+                weightKg: 90.1,
+                note: nil,
+                createdAt: calendar.date(byAdding: .day, value: -7, to: referenceDate)!
+            ),
+            WeightEntry(id: UUID(), date: referenceDate, weightKg: 89.6, note: nil, createdAt: referenceDate)
         ]
     }
 
@@ -213,9 +225,22 @@ enum PlanMissionControlFixtures {
             return DailyLog(
                 id: UUID(),
                 date: date,
-                totals: DailyNutritionTotals(calories: 2200, protein: 170, carbs: 175, fat: 55),
+                weightKg: nil,
+                targets: loseProfile.targets,
+                totals: MacroTotals(
+                    calories: 2200,
+                    protein: 170,
+                    carbs: 175,
+                    fat: 55,
+                    fiber: nil,
+                    sodium: nil
+                ),
                 waterConsumedMl: 3000,
-                targets: loseProfile.targets
+                steps: nil,
+                workoutCaloriesBurned: 0,
+                dailyReviewId: nil,
+                createdAt: date,
+                updatedAt: date
             )
         }
     }

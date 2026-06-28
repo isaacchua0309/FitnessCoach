@@ -128,6 +128,31 @@ enum JourneyWeeklyReviewBuilder {
         return comparisons.joined(separator: " · ")
     }
 
+    static func trainingValue(for training: JourneyWeeklyTrainingStatus) -> String? {
+        trainingValue(
+            for: JourneyWeeklyReviewState(
+                foodLoggedDays: 0,
+                foodLoggedDaysTotal: 7,
+                proteinGoalDays: 0,
+                proteinGoalDaysTotal: 7,
+                waterGoalDays: 0,
+                waterGoalDaysTotal: 7,
+                trainingDays: training.workoutDays ?? 0,
+                expectedTrainingDays: 0,
+                training: training,
+                weightDeltaThisWeekKg: nil,
+                calorieAdherenceDays: 0,
+                calorieAdherenceDaysTotal: 7,
+                strongestPositiveSignal: "",
+                weakestSignal: "",
+                weekSummaryCopy: "",
+                averageCalorieDeficit: nil,
+                rows: [],
+                weekOverWeekDetail: nil
+            )
+        )
+    }
+
     static func trainingValue(for review: JourneyWeeklyReviewState) -> String? {
         trainingRow(review: review, copy: FormaProductCopy.Journey.WeeklyReview.self)?.value
     }
