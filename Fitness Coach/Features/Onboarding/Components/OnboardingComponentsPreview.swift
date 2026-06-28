@@ -146,6 +146,78 @@ enum OnboardingComponentsPreviewCatalog {
     }
 
     @ViewBuilder
+    static var planRevealProductionSE: some View {
+        if let state = OnboardingPreviewData.planRevealState {
+            OnboardingPlanRevealProductionPreviewShell(
+                revealState: state,
+                plan: OnboardingPreviewData.generatedPlan
+            )
+            .frame(width: 375, height: 667)
+        }
+    }
+
+    @ViewBuilder
+    static var planRevealProductionProMax: some View {
+        if let state = OnboardingPreviewData.planRevealState {
+            OnboardingPlanRevealProductionPreviewShell(
+                revealState: state,
+                plan: OnboardingPreviewData.generatedPlan
+            )
+            .frame(width: 430, height: 932)
+        }
+    }
+
+    @ViewBuilder
+    static var planReveal: some View {
+        if let state = OnboardingPreviewData.planRevealState {
+            OnboardingPlanRevealStepView(
+                revealState: state,
+                plan: OnboardingPreviewData.generatedPlan
+            )
+        }
+    }
+
+    @ViewBuilder
+    static var planRevealCards: some View {
+        if let state = OnboardingPreviewData.planRevealState {
+            VStack(spacing: FormaTokens.Spacing.sm) {
+                OnboardingPlanRevealGoalHeroCard(
+                    badge: state.goalHeroSectionTitle,
+                    headline: state.goalHeroHeadline,
+                    strategyLabel: state.strategyLabel,
+                    direction: state.goalDirection
+                )
+                OnboardingPlanRevealJourneyCard(
+                    sectionTitle: FormaProductCopy.Onboarding.V2.PlanReveal.Cards.journeyTitle,
+                    progressLabel: state.goalProgressLabel,
+                    paceLabel: state.paceLabel,
+                    estimatedWeeksLabel: state.estimatedWeeksLabel,
+                    beliefLine: state.journeyBeliefLine,
+                    planStatus: nil
+                )
+                OnboardingPlanRevealFirstWeekCard(
+                    sectionTitle: FormaProductCopy.Onboarding.V2.PlanReveal.Cards.firstWeekTitle,
+                    missions: state.firstWeekMissions
+                )
+                OnboardingPlanRevealNutritionCard(
+                    sectionTitle: FormaProductCopy.Onboarding.V2.PlanReveal.Cards.dailyFuelTitle,
+                    explanationLine: state.calorieExplanationLine,
+                    calorieLabel: state.dailyCalorieLabel,
+                    proteinLabel: state.proteinLabel,
+                    waterLabel: state.waterLabel,
+                    secondaryMacroRows: state.secondaryMacroRows
+                )
+                OnboardingPlanRevealCoachCard(message: state.coachMessage)
+            }
+            .environment(
+                \.onboardingPlanRevealVisibleStages,
+                Set(OnboardingPlanRevealEntranceStage.allCases)
+            )
+            .padding(.horizontal, OnboardingTheme.pagePadding)
+        }
+    }
+
+    @ViewBuilder
     static var heightWeight: some View {
         OnboardingHeightWeightStepView(
             formState: .constant({
@@ -337,6 +409,30 @@ enum OnboardingComponentsPreviewCatalog {
 #Preview("Target Weight Ruler — Imperial") {
     OnboardingComponentsPreviewCatalog.targetWeightRulerImperial
         .padding()
+        .background(OnboardingTheme.background)
+        .formaThemePreview()
+}
+
+#Preview("Plan Reveal — iPhone SE") {
+    OnboardingComponentsPreviewCatalog.planRevealProductionSE
+        .background(OnboardingTheme.background)
+        .formaThemePreview()
+}
+
+#Preview("Plan Reveal — Pro Max") {
+    OnboardingComponentsPreviewCatalog.planRevealProductionProMax
+        .background(OnboardingTheme.background)
+        .formaThemePreview()
+}
+
+#Preview("Plan Reveal") {
+    OnboardingComponentsPreviewCatalog.planReveal
+        .background(OnboardingTheme.background)
+        .formaThemePreview()
+}
+
+#Preview("Plan Reveal Cards") {
+    OnboardingComponentsPreviewCatalog.planRevealCards
         .background(OnboardingTheme.background)
         .formaThemePreview()
 }

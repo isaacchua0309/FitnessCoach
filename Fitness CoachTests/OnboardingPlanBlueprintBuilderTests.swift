@@ -27,40 +27,41 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
         "edit your answers"
     ]
 
-    func testLossGoalPersonalizationSummary() {
+    func testMaintainGoalCard() {
+        let state = makeFormState(currentKg: 70, goalDeltaKg: 0)
+        let blueprint = OnboardingPlanBlueprintBuilder.build(from: state, referenceDate: referenceDate)
+        let goalCard = FormaProductCopy.Onboarding.Flow.Summary.GoalCard.self
+
+        XCTAssertEqual(blueprint.heroTitle, "Your plan blueprint")
+        XCTAssertEqual(blueprint.illustrationStyle, .maintain)
+        XCTAssertEqual(blueprint.goalCard.directionLabel, goalCard.maintainDirection)
+        XCTAssertEqual(blueprint.goalCard.targetWeight, "70 kg")
+        XCTAssertEqual(blueprint.goalCard.paceValue, goalCard.maintainPace)
+        XCTAssertEqual(blueprint.goalCard.timelineValue, goalCard.maintainTimeline)
+        XCTAssertTrue(blueprint.isPersonalized)
+    }
+
+    func testLossGoalCardIncludesPaceAndTimeline() {
         let state = makeFormState(currentKg: 70, goalDeltaKg: -3.5)
         let blueprint = OnboardingPlanBlueprintBuilder.build(from: state, referenceDate: referenceDate)
 
-        XCTAssertEqual(blueprint.headline, "We listened.")
-        XCTAssertEqual(
-            blueprint.supportingParagraph,
-            FormaProductCopy.Onboarding.Flow.Summary.supportingParagraph
-        )
-        XCTAssertTrue(blueprint.personalizationSummary.contains("Lose 3.5 kg"))
-        XCTAssertTrue(blueprint.personalizationSummary.contains("70 kg → 66.5 kg"))
-        XCTAssertTrue(blueprint.personalizationSummary.contains("Moderately active"))
-        XCTAssertTrue(blueprint.isPersonalized)
-        XCTAssertTrue(blueprint.accessibilityLabel.contains("We listened."))
-        XCTAssertTrue(blueprint.accessibilityLabel.contains("Your plan:"))
+        XCTAssertEqual(blueprint.illustrationStyle, .loss)
+        XCTAssertEqual(blueprint.goalCard.directionLabel, "Lose toward")
+        XCTAssertEqual(blueprint.goalCard.targetWeight, "66.5 kg")
+        XCTAssertTrue(blueprint.goalCard.paceValue.contains("kg"))
+        XCTAssertTrue(blueprint.goalCard.timelineValue.contains("weeks"))
     }
 
-    func testGainGoalPersonalizationSummary() {
+    func testGainGoalCard() {
         let state = makeFormState(currentKg: 66, goalDeltaKg: 4)
         let blueprint = OnboardingPlanBlueprintBuilder.build(from: state, referenceDate: referenceDate)
+        let goalCard = FormaProductCopy.Onboarding.Flow.Summary.GoalCard.self
 
-        XCTAssertTrue(blueprint.personalizationSummary.contains("Gain 4 kg"))
-        XCTAssertTrue(blueprint.personalizationSummary.contains("66 kg → 70 kg"))
-    }
-
-    func testMaintainGoalPersonalizationSummary() {
-        let state = makeFormState(currentKg: 70, goalDeltaKg: 0)
-        let blueprint = OnboardingPlanBlueprintBuilder.build(from: state, referenceDate: referenceDate)
-
-        XCTAssertTrue(blueprint.personalizationSummary.contains("Stay near 70 kg"))
-        XCTAssertTrue(blueprint.personalizationSummary.contains("Moderately active"))
-        XCTAssertFalse(
-            blueprint.personalizationSummary.lowercased().contains("we'll help you stay consistent")
-        )
+        XCTAssertEqual(blueprint.illustrationStyle, .gain)
+        XCTAssertEqual(blueprint.goalCard.directionLabel, goalCard.gainDirection)
+        XCTAssertEqual(blueprint.goalCard.targetWeight, "70 kg")
+        XCTAssertEqual(blueprint.goalCard.paceValue, goalCard.gainPace)
+        XCTAssertEqual(blueprint.goalCard.timelineValue, goalCard.gainTimeline)
     }
 
     func testFallbackWhenWeightsMissing() {
@@ -68,11 +69,10 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
             from: OnboardingFormState(),
             referenceDate: referenceDate
         )
+        let goalCard = FormaProductCopy.Onboarding.Flow.Summary.GoalCard.self
 
-        XCTAssertEqual(
-            blueprint.personalizationSummary,
-            FormaProductCopy.Onboarding.Flow.Summary.fallbackPersonalizationSummary
-        )
+        XCTAssertEqual(blueprint.illustrationStyle, .fallback)
+        XCTAssertEqual(blueprint.goalCard.targetWeight, goalCard.fallbackTarget)
         XCTAssertFalse(blueprint.isPersonalized)
     }
 
@@ -81,18 +81,36 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
         state.unitSystem = .imperial
         let blueprint = OnboardingPlanBlueprintBuilder.build(from: state, referenceDate: referenceDate)
 
-        XCTAssertTrue(blueprint.personalizationSummary.contains("lb"))
+        XCTAssertTrue(blueprint.goalCard.targetWeight.contains("lb"))
     }
 
-    func testPillarsUsePersonalizationCopy() {
+    func testPremiumFeaturesUseBlueprintCopy() {
         let blueprint = OnboardingPlanBlueprintBuilder.build(
             from: makeFormState(currentKg: 70, goalDeltaKg: -2),
             referenceDate: referenceDate
         )
-        let pillars = FormaProductCopy.Onboarding.Flow.Summary.Pillars.self
+        let features = FormaProductCopy.Onboarding.Flow.Summary.PremiumFeatures.self
 
-        XCTAssertEqual(blueprint.pillars.count, 3)
-        XCTAssertEqual(blueprint.pillars.map(\.title), pillars.items.map(\.title))
+        XCTAssertEqual(blueprint.premiumFeatures.count, 3)
+        XCTAssertEqual(blueprint.premiumFeatures.map(\.title), ["Nutrition", "Activity", "Progress"])
+    }
+
+    func testGeneratedSignalsIncludeSixInputs() {
+        let blueprint = OnboardingPlanBlueprintBuilder.build(
+            from: makeFormState(currentKg: 70, goalDeltaKg: -2),
+            referenceDate: referenceDate
+        )
+        let copy = FormaProductCopy.Onboarding.Flow.Summary.GeneratedSummary.self
+
+        XCTAssertEqual(blueprint.generatedSignals.count, 6)
+        XCTAssertEqual(blueprint.generatedSignals.map(\.id), [
+            "activity", "currentWeight", "goal", "nutrition", "lifestyle", "training"
+        ])
+        XCTAssertTrue(blueprint.generatedSignals.allSatisfy(\.isIncluded))
+        XCTAssertEqual(blueprint.generatedSignals[0].label, copy.activityLevel)
+        XCTAssertEqual(blueprint.generatedSignals[1].label, copy.currentWeight)
+        XCTAssertEqual(blueprint.generatedSignals[3].label, copy.nutritionTargets)
+        XCTAssertEqual(blueprint.generatedSignals[5].label, copy.trainingRhythm)
     }
 
     func testBlueprintCopyAvoidsUnsafeClaims() {
@@ -123,7 +141,7 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
             referenceDate: referenceDate
         )
 
-        XCTAssertTrue(blueprint.personalizationSummary.contains("Lose 5 kg"))
+        XCTAssertEqual(blueprint.goalCard.targetWeight, "65 kg")
         XCTAssertTrue(blueprint.isPersonalized)
     }
 
@@ -135,13 +153,14 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
         XCTAssertFalse(OnboardingStep.review.showsProgressHeader)
     }
 
-    func testMaintainAccessibilityLabelUsesLearnedFraming() {
+    func testAccessibilityLabelIncludesGoalAndFeatures() {
         let state = makeFormState(currentKg: 70, goalDeltaKg: 0)
         let blueprint = OnboardingPlanBlueprintBuilder.build(from: state, referenceDate: referenceDate)
 
-        XCTAssertTrue(blueprint.accessibilityLabel.contains("We listened."))
-        XCTAssertTrue(blueprint.accessibilityLabel.contains("Stay near 70 kilograms"))
-        XCTAssertTrue(blueprint.accessibilityLabel.contains("Targets tuned to your body"))
+        XCTAssertTrue(blueprint.accessibilityLabel.contains("Your plan blueprint"))
+        XCTAssertTrue(blueprint.accessibilityLabel.contains("Maintain"))
+        XCTAssertTrue(blueprint.accessibilityLabel.contains("Built using"))
+        XCTAssertTrue(blueprint.accessibilityLabel.contains("Nutrition"))
     }
 
     // MARK: - Helpers
@@ -172,11 +191,24 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
         let copy = FormaProductCopy.Onboarding.Flow.Summary.self
         return [
             copy.title,
-            copy.supportingParagraph,
-            copy.fallbackPersonalizationSummary,
-            copy.Pillars.accessibilityLabel,
-            copy.Pillars.items.map(\.title).joined(separator: " "),
-            copy.buildPlanCTA
+            copy.buildPlanCTA,
+            copy.buildPlanAnticipationHeadline,
+            copy.buildPlanAnticipationSubline,
+            copy.buildPlanAnticipationAccessibilityLabel,
+            copy.GoalCard.maintainTimeline,
+            copy.GoalCard.maintainPace,
+            copy.GoalCard.gainTimeline,
+            copy.PremiumFeatures.accessibilityLabel,
+            copy.PremiumFeatures.items.map(\.title).joined(separator: " "),
+            copy.GeneratedSummary.title,
+            copy.GeneratedSummary.activityLevel,
+            copy.GeneratedSummary.currentWeight,
+            copy.GeneratedSummary.goal,
+            copy.GeneratedSummary.nutritionTargets,
+            copy.GeneratedSummary.lifestyle,
+            copy.GeneratedSummary.trainingRhythm,
+            copy.GeneratedSummary.nutritionDetail,
+            copy.GeneratedSummary.accessibilityLabel,
         ]
     }
 }

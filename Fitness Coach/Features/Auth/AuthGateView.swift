@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct AuthGateView: View {
 
@@ -510,6 +511,11 @@ struct AuthGateView: View {
     }
 
     private func handleOnboardingCompletionRequest() {
+        if onboardingModel?.pendingCompletionIntent == .localOnly {
+            finishOnboardingAfterLocalSkip()
+            return
+        }
+
         if AppRouteResolver.isSignedIn(authManager.authState) {
             guard let uid = authManager.currentUID else {
                 finishOnboardingLocally()
@@ -555,10 +561,18 @@ struct AuthGateView: View {
     }
 
     private func finishOnboardingCompletionAfterSuccessfulSync() {
-        onboardingModel?.finalizeAfterSuccessfulSignIn()
-        clearOnboardingCompletionState()
-        awaitingCloudSync = false
-        rootModel.didCompleteOnboarding()
+        OnboardingLocalCompletionMarker.clear()
+        onboardingModel?.markSignInSucceededForHandoff()
+
+        Task { @MainActor in
+            let handoffDelayNanoseconds: UInt64 = UIAccessibility.isReduceMotionEnabled
+                ? 280_000_000
+                : 720_000_000
+            try? await Task.sleep(nanoseconds: handoffDelayNanoseconds)
+            clearOnboardingCompletionState()
+            awaitingCloudSync = false
+            rootModel.didCompleteOnboarding()
+        }
     }
 
     private func clearProfileConflictState() {
@@ -676,6 +690,14 @@ struct AuthGateView: View {
     private func retryOnboardingCompletionCloudCheck() {
         guard let uid = authManager.currentUID else { return }
         Task { await resolveOnboardingCompletionAfterSignIn(uid: uid) }
+    }
+
+    private func finishOnboardingAfterLocalSkip() {
+        OnboardingLocalCompletionMarker.markAcknowledged()
+        onboardingModel?.finalizeAfterLocalSkip()
+        clearOnboardingCompletionState()
+        awaitingCloudSync = false
+        rootModel.didCompleteOnboarding()
     }
 
     private func finishOnboardingLocally() {
@@ -822,10 +844,7 @@ struct AuthGateView: View {
             } else {
                 wasCancelled = false
             }
-            onboardingModel?.handleSignInCompletionFailure(
-                message: onboardingSignInFailureMessage(from: state),
-                wasCancelled: wasCancelled
-            )
+            onboardingModel?.handleSignInCompletionFailure(wasCancelled: wasCancelled)
         }
 
         if wasSignedIn {
@@ -1234,14 +1253,6 @@ struct AuthGateView: View {
     private func retryProfileLoad() {
         guard case .signedIn(let uid) = authManager.authState else { return }
         rootModel.retry(uid: uid)
-    }
-
-    private func onboardingSignInFailureMessage(from state: AuthState) -> String {
-        if case .failed = state,
-           let presentation = AuthSignInPresentationPolicy.failurePresentation(authState: state) {
-            return presentation.message
-        }
-        return FormaProductCopy.Onboarding.V2.SavePlan.signInRetryMessage
     }
 }
 

@@ -20,10 +20,11 @@ struct OnboardingAlmostThereStepView: View {
         ) {
             OnboardingStageProgressHeader(currentStep: .almostThere, showsTitles: false)
         } content: {
-            VStack(spacing: FormaTokens.Spacing.sm) {
+            VStack(spacing: 0) {
                 OnboardingIllustrationContainer(style: .coachWaiting)
                     .onboardingVisionZone(.hero)
                     .onboardingStageEntrance(.hero)
+                    .accessibilitySortPriority(90)
 
                 OnboardingHeroSection(
                     headline: copy.headline,
@@ -31,6 +32,7 @@ struct OnboardingAlmostThereStepView: View {
                 )
                 .onboardingVisionZone(.narrative)
                 .onboardingStageEntrance(.headline)
+                .accessibilitySortPriority(80)
 
                 OnboardingTransformationCard(
                     benefits: OnboardingAlmostThereValues.benefits,
@@ -38,12 +40,14 @@ struct OnboardingAlmostThereStepView: View {
                 )
                 .onboardingVisionZone(.benefits)
                 .onboardingStageEntrance(.benefits)
+                .accessibilitySortPriority(70)
 
                 OnboardingFooterMessage(message: copy.trustFooter)
                     .onboardingVisionZone(.footer)
                     .onboardingStageEntrance(.footer)
+                    .accessibilitySortPriority(60)
             }
-            .onboardingVisionZoneWeights(OnboardingVisionZoneWeights.almostThere)
+            .onboardingVisionScreen(.almostThere)
         }
     }
 
@@ -61,11 +65,25 @@ struct OnboardingAlmostThereStepView: View {
         .formaThemePreview()
 }
 
+#Preview("Almost There — iPhone SE") {
+    OnboardingAlmostThereStepView()
+        .background(OnboardingTheme.background)
+        .formaThemePreview()
+        .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
+}
+
 #Preview("Almost There — Large Dynamic Type") {
     OnboardingAlmostThereStepView()
         .background(OnboardingTheme.background)
         .formaThemePreview()
         .dynamicTypeSize(.accessibility2)
+}
+
+#Preview("Almost There — Landscape") {
+    OnboardingAlmostThereStepView()
+        .background(OnboardingTheme.background)
+        .formaThemePreview()
+        .previewInterfaceOrientation(.landscapeLeft)
 }
 
 #Preview("Almost There — Dark Mode") {

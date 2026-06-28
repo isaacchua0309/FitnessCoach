@@ -28,16 +28,22 @@ struct OnboardingGeneratingPlanStepView: View {
         viewState == .generatingPlanAnimated
     }
 
+    private var showsSuccess: Bool {
+        viewState == .generationSucceeded
+    }
+
     private var showsFailure: Bool {
         viewState == .generationFailed
     }
 
     private var heroStyle: OnboardingGeneratingPlanHeroView.Style {
         if showsFailure { return .failure }
+        if showsSuccess { return .success }
         return .generating
     }
 
     private var progress: Double {
+        if showsSuccess { return 1 }
         guard !checklist.isEmpty else { return 0 }
         return Double(completedStepCount) / Double(checklist.count)
     }
@@ -59,13 +65,15 @@ struct OnboardingGeneratingPlanStepView: View {
 
             if showsFailure {
                 failureContent
+            } else if showsSuccess {
+                EmptyView()
             } else {
                 stepSection
             }
 
             Spacer(minLength: FormaTokens.Spacing.lg)
 
-            if !showsFailure {
+            if !showsFailure, !showsSuccess {
                 anticipationSection
             }
         }
@@ -73,8 +81,16 @@ struct OnboardingGeneratingPlanStepView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilitySummary)
-        .task(id: viewState) {
+        .task(id: viewState == .generatingPlanAnimated) {
+            guard viewState == .generatingPlanAnimated else { return }
             await runGenerationPresentation()
+        }
+        .onChange(of: viewState) { _, newValue in
+            guard newValue == .generationSucceeded else { return }
+            withAnimation(reduceMotion ? nil : .easeOut(duration: OnboardingGeneratingPlanTiming.stepTransitionAnimation)) {
+                heroVisible = true
+                titleVisible = true
+            }
         }
         .onChange(of: activeStepIndex) { _, newValue in
             announceStepChangeIfNeeded(newValue)
@@ -107,6 +123,9 @@ struct OnboardingGeneratingPlanStepView: View {
     private var currentTitle: String {
         if showsFailure {
             return FormaProductCopy.Onboarding.V2.Generating.failureTitle
+        }
+        if showsSuccess {
+            return FormaProductCopy.Onboarding.V2.Generating.successTitle
         }
         return FormaProductCopy.Onboarding.V2.Generating.title
     }
@@ -308,6 +327,12 @@ struct OnboardingGeneratingPlanStepView: View {
                 FormaProductCopy.Onboarding.V2.Generating.failureMessage
             ].joined(separator: ". ")
         }
+        if showsSuccess {
+            return [
+                FormaProductCopy.Onboarding.V2.Generating.successTitle,
+                FormaProductCopy.Onboarding.Flow.PlanReveal.subtitle
+            ].joined(separator: ". ")
+        }
         if let activeStepLabel {
             return [
                 FormaProductCopy.Onboarding.V2.Generating.title,
@@ -358,10 +383,10 @@ struct OnboardingGeneratingPlanStepView: View {
         try? await Task.sleep(
             nanoseconds: UInt64(OnboardingGeneratingPlanTiming.firstStepDelay * 1_000_000_000)
         )
-        guard !Task.isCancelled, isGenerating else { return }
+        guard !Task.isCancelled, canContinueChecklistAnimation else { return }
 
         for (index, duration) in stepDurations.enumerated() {
-            guard !Task.isCancelled, isGenerating else { return }
+            guard !Task.isCancelled, canContinueChecklistAnimation else { return }
 
             withAnimation(
                 reduceMotion
@@ -372,7 +397,7 @@ struct OnboardingGeneratingPlanStepView: View {
             }
 
             try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
-            guard !Task.isCancelled, isGenerating else { return }
+            guard !Task.isCancelled, canContinueChecklistAnimation else { return }
 
             withAnimation(
                 reduceMotion
@@ -386,7 +411,11 @@ struct OnboardingGeneratingPlanStepView: View {
             }
         }
 
-        guard !Task.isCancelled, isGenerating else { return }
+        guard !Task.isCancelled, canContinueChecklistAnimation else { return }
+    }
+
+    private var canContinueChecklistAnimation: Bool {
+        viewState == .generatingPlanAnimated
     }
 
     @MainActor

@@ -23,11 +23,14 @@ enum OnboardingGeneratingPlanTiming {
     /// Reassuring copy when generation outlasts the staged animation.
     static let slowGenerationThreshold: TimeInterval = 3.5
 
+    /// Minimum staged presentation time before the success beat can begin.
+    static var minimumPresentationBeforeSuccess: TimeInterval {
+        firstStepDelay + stepActiveDurations.reduce(0, +)
+    }
+
     /// Minimum time the generating screen stays visible while the plan is computed.
     static var minimumDisplayDuration: TimeInterval {
-        firstStepDelay
-            + stepActiveDurations.reduce(0, +)
-            + successHold
+        minimumPresentationBeforeSuccess + successHold
     }
 
     static func validateChecklistAlignment() {

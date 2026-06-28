@@ -17,11 +17,7 @@ struct OnboardingPlanRevealNutritionCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-            Text(sectionTitle.uppercased())
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.tertiaryText)
-                .tracking(0.4)
-                .accessibilityAddTraits(.isHeader)
+            OnboardingPlanRevealSectionHeader(title: sectionTitle)
 
             Text(explanationLine)
                 .font(.caption2)
@@ -44,12 +40,10 @@ struct OnboardingPlanRevealNutritionCard: View {
                 }
             }
         }
-        .padding(OnboardingLayout.compactCardPadding)
+        .onboardingPlanRevealCardPadding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-                .fill(FormaTokens.Color.surfaceSubtle)
-        )
+        .background { OnboardingPlanRevealCardBackground(surface: .subtle) }
+        .onboardingPlanRevealEntrance(.nutrition)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilityLabel)
     }

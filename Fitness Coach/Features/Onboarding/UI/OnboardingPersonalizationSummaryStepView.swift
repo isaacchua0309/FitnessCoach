@@ -2,7 +2,7 @@
 //  OnboardingPersonalizationSummaryStepView.swift
 //  Fitness Coach
 //
-//  Forma — Plan-learned milestone before generation.
+//  Forma — Fixed-viewport plan blueprint screen before generation.
 //
 
 import SwiftUI
@@ -14,10 +14,12 @@ struct OnboardingPersonalizationSummaryStepView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var chromeVisible = false
-    @State private var headlineVisible = false
-    @State private var supportingVisible = false
-    @State private var summaryVisible = false
-    @State private var pillarsVisible = false
+    @State private var heroVisible = false
+    @State private var canvasVisible = false
+    @State private var goalVisible = false
+    @State private var featuresVisible = false
+    @State private var signalsVisible = false
+    @State private var launchReady = false
     @State private var didPlayAppearHaptic = false
 
     private var displayState: OnboardingPlanBlueprintState {
@@ -36,32 +38,19 @@ struct OnboardingPersonalizationSummaryStepView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 6) {
             progressChrome
-                .padding(.bottom, FormaTokens.Spacing.md)
 
             if showsValidationBanner {
                 OnboardingWarningBanner(message: bannerMessage)
                     .opacity(chromeVisible ? 1 : 0)
-                    .padding(.bottom, FormaTokens.Spacing.sm)
             }
 
-            Spacer(minLength: FormaTokens.Spacing.xs)
-
-            headlineSection
-                .padding(.bottom, FormaTokens.Spacing.md)
-
-            supportingSection
-                .padding(.bottom, FormaTokens.Spacing.lg)
-
-            summarySection
-                .padding(.bottom, FormaTokens.Spacing.lg)
-
-            Spacer(minLength: FormaTokens.Spacing.sm)
-
-            pillarsSection
-
-            Spacer(minLength: 0)
+            heroTitle
+            visualCanvas
+            goalCard
+            premiumFeatures
+            signalStrip
         }
         .padding(.horizontal, OnboardingTheme.pagePadding)
         .padding(.top, OnboardingLayout.progressHeaderTop)
@@ -71,84 +60,94 @@ struct OnboardingPersonalizationSummaryStepView: View {
         .onAppear {
             runEntranceAnimation()
             playAppearHapticIfNeeded()
+            scheduleLaunchReady()
         }
     }
 
     private var progressChrome: some View {
-        OnboardingStageProgressHeader(currentStep: .review, showsTitles: false)
-            .opacity(chromeVisible ? 1 : 0)
-            .offset(y: chromeVisible ? 0 : 4)
+        OnboardingStageProgressHeader(
+            currentStep: .review,
+            showsTitles: false,
+            emphasizesLaunch: true,
+            launchReady: launchReady
+        )
+        .opacity(chromeVisible ? 1 : 0)
     }
 
-    private var headlineSection: some View {
-        Text(displayState.headline)
-            .font(.system(.largeTitle, design: .rounded).weight(.bold))
+    private var heroTitle: some View {
+        Text(displayState.heroTitle)
+            .font(.system(.title2, design: .rounded).weight(.bold))
             .foregroundStyle(OnboardingTheme.primaryText)
             .multilineTextAlignment(.center)
             .minimumScaleFactor(0.72)
-            .lineLimit(2)
-            .fixedSize(horizontal: false, vertical: true)
+            .lineLimit(1)
             .frame(maxWidth: .infinity)
-            .opacity(headlineVisible ? 1 : 0)
-            .offset(y: headlineVisible ? 0 : 8)
+            .opacity(heroVisible ? 1 : 0)
+            .offset(y: heroVisible ? 0 : 4)
             .accessibilityAddTraits(.isHeader)
     }
 
-    private var supportingSection: some View {
-        Text(displayState.supportingParagraph)
-            .font(.title3.weight(.medium))
-            .foregroundStyle(OnboardingTheme.secondaryText)
-            .multilineTextAlignment(.center)
-            .minimumScaleFactor(0.85)
-            .lineLimit(4)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity)
-            .opacity(supportingVisible ? 1 : 0)
-            .offset(y: supportingVisible ? 0 : 8)
+    private var visualCanvas: some View {
+        OnboardingPlanBlueprintVisualCanvas(
+            profile: displayState.visualProfile,
+            launchReady: launchReady
+        )
+            .opacity(canvasVisible ? 1 : 0)
+            .scaleEffect(canvasVisible ? 1 : 0.96)
     }
 
-    private var summarySection: some View {
-        OnboardingPlanBlueprintPersonalizationSummaryCard(
-            summary: displayState.personalizationSummary
+    private var goalCard: some View {
+        OnboardingPlanBlueprintGoalHeroCard(
+            state: displayState.goalCard,
+            launchReady: launchReady
         )
-        .opacity(summaryVisible ? 1 : 0)
-        .offset(y: summaryVisible ? 0 : 8)
-        .scaleEffect(summaryVisible ? 1 : 0.97)
+            .opacity(goalVisible ? 1 : 0)
+            .offset(y: goalVisible ? 0 : 6)
     }
 
-    private var pillarsSection: some View {
-        OnboardingPlanBlueprintPillarsSection(
-            pillars: displayState.pillars,
-            accessibilityLabel: FormaProductCopy.Onboarding.Flow.Summary.Pillars.accessibilityLabel
+    private var premiumFeatures: some View {
+        OnboardingPlanBlueprintPremiumFeatureRow(
+            features: displayState.premiumFeatures,
+            accessibilityLabel: FormaProductCopy.Onboarding.Flow.Summary.PremiumFeatures.accessibilityLabel
         )
-        .opacity(pillarsVisible ? 1 : 0)
-        .offset(y: pillarsVisible ? 0 : 10)
+        .opacity(featuresVisible ? 1 : 0)
+        .offset(y: featuresVisible ? 0 : 6)
+    }
+
+    private var signalStrip: some View {
+        OnboardingPlanBlueprintPersonalizationSignalStrip(
+            signals: displayState.generatedSignals,
+            launchReady: launchReady
+        )
+            .opacity(signalsVisible ? 1 : 0)
     }
 
     private func runEntranceAnimation() {
         if reduceMotion {
             chromeVisible = true
-            headlineVisible = true
-            supportingVisible = true
-            summaryVisible = true
-            pillarsVisible = true
+            heroVisible = true
+            canvasVisible = true
+            goalVisible = true
+            featuresVisible = true
+            signalsVisible = true
             return
         }
 
-        withAnimation(.easeOut(duration: 0.22)) {
-            chromeVisible = true
+        withAnimation(.easeOut(duration: 0.2)) { chromeVisible = true }
+        withAnimation(.easeOut(duration: 0.22).delay(0.03)) { heroVisible = true }
+        withAnimation(.easeOut(duration: 0.28).delay(0.08)) { canvasVisible = true }
+        withAnimation(.easeOut(duration: 0.24).delay(0.16)) { goalVisible = true }
+        withAnimation(.easeOut(duration: 0.22).delay(0.22)) { featuresVisible = true }
+        withAnimation(.easeOut(duration: 0.20).delay(0.28)) { signalsVisible = true }
+    }
+
+    private func scheduleLaunchReady() {
+        if reduceMotion {
+            launchReady = true
+            return
         }
-        withAnimation(.easeOut(duration: 0.28).delay(0.06)) {
-            headlineVisible = true
-        }
-        withAnimation(.easeOut(duration: 0.26).delay(0.14)) {
-            supportingVisible = true
-        }
-        withAnimation(.easeOut(duration: 0.28).delay(0.24)) {
-            summaryVisible = true
-        }
-        withAnimation(.easeOut(duration: 0.24).delay(0.36)) {
-            pillarsVisible = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + OnboardingPlanBlueprintLaunchTiming.readyDelay) {
+            launchReady = true
         }
     }
 
@@ -160,40 +159,26 @@ struct OnboardingPersonalizationSummaryStepView: View {
 }
 
 #if DEBUG
-#Preview("Loss goal") {
-    OnboardingPersonalizationSummaryStepView(
-        formState: {
-            var state = OnboardingPreviewData.formState
-            OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &state)
-            OnboardingTargetWeightValues.setGoalFromDeltaKg(-3.5, in: &state)
-            return state
-        }(),
-        validationMessage: nil
-    )
-    .background(OnboardingTheme.background)
-    .formaThemePreview()
-}
-
-#Preview("Gain goal") {
-    OnboardingPersonalizationSummaryStepView(
-        formState: {
-            var state = OnboardingPreviewData.formState
-            OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &state)
-            OnboardingTargetWeightValues.setGoalFromDeltaKg(4, in: &state)
-            return state
-        }(),
-        validationMessage: nil
-    )
-    .background(OnboardingTheme.background)
-    .formaThemePreview()
-}
-
-#Preview("Maintain goal") {
+#Preview("Maintain") {
     OnboardingPersonalizationSummaryStepView(
         formState: {
             var state = OnboardingPreviewData.formState
             OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &state)
             state.goalWeightKgText = state.currentWeightKgText
+            return state
+        }(),
+        validationMessage: nil
+    )
+    .background(OnboardingTheme.background)
+    .formaThemePreview()
+}
+
+#Preview("Loss") {
+    OnboardingPersonalizationSummaryStepView(
+        formState: {
+            var state = OnboardingPreviewData.formState
+            OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &state)
+            OnboardingTargetWeightValues.setGoalFromDeltaKg(-3.5, in: &state)
             return state
         }(),
         validationMessage: nil
@@ -210,37 +195,5 @@ struct OnboardingPersonalizationSummaryStepView: View {
     .background(OnboardingTheme.background)
     .formaThemePreview()
     .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
-}
-
-#Preview("Large Dynamic Type") {
-    OnboardingPersonalizationSummaryStepView(
-        formState: OnboardingPreviewData.formState,
-        validationMessage: nil
-    )
-    .background(OnboardingTheme.background)
-    .formaThemePreview()
-    .dynamicTypeSize(.accessibility2)
-}
-
-#Preview("Fallback") {
-    OnboardingPersonalizationSummaryStepView(
-        formState: OnboardingFormState(),
-        validationMessage: nil
-    )
-    .background(OnboardingTheme.background)
-    .formaThemePreview()
-}
-
-#Preview("Incomplete") {
-    OnboardingPersonalizationSummaryStepView(
-        formState: {
-            var state = OnboardingFormState()
-            state.ageText = ""
-            return state
-        }(),
-        validationMessage: FormaProductCopy.Onboarding.V2.Validation.summaryIncomplete
-    )
-    .background(OnboardingTheme.background)
-    .formaThemePreview()
 }
 #endif

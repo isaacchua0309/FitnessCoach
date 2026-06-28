@@ -66,7 +66,7 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
         XCTAssertNil(reveal.paceLabel)
         XCTAssertNil(reveal.estimatedWeeksLabel)
         XCTAssertNil(reveal.goalHeroProgressLine)
-        XCTAssertEqual(reveal.goalHeroHeadline, "Maintain 72 kg")
+        XCTAssertEqual(reveal.goalHeroHeadline, "Maintain around 72 kg")
         XCTAssertEqual(
             reveal.goalHeroSupport,
             FormaProductCopy.Onboarding.V2.PlanReveal.GoalHero.maintainSupport
@@ -107,7 +107,8 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
 
         XCTAssertTrue(reveal.goalHeroHeadline.contains("lb"))
         XCTAssertTrue(reveal.goalHeroProgressLine?.contains("lb") == true)
-        XCTAssertTrue(reveal.accessibilitySummary.contains("pounds"))
+        XCTAssertTrue(reveal.accessibilitySummary.contains("Goal:"))
+        XCTAssertTrue(reveal.accessibilitySummary.contains("lb"))
     }
 
     // MARK: - Missing weekly loss
@@ -283,19 +284,77 @@ final class OnboardingPlanRevealBuilderTests: XCTestCase {
         XCTAssertFalse(combined.contains("automatic"))
     }
 
-    func testAccessibilitySummaryLeadsWithGoalBeforeDailyFuel() throws {
+    func testAccessibilitySummaryFollowsEmotionalHierarchy() throws {
         let form = bodyForm(currentWeightKg: 70, goalWeightKg: 70)
         let plan = try samplePlan(for: form)
         let reveal = try XCTUnwrap(OnboardingPlanRevealBuilder.build(formState: form, plan: plan))
 
-        XCTAssertTrue(reveal.accessibilitySummary.contains("Your Forma plan is ready"))
-        XCTAssertTrue(reveal.accessibilitySummary.contains("maintain"))
-        XCTAssertTrue(reveal.accessibilitySummary.contains("Daily fuel"))
-        XCTAssertTrue(reveal.accessibilitySummary.contains("First mission"))
-        XCTAssertFalse(reveal.accessibilitySummary.contains("daily mission"))
-        let goalRange = reveal.accessibilitySummary.range(of: "maintain")!
-        let fuelRange = reveal.accessibilitySummary.range(of: "Daily fuel")!
+        let summary = reveal.accessibilitySummary
+        let labels = FormaProductCopy.Onboarding.V2.PlanReveal.Accessibility.self
+
+        XCTAssertTrue(summary.contains(FormaProductCopy.Onboarding.Flow.PlanReveal.title))
+        XCTAssertTrue(summary.contains(FormaProductCopy.Onboarding.Flow.PlanReveal.subtitle))
+        XCTAssertTrue(summary.contains("\(labels.goal): Maintain around 70 kg."))
+        XCTAssertTrue(summary.contains("\(labels.journey):"))
+        XCTAssertTrue(summary.contains("\(labels.firstWeek):"))
+        XCTAssertTrue(summary.contains("\(labels.dailyFuel):"))
+        XCTAssertTrue(summary.contains(reveal.coachMessage))
+        XCTAssertFalse(summary.contains("daily mission"))
+
+        let goalRange = try XCTUnwrap(summary.range(of: "\(labels.goal):"))
+        let fuelRange = try XCTUnwrap(summary.range(of: "\(labels.dailyFuel):"))
+        let coachRange = try XCTUnwrap(summary.range(of: reveal.coachMessage))
         XCTAssertTrue(goalRange.lowerBound < fuelRange.lowerBound)
+        XCTAssertTrue(fuelRange.lowerBound < coachRange.lowerBound)
+    }
+
+    func testCutDirectionCopyMatchesProductSpec() throws {
+        let form = cutForm(currentWeightKg: 82.5, goalWeightKg: 75)
+        let plan = try samplePlan(for: form)
+        let reveal = try XCTUnwrap(OnboardingPlanRevealBuilder.build(formState: form, plan: plan))
+        let copy = FormaProductCopy.Onboarding.V2.PlanReveal.self
+
+        XCTAssertEqual(reveal.goalHeroHeadline, copy.GoalHero.lossHeadline(targetWeight: "75 kg"))
+        XCTAssertEqual(reveal.firstWeekMissions.map(\.title), [
+            copy.FirstWeek.logMealsCut,
+            copy.FirstWeek.proteinCut,
+            copy.FirstWeek.weighCut
+        ])
+        XCTAssertEqual(reveal.coachMessage, copy.Coach.cut(goalWeight: "75 kg"))
+        XCTAssertFalse(reveal.calorieExplanationLine.isEmpty)
+        XCTAssertFalse(reveal.strategyLabel.isEmpty)
+        XCTAssertNotNil(reveal.paceLabel)
+        XCTAssertNotNil(reveal.estimatedWeeksLabel)
+    }
+
+    func testMaintainDirectionCopyMatchesProductSpec() throws {
+        let form = bodyForm(currentWeightKg: 72, goalWeightKg: 72)
+        let plan = try samplePlan(for: form)
+        let reveal = try XCTUnwrap(OnboardingPlanRevealBuilder.build(formState: form, plan: plan))
+        let copy = FormaProductCopy.Onboarding.V2.PlanReveal.self
+
+        XCTAssertEqual(reveal.goalHeroHeadline, copy.GoalHero.maintainHeadline(targetWeight: "72 kg"))
+        XCTAssertEqual(reveal.firstWeekMissions.map(\.title), [
+            copy.FirstWeek.logDaysMaintain,
+            copy.FirstWeek.caloriesMaintain,
+            copy.FirstWeek.waterMaintain
+        ])
+        XCTAssertEqual(reveal.coachMessage, copy.Coach.maintain)
+    }
+
+    func testGainDirectionCopyMatchesProductSpec() throws {
+        let form = bodyForm(currentWeightKg: 72, goalWeightKg: 78)
+        let plan = try samplePlan(for: form)
+        let reveal = try XCTUnwrap(OnboardingPlanRevealBuilder.build(formState: form, plan: plan))
+        let copy = FormaProductCopy.Onboarding.V2.PlanReveal.self
+
+        XCTAssertEqual(reveal.goalHeroHeadline, copy.GoalHero.gainHeadline(targetWeight: "78 kg"))
+        XCTAssertEqual(reveal.firstWeekMissions.map(\.title), [
+            copy.FirstWeek.mealsGain,
+            copy.FirstWeek.proteinGain,
+            copy.FirstWeek.weighGain
+        ])
+        XCTAssertEqual(reveal.coachMessage, copy.Coach.gain(goalWeight: "78 kg"))
     }
 
     func testFirstWeekMissionsAndCoachMessageArePopulated() throws {

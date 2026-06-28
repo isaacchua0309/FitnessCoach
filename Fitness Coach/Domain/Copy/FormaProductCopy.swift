@@ -297,7 +297,7 @@ enum FormaProductCopy {
                     "Designed for steady, sustainable progress."
                 static let viewMacrosCTA = "View macros"
                 static let hideMacrosCTA = "Hide macros"
-                static let savePlanCTA = "Save my plan"
+                static let savePlanCTA = "Protect my progress"
                 static let adjustPlanCTA = "Adjust plan"
                 static let maintainCalorieExplanation =
                     "We'll help you stay consistent with clear daily targets."
@@ -305,9 +305,9 @@ enum FormaProductCopy {
                     "Designed to help you eat enough consistently."
                 static let keyTargetsSectionTitle = "Your daily mission"
                 static let signedOutSaveTrustNote =
-                    "One tap with Google keeps your plan backed up."
+                    "Your plan stays here until you're ready."
                 static let signedInSaveTrustNote =
-                    "Save your plan to keep it across devices."
+                    "Your progress follows you everywhere."
                 static let nextStepLine =
                     "Next: log your first meal and watch Today update your progress."
 
@@ -322,7 +322,7 @@ enum FormaProductCopy {
                     static let sectionTitle = Cards.destinationBadge
 
                     static func maintainHeadline(targetWeight: String) -> String {
-                        "Maintain \(targetWeight)"
+                        "Maintain around \(targetWeight)"
                     }
 
                     static let maintainSupport =
@@ -378,13 +378,19 @@ enum FormaProductCopy {
                         "You've got a clear path to \(goalWeight). Start by logging your next meal."
                     }
 
-                    static func maintain(goalWeight: String) -> String {
-                        "Your plan is set to keep you around \(goalWeight). Consistency beats perfection."
-                    }
+                    static let maintain =
+                        "Your plan is set to keep you steady. Consistency beats perfection."
 
                     static func gain(goalWeight: String) -> String {
                         "Building toward \(goalWeight) starts with fueling today well."
                     }
+                }
+
+                enum Accessibility {
+                    static let goal = "Goal"
+                    static let journey = Cards.journeyTitle
+                    static let firstWeek = Cards.firstWeekTitle
+                    static let dailyFuel = Cards.dailyFuelTitle
                 }
 
                 enum Focus {
@@ -434,19 +440,56 @@ enum FormaProductCopy {
             }
 
             enum SavePlan {
-                static let title = "Save your plan"
-                static let subtitle =
-                    "Your plan is saved on this device. Sign in with Google to sync it across devices."
-                static let trustNote = "Sign-in backs up your plan — your starting targets stay the same."
-                static let localOnlyHint = "Everything stays on this device until you sign in."
-                static let planSavedOnDeviceTitle = "Your plan is saved on this device"
-                static let signInRetryMessage = "Sign-in didn't finish. Your plan is still saved on this device — try again when you're ready."
-                static let googleSignInCTA = "Save & continue"
-                static let googleSignInAccessibilityHint =
-                    "Save your plan and sync with Google"
-                static let signedInSubtitle =
-                    "Your plan will be saved to your Google account so you can pick up on any device."
-                static let signedInContinueCTA = Common.continueAction
+                static let title = "Protect Your Progress"
+                static let subtitle = "Everything is prepared."
+                static let trustNote = "Now let's keep it safe."
+                static let localOnlyHint = "Your plan stays on this device until you're ready."
+                static let planSavedOnDeviceTitle = "Your personalized plan is ready"
+                static let signInRetryHeadline = "Couldn't finish signing in."
+                static let signInRetryReassurance =
+                    "Your personalized plan is still safely stored on this device."
+                static let signInRetryInvitation = "Try again whenever you're ready."
+                static var signInRetryAccessibilitySummary: String {
+                    [signInRetryHeadline, signInRetryReassurance, signInRetryInvitation].joined(separator: " ")
+                }
+                /// Legacy alias used by routing and tests.
+                static let signInRetryMessage = signInRetryHeadline
+                static let googleSignInCTA = "Protect with Google"
+                static let googleSignInLoadingTitle = "Keeping your progress safe…"
+                static let googleSignInSuccessTitle = "Continue"
+                static let googleSignInSuccessAccessibilityLabel = "Sign-in complete. Continue"
+                static let googleSignInAccessibilityHint = "Keep your personalized plan safe with Google"
+                static let signedInTitle = "Protect Your Progress"
+                static let signedInSubtitle = "Your personalized plan is ready."
+                static let signedInTrustNote = "Ready whenever you are."
+                static let signedInContinueCTA = "Start my plan"
+                static let signedInContinueAccessibilityHint = "Start with your personalized plan"
+                static let skipCTA = "Skip for now"
+                static let skipAccessibilityHint = "Keep going on this device for now"
+                static let planAchievementTitle = "Your plan"
+                static let planAchievementReachVerb = "Reach"
+                static let planAchievementMaintainVerb = "Maintain"
+                static let planAchievementGainVerb = "Build to"
+                static let planAchievementCurrentLabel = "Current"
+                static let planAchievementBuiltForYou = "Built around your lifestyle"
+
+                struct SignInTrustRow: Identifiable, Equatable, Sendable {
+                    let icon: String
+                    let title: String
+                    var id: String { title }
+                }
+
+                static let signInTrustRows: [SignInTrustRow] = [
+                    SignInTrustRow(icon: "person.crop.circle", title: "Your personalized plan"),
+                    SignInTrustRow(icon: "figure.walk", title: "Built around your lifestyle"),
+                    SignInTrustRow(icon: "clock", title: "Ready whenever you are"),
+                    SignInTrustRow(icon: "lock.shield.fill", title: "Keeps your progress safe"),
+                    SignInTrustRow(icon: "creditcard.slash", title: "No payment required")
+                ]
+
+                static var signInTrustAccessibilitySummary: String {
+                    signInTrustRows.map(\.title).joined(separator: ". ")
+                }
             }
 
             enum Validation {
@@ -730,48 +773,64 @@ enum FormaProductCopy {
             }
 
             enum Summary {
-                static let title = "We listened."
+                static let title = "Your plan blueprint"
                 static let subtitle = ""
-                static let supportingParagraph =
-                    "This plan was built specifically for you. Every recommendation adapts to your lifestyle — not a generic calorie calculator."
-                static let buildPlanCTA = "Build my plan"
-                static let fallbackPersonalizationSummary =
-                    "Your plan reflects your body, goal, and how you move."
+                static let buildPlanCTA = "Build My Plan"
+                static let buildPlanAnticipationHeadline = "Everything is ready."
+                static let buildPlanAnticipationSubline = "Your personalized plan is seconds away."
+                static let buildPlanAnticipationAccessibilityLabel =
+                    "Everything is ready. Your personalized plan is seconds away."
 
-                enum Pillars {
-                    static let items: [(icon: String, title: String)] = [
-                        ("person.fill", "Targets tuned to your body"),
-                        ("figure.walk", "Recommendations for your lifestyle"),
-                        ("arrow.triangle.2.circlepath", "Adapts as you progress")
+                enum GoalCard {
+                    static let paceCaption = "Expected pace"
+                    static let timelineCaption = "Timeline"
+                    static let maintainDirection = "Maintain"
+                    static let lossDirection = "Lose toward"
+                    static let gainDirection = "Gain toward"
+                    static let maintainTimeline = "Healthy sustainable timeline"
+                    static let gainTimeline = "Steady, sustainable timeline"
+                    static let maintainPace = "Matched to your activity"
+                    static let gainPace = "Steady weekly progress"
+                    static let fallbackPace = "Personalised to your body"
+                    static let fallbackTimeline = "Healthy sustainable timeline"
+                    static let fallbackTarget = "Your goal"
+
+                    static func lossTimeline(weeks: Int) -> String {
+                        "About \(weeks) weeks to your goal"
+                    }
+                }
+
+                enum PremiumFeatures {
+                    static let items: [(icon: String, title: String, visualKind: String)] = [
+                        ("fork.knife", "Nutrition", "nutrition"),
+                        ("figure.run", "Activity", "activity"),
+                        ("chart.line.uptrend.xyaxis", "Progress", "progress")
                     ]
                     static let accessibilityLabel =
-                        "Your plan: targets tuned to your body, recommendations for your lifestyle, adapts as you progress."
+                        "Personalised nutrition, adaptive activity, progress tracking."
                 }
 
-                static func lossPersonalizationSummary(
-                    goalChange: String,
-                    journeyLine: String,
-                    bodyLine: String,
-                    activity: String
-                ) -> String {
-                    "\(goalChange) · \(journeyLine) · \(bodyLine) · \(activity)"
-                }
+                enum GeneratedSummary {
+                    static let title = "Built using"
+                    static let activityLevel = "Activity level"
+                    static let currentWeight = "Current weight"
+                    static let goal = "Goal"
+                    static let nutritionTargets = "Nutrition targets"
+                    static let lifestyle = "Lifestyle"
+                    static let trainingRhythm = "Training rhythm"
+                    static let nutritionDetail = "Calories & macros"
+                    static let pendingDetail = "—"
 
-                static func gainPersonalizationSummary(
-                    goalChange: String,
-                    journeyLine: String,
-                    bodyLine: String,
-                    activity: String
-                ) -> String {
-                    "\(goalChange) · \(journeyLine) · \(bodyLine) · \(activity)"
-                }
+                    static func lifestyleDetail(age: Int, sex: String) -> String {
+                        "Age \(age) · \(sex)"
+                    }
 
-                static func maintainPersonalizationSummary(
-                    targetLabel: String,
-                    bodyLine: String,
-                    activity: String
-                ) -> String {
-                    "Stay near \(targetLabel) · \(bodyLine) · \(activity)"
+                    static func trainingDetail(daysPerWeek: Int) -> String {
+                        daysPerWeek == 1 ? "1 day / week" : "\(daysPerWeek) days / week"
+                    }
+
+                    static let accessibilityLabel =
+                        "Built using activity level, current weight, goal, nutrition targets, lifestyle, and training rhythm."
                 }
 
                 static let heightLabel = "Height"
@@ -787,11 +846,11 @@ enum FormaProductCopy {
                 static let subtitle = "Built from your body, goal, and activity level."
                 static let fallbackTitle = "Your starting plan is ready"
                 static let fallbackSubtitle = "Built from your onboarding answers."
-                static let savePlanCTA = "Save & continue"
+                static let savePlanCTA = "Protect my progress"
                 static let signedOutSaveTrustNote =
-                    "One tap with Google keeps your plan backed up."
+                    "Your plan stays here until you're ready."
                 static let signedInSaveTrustNote =
-                    "Save your plan to keep it across devices."
+                    "Your progress follows you everywhere."
 
                 static func timelineLine(estimatedWeeksLabel: String, goalWeightLabel: String) -> String {
                     "\(estimatedWeeksLabel) to reach \(goalWeightLabel)"
@@ -799,13 +858,26 @@ enum FormaProductCopy {
             }
 
             enum SavePlan {
-                static let title = "Keep your plan"
-                static let subtitle = "Sign in to sync across devices — one tap."
-                static let recapSectionTitle = "Your daily target"
-                static let trustNote = "Your targets stay the same — sign-in just backs them up."
-                static let localOnlyHint = "Saved on this device until you sign in."
-                static let signedInSubtitle =
-                    "Tap continue to save your plan to your Google account."
+                static let title = "Protect Your Progress"
+                static let subtitle = "Everything is prepared."
+                static let trustNote = "Now let's keep it safe."
+                static let localOnlyHint = "Your plan stays on this device until you're ready."
+                static let signedInSubtitle = "Your personalized plan is ready."
+                static let signedInTrustNote = "Ready whenever you are."
+                static let skipCTA = "Skip for now"
+                static let planAchievementTitle = "Your plan"
+                static let planAchievementReachVerb = "Reach"
+                static let planAchievementMaintainVerb = "Maintain"
+                static let planAchievementGainVerb = "Build to"
+                static let planAchievementCurrentLabel = "Current"
+                static let planAchievementBuiltForYou = "Built around your lifestyle"
+                static let signInTrustRowTitles = [
+                    "Your personalized plan",
+                    "Built around your lifestyle",
+                    "Ready whenever you are",
+                    "Keeps your progress safe",
+                    "No payment required"
+                ]
             }
 
             enum Components {

@@ -17,7 +17,7 @@ struct OnboardingPlanRevealJourneyCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-            sectionHeader(sectionTitle)
+            OnboardingPlanRevealSectionHeader(title: sectionTitle)
 
             journeyPath
 
@@ -39,20 +39,23 @@ struct OnboardingPlanRevealJourneyCard: View {
                 cautionLine(planStatus)
             }
         }
-        .padding(OnboardingLayout.compactCardPadding)
+        .onboardingPlanRevealCardPadding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(OnboardingTheme.cardBackground())
+        .background { OnboardingPlanRevealCardBackground(surface: .standard) }
+        .onboardingPlanRevealEntrance(.journey)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
     }
 
     private var journeyPath: some View {
-        Text(progressLabel)
-            .font(.system(.title3, design: .rounded).weight(.bold))
-            .foregroundStyle(OnboardingTheme.primaryText)
-            .minimumScaleFactor(0.8)
-            .lineLimit(1)
-            .accessibilityAddTraits(.isHeader)
+        HStack(spacing: FormaTokens.Spacing.xs) {
+            Text(progressLabel)
+                .font(.system(.title3, design: .rounded).weight(.bold))
+                .foregroundStyle(OnboardingTheme.primaryText)
+                .minimumScaleFactor(0.75)
+                .lineLimit(1)
+        }
+        .accessibilityAddTraits(.isHeader)
     }
 
     private var paceMetricsLine: String? {
@@ -86,6 +89,9 @@ struct OnboardingPlanRevealJourneyCard: View {
         }
         .foregroundStyle(OnboardingTheme.warning)
         .padding(.top, 2)
+        .accessibilityLabel(
+            [status.title, status.body].compactMap { $0 }.joined(separator: ", ")
+        )
     }
 
     private var accessibilityLabel: String {
@@ -102,14 +108,6 @@ struct OnboardingPlanRevealJourneyCard: View {
         }
         return parts.joined(separator: ", ")
     }
-}
-
-private func sectionHeader(_ title: String) -> some View {
-    Text(title.uppercased())
-        .font(.caption2.weight(.semibold))
-        .foregroundStyle(OnboardingTheme.tertiaryText)
-        .tracking(0.4)
-        .accessibilityAddTraits(.isHeader)
 }
 
 #if DEBUG

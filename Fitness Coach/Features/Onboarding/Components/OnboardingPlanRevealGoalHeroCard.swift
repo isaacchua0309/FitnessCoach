@@ -12,30 +12,68 @@ struct OnboardingPlanRevealGoalHeroCard: View {
     let headline: String
     let strategyLabel: String
     let direction: PlanGoalDirection
+    var showsSuccessHandoff: Bool = false
 
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.onboardingPlanRevealLayoutProfile) private var layoutProfile
 
-    @ScaledMetric(relativeTo: .largeTitle) private var heroFontSize: CGFloat = 36
+    @ScaledMetric(relativeTo: .largeTitle) private var compactHeroFontSize: CGFloat = 32
+    @ScaledMetric(relativeTo: .largeTitle) private var regularHeroFontSize: CGFloat = 38
+    @ScaledMetric(relativeTo: .largeTitle) private var expansiveHeroFontSize: CGFloat = 44
 
-    private var resolvedHeroFontSize: CGFloat {
-        dynamicTypeSize.isAccessibilitySize ? min(heroFontSize, 32) : heroFontSize
+    private var heroFontSize: CGFloat {
+        switch layoutProfile {
+        case .compact: compactHeroFontSize
+        case .regular: regularHeroFontSize
+        case .expansive: expansiveHeroFontSize
+        }
     }
 
     var body: some View {
-        HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-                Text(badge.uppercased())
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(OnboardingTheme.accent)
-                    .tracking(0.5)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-                    .accessibilityHidden(true)
+        Group {
+            if layoutProfile.usesExpandedGoalHero {
+                expandedLayout
+            } else {
+                compactHorizontalLayout
+            }
+        }
+        .onboardingPlanRevealCardPadding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background { OnboardingPlanRevealCardBackground(surface: .goalHero) }
+        .onboardingPlanRevealGoalSweep()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(badge). \(headline). \(strategyLabel)")
+    }
 
+    private var compactHorizontalLayout: some View {
+        HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
+            heroCopy(alignment: .leading)
+            Spacer(minLength: FormaTokens.Spacing.xs)
+            heroIllustration
+        }
+    }
+
+    private var expandedLayout: some View {
+        VStack(spacing: FormaTokens.Spacing.sm) {
+            heroIllustration
+                .frame(maxWidth: .infinity)
+            heroCopy(alignment: .center)
+                .frame(maxWidth: .infinity)
+        }
+    }
+
+    private func heroCopy(alignment: HorizontalAlignment) -> some View {
+        VStack(alignment: alignment, spacing: FormaTokens.Spacing.xs) {
+            OnboardingPlanRevealSectionHeader(title: badge, usesHeaderTrait: false)
+                .foregroundStyle(OnboardingTheme.accent)
+                .tracking(0.5)
+                .accessibilityHidden(true)
+                .onboardingPlanRevealEntrance(.achievementBadge)
+
+            VStack(alignment: alignment, spacing: FormaTokens.Spacing.xs) {
                 Text(headline)
-                    .font(.system(size: resolvedHeroFontSize, weight: .bold, design: .rounded))
+                    .font(.system(size: heroFontSize, weight: .bold, design: .rounded))
                     .foregroundStyle(OnboardingTheme.primaryText)
-                    .minimumScaleFactor(0.72)
+                    .multilineTextAlignment(alignment == .center ? .center : .leading)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
@@ -43,49 +81,44 @@ struct OnboardingPlanRevealGoalHeroCard: View {
                 Text(strategyLabel)
                     .font(FormaTokens.Typography.caption.weight(.semibold))
                     .foregroundStyle(OnboardingTheme.secondaryText)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
+                    .multilineTextAlignment(alignment == .center ? .center : .leading)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-
-            Spacer(minLength: FormaTokens.Spacing.xs)
-
-            OnboardingPlanRevealDestinationIllustration(direction: direction)
+            .onboardingPlanRevealEntrance(.goalCard)
         }
-        .padding(.horizontal, OnboardingLayout.compactCardPadding)
-        .padding(.vertical, FormaTokens.Spacing.sm + 2)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background { goalHeroBackground }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(badge). \(headline). \(strategyLabel)")
     }
 
-    private var goalHeroBackground: some View {
-        RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-            .fill(
-                LinearGradient(
-                    colors: [
-                        FormaTokens.Color.accentMuted.opacity(0.85),
-                        FormaTokens.Color.surfaceSubtle
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-                    .stroke(OnboardingTheme.accent.opacity(0.18), lineWidth: 1)
-            }
+    private var heroIllustration: some View {
+        OnboardingPlanRevealHeroIllustration(
+            style: showsSuccessHandoff ? .successHandoff : .destination(direction)
+        )
+        .onboardingPlanRevealEntrance(.heroIllustration)
     }
 }
 
 #if DEBUG
-#Preview {
+#Preview("Compact") {
     OnboardingPlanRevealGoalHeroCard(
         badge: FormaProductCopy.Onboarding.V2.PlanReveal.Cards.destinationBadge,
         headline: "Reach 70 kg",
         strategyLabel: "Moderate cut",
         direction: .cut
     )
+    .environment(\.onboardingPlanRevealLayoutProfile, .compact)
+    .padding()
+    .background(OnboardingTheme.background)
+    .formaThemePreview()
+}
+
+#Preview("Expansive") {
+    OnboardingPlanRevealGoalHeroCard(
+        badge: FormaProductCopy.Onboarding.V2.PlanReveal.Cards.destinationBadge,
+        headline: "Reach 70 kg",
+        strategyLabel: "Moderate cut",
+        direction: .cut
+    )
+    .environment(\.onboardingPlanRevealLayoutProfile, .expansive)
     .padding()
     .background(OnboardingTheme.background)
     .formaThemePreview()

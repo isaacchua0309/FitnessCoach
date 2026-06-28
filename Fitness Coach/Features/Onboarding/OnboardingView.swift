@@ -25,6 +25,10 @@ struct OnboardingView: View {
         return rules.showsSharedBottomBar
     }
 
+    private var reservesPlanRevealFooterSpace: Bool {
+        OnboardingInteractionPolicy.rules(for: model.currentStep).reservesPlanRevealFooterSpace
+    }
+
     private var canContinue: Bool {
         let rules = OnboardingInteractionPolicy.rules(for: model.currentStep)
         if model.currentStep == .review {
@@ -62,7 +66,10 @@ struct OnboardingView: View {
         hasAttemptedContinueOnStep = true
         if model.currentStep == .appleHealth {
             model.connectAppleHealth()
-        } else if model.currentStep == .review || model.currentStep == .almostThere {
+        } else if model.currentStep == .review {
+            OnboardingHaptics.planLaunch()
+            model.goNext()
+        } else if model.currentStep == .almostThere {
             OnboardingHaptics.selectionChanged()
             model.goNext()
         } else if model.currentStep == .planReveal {
@@ -83,6 +90,10 @@ struct OnboardingView: View {
                 fieldNavigator: fieldNavigator
             ) {
                 stepContent
+                    .animation(
+                        .easeOut(duration: OnboardingGeneratingPlanTiming.stepTransitionAnimation),
+                        value: model.currentStep
+                    )
             }
             .background(OnboardingTheme.background.ignoresSafeArea())
             .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -132,11 +143,18 @@ struct OnboardingView: View {
                         flowFloor: model.flowFloor
                     )
                     .transition(.opacity)
+                } else if reservesPlanRevealFooterSpace {
+                    OnboardingPlanRevealFooterReserve()
+                        .transition(.opacity)
                 }
             }
             .animation(
                 .easeOut(duration: OnboardingGeneratingPlanTiming.stepTransitionAnimation),
                 value: showsBottomBar
+            )
+            .animation(
+                .easeOut(duration: OnboardingGeneratingPlanTiming.stepTransitionAnimation),
+                value: reservesPlanRevealFooterSpace
             )
             .toolbar {
                 OnboardingKeyboardToolbar(navigator: fieldNavigator)
@@ -186,10 +204,13 @@ struct OnboardingView: View {
                 formState: model.formState,
                 validationMessage: displayedValidationMessage
             )
-        case .generatingPlan:
-            OnboardingGeneratingPlanStepView(
+        case .generatingPlan, .planReveal:
+            OnboardingPlanGenerationRevealHandoffView(
+                activeStep: model.currentStep,
                 presentation: OnboardingGeneratingPlanCopyBuilder.build(from: model.formState),
                 viewState: model.viewState,
+                revealState: model.planRevealState,
+                plan: model.generatedPlan,
                 onRetry: {
                     fieldNavigator.dismissFocus()
                     model.retryGeneration()
@@ -199,22 +220,23 @@ struct OnboardingView: View {
                     model.returnToSummaryAfterGenerationFailure()
                 }
             )
-        case .planReveal:
-            OnboardingPlanRevealStepView(
-                revealState: model.planRevealState,
-                plan: model.generatedPlan
-            )
         case .savePlan:
             OnboardingSavePlanStepView(
                 requiresGoogleSignIn: model.requiresGoogleSignInAtSavePlan,
                 isBusy: model.viewState == .savingProfile || model.viewState == .completing,
+                showsSignInSuccess: model.viewState == .signInSucceeded,
                 errorMessage: model.errorMessage,
                 planRecap: model.planRevealState,
-                usesCompactLayout: true,
                 onContinue: {
                     fieldNavigator.dismissFocus()
                     model.goNext()
                 },
+                onSkip: model.requiresGoogleSignInAtSavePlan
+                    ? {
+                        fieldNavigator.dismissFocus()
+                        model.skipProtectProgressSignIn()
+                    }
+                    : nil,
                 onBack: {
                     fieldNavigator.dismissFocus()
                     model.goBack()

@@ -19,6 +19,10 @@ enum OnboardingMotion {
     static let atmosphereDrift = Animation.easeInOut(duration: 5.5).repeatForever(autoreverses: true)
     static let orbitRotation = Animation.linear(duration: 10).repeatForever(autoreverses: false)
 
+    static let revealSpring = Animation.spring(response: 0.40, dampingFraction: 0.86)
+    static let revealSweep = Animation.easeOut(duration: 0.42)
+    static let revealCTAPulse = Animation.easeInOut(duration: 0.30)
+
     static let chromeDelay: Double = 0
     static let headlineDelay: Double = 0.05
     static let heroDelay: Double = 0.1
@@ -201,8 +205,10 @@ enum OnboardingGradients {
             startPoint: .top,
             endPoint: .bottom
         )
-  @MainActor
-  static var footerFade: LinearGradient {
+    }
+
+    @MainActor
+    static var footerFade: LinearGradient {
         LinearGradient(
             colors: [
                 OnboardingTheme.background.opacity(0),
@@ -252,8 +258,6 @@ struct OnboardingEntranceModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .opacity(isVisible ? 1 : 0)
-            .offset(y: isVisible || stage.usesScale ? 0 : (stage == .chrome ? 4 : 8))
-            .scaleEffect(isVisible || !stage.usesScale ? 1 : 0.92)
     }
 }
 

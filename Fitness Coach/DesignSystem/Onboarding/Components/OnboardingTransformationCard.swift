@@ -18,9 +18,7 @@ struct OnboardingTransformationCard: View {
     @ScaledMetric(relativeTo: .title2) private var iconSize = OnboardingVisual.benefitIconHero
 
     var body: some View {
-        VStack(spacing: FormaTokens.Spacing.md) {
-            Spacer(minLength: FormaTokens.Spacing.xs)
-
+        VStack(spacing: FormaTokens.Spacing.sm) {
             ZStack {
                 if let benefit = activeBenefit {
                     benefitPanel(benefit)
@@ -28,10 +26,7 @@ struct OnboardingTransformationCard: View {
                         .transition(
                             reduceMotion
                                 ? .opacity
-                                : .asymmetric(
-                                    insertion: .opacity.combined(with: .move(edge: .bottom)),
-                                    removal: .opacity
-                                )
+                                : .opacity
                         )
                 }
             }
@@ -41,7 +36,6 @@ struct OnboardingTransformationCard: View {
             .onTapGesture { advanceManually() }
 
             pageIndicator
-                .padding(.bottom, FormaTokens.Spacing.xs)
         }
         .padding(.horizontal, FormaTokens.Spacing.lg)
         .padding(.vertical, FormaTokens.Spacing.md)

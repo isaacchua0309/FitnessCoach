@@ -16,7 +16,7 @@ final class OnboardingPersonalizationSummaryTests: XCTestCase {
     func testReviewStepUsesDedicatedCopy() {
         XCTAssertEqual(
             OnboardingStep.review.title,
-            "We listened."
+            "Your plan blueprint"
         )
         XCTAssertEqual(
             OnboardingStep.review.subtitle,
@@ -24,26 +24,35 @@ final class OnboardingPersonalizationSummaryTests: XCTestCase {
         )
         XCTAssertEqual(
             FormaProductCopy.Onboarding.Flow.Summary.buildPlanCTA,
-            "Build my plan"
+            "Build My Plan"
+        )
+        XCTAssertEqual(
+            FormaProductCopy.Onboarding.Flow.Summary.buildPlanAnticipationHeadline,
+            "Everything is ready."
+        )
+        XCTAssertEqual(
+            FormaProductCopy.Onboarding.Flow.Summary.buildPlanAnticipationSubline,
+            "Your personalized plan is seconds away."
         )
     }
 
-    func testBlueprintUsesPersonalizedSummary() throws {
+    func testBlueprintUsesGoalCardAndPremiumFeatures() throws {
         let state = try validOnboardingFormState()
         let blueprint = OnboardingPlanBlueprintBuilder.build(from: state, referenceDate: referenceDate)
 
-        XCTAssertTrue(blueprint.personalizationSummary.contains("kg"))
-        XCTAssertTrue(blueprint.personalizationSummary.contains("→"))
-        XCTAssertEqual(blueprint.pillars.count, 3)
+        XCTAssertFalse(blueprint.goalCard.targetWeight.isEmpty)
+        XCTAssertEqual(blueprint.premiumFeatures.count, 3)
+        XCTAssertEqual(blueprint.generatedSignals.count, 6)
     }
 
     func testBlueprintCopyAvoidsForbiddenClaims() throws {
         let state = try validOnboardingFormState()
         let blueprint = OnboardingPlanBlueprintBuilder.build(from: state, referenceDate: referenceDate)
         let joined = [
-            blueprint.headline,
-            blueprint.supportingParagraph,
-            blueprint.personalizationSummary,
+            blueprint.heroTitle,
+            blueprint.goalCard.directionLabel,
+            blueprint.goalCard.paceValue,
+            blueprint.goalCard.timelineValue,
             blueprint.accessibilityLabel
         ].joined(separator: " ").lowercased()
 

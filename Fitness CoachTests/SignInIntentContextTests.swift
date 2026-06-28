@@ -184,16 +184,16 @@ final class SignInIntentContextTests: XCTestCase {
         let title = ProfileSignInCopyPolicy.googleButtonTitle(for: .existingUserRestore)
         let hint = ProfileSignInCopyPolicy.googleButtonAccessibilityHint(for: .existingUserRestore)
 
-        XCTAssertFalse(ProfileSignInCopyPolicy.usesSavePlanLanguage(title))
-        XCTAssertFalse(ProfileSignInCopyPolicy.usesSavePlanLanguage(hint))
+        XCTAssertFalse(ProfileSignInCopyPolicy.usesOnboardingCompletionLanguage(title))
+        XCTAssertFalse(ProfileSignInCopyPolicy.usesOnboardingCompletionLanguage(hint))
         XCTAssertEqual(title, FormaProductCopy.SignIn.continueWithGoogle)
     }
 
-    func testOnboardingCompletionKeepsSavePlanLanguage() {
+    func testOnboardingCompletionUsesProtectProgressLanguage() {
         let title = ProfileSignInCopyPolicy.googleButtonTitle(for: .onboardingCompletion)
         let hint = ProfileSignInCopyPolicy.googleButtonAccessibilityHint(for: .onboardingCompletion)
 
-        XCTAssertTrue(ProfileSignInCopyPolicy.usesSavePlanLanguage(hint))
+        XCTAssertTrue(ProfileSignInCopyPolicy.usesOnboardingCompletionLanguage(hint))
         XCTAssertEqual(title, FormaProductCopy.Onboarding.V2.SavePlan.googleSignInCTA)
     }
 

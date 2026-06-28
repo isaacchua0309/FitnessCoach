@@ -126,21 +126,12 @@ final class PublicEntryEdgeCaseRoutingTests: XCTestCase {
         )
     }
 
-    // 14. Local profile exists but auth signed out → no app data while logged out
-    func testScenario14_SignedOutLocalProfileDoesNotShowMain() {
+    // 14. Local profile exists, onboarding completed locally → main while signed out
+    func testScenario14_SignedOutLocalProfileShowsMainAfterLocalCompletion() {
         XCTAssertEqual(
             AppRouteResolver.resolve(
                 authState: .signedOut,
                 rootState: .main,
-                hasLocalProfile: true,
-                signedOutWithProfilePolicy: .requireSignIn,
-                suppressAutomaticPublicEntryResume: true
-            ),
-            .welcome
-        )
-        XCTAssertNotEqual(
-            AppRouteResolver.resolve(
-                authState: .signedOut,
                 hasLocalProfile: true,
                 signedOutWithProfilePolicy: .requireSignIn,
                 suppressAutomaticPublicEntryResume: true

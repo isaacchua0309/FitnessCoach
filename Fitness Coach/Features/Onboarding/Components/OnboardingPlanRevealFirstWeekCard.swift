@@ -11,25 +11,22 @@ struct OnboardingPlanRevealFirstWeekCard: View {
     let sectionTitle: String
     let missions: [OnboardingPlanRevealMission]
 
-    @ScaledMetric(relativeTo: .caption) private var iconSize: CGFloat = 22
+    @ScaledMetric(relativeTo: .caption) private var iconContainerSize: CGFloat = 24
 
     var body: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-            Text(sectionTitle.uppercased())
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.tertiaryText)
-                .tracking(0.4)
-                .accessibilityAddTraits(.isHeader)
+            OnboardingPlanRevealSectionHeader(title: sectionTitle)
 
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: 6) {
                 ForEach(missions) { mission in
                     missionRow(mission)
                 }
             }
         }
-        .padding(OnboardingLayout.compactCardPadding)
+        .onboardingPlanRevealCardPadding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(OnboardingTheme.cardBackground())
+        .background { OnboardingPlanRevealCardBackground(surface: .standard) }
+        .onboardingPlanRevealEntrance(.firstWeek)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(
             "\(sectionTitle), \(missions.map(\.title).joined(separator: ", "))"
@@ -38,11 +35,16 @@ struct OnboardingPlanRevealFirstWeekCard: View {
 
     private func missionRow(_ mission: OnboardingPlanRevealMission) -> some View {
         HStack(spacing: FormaTokens.Spacing.xs) {
-            Image(systemName: mission.icon)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.accent)
-                .frame(width: iconSize, height: iconSize)
-                .accessibilityHidden(true)
+            ZStack {
+                Circle()
+                    .fill(FormaTokens.Color.accentMuted)
+                    .frame(width: iconContainerSize, height: iconContainerSize)
+
+                Image(systemName: mission.icon)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(OnboardingTheme.accent.opacity(0.92))
+            }
+            .accessibilityHidden(true)
 
             Text(mission.title)
                 .font(FormaTokens.Typography.caption.weight(.medium))

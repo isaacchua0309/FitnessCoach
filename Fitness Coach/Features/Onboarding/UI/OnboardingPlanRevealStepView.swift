@@ -10,113 +10,138 @@ import SwiftUI
 struct OnboardingPlanRevealStepView: View {
     let revealState: OnboardingPlanRevealState?
     let plan: CalorieTargetResult?
+    var showsSuccessHandoff: Bool = true
+    var defersEntranceForGenerationHandoff: Bool = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    @State private var celebrationVisible = false
-    @State private var goalVisible = false
-    @State private var journeyVisible = false
-    @State private var actionCardsVisible = false
-    @State private var coachVisible = false
+    @State private var visibleStages: Set<OnboardingPlanRevealEntranceStage> = []
+    @State private var goalSweepActive = false
     @State private var didPlayAppearHaptic = false
+    @State private var entranceAnimationToken = UUID()
+    @State private var entranceTask: Task<Void, Never>?
 
     private let copy = FormaProductCopy.Onboarding.Flow.PlanReveal.self
     private let cardCopy = FormaProductCopy.Onboarding.V2.PlanReveal.Cards.self
 
-    private var usesStackedActionCards: Bool {
-        dynamicTypeSize >= .accessibility1
-    }
-
     var body: some View {
         Group {
             if let revealState {
-                revealContent(revealState)
+                adaptiveRevealContent(revealState)
             } else if let plan {
-                GeneratedPlanSummaryCard(
-                    plan: plan,
-                    pacePreview: nil,
-                    paceLabel: nil
-                )
+                legacyPlanFallback(plan)
             } else {
-                fallbackContent
+                missingStateFallback
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onAppear {
-            runEntranceAnimation()
+            scheduleEntranceAnimation()
             playAppearHapticIfNeeded()
         }
-    }
-
-    // MARK: - Reveal layout
-
-    private func revealContent(_ state: OnboardingPlanRevealState) -> some View {
-        VStack(spacing: sectionSpacing) {
-            celebrationSection
-                .opacity(celebrationVisible ? 1 : 0)
-                .offset(y: celebrationVisible ? 0 : 6)
-
-            OnboardingPlanRevealGoalHeroCard(
-                badge: state.goalHeroSectionTitle,
-                headline: state.goalHeroHeadline,
-                strategyLabel: state.strategyLabel,
-                direction: state.goalDirection
-            )
-            .opacity(goalVisible ? 1 : 0)
-            .offset(y: goalVisible ? 0 : 6)
-            .scaleEffect(goalVisible ? 1 : 0.98)
-
-            OnboardingPlanRevealJourneyCard(
-                sectionTitle: cardCopy.journeyTitle,
-                progressLabel: state.goalProgressLabel,
-                paceLabel: state.paceLabel,
-                estimatedWeeksLabel: state.estimatedWeeksLabel,
-                beliefLine: state.journeyBeliefLine,
-                planStatus: state.planStatus.style == .caution ? state.planStatus : nil
-            )
-            .opacity(journeyVisible ? 1 : 0)
-            .offset(y: journeyVisible ? 0 : 6)
-
-            actionCardsSection(state)
-                .opacity(actionCardsVisible ? 1 : 0)
-                .offset(y: actionCardsVisible ? 0 : 6)
-
-            OnboardingPlanRevealCoachCard(message: state.coachMessage)
-                .opacity(coachVisible ? 1 : 0)
-                .offset(y: coachVisible ? 0 : 6)
-
-            Spacer(minLength: 0)
+        .onDisappear {
+            entranceTask?.cancel()
         }
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(state.accessibilitySummary)
     }
 
-    private var celebrationSection: some View {
-        VStack(spacing: FormaTokens.Spacing.xs) {
+    private func scheduleEntranceAnimation() {
+        entranceTask?.cancel()
+        entranceTask = Task { @MainActor in
+            if defersEntranceForGenerationHandoff, !reduceMotion {
+                try? await Task.sleep(
+                    nanoseconds: UInt64(
+                        OnboardingGeneratingPlanTiming.stepTransitionAnimation * 1_000_000_000
+                    )
+                )
+            }
+            guard !Task.isCancelled else { return }
+            runEntranceAnimation()
+        }
+    }
+
+    // MARK: - Destination-first layout
+
+    private func adaptiveRevealContent(_ state: OnboardingPlanRevealState) -> some View {
+        GeometryReader { geometry in
+            let profile = OnboardingPlanRevealLayoutProfile.resolve(
+                contentHeight: geometry.size.height,
+                contentWidth: geometry.size.width,
+                dynamicTypeSize: dynamicTypeSize
+            )
+
+            VStack(spacing: 0) {
+                celebrationSection(profile: profile)
+                    .onboardingPlanRevealZone(.celebration)
+
+                OnboardingPlanRevealGoalHeroCard(
+                    badge: state.goalHeroSectionTitle,
+                    headline: state.goalHeroHeadline,
+                    strategyLabel: state.strategyLabel,
+                    direction: state.goalDirection,
+                    showsSuccessHandoff: showsSuccessHandoff
+                )
+                .onboardingPlanRevealZone(.goalHero)
+
+                OnboardingPlanRevealJourneyCard(
+                    sectionTitle: cardCopy.journeyTitle,
+                    progressLabel: state.goalProgressLabel,
+                    paceLabel: state.paceLabel,
+                    estimatedWeeksLabel: state.estimatedWeeksLabel,
+                    beliefLine: state.journeyBeliefLine,
+                    planStatus: state.planStatus.style == .caution ? state.planStatus : nil
+                )
+                .onboardingPlanRevealZone(.journey)
+
+                actionCardsSection(state, profile: profile)
+                    .onboardingPlanRevealZone(.actionCards)
+
+                OnboardingPlanRevealCoachCard(message: state.coachMessage)
+                    .onboardingPlanRevealZone(.coach)
+            }
+            .environment(\.onboardingPlanRevealLayoutProfile, profile)
+            .environment(\.onboardingPlanRevealContentHeight, geometry.size.height)
+            .environment(\.onboardingPlanRevealZoneWeights, profile.zoneWeights)
+            .environment(\.onboardingPlanRevealVisibleStages, visibleStages)
+            .environment(\.onboardingPlanRevealGoalSweepActive, goalSweepActive)
+            .environment(\.onboardingPlanRevealUsesSuccessHandoff, showsSuccessHandoff)
+            .environment(\.onboardingPlanRevealUsesCompactLayout, profile == .compact)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(state.accessibilitySummary)
+        }
+        .padding(.horizontal, OnboardingTheme.pagePadding)
+        .padding(.top, OnboardingLayout.progressHeaderTop)
+    }
+
+    private func celebrationSection(profile: OnboardingPlanRevealLayoutProfile) -> some View {
+        VStack(spacing: profile == .expansive ? FormaTokens.Spacing.sm : FormaTokens.Spacing.xs) {
             Text(copy.title)
-                .font(.system(.title2, design: .rounded).weight(.bold))
+                .font(profile.celebrationTitleFont)
                 .foregroundStyle(OnboardingTheme.primaryText)
                 .multilineTextAlignment(.center)
-                .minimumScaleFactor(0.85)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity)
                 .accessibilityAddTraits(.isHeader)
+                .onboardingPlanRevealEntrance(.celebrationTitle)
 
             Text(copy.subtitle)
-                .font(FormaTokens.Typography.caption)
+                .font(profile.celebrationSubtitleFont)
                 .foregroundStyle(OnboardingTheme.secondaryText)
                 .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .minimumScaleFactor(0.85)
+                .lineLimit(profile == .compact ? 2 : 3)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity)
+                .onboardingPlanRevealEntrance(.celebrationTitle)
         }
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
-    private func actionCardsSection(_ state: OnboardingPlanRevealState) -> some View {
+    private func actionCardsSection(
+        _ state: OnboardingPlanRevealState,
+        profile: OnboardingPlanRevealLayoutProfile
+    ) -> some View {
         let firstWeek = OnboardingPlanRevealFirstWeekCard(
             sectionTitle: cardCopy.firstWeekTitle,
             missions: state.firstWeekMissions
@@ -130,13 +155,13 @@ struct OnboardingPlanRevealStepView: View {
             secondaryMacroRows: state.secondaryMacroRows
         )
 
-        if usesStackedActionCards {
-            VStack(spacing: sectionSpacing) {
+        if profile.stacksActionCards {
+            VStack(spacing: profile.sectionSpacing) {
                 firstWeek
                 dailyFuel
             }
         } else {
-            HStack(alignment: .top, spacing: sectionSpacing) {
+            HStack(alignment: .top, spacing: profile.sectionSpacing) {
                 firstWeek
                     .frame(maxWidth: .infinity)
                 dailyFuel
@@ -145,13 +170,19 @@ struct OnboardingPlanRevealStepView: View {
         }
     }
 
-    private var sectionSpacing: CGFloat {
-        dynamicTypeSize.isAccessibilitySize
-            ? FormaTokens.Spacing.sm
-            : FormaTokens.Spacing.xs + 2
+    // MARK: - Fallbacks
+
+    private func legacyPlanFallback(_ plan: CalorieTargetResult) -> some View {
+        GeneratedPlanSummaryCard(
+            plan: plan,
+            pacePreview: nil,
+            paceLabel: nil
+        )
+        .padding(.horizontal, OnboardingTheme.pagePadding)
+        .padding(.top, OnboardingLayout.progressHeaderTop)
     }
 
-    private var fallbackContent: some View {
+    private var missingStateFallback: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             Text(copy.fallbackTitle)
                 .font(.system(.title2, design: .rounded).weight(.bold))
@@ -168,41 +199,47 @@ struct OnboardingPlanRevealStepView: View {
                 icon: "doc.text.magnifyingglass"
             )
         }
+        .padding(.horizontal, OnboardingTheme.pagePadding)
+        .padding(.top, OnboardingLayout.progressHeaderTop)
     }
 
+    // MARK: - Entrance
+
     private func runEntranceAnimation() {
+        let token = UUID()
+        entranceAnimationToken = token
+        visibleStages = []
+        goalSweepActive = false
+
         if reduceMotion {
-            celebrationVisible = true
-            goalVisible = true
-            journeyVisible = true
-            actionCardsVisible = true
-            coachVisible = true
+            visibleStages = Set(OnboardingPlanRevealEntranceStage.allCases)
             return
         }
 
-        withAnimation(.easeOut(duration: 0.22)) {
-            celebrationVisible = true
-        }
-        withAnimation(.easeOut(duration: 0.28).delay(0.08)) {
-            goalVisible = true
-        }
-        withAnimation(.easeOut(duration: 0.24).delay(0.20)) {
-            journeyVisible = true
-        }
-        withAnimation(.easeOut(duration: 0.24).delay(0.32)) {
-            actionCardsVisible = true
-        }
-        withAnimation(.easeOut(duration: 0.22).delay(0.44)) {
-            coachVisible = true
-        }
+        OnboardingPlanRevealEntranceAnimator.revealAccumulating(
+            stages: Set(OnboardingPlanRevealEntranceStage.allCases),
+            reduceMotion: reduceMotion,
+            onReveal: { stage in
+                guard entranceAnimationToken == token else { return }
+                visibleStages.insert(stage)
+            },
+            onGoalSweep: {
+                guard entranceAnimationToken == token else { return }
+                goalSweepActive = true
+            }
+        )
     }
 
     private func playAppearHapticIfNeeded() {
         guard !didPlayAppearHaptic else { return }
         didPlayAppearHaptic = true
-        OnboardingHaptics.selectionChanged()
+        if showsSuccessHandoff {
+            OnboardingHaptics.selectionChanged()
+        }
     }
 }
+
+// MARK: - Previews
 
 #Preview("Weight loss plan") {
     if let state = OnboardingPreviewData.planRevealState {
@@ -210,8 +247,30 @@ struct OnboardingPlanRevealStepView: View {
             revealState: state,
             plan: OnboardingPreviewData.generatedPlan
         )
-        .padding(.horizontal, OnboardingTheme.pagePadding)
-        .padding(.top, OnboardingLayout.progressHeaderTop)
+        .background(OnboardingTheme.background)
+        .formaThemePreview()
+    }
+}
+
+#Preview("iPhone SE class") {
+    if let state = OnboardingPreviewData.planRevealState {
+        OnboardingPlanRevealStepView(
+            revealState: state,
+            plan: OnboardingPreviewData.generatedPlan
+        )
+        .frame(width: 375, height: 480)
+        .background(OnboardingTheme.background)
+        .formaThemePreview()
+    }
+}
+
+#Preview("Pro Max class") {
+    if let state = OnboardingPreviewData.planRevealState {
+        OnboardingPlanRevealStepView(
+            revealState: state,
+            plan: OnboardingPreviewData.generatedPlan
+        )
+        .frame(width: 430, height: 760)
         .background(OnboardingTheme.background)
         .formaThemePreview()
     }
@@ -222,30 +281,6 @@ struct OnboardingPlanRevealStepView: View {
         revealState: maintenanceRevealState(),
         plan: maintenancePlan()
     )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
-    .padding(.top, OnboardingLayout.progressHeaderTop)
-    .background(OnboardingTheme.background)
-    .formaThemePreview()
-}
-
-#Preview("Gain plan") {
-    OnboardingPlanRevealStepView(
-        revealState: gainRevealState(),
-        plan: maintenancePlan()
-    )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
-    .padding(.top, OnboardingLayout.progressHeaderTop)
-    .background(OnboardingTheme.background)
-    .formaThemePreview()
-}
-
-#Preview("Imperial loss") {
-    OnboardingPlanRevealStepView(
-        revealState: imperialLossRevealState(),
-        plan: OnboardingPreviewData.generatedPlan
-    )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
-    .padding(.top, OnboardingLayout.progressHeaderTop)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
@@ -255,19 +290,6 @@ struct OnboardingPlanRevealStepView: View {
         revealState: advancedPaceRevealState(),
         plan: aggressivePlan()
     )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
-    .padding(.top, OnboardingLayout.progressHeaderTop)
-    .background(OnboardingTheme.background)
-    .formaThemePreview()
-}
-
-#Preview("Missing reveal state") {
-    OnboardingPlanRevealStepView(
-        revealState: nil,
-        plan: nil
-    )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
-    .padding(.top, OnboardingLayout.progressHeaderTop)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
@@ -278,8 +300,6 @@ struct OnboardingPlanRevealStepView: View {
             revealState: state,
             plan: OnboardingPreviewData.generatedPlan
         )
-        .padding(.horizontal, OnboardingTheme.pagePadding)
-        .padding(.top, OnboardingLayout.progressHeaderTop)
         .background(OnboardingTheme.background)
         .formaThemePreview()
         .dynamicTypeSize(.accessibility2)
@@ -294,24 +314,6 @@ private func maintenanceRevealState() -> OnboardingPlanRevealState? {
     return OnboardingPlanRevealBuilder.build(
         formState: form,
         plan: maintenancePlan()
-    )
-}
-
-private func gainRevealState() -> OnboardingPlanRevealState? {
-    var form = OnboardingPreviewData.formState
-    form.goalWeightKgText = "78"
-    return OnboardingPlanRevealBuilder.build(
-        formState: form,
-        plan: maintenancePlan()
-    )
-}
-
-private func imperialLossRevealState() -> OnboardingPlanRevealState? {
-    var form = OnboardingPreviewData.formState
-    form.unitSystem = .imperial
-    return OnboardingPlanRevealBuilder.build(
-        formState: form,
-        plan: OnboardingPreviewData.generatedPlan
     )
 }
 

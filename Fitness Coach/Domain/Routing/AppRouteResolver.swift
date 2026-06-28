@@ -134,7 +134,10 @@ enum AppRouteResolver {
     }
 
     private static func resolveSignedOutPreAuth(_ input: AppRouteInput) -> AppShellRoute {
-        PublicEntryRouteResolver.resolveSignedOutShell(
+        if input.rootState == .main, input.hasLocalProfile {
+            return .main
+        }
+        return PublicEntryRouteResolver.resolveSignedOutShell(
             PublicEntryRouteResolver.Input(
                 destination: input.publicEntryDestination,
                 isOnboardingModelReady: input.isOnboardingModelReady,

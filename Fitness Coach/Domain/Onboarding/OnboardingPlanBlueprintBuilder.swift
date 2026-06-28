@@ -2,22 +2,65 @@
 //  OnboardingPlanBlueprintBuilder.swift
 //  Fitness Coach
 //
-//  Forma — Personalized plan-learned state for onboarding.
+//  Forma — Blueprint screen state for onboarding plan-learned moment.
 //
 
 import Foundation
 
-struct OnboardingPlanBlueprintPillar: Equatable, Identifiable, Sendable {
+enum OnboardingPlanBlueprintIllustrationStyle: Equatable, Sendable {
+    case loss
+    case gain
+    case maintain
+    case fallback
+}
+
+struct OnboardingPlanBlueprintGoalCardState: Equatable, Sendable {
+    let directionLabel: String
+    let targetWeight: String
+    let paceCaption: String
+    let paceValue: String
+    let timelineCaption: String
+    let timelineValue: String
+}
+
+struct OnboardingPlanBlueprintPremiumFeature: Equatable, Identifiable, Sendable {
     let id: String
     let icon: String
     let title: String
+    let visualKind: OnboardingPlanBlueprintPremiumVisualKind
+}
+
+enum OnboardingPlanBlueprintPremiumVisualKind: Equatable, Sendable {
+    case nutrition
+    case activity
+    case progress
+}
+
+struct OnboardingPlanBlueprintGeneratedSignal: Equatable, Identifiable, Sendable {
+    let id: String
+    let label: String
+    let detail: String
+    let icon: String
+    let accent: OnboardingPlanBlueprintSignalAccent
+    let isIncluded: Bool
+}
+
+enum OnboardingPlanBlueprintSignalAccent: String, Equatable, Sendable {
+    case activity
+    case weight
+    case goal
+    case nutrition
+    case lifestyle
+    case training
 }
 
 struct OnboardingPlanBlueprintState: Equatable, Sendable {
-    let headline: String
-    let supportingParagraph: String
-    let personalizationSummary: String
-    let pillars: [OnboardingPlanBlueprintPillar]
+    let heroTitle: String
+    let illustrationStyle: OnboardingPlanBlueprintIllustrationStyle
+    let visualProfile: OnboardingPlanBlueprintVisualProfile
+    let goalCard: OnboardingPlanBlueprintGoalCardState
+    let premiumFeatures: [OnboardingPlanBlueprintPremiumFeature]
+    let generatedSignals: [OnboardingPlanBlueprintGeneratedSignal]
     let accessibilityLabel: String
     let isPersonalized: Bool
 }
@@ -29,77 +72,87 @@ enum OnboardingPlanBlueprintBuilder {
         referenceDate: Date = Date()
     ) -> OnboardingPlanBlueprintState {
         let copy = FormaProductCopy.Onboarding.Flow.Summary.self
-        let detailRows = OnboardingPersonalizationSummaryBuilder.recapCards(
-            for: formState,
+        let goalCardCopy = copy.GoalCard.self
+        let premiumFeatures = premiumFeatures(copy: copy.PremiumFeatures.self)
+        let generatedSignals = generatedSignals(
+            from: formState,
+            copy: copy.GeneratedSummary.self,
             referenceDate: referenceDate
         )
-        let pillars = pillars(copy: copy.Pillars.self)
 
         guard let currentKg = formState.parsedCurrentWeightKg,
               let goalKg = formState.parsedGoalWeightKg else {
-            return fallbackState(copy: copy, pillars: pillars)
+            return fallbackState(
+                copy: copy,
+                goalCardCopy: goalCardCopy,
+                premiumFeatures: premiumFeatures,
+                generatedSignals: generatedSignals
+            )
         }
 
         let direction = OnboardingGoalProjectionBuilder.goalDirection(
             currentWeightKg: currentKg,
             goalWeightKg: goalKg
         )
-        let bodyLine = bodyLine(from: detailRows)
-        let activity = activityLine(from: detailRows)
-        let journeyLine = journeyLine(
-            currentKg: currentKg,
-            goalKg: goalKg,
+        let targetWeight = OnboardingGoalWeightBounds.weightSummary(
+            valueKg: goalKg,
             unitSystem: formState.unitSystem
         )
+        let illustrationStyle: OnboardingPlanBlueprintIllustrationStyle
+        let directionLabel: String
+        let paceValue: String
+        let timelineValue: String
 
-        let personalizationSummary: String
         switch direction {
         case .cut:
-            let goalChange = OnboardingGoalWeightBounds.changeSummary(
+            illustrationStyle = .loss
+            directionLabel = goalCardCopy.lossDirection
+            paceValue = lossPaceValue(currentWeightKg: currentKg, formState: formState)
+            timelineValue = lossTimelineValue(
                 currentKg: currentKg,
                 goalKg: goalKg,
-                unitSystem: formState.unitSystem
-            )
-            personalizationSummary = copy.lossPersonalizationSummary(
-                goalChange: goalChange,
-                journeyLine: journeyLine,
-                bodyLine: bodyLine,
-                activity: activity
+                copy: goalCardCopy
             )
         case .gain:
-            let goalChange = OnboardingGoalWeightBounds.changeSummary(
-                currentKg: currentKg,
-                goalKg: goalKg,
-                unitSystem: formState.unitSystem
-            )
-            personalizationSummary = copy.gainPersonalizationSummary(
-                goalChange: goalChange,
-                journeyLine: journeyLine,
-                bodyLine: bodyLine,
-                activity: activity
-            )
+            illustrationStyle = .gain
+            directionLabel = goalCardCopy.gainDirection
+            paceValue = goalCardCopy.gainPace
+            timelineValue = goalCardCopy.gainTimeline
         case .maintain:
-            let targetLabel = OnboardingGoalWeightBounds.weightSummary(
-                valueKg: goalKg,
-                unitSystem: formState.unitSystem
-            )
-            personalizationSummary = copy.maintainPersonalizationSummary(
-                targetLabel: targetLabel,
-                bodyLine: bodyLine,
-                activity: activity
-            )
+            illustrationStyle = .maintain
+            directionLabel = goalCardCopy.maintainDirection
+            paceValue = goalCardCopy.maintainPace
+            timelineValue = goalCardCopy.maintainTimeline
         }
 
+        let goalCard = OnboardingPlanBlueprintGoalCardState(
+            directionLabel: directionLabel,
+            targetWeight: targetWeight,
+            paceCaption: goalCardCopy.paceCaption,
+            paceValue: paceValue,
+            timelineCaption: goalCardCopy.timelineCaption,
+            timelineValue: timelineValue
+        )
+        let visualProfile = visualProfile(
+            style: illustrationStyle,
+            currentKg: currentKg,
+            goalKg: goalKg,
+            unitSystem: formState.unitSystem,
+            generatedSignals: generatedSignals
+        )
+
         return OnboardingPlanBlueprintState(
-            headline: copy.title,
-            supportingParagraph: copy.supportingParagraph,
-            personalizationSummary: personalizationSummary,
-            pillars: pillars,
+            heroTitle: copy.title,
+            illustrationStyle: illustrationStyle,
+            visualProfile: visualProfile,
+            goalCard: goalCard,
+            premiumFeatures: premiumFeatures,
+            generatedSignals: generatedSignals,
             accessibilityLabel: accessibilityLabel(
-                headline: copy.title,
-                supportingParagraph: copy.supportingParagraph,
-                personalizationSummary: personalizationSummary,
-                pillars: pillars
+                heroTitle: copy.title,
+                goalCard: goalCard,
+                premiumFeatures: premiumFeatures,
+                generatedSignals: generatedSignals
             ),
             isPersonalized: true
         )
@@ -107,94 +160,240 @@ enum OnboardingPlanBlueprintBuilder {
 
     private static func fallbackState(
         copy: FormaProductCopy.Onboarding.Flow.Summary.Type,
-        pillars: [OnboardingPlanBlueprintPillar]
+        goalCardCopy: FormaProductCopy.Onboarding.Flow.Summary.GoalCard.Type,
+        premiumFeatures: [OnboardingPlanBlueprintPremiumFeature],
+        generatedSignals: [OnboardingPlanBlueprintGeneratedSignal]
     ) -> OnboardingPlanBlueprintState {
-        OnboardingPlanBlueprintState(
-            headline: copy.title,
-            supportingParagraph: copy.supportingParagraph,
-            personalizationSummary: copy.fallbackPersonalizationSummary,
-            pillars: pillars,
+        let goalCard = OnboardingPlanBlueprintGoalCardState(
+            directionLabel: goalCardCopy.maintainDirection,
+            targetWeight: goalCardCopy.fallbackTarget,
+            paceCaption: goalCardCopy.paceCaption,
+            paceValue: goalCardCopy.fallbackPace,
+            timelineCaption: goalCardCopy.timelineCaption,
+            timelineValue: goalCardCopy.fallbackTimeline
+        )
+
+        return OnboardingPlanBlueprintState(
+            heroTitle: copy.title,
+            illustrationStyle: .fallback,
+            visualProfile: visualProfile(
+                style: .fallback,
+                currentKg: nil,
+                goalKg: nil,
+                unitSystem: .metric,
+                generatedSignals: generatedSignals
+            ),
+            goalCard: goalCard,
+            premiumFeatures: premiumFeatures,
+            generatedSignals: generatedSignals,
             accessibilityLabel: accessibilityLabel(
-                headline: copy.title,
-                supportingParagraph: copy.supportingParagraph,
-                personalizationSummary: copy.fallbackPersonalizationSummary,
-                pillars: pillars
+                heroTitle: copy.title,
+                goalCard: goalCard,
+                premiumFeatures: premiumFeatures,
+                generatedSignals: generatedSignals
             ),
             isPersonalized: false
         )
     }
 
-    private static func pillars(
-        copy: FormaProductCopy.Onboarding.Flow.Summary.Pillars.Type
-    ) -> [OnboardingPlanBlueprintPillar] {
+    private static func lossPaceValue(
+        currentWeightKg: Double,
+        formState: OnboardingFormState
+    ) -> String {
+        if let paceLine = OnboardingTargetWeightGuidanceBuilder.guidanceState(for: formState)?.paceLine {
+            return paceLine
+                .replacingOccurrences(of: "Expected weekly pace: ", with: "")
+                .replacingOccurrences(of: "Expected weekly pace:", with: "")
+        }
+
+        let gentleKg = currentWeightKg * FormaCalculationConstants.presetGentleWeeklyLossFraction
+        let moderateKg = currentWeightKg * FormaCalculationConstants.presetModerateWeeklyLossFraction
+        let low = OnboardingGoalProjectionBuilder.expectedPaceLabel(weeklyKg: gentleKg)
+        let high = OnboardingGoalProjectionBuilder.expectedPaceLabel(weeklyKg: moderateKg)
+        return "~\(low)–\(high)"
+    }
+
+    private static func lossTimelineValue(
+        currentKg: Double,
+        goalKg: Double,
+        copy: FormaProductCopy.Onboarding.Flow.Summary.GoalCard.Type
+    ) -> String {
+        let gentleKg = currentKg * FormaCalculationConstants.presetGentleWeeklyLossFraction
+        guard let weeks = OnboardingGoalProjectionBuilder.estimatedWeeks(
+            currentWeightKg: currentKg,
+            goalWeightKg: goalKg,
+            weeklyLossKg: gentleKg
+        ) else {
+            return copy.maintainTimeline
+        }
+        return copy.lossTimeline(weeks: weeks)
+    }
+
+    private static func premiumFeatures(
+        copy: FormaProductCopy.Onboarding.Flow.Summary.PremiumFeatures.Type
+    ) -> [OnboardingPlanBlueprintPremiumFeature] {
         copy.items.map { item in
-            OnboardingPlanBlueprintPillar(
+            OnboardingPlanBlueprintPremiumFeature(
                 id: item.title,
                 icon: item.icon,
-                title: item.title
+                title: item.title,
+                visualKind: premiumVisualKind(item.visualKind)
             )
         }
     }
 
-    private static func bodyLine(
-        from detailRows: [OnboardingPersonalizationSummaryRecap]
-    ) -> String {
-        let rowValue: (String) -> String? = { id in
-            guard let value = detailRows.first(where: { $0.id == id })?.value,
-                  value != "—" else {
-                return nil
-            }
-            return value
+    private static func premiumVisualKind(_ raw: String) -> OnboardingPlanBlueprintPremiumVisualKind {
+        switch raw {
+        case "activity":
+            return .activity
+        case "progress":
+            return .progress
+        default:
+            return .nutrition
         }
-
-        if let height = rowValue("height"), let weight = rowValue("currentWeight") {
-            return "\(height), \(weight)"
-        }
-        if let height = rowValue("height") {
-            return height
-        }
-        if let weight = rowValue("currentWeight") {
-            return weight
-        }
-        return "Your body"
     }
 
-    private static func activityLine(
-        from detailRows: [OnboardingPersonalizationSummaryRecap]
-    ) -> String {
-        guard let activity = detailRows.first(where: { $0.id == "activity" })?.value,
-              activity != "—" else {
-            return "Your activity level"
+    private static func visualProfile(
+        style: OnboardingPlanBlueprintIllustrationStyle,
+        currentKg: Double?,
+        goalKg: Double?,
+        unitSystem: UnitSystem,
+        generatedSignals: [OnboardingPlanBlueprintGeneratedSignal]
+    ) -> OnboardingPlanBlueprintVisualProfile {
+        let currentWeight = currentKg.map {
+            OnboardingGoalWeightBounds.weightSummary(valueKg: $0, unitSystem: unitSystem)
         }
-        return activity
+        let targetWeight = goalKg.map {
+            OnboardingGoalWeightBounds.weightSummary(valueKg: $0, unitSystem: unitSystem)
+        } ?? FormaProductCopy.Onboarding.Flow.Summary.GoalCard.fallbackTarget
+
+        let routeProgress: CGFloat
+        if let currentKg, let goalKg, abs(currentKg - goalKg) > FormaCalculationConstants.goalDirectionEpsilonKg {
+            routeProgress = 0.12
+        } else {
+            routeProgress = 0.52
+        }
+
+        let radarValues = generatedSignals.map { signal in
+            signal.isIncluded ? CGFloat(1) : CGFloat(0.28)
+        }
+
+        return OnboardingPlanBlueprintVisualProfile(
+            style: style,
+            currentWeight: currentWeight,
+            targetWeight: targetWeight,
+            routeProgress: routeProgress,
+            radarValues: radarValues
+        )
     }
 
-    private static func journeyLine(
-        currentKg: Double,
-        goalKg: Double,
-        unitSystem: UnitSystem
-    ) -> String {
-        let currentLabel = OnboardingGoalWeightBounds.weightSummary(
-            valueKg: currentKg,
-            unitSystem: unitSystem
-        )
-        let goalLabel = OnboardingGoalWeightBounds.weightSummary(
-            valueKg: goalKg,
-            unitSystem: unitSystem
-        )
-        return "\(currentLabel) → \(goalLabel)"
+    private static func generatedSignals(
+        from formState: OnboardingFormState,
+        copy: FormaProductCopy.Onboarding.Flow.Summary.GeneratedSummary.Type,
+        referenceDate: Date
+    ) -> [OnboardingPlanBlueprintGeneratedSignal] {
+        let hasCurrentWeight = formState.parsedCurrentWeightKg != nil
+        let hasGoalWeight = formState.parsedGoalWeightKg != nil
+        let hasLifestyle = formState.birthDate != nil
+            && OnboardingBirthdayValues.isSelectedSexValidForCalorieCalculation(formState.sex)
+        let hasNutritionInputs = formState.parsedHeightCm != nil
+            && hasCurrentWeight
+            && hasLifestyle
+        let trainingDefaults = ActivityTrainingDefaultsResolver().defaults(for: formState.activityLevel)
+
+        let currentWeightDetail = formState.parsedCurrentWeightKg.map {
+            OnboardingGoalWeightBounds.weightSummary(valueKg: $0, unitSystem: formState.unitSystem)
+        } ?? copy.pendingDetail
+
+        let goalDetail = formState.parsedGoalWeightKg.map {
+            OnboardingGoalWeightBounds.weightSummary(valueKg: $0, unitSystem: formState.unitSystem)
+        } ?? copy.pendingDetail
+
+        let lifestyleDetail: String
+        if hasLifestyle, let birthDate = formState.birthDate {
+            let age = BirthDateAgeResolver.age(from: birthDate, referenceDate: referenceDate)
+            lifestyleDetail = copy.lifestyleDetail(
+                age: age,
+                sex: OnboardingFormatter.sex(formState.sex)
+            )
+        } else {
+            lifestyleDetail = copy.pendingDetail
+        }
+
+        return [
+            OnboardingPlanBlueprintGeneratedSignal(
+                id: "activity",
+                label: copy.activityLevel,
+                detail: OnboardingFormatter.activityLevel(formState.activityLevel),
+                icon: "figure.strengthtraining.traditional",
+                accent: .activity,
+                isIncluded: true
+            ),
+            OnboardingPlanBlueprintGeneratedSignal(
+                id: "currentWeight",
+                label: copy.currentWeight,
+                detail: currentWeightDetail,
+                icon: "scalemass.fill",
+                accent: .weight,
+                isIncluded: hasCurrentWeight
+            ),
+            OnboardingPlanBlueprintGeneratedSignal(
+                id: "goal",
+                label: copy.goal,
+                detail: goalDetail,
+                icon: "target",
+                accent: .goal,
+                isIncluded: hasGoalWeight
+            ),
+            OnboardingPlanBlueprintGeneratedSignal(
+                id: "nutrition",
+                label: copy.nutritionTargets,
+                detail: hasNutritionInputs ? copy.nutritionDetail : copy.pendingDetail,
+                icon: "fork.knife",
+                accent: .nutrition,
+                isIncluded: hasNutritionInputs
+            ),
+            OnboardingPlanBlueprintGeneratedSignal(
+                id: "lifestyle",
+                label: copy.lifestyle,
+                detail: lifestyleDetail,
+                icon: "heart.fill",
+                accent: .lifestyle,
+                isIncluded: hasLifestyle
+            ),
+            OnboardingPlanBlueprintGeneratedSignal(
+                id: "training",
+                label: copy.trainingRhythm,
+                detail: copy.trainingDetail(daysPerWeek: trainingDefaults.trainingDaysPerWeek),
+                icon: "figure.run",
+                accent: .training,
+                isIncluded: hasCurrentWeight && hasGoalWeight
+            )
+        ]
     }
 
     private static func accessibilityLabel(
-        headline: String,
-        supportingParagraph: String,
-        personalizationSummary: String,
-        pillars: [OnboardingPlanBlueprintPillar]
+        heroTitle: String,
+        goalCard: OnboardingPlanBlueprintGoalCardState,
+        premiumFeatures: [OnboardingPlanBlueprintPremiumFeature],
+        generatedSignals: [OnboardingPlanBlueprintGeneratedSignal]
     ) -> String {
-        let spokenSummary = personalizationSummary
+        let spokenWeight = goalCard.targetWeight
             .replacingOccurrences(of: " kg", with: " kilograms")
             .replacingOccurrences(of: " lb", with: " pounds")
-        let pillarList = pillars.map(\.title).joined(separator: ", ")
-        return "\(headline) \(supportingParagraph) Your plan: \(spokenSummary). \(pillarList)."
+        let included = generatedSignals
+            .filter(\.isIncluded)
+            .map { "\($0.label): \($0.detail)" }
+            .joined(separator: ". ")
+        let features = premiumFeatures.map(\.title).joined(separator: ", ")
+        return """
+        \(heroTitle). \
+        \(goalCard.directionLabel) \(spokenWeight). \
+        \(goalCard.paceCaption): \(goalCard.paceValue). \
+        \(goalCard.timelineCaption): \(goalCard.timelineValue). \
+        \(features). \
+        \(FormaProductCopy.Onboarding.Flow.Summary.GeneratedSummary.title). \
+        \(included).
+        """
     }
 }

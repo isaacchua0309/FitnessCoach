@@ -14,10 +14,14 @@ enum OnboardingViewState: Equatable {
     case generatingPlan
     /// Dedicated generating-plan screen owns loading UI (no scroll overlay).
     case generatingPlanAnimated
+    /// Plan is ready; generating screen shows success beat before reveal handoff.
+    case generationSucceeded
     /// Generating-plan screen failed; user can return to summary.
     case generationFailed
     /// Save-plan step waiting for Google sign-in.
     case awaitingSignIn
+    /// Brief success handoff before onboarding completion navigation.
+    case signInSucceeded
     /// Local profile creation in progress on the save-plan step.
     case savingProfile
     /// Legacy plan-preview completion flow creating the profile.
@@ -34,7 +38,7 @@ extension OnboardingViewState {
         switch self {
         case .generatingPlan, .completing, .savingProfile:
             return true
-        case .editing, .generatingPlanAnimated, .generationFailed, .awaitingSignIn, .error, .connectingAppleHealth:
+        case .editing, .generatingPlanAnimated, .generationSucceeded, .generationFailed, .awaitingSignIn, .signInSucceeded, .error, .connectingAppleHealth:
             return false
         }
     }
@@ -42,9 +46,9 @@ extension OnboardingViewState {
     /// Whether bottom-bar primary actions should show a busy spinner.
     var isBottomBarBusy: Bool {
         switch self {
-        case .generatingPlan, .generatingPlanAnimated, .completing, .savingProfile, .connectingAppleHealth:
+        case .generatingPlan, .generatingPlanAnimated, .generationSucceeded, .completing, .savingProfile, .connectingAppleHealth:
             return true
-        case .editing, .generationFailed, .awaitingSignIn, .error:
+        case .editing, .generationFailed, .awaitingSignIn, .signInSucceeded, .error:
             return false
         }
     }
@@ -55,7 +59,7 @@ extension OnboardingViewState {
             return FormaProductCopy.Loading.generatingPlan
         case .completing, .savingProfile:
             return FormaProductCopy.Loading.creatingProfile
-        case .editing, .generatingPlanAnimated, .generationFailed, .awaitingSignIn, .error, .connectingAppleHealth:
+        case .editing, .generatingPlanAnimated, .generationSucceeded, .generationFailed, .awaitingSignIn, .signInSucceeded, .error, .connectingAppleHealth:
             return nil
         }
     }
@@ -64,7 +68,8 @@ extension OnboardingViewState {
         switch self {
         case .editing, .awaitingSignIn, .generationFailed:
             return true
-        case .generatingPlan, .generatingPlanAnimated, .savingProfile, .completing, .error, .connectingAppleHealth:
+        case .generatingPlan, .generatingPlanAnimated, .generationSucceeded, .savingProfile, .completing, .signInSucceeded, .error,
+             .connectingAppleHealth:
             return false
         }
     }

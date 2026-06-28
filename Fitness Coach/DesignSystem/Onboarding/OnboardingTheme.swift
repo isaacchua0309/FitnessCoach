@@ -92,6 +92,11 @@ enum OnboardingLayout {
     static let selectionRowMinHeight: CGFloat = 48
     static let footerVerticalPadding: CGFloat = 6
     static let footerInnerSpacing: CGFloat = 6
+    /// Reserved inset during plan generation so reveal footer does not snap layout.
+    static let planRevealFooterReservedHeight: CGFloat = 132
+    /// Reserved error slot on protect-progress so sign-in retry copy does not shift the CTA.
+    static let savePlanErrorSlotHeight: CGFloat = 58
+    static let savePlanFooterBottomInset: CGFloat = 4
     static let measurementWheelHeight: CGFloat = 220
     /// Tall enough for readable wheel rows on the birthday fixed-viewport step.
     static let birthdayWheelHeight: CGFloat = 200

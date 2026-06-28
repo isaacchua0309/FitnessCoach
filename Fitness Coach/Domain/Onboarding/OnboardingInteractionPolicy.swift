@@ -16,6 +16,7 @@ struct OnboardingInteractionRules: Equatable, Sendable {
     let prefersCompactLayout: Bool
     let showsSharedBottomBar: Bool
     let dismissesKeyboardOnAppear: Bool
+    let reservesPlanRevealFooterSpace: Bool
 }
 
 enum OnboardingInteractionPolicy {
@@ -31,7 +32,8 @@ enum OnboardingInteractionPolicy {
                 validatesOnContinue: false,
                 prefersCompactLayout: true,
                 showsSharedBottomBar: true,
-                dismissesKeyboardOnAppear: true
+                dismissesKeyboardOnAppear: true,
+                reservesPlanRevealFooterSpace: false
             )
         case .heightWeight, .targetWeight, .birthday:
             return OnboardingInteractionRules(
@@ -42,7 +44,8 @@ enum OnboardingInteractionPolicy {
                 validatesOnContinue: true,
                 prefersCompactLayout: true,
                 showsSharedBottomBar: true,
-                dismissesKeyboardOnAppear: true
+                dismissesKeyboardOnAppear: true,
+                reservesPlanRevealFooterSpace: false
             )
         case .activityLevel:
             return OnboardingInteractionRules(
@@ -53,7 +56,8 @@ enum OnboardingInteractionPolicy {
                 validatesOnContinue: true,
                 prefersCompactLayout: false,
                 showsSharedBottomBar: true,
-                dismissesKeyboardOnAppear: true
+                dismissesKeyboardOnAppear: true,
+                reservesPlanRevealFooterSpace: false
             )
         case .targetEncouragement, .appleHealth, .almostThere, .formaProof:
             return OnboardingInteractionRules(
@@ -64,7 +68,8 @@ enum OnboardingInteractionPolicy {
                 validatesOnContinue: false,
                 prefersCompactLayout: true,
                 showsSharedBottomBar: true,
-                dismissesKeyboardOnAppear: true
+                dismissesKeyboardOnAppear: true,
+                reservesPlanRevealFooterSpace: false
             )
         case .review:
             return OnboardingInteractionRules(
@@ -75,7 +80,8 @@ enum OnboardingInteractionPolicy {
                 validatesOnContinue: false,
                 prefersCompactLayout: true,
                 showsSharedBottomBar: true,
-                dismissesKeyboardOnAppear: true
+                dismissesKeyboardOnAppear: true,
+                reservesPlanRevealFooterSpace: false
             )
         case .generatingPlan:
             return OnboardingInteractionRules(
@@ -86,7 +92,8 @@ enum OnboardingInteractionPolicy {
                 validatesOnContinue: false,
                 prefersCompactLayout: true,
                 showsSharedBottomBar: false,
-                dismissesKeyboardOnAppear: true
+                dismissesKeyboardOnAppear: true,
+                reservesPlanRevealFooterSpace: true
             )
         case .planReveal:
             return OnboardingInteractionRules(
@@ -97,7 +104,8 @@ enum OnboardingInteractionPolicy {
                 validatesOnContinue: false,
                 prefersCompactLayout: true,
                 showsSharedBottomBar: true,
-                dismissesKeyboardOnAppear: true
+                dismissesKeyboardOnAppear: true,
+                reservesPlanRevealFooterSpace: false
             )
         case .savePlan:
             return OnboardingInteractionRules(
@@ -108,7 +116,8 @@ enum OnboardingInteractionPolicy {
                 validatesOnContinue: false,
                 prefersCompactLayout: true,
                 showsSharedBottomBar: false,
-                dismissesKeyboardOnAppear: true
+                dismissesKeyboardOnAppear: true,
+                reservesPlanRevealFooterSpace: false
             )
         }
     }

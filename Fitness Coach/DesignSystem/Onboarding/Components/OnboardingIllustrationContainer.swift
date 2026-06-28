@@ -11,6 +11,7 @@ struct OnboardingIllustrationContainer: View {
     let style: OnboardingIllustrationStyle
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.onboardingVisionLayoutProfile) private var layoutProfile
     @State private var pulse = false
     @State private var waveExpansion: CGFloat = 0.92
     @State private var drawnProgress: Double = 0
@@ -23,22 +24,32 @@ struct OnboardingIllustrationContainer: View {
 
     var body: some View {
         illustrationPlate {
-            Group {
-                switch style {
-                case .coachWaiting:
-                    coachWaitingIllustration
-                case let .targetRing(intentLabel, weightLabel, pathStyle, ringProgress):
-                    targetRingIllustration(
-                        intentLabel: intentLabel,
-                        weightLabel: weightLabel,
-                        pathStyle: pathStyle,
-                        ringProgress: ringProgress
-                    )
+            GeometryReader { geometry in
+                Group {
+                    switch style {
+                    case .coachWaiting:
+                        coachWaitingIllustration
+                    case let .targetRing(intentLabel, weightLabel, pathStyle, ringProgress):
+                        targetRingIllustration(
+                            intentLabel: intentLabel,
+                            weightLabel: weightLabel,
+                            pathStyle: pathStyle,
+                            ringProgress: ringProgress
+                        )
+                    }
                 }
+                .scaleEffect(illustrationScale(in: geometry.size))
+                .frame(width: geometry.size.width, height: geometry.size.height)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .onAppear { startAnimations() }
+    }
+
+    private func illustrationScale(in size: CGSize) -> CGFloat {
+        let reference = max(coachHaloDiameter, targetHaloDiameter)
+        guard reference > 0 else { return 1 }
+        let fitScale = min(size.width, size.height) / reference
+        return min(1, fitScale) * layoutProfile.illustrationScale
     }
 
     private func illustrationPlate<Content: View>(@ViewBuilder content: () -> Content) -> some View {

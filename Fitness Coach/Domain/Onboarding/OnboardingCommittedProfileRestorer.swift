@@ -9,9 +9,10 @@ import Foundation
 
 enum OnboardingCommittedProfileRestorer {
 
-    /// Local profile exists but is not linked to an account yet — save-plan sign-in pending.
+    /// Local profile exists but save-plan sign-in is still pending.
     static func shouldResumeSavePlan(profile: UserProfile) -> Bool {
-        profile.ownerUID == nil
+        guard profile.ownerUID == nil else { return false }
+        return !OnboardingLocalCompletionMarker.isAcknowledged()
     }
 
     static func hydrateFormState(

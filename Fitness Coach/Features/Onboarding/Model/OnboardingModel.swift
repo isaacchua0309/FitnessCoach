@@ -12,6 +12,7 @@ import UIKit
 
 enum OnboardingCompletionIntent: Equatable, Sendable {
     case signIn
+    case localOnly
 }
 
 @MainActor
@@ -446,12 +447,18 @@ final class OnboardingModel: ObservableObject {
             let plan = try targetService.generateInitialTargets(from: input)
 
             let elapsed = Date().timeIntervalSince(startedAt)
-            let remaining = max(0, Self.minimumGenerationDisplayDuration - elapsed)
+            let remaining = max(
+                0,
+                OnboardingGeneratingPlanTiming.minimumPresentationBeforeSuccess - elapsed
+            )
             await generationDelay.delay(for: remaining)
 
             guard !Task.isCancelled else { return }
 
             revealGeneratedPlan(plan)
+            await holdForGenerationSuccessBeatIfNeeded()
+            guard !Task.isCancelled else { return }
+            completeGenerationRevealHandoff()
         } catch {
             guard !Task.isCancelled else { return }
             clearGeneratedPlan()
@@ -466,6 +473,24 @@ final class OnboardingModel: ObservableObject {
         planRevealState = OnboardingPlanRevealBuilder.build(formState: formState, plan: plan)
         logAnalytics(.planGenerated, properties: planAnalyticsProperties(plan: plan))
         recordStepCompleted(for: .generatingPlan)
+        viewState = .generationSucceeded
+        autosaveDraft()
+    }
+
+    private func holdForGenerationSuccessBeatIfNeeded() async {
+        guard viewState == .generationSucceeded else { return }
+        let hold: TimeInterval
+        if UIAccessibility.isReduceMotionEnabled {
+            hold = 0
+        } else {
+            hold = OnboardingGeneratingPlanTiming.successHold
+        }
+        guard hold > 0 else { return }
+        await generationDelay.delay(for: hold)
+    }
+
+    func completeGenerationRevealHandoff() {
+        guard currentStep == .generatingPlan, viewState == .generationSucceeded else { return }
 
         var transaction = Transaction(
             animation: .easeOut(duration: OnboardingGeneratingPlanTiming.stepTransitionAnimation)
@@ -479,7 +504,9 @@ final class OnboardingModel: ObservableObject {
         }
 
         recordStepViewed(.planReveal)
-        logAnalytics(.planRevealed, properties: planAnalyticsProperties(plan: plan))
+        if let plan = generatedPlan {
+            logAnalytics(.planRevealed, properties: planAnalyticsProperties(plan: plan))
+        }
         autosaveDraft()
     }
 
@@ -590,15 +617,39 @@ final class OnboardingModel: ObservableObject {
     func handleSignInCompletionFailure(message: String? = nil, wasCancelled: Bool = false) {
         guard currentStep == .savePlan else { return }
         viewState = .awaitingSignIn
-        errorMessage = message ?? FormaProductCopy.Onboarding.V2.SavePlan.signInRetryMessage
+        _ = message
+        errorMessage = FormaProductCopy.Onboarding.V2.SavePlan.signInRetryHeadline
         if wasCancelled {
             logAnalytics(.signInCancelled)
         }
     }
 
+    func markSignInSucceededForHandoff() {
+        guard currentStep == .savePlan else { return }
+        viewState = .signInSucceeded
+        finalizeAfterSuccessfulSignIn()
+    }
+
     func finalizeAfterSuccessfulSignIn() {
         logAnalytics(.signInCompleted)
         recordOnboardingFinished(completionPath: "sign_in")
+    }
+
+    func skipProtectProgressSignIn() {
+        if !(hasCommittedLocalProfile || hasLocalProfile) {
+            commitLocalProfileForSavePlan()
+            guard errorMessage == nil else { return }
+        }
+
+        recordStepCompleted(for: .savePlan)
+        pendingCompletionIntent = .localOnly
+        viewState = .completing
+        errorMessage = nil
+        onCompletion()
+    }
+
+    func finalizeAfterLocalSkip() {
+        recordOnboardingFinished(completionPath: "local_only")
     }
 
     func finalizeAfterRestoredExistingPlan() {

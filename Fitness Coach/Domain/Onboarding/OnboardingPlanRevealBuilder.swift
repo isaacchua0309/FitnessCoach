@@ -55,6 +55,13 @@ enum OnboardingPlanRevealBuilder {
             goalDirection: direction
         )
 
+        let missions = firstWeekMissions(for: direction)
+        let coach = coachMessage(direction: direction, goalLabel: goalLabel)
+        let beliefLine = journeyBeliefLine(direction: direction, strategyLabel: strategyLabel)
+        let calorieExplanation = OnboardingPlanRevealStrategyFormatter.calorieExplanation(
+            goalDirection: direction
+        )
+
         return OnboardingPlanRevealState(
             goalDirection: direction,
             currentWeightLabel: currentLabel,
@@ -70,18 +77,20 @@ enum OnboardingPlanRevealBuilder {
             focusBody: focusCopy.body,
             nextStepLine: copy.nextStepLine,
             accessibilitySummary: accessibilitySummary(
-                direction: direction,
-                goalLabel: goalLabel,
-                goalWeightKg: goalWeightKg,
-                unitSystem: unitSystem,
+                celebrationTitle: FormaProductCopy.Onboarding.Flow.PlanReveal.title,
+                celebrationSubtitle: FormaProductCopy.Onboarding.Flow.PlanReveal.subtitle,
+                goalHeroHeadline: heroCopy.headline,
+                goalProgressLabel: goalProgressLabel(current: currentLabel, goal: goalLabel),
+                journeyBeliefLine: beliefLine,
                 paceLabel: timeline.paceLabel,
                 estimatedWeeksLabel: timeline.estimatedWeeksLabel,
                 strategyLabel: strategyLabel,
                 calorieTarget: plan.targets.calorieTarget,
                 proteinLabel: proteinLabel,
                 waterLabel: waterLabel,
-                firstWeekMissions: firstWeekMissions(for: direction),
-                coachMessage: coachMessage(direction: direction, goalLabel: goalLabel)
+                calorieExplanationLine: calorieExplanation,
+                firstWeekMissions: missions,
+                coachMessage: coach
             ),
             weeklyChangeLabel: timeline.weeklyChangeLabel,
             paceLabel: timeline.paceLabel,
@@ -92,18 +101,13 @@ enum OnboardingPlanRevealBuilder {
             ),
             strategyLabel: strategyLabel,
             dailyCalorieLabel: calorieLabel,
-            calorieExplanationLine: OnboardingPlanRevealStrategyFormatter.calorieExplanation(
-                goalDirection: direction
-            ),
+            calorieExplanationLine: calorieExplanation,
             proteinLabel: proteinLabel,
             waterLabel: waterLabel,
             secondaryMacroRows: secondaryMacroRows(from: plan),
-            journeyBeliefLine: journeyBeliefLine(
-                direction: direction,
-                strategyLabel: strategyLabel
-            ),
-            firstWeekMissions: firstWeekMissions(for: direction),
-            coachMessage: coachMessage(direction: direction, goalLabel: goalLabel),
+            journeyBeliefLine: beliefLine,
+            firstWeekMissions: missions,
+            coachMessage: coach,
             planStatus: planStatus
         )
     }
@@ -316,67 +320,58 @@ enum OnboardingPlanRevealBuilder {
         case .cut:
             return copy.cut(goalWeight: goalLabel)
         case .maintain:
-            return copy.maintain(goalWeight: goalLabel)
+            return copy.maintain
         case .gain:
             return copy.gain(goalWeight: goalLabel)
         }
     }
 
     private static func accessibilitySummary(
-        direction: PlanGoalDirection,
-        goalLabel: String,
-        goalWeightKg: Double,
-        unitSystem: UnitSystem,
+        celebrationTitle: String,
+        celebrationSubtitle: String,
+        goalHeroHeadline: String,
+        goalProgressLabel: String,
+        journeyBeliefLine: String,
         paceLabel: String?,
         estimatedWeeksLabel: String?,
         strategyLabel: String,
         calorieTarget: Int,
         proteinLabel: String,
         waterLabel: String,
+        calorieExplanationLine: String,
         firstWeekMissions: [OnboardingPlanRevealMission],
         coachMessage: String
     ) -> String {
-        let title = FormaProductCopy.Onboarding.Flow.PlanReveal.title
-        let goalPhrase: String
-        switch direction {
-        case .maintain:
-            goalPhrase = "Your goal is to maintain \(spokenWeight(valueKg: goalWeightKg, unitSystem: unitSystem))."
-        case .cut:
-            goalPhrase = "Your goal is to reach \(spokenWeight(valueKg: goalWeightKg, unitSystem: unitSystem))."
-        case .gain:
-            goalPhrase = "Your goal is to build toward \(spokenWeight(valueKg: goalWeightKg, unitSystem: unitSystem))."
-        }
+        let labels = FormaProductCopy.Onboarding.V2.PlanReveal.Accessibility.self
 
-        var journeyPhrase = ""
-        if let paceLabel, let estimatedWeeksLabel {
-            journeyPhrase = " Expected pace \(paceLabel), \(estimatedWeeksLabel.lowercased()). Strategy: \(strategyLabel)."
-        } else if direction == .maintain {
-            journeyPhrase = " Strategy: \(strategyLabel)."
-        }
+        let celebration = "\(celebrationTitle). \(celebrationSubtitle)"
+        let goal = "\(labels.goal): \(goalHeroHeadline)."
 
-        let missionPhrase = firstWeekMissions.map(\.title).joined(separator: ", ")
+        var journeyParts = [goalProgressLabel, strategyLabel, journeyBeliefLine]
+        if let paceLabel {
+            journeyParts.insert(paceLabel, at: 1)
+        }
+        if let estimatedWeeksLabel {
+            let insertIndex = paceLabel == nil ? 1 : 2
+            journeyParts.insert(estimatedWeeksLabel, at: insertIndex)
+        }
+        let journey = "\(labels.journey): \(journeyParts.joined(separator: ". "))."
+
+        let firstWeek = "\(labels.firstWeek): \(firstWeekMissions.map(\.title).joined(separator: ", "))."
+
         let proteinSpoken = proteinLabel.replacingOccurrences(of: " g", with: " grams")
         let waterSpoken = waterLabel.replacingOccurrences(of: " ml", with: " milliliters")
-        let fuelPhrase =
-            "Daily fuel: \(calorieTarget) calories, \(proteinSpoken) protein, \(waterSpoken) water."
+        let dailyFuel =
+            "\(labels.dailyFuel): \(calorieExplanationLine) \(calorieTarget) calories, \(proteinSpoken) protein, \(waterSpoken) water."
 
-        return "\(title). \(goalPhrase)\(journeyPhrase) First mission: \(missionPhrase). \(fuelPhrase) \(coachMessage)"
-    }
-
-    private static func spokenWeight(valueKg: Double, unitSystem: UnitSystem) -> String {
-        switch unitSystem {
-        case .metric:
-            let formatted = valueKg.truncatingRemainder(dividingBy: 1) == 0
-                ? "\(Int(valueKg.rounded()))"
-                : String(format: "%.1f", valueKg)
-            return "\(formatted) kilograms"
-        case .imperial:
-            let pounds = valueKg * OnboardingFormState.poundsPerKilogram
-            let formatted = pounds.truncatingRemainder(dividingBy: 1) == 0
-                ? "\(Int(pounds.rounded()))"
-                : String(format: "%.1f", pounds)
-            return "\(formatted) pounds"
-        }
+        return [
+            celebration,
+            goal,
+            journey,
+            firstWeek,
+            dailyFuel,
+            coachMessage
+        ].joined(separator: " ")
     }
 
     // MARK: - Formatting

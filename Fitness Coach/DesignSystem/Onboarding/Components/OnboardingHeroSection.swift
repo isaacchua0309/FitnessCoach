@@ -19,7 +19,7 @@ struct OnboardingHeroSection: View {
     var alignment: HorizontalAlignment = .center
 
     var body: some View {
-        VStack(alignment: alignment, spacing: FormaTokens.Spacing.md) {
+        VStack(alignment: alignment, spacing: FormaTokens.Spacing.sm) {
             Text(headline)
                 .font(headlineFont)
                 .foregroundStyle(OnboardingTheme.primaryText)
@@ -41,6 +41,7 @@ struct OnboardingHeroSection: View {
                     .frame(maxWidth: .infinity, alignment: frameAlignment)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .accessibilityElement(children: .combine)
     }
 

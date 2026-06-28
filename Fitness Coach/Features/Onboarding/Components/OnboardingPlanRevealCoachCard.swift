@@ -23,13 +23,10 @@ struct OnboardingPlanRevealCoachCard: View {
                 .foregroundStyle(OnboardingTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.horizontal, OnboardingLayout.compactCardPadding)
-        .padding(.vertical, FormaTokens.Spacing.sm)
+        .onboardingPlanRevealCardPadding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                .fill(FormaTokens.Color.accentMuted.opacity(0.35))
-        )
+        .background { OnboardingPlanRevealCardBackground(surface: .coach) }
+        .onboardingPlanRevealEntrance(.coach)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(message)
     }

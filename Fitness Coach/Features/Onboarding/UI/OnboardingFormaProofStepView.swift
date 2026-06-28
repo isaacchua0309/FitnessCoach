@@ -24,13 +24,14 @@ struct OnboardingFormaProofStepView: View {
         ) {
             OnboardingStageProgressHeader(currentStep: .formaProof, showsTitles: false)
         } content: {
-            VStack(spacing: FormaTokens.Spacing.sm) {
+            VStack(spacing: 0) {
                 OnboardingHeroSection(
                     headline: displayState.visionHeadline,
                     headlineStyle: .vision
                 )
                 .onboardingVisionZone(.headline)
                 .onboardingStageEntrance(.headline)
+                .accessibilitySortPriority(90)
 
                 OnboardingIllustrationContainer(
                     style: .targetRing(
@@ -42,6 +43,7 @@ struct OnboardingFormaProofStepView: View {
                 )
                 .onboardingVisionZone(.hero)
                 .onboardingStageEntrance(.hero)
+                .accessibilitySortPriority(85)
 
                 Text(displayState.visionSupporting)
                     .font(OnboardingMarketingTypography.supporting)
@@ -50,9 +52,10 @@ struct OnboardingFormaProofStepView: View {
                     .minimumScaleFactor(0.85)
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                     .onboardingVisionZone(.narrative)
                     .onboardingStageEntrance(.supporting)
+                    .accessibilitySortPriority(80)
 
                 OnboardingBenefitGrid(
                     benefits: OnboardingFormaProofBuilder.benefitItems(from: displayState),
@@ -60,12 +63,14 @@ struct OnboardingFormaProofStepView: View {
                 )
                 .onboardingVisionZone(.benefits)
                 .onboardingStageEntrance(.benefits)
+                .accessibilitySortPriority(70)
 
                 OnboardingFooterMessage(message: displayState.trustFooter)
                     .onboardingVisionZone(.footer)
                     .onboardingStageEntrance(.footer)
+                    .accessibilitySortPriority(60)
             }
-            .onboardingVisionZoneWeights(OnboardingVisionZoneWeights.formaProof)
+            .onboardingVisionScreen(.formaProof)
         }
     }
 
@@ -124,6 +129,20 @@ struct OnboardingFormaProofStepView: View {
         .formaThemePreview()
 }
 
+#Preview("Forma Proof — iPhone SE") {
+    OnboardingFormaProofStepView(
+        formState: {
+            var state = OnboardingFormState()
+            OnboardingHeightWeightValues.setWeightKg(70, in: &state)
+            OnboardingTargetWeightValues.setGoalFromDeltaKg(0, in: &state)
+            return state
+        }()
+    )
+    .background(OnboardingTheme.background)
+    .formaThemePreview()
+    .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
+}
+
 #Preview("Forma Proof — Large Dynamic Type") {
     OnboardingFormaProofStepView(
         formState: {
@@ -136,5 +155,19 @@ struct OnboardingFormaProofStepView: View {
     .background(OnboardingTheme.background)
     .formaThemePreview()
     .dynamicTypeSize(.accessibility2)
+}
+
+#Preview("Forma Proof — Landscape") {
+    OnboardingFormaProofStepView(
+        formState: {
+            var state = OnboardingFormState()
+            OnboardingHeightWeightValues.setWeightKg(70, in: &state)
+            OnboardingTargetWeightValues.setGoalFromDeltaKg(-5, in: &state)
+            return state
+        }()
+    )
+    .background(OnboardingTheme.background)
+    .formaThemePreview()
+    .previewInterfaceOrientation(.landscapeLeft)
 }
 #endif

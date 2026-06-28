@@ -27,10 +27,17 @@ enum ProfileSignInCopyPolicy {
         }
     }
 
-    /// Guardrail: returning-member sign-in must not use onboarding save-plan phrasing.
-    static func usesSavePlanLanguage(_ text: String) -> Bool {
+    /// Guardrail: returning-member sign-in must not use onboarding protect-progress phrasing.
+    static func usesOnboardingCompletionLanguage(_ text: String) -> Bool {
         let normalized = text.lowercased()
-        return normalized.contains("save your plan")
-            || normalized.contains("save my plan")
+        return normalized.contains("protect your progress")
+            || normalized.contains("protect with google")
+            || normalized.contains("keep your personalized plan safe")
+            || normalized.contains("saving your progress")
+    }
+
+    @available(*, deprecated, renamed: "usesOnboardingCompletionLanguage")
+    static func usesSavePlanLanguage(_ text: String) -> Bool {
+        usesOnboardingCompletionLanguage(text)
     }
 }

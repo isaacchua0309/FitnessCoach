@@ -16,8 +16,10 @@ struct OnboardingFooterMessage: View {
             .font(OnboardingMarketingTypography.footer)
             .foregroundStyle(OnboardingTheme.tertiaryText)
             .multilineTextAlignment(alignment)
+            .lineLimit(3)
+            .minimumScaleFactor(0.85)
             .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: frameAlignment)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: frameAlignment)
             .accessibilityLabel(message)
     }
 

@@ -17,15 +17,25 @@ struct OnboardingVisionScreenShell<Progress: View, Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @State private var visibleStages: Set<OnboardingEntranceStage> = []
+    @State private var measuredContentHeight: CGFloat = 0
 
     var body: some View {
+        let layoutProfile = OnboardingVisionLayoutProfile.resolve(
+            verticalSizeClass: verticalSizeClass,
+            contentHeight: measuredContentHeight
+        )
+
         ZStack {
-            OnboardingMarketingAtmosphere(style: atmosphereStyle)
+            OnboardingMarketingAtmosphere(
+                style: atmosphereStyle,
+                layoutProfile: layoutProfile
+            )
 
             VStack(spacing: 0) {
                 progress()
-                    .padding(.bottom, FormaTokens.Spacing.sm)
+                    .padding(.bottom, FormaTokens.Spacing.xs)
                     .onboardingEntrance(
                         visible: isVisible(.chrome),
                         stage: .chrome,
@@ -36,8 +46,15 @@ struct OnboardingVisionScreenShell<Progress: View, Content: View>: View {
                     content()
                         .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
                         .environment(\.onboardingContentHeight, geometry.size.height)
+                        .environment(\.onboardingVisionLayoutProfile, layoutProfile)
                         .environment(\.onboardingEntranceVisibleStages, visibleStages)
                         .environment(\.onboardingReduceMotion, reduceMotion)
+                        .onAppear {
+                            measuredContentHeight = geometry.size.height
+                        }
+                        .onChange(of: geometry.size.height) { _, height in
+                            measuredContentHeight = height
+                        }
                 }
             }
             .padding(.horizontal, OnboardingTheme.pagePadding)
@@ -134,7 +151,7 @@ private struct OnboardingStageEntranceModifier: ViewModifier {
                 .onboardingVisionZone(.footer)
                 .onboardingStageEntrance(.footer)
         }
-        .onboardingVisionZoneWeights(OnboardingVisionZoneWeights.almostThere)
+        .onboardingVisionScreen(.almostThere)
     }
     .background(OnboardingTheme.background)
     .formaThemePreview()

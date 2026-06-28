@@ -9,6 +9,7 @@ import SwiftUI
 
 struct OnboardingMarketingAtmosphere: View {
     var style: OnboardingAtmosphereStyle = .milestone
+    var layoutProfile: OnboardingVisionLayoutProfile = .regular
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var drift = false
@@ -33,6 +34,10 @@ struct OnboardingMarketingAtmosphere: View {
         }
     }
 
+    private var orbScale: CGFloat {
+        layoutProfile == .compact ? 0.72 : 1
+    }
+
     private var topAccentOrb: some View {
         Circle()
             .fill(
@@ -48,13 +53,13 @@ struct OnboardingMarketingAtmosphere: View {
                 )
             )
             .frame(
-                width: OnboardingVisual.atmosphereOrbRadius * 2,
-                height: OnboardingVisual.atmosphereOrbRadius * 2
+                width: OnboardingVisual.atmosphereOrbRadius * 2 * orbScale,
+                height: OnboardingVisual.atmosphereOrbRadius * 2 * orbScale
             )
-            .blur(radius: OnboardingVisual.atmosphereBlur)
+            .blur(radius: OnboardingVisual.atmosphereBlur * orbScale)
             .offset(
-                x: OnboardingVisual.atmosphereTopOrbOffset.x + (drift ? 8 : 0),
-                y: OnboardingVisual.atmosphereTopOrbOffset.y + (drift ? -6 : 0)
+                x: OnboardingVisual.atmosphereTopOrbOffset.x * orbScale + (drift ? 8 : 0),
+                y: OnboardingVisual.atmosphereTopOrbOffset.y * orbScale + (drift ? -6 : 0)
             )
     }
 
@@ -73,13 +78,13 @@ struct OnboardingMarketingAtmosphere: View {
                 )
             )
             .frame(
-                width: OnboardingVisual.atmosphereOrbRadius * 1.55,
-                height: OnboardingVisual.atmosphereOrbRadius * 1.55
+                width: OnboardingVisual.atmosphereOrbRadius * 1.55 * orbScale,
+                height: OnboardingVisual.atmosphereOrbRadius * 1.55 * orbScale
             )
-            .blur(radius: OnboardingVisual.atmosphereBlur + 6)
+            .blur(radius: (OnboardingVisual.atmosphereBlur + 6) * orbScale)
             .offset(
-                x: OnboardingVisual.atmosphereBottomOrbOffset.x + (drift ? -10 : 0),
-                y: OnboardingVisual.atmosphereBottomOrbOffset.y + (drift ? 12 : 0)
+                x: OnboardingVisual.atmosphereBottomOrbOffset.x * orbScale + (drift ? -10 : 0),
+                y: OnboardingVisual.atmosphereBottomOrbOffset.y * orbScale + (drift ? 12 : 0)
             )
     }
 
@@ -97,10 +102,10 @@ struct OnboardingMarketingAtmosphere: View {
                 )
             )
             .frame(
-                width: OnboardingVisual.atmosphereHeroWashWidth,
-                height: OnboardingVisual.atmosphereHeroWashHeight
+                width: OnboardingVisual.atmosphereHeroWashWidth * orbScale,
+                height: OnboardingVisual.atmosphereHeroWashHeight * orbScale
             )
-            .offset(y: OnboardingVisual.atmosphereHeroWashOffsetY)
+            .offset(y: OnboardingVisual.atmosphereHeroWashOffsetY * orbScale)
             .scaleEffect(drift && !reduceMotion ? 1.03 : 1)
             .animation(reduceMotion ? nil : OnboardingMotion.pulseEase, value: drift)
     }

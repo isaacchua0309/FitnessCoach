@@ -27,7 +27,10 @@ struct OnboardingBottomBar: View {
     var onExitToWelcome: (() -> Void)? = nil
     var flowFloor: OnboardingStep = .introProof
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .body) private var buttonHeight: CGFloat = 48
+    @State private var planRevealCTAPulse = false
+    @State private var planRevealPulseTask: Task<Void, Never>?
 
     private var resolvedButtonHeight: CGFloat {
         max(buttonHeight, FormaTokens.Layout.minTouchTarget)
@@ -74,6 +77,10 @@ struct OnboardingBottomBar: View {
         return canContinue
     }
 
+    private var showsBuildPlanAnticipation: Bool {
+        currentStep == .review
+    }
+
     var body: some View {
         VStack(spacing: OnboardingLayout.footerInnerSpacing) {
             if let saveTrustNote, showsAdjustPlan {
@@ -84,6 +91,24 @@ struct OnboardingBottomBar: View {
                     .frame(maxWidth: .infinity)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityLabel(saveTrustNote)
+            }
+
+            if showsBuildPlanAnticipation {
+                VStack(spacing: 2) {
+                    Text(FormaProductCopy.Onboarding.Flow.Summary.buildPlanAnticipationHeadline)
+                        .font(FormaTokens.Typography.caption.weight(.semibold))
+                        .foregroundStyle(OnboardingTheme.primaryText)
+                    Text(FormaProductCopy.Onboarding.Flow.Summary.buildPlanAnticipationSubline)
+                        .font(FormaTokens.Typography.caption)
+                        .foregroundStyle(OnboardingTheme.secondaryText)
+                }
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(
+                    FormaProductCopy.Onboarding.Flow.Summary.buildPlanAnticipationAccessibilityLabel
+                )
             }
 
             HStack(spacing: FormaTokens.Spacing.md) {
@@ -108,10 +133,16 @@ struct OnboardingBottomBar: View {
 
                 OnboardingPrimaryCTA(
                     title: primaryTitle,
+                    variant: currentStep == .review ? .launch : .standard,
                     isEnabled: currentStep == .appleHealth ? isAppleHealthPrimaryEnabled : isPrimaryActionEnabled,
                     isLoading: isLoading,
                     accessibilityHint: canContinue ? "" : resolvedRequiredFieldsHint,
                     action: onContinue
+                )
+                .scaleEffect(planRevealCTAScale)
+                .animation(
+                    reduceMotion ? nil : OnboardingMotion.revealCTAPulse,
+                    value: planRevealCTAPulse
                 )
             }
 
@@ -177,6 +208,36 @@ struct OnboardingBottomBar: View {
                 .frame(height: 0.5)
         }
         .onboardingMeasureFooterHeight()
+        .onAppear {
+            guard currentStep == .planReveal else { return }
+            schedulePlanRevealCTAPulse()
+        }
+        .onChange(of: currentStep) { _, step in
+            planRevealPulseTask?.cancel()
+            planRevealCTAPulse = false
+            guard step == .planReveal else { return }
+            schedulePlanRevealCTAPulse()
+        }
+    }
+
+    private var planRevealCTAScale: CGFloat {
+        currentStep == .planReveal && planRevealCTAPulse ? 1.02 : 1
+    }
+
+    private func schedulePlanRevealCTAPulse() {
+        guard !reduceMotion else { return }
+        planRevealPulseTask = Task { @MainActor in
+            try? await Task.sleep(
+                nanoseconds: UInt64(OnboardingPlanRevealTiming.ctaPulse * 1_000_000_000)
+            )
+            guard !Task.isCancelled else { return }
+            planRevealCTAPulse = true
+            try? await Task.sleep(
+                nanoseconds: UInt64(OnboardingPlanRevealTiming.ctaPulseDuration * 1_000_000_000)
+            )
+            guard !Task.isCancelled else { return }
+            planRevealCTAPulse = false
+        }
     }
 
     private var resolvedRequiredFieldsHint: String {

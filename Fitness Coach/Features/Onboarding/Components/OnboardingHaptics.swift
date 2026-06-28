@@ -12,4 +12,8 @@ enum OnboardingHaptics {
     static func selectionChanged() {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
+
+    static func planLaunch() {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+    }
 }
