@@ -18,6 +18,7 @@ struct AuthGateView: View {
     @State private var preAuthRouteOverride: AppShellRoute?
     @State private var conflictCloudDocument: CloudUserProfileDocument?
     @State private var isResolvingProfileConflict = false
+    @State private var awaitingCloudSync = false
 
     private let container: AppContainer
 
@@ -85,7 +86,8 @@ struct AuthGateView: View {
         let base = container.resolveAppShellRoute(
             authState: authManager.authState,
             rootState: rootModel.state,
-            isOnboardingModelReady: onboardingModel != nil
+            isOnboardingModelReady: onboardingModel != nil,
+            awaitingCloudSync: awaitingCloudSync
         )
         return AuthGateRoutingPolicy.effectiveRoute(
             baseRoute: base,
@@ -289,31 +291,25 @@ struct AuthGateView: View {
     private func resolveOnboardingCompletionAfterSignIn(uid: String) async {
         rootModel.beginOnboardingCompletionCloudCheck()
 
-        do {
-            let presence = try await container.profileBootstrapService.fetchCloudProfilePresence(uid: uid)
-            switch presence {
-            case .absent:
-                await finishOnboardingCompletionWithCloudUpload(uid: uid)
-            case .present(let document):
-                conflictCloudDocument = document
-                rootModel.presentOnboardingCloudProfileConflict()
-            }
-        } catch {
-            ProfileBootstrapDebugLogger.error(
-                "Cloud profile presence check failed during onboarding completion",
-                fields: ["uid": uid],
-                underlying: error
-            )
+        let outcome = await container.profileBootstrapCoordinatorService.resolveOnboardingCompletion(uid: uid)
+
+        switch outcome {
+        case .uploadedToCloud:
+            finishOnboardingCompletionAfterSuccessfulSync()
+        case .cloudProfileConflict(let document):
+            conflictCloudDocument = document
+            rootModel.presentOnboardingCloudProfileConflict()
+        case .cloudCheckFailed, .cloudSyncFailed:
             rootModel.presentOnboardingCloudCheckFailed()
         }
     }
 
-    private func finishOnboardingCompletionWithCloudUpload(uid: String) async {
-        await syncOnboardingProfileToCloud(uid: uid)
+    private func finishOnboardingCompletionAfterSuccessfulSync() {
         if container.onboardingRoutingConfiguration.isV2Enabled {
             onboardingModel?.finalizeAfterSuccessfulSignIn()
         }
         clearOnboardingCompletionState()
+        awaitingCloudSync = false
         rootModel.didCompleteOnboarding()
     }
 
@@ -354,6 +350,12 @@ struct AuthGateView: View {
                 _ = try container.userProfileService.replaceLocalProfile(with: cloudDocument)
                 try container.dailyLogService.syncTodayTargetsFromProfile()
                 container.onboardingCoachingContextStore.clear()
+                if let uid = authManager.currentUID {
+                    container.profileCloudSyncStore.markSynced(
+                        uid: uid,
+                        updatedAt: cloudDocument.updatedAt
+                    )
+                }
                 if container.onboardingRoutingConfiguration.isV2Enabled {
                     onboardingModel?.finalizeAfterRestoredExistingPlan()
                 }
@@ -377,7 +379,19 @@ struct AuthGateView: View {
         isResolvingProfileConflict = true
 
         Task { @MainActor in
-            await finishOnboardingCompletionWithCloudUpload(uid: uid)
+            do {
+                try await container.profileBootstrapCoordinatorService.syncOnboardingProfileToCloud(uid: uid)
+                isResolvingProfileConflict = false
+                finishOnboardingCompletionAfterSuccessfulSync()
+            } catch {
+                isResolvingProfileConflict = false
+                ProfileBootstrapDebugLogger.error(
+                    "onboarding_cloud_sync_failed",
+                    fields: ["uid": uid],
+                    underlying: error
+                )
+                rootModel.presentOnboardingCloudCheckFailed()
+            }
         }
     }
 
@@ -397,18 +411,31 @@ struct AuthGateView: View {
             onboardingModel?.finalizeAfterSuccessfulSignIn()
         }
         onboardingModel = nil
+        awaitingCloudSync = false
         rootModel.didCompleteOnboarding()
     }
 
-    private func syncOnboardingProfileToCloud(uid: String) async {
-        do {
-            try await container.profileBootstrapService.syncOnboardingProfileToCloud(uid: uid)
-        } catch {
-            ProfileBootstrapDebugLogger.error(
-                "Cloud profile sync failed after onboarding",
-                fields: ["uid": uid],
-                underlying: error
-            )
+    private func syncUnsyncedLocalProfile(uid: String) {
+        awaitingCloudSync = true
+        rootModel.beginCloudSync()
+
+        Task { @MainActor in
+            do {
+                try await container.profileBootstrapCoordinatorService.syncLocalProfileToCloud(uid: uid)
+                awaitingCloudSync = false
+                rootModel.endCloudSync()
+                rootModel.didCompleteOnboarding()
+            } catch {
+                awaitingCloudSync = false
+                rootModel.endCloudSync()
+                ProfileBootstrapDebugLogger.error(
+                    "onboarding_cloud_sync_failed",
+                    fields: ["uid": uid, "context": "reconcile"],
+                    underlying: error
+                )
+                // Local profile remains usable; retry sync on a future sign-in.
+                rootModel.didCompleteOnboarding()
+            }
         }
     }
 
@@ -494,31 +521,30 @@ struct AuthGateView: View {
     }
 
     private func reconcileSignedInProfile(uid: String, isFreshSignIn: Bool) {
-        if AuthGateRoutingPolicy.shouldDeferLocalProfileShortCircuit(
+        let decision = container.profileBootstrapCoordinatorService.reconcileDecision(
+            uid: uid,
             pendingOnboardingCompletion: pendingSignInForOnboardingCompletion,
-            hasLocalProfile: container.profileBootstrapService.hasLocalProfile()
-        ) {
-            Task { await resolveOnboardingCompletionAfterSignIn(uid: uid) }
-            return
-        }
-
-        if container.profileBootstrapService.hasLocalProfile() {
-            rootModel.didCompleteOnboarding()
-            return
-        }
-
-        let shouldLoadCloudProfile = AuthGateRoutingPolicy.shouldReloadSignedInCloudProfile(
             isFreshSignIn: isFreshSignIn,
-            rootState: rootModel.state,
-            hasLocalProfile: container.profileBootstrapService.hasLocalProfile()
+            rootState: rootModel.state
         )
 
-        guard shouldLoadCloudProfile else { return }
-
-        if rootModel.state == .onboarding {
-            onboardingModel = nil
+        switch decision {
+        case .resolveOnboardingCompletion(let uid):
+            Task { await resolveOnboardingCompletionAfterSignIn(uid: uid) }
+        case .routeToMain:
+            awaitingCloudSync = false
+            rootModel.didCompleteOnboarding()
+        case .syncLocalProfileToCloud(let uid):
+            syncUnsyncedLocalProfile(uid: uid)
+        case .loadCloudProfile(let uid):
+            if rootModel.state == .onboarding {
+                onboardingModel = nil
+            }
+            awaitingCloudSync = false
+            rootModel.load(uid: uid)
+        case .skip:
+            break
         }
-        rootModel.load(uid: uid)
     }
 
     private func handleRootStateChange(_ state: RootViewState) {

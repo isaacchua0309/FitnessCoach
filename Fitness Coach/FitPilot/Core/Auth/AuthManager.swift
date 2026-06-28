@@ -258,6 +258,13 @@ final class AuthManager: ObservableObject {
             self.user = user
             authState = .signedIn(uid: user.uid)
             errorMessage = nil
+            ProfileBootstrapDebugLogger.event(
+                "auth_state_changed",
+                fields: [
+                    "state": "signedIn",
+                    "uid": user.uid
+                ]
+            )
         case .rejectNonGoogleSession:
             #if DEBUG
             logger.debug("Rejected non-Google Firebase session.")
@@ -269,6 +276,7 @@ final class AuthManager: ObservableObject {
         case .signedOut:
             self.user = nil
             authState = .signedOut
+            ProfileBootstrapDebugLogger.event("auth_state_changed", fields: ["state": "signedOut"])
         }
     }
 
@@ -305,6 +313,7 @@ final class AuthManager: ObservableObject {
         user = nil
         errorMessage = nil
         authState = .signedOut
+        ProfileBootstrapDebugLogger.event("auth_state_changed", fields: ["state": "signedOut"])
     }
 
     private func trimmedNonEmpty(_ value: String?) -> String? {

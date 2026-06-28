@@ -66,6 +66,29 @@ final class OnboardingCompletionProfileFlowTests: XCTestCase {
         }
     }
 
+    func testOnboardingCompletionUploadFailureBlocksCompletion() async throws {
+        let cloudStore = MockCloudUserProfileStore()
+        cloudStore.saveError = NSError(domain: "test", code: 1)
+        let container = try AppContainer(inMemory: true)
+        let syncStore = ProfileCloudSyncStore(userDefaults: container.onboardingUserDefaults)
+        let service = ProfileBootstrapService(
+            userProfileService: container.userProfileService,
+            cloudStore: cloudStore,
+            cloudSyncStore: syncStore
+        )
+        let coordinator = ProfileBootstrapCoordinatorService(
+            profileBootstrapService: service,
+            cloudSyncStore: syncStore
+        )
+
+        _ = try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+
+        let outcome = await coordinator.resolveOnboardingCompletion(uid: "user-1")
+
+        XCTAssertEqual(outcome, .cloudSyncFailed)
+        XCTAssertFalse(syncStore.isSyncedForUID("user-1"))
+    }
+
     func testRestorePathReplacesLocalWithoutUpload() async throws {
         let cloudStore = MockCloudUserProfileStore()
         var cloudProfile = ProfileTestFixtures.sampleProfile

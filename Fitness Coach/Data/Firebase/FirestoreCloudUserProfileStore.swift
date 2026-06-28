@@ -59,7 +59,9 @@ final class FirestoreCloudUserProfileStore: CloudUserProfileStoring, @unchecked 
             fields: ["uid": uid, "path": documentPath(uid: uid)]
         )
 
-        try ref.setData(from: document, merge: true)
+        let encoder = Firestore.Encoder()
+        let data = try encoder.encode(document)
+        try await ref.setData(data, merge: true)
 
         ProfileBootstrapDebugLogger.event("Cloud profile saved", fields: ["uid": uid])
     }

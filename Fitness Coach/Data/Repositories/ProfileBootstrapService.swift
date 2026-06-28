@@ -18,41 +18,68 @@ final class ProfileBootstrapService {
 
     private let userProfileService: UserProfileService
     private let cloudStore: CloudUserProfileStoring
+    private let cloudSyncStore: ProfileCloudSyncStore?
 
     init(
         userProfileService: UserProfileService,
-        cloudStore: CloudUserProfileStoring
+        cloudStore: CloudUserProfileStoring,
+        cloudSyncStore: ProfileCloudSyncStore? = nil
     ) {
         self.userProfileService = userProfileService
         self.cloudStore = cloudStore
-    }
-
-    func resolve(uid: String) async throws -> ProfileBootstrapResult {
-        ProfileBootstrapDebugLogger.event("Resolving profile route", fields: ["uid": uid])
-
-        if hasLocalProfile() {
-            ProfileBootstrapDebugLogger.event("Local profile found", fields: ["uid": uid, "route": "main"])
-            return .main
-        }
-
-        ProfileBootstrapDebugLogger.event("No local profile; checking cloud", fields: ["uid": uid])
-
-        guard let cloudDocument = try await cloudStore.fetch(uid: uid) else {
-            ProfileBootstrapDebugLogger.event(
-                "No cloud profile",
-                fields: ["uid": uid, "route": "missingCloudProfile"]
-            )
-            return .missingCloudProfile
-        }
-
-        _ = try userProfileService.restoreProfile(from: cloudDocument)
-        ProfileBootstrapDebugLogger.event("Restored cloud profile locally", fields: ["uid": uid, "route": "main"])
-        return .main
+        self.cloudSyncStore = cloudSyncStore
     }
 
     /// Synchronous local profile presence check for pre-auth shell routing.
     func hasLocalProfile() -> Bool {
         (try? userProfileService.getCurrentProfile()) != nil
+    }
+
+    func currentProfile() throws -> UserProfile? {
+        try userProfileService.getCurrentProfile()
+    }
+
+    func resolve(uid: String) async throws -> ProfileBootstrapResult {
+        ProfileBootstrapDebugLogger.event("profile_bootstrap_started", fields: ["uid": uid])
+        ProfileBootstrapDebugLogger.event("Resolving profile route", fields: ["uid": uid])
+
+        if hasLocalProfile() {
+            ProfileBootstrapDebugLogger.event("local_profile_found", fields: ["uid": uid, "route": "main"])
+            return .main
+        }
+
+        ProfileBootstrapDebugLogger.event("local_profile_missing", fields: ["uid": uid])
+        ProfileBootstrapDebugLogger.event(
+            "cloud_profile_lookup_started",
+            fields: ["uid": uid, "context": "bootstrap"]
+        )
+
+        guard let cloudDocument = try await cloudStore.fetch(uid: uid) else {
+            ProfileBootstrapDebugLogger.event(
+                "cloud_profile_missing",
+                fields: ["uid": uid, "route": "missingCloudProfile"]
+            )
+            return .missingCloudProfile
+        }
+
+        ProfileBootstrapDebugLogger.event(
+            "cloud_profile_found",
+            fields: ["uid": uid, "context": "bootstrap"]
+        )
+        ProfileBootstrapDebugLogger.event(
+            "cloud_profile_restore_started",
+            fields: ["uid": uid]
+        )
+
+        _ = try userProfileService.restoreProfile(from: cloudDocument)
+
+        cloudSyncStore?.markSynced(uid: uid, updatedAt: cloudDocument.updatedAt)
+
+        ProfileBootstrapDebugLogger.event(
+            "cloud_profile_restore_completed",
+            fields: ["uid": uid, "route": "main"]
+        )
+        return .main
     }
 
     func saveProfileToCloud(uid: String) async throws {
@@ -67,6 +94,20 @@ final class ProfileBootstrapService {
     /// Uploads a locally committed onboarding profile after Google sign-in.
     func syncOnboardingProfileToCloud(uid: String) async throws {
         try await saveProfileToCloud(uid: uid)
+        try await verifyCloudProfileSaved(uid: uid)
+    }
+
+    private func verifyCloudProfileSaved(uid: String) async throws {
+        guard let cloudDocument = try await cloudStore.fetch(uid: uid) else {
+            throw ServiceError.invalidInput("Cloud profile verification failed after upload.")
+        }
+        ProfileBootstrapDebugLogger.event(
+            "Cloud profile upload verified",
+            fields: [
+                "uid": uid,
+                "updatedAt": ISO8601DateFormatter().string(from: cloudDocument.updatedAt)
+            ]
+        )
     }
 
     /// Probes Firestore for an existing profile without treating fetch errors as absence.

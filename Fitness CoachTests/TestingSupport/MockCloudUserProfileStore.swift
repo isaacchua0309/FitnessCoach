@@ -13,6 +13,7 @@ final class MockCloudUserProfileStore: CloudUserProfileStoring, @unchecked Senda
 
     var storedDocument: CloudUserProfileDocument?
     var fetchError: Error?
+    var saveError: Error?
     private(set) var fetchCallCount = 0
     private(set) var saveCallCount = 0
     private(set) var lastSavedProfile: UserProfile?
@@ -28,6 +29,9 @@ final class MockCloudUserProfileStore: CloudUserProfileStoring, @unchecked Senda
     }
 
     func save(profile: UserProfile, uid: String) async throws {
+        if let saveError {
+            throw saveError
+        }
         saveCallCount += 1
         lastSavedProfile = profile
         lastSavedUID = uid

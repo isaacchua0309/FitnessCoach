@@ -25,22 +25,35 @@ enum RootViewState: Equatable {
 final class RootModel: ObservableObject {
 
     @Published private(set) var state: RootViewState = .loading
+    @Published private(set) var bootstrapPhase: ProfileBootstrapPhase = .idle
 
     private let profileBootstrapService: ProfileBootstrapService
     private var loadTask: Task<Void, Never>?
+    private var currentUID: String?
 
     init(profileBootstrapService: ProfileBootstrapService) {
         self.profileBootstrapService = profileBootstrapService
     }
 
+    private func applyState(_ newState: RootViewState, uid: String? = nil) {
+        if let uid {
+            currentUID = uid
+        }
+        state = newState
+        bootstrapPhase = ProfileBootstrapCoordinator.bootstrapPhase(
+            for: newState,
+            uid: uid ?? currentUID
+        )
+    }
+
     func load(uid: String) {
         loadTask?.cancel()
-        state = .loading
+        applyState(.loading, uid: uid)
         loadTask = Task {
             do {
                 let result = try await profileBootstrapService.resolve(uid: uid)
                 guard !Task.isCancelled else { return }
-                state = RootProfileRouteResolver.resolve(bootstrapResult: result)
+                applyState(RootProfileRouteResolver.resolve(bootstrapResult: result), uid: uid)
             } catch {
                 guard !Task.isCancelled else { return }
                 ProfileBootstrapDebugLogger.error(
@@ -48,7 +61,7 @@ final class RootModel: ObservableObject {
                     fields: ["uid": uid],
                     underlying: error
                 )
-                state = .error(FormaProductCopy.Onboarding.V2.BootstrapError.body)
+                applyState(.error(FormaProductCopy.Onboarding.V2.BootstrapError.body), uid: uid)
             }
         }
     }
@@ -57,34 +70,47 @@ final class RootModel: ObservableObject {
     /// Must only run while signed out; signed-in routing uses `load(uid:)`.
     func resolveLocalProfile() {
         loadTask?.cancel()
-        state = RootProfileRouteResolver.resolve(
+        let resolved = RootProfileRouteResolver.resolve(
             hasProfile: profileBootstrapService.hasLocalProfile()
         )
+        applyState(resolved)
+        bootstrapPhase = profileBootstrapService.hasLocalProfile() ? .localProfileReady : .needsOnboardingAfterCloudMiss
     }
 
     func didCompleteOnboarding() {
         loadTask?.cancel()
-        state = .main
+        applyState(.main)
+        bootstrapPhase = .cloudProfileReady
     }
 
     func presentOnboardingCloudProfileConflict() {
         loadTask?.cancel()
-        state = .onboardingCloudProfileConflict
+        applyState(.onboardingCloudProfileConflict)
     }
 
     func presentOnboardingCloudCheckFailed() {
         loadTask?.cancel()
-        state = .onboardingCloudCheckFailed
+        applyState(.onboardingCloudCheckFailed)
     }
 
     func beginOnboardingCompletionCloudCheck() {
         loadTask?.cancel()
-        state = .loading
+        applyState(.loading)
+        bootstrapPhase = .uploadingCloud(redactedUID: currentUID.map(ProfileBootstrapDebugLogger.redactedUID) ?? "none")
+    }
+
+    func beginCloudSync() {
+        bootstrapPhase = .awaitingCloudSync
+    }
+
+    func endCloudSync() {
+        bootstrapPhase = .cloudProfileReady
     }
 
     /// Transitions from the post-sign-in missing-cloud interstitial into setup onboarding.
     func continueFromMissingCloudProfile() {
-        state = .onboarding
+        applyState(.onboarding)
+        bootstrapPhase = .needsOnboardingAfterCloudMiss
     }
 
     func retry(uid: String) {

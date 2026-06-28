@@ -27,6 +27,8 @@ final class AppContainer {
     let authManager: AuthManager
     let cloudUserProfileStore: CloudUserProfileStoring
     let profileBootstrapService: ProfileBootstrapService
+    let profileCloudSyncStore: ProfileCloudSyncStore
+    let profileBootstrapCoordinatorService: ProfileBootstrapCoordinatorService
     let llmClient: LLMClient
     let aiService: AIService
     let aiCommandParsingEnabled: Bool
@@ -84,9 +86,15 @@ final class AppContainer {
         cloudUserProfileStore = inMemory
             ? NoOpCloudUserProfileStore()
             : FirestoreCloudUserProfileStore()
+        profileCloudSyncStore = ProfileCloudSyncStore(userDefaults: self.onboardingUserDefaults)
         profileBootstrapService = ProfileBootstrapService(
             userProfileService: userProfileService,
-            cloudStore: cloudUserProfileStore
+            cloudStore: cloudUserProfileStore,
+            cloudSyncStore: profileCloudSyncStore
+        )
+        profileBootstrapCoordinatorService = ProfileBootstrapCoordinatorService(
+            profileBootstrapService: profileBootstrapService,
+            cloudSyncStore: profileCloudSyncStore
         )
         dailyLogService = DailyLogService(
             store: store,
@@ -274,9 +282,16 @@ final class AppContainer {
     func resolveAppShellRoute(
         authState: AuthState,
         rootState: RootViewState = .loading,
-        isOnboardingModelReady: Bool = false
+        isOnboardingModelReady: Bool = false,
+        awaitingCloudSync: Bool = false
     ) -> AppShellRoute {
-        AppRouteResolver.resolve(
+        if awaitingCloudSync,
+           AppRouteResolver.isSignedIn(authState),
+           rootState == .main {
+            return .signedInProfileLoading
+        }
+
+        return AppRouteResolver.resolve(
             authState: authState,
             rootState: rootState,
             isOnboardingModelReady: isOnboardingModelReady,
