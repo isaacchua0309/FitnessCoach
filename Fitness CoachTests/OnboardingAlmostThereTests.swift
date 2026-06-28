@@ -13,27 +13,23 @@ final class OnboardingAlmostThereTests: XCTestCase {
     func testAlmostThereStepUsesProductCopy() {
         XCTAssertEqual(
             OnboardingStep.almostThere.title,
-            "Your plan is almost ready"
+            "Your personalized coach is waiting."
         )
         XCTAssertEqual(
             OnboardingStep.almostThere.subtitle,
-            "We've got what we need to build your personalized plan."
+            ""
         )
         XCTAssertEqual(
-            FormaProductCopy.Onboarding.Flow.AlmostThere.summaryHeadline,
-            "Forma turns your plan into daily actions."
+            FormaProductCopy.Onboarding.Flow.AlmostThere.headline,
+            "Your personalized coach is waiting."
         )
         XCTAssertEqual(
-            FormaProductCopy.Onboarding.Flow.AlmostThere.summarySupporting,
-            "Track meals, follow your targets, and see progress over time."
-        )
-        XCTAssertEqual(
-            FormaProductCopy.Onboarding.Flow.AlmostThere.valueSectionTitle,
-            "What you'll get"
+            FormaProductCopy.Onboarding.Flow.AlmostThere.supporting,
+            "You don't need more motivation. You need a plan built from your body, goal, and how you actually live."
         )
         XCTAssertEqual(
             FormaProductCopy.Onboarding.Flow.AlmostThere.continueCTA,
-            "Continue"
+            "See what's next"
         )
     }
 
@@ -41,21 +37,20 @@ final class OnboardingAlmostThereTests: XCTestCase {
         XCTAssertTrue(OnboardingStep.almostThere.usesFixedViewportShell)
     }
 
-    func testAlmostThereValueRowsMatchFeatureTitles() {
-        let rows = OnboardingAlmostThereValues.valueRows
-        XCTAssertEqual(rows.count, 4)
-        XCTAssertEqual(rows, [
-            "Fast meal tracking",
-            "Daily targets",
-            "Progress journey",
-            "Smart coaching"
+    func testAlmostThereBenefitsMatchProductCopy() {
+        let benefits = OnboardingAlmostThereValues.benefits
+        XCTAssertEqual(benefits.count, 3)
+        XCTAssertEqual(benefits.map(\.title), [
+            "Know what to do today",
+            "Stop restarting every Monday",
+            "Progress you can sustain"
         ])
     }
 
-    func testAlmostThereValueSectionAccessibilityLabel() {
+    func testAlmostThereBenefitsAccessibilityLabel() {
         XCTAssertEqual(
-            OnboardingAlmostThereValues.valueSectionAccessibilityLabel,
-            "What you'll get: Fast meal tracking, Daily targets, Progress journey, Smart coaching."
+            OnboardingAlmostThereValues.benefitsAccessibilityLabel,
+            "What changes: Know what to do today. Stop restarting every Monday. Progress you can sustain."
         )
     }
 
@@ -66,13 +61,12 @@ final class OnboardingAlmostThereTests: XCTestCase {
         )
     }
 
-    func testAlmostThereFeaturesUseProductionSafeCopy() {
-        let features = OnboardingAlmostThereValues.features
-        XCTAssertEqual(features.count, 4)
-        XCTAssertEqual(features[0].title, "Fast meal tracking")
-        XCTAssertEqual(features[1].title, "Daily targets")
-        XCTAssertEqual(features[2].title, "Progress journey")
-        XCTAssertEqual(features[3].title, "Smart coaching")
+    func testAlmostThereBenefitsUseProductionSafeCopy() {
+        let benefits = OnboardingAlmostThereValues.benefits
+        XCTAssertEqual(benefits.count, 3)
+        XCTAssertEqual(benefits[0].icon, "sun.max.fill")
+        XCTAssertEqual(benefits[1].icon, "arrow.counterclockwise")
+        XCTAssertEqual(benefits[2].icon, "chart.line.uptrend.xyaxis")
     }
 
     func testAlmostThereCopyAvoidsUnimplementedClaims() {
@@ -80,14 +74,13 @@ final class OnboardingAlmostThereTests: XCTestCase {
         let joined = [
             copy.title,
             copy.subtitle,
-            copy.summaryHeadline,
-            copy.summarySupporting,
-            copy.valueSectionTitle,
-            copy.valueSectionAccessibilityLabel,
-            copy.trustStrip,
+            copy.headline,
+            copy.supporting,
+            copy.trustFooter,
+            copy.benefitsAccessibilityLabel,
             copy.accessibilitySummary
         ].joined(separator: " ")
-            + OnboardingAlmostThereValues.features.map { "\($0.title) \($0.subtitle)" }.joined(separator: " ")
+            + OnboardingAlmostThereValues.benefits.map(\.title).joined(separator: " ")
 
         XCTAssertFalse(joined.localizedCaseInsensitiveContains("challenge friends"))
         XCTAssertFalse(joined.localizedCaseInsensitiveContains("leaderboard"))
@@ -103,7 +96,7 @@ final class OnboardingAlmostThereTests: XCTestCase {
             FormaProductCopy.Onboarding.Flow.AlmostThere.accessibilitySummary
         )
         XCTAssertTrue(
-            OnboardingAlmostThereValues.accessibilitySummary.contains("Your plan is almost ready")
+            OnboardingAlmostThereValues.accessibilitySummary.contains("Your personalized coach is waiting")
         )
     }
 

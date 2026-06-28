@@ -12,16 +12,10 @@ struct OnboardingPlanRevealStepView: View {
     let plan: CalorieTargetResult?
     var usesCompactLayout: Bool = false
 
-    @State private var showsSecondaryMacros = false
-
     var body: some View {
         Group {
             if let revealState {
-                if usesCompactLayout {
-                    compactContent(revealState)
-                } else {
-                    standardContent(revealState)
-                }
+                revealContent(revealState)
             } else if let plan {
                 GeneratedPlanSummaryCard(
                     plan: plan,
@@ -29,69 +23,86 @@ struct OnboardingPlanRevealStepView: View {
                     paceLabel: nil
                 )
             } else {
-                OnboardingInfoCard(
-                    title: FormaProductCopy.Onboarding.planNotGeneratedTitle,
-                    message: FormaProductCopy.Onboarding.planNotGeneratedMessage,
-                    icon: "doc.text.magnifyingglass"
-                )
+                fallbackContent
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: - Compact layout (fits without scroll)
+    // MARK: - Reveal layout
 
-    private func compactContent(_ state: OnboardingPlanRevealState) -> some View {
-        let copy = FormaProductCopy.Onboarding.Flow.PlanReveal.self
-        return VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-                Text(copy.title)
-                    .font(.system(.title2, design: .rounded).weight(.bold))
-                    .foregroundStyle(OnboardingTheme.primaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
+    private func revealContent(_ state: OnboardingPlanRevealState) -> some View {
+        VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
+            headerSection
 
-                Text(copy.subtitle)
-                    .font(FormaTokens.Typography.sectionSubtitle)
-                    .foregroundStyle(OnboardingTheme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if let timelineLine = compactTimelineLine(for: state) {
-                    Text(timelineLine)
-                        .font(FormaTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(OnboardingTheme.accent)
-                        .padding(.horizontal, FormaTokens.Spacing.sm)
-                        .padding(.vertical, FormaTokens.Spacing.xs)
-                        .background(
-                            Capsule(style: .continuous)
-                                .fill(OnboardingTheme.accent.opacity(0.14))
-                        )
-                        .accessibilityLabel(timelineLine)
-                }
-            }
-
-            compactHeroCard(state)
-            compactTargetsGrid(state)
+            goalHeroCard(state)
+            dailyMissionCard(state)
+            focusAndNextCard(state)
 
             if state.planStatus.style == .caution {
                 OnboardingPlanStatusCard(status: state.planStatus)
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(state.accessibilitySummary)
     }
 
-    private func compactHeroCard(_ state: OnboardingPlanRevealState) -> some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-            Text(state.strategyLabel)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.accent)
-
-            Text(state.dailyCalorieLabel)
-                .font(.system(.largeTitle, design: .rounded).weight(.bold))
+    private var headerSection: some View {
+        let copy = FormaProductCopy.Onboarding.Flow.PlanReveal.self
+        return VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+            Text(copy.title)
+                .font(.system(.title2, design: .rounded).weight(.bold))
                 .foregroundStyle(OnboardingTheme.primaryText)
-                .minimumScaleFactor(0.75)
-                .lineLimit(1)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
 
-            Text(state.calorieExplanationLine)
+            Text(copy.subtitle)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(OnboardingTheme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var fallbackContent: some View {
+        let copy = FormaProductCopy.Onboarding.Flow.PlanReveal.self
+        return VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+            Text(copy.fallbackTitle)
+                .font(.system(.title2, design: .rounded).weight(.bold))
+                .foregroundStyle(OnboardingTheme.primaryText)
+                .accessibilityAddTraits(.isHeader)
+
+            Text(copy.fallbackSubtitle)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(OnboardingTheme.secondaryText)
+
+            OnboardingInfoCard(
+                title: FormaProductCopy.Onboarding.planNotGeneratedTitle,
+                message: FormaProductCopy.Onboarding.planNotGeneratedMessage,
+                icon: "doc.text.magnifyingglass"
+            )
+        }
+    }
+
+    private func goalHeroCard(_ state: OnboardingPlanRevealState) -> some View {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+            Text(state.goalHeroSectionTitle)
+                .font(FormaTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(OnboardingTheme.secondaryText)
+                .accessibilityAddTraits(.isHeader)
+
+            Text(state.goalHeroHeadline)
+                .font(.system(.title3, design: .rounded).weight(.bold))
+                .foregroundStyle(OnboardingTheme.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let progressLine = state.goalHeroProgressLine {
+                Text(progressLine)
+                    .font(FormaTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(OnboardingTheme.accent)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Text(state.goalHeroSupport)
                 .font(FormaTokens.Typography.sectionSubtitle)
                 .foregroundStyle(OnboardingTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -101,42 +112,67 @@ struct OnboardingPlanRevealStepView: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func compactTargetsGrid(_ state: OnboardingPlanRevealState) -> some View {
+    private func dailyMissionCard(_ state: OnboardingPlanRevealState) -> some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-            Text(FormaProductCopy.Onboarding.V2.PlanReveal.keyTargetsSectionTitle)
+            Text(state.dailyMissionSectionTitle)
                 .font(FormaTokens.Typography.caption.weight(.semibold))
                 .foregroundStyle(OnboardingTheme.secondaryText)
-                .padding(.horizontal, OnboardingLayout.compactFieldHorizontalPadding)
                 .accessibilityAddTraits(.isHeader)
 
+            Text(state.dailyMissionCalorieLine)
+                .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                .foregroundStyle(OnboardingTheme.primaryText)
+                .minimumScaleFactor(0.75)
+                .lineLimit(1)
+
             HStack(spacing: FormaTokens.Spacing.sm) {
-                compactTargetPill(label: "Protein", value: state.proteinLabel)
-                compactTargetPill(label: "Water", value: state.waterLabel)
-            }
-
-            compactTargetPill(label: "Goal", value: state.goalProgressLabel)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            if let paceLabel = state.paceLabel {
-                compactTargetPill(label: "Pace", value: paceLabel)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                missionTargetPill(label: "Protein", value: state.proteinLabel)
+                missionTargetPill(label: "Water", value: state.waterLabel)
             }
 
             if !state.secondaryMacroRows.isEmpty {
-                if showsSecondaryMacros {
-                    HStack(spacing: FormaTokens.Spacing.sm) {
-                        ForEach(state.secondaryMacroRows) { row in
-                            compactTargetPill(label: row.label, value: row.value)
-                        }
+                HStack(spacing: FormaTokens.Spacing.sm) {
+                    ForEach(state.secondaryMacroRows) { row in
+                        missionTargetPill(label: row.label, value: row.value)
                     }
                 }
-                macrosDisclosureButton
             }
         }
         .onboardingCompactCard()
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(
+            "\(state.dailyMissionSectionTitle), \(state.dailyMissionCalorieLine), protein \(state.proteinLabel), water \(state.waterLabel)"
+        )
     }
 
-    private func compactTargetPill(label: String, value: String) -> some View {
+    private func focusAndNextCard(_ state: OnboardingPlanRevealState) -> some View {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+            Text(state.focusTitle)
+                .font(FormaTokens.Typography.body.weight(.semibold))
+                .foregroundStyle(OnboardingTheme.primaryText)
+                .accessibilityAddTraits(.isHeader)
+
+            Text(state.focusBody)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(OnboardingTheme.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(state.nextStepLine)
+                .font(FormaTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(OnboardingTheme.accent)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, FormaTokens.Spacing.xs)
+        }
+        .padding(OnboardingLayout.compactCardPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
+                .fill(FormaTokens.Color.surfaceSubtle)
+        )
+        .accessibilityElement(children: .combine)
+    }
+
+    private func missionTargetPill(label: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
                 .font(.caption2.weight(.semibold))
@@ -157,207 +193,9 @@ struct OnboardingPlanRevealStepView: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(label), \(value)")
     }
-
-    private func compactTimelineLine(for state: OnboardingPlanRevealState) -> String? {
-        guard let estimatedWeeksLabel = state.estimatedWeeksLabel else { return nil }
-        return FormaProductCopy.Onboarding.Flow.PlanReveal.timelineLine(
-            estimatedWeeksLabel: estimatedWeeksLabel,
-            goalWeightLabel: state.goalWeightLabel
-        )
-    }
-
-    // MARK: - Standard layout
-
-    private func standardContent(_ state: OnboardingPlanRevealState) -> some View {
-        VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
-            planPromiseCard(state)
-            keyTargetsCard(state)
-            OnboardingPlanStatusCard(status: state.planStatus)
-            reassuranceCard
-        }
-    }
-
-    // MARK: - Plan promise
-
-    private func planPromiseCard(_ state: OnboardingPlanRevealState) -> some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-            Text(state.strategyLabel)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.accent)
-                .accessibilityAddTraits(.isHeader)
-
-            Text(FormaProductCopy.Onboarding.V2.PlanReveal.dailyTargetSectionTitle)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.secondaryText)
-
-            Text(state.dailyCalorieLabel)
-                .font(.system(.largeTitle, design: .rounded).weight(.bold))
-                .foregroundStyle(OnboardingTheme.primaryText)
-                .minimumScaleFactor(0.75)
-                .lineLimit(1)
-
-            Text(state.calorieExplanationLine)
-                .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(OnboardingTheme.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .onboardingCompactCard(selected: true)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-            "\(state.strategyLabel). \(FormaProductCopy.Onboarding.V2.PlanReveal.dailyTargetSectionTitle), \(state.dailyCalorieLabel). \(state.calorieExplanationLine)"
-        )
-    }
-
-    // MARK: - Key targets
-
-    private func keyTargetsCard(_ state: OnboardingPlanRevealState) -> some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-            Text(FormaProductCopy.Onboarding.V2.PlanReveal.keyTargetsSectionTitle)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.secondaryText)
-                .padding(.horizontal, OnboardingLayout.compactFieldHorizontalPadding)
-                .accessibilityAddTraits(.isHeader)
-
-            VStack(spacing: 0) {
-                targetRow(label: "Protein", value: state.proteinLabel)
-                targetDivider
-                targetRow(label: "Water", value: state.waterLabel)
-                targetDivider
-                targetRow(label: "Goal", value: state.goalProgressLabel)
-
-                if let paceLabel = state.paceLabel {
-                    targetDivider
-                    targetRow(label: "Pace", value: paceLabel)
-                }
-
-                if showsSecondaryMacros, !state.secondaryMacroRows.isEmpty {
-                    ForEach(state.secondaryMacroRows) { row in
-                        targetDivider
-                        targetRow(label: row.label, value: row.value)
-                    }
-                }
-
-                if !state.secondaryMacroRows.isEmpty {
-                    targetDivider
-                    macrosDisclosureButton
-                }
-            }
-        }
-        .onboardingCompactCard()
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Your daily targets")
-    }
-
-    private var targetDivider: some View {
-        Divider()
-            .overlay(OnboardingTheme.border.opacity(0.55))
-            .padding(.horizontal, OnboardingLayout.compactFieldHorizontalPadding)
-    }
-
-    private var reassuranceCard: some View {
-        let copy = FormaProductCopy.Onboarding.V2.PlanReveal.Reassurance.self
-        return VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-            Text(copy.title)
-                .font(FormaTokens.Typography.body.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.primaryText)
-                .accessibilityAddTraits(.isHeader)
-
-            Text(copy.body)
-                .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(OnboardingTheme.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
-
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-                ForEach(copy.bullets, id: \.self) { bullet in
-                    Label {
-                        Text(bullet)
-                            .font(FormaTokens.Typography.caption)
-                            .foregroundStyle(OnboardingTheme.secondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
-                    } icon: {
-                        Image(systemName: "checkmark")
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(OnboardingTheme.accent)
-                            .accessibilityHidden(true)
-                    }
-                    .labelStyle(.titleAndIcon)
-                }
-            }
-        }
-        .onboardingCompactCard()
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("\(copy.title). \(copy.body)")
-    }
-
-    private var macrosDisclosureButton: some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                showsSecondaryMacros.toggle()
-            }
-        } label: {
-            HStack(spacing: FormaTokens.Spacing.xs) {
-                Text(
-                    showsSecondaryMacros
-                        ? FormaProductCopy.Onboarding.V2.PlanReveal.hideMacrosCTA
-                        : FormaProductCopy.Onboarding.V2.PlanReveal.viewMacrosCTA
-                )
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.accent)
-
-                Image(systemName: showsSecondaryMacros ? "chevron.up" : "chevron.down")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(OnboardingTheme.accent)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, OnboardingLayout.compactFieldHorizontalPadding)
-            .padding(.vertical, OnboardingLayout.compactFieldVerticalPadding)
-            .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .center)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(
-            showsSecondaryMacros
-                ? FormaProductCopy.Onboarding.V2.PlanReveal.hideMacrosCTA
-                : FormaProductCopy.Onboarding.V2.PlanReveal.viewMacrosCTA
-        )
-    }
-
-    private func targetRow(label: String, value: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
-            Text(label)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.secondaryText)
-                .frame(width: 72, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(value)
-                .font(FormaTokens.Typography.body.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.primaryText)
-                .minimumScaleFactor(0.85)
-                .lineLimit(2)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(.horizontal, OnboardingLayout.compactFieldHorizontalPadding)
-        .padding(.vertical, OnboardingLayout.compactFieldVerticalPadding)
-        .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .center)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(label), \(value)")
-    }
 }
 
 #Preview("Weight loss plan") {
-    if let state = OnboardingPreviewData.planRevealState {
-        OnboardingPlanRevealStepView(
-            revealState: state,
-            plan: OnboardingPreviewData.generatedPlan
-        )
-        .padding()
-        .background(OnboardingTheme.background)
-        .formaThemePreview()
-    }
-}
-
-#Preview("Compact") {
     if let state = OnboardingPreviewData.planRevealState {
         OnboardingPlanRevealStepView(
             revealState: state,
@@ -373,29 +211,64 @@ struct OnboardingPlanRevealStepView: View {
 #Preview("Maintenance plan") {
     OnboardingPlanRevealStepView(
         revealState: maintenanceRevealState(),
-        plan: maintenancePlan()
+        plan: maintenancePlan(),
+        usesCompactLayout: true
     )
     .padding()
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
 
-#Preview("Advanced pace plan") {
+#Preview("Gain plan") {
+    OnboardingPlanRevealStepView(
+        revealState: gainRevealState(),
+        plan: maintenancePlan(),
+        usesCompactLayout: true
+    )
+    .padding()
+    .background(OnboardingTheme.background)
+    .formaThemePreview()
+}
+
+#Preview("Imperial loss") {
+    OnboardingPlanRevealStepView(
+        revealState: imperialLossRevealState(),
+        plan: OnboardingPreviewData.generatedPlan,
+        usesCompactLayout: true
+    )
+    .padding()
+    .background(OnboardingTheme.background)
+    .formaThemePreview()
+}
+
+#Preview("Advanced pace caution") {
     OnboardingPlanRevealStepView(
         revealState: advancedPaceRevealState(),
-        plan: aggressivePlan()
+        plan: aggressivePlan(),
+        usesCompactLayout: true
     )
     .padding()
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
 
+#Preview("Missing reveal state") {
+    OnboardingPlanRevealStepView(
+        revealState: nil,
+        plan: nil,
+        usesCompactLayout: true
+    )
+    .padding()
+    .background(OnboardingTheme.background)
+    .formaThemePreview()
+}
 
 #Preview("Large Dynamic Type") {
     if let state = OnboardingPreviewData.planRevealState {
         OnboardingPlanRevealStepView(
             revealState: state,
-            plan: OnboardingPreviewData.generatedPlan
+            plan: OnboardingPreviewData.generatedPlan,
+            usesCompactLayout: true
         )
         .padding()
         .background(OnboardingTheme.background)
@@ -412,6 +285,24 @@ private func maintenanceRevealState() -> OnboardingPlanRevealState? {
     return OnboardingPlanRevealBuilder.build(
         formState: form,
         plan: maintenancePlan()
+    )
+}
+
+private func gainRevealState() -> OnboardingPlanRevealState? {
+    var form = OnboardingPreviewData.formState
+    form.goalWeightKgText = "78"
+    return OnboardingPlanRevealBuilder.build(
+        formState: form,
+        plan: maintenancePlan()
+    )
+}
+
+private func imperialLossRevealState() -> OnboardingPlanRevealState? {
+    var form = OnboardingPreviewData.formState
+    form.unitSystem = .imperial
+    return OnboardingPlanRevealBuilder.build(
+        formState: form,
+        plan: OnboardingPreviewData.generatedPlan
     )
 }
 

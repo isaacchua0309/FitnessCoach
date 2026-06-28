@@ -2,7 +2,7 @@
 //  OnboardingFormaProofBuilder.swift
 //  Fitness Coach
 //
-//  Forma — Goal-aware proof state for forma proof onboarding.
+//  Forma — Goal-aware future-vision state for forma proof onboarding.
 //
 
 import Foundation
@@ -14,25 +14,28 @@ enum OnboardingFormaProofPathStyle: Equatable, Sendable {
     case fallback
 }
 
-struct OnboardingFormaProofComparisonState: Equatable, Sendable {
-    let withoutTitle: String
-    let withoutHeadline: String
-    let withoutBullets: [String]
-    let withTitle: String
-    let withHeadline: String
-    let withBullets: [String]
-    let accessibilityLabel: String
+struct OnboardingFormaProofBenefit: Equatable, Identifiable, Sendable {
+    let id: String
+    let icon: String
+    let title: String
+
+    init(icon: String, title: String) {
+        self.id = title
+        self.icon = icon
+        self.title = title
+    }
 }
 
 struct OnboardingFormaProofState: Equatable, Sendable {
-    let title: String
-    let subtitle: String
-    let heroMetric: String
-    let heroSupporting: String
-    let journeyLine: String?
-    let comparison: OnboardingFormaProofComparisonState
-    let trustStrip: String
+    let visionHeadline: String
+    let visionSupporting: String
+    let goalIntentLabel: String
+    let targetWeightLabel: String
+    let benefits: [OnboardingFormaProofBenefit]
+    let benefitsAccessibilityLabel: String
+    let trustFooter: String
     let pathStyle: OnboardingFormaProofPathStyle
+    let ringProgress: Double
     let accessibilityLabel: String
     let isPersonalized: Bool
 }
@@ -41,199 +44,181 @@ enum OnboardingFormaProofBuilder {
 
     static func build(from formState: OnboardingFormState) -> OnboardingFormaProofState {
         let shared = FormaProductCopy.Onboarding.Flow.FormaProof.self
-        let comparisonCopy = shared.Comparison.self
 
         guard let currentKg = formState.parsedCurrentWeightKg,
               let goalKg = formState.parsedGoalWeightKg else {
-            return fallbackState(shared: shared, comparisonCopy: comparisonCopy)
+            return fallbackState(shared: shared)
         }
 
         let direction = OnboardingGoalProjectionBuilder.goalDirection(
             currentWeightKg: currentKg,
             goalWeightKg: goalKg
         )
-        let journeyLine = journeyLine(
-            currentKg: currentKg,
-            goalKg: goalKg,
+        let targetLabel = OnboardingGoalWeightBounds.weightSummary(
+            valueKg: goalKg,
             unitSystem: formState.unitSystem
-        )
-
-        let comparison = comparisonState(
-            direction: direction,
-            shared: shared,
-            comparisonCopy: comparisonCopy
         )
 
         switch direction {
         case .cut:
-            let targetLabel = OnboardingGoalWeightBounds.weightSummary(
-                valueKg: goalKg,
-                unitSystem: formState.unitSystem
-            )
-            let heroMetric = shared.lossHero(targetWeightLabel: targetLabel)
-            return OnboardingFormaProofState(
-                title: shared.Loss.title,
-                subtitle: shared.Loss.subtitle,
-                heroMetric: heroMetric,
-                heroSupporting: shared.Loss.heroSupporting,
-                journeyLine: journeyLine,
-                comparison: comparison,
-                trustStrip: shared.Trust.personalized,
+            return visionState(
+                shared: shared,
+                intentLabel: shared.Loss.intentLabel,
+                targetLabel: targetLabel,
+                supporting: shared.Loss.supporting(targetWeightLabel: targetLabel),
+                benefits: benefits(from: shared.Loss.benefits),
                 pathStyle: .loss,
-                accessibilityLabel: accessibilityLabel(
-                    title: shared.Loss.title,
-                    heroMetric: heroMetric,
-                    currentKg: currentKg,
-                    goalKg: goalKg,
-                    unitSystem: formState.unitSystem
-                ),
+                ringProgress: ringProgress(currentKg: currentKg, goalKg: goalKg, direction: .cut),
+                currentKg: currentKg,
+                goalKg: goalKg,
+                unitSystem: formState.unitSystem,
                 isPersonalized: true
             )
         case .gain:
-            let targetLabel = OnboardingGoalWeightBounds.weightSummary(
-                valueKg: goalKg,
-                unitSystem: formState.unitSystem
-            )
-            let heroMetric = shared.gainHero(targetWeightLabel: targetLabel)
-            return OnboardingFormaProofState(
-                title: shared.Gain.title,
-                subtitle: shared.Gain.subtitle,
-                heroMetric: heroMetric,
-                heroSupporting: shared.Gain.heroSupporting,
-                journeyLine: journeyLine,
-                comparison: comparison,
-                trustStrip: shared.Trust.personalized,
+            return visionState(
+                shared: shared,
+                intentLabel: shared.Gain.intentLabel,
+                targetLabel: targetLabel,
+                supporting: shared.Gain.supporting(targetWeightLabel: targetLabel),
+                benefits: benefits(from: shared.Gain.benefits),
                 pathStyle: .gain,
-                accessibilityLabel: accessibilityLabel(
-                    title: shared.Gain.title,
-                    heroMetric: heroMetric,
-                    currentKg: currentKg,
-                    goalKg: goalKg,
-                    unitSystem: formState.unitSystem
-                ),
+                ringProgress: ringProgress(currentKg: currentKg, goalKg: goalKg, direction: .gain),
+                currentKg: currentKg,
+                goalKg: goalKg,
+                unitSystem: formState.unitSystem,
                 isPersonalized: true
             )
         case .maintain:
-            let targetLabel = OnboardingGoalWeightBounds.weightSummary(
-                valueKg: goalKg,
-                unitSystem: formState.unitSystem
-            )
-            let heroMetric = shared.maintainHero(targetWeightLabel: targetLabel)
-            return OnboardingFormaProofState(
-                title: shared.Maintain.title,
-                subtitle: shared.Maintain.subtitle,
-                heroMetric: heroMetric,
-                heroSupporting: shared.Maintain.heroSupporting,
-                journeyLine: journeyLine,
-                comparison: comparison,
-                trustStrip: shared.Trust.personalized,
+            return visionState(
+                shared: shared,
+                intentLabel: shared.Maintain.intentLabel,
+                targetLabel: targetLabel,
+                supporting: shared.Maintain.supporting(targetWeightLabel: targetLabel),
+                benefits: benefits(from: shared.Maintain.benefits),
                 pathStyle: .maintain,
-                accessibilityLabel: accessibilityLabel(
-                    title: shared.Maintain.title,
-                    heroMetric: heroMetric,
-                    currentKg: currentKg,
-                    goalKg: goalKg,
-                    unitSystem: formState.unitSystem
-                ),
+                ringProgress: 1,
+                currentKg: currentKg,
+                goalKg: goalKg,
+                unitSystem: formState.unitSystem,
                 isPersonalized: true
             )
         }
     }
 
     private static func fallbackState(
-        shared: FormaProductCopy.Onboarding.Flow.FormaProof.Type,
-        comparisonCopy: FormaProductCopy.Onboarding.Flow.FormaProof.Comparison.Type
+        shared: FormaProductCopy.Onboarding.Flow.FormaProof.Type
     ) -> OnboardingFormaProofState {
-        OnboardingFormaProofState(
-            title: shared.Fallback.title,
-            subtitle: shared.Fallback.subtitle,
-            heroMetric: shared.Fallback.heroMetric,
-            heroSupporting: shared.Fallback.heroSupporting,
-            journeyLine: nil,
-            comparison: comparisonState(
-                direction: nil,
-                shared: shared,
-                comparisonCopy: comparisonCopy
-            ),
-            trustStrip: shared.Fallback.trustNote,
+        let fallback = shared.Fallback.self
+        let benefits = benefits(from: fallback.benefits)
+        return OnboardingFormaProofState(
+            visionHeadline: shared.visionHeadline,
+            visionSupporting: fallback.supporting,
+            goalIntentLabel: fallback.intentLabel,
+            targetWeightLabel: fallback.targetWeightPlaceholder,
+            benefits: benefits,
+            benefitsAccessibilityLabel: benefitsAccessibilityLabel(for: benefits),
+            trustFooter: fallback.trustNote,
             pathStyle: .fallback,
-            accessibilityLabel: "\(shared.Fallback.title). \(shared.Fallback.subtitle)",
+            ringProgress: 0.75,
+            accessibilityLabel: [
+                shared.visionHeadline,
+                fallback.supporting,
+                fallback.trustNote
+            ].joined(separator: ". "),
             isPersonalized: false
         )
     }
 
-    private static func comparisonState(
-        direction: OnboardingGoalDirection?,
+    private static func visionState(
         shared: FormaProductCopy.Onboarding.Flow.FormaProof.Type,
-        comparisonCopy: FormaProductCopy.Onboarding.Flow.FormaProof.Comparison.Type
-    ) -> OnboardingFormaProofComparisonState {
-        let withoutHeadline: String
-        let withHeadline: String
-
-        switch direction {
-        case .cut:
-            withoutHeadline = shared.Loss.withoutHeadline
-            withHeadline = shared.Loss.withHeadline
-        case .gain:
-            withoutHeadline = shared.Gain.withoutHeadline
-            withHeadline = shared.Gain.withHeadline
-        case .maintain:
-            withoutHeadline = shared.Maintain.withoutHeadline
-            withHeadline = shared.Maintain.withHeadline
-        case nil:
-            withoutHeadline = comparisonCopy.withoutBullets[0]
-            withHeadline = comparisonCopy.withFormaBullets[0]
-        }
-
-        let accessibility = [
-            comparisonCopy.withoutStructureTitle,
-            withoutHeadline,
-            comparisonCopy.withoutBullets.joined(separator: ". "),
-            comparisonCopy.withFormaTitle,
-            withHeadline,
-            comparisonCopy.withFormaBullets.joined(separator: ". ")
-        ].joined(separator: ". ")
-
-        return OnboardingFormaProofComparisonState(
-            withoutTitle: comparisonCopy.withoutStructureTitle,
-            withoutHeadline: withoutHeadline,
-            withoutBullets: comparisonCopy.withoutBullets,
-            withTitle: comparisonCopy.withFormaTitle,
-            withHeadline: withHeadline,
-            withBullets: comparisonCopy.withFormaBullets,
-            accessibilityLabel: accessibility
+        intentLabel: String,
+        targetLabel: String,
+        supporting: String,
+        benefits: [OnboardingFormaProofBenefit],
+        pathStyle: OnboardingFormaProofPathStyle,
+        ringProgress: Double,
+        currentKg: Double,
+        goalKg: Double,
+        unitSystem: UnitSystem,
+        isPersonalized: Bool
+    ) -> OnboardingFormaProofState {
+        OnboardingFormaProofState(
+            visionHeadline: shared.visionHeadline,
+            visionSupporting: supporting,
+            goalIntentLabel: intentLabel,
+            targetWeightLabel: targetLabel,
+            benefits: benefits,
+            benefitsAccessibilityLabel: benefitsAccessibilityLabel(for: benefits),
+            trustFooter: shared.Trust.personalized,
+            pathStyle: pathStyle,
+            ringProgress: ringProgress,
+            accessibilityLabel: accessibilityLabel(
+                headline: shared.visionHeadline,
+                supporting: supporting,
+                intentLabel: intentLabel,
+                targetLabel: targetLabel,
+                currentKg: currentKg,
+                goalKg: goalKg,
+                unitSystem: unitSystem,
+                benefits: benefits,
+                trustFooter: shared.Trust.personalized
+            ),
+            isPersonalized: isPersonalized
         )
     }
 
-    private static func journeyLine(
+    private static func benefits(
+        from items: [(icon: String, title: String)]
+    ) -> [OnboardingFormaProofBenefit] {
+        items.map { OnboardingFormaProofBenefit(icon: $0.icon, title: $0.title) }
+    }
+
+    private static func benefitsAccessibilityLabel(
+        for benefits: [OnboardingFormaProofBenefit]
+    ) -> String {
+        let titles = benefits.map(\.title).joined(separator: ". ")
+        return "What changes: \(titles)."
+    }
+
+    private static func ringProgress(
         currentKg: Double,
         goalKg: Double,
-        unitSystem: UnitSystem
-    ) -> String {
-        let currentLabel = OnboardingGoalWeightBounds.weightSummary(
-            valueKg: currentKg,
-            unitSystem: unitSystem
-        )
-        let goalLabel = OnboardingGoalWeightBounds.weightSummary(
-            valueKg: goalKg,
-            unitSystem: unitSystem
-        )
-        return "\(currentLabel) → \(goalLabel)"
+        direction: OnboardingGoalDirection
+    ) -> Double {
+        switch direction {
+        case .maintain:
+            return 1
+        case .cut, .gain:
+            let delta = abs(currentKg - goalKg)
+            guard delta > 0 else { return 1 }
+            let ratio = min(delta / max(currentKg, goalKg), 1)
+            return min(0.88, max(0.62, 1 - (ratio * 0.35)))
+        }
     }
 
     private static func accessibilityLabel(
-        title: String,
-        heroMetric: String,
+        headline: String,
+        supporting: String,
+        intentLabel: String,
+        targetLabel: String,
         currentKg: Double,
         goalKg: Double,
-        unitSystem: UnitSystem
+        unitSystem: UnitSystem,
+        benefits: [OnboardingFormaProofBenefit],
+        trustFooter: String
     ) -> String {
         let currentSpoken = spokenWeight(valueKg: currentKg, unitSystem: unitSystem)
         let goalSpoken = spokenWeight(valueKg: goalKg, unitSystem: unitSystem)
-        let heroSpoken = heroMetric
-            .replacingOccurrences(of: " kg", with: " kilograms")
-            .replacingOccurrences(of: " lb", with: " pounds")
-        return "\(title). \(heroSpoken). Current weight \(currentSpoken). Target weight \(goalSpoken)."
+        let benefitSpoken = benefits.map(\.title).joined(separator: ". ")
+        return [
+            headline,
+            supporting,
+            "\(intentLabel) target \(targetLabel)",
+            "Current weight \(currentSpoken)",
+            "Target weight \(goalSpoken)",
+            benefitSpoken,
+            trustFooter
+        ].joined(separator: ". ")
     }
 
     private static func spokenWeight(valueKg: Double, unitSystem: UnitSystem) -> String {

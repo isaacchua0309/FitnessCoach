@@ -14,7 +14,7 @@ final class OnboardingTargetWeightGuidanceBuilderTests: XCTestCase {
         var state = OnboardingFormState()
         OnboardingHeightWeightValues.setHeightCm(heightCm, in: &state)
         OnboardingHeightWeightValues.setWeightKg(currentKg, in: &state)
-        OnboardingTargetWeightValues.setGoalFromLossKg(3.5, in: &state)
+        OnboardingTargetWeightValues.setGoalFromDeltaKg(-3.5, in: &state)
         return state
     }
 
@@ -36,7 +36,7 @@ final class OnboardingTargetWeightGuidanceBuilderTests: XCTestCase {
 
     func testGuidanceUsesMaintainCopyWhenGoalEqualsCurrent() {
         var state = sampleForm()
-        OnboardingTargetWeightValues.setGoalFromLossKg(0, in: &state)
+        OnboardingTargetWeightValues.setGoalFromDeltaKg(0, in: &state)
 
         let guidance = OnboardingTargetWeightGuidanceBuilder.guidanceState(for: state)
 

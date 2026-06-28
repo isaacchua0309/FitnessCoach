@@ -215,18 +215,14 @@ enum OnboardingStep: Int, Equatable, Identifiable, Sendable, CaseIterable {
     }
 
     var usesFullScreenChrome: Bool {
-        switch self {
-        case .generatingPlan:
-            return true
-        default:
-            return false
-        }
+        false
     }
 
     /// Steps that fit in one viewport and should not scroll.
     var usesFixedViewportShell: Bool {
         switch self {
-        case .birthday, .activityLevel, .appleHealth, .almostThere, .formaProof, .review:
+        case .birthday, .activityLevel, .appleHealth, .almostThere, .formaProof, .review,
+             .generatingPlan, .planReveal:
             return true
         default:
             return false

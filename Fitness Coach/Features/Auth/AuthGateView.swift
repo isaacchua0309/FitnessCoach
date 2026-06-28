@@ -168,6 +168,9 @@ struct AuthGateView: View {
     // MARK: - Routing
 
     private var effectiveRoute: AppShellRoute {
+        let suppressAutomaticPublicEntryResume =
+            container.publicEntrySessionStore.suppressAutomaticPublicEntryResume
+        let hasLocalProfile = container.profileBootstrapService.hasLocalProfile()
         let base = container.resolveAppShellRoute(
             authState: authManager.authState,
             rootState: rootModel.state,
@@ -176,11 +179,26 @@ struct AuthGateView: View {
             pendingOnboardingCompletion: pendingSignInForOnboardingCompletion,
             publicEntryDestination: publicEntryDestination
         )
-        return AuthGateRoutingPolicy.effectiveRoute(
+        let selected = AuthGateRoutingPolicy.effectiveRoute(
             baseRoute: base,
             isSignedIn: AppRouteResolver.isSignedIn(authManager.authState),
-            hasActiveOnboardingSession: onboardingModel != nil
+            hasActiveOnboardingSession: onboardingModel != nil,
+            suppressAutomaticPublicEntryResume: suppressAutomaticPublicEntryResume
         )
+        AppShellRoutingLogger.logDecision(
+            authState: authManager.authState,
+            rootState: rootModel.state,
+            hasLocalProfile: hasLocalProfile,
+            localProfileAwaitingSignIn: container.profileBootstrapService.localProfileAwaitingSignIn(),
+            hasPersistedOnboardingDraft: container.onboardingDraftStore.hasDraft,
+            suppressAutomaticPublicEntryResume: suppressAutomaticPublicEntryResume,
+            publicEntryDestination: publicEntryDestination,
+            isOnboardingModelReady: onboardingModel != nil,
+            baseRoute: base,
+            selectedRoute: selected,
+            trigger: "auth_gate_effective_route"
+        )
+        return selected
     }
 
     // MARK: - Public entry actions
@@ -250,9 +268,8 @@ struct AuthGateView: View {
         existingUserSignInError = nil
         onboardingModel = nil
         suppressSignOutEntrySourceAnnotation = true
-        Task {
-            await authManager.signOut()
-        }
+        prepareAuthenticatedSignOut(source: "no_existing_profile_use_another_account")
+        authManager.signOut()
     }
 
     // MARK: - Pre-auth onboarding
@@ -431,6 +448,7 @@ struct AuthGateView: View {
 
     private func signOutFromAccountMismatch() {
         container.publicEntrySessionStore.markUserInitiatedLogout()
+        prepareAuthenticatedSignOut(source: "account_profile_mismatch")
         authManager.signOut()
     }
 
@@ -825,6 +843,7 @@ struct AuthGateView: View {
         }
 
         if wasSignedIn {
+            onboardingModel = nil
             pendingExistingUserSignIn = false
             existingUserSignInSessionActive = false
             pendingSignInForOnboardingCompletion = false
@@ -842,9 +861,33 @@ struct AuthGateView: View {
                 container.publicEntrySessionStore.markSessionExpiredLogout()
             }
             suppressSignOutEntrySourceAnnotation = false
-            AuthLogoutPolicy.applyExplicitSignOut(
-                sessionStore: container.publicEntrySessionStore
+            publicEntryDestination = AuthLogoutPolicy.publicEntryDestinationAfterSignOut(
+                returnToExistingUserSignIn: returnToExistingUserSignInAfterSignOut,
+                hasExistingUserSignInError: existingUserSignInError != nil
             )
+            if returnToExistingUserSignInAfterSignOut {
+                returnToExistingUserSignInAfterSignOut = false
+                existingUserSignInError = nil
+            }
+            rootModel.resetForSignedOutSession()
+            AuthLogoutPolicy.prepareForSignOut(
+                sessionStore: container.publicEntrySessionStore,
+                source: "auth_state_signed_out_transition",
+                wasSignedIn: true,
+                hasLocalProfile: container.profileBootstrapService.hasLocalProfile(),
+                hasPersistedOnboardingDraft: container.onboardingDraftStore.hasDraft,
+                publicEntryDestination: publicEntryDestination
+            )
+        } else if let resumedDestination = AuthLogoutPolicy.coldLaunchPublicEntryDestination(
+            hasPersistedOnboardingDraft: container.onboardingDraftStore.hasDraft,
+            hasLocalProfile: container.profileBootstrapService.hasLocalProfile(),
+            suppressAutomaticPublicEntryResume:
+                container.publicEntrySessionStore.suppressAutomaticPublicEntryResume
+        ) {
+            publicEntryDestination = resumedDestination
+            rootModel.resolveLocalProfile()
+        } else {
+            rootModel.resetForSignedOutSession()
         }
 
         if AppRouteResolver.shouldClearOnboardingModel(
@@ -855,22 +898,27 @@ struct AuthGateView: View {
         ) {
             onboardingModel = nil
         }
+    }
 
-        rootModel.resolveLocalProfile()
-
+    private func prepareAuthenticatedSignOut(source: String) {
+        guard AppRouteResolver.isSignedIn(authManager.authState) else { return }
+        onboardingModel = nil
+        pendingExistingUserSignIn = false
+        existingUserSignInSessionActive = false
+        pendingSignInForOnboardingCompletion = false
         publicEntryDestination = AuthLogoutPolicy.publicEntryDestinationAfterSignOut(
             returnToExistingUserSignIn: returnToExistingUserSignInAfterSignOut,
             hasExistingUserSignInError: existingUserSignInError != nil
         )
-        if returnToExistingUserSignInAfterSignOut {
-            returnToExistingUserSignInAfterSignOut = false
-            existingUserSignInError = nil
-        } else if !wasSignedIn,
-                  !container.publicEntrySessionStore.suppressAutomaticPublicEntryResume,
-                  container.onboardingDraftStore.hasDraft,
-                  !container.profileBootstrapService.hasLocalProfile() {
-            publicEntryDestination = .onboardingStart
-        }
+        rootModel.resetForSignedOutSession()
+        AuthLogoutPolicy.prepareForSignOut(
+            sessionStore: container.publicEntrySessionStore,
+            source: source,
+            wasSignedIn: true,
+            hasLocalProfile: container.profileBootstrapService.hasLocalProfile(),
+            hasPersistedOnboardingDraft: container.onboardingDraftStore.hasDraft,
+            publicEntryDestination: publicEntryDestination
+        )
     }
 
     private func reconcileSignedInProfile(uid: String, isFreshSignIn: Bool) {

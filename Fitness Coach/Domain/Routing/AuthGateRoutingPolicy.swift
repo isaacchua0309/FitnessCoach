@@ -32,12 +32,14 @@ enum AuthGateRoutingPolicy {
     static func effectiveRoute(
         baseRoute: AppShellRoute,
         isSignedIn: Bool,
-        hasActiveOnboardingSession: Bool
+        hasActiveOnboardingSession: Bool,
+        suppressAutomaticPublicEntryResume: Bool = false
     ) -> AppShellRoute {
         guard shouldPreferActiveOnboardingSession(
             isSignedIn: isSignedIn,
             hasActiveOnboardingSession: hasActiveOnboardingSession,
-            baseRoute: baseRoute
+            baseRoute: baseRoute,
+            suppressAutomaticPublicEntryResume: suppressAutomaticPublicEntryResume
         ) else {
             return baseRoute
         }
@@ -47,8 +49,10 @@ enum AuthGateRoutingPolicy {
     static func shouldPreferActiveOnboardingSession(
         isSignedIn: Bool,
         hasActiveOnboardingSession: Bool,
-        baseRoute: AppShellRoute
+        baseRoute: AppShellRoute,
+        suppressAutomaticPublicEntryResume: Bool = false
     ) -> Bool {
+        guard !suppressAutomaticPublicEntryResume else { return false }
         guard hasActiveOnboardingSession, !isSignedIn else { return false }
         switch baseRoute {
         case .welcome, .onboardingStart, .onboardingStartInitializing:

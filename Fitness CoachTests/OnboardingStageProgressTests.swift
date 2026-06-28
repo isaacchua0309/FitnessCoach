@@ -108,13 +108,13 @@ final class OnboardingStageProgressTests: XCTestCase {
 
     func testGeneratingPlanTimingMatchesChecklist() {
         XCTAssertEqual(
-            OnboardingGeneratingPlanTiming.intervalsAfterReveal.count,
+            OnboardingGeneratingPlanTiming.stepActiveDurations.count,
             FormaProductCopy.Onboarding.V2.Generating.checklist.count
         )
         XCTAssertEqual(
             OnboardingModel.minimumGenerationDisplayDuration,
             OnboardingGeneratingPlanTiming.minimumDisplayDuration
         )
-        XCTAssertGreaterThanOrEqual(OnboardingGeneratingPlanTiming.minimumDisplayDuration, 2.5)
+        XCTAssertGreaterThanOrEqual(OnboardingGeneratingPlanTiming.minimumDisplayDuration, 3.5)
     }
 }

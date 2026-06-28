@@ -43,6 +43,9 @@ struct AccountSettingsView: View {
         ) {
             Button("Log Out", role: .destructive) {
                 publicEntrySessionStore?.markUserInitiatedLogout()
+                if let publicEntrySessionStore {
+                    AuthLogoutPolicy.applyExplicitSignOut(sessionStore: publicEntrySessionStore)
+                }
                 authManager.signOut()
             }
             Button("Cancel", role: .cancel) {}

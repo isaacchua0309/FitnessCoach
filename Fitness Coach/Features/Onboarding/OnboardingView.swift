@@ -65,6 +65,9 @@ struct OnboardingView: View {
         } else if model.currentStep == .review || model.currentStep == .almostThere {
             OnboardingHaptics.selectionChanged()
             model.goNext()
+        } else if model.currentStep == .planReveal {
+            OnboardingHaptics.selectionChanged()
+            model.goNext()
         } else {
             model.goNext()
         }
@@ -180,8 +183,13 @@ struct OnboardingView: View {
             )
         case .generatingPlan:
             OnboardingGeneratingPlanStepView(
+                presentation: OnboardingGeneratingPlanCopyBuilder.build(from: model.formState),
                 viewState: model.viewState,
-                onReviewDetails: {
+                onRetry: {
+                    fieldNavigator.dismissFocus()
+                    model.retryGeneration()
+                },
+                onGoBack: {
                     fieldNavigator.dismissFocus()
                     model.returnToSummaryAfterGenerationFailure()
                 }

@@ -117,32 +117,18 @@ struct OnboardingTargetWeightStepView: View {
 }
 
 #if DEBUG
-#Preview("Target Weight — Metric") {
+#Preview("Target Weight — Maintain") {
     OnboardingTargetWeightStepView(
-        formState: .constant({
-            var state = OnboardingFormState()
-            OnboardingHeightWeightValues.setHeightCm(170, in: &state)
-            OnboardingHeightWeightValues.setWeightKg(72, in: &state)
-            state.unitSystem = .metric
-            OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &state)
-            return state
-        }())
+        formState: .constant(OnboardingPreviewData.targetWeightMaintainFormState)
     )
     .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
 
-#Preview("Target Weight — Maintain") {
+#Preview("Target Weight — Loss") {
     OnboardingTargetWeightStepView(
-        formState: .constant({
-            var state = OnboardingFormState()
-            OnboardingHeightWeightValues.setHeightCm(170, in: &state)
-            OnboardingHeightWeightValues.setWeightKg(90, in: &state)
-            state.unitSystem = .metric
-            OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &state)
-            return state
-        }())
+        formState: .constant(OnboardingPreviewData.targetWeightLossFormState)
     )
     .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
@@ -151,30 +137,7 @@ struct OnboardingTargetWeightStepView: View {
 
 #Preview("Target Weight — Gain") {
     OnboardingTargetWeightStepView(
-        formState: .constant({
-            var state = OnboardingFormState()
-            OnboardingHeightWeightValues.setHeightCm(170, in: &state)
-            OnboardingHeightWeightValues.setWeightKg(90, in: &state)
-            state.unitSystem = .metric
-            OnboardingTargetWeightValues.setGoalWeightKg(93, in: &state)
-            return state
-        }())
-    )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
-    .background(OnboardingTheme.background)
-    .formaThemePreview()
-}
-
-#Preview("Target Weight — Heavy loss") {
-    OnboardingTargetWeightStepView(
-        formState: .constant({
-            var state = OnboardingFormState()
-            OnboardingHeightWeightValues.setHeightCm(170, in: &state)
-            OnboardingHeightWeightValues.setWeightKg(90, in: &state)
-            state.unitSystem = .metric
-            OnboardingTargetWeightValues.setGoalWeightKg(85.3, in: &state)
-            return state
-        }())
+        formState: .constant(OnboardingPreviewData.targetWeightGainFormState)
     )
     .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
@@ -183,14 +146,7 @@ struct OnboardingTargetWeightStepView: View {
 
 #Preview("Target Weight — Imperial") {
     OnboardingTargetWeightStepView(
-        formState: .constant({
-            var state = OnboardingFormState()
-            OnboardingHeightWeightValues.setHeightCm(170, in: &state)
-            OnboardingHeightWeightValues.setWeightKg(72, in: &state)
-            state.unitSystem = .imperial
-            OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &state)
-            return state
-        }())
+        formState: .constant(OnboardingPreviewData.targetWeightImperialLossFormState)
     )
     .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)

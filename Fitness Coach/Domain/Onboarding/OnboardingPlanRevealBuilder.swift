@@ -19,6 +19,7 @@ enum OnboardingPlanRevealBuilder {
             return nil
         }
 
+        let unitSystem = formState.unitSystem
         let direction = goalDirection(
             currentWeightKg: currentWeightKg,
             goalWeightKg: goalWeightKg
@@ -32,30 +33,59 @@ enum OnboardingPlanRevealBuilder {
             pacePreview: pacePreview
         )
 
+        let currentLabel = weightLabel(currentWeightKg, unitSystem: unitSystem)
+        let goalLabel = weightLabel(goalWeightKg, unitSystem: unitSystem)
+        let heroCopy = goalHeroCopy(
+            direction: direction,
+            currentLabel: currentLabel,
+            goalLabel: goalLabel
+        )
+        let focusCopy = focusCopy(for: direction)
+        let copy = FormaProductCopy.Onboarding.V2.PlanReveal.self
+        let calorieLabel = OnboardingFormatter.kcal(plan.targets.calorieTarget)
+        let proteinLabel = OnboardingFormatter.grams(plan.targets.proteinTarget)
+        let waterLabel = OnboardingFormatter.ml(plan.targets.waterTargetMl)
+
         return OnboardingPlanRevealState(
-            currentWeightLabel: weightLabel(currentWeightKg),
-            goalWeightLabel: weightLabel(goalWeightKg),
-            goalProgressLabel: goalProgressLabel(
-                current: weightLabel(currentWeightKg),
-                goal: weightLabel(goalWeightKg)
+            goalDirection: direction,
+            currentWeightLabel: currentLabel,
+            goalWeightLabel: goalLabel,
+            goalProgressLabel: goalProgressLabel(current: currentLabel, goal: goalLabel),
+            goalHeroSectionTitle: heroCopy.sectionTitle,
+            goalHeroHeadline: heroCopy.headline,
+            goalHeroProgressLine: heroCopy.progressLine,
+            goalHeroSupport: heroCopy.support,
+            dailyMissionSectionTitle: copy.dailyMissionSectionTitle,
+            dailyMissionCalorieLine: "\(calorieLabel) / day",
+            focusTitle: focusCopy.title,
+            focusBody: focusCopy.body,
+            nextStepLine: copy.nextStepLine,
+            accessibilitySummary: accessibilitySummary(
+                direction: direction,
+                goalLabel: goalLabel,
+                calorieTarget: plan.targets.calorieTarget,
+                proteinLabel: proteinLabel,
+                waterLabel: waterLabel,
+                unitSystem: unitSystem,
+                goalWeightKg: goalWeightKg
             ),
             weeklyChangeLabel: timeline.weeklyChangeLabel,
             paceLabel: timeline.paceLabel,
             estimatedWeeksLabel: timeline.estimatedWeeksLabel,
             journeySummaryLine: journeySummaryLine(
                 direction: direction,
-                goalWeightKg: goalWeightKg
+                goalLabel: goalLabel
             ),
             strategyLabel: OnboardingPlanRevealStrategyFormatter.label(
                 goalDirection: direction,
                 paceChoice: formState.weightLossPaceChoice
             ),
-            dailyCalorieLabel: OnboardingFormatter.kcal(plan.targets.calorieTarget),
+            dailyCalorieLabel: calorieLabel,
             calorieExplanationLine: OnboardingPlanRevealStrategyFormatter.calorieExplanation(
                 goalDirection: direction
             ),
-            proteinLabel: OnboardingFormatter.grams(plan.targets.proteinTarget),
-            waterLabel: OnboardingFormatter.ml(plan.targets.waterTargetMl),
+            proteinLabel: proteinLabel,
+            waterLabel: waterLabel,
             secondaryMacroRows: secondaryMacroRows(from: plan),
             planStatus: OnboardingPlanRevealStatusFormatter.resolve(
                 plan: plan,
@@ -124,17 +154,72 @@ enum OnboardingPlanRevealBuilder {
 
     // MARK: - Copy
 
+    private struct GoalHeroCopy {
+        let sectionTitle: String
+        let headline: String
+        let progressLine: String?
+        let support: String
+    }
+
+    private struct FocusCopy {
+        let title: String
+        let body: String
+    }
+
+    private static func goalHeroCopy(
+        direction: PlanGoalDirection,
+        currentLabel: String,
+        goalLabel: String
+    ) -> GoalHeroCopy {
+        let copy = FormaProductCopy.Onboarding.V2.PlanReveal.GoalHero.self
+        switch direction {
+        case .maintain:
+            return GoalHeroCopy(
+                sectionTitle: copy.sectionTitle,
+                headline: copy.maintainHeadline(targetWeight: goalLabel),
+                progressLine: nil,
+                support: copy.maintainSupport
+            )
+        case .cut:
+            return GoalHeroCopy(
+                sectionTitle: copy.sectionTitle,
+                headline: copy.lossHeadline(targetWeight: goalLabel),
+                progressLine: copy.lossProgress(currentWeight: currentLabel, targetWeight: goalLabel),
+                support: copy.lossSupport
+            )
+        case .gain:
+            return GoalHeroCopy(
+                sectionTitle: copy.sectionTitle,
+                headline: copy.gainHeadline(targetWeight: goalLabel),
+                progressLine: copy.gainProgress(currentWeight: currentLabel, targetWeight: goalLabel),
+                support: copy.gainSupport
+            )
+        }
+    }
+
+    private static func focusCopy(for direction: PlanGoalDirection) -> FocusCopy {
+        let copy = FormaProductCopy.Onboarding.V2.PlanReveal.Focus.self
+        switch direction {
+        case .maintain:
+            return FocusCopy(title: copy.maintainTitle, body: copy.maintainBody)
+        case .cut:
+            return FocusCopy(title: copy.lossTitle, body: copy.lossBody)
+        case .gain:
+            return FocusCopy(title: copy.gainTitle, body: copy.gainBody)
+        }
+    }
+
     private static func journeySummaryLine(
         direction: PlanGoalDirection,
-        goalWeightKg: Double
+        goalLabel: String
     ) -> String {
         switch direction {
         case .cut:
-            return Copy.startingTargetsAdjustWithData
+            return "Lose toward \(goalLabel) with clear daily targets."
         case .maintain:
-            return Copy.maintainGoalSummary(goalWeightLabel: weightLabel(goalWeightKg))
+            return "Maintain around \(goalLabel) with clear daily targets."
         case .gain:
-            return Copy.gainGoalSummary(goalWeightLabel: weightLabel(goalWeightKg))
+            return "Gain toward \(goalLabel) with clear daily targets."
         }
     }
 
@@ -168,30 +253,55 @@ enum OnboardingPlanRevealBuilder {
         ]
     }
 
+    private static func accessibilitySummary(
+        direction: PlanGoalDirection,
+        goalLabel: String,
+        calorieTarget: Int,
+        proteinLabel: String,
+        waterLabel: String,
+        unitSystem: UnitSystem,
+        goalWeightKg: Double
+    ) -> String {
+        let title = FormaProductCopy.Onboarding.Flow.PlanReveal.title
+        let goalPhrase: String
+        switch direction {
+        case .maintain:
+            goalPhrase = "Your goal is to maintain around \(spokenWeight(valueKg: goalWeightKg, unitSystem: unitSystem))."
+        case .cut:
+            goalPhrase = "Your goal is to lose toward \(spokenWeight(valueKg: goalWeightKg, unitSystem: unitSystem))."
+        case .gain:
+            goalPhrase = "Your goal is to gain toward \(spokenWeight(valueKg: goalWeightKg, unitSystem: unitSystem))."
+        }
+        let proteinSpoken = proteinLabel.replacingOccurrences(of: " g", with: " grams")
+        let waterSpoken = waterLabel.replacingOccurrences(of: " ml", with: " milliliters")
+        return "\(title). \(goalPhrase) Your daily mission is \(calorieTarget) calories per day, \(proteinSpoken) protein, and \(waterSpoken) water."
+    }
+
+    private static func spokenWeight(valueKg: Double, unitSystem: UnitSystem) -> String {
+        switch unitSystem {
+        case .metric:
+            let formatted = valueKg.truncatingRemainder(dividingBy: 1) == 0
+                ? "\(Int(valueKg.rounded()))"
+                : String(format: "%.1f", valueKg)
+            return "\(formatted) kilograms"
+        case .imperial:
+            let pounds = valueKg * OnboardingFormState.poundsPerKilogram
+            let formatted = pounds.truncatingRemainder(dividingBy: 1) == 0
+                ? "\(Int(pounds.rounded()))"
+                : String(format: "%.1f", pounds)
+            return "\(formatted) pounds"
+        }
+    }
+
     // MARK: - Formatting
 
-    private static func weightLabel(_ kg: Double) -> String {
-        kg.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(kg)) kg"
-            : String(format: "%.1f kg", kg)
+    private static func weightLabel(_ kg: Double, unitSystem: UnitSystem) -> String {
+        OnboardingGoalWeightBounds.weightSummary(valueKg: kg, unitSystem: unitSystem)
     }
 
     private static func formattedWeeklyLoss(_ weeklyKg: Double) -> String {
         weeklyKg.truncatingRemainder(dividingBy: 1) == 0
             ? "\(Int(weeklyKg)) kg/week"
             : String(format: "%.1f kg/week", weeklyKg)
-    }
-
-    private enum Copy {
-        static let startingTargetsAdjustWithData =
-            "These are your starting targets. Forma will adjust as real data comes in."
-
-        static func maintainGoalSummary(goalWeightLabel: String) -> String {
-            "These are your starting targets for maintaining around \(goalWeightLabel). Forma will adjust as real data comes in."
-        }
-
-        static func gainGoalSummary(goalWeightLabel: String) -> String {
-            "These are your starting targets for building toward \(goalWeightLabel). Forma will adjust as real data comes in."
-        }
     }
 }

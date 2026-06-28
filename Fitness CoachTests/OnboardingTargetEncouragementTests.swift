@@ -17,7 +17,7 @@ final class OnboardingTargetEncouragementTests: XCTestCase {
     ) -> OnboardingFormState {
         var state = OnboardingFormState()
         OnboardingHeightWeightValues.setWeightKg(currentKg, in: &state)
-        OnboardingTargetWeightValues.setGoalFromLossKg(lossKg, in: &state)
+        OnboardingTargetWeightValues.setGoalFromDeltaKg(-lossKg, in: &state)
         state.unitSystem = unitSystem
         return state
     }
@@ -58,7 +58,7 @@ final class OnboardingTargetEncouragementTests: XCTestCase {
     func testMaintainGoalUsesMaintainHeroCopy() {
         var state = OnboardingFormState()
         OnboardingHeightWeightValues.setWeightKg(72, in: &state)
-        OnboardingTargetWeightValues.setGoalFromLossKg(0, in: &state)
+        OnboardingTargetWeightValues.setGoalFromDeltaKg(0, in: &state)
 
         let built = OnboardingTargetEncouragementCopyBuilder.build(from: state)
 

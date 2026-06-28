@@ -85,7 +85,7 @@ struct OnboardingFormaProofStructuredComparisonCard: View {
             from: {
                 var state = OnboardingFormState()
                 OnboardingHeightWeightValues.setWeightKg(70, in: &state)
-                OnboardingTargetWeightValues.setGoalFromLossKg(3.5, in: &state)
+                OnboardingTargetWeightValues.setGoalFromDeltaKg(-3.5, in: &state)
                 return state
             }()
         ).comparison

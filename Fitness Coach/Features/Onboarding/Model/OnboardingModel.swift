@@ -7,6 +7,7 @@
 
 import Combine
 import Foundation
+import UIKit
 
 enum OnboardingCompletionIntent: Equatable, Sendable {
     case signIn
@@ -250,29 +251,38 @@ final class OnboardingModel: ObservableObject {
 
     func prepareAppleHealthStep() {
         guard currentStep == .appleHealth else { return }
-        appleHealthPresentation = .ready
+        syncAppleHealthPresentation(from: appleHealthDeviceState)
+        logAppleHealthCTAState(action: "step_prepared")
 
         Task { [weak self] in
             guard let self else { return }
             let refreshed = await healthTrainingIntegration.refreshState()
             guard currentStep == .appleHealth else { return }
             appleHealthDeviceState = refreshed
-            if refreshed == .connected {
-                appleHealthPresentation = .connected
-            } else if refreshed == .unavailable {
-                appleHealthPresentation = .unavailable
-            }
+            syncAppleHealthPresentation(from: refreshed)
+            logAppleHealthCTAState(action: "authorization_refreshed")
         }
     }
 
     func connectAppleHealth() {
         guard currentStep == .appleHealth else { return }
         guard viewState != .connectingAppleHealth else { return }
+
+        logAppleHealthCTAState(action: "primary_tapped")
+
+        if shouldAdvanceFromConnectedAppleHealth {
+            logAppleHealthCTAState(action: "advance_without_permission_request")
+            advanceFromAppleHealth(completedStep: .appleHealth)
+            return
+        }
+
         guard appleHealthScreenState.isPrimaryEnabled else { return }
+        guard appleHealthPresentation.allowsPermissionRequest else { return }
 
         let completedStep = currentStep
         viewState = .connectingAppleHealth
         appleHealthPresentation = .requesting
+        logAppleHealthCTAState(action: "permission_request_started")
         logAppleHealthAnalytics(.appleHealthConnectTapped)
         logAppleHealthAnalytics(.appleHealthPermissionRequested)
 
@@ -293,10 +303,35 @@ final class OnboardingModel: ObservableObject {
     private func advanceFromAppleHealth(completedStep: OnboardingStep) {
         guard currentStep == .appleHealth else { return }
         viewState = .editing
-        appleHealthPresentation = .ready
         if let next = nextStep(after: .appleHealth) {
             advance(to: next, completing: completedStep)
         }
+        syncAppleHealthPresentation(from: appleHealthDeviceState)
+        logAppleHealthCTAState(action: "advanced_from_step")
+    }
+
+    private var shouldAdvanceFromConnectedAppleHealth: Bool {
+        appleHealthPresentation == .connected || appleHealthDeviceState == .connected
+    }
+
+    private func syncAppleHealthPresentation(from deviceState: TrainingIntegrationState) {
+        appleHealthPresentation = OnboardingAppleHealthPresentationBuilder.mapPermissionResult(deviceState)
+    }
+
+    private func logAppleHealthCTAState(action: String) {
+        let screenState = appleHealthScreenState
+        HealthTrainingDebugLogger.event(
+            "Apple Health onboarding CTA",
+            fields: [
+                "action": action,
+                "authorizationState": appleHealthDeviceState.debugLabel,
+                "presentationState": String(describing: appleHealthPresentation),
+                "localConnected": String(shouldAdvanceFromConnectedAppleHealth),
+                "ctaTitle": screenState.primaryTitle,
+                "ctaEnabled": String(screenState.isPrimaryEnabled),
+                "ctaLoading": String(viewState == .connectingAppleHealth)
+            ]
+        )
     }
 
     private func performAppleHealthPermissionFlow(completedStep: OnboardingStep) async {
@@ -322,6 +357,7 @@ final class OnboardingModel: ObservableObject {
         let presentation = OnboardingAppleHealthPresentationBuilder.mapPermissionResult(resultState)
         appleHealthPresentation = presentation
         viewState = .editing
+        logAppleHealthCTAState(action: "permission_request_finished")
 
         if presentation == .connected {
             OnboardingHaptics.selectionChanged()
@@ -414,16 +450,7 @@ final class OnboardingModel: ObservableObject {
 
             guard !Task.isCancelled else { return }
 
-            generatedPlan = plan
-            planRevealState = OnboardingPlanRevealBuilder.build(formState: formState, plan: plan)
-            logAnalytics(.planGenerated, properties: planAnalyticsProperties(plan: plan))
-
-            recordStepCompleted(for: .generatingPlan)
-            currentStep = .planReveal
-            recordStepViewed(.planReveal)
-            logAnalytics(.planRevealed, properties: planAnalyticsProperties(plan: plan))
-            viewState = .editing
-            autosaveDraft()
+            revealGeneratedPlan(plan)
         } catch {
             guard !Task.isCancelled else { return }
             clearGeneratedPlan()
@@ -433,9 +460,44 @@ final class OnboardingModel: ObservableObject {
         }
     }
 
+    private func revealGeneratedPlan(_ plan: CalorieTargetResult) {
+        generatedPlan = plan
+        planRevealState = OnboardingPlanRevealBuilder.build(formState: formState, plan: plan)
+        logAnalytics(.planGenerated, properties: planAnalyticsProperties(plan: plan))
+        recordStepCompleted(for: .generatingPlan)
+
+        var transaction = Transaction(
+            animation: .easeOut(duration: OnboardingGeneratingPlanTiming.stepTransitionAnimation)
+        )
+        if UIAccessibility.isReduceMotionEnabled {
+            transaction.disablesAnimations = true
+        }
+        withTransaction(transaction) {
+            currentStep = .planReveal
+            viewState = .editing
+        }
+
+        recordStepViewed(.planReveal)
+        logAnalytics(.planRevealed, properties: planAnalyticsProperties(plan: plan))
+        autosaveDraft()
+    }
+
     func returnToSummaryAfterGenerationFailure() {
         guard currentStep == .generatingPlan else { return }
         advance(to: .review, persistDraft: true, completing: nil)
+    }
+
+    func retryGeneration() {
+        guard currentStep == .generatingPlan, viewState == .generationFailed else { return }
+
+        generationTask?.cancel()
+        viewState = .generatingPlanAnimated
+        errorMessage = nil
+        autosaveDraft()
+
+        generationTask = Task { @MainActor in
+            await runGeneration()
+        }
     }
 
     func adjustPlanFromReveal() {
@@ -453,9 +515,15 @@ final class OnboardingModel: ObservableObject {
     }
 
     func prepareForSavePlan() {
+        guard currentStep == .planReveal, viewState == .editing else { return }
+        viewState = .savingProfile
         commitLocalProfileForSavePlan()
-        guard errorMessage == nil else { return }
+        guard errorMessage == nil else {
+            viewState = .editing
+            return
+        }
         advance(to: .savePlan, persistDraft: false, completing: .planReveal)
+        viewState = .editing
     }
 
     func commitLocalProfileForSavePlan() {

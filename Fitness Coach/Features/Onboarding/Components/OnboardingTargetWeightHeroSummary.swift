@@ -47,10 +47,10 @@ struct OnboardingTargetWeightHeroSummary: View {
 }
 
 #if DEBUG
-#Preview("Target Weight Hero") {
+#Preview("Target Weight Hero — Loss") {
     OnboardingTargetWeightHeroSummary(
-        headline: "Lose 3.5 kg",
-        journeyLine: "Current 72 kg → Goal 68.5 kg"
+        headline: "Target 85.3 kg",
+        journeyLine: "Current 90.0 kg → Goal 85.3 kg"
     )
     .padding()
     .background(OnboardingTheme.background)

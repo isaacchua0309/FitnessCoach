@@ -19,12 +19,23 @@ enum OnboardingAppleHealthPresentationState: Equatable, Sendable {
         self == .requesting
     }
 
-    var allowsConnectAttempt: Bool {
+    /// Whether tapping the primary CTA should request HealthKit permission.
+    var allowsPermissionRequest: Bool {
         switch self {
         case .ready, .denied, .failed:
             return true
         case .requesting, .connected, .unavailable:
             return false
+        }
+    }
+
+    /// Whether the shared bottom-bar primary CTA is tappable.
+    var isPrimaryActionEnabled: Bool {
+        switch self {
+        case .requesting, .unavailable:
+            return false
+        case .ready, .denied, .failed, .connected:
+            return true
         }
     }
 
@@ -59,7 +70,7 @@ enum OnboardingAppleHealthPresentationBuilder {
             secondaryTitle: copy.skipCTA,
             heroStyle: heroStyle,
             showsSuccessCheckmark: resolvedPresentation == .connected,
-            isPrimaryEnabled: resolvedPresentation.allowsConnectAttempt,
+            isPrimaryEnabled: resolvedPresentation.isPrimaryActionEnabled,
             isSkipEnabled: resolvedPresentation.allowsSkip,
             accessibilitySummary: accessibilitySummary(copy: copy)
         )

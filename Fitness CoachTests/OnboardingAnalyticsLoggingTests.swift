@@ -25,11 +25,22 @@ final class OnboardingAnalyticsContextBuilderTests: XCTestCase {
 
     func testEstimatedWeeksExtractsDigitsOnly() {
         let reveal = OnboardingPlanRevealState(
+            goalDirection: .cut,
             currentWeightLabel: "72 kg",
             goalWeightLabel: "65 kg",
             goalProgressLabel: "72 kg → 65 kg",
+            goalHeroSectionTitle: FormaProductCopy.Onboarding.V2.PlanReveal.GoalHero.sectionTitle,
+            goalHeroHeadline: "Lose toward 65 kg",
+            goalHeroProgressLine: "From 72 kg to 65 kg",
+            goalHeroSupport: FormaProductCopy.Onboarding.V2.PlanReveal.GoalHero.lossSupport,
+            dailyMissionSectionTitle: FormaProductCopy.Onboarding.V2.PlanReveal.dailyMissionSectionTitle,
+            dailyMissionCalorieLine: "1,800 kcal / day",
+            focusTitle: FormaProductCopy.Onboarding.V2.PlanReveal.Focus.lossTitle,
+            focusBody: FormaProductCopy.Onboarding.V2.PlanReveal.Focus.lossBody,
+            nextStepLine: FormaProductCopy.Onboarding.V2.PlanReveal.nextStepLine,
+            accessibilitySummary: "Your Forma plan is ready.",
             estimatedWeeksLabel: "About 15 weeks",
-            journeySummaryLine: "Cut to 65 kg",
+            journeySummaryLine: "Lose toward 65 kg with clear daily targets.",
             strategyLabel: FormaProductCopy.Onboarding.V2.PlanReveal.Strategy.moderateCut,
             dailyCalorieLabel: "1,800 kcal",
             calorieExplanationLine: FormaProductCopy.Onboarding.V2.PlanReveal.cutCalorieExplanation,

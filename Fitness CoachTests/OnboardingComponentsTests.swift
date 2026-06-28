@@ -10,40 +10,6 @@ import XCTest
 
 final class OnboardingComponentsTests: XCTestCase {
 
-    // MARK: - Ruler math
-
-    func testRulerMathBuildValuesUsesStep() {
-        let values = OnboardingRulerMath.buildValues(in: 70...72, step: 0.5)
-        XCTAssertEqual(values, [70, 70.5, 71, 71.5, 72])
-    }
-
-    func testRulerMathIndexFindsNearestValue() {
-        let values = OnboardingRulerMath.buildValues(in: 70...72, step: 0.5)
-        XCTAssertEqual(OnboardingRulerMath.index(for: 71.2, in: values), 2)
-        XCTAssertEqual(OnboardingRulerMath.index(for: 71.8, in: values), 4)
-    }
-
-    func testRulerMathSnapValue() {
-        let values = OnboardingRulerMath.buildValues(in: 70...72, step: 0.5)
-        XCTAssertEqual(OnboardingRulerMath.snapValue(71.24, in: values), 71)
-        XCTAssertEqual(OnboardingRulerMath.snapValue(71.26, in: values), 71.5)
-    }
-
-    func testRulerMathClampedIndex() {
-        XCTAssertEqual(OnboardingRulerMath.clampedIndex(-3, count: 5), 0)
-        XCTAssertEqual(OnboardingRulerMath.clampedIndex(99, count: 5), 4)
-        XCTAssertEqual(OnboardingRulerMath.clampedIndex(2, count: 5), 2)
-    }
-
-    func testRulerMathAccessibilityLabelIncludesUnit() {
-        let label = OnboardingRulerMath.accessibilityValueLabel(
-            value: 72,
-            unitLabel: "kg",
-            formatter: { "\(Int($0))" }
-        )
-        XCTAssertEqual(label, "72 kg")
-    }
-
     // MARK: - Birthday wheel factory
 
     func testBirthdayWheelFactoryYearRangeRespectsAgeBounds() {
@@ -89,14 +55,13 @@ final class OnboardingComponentsTests: XCTestCase {
 
     func testAlmostThereBulletsMapFromProductCopy() {
         let bullets = OnboardingFeatureBullet.almostThereDefaults
-        let copyBullets = FormaProductCopy.Onboarding.Flow.AlmostThereFeatures.bullets
+        let copyItems = FormaProductCopy.Onboarding.Flow.AlmostThereBenefits.items
 
-        XCTAssertEqual(bullets.count, 4)
-        XCTAssertEqual(bullets.count, copyBullets.count)
-        zip(bullets, copyBullets).forEach { bullet, copy in
+        XCTAssertEqual(bullets.count, 3)
+        XCTAssertEqual(bullets.count, copyItems.count)
+        zip(bullets, copyItems).forEach { bullet, copy in
             XCTAssertEqual(bullet.icon, copy.icon)
             XCTAssertEqual(bullet.title, copy.title)
-            XCTAssertEqual(bullet.subtitle, copy.subtitle)
         }
     }
 

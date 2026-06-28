@@ -28,10 +28,11 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
 
         XCTAssertEqual(blueprint.goalHero, "Lose 3.5 kg")
         XCTAssertEqual(blueprint.goalSubtitle, "70 kg → 66.5 kg")
-        XCTAssertEqual(blueprint.insight, FormaProductCopy.Onboarding.Flow.Summary.Insight.loss)
+        XCTAssertEqual(blueprint.coachInsightTitle, FormaProductCopy.Onboarding.Flow.Summary.Insight.lossTitle)
+        XCTAssertEqual(blueprint.coachInsightBody, FormaProductCopy.Onboarding.Flow.Summary.Insight.loss)
         XCTAssertTrue(blueprint.isPersonalized)
-        XCTAssertTrue(blueprint.accessibilityLabel.contains("Your plan blueprint is ready"))
-        XCTAssertTrue(blueprint.accessibilityLabel.contains("Built from your measurements"))
+        XCTAssertTrue(blueprint.accessibilityLabel.contains("We understand you"))
+        XCTAssertTrue(blueprint.accessibilityLabel.contains("Shaped by"))
     }
 
     func testGainGoalCopy() {
@@ -40,7 +41,8 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
 
         XCTAssertEqual(blueprint.goalHero, "Gain 4 kg")
         XCTAssertEqual(blueprint.goalSubtitle, "66 kg → 70 kg")
-        XCTAssertEqual(blueprint.insight, FormaProductCopy.Onboarding.Flow.Summary.Insight.gain)
+        XCTAssertEqual(blueprint.coachInsightTitle, FormaProductCopy.Onboarding.Flow.Summary.Insight.gainTitle)
+        XCTAssertEqual(blueprint.coachInsightBody, FormaProductCopy.Onboarding.Flow.Summary.Insight.gain)
     }
 
     func testMaintainGoalCopy() {
@@ -52,7 +54,8 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
             blueprint.goalSubtitle,
             FormaProductCopy.Onboarding.Flow.Summary.maintainGoalSubtitle
         )
-        XCTAssertEqual(blueprint.insight, FormaProductCopy.Onboarding.Flow.Summary.Insight.maintain)
+        XCTAssertEqual(blueprint.coachInsightTitle, FormaProductCopy.Onboarding.Flow.Summary.Insight.maintainTitle)
+        XCTAssertEqual(blueprint.coachInsightBody, FormaProductCopy.Onboarding.Flow.Summary.Insight.maintain)
     }
 
     func testFallbackWhenWeightsMissing() {
@@ -63,7 +66,8 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
 
         XCTAssertEqual(blueprint.goalHero, FormaProductCopy.Onboarding.Flow.Summary.goalFallbackHero)
         XCTAssertFalse(blueprint.isPersonalized)
-        XCTAssertEqual(blueprint.insight, FormaProductCopy.Onboarding.Flow.Summary.Insight.fallback)
+        XCTAssertEqual(blueprint.coachInsightTitle, FormaProductCopy.Onboarding.Flow.Summary.Insight.fallbackTitle)
+        XCTAssertEqual(blueprint.coachInsightBody, FormaProductCopy.Onboarding.Flow.Summary.Insight.fallback)
     }
 
     func testImperialFormatting() {
@@ -75,22 +79,39 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
         XCTAssertTrue(blueprint.goalSubtitle.contains("lb"))
     }
 
-    func testBasisItemsUseCompactChipLabels() {
+    func testProfileSignalsUsePersonalizedValues() {
         let blueprint = OnboardingPlanBlueprintBuilder.build(
             from: makeFormState(currentKg: 70, goalDeltaKg: -2),
             referenceDate: referenceDate
         )
-        let basis = FormaProductCopy.Onboarding.Flow.Summary.Basis.self
+        let mirror = FormaProductCopy.Onboarding.Flow.Summary.ProfileMirror.self
 
-        XCTAssertEqual(blueprint.basisItems.count, 5)
-        XCTAssertEqual(blueprint.basisTitle, basis.title)
-        XCTAssertEqual(blueprint.basisItems.map(\.title), [
-            basis.bodyMeasurements,
-            basis.age,
-            basis.sex,
-            basis.activity,
-            basis.targetWeight
+        XCTAssertEqual(blueprint.profileMirrorTitle, mirror.title)
+        XCTAssertEqual(blueprint.profileSignals.count, 4)
+        XCTAssertEqual(blueprint.profileSignals.map(\.id), [
+            "measurements",
+            "profile",
+            "activity",
+            "target"
         ])
+        XCTAssertTrue(blueprint.profileSignals[0].headline.contains("70"))
+        XCTAssertEqual(blueprint.profileSignals[0].supporting, mirror.measurements)
+        XCTAssertEqual(blueprint.profileSignals[1].supporting, mirror.profile)
+        XCTAssertEqual(blueprint.profileSignals[2].supporting, mirror.activity)
+        XCTAssertEqual(blueprint.profileSignals[3].supporting, mirror.target)
+    }
+
+    func testAnticipationBulletsSurfaceUnlockItems() {
+        let blueprint = OnboardingPlanBlueprintBuilder.build(
+            from: makeFormState(currentKg: 70, goalDeltaKg: -2),
+            referenceDate: referenceDate
+        )
+
+        XCTAssertEqual(blueprint.anticipationBullets.count, 3)
+        XCTAssertEqual(
+            blueprint.anticipationBullets.map(\.title),
+            FormaProductCopy.Onboarding.Flow.Summary.Anticipation.bullets.map(\.title)
+        )
     }
 
     func testDetailRowsUseBirthdayDerivedAge() throws {
@@ -138,7 +159,7 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: defaults.description) }
 
         var formState = try validFormState()
-        OnboardingTargetWeightValues.setGoalFromLossKg(5, in: &formState)
+        OnboardingTargetWeightValues.setGoalFromDeltaKg(-5, in: &formState)
 
         let store = OnboardingDraftStore(userDefaults: defaults)
         store.saveDraft(OnboardingDraft(formState: formState, step: .review))
@@ -164,10 +185,9 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
         let state = makeFormState(currentKg: 70, goalDeltaKg: 0)
         let blueprint = OnboardingPlanBlueprintBuilder.build(from: state, referenceDate: referenceDate)
 
-        XCTAssertEqual(
-            blueprint.accessibilityLabel,
-            "Your plan blueprint is ready. Maintain around 70 kilograms. Built from your measurements, birthday, biological sex, activity level, and target weight."
-        )
+        XCTAssertTrue(blueprint.accessibilityLabel.contains("We understand you"))
+        XCTAssertTrue(blueprint.accessibilityLabel.contains("Maintain around 70 kilograms"))
+        XCTAssertTrue(blueprint.accessibilityLabel.contains("Stay in your range"))
     }
 
     // MARK: - Helpers
@@ -201,19 +221,26 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
             copy.goalFallbackHero,
             copy.goalFallbackSubtitle,
             copy.maintainGoalSubtitle,
+            copy.Insight.lossTitle,
             copy.Insight.loss,
+            copy.Insight.gainTitle,
             copy.Insight.gain,
+            copy.Insight.maintainTitle,
             copy.Insight.maintain,
+            copy.Insight.fallbackTitle,
             copy.Insight.fallback,
-            copy.Basis.title,
-            copy.Basis.bodyMeasurements,
-            copy.Basis.age,
-            copy.Basis.sex,
-            copy.Basis.activity,
-            copy.Basis.targetWeight,
-            copy.Basis.accessibilityList,
+            copy.ProfileMirror.title,
+            copy.ProfileMirror.measurements,
+            copy.ProfileMirror.profile,
+            copy.ProfileMirror.activity,
+            copy.ProfileMirror.target,
+            copy.ProfileMirror.accessibilityList,
+            copy.Anticipation.sectionTitle,
+            copy.Anticipation.accessibilityLabel,
+            copy.Anticipation.bullets.map(\.title).joined(separator: " "),
             copy.Details.title,
-            copy.Details.collapsedSummary
+            copy.Details.collapsedSummary,
+            copy.buildPlanCTAHint
         ]
     }
 }

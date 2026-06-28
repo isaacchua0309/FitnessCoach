@@ -1,7 +1,7 @@
 {
   "configurations": [
     {
-      "id": "11114360-FE13-4EE1-806E-EC216ECFBACA",
+      "id": "ECE925D1-B682-40A8-A88F-CC8B026EBC29",
       "name": "Configuration 1",
       "options": {}
     }
@@ -120,6 +120,7 @@
         "OnboardingFormStateTests",
         "OnboardingFormaProofBuilderTests",
         "OnboardingFormaProofTests",
+        "OnboardingGeneratingPlanTests",
         "OnboardingHeightWeightMaintenanceEstimatorTests",
         "OnboardingHeightWeightValuesTests",
         "OnboardingModelTests",

@@ -74,8 +74,36 @@ struct OnboardingBottomBar: View {
         return canContinue
     }
 
+    private var showsBuildPlanHint: Bool {
+        currentStep == .review
+    }
+
+    private var buildPlanHint: String? {
+        showsBuildPlanHint ? FormaProductCopy.Onboarding.Flow.Summary.buildPlanCTAHint : nil
+    }
+
     var body: some View {
         VStack(spacing: OnboardingLayout.footerInnerSpacing) {
+            if let saveTrustNote, showsAdjustPlan {
+                Text(saveTrustNote)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(OnboardingTheme.tertiaryText)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel(saveTrustNote)
+            }
+
+            if let buildPlanHint, showsBuildPlanHint {
+                Text(buildPlanHint)
+                    .font(FormaTokens.Typography.caption.weight(.medium))
+                    .foregroundStyle(OnboardingTheme.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel(buildPlanHint)
+            }
+
             HStack(spacing: FormaTokens.Spacing.md) {
                 if showsBackButton {
                     Button {
@@ -119,6 +147,21 @@ struct OnboardingBottomBar: View {
                 .accessibilityHint(canContinue ? "" : resolvedRequiredFieldsHint)
             }
 
+            if showsAdjustPlan, let onAdjustPlan {
+                Button(action: onAdjustPlan) {
+                    Text(FormaProductCopy.Onboarding.V2.PlanReveal.adjustPlanCTA)
+                        .font(FormaTokens.Typography.caption.weight(.semibold))
+                        .foregroundStyle(
+                            isLoading ? OnboardingTheme.tertiaryText : OnboardingTheme.secondaryText
+                        )
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: FormaTokens.Layout.minTouchTarget)
+                }
+                .buttonStyle(.plain)
+                .disabled(isLoading)
+                .accessibilityLabel(FormaProductCopy.Onboarding.V2.PlanReveal.adjustPlanCTA)
+            }
+
             if currentStep == .appleHealth,
                let appleHealthSecondaryTitle,
                let onAppleHealthSkip {
@@ -136,32 +179,6 @@ struct OnboardingBottomBar: View {
                 .buttonStyle(.plain)
                 .disabled(isLoading || !isAppleHealthSkipEnabled)
                 .accessibilityLabel(appleHealthSecondaryTitle)
-            }
-
-            if let saveTrustNote, showsAdjustPlan {
-                Text(saveTrustNote)
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(OnboardingTheme.tertiaryText)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityLabel(saveTrustNote)
-            }
-
-            if showsAdjustPlan, let onAdjustPlan {
-                Button(action: onAdjustPlan) {
-                    Text(FormaProductCopy.Onboarding.V2.PlanReveal.adjustPlanCTA)
-                        .font(FormaTokens.Typography.body.weight(.semibold))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: resolvedButtonHeight)
-                        .background(footerSecondaryBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .disabled(isLoading)
-                .accessibilityLabel(FormaProductCopy.Onboarding.V2.PlanReveal.adjustPlanCTA)
             }
 
             if showsRequiredFieldsHint, !canContinue, !isLoading {
@@ -213,15 +230,6 @@ struct OnboardingBottomBar: View {
                 OnboardingTheme.cardElevated
             }
         }
-    }
-
-    private var footerSecondaryBackground: some View {
-        RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
-            .fill(OnboardingTheme.card)
-            .overlay(
-                RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
-                    .stroke(OnboardingTheme.border, lineWidth: 1)
-            )
     }
 }
 

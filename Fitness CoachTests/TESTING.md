@@ -6,9 +6,21 @@ Tests are grouped with **Xcode Test Plans** under `TestPlans/`. The default **Fi
 
 | Plan | Purpose | ~Classes | Typical runtime |
 |------|---------|----------|-----------------|
-| **Fast-Core** | Everyday local development | ~148 selections | ~30–90s |
-| **Integration** | Bootstrap, cloud, auth handoff, SwiftData services, HealthKit mocks | ~63 selections | ~30–90s |
-| **Full** | Complete regression (CI) | All (~154) | ~2–5 min |
+| **Fast-Core** | Everyday local development | ~180 selections | ~3–4 min wall-clock* |
+| **Integration** | Bootstrap, cloud, auth handoff, SwiftData services, HealthKit mocks | ~66 selections | ~2–3 min wall-clock* |
+| **Full** | Complete regression (CI) | All (~219) | ~5 min wall-clock* |
+
+\*Wall-clock includes simulator launch, build, and XCTest harness overhead. Pure test execution for Fast-Core is ~8s for 563 tests when the harness stays up.
+
+### Last measured runs (iPhone 17 simulator, serial, 2026-06-28/29)
+
+| Plan | Assertion failures | Tests executed | Wall-clock | `xcodebuild` exit |
+|------|-------------------|----------------|------------|-------------------|
+| **Fast-Core** | **0** | 563 (final aggregate) | ~206s | `TEST FAILED` — 7 XCTest crash restarts (duplicate GTMAppAuth/Firebase classes in app + test target) |
+| **Integration** | **0** (observed) | Incomplete (~26 before abort) | ~153s | `TEST FAILED` — crash restarts + stale test bundle (`dlopen` / missing `FormaProductCopy` symbol) |
+| **Full (CI)** | Not fully measured | Incomplete (partial run) | ~298s | `TEST FAILED` — 11 crash restarts + `Fitness Coach.debug.dylib` load failure |
+
+**Do not treat the suite as green** until all three finish with `TEST SUCCEEDED`. Known plan fixes (migration, draft store, form-state steps, journey analytics, appleHealth harness, analytics class routing) are in place; remaining blockers are XCTest process stability and keeping app/test bundles in sync after production edits.
 
 ### Fast-Core includes
 
@@ -22,6 +34,7 @@ Tests are grouped with **Xcode Test Plans** under `TestPlans/`. The default **Fi
 
 ### Integration includes
 
+- AppContainer analytics classes routed from mixed files (`OnboardingAlmostThereAnalyticsTests`, `OnboardingFormaProofAnalyticsTests`, `OnboardingModelAnalyticsTests` via `INTEGRATION_CLASSES` in `generate_test_plans.py`)
 - Profile bootstrap & restore (`ProfileBootstrap*`, `ProfileRestoreRouting`, `CloudProfile*`)
 - Cloud conflict & upload failure (`ProfilePlanConflict*`, `AccountProfileMismatch`, persistence safety)
 - Onboarding completion & auth save (`OnboardingCompletion*`, `OnboardingAuthFlow`, `WelcomeOnboardingHandoff`)

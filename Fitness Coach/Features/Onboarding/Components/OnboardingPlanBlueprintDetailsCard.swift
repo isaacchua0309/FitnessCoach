@@ -24,8 +24,8 @@ struct OnboardingPlanBlueprintDetailsCard: View {
                 HStack(spacing: FormaTokens.Spacing.sm) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(copy.title)
-                            .font(FormaTokens.Typography.caption.weight(.semibold))
-                            .foregroundStyle(OnboardingTheme.primaryText)
+                            .font(FormaTokens.Typography.caption.weight(.medium))
+                            .foregroundStyle(OnboardingTheme.tertiaryText)
                             .frame(maxWidth: .infinity, alignment: .leading)
 
                         if !isExpanded {
@@ -76,8 +76,8 @@ struct OnboardingPlanBlueprintDetailsCard: View {
             }
         }
         .background(
-            RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-                .fill(FormaTokens.Color.surfaceSubtle.opacity(0.45))
+            RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
+                .fill(Color.clear)
         )
         .accessibilityElement(children: .contain)
     }

@@ -130,7 +130,7 @@ struct OnboardingTargetEncouragementStepView: View {
         formState: {
             var state = OnboardingFormState()
             OnboardingHeightWeightValues.setWeightKg(70, in: &state)
-            OnboardingTargetWeightValues.setGoalFromLossKg(3.5, in: &state)
+            OnboardingTargetWeightValues.setGoalFromDeltaKg(-3.5, in: &state)
             state.unitSystem = .metric
             return state
         }()
@@ -145,7 +145,7 @@ struct OnboardingTargetEncouragementStepView: View {
         formState: {
             var state = OnboardingFormState()
             OnboardingHeightWeightValues.setWeightKg(72, in: &state)
-            OnboardingTargetWeightValues.setGoalFromLossKg(0, in: &state)
+            OnboardingTargetWeightValues.setGoalFromDeltaKg(0, in: &state)
             return state
         }()
     )

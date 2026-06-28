@@ -34,7 +34,13 @@ extension OnboardingFeatureBullet {
     }
 
     static var almostThereDefaults: [OnboardingFeatureBullet] {
-        OnboardingAlmostThereValues.features
+        OnboardingAlmostThereValues.benefits.map { benefit in
+            OnboardingFeatureBullet(
+                icon: benefit.icon,
+                title: benefit.title,
+                subtitle: ""
+            )
+        }
     }
 }
 

@@ -35,26 +35,6 @@ enum OnboardingGoalWeightBounds {
         return (minimumKg * 2).rounded() / 2
     }
 
-    static func displayRange(
-        currentWeightKg: Double,
-        heightCm: Double?,
-        unitSystem: UnitSystem
-    ) -> ClosedRange<Double> {
-        let metricRange = rangeKg(currentWeightKg: currentWeightKg, heightCm: heightCm)
-        switch unitSystem {
-        case .metric:
-            return metricRange
-        case .imperial:
-            let lower = metricRange.lowerBound * OnboardingFormState.poundsPerKilogram
-            let upper = metricRange.upperBound * OnboardingFormState.poundsPerKilogram
-            return lower...upper
-        }
-    }
-
-    static func displayStep(for unitSystem: UnitSystem) -> Double {
-        unitSystem == .metric ? metricStepKg : imperialStepLb
-    }
-
     static func weightSummary(
         valueKg: Double,
         unitSystem: UnitSystem

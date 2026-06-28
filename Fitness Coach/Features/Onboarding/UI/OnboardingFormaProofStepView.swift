@@ -135,7 +135,7 @@ struct OnboardingFormaProofStepView: View {
         formState: {
             var state = OnboardingFormState()
             OnboardingHeightWeightValues.setWeightKg(90, in: &state)
-            OnboardingTargetWeightValues.setGoalFromLossKg(15, in: &state)
+            OnboardingTargetWeightValues.setGoalFromDeltaKg(-15, in: &state)
             state.unitSystem = .metric
             return state
         }()
@@ -163,7 +163,7 @@ struct OnboardingFormaProofStepView: View {
         formState: {
             var state = OnboardingFormState()
             OnboardingHeightWeightValues.setWeightKg(70, in: &state)
-            OnboardingTargetWeightValues.setGoalFromLossKg(0, in: &state)
+            OnboardingTargetWeightValues.setGoalFromDeltaKg(0, in: &state)
             return state
         }()
     )
@@ -182,7 +182,7 @@ struct OnboardingFormaProofStepView: View {
         formState: {
             var state = OnboardingFormState()
             OnboardingHeightWeightValues.setWeightKg(70, in: &state)
-            OnboardingTargetWeightValues.setGoalFromLossKg(3.5, in: &state)
+            OnboardingTargetWeightValues.setGoalFromDeltaKg(-3.5, in: &state)
             return state
         }()
     )
@@ -196,7 +196,7 @@ struct OnboardingFormaProofStepView: View {
         formState: {
             var state = OnboardingFormState()
             OnboardingHeightWeightValues.setWeightKg(70, in: &state)
-            OnboardingTargetWeightValues.setGoalFromLossKg(3.5, in: &state)
+            OnboardingTargetWeightValues.setGoalFromDeltaKg(-3.5, in: &state)
             return state
         }()
     )

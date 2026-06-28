@@ -47,6 +47,30 @@ final class OnboardingAppleHealthPresentationBuilderTests: XCTestCase {
         XCTAssertTrue(state.isSkipEnabled)
     }
 
+    func testConnectedStateUsesContinueCTAAndAllowsAdvance() {
+        let state = OnboardingAppleHealthPresentationBuilder.build(
+            presentation: .connected,
+            deviceState: .connected
+        )
+
+        XCTAssertEqual(state.presentation, .connected)
+        XCTAssertEqual(state.primaryTitle, FormaProductCopy.Common.continueAction)
+        XCTAssertEqual(state.statusMessage, FormaProductCopy.Onboarding.Flow.AppleHealth.connectedMessage)
+        XCTAssertTrue(state.isPrimaryEnabled)
+        XCTAssertTrue(state.isSkipEnabled)
+        XCTAssertTrue(state.showsSuccessCheckmark)
+    }
+
+    func testRequestingStateDisablesPrimaryCTA() {
+        let state = OnboardingAppleHealthPresentationBuilder.build(
+            presentation: .requesting,
+            deviceState: .requestingPermission
+        )
+
+        XCTAssertFalse(state.isPrimaryEnabled)
+        XCTAssertFalse(state.isSkipEnabled)
+    }
+
     func testFailedStateShowsRetryMessage() {
         let state = OnboardingAppleHealthPresentationBuilder.build(
             presentation: .failed(message: "HealthKit unavailable"),

@@ -127,7 +127,7 @@ final class OnboardingFormaProofTests: XCTestCase {
 
         var formState = OnboardingFormState()
         OnboardingHeightWeightValues.setWeightKg(78, in: &formState)
-        OnboardingTargetWeightValues.setGoalFromLossKg(5, in: &formState)
+        OnboardingTargetWeightValues.setGoalFromDeltaKg(-5, in: &formState)
 
         let store = OnboardingDraftStore(userDefaults: defaults)
         store.saveDraft(OnboardingDraft(formState: formState, step: .formaProof))

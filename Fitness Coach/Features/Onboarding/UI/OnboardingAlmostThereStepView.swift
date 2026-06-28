@@ -2,7 +2,7 @@
 //  OnboardingAlmostThereStepView.swift
 //  Fitness Coach
 //
-//  Forma — plan-almost-ready milestone before forma proof.
+//  Forma — Coach-waiting milestone before forma proof.
 //
 
 import SwiftUI
@@ -10,27 +10,40 @@ import SwiftUI
 struct OnboardingAlmostThereStepView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @State private var headerVisible = false
+    @State private var chromeVisible = false
     @State private var heroVisible = false
-    @State private var summaryVisible = false
-    @State private var valueVisible = false
-    @State private var trustVisible = false
+    @State private var copyVisible = false
+    @State private var reelVisible = false
+    @State private var footerVisible = false
     @State private var didPlayAppearHaptic = false
 
     private let copy = FormaProductCopy.Onboarding.Flow.AlmostThere.self
 
     var body: some View {
-        VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
-            headerSection
+        VStack(spacing: 0) {
+            progressChrome
+                .padding(.bottom, FormaTokens.Spacing.md)
+
+            Spacer(minLength: FormaTokens.Spacing.xs)
+
             heroSection
-            summarySection
-            valueSection
-            trustSection
+                .padding(.bottom, FormaTokens.Spacing.lg)
+
+            copySection
+                .padding(.bottom, FormaTokens.Spacing.lg)
+
+            Spacer(minLength: FormaTokens.Spacing.sm)
+
+            benefitReelSection
+                .padding(.bottom, FormaTokens.Spacing.md)
+
+            footerSection
+
             Spacer(minLength: 0)
         }
         .padding(.horizontal, OnboardingTheme.pagePadding)
         .padding(.top, OnboardingLayout.progressHeaderTop)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(OnboardingAlmostThereValues.accessibilitySummary)
         .onAppear {
@@ -39,67 +52,89 @@ struct OnboardingAlmostThereStepView: View {
         }
     }
 
-    private var headerSection: some View {
-        OnboardingStageProgressHeader(currentStep: .almostThere)
-            .opacity(headerVisible ? 1 : 0)
-            .offset(y: headerVisible ? 0 : 6)
+    // MARK: - Sections
+
+    private var progressChrome: some View {
+        OnboardingStageProgressHeader(currentStep: .almostThere, showsTitles: false)
+            .opacity(chromeVisible ? 1 : 0)
+            .offset(y: chromeVisible ? 0 : 4)
     }
 
     private var heroSection: some View {
         OnboardingAlmostThereHeroView()
             .opacity(heroVisible ? 1 : 0)
-            .scaleEffect(heroVisible ? 1 : 0.94)
+            .scaleEffect(heroVisible ? 1 : 0.9)
     }
 
-    private var summarySection: some View {
-        OnboardingAlmostThereSummaryCard(
-            headline: copy.summaryHeadline,
-            supportingCopy: copy.summarySupporting
+    private var copySection: some View {
+        VStack(spacing: FormaTokens.Spacing.md) {
+            Text(copy.headline)
+                .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                .foregroundStyle(OnboardingTheme.primaryText)
+                .multilineTextAlignment(.center)
+                .minimumScaleFactor(0.72)
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+
+            Text(copy.supporting)
+                .font(.title3.weight(.medium))
+                .foregroundStyle(OnboardingTheme.secondaryText)
+                .multilineTextAlignment(.center)
+                .minimumScaleFactor(0.85)
+                .lineLimit(4)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .opacity(copyVisible ? 1 : 0)
+        .offset(y: copyVisible ? 0 : 8)
+    }
+
+    private var benefitReelSection: some View {
+        OnboardingAlmostThereBenefitReel(
+            benefits: OnboardingAlmostThereValues.benefits,
+            accessibilityLabel: OnboardingAlmostThereValues.benefitsAccessibilityLabel
         )
-        .opacity(summaryVisible ? 1 : 0)
-        .offset(y: summaryVisible ? 0 : 6)
+        .opacity(reelVisible ? 1 : 0)
+        .offset(y: reelVisible ? 0 : 10)
     }
 
-    private var valueSection: some View {
-        OnboardingAlmostThereValueSection(
-            title: copy.valueSectionTitle,
-            rows: OnboardingAlmostThereValues.valueRows,
-            accessibilityLabel: OnboardingAlmostThereValues.valueSectionAccessibilityLabel
-        )
-        .opacity(valueVisible ? 1 : 0)
-        .offset(y: valueVisible ? 0 : 6)
+    private var footerSection: some View {
+        Text(copy.trustFooter)
+            .font(.footnote.weight(.medium))
+            .foregroundStyle(OnboardingTheme.tertiaryText)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity)
+            .accessibilityLabel(copy.trustFooter)
+            .opacity(footerVisible ? 1 : 0)
     }
 
-    private var trustSection: some View {
-        OnboardingAlmostThereTrustStrip(copy: copy.trustStrip, style: .compact)
-            .opacity(trustVisible ? 1 : 0)
-            .offset(y: trustVisible ? 0 : 6)
-    }
+    // MARK: - Motion
 
     private func runEntranceAnimation() {
         if reduceMotion {
-            headerVisible = true
+            chromeVisible = true
             heroVisible = true
-            summaryVisible = true
-            valueVisible = true
-            trustVisible = true
+            copyVisible = true
+            reelVisible = true
+            footerVisible = true
             return
         }
 
-        withAnimation(.easeOut(duration: 0.22)) {
-            headerVisible = true
+        withAnimation(.easeOut(duration: 0.24)) {
+            chromeVisible = true
         }
-        withAnimation(.easeOut(duration: 0.24).delay(0.06)) {
+        withAnimation(.easeOut(duration: 0.34).delay(0.05)) {
             heroVisible = true
         }
-        withAnimation(.easeOut(duration: 0.24).delay(0.12)) {
-            summaryVisible = true
+        withAnimation(.easeOut(duration: 0.3).delay(0.14)) {
+            copyVisible = true
         }
-        withAnimation(.easeOut(duration: 0.22).delay(0.18)) {
-            valueVisible = true
+        withAnimation(.easeOut(duration: 0.28).delay(0.24)) {
+            reelVisible = true
         }
-        withAnimation(.easeOut(duration: 0.22).delay(0.24)) {
-            trustVisible = true
+        withAnimation(.easeOut(duration: 0.24).delay(0.34)) {
+            footerVisible = true
         }
     }
 
@@ -121,7 +156,6 @@ struct OnboardingAlmostThereStepView: View {
     OnboardingAlmostThereStepView()
         .background(OnboardingTheme.background)
         .formaThemePreview()
-        .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
 }
 
 #Preview("Almost There — Large Dynamic Type") {

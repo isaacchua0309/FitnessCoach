@@ -192,6 +192,17 @@ enum RootProfileRouteResolver {
     }
 }
 
+enum SignedOutAppShellPhase: Equatable, Sendable {
+    /// No Firebase session; user must choose welcome sign-in or new-user onboarding.
+    case unauthenticatedPublicEntry
+    /// Signed-out user explicitly chose returning-member sign-in.
+    case existingUserSignIn
+    /// Signed-out user explicitly chose new-user onboarding from welcome.
+    case explicitPreAuthOnboarding
+    /// Signed-out user is resuming an in-progress pre-auth draft or save-plan handoff.
+    case resumingPreAuthOnboarding
+}
+
 enum AuthLogoutPolicy {
     static let deletesLocalProfileOnSignOut = false
     /// Session-scoped cloud sync hints must not survive sign-out; `ownerUID` remains authoritative.
@@ -200,6 +211,25 @@ enum AuthLogoutPolicy {
     static func clearTransientSessionMetadata(cloudSyncStore: ProfileCloudSyncStore) {
         guard clearsCloudSyncMetadataOnSignOut else { return }
         cloudSyncStore.clear()
+    }
+
+    /// Call before `AuthManager.signOut()` so the first post-sign-out render routes to welcome.
+    static func prepareForSignOut(
+        sessionStore: PublicEntrySessionStore,
+        source: String,
+        wasSignedIn: Bool,
+        hasLocalProfile: Bool,
+        hasPersistedOnboardingDraft: Bool,
+        publicEntryDestination: PublicEntryRoute
+    ) {
+        applyExplicitSignOut(sessionStore: sessionStore)
+        AppShellRoutingLogger.logLogoutEvent(
+            source: source,
+            wasSignedIn: wasSignedIn,
+            hasLocalProfile: hasLocalProfile,
+            hasPersistedOnboardingDraft: hasPersistedOnboardingDraft,
+            publicEntryDestination: publicEntryDestination
+        )
     }
 
     static func applyExplicitSignOut(sessionStore: PublicEntrySessionStore) {
@@ -217,6 +247,48 @@ enum AuthLogoutPolicy {
             return .existingUserSignIn
         }
         return .welcome
+    }
+
+    static func coldLaunchPublicEntryDestination(
+        hasPersistedOnboardingDraft: Bool,
+        hasLocalProfile: Bool,
+        suppressAutomaticPublicEntryResume: Bool
+    ) -> PublicEntryRoute? {
+        guard !suppressAutomaticPublicEntryResume else { return nil }
+        guard hasPersistedOnboardingDraft, !hasLocalProfile else { return nil }
+        return .onboardingStart
+    }
+
+    static func signedOutPhase(
+        publicEntryDestination: PublicEntryRoute,
+        hasPersistedOnboardingDraft: Bool,
+        hasLocalProfile: Bool,
+        localProfileAwaitingSignIn: Bool,
+        pendingOnboardingCompletion: Bool,
+        suppressAutomaticPublicEntryResume: Bool
+    ) -> SignedOutAppShellPhase {
+        switch publicEntryDestination {
+        case .existingUserSignIn:
+            return .existingUserSignIn
+        case .onboardingStart:
+            return .explicitPreAuthOnboarding
+        case .welcome:
+            if PublicEntryRouteResolver.shouldBypassWelcome(
+                PublicEntryRouteResolver.Input(
+                    destination: .welcome,
+                    isOnboardingModelReady: false,
+                    localProfileAwaitingSignIn: localProfileAwaitingSignIn,
+                    hasPersistedOnboardingDraft: hasPersistedOnboardingDraft,
+                    hasLocalProfile: hasLocalProfile,
+                    pendingOnboardingCompletion: pendingOnboardingCompletion,
+                    signedOutWithProfilePolicy: .requireSignIn,
+                    suppressAutomaticPublicEntryResume: suppressAutomaticPublicEntryResume
+                )
+            ) {
+                return .resumingPreAuthOnboarding
+            }
+            return .unauthenticatedPublicEntry
+        }
     }
 }
 

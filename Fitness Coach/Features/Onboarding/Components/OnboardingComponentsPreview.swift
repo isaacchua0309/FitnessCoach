@@ -16,7 +16,7 @@ enum OnboardingComponentsPreviewCatalog {
             formState: {
                 var state = OnboardingFormState()
                 OnboardingHeightWeightValues.setWeightKg(70, in: &state)
-                OnboardingTargetWeightValues.setGoalFromLossKg(3.5, in: &state)
+                OnboardingTargetWeightValues.setGoalFromDeltaKg(-3.5, in: &state)
                 return state
             }()
         )
@@ -77,7 +77,7 @@ enum OnboardingComponentsPreviewCatalog {
             formState: {
                 var state = OnboardingFormState()
                 OnboardingHeightWeightValues.setWeightKg(70, in: &state)
-                OnboardingTargetWeightValues.setGoalFromLossKg(3.5, in: &state)
+                OnboardingTargetWeightValues.setGoalFromDeltaKg(-3.5, in: &state)
                 return state
             }()
         )
@@ -87,15 +87,62 @@ enum OnboardingComponentsPreviewCatalog {
     @ViewBuilder
     static var targetWeight: some View {
         OnboardingTargetWeightStepView(
-            formState: .constant({
-                var state = OnboardingFormState()
-                OnboardingHeightWeightValues.setHeightCm(170, in: &state)
-                OnboardingHeightWeightValues.setWeightKg(72, in: &state)
-                OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &state)
-                return state
-            }())
+            formState: .constant(OnboardingPreviewData.targetWeightLossFormState)
         )
         .padding(.horizontal, OnboardingTheme.pagePadding)
+    }
+
+    @ViewBuilder
+    static var targetWeightRulerMaintain: some View {
+        OnboardingTargetWeightRulerSelector(
+            formState: .constant(OnboardingPreviewData.targetWeightMaintainFormState)
+        )
+    }
+
+    @ViewBuilder
+    static var targetWeightRulerLoss: some View {
+        OnboardingTargetWeightRulerSelector(
+            formState: .constant(OnboardingPreviewData.targetWeightLossFormState)
+        )
+    }
+
+    @ViewBuilder
+    static var targetWeightRulerGain: some View {
+        OnboardingTargetWeightRulerSelector(
+            formState: .constant(OnboardingPreviewData.targetWeightGainFormState)
+        )
+    }
+
+    @ViewBuilder
+    static var targetWeightRulerImperial: some View {
+        OnboardingTargetWeightRulerSelector(
+            formState: .constant(OnboardingPreviewData.targetWeightImperialLossFormState)
+        )
+    }
+
+    @ViewBuilder
+    static var generatingPlan: some View {
+        OnboardingGeneratingPlanStepView(
+            presentation: OnboardingGeneratingPlanCopyBuilder.build(from: {
+                var state = OnboardingFormState()
+                OnboardingHeightWeightValues.setWeightKg(90, in: &state)
+                OnboardingTargetWeightValues.setGoalFromDeltaKg(-12, in: &state)
+                return state
+            }()),
+            viewState: .generatingPlanAnimated,
+            onRetry: {},
+            onGoBack: {}
+        )
+    }
+
+    @ViewBuilder
+    static var generatingPlanFailed: some View {
+        OnboardingGeneratingPlanStepView(
+            presentation: OnboardingGeneratingPlanCopyBuilder.build(from: OnboardingFormState()),
+            viewState: .generationFailed,
+            onRetry: {},
+            onGoBack: {}
+        )
     }
 
     @ViewBuilder
@@ -140,11 +187,8 @@ enum OnboardingComponentsPreviewCatalog {
     }
 
     @ViewBuilder
-    static var rulerPickers: some View {
-        VStack(spacing: FormaTokens.Spacing.lg) {
-            OnboardingRulerPickerFactory.weightKg(value: .constant(72))
-            OnboardingRulerPickerFactory.weightLb(value: .constant(160))
-        }
+    static var targetWeightRuler: some View {
+        targetWeightRulerLoss
     }
 
     @ViewBuilder
@@ -179,9 +223,9 @@ enum OnboardingComponentsPreviewCatalog {
                 }
 
                 Group {
-                    Text("Ruler pickers")
+                    Text("Target weight ruler")
                         .font(.caption.weight(.semibold))
-                    rulerPickers
+                    targetWeightRuler
                 }
 
                 Group {
@@ -237,6 +281,18 @@ enum OnboardingComponentsPreviewCatalog {
         .background(OnboardingTheme.background)
 }
 
+#Preview("Generating Plan Screen") {
+    OnboardingComponentsPreviewCatalog.generatingPlan
+        .background(OnboardingTheme.background)
+        .formaThemePreview()
+}
+
+#Preview("Generating Plan Failed Screen") {
+    OnboardingComponentsPreviewCatalog.generatingPlanFailed
+        .background(OnboardingTheme.background)
+        .formaThemePreview()
+}
+
 #Preview("Intro Proof Screen") {
     OnboardingComponentsPreviewCatalog.introProof
 }
@@ -251,10 +307,38 @@ enum OnboardingComponentsPreviewCatalog {
         .background(OnboardingTheme.background)
 }
 
-#Preview("Ruler Pickers") {
-    OnboardingComponentsPreviewCatalog.rulerPickers
+#Preview("Target Weight Screen — Loss") {
+    OnboardingComponentsPreviewCatalog.targetWeight
+        .background(OnboardingTheme.background)
+        .formaThemePreview()
+}
+
+#Preview("Target Weight Ruler — Maintain") {
+    OnboardingComponentsPreviewCatalog.targetWeightRulerMaintain
         .padding()
         .background(OnboardingTheme.background)
+        .formaThemePreview()
+}
+
+#Preview("Target Weight Ruler — Loss") {
+    OnboardingComponentsPreviewCatalog.targetWeightRulerLoss
+        .padding()
+        .background(OnboardingTheme.background)
+        .formaThemePreview()
+}
+
+#Preview("Target Weight Ruler — Gain") {
+    OnboardingComponentsPreviewCatalog.targetWeightRulerGain
+        .padding()
+        .background(OnboardingTheme.background)
+        .formaThemePreview()
+}
+
+#Preview("Target Weight Ruler — Imperial") {
+    OnboardingComponentsPreviewCatalog.targetWeightRulerImperial
+        .padding()
+        .background(OnboardingTheme.background)
+        .formaThemePreview()
 }
 
 #Preview("Feature Bullets") {

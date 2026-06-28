@@ -2,30 +2,53 @@
 //  OnboardingPlanBlueprintInsightCard.swift
 //  Fitness Coach
 //
-//  Forma — Compact trust line for plan blueprint review.
+//  Forma — Coach insight card for plan blueprint milestone.
 //
 
 import SwiftUI
 
-struct OnboardingPlanBlueprintTrustLine: View {
-    let copy: String
+struct OnboardingPlanBlueprintCoachInsightCard: View {
+    let title: String
+    let bodyCopy: String
 
     var body: some View {
-        Text(copy)
-            .font(FormaTokens.Typography.caption.weight(.medium))
-            .foregroundStyle(OnboardingTheme.secondaryText)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityLabel(copy)
+        HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(OnboardingTheme.accent)
+                .frame(width: 3)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+                Text(title)
+                    .font(FormaTokens.Typography.body.weight(.semibold))
+                    .foregroundStyle(OnboardingTheme.primaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+
+                Text(bodyCopy)
+                    .font(FormaTokens.Typography.body)
+                    .foregroundStyle(OnboardingTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(FormaTokens.Spacing.cardPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
+                .fill(FormaTokens.Color.surfaceSubtle.opacity(0.72))
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title). \(bodyCopy)")
     }
 }
 
 #if DEBUG
 #Preview {
-    OnboardingPlanBlueprintTrustLine(
-        copy: FormaProductCopy.Onboarding.Flow.Summary.Insight.loss
+    OnboardingPlanBlueprintCoachInsightCard(
+        title: FormaProductCopy.Onboarding.Flow.Summary.Insight.lossTitle,
+        bodyCopy: FormaProductCopy.Onboarding.Flow.Summary.Insight.loss
     )
-    .padding(.horizontal)
+    .padding()
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }

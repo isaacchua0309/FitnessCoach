@@ -16,7 +16,7 @@ final class OnboardingPersonalizationSummaryTests: XCTestCase {
     func testReviewStepUsesDedicatedCopy() {
         XCTAssertEqual(
             OnboardingStep.review.title,
-            "Your plan blueprint is ready"
+            "We understand you"
         )
         XCTAssertEqual(
             OnboardingStep.review.subtitle,
@@ -26,6 +26,43 @@ final class OnboardingPersonalizationSummaryTests: XCTestCase {
             FormaProductCopy.Onboarding.Flow.Summary.buildPlanCTA,
             "Build my plan"
         )
+        XCTAssertEqual(
+            FormaProductCopy.Onboarding.Flow.Summary.buildPlanCTAHint,
+            "Daily calories, macros, and your pace — next."
+        )
+    }
+
+    func testBlueprintUsesPersonalizedProfileMirror() throws {
+        let state = try validOnboardingFormState()
+        let blueprint = OnboardingPlanBlueprintBuilder.build(from: state, referenceDate: referenceDate)
+        let mirror = FormaProductCopy.Onboarding.Flow.Summary.ProfileMirror.self
+
+        XCTAssertEqual(blueprint.profileMirrorTitle, mirror.title)
+        XCTAssertEqual(blueprint.profileSignals.count, 4)
+        XCTAssertTrue(blueprint.profileSignals[0].headline.contains("kg"))
+        XCTAssertEqual(blueprint.profileSignals[0].supporting, mirror.measurements)
+    }
+
+    func testBlueprintCopyAvoidsForbiddenClaims() throws {
+        let state = try validOnboardingFormState()
+        let blueprint = OnboardingPlanBlueprintBuilder.build(from: state, referenceDate: referenceDate)
+        let joined = [
+            blueprint.goalHero,
+            blueprint.goalSubtitle,
+            blueprint.coachInsightTitle,
+            blueprint.coachInsightBody,
+            blueprint.profileMirrorTitle,
+            blueprint.accessibilityLabel
+        ].joined(separator: " ").lowercased()
+
+        XCTAssertFalse(joined.contains("dynamic calor"))
+        XCTAssertFalse(joined.contains("body fat"))
+        XCTAssertFalse(joined.contains("gym session"))
+        XCTAssertFalse(joined.contains("manual steps"))
+    }
+
+    func testReviewStepUsesFixedViewportShell() {
+        XCTAssertTrue(OnboardingStep.review.usesFixedViewportShell)
     }
 
     func testRecapCardsShowRequiredFieldsOnly() throws {

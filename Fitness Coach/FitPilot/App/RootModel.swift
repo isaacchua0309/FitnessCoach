@@ -83,6 +83,13 @@ final class RootModel: ObservableObject {
         bootstrapPhase = profileBootstrapService.hasLocalProfile() ? .localProfileReady : .needsOnboardingAfterCloudMiss
     }
 
+    /// Neutral shell state after sign-out. Avoids treating signed-out users as signed-in onboarding.
+    func resetForSignedOutSession() {
+        loadTask?.cancel()
+        applyState(.loading)
+        bootstrapPhase = .idle
+    }
+
     func didCompleteOnboarding() {
         loadTask?.cancel()
         applyState(.main)

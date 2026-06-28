@@ -140,13 +140,14 @@ enum OnboardingPlanRevealStrategyFormatter {
     }
 
     static func calorieExplanation(goalDirection: PlanGoalDirection) -> String {
+        let copy = FormaProductCopy.Onboarding.V2.PlanReveal.self
         switch goalDirection {
         case .cut:
-            return FormaProductCopy.Onboarding.V2.PlanReveal.cutCalorieExplanation
+            return copy.cutCalorieExplanation
         case .maintain:
-            return FormaProductCopy.Onboarding.V2.PlanReveal.maintainCalorieExplanation
+            return copy.maintainCalorieExplanation
         case .gain:
-            return FormaProductCopy.Onboarding.V2.PlanReveal.gainCalorieExplanation
+            return copy.gainCalorieExplanation
         }
     }
 }

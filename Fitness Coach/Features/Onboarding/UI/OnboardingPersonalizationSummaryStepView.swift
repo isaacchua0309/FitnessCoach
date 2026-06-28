@@ -2,7 +2,7 @@
 //  OnboardingPersonalizationSummaryStepView.swift
 //  Fitness Coach
 //
-//  Forma — Plan blueprint review before generation.
+//  Forma — Plan blueprint milestone before generation.
 //
 
 import SwiftUI
@@ -15,8 +15,9 @@ struct OnboardingPersonalizationSummaryStepView: View {
 
     @State private var headerVisible = false
     @State private var goalVisible = false
-    @State private var basisVisible = false
-    @State private var trustVisible = false
+    @State private var mirrorVisible = false
+    @State private var insightVisible = false
+    @State private var anticipationVisible = false
     @State private var detailsVisible = false
     @State private var isDetailsExpanded = false
     @State private var didPlayAppearHaptic = false
@@ -37,23 +38,39 @@ struct OnboardingPersonalizationSummaryStepView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
+        VStack(spacing: 0) {
             headerSection
+                .padding(.bottom, FormaTokens.Spacing.md)
 
             if showsValidationBanner {
                 OnboardingWarningBanner(message: bannerMessage)
                     .opacity(headerVisible ? 1 : 0)
+                    .padding(.bottom, FormaTokens.Spacing.sm)
             }
 
+            Spacer(minLength: FormaTokens.Spacing.xs)
+
             goalSection
-            basisSection
-            trustSection
+                .padding(.bottom, FormaTokens.Spacing.lg)
+
+            mirrorSection
+                .padding(.bottom, FormaTokens.Spacing.md)
+
+            insightSection
+                .padding(.bottom, FormaTokens.Spacing.md)
+
+            Spacer(minLength: FormaTokens.Spacing.sm)
+
+            anticipationSection
+                .padding(.bottom, FormaTokens.Spacing.sm)
+
             detailsSection
+
             Spacer(minLength: 0)
         }
         .padding(.horizontal, OnboardingTheme.pagePadding)
         .padding(.top, OnboardingLayout.progressHeaderTop)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(displayState.accessibilityLabel)
         .onAppear {
@@ -70,27 +87,44 @@ struct OnboardingPersonalizationSummaryStepView: View {
 
     private var goalSection: some View {
         OnboardingPlanBlueprintGoalCard(
+            badge: displayState.goalBadge,
             heroMetric: displayState.goalHero,
             subtitle: displayState.goalSubtitle
         )
         .opacity(goalVisible ? 1 : 0)
-        .offset(y: goalVisible ? 0 : 6)
-        .scaleEffect(goalVisible ? 1 : 0.98)
+        .offset(y: goalVisible ? 0 : 8)
+        .scaleEffect(goalVisible ? 1 : 0.96)
     }
 
-    private var basisSection: some View {
-        OnboardingPlanBlueprintBasisCard(
-            title: displayState.basisTitle,
-            items: displayState.basisItems
+    @ViewBuilder
+    private var mirrorSection: some View {
+        if !displayState.profileSignals.isEmpty {
+            OnboardingPlanBlueprintProfileMirrorCard(
+                title: displayState.profileMirrorTitle,
+                signals: displayState.profileSignals
+            )
+            .opacity(mirrorVisible ? 1 : 0)
+            .offset(y: mirrorVisible ? 0 : 8)
+        }
+    }
+
+    private var insightSection: some View {
+        OnboardingPlanBlueprintCoachInsightCard(
+            title: displayState.coachInsightTitle,
+            bodyCopy: displayState.coachInsightBody
         )
-        .opacity(basisVisible ? 1 : 0)
-        .offset(y: basisVisible ? 0 : 6)
+        .opacity(insightVisible ? 1 : 0)
+        .offset(y: insightVisible ? 0 : 6)
     }
 
-    private var trustSection: some View {
-        OnboardingPlanBlueprintTrustLine(copy: displayState.insight)
-            .opacity(trustVisible ? 1 : 0)
-            .offset(y: trustVisible ? 0 : 4)
+    private var anticipationSection: some View {
+        OnboardingPlanBlueprintAnticipationSection(
+            title: FormaProductCopy.Onboarding.Flow.Summary.Anticipation.sectionTitle,
+            bullets: displayState.anticipationBullets,
+            accessibilityLabel: FormaProductCopy.Onboarding.Flow.Summary.Anticipation.accessibilityLabel
+        )
+        .opacity(anticipationVisible ? 1 : 0)
+        .offset(y: anticipationVisible ? 0 : 6)
     }
 
     private var detailsSection: some View {
@@ -99,15 +133,15 @@ struct OnboardingPersonalizationSummaryStepView: View {
             isExpanded: $isDetailsExpanded
         )
         .opacity(detailsVisible ? 1 : 0)
-        .offset(y: detailsVisible ? 0 : 6)
     }
 
     private func runEntranceAnimation() {
         if reduceMotion {
             headerVisible = true
             goalVisible = true
-            basisVisible = true
-            trustVisible = true
+            mirrorVisible = true
+            insightVisible = true
+            anticipationVisible = true
             detailsVisible = true
             return
         }
@@ -115,16 +149,19 @@ struct OnboardingPersonalizationSummaryStepView: View {
         withAnimation(.easeOut(duration: 0.22)) {
             headerVisible = true
         }
-        withAnimation(.easeOut(duration: 0.24).delay(0.06)) {
+        withAnimation(.easeOut(duration: 0.30).delay(0.06)) {
             goalVisible = true
         }
-        withAnimation(.easeOut(duration: 0.22).delay(0.12)) {
-            basisVisible = true
+        withAnimation(.easeOut(duration: 0.24).delay(0.14)) {
+            mirrorVisible = true
         }
-        withAnimation(.easeOut(duration: 0.20).delay(0.18)) {
-            trustVisible = true
+        withAnimation(.easeOut(duration: 0.22).delay(0.22)) {
+            insightVisible = true
         }
-        withAnimation(.easeOut(duration: 0.20).delay(0.24)) {
+        withAnimation(.easeOut(duration: 0.20).delay(0.30)) {
+            anticipationVisible = true
+        }
+        withAnimation(.easeOut(duration: 0.18).delay(0.38)) {
             detailsVisible = true
         }
     }
@@ -142,7 +179,7 @@ struct OnboardingPersonalizationSummaryStepView: View {
         formState: {
             var state = OnboardingPreviewData.formState
             OnboardingBirthdayValues.applyDefaultsIfNeeded(to: &state)
-            OnboardingTargetWeightValues.setGoalFromLossKg(3.5, in: &state)
+            OnboardingTargetWeightValues.setGoalFromDeltaKg(-3.5, in: &state)
             return state
         }(),
         validationMessage: nil
@@ -173,15 +210,6 @@ struct OnboardingPersonalizationSummaryStepView: View {
             state.goalWeightKgText = state.currentWeightKgText
             return state
         }(),
-        validationMessage: nil
-    )
-    .background(OnboardingTheme.background)
-    .formaThemePreview()
-}
-
-#Preview("Collapsed details") {
-    OnboardingPersonalizationSummaryStepView(
-        formState: OnboardingPreviewData.formState,
         validationMessage: nil
     )
     .background(OnboardingTheme.background)

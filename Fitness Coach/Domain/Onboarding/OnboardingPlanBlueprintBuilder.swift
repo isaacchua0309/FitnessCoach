@@ -7,18 +7,22 @@
 
 import Foundation
 
-struct OnboardingPlanBlueprintBasisItem: Equatable, Identifiable, Sendable {
+struct OnboardingPlanBlueprintProfileSignal: Equatable, Identifiable, Sendable {
     let id: String
     let icon: String
-    let title: String
+    let headline: String
+    let supporting: String
 }
 
 struct OnboardingPlanBlueprintState: Equatable, Sendable {
     let goalHero: String
     let goalSubtitle: String
-    let insight: String
-    let basisTitle: String
-    let basisItems: [OnboardingPlanBlueprintBasisItem]
+    let goalBadge: String
+    let coachInsightTitle: String
+    let coachInsightBody: String
+    let profileMirrorTitle: String
+    let profileSignals: [OnboardingPlanBlueprintProfileSignal]
+    let anticipationBullets: [OnboardingFeatureBullet]
     let detailRows: [OnboardingPersonalizationSummaryRecap]
     let accessibilityLabel: String
     let isPersonalized: Bool
@@ -35,11 +39,21 @@ enum OnboardingPlanBlueprintBuilder {
             for: formState,
             referenceDate: referenceDate
         )
-        let basisItems = basisItems(copy: copy.Basis.self)
+        let profileSignals = profileSignals(
+            from: formState,
+            detailRows: detailRows,
+            copy: copy.ProfileMirror.self
+        )
+        let anticipationBullets = anticipationBullets(copy: copy.Anticipation.self)
 
         guard let currentKg = formState.parsedCurrentWeightKg,
               let goalKg = formState.parsedGoalWeightKg else {
-            return fallbackState(copy: copy, detailRows: detailRows, basisItems: basisItems)
+            return fallbackState(
+                copy: copy,
+                detailRows: detailRows,
+                profileSignals: profileSignals,
+                anticipationBullets: anticipationBullets
+            )
         }
 
         let direction = OnboardingGoalProjectionBuilder.goalDirection(
@@ -59,17 +73,15 @@ enum OnboardingPlanBlueprintBuilder {
                 goalKg: goalKg,
                 unitSystem: formState.unitSystem
             )
-            return OnboardingPlanBlueprintState(
+            return makeState(
+                copy: copy,
                 goalHero: hero,
                 goalSubtitle: journeyLine,
-                insight: copy.Insight.loss,
-                basisTitle: copy.Basis.title,
-                basisItems: basisItems,
+                insightTitle: copy.Insight.lossTitle,
+                insightBody: copy.Insight.loss,
                 detailRows: detailRows,
-                accessibilityLabel: accessibilityLabel(
-                    screenTitle: copy.title,
-                    goalHero: hero
-                ),
+                profileSignals: profileSignals,
+                anticipationBullets: anticipationBullets,
                 isPersonalized: true
             )
         case .gain:
@@ -78,17 +90,15 @@ enum OnboardingPlanBlueprintBuilder {
                 goalKg: goalKg,
                 unitSystem: formState.unitSystem
             )
-            return OnboardingPlanBlueprintState(
+            return makeState(
+                copy: copy,
                 goalHero: hero,
                 goalSubtitle: journeyLine,
-                insight: copy.Insight.gain,
-                basisTitle: copy.Basis.title,
-                basisItems: basisItems,
+                insightTitle: copy.Insight.gainTitle,
+                insightBody: copy.Insight.gain,
                 detailRows: detailRows,
-                accessibilityLabel: accessibilityLabel(
-                    screenTitle: copy.title,
-                    goalHero: hero
-                ),
+                profileSignals: profileSignals,
+                anticipationBullets: anticipationBullets,
                 isPersonalized: true
             )
         case .maintain:
@@ -99,72 +109,151 @@ enum OnboardingPlanBlueprintBuilder {
             let hero = FormaProductCopy.Onboarding.Flow.FormaProof.maintainHero(
                 targetWeightLabel: targetLabel
             )
-            return OnboardingPlanBlueprintState(
+            return makeState(
+                copy: copy,
                 goalHero: hero,
                 goalSubtitle: copy.maintainGoalSubtitle,
-                insight: copy.Insight.maintain,
-                basisTitle: copy.Basis.title,
-                basisItems: basisItems,
+                insightTitle: copy.Insight.maintainTitle,
+                insightBody: copy.Insight.maintain,
                 detailRows: detailRows,
-                accessibilityLabel: accessibilityLabel(
-                    screenTitle: copy.title,
-                    goalHero: hero
-                ),
+                profileSignals: profileSignals,
+                anticipationBullets: anticipationBullets,
                 isPersonalized: true
             )
         }
     }
 
+    private static func makeState(
+        copy: FormaProductCopy.Onboarding.Flow.Summary.Type,
+        goalHero: String,
+        goalSubtitle: String,
+        insightTitle: String,
+        insightBody: String,
+        detailRows: [OnboardingPersonalizationSummaryRecap],
+        profileSignals: [OnboardingPlanBlueprintProfileSignal],
+        anticipationBullets: [OnboardingFeatureBullet],
+        isPersonalized: Bool
+    ) -> OnboardingPlanBlueprintState {
+        OnboardingPlanBlueprintState(
+            goalHero: goalHero,
+            goalSubtitle: goalSubtitle,
+            goalBadge: copy.goalSectionTitle,
+            coachInsightTitle: insightTitle,
+            coachInsightBody: insightBody,
+            profileMirrorTitle: copy.ProfileMirror.title,
+            profileSignals: profileSignals,
+            anticipationBullets: anticipationBullets,
+            detailRows: detailRows,
+            accessibilityLabel: accessibilityLabel(
+                screenTitle: copy.title,
+                goalHero: goalHero,
+                insightTitle: insightTitle,
+                insightBody: insightBody,
+                profileSignals: profileSignals
+            ),
+            isPersonalized: isPersonalized
+        )
+    }
+
     private static func fallbackState(
         copy: FormaProductCopy.Onboarding.Flow.Summary.Type,
         detailRows: [OnboardingPersonalizationSummaryRecap],
-        basisItems: [OnboardingPlanBlueprintBasisItem]
+        profileSignals: [OnboardingPlanBlueprintProfileSignal],
+        anticipationBullets: [OnboardingFeatureBullet]
     ) -> OnboardingPlanBlueprintState {
         OnboardingPlanBlueprintState(
             goalHero: copy.goalFallbackHero,
             goalSubtitle: copy.goalFallbackSubtitle,
-            insight: copy.Insight.fallback,
-            basisTitle: copy.Basis.title,
-            basisItems: basisItems,
+            goalBadge: copy.goalSectionTitle,
+            coachInsightTitle: copy.Insight.fallbackTitle,
+            coachInsightBody: copy.Insight.fallback,
+            profileMirrorTitle: copy.ProfileMirror.title,
+            profileSignals: profileSignals,
+            anticipationBullets: anticipationBullets,
             detailRows: detailRows,
             accessibilityLabel: accessibilityLabel(
                 screenTitle: copy.title,
-                goalHero: copy.goalFallbackHero
+                goalHero: copy.goalFallbackHero,
+                insightTitle: copy.Insight.fallbackTitle,
+                insightBody: copy.Insight.fallback,
+                profileSignals: profileSignals
             ),
             isPersonalized: false
         )
     }
 
-    private static func basisItems(
-        copy: FormaProductCopy.Onboarding.Flow.Summary.Basis.Type
-    ) -> [OnboardingPlanBlueprintBasisItem] {
-        [
-            OnboardingPlanBlueprintBasisItem(
-                id: "measurements",
-                icon: "ruler",
-                title: copy.bodyMeasurements
-            ),
-            OnboardingPlanBlueprintBasisItem(
-                id: "age",
-                icon: "calendar",
-                title: copy.age
-            ),
-            OnboardingPlanBlueprintBasisItem(
-                id: "sex",
-                icon: "person.fill",
-                title: copy.sex
-            ),
-            OnboardingPlanBlueprintBasisItem(
-                id: "activity",
-                icon: "figure.walk",
-                title: copy.activity
-            ),
-            OnboardingPlanBlueprintBasisItem(
-                id: "target",
-                icon: "scope",
-                title: copy.targetWeight
+    private static func profileSignals(
+        from formState: OnboardingFormState,
+        detailRows: [OnboardingPersonalizationSummaryRecap],
+        copy: FormaProductCopy.Onboarding.Flow.Summary.ProfileMirror.Type
+    ) -> [OnboardingPlanBlueprintProfileSignal] {
+        let rowValue: (String) -> String? = { id in
+            guard let value = detailRows.first(where: { $0.id == id })?.value,
+                  value != "—" else {
+                return nil
+            }
+            return value
+        }
+
+        var signals: [OnboardingPlanBlueprintProfileSignal] = []
+
+        if let height = rowValue("height"), let weight = rowValue("currentWeight") {
+            signals.append(
+                OnboardingPlanBlueprintProfileSignal(
+                    id: "measurements",
+                    icon: "ruler",
+                    headline: "\(height) · \(weight)",
+                    supporting: copy.measurements
+                )
             )
-        ]
+        }
+
+        if let age = rowValue("age"), let sex = rowValue("sex") {
+            signals.append(
+                OnboardingPlanBlueprintProfileSignal(
+                    id: "profile",
+                    icon: "person.fill",
+                    headline: "\(age) · \(sex)",
+                    supporting: copy.profile
+                )
+            )
+        }
+
+        if let activity = rowValue("activity") {
+            signals.append(
+                OnboardingPlanBlueprintProfileSignal(
+                    id: "activity",
+                    icon: "figure.walk",
+                    headline: activity,
+                    supporting: copy.activity
+                )
+            )
+        }
+
+        if let target = rowValue("targetWeight") {
+            signals.append(
+                OnboardingPlanBlueprintProfileSignal(
+                    id: "target",
+                    icon: "scope",
+                    headline: target,
+                    supporting: copy.target
+                )
+            )
+        }
+
+        return signals
+    }
+
+    private static func anticipationBullets(
+        copy: FormaProductCopy.Onboarding.Flow.Summary.Anticipation.Type
+    ) -> [OnboardingFeatureBullet] {
+        copy.bullets.map { bullet in
+            OnboardingFeatureBullet(
+                icon: bullet.icon,
+                title: bullet.title,
+                subtitle: ""
+            )
+        }
     }
 
     private static func journeyLine(
@@ -185,12 +274,17 @@ enum OnboardingPlanBlueprintBuilder {
 
     private static func accessibilityLabel(
         screenTitle: String,
-        goalHero: String
+        goalHero: String,
+        insightTitle: String,
+        insightBody: String,
+        profileSignals: [OnboardingPlanBlueprintProfileSignal]
     ) -> String {
         let spokenHero = goalHero
             .replacingOccurrences(of: " kg", with: " kilograms")
             .replacingOccurrences(of: " lb", with: " pounds")
-        let basisList = FormaProductCopy.Onboarding.Flow.Summary.Basis.accessibilityList
-        return "\(screenTitle). \(spokenHero). Built from \(basisList)."
+        let profileSummary = profileSignals.isEmpty
+            ? FormaProductCopy.Onboarding.Flow.Summary.ProfileMirror.accessibilityList
+            : profileSignals.map(\.headline).joined(separator: ", ")
+        return "\(screenTitle). \(spokenHero). \(insightTitle). \(insightBody) Shaped by \(profileSummary)."
     }
 }
