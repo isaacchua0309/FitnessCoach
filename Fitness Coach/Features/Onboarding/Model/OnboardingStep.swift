@@ -222,7 +222,7 @@ enum OnboardingStep: Int, Equatable, Identifiable, Sendable, CaseIterable {
     var usesFixedViewportShell: Bool {
         switch self {
         case .birthday, .activityLevel, .appleHealth, .almostThere, .formaProof, .review,
-             .generatingPlan, .planReveal, .savePlan:
+             .generatingPlan, .planReveal, .savePlan, .targetWeight:
             return true
         default:
             return false

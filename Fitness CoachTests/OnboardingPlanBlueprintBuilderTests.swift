@@ -46,7 +46,7 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
         let blueprint = OnboardingPlanBlueprintBuilder.build(from: state, referenceDate: referenceDate)
 
         XCTAssertEqual(blueprint.illustrationStyle, .loss)
-        XCTAssertEqual(blueprint.goalCard.directionLabel, "Lose toward")
+        XCTAssertEqual(blueprint.goalCard.directionLabel, "Working toward")
         XCTAssertEqual(blueprint.goalCard.targetWeight, "66.5 kg")
         XCTAssertTrue(blueprint.goalCard.paceValue.contains("kg"))
         XCTAssertTrue(blueprint.goalCard.timelineValue.contains("weeks"))
@@ -93,6 +93,10 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
 
         XCTAssertEqual(blueprint.premiumFeatures.count, 3)
         XCTAssertEqual(blueprint.premiumFeatures.map(\.title), ["Nutrition", "Activity", "Progress"])
+        XCTAssertEqual(
+            blueprint.premiumFeatures.map(\.subtitle),
+            features.items.map(\.subtitle)
+        )
     }
 
     func testGeneratedSignalsIncludeSixInputs() {
@@ -175,8 +179,8 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
         let blueprint = OnboardingPlanBlueprintBuilder.build(from: state, referenceDate: referenceDate)
 
         XCTAssertTrue(blueprint.accessibilityLabel.contains("Your plan blueprint"))
-        XCTAssertTrue(blueprint.accessibilityLabel.contains("Maintain"))
-        XCTAssertTrue(blueprint.accessibilityLabel.contains("Built using"))
+        XCTAssertTrue(blueprint.accessibilityLabel.contains("Staying at"))
+        XCTAssertTrue(blueprint.accessibilityLabel.contains("Shaped from your answers"))
         XCTAssertTrue(blueprint.accessibilityLabel.contains("Nutrition"))
     }
 
@@ -217,6 +221,12 @@ final class OnboardingPlanBlueprintBuilderTests: XCTestCase {
             copy.GoalCard.gainTimeline,
             copy.PremiumFeatures.accessibilityLabel,
             copy.PremiumFeatures.items.map(\.title).joined(separator: " "),
+            copy.PremiumFeatures.items.map(\.subtitle).joined(separator: " "),
+            copy.GoalCard.paceCaption,
+            copy.GoalCard.timelineCaption,
+            copy.GoalCard.lossDirection,
+            copy.GoalCard.gainDirection,
+            copy.GoalCard.maintainDirection,
             copy.GeneratedSummary.title,
             copy.GeneratedSummary.activityLevel,
             copy.GeneratedSummary.currentWeight,

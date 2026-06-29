@@ -724,11 +724,11 @@ enum FormaProductCopy {
                     "Everything is ready. Your personalized plan is seconds away."
 
                 enum GoalCard {
-                    static let paceCaption = "Expected pace"
-                    static let timelineCaption = "Timeline"
-                    static let maintainDirection = "Maintain"
-                    static let lossDirection = "Lose toward"
-                    static let gainDirection = "Gain toward"
+                    static let paceCaption = "Weekly pace"
+                    static let timelineCaption = "Your timeline"
+                    static let maintainDirection = "Staying at"
+                    static let lossDirection = "Working toward"
+                    static let gainDirection = "Building to"
                     static let maintainTimeline = "Healthy sustainable timeline"
                     static let gainTimeline = "Steady, sustainable timeline"
                     static let maintainPace = "Matched to your activity"
@@ -743,17 +743,17 @@ enum FormaProductCopy {
                 }
 
                 enum PremiumFeatures {
-                    static let items: [(icon: String, title: String, visualKind: String)] = [
-                        ("fork.knife", "Nutrition", "nutrition"),
-                        ("figure.run", "Activity", "activity"),
-                        ("chart.line.uptrend.xyaxis", "Progress", "progress")
+                    static let items: [(icon: String, title: String, subtitle: String, visualKind: String)] = [
+                        ("fork.knife", "Nutrition", "Calories & macros, tuned to you", "nutrition"),
+                        ("figure.run", "Activity", "Workouts that adapt with you", "activity"),
+                        ("chart.line.uptrend.xyaxis", "Progress", "See what's working over time", "progress")
                     ]
                     static let accessibilityLabel =
                         "Personalised nutrition, adaptive activity, progress tracking."
                 }
 
                 enum GeneratedSummary {
-                    static let title = "Built using"
+                    static let title = "Shaped from your answers"
                     static let activityLevel = "Activity level"
                     static let currentWeight = "Current weight"
                     static let goal = "Goal"
@@ -772,7 +772,7 @@ enum FormaProductCopy {
                     }
 
                     static let accessibilityLabel =
-                        "Built using activity level, current weight, goal, nutrition targets, lifestyle, and training rhythm."
+                        "Shaped from your answers: activity level, current weight, goal, nutrition targets, lifestyle, and training rhythm."
                 }
 
                 static let heightLabel = "Height"

@@ -13,6 +13,7 @@ struct OnboardingPersonalizationSummaryStepView: View {
 
     @State private var launchReady = false
     @State private var didPlayAppearHaptic = false
+    @Environment(\.onboardingVisionLayoutProfile) private var layoutProfile
 
     private var displayState: OnboardingPlanBlueprintState {
         OnboardingPlanBlueprintBuilder.build(from: formState)
@@ -45,40 +46,27 @@ struct OnboardingPersonalizationSummaryStepView: View {
                 launchReady: launchReady
             )
         } content: {
-            VStack(spacing: 0) {
+            VStack(spacing: FormaTokens.Spacing.sm) {
                 headlineZone
                     .onboardingVisionZone(.headline)
                     .onboardingStageEntrance(.headline)
                     .accessibilitySortPriority(95)
 
-                OnboardingPlanBlueprintVisualCanvas(
-                    profile: displayState.visualProfile,
-                    launchReady: launchReady
-                )
-                .onboardingVisionZone(.hero)
-                .onboardingStageEntrance(.hero)
-                .accessibilitySortPriority(90)
-
                 OnboardingPlanBlueprintGoalHeroCard(
                     state: displayState.goalCard,
+                    visualProfile: displayState.visualProfile,
                     launchReady: launchReady
                 )
+                .padding(.top, FormaTokens.Spacing.xs)
                 .onboardingVisionZone(.narrative)
                 .onboardingStageEntrance(.supporting)
                 .accessibilitySortPriority(85)
-
-                OnboardingPlanBlueprintPremiumFeatureRow(
-                    features: displayState.premiumFeatures,
-                    accessibilityLabel: FormaProductCopy.Onboarding.Flow.Summary.PremiumFeatures.accessibilityLabel
-                )
-                .onboardingVisionZone(.benefits)
-                .onboardingStageEntrance(.benefits)
-                .accessibilitySortPriority(80)
 
                 OnboardingPlanBlueprintPersonalizationSignalStrip(
                     signals: displayState.generatedSignals,
                     launchReady: launchReady
                 )
+                .padding(.top, FormaTokens.Spacing.xs)
                 .onboardingVisionZone(.footer)
                 .onboardingStageEntrance(.footer)
                 .accessibilitySortPriority(75)
@@ -104,7 +92,12 @@ struct OnboardingPersonalizationSummaryStepView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                 .accessibilityAddTraits(.isHeader)
         }
+        .padding(.vertical, headlineVerticalInset)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+    }
+
+    private var headlineVerticalInset: CGFloat {
+        layoutProfile == .compact ? FormaTokens.Spacing.xs : FormaTokens.Spacing.sm
     }
 
     private func scheduleLaunchReady() {
@@ -160,7 +153,6 @@ struct OnboardingPersonalizationSummaryStepView: View {
     )
     .background(OnboardingTheme.background)
     .formaThemePreview()
-    .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
 }
 
 #Preview("Landscape") {

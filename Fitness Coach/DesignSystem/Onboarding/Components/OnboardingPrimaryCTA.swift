@@ -54,7 +54,7 @@ struct OnboardingPrimaryCTA: View {
     }
 
     private var buttonCore: some View {
-        Button(action: action) {
+        Button(action: handleTap) {
             label
                 .foregroundStyle(isEnabled && !isLoading ? OnboardingTheme.ctaText : OnboardingTheme.secondaryText)
                 .frame(maxWidth: .infinity)
@@ -90,6 +90,11 @@ struct OnboardingPrimaryCTA: View {
 
     private var showsLaunchGlow: Bool {
         variant == .launch && isEnabled && !isLoading
+    }
+
+    private func handleTap() {
+        OnboardingHaptics.primaryActionTapped(launch: variant == .launch)
+        action()
     }
 
     @MainActor

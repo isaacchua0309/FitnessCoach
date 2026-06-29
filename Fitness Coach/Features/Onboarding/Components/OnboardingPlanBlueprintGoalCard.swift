@@ -2,13 +2,14 @@
 //  OnboardingPlanBlueprintGoalCard.swift
 //  Fitness Coach
 //
-//  Forma — Compact goal card with visual pace/timeline bars.
+//  Forma — Goal hero card with optional journey strip and pace/timeline summary.
 //
 
 import SwiftUI
 
 struct OnboardingPlanBlueprintGoalHeroCard: View {
     let state: OnboardingPlanBlueprintGoalCardState
+    var visualProfile: OnboardingPlanBlueprintVisualProfile?
     var launchReady: Bool = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -17,76 +18,67 @@ struct OnboardingPlanBlueprintGoalHeroCard: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var launchPulse = false
 
-    @ScaledMetric(relativeTo: .largeTitle) private var targetWeightFontSize: CGFloat = 32
-    @ScaledMetric(relativeTo: .caption2) private var metricBarHeight: CGFloat = 4
+    @ScaledMetric(relativeTo: .largeTitle) private var targetWeightFontSize: CGFloat = 36
+    @ScaledMetric(relativeTo: .largeTitle) private var compactTargetWeightFontSize: CGFloat = 32
 
-    private var verticalPadding: CGFloat {
-        layoutProfile == .compact ? 6 : 10
+    private var cardPadding: CGFloat {
+        layoutProfile == .compact ? FormaTokens.Spacing.md : FormaTokens.Spacing.lg
+    }
+
+    private var resolvedTargetFontSize: CGFloat {
+        layoutProfile == .compact ? compactTargetWeightFontSize : targetWeightFontSize
     }
 
     private var metricsMaxWidth: CGFloat {
         dynamicTypeSize.isAccessibilitySize ? 168 : (layoutProfile == .compact ? 132 : 148)
     }
 
+    private var showsJourneyStrip: Bool {
+        guard let profile = visualProfile else { return false }
+        switch profile.style {
+        case .loss, .gain:
+            return true
+        case .maintain, .fallback:
+            return false
+        }
+    }
+
     var body: some View {
-        HStack(spacing: FormaTokens.Spacing.md) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(state.directionLabel)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(OnboardingTheme.accent)
-                    .textCase(.uppercase)
-                    .tracking(0.45)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-
-                Text(state.targetWeight)
-                    .font(.system(size: targetWeightFontSize, weight: .bold, design: .rounded))
-                    .foregroundStyle(OnboardingTheme.primaryText)
-                    .minimumScaleFactor(0.7)
-                    .lineLimit(1)
+        VStack(alignment: .leading, spacing: layoutProfile == .compact ? FormaTokens.Spacing.sm : FormaTokens.Spacing.md) {
+            if showsJourneyStrip, let profile = visualProfile {
+                OnboardingPlanBlueprintJourneyStrip(profile: profile)
             }
-            .layoutPriority(1)
 
-            Spacer(minLength: 0)
+            HStack(alignment: .center, spacing: FormaTokens.Spacing.md) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(state.directionLabel)
+                        .font(OnboardingMarketingTypography.blueprintSupporting.weight(.medium))
+                        .foregroundStyle(OnboardingTheme.secondaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
 
-            VStack(alignment: .leading, spacing: layoutProfile == .compact ? 6 : 8) {
-                visualMetric(caption: state.paceCaption, value: state.paceValue, fill: 0.68)
-                visualMetric(caption: state.timelineCaption, value: state.timelineValue, fill: 0.82)
-            }
-            .frame(maxWidth: metricsMaxWidth)
-        }
-        .padding(.horizontal, FormaTokens.Spacing.md)
-        .padding(.vertical, verticalPadding)
-        .frame(maxWidth: .infinity, maxHeight: zoneHeight > 0 ? zoneHeight : nil, alignment: .center)
-        .background {
-            RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            FormaTokens.Color.accentMuted.opacity(0.9),
-                            FormaTokens.Color.surfaceSubtle
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-                        .stroke(
-                            OnboardingTheme.accent.opacity(launchPulse ? 0.42 : 0.2),
-                            lineWidth: launchPulse ? 1.5 : 1
-                        )
+                    Text(state.targetWeight)
+                        .font(.system(size: resolvedTargetFontSize, weight: .bold, design: .rounded))
+                        .foregroundStyle(OnboardingTheme.primaryText)
+                        .minimumScaleFactor(0.7)
+                        .lineLimit(1)
                 }
+                .layoutPriority(1)
+
+                Spacer(minLength: 0)
+
+                VStack(alignment: .leading, spacing: layoutProfile == .compact ? 6 : 8) {
+                    textMetric(caption: state.paceCaption, value: state.paceValue)
+                    textMetric(caption: state.timelineCaption, value: state.timelineValue)
+                }
+                .frame(maxWidth: metricsMaxWidth)
+            }
         }
-        .shadow(
-            color: launchPulse ? OnboardingTheme.accent.opacity(0.1) : .clear,
-            radius: launchPulse ? 6 : 0
-        )
-        .scaleEffect(launchPulse && !reduceMotion ? 1.008 : 1)
+        .padding(cardPadding)
+        .frame(maxWidth: .infinity, maxHeight: zoneHeight > 0 ? zoneHeight : nil, alignment: .center)
+        .onboardingPlanBlueprintSurface(.card, launchPulse: launchPulse)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-            "\(state.directionLabel) \(state.targetWeight). \(state.paceCaption): \(state.paceValue). \(state.timelineCaption): \(state.timelineValue)"
-        )
+        .accessibilityLabel(accessibilityLabel)
         .onChange(of: launchReady) { _, ready in
             guard ready, !reduceMotion else { return }
             withAnimation(
@@ -98,41 +90,23 @@ struct OnboardingPlanBlueprintGoalHeroCard: View {
         }
     }
 
-    private func visualMetric(caption: String, value: String, fill: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
+    private var accessibilityLabel: String {
+        "\(state.directionLabel) \(state.targetWeight). \(state.paceCaption): \(state.paceValue). \(state.timelineCaption): \(state.timelineValue)"
+    }
+
+    private func textMetric(caption: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
             Text(caption)
-                .font(.caption2.weight(.semibold))
+                .font(OnboardingMarketingTypography.blueprintSupporting.weight(.medium))
                 .foregroundStyle(OnboardingTheme.tertiaryText)
-                .textCase(.uppercase)
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
 
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule(style: .continuous)
-                        .fill(OnboardingTheme.border.opacity(0.25))
-                    Capsule(style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    OnboardingTheme.accent.opacity(launchPulse ? 0.72 : 0.55),
-                                    OnboardingTheme.accent.opacity(launchPulse ? 1 : 0.92)
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: proxy.size.width * (launchPulse ? min(fill + 0.04, 0.96) : fill))
-                }
-            }
-            .frame(height: metricBarHeight)
-
             Text(value)
-                .font(.system(.caption2, design: .rounded).weight(.semibold))
+                .font(OnboardingMarketingTypography.blueprintCardTitle)
                 .foregroundStyle(OnboardingTheme.primaryText)
                 .minimumScaleFactor(0.75)
                 .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 2)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
@@ -141,6 +115,7 @@ struct OnboardingPlanBlueprintGoalHeroCard: View {
 #Preview {
     OnboardingPlanBlueprintGoalHeroCard(
         state: OnboardingPlanBlueprintBuilder.build(from: OnboardingPreviewData.formState).goalCard,
+        visualProfile: OnboardingPlanBlueprintBuilder.build(from: OnboardingPreviewData.formState).visualProfile,
         launchReady: true
     )
     .padding()

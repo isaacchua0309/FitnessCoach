@@ -230,6 +230,12 @@ enum OnboardingTargetWeightValues {
         return "Target \(target)"
     }
 
+    /// Large numeric display for the target-weight step (without the "Target" prefix).
+    static func displayValueHeadline(for formState: OnboardingFormState) -> String? {
+        guard let goal = resolvedGoalKg(from: formState) else { return nil }
+        return targetWeightLabel(valueKg: goal, unitSystem: formState.unitSystem)
+    }
+
     static func differenceLabel(for formState: OnboardingFormState) -> String? {
         guard let current = formState.parsedCurrentWeightKg,
               let goal = resolvedGoalKg(from: formState) else {
@@ -247,7 +253,7 @@ enum OnboardingTargetWeightValues {
         let unit = OnboardingFormatter.weightUnitAbbreviation(for: unitSystem)
 
         if abs(deltaKg) <= FormaCalculationConstants.goalDirectionEpsilonKg {
-            return "\(formatOneDecimal(0)) \(unit)"
+            return FormaProductCopy.Onboarding.V2.Goal.changeMaintainLabel
         }
 
         let magnitudeDisplay = OnboardingGoalWeightBounds.displayValue(

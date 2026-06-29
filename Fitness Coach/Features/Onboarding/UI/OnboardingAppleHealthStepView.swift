@@ -193,6 +193,5 @@ private enum OnboardingAppleHealthPreviewFactory {
     )
     .background(OnboardingTheme.background)
     .formaThemePreview()
-    .previewDevice(PreviewDevice(rawValue: "iPhone 16e"))
 }
 #endif

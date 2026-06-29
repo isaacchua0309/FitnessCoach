@@ -92,6 +92,8 @@ enum OnboardingLayout {
     static let selectionRowMinHeight: CGFloat = 48
     static let footerVerticalPadding: CGFloat = 6
     static let footerInnerSpacing: CGFloat = 6
+    static let buildPlanAnticipationTopPadding: CGFloat = 14
+    static let reviewFooterTopPadding: CGFloat = 14
     /// Reserved inset during plan generation so reveal footer does not snap layout.
     static let planRevealFooterReservedHeight: CGFloat = 132
     /// Reserved error slot on protect-progress so sign-in retry copy does not shift the CTA.
@@ -102,8 +104,35 @@ enum OnboardingLayout {
     static let birthdayWheelHeight: CGFloat = 200
     static let birthdaySectionSpacing: CGFloat = 16
     static let birthdayWheelVerticalPadding: CGFloat = 12
-    static let heroRulerHeight: CGFloat = 156
-    static let heroRulerTickSpacing: CGFloat = 16
+
+    // MARK: - Target weight ruler
+
+    static let premiumRulerHeight: CGFloat = 152
+    static let premiumRulerCompactHeight: CGFloat = 128
+    static let premiumRulerTickSpacing: CGFloat = 17
+    static let premiumRulerFadeWidth: CGFloat = 28
+    static let premiumRulerVerticalPadding: CGFloat = 6
+    static let premiumRulerMarkerHeight: CGFloat = 10
+    static let premiumRulerCenterTickHeight: CGFloat = 52
+    static let premiumRulerMinorTickHeight: CGFloat = 10
+    static let premiumRulerMediumTickHeight: CGFloat = 20
+    static let premiumRulerMajorTickHeight: CGFloat = 34
+    static let premiumRulerCenterTickLineWidth: CGFloat = 2.5
+    static let premiumRulerCenterIndicatorLineWidth: CGFloat = 2
+    static let premiumRulerCenterGlowWidth: CGFloat = 22
+    static let premiumRulerCenterGlowPeakOpacity: CGFloat = 0.14
+    /// Baseline in scroll-view coordinates; center tick top aligns with marker apex.
+    static let premiumRulerTickBaselineY: CGFloat = premiumRulerMarkerHeight + premiumRulerCenterTickHeight
+    static let premiumRulerLabelTopMargin: CGFloat = 10
+    static let premiumRulerLabelFontSize: CGFloat = 11
+    static let premiumRulerProximityFalloffTicks: CGFloat = 8
+    static let premiumRulerFarTickOpacity: CGFloat = 0.38
+
+    // MARK: - Target weight step layout
+
+    static let targetWeightSectionSpacing: CGFloat = 10
+    static let targetWeightCompactSectionSpacing: CGFloat = 8
+    static let targetWeightGuidanceCompactPadding: CGFloat = 12
 }
 
 struct OnboardingSectionTitle: View {

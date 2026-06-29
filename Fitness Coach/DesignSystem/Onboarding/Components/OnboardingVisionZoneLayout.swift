@@ -58,13 +58,11 @@ enum OnboardingVisionZoneWeights {
         .footer: 0.07
     ]
 
-    /// Plan blueprint: title + canvas + goal card + premium row + factor grid.
+    /// Plan blueprint: title + goal card + compact inputs.
     static let planBlueprint: [OnboardingVisionZone: CGFloat] = [
-        .headline: 0.09,
-        .hero: 0.26,
-        .narrative: 0.17,
-        .benefits: 0.13,
-        .footer: 0.32
+        .headline: 0.11,
+        .narrative: 0.48,
+        .footer: 0.39
     ]
 
     /// Landscape / short viewport — hero compresses, benefits expand.
@@ -84,11 +82,9 @@ enum OnboardingVisionZoneWeights {
     ]
 
     static let planBlueprintCompact: [OnboardingVisionZone: CGFloat] = [
-        .headline: 0.08,
-        .hero: 0.20,
-        .narrative: 0.14,
-        .benefits: 0.10,
-        .footer: 0.40
+        .headline: 0.10,
+        .narrative: 0.44,
+        .footer: 0.36
     ]
 
     static func weights(

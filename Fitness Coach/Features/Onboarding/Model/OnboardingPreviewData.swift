@@ -42,7 +42,7 @@ enum OnboardingPreviewData {
         OnboardingPlanRevealBuilder.build(formState: formState, plan: generatedPlan)
     }
 
-    // MARK: - Target weight (SwiftHorizontalRuler adapter previews)
+    // MARK: - Target weight (premium ruler previews)
 
     static func targetWeightFormState(
         currentKg: Double = 90,

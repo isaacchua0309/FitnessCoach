@@ -524,6 +524,5 @@ private enum OnboardingGeneratingPlanPreviewSupport {
     )
     .background(OnboardingTheme.background)
     .formaThemePreview()
-    .previewDevice("iPhone SE (3rd generation)")
 }
 #endif

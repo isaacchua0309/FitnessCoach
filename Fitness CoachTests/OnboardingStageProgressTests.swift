@@ -92,6 +92,7 @@ final class OnboardingStageProgressTests: XCTestCase {
     func testGeneratingPlanUsesFixedViewportShell() {
         XCTAssertTrue(OnboardingStep.generatingPlan.usesFixedViewportShell)
         XCTAssertTrue(OnboardingStep.planReveal.usesFixedViewportShell)
+        XCTAssertTrue(OnboardingStep.targetWeight.usesFixedViewportShell)
         XCTAssertFalse(OnboardingStep.generatingPlan.usesFullScreenChrome)
     }
 

@@ -27,6 +27,7 @@ struct OnboardingPlanBlueprintPremiumFeature: Equatable, Identifiable, Sendable 
     let id: String
     let icon: String
     let title: String
+    let subtitle: String
     let visualKind: OnboardingPlanBlueprintPremiumVisualKind
 }
 
@@ -137,8 +138,7 @@ enum OnboardingPlanBlueprintBuilder {
             style: illustrationStyle,
             currentKg: currentKg,
             goalKg: goalKg,
-            unitSystem: formState.unitSystem,
-            generatedSignals: generatedSignals
+            unitSystem: formState.unitSystem
         )
 
         return OnboardingPlanBlueprintState(
@@ -180,8 +180,7 @@ enum OnboardingPlanBlueprintBuilder {
                 style: .fallback,
                 currentKg: nil,
                 goalKg: nil,
-                unitSystem: .metric,
-                generatedSignals: generatedSignals
+                unitSystem: .metric
             ),
             goalCard: goalCard,
             premiumFeatures: premiumFeatures,
@@ -237,6 +236,7 @@ enum OnboardingPlanBlueprintBuilder {
                 id: item.title,
                 icon: item.icon,
                 title: item.title,
+                subtitle: item.subtitle,
                 visualKind: premiumVisualKind(item.visualKind)
             )
         }
@@ -257,8 +257,7 @@ enum OnboardingPlanBlueprintBuilder {
         style: OnboardingPlanBlueprintIllustrationStyle,
         currentKg: Double?,
         goalKg: Double?,
-        unitSystem: UnitSystem,
-        generatedSignals: [OnboardingPlanBlueprintGeneratedSignal]
+        unitSystem: UnitSystem
     ) -> OnboardingPlanBlueprintVisualProfile {
         let currentWeight = currentKg.map {
             OnboardingGoalWeightBounds.weightSummary(valueKg: $0, unitSystem: unitSystem)
@@ -274,16 +273,11 @@ enum OnboardingPlanBlueprintBuilder {
             routeProgress = 0.52
         }
 
-        let radarValues = generatedSignals.map { signal in
-            signal.isIncluded ? CGFloat(1) : CGFloat(0.28)
-        }
-
         return OnboardingPlanBlueprintVisualProfile(
             style: style,
             currentWeight: currentWeight,
             targetWeight: targetWeight,
-            routeProgress: routeProgress,
-            radarValues: radarValues
+            routeProgress: routeProgress
         )
     }
 

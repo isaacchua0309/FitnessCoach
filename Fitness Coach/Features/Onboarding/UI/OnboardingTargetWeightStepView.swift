@@ -10,7 +10,8 @@ import SwiftUI
 struct OnboardingTargetWeightStepView: View {
     @Binding var formState: OnboardingFormState
 
-    private let copy = FormaProductCopy.Onboarding.Flow.TargetWeight.self
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     @State private var headerVisible = false
     @State private var summaryVisible = false
@@ -23,22 +24,32 @@ struct OnboardingTargetWeightStepView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
-            headerSection
+        GeometryReader { geometry in
+            let layoutProfile = OnboardingVisionLayoutProfile.resolve(
+                verticalSizeClass: verticalSizeClass,
+                contentHeight: geometry.size.height
+            )
+            let isCompact = layoutProfile == .compact
 
-            if isContentPrepared, formState.parsedCurrentWeightKg != nil {
-                heroSummarySection
+            VStack(alignment: .leading, spacing: sectionSpacing(isCompact: isCompact)) {
+                headerSection
 
-                if rulerVisible {
-                    targetWeightRuler
+                if isContentPrepared, formState.parsedCurrentWeightKg != nil {
+                    heroSummarySection(isCompact: isCompact)
+
+                    if rulerVisible {
+                        targetWeightRuler(isCompact: isCompact)
+                    }
+
+                    guidanceSection(isCompact: isCompact)
                 }
 
-                guidanceSection
+                Spacer(minLength: 0)
             }
-
-            Spacer(minLength: 0)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(.horizontal, OnboardingTheme.pagePadding)
+        .padding(.top, OnboardingLayout.progressHeaderTop)
         .onAppear {
             OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &formState)
             isContentPrepared = true
@@ -46,71 +57,71 @@ struct OnboardingTargetWeightStepView: View {
         }
     }
 
+    private func sectionSpacing(isCompact: Bool) -> CGFloat {
+        isCompact
+            ? OnboardingLayout.targetWeightCompactSectionSpacing
+            : OnboardingLayout.targetWeightSectionSpacing
+    }
+
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: OnboardingLayout.progressBarSpacing) {
-            OnboardingStageProgressHeader(currentStep: .targetWeight)
-                .opacity(headerVisible ? 1 : 0)
-                .offset(y: headerVisible ? 0 : 6)
-
-            Text(copy.interactionHint)
-                .font(FormaTokens.Typography.body)
-                .foregroundStyle(OnboardingTheme.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
-                .opacity(headerVisible ? 1 : 0)
-        }
-        .accessibilityElement(children: .contain)
+        OnboardingStageProgressHeader(currentStep: .targetWeight, showsSubtitle: false)
+            .opacity(headerVisible ? 1 : 0)
+            .offset(y: headerVisible ? 0 : 6)
+            .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder
-    private var heroSummarySection: some View {
-        if let headline = OnboardingTargetWeightValues.heroHeadline(for: formState) {
-            VStack(spacing: FormaTokens.Spacing.sm) {
-                OnboardingTargetWeightHeroSummary(
-                    headline: headline,
-                    journeyLine: OnboardingTargetWeightValues.currentToTargetSummary(for: formState)
-                )
-
-                if let changeLine = OnboardingTargetWeightValues.differenceLabel(for: formState) {
-                    Text(changeLine)
-                        .font(FormaTokens.Typography.bodyMedium.weight(.semibold))
-                        .foregroundStyle(OnboardingTheme.primaryText)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
-                        .contentTransition(.numericText())
-                        .animation(.easeOut(duration: 0.2), value: changeLine)
-                        .accessibilityLabel(changeLine)
-                }
-            }
+    private func heroSummarySection(isCompact: Bool) -> some View {
+        if let valueLine = OnboardingTargetWeightValues.displayValueHeadline(for: formState) {
+            OnboardingTargetWeightHeroSummary(
+                valueLine: valueLine,
+                journeyLine: OnboardingTargetWeightValues.currentToTargetSummary(for: formState),
+                deltaLine: OnboardingTargetWeightValues.differenceLabel(for: formState),
+                isCompact: isCompact
+            )
             .opacity(summaryVisible ? 1 : 0)
-            .offset(y: summaryVisible ? 0 : 8)
+            .offset(y: summaryVisible ? 0 : 6)
         }
     }
 
     @ViewBuilder
-    private var guidanceSection: some View {
+    private func guidanceSection(isCompact: Bool) -> some View {
         if let guidanceState {
-            OnboardingTargetWeightGuidanceCard(state: guidanceState)
+            OnboardingTargetWeightGuidanceCard(state: guidanceState, isCompact: isCompact)
                 .opacity(guidanceVisible ? 1 : 0)
-                .offset(y: guidanceVisible ? 0 : 8)
+                .offset(y: guidanceVisible ? 0 : 6)
         }
     }
 
     @ViewBuilder
-    private var targetWeightRuler: some View {
-        OnboardingTargetWeightRulerSelector(formState: $formState)
+    private func targetWeightRuler(isCompact: Bool) -> some View {
+        OnboardingTargetWeightRulerSelector(
+            formState: $formState,
+            rulerHeight: isCompact
+                ? OnboardingLayout.premiumRulerCompactHeight
+                : OnboardingLayout.premiumRulerHeight
+        )
     }
 
     private func runEntranceAnimation() {
+        if reduceMotion {
+            headerVisible = true
+            summaryVisible = true
+            rulerVisible = true
+            guidanceVisible = true
+            return
+        }
+
         withAnimation(.easeOut(duration: 0.24)) {
             headerVisible = true
         }
-        withAnimation(.easeOut(duration: 0.26).delay(0.10)) {
+        withAnimation(.easeOut(duration: 0.26).delay(0.08)) {
             summaryVisible = true
         }
-        withAnimation(.easeOut(duration: 0.32).delay(0.22)) {
+        withAnimation(.easeOut(duration: 0.30).delay(0.16)) {
             rulerVisible = true
         }
-        withAnimation(.easeOut(duration: 0.28).delay(0.42)) {
+        withAnimation(.easeOut(duration: 0.28).delay(0.28)) {
             guidanceVisible = true
         }
     }
@@ -121,7 +132,6 @@ struct OnboardingTargetWeightStepView: View {
     OnboardingTargetWeightStepView(
         formState: .constant(OnboardingPreviewData.targetWeightMaintainFormState)
     )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
@@ -130,7 +140,6 @@ struct OnboardingTargetWeightStepView: View {
     OnboardingTargetWeightStepView(
         formState: .constant(OnboardingPreviewData.targetWeightLossFormState)
     )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
@@ -139,7 +148,6 @@ struct OnboardingTargetWeightStepView: View {
     OnboardingTargetWeightStepView(
         formState: .constant(OnboardingPreviewData.targetWeightGainFormState)
     )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }
@@ -148,7 +156,15 @@ struct OnboardingTargetWeightStepView: View {
     OnboardingTargetWeightStepView(
         formState: .constant(OnboardingPreviewData.targetWeightImperialLossFormState)
     )
-    .padding(.horizontal, OnboardingTheme.pagePadding)
+    .background(OnboardingTheme.background)
+    .formaThemePreview()
+}
+
+#Preview("Target Weight — SE Compact") {
+    OnboardingTargetWeightStepView(
+        formState: .constant(OnboardingPreviewData.targetWeightLossFormState)
+    )
+    .frame(height: 360)
     .background(OnboardingTheme.background)
     .formaThemePreview()
 }

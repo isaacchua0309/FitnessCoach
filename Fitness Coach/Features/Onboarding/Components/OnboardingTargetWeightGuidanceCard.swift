@@ -9,16 +9,21 @@ import SwiftUI
 
 struct OnboardingTargetWeightGuidanceCard: View {
     let state: OnboardingTargetWeightGuidanceState
+    var isCompact: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+        VStack(alignment: .leading, spacing: isCompact ? FormaTokens.Spacing.xs : FormaTokens.Spacing.sm) {
             Text(state.title)
-                .font(FormaTokens.Typography.body.weight(.semibold))
+                .font(
+                    isCompact
+                        ? FormaTokens.Typography.caption.weight(.semibold)
+                        : FormaTokens.Typography.body.weight(.semibold)
+                )
                 .foregroundStyle(state.showsWarning ? OnboardingTheme.warning : OnboardingTheme.primaryText)
                 .fixedSize(horizontal: false, vertical: true)
 
             Text(state.body)
-                .font(FormaTokens.Typography.body)
+                .font(isCompact ? FormaTokens.Typography.caption : FormaTokens.Typography.body)
                 .foregroundStyle(OnboardingTheme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -29,8 +34,9 @@ struct OnboardingTargetWeightGuidanceCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(FormaTokens.Spacing.cardPadding)
+        .padding(isCompact ? OnboardingLayout.targetWeightGuidanceCompactPadding : FormaTokens.Spacing.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
         .background(
             RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
                 .fill(FormaTokens.Color.surfaceSubtle)

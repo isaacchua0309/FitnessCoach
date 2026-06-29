@@ -66,15 +66,6 @@ struct OnboardingView: View {
         hasAttemptedContinueOnStep = true
         if model.currentStep == .appleHealth {
             model.connectAppleHealth()
-        } else if model.currentStep == .review {
-            OnboardingHaptics.planLaunch()
-            model.goNext()
-        } else if model.currentStep == .almostThere {
-            OnboardingHaptics.selectionChanged()
-            model.goNext()
-        } else if model.currentStep == .planReveal {
-            OnboardingHaptics.selectionChanged()
-            model.goNext()
         } else {
             model.goNext()
         }
@@ -213,10 +204,12 @@ struct OnboardingView: View {
                 plan: model.generatedPlan,
                 onRetry: {
                     fieldNavigator.dismissFocus()
+                    OnboardingHaptics.primaryActionTapped()
                     model.retryGeneration()
                 },
                 onGoBack: {
                     fieldNavigator.dismissFocus()
+                    OnboardingHaptics.selectionChanged()
                     model.returnToSummaryAfterGenerationFailure()
                 }
             )
@@ -229,16 +222,19 @@ struct OnboardingView: View {
                 planRecap: model.planRevealState,
                 onContinue: {
                     fieldNavigator.dismissFocus()
+                    OnboardingHaptics.primaryActionTapped()
                     model.goNext()
                 },
                 onSkip: model.requiresGoogleSignInAtSavePlan
                     ? {
                         fieldNavigator.dismissFocus()
+                        OnboardingHaptics.primaryActionTapped()
                         model.skipProtectProgressSignIn()
                     }
                     : nil,
                 onBack: {
                     fieldNavigator.dismissFocus()
+                    OnboardingHaptics.selectionChanged()
                     model.goBack()
                 }
             )

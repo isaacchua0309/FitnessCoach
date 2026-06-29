@@ -10,6 +10,7 @@ import SwiftUI
 struct OnboardingStageProgressHeader: View {
     let currentStep: OnboardingStep
     var showsTitles: Bool = true
+    var showsSubtitle: Bool = true
     var emphasizesLaunch: Bool = false
     var launchReady: Bool = false
 
@@ -33,11 +34,13 @@ struct OnboardingStageProgressHeader: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
 
-                    Text(currentStep.subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(OnboardingTheme.secondaryText)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
+                    if showsSubtitle {
+                        Text(currentStep.subtitle)
+                            .font(.subheadline)
+                            .foregroundStyle(OnboardingTheme.secondaryText)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
         }

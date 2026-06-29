@@ -79,6 +79,13 @@ enum OnboardingMarketingTypography {
     static let goalIntent = Font.subheadline.weight(.semibold)
     static let footer = Font.footnote.weight(.medium)
     static let metric = Font.system(size: 44, weight: .bold, design: .rounded)
+
+    // Plan blueprint screen type ramp
+    static let blueprintTarget = Font.system(size: 36, weight: .bold, design: .rounded)
+    static let blueprintSection = Font.subheadline.weight(.semibold)
+    static let blueprintCardTitle = Font.footnote.weight(.semibold)
+    static let blueprintSupporting = Font.caption
+    static let blueprintDetail = Font.caption2.weight(.medium)
 }
 
 // MARK: - Benefit item
@@ -161,6 +168,89 @@ struct OnboardingCardSurface: ViewModifier {
 extension View {
     func onboardingCardSurface(_ style: OnboardingCardSurfaceStyle = .elevated) -> some View {
         modifier(OnboardingCardSurface(style: style))
+    }
+}
+
+// MARK: - Plan blueprint surfaces
+
+enum OnboardingPlanBlueprintSurfaceStyle {
+    case card
+    case compact
+    case hero
+}
+
+struct OnboardingPlanBlueprintSurface: ViewModifier {
+    let style: OnboardingPlanBlueprintSurfaceStyle
+    var launchPulse: Bool = false
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(fillGradient)
+                    .shadow(
+                        color: shadowColor,
+                        radius: shadowRadius,
+                        y: shadowY
+                    )
+            }
+            .scaleEffect(launchPulse ? 1.008 : 1)
+    }
+
+    private var cornerRadius: CGFloat {
+        switch style {
+        case .hero, .card:
+            return FormaTokens.Radius.card
+        case .compact:
+            return FormaTokens.Radius.compact
+        }
+    }
+
+    @MainActor
+    private var fillGradient: LinearGradient {
+        switch style {
+        case .hero:
+            return LinearGradient(
+                colors: [
+                    OnboardingTheme.surfaceSubtle.opacity(0.95),
+                    OnboardingTheme.cardElevated.opacity(0.98),
+                    OnboardingTheme.background.opacity(0.4)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .card, .compact:
+            return LinearGradient(
+                colors: [
+                    OnboardingTheme.cardElevated,
+                    OnboardingTheme.surfaceSubtle.opacity(0.85)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
+    }
+
+    private var shadowColor: Color {
+        let baseOpacity = launchPulse ? 0.09 : 0.06
+        return Color.black.opacity(baseOpacity)
+    }
+
+    private var shadowRadius: CGFloat {
+        launchPulse ? 10 : 8
+    }
+
+    private var shadowY: CGFloat {
+        launchPulse ? 4 : 3
+    }
+}
+
+extension View {
+    func onboardingPlanBlueprintSurface(
+        _ style: OnboardingPlanBlueprintSurfaceStyle = .card,
+        launchPulse: Bool = false
+    ) -> some View {
+        modifier(OnboardingPlanBlueprintSurface(style: style, launchPulse: launchPulse))
     }
 }
 

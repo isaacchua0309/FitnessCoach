@@ -69,7 +69,6 @@ struct OnboardingAlmostThereStepView: View {
     OnboardingAlmostThereStepView()
         .background(OnboardingTheme.background)
         .formaThemePreview()
-        .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
 }
 
 #Preview("Almost There — Large Dynamic Type") {

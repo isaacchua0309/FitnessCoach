@@ -140,7 +140,6 @@ struct OnboardingFormaProofStepView: View {
     )
     .background(OnboardingTheme.background)
     .formaThemePreview()
-    .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
 }
 
 #Preview("Forma Proof — Large Dynamic Type") {

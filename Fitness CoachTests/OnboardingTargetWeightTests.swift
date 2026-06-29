@@ -51,6 +51,10 @@ final class OnboardingTargetWeightTests: XCTestCase {
             OnboardingTargetWeightValues.heroHeadline(for: state),
             "Target 90.0 kg"
         )
+        XCTAssertEqual(
+            OnboardingTargetWeightValues.displayValueHeadline(for: state),
+            "90.0 kg"
+        )
     }
 
     // MARK: - 2. Draft restore
@@ -70,7 +74,7 @@ final class OnboardingTargetWeightTests: XCTestCase {
         )
     }
 
-    // MARK: - 3. SwiftHorizontalRuler adapter binding — metric loss
+    // MARK: - Display binding — metric loss
 
     func testSetGoalFromDisplayMetricLossBinding() {
         var state = sampleForm(currentKg: maintainCurrentKg, heightCm: maintainHeightCm)
@@ -86,7 +90,7 @@ final class OnboardingTargetWeightTests: XCTestCase {
         XCTAssertEqual(goalDirection(for: state), .cut)
     }
 
-    // MARK: - 4. SwiftHorizontalRuler adapter binding — gain
+    // MARK: - Display binding — gain
 
     func testSetGoalFromDisplayMetricGainBinding() {
         var state = sampleForm(currentKg: maintainCurrentKg, heightCm: maintainHeightCm)
@@ -110,7 +114,7 @@ final class OnboardingTargetWeightTests: XCTestCase {
 
         XCTAssertEqual(
             OnboardingTargetWeightValues.differenceLabel(for: state),
-            "0.0 kg"
+            FormaProductCopy.Onboarding.V2.Goal.changeMaintainLabel
         )
         XCTAssertEqual(OnboardingTargetWeightValues.displayGoalValue(from: state), 90.0, accuracy: 0.01)
         XCTAssertEqual(goalDirection(for: state), .maintain)
@@ -227,7 +231,7 @@ final class OnboardingTargetWeightTests: XCTestCase {
         OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &maintainState)
         XCTAssertEqual(
             OnboardingTargetWeightValues.differenceLabel(for: maintainState),
-            "0.0 lb"
+            FormaProductCopy.Onboarding.V2.Goal.changeMaintainLabel
         )
     }
 
@@ -379,5 +383,127 @@ final class OnboardingTargetWeightTests: XCTestCase {
             OnboardingTargetWeightValues.selectorIdentity(for: state),
             metricIdentity
         )
+    }
+
+    // MARK: - Ruler boundary haptics
+
+    func testRulerHapticsSeedWithoutFeedback() {
+        var marks = OnboardingTargetWeightRulerHaptics.BoundaryMarks()
+        let feedback = OnboardingTargetWeightRulerHaptics.feedback(
+            from: nil,
+            to: 85.0,
+            marks: &marks
+        )
+
+        XCTAssertEqual(feedback, .none)
+        XCTAssertEqual(marks.oneKg, 85)
+        XCTAssertEqual(marks.fiveKg, 17)
+    }
+
+    func testRulerHapticsFiresOnOneKgBoundaryCrossing() {
+        var marks = OnboardingTargetWeightRulerHaptics.BoundaryMarks(
+            oneKg: 86,
+            fiveKg: 17
+        )
+        let feedback = OnboardingTargetWeightRulerHaptics.feedback(
+            from: 86.9,
+            to: 87.0,
+            marks: &marks
+        )
+
+        XCTAssertEqual(feedback, .oneKg)
+        XCTAssertEqual(marks.oneKg, 87)
+    }
+
+    func testRulerHapticsDoesNotFireBetweenTenthSteps() {
+        var marks = OnboardingTargetWeightRulerHaptics.BoundaryMarks(
+            oneKg: 85,
+            fiveKg: 17
+        )
+        let feedback = OnboardingTargetWeightRulerHaptics.feedback(
+            from: 85.1,
+            to: 85.2,
+            marks: &marks
+        )
+
+        XCTAssertEqual(feedback, .none)
+        XCTAssertEqual(marks.oneKg, 85)
+    }
+
+    func testRulerHapticsPrefersFiveKgBoundaryOverOneKg() {
+        var marks = OnboardingTargetWeightRulerHaptics.BoundaryMarks(
+            oneKg: 94,
+            fiveKg: 18
+        )
+        let feedback = OnboardingTargetWeightRulerHaptics.feedback(
+            from: 94.9,
+            to: 95.0,
+            marks: &marks
+        )
+
+        XCTAssertEqual(feedback, .fiveKg)
+        XCTAssertEqual(marks.oneKg, 95)
+        XCTAssertEqual(marks.fiveKg, 19)
+    }
+
+    // MARK: - Edge cases
+
+    func testDifferenceLabelShowsGainWhenTargetAboveCurrent() {
+        var state = sampleForm(currentKg: 70, heightCm: 170)
+        OnboardingTargetWeightValues.setGoalWeightKg(75, in: &state)
+
+        let label = OnboardingTargetWeightValues.differenceLabel(for: state)
+        XCTAssertTrue(label?.hasPrefix(FormaProductCopy.Onboarding.V2.Goal.changeGainPrefix) ?? false)
+        XCTAssertEqual(goalDirection(for: state), .gain)
+    }
+
+    func testDifferenceLabelShowsLoseWhenTargetBelowCurrent() {
+        var state = sampleForm(currentKg: 70, heightCm: 170)
+        OnboardingTargetWeightValues.setGoalWeightKg(65, in: &state)
+
+        let label = OnboardingTargetWeightValues.differenceLabel(for: state)
+        XCTAssertTrue(label?.hasPrefix(FormaProductCopy.Onboarding.V2.Goal.changeLosePrefix) ?? false)
+        XCTAssertEqual(goalDirection(for: state), .cut)
+    }
+
+    func testPickerRangeContainsGoalAtMinimumAndMaximumBounds() {
+        var state = sampleForm(currentKg: 70, heightCm: 170)
+        let allowed = OnboardingGoalWeightBounds.rangeKg(currentWeightKg: 70, heightCm: 170)
+
+        OnboardingTargetWeightValues.setGoalWeightKg(allowed.lowerBound, in: &state)
+        var range = OnboardingTargetWeightValues.goalWeightRangeDisplay(from: state)!
+        XCTAssertTrue(range.contains(OnboardingTargetWeightValues.displayGoalValue(from: state)))
+
+        OnboardingTargetWeightValues.setGoalWeightKg(allowed.upperBound, in: &state)
+        range = OnboardingTargetWeightValues.goalWeightRangeDisplay(from: state)!
+        XCTAssertTrue(range.contains(OnboardingTargetWeightValues.displayGoalValue(from: state)))
+    }
+
+    func testMetricDisplayRoundTripPreservesTenthSteps() {
+        var state = sampleForm(currentKg: 90, heightCm: 170)
+        let allowed = OnboardingGoalWeightBounds.rangeKg(currentWeightKg: 90, heightCm: 170)
+
+        var display = (allowed.lowerBound * 10).rounded() / 10
+        let upper = (allowed.upperBound * 10).rounded() / 10
+        while display <= upper + 0.001 {
+            OnboardingTargetWeightValues.setGoalFromDisplay(display, in: &state)
+            XCTAssertEqual(
+                OnboardingTargetWeightValues.displayGoalValue(from: state),
+                display,
+                accuracy: 0.001,
+                "display \(display) should round-trip"
+            )
+            display += OnboardingTargetWeightValues.selectionStepKg
+            display = (display * 10).rounded() / 10
+        }
+    }
+
+    func testSetGoalSnapsToNearestTenthKg() {
+        var state = sampleForm(currentKg: 70, heightCm: 170)
+        OnboardingTargetWeightValues.setGoalWeightKg(65.04, in: &state)
+        XCTAssertEqual(state.parsedGoalWeightKg ?? 0, 65.0, accuracy: 0.001)
+
+        OnboardingTargetWeightValues.setGoalWeightKg(65.06, in: &state)
+        XCTAssertEqual(state.parsedGoalWeightKg ?? 0, 65.1, accuracy: 0.001)
     }
 }

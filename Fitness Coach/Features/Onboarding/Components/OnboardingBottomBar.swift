@@ -105,6 +105,7 @@ struct OnboardingBottomBar: View {
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, OnboardingLayout.buildPlanAnticipationTopPadding)
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(
                     FormaProductCopy.Onboarding.Flow.Summary.buildPlanAnticipationAccessibilityLabel
@@ -114,6 +115,7 @@ struct OnboardingBottomBar: View {
             HStack(spacing: FormaTokens.Spacing.md) {
                 if showsBackButton {
                     Button {
+                        OnboardingHaptics.selectionChanged()
                         if showsWelcomeExitBackButton, let onExitToWelcome {
                             onExitToWelcome()
                         } else {
@@ -147,7 +149,10 @@ struct OnboardingBottomBar: View {
             }
 
             if showsAdjustPlan, let onAdjustPlan {
-                Button(action: onAdjustPlan) {
+                Button {
+                    OnboardingHaptics.primaryActionTapped()
+                    onAdjustPlan()
+                } label: {
                     Text(FormaProductCopy.Onboarding.V2.PlanReveal.adjustPlanCTA)
                         .font(FormaTokens.Typography.caption.weight(.semibold))
                         .foregroundStyle(
@@ -164,7 +169,10 @@ struct OnboardingBottomBar: View {
             if currentStep == .appleHealth,
                let appleHealthSecondaryTitle,
                let onAppleHealthSkip {
-                Button(action: onAppleHealthSkip) {
+                Button {
+                    OnboardingHaptics.primaryActionTapped()
+                    onAppleHealthSkip()
+                } label: {
                     Text(appleHealthSecondaryTitle)
                         .font(FormaTokens.Typography.body.weight(.semibold))
                         .foregroundStyle(
@@ -191,7 +199,7 @@ struct OnboardingBottomBar: View {
             }
         }
         .padding(.horizontal, OnboardingTheme.pagePadding)
-        .padding(.top, OnboardingLayout.footerVerticalPadding)
+        .padding(.top, resolvedFooterTopPadding)
         .padding(.bottom, OnboardingLayout.footerVerticalPadding)
         .background(alignment: .top) {
             VStack(spacing: 0) {
@@ -204,7 +212,7 @@ struct OnboardingBottomBar: View {
         }
         .overlay(alignment: .top) {
             Rectangle()
-                .fill(OnboardingTheme.border.opacity(0.3))
+                .fill(OnboardingTheme.border.opacity(reviewFooterHairlineOpacity))
                 .frame(height: 0.5)
         }
         .onboardingMeasureFooterHeight()
@@ -242,6 +250,14 @@ struct OnboardingBottomBar: View {
 
     private var resolvedRequiredFieldsHint: String {
         requiredFieldsHint ?? FormaProductCopy.Common.completeRequiredFields
+    }
+
+    private var resolvedFooterTopPadding: CGFloat {
+        currentStep == .review ? OnboardingLayout.reviewFooterTopPadding : OnboardingLayout.footerVerticalPadding
+    }
+
+    private var reviewFooterHairlineOpacity: Double {
+        currentStep == .review ? 0.15 : 0.3
     }
 }
 
