@@ -1,5 +1,5 @@
 //
-//  ProgressLogSummaryBuilder.swift
+//  JourneyLogSummaryBuilder.swift
 //  Fitness Coach
 //
 //  Forma — Pure aggregations for Journey detailed analytics.
@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum ProgressLogSummaryBuilder {
+enum JourneyLogSummaryBuilder {
 
     static func nutritionSummary(from logs: [DailyLog]) -> ProgressNutritionSummary {
         guard !logs.isEmpty else {

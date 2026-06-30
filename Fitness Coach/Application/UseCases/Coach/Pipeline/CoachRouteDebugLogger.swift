@@ -11,7 +11,7 @@ enum CoachRouteDebugLogger {
 
     static func log(_ decision: CoachRouteDecision) {
         #if DEBUG
-        FitPilotPipelineTracer.event(
+        FormaPipelineTracer.event(
             stage: .routeDecision,
             level: .debug,
             message: "Route decision",
@@ -31,7 +31,7 @@ enum CoachRouteDebugLogger {
 
     static func logMessage(_ message: String) {
         #if DEBUG
-        FitPilotPipelineTracer.event(
+        FormaPipelineTracer.event(
             stage: .classify,
             level: .debug,
             message: message

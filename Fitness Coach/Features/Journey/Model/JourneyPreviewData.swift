@@ -1,5 +1,5 @@
 //
-//  ProgressPreviewData.swift
+//  JourneyPreviewData.swift
 //  Fitness Coach
 //
 //  Forma — Deterministic Journey preview fixtures for UI previews and tests.
@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum ProgressPreviewData {
+enum JourneyPreviewData {
 
     // MARK: - Scenarios
 
@@ -49,7 +49,7 @@ enum ProgressPreviewData {
     static let healthConnected = dashboard(.healthConnected)
     static let sparseData = dashboard(.sparseData)
 
-    static func dashboard(_ scenario: Scenario) -> ProgressDashboardState {
+    static func dashboard(_ scenario: Scenario) -> JourneyDashboardState {
         switch scenario {
         case .brandNewUser:
             return makeBrandNewUserDashboard()
@@ -170,7 +170,7 @@ enum ProgressPreviewData {
 
     // MARK: - Dashboard builders
 
-    private static func makeBrandNewUserDashboard() -> ProgressDashboardState {
+    private static func makeBrandNewUserDashboard() -> JourneyDashboardState {
         let direction: JourneyGoalDirection = .lose
         let baseline = makeBaseline(
             startWeight: 82,
@@ -184,7 +184,7 @@ enum ProgressPreviewData {
             chartPoints: syntheticChartPoints(startKg: 82)
         )
 
-        return ProgressDashboardState(
+        return JourneyDashboardState(
             selectedRangeDays: 28,
             hasProfile: true,
             baseline: baseline,
@@ -258,7 +258,7 @@ enum ProgressPreviewData {
         )
     }
 
-    private static func makeWeekOneDashboard() -> ProgressDashboardState {
+    private static func makeWeekOneDashboard() -> JourneyDashboardState {
         let direction: JourneyGoalDirection = .lose
         let baseline = makeBaseline(
             startWeight: 84,
@@ -272,7 +272,7 @@ enum ProgressPreviewData {
             chartPoints: decliningWeightPoints(startKg: 84, dropPerStep: 0.08, count: 4)
         )
 
-        return ProgressDashboardState(
+        return JourneyDashboardState(
             selectedRangeDays: 28,
             hasProfile: true,
             baseline: baseline,
@@ -356,7 +356,7 @@ enum ProgressPreviewData {
         )
     }
 
-    private static func makeStrongMomentumDashboard() -> ProgressDashboardState {
+    private static func makeStrongMomentumDashboard() -> JourneyDashboardState {
         let direction: JourneyGoalDirection = .lose
         let baseline = makeBaseline(
             startWeight: 90,
@@ -424,7 +424,7 @@ enum ProgressPreviewData {
         )
     }
 
-    private static func makePlateauDashboard() -> ProgressDashboardState {
+    private static func makePlateauDashboard() -> JourneyDashboardState {
         let direction: JourneyGoalDirection = .lose
         let baseline = makeBaseline(
             startWeight: 90,
@@ -491,7 +491,7 @@ enum ProgressPreviewData {
         )
     }
 
-    private static func makeNearGoalDashboard() -> ProgressDashboardState {
+    private static func makeNearGoalDashboard() -> JourneyDashboardState {
         let direction: JourneyGoalDirection = .lose
         let baseline = makeBaseline(
             startWeight: 90,
@@ -551,7 +551,7 @@ enum ProgressPreviewData {
         )
     }
 
-    private static func makeGainGoalDashboard() -> ProgressDashboardState {
+    private static func makeGainGoalDashboard() -> JourneyDashboardState {
         let direction: JourneyGoalDirection = .gain
         let baseline = makeBaseline(
             startWeight: 62,
@@ -618,7 +618,7 @@ enum ProgressPreviewData {
         )
     }
 
-    private static func makeMaintainGoalDashboard() -> ProgressDashboardState {
+    private static func makeMaintainGoalDashboard() -> JourneyDashboardState {
         let direction: JourneyGoalDirection = .maintain
         let baseline = makeBaseline(
             startWeight: 72,
@@ -684,7 +684,7 @@ enum ProgressPreviewData {
         )
     }
 
-    private static func makeHealthDisconnectedDashboard() -> ProgressDashboardState {
+    private static func makeHealthDisconnectedDashboard() -> JourneyDashboardState {
         var dashboard = makeStrongMomentumDashboard()
         dashboard.weeklyReview = makeWeeklyReview(
             foodLoggedDays: 5,
@@ -702,11 +702,11 @@ enum ProgressPreviewData {
         return dashboard
     }
 
-    private static func makeHealthConnectedDashboard() -> ProgressDashboardState {
+    private static func makeHealthConnectedDashboard() -> JourneyDashboardState {
         makeStrongMomentumDashboard()
     }
 
-    private static func makeSparseDataDashboard() -> ProgressDashboardState {
+    private static func makeSparseDataDashboard() -> JourneyDashboardState {
         let direction: JourneyGoalDirection = .lose
         let baseline = makeBaseline(
             startWeight: 88,
@@ -720,7 +720,7 @@ enum ProgressPreviewData {
             chartPoints: decliningWeightPoints(startKg: 88, dropPerStep: 0.05, count: 2)
         )
 
-        return ProgressDashboardState(
+        return JourneyDashboardState(
             selectedRangeDays: 28,
             hasProfile: true,
             baseline: baseline,
@@ -815,8 +815,8 @@ enum ProgressPreviewData {
         journeyLevel: JourneyLevelState,
         monthlyRecap: JourneyMonthlyRecapState,
         personalRecords: JourneyPersonalRecordsState
-    ) -> ProgressDashboardState {
-        ProgressDashboardState(
+    ) -> JourneyDashboardState {
+        JourneyDashboardState(
             selectedRangeDays: 28,
             hasProfile: true,
             baseline: baseline,
@@ -963,9 +963,9 @@ enum ProgressPreviewData {
         daysOnJourney: Int,
         showsMacros: Bool
     ) -> JourneyBeforeTodayState {
-        let startedWeightCopy = ProgressFormatter.journeyKg(startedWeight)
-        let currentWeightCopy = ProgressFormatter.journeyKg(currentWeight)
-        let goalWeightCopy = ProgressFormatter.journeyKg(goalWeight)
+        let startedWeightCopy = JourneyFormatter.journeyKg(startedWeight)
+        let currentWeightCopy = JourneyFormatter.journeyKg(currentWeight)
+        let goalWeightCopy = JourneyFormatter.journeyKg(goalWeight)
         let startingMaintenance = showsMacros ? 3_100 : nil
         let currentMaintenance = showsMacros ? 2_950 : nil
         let startingTarget = showsMacros ? 1_600 : nil

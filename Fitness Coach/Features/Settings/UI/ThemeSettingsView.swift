@@ -17,10 +17,10 @@ struct ThemeSettingsView: View {
             appearanceSection
             colorThemeSection
         }
-        .fitPilotGroupedList()
+        .formaGroupedList()
         .navigationTitle(FormaProductCopy.Settings.Theme.screenTitle)
         .navigationBarTitleDisplayMode(.inline)
-        .fitPilotScrollBottomInset()
+        .formaScrollBottomInset()
         .onAppear {
             themeStore.recordSettingsViewed()
         }
@@ -43,10 +43,10 @@ struct ThemeSettingsView: View {
                     isSelected: themeStore.appearance == mode,
                     onSelect: { themeStore.setAppearance(mode) }
                 )
-                .fitPilotSettingsRowChrome()
+                .formaSettingsRowChrome()
             }
         } header: {
-            FitPilotSettingsSectionHeader(title: FormaProductCopy.Settings.Theme.appearanceSectionTitle)
+            FormaSettingsSectionHeader(title: FormaProductCopy.Settings.Theme.appearanceSectionTitle)
         }
     }
 
@@ -62,10 +62,10 @@ struct ThemeSettingsView: View {
                     isSelected: themeStore.palette == palette,
                     onSelect: { themeStore.setPalette(palette) }
                 )
-                .fitPilotSettingsRowChrome()
+                .formaSettingsRowChrome()
             }
         } header: {
-            FitPilotSettingsSectionHeader(title: FormaProductCopy.Settings.Theme.colorThemeSectionTitle)
+            FormaSettingsSectionHeader(title: FormaProductCopy.Settings.Theme.colorThemeSectionTitle)
         }
     }
 }
@@ -101,15 +101,15 @@ private struct ThemeAppearanceOptionRow: View {
                         .accessibilityHidden(true)
                 }
             }
-            .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .center)
+            .frame(minHeight: FormaScreenStyle.rowMinHeight, alignment: .center)
             .padding(.vertical, 2)
             .padding(FormaTokens.Spacing.xs)
             .background {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+                    RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
                         .fill(FormaTokens.Color.accentMuted)
                         .overlay {
-                            RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+                            RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
                                 .stroke(FormaTokens.Color.borderSelected, lineWidth: 1.4)
                         }
                 }
@@ -163,10 +163,10 @@ private struct ThemeColorPaletteOptionRow: View {
             .padding(FormaTokens.Spacing.xs)
             .background {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+                    RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
                         .fill(FormaTokens.Color.accentMuted)
                         .overlay {
-                            RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+                            RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
                                 .stroke(FormaTokens.Color.borderSelected, lineWidth: 1.4)
                         }
                 }

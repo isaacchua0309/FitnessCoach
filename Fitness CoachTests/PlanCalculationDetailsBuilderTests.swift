@@ -11,7 +11,7 @@ import XCTest
 final class PlanCalculationDetailsBuilderTests: XCTestCase {
 
     func testCutDetailsIncludeRequiredFields() throws {
-        let profile = ProfilePreviewData.profile
+        let profile = PlanPreviewData.profile
         let result = try PlanCalculationBridge.planResult(from: profile)
         let details = PlanCalculationDetailsBuilder.build(profile: profile, result: result)
 
@@ -104,7 +104,7 @@ final class PlanCalculationDetailsBuilderTests: XCTestCase {
     }
 
     func testWaterAndProteinRowsArePresentWithFootnotes() throws {
-        let profile = ProfilePreviewData.profile
+        let profile = PlanPreviewData.profile
         let result = try PlanCalculationBridge.planResult(from: profile)
         let details = PlanCalculationDetailsBuilder.build(profile: profile, result: result)
 
@@ -120,7 +120,7 @@ final class PlanCalculationDetailsBuilderTests: XCTestCase {
     }
 
     func testRationaleIncludesCalculationDetails() throws {
-        let profile = ProfilePreviewData.profile
+        let profile = PlanPreviewData.profile
         let result = try PlanCalculationBridge.planResult(from: profile)
         let rationale = PlanRationaleCopyBuilder.build(profile: profile, result: result)
 

@@ -1,5 +1,5 @@
 //
-//  FitPilotLegalCopy.swift
+//  FormaLegalCopy.swift
 //  Fitness Coach
 //
 //  FitPilot — In-app Terms of Service and Privacy Policy copy.
@@ -11,7 +11,7 @@
 
 import Foundation
 
-enum FitPilotLegalCopy {
+enum FormaLegalCopy {
 
     static let effectiveDate = FormaProductCopy.Legal.effectiveDate
     static let contactEmail = FormaProductCopy.Legal.supportEmail
@@ -234,7 +234,7 @@ struct LegalDocumentSection: Identifiable, Equatable {
     let body: String
 }
 
-enum FitPilotLegalDocument: String, Identifiable {
+enum FormaLegalDocument: String, Identifiable {
     case terms
     case privacyPolicy
 
@@ -247,9 +247,9 @@ enum FitPilotLegalDocument: String, Identifiable {
     var sections: [LegalDocumentSection] {
         switch self {
         case .terms:
-            return FitPilotLegalCopy.termsSections
+            return FormaLegalCopy.termsSections
         case .privacyPolicy:
-            return FitPilotLegalCopy.privacySections
+            return FormaLegalCopy.privacySections
         }
     }
 
@@ -275,14 +275,14 @@ enum FitPilotLegalDocument: String, Identifiable {
     var url: URL? {
         switch self {
         case .terms:
-            return FitPilotLegalURLs.terms
+            return FormaLegalURLs.terms
         case .privacyPolicy:
-            return FitPilotLegalURLs.privacyPolicy
+            return FormaLegalURLs.privacyPolicy
         }
     }
 }
 
-enum FitPilotLegalURLs {
+enum FormaLegalURLs {
     static let terms: URL? = nil
     static let privacyPolicy: URL? = nil
 }

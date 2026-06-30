@@ -1,5 +1,5 @@
 //
-//  ProfileFormatter.swift
+//  PlanFormatter.swift
 //  Fitness Coach
 //
 //  FitPilot AI — Lightweight Profile display formatting.
@@ -9,7 +9,7 @@
 
 import Foundation
 
-enum ProfileFormatter {
+enum PlanFormatter {
     nonisolated static func name(_ name: String?) -> String {
         let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? "Not set" : trimmed

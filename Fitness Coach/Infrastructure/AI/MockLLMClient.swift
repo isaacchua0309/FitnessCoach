@@ -116,7 +116,7 @@ final class MockLLMClient: LLMClient {
     }
 
     private func logMockHit(operation: String) {
-        FitPilotPipelineTracer.event(
+        FormaPipelineTracer.event(
             stage: .mockLLM,
             level: .warn,
             message: "MockLLMClient invoked",

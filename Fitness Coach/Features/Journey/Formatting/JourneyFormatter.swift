@@ -1,5 +1,5 @@
 //
-//  ProgressFormatter.swift
+//  JourneyFormatter.swift
 //  Fitness Coach
 //
 //  FitPilot AI — Lightweight display formatting for Progress.
@@ -9,7 +9,7 @@
 
 import Foundation
 
-enum ProgressFormatter {
+enum JourneyFormatter {
     static func compactKg(_ value: Double?) -> String {
         guard let value else { return "—" }
         return String(format: "%.1f kg", value)

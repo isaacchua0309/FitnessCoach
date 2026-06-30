@@ -11,7 +11,7 @@ import XCTest
 final class JourneyAnalyticsContextBuilderTests: XCTestCase {
 
     func testSnapshotUsesBucketsNotRawProgress() {
-        let state = ProgressPreviewData.state
+        let state = JourneyPreviewData.state
 
         let snapshot = JourneyAnalyticsContextBuilder.snapshot(
             from: state,
@@ -116,7 +116,7 @@ final class JourneyAnalyticsCoordinatorTests: XCTestCase {
     }
 
     func testScreenViewedFiresOncePerSession() {
-        coordinator.updateContext(from: ProgressPreviewData.state, healthConnected: false)
+        coordinator.updateContext(from: JourneyPreviewData.state, healthConnected: false)
         coordinator.logScreenViewed()
         coordinator.logScreenViewed()
 
@@ -126,20 +126,20 @@ final class JourneyAnalyticsCoordinatorTests: XCTestCase {
     }
 
     func testSectionViewedFiresOnceUntilContextReset() {
-        coordinator.updateContext(from: ProgressPreviewData.state, healthConnected: true)
+        coordinator.updateContext(from: JourneyPreviewData.state, healthConnected: true)
         coordinator.logTransformationViewed()
         coordinator.logTransformationViewed()
 
         XCTAssertEqual(analytics.events.filter { $0.event == .transformationViewed }.count, 1)
 
-        coordinator.updateContext(from: ProgressPreviewData.state, healthConnected: true)
+        coordinator.updateContext(from: JourneyPreviewData.state, healthConnected: true)
         coordinator.logTransformationViewed()
 
         XCTAssertEqual(analytics.events.filter { $0.event == .transformationViewed }.count, 2)
     }
 
     func testWeightCTATappedEvent() {
-        coordinator.updateContext(from: ProgressPreviewData.state, healthConnected: false)
+        coordinator.updateContext(from: JourneyPreviewData.state, healthConnected: false)
         coordinator.logCTATapped(.logWeight)
 
         XCTAssertEqual(analytics.lastEvent, .weightCTATapped)
@@ -147,7 +147,7 @@ final class JourneyAnalyticsCoordinatorTests: XCTestCase {
     }
 
     func testCoachCTATappedEvent() {
-        coordinator.updateContext(from: ProgressPreviewData.state, healthConnected: false)
+        coordinator.updateContext(from: JourneyPreviewData.state, healthConnected: false)
         coordinator.logCTATapped(.logFood)
 
         XCTAssertEqual(analytics.lastEvent, .coachCTATapped)
@@ -155,7 +155,7 @@ final class JourneyAnalyticsCoordinatorTests: XCTestCase {
     }
 
     func testPlanCTAsDoNotEmitCoachOrWeightEvents() {
-        coordinator.updateContext(from: ProgressPreviewData.state, healthConnected: false)
+        coordinator.updateContext(from: JourneyPreviewData.state, healthConnected: false)
         coordinator.logCTATapped(.connectAppleHealth)
         coordinator.logCTATapped(.updateGoal)
 
@@ -163,7 +163,7 @@ final class JourneyAnalyticsCoordinatorTests: XCTestCase {
     }
 
     func testRangeChangedIncludesRangeDays() {
-        coordinator.updateContext(from: ProgressPreviewData.state, healthConnected: false)
+        coordinator.updateContext(from: JourneyPreviewData.state, healthConnected: false)
         coordinator.logRangeChanged(days: 14)
 
         XCTAssertEqual(analytics.lastEvent, .rangeChanged)
@@ -171,7 +171,7 @@ final class JourneyAnalyticsCoordinatorTests: XCTestCase {
     }
 
     func testAnalyticsExpandedEvent() {
-        coordinator.updateContext(from: ProgressPreviewData.state, healthConnected: false)
+        coordinator.updateContext(from: JourneyPreviewData.state, healthConnected: false)
         coordinator.logAnalyticsExpanded()
 
         XCTAssertEqual(analytics.lastEvent, .analyticsExpanded)
@@ -179,7 +179,7 @@ final class JourneyAnalyticsCoordinatorTests: XCTestCase {
     }
 
     func testLoggedPropertiesNeverIncludeRawWeightOrCalories() {
-        coordinator.updateContext(from: ProgressPreviewData.state, healthConnected: true)
+        coordinator.updateContext(from: JourneyPreviewData.state, healthConnected: true)
         coordinator.logScreenViewed()
         coordinator.logCTATapped(.logWeight)
         coordinator.logRangeChanged(days: 28)

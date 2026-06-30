@@ -1,5 +1,5 @@
 //
-//  FitPilotScreenStyle.swift
+//  FormaScreenStyle.swift
 //  Fitness Coach
 //
 //  FitPilot — Shared visual tokens for Plan, Settings, and Account.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-enum FitPilotScreenStyle {
+enum FormaScreenStyle {
     static let horizontalPadding = FormaTokens.Spacing.pageHorizontal
     static let sectionSpacing: CGFloat = 22
     static let rowMinHeight = FormaTokens.Layout.minTouchTarget
@@ -16,9 +16,9 @@ enum FitPilotScreenStyle {
     static let scrollBottomInset = FormaTokens.Layout.tabBarScrollPadding
 
     static let settingsRowInsets = EdgeInsets(
-        top: FitPilotScreenStyle.rowVerticalPadding,
+        top: FormaScreenStyle.rowVerticalPadding,
         leading: FormaTokens.Spacing.md,
-        bottom: FitPilotScreenStyle.rowVerticalPadding,
+        bottom: FormaScreenStyle.rowVerticalPadding,
         trailing: FormaTokens.Spacing.md
     )
 
@@ -28,7 +28,7 @@ enum FitPilotScreenStyle {
 
 // MARK: - Plan
 
-struct FitPilotPlanCard<Content: View>: View {
+struct FormaPlanCard<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
@@ -37,10 +37,10 @@ struct FitPilotPlanCard<Content: View>: View {
             .padding(.vertical, FormaTokens.Spacing.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background {
-                RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+                RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
                     .fill(FormaTokens.Color.surface)
                     .overlay {
-                        RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+                        RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
                             .stroke(
                                 LinearGradient(
                                     colors: [
@@ -57,7 +57,7 @@ struct FitPilotPlanCard<Content: View>: View {
     }
 }
 
-struct FitPilotPlanDisplayRow: View {
+struct FormaPlanDisplayRow: View {
     let label: String
     let value: String
     var multilineValue = false
@@ -88,12 +88,12 @@ struct FitPilotPlanDisplayRow: View {
                 }
             }
         }
-        .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .center)
+        .frame(minHeight: FormaScreenStyle.rowMinHeight, alignment: .center)
         .padding(.vertical, 2)
     }
 }
 
-struct FitPilotPlanRowDivider: View {
+struct FormaPlanRowDivider: View {
     var body: some View {
         Divider()
             .overlay(FormaTokens.Color.border)
@@ -102,7 +102,7 @@ struct FitPilotPlanRowDivider: View {
 
 // MARK: - Settings
 
-struct FitPilotSettingsSectionHeader: View {
+struct FormaSettingsSectionHeader: View {
     let title: String
 
     var body: some View {
@@ -113,7 +113,7 @@ struct FitPilotSettingsSectionHeader: View {
     }
 }
 
-struct FitPilotComingSoonRow: View {
+struct FormaComingSoonRow: View {
     let title: String
 
     var body: some View {
@@ -126,7 +126,7 @@ struct FitPilotComingSoonRow: View {
                 .font(FormaTokens.Typography.caption)
                 .foregroundStyle(FormaTokens.Color.textTertiary.opacity(0.9))
         }
-        .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
+        .frame(minHeight: FormaScreenStyle.rowMinHeight)
         .allowsHitTesting(false)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title), coming soon")
@@ -137,13 +137,13 @@ struct FitPilotComingSoonRow: View {
 // MARK: - Screen chrome
 
 extension View {
-    func fitPilotScreenBackground() -> some View {
+    func formaScreenBackground() -> some View {
         self
             .scrollContentBackground(.hidden)
             .background(FormaTokens.Color.canvas.ignoresSafeArea())
     }
 
-    func fitPilotGroupedList() -> some View {
+    func formaGroupedList() -> some View {
         self
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
@@ -151,30 +151,30 @@ extension View {
             .tint(FormaTokens.Color.accent)
     }
 
-    func fitPilotScrollBottomInset() -> some View {
+    func formaScrollBottomInset() -> some View {
         safeAreaInset(edge: .bottom, spacing: 0) {
-            Color.clear.frame(height: FitPilotScreenStyle.scrollBottomInset)
+            Color.clear.frame(height: FormaScreenStyle.scrollBottomInset)
         }
     }
 
-    func fitPilotFormScreen() -> some View {
+    func formaFormScreen() -> some View {
         self
             .background(FormaTokens.Color.canvas.ignoresSafeArea())
-            .fitPilotScrollBottomInset()
+            .formaScrollBottomInset()
     }
 
-    func fitPilotFormSection() -> some View {
+    func formaFormSection() -> some View {
         listRowInsets(EdgeInsets())
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
     }
 
-    func fitPilotSettingsRowChrome(isEnabled: Bool = true) -> some View {
-        listRowInsets(FitPilotScreenStyle.settingsRowInsets)
+    func formaSettingsRowChrome(isEnabled: Bool = true) -> some View {
+        listRowInsets(FormaScreenStyle.settingsRowInsets)
             .listRowBackground(
                 isEnabled
-                    ? FitPilotScreenStyle.activeRowBackground
-                    : FitPilotScreenStyle.disabledRowBackground
+                    ? FormaScreenStyle.activeRowBackground
+                    : FormaScreenStyle.disabledRowBackground
             )
             .allowsHitTesting(isEnabled)
     }

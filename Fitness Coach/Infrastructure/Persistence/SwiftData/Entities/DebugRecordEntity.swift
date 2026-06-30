@@ -2,9 +2,9 @@
 //  DebugRecordEntity.swift
 //  Fitness Coach
 //
-//  DORMANT — registered in `FitPilotModelContainer.schema` only.
+//  DORMANT — registered in `FormaModelContainer.schema` only.
 //
-//  Pipeline diagnostics use in-memory `FitPilotPipelineTracer` buffers.
+//  Pipeline diagnostics use in-memory `FormaPipelineTracer` buffers.
 //  Disk persistence via `PipelineTracePersistence` is disabled (Stage 14) because
 //  no UI reads stored rows. Context is stored as JSON to avoid SwiftData
 //  dictionary edge cases when persistence is re-enabled.

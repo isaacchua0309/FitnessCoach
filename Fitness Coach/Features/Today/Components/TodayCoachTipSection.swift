@@ -18,7 +18,7 @@ struct TodayCoachTipSection: View {
             Button {
                 onOpenCoach(tip.coachPrefill)
             } label: {
-                FitPilotPlanCard {
+                FormaPlanCard {
                     HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
                         Image(systemName: "sparkles")
                             .font(.caption.weight(.semibold))

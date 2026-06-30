@@ -47,11 +47,11 @@ struct TodayLogMealSheet: View {
                             }
                     }
                 }
-                .padding(.horizontal, FitPilotScreenStyle.horizontalPadding)
+                .padding(.horizontal, FormaScreenStyle.horizontalPadding)
                 .padding(.top, FormaTokens.Spacing.md)
                 .padding(.bottom, FormaTokens.Spacing.lg)
             }
-            .fitPilotFormScreen()
+            .formaFormScreen()
             .navigationTitle(FormaProductCopy.Today.NextAction.sheetLogMealTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

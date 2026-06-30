@@ -19,8 +19,20 @@ final class OnboardingCompletionPolicyTests: XCTestCase {
 
     func testUsesPersistedTabWhenAvailable() {
         XCTAssertEqual(
+            OnboardingCompletionPolicy.initialMainTab(persistedTabRawValue: "plan"),
+            .plan
+        )
+        XCTAssertEqual(
             OnboardingCompletionPolicy.initialMainTab(persistedTabRawValue: "profile"),
-            .profile
+            .plan
+        )
+        XCTAssertEqual(
+            OnboardingCompletionPolicy.initialMainTab(persistedTabRawValue: "journey"),
+            .journey
+        )
+        XCTAssertEqual(
+            OnboardingCompletionPolicy.initialMainTab(persistedTabRawValue: "progress"),
+            .journey
         )
         XCTAssertEqual(
             OnboardingCompletionPolicy.initialMainTab(persistedTabRawValue: "coach"),

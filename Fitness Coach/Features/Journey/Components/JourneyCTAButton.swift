@@ -15,7 +15,7 @@ struct JourneyCTAButton: View {
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                 .foregroundStyle(FormaTokens.Color.accent)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
+                .frame(minHeight: FormaScreenStyle.rowMinHeight)
         }
         .buttonStyle(.plain)
         .accessibilityHint(cta.accessibilityHint ?? "")

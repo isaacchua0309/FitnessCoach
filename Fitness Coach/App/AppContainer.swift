@@ -107,7 +107,7 @@ final class AppContainer {
             ]
         )
 
-        modelContainer = try FitPilotModelContainer.makeContainer(inMemory: inMemory)
+        modelContainer = try FormaModelContainer.makeContainer(inMemory: inMemory)
         store = SwiftDataStore(container: modelContainer)
 
         userProfileService = UserProfileService(store: store)
@@ -156,21 +156,21 @@ final class AppContainer {
         // Debug builds use the local backend gateway when available. The
         // gateway reads .env on the Mac and calls OpenAI, so provider keys still
         // do not live in the iOS app bundle.
-        // Set FITPILOT_USE_MOCK_LLM=1 in the scheme to skip the backend entirely.
-        // Physical device: set FITPILOT_AI_BACKEND_URL in the scheme or DeveloperLocal.plist.
+        // Set FORMA_USE_MOCK_LLM=1 (or legacy FITPILOT_USE_MOCK_LLM=1) to skip the backend.
+        // Physical device: set FORMA_AI_BACKEND_URL in the scheme or DeveloperLocal.plist.
         #if DEBUG
         let wiring: (clientType: String, baseURL: URL?, authAttached: Bool)
-        if ProcessInfo.processInfo.environment["FITPILOT_USE_MOCK_LLM"] == "1" {
+        if FormaEnvironment.isMockLLMEnabled() {
             llmClient = MockLLMClient()
             wiring = ("MockLLMClient", nil, false)
         } else if let backendURL = LocalAIBackendConfiguration.debugBackendURL() {
             llmClient = FallbackLLMClient(
-                primary: FitPilotAIBackendClient(
+                primary: FormaAIBackendClient(
                     baseURL: backendURL,
                     authTokenProvider: { try await authManager.idToken() }
                 )
             )
-            wiring = ("FallbackLLMClient+FitPilotAIBackendClient", backendURL, true)
+            wiring = ("FallbackLLMClient+FormaAIBackendClient", backendURL, true)
         } else {
             llmClient = MockLLMClient()
             wiring = ("MockLLMClient", nil, false)
@@ -179,7 +179,7 @@ final class AppContainer {
         #else
         if let backendURL = ReleaseAIBackendConfiguration.releaseBackendURL() {
             llmClient = FallbackLLMClient(
-                primary: FitPilotAIBackendClient(
+                primary: FormaAIBackendClient(
                     baseURL: backendURL,
                     authTokenProvider: { try await authManager.idToken() }
                 )
@@ -263,8 +263,8 @@ final class AppContainer {
         JourneyAnalyticsCoordinator(analyticsLogger: journeyAnalyticsLogger)
     }
 
-    func makeProgressModel() -> ProgressModel {
-        ProgressModel(
+    func makeJourneyModel() -> JourneyModel {
+        JourneyModel(
             dailyLogService: dailyLogService,
             weightLogService: weightLogService,
             userProfileService: userProfileService,
@@ -273,8 +273,8 @@ final class AppContainer {
         )
     }
 
-    func makeProfileModel() -> ProfileModel {
-        ProfileModel(
+    func makePlanModel() -> PlanModel {
+        PlanModel(
             actionCenter: actionCenter,
             userProfileService: userProfileService,
             targetService: targetService,
@@ -353,13 +353,13 @@ final class AppContainer {
         var fields: [String: String] = [
             "clientType": clientType,
             "authAttached": String(authAttached),
-            "traceEnabled": String(FitPilotPipelineTracer.isEnabled),
-            "traceVerbose": String(FitPilotPipelineTracer.isVerbose)
+            "traceEnabled": String(FormaPipelineTracer.isEnabled),
+            "traceVerbose": String(FormaPipelineTracer.isVerbose)
         ]
         if let baseURL {
             fields["baseURL"] = baseURL.absoluteString
         }
-        FitPilotPipelineTracer.event(
+        FormaPipelineTracer.event(
             stage: .appWiring,
             level: .info,
             message: "LLM client wired",

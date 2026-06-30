@@ -8,7 +8,7 @@ Stage 13–14 audit of SwiftData entities. **Schema is unchanged** — this docu
 |--------|--------|----------------|-------------|-----|
 | `WeeklyReviewEntity` | Schema-only | No | No | No |
 | `ChatMessageEntity` | Schema-only | No | No | No (Coach uses in-memory `ChatMessage`) |
-| `DebugRecordEntity` | Schema-only (disk writes disabled) | No | No | No (Settings uses in-memory `FitPilotPipelineTracer`) |
+| `DebugRecordEntity` | Schema-only (disk writes disabled) | No | No | No (Settings uses in-memory `FormaPipelineTracer`) |
 | `ExerciseSetEntity` | Legacy child of manual workouts | Only via deprecated `addWorkout` | No dedicated API callers | No |
 | `WorkoutEntryEntity` | Legacy reads active | Rarely (tests; deprecated write path) | Yes — Today streaks, Coach context, daily review | Indirect (streaks / focus only) |
 
@@ -20,7 +20,7 @@ Stage 13–14 audit of SwiftData entities. **Schema is unchanged** — this docu
 
 ## Why dormant entities remain in schema
 
-SwiftData requires every on-disk model type to stay listed in `FitPilotModelContainer.schema` until a **versioned migration** removes the table. Dropping an entity without migration causes store open failures for existing installs.
+SwiftData requires every on-disk model type to stay listed in `FormaModelContainer.schema` until a **versioned migration** removes the table. Dropping an entity without migration causes store open failures for existing installs.
 
 | Entity | Why kept |
 |--------|----------|
@@ -41,7 +41,7 @@ Suitable when **no user rows** exist or data loss is acceptable:
 2. `ChatMessageEntity`
 3. `DebugRecordEntity` (after confirming no DEBUG rows in the wild)
 
-Steps: bump model version, remove types from `FitPilotModelContainer.schema`, ship lightweight migration or document one-time store reset for internal builds.
+Steps: bump model version, remove types from `FormaModelContainer.schema`, ship lightweight migration or document one-time store reset for internal builds.
 
 ### Option B — Feature completion (keep table, wire service)
 
@@ -62,7 +62,7 @@ Steps: bump model version, remove types from `FitPilotModelContainer.schema`, sh
 
 ## Deletion requirements
 
-Before removing **any** entity from `FitPilotModelContainer.schema`:
+Before removing **any** entity from `FormaModelContainer.schema`:
 
 - [ ] Product decision recorded (weekly review, chat persistence, manual workouts).
 - [ ] Grep confirms zero `insert` / `FetchDescriptor` / relationship usage for that type.
@@ -83,7 +83,7 @@ Before removing **any** entity from `FitPilotModelContainer.schema`:
 | Deprecated `WorkoutLogService.addWorkout` / `deleteWorkout` | Writes retired; reads remain |
 | Removed `getWorkoutDetail` / `getExerciseSets` | Unreachable APIs |
 | Removed unused `WorkoutLogService.save()` | Dead code |
-| Removed `workoutLogService` from `ProgressModel` | Journey uses Apple Health only |
+| Removed `workoutLogService` from `JourneyModel` | Journey uses Apple Health only |
 | Disabled `PipelineTracePersistence` disk writes | Write-only orphan data; in-memory tracer unchanged |
 
 ---

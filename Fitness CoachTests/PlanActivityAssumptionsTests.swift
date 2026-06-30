@@ -35,7 +35,7 @@ final class PlanActivityAssumptionsTests: XCTestCase {
     }
 
     func testActivityStepIndexMatchesEditFlowWhenBirthdayRequired() {
-        var formState = ProfileFormState(profile: PlanMissionControlFixtures.loseProfile)
+        var formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
         formState.birthDate = nil
 
         XCTAssertEqual(

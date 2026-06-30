@@ -39,7 +39,7 @@ enum JourneyPersonalRecordsBuilder {
                     value: copy.streakDays(streak.length),
                     subtitle: streak.length == 1 ? copy.earlyRecord : nil,
                     periodLabel: streak.length > 1
-                        ? ProgressFormatter.timelineDayLabel(streak.endDate, calendar: input.calendar)
+                        ? JourneyFormatter.timelineDayLabel(streak.endDate, calendar: input.calendar)
                         : nil,
                     isActive: streak.length > 0,
                     isEarlyRecord: streak.length == 1
@@ -418,10 +418,10 @@ enum JourneyPersonalRecordsBuilder {
 
     private static func weekPeriodLabel(start: Date, calendar: Calendar) -> String {
         guard let end = calendar.date(byAdding: .day, value: rollingWeekDays - 1, to: start) else {
-            return ProgressFormatter.timelineDayLabel(start, calendar: calendar)
+            return JourneyFormatter.timelineDayLabel(start, calendar: calendar)
         }
-        let startLabel = ProgressFormatter.timelineDayLabel(start, calendar: calendar)
-        let endLabel = ProgressFormatter.timelineDayLabel(end, calendar: calendar)
+        let startLabel = JourneyFormatter.timelineDayLabel(start, calendar: calendar)
+        let endLabel = JourneyFormatter.timelineDayLabel(end, calendar: calendar)
         return "\(startLabel)–\(endLabel)"
     }
 }

@@ -12,15 +12,19 @@ enum OnboardingCompletionPolicy {
     enum MainTabDestination: String, Equatable, Sendable {
         case today
         case coach
-        case progress
-        case profile
+        case journey
+        case plan
     }
 
     static func initialMainTab(persistedTabRawValue: String?) -> MainTabDestination {
-        guard let persistedTabRawValue,
-              let destination = MainTabDestination(rawValue: persistedTabRawValue) else {
-            return .today
+        guard let raw = persistedTabRawValue else { return .today }
+        switch raw {
+        case "training", "progress":
+            return .journey
+        case "profile":
+            return .plan
+        default:
+            return MainTabDestination(rawValue: raw) ?? .today
         }
-        return destination
     }
 }

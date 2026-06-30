@@ -146,9 +146,9 @@ enum PlanMissionStateBuilder {
             strategyName: strategyName,
             statusCopy: "",
             usesLoggedCurrentWeight: baseline.hasRealWeightEntries,
-            currentWeightLabel: ProfileFormatter.kg(currentKg),
-            goalWeightLabel: ProfileFormatter.kg(goalKg),
-            startWeightLabel: baseline.startWeightKg.map { ProfileFormatter.kg($0) },
+            currentWeightLabel: PlanFormatter.kg(currentKg),
+            goalWeightLabel: PlanFormatter.kg(goalKg),
+            startWeightLabel: baseline.startWeightKg.map { PlanFormatter.kg($0) },
             progressPercentLabel: progressPercentLabel(baseline.progressPercent),
             totalChangeLabel: totalChangeLabel(
                 startKg: startKg,
@@ -196,9 +196,9 @@ enum PlanMissionStateBuilder {
         guard delta > 0.1 else { return nil }
         switch direction {
         case .lose:
-            return FormaProductCopy.PlanMissionControl.totalToLose(ProfileFormatter.kg(delta))
+            return FormaProductCopy.PlanMissionControl.totalToLose(PlanFormatter.kg(delta))
         case .gain:
-            return FormaProductCopy.PlanMissionControl.totalToGain(ProfileFormatter.kg(delta))
+            return FormaProductCopy.PlanMissionControl.totalToGain(PlanFormatter.kg(delta))
         case .maintain:
             return nil
         }
@@ -216,17 +216,17 @@ enum PlanTodayMissionStateBuilder {
         let caloriesLabel = caloriesLabel(for: targets.calorieTarget)
         let proteinLabel = macroLabel(
             value: targets.proteinTarget,
-            formatted: ProfileFormatter.gramsCompact,
+            formatted: PlanFormatter.gramsCompact,
             suffix: "protein"
         )
         let carbsLabel = macroLabel(
             value: targets.carbTarget,
-            formatted: ProfileFormatter.gramsCompact,
+            formatted: PlanFormatter.gramsCompact,
             suffix: "carbs"
         )
         let fatLabel = macroLabel(
             value: targets.fatTarget,
-            formatted: ProfileFormatter.gramsCompact,
+            formatted: PlanFormatter.gramsCompact,
             suffix: "fat"
         )
         let waterLabel = waterLabel(for: targets.waterTargetMl)
@@ -259,7 +259,7 @@ enum PlanTodayMissionStateBuilder {
         guard kcal > 0 else {
             return FormaProductCopy.PlanMissionControl.targetUnavailable
         }
-        return ProfileFormatter.kcal(kcal)
+        return PlanFormatter.kcal(kcal)
     }
 
     static func macroLabel(
@@ -277,7 +277,7 @@ enum PlanTodayMissionStateBuilder {
         guard ml > 0 else {
             return FormaProductCopy.PlanMissionControl.targetUnavailable
         }
-        return "\(ProfileFormatter.litersCompact(ml)) water"
+        return "\(PlanFormatter.litersCompact(ml)) water"
     }
 
     static func progressCopy(
@@ -464,7 +464,7 @@ enum PlanActivityAssumptionsStateBuilder {
         let showsAppleHealth = context.dataSource == .appleHealth
         let connected = showsAppleHealth && context.integrationState.isConnected
         let stepsLabel = "\(TodayActivitySectionFormatting.formatSteps(profile.averageSteps))/day"
-        let activityLevel = ProfileFormatter.activityLevel(profile.activityLevel)
+        let activityLevel = PlanFormatter.activityLevel(profile.activityLevel)
         let trainingLabel = trainingSessionsLabel(profile.trainingFrequencyPerWeek)
         let assumptionsNote = FormaProductCopy.PlanMissionControl.planAssumptionsNote
         let appleHealthStatus = TrainingIntegrationCopy.settingsStatusLabel(
@@ -481,9 +481,9 @@ enum PlanActivityAssumptionsStateBuilder {
             isAppleHealthConnected: connected,
             appleHealthInsightsNote: FormaProductCopy.PlanMissionControl.appleHealthInsightsNote,
             resolvedAgeYears: profile.resolvedAge(referenceDate: asOf),
-            ageLabel: ProfileFormatter.age(profile.resolvedAge(referenceDate: asOf)),
-            heightLabel: ProfileFormatter.cm(profile.heightCm),
-            sexLabel: ProfileFormatter.sex(profile.sex),
+            ageLabel: PlanFormatter.age(profile.resolvedAge(referenceDate: asOf)),
+            heightLabel: PlanFormatter.cm(profile.heightCm),
+            sexLabel: PlanFormatter.sex(profile.sex),
             sectionTitle: FormaProductCopy.PlanMissionControl.planAssumptionsSectionTitle,
             activityFieldLabel: FormaProductCopy.PlanMissionControl.planAssumptionsActivity,
             estimatedStepsFieldLabel: FormaProductCopy.PlanMissionControl.planAssumptionsEstimatedSteps,
@@ -818,7 +818,7 @@ enum PlanAdjustmentStateBuilder {
             PlanAdjustmentSummaryRow(
                 id: "activity",
                 label: FormaProductCopy.PlanMissionControl.adjustPlanActivityLabel,
-                value: ProfileFormatter.activityLevel(profile.activityLevel)
+                value: PlanFormatter.activityLevel(profile.activityLevel)
             ),
             PlanAdjustmentSummaryRow(
                 id: "dailyTarget",
@@ -895,7 +895,7 @@ enum PlanRationaleMetricsBuilder {
         }
 
         let age = profile.resolvedAge(referenceDate: referenceDate)
-        let activity = ProfileFormatter.activityLevel(profile.activityLevel)
+        let activity = PlanFormatter.activityLevel(profile.activityLevel)
         let explanation = """
         BMR \(PlanDisplayFormatter.formatKcalPerDay(result.bmrKcal)) · TDEE \(PlanDisplayFormatter.formatKcalPerDay(result.tdeeKcal)) · \(FormaProductCopy.PlanRationale.birthdayDerivedAge) \(age) · \(activity)
         """

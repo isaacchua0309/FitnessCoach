@@ -54,9 +54,9 @@ enum JourneyBeforeTodayBuilder {
         let showsAdaptedTargetCopy = showsTargetRow
             && abs((startingTarget ?? 0) - (currentTarget ?? 0)) > adaptedTargetToleranceKcal
 
-        let startedWeightCopy = ProgressFormatter.journeyKg(baseline.startWeightKg)
-        let currentWeightCopy = ProgressFormatter.journeyKg(baseline.currentWeightKg)
-        let goalWeightCopy = ProgressFormatter.journeyKg(baseline.goalWeightKg)
+        let startedWeightCopy = JourneyFormatter.journeyKg(baseline.startWeightKg)
+        let currentWeightCopy = JourneyFormatter.journeyKg(baseline.currentWeightKg)
+        let goalWeightCopy = JourneyFormatter.journeyKg(baseline.goalWeightKg)
         let startingMaintenanceCopy = showsMaintenanceRow
             ? formattedKcal(startingMaintenance) : nil
         let currentMaintenanceCopy = showsMaintenanceRow

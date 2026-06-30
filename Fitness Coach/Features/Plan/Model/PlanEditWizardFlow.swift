@@ -35,7 +35,7 @@ enum PlanEditWizardStep: String, CaseIterable, Equatable, Sendable {
 
 enum PlanEditWizardFlow {
 
-    static func steps(for formState: ProfileFormState) -> [PlanEditWizardStep] {
+    static func steps(for formState: PlanFormState) -> [PlanEditWizardStep] {
         var steps: [PlanEditWizardStep] = [.goalAndTargetWeight]
         if needsBirthdayAndSexStep(formState) {
             steps.append(.birthdayAndSex)
@@ -44,15 +44,15 @@ enum PlanEditWizardFlow {
         return steps
     }
 
-    static func needsBirthdayAndSexStep(_ formState: ProfileFormState) -> Bool {
+    static func needsBirthdayAndSexStep(_ formState: PlanFormState) -> Bool {
         formState.birthDate == nil || formState.sex == .preferNotToSay
     }
 
-    static func index(of step: PlanEditWizardStep, formState: ProfileFormState) -> Int? {
+    static func index(of step: PlanEditWizardStep, formState: PlanFormState) -> Int? {
         steps(for: formState).firstIndex(of: step)
     }
 
-    static func step(at index: Int, formState: ProfileFormState) -> PlanEditWizardStep? {
+    static func step(at index: Int, formState: PlanFormState) -> PlanEditWizardStep? {
         let flow = steps(for: formState)
         guard flow.indices.contains(index) else { return nil }
         return flow[index]

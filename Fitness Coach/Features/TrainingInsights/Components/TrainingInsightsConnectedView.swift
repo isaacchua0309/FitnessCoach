@@ -61,7 +61,7 @@ struct TrainingInsightsConnectedView: View {
             .padding(.top, FormaTokens.Spacing.sm)
             .padding(.bottom, TrainingLayout.scrollBottomPadding)
         }
-        .fitPilotScrollBottomInset()
+        .formaScrollBottomInset()
         .refreshable {
             await model.refresh()
         }
@@ -73,24 +73,24 @@ struct TrainingInsightsConnectedView: View {
         VStack(alignment: .leading, spacing: TrainingLayout.itemSpacing) {
             FormaSectionLabel(title: "This week")
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 if weekly.hasActivity {
                     VStack(spacing: 0) {
                         summaryRow(
                             "Workout days",
                             TrainingInsightsFormatter.workoutDaysThisWeek(weekly.workoutDays)
                         )
-                        FitPilotPlanRowDivider()
+                        FormaPlanRowDivider()
                         summaryRow(
                             "Duration",
                             TrainingInsightsFormatter.durationMinutes(weekly.totalDurationMinutes)
                         )
                         if let calories = TrainingInsightsFormatter.activeCalories(weekly.activeCalories) {
-                            FitPilotPlanRowDivider()
+                            FormaPlanRowDivider()
                             summaryRow("Active calories", calories)
                         }
                         if let type = weekly.mostCommonWorkoutType {
-                            FitPilotPlanRowDivider()
+                            FormaPlanRowDivider()
                             summaryRow("Most common", type)
                         }
                     }
@@ -108,15 +108,15 @@ struct TrainingInsightsConnectedView: View {
         VStack(alignment: .leading, spacing: TrainingLayout.itemSpacing) {
             FormaSectionLabel(title: "Recent workout")
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 VStack(spacing: 0) {
                     summaryRow("Type", workout.activityName)
-                    FitPilotPlanRowDivider()
+                    FormaPlanRowDivider()
                     summaryRow("Date", TrainingInsightsFormatter.workoutDate(workout.startDate))
-                    FitPilotPlanRowDivider()
+                    FormaPlanRowDivider()
                     summaryRow("Duration", TrainingInsightsFormatter.durationMinutes(workout.durationMinutes))
                     if let calories = TrainingInsightsFormatter.activeCalories(workout.activeCalories) {
-                        FitPilotPlanRowDivider()
+                        FormaPlanRowDivider()
                         summaryRow("Active calories", calories)
                     }
                 }
@@ -131,7 +131,7 @@ struct TrainingInsightsConnectedView: View {
         VStack(alignment: .leading, spacing: TrainingLayout.itemSpacing) {
             FormaSectionLabel(title: "Consistency")
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     VStack(spacing: 0) {
                         summaryRow(
@@ -140,14 +140,14 @@ struct TrainingInsightsConnectedView: View {
                                 consistency.workoutDays7
                             )
                         )
-                        FitPilotPlanRowDivider()
+                        FormaPlanRowDivider()
                         summaryRow(
                             "Last 14 days",
                             TrainingInsightsFormatter.workoutDays(
                                 consistency.workoutDays14
                             )
                         )
-                        FitPilotPlanRowDivider()
+                        FormaPlanRowDivider()
                         summaryRow(
                             "Last 28 days",
                             TrainingInsightsFormatter.workoutDays(
@@ -170,7 +170,7 @@ struct TrainingInsightsConnectedView: View {
         VStack(alignment: .leading, spacing: TrainingLayout.itemSpacing) {
             FormaSectionLabel(title: "Coach note")
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 Text(note)
                     .font(FormaTokens.Typography.sectionSubtitle)
                     .foregroundStyle(FormaTokens.Color.textLegal)

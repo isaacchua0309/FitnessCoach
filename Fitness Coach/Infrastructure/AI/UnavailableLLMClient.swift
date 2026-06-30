@@ -70,9 +70,9 @@ private extension UnavailableLLMReason {
     var logMessage: String {
         switch self {
         case .releaseBackendNotConfigured:
-            return "FITPILOT_AI_BACKEND_URL is not set for Release."
+            return "FORMA_AI_BACKEND_URL is not set for Release."
         case .releaseBackendURLRejectedLocalhost:
-            return "FITPILOT_AI_BACKEND_URL points at localhost, which Release builds reject."
+            return "FORMA_AI_BACKEND_URL points at localhost, which Release builds reject."
         }
     }
 }

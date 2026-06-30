@@ -9,7 +9,7 @@
 - Firestore paths and `CloudUserProfileDocument` mapping
 - Plan calculation engine and formulas
 - AI pipeline / LLM contracts
-- SwiftData entities registered in `FitPilotModelContainer` (migration-sensitive)
+- SwiftData entities registered in `FormaModelContainer` (migration-sensitive)
 - Canonical onboarding flow (single path; version flags removed 2026-06-28)
 
 ---
@@ -25,7 +25,7 @@ These have **no production references**, **no test references**, and are **not**
 | `FitPilot/Core/Training/TrainingIntegrationPreviewData.swift` | `enum TrainingIntegrationPreviewData` | `rg` → enum unused; **same file also had `StubTrainingIntegrationProvider`** used by previews/tests | ✅ **Stage 3:** enum removed; `StubTrainingIntegrationProvider` extracted to `StubTrainingIntegrationProvider.swift` | **Low** | ✅ **done** (partial) | Build + `TrainingIntegrationTests` |
 | `Features/Onboarding/UI/OnboardingV3LegacyPlaceholderStepView.swift` | `OnboardingV3LegacyPlaceholderStepView` | `rg` → **self + `#Preview` only**; not in `OnboardingView` | v3 uses real step views | **Low** | ✅ **deleted** | `OnboardingV3StructureTests` pass |
 | `Features/Onboarding/Components/OnboardingJourneyHeroCard.swift` | `OnboardingPlanJourneySummary` | `rg` → **self + preview** | Never mounted in `OnboardingView` | **Low** | ✅ **deleted** | Build |
-| `Features/Journey/Components/JourneyTimelineView.swift` | `JourneyTimelineView` | `rg` → **self + `#Preview` only** | Not used in `ProgressView` | **Low** | ✅ **deleted** | Build |
+| `Features/Journey/Components/JourneyTimelineView.swift` | `JourneyTimelineView` | `rg` → **self + `#Preview` only** | Not used in `JourneyView` | **Low** | ✅ **deleted** | Build |
 | `FitPilot/App/AppContainer.swift` | `makeTrainingInsightsView()` | `rg` → **definition only** | Factory never called | **Low** | ✅ **removed** | Build |
 | `FitPilot/App/AppContainer.swift` | `makeTrainingModel()` | `rg makeTrainingModel` → **def + `TrainingConnectedDashboard` preview** | Only legacy preview path; **deferred** (training models excluded from Stage 3) | **Low** | **defer** | Batch 2 |
 | `Features/TrainingInsights/TrainingInsightsView.swift` | `private func openAppSettings()` | Unreachable private method | Dead code | **Low** | ✅ **removed** | Build |
@@ -75,7 +75,7 @@ Production training UX is **`TrainingInsightsView`** (Apple Health). The SwiftDa
 |------------------|------------|
 | `JourneyAchievementsSection` | Deleted — milestones rail is the checkpoint UX |
 | Hidden `JourneyMilestonesSection` | Replaced by mounted `JourneyMilestonesSection` in `JourneyDashboardContent` |
-| `state.achievements` dead field | Removed from `ProgressDashboardState` / builders |
+| `state.achievements` dead field | Removed from `JourneyDashboardState` / builders |
 | `JourneyTimelineView` | Deleted (Stage 3) |
 
 **Keep:** `JourneyMilestonesBuilder`, `JourneyDashboardBuilder`, all live `Journey*Builder` types — see `Fitness CoachTests/JourneyManualQAChecklistTests.swift`.
@@ -99,8 +99,8 @@ Production training UX is **`TrainingInsightsView`** (Apple Health). The SwiftDa
 
 | File path | Type | Reference search | Reason verify | Risk | Action | Validation |
 |-----------|------|------------------|---------------|------|--------|------------|
-| `DesignSystem/Legacy/FitPilotScreenStyle.swift` | `FitPilotScreenStyle`, `FitPilotPlanCard` | 30+ production usages | Active design primitive | **High** | **rename/consolidate** (later sprint) | Visual regression |
-| `Domain/Legal/FitPilotLegalCopy.swift` | Legal strings | Settings / sign-in | Active copy | **Medium** | **rename** later | Legal review |
+| `DesignSystem/Legacy/FormaScreenStyle.swift` | `FormaScreenStyle`, `FormaPlanCard` | 30+ production usages | Active design primitive | **High** | **rename/consolidate** (later sprint) | Visual regression |
+| `Domain/Legal/FormaLegalCopy.swift` | Legal strings | Settings / sign-in | Active copy | **Medium** | **rename** later | Legal review |
 
 ---
 
@@ -110,7 +110,7 @@ Migration-sensitive, cloud/auth, feature-flagged flows, debug tooling, or near-t
 
 | File path | Type | Reference search | Reason keep | Risk if deleted | Action |
 |-----------|------|------------------|-------------|-----------------|--------|
-| `Data/SwiftData/Entities/ChatMessageEntity.swift` + mapping | Entity | In `FitPilotModelContainer`; **no read/write service** | Schema on disk; future chat persistence possible | **High** | **keep** until migration plan |
+| `Data/SwiftData/Entities/ChatMessageEntity.swift` + mapping | Entity | In `FormaModelContainer`; **no read/write service** | Schema on disk; future chat persistence possible | **High** | **keep** until migration plan |
 | `Data/SwiftData/Entities/WeeklyReviewEntity.swift` + `Domain/Models/WeeklyReview.swift` | Entity + model | Container + mapping; **`ReviewService` uses `DailyReviewEntity` only** | Orphan schema field | **High** | **keep** until migration plan |
 | `Data/SwiftData/Entities/ExerciseSetEntity.swift` | Entity | `WorkoutLogService`, `WorkoutEntryEntity` relationship | Coach manual workout logging | **High** | **keep** |
 | `Data/Firebase/*` | Cloud stores, DTOs | Auth gate, bootstrap, tests | Core profile sync | **High** | **keep** |
@@ -120,7 +120,7 @@ Migration-sensitive, cloud/auth, feature-flagged flows, debug tooling, or near-t
 | `Domain/Onboarding/OnboardingFlowScope.swift`, `OnboardingStep.swift` | Canonical flow | Production onboarding | Single onboarding path | **High** | **keep** |
 | `Features/Settings/UI/*Diagnostics*` | Debug views | `SettingsRootView` | Engineering diagnostics | **Low** | **keep** |
 | `Data/Firebase/NoOpCloudUserProfileStore.swift` | Store | `AppContainer` preview / no-Firebase builds | Test & preview wiring | **Medium** | **keep** |
-| `Features/Journey/Model/JourneyMilestonesBuilder.swift` | Milestones + checkpoints | `JourneyDashboardBuilder` → `ProgressModel` | Live Journey section | **High** | **keep** | `JourneyMilestonesTests`, manual QA checklist |
+| `Features/Journey/Model/JourneyMilestonesBuilder.swift` | Milestones + checkpoints | `JourneyDashboardBuilder` → `JourneyModel` | Live Journey section | **High** | **keep** | `JourneyMilestonesTests`, manual QA checklist |
 | `FitPilot/App/AppContainer.swift` | DI root | App entry | Runtime wiring | **High** | **keep** |
 | `ContentView.swift` | Root view | `Fitness_CoachApp` | App shell | **High** | **keep** |
 
@@ -132,8 +132,8 @@ Behavior-neutral refactors for later batches. **Not deletions.**
 
 | Area | Files / types | Reference evidence | Duplication | Risk | Action | Validation |
 |------|---------------|-------------------|-------------|------|--------|------------|
-| Card primitive | `FitPilotPlanCard` vs `FormaFormCard` vs `FormaEmptyStateCard` | `FormaFormCard` wraps `FitPilotPlanCard`; empty card wraps both | Three-layer card stack | **Medium** | **consolidate** to `FormaCard` | Visual / snapshot |
-| Screen metrics | `FitPilotScreenStyle` vs `FormaTokens` vs `*Layout` enums | Widespread `FitPilotScreenStyle.horizontalPadding` | Split legacy/modern spacing | **Medium** | **consolidate** into tokens | UI pass |
+| Card primitive | `FormaPlanCard` vs `FormaFormCard` vs `FormaEmptyStateCard` | `FormaFormCard` wraps `FormaPlanCard`; empty card wraps both | Three-layer card stack | **Medium** | **consolidate** to `FormaCard` | Visual / snapshot |
+| Screen metrics | `FormaScreenStyle` vs `FormaTokens` vs `*Layout` enums | Widespread `FormaScreenStyle.horizontalPadding` | Split legacy/modern spacing | **Medium** | **consolidate** into tokens | UI pass |
 | Text fields | `OnboardingTextField` vs `FormaLabeledField` | Onboarding vs Today/Plan forms | Parallel TextField wrappers | **Medium** | **consolidate** with style param | Form tests |
 | Unit settings | `UnitSettingsView` vs `UnitsSettingsScreen` | Wizard vs Settings root | Same picker, two shells | **Low** | **consolidate** | Settings smoke |
 | Progress headers | `OnboardingProgressHeader`, `OnboardingStageProgressHeader`, `OnboardingV3StageProgressHeader` | `OnboardingStepContainer` switches | One header per flow generation | **Medium** | **consolidate** with scope param | Onboarding tests |
@@ -178,7 +178,7 @@ Also removed: `makeTrainingInsightsView()`, `openAppSettings()`.
 | `OnboardingModel.swift` | 928 lines | v1/v2/v3 navigation in one type |
 | `Features/TrainingInsights/Legacy/` | 17 files | ~half dead dashboard, half shared with Insights |
 | `Features/Onboarding/` | 56 files | v1 + v2 + v3 parallel implementations |
-| Duplicate UI primitives | 30+ `FitPilotPlanCard` call sites | Rename/consolidate later |
+| Duplicate UI primitives | 30+ `FormaPlanCard` call sites | Rename/consolidate later |
 
 ### 4. Suggested first deletion batch (Stage A — after approval)
 
@@ -198,7 +198,7 @@ Also removed: `makeTrainingInsightsView()`, `openAppSettings()`.
 |------|---------------|----------|
 | `Features/Onboarding/UI/OnboardingV3LegacyPlaceholderStepView.swift` | ~52 | Never referenced from `OnboardingView`; v3 uses dedicated step views |
 | `Features/Onboarding/Components/OnboardingJourneyHeroCard.swift` | ~87 | `OnboardingPlanJourneySummary` preview-only; not in any flow |
-| `Features/Journey/Components/JourneyTimelineView.swift` | ~60 | Not mounted in `ProgressView`; preview-only |
+| `Features/Journey/Components/JourneyTimelineView.swift` | ~60 | Not mounted in `JourneyView`; preview-only |
 
 ### Deleted types / methods
 
@@ -302,6 +302,6 @@ xcodebuild -scheme "Fitness Coach" \
 | Item | Reason |
 |------|--------|
 | `WeeklyReviewEntity`, `ChatMessageEntity`, `DebugRecordEntity` | Schema migration required |
-| `ProgressPreviewData.swift` move to test target | 15+ test files + 40+ previews depend on production target |
+| `JourneyPreviewData.swift` move to test target | 15+ test files + 40+ previews depend on production target |
 | `OnboardingProofCards` preview-only views | Models still covered by `OnboardingComponentsTests` |
-| `ProfileDashboardState` dead fields (`strategy`, `lifestyle`, etc.) | Phase 2 behavior-neutral refactor |
+| `PlanDashboardState` dead fields (`strategy`, `lifestyle`, etc.) | Phase 2 behavior-neutral refactor |

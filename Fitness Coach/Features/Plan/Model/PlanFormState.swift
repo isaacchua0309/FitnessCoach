@@ -1,5 +1,5 @@
 //
-//  ProfileFormState.swift
+//  PlanFormState.swift
 //  Fitness Coach
 //
 //  FitPilot AI — Local form state for profile editing.
@@ -9,7 +9,7 @@
 
 import Foundation
 
-struct ProfileFormState: Equatable {
+struct PlanFormState: Equatable {
     private static let trainingDefaultsResolver = ActivityTrainingDefaultsResolver()
     private static let initialTrainingDefaults = trainingDefaultsResolver.defaults(for: .moderatelyActive)
 
@@ -75,8 +75,8 @@ struct ProfileFormState: Equatable {
         reconcileTrainingRhythmAfterRestore()
     }
 
-    static func defaultDraftValues() -> ProfileFormState {
-        var state = ProfileFormState(
+    static func defaultDraftValues() -> PlanFormState {
+        var state = PlanFormState(
             name: "",
             birthDate: BirthDateAgeResolver.syntheticBirthDate(fromAge: 24),
             ageText: "24",

@@ -84,7 +84,7 @@ enum DailyLogServiceTestSupport {
         referenceNow: Date = DailyLogServiceTestSupport.referenceNow
     ) throws -> Harness {
         let dateProvider = FixedDailyLogTestDateProvider(now: referenceNow)
-        let container = try FitPilotModelContainer.makeContainer(inMemory: true)
+        let container = try FormaModelContainer.makeContainer(inMemory: true)
         let store = SwiftDataStore(container: container)
         let profileService = UserProfileService(store: store, dateProvider: dateProvider)
         let dailyLogService = DailyLogService(

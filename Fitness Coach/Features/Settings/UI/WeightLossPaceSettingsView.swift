@@ -100,7 +100,7 @@ struct WeightLossPaceSettingsView: View {
     // MARK: - Preview
 
     private var previewCard: some View {
-        FitPilotPlanCard {
+        FormaPlanCard {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 if let validationError = preview.validationError {
                     Text(validationError)

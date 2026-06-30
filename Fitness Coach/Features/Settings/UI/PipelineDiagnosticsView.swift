@@ -21,13 +21,13 @@ struct PipelineDiagnosticsView: View {
                     .foregroundStyle(FormaTokens.Color.textPrimary)
 
                 Button("Clear traces") {
-                    FitPilotPipelineTracer.clear()
+                    FormaPipelineTracer.clear()
                     reload()
                 }
                 .font(FormaTokens.Typography.body)
                 .foregroundStyle(FormaTokens.Color.accent)
             } header: {
-                FitPilotSettingsSectionHeader(title: "Filters")
+                FormaSettingsSectionHeader(title: "Filters")
             }
 
             Section {
@@ -35,7 +35,7 @@ struct PipelineDiagnosticsView: View {
                     Text("No pipeline traces yet. Send a Coach message to populate this list.")
                         .font(FormaTokens.Typography.caption)
                         .foregroundStyle(FormaTokens.Color.textTertiary)
-                        .fitPilotSettingsRowChrome()
+                        .formaSettingsRowChrome()
                 } else {
                     ForEach(filteredSummaries) { summary in
                         NavigationLink {
@@ -43,21 +43,21 @@ struct PipelineDiagnosticsView: View {
                         } label: {
                             traceRow(summary)
                         }
-                        .fitPilotSettingsRowChrome()
+                        .formaSettingsRowChrome()
                     }
                 }
             } header: {
-                FitPilotSettingsSectionHeader(title: "Recent traces")
+                FormaSettingsSectionHeader(title: "Recent traces")
             } footer: {
-                Text("Set FITPILOT_PIPELINE_TRACE_VERBOSE=1 in the Xcode scheme for request/response body snippets. Disable tracing with FITPILOT_PIPELINE_TRACE=0.")
+                Text("Set FORMA_PIPELINE_TRACE_VERBOSE=1 (or legacy FITPILOT_PIPELINE_TRACE_VERBOSE=1) in the Xcode scheme for request/response body snippets. Disable tracing with FORMA_PIPELINE_TRACE=0.")
                     .font(FormaTokens.Typography.caption)
                     .foregroundStyle(FormaTokens.Color.textTertiary)
             }
         }
-        .fitPilotGroupedList()
+        .formaGroupedList()
         .navigationTitle("Pipeline traces")
         .navigationBarTitleDisplayMode(.inline)
-        .fitPilotScrollBottomInset()
+        .formaScrollBottomInset()
         .onAppear(perform: reload)
         .onReceive(NotificationCenter.default.publisher(for: .pipelineTraceDidUpdate)) { _ in
             reload()
@@ -101,7 +101,7 @@ struct PipelineDiagnosticsView: View {
     }
 
     private func reload() {
-        summaries = FitPilotPipelineTracer.recentSummaries
+        summaries = FormaPipelineTracer.recentSummaries
     }
 }
 

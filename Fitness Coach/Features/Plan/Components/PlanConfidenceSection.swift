@@ -14,7 +14,7 @@ struct PlanConfidenceSection: View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
             FormaSectionLabel(title: state.sectionTitle)
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     Text(state.scoreLabel)
                         .font(FormaTokens.Typography.sectionTitle.weight(.bold))

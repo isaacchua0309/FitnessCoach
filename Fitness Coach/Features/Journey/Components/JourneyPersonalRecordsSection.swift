@@ -13,21 +13,21 @@ struct JourneyPersonalRecordsSection: View {
             FormaSectionLabel(title: FormaProductCopy.Journey.PersonalRecords.sectionTitle)
 
             if !state.isUnlocked {
-                FitPilotPlanCard {
+                FormaPlanCard {
                     Text(state.lockedMessage ?? FormaProductCopy.Journey.PersonalRecords.lockedBody)
                         .font(FormaTokens.Typography.sectionSubtitle)
                         .foregroundStyle(FormaTokens.Color.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             } else if state.displayRecords.isEmpty {
-                FitPilotPlanCard {
+                FormaPlanCard {
                     Text(FormaProductCopy.Journey.PersonalRecords.lockedBody)
                         .font(FormaTokens.Typography.sectionSubtitle)
                         .foregroundStyle(FormaTokens.Color.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             } else {
-                FitPilotPlanCard {
+                FormaPlanCard {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: FormaTokens.Spacing.sm) {
                             ForEach(state.displayRecords) { record in
@@ -102,7 +102,7 @@ struct JourneyPersonalRecordsSection: View {
 #if DEBUG
 #Preview("Personal records") {
     ScrollView {
-        JourneyPersonalRecordsSection(state: ProgressPreviewData.state.personalRecords)
+        JourneyPersonalRecordsSection(state: JourneyPreviewData.state.personalRecords)
             .padding()
     }
     .background(FormaTokens.Color.canvas)

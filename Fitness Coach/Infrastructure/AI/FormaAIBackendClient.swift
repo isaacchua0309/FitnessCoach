@@ -1,5 +1,5 @@
 //
-//  FitPilotAIBackendClient.swift
+//  FormaAIBackendClient.swift
 //  Fitness Coach
 //
 //  FitPilot AI — Thin HTTP client shell for the FitPilot backend AI gateway.
@@ -9,7 +9,7 @@ import Foundation
 
 typealias AuthTokenProvider = () async throws -> String
 
-final class FitPilotAIBackendClient: LLMClient {
+final class FormaAIBackendClient: LLMClient {
 
     private let baseURL: URL
     private let urlSession: URLSession
@@ -76,7 +76,7 @@ final class FitPilotAIBackendClient: LLMClient {
         body: Body
     ) async throws -> Response {
         let url = baseURL.appendingPathComponent(endpoint.rawValue)
-        let traceId = await MainActor.run { FitPilotPipelineTracer.currentTraceId }
+        let traceId = await MainActor.run { FormaPipelineTracer.currentTraceId }
 
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
@@ -84,7 +84,7 @@ final class FitPilotAIBackendClient: LLMClient {
         urlRequest.setValue("application/json", forHTTPHeaderField: "Accept")
 
         if let traceId {
-            urlRequest.setValue(traceId.uuidString, forHTTPHeaderField: FitPilotPipelineTracer.traceHeaderName)
+            urlRequest.setValue(traceId.uuidString, forHTTPHeaderField: FormaPipelineTracer.traceHeaderName)
         }
 
         let requestBody: Data
@@ -92,7 +92,7 @@ final class FitPilotAIBackendClient: LLMClient {
             requestBody = try encoder.encode(body)
             urlRequest.httpBody = requestBody
         } catch {
-            FitPilotPipelineTracer.logError(
+            FormaPipelineTracer.logError(
                 stage: .httpRequest,
                 message: "Request encoding failed",
                 fields: [
@@ -111,7 +111,7 @@ final class FitPilotAIBackendClient: LLMClient {
                 urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
                 authHeaderPresent = true
             } catch let error as AuthManagerError {
-                FitPilotPipelineTracer.logError(
+                FormaPipelineTracer.logError(
                     stage: .authToken,
                     message: "Auth token unavailable for HTTP request",
                     fields: [
@@ -121,7 +121,7 @@ final class FitPilotAIBackendClient: LLMClient {
                 )
                 throw LLMClientError.authenticationFailed
             } catch {
-                FitPilotPipelineTracer.logError(
+                FormaPipelineTracer.logError(
                     stage: .authToken,
                     message: "Auth token fetch failed",
                     fields: [
@@ -138,12 +138,12 @@ final class FitPilotAIBackendClient: LLMClient {
             "url": url.absoluteString,
             "requestBytes": String(requestBody.count),
             "authHeaderPresent": String(authHeaderPresent),
-            "extendedTimeout": String(FitPilotPipelineTracer.usesExtendedHTTPTimeout)
+            "extendedTimeout": String(FormaPipelineTracer.usesExtendedHTTPTimeout)
         ]
-        if let snippet = FitPilotPipelineTracer.sanitizedJSONSnippet(requestBody) {
+        if let snippet = FormaPipelineTracer.sanitizedJSONSnippet(requestBody) {
             requestFields["requestBody"] = snippet
         }
-        FitPilotPipelineTracer.event(
+        FormaPipelineTracer.event(
             stage: .httpRequest,
             level: .info,
             message: "HTTP POST started",
@@ -157,7 +157,7 @@ final class FitPilotAIBackendClient: LLMClient {
             (data, response) = try await urlSession.data(for: urlRequest)
         } catch {
             let durationMs = Int(Date().timeIntervalSince(started) * 1_000)
-            FitPilotPipelineTracer.logError(
+            FormaPipelineTracer.logError(
                 stage: .httpResponse,
                 message: "HTTP request failed",
                 fields: [
@@ -182,10 +182,10 @@ final class FitPilotAIBackendClient: LLMClient {
                 "durationMs": String(durationMs),
                 "responseBytes": String(data.count)
             ]
-            if let snippet = FitPilotPipelineTracer.sanitizedJSONSnippet(data) {
+            if let snippet = FormaPipelineTracer.sanitizedJSONSnippet(data) {
                 errorFields["responseBody"] = snippet
             }
-            FitPilotPipelineTracer.logError(
+            FormaPipelineTracer.logError(
                 stage: .httpResponse,
                 message: "HTTP non-success status",
                 fields: errorFields
@@ -200,10 +200,10 @@ final class FitPilotAIBackendClient: LLMClient {
             "durationMs": String(durationMs),
             "responseBytes": String(data.count)
         ]
-        if let snippet = FitPilotPipelineTracer.sanitizedJSONSnippet(data) {
+        if let snippet = FormaPipelineTracer.sanitizedJSONSnippet(data) {
             responseFields["responseBody"] = snippet
         }
-        FitPilotPipelineTracer.event(
+        FormaPipelineTracer.event(
             stage: .httpResponse,
             level: .info,
             message: "HTTP POST succeeded",
@@ -213,7 +213,7 @@ final class FitPilotAIBackendClient: LLMClient {
         do {
             return try decoder.decode(Response.self, from: data)
         } catch {
-            FitPilotPipelineTracer.logError(
+            FormaPipelineTracer.logError(
                 stage: .httpResponse,
                 message: "Response decoding failed",
                 fields: [
@@ -230,7 +230,7 @@ final class FitPilotAIBackendClient: LLMClient {
 
     private static func makeSession() -> URLSession {
         let configuration = URLSessionConfiguration.ephemeral
-        if FitPilotPipelineTracer.usesExtendedHTTPTimeout {
+        if FormaPipelineTracer.usesExtendedHTTPTimeout {
             configuration.timeoutIntervalForRequest = 8
             configuration.timeoutIntervalForResource = 12
         } else {

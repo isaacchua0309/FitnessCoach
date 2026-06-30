@@ -118,7 +118,7 @@ final class CoachRouteDecider: Sendable {
             )
 
         case .passToCheapLLM:
-            FitPilotPipelineTracer.event(
+            FormaPipelineTracer.event(
                 stage: .localGuard,
                 level: .info,
                 message: "Continuing to cheap LLM classifier"
@@ -128,7 +128,7 @@ final class CoachRouteDecider: Sendable {
 
         let classifyKey = classifyCacheKey(text: input.normalizedText, context: context)
         if isDuplicateClassify(key: classifyKey) {
-            FitPilotPipelineTracer.event(
+            FormaPipelineTracer.event(
                 stage: .classifyDedup,
                 level: .warn,
                 message: "Duplicate classify suppressed",
@@ -154,7 +154,7 @@ final class CoachRouteDecider: Sendable {
             )
         } catch {
             let durationMs = Int(Date().timeIntervalSince(classifyStarted) * 1_000)
-            FitPilotPipelineTracer.logError(
+            FormaPipelineTracer.logError(
                 stage: .classify,
                 message: "Intent classification failed",
                 fields: [
@@ -167,7 +167,7 @@ final class CoachRouteDecider: Sendable {
         }
 
         let classifyDurationMs = Int(Date().timeIntervalSince(classifyStarted) * 1_000)
-        FitPilotPipelineTracer.event(
+        FormaPipelineTracer.event(
             stage: .classify,
             level: .info,
             message: "Intent classification succeeded",

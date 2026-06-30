@@ -33,14 +33,14 @@ struct TrainingInsightsEmptyConnectedView: View {
             .padding(.top, FormaTokens.Spacing.sm)
             .padding(.bottom, TrainingLayout.scrollBottomPadding)
         }
-        .fitPilotScrollBottomInset()
+        .formaScrollBottomInset()
     }
 
     private var coachNoteCard: some View {
         VStack(alignment: .leading, spacing: TrainingLayout.itemSpacing) {
             FormaSectionLabel(title: "Coach note")
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 Text(TrainingInsightsCoachNoteBuilder.note(weeklyWorkoutCount: 0))
                     .font(FormaTokens.Typography.sectionSubtitle)
                     .foregroundStyle(FormaTokens.Color.textLegal)

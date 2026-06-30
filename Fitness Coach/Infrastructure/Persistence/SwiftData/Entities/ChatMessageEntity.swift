@@ -2,7 +2,7 @@
 //  ChatMessageEntity.swift
 //  Fitness Coach
 //
-//  DORMANT — registered in `FitPilotModelContainer.schema` only.
+//  DORMANT — registered in `FormaModelContainer.schema` only.
 //
 //  Coach renders in-memory `ChatMessage` values (`CoachModel.messages`); nothing
 //  persists to this table yet. Conversational history is not the source of truth

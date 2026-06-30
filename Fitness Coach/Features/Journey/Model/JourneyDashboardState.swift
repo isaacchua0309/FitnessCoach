@@ -1,5 +1,5 @@
 //
-//  ProgressDashboardState.swift
+//  JourneyDashboardState.swift
 //  Fitness Coach
 //
 //  FitPilot AI — Unified immutable Journey “fitness story” dashboard payload.
@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct ProgressDashboardState: Equatable {
+struct JourneyDashboardState: Equatable {
     var selectedRangeDays: Int
     var hasProfile: Bool
 

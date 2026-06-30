@@ -63,11 +63,11 @@ struct TodayEditFoodEntrySheet: View {
                     .buttonStyle(.bordered)
                     .padding(.top, FormaTokens.Spacing.sm)
                 }
-                .padding(.horizontal, FitPilotScreenStyle.horizontalPadding)
+                .padding(.horizontal, FormaScreenStyle.horizontalPadding)
                 .padding(.top, FormaTokens.Spacing.md)
                 .padding(.bottom, FormaTokens.Spacing.lg)
             }
-            .fitPilotFormScreen()
+            .formaFormScreen()
             .navigationTitle(FormaProductCopy.Today.Meals.editSheetTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

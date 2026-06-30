@@ -58,7 +58,7 @@ enum PlanCalculationDetailsBuilder {
         result: PlanCalculationResult
     ) -> PlanCalculationDetailsSection {
         let energy = result.energy
-        let activityName = ProfileFormatter.activityLevel(profile.activityLevel)
+        let activityName = PlanFormatter.activityLevel(profile.activityLevel)
         let multiplier = PlanDisplayFormatter.formatMultiplier(energy.activityMultiplier)
 
         let rows: [PlanCalculationDetailsRow] = [
@@ -197,7 +197,7 @@ enum PlanCalculationDetailsBuilder {
             row(
                 id: "age",
                 label: FormaProductCopy.ProfileForm.age,
-                value: ProfileFormatter.age(profile.resolvedAge(referenceDate: referenceDate)),
+                value: PlanFormatter.age(profile.resolvedAge(referenceDate: referenceDate)),
                 footnote: ageFootnote
             ),
             row(
@@ -209,7 +209,7 @@ enum PlanCalculationDetailsBuilder {
             row(
                 id: "sex",
                 label: FormaProductCopy.ProfileForm.sex,
-                value: ProfileFormatter.sex(profile.sex),
+                value: PlanFormatter.sex(profile.sex),
                 footnote: nil
             ),
             row(
@@ -221,7 +221,7 @@ enum PlanCalculationDetailsBuilder {
             row(
                 id: "units",
                 label: FormaProductCopy.ProfileForm.unitSystem,
-                value: ProfileFormatter.unitSystem(profile.unitSystem),
+                value: PlanFormatter.unitSystem(profile.unitSystem),
                 footnote: nil
             )
         ]

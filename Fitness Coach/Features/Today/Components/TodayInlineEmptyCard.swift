@@ -12,7 +12,7 @@ struct TodayInlineEmptyCard: View {
     let onAction: (() -> Void)?
 
     var body: some View {
-        FitPilotPlanCard {
+        FormaPlanCard {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 Text(copy.title)
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))

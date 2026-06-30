@@ -31,7 +31,7 @@ struct JourneyDetailedAnalyticsSection: View {
     }
 
     var body: some View {
-        FitPilotPlanCard {
+        FormaPlanCard {
             DisclosureGroup(isExpanded: $isExpanded) {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
                     Text(FormaProductCopy.Journey.analyticsBasedOnDays(analytics.nutritionSummary.loggedDays))
@@ -42,7 +42,7 @@ struct JourneyDetailedAnalyticsSection: View {
                         Text(FormaProductCopy.Journey.DetailedAnalytics.rangeTitle)
                             .font(FormaTokens.Typography.caption)
                             .foregroundStyle(FormaTokens.Color.textSecondary)
-                        ProgressRangeSelector(
+                        JourneyRangeSelector(
                             selectedRangeDays: selectedRangeDays,
                             onSelect: onSelectRange
                         )
@@ -70,18 +70,18 @@ struct JourneyDetailedAnalyticsSection: View {
                     }
 
                     analyticsBlock(title: FormaProductCopy.Journey.DetailedAnalytics.nutritionTitle) {
-                        analyticsRow("Avg calories", ProgressFormatter.kcal(analytics.nutritionSummary.averageCalories))
-                        analyticsRow("Avg protein", ProgressFormatter.grams(analytics.nutritionSummary.averageProtein))
-                        analyticsRow("Avg carbs", ProgressFormatter.grams(analytics.nutritionSummary.averageCarbs))
-                        analyticsRow("Avg fat", ProgressFormatter.grams(analytics.nutritionSummary.averageFat))
+                        analyticsRow("Avg calories", JourneyFormatter.kcal(analytics.nutritionSummary.averageCalories))
+                        analyticsRow("Avg protein", JourneyFormatter.grams(analytics.nutritionSummary.averageProtein))
+                        analyticsRow("Avg carbs", JourneyFormatter.grams(analytics.nutritionSummary.averageCarbs))
+                        analyticsRow("Avg fat", JourneyFormatter.grams(analytics.nutritionSummary.averageFat))
                         if let fiber = analytics.nutritionSummary.averageFiber {
-                            analyticsRow("Avg fiber", ProgressFormatter.grams(fiber))
+                            analyticsRow("Avg fiber", JourneyFormatter.grams(fiber))
                         }
                     }
 
                     analyticsBlock(title: FormaProductCopy.Journey.DetailedAnalytics.waterTitle) {
-                        analyticsRow("Avg water", ProgressFormatter.ml(analytics.waterSummary.averageWaterMl))
-                        analyticsRow("Avg target", ProgressFormatter.ml(analytics.waterSummary.averageWaterTargetMl))
+                        analyticsRow("Avg water", JourneyFormatter.ml(analytics.waterSummary.averageWaterMl))
+                        analyticsRow("Avg target", JourneyFormatter.ml(analytics.waterSummary.averageWaterTargetMl))
                     }
 
                     trainingAnalyticsBlock
@@ -138,7 +138,7 @@ struct JourneyDetailedAnalyticsSection: View {
                 }
                 analyticsRow(
                     "Active calories",
-                    ProgressFormatter.kcal(workout.totalEstimatedCaloriesBurned)
+                    JourneyFormatter.kcal(workout.totalEstimatedCaloriesBurned)
                 )
                 if let duration = workout.averageDurationMinutes {
                     analyticsRow("Avg duration", "\(duration) min")
@@ -220,7 +220,7 @@ private struct JourneyWeightTrendChart: View {
 #Preview("Sparse — log weight CTA") {
     ScrollView {
         JourneyDetailedAnalyticsSection(
-            analytics: ProgressPreviewData.sparseData.detailedAnalytics,
+            analytics: JourneyPreviewData.sparseData.detailedAnalytics,
             selectedRangeDays: 28
         ) { _ in }
         .padding()
@@ -232,7 +232,7 @@ private struct JourneyWeightTrendChart: View {
 #Preview("Detailed analytics") {
     ScrollView {
         JourneyDetailedAnalyticsSection(
-            analytics: ProgressPreviewData.state.detailedAnalytics,
+            analytics: JourneyPreviewData.state.detailedAnalytics,
             selectedRangeDays: 28
         ) { _ in }
         .padding()

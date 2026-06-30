@@ -86,7 +86,7 @@ final class AuthManagerErrorTests: XCTestCase {
     }
 
     func testBackendClientMapsAuthManagerErrorToAuthenticationFailure() async {
-        let client = FitPilotAIBackendClient(
+        let client = FormaAIBackendClient(
             baseURL: URL(string: "http://127.0.0.1:8787")!,
             authTokenProvider: { throw AuthManagerError.notSignedIn }
         )

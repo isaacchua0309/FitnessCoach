@@ -20,7 +20,7 @@ struct PlanNextMilestoneSection: View {
                 action: onGoToJourney
             )
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
                     Text(state.headline)
                         .font(FormaTokens.Typography.sectionTitle.weight(.semibold))

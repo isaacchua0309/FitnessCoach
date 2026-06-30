@@ -2,7 +2,7 @@
 //  WeeklyReviewEntity.swift
 //  Fitness Coach
 //
-//  DORMANT — registered in `FitPilotModelContainer.schema` only.
+//  DORMANT — registered in `FormaModelContainer.schema` only.
 //
 //  No service creates or reads this entity today. `ReviewService` uses
 //  `DailyReviewEntity` for Coach daily reviews. Mapping and `WeeklyReview`

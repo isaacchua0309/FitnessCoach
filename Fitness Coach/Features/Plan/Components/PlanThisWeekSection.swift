@@ -14,7 +14,7 @@ struct PlanThisWeekSection: View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
             FormaSectionLabel(title: state.sectionTitle)
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 if state.showsEmptyState, let emptyStateCopy = state.emptyStateCopy {
                     Text(emptyStateCopy)
                         .font(FormaTokens.Typography.sectionSubtitle)

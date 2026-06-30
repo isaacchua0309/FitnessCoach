@@ -8,36 +8,36 @@
 import SwiftUI
 
 struct PlanBodyDetailsSettingsView: View {
-    let formState: ProfileFormState
+    let formState: PlanFormState
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
-                FitPilotPlanCard {
+                FormaPlanCard {
                     VStack(spacing: 0) {
                         detailRow(
                             label: FormaProductCopy.ProfileForm.age,
                             value: "\(formState.ageText) years"
                         )
-                        FitPilotPlanRowDivider()
+                        FormaPlanRowDivider()
                         detailRow(
                             label: FormaProductCopy.ProfileForm.height,
                             value: "\(formState.heightCmText) cm"
                         )
-                        FitPilotPlanRowDivider()
+                        FormaPlanRowDivider()
                         detailRow(
                             label: FormaProductCopy.ProfileForm.sex,
-                            value: ProfileFormatter.sex(formState.sex)
+                            value: PlanFormatter.sex(formState.sex)
                         )
-                        FitPilotPlanRowDivider()
+                        FormaPlanRowDivider()
                         detailRow(
                             label: FormaProductCopy.ProfileForm.baselineWeight,
                             value: "\(formState.currentWeightKgText) kg"
                         )
-                        FitPilotPlanRowDivider()
+                        FormaPlanRowDivider()
                         detailRow(
                             label: FormaProductCopy.ProfileForm.unitSystem,
-                            value: ProfileFormatter.unitSystem(formState.unitSystem)
+                            value: PlanFormatter.unitSystem(formState.unitSystem)
                         )
                     }
                 }
@@ -47,23 +47,23 @@ struct PlanBodyDetailsSettingsView: View {
                     .foregroundStyle(FormaTokens.Color.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.horizontal, FitPilotScreenStyle.horizontalPadding)
+            .padding(.horizontal, FormaScreenStyle.horizontalPadding)
             .padding(.vertical, FormaTokens.Spacing.md)
         }
-        .fitPilotScreenBackground()
+        .formaScreenBackground()
         .navigationTitle(FormaProductCopy.PlanCalculation.bodyDetailsSettingsTitle)
         .navigationBarTitleDisplayMode(.inline)
-        .fitPilotScrollBottomInset()
+        .formaScrollBottomInset()
     }
 
     private func detailRow(label: String, value: String) -> some View {
-        FitPilotPlanDisplayRow(label: label, value: value)
+        FormaPlanDisplayRow(label: label, value: value)
     }
 }
 
 #Preview {
     NavigationStack {
-        PlanBodyDetailsSettingsView(formState: ProfilePreviewData.formState)
+        PlanBodyDetailsSettingsView(formState: PlanPreviewData.formState)
     }
     .formaThemePreview()
 }

@@ -12,7 +12,7 @@ struct JourneyTransformationHeroSection: View {
     @ScaledMetric(relativeTo: .largeTitle) private var heroValueSize: CGFloat = 52
 
     var body: some View {
-        FitPilotPlanCard {
+        FormaPlanCard {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
                 statusRow
 
@@ -142,42 +142,42 @@ struct JourneyTransformationHeroSection: View {
 // MARK: - Previews
 
 #Preview("New user") {
-    JourneyTransformationHeroSection(state: ProgressPreviewData.transformationNewUser)
+    JourneyTransformationHeroSection(state: JourneyPreviewData.transformationNewUser)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()
 }
 
 #Preview("Active fat loss") {
-    JourneyTransformationHeroSection(state: ProgressPreviewData.transformationActiveFatLoss)
+    JourneyTransformationHeroSection(state: JourneyPreviewData.transformationActiveFatLoss)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()
 }
 
 #Preview("Near goal") {
-    JourneyTransformationHeroSection(state: ProgressPreviewData.transformationNearGoal)
+    JourneyTransformationHeroSection(state: JourneyPreviewData.transformationNearGoal)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()
 }
 
 #Preview("Gain goal") {
-    JourneyTransformationHeroSection(state: ProgressPreviewData.transformationGainGoal)
+    JourneyTransformationHeroSection(state: JourneyPreviewData.transformationGainGoal)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()
 }
 
 #Preview("Plateau") {
-    JourneyTransformationHeroSection(state: ProgressPreviewData.transformationPlateau)
+    JourneyTransformationHeroSection(state: JourneyPreviewData.transformationPlateau)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()
 }
 
 #Preview("Maintain goal") {
-    JourneyTransformationHeroSection(state: ProgressPreviewData.transformationMaintainGoal)
+    JourneyTransformationHeroSection(state: JourneyPreviewData.transformationMaintainGoal)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()

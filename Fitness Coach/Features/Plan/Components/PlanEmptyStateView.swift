@@ -1,5 +1,5 @@
 //
-//  ProfileEmptyStateView.swift
+//  PlanEmptyStateView.swift
 //  Fitness Coach
 //
 //  FitPilot AI — Empty Plan state when no profile exists locally.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct ProfileEmptyStateView: View {
+struct PlanEmptyStateView: View {
     let onCreateProfile: () -> Void
 
     var body: some View {
@@ -37,12 +37,12 @@ struct ProfileEmptyStateView: View {
 }
 
 #Preview {
-    ProfileEmptyStateView(onCreateProfile: {})
+    PlanEmptyStateView(onCreateProfile: {})
         .formaThemePreview()
 }
 
 #Preview("Large Dynamic Type") {
-    ProfileEmptyStateView(onCreateProfile: {})
+    PlanEmptyStateView(onCreateProfile: {})
         .formaThemePreview()
         .dynamicTypeSize(.accessibility3)
 }

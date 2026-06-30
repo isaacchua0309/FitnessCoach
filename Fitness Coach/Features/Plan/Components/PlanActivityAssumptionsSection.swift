@@ -15,10 +15,10 @@ struct PlanActivityAssumptionsSection: View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
             FormaSectionLabel(title: state.sectionTitle)
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 VStack(alignment: .leading, spacing: 0) {
                     VStack(alignment: .leading, spacing: 0) {
-                        FitPilotPlanDisplayRow(
+                        FormaPlanDisplayRow(
                             label: state.activityFieldLabel,
                             value: state.activityLevel
                         )
@@ -39,7 +39,7 @@ struct PlanActivityAssumptionsSection: View {
                             .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                             .foregroundStyle(FormaTokens.Color.accent)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
+                            .frame(minHeight: FormaScreenStyle.rowMinHeight)
                     }
                     .buttonStyle(.plain)
                     .padding(.top, FormaTokens.Spacing.sm)

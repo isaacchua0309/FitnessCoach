@@ -12,7 +12,7 @@ struct JourneyStoryTimelineSection: View {
         VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
             FormaSectionLabel(title: FormaProductCopy.Journey.Timeline.sectionTitle)
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     if let emptyStateMessage = state.emptyStateMessage {
                         Text(emptyStateMessage)
@@ -21,14 +21,14 @@ struct JourneyStoryTimelineSection: View {
                             .fixedSize(horizontal: false, vertical: true)
 
                         if !state.displayEvents.isEmpty {
-                            FitPilotPlanRowDivider()
+                            FormaPlanRowDivider()
                         }
                     }
 
                     ForEach(Array(state.displayEvents.enumerated()), id: \.element.id) { index, event in
                         timelineRow(event)
                         if index < state.displayEvents.count - 1 {
-                            FitPilotPlanRowDivider()
+                            FormaPlanRowDivider()
                         }
                     }
                 }
@@ -44,7 +44,7 @@ struct JourneyStoryTimelineSection: View {
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-                Text(ProgressFormatter.timelineDayLabel(event.date))
+                Text(JourneyFormatter.timelineDayLabel(event.date))
                     .font(FormaTokens.Typography.caption)
                     .foregroundStyle(FormaTokens.Color.textTertiary)
 
@@ -72,7 +72,7 @@ struct JourneyStoryTimelineSection: View {
     }
 
     private func accessibilityLabel(for event: JourneyTimelineEvent) -> String {
-        let dateLabel = ProgressFormatter.timelineDayLabel(event.date)
+        let dateLabel = JourneyFormatter.timelineDayLabel(event.date)
         if let subtitle = event.subtitle {
             return "\(dateLabel). \(event.title). \(subtitle)"
         }
@@ -83,14 +83,14 @@ struct JourneyStoryTimelineSection: View {
 // MARK: - Previews
 
 #Preview("New user") {
-    JourneyStoryTimelineSection(state: ProgressPreviewData.storyTimelineNewUser)
+    JourneyStoryTimelineSection(state: JourneyPreviewData.storyTimelineNewUser)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()
 }
 
 #Preview("Active story") {
-    JourneyStoryTimelineSection(state: ProgressPreviewData.storyTimelineActive)
+    JourneyStoryTimelineSection(state: JourneyPreviewData.storyTimelineActive)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()

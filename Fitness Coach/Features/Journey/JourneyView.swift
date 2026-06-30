@@ -1,5 +1,5 @@
 //
-//  ProgressView.swift
+//  JourneyView.swift
 //  Fitness Coach
 //
 //  FitPilot AI — Journey: your fitness story.
@@ -8,9 +8,9 @@
 import SwiftUI
 
 @MainActor
-struct ProgressView: View {
+struct JourneyView: View {
 
-    @ObservedObject var model: ProgressModel
+    @ObservedObject var model: JourneyModel
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
     @EnvironmentObject private var trainingInsightsStore: TrainingInsightsStore
 
@@ -22,7 +22,7 @@ struct ProgressView: View {
     var onOpenPlan: (() -> Void)?
 
     init(
-        model: ProgressModel,
+        model: JourneyModel,
         analyticsCoordinator: JourneyAnalyticsCoordinator,
         onOpenCoach: ((String?) -> Void)? = nil,
         onOpenPlan: (() -> Void)? = nil
@@ -61,7 +61,7 @@ struct ProgressView: View {
         case .loading:
             FormaScreenLoadingView(message: FormaProductCopy.Loading.journey)
         case .empty:
-            ProgressEmptyStateView {
+            JourneyEmptyStateView {
                 Task { await model.refresh() }
             }
             .onAppear {
@@ -77,7 +77,7 @@ struct ProgressView: View {
         }
     }
 
-    private func dashboard(_ state: ProgressDashboardState) -> some View {
+    private func dashboard(_ state: JourneyDashboardState) -> some View {
         ScrollView {
             JourneyDashboardContent(
                 state: state,
@@ -108,7 +108,7 @@ struct ProgressView: View {
         JourneyCTAHandler.perform(cta, onOpenCoach: onOpenCoach, onOpenPlan: onOpenPlan)
     }
 
-    private func syncAnalyticsContext(for state: ProgressDashboardState) {
+    private func syncAnalyticsContext(for state: JourneyDashboardState) {
         analyticsCoordinator.updateContext(
             from: state,
             healthConnected: trainingInsightsStore.integrationState.isConnected
@@ -124,8 +124,8 @@ struct ProgressView: View {
 
 #Preview("Strong momentum") {
     let container = try! AppContainer(inMemory: true)
-    ProgressView(
-        model: ProgressModel.preview(scenario: .strongMomentum),
+    JourneyView(
+        model: JourneyModel.preview(scenario: .strongMomentum),
         analyticsCoordinator: container.makeJourneyAnalyticsCoordinator()
     )
     .environmentObject(container.refreshCenter)
@@ -134,8 +134,8 @@ struct ProgressView: View {
 
 #Preview("Plateau") {
     let container = try! AppContainer(inMemory: true)
-    ProgressView(
-        model: ProgressModel.preview(scenario: .plateau),
+    JourneyView(
+        model: JourneyModel.preview(scenario: .plateau),
         analyticsCoordinator: container.makeJourneyAnalyticsCoordinator()
     )
     .environmentObject(container.refreshCenter)
