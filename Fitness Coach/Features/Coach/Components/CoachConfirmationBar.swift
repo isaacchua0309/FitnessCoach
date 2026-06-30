@@ -80,7 +80,6 @@ struct CoachConfirmationBar: View {
     private var iconName: String {
         switch confirmation {
         case .food: return "fork.knife.circle.fill"
-        case .workout: return "figure.run.circle.fill"
         case .water: return "drop.circle.fill"
         case .weight: return "scalemass.circle.fill"
         case .edit: return "pencil.circle.fill"

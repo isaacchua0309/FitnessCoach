@@ -277,7 +277,9 @@ final class CoachWorkoutIntentPolicyTests: XCTestCase {
             exerciseSets: []
         )
 
-        if case .reject(let message) = ConfirmationPolicy.decision(forWorkout: draft) {
+        let action = AICommandAction(type: .logWorkout, workoutDraft: draft)
+
+        if case .reject(let message) = ConfirmationPolicy.decision(for: action) {
             XCTAssertEqual(message, TrainingIntegrationCopy.coachWorkoutMutationUnavailable)
         } else {
             XCTFail("Expected workout logging to be rejected")

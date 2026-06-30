@@ -52,24 +52,3 @@ enum ThemeResolver {
         }
     }
 }
-
-/// Deprecated alias — use `ThemeResolver`.
-enum AppThemeResolver {
-    static func resolve(
-        preferences: AppThemePreferences,
-        systemColorScheme: ColorScheme
-    ) -> ResolvedAppTheme {
-        ThemeResolver.resolve(preferences: preferences, systemColorScheme: systemColorScheme)
-    }
-
-    static func resolveColorScheme(
-        appearance: AppAppearanceMode,
-        systemColorScheme: ColorScheme
-    ) -> ColorScheme {
-        ThemeResolver.resolveColorScheme(appearance: appearance, systemColorScheme: systemColorScheme)
-    }
-
-    static func preferredColorScheme(for appearance: AppAppearanceMode) -> ColorScheme? {
-        ThemeResolver.preferredColorScheme(for: appearance)
-    }
-}

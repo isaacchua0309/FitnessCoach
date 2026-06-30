@@ -84,28 +84,6 @@ final class CoachPendingCopyTests: XCTestCase {
         XCTAssertTrue(message.contains(FormaProductCopy.Coach.foodConfirmBelowFooter))
     }
 
-    func testWorkoutPendingOmitsBarHint() {
-        let draft = WorkoutDraft(
-            name: "Run",
-            durationMinutes: 30,
-            estimatedCaloriesBurned: 300,
-            intensity: nil,
-            recoveryDemand: nil,
-            exerciseSets: []
-        )
-
-        let message = CoachResponseBuilder.workoutPending(
-            draft,
-            assistantMessage: "Drafted a 30-minute run. Please confirm before logging."
-        )
-
-        XCTAssertTrue(message.hasPrefix("Parsed workout:"))
-        XCTAssertTrue(message.contains("Run"))
-        XCTAssertTrue(message.contains("30 min · 300 kcal burned"))
-        XCTAssertFalse(message.contains(FormaProductCopy.Coach.pendingBarHint))
-        XCTAssertFalse(message.contains("Please confirm before logging"))
-    }
-
     func testWaterPendingIsSingleLine() {
         let message = CoachResponseBuilder.waterPending(
             WaterDraft(amountMl: 500),

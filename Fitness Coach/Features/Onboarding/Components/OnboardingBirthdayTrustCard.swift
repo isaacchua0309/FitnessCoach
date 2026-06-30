@@ -28,9 +28,6 @@ struct OnboardingBirthdayTrustNote: View {
     }
 }
 
-/// Legacy name retained for previews and gradual migration.
-typealias OnboardingBirthdayTrustCard = OnboardingBirthdayTrustNote
-
 #if DEBUG
 #Preview("Birthday Trust") {
     OnboardingBirthdayTrustNote(

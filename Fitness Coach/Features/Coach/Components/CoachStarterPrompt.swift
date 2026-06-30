@@ -24,7 +24,6 @@ struct CoachStarterPromptSpec: Identifiable, Equatable, Sendable {
 enum CoachStarterPrompt: String, Identifiable, CaseIterable, Sendable {
     case logMeal
     case logWater
-    case logWorkout
     case status
     case mealPhoto
     case dailyReview
@@ -35,7 +34,6 @@ enum CoachStarterPrompt: String, Identifiable, CaseIterable, Sendable {
         switch self {
         case .logMeal: return "Log a meal"
         case .logWater: return "Add 500ml water"
-        case .logWorkout: return "Log workout"
         case .status: return "Today's status"
         case .mealPhoto: return "Photo meal"
         case .dailyReview: return "Daily review"
@@ -46,7 +44,6 @@ enum CoachStarterPrompt: String, Identifiable, CaseIterable, Sendable {
         switch self {
         case .logMeal: return "fork.knife"
         case .logWater: return "drop.fill"
-        case .logWorkout: return "dumbbell.fill"
         case .status: return "chart.bar"
         case .mealPhoto: return "camera"
         case .dailyReview: return "sun.horizon"
@@ -59,8 +56,6 @@ enum CoachStarterPrompt: String, Identifiable, CaseIterable, Sendable {
             return .prefill("Log ")
         case .logWater:
             return .send("Add 500ml water")
-        case .logWorkout:
-            return .prefill("Log my workout: ")
         case .status:
             return .send("status")
         case .mealPhoto:

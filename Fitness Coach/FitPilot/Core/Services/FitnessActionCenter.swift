@@ -134,30 +134,6 @@ final class FitnessActionCenter {
         return entry
     }
 
-    // MARK: - Workout (legacy SwiftData — official training data is Apple Health)
-
-    @available(
-        *,
-        deprecated,
-        message: "Manual workout logging is retired. Official training data comes from Apple Health."
-    )
-    @discardableResult
-    func logWorkout(_ draft: WorkoutDraft, date: Date = Date()) throws -> WorkoutEntry {
-        let entry = try workoutLogService.addWorkout(draft, date: date)
-        notifyDataChanged()
-        return entry
-    }
-
-    @available(
-        *,
-        deprecated,
-        message: "Manual workout logging is retired. Official training data comes from Apple Health."
-    )
-    func deleteWorkout(id: UUID) throws {
-        try workoutLogService.deleteWorkout(id: id)
-        notifyDataChanged()
-    }
-
     // MARK: - Day lifecycle
 
     @discardableResult

@@ -399,7 +399,7 @@ Tracked for later stages. **Do not treat as blockers for feature work** — but 
 
 ### Training demotion / Health integration
 
-- Training tab removed; `TrainingView` / `TrainingConnectedDashboard` are preview-only.
+- Training tab removed; legacy manual workout **write** APIs retired (`WorkoutLogService.addWorkout`, `FitnessActionCenter.logWorkout`).
 - Apple Health surfaced via `TrainingInsightsStore` + `TrainingInsightsModel` on Plan, Today, and Journey.
 - `TrainingInsightsModel` constructs `SystemHealthKitWorkoutReader` internally (Infrastructure leak into feature model).
 - `TodayHealthWorkoutResolver` in Features/Today queries workouts for checklist.
@@ -422,10 +422,10 @@ High-confidence orphans (grep shows no production references):
 | `PlanSettingsSection` | Never referenced |
 | `PlanLifestyleSection` | Never referenced |
 | `GoalSettingsView`, `ActivitySettingsView` | Preview-only |
-| `TrainingView`, `TrainingConnectedDashboard` | Preview-only; tab removed |
+| `TrainingView`, `TrainingConnectedDashboard` | Removed (legacy training cluster) |
 | `WeeklyReview` model + entity | Schema only; no service |
 | `ChatMessageEntity` | Schema only; Coach keeps messages in memory |
-| `CalorieTargetCalculator`, `MaintenanceCalculator`, `AIFoodEstimator` | No callers |
+| `CalorieTargetCalculator`, `MaintenanceCalculator`, `AIFoodEstimator` | Removed |
 
 **Action:** verify with full-text search + build, then remove in a dead-code pass.
 
@@ -451,5 +451,6 @@ Items that need confirmation before deletion or large refactors:
 
 | Date | Change |
 |------|--------|
+| 2026-06-30 | Phase 1 dead-code pass: orphan views, deprecated aliases, retired workout write APIs |
 | 2026-06-28 | Journey section: link to `JourneyArchitecture.md`; fix `Features/Journey` path; replace stale `JourneyStateBuilder` / hidden-milestones notes |
 | 2026-06-27 | Initial architecture doc (Stage 1 audit) |

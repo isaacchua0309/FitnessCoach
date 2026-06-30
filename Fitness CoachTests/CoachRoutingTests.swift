@@ -289,7 +289,7 @@ final class CoachRoutingTests: XCTestCase {
         }
     }
 
-    func testWorkoutRequiresConfirmationBeforeLogging() {
+    func testWorkoutLoggingRejectedByConfirmationPolicy() {
         let draft = WorkoutDraft(
             name: "Run",
             durationMinutes: 31,
@@ -299,7 +299,8 @@ final class CoachRoutingTests: XCTestCase {
             notes: nil,
             exerciseSets: []
         )
-        if case .reject = ConfirmationPolicy.decision(forWorkout: draft) {
+        let action = AICommandAction(type: .logWorkout, workoutDraft: draft)
+        if case .reject = ConfirmationPolicy.decision(for: action) {
             XCTAssertTrue(true)
         } else {
             XCTFail("Coach workout logging should be rejected")

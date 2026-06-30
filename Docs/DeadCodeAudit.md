@@ -184,7 +184,9 @@ Also removed: `makeTrainingInsightsView()`, `openAppSettings()`.
 
 **Stage 3 completed 2026-06-28** — see [Stage 3 log](#stage-3-deletions-2026-06-28) below.
 
-**Defer to batch 4 (next):** Legacy manual-training cluster (move shared `TrainingLayout` / `TrainingFormatter` / loading / error first), `makeTrainingModel()` + `TrainingModel` file group. *(Journey hidden-section batch completed — see B2.)*
+**Defer to batch 4 (next):** ~~Legacy manual-training cluster~~ **completed 2026-06-30** — cluster removed in prior sprint; shared `TrainingLayout` lives under `Features/TrainingInsights/Components/`.
+
+**Phase 1 batch (2026-06-30):** Orphan views, deprecated aliases, retired workout write APIs — see [Phase 1 log](#phase-1-deletions-2026-06-30) below.
 
 ---
 
@@ -253,3 +255,53 @@ xcodebuild -scheme "Fitness Coach" \
 ```
 
 **Known test infra note:** Full-suite runs can hit duplicate Firebase/GTM ObjC classes in the test bundle (`Fitness Coach.app` + `Fitness CoachTests.xctest`). Prefer serial test runs and lightweight harness tests when validating cleanup batches.
+
+---
+
+## Phase 1 deletions (2026-06-30)
+
+### Deleted files (orphan views — preview-only, never routed)
+
+| File | Why safe |
+|------|----------|
+| `Features/Settings/UI/UnitSettingsView.swift` | `UnitsSettingsScreen` is the live Settings path |
+| `Features/Settings/UI/WaterTargetSettingsView.swift` | Never mounted in Settings or Plan wizard |
+| `Features/Settings/UI/FoodPreferencesView.swift` | Never mounted in Settings or Plan wizard |
+| `Features/Coach/Components/AIFoodEstimateSummaryView.swift` | Food confirmation uses `FoodEntryFormView` |
+| `Features/Onboarding/Components/OnboardingCompactSelectionRow.swift` | Preview-only; not in `OnboardingView` |
+
+### Deleted symbols / methods
+
+| Location | Symbol | Why safe |
+|----------|--------|----------|
+| `AppContainer.swift` | `resolveOnboardingShellRoute()` | Never called; tests use `OnboardingShellRouteResolver` |
+| `ThemeResolver.swift` | `enum AppThemeResolver` | Zero references |
+| `ProfileSignInCopyPolicy.swift` | `usesSavePlanLanguage(_:)` | Deprecated alias with zero callers |
+| `FormaThemeScreenModifier.swift` | `formaThemeScreen(store:)` | Deprecated wrapper with zero callers |
+| `OnboardingBirthdayTrustCard.swift` | `typealias OnboardingBirthdayTrustCard` | Production uses `OnboardingBirthdayTrustNote` |
+| `CoachAIContextBuilder.swift` | `typealias CoachAIContextBuilder` | Production uses `CoachContextBuilder` |
+| `OnboardingDailyStepsBand.swift` | `typealias OnboardingTrainingDaysOption` | Zero references |
+| `FitnessActionCenter.swift` | `logWorkout`, `deleteWorkout` | Coach redirects workouts to Apple Health |
+| `WorkoutLogService.swift` | `addWorkout`, `deleteWorkout` | Write path retired; reads remain for historical rows |
+| `CoachPendingConfirmation.swift` | `.workout` case | Never set in production |
+| `CoachResponseBuilder.swift` | `workoutPending(_:)` | Orphan formatter |
+| `CoachPendingCopyFormatter.swift` | `workoutPendingChatMessage` | Orphan formatter |
+| `ConfirmationPolicy.swift` | `decision(forWorkout:)` | Superseded by `decision(for: AICommandAction)` |
+| `CoachStarterPrompt.swift` | `.logWorkout` case | Not in `quickActions` |
+
+### Test updates
+
+| Test | Change |
+|------|--------|
+| `DailyLogServiceTests` | `seedWorkoutEntry()` inserts entity directly (no `addWorkout`) |
+| `CoachRoutingTests`, `AppleHealthTrainingStrategyTests` | Assert reject via `decision(for: AICommandAction)` |
+| `CoachPendingCopyTests` | Removed `testWorkoutPendingOmitsBarHint` |
+
+### Deferred (not Phase 1)
+
+| Item | Reason |
+|------|--------|
+| `WeeklyReviewEntity`, `ChatMessageEntity`, `DebugRecordEntity` | Schema migration required |
+| `ProgressPreviewData.swift` move to test target | 15+ test files + 40+ previews depend on production target |
+| `OnboardingProofCards` preview-only views | Models still covered by `OnboardingComponentsTests` |
+| `ProfileDashboardState` dead fields (`strategy`, `lifestyle`, etc.) | Phase 2 behavior-neutral refactor |

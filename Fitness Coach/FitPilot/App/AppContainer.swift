@@ -335,25 +335,6 @@ final class AppContainer {
         )
     }
 
-    func resolveOnboardingShellRoute(
-        authState: AuthState,
-        hasLocalProfile: Bool,
-        rootState: RootViewState = .loading,
-        isOnboardingModelReady: Bool = false,
-        awaitingCloudSync: Bool = false
-    ) -> OnboardingShellRoute {
-        OnboardingShellRouting.resolve(
-            OnboardingShellRouteInput(
-                authState: authState,
-                hasLocalProfile: hasLocalProfile,
-                rootState: rootState,
-                isOnboardingModelReady: isOnboardingModelReady,
-                awaitingCloudSync: awaitingCloudSync
-            ),
-            configuration: onboardingRoutingConfiguration
-        )
-    }
-
     private static func makeOnboardingUserDefaults(
         inMemory: Bool,
         override: UserDefaults?

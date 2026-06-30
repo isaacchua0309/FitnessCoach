@@ -91,30 +91,6 @@ enum CoachPendingCopyFormatter {
         return .standard
     }
 
-    // MARK: - Workout
-
-    static func workoutPendingChatMessage(
-        draft: WorkoutDraft,
-        assistantMessage: String?
-    ) -> String {
-        var lines = ["Parsed workout:"]
-        if let name = draft.name, !name.isEmpty {
-            lines.append(name)
-        }
-        let details = [
-            draft.durationMinutes.map { "\($0) min" },
-            draft.estimatedCaloriesBurned.map { "\($0) kcal burned" }
-        ].compactMap(\.self)
-        if !details.isEmpty {
-            lines.append(details.joined(separator: " · "))
-        }
-        if let context = trimmedAssistantContext(assistantMessage) {
-            lines.append("")
-            lines.append(context)
-        }
-        return lines.joined(separator: "\n")
-    }
-
     // MARK: - Private
 
     private static func isVagueFood(

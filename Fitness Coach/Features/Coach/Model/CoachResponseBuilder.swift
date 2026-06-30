@@ -109,13 +109,6 @@ enum CoachResponseBuilder {
         }
     }
 
-    static func workoutPending(_ draft: WorkoutDraft, assistantMessage: String?) -> String {
-        CoachPendingCopyFormatter.workoutPendingChatMessage(
-            draft: draft,
-            assistantMessage: assistantMessage
-        )
-    }
-
     static func waterPending(_ draft: WaterDraft, assistantMessage: String?) -> String {
         "Log \(draft.amountMl)ml water?"
     }
