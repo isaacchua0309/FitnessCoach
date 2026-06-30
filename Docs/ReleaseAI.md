@@ -26,7 +26,7 @@ On a physical device or TestFlight build, `127.0.0.1` is the **phone itself**, n
 
 ## Required configuration for Release
 
-Set the environment variable at **archive time** (CI or Xcode):
+Set the environment variable at **archive time** (CI or Xcode). Legacy `FITPILOT_*` names are still accepted if `FORMA_*` is unset.
 
 | Variable | Required in Release | Example |
 |----------|---------------------|---------|

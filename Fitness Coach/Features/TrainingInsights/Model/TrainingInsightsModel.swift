@@ -21,18 +21,15 @@ final class TrainingInsightsModel: ObservableObject {
     @Published private(set) var viewState: TrainingInsightsViewState = .loading
 
     private let workoutReader: HealthKitWorkoutReading
-    private let stepReader: HealthKitStepReading
     private let dateProvider: DateProviding
     private let calendar: Calendar
 
     init(
-        workoutReader: HealthKitWorkoutReading? = nil,
-        stepReader: HealthKitStepReading? = nil,
+        workoutReader: HealthKitWorkoutReading,
         dateProvider: DateProviding? = nil,
         calendar: Calendar = .current
     ) {
-        self.workoutReader = workoutReader ?? Self.makeDefaultWorkoutReader()
-        self.stepReader = stepReader ?? Self.makeDefaultStepReader()
+        self.workoutReader = workoutReader
         self.dateProvider = dateProvider ?? SystemDateProvider()
         self.calendar = calendar
     }
@@ -82,31 +79,5 @@ final class TrainingInsightsModel: ObservableObject {
 
     func applyPreviewSummary(_ summary: TrainingInsightsSummary) {
         viewState = .loaded(summary)
-    }
-
-    /// Exposes the workout reader for Today checklist refresh (Stage 8).
-    var workoutReaderForToday: HealthKitWorkoutReading {
-        workoutReader
-    }
-
-    /// Exposes the step reader for Today activity refresh.
-    var stepReaderForToday: HealthKitStepReading {
-        stepReader
-    }
-
-    nonisolated private static func makeDefaultWorkoutReader() -> HealthKitWorkoutReading {
-        #if canImport(HealthKit) && os(iOS)
-        return SystemHealthKitWorkoutReader()
-        #else
-        return SystemHealthKitWorkoutReader()
-        #endif
-    }
-
-    nonisolated private static func makeDefaultStepReader() -> HealthKitStepReading {
-        #if canImport(HealthKit) && os(iOS)
-        return SystemHealthKitStepReader()
-        #else
-        return SystemHealthKitStepReader()
-        #endif
     }
 }

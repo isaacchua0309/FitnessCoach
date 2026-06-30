@@ -206,7 +206,7 @@ Orchestration, mutations, coach execution, and dashboard assembly.
 | **Use cases** | `Application/UseCases/` | `FitnessActionCenter`, `ProfileBootstrapService` |
 | **Coach** | `Application/UseCases/Coach/` | Handlers + `Pipeline/` (routing, intent, confirmation policy) |
 | **Commands** | `Application/UseCases/Commands/` | `LocalCommandParser` and command types |
-| **State builders** | `Application/StateBuilders/` | Today/Journey/Plan/Coach dashboard assembly |
+| **Queries** | `Application/Queries/` | `HealthActivityQueryService` (Apple Health workout/step counts) |
 
 ### Features (`Features/` — 258 files)
 
@@ -436,9 +436,7 @@ Tracked for later stages. **Do not treat as blockers for feature work** — but 
 
 - Training tab removed; legacy manual workout **write** APIs retired (`WorkoutLogService.addWorkout`, `FitnessActionCenter.logWorkout`).
 - Apple Health surfaced via `TrainingInsightsStore` + `TrainingInsightsModel` on Plan, Today, and Journey.
-- `TrainingInsightsModel` constructs `SystemHealthKitWorkoutReader` internally (Infrastructure leak into feature model).
-- `TodayHealthWorkoutResolver` in Features/Today queries workouts for checklist.
-- **Action:** consolidate under `TrainingInsights` feature + Application query layer; inject workout reader from `AppContainer`.
+- **Phase 8 (2026-06-30):** `HealthTrainingReaderFactory` + `AppContainer` own `HealthKitWorkoutReading` / `HealthKitStepReading` instances. `HealthActivityQueryService` (`Application/Queries/`) centralizes workout/step counts for Today. `JourneyModel`, `PlanModel`, and `TrainingInsightsModel` receive injected readers — no feature-model `SystemHealthKit*` construction.
 
 ### Duplicated card/row styles
 
@@ -486,6 +484,7 @@ Items that need confirmation before deletion or large refactors:
 
 | Date | Change |
 |------|--------|
+| 2026-06-30 | Phase 8: Health reader injection via `AppContainer`; `HealthActivityQueryService` replaces Today resolvers |
 | 2026-06-30 | Phase 6: `FitPilot*` → `Forma*` types; `Progress*`/`Profile*` tab types → `Journey*`/`Plan*`; `FORMA_*` env vars with legacy fallback |
 | 2026-06-30 | Phase 5: folder migration complete — `App/`, `Application/`, `Infrastructure/`, `Data/DTOs/`; `FitPilot/` removed |
 | 2026-06-30 | Phase 4: `CoachModel` decomposed into focused handlers under `Application/UseCases/Coach/` |
