@@ -101,15 +101,15 @@ private struct ThemeAppearanceOptionRow: View {
                         .accessibilityHidden(true)
                 }
             }
-            .frame(minHeight: FormaScreenStyle.rowMinHeight, alignment: .center)
+            .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .center)
             .padding(.vertical, 2)
             .padding(FormaTokens.Spacing.xs)
             .background {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
+                    RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
                         .fill(FormaTokens.Color.accentMuted)
                         .overlay {
-                            RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
+                            RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
                                 .stroke(FormaTokens.Color.borderSelected, lineWidth: 1.4)
                         }
                 }
@@ -163,10 +163,10 @@ private struct ThemeColorPaletteOptionRow: View {
             .padding(FormaTokens.Spacing.xs)
             .background {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
+                    RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
                         .fill(FormaTokens.Color.accentMuted)
                         .overlay {
-                            RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
+                            RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
                                 .stroke(FormaTokens.Color.borderSelected, lineWidth: 1.4)
                         }
                 }

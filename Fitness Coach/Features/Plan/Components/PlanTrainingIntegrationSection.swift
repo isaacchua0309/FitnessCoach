@@ -38,7 +38,7 @@ struct PlanTrainingIntegrationSection: View {
                                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                                     .foregroundStyle(FormaTokens.Color.accent)
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                    .frame(minHeight: FormaScreenStyle.rowMinHeight)
+                                    .frame(minHeight: FormaTokens.Layout.minTouchTarget)
                                     .padding(.top, FormaTokens.Spacing.xs)
                                     .accessibilityHidden(true)
                             }

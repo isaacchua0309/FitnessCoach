@@ -168,7 +168,7 @@ struct PlanRationaleSection: View {
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                 .foregroundStyle(FormaTokens.Color.accent)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(minHeight: FormaScreenStyle.rowMinHeight)
+                .frame(minHeight: FormaTokens.Layout.minTouchTarget)
         }
         .buttonStyle(.plain)
         .padding(.top, FormaTokens.Spacing.xs)

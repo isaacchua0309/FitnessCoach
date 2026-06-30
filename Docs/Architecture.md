@@ -267,9 +267,9 @@ Platform and external system adapters. Must not import SwiftUI.
 | Layer | Role |
 |-------|------|
 | `FormaTokens.swift`, `Components/` | Canonical colors, spacing, shared SwiftUI components |
+| `Layout/FormaFeatureLayout.swift`, `FormaMainTabLayout.swift` | Shared horizontal padding and tab scroll insets |
 | `Theme/` | Forma palette + app appearance preferences (`AppThemePreferences`, `ThemeResolver`, …) |
 | `Coach/`, `Onboarding/` | Feature-specific design tokens |
-| `Legacy/FormaScreenStyle.swift` | Plan/settings chrome (rename deferred to Phase 6) |
 
 ### TestingSupport (`TestingSupport/` — 1 file)
 
@@ -307,9 +307,9 @@ These are the conventions the codebase should follow. Violations are tracked in 
 
 ### Design tokens should come from the Forma design system
 
-- New UI uses `FormaTokens` and shared `Core/Design` components.
+- New UI uses `FormaTokens` and shared `DesignSystem/Components` primitives.
 - Avoid hard-coded colors, spacing, or ad-hoc card styles in feature views.
-- `FormaScreenStyle`, `OnboardingTheme`, and `CoachDesignTokens` are transitional wrappers — new work should extend `FormaTokens` / `Core/Design`, not add a fourth parallel theme.
+- `OnboardingTheme` and `CoachDesignTokens` remain feature-scoped — new shared chrome belongs in `FormaTokens` / `FormaCardChrome`, not a fourth parallel theme.
 
 ### Feature-specific state stays inside the feature unless shared
 
@@ -331,7 +331,7 @@ These are the conventions the codebase should follow. Violations are tracked in 
 
 ## 4. Target Architecture
 
-**Status:** Phases 5–6 complete (2026-06-30). Folder layout and primary type renames are in place. Xcode target name (`Fitness Coach`) and `@main` struct (`Fitness_CoachApp`) remain for toolchain compatibility.
+**Status:** Phases 5–8 complete (2026-06-30). Folder layout, primary type renames, Health reader injection, and design-system consolidation are in place. Xcode target name (`Fitness Coach`) and `@main` struct (`Fitness_CoachApp`) remain for toolchain compatibility.
 
 ```
 Forma/
@@ -438,12 +438,17 @@ Tracked for later stages. **Do not treat as blockers for feature work** — but 
 - Apple Health surfaced via `TrainingInsightsStore` + `TrainingInsightsModel` on Plan, Today, and Journey.
 - **Phase 8 (2026-06-30):** `HealthTrainingReaderFactory` + `AppContainer` own `HealthKitWorkoutReading` / `HealthKitStepReading` instances. `HealthActivityQueryService` (`Application/Queries/`) centralizes workout/step counts for Today. `JourneyModel`, `PlanModel`, and `TrainingInsightsModel` receive injected readers — no feature-model `SystemHealthKit*` construction.
 
+### Design system consolidation (Phase 7 complete)
+
+- **Phase 7 (2026-06-30):** `FormaScreenStyle` removed. Screen metrics (`screenSectionSpacing`, `settingsRowVertical`, `settingsRowInsets`) added to `FormaTokens`. `FormaPlanCard`, `FormaSettingsRows`, `FormaScreenChrome`, and `FormaCardChrome` moved to `DesignSystem/Components/`. `FormaFeatureLayout` centralizes horizontal padding and scroll-bottom metrics for `TodayLayout`, `PlanLayout`, `JourneyLayout`, and `TrainingLayout`.
+
 ### Duplicated card/row styles
 
-- `FormaTokens` + `Core/Design` vs `FormaScreenStyle` (`FormaPlanCard`, settings rows) vs `OnboardingTheme` vs `CoachDesignTokens`.
-- Six near-identical `*ErrorView` and five `*LoadingView` files across features.
-- Four `*Layout.swift` enums with overlapping spacing constants.
-- **Action:** unify on `FormaTokens` + shared status views; consolidate `FormaScreenStyle` into tokens over time.
+- ~~`FormaScreenStyle` legacy wrapper~~ — removed in Phase 7; `FormaPlanCard`, `FormaScreenChrome`, and screen metrics live under `DesignSystem/Components/` and `FormaTokens`.
+- `OnboardingTheme` vs `CoachDesignTokens` — feature-scoped; keep isolated from main-tab chrome.
+- Tab dashboards use shared `FormaScreenErrorView` / `FormaScreenLoadingView`; Coach keeps inline `CoachErrorView`; auth bootstrap keeps `AuthGateProfileErrorView` (onboarding shell).
+- Feature `*Layout` enums (`TodayLayout`, `PlanLayout`, `JourneyLayout`, `TrainingLayout`) source shared padding from `FormaFeatureLayout`.
+- **Remaining:** optional `FormaCard` unification (`FormaPlanCard` + `FormaFormCard` + `FormaEmptyStateCard`); onboarding/auth loading views stay feature-themed.
 
 ### Dead previews / unused components
 
@@ -484,6 +489,7 @@ Items that need confirmation before deletion or large refactors:
 
 | Date | Change |
 |------|--------|
+| 2026-06-30 | Phase 7: `FormaScreenStyle` removed; tokens + `FormaCardChrome` / `FormaFeatureLayout` consolidate design primitives |
 | 2026-06-30 | Phase 8: Health reader injection via `AppContainer`; `HealthActivityQueryService` replaces Today resolvers |
 | 2026-06-30 | Phase 6: `FitPilot*` → `Forma*` types; `Progress*`/`Profile*` tab types → `Journey*`/`Plan*`; `FORMA_*` env vars with legacy fallback |
 | 2026-06-30 | Phase 5: folder migration complete — `App/`, `Application/`, `Infrastructure/`, `Data/DTOs/`; `FitPilot/` removed |

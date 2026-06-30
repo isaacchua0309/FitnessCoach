@@ -47,7 +47,7 @@ struct PlanBodyDetailsSettingsView: View {
                     .foregroundStyle(FormaTokens.Color.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.horizontal, FormaScreenStyle.horizontalPadding)
+            .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
             .padding(.vertical, FormaTokens.Spacing.md)
         }
         .formaScreenBackground()

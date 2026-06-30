@@ -42,7 +42,7 @@ struct PlanSectionHeader: View {
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                 .foregroundStyle(FormaTokens.Color.accent)
                 .buttonStyle(.plain)
-                .frame(minHeight: FormaScreenStyle.rowMinHeight)
+                .frame(minHeight: FormaTokens.Layout.minTouchTarget)
                 .multilineTextAlignment(.leading)
                 .accessibilityLabel(actionTitle)
                 .accessibilityHint(actionAccessibilityHint ?? "")

@@ -91,8 +91,15 @@ enum FormaTokens {
         static let xl: CGFloat = 28
         static let xxl: CGFloat = 36
         static let pageHorizontal: CGFloat = 20
+        /// Default vertical gap between dashboard sections.
         static let sectionSpacing: CGFloat = 18
+        /// Plan tab and grouped settings section rhythm.
+        static let screenSectionSpacing: CGFloat = 22
         static let cardPadding: CGFloat = 16
+        /// Vertical inset for settings list rows.
+        static let settingsRowVertical: CGFloat = 11
+        /// Tighter item stack inside Plan sections.
+        static let planItemSpacing: CGFloat = 10
     }
 
     // MARK: - Radius
@@ -128,6 +135,16 @@ enum FormaTokens {
         }
         /// Padding below the last content block inside tab-root scroll views.
         static let mainTabScrollContentPadding: CGFloat = Spacing.xs
+
+        /// Standard list-row insets for grouped settings screens.
+        static var settingsRowInsets: EdgeInsets {
+            EdgeInsets(
+                top: Spacing.settingsRowVertical,
+                leading: Spacing.md,
+                bottom: Spacing.settingsRowVertical,
+                trailing: Spacing.md
+            )
+        }
     }
 
     // MARK: - Typography

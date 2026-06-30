@@ -37,11 +37,11 @@ struct TodayGoalConnectionRow: View {
             .padding(.horizontal, FormaTokens.Spacing.md)
             .padding(.vertical, FormaTokens.Spacing.sm)
             .background(
-                RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
+                RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
                     .fill(FormaTokens.Color.surfaceSubtle)
                     .overlay {
                         RoundedRectangle(
-                            cornerRadius: FormaScreenStyle.cardCornerRadius,
+                            cornerRadius: FormaCardChrome.cornerRadius,
                             style: .continuous
                         )
                         .stroke(FormaTokens.Color.border.opacity(0.45), lineWidth: 0.5)
