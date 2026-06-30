@@ -104,7 +104,17 @@ After auth and profile bootstrap, the signed-in shell is a four-tab `TabView`:
 
 - Primary write path for food, water, weight, workouts (via `FitnessActionCenter`).
 - AI chat, local command parsing, intent routing (`Features/Coach/Pipeline/`), food confirmation sheets.
-- `CoachModel` is the largest feature model (~900+ lines).
+- `CoachModel` (~450 lines) owns `@Published` UI state and wires handlers; decomposition:
+
+```
+CoachModel
+  ├── CoachMutationExecutor      — log food/water/weight, undo, edit, delete, status, daily review
+  ├── CoachPendingConfirmationPresenter — pending confirmation copy + text confirm/reject
+  ├── CoachAIRouteHandler        — route + AI task handling → CoachActionResult
+  └── CoachMealPhotoAnalyzer     — JPEG prep + photo food-estimate routing
+```
+
+- **Location:** `Features/Coach/Handlers/` for extracted collaborators; `CoachModel` in `Features/Coach/Model/`.
 
 #### Journey (read-only fitness story)
 
@@ -382,10 +392,10 @@ Tracked for later stages. **Do not treat as blockers for feature work** — but 
 
 ### Coach pipeline
 
-- `CoachModel` (~940 lines) combines routing, AI, mutations, food editing, and error state.
+- `CoachModel` (~450 lines) delegates mutations, AI routing, and pending confirmations to `Features/Coach/Handlers/`.
 - Pipeline split across `Core/Commands/LocalCommandParser` and `Features/Coach/Pipeline/` (`CoachRouteDecider`, `CoachIntentRouter`, `CheapLLMIntentClassifier`, `LocalNutritionEstimator`).
 - `CoachResponseBuilder` duplicates macro summary logic.
-- **Action:** decompose `CoachModel`; colocate pipeline under Application; keep `CoachRoutingTests` as safety net.
+- **Action:** colocate pipeline under Application; keep `CoachRoutingTests` as safety net.
 
 ### Old FitPilot naming
 
@@ -451,6 +461,7 @@ Items that need confirmation before deletion or large refactors:
 
 | Date | Change |
 |------|--------|
+| 2026-06-30 | Phase 4: `CoachModel` decomposed into `CoachMutationExecutor`, `CoachPendingConfirmationPresenter`, `CoachAIRouteHandler`, `CoachMealPhotoAnalyzer` |
 | 2026-06-30 | Phase 3: `AuthGateCoordinator` extracted; `AuthGateView` thinned to shell wiring |
 | 2026-06-30 | Phase 2: `DailyNutritionSummaryBuilder` consolidated as runtime nutrition SSOT |
 | 2026-06-30 | Phase 1 dead-code pass: orphan views, deprecated aliases, retired workout write APIs |
