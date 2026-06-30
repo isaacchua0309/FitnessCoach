@@ -49,9 +49,11 @@ struct TodayAISummary: Codable, Equatable, Sendable {
     var calorieTarget: Int
     var caloriesConsumed: Int
     var caloriesRemaining: Int
+    var isOverCalorieTarget: Bool
     var proteinTarget: Double
     var proteinConsumed: Double
     var proteinRemaining: Double
+    var hasMetProteinTarget: Bool
     var carbsTarget: Double
     var carbsConsumed: Double
     var carbsRemaining: Double
@@ -61,6 +63,7 @@ struct TodayAISummary: Codable, Equatable, Sendable {
     var waterTargetMl: Int
     var waterConsumedMl: Int
     var waterRemainingMl: Int
+    var hasMetWaterTarget: Bool
     var weightKg: Double?
     var steps: Int?
     var workoutCaloriesBurned: Int
@@ -71,9 +74,11 @@ struct TodayAISummary: Codable, Equatable, Sendable {
         calorieTarget: Int,
         caloriesConsumed: Int,
         caloriesRemaining: Int,
+        isOverCalorieTarget: Bool = false,
         proteinTarget: Double,
         proteinConsumed: Double,
         proteinRemaining: Double = 0,
+        hasMetProteinTarget: Bool = false,
         carbsTarget: Double,
         carbsConsumed: Double,
         carbsRemaining: Double = 0,
@@ -83,6 +88,7 @@ struct TodayAISummary: Codable, Equatable, Sendable {
         waterTargetMl: Int,
         waterConsumedMl: Int,
         waterRemainingMl: Int = 0,
+        hasMetWaterTarget: Bool = false,
         weightKg: Double?,
         steps: Int?,
         workoutCaloriesBurned: Int,
@@ -92,9 +98,11 @@ struct TodayAISummary: Codable, Equatable, Sendable {
         self.calorieTarget = calorieTarget
         self.caloriesConsumed = caloriesConsumed
         self.caloriesRemaining = caloriesRemaining
+        self.isOverCalorieTarget = isOverCalorieTarget
         self.proteinTarget = proteinTarget
         self.proteinConsumed = proteinConsumed
         self.proteinRemaining = proteinRemaining
+        self.hasMetProteinTarget = hasMetProteinTarget
         self.carbsTarget = carbsTarget
         self.carbsConsumed = carbsConsumed
         self.carbsRemaining = carbsRemaining
@@ -104,6 +112,7 @@ struct TodayAISummary: Codable, Equatable, Sendable {
         self.waterTargetMl = waterTargetMl
         self.waterConsumedMl = waterConsumedMl
         self.waterRemainingMl = waterRemainingMl
+        self.hasMetWaterTarget = hasMetWaterTarget
         self.weightKg = weightKg
         self.steps = steps
         self.workoutCaloriesBurned = workoutCaloriesBurned

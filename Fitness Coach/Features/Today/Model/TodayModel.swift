@@ -100,7 +100,8 @@ final class TodayModel: ObservableObject {
         latestWeight: WeightEntry?,
         dailyReview: DailyReview?
     ) throws -> TodayDashboardState {
-        let (calorieSummary, macroSummary, waterSummary) = TodayDashboardNutritionMapper.maps(from: dailyLog)
+        let nutrition = DailyNutritionSummaryBuilder.build(from: dailyLog)
+        let (calorieSummary, macroSummary, waterSummary) = TodayDashboardNutritionMapper.maps(from: nutrition)
 
         let profile = try? userProfileService.getCurrentProfile()
 
@@ -123,10 +124,7 @@ final class TodayModel: ObservableObject {
         let (streaks, weekLoggedDays) = try buildMomentumMetrics(asOf: dailyLog.date)
         let hasPriorFoodLogs = try hasPriorFoodLogs(before: dailyLog.date)
         let dailyBrief = DailyBriefBuilder.todayBrief(
-            profile: profile,
-            caloriesRemaining: calorieSummary.remaining,
-            proteinRemaining: macroSummary.protein.remaining,
-            waterRemainingMl: waterSummary.remainingMl,
+            nutrition: nutrition,
             hasWorkoutToday: workoutSummary.hasWorkout,
             trainingFrequency: trainingFrequency
         )

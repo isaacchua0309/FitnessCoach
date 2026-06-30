@@ -215,7 +215,6 @@ enum CoachResponseBuilder {
         let nutrition = nutritionSummary(from: log)
 
         let brief = DailyBriefBuilder.todayBrief(
-            profile: profile,
             nutrition: nutrition,
             hasWorkoutToday: hasWorkoutToday,
             trainingFrequency: profile?.trainingFrequencyPerWeek ?? 0

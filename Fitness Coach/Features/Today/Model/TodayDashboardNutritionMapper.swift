@@ -10,8 +10,11 @@ import Foundation
 enum TodayDashboardNutritionMapper {
 
     static func maps(from dailyLog: DailyLog) -> (CalorieSummary, MacroSummary, WaterSummary) {
-        let nutrition = DailyNutritionSummaryBuilder.build(from: dailyLog)
-        return (
+        maps(from: DailyNutritionSummaryBuilder.build(from: dailyLog))
+    }
+
+    static func maps(from nutrition: DailyNutritionSummary) -> (CalorieSummary, MacroSummary, WaterSummary) {
+        (
             calorieSummary(from: nutrition),
             macroSummary(from: nutrition),
             waterSummary(from: nutrition)

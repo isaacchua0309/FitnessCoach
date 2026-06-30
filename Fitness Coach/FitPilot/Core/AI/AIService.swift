@@ -119,35 +119,9 @@ final class AIService: AIServiceProtocol {
             throw AIServiceError.validationFailed("Missing today summary for daily review.")
         }
 
-        let input = DailyReviewAIInput(
-            date: context.date,
-            calorieTarget: summary.calorieTarget,
-            caloriesConsumed: summary.caloriesConsumed,
-            caloriesRemaining: summary.caloriesRemaining,
-            isOverCalorieTarget: summary.caloriesRemaining < 0,
-            proteinTarget: summary.proteinTarget,
-            proteinConsumed: summary.proteinConsumed,
-            proteinRemaining: summary.proteinRemaining,
-            hasMetProteinTarget: summary.proteinRemaining <= 0,
-            carbsTarget: summary.carbsTarget,
-            carbsConsumed: summary.carbsConsumed,
-            carbsRemaining: summary.carbsRemaining,
-            fatTarget: summary.fatTarget,
-            fatConsumed: summary.fatConsumed,
-            fatRemaining: summary.fatRemaining,
-            waterTargetMl: summary.waterTargetMl,
-            waterConsumedMl: summary.waterConsumedMl,
-            waterRemainingMl: summary.waterRemainingMl,
-            hasMetWaterTarget: summary.waterRemainingMl <= 0,
-            weightKg: summary.weightKg,
-            latestWeightKg: summary.weightKg,
-            steps: summary.steps,
-            workoutCount: summary.workoutsToday,
-            workoutCaloriesBurned: summary.workoutCaloriesBurned,
-            foodEntryCount: summary.recentMeals.count,
-            lowConfidenceFoodCount: 0,
-            topProteinFoodNames: summary.recentMeals,
-            deterministicNotes: []
+        let input = TodayAISummaryMapper.dailyReviewAIInput(
+            from: summary,
+            date: context.date
         )
         return try await generateDailyReviewText(input: input, context: context)
     }

@@ -42,7 +42,7 @@ Factory methods wire feature models:
 
 - `makeTodayModel()`, `makeCoachModel()`, `makeProgressModel()`, `makeProfileModel()`
 - `makeRootModel()`, `makeOnboardingModel(onCompletion:)`
-- `makeTrainingModel()`, `makeTrainingInsightsView()` (Training surfaces outside the tab bar)
+- `makeTodayActionCoordinator()`, `makeJourneyAnalyticsCoordinator()`
 
 ### AuthGate
 
@@ -375,10 +375,10 @@ Tracked for later stages. **Do not treat as blockers for feature work** — but 
 
 ### Calculation engine
 
-- **Canonical plan math:** `Core/FormaCalculation/FormaCalculationEngine` via `PlanCalculationBridge` and `TargetService`. Well-tested; see `FormaCalculationSpec.md`.
-- **Runtime dashboard math:** `Core/Calculators/MacroCalculator`, `WaterTargetCalculator`, `StreakCalculator` — duplicated call sites in `TodayModel`, `CoachResponseBuilder`, `CoachAIContextBuilder`, `DailyReviewSummaryBuilder`.
-- **Legacy / dead:** `CalorieTargetCalculator` (deprecated, no callers), `MaintenanceCalculator` (no callers), `AIFoodEstimator` (no callers; `LocalNutritionEstimator` used instead).
-- **Action:** extract `DailyNutritionSummaryBuilder`; retire legacy calculators after verification.
+- **Canonical plan math:** `Domain/PlanCalculation/FormaCalculationEngine` via `PlanCalculationBridge` and `TargetService`. Well-tested; see `FormaCalculationSpec.md`.
+- **Runtime dashboard math:** `DailyNutritionSummaryBuilder` is the single read-model for macro/calorie/water state. It delegates to `MacroCalculator` and `WaterTargetCalculator`.
+- **Consumers:** `TodayDashboardNutritionMapper`, `TodayAISummaryMapper`, `DailyReviewSummaryBuilder`, `CoachResponseBuilder`, `DailyBriefBuilder`.
+- **Legacy / dead:** `CalorieTargetCalculator`, `MaintenanceCalculator`, `AIFoodEstimator` — removed.
 
 ### Coach pipeline
 
@@ -451,6 +451,7 @@ Items that need confirmation before deletion or large refactors:
 
 | Date | Change |
 |------|--------|
+| 2026-06-30 | Phase 2: `DailyNutritionSummaryBuilder` consolidated as runtime nutrition SSOT |
 | 2026-06-30 | Phase 1 dead-code pass: orphan views, deprecated aliases, retired workout write APIs |
 | 2026-06-28 | Journey section: link to `JourneyArchitecture.md`; fix `Features/Journey` path; replace stale `JourneyStateBuilder` / hidden-milestones notes |
 | 2026-06-27 | Initial architecture doc (Stage 1 audit) |

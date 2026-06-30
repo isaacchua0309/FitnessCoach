@@ -2,8 +2,13 @@
 //  DailyNutritionSummaryBuilder.swift
 //  Fitness Coach
 //
-//  Pure runtime daily nutrition summary from a DailyLog target snapshot and totals.
-//  Delegates arithmetic to MacroCalculator and WaterTargetCalculator.
+//  Canonical runtime read-model for daily macro, calorie, and water state.
+//
+//  All feature dashboards, Coach responses, AI context, and daily review
+//  summaries should derive nutrition numbers from this builder (via mappers
+//  such as TodayDashboardNutritionMapper and TodayAISummaryMapper).
+//
+//  Low-level arithmetic remains in MacroCalculator and WaterTargetCalculator.
 //
 
 import Foundation

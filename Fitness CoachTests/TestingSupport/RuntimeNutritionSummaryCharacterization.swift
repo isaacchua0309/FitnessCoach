@@ -2,7 +2,7 @@
 //  RuntimeNutritionSummaryCharacterization.swift
 //  Fitness CoachTests
 //
-//  Mirrors legacy production nutrition assembly for regression comparison.
+//  Projects DailyNutritionSummaryBuilder output for cross-feature parity tests.
 //
 
 import Foundation
@@ -40,54 +40,35 @@ enum RuntimeNutritionSummaryCharacterization {
         let hasMetWaterTarget: Bool
     }
 
-    /// Same calculator sequence as `TodayModel.makeDashboardState` + review hydration flag.
     static func snapshot(from dailyLog: DailyLog) -> Snapshot {
-        let targets = MacroCalculator.macroTargets(from: dailyLog.targets)
-        let remaining = MacroCalculator.remaining(targets: targets, totals: dailyLog.totals)
-        let waterRemainingMl = WaterTargetCalculator.remainingMl(
-            consumedMl: dailyLog.waterConsumedMl,
-            targetMl: dailyLog.targets.waterTargetMl
-        )
+        snapshot(from: DailyNutritionSummaryBuilder.build(from: dailyLog))
+    }
 
-        return Snapshot(
-            calorieTarget: targets.calories,
-            caloriesConsumed: dailyLog.totals.calories,
-            caloriesRemaining: remaining.calories,
-            calorieProgress: MacroCalculator.calorieProgress(totals: dailyLog.totals, targets: targets),
-            isOverCalorieTarget: MacroCalculator.isOverCalories(
-                totals: dailyLog.totals,
-                targets: targets
-            ),
-            proteinTarget: targets.protein,
-            proteinConsumed: dailyLog.totals.protein,
-            proteinRemaining: remaining.protein,
-            proteinProgress: MacroCalculator.proteinProgress(totals: dailyLog.totals, targets: targets),
-            hasMetProteinTarget: MacroCalculator.hasMetProteinTarget(
-                totals: dailyLog.totals,
-                targets: targets
-            ),
-            carbsTarget: targets.carbs,
-            carbsConsumed: dailyLog.totals.carbs,
-            carbsRemaining: remaining.carbs,
-            carbsProgress: MacroCalculator.progress(
-                consumed: dailyLog.totals.carbs,
-                target: targets.carbs
-            ),
-            fatTarget: targets.fat,
-            fatConsumed: dailyLog.totals.fat,
-            fatRemaining: remaining.fat,
-            fatProgress: MacroCalculator.progress(
-                consumed: dailyLog.totals.fat,
-                target: targets.fat
-            ),
-            waterTargetMl: dailyLog.targets.waterTargetMl,
-            waterConsumedMl: dailyLog.waterConsumedMl,
-            waterRemainingMl: waterRemainingMl,
-            waterProgress: WaterTargetCalculator.progress(
-                consumedMl: dailyLog.waterConsumedMl,
-                targetMl: dailyLog.targets.waterTargetMl
-            ),
-            hasMetWaterTarget: waterRemainingMl == 0
+    static func snapshot(from nutrition: DailyNutritionSummary) -> Snapshot {
+        Snapshot(
+            calorieTarget: nutrition.targets.calories,
+            caloriesConsumed: nutrition.totals.calories,
+            caloriesRemaining: nutrition.remaining.calories,
+            calorieProgress: nutrition.calorieProgress,
+            isOverCalorieTarget: nutrition.isOverCalories,
+            proteinTarget: nutrition.targets.protein,
+            proteinConsumed: nutrition.totals.protein,
+            proteinRemaining: nutrition.remaining.protein,
+            proteinProgress: nutrition.proteinProgress,
+            hasMetProteinTarget: nutrition.hasMetProteinTarget,
+            carbsTarget: nutrition.targets.carbs,
+            carbsConsumed: nutrition.totals.carbs,
+            carbsRemaining: nutrition.remaining.carbs,
+            carbsProgress: nutrition.carbProgress,
+            fatTarget: nutrition.targets.fat,
+            fatConsumed: nutrition.totals.fat,
+            fatRemaining: nutrition.remaining.fat,
+            fatProgress: nutrition.fatProgress,
+            waterTargetMl: nutrition.water.targetMl,
+            waterConsumedMl: nutrition.water.consumedMl,
+            waterRemainingMl: nutrition.water.remainingMl,
+            waterProgress: nutrition.water.progress,
+            hasMetWaterTarget: nutrition.hasMetWaterTarget
         )
     }
 

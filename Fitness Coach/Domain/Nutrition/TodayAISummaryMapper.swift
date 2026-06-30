@@ -32,9 +32,11 @@ enum TodayAISummaryMapper {
             calorieTarget: nutrition.targets.calories,
             caloriesConsumed: nutrition.totals.calories,
             caloriesRemaining: nutrition.remaining.calories,
+            isOverCalorieTarget: nutrition.isOverCalories,
             proteinTarget: nutrition.targets.protein,
             proteinConsumed: nutrition.totals.protein,
             proteinRemaining: nutrition.remaining.protein,
+            hasMetProteinTarget: nutrition.hasMetProteinTarget,
             carbsTarget: nutrition.targets.carbs,
             carbsConsumed: nutrition.totals.carbs,
             carbsRemaining: nutrition.remaining.carbs,
@@ -44,6 +46,7 @@ enum TodayAISummaryMapper {
             waterTargetMl: nutrition.water.targetMl,
             waterConsumedMl: nutrition.water.consumedMl,
             waterRemainingMl: nutrition.water.remainingMl,
+            hasMetWaterTarget: nutrition.hasMetWaterTarget,
             weightKg: dailyLog.weightKg,
             steps: dailyLog.steps,
             workoutCaloriesBurned: dailyLog.workoutCaloriesBurned,
@@ -57,9 +60,11 @@ enum TodayAISummaryMapper {
             calorieTarget: reviewSummary.calorieTarget,
             caloriesConsumed: reviewSummary.caloriesConsumed,
             caloriesRemaining: reviewSummary.caloriesRemaining,
+            isOverCalorieTarget: reviewSummary.isOverCalorieTarget,
             proteinTarget: reviewSummary.proteinTarget,
             proteinConsumed: reviewSummary.proteinConsumed,
             proteinRemaining: reviewSummary.proteinRemaining,
+            hasMetProteinTarget: reviewSummary.hasMetProteinTarget,
             carbsTarget: reviewSummary.carbsTarget,
             carbsConsumed: reviewSummary.carbsConsumed,
             carbsRemaining: reviewSummary.carbsRemaining,
@@ -69,11 +74,48 @@ enum TodayAISummaryMapper {
             waterTargetMl: reviewSummary.waterTargetMl,
             waterConsumedMl: reviewSummary.waterConsumedMl,
             waterRemainingMl: reviewSummary.waterRemainingMl,
+            hasMetWaterTarget: reviewSummary.hasMetWaterTarget,
             weightKg: reviewSummary.weightKg,
             steps: reviewSummary.steps,
             workoutCaloriesBurned: reviewSummary.workoutCaloriesBurned,
             workoutsToday: reviewSummary.workoutCount,
             recentMeals: []
+        )
+    }
+
+    static func dailyReviewAIInput(
+        from summary: TodayAISummary,
+        date: Date
+    ) -> DailyReviewAIInput {
+        DailyReviewAIInput(
+            date: date,
+            calorieTarget: summary.calorieTarget,
+            caloriesConsumed: summary.caloriesConsumed,
+            caloriesRemaining: summary.caloriesRemaining,
+            isOverCalorieTarget: summary.isOverCalorieTarget,
+            proteinTarget: summary.proteinTarget,
+            proteinConsumed: summary.proteinConsumed,
+            proteinRemaining: summary.proteinRemaining,
+            hasMetProteinTarget: summary.hasMetProteinTarget,
+            carbsTarget: summary.carbsTarget,
+            carbsConsumed: summary.carbsConsumed,
+            carbsRemaining: summary.carbsRemaining,
+            fatTarget: summary.fatTarget,
+            fatConsumed: summary.fatConsumed,
+            fatRemaining: summary.fatRemaining,
+            waterTargetMl: summary.waterTargetMl,
+            waterConsumedMl: summary.waterConsumedMl,
+            waterRemainingMl: summary.waterRemainingMl,
+            hasMetWaterTarget: summary.hasMetWaterTarget,
+            weightKg: summary.weightKg,
+            latestWeightKg: summary.weightKg,
+            steps: summary.steps,
+            workoutCount: summary.workoutsToday,
+            workoutCaloriesBurned: summary.workoutCaloriesBurned,
+            foodEntryCount: summary.recentMeals.count,
+            lowConfidenceFoodCount: 0,
+            topProteinFoodNames: summary.recentMeals,
+            deterministicNotes: []
         )
     }
 }

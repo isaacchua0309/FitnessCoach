@@ -16,40 +16,21 @@ struct TodayDailyBrief: Equatable, Sendable {
 enum DailyBriefBuilder {
 
     static func todayBrief(
-        profile: UserProfile?,
         nutrition: DailyNutritionSummary,
-        hasWorkoutToday: Bool,
-        trainingFrequency: Int
-    ) -> TodayDailyBrief {
-        todayBrief(
-            profile: profile,
-            caloriesRemaining: nutrition.remaining.calories,
-            proteinRemaining: nutrition.remaining.protein,
-            waterRemainingMl: nutrition.water.remainingMl,
-            hasWorkoutToday: hasWorkoutToday,
-            trainingFrequency: trainingFrequency
-        )
-    }
-
-    static func todayBrief(
-        profile: UserProfile?,
-        caloriesRemaining: Int,
-        proteinRemaining: Double,
-        waterRemainingMl: Int,
         hasWorkoutToday: Bool,
         trainingFrequency: Int
     ) -> TodayDailyBrief {
         let greeting = timeBasedGreeting()
         var priorities: [String] = []
 
-        if proteinRemaining > 30 {
-            priorities.append("Aim for \(formatGrams(profile?.targets.proteinTarget ?? 0)) protein today.")
+        if nutrition.remaining.protein > 30 {
+            priorities.append("Aim for \(formatGrams(nutrition.targets.protein)) protein today.")
         } else {
             priorities.append("Protein is on track — keep it up.")
         }
 
-        if waterRemainingMl > 500 {
-            let liters = Double(profile?.targets.waterTargetMl ?? waterRemainingMl) / 1000.0
+        if nutrition.water.remainingMl > 500 {
+            let liters = Double(nutrition.water.targetMl) / 1000.0
             priorities.append(String(format: "Drink %.1fL water.", liters))
         } else {
             priorities.append("Hydration is nearly complete.")
@@ -61,14 +42,14 @@ enum DailyBriefBuilder {
             priorities.append("Rest or light movement — recovery supports progress.")
         }
 
-        priorities.append("\(max(caloriesRemaining, 0)) kcal remaining for today.")
+        priorities.append("\(max(nutrition.remaining.calories, 0)) kcal remaining for today.")
 
         let recommendation: String
-        if caloriesRemaining < 0 {
+        if nutrition.isOverCalories {
             recommendation = "You're above today's target. Log honestly tonight — we care about the weekly trend, not one meal."
-        } else if proteinRemaining > 50 {
+        } else if nutrition.remaining.protein > 50 {
             recommendation = "Anchor your next meal with protein."
-        } else if waterRemainingMl > 1_000 {
+        } else if nutrition.water.remainingMl > 1_000 {
             recommendation = "Pace your water earlier — don't leave it all for evening."
         } else {
             recommendation = "Stay consistent today. Small wins compound."
