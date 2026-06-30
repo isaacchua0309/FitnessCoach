@@ -35,9 +35,4 @@ enum ProfileSignInCopyPolicy {
             || normalized.contains("keep your personalized plan safe")
             || normalized.contains("saving your progress")
     }
-
-    @available(*, deprecated, renamed: "usesOnboardingCompletionLanguage")
-    static func usesSavePlanLanguage(_ text: String) -> Bool {
-        usesOnboardingCompletionLanguage(text)
-    }
 }

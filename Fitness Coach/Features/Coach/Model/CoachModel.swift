@@ -471,8 +471,6 @@ final class CoachModel: ObservableObject {
                 return CoachResponseBuilder.aiNotUnderstood
             }
             return executeLogFood(foodDraft)
-        case .workout:
-            return TrainingIntegrationCopy.coachWorkoutMutationUnavailable
         case .water(let draft, _):
             return executeLogWater(draft)
         case .weight(let draft, _):

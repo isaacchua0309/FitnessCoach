@@ -33,10 +33,6 @@ enum ConfirmationPolicy {
         )
     }
 
-    static func decision(forWorkout draft: WorkoutDraft) -> ConfirmationDecision {
-        .reject(TrainingIntegrationCopy.coachWorkoutMutationUnavailable)
-    }
-
     static func decision(for food: FoodDraft) -> ConfirmationDecision {
         switch AIResponseValidator.validateFood(food, confidence: aiConfidence(from: food.confidence)) {
         case .valid, .requiresConfirmation:

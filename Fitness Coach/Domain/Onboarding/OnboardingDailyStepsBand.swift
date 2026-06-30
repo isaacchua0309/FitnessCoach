@@ -96,8 +96,6 @@ enum OnboardingTrainingDaysChip: Int, CaseIterable, Equatable, Identifiable, Sen
     }
 }
 
-typealias OnboardingTrainingDaysOption = OnboardingTrainingDaysChip
-
 extension OnboardingFormState {
     var dailyStepsBand: OnboardingDailyStepsBand {
         get {

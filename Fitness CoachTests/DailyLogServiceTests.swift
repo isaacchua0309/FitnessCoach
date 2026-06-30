@@ -144,10 +144,7 @@ final class DailyLogServiceTests: XCTestCase {
     func testRecalculateDailyTotalsPreservesWorkoutTotalsFromWorkoutEntries() async throws {
         try harness.seedProfile()
 
-        _ = try harness.workoutLogService.addWorkout(
-            DailyLogServiceTestSupport.workoutDraft(estimatedCaloriesBurned: 320),
-            date: harness.today
-        )
+        try harness.seedWorkoutEntry(estimatedCaloriesBurned: 320)
 
         let afterWorkout = try XCTUnwrap(try harness.dailyLogService.getLog(for: harness.today))
         XCTAssertEqual(afterWorkout.workoutCaloriesBurned, 320)

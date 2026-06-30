@@ -9,7 +9,6 @@ import Foundation
 
 enum CoachPendingConfirmation: Equatable {
     case food(AIFoodConfirmationDraft)
-    case workout(WorkoutDraft, assistantMessage: String?)
     case water(WaterDraft, assistantMessage: String?)
     case weight(WeightDraft, assistantMessage: String?)
     case edit(AICommandAction, originalText: String, assistantMessage: String?)
@@ -19,7 +18,6 @@ enum CoachPendingConfirmation: Equatable {
     var kindLabel: String {
         switch self {
         case .food: return "Food"
-        case .workout: return "Workout"
         case .water: return "Water"
         case .weight: return "Weight"
         case .edit: return "Edit"
@@ -36,12 +34,6 @@ enum CoachPendingConfirmation: Equatable {
                 return "\(food.name) · \(food.calories) kcal · \(AIFoodConfirmationFormatter.macroSummary(for: food))"
             }
             return food.name
-        case .workout(let draft, _):
-            var parts: [String] = []
-            if let name = draft.name { parts.append(name) }
-            if let minutes = draft.durationMinutes { parts.append("\(minutes) min") }
-            if let kcal = draft.estimatedCaloriesBurned { parts.append("\(kcal) kcal burned") }
-            return parts.isEmpty ? "Workout" : parts.joined(separator: " · ")
         case .water(let draft, _):
             return "\(draft.amountMl) ml water"
         case .weight(let draft, _):

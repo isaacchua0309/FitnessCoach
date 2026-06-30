@@ -29,11 +29,6 @@ extension View {
     func formaRootTheme(store: ThemeStore) -> some View {
         modifier(FormaRootThemeModifier(store: store))
     }
-
-    /// Deprecated — use `formaRootTheme(store:)` at the app root only.
-    func formaThemeScreen(store: ThemeStore) -> some View {
-        formaRootTheme(store: store)
-    }
 }
 
 #if DEBUG

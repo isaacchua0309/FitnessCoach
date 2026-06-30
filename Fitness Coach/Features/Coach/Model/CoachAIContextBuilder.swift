@@ -115,5 +115,3 @@ struct CoachContextBuilder {
             : String(format: "%.1f", value)
     }
 }
-
-typealias CoachAIContextBuilder = CoachContextBuilder

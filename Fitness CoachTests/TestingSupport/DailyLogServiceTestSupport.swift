@@ -35,6 +35,35 @@ enum DailyLogServiceTestSupport {
             draft.targets = targets
             return try profileService.createProfile(draft)
         }
+
+        @discardableResult
+        func seedWorkoutEntry(
+            date: Date? = nil,
+            estimatedCaloriesBurned: Int = 250,
+            name: String = "Run"
+        ) throws -> WorkoutEntry {
+            let workoutDate = date ?? today
+            let log = try dailyLogService.getOrCreateLogEntity(for: workoutDate)
+            let now = Date()
+            let workoutId = UUID()
+            let workout = WorkoutEntry(
+                id: workoutId,
+                dailyLogId: log.id,
+                name: name,
+                durationMinutes: 30,
+                estimatedCaloriesBurned: estimatedCaloriesBurned,
+                intensity: .moderate,
+                recoveryDemand: nil,
+                notes: nil,
+                createdAt: now,
+                updatedAt: now
+            )
+            let entity = WorkoutEntryEntity(model: workout)
+            entity.dailyLog = log
+            try store.insert(entity)
+            _ = try dailyLogService.recalculateDailyTotals(for: workoutDate)
+            return workout
+        }
     }
 
     static let referenceNow = ProfileTestFixtures.referenceDate
@@ -106,22 +135,6 @@ enum DailyLogServiceTestSupport {
             confidence: .high,
             imageUrl: nil,
             notes: nil
-        )
-    }
-
-    static func workoutDraft(
-        name: String = "Run",
-        durationMinutes: Int = 30,
-        estimatedCaloriesBurned: Int = 250
-    ) -> WorkoutDraft {
-        WorkoutDraft(
-            name: name,
-            durationMinutes: durationMinutes,
-            estimatedCaloriesBurned: estimatedCaloriesBurned,
-            intensity: .moderate,
-            recoveryDemand: nil,
-            notes: nil,
-            exerciseSets: []
         )
     }
 }
