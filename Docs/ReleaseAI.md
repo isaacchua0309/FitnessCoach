@@ -67,11 +67,11 @@ Run the local gateway from `Tools/LocalAIBackend/` on your Mac. See `Tools/Local
 | File | Role |
 |------|------|
 | `FitPilot/App/AppContainer.swift` | Wires `LLMClient` for Debug vs Release |
-| `FitPilot/App/LocalAIBackendConfiguration.swift` | Debug URL resolution (simulator localhost allowed) |
-| `FitPilot/App/ReleaseAIBackendConfiguration.swift` | Release URL resolution (no localhost) |
-| `FitPilot/Infrastructure/LLM/UnavailableLLMClient.swift` | Safe failure when Release backend not configured |
-| `FitPilot/Infrastructure/LLM/FitPilotAIBackendClient.swift` | HTTP client when URL is valid |
-| `FitPilot/Infrastructure/LLM/FallbackLLMClient.swift` | Maps transport errors → `backendUnavailable` |
+| `App/LocalAIBackendConfiguration.swift` | Debug URL resolution (simulator localhost allowed) |
+| `App/ReleaseAIBackendConfiguration.swift` | Release URL resolution (no localhost) |
+| `Infrastructure/AI/UnavailableLLMClient.swift` | Safe failure when Release backend not configured |
+| `Infrastructure/AI/FitPilotAIBackendClient.swift` | HTTP client when URL is valid |
+| `Infrastructure/AI/FallbackLLMClient.swift` | Maps transport errors → `backendUnavailable` |
 
 ---
 
