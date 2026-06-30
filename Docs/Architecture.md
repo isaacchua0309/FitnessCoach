@@ -46,26 +46,26 @@ Factory methods wire feature models:
 
 ### AuthGate
 
-**Location:** `FitPilot/Features/Auth/AuthGateView.swift`
+**Location:** `Features/Auth/`
 
-`AuthGateView` is the auth-first shell gate. Routing is driven by `AuthManager.authState` and `RootModel.state`:
+The auth-first shell is split into a thin SwiftUI entry (`AuthGateView`), route rendering (`AuthGateRouteView`), and orchestration (`AuthGateCoordinator`).
 
 ```
 AuthGateView
-├── authState.unknown          → LaunchLoadingView
-├── authState.signedOut / .signingIn / .failed → SignInView
-└── authState.signedIn
-      ├── rootModel.loading    → LaunchLoadingView
-      ├── rootModel.onboarding → OnboardingView
-      ├── rootModel.main       → MainTabView
-      └── rootModel.error      → inline error + retry
+  └── AuthGateRouteView(coordinator:)
+        ├── PublicWelcomeView / ExistingUserSignInView / …
+        ├── AuthGateOnboardingShellView
+        ├── AuthGateProfilePlanConflictHost
+        └── MainTabView
 ```
 
 Pure routing helpers (testable without SwiftUI):
 
 - `AppRouteResolver` — maps auth + root state → `AppShellRoute`
+- `AuthGateRoutingPolicy` — onboarding session overlays on base route
 - `RootProfileRouteResolver` — profile bootstrap → onboarding vs main
-- `RootModel` — loads profile via `ProfileBootstrapService` after sign-in
+- `ProfileBootstrapCoordinator` — signed-in reconcile decisions
+- `AuthGateCoordinator` — session state, cloud bootstrap, conflict resolution, analytics
 
 On onboarding completion, `AuthGateView` saves the profile to cloud via `profileBootstrapService` before transitioning to main.
 
@@ -451,6 +451,7 @@ Items that need confirmation before deletion or large refactors:
 
 | Date | Change |
 |------|--------|
+| 2026-06-30 | Phase 3: `AuthGateCoordinator` extracted; `AuthGateView` thinned to shell wiring |
 | 2026-06-30 | Phase 2: `DailyNutritionSummaryBuilder` consolidated as runtime nutrition SSOT |
 | 2026-06-30 | Phase 1 dead-code pass: orphan views, deprecated aliases, retired workout write APIs |
 | 2026-06-28 | Journey section: link to `JourneyArchitecture.md`; fix `Features/Journey` path; replace stale `JourneyStateBuilder` / hidden-milestones notes |
