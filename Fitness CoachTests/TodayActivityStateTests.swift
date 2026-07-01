@@ -118,7 +118,12 @@ final class TodayActivityStateTests: XCTestCase {
         let reader = MockHealthKitStepReader(stepCount: 5_678)
         let date = TodayDashboardFixtures.date(hour: 15)
 
-        let steps = try await TodayHealthStepResolver.stepsToday(reader: reader, on: date)
+        let query = HealthActivityQueryService(
+            workoutReader: reader,
+            stepReader: MockHealthKitStepReader(stepCount: 0)
+        )
+
+        let steps = try await query.stepsToday(on: date)
 
         XCTAssertEqual(steps, 5_678)
         XCTAssertEqual(reader.fetchCallCount, 1)
@@ -136,8 +141,12 @@ final class TodayActivityStateTests: XCTestCase {
             makeWorkout(on: today)
         ])
 
-        let count = try await TodayHealthWorkoutResolver.workoutCountThisWeek(
-            reader: reader,
+        let query = HealthActivityQueryService(
+            workoutReader: reader,
+            stepReader: MockHealthKitStepReader(stepCount: 0)
+        )
+
+        let count = try await query.workoutCountThisWeek(
             on: today,
             calendar: calendar
         )

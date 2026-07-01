@@ -60,6 +60,7 @@ struct MainTabView: View {
             TodayView(
                 model: todayModel,
                 actionCoordinator: container.makeTodayActionCoordinator(),
+                healthActivityQuery: container.healthActivityQueryService,
                 onOpenCoach: { prefill in
                     coachModel.prepareInput(prefill: prefill)
                     selectedTab = .coach

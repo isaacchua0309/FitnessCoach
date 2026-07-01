@@ -37,6 +37,9 @@ final class AppContainer {
     let healthTrainingService: HealthTrainingService
     let trainingInsightsStore: TrainingInsightsStore
     let trainingInsightsModel: TrainingInsightsModel
+    let healthKitWorkoutReader: HealthKitWorkoutReading
+    let healthKitStepReader: HealthKitStepReading
+    let healthActivityQueryService: HealthActivityQueryService
 
     let onboardingUserDefaults: UserDefaults
     let onboardingDraftStore: OnboardingDraftStore
@@ -98,7 +101,15 @@ final class AppContainer {
 
         healthTrainingService = HealthTrainingService()
         trainingInsightsStore = TrainingInsightsStore(integration: healthTrainingService)
-        trainingInsightsModel = TrainingInsightsModel()
+        let workoutReader = HealthTrainingReaderFactory.makeWorkoutReader()
+        let stepReader = HealthTrainingReaderFactory.makeStepReader()
+        healthKitWorkoutReader = workoutReader
+        healthKitStepReader = stepReader
+        healthActivityQueryService = HealthActivityQueryService(
+            workoutReader: workoutReader,
+            stepReader: stepReader
+        )
+        trainingInsightsModel = TrainingInsightsModel(workoutReader: workoutReader)
         HealthTrainingDebugLogger.event(
             "Training integration wired",
             fields: [
@@ -269,7 +280,7 @@ final class AppContainer {
             weightLogService: weightLogService,
             userProfileService: userProfileService,
             trainingInsightsStore: trainingInsightsStore,
-            workoutReader: trainingInsightsModel.workoutReaderForToday
+            workoutReader: healthKitWorkoutReader
         )
     }
 
@@ -281,7 +292,7 @@ final class AppContainer {
             dailyLogService: dailyLogService,
             weightLogService: weightLogService,
             trainingInsightsStore: trainingInsightsStore,
-            workoutReader: trainingInsightsModel.workoutReaderForToday,
+            workoutReader: healthKitWorkoutReader,
             analyticsLogger: planAnalyticsLogger
         )
     }
