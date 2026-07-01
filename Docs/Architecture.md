@@ -290,7 +290,7 @@ These are the conventions the codebase should follow. Violations are tracked in 
 - Views layout and bind state; they call feature models or builders for numbers.
 - **Allowed in views:** formatting via `*Formatter`, navigation, sheet presentation, `FormaTokens` styling.
 - **Not allowed in views:** calorie/macro math, streak logic, plan target derivation, HealthKit aggregation.
-- **Current violations:** `PlanCalculationDetailsSheet` uses `PlanCalculationBridge` inline; `TodayView` resolves HealthKit workout counts. Move to models/builders.
+- **Current violations:** `PlanCalculationDetailsSheet` preview uses `PlanCalculationBridge` inline; production path uses prebuilt `PlanCalculationDetailsState`.
 
 ### Infrastructure clients should not know SwiftUI
 
@@ -302,8 +302,9 @@ These are the conventions the codebase should follow. Violations are tracked in 
 
 - Feature models and views must not import SwiftData or construct `ModelContext` directly.
 - Reads/writes go through `Core/Services/*` or `FitnessActionCenter`.
-- **Target:** introduce repository protocols behind services; not implemented yet.
-- **Current violations:** `PlanModel.createDefaultProfile()` calls `userProfileService` directly instead of `FitnessActionCenter`; `AuthGateView` calls `profileBootstrapService` for cloud save.
+- **Target:** repository protocols in `Domain/Protocols/` — `UserProfileReading`, `DailyLogReading`, `WeightLogReading` implemented by `Data/Repositories/` services (Tier 1, 2026-06-30).
+- Feature models depend on reading protocols; writes go through `FitnessActionCenter`.
+- **Remaining violations:** `AuthGateCoordinator` / `ProfileBootstrapCoordinator` call `profileBootstrapService` for cloud bootstrap (app-layer orchestration).
 
 ### Design tokens should come from the Forma design system
 
@@ -421,8 +422,12 @@ Tracked for later stages. **Do not treat as blockers for feature work** — but 
 
 - `CoachModel` delegates mutations, AI routing, and pending confirmations to `Application/UseCases/Coach/`.
 - Pipeline: `Application/UseCases/Coach/Pipeline/` (`CoachRouteDecider`, `CoachIntentRouter`, `CheapLLMIntentClassifier`, `LocalNutritionEstimator`).
-- `CoachResponseBuilder` (in `Application/StateBuilders/Coach/`) duplicates macro summary logic.
+- `CoachResponseBuilder` formats nutrition copy via `CoachNutritionSummaryFormatter` + `DailyNutritionSummaryBuilder` (Tier 1, 2026-06-30).
 - **Action:** keep `CoachRoutingTests` as safety net; optional further colocation under Application.
+
+### Onboarding pipeline (Tier 1 complete)
+
+- **Tier 1 (2026-06-30):** `OnboardingModel` delegates to `Application/UseCases/Onboarding/` — `OnboardingSessionBootstrap`, `OnboardingPlanGenerationExecutor`, `OnboardingProfileCommitter` (via `FitnessActionCenter.createProfile`), `OnboardingAppleHealthCoordinator`, `OnboardingAnalyticsTracker`.
 
 ### FitPilot → Forma naming (Phase 6 complete)
 
@@ -489,6 +494,7 @@ Items that need confirmation before deletion or large refactors:
 
 | Date | Change |
 |------|--------|
+| 2026-06-30 | Tier 1: Repository protocols; `FitnessActionCenter.createProfile`; Onboarding handlers; `CoachNutritionSummaryFormatter` |
 | 2026-06-30 | Phase 7: `FormaScreenStyle` removed; tokens + `FormaCardChrome` / `FormaFeatureLayout` consolidate design primitives |
 | 2026-06-30 | Phase 8: Health reader injection via `AppContainer`; `HealthActivityQueryService` replaces Today resolvers |
 | 2026-06-30 | Phase 6: `FitPilot*` → `Forma*` types; `Progress*`/`Profile*` tab types → `Journey*`/`Plan*`; `FORMA_*` env vars with legacy fallback |

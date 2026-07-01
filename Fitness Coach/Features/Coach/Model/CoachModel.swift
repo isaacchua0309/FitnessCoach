@@ -53,7 +53,7 @@ final class CoachModel: ObservableObject {
         workoutLogService: WorkoutLogService,
         weightLogService: WeightLogService? = nil,
         aiService: AIServiceProtocol? = nil,
-        userProfileService: UserProfileService? = nil,
+        userProfileReader: (any UserProfileReading)? = nil,
         aiCommandParsingEnabled: Bool = false,
         coachModelConfig: CoachModelConfig? = nil,
         routeDecider: CoachRouteDecider? = nil,
@@ -69,10 +69,10 @@ final class CoachModel: ObservableObject {
         self.coachModelConfig = coachModelConfig ?? .default
         self.routeDecider = routeDecider ?? CoachRouteDecider()
         self.trainingInsightsStore = trainingInsightsStore
-        if let userProfileService {
+        if let userProfileReader {
             self.aiContextBuilder = CoachContextBuilder(
                 dailyLogService: dailyLogService,
-                userProfileService: userProfileService,
+                userProfileReader: userProfileReader,
                 actionCenter: actionCenter,
                 workoutLogService: workoutLogService
             )
@@ -92,7 +92,7 @@ final class CoachModel: ObservableObject {
             aiService: aiService,
             aiCommandParsingEnabled: aiCommandParsingEnabled,
             dailyLogService: dailyLogService,
-            userProfileService: userProfileService,
+            userProfileReader: userProfileReader,
             trainingInsightsStore: trainingInsightsStore,
             mutationExecutor: executor
         )

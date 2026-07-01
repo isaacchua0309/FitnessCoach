@@ -24,29 +24,29 @@ final class PlanModel: ObservableObject {
     private var loggedSectionImpressions = Set<PlanAnalyticsSectionImpression>()
 
     private let actionCenter: FitnessActionCenter
-    private let userProfileService: UserProfileService
+    private let userProfileReader: any UserProfileReading
     private let targetService: TargetService
-    private let dailyLogService: DailyLogService
-    private let weightLogService: WeightLogService
+    private let dailyLogReader: any DailyLogReading
+    private let weightLogReader: any WeightLogReading
     private let trainingInsightsStore: TrainingInsightsStore
     private let workoutReader: HealthKitWorkoutReading
     private let analyticsLogger: any PlanAnalyticsLogging
 
     init(
         actionCenter: FitnessActionCenter,
-        userProfileService: UserProfileService,
+        userProfileReader: any UserProfileReading,
         targetService: TargetService,
-        dailyLogService: DailyLogService,
-        weightLogService: WeightLogService,
+        dailyLogReader: any DailyLogReading,
+        weightLogReader: any WeightLogReading,
         trainingInsightsStore: TrainingInsightsStore,
         workoutReader: HealthKitWorkoutReading? = nil,
         analyticsLogger: (any PlanAnalyticsLogging)? = nil
     ) {
         self.actionCenter = actionCenter
-        self.userProfileService = userProfileService
+        self.userProfileReader = userProfileReader
         self.targetService = targetService
-        self.dailyLogService = dailyLogService
-        self.weightLogService = weightLogService
+        self.dailyLogReader = dailyLogReader
+        self.weightLogReader = weightLogReader
         self.trainingInsightsStore = trainingInsightsStore
         self.workoutReader = workoutReader ?? MockHealthKitWorkoutReader(workouts: [])
         self.analyticsLogger = analyticsLogger ?? NoOpPlanAnalyticsLogger()
@@ -61,7 +61,7 @@ final class PlanModel: ObservableObject {
 
     func refresh() async {
         do {
-            guard let profile = try userProfileService.getCurrentProfile() else {
+            guard let profile = try userProfileReader.getCurrentProfile() else {
                 viewState = .empty
                 return
             }
@@ -83,9 +83,9 @@ final class PlanModel: ObservableObject {
         let weekStart = calendar.date(byAdding: .day, value: -6, to: endDate) ?? endDate
         let allTimeStart = calendar.date(byAdding: .day, value: -365, to: endDate) ?? endDate
 
-        let weekLogs = try dailyLogService.getLogs(from: weekStart, to: endDate)
-        let allWeights = try weightLogService.getWeightEntries(from: allTimeStart, to: endDate)
-        let weekWeights = try weightLogService.getWeightEntries(from: weekStart, to: endDate)
+        let weekLogs = try dailyLogReader.getLogs(from: weekStart, to: endDate)
+        let allWeights = try weightLogReader.getWeightEntries(from: allTimeStart, to: endDate)
+        let weekWeights = try weightLogReader.getWeightEntries(from: weekStart, to: endDate)
 
         let integrationState = trainingInsightsStore.integrationState
         let dataSource = trainingInsightsStore.dataSource
@@ -187,9 +187,8 @@ final class PlanModel: ObservableObject {
             var draftForm = formState
             draftForm.applyGeneratedTargets(result.targets)
             let draft = try draftForm.makeDraft(targets: result.targets)
-            _ = try userProfileService.createProfile(draft)
+            _ = try actionCenter.createProfile(draft)
             await refresh()
-            actionCenter.notifyDataChanged()
         } catch let error as ProfileFormError {
             viewState = .error(error.message)
         } catch let error as PlanCalculationError {

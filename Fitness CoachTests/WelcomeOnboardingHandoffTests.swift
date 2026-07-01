@@ -133,7 +133,8 @@ final class WelcomeOnboardingHandoffModelTests: XCTestCase {
     func testWelcomeCreatePlanStartsPreAuthOnboardingAtIntroProof() async throws {
         let container = try AppContainer(inMemory: true)
         let model = OnboardingModel(
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             targetService: container.targetService,
             onCompletion: {},
             draftStore: draftStore,
@@ -155,7 +156,8 @@ final class WelcomeOnboardingHandoffModelTests: XCTestCase {
 
         let container = try AppContainer(inMemory: true)
         let model = OnboardingModel(
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             targetService: container.targetService,
             onCompletion: {},
             draftStore: draftStore,
@@ -183,7 +185,8 @@ final class WelcomeOnboardingHandoffModelTests: XCTestCase {
         draftStore.saveDraft(OnboardingDraft(formState: formState, step: .review))
 
         let model = OnboardingModel(
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             targetService: container.targetService,
             onCompletion: {},
             draftStore: draftStore,

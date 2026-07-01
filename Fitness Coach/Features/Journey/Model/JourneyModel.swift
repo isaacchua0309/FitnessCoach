@@ -16,7 +16,7 @@ final class JourneyModel: ObservableObject {
 
     private let dailyLogService: DailyLogService
     private let weightLogService: WeightLogService
-    private let userProfileService: UserProfileService
+    private let userProfileReader: any UserProfileReading
     private let trainingInsightsStore: TrainingInsightsStore
     private let workoutReader: HealthKitWorkoutReading
 
@@ -25,13 +25,13 @@ final class JourneyModel: ObservableObject {
     init(
         dailyLogService: DailyLogService,
         weightLogService: WeightLogService,
-        userProfileService: UserProfileService,
+        userProfileReader: any UserProfileReading,
         trainingInsightsStore: TrainingInsightsStore,
         workoutReader: HealthKitWorkoutReading? = nil
     ) {
         self.dailyLogService = dailyLogService
         self.weightLogService = weightLogService
-        self.userProfileService = userProfileService
+        self.userProfileReader = userProfileReader
         self.trainingInsightsStore = trainingInsightsStore
         self.workoutReader = workoutReader ?? MockHealthKitWorkoutReader(workouts: [])
     }
@@ -106,7 +106,7 @@ final class JourneyModel: ObservableObject {
             ).count
             : 0
 
-        let profile = try userProfileService.getCurrentProfile()
+        let profile = try userProfileReader.getCurrentProfile()
 
         let weightTrend = WeightTrendCalculator.trend(from: weights, endingOn: endDate)
         let weightSummary = ProgressWeightSummary(

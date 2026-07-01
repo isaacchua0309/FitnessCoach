@@ -45,7 +45,8 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             dailyLogService: container.dailyLogService,
             workoutLogService: container.workoutLogService,
             aiService: aiService,
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             aiCommandParsingEnabled: true
         )
 
@@ -71,7 +72,8 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             dailyLogService: container.dailyLogService,
             workoutLogService: container.workoutLogService,
             aiService: PhotoCapturingAIService(),
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             aiCommandParsingEnabled: true
         )
 
@@ -88,7 +90,8 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             dailyLogService: container.dailyLogService,
             workoutLogService: container.workoutLogService,
             aiService: PhotoCapturingAIService(),
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             aiCommandParsingEnabled: true
         )
 
@@ -108,7 +111,8 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             dailyLogService: container.dailyLogService,
             workoutLogService: container.workoutLogService,
             aiService: aiService,
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             aiCommandParsingEnabled: true
         )
 
@@ -133,7 +137,8 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             dailyLogService: container.dailyLogService,
             workoutLogService: container.workoutLogService,
             aiService: PhotoCapturingAIService(),
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             aiCommandParsingEnabled: true
         )
 

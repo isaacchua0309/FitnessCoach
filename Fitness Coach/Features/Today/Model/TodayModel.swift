@@ -18,7 +18,7 @@ final class TodayModel: ObservableObject {
     private let workoutLogService: WorkoutLogService
     private let weightLogService: WeightLogService
     private let reviewService: ReviewService
-    private let userProfileService: UserProfileService
+    private let userProfileReader: any UserProfileReading
 
     private var activityContext: TodayActivityContext = .default
 
@@ -28,14 +28,14 @@ final class TodayModel: ObservableObject {
         workoutLogService: WorkoutLogService,
         weightLogService: WeightLogService,
         reviewService: ReviewService,
-        userProfileService: UserProfileService
+        userProfileReader: any UserProfileReading
     ) {
         self.dailyLogService = dailyLogService
         self.foodLogService = foodLogService
         self.workoutLogService = workoutLogService
         self.weightLogService = weightLogService
         self.reviewService = reviewService
-        self.userProfileService = userProfileService
+        self.userProfileReader = userProfileReader
     }
 
     // MARK: Loading
@@ -103,7 +103,7 @@ final class TodayModel: ObservableObject {
         let nutrition = DailyNutritionSummaryBuilder.build(from: dailyLog)
         let (calorieSummary, macroSummary, waterSummary) = TodayDashboardNutritionMapper.maps(from: nutrition)
 
-        let profile = try? userProfileService.getCurrentProfile()
+        let profile = try? userProfileReader.getCurrentProfile()
 
         let displayWeight = dailyLog.weightKg ?? latestWeight?.weightKg
         let weightSummary = TodayWeightSummary(

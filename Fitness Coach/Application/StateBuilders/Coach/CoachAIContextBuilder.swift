@@ -14,7 +14,7 @@ import Foundation
 struct CoachContextBuilder {
 
     private let dailyLogService: DailyLogService
-    private let userProfileService: UserProfileService
+    private let userProfileReader: any UserProfileReading
     private let actionCenter: FitnessActionCenter?
     private let workoutLogService: WorkoutLogService?
 
@@ -23,12 +23,12 @@ struct CoachContextBuilder {
 
     init(
         dailyLogService: DailyLogService,
-        userProfileService: UserProfileService,
+        userProfileReader: any UserProfileReading,
         actionCenter: FitnessActionCenter? = nil,
         workoutLogService: WorkoutLogService? = nil
     ) {
         self.dailyLogService = dailyLogService
-        self.userProfileService = userProfileService
+        self.userProfileReader = userProfileReader
         self.actionCenter = actionCenter
         self.workoutLogService = workoutLogService
     }
@@ -58,7 +58,7 @@ struct CoachContextBuilder {
     // MARK: Profile
 
     private func makeProfileSummary() -> UserProfileSummary? {
-        guard let profile = try? userProfileService.getCurrentProfile() else {
+        guard let profile = try? userProfileReader.getCurrentProfile() else {
             return nil
         }
         return UserProfileSummary(

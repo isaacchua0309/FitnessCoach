@@ -32,7 +32,7 @@ enum CoachRoutingIntegrationTestSupport {
                 dailyLogService: dailyLogService,
                 workoutLogService: workoutLogService,
                 aiService: aiService,
-                userProfileService: userProfileService,
+                userProfileReader: userProfileService,
                 aiCommandParsingEnabled: true,
                 trainingInsightsStore: includeTrainingInsights ? trainingInsightsStore : nil
             )

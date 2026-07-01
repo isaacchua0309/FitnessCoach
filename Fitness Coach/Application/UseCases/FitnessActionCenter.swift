@@ -152,6 +152,14 @@ final class FitnessActionCenter {
     // MARK: - Plan (canonical: Plan screen only — strategy, not daily logs)
 
     @discardableResult
+    func createProfile(_ draft: UserProfileDraft, ownerUID: String? = nil) throws -> UserProfile {
+        let profile = try userProfileService.createProfile(draft, ownerUID: ownerUID)
+        try dailyLogService.syncTodayTargetsFromProfile()
+        notifyDataChanged()
+        return profile
+    }
+
+    @discardableResult
     func updatePlan(_ update: UserProfileUpdate) throws -> UserProfile {
         let profile = try userProfileService.updateProfile(update)
         if update.targets != nil {

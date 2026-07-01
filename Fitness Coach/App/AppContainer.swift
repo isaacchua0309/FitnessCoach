@@ -127,7 +127,7 @@ final class AppContainer {
             : FirestoreCloudUserProfileStore()
         profileCloudSyncStore = ProfileCloudSyncStore(userDefaults: self.onboardingUserDefaults)
         profileBootstrapService = ProfileBootstrapService(
-            userProfileService: userProfileService,
+            userProfileReader: userProfileService,
             cloudStore: cloudUserProfileStore,
             cloudSyncStore: profileCloudSyncStore
         )
@@ -143,7 +143,7 @@ final class AppContainer {
             userProfileService: userProfileService
         )
         targetService = TargetService(
-            userProfileService: userProfileService,
+            userProfileReader: userProfileService,
             dailyLogService: dailyLogService
         )
         foodLogService = FoodLogService(
@@ -211,7 +211,7 @@ final class AppContainer {
             waterLogService: waterLogService,
             weightLogService: weightLogService,
             workoutLogService: workoutLogService,
-            userProfileService: userProfileService,
+            userProfileReader: userProfileService,
             aiService: aiService
         )
 
@@ -222,7 +222,7 @@ final class AppContainer {
             workoutLogService: workoutLogService,
             dailyLogService: dailyLogService,
             targetService: targetService,
-            userProfileService: userProfileService,
+            userProfileReader: userProfileService,
             reviewService: reviewService,
             refreshCenter: refreshCenter,
             profileBootstrapService: profileBootstrapService,
@@ -253,7 +253,7 @@ final class AppContainer {
             workoutLogService: workoutLogService,
             weightLogService: weightLogService,
             reviewService: reviewService,
-            userProfileService: userProfileService
+            userProfileReader: userProfileService
         )
     }
 
@@ -264,7 +264,7 @@ final class AppContainer {
             workoutLogService: workoutLogService,
             weightLogService: weightLogService,
             aiService: aiService,
-            userProfileService: userProfileService,
+            userProfileReader: userProfileService,
             aiCommandParsingEnabled: aiCommandParsingEnabled,
             trainingInsightsStore: trainingInsightsStore
         )
@@ -278,7 +278,7 @@ final class AppContainer {
         JourneyModel(
             dailyLogService: dailyLogService,
             weightLogService: weightLogService,
-            userProfileService: userProfileService,
+            userProfileReader: userProfileService,
             trainingInsightsStore: trainingInsightsStore,
             workoutReader: healthKitWorkoutReader
         )
@@ -287,10 +287,10 @@ final class AppContainer {
     func makePlanModel() -> PlanModel {
         PlanModel(
             actionCenter: actionCenter,
-            userProfileService: userProfileService,
+            userProfileReader: userProfileService,
             targetService: targetService,
-            dailyLogService: dailyLogService,
-            weightLogService: weightLogService,
+            dailyLogReader: dailyLogService,
+            weightLogReader: weightLogService,
             trainingInsightsStore: trainingInsightsStore,
             workoutReader: healthKitWorkoutReader,
             analyticsLogger: planAnalyticsLogger
@@ -306,7 +306,8 @@ final class AppContainer {
         onCompletion: @escaping () -> Void
     ) -> OnboardingModel {
         return OnboardingModel(
-            userProfileService: userProfileService,
+            actionCenter: actionCenter,
+            userProfileReader: userProfileService,
             targetService: targetService,
             onCompletion: onCompletion,
             draftStore: onboardingDraftStore,

@@ -578,7 +578,7 @@ final class JourneyManualQAChecklistTests: XCTestCase {
         return JourneyModel(
             dailyLogService: harness.dailyLogService,
             weightLogService: harness.weightLogService,
-            userProfileService: harness.profileService,
+            userProfileReader: harness.profileService,
             trainingInsightsStore: trainingStore,
             workoutReader: MockHealthKitWorkoutReader(workouts: [])
         )

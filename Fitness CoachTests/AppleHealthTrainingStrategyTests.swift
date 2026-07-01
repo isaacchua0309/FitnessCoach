@@ -225,7 +225,8 @@ final class CoachWorkoutIntentPolicyTests: XCTestCase {
             dailyLogService: container.dailyLogService,
             workoutLogService: container.workoutLogService,
             aiService: service,
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             aiCommandParsingEnabled: true,
             trainingInsightsStore: container.trainingInsightsStore
         )
@@ -296,7 +297,8 @@ final class CoachWorkoutIntentPolicyTests: XCTestCase {
             dailyLogService: container.dailyLogService,
             workoutLogService: container.workoutLogService,
             aiService: service,
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             aiCommandParsingEnabled: true,
             trainingInsightsStore: container.trainingInsightsStore
         )

@@ -170,6 +170,17 @@ final class FitnessActionCenterTests: XCTestCase {
         XCTAssertEqual(cloudHarness.cloudStore.lastSavedProfile?.targets, newTargets)
     }
 
+    // MARK: - Profile
+
+    func testCreateProfileNotifiesRefreshAndExposesProfile() throws {
+        let draft = ProfileTestFixtures.onboardingSampleDraft
+        let profile = try harness.actionCenter.createProfile(draft)
+
+        XCTAssertEqual(profile.targets.calorieTarget, draft.targets.calorieTarget)
+        XCTAssertEqual(try harness.profileService.getCurrentProfile()?.id, profile.id)
+        XCTAssertGreaterThan(harness.refreshCenter.refreshToken, 0)
+    }
+
     // MARK: - Failure handling
 
     func testMutationFailuresSurfaceErrorsWithoutCorruptingState() async throws {

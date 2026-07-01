@@ -60,7 +60,8 @@ final class OnboardingFlowSelectionTests: XCTestCase {
 
         let container = try AppContainer(inMemory: true)
         let model = OnboardingModel(
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             targetService: container.targetService,
             onCompletion: {},
             draftStore: draftStore

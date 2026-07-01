@@ -78,7 +78,8 @@ final class OnboardingAuthFlowModelTests: XCTestCase {
     ) throws -> OnboardingModel {
         let integration = StubTrainingIntegrationProvider(requestConnectionResult: .denied)
         return OnboardingModel(
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             targetService: container.targetService,
             onCompletion: onCompletion,
             draftStore: draftStore,
