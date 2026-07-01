@@ -23,17 +23,13 @@ enum CoachResponseBuilder {
     // MARK: Water
 
     static func water(loggedMl: Int, log: DailyLog?) -> String {
-        var response = "Logged \(loggedMl)ml water."
-        if let log {
-            let water = nutritionSummary(from: log).water
-            response += """
-
-            Water today:
-            \(formatWater(water.consumedMl)) / \(formatWater(water.targetMl))ml
-            \(formatWater(water.remainingMl))ml remaining.
-            """
+        guard let log else {
+            return "Logged \(loggedMl)ml water."
         }
-        return response
+        return CoachNutritionSummaryFormatter.waterLoggedMessage(
+            loggedMl: loggedMl,
+            nutrition: nutritionSummary(from: log)
+        )
     }
 
     // MARK: Weight
@@ -52,15 +48,9 @@ enum CoachResponseBuilder {
         \(entry.calories) kcal · \(FoodEntryFormFormatter.formatMacro(entry.protein))g protein
         """
         if let log {
-            let nutrition = nutritionSummary(from: log)
-            let proteinRemaining = max(nutrition.remaining.protein, 0)
-            response += """
-
-
-            Today:
-            \(nutrition.totals.calories) / \(nutrition.targets.calories) kcal
-            \(FoodEntryFormFormatter.formatMacro(proteinRemaining))g protein remaining.
-            """
+            response += CoachNutritionSummaryFormatter.foodLoggedSuffix(
+                nutrition: nutritionSummary(from: log)
+            )
         }
         return response
     }
@@ -173,19 +163,7 @@ enum CoachResponseBuilder {
     // MARK: Status
 
     static func status(_ log: DailyLog) -> String {
-        let nutrition = nutritionSummary(from: log)
-        let remainingCalories = max(nutrition.remaining.calories, 0)
-
-        return """
-        Today so far:
-        Calories: \(nutrition.totals.calories) / \(nutrition.targets.calories) kcal
-        Protein: \(FoodEntryFormFormatter.formatMacro(nutrition.totals.protein)) / \(FoodEntryFormFormatter.formatMacro(nutrition.targets.protein))g
-        Carbs: \(FoodEntryFormFormatter.formatMacro(nutrition.totals.carbs)) / \(FoodEntryFormFormatter.formatMacro(nutrition.targets.carbs))g
-        Fat: \(FoodEntryFormFormatter.formatMacro(nutrition.totals.fat)) / \(FoodEntryFormFormatter.formatMacro(nutrition.targets.fat))g
-        Water: \(nutrition.water.consumedMl) / \(nutrition.water.targetMl)ml
-
-        You still have \(remainingCalories) kcal remaining.
-        """
+        CoachNutritionSummaryFormatter.statusMessage(from: nutritionSummary(from: log))
     }
 
     // MARK: Daily Review
@@ -220,29 +198,10 @@ enum CoachResponseBuilder {
             trainingFrequency: profile?.trainingFrequencyPerWeek ?? 0
         )
 
-        var lines: [String] = [brief.recommendation]
-
-        if nutrition.remaining.protein > 30 {
-            lines.append("You still need about \(FoodEntryFormFormatter.formatMacro(nutrition.remaining.protein))g protein today.")
-        } else {
-            lines.append(
-                "Protein is on track at \(FoodEntryFormFormatter.formatMacro(nutrition.totals.protein))g of \(FoodEntryFormFormatter.formatMacro(nutrition.targets.protein))g."
-            )
-        }
-
-        if nutrition.remaining.calories > 0 {
-            lines.append("\(nutrition.remaining.calories) kcal left — use them for nutrient-dense food, not empty snacks.")
-        } else if nutrition.remaining.calories < 0 {
-            lines.append(
-                "You're \(abs(nutrition.remaining.calories)) kcal over target. Keep the next meal lean and portion-controlled."
-            )
-        }
-
-        if nutrition.water.remainingMl > 400 {
-            lines.append("Drink \(formatWater(nutrition.water.remainingMl))ml more water to stay on pace.")
-        }
-
-        return lines.joined(separator: " ")
+        return CoachNutritionSummaryFormatter.mealAdviceLines(
+            nutrition: nutrition,
+            brief: brief
+        ).joined(separator: " ")
     }
 
     static func tomorrowFocus(

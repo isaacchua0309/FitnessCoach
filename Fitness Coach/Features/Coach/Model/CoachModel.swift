@@ -30,7 +30,7 @@ final class CoachModel: ObservableObject {
 
     private let localCommandParser: LocalCommandParser
     private let dailyLogService: DailyLogService
-    private let workoutLogService: WorkoutLogService
+    private let healthActivityQuery: HealthActivityQueryService
     private let weightLogService: WeightLogService?
     private let mutationHistory = CoachMutationHistory()
 
@@ -50,10 +50,10 @@ final class CoachModel: ObservableObject {
         localNutritionEstimator: LocalNutritionEstimator? = nil,
         actionCenter: FitnessActionCenter,
         dailyLogService: DailyLogService,
-        workoutLogService: WorkoutLogService,
+        healthActivityQuery: HealthActivityQueryService,
         weightLogService: WeightLogService? = nil,
         aiService: AIServiceProtocol? = nil,
-        userProfileService: UserProfileService? = nil,
+        userProfileReader: (any UserProfileReading)? = nil,
         aiCommandParsingEnabled: Bool = false,
         coachModelConfig: CoachModelConfig? = nil,
         routeDecider: CoachRouteDecider? = nil,
@@ -62,19 +62,19 @@ final class CoachModel: ObservableObject {
         self.localCommandParser = localCommandParser ?? .standard
         let nutritionEstimator = localNutritionEstimator ?? .standard
         self.dailyLogService = dailyLogService
-        self.workoutLogService = workoutLogService
+        self.healthActivityQuery = healthActivityQuery
         self.weightLogService = weightLogService
         self.aiService = aiService
         self.aiCommandParsingEnabled = aiCommandParsingEnabled
         self.coachModelConfig = coachModelConfig ?? .default
         self.routeDecider = routeDecider ?? CoachRouteDecider()
         self.trainingInsightsStore = trainingInsightsStore
-        if let userProfileService {
+        if let userProfileReader {
             self.aiContextBuilder = CoachContextBuilder(
                 dailyLogService: dailyLogService,
-                userProfileService: userProfileService,
-                actionCenter: actionCenter,
-                workoutLogService: workoutLogService
+                userProfileReader: userProfileReader,
+                healthActivityQuery: healthActivityQuery,
+                actionCenter: actionCenter
             )
         } else {
             self.aiContextBuilder = nil
@@ -83,7 +83,7 @@ final class CoachModel: ObservableObject {
         let executor = CoachMutationExecutor(
             actionCenter: actionCenter,
             dailyLogService: dailyLogService,
-            workoutLogService: workoutLogService,
+            healthActivityQuery: healthActivityQuery,
             localNutritionEstimator: nutritionEstimator,
             mutationHistory: mutationHistory
         )
@@ -92,7 +92,7 @@ final class CoachModel: ObservableObject {
             aiService: aiService,
             aiCommandParsingEnabled: aiCommandParsingEnabled,
             dailyLogService: dailyLogService,
-            userProfileService: userProfileService,
+            userProfileReader: userProfileReader,
             trainingInsightsStore: trainingInsightsStore,
             mutationExecutor: executor
         )
@@ -106,9 +106,15 @@ final class CoachModel: ObservableObject {
     // MARK: Today context
 
     func refreshTodayContext() {
+        Task {
+            await refreshTodayContextAsync()
+        }
+    }
+
+    private func refreshTodayContextAsync() async {
         do {
             let dailyLog = try dailyLogService.getTodayLog()
-            let workouts = try workoutLogService.getWorkouts(for: dailyLog.date)
+            let training = try await healthActivityQuery.dailyTrainingActivity(on: dailyLog.date)
             let latestWeight = dailyLog.weightKg == nil ? try weightLogService?.getLatestWeight() : nil
             let weightLogged = (dailyLog.weightKg ?? latestWeight?.weightKg) != nil
             let integration = trainingInsightsStore?.integrationState ?? .connected
@@ -117,7 +123,7 @@ final class CoachModel: ObservableObject {
             todayContext = CoachTodayContextBuilder.build(
                 dailyLog: dailyLog,
                 weightLogged: weightLogged,
-                hasWorkout: !workouts.isEmpty,
+                hasWorkout: training.hasWorkout,
                 trainingIntegration: integration,
                 trainingDataSource: dataSource
             )
@@ -212,7 +218,11 @@ final class CoachModel: ObservableObject {
         }
 
         let priorChatMessages = Array(messages.dropLast())
-        let context = aiContextBuilder.makeContext(recentMessages: priorChatMessages)
+        let workoutsToday = (try? await healthActivityQuery.dailyTrainingActivity().workoutCount) ?? 0
+        let context = aiContextBuilder.makeContext(
+            recentMessages: priorChatMessages,
+            workoutsToday: workoutsToday
+        )
 
         do {
             let decision = try await routeDecider.decide(

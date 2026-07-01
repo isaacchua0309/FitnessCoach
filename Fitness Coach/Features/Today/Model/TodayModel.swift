@@ -15,27 +15,27 @@ final class TodayModel: ObservableObject {
 
     private let dailyLogService: DailyLogService
     private let foodLogService: FoodLogService
-    private let workoutLogService: WorkoutLogService
     private let weightLogService: WeightLogService
     private let reviewService: ReviewService
-    private let userProfileService: UserProfileService
+    private let userProfileReader: any UserProfileReading
+    private let healthActivityQuery: HealthActivityQueryService
 
     private var activityContext: TodayActivityContext = .default
 
     init(
         dailyLogService: DailyLogService,
         foodLogService: FoodLogService,
-        workoutLogService: WorkoutLogService,
         weightLogService: WeightLogService,
         reviewService: ReviewService,
-        userProfileService: UserProfileService
+        userProfileReader: any UserProfileReading,
+        healthActivityQuery: HealthActivityQueryService
     ) {
         self.dailyLogService = dailyLogService
         self.foodLogService = foodLogService
-        self.workoutLogService = workoutLogService
         self.weightLogService = weightLogService
         self.reviewService = reviewService
-        self.userProfileService = userProfileService
+        self.userProfileReader = userProfileReader
+        self.healthActivityQuery = healthActivityQuery
     }
 
     // MARK: Loading
@@ -46,7 +46,7 @@ final class TodayModel: ObservableObject {
             viewState = .loading
         }
         do {
-            try loadDashboard()
+            try await loadDashboard()
         } catch ServiceError.missingUserProfile {
             viewState = .empty
         } catch {
@@ -62,7 +62,7 @@ final class TodayModel: ObservableObject {
         }
         let previousState = viewState
         do {
-            try loadDashboard()
+            try await loadDashboard()
         } catch ServiceError.missingUserProfile {
             viewState = .empty
         } catch {
@@ -75,18 +75,18 @@ final class TodayModel: ObservableObject {
 
     // MARK: State Building
 
-    private func loadDashboard() throws {
+    private func loadDashboard() async throws {
         let dailyLog = try dailyLogService.getTodayLog()
         let foodEntries = try foodLogService.getFoodEntries(for: dailyLog.date)
-        let workouts = try workoutLogService.getWorkouts(for: dailyLog.date)
+        let training = try await healthActivityQuery.dailyTrainingActivity(on: dailyLog.date)
         let latestWeight = dailyLog.weightKg == nil ? try weightLogService.getLatestWeight() : nil
         let dailyReview = try reviewService.getDailyReview(for: dailyLog.date)
 
         viewState = .loaded(
-            try makeDashboardState(
+            try await makeDashboardState(
                 dailyLog: dailyLog,
                 foodEntries: foodEntries,
-                workouts: workouts,
+                training: training,
                 latestWeight: latestWeight,
                 dailyReview: dailyReview
             )
@@ -96,14 +96,14 @@ final class TodayModel: ObservableObject {
     private func makeDashboardState(
         dailyLog: DailyLog,
         foodEntries: [FoodEntry],
-        workouts: [WorkoutEntry],
+        training: DailyTrainingActivity,
         latestWeight: WeightEntry?,
         dailyReview: DailyReview?
-    ) throws -> TodayDashboardState {
+    ) async throws -> TodayDashboardState {
         let nutrition = DailyNutritionSummaryBuilder.build(from: dailyLog)
         let (calorieSummary, macroSummary, waterSummary) = TodayDashboardNutritionMapper.maps(from: nutrition)
 
-        let profile = try? userProfileService.getCurrentProfile()
+        let profile = try? userProfileReader.getCurrentProfile()
 
         let displayWeight = dailyLog.weightKg ?? latestWeight?.weightKg
         let weightSummary = TodayWeightSummary(
@@ -115,13 +115,13 @@ final class TodayModel: ObservableObject {
         let hasRecentWeight = latestWeight != nil || profile?.currentWeightKg != nil
 
         let workoutSummary = TodayWorkoutSummary(
-            workoutCaloriesBurned: dailyLog.workoutCaloriesBurned,
-            workoutCount: workouts.count,
-            hasWorkout: !workouts.isEmpty
+            workoutCaloriesBurned: max(dailyLog.workoutCaloriesBurned, training.workoutCaloriesBurned),
+            workoutCount: training.workoutCount,
+            hasWorkout: training.hasWorkout
         )
 
         let trainingFrequency = profile?.trainingFrequencyPerWeek ?? 0
-        let (streaks, weekLoggedDays) = try buildMomentumMetrics(asOf: dailyLog.date)
+        let (streaks, weekLoggedDays) = try await buildMomentumMetrics(asOf: dailyLog.date)
         let hasPriorFoodLogs = try hasPriorFoodLogs(before: dailyLog.date)
         let dailyBrief = DailyBriefBuilder.todayBrief(
             nutrition: nutrition,
@@ -156,11 +156,15 @@ final class TodayModel: ObservableObject {
         )
     }
 
-    private func buildMomentumMetrics(asOf date: Date) throws -> (StreakSummary, Int) {
-        let startDate = Calendar.current.date(byAdding: .day, value: -90, to: date) ?? date
+    private func buildMomentumMetrics(asOf date: Date) async throws -> (StreakSummary, Int) {
+        let calendar = Calendar.current
+        let startDate = calendar.date(byAdding: .day, value: -90, to: date) ?? date
         let logs = try dailyLogService.getLogs(from: startDate, to: date)
-        let workouts = try workoutLogService.getWorkoutHistory(days: 90)
-        let workoutDates = Set(workouts.map { Calendar.current.startOfDay(for: $0.createdAt) })
+        let workoutDates = try await healthActivityQuery.workoutDayStarts(
+            from: startDate,
+            to: date,
+            calendar: calendar
+        )
         let streaks = StreakCalculator.calculate(
             logs: logs,
             workoutDates: workoutDates,

@@ -10,35 +10,25 @@ import SwiftData
 
 enum FormaModelContainer {
 
-    /// Every persisted entity type must be listed here so SwiftData can build
-    /// the full local schema.
-    ///
-    /// Dormant schema-only types (`WeeklyReviewEntity`, `ChatMessageEntity`,
-    /// `DebugRecordEntity`) and legacy workout tables are documented in
+    /// Active schema (v2). Dormant v1 tables (`WeeklyReviewEntity`, `ChatMessageEntity`,
+    /// `DebugRecordEntity`) are removed via `FormaMigrationPlan`. Legacy workout tables
+    /// (`WorkoutEntryEntity`, `ExerciseSetEntity`) remain for on-disk history but are no
+    /// longer read — training activity comes from Apple Health. See
     /// `Docs/PersistenceCleanupNotes.md`.
-    static let schema = Schema([
-        UserProfileEntity.self,
-        DailyLogEntity.self,
-        FoodEntryEntity.self,
-        WaterEntryEntity.self,
-        WeightEntryEntity.self,
-        WorkoutEntryEntity.self,
-        ExerciseSetEntity.self,
-        DailyReviewEntity.self,
-        WeeklyReviewEntity.self,
-        ChatMessageEntity.self,
-        DebugRecordEntity.self
-    ])
+    static let schema = Schema(versionedSchema: FormaSchemaV2.self)
 
     static func makeContainer(inMemory: Bool = false) throws -> ModelContainer {
         if !inMemory {
             try ensureApplicationSupportDirectoryExists()
         }
         let configuration = ModelConfiguration(
-            schema: schema,
             isStoredInMemoryOnly: inMemory
         )
-        return try ModelContainer(for: schema, configurations: [configuration])
+        return try ModelContainer(
+            for: FormaSchemaV2.self,
+            migrationPlan: FormaMigrationPlan.self,
+            configurations: [configuration]
+        )
     }
 
     private static func ensureApplicationSupportDirectoryExists() throws {

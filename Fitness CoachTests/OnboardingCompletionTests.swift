@@ -314,7 +314,8 @@ final class OnboardingCompletionPathTests: XCTestCase {
     ) throws -> OnboardingModel {
         let resolvedContainer = try container ?? AppContainer(inMemory: true)
         return OnboardingModel(
-            userProfileService: resolvedContainer.userProfileService,
+            actionCenter: resolvedContainer.actionCenter,
+            userProfileReader: resolvedContainer.userProfileService,
             targetService: resolvedContainer.targetService,
             onCompletion: {},
             draftStore: draftStore,

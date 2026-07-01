@@ -229,7 +229,8 @@ final class OnboardingFormaProofAnalyticsTests: XCTestCase {
     ) throws -> OnboardingModel {
         let container = try AppContainer(inMemory: true)
         return OnboardingModel(
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             targetService: container.targetService,
             onCompletion: {},
             draftStore: draftStore,

@@ -113,7 +113,7 @@ final class DailyReviewSummaryBuilderTests: XCTestCase {
             waterEntries: [],
             weightEntry: nil,
             latestWeightEntry: nil,
-            workouts: []
+            training: .empty
         )
     }
 

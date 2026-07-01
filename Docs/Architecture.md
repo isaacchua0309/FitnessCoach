@@ -29,7 +29,8 @@ Fitness_CoachApp
 |------------|------|
 | `modelContainer` / `store` | SwiftData persistence |
 | `userProfileService`, `targetService` | Profile and plan targets |
-| `dailyLogService`, `foodLogService`, `waterLogService`, `weightLogService`, `workoutLogService` | Day-scoped logging |
+| `dailyLogService`, `foodLogService`, `waterLogService`, `weightLogService` | Day-scoped logging |
+| `healthActivityQueryService` | Apple Health workout/step queries (Today, Coach, reviews) |
 | `reviewService` | Daily review generation |
 | `actionCenter` (`FitnessActionCenter`) | Canonical mutation layer for logs and plan edits |
 | `authManager` | Firebase auth session |
@@ -290,7 +291,7 @@ These are the conventions the codebase should follow. Violations are tracked in 
 - Views layout and bind state; they call feature models or builders for numbers.
 - **Allowed in views:** formatting via `*Formatter`, navigation, sheet presentation, `FormaTokens` styling.
 - **Not allowed in views:** calorie/macro math, streak logic, plan target derivation, HealthKit aggregation.
-- **Current violations:** `PlanCalculationDetailsSheet` uses `PlanCalculationBridge` inline; `TodayView` resolves HealthKit workout counts. Move to models/builders.
+- **Current violations:** `PlanCalculationDetailsSheet` preview uses `PlanCalculationBridge` inline; production path uses prebuilt `PlanCalculationDetailsState`.
 
 ### Infrastructure clients should not know SwiftUI
 
@@ -302,8 +303,9 @@ These are the conventions the codebase should follow. Violations are tracked in 
 
 - Feature models and views must not import SwiftData or construct `ModelContext` directly.
 - Reads/writes go through `Core/Services/*` or `FitnessActionCenter`.
-- **Target:** introduce repository protocols behind services; not implemented yet.
-- **Current violations:** `PlanModel.createDefaultProfile()` calls `userProfileService` directly instead of `FitnessActionCenter`; `AuthGateView` calls `profileBootstrapService` for cloud save.
+- **Target:** repository protocols in `Domain/Protocols/` — `UserProfileReading`, `DailyLogReading`, `WeightLogReading` implemented by `Data/Repositories/` services (Tier 1, 2026-06-30).
+- Feature models depend on reading protocols; writes go through `FitnessActionCenter`.
+- **Remaining violations:** `AuthGateCoordinator` / `ProfileBootstrapCoordinator` call `profileBootstrapService` for cloud bootstrap (app-layer orchestration).
 
 ### Design tokens should come from the Forma design system
 
@@ -421,8 +423,16 @@ Tracked for later stages. **Do not treat as blockers for feature work** — but 
 
 - `CoachModel` delegates mutations, AI routing, and pending confirmations to `Application/UseCases/Coach/`.
 - Pipeline: `Application/UseCases/Coach/Pipeline/` (`CoachRouteDecider`, `CoachIntentRouter`, `CheapLLMIntentClassifier`, `LocalNutritionEstimator`).
-- `CoachResponseBuilder` (in `Application/StateBuilders/Coach/`) duplicates macro summary logic.
+- `CoachResponseBuilder` formats nutrition copy via `CoachNutritionSummaryFormatter` + `DailyNutritionSummaryBuilder` (Tier 1, 2026-06-30).
 - **Action:** keep `CoachRoutingTests` as safety net; optional further colocation under Application.
+
+### Onboarding pipeline (Tier 1 complete)
+
+- **Tier 1 (2026-06-30):** `OnboardingModel` delegates to `Application/UseCases/Onboarding/` — `OnboardingSessionBootstrap`, `OnboardingPlanGenerationExecutor`, `OnboardingProfileCommitter` (via `FitnessActionCenter.createProfile`), `OnboardingAppleHealthCoordinator`, `OnboardingAnalyticsTracker`.
+
+### Persistence + training reads (Tier 2 complete)
+
+- **Tier 2 (2026-06-30):** `FormaSchemaV2` drops dormant v1 entities via `FormaMigrationPlan`. `WorkoutLogService` removed; `HealthActivityQueryService` + `DailyTrainingActivity` feed Today, `ReviewService`, and Coach. Legacy workout tables stay on disk but are not read.
 
 ### FitPilot → Forma naming (Phase 6 complete)
 
@@ -434,7 +444,8 @@ Tracked for later stages. **Do not treat as blockers for feature work** — but 
 
 ### Training demotion / Health integration
 
-- Training tab removed; legacy manual workout **write** APIs retired (`WorkoutLogService.addWorkout`, `FitnessActionCenter.logWorkout`).
+- Training tab removed; legacy manual workout APIs retired. Apple Health is the sole training read source via `HealthActivityQueryService`.
+- **Tier 2 (2026-06-30):** `FormaSchemaV2` lightweight migration drops `WeeklyReviewEntity`, `ChatMessageEntity`, `DebugRecordEntity`. `WorkoutLogService` removed; Today streaks, daily reviews, and Coach context read workouts from HealthKit only. Legacy `WorkoutEntryEntity` / `ExerciseSetEntity` remain on disk for history.
 - Apple Health surfaced via `TrainingInsightsStore` + `TrainingInsightsModel` on Plan, Today, and Journey.
 - **Phase 8 (2026-06-30):** `HealthTrainingReaderFactory` + `AppContainer` own `HealthKitWorkoutReading` / `HealthKitStepReading` instances. `HealthActivityQueryService` (`Application/Queries/`) centralizes workout/step counts for Today. `JourneyModel`, `PlanModel`, and `TrainingInsightsModel` receive injected readers — no feature-model `SystemHealthKit*` construction.
 
@@ -461,8 +472,8 @@ High-confidence orphans (grep shows no production references):
 | `PlanLifestyleSection` | Never referenced |
 | `GoalSettingsView`, `ActivitySettingsView` | Preview-only |
 | `TrainingView`, `TrainingConnectedDashboard` | Removed (legacy training cluster) |
-| `WeeklyReview` model + entity | Schema only; no service |
-| `ChatMessageEntity` | Schema only; Coach keeps messages in memory |
+| `WeeklyReview` model + entity | Removed in v2 migration (Journey uses log-derived weekly review) |
+| `ChatMessageEntity` | Removed in v2 migration; Coach keeps messages in memory |
 | `CalorieTargetCalculator`, `MaintenanceCalculator`, `AIFoodEstimator` | Removed |
 
 **Action:** verify with full-text search + build, then remove in a dead-code pass.
@@ -475,8 +486,8 @@ Items that need confirmation before deletion or large refactors:
 
 | Area | Question |
 |------|----------|
-| `ChatMessageEntity` | Intentional schema for future chat persistence, or safe to remove from `FormaModelContainer`? |
-| `WeeklyReview` | Planned feature vs abandoned scaffold? |
+| `ChatMessageEntity` | Removed in Tier 2 v2 migration; reintroduce only if Coach persistence ships |
+| `WeeklyReview` | Removed in Tier 2 v2 migration; Journey weekly review is log-derived |
 | `TrainingView` / manual workout UI | Archive vs future push navigation from Coach? |
 | `UnitSettingsView` vs `UnitsSettingsScreen` | Merge into one component or keep wizard vs settings variants? |
 | `ContentView` | Fold into `Fitness_CoachApp` or keep for previews? |
@@ -489,6 +500,8 @@ Items that need confirmation before deletion or large refactors:
 
 | Date | Change |
 |------|--------|
+| 2026-06-30 | Tier 2: `FormaSchemaV2` migration; `WorkoutLogService` removed; HealthKit-only training reads |
+| 2026-06-30 | Tier 1: Repository protocols; `FitnessActionCenter.createProfile`; Onboarding handlers; `CoachNutritionSummaryFormatter` |
 | 2026-06-30 | Phase 7: `FormaScreenStyle` removed; tokens + `FormaCardChrome` / `FormaFeatureLayout` consolidate design primitives |
 | 2026-06-30 | Phase 8: Health reader injection via `AppContainer`; `HealthActivityQueryService` replaces Today resolvers |
 | 2026-06-30 | Phase 6: `FitPilot*` → `Forma*` types; `Progress*`/`Profile*` tab types → `Journey*`/`Plan*`; `FORMA_*` env vars with legacy fallback |

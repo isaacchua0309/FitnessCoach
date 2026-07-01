@@ -20,7 +20,6 @@ final class AppContainer {
     let foodLogService: FoodLogService
     let waterLogService: WaterLogService
     let weightLogService: WeightLogService
-    let workoutLogService: WorkoutLogService
     let reviewService: ReviewService
     let actionCenter: FitnessActionCenter
 
@@ -158,12 +157,6 @@ final class AppContainer {
             store: store,
             dailyLogService: dailyLogService
         )
-        workoutLogService = WorkoutLogService(
-            store: store,
-            dailyLogService: dailyLogService,
-            userProfileService: userProfileService
-        )
-
         // Debug builds use the local backend gateway when available. The
         // gateway reads .env on the Mac and calls OpenAI, so provider keys still
         // do not live in the iOS app bundle.
@@ -210,7 +203,7 @@ final class AppContainer {
             foodLogService: foodLogService,
             waterLogService: waterLogService,
             weightLogService: weightLogService,
-            workoutLogService: workoutLogService,
+            healthActivityQuery: healthActivityQueryService,
             userProfileService: userProfileService,
             aiService: aiService
         )
@@ -219,7 +212,6 @@ final class AppContainer {
             foodLogService: foodLogService,
             waterLogService: waterLogService,
             weightLogService: weightLogService,
-            workoutLogService: workoutLogService,
             dailyLogService: dailyLogService,
             targetService: targetService,
             userProfileService: userProfileService,
@@ -250,10 +242,10 @@ final class AppContainer {
         TodayModel(
             dailyLogService: dailyLogService,
             foodLogService: foodLogService,
-            workoutLogService: workoutLogService,
             weightLogService: weightLogService,
             reviewService: reviewService,
-            userProfileService: userProfileService
+            userProfileReader: userProfileService,
+            healthActivityQuery: healthActivityQueryService
         )
     }
 
@@ -261,10 +253,10 @@ final class AppContainer {
         CoachModel(
             actionCenter: actionCenter,
             dailyLogService: dailyLogService,
-            workoutLogService: workoutLogService,
+            healthActivityQuery: healthActivityQueryService,
             weightLogService: weightLogService,
             aiService: aiService,
-            userProfileService: userProfileService,
+            userProfileReader: userProfileService,
             aiCommandParsingEnabled: aiCommandParsingEnabled,
             trainingInsightsStore: trainingInsightsStore
         )
@@ -278,7 +270,7 @@ final class AppContainer {
         JourneyModel(
             dailyLogService: dailyLogService,
             weightLogService: weightLogService,
-            userProfileService: userProfileService,
+            userProfileReader: userProfileService,
             trainingInsightsStore: trainingInsightsStore,
             workoutReader: healthKitWorkoutReader
         )
@@ -287,10 +279,10 @@ final class AppContainer {
     func makePlanModel() -> PlanModel {
         PlanModel(
             actionCenter: actionCenter,
-            userProfileService: userProfileService,
+            userProfileReader: userProfileService,
             targetService: targetService,
-            dailyLogService: dailyLogService,
-            weightLogService: weightLogService,
+            dailyLogReader: dailyLogService,
+            weightLogReader: weightLogService,
             trainingInsightsStore: trainingInsightsStore,
             workoutReader: healthKitWorkoutReader,
             analyticsLogger: planAnalyticsLogger
@@ -306,7 +298,8 @@ final class AppContainer {
         onCompletion: @escaping () -> Void
     ) -> OnboardingModel {
         return OnboardingModel(
-            userProfileService: userProfileService,
+            actionCenter: actionCenter,
+            userProfileReader: userProfileService,
             targetService: targetService,
             onCompletion: onCompletion,
             draftStore: onboardingDraftStore,

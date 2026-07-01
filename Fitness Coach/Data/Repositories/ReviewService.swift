@@ -20,7 +20,7 @@ final class ReviewService {
     private let foodLogService: FoodLogService
     private let waterLogService: WaterLogService
     private let weightLogService: WeightLogService
-    private let workoutLogService: WorkoutLogService
+    private let healthActivityQuery: HealthActivityQueryService
     private let userProfileService: UserProfileService
     private let aiService: AIServiceProtocol
 
@@ -30,7 +30,7 @@ final class ReviewService {
         foodLogService: FoodLogService,
         waterLogService: WaterLogService,
         weightLogService: WeightLogService,
-        workoutLogService: WorkoutLogService,
+        healthActivityQuery: HealthActivityQueryService,
         userProfileService: UserProfileService,
         aiService: AIServiceProtocol
     ) {
@@ -39,7 +39,7 @@ final class ReviewService {
         self.foodLogService = foodLogService
         self.waterLogService = waterLogService
         self.weightLogService = weightLogService
-        self.workoutLogService = workoutLogService
+        self.healthActivityQuery = healthActivityQuery
         self.userProfileService = userProfileService
         self.aiService = aiService
     }
@@ -66,7 +66,7 @@ final class ReviewService {
         }
 
         let dailyLog = try dailyLogService.recalculateDailyTotals(for: dailyLogEntity.date)
-        let summary = try buildSummary(for: dailyLog)
+        let summary = try await buildSummary(for: dailyLog)
         let aiInput = DailyReviewFormatter.dailyReviewAIInput(from: summary)
         let aiContext = makeAIContext(from: summary)
 
@@ -86,10 +86,10 @@ final class ReviewService {
 
     // MARK: Summary
 
-    private func buildSummary(for dailyLog: DailyLog) throws -> DailyReviewSummary {
+    private func buildSummary(for dailyLog: DailyLog) async throws -> DailyReviewSummary {
         let foodEntries = try foodLogService.getFoodEntries(for: dailyLog.date)
         let waterEntries = try waterLogService.getWaterEntries(for: dailyLog.date)
-        let workouts = try workoutLogService.getWorkouts(for: dailyLog.date)
+        let training = try await healthActivityQuery.dailyTrainingActivity(on: dailyLog.date)
         let latestWeight = try weightLogService.getLatestWeight()
         let weightEntry = try weightEntry(for: dailyLog.date)
 
@@ -99,7 +99,7 @@ final class ReviewService {
             waterEntries: waterEntries,
             weightEntry: weightEntry,
             latestWeightEntry: latestWeight,
-            workouts: workouts
+            training: training
         )
     }
 

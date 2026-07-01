@@ -22,7 +22,6 @@ final class FitnessActionCenter {
     private let foodLogService: FoodLogService
     private let waterLogService: WaterLogService
     private let weightLogService: WeightLogService
-    private let workoutLogService: WorkoutLogService
     private let dailyLogService: DailyLogService
     private let targetService: TargetService
     private let userProfileService: UserProfileService
@@ -36,7 +35,6 @@ final class FitnessActionCenter {
         foodLogService: FoodLogService,
         waterLogService: WaterLogService,
         weightLogService: WeightLogService,
-        workoutLogService: WorkoutLogService,
         dailyLogService: DailyLogService,
         targetService: TargetService,
         userProfileService: UserProfileService,
@@ -49,7 +47,6 @@ final class FitnessActionCenter {
         self.foodLogService = foodLogService
         self.waterLogService = waterLogService
         self.weightLogService = weightLogService
-        self.workoutLogService = workoutLogService
         self.dailyLogService = dailyLogService
         self.targetService = targetService
         self.userProfileService = userProfileService
@@ -150,6 +147,14 @@ final class FitnessActionCenter {
     }
 
     // MARK: - Plan (canonical: Plan screen only — strategy, not daily logs)
+
+    @discardableResult
+    func createProfile(_ draft: UserProfileDraft, ownerUID: String? = nil) throws -> UserProfile {
+        let profile = try userProfileService.createProfile(draft, ownerUID: ownerUID)
+        try dailyLogService.syncTodayTargetsFromProfile()
+        notifyDataChanged()
+        return profile
+    }
 
     @discardableResult
     func updatePlan(_ update: UserProfileUpdate) throws -> UserProfile {

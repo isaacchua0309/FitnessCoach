@@ -2,15 +2,9 @@
 //  DebugRecordEntity.swift
 //  Fitness Coach
 //
-//  DORMANT — registered in `FormaModelContainer.schema` only.
-//
-//  Pipeline diagnostics use in-memory `FormaPipelineTracer` buffers.
-//  Disk persistence via `PipelineTracePersistence` is disabled (Stage 14) because
-//  no UI reads stored rows. Context is stored as JSON to avoid SwiftData
-//  dictionary edge cases when persistence is re-enabled.
-//
-//  TODO(migration): Re-enable persistence + Settings UI, or remove entity. See
-//  `Docs/PersistenceCleanupNotes.md`.
+//  V1 MIGRATION ONLY — listed in `FormaSchemaV1` for lightweight migration to v2.
+//  Removed from active `FormaSchemaV2` schema. Diagnostics use in-memory
+//  `FormaPipelineTracer` buffers. See `Docs/PersistenceCleanupNotes.md`.
 //
 
 import Foundation

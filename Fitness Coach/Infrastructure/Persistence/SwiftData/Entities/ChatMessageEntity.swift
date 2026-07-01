@@ -2,14 +2,9 @@
 //  ChatMessageEntity.swift
 //  Fitness Coach
 //
-//  DORMANT — registered in `FormaModelContainer.schema` only.
-//
-//  Coach renders in-memory `ChatMessage` values (`CoachModel.messages`); nothing
-//  persists to this table yet. Conversational history is not the source of truth
-//  for food, water, weight, or workout logs.
-//
-//  TODO(migration): Wire Coach persistence or remove via versioned migration. See
-//  `Docs/PersistenceCleanupNotes.md`.
+//  V1 MIGRATION ONLY — listed in `FormaSchemaV1` for lightweight migration to v2.
+//  Removed from active `FormaSchemaV2` schema. Coach keeps messages in memory.
+//  See `Docs/PersistenceCleanupNotes.md`.
 //
 
 import Foundation

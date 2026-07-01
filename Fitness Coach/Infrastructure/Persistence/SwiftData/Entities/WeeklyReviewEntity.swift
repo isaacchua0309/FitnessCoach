@@ -2,15 +2,11 @@
 //  WeeklyReviewEntity.swift
 //  Fitness Coach
 //
-//  DORMANT — registered in `FormaModelContainer.schema` only.
+//  V1 MIGRATION ONLY — listed in `FormaSchemaV1` for lightweight migration to v2.
+//  Removed from active `FormaSchemaV2` schema. No service reads or writes this table.
 //
-//  No service creates or reads this entity today. `ReviewService` uses
-//  `DailyReviewEntity` for Coach daily reviews. Mapping and `WeeklyReview`
-//  exist for a planned Journey weekly review feature.
-//
-//  TODO(migration): Product must choose — implement `WeeklyReviewService` or
-//  remove this entity via a versioned SwiftData migration. See
-//  `Docs/PersistenceCleanupNotes.md`.
+//  Journey **This week** is computed in-memory via `JourneyWeeklyReviewBuilder`.
+//  See `Docs/PersistenceCleanupNotes.md`.
 //
 
 import Foundation

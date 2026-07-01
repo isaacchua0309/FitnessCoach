@@ -303,7 +303,8 @@ final class OnboardingPlanRevealProductionTests: XCTestCase {
     private func makeModel(container: AppContainer? = nil) throws -> OnboardingModel {
         let resolved = try container ?? AppContainer(inMemory: true)
         return OnboardingModel(
-            userProfileService: resolved.userProfileService,
+            actionCenter: resolved.actionCenter,
+            userProfileReader: resolved.userProfileService,
             targetService: resolved.targetService,
             onCompletion: {},
             draftStore: OnboardingDraftStore(

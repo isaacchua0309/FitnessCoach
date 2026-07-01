@@ -15,7 +15,8 @@ final class OnboardingCompletionProfileFlowTests: XCTestCase {
         let cloudStore = MockCloudUserProfileStore()
         let container = try AppContainer(inMemory: true)
         let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             cloudStore: cloudStore
         )
 
@@ -33,7 +34,8 @@ final class OnboardingCompletionProfileFlowTests: XCTestCase {
         cloudStore.storedDocument = ProfileTestFixtures.cloudDocument()
         let container = try AppContainer(inMemory: true)
         let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             cloudStore: cloudStore
         )
 
@@ -52,7 +54,8 @@ final class OnboardingCompletionProfileFlowTests: XCTestCase {
         cloudStore.fetchError = NSError(domain: "test", code: 1)
         let container = try AppContainer(inMemory: true)
         let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             cloudStore: cloudStore
         )
 
@@ -72,7 +75,8 @@ final class OnboardingCompletionProfileFlowTests: XCTestCase {
         let container = try AppContainer(inMemory: true)
         let syncStore = ProfileCloudSyncStore(userDefaults: container.onboardingUserDefaults)
         let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             cloudStore: cloudStore,
             cloudSyncStore: syncStore
         )
@@ -97,7 +101,8 @@ final class OnboardingCompletionProfileFlowTests: XCTestCase {
 
         let container = try AppContainer(inMemory: true)
         let bootstrap = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             cloudStore: cloudStore
         )
 
