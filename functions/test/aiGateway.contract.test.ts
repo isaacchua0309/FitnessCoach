@@ -235,6 +235,28 @@ describe("aiGateway contract", () => {
     });
   });
 
+  describe("OpenAI request shaping", () => {
+    it("requests minimal reasoning effort for gpt-5 classifiers", async () => {
+      const request = createMockRequest({
+        path: "/v1/ai/classify-coach-intent",
+        headers: {Authorization: "Bearer test-token"},
+        body: {
+          text: "hello",
+          context: {},
+          modelName: "gpt-5-nano",
+          modelConfig: {},
+        },
+      });
+      const response = createMockResponse();
+
+      await handleAiGatewayRequest(request, response);
+
+      expect(response.statusCode).toBe(200);
+      const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+      expect(requestBody.reasoning).toEqual({effort: "minimal"});
+    });
+  });
+
   describe("OpenAI failures", () => {
     it("maps upstream OpenAI failure to a safe 500 backend error", async () => {
       fetchMock.mockResolvedValueOnce({

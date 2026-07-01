@@ -243,6 +243,15 @@ function resolveModel({tier, modelName}: {tier?: string; modelName?: string} = {
   return configured.default;
 }
 
+function reasoningConfigForModel(model: string): {effort: string} | undefined {
+  if (!/^gpt-5/i.test(model)) {
+    return undefined;
+  }
+
+  const effort = process.env.OPENAI_REASONING_EFFORT?.trim() || "minimal";
+  return {effort};
+}
+
 async function openAIJSON({
   instructions,
   input,
@@ -264,27 +273,34 @@ async function openAIJSON({
     schema: schema.name,
   });
 
+  const openAIRequestBody: Record<string, unknown> = {
+    model: selectedModel,
+    instructions,
+    input,
+    store: false,
+    max_output_tokens: maxOutputTokens,
+    text: {
+      format: {
+        type: "json_schema",
+        name: schema.name,
+        strict: true,
+        schema: schema.schema,
+      },
+    },
+  };
+
+  const reasoning = reasoningConfigForModel(selectedModel);
+  if (reasoning) {
+    openAIRequestBody.reasoning = reasoning;
+  }
+
   const openAIResponse = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      model: selectedModel,
-      instructions,
-      input,
-      store: false,
-      max_output_tokens: maxOutputTokens,
-      text: {
-        format: {
-          type: "json_schema",
-          name: schema.name,
-          strict: true,
-          schema: schema.schema,
-        },
-      },
-    }),
+    body: JSON.stringify(openAIRequestBody),
   });
 
   const payload = await openAIResponse.json().catch(() => ({}));
@@ -304,6 +320,14 @@ async function openAIJSON({
 
   const text = payload.output_text || firstOutputText(payload);
   if (!text) {
+    logger.error("OpenAI response missing output text", {
+      traceId,
+      model: selectedModel,
+      responseStatus: payload?.status ?? "unknown",
+      incompleteReason: payload?.incomplete_details?.reason ?? null,
+      outputTypes: (payload.output || []).map((item: {type?: string}) => item.type ?? "unknown"),
+      durationMs: Date.now() - started,
+    });
     throw new Error("OpenAI response did not contain output text.");
   }
 
