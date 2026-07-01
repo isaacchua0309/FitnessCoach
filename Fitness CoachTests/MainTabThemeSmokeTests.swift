@@ -19,7 +19,7 @@ final class MainTabThemeSmokeTests: XCTestCase {
         "Fitness Coach/Features/TrainingInsights/",
         "Fitness Coach/DesignSystem/Components/",
         "Fitness Coach/DesignSystem/Legacy/",
-        "Fitness Coach/FitPilot/App/MainTabView.swift"
+        "Fitness Coach/App/MainTabView.swift"
     ]
 
     override func tearDown() async throws {

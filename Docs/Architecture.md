@@ -1,6 +1,6 @@
 # Forma iOS — Architecture
 
-This document describes how the Forma iOS app is composed today, the layering conventions we are moving toward, and known cleanup areas from the maintainability audit (Stage 1 — documentation only; no code moves yet).
+This document describes how the Forma iOS app is composed today and the layering conventions established by the maintainability migration (Phases 1–5).
 
 **Related:** [JourneyArchitecture.md](./JourneyArchitecture.md) — Journey tab product contract; [FormaCalculationSpec.md](./FormaCalculationSpec.md) — canonical plan-target formulas.
 
@@ -16,12 +16,12 @@ Fitness_CoachApp
         └── AuthGateView(container:)
 ```
 
-- **`Fitness_CoachApp`** (`Fitness Coach/Fitness_CoachApp.swift`) — `@main` entry; configures Firebase, constructs `AppContainer`, hosts `ContentView`.
+- **`Fitness_CoachApp`** (`Fitness Coach/App/Fitness_CoachApp.swift`) — `@main` entry; configures Firebase, constructs `AppContainer`, hosts `ContentView`.
 - **`ContentView`** — thin pass-through to `AuthGateView`. Exists mainly for previews and a stable root view type.
 
 ### AppContainer
 
-**Location:** `FitPilot/App/AppContainer.swift`
+**Location:** `App/AppContainer.swift`
 
 `AppContainer` is the manual composition root. It constructs and exposes:
 
@@ -59,7 +59,7 @@ AuthGateView
         └── MainTabView
 ```
 
-Pure routing helpers (testable without SwiftUI):
+Pure routing helpers (testable without SwiftUI) live in `App/Routing/`:
 
 - `AppRouteResolver` — maps auth + root state → `AppShellRoute`
 - `AuthGateRoutingPolicy` — onboarding session overlays on base route
@@ -71,7 +71,7 @@ On onboarding completion, `AuthGateView` saves the profile to cloud via `profile
 
 ### MainTabView
 
-**Location:** `FitPilot/App/MainTabView.swift`
+**Location:** `App/MainTabView.swift`
 
 After auth and profile bootstrap, the signed-in shell is a four-tab `TabView`:
 
@@ -80,7 +80,7 @@ After auth and profile bootstrap, the signed-in shell is a four-tab `TabView`:
 | `.today` | Today | `Features/Today` | `TodayModel` | Am I on track today? |
 | `.coach` | Coach | `Features/Coach` | `CoachModel` | Log, edit, ask — mutations entry point |
 | `.progress` | Journey | `Features/Journey` | `ProgressModel` | What is my fitness story? |
-| `.profile` | Plan | `Features/Profile` | `ProfileModel` | What strategy am I following? |
+| `.profile` | Plan | `Features/Plan` | `ProfileModel` | What strategy am I following? |
 
 **Environment objects** injected at tab level:
 
@@ -103,18 +103,18 @@ After auth and profile bootstrap, the signed-in shell is a four-tab `TabView`:
 #### Coach (mutation hub)
 
 - Primary write path for food, water, weight, workouts (via `FitnessActionCenter`).
-- AI chat, local command parsing, intent routing (`Features/Coach/Pipeline/`), food confirmation sheets.
+- AI chat, local command parsing, intent routing (`Application/UseCases/Coach/Pipeline/`), food confirmation sheets.
 - `CoachModel` (~450 lines) owns `@Published` UI state and wires handlers; decomposition:
 
 ```
-CoachModel
-  ├── CoachMutationExecutor      — log food/water/weight, undo, edit, delete, status, daily review
-  ├── CoachPendingConfirmationPresenter — pending confirmation copy + text confirm/reject
-  ├── CoachAIRouteHandler        — route + AI task handling → CoachActionResult
-  └── CoachMealPhotoAnalyzer     — JPEG prep + photo food-estimate routing
+CoachModel (Features/Coach/Model/)
+  ├── CoachMutationExecutor           — Application/UseCases/Coach/
+  ├── CoachPendingConfirmationPresenter
+  ├── CoachAIRouteHandler
+  └── CoachMealPhotoAnalyzer
 ```
 
-- **Location:** `Features/Coach/Handlers/` for extracted collaborators; `CoachModel` in `Features/Coach/Model/`.
+- Dashboard assembly: `Application/StateBuilders/Coach/` (`CoachResponseBuilder`, context builders).
 
 #### Journey (read-only fitness story)
 
@@ -122,7 +122,7 @@ Long-horizon narrative: transformation, weekly consistency, milestones, timeline
 
 - **Docs:** [JourneyArchitecture.md](./JourneyArchitecture.md)
 - `ProgressView` + `ProgressModel` assemble `ProgressDashboardState` from services.
-- `JourneyDashboardBuilder` + per-section `Journey*Builder` types; `JourneyBaselineResolver` owns baseline/chart/progress %.
+- `JourneyDashboardBuilder` + per-section `Journey*Builder` types in `Application/StateBuilders/Journey/`; `JourneyBaselineResolver` owns baseline/chart/progress %.
 - `JourneyDashboardContent` renders `JourneyProductLayout.sectionOrder`.
 - CTAs route to Coach / Plan; no mutations on this tab.
 - Apple Health training via `TrainingInsightsStore` + `JourneyTrainingSummaryBuilder`.
@@ -166,101 +166,118 @@ flowchart TB
 
 ## 2. Current Architectural Layers
 
-Source lives under `Fitness Coach/FitPilot/` (~360 Swift files). The repo root and Xcode target are still named **Fitness Coach**; the on-disk folder is still **FitPilot** (legacy).
+Source lives under `Fitness Coach/` in layer folders (~625 Swift files). The Xcode target is still named **Fitness Coach**; type names still use legacy **FitPilot** prefixes in places (Phase 6 rename).
 
-### App (`FitPilot/App/` — 6 files)
+```
+Fitness Coach/
+├── App/                 # Composition root, routing, tab shell (18)
+├── Application/         # Services, use cases, state builders (68)
+├── Data/                # Repositories + DTOs (19)
+├── DesignSystem/        # Tokens, components, theme (56)
+├── Domain/              # Models, calculations, copy (127)
+├── Features/            # SwiftUI views + feature models (258)
+├── Infrastructure/      # Persistence, cloud, health, AI clients (78)
+└── TestingSupport/      # Preview/test stubs in app target (1)
+```
 
-Composition root and shell routing.
+### App (`App/` — 18 files)
 
-| File | Purpose |
+Composition root, shell routing, and entry point.
+
+| Path | Purpose |
 |------|---------|
 | `AppContainer.swift` | Dependency wiring, service construction, model factories |
 | `MainTabView.swift` | Tab shell, environment object injection |
-| `AppRouteResolver.swift` | Pure auth/root routing |
 | `RootModel.swift` | Onboarding vs main state after sign-in |
 | `AppRefreshCenter.swift` | Cross-feature refresh token |
 | `LocalAIBackendConfiguration.swift` | Debug AI backend URL resolution |
+| `ReleaseAIBackendConfiguration.swift` | Release AI backend URL resolution |
+| `Fitness_CoachApp.swift` / `ContentView.swift` | `@main` entry and root view |
+| `Routing/` | `AppRouteResolver`, `AuthGateRoutingPolicy`, `ProfileBootstrapCoordinator`, … |
 
-### Features (`FitPilot/Features/` — ~182 files)
+### Application (`Application/` — 68 files)
 
-SwiftUI views, feature models (`*Model`), view state, formatters, and feature-local builders.
+Orchestration, mutations, coach execution, and dashboard assembly.
 
-| Folder | Files | Notes |
-|--------|------:|-------|
-| `Profile` | 40 | Plan tab UI (folder name ≠ tab label) |
-| `Coach` | 37 | Includes `Pipeline/` and `Design/` subfolders |
-| `Onboarding` | 27 | First-run flow |
-| `Today` | 27 | Daily dashboard |
-| `Training` | 25 | Health insights + demoted manual training UI |
-| `Journey` | 44 | Journey tab UI (`ProgressView` — legacy type name) |
-| `Auth` | 3 | Gate and sign-in |
+| Area | Path | Purpose |
+|------|------|---------|
+| **Services** | `Application/Services/` | `TargetService`, `TrainingInsightsStore`, `AIService`, `ServiceError`, … |
+| **Auth** | `Application/Services/Auth/` | `AuthManager`, `AuthState`, sign-in support |
+| **Use cases** | `Application/UseCases/` | `FitnessActionCenter`, `ProfileBootstrapService` |
+| **Coach** | `Application/UseCases/Coach/` | Handlers + `Pipeline/` (routing, intent, confirmation policy) |
+| **Commands** | `Application/UseCases/Commands/` | `LocalCommandParser` and command types |
+| **State builders** | `Application/StateBuilders/` | Today/Journey/Plan/Coach dashboard assembly |
 
-Features may import Core and (today, inconsistently) reach toward Infrastructure in views or models.
+### Features (`Features/` — 258 files)
 
-### Domain / calculations (`FitPilot/Core/` — ~125 files)
+SwiftUI views, feature models (`*Model`), view state, formatters, and feature-local components.
+
+| Folder | Notes |
+|--------|-------|
+| `Coach` | Views, model shell, formatting, components |
+| `Today` | Daily dashboard |
+| `Journey` | Journey tab UI (`ProgressView` — legacy type name) |
+| `Plan` | Plan tab UI (folder name; types still use `Profile*` prefix) |
+| `Onboarding` | First-run flow |
+| `Auth` | Gate and sign-in |
+| `Settings` | Plan settings screens |
+| `TrainingInsights` | Health insights sheets (split from demoted Training tab) |
+
+Features may import Application and Domain; they must not import Infrastructure directly.
+
+### Domain (`Domain/` — 127 files)
 
 Shared business concepts not tied to a single feature screen.
 
 | Area | Path | Purpose |
 |------|------|---------|
-| **Models** | `Core/Models/` | `UserProfile`, `DailyLog`, `FoodEntry`, enums, etc. |
-| **Plan calculation** | `Core/FormaCalculation/` | `FormaCalculationEngine`, pace/macro/energy math, `PlanCalculationBridge` |
-| **Runtime calculators** | `Core/Calculators/` | `MacroCalculator`, `StreakCalculator`, `WeightTrendCalculator`, workout calories |
-| **Drafts** | `Core/Drafts/` | Input DTOs (`FoodDraft`, `UserProfileUpdate`, …) |
-| **Commands** | `Core/Commands/` | `LocalCommandParser` and command types |
-| **AI** | `Core/AI/` | `AIService`, `AICommandParser`, contracts, prompts |
-| **Coaching** | `Core/Coaching/` | `DailyBriefBuilder` |
-| **Reviews** | `Core/Reviews/` | `DailyReviewSummary`, `DailyReviewSummaryBuilder` |
-| **Training domain** | `Core/Training/` | `TrainingInsightsAggregator`, integration copy, `HealthWorkoutRecord` |
-| **Auth** | `Core/Auth/` | `AuthManager`, auth state, sign-in support |
-| **Copy** | `Core/Copy/` | `FormaProductCopy` user-facing strings |
-| **Legal** | `Core/Legal/` | `FitPilotLegalCopy` (legacy name) |
-| **Diagnostics** | `Core/Diagnostics/` | `FitPilotPipelineTracer`, trace persistence |
+| **Models** | `Domain/Models/` | `UserProfile`, `DailyLog`, `FoodEntry`, enums, etc. |
+| **Plan calculation** | `Domain/PlanCalculation/` | `FormaCalculationEngine`, pace/macro/energy math |
+| **Analytics** | `Domain/Analytics/` | Streaks, trends, projections |
+| **Onboarding** | `Domain/Onboarding/` | Onboarding domain logic and copy builders |
+| **Training** | `Domain/Training/` | `TrainingInsightsAggregator`, integration copy |
+| **Reviews** | `Domain/Reviews/` | `DailyReviewSummary` model + formatter |
+| **Copy / Legal** | `Domain/Copy/`, `Domain/Legal/` | Product strings |
 
-**Note:** Domain logic also appears inside Features (e.g. `JourneyDashboardBuilder`, `CoachRouteDecider`, `LocalNutritionEstimator`). Prefer `Domain/Journey/` for cross-cutting Journey analytics; section builders live under `Features/Journey/Model/`.
+Pure calculation and policy types stay in Domain; dashboard assembly lives in `Application/StateBuilders/`.
 
-### Data / persistence
+### Data (`Data/` — 19 files)
 
-Persistence is split across Infrastructure entities and Core services — there is no separate `Data/` folder yet.
+Repository facades and input DTOs — no platform adapters.
 
-| Layer | Location | Role |
-|-------|----------|------|
-| **Entities** | `Infrastructure/SwiftData/Entities/` | `@Model` types |
-| **Mapping** | `Infrastructure/SwiftData/Mapping/` | Entity ↔ domain model |
-| **Store** | `Infrastructure/SwiftData/Store/` | `SwiftDataStore`, `FitPilotModelContainer` |
-| **Services** | `Core/Services/` | `FoodLogService`, `DailyLogService`, `UserProfileService`, etc. |
-| **Mutation facade** | `Core/Services/FitnessActionCenter.swift` | Canonical write API for features |
-| **Cloud** | `Infrastructure/Firestore/` | Profile document sync |
+| Area | Path | Role |
+|------|------|------|
+| **Repositories** | `Data/Repositories/` | `FoodLogService`, `DailyLogService`, `UserProfileService`, … |
+| **DTOs** | `Data/DTOs/` | `FoodDraft`, `WaterDraft`, `UserProfileDraft`, onboarding drafts |
 
-Services talk to `SwiftDataStore` directly today; repository protocols are a target, not yet present.
-
-### Infrastructure (`FitPilot/Infrastructure/` — 47 files)
+### Infrastructure (`Infrastructure/` — 78 files)
 
 Platform and external system adapters. Must not import SwiftUI.
 
-| Area | Contents |
-|------|----------|
-| **SwiftData** | Entities, mappings, store (28 files) |
-| **HealthKit** | Authorization, workout reading, mocks, formatters (11 files) |
-| **LLM** | `FitPilotAIBackendClient`, fallback/mock clients (6 files) |
-| **Firestore** | Cloud profile store (5 files) |
+| Area | Path | Contents |
+|------|------|----------|
+| **Persistence** | `Infrastructure/Persistence/SwiftData/` | Entities, mappings, `SwiftDataStore`, `FitPilotModelContainer` |
+| **Cloud** | `Infrastructure/Cloud/` | Firestore profile sync |
+| **Health** | `Infrastructure/Health/` | HealthKit authorization, workout/step readers |
+| **AI** | `Infrastructure/AI/` | LLM clients, AI contracts, parsers, prompts |
+| **Diagnostics** | `Infrastructure/Diagnostics/` | `FitPilotPipelineTracer`, analytics loggers |
 
-### Design system
+### Design system (`DesignSystem/` — 56 files)
 
-| Layer | Location | Role |
-|-------|----------|------|
-| **Canonical tokens** | `Core/Design/FormaTokens.swift` | Colors, spacing, typography, radius |
-| **Shared components** | `Core/Design/Forma*.swift` | Form cards, fields, pickers, brand mark |
-| **Plan/settings chrome** | `Features/Profile/FitPilotScreenStyle.swift` | `FitPilotPlanCard`, settings rows (legacy FitPilot name) |
-| **Onboarding theme** | `Features/Onboarding/OnboardingTheme.swift` | Onboarding-specific wrappers over `FormaTokens` |
-| **Coach theme** | `Features/Coach/Design/CoachDesignTokens.swift` | Coach layout tokens |
-| **Per-feature layout** | `*Layout.swift` in Profile, Today, Journey, Training | Section spacing constants |
+| Layer | Role |
+|-------|------|
+| `FormaTokens.swift`, `Components/` | Canonical colors, spacing, shared SwiftUI components |
+| `Theme/` | Forma palette + app appearance preferences (`AppThemePreferences`, `ThemeResolver`, …) |
+| `Coach/`, `Onboarding/` | Feature-specific design tokens |
+| `Legacy/FitPilotScreenStyle.swift` | Plan/settings chrome (rename deferred to Phase 6) |
 
-`FormaTokens` is the intended single source of truth; other theme files are compatibility layers pending consolidation.
+### TestingSupport (`TestingSupport/` — 1 file)
 
-### Tests (`Fitness CoachTests/` — 25 files)
+Preview and test stubs that must live in the app target (`StubTrainingIntegrationProvider`). Test fixtures remain in `Fitness CoachTests/` for now.
 
-Unit tests colocated at repo root. Fixtures: `FormaCalculationTestFixtures.swift`, `TrainingStrategyTestSupport.swift`. No dedicated `TestingSupport/` package yet.
+### Tests (`Fitness CoachTests/` — 25+ files)
+
+Unit tests at repo root. Fixtures: `FormaCalculationTestFixtures.swift`, `TestingSupport/` subdirectory.
 
 ---
 
@@ -314,7 +331,7 @@ These are the conventions the codebase should follow. Violations are tracked in 
 
 ## 4. Target Architecture
 
-Future folder layout (not yet implemented). Code remains in `FitPilot/` until a later migration stage.
+**Status:** Phase 5 (2026-06-30) completed the folder migration below. Legacy **type names** (`FitPilot*`, `Progress*`, `Profile*`) remain until Phase 6.
 
 ```
 Forma/
@@ -365,17 +382,27 @@ App → everything (composition only)
 
 Features must not import Infrastructure directly.
 
-### Mapping from current to target
+### Mapping from legacy to current (Phase 5 complete)
 
-| Current | Target |
-|---------|--------|
+| Legacy | Current |
+|--------|---------|
 | `FitPilot/App/` | `App/` |
+| `FitPilot/Core/Services/`, `FitnessActionCenter` | `Application/Services/`, `Application/UseCases/` |
+| `FitPilot/Core/AI/` (contracts) | `Infrastructure/AI/` |
+| `FitPilot/Core/AI/AIService` | `Application/Services/` |
+| `FitPilot/Core/Auth/` | `Application/Services/Auth/` |
+| `FitPilot/Core/Drafts/` | `Data/DTOs/` |
+| `FitPilot/Core/Diagnostics/` | `Infrastructure/Diagnostics/` |
+| `FitPilot/Infrastructure/LLM/` | `Infrastructure/AI/` |
+| `Data/SwiftData/` | `Infrastructure/Persistence/SwiftData/` |
+| `Data/Health/`, `Data/Firebase/` | `Infrastructure/Health/`, `Infrastructure/Cloud/` |
 | `Core/Design/` + theme wrappers | `DesignSystem/` |
-| `Core/Models/`, `Core/FormaCalculation/`, `Core/Calculators/` | `Domain/` |
-| `Core/Services/`, `FitnessActionCenter`, feature `*Builder` | `Application/` |
-| `Core/Drafts/` + `Infrastructure/SwiftData/` | `Data/` + `Infrastructure/Persistence/` |
-| `FitPilot/Features/` | `Features/` (renamed subfolders) |
-| `Fitness CoachTests/*Fixtures*` | `TestingSupport/` |
+| `Core/Models/`, `Core/FormaCalculation/`, calculators | `Domain/` |
+| Feature `*Builder` dashboard assembly | `Application/StateBuilders/` |
+| `Features/Coach/Handlers/`, `Pipeline/` | `Application/UseCases/Coach/` |
+| `Domain/Routing/` | `App/Routing/` |
+| `Domain/Theme/` | `DesignSystem/Theme/` |
+| `Fitness CoachTests/*Fixtures*` | `TestingSupport/` (partial — app-target stubs only) |
 
 ---
 
@@ -392,14 +419,14 @@ Tracked for later stages. **Do not treat as blockers for feature work** — but 
 
 ### Coach pipeline
 
-- `CoachModel` (~450 lines) delegates mutations, AI routing, and pending confirmations to `Features/Coach/Handlers/`.
-- Pipeline split across `Core/Commands/LocalCommandParser` and `Features/Coach/Pipeline/` (`CoachRouteDecider`, `CoachIntentRouter`, `CheapLLMIntentClassifier`, `LocalNutritionEstimator`).
-- `CoachResponseBuilder` duplicates macro summary logic.
-- **Action:** colocate pipeline under Application; keep `CoachRoutingTests` as safety net.
+- `CoachModel` delegates mutations, AI routing, and pending confirmations to `Application/UseCases/Coach/`.
+- Pipeline: `Application/UseCases/Coach/Pipeline/` (`CoachRouteDecider`, `CoachIntentRouter`, `CheapLLMIntentClassifier`, `LocalNutritionEstimator`).
+- `CoachResponseBuilder` (in `Application/StateBuilders/Coach/`) duplicates macro summary logic.
+- **Action:** keep `CoachRoutingTests` as safety net; optional further colocation under Application.
 
-### Old FitPilot naming
+### Old FitPilot naming (Phase 6)
 
-- Source folder: `FitPilot/`
+- ~~Source folder: `FitPilot/`~~ — **removed in Phase 5**
 - Types: `FitPilotModelContainer`, `FitPilotScreenStyle`, `FitPilotPlanCard`, `FitPilotPipelineTracer`, `FitPilotAIBackendClient`, `FitPilotLegalCopy`
 - Env vars: `FITPILOT_USE_MOCK_LLM`, `FITPILOT_AI_BACKEND_URL`, `FITPILOT_PIPELINE_TRACE*`
 - **Release AI:** see [ReleaseAI.md](./ReleaseAI.md) — Release must not default to localhost; requires explicit `FITPILOT_AI_BACKEND_URL`.
@@ -461,7 +488,8 @@ Items that need confirmation before deletion or large refactors:
 
 | Date | Change |
 |------|--------|
-| 2026-06-30 | Phase 4: `CoachModel` decomposed into `CoachMutationExecutor`, `CoachPendingConfirmationPresenter`, `CoachAIRouteHandler`, `CoachMealPhotoAnalyzer` |
+| 2026-06-30 | Phase 5: folder migration complete — `App/`, `Application/`, `Infrastructure/`, `Data/DTOs/`; `FitPilot/` removed |
+| 2026-06-30 | Phase 4: `CoachModel` decomposed into focused handlers under `Application/UseCases/Coach/` |
 | 2026-06-30 | Phase 3: `AuthGateCoordinator` extracted; `AuthGateView` thinned to shell wiring |
 | 2026-06-30 | Phase 2: `DailyNutritionSummaryBuilder` consolidated as runtime nutrition SSOT |
 | 2026-06-30 | Phase 1 dead-code pass: orphan views, deprecated aliases, retired workout write APIs |
