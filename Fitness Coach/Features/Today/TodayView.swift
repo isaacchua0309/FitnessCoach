@@ -15,6 +15,8 @@ struct TodayView: View {
     @EnvironmentObject private var trainingInsightsModel: TrainingInsightsModel
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
 
+    private let healthActivityQuery: HealthActivityQueryService
+
     @State private var appleHealthWorkoutCount: Int?
     @State private var appleHealthWeeklyWorkoutCount: Int?
     @State private var appleHealthStepsToday: Int?
@@ -28,12 +30,14 @@ struct TodayView: View {
     init(
         model: TodayModel,
         actionCoordinator: TodayActionCoordinator,
+        healthActivityQuery: HealthActivityQueryService,
         onOpenCoach: ((String?) -> Void)? = nil,
         onOpenJourney: (() -> Void)? = nil,
         onOpenPlan: (() -> Void)? = nil
     ) {
         self.model = model
         _actionCoordinator = StateObject(wrappedValue: actionCoordinator)
+        self.healthActivityQuery = healthActivityQuery
         self.onOpenCoach = onOpenCoach
         self.onOpenJourney = onOpenJourney
         self.onOpenPlan = onOpenPlan
@@ -162,16 +166,9 @@ struct TodayView: View {
     private func refreshDashboard() async {
         await trainingInsightsStore.refresh()
         if trainingInsightsStore.integrationState.isConnected {
-            let workoutReader = trainingInsightsModel.workoutReaderForToday
-            appleHealthWorkoutCount = try? await TodayHealthWorkoutResolver.workoutCountToday(
-                reader: workoutReader
-            )
-            appleHealthWeeklyWorkoutCount = try? await TodayHealthWorkoutResolver.workoutCountThisWeek(
-                reader: workoutReader
-            )
-            appleHealthStepsToday = try? await TodayHealthStepResolver.stepsToday(
-                reader: trainingInsightsModel.stepReaderForToday
-            )
+            appleHealthWorkoutCount = try? await healthActivityQuery.workoutCountToday()
+            appleHealthWeeklyWorkoutCount = try? await healthActivityQuery.workoutCountThisWeek()
+            appleHealthStepsToday = try? await healthActivityQuery.stepsToday()
         } else {
             appleHealthWorkoutCount = nil
             appleHealthWeeklyWorkoutCount = nil
@@ -260,7 +257,8 @@ struct TodayView: View {
     let container = try! AppContainer(inMemory: true)
     TodayView(
         model: container.makeTodayModel(),
-        actionCoordinator: container.makeTodayActionCoordinator()
+        actionCoordinator: container.makeTodayActionCoordinator(),
+        healthActivityQuery: container.healthActivityQueryService
     )
     .environmentObject(container.refreshCenter)
     .environmentObject(container.trainingInsightsStore)

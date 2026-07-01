@@ -65,7 +65,7 @@ enum PlanNextMilestoneSelector {
         }
 
         let items = PlanWeightMilestoneTimeline.items(for: baseline)
-        guard let next = ProgressFormatter.nextMilestone(from: items),
+        guard let next = JourneyFormatter.nextMilestone(from: items),
               let checkpointKg = next.weightKg else {
             return nil
         }
@@ -78,8 +78,8 @@ enum PlanNextMilestoneSelector {
         let action = weightAction(for: baseline.goalDirection)
         let headline = FormaProductCopy.PlanMissionControl.weightCheckpointHeadline(
             action: action,
-            remaining: ProfileFormatter.kg(remaining),
-            target: ProfileFormatter.kg(checkpointKg)
+            remaining: PlanFormatter.kg(remaining),
+            target: PlanFormatter.kg(checkpointKg)
         )
 
         let projection = ProgressProjectionCalculator.projection(
@@ -95,10 +95,10 @@ enum PlanNextMilestoneSelector {
             headline: headline,
             detailCopy: FormaProductCopy.PlanMissionControl.weightCheckpointDetail(isGoal: isGoal),
             milestoneType: isGoal ? .goalWeight : .weightCheckpoint,
-            milestoneLabel: ProgressFormatter.journeyKg(checkpointKg),
+            milestoneLabel: JourneyFormatter.journeyKg(checkpointKg),
             remainingKg: remaining,
             remainingLabel: FormaProductCopy.PlanMissionControl.remainingToMilestone(
-                ProfileFormatter.kg(remaining)
+                PlanFormatter.kg(remaining)
             ),
             expectedDate: expectedDate,
             expectedDateLabel: expectedDate?.formatted(.dateTime.month(.abbreviated).day().year())
@@ -238,7 +238,7 @@ enum PlanWeightMilestoneTimeline {
 
             return JourneyMilestone(
                 id: "plan-weight-\(index)",
-                title: ProgressFormatter.journeyKg(weight),
+                title: JourneyFormatter.journeyKg(weight),
                 status: status,
                 weightKg: weight
             )

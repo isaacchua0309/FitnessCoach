@@ -15,7 +15,7 @@ struct PlanRationaleSection: View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
             FormaSectionLabel(title: FormaProductCopy.PlanRationale.sectionTitle)
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
                     rationaleContent
 
@@ -137,7 +137,7 @@ struct PlanRationaleSection: View {
                 highlightRow(highlight)
 
                 if index < highlights.count - 1 {
-                    FitPilotPlanRowDivider()
+                    FormaPlanRowDivider()
                 }
             }
         }
@@ -168,7 +168,7 @@ struct PlanRationaleSection: View {
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                 .foregroundStyle(FormaTokens.Color.accent)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
+                .frame(minHeight: FormaTokens.Layout.minTouchTarget)
         }
         .buttonStyle(.plain)
         .padding(.top, FormaTokens.Spacing.xs)
@@ -179,7 +179,7 @@ struct PlanRationaleSection: View {
 
 #Preview {
     PlanRationaleSection(
-        rationale: PlanRationaleCopyBuilder.build(for: ProfilePreviewData.profile)
+        rationale: PlanRationaleCopyBuilder.build(for: PlanPreviewData.profile)
     )
     .padding()
     .background(FormaTokens.Color.canvas)

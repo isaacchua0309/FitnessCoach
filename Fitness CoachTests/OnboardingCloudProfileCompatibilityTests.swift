@@ -28,7 +28,8 @@ final class OnboardingCloudProfileCompatibilityTests: XCTestCase {
         let cloudStore = MockCloudUserProfileStore()
         let container = try AppContainer(inMemory: true)
         let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             cloudStore: cloudStore
         )
 
@@ -119,7 +120,8 @@ final class OnboardingCloudProfileCompatibilityTests: XCTestCase {
         )
         let container = try AppContainer(inMemory: true)
         let service = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             cloudStore: cloudStore
         )
 

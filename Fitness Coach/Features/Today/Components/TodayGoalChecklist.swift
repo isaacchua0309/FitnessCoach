@@ -21,7 +21,7 @@ struct TodayGoalChecklist: View {
                         goalRow(goal)
 
                         if index < goals.count - 1 {
-                            FitPilotPlanRowDivider()
+                            FormaPlanRowDivider()
                         }
                     }
                 }
@@ -75,7 +75,7 @@ struct TodayGoalChecklist: View {
                 "\(FormaProductCopy.Today.nextActionQuickChipTitle), \(goal.label)"
             )
         }
-        .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .center)
+        .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .center)
         .padding(.vertical, 2)
         .accessibilityElement(children: .contain)
     }
@@ -92,7 +92,7 @@ struct TodayGoalChecklist: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .center)
+        .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .center)
         .padding(.vertical, 2)
     }
 

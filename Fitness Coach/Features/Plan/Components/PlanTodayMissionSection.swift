@@ -22,7 +22,7 @@ struct PlanTodayMissionSection: View {
                 action: onGoToToday
             )
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
                     Text(state.caloriesLabel)
                         .font(.system(size: calorieTargetSize, weight: .bold, design: .rounded))

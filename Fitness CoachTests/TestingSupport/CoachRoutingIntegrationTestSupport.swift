@@ -19,7 +19,7 @@ enum CoachRoutingIntegrationTestSupport {
 
         var actionCenter: FitnessActionCenter { fitness.actionCenter }
         var dailyLogService: DailyLogService { fitness.dailyLogService }
-        var workoutLogService: WorkoutLogService { fitness.base.workoutLogService }
+        var healthActivityQuery: HealthActivityQueryService { fitness.healthActivityQuery }
         var userProfileService: UserProfileService { fitness.profileService }
         var today: Date { fitness.today }
 
@@ -30,9 +30,9 @@ enum CoachRoutingIntegrationTestSupport {
             CoachModel(
                 actionCenter: actionCenter,
                 dailyLogService: dailyLogService,
-                workoutLogService: workoutLogService,
+                healthActivityQuery: healthActivityQuery,
                 aiService: aiService,
-                userProfileService: userProfileService,
+                userProfileReader: userProfileService,
                 aiCommandParsingEnabled: true,
                 trainingInsightsStore: includeTrainingInsights ? trainingInsightsStore : nil
             )

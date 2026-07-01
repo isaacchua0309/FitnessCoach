@@ -18,7 +18,7 @@ struct JourneyWhyProgressSection: View {
         VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
             FormaSectionLabel(title: FormaProductCopy.Journey.ProgressAttribution.sectionTitle)
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     Text(state.primaryReasonTitle)
                         .font(FormaTokens.Typography.sectionSubtitle.weight(isInsufficientData ? .medium : .semibold))
@@ -35,7 +35,7 @@ struct JourneyWhyProgressSection: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     if !state.supportingReasons.isEmpty {
-                        FitPilotPlanRowDivider()
+                        FormaPlanRowDivider()
 
                         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
                             ForEach(state.supportingReasons, id: \.self) { reason in
@@ -69,14 +69,14 @@ struct JourneyWhyProgressSection: View {
 // MARK: - Previews
 
 #Preview("Active attribution") {
-    JourneyWhyProgressSection(state: ProgressPreviewData.progressAttributionActive)
+    JourneyWhyProgressSection(state: JourneyPreviewData.progressAttributionActive)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()
 }
 
 #Preview("Plateau attribution") {
-    JourneyWhyProgressSection(state: ProgressPreviewData.progressAttributionPlateau)
+    JourneyWhyProgressSection(state: JourneyPreviewData.progressAttributionPlateau)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()

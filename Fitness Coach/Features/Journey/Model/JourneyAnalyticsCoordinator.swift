@@ -21,7 +21,7 @@ final class JourneyAnalyticsCoordinator {
 
     // MARK: - Context
 
-    func updateContext(from state: ProgressDashboardState, healthConnected: Bool) {
+    func updateContext(from state: JourneyDashboardState, healthConnected: Bool) {
         snapshot = JourneyAnalyticsContextBuilder.snapshot(
             from: state,
             healthConnected: healthConnected

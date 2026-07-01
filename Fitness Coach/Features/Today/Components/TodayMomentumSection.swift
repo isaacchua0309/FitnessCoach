@@ -18,16 +18,16 @@ struct TodayMomentumSection: View {
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: FormaProductCopy.Today.Momentum.sectionTitle)
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
                     momentumLine(display.loggingStreakLine)
 
-                    FitPilotPlanRowDivider()
+                    FormaPlanRowDivider()
 
                     momentumLine(display.weekProgressLine)
 
                     ForEach(Array(display.optionalStreakLines.enumerated()), id: \.offset) { index, line in
-                        FitPilotPlanRowDivider()
+                        FormaPlanRowDivider()
                         momentumLine(line)
                     }
                 }

@@ -24,7 +24,8 @@ final class AccountProfileMismatchTests: XCTestCase {
         let container = try AppContainer(inMemory: true)
         let syncStore = ProfileCloudSyncStore(userDefaults: container.onboardingUserDefaults)
         let bootstrapService = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             cloudStore: cloudStore,
             cloudSyncStore: syncStore
         )

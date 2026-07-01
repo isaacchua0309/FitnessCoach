@@ -61,11 +61,11 @@ struct TodayAddWaterSheet: View {
 
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, FitPilotScreenStyle.horizontalPadding)
+            .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
             .padding(.top, FormaTokens.Spacing.md)
             .padding(.bottom, FormaTokens.Spacing.lg)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .fitPilotFormScreen()
+            .formaFormScreen()
             .navigationTitle(FormaProductCopy.Today.QuickActions.addWaterSheetTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

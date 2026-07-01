@@ -46,7 +46,7 @@ struct PlanCalculationDetailsSheet: View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
             FormaSectionLabel(title: section.title)
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
                     ForEach(section.rows) { row in
                         detailRow(row)
@@ -80,8 +80,8 @@ struct PlanCalculationDetailsSheet: View {
 #Preview {
     PlanCalculationDetailsSheet(
         details: PlanCalculationDetailsBuilder.build(
-            profile: ProfilePreviewData.profile,
-            result: try! PlanCalculationBridge.planResult(from: ProfilePreviewData.profile)
+            profile: PlanPreviewData.profile,
+            result: try! PlanCalculationBridge.planResult(from: PlanPreviewData.profile)
         )
     )
 }

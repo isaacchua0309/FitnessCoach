@@ -11,7 +11,7 @@ struct CoachTodayContextCard: View {
     let state: CoachTodayContextState
 
     var body: some View {
-        FitPilotPlanCard {
+        FormaPlanCard {
             VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.sm) {
                 contextSection(
                     title: FormaProductCopy.Coach.todaySoFarSectionTitle,

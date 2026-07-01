@@ -455,7 +455,8 @@ final class PublicEntryEdgeCaseDraftResumeTests: XCTestCase {
             onboardingUserDefaults: draftDefaults
         )
         let model = OnboardingModel(
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             targetService: container.targetService,
             onCompletion: {},
             draftStore: draftStore,

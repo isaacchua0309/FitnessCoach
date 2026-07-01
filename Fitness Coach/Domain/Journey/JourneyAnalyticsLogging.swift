@@ -101,7 +101,7 @@ protocol JourneyAnalyticsLogging: Sendable {
 enum JourneyAnalyticsContextBuilder {
 
     static func snapshot(
-        from state: ProgressDashboardState,
+        from state: JourneyDashboardState,
         healthConnected: Bool
     ) -> JourneyAnalyticsSnapshot {
         JourneyAnalyticsSnapshot(

@@ -16,7 +16,7 @@ struct PlanMissionControlHeroSection: View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
             FormaSectionLabel(title: state.sectionTitle)
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
                     Text(state.headlineValue)
                         .font(.system(size: heroValueSize, weight: .bold, design: .rounded))

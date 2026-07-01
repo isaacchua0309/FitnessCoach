@@ -34,7 +34,7 @@ enum PlanAnalyticsGoalProgressBucket: String, Sendable {
 enum PlanAnalyticsContextBuilder {
 
     static func snapshot(
-        from state: ProfileDashboardState,
+        from state: PlanDashboardState,
         healthConnected: Bool
     ) -> PlanAnalyticsSnapshot {
         PlanAnalyticsSnapshot(

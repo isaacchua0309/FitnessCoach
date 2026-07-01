@@ -19,11 +19,11 @@ struct TodayMacroBalanceCard: View {
             VStack(alignment: .leading, spacing: 0) {
                 macroRow(display.protein)
 
-                FitPilotPlanRowDivider()
+                FormaPlanRowDivider()
 
                 macroRow(display.carbs)
 
-                FitPilotPlanRowDivider()
+                FormaPlanRowDivider()
 
                 macroRow(display.fat)
             }
@@ -109,10 +109,10 @@ private struct TodayMacroBalanceMetricsCard<Content: View>: View {
 }
 
 private func macroBalanceCardBackground() -> some View {
-    RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+    RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
         .fill(FormaTokens.Color.surface)
         .overlay {
-            RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+            RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
                 .stroke(
                     LinearGradient(
                         colors: [

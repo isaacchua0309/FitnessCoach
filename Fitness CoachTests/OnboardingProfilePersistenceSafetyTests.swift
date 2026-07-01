@@ -140,7 +140,8 @@ final class OnboardingProfileCloudPersistenceSafetyTests: XCTestCase {
         let container = try AppContainer(inMemory: true)
         let syncStore = ProfileCloudSyncStore(userDefaults: container.onboardingUserDefaults)
         let bootstrapService = ProfileBootstrapService(
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             cloudStore: cloudStore,
             cloudSyncStore: syncStore
         )
@@ -267,7 +268,8 @@ final class OnboardingModelCommittedProfileResumeTests: XCTestCase {
         _ = try container.userProfileService.createProfile(ProfileTestFixtures.onboardingSampleDraft)
 
         let model = OnboardingModel(
-            userProfileService: container.userProfileService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
             targetService: container.targetService,
             onCompletion: {},
             draftStore: draftStore,

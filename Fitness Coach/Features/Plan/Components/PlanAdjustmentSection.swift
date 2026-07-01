@@ -15,7 +15,7 @@ struct PlanAdjustmentSection: View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
             FormaSectionLabel(title: state.sectionTitle)
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 VStack(alignment: .leading, spacing: 0) {
                     VStack(alignment: .leading, spacing: 0) {
                         Text(state.lastUpdatedLabel)
@@ -60,7 +60,7 @@ struct PlanAdjustmentSection: View {
                             Text(state.adjustPlanTitle)
                                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                                 .frame(maxWidth: .infinity)
-                                .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
+                                .frame(minHeight: FormaTokens.Layout.minTouchTarget)
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(FormaTokens.Color.ctaBackground)
@@ -77,9 +77,9 @@ struct PlanAdjustmentSection: View {
         VStack(spacing: 0) {
             ForEach(Array(state.summaryRows.enumerated()), id: \.element.id) { index, row in
                 if index > 0 {
-                    FitPilotPlanRowDivider()
+                    FormaPlanRowDivider()
                 }
-                FitPilotPlanDisplayRow(label: row.label, value: row.value)
+                FormaPlanDisplayRow(label: row.label, value: row.value)
             }
         }
     }

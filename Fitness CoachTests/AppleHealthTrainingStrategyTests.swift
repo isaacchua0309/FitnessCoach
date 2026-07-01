@@ -223,9 +223,9 @@ final class CoachWorkoutIntentPolicyTests: XCTestCase {
         let model = CoachModel(
             actionCenter: container.actionCenter,
             dailyLogService: container.dailyLogService,
-            workoutLogService: container.workoutLogService,
+            healthActivityQuery: container.healthActivityQueryService,
             aiService: service,
-            userProfileService: container.userProfileService,
+            userProfileReader: container.userProfileService,
             aiCommandParsingEnabled: true,
             trainingInsightsStore: container.trainingInsightsStore
         )
@@ -235,7 +235,7 @@ final class CoachWorkoutIntentPolicyTests: XCTestCase {
         XCTAssertEqual(service.classifyCoachIntentCallCount, 1)
         XCTAssertEqual(service.parseWorkoutCallCount, 0)
         XCTAssertNil(model.pendingConfirmation)
-        XCTAssertEqual(try container.workoutLogService.getWorkouts(for: Date()).count, 0)
+        XCTAssertEqual(try await container.healthActivityQueryService.workoutCountToday(), 0)
     }
 
     func testWorkoutLogNotConnectedCopy() async throws {
@@ -294,9 +294,9 @@ final class CoachWorkoutIntentPolicyTests: XCTestCase {
         let model = CoachModel(
             actionCenter: container.actionCenter,
             dailyLogService: container.dailyLogService,
-            workoutLogService: container.workoutLogService,
+            healthActivityQuery: container.healthActivityQueryService,
             aiService: service,
-            userProfileService: container.userProfileService,
+            userProfileReader: container.userProfileService,
             aiCommandParsingEnabled: true,
             trainingInsightsStore: container.trainingInsightsStore
         )

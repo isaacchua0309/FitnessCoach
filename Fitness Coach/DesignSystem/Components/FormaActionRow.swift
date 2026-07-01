@@ -60,7 +60,7 @@ struct FormaActionRow<Leading: View>: View {
 
             FormaNavigationChevron()
         }
-        .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .center)
+        .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .center)
         .contentShape(Rectangle())
     }
 
@@ -78,7 +78,7 @@ struct FormaActionRow<Leading: View>: View {
 
             FormaNavigationChevron()
         }
-        .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .center)
+        .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .center)
         .padding(.vertical, 2)
         .contentShape(Rectangle())
     }
@@ -125,7 +125,7 @@ struct FormaActionRow<Leading: View>: View {
             FormaNavigationChevron()
         }
         .frame(
-            minHeight: verticalAlignment == .center ? FitPilotScreenStyle.rowMinHeight : nil,
+            minHeight: verticalAlignment == .center ? FormaTokens.Layout.minTouchTarget : nil,
             alignment: .center
         )
     }
@@ -159,7 +159,7 @@ struct FormaNavigationChevron: View {
 }
 
 #Preview("Card") {
-    FitPilotPlanCard {
+    FormaPlanCard {
         FormaActionRow(
             title: "Update today with Coach",
             subtitle: "Log meals, water, weight, or training.",

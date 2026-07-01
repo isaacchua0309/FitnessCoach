@@ -255,10 +255,12 @@ struct OnboardingView: View {
 }
 
 #Preview {
-    OnboardingView(
+    let container = try! AppContainer(inMemory: true)
+    return OnboardingView(
         model: OnboardingModel(
-            userProfileService: try! AppContainer(inMemory: true).userProfileService,
-            targetService: try! AppContainer(inMemory: true).targetService,
+            actionCenter: container.actionCenter,
+            userProfileReader: container.userProfileService,
+            targetService: container.targetService,
             onCompletion: {}
         )
     )

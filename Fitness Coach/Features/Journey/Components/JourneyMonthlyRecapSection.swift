@@ -12,7 +12,7 @@ struct JourneyMonthlyRecapSection: View {
         VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
             FormaSectionLabel(title: state.sectionTitle)
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     if let buildingMessage = state.buildingMessage {
                         Text(buildingMessage)
@@ -34,13 +34,13 @@ struct JourneyMonthlyRecapSection: View {
 
                     if !state.rows.isEmpty {
                         if state.isComplete || state.loggedDays > 0 {
-                            FitPilotPlanRowDivider()
+                            FormaPlanRowDivider()
                         }
 
                         ForEach(Array(state.rows.enumerated()), id: \.element.id) { index, row in
                             metricRow(row)
                             if index < state.rows.count - 1 {
-                                FitPilotPlanRowDivider()
+                                FormaPlanRowDivider()
                             }
                         }
                     }
@@ -72,7 +72,7 @@ struct JourneyMonthlyRecapSection: View {
 #if DEBUG
 #Preview("Monthly recap") {
     ScrollView {
-        JourneyMonthlyRecapSection(state: ProgressPreviewData.monthlyRecapActive)
+        JourneyMonthlyRecapSection(state: JourneyPreviewData.monthlyRecapActive)
             .padding()
     }
     .background(FormaTokens.Color.canvas)

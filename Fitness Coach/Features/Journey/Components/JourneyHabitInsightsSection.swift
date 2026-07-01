@@ -22,7 +22,7 @@ struct JourneyHabitInsightsSection: View {
     }
 
     private var lockedContent: some View {
-        FitPilotPlanCard {
+        FormaPlanCard {
             Text(state.lockedMessage ?? FormaProductCopy.Journey.HabitInsights.lockedBody)
                 .font(FormaTokens.Typography.sectionSubtitle)
                 .foregroundStyle(FormaTokens.Color.textSecondary)
@@ -51,7 +51,7 @@ struct JourneyHabitInsightsSection: View {
                 accent: FormaTokens.Color.accent
             )
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
                     Text(FormaProductCopy.Journey.HabitInsights.suggestionTitle)
                         .font(FormaTokens.Typography.caption.weight(.semibold))
@@ -81,7 +81,7 @@ struct JourneyHabitInsightsSection: View {
         qualitative: String?,
         accent: Color
     ) -> some View {
-        FitPilotPlanCard {
+        FormaPlanCard {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
                 Text(eyebrow)
                     .font(FormaTokens.Typography.caption.weight(.semibold))
@@ -144,14 +144,14 @@ struct JourneyHabitInsightsSection: View {
 // MARK: - Previews
 
 #Preview("Unlocked") {
-    JourneyHabitInsightsSection(state: ProgressPreviewData.habitInsightsActive)
+    JourneyHabitInsightsSection(state: JourneyPreviewData.habitInsightsActive)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()
 }
 
 #Preview("Week one unlocked") {
-    JourneyHabitInsightsSection(state: ProgressPreviewData.habitInsightsWeekOne)
+    JourneyHabitInsightsSection(state: JourneyPreviewData.habitInsightsWeekOne)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()

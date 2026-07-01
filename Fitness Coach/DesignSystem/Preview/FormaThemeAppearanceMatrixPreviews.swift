@@ -96,14 +96,14 @@ enum FormaThemeAppearanceMatrix {
 // MARK: - Journey segmented control
 
 #Preview("Range selector — Default Light") {
-    ProgressRangeSelector(selectedRangeDays: 28) { _ in }
+    JourneyRangeSelector(selectedRangeDays: 28) { _ in }
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview(appearance: .light, palette: .default)
 }
 
 #Preview("Range selector — Cool Blue Dark") {
-    ProgressRangeSelector(selectedRangeDays: 14) { _ in }
+    JourneyRangeSelector(selectedRangeDays: 14) { _ in }
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview(appearance: .dark, palette: .coolBlue)

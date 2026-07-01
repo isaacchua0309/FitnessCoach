@@ -18,7 +18,6 @@ enum DailyLogServiceTestSupport {
         let dailyLogService: DailyLogService
         let foodLogService: FoodLogService
         let waterLogService: WaterLogService
-        let workoutLogService: WorkoutLogService
         let dateProvider: FixedDailyLogTestDateProvider
 
         var today: Date { dateProvider.now }
@@ -84,7 +83,7 @@ enum DailyLogServiceTestSupport {
         referenceNow: Date = DailyLogServiceTestSupport.referenceNow
     ) throws -> Harness {
         let dateProvider = FixedDailyLogTestDateProvider(now: referenceNow)
-        let container = try FitPilotModelContainer.makeContainer(inMemory: true)
+        let container = try FormaModelContainer.makeContainer(inMemory: true)
         let store = SwiftDataStore(container: container)
         let profileService = UserProfileService(store: store, dateProvider: dateProvider)
         let dailyLogService = DailyLogService(
@@ -94,11 +93,6 @@ enum DailyLogServiceTestSupport {
         )
         let foodLogService = FoodLogService(store: store, dailyLogService: dailyLogService)
         let waterLogService = WaterLogService(store: store, dailyLogService: dailyLogService)
-        let workoutLogService = WorkoutLogService(
-            store: store,
-            dailyLogService: dailyLogService,
-            userProfileService: profileService
-        )
 
         return Harness(
             store: store,
@@ -106,7 +100,6 @@ enum DailyLogServiceTestSupport {
             dailyLogService: dailyLogService,
             foodLogService: foodLogService,
             waterLogService: waterLogService,
-            workoutLogService: workoutLogService,
             dateProvider: dateProvider
         )
     }

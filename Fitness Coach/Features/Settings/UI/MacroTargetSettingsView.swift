@@ -65,9 +65,9 @@ struct MacroTargetSettingsView: View {
                 .foregroundStyle(FormaTokens.Color.accent)
             }
             .padding(.vertical, FormaTokens.Spacing.xs)
-            .fitPilotFormSection()
+            .formaFormSection()
         } header: {
-            FitPilotSettingsSectionHeader(title: "Macro Targets")
+            FormaSettingsSectionHeader(title: "Macro Targets")
         } footer: {
             Text("Manual edits are saved as-is. Regenerate to recalculate from your profile and pace settings.")
                 .font(FormaTokens.Typography.caption)
@@ -88,5 +88,5 @@ struct MacroTargetSettingsView: View {
             onRegenerate: {}
         )
     }
-    .fitPilotGroupedList()
+    .formaGroupedList()
 }

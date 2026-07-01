@@ -8,7 +8,6 @@
 import Combine
 import Foundation
 import SwiftUI
-import UIKit
 
 enum OnboardingCompletionIntent: Equatable, Sendable {
     case signIn
@@ -40,22 +39,24 @@ final class OnboardingModel: ObservableObject {
 
     private(set) var hasCommittedLocalProfile = false
 
-    private let userProfileService: UserProfileService
-    private let targetService: TargetService
+    private let actionCenter: FitnessActionCenter
+    private let userProfileReader: any UserProfileReading
     private let draftStore: OnboardingDraftStore
     private let coachingContextStore: OnboardingCoachingContextStore
-    private let analyticsLogger: any OnboardingAnalyticsLogging
     private let analyticsEntry: OnboardingAnalyticsEntry
     private let generationDelay: any OnboardingGenerationDelayProviding
-    private let healthTrainingIntegration: TrainingIntegrationProviding
-    private let trainingInsightsStore: TrainingInsightsStore?
     private let onCompletion: () -> Void
+
+    private let planGenerationExecutor: OnboardingPlanGenerationExecutor
+    private let profileCommitter: OnboardingProfileCommitter
+    private let appleHealthCoordinator: OnboardingAppleHealthCoordinator
+    private let analyticsTracker: OnboardingAnalyticsTracker
+
     private var generationTask: Task<Void, Never>?
-    private var stepEnteredAt = Date()
-    private var restoredFromDraft: Bool
 
     init(
-        userProfileService: UserProfileService,
+        actionCenter: FitnessActionCenter,
+        userProfileReader: any UserProfileReading,
         targetService: TargetService,
         onCompletion: @escaping () -> Void,
         draftStore: OnboardingDraftStore? = nil,
@@ -70,102 +71,55 @@ final class OnboardingModel: ObservableObject {
         let resolvedCoachingContextStore = coachingContextStore ?? OnboardingCoachingContextStore()
         let resolvedAnalyticsLogger = analyticsLogger ?? NoOpOnboardingAnalyticsLogger()
         let resolvedGenerationDelay = generationDelay ?? SystemOnboardingGenerationDelayProvider()
-        self.userProfileService = userProfileService
-        self.targetService = targetService
+        let resolvedHealthIntegration = healthTrainingIntegration ?? HealthTrainingService()
+
+        self.actionCenter = actionCenter
+        self.userProfileReader = userProfileReader
         self.draftStore = resolvedDraftStore
         self.coachingContextStore = resolvedCoachingContextStore
-        self.analyticsLogger = resolvedAnalyticsLogger
         self.analyticsEntry = analyticsEntry
         self.generationDelay = resolvedGenerationDelay
-        self.healthTrainingIntegration = healthTrainingIntegration ?? HealthTrainingService()
-        self.trainingInsightsStore = trainingInsightsStore
         self.onCompletion = onCompletion
-        self.restoredFromDraft = false
 
-        var resolvedFormState = OnboardingFormState()
-        var resolvedGeneratedPlan: CalorieTargetResult?
-        var resolvedPlanRevealState: OnboardingPlanRevealState?
-        var resolvedHasLocalProfile = false
-        var resolvedHasCommittedLocalProfile = false
-        var resolvedRestoredFromDraft = false
+        planGenerationExecutor = OnboardingPlanGenerationExecutor(
+            targetService: targetService,
+            generationDelay: resolvedGenerationDelay
+        )
+        profileCommitter = OnboardingProfileCommitter(
+            actionCenter: actionCenter,
+            userProfileReader: userProfileReader
+        )
+        appleHealthCoordinator = OnboardingAppleHealthCoordinator(
+            healthTrainingIntegration: resolvedHealthIntegration,
+            trainingInsightsStore: trainingInsightsStore
+        )
+        analyticsTracker = OnboardingAnalyticsTracker(
+            analyticsLogger: resolvedAnalyticsLogger,
+            analyticsEntry: analyticsEntry
+        )
 
-        let initialStep = Self.resolveInitialStep(
+        let session = OnboardingSessionBootstrap.resolve(
             analyticsEntry: analyticsEntry,
             draftStore: resolvedDraftStore,
-            userProfileService: userProfileService,
-            formState: &resolvedFormState,
-            generatedPlan: &resolvedGeneratedPlan,
-            planRevealState: &resolvedPlanRevealState,
-            hasLocalProfile: &resolvedHasLocalProfile,
-            hasCommittedLocalProfile: &resolvedHasCommittedLocalProfile,
-            restoredFromDraft: &resolvedRestoredFromDraft,
-            draftStoreForClear: resolvedDraftStore
+            userProfileReader: userProfileReader
         )
 
-        formState = resolvedFormState
-        generatedPlan = resolvedGeneratedPlan
-        planRevealState = resolvedPlanRevealState
-        hasLocalProfile = resolvedHasLocalProfile
-        hasCommittedLocalProfile = resolvedHasCommittedLocalProfile
-        restoredFromDraft = resolvedRestoredFromDraft
-        currentStep = initialStep
+        formState = session.formState
+        generatedPlan = session.generatedPlan
+        planRevealState = session.planRevealState
+        hasLocalProfile = session.hasLocalProfile
+        hasCommittedLocalProfile = session.hasCommittedLocalProfile
+        currentStep = session.initialStep
         flowFloor = OnboardingEntry.flowFloor(
             analyticsEntry: analyticsEntry,
-            currentStep: initialStep
+            currentStep: session.initialStep
         )
-        viewState = resolvedViewState(for: initialStep)
+        viewState = resolvedViewState(for: session.initialStep)
 
-        bootstrapAnalyticsSession()
-    }
-
-    private static func resolveInitialStep(
-        analyticsEntry: OnboardingAnalyticsEntry,
-        draftStore: OnboardingDraftStore,
-        userProfileService: UserProfileService,
-        formState: inout OnboardingFormState,
-        generatedPlan: inout CalorieTargetResult?,
-        planRevealState: inout OnboardingPlanRevealState?,
-        hasLocalProfile: inout Bool,
-        hasCommittedLocalProfile: inout Bool,
-        restoredFromDraft: inout Bool,
-        draftStoreForClear: OnboardingDraftStore
-    ) -> OnboardingStep {
-        if let draft = draftStore.loadDraft(), draft.step != nil {
-            formState = draft.makeFormState()
-            generatedPlan = draft.makeGeneratedPlan()
-            if let restoredPlan = generatedPlan {
-                planRevealState = OnboardingPlanRevealBuilder.build(
-                    formState: formState,
-                    plan: restoredPlan
-                )
-            }
-            let restoredStep = OnboardingDraftStepResolver.restoredStep(
-                rawValue: draft.step!.rawValue,
-                formState: formState,
-                flow: OnboardingStep.flow
-            )
-            hasLocalProfile = (try? userProfileService.getCurrentProfile()) != nil
-            if restoredStep == .savePlan, hasLocalProfile {
-                hasCommittedLocalProfile = true
-                draftStoreForClear.clearDraft()
-            }
-            restoredFromDraft = true
-            return restoredStep
-        }
-
-        if let profile = try? userProfileService.getCurrentProfile() {
-            hasLocalProfile = true
-            if OnboardingCommittedProfileRestorer.shouldResumeSavePlan(profile: profile) {
-                hasCommittedLocalProfile = true
-                OnboardingCommittedProfileRestorer.hydrateFormState(&formState, from: profile)
-                let plan = OnboardingCommittedProfileRestorer.reconstructGeneratedPlan(from: profile)
-                generatedPlan = plan
-                planRevealState = OnboardingPlanRevealBuilder.build(formState: formState, plan: plan)
-                return .savePlan
-            }
-        }
-
-        return OnboardingEntry.initialStep(for: analyticsEntry)
+        analyticsTracker.bootstrap(
+            restoredFromDraft: session.restoredFromDraft,
+            currentStep: session.initialStep
+        )
     }
 
     // MARK: Navigation
@@ -175,16 +129,12 @@ final class OnboardingModel: ObservableObject {
         let completedStep = currentStep
 
         switch currentStep {
-        case .introProof:
+        case .introProof, .targetEncouragement, .almostThere, .formaProof:
             if let next = nextStep(after: currentStep) {
                 advance(to: next, completing: completedStep)
             }
         case .heightWeight, .birthday, .targetWeight:
             guard validateCurrentStep() else { return }
-            if let next = nextStep(after: currentStep) {
-                advance(to: next, completing: completedStep)
-            }
-        case .targetEncouragement, .almostThere, .formaProof:
             if let next = nextStep(after: currentStep) {
                 advance(to: next, completing: completedStep)
             }
@@ -245,7 +195,7 @@ final class OnboardingModel: ObservableObject {
     }
 
     var appleHealthScreenState: OnboardingAppleHealthScreenState {
-        OnboardingAppleHealthPresentationBuilder.build(
+        appleHealthCoordinator.buildScreenState(
             presentation: appleHealthPresentation,
             deviceState: appleHealthDeviceState
         )
@@ -258,7 +208,7 @@ final class OnboardingModel: ObservableObject {
 
         Task { [weak self] in
             guard let self else { return }
-            let refreshed = await healthTrainingIntegration.refreshState()
+            let refreshed = await appleHealthCoordinator.refreshDeviceState()
             guard currentStep == .appleHealth else { return }
             appleHealthDeviceState = refreshed
             syncAppleHealthPresentation(from: refreshed)
@@ -285,8 +235,8 @@ final class OnboardingModel: ObservableObject {
         viewState = .connectingAppleHealth
         appleHealthPresentation = .requesting
         logAppleHealthCTAState(action: "permission_request_started")
-        logAppleHealthAnalytics(.appleHealthConnectTapped)
-        logAppleHealthAnalytics(.appleHealthPermissionRequested)
+        analyticsTracker.logAppleHealth(.appleHealthConnectTapped)
+        analyticsTracker.logAppleHealth(.appleHealthPermissionRequested)
 
         Task { [weak self] in
             await self?.performAppleHealthPermissionFlow(completedStep: completedStep)
@@ -298,115 +248,8 @@ final class OnboardingModel: ObservableObject {
         guard viewState != .connectingAppleHealth else { return }
         guard appleHealthScreenState.isSkipEnabled else { return }
 
-        logAppleHealthAnalytics(.appleHealthSkipTapped)
+        analyticsTracker.logAppleHealth(.appleHealthSkipTapped)
         advanceFromAppleHealth(completedStep: .appleHealth)
-    }
-
-    private func advanceFromAppleHealth(completedStep: OnboardingStep) {
-        guard currentStep == .appleHealth else { return }
-        viewState = .editing
-        if let next = nextStep(after: .appleHealth) {
-            advance(to: next, completing: completedStep)
-        }
-        syncAppleHealthPresentation(from: appleHealthDeviceState)
-        logAppleHealthCTAState(action: "advanced_from_step")
-    }
-
-    private var shouldAdvanceFromConnectedAppleHealth: Bool {
-        appleHealthPresentation == .connected || appleHealthDeviceState == .connected
-    }
-
-    private func syncAppleHealthPresentation(from deviceState: TrainingIntegrationState) {
-        appleHealthPresentation = OnboardingAppleHealthPresentationBuilder.mapPermissionResult(deviceState)
-    }
-
-    private func logAppleHealthCTAState(action: String) {
-        let screenState = appleHealthScreenState
-        HealthTrainingDebugLogger.event(
-            "Apple Health onboarding CTA",
-            fields: [
-                "action": action,
-                "authorizationState": appleHealthDeviceState.debugLabel,
-                "presentationState": String(describing: appleHealthPresentation),
-                "localConnected": String(shouldAdvanceFromConnectedAppleHealth),
-                "ctaTitle": screenState.primaryTitle,
-                "ctaEnabled": String(screenState.isPrimaryEnabled),
-                "ctaLoading": String(viewState == .connectingAppleHealth)
-            ]
-        )
-    }
-
-    private func performAppleHealthPermissionFlow(completedStep: OnboardingStep) async {
-        let resultState: TrainingIntegrationState
-        if let trainingInsightsStore {
-            resultState = await OnboardingAppleHealthFlow.requestPermission(
-                trainingInsightsStore: trainingInsightsStore
-            )
-        } else {
-            resultState = await OnboardingAppleHealthFlow.requestPermission(
-                using: healthTrainingIntegration
-            )
-        }
-
-        logAppleHealthAnalytics(
-            .appleHealthPermissionResult,
-            permissionResult: OnboardingAppleHealthFlow.analyticsResult(for: resultState)
-        )
-
-        guard currentStep == .appleHealth else { return }
-
-        appleHealthDeviceState = resultState
-        let presentation = OnboardingAppleHealthPresentationBuilder.mapPermissionResult(resultState)
-        appleHealthPresentation = presentation
-        viewState = .editing
-        logAppleHealthCTAState(action: "permission_request_finished")
-
-        if presentation == .connected {
-            OnboardingHaptics.selectionChanged()
-            try? await Task.sleep(nanoseconds: 900_000_000)
-            guard currentStep == .appleHealth, appleHealthPresentation == .connected else { return }
-            advanceFromAppleHealth(completedStep: completedStep)
-        }
-    }
-
-    private func nextStep(after step: OnboardingStep) -> OnboardingStep? {
-        OnboardingStepPolicy.next(after: step)
-    }
-
-    private func backTarget(for step: OnboardingStep) -> OnboardingStep? {
-        OnboardingStepPolicy.back(from: step, notBefore: flowFloor)
-    }
-
-    private func advance(
-        to step: OnboardingStep,
-        persistDraft: Bool = true,
-        completing completedStep: OnboardingStep? = nil
-    ) {
-        if let completedStep {
-            recordStepCompleted(for: completedStep)
-        }
-        currentStep = step
-        viewState = resolvedViewState(for: step)
-        if OnboardingInteractionPolicy.rules(for: step).dismissesKeyboardOnAppear {
-            OnboardingKeyboard.dismiss()
-        }
-        recordStepViewed(step)
-        if persistDraft, shouldPersistDraft {
-            autosaveDraft()
-        }
-    }
-
-    private func validateCurrentStep() -> Bool {
-        do {
-            try formState.validate(step: currentStep)
-            return true
-        } catch let error as OnboardingFormError {
-            errorMessage = error.message
-            return false
-        } catch {
-            errorMessage = FormaProductCopy.Error.checkInputs
-            return false
-        }
     }
 
     // MARK: Plan generation
@@ -420,8 +263,8 @@ final class OnboardingModel: ObservableObject {
         guard viewState == .editing || viewState == .generationFailed else { return }
 
         formState.applyTrainingRhythmDefaultsForCurrentActivity()
-        if let invalidStep = OnboardingFormState.firstInvalidRequiredStep(for: formState) {
-            errorMessage = formState.validationMessage(for: invalidStep)
+        if let invalidStep = planGenerationExecutor.firstInvalidRequiredStep(for: formState) {
+            errorMessage = planGenerationExecutor.validationMessage(for: invalidStep, formState: formState)
                 ?? FormaProductCopy.Onboarding.V2.Validation.summaryIncomplete
             advance(to: invalidStep, persistDraft: true, completing: nil)
             return
@@ -437,56 +280,6 @@ final class OnboardingModel: ObservableObject {
         generationTask = Task { @MainActor in
             await runGeneration()
         }
-    }
-
-    private func runGeneration() async {
-        let startedAt = Date()
-
-        do {
-            let input = try formState.makeCalorieTargetInput()
-            let plan = try targetService.generateInitialTargets(from: input)
-
-            let elapsed = Date().timeIntervalSince(startedAt)
-            let remaining = max(
-                0,
-                OnboardingGeneratingPlanTiming.minimumPresentationBeforeSuccess - elapsed
-            )
-            await generationDelay.delay(for: remaining)
-
-            guard !Task.isCancelled else { return }
-
-            revealGeneratedPlan(plan)
-            await holdForGenerationSuccessBeatIfNeeded()
-            guard !Task.isCancelled else { return }
-            completeGenerationRevealHandoff()
-        } catch {
-            guard !Task.isCancelled else { return }
-            clearGeneratedPlan()
-            viewState = .generationFailed
-            errorMessage = FormaProductCopy.Onboarding.V2.Generating.failureMessage
-            autosaveDraft()
-        }
-    }
-
-    private func revealGeneratedPlan(_ plan: CalorieTargetResult) {
-        generatedPlan = plan
-        planRevealState = OnboardingPlanRevealBuilder.build(formState: formState, plan: plan)
-        logAnalytics(.planGenerated, properties: planAnalyticsProperties(plan: plan))
-        recordStepCompleted(for: .generatingPlan)
-        viewState = .generationSucceeded
-        autosaveDraft()
-    }
-
-    private func holdForGenerationSuccessBeatIfNeeded() async {
-        guard viewState == .generationSucceeded else { return }
-        let hold: TimeInterval
-        if UIAccessibility.isReduceMotionEnabled {
-            hold = 0
-        } else {
-            hold = OnboardingGeneratingPlanTiming.successHold
-        }
-        guard hold > 0 else { return }
-        await generationDelay.delay(for: hold)
     }
 
     func completeGenerationRevealHandoff() {
@@ -505,7 +298,11 @@ final class OnboardingModel: ObservableObject {
 
         recordStepViewed(.planReveal)
         if let plan = generatedPlan {
-            logAnalytics(.planRevealed, properties: planAnalyticsProperties(plan: plan))
+            analyticsTracker.logPlanRevealed(
+                formState: formState,
+                plan: plan,
+                revealState: planRevealState
+            )
         }
         autosaveDraft()
     }
@@ -555,36 +352,26 @@ final class OnboardingModel: ObservableObject {
     }
 
     func commitLocalProfileForSavePlan() {
-        guard let generatedPlan else {
-            errorMessage = FormaProductCopy.Error.generatePlan
-            return
-        }
-
         do {
-            if try userProfileService.getCurrentProfile() == nil {
-                formState.applyTrainingRhythmDefaultsForCurrentActivity()
-                let draft = try formState.makeUserProfileDraft(targets: generatedPlan.targets)
-                if draft.birthDate == nil {
-                    errorMessage = FormaProductCopy.Onboarding.Flow.Birthday.birthDateRequiredMessage
-                    return
-                }
-                _ = try userProfileService.createProfile(draft)
-            }
-
+            let created = try profileCommitter.commitIfNeeded(
+                formState: formState,
+                generatedPlan: generatedPlan
+            )
             hasLocalProfile = true
             persistCoachingContext()
             let wasAlreadyCommitted = hasCommittedLocalProfile
             hasCommittedLocalProfile = true
             draftStore.clearDraft()
-            if !wasAlreadyCommitted {
-                logAnalytics(.profileSavedLocal, properties: planAnalyticsProperties())
+            if created, !wasAlreadyCommitted {
+                analyticsTracker.logProfileSavedLocal(
+                    currentStep: currentStep,
+                    formState: formState,
+                    generatedPlan: generatedPlan,
+                    revealState: planRevealState
+                )
             }
-        } catch let error as OnboardingFormError {
-            errorMessage = error.message
-        } catch ServiceError.invalidInput(let message) {
-            errorMessage = message
         } catch {
-            errorMessage = FormaProductCopy.Error.createProfile
+            errorMessage = profileCommitter.userFacingMessage(for: error)
         }
     }
 
@@ -611,7 +398,7 @@ final class OnboardingModel: ObservableObject {
     func beginSignInForCompletion() {
         viewState = .savingProfile
         errorMessage = nil
-        logAnalytics(.signInStarted)
+        analyticsTracker.logSignInStarted()
     }
 
     func handleSignInCompletionFailure(message: String? = nil, wasCancelled: Bool = false) {
@@ -620,7 +407,7 @@ final class OnboardingModel: ObservableObject {
         _ = message
         errorMessage = FormaProductCopy.Onboarding.V2.SavePlan.signInRetryHeadline
         if wasCancelled {
-            logAnalytics(.signInCancelled)
+            analyticsTracker.logSignInCancelled()
         }
     }
 
@@ -631,7 +418,7 @@ final class OnboardingModel: ObservableObject {
     }
 
     func finalizeAfterSuccessfulSignIn() {
-        logAnalytics(.signInCompleted)
+        analyticsTracker.logSignInCompleted()
         recordOnboardingFinished(completionPath: "sign_in")
     }
 
@@ -653,7 +440,7 @@ final class OnboardingModel: ObservableObject {
     }
 
     func finalizeAfterRestoredExistingPlan() {
-        logAnalytics(.signInCompleted)
+        analyticsTracker.logSignInCompleted()
         recordOnboardingFinished(completionPath: "restored_existing")
     }
 
@@ -665,6 +452,140 @@ final class OnboardingModel: ObservableObject {
 
     func flushDraftSnapshotIfNeeded() {
         autosaveDraft()
+    }
+
+    // MARK: Private
+
+    private func advanceFromAppleHealth(completedStep: OnboardingStep) {
+        guard currentStep == .appleHealth else { return }
+        viewState = .editing
+        if let next = nextStep(after: .appleHealth) {
+            advance(to: next, completing: completedStep)
+        }
+        syncAppleHealthPresentation(from: appleHealthDeviceState)
+        logAppleHealthCTAState(action: "advanced_from_step")
+    }
+
+    private var shouldAdvanceFromConnectedAppleHealth: Bool {
+        appleHealthCoordinator.shouldAdvanceFromConnected(
+            presentation: appleHealthPresentation,
+            deviceState: appleHealthDeviceState
+        )
+    }
+
+    private func syncAppleHealthPresentation(from deviceState: TrainingIntegrationState) {
+        appleHealthPresentation = appleHealthCoordinator.mapPresentation(from: deviceState)
+    }
+
+    private func logAppleHealthCTAState(action: String) {
+        appleHealthCoordinator.logCTAState(
+            action: action,
+            presentation: appleHealthPresentation,
+            deviceState: appleHealthDeviceState,
+            screenState: appleHealthScreenState,
+            isConnecting: viewState == .connectingAppleHealth
+        )
+    }
+
+    private func performAppleHealthPermissionFlow(completedStep: OnboardingStep) async {
+        let resultState = await appleHealthCoordinator.requestPermission()
+
+        analyticsTracker.logAppleHealth(
+            .appleHealthPermissionResult,
+            permissionResult: OnboardingAppleHealthFlow.analyticsResult(for: resultState)
+        )
+
+        guard currentStep == .appleHealth else { return }
+
+        appleHealthDeviceState = resultState
+        appleHealthPresentation = appleHealthCoordinator.mapPresentation(from: resultState)
+        viewState = .editing
+        logAppleHealthCTAState(action: "permission_request_finished")
+
+        if appleHealthPresentation == .connected {
+            OnboardingHaptics.selectionChanged()
+            try? await Task.sleep(nanoseconds: 900_000_000)
+            guard currentStep == .appleHealth, appleHealthPresentation == .connected else { return }
+            advanceFromAppleHealth(completedStep: completedStep)
+        }
+    }
+
+    private func nextStep(after step: OnboardingStep) -> OnboardingStep? {
+        OnboardingStepPolicy.next(after: step)
+    }
+
+    private func backTarget(for step: OnboardingStep) -> OnboardingStep? {
+        OnboardingStepPolicy.back(from: step, notBefore: flowFloor)
+    }
+
+    private func advance(
+        to step: OnboardingStep,
+        persistDraft: Bool = true,
+        completing completedStep: OnboardingStep? = nil
+    ) {
+        if let completedStep {
+            recordStepCompleted(for: completedStep)
+        }
+        currentStep = step
+        viewState = resolvedViewState(for: step)
+        if OnboardingInteractionPolicy.rules(for: step).dismissesKeyboardOnAppear {
+            OnboardingKeyboard.dismiss()
+        }
+        recordStepViewed(step)
+        if persistDraft, shouldPersistDraft {
+            autosaveDraft()
+        }
+    }
+
+    private func validateCurrentStep() -> Bool {
+        do {
+            try formState.validate(step: currentStep)
+            return true
+        } catch let error as OnboardingFormError {
+            errorMessage = error.message
+            return false
+        } catch {
+            errorMessage = FormaProductCopy.Error.checkInputs
+            return false
+        }
+    }
+
+    private func runGeneration() async {
+        do {
+            let plan = try await planGenerationExecutor.runGeneration(formState: formState)
+            guard !Task.isCancelled else { return }
+            revealGeneratedPlan(plan)
+            await holdForGenerationSuccessBeatIfNeeded()
+            guard !Task.isCancelled else { return }
+            completeGenerationRevealHandoff()
+        } catch {
+            guard !Task.isCancelled else { return }
+            clearGeneratedPlan()
+            viewState = .generationFailed
+            errorMessage = FormaProductCopy.Onboarding.V2.Generating.failureMessage
+            autosaveDraft()
+        }
+    }
+
+    private func revealGeneratedPlan(_ plan: CalorieTargetResult) {
+        generatedPlan = plan
+        planRevealState = planGenerationExecutor.buildPlanReveal(formState: formState, plan: plan)
+        analyticsTracker.logPlanGenerated(
+            currentStep: currentStep,
+            formState: formState,
+            plan: plan,
+            revealState: planRevealState
+        )
+        recordStepCompleted(for: .generatingPlan)
+        viewState = .generationSucceeded
+        autosaveDraft()
+    }
+
+    private func holdForGenerationSuccessBeatIfNeeded() async {
+        guard viewState == .generationSucceeded else { return }
+        let hold = planGenerationExecutor.successHoldDuration()
+        guard hold > 0 else { return }
+        await generationDelay.delay(for: hold)
     }
 
     private func clearGeneratedPlan() {
@@ -692,88 +613,24 @@ final class OnboardingModel: ObservableObject {
     }
 
     private func recordOnboardingFinished(completionPath: String) {
-        var completedProperties = planAnalyticsProperties()
-        completedProperties.completionPath = completionPath
-        logAnalytics(.completed, properties: completedProperties)
-    }
-
-    // MARK: - Analytics
-
-    private func bootstrapAnalyticsSession() {
-        if restoredFromDraft {
-            recordStepViewed(currentStep)
-            return
-        }
-        logAnalytics(.started)
-        recordStepViewed(currentStep)
+        analyticsTracker.logCompleted(
+            currentStep: currentStep,
+            formState: formState,
+            generatedPlan: generatedPlan,
+            revealState: planRevealState,
+            completionPath: completionPath
+        )
     }
 
     private func recordStepViewed(_ step: OnboardingStep) {
-        stepEnteredAt = Date()
-        var properties = baseAnalyticsProperties(step: step)
-        properties.step = OnboardingDraftBridge.analyticsStepName(step)
-        properties.stage = step.stage.rawValue
-        logAnalytics(.stepViewed, properties: properties)
-
+        analyticsTracker.recordStepViewed(step)
         if step == .appleHealth {
-            logAppleHealthAnalytics(.appleHealthPromptViewed)
-            logAppleHealthAnalytics(.appleHealthOnboardingViewed)
             prepareAppleHealthStep()
         }
     }
 
     private func recordStepCompleted(for step: OnboardingStep) {
-        var properties = baseAnalyticsProperties(step: step)
-        properties.step = OnboardingDraftBridge.analyticsStepName(step)
-        properties.stage = step.stage.rawValue
-        properties.durationMs = stepDurationMs
-        logAnalytics(.stepCompleted, properties: properties)
-    }
-
-    private var stepDurationMs: Int {
-        max(0, Int(Date().timeIntervalSince(stepEnteredAt) * 1000))
-    }
-
-    private func baseAnalyticsProperties(step: OnboardingStep) -> OnboardingAnalyticsProperties {
-        OnboardingAnalyticsProperties(
-            step: OnboardingDraftBridge.analyticsStepName(step),
-            stage: step.stage.rawValue,
-            entry: analyticsEntry
-        )
-    }
-
-    private func planAnalyticsProperties(plan: CalorieTargetResult? = nil) -> OnboardingAnalyticsProperties {
-        let resolvedPlan = plan ?? generatedPlan
-        var properties = baseAnalyticsProperties(step: currentStep)
-        guard let resolvedPlan else { return properties }
-
-        let planProperties = OnboardingAnalyticsContextBuilder.planProperties(
-            formState: formState,
-            plan: resolvedPlan,
-            revealState: planRevealState
-        )
-        properties.goalDirection = planProperties.goalDirection
-        properties.isAggressive = planProperties.isAggressive
-        properties.estimatedWeeks = planProperties.estimatedWeeks
-        return properties
-    }
-
-    private func logAnalytics(
-        _ event: OnboardingAnalyticsEvent,
-        properties: OnboardingAnalyticsProperties? = nil
-    ) {
-        let resolvedProperties = properties ?? baseAnalyticsProperties(step: currentStep)
-        analyticsLogger.log(event, properties: resolvedProperties)
-    }
-
-    private func logAppleHealthAnalytics(
-        _ event: OnboardingAnalyticsEvent,
-        permissionResult: String? = nil
-    ) {
-        var properties = baseAnalyticsProperties(step: .appleHealth)
-        properties.step = OnboardingDraftBridge.analyticsStepName(.appleHealth)
-        properties.permissionResult = permissionResult
-        logAnalytics(event, properties: properties)
+        analyticsTracker.recordStepCompleted(for: step)
     }
 
     private func resolvedViewState(for step: OnboardingStep) -> OnboardingViewState {
@@ -781,31 +638,5 @@ final class OnboardingModel: ObservableObject {
             return analyticsEntry == .postAuth ? .editing : .awaitingSignIn
         }
         return .editing
-    }
-}
-
-struct OnboardingCoachingContextStore: Sendable {
-    private let userDefaults: UserDefaults
-    private let encoder: JSONEncoder
-
-    init(userDefaults: UserDefaults = .standard, encoder: JSONEncoder = JSONEncoder()) {
-        self.userDefaults = userDefaults
-        self.encoder = encoder
-    }
-
-    func save(_ context: OnboardingCoachingContext) {
-        guard let data = try? encoder.encode(context) else { return }
-        userDefaults.set(data, forKey: OnboardingCoachingContext.userDefaultsKey)
-    }
-
-    func load() -> OnboardingCoachingContext? {
-        guard let data = userDefaults.data(forKey: OnboardingCoachingContext.userDefaultsKey) else {
-            return nil
-        }
-        return try? JSONDecoder().decode(OnboardingCoachingContext.self, from: data)
-    }
-
-    func clear() {
-        userDefaults.removeObject(forKey: OnboardingCoachingContext.userDefaultsKey)
     }
 }

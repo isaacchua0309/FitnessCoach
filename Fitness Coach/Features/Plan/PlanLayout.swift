@@ -8,7 +8,7 @@
 import SwiftUI
 
 enum PlanLayout {
-    static let sectionSpacing = FitPilotScreenStyle.sectionSpacing
-    static let itemSpacing: CGFloat = 10
-    static let horizontalPadding = FitPilotScreenStyle.horizontalPadding
+    static let sectionSpacing = FormaTokens.Spacing.screenSectionSpacing
+    static let itemSpacing = FormaTokens.Spacing.planItemSpacing
+    static let horizontalPadding = FormaFeatureLayout.horizontalPadding
 }

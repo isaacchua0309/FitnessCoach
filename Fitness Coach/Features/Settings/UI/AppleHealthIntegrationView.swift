@@ -24,29 +24,29 @@ struct AppleHealthIntegrationView: View {
                         .foregroundStyle(FormaTokens.Color.textLegal)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .fitPilotSettingsRowChrome()
+                .formaSettingsRowChrome()
             }
 
             Section {
-                FitPilotPlanDisplayRow(
+                FormaPlanDisplayRow(
                     label: "Status",
                     value: TrainingIntegrationCopy.settingsStatusLabel(
                         for: insightsStore.integrationState
                     ),
                     multilineValue: false
                 )
-                .fitPilotSettingsRowChrome()
+                .formaSettingsRowChrome()
 
-                FitPilotPlanDisplayRow(
+                FormaPlanDisplayRow(
                     label: "Details",
                     value: TrainingIntegrationCopy.settingsDetailDescription(
                         for: insightsStore.integrationState
                     ),
                     multilineValue: true
                 )
-                .fitPilotSettingsRowChrome()
+                .formaSettingsRowChrome()
             } header: {
-                FitPilotSettingsSectionHeader(title: "Connection")
+                FormaSettingsSectionHeader(title: "Connection")
             }
 
             if let actionTitle = primaryActionTitle {
@@ -59,7 +59,7 @@ struct AppleHealthIntegrationView: View {
                             isEnabled: !insightsStore.integrationState.isRequestingPermission
                         )
                     }
-                    .fitPilotSettingsRowChrome()
+                    .formaSettingsRowChrome()
                     .disabled(insightsStore.integrationState.isRequestingPermission)
                     .accessibilityHint(
                         insightsStore.integrationState.isRequestingPermission
@@ -76,7 +76,7 @@ struct AppleHealthIntegrationView: View {
                     } label: {
                         settingsRowLabel(TrainingIntegrationCopy.manageHealthAccess)
                     }
-                    .fitPilotSettingsRowChrome()
+                    .formaSettingsRowChrome()
                 } footer: {
                     Text(
                         insightsStore.integrationState.isConnected
@@ -88,7 +88,7 @@ struct AppleHealthIntegrationView: View {
                 }
             }
         }
-        .fitPilotGroupedList()
+        .formaGroupedList()
         .navigationTitle("Apple Health")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -128,7 +128,7 @@ struct AppleHealthIntegrationView: View {
                     ? FormaTokens.Color.accent
                     : FormaTokens.Color.textTertiary
             )
-            .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .leading)
+            .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .leading)
     }
 
     private func openHealthAccessSettings() {

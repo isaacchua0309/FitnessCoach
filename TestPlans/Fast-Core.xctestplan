@@ -157,7 +157,7 @@
         "PreferredColorSchemeGuardTests",
         "ProfileOwnershipResolverTests",
         "ProfileResolutionAfterSignInTests",
-        "ProgressFormatterTests",
+        "JourneyFormatterTests",
         "ProgressLogSummaryBuilderTests",
         "PublicEntryAnalyticsContextBuilderTests",
         "PublicEntryAnalyticsEventTests",

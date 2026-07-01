@@ -34,6 +34,25 @@ final class CoachNutritionSummaryTests: XCTestCase {
         XCTAssertEqual(summary.waterRemainingMl, expected.waterRemainingMl)
         XCTAssertEqual(summary.workoutsToday, 2)
         XCTAssertEqual(summary.recentMeals, ["200 g chicken"])
+        XCTAssertEqual(summary.isOverCalorieTarget, expected.isOverCalorieTarget)
+        XCTAssertEqual(summary.hasMetProteinTarget, expected.hasMetProteinTarget)
+        XCTAssertEqual(summary.hasMetWaterTarget, expected.hasMetWaterTarget)
+    }
+
+    func testDailyReviewAIInputUsesSharedStatusFlags() {
+        let log = DailyNutritionSummaryTestFixtures.baselineLog
+        let nutrition = DailyNutritionSummaryBuilder.build(from: log)
+        let summary = TodayAISummaryMapper.from(
+            nutrition: nutrition,
+            dailyLog: log,
+            workoutsToday: 1,
+            recentMeals: ["chicken"]
+        )
+        let input = TodayAISummaryMapper.dailyReviewAIInput(from: summary, date: log.date)
+
+        XCTAssertEqual(input.isOverCalorieTarget, nutrition.isOverCalories)
+        XCTAssertEqual(input.hasMetProteinTarget, nutrition.hasMetProteinTarget)
+        XCTAssertEqual(input.hasMetWaterTarget, nutrition.hasMetWaterTarget)
     }
 
     func testReviewAIContextIncludesRemainingMacroFields() {
@@ -46,6 +65,9 @@ final class CoachNutritionSummaryTests: XCTestCase {
         XCTAssertEqual(aiSummary.fatRemaining, reviewSummary.fatRemaining, accuracy: accuracy)
         XCTAssertEqual(aiSummary.waterRemainingMl, reviewSummary.waterRemainingMl)
         XCTAssertEqual(aiSummary.workoutsToday, reviewSummary.workoutCount)
+        XCTAssertEqual(aiSummary.isOverCalorieTarget, reviewSummary.isOverCalorieTarget)
+        XCTAssertEqual(aiSummary.hasMetProteinTarget, reviewSummary.hasMetProteinTarget)
+        XCTAssertEqual(aiSummary.hasMetWaterTarget, reviewSummary.hasMetWaterTarget)
     }
 
     func testStatusResponseUsesSharedRemainingValues() {

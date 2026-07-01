@@ -28,14 +28,14 @@ struct AccountSettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(.horizontal, FitPilotScreenStyle.horizontalPadding)
+            .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
             .padding(.top, FormaTokens.Spacing.md)
             .padding(.bottom, FormaTokens.Spacing.sm)
         }
-        .fitPilotScreenBackground()
+        .formaScreenBackground()
         .navigationTitle("Account")
         .navigationBarTitleDisplayMode(.inline)
-        .fitPilotScrollBottomInset()
+        .formaScrollBottomInset()
         .confirmationDialog(
             FormaProductCopy.Account.logoutConfirmationTitle,
             isPresented: $showsLogoutConfirmation,
@@ -162,7 +162,7 @@ struct AccountSettingsView: View {
     // MARK: - Details card
 
     private var accountDetailsCard: some View {
-        FitPilotPlanCard {
+        FormaPlanCard {
             VStack(alignment: .leading, spacing: 0) {
                 AccountInfoRow(
                     label: "Name",
@@ -204,14 +204,14 @@ struct AccountSettingsView: View {
                 .font(FormaTokens.Typography.body.weight(.medium))
                 .foregroundStyle(FormaTokens.Color.destructive.opacity(canLogOut ? 0.95 : 0.5))
                 .frame(maxWidth: .infinity)
-                .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
+                .frame(minHeight: FormaTokens.Layout.minTouchTarget)
         }
         .buttonStyle(.plain)
         .background(
-            RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+            RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
                 .fill(FormaTokens.Color.surface)
                 .overlay(
-                    RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+                    RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
                         .stroke(FormaTokens.Color.border, lineWidth: 1)
                 )
         )

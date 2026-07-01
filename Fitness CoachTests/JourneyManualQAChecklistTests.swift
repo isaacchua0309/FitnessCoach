@@ -25,7 +25,7 @@ final class JourneyManualQAChecklistTests: XCTestCase {
     // MARK: - 1. New user after onboarding
 
     func testManualQA01_NewUserAfterOnboarding() {
-        let dashboard = ProgressPreviewData.brandNewUser
+        let dashboard = JourneyPreviewData.brandNewUser
 
         XCTAssertTrue(dashboard.hasProfile)
         XCTAssertNotNil(dashboard.baseline.startWeightKg)
@@ -104,7 +104,7 @@ final class JourneyManualQAChecklistTests: XCTestCase {
         )
 
         XCTAssertEqual(baseline.currentWeightKg ?? 0, 85, accuracy: 0.01)
-        XCTAssertEqual(hero.todayWeightCopy, ProgressFormatter.heroWeightKg(85))
+        XCTAssertEqual(hero.todayWeightCopy, JourneyFormatter.heroWeightKg(85))
         XCTAssertGreaterThanOrEqual(baseline.chartPoints.filter { !$0.isSynthetic }.count, 3)
         XCTAssertGreaterThan(baseline.progressPercent ?? 0, 0)
     }
@@ -443,7 +443,7 @@ final class JourneyManualQAChecklistTests: XCTestCase {
     // MARK: - 15. Apple Health disconnected
 
     func testManualQA15_AppleHealthDisconnectedSafeTrainingState() {
-        let dashboard = ProgressPreviewData.healthDisconnected
+        let dashboard = JourneyPreviewData.healthDisconnected
 
         XCTAssertEqual(dashboard.weeklyReview.training, .locked)
         XCTAssertEqual(dashboard.detailedAnalytics.trainingDisplay, .hidden)
@@ -473,7 +473,7 @@ final class JourneyManualQAChecklistTests: XCTestCase {
     // MARK: - 17. Gain goal
 
     func testManualQA17_GainGoalCopyAndMilestones() {
-        let dashboard = ProgressPreviewData.gainGoal
+        let dashboard = JourneyPreviewData.gainGoal
 
         XCTAssertEqual(
             dashboard.transformation.headlineCopy,
@@ -492,7 +492,7 @@ final class JourneyManualQAChecklistTests: XCTestCase {
     // MARK: - 18. Maintain goal
 
     func testManualQA18_MaintainGoalStableCopy() {
-        let dashboard = ProgressPreviewData.maintainGoal
+        let dashboard = JourneyPreviewData.maintainGoal
 
         XCTAssertEqual(dashboard.baseline.goalDirection, .maintain)
         XCTAssertEqual(
@@ -510,7 +510,7 @@ final class JourneyManualQAChecklistTests: XCTestCase {
         let harness = try FitnessActionCenterTestSupport.makeHarness(referenceNow: now)
         _ = try harness.seedProfile()
 
-        let model = makeProgressModel(harness: harness, trainingConnected: false)
+        let model = makeJourneyModel(harness: harness, trainingConnected: false)
         await model.loadProgress()
         await model.refresh()
 
@@ -535,7 +535,7 @@ final class JourneyManualQAChecklistTests: XCTestCase {
     // MARK: - 20. Dynamic Type and VoiceOver
 
     func testManualQA20_AccessibilityStringsPresentForHeroProgressAndMilestones() {
-        let dashboard = ProgressPreviewData.strongMomentum
+        let dashboard = JourneyPreviewData.strongMomentum
 
         XCTAssertFalse(dashboard.transformation.accessibilitySummary.isEmpty)
         XCTAssertFalse(dashboard.transformation.progressBarAccessibilityValue.isEmpty)
@@ -567,18 +567,18 @@ final class JourneyManualQAChecklistTests: XCTestCase {
 
     // MARK: - Helpers
 
-    private func makeProgressModel(
+    private func makeJourneyModel(
         harness: FitnessActionCenterTestSupport.Harness,
         trainingConnected: Bool
-    ) -> ProgressModel {
+    ) -> JourneyModel {
         let integration = StubTrainingIntegrationProvider(
             refreshResult: trainingConnected ? .connected : .notConnected
         )
         let trainingStore = TrainingInsightsStore(integration: integration)
-        return ProgressModel(
+        return JourneyModel(
             dailyLogService: harness.dailyLogService,
             weightLogService: harness.weightLogService,
-            userProfileService: harness.profileService,
+            userProfileReader: harness.profileService,
             trainingInsightsStore: trainingStore,
             workoutReader: MockHealthKitWorkoutReader(workouts: [])
         )
@@ -587,8 +587,8 @@ final class JourneyManualQAChecklistTests: XCTestCase {
     private func loadDashboard(
         harness: FitnessActionCenterTestSupport.Harness,
         trainingConnected: Bool
-    ) async throws -> ProgressDashboardState {
-        let model = makeProgressModel(harness: harness, trainingConnected: trainingConnected)
+    ) async throws -> JourneyDashboardState {
+        let model = makeJourneyModel(harness: harness, trainingConnected: trainingConnected)
         await model.refresh()
         guard case .loaded(let state) = model.viewState else {
             throw ServiceError.invalidInput("Journey did not load")
@@ -611,7 +611,7 @@ final class JourneyManualQAChecklistTests: XCTestCase {
         ),
         isAppleHealthConnected: Bool,
         asOf: Date? = nil
-    ) -> ProgressDashboardState {
+    ) -> JourneyDashboardState {
         let resolvedAsOf = asOf ?? self.asOf
         let resolvedWeekWeights = weekWeights ?? allWeights
         let baseline = JourneyBaselineResolver.resolve(
@@ -667,15 +667,15 @@ final class JourneyManualQAChecklistTests: XCTestCase {
             goalProjection: nil,
             healthWorkoutDayStarts: healthWorkoutDays,
             monthHealthWorkoutCount: healthWorkoutDays.count,
-            nutritionSummary: ProgressLogSummaryBuilder.nutritionSummary(from: maturityLogs),
-            waterSummary: ProgressLogSummaryBuilder.waterSummary(from: maturityLogs),
+            nutritionSummary: JourneyLogSummaryBuilder.nutritionSummary(from: maturityLogs),
+            waterSummary: JourneyLogSummaryBuilder.waterSummary(from: maturityLogs),
             workoutSummary: nil,
             selectedRangeDays: 28,
             asOf: resolvedAsOf,
             calendar: calendar
         )
 
-        return ProgressDashboardState(
+        return JourneyDashboardState(
             selectedRangeDays: 28,
             hasProfile: profile != nil,
             baseline: baseline,

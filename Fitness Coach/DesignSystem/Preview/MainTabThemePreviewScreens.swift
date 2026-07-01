@@ -39,14 +39,14 @@ enum MainTabThemePreviewScreens {
         ScrollView {
             VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
                 PlanMissionControlHeroSection(
-                    state: ProfilePreviewData.state.missionControl.mission
+                    state: PlanPreviewData.state.missionControl.mission
                 )
                 PlanTodayMissionSection(
-                    state: ProfilePreviewData.state.missionControl.todayMission,
+                    state: PlanPreviewData.state.missionControl.todayMission,
                     onGoToToday: {}
                 )
-                PlanThisWeekSection(state: ProfilePreviewData.state.missionControl.week)
-                PlanConfidenceSection(state: ProfilePreviewData.state.missionControl.confidence)
+                PlanThisWeekSection(state: PlanPreviewData.state.missionControl.week)
+                PlanConfidenceSection(state: PlanPreviewData.state.missionControl.confidence)
             }
             .padding(.horizontal, PlanLayout.horizontalPadding)
             .padding(.vertical, FormaTokens.Spacing.lg)
@@ -61,7 +61,7 @@ enum MainTabThemePreviewScreens {
         appearance: AppAppearanceMode = .dark
     ) -> some View {
         ScrollView {
-            JourneyDashboardContent(state: ProgressPreviewData.dashboard(.strongMomentum))
+            JourneyDashboardContent(state: JourneyPreviewData.dashboard(.strongMomentum))
         }
         .background(FormaTokens.Color.canvas)
         .formaThemePreview(appearance: appearance, palette: palette)
@@ -84,7 +84,7 @@ enum MainTabThemePreviewScreens {
         appearance: AppAppearanceMode = .dark
     ) -> some View {
         SettingsRootView(
-            formState: .constant(ProfilePreviewData.formState),
+            formState: .constant(PlanPreviewData.formState),
             errorMessage: nil,
             onSaveUnits: { _ in },
             onDismiss: {}

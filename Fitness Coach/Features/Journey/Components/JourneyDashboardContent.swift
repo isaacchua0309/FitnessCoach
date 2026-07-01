@@ -2,13 +2,13 @@
 //  JourneyDashboardContent.swift
 //  Fitness Coach
 //
-//  Forma — Shared Journey section stack for ProgressView and previews.
+//  Forma — Shared Journey section stack for JourneyView and previews.
 //
 
 import SwiftUI
 
 struct JourneyDashboardContent: View {
-    let state: ProgressDashboardState
+    let state: JourneyDashboardState
     var analyticsCoordinator: JourneyAnalyticsCoordinator?
     var onCTA: (JourneyCTA) -> Void = { _ in }
     var onSelectRange: (Int) -> Void = { _ in }

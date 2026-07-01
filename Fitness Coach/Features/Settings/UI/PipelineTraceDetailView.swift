@@ -18,13 +18,13 @@ struct PipelineTraceDetailView: View {
         List {
             Section {
                 Button("Copy trace") {
-                    UIPasteboard.general.string = FitPilotPipelineTracer.exportTrace(traceId: traceId)
+                    UIPasteboard.general.string = FormaPipelineTracer.exportTrace(traceId: traceId)
                 }
                 .font(FormaTokens.Typography.body)
                 .foregroundStyle(FormaTokens.Color.accent)
-                .fitPilotSettingsRowChrome()
+                .formaSettingsRowChrome()
             } header: {
-                FitPilotSettingsSectionHeader(title: "Actions")
+                FormaSettingsSectionHeader(title: "Actions")
             }
 
             Section {
@@ -32,21 +32,21 @@ struct PipelineTraceDetailView: View {
                     Text("No events recorded for this trace.")
                         .font(FormaTokens.Typography.caption)
                         .foregroundStyle(FormaTokens.Color.textTertiary)
-                        .fitPilotSettingsRowChrome()
+                        .formaSettingsRowChrome()
                 } else {
                     ForEach(events) { event in
                         eventRow(event)
-                            .fitPilotSettingsRowChrome()
+                            .formaSettingsRowChrome()
                     }
                 }
             } header: {
-                FitPilotSettingsSectionHeader(title: "Timeline")
+                FormaSettingsSectionHeader(title: "Timeline")
             }
         }
-        .fitPilotGroupedList()
+        .formaGroupedList()
         .navigationTitle("Trace detail")
         .navigationBarTitleDisplayMode(.inline)
-        .fitPilotScrollBottomInset()
+        .formaScrollBottomInset()
         .onAppear(perform: reload)
         .onReceive(NotificationCenter.default.publisher(for: .pipelineTraceDidUpdate)) { _ in
             reload()
@@ -102,7 +102,7 @@ struct PipelineTraceDetailView: View {
     }
 
     private func reload() {
-        events = FitPilotPipelineTracer.events(for: traceId)
+        events = FormaPipelineTracer.events(for: traceId)
     }
 }
 

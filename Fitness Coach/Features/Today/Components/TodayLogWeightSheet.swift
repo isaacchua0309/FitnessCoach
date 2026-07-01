@@ -40,11 +40,11 @@ struct TodayLogWeightSheet: View {
                             }
                     }
                 }
-                .padding(.horizontal, FitPilotScreenStyle.horizontalPadding)
+                .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
                 .padding(.top, FormaTokens.Spacing.md)
                 .padding(.bottom, FormaTokens.Spacing.lg)
             }
-            .fitPilotFormScreen()
+            .formaFormScreen()
             .navigationTitle(FormaProductCopy.Today.NextAction.sheetLogWeightTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

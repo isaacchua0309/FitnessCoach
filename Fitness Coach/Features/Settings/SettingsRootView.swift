@@ -13,9 +13,9 @@ struct SettingsRootView: View {
     @EnvironmentObject private var insightsStore: TrainingInsightsStore
     @EnvironmentObject private var themeStore: ThemeStore
 
-    @Binding var formState: ProfileFormState
+    @Binding var formState: PlanFormState
     let errorMessage: String?
-    let onSaveUnits: (ProfileFormState) async -> Void
+    let onSaveUnits: (PlanFormState) async -> Void
     let onDismiss: () -> Void
 
     var body: some View {
@@ -36,11 +36,11 @@ struct SettingsRootView: View {
                         Text(errorMessage)
                             .font(FormaTokens.Typography.sectionSubtitle)
                             .foregroundStyle(FormaTokens.Color.warning)
-                            .fitPilotSettingsRowChrome()
+                            .formaSettingsRowChrome()
                     }
                 }
             }
-            .fitPilotGroupedList()
+            .formaGroupedList()
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -53,7 +53,7 @@ struct SettingsRootView: View {
                     .foregroundStyle(FormaTokens.Color.accent)
                 }
             }
-            .fitPilotScrollBottomInset()
+            .formaScrollBottomInset()
         }
     }
 
@@ -66,9 +66,9 @@ struct SettingsRootView: View {
             } label: {
                 settingsRowLabel("Account")
             }
-            .fitPilotSettingsRowChrome()
+            .formaSettingsRowChrome()
         } header: {
-            FitPilotSettingsSectionHeader(title: "Account")
+            FormaSettingsSectionHeader(title: "Account")
         }
     }
 
@@ -82,37 +82,37 @@ struct SettingsRootView: View {
             } label: {
                 settingsRowLabel("Units")
             }
-            .fitPilotSettingsRowChrome()
+            .formaSettingsRowChrome()
 
             NavigationLink {
                 PlanBodyDetailsSettingsView(formState: formState)
             } label: {
                 settingsRowLabel(FormaProductCopy.PlanCalculation.bodyDetailsSettingsTitle)
             }
-            .fitPilotSettingsRowChrome()
+            .formaSettingsRowChrome()
 
             NavigationLink {
                 ThemeSettingsView()
             } label: {
                 settingsRowLabel(SettingsPreferencesCatalog.themeRowTitle)
             }
-            .fitPilotSettingsRowChrome()
+            .formaSettingsRowChrome()
 
-            FitPilotComingSoonRow(title: "AI preferences")
-                .fitPilotSettingsRowChrome(isEnabled: false)
+            FormaComingSoonRow(title: "AI preferences")
+                .formaSettingsRowChrome(isEnabled: false)
         } header: {
-            FitPilotSettingsSectionHeader(title: SettingsPreferencesCatalog.sectionTitle)
+            FormaSettingsSectionHeader(title: SettingsPreferencesCatalog.sectionTitle)
         }
     }
 
     private var notificationsSection: some View {
         Section {
-            FitPilotComingSoonRow(title: "Daily reminders")
-                .fitPilotSettingsRowChrome(isEnabled: false)
-            FitPilotComingSoonRow(title: "Coach check-ins")
-                .fitPilotSettingsRowChrome(isEnabled: false)
+            FormaComingSoonRow(title: "Daily reminders")
+                .formaSettingsRowChrome(isEnabled: false)
+            FormaComingSoonRow(title: "Coach check-ins")
+                .formaSettingsRowChrome(isEnabled: false)
         } header: {
-            FitPilotSettingsSectionHeader(title: "Notifications")
+            FormaSettingsSectionHeader(title: "Notifications")
         }
     }
 
@@ -134,11 +134,11 @@ struct SettingsRootView: View {
                     .font(FormaTokens.Typography.sectionSubtitle)
                     .foregroundStyle(FormaTokens.Color.textTertiary)
                 }
-                .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .center)
+                .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .center)
             }
-            .fitPilotSettingsRowChrome()
+            .formaSettingsRowChrome()
         } header: {
-            FitPilotSettingsSectionHeader(title: "Integrations")
+            FormaSettingsSectionHeader(title: "Integrations")
         } footer: {
             Text(TrainingIntegrationCopy.healthIntegrationFooter)
                 .font(FormaTokens.Typography.caption)
@@ -151,12 +151,12 @@ struct SettingsRootView: View {
 
     private var privacySection: some View {
         Section {
-            FitPilotComingSoonRow(title: "Data export")
-                .fitPilotSettingsRowChrome(isEnabled: false)
-            FitPilotComingSoonRow(title: "Delete data")
-                .fitPilotSettingsRowChrome(isEnabled: false)
+            FormaComingSoonRow(title: "Data export")
+                .formaSettingsRowChrome(isEnabled: false)
+            FormaComingSoonRow(title: "Delete data")
+                .formaSettingsRowChrome(isEnabled: false)
         } header: {
-            FitPilotSettingsSectionHeader(title: "Privacy")
+            FormaSettingsSectionHeader(title: "Privacy")
         }
     }
 
@@ -168,16 +168,16 @@ struct SettingsRootView: View {
             } label: {
                 settingsRowLabel("Auth diagnostics")
             }
-            .fitPilotSettingsRowChrome()
+            .formaSettingsRowChrome()
 
             NavigationLink {
                 PipelineDiagnosticsView()
             } label: {
                 settingsRowLabel("Pipeline traces")
             }
-            .fitPilotSettingsRowChrome()
+            .formaSettingsRowChrome()
         } header: {
-            FitPilotSettingsSectionHeader(title: "Developer")
+            FormaSettingsSectionHeader(title: "Developer")
         } footer: {
             Text("Debug builds only. Pipeline traces help troubleshoot Coach AI routing and backend calls.")
                 .font(FormaTokens.Typography.caption)
@@ -192,13 +192,13 @@ struct SettingsRootView: View {
         Text(title)
             .font(FormaTokens.Typography.body)
             .foregroundStyle(FormaTokens.Color.textPrimary)
-            .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .leading)
+            .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .leading)
     }
 }
 
 #Preview {
     SettingsRootView(
-        formState: .constant(ProfilePreviewData.formState),
+        formState: .constant(PlanPreviewData.formState),
         errorMessage: nil,
         onSaveUnits: { _ in },
         onDismiss: {}

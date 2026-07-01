@@ -16,7 +16,7 @@ struct TodayDailySummarySection: View {
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: FormaProductCopy.Today.DailySummary.sectionTitle)
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     Text(FormaProductCopy.Today.DailySummary.cardTitle)
                         .font(FormaTokens.Typography.caption.weight(.semibold))
@@ -30,7 +30,7 @@ struct TodayDailySummarySection: View {
                         }
                     }
 
-                    FitPilotPlanRowDivider()
+                    FormaPlanRowDivider()
 
                     overallBlock
 

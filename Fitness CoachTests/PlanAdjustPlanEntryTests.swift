@@ -11,12 +11,12 @@ final class PlanAdjustPlanEntryTests: XCTestCase {
 
     private var analytics: CapturingPlanAnalyticsLogger!
     private var container: AppContainer!
-    private var model: ProfileModel!
+    private var model: PlanModel!
 
     override func setUp() async throws {
         analytics = CapturingPlanAnalyticsLogger()
         container = try AppContainer(inMemory: true, planAnalyticsLogger: analytics)
-        model = container.makeProfileModel()
+        model = container.makePlanModel()
         try await seedProfile()
         await model.loadProfile()
     }
@@ -84,7 +84,7 @@ final class PlanAdjustPlanEntryTests: XCTestCase {
     func testShowEditPlanDoesNothingWhenNotLoaded() async throws {
         let localAnalytics = CapturingPlanAnalyticsLogger()
         let freshContainer = try AppContainer(inMemory: true, planAnalyticsLogger: localAnalytics)
-        let emptyModel = freshContainer.makeProfileModel()
+        let emptyModel = freshContainer.makePlanModel()
 
         emptyModel.showEditPlan()
 
@@ -95,7 +95,7 @@ final class PlanAdjustPlanEntryTests: XCTestCase {
     // MARK: - Fixtures
 
     private func seedProfile() async throws {
-        let formState = ProfileFormState(profile: PlanMissionControlFixtures.loseProfile)
+        let formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
         let input = try formState.makeCalorieTargetInput()
         let result = try container.targetService.generateInitialTargets(from: input)
         var draftForm = formState

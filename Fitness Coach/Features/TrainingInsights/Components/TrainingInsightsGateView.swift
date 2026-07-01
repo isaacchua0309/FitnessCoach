@@ -31,7 +31,7 @@ struct TrainingInsightsGateView: View {
             .padding(.top, FormaTokens.Spacing.lg)
             .padding(.bottom, FormaTokens.Spacing.xl)
         }
-        .fitPilotScrollBottomInset()
+        .formaScrollBottomInset()
     }
 
     // MARK: - Sections
@@ -73,7 +73,7 @@ struct TrainingInsightsGateView: View {
     }
 
     private var messageCard: some View {
-        FitPilotPlanCard {
+        FormaPlanCard {
             Text(TrainingIntegrationCopy.gateMessage(for: state))
                 .font(FormaTokens.Typography.sectionSubtitle)
                 .foregroundStyle(FormaTokens.Color.textLegal)
@@ -82,7 +82,7 @@ struct TrainingInsightsGateView: View {
     }
 
     private var benefitsCard: some View {
-        FitPilotPlanCard {
+        FormaPlanCard {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 ForEach(TrainingIntegrationCopy.lockedBenefits, id: \.self) { benefit in
                     benefitRow(benefit)
@@ -103,7 +103,7 @@ struct TrainingInsightsGateView: View {
                 .foregroundStyle(FormaTokens.Color.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(minHeight: FitPilotScreenStyle.rowMinHeight, alignment: .center)
+        .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .center)
     }
 
     private func primaryButton(title: String) -> some View {
@@ -111,7 +111,7 @@ struct TrainingInsightsGateView: View {
             Text(title)
                 .font(FormaTokens.Typography.bodyMedium)
                 .frame(maxWidth: .infinity)
-                .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
+                .frame(minHeight: FormaTokens.Layout.minTouchTarget)
         }
         .buttonStyle(.borderedProminent)
         .tint(FormaTokens.Color.ctaBackground)
