@@ -142,14 +142,14 @@ final class CoachModel: ObservableObject {
 
         appendUserMessage(trimmed)
 
-        let traceId = FitPilotPipelineTracer.beginTrace(userMessage: trimmed)
+        let traceId = FormaPipelineTracer.beginTrace(userMessage: trimmed)
         let traceStarted = Date()
         var traceOutcome = "completed"
 
         isSending = true
         defer {
             isSending = false
-            FitPilotPipelineTracer.endTrace(
+            FormaPipelineTracer.endTrace(
                 traceId: traceId,
                 outcome: traceOutcome,
                 durationMs: Int(Date().timeIntervalSince(traceStarted) * 1_000)
@@ -198,7 +198,7 @@ final class CoachModel: ObservableObject {
               let aiContextBuilder,
               let aiService else {
             traceOutcome = "aiDisabled"
-            FitPilotPipelineTracer.logError(
+            FormaPipelineTracer.logError(
                 traceId: traceId,
                 stage: .coachSend,
                 message: "AI command parsing unavailable",
@@ -228,7 +228,7 @@ final class CoachModel: ObservableObject {
         } catch let error as AIServiceError {
             if case .authenticationFailed = error {
                 traceOutcome = "authFailed"
-                FitPilotPipelineTracer.logError(
+                FormaPipelineTracer.logError(
                     traceId: traceId,
                     stage: .error,
                     message: "Coach session authentication failed",
@@ -238,7 +238,7 @@ final class CoachModel: ObservableObject {
                 return .message("")
             }
             traceOutcome = "aiServiceError"
-            FitPilotPipelineTracer.logError(
+            FormaPipelineTracer.logError(
                 traceId: traceId,
                 stage: .error,
                 message: "AIService error surfaced to user",
@@ -250,7 +250,7 @@ final class CoachModel: ObservableObject {
             return .message(error.userMessage)
         } catch {
             traceOutcome = "unexpectedError"
-            FitPilotPipelineTracer.logError(
+            FormaPipelineTracer.logError(
                 traceId: traceId,
                 stage: .error,
                 message: "Unexpected coach processing error",
@@ -318,14 +318,14 @@ final class CoachModel: ObservableObject {
 
         appendUserMessage(CoachMealPhotoPipeline.userMessageLabel)
 
-        let traceId = FitPilotPipelineTracer.beginTrace(userMessage: CoachMealPhotoPipeline.userMessageLabel)
+        let traceId = FormaPipelineTracer.beginTrace(userMessage: CoachMealPhotoPipeline.userMessageLabel)
         let traceStarted = Date()
         var traceOutcome = "photoAnalysis"
 
         isSending = true
         defer {
             isSending = false
-            FitPilotPipelineTracer.endTrace(
+            FormaPipelineTracer.endTrace(
                 traceId: traceId,
                 outcome: traceOutcome,
                 durationMs: Int(Date().timeIntervalSince(traceStarted) * 1_000)

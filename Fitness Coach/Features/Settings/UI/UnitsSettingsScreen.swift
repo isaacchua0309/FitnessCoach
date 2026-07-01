@@ -9,8 +9,8 @@ import SwiftUI
 
 struct UnitsSettingsScreen: View {
 
-    @Binding var formState: ProfileFormState
-    let onSave: (ProfileFormState) async -> Void
+    @Binding var formState: PlanFormState
+    let onSave: (PlanFormState) async -> Void
 
     @State private var isSaving = false
 
@@ -19,21 +19,21 @@ struct UnitsSettingsScreen: View {
             Section {
                 Picker("Unit system", selection: $formState.unitSystem) {
                     ForEach(UnitSystem.allCases, id: \.self) { system in
-                        Text(ProfileFormatter.unitSystem(system)).tag(system)
+                        Text(PlanFormatter.unitSystem(system)).tag(system)
                     }
                 }
                 .disabled(isSaving)
-                .fitPilotSettingsRowChrome()
+                .formaSettingsRowChrome()
             } footer: {
                 Text("Values are stored in metric internally. Imperial is a display preference for now.")
                     .font(FormaTokens.Typography.caption)
                     .foregroundStyle(FormaTokens.Color.textTertiary)
             }
         }
-        .fitPilotGroupedList()
+        .formaGroupedList()
         .navigationTitle("Units")
         .navigationBarTitleDisplayMode(.inline)
-        .fitPilotScrollBottomInset()
+        .formaScrollBottomInset()
         .onChange(of: formState.unitSystem) { _, _ in
             guard !isSaving else { return }
             isSaving = true
@@ -48,7 +48,7 @@ struct UnitsSettingsScreen: View {
 #Preview {
     NavigationStack {
         UnitsSettingsScreen(
-            formState: .constant(ProfilePreviewData.formState),
+            formState: .constant(PlanPreviewData.formState),
             onSave: { _ in }
         )
     }

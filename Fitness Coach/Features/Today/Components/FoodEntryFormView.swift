@@ -136,8 +136,8 @@ struct FoodEntryFormView: View {
                 confidence: .medium
             )
         )
-        .padding(.horizontal, FitPilotScreenStyle.horizontalPadding)
+        .padding(.horizontal, FormaScreenStyle.horizontalPadding)
         .padding(.vertical, FormaTokens.Spacing.md)
     }
-    .fitPilotFormScreen()
+    .formaFormScreen()
 }

@@ -1,5 +1,5 @@
 //
-//  ProgressEmptyStateView.swift
+//  JourneyEmptyStateView.swift
 //  Fitness Coach
 //
 //  FitPilot AI — Compact empty state when profile is missing.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct ProgressEmptyStateView: View {
+struct JourneyEmptyStateView: View {
     let onRefresh: () -> Void
 
     var body: some View {
@@ -34,6 +34,6 @@ struct ProgressEmptyStateView: View {
 }
 
 #Preview {
-    ProgressEmptyStateView {}
+    JourneyEmptyStateView {}
         .formaThemePreview()
 }

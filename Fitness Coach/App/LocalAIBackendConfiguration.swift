@@ -9,7 +9,8 @@ import Foundation
 
 enum LocalAIBackendConfiguration {
 
-    static let environmentVariableName = "FITPILOT_AI_BACKEND_URL"
+    static let environmentVariableName = "FORMA_AI_BACKEND_URL"
+    static let legacyEnvironmentVariableName = "FITPILOT_AI_BACKEND_URL"
     static let defaultPort = 8787
 
     /// Priority: Xcode scheme env → `DeveloperLocal.plist` → simulator localhost.
@@ -17,7 +18,8 @@ enum LocalAIBackendConfiguration {
     static func debugBackendURL(
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) -> URL? {
-        if let url = url(from: environment[environmentVariableName]) {
+        if let raw = FormaEnvironment.aiBackendURLString(),
+           let url = url(from: raw) {
             return url
         }
         if let url = url(from: bundledURLString) {
@@ -32,12 +34,15 @@ enum LocalAIBackendConfiguration {
 
     private static var bundledURLString: String? {
         guard let path = Bundle.main.path(forResource: "DeveloperLocal", ofType: "plist"),
-              let dictionary = NSDictionary(contentsOfFile: path),
-              let value = dictionary[environmentVariableName] as? String,
-              !value.isEmpty else {
+              let dictionary = NSDictionary(contentsOfFile: path) else {
             return nil
         }
-        return value
+        for key in [environmentVariableName, legacyEnvironmentVariableName] {
+            if let value = dictionary[key] as? String, !value.isEmpty {
+                return value
+            }
+        }
+        return nil
     }
 
     private static func url(from string: String?) -> URL? {

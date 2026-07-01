@@ -13,14 +13,14 @@ final class PipelineTracerTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        FitPilotPipelineTracer.clear()
+        FormaPipelineTracer.clear()
     }
 
     func testBeginAndEndTraceCreatesSummary() {
-        let traceId = FitPilotPipelineTracer.beginTrace(userMessage: "log 2 eggs")
-        FitPilotPipelineTracer.endTrace(traceId: traceId, outcome: "ok", durationMs: 12)
+        let traceId = FormaPipelineTracer.beginTrace(userMessage: "log 2 eggs")
+        FormaPipelineTracer.endTrace(traceId: traceId, outcome: "ok", durationMs: 12)
 
-        let summary = FitPilotPipelineTracer.recentSummaries.first { $0.traceId == traceId }
+        let summary = FormaPipelineTracer.recentSummaries.first { $0.traceId == traceId }
         XCTAssertEqual(summary?.userMessage, "log 2 eggs")
         XCTAssertEqual(summary?.outcome, "ok")
         XCTAssertFalse(summary?.hasError ?? true)
@@ -28,43 +28,43 @@ final class PipelineTracerTests: XCTestCase {
 
     func testRingBufferCapsEventCount() {
         for index in 0..<305 {
-            let traceId = FitPilotPipelineTracer.beginTrace(userMessage: "message \(index)")
-            FitPilotPipelineTracer.event(
+            let traceId = FormaPipelineTracer.beginTrace(userMessage: "message \(index)")
+            FormaPipelineTracer.event(
                 traceId: traceId,
                 stage: .localGuard,
                 message: "event \(index)"
             )
-            FitPilotPipelineTracer.endTrace(traceId: traceId, outcome: "ok")
+            FormaPipelineTracer.endTrace(traceId: traceId, outcome: "ok")
         }
 
-        XCTAssertLessThanOrEqual(FitPilotPipelineTracer.recentEvents.count, 300)
+        XCTAssertLessThanOrEqual(FormaPipelineTracer.recentEvents.count, 300)
     }
 
     func testErrorMarksSummaryAsFailed() {
-        let traceId = FitPilotPipelineTracer.beginTrace(userMessage: "broken")
-        FitPilotPipelineTracer.logError(
+        let traceId = FormaPipelineTracer.beginTrace(userMessage: "broken")
+        FormaPipelineTracer.logError(
             traceId: traceId,
             stage: .httpResponse,
             message: "HTTP failed",
             fields: ["status": "500"]
         )
-        FitPilotPipelineTracer.endTrace(traceId: traceId, outcome: "error")
+        FormaPipelineTracer.endTrace(traceId: traceId, outcome: "error")
 
-        let summary = FitPilotPipelineTracer.recentSummaries.first { $0.traceId == traceId }
+        let summary = FormaPipelineTracer.recentSummaries.first { $0.traceId == traceId }
         XCTAssertTrue(summary?.hasError ?? false)
     }
 
     func testSanitizedJSONSnippetHiddenWhenNotVerbose() {
         let data = Data("{\"text\":\"hello\"}".utf8)
-        XCTAssertNil(FitPilotPipelineTracer.sanitizedJSONSnippet(data))
+        XCTAssertNil(FormaPipelineTracer.sanitizedJSONSnippet(data))
     }
 
     func testExportTraceIncludesEvents() {
-        let traceId = FitPilotPipelineTracer.beginTrace(userMessage: "export me")
-        FitPilotPipelineTracer.event(traceId: traceId, stage: .classify, message: "classified")
-        FitPilotPipelineTracer.endTrace(traceId: traceId, outcome: "ok")
+        let traceId = FormaPipelineTracer.beginTrace(userMessage: "export me")
+        FormaPipelineTracer.event(traceId: traceId, stage: .classify, message: "classified")
+        FormaPipelineTracer.endTrace(traceId: traceId, outcome: "ok")
 
-        let exported = FitPilotPipelineTracer.exportTrace(traceId: traceId)
+        let exported = FormaPipelineTracer.exportTrace(traceId: traceId)
         XCTAssertTrue(exported.contains(traceId.uuidString))
         XCTAssertTrue(exported.contains("export me"))
         XCTAssertTrue(exported.contains("classified"))
@@ -77,8 +77,8 @@ final class PipelineTracerTests: XCTestCase {
         configuration.protocolClasses = [TraceHeaderURLProtocol.self]
         let session = URLSession(configuration: configuration)
 
-        let traceId = FitPilotPipelineTracer.beginTrace(userMessage: "header test")
-        let client = FitPilotAIBackendClient(
+        let traceId = FormaPipelineTracer.beginTrace(userMessage: "header test")
+        let client = FormaAIBackendClient(
             baseURL: URL(string: "http://trace.test")!,
             urlSession: session
         )
@@ -120,7 +120,7 @@ private final class TraceHeaderURLProtocol: URLProtocol {
     }
 
     override func startLoading() {
-        Self.lastTraceHeader = request.value(forHTTPHeaderField: FitPilotPipelineTracer.traceHeaderName)
+        Self.lastTraceHeader = request.value(forHTTPHeaderField: FormaPipelineTracer.traceHeaderName)
 
         let payload = """
         {"intentResult":{"intent":"general_conversation","confidence":1,"domain":"general","requiresAppMutation":false,"requiresUserContext":false,"canAnswerWithCheapModel":true,"requiresEscalation":false,"entities":{"food":null,"meal":null,"amountMl":null,"weightKg":null,"durationMinutes":null,"distanceKm":null,"calories":null,"proteinGrams":null,"carbsGrams":null,"fatGrams":null,"quantity":null,"unit":null,"notes":null},"action":null,"reason":null}}

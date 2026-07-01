@@ -109,19 +109,19 @@ struct TodayMetricProgressBar: View {
 // MARK: - Shared card chrome
 
 private func metricsCardBackground() -> some View {
-    RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+    RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
         .fill(FormaTokens.Color.surfaceSubtle)
         .overlay {
-            RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+            RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
                 .stroke(FormaTokens.Color.border.opacity(0.55), lineWidth: 0.5)
         }
 }
 
 private func cardBackground(accentLeading: Bool) -> some View {
-    RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+    RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
         .fill(FormaTokens.Color.surface)
         .overlay {
-            RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+            RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
                 .stroke(
                     accentLeading
                         ? LinearGradient(

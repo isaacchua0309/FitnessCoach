@@ -12,7 +12,7 @@ struct JourneyBeforeTodaySection: View {
         VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
             FormaSectionLabel(title: FormaProductCopy.Journey.BeforeToday.sectionTitle)
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
                     comparisonColumns
 
@@ -51,7 +51,7 @@ struct JourneyBeforeTodaySection: View {
 
     private var goalRow: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-            FitPilotPlanRowDivider()
+            FormaPlanRowDivider()
 
             Text(FormaProductCopy.Journey.Transformation.columnGoal)
                 .font(FormaTokens.Typography.caption)
@@ -114,14 +114,14 @@ struct JourneyBeforeTodaySection: View {
 // MARK: - Previews
 
 #Preview("Full snapshot") {
-    JourneyBeforeTodaySection(state: ProgressPreviewData.beforeTodayActive)
+    JourneyBeforeTodaySection(state: JourneyPreviewData.beforeTodayActive)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()
 }
 
 #Preview("Weights only") {
-    JourneyBeforeTodaySection(state: ProgressPreviewData.beforeTodayWeightsOnly)
+    JourneyBeforeTodaySection(state: JourneyPreviewData.beforeTodayWeightsOnly)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()

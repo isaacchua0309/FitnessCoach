@@ -12,7 +12,7 @@ struct JourneyLevelSection: View {
         VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
             FormaSectionLabel(title: FormaProductCopy.Journey.Level.sectionTitle)
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 if state.hasData {
                     levelContent
                 } else {
@@ -79,7 +79,7 @@ struct JourneyLevelSection: View {
 #if DEBUG
 #Preview("Journey level") {
     ScrollView {
-        JourneyLevelSection(state: ProgressPreviewData.journeyLevelActive)
+        JourneyLevelSection(state: JourneyPreviewData.journeyLevelActive)
             .padding()
     }
     .background(FormaTokens.Color.canvas)

@@ -1,5 +1,5 @@
 //
-//  FitPilotModelContainer.swift
+//  FormaModelContainer.swift
 //  Fitness Coach
 //
 //  FitPilot AI — SwiftData container setup.
@@ -8,7 +8,7 @@
 import Foundation
 import SwiftData
 
-enum FitPilotModelContainer {
+enum FormaModelContainer {
 
     /// Every persisted entity type must be listed here so SwiftData can build
     /// the full local schema.

@@ -13,7 +13,7 @@ enum PlanStateBuilder {
         profile: UserProfile,
         context: PlanDashboardContext? = nil,
         referenceDate: Date = Date()
-    ) -> ProfileDashboardState {
+    ) -> PlanDashboardState {
         let strategyName = strategyName(for: profile)
         let targets = profile.targets
         let dashboardContext = context ?? PlanDashboardContext.profileOnly(
@@ -25,7 +25,7 @@ enum PlanStateBuilder {
             referenceDate: referenceDate
         )
 
-        return ProfileDashboardState(
+        return PlanDashboardState(
             profile: profile,
             missionControl: missionControl,
             strategy: PlanStrategyState(
@@ -37,17 +37,17 @@ enum PlanStateBuilder {
                 coachSummary: strategySummary(for: profile)
             ),
             todaysTargets: PlanTodaysTargetsState(
-                calories: ProfileFormatter.kcal(targets.calorieTarget),
-                protein: ProfileFormatter.gramsCompact(targets.proteinTarget),
-                water: ProfileFormatter.mlCompact(targets.waterTargetMl),
+                calories: PlanFormatter.kcal(targets.calorieTarget),
+                protein: PlanFormatter.gramsCompact(targets.proteinTarget),
+                water: PlanFormatter.mlCompact(targets.waterTargetMl),
                 trainingFrequency: trainingFrequencyLabel(profile.trainingFrequencyPerWeek)
             ),
             rationale: missionControl.rationale,
             lifestyle: PlanLifestyleState(
-                activityLevel: ProfileFormatter.activityLevel(profile.activityLevel),
+                activityLevel: PlanFormatter.activityLevel(profile.activityLevel),
                 trainingFrequency: trainingFrequencyLabel(profile.trainingFrequencyPerWeek),
-                averageSteps: ProfileFormatter.stepsCompact(profile.averageSteps),
-                dietPreference: ProfileFormatter.dietPreference(profile.dietPreference)
+                averageSteps: PlanFormatter.stepsCompact(profile.averageSteps),
+                dietPreference: PlanFormatter.dietPreference(profile.dietPreference)
             )
         )
     }
@@ -55,7 +55,7 @@ enum PlanStateBuilder {
     // MARK: Strategy
 
     static func strategyName(for profile: UserProfile) -> String {
-        let pace = ProfileFormatter.aggressiveness(profile.targets.aggressiveness)
+        let pace = PlanFormatter.aggressiveness(profile.targets.aggressiveness)
         if profile.goalWeightKg < profile.currentWeightKg - 0.5 {
             return "\(pace) Cut"
         }

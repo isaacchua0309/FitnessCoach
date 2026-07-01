@@ -103,8 +103,8 @@ final class PlanTodayMissionStateTests: XCTestCase {
     }
 
     func testLitersCompactFormatsWaterForMissionCard() {
-        XCTAssertEqual(ProfileFormatter.litersCompact(3400), "3.4L")
-        XCTAssertEqual(ProfileFormatter.litersCompact(3150), "3.1L")
+        XCTAssertEqual(PlanFormatter.litersCompact(3400), "3.4L")
+        XCTAssertEqual(PlanFormatter.litersCompact(3150), "3.1L")
         XCTAssertEqual(
             PlanTodayMissionStateBuilder.waterLabel(for: 3150),
             "3.1L water"

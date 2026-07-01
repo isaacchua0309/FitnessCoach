@@ -31,18 +31,18 @@ struct TodayMealsPreview: View {
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: FormaProductCopy.Today.Meals.sectionTitle)
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 VStack(spacing: 0) {
                     if section.isFullyEmpty, let emptyCopy, !emptyCopy.title.isEmpty {
                         mealsEmptyHeader(emptyCopy)
-                        FitPilotPlanRowDivider()
+                        FormaPlanRowDivider()
                     }
 
                     ForEach(section.groups) { group in
                         mealGroupRow(group)
 
                         if group.mealType != section.groups.last?.mealType {
-                            FitPilotPlanRowDivider()
+                            FormaPlanRowDivider()
                         }
                     }
                 }
@@ -152,7 +152,7 @@ struct TodayMealsPreview: View {
                     entryButton(entry)
 
                     if entry.id != visibleEntries.last?.id {
-                        FitPilotPlanRowDivider()
+                        FormaPlanRowDivider()
                             .padding(.leading, FormaTokens.Spacing.md)
                     }
                 }

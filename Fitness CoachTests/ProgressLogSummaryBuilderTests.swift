@@ -9,7 +9,7 @@ import XCTest
 final class ProgressLogSummaryBuilderTests: XCTestCase {
 
     func testNutritionSummaryEmptyLogsReturnsZeros() {
-        let summary = ProgressLogSummaryBuilder.nutritionSummary(from: [])
+        let summary = JourneyLogSummaryBuilder.nutritionSummary(from: [])
 
         XCTAssertEqual(summary.loggedDays, 0)
         XCTAssertNil(summary.averageCalories)
@@ -23,7 +23,7 @@ final class ProgressLogSummaryBuilderTests: XCTestCase {
             makeLog(calories: 2_200, protein: 140, carbs: 220, fat: 70, fiber: 30)
         ]
 
-        let summary = ProgressLogSummaryBuilder.nutritionSummary(from: logs)
+        let summary = JourneyLogSummaryBuilder.nutritionSummary(from: logs)
 
         XCTAssertEqual(summary.loggedDays, 2)
         XCTAssertEqual(summary.averageCalories, 2_000)
@@ -34,7 +34,7 @@ final class ProgressLogSummaryBuilderTests: XCTestCase {
     }
 
     func testWaterSummaryEmptyLogsReturnsZeros() {
-        let summary = ProgressLogSummaryBuilder.waterSummary(from: [])
+        let summary = JourneyLogSummaryBuilder.waterSummary(from: [])
 
         XCTAssertEqual(summary.loggedDays, 0)
         XCTAssertNil(summary.averageWaterMl)
@@ -48,7 +48,7 @@ final class ProgressLogSummaryBuilderTests: XCTestCase {
             makeLog(waterMl: 500, waterTargetMl: 2_500)
         ]
 
-        let summary = ProgressLogSummaryBuilder.waterSummary(from: logs)
+        let summary = JourneyLogSummaryBuilder.waterSummary(from: logs)
 
         XCTAssertEqual(summary.loggedDays, 3)
         XCTAssertEqual(summary.averageWaterMl, 1_533)
@@ -59,7 +59,7 @@ final class ProgressLogSummaryBuilderTests: XCTestCase {
     func testWaterSummarySkipsConsistencyWhenNoTargets() {
         let logs = [makeLog(waterMl: 1_000, waterTargetMl: 0)]
 
-        let summary = ProgressLogSummaryBuilder.waterSummary(from: logs)
+        let summary = JourneyLogSummaryBuilder.waterSummary(from: logs)
 
         XCTAssertEqual(summary.loggedDays, 1)
         XCTAssertEqual(summary.averageWaterMl, 1_000)

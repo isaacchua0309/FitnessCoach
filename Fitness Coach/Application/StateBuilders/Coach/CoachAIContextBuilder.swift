@@ -42,7 +42,7 @@ struct CoachContextBuilder {
             commonFoods: [],
             recentMessages: makeRecentMessages(from: recentMessages)
         )
-        FitPilotPipelineTracer.event(
+        FormaPipelineTracer.event(
             stage: .context,
             level: .debug,
             message: "AI context assembled",

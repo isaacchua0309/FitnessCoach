@@ -51,16 +51,16 @@ struct TargetRegenerationSheet: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Generated Targets")
                             .font(.headline)
-                        previewRow("Calories", ProfileFormatter.kcal(preview.targets.calorieTarget))
-                        previewRow("Protein", ProfileFormatter.grams(preview.targets.proteinTarget))
-                        previewRow("Carbs", ProfileFormatter.grams(preview.targets.carbTarget))
-                        previewRow("Fat", ProfileFormatter.grams(preview.targets.fatTarget))
-                        previewRow("Water", ProfileFormatter.ml(preview.targets.waterTargetMl))
+                        previewRow("Calories", PlanFormatter.kcal(preview.targets.calorieTarget))
+                        previewRow("Protein", PlanFormatter.grams(preview.targets.proteinTarget))
+                        previewRow("Carbs", PlanFormatter.grams(preview.targets.carbTarget))
+                        previewRow("Fat", PlanFormatter.grams(preview.targets.fatTarget))
+                        previewRow("Water", PlanFormatter.ml(preview.targets.waterTargetMl))
                         previewRow(
                             "Aggressiveness",
-                            ProfileFormatter.aggressiveness(preview.targets.aggressiveness)
+                            PlanFormatter.aggressiveness(preview.targets.aggressiveness)
                         )
-                        if let weeklyLoss = ProfileFormatter.weeklyLoss(preview.targets.expectedWeeklyWeightLossKg) {
+                        if let weeklyLoss = PlanFormatter.weeklyLoss(preview.targets.expectedWeeklyWeightLossKg) {
                             previewRow("Expected weekly loss", weeklyLoss)
                         }
                     }
@@ -123,7 +123,7 @@ struct TargetRegenerationSheet: View {
 
 #Preview {
     TargetRegenerationSheet(
-        preview: ProfilePreviewData.generatedPreview,
+        preview: PlanPreviewData.generatedPreview,
         onApply: {},
         onCancel: {}
     )

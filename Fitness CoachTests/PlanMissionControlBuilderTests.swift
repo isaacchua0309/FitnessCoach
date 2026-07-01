@@ -181,7 +181,7 @@ final class PlanMissionControlBuilderTests: XCTestCase {
         )
     }
 
-    // MARK: - Integration with ProfileDashboardState
+    // MARK: - Integration with PlanDashboardState
 
     func testPlanStateBuilderEmbedsMissionControlDashboard() {
         let state = PlanStateBuilder.dashboardState(

@@ -1,5 +1,5 @@
 //
-//  ProfileDashboardState.swift
+//  PlanDashboardState.swift
 //  Fitness Coach
 //
 //  FitPilot AI — Mission Control view state for the Plan screen.
@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct ProfileDashboardState: Equatable {
+struct PlanDashboardState: Equatable {
     var profile: UserProfile
     /// Product-facing Mission Control read model for the Plan dashboard redesign.
     var missionControl: PlanMissionControlDashboard

@@ -11,7 +11,7 @@ import XCTest
 final class PlanRationaleCopyBuilderTests: XCTestCase {
 
     func testCutHighlightsIncludeMaintenanceDeficitTargetProteinAndWater() throws {
-        let profile = ProfilePreviewData.profile
+        let profile = PlanPreviewData.profile
         let result = try PlanCalculationBridge.planResult(from: profile)
         let rationale = PlanRationaleCopyBuilder.build(profile: profile, result: result)
 
@@ -83,7 +83,7 @@ final class PlanRationaleCopyBuilderTests: XCTestCase {
     }
 
     func testHighlightsUseEngineCalorieTarget() throws {
-        let profile = ProfilePreviewData.profile
+        let profile = PlanPreviewData.profile
         let result = try PlanCalculationBridge.planResult(from: profile)
         let rationale = PlanRationaleCopyBuilder.build(profile: profile, result: result)
 

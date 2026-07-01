@@ -22,7 +22,7 @@ struct FormaFormCard<Content: View>: View {
                 FormaSectionLabel(title: title)
             }
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
                     content
                 }

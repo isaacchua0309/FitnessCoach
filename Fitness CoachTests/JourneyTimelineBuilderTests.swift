@@ -155,7 +155,7 @@ final class JourneyTimelineBuilderTests: XCTestCase {
         let mealEvent = state.events.first { $0.type == .firstMealLogged }
 
         XCTAssertNotNil(mealEvent)
-        XCTAssertEqual(ProgressFormatter.timelineDayLabel(mealEvent!.date, calendar: calendar), "Jun 18")
+        XCTAssertEqual(JourneyFormatter.timelineDayLabel(mealEvent!.date, calendar: calendar), "Jun 18")
     }
 
     func testCalorieGoalFiveDaysEventAppears() {

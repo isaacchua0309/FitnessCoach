@@ -1,5 +1,5 @@
 //
-//  ProfileModel.swift
+//  PlanModel.swift
 //  Fitness Coach
 //
 //  FitPilot AI — Feature model for the user's fitness plan strategy.
@@ -9,15 +9,15 @@ import Combine
 import Foundation
 
 @MainActor
-final class ProfileModel: ObservableObject {
+final class PlanModel: ObservableObject {
 
-    @Published private(set) var viewState: ProfileViewState = .loading
+    @Published private(set) var viewState: PlanViewState = .loading
     @Published var isShowingEditSheet = false
     @Published var isShowingSettingsSheet = false
     @Published var isShowingTargetRegenerationSheet = false
     @Published private(set) var generatedTargetPreview: CalorieTargetResult?
     @Published private(set) var formErrorMessage: String?
-    @Published var editFormState: ProfileFormState?
+    @Published var editFormState: PlanFormState?
     @Published var editPlanInitialStep: PlanEditWizardStep = .goalAndTargetWeight
     @Published private(set) var editBaselineProfile: UserProfile?
 
@@ -125,7 +125,7 @@ final class ProfileModel: ObservableObject {
         entryPoint: String = PlanAdjustPlanEntryPoint.dashboard
     ) {
         guard case .loaded(let state) = viewState else { return }
-        let formState = ProfileFormState(profile: state.profile)
+        let formState = PlanFormState(profile: state.profile)
         let stepIndex = PlanEditWizardFlow.index(of: initialStep, formState: formState) ?? 0
         analyticsLogger.log(
             .adjustStarted,
@@ -151,7 +151,7 @@ final class ProfileModel: ObservableObject {
     func showSettings() {
         guard case .loaded(let state) = viewState else { return }
         formErrorMessage = nil
-        editFormState = ProfileFormState(profile: state.profile)
+        editFormState = PlanFormState(profile: state.profile)
         isShowingSettingsSheet = true
     }
 
@@ -181,7 +181,7 @@ final class ProfileModel: ObservableObject {
 
     func createDefaultProfile() async {
         do {
-            let formState = ProfileFormState.defaultDraftValues()
+            let formState = PlanFormState.defaultDraftValues()
             let input = try formState.makeCalorieTargetInput()
             let result = try targetService.generateInitialTargets(from: input)
             var draftForm = formState
@@ -201,7 +201,7 @@ final class ProfileModel: ObservableObject {
         }
     }
 
-    func savePlanFromWizard(_ formState: ProfileFormState) async {
+    func savePlanFromWizard(_ formState: PlanFormState) async {
         do {
             var state = formState
             let input = try state.makeCalorieTargetInput()
@@ -237,7 +237,7 @@ final class ProfileModel: ObservableObject {
         }
     }
 
-    func saveSettings(_ formState: ProfileFormState) async {
+    func saveSettings(_ formState: PlanFormState) async {
         do {
             let update = try formState.makeUpdate()
             _ = try actionCenter.updatePlan(update)
@@ -255,7 +255,7 @@ final class ProfileModel: ObservableObject {
         }
     }
 
-    func prepareTargetPreview(from formState: ProfileFormState) async throws -> CalorieTargetResult {
+    func prepareTargetPreview(from formState: PlanFormState) async throws -> CalorieTargetResult {
         do {
             formErrorMessage = nil
             let input = try formState.makeCalorieTargetInput()
@@ -272,7 +272,7 @@ final class ProfileModel: ObservableObject {
         }
     }
 
-    func previewRegeneratedTargets(from formState: ProfileFormState) async {
+    func previewRegeneratedTargets(from formState: PlanFormState) async {
         do {
             let input = try formState.makeCalorieTargetInput()
             generatedTargetPreview = try targetService.generateInitialTargets(from: input)

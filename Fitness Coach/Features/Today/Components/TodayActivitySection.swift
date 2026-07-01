@@ -19,7 +19,7 @@ struct TodayActivitySection: View {
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: FormaProductCopy.Today.Activity.sectionTitle)
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 switch display {
                 case .disconnected(let model):
                     disconnectedContent(model)
@@ -83,7 +83,7 @@ struct TodayActivitySection: View {
                     )
 
                     if model.weeklyProgressLine != nil || !model.workoutStatusLine.isEmpty {
-                        FitPilotPlanRowDivider()
+                        FormaPlanRowDivider()
                     }
                 } else if let stepAssumptionLine = model.stepAssumptionLine {
                     metricRow(
@@ -91,7 +91,7 @@ struct TodayActivitySection: View {
                         value: FormaProductCopy.Today.Activity.stepsUnavailable,
                         detail: stepAssumptionLine
                     )
-                    FitPilotPlanRowDivider()
+                    FormaPlanRowDivider()
                 }
 
                 metricRow(
@@ -101,7 +101,7 @@ struct TodayActivitySection: View {
                 )
 
                 if let weeklyProgressLine = model.weeklyProgressLine {
-                    FitPilotPlanRowDivider()
+                    FormaPlanRowDivider()
 
                     metricRow(
                         title: FormaProductCopy.Today.Activity.weeklyProgressLabel,

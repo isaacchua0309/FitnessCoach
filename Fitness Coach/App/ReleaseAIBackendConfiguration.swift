@@ -11,15 +11,16 @@ import OSLog
 
 enum ReleaseAIBackendConfiguration {
 
-    static let environmentVariableName = "FITPILOT_AI_BACKEND_URL"
+    static let environmentVariableName = "FORMA_AI_BACKEND_URL"
+    static let legacyEnvironmentVariableName = "FITPILOT_AI_BACKEND_URL"
 
-    private static let logger = Logger(subsystem: "FitPilot", category: "ReleaseAI")
+    private static let logger = Logger(subsystem: "Forma", category: "ReleaseAI")
 
-    /// Returns a backend URL only when `FITPILOT_AI_BACKEND_URL` is set to a non-local host.
+    /// Returns a backend URL only when `FORMA_AI_BACKEND_URL` is set to a non-local host.
     static func releaseBackendURL(
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) -> URL? {
-        guard let raw = environment[environmentVariableName]?
+        guard let raw = FormaEnvironment.aiBackendURLString()?
             .trimmingCharacters(in: .whitespacesAndNewlines),
             !raw.isEmpty else {
             return nil
@@ -50,7 +51,7 @@ enum ReleaseAIBackendConfiguration {
     static func unavailableReason(
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) -> UnavailableLLMReason {
-        guard let raw = environment[environmentVariableName]?
+        guard let raw = FormaEnvironment.aiBackendURLString()?
             .trimmingCharacters(in: .whitespacesAndNewlines),
             !raw.isEmpty,
             let url = URL(string: raw) else {

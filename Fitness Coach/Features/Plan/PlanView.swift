@@ -1,5 +1,5 @@
 //
-//  ProfileView.swift
+//  PlanView.swift
 //  Fitness Coach
 //
 //  FitPilot AI — Plan Mission Control dashboard.
@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-struct ProfileView: View {
-    @ObservedObject var model: ProfileModel
+struct PlanView: View {
+    @ObservedObject var model: PlanModel
     var onGoToToday: (() -> Void)? = nil
     var onGoToJourney: (() -> Void)? = nil
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
@@ -129,7 +129,7 @@ struct ProfileView: View {
         case .loading:
             FormaScreenLoadingView(message: FormaProductCopy.Loading.plan)
         case .empty:
-            ProfileEmptyStateView {
+            PlanEmptyStateView {
                 Task {
                     await model.createDefaultProfile()
                 }
@@ -146,7 +146,7 @@ struct ProfileView: View {
     }
 
     @ViewBuilder
-    private func dashboard(_ state: ProfileDashboardState) -> some View {
+    private func dashboard(_ state: PlanDashboardState) -> some View {
         let healthConnected = trainingInsightsStore.integrationState.isConnected
 
         ScrollView {
@@ -244,7 +244,7 @@ struct ProfileView: View {
 
 #Preview {
     let container = try! AppContainer(inMemory: true)
-    ProfileView(model: container.makeProfileModel())
+    PlanView(model: container.makePlanModel())
         .environmentObject(container.refreshCenter)
         .environmentObject(container.authManager)
         .environmentObject(container.trainingInsightsStore)
@@ -257,30 +257,30 @@ struct ProfileView: View {
     ScrollView {
         VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
             PlanMissionControlHeroSection(
-                state: ProfilePreviewData.state.missionControl.mission
+                state: PlanPreviewData.state.missionControl.mission
             )
             PlanTodayMissionSection(
-                state: ProfilePreviewData.state.missionControl.todayMission,
+                state: PlanPreviewData.state.missionControl.todayMission,
                 onGoToToday: {}
             )
-            PlanThisWeekSection(state: ProfilePreviewData.state.missionControl.week)
+            PlanThisWeekSection(state: PlanPreviewData.state.missionControl.week)
             PlanNextMilestoneSection(
-                state: ProfilePreviewData.state.missionControl.nextMilestone,
+                state: PlanPreviewData.state.missionControl.nextMilestone,
                 onGoToJourney: {}
             )
-            PlanRationaleSection(rationale: ProfilePreviewData.state.rationale)
+            PlanRationaleSection(rationale: PlanPreviewData.state.rationale)
             PlanActivityAssumptionsSection(
-                state: ProfilePreviewData.state.missionControl.activityAssumptions,
+                state: PlanPreviewData.state.missionControl.activityAssumptions,
                 onAdjustActivity: {}
             )
-            PlanConfidenceSection(state: ProfilePreviewData.state.missionControl.confidence)
+            PlanConfidenceSection(state: PlanPreviewData.state.missionControl.confidence)
             PlanTrainingIntegrationSection(
                 integrationState: .notConnected,
                 dataSource: .appleHealth,
                 onTap: {}
             )
             PlanAdjustmentSection(
-                state: ProfilePreviewData.state.missionControl.adjustment,
+                state: PlanPreviewData.state.missionControl.adjustment,
                 onAdjustPlan: {}
             )
         }

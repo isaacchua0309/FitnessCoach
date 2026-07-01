@@ -43,7 +43,7 @@ struct TodayDashboardSkeletonView: View {
     }
 
     private func skeletonBlock(height: CGFloat) -> some View {
-        RoundedRectangle(cornerRadius: FitPilotScreenStyle.cardCornerRadius, style: .continuous)
+        RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
             .fill(FormaTokens.Color.surfaceSubtle)
             .frame(height: height)
             .frame(maxWidth: .infinity)

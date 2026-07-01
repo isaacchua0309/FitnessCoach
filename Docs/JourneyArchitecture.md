@@ -2,9 +2,9 @@
 
 **Tab label:** Journey  
 **Navigation title:** Journey  
-**Code names (legacy, intentional):** `ProgressView`, `ProgressModel`, `ProgressDashboardState`, `AppTab.progress`
+**Code names:** `JourneyView`, `JourneyModel`, `JourneyDashboardState`, `AppTab.journey` (persisted tab id migrates from `progress` / `training`).
 
-The product surface is **Journey**. Types and folders still use `Progress*` in places; do not rename without a dedicated migration — treat `Progress*` as the Journey implementation layer.
+Phase 6 (2026-06-30) renamed legacy `Progress*` tab types to `Journey*`. User-profile domain types (`UserProfile`, `ProfileBootstrapService`, etc.) are unchanged.
 
 **Related:** [Architecture.md](./Architecture.md) (app shell), [FormaCalculationSpec.md](./FormaCalculationSpec.md) (plan targets), `Fitness CoachTests/JourneyManualQAChecklistTests.swift` (executable QA matrix).
 
@@ -57,22 +57,22 @@ Order is defined in `JourneyProductLayout.sectionOrder` and rendered by `Journey
 ```mermaid
 flowchart TB
     subgraph ui [UI]
-        PV[ProgressView]
+        PV[JourneyView]
         JDC[JourneyDashboardContent]
         Sections[Journey*Section views]
     end
 
     subgraph model [Feature model]
-        PM[ProgressModel]
-        PVS[ProgressViewState]
-        PDS[ProgressDashboardState]
+        PM[JourneyModel]
+        PVS[JourneyViewState]
+        PDS[JourneyDashboardState]
     end
 
     subgraph orchestration [Builders]
         JDB[JourneyDashboardBuilder]
         JBR[JourneyBaselineResolver]
         Sub[Journey*Builder per section]
-        PLSB[ProgressLogSummaryBuilder]
+        PLSB[JourneyLogSummaryBuilder]
         JTSB[JourneyTrainingSummaryBuilder]
     end
 
@@ -106,26 +106,26 @@ flowchart TB
 
 | Layer | Types | Role |
 |-------|--------|------|
-| **View** | `ProgressView`, `JourneyDashboardContent`, `Journey*Section` | Layout, pull-to-refresh, CTA routing, accessibility, analytics `onAppear` |
-| **Model** | `ProgressModel`, `ProgressViewState` | Async load/refresh, date windows, service calls, assemble `ProgressDashboardState` |
-| **State** | `ProgressDashboardState`, `JourneyDashboardTypes` | Immutable dashboard payload for one render |
+| **View** | `JourneyView`, `JourneyDashboardContent`, `Journey*Section` | Layout, pull-to-refresh, CTA routing, accessibility, analytics `onAppear` |
+| **Model** | `JourneyModel`, `JourneyViewState` | Async load/refresh, date windows, service calls, assemble `JourneyDashboardState` |
+| **State** | `JourneyDashboardState`, `JourneyDashboardTypes` | Immutable dashboard payload for one render |
 | **Orchestration** | `JourneyDashboardBuilder` | Fan-out to section builders; shared `Context` |
 | **Baseline** | `JourneyBaselineResolver` | Single source of truth for start weight, chart points, progress % |
-| **Metrics** | `JourneyLogMetrics`, `ProgressLogSummaryBuilder` | Shared day/week aggregations |
+| **Metrics** | `JourneyLogMetrics`, `JourneyLogSummaryBuilder` | Shared day/week aggregations |
 | **Training** | `JourneyTrainingSummaryBuilder` | Apple Health weekly status + workout analytics display |
 | **Analytics** | `JourneyAnalyticsCoordinator`, `JourneyAnalyticsLogging` | Bucketed, privacy-safe events |
 
-### `ProgressModel.makeDashboardState` pipeline
+### `JourneyModel.makeDashboardState` pipeline
 
 1. **Read logs** — `DailyLogService` (range, week, previous week, month, maturity/all-time window).
 2. **Read weights** — `WeightLogService` (range + all-time for baseline).
 3. **Training** — `TrainingInsightsStore` + `HealthKitWorkoutReading` for connected workout days.
 4. **Profile** — `UserProfileService.getCurrentProfile()`.
-5. **Summaries** — `WeightTrendCalculator`, `ProgressLogSummaryBuilder`, `JourneyTrainingSummaryBuilder`.
+5. **Summaries** — `WeightTrendCalculator`, `JourneyLogSummaryBuilder`, `JourneyTrainingSummaryBuilder`.
 6. **Baseline** — `JourneyBaselineResolver.resolve` (includes `ProgressProjectionCalculator` for pace forecast).
 7. **Streaks** — `StreakCalculator` → `JourneyStreakBuilder`.
-8. **Sections** — `JourneyDashboardBuilder.*` for each `ProgressDashboardState` field.
-9. **Publish** — `ProgressViewState.loaded(ProgressDashboardState)`.
+8. **Sections** — `JourneyDashboardBuilder.*` for each `JourneyDashboardState` field.
+9. **Publish** — `JourneyViewState.loaded(JourneyDashboardState)`.
 
 ### Refresh triggers
 
@@ -143,11 +143,11 @@ flowchart TB
 
 ```
 Fitness Coach/Features/Journey/
-  ProgressView.swift
+  JourneyView.swift
   Components/JourneyDashboardContent.swift
   Components/Journey*Section.swift
-  Model/ProgressModel.swift
-  Model/ProgressDashboardState.swift
+  Model/JourneyModel.swift
+  Model/JourneyDashboardState.swift
   Model/JourneyDashboardBuilder.swift
   Model/Journey*Builder.swift
   Model/JourneyBaselineResolver.swift
@@ -251,7 +251,7 @@ XP reflects **consistency behaviors**, not app opens or vanity actions.
 
 ## 7. Analytics events
 
-Implementation: `Domain/Journey/JourneyAnalyticsLogging.swift`, wired via `AppContainer.makeJourneyAnalyticsCoordinator()` and `ProgressView`.
+Implementation: `Domain/Journey/JourneyAnalyticsLogging.swift`, wired via `AppContainer.makeJourneyAnalyticsCoordinator()` and `JourneyView`.
 
 ### Events
 
@@ -319,9 +319,9 @@ Explicitly **not** part of the live Journey contract:
 | Product term | Code / file (keep unless migrating) |
 |--------------|-------------------------------------|
 | Journey tab | `AppTab.progress`, `MainTabView` Journey tab |
-| Journey screen | `ProgressView` |
-| Journey model | `ProgressModel` |
-| Dashboard state | `ProgressDashboardState` |
+| Journey screen | `JourneyView` |
+| Journey model | `JourneyModel` |
+| Dashboard state | `JourneyDashboardState` |
 | Why Progress Happened | `JourneyProductSection.whyProgress`, `JourneyWhyProgressSection` |
 | This Week | `weeklyReview`, `JourneyWeeklyReviewSection` |
 

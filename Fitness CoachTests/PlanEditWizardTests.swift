@@ -23,7 +23,7 @@ final class PlanEditWizardTests: XCTestCase {
     // MARK: - Flow
 
     func testCompleteProfileSkipsBirthdayStep() {
-        let formState = ProfileFormState(profile: PlanMissionControlFixtures.loseProfile)
+        let formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
 
         XCTAssertFalse(PlanEditWizardFlow.needsBirthdayAndSexStep(formState))
         XCTAssertEqual(
@@ -42,7 +42,7 @@ final class PlanEditWizardTests: XCTestCase {
         var profile = PlanMissionControlFixtures.loseProfile
         profile.birthDate = nil
         profile.sex = .preferNotToSay
-        let formState = ProfileFormState(profile: profile)
+        let formState = PlanFormState(profile: profile)
 
         XCTAssertTrue(PlanEditWizardFlow.needsBirthdayAndSexStep(formState))
         XCTAssertEqual(
@@ -59,7 +59,7 @@ final class PlanEditWizardTests: XCTestCase {
     }
 
     func testReviewStepPrecedesConfirmTargets() {
-        let formState = ProfileFormState(profile: PlanMissionControlFixtures.loseProfile)
+        let formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
         let steps = PlanEditWizardFlow.steps(for: formState)
 
         XCTAssertEqual(steps[steps.count - 2], .reviewChanges)
@@ -67,7 +67,7 @@ final class PlanEditWizardTests: XCTestCase {
     }
 
     func testActivityDeepLinkResolvesToActivityStepIndex() {
-        let formState = ProfileFormState(profile: PlanMissionControlFixtures.loseProfile)
+        let formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
 
         XCTAssertEqual(
             PlanEditWizardFlow.index(of: .activityLevel, formState: formState),
@@ -78,7 +78,7 @@ final class PlanEditWizardTests: XCTestCase {
     // MARK: - Birthday edit
 
     func testBirthdayEditUpdatesAgeAndProfileUpdate() throws {
-        var formState = ProfileFormState(profile: PlanMissionControlFixtures.loseProfile)
+        var formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
         let newBirthDate = try XCTUnwrap(
             calendar.date(from: DateComponents(year: 1990, month: 12, day: 15))
         )
@@ -102,7 +102,7 @@ final class PlanEditWizardTests: XCTestCase {
         profile.birthDate = nil
         profile.age = 40
 
-        let formState = ProfileFormState(profile: profile)
+        let formState = PlanFormState(profile: profile)
 
         XCTAssertNotNil(formState.birthDate)
         XCTAssertEqual(formState.ageText, "40")
@@ -111,7 +111,7 @@ final class PlanEditWizardTests: XCTestCase {
     // MARK: - Activity default sync
 
     func testActivityLevelSelectionSyncsDefaultStepsAndTraining() {
-        var formState = ProfileFormState(profile: PlanMissionControlFixtures.loseProfile)
+        var formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
         formState.selectActivityLevel(.veryActive)
 
         let expected = ActivityTrainingDefaultsResolver().defaults(for: .veryActive)
@@ -122,7 +122,7 @@ final class PlanEditWizardTests: XCTestCase {
     }
 
     func testActivityLevelChangeSyncsSameDefaultsAsOnboarding() {
-        var planForm = ProfileFormState(profile: PlanMissionControlFixtures.loseProfile)
+        var planForm = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
         var onboardingForm = OnboardingFormState()
 
         planForm.selectActivityLevel(.veryActive)
@@ -133,7 +133,7 @@ final class PlanEditWizardTests: XCTestCase {
     }
 
     func testManualTrainingOverrideIsPreservedUntilActivityDefaultsMatch() {
-        var formState = ProfileFormState(profile: PlanMissionControlFixtures.loseProfile)
+        var formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
         formState.setTrainingFrequencyPerWeekText("2")
         formState.setAverageStepsText("4200")
 
@@ -146,7 +146,7 @@ final class PlanEditWizardTests: XCTestCase {
     // MARK: - Review & target regeneration
 
     func testReviewBuilderDetectsGoalWeightChange() {
-        var formState = ProfileFormState(profile: PlanMissionControlFixtures.loseProfile)
+        var formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
         formState.goalWeightKgText = "70"
 
         let review = PlanEditReviewBuilder.build(
@@ -161,7 +161,7 @@ final class PlanEditWizardTests: XCTestCase {
     }
 
     func testTargetComparisonShowsBeforeAndAfterCalories() throws {
-        var formState = ProfileFormState(profile: PlanMissionControlFixtures.loseProfile)
+        var formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
         formState.selectActivityLevel(.sedentary)
 
         let input = try XCTUnwrap(try? formState.makeCalorieTargetInput())
@@ -187,7 +187,7 @@ final class PlanEditWizardTests: XCTestCase {
         try harness.seedProfile(targets: PlanMissionControlFixtures.loseProfile.targets)
         _ = try harness.actionCenter.ensureTodayLog()
 
-        var formState = ProfileFormState(profile: try XCTUnwrap(harness.profileService.getCurrentProfile()))
+        var formState = PlanFormState(profile: try XCTUnwrap(harness.profileService.getCurrentProfile()))
         formState.selectActivityLevel(.veryActive)
         formState.goalWeightKgText = "72"
 
@@ -216,7 +216,7 @@ final class PlanEditWizardTests: XCTestCase {
 
     func testCancelFlowDismissesWithoutSaving() async throws {
         let container = try AppContainer(inMemory: true)
-        let model = container.makeProfileModel()
+        let model = container.makePlanModel()
         try await seedProfile(in: container)
         await model.loadProfile()
 
@@ -244,7 +244,7 @@ final class PlanEditWizardTests: XCTestCase {
 
     func testShowEditPlanActivityOpensAtActivityStep() async throws {
         let container = try AppContainer(inMemory: true)
-        let model = container.makeProfileModel()
+        let model = container.makePlanModel()
         try await seedProfile(in: container)
         await model.loadProfile()
 
@@ -262,7 +262,7 @@ final class PlanEditWizardTests: XCTestCase {
     // MARK: - Helpers
 
     private func seedProfile(in container: AppContainer) async throws {
-        let formState = ProfileFormState(profile: PlanMissionControlFixtures.loseProfile)
+        let formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
         let input = try formState.makeCalorieTargetInput()
         let result = try container.targetService.generateInitialTargets(from: input)
         var draftForm = formState

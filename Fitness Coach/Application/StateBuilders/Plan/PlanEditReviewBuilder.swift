@@ -36,7 +36,7 @@ enum PlanEditReviewBuilder {
 
     static func build(
         baseline: UserProfile,
-        formState: ProfileFormState,
+        formState: PlanFormState,
         referenceDate: Date = Date(),
         calendar: Calendar = .current
     ) -> PlanEditReviewState {
@@ -58,8 +58,8 @@ enum PlanEditReviewBuilder {
             to: &rows,
             id: "goalWeight",
             label: FormaProductCopy.ProfileForm.goalWeight,
-            before: ProfileFormatter.kg(baseline.goalWeightKg),
-            after: ProfileFormatter.kg(formSnapshot.goalWeightKg)
+            before: PlanFormatter.kg(baseline.goalWeightKg),
+            after: PlanFormatter.kg(formSnapshot.goalWeightKg)
         )
 
         if let baselineBirthDate = baseline.birthDate, let formBirthDate = formState.birthDate {
@@ -84,32 +84,32 @@ enum PlanEditReviewBuilder {
             to: &rows,
             id: "sex",
             label: FormaProductCopy.ProfileForm.sex,
-            before: ProfileFormatter.sex(baseline.sex),
-            after: ProfileFormatter.sex(formState.sex)
+            before: PlanFormatter.sex(baseline.sex),
+            after: PlanFormatter.sex(formState.sex)
         )
 
         appendChange(
             to: &rows,
             id: "height",
             label: FormaProductCopy.ProfileForm.height,
-            before: ProfileFormatter.cm(baseline.heightCm),
-            after: ProfileFormatter.cm(formSnapshot.heightCm)
+            before: PlanFormatter.cm(baseline.heightCm),
+            after: PlanFormatter.cm(formSnapshot.heightCm)
         )
 
         appendChange(
             to: &rows,
             id: "weight",
             label: FormaProductCopy.ProfileForm.baselineWeight,
-            before: ProfileFormatter.kg(baseline.currentWeightKg),
-            after: ProfileFormatter.kg(formSnapshot.currentWeightKg)
+            before: PlanFormatter.kg(baseline.currentWeightKg),
+            after: PlanFormatter.kg(formSnapshot.currentWeightKg)
         )
 
         appendChange(
             to: &rows,
             id: "activity",
             label: FormaProductCopy.ProfileForm.activityLevel,
-            before: ProfileFormatter.activityLevel(baseline.activityLevel),
-            after: ProfileFormatter.activityLevel(formState.activityLevel)
+            before: PlanFormatter.activityLevel(baseline.activityLevel),
+            after: PlanFormatter.activityLevel(formState.activityLevel)
         )
 
         let baselineRhythm = baseline.resolvedTrainingRhythm()
@@ -125,8 +125,8 @@ enum PlanEditReviewBuilder {
             to: &rows,
             id: "steps",
             label: FormaProductCopy.ProfileForm.averageSteps,
-            before: ProfileFormatter.steps(baselineRhythm.averageStepsPerDay),
-            after: ProfileFormatter.steps(formRhythm.averageStepsPerDay)
+            before: PlanFormatter.steps(baselineRhythm.averageStepsPerDay),
+            after: PlanFormatter.steps(formRhythm.averageStepsPerDay)
         )
 
         if let baselineBodyFat = baseline.estimatedBodyFatPercentage {
@@ -135,8 +135,8 @@ enum PlanEditReviewBuilder {
                 to: &rows,
                 id: "bodyFat",
                 label: FormaProductCopy.ProfileForm.bodyFat,
-                before: ProfileFormatter.percent(baselineBodyFat) ?? "Not set",
-                after: ProfileFormatter.percent(formBodyFat) ?? "Not set"
+                before: PlanFormatter.percent(baselineBodyFat) ?? "Not set",
+                after: PlanFormatter.percent(formBodyFat) ?? "Not set"
             )
         } else if let formBodyFat = formSnapshot.estimatedBodyFatPercentage {
             appendChange(
@@ -144,7 +144,7 @@ enum PlanEditReviewBuilder {
                 id: "bodyFat",
                 label: FormaProductCopy.ProfileForm.bodyFat,
                 before: "Not set",
-                after: ProfileFormatter.percent(formBodyFat) ?? "Not set"
+                after: PlanFormatter.percent(formBodyFat) ?? "Not set"
             )
         }
 
@@ -157,11 +157,11 @@ enum PlanEditReviewBuilder {
     ) -> PlanEditTargetComparisonState {
         let after = preview.targets
         let rows: [PlanEditTargetComparisonRow] = [
-            comparisonRow("calories", "Calories", ProfileFormatter.kcal(before.calorieTarget), ProfileFormatter.kcal(after.calorieTarget)),
-            comparisonRow("protein", "Protein", ProfileFormatter.grams(before.proteinTarget), ProfileFormatter.grams(after.proteinTarget)),
-            comparisonRow("carbs", "Carbs", ProfileFormatter.grams(before.carbTarget), ProfileFormatter.grams(after.carbTarget)),
-            comparisonRow("fat", "Fat", ProfileFormatter.grams(before.fatTarget), ProfileFormatter.grams(after.fatTarget)),
-            comparisonRow("water", "Water", ProfileFormatter.ml(before.waterTargetMl), ProfileFormatter.ml(after.waterTargetMl))
+            comparisonRow("calories", "Calories", PlanFormatter.kcal(before.calorieTarget), PlanFormatter.kcal(after.calorieTarget)),
+            comparisonRow("protein", "Protein", PlanFormatter.grams(before.proteinTarget), PlanFormatter.grams(after.proteinTarget)),
+            comparisonRow("carbs", "Carbs", PlanFormatter.grams(before.carbTarget), PlanFormatter.grams(after.carbTarget)),
+            comparisonRow("fat", "Fat", PlanFormatter.grams(before.fatTarget), PlanFormatter.grams(after.fatTarget)),
+            comparisonRow("water", "Water", PlanFormatter.ml(before.waterTargetMl), PlanFormatter.ml(after.waterTargetMl))
         ]
 
         return PlanEditTargetComparisonState(
@@ -200,7 +200,7 @@ enum PlanEditReviewBuilder {
         return date.formatted(format)
     }
 
-    private static func profileSnapshot(from formState: ProfileFormState, referenceDate: Date) -> UserProfile {
+    private static func profileSnapshot(from formState: PlanFormState, referenceDate: Date) -> UserProfile {
         let now = referenceDate
         let age = (try? formState.resolvedAge(referenceDate: referenceDate)) ?? 24
         return UserProfile(

@@ -2,7 +2,7 @@
 //  FormaEmptyStateCard.swift
 //  Fitness Coach
 //
-//  Forma — FitPilotPlanCard wrapper for FormaInlineEmptyState.
+//  Forma — FormaPlanCard wrapper for FormaInlineEmptyState.
 //
 
 import SwiftUI
@@ -50,7 +50,7 @@ struct FormaEmptyStateCard<Leading: View>: View {
     }
 
     var body: some View {
-        FitPilotPlanCard {
+        FormaPlanCard {
             if includesLeading {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     leading

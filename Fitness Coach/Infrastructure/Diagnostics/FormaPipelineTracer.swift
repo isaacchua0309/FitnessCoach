@@ -1,5 +1,5 @@
 //
-//  FitPilotPipelineTracer.swift
+//  FormaPipelineTracer.swift
 //  Fitness Coach
 //
 //  DEBUG-only correlated tracing for the Coach AI pipeline.
@@ -59,12 +59,12 @@ struct PipelineTraceSummary: Identifiable, Sendable, Equatable {
 #if DEBUG
 
 @MainActor
-enum FitPilotPipelineTracer {
+enum FormaPipelineTracer {
 
-    static let traceHeaderName = "X-FitPilot-Trace-Id"
+    static let traceHeaderName = "X-Forma-Trace-Id"
     private static let maxEvents = 300
     private static let maxPersistedErrors = 50
-    private static let logger = Logger(subsystem: "FitPilot", category: "PipelineTrace")
+    private static let logger = Logger(subsystem: "Forma", category: "PipelineTrace")
 
     private static var events: [PipelineTraceEvent] = []
     private static var summaries: [UUID: PipelineTraceSummary] = [:]
@@ -74,11 +74,14 @@ enum FitPilotPipelineTracer {
     static var debugRecordHandler: ((DebugRecord) -> Void)?
 
     static var isEnabled: Bool {
-        ProcessInfo.processInfo.environment["FITPILOT_PIPELINE_TRACE"] != "0"
+        FormaEnvironment.isTracingEnabled(
+            primary: "FORMA_PIPELINE_TRACE",
+            legacy: "FITPILOT_PIPELINE_TRACE"
+        )
     }
 
     static var isVerbose: Bool {
-        ProcessInfo.processInfo.environment["FITPILOT_PIPELINE_TRACE_VERBOSE"] == "1"
+        FormaEnvironment.string(primary: "FORMA_PIPELINE_TRACE_VERBOSE", legacy: "FITPILOT_PIPELINE_TRACE_VERBOSE") == "1"
     }
 
     static var usesExtendedHTTPTimeout: Bool {
@@ -315,8 +318,8 @@ enum FitPilotPipelineTracer {
 
 #else
 
-enum FitPilotPipelineTracer {
-    static let traceHeaderName = "X-FitPilot-Trace-Id"
+enum FormaPipelineTracer {
+    static let traceHeaderName = "X-Forma-Trace-Id"
     static var isEnabled: Bool { false }
     static var isVerbose: Bool { false }
     static var usesExtendedHTTPTimeout: Bool { false }
@@ -346,5 +349,5 @@ enum FitPilotPipelineTracer {
 #endif
 
 extension Notification.Name {
-    static let pipelineTraceDidUpdate = Notification.Name("FitPilotPipelineTraceDidUpdate")
+    static let pipelineTraceDidUpdate = Notification.Name("FormaPipelineTraceDidUpdate")
 }

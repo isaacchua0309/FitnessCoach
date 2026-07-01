@@ -1,5 +1,5 @@
 //
-//  ProgressRangeSelector.swift
+//  JourneyRangeSelector.swift
 //  Fitness Coach
 //
 //  FitPilot AI — Fixed MVP range selector for Progress.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct ProgressRangeSelector: View {
+struct JourneyRangeSelector: View {
     let selectedRangeDays: Int
     let onSelect: (Int) -> Void
 
@@ -28,14 +28,14 @@ struct ProgressRangeSelector: View {
 }
 
 #Preview("Dark") {
-    ProgressRangeSelector(selectedRangeDays: 28) { _ in }
+    JourneyRangeSelector(selectedRangeDays: 28) { _ in }
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview(appearance: .dark)
 }
 
 #Preview("Light") {
-    ProgressRangeSelector(selectedRangeDays: 14) { _ in }
+    JourneyRangeSelector(selectedRangeDays: 14) { _ in }
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview(appearance: .light)

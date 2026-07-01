@@ -1,6 +1,6 @@
 # Forma iOS — Architecture
 
-This document describes how the Forma iOS app is composed today and the layering conventions established by the maintainability migration (Phases 1–5).
+This document describes how the Forma iOS app is composed today and the layering conventions established by the maintainability migration (Phases 1–6).
 
 **Related:** [JourneyArchitecture.md](./JourneyArchitecture.md) — Journey tab product contract; [FormaCalculationSpec.md](./FormaCalculationSpec.md) — canonical plan-target formulas.
 
@@ -40,7 +40,7 @@ Fitness_CoachApp
 
 Factory methods wire feature models:
 
-- `makeTodayModel()`, `makeCoachModel()`, `makeProgressModel()`, `makeProfileModel()`
+- `makeTodayModel()`, `makeCoachModel()`, `makeJourneyModel()`, `makePlanModel()`
 - `makeRootModel()`, `makeOnboardingModel(onCompletion:)`
 - `makeTodayActionCoordinator()`, `makeJourneyAnalyticsCoordinator()`
 
@@ -79,8 +79,8 @@ After auth and profile bootstrap, the signed-in shell is a four-tab `TabView`:
 |----------|----------|----------------|---------------|----------------|
 | `.today` | Today | `Features/Today` | `TodayModel` | Am I on track today? |
 | `.coach` | Coach | `Features/Coach` | `CoachModel` | Log, edit, ask — mutations entry point |
-| `.progress` | Journey | `Features/Journey` | `ProgressModel` | What is my fitness story? |
-| `.profile` | Plan | `Features/Plan` | `ProfileModel` | What strategy am I following? |
+| `.journey` | Journey | `Features/Journey` | `JourneyModel` | What is my fitness story? |
+| `.plan` | Plan | `Features/Plan` | `PlanModel` | What strategy am I following? |
 
 **Environment objects** injected at tab level:
 
@@ -90,7 +90,7 @@ After auth and profile bootstrap, the signed-in shell is a four-tab `TabView`:
 
 **Journey tab:** See [JourneyArchitecture.md](./JourneyArchitecture.md) for section order, baseline rules, XP, analytics, and read-only contract.
 
-**Legacy note:** The former Training tab (`AppTab.legacyTrainingTabID = "training"`) was demoted. Persisted selection migrates to Journey (`.progress`). `TrainingView` remains in the codebase for future push navigation but is not in the tab bar. Journey UI types still use the `Progress*` prefix (`ProgressView`, `ProgressModel`) — product name is **Journey**.
+**Legacy note:** The former Training tab (`AppTab.legacyTrainingTabID = "training"`) was demoted. Persisted tab selection migrates from `training` / `progress` → `.journey` and `profile` → `.plan`. `TrainingView` remains in the codebase for future push navigation but is not in the tab bar.
 
 ### Feature tabs (responsibilities)
 
@@ -121,7 +121,7 @@ CoachModel (Features/Coach/Model/)
 Long-horizon narrative: transformation, weekly consistency, milestones, timeline, habit insight, attribution, records, level/XP, and collapsible detailed analytics.
 
 - **Docs:** [JourneyArchitecture.md](./JourneyArchitecture.md)
-- `ProgressView` + `ProgressModel` assemble `ProgressDashboardState` from services.
+- `JourneyView` + `JourneyModel` assemble `JourneyDashboardState` from services.
 - `JourneyDashboardBuilder` + per-section `Journey*Builder` types in `Application/StateBuilders/Journey/`; `JourneyBaselineResolver` owns baseline/chart/progress %.
 - `JourneyDashboardContent` renders `JourneyProductLayout.sectionOrder`.
 - CTAs route to Coach / Plan; no mutations on this tab.
@@ -155,8 +155,8 @@ flowchart TB
     AG --> MT[MainTabView]
     MT --> Today[TodayView]
     MT --> Coach[CoachView]
-    MT --> Journey[ProgressView]
-    MT --> Plan[ProfileView]
+    MT --> Journey[JourneyView]
+    MT --> Plan[PlanView]
     AC[AppContainer] -.-> AG
     AC -.-> MT
     AC -.-> Models[Feature Models + Services]
@@ -166,7 +166,7 @@ flowchart TB
 
 ## 2. Current Architectural Layers
 
-Source lives under `Fitness Coach/` in layer folders (~625 Swift files). The Xcode target is still named **Fitness Coach**; type names still use legacy **FitPilot** prefixes in places (Phase 6 rename).
+Source lives under `Fitness Coach/` in layer folders (~625 Swift files). The Xcode target is still named **Fitness Coach**; Swift type names use **Forma** prefixes for infrastructure and design-system types (Phase 6).
 
 ```
 Fitness Coach/
@@ -216,8 +216,8 @@ SwiftUI views, feature models (`*Model`), view state, formatters, and feature-lo
 |--------|-------|
 | `Coach` | Views, model shell, formatting, components |
 | `Today` | Daily dashboard |
-| `Journey` | Journey tab UI (`ProgressView` — legacy type name) |
-| `Plan` | Plan tab UI (folder name; types still use `Profile*` prefix) |
+| `Journey` | Journey tab UI (`JourneyView`, `JourneyModel`) |
+| `Plan` | Plan tab UI (`PlanView`, `PlanModel`) |
 | `Onboarding` | First-run flow |
 | `Auth` | Gate and sign-in |
 | `Settings` | Plan settings screens |
@@ -256,11 +256,11 @@ Platform and external system adapters. Must not import SwiftUI.
 
 | Area | Path | Contents |
 |------|------|----------|
-| **Persistence** | `Infrastructure/Persistence/SwiftData/` | Entities, mappings, `SwiftDataStore`, `FitPilotModelContainer` |
+| **Persistence** | `Infrastructure/Persistence/SwiftData/` | Entities, mappings, `SwiftDataStore`, `FormaModelContainer` |
 | **Cloud** | `Infrastructure/Cloud/` | Firestore profile sync |
 | **Health** | `Infrastructure/Health/` | HealthKit authorization, workout/step readers |
 | **AI** | `Infrastructure/AI/` | LLM clients, AI contracts, parsers, prompts |
-| **Diagnostics** | `Infrastructure/Diagnostics/` | `FitPilotPipelineTracer`, analytics loggers |
+| **Diagnostics** | `Infrastructure/Diagnostics/` | `FormaPipelineTracer`, analytics loggers |
 
 ### Design system (`DesignSystem/` — 56 files)
 
@@ -269,7 +269,7 @@ Platform and external system adapters. Must not import SwiftUI.
 | `FormaTokens.swift`, `Components/` | Canonical colors, spacing, shared SwiftUI components |
 | `Theme/` | Forma palette + app appearance preferences (`AppThemePreferences`, `ThemeResolver`, …) |
 | `Coach/`, `Onboarding/` | Feature-specific design tokens |
-| `Legacy/FitPilotScreenStyle.swift` | Plan/settings chrome (rename deferred to Phase 6) |
+| `Legacy/FormaScreenStyle.swift` | Plan/settings chrome (rename deferred to Phase 6) |
 
 ### TestingSupport (`TestingSupport/` — 1 file)
 
@@ -303,13 +303,13 @@ These are the conventions the codebase should follow. Violations are tracked in 
 - Feature models and views must not import SwiftData or construct `ModelContext` directly.
 - Reads/writes go through `Core/Services/*` or `FitnessActionCenter`.
 - **Target:** introduce repository protocols behind services; not implemented yet.
-- **Current violations:** `ProfileModel.createDefaultProfile()` calls `userProfileService` directly instead of `FitnessActionCenter`; `AuthGateView` calls `profileBootstrapService` for cloud save.
+- **Current violations:** `PlanModel.createDefaultProfile()` calls `userProfileService` directly instead of `FitnessActionCenter`; `AuthGateView` calls `profileBootstrapService` for cloud save.
 
 ### Design tokens should come from the Forma design system
 
 - New UI uses `FormaTokens` and shared `Core/Design` components.
 - Avoid hard-coded colors, spacing, or ad-hoc card styles in feature views.
-- `FitPilotScreenStyle`, `OnboardingTheme`, and `CoachDesignTokens` are transitional wrappers — new work should extend `FormaTokens` / `Core/Design`, not add a fourth parallel theme.
+- `FormaScreenStyle`, `OnboardingTheme`, and `CoachDesignTokens` are transitional wrappers — new work should extend `FormaTokens` / `Core/Design`, not add a fourth parallel theme.
 
 ### Feature-specific state stays inside the feature unless shared
 
@@ -331,7 +331,7 @@ These are the conventions the codebase should follow. Violations are tracked in 
 
 ## 4. Target Architecture
 
-**Status:** Phase 5 (2026-06-30) completed the folder migration below. Legacy **type names** (`FitPilot*`, `Progress*`, `Profile*`) remain until Phase 6.
+**Status:** Phases 5–6 complete (2026-06-30). Folder layout and primary type renames are in place. Xcode target name (`Fitness Coach`) and `@main` struct (`Fitness_CoachApp`) remain for toolchain compatibility.
 
 ```
 Forma/
@@ -358,7 +358,7 @@ Forma/
 ├── Features/
 │   ├── Today/
 │   ├── Coach/
-│   ├── Journey/            # Journey tab (types: ProgressView, ProgressModel)
+│   ├── Journey/            # Journey tab (types: JourneyView, JourneyModel)
 │   ├── Plan/               # rename from Profile
 │   ├── Onboarding/
 │   ├── TrainingInsights/   # split from demoted Training/
@@ -424,15 +424,13 @@ Tracked for later stages. **Do not treat as blockers for feature work** — but 
 - `CoachResponseBuilder` (in `Application/StateBuilders/Coach/`) duplicates macro summary logic.
 - **Action:** keep `CoachRoutingTests` as safety net; optional further colocation under Application.
 
-### Old FitPilot naming (Phase 6)
+### FitPilot → Forma naming (Phase 6 complete)
 
-- ~~Source folder: `FitPilot/`~~ — **removed in Phase 5**
-- Types: `FitPilotModelContainer`, `FitPilotScreenStyle`, `FitPilotPlanCard`, `FitPilotPipelineTracer`, `FitPilotAIBackendClient`, `FitPilotLegalCopy`
-- Env vars: `FITPILOT_USE_MOCK_LLM`, `FITPILOT_AI_BACKEND_URL`, `FITPILOT_PIPELINE_TRACE*`
-- **Release AI:** see [ReleaseAI.md](./ReleaseAI.md) — Release must not default to localhost; requires explicit `FITPILOT_AI_BACKEND_URL`.
-- Xcode target / app struct: `Fitness Coach`, `Fitness_CoachApp`
-- Product copy already uses Forma (`FormaProductCopy`, `FormaTokens`).
-- **Action:** rename in a dedicated stage; avoid mixing renames with behavior changes.
+- ~~Source folder: `FitPilot/`~~ — removed in Phase 5
+- ~~Types: `FitPilotModelContainer`, `FitPilotScreenStyle`, …~~ — renamed to `Forma*` (Phase 6)
+- ~~Tab types: `Progress*` / `Profile*`~~ — renamed to `Journey*` / `Plan*` (Phase 6)
+- Env vars: prefer `FORMA_*`; legacy `FITPILOT_*` still accepted via `FormaEnvironment`
+- **Remaining:** Xcode target / scheme `Fitness Coach`, `@main` `Fitness_CoachApp` struct
 
 ### Training demotion / Health integration
 
@@ -444,10 +442,10 @@ Tracked for later stages. **Do not treat as blockers for feature work** — but 
 
 ### Duplicated card/row styles
 
-- `FormaTokens` + `Core/Design` vs `FitPilotScreenStyle` (`FitPilotPlanCard`, settings rows) vs `OnboardingTheme` vs `CoachDesignTokens`.
+- `FormaTokens` + `Core/Design` vs `FormaScreenStyle` (`FormaPlanCard`, settings rows) vs `OnboardingTheme` vs `CoachDesignTokens`.
 - Six near-identical `*ErrorView` and five `*LoadingView` files across features.
 - Four `*Layout.swift` enums with overlapping spacing constants.
-- **Action:** unify on `FormaTokens` + shared status views; rename `FitPilotScreenStyle` → `FormaScreenStyle`.
+- **Action:** unify on `FormaTokens` + shared status views; consolidate `FormaScreenStyle` into tokens over time.
 
 ### Dead previews / unused components
 
@@ -474,7 +472,7 @@ Items that need confirmation before deletion or large refactors:
 
 | Area | Question |
 |------|----------|
-| `ChatMessageEntity` | Intentional schema for future chat persistence, or safe to remove from `FitPilotModelContainer`? |
+| `ChatMessageEntity` | Intentional schema for future chat persistence, or safe to remove from `FormaModelContainer`? |
 | `WeeklyReview` | Planned feature vs abandoned scaffold? |
 | `TrainingView` / manual workout UI | Archive vs future push navigation from Coach? |
 | `UnitSettingsView` vs `UnitsSettingsScreen` | Merge into one component or keep wizard vs settings variants? |
@@ -488,6 +486,7 @@ Items that need confirmation before deletion or large refactors:
 
 | Date | Change |
 |------|--------|
+| 2026-06-30 | Phase 6: `FitPilot*` → `Forma*` types; `Progress*`/`Profile*` tab types → `Journey*`/`Plan*`; `FORMA_*` env vars with legacy fallback |
 | 2026-06-30 | Phase 5: folder migration complete — `App/`, `Application/`, `Infrastructure/`, `Data/DTOs/`; `FitPilot/` removed |
 | 2026-06-30 | Phase 4: `CoachModel` decomposed into focused handlers under `Application/UseCases/Coach/` |
 | 2026-06-30 | Phase 3: `AuthGateCoordinator` extracted; `AuthGateView` thinned to shell wiring |

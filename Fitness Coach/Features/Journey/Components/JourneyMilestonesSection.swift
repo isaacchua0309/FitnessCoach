@@ -13,7 +13,7 @@ struct JourneyMilestonesSection: View {
             FormaSectionLabel(title: FormaProductCopy.Journey.Milestones.sectionTitle)
 
             if state.items.isEmpty {
-                FitPilotPlanCard {
+                FormaPlanCard {
                     Text(FormaProductCopy.Journey.Milestones.emptyBody)
                         .font(FormaTokens.Typography.sectionSubtitle)
                         .foregroundStyle(FormaTokens.Color.textSecondary)
@@ -24,7 +24,7 @@ struct JourneyMilestonesSection: View {
                     nextMilestoneHeader(next)
                 }
 
-                FitPilotPlanCard {
+                FormaPlanCard {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: FormaTokens.Spacing.sm) {
                             ForEach(state.items) { milestone in
@@ -152,21 +152,21 @@ struct JourneyMilestonesSection: View {
 // MARK: - Previews
 
 #Preview("New user") {
-    JourneyMilestonesSection(state: ProgressPreviewData.milestonesNewUser)
+    JourneyMilestonesSection(state: JourneyPreviewData.milestonesNewUser)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()
 }
 
 #Preview("Active progress") {
-    JourneyMilestonesSection(state: ProgressPreviewData.milestonesActive)
+    JourneyMilestonesSection(state: JourneyPreviewData.milestonesActive)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()
 }
 
 #Preview("Near goal") {
-    JourneyMilestonesSection(state: ProgressPreviewData.milestonesNearGoal)
+    JourneyMilestonesSection(state: JourneyPreviewData.milestonesNearGoal)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()

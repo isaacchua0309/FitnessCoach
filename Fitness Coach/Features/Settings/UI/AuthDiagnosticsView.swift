@@ -14,19 +14,19 @@ struct AuthDiagnosticsView: View {
         List {
             Section {
                 DebugAuthDiagnosticsView()
-                    .fitPilotSettingsRowChrome()
+                    .formaSettingsRowChrome()
             } header: {
-                FitPilotSettingsSectionHeader(title: "Session")
+                FormaSettingsSectionHeader(title: "Session")
             } footer: {
                 Text("Debug only. Token values are never shown. Token check reports Available, Unavailable, or Checking...")
                     .font(FormaTokens.Typography.caption)
                     .foregroundStyle(FormaTokens.Color.textTertiary)
             }
         }
-        .fitPilotGroupedList()
+        .formaGroupedList()
         .navigationTitle("Auth diagnostics")
         .navigationBarTitleDisplayMode(.inline)
-        .fitPilotScrollBottomInset()
+        .formaScrollBottomInset()
     }
 }
 

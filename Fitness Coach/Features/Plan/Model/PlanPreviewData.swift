@@ -1,5 +1,5 @@
 //
-//  ProfilePreviewData.swift
+//  PlanPreviewData.swift
 //  Fitness Coach
 //
 //  FitPilot AI — Static preview data for Plan UI previews.
@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum ProfilePreviewData {
+enum PlanPreviewData {
     static let profile = UserProfile(
         id: UUID(),
         name: "Alex",
@@ -37,7 +37,7 @@ enum ProfilePreviewData {
 
     static let state = PlanStateBuilder.dashboardState(profile: profile)
 
-    static let formState = ProfileFormState(profile: profile)
+    static let formState = PlanFormState(profile: profile)
 
     static let generatedPreview = CalorieTargetResult(
         estimatedBMR: 1480,

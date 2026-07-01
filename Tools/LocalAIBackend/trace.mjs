@@ -1,9 +1,12 @@
 export function isTraceEnabled() {
-  return process.env.FITPILOT_AI_BACKEND_TRACE !== "0";
+  if (process.env.FORMA_AI_BACKEND_TRACE === "0") return false;
+  if (process.env.FITPILOT_AI_BACKEND_TRACE === "0") return false;
+  return true;
 }
 
 export function isVerbose() {
-  return process.env.FITPILOT_AI_BACKEND_TRACE_VERBOSE === "1";
+  return process.env.FORMA_AI_BACKEND_TRACE_VERBOSE === "1"
+    || process.env.FITPILOT_AI_BACKEND_TRACE_VERBOSE === "1";
 }
 
 export function logTrace({ traceId, stage, level = "info", message, fields = {} }) {
@@ -32,5 +35,9 @@ export function sanitizeSnippet(value, limit = 2048) {
 }
 
 export function readTraceId(request) {
-  return request.headers["x-fitpilot-trace-id"] ?? request.headers["X-FitPilot-Trace-Id"] ?? null;
+  return request.headers["x-forma-trace-id"]
+    ?? request.headers["X-Forma-Trace-Id"]
+    ?? request.headers["x-fitpilot-trace-id"]
+    ?? request.headers["X-FitPilot-Trace-Id"]
+    ?? null;
 }

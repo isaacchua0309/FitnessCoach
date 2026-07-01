@@ -169,7 +169,7 @@ final class AuthManager: ObservableObject {
     func idToken(forceRefresh: Bool = false) async throws -> String {
         do {
             let token = try await refreshIDToken(forceRefresh: forceRefresh)
-            FitPilotPipelineTracer.event(
+            FormaPipelineTracer.event(
                 stage: .authToken,
                 level: .debug,
                 message: "Auth token available for request",
@@ -180,7 +180,7 @@ final class AuthManager: ObservableObject {
             )
             return token
         } catch let error as AuthManagerError {
-            FitPilotPipelineTracer.logError(
+            FormaPipelineTracer.logError(
                 stage: .authToken,
                 message: "Auth token unavailable",
                 fields: [
@@ -190,7 +190,7 @@ final class AuthManager: ObservableObject {
             )
             throw error
         } catch {
-            FitPilotPipelineTracer.logError(
+            FormaPipelineTracer.logError(
                 stage: .authToken,
                 message: "Auth token fetch failed",
                 fields: [

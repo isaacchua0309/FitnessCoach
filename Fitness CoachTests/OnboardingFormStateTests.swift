@@ -45,7 +45,7 @@ final class OnboardingFormStateTests: XCTestCase {
             amountText: "0.5"
         )
 
-        var profileForm = ProfileFormState.defaultDraftValues()
+        var profileForm = PlanFormState.defaultDraftValues()
         profileForm.birthDate = onboarding.birthDate
         profileForm.ageText = onboarding.ageText
         profileForm.sex = onboarding.sex

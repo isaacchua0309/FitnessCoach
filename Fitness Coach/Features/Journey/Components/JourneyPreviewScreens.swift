@@ -11,9 +11,9 @@ import SwiftUI
 enum JourneyPreviewScreens {
 
   @ViewBuilder
-  static func dashboard(_ scenario: ProgressPreviewData.Scenario, palette: AppThemePalette = .default) -> some View {
+  static func dashboard(_ scenario: JourneyPreviewData.Scenario, palette: AppThemePalette = .default) -> some View {
     ScrollView {
-      JourneyDashboardContent(state: ProgressPreviewData.dashboard(scenario))
+      JourneyDashboardContent(state: JourneyPreviewData.dashboard(scenario))
     }
     .background(FormaTokens.Color.canvas)
     .formaThemePreview(palette: palette)

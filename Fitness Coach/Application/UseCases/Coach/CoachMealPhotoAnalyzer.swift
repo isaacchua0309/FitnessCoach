@@ -47,7 +47,7 @@ final class CoachMealPhotoAnalyzer {
         recentMessages: [ChatMessage],
         aiContextBuilder: CoachContextBuilder
     ) async -> CoachActionResult {
-        FitPilotPipelineTracer.event(
+        FormaPipelineTracer.event(
             stage: .coachSend,
             level: .info,
             message: "Meal photo analysis started",

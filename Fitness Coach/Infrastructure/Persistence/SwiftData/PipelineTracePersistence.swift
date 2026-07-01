@@ -2,7 +2,7 @@
 //  PipelineTracePersistence.swift
 //  Fitness Coach
 //
-//  Optional bridge from `FitPilotPipelineTracer` to `DebugRecordEntity`.
+//  Optional bridge from `FormaPipelineTracer` to `DebugRecordEntity`.
 //
 //  Disk persistence is disabled (Stage 14): Settings diagnostics read in-memory
 //  trace buffers only, so writing SwiftData rows created unreachable data.
@@ -19,6 +19,6 @@ enum PipelineTracePersistence {
 
     static func install(on store: SwiftDataStore) {
         _ = store
-        // In-memory `FitPilotPipelineTracer` remains the diagnostics source of truth.
+        // In-memory `FormaPipelineTracer` remains the diagnostics source of truth.
     }
 }

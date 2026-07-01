@@ -87,7 +87,7 @@ struct CoachIntentRouter: Sendable {
             fields["tier"] = task.tier.rawValue
             fields["task"] = aiTaskName(task.task)
         }
-        FitPilotPipelineTracer.event(
+        FormaPipelineTracer.event(
             stage: .intentRoute,
             level: .debug,
             message: "Intent routed to handler",

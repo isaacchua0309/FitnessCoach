@@ -85,7 +85,7 @@ final class FallbackLLMClient: LLMClient {
                 fields["llmError"] = String(describing: llmError)
             }
             fields["error"] = error.localizedDescription
-            FitPilotPipelineTracer.logError(
+            FormaPipelineTracer.logError(
                 stage: .aiTask,
                 message: "Primary LLM client failed; marking backend unavailable",
                 fields: fields

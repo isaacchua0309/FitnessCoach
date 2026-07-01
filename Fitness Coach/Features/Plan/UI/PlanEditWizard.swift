@@ -10,13 +10,13 @@ import SwiftUI
 struct PlanEditWizard: View {
     @Environment(\.dismiss) private var dismiss
 
-    @Binding var formState: ProfileFormState
+    @Binding var formState: PlanFormState
     let baselineProfile: UserProfile
     var initialStep: PlanEditWizardStep = .goalAndTargetWeight
     let errorMessage: String?
-    let onSave: (ProfileFormState) async -> Void
+    let onSave: (PlanFormState) async -> Void
     let onCancel: () -> Void
-    let onPrepareTargets: (ProfileFormState) async throws -> CalorieTargetResult
+    let onPrepareTargets: (PlanFormState) async throws -> CalorieTargetResult
 
     @State private var stepIndex = 0
     @State private var goalType: PlanGoalType = .loseFat
@@ -123,9 +123,9 @@ struct PlanEditWizard: View {
                     keyboard: .decimalPad
                 )
                 .padding(.vertical, FormaTokens.Spacing.xs)
-                .fitPilotFormSection()
+                .formaFormSection()
             } header: {
-                FitPilotSettingsSectionHeader(title: "Target weight")
+                FormaSettingsSectionHeader(title: "Target weight")
             }
 
             Section {
@@ -140,7 +140,7 @@ struct PlanEditWizard: View {
                     formState.syncAggressivenessFromPaceChoice()
                 }
             } header: {
-                FitPilotSettingsSectionHeader(title: "Pace")
+                FormaSettingsSectionHeader(title: "Pace")
             } footer: {
                 if goalType == .loseFat {
                     Text("Forma computes calorie and macro targets from your pace, weight, and lifestyle.")
@@ -158,10 +158,10 @@ struct PlanEditWizard: View {
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
             } header: {
-                FitPilotSettingsSectionHeader(title: "Birthday")
+                FormaSettingsSectionHeader(title: "Birthday")
             } footer: {
                 if let birthDate = formState.birthDate {
-                    Text("Age used for calculations: \(ProfileFormatter.age(BirthDateAgeResolver.age(from: birthDate)))")
+                    Text("Age used for calculations: \(PlanFormatter.age(BirthDateAgeResolver.age(from: birthDate)))")
                         .font(FormaTokens.Typography.caption)
                         .foregroundStyle(FormaTokens.Color.textTertiary)
                 } else {
@@ -178,7 +178,7 @@ struct PlanEditWizard: View {
                             formState.sex = sex
                         } label: {
                             HStack {
-                                Text(ProfileFormatter.sex(sex))
+                                Text(PlanFormatter.sex(sex))
                                     .foregroundStyle(FormaTokens.Color.textPrimary)
                                 Spacer()
                                 if formState.sex == sex {
@@ -193,9 +193,9 @@ struct PlanEditWizard: View {
                     }
                 }
                 .padding(.vertical, FormaTokens.Spacing.xs)
-                .fitPilotFormSection()
+                .formaFormSection()
             } header: {
-                FitPilotSettingsSectionHeader(title: FormaProductCopy.ProfileForm.sex)
+                FormaSettingsSectionHeader(title: FormaProductCopy.ProfileForm.sex)
             } footer: {
                 Text("Biological sex is required for calorie and macro calculations.")
                     .font(FormaTokens.Typography.caption)
@@ -223,9 +223,9 @@ struct PlanEditWizard: View {
                 )
             }
             .padding(.vertical, FormaTokens.Spacing.xs)
-            .fitPilotFormSection()
+            .formaFormSection()
         } header: {
-            FitPilotSettingsSectionHeader(title: "Height & weight")
+            FormaSettingsSectionHeader(title: "Height & weight")
         } footer: {
             Text("Current weight drives your maintenance and target calculations.")
                 .font(FormaTokens.Typography.caption)
@@ -247,7 +247,7 @@ struct PlanEditWizard: View {
                         } label: {
                             HStack(alignment: .top, spacing: FormaTokens.Spacing.md) {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(ProfileFormatter.activityLevel(level))
+                                    Text(PlanFormatter.activityLevel(level))
                                         .font(FormaTokens.Typography.body.weight(.medium))
                                         .foregroundStyle(FormaTokens.Color.textPrimary)
                                     Text(OnboardingActivityLevelValues.optionDescription(for: level))
@@ -268,9 +268,9 @@ struct PlanEditWizard: View {
                     }
                 }
                 .padding(.vertical, FormaTokens.Spacing.xs)
-                .fitPilotFormSection()
+                .formaFormSection()
             } header: {
-                FitPilotSettingsSectionHeader(title: FormaProductCopy.ProfileForm.activityLevel)
+                FormaSettingsSectionHeader(title: FormaProductCopy.ProfileForm.activityLevel)
             } footer: {
                 let rhythm = ActivityTrainingDefaultsResolver().defaults(for: formState.activityLevel)
                 Text("Defaults: \(rhythm.trainingDaysPerWeek) training days/week, \(rhythm.averageStepsPerDay.formatted()) steps/day.")
@@ -365,7 +365,7 @@ struct PlanEditWizard: View {
                     }
                 }
             } header: {
-                FitPilotSettingsSectionHeader(title: "Review changes")
+                FormaSettingsSectionHeader(title: "Review changes")
             } footer: {
                 Text("Next, Forma will regenerate your daily targets from these inputs.")
                     .font(FormaTokens.Typography.caption)
@@ -422,7 +422,7 @@ struct PlanEditWizard: View {
                     .padding(.vertical, 2)
                 }
             } header: {
-                FitPilotSettingsSectionHeader(title: "Target changes")
+                FormaSettingsSectionHeader(title: "Target changes")
             } footer: {
                 Text("Saving updates your plan and today's targets.")
                     .font(FormaTokens.Typography.caption)
@@ -592,7 +592,7 @@ struct PlanEditWizard: View {
 
 // MARK: Form snapshot for goal type inference
 
-private extension ProfileFormState {
+private extension PlanFormState {
     func asProfileSnapshot() -> UserProfile {
         let now = Date()
         let age = (try? resolvedAge()) ?? 24
@@ -628,11 +628,11 @@ private extension ProfileFormState {
 
 #Preview {
     PlanEditWizard(
-        formState: .constant(ProfilePreviewData.formState),
-        baselineProfile: ProfilePreviewData.profile,
+        formState: .constant(PlanPreviewData.formState),
+        baselineProfile: PlanPreviewData.profile,
         errorMessage: nil,
         onSave: { _ in },
         onCancel: {},
-        onPrepareTargets: { _ in ProfilePreviewData.generatedPreview }
+        onPrepareTargets: { _ in PlanPreviewData.generatedPreview }
     )
 }

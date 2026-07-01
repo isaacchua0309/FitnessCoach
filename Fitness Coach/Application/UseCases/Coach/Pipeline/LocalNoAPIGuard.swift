@@ -79,7 +79,7 @@ struct LocalNoAPIGuard: Sendable {
         if let foodConfidence {
             fields["foodConfidence"] = foodConfidence
         }
-        FitPilotPipelineTracer.event(
+        FormaPipelineTracer.event(
             stage: .localGuard,
             level: .debug,
             message: "Local guard evaluated",

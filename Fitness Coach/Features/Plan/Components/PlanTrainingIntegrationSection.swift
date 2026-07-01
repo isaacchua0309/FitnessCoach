@@ -22,7 +22,7 @@ struct PlanTrainingIntegrationSection: View {
                 FormaSectionLabel(title: presentation.sectionTitle)
 
                 Button(action: onTap) {
-                    FitPilotPlanCard {
+                    FormaPlanCard {
                         VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                             statusRow
                                 .accessibilityHidden(true)
@@ -38,7 +38,7 @@ struct PlanTrainingIntegrationSection: View {
                                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                                     .foregroundStyle(FormaTokens.Color.accent)
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                    .frame(minHeight: FitPilotScreenStyle.rowMinHeight)
+                                    .frame(minHeight: FormaScreenStyle.rowMinHeight)
                                     .padding(.top, FormaTokens.Spacing.xs)
                                     .accessibilityHidden(true)
                             }

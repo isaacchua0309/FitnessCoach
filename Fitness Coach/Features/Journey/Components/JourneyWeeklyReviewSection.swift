@@ -13,7 +13,7 @@ struct JourneyWeeklyReviewSection: View {
         VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
             FormaSectionLabel(title: FormaProductCopy.Journey.WeeklyReview.sectionTitle)
 
-            FitPilotPlanCard {
+            FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     Text(review.weekSummaryCopy)
                         .font(FormaTokens.Typography.sectionSubtitle)
@@ -27,16 +27,16 @@ struct JourneyWeeklyReviewSection: View {
 
                     ForEach(Array(review.rows.enumerated()), id: \.element.id) { index, row in
                         if index == 0 {
-                            FitPilotPlanRowDivider()
+                            FormaPlanRowDivider()
                         }
                         reviewRow(row)
                         if index < review.rows.count - 1 {
-                            FitPilotPlanRowDivider()
+                            FormaPlanRowDivider()
                         }
                     }
 
                     if let weekOverWeekDetail = review.weekOverWeekDetail {
-                        FitPilotPlanRowDivider()
+                        FormaPlanRowDivider()
                         Text(weekOverWeekDetail)
                             .font(FormaTokens.Typography.caption)
                             .foregroundStyle(FormaTokens.Color.textTertiary)
@@ -45,7 +45,7 @@ struct JourneyWeeklyReviewSection: View {
 
                     if let cta = JourneyCTARouter.weeklyTrainingCTA(training: review.training),
                        let onCTA {
-                        FitPilotPlanRowDivider()
+                        FormaPlanRowDivider()
                         JourneyCTAButton(cta: cta) {
                             onCTA(cta)
                         }
@@ -114,21 +114,21 @@ struct JourneyWeeklyReviewSection: View {
 // MARK: - Previews
 
 #Preview("Full week") {
-    JourneyWeeklyReviewSection(review: ProgressPreviewData.weeklyReviewFullWeek)
+    JourneyWeeklyReviewSection(review: JourneyPreviewData.weeklyReviewFullWeek)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()
 }
 
 #Preview("Partial week") {
-    JourneyWeeklyReviewSection(review: ProgressPreviewData.weeklyReviewPartialWeek)
+    JourneyWeeklyReviewSection(review: JourneyPreviewData.weeklyReviewPartialWeek)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()
 }
 
 #Preview("Apple Health locked") {
-    JourneyWeeklyReviewSection(review: ProgressPreviewData.weeklyReviewTrainingLocked)
+    JourneyWeeklyReviewSection(review: JourneyPreviewData.weeklyReviewTrainingLocked)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()

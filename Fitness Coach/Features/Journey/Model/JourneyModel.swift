@@ -1,5 +1,5 @@
 //
-//  ProgressModel.swift
+//  JourneyModel.swift
 //  Fitness Coach
 //
 //  FitPilot AI — Read-only Journey transformation state.
@@ -9,9 +9,9 @@ import Combine
 import Foundation
 
 @MainActor
-final class ProgressModel: ObservableObject {
+final class JourneyModel: ObservableObject {
 
-    @Published private(set) var viewState: ProgressViewState = .loading
+    @Published private(set) var viewState: JourneyViewState = .loading
     @Published private(set) var selectedRangeDays: Int = 28
 
     private let dailyLogService: DailyLogService
@@ -62,7 +62,7 @@ final class ProgressModel: ObservableObject {
 
     // MARK: State Building
 
-    private func makeDashboardState(rangeDays: Int) async throws -> ProgressDashboardState {
+    private func makeDashboardState(rangeDays: Int) async throws -> JourneyDashboardState {
         let calendar = Calendar.current
         let endDate = Date()
         let startDate = calendar.date(byAdding: .day, value: -rangeDays + 1, to: endDate) ?? endDate
@@ -116,8 +116,8 @@ final class ProgressModel: ObservableObject {
             hasSuddenSpike: weightTrend.hasSuddenSpike
         )
 
-        let nutritionSummary = ProgressLogSummaryBuilder.nutritionSummary(from: logs)
-        let waterSummary = ProgressLogSummaryBuilder.waterSummary(from: logs)
+        let nutritionSummary = JourneyLogSummaryBuilder.nutritionSummary(from: logs)
+        let waterSummary = JourneyLogSummaryBuilder.waterSummary(from: logs)
         let workoutSummary = JourneyTrainingSummaryBuilder.workoutAnalytics(
             integrationState: integrationState,
             dataSource: dataSource,
@@ -195,7 +195,7 @@ final class ProgressModel: ObservableObject {
             calendar: calendar
         )
 
-        return ProgressDashboardState(
+        return JourneyDashboardState(
             selectedRangeDays: rangeDays,
             hasProfile: profile != nil,
             baseline: baseline,
@@ -239,17 +239,17 @@ final class ProgressModel: ObservableObject {
 
 #if DEBUG
     /// Applies a static dashboard for SwiftUI previews without loading services.
-    func applyPreviewState(_ state: ProgressDashboardState) {
+    func applyPreviewState(_ state: JourneyDashboardState) {
         selectedRangeDays = state.selectedRangeDays
         viewState = .loaded(state)
     }
 
     static func preview(
-        scenario: ProgressPreviewData.Scenario = .strongMomentum
-    ) -> ProgressModel {
+        scenario: JourneyPreviewData.Scenario = .strongMomentum
+    ) -> JourneyModel {
         let container = try! AppContainer(inMemory: true)
-        let model = container.makeProgressModel()
-        model.applyPreviewState(ProgressPreviewData.dashboard(scenario))
+        let model = container.makeJourneyModel()
+        model.applyPreviewState(JourneyPreviewData.dashboard(scenario))
         return model
     }
 #endif

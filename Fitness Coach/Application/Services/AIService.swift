@@ -154,7 +154,7 @@ final class AIService: AIServiceProtocol {
         work: () async throws -> T
     ) async throws -> T {
         let started = Date()
-        FitPilotPipelineTracer.event(
+        FormaPipelineTracer.event(
             stage: .aiTask,
             level: .debug,
             message: "AIService call started",
@@ -164,7 +164,7 @@ final class AIService: AIServiceProtocol {
         do {
             let result = try await work()
             let durationMs = Int(Date().timeIntervalSince(started) * 1_000)
-            FitPilotPipelineTracer.event(
+            FormaPipelineTracer.event(
                 stage: .aiTask,
                 level: .info,
                 message: "AIService call succeeded",
@@ -176,7 +176,7 @@ final class AIService: AIServiceProtocol {
             return result
         } catch let error as LLMClientError {
             let durationMs = Int(Date().timeIntervalSince(started) * 1_000)
-            FitPilotPipelineTracer.logError(
+            FormaPipelineTracer.logError(
                 stage: .aiTask,
                 message: "AIService LLM client error",
                 fields: [
@@ -188,7 +188,7 @@ final class AIService: AIServiceProtocol {
             throw AICommandParser.map(error)
         } catch let error as AIServiceError {
             let durationMs = Int(Date().timeIntervalSince(started) * 1_000)
-            FitPilotPipelineTracer.logError(
+            FormaPipelineTracer.logError(
                 stage: .aiTask,
                 message: "AIService validation error",
                 fields: [
@@ -200,7 +200,7 @@ final class AIService: AIServiceProtocol {
             throw error
         } catch {
             let durationMs = Int(Date().timeIntervalSince(started) * 1_000)
-            FitPilotPipelineTracer.logError(
+            FormaPipelineTracer.logError(
                 stage: .aiTask,
                 message: "AIService unexpected error",
                 fields: [

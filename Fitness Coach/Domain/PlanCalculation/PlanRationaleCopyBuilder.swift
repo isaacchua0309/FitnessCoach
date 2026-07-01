@@ -50,12 +50,12 @@ struct PlanRationaleState: Equatable, Sendable {
     }
 
     static func fallback(for profile: UserProfile) -> PlanRationaleState {
-        let activity = ProfileFormatter.activityLevel(profile.activityLevel).lowercased()
+        let activity = PlanFormatter.activityLevel(profile.activityLevel).lowercased()
         let targets = profile.targets
-        let weight = ProfileFormatter.kg(profile.currentWeightKg)
+        let weight = PlanFormatter.kg(profile.currentWeightKg)
 
         let summary = """
-        Based on your current weight of \(weight) and \(activity) activity level, your plan targets \(ProfileFormatter.kcal(targets.calorieTarget))/day with \(ProfileFormatter.grams(targets.proteinTarget)) protein and \(ProfileFormatter.ml(targets.waterTargetMl)) water.
+        Based on your current weight of \(weight) and \(activity) activity level, your plan targets \(PlanFormatter.kcal(targets.calorieTarget))/day with \(PlanFormatter.grams(targets.proteinTarget)) protein and \(PlanFormatter.ml(targets.waterTargetMl)) water.
         """
 
         return PlanRationaleState(
@@ -208,12 +208,12 @@ enum PlanRationaleCopyBuilder {
             PlanRationaleBasedOnItem(
                 id: "sex",
                 label: FormaProductCopy.PlanRationale.biologicalSex,
-                value: ProfileFormatter.sex(profile.sex)
+                value: PlanFormatter.sex(profile.sex)
             ),
             PlanRationaleBasedOnItem(
                 id: "activity",
                 label: FormaProductCopy.PlanRationale.activityLevel,
-                value: ProfileFormatter.activityLevel(profile.activityLevel)
+                value: PlanFormatter.activityLevel(profile.activityLevel)
             ),
             PlanRationaleBasedOnItem(
                 id: "goal",
@@ -314,7 +314,7 @@ enum PlanRationaleCopyBuilder {
         referenceDate: Date
     ) -> String {
         let weight = PlanDisplayFormatter.formatKg(profile.currentWeightKg)
-        let activity = ProfileFormatter.activityLevel(profile.activityLevel).lowercased()
+        let activity = PlanFormatter.activityLevel(profile.activityLevel).lowercased()
         let maintenance = PlanDisplayFormatter.formatKcalPerDay(result.tdeeKcal)
 
         let contextLine = contextOpening(

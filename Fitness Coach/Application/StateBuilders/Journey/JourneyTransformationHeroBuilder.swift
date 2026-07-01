@@ -25,9 +25,9 @@ enum JourneyTransformationHeroBuilder {
         let baseline = input.baseline
         let changeKg = changeValueKg(baseline: baseline)
         let headline = headlineCopy(goalDirection: baseline.goalDirection)
-        let changeValueCopy = ProgressFormatter.heroChangeKg(changeKg)
+        let changeValueCopy = JourneyFormatter.heroChangeKg(changeKg)
         let progressPercent = baseline.progressPercent ?? 0
-        let goalWeightCopy = ProgressFormatter.heroWeightKg(baseline.goalWeightKg)
+        let goalWeightCopy = JourneyFormatter.heroWeightKg(baseline.goalWeightKg)
         let progressLabel = Self.progressLabel(percent: baseline.progressPercent)
         let progressBarAccessibilityValue = Self.progressBarAccessibilityValue(percent: baseline.progressPercent)
         let progressBarFill = Self.progressBarFill(
@@ -50,9 +50,9 @@ enum JourneyTransformationHeroBuilder {
         let accessibilitySummary = FormaProductCopy.Journey.Transformation.accessibilitySummary(
             headline: headline,
             changeValue: changeValueCopy,
-            started: ProgressFormatter.heroWeightKg(baseline.startWeightKg),
-            today: ProgressFormatter.heroWeightKg(baseline.currentWeightKg),
-            goal: ProgressFormatter.heroWeightKg(baseline.goalWeightKg),
+            started: JourneyFormatter.heroWeightKg(baseline.startWeightKg),
+            today: JourneyFormatter.heroWeightKg(baseline.currentWeightKg),
+            goal: JourneyFormatter.heroWeightKg(baseline.goalWeightKg),
             progressLabel: progressLabel,
             emotionalStatus: emotionalStatus,
             startedFootnote: startedFootnote
@@ -65,8 +65,8 @@ enum JourneyTransformationHeroBuilder {
             progressBarFill: progressBarFill,
             progressLabel: progressLabel,
             progressBarAccessibilityValue: progressBarAccessibilityValue,
-            startedWeightCopy: ProgressFormatter.heroWeightKg(baseline.startWeightKg),
-            todayWeightCopy: ProgressFormatter.heroWeightKg(baseline.currentWeightKg),
+            startedWeightCopy: JourneyFormatter.heroWeightKg(baseline.startWeightKg),
+            todayWeightCopy: JourneyFormatter.heroWeightKg(baseline.currentWeightKg),
             goalWeightCopy: goalWeightCopy,
             startedFootnote: startedFootnote,
             paceForecastText: paceForecast,
