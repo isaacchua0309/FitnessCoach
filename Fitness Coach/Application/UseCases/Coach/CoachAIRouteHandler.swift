@@ -12,7 +12,7 @@ final class CoachAIRouteHandler {
 
     private let aiService: AIServiceProtocol?
     private let aiCommandParsingEnabled: Bool
-    private let dailyLogService: DailyLogService
+    private let dailyLogReader: any DailyLogReading
     private let userProfileReader: (any UserProfileReading)?
     private let trainingInsightsStore: TrainingInsightsStore?
     private let mutationExecutor: CoachMutationExecutor
@@ -20,14 +20,14 @@ final class CoachAIRouteHandler {
     init(
         aiService: AIServiceProtocol?,
         aiCommandParsingEnabled: Bool,
-        dailyLogService: DailyLogService,
+        dailyLogReader: any DailyLogReading,
         userProfileReader: (any UserProfileReading)?,
         trainingInsightsStore: TrainingInsightsStore?,
         mutationExecutor: CoachMutationExecutor
     ) {
         self.aiService = aiService
         self.aiCommandParsingEnabled = aiCommandParsingEnabled
-        self.dailyLogService = dailyLogService
+        self.dailyLogReader = dailyLogReader
         self.userProfileReader = userProfileReader
         self.trainingInsightsStore = trainingInsightsStore
         self.mutationExecutor = mutationExecutor
@@ -121,7 +121,7 @@ final class CoachAIRouteHandler {
                 tier: routed.tier
             )
             let message = CoachResponseBuilder.mealAdvice(
-                log: try? dailyLogService.getTodayLog(),
+                log: try? dailyLogReader.getTodayLog(),
                 profile: try? userProfileReader?.getCurrentProfile(),
                 hasWorkoutToday: await mutationExecutor.hasWorkoutToday(),
                 assistantMessage: advice.message

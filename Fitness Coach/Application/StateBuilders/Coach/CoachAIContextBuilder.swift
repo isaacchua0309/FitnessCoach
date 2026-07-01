@@ -13,7 +13,7 @@ import Foundation
 @MainActor
 struct CoachContextBuilder {
 
-    private let dailyLogService: DailyLogService
+    private let dailyLogReader: any DailyLogReading
     private let userProfileReader: any UserProfileReading
     private let healthActivityQuery: HealthActivityQueryService?
     private let actionCenter: FitnessActionCenter?
@@ -22,12 +22,12 @@ struct CoachContextBuilder {
     private let recentMessageLimit = 5
 
     init(
-        dailyLogService: DailyLogService,
+        dailyLogReader: any DailyLogReading,
         userProfileReader: any UserProfileReading,
         healthActivityQuery: HealthActivityQueryService? = nil,
         actionCenter: FitnessActionCenter? = nil
     ) {
-        self.dailyLogService = dailyLogService
+        self.dailyLogReader = dailyLogReader
         self.userProfileReader = userProfileReader
         self.healthActivityQuery = healthActivityQuery
         self.actionCenter = actionCenter
@@ -78,7 +78,7 @@ struct CoachContextBuilder {
     // MARK: Today
 
     private func makeTodaySummary(workoutsToday: Int) -> TodayAISummary? {
-        guard let log = try? dailyLogService.getTodayLog() else {
+        guard let log = try? dailyLogReader.getTodayLog() else {
             return nil
         }
 

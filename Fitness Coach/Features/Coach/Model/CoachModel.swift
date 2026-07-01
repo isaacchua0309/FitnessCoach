@@ -29,9 +29,9 @@ final class CoachModel: ObservableObject {
     @Published private(set) var starterPromptSpecs: [CoachStarterPromptSpec] = CoachStarterPrompt.defaultQuickActionSpecs
 
     private let localCommandParser: LocalCommandParser
-    private let dailyLogService: DailyLogService
+    private let dailyLogReader: any DailyLogReading
     private let healthActivityQuery: HealthActivityQueryService
-    private let weightLogService: WeightLogService?
+    private let weightLogReader: (any WeightLogReading)?
     private let mutationHistory = CoachMutationHistory()
 
     private let aiService: AIServiceProtocol?
@@ -49,9 +49,9 @@ final class CoachModel: ObservableObject {
         localCommandParser: LocalCommandParser? = nil,
         localNutritionEstimator: LocalNutritionEstimator? = nil,
         actionCenter: FitnessActionCenter,
-        dailyLogService: DailyLogService,
+        dailyLogReader: any DailyLogReading,
         healthActivityQuery: HealthActivityQueryService,
-        weightLogService: WeightLogService? = nil,
+        weightLogReader: (any WeightLogReading)? = nil,
         aiService: AIServiceProtocol? = nil,
         userProfileReader: (any UserProfileReading)? = nil,
         aiCommandParsingEnabled: Bool = false,
@@ -61,9 +61,9 @@ final class CoachModel: ObservableObject {
     ) {
         self.localCommandParser = localCommandParser ?? .standard
         let nutritionEstimator = localNutritionEstimator ?? .standard
-        self.dailyLogService = dailyLogService
+        self.dailyLogReader = dailyLogReader
         self.healthActivityQuery = healthActivityQuery
-        self.weightLogService = weightLogService
+        self.weightLogReader = weightLogReader
         self.aiService = aiService
         self.aiCommandParsingEnabled = aiCommandParsingEnabled
         self.coachModelConfig = coachModelConfig ?? .default
@@ -71,7 +71,7 @@ final class CoachModel: ObservableObject {
         self.trainingInsightsStore = trainingInsightsStore
         if let userProfileReader {
             self.aiContextBuilder = CoachContextBuilder(
-                dailyLogService: dailyLogService,
+                dailyLogReader: dailyLogReader,
                 userProfileReader: userProfileReader,
                 healthActivityQuery: healthActivityQuery,
                 actionCenter: actionCenter
@@ -82,7 +82,7 @@ final class CoachModel: ObservableObject {
 
         let executor = CoachMutationExecutor(
             actionCenter: actionCenter,
-            dailyLogService: dailyLogService,
+            dailyLogReader: dailyLogReader,
             healthActivityQuery: healthActivityQuery,
             localNutritionEstimator: nutritionEstimator,
             mutationHistory: mutationHistory
@@ -91,7 +91,7 @@ final class CoachModel: ObservableObject {
         self.routeHandler = CoachAIRouteHandler(
             aiService: aiService,
             aiCommandParsingEnabled: aiCommandParsingEnabled,
-            dailyLogService: dailyLogService,
+            dailyLogReader: dailyLogReader,
             userProfileReader: userProfileReader,
             trainingInsightsStore: trainingInsightsStore,
             mutationExecutor: executor
@@ -113,9 +113,9 @@ final class CoachModel: ObservableObject {
 
     private func refreshTodayContextAsync() async {
         do {
-            let dailyLog = try dailyLogService.getTodayLog()
+            let dailyLog = try dailyLogReader.getTodayLog()
             let training = try await healthActivityQuery.dailyTrainingActivity(on: dailyLog.date)
-            let latestWeight = dailyLog.weightKg == nil ? try weightLogService?.getLatestWeight() : nil
+            let latestWeight = dailyLog.weightKg == nil ? try weightLogReader?.getLatestWeight() : nil
             let weightLogged = (dailyLog.weightKg ?? latestWeight?.weightKg) != nil
             let integration = trainingInsightsStore?.integrationState ?? .connected
             let dataSource = trainingInsightsStore?.dataSource ?? .appleHealth

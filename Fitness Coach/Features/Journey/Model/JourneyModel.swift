@@ -14,8 +14,8 @@ final class JourneyModel: ObservableObject {
     @Published private(set) var viewState: JourneyViewState = .loading
     @Published private(set) var selectedRangeDays: Int = 28
 
-    private let dailyLogService: DailyLogService
-    private let weightLogService: WeightLogService
+    private let dailyLogReader: any DailyLogReading
+    private let weightLogReader: any WeightLogReading
     private let userProfileReader: any UserProfileReading
     private let trainingInsightsStore: TrainingInsightsStore
     private let workoutReader: HealthKitWorkoutReading
@@ -23,14 +23,14 @@ final class JourneyModel: ObservableObject {
     private let supportedRanges = [7, 14, 28]
 
     init(
-        dailyLogService: DailyLogService,
-        weightLogService: WeightLogService,
+        dailyLogReader: any DailyLogReading,
+        weightLogReader: any WeightLogReading,
         userProfileReader: any UserProfileReading,
         trainingInsightsStore: TrainingInsightsStore,
         workoutReader: HealthKitWorkoutReading? = nil
     ) {
-        self.dailyLogService = dailyLogService
-        self.weightLogService = weightLogService
+        self.dailyLogReader = dailyLogReader
+        self.weightLogReader = weightLogReader
         self.userProfileReader = userProfileReader
         self.trainingInsightsStore = trainingInsightsStore
         self.workoutReader = workoutReader ?? MockHealthKitWorkoutReader(workouts: [])
@@ -72,16 +72,16 @@ final class JourneyModel: ObservableObject {
         let allTimeStart = calendar.date(byAdding: .day, value: -365, to: endDate) ?? endDate
         let monthStart = calendar.dateInterval(of: .month, for: endDate)?.start ?? endDate
 
-        let logs = try dailyLogService.getLogs(from: startDate, to: endDate)
-        let weekLogs = try dailyLogService.getLogs(from: weekStart, to: endDate)
-        let previousWeekLogs = try dailyLogService.getLogs(from: prevWeekStart, to: prevWeekEnd)
-        let maturityLogs = try dailyLogService.getLogs(from: allTimeStart, to: endDate)
-        let monthLogs = try dailyLogService.getLogs(from: monthStart, to: endDate)
+        let logs = try dailyLogReader.getLogs(from: startDate, to: endDate)
+        let weekLogs = try dailyLogReader.getLogs(from: weekStart, to: endDate)
+        let previousWeekLogs = try dailyLogReader.getLogs(from: prevWeekStart, to: prevWeekEnd)
+        let maturityLogs = try dailyLogReader.getLogs(from: allTimeStart, to: endDate)
+        let monthLogs = try dailyLogReader.getLogs(from: monthStart, to: endDate)
 
-        let weights = try weightLogService.getWeightEntries(from: startDate, to: endDate)
-        let allWeights = try weightLogService.getWeightEntries(from: allTimeStart, to: endDate)
-        let weekWeights = try weightLogService.getWeightEntries(from: weekStart, to: endDate)
-        let previousWeekWeights = try weightLogService.getWeightEntries(from: prevWeekStart, to: prevWeekEnd)
+        let weights = try weightLogReader.getWeightEntries(from: startDate, to: endDate)
+        let allWeights = try weightLogReader.getWeightEntries(from: allTimeStart, to: endDate)
+        let weekWeights = try weightLogReader.getWeightEntries(from: weekStart, to: endDate)
+        let previousWeekWeights = try weightLogReader.getWeightEntries(from: prevWeekStart, to: prevWeekEnd)
 
         let integrationState = trainingInsightsStore.integrationState
         let dataSource = trainingInsightsStore.dataSource

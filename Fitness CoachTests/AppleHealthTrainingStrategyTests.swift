@@ -222,7 +222,7 @@ final class CoachWorkoutIntentPolicyTests: XCTestCase {
         )
         let model = CoachModel(
             actionCenter: container.actionCenter,
-            dailyLogService: container.dailyLogService,
+            dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
             aiService: service,
             userProfileReader: container.userProfileService,
@@ -293,7 +293,7 @@ final class CoachWorkoutIntentPolicyTests: XCTestCase {
         let service = StrategyStubClassifierAIService(classifyResult: classifyResult)
         let model = CoachModel(
             actionCenter: container.actionCenter,
-            dailyLogService: container.dailyLogService,
+            dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
             aiService: service,
             userProfileReader: container.userProfileService,

@@ -13,27 +13,27 @@ final class TodayModel: ObservableObject {
 
     @Published private(set) var viewState: TodayViewState = .loading
 
-    private let dailyLogService: DailyLogService
-    private let foodLogService: FoodLogService
-    private let weightLogService: WeightLogService
-    private let reviewService: ReviewService
+    private let dailyLogReader: any DailyLogReading
+    private let foodLogReader: any FoodLogReading
+    private let weightLogReader: any WeightLogReading
+    private let dailyReviewReader: any DailyReviewReading
     private let userProfileReader: any UserProfileReading
     private let healthActivityQuery: HealthActivityQueryService
 
     private var activityContext: TodayActivityContext = .default
 
     init(
-        dailyLogService: DailyLogService,
-        foodLogService: FoodLogService,
-        weightLogService: WeightLogService,
-        reviewService: ReviewService,
+        dailyLogReader: any DailyLogReading,
+        foodLogReader: any FoodLogReading,
+        weightLogReader: any WeightLogReading,
+        dailyReviewReader: any DailyReviewReading,
         userProfileReader: any UserProfileReading,
         healthActivityQuery: HealthActivityQueryService
     ) {
-        self.dailyLogService = dailyLogService
-        self.foodLogService = foodLogService
-        self.weightLogService = weightLogService
-        self.reviewService = reviewService
+        self.dailyLogReader = dailyLogReader
+        self.foodLogReader = foodLogReader
+        self.weightLogReader = weightLogReader
+        self.dailyReviewReader = dailyReviewReader
         self.userProfileReader = userProfileReader
         self.healthActivityQuery = healthActivityQuery
     }
@@ -76,11 +76,11 @@ final class TodayModel: ObservableObject {
     // MARK: State Building
 
     private func loadDashboard() async throws {
-        let dailyLog = try dailyLogService.getTodayLog()
-        let foodEntries = try foodLogService.getFoodEntries(for: dailyLog.date)
+        let dailyLog = try dailyLogReader.getTodayLog()
+        let foodEntries = try foodLogReader.getFoodEntries(for: dailyLog.date)
         let training = try await healthActivityQuery.dailyTrainingActivity(on: dailyLog.date)
-        let latestWeight = dailyLog.weightKg == nil ? try weightLogService.getLatestWeight() : nil
-        let dailyReview = try reviewService.getDailyReview(for: dailyLog.date)
+        let latestWeight = dailyLog.weightKg == nil ? try weightLogReader.getLatestWeight() : nil
+        let dailyReview = try dailyReviewReader.getDailyReview(for: dailyLog.date)
 
         viewState = .loaded(
             try await makeDashboardState(
@@ -159,7 +159,7 @@ final class TodayModel: ObservableObject {
     private func buildMomentumMetrics(asOf date: Date) async throws -> (StreakSummary, Int) {
         let calendar = Calendar.current
         let startDate = calendar.date(byAdding: .day, value: -90, to: date) ?? date
-        let logs = try dailyLogService.getLogs(from: startDate, to: date)
+        let logs = try dailyLogReader.getLogs(from: startDate, to: date)
         let workoutDates = try await healthActivityQuery.workoutDayStarts(
             from: startDate,
             to: date,
@@ -187,7 +187,7 @@ final class TodayModel: ObservableObject {
             return false
         }
 
-        let logs = try dailyLogService.getLogs(from: lookbackStart, to: yesterday)
+        let logs = try dailyLogReader.getLogs(from: lookbackStart, to: yesterday)
         return logs.contains { log in
             calendar.startOfDay(for: log.date) < todayStart && log.totals.calories > 0
         }

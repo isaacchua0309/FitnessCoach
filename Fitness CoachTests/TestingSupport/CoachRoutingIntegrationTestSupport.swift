@@ -29,7 +29,7 @@ enum CoachRoutingIntegrationTestSupport {
         ) -> CoachModel {
             CoachModel(
                 actionCenter: actionCenter,
-                dailyLogService: dailyLogService,
+                dailyLogReader: dailyLogService,
                 healthActivityQuery: healthActivityQuery,
                 aiService: aiService,
                 userProfileReader: userProfileService,

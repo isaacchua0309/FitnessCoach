@@ -173,7 +173,7 @@ final class AuthGateCoordinator: ObservableObject {
 
             switch outcome {
             case .restoredToMain:
-                try? container.dailyLogService.syncTodayTargetsFromProfile()
+                try? container.actionCenter.syncTodayTargetsFromProfile()
                 container.onboardingCoachingContextStore.clear()
                 isResolvingAccountMismatch = false
                 awaitingCloudSync = false
@@ -400,7 +400,7 @@ final class AuthGateCoordinator: ObservableObject {
                     uid: uid,
                     cloudDocument: cloudDocument
                 )
-                try container.dailyLogService.syncTodayTargetsFromProfile()
+                try container.actionCenter.syncTodayTargetsFromProfile()
                 container.onboardingCoachingContextStore.clear()
                 finishProfileConflictAfterRestore()
             } catch {
@@ -757,7 +757,7 @@ final class AuthGateCoordinator: ObservableObject {
             awaitingCloudSync = false
             completeExistingUserSignInSuccessIfNeeded()
             pendingExistingUserSignIn = false
-            try? container.dailyLogService.syncTodayTargetsFromProfile()
+            try? container.actionCenter.syncTodayTargetsFromProfile()
             container.onboardingCoachingContextStore.clear()
             rootModel.didCompleteOnboarding()
         case .noProfileFound:

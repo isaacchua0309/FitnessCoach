@@ -99,7 +99,7 @@ After auth and profile bootstrap, the signed-in shell is a four-tab `TabView`:
 
 - Displays daily calories, macros, water, meals, focus items, and coach prompts.
 - Does **not** own mutations; shortcuts route to Coach via `onOpenCoach`.
-- Reads through log services directly (`TodayModel`); refreshes on `AppRefreshCenter` and pull-to-refresh.
+- Reads through repository protocols (`DailyLogReading`, `FoodLogReading`, etc.); refreshes on `AppRefreshCenter` and pull-to-refresh.
 
 #### Coach (mutation hub)
 
@@ -132,7 +132,7 @@ Long-horizon narrative: transformation, weekly consistency, milestones, timeline
 
 - Displays plan rationale, targets, about-you, training integration entry.
 - Plan edits and settings via `PlanEditWizard`, `SettingsRootView`.
-- Mutations for plan changes go through `FitnessActionCenter` (with one known exception — see cleanup areas).
+- Mutations for plan changes go through `FitnessActionCenter`.
 
 #### Onboarding (pre-main)
 
@@ -303,7 +303,7 @@ These are the conventions the codebase should follow. Violations are tracked in 
 
 - Feature models and views must not import SwiftData or construct `ModelContext` directly.
 - Reads/writes go through `Core/Services/*` or `FitnessActionCenter`.
-- **Target:** repository protocols in `Domain/Protocols/` — `UserProfileReading`, `DailyLogReading`, `WeightLogReading` implemented by `Data/Repositories/` services (Tier 1, 2026-06-30).
+- **Target:** repository protocols in `Domain/Protocols/` — read protocols for profile, daily log, food, weight, and daily review; `PlanTargetCalculating` for plan math. Implemented by `Data/Repositories/` services (Tier 1–3, 2026-06-30).
 - Feature models depend on reading protocols; writes go through `FitnessActionCenter`.
 - **Remaining violations:** `AuthGateCoordinator` / `ProfileBootstrapCoordinator` call `profileBootstrapService` for cloud bootstrap (app-layer orchestration).
 
@@ -434,6 +434,10 @@ Tracked for later stages. **Do not treat as blockers for feature work** — but 
 
 - **Tier 2 (2026-06-30):** `FormaSchemaV2` drops dormant v1 entities via `FormaMigrationPlan`. `WorkoutLogService` removed; `HealthActivityQueryService` + `DailyTrainingActivity` feed Today, `ReviewService`, and Coach. Legacy workout tables stay on disk but are not read.
 
+### Read protocol adoption (Tier 3 complete)
+
+- **Tier 3 (2026-06-30):** Extended `DailyLogReading`, `WeightLogReading`; added `FoodLogReading`, `DailyReviewReading`, `PlanTargetCalculating`. `TodayModel`, `JourneyModel`, `CoachModel`, and Coach handlers depend on protocols instead of concrete services. `AuthGateCoordinator` routes target sync through `FitnessActionCenter.syncTodayTargetsFromProfile()`.
+
 ### FitPilot → Forma naming (Phase 6 complete)
 
 - ~~Source folder: `FitPilot/`~~ — removed in Phase 5
@@ -500,6 +504,7 @@ Items that need confirmation before deletion or large refactors:
 
 | Date | Change |
 |------|--------|
+| 2026-06-30 | Tier 3: Complete read-protocol adoption across Today, Journey, Coach, Plan |
 | 2026-06-30 | Tier 2: `FormaSchemaV2` migration; `WorkoutLogService` removed; HealthKit-only training reads |
 | 2026-06-30 | Tier 1: Repository protocols; `FitnessActionCenter.createProfile`; Onboarding handlers; `CoachNutritionSummaryFormatter` |
 | 2026-06-30 | Phase 7: `FormaScreenStyle` removed; tokens + `FormaCardChrome` / `FormaFeatureLayout` consolidate design primitives |

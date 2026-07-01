@@ -138,6 +138,11 @@ final class FitnessActionCenter {
         try dailyLogService.ensureTodayLog()
     }
 
+    func syncTodayTargetsFromProfile() throws {
+        try dailyLogService.syncTodayTargetsFromProfile()
+        notifyDataChanged()
+    }
+
     // MARK: - Reviews
 
     func generateDailyReview(for date: Date = Date()) async throws -> DailyReview {

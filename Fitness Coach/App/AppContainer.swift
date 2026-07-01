@@ -240,10 +240,10 @@ final class AppContainer {
 
     func makeTodayModel() -> TodayModel {
         TodayModel(
-            dailyLogService: dailyLogService,
-            foodLogService: foodLogService,
-            weightLogService: weightLogService,
-            reviewService: reviewService,
+            dailyLogReader: dailyLogService,
+            foodLogReader: foodLogService,
+            weightLogReader: weightLogService,
+            dailyReviewReader: reviewService,
             userProfileReader: userProfileService,
             healthActivityQuery: healthActivityQueryService
         )
@@ -252,9 +252,9 @@ final class AppContainer {
     func makeCoachModel() -> CoachModel {
         CoachModel(
             actionCenter: actionCenter,
-            dailyLogService: dailyLogService,
+            dailyLogReader: dailyLogService,
             healthActivityQuery: healthActivityQueryService,
-            weightLogService: weightLogService,
+            weightLogReader: weightLogService,
             aiService: aiService,
             userProfileReader: userProfileService,
             aiCommandParsingEnabled: aiCommandParsingEnabled,
@@ -268,8 +268,8 @@ final class AppContainer {
 
     func makeJourneyModel() -> JourneyModel {
         JourneyModel(
-            dailyLogService: dailyLogService,
-            weightLogService: weightLogService,
+            dailyLogReader: dailyLogService,
+            weightLogReader: weightLogService,
             userProfileReader: userProfileService,
             trainingInsightsStore: trainingInsightsStore,
             workoutReader: healthKitWorkoutReader
@@ -280,7 +280,7 @@ final class AppContainer {
         PlanModel(
             actionCenter: actionCenter,
             userProfileReader: userProfileService,
-            targetService: targetService,
+            planTargetCalculator: targetService,
             dailyLogReader: dailyLogService,
             weightLogReader: weightLogService,
             trainingInsightsStore: trainingInsightsStore,

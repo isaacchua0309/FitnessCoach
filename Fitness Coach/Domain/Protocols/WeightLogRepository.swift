@@ -9,7 +9,8 @@ import Foundation
 
 @MainActor
 protocol WeightLogReading: AnyObject {
-    func getWeightEntries(from startDate: Date, to endDate: Date) throws -> [WeightEntry]
+    func getLatestWeight() throws -> WeightEntry?
+    func getWeightEntries(from startDate: Date?, to endDate: Date?) throws -> [WeightEntry]
 }
 
 extension WeightLogService: WeightLogReading {}

@@ -11,20 +11,20 @@ import Foundation
 final class CoachMutationExecutor {
 
     private let actionCenter: FitnessActionCenter
-    private let dailyLogService: DailyLogService
+    private let dailyLogReader: any DailyLogReading
     private let healthActivityQuery: HealthActivityQueryService
     private let localNutritionEstimator: LocalNutritionEstimator
     private let mutationHistory: CoachMutationHistory
 
     init(
         actionCenter: FitnessActionCenter,
-        dailyLogService: DailyLogService,
+        dailyLogReader: any DailyLogReading,
         healthActivityQuery: HealthActivityQueryService,
         localNutritionEstimator: LocalNutritionEstimator,
         mutationHistory: CoachMutationHistory
     ) {
         self.actionCenter = actionCenter
-        self.dailyLogService = dailyLogService
+        self.dailyLogReader = dailyLogReader
         self.healthActivityQuery = healthActivityQuery
         self.localNutritionEstimator = localNutritionEstimator
         self.mutationHistory = mutationHistory
@@ -80,7 +80,7 @@ final class CoachMutationExecutor {
     func executeLogWater(_ draft: WaterDraft) -> String {
         do {
             let entry = try actionCenter.logWater(draft, date: Date())
-            let log = try? dailyLogService.getLog(for: Date())
+            let log = try? dailyLogReader.getLog(for: Date())
             mutationHistory.record(
                 entryId: entry.id,
                 type: .water,
@@ -113,7 +113,7 @@ final class CoachMutationExecutor {
     func executeLogFood(_ draft: FoodDraft) -> String {
         do {
             let entry = try actionCenter.logFood(draft, date: Date())
-            let log = try? dailyLogService.getLog(for: Date())
+            let log = try? dailyLogReader.getLog(for: Date())
             mutationHistory.record(entryId: entry.id, type: .food, summary: entry.name)
             return CoachResponseBuilder.food(entry, log: log)
         } catch ServiceError.invalidInput(let message) {
@@ -262,7 +262,7 @@ final class CoachMutationExecutor {
 
     private func executeStatus() -> String {
         do {
-            let log = try dailyLogService.getTodayLog()
+            let log = try dailyLogReader.getTodayLog()
             return CoachResponseBuilder.status(log)
         } catch ServiceError.missingUserProfile {
             return "I could not load your status. Please check that your profile is set up."

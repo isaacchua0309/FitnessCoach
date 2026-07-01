@@ -576,8 +576,8 @@ final class JourneyManualQAChecklistTests: XCTestCase {
         )
         let trainingStore = TrainingInsightsStore(integration: integration)
         return JourneyModel(
-            dailyLogService: harness.dailyLogService,
-            weightLogService: harness.weightLogService,
+            dailyLogReader: harness.dailyLogService,
+            weightLogReader: harness.weightLogService,
             userProfileReader: harness.profileService,
             trainingInsightsStore: trainingStore,
             workoutReader: MockHealthKitWorkoutReader(workouts: [])

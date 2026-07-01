@@ -42,7 +42,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         let aiService = PhotoCapturingAIService()
         let model = CoachModel(
             actionCenter: container.actionCenter,
-            dailyLogService: container.dailyLogService,
+            dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
             aiService: aiService,
             userProfileReader: container.userProfileService,
@@ -68,7 +68,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
 
         let model = CoachModel(
             actionCenter: container.actionCenter,
-            dailyLogService: container.dailyLogService,
+            dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
             aiService: PhotoCapturingAIService(),
             userProfileReader: container.userProfileService,
@@ -85,7 +85,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         let container = try AppContainer(inMemory: true)
         let model = CoachModel(
             actionCenter: container.actionCenter,
-            dailyLogService: container.dailyLogService,
+            dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
             aiService: PhotoCapturingAIService(),
             userProfileReader: container.userProfileService,
@@ -105,7 +105,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         aiService.estimateFoodError = AIServiceError.backendUnavailable
         let model = CoachModel(
             actionCenter: container.actionCenter,
-            dailyLogService: container.dailyLogService,
+            dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
             userProfileReader: container.userProfileService,
             aiCommandParsingEnabled: true
@@ -129,7 +129,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         let container = try AppContainer(inMemory: true)
         let model = CoachModel(
             actionCenter: container.actionCenter,
-            dailyLogService: container.dailyLogService,
+            dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
             aiService: PhotoCapturingAIService(),
             userProfileReader: container.userProfileService,

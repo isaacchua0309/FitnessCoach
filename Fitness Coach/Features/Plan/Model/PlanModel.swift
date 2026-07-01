@@ -25,7 +25,7 @@ final class PlanModel: ObservableObject {
 
     private let actionCenter: FitnessActionCenter
     private let userProfileReader: any UserProfileReading
-    private let targetService: TargetService
+    private let planTargetCalculator: any PlanTargetCalculating
     private let dailyLogReader: any DailyLogReading
     private let weightLogReader: any WeightLogReading
     private let trainingInsightsStore: TrainingInsightsStore
@@ -35,7 +35,7 @@ final class PlanModel: ObservableObject {
     init(
         actionCenter: FitnessActionCenter,
         userProfileReader: any UserProfileReading,
-        targetService: TargetService,
+        planTargetCalculator: any PlanTargetCalculating,
         dailyLogReader: any DailyLogReading,
         weightLogReader: any WeightLogReading,
         trainingInsightsStore: TrainingInsightsStore,
@@ -44,7 +44,7 @@ final class PlanModel: ObservableObject {
     ) {
         self.actionCenter = actionCenter
         self.userProfileReader = userProfileReader
-        self.targetService = targetService
+        self.planTargetCalculator = planTargetCalculator
         self.dailyLogReader = dailyLogReader
         self.weightLogReader = weightLogReader
         self.trainingInsightsStore = trainingInsightsStore
@@ -183,7 +183,7 @@ final class PlanModel: ObservableObject {
         do {
             let formState = PlanFormState.defaultDraftValues()
             let input = try formState.makeCalorieTargetInput()
-            let result = try targetService.generateInitialTargets(from: input)
+            let result = try planTargetCalculator.generateInitialTargets(from: input)
             var draftForm = formState
             draftForm.applyGeneratedTargets(result.targets)
             let draft = try draftForm.makeDraft(targets: result.targets)
@@ -204,7 +204,7 @@ final class PlanModel: ObservableObject {
         do {
             var state = formState
             let input = try state.makeCalorieTargetInput()
-            let result = try targetService.generateInitialTargets(from: input)
+            let result = try planTargetCalculator.generateInitialTargets(from: input)
             state.applyGeneratedTargets(result.targets)
             state.syncAggressivenessFromPaceChoice()
             var update = try state.makeUpdate()
@@ -258,7 +258,7 @@ final class PlanModel: ObservableObject {
         do {
             formErrorMessage = nil
             let input = try formState.makeCalorieTargetInput()
-            return try targetService.generateInitialTargets(from: input)
+            return try planTargetCalculator.generateInitialTargets(from: input)
         } catch let error as ProfileFormError {
             formErrorMessage = error.message
             throw error
@@ -274,7 +274,7 @@ final class PlanModel: ObservableObject {
     func previewRegeneratedTargets(from formState: PlanFormState) async {
         do {
             let input = try formState.makeCalorieTargetInput()
-            generatedTargetPreview = try targetService.generateInitialTargets(from: input)
+            generatedTargetPreview = try planTargetCalculator.generateInitialTargets(from: input)
             isShowingTargetRegenerationSheet = true
             formErrorMessage = nil
         } catch let error as ProfileFormError {
