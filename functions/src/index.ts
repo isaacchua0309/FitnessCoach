@@ -4,6 +4,7 @@ import {getAuth} from "firebase-admin/auth";
 import {logger, setGlobalOptions} from "firebase-functions";
 import {defineSecret} from "firebase-functions/params";
 import {onRequest} from "firebase-functions/v2/https";
+import {sanitizeCoachIntentResult} from "./coachIntentSanitizer";
 import {
   GatewayError,
   assertBodySizeWithinLimit,
@@ -360,7 +361,7 @@ function firstOutputText(payload: any): string | null {
 }
 
 async function classifyCoachIntent(request: Record<string, any>, traceId?: string) {
-  return openAIJSON({
+  const raw = await openAIJSON({
     instructions: coachIntentClassificationInstructions(),
     input: JSON.stringify({
       text: request.text,
@@ -371,6 +372,7 @@ async function classifyCoachIntent(request: Record<string, any>, traceId?: strin
     model: resolveModel({tier: "cheap", modelName: request.modelName}),
     traceId,
   });
+  return sanitizeCoachIntentResult(raw);
 }
 
 async function parseCommand(request: Record<string, any>, traceId?: string) {
@@ -595,7 +597,8 @@ Return valid JSON only matching CoachIntentResult.
   workout_advice, weight_loss_advice, app_help, general_conversation, unrelated_or_unsupported.
 - Prefer app-domain intents for food, calories, weight, workouts, hydration, meals, and fitness.
 - Set requiresAppMutation true only when the user wants to change FitPilot data.
-- Include a typed action when mutation data is clear enough to validate.
+- Include action only when mutation data is clear enough to validate and the matching draft object is populated.
+- For greetings, small talk, and general questions, set action to null.
 - For log_food actions: include food name, quantity, and unit when clear. Do not include calories or macros unless the user's message contains explicit numbers.
   Never copy nutrition from chat history or prior assistant estimates. The estimate-food step handles nutrition.
 - For log_food actions: quantity and unit are portion size (e.g. 200g chicken breast). protein/carbs/fat/calories are nutrition values.

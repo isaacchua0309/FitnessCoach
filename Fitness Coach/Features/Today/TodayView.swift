@@ -54,6 +54,7 @@ struct TodayView: View {
                 }
                 .onChange(of: authManager.authState) { _, _ in
                     Task<Void, Never> {
+                        await trainingInsightsStore.refresh()
                         await model.loadToday(activityContext: currentActivityContext)
                     }
                 }
@@ -157,8 +158,8 @@ struct TodayView: View {
     private func refreshDashboard() async {
         await trainingInsightsStore.refresh()
         if trainingInsightsStore.integrationState.isConnected {
-            appleHealthWorkoutCount = try? await healthActivityQuery.workoutCountToday()
-            appleHealthWeeklyWorkoutCount = try? await healthActivityQuery.workoutCountThisWeek()
+            appleHealthWorkoutCount = await healthActivityQuery.workoutCountToday()
+            appleHealthWeeklyWorkoutCount = await healthActivityQuery.workoutCountThisWeek()
             appleHealthStepsToday = try? await healthActivityQuery.stepsToday()
         } else {
             appleHealthWorkoutCount = nil

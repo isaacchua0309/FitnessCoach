@@ -4,6 +4,9 @@
 //
 
 import XCTest
+#if canImport(HealthKit)
+import HealthKit
+#endif
 @testable import Fitness_Coach
 
 @MainActor
@@ -73,18 +76,12 @@ final class TodayModelHydrationTests: XCTestCase {
 
         await model.refresh()
 
-        if case .error(let message) = model.viewState {
-            XCTAssertNotEqual(
-                message,
-                FormaProductCopy.Today.EmptyState.refreshErrorLocalBody,
-                "Refresh before initial load should not show refresh error copy"
-            )
-        } else {
-            XCTAssertFalse(model.viewState.isLoaded)
+        guard case .loaded = model.viewState else {
+            return XCTFail("Expected loaded state after refresh with optional HealthKit failure, got \(model.viewState)")
         }
     }
 
-    func testResetForUserContextChangeClearsErrorState() async throws {
+    func testLoadTodaySucceedsWhenHealthKitAuthorizationNotDetermined() async throws {
         _ = try harness.seedProfile(ownerUID: "test-user-1")
         let context = TodayHydrationGate.resolve(
             authState: .signedIn(uid: "test-user-1"),
@@ -93,7 +90,7 @@ final class TodayModelHydrationTests: XCTestCase {
             now: harness.today
         )
         let failingHealthQuery = HealthActivityQueryService(
-            workoutReader: ThrowingHealthKitWorkoutReader(),
+            workoutReader: HealthKitAuthorizationNotDeterminedWorkoutReader(),
             stepReader: MockHealthKitStepReader(stepCount: 0)
         )
         let model = TodayModel(
@@ -107,13 +104,56 @@ final class TodayModelHydrationTests: XCTestCase {
             authStateProvider: { .signedIn(uid: "test-user-1") }
         )
 
-        await model.loadToday()
-        if case .error = model.viewState {
-            model.resetForUserContextChange()
-            XCTAssertEqual(model.viewState, .loading)
-        } else {
-            XCTFail("Expected load error for failing health query")
+        await model.loadToday(
+            activityContext: TodayActivityContext(
+                trainingIntegration: .connected,
+                trainingDataSource: .appleHealth,
+                appleHealthWorkoutCount: nil,
+                stepsToday: nil,
+                weeklyWorkoutCount: nil
+            )
+        )
+
+        guard case .loaded(let state) = model.viewState else {
+            return XCTFail("Expected loaded state, got \(model.viewState)")
         }
+        XCTAssertEqual(state.mission.calorieSummary.target, ProfileTestFixtures.sampleTargets.calorieTarget)
+        XCTAssertFalse(state.activity.legacyWorkoutSummary.hasWorkout)
+    }
+
+    func testResetForUserContextChangeReturnsToLoadingAfterSuccessfulLoad() async throws {
+        _ = try harness.seedProfile(ownerUID: "test-user-1")
+        let context = TodayHydrationGate.resolve(
+            authState: .signedIn(uid: "test-user-1"),
+            profile: try harness.profileService.getCurrentProfile(),
+            calendar: Calendar.current,
+            now: harness.today
+        )
+        let failingHealthQuery = HealthActivityQueryService(
+            workoutReader: HealthKitAuthorizationNotDeterminedWorkoutReader(),
+            stepReader: MockHealthKitStepReader(stepCount: 0)
+        )
+        let model = TodayModel(
+            dailyLogReader: harness.dailyLogService,
+            foodLogReader: harness.base.foodLogService,
+            weightLogReader: harness.weightLogService,
+            dailyReviewReader: makeReviewService(),
+            userProfileReader: harness.profileService,
+            healthActivityQuery: failingHealthQuery,
+            hydrationContextProvider: { context },
+            authStateProvider: { .signedIn(uid: "test-user-1") }
+        )
+
+        await model.loadToday(
+            activityContext: TodayActivityContext(
+                trainingIntegration: .notConnected,
+                trainingDataSource: .appleHealth
+            )
+        )
+        XCTAssertTrue(model.viewState.isLoaded)
+
+        model.resetForUserContextChange()
+        XCTAssertEqual(model.viewState, .loading)
     }
 
     func testSessionUIDChangeResetsToLoadingBeforeReload() async throws {
@@ -176,6 +216,20 @@ final class TodayModelHydrationTests: XCTestCase {
             hydrationContextProvider: hydrationContextProvider ?? { hydrationContext },
             authStateProvider: { .signedIn(uid: "test-user-1") }
         )
+    }
+}
+
+private struct HealthKitAuthorizationNotDeterminedWorkoutReader: HealthKitWorkoutReading {
+    func fetchWorkouts(from startDate: Date, to endDate: Date) async throws -> [HealthWorkoutRecord] {
+        #if canImport(HealthKit)
+        throw HKError(.errorAuthorizationNotDetermined)
+        #else
+        throw NSError(
+            domain: "com.apple.healthkit",
+            code: 5,
+            userInfo: [NSLocalizedDescriptionKey: "Authorization not determined"]
+        )
+        #endif
     }
 }
 

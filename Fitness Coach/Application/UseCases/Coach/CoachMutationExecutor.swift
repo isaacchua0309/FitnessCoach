@@ -31,7 +31,7 @@ final class CoachMutationExecutor {
     }
 
     func hasWorkoutToday() async -> Bool {
-        (try? await healthActivityQuery.dailyTrainingActivity().hasWorkout) ?? false
+        (await healthActivityQuery.dailyTrainingActivity().hasWorkout)
     }
 
     func execute(_ command: ParsedCommand) async -> String {

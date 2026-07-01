@@ -440,7 +440,7 @@ final class CoachRoutingTests: XCTestCase {
             model.messages.last?.text,
             TrainingIntegrationCopy.coachWorkoutLogNotConnected
         )
-        let workoutCount = try await harness.healthActivityQuery.workoutCountToday(on: harness.today)
+        let workoutCount = await harness.healthActivityQuery.workoutCountToday(on: harness.today)
         XCTAssertEqual(workoutCount, 0)
     }
 

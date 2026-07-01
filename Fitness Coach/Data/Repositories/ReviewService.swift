@@ -89,7 +89,7 @@ final class ReviewService {
     private func buildSummary(for dailyLog: DailyLog) async throws -> DailyReviewSummary {
         let foodEntries = try foodLogService.getFoodEntries(for: dailyLog.date)
         let waterEntries = try waterLogService.getWaterEntries(for: dailyLog.date)
-        let training = try await healthActivityQuery.dailyTrainingActivity(on: dailyLog.date)
+        let training = await healthActivityQuery.dailyTrainingActivity(on: dailyLog.date)
         let latestWeight = try weightLogService.getLatestWeight()
         let weightEntry = try weightEntry(for: dailyLog.date)
 

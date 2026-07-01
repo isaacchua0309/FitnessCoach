@@ -114,7 +114,7 @@ final class CoachModel: ObservableObject {
     private func refreshTodayContextAsync() async {
         do {
             let dailyLog = try dailyLogReader.getTodayLog()
-            let training = try await healthActivityQuery.dailyTrainingActivity(on: dailyLog.date)
+            let training = await healthActivityQuery.dailyTrainingActivity(on: dailyLog.date)
             let latestWeight = dailyLog.weightKg == nil ? try weightLogReader?.getLatestWeight() : nil
             let weightLogged = (dailyLog.weightKg ?? latestWeight?.weightKg) != nil
             let integration = trainingInsightsStore?.integrationState ?? .connected
@@ -218,7 +218,7 @@ final class CoachModel: ObservableObject {
         }
 
         let priorChatMessages = Array(messages.dropLast())
-        let workoutsToday = (try? await healthActivityQuery.dailyTrainingActivity().workoutCount) ?? 0
+        let workoutsToday = await healthActivityQuery.dailyTrainingActivity().workoutCount
         let context = aiContextBuilder.makeContext(
             recentMessages: priorChatMessages,
             workoutsToday: workoutsToday

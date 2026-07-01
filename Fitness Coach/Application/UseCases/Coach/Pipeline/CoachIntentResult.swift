@@ -185,6 +185,19 @@ struct CoachIntentResult: Codable, Equatable, Sendable {
     var action: CoachAction?
     var reason: String?
 
+    private enum CodingKeys: String, CodingKey {
+        case intent
+        case confidence
+        case domain
+        case requiresAppMutation
+        case requiresUserContext
+        case canAnswerWithCheapModel
+        case requiresEscalation
+        case entities
+        case action
+        case reason
+    }
+
     init(
         intent: CoachIntent,
         confidence: Double,
@@ -207,5 +220,39 @@ struct CoachIntentResult: Codable, Equatable, Sendable {
         self.entities = entities
         self.action = action
         self.reason = reason
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        intent = try container.decode(CoachIntent.self, forKey: .intent)
+        confidence = min(max(try container.decodeIfPresent(Double.self, forKey: .confidence) ?? 0.5, 0), 1)
+        domain = try container.decode(CoachIntentDomain.self, forKey: .domain)
+        requiresAppMutation = try container.decodeIfPresent(Bool.self, forKey: .requiresAppMutation) ?? false
+        requiresUserContext = try container.decodeIfPresent(Bool.self, forKey: .requiresUserContext) ?? false
+        canAnswerWithCheapModel = try container.decodeIfPresent(Bool.self, forKey: .canAnswerWithCheapModel) ?? true
+        requiresEscalation = try container.decodeIfPresent(Bool.self, forKey: .requiresEscalation) ?? false
+        entities = try container.decodeIfPresent(CoachIntentEntities.self, forKey: .entities) ?? CoachIntentEntities()
+
+        if container.contains(.action), try container.decodeNil(forKey: .action) == false {
+            action = try? container.decode(CoachAction.self, forKey: .action)
+        } else {
+            action = nil
+        }
+
+        reason = try container.decodeIfPresent(String.self, forKey: .reason)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(intent, forKey: .intent)
+        try container.encode(confidence, forKey: .confidence)
+        try container.encode(domain, forKey: .domain)
+        try container.encode(requiresAppMutation, forKey: .requiresAppMutation)
+        try container.encode(requiresUserContext, forKey: .requiresUserContext)
+        try container.encode(canAnswerWithCheapModel, forKey: .canAnswerWithCheapModel)
+        try container.encode(requiresEscalation, forKey: .requiresEscalation)
+        try container.encode(entities, forKey: .entities)
+        try container.encodeIfPresent(action, forKey: .action)
+        try container.encodeIfPresent(reason, forKey: .reason)
     }
 }

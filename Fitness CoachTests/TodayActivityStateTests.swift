@@ -146,7 +146,7 @@ final class TodayActivityStateTests: XCTestCase {
             stepReader: MockHealthKitStepReader(stepCount: 0)
         )
 
-        let count = try await query.workoutCountThisWeek(
+        let count = await query.workoutCountThisWeek(
             on: today,
             calendar: calendar
         )

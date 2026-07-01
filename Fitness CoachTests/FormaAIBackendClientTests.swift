@@ -189,6 +189,21 @@ final class FormaAIBackendClientTests: XCTestCase {
 
         XCTAssertNil(GatewayMockURLProtocol.capturedRequest)
     }
+
+    func testDecodesClassifyResponseWhenActionDraftIsMissing() async throws {
+        GatewayMockURLProtocol.reset()
+        GatewayMockURLProtocol.responseData = Data(
+            """
+            {"intentResult":{"intent":"general_conversation","confidence":0.9,"domain":"general","requiresAppMutation":false,"requiresUserContext":true,"canAnswerWithCheapModel":true,"requiresEscalation":false,"entities":{"food":null,"meal":null,"amountMl":null,"weightKg":null,"durationMinutes":null,"distanceKm":null,"calories":null,"proteinGrams":null,"carbsGrams":null,"fatGrams":null,"quantity":null,"unit":null,"notes":null},"action":{"type":"log_food","foodDraft":null,"waterDraft":null,"weightDraft":null,"workoutDraft":null,"selector":null,"undoTarget":null},"reason":"Greeting."}}
+            """.utf8
+        )
+
+        let client = makeClient(baseURL: productionBaseURL)
+        let response = try await client.classifyCoachIntent(request: Self.sampleClassifyRequest())
+
+        XCTAssertEqual(response.intentResult.intent, .generalConversation)
+        XCTAssertNil(response.intentResult.action)
+    }
 }
 
 // MARK: - Helpers

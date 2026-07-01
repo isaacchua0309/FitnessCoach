@@ -15,35 +15,49 @@ struct HealthActivityQueryService: Sendable {
     func workouts(
         from startDate: Date,
         to endDate: Date
-    ) async throws -> [HealthWorkoutRecord] {
-        try await workoutReader.fetchWorkouts(from: startDate, to: endDate)
+    ) async -> [HealthWorkoutRecord] {
+        do {
+            return try await workoutReader.fetchWorkouts(from: startDate, to: endDate)
+        } catch {
+            let fields: [String: String] = [
+                "start": ISO8601DateFormatter().string(from: startDate),
+                "end": ISO8601DateFormatter().string(from: endDate),
+                "optionalAccessFailure": String(HealthKitOptionalAccessPolicy.isOptionalAccessFailure(error))
+            ]
+            HealthTrainingDebugLogger.error(
+                "workouts query degraded to empty",
+                fields: fields,
+                underlying: error
+            )
+            return []
+        }
     }
 
     func workoutCountToday(
         on date: Date = Date(),
         calendar: Calendar = .current
-    ) async throws -> Int {
-        try await dailyTrainingActivity(on: date, calendar: calendar).workoutCount
+    ) async -> Int {
+        await dailyTrainingActivity(on: date, calendar: calendar).workoutCount
     }
 
     func workoutCountThisWeek(
         on date: Date = Date(),
         calendar: Calendar = .current
-    ) async throws -> Int {
+    ) async -> Int {
         let todayStart = calendar.startOfDay(for: date)
         let weekStart = calendar.date(byAdding: .day, value: -6, to: todayStart) ?? todayStart
         let dayEnd = calendar.date(byAdding: .day, value: 1, to: todayStart) ?? date
-        let workouts = try await workouts(from: weekStart, to: dayEnd)
+        let workouts = await workouts(from: weekStart, to: dayEnd)
         return workouts.count
     }
 
     func dailyTrainingActivity(
         on date: Date = Date(),
         calendar: Calendar = .current
-    ) async throws -> DailyTrainingActivity {
+    ) async -> DailyTrainingActivity {
         let dayStart = calendar.startOfDay(for: date)
         let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? date
-        let dayWorkouts = try await workouts(from: dayStart, to: dayEnd)
+        let dayWorkouts = await workouts(from: dayStart, to: dayEnd)
         return DailyTrainingActivity(workouts: dayWorkouts)
     }
 
@@ -51,8 +65,8 @@ struct HealthActivityQueryService: Sendable {
         from startDate: Date,
         to endDate: Date,
         calendar: Calendar = .current
-    ) async throws -> Set<Date> {
-        let records = try await workouts(from: startDate, to: endDate)
+    ) async -> Set<Date> {
+        let records = await workouts(from: startDate, to: endDate)
         return Set(records.map { calendar.startOfDay(for: $0.startDate) })
     }
 

@@ -174,7 +174,7 @@ final class TodayModel: ObservableObject {
     private func loadDashboard() async throws {
         let dailyLog = try dailyLogReader.getTodayLog()
         let foodEntries = try foodLogReader.getFoodEntries(for: dailyLog.date)
-        let training = try await healthActivityQuery.dailyTrainingActivity(on: dailyLog.date)
+        let training = await optionalDailyTrainingActivity(on: dailyLog.date)
         let latestWeight = dailyLog.weightKg == nil ? try weightLogReader.getLatestWeight() : nil
         let dailyReview = try dailyReviewReader.getDailyReview(for: dailyLog.date)
 
@@ -256,7 +256,7 @@ final class TodayModel: ObservableObject {
         let calendar = Calendar.current
         let startDate = calendar.date(byAdding: .day, value: -90, to: date) ?? date
         let logs = try dailyLogReader.getLogs(from: startDate, to: date)
-        let workoutDates = try await healthActivityQuery.workoutDayStarts(
+        let workoutDates = await optionalWorkoutDayStarts(
             from: startDate,
             to: date,
             calendar: calendar
@@ -271,6 +271,28 @@ final class TodayModel: ObservableObject {
             asOf: date
         )
         return (streaks, weekLoggedDays)
+    }
+
+    private func optionalDailyTrainingActivity(on date: Date) async -> DailyTrainingActivity {
+        guard activityContext.trainingIntegration.isConnected else {
+            return .empty
+        }
+        return await healthActivityQuery.dailyTrainingActivity(on: date)
+    }
+
+    private func optionalWorkoutDayStarts(
+        from startDate: Date,
+        to endDate: Date,
+        calendar: Calendar
+    ) async -> Set<Date> {
+        guard activityContext.trainingIntegration.isConnected else {
+            return []
+        }
+        return await healthActivityQuery.workoutDayStarts(
+            from: startDate,
+            to: endDate,
+            calendar: calendar
+        )
     }
 
     private func hasPriorFoodLogs(before date: Date) throws -> Bool {
