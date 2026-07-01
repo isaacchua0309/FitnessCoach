@@ -24,12 +24,7 @@ final class PlanStateBuilderWhatHappensNextTests: XCTestCase {
         XCTAssertNotNil(state.rationale.calculationDetails)
     }
 
-    func testLegacyStrategyFieldsRemainInternalOnly() {
-        let state = PlanStateBuilder.dashboardState(profile: PlanMissionControlFixtures.loseProfile)
-
-        XCTAssertFalse(state.strategy.strategyName.isEmpty)
-        XCTAssertFalse(state.todaysTargets.calories.isEmpty)
-        XCTAssertFalse(state.lifestyle.activityLevel.isEmpty)
+    func testRemovedLegacyPlanSectionsStayOutOfMissionControlLayout() {
         XCTAssertTrue(PlanProductLayout.removedSectionIdentifiers.contains("current_strategy"))
         XCTAssertTrue(PlanProductLayout.removedSectionIdentifiers.contains("todays_targets"))
         XCTAssertTrue(PlanProductLayout.removedSectionIdentifiers.contains("plan_lifestyle"))

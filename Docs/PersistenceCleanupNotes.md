@@ -1,80 +1,54 @@
 # Persistence Cleanup Notes
 
-Stage 13–14 audit of SwiftData entities, updated after **Tier 2 (2026-06-30)** schema v2 migration.
+Stage 13–14 audit of SwiftData entities, updated after **Tier 4 (2026-06-30)** schema v3 migration.
 
-## Active schema (`FormaSchemaV2`)
+## Active schema (`FormaSchemaV3`)
 
 | Entity | Role |
 |--------|------|
 | `UserProfileEntity` | Profile and plan targets |
-| `DailyLogEntity` | Day-scoped aggregates |
+| `DailyLogEntity` | Day-scoped aggregates (no legacy workout child rows) |
 | `FoodEntryEntity`, `WaterEntryEntity`, `WeightEntryEntity` | Logging |
-| `WorkoutEntryEntity`, `ExerciseSetEntity` | Legacy manual workout rows on disk (no app reads) |
 | `DailyReviewEntity` | Coach daily review persistence |
 
-Training activity (Today streaks, daily review workout summary, Coach context) reads **Apple Health only** via `HealthActivityQueryService`.
+Training activity reads **Apple Health only** via `HealthActivityQueryService`. `DailyLog.workoutCaloriesBurned` remains a summary field but is no longer derived from SwiftData workout rows.
+
+---
+
+## Removed in v3 migration (`FormaSchemaV2` → `FormaSchemaV3`)
+
+| Entity / relationship | Why removed |
+|---------------------|-------------|
+| `WorkoutEntryEntity` | Manual workout logging retired; HealthKit is sole training source |
+| `ExerciseSetEntity` | Child of legacy manual workouts |
+| `DailyLogEntity.workoutEntries` | No legacy workout aggregation in `DailyLogService` |
+
+Entity class files remain for **v2 migration only** (`FormaSchemaV2.models`).
 
 ---
 
 ## Removed in v2 migration (`FormaSchemaV1` → `FormaSchemaV2`)
 
-Lightweight migration via `FormaMigrationPlan` drops these tables on upgrade:
-
 | Entity | Why removed |
 |--------|-------------|
-| `WeeklyReviewEntity` | Journey **This week** is computed in-memory via `JourneyWeeklyReviewBuilder` + `DailyLog` |
-| `ChatMessageEntity` | Coach keeps `ChatMessage` values in memory (`CoachModel.messages`) |
-| `DebugRecordEntity` | Pipeline diagnostics use in-memory `FormaPipelineTracer` buffers |
-
-Entity class files remain in the repo **for v1 migration only** (`FormaSchemaV1.models`). Mapping files and `WeeklyReview` domain model were deleted.
-
----
-
-## Legacy workout tables (still on disk)
-
-| Entity | Status |
-|--------|--------|
-| `WorkoutEntryEntity` | Historical rows may exist; no production read/write service |
-| `ExerciseSetEntity` | Child of legacy manual workouts |
-
-`DailyLogServiceTestSupport.seedWorkoutEntry()` still inserts entities directly for daily-log recalculation tests.
-
-### Option C — Full legacy workout retirement (future)
-
-1. Product sign-off on dropping historical manual workout rows.
-2. Custom migration or export for users with legacy data.
-3. Remove `WorkoutEntryEntity` / `ExerciseSetEntity` from schema.
-
----
-
-## Deletion requirements (future entity removal)
-
-Before removing **any** entity from `FormaSchemaV2`:
-
-- [ ] Product decision recorded.
-- [ ] Grep confirms zero `insert` / `FetchDescriptor` / relationship usage.
-- [ ] Migration plan: model version bump + lightweight or custom migration.
-- [ ] QA on upgrade from previous App Store build.
-- [ ] Tests updated; no orphaned domain models or mapping files.
-- [ ] `Docs/DeadCodeAudit.md` and this file updated.
-
----
-
-## Tier 2 code cleanup (2026-06-30)
-
-| Change | Rationale |
-|--------|-----------|
-| `FormaSchemaV2` + `FormaMigrationPlan` | Drops dormant v1 tables |
-| Removed `WorkoutLogService` | Training reads from HealthKit only |
-| `DailyTrainingActivity` + extended `HealthActivityQueryService` | Shared read-model for Today, reviews, Coach |
-| `ReviewService` / `TodayModel` / `CoachModel` wired to `healthActivityQuery` | Retire SwiftData workout reads |
-| Deleted dormant mapping files + `WeeklyReview.swift` | No longer referenced after v2 |
-| `PipelineTracePersistence` stub retained | DEBUG install hook; disk writes stay disabled |
+| `WeeklyReviewEntity` | Journey weekly review is log-derived |
+| `ChatMessageEntity` | Coach chat stays in memory |
+| `DebugRecordEntity` | In-memory pipeline tracing only |
 
 ---
 
 ## Open product decisions
 
 1. **Coach chat history** — persist across launches or keep session-only?
-2. **Legacy workout rows** — when to migrate/drop `WorkoutEntryEntity` / `ExerciseSetEntity`?
-3. **Debug persistence** — reintroduce disk archival for Settings or keep in-memory only?
+2. **Debug persistence** — reintroduce disk archival for Settings or keep in-memory only?
+
+---
+
+## Tier history
+
+| Tier | Change |
+|------|--------|
+| Tier 4 | `FormaSchemaV3`; Plan dashboard dead fields removed; workout domain dead code removed |
+| Tier 3 | Read-protocol adoption across feature models |
+| Tier 2 | `FormaSchemaV2`; `WorkoutLogService` removed; HealthKit-only training reads |
+| Tier 1 | Repository protocols; Onboarding decomposition; Coach nutrition SSOT |

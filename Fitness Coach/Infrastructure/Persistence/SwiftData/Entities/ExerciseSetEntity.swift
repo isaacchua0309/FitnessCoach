@@ -2,7 +2,8 @@
 //  ExerciseSetEntity.swift
 //  Fitness Coach
 //
-//  SwiftData entity for legacy manual workout sets (child of `WorkoutEntryEntity`).
+//  V2 MIGRATION ONLY — listed in `FormaSchemaV2` for lightweight migration to v3.
+//  Removed from active `FormaSchemaV3` schema.
 //
 //  Official training insights read from Apple Health. Retain until migration
 //  retires manual workout storage.

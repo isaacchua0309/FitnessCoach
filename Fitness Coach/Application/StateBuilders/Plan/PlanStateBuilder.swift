@@ -14,8 +14,6 @@ enum PlanStateBuilder {
         context: PlanDashboardContext? = nil,
         referenceDate: Date = Date()
     ) -> PlanDashboardState {
-        let strategyName = strategyName(for: profile)
-        let targets = profile.targets
         let dashboardContext = context ?? PlanDashboardContext.profileOnly(
             profile: profile,
             referenceDate: referenceDate
@@ -28,27 +26,7 @@ enum PlanStateBuilder {
         return PlanDashboardState(
             profile: profile,
             missionControl: missionControl,
-            strategy: PlanStrategyState(
-                strategyName: strategyName,
-                calorieTargetText: "\(targets.calorieTarget) kcal/day",
-                proteinTargetText: "\(formatGrams(targets.proteinTarget)) protein",
-                trainingFrequencyText: "\(max(profile.trainingFrequencyPerWeek, 0)) strength workouts/week",
-                startedLabel: "Started \(profile.createdAt.formatted(.dateTime.month(.abbreviated).day()))",
-                coachSummary: strategySummary(for: profile)
-            ),
-            todaysTargets: PlanTodaysTargetsState(
-                calories: PlanFormatter.kcal(targets.calorieTarget),
-                protein: PlanFormatter.gramsCompact(targets.proteinTarget),
-                water: PlanFormatter.mlCompact(targets.waterTargetMl),
-                trainingFrequency: trainingFrequencyLabel(profile.trainingFrequencyPerWeek)
-            ),
-            rationale: missionControl.rationale,
-            lifestyle: PlanLifestyleState(
-                activityLevel: PlanFormatter.activityLevel(profile.activityLevel),
-                trainingFrequency: trainingFrequencyLabel(profile.trainingFrequencyPerWeek),
-                averageSteps: PlanFormatter.stepsCompact(profile.averageSteps),
-                dietPreference: PlanFormatter.dietPreference(profile.dietPreference)
-            )
+            rationale: missionControl.rationale
         )
     }
 
@@ -87,18 +65,5 @@ enum PlanStateBuilder {
         if profile.goalWeightKg < profile.currentWeightKg - 0.5 { return .loseFat }
         if profile.goalWeightKg > profile.currentWeightKg + 0.5 { return .gainMuscle }
         return .maintain
-    }
-
-    // MARK: Helpers
-
-    private static func trainingFrequencyLabel(_ frequency: Int) -> String {
-        let count = max(frequency, 0)
-        return count == 1 ? "1 session/week" : "\(count) sessions/week"
-    }
-
-    private static func formatGrams(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(value))g"
-            : String(format: "%.0fg", value)
     }
 }

@@ -174,7 +174,7 @@ final class OnboardingGeneratingPlanTests: XCTestCase {
         return OnboardingModel(
             actionCenter: container.actionCenter,
             userProfileReader: container.userProfileService,
-            targetService: container.targetService,
+            planTargetCalculator: container.targetService,
             onCompletion: {},
             draftStore: draftStore,
             generationDelay: ImmediateOnboardingGenerationDelayProvider()

@@ -112,7 +112,8 @@ Migration-sensitive, cloud/auth, feature-flagged flows, debug tooling, or near-t
 |-----------|------|------------------|-------------|-----------------|--------|
 | `Data/SwiftData/Entities/ChatMessageEntity.swift` + mapping | Entity | In `FormaModelContainer`; **no read/write service** | Schema on disk; future chat persistence possible | **High** | **keep** until migration plan |
 | `Data/SwiftData/Entities/WeeklyReviewEntity.swift` + `Domain/Models/WeeklyReview.swift` | Entity + model | Container + mapping; **`ReviewService` uses `DailyReviewEntity` only** | Orphan schema field | **High** | **keep** until migration plan |
-| `Data/SwiftData/Entities/ExerciseSetEntity.swift` | Entity | `WorkoutLogService`, `WorkoutEntryEntity` relationship | Coach manual workout logging | **High** | **keep** |
+| `Data/SwiftData/Entities/ExerciseSetEntity.swift` | Entity | v2 migration only; removed from `FormaSchemaV3` | Legacy manual workout logging retired (Tier 4) | **High** | **removed from active schema** |
+| `Data/SwiftData/Entities/WorkoutEntryEntity.swift` | Entity | v2 migration only; removed from `FormaSchemaV3` | Legacy manual workout logging retired (Tier 4) | **High** | **removed from active schema** |
 | `Data/Firebase/*` | Cloud stores, DTOs | Auth gate, bootstrap, tests | Core profile sync | **High** | **keep** |
 | `Domain/Routing/*`, `Features/Auth/*` | Routing / UI | Entire signed-in shell | Auth sprint surface | **High** | **keep** |
 | `Domain/PlanCalculation/*`, `FormaCalculationEngine.swift` | Engine | Extensive test suite | Product math | **High** | **keep** |
@@ -122,7 +123,7 @@ Migration-sensitive, cloud/auth, feature-flagged flows, debug tooling, or near-t
 | `Data/Firebase/NoOpCloudUserProfileStore.swift` | Store | `AppContainer` preview / no-Firebase builds | Test & preview wiring | **Medium** | **keep** |
 | `Features/Journey/Model/JourneyMilestonesBuilder.swift` | Milestones + checkpoints | `JourneyDashboardBuilder` → `JourneyModel` | Live Journey section | **High** | **keep** | `JourneyMilestonesTests`, manual QA checklist |
 | `FitPilot/App/AppContainer.swift` | DI root | App entry | Runtime wiring | **High** | **keep** |
-| `ContentView.swift` | Root view | `Fitness_CoachApp` | App shell | **High** | **keep** |
+| `ContentView.swift` | Root view | ~~`Fitness_CoachApp`~~ | App shell | **High** | **removed** (Tier 4 — `AuthGateView` hosted directly) |
 
 ---
 
@@ -293,7 +294,7 @@ xcodebuild -scheme "Fitness Coach" \
 
 | Test | Change |
 |------|--------|
-| `DailyLogServiceTests` | `seedWorkoutEntry()` inserts entity directly (no `addWorkout`) |
+| `DailyLogServiceTests` | `seedWorkoutCaloriesBurned()` sets `workoutCaloriesBurned` directly (no legacy workout rows) |
 | `CoachRoutingTests`, `AppleHealthTrainingStrategyTests` | Assert reject via `decision(for: AICommandAction)` |
 | `CoachPendingCopyTests` | Removed `testWorkoutPendingOmitsBarHint` |
 
@@ -304,4 +305,4 @@ xcodebuild -scheme "Fitness Coach" \
 | `WeeklyReviewEntity`, `ChatMessageEntity`, `DebugRecordEntity` | Schema migration required |
 | `JourneyPreviewData.swift` move to test target | 15+ test files + 40+ previews depend on production target |
 | `OnboardingProofCards` preview-only views | Models still covered by `OnboardingComponentsTests` |
-| `PlanDashboardState` dead fields (`strategy`, `lifestyle`, etc.) | Phase 2 behavior-neutral refactor |
+| `PlanDashboardState` dead fields (`strategy`, `lifestyle`, `todaysTargets`) | **Removed** in Tier 4 — Mission Control + rationale only |

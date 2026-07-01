@@ -146,7 +146,7 @@ final class OnboardingModelAnalyticsTests: XCTestCase {
         return OnboardingModel(
             actionCenter: container.actionCenter,
             userProfileReader: container.userProfileService,
-            targetService: container.targetService,
+            planTargetCalculator: container.targetService,
             onCompletion: {},
             draftStore: draftStore,
             analyticsLogger: analytics,

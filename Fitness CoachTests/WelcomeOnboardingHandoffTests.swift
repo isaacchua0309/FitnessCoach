@@ -135,7 +135,7 @@ final class WelcomeOnboardingHandoffModelTests: XCTestCase {
         let model = OnboardingModel(
             actionCenter: container.actionCenter,
             userProfileReader: container.userProfileService,
-            targetService: container.targetService,
+            planTargetCalculator: container.targetService,
             onCompletion: {},
             draftStore: draftStore,
             analyticsEntry: WelcomeOnboardingHandoffPolicy.preAuthEntry,
@@ -158,7 +158,7 @@ final class WelcomeOnboardingHandoffModelTests: XCTestCase {
         let model = OnboardingModel(
             actionCenter: container.actionCenter,
             userProfileReader: container.userProfileService,
-            targetService: container.targetService,
+            planTargetCalculator: container.targetService,
             onCompletion: {},
             draftStore: draftStore,
             generationDelay: ImmediateOnboardingGenerationDelayProvider()
@@ -187,7 +187,7 @@ final class WelcomeOnboardingHandoffModelTests: XCTestCase {
         let model = OnboardingModel(
             actionCenter: container.actionCenter,
             userProfileReader: container.userProfileService,
-            targetService: container.targetService,
+            planTargetCalculator: container.targetService,
             onCompletion: {},
             draftStore: draftStore,
             analyticsEntry: WelcomeOnboardingHandoffPolicy.preAuthEntry,

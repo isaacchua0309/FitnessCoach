@@ -60,7 +60,7 @@ final class OnboardingGenerationRevealHandoffTests: XCTestCase {
         return OnboardingModel(
             actionCenter: container.actionCenter,
             userProfileReader: container.userProfileService,
-            targetService: container.targetService,
+            planTargetCalculator: container.targetService,
             onCompletion: {},
             draftStore: OnboardingDraftStore(
                 userDefaults: UserDefaults(suiteName: "OnboardingGenerationRevealHandoffTests.\(UUID())")!
