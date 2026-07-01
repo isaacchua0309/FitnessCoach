@@ -29,8 +29,6 @@ final class CoachModel: ObservableObject {
     @Published private(set) var starterPromptSpecs: [CoachStarterPromptSpec] = CoachStarterPrompt.defaultQuickActionSpecs
 
     private let localCommandParser: LocalCommandParser
-    private let localNutritionEstimator: LocalNutritionEstimator
-    private let actionCenter: FitnessActionCenter
     private let dailyLogService: DailyLogService
     private let workoutLogService: WorkoutLogService
     private let weightLogService: WeightLogService?
@@ -40,9 +38,12 @@ final class CoachModel: ObservableObject {
     private let aiContextBuilder: CoachContextBuilder?
     private var routeDecider: CoachRouteDecider
     private let coachModelConfig: CoachModelConfig
-    private let userProfileService: UserProfileService?
     private let aiCommandParsingEnabled: Bool
     private let trainingInsightsStore: TrainingInsightsStore?
+
+    private let mutationExecutor: CoachMutationExecutor
+    private let routeHandler: CoachAIRouteHandler
+    private let mealPhotoAnalyzer: CoachMealPhotoAnalyzer
 
     init(
         localCommandParser: LocalCommandParser? = nil,
@@ -59,13 +60,11 @@ final class CoachModel: ObservableObject {
         trainingInsightsStore: TrainingInsightsStore? = nil
     ) {
         self.localCommandParser = localCommandParser ?? .standard
-        self.localNutritionEstimator = localNutritionEstimator ?? .standard
-        self.actionCenter = actionCenter
+        let nutritionEstimator = localNutritionEstimator ?? .standard
         self.dailyLogService = dailyLogService
         self.workoutLogService = workoutLogService
         self.weightLogService = weightLogService
         self.aiService = aiService
-        self.userProfileService = userProfileService
         self.aiCommandParsingEnabled = aiCommandParsingEnabled
         self.coachModelConfig = coachModelConfig ?? .default
         self.routeDecider = routeDecider ?? CoachRouteDecider()
@@ -80,6 +79,28 @@ final class CoachModel: ObservableObject {
         } else {
             self.aiContextBuilder = nil
         }
+
+        let executor = CoachMutationExecutor(
+            actionCenter: actionCenter,
+            dailyLogService: dailyLogService,
+            workoutLogService: workoutLogService,
+            localNutritionEstimator: nutritionEstimator,
+            mutationHistory: mutationHistory
+        )
+        self.mutationExecutor = executor
+        self.routeHandler = CoachAIRouteHandler(
+            aiService: aiService,
+            aiCommandParsingEnabled: aiCommandParsingEnabled,
+            dailyLogService: dailyLogService,
+            userProfileService: userProfileService,
+            trainingInsightsStore: trainingInsightsStore,
+            mutationExecutor: executor
+        )
+        self.mealPhotoAnalyzer = CoachMealPhotoAnalyzer(
+            aiCommandParsingEnabled: aiCommandParsingEnabled,
+            aiContextBuilder: self.aiContextBuilder,
+            routeHandler: routeHandler
+        )
     }
 
     // MARK: Today context
@@ -135,23 +156,44 @@ final class CoachModel: ObservableObject {
             )
         }
 
-        let response: String
-        if let pendingResponse = await handlePendingConfirmationInput(trimmed) {
+        if let pendingResult = await handlePendingConfirmationInput(trimmed) {
             traceOutcome = "pendingConfirmation"
-            response = pendingResponse
-        } else {
-            response = await processCoachMessage(trimmed, traceId: traceId, traceOutcome: &traceOutcome)
+            applyActionResult(pendingResult)
+            return
         }
-        if !response.isEmpty {
-            appendAssistantMessage(response)
+
+        let result = await processCoachMessage(trimmed, traceId: traceId, traceOutcome: &traceOutcome)
+        applyActionResult(result)
+    }
+
+    private func handlePendingConfirmationInput(_ text: String) async -> CoachActionResult? {
+        guard pendingConfirmation != nil else { return nil }
+
+        let normalized = CommandParserUtilities.normalized(text)
+        if CoachPendingConfirmationPresenter.confirmWords.contains(normalized) {
+            isConfirmingPending = true
+            defer { isConfirmingPending = false }
         }
+
+        guard let result = await CoachPendingConfirmationPresenter.handleTextInput(
+            text,
+            pendingConfirmation: pendingConfirmation,
+            executor: mutationExecutor
+        ) else {
+            return nil
+        }
+
+        if result.pendingConfirmation == nil {
+            clearPendingConfirmation()
+        }
+        return result
     }
 
     private func processCoachMessage(
         _ text: String,
         traceId: UUID,
         traceOutcome: inout String
-    ) async -> String {
+    ) async -> CoachActionResult {
         guard aiCommandParsingEnabled,
               let aiContextBuilder,
               let aiService else {
@@ -166,7 +208,7 @@ final class CoachModel: ObservableObject {
                     "hasAIService": String(self.aiService != nil)
                 ]
             )
-            return CoachResponseBuilder.backendUnavailableResponse
+            return .message(CoachResponseBuilder.backendUnavailableResponse)
         }
 
         let priorChatMessages = Array(messages.dropLast())
@@ -180,9 +222,9 @@ final class CoachModel: ObservableObject {
                 config: coachModelConfig
             )
             CoachRouteDebugLogger.log(decision)
-            let response = try await handle(decision.route, context: context)
+            let result = try await routeHandler.handle(decision.route, context: context)
             traceOutcome = "routed:\(decision.chosenHandler)"
-            return response
+            return result
         } catch let error as AIServiceError {
             if case .authenticationFailed = error {
                 traceOutcome = "authFailed"
@@ -193,7 +235,7 @@ final class CoachModel: ObservableObject {
                     fields: ["error": error.userMessage]
                 )
                 presentCoachSessionFailure()
-                return ""
+                return .message("")
             }
             traceOutcome = "aiServiceError"
             FitPilotPipelineTracer.logError(
@@ -205,7 +247,7 @@ final class CoachModel: ObservableObject {
                     "userMessage": error.userMessage
                 ]
             )
-            return error.userMessage
+            return .message(error.userMessage)
         } catch {
             traceOutcome = "unexpectedError"
             FitPilotPipelineTracer.logError(
@@ -217,7 +259,7 @@ final class CoachModel: ObservableObject {
                     "errorType": String(describing: type(of: error))
                 ]
             )
-            return AIServiceError.requestFailed(error.localizedDescription).userMessage
+            return .message(AIServiceError.requestFailed(error.localizedDescription).userMessage)
         }
     }
 
@@ -263,7 +305,7 @@ final class CoachModel: ObservableObject {
     }
 
     private func analyzeMealPhoto(_ rawData: Data) async {
-        let prepared = CoachMealPhotoPipeline.prepareJPEG(from: rawData)
+        let prepared = mealPhotoAnalyzer.prepareJPEG(from: rawData)
         guard case .success(let jpegData) = prepared else {
             if case .failure(let error) = prepared {
                 appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
@@ -272,7 +314,6 @@ final class CoachModel: ObservableObject {
         }
 
         CoachMealPhotoPipeline.assertImagePayloadPresent(jpegData)
-
         guard !isSending else { return }
 
         appendUserMessage(CoachMealPhotoPipeline.userMessageLabel)
@@ -291,56 +332,10 @@ final class CoachModel: ObservableObject {
             )
         }
 
-        guard aiCommandParsingEnabled,
-              let aiContextBuilder,
-              let aiService else {
-            traceOutcome = "aiDisabled"
-            appendAssistantMessage(CoachResponseBuilder.backendUnavailableResponse)
-            return
-        }
-
-        FitPilotPipelineTracer.event(
-            stage: .coachSend,
-            level: .info,
-            message: "Meal photo analysis started",
-            fields: [
-                "jpegBytes": String(jpegData.count),
-                "hasImagePayload": String(CoachMealPhotoPipeline.hasImagePayload(jpegData))
-            ]
-        )
-
         let priorChatMessages = Array(messages.dropLast())
-        let context = aiContextBuilder.makeContext(recentMessages: priorChatMessages)
-        let routed = RoutedAITask(
-            task: .photoFoodAnalysis(
-                imageData: jpegData,
-                prompt: CoachMealPhotoPipeline.defaultAnalysisPrompt
-            ),
-            tier: .cheap,
-            intentResult: CoachMealPhotoPipeline.photoAnalysisIntentResult
-        )
-
-        do {
-            let response = try await handleAITask(routed, context: context)
-            traceOutcome = "photoAnalysisCompleted"
-            if !response.isEmpty {
-                appendAssistantMessage(response)
-            }
-        } catch let error as AIServiceError {
-            traceOutcome = "aiServiceError"
-            FitPilotPipelineTracer.logError(
-                traceId: traceId,
-                stage: .error,
-                message: "Meal photo analysis failed",
-                fields: ["error": error.userMessage]
-            )
-            appendAssistantMessage(CoachResponseBuilder.mealPhotoAnalysisFailed(error))
-        } catch {
-            traceOutcome = "unexpectedError"
-            appendAssistantMessage(CoachResponseBuilder.mealPhotoAnalysisFailed(
-                AIServiceError.requestFailed(error.localizedDescription)
-            ))
-        }
+        let result = await mealPhotoAnalyzer.analyze(jpegData: jpegData, recentMessages: priorChatMessages)
+        traceOutcome = "photoAnalysisCompleted"
+        applyActionResult(result)
     }
 
     func clearError() {
@@ -360,7 +355,7 @@ final class CoachModel: ObservableObject {
         isConfirmingPending = true
         defer { isConfirmingPending = false }
 
-        let response = await executePendingConfirmation(confirmation)
+        let response = await mutationExecutor.executePendingConfirmation(confirmation)
         clearPendingConfirmation()
         if !response.isEmpty {
             appendAssistantMessage(response)
@@ -403,6 +398,17 @@ final class CoachModel: ObservableObject {
         }
     }
 
+    // MARK: Action result application
+
+    private func applyActionResult(_ result: CoachActionResult) {
+        if let confirmation = result.pendingConfirmation {
+            setPendingConfirmation(confirmation)
+        }
+        if !result.message.isEmpty {
+            appendAssistantMessage(result.message)
+        }
+    }
+
     private func clearPendingConfirmation() {
         pendingConfirmation = nil
         foodEditErrorMessage = nil
@@ -415,648 +421,6 @@ final class CoachModel: ObservableObject {
         foodEditErrorMessage = nil
         isShowingFoodEditSheet = false
         return confirmation
-    }
-
-    private func presentFoodPending(
-        originalText: String,
-        assistantMessage: String?,
-        foodDraft: FoodDraft,
-        confidence: AIConfidence
-    ) -> String {
-        let draft = AIFoodConfirmationDraft(
-            originalText: originalText,
-            assistantMessage: assistantMessage,
-            foodDrafts: [foodDraft],
-            confidence: confidence,
-            requiresConfirmation: true
-        )
-        setPendingConfirmation(.food(draft))
-        return CoachResponseBuilder.aiFoodEstimatePending(
-            draft: foodDraft,
-            confidence: confidence,
-            originalText: originalText
-        )
-    }
-
-    private func trainingLogRedirectMessage() async -> String {
-        if let trainingInsightsStore {
-            await trainingInsightsStore.refresh()
-            return TrainingIntegrationCopy.coachWorkoutLogMessage(
-                isAppleHealthConnected: trainingInsightsStore.integrationState.isConnected
-            )
-        }
-        return TrainingIntegrationCopy.coachWorkoutLogMessage(isAppleHealthConnected: false)
-    }
-
-    private func presentWaterPending(
-        _ draft: WaterDraft,
-        assistantMessage: String?
-    ) -> String {
-        setPendingConfirmation(.water(draft, assistantMessage: assistantMessage))
-        return CoachResponseBuilder.waterPending(draft, assistantMessage: assistantMessage)
-    }
-
-    private func presentWeightPending(
-        _ draft: WeightDraft,
-        assistantMessage: String?
-    ) -> String {
-        setPendingConfirmation(.weight(draft, assistantMessage: assistantMessage))
-        return CoachResponseBuilder.weightPending(draft, assistantMessage: assistantMessage)
-    }
-
-    private func executePendingConfirmation(_ confirmation: CoachPendingConfirmation) async -> String {
-        switch confirmation {
-        case .food(let draft):
-            guard let foodDraft = draft.primaryFoodDraft else {
-                return CoachResponseBuilder.aiNotUnderstood
-            }
-            return executeLogFood(foodDraft)
-        case .water(let draft, _):
-            return executeLogWater(draft)
-        case .weight(let draft, _):
-            return executeLogWeight(draft)
-        case .edit(let action, _, _):
-            return executeEditAction(action)
-        case .delete(let action, _, _):
-            return executeDeleteAction(action)
-        case .undo(let action, _, _):
-            return executeUndoAction(action)
-        }
-    }
-
-    private func handlePendingConfirmationInput(_ text: String) async -> String? {
-        guard pendingConfirmation != nil else { return nil }
-
-        let normalized = CommandParserUtilities.normalized(text)
-        let confirmWords = ["confirm", "yes", "yep", "log it", "save it", "do it"]
-        let rejectWords = ["cancel", "no", "nope", "discard", "reject"]
-
-        if rejectWords.contains(normalized) {
-            clearPendingConfirmation()
-            return CoachResponseBuilder.pendingRejected
-        }
-
-        guard confirmWords.contains(normalized), let confirmation = pendingConfirmation else {
-            return nil
-        }
-
-        isConfirmingPending = true
-        defer { isConfirmingPending = false }
-
-        let response = await executePendingConfirmation(confirmation)
-        clearPendingConfirmation()
-        return response
-    }
-
-    // MARK: Result Handling
-
-    private func handle(_ route: CoachRoute, context: AIContext) async throws -> String {
-        switch route {
-        case .noOp(let response):
-            switch response {
-            case .casual(let message), .meaningless(let message):
-                return message
-            }
-
-        case .localCommand(let command):
-            switch ConfirmationPolicy.decision(for: command) {
-            case .executeImmediately:
-                return await execute(command)
-            case .requiresConfirmation(let message):
-                return message
-            case .reject(let message):
-                return message
-            }
-
-        case .localFoodEstimate(let request):
-            return await handleLocalFoodEstimate(request)
-
-        case .classifiedFood(_, let originalText, let intentResult):
-            return try await handleAITask(
-                RoutedAITask(
-                    task: .estimateFood(originalText),
-                    tier: .cheap,
-                    intentResult: intentResult
-                ),
-                context: context
-            )
-
-        case .ai(let task):
-            return try await handleAITask(task, context: context)
-
-        case .trainingLogRedirect:
-            return await trainingLogRedirectMessage()
-
-        case .clarification(let message), .invalid(let message):
-            return message
-        }
-    }
-
-    private func handleLocalFoodEstimate(_ request: LocalFoodEstimateRequest) async -> String {
-        switch ConfirmationPolicy.decision(for: request) {
-        case .executeImmediately:
-            return executeLogFood(request.estimate.draft)
-        case .requiresConfirmation:
-            let confidence: AIConfidence = request.estimate.confidence == .high ? .high : .medium
-            let draft = AIFoodConfirmationDraft(
-                originalText: request.originalText,
-                assistantMessage: request.estimate.explanation,
-                foodDrafts: [request.estimate.draft],
-                confidence: confidence,
-                requiresConfirmation: true
-            )
-            setPendingConfirmation(.food(draft))
-            return CoachResponseBuilder.localFoodEstimatePending(
-                request.estimate,
-                originalText: request.originalText
-            )
-        case .reject(let message):
-            return message
-        }
-    }
-
-    // MARK: AI Tasks
-
-    private func handleAITask(_ routed: RoutedAITask, context: AIContext) async throws -> String {
-        guard aiCommandParsingEnabled, let aiService else {
-            return CoachResponseBuilder.backendUnavailableResponse
-        }
-
-        switch routed.task {
-        case .estimateFood(let prompt):
-            let response = try await aiService.estimateFood(
-                prompt: prompt,
-                context: context,
-                imageJPEGData: nil
-            )
-            return presentEstimateFoodResponse(
-                response,
-                prompt: prompt,
-                routed: routed
-            )
-
-        case .photoFoodAnalysis(let imageData, let prompt):
-            guard CoachMealPhotoPipeline.hasImagePayload(imageData) else {
-                return CoachResponseBuilder.mealPhotoError(.noImage)
-            }
-            CoachMealPhotoPipeline.assertImagePayloadPresent(imageData!)
-
-            let response = try await aiService.estimateFood(
-                prompt: prompt,
-                context: context,
-                imageJPEGData: imageData
-            )
-            return presentEstimateFoodResponse(
-                response,
-                prompt: prompt,
-                routed: routed,
-                photoAnalysis: true
-            )
-
-        case .mealAdvice(let prompt):
-            let advice = try await aiService.generateMealAdvice(
-                prompt: prompt,
-                context: context,
-                intentResult: routed.intentResult,
-                tier: routed.tier
-            )
-            return CoachResponseBuilder.mealAdvice(
-                log: try? dailyLogService.getTodayLog(),
-                profile: try? userProfileService?.getCurrentProfile(),
-                hasWorkoutToday: hasWorkoutToday(),
-                assistantMessage: advice.message
-            )
-
-        case .parseWorkout:
-            return await trainingLogRedirectMessage()
-
-        case .editEntry(let prompt), .deleteEntry(let prompt):
-            let parsed = try await aiService.parseEditOrDelete(prompt: prompt, context: context)
-            return try await handleParsedAICommand(parsed, context: context)
-
-        case .multiAction(let prompt):
-            let parsed = try await aiService.parseMultiAction(prompt: prompt, context: context)
-            return try await handleParsedAICommand(parsed, context: context)
-
-        case .parseCommand(let prompt):
-            let parsed = try await aiService.parseCommand(prompt, context: context)
-            return try await handleParsedAICommand(parsed, context: context)
-        }
-    }
-
-    private func presentEstimateFoodResponse(
-        _ response: AIFoodEstimateResponse,
-        prompt: String,
-        routed: RoutedAITask,
-        photoAnalysis: Bool = false
-    ) -> String {
-        let classifierDraft: FoodDraft? = {
-            if case .logFood(let draft) = routed.intentResult.action { return draft }
-            return nil
-        }()
-
-        guard var draft = response.foodDrafts.first else {
-            return CoachResponseBuilder.aiNotUnderstood
-        }
-
-        if photoAnalysis {
-            draft.source = .aiPhotoEstimate
-        }
-
-        if let classifierDraft, !classifierDraft.hasCompleteNutritionEstimate {
-            draft = FoodDraftNutritionCompleter.mergeExplicit(
-                classifierDraft,
-                into: draft,
-                hintText: prompt
-            )
-        }
-
-        return presentAIFoodEstimate(
-            draft: draft,
-            originalText: prompt,
-            assistantMessage: response.assistantMessage,
-            confidence: response.confidence
-        )
-    }
-
-    private func handleParsedAICommand(
-        _ parsed: AIParsedCommand,
-        context: AIContext
-    ) async throws -> String {
-        switch ConfirmationPolicy.decision(for: parsed) {
-        case .reject(let message):
-            return message
-        case .requiresConfirmation(let message):
-            if let action = parsed.actions.first {
-                return try await presentAIActionConfirmation(action, parsed: parsed, fallback: message)
-            }
-            return parsed.assistantMessage ?? message
-        case .executeImmediately:
-            if parsed.actions.isEmpty {
-                return parsed.assistantMessage ?? CoachResponseBuilder.aiNotUnderstood
-            }
-            return try await executeAIActions(parsed.actions)
-        }
-    }
-
-    private func presentAIActionConfirmation(
-        _ action: AICommandAction,
-        parsed: AIParsedCommand,
-        fallback: String
-    ) async throws -> String {
-        switch action.type {
-        case .logFood:
-            guard let draft = action.foodDraft else { return fallback }
-            return presentAIFoodEstimate(
-                draft: draft,
-                originalText: parsed.originalText,
-                assistantMessage: parsed.assistantMessage,
-                confidence: parsed.confidence
-            )
-        case .logWorkout:
-            guard action.workoutDraft != nil else { return fallback }
-            return await trainingLogRedirectMessage()
-        case .logWater:
-            guard let draft = action.waterDraft else { return fallback }
-            return presentWaterPending(draft, assistantMessage: parsed.assistantMessage)
-        case .logWeight:
-            guard let draft = action.weightDraft else { return fallback }
-            return presentWeightPending(draft, assistantMessage: parsed.assistantMessage)
-        case .editEntry:
-            setPendingConfirmation(
-                .edit(action, originalText: parsed.originalText, assistantMessage: parsed.assistantMessage)
-            )
-            return CoachResponseBuilder.mutationPending(assistantMessage: parsed.assistantMessage ?? fallback)
-        case .deleteEntry:
-            setPendingConfirmation(
-                .delete(action, originalText: parsed.originalText, assistantMessage: parsed.assistantMessage)
-            )
-            return CoachResponseBuilder.mutationPending(assistantMessage: parsed.assistantMessage ?? fallback)
-        case .undo:
-            setPendingConfirmation(
-                .undo(action, originalText: parsed.originalText, assistantMessage: parsed.assistantMessage)
-            )
-            return CoachResponseBuilder.mutationPending(assistantMessage: parsed.assistantMessage ?? fallback)
-        case .mealAdvice, .status, .dailyReview, .startNewDay:
-            return parsed.assistantMessage ?? fallback
-        }
-    }
-
-    private func executeAIActions(_ actions: [AICommandAction]) async throws -> String {
-        var responses: [String] = []
-        for action in actions {
-            switch action.type {
-            case .logFood:
-                if let draft = action.foodDraft {
-                    responses.append(executeLogFood(draft))
-                }
-            case .logWater:
-                if let draft = action.waterDraft {
-                    responses.append(executeLogWater(draft))
-                }
-            case .logWeight:
-                if let draft = action.weightDraft {
-                    responses.append(executeLogWeight(draft))
-                }
-            case .logWorkout:
-                if action.workoutDraft != nil {
-                    responses.append(await trainingLogRedirectMessage())
-                }
-            case .editEntry, .deleteEntry, .undo, .mealAdvice, .status, .dailyReview, .startNewDay:
-                break
-            }
-        }
-        return responses.isEmpty ? CoachResponseBuilder.aiNotUnderstood : responses.joined(separator: "\n\n")
-    }
-
-    private func presentAIFoodEstimate(
-        draft: FoodDraft,
-        originalText: String,
-        assistantMessage: String?,
-        confidence: AIConfidence
-    ) -> String {
-        let sanitized = FoodDraftNutritionCompleter.sanitizePartial(draft, hintText: originalText)
-        switch ConfirmationPolicy.decision(for: sanitized) {
-        case .requiresConfirmation, .executeImmediately:
-            return presentFoodPending(
-                originalText: originalText,
-                assistantMessage: assistantMessage,
-                foodDraft: sanitized,
-                confidence: confidence
-            )
-        case .reject(let message):
-            return message
-        }
-    }
-
-    private func executeEditAction(_ action: AICommandAction) -> String {
-        if let foodDraft = action.foodDraft {
-            return applyFoodEdit(from: foodDraft, selector: action.targetEntrySelector)
-        }
-        return "I couldn't find which entry to edit. Try being more specific."
-    }
-
-    private func executeDeleteAction(_ action: AICommandAction) -> String {
-        if let mealType = action.foodDraft?.mealType {
-            return deleteFood(mealType: mealType)
-        }
-
-        let selector = (action.targetEntrySelector ?? "").lowercased()
-        for mealType in MealType.allCases where selector.contains(mealType.rawValue.lowercased()) {
-            return deleteFood(mealType: mealType)
-        }
-
-        return "I couldn't find which entry to delete. Try naming the meal type."
-    }
-
-    private func executeUndoAction(_ action: AICommandAction) -> String {
-        let selector = (action.targetEntrySelector ?? "").lowercased()
-        if selector.contains("food") {
-            return executeUndo(.food)
-        }
-        if selector.contains("water") {
-            return executeUndo(.water)
-        }
-        if selector.contains("workout") {
-            return TrainingIntegrationCopy.coachWorkoutMutationUnavailable
-        }
-        return executeUndo(.last)
-    }
-
-    private func applyFoodEdit(from draft: FoodDraft, selector: String?) -> String {
-        do {
-            let entries = try actionCenter.getFoodEntries(for: Date())
-            guard let entry = entries.last else {
-                return "There is no food entry to edit today."
-            }
-
-            let update = FoodEntryUpdate(
-                mealType: draft.mealType,
-                name: draft.name.isEmpty ? nil : draft.name,
-                quantity: draft.quantity,
-                unit: draft.unit,
-                calories: draft.calories,
-                protein: draft.protein,
-                carbs: draft.carbs,
-                fat: draft.fat,
-                fiber: draft.fiber,
-                sodium: draft.sodium,
-                source: .corrected,
-                confidence: draft.confidence,
-                imageUrl: draft.imageUrl,
-                notes: draft.notes ?? selector
-            )
-            let updated = try actionCenter.editFoodEntry(id: entry.id, update: update)
-            mutationHistory.record(entryId: updated.id, type: .food, summary: "edit \(updated.name)")
-            return CoachResponseBuilder.editFood(updated)
-        } catch ServiceError.invalidInput(let message) {
-            return message
-        } catch {
-            return "I could not edit that food entry. Please try again."
-        }
-    }
-
-    private func hasWorkoutToday() -> Bool {
-        (try? !workoutLogService.getWorkouts(for: Date()).isEmpty) ?? false
-    }
-
-    private func execute(_ command: ParsedCommand) async -> String {
-        switch command.intent {
-        case .logWater(let draft):
-            return executeLogWater(draft)
-        case .logWeight(let draft):
-            return executeLogWeight(draft)
-        case .logFood(let draft):
-            return executeLogFood(draft)
-        case .undo(let target):
-            return executeUndo(target)
-        case .status:
-            return executeStatus()
-        case .dailyReview:
-            return await executeDailyReview()
-        case .logSteps:
-            return CoachResponseBuilder.stepsPlaceholder
-        case .unsupported:
-            return CoachResponseBuilder.unsupportedResponse
-        case .needsAI:
-            return CoachResponseBuilder.needsAIResponse
-        }
-    }
-
-    // MARK: Command Execution
-
-    private func executeLogWater(_ draft: WaterDraft) -> String {
-        do {
-            let entry = try actionCenter.logWater(draft, date: Date())
-            let log = try? dailyLogService.getLog(for: Date())
-            mutationHistory.record(
-                entryId: entry.id,
-                type: .water,
-                summary: "\(entry.amountMl)ml water"
-            )
-            return CoachResponseBuilder.water(loggedMl: entry.amountMl, log: log)
-        } catch ServiceError.invalidInput(let message) {
-            return message
-        } catch {
-            return "I could not save that water entry. Please try again."
-        }
-    }
-
-    private func executeLogWeight(_ draft: WeightDraft) -> String {
-        do {
-            let entry = try actionCenter.logDailyWeight(draft, date: Date())
-            mutationHistory.record(
-                entryId: entry.id,
-                type: .weight,
-                summary: "\(entry.weightKg)kg weight"
-            )
-            return CoachResponseBuilder.weight(entry.weightKg)
-        } catch ServiceError.invalidInput(let message) {
-            return message
-        } catch {
-            return "I could not log that weight. Please try again."
-        }
-    }
-
-    private func executeLogFood(_ draft: FoodDraft) -> String {
-        do {
-            let entry = try actionCenter.logFood(draft, date: Date())
-            let log = try? dailyLogService.getLog(for: Date())
-            mutationHistory.record(entryId: entry.id, type: .food, summary: entry.name)
-            return CoachResponseBuilder.food(entry, log: log)
-        } catch ServiceError.invalidInput(let message) {
-            return message
-        } catch ServiceError.missingUserProfile {
-            return "I could not log that food entry. Please check that your profile is set up."
-        } catch {
-            return "I could not log that food entry. Please check the calories and macro values."
-        }
-    }
-
-    private func executeUndo(_ target: UndoTarget) -> String {
-        switch target {
-        case .food:
-            do {
-                let entry = try actionCenter.undoLastFoodEntry(date: Date())
-                return CoachResponseBuilder.undoFood(entry)
-            } catch {
-                return "I could not undo your last food entry. Please try again."
-            }
-        case .water:
-            do {
-                let entry = try actionCenter.undoLastWaterEntry(date: Date())
-                return CoachResponseBuilder.undoWater(entry)
-            } catch {
-                return "I could not undo your last water entry. Please try again."
-            }
-        case .last:
-            return executeUndoLastMutation()
-        case .workout:
-            return TrainingIntegrationCopy.coachWorkoutMutationUnavailable
-        case .weight:
-            return "Weight undo is not available yet. Log the corrected weight instead."
-        }
-    }
-
-    private func executeUndoLastMutation() -> String {
-        guard let record = mutationHistory.latest() else {
-            return CoachResponseBuilder.undoLastPlaceholder
-        }
-
-        do {
-            switch record.entryType {
-            case .food:
-                try actionCenter.deleteFoodEntry(id: record.entryId)
-            case .water:
-                try actionCenter.deleteWaterEntry(id: record.entryId)
-            case .workout:
-                return TrainingIntegrationCopy.coachWorkoutMutationUnavailable
-            case .weight:
-                return "Weight undo is not available yet. Log the corrected weight instead."
-            }
-            mutationHistory.remove(id: record.id)
-            return "Undid \(record.summary)."
-        } catch {
-            return "I could not undo that last action. Please try again."
-        }
-    }
-
-    private func deleteFood(mealType: MealType) -> String {
-        do {
-            let entries = try actionCenter.getFoodEntries(for: Date())
-                .filter { $0.mealType == mealType }
-
-            guard !entries.isEmpty else {
-                return "I did not find a \(mealType.rawValue) entry for today."
-            }
-
-            guard entries.count == 1, let entry = entries.first else {
-                return "I found \(entries.count) \(mealType.rawValue) entries. Which one should I delete?"
-            }
-
-            try actionCenter.deleteFoodEntry(id: entry.id)
-            return CoachResponseBuilder.deleteFood(entry)
-        } catch {
-            return "I could not delete that food entry. Please try again."
-        }
-    }
-
-    private func editLastFoodQuantity(_ quantity: Double, unit: String?) -> String {
-        do {
-            guard let entry = try actionCenter.getFoodEntries(for: Date()).last else {
-                return "There is no food entry to edit today."
-            }
-
-            let estimateInput = InputNormalizer.normalize("log \(formatQuantity(quantity))\(unit ?? "g") \(entry.name)")
-            let localEstimate = localNutritionEstimator.estimate(estimateInput)
-            let update = FoodEntryUpdate(
-                mealType: nil,
-                name: nil,
-                quantity: quantity,
-                unit: unit,
-                calories: localEstimate?.draft.calories,
-                protein: localEstimate?.draft.protein,
-                carbs: localEstimate?.draft.carbs,
-                fat: localEstimate?.draft.fat,
-                fiber: nil,
-                sodium: nil,
-                source: .corrected,
-                confidence: localEstimate?.draft.confidence,
-                imageUrl: nil,
-                notes: localEstimate?.draft.notes
-            )
-            let updated = try actionCenter.editFoodEntry(id: entry.id, update: update)
-            mutationHistory.record(entryId: updated.id, type: .food, summary: "edit \(updated.name)")
-            return CoachResponseBuilder.editFood(updated)
-        } catch ServiceError.invalidInput(let message) {
-            return message
-        } catch {
-            return "I could not edit that food entry. Please try again."
-        }
-    }
-
-    private func executeStatus() -> String {
-        do {
-            let log = try dailyLogService.getTodayLog()
-            return CoachResponseBuilder.status(log)
-        } catch ServiceError.missingUserProfile {
-            return "I could not load your status. Please check that your profile is set up."
-        } catch {
-            return "I could not load your status. Please try again."
-        }
-    }
-
-    private func executeDailyReview() async -> String {
-        do {
-            let review = try await actionCenter.generateDailyReview(for: Date())
-            return CoachResponseBuilder.dailyReview(review)
-        } catch ServiceError.missingUserProfile {
-            return "I could not generate your daily review yet. Please start a day and make sure your profile is set up."
-        } catch ServiceError.dailyLogNotFound {
-            return "There is no daily log for today yet. Open Today to load your dashboard."
-        } catch {
-            return "I could not generate your daily review yet. Please try again."
-        }
     }
 
     // MARK: Message Helpers
@@ -1085,19 +449,5 @@ final class CoachModel: ObservableObject {
                 relatedEntryId: nil
             )
         )
-    }
-
-    private func formatQuantity(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? String(format: "%.0f", value)
-            : String(format: "%.1f", value)
-    }
-
-    private func aiConfidence(from level: ConfidenceLevel) -> AIConfidence {
-        switch level {
-        case .high: return .high
-        case .medium: return .medium
-        case .low: return .low
-        }
     }
 }
