@@ -316,7 +316,7 @@ final class OnboardingCompletionPathTests: XCTestCase {
         return OnboardingModel(
             actionCenter: resolvedContainer.actionCenter,
             userProfileReader: resolvedContainer.userProfileService,
-            targetService: resolvedContainer.targetService,
+            planTargetCalculator: resolvedContainer.targetService,
             onCompletion: {},
             draftStore: draftStore,
             analyticsLogger: analytics,

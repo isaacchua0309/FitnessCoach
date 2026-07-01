@@ -36,32 +36,15 @@ enum DailyLogServiceTestSupport {
         }
 
         @discardableResult
-        func seedWorkoutEntry(
+        func seedWorkoutCaloriesBurned(
             date: Date? = nil,
-            estimatedCaloriesBurned: Int = 250,
-            name: String = "Run"
-        ) throws -> WorkoutEntry {
+            calories: Int = 250
+        ) throws -> DailyLog {
             let workoutDate = date ?? today
             let log = try dailyLogService.getOrCreateLogEntity(for: workoutDate)
-            let now = Date()
-            let workoutId = UUID()
-            let workout = WorkoutEntry(
-                id: workoutId,
-                dailyLogId: log.id,
-                name: name,
-                durationMinutes: 30,
-                estimatedCaloriesBurned: estimatedCaloriesBurned,
-                intensity: .moderate,
-                recoveryDemand: nil,
-                notes: nil,
-                createdAt: now,
-                updatedAt: now
-            )
-            let entity = WorkoutEntryEntity(model: workout)
-            entity.dailyLog = log
-            try store.insert(entity)
-            _ = try dailyLogService.recalculateDailyTotals(for: workoutDate)
-            return workout
+            log.workoutCaloriesBurned = calories
+            try store.save()
+            return try dailyLogService.recalculateDailyTotals(for: workoutDate)
         }
     }
 

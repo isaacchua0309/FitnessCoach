@@ -57,7 +57,7 @@ final class OnboardingModel: ObservableObject {
     init(
         actionCenter: FitnessActionCenter,
         userProfileReader: any UserProfileReading,
-        targetService: TargetService,
+        planTargetCalculator: any PlanTargetCalculating,
         onCompletion: @escaping () -> Void,
         draftStore: OnboardingDraftStore? = nil,
         coachingContextStore: OnboardingCoachingContextStore? = nil,
@@ -82,7 +82,7 @@ final class OnboardingModel: ObservableObject {
         self.onCompletion = onCompletion
 
         planGenerationExecutor = OnboardingPlanGenerationExecutor(
-            targetService: targetService,
+            planTargetCalculator: planTargetCalculator,
             generationDelay: resolvedGenerationDelay
         )
         profileCommitter = OnboardingProfileCommitter(

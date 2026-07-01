@@ -305,7 +305,7 @@ final class OnboardingPlanRevealProductionTests: XCTestCase {
         return OnboardingModel(
             actionCenter: resolved.actionCenter,
             userProfileReader: resolved.userProfileService,
-            targetService: resolved.targetService,
+            planTargetCalculator: resolved.targetService,
             onCompletion: {},
             draftStore: OnboardingDraftStore(
                 userDefaults: UserDefaults(suiteName: "OnboardingPlanRevealProductionTests.\(UUID())")!

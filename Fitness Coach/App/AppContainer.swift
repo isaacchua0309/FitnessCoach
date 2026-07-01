@@ -300,7 +300,7 @@ final class AppContainer {
         return OnboardingModel(
             actionCenter: actionCenter,
             userProfileReader: userProfileService,
-            targetService: targetService,
+            planTargetCalculator: targetService,
             onCompletion: onCompletion,
             draftStore: onboardingDraftStore,
             coachingContextStore: onboardingCoachingContextStore,

@@ -457,7 +457,7 @@ final class PublicEntryEdgeCaseDraftResumeTests: XCTestCase {
         let model = OnboardingModel(
             actionCenter: container.actionCenter,
             userProfileReader: container.userProfileService,
-            targetService: container.targetService,
+            planTargetCalculator: container.targetService,
             onCompletion: {},
             draftStore: draftStore,
             generationDelay: ImmediateOnboardingGenerationDelayProvider()

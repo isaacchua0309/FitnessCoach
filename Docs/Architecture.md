@@ -12,12 +12,10 @@ This document describes how the Forma iOS app is composed today and the layering
 
 ```
 Fitness_CoachApp
-  └── ContentView(container:)
-        └── AuthGateView(container:)
+  └── AuthGateView(container:)
 ```
 
-- **`Fitness_CoachApp`** (`Fitness Coach/App/Fitness_CoachApp.swift`) — `@main` entry; configures Firebase, constructs `AppContainer`, hosts `ContentView`.
-- **`ContentView`** — thin pass-through to `AuthGateView`. Exists mainly for previews and a stable root view type.
+- **`Fitness_CoachApp`** (`Fitness Coach/App/Fitness_CoachApp.swift`) — `@main` entry; configures Firebase, constructs `AppContainer`, hosts `AuthGateView`.
 
 ### AppContainer
 
@@ -149,8 +147,7 @@ Long-horizon narrative: transformation, weekly consistency, milestones, timeline
 
 ```mermaid
 flowchart TB
-    App[Fitness_CoachApp] --> CV[ContentView]
-    CV --> AG[AuthGateView]
+    App[Fitness_CoachApp] --> AG[AuthGateView]
     AG --> SignIn[SignInView]
     AG --> OB[OnboardingView]
     AG --> MT[MainTabView]
@@ -193,7 +190,7 @@ Composition root, shell routing, and entry point.
 | `AppRefreshCenter.swift` | Cross-feature refresh token |
 | `LocalAIBackendConfiguration.swift` | Debug AI backend URL resolution |
 | `ReleaseAIBackendConfiguration.swift` | Release AI backend URL resolution |
-| `Fitness_CoachApp.swift` / `ContentView.swift` | `@main` entry and root view |
+| `Fitness_CoachApp.swift` | `@main` entry and root view |
 | `Routing/` | `AppRouteResolver`, `AuthGateRoutingPolicy`, `ProfileBootstrapCoordinator`, … |
 
 ### Application (`Application/` — 68 files)
@@ -438,6 +435,10 @@ Tracked for later stages. **Do not treat as blockers for feature work** — but 
 
 - **Tier 3 (2026-06-30):** Extended `DailyLogReading`, `WeightLogReading`; added `FoodLogReading`, `DailyReviewReading`, `PlanTargetCalculating`. `TodayModel`, `JourneyModel`, `CoachModel`, and Coach handlers depend on protocols instead of concrete services. `AuthGateCoordinator` routes target sync through `FitnessActionCenter.syncTodayTargetsFromProfile()`.
 
+### Dead code + schema cleanup (Tier 4 complete)
+
+- **Tier 4 (2026-06-30):** `FormaSchemaV3` drops legacy `WorkoutEntryEntity` / `ExerciseSetEntity` and the `DailyLogEntity.workoutEntries` relationship. Removed `PlanDashboardState` legacy strategy/lifestyle fields, `WorkoutCalorieCalculator`, and unused workout domain models. `OnboardingModel` uses `PlanTargetCalculating`. `ContentView` folded into `Fitness_CoachApp`. See [BackendAPI.md](./BackendAPI.md) for gateway contracts.
+
 ### FitPilot → Forma naming (Phase 6 complete)
 
 - ~~Source folder: `FitPilot/`~~ — removed in Phase 5
@@ -449,7 +450,7 @@ Tracked for later stages. **Do not treat as blockers for feature work** — but 
 ### Training demotion / Health integration
 
 - Training tab removed; legacy manual workout APIs retired. Apple Health is the sole training read source via `HealthActivityQueryService`.
-- **Tier 2 (2026-06-30):** `FormaSchemaV2` lightweight migration drops `WeeklyReviewEntity`, `ChatMessageEntity`, `DebugRecordEntity`. `WorkoutLogService` removed; Today streaks, daily reviews, and Coach context read workouts from HealthKit only. Legacy `WorkoutEntryEntity` / `ExerciseSetEntity` remain on disk for history.
+- **Tier 2 (2026-06-30):** `FormaSchemaV2` lightweight migration drops `WeeklyReviewEntity`, `ChatMessageEntity`, `DebugRecordEntity`. `WorkoutLogService` removed; training reads moved to HealthKit.
 - Apple Health surfaced via `TrainingInsightsStore` + `TrainingInsightsModel` on Plan, Today, and Journey.
 - **Phase 8 (2026-06-30):** `HealthTrainingReaderFactory` + `AppContainer` own `HealthKitWorkoutReading` / `HealthKitStepReading` instances. `HealthActivityQueryService` (`Application/Queries/`) centralizes workout/step counts for Today. `JourneyModel`, `PlanModel`, and `TrainingInsightsModel` receive injected readers — no feature-model `SystemHealthKit*` construction.
 
@@ -494,8 +495,8 @@ Items that need confirmation before deletion or large refactors:
 | `WeeklyReview` | Removed in Tier 2 v2 migration; Journey weekly review is log-derived |
 | `TrainingView` / manual workout UI | Archive vs future push navigation from Coach? |
 | `UnitSettingsView` vs `UnitsSettingsScreen` | Merge into one component or keep wizard vs settings variants? |
-| `ContentView` | Fold into `Fitness_CoachApp` or keep for previews? |
-| `functions/` (Firebase TS) | Document backend contract alongside iOS Architecture or separate doc? |
+| `ContentView` | Removed — `Fitness_CoachApp` hosts `AuthGateView` directly |
+| `functions/` (Firebase TS) | Documented in [BackendAPI.md](./BackendAPI.md) |
 | Repository introduction | Per-entity repos vs single `SwiftDataStore` facade? |
 
 ---
@@ -504,6 +505,7 @@ Items that need confirmation before deletion or large refactors:
 
 | Date | Change |
 |------|--------|
+| 2026-06-30 | Tier 4: `FormaSchemaV3` legacy workout retirement; Plan state cleanup; BackendAPI.md |
 | 2026-06-30 | Tier 3: Complete read-protocol adoption across Today, Journey, Coach, Plan |
 | 2026-06-30 | Tier 2: `FormaSchemaV2` migration; `WorkoutLogService` removed; HealthKit-only training reads |
 | 2026-06-30 | Tier 1: Repository protocols; `FitnessActionCenter.createProfile`; Onboarding handlers; `CoachNutritionSummaryFormatter` |

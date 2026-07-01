@@ -10,12 +10,10 @@ import SwiftData
 
 enum FormaModelContainer {
 
-    /// Active schema (v2). Dormant v1 tables (`WeeklyReviewEntity`, `ChatMessageEntity`,
-    /// `DebugRecordEntity`) are removed via `FormaMigrationPlan`. Legacy workout tables
-    /// (`WorkoutEntryEntity`, `ExerciseSetEntity`) remain for on-disk history but are no
-    /// longer read — training activity comes from Apple Health. See
-    /// `Docs/PersistenceCleanupNotes.md`.
-    static let schema = Schema(versionedSchema: FormaSchemaV2.self)
+    /// Active schema (v3). Legacy manual workout tables (`WorkoutEntryEntity`,
+    /// `ExerciseSetEntity`) are removed via `FormaMigrationPlan`. Training activity
+    /// reads from Apple Health only. See `Docs/PersistenceCleanupNotes.md`.
+    static let schema = Schema(versionedSchema: FormaSchemaV3.self)
 
     static func makeContainer(inMemory: Bool = false) throws -> ModelContainer {
         if !inMemory {
@@ -25,7 +23,7 @@ enum FormaModelContainer {
             isStoredInMemoryOnly: inMemory
         )
         return try ModelContainer(
-            for: FormaSchemaV2.self,
+            for: FormaSchemaV3.self,
             migrationPlan: FormaMigrationPlan.self,
             configurations: [configuration]
         )

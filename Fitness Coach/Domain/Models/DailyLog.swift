@@ -4,7 +4,8 @@
 //
 //  FitPilot AI — Core app-facing model.
 //
-//  Stores daily summary values only. FoodEntry, WaterEntry, WorkoutEntry,
+//  Stores daily summary values only. FoodEntry and WaterEntry are separate
+//  persisted rows; workout activity is read from Apple Health at runtime.
 //  and WeightEntry remain separate models.
 //
 

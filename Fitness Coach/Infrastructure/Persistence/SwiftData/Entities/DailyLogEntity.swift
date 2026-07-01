@@ -59,9 +59,6 @@ final class DailyLogEntity {
     @Relationship(deleteRule: .cascade, inverse: \WaterEntryEntity.dailyLog)
     var waterEntries: [WaterEntryEntity]
 
-    @Relationship(deleteRule: .cascade, inverse: \WorkoutEntryEntity.dailyLog)
-    var workoutEntries: [WorkoutEntryEntity]
-
     @Relationship(deleteRule: .cascade, inverse: \DailyReviewEntity.dailyLog)
     var dailyReview: DailyReviewEntity?
 
@@ -113,7 +110,6 @@ final class DailyLogEntity {
         self.updatedAt = updatedAt
         self.foodEntries = []
         self.waterEntries = []
-        self.workoutEntries = []
         self.dailyReview = nil
     }
 }

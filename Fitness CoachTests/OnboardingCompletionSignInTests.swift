@@ -98,7 +98,7 @@ final class OnboardingCompletionSignInIntegrationTests: XCTestCase {
         let model = OnboardingModel(
             actionCenter: container.actionCenter,
             userProfileReader: container.userProfileService,
-            targetService: container.targetService,
+            planTargetCalculator: container.targetService,
             onCompletion: {},
             draftStore: draftStore,
             analyticsEntry: .preAuth,

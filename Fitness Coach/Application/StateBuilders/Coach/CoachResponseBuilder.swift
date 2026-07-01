@@ -116,26 +116,6 @@ enum CoachResponseBuilder {
         return message
     }
 
-    static func workout(_ entry: WorkoutEntry) -> String {
-        var lines = ["Logged workout."]
-
-        if let name = entry.name {
-            lines.append(name)
-        }
-
-        let details = [
-            entry.durationMinutes.map { "\($0) min" },
-            entry.estimatedCaloriesBurned.map { "\($0) kcal burned" },
-            entry.recoveryDemand.map { "\($0.rawValue.capitalized) recovery demand" }
-        ].compactMap(\.self)
-
-        if !details.isEmpty {
-            lines.append(details.joined(separator: " · "))
-        }
-
-        return lines.joined(separator: "\n\n")
-    }
-
     // MARK: Undo
 
     static func undoFood(_ entry: FoodEntry?) -> String {

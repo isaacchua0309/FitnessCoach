@@ -73,7 +73,9 @@ final class DailyLogService {
         let totals = MacroCalculator.totals(from: foodModels)
 
         let waterTotal = entity.waterEntries.reduce(0) { $0 + $1.amountMl }
-        let workoutCalories = entity.workoutEntries.reduce(0) { $0 + ($1.estimatedCaloriesBurned ?? 0) }
+        // Legacy manual workout rows are retired; training reads use Apple Health.
+        // Preserve any stored summary value when recalculating food/water totals.
+        let workoutCalories = entity.workoutCaloriesBurned
 
         entity.caloriesConsumed = totals.calories
         entity.proteinConsumed = totals.protein

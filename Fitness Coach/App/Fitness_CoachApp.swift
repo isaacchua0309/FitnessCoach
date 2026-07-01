@@ -38,7 +38,7 @@ struct Fitness_CoachApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(container: container)
+            AuthGateView(container: container)
                 .environmentObject(container.themeStore)
                 .formaRootTheme(store: container.themeStore)
                 .onOpenURL { url in

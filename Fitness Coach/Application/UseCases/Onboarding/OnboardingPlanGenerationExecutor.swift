@@ -11,14 +11,14 @@ import UIKit
 @MainActor
 final class OnboardingPlanGenerationExecutor {
 
-    private let targetService: TargetService
+    private let planTargetCalculator: any PlanTargetCalculating
     private let generationDelay: any OnboardingGenerationDelayProviding
 
     init(
-        targetService: TargetService,
+        planTargetCalculator: any PlanTargetCalculating,
         generationDelay: any OnboardingGenerationDelayProviding
     ) {
-        self.targetService = targetService
+        self.planTargetCalculator = planTargetCalculator
         self.generationDelay = generationDelay
     }
 
@@ -32,7 +32,7 @@ final class OnboardingPlanGenerationExecutor {
 
     func generatePlan(from formState: OnboardingFormState) throws -> CalorieTargetResult {
         let input = try formState.makeCalorieTargetInput()
-        return try targetService.generateInitialTargets(from: input)
+        return try planTargetCalculator.generateInitialTargets(from: input)
     }
 
     func runGeneration(

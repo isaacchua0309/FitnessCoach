@@ -2,10 +2,8 @@
 //  WorkoutEntryEntity.swift
 //  Fitness Coach
 //
-//  SwiftData entity for legacy on-device manual workouts.
-//
-//  Official training insights read from Apple Health. Retain this entity for
-//  on-disk history until a future migration drops legacy manual workout rows.
+//  V2 MIGRATION ONLY — listed in `FormaSchemaV2` for lightweight migration to v3.
+//  Removed from active `FormaSchemaV3` schema. Training reads use Apple Health only.
 //
 
 import Foundation

@@ -80,7 +80,7 @@ final class OnboardingAuthFlowModelTests: XCTestCase {
         return OnboardingModel(
             actionCenter: container.actionCenter,
             userProfileReader: container.userProfileService,
-            targetService: container.targetService,
+            planTargetCalculator: container.targetService,
             onCompletion: onCompletion,
             draftStore: draftStore,
             analyticsEntry: .postAuth,
