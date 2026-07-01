@@ -60,7 +60,7 @@ struct PlanAdjustmentSection: View {
                             Text(state.adjustPlanTitle)
                                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                                 .frame(maxWidth: .infinity)
-                                .frame(minHeight: FormaScreenStyle.rowMinHeight)
+                                .frame(minHeight: FormaTokens.Layout.minTouchTarget)
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(FormaTokens.Color.ctaBackground)

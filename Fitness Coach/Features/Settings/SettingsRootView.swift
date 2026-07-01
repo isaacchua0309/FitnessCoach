@@ -134,7 +134,7 @@ struct SettingsRootView: View {
                     .font(FormaTokens.Typography.sectionSubtitle)
                     .foregroundStyle(FormaTokens.Color.textTertiary)
                 }
-                .frame(minHeight: FormaScreenStyle.rowMinHeight, alignment: .center)
+                .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .center)
             }
             .formaSettingsRowChrome()
         } header: {
@@ -192,7 +192,7 @@ struct SettingsRootView: View {
         Text(title)
             .font(FormaTokens.Typography.body)
             .foregroundStyle(FormaTokens.Color.textPrimary)
-            .frame(minHeight: FormaScreenStyle.rowMinHeight, alignment: .leading)
+            .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .leading)
     }
 }
 

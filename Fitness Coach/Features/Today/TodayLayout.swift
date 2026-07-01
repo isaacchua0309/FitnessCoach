@@ -21,12 +21,12 @@ enum TodayLayout {
     static let headerToCardSpacing = FormaTokens.Spacing.xs
     /// Tight label-to-content gap in the status zone.
     static let compactSpacing: CGFloat = 4
-    static let itemSpacing = FormaTokens.Spacing.sm
-    static let horizontalPadding = FormaTokens.Spacing.pageHorizontal
+    static let itemSpacing = FormaFeatureLayout.itemSpacing
+    static let horizontalPadding = FormaFeatureLayout.horizontalPadding
     static let actionIconColumnWidth: CGFloat = 22
     static let metricsProgressHeight: CGFloat = 4
     /// Scroll padding below the last Today section (see `FormaMainTabLayout`).
-    static let bottomScrollPadding = FormaMainTabLayout.scrollContentBottomPadding
+    static let bottomScrollPadding = FormaFeatureLayout.scrollBottomPadding
 }
 
 struct TodaySectionLabel: View {
@@ -62,7 +62,7 @@ struct TodayActionCard<Content: View>: View {
             .padding(.horizontal, FormaTokens.Spacing.md)
             .padding(.vertical, FormaTokens.Spacing.xs)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(cardBackground(accentLeading: true))
+            .background(FormaCardChrome.background(.accentLeading))
     }
 }
 
@@ -76,7 +76,7 @@ struct TodayMetricsCard<Content: View>: View {
             .padding(.horizontal, FormaTokens.Spacing.md)
             .padding(.vertical, FormaTokens.Spacing.xs)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(metricsCardBackground())
+            .background(FormaCardChrome.background(.surfaceSubtle))
     }
 }
 
@@ -104,49 +104,4 @@ struct TodayMetricProgressBar: View {
         .frame(height: TodayLayout.metricsProgressHeight)
         .accessibilityHidden(true)
     }
-}
-
-// MARK: - Shared card chrome
-
-private func metricsCardBackground() -> some View {
-    RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
-        .fill(FormaTokens.Color.surfaceSubtle)
-        .overlay {
-            RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
-                .stroke(FormaTokens.Color.border.opacity(0.55), lineWidth: 0.5)
-        }
-}
-
-private func cardBackground(accentLeading: Bool) -> some View {
-    RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
-        .fill(FormaTokens.Color.surface)
-        .overlay {
-            RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
-                .stroke(
-                    accentLeading
-                        ? LinearGradient(
-                            colors: [
-                                FormaTokens.Color.accent.opacity(0.22),
-                                FormaTokens.Color.border
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                        : LinearGradient(
-                            colors: [FormaTokens.Color.border, FormaTokens.Color.border],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        ),
-                    lineWidth: 1
-                )
-        }
-        .overlay(alignment: .leading) {
-            if accentLeading {
-                RoundedRectangle(cornerRadius: 2, style: .continuous)
-                    .fill(FormaTokens.Color.accent.opacity(0.55))
-                    .frame(width: 3)
-                    .padding(.vertical, FormaTokens.Spacing.sm)
-                    .padding(.leading, 1)
-            }
-        }
 }

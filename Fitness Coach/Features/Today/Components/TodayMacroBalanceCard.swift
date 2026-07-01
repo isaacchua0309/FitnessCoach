@@ -109,10 +109,10 @@ private struct TodayMacroBalanceMetricsCard<Content: View>: View {
 }
 
 private func macroBalanceCardBackground() -> some View {
-    RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
+    RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
         .fill(FormaTokens.Color.surface)
         .overlay {
-            RoundedRectangle(cornerRadius: FormaScreenStyle.cardCornerRadius, style: .continuous)
+            RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
                 .stroke(
                     LinearGradient(
                         colors: [

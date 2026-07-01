@@ -40,7 +40,7 @@ struct TodayLogWeightSheet: View {
                             }
                     }
                 }
-                .padding(.horizontal, FormaScreenStyle.horizontalPadding)
+                .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
                 .padding(.top, FormaTokens.Spacing.md)
                 .padding(.bottom, FormaTokens.Spacing.lg)
             }

@@ -63,7 +63,7 @@ struct TodayEditFoodEntrySheet: View {
                     .buttonStyle(.bordered)
                     .padding(.top, FormaTokens.Spacing.sm)
                 }
-                .padding(.horizontal, FormaScreenStyle.horizontalPadding)
+                .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
                 .padding(.top, FormaTokens.Spacing.md)
                 .padding(.bottom, FormaTokens.Spacing.lg)
             }

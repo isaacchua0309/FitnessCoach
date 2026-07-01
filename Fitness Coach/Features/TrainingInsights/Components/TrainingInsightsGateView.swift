@@ -103,7 +103,7 @@ struct TrainingInsightsGateView: View {
                 .foregroundStyle(FormaTokens.Color.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(minHeight: FormaScreenStyle.rowMinHeight, alignment: .center)
+        .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .center)
     }
 
     private func primaryButton(title: String) -> some View {
@@ -111,7 +111,7 @@ struct TrainingInsightsGateView: View {
             Text(title)
                 .font(FormaTokens.Typography.bodyMedium)
                 .frame(maxWidth: .infinity)
-                .frame(minHeight: FormaScreenStyle.rowMinHeight)
+                .frame(minHeight: FormaTokens.Layout.minTouchTarget)
         }
         .buttonStyle(.borderedProminent)
         .tint(FormaTokens.Color.ctaBackground)

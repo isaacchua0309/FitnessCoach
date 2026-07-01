@@ -128,7 +128,7 @@ struct AppleHealthIntegrationView: View {
                     ? FormaTokens.Color.accent
                     : FormaTokens.Color.textTertiary
             )
-            .frame(minHeight: FormaScreenStyle.rowMinHeight, alignment: .leading)
+            .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .leading)
     }
 
     private func openHealthAccessSettings() {
