@@ -80,7 +80,7 @@ enum RuntimeNutritionSummaryCharacterization {
             waterEntries: [],
             weightEntry: nil,
             latestWeightEntry: nil,
-            workouts: []
+            training: .empty
         )
     }
 }

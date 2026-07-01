@@ -123,7 +123,7 @@ final class CoachAIRouteHandler {
             let message = CoachResponseBuilder.mealAdvice(
                 log: try? dailyLogService.getTodayLog(),
                 profile: try? userProfileReader?.getCurrentProfile(),
-                hasWorkoutToday: mutationExecutor.hasWorkoutToday(),
+                hasWorkoutToday: await mutationExecutor.hasWorkoutToday(),
                 assistantMessage: advice.message
             )
             return .message(message)

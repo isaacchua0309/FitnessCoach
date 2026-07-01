@@ -21,6 +21,7 @@ enum FitnessActionCenterTestSupport {
         let profileBootstrapService: ProfileBootstrapService
         let syncStore: ProfileCloudSyncStore
         let cloudUploadFailureNotifier: ProfileCloudUploadFailureNotifier
+        let healthActivityQuery: HealthActivityQueryService
         let actionCenter: FitnessActionCenter
         let cloudUID: String?
 
@@ -76,13 +77,17 @@ enum FitnessActionCenterTestSupport {
             cloudSyncStore: syncStore
         )
         let cloudUploadFailureNotifier = ProfileCloudUploadFailureNotifier(syncStore: syncStore)
+        let healthActivityQuery = HealthActivityQueryService(
+            workoutReader: MockHealthKitWorkoutReader(workouts: []),
+            stepReader: MockHealthKitStepReader(stepCount: 0)
+        )
         let reviewService = ReviewService(
             store: base.store,
             dailyLogService: base.dailyLogService,
             foodLogService: base.foodLogService,
             waterLogService: base.waterLogService,
             weightLogService: weightLogService,
-            workoutLogService: base.workoutLogService,
+            healthActivityQuery: healthActivityQuery,
             userProfileService: base.profileService,
             aiService: AIService(llmClient: MockLLMClient())
         )
@@ -91,7 +96,6 @@ enum FitnessActionCenterTestSupport {
             foodLogService: base.foodLogService,
             waterLogService: base.waterLogService,
             weightLogService: weightLogService,
-            workoutLogService: base.workoutLogService,
             dailyLogService: base.dailyLogService,
             targetService: targetService,
             userProfileService: base.profileService,
@@ -111,6 +115,7 @@ enum FitnessActionCenterTestSupport {
             profileBootstrapService: profileBootstrapService,
             syncStore: syncStore,
             cloudUploadFailureNotifier: cloudUploadFailureNotifier,
+            healthActivityQuery: healthActivityQuery,
             actionCenter: actionCenter,
             cloudUID: cloudUID
         )

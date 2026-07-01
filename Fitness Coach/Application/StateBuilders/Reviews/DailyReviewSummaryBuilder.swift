@@ -17,10 +17,9 @@ struct DailyReviewSummaryBuilder {
         waterEntries: [WaterEntry],
         weightEntry: WeightEntry?,
         latestWeightEntry: WeightEntry?,
-        workouts: [WorkoutEntry]
+        training: DailyTrainingActivity
     ) -> DailyReviewSummary {
         let nutrition = DailyNutritionSummaryBuilder.build(from: dailyLog)
-        let workoutCalories = workouts.reduce(0) { $0 + ($1.estimatedCaloriesBurned ?? 0) }
         let lowConfidenceFoodCount = foodEntries.filter { $0.confidence == .low }.count
         let topProteinFoodNames = foodEntries
             .filter { $0.protein > 0 }
@@ -51,9 +50,9 @@ struct DailyReviewSummaryBuilder {
             weightKg: dailyLog.weightKg ?? weightEntry?.weightKg,
             latestWeightKg: latestWeightEntry?.weightKg,
             steps: dailyLog.steps,
-            workoutCount: workouts.count,
-            workoutCaloriesBurned: max(dailyLog.workoutCaloriesBurned, workoutCalories),
-            hasWorkout: !workouts.isEmpty,
+            workoutCount: training.workoutCount,
+            workoutCaloriesBurned: max(dailyLog.workoutCaloriesBurned, training.workoutCaloriesBurned),
+            hasWorkout: training.hasWorkout,
             foodEntryCount: foodEntries.count,
             topProteinFoodNames: Array(topProteinFoodNames),
             lowConfidenceFoodCount: lowConfidenceFoodCount,

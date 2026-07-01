@@ -12,26 +12,26 @@ final class CoachMutationExecutor {
 
     private let actionCenter: FitnessActionCenter
     private let dailyLogService: DailyLogService
-    private let workoutLogService: WorkoutLogService
+    private let healthActivityQuery: HealthActivityQueryService
     private let localNutritionEstimator: LocalNutritionEstimator
     private let mutationHistory: CoachMutationHistory
 
     init(
         actionCenter: FitnessActionCenter,
         dailyLogService: DailyLogService,
-        workoutLogService: WorkoutLogService,
+        healthActivityQuery: HealthActivityQueryService,
         localNutritionEstimator: LocalNutritionEstimator,
         mutationHistory: CoachMutationHistory
     ) {
         self.actionCenter = actionCenter
         self.dailyLogService = dailyLogService
-        self.workoutLogService = workoutLogService
+        self.healthActivityQuery = healthActivityQuery
         self.localNutritionEstimator = localNutritionEstimator
         self.mutationHistory = mutationHistory
     }
 
-    func hasWorkoutToday() -> Bool {
-        (try? !workoutLogService.getWorkouts(for: Date()).isEmpty) ?? false
+    func hasWorkoutToday() async -> Bool {
+        (try? await healthActivityQuery.dailyTrainingActivity().hasWorkout) ?? false
     }
 
     func execute(_ command: ParsedCommand) async -> String {

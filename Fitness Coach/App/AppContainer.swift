@@ -20,7 +20,6 @@ final class AppContainer {
     let foodLogService: FoodLogService
     let waterLogService: WaterLogService
     let weightLogService: WeightLogService
-    let workoutLogService: WorkoutLogService
     let reviewService: ReviewService
     let actionCenter: FitnessActionCenter
 
@@ -127,7 +126,7 @@ final class AppContainer {
             : FirestoreCloudUserProfileStore()
         profileCloudSyncStore = ProfileCloudSyncStore(userDefaults: self.onboardingUserDefaults)
         profileBootstrapService = ProfileBootstrapService(
-            userProfileReader: userProfileService,
+            userProfileService: userProfileService,
             cloudStore: cloudUserProfileStore,
             cloudSyncStore: profileCloudSyncStore
         )
@@ -143,7 +142,7 @@ final class AppContainer {
             userProfileService: userProfileService
         )
         targetService = TargetService(
-            userProfileReader: userProfileService,
+            userProfileService: userProfileService,
             dailyLogService: dailyLogService
         )
         foodLogService = FoodLogService(
@@ -158,12 +157,6 @@ final class AppContainer {
             store: store,
             dailyLogService: dailyLogService
         )
-        workoutLogService = WorkoutLogService(
-            store: store,
-            dailyLogService: dailyLogService,
-            userProfileService: userProfileService
-        )
-
         // Debug builds use the local backend gateway when available. The
         // gateway reads .env on the Mac and calls OpenAI, so provider keys still
         // do not live in the iOS app bundle.
@@ -210,8 +203,8 @@ final class AppContainer {
             foodLogService: foodLogService,
             waterLogService: waterLogService,
             weightLogService: weightLogService,
-            workoutLogService: workoutLogService,
-            userProfileReader: userProfileService,
+            healthActivityQuery: healthActivityQueryService,
+            userProfileService: userProfileService,
             aiService: aiService
         )
 
@@ -219,10 +212,9 @@ final class AppContainer {
             foodLogService: foodLogService,
             waterLogService: waterLogService,
             weightLogService: weightLogService,
-            workoutLogService: workoutLogService,
             dailyLogService: dailyLogService,
             targetService: targetService,
-            userProfileReader: userProfileService,
+            userProfileService: userProfileService,
             reviewService: reviewService,
             refreshCenter: refreshCenter,
             profileBootstrapService: profileBootstrapService,
@@ -250,10 +242,10 @@ final class AppContainer {
         TodayModel(
             dailyLogService: dailyLogService,
             foodLogService: foodLogService,
-            workoutLogService: workoutLogService,
             weightLogService: weightLogService,
             reviewService: reviewService,
-            userProfileReader: userProfileService
+            userProfileReader: userProfileService,
+            healthActivityQuery: healthActivityQueryService
         )
     }
 
@@ -261,7 +253,7 @@ final class AppContainer {
         CoachModel(
             actionCenter: actionCenter,
             dailyLogService: dailyLogService,
-            workoutLogService: workoutLogService,
+            healthActivityQuery: healthActivityQueryService,
             weightLogService: weightLogService,
             aiService: aiService,
             userProfileReader: userProfileService,

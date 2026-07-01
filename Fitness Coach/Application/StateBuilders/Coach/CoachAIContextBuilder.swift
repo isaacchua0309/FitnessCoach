@@ -15,8 +15,8 @@ struct CoachContextBuilder {
 
     private let dailyLogService: DailyLogService
     private let userProfileReader: any UserProfileReading
+    private let healthActivityQuery: HealthActivityQueryService?
     private let actionCenter: FitnessActionCenter?
-    private let workoutLogService: WorkoutLogService?
 
     /// Number of recent messages included for lightweight conversational context.
     private let recentMessageLimit = 5
@@ -24,21 +24,24 @@ struct CoachContextBuilder {
     init(
         dailyLogService: DailyLogService,
         userProfileReader: any UserProfileReading,
-        actionCenter: FitnessActionCenter? = nil,
-        workoutLogService: WorkoutLogService? = nil
+        healthActivityQuery: HealthActivityQueryService? = nil,
+        actionCenter: FitnessActionCenter? = nil
     ) {
         self.dailyLogService = dailyLogService
         self.userProfileReader = userProfileReader
+        self.healthActivityQuery = healthActivityQuery
         self.actionCenter = actionCenter
-        self.workoutLogService = workoutLogService
     }
 
-    func makeContext(recentMessages: [ChatMessage]) -> AIContext {
+    func makeContext(
+        recentMessages: [ChatMessage],
+        workoutsToday: Int = 0
+    ) -> AIContext {
         let context = AIContext(
             date: Date(),
             timezoneIdentifier: TimeZone.current.identifier,
             userProfileSummary: makeProfileSummary(),
-            todaySummary: makeTodaySummary(),
+            todaySummary: makeTodaySummary(workoutsToday: workoutsToday),
             commonFoods: [],
             recentMessages: makeRecentMessages(from: recentMessages)
         )
@@ -74,14 +77,14 @@ struct CoachContextBuilder {
 
     // MARK: Today
 
-    private func makeTodaySummary() -> TodayAISummary? {
+    private func makeTodaySummary(workoutsToday: Int) -> TodayAISummary? {
         guard let log = try? dailyLogService.getTodayLog() else {
             return nil
         }
 
         return TodayAISummaryMapper.from(
             dailyLog: log,
-            workoutsToday: (try? workoutLogService?.getWorkouts(for: Date()).count) ?? 0,
+            workoutsToday: workoutsToday,
             recentMeals: makeRecentMeals()
         )
     }

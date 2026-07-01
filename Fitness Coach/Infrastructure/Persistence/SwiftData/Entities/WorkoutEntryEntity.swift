@@ -4,8 +4,8 @@
 //
 //  SwiftData entity for legacy on-device manual workouts.
 //
-//  Official training insights read from Apple Health. Retain this entity until
-//  migration retires manual workout storage (`WorkoutLogService`).
+//  Official training insights read from Apple Health. Retain this entity for
+//  on-disk history until a future migration drops legacy manual workout rows.
 //
 
 import Foundation

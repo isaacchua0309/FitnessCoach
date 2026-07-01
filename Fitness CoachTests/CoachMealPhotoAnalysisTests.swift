@@ -43,9 +43,8 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         let model = CoachModel(
             actionCenter: container.actionCenter,
             dailyLogService: container.dailyLogService,
-            workoutLogService: container.workoutLogService,
+            healthActivityQuery: container.healthActivityQueryService,
             aiService: aiService,
-            actionCenter: container.actionCenter,
             userProfileReader: container.userProfileService,
             aiCommandParsingEnabled: true
         )
@@ -70,9 +69,8 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         let model = CoachModel(
             actionCenter: container.actionCenter,
             dailyLogService: container.dailyLogService,
-            workoutLogService: container.workoutLogService,
+            healthActivityQuery: container.healthActivityQueryService,
             aiService: PhotoCapturingAIService(),
-            actionCenter: container.actionCenter,
             userProfileReader: container.userProfileService,
             aiCommandParsingEnabled: true
         )
@@ -88,9 +86,8 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         let model = CoachModel(
             actionCenter: container.actionCenter,
             dailyLogService: container.dailyLogService,
-            workoutLogService: container.workoutLogService,
+            healthActivityQuery: container.healthActivityQueryService,
             aiService: PhotoCapturingAIService(),
-            actionCenter: container.actionCenter,
             userProfileReader: container.userProfileService,
             aiCommandParsingEnabled: true
         )
@@ -109,9 +106,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         let model = CoachModel(
             actionCenter: container.actionCenter,
             dailyLogService: container.dailyLogService,
-            workoutLogService: container.workoutLogService,
-            aiService: aiService,
-            actionCenter: container.actionCenter,
+            healthActivityQuery: container.healthActivityQueryService,
             userProfileReader: container.userProfileService,
             aiCommandParsingEnabled: true
         )
@@ -135,9 +130,8 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         let model = CoachModel(
             actionCenter: container.actionCenter,
             dailyLogService: container.dailyLogService,
-            workoutLogService: container.workoutLogService,
+            healthActivityQuery: container.healthActivityQueryService,
             aiService: PhotoCapturingAIService(),
-            actionCenter: container.actionCenter,
             userProfileReader: container.userProfileService,
             aiCommandParsingEnabled: true
         )
