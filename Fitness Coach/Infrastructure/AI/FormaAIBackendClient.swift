@@ -13,14 +13,13 @@ final class FormaAIBackendClient: LLMClient {
 
     /// Timeouts for gateway HTTP calls. Independent of DEBUG pipeline tracing.
     enum HTTPTimeoutProfile {
-        /// Hosted Firebase gateway and local OpenAI proxy (`Tools/LocalAIBackend`).
+        /// Hosted Firebase aiGateway (HTTPS).
         case gateway
 
         static let gatewayRequestTimeout: TimeInterval = 45
         static let gatewayResourceTimeout: TimeInterval = 90
 
         static func profile(for baseURL: URL) -> HTTPTimeoutProfile {
-            // Local and hosted gateways both proxy OpenAI and need the same latency budget.
             _ = baseURL
             return .gateway
         }

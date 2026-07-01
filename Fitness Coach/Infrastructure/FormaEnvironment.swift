@@ -60,10 +60,6 @@ enum FormaEnvironment {
         return defaultEnabled
     }
 
-    static func isMockLLMEnabled() -> Bool {
-        string(primary: "FORMA_USE_MOCK_LLM", legacy: "FITPILOT_USE_MOCK_LLM") == "1"
-    }
-
     static func aiBackendURLString(environment: [String: String]? = nil) -> String? {
         string(
             primary: "FORMA_AI_BACKEND_URL",

@@ -2,8 +2,8 @@
 //  UnavailableLLMClient.swift
 //  Fitness Coach
 //
-//  Deliberate no-op LLM client for Release when no production backend is configured.
-//  Fails fast without contacting localhost or returning mock answers.
+//  Deliberate no-op LLM client when the hosted gateway URL is missing or invalid.
+//  Fails fast without returning mock answers.
 //
 
 import Foundation
@@ -70,9 +70,9 @@ private extension UnavailableLLMReason {
     var logMessage: String {
         switch self {
         case .releaseBackendNotConfigured:
-            return "FORMA_AI_BACKEND_URL is not set for Release."
+            return "FORMA_AI_BACKEND_URL is not configured."
         case .releaseBackendURLRejectedLocalhost:
-            return "FORMA_AI_BACKEND_URL points at localhost, which Release builds reject."
+            return "FORMA_AI_BACKEND_URL points at localhost, which is not allowed."
         }
     }
 }

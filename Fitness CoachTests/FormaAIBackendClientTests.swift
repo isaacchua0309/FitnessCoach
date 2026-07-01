@@ -33,13 +33,9 @@ final class FormaAIBackendClientTests: XCTestCase {
     // MARK: - Timeout configuration
 
     func testGatewayTimeoutProfileUsesProductionSafeValues() {
-        let local = URL(string: "http://127.0.0.1:8787")!
-
-        for baseURL in [productionBaseURL, local] {
-            let profile = FormaAIBackendClient.HTTPTimeoutProfile.profile(for: baseURL)
-            XCTAssertEqual(profile.requestTimeout, 45)
-            XCTAssertEqual(profile.resourceTimeout, 90)
-        }
+        let profile = FormaAIBackendClient.HTTPTimeoutProfile.profile(for: productionBaseURL)
+        XCTAssertEqual(profile.requestTimeout, 45)
+        XCTAssertEqual(profile.resourceTimeout, 90)
     }
 
     func testGatewayTimeoutConstantsAreNotLegacyShortReleaseValues() {

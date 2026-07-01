@@ -188,8 +188,7 @@ Composition root, shell routing, and entry point.
 | `MainTabView.swift` | Tab shell, environment object injection |
 | `RootModel.swift` | Onboarding vs main state after sign-in |
 | `AppRefreshCenter.swift` | Cross-feature refresh token |
-| `LocalAIBackendConfiguration.swift` | Debug AI backend URL resolution |
-| `ReleaseAIBackendConfiguration.swift` | Release AI backend URL resolution |
+| `AIBackendConfiguration.swift` | Hosted AI gateway URL resolution |
 | `Fitness_CoachApp.swift` | `@main` entry and root view |
 | `Routing/` | `AppRouteResolver`, `AuthGateRoutingPolicy`, `ProfileBootstrapCoordinator`, … |
 

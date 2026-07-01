@@ -157,42 +157,36 @@ final class AppContainer {
             store: store,
             dailyLogService: dailyLogService
         )
-        // Debug builds use the local backend gateway when available. The
-        // gateway reads .env on the Mac and calls OpenAI, so provider keys still
-        // do not live in the iOS app bundle.
-        // Set FORMA_USE_MOCK_LLM=1 (or legacy FITPILOT_USE_MOCK_LLM=1) to skip the backend.
-        // Physical device: set FORMA_AI_BACKEND_URL in the scheme or DeveloperLocal.plist.
+        // All builds call the hosted Firebase aiGateway. Provider keys stay in Secret Manager.
+        // Previews and in-memory containers use MockLLMClient; production wiring requires auth.
         #if DEBUG
         let wiring: (clientType: String, baseURL: URL?, authAttached: Bool)
-        if FormaEnvironment.isMockLLMEnabled() {
+        #endif
+        if inMemory {
             llmClient = MockLLMClient()
+            #if DEBUG
             wiring = ("MockLLMClient", nil, false)
-        } else if let backendURL = LocalAIBackendConfiguration.debugBackendURL() {
+            #endif
+        } else if let backendURL = AIBackendConfiguration.backendURL() {
             llmClient = FallbackLLMClient(
                 primary: FormaAIBackendClient(
                     baseURL: backendURL,
                     authTokenProvider: { try await authManager.idToken() }
                 )
             )
+            #if DEBUG
             wiring = ("FallbackLLMClient+FormaAIBackendClient", backendURL, true)
-        } else {
-            llmClient = MockLLMClient()
-            wiring = ("MockLLMClient", nil, false)
-        }
-        PipelineTracePersistence.install(on: store)
-        #else
-        if let backendURL = ReleaseAIBackendConfiguration.releaseBackendURL() {
-            llmClient = FallbackLLMClient(
-                primary: FormaAIBackendClient(
-                    baseURL: backendURL,
-                    authTokenProvider: { try await authManager.idToken() }
-                )
-            )
+            #endif
         } else {
             llmClient = UnavailableLLMClient(
-                reason: ReleaseAIBackendConfiguration.unavailableReason()
+                reason: AIBackendConfiguration.unavailableReason()
             )
+            #if DEBUG
+            wiring = ("UnavailableLLMClient", nil, false)
+            #endif
         }
+        #if DEBUG
+        PipelineTracePersistence.install(on: store)
         #endif
         aiService = AIService(llmClient: llmClient)
         aiCommandParsingEnabled = true
@@ -366,6 +360,19 @@ final class AppContainer {
 
     #if DEBUG
     private static func logAIBackendURLDetection() {
+        if let backendURL = AIBackendConfiguration.backendURL() {
+            FormaPipelineTracer.event(
+                stage: .appWiring,
+                level: .info,
+                message: "AI gateway URL configured",
+                fields: [
+                    "detected": "true",
+                    "gatewayURL": backendURL.absoluteString
+                ]
+            )
+            return
+        }
+
         switch FormaEnvironment.aiBackendURLDetection() {
         case .notDetected:
             FormaPipelineTracer.event(
@@ -378,9 +385,9 @@ final class AppContainer {
             FormaPipelineTracer.event(
                 stage: .appWiring,
                 level: .info,
-                message: "FORMA_AI_BACKEND_URL detected",
+                message: "FORMA_AI_BACKEND_URL rejected or invalid",
                 fields: [
-                    "detected": "true",
+                    "detected": "false",
                     "source": source.rawValue
                 ]
             )

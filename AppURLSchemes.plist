@@ -13,11 +13,6 @@
 			</array>
 		</dict>
 	</array>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsLocalNetworking</key>
-		<true/>
-	</dict>
 	<key>FORMA_AI_BACKEND_URL</key>
 	<string>$(FORMA_AI_BACKEND_URL)</string>
 </dict>

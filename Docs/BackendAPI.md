@@ -6,31 +6,17 @@ Forma iOS talks to optional backend services for AI and cloud profile sync. This
 
 ---
 
-## AI backend (debug + release)
+## AI backend (hosted gateway)
 
-The iOS app does **not** embed OpenAI keys. `AIService` routes through `LLMClient` implementations configured in `AppContainer`.
+The iOS app does **not** embed OpenAI keys or read any `.env` file. `AIService` routes through `LLMClient` implementations configured in `AppContainer`.
 
-### Debug (`#if DEBUG`)
+### Production path
 
-| Client | When |
-|--------|------|
-| `MockLLMClient` | `FORMA_USE_MOCK_LLM=1` (or legacy `FITPILOT_USE_MOCK_LLM=1`) |
-| `FormaAIBackendClient` via `FallbackLLMClient` | Local gateway URL resolved by `LocalAIBackendConfiguration` |
-| `MockLLMClient` (fallback) | No backend URL on physical device |
+```text
+iOS app → Firebase aiGateway → OpenAI (Secret Manager)
+```
 
-**URL resolution** (`LocalAIBackendConfiguration`):
-
-1. `FORMA_AI_BACKEND_URL` / `FITPILOT_AI_BACKEND_URL` in Xcode scheme environment
-2. `DeveloperLocal.plist` in app bundle
-3. Simulator default: `http://127.0.0.1:8787`
-
-The local gateway (`Tools/LocalAIBackend/`) reads provider keys from the Mac `.env` and proxies OpenAI requests.
-
-### Release
-
-`ReleaseAIBackendConfiguration` supplies the production gateway URL. If unavailable, `UnavailableLLMClient` surfaces a user-visible error.
-
-**Production gateway (function base URL only — no `/v1/ai/...` suffix):**
+**Gateway base URL** (function base only — no `/v1/ai/...` suffix):
 
 ```text
 https://us-central1-fitness-coach-732fd.cloudfunctions.net/aiGateway
@@ -42,27 +28,39 @@ The iOS client appends paths such as `/v1/ai/classify-coach-intent`. Example ful
 https://us-central1-fitness-coach-732fd.cloudfunctions.net/aiGateway/v1/ai/classify-coach-intent
 ```
 
-**URL resolution** (`FormaEnvironment` → `ReleaseAIBackendConfiguration`):
+### Client wiring (`AppContainer`)
 
-1. `FORMA_AI_BACKEND_URL` / `FITPILOT_AI_BACKEND_URL` in process environment (Xcode scheme — local Release runs only)
-2. `FORMA_AI_BACKEND_URL` baked into `Info.plist` from the Xcode user-defined build setting `$(FORMA_AI_BACKEND_URL)` (TestFlight / App Store)
-3. Localhost hosts are rejected in Release
+| Client | When |
+|--------|------|
+| `MockLLMClient` | `AppContainer(inMemory: true)` — SwiftUI previews and in-memory tests |
+| `FormaAIBackendClient` via `FallbackLLMClient` | Normal app launch with a valid gateway URL |
+| `UnavailableLLMClient` | Gateway URL missing, invalid, or points at localhost |
 
-**HTTP timeouts:** `FormaAIBackendClient` uses **45s request / 90s resource** for gateway calls. Do not use short Release timeouts (e.g. 1.5s / 2.0s); real LLM latency requires this budget.
+Debug, Release, and TestFlight builds all use the same hosted gateway URL baked into `Info.plist` via the Xcode user-defined build setting `FORMA_AI_BACKEND_URL`.
+
+**URL resolution** (`AIBackendConfiguration`):
+
+1. `FORMA_AI_BACKEND_URL` / `FITPILOT_AI_BACKEND_URL` in process environment (Xcode scheme override)
+2. `FORMA_AI_BACKEND_URL` baked into `Info.plist` from `$(FORMA_AI_BACKEND_URL)` (Debug / Release / TestFlight)
+3. Localhost hosts (`localhost`, `127.0.0.1`, `::1`, `0.0.0.0`) are always rejected
+
+**HTTP timeouts:** `FormaAIBackendClient` uses **45s request / 90s resource** for gateway calls.
 
 **Security:** OpenAI and other provider keys live in Firebase Secret Manager only. Never bundle `OPENAI_API_KEY` (or any provider key) in the iOS app, `Info.plist`, or committed files.
 
 ### Auth
 
-`FormaAIBackendClient` attaches a Firebase ID token from `AuthManager.idToken()` when calling the gateway.
+`FormaAIBackendClient` attaches a Firebase ID token from `AuthManager.idToken()` on every gateway request (`Authorization: Bearer …`).
 
 ### Pipeline tracing
 
 `FormaPipelineTracer` records in-memory diagnostics in DEBUG. Disk persistence remains disabled (`PipelineTracePersistence` stub).
 
-`FormaAIBackendClient` sends the active trace UUID in the **`X-Forma-Trace-Id`** HTTP header. Both the local gateway and Firebase `aiGateway` read that header and include `traceId` in structured logs so client pipeline traces can be correlated with gateway/OpenAI request logs.
+`FormaAIBackendClient` sends the active trace UUID in the **`X-Forma-Trace-Id`** HTTP header. Firebase `aiGateway` reads that header and includes `traceId` in structured logs so client pipeline traces can be correlated with gateway/OpenAI request logs.
 
-Legacy fallback: gateways also accept **`X-FitPilot-Trace-Id`** if the Forma header is absent.
+Legacy fallback: the gateway also accepts **`X-FitPilot-Trace-Id`** if the Forma header is absent.
+
+On startup, DEBUG builds log the resolved gateway URL via `FormaPipelineTracer` (no secrets).
 
 ---
 
@@ -80,7 +78,7 @@ Profile documents are owned by `Application/UseCases/ProfileBootstrapService.swi
 
 ## Firebase Functions (`functions/`)
 
-Hosted HTTPS gateway for the same AI contract as `Tools/LocalAIBackend/`.
+Hosted HTTPS gateway for all AI traffic from the iOS app.
 
 **Production URL (function base only):**
 
@@ -89,7 +87,7 @@ https://us-central1-fitness-coach-732fd.cloudfunctions.net/aiGateway
 ```
 
 The gateway verifies Firebase ID tokens by default. Set `FORMA_AI_REQUIRE_AUTH=0`
-only for temporary local/emulator testing.
+only for temporary emulator testing.
 
 ### Firebase AI gateway endpoints
 
@@ -124,14 +122,15 @@ After deploy or incident:
 
 Contract tests (no live OpenAI): `cd functions && npm test`.
 
+Authenticated E2E smoke test: `npm --prefix functions run smoke:auth` (see [ReleaseAI.md](./ReleaseAI.md)).
+
 ---
 
 ## Environment variables
 
 | Variable | Purpose |
 |----------|---------|
-| `FORMA_AI_BACKEND_URL` | Debug/release AI gateway base URL |
-| `FORMA_USE_MOCK_LLM` | Force `MockLLMClient` in DEBUG |
+| `FORMA_AI_BACKEND_URL` | Hosted AI gateway base URL (Xcode build setting → `Info.plist`) |
 | `FITPILOT_*` | Legacy aliases accepted via `FormaEnvironment` |
-| `OPENAI_API_KEY` | Firebase secret used by `aiGateway`, never shipped to iOS |
+| `OPENAI_API_KEY` | Firebase Secret Manager secret used by `aiGateway`, never shipped to iOS |
 | `FORMA_AI_REQUIRE_AUTH` | Firebase Functions setting; auth required unless set to `0` |

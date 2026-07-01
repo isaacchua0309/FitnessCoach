@@ -87,7 +87,7 @@ final class AuthManagerErrorTests: XCTestCase {
 
     func testBackendClientMapsAuthManagerErrorToAuthenticationFailure() async {
         let client = FormaAIBackendClient(
-            baseURL: URL(string: "http://127.0.0.1:8787")!,
+            baseURL: URL(string: AIBackendConfiguration.productionGatewayURLString)!,
             authTokenProvider: { throw AuthManagerError.notSignedIn }
         )
         let request = AICoachIntentClassificationRequest(

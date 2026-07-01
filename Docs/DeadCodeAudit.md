@@ -93,7 +93,6 @@ Production training UX is **`TrainingInsightsView`** (Apple Health). The SwiftDa
 | File path | Type | Reference search | Reason verify | Risk | Action | Validation |
 |-----------|------|------------------|---------------|------|--------|------------|
 | `functions/` | Firebase Functions template | `helloWorld` export **commented out** | No deployed backend | **Low** | **delete** or implement | Confirm no CI deploy |
-| `Tools/LocalAIBackend/` | dev scripts | `LocalAIBackendConfiguration`, README | DEBUG device backend | **Low** | **keep** | Dev workflow |
 
 ### B5 — FitPilot-named active components (rename later, not delete)
 
