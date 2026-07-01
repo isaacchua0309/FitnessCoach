@@ -73,7 +73,7 @@ final class FallbackLLMClient: LLMClient {
     ) async throws -> Output {
         do {
             return try await work()
-        } catch let error as LLMClientError where error == .authenticationFailed {
+        } catch let error as LLMClientError where error == .authenticationFailed || error == .requestTimedOut {
             throw error
         } catch {
             logger.info("LLM backend unavailable for \(operation, privacy: .public).")

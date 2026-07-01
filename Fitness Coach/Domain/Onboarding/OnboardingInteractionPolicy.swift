@@ -47,6 +47,18 @@ enum OnboardingInteractionPolicy {
                 dismissesKeyboardOnAppear: true,
                 reservesPlanRevealFooterSpace: false
             )
+        case .weightLossPace:
+            return OnboardingInteractionRules(
+                primaryJob: step.title,
+                allowsKeyboardForRequiredInput: true,
+                showsFreeTextByDefault: false,
+                isOptional: false,
+                validatesOnContinue: true,
+                prefersCompactLayout: false,
+                showsSharedBottomBar: true,
+                dismissesKeyboardOnAppear: true,
+                reservesPlanRevealFooterSpace: false
+            )
         case .activityLevel:
             return OnboardingInteractionRules(
                 primaryJob: "Choose activity level",

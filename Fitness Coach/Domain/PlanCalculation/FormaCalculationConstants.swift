@@ -92,6 +92,13 @@ nonisolated static let goalDirectionEpsilonKg: Double = 0.5
 
 nonisolated static let daysPerAverageMonth: Double = 30.4375
 
+    /// Maximum allowed weight-loss rate for custom and derived paces.
+nonisolated static let maxWeeklyWeightLossKg: Double = 1.2
+
+nonisolated static var maxMonthlyWeightLossKg: Double {
+        maxWeeklyWeightLossKg * daysPerAverageMonth / 7.0
+    }
+
     // MARK: Plausibility soft bounds (warnings only)
 
 nonisolated static let plausibleAgeMin: Int = 16

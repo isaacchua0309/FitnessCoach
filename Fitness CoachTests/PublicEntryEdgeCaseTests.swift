@@ -126,18 +126,27 @@ final class PublicEntryEdgeCaseRoutingTests: XCTestCase {
         )
     }
 
-    // 14. Local profile exists, onboarding completed locally → main while signed out
-    func testScenario14_SignedOutLocalProfileShowsMainAfterLocalCompletion() {
-        XCTAssertEqual(
-            AppRouteResolver.resolve(
-                authState: .signedOut,
-                rootState: .main,
-                hasLocalProfile: true,
-                signedOutWithProfilePolicy: .requireSignIn,
-                suppressAutomaticPublicEntryResume: true
-            ),
-            .main
+    // 14. Signed-out users with a local profile must never enter main without Firebase auth.
+    func testScenario14_SignedOutLocalProfileNeverRoutesToMain() {
+        let awaitingSignInRoute = AppRouteResolver.resolve(
+            authState: .signedOut,
+            rootState: .onboarding,
+            isOnboardingModelReady: true,
+            hasLocalProfile: true,
+            localProfileAwaitingSignIn: true
         )
+        XCTAssertEqual(awaitingSignInRoute, .onboardingStart)
+        XCTAssertNotEqual(awaitingSignInRoute, .main)
+
+        let staleMainRootRoute = AppRouteResolver.resolve(
+            authState: .signedOut,
+            rootState: .main,
+            hasLocalProfile: true,
+            signedOutWithProfilePolicy: .requireSignIn,
+            suppressAutomaticPublicEntryResume: true
+        )
+        XCTAssertNotEqual(staleMainRootRoute, .main)
+        XCTAssertEqual(staleMainRootRoute, .welcome)
     }
 }
 

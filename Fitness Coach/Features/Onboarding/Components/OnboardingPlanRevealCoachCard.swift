@@ -10,7 +10,17 @@ import SwiftUI
 struct OnboardingPlanRevealCoachCard: View {
     let message: String
 
+    @Environment(\.onboardingPlanRevealIsCompactHeight) private var isCompactHeight
+    @Environment(\.onboardingPlanRevealContentDensity) private var contentDensity
     @ScaledMetric(relativeTo: .body) private var markSize: CGFloat = 28
+
+    private var coachLineLimit: Int {
+        switch contentDensity {
+        case .tight: 1
+        case .compact: 2
+        case .standard: isCompactHeight ? 2 : 3
+        }
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
@@ -21,7 +31,8 @@ struct OnboardingPlanRevealCoachCard: View {
             Text(message)
                 .font(FormaTokens.Typography.caption)
                 .foregroundStyle(OnboardingTheme.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(coachLineLimit)
+                .minimumScaleFactor(0.75)
         }
         .onboardingPlanRevealCardPadding()
         .frame(maxWidth: .infinity, alignment: .leading)

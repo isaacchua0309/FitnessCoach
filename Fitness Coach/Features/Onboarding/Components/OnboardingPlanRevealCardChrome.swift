@@ -120,6 +120,7 @@ extension View {
 private struct OnboardingPlanRevealEntranceModifier: ViewModifier {
     @Environment(\.onboardingPlanRevealVisibleStages) private var visibleStages
     @Environment(\.onboardingPlanRevealUsesSuccessHandoff) private var usesSuccessHandoff
+    @Environment(\.onboardingPlanRevealFixedViewport) private var fixedViewport
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let stage: OnboardingPlanRevealEntranceStage
@@ -142,6 +143,7 @@ private struct OnboardingPlanRevealEntranceModifier: ViewModifier {
 
     private var resolvedOffsetY: CGFloat {
         guard !isVisible else { return 0 }
+        guard !fixedViewport else { return 0 }
         switch stage.style {
         case .fadeOnly, .scaleIn, .fadeScale:
             return 0

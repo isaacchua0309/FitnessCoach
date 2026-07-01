@@ -11,6 +11,7 @@ enum WeightLossPaceValidationError: Equatable, Sendable {
     case negativeValue
     case zeroForFatLossGoal
     case goalDateNotInFuture
+    case exceedsMaximumWeeklyLoss(weeklyKg: Double, period: WeightLossAdvancedPaceDraft.Period?)
 
     var message: String {
         switch self {
@@ -20,7 +21,21 @@ enum WeightLossPaceValidationError: Equatable, Sendable {
             return "Weight-loss pace must be greater than zero for a fat-loss goal."
         case .goalDateNotInFuture:
             return "Goal date must be in the future."
+        case .exceedsMaximumWeeklyLoss(_, let period):
+            let c = FormaCalculationConstants.self
+            switch period {
+            case .monthly:
+                return "Weight-loss pace cannot exceed \(Self.formatKg(c.maxMonthlyWeightLossKg)) per month."
+            case .weekly, .none:
+                return "Weight-loss pace cannot exceed \(Self.formatKg(c.maxWeeklyWeightLossKg)) per week."
+            }
         }
+    }
+
+    private static func formatKg(_ value: Double) -> String {
+        value.truncatingRemainder(dividingBy: 1) == 0
+            ? "\(Int(value))"
+            : String(format: "%.1f", value)
     }
 }
 
@@ -117,9 +132,26 @@ enum WeightLossPaceValidator {
             )
             if weekly < 0 { return .negativeValue }
             if weekly == 0 { return .zeroForFatLossGoal }
+            if weekly > FormaCalculationConstants.maxWeeklyWeightLossKg {
+                return .exceedsMaximumWeeklyLoss(
+                    weeklyKg: weekly,
+                    period: advancedPeriod(for: pace)
+                )
+            }
         }
 
         return nil
+    }
+
+    private static func advancedPeriod(for pace: WeightLossPace) -> WeightLossAdvancedPaceDraft.Period? {
+        switch pace {
+        case .advancedKgPerWeek:
+            return .weekly
+        case .advancedKgPerMonth:
+            return .monthly
+        default:
+            return nil
+        }
     }
 
     // MARK: - Safety warnings (pace vs body weight)

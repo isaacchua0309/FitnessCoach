@@ -57,8 +57,8 @@ struct ExistingUserSignInView: View {
 
                 FormaGoogleSignInButton(
                     title: ProfileSignInCopyPolicy.googleButtonTitle(for: .existingUserRestore),
-                    isLoading: isSigningIn,
-                    isDisabled: isButtonDisabled,
+                    isLoading: googleSignInState.isButtonLoading,
+                    isDisabled: isGoogleSignInButtonDisabled,
                     action: signInWithGoogle,
                     accessibilityHint: ProfileSignInCopyPolicy.googleButtonAccessibilityHint(
                         for: .existingUserRestore
@@ -92,7 +92,7 @@ struct ExistingUserSignInView: View {
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .disabled(isSigningIn)
+        .disabled(googleSignInState.isButtonLoading)
         .accessibilityLabel(copy.backAccessibilityLabel)
     }
 
@@ -116,19 +116,16 @@ struct ExistingUserSignInView: View {
 
     // MARK: - State
 
-    private var isSigningIn: Bool {
-        if case .signingIn = authManager.authState {
-            return true
-        }
-        return false
+    private var googleSignInState: GoogleSignInAttemptState {
+        authManager.googleSignInAttemptState
     }
 
     private var isCheckingSession: Bool {
         authManager.authState == .unknown
     }
 
-    private var isButtonDisabled: Bool {
-        isSigningIn || isCheckingSession
+    private var isGoogleSignInButtonDisabled: Bool {
+        googleSignInState.isButtonDisabled || isCheckingSession
     }
 
     private var activeFailurePresentation: ExistingUserSignInPolicy.FailurePresentation? {
@@ -144,7 +141,7 @@ struct ExistingUserSignInView: View {
     // MARK: - Actions
 
     private func signInWithGoogle() {
-        guard !isButtonDisabled else { return }
+        guard !isGoogleSignInButtonDisabled else { return }
         onSignInRequested()
     }
 

@@ -15,6 +15,7 @@ struct OnboardingPlanRevealGoalHeroCard: View {
     var showsSuccessHandoff: Bool = false
 
     @Environment(\.onboardingPlanRevealLayoutProfile) private var layoutProfile
+    @Environment(\.onboardingPlanRevealIsCompactWidth) private var isCompactWidth
 
     @ScaledMetric(relativeTo: .largeTitle) private var compactHeroFontSize: CGFloat = 32
     @ScaledMetric(relativeTo: .largeTitle) private var regularHeroFontSize: CGFloat = 38
@@ -47,8 +48,10 @@ struct OnboardingPlanRevealGoalHeroCard: View {
     private var compactHorizontalLayout: some View {
         HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
             heroCopy(alignment: .leading)
-            Spacer(minLength: FormaTokens.Spacing.xs)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .layoutPriority(1)
             heroIllustration
+                .layoutPriority(0)
         }
     }
 
@@ -75,15 +78,15 @@ struct OnboardingPlanRevealGoalHeroCard: View {
                     .foregroundStyle(OnboardingTheme.primaryText)
                     .multilineTextAlignment(alignment == .center ? .center : .leading)
                     .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .minimumScaleFactor(0.75)
                     .accessibilityAddTraits(.isHeader)
 
                 Text(strategyLabel)
                     .font(FormaTokens.Typography.caption.weight(.semibold))
                     .foregroundStyle(OnboardingTheme.secondaryText)
                     .multilineTextAlignment(alignment == .center ? .center : .leading)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(isCompactWidth ? 1 : 2)
+                    .minimumScaleFactor(0.75)
             }
             .onboardingPlanRevealEntrance(.goalCard)
         }

@@ -88,7 +88,7 @@ struct WeightLossPaceSettingsView: View {
 
             FormaLabeledNumberField(
                 title: advancedDraft.period.fieldTitle,
-                placeholder: advancedDraft.period == .weekly ? "0.5" : "2.0",
+                placeholder: advancedDraft.amountPlaceholder,
                 text: $advancedDraft.amountText,
                 unit: FormaProductCopy.FoodForm.kgUnit,
                 keyboard: .decimalPad

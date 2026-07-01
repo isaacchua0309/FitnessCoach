@@ -17,6 +17,7 @@ struct OnboardingPlanRevealHeroIllustration: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.onboardingPlanRevealLayoutProfile) private var layoutProfile
+    @Environment(\.onboardingPlanRevealIsCompactHeight) private var isCompactHeight
     @Environment(\.onboardingPlanRevealVisibleStages) private var visibleStages
     @State private var pulse = false
     @State private var waveExpansion: CGFloat = 0.92
@@ -26,11 +27,13 @@ struct OnboardingPlanRevealHeroIllustration: View {
     @ScaledMetric(relativeTo: .title3) private var baseRingDiameter: CGFloat = 58
 
     private var haloDiameter: CGFloat {
-        baseHaloDiameter * layoutProfile.illustrationScale
+        let compactScale: CGFloat = isCompactHeight ? 0.82 : 1
+        return baseHaloDiameter * layoutProfile.illustrationScale * compactScale
     }
 
     private var ringDiameter: CGFloat {
-        baseRingDiameter * layoutProfile.illustrationScale
+        let compactScale: CGFloat = isCompactHeight ? 0.82 : 1
+        return baseRingDiameter * layoutProfile.illustrationScale * compactScale
     }
 
     private let ringLineWidth: CGFloat = 2.5

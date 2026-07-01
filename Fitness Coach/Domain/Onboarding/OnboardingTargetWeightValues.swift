@@ -17,17 +17,16 @@ enum OnboardingTargetWeightValues {
     private static let goalRangeMinimumGainSpanKg = 15.0
 
     static func applyDefaultsIfNeeded(to formState: inout OnboardingFormState) {
-        formState.selectPaceChoice(.moderate)
-        formState.syncAggressivenessFromPaceChoice()
-
         guard let currentKg = formState.parsedCurrentWeightKg else { return }
 
-        if !formState.goalWeightKgText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-           formState.parsedGoalWeightKg != nil {
-            return
-        }
+        let hasGoal = !formState.goalWeightKgText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && formState.parsedGoalWeightKg != nil
 
-        setGoalWeightKg(currentKg, in: &formState)
+        if !hasGoal {
+            formState.selectPaceChoice(.moderate)
+            formState.syncAggressivenessFromPaceChoice()
+            setGoalWeightKg(currentKg, in: &formState)
+        }
     }
 
     static func selectionStep(for unitSystem: UnitSystem) -> Double {

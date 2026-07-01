@@ -13,6 +13,7 @@ enum AIServiceError: Error, Equatable {
     case backendUnavailable
     case decodingFailed(String)
     case requestFailed(String)
+    case requestTimedOut
     case featureDisabled
     case authenticationFailed
 
@@ -24,6 +25,8 @@ enum AIServiceError: Error, Equatable {
         switch self {
         case .authenticationFailed:
             return Self.coachSessionFailureMessage
+        case .requestTimedOut:
+            return FormaProductCopy.Error.coachTimeout
         case .featureDisabled:
             return FormaProductCopy.Error.coachUnavailable
         case .backendUnavailable, .requestFailed:

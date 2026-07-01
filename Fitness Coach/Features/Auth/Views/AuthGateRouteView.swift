@@ -98,5 +98,6 @@ struct AuthGateRouteView: View {
                 )
             }
         }
+        .id(coordinator.signedInSessionID)
     }
 }

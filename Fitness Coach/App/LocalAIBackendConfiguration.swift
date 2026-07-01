@@ -18,7 +18,7 @@ enum LocalAIBackendConfiguration {
     static func debugBackendURL(
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) -> URL? {
-        if let raw = FormaEnvironment.aiBackendURLString(),
+        if let raw = FormaEnvironment.aiBackendURLString(environment: environment),
            let url = url(from: raw) {
             return url
         }

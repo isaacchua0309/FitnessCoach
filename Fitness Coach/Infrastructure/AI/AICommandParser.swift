@@ -41,10 +41,15 @@ struct AICommandParser {
         switch error {
         case .invalidURL, .missingConfiguration, .backendUnavailable:
             return .backendUnavailable
-        case .requestFailed(let message):
-            return .requestFailed(message)
+        case .requestTimedOut:
+            return .requestTimedOut
+        case .requestFailed:
+            return .backendUnavailable
         case .invalidStatusCode(let code):
-            return .requestFailed("Status code \(code).")
+            if code == 401 {
+                return .authenticationFailed
+            }
+            return .backendUnavailable
         case .decodingFailed(let message):
             return .decodingFailed(message)
         case .authenticationFailed:

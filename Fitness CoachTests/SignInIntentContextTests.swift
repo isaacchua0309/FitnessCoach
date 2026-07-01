@@ -189,7 +189,7 @@ final class SignInIntentContextTests: XCTestCase {
         XCTAssertEqual(title, FormaProductCopy.SignIn.continueWithGoogle)
     }
 
-    func testOnboardingCompletionUsesProtectProgressLanguage() {
+    func testOnboardingCompletionUsesSavePlanLanguage() {
         let title = ProfileSignInCopyPolicy.googleButtonTitle(for: .onboardingCompletion)
         let hint = ProfileSignInCopyPolicy.googleButtonAccessibilityHint(for: .onboardingCompletion)
 

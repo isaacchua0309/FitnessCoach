@@ -55,7 +55,7 @@ final class OnboardingPlanGenerationExecutor {
     func buildPlanReveal(
         formState: OnboardingFormState,
         plan: CalorieTargetResult
-    ) -> OnboardingPlanRevealState {
+    ) -> OnboardingPlanRevealState? {
         OnboardingPlanRevealBuilder.build(formState: formState, plan: plan)
     }
 

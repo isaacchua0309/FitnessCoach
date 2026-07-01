@@ -12,6 +12,9 @@ enum OnboardingPlanRevealLayoutProfile: Equatable {
     case regular
     case expansive
 
+    static let compactHeightThreshold: CGFloat = 580
+    static let compactWidthThreshold: CGFloat = 390
+
     static func resolve(
         contentHeight: CGFloat,
         contentWidth: CGFloat,
@@ -20,7 +23,7 @@ enum OnboardingPlanRevealLayoutProfile: Equatable {
         if dynamicTypeSize.isAccessibilitySize {
             return .compact
         }
-        if contentHeight < 520 || contentWidth < 360 {
+        if isCompactHeight(contentHeight) || contentWidth < 360 {
             return .compact
         }
         if contentHeight > 680 {
@@ -29,12 +32,42 @@ enum OnboardingPlanRevealLayoutProfile: Equatable {
         return .regular
     }
 
+    static func isCompactHeight(_ height: CGFloat) -> Bool {
+        height < compactHeightThreshold
+    }
+
+    static func isCompactWidth(_ width: CGFloat) -> Bool {
+        width < compactWidthThreshold
+    }
+
+    static func shouldStackActionCards(
+        width: CGFloat,
+        height: CGFloat,
+        dynamicTypeSize: DynamicTypeSize
+    ) -> Bool {
+        if dynamicTypeSize.isAccessibilitySize {
+            return true
+        }
+        if isCompactWidth(width) || isCompactHeight(height) {
+            return true
+        }
+        return false
+    }
+
     var stacksActionCards: Bool {
         self == .compact
     }
 
+    /// Plan reveal keeps the destination hero horizontal so height stays predictable.
     var usesExpandedGoalHero: Bool {
-        self == .expansive
+        false
+    }
+
+    func planRevealSectionSpacing(isCompactHeight: Bool) -> CGFloat {
+        if isCompactHeight {
+            return FormaTokens.Spacing.xs
+        }
+        return sectionSpacing
     }
 
     var sectionSpacing: CGFloat {
@@ -184,6 +217,12 @@ enum OnboardingPlanRevealLayoutProfile: Equatable {
     }
 }
 
+enum OnboardingPlanRevealContentDensity: Equatable {
+    case standard
+    case compact
+    case tight
+}
+
 enum OnboardingPlanRevealZone: Hashable {
     case celebration
     case goalHero
@@ -205,6 +244,26 @@ private struct OnboardingPlanRevealZoneWeightsKey: EnvironmentKey {
         OnboardingPlanRevealLayoutProfile.regular.zoneWeights
 }
 
+private struct OnboardingPlanRevealIsCompactHeightKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+private struct OnboardingPlanRevealIsCompactWidthKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+private struct OnboardingPlanRevealActionCardsAreSideBySideKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+private struct OnboardingPlanRevealContentDensityKey: EnvironmentKey {
+    static let defaultValue: OnboardingPlanRevealContentDensity = .standard
+}
+
+private struct OnboardingPlanRevealFixedViewportKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
 extension EnvironmentValues {
     var onboardingPlanRevealLayoutProfile: OnboardingPlanRevealLayoutProfile {
         get { self[OnboardingPlanRevealLayoutProfileKey.self] }
@@ -219,6 +278,31 @@ extension EnvironmentValues {
     var onboardingPlanRevealZoneWeights: [OnboardingPlanRevealZone: CGFloat] {
         get { self[OnboardingPlanRevealZoneWeightsKey.self] }
         set { self[OnboardingPlanRevealZoneWeightsKey.self] = newValue }
+    }
+
+    var onboardingPlanRevealIsCompactHeight: Bool {
+        get { self[OnboardingPlanRevealIsCompactHeightKey.self] }
+        set { self[OnboardingPlanRevealIsCompactHeightKey.self] = newValue }
+    }
+
+    var onboardingPlanRevealIsCompactWidth: Bool {
+        get { self[OnboardingPlanRevealIsCompactWidthKey.self] }
+        set { self[OnboardingPlanRevealIsCompactWidthKey.self] = newValue }
+    }
+
+    var onboardingPlanRevealActionCardsAreSideBySide: Bool {
+        get { self[OnboardingPlanRevealActionCardsAreSideBySideKey.self] }
+        set { self[OnboardingPlanRevealActionCardsAreSideBySideKey.self] = newValue }
+    }
+
+    var onboardingPlanRevealContentDensity: OnboardingPlanRevealContentDensity {
+        get { self[OnboardingPlanRevealContentDensityKey.self] }
+        set { self[OnboardingPlanRevealContentDensityKey.self] = newValue }
+    }
+
+    var onboardingPlanRevealFixedViewport: Bool {
+        get { self[OnboardingPlanRevealFixedViewportKey.self] }
+        set { self[OnboardingPlanRevealFixedViewportKey.self] = newValue }
     }
 }
 

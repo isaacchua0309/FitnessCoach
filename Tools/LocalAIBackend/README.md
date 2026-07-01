@@ -59,7 +59,7 @@ one of the configured models.
 
 ### Pipeline tracing
 
-Gateway logs one JSON object per line to stdout. Filter by trace ID (matches iOS `X-FitPilot-Trace-Id`):
+Gateway logs one JSON object per line to stdout. Filter by trace ID (matches iOS `X-Forma-Trace-Id`):
 
 ```sh
 node Tools/LocalAIBackend/server.mjs 2>&1 | rg '"traceId":"YOUR-UUID"'
@@ -69,3 +69,11 @@ On iOS (DEBUG builds): Settings → Developer → **Pipeline traces**, or filter
 
 - `FITPILOT_PIPELINE_TRACE=0` — disable iOS pipeline tracing
 - `FITPILOT_PIPELINE_TRACE_VERBOSE=1` — include sanitized JSON body snippets in traces
+
+## Production (Release / TestFlight)
+
+This folder is for **local development only**. Production uses Firebase `aiGateway`:
+
+- URL: `https://us-central1-fitness-coach-732fd.cloudfunctions.net/aiGateway` (base URL; iOS appends `/v1/ai/...`)
+- Deploy: `firebase functions:secrets:set OPENAI_API_KEY` then `firebase deploy --only functions:aiGateway`
+- Details: [Docs/ReleaseAI.md](../../Docs/ReleaseAI.md), [Docs/BackendAPI.md](../../Docs/BackendAPI.md)

@@ -13,9 +13,7 @@ struct DailyTrainingActivity: Equatable, Sendable {
     let hasWorkout: Bool
 
     static let empty = DailyTrainingActivity(
-        workoutCount: 0,
-        workoutCaloriesBurned: 0,
-        hasWorkout: false
+        workouts: []
     )
 
     init(

@@ -11,13 +11,19 @@ struct OnboardingPlanRevealFirstWeekCard: View {
     let sectionTitle: String
     let missions: [OnboardingPlanRevealMission]
 
+    @Environment(\.onboardingPlanRevealIsCompactHeight) private var isCompactHeight
+    @Environment(\.onboardingPlanRevealContentDensity) private var contentDensity
     @ScaledMetric(relativeTo: .caption) private var iconContainerSize: CGFloat = 24
+
+    private var missionLineLimit: Int {
+        (isCompactHeight || contentDensity != .standard) ? 1 : 2
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             OnboardingPlanRevealSectionHeader(title: sectionTitle)
 
-            VStack(alignment: .leading, spacing: OnboardingLayout.compactLabelGap) {
+            VStack(alignment: .leading, spacing: isCompactHeight ? 4 : OnboardingLayout.compactLabelGap) {
                 ForEach(missions) { mission in
                     missionRow(mission)
                 }
@@ -49,9 +55,8 @@ struct OnboardingPlanRevealFirstWeekCard: View {
             Text(mission.title)
                 .font(FormaTokens.Typography.caption.weight(.medium))
                 .foregroundStyle(OnboardingTheme.primaryText)
-                .lineLimit(2)
-                .minimumScaleFactor(0.85)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(missionLineLimit)
+                .minimumScaleFactor(0.75)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(mission.title)

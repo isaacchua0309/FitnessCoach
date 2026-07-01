@@ -189,8 +189,69 @@ final class OnboardingPlanRevealProductionTests: XCTestCase {
     }
 
     func testCompactProfileStacksActionCardsForOverflowSafety() {
-        XCTAssertTrue(OnboardingPlanRevealLayoutProfile.compact.stacksActionCards)
-        XCTAssertFalse(OnboardingPlanRevealLayoutProfile.expansive.stacksActionCards)
+        XCTAssertTrue(
+            OnboardingPlanRevealLayoutProfile.shouldStackActionCards(
+                width: 375,
+                height: 640,
+                dynamicTypeSize: .large
+            )
+        )
+        XCTAssertTrue(
+            OnboardingPlanRevealLayoutProfile.shouldStackActionCards(
+                width: 389,
+                height: 700,
+                dynamicTypeSize: .large
+            )
+        )
+        XCTAssertFalse(
+            OnboardingPlanRevealLayoutProfile.shouldStackActionCards(
+                width: 430,
+                height: 760,
+                dynamicTypeSize: .large
+            )
+        )
+        XCTAssertFalse(
+            OnboardingPlanRevealLayoutProfile.shouldStackActionCards(
+                width: 393,
+                height: 760,
+                dynamicTypeSize: .large
+            )
+        )
+    }
+
+    func testCompactWidthThresholdIs390() {
+        XCTAssertTrue(OnboardingPlanRevealLayoutProfile.isCompactWidth(389))
+        XCTAssertFalse(OnboardingPlanRevealLayoutProfile.isCompactWidth(390))
+    }
+
+    func testPlanRevealDoesNotUseWeightedZoneLayout() throws {
+        let source = try String(
+            contentsOfFile: planRevealStepViewSourcePath(),
+            encoding: .utf8
+        )
+        XCTAssertFalse(source.contains(".onboardingPlanRevealZone("))
+    }
+
+    func testPlanRevealUsesViewThatFitsOverflowGuard() throws {
+        let source = try String(
+            contentsOfFile: planRevealStepViewSourcePath(),
+            encoding: .utf8
+        )
+        XCTAssertTrue(source.contains("ViewThatFits(in: .vertical)"))
+    }
+
+    func testCompactHeightThresholdCoversSEViewportAfterFooter() {
+        XCTAssertTrue(OnboardingPlanRevealLayoutProfile.isCompactHeight(527))
+        XCTAssertFalse(OnboardingPlanRevealLayoutProfile.isCompactHeight(600))
+    }
+
+    func testPlanRevealPinsCoachWithFlexibleSpacer() throws {
+        let source = try String(
+            contentsOfFile: planRevealStepViewSourcePath(),
+            encoding: .utf8
+        )
+        XCTAssertTrue(source.contains("Spacer(minLength: 0)"))
+        XCTAssertTrue(source.contains("OnboardingPlanRevealCoachCard"))
     }
 
     func testPlanRevealUsesFixedViewportWithoutScrollView() {
@@ -212,13 +273,17 @@ final class OnboardingPlanRevealProductionTests: XCTestCase {
         XCTAssertTrue(generatingRules.reservesPlanRevealFooterSpace)
     }
 
-    func testCoachZoneAnchorsToBottomForCTAClearance() throws {
-        let source = try String(
-            contentsOfFile: zoneLayoutSourcePath(),
-            encoding: .utf8
-        )
-        XCTAssertTrue(source.contains("case .coach:"))
-        XCTAssertTrue(source.contains("return .bottom"))
+    func testPlanRevealKeepsGoalHeroHorizontalOnAllProfiles() {
+        for profile in [
+            OnboardingPlanRevealLayoutProfile.compact,
+            .regular,
+            .expansive
+        ] {
+            XCTAssertFalse(
+                profile.usesExpandedGoalHero,
+                "Plan reveal should keep a horizontal goal hero for \(profile)"
+            )
+        }
     }
 
     // MARK: - UX / accessibility
@@ -369,14 +434,6 @@ final class OnboardingPlanRevealProductionTests: XCTestCase {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .appendingPathComponent("Fitness Coach/Features/Onboarding/UI/OnboardingPlanRevealStepView.swift")
-            .path
-    }
-
-    private func zoneLayoutSourcePath() -> String {
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("Fitness Coach/Features/Onboarding/Components/OnboardingPlanRevealLayout.swift")
             .path
     }
 }

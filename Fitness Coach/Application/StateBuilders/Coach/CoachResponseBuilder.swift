@@ -94,6 +94,8 @@ enum CoachResponseBuilder {
         switch error {
         case .authenticationFailed:
             return AIServiceError.coachSessionFailureMessage
+        case .requestTimedOut:
+            return "I couldn't analyze that photo in time. \(error.userMessage) You can try again or log manually."
         default:
             return "I couldn't analyze that photo right now. \(error.userMessage) You can try again or log manually."
         }

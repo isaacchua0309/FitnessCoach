@@ -18,6 +18,15 @@ final class AuthManager: ObservableObject {
     @Published private(set) var user: User?
     @Published private(set) var authState: AuthState = .unknown
     @Published private(set) var errorMessage: String?
+    /// Single source of truth for Google sign-in button loading state.
+    @Published private(set) var isPerformingGoogleSignIn = false
+
+    var googleSignInAttemptState: GoogleSignInAttemptState {
+        GoogleSignInAttemptState.resolve(
+            authState: authState,
+            isPerformingGoogleSignIn: isPerformingGoogleSignIn
+        )
+    }
 
     var currentUID: String? {
         user?.uid
@@ -32,7 +41,6 @@ final class AuthManager: ObservableObject {
     }
 
     private var listenerHandle: AuthStateDidChangeListenerHandle?
-    private var isSigningIn = false
     private let logger = Logger(subsystem: "FitPilot", category: "Auth")
 
     init() {
@@ -45,7 +53,8 @@ final class AuthManager: ObservableObject {
         }
     }
 
-    /// Attaches the Firebase auth listener and applies the current session, if any.
+    // MARK: - Session
+
     func startListening() {
         guard listenerHandle == nil else { return }
 
@@ -70,13 +79,10 @@ final class AuthManager: ObservableObject {
         self.listenerHandle = nil
     }
 
-    /// Launch-time entry point: listen only, never create a session.
     func checkExistingSession() {
         startListening()
     }
 
-    /// Re-checks the current Firebase session for token-required flows.
-    /// Does not sign users in automatically.
     func ensureSignedIn() async {
         startListening()
 
@@ -88,32 +94,47 @@ final class AuthManager: ObservableObject {
             return
         }
 
-        if case .signingIn = authState {
+        if isPerformingGoogleSignIn {
             return
         }
 
         applySignedOut()
     }
 
-    func signInWithGoogle() async {
-        guard !isSigningIn else { return }
+    // MARK: - Google sign-in
 
-        let previousState = authState
-        isSigningIn = true
+    /// Presents Google Sign-In and completes with a deterministic terminal outcome.
+    @discardableResult
+    func signInWithGoogle() async -> GoogleSignInAttemptOutcome {
+        guard !isPerformingGoogleSignIn else {
+            return .failed(message: AuthSignInUserMessage.signInFailureMessage)
+        }
+
+        startListening()
+        isPerformingGoogleSignIn = true
         authState = .signingIn
         errorMessage = nil
-        startListening()
+        AuthSignInDebugLogger.signInStarted(surface: "google")
 
-        defer { isSigningIn = false }
+        var outcome: GoogleSignInAttemptOutcome = .cancelled
+
+        defer {
+            isPerformingGoogleSignIn = false
+            finalizeGoogleSignInAttempt(outcome: outcome)
+        }
 
         guard configureGoogleSignInIfNeeded() else {
-            applyFailure(AuthSignInUserMessage.signInFailureMessage)
-            return
+            let message = AuthSignInUserMessage.signInFailureMessage
+            handleSignInFailure(message)
+            outcome = .failed(message: message)
+            return outcome
         }
 
         guard let presenter = AuthPresenter.topViewController() else {
-            applyFailure(AuthSignInUserMessage.signInFailureMessage)
-            return
+            let message = AuthSignInUserMessage.signInFailureMessage
+            handleSignInFailure(message)
+            outcome = .failed(message: message)
+            return outcome
         }
 
         do {
@@ -121,8 +142,10 @@ final class AuthManager: ObservableObject {
 
             guard let idToken = signInResult.user.idToken?.tokenString else {
                 GIDSignIn.sharedInstance.signOut()
-                applyFailure(AuthSignInUserMessage.signInFailureMessage)
-                return
+                let message = AuthSignInUserMessage.signInFailureMessage
+                handleSignInFailure(message)
+                outcome = .failed(message: message)
+                return outcome
             }
 
             let accessToken = signInResult.user.accessToken.tokenString
@@ -132,11 +155,23 @@ final class AuthManager: ObservableObject {
             )
 
             _ = try await auth().signIn(with: credential)
-            // Firebase auth listener updates `user` and `authState`.
+
+            guard let signedInUser = auth().currentUser else {
+                let message = AuthSignInUserMessage.signInFailureMessage
+                handleSignInFailure(message)
+                outcome = .failed(message: message)
+                return outcome
+            }
+
+            applyUser(signedInUser)
+            outcome = .success(uid: signedInUser.uid)
+            AuthSignInDebugLogger.signInSucceeded(uid: signedInUser.uid)
+            return outcome
         } catch {
             if AuthSignInErrorClassifier.isCancellation(error) {
-                restoreAfterCancellation(previousState: previousState)
-                return
+                handleSignInCancellation()
+                outcome = .cancelled
+                return outcome
             }
 
             #if DEBUG
@@ -144,7 +179,57 @@ final class AuthManager: ObservableObject {
             #endif
 
             GIDSignIn.sharedInstance.signOut()
-            applyFailure(AuthSignInUserMessage.signInFailureMessage)
+            let message = AuthSignInUserMessage.signInFailureMessage
+            handleSignInFailure(message)
+            outcome = .failed(message: message)
+            return outcome
+        }
+    }
+
+    // MARK: - Sign-in state helpers
+
+    /// Clears in-flight sign-in and any stale `.signingIn` shell state.
+    func resetSignInState() {
+        isPerformingGoogleSignIn = false
+        guard case .signingIn = authState else { return }
+        applySignedOut()
+    }
+
+    func handleSignInCancellation() {
+        errorMessage = nil
+        AuthSignInDebugLogger.signInCancelled(surface: "google")
+
+        if let currentUser = auth().currentUser {
+            applyUser(currentUser)
+            return
+        }
+
+        applySignedOut()
+    }
+
+    func handleSignInFailure(_ message: String = AuthSignInUserMessage.signInFailureMessage) {
+        if let currentUser = auth().currentUser {
+            applyUser(currentUser)
+            return
+        }
+
+        user = nil
+        errorMessage = message
+        authState = .failed(message)
+        AuthSignInDebugLogger.signInFailed(surface: "google", reason: message)
+    }
+
+    /// Drops transient `.signingIn` / `.failed` shells once UI has handled the outcome.
+    func clearTransientAuthState() {
+        isPerformingGoogleSignIn = false
+
+        guard auth().currentUser == nil else { return }
+
+        switch authState {
+        case .signingIn, .failed:
+            applySignedOut()
+        case .unknown, .signedOut, .signedIn:
+            break
         }
     }
 
@@ -158,6 +243,7 @@ final class AuthManager: ObservableObject {
         }
 
         GIDSignIn.sharedInstance.signOut()
+        isPerformingGoogleSignIn = false
         applySignedOut()
     }
 
@@ -225,6 +311,23 @@ final class AuthManager: ObservableObject {
         Auth.auth()
     }
 
+    private func finalizeGoogleSignInAttempt(outcome: GoogleSignInAttemptOutcome) {
+        guard case .signingIn = authState else { return }
+
+        switch outcome {
+        case .success:
+            if let currentUser = auth().currentUser {
+                applyUser(currentUser)
+            } else {
+                applySignedOut()
+            }
+        case .cancelled:
+            handleSignInCancellation()
+        case .failed(let message):
+            handleSignInFailure(message)
+        }
+    }
+
     private func configureGoogleSignInIfNeeded() -> Bool {
         if GIDSignIn.sharedInstance.configuration != nil {
             return true
@@ -258,6 +361,7 @@ final class AuthManager: ObservableObject {
             self.user = user
             authState = .signedIn(uid: user.uid)
             errorMessage = nil
+            isPerformingGoogleSignIn = false
             ProfileBootstrapDebugLogger.event(
                 "auth_state_changed",
                 fields: [
@@ -322,32 +426,5 @@ final class AuthManager: ObservableObject {
             return nil
         }
         return value
-    }
-
-    private func applyFailure(_ message: String) {
-        if let user = auth().currentUser {
-            applyUser(user)
-            return
-        }
-
-        self.user = nil
-        errorMessage = message
-        authState = .failed(message)
-    }
-
-    private func restoreAfterCancellation(previousState: AuthState) {
-        errorMessage = nil
-
-        if let user = auth().currentUser {
-            applyUser(user)
-            return
-        }
-
-        switch previousState {
-        case .signedIn:
-            applySignedOut()
-        default:
-            applySignedOut()
-        }
     }
 }

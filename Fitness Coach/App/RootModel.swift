@@ -74,13 +74,21 @@ final class RootModel: ObservableObject {
 
     /// Resolves root state from the on-device profile without cloud auth (pre-auth v2).
     /// Must only run while signed out; signed-in routing uses `load(uid:)`.
+    /// A local profile never maps to `.main` here — authentication is required first.
     func resolveLocalProfile() {
         loadTask?.cancel()
-        let resolved = RootProfileRouteResolver.resolve(
-            hasProfile: profileBootstrapService.hasLocalProfile()
-        )
-        applyState(resolved)
-        bootstrapPhase = profileBootstrapService.hasLocalProfile() ? .localProfileReady : .needsOnboardingAfterCloudMiss
+        guard profileBootstrapService.hasLocalProfile() else {
+            applyState(.onboarding)
+            bootstrapPhase = .needsOnboardingAfterCloudMiss
+            return
+        }
+        if profileBootstrapService.localProfileAwaitingSignIn() {
+            applyState(.onboarding)
+            bootstrapPhase = .localProfileReady
+            return
+        }
+        applyState(.loading)
+        bootstrapPhase = .localProfileReady
     }
 
     /// Neutral shell state after sign-out. Avoids treating signed-out users as signed-in onboarding.

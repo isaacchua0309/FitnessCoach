@@ -115,19 +115,19 @@ final class TodayActivityStateTests: XCTestCase {
     }
 
     func testStepsTodayResolverUsesDayBounds() async throws {
-        let reader = MockHealthKitStepReader(stepCount: 5_678)
+        let stepReader = MockHealthKitStepReader(stepCount: 5_678)
         let date = TodayDashboardFixtures.date(hour: 15)
 
         let query = HealthActivityQueryService(
-            workoutReader: reader,
-            stepReader: MockHealthKitStepReader(stepCount: 0)
+            workoutReader: MockHealthKitWorkoutReader(),
+            stepReader: stepReader
         )
 
         let steps = try await query.stepsToday(on: date)
 
         XCTAssertEqual(steps, 5_678)
-        XCTAssertEqual(reader.fetchCallCount, 1)
-        XCTAssertNotNil(reader.lastFetchRange)
+        XCTAssertEqual(stepReader.fetchCallCount, 1)
+        XCTAssertNotNil(stepReader.lastFetchRange)
     }
 
     func testWeeklyWorkoutResolverUsesRollingSevenDayWindow() async throws {

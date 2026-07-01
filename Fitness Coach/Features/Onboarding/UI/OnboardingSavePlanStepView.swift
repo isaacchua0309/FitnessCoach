@@ -2,7 +2,7 @@
 //  OnboardingSavePlanStepView.swift
 //  Fitness Coach
 //
-//  Forma — Protect-your-progress step after plan reveal.
+//  Forma — Save-plan completion step after plan reveal.
 //
 
 import SwiftUI
@@ -14,179 +14,154 @@ struct OnboardingSavePlanStepView: View {
     let errorMessage: String?
     let planRecap: OnboardingPlanRevealState?
     let onContinue: () -> Void
-    let onSkip: (() -> Void)?
     let onBack: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    @State private var visibleStages: Set<OnboardingPlanRevealEntranceStage> = []
-    @State private var entranceAnimationToken = UUID()
+    @State private var headerVisible = false
+    @State private var contentVisible = false
+    @State private var footerVisible = false
 
     private let copy = FormaProductCopy.Onboarding.V2.SavePlan.self
-    private let cardCopy = FormaProductCopy.Onboarding.V2.PlanReveal.Cards.self
 
     private var showsSignInError: Bool {
         errorMessage != nil
     }
 
     var body: some View {
-        Group {
-            if let planRecap {
-                adaptiveProtectContent(planRecap)
-            } else {
-                compactFallbackContent
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .onAppear {
-            runContinuationEntranceAnimation()
-        }
-    }
-
-    // MARK: - Plan reveal continuation layout
-
-    private func adaptiveProtectContent(_ state: OnboardingPlanRevealState) -> some View {
         GeometryReader { geometry in
-            let profile = OnboardingPlanRevealLayoutProfile.resolve(
-                contentHeight: geometry.size.height,
-                contentWidth: geometry.size.width,
+            let metrics = OnboardingSavePlanLayoutMetrics(
+                size: geometry.size,
                 dynamicTypeSize: dynamicTypeSize
             )
-            let showsJourney = profile.savePlanShowsJourneyCard
 
-            ZStack(alignment: .topLeading) {
-                VStack(spacing: 0) {
-                    upperPlanContent(state, profile: profile, showsJourney: showsJourney)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            VStack(spacing: 0) {
+                toolbar(metrics: metrics)
 
-                    pinnedProtectFooter(profile: profile)
-                }
-                .environment(\.onboardingPlanRevealLayoutProfile, profile)
-                .environment(\.onboardingPlanRevealVisibleStages, visibleStages)
-                .environment(\.onboardingPlanRevealUsesSuccessHandoff, true)
-                .environment(\.onboardingPlanRevealUsesCompactLayout, profile == .compact)
-                .accessibilityElement(children: .contain)
+                mainContent(metrics: metrics)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
-                backControl
+                footerSection(metrics: metrics)
             }
+            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
         }
         .padding(.horizontal, OnboardingTheme.pagePadding)
-        .padding(.top, OnboardingLayout.progressHeaderTop)
+        .safeAreaPadding(.top, OnboardingLayout.progressHeaderTop)
         .safeAreaPadding(.bottom, OnboardingLayout.savePlanFooterBottomInset)
+        .onAppear {
+            runEntranceAnimation()
+        }
     }
 
-    private func upperPlanContent(
-        _ state: OnboardingPlanRevealState,
-        profile: OnboardingPlanRevealLayoutProfile,
-        showsJourney: Bool
-    ) -> some View {
-        GeometryReader { geometry in
-            VStack(spacing: 0) {
-                celebrationSection(profile: profile)
-                    .onboardingPlanRevealZone(.celebration)
+    // MARK: - Layout
 
-                OnboardingPlanRevealGoalHeroCard(
-                    badge: state.goalHeroSectionTitle,
-                    headline: state.goalHeroHeadline,
-                    strategyLabel: state.strategyLabel,
-                    direction: state.goalDirection,
-                    showsSuccessHandoff: true
-                )
-                .onboardingPlanRevealZone(.goalHero)
-
-                if showsJourney {
-                    OnboardingPlanRevealJourneyCard(
-                        sectionTitle: cardCopy.journeyTitle,
-                        progressLabel: state.goalProgressLabel,
-                        paceLabel: state.paceLabel,
-                        estimatedWeeksLabel: state.estimatedWeeksLabel,
-                        beliefLine: state.journeyBeliefLine,
-                        planStatus: state.planStatus.style == .caution ? state.planStatus : nil
-                    )
-                    .onboardingPlanRevealZone(.journey)
-                }
+    private func toolbar(metrics: OnboardingSavePlanLayoutMetrics) -> some View {
+        HStack(spacing: 0) {
+            Button(action: onBack) {
+                Image(systemName: "chevron.left")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(OnboardingTheme.secondaryText)
+                    .frame(width: FormaTokens.Layout.minTouchTarget, height: 32, alignment: .leading)
+                    .contentShape(Rectangle())
             }
-            .environment(\.onboardingPlanRevealContentHeight, geometry.size.height)
-            .environment(
-                \.onboardingPlanRevealZoneWeights,
-                profile.savePlanUpperZoneWeights(showsJourney: showsJourney)
-            )
+            .buttonStyle(.plain)
+            .disabled(isBusy)
+            .accessibilityLabel(FormaProductCopy.Common.back)
+
+            Spacer(minLength: 0)
         }
+        .padding(.bottom, metrics.toolbarBottomSpacing)
     }
 
-    private func celebrationSection(profile: OnboardingPlanRevealLayoutProfile) -> some View {
-        VStack(spacing: profile == .expansive ? FormaTokens.Spacing.sm : FormaTokens.Spacing.xs) {
-            Text(celebrationTitle)
-                .font(profile.celebrationTitleFont)
-                .foregroundStyle(OnboardingTheme.primaryText)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity)
-                .accessibilityAddTraits(.isHeader)
-                .onboardingPlanRevealEntrance(.celebrationTitle)
+    private func mainContent(metrics: OnboardingSavePlanLayoutMetrics) -> some View {
+        VStack(alignment: .leading, spacing: metrics.sectionSpacing) {
+            headerSection(metrics: metrics)
 
-            Text(celebrationSubtitle)
-                .font(profile.celebrationSubtitleFont)
-                .foregroundStyle(OnboardingTheme.secondaryText)
-                .multilineTextAlignment(.center)
-                .lineLimit(profile == .compact ? 2 : 3)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity)
-                .onboardingPlanRevealEntrance(.celebrationTitle)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, FormaTokens.Spacing.xs)
-        .padding(.horizontal, FormaTokens.Layout.minTouchTarget)
-    }
-
-    private func pinnedProtectFooter(profile: OnboardingPlanRevealLayoutProfile) -> some View {
-        VStack(spacing: profile.sectionSpacing) {
-            OnboardingPlanRevealCoachCard(message: coachMessage)
+            if let planRecap {
+                OnboardingSavePlanSummaryCard(state: planRecap, metrics: metrics)
+                    .opacity(contentVisible ? 1 : 0)
+                    .animation(reduceMotion ? nil : .easeOut(duration: 0.28).delay(0.04), value: contentVisible)
+            }
 
             if requiresGoogleSignIn {
-                signedOutProtectActions(profile: profile)
-            } else {
-                signedInProtectActions
+                OnboardingSaveBenefitsCard(metrics: metrics)
+                    .opacity(contentVisible ? 1 : 0)
+                    .animation(reduceMotion ? nil : .easeOut(duration: 0.28).delay(0.08), value: contentVisible)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .bottom)
+        .frame(maxWidth: .infinity, alignment: .top)
     }
 
-    private func signedOutProtectActions(profile: OnboardingPlanRevealLayoutProfile) -> some View {
-        VStack(spacing: FormaTokens.Spacing.xs) {
-            OnboardingSavePlanErrorSlot(showsError: showsSignInError)
-
-            premiumGoogleButton
-                .onboardingPlanRevealEntrance(.firstWeek)
-                .accessibilitySortPriority(100)
-
-            OnboardingProtectProgressSignInTrustRows(
-                visibleRowLimit: profile.savePlanTrustRowLimit
-            )
-            .onboardingPlanRevealEntrance(.firstWeek)
-            .accessibilitySortPriority(80)
-
-            if let onSkip {
-                Button(action: onSkip) {
-                    Text(copy.skipCTA)
-                        .font(FormaTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(OnboardingTheme.secondaryText)
-                        .frame(maxWidth: .infinity)
-                        .frame(minHeight: 36)
+    private func headerSection(metrics: OnboardingSavePlanLayoutMetrics) -> some View {
+        VStack(alignment: .leading, spacing: metrics.isVeryCompactHeight ? 4 : FormaTokens.Spacing.xs) {
+            Text(copy.finalStepLabel.uppercased())
+                .font(metrics.completionLabelFont)
+                .foregroundStyle(OnboardingTheme.accent)
+                .tracking(0.6)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background {
+                    Capsule(style: .continuous)
+                        .fill(OnboardingTheme.accent.opacity(0.12))
                 }
-                .buttonStyle(.plain)
-                .disabled(isBusy)
-                .accessibilityLabel(copy.skipCTA)
-                .accessibilityHint(copy.skipAccessibilityHint)
-                .onboardingPlanRevealEntrance(.firstWeek)
-                .accessibilitySortPriority(60)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .accessibilityAddTraits(.isHeader)
+
+            VStack(spacing: metrics.isVeryCompactHeight ? 4 : FormaTokens.Spacing.xs) {
+                Text(celebrationTitle)
+                    .font(metrics.heroTitleFont)
+                    .foregroundStyle(OnboardingTheme.primaryText)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.85)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityAddTraits(.isHeader)
+
+                Text(celebrationSubtitle(metrics: metrics))
+                    .font(metrics.heroSubtitleFont)
+                    .foregroundStyle(OnboardingTheme.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(metrics.heroSubtitleLineLimit)
+                    .minimumScaleFactor(0.85)
+                    .frame(maxWidth: .infinity)
             }
         }
+        .opacity(headerVisible ? 1 : 0)
+        .offset(y: headerVisible ? 0 : 6)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.28), value: headerVisible)
     }
 
-    private var signedInProtectActions: some View {
+    private func footerSection(metrics: OnboardingSavePlanLayoutMetrics) -> some View {
+        VStack(spacing: metrics.footerSpacing) {
+            if requiresGoogleSignIn {
+                OnboardingSavePlanPrivacyNote(metrics: metrics)
+
+                if showsSignInError, let errorMessage {
+                    OnboardingSavePlanInlineError(message: errorMessage)
+                        .transition(.opacity)
+                }
+
+                OnboardingSavePlanGoogleCTA(
+                    isLoading: isBusy,
+                    showsSuccess: showsSignInSuccess,
+                    isDisabled: isBusy || showsSignInSuccess,
+                    action: onContinue
+                )
+                .accessibilitySortPriority(100)
+            } else {
+                signedInContinueButton
+            }
+        }
+        .padding(.top, metrics.footerSpacing)
+        .opacity(footerVisible ? 1 : 0)
+        .offset(y: footerVisible ? 0 : 8)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.3).delay(0.06), value: footerVisible)
+    }
+
+    private var signedInContinueButton: some View {
         Button(action: onContinue) {
             Text(copy.signedInContinueCTA)
                 .font(FormaTokens.Typography.body.weight(.semibold))
@@ -198,69 +173,7 @@ struct OnboardingSavePlanStepView: View {
         .disabled(isBusy)
         .accessibilityLabel(copy.signedInContinueCTA)
         .accessibilityHint(copy.signedInContinueAccessibilityHint)
-        .onboardingPlanRevealEntrance(.firstWeek)
         .accessibilitySortPriority(100)
-    }
-
-    // MARK: - Fallback (no plan recap)
-
-    private var compactFallbackContent: some View {
-        GeometryReader { geometry in
-            let profile = OnboardingPlanRevealLayoutProfile.resolve(
-                contentHeight: geometry.size.height,
-                contentWidth: geometry.size.width,
-                dynamicTypeSize: dynamicTypeSize
-            )
-
-            ZStack(alignment: .topLeading) {
-                VStack(spacing: 0) {
-                    celebrationSection(profile: profile)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-
-                    pinnedProtectFooter(profile: profile)
-                }
-                .environment(\.onboardingPlanRevealLayoutProfile, profile)
-                .environment(\.onboardingPlanRevealVisibleStages, visibleStages)
-                .environment(\.onboardingPlanRevealUsesCompactLayout, profile == .compact)
-
-                backControl
-            }
-        }
-        .padding(.horizontal, OnboardingTheme.pagePadding)
-        .padding(.top, OnboardingLayout.progressHeaderTop)
-        .safeAreaPadding(.bottom, OnboardingLayout.savePlanFooterBottomInset)
-    }
-
-    // MARK: - Controls
-
-    private var backControl: some View {
-        Button(action: onBack) {
-            Image(systemName: "chevron.left")
-                .font(.body.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.secondaryText)
-                .frame(width: FormaTokens.Layout.minTouchTarget, height: 32, alignment: .leading)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(isBusy)
-        .accessibilityLabel(FormaProductCopy.Common.back)
-        .accessibilitySortPriority(120)
-    }
-
-    private var premiumGoogleButton: some View {
-        FormaGoogleSignInButton(
-            title: ProfileSignInCopyPolicy.googleButtonTitle(for: .onboardingCompletion),
-            loadingTitle: copy.googleSignInLoadingTitle,
-            successTitle: copy.googleSignInSuccessTitle,
-            successAccessibilityLabel: copy.googleSignInSuccessAccessibilityLabel,
-            isLoading: isBusy,
-            showsSuccess: showsSignInSuccess,
-            isDisabled: isBusy || showsSignInSuccess,
-            action: onContinue,
-            accessibilityHint: ProfileSignInCopyPolicy.googleButtonAccessibilityHint(
-                for: .onboardingCompletion
-            )
-        )
     }
 
     // MARK: - Copy
@@ -269,117 +182,142 @@ struct OnboardingSavePlanStepView: View {
         requiresGoogleSignIn ? copy.title : copy.signedInTitle
     }
 
-    private var celebrationSubtitle: String {
-        requiresGoogleSignIn ? copy.subtitle : copy.signedInSubtitle
-    }
-
-    private var coachMessage: String {
-        requiresGoogleSignIn ? copy.trustNote : copy.signedInTrustNote
+    private func celebrationSubtitle(metrics: OnboardingSavePlanLayoutMetrics) -> String {
+        if requiresGoogleSignIn {
+            return metrics.isVeryCompactHeight ? copy.subtitleCompact : copy.subtitle
+        }
+        return copy.signedInSubtitle
     }
 
     // MARK: - Entrance
 
-    private func runContinuationEntranceAnimation() {
-        let token = UUID()
-        entranceAnimationToken = token
+    private func runEntranceAnimation() {
+        if reduceMotion {
+            headerVisible = true
+            contentVisible = true
+            footerVisible = true
+            return
+        }
 
-        OnboardingPlanRevealEntranceAnimator.revealSavePlanContinuation(
-            reduceMotion: reduceMotion,
-            onReveal: { stage in
-                guard entranceAnimationToken == token else { return }
-                visibleStages.insert(stage)
-            },
-            onInitialVisible: { stages in
-                guard entranceAnimationToken == token else { return }
-                visibleStages = stages
-            }
-        )
+        headerVisible = false
+        contentVisible = false
+        footerVisible = false
+
+        withAnimation(.easeOut(duration: 0.28)) {
+            headerVisible = true
+        }
+
+        withAnimation(.easeOut(duration: 0.28).delay(0.05)) {
+            contentVisible = true
+        }
+
+        withAnimation(.easeOut(duration: 0.3).delay(0.1)) {
+            footerVisible = true
+        }
     }
 }
 
-#Preview("Signed-out flow") {
-    OnboardingSavePlanStepView(
-        requiresGoogleSignIn: true,
-        isBusy: false,
-        errorMessage: nil,
-        planRecap: OnboardingPreviewData.planRevealState,
-        onContinue: {},
-        onSkip: {},
-        onBack: {}
-    )
-    .background(OnboardingTheme.background)
-    .formaThemePreview()
+#if DEBUG
+private enum OnboardingSavePlanPreviewSupport {
+    static func preview(
+        requiresGoogleSignIn: Bool = true,
+        isBusy: Bool = false,
+        showsSignInSuccess: Bool = false,
+        errorMessage: String? = nil,
+        planRecap: OnboardingPlanRevealState? = OnboardingPreviewData.planRevealState,
+        width: CGFloat? = nil,
+        height: CGFloat? = nil,
+        dynamicTypeSize: DynamicTypeSize = .large
+    ) -> some View {
+        Group {
+            if let width, let height {
+                OnboardingSavePlanStepView(
+                    requiresGoogleSignIn: requiresGoogleSignIn,
+                    isBusy: isBusy,
+                    showsSignInSuccess: showsSignInSuccess,
+                    errorMessage: errorMessage,
+                    planRecap: planRecap,
+                    onContinue: {},
+                    onBack: {}
+                )
+                .frame(width: width, height: height)
+            } else {
+                OnboardingSavePlanStepView(
+                    requiresGoogleSignIn: requiresGoogleSignIn,
+                    isBusy: isBusy,
+                    showsSignInSuccess: showsSignInSuccess,
+                    errorMessage: errorMessage,
+                    planRecap: planRecap,
+                    onContinue: {},
+                    onBack: {}
+                )
+            }
+        }
+        .background(OnboardingTheme.background)
+        .formaThemePreview()
+        .dynamicTypeSize(dynamicTypeSize)
+    }
 }
 
-#Preview("Signed-out with error") {
-    OnboardingSavePlanStepView(
-        requiresGoogleSignIn: true,
-        isBusy: false,
-        errorMessage: FormaProductCopy.Onboarding.V2.SavePlan.signInRetryHeadline,
-        planRecap: OnboardingPreviewData.planRevealState,
-        onContinue: {},
-        onSkip: {},
-        onBack: {}
+#Preview("iPhone SE") {
+    OnboardingSavePlanPreviewSupport.preview(width: 375, height: 667)
+}
+
+#Preview("iPhone 13 mini") {
+    OnboardingSavePlanPreviewSupport.preview(width: 375, height: 812)
+}
+
+#Preview("iPhone 15") {
+    OnboardingSavePlanPreviewSupport.preview(width: 393, height: 852)
+}
+
+#Preview("iPhone 15 Pro Max") {
+    OnboardingSavePlanPreviewSupport.preview(width: 430, height: 932)
+}
+
+#Preview("Loading") {
+    OnboardingSavePlanPreviewSupport.preview(isBusy: true)
+}
+
+#Preview("Error") {
+    OnboardingSavePlanPreviewSupport.preview(
+        errorMessage: FormaProductCopy.Onboarding.V2.SavePlan.signInRetryHeadline
     )
-    .background(OnboardingTheme.background)
-    .formaThemePreview()
 }
 
 #Preview("Signed-in flow") {
-    OnboardingSavePlanStepView(
-        requiresGoogleSignIn: false,
-        isBusy: false,
-        errorMessage: nil,
-        planRecap: OnboardingPreviewData.planRevealState,
-        onContinue: {},
-        onSkip: nil,
-        onBack: {}
-    )
-    .background(OnboardingTheme.background)
-    .formaThemePreview()
+    OnboardingSavePlanPreviewSupport.preview(requiresGoogleSignIn: false)
 }
 
-#Preview("iPhone SE class") {
-    OnboardingSavePlanStepView(
-        requiresGoogleSignIn: true,
-        isBusy: false,
-        errorMessage: nil,
-        planRecap: OnboardingPreviewData.planRevealState,
-        onContinue: {},
-        onSkip: {},
-        onBack: {}
+#Preview("Long goal / Large Dynamic Type") {
+    OnboardingSavePlanPreviewSupport.preview(
+        planRecap: longGoalPlanRevealState(),
+        dynamicTypeSize: .accessibility2
     )
-    .frame(width: 375, height: 667)
-    .background(OnboardingTheme.background)
-    .formaThemePreview()
 }
 
-#Preview("iPhone Pro Max class") {
-    OnboardingSavePlanStepView(
-        requiresGoogleSignIn: true,
-        isBusy: false,
-        errorMessage: nil,
-        planRecap: OnboardingPreviewData.planRevealState,
-        onContinue: {},
-        onSkip: {},
-        onBack: {}
+private func longGoalPlanRevealState() -> OnboardingPlanRevealState? {
+    guard var state = OnboardingPreviewData.planRevealState else { return nil }
+    return OnboardingPlanRevealState(
+        goalDirection: state.goalDirection,
+        currentWeightLabel: state.currentWeightLabel,
+        goalWeightLabel: state.goalWeightLabel,
+        goalProgressLabel: state.goalProgressLabel,
+        goalHeroSectionTitle: state.goalHeroSectionTitle,
+        goalHeroHeadline: "Reach 60 kg with steady consistency",
+        accessibilitySummary: state.accessibilitySummary,
+        paceLabel: state.paceLabel,
+        estimatedWeeksLabel: state.estimatedWeeksLabel,
+        strategyLabel: state.strategyLabel,
+        dailyCalorieLabel: state.dailyCalorieLabel,
+        calorieExplanationLine: state.calorieExplanationLine,
+        proteinLabel: state.proteinLabel,
+        waterLabel: state.waterLabel,
+        secondaryMacroRows: state.secondaryMacroRows,
+        journeyBeliefLine: state.journeyBeliefLine,
+        firstWeekMissions: state.firstWeekMissions,
+        coachMessage: state.coachMessage,
+        planStatus: state.planStatus
     )
-    .frame(width: 430, height: 932)
-    .background(OnboardingTheme.background)
-    .formaThemePreview()
 }
-
-#Preview("Large Dynamic Type") {
-    OnboardingSavePlanStepView(
-        requiresGoogleSignIn: true,
-        isBusy: false,
-        errorMessage: nil,
-        planRecap: OnboardingPreviewData.planRevealState,
-        onContinue: {},
-        onSkip: {},
-        onBack: {}
-    )
-    .background(OnboardingTheme.background)
-    .formaThemePreview()
-    .dynamicTypeSize(.accessibility2)
-}
+#endif

@@ -30,6 +30,28 @@ The local gateway (`Tools/LocalAIBackend/`) reads provider keys from the Mac `.e
 
 `ReleaseAIBackendConfiguration` supplies the production gateway URL. If unavailable, `UnavailableLLMClient` surfaces a user-visible error.
 
+**Production gateway (function base URL only — no `/v1/ai/...` suffix):**
+
+```text
+https://us-central1-fitness-coach-732fd.cloudfunctions.net/aiGateway
+```
+
+The iOS client appends paths such as `/v1/ai/classify-coach-intent`. Example full request URL:
+
+```text
+https://us-central1-fitness-coach-732fd.cloudfunctions.net/aiGateway/v1/ai/classify-coach-intent
+```
+
+**URL resolution** (`FormaEnvironment` → `ReleaseAIBackendConfiguration`):
+
+1. `FORMA_AI_BACKEND_URL` / `FITPILOT_AI_BACKEND_URL` in process environment (Xcode scheme — local Release runs only)
+2. `FORMA_AI_BACKEND_URL` baked into `Info.plist` from the Xcode user-defined build setting `$(FORMA_AI_BACKEND_URL)` (TestFlight / App Store)
+3. Localhost hosts are rejected in Release
+
+**HTTP timeouts:** `FormaAIBackendClient` uses **45s request / 90s resource** for gateway calls. Do not use short Release timeouts (e.g. 1.5s / 2.0s); real LLM latency requires this budget.
+
+**Security:** OpenAI and other provider keys live in Firebase Secret Manager only. Never bundle `OPENAI_API_KEY` (or any provider key) in the iOS app, `Info.plist`, or committed files.
+
 ### Auth
 
 `FormaAIBackendClient` attaches a Firebase ID token from `AuthManager.idToken()` when calling the gateway.
@@ -37,6 +59,10 @@ The local gateway (`Tools/LocalAIBackend/`) reads provider keys from the Mac `.e
 ### Pipeline tracing
 
 `FormaPipelineTracer` records in-memory diagnostics in DEBUG. Disk persistence remains disabled (`PipelineTracePersistence` stub).
+
+`FormaAIBackendClient` sends the active trace UUID in the **`X-Forma-Trace-Id`** HTTP header. Both the local gateway and Firebase `aiGateway` read that header and include `traceId` in structured logs so client pipeline traces can be correlated with gateway/OpenAI request logs.
+
+Legacy fallback: gateways also accept **`X-FitPilot-Trace-Id`** if the Forma header is absent.
 
 ---
 
@@ -54,9 +80,49 @@ Profile documents are owned by `Application/UseCases/ProfileBootstrapService.swi
 
 ## Firebase Functions (`functions/`)
 
-The repository includes a minimal Firebase Functions TypeScript scaffold (`functions/src/index.ts`). It is **not** the primary AI path for the iOS app today — the local/production HTTP gateway handles LLM proxying.
+Hosted HTTPS gateway for the same AI contract as `Tools/LocalAIBackend/`.
 
-When Functions are expanded, document new endpoints here and add contract tests alongside iOS integration tests.
+**Production URL (function base only):**
+
+```text
+https://us-central1-fitness-coach-732fd.cloudfunctions.net/aiGateway
+```
+
+The gateway verifies Firebase ID tokens by default. Set `FORMA_AI_REQUIRE_AUTH=0`
+only for temporary local/emulator testing.
+
+### Firebase AI gateway endpoints
+
+| Path | Purpose |
+|------|---------|
+| `/v1/ai/classify-coach-intent` | Cheap model Coach intent classification |
+| `/v1/ai/parse-command` | AI command parsing |
+| `/v1/ai/estimate-food` | Text or photo food estimate |
+| `/v1/ai/generate-meal-advice` | Meal, calorie, macro, and coaching text |
+| `/v1/ai/generate-daily-review` | Daily review narrative |
+| `/v1/ai/parse-workout` | Workout parsing |
+| `/v1/ai/parse-edit-delete` | Edit/delete intent parsing |
+| `/v1/ai/parse-multi-action` | Multi-action parsing |
+
+### Firebase setup
+
+```sh
+firebase login
+firebase use fitness-coach-732fd
+firebase functions:secrets:set OPENAI_API_KEY
+firebase deploy --only functions:aiGateway
+```
+
+Optional non-secret model settings: copy `functions/.env.example` → `functions/.env` before deploy, or use defaults.
+
+### Monitoring
+
+After deploy or incident:
+
+- **Firebase logs:** Firebase Console → Functions → `aiGateway` → Logs. Filter by `traceId` (matches iOS `X-Forma-Trace-Id`).
+- **OpenAI:** Dashboard → Usage / Billing for unexpected spikes or failed model calls.
+
+Contract tests (no live OpenAI): `cd functions && npm test`.
 
 ---
 
@@ -67,3 +133,5 @@ When Functions are expanded, document new endpoints here and add contract tests 
 | `FORMA_AI_BACKEND_URL` | Debug/release AI gateway base URL |
 | `FORMA_USE_MOCK_LLM` | Force `MockLLMClient` in DEBUG |
 | `FITPILOT_*` | Legacy aliases accepted via `FormaEnvironment` |
+| `OPENAI_API_KEY` | Firebase secret used by `aiGateway`, never shipped to iOS |
+| `FORMA_AI_REQUIRE_AUTH` | Firebase Functions setting; auth required unless set to `0` |

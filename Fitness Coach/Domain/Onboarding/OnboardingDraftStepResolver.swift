@@ -33,6 +33,8 @@ enum OnboardingDraftStepResolver {
         switch step {
         case .generatingPlan:
             return .review
+        case .weightLossPace where !formState.isPaceApplicable():
+            return flow.contains(.targetEncouragement) ? .targetEncouragement : .targetWeight
         default:
             break
         }
@@ -93,10 +95,14 @@ enum OnboardingDraftStepResolver {
         if flow.contains(.targetWeight), formState.validationMessage(for: .targetWeight) != nil {
             return .targetWeight
         }
+        if formState.isPaceApplicable(), flow.contains(.weightLossPace) {
+            return .weightLossPace
+        }
         if flow.contains(.targetEncouragement) {
             return .targetEncouragement
         }
-        return stepAfterGoalStage(in: flow) ?? restoredReviewOrRequired(formState: formState, flow: flow)
+        return stepAfterGoalStage(formState: formState, in: flow)
+            ?? restoredReviewOrRequired(formState: formState, flow: flow)
     }
 
     private static func restoredReviewOrRequired(
@@ -138,7 +144,10 @@ enum OnboardingDraftStepResolver {
         return nil
     }
 
-    private static func stepAfterGoalStage(in flow: [OnboardingStep]) -> OnboardingStep? {
+    private static func stepAfterGoalStage(
+        formState: OnboardingFormState,
+        in flow: [OnboardingStep]
+    ) -> OnboardingStep? {
         if let encouragementIndex = flow.firstIndex(of: .targetEncouragement) {
             let nextIndex = encouragementIndex + 1
             if nextIndex < flow.count {
@@ -146,9 +155,14 @@ enum OnboardingDraftStepResolver {
             }
         }
         if let targetIndex = flow.firstIndex(of: .targetWeight) {
-            let nextIndex = targetIndex + 1
-            if nextIndex < flow.count {
-                return flow[nextIndex]
+            var nextIndex = targetIndex + 1
+            while nextIndex < flow.count {
+                let candidate = flow[nextIndex]
+                if candidate == .weightLossPace, !formState.isPaceApplicable() {
+                    nextIndex += 1
+                    continue
+                }
+                return candidate
             }
         }
         return nil

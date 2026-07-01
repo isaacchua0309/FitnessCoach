@@ -10,6 +10,7 @@ import Foundation
 enum LLMClientError: Error, Equatable {
     case invalidURL
     case requestFailed(String)
+    case requestTimedOut
     case invalidStatusCode(Int)
     case decodingFailed(String)
     case missingConfiguration

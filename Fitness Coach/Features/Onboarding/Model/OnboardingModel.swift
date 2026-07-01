@@ -11,7 +11,6 @@ import SwiftUI
 
 enum OnboardingCompletionIntent: Equatable, Sendable {
     case signIn
-    case localOnly
 }
 
 @MainActor
@@ -133,7 +132,7 @@ final class OnboardingModel: ObservableObject {
             if let next = nextStep(after: currentStep) {
                 advance(to: next, completing: completedStep)
             }
-        case .heightWeight, .birthday, .targetWeight:
+        case .heightWeight, .birthday, .targetWeight, .weightLossPace:
             guard validateCurrentStep() else { return }
             if let next = nextStep(after: currentStep) {
                 advance(to: next, completing: completedStep)
@@ -395,19 +394,28 @@ final class OnboardingModel: ObservableObject {
         onCompletion()
     }
 
-    func beginSignInForCompletion() {
-        viewState = .savingProfile
-        errorMessage = nil
+    func logSavePlanSignInStarted() {
+        guard currentStep == .savePlan else { return }
         analyticsTracker.logSignInStarted()
     }
 
-    func handleSignInCompletionFailure(message: String? = nil, wasCancelled: Bool = false) {
+    func handleGoogleSignInCancelled() {
         guard currentStep == .savePlan else { return }
-        viewState = .awaitingSignIn
-        _ = message
+        errorMessage = nil
+        analyticsTracker.logSignInCancelled()
+    }
+
+    func handleGoogleSignInFailed() {
+        guard currentStep == .savePlan else { return }
         errorMessage = FormaProductCopy.Onboarding.V2.SavePlan.signInRetryHeadline
+    }
+
+    func handleSignInCompletionFailure(message: String? = nil, wasCancelled: Bool = false) {
+        _ = message
         if wasCancelled {
-            analyticsTracker.logSignInCancelled()
+            handleGoogleSignInCancelled()
+        } else {
+            handleGoogleSignInFailed()
         }
     }
 
@@ -420,23 +428,6 @@ final class OnboardingModel: ObservableObject {
     func finalizeAfterSuccessfulSignIn() {
         analyticsTracker.logSignInCompleted()
         recordOnboardingFinished(completionPath: "sign_in")
-    }
-
-    func skipProtectProgressSignIn() {
-        if !(hasCommittedLocalProfile || hasLocalProfile) {
-            commitLocalProfileForSavePlan()
-            guard errorMessage == nil else { return }
-        }
-
-        recordStepCompleted(for: .savePlan)
-        pendingCompletionIntent = .localOnly
-        viewState = .completing
-        errorMessage = nil
-        onCompletion()
-    }
-
-    func finalizeAfterLocalSkip() {
-        recordOnboardingFinished(completionPath: "local_only")
     }
 
     func finalizeAfterRestoredExistingPlan() {
@@ -511,11 +502,17 @@ final class OnboardingModel: ObservableObject {
     }
 
     private func nextStep(after step: OnboardingStep) -> OnboardingStep? {
-        OnboardingStepPolicy.next(after: step)
+        if step == .targetWeight, !formState.isPaceApplicable() {
+            return .targetEncouragement
+        }
+        return OnboardingStepPolicy.next(after: step)
     }
 
     private func backTarget(for step: OnboardingStep) -> OnboardingStep? {
-        OnboardingStepPolicy.back(from: step, notBefore: flowFloor)
+        if step == .targetEncouragement, !formState.isPaceApplicable() {
+            return .targetWeight
+        }
+        return OnboardingStepPolicy.back(from: step, notBefore: flowFloor)
     }
 
     private func advance(

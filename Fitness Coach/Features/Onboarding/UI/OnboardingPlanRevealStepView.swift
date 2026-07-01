@@ -83,48 +83,48 @@ struct OnboardingPlanRevealStepView: View {
 
     private func adaptiveRevealContent(_ state: OnboardingPlanRevealState) -> some View {
         GeometryReader { geometry in
-            let profile = OnboardingPlanRevealLayoutProfile.resolve(
+            let baseIsCompactHeight = OnboardingPlanRevealLayoutProfile.isCompactHeight(
+                geometry.size.height
+            )
+            let isCompactWidth = OnboardingPlanRevealLayoutProfile.isCompactWidth(geometry.size.width)
+            let profile = resolvedLayoutProfile(
                 contentHeight: geometry.size.height,
-                contentWidth: geometry.size.width,
+                contentWidth: geometry.size.width
+            )
+            let stacksActionCards = OnboardingPlanRevealLayoutProfile.shouldStackActionCards(
+                width: geometry.size.width,
+                height: geometry.size.height,
                 dynamicTypeSize: dynamicTypeSize
             )
 
-            VStack(spacing: 0) {
-                celebrationSection(profile: profile)
-                    .onboardingPlanRevealZone(.celebration)
-
-                OnboardingPlanRevealGoalHeroCard(
-                    badge: state.goalHeroSectionTitle,
-                    headline: state.goalHeroHeadline,
-                    strategyLabel: state.strategyLabel,
-                    direction: state.goalDirection,
-                    showsSuccessHandoff: showsSuccessHandoff
+            ViewThatFits(in: .vertical) {
+                planRevealColumn(
+                    state,
+                    profile: profile,
+                    density: .standard,
+                    isCompactHeight: baseIsCompactHeight,
+                    isCompactWidth: isCompactWidth,
+                    stacksActionCards: stacksActionCards
                 )
-                .onboardingPlanRevealZone(.goalHero)
-
-                OnboardingPlanRevealJourneyCard(
-                    sectionTitle: cardCopy.journeyTitle,
-                    progressLabel: state.goalProgressLabel,
-                    paceLabel: state.paceLabel,
-                    estimatedWeeksLabel: state.estimatedWeeksLabel,
-                    beliefLine: state.journeyBeliefLine,
-                    planStatus: state.planStatus.style == .caution ? state.planStatus : nil
+                planRevealColumn(
+                    state,
+                    profile: profile,
+                    density: .compact,
+                    isCompactHeight: true,
+                    isCompactWidth: isCompactWidth,
+                    stacksActionCards: true
                 )
-                .onboardingPlanRevealZone(.journey)
-
-                actionCardsSection(state, profile: profile)
-                    .onboardingPlanRevealZone(.actionCards)
-
-                OnboardingPlanRevealCoachCard(message: state.coachMessage)
-                    .onboardingPlanRevealZone(.coach)
+                planRevealColumn(
+                    state,
+                    profile: .compact,
+                    density: .tight,
+                    isCompactHeight: true,
+                    isCompactWidth: true,
+                    stacksActionCards: true
+                )
             }
-            .environment(\.onboardingPlanRevealLayoutProfile, profile)
-            .environment(\.onboardingPlanRevealContentHeight, geometry.size.height)
-            .environment(\.onboardingPlanRevealZoneWeights, profile.zoneWeights)
-            .environment(\.onboardingPlanRevealVisibleStages, visibleStages)
-            .environment(\.onboardingPlanRevealGoalSweepActive, goalSweepActive)
-            .environment(\.onboardingPlanRevealUsesSuccessHandoff, showsSuccessHandoff)
-            .environment(\.onboardingPlanRevealUsesCompactLayout, profile == .compact)
+            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
+            .environment(\.onboardingPlanRevealFixedViewport, true)
             .accessibilityElement(children: .contain)
             .accessibilityLabel(state.accessibilitySummary)
         }
@@ -132,14 +132,97 @@ struct OnboardingPlanRevealStepView: View {
         .padding(.top, OnboardingLayout.progressHeaderTop)
     }
 
-    private func celebrationSection(profile: OnboardingPlanRevealLayoutProfile) -> some View {
-        VStack(spacing: profile == .expansive ? FormaTokens.Spacing.sm : FormaTokens.Spacing.xs) {
+    private func planRevealColumn(
+        _ state: OnboardingPlanRevealState,
+        profile: OnboardingPlanRevealLayoutProfile,
+        density: OnboardingPlanRevealContentDensity,
+        isCompactHeight: Bool,
+        isCompactWidth: Bool,
+        stacksActionCards: Bool
+    ) -> some View {
+        let sectionSpacing = profile.planRevealSectionSpacing(isCompactHeight: isCompactHeight)
+        let usesTightCompression = density == .tight
+
+        return VStack(spacing: sectionSpacing) {
+            celebrationSection(
+                profile: profile,
+                isCompactHeight: isCompactHeight,
+                usesTightCompression: usesTightCompression
+            )
+            .layoutPriority(3)
+
+            OnboardingPlanRevealGoalHeroCard(
+                badge: state.goalHeroSectionTitle,
+                headline: state.goalHeroHeadline,
+                strategyLabel: state.strategyLabel,
+                direction: state.goalDirection,
+                showsSuccessHandoff: showsSuccessHandoff
+            )
+            .layoutPriority(2)
+
+            OnboardingPlanRevealJourneyCard(
+                sectionTitle: cardCopy.journeyTitle,
+                progressLabel: state.goalProgressLabel,
+                paceLabel: state.paceLabel,
+                estimatedWeeksLabel: state.estimatedWeeksLabel,
+                beliefLine: state.journeyBeliefLine,
+                planStatus: state.planStatus.style == .caution ? state.planStatus : nil
+            )
+            .layoutPriority(2)
+
+            actionCardsSection(
+                state,
+                stacksVertically: stacksActionCards,
+                spacing: sectionSpacing
+            )
+            .layoutPriority(1)
+
+            Spacer(minLength: 0)
+                .layoutPriority(0)
+
+            OnboardingPlanRevealCoachCard(message: state.coachMessage)
+                .layoutPriority(3)
+        }
+        .environment(\.onboardingPlanRevealLayoutProfile, profile)
+        .environment(\.onboardingPlanRevealIsCompactHeight, isCompactHeight)
+        .environment(\.onboardingPlanRevealIsCompactWidth, isCompactWidth)
+        .environment(\.onboardingPlanRevealActionCardsAreSideBySide, !stacksActionCards)
+        .environment(\.onboardingPlanRevealContentDensity, density)
+        .environment(\.onboardingPlanRevealVisibleStages, visibleStages)
+        .environment(\.onboardingPlanRevealGoalSweepActive, goalSweepActive)
+        .environment(\.onboardingPlanRevealUsesSuccessHandoff, showsSuccessHandoff)
+        .environment(\.onboardingPlanRevealUsesCompactLayout, profile == .compact || isCompactHeight)
+    }
+
+    private func resolvedLayoutProfile(
+        contentHeight: CGFloat,
+        contentWidth: CGFloat
+    ) -> OnboardingPlanRevealLayoutProfile {
+        let base = OnboardingPlanRevealLayoutProfile.resolve(
+            contentHeight: contentHeight,
+            contentWidth: contentWidth,
+            dynamicTypeSize: dynamicTypeSize
+        )
+        switch base {
+        case .expansive:
+            return .regular
+        case .compact, .regular:
+            return base
+        }
+    }
+
+    private func celebrationSection(
+        profile: OnboardingPlanRevealLayoutProfile,
+        isCompactHeight: Bool,
+        usesTightCompression: Bool = false
+    ) -> some View {
+        VStack(spacing: isCompactHeight ? FormaTokens.Spacing.xs : FormaTokens.Spacing.sm) {
             Text(copy.title)
                 .font(profile.celebrationTitleFont)
                 .foregroundStyle(OnboardingTheme.primaryText)
                 .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(usesTightCompression ? 1 : 2)
+                .minimumScaleFactor(0.75)
                 .frame(maxWidth: .infinity)
                 .accessibilityAddTraits(.isHeader)
                 .onboardingPlanRevealEntrance(.celebrationTitle)
@@ -148,8 +231,8 @@ struct OnboardingPlanRevealStepView: View {
                 .font(profile.celebrationSubtitleFont)
                 .foregroundStyle(OnboardingTheme.secondaryText)
                 .multilineTextAlignment(.center)
-                .lineLimit(profile == .compact ? 2 : 3)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
                 .frame(maxWidth: .infinity)
                 .onboardingPlanRevealEntrance(.celebrationTitle)
         }
@@ -159,7 +242,8 @@ struct OnboardingPlanRevealStepView: View {
     @ViewBuilder
     private func actionCardsSection(
         _ state: OnboardingPlanRevealState,
-        profile: OnboardingPlanRevealLayoutProfile
+        stacksVertically: Bool,
+        spacing: CGFloat
     ) -> some View {
         let firstWeek = OnboardingPlanRevealFirstWeekCard(
             sectionTitle: cardCopy.firstWeekTitle,
@@ -174,17 +258,17 @@ struct OnboardingPlanRevealStepView: View {
             secondaryMacroRows: state.secondaryMacroRows
         )
 
-        if profile.stacksActionCards {
-            VStack(spacing: profile.sectionSpacing) {
+        if stacksVertically {
+            VStack(spacing: spacing) {
                 firstWeek
                 dailyFuel
             }
         } else {
-            HStack(alignment: .top, spacing: profile.sectionSpacing) {
+            HStack(alignment: .top, spacing: spacing) {
                 firstWeek
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 dailyFuel
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
             }
         }
     }
@@ -263,23 +347,23 @@ struct OnboardingPlanRevealStepView: View {
 
 #Preview("iPhone SE class") {
     if let state = OnboardingPreviewData.planRevealState {
-        OnboardingPlanRevealStepView(
+        OnboardingPlanRevealProductionPreviewShell(
             revealState: state,
             plan: OnboardingPreviewData.generatedPlan
         )
-        .frame(width: 375, height: 480)
+        .frame(width: 375, height: 667)
         .background(OnboardingTheme.background)
         .formaThemePreview()
     }
 }
 
-#Preview("Pro Max class") {
+#Preview("iPhone 15 Pro Max class") {
     if let state = OnboardingPreviewData.planRevealState {
-        OnboardingPlanRevealStepView(
+        OnboardingPlanRevealProductionPreviewShell(
             revealState: state,
             plan: OnboardingPreviewData.generatedPlan
         )
-        .frame(width: 430, height: 760)
+        .frame(width: 430, height: 932)
         .background(OnboardingTheme.background)
         .formaThemePreview()
     }
@@ -305,10 +389,11 @@ struct OnboardingPlanRevealStepView: View {
 
 #Preview("Large Dynamic Type") {
     if let state = OnboardingPreviewData.planRevealState {
-        OnboardingPlanRevealStepView(
+        OnboardingPlanRevealProductionPreviewShell(
             revealState: state,
             plan: OnboardingPreviewData.generatedPlan
         )
+        .frame(width: 393, height: 852)
         .background(OnboardingTheme.background)
         .formaThemePreview()
         .dynamicTypeSize(.accessibility2)

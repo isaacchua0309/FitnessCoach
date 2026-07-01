@@ -77,6 +77,33 @@ final class AppRouteResolverGuardrailTests: XCTestCase {
         )
     }
 
+    func testSignedOutNeverResolvesMainShellRoute() {
+        XCTAssertNotEqual(
+            AppRouteResolver.resolve(
+                authState: .signedOut,
+                rootState: .main,
+                hasLocalProfile: true
+            ),
+            .main
+        )
+        XCTAssertNotEqual(
+            AppRouteResolver.resolve(
+                authState: .signingIn,
+                rootState: .main,
+                hasLocalProfile: true
+            ),
+            .main
+        )
+        XCTAssertNotEqual(
+            AppRouteResolver.resolve(
+                authState: .failed(AuthSignInUserMessage.signInFailureMessage),
+                rootState: .main,
+                hasLocalProfile: true
+            ),
+            .main
+        )
+    }
+
     func testOnboardingShellRouteMapsToLocalOnboardingAppShellRoute() {
         XCTAssertEqual(
             AppShellRoute(onboardingShellRoute: .onboardingStart),

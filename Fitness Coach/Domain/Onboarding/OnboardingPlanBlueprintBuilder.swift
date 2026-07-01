@@ -53,6 +53,8 @@ enum OnboardingPlanBlueprintSignalAccent: String, Equatable, Sendable {
     case nutrition
     case lifestyle
     case training
+    case pace
+    case deficit
 }
 
 struct OnboardingPlanBlueprintState: Equatable, Sendable {
@@ -294,6 +296,8 @@ enum OnboardingPlanBlueprintBuilder {
             && hasCurrentWeight
             && hasLifestyle
         let trainingDefaults = ActivityTrainingDefaultsResolver().defaults(for: formState.activityLevel)
+        let pacePreview = formState.pacePreview(referenceDate: referenceDate)
+        let isCutGoal = formState.isPaceApplicable()
 
         let currentWeightDetail = formState.parsedCurrentWeightKg.map {
             OnboardingGoalWeightBounds.weightSummary(valueKg: $0, unitSystem: formState.unitSystem)
@@ -314,7 +318,7 @@ enum OnboardingPlanBlueprintBuilder {
             lifestyleDetail = copy.pendingDetail
         }
 
-        return [
+        var signals: [OnboardingPlanBlueprintGeneratedSignal] = [
             OnboardingPlanBlueprintGeneratedSignal(
                 id: "activity",
                 label: copy.activityLevel,
@@ -364,6 +368,41 @@ enum OnboardingPlanBlueprintBuilder {
                 isIncluded: hasCurrentWeight && hasGoalWeight
             )
         ]
+
+        if isCutGoal {
+            signals.insert(contentsOf: [
+                OnboardingPlanBlueprintGeneratedSignal(
+                    id: "pace",
+                    label: "Pace",
+                    detail: formState.paceDisplayLabel() ?? OnboardingFormatter.paceChoiceTitle(
+                        formState.weightLossPaceChoice
+                    ),
+                    icon: "speedometer",
+                    accent: .pace,
+                    isIncluded: true
+                ),
+                OnboardingPlanBlueprintGeneratedSignal(
+                    id: "expectedLoss",
+                    label: "Expected loss",
+                    detail: pacePreview.weeklyLossKg
+                        .flatMap { OnboardingFormatter.weeklyLoss($0).map { "~\($0)" } }
+                        ?? copy.pendingDetail,
+                    icon: "chart.line.downtrend.xyaxis",
+                    accent: .weight,
+                    isIncluded: pacePreview.weeklyLossKg != nil
+                ),
+                OnboardingPlanBlueprintGeneratedSignal(
+                    id: "dailyDeficit",
+                    label: "Daily deficit",
+                    detail: pacePreview.dailyDeficitKcal.map { "~\($0) kcal/day" } ?? copy.pendingDetail,
+                    icon: "flame.fill",
+                    accent: .deficit,
+                    isIncluded: pacePreview.dailyDeficitKcal != nil
+                )
+            ], at: 0)
+        }
+
+        return signals
     }
 
     private static func accessibilityLabel(

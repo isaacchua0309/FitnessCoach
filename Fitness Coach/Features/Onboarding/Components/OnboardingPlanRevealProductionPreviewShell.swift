@@ -20,6 +20,7 @@ struct OnboardingPlanRevealProductionPreviewShell: View {
                 showsSuccessHandoff: true,
                 revealsEntranceImmediately: showsAllEntranceStages
             )
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
             OnboardingBottomBar(
                 currentStep: .planReveal,
@@ -36,28 +37,59 @@ struct OnboardingPlanRevealProductionPreviewShell: View {
 }
 
 #if DEBUG
-#Preview("iPhone SE — Cut") {
-    if let state = OnboardingPreviewData.planRevealState {
-        OnboardingPlanRevealProductionPreviewShell(
-            revealState: state,
-            plan: OnboardingPreviewData.generatedPlan
-        )
-        .frame(width: 375, height: 667)
-        .background(OnboardingTheme.background)
-        .formaThemePreview()
+private func planRevealProductionPreview(
+    width: CGFloat,
+    height: CGFloat,
+    dynamicTypeSize: DynamicTypeSize? = nil
+) -> some View {
+    Group {
+        if let state = OnboardingPreviewData.planRevealState {
+            OnboardingPlanRevealProductionPreviewShell(
+                revealState: state,
+                plan: OnboardingPreviewData.generatedPlan
+            )
+            .frame(width: width, height: height)
+            .background(OnboardingTheme.background)
+            .formaThemePreview()
+            .modifier(OptionalDynamicTypeSizeModifier(size: dynamicTypeSize))
+        }
     }
 }
 
-#Preview("iPhone Pro Max — Cut") {
-    if let state = OnboardingPreviewData.planRevealState {
-        OnboardingPlanRevealProductionPreviewShell(
-            revealState: state,
-            plan: OnboardingPreviewData.generatedPlan
-        )
-        .frame(width: 430, height: 932)
-        .background(OnboardingTheme.background)
-        .formaThemePreview()
+private struct OptionalDynamicTypeSizeModifier: ViewModifier {
+    let size: DynamicTypeSize?
+
+    func body(content: Content) -> some View {
+        if let size {
+            content.dynamicTypeSize(size)
+        } else {
+            content
+        }
     }
+}
+
+#Preview("iPhone SE") {
+    planRevealProductionPreview(width: 375, height: 667)
+}
+
+#Preview("iPhone 13 mini") {
+    planRevealProductionPreview(width: 375, height: 812)
+}
+
+#Preview("iPhone 15") {
+    planRevealProductionPreview(width: 393, height: 852)
+}
+
+#Preview("iPhone 15 Pro") {
+    planRevealProductionPreview(width: 393, height: 852)
+}
+
+#Preview("iPhone 15 Pro Max") {
+    planRevealProductionPreview(width: 430, height: 932)
+}
+
+#Preview("Large text accessibility") {
+    planRevealProductionPreview(width: 393, height: 852, dynamicTypeSize: .accessibility2)
 }
 
 #Preview("iPhone SE — Maintain") {

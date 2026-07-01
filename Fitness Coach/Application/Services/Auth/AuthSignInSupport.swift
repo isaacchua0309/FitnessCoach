@@ -26,15 +26,85 @@ enum AuthSignInUserMessage {
     static let signInFailure = signInFailureMessage
 }
 
+// MARK: - Google sign-in attempt state machine
+
+/// Terminal and in-flight outcomes returned by `AuthManager.signInWithGoogle()`.
+enum GoogleSignInAttemptOutcome: Equatable, Sendable {
+    case success(uid: String)
+    case cancelled
+    case failed(message: String)
+}
+
+/// UI-facing Google sign-in phases composed from auth session + in-flight flag.
+enum GoogleSignInAttemptState: Equatable, Sendable {
+    case idle
+    case signingIn
+    case authenticated(uid: String)
+    case cancelled
+    case failed(message: String)
+
+    static func resolve(
+        authState: AuthState,
+        isPerformingGoogleSignIn: Bool
+    ) -> GoogleSignInAttemptState {
+        if isPerformingGoogleSignIn {
+            return .signingIn
+        }
+
+        switch authState {
+        case .signedIn(let uid):
+            return .authenticated(uid: uid)
+        case .failed(let message):
+            return .failed(message: message)
+        case .signedOut, .unknown:
+            return .idle
+        case .signingIn:
+            // Stale shell state — treat as idle so buttons are never permanently disabled.
+            return .idle
+        }
+    }
+
+    var isButtonLoading: Bool {
+        self == .signingIn
+    }
+
+    var isButtonDisabled: Bool {
+        switch self {
+        case .signingIn, .authenticated:
+            return true
+        case .idle, .cancelled, .failed:
+            return false
+        }
+    }
+}
+
 enum AuthSignInErrorClassifier {
 
     static let googleSignInErrorDomain = "com.google.GIDSignIn"
     static let canceledErrorCode = -5
+    static let webAuthenticationSessionDomain =
+        "com.apple.AuthenticationServices.WebAuthenticationSession"
+    static let webAuthenticationSessionCanceledCode = 1
 
     static func isCancellation(_ error: Error) -> Bool {
         let nsError = error as NSError
-        return nsError.domain == googleSignInErrorDomain
-            && nsError.code == canceledErrorCode
+
+        if nsError.domain == googleSignInErrorDomain,
+           nsError.code == canceledErrorCode {
+            return true
+        }
+
+        if nsError.domain == webAuthenticationSessionDomain,
+           nsError.code == webAuthenticationSessionCanceledCode {
+            return true
+        }
+
+        if nsError.domain == NSURLErrorDomain,
+           nsError.code == URLError.Code.cancelled.rawValue {
+            return true
+        }
+
+        return false
     }
 
     static func userFacingSignInFailureMessage(for error: Error) -> String {

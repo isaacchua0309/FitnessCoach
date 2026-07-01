@@ -133,8 +133,9 @@ final class OnboardingModelAnalyticsTests: XCTestCase {
         await model.flushPendingGenerationForTesting()
         model.prepareForSavePlan()
         XCTAssertEqual(model.currentStep, .savePlan)
+        model.logSavePlanSignInStarted()
 
-        model.handleSignInCompletionFailure(wasCancelled: true)
+        model.handleGoogleSignInCancelled()
 
         XCTAssertTrue(analytics.contains(.signInCancelled))
     }

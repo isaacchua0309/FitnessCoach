@@ -57,6 +57,20 @@ final class OnboardingTargetWeightTests: XCTestCase {
         )
     }
 
+    func testApplyDefaultsPreservesExistingPaceChoiceWhenGoalAlreadySet() {
+        var state = sampleForm()
+        OnboardingTargetWeightValues.setGoalFromDeltaKg(-5, in: &state)
+        state.selectPaceChoice(.advanced)
+        state.advancedPaceDraft = WeightLossAdvancedPaceDraft(period: .weekly, amountText: "0.6")
+
+        OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &state)
+
+        XCTAssertEqual(state.weightLossPaceChoice, .advanced)
+        XCTAssertEqual(state.advancedPaceDraft.period, .weekly)
+        XCTAssertEqual(state.advancedPaceDraft.amountText, "0.6")
+        XCTAssertEqual(state.parsedGoalWeightKg ?? 0, 67, accuracy: 0.01)
+    }
+
     // MARK: - 2. Draft restore
 
     func testDraftRestorePreservesExistingTargetAndLossCopy() {
@@ -340,9 +354,22 @@ final class OnboardingTargetWeightTests: XCTestCase {
         XCTAssertEqual(restored, .targetWeight)
     }
 
-    func testDraftRestoreSkipsToTargetEncouragementWhenGoalValid() {
+    func testDraftRestoreRoutesToWeightLossPaceWhenCutGoalValid() {
         var formState = sampleForm()
         OnboardingTargetWeightValues.setGoalFromDeltaKg(-4, in: &formState)
+
+        let restored = OnboardingDraftStepResolver.restoredStep(
+            rawValue: OnboardingLegacyPersistedStep.goal.rawValue,
+            formState: formState,
+            flow: OnboardingStep.flow
+        )
+
+        XCTAssertEqual(restored, .weightLossPace)
+    }
+
+    func testDraftRestoreSkipsToTargetEncouragementWhenMaintainGoalValid() {
+        var formState = sampleForm()
+        OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &formState)
 
         let restored = OnboardingDraftStepResolver.restoredStep(
             rawValue: OnboardingLegacyPersistedStep.goal.rawValue,
@@ -353,10 +380,36 @@ final class OnboardingTargetWeightTests: XCTestCase {
         XCTAssertEqual(restored, .targetEncouragement)
     }
 
-    func testTargetWeightRoutesToTargetEncouragement() {
+    func testCanonicalWeightLossPaceRestoreRedirectsWhenPaceNotApplicable() {
+        var formState = sampleForm()
+        OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &formState)
+
+        let restored = OnboardingDraftStepResolver.restoredStep(
+            rawValue: OnboardingStep.weightLossPace.rawValue,
+            formState: formState,
+            flow: OnboardingStep.flow
+        )
+
+        XCTAssertEqual(restored, .targetEncouragement)
+    }
+
+    func testCanonicalWeightLossPaceRestoreKeepsStepWhenCutGoal() {
+        var formState = sampleForm()
+        OnboardingTargetWeightValues.setGoalFromDeltaKg(-4, in: &formState)
+
+        let restored = OnboardingDraftStepResolver.restoredStep(
+            rawValue: OnboardingStep.weightLossPace.rawValue,
+            formState: formState,
+            flow: OnboardingStep.flow
+        )
+
+        XCTAssertEqual(restored, .weightLossPace)
+    }
+
+    func testTargetWeightFlowNextIsWeightLossPace() {
         XCTAssertEqual(
             OnboardingStep.targetWeight.next(in: OnboardingStep.flow),
-            .targetEncouragement
+            .weightLossPace
         )
     }
 

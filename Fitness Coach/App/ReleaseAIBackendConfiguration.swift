@@ -20,7 +20,7 @@ enum ReleaseAIBackendConfiguration {
     static func releaseBackendURL(
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) -> URL? {
-        guard let raw = FormaEnvironment.aiBackendURLString()?
+        guard let raw = FormaEnvironment.aiBackendURLString(environment: environment)?
             .trimmingCharacters(in: .whitespacesAndNewlines),
             !raw.isEmpty else {
             return nil
@@ -51,7 +51,7 @@ enum ReleaseAIBackendConfiguration {
     static func unavailableReason(
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) -> UnavailableLLMReason {
-        guard let raw = FormaEnvironment.aiBackendURLString()?
+        guard let raw = FormaEnvironment.aiBackendURLString(environment: environment)?
             .trimmingCharacters(in: .whitespacesAndNewlines),
             !raw.isEmpty,
             let url = URL(string: raw) else {

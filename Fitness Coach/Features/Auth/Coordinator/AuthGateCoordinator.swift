@@ -39,6 +39,7 @@ final class AuthGateCoordinator: ObservableObject {
     @Published var suppressSignOutEntrySourceAnnotation = false
     @Published var lastExistingUserResolutionResult: ExistingUserSignInResolutionResult?
 
+    private var loggedAuthGatePhase: AuthGateLoggedPhase?
     private var cancellables = Set<AnyCancellable>()
     private var onboardingModelCancellable: AnyCancellable?
 
@@ -48,6 +49,10 @@ final class AuthGateCoordinator: ObservableObject {
         self.rootModel = container.makeRootModel()
 
         rootModel.objectWillChange
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        authManager.objectWillChange
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
     }
@@ -126,7 +131,8 @@ final class AuthGateCoordinator: ObservableObject {
         existingUserSignInSessionActive = true
         logExistingUserSignIn(.existingSignInStarted)
         Task {
-            await authManager.signInWithGoogle()
+            let outcome = await authManager.signInWithGoogle()
+            applyExistingUserGoogleSignInOutcome(outcome)
         }
     }
 
@@ -233,9 +239,29 @@ final class AuthGateCoordinator: ObservableObject {
     }
 
     func signOutFromAccountMismatch() {
+        performUserInitiatedSignOut(source: "account_profile_mismatch")
+    }
+
+    /// Account → Log out. Resets root shell state before Firebase sign-out so routing never
+    /// stays on the authenticated tab stack for a frame.
+    func signOutFromAccount() {
+        performUserInitiatedSignOut(source: "account_settings")
+    }
+
+    private func performUserInitiatedSignOut(source: String) {
         container.publicEntrySessionStore.markUserInitiatedLogout()
-        prepareAuthenticatedSignOut(source: "account_profile_mismatch")
+        prepareAuthenticatedSignOut(source: source)
         authManager.signOut()
+    }
+
+    /// Clears in-flight authenticated UI and session-scoped onboarding hints (not local profile).
+    private func clearAuthenticatedSessionPresentationState() {
+        isResolvingAccountMismatch = false
+        isResolvingProfileConflict = false
+        showUseDeviceProfileConfirmation = false
+        showUseDevicePlanOverwriteConfirmation = false
+        lastExistingUserResolutionResult = nil
+        container.onboardingCoachingContextStore.clear()
     }
 
     func retryAccountMismatchOrOnboardingCloudCheck() {
@@ -255,6 +281,13 @@ final class AuthGateCoordinator: ObservableObject {
     /// `LaunchLoadingView` and never reach the views whose `onAppear` used to create the model.
     func bootstrapOnboardingIfNeeded() {
         let signedIn = AppRouteResolver.isSignedIn(authManager.authState)
+
+        // After explicit sign-out, stay on welcome until the user chooses Create My Plan.
+        if !signedIn,
+           container.publicEntrySessionStore.suppressAutomaticPublicEntryResume,
+           publicEntryDestination == .welcome {
+            return
+        }
 
         let hasLocalProfile = container.profileBootstrapService.hasLocalProfile()
         let awaitingSignInHandoff = container.profileBootstrapService.localProfileAwaitingSignIn()
@@ -312,11 +345,6 @@ final class AuthGateCoordinator: ObservableObject {
     }
 
     func handleOnboardingCompletionRequest() {
-        if onboardingModel?.pendingCompletionIntent == .localOnly {
-            finishOnboardingAfterLocalSkip()
-            return
-        }
-
         if AppRouteResolver.isSignedIn(authManager.authState) {
             guard let uid = authManager.currentUID else {
                 finishOnboardingLocally()
@@ -327,9 +355,55 @@ final class AuthGateCoordinator: ObservableObject {
         }
 
         pendingSignInForOnboardingCompletion = true
-        onboardingModel?.beginSignInForCompletion()
+        onboardingModel?.logSavePlanSignInStarted()
         Task {
-            await authManager.signInWithGoogle()
+            let outcome = await authManager.signInWithGoogle()
+            applyOnboardingGoogleSignInOutcome(outcome)
+        }
+    }
+
+    func applyOnboardingGoogleSignInOutcome(_ outcome: GoogleSignInAttemptOutcome) {
+        switch outcome {
+        case .success:
+            return
+        case .cancelled:
+            guard pendingSignInForOnboardingCompletion else { return }
+            pendingSignInForOnboardingCompletion = false
+            conflictCloudDocument = nil
+            isResolvingProfileConflict = false
+            onboardingModel?.handleGoogleSignInCancelled()
+            authManager.clearTransientAuthState()
+        case .failed:
+            guard pendingSignInForOnboardingCompletion else { return }
+            pendingSignInForOnboardingCompletion = false
+            conflictCloudDocument = nil
+            isResolvingProfileConflict = false
+            onboardingModel?.handleGoogleSignInFailed()
+            authManager.clearTransientAuthState()
+        }
+    }
+
+    func applyExistingUserGoogleSignInOutcome(_ outcome: GoogleSignInAttemptOutcome) {
+        switch outcome {
+        case .success:
+            return
+        case .cancelled:
+            guard existingUserSignInSessionActive || pendingExistingUserSignIn else { return }
+            existingUserSignInSessionActive = false
+            pendingExistingUserSignIn = false
+            existingUserSignInError = nil
+            authManager.clearTransientAuthState()
+        case .failed:
+            guard existingUserSignInSessionActive || pendingExistingUserSignIn else { return }
+            let failureKind: ExistingUserSignInFailureKind
+            if case .failed(let message) = authManager.authState,
+               message == AuthSignInUserMessage.signInFailureMessage {
+                failureKind = .networkFailed
+            } else {
+                failureKind = .authFailed
+            }
+            completeExistingUserSignInFailure(failureKind)
+            authManager.clearTransientAuthState()
         }
     }
 
@@ -362,7 +436,6 @@ final class AuthGateCoordinator: ObservableObject {
     }
 
     func finishOnboardingCompletionAfterSuccessfulSync() {
-        OnboardingLocalCompletionMarker.clear()
         onboardingModel?.markSignInSucceededForHandoff()
 
         Task { @MainActor in
@@ -472,14 +545,6 @@ final class AuthGateCoordinator: ObservableObject {
     func retryOnboardingCompletionCloudCheck() {
         guard let uid = authManager.currentUID else { return }
         Task { await resolveOnboardingCompletionAfterSignIn(uid: uid) }
-    }
-
-    func finishOnboardingAfterLocalSkip() {
-        OnboardingLocalCompletionMarker.markAcknowledged()
-        onboardingModel?.finalizeAfterLocalSkip()
-        clearOnboardingCompletionState()
-        awaitingCloudSync = false
-        rootModel.didCompleteOnboarding()
     }
 
     func finishOnboardingLocally() {
@@ -611,25 +676,37 @@ final class AuthGateCoordinator: ObservableObject {
     ) {
         if pendingExistingUserSignIn || existingUserSignInSessionActive,
            didSignInAttemptFail(from: previous, to: state) {
-            if let failureKind = ExistingUserSignInPolicy.failureKind(from: previous, to: state) {
+            if case .signedOut = state {
+                existingUserSignInSessionActive = false
+                pendingExistingUserSignIn = false
+                existingUserSignInError = nil
+                authManager.clearTransientAuthState()
+            } else if let failureKind = ExistingUserSignInPolicy.failureKind(from: previous, to: state) {
                 completeExistingUserSignInFailure(failureKind)
+                authManager.clearTransientAuthState()
             }
         }
 
         if pendingSignInForOnboardingCompletion, didSignInAttemptFail(from: previous, to: state) {
-            pendingSignInForOnboardingCompletion = false
-            conflictCloudDocument = nil
-            isResolvingProfileConflict = false
             let wasCancelled: Bool
             if case .signedOut = state {
                 wasCancelled = true
             } else {
                 wasCancelled = false
             }
-            onboardingModel?.handleSignInCompletionFailure(wasCancelled: wasCancelled)
+            if wasCancelled {
+                onboardingModel?.handleGoogleSignInCancelled()
+            } else {
+                onboardingModel?.handleGoogleSignInFailed()
+            }
+            pendingSignInForOnboardingCompletion = false
+            conflictCloudDocument = nil
+            isResolvingProfileConflict = false
+            authManager.clearTransientAuthState()
         }
 
         if wasSignedIn {
+            clearAuthenticatedSessionPresentationState()
             onboardingModel = nil
             pendingExistingUserSignIn = false
             existingUserSignInSessionActive = false
@@ -639,6 +716,8 @@ final class AuthGateCoordinator: ObservableObject {
             pendingUploadFailureContext = nil
             isRetryingCloudUpload = false
             retryFromAccountMismatch = false
+            awaitingCloudSync = false
+            signedInSessionID = UUID()
             container.cloudUploadFailureNotifier.clear()
             AuthLogoutPolicy.clearTransientSessionMetadata(
                 cloudSyncStore: container.profileCloudSyncStore
@@ -674,6 +753,10 @@ final class AuthGateCoordinator: ObservableObject {
             publicEntryDestination = resumedDestination
             rootModel.resolveLocalProfile()
         } else {
+            if container.publicEntrySessionStore.suppressAutomaticPublicEntryResume {
+                publicEntryDestination = .welcome
+                onboardingModel = nil
+            }
             rootModel.resetForSignedOutSession()
         }
 
@@ -689,10 +772,13 @@ final class AuthGateCoordinator: ObservableObject {
 
     func prepareAuthenticatedSignOut(source: String) {
         guard AppRouteResolver.isSignedIn(authManager.authState) else { return }
+        clearAuthenticatedSessionPresentationState()
+        signedInSessionID = UUID()
         onboardingModel = nil
         pendingExistingUserSignIn = false
         existingUserSignInSessionActive = false
         pendingSignInForOnboardingCompletion = false
+        awaitingCloudSync = false
         publicEntryDestination = AuthLogoutPolicy.publicEntryDestinationAfterSignOut(
             returnToExistingUserSignIn: returnToExistingUserSignInAfterSignOut,
             hasExistingUserSignInError: existingUserSignInError != nil
@@ -907,10 +993,32 @@ final class AuthGateCoordinator: ObservableObject {
 
 
     func handleEffectiveRouteChange(_ route: AppShellRoute) {
+        logAuthGatePhaseIfNeeded(for: route)
         if route == .welcome {
             logWelcomeScreenAnalytics()
         }
         logAppShellRouteDecision(selectedRoute: route)
+    }
+
+    private func logAuthGatePhaseIfNeeded(for route: AppShellRoute) {
+        let phase: AuthGateLoggedPhase = AppRouteResolver.isSignedIn(authManager.authState)
+            ? .signedIn
+            : .signedOut
+        guard loggedAuthGatePhase != phase else { return }
+        loggedAuthGatePhase = phase
+
+        let routeName = String(describing: route)
+        switch phase {
+        case .signedOut:
+            AuthSignInDebugLogger.authGateRenderedSignedOut(route: routeName)
+        case .signedIn:
+            AuthSignInDebugLogger.authGateRenderedSignedIn(route: routeName)
+        }
+    }
+
+    private enum AuthGateLoggedPhase: Equatable {
+        case signedOut
+        case signedIn
     }
 
     // MARK: - Public entry analytics

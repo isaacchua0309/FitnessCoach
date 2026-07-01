@@ -108,6 +108,36 @@ final class WeightLossPacePreviewBuilderTests: XCTestCase {
         XCTAssertEqual(preview.warningMessage, WeightLossPacePreviewBuilder.paceWarningCopy)
     }
 
+    func testAdvancedWeeklyPaceAboveMaximumIsNotSaveable() {
+        let preview = WeightLossPacePreviewBuilder.build(
+            choice: .advanced,
+            advancedDraft: WeightLossAdvancedPaceDraft(period: .weekly, amountText: "1.3"),
+            weightKg: weightKg,
+            goalWeightKg: goalWeightKg
+        )
+
+        XCTAssertFalse(preview.isSaveable)
+        XCTAssertEqual(
+            preview.validationError,
+            WeightLossPaceValidationError.exceedsMaximumWeeklyLoss(
+                weeklyKg: 1.3,
+                period: .weekly
+            ).message
+        )
+    }
+
+    func testAdvancedMonthlyPaceAboveMaximumIsNotSaveable() {
+        let preview = WeightLossPacePreviewBuilder.build(
+            choice: .advanced,
+            advancedDraft: WeightLossAdvancedPaceDraft(period: .monthly, amountText: "6.0"),
+            weightKg: weightKg,
+            goalWeightKg: goalWeightKg
+        )
+
+        XCTAssertFalse(preview.isSaveable)
+        XCTAssertNotNil(preview.validationError)
+    }
+
     func testInferAdvancedFromStoredWeeklyLoss() {
         let inferred = WeightLossPaceChoiceResolver.infer(
             aggressiveness: .moderate,

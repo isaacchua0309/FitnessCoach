@@ -26,17 +26,20 @@ On a physical device or TestFlight build, `127.0.0.1` is the **phone itself**, n
 
 ## Required configuration for Release
 
-Set the environment variable at **archive time** (CI or Xcode). Legacy `FITPILOT_*` names are still accepted if `FORMA_*` is unset.
+Set at **archive time** (CI or Xcode). Legacy `FITPILOT_*` names are accepted if `FORMA_*` is unset.
 
-| Variable | Required in Release | Example |
-|----------|---------------------|---------|
-| `FORMA_AI_BACKEND_URL` | **Yes** — HTTPS production/staging gateway | `https://ai.your-domain.com` |
+| Variable | Required in Release | Production value |
+|----------|---------------------|------------------|
+| `FORMA_AI_BACKEND_URL` | **Yes** — Firebase function **base URL only** | `https://us-central1-fitness-coach-732fd.cloudfunctions.net/aiGateway` |
+
+**Do not** include `/v1/ai/...` in the build setting. The app appends endpoint paths itself.
 
 **Where to set it**
 
-- **CI archive:** inject into the Xcode build environment before `xcodebuild archive`.
-- **Xcode:** Product → Scheme → Edit Scheme → **Run** / **Archive** → Arguments → Environment Variables (for local Release runs).
-- **Not** via `DeveloperLocal.plist` — that file is for Debug device testing only and is not a substitute for production config.
+- **Xcode Build Settings (TestFlight / App Store):** target **Fitness Coach** → Build Settings → user-defined `FORMA_AI_BACKEND_URL` on the **Release** configuration. Baked into `Info.plist` via `AppURLSchemes.plist` (`$(FORMA_AI_BACKEND_URL)`). The repo Release config already points at the production gateway above.
+- **CI archive:** same user-defined build setting before `xcodebuild archive`.
+- **Xcode scheme:** local Release runs only; scheme env vars are **not** on TestFlight unless also set via build settings.
+- **Not** `DeveloperLocal.plist` — Debug device testing only.
 
 If the variable is missing or points at localhost, the app uses `UnavailableLLMClient`. Users see:
 
@@ -66,48 +69,125 @@ Run the local gateway from `Tools/LocalAIBackend/` on your Mac. See `Tools/Local
 
 | File | Role |
 |------|------|
-| `FitPilot/App/AppContainer.swift` | Wires `LLMClient` for Debug vs Release |
-| `App/LocalAIBackendConfiguration.swift` | Debug URL resolution (simulator localhost allowed) |
-| `App/ReleaseAIBackendConfiguration.swift` | Release URL resolution (no localhost) |
-| `Infrastructure/AI/UnavailableLLMClient.swift` | Safe failure when Release backend not configured |
-| `Infrastructure/AI/FormaAIBackendClient.swift` | HTTP client when URL is valid |
-| `Infrastructure/AI/FallbackLLMClient.swift` | Maps transport errors → `backendUnavailable` |
+| `Fitness Coach/App/AppContainer.swift` | Wires `LLMClient` for Debug vs Release |
+| `Fitness Coach/App/LocalAIBackendConfiguration.swift` | Debug URL resolution (simulator localhost allowed) |
+| `Fitness Coach/App/ReleaseAIBackendConfiguration.swift` | Release URL resolution (no localhost) |
+| `Fitness Coach/Infrastructure/AI/UnavailableLLMClient.swift` | Safe failure when Release backend not configured |
+| `Fitness Coach/Infrastructure/FormaEnvironment.swift` | Resolves config from process env, then `Info.plist` |
+| `Fitness Coach/Infrastructure/AI/FormaAIBackendClient.swift` | HTTP client; 45s / 90s gateway timeouts |
+| `Fitness Coach/Infrastructure/AI/FallbackLLMClient.swift` | Maps transport errors → user-safe messages |
 
 ---
 
-## Hosted backend status
+## Hosted backend
 
-**A production-hosted FitPilot AI gateway is not part of this repo stage.** Stage E only makes Release **safe** when that URL is absent.
+Production gateway: Firebase Functions `aiGateway` (`functions/src/index.ts`). Provider keys stay in Secret Manager; same HTTP contract as `Tools/LocalAIBackend/`.
 
-Until a hosted backend is deployed and `FORMA_AI_BACKEND_URL` is set in the release pipeline:
+**Deploy (one-time secret, then redeploy on changes):**
 
-- TestFlight / App Store builds will **not** call localhost.
-- AI-dependent Coach features (classification, food estimate, meal advice, daily review narrative) will return the unavailable path.
-- Local commands that do not need the backend (e.g. direct “log 500ml water” via local parser) continue to work where routing allows.
+```sh
+firebase login
+firebase use fitness-coach-732fd
+firebase functions:secrets:set OPENAI_API_KEY
+firebase deploy --only functions:aiGateway
+```
 
-**Next step (outside Stage E):** deploy the gateway (see `Tools/LocalAIBackend/` contract), set `FORMA_AI_BACKEND_URL` in CI, and verify Coach end-to-end on a Release build.
+**Production URL** (matches Release `FORMA_AI_BACKEND_URL`):
+
+```text
+https://us-central1-fitness-coach-732fd.cloudfunctions.net/aiGateway
+```
+
+### Security
+
+- `OPENAI_API_KEY` must **never** be bundled in iOS, committed to git, or exposed in client logs.
+- Only the gateway reads the secret; the app sends a Firebase ID token (`Authorization: Bearer …`).
+
+### Timeouts
+
+`FormaAIBackendClient` uses **45s request / 90s resource** timeouts. Production builds must not use legacy short timeouts (1.5s / 2.0s) — real LLM calls need the full budget or users see false “Coach took too long” errors.
+
+### Monitoring
+
+- **Firebase:** Functions → `aiGateway` → Logs (correlate with `X-Forma-Trace-Id` / `traceId` in JSON logs).
+- **OpenAI:** Usage and billing dashboard after deploys or user reports of slow/failed Coach.
+
+If `FORMA_AI_BACKEND_URL` is missing at archive time, TestFlight builds use `UnavailableLLMClient` (no localhost); AI Coach features show the friendly unavailable message.
 
 ---
 
 ## Manual validation
 
+### E2E smoke test (production gateway)
+
+#### CLI (authenticated, hits live OpenAI)
+
+From repo root, with a Firebase ID token or test-user credentials:
+
+```sh
+# Option A — token from signed-in Release app (Settings → Developer, or temporary debug log)
+FORMA_ID_TOKEN='paste-token-here' npm --prefix functions run smoke:auth
+
+# Option B — email/password test user + Web API key from GoogleService-Info.plist (API_KEY field)
+FIREBASE_WEB_API_KEY='…' \
+FIREBASE_TEST_EMAIL='…' \
+FIREBASE_TEST_PASSWORD='…' \
+npm --prefix functions run smoke:auth
+```
+
+Script: `functions/scripts/smoke-ai-gateway-auth.mjs`. Default base URL matches Release `FORMA_AI_BACKEND_URL`. Sends `X-Forma-Trace-Id` for log correlation.
+
+| # | Scenario | Route | User input | Pass criteria |
+|---|----------|-------|------------|---------------|
+| 1 | Coach classify | `/v1/ai/classify-coach-intent` | “Should I eat a McDonald's double cheeseburger tonight?” | HTTP 200, `intentResult.intent` set, &lt; 90s |
+| 2 | Food estimate | `/v1/ai/estimate-food` | “Estimate calories for a double cheeseburger from McDonald's” | HTTP 200, `foodDrafts` + `confidence`, &lt; 90s |
+| 3 | Meal advice | `/v1/ai/generate-meal-advice` | Follow-up coaching question | HTTP 200, `response.message` useful text, &lt; 90s |
+| 4 | Parse workout (optional) | `/v1/ai/parse-workout` | “Bench press 5x5 at 90kg” | HTTP 200, `workoutDraft` returned |
+
+**Record per run:** route, HTTP status, latency ms, timeout yes/no, trace ID, Firebase log lines, OpenAI usage bump.
+
+**Post-run logs:**
+
+```sh
+firebase functions:log --only aiGateway --project fitness-coach-732fd | rg '<trace-id-from-script>'
+```
+
+#### iOS app (Release build)
+
+Run on a **Release** build (Archive → TestFlight, or Scheme → Run with **Release** + signed-in user). Confirm `FORMA_AI_BACKEND_URL` is baked:
+
+```text
+https://us-central1-fitness-coach-732fd.cloudfunctions.net/aiGateway
+```
+
+| Step | Action | Pass criteria |
+|------|--------|---------------|
+| 1 | Sign in (Apple / Google / email) | Session active |
+| 2 | Coach → “Should I eat a McDonald's double cheeseburger tonight?” | Coach reply or routed flow; not “temporarily unavailable” / session error |
+| 3 | “Estimate calories for a double cheeseburger from McDonald's” | Food draft or confirmation UI |
+| 4 | Ask for meal advice on that choice | Coaching text |
+| 5 | (Optional) “Bench press 5x5 at 90kg” | Workout draft / log prompt |
+
+**User-facing failures:**
+
+| Symptom | Likely cause |
+|---------|----------------|
+| “Coach is temporarily unavailable…” | Missing/invalid `FORMA_AI_BACKEND_URL` or gateway 5xx |
+| “We couldn't verify your session…” | Expired token / 401 |
+| “Coach took too long to respond…” | Timeout (&gt; 45s request); check Firebase + OpenAI latency |
+
+On failure: device Console (`subsystem:FitPilot`), Firebase `aiGateway` logs (filter `traceId`), OpenAI Usage dashboard.
+
 ### Release without backend URL
 
-1. Archive with **Release** and **no** `FORMA_AI_BACKEND_URL`.
-2. Install on device or simulator.
-3. Open Coach and send a message that requires AI (e.g. meal advice).
-4. Expect: friendly unavailable copy; no network calls to `127.0.0.1` (verify in Instruments / Console).
-
-### Release with valid URL
-
-1. Set `FORMA_AI_BACKEND_URL=https://<your-gateway>` for the archive.
-2. Coach AI features should hit that host with Firebase auth bearer token.
+1. Archive Release with **empty** `FORMA_AI_BACKEND_URL`.
+2. Coach AI prompt → friendly unavailable copy; no calls to `127.0.0.1`.
 
 ### Debug regression
 
-1. Run Debug on simulator without env vars → local gateway on port 8787 or Mock LLM.
-2. Set `FORMA_USE_MOCK_LLM=1` → mock client.
-3. Device Debug: set scheme env or `DeveloperLocal.plist` to Mac LAN IP.
+1. Simulator Debug, no env vars → `127.0.0.1:8787` or Mock LLM.
+2. `FORMA_USE_MOCK_LLM=1` → mock client.
+3. Device Debug → scheme env or `DeveloperLocal.plist` with Mac LAN IP.
 
 ---
 

@@ -24,8 +24,7 @@ final class ProfilePlanConflictFlowTests: XCTestCase {
         let container = try AppContainer(inMemory: true)
         let syncStore = ProfileCloudSyncStore(userDefaults: container.onboardingUserDefaults)
         let bootstrapService = ProfileBootstrapService(
-            actionCenter: container.actionCenter,
-            userProfileReader: container.userProfileService,
+            userProfileService: container.userProfileService,
             cloudStore: cloudStore,
             cloudSyncStore: syncStore
         )

@@ -302,6 +302,93 @@ final class AuthSignInPolicyTests: XCTestCase {
         )
     }
 
+    func testWebAuthenticationSessionCancellationIsRecognized() {
+        let cancellation = NSError(
+            domain: AuthSignInErrorClassifier.webAuthenticationSessionDomain,
+            code: AuthSignInErrorClassifier.webAuthenticationSessionCanceledCode
+        )
+
+        XCTAssertTrue(AuthSignInErrorClassifier.isCancellation(cancellation))
+    }
+
+    func testGoogleSignInAttemptStateUsesInFlightFlagForLoading() {
+        XCTAssertEqual(
+            GoogleSignInAttemptState.resolve(authState: .signedOut, isPerformingGoogleSignIn: true),
+            .signingIn
+        )
+        XCTAssertTrue(
+            GoogleSignInAttemptState.resolve(authState: .signedOut, isPerformingGoogleSignIn: true)
+                .isButtonLoading
+        )
+    }
+
+    func testStaleSigningInAuthStateDoesNotDisableButton() {
+        let state = GoogleSignInAttemptState.resolve(
+            authState: .signingIn,
+            isPerformingGoogleSignIn: false
+        )
+
+        XCTAssertEqual(state, .idle)
+        XCTAssertFalse(state.isButtonDisabled)
+    }
+
+    func testGoogleSignInAttemptStateMapsAuthenticatedAndFailed() {
+        XCTAssertEqual(
+            GoogleSignInAttemptState.resolve(
+                authState: .signedIn(uid: "user-1"),
+                isPerformingGoogleSignIn: false
+            ),
+            .authenticated(uid: "user-1")
+        )
+        XCTAssertEqual(
+            GoogleSignInAttemptState.resolve(
+                authState: .failed(AuthSignInUserMessage.signInFailureMessage),
+                isPerformingGoogleSignIn: false
+            ),
+            .failed(message: AuthSignInUserMessage.signInFailureMessage)
+        )
+    }
+
+    @MainActor
+    func testClearTransientAuthStateReturnsShellToSignedOutIdle() {
+        let manager = AuthManager()
+        manager.startListening()
+        manager.handleSignInFailure(AuthSignInUserMessage.signInFailureMessage)
+
+        manager.clearTransientAuthState()
+
+        XCTAssertEqual(manager.authState, .signedOut)
+        XCTAssertFalse(manager.isPerformingGoogleSignIn)
+        XCTAssertNil(manager.errorMessage)
+    }
+
+    @MainActor
+    func testResetSignInStateClearsStaleSigningInShell() {
+        let manager = AuthManager()
+        manager.startListening()
+
+        manager.resetSignInState()
+
+        XCTAssertEqual(manager.authState, .signedOut)
+        XCTAssertFalse(manager.isPerformingGoogleSignIn)
+    }
+
+    @MainActor
+    func testSignInWithGoogleAlwaysTerminatesInFlightFlag() async {
+        let manager = AuthManager()
+        manager.startListening()
+
+        let outcome = await manager.signInWithGoogle()
+
+        if case .failed = outcome {
+            // Expected without a live presenter in unit tests.
+        } else {
+            XCTFail("Expected failed outcome without presenter, got \(outcome)")
+        }
+        XCTAssertFalse(manager.isPerformingGoogleSignIn)
+        XCTAssertNotEqual(manager.authState, .signingIn)
+    }
+
     func testFailedAuthStateUsesFriendlyBannerCopy() {
         let presentation = AuthSignInPresentationPolicy.failurePresentation(
             authState: .failed("com.google.GIDSignIn error -1.")

@@ -51,7 +51,13 @@ enum OnboardingPlanRevealBuilder {
 
         let missions = firstWeekMissions(for: direction)
         let coach = coachMessage(direction: direction, goalLabel: goalLabel)
-        let beliefLine = journeyBeliefLine(direction: direction, strategyLabel: strategyLabel)
+        let beliefLine = journeyBeliefLine(
+            direction: direction,
+            strategyLabel: strategyLabel,
+            paceChoice: formState.weightLossPaceChoice,
+            weeklyLossKg: plan.targets.expectedWeeklyWeightLossKg ?? pacePreview.weeklyLossKg,
+            calorieTarget: plan.targets.calorieTarget
+        )
         let calorieExplanation = OnboardingPlanRevealStrategyFormatter.calorieExplanation(
             goalDirection: direction
         )
@@ -209,17 +215,41 @@ enum OnboardingPlanRevealBuilder {
 
     private static func journeyBeliefLine(
         direction: PlanGoalDirection,
-        strategyLabel: String
+        strategyLabel: String,
+        paceChoice: WeightLossPaceChoice,
+        weeklyLossKg: Double?,
+        calorieTarget: Int
     ) -> String {
         let copy = FormaProductCopy.Onboarding.V2.PlanReveal.JourneyBelief.self
         switch direction {
         case .cut:
-            return copy.cut(strategyLabel: strategyLabel)
+            return cutJourneyBeliefLine(
+                paceChoice: paceChoice,
+                weeklyLossKg: weeklyLossKg,
+                calorieTarget: calorieTarget,
+                fallback: copy.cut(strategyLabel: strategyLabel)
+            )
         case .maintain:
             return copy.maintain
         case .gain:
             return copy.gain
         }
+    }
+
+    private static func cutJourneyBeliefLine(
+        paceChoice: WeightLossPaceChoice,
+        weeklyLossKg: Double?,
+        calorieTarget: Int,
+        fallback: String
+    ) -> String {
+        guard let weeklyLoss = OnboardingFormatter.weeklyLoss(weeklyLossKg) else {
+            return fallback
+        }
+
+        let paceName = paceChoice.isAdvanced
+            ? "custom"
+            : paceChoice.displayName.lowercased()
+        return "Your plan is built for a \(paceName) pace of about \(weeklyLoss), with \(calorieTarget) kcal/day as your starting target."
     }
 
     private static func firstWeekMissions(

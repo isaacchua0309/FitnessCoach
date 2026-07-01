@@ -15,6 +15,9 @@ struct OnboardingPlanRevealJourneyCard: View {
     let beliefLine: String
     let planStatus: OnboardingPlanRevealStatus?
 
+    @Environment(\.onboardingPlanRevealIsCompactHeight) private var isCompactHeight
+    @Environment(\.onboardingPlanRevealContentDensity) private var contentDensity
+
     var body: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             OnboardingPlanRevealSectionHeader(title: sectionTitle)
@@ -25,15 +28,15 @@ struct OnboardingPlanRevealJourneyCard: View {
                 Text(metricsLine)
                     .font(FormaTokens.Typography.caption.weight(.semibold))
                     .foregroundStyle(OnboardingTheme.accent)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.85)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(1...2)
+                    .minimumScaleFactor(0.75)
             }
 
             Text(beliefLine)
                 .font(FormaTokens.Typography.caption)
                 .foregroundStyle(OnboardingTheme.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(contentDensity == .tight ? 1 : (isCompactHeight ? 1 : 2))
+                .minimumScaleFactor(0.75)
 
             if let planStatus, planStatus.style == .caution {
                 cautionLine(planStatus)
@@ -80,10 +83,14 @@ struct OnboardingPlanRevealJourneyCard: View {
             VStack(alignment: .leading, spacing: OnboardingLayout.savePlanFooterBottomInset) {
                 Text(status.title)
                     .font(FormaTokens.Typography.caption.weight(.semibold))
-                if let body = status.body {
+                    .lineLimit(1...2)
+                    .minimumScaleFactor(0.75)
+                if let body = status.body, contentDensity != .tight {
                     Text(body)
                         .font(.caption2)
                         .foregroundStyle(OnboardingTheme.secondaryText)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.75)
                 }
             }
         }

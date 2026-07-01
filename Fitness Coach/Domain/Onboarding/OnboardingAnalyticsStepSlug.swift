@@ -11,6 +11,7 @@ enum OnboardingAnalyticsStepSlug: String, CaseIterable, Equatable, Sendable {
     case introProof = "intro_proof"
     case heightWeight = "height_weight"
     case targetWeight = "target_weight"
+    case weightLossPace = "weight_loss_pace"
     case targetEncouragement = "target_encouragement"
     case birthday = "birthday"
     case activityLevel = "activity_level"
@@ -37,6 +38,8 @@ enum OnboardingAnalyticsStepSlug: String, CaseIterable, Equatable, Sendable {
         case .generatingPlan: self = .generatingPlan
         case .planReveal: self = .planReveal
         case .savePlan: self = .savePlan
+        case .weightLossPace: self = .weightLossPace
+
         }
     }
 
@@ -45,6 +48,7 @@ enum OnboardingAnalyticsStepSlug: String, CaseIterable, Equatable, Sendable {
         case .introProof: return .introProof
         case .heightWeight: return .heightWeight
         case .targetWeight: return .targetWeight
+        case .weightLossPace: return .weightLossPace
         case .targetEncouragement: return .targetEncouragement
         case .birthday: return .birthday
         case .activityLevel: return .activityLevel

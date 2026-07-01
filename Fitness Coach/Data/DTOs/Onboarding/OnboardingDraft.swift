@@ -81,9 +81,9 @@ struct OnboardingDraftFormFields: Codable, Equatable, Sendable {
     var averageStepsText: String
     var dietPreference: String
     var unitSystemRawValue: String
-    var weightLossPaceChoiceRawValue: String
-    var advancedPacePeriodRawValue: String
-    var advancedPaceAmountText: String
+    var weightLossPaceChoiceRawValue: String = WeightLossPaceChoice.moderate.rawValue
+    var advancedPacePeriodRawValue: String = WeightLossAdvancedPaceDraft.default.period.rawValue
+    var advancedPaceAmountText: String = ""
     var selectedMotivationRawValues: [String] = []
     var selectedLoggingPreferenceRawValues: [String] = []
     var hasConfirmedActivityLevelSelection: Bool = false

@@ -20,7 +20,7 @@ enum OnboardingPersonalizationSummaryBuilder {
         referenceDate: Date = Date()
     ) -> [OnboardingPersonalizationSummaryRecap] {
         let copy = FormaProductCopy.Onboarding.Flow.Summary.self
-        return [
+        var recaps = [
             OnboardingPersonalizationSummaryRecap(
                 id: "height",
                 title: copy.heightLabel,
@@ -61,6 +61,12 @@ enum OnboardingPersonalizationSummaryBuilder {
                 value: OnboardingFormatter.activityLevel(formState.activityLevel)
             )
         ]
+
+        if formState.isPaceApplicable() {
+            recaps.append(contentsOf: paceRecaps(for: formState, referenceDate: referenceDate))
+        }
+
+        return recaps
     }
 
     static func firstInvalidRequiredStep(
@@ -108,5 +114,39 @@ enum OnboardingPersonalizationSummaryBuilder {
             return "—"
         }
         return OnboardingFormatter.sex(formState.sex)
+    }
+
+    private static func paceRecaps(
+        for formState: OnboardingFormState,
+        referenceDate: Date
+    ) -> [OnboardingPersonalizationSummaryRecap] {
+        let preview = formState.pacePreview(referenceDate: referenceDate)
+        var recaps = [
+            OnboardingPersonalizationSummaryRecap(
+                id: "pace",
+                title: "Pace",
+                value: formState.paceDisplayLabel() ?? OnboardingFormatter.paceChoiceTitle(
+                    formState.weightLossPaceChoice
+                )
+            )
+        ]
+
+        if let weeklyLoss = OnboardingFormatter.weeklyLoss(preview.weeklyLossKg) {
+            recaps.append(OnboardingPersonalizationSummaryRecap(
+                id: "expectedLoss",
+                title: "Expected loss",
+                value: "~\(weeklyLoss)"
+            ))
+        }
+
+        if let dailyDeficit = preview.dailyDeficitKcal {
+            recaps.append(OnboardingPersonalizationSummaryRecap(
+                id: "dailyDeficit",
+                title: "Daily deficit",
+                value: "~\(dailyDeficit) kcal/day"
+            ))
+        }
+
+        return recaps
     }
 }

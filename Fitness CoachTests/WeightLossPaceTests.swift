@@ -131,6 +131,29 @@ final class WeightLossPaceTests: XCTestCase {
         XCTAssertEqual(result.safetyLevel, .strongWarning)
     }
 
+    func testWeeklyPaceAboveMaximumRejected() {
+        let pace = WeightLossPace.advancedKgPerWeek(1.3)
+        let result = validate(pace: pace)
+        XCTAssertEqual(result.error, .exceedsMaximumWeeklyLoss(weeklyKg: 1.3, period: .weekly))
+        XCTAssertFalse(result.isValid)
+    }
+
+    func testWeeklyPaceAtMaximumAccepted() {
+        let pace = WeightLossPace.advancedKgPerWeek(FormaCalculationConstants.maxWeeklyWeightLossKg)
+        let result = validate(pace: pace)
+        XCTAssertNil(result.error)
+        XCTAssertTrue(result.isValid)
+    }
+
+    func testMonthlyPaceAboveMaximumRejected() {
+        let pace = WeightLossPace.advancedKgPerMonth(FormaCalculationConstants.maxMonthlyWeightLossKg + 0.5)
+        let result = validate(pace: pace)
+        guard case .exceedsMaximumWeeklyLoss(_, .monthly)? = result.error else {
+            return XCTFail("Expected exceedsMaximumWeeklyLoss for monthly pace")
+        }
+        XCTAssertFalse(result.isValid)
+    }
+
     func testLegacyCalorieAggressivenessMappingIncludesAdvancedConversion() {
         XCTAssertEqual(
             WeightLossPace(legacy: .moderate),

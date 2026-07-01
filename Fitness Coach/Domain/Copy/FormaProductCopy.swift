@@ -58,6 +58,8 @@ enum FormaProductCopy {
         static let coachSessionMessage = "We couldn't verify your session. Check your connection and try again."
         static let coachUnavailable =
             "Coach is temporarily unavailable. Please try again later."
+        static let coachTimeout =
+            "Coach took too long to respond. Please try again."
         static let coachNotUnderstood =
             "I couldn't quite follow that. Try rephrasing, or log with explicit calories and macros."
         static let signInTitle = "Couldn't sign in"
@@ -382,32 +384,34 @@ enum FormaProductCopy {
             }
 
             enum SavePlan {
-                static let title = "Protect Your Progress"
-                static let subtitle = "Everything is prepared."
-                static let trustNote = "Now let's keep it safe."
-                static let localOnlyHint = "Your plan stays on this device until you're ready."
+                static let title = "Your plan is ready."
+                static let subtitle = "Save it so you can continue exactly where you left off."
+                static let subtitleCompact = "Save it before you start."
+                static let finalStepLabel = "Final step"
+                static let privacyNote =
+                    "Secure Google sign-in. No passwords. Your plan stays private."
                 static let planSavedOnDeviceTitle = "Your personalized plan is ready"
-                static let signInRetryHeadline = "Couldn't finish signing in."
+                static let signInRetryHeadline = "Couldn't save your plan."
                 static let signInRetryReassurance =
-                    "Your personalized plan is still safely stored on this device."
+                    "Your plan is still safely stored on this device."
                 static let signInRetryInvitation = "Try again whenever you're ready."
                 static var signInRetryAccessibilitySummary: String {
                     [signInRetryHeadline, signInRetryReassurance, signInRetryInvitation].joined(separator: " ")
                 }
                 /// Legacy alias used by routing and tests.
                 static let signInRetryMessage = signInRetryHeadline
-                static let googleSignInCTA = "Protect with Google"
-                static let googleSignInLoadingTitle = "Keeping your progress safe…"
+                static let googleSignInCTA = "Save My Plan"
+                static let googleSignInCTASubtitle = "Continue with Google"
+                static let googleSignInLoadingTitle = "Saving your plan…"
                 static let googleSignInSuccessTitle = "Continue"
                 static let googleSignInSuccessAccessibilityLabel = "Sign-in complete. Continue"
-                static let googleSignInAccessibilityHint = "Keep your personalized plan safe with Google"
-                static let signedInTitle = "Protect Your Progress"
-                static let signedInSubtitle = "Your personalized plan is ready."
-                static let signedInTrustNote = "Ready whenever you are."
+                static let googleSignInAccessibilityHint = "Save your personalized plan with Google"
+                static let signedInTitle = "Your plan is ready."
+                static let signedInSubtitle = "You're signed in. Start when you're ready."
                 static let signedInContinueCTA = "Start my plan"
                 static let signedInContinueAccessibilityHint = "Start with your personalized plan"
-                static let skipCTA = "Skip for now"
-                static let skipAccessibilityHint = "Keep going on this device for now"
+                static let planSummaryCardTitle = "YOUR FORMA PLAN"
+                static let planSummaryJourneyLabel = "Journey"
                 static let planAchievementTitle = "Your plan"
                 static let planAchievementReachVerb = "Reach"
                 static let planAchievementMaintainVerb = "Maintain"
@@ -422,11 +426,10 @@ enum FormaProductCopy {
                 }
 
                 static let signInTrustRows: [SignInTrustRow] = [
-                    SignInTrustRow(icon: "person.crop.circle", title: "Your personalized plan"),
-                    SignInTrustRow(icon: "figure.walk", title: "Built around your lifestyle"),
-                    SignInTrustRow(icon: "clock", title: "Ready whenever you are"),
-                    SignInTrustRow(icon: "lock.shield.fill", title: "Keeps your progress safe"),
-                    SignInTrustRow(icon: "creditcard.slash", title: "No payment required")
+                    SignInTrustRow(icon: "arrow.clockwise.circle", title: "Restore your plan instantly"),
+                    SignInTrustRow(icon: "iphone.and.arrow.forward", title: "Sync across devices"),
+                    SignInTrustRow(icon: "chart.line.uptrend.xyaxis", title: "Keep meal logs and milestones"),
+                    SignInTrustRow(icon: "forward.fill", title: "Continue without starting over")
                 ]
 
                 static var signInTrustAccessibilitySummary: String {
@@ -796,13 +799,10 @@ enum FormaProductCopy {
             }
 
             enum SavePlan {
-                static let title = "Protect Your Progress"
-                static let subtitle = "Everything is prepared."
-                static let trustNote = "Now let's keep it safe."
-                static let localOnlyHint = "Your plan stays on this device until you're ready."
-                static let signedInSubtitle = "Your personalized plan is ready."
-                static let signedInTrustNote = "Ready whenever you are."
-                static let skipCTA = "Skip for now"
+                static let title = "Your plan is ready."
+                static let subtitle = "Save it so you can continue exactly where you left off."
+                static let subtitleCompact = "Save it before you start."
+                static let signedInSubtitle = "You're signed in. Start when you're ready."
                 static let planAchievementTitle = "Your plan"
                 static let planAchievementReachVerb = "Reach"
                 static let planAchievementMaintainVerb = "Maintain"
@@ -810,11 +810,10 @@ enum FormaProductCopy {
                 static let planAchievementCurrentLabel = "Current"
                 static let planAchievementBuiltForYou = "Built around your lifestyle"
                 static let signInTrustRowTitles = [
-                    "Your personalized plan",
-                    "Built around your lifestyle",
-                    "Ready whenever you are",
-                    "Keeps your progress safe",
-                    "No payment required"
+                    "Restore your plan instantly",
+                    "Sync across devices",
+                    "Keep meal logs and milestones",
+                    "Continue without starting over"
                 ]
             }
 

@@ -10,7 +10,7 @@ import SwiftUI
 struct AccountSettingsView: View {
 
     @EnvironmentObject private var authManager: AuthManager
-    @Environment(\.publicEntrySessionStore) private var publicEntrySessionStore
+    @Environment(\.performAppSignOut) private var performAppSignOut
     @State private var showsLogoutConfirmation = false
 
     @ScaledMetric(relativeTo: .title2) private var avatarDiameter: CGFloat = 64
@@ -42,11 +42,11 @@ struct AccountSettingsView: View {
             titleVisibility: .visible
         ) {
             Button("Log Out", role: .destructive) {
-                publicEntrySessionStore?.markUserInitiatedLogout()
-                if let publicEntrySessionStore {
-                    AuthLogoutPolicy.applyExplicitSignOut(sessionStore: publicEntrySessionStore)
+                if let performAppSignOut {
+                    performAppSignOut()
+                } else {
+                    authManager.signOut()
                 }
-                authManager.signOut()
             }
             Button("Cancel", role: .cancel) {}
         } message: {

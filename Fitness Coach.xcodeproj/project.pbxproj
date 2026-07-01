@@ -390,8 +390,9 @@
 				CODE_SIGN_ENTITLEMENTS = "Fitness Coach/Fitness Coach.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = X3D9AZPJUA;
+				DEVELOPMENT_TEAM = C3PWC866NM;
 				ENABLE_PREVIEWS = YES;
+				FORMA_AI_BACKEND_URL = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AppURLSchemes.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Forma;
@@ -407,7 +408,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_BUNDLE_IDENTIFIER = com.isaacchua.forma;
+				PRODUCT_BUNDLE_IDENTIFIER = com.isaacchua.forma2;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -427,8 +428,9 @@
 				CODE_SIGN_ENTITLEMENTS = "Fitness Coach/Fitness Coach.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = X3D9AZPJUA;
+				DEVELOPMENT_TEAM = C3PWC866NM;
 				ENABLE_PREVIEWS = YES;
+				FORMA_AI_BACKEND_URL = "https://us-central1-fitness-coach-732fd.cloudfunctions.net/aiGateway";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AppURLSchemes.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Forma;
@@ -444,7 +446,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_BUNDLE_IDENTIFIER = com.isaacchua.forma;
+				PRODUCT_BUNDLE_IDENTIFIER = com.isaacchua.forma2;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;

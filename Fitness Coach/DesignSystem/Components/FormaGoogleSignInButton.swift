@@ -15,6 +15,7 @@ enum FormaGoogleSignInButtonPhase: Equatable {
 
 struct FormaGoogleSignInButton: View {
     var title: String = FormaProductCopy.SignIn.continueWithGoogle
+    var subtitle: String?
     var loadingTitle: String = FormaProductCopy.SignIn.signingIn
     var successTitle: String = FormaProductCopy.Common.continueAction
     var successAccessibilityLabel: String?
@@ -56,7 +57,7 @@ struct FormaGoogleSignInButton: View {
     private var buttonChrome: some View {
         HStack(spacing: FormaTokens.Spacing.sm) {
             leadingSymbol
-            phaseLabel
+            labelStack
         }
         .frame(maxWidth: .infinity)
         .frame(minHeight: max(buttonMinHeight, FormaTokens.Layout.minTouchTarget))
@@ -101,14 +102,25 @@ struct FormaGoogleSignInButton: View {
         .accessibilityHidden(true)
     }
 
-    private var phaseLabel: some View {
-        Text(displayedTitle)
-            .font(FormaTokens.Typography.body.weight(.semibold))
-            .foregroundStyle(FormaTokens.Color.googleButtonText)
-            .multilineTextAlignment(.center)
-            .minimumScaleFactor(0.85)
-            .lineLimit(1)
-            .accessibilityHidden(true)
+    private var labelStack: some View {
+        VStack(spacing: 2) {
+            Text(displayedTitle)
+                .font(FormaTokens.Typography.body.weight(.semibold))
+                .foregroundStyle(FormaTokens.Color.googleButtonText)
+                .multilineTextAlignment(.center)
+                .minimumScaleFactor(0.85)
+                .lineLimit(1)
+
+            if let subtitle, phase == .idle {
+                Text(subtitle)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(FormaTokens.Color.googleButtonText.opacity(0.72))
+                    .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.85)
+                    .lineLimit(1)
+            }
+        }
+        .accessibilityHidden(true)
     }
 
     private var displayedTitle: String {
@@ -144,6 +156,9 @@ struct FormaGoogleSignInButton: View {
     private var accessibilityLabel: String {
         switch phase {
         case .idle:
+            if let subtitle {
+                return "\(title). \(subtitle)"
+            }
             return title
         case .loading:
             return FormaProductCopy.SignIn.signingInAccessibility
@@ -216,6 +231,19 @@ private struct FormaGoogleSignInPressStyle: ButtonStyle {
         isLoading: false,
         showsSuccess: true,
         isDisabled: true,
+        action: {}
+    )
+    .padding()
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
+#Preview("With subtitle") {
+    FormaGoogleSignInButton(
+        title: "Save My Plan",
+        subtitle: "Continue with Google",
+        isLoading: false,
+        isDisabled: false,
         action: {}
     )
     .padding()

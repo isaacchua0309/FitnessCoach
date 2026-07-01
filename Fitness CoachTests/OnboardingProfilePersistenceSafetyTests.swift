@@ -23,15 +23,6 @@ final class OnboardingCommittedProfileRestorerTests: XCTestCase {
         XCTAssertTrue(OnboardingCommittedProfileRestorer.shouldResumeSavePlan(profile: unowned))
     }
 
-    func testShouldNotResumeSavePlanAfterLocalCompletionAcknowledged() {
-        defer { OnboardingLocalCompletionMarker.clear() }
-        OnboardingLocalCompletionMarker.markAcknowledged()
-
-        var unowned = ProfileTestFixtures.onboardingSampleProfile
-        unowned.ownerUID = nil
-        XCTAssertFalse(OnboardingCommittedProfileRestorer.shouldResumeSavePlan(profile: unowned))
-    }
-
     func testHydrateFormStatePrefersBirthDateOverStoredAge() {
         let birthDate = calendar.date(from: DateComponents(year: 1990, month: 6, day: 15))!
         var profile = ProfileTestFixtures.onboardingSampleProfile
@@ -140,8 +131,7 @@ final class OnboardingProfileCloudPersistenceSafetyTests: XCTestCase {
         let container = try AppContainer(inMemory: true)
         let syncStore = ProfileCloudSyncStore(userDefaults: container.onboardingUserDefaults)
         let bootstrapService = ProfileBootstrapService(
-            actionCenter: container.actionCenter,
-            userProfileReader: container.userProfileService,
+            userProfileService: container.userProfileService,
             cloudStore: cloudStore,
             cloudSyncStore: syncStore
         )

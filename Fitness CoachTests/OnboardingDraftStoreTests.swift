@@ -64,8 +64,27 @@ final class OnboardingDraftStoreTests: XCTestCase {
         XCTAssertEqual(restored.goalWeightKgText, formState.goalWeightKgText)
         XCTAssertEqual(restored.name, formState.name)
         XCTAssertEqual(restored.weightLossPaceChoice, formState.weightLossPaceChoice)
+        XCTAssertEqual(restored.advancedPaceDraft, formState.advancedPaceDraft)
+        XCTAssertEqual(restored.aggressiveness, formState.aggressiveness)
         XCTAssertEqual(restored.activityLevel, formState.activityLevel)
         XCTAssertEqual(loaded.makeGeneratedPlan(), plan)
+    }
+
+    func testDraftSaveLoadRoundTripPreservesAdvancedPaceFields() throws {
+        var formState = OnboardingFormState()
+        OnboardingHeightWeightValues.applyDefaultsIfNeeded(to: &formState)
+        OnboardingTargetWeightValues.setGoalFromDeltaKg(-5, in: &formState)
+        formState.selectPaceChoice(.advanced)
+        formState.advancedPaceDraft = WeightLossAdvancedPaceDraft(period: .monthly, amountText: "2.5")
+
+        let draft = OnboardingDraft(formState: formState, step: .weightLossPace)
+        store.saveDraft(draft)
+        let restored = try XCTUnwrap(store.loadDraft()?.makeFormState())
+
+        XCTAssertEqual(restored.weightLossPaceChoice, .advanced)
+        XCTAssertEqual(restored.advancedPaceDraft.period, .monthly)
+        XCTAssertEqual(restored.advancedPaceDraft.amountText, "2.5")
+        XCTAssertEqual(restored.aggressiveness, WeightLossPaceChoice.advanced.legacyAggressiveness)
     }
 
     func testDraftClear() {

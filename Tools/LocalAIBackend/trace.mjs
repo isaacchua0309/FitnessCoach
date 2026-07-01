@@ -35,6 +35,8 @@ export function sanitizeSnippet(value, limit = 2048) {
 }
 
 export function readTraceId(request) {
+  // Primary: Forma iOS (`FormaPipelineTracer.traceHeaderName`).
+  // Fallback: legacy FitPilot header for older clients and tooling.
   return request.headers["x-forma-trace-id"]
     ?? request.headers["X-Forma-Trace-Id"]
     ?? request.headers["x-fitpilot-trace-id"]

@@ -27,12 +27,12 @@ enum ProfileSignInCopyPolicy {
         }
     }
 
-    /// Guardrail: returning-member sign-in must not use onboarding protect-progress phrasing.
+    /// Guardrail: returning-member sign-in must not use onboarding save-plan phrasing.
     static func usesOnboardingCompletionLanguage(_ text: String) -> Bool {
         let normalized = text.lowercased()
-        return normalized.contains("protect your progress")
-            || normalized.contains("protect with google")
-            || normalized.contains("keep your personalized plan safe")
-            || normalized.contains("saving your progress")
+        return normalized.contains("save my plan")
+            || normalized.contains("save with google")
+            || normalized.contains("save your personalized plan")
+            || normalized.contains("saving your plan")
     }
 }

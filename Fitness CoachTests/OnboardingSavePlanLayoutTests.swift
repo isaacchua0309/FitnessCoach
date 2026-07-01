@@ -58,12 +58,26 @@ final class OnboardingSavePlanLayoutTests: XCTestCase {
         XCTAssertEqual(profile, .compact)
     }
 
-    func testSavePlanResolveUsesExpansiveForProMaxViewport() {
-        let profile = OnboardingPlanRevealLayoutProfile.resolve(
-            contentHeight: 760,
-            contentWidth: 430,
-            dynamicTypeSize: .large
+    func testSavePlanStepViewSourceHasNoScrollView() throws {
+        let source = try String(
+            contentsOf: savePlanStepViewURL(),
+            encoding: .utf8
         )
-        XCTAssertEqual(profile, .expansive)
+        XCTAssertFalse(source.contains("ScrollView"))
+    }
+
+    func testSavePlanStepViewSourceUsesGeometryReader() throws {
+        let source = try String(
+            contentsOf: savePlanStepViewURL(),
+            encoding: .utf8
+        )
+        XCTAssertTrue(source.contains("GeometryReader"))
+    }
+
+    private func savePlanStepViewURL() -> URL {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Fitness Coach/Features/Onboarding/UI/OnboardingSavePlanStepView.swift")
     }
 }

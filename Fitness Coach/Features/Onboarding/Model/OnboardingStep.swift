@@ -12,6 +12,7 @@ enum OnboardingStep: Int, Equatable, Identifiable, Sendable, CaseIterable {
     case introProof = 300
     case heightWeight = 301
     case targetWeight = 302
+    case weightLossPace = 313
     case targetEncouragement = 303
     case birthday = 304
     case activityLevel = 305
@@ -31,6 +32,7 @@ enum OnboardingStep: Int, Equatable, Identifiable, Sendable, CaseIterable {
         .introProof,
         .heightWeight,
         .targetWeight,
+        .weightLossPace,
         .targetEncouragement,
         .birthday,
         .activityLevel,
@@ -51,7 +53,7 @@ enum OnboardingStep: Int, Equatable, Identifiable, Sendable, CaseIterable {
             return .start
         case .heightWeight, .birthday:
             return .body
-        case .targetWeight, .targetEncouragement:
+        case .targetWeight, .weightLossPace, .targetEncouragement:
             return .destination
         case .activityLevel, .appleHealth:
             return .activity
@@ -73,7 +75,7 @@ enum OnboardingStep: Int, Equatable, Identifiable, Sendable, CaseIterable {
             return 1
         case .heightWeight:
             return 2
-        case .targetWeight, .targetEncouragement:
+        case .targetWeight, .weightLossPace, .targetEncouragement:
             return 3
         case .birthday:
             return 4
@@ -101,6 +103,8 @@ enum OnboardingStep: Int, Equatable, Identifiable, Sendable, CaseIterable {
             return copy.HeightWeight.title
         case .targetWeight:
             return copy.TargetWeight.title
+        case .weightLossPace:
+            return "Choose your pace"
         case .targetEncouragement:
             return copy.TargetEncouragement.title
         case .birthday:
@@ -133,6 +137,8 @@ enum OnboardingStep: Int, Equatable, Identifiable, Sendable, CaseIterable {
             return copy.HeightWeight.subtitle
         case .targetWeight:
             return copy.TargetWeight.subtitle
+        case .weightLossPace:
+            return "Pick a weight-loss speed that fits your routine."
         case .targetEncouragement:
             return copy.TargetEncouragement.subtitle
         case .birthday:
@@ -231,7 +237,7 @@ enum OnboardingStep: Int, Equatable, Identifiable, Sendable, CaseIterable {
 
     var showsProgressHeader: Bool {
         switch self {
-        case .introProof, .generatingPlan, .planReveal, .savePlan, .targetEncouragement, .heightWeight, .targetWeight, .birthday, .activityLevel, .appleHealth, .almostThere, .formaProof, .review:
+        case .introProof, .generatingPlan, .planReveal, .savePlan, .targetEncouragement, .heightWeight, .targetWeight, .weightLossPace, .birthday, .activityLevel, .appleHealth, .almostThere, .formaProof, .review:
             return false
         default:
             return true

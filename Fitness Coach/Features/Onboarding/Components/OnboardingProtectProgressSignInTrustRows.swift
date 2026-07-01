@@ -26,27 +26,29 @@ struct OnboardingProtectProgressSignInTrustRows: View {
             || usesCompactLayout
     }
 
-    private var columns: [GridItem] {
-        if usesSingleColumn {
-            return [GridItem(.flexible(), spacing: FormaTokens.Spacing.xs)]
-        }
-        return [
-            GridItem(.flexible(), spacing: FormaTokens.Spacing.sm),
-            GridItem(.flexible(), spacing: FormaTokens.Spacing.sm)
-        ]
-    }
-
     var body: some View {
-        LazyVGrid(columns: columns, alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+        VStack(alignment: .leading, spacing: rowSpacing) {
             ForEach(displayedRows) { row in
                 trustRow(icon: row.icon, title: row.title)
             }
         }
-        .onboardingPlanRevealCardPadding()
+        .padding(.horizontal, FormaTokens.Spacing.sm)
+        .padding(.vertical, FormaTokens.Spacing.xs)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background { OnboardingPlanRevealCardBackground(surface: .subtle) }
+        .background {
+            RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
+                .fill(FormaTokens.Color.surfaceSubtle)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
+                .stroke(OnboardingTheme.border.opacity(0.55), lineWidth: 1)
+        }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(trustAccessibilitySummary)
+    }
+
+    private var rowSpacing: CGFloat {
+        usesSingleColumn ? 6 : 8
     }
 
     private var trustAccessibilitySummary: String {
@@ -54,28 +56,19 @@ struct OnboardingProtectProgressSignInTrustRows: View {
     }
 
     private func trustRow(icon: String, title: String) -> some View {
-        HStack(alignment: .center, spacing: FormaTokens.Spacing.xs) {
-            ZStack {
-                Circle()
-                    .fill(OnboardingTheme.accent.opacity(0.1))
-                    .overlay {
-                        Circle()
-                            .stroke(OnboardingTheme.accent.opacity(0.16), lineWidth: 1)
-                    }
-
-                Image(systemName: icon)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(OnboardingTheme.accent)
-                    .symbolRenderingMode(.hierarchical)
-            }
-            .frame(width: 24, height: 24)
-            .accessibilityHidden(true)
+        HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.xs) {
+            Image(systemName: icon)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(OnboardingTheme.accent)
+                .symbolRenderingMode(.hierarchical)
+                .frame(width: 16, alignment: .center)
+                .accessibilityHidden(true)
 
             Text(title)
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(OnboardingTheme.secondaryText)
                 .lineLimit(usesSingleColumn ? 3 : 2)
-                .minimumScaleFactor(0.85)
+                .minimumScaleFactor(0.9)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

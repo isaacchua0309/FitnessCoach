@@ -17,7 +17,7 @@ protocol UserProfileReading: AnyObject {
 @MainActor
 protocol UserProfileWriting: AnyObject {
     @discardableResult
-    func createProfile(_ draft: UserProfileDraft, ownerUID: String? = nil) throws -> UserProfile
+    func createProfile(_ draft: UserProfileDraft, ownerUID: String?) throws -> UserProfile
     @discardableResult
     func updateProfile(_ update: UserProfileUpdate) throws -> UserProfile
     @discardableResult

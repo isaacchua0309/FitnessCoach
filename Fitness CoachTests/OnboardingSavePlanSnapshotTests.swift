@@ -48,7 +48,6 @@ final class OnboardingSavePlanSnapshotTests: XCTestCase {
             errorMessage: nil,
             planRecap: OnboardingPreviewData.planRevealState,
             onContinue: {},
-            onSkip: {},
             onBack: {}
         )
         .frame(width: size.width, height: size.height)

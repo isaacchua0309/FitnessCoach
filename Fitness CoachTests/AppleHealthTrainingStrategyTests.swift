@@ -235,7 +235,8 @@ final class CoachWorkoutIntentPolicyTests: XCTestCase {
         XCTAssertEqual(service.classifyCoachIntentCallCount, 1)
         XCTAssertEqual(service.parseWorkoutCallCount, 0)
         XCTAssertNil(model.pendingConfirmation)
-        XCTAssertEqual(try await container.healthActivityQueryService.workoutCountToday(), 0)
+        let workoutCount = try await container.healthActivityQueryService.workoutCountToday()
+        XCTAssertEqual(workoutCount, 0)
     }
 
     func testWorkoutLogNotConnectedCopy() async throws {

@@ -223,6 +223,7 @@ final class AppContainer {
         )
 
         #if DEBUG
+        Self.logAIBackendURLDetection()
         Self.logLLMClientWiring(
             clientType: wiring.clientType,
             baseURL: wiring.baseURL,
@@ -352,6 +353,30 @@ final class AppContainer {
         }
         return .standard
     }
+
+    #if DEBUG
+    private static func logAIBackendURLDetection() {
+        switch FormaEnvironment.aiBackendURLDetection() {
+        case .notDetected:
+            FormaPipelineTracer.event(
+                stage: .appWiring,
+                level: .info,
+                message: "FORMA_AI_BACKEND_URL not detected",
+                fields: ["detected": "false"]
+            )
+        case .detected(let source):
+            FormaPipelineTracer.event(
+                stage: .appWiring,
+                level: .info,
+                message: "FORMA_AI_BACKEND_URL detected",
+                fields: [
+                    "detected": "true",
+                    "source": source.rawValue
+                ]
+            )
+        }
+    }
+    #endif
 
     private static func logLLMClientWiring(clientType: String, baseURL: URL?, authAttached: Bool) {
         var fields: [String: String] = [

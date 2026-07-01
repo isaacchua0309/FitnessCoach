@@ -109,6 +109,21 @@ struct WeightLossAdvancedPaceDraft: Equatable, Sendable {
     var amountText: String = ""
 
     static let `default` = WeightLossAdvancedPaceDraft()
+
+    var amountPlaceholder: String {
+        switch period {
+        case .weekly:
+            return Self.formatAmount(FormaCalculationConstants.maxWeeklyWeightLossKg / 2.4)
+        case .monthly:
+            return Self.formatAmount(FormaCalculationConstants.maxMonthlyWeightLossKg / 2.4)
+        }
+    }
+
+    private static func formatAmount(_ value: Double) -> String {
+        value.truncatingRemainder(dividingBy: 1) == 0
+            ? "\(Int(value))"
+            : String(format: "%.1f", value)
+    }
 }
 
 enum WeightLossPaceChoiceResolver {

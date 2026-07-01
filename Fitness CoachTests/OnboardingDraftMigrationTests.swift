@@ -111,6 +111,65 @@ final class OnboardingDraftMigrationTests: XCTestCase {
         XCTAssertEqual(restored, .review)
     }
 
+    func testLegacyGoalRoutesToWeightLossPaceForCutGoal() throws {
+        var formState = try validFormState()
+        OnboardingTargetWeightValues.setGoalFromDeltaKg(-4, in: &formState)
+
+        let restored = OnboardingDraftStepResolver.restoredStep(
+            rawValue: OnboardingLegacyPersistedStep.goal.rawValue,
+            formState: formState,
+            flow: OnboardingStep.flow
+        )
+
+        XCTAssertEqual(restored, .weightLossPace)
+    }
+
+    func testLegacyGoalRoutesToTargetEncouragementForMaintainGoal() throws {
+        var formState = try validFormState()
+        OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &formState)
+
+        let restored = OnboardingDraftStepResolver.restoredStep(
+            rawValue: OnboardingLegacyPersistedStep.goal.rawValue,
+            formState: formState,
+            flow: OnboardingStep.flow
+        )
+
+        XCTAssertEqual(restored, .targetEncouragement)
+    }
+
+    func testV1MigrationInfersPaceFromAggressivenessWhenPaceChoiceMissing() {
+        let legacy = OnboardingDraftV1(
+            draftVersion: 1,
+            currentStepRawValue: OnboardingLegacyPersistedStep.goal.rawValue,
+            form: OnboardingDraftV1FormFields(
+                name: "",
+                ageText: "30",
+                birthDateISO8601: nil,
+                sexRawValue: Sex.female.rawValue,
+                heightCmText: "170",
+                currentWeightKgText: "72",
+                goalWeightKgText: "65",
+                estimatedBodyFatPercentageText: "",
+                activityLevelRawValue: ActivityLevel.moderatelyActive.rawValue,
+                trainingFrequencyPerWeekText: "3",
+                averageStepsText: "5000",
+                dietPreference: "",
+                unitSystemRawValue: UnitSystem.metric.rawValue,
+                aggressivenessRawValue: CalorieAggressiveness.aggressive.rawValue,
+                weightLossPaceChoiceRawValue: "",
+                advancedPacePeriodRawValue: "",
+                advancedPaceAmountText: ""
+            ),
+            generatedPlan: nil,
+            savedAt: referenceDate
+        )
+
+        let restored = OnboardingDraftMigration.upgrade(from: legacy).makeFormState()
+
+        XCTAssertEqual(restored.weightLossPaceChoice, .aggressive)
+        XCTAssertEqual(restored.aggressiveness, .aggressive)
+    }
+
     // MARK: - Schema migration
 
     func testLegacyAgeTextDraftSynthesizesBirthDate() throws {

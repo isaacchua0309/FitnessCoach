@@ -31,7 +31,11 @@ struct OnboardingPlanBlueprintPersonalizationSignalStrip: View {
     }
 
     private var visibleSignals: [OnboardingPlanBlueprintGeneratedSignal] {
-        ["activity", "nutrition", "lifestyle", "training"].compactMap { id in
+        let priority = signals.contains { $0.id == "pace" }
+            ? ["pace", "expectedLoss", "dailyDeficit", "nutrition"]
+            : ["activity", "nutrition", "lifestyle", "training"]
+
+        return priority.compactMap { id in
             signals.first { $0.id == id }
         }
     }
@@ -142,8 +146,10 @@ struct OnboardingPlanBlueprintPersonalizationSignalStrip: View {
             return OnboardingTheme.success
         case .lifestyle:
             return OnboardingTheme.warning
-        case .training:
+        case .training, .pace:
             return OnboardingTheme.chartSecondary
+        case .deficit:
+            return OnboardingTheme.warning
         }
     }
 }

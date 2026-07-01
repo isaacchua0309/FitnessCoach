@@ -9,6 +9,7 @@ import SwiftUI
 
 struct OnboardingView: View {
     @ObservedObject var model: OnboardingModel
+    @EnvironmentObject private var authManager: AuthManager
     var onExistingAccount: (() -> Void)?
     var onExitToWelcome: (() -> Void)?
     @Environment(\.scenePhase) private var scenePhase
@@ -178,6 +179,8 @@ struct OnboardingView: View {
             OnboardingHeightWeightStepView(formState: $model.formState)
         case .targetWeight:
             OnboardingTargetWeightStepView(formState: $model.formState)
+        case .weightLossPace:
+            OnboardingWeightLossPaceStepView(formState: $model.formState)
         case .targetEncouragement:
             OnboardingTargetEncouragementStepView(formState: model.formState)
         case .birthday:
@@ -216,7 +219,7 @@ struct OnboardingView: View {
         case .savePlan:
             OnboardingSavePlanStepView(
                 requiresGoogleSignIn: model.requiresGoogleSignInAtSavePlan,
-                isBusy: model.viewState == .savingProfile || model.viewState == .completing,
+                isBusy: authManager.isPerformingGoogleSignIn,
                 showsSignInSuccess: model.viewState == .signInSucceeded,
                 errorMessage: model.errorMessage,
                 planRecap: model.planRevealState,
@@ -225,13 +228,6 @@ struct OnboardingView: View {
                     OnboardingHaptics.primaryActionTapped()
                     model.goNext()
                 },
-                onSkip: model.requiresGoogleSignInAtSavePlan
-                    ? {
-                        fieldNavigator.dismissFocus()
-                        OnboardingHaptics.primaryActionTapped()
-                        model.skipProtectProgressSignIn()
-                    }
-                    : nil,
                 onBack: {
                     fieldNavigator.dismissFocus()
                     OnboardingHaptics.selectionChanged()
@@ -264,4 +260,5 @@ struct OnboardingView: View {
             onCompletion: {}
         )
     )
+    .environmentObject(container.authManager)
 }

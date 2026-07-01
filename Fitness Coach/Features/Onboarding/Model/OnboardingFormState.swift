@@ -97,6 +97,8 @@ struct OnboardingFormState: Equatable {
             try OnboardingHeightWeightValues.validate(formState: self)
         case .targetWeight:
             try OnboardingTargetWeightValues.validate(formState: self)
+        case .weightLossPace:
+            try validateWeightLossPace()
         case .birthday:
             try OnboardingBirthdayValues.validate(formState: self)
         case .introProof, .targetEncouragement,
@@ -124,7 +126,11 @@ struct OnboardingFormState: Equatable {
     }
 
     static func firstInvalidRequiredStep(for formState: OnboardingFormState) -> OnboardingStep? {
-        let required: [OnboardingStep] = [.heightWeight, .targetWeight, .birthday, .activityLevel]
+        var required: [OnboardingStep] = [.heightWeight, .targetWeight]
+        if formState.isPaceApplicable() {
+            required.append(.weightLossPace)
+        }
+        required.append(contentsOf: [.birthday, .activityLevel])
         return required.first { step in
             formState.validationMessage(for: step) != nil
         }
@@ -172,6 +178,15 @@ struct OnboardingFormState: Equatable {
             choice: weightLossPaceChoice,
             advancedDraft: advancedPaceDraft
         )
+    }
+
+    private func validateWeightLossPace() throws {
+        guard isPaceApplicable() else { return }
+
+        let preview = pacePreview()
+        if let validationError = preview.validationError {
+            throw OnboardingFormError.invalid(validationError)
+        }
     }
 
     func makeUserProfileDraft(targets: UserTargets, referenceDate: Date = Date()) throws -> UserProfileDraft {
@@ -367,22 +382,6 @@ struct OnboardingFormState: Equatable {
 
     var parsedGoalWeightKg: Double? {
         parsedPositiveDouble(goalWeightKgText)
-    }
-
-    /// Advanced fat-loss pace requires a goal below current weight.
-    func blocksWeightLossPaceForNonCutGoal() -> Bool {
-        guard !isPaceApplicable(),
-              let currentWeightKg = parsedCurrentWeightKg,
-              let goalWeightKg = parsedGoalWeightKg,
-              goalWeightKg >= currentWeightKg else {
-            return false
-        }
-
-        guard weightLossPaceChoice.isAdvanced else { return false }
-
-        let trimmed = advancedPaceDraft.amountText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let amount = Double(trimmed), amount > 0 else { return false }
-        return true
     }
 
     private func parsedPositiveDouble(_ text: String) -> Double? {

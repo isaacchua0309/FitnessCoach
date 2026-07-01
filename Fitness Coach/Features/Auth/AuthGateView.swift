@@ -19,6 +19,7 @@ struct AuthGateView: View {
         AuthGateRouteView(coordinator: coordinator)
             .environmentObject(coordinator.authManager)
             .environment(\.publicEntrySessionStore, coordinator.container.publicEntrySessionStore)
+            .environment(\.performAppSignOut, coordinator.signOutFromAccount)
             .task {
                 coordinator.authManager.startListening()
             }

@@ -357,3 +357,78 @@ final class RootModelSignedOutResetTests: XCTestCase {
         XCTAssertEqual(rootModel.bootstrapPhase, .idle)
     }
 }
+
+@MainActor
+final class AuthGateCoordinatorLogoutTests: XCTestCase {
+
+    func testSignedOutTransitionResetsAuthenticatedShellState() throws {
+        let container = try AppContainer(inMemory: true)
+        let coordinator = AuthGateCoordinator(container: container)
+        coordinator.rootModel.didCompleteOnboarding()
+        coordinator.awaitingCloudSync = true
+        let priorSessionID = coordinator.signedInSessionID
+
+        coordinator.handleSignedOutTransition(
+            from: .signedIn(uid: "signed-in-user"),
+            to: .signedOut,
+            wasSignedIn: true
+        )
+
+        XCTAssertEqual(coordinator.publicEntryDestination, .welcome)
+        XCTAssertEqual(coordinator.rootModel.state, .loading)
+        XCTAssertNil(coordinator.onboardingModel)
+        XCTAssertFalse(coordinator.awaitingCloudSync)
+        XCTAssertNotEqual(coordinator.signedInSessionID, priorSessionID)
+        XCTAssertTrue(container.publicEntrySessionStore.suppressAutomaticPublicEntryResume)
+    }
+
+    func testEffectiveRouteAfterSignedOutTransitionIsWelcome() throws {
+        let container = try AppContainer(inMemory: true)
+        let coordinator = AuthGateCoordinator(container: container)
+        coordinator.rootModel.didCompleteOnboarding()
+        container.authManager.startListening()
+        container.authManager.signOut()
+
+        coordinator.handleSignedOutTransition(
+            from: .signedIn(uid: "signed-in-user"),
+            to: .signedOut,
+            wasSignedIn: true
+        )
+
+        XCTAssertEqual(coordinator.effectiveRoute, .welcome)
+        XCTAssertNotEqual(coordinator.effectiveRoute, .main)
+    }
+
+    func testColdLaunchAfterLogoutWithDraftAndLocalProfileRoutesToWelcome() throws {
+        let sessionDefaults = UserDefaults(suiteName: "LogoutRoutingTests.cold.\(UUID().uuidString)")!
+        let sessionStore = PublicEntrySessionStore(userDefaults: sessionDefaults)
+        AuthLogoutPolicy.applyExplicitSignOut(sessionStore: sessionStore)
+
+        XCTAssertEqual(
+            AppRouteResolver.resolve(
+                authState: .signedOut,
+                rootState: .main,
+                hasLocalProfile: true,
+                publicEntryDestination: .welcome,
+                hasPersistedOnboardingDraft: true,
+                suppressAutomaticPublicEntryResume: sessionStore.suppressAutomaticPublicEntryResume
+            ),
+            .welcome
+        )
+    }
+
+    @MainActor
+    func testBootstrapOnboardingSkippedAfterExplicitSignOutUntilCreateMyPlan() throws {
+        let container = try AppContainer(inMemory: true)
+        let coordinator = AuthGateCoordinator(container: container)
+        AuthLogoutPolicy.applyExplicitSignOut(sessionStore: container.publicEntrySessionStore)
+        coordinator.publicEntryDestination = .welcome
+        container.authManager.startListening()
+        container.authManager.signOut()
+
+        coordinator.bootstrapOnboardingIfNeeded()
+
+        XCTAssertNil(coordinator.onboardingModel)
+        XCTAssertEqual(coordinator.effectiveRoute, .welcome)
+    }
+}

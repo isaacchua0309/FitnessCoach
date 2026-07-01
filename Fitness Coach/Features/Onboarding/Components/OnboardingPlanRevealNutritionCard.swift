@@ -15,6 +15,19 @@ struct OnboardingPlanRevealNutritionCard: View {
     let waterLabel: String
     let secondaryMacroRows: [OnboardingPlanRevealMetricRow]
 
+    @Environment(\.onboardingPlanRevealIsCompactHeight) private var isCompactHeight
+    @Environment(\.onboardingPlanRevealIsCompactWidth) private var isCompactWidth
+    @Environment(\.onboardingPlanRevealActionCardsAreSideBySide) private var actionCardsAreSideBySide
+    @Environment(\.onboardingPlanRevealContentDensity) private var contentDensity
+
+    private var usesStackedFuelMetrics: Bool {
+        isCompactWidth || actionCardsAreSideBySide || isCompactHeight
+    }
+
+    private var showsSecondaryMacros: Bool {
+        !secondaryMacroRows.isEmpty && !isCompactHeight && contentDensity != .tight
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             OnboardingPlanRevealSectionHeader(title: sectionTitle)
@@ -22,22 +35,13 @@ struct OnboardingPlanRevealNutritionCard: View {
             Text(explanationLine)
                 .font(.caption2)
                 .foregroundStyle(OnboardingTheme.secondaryText)
-                .lineLimit(2)
-                .minimumScaleFactor(0.85)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(contentDensity == .tight ? 1 : (isCompactHeight ? 1 : 2))
+                .minimumScaleFactor(0.75)
 
-            HStack(spacing: FormaTokens.Spacing.xs) {
-                fuelMetric(label: "Cal", value: calorieLabel)
-                fuelMetric(label: "Protein", value: proteinLabel)
-                fuelMetric(label: "Water", value: waterLabel)
-            }
+            fuelMetricsLayout
 
-            if !secondaryMacroRows.isEmpty {
-                HStack(spacing: FormaTokens.Spacing.xs) {
-                    ForEach(secondaryMacroRows) { row in
-                        fuelMetric(label: row.label, value: row.value)
-                    }
-                }
+            if showsSecondaryMacros {
+                fuelMetricsRow(secondaryMacroRows)
             }
         }
         .onboardingPlanRevealCardPadding()
@@ -48,16 +52,45 @@ struct OnboardingPlanRevealNutritionCard: View {
         .accessibilityLabel(accessibilityLabel)
     }
 
+    @ViewBuilder
+    private var fuelMetricsLayout: some View {
+        let rows = [
+            OnboardingPlanRevealMetricRow(label: "Cal", value: calorieLabel),
+            OnboardingPlanRevealMetricRow(label: "Protein", value: proteinLabel),
+            OnboardingPlanRevealMetricRow(label: "Water", value: waterLabel)
+        ]
+
+        if usesStackedFuelMetrics {
+            VStack(spacing: FormaTokens.Spacing.xs) {
+                ForEach(rows) { row in
+                    fuelMetric(label: row.label, value: row.value)
+                }
+            }
+        } else {
+            fuelMetricsRow(rows)
+        }
+    }
+
+    @ViewBuilder
+    private func fuelMetricsRow(_ rows: [OnboardingPlanRevealMetricRow]) -> some View {
+        HStack(spacing: FormaTokens.Spacing.xs) {
+            ForEach(rows) { row in
+                fuelMetric(label: row.label, value: row.value)
+            }
+        }
+    }
+
     private func fuelMetric(label: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: OnboardingLayout.savePlanFooterBottomInset) {
             Text(label)
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(OnboardingTheme.tertiaryText)
                 .lineLimit(1)
+                .minimumScaleFactor(0.75)
             Text(value)
                 .font(FormaTokens.Typography.caption.weight(.semibold))
                 .foregroundStyle(OnboardingTheme.primaryText)
-                .minimumScaleFactor(0.8)
+                .minimumScaleFactor(0.75)
                 .lineLimit(1)
         }
         .padding(.horizontal, FormaTokens.Spacing.xs)

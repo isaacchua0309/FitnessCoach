@@ -23,7 +23,7 @@ enum FormaModelContainer {
             isStoredInMemoryOnly: inMemory
         )
         return try ModelContainer(
-            for: FormaSchemaV3.self,
+            for: schema,
             migrationPlan: FormaMigrationPlan.self,
             configurations: [configuration]
         )
