@@ -248,14 +248,20 @@ final class CoachModel: ObservableObject {
                 return .message("")
             }
             traceOutcome = "aiServiceError"
+            var errorFields: [String: String] = [
+                "error": String(describing: error),
+                "userMessage": error.userMessage
+            ]
+            #if DEBUG
+            if case .backendUnavailable = error {
+                errorFields["debugHint"] = "See OSLog subsystem Forma category CoachAI and PipelineTrace for this traceId"
+            }
+            #endif
             FormaPipelineTracer.logError(
                 traceId: traceId,
                 stage: .error,
                 message: "AIService error surfaced to user",
-                fields: [
-                    "error": String(describing: error),
-                    "userMessage": error.userMessage
-                ]
+                fields: errorFields
             )
             return .message(error.userMessage)
         } catch {

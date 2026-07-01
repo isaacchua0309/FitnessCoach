@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import OSLog
 
 protocol AIServiceProtocol: Sendable {
     func classifyCoachIntent(
@@ -36,6 +37,9 @@ final class AIService: AIServiceProtocol {
 
     private let llmClient: LLMClient
     private let commandParser: AICommandParser
+    #if DEBUG
+    private static let debugLogger = Logger(subsystem: "Forma", category: "CoachAI")
+    #endif
 
     init(llmClient: LLMClient) {
         self.llmClient = llmClient
@@ -185,7 +189,15 @@ final class AIService: AIServiceProtocol {
                     "llmError": String(describing: error)
                 ]
             )
+            #if DEBUG
+            let mapped = AICommandParser.map(error)
+            Self.debugLogger.error(
+                "Coach AI backend failure [\(method, privacy: .public)]: llm=\(String(describing: error), privacy: .public) mapped=\(String(describing: mapped), privacy: .public)"
+            )
+            throw mapped
+            #else
             throw AICommandParser.map(error)
+            #endif
         } catch let error as AIServiceError {
             let durationMs = Int(Date().timeIntervalSince(started) * 1_000)
             FormaPipelineTracer.logError(

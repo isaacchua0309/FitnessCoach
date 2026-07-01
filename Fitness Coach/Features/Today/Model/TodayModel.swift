@@ -19,8 +19,12 @@ final class TodayModel: ObservableObject {
     private let dailyReviewReader: any DailyReviewReading
     private let userProfileReader: any UserProfileReading
     private let healthActivityQuery: HealthActivityQueryService
+    private let hydrationContextProvider: () -> TodayHydrationContext?
+    private let authStateProvider: () -> AuthState
 
     private var activityContext: TodayActivityContext = .default
+    private var boundHydrationContext: TodayHydrationContext?
+    private var activeLoadTask: Task<Void, Never>?
 
     init(
         dailyLogReader: any DailyLogReading,
@@ -28,7 +32,9 @@ final class TodayModel: ObservableObject {
         weightLogReader: any WeightLogReading,
         dailyReviewReader: any DailyReviewReading,
         userProfileReader: any UserProfileReading,
-        healthActivityQuery: HealthActivityQueryService
+        healthActivityQuery: HealthActivityQueryService,
+        hydrationContextProvider: @escaping () -> TodayHydrationContext? = { nil },
+        authStateProvider: @escaping () -> AuthState = { .unknown }
     ) {
         self.dailyLogReader = dailyLogReader
         self.foodLogReader = foodLogReader
@@ -36,44 +42,134 @@ final class TodayModel: ObservableObject {
         self.dailyReviewReader = dailyReviewReader
         self.userProfileReader = userProfileReader
         self.healthActivityQuery = healthActivityQuery
+        self.hydrationContextProvider = hydrationContextProvider
+        self.authStateProvider = authStateProvider
+    }
+
+    // MARK: Session lifecycle
+
+    func resetForUserContextChange() {
+        activeLoadTask?.cancel()
+        activeLoadTask = nil
+        boundHydrationContext = nil
+        viewState = .loading
     }
 
     // MARK: Loading
 
     func loadToday(activityContext: TodayActivityContext = .default) async {
         self.activityContext = activityContext
-        if !viewState.isLoaded {
-            viewState = .loading
-        }
-        do {
-            try await loadDashboard()
-        } catch ServiceError.missingUserProfile {
-            viewState = .empty
-        } catch {
-            if !viewState.isLoaded {
-                viewState = .error(TodayLoadErrorFormatting.message(for: error, isRefresh: false))
-            }
-        }
+        await performLoad(isRefresh: false)
     }
 
     func refresh(activityContext: TodayActivityContext? = nil) async {
         if let activityContext {
             self.activityContext = activityContext
         }
-        let previousState = viewState
-        do {
-            try await loadDashboard()
-        } catch ServiceError.missingUserProfile {
-            viewState = .empty
-        } catch {
-            guard case .loaded = previousState else {
-                viewState = .error(TodayLoadErrorFormatting.message(for: error, isRefresh: true))
-                return
+
+        guard hydrationContextProvider() != nil else {
+            if boundHydrationContext != nil {
+                resetForUserContextChange()
+            } else if !viewState.isLoaded {
+                viewState = .loading
             }
+            return
         }
+
+        guard viewState.isLoaded else {
+            await loadToday(activityContext: self.activityContext)
+            return
+        }
+
+        await performLoad(isRefresh: true)
     }
 
     // MARK: State Building
+
+    private func performLoad(isRefresh: Bool) async {
+        guard let context = hydrationContextProvider() else {
+            let profileOwnerUID = try? userProfileReader.getCurrentProfile()?.ownerUID
+            TodayHydrationDebugLogger.deferred(
+                authState: authStateProvider(),
+                profileOwnerUID: profileOwnerUID,
+                reason: "signed_in_profile_context_unresolved"
+            )
+            if boundHydrationContext != nil {
+                resetForUserContextChange()
+            } else if !viewState.isLoaded {
+                viewState = .loading
+            }
+            return
+        }
+
+        if boundHydrationContext?.sessionUID != context.sessionUID {
+            if let previousUID = boundHydrationContext?.sessionUID {
+                TodayHydrationDebugLogger.sessionRebound(from: previousUID, to: context.sessionUID)
+            }
+            resetForUserContextChange()
+            boundHydrationContext = context
+        } else {
+            boundHydrationContext = context
+        }
+
+        activeLoadTask?.cancel()
+
+        let task = Task { @MainActor in
+            TodayHydrationDebugLogger.loadStarted(
+                context: context,
+                isRefresh: isRefresh,
+                viewState: viewStateLabel
+            )
+
+            if !isRefresh, !viewState.isLoaded {
+                viewState = .loading
+            }
+
+            do {
+                try Task.checkCancellation()
+                try await loadDashboard()
+                guard !Task.isCancelled else { return }
+                TodayHydrationDebugLogger.loadSucceeded(context: context, isRefresh: isRefresh)
+            } catch is CancellationError {
+                return
+            } catch ServiceError.missingUserProfile {
+                guard !Task.isCancelled else { return }
+                viewState = .empty
+            } catch {
+                guard !Task.isCancelled else { return }
+                if isRefresh, viewState.isLoaded {
+                    TodayHydrationDebugLogger.loadFailed(
+                        context: context,
+                        isRefresh: true,
+                        keptStaleLoadedState: true,
+                        error: error
+                    )
+                    return
+                }
+                viewState = .error(
+                    TodayLoadErrorFormatting.message(for: error, isRefresh: isRefresh)
+                )
+                TodayHydrationDebugLogger.loadFailed(
+                    context: context,
+                    isRefresh: isRefresh,
+                    keptStaleLoadedState: false,
+                    error: error
+                )
+            }
+        }
+
+        activeLoadTask = task
+        await task.value
+    }
+
+    private var viewStateLabel: String {
+        switch viewState {
+        case .loading: return "loading"
+        case .loaded: return "loaded"
+        case .empty: return "empty"
+        case .error: return "error"
+        }
+    }
 
     private func loadDashboard() async throws {
         let dailyLog = try dailyLogReader.getTodayLog()

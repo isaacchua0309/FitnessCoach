@@ -14,6 +14,7 @@ struct TodayView: View {
     @EnvironmentObject private var trainingInsightsStore: TrainingInsightsStore
     @EnvironmentObject private var trainingInsightsModel: TrainingInsightsModel
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
+    @EnvironmentObject private var authManager: AuthManager
 
     private let healthActivityQuery: HealthActivityQueryService
 
@@ -65,6 +66,11 @@ struct TodayView: View {
                 .task {
                     await trainingInsightsStore.refresh()
                     await model.loadToday(activityContext: currentActivityContext)
+                }
+                .onChange(of: authManager.authState) { _, _ in
+                    Task<Void, Never> {
+                        await model.loadToday(activityContext: currentActivityContext)
+                    }
                 }
                 .onChange(of: refreshCenter.refreshToken) { _, _ in
                     Task<Void, Never> {
@@ -261,6 +267,7 @@ struct TodayView: View {
         healthActivityQuery: container.healthActivityQueryService
     )
     .environmentObject(container.refreshCenter)
+    .environmentObject(container.authManager)
     .environmentObject(container.trainingInsightsStore)
     .environmentObject(container.trainingInsightsModel)
     .environmentObject(container.themeStore)

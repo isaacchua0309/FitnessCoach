@@ -130,9 +130,7 @@ struct MainTabView: View {
 
     private func bootstrapAfterEntry() async {
         coachModel.refreshTodayContext()
-        await todayModel.loadToday()
         await planModel.refresh()
-        container.actionCenter.notifyDataChanged()
     }
 
     // MARK: - Tab selection

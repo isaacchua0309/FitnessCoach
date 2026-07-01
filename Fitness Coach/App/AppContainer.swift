@@ -246,7 +246,17 @@ final class AppContainer {
             weightLogReader: weightLogService,
             dailyReviewReader: reviewService,
             userProfileReader: userProfileService,
-            healthActivityQuery: healthActivityQueryService
+            healthActivityQuery: healthActivityQueryService,
+            hydrationContextProvider: { [weak self] in
+                guard let self else { return nil }
+                return TodayHydrationGate.resolve(
+                    authState: self.authManager.authState,
+                    profile: try? self.userProfileService.getCurrentProfile()
+                )
+            },
+            authStateProvider: { [weak self] in
+                self?.authManager.authState ?? .unknown
+            }
         )
     }
 
