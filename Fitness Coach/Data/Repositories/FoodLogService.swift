@@ -22,30 +22,15 @@ final class FoodLogService {
     // MARK: Create
 
     func addFoodEntry(_ draft: FoodDraft, date: Date) throws -> FoodEntry {
-        try validate(draft)
+        try addFoodEntry(FoodLogDraftMapper.fromLegacyDraft(draft), date: date)
+    }
+
+    func addFoodEntry(_ meal: FoodLogDraft, date: Date) throws -> FoodEntry {
+        try validate(meal)
 
         let log = try dailyLogService.getOrCreateLogEntity(for: date)
         let now = Date()
-        let model = FoodEntry(
-            id: UUID(),
-            dailyLogId: log.id,
-            mealType: draft.mealType,
-            name: draft.name,
-            quantity: draft.quantity,
-            unit: draft.unit,
-            calories: draft.calories,
-            protein: draft.protein,
-            carbs: draft.carbs,
-            fat: draft.fat,
-            fiber: draft.fiber,
-            sodium: draft.sodium,
-            source: draft.source,
-            confidence: draft.confidence,
-            imageUrl: draft.imageUrl,
-            notes: draft.notes,
-            createdAt: now,
-            updatedAt: now
-        )
+        let model = FoodLogDraftMapper.toFoodEntry(meal, dailyLogId: log.id, createdAt: now, updatedAt: now)
 
         let entity = FoodEntryEntity(model: model)
         entity.dailyLog = log
@@ -91,6 +76,11 @@ final class FoodLogService {
         if let confidence = update.confidence { entity.confidenceRawValue = confidence.rawValue }
         if let imageUrl = update.imageUrl { entity.imageUrl = imageUrl }
         if let notes = update.notes { entity.notes = notes }
+        if let components = update.components {
+            entity.componentsJSON = components.count > 1
+                ? encodeComponents(components)
+                : nil
+        }
 
         entity.updatedAt = Date()
         try save()
@@ -148,13 +138,29 @@ final class FoodLogService {
         return try store.fetch(descriptor).first
     }
 
-    private func validate(_ draft: FoodDraft) throws {
-        let trimmed = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func validate(_ meal: FoodLogDraft) throws {
+        let trimmed = meal.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw ServiceError.invalidInput("Food name cannot be empty.") }
-        guard draft.calories >= 0 else { throw ServiceError.invalidInput("Calories cannot be negative.") }
-        guard draft.protein >= 0, draft.carbs >= 0, draft.fat >= 0 else {
+        guard !meal.components.isEmpty else {
+            throw ServiceError.invalidInput("At least one food component is required.")
+        }
+        guard meal.totalCalories >= 0 else { throw ServiceError.invalidInput("Calories cannot be negative.") }
+        guard meal.totalProtein >= 0, meal.totalCarbs >= 0, meal.totalFat >= 0 else {
             throw ServiceError.invalidInput("Macros cannot be negative.")
         }
+        for component in meal.components {
+            guard component.calories >= 0 else {
+                throw ServiceError.invalidInput("Calories cannot be negative.")
+            }
+            guard component.protein >= 0, component.carbs >= 0, component.fat >= 0 else {
+                throw ServiceError.invalidInput("Macros cannot be negative.")
+            }
+        }
+    }
+
+    private func encodeComponents(_ components: [FoodComponent]) -> String? {
+        guard let data = try? JSONEncoder().encode(components) else { return nil }
+        return String(data: data, encoding: .utf8)
     }
 
     private func save() throws {

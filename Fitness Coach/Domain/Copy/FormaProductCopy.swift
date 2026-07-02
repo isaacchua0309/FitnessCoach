@@ -1934,6 +1934,7 @@ enum FormaProductCopy {
         static let estimateSection = "Estimate"
         static let whatYouAteSection = "What you ate"
         static let portionSection = "Portion"
+        static let componentsSection = "Components"
         static let nutritionSection = "Nutrition"
         static let advancedSection = "More details"
 

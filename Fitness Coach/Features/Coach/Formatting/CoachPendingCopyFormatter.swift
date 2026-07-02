@@ -23,27 +23,52 @@ enum CoachPendingCopyFormatter {
     // MARK: - Food
 
     static func foodPendingChatMessage(
+        mealDraft: FoodLogDraft,
+        confidence: AIConfidence,
+        originalText: String,
+        sanityWarning: String? = nil
+    ) -> String {
+        guard mealDraft.hasUsableNutritionEstimate else {
+            return "Estimating nutrition for \(naturalFoodName(mealDraft.displayName))."
+        }
+
+        let tone = foodCopyTone(confidence: confidence, mealDraft: mealDraft, originalText: originalText)
+        let headline = foodHeadline(mealDraft: mealDraft, tone: tone)
+        let nutritionLine = chatNutritionLine(
+            for: mealDraft,
+            style: tone == .highConfidenceSimple ? .compact : .full
+        )
+        let componentLines = componentSummaryLines(for: mealDraft)
+        let footer = foodFooter(tone: tone, sanityWarning: sanityWarning)
+
+        var sections = [headline, nutritionLine]
+        if !componentLines.isEmpty {
+            sections.append("")
+            sections.append(contentsOf: componentLines)
+        }
+        if let sanityWarning, !sanityWarning.isEmpty {
+            sections.append("")
+            sections.append(sanityWarning)
+        }
+        sections.append("")
+        sections.append(footer)
+        return sections.joined(separator: "\n")
+    }
+
+    static func foodPendingChatMessage(
         draft: FoodDraft,
         confidence: AIConfidence,
         originalText: String
     ) -> String {
-        guard draft.hasUsableNutritionEstimate else {
-            return "Estimating nutrition for \(naturalFoodName(draft.name))."
-        }
-
-        let tone = foodCopyTone(confidence: confidence, draft: draft, originalText: originalText)
-        let headline = foodHeadline(draft: draft, tone: tone)
-        let nutritionLine = chatNutritionLine(
-            for: draft,
-            style: tone == .highConfidenceSimple ? .compact : .full
+        foodPendingChatMessage(
+            mealDraft: FoodLogDraftMapper.fromLegacyDraft(draft),
+            confidence: confidence,
+            originalText: originalText
         )
-        let footer = foodFooter(tone: tone)
-
-        return [headline, nutritionLine, "", footer].joined(separator: "\n")
     }
 
-    static func foodHeadline(draft: FoodDraft, tone: FoodCopyTone) -> String {
-        let name = naturalFoodName(draft.name)
+    static func foodHeadline(mealDraft: FoodLogDraft, tone: FoodCopyTone) -> String {
+        let name = naturalFoodName(mealDraft.displayName)
         switch tone {
         case .vague:
             return "Estimated a generic \(name):"
@@ -52,21 +77,32 @@ enum CoachPendingCopyFormatter {
         }
     }
 
-    static func chatNutritionLine(for draft: FoodDraft, style: NutritionLineStyle) -> String {
-        let calories = "\(draft.calories) kcal"
-        let protein = "\(FoodEntryFormFormatter.formatMacro(draft.protein))g protein"
+    static func foodHeadline(draft: FoodDraft, tone: FoodCopyTone) -> String {
+        foodHeadline(mealDraft: FoodLogDraftMapper.fromLegacyDraft(draft), tone: tone)
+    }
+
+    static func chatNutritionLine(for mealDraft: FoodLogDraft, style: NutritionLineStyle) -> String {
+        let calories = "\(mealDraft.totalCalories) kcal"
+        let protein = "\(FoodEntryFormFormatter.formatMacro(mealDraft.totalProtein))g protein"
 
         switch style {
         case .compact:
             return "\(calories) · \(protein)"
         case .full:
-            let carbs = "\(FoodEntryFormFormatter.formatMacro(draft.carbs))g carbs"
-            let fat = "\(FoodEntryFormFormatter.formatMacro(draft.fat))g fat"
+            let carbs = "\(FoodEntryFormFormatter.formatMacro(mealDraft.totalCarbs))g carbs"
+            let fat = "\(FoodEntryFormFormatter.formatMacro(mealDraft.totalFat))g fat"
             return "\(calories) · \(protein) · \(carbs) · \(fat)"
         }
     }
 
-    static func foodFooter(tone: FoodCopyTone) -> String {
+    static func chatNutritionLine(for draft: FoodDraft, style: NutritionLineStyle) -> String {
+        chatNutritionLine(for: FoodLogDraftMapper.fromLegacyDraft(draft), style: style)
+    }
+
+    static func foodFooter(tone: FoodCopyTone, sanityWarning: String? = nil) -> String {
+        if sanityWarning != nil {
+            return FormaProductCopy.Coach.foodEditPortionFooter
+        }
         switch tone {
         case .vague:
             return FormaProductCopy.Coach.foodEditIngredientsFooter
@@ -79,10 +115,10 @@ enum CoachPendingCopyFormatter {
 
     static func foodCopyTone(
         confidence: AIConfidence,
-        draft: FoodDraft,
+        mealDraft: FoodLogDraft,
         originalText: String
     ) -> FoodCopyTone {
-        if isVagueFood(confidence: confidence, draft: draft, originalText: originalText) {
+        if isVagueFood(confidence: confidence, mealDraft: mealDraft, originalText: originalText) {
             return .vague
         }
         if confidence == .high {
@@ -91,15 +127,27 @@ enum CoachPendingCopyFormatter {
         return .standard
     }
 
+    static func foodCopyTone(
+        confidence: AIConfidence,
+        draft: FoodDraft,
+        originalText: String
+    ) -> FoodCopyTone {
+        foodCopyTone(
+            confidence: confidence,
+            mealDraft: FoodLogDraftMapper.fromLegacyDraft(draft),
+            originalText: originalText
+        )
+    }
+
     // MARK: - Private
 
     private static func isVagueFood(
         confidence: AIConfidence,
-        draft: FoodDraft,
+        mealDraft: FoodLogDraft,
         originalText: String
     ) -> Bool {
         if confidence == .low { return true }
-        let combined = "\(originalText) \(draft.name)".lowercased()
+        let combined = "\(originalText) \(mealDraft.displayName)".lowercased()
         let vagueMarkers = [
             "mysterious", "generic", "unknown",
             "not sure", "unsure", "leftovers", "something"
@@ -107,10 +155,15 @@ enum CoachPendingCopyFormatter {
         if vagueMarkers.contains(where: { combined.contains($0) }) {
             return true
         }
-        if combined.contains("bowl") && !combined.contains("rice bowl") {
+        if combined.contains("bowl") && mealDraft.components.count <= 1 && !combined.contains("rice bowl") {
             return true
         }
         return false
+    }
+
+    private static func componentSummaryLines(for mealDraft: FoodLogDraft) -> [String] {
+        guard mealDraft.isMultiComponent else { return [] }
+        return mealDraft.components.map(FoodComponentDisplayFormatter.summaryLine)
     }
 
     private static func naturalFoodName(_ name: String) -> String {

@@ -94,13 +94,71 @@ final class CoachPendingCopyTests: XCTestCase {
         XCTAssertFalse(message.contains(FormaProductCopy.Coach.pendingBarHint))
     }
 
-    func testWeightPendingIsSingleLine() {
-        let message = CoachResponseBuilder.weightPending(
-            WeightDraft(weightKg: 75.5, note: nil),
-            assistantMessage: nil
+    func testUnderEstimatedMealShowsSanityWarningInChatCopy() {
+        let message = CoachResponseBuilder.aiFoodEstimatePending(
+            mealDraft: FoodLogDraft(
+                displayName: "Chicken barley bowl",
+                components: [
+                    FoodComponent(
+                        name: "chicken",
+                        quantity: 150,
+                        unit: "g",
+                        calories: 430,
+                        protein: 38,
+                        carbs: 42,
+                        fat: 9
+                    )
+                ],
+                confidence: .low,
+                source: .aiTextEstimate
+            ),
+            confidence: .low,
+            originalText: "log this bowl",
+            sanityWarning: NutritionSanityResult.underEstimatedUserMessage
         )
 
-        XCTAssertEqual(message, "Log 75.50 kg?")
-        XCTAssertFalse(message.contains(FormaProductCopy.Coach.pendingBarHint))
+        XCTAssertTrue(message.contains(NutritionSanityResult.underEstimatedUserMessage))
+        XCTAssertFalse(message.contains(FormaProductCopy.Coach.foodConfirmBelowFooter))
+    }
+
+    func testMultiComponentPendingCopyListsIngredients() {
+        let meal = FoodLogDraft(
+            displayName: "Chicken barley bowl",
+            components: [
+                FoodComponent(
+                    name: "chicken breast",
+                    quantity: 150,
+                    unit: "g",
+                    calories: 248,
+                    protein: 46,
+                    carbs: 0,
+                    fat: 5,
+                    sourceText: "150 g cooked chicken breast"
+                ),
+                FoodComponent(
+                    name: "barley rice",
+                    quantity: 150,
+                    unit: "g",
+                    calories: 165,
+                    protein: 4,
+                    carbs: 34,
+                    fat: 1,
+                    sourceText: "150 g cooked barley rice"
+                )
+            ],
+            confidence: .medium,
+            source: .aiTextEstimate
+        )
+
+        let message = CoachResponseBuilder.aiFoodEstimatePending(
+            mealDraft: meal,
+            confidence: .medium,
+            originalText: "log this bowl"
+        )
+
+        XCTAssertTrue(message.contains("413 kcal"))
+        XCTAssertTrue(message.contains("Chicken breast — 150g"))
+        XCTAssertTrue(message.contains("Barley rice — 150g"))
+        XCTAssertFalse(message.contains(FormaProductCopy.Coach.foodEditIngredientsFooter))
     }
 }

@@ -60,9 +60,24 @@ enum FormaSchemaV3: VersionedSchema {
     }
 }
 
+enum FormaSchemaV4: VersionedSchema {
+    static var versionIdentifier = Schema.Version(4, 0, 0)
+
+    static var models: [any PersistentModel.Type] {
+        [
+            UserProfileEntity.self,
+            DailyLogEntity.self,
+            FoodEntryEntity.self,
+            WaterEntryEntity.self,
+            WeightEntryEntity.self,
+            DailyReviewEntity.self
+        ]
+    }
+}
+
 enum FormaMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
-        [FormaSchemaV1.self, FormaSchemaV2.self, FormaSchemaV3.self]
+        [FormaSchemaV1.self, FormaSchemaV2.self, FormaSchemaV3.self, FormaSchemaV4.self]
     }
 
     static var stages: [MigrationStage] {
@@ -74,6 +89,10 @@ enum FormaMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(
                 fromVersion: FormaSchemaV2.self,
                 toVersion: FormaSchemaV3.self
+            ),
+            MigrationStage.lightweight(
+                fromVersion: FormaSchemaV3.self,
+                toVersion: FormaSchemaV4.self
             )
         ]
     }

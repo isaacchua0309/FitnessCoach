@@ -37,12 +37,20 @@ enum AIFoodConfirmationFormatter {
         }
     }
 
-    static func macroSummary(for draft: FoodDraft) -> String {
+    static func macroSummary(for meal: FoodLogDraft) -> String {
         FoodEntryFormFormatter.macroLine(
-            protein: draft.protein,
-            carbs: draft.carbs,
-            fat: draft.fat
+            protein: meal.totalProtein,
+            carbs: meal.totalCarbs,
+            fat: meal.totalFat
         )
+    }
+
+    static func macroSummary(for draft: FoodDraft) -> String {
+        macroSummary(for: FoodLogDraftMapper.fromLegacyDraft(draft))
+    }
+
+    static func totalCalories(for meals: [FoodLogDraft]) -> Int {
+        meals.reduce(0) { $0 + $1.totalCalories }
     }
 
     static func totalCalories(for drafts: [FoodDraft]) -> Int {

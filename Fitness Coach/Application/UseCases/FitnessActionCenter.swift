@@ -61,7 +61,12 @@ final class FitnessActionCenter {
 
     @discardableResult
     func logFood(_ draft: FoodDraft, date: Date = Date()) throws -> FoodEntry {
-        let entry = try foodLogService.addFoodEntry(draft, date: date)
+        try logFood(FoodLogDraftMapper.fromLegacyDraft(draft), date: date)
+    }
+
+    @discardableResult
+    func logFood(_ meal: FoodLogDraft, date: Date = Date()) throws -> FoodEntry {
+        let entry = try foodLogService.addFoodEntry(meal, date: date)
         notifyDataChanged()
         return entry
     }

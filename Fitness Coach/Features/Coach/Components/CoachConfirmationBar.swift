@@ -129,24 +129,23 @@ private struct CoachConfirmationSecondaryButtonStyle: ButtonStyle {
                 AIFoodConfirmationDraft(
                     originalText: "log chicken rice",
                     assistantMessage: nil,
-                    foodDrafts: [
-                        FoodDraft(
-                            mealType: nil,
-                            name: "Chicken rice",
-                            quantity: 1,
-                            unit: "plate",
-                            calories: 650,
-                            protein: 35,
-                            carbs: 75,
-                            fat: 20,
-                            fiber: nil,
-                            sodium: nil,
-                            source: .aiTextEstimate,
-                            confidence: .medium,
-                            imageUrl: nil,
-                            notes: nil
-                        )
-                    ],
+                    mealDraft: FoodLogDraft(
+                        displayName: "Chicken rice",
+                        components: [
+                            FoodComponent(
+                                name: "Chicken rice",
+                                quantity: 1,
+                                unit: "plate",
+                                calories: 650,
+                                protein: 35,
+                                carbs: 75,
+                                fat: 20,
+                                confidence: .medium
+                            )
+                        ],
+                        confidence: .medium,
+                        source: .aiTextEstimate
+                    ),
                     confidence: .medium,
                     requiresConfirmation: true
                 )

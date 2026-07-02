@@ -10,10 +10,7 @@ import SwiftData
 
 enum FormaModelContainer {
 
-    /// Active schema (v3). Legacy manual workout tables (`WorkoutEntryEntity`,
-    /// `ExerciseSetEntity`) are removed via `FormaMigrationPlan`. Training activity
-    /// reads from Apple Health only. See `Docs/PersistenceCleanupNotes.md`.
-    static let schema = Schema(versionedSchema: FormaSchemaV3.self)
+    static let schema = Schema(versionedSchema: FormaSchemaV4.self)
 
     static func makeContainer(inMemory: Bool = false) throws -> ModelContainer {
         if !inMemory {

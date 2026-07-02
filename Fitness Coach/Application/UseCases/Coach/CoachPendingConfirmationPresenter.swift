@@ -16,20 +16,23 @@ enum CoachPendingConfirmationPresenter {
     static func presentFoodPending(
         originalText: String,
         assistantMessage: String?,
-        foodDraft: FoodDraft,
-        confidence: AIConfidence
+        mealDraft: FoodLogDraft,
+        confidence: AIConfidence,
+        sanityWarning: String? = nil
     ) -> CoachActionResult {
         let draft = AIFoodConfirmationDraft(
             originalText: originalText,
             assistantMessage: assistantMessage,
-            foodDrafts: [foodDraft],
+            mealDraft: mealDraft,
             confidence: confidence,
-            requiresConfirmation: true
+            requiresConfirmation: true,
+            sanityWarning: sanityWarning
         )
         let message = CoachResponseBuilder.aiFoodEstimatePending(
-            draft: foodDraft,
+            mealDraft: mealDraft,
             confidence: confidence,
-            originalText: originalText
+            originalText: originalText,
+            sanityWarning: sanityWarning
         )
         return .pending(.food(draft), message: message)
     }
@@ -58,12 +61,19 @@ enum CoachPendingConfirmationPresenter {
         _ request: LocalFoodEstimateRequest
     ) -> CoachActionResult {
         let confidence: AIConfidence = request.estimate.confidence == .high ? .high : .medium
+        let mealDraft = FoodLogDraftMapper.fromLegacyDraft(request.estimate.draft)
+        let sanity = NutritionSanityValidator.validate(
+            meal: mealDraft,
+            prompt: request.originalText,
+            confidence: confidence
+        )
         let draft = AIFoodConfirmationDraft(
             originalText: request.originalText,
             assistantMessage: request.estimate.explanation,
-            foodDrafts: [request.estimate.draft],
-            confidence: confidence,
-            requiresConfirmation: true
+            mealDraft: sanity.mealDraft,
+            confidence: sanity.confidence,
+            requiresConfirmation: true,
+            sanityWarning: sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage
         )
         return .pending(
             .food(draft),

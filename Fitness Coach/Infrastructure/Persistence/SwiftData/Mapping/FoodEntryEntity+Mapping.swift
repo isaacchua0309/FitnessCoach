@@ -7,6 +7,26 @@
 
 import Foundation
 
+private enum FoodComponentCoding {
+    static let encoder = JSONEncoder()
+    static let decoder = JSONDecoder()
+
+    static func encode(_ components: [FoodComponent]) -> String? {
+        guard let data = try? encoder.encode(components) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    static func decode(_ json: String?) -> [FoodComponent]? {
+        guard let json,
+              let data = json.data(using: .utf8),
+              let components = try? decoder.decode([FoodComponent].self, from: data),
+              !components.isEmpty else {
+            return nil
+        }
+        return components
+    }
+}
+
 extension FoodEntryEntity {
 
     convenience init(model: FoodEntry) {
@@ -27,6 +47,9 @@ extension FoodEntryEntity {
             confidenceRawValue: model.confidence.rawValue,
             imageUrl: model.imageUrl,
             notes: model.notes,
+            componentsJSON: model.isMultiComponent
+                ? FoodComponentCoding.encode(model.components ?? [])
+                : nil,
             createdAt: model.createdAt,
             updatedAt: model.updatedAt
         )
@@ -50,6 +73,7 @@ extension FoodEntryEntity {
             confidence: ConfidenceLevel(rawValue: confidenceRawValue) ?? .low,
             imageUrl: imageUrl,
             notes: notes,
+            components: FoodComponentCoding.decode(componentsJSON),
             createdAt: createdAt,
             updatedAt: updatedAt
         )

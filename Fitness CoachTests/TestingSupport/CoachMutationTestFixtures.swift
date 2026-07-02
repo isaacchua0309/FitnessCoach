@@ -62,24 +62,25 @@ enum CoachMutationTestFixtures {
         AIFoodConfirmationDraft(
             originalText: "log chicken",
             assistantMessage: nil,
-            foodDrafts: [
-                FoodDraft(
-                    mealType: .lunch,
-                    name: "Chicken breast",
-                    quantity: 200,
-                    unit: "g",
-                    calories: 330,
-                    protein: 62,
-                    carbs: 0,
-                    fat: 7,
-                    fiber: nil,
-                    sodium: nil,
-                    source: .aiTextEstimate,
-                    confidence: .high,
-                    imageUrl: nil,
-                    notes: nil
-                )
-            ],
+            mealDraft: FoodLogDraft(
+                displayName: "Chicken breast",
+                mealType: .lunch,
+                components: [
+                    FoodComponent(
+                        name: "Chicken breast",
+                        quantity: 200,
+                        unit: "g",
+                        calories: 330,
+                        protein: 62,
+                        carbs: 0,
+                        fat: 7,
+                        confidence: .high,
+                        sourceText: "log chicken"
+                    )
+                ],
+                confidence: .high,
+                source: .aiTextEstimate
+            ),
             confidence: .high,
             requiresConfirmation: true
         )

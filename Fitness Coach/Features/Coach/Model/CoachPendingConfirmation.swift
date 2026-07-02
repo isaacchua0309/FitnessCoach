@@ -29,11 +29,17 @@ enum CoachPendingConfirmation: Equatable {
     var summaryLine: String {
         switch self {
         case .food(let draft):
-            guard let food = draft.primaryFoodDraft else { return "Food entry" }
-            if food.hasUsableNutritionEstimate {
-                return "\(food.name) · \(food.calories) kcal · \(AIFoodConfirmationFormatter.macroSummary(for: food))"
+            let meal = draft.primaryMealDraft
+            var summary: String
+            if meal.hasUsableNutritionEstimate {
+                summary = "\(meal.displayName) · \(meal.totalCalories) kcal · \(AIFoodConfirmationFormatter.macroSummary(for: meal))"
+            } else {
+                summary = meal.displayName
             }
-            return food.name
+            if let sanityWarning = draft.sanityWarning, !sanityWarning.isEmpty {
+                summary += "\n\(sanityWarning)"
+            }
+            return summary
         case .water(let draft, _):
             return "\(draft.amountMl) ml water"
         case .weight(let draft, _):

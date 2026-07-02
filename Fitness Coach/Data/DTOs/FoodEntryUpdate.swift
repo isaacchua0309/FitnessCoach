@@ -25,4 +25,5 @@ struct FoodEntryUpdate: Codable, Equatable, Sendable {
     var confidence: ConfidenceLevel?
     var imageUrl: String?
     var notes: String?
+    var components: [FoodComponent]? = nil
 }

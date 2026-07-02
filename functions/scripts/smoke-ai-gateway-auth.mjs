@@ -76,8 +76,12 @@ const scenarios = [
       context: sampleContext,
     },
     assert(json) {
-      if (!Array.isArray(json?.foodDrafts) || json.foodDrafts.length === 0) {
-        throw new Error("Missing foodDrafts");
+      if (
+        !Array.isArray(json?.foodLogDrafts) || json.foodLogDrafts.length === 0
+      ) && (
+        !Array.isArray(json?.foodDrafts) || json.foodDrafts.length === 0
+      ) {
+        throw new Error("Missing foodLogDrafts/foodDrafts");
       }
       if (typeof json.confidence !== "string") {
         throw new Error("Missing confidence");
@@ -233,8 +237,13 @@ function summarizeSuccess(name, json) {
   case "Coach classify":
     return `intent=${json.intentResult?.intent}, confidence=${json.intentResult?.confidence}`;
   case "Food estimate":
-    return `drafts=${json.foodDrafts?.length}, confidence=${json.confidence}, ` +
-      `first=${json.foodDrafts?.[0]?.name} ~${json.foodDrafts?.[0]?.calories} kcal`;
+    const meal = json.foodLogDrafts?.[0];
+    const legacy = json.foodDrafts?.[0];
+    const name = meal?.displayName ?? legacy?.name;
+    const calories = meal?.components?.reduce((sum, item) => sum + (item.calories ?? 0), 0)
+      ?? legacy?.calories;
+    return `logDrafts=${json.foodLogDrafts?.length}, drafts=${json.foodDrafts?.length}, ` +
+      `confidence=${json.confidence}, first=${name} ~${calories} kcal`;
   case "Meal advice":
     return `message=${String(json.response?.message).slice(0, 120)}…`;
   case "Parse workout (optional)":

@@ -394,16 +394,15 @@ final class CoachModel: ObservableObject {
         isShowingFoodEditSheet = false
     }
 
-    func saveFoodEdit(_ formState: FoodEntryFormState) {
-        guard case .food(var draft) = pendingConfirmation,
-              let originalDraft = draft.primaryFoodDraft else {
+    func saveFoodEdit(_ formState: FoodLogEditFormState) {
+        guard case .food(var draft) = pendingConfirmation else {
             foodEditErrorMessage = "I could not prepare that estimate for editing."
             return
         }
 
         do {
-            let updated = try formState.makeAIFoodDraft(original: originalDraft)
-            draft.foodDrafts = [updated]
+            let updated = try formState.makeMealDraft(original: draft.primaryMealDraft)
+            draft.mealDraft = updated
             pendingConfirmation = .food(draft)
             foodEditErrorMessage = nil
             isShowingFoodEditSheet = false

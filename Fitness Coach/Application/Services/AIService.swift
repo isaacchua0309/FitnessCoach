@@ -67,13 +67,46 @@ final class AIService: AIServiceProtocol {
         context: AIContext,
         imageJPEGData: Data? = nil
     ) async throws -> AIFoodEstimateResponse {
-        let request = AIFoodEstimateRequest(
-            text: prompt,
-            context: context,
-            imageJPEGBase64: imageJPEGData.map { $0.base64EncodedString() }
-        )
-        return try await traced(method: "estimateFood") {
-            try await llmClient.estimateFood(request: request)
+        try await traced(method: "estimateFood") {
+            let initialRequest = AIFoodEstimateRequest(
+                text: prompt,
+                context: context,
+                imageJPEGBase64: imageJPEGData.map { $0.base64EncodedString() }
+            )
+            var response = try await llmClient.estimateFood(request: initialRequest)
+
+            let validation = FoodEstimateResponseValidator.validate(response: response, prompt: prompt)
+            guard case .invalid(let errors) = validation else {
+                return response
+            }
+
+            FormaPipelineTracer.event(
+                stage: .aiTask,
+                level: .warn,
+                message: "Food estimate failed client validation; retrying once",
+                fields: ["errors": errors.joined(separator: " | ")]
+            )
+
+            let repairRequest = AIFoodEstimateRequest(
+                text: FoodEstimateResponseValidator.repairPrompt(original: prompt, errors: errors),
+                context: context,
+                imageJPEGBase64: imageJPEGData.map { $0.base64EncodedString() },
+                repairErrors: errors
+            )
+            response = try await llmClient.estimateFood(request: repairRequest)
+
+            let secondValidation = FoodEstimateResponseValidator.validate(response: response, prompt: prompt)
+            if case .invalid(let secondErrors) = secondValidation {
+                FormaPipelineTracer.event(
+                    stage: .aiTask,
+                    level: .warn,
+                    message: "Food estimate still invalid after client repair retry",
+                    fields: ["errors": secondErrors.joined(separator: " | ")]
+                )
+                throw AIServiceError.validationFailed(secondErrors.joined(separator: " | "))
+            }
+
+            return response
         }
     }
 
