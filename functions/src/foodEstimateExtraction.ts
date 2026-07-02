@@ -49,6 +49,186 @@ const TOTAL_TOLERANCE_ABSOLUTE = {
   fat_g: 1,
 };
 
+const FOOD_QUANTITY_UNITS = [
+  "grams",
+  "gram",
+  "tablespoon",
+  "tbsp",
+  "cups",
+  "cup",
+  "kg",
+  "ml",
+  "g",
+] as const;
+
+const FOOD_CLAUSE_KEYWORDS = [
+  "chicken",
+  "rice",
+  "beef",
+  "fish",
+  "egg",
+  "sauce",
+  "dressing",
+  "salad",
+  "pasta",
+  "barley",
+] as const;
+
+function isDigit(character: string): boolean {
+  return character >= "0" && character <= "9";
+}
+
+function isWordCharacter(character: string): boolean {
+  const code = character.charCodeAt(0);
+  return (code >= 48 && code <= 57)
+    || (code >= 97 && code <= 122)
+    || (code >= 65 && code <= 90);
+}
+
+function hasUnitAt(text: string, index: number, unit: string): boolean {
+  if (!text.startsWith(unit, index)) {
+    return false;
+  }
+  const after = index + unit.length;
+  return after === text.length || !isWordCharacter(text[after]);
+}
+
+function hasQuantityWithUnit(text: string): boolean {
+  const lower = text.toLowerCase();
+  let index = 0;
+  while (index < lower.length) {
+    if (!isDigit(lower[index])) {
+      index += 1;
+      continue;
+    }
+
+    let cursor = index;
+    while (cursor < lower.length && (isDigit(lower[cursor]) || lower[cursor] === ".")) {
+      cursor += 1;
+    }
+
+    let unitIndex = cursor;
+    while (unitIndex < lower.length && lower[unitIndex] === " ") {
+      unitIndex += 1;
+    }
+
+    for (const unit of FOOD_QUANTITY_UNITS) {
+      if (hasUnitAt(lower, unitIndex, unit)) {
+        return true;
+      }
+    }
+
+    index = cursor > index ? cursor : index + 1;
+  }
+
+  return false;
+}
+
+function hasGramRange(text: string): boolean {
+  const lower = text.toLowerCase();
+  let index = 0;
+
+  while (index < lower.length) {
+    if (!isDigit(lower[index])) {
+      index += 1;
+      continue;
+    }
+
+    let firstNumberEnd = index;
+    while (firstNumberEnd < lower.length && isDigit(lower[firstNumberEnd])) {
+      firstNumberEnd += 1;
+    }
+
+    let dashIndex = firstNumberEnd;
+    while (dashIndex < lower.length && lower[dashIndex] === " ") {
+      dashIndex += 1;
+    }
+
+    if (dashIndex < lower.length && (lower[dashIndex] === "-" || lower[dashIndex] === "–")) {
+      dashIndex += 1;
+      while (dashIndex < lower.length && lower[dashIndex] === " ") {
+        dashIndex += 1;
+      }
+
+      let secondNumberEnd = dashIndex;
+      while (secondNumberEnd < lower.length && isDigit(lower[secondNumberEnd])) {
+        secondNumberEnd += 1;
+      }
+
+      if (secondNumberEnd > dashIndex) {
+        let unitIndex = secondNumberEnd;
+        while (unitIndex < lower.length && lower[unitIndex] === " ") {
+          unitIndex += 1;
+        }
+
+        for (const unit of ["grams", "gram", "g"] as const) {
+          if (hasUnitAt(lower, unitIndex, unit)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    index = firstNumberEnd > index ? firstNumberEnd : index + 1;
+  }
+
+  return false;
+}
+
+function containsWholeWord(text: string, word: string): boolean {
+  const lower = text.toLowerCase();
+  const target = word.toLowerCase();
+  let index = 0;
+
+  while (index <= lower.length - target.length) {
+    const found = lower.indexOf(target, index);
+    if (found === -1) {
+      return false;
+    }
+
+    const beforeOk = found === 0 || !isWordCharacter(lower[found - 1]);
+    const afterIndex = found + target.length;
+    const afterOk = afterIndex === lower.length || !isWordCharacter(lower[afterIndex]);
+    if (beforeOk && afterOk) {
+      return true;
+    }
+
+    index = found + 1;
+  }
+
+  return false;
+}
+
+function hasVaguePortionPhrase(text: string): boolean {
+  const lower = text.toLowerCase();
+  const quantifiers = ["one", "two", "a", "an"];
+  const containers = ["bowl", "plate", "cup", "serving"];
+
+  for (const quantifier of quantifiers) {
+    for (const container of containers) {
+      const phrase = `${quantifier} ${container}`;
+      let index = 0;
+      while (index <= lower.length - phrase.length) {
+        const found = lower.indexOf(phrase, index);
+        if (found === -1) {
+          break;
+        }
+
+        const beforeOk = found === 0 || !isWordCharacter(lower[found - 1]);
+        const afterIndex = found + phrase.length;
+        const afterOk = afterIndex === lower.length || !isWordCharacter(lower[afterIndex]);
+        if (beforeOk && afterOk) {
+          return true;
+        }
+
+        index = found + 1;
+      }
+    }
+  }
+
+  return false;
+}
+
 export function countListedIngredients(text: string): number {
   const lines = text
     .split(/\n/)
@@ -61,11 +241,11 @@ export function countListedIngredients(text: string): number {
       count += 1;
       continue;
     }
-    if (/\d+\s*[-–]\s*\d+\s*(?:g|gram|grams)\b/i.test(line)) {
+    if (hasGramRange(line)) {
       count += 1;
       continue;
     }
-    if (/\d+(?:\.\d+)?\s*(?:g|gram|grams|kg|ml|tbsp|tablespoon|cup|cups)\b/i.test(line)) {
+    if (hasQuantityWithUnit(line)) {
       count += 1;
     }
   }
@@ -96,15 +276,10 @@ function splitClauses(text: string): string[] {
 }
 
 function isFoodClause(part: string): boolean {
-  if (/\d+\s*[-–]\s*\d+\s*(?:g|gram|grams)\b/i.test(part)) return true;
-  if (/\d+(?:\.\d+)?\s*(?:g|gram|grams|kg|ml|tbsp|tablespoon|cup|cups)\b/i.test(part)) {
-    return true;
-  }
-  if (/\b(one|two|a|an)\s+(bowl|plate|cup|serving)\b/i.test(part)) return true;
-  if (/\b(chicken|rice|beef|fish|egg|sauce|dressing|salad|pasta|barley)\b/i.test(part)) {
-    return true;
-  }
-  return false;
+  if (hasGramRange(part)) return true;
+  if (hasQuantityWithUnit(part)) return true;
+  if (hasVaguePortionPhrase(part)) return true;
+  return FOOD_CLAUSE_KEYWORDS.some((keyword) => containsWholeWord(part, keyword));
 }
 
 export function validateFoodExtraction(
