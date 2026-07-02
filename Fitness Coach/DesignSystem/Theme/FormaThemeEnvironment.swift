@@ -65,6 +65,28 @@ struct FormaThemeRootState: Equatable, Sendable {
     }
 }
 
+// MARK: - Static token reactivity
+
+/// Establishes a SwiftUI dependency on the resolved theme so descendants that read
+/// `FormaTokens.Color` / `CoachDesignTokens.Color` (static bridge) re-render when
+/// palette or appearance changes.
+private struct FormaThemeReactiveModifier: ViewModifier {
+    @Environment(\.formaResolvedTheme) private var resolvedTheme
+
+    func body(content: Content) -> some View {
+        let _ = resolvedTheme
+        return content
+    }
+}
+
+extension View {
+
+    /// Binds static token call sites to the injected resolved theme environment.
+    func formaThemeReactive() -> some View {
+        modifier(FormaThemeReactiveModifier())
+    }
+}
+
 // MARK: - Preview helpers
 
 extension View {
@@ -79,6 +101,7 @@ extension View {
         return environment(\.formaResolvedTheme, theme)
             .environment(\.formaThemePalette, legacyPalette)
             .tint(theme.colors.accent)
+            .formaThemeReactive()
     }
 
     /// Preview helper that mirrors root theme injection without a live `ThemeStore`.

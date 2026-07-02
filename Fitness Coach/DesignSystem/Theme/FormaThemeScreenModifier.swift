@@ -20,6 +20,7 @@ struct FormaRootThemeModifier: ViewModifier {
             .environment(\.formaResolvedTheme, state.resolved)
             .environment(\.formaThemePalette, state.legacyPalette)
             .tint(state.resolved.colors.accent)
+            .formaThemeReactive()
     }
 }
 

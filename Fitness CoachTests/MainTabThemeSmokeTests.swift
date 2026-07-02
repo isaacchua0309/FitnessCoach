@@ -152,4 +152,29 @@ final class MainTabThemeSmokeTests: XCTestCase {
             """
         )
     }
+
+    func testMainTabShellBindsResolvedThemeForReactivity() throws {
+        let root = ThemeTestSupport.repositoryRoot()
+        let mainTabSource = try String(
+            contentsOf: root.appendingPathComponent("Fitness Coach/App/MainTabView.swift"),
+            encoding: .utf8
+        )
+        let rootModifierSource = try String(
+            contentsOf: root.appendingPathComponent("Fitness Coach/DesignSystem/Theme/FormaThemeScreenModifier.swift"),
+            encoding: .utf8
+        )
+
+        XCTAssertTrue(
+            mainTabSource.contains("@Environment(\\.formaResolvedTheme)"),
+            "MainTabView must observe the resolved theme so tab chrome tints update live."
+        )
+        XCTAssertFalse(
+            mainTabSource.contains(".tint(FormaTokens.Color.accent)"),
+            "MainTabView must not pin tab tint to the static token bridge."
+        )
+        XCTAssertTrue(
+            rootModifierSource.contains(".formaThemeReactive()"),
+            "Root theme injection must establish a SwiftUI dependency for static token call sites."
+        )
+    }
 }
