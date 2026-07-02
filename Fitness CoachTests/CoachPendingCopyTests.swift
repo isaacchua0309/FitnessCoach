@@ -94,6 +94,33 @@ final class CoachPendingCopyTests: XCTestCase {
         XCTAssertFalse(message.contains(FormaProductCopy.Coach.pendingBarHint))
     }
 
+    func testUnderEstimatedMealShowsSanityWarningInChatCopy() {
+        let message = CoachResponseBuilder.aiFoodEstimatePending(
+            mealDraft: FoodLogDraft(
+                displayName: "Chicken barley bowl",
+                components: [
+                    FoodComponent(
+                        name: "chicken",
+                        quantity: 150,
+                        unit: "g",
+                        calories: 430,
+                        protein: 38,
+                        carbs: 42,
+                        fat: 9
+                    )
+                ],
+                confidence: .low,
+                source: .aiTextEstimate
+            ),
+            confidence: .low,
+            originalText: "log this bowl",
+            sanityWarning: NutritionSanityResult.underEstimatedUserMessage
+        )
+
+        XCTAssertTrue(message.contains(NutritionSanityResult.underEstimatedUserMessage))
+        XCTAssertFalse(message.contains(FormaProductCopy.Coach.foodConfirmBelowFooter))
+    }
+
     func testMultiComponentPendingCopyListsIngredients() {
         let meal = FoodLogDraft(
             displayName: "Chicken barley bowl",

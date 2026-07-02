@@ -1,70 +1,29 @@
-const nullEntities = {
-  food: null,
-  meal: null,
-  amountMl: null,
-  weightKg: null,
-  durationMinutes: null,
-  distanceKm: null,
-  calories: null,
-  proteinGrams: null,
-  carbsGrams: null,
-  fatGrams: null,
-  quantity: null,
-  unit: null,
-  notes: null,
-};
-
-const sampleFoodComponent = {
-  id: null,
-  name: "Eggs",
-  quantity: 2,
-  unit: "count",
-  preparationState: null,
-  calories: 140,
-  protein: 12,
-  carbs: 1,
-  fat: 10,
+const sampleFoodExtractionMeal = {
+  meal_name: "Eggs",
+  meal_type: "lunch",
+  components: [
+    {
+      name: "Eggs",
+      quantity: 2,
+      unit: "count",
+      state: "unknown",
+      calories: 140,
+      protein_g: 12,
+      carbs_g: 1,
+      fat_g: 10,
+      confidence: "medium",
+      source_text: "2 eggs",
+    },
+  ],
+  totals: {
+    calories: 140,
+    protein_g: 12,
+    carbs_g: 1,
+    fat_g: 10,
+  },
   confidence: "medium",
-  sourceText: "2 eggs",
-};
-
-const sampleFoodLogDraft = {
-  id: null,
-  displayName: "Eggs",
-  mealType: "lunch",
-  components: [sampleFoodComponent],
-  confidence: "medium",
-  source: "aiTextEstimate",
-  notes: null,
+  assumptions: [],
   warnings: [],
-  imageUrl: null,
-};
-
-const sampleFoodDraft = {
-  mealType: "lunch",
-  name: "Eggs",
-  quantity: 2,
-  unit: "count",
-  calories: 140,
-  protein: 12,
-  carbs: 1,
-  fat: 10,
-  fiber: null,
-  sodium: null,
-  source: "aiTextEstimate",
-  confidence: "medium",
-  imageUrl: null,
-  notes: null,
-};
-
-const sampleWorkoutDraft = {
-  name: "Run",
-  durationMinutes: 30,
-  estimatedCaloriesBurned: 250,
-  intensity: "moderate",
-  recoveryDemand: "moderate",
-  notes: null,
-  exerciseSets: [],
 };
 
 export const openAIOutputBySchemaName: Record<string, Record<string, unknown>> = {
@@ -76,7 +35,21 @@ export const openAIOutputBySchemaName: Record<string, Record<string, unknown>> =
     requiresUserContext: false,
     canAnswerWithCheapModel: true,
     requiresEscalation: false,
-    entities: nullEntities,
+    entities: {
+      food: null,
+      meal: null,
+      amountMl: null,
+      weightKg: null,
+      durationMinutes: null,
+      distanceKm: null,
+      calories: null,
+      proteinGrams: null,
+      carbsGrams: null,
+      fatGrams: null,
+      quantity: null,
+      unit: null,
+      notes: null,
+    },
     action: null,
     reason: null,
   },
@@ -89,10 +62,8 @@ export const openAIOutputBySchemaName: Record<string, Record<string, unknown>> =
     assistantMessage: null,
     reasoningSummary: null,
   },
-  ai_food_estimate_response: {
-    foodLogDrafts: [sampleFoodLogDraft],
-    foodDrafts: [sampleFoodDraft],
-    confidence: "medium",
+  ai_food_extraction_response: {
+    meals: [sampleFoodExtractionMeal],
     requiresConfirmation: true,
     assistantMessage: null,
   },
@@ -102,7 +73,15 @@ export const openAIOutputBySchemaName: Record<string, Record<string, unknown>> =
     followUpSuggestions: [],
   },
   ai_workout_parse_response: {
-    workoutDraft: sampleWorkoutDraft,
+    workoutDraft: {
+      name: "Run",
+      durationMinutes: 30,
+      estimatedCaloriesBurned: 250,
+      intensity: "moderate",
+      recoveryDemand: "moderate",
+      notes: null,
+      exerciseSets: [],
+    },
     assistantMessage: "Ready to log this run?",
     confidence: "medium",
   },

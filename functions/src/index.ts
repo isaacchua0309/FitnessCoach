@@ -10,6 +10,12 @@ import {
   enforceRequestQuota,
   validatePayload,
 } from "./gatewayGuardrails";
+import {
+  foodEstimateRepairInstructions,
+  mapExtractionToGatewayPayload,
+  validateFoodExtraction,
+  type FoodExtractionResponse,
+} from "./foodEstimateExtraction";
 
 initializeApp();
 setGlobalOptions({maxInstances: 10});
@@ -382,41 +388,77 @@ async function parseCommand(request: Record<string, any>, traceId?: string) {
 }
 
 async function estimateFood(request: Record<string, any>, traceId?: string) {
+  const userText = String(request.text ?? "");
   const payload = {
-    text: request.text,
+    text: userText,
     context: request.context,
   };
+  const isPhoto = Boolean(request.imageJPEGBase64);
+  const source = isPhoto ? "aiPhotoEstimate" : "aiTextEstimate";
 
-  if (request.imageJPEGBase64) {
+  const runExtraction = async (repairErrors?: string[]) => {
+    const repairBlock = repairErrors?.length ?
+      `\n\n${foodEstimateRepairInstructions(repairErrors)}` :
+      "";
+    const instructions = (isPhoto ?
+      foodPhotoEstimateInstructions() :
+      foodEstimateInstructions()) + repairBlock;
+
+    if (isPhoto) {
+      return openAIJSON({
+        instructions,
+        input: [
+          {
+            role: "user",
+            content: [
+              {type: "input_text", text: JSON.stringify(payload)},
+              {
+                type: "input_image",
+                image_url: `data:image/jpeg;base64,${request.imageJPEGBase64}`,
+              },
+            ],
+          },
+        ],
+        schema: aiFoodExtractionResponseSchema(),
+        maxOutputTokens: 1800,
+        model: resolveModel({tier: "cheap"}),
+        traceId,
+      }) as Promise<FoodExtractionResponse>;
+    }
+
     return openAIJSON({
-      instructions: foodPhotoEstimateInstructions(),
-      input: [
-        {
-          role: "user",
-          content: [
-            {type: "input_text", text: JSON.stringify(payload)},
-            {
-              type: "input_image",
-              image_url: `data:image/jpeg;base64,${request.imageJPEGBase64}`,
-            },
-          ],
-        },
-      ],
-      schema: aiFoodEstimateResponseSchema(),
-      maxOutputTokens: 1200,
+      instructions,
+      input: JSON.stringify(payload),
+      schema: aiFoodExtractionResponseSchema(),
+      maxOutputTokens: 1800,
       model: resolveModel({tier: "cheap"}),
       traceId,
+    }) as Promise<FoodExtractionResponse>;
+  };
+
+  const clientRepairErrors = Array.isArray(request.repairErrors) ?
+    request.repairErrors.map(String) :
+    undefined;
+
+  let extraction = await runExtraction(clientRepairErrors);
+  let validation = validateFoodExtraction(extraction, userText);
+
+  if (!validation.ok && !clientRepairErrors) {
+    logger.warn("Food extraction failed validation; retrying once", {
+      traceId,
+      errors: validation.errors,
     });
+    extraction = await runExtraction(validation.errors);
+    validation = validateFoodExtraction(extraction, userText);
+    if (!validation.ok) {
+      logger.warn("Food extraction still invalid after repair retry", {
+        traceId,
+        errors: validation.errors,
+      });
+    }
   }
 
-  return openAIJSON({
-    instructions: foodEstimateInstructions(),
-    input: JSON.stringify(payload),
-    schema: aiFoodEstimateResponseSchema(),
-    maxOutputTokens: 1200,
-    model: resolveModel({tier: "cheap"}),
-    traceId,
-  });
+  return mapExtractionToGatewayPayload(extraction, source, validation);
 }
 
 async function parseWorkout(request: Record<string, any>, traceId?: string) {
@@ -504,28 +546,36 @@ Use actions for logging/status/review/advice. For edits/deletes, include targetE
 function foodEstimateInstructions(): string {
   return `${sharedRules()}
 
-Task: Estimate nutrition for the described food.
-Return one FoodLogDraft in foodLogDrafts for each distinct meal the user wants logged.
-When the user lists multiple ingredients (bullets, numbered lines, commas, or "and"), put each ingredient in components[] with its own name, quantity, unit, preparationState, sourceText, and nutrition.
-Never set the meal-level portion to the first ingredient's grams. Mixed meals should not borrow one component's quantity as the whole meal amount.
-displayName should summarize the meal (e.g. "Chicken barley bowl").
-Each component must preserve the user's source line in sourceText when available.
-total calories/macros are the sum of components. Every component must include calories > 0 and realistic protein, carbs, and fat.
-quantity and unit on each component describe portion weight or count (e.g. 200g, 1 tbsp), never macro grams.
-Respect preparation state: raw/uncooked vs cooked weight at the same grams are different foods nutritionally.
-Also populate legacy foodDrafts with one collapsed draft whose calories/macros equal the summed totals and whose quantity/unit are null for multi-component meals.
-Use source aiTextEstimate and require confirmation unless the user supplied exact complete nutrition values in their message.`;
+Task: Extract and estimate nutrition for the described food using strict per-ingredient components.
+
+Return JSON matching the schema:
+- meals[] with meal_name, meal_type, components[], totals, confidence, assumptions, warnings
+- each component needs name, quantity, unit, state (raw|cooked|unknown), calories, protein_g, carbs_g, fat_g, confidence, source_text
+
+Hard requirements:
+- Never collapse multiple listed ingredients into one generic estimate when quantities are provided.
+- Sum component nutrition to produce totals exactly.
+- Do not use the first quantity as the total meal quantity. There is no meal-level quantity field.
+- If both rice/grain and dessert are present, include both as separate components.
+- If sauce/dressing is visible or mentioned, estimate it separately.
+- Preserve each user ingredient line in component source_text.
+- For calorie estimates, prefer realistic over optimistic.
+- For fat-loss tracking, underestimation is worse than slight overestimation.
+- Single simple foods (e.g. "2 eggs") may use one component.
+- Set requiresConfirmation true unless the user supplied exact complete nutrition values.`;
 }
 
 function foodPhotoEstimateInstructions(): string {
   return `${sharedRules()}
 
-Task: Analyze the attached meal photo and estimate nutrition.
-Identify visible foods, reasonable portion size, and preparation when inferable from the image.
-Return one FoodLogDraft in foodLogDrafts with each distinct visible item in components[].
-When multiple items are visible, never collapse them into one component.
-Also populate legacy foodDrafts with one collapsed draft for backward compatibility.
-Use source aiPhotoEstimate and always require confirmation before logging.`;
+Task: Analyze the attached meal photo and estimate nutrition with strict per-item components.
+
+Return JSON matching the schema with meals[] entries.
+Each visible distinct food must be its own component with quantity, unit, state, macros, confidence, and source_text describing what was seen.
+Never collapse multiple visible items into one component.
+Sum component nutrition into totals exactly.
+Prefer realistic or slightly conservative estimates.
+Set requiresConfirmation true.`;
 }
 
 function mealAdviceInstructions(): string {
@@ -597,6 +647,81 @@ const mealType = enumSchema(["breakfast", "lunch", "dinner", "snack", "unknown"]
 const source = enumSchema(["manual", "aiTextEstimate", "aiPhotoEstimate", "nutritionLabel", "savedMeal", "corrected"]);
 const intensity = enumSchema(["low", "moderate", "high"]);
 const recoveryDemand = enumSchema(["low", "moderate", "high"]);
+
+const componentState = enumSchema(["raw", "cooked", "unknown"]);
+
+function foodExtractionComponentSchema(): JSONSchema {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: [
+      "name", "quantity", "unit", "state",
+      "calories", "protein_g", "carbs_g", "fat_g", "confidence", "source_text",
+    ],
+    properties: {
+      name: {type: "string"},
+      quantity: nullable({type: "number"}),
+      unit: nullable({type: "string"}),
+      state: componentState,
+      calories: {type: "number"},
+      protein_g: {type: "number"},
+      carbs_g: {type: "number"},
+      fat_g: {type: "number"},
+      confidence,
+      source_text: {type: "string"},
+    },
+  };
+}
+
+function foodExtractionTotalsSchema(): JSONSchema {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: ["calories", "protein_g", "carbs_g", "fat_g"],
+    properties: {
+      calories: {type: "number"},
+      protein_g: {type: "number"},
+      carbs_g: {type: "number"},
+      fat_g: {type: "number"},
+    },
+  };
+}
+
+function foodExtractionMealSchema(): JSONSchema {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: [
+      "meal_name", "meal_type", "components", "totals",
+      "confidence", "assumptions", "warnings",
+    ],
+    properties: {
+      meal_name: {type: "string"},
+      meal_type: nullable({type: "string"}),
+      components: {type: "array", items: foodExtractionComponentSchema()},
+      totals: foodExtractionTotalsSchema(),
+      confidence,
+      assumptions: {type: "array", items: {type: "string"}},
+      warnings: {type: "array", items: {type: "string"}},
+    },
+  };
+}
+
+function aiFoodExtractionResponseSchema(): ResponseSchema {
+  return {
+    name: "ai_food_extraction_response",
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["meals", "requiresConfirmation", "assistantMessage"],
+      properties: {
+        meals: {type: "array", items: foodExtractionMealSchema()},
+        requiresConfirmation: {type: "boolean"},
+        assistantMessage: nullable({type: "string"}),
+      },
+    },
+  };
+}
 
 function foodComponentSchema(): JSONSchema {
   return {

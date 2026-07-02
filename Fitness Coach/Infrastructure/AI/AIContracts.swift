@@ -87,11 +87,19 @@ struct AIFoodEstimateRequest: Codable, Equatable, Sendable {
     var context: AIContext
     /// Base64-encoded JPEG sent for vision-based meal analysis.
     var imageJPEGBase64: String?
+    /// When set, backend/appends stricter repair instructions after a failed validation pass.
+    var repairErrors: [String]?
 
-    init(text: String, context: AIContext, imageJPEGBase64: String? = nil) {
+    init(
+        text: String,
+        context: AIContext,
+        imageJPEGBase64: String? = nil,
+        repairErrors: [String]? = nil
+    ) {
         self.text = text
         self.context = context
         self.imageJPEGBase64 = imageJPEGBase64
+        self.repairErrors = repairErrors
     }
 }
 
