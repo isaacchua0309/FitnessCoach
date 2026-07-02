@@ -53,7 +53,7 @@ struct FormaQuickActionChip: View {
     var body: some View {
         Button(title, action: action)
             .buttonStyle(.bordered)
-            .tint(FormaTokens.Color.accent)
+            .tint(FormaTokens.Theme.primary)
             .font(FormaTokens.Typography.caption.weight(.semibold))
             .accessibilityHint(accessibilityHint ?? "")
     }

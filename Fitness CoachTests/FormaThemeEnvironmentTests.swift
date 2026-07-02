@@ -15,30 +15,32 @@ final class FormaThemeEnvironmentTests: XCTestCase {
         let environment = EnvironmentValues()
         XCTAssertEqual(environment.formaResolvedTheme.preferences, .default)
         XCTAssertEqual(environment.formaColors, FormaThemeEnvironment.defaultResolvedTheme.colors)
+        XCTAssertEqual(environment.themePalette, FormaThemeEnvironment.defaultResolvedTheme.themePalette)
         XCTAssertEqual(environment.formaResolvedTheme.colors, environment.formaColors)
     }
 
     func testSettingResolvedThemeSyncsFormaColors() {
         var environment = EnvironmentValues()
         let resolved = ThemeResolver.resolve(
-            preferences: AppThemePreferences(appearance: .light, palette: .pink),
+            preferences: AppThemePreferences(appearance: .light, palette: .blossomPink),
             systemColorScheme: .light
         )
         environment.formaResolvedTheme = resolved
 
         XCTAssertEqual(environment.formaColors, resolved.colors)
+        XCTAssertEqual(environment.themePalette, resolved.themePalette)
         XCTAssertEqual(environment.formaResolvedTheme, resolved)
     }
 
     func testChangingPaletteUpdatesResolvedColorsFromStore() async {
         await MainActor.run {
             let store = ThemeStore(userDefaults: ThemeTestSupport.makeIsolatedDefaults(suiteNamePrefix: "FormaThemeEnvironmentTests"))
-            store.setPalette(.pink)
+            store.setPalette(.blossomPink)
 
             let resolved = store.resolvedTheme(systemColorScheme: .dark)
             XCTAssertEqual(
                 resolved.colors.accent,
-                FormaPaletteCatalog.palette(for: .pink, colorScheme: .dark).accent
+                FormaPaletteCatalog.palette(for: .blossomPink, colorScheme: .dark).accent
             )
         }
     }
@@ -60,10 +62,10 @@ final class FormaThemeEnvironmentTests: XCTestCase {
     func testRootThemeStateTracksStoreChanges() async {
         await MainActor.run {
             let store = ThemeStore(userDefaults: ThemeTestSupport.makeIsolatedDefaults(suiteNamePrefix: "FormaThemeEnvironmentTests.root"))
-            store.setPalette(.coolBlue)
+            store.setPalette(.emeraldGreen)
 
             let coolBlueState = FormaThemeRootState.make(store: store, systemColorScheme: .dark)
-            XCTAssertEqual(coolBlueState.resolved.preferences.palette, .coolBlue)
+            XCTAssertEqual(coolBlueState.resolved.preferences.palette, .emeraldGreen)
             XCTAssertEqual(coolBlueState.preferredColorScheme, .dark)
 
             store.setAppearance(.system)
@@ -80,7 +82,7 @@ final class FormaThemeEnvironmentTests: XCTestCase {
 
     func testStoreAndResolverProduceMatchingResolvedTheme() async {
         await MainActor.run {
-            let preferences = AppThemePreferences(appearance: .dark, palette: .pink)
+            let preferences = AppThemePreferences(appearance: .dark, palette: .blossomPink)
             let store = ThemeStore(userDefaults: ThemeTestSupport.makeIsolatedDefaults(suiteNamePrefix: "FormaThemeEnvironmentTests.parity"))
             store.setAppearance(preferences.appearance)
             store.setPalette(preferences.palette)
@@ -93,6 +95,24 @@ final class FormaThemeEnvironmentTests: XCTestCase {
 
             XCTAssertEqual(fromStore, fromResolver)
             XCTAssertEqual(fromStore.colors.accent, fromResolver.colors.accent)
+        }
+    }
+
+    func testPaletteChangeUpdatesFormaThemeAccessThroughRootState() async {
+        await MainActor.run {
+            let store = ThemeStore(
+                userDefaults: ThemeTestSupport.makeIsolatedDefaults(suiteNamePrefix: "FormaThemeEnvironmentTests.live")
+            )
+            store.setPalette(.emeraldGreen)
+
+            let state = FormaThemeRootState.make(store: store, systemColorScheme: .dark)
+            FormaThemeAccess.update(resolved: state.resolved)
+
+            XCTAssertEqual(FormaThemeAccess.currentThemePalette.id, .emeraldGreen)
+            ThemeTestSupport.assertSameColor(
+                FormaTokens.Theme.primary,
+                FormaPaletteCatalog.themePalette(for: .emeraldGreen, colorScheme: .dark).primary
+            )
         }
     }
 }

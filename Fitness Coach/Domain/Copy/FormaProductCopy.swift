@@ -2259,6 +2259,13 @@ enum FormaProductCopy {
             static let navigationRowTitle = "Theme"
             static let appearanceSectionTitle = "Appearance"
             static let colorThemeSectionTitle = "Color Theme"
+            static let livePreviewSectionTitle = "Preview"
+            static let livePreviewPrimaryButton = "Continue"
+            static let livePreviewLogPill = "Log meal"
+            static let livePreviewProgressLabel = "Calories"
+            static let livePreviewProgressValue = "68%"
+            static let livePreviewAccessibilityLabel =
+                "Live theme preview showing a primary button, progress, tab selection, and coach log action"
 
             enum Appearance {
                 static let systemTitle = "System"
@@ -2270,12 +2277,14 @@ enum FormaProductCopy {
             }
 
             enum ColorPalette {
-                static let defaultTitle = "Default Forma"
-                static let defaultDescription = "Forma's signature palette."
-                static let pinkTitle = "Pink"
-                static let pinkDescription = "Warm rose tones."
-                static let coolBlueTitle = "Cool Blue"
-                static let coolBlueDescription = "Calm blue tones."
+                static let oceanBlueTitle = "Ocean Blue"
+                static let oceanBlueDescription = "Calm and focused"
+                static let blossomPinkTitle = "Blossom Pink"
+                static let blossomPinkDescription = "Warm and friendly"
+                static let emeraldGreenTitle = "Emerald Green"
+                static let emeraldGreenDescription = "Fresh and healthy"
+                static let sunsetOrangeTitle = "Sunset Orange"
+                static let sunsetOrangeDescription = "Energetic and bold"
             }
 
             enum Error {
@@ -2302,17 +2311,19 @@ enum FormaProductCopy {
 
             static func colorPaletteTitle(for palette: AppThemePalette) -> String {
                 switch palette {
-                case .default: ColorPalette.defaultTitle
-                case .pink: ColorPalette.pinkTitle
-                case .coolBlue: ColorPalette.coolBlueTitle
+                case .oceanBlue: ColorPalette.oceanBlueTitle
+                case .blossomPink: ColorPalette.blossomPinkTitle
+                case .emeraldGreen: ColorPalette.emeraldGreenTitle
+                case .sunsetOrange: ColorPalette.sunsetOrangeTitle
                 }
             }
 
             static func colorPaletteDescription(for palette: AppThemePalette) -> String {
                 switch palette {
-                case .default: ColorPalette.defaultDescription
-                case .pink: ColorPalette.pinkDescription
-                case .coolBlue: ColorPalette.coolBlueDescription
+                case .oceanBlue: ColorPalette.oceanBlueDescription
+                case .blossomPink: ColorPalette.blossomPinkDescription
+                case .emeraldGreen: ColorPalette.emeraldGreenDescription
+                case .sunsetOrange: ColorPalette.sunsetOrangeDescription
                 }
             }
 
@@ -2328,12 +2339,10 @@ enum FormaProductCopy {
                 for palette: AppThemePalette,
                 isSelected: Bool
             ) -> String {
-                let selection = isSelected ? "selected, " : ""
-                let normalizedDescription = colorPaletteDescription(for: palette)
-                    .replacingOccurrences(of: ",", with: "")
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                    .trimmingCharacters(in: CharacterSet(charactersIn: "."))
-                return "\(colorPaletteTitle(for: palette)), \(selection)\(normalizedDescription)"
+                let title = colorPaletteTitle(for: palette)
+                let description = colorPaletteDescription(for: palette)
+                let selection = isSelected ? "selected" : "not selected"
+                return "\(title), \(description), \(selection)"
             }
         }
     }

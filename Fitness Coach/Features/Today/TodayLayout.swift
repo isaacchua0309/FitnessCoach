@@ -92,11 +92,11 @@ struct TodayMetricProgressBar: View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 2, style: .continuous)
-                    .fill(FormaTokens.Color.surface)
+                    .fill(FormaTokens.Color.progressTrack)
 
                 RoundedRectangle(cornerRadius: 2, style: .continuous)
                     .fill(
-                        FormaTokens.Color.accent.opacity(subdued ? 0.42 : 0.78)
+                        FormaTokens.Color.progress.opacity(subdued ? 0.55 : 1)
                     )
                     .frame(width: max(geometry.size.width * clampedProgress, clampedProgress > 0 ? 3 : 0))
             }

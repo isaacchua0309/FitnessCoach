@@ -132,12 +132,12 @@ struct OnboardingIllustrationContainer: View {
             Circle()
                 .trim(from: 0, to: 0.86)
                 .stroke(
-                    OnboardingTheme.accent,
+                    OnboardingTheme.progress,
                     style: StrokeStyle(lineWidth: OnboardingVisual.coachRingLineWidth, lineCap: .round)
                 )
                 .frame(width: coachRingDiameter, height: coachRingDiameter)
                 .rotationEffect(.degrees(-118))
-                .shadow(color: OnboardingTheme.accent.opacity(0.35), radius: OnboardingVisual.ringShadowRadius, y: 2)
+                .shadow(color: OnboardingTheme.primary.opacity(0.35), radius: OnboardingVisual.ringShadowRadius, y: 2)
         }
     }
 
@@ -194,13 +194,13 @@ struct OnboardingIllustrationContainer: View {
             Circle()
                 .trim(from: 0, to: drawnProgress)
                 .stroke(
-                    OnboardingTheme.accent,
+                    OnboardingTheme.progress,
                     style: StrokeStyle(lineWidth: OnboardingVisual.targetRingLineWidth, lineCap: .round)
                 )
                 .frame(width: targetRingDiameter, height: targetRingDiameter)
                 .rotationEffect(.degrees(-90))
                 .shadow(
-                    color: OnboardingTheme.accent.opacity(0.3),
+                    color: OnboardingTheme.primary.opacity(0.3),
                     radius: OnboardingVisual.ringShadowRadius,
                     y: 3
                 )

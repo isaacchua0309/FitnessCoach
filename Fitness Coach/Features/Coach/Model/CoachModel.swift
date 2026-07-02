@@ -47,7 +47,6 @@ final class CoachModel: ObservableObject {
 
     init(
         localCommandParser: LocalCommandParser? = nil,
-        localNutritionEstimator: LocalNutritionEstimator? = nil,
         actionCenter: FitnessActionCenter,
         dailyLogReader: any DailyLogReading,
         healthActivityQuery: HealthActivityQueryService,
@@ -60,7 +59,6 @@ final class CoachModel: ObservableObject {
         trainingInsightsStore: TrainingInsightsStore? = nil
     ) {
         self.localCommandParser = localCommandParser ?? .standard
-        let nutritionEstimator = localNutritionEstimator ?? .standard
         self.dailyLogReader = dailyLogReader
         self.healthActivityQuery = healthActivityQuery
         self.weightLogReader = weightLogReader
@@ -84,7 +82,6 @@ final class CoachModel: ObservableObject {
             actionCenter: actionCenter,
             dailyLogReader: dailyLogReader,
             healthActivityQuery: healthActivityQuery,
-            localNutritionEstimator: nutritionEstimator,
             mutationHistory: mutationHistory
         )
         self.mutationExecutor = executor

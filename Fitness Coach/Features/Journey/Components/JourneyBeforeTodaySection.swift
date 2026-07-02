@@ -19,7 +19,7 @@ struct JourneyBeforeTodaySection: View {
                     if state.showsAdaptedTargetCopy {
                         Text(FormaProductCopy.Journey.BeforeToday.adaptedTargetCopy)
                             .font(FormaTokens.Typography.caption)
-                            .foregroundStyle(FormaTokens.Color.accent)
+                            .foregroundStyle(FormaTokens.Theme.primary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
 

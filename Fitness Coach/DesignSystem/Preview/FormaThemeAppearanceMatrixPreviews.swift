@@ -2,7 +2,7 @@
 //  FormaThemeAppearanceMatrixPreviews.swift
 //  Fitness Coach
 //
-//  Forma — Internal 6-combo appearance matrix (palette × light/dark) for visual QA.
+//  Forma — Internal appearance matrix (palette × light/dark) for visual QA.
 //
 
 import SwiftUI
@@ -20,92 +20,86 @@ enum FormaThemeAppearanceMatrix {
     }
 
     static func label(appearance: AppAppearanceMode, palette: AppThemePalette) -> String {
-        let paletteLabel: String
-        switch palette {
-        case .default: paletteLabel = "Default"
-        case .pink: paletteLabel = "Pink"
-        case .coolBlue: paletteLabel = "Cool Blue"
-        }
         let appearanceLabel = appearance == .light ? "Light" : "Dark"
-        return "\(paletteLabel) \(appearanceLabel)"
+        return "\(palette.displayName) \(appearanceLabel)"
     }
 }
 
 // MARK: - Main tabs (Today)
 
-#Preview("Today — Default Light") {
-    MainTabThemePreviewScreens.today(palette: .default, appearance: .light)
+#Preview("Today — Ocean Blue Light") {
+    MainTabThemePreviewScreens.today(palette: .oceanBlue, appearance: .light)
 }
 
-#Preview("Today — Pink Light") {
-    MainTabThemePreviewScreens.today(palette: .pink, appearance: .light)
+#Preview("Today — Blossom Pink Light") {
+    MainTabThemePreviewScreens.today(palette: .blossomPink, appearance: .light)
 }
 
-#Preview("Today — Cool Blue Light") {
-    MainTabThemePreviewScreens.today(palette: .coolBlue, appearance: .light)
+#Preview("Today — Emerald Green Light") {
+    MainTabThemePreviewScreens.today(palette: .emeraldGreen, appearance: .light)
 }
 
-#Preview("Today — Default Dark") {
-    MainTabThemePreviewScreens.today(palette: .default, appearance: .dark)
+#Preview("Today — Sunset Orange Light") {
+    MainTabThemePreviewScreens.today(palette: .sunsetOrange, appearance: .light)
 }
 
-#Preview("Today — Pink Dark") {
-    MainTabThemePreviewScreens.today(palette: .pink, appearance: .dark)
+#Preview("Today — Ocean Blue Dark") {
+    MainTabThemePreviewScreens.today(palette: .oceanBlue, appearance: .dark)
 }
 
-#Preview("Today — Cool Blue Dark") {
-    MainTabThemePreviewScreens.today(palette: .coolBlue, appearance: .dark)
+#Preview("Today — Blossom Pink Dark") {
+    MainTabThemePreviewScreens.today(palette: .blossomPink, appearance: .dark)
+}
+
+#Preview("Today — Emerald Green Dark") {
+    MainTabThemePreviewScreens.today(palette: .emeraldGreen, appearance: .dark)
+}
+
+#Preview("Today — Sunset Orange Dark") {
+    MainTabThemePreviewScreens.today(palette: .sunsetOrange, appearance: .dark)
 }
 
 // MARK: - Public entry (Welcome)
 
-#Preview("Welcome — Default Light") {
-    PublicEntryPreviewScreens.welcome(palette: .default, appearance: .light)
+#Preview("Welcome — Ocean Blue Light") {
+    PublicEntryPreviewScreens.welcome(palette: .oceanBlue, appearance: .light)
 }
 
-#Preview("Welcome — Pink Light") {
-    PublicEntryPreviewScreens.welcome(palette: .pink, appearance: .light)
+#Preview("Welcome — Blossom Pink Dark") {
+    PublicEntryPreviewScreens.welcome(palette: .blossomPink, appearance: .dark)
 }
 
-#Preview("Welcome — Cool Blue Light") {
-    PublicEntryPreviewScreens.welcome(palette: .coolBlue, appearance: .light)
+#Preview("Welcome — Emerald Green Dark") {
+    PublicEntryPreviewScreens.welcome(palette: .emeraldGreen, appearance: .dark)
 }
 
-#Preview("Welcome — Default Dark") {
-    PublicEntryPreviewScreens.welcome(palette: .default, appearance: .dark)
-}
-
-#Preview("Welcome — Pink Dark") {
-    PublicEntryPreviewScreens.welcome(palette: .pink, appearance: .dark)
-}
-
-#Preview("Welcome — Cool Blue Dark") {
-    PublicEntryPreviewScreens.welcome(palette: .coolBlue, appearance: .dark)
+#Preview("Welcome — Sunset Orange Dark") {
+    PublicEntryPreviewScreens.welcome(palette: .sunsetOrange, appearance: .dark)
 }
 
 // MARK: - Google sign-in
 
-#Preview("Google sign-in — Default Light") {
-    PublicEntryPreviewScreens.existingSignIn(palette: .default, appearance: .light)
+#Preview("Google sign-in — Ocean Blue Light") {
+    PublicEntryPreviewScreens.existingSignIn(palette: .oceanBlue, appearance: .light)
 }
 
-#Preview("Google sign-in — Default Dark") {
-    PublicEntryPreviewScreens.existingSignIn(palette: .default, appearance: .dark)
+#Preview("Google sign-in — Ocean Blue Dark") {
+    PublicEntryPreviewScreens.existingSignIn(palette: .oceanBlue, appearance: .dark)
 }
 
 // MARK: - Journey segmented control
 
-#Preview("Range selector — Default Light") {
+#Preview("Range selector — Ocean Blue Light") {
     JourneyRangeSelector(selectedRangeDays: 28) { _ in }
         .padding()
         .background(FormaTokens.Color.canvas)
-        .formaThemePreview(appearance: .light, palette: .default)
+        .formaThemePreview(appearance: .light, palette: .oceanBlue)
 }
 
-#Preview("Range selector — Cool Blue Dark") {
+#Preview("Range selector — Emerald Green Dark") {
     JourneyRangeSelector(selectedRangeDays: 14) { _ in }
         .padding()
         .background(FormaTokens.Color.canvas)
-        .formaThemePreview(appearance: .dark, palette: .coolBlue)
+        .formaThemePreview(appearance: .dark, palette: .emeraldGreen)
 }
 #endif

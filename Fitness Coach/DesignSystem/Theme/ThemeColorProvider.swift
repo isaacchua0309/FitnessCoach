@@ -11,22 +11,28 @@ import SwiftUI
 ///
 /// **Tradeoff:** `FormaTokens.Color` cannot read SwiftUI `@Environment` outside a `View` body.
 /// `ThemeColorProvider` is published globally via `FormaThemeAccess`, which the root
-/// `FormaRootThemeModifier` updates on every render. Prefer `@Environment(\.formaColors)` in
+/// `FormaRootThemeModifier` updates on every render. Prefer `@Environment(\.themePalette)` in
 /// new SwiftUI code when environment is available.
 enum ThemeColorProvider {
 
     static let productDefault = colors(
         from: FormaColorPaletteCatalog.defaultDark,
-        colorScheme: .dark
+        colorScheme: .dark,
+        themePalette: FormaPaletteCatalog.defaultThemePalette
     )
 
     static func colors(from resolved: ResolvedAppTheme) -> FormaThemeColors {
-        colors(from: resolved.colors, colorScheme: resolved.resolvedColorScheme)
+        colors(
+            from: resolved.colors,
+            colorScheme: resolved.resolvedColorScheme,
+            themePalette: resolved.themePalette
+        )
     }
 
     static func colors(
         from palette: FormaColorPalette,
-        colorScheme: ColorScheme
+        colorScheme: ColorScheme,
+        themePalette: ThemePalette
     ) -> FormaThemeColors {
         let google = FormaBrandColorTokens.googleSignIn(
             colorScheme: colorScheme,
@@ -34,6 +40,7 @@ enum ThemeColorProvider {
         )
 
         return FormaThemeColors(
+            themePalette: themePalette,
             canvas: palette.canvas,
             surface: palette.surface,
             surfaceElevated: palette.surfaceElevated,

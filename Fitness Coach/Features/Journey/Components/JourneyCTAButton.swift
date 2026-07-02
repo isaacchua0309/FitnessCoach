@@ -13,7 +13,7 @@ struct JourneyCTAButton: View {
         Button(action: onTap) {
             Text(cta.title)
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.accent)
+                .foregroundStyle(FormaTokens.Theme.primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .frame(minHeight: FormaTokens.Layout.minTouchTarget)
         }

@@ -40,7 +40,7 @@ struct PlanSectionHeader: View {
         if let actionTitle, let action {
             Button(actionTitle, action: action)
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.accent)
+                .foregroundStyle(FormaTokens.Theme.primary)
                 .buttonStyle(.plain)
                 .frame(minHeight: FormaTokens.Layout.minTouchTarget)
                 .multilineTextAlignment(.leading)

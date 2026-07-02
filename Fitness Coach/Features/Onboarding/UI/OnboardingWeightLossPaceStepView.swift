@@ -133,7 +133,7 @@ struct OnboardingWeightLossPaceStepView: View {
                 }
             }
             .pickerStyle(.segmented)
-            .tint(OnboardingTheme.accent)
+            .tint(OnboardingTheme.primary)
 
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
                 HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {

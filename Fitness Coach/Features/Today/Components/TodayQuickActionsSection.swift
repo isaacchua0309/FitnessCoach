@@ -36,7 +36,7 @@ struct TodayQuickActionsSection: View {
                 quickActionLabel(for: item.kind)
             }
             .buttonStyle(.bordered)
-            .tint(FormaTokens.Color.accent)
+            .tint(FormaTokens.Theme.primary)
             .accessibilityLabel(FormaProductCopy.Today.QuickActions.title(for: item.kind))
             .accessibilityHint(FormaProductCopy.Today.QuickActions.inlineAccessibilityHint(for: item.kind))
         } else {

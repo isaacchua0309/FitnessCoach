@@ -13,7 +13,7 @@ struct FormaScreenLoadingView: View {
     var body: some View {
         VStack(spacing: FormaTokens.Spacing.sm) {
             SwiftUI.ProgressView()
-                .tint(FormaTokens.Color.accent)
+                .tint(FormaTokens.Theme.primary)
             Text(message)
                 .font(FormaTokens.Typography.sectionSubtitle)
                 .foregroundStyle(FormaTokens.Color.textSecondary)

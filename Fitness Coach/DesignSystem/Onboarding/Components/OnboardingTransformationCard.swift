@@ -109,7 +109,7 @@ struct OnboardingTransformationCard: View {
                 Capsule()
                     .fill(
                         index == normalizedActiveIndex
-                            ? OnboardingTheme.accent
+                            ? OnboardingTheme.primary
                             : OnboardingTheme.progressTrack.opacity(0.85)
                     )
                     .frame(width: index == normalizedActiveIndex ? 20 : 7, height: 7)

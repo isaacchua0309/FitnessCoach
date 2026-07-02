@@ -90,7 +90,7 @@ struct TodayDailySummarySection: View {
         case .met:
             Image(systemName: "checkmark.circle.fill")
                 .font(.caption)
-                .foregroundStyle(FormaTokens.Color.accent.opacity(0.85))
+                .foregroundStyle(FormaTokens.Theme.primary.opacity(0.85))
         case .notMet:
             Image(systemName: "xmark.circle")
                 .font(.caption)

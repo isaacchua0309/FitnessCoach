@@ -166,7 +166,7 @@ struct PlanRationaleSection: View {
         } label: {
             Text(rationale.seeCalculationTitle)
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.accent)
+                .foregroundStyle(FormaTokens.Theme.primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .frame(minHeight: FormaTokens.Layout.minTouchTarget)
         }

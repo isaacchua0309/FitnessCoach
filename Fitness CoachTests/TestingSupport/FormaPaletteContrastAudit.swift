@@ -160,6 +160,58 @@ enum FormaPaletteContrastAudit {
             minimum: 1.5
         )
 
+        let theme = ThemePaletteCatalog.palette(for: themePalette, colorScheme: colorScheme)
+        let pickerSelectedBackground = FormaPaletteContrastAudit.blended(
+            theme.softBackground,
+            over: palette.canvas
+        )
+        let pickerUnselectedBackground = FormaPaletteContrastAudit.blended(
+            palette.surfaceSubtle,
+            over: palette.canvas
+        )
+
+        record(
+            "textPrimary on theme picker selected background",
+            foreground: palette.textPrimary,
+            background: pickerSelectedBackground,
+            minimum: 4.5
+        )
+
+        record(
+            "textSecondary on theme picker selected background",
+            foreground: palette.textSecondary,
+            background: pickerSelectedBackground,
+            minimum: 4.5
+        )
+
+        record(
+            "textPrimary on theme picker unselected background",
+            foreground: palette.textPrimary,
+            background: pickerUnselectedBackground,
+            minimum: 4.5
+        )
+
+        record(
+            "theme primary border on theme picker unselected background",
+            foreground: theme.primary.opacity(0.88),
+            background: pickerUnselectedBackground,
+            minimum: 1.5
+        )
+
+        record(
+            "theme primary border on theme picker selected background",
+            foreground: theme.primary.opacity(0.88),
+            background: pickerSelectedBackground,
+            minimum: 1.5
+        )
+
+        record(
+            "textOnAccent on primary button background",
+            foreground: theme.textOnAccent,
+            background: theme.primaryButtonBackground,
+            minimum: 4.5
+        )
+
         return findings
     }
 }

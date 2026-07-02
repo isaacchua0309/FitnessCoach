@@ -62,7 +62,7 @@ struct TrainingInsightsGateView: View {
 
             if state.isRequestingPermission {
                 SwiftUI.ProgressView()
-                    .tint(FormaTokens.Color.accent)
+                    .tint(FormaTokens.Theme.primary)
             } else {
                 Image(systemName: iconName)
                     .font(.system(size: 20, weight: .semibold))

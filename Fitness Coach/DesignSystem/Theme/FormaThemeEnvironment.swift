@@ -25,6 +25,10 @@ private struct FormaColorsKey: EnvironmentKey {
     static let defaultValue = FormaThemeEnvironment.defaultResolvedTheme.colors
 }
 
+private struct ThemePaletteKey: EnvironmentKey {
+    static let defaultValue = FormaThemeEnvironment.defaultResolvedTheme.themePalette
+}
+
 extension EnvironmentValues {
 
     /// Fully resolved appearance + palette for the active screen tree.
@@ -33,6 +37,7 @@ extension EnvironmentValues {
         set {
             self[FormaResolvedThemeKey.self] = newValue
             self[FormaColorsKey.self] = newValue.colors
+            self[ThemePaletteKey.self] = newValue.themePalette
         }
     }
 
@@ -40,6 +45,12 @@ extension EnvironmentValues {
     var formaColors: FormaColorPalette {
         get { self[FormaColorsKey.self] }
         set { self[FormaColorsKey.self] = newValue }
+    }
+
+    /// Canonical theme accent tokens for the active user palette.
+    var themePalette: ThemePalette {
+        get { self[ThemePaletteKey.self] }
+        set { self[ThemePaletteKey.self] = newValue }
     }
 }
 
@@ -94,20 +105,20 @@ extension View {
     /// Injects a fixed resolved theme (and legacy palette bridge) for previews.
     func formaResolvedTheme(_ theme: ResolvedAppTheme) -> some View {
         let legacyPalette = FormaPaletteCatalog.legacyThemePalette(
-            for: legacyPaletteID(from: theme.preferences.palette),
+            for: theme.preferences.palette,
             colorScheme: theme.resolvedColorScheme
         )
         FormaThemeAccess.update(resolved: theme)
         return environment(\.formaResolvedTheme, theme)
             .environment(\.formaThemePalette, legacyPalette)
-            .tint(theme.colors.accent)
+            .tint(theme.themePalette.primary)
             .formaThemeReactive()
     }
 
     /// Preview helper that mirrors root theme injection without a live `ThemeStore`.
     func formaThemePreview(
         appearance: AppAppearanceMode = .dark,
-        palette: AppThemePalette = .default,
+        palette: AppThemePalette = .oceanBlue,
         systemColorScheme: ColorScheme = .dark
     ) -> some View {
         let preferences = AppThemePreferences(appearance: appearance, palette: palette)
@@ -117,13 +128,5 @@ extension View {
         )
         return preferredColorScheme(ThemeResolver.preferredColorScheme(for: appearance))
             .formaResolvedTheme(resolved)
-    }
-}
-
-private func legacyPaletteID(from palette: AppThemePalette) -> FormaColorPaletteID {
-    switch palette {
-    case .default: .defaultForma
-    case .pink: .pink
-    case .coolBlue: .coolBlue
     }
 }

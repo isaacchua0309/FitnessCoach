@@ -13,7 +13,7 @@ struct AppThemePreferences: Equatable, Codable, Sendable {
 
     static let `default` = AppThemePreferences(
         appearance: .dark,
-        palette: .default
+        palette: .oceanBlue
     )
 
     enum PersistenceKey {
@@ -47,5 +47,6 @@ struct AppThemePreferences: Equatable, Codable, Sendable {
     func write(to userDefaults: UserDefaults) {
         userDefaults.set(appearance.rawValue, forKey: PersistenceKey.appearance)
         userDefaults.set(palette.persistenceRawValue, forKey: PersistenceKey.palette)
+        userDefaults.removeObject(forKey: PersistenceKey.legacyPalette)
     }
 }

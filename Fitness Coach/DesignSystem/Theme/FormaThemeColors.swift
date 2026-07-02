@@ -9,6 +9,7 @@ import SwiftUI
 
 /// Resolved semantic colors for `FormaTokens.Color` and other static access points.
 struct FormaThemeColors: Equatable, Sendable {
+    let themePalette: ThemePalette
     let canvas: Color
     let surface: Color
     let surfaceElevated: Color

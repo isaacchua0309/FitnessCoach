@@ -10,49 +10,70 @@ import XCTest
 
 final class AppThemePaletteTests: XCTestCase {
 
-    func testLegacyDefaultIsDefaultForma() {
-        XCTAssertEqual(AppThemePalette.legacyDefault, .default)
-        XCTAssertEqual(AppThemePreferences.default.palette, .default)
+    func testLegacyDefaultIsOceanBlue() {
+        XCTAssertEqual(AppThemePalette.legacyDefault, .oceanBlue)
+        XCTAssertEqual(AppThemePreferences.default.palette, .oceanBlue)
     }
 
-    func testLoadsCanonicalAndLegacyPersistedRawValues() {
-        XCTAssertEqual(AppThemePalette(storedRawValue: "default"), .default)
-        XCTAssertEqual(AppThemePalette(storedRawValue: "defaultForma"), .default)
-        XCTAssertEqual(AppThemePalette(storedRawValue: "pink"), .pink)
-        XCTAssertEqual(AppThemePalette(storedRawValue: "coolBlue"), .coolBlue)
+    func testLoadsCanonicalPersistedRawValues() {
+        XCTAssertEqual(AppThemePalette(storedRawValue: "oceanBlue"), .oceanBlue)
+        XCTAssertEqual(AppThemePalette(storedRawValue: "blossomPink"), .blossomPink)
+        XCTAssertEqual(AppThemePalette(storedRawValue: "emeraldGreen"), .emeraldGreen)
+        XCTAssertEqual(AppThemePalette(storedRawValue: "sunsetOrange"), .sunsetOrange)
     }
 
-    func testFallsBackToDefaultForMissingOrUnknownRawValue() {
-        XCTAssertEqual(AppThemePalette(storedRawValue: nil), .default)
-        XCTAssertEqual(AppThemePalette(storedRawValue: "neon"), .default)
+    func testMigratesLegacyPersistedRawValues() {
+        XCTAssertEqual(AppThemePalette(storedRawValue: "default"), .oceanBlue)
+        XCTAssertEqual(AppThemePalette(storedRawValue: "defaultForma"), .oceanBlue)
+        XCTAssertEqual(AppThemePalette(storedRawValue: "blue"), .oceanBlue)
+        XCTAssertEqual(AppThemePalette(storedRawValue: "coolBlue"), .oceanBlue)
+        XCTAssertEqual(AppThemePalette(storedRawValue: "pink"), .blossomPink)
+    }
+
+    func testFallsBackToOceanBlueForMissingOrUnknownRawValue() {
+        XCTAssertEqual(AppThemePalette(storedRawValue: nil), .oceanBlue)
+        XCTAssertEqual(AppThemePalette(storedRawValue: "neon"), .oceanBlue)
     }
 
     func testPersistenceRawValueUsesCanonicalKeys() {
-        XCTAssertEqual(AppThemePalette.default.persistenceRawValue, "default")
-        XCTAssertEqual(AppThemePalette.pink.persistenceRawValue, "pink")
-        XCTAssertEqual(AppThemePalette.coolBlue.persistenceRawValue, "coolBlue")
+        XCTAssertEqual(AppThemePalette.oceanBlue.persistenceRawValue, "oceanBlue")
+        XCTAssertEqual(AppThemePalette.blossomPink.persistenceRawValue, "blossomPink")
+        XCTAssertEqual(AppThemePalette.emeraldGreen.persistenceRawValue, "emeraldGreen")
+        XCTAssertEqual(AppThemePalette.sunsetOrange.persistenceRawValue, "sunsetOrange")
+    }
+
+    func testShouldMigratePersistedRawValueForLegacyKeys() {
+        XCTAssertTrue(AppThemePalette.shouldMigratePersistedRawValue("default"))
+        XCTAssertTrue(AppThemePalette.shouldMigratePersistedRawValue("defaultForma"))
+        XCTAssertTrue(AppThemePalette.shouldMigratePersistedRawValue("blue"))
+        XCTAssertTrue(AppThemePalette.shouldMigratePersistedRawValue("coolBlue"))
+        XCTAssertTrue(AppThemePalette.shouldMigratePersistedRawValue("pink"))
+        XCTAssertFalse(AppThemePalette.shouldMigratePersistedRawValue("oceanBlue"))
+        XCTAssertFalse(AppThemePalette.shouldMigratePersistedRawValue("blossomPink"))
     }
 
     func testDisplayNamesMatchFormaProductCopy() {
-        XCTAssertEqual(AppThemePalette.default.displayName, "Default Forma")
-        XCTAssertEqual(AppThemePalette.pink.displayName, "Pink")
-        XCTAssertEqual(AppThemePalette.coolBlue.displayName, "Cool Blue")
+        XCTAssertEqual(AppThemePalette.oceanBlue.displayName, "Ocean Blue")
+        XCTAssertEqual(AppThemePalette.blossomPink.displayName, "Blossom Pink")
+        XCTAssertEqual(AppThemePalette.emeraldGreen.displayName, "Emerald Green")
+        XCTAssertEqual(AppThemePalette.sunsetOrange.displayName, "Sunset Orange")
     }
 
     func testDescriptionsMatchFormaProductCopy() {
-        XCTAssertEqual(AppThemePalette.default.description, "Forma's signature palette.")
-        XCTAssertEqual(AppThemePalette.pink.description, "Warm rose tones.")
-        XCTAssertEqual(AppThemePalette.coolBlue.description, "Calm blue tones.")
+        XCTAssertEqual(AppThemePalette.oceanBlue.description, "Calm and focused")
+        XCTAssertEqual(AppThemePalette.blossomPink.description, "Warm and friendly")
+        XCTAssertEqual(AppThemePalette.emeraldGreen.description, "Fresh and healthy")
+        XCTAssertEqual(AppThemePalette.sunsetOrange.description, "Energetic and bold")
     }
 
     func testAccessibilityLabelsIncludeSelectionState() {
         XCTAssertEqual(
-            AppThemePalette.pink.accessibilityLabel(isSelected: true),
-            "Pink, selected, Warm rose tones"
+            AppThemePalette.blossomPink.accessibilityLabel(isSelected: true),
+            "Blossom Pink, Warm and friendly, selected"
         )
         XCTAssertEqual(
-            AppThemePalette.coolBlue.accessibilityLabel(isSelected: false),
-            "Cool Blue, Calm blue tones"
+            AppThemePalette.emeraldGreen.accessibilityLabel(isSelected: false),
+            "Emerald Green, Fresh and healthy, not selected"
         )
     }
 
@@ -61,12 +82,12 @@ final class AppThemePaletteTests: XCTestCase {
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
-        let original = AppThemePreferences(appearance: .dark, palette: .coolBlue)
+        let original = AppThemePreferences(appearance: .dark, palette: .emeraldGreen)
         original.write(to: defaults)
 
         let loaded = AppThemePreferences(userDefaults: defaults)
-        XCTAssertEqual(loaded.palette, .coolBlue)
-        XCTAssertEqual(defaults.string(forKey: AppThemePreferences.PersistenceKey.palette), "coolBlue")
+        XCTAssertEqual(loaded.palette, .emeraldGreen)
+        XCTAssertEqual(defaults.string(forKey: AppThemePreferences.PersistenceKey.palette), "emeraldGreen")
     }
 
     func testPreferencesReadLegacyPaletteKey() {
@@ -74,6 +95,6 @@ final class AppThemePaletteTests: XCTestCase {
             appearanceRawValue: "dark",
             paletteRawValue: "defaultForma"
         )
-        XCTAssertEqual(preferences.palette, .default)
+        XCTAssertEqual(preferences.palette, .oceanBlue)
     }
 }

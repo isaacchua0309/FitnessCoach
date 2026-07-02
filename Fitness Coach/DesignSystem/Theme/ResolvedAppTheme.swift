@@ -10,6 +10,7 @@ import SwiftUI
 struct ResolvedAppTheme: Equatable, Sendable {
     let preferences: AppThemePreferences
     let resolvedColorScheme: ColorScheme
+    let themePalette: ThemePalette
     let colors: FormaColorPalette
 
     static func resolve(

@@ -18,7 +18,7 @@ struct TodayGoalConnectionRow: View {
             HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
                 Image(systemName: "arrow.up.forward")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.accent.opacity(0.85))
+                    .foregroundStyle(FormaTokens.Theme.primary.opacity(0.85))
                     .accessibilityHidden(true)
 
                 Text(connection.message)

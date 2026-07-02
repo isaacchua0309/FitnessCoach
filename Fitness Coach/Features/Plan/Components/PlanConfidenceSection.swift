@@ -51,7 +51,7 @@ struct PlanConfidenceSection: View {
                 .accessibilityHidden(true)
 
             ForEach(state.whyItems) { item in
-                reasonRow(symbol: "✓", text: item.text, symbolColor: FormaTokens.Color.accent)
+                reasonRow(symbol: "✓", text: item.text, symbolColor: FormaTokens.Theme.primary)
             }
         }
     }

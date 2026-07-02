@@ -48,7 +48,7 @@ struct TodayActivitySection: View {
                 onConnectAppleHealth()
             }
             .font(FormaTokens.Typography.caption.weight(.medium))
-            .foregroundStyle(FormaTokens.Color.accent)
+            .foregroundStyle(FormaTokens.Theme.primary)
             .accessibilityLabel(model.actionTitle)
             .accessibilityHint(FormaProductCopy.Today.nextActionTrainingInsightsHint)
         }

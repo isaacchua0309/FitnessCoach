@@ -8,17 +8,24 @@
 import Foundation
 
 enum AppThemePalette: String, CaseIterable, Codable, Identifiable, Sendable {
-    case `default`
-    case pink
-    case coolBlue
+    case oceanBlue
+    case blossomPink
+    case emeraldGreen
+    case sunsetOrange
 
     var id: String { rawValue }
 
-    /// Preserves the current Forma look for existing users.
-    static let legacyDefault: AppThemePalette = .default
+    /// Default product palette for new installs and unknown persisted values.
+    static let legacyDefault: AppThemePalette = .oceanBlue
 
-    /// Legacy Settings storage used `defaultForma` before the canonical model.
-    private static let legacyDefaultFormaRawValue = "defaultForma"
+    /// Legacy persisted raw values mapped to the canonical four-theme model.
+    private static let legacyMigrationMap: [String: AppThemePalette] = [
+        "default": .oceanBlue,
+        "defaultForma": .oceanBlue,
+        "blue": .oceanBlue,
+        "coolBlue": .oceanBlue,
+        "pink": .blossomPink
+    ]
 
     init(storedRawValue: String?) {
         guard let storedRawValue else {
@@ -26,8 +33,8 @@ enum AppThemePalette: String, CaseIterable, Codable, Identifiable, Sendable {
             return
         }
 
-        if storedRawValue == Self.legacyDefaultFormaRawValue {
-            self = .default
+        if let migrated = Self.legacyMigrationMap[storedRawValue] {
+            self = migrated
             return
         }
 
@@ -39,6 +46,29 @@ enum AppThemePalette: String, CaseIterable, Codable, Identifiable, Sendable {
         self = palette
     }
 
-    /// Raw value written for persistence (includes legacy alias compatibility on read).
+    /// Whether a persisted raw value should be rewritten to the canonical palette key.
+    static func shouldMigratePersistedRawValue(_ storedRawValue: String) -> Bool {
+        resolveStoredPalette(
+            primaryRawValue: storedRawValue,
+            legacyRawValue: nil
+        ).shouldRewriteCanonicalStore
+    }
+
+    /// Returns the canonical palette for a known legacy alias.
+    static func legacyMappedPalette(for rawValue: String) -> AppThemePalette? {
+        legacyMigrationMap[rawValue]
+    }
+
+    /// Raw value written for persistence.
     var persistenceRawValue: String { rawValue }
+
+    private static func resolveStoredPalette(
+        primaryRawValue: String?,
+        legacyRawValue: String?
+    ) -> ThemePalettePersistence.LoadResult {
+        ThemePalettePersistence.resolveStoredPalette(
+            primaryRawValue: primaryRawValue,
+            legacyRawValue: legacyRawValue
+        )
+    }
 }
