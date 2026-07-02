@@ -43,12 +43,12 @@ final class ThemeAnalyticsTests: XCTestCase {
 
     func testPaletteChangePropertiesUsePersistenceRawValues() {
         let parameters = ThemeAnalyticsProperties.paletteChange(
-            previous: .default,
-            new: .pink
+            previous: .oceanBlue,
+            new: .blossomPink
         ).asParameters()
 
-        XCTAssertEqual(parameters["previousPalette"], "default")
-        XCTAssertEqual(parameters["newPalette"], "pink")
+        XCTAssertEqual(parameters["previousPalette"], "oceanBlue")
+        XCTAssertEqual(parameters["newPalette"], "blossomPink")
         XCTAssertEqual(parameters["source"], "settings")
         XCTAssertNil(parameters["previousAppearance"])
     }
@@ -67,7 +67,7 @@ final class ThemeAnalyticsTests: XCTestCase {
         let samples = [
             ThemeAnalyticsProperties.settingsViewed().asParameters(),
             ThemeAnalyticsProperties.appearanceChange(previous: .system, new: .dark).asParameters(),
-            ThemeAnalyticsProperties.paletteChange(previous: .coolBlue, new: .default).asParameters()
+            ThemeAnalyticsProperties.paletteChange(previous: .emeraldGreen, new: .oceanBlue).asParameters()
         ]
 
         for parameters in samples {
@@ -126,14 +126,14 @@ final class ThemeAnalyticsTests: XCTestCase {
                 userDefaults: UserDefaults(suiteName: "ThemeAnalyticsTests.palette.\(UUID().uuidString)")!,
                 analyticsLogger: analytics
             )
-            XCTAssertEqual(store.palette, .default)
+            XCTAssertEqual(store.palette, .oceanBlue)
 
-            store.setPalette(.pink)
+            store.setPalette(.blossomPink)
 
             XCTAssertTrue(analytics.contains(.paletteChanged))
             let properties = analytics.lastProperties(for: .paletteChanged)
-            XCTAssertEqual(properties?["previousPalette"], "default")
-            XCTAssertEqual(properties?["newPalette"], "pink")
+            XCTAssertEqual(properties?["previousPalette"], "oceanBlue")
+            XCTAssertEqual(properties?["newPalette"], "blossomPink")
             XCTAssertEqual(properties?["source"], "settings")
         }
     }
@@ -147,7 +147,7 @@ final class ThemeAnalyticsTests: XCTestCase {
             )
 
             store.setAppearance(.dark)
-            store.setPalette(.default)
+            store.setPalette(.oceanBlue)
 
             XCTAssertFalse(analytics.contains(.appearanceModeChanged))
             XCTAssertFalse(analytics.contains(.paletteChanged))

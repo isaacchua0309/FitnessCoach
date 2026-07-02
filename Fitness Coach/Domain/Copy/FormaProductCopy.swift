@@ -2269,12 +2269,14 @@ enum FormaProductCopy {
             }
 
             enum ColorPalette {
-                static let defaultTitle = "Default Forma"
-                static let defaultDescription = "Forma's signature palette."
-                static let pinkTitle = "Pink"
-                static let pinkDescription = "Warm rose tones."
-                static let coolBlueTitle = "Cool Blue"
-                static let coolBlueDescription = "Calm blue tones."
+                static let oceanBlueTitle = "Ocean Blue"
+                static let oceanBlueDescription = "Calm ocean blues."
+                static let blossomPinkTitle = "Blossom Pink"
+                static let blossomPinkDescription = "Warm blossom pinks."
+                static let emeraldGreenTitle = "Emerald Green"
+                static let emeraldGreenDescription = "Fresh emerald greens."
+                static let sunsetOrangeTitle = "Sunset Orange"
+                static let sunsetOrangeDescription = "Warm sunset oranges."
             }
 
             enum Error {
@@ -2301,17 +2303,19 @@ enum FormaProductCopy {
 
             static func colorPaletteTitle(for palette: AppThemePalette) -> String {
                 switch palette {
-                case .default: ColorPalette.defaultTitle
-                case .pink: ColorPalette.pinkTitle
-                case .coolBlue: ColorPalette.coolBlueTitle
+                case .oceanBlue: ColorPalette.oceanBlueTitle
+                case .blossomPink: ColorPalette.blossomPinkTitle
+                case .emeraldGreen: ColorPalette.emeraldGreenTitle
+                case .sunsetOrange: ColorPalette.sunsetOrangeTitle
                 }
             }
 
             static func colorPaletteDescription(for palette: AppThemePalette) -> String {
                 switch palette {
-                case .default: ColorPalette.defaultDescription
-                case .pink: ColorPalette.pinkDescription
-                case .coolBlue: ColorPalette.coolBlueDescription
+                case .oceanBlue: ColorPalette.oceanBlueDescription
+                case .blossomPink: ColorPalette.blossomPinkDescription
+                case .emeraldGreen: ColorPalette.emeraldGreenDescription
+                case .sunsetOrange: ColorPalette.sunsetOrangeDescription
                 }
             }
 

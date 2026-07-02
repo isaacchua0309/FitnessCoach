@@ -35,15 +35,15 @@ struct FormaThemePalette: Equatable, Sendable {
         [previewSwatchAccent, previewSwatchSurface, previewSwatchCanvas]
     }
 
-    static func palette(for colorTheme: FormaColorPaletteID, colorScheme: ColorScheme) -> FormaThemePalette {
-        FormaPaletteCatalog.legacyThemePalette(for: colorTheme, colorScheme: colorScheme)
+    static func palette(for themePalette: AppThemePalette, colorScheme: ColorScheme) -> FormaThemePalette {
+        FormaPaletteCatalog.legacyThemePalette(for: themePalette, colorScheme: colorScheme)
     }
 
-    static let defaultDarkForma = palette(for: .defaultForma, colorScheme: .dark)
+    static let defaultOceanBlue = palette(for: .oceanBlue, colorScheme: .dark)
 }
 
 private struct FormaThemePaletteKey: EnvironmentKey {
-    static let defaultValue = FormaThemePalette.defaultDarkForma
+    static let defaultValue = FormaThemePalette.defaultOceanBlue
 }
 
 extension EnvironmentValues {

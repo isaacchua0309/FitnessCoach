@@ -43,12 +43,14 @@ final class ThemeSettingsCopyGuardrailTests: XCTestCase {
         XCTAssertFalse(appearance.darkDescription.isEmpty)
 
         let palettes = theme.ColorPalette.self
-        XCTAssertFalse(palettes.defaultTitle.isEmpty)
-        XCTAssertFalse(palettes.defaultDescription.isEmpty)
-        XCTAssertFalse(palettes.pinkTitle.isEmpty)
-        XCTAssertFalse(palettes.pinkDescription.isEmpty)
-        XCTAssertFalse(palettes.coolBlueTitle.isEmpty)
-        XCTAssertFalse(palettes.coolBlueDescription.isEmpty)
+        XCTAssertFalse(palettes.oceanBlueTitle.isEmpty)
+        XCTAssertFalse(palettes.oceanBlueDescription.isEmpty)
+        XCTAssertFalse(palettes.blossomPinkTitle.isEmpty)
+        XCTAssertFalse(palettes.blossomPinkDescription.isEmpty)
+        XCTAssertFalse(palettes.emeraldGreenTitle.isEmpty)
+        XCTAssertFalse(palettes.emeraldGreenDescription.isEmpty)
+        XCTAssertFalse(palettes.sunsetOrangeTitle.isEmpty)
+        XCTAssertFalse(palettes.sunsetOrangeDescription.isEmpty)
 
         let error = theme.Error.self
         XCTAssertFalse(error.loadFailedTitle.isEmpty)

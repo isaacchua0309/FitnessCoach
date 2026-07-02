@@ -12,7 +12,7 @@ enum MainTabThemePreviewScreens {
 
     @ViewBuilder
     static func today(
-        palette: AppThemePalette = .default,
+        palette: AppThemePalette = .oceanBlue,
         appearance: AppAppearanceMode = .dark
     ) -> some View {
         let container = try! AppContainer(inMemory: true)
@@ -33,7 +33,7 @@ enum MainTabThemePreviewScreens {
 
     @ViewBuilder
     static func plan(
-        palette: AppThemePalette = .default,
+        palette: AppThemePalette = .oceanBlue,
         appearance: AppAppearanceMode = .dark
     ) -> some View {
         ScrollView {
@@ -57,7 +57,7 @@ enum MainTabThemePreviewScreens {
 
     @ViewBuilder
     static func journey(
-        palette: AppThemePalette = .default,
+        palette: AppThemePalette = .oceanBlue,
         appearance: AppAppearanceMode = .dark
     ) -> some View {
         ScrollView {
@@ -69,7 +69,7 @@ enum MainTabThemePreviewScreens {
 
     @ViewBuilder
     static func coach(
-        palette: AppThemePalette = .default,
+        palette: AppThemePalette = .oceanBlue,
         appearance: AppAppearanceMode = .dark
     ) -> some View {
         CoachView(model: try! AppContainer(inMemory: true).makeCoachModel())
@@ -80,7 +80,7 @@ enum MainTabThemePreviewScreens {
 
     @ViewBuilder
     static func settings(
-        palette: AppThemePalette = .default,
+        palette: AppThemePalette = .oceanBlue,
         appearance: AppAppearanceMode = .dark
     ) -> some View {
         SettingsRootView(
@@ -100,63 +100,83 @@ enum MainTabThemePreviewScreens {
     }
 }
 
-#Preview("Today — Default") {
+#Preview("Today — Ocean Blue") {
     MainTabThemePreviewScreens.today()
 }
 
-#Preview("Today — Pink") {
-    MainTabThemePreviewScreens.today(palette: .pink)
+#Preview("Today — Blossom Pink") {
+    MainTabThemePreviewScreens.today(palette: .blossomPink)
 }
 
-#Preview("Today — Cool Blue") {
-    MainTabThemePreviewScreens.today(palette: .coolBlue)
+#Preview("Today — Emerald Green") {
+    MainTabThemePreviewScreens.today(palette: .emeraldGreen)
 }
 
-#Preview("Plan — Default") {
+#Preview("Today — Sunset Orange") {
+    MainTabThemePreviewScreens.today(palette: .sunsetOrange)
+}
+
+#Preview("Plan — Ocean Blue") {
     MainTabThemePreviewScreens.plan()
 }
 
-#Preview("Plan — Pink") {
-    MainTabThemePreviewScreens.plan(palette: .pink)
+#Preview("Plan — Blossom Pink") {
+    MainTabThemePreviewScreens.plan(palette: .blossomPink)
 }
 
-#Preview("Plan — Cool Blue") {
-    MainTabThemePreviewScreens.plan(palette: .coolBlue)
+#Preview("Plan — Emerald Green") {
+    MainTabThemePreviewScreens.plan(palette: .emeraldGreen)
 }
 
-#Preview("Journey — Default") {
+#Preview("Plan — Sunset Orange") {
+    MainTabThemePreviewScreens.plan(palette: .sunsetOrange)
+}
+
+#Preview("Journey — Ocean Blue") {
     MainTabThemePreviewScreens.journey()
 }
 
-#Preview("Journey — Pink") {
-    MainTabThemePreviewScreens.journey(palette: .pink)
+#Preview("Journey — Blossom Pink") {
+    MainTabThemePreviewScreens.journey(palette: .blossomPink)
 }
 
-#Preview("Journey — Cool Blue") {
-    MainTabThemePreviewScreens.journey(palette: .coolBlue)
+#Preview("Journey — Emerald Green") {
+    MainTabThemePreviewScreens.journey(palette: .emeraldGreen)
 }
 
-#Preview("Coach — Default") {
+#Preview("Journey — Sunset Orange") {
+    MainTabThemePreviewScreens.journey(palette: .sunsetOrange)
+}
+
+#Preview("Coach — Ocean Blue") {
     MainTabThemePreviewScreens.coach()
 }
 
-#Preview("Coach — Pink") {
-    MainTabThemePreviewScreens.coach(palette: .pink)
+#Preview("Coach — Blossom Pink") {
+    MainTabThemePreviewScreens.coach(palette: .blossomPink)
 }
 
-#Preview("Coach — Cool Blue") {
-    MainTabThemePreviewScreens.coach(palette: .coolBlue)
+#Preview("Coach — Emerald Green") {
+    MainTabThemePreviewScreens.coach(palette: .emeraldGreen)
 }
 
-#Preview("Settings — Default") {
+#Preview("Coach — Sunset Orange") {
+    MainTabThemePreviewScreens.coach(palette: .sunsetOrange)
+}
+
+#Preview("Settings — Ocean Blue") {
     MainTabThemePreviewScreens.settings()
 }
 
-#Preview("Settings — Pink") {
-    MainTabThemePreviewScreens.settings(palette: .pink)
+#Preview("Settings — Blossom Pink") {
+    MainTabThemePreviewScreens.settings(palette: .blossomPink)
 }
 
-#Preview("Settings — Cool Blue") {
-    MainTabThemePreviewScreens.settings(palette: .coolBlue)
+#Preview("Settings — Emerald Green") {
+    MainTabThemePreviewScreens.settings(palette: .emeraldGreen)
+}
+
+#Preview("Settings — Sunset Orange") {
+    MainTabThemePreviewScreens.settings(palette: .sunsetOrange)
 }
 #endif

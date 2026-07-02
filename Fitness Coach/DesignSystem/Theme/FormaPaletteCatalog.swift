@@ -16,100 +16,168 @@ enum FormaPaletteCatalog {
         for themePalette: AppThemePalette,
         colorScheme: ColorScheme
     ) -> FormaColorPalette {
-        switch (themePalette, colorScheme) {
-        case (.default, .dark):
-            return defaultFormaDark
-        case (.default, .light):
-            return defaultFormaLight
-        case (.pink, .dark):
-            return pinkDark
-        case (.pink, .light):
-            return pinkLight
-        case (.coolBlue, .dark):
-            return coolBlueDark
-        case (.coolBlue, .light):
-            return coolBlueLight
-        case (_, .dark):
-            return defaultFormaDark
-        case (_, .light):
-            return defaultFormaLight
+        switch themePalette {
+        case .oceanBlue:
+            return colorScheme == .dark ? oceanBlueDark : oceanBlueLight
+        case .blossomPink:
+            return colorScheme == .dark ? blossomPinkDark : blossomPinkLight
+        case .emeraldGreen:
+            return colorScheme == .dark ? emeraldGreenDark : emeraldGreenLight
+        case .sunsetOrange:
+            return colorScheme == .dark ? sunsetOrangeDark : sunsetOrangeLight
         }
     }
 
-    /// Default Forma palette for the dark color scheme — matches legacy production tokens.
-    static var defaultDark: FormaColorPalette { defaultFormaDark }
+    /// Default palette for the dark color scheme.
+    static var defaultDark: FormaColorPalette { oceanBlueDark }
 
-    // MARK: - Default Forma
+    // MARK: - Ocean Blue
 
-    private static let defaultFormaDark = makeDarkPalette(
-        canvas: C.rgb(0.03, 0.05, 0.08),
-        surfaceTint: C.rgb(1.0, 1.0, 1.0),
-        accent: C.rgb(0.0, 0.48, 1.0),
-        ctaBackground: C.rgb(0.0, 0.42, 0.92),
+    private static let oceanBlueDark = makeDarkPalette(
+        canvas: C.hex(0x070D1A),
+        surfaceTint: C.hex(0x60A5FA),
+        anchors: ThemeColorAnchors(
+            primary: C.hex(0x3B82F6),
+            secondary: C.hex(0x60A5FA),
+            accent: C.hex(0x93C5FD),
+            gradientStart: C.hex(0x2563EB),
+            gradientEnd: C.hex(0x60A5FA)
+        ),
         ctaText: C.rgb(1.0, 1.0, 1.0),
         feedback: .dark
     )
 
-    private static let defaultFormaLight = makeLightPalette(
-        canvas: C.rgb(0.97, 0.97, 0.98),
-        ink: C.rgb(0.08, 0.09, 0.11),
-        accent: C.rgb(0.0, 0.40, 0.90),
-        ctaBackground: C.rgb(0.0, 0.34, 0.78),
+    private static let oceanBlueLight = makeLightPalette(
+        canvas: C.hex(0xF5F8FF),
+        ink: C.hex(0x0B1220),
+        anchors: ThemeColorAnchors(
+            primary: C.hex(0x3B82F6),
+            secondary: C.hex(0x60A5FA),
+            accent: C.hex(0x93C5FD),
+            gradientStart: C.hex(0x2563EB),
+            gradientEnd: C.hex(0x60A5FA)
+        ),
         ctaText: C.rgb(1.0, 1.0, 1.0),
         feedback: .light
     )
 
-    // MARK: - Pink
+    // MARK: - Blossom Pink
 
-    private static let pinkDark = makeDarkPalette(
-        canvas: C.rgb(0.10, 0.05, 0.07),
-        surfaceTint: C.rgb(1.0, 0.94, 0.96),
-        accent: C.rgb(1.0, 0.42, 0.58),
-        ctaBackground: C.rgb(0.76, 0.10, 0.36),
+    private static let blossomPinkDark = makeDarkPalette(
+        canvas: C.hex(0x1A0A12),
+        surfaceTint: C.hex(0xF472B6),
+        anchors: ThemeColorAnchors(
+            primary: C.hex(0xEC4899),
+            secondary: C.hex(0xF472B6),
+            accent: C.hex(0xF9A8D4),
+            gradientStart: C.hex(0xDB2777),
+            gradientEnd: C.hex(0xF472B6)
+        ),
         ctaText: C.rgb(1.0, 1.0, 1.0),
         feedback: .dark
     )
 
-    private static let pinkLight = makeLightPalette(
-        canvas: C.rgb(0.99, 0.96, 0.95),
-        ink: C.rgb(0.16, 0.07, 0.10),
-        accent: C.rgb(0.82, 0.18, 0.48),
-        ctaBackground: C.rgb(0.72, 0.10, 0.38),
+    private static let blossomPinkLight = makeLightPalette(
+        canvas: C.hex(0xFFF5F9),
+        ink: C.hex(0x1A0A12),
+        anchors: ThemeColorAnchors(
+            primary: C.hex(0xEC4899),
+            secondary: C.hex(0xF472B6),
+            accent: C.hex(0xF9A8D4),
+            gradientStart: C.hex(0xDB2777),
+            gradientEnd: C.hex(0xF472B6)
+        ),
         ctaText: C.rgb(1.0, 1.0, 1.0),
         feedback: .light
     )
 
-    // MARK: - Cool Blue
+    // MARK: - Emerald Green
 
-    private static let coolBlueDark = makeDarkPalette(
-        canvas: C.rgb(0.03, 0.05, 0.12),
-        surfaceTint: C.rgb(0.90, 0.95, 1.0),
-        accent: C.rgb(0.40, 0.70, 0.98),
-        ctaBackground: C.rgb(0.12, 0.38, 0.74),
+    private static let emeraldGreenDark = makeDarkPalette(
+        canvas: C.hex(0x071510),
+        surfaceTint: C.hex(0x34D399),
+        anchors: ThemeColorAnchors(
+            primary: C.hex(0x10B981),
+            secondary: C.hex(0x34D399),
+            accent: C.hex(0x6EE7B7),
+            gradientStart: C.hex(0x059669),
+            gradientEnd: C.hex(0x34D399)
+        ),
         ctaText: C.rgb(1.0, 1.0, 1.0),
         feedback: .dark
     )
 
-    private static let coolBlueLight = makeLightPalette(
-        canvas: C.rgb(0.95, 0.97, 1.0),
-        ink: C.rgb(0.06, 0.10, 0.18),
-        accent: C.rgb(0.15, 0.45, 0.82),
-        ctaBackground: C.rgb(0.10, 0.34, 0.68),
+    private static let emeraldGreenLight = makeLightPalette(
+        canvas: C.hex(0xF0FDF8),
+        ink: C.hex(0x071510),
+        anchors: ThemeColorAnchors(
+            primary: C.hex(0x10B981),
+            secondary: C.hex(0x34D399),
+            accent: C.hex(0x6EE7B7),
+            gradientStart: C.hex(0x059669),
+            gradientEnd: C.hex(0x34D399)
+        ),
         ctaText: C.rgb(1.0, 1.0, 1.0),
         feedback: .light
     )
+
+    // MARK: - Sunset Orange
+
+    private static let sunsetOrangeDark = makeDarkPalette(
+        canvas: C.hex(0x1A0E07),
+        surfaceTint: C.hex(0xFB923C),
+        anchors: ThemeColorAnchors(
+            primary: C.hex(0xF97316),
+            secondary: C.hex(0xFB923C),
+            accent: C.hex(0xFDBA74),
+            gradientStart: C.hex(0xEA580C),
+            gradientEnd: C.hex(0xFB923C)
+        ),
+        ctaText: C.rgb(1.0, 1.0, 1.0),
+        feedback: .dark
+    )
+
+    private static let sunsetOrangeLight = makeLightPalette(
+        canvas: C.hex(0xFFF7ED),
+        ink: C.hex(0x1A0E07),
+        anchors: ThemeColorAnchors(
+            primary: C.hex(0xF97316),
+            secondary: C.hex(0xFB923C),
+            accent: C.hex(0xFDBA74),
+            gradientStart: C.hex(0xEA580C),
+            gradientEnd: C.hex(0xFB923C)
+        ),
+        ctaText: C.rgb(1.0, 1.0, 1.0),
+        feedback: .light
+    )
+
+    // MARK: - Legacy theme palette bridge
+
+    static func legacyThemePalette(
+        for themePalette: AppThemePalette,
+        colorScheme: ColorScheme
+    ) -> FormaThemePalette {
+        let colors = palette(for: themePalette, colorScheme: colorScheme)
+        return FormaThemePalette(colors: colors, colorScheme: colorScheme)
+    }
 
     // MARK: - Builders
+
+    private struct ThemeColorAnchors {
+        let primary: Color
+        let secondary: Color
+        let accent: Color
+        let gradientStart: Color
+        let gradientEnd: Color
+    }
 
     private static func makeDarkPalette(
         canvas: Color,
         surfaceTint: Color,
-        accent: Color,
-        ctaBackground: Color? = nil,
+        anchors: ThemeColorAnchors,
         ctaText: Color,
         feedback: FeedbackPalette
     ) -> FormaColorPalette {
-        let resolvedCTABackground = ctaBackground ?? accent
         let surface = surfaceTint.opacity(0.07)
         let surfaceElevated = surfaceTint.opacity(0.10)
         let surfaceSubtle = surfaceTint.opacity(0.05)
@@ -118,10 +186,8 @@ enum FormaPaletteCatalog {
         let textPrimary = C.rgb(1.0, 1.0, 1.0)
         let textSecondary = textPrimary.opacity(0.68)
         let textTertiary = textPrimary.opacity(0.48)
-        let accentMuted = accent.opacity(0.16)
-        let borderSelected = accent.opacity(0.72)
-        let accentSecondary = accent.opacity(0.72)
-        let chartSecondary = accent.opacity(0.55)
+        let accentMuted = anchors.accent.opacity(0.16)
+        let borderSelected = anchors.primary.opacity(0.72)
 
         return FormaColorPalette(
             canvas: canvas,
@@ -132,21 +198,23 @@ enum FormaPaletteCatalog {
             border: border,
             borderStrong: borderStrong,
             borderSelected: borderSelected,
-            accent: accent,
-            accentPrimary: accent,
-            accentSecondary: accentSecondary,
+            accent: anchors.primary,
+            accentPrimary: anchors.primary,
+            accentSecondary: anchors.secondary,
             accentMuted: accentMuted,
             textPrimary: textPrimary,
             textSecondary: textSecondary,
             textTertiary: textTertiary,
-            ctaBackground: resolvedCTABackground,
+            ctaBackground: anchors.gradientStart,
             ctaText: ctaText,
-            progress: accent,
+            progress: anchors.primary,
             progressTrack: surfaceSubtle,
             selectedBackground: accentMuted,
             selectedBorder: borderSelected,
-            chartPrimary: accent,
-            chartSecondary: chartSecondary,
+            chartPrimary: anchors.primary,
+            chartSecondary: anchors.secondary,
+            gradientStart: anchors.gradientStart,
+            gradientEnd: anchors.gradientEnd,
             success: feedback.success,
             warning: feedback.warning,
             destructive: feedback.destructive,
@@ -157,12 +225,10 @@ enum FormaPaletteCatalog {
     private static func makeLightPalette(
         canvas: Color,
         ink: Color,
-        accent: Color,
-        ctaBackground: Color? = nil,
+        anchors: ThemeColorAnchors,
         ctaText: Color,
         feedback: FeedbackPalette
     ) -> FormaColorPalette {
-        let resolvedCTABackground = ctaBackground ?? accent
         let surface = ink.opacity(0.05)
         let surfaceElevated = ink.opacity(0.08)
         let surfaceSubtle = ink.opacity(0.03)
@@ -171,10 +237,8 @@ enum FormaPaletteCatalog {
         let textPrimary = ink
         let textSecondary = ink.opacity(0.68)
         let textTertiary = ink.opacity(0.48)
-        let accentMuted = accent.opacity(0.14)
-        let borderSelected = accent.opacity(0.72)
-        let accentSecondary = accent.opacity(0.76)
-        let chartSecondary = accent.opacity(0.58)
+        let accentMuted = anchors.accent.opacity(0.14)
+        let borderSelected = anchors.primary.opacity(0.72)
 
         return FormaColorPalette(
             canvas: canvas,
@@ -185,44 +249,28 @@ enum FormaPaletteCatalog {
             border: border,
             borderStrong: borderStrong,
             borderSelected: borderSelected,
-            accent: accent,
-            accentPrimary: accent,
-            accentSecondary: accentSecondary,
+            accent: anchors.primary,
+            accentPrimary: anchors.primary,
+            accentSecondary: anchors.secondary,
             accentMuted: accentMuted,
             textPrimary: textPrimary,
             textSecondary: textSecondary,
             textTertiary: textTertiary,
-            ctaBackground: resolvedCTABackground,
+            ctaBackground: anchors.gradientStart,
             ctaText: ctaText,
-            progress: accent,
+            progress: anchors.primary,
             progressTrack: surfaceSubtle,
             selectedBackground: accentMuted,
             selectedBorder: borderSelected,
-            chartPrimary: accent,
-            chartSecondary: chartSecondary,
+            chartPrimary: anchors.primary,
+            chartSecondary: anchors.secondary,
+            gradientStart: anchors.gradientStart,
+            gradientEnd: anchors.gradientEnd,
             success: feedback.success,
             warning: feedback.warning,
             destructive: feedback.destructive,
             shadow: C.rgb(0.0, 0.0, 0.0, opacity: 0.12)
         )
-    }
-
-    // MARK: - Legacy theme palette bridge
-
-    static func legacyThemePalette(
-        for colorTheme: FormaColorPaletteID,
-        colorScheme: ColorScheme
-    ) -> FormaThemePalette {
-        let colors = palette(for: appThemePalette(from: colorTheme), colorScheme: colorScheme)
-        return FormaThemePalette(colors: colors, colorScheme: colorScheme)
-    }
-
-    private static func appThemePalette(from legacyID: FormaColorPaletteID) -> AppThemePalette {
-        switch legacyID {
-        case .defaultForma: .default
-        case .pink: .pink
-        case .coolBlue: .coolBlue
-        }
     }
 }
 
@@ -231,6 +279,13 @@ enum FormaPaletteCatalog {
 private enum C {
     static func rgb(_ red: Double, _ green: Double, _ blue: Double, opacity: Double = 1.0) -> Color {
         Color(red: red, green: green, blue: blue, opacity: opacity)
+    }
+
+    static func hex(_ value: UInt32) -> Color {
+        let red = Double((value >> 16) & 0xFF) / 255.0
+        let green = Double((value >> 8) & 0xFF) / 255.0
+        let blue = Double(value & 0xFF) / 255.0
+        return Color(red: red, green: green, blue: blue)
     }
 }
 

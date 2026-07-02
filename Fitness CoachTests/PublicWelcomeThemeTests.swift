@@ -26,7 +26,7 @@ final class PublicWelcomeThemeTests: XCTestCase {
 
     func testPaletteUsesResolvedAppThemeNotHardcodedDark() async {
         await MainActor.run {
-            let pink = makeResolved(palette: .pink, colorScheme: .dark)
+            let pink = makeResolved(palette: .blossomPink, colorScheme: .dark)
             FormaThemeAccess.update(resolved: pink)
 
             let palette = PublicWelcomeTheme.palette(from: pink)
@@ -39,7 +39,7 @@ final class PublicWelcomeThemeTests: XCTestCase {
     func testPaletteColorSchemeResolvesFromCurrentPreferences() async {
         await MainActor.run {
             let coolBlue = ThemeResolver.resolve(
-                preferences: AppThemePreferences(appearance: .system, palette: .coolBlue),
+                preferences: AppThemePreferences(appearance: .system, palette: .emeraldGreen),
                 systemColorScheme: .light
             )
             FormaThemeAccess.update(resolved: coolBlue)
@@ -47,21 +47,21 @@ final class PublicWelcomeThemeTests: XCTestCase {
             let palette = PublicWelcomeTheme.palette(colorScheme: .light)
             assertSameColor(
                 palette.accent,
-                FormaPaletteCatalog.palette(for: .coolBlue, colorScheme: .light).accent
+                FormaPaletteCatalog.palette(for: .emeraldGreen, colorScheme: .light).accent
             )
             assertSameColor(
                 palette.ctaBackground,
-                FormaPaletteCatalog.palette(for: .coolBlue, colorScheme: .light).ctaBackground
+                FormaPaletteCatalog.palette(for: .emeraldGreen, colorScheme: .light).ctaBackground
             )
         }
     }
 
     func testPublicEntryCTAUsesSelectedPalette() async {
         await MainActor.run {
-            FormaThemeAccess.update(resolved: makeResolved(palette: .pink, colorScheme: .dark))
+            FormaThemeAccess.update(resolved: makeResolved(palette: .blossomPink, colorScheme: .dark))
             let pinkCTA = PublicWelcomeTheme.palette(from: FormaThemeAccess.currentResolvedTheme).ctaBackground
 
-            FormaThemeAccess.update(resolved: makeResolved(palette: .coolBlue, colorScheme: .dark))
+            FormaThemeAccess.update(resolved: makeResolved(palette: .emeraldGreen, colorScheme: .dark))
             let coolBlueCTA = PublicWelcomeTheme.palette(from: FormaThemeAccess.currentResolvedTheme).ctaBackground
 
             XCTAssertGreaterThan(colorDistance(pinkCTA, coolBlueCTA), 0.08)
@@ -90,7 +90,7 @@ final class PublicWelcomeThemeTests: XCTestCase {
             let defaults = UserDefaults(suiteName: "PublicWelcomeThemeTests.\(UUID().uuidString)")!
             let store = ThemeStore(userDefaults: defaults)
             store.setAppearance(.dark)
-            store.setPalette(.pink)
+            store.setPalette(.blossomPink)
 
             let syncStore = ProfileCloudSyncStore(userDefaults: defaults)
             syncStore.markSynced(uid: "user", updatedAt: ProfileTestFixtures.referenceDate)
@@ -100,7 +100,7 @@ final class PublicWelcomeThemeTests: XCTestCase {
             AuthLogoutPolicy.applyExplicitSignOut(sessionStore: sessionStore)
 
             let reloaded = ThemeStore(userDefaults: defaults)
-            XCTAssertEqual(reloaded.palette, .pink)
+            XCTAssertEqual(reloaded.palette, .blossomPink)
             XCTAssertEqual(reloaded.appearance, .dark)
 
             let welcomePalette = PublicWelcomeTheme.palette(
@@ -108,7 +108,7 @@ final class PublicWelcomeThemeTests: XCTestCase {
             )
             assertSameColor(
                 welcomePalette.accent,
-                FormaPaletteCatalog.palette(for: .pink, colorScheme: .dark).accent
+                FormaPaletteCatalog.palette(for: .blossomPink, colorScheme: .dark).accent
             )
         }
     }
@@ -156,7 +156,7 @@ final class PublicWelcomeThemeTests: XCTestCase {
 
     func testGoogleSignInButtonUsesBrandTokens() async {
         await MainActor.run {
-            FormaThemeAccess.update(resolved: makeResolved(palette: .pink, colorScheme: .dark))
+            FormaThemeAccess.update(resolved: makeResolved(palette: .blossomPink, colorScheme: .dark))
             let approved = FormaBrandColorTokens.googleSignIn(
                 colorScheme: .dark,
                 borderBase: FormaPaletteCatalog.defaultDark.border

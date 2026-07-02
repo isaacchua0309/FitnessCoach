@@ -20,13 +20,13 @@ enum FormaThemeAccess {
         systemColorScheme: .dark
     )
     private(set) static var currentColors: FormaThemeColors = ThemeColorProvider.productDefault
-    private(set) static var currentPalette: FormaThemePalette = .defaultDarkForma
+    private(set) static var currentPalette: FormaThemePalette = .defaultOceanBlue
 
     static func update(resolved: ResolvedAppTheme) {
         currentResolvedTheme = resolved
         currentColors = ThemeColorProvider.colors(from: resolved)
         currentPalette = FormaPaletteCatalog.legacyThemePalette(
-            for: legacyPaletteID(from: resolved.preferences.palette),
+            for: resolved.preferences.palette,
             colorScheme: resolved.resolvedColorScheme
         )
     }
@@ -44,13 +44,5 @@ enum FormaThemeAccess {
     static func resetToProductDefault() {
         let resolved = ResolvedAppTheme.resolve(preferences: .default, systemColorScheme: .dark)
         update(resolved: resolved)
-    }
-}
-
-private func legacyPaletteID(from palette: AppThemePalette) -> FormaColorPaletteID {
-    switch palette {
-    case .default: .defaultForma
-    case .pink: .pink
-    case .coolBlue: .coolBlue
     }
 }
