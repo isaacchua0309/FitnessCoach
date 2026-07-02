@@ -33,6 +33,12 @@ final class ThemeSettingsCopyGuardrailTests: XCTestCase {
         XCTAssertFalse(theme.navigationRowTitle.isEmpty)
         XCTAssertFalse(theme.appearanceSectionTitle.isEmpty)
         XCTAssertFalse(theme.colorThemeSectionTitle.isEmpty)
+        XCTAssertFalse(theme.livePreviewSectionTitle.isEmpty)
+        XCTAssertFalse(theme.livePreviewPrimaryButton.isEmpty)
+        XCTAssertFalse(theme.livePreviewLogPill.isEmpty)
+        XCTAssertFalse(theme.livePreviewProgressLabel.isEmpty)
+        XCTAssertFalse(theme.livePreviewProgressValue.isEmpty)
+        XCTAssertFalse(theme.livePreviewAccessibilityLabel.isEmpty)
 
         let appearance = theme.Appearance.self
         XCTAssertFalse(appearance.systemTitle.isEmpty)
@@ -204,6 +210,12 @@ final class ThemeSettingsCopyGuardrailTests: XCTestCase {
             theme.navigationRowTitle,
             theme.appearanceSectionTitle,
             theme.colorThemeSectionTitle,
+            theme.livePreviewSectionTitle,
+            theme.livePreviewPrimaryButton,
+            theme.livePreviewLogPill,
+            theme.livePreviewProgressLabel,
+            theme.livePreviewProgressValue,
+            theme.livePreviewAccessibilityLabel,
             theme.Error.loadFailedTitle,
             theme.Error.loadFailedMessage
         ]

@@ -2258,6 +2258,13 @@ enum FormaProductCopy {
             static let navigationRowTitle = "Theme"
             static let appearanceSectionTitle = "Appearance"
             static let colorThemeSectionTitle = "Color Theme"
+            static let livePreviewSectionTitle = "Preview"
+            static let livePreviewPrimaryButton = "Continue"
+            static let livePreviewLogPill = "Log meal"
+            static let livePreviewProgressLabel = "Calories"
+            static let livePreviewProgressValue = "68%"
+            static let livePreviewAccessibilityLabel =
+                "Live theme preview showing a primary button, progress, tab selection, and coach log action"
 
             enum Appearance {
                 static let systemTitle = "System"

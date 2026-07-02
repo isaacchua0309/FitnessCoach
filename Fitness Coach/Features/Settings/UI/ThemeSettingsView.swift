@@ -22,6 +22,7 @@ struct ThemeSettingsView: View {
     var body: some View {
         List {
             appearanceSection
+            livePreviewSection
             colorThemeSection
         }
         .formaGroupedList()
@@ -54,6 +55,16 @@ struct ThemeSettingsView: View {
             }
         } header: {
             FormaSettingsSectionHeader(title: FormaProductCopy.Settings.Theme.appearanceSectionTitle)
+        }
+    }
+
+    private var livePreviewSection: some View {
+        Section {
+            ThemeSettingsLivePreview()
+                .animation(.easeInOut(duration: 0.22), value: themeStore.palette)
+                .formaFormSection()
+        } header: {
+            FormaSettingsSectionHeader(title: FormaProductCopy.Settings.Theme.livePreviewSectionTitle)
         }
     }
 
