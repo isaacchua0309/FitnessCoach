@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct CoachMessageView: View {
     let message: ChatMessage
@@ -17,8 +18,8 @@ struct CoachMessageView: View {
     var body: some View {
         Group {
             switch presentation {
-            case .user(let text):
-                userMessage(text)
+            case .user(let text, let imageJPEGData):
+                userMessage(text: text, imageJPEGData: imageJPEGData)
             case .confirmation(let content):
                 confirmationMessage(content)
             case .assistant(let text):
@@ -31,20 +32,49 @@ struct CoachMessageView: View {
     }
 
     @ViewBuilder
-    private func userMessage(_ text: String) -> some View {
+    private func userMessage(text: String, imageJPEGData: Data?) -> some View {
         HStack {
             Spacer(minLength: 56)
-            Text(text)
-                .font(CoachDesignTokens.Typography.messageUser)
-                .foregroundStyle(CoachDesignTokens.Color.primaryText)
-                .padding(.horizontal, CoachDesignTokens.Spacing.md)
-                .padding(.vertical, CoachDesignTokens.Spacing.sm)
-                .background(CoachDesignTokens.Color.userBubble, in: RoundedRectangle(cornerRadius: CoachDesignTokens.Radius.bubble, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: CoachDesignTokens.Radius.bubble, style: .continuous)
-                        .strokeBorder(CoachDesignTokens.Color.border.opacity(0.6), lineWidth: 0.5)
-                )
-                .frame(maxWidth: 280, alignment: .trailing)
+            VStack(alignment: .trailing, spacing: CoachDesignTokens.Spacing.xs) {
+                if let imageJPEGData,
+                   let preview = UIImage(data: imageJPEGData) {
+                    Image(uiImage: preview)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 120, height: 120)
+                        .clipShape(
+                            RoundedRectangle(
+                                cornerRadius: CoachDesignTokens.Radius.attachment,
+                                style: .continuous
+                            )
+                        )
+                        .overlay {
+                            RoundedRectangle(
+                                cornerRadius: CoachDesignTokens.Radius.attachment,
+                                style: .continuous
+                            )
+                            .strokeBorder(CoachDesignTokens.Color.border.opacity(0.6), lineWidth: 0.5)
+                        }
+                        .accessibilityLabel("Attached meal photo")
+                }
+
+                if !text.isEmpty {
+                    Text(text)
+                        .font(CoachDesignTokens.Typography.messageUser)
+                        .foregroundStyle(CoachDesignTokens.Color.primaryText)
+                        .padding(.horizontal, CoachDesignTokens.Spacing.md)
+                        .padding(.vertical, CoachDesignTokens.Spacing.sm)
+                        .background(
+                            CoachDesignTokens.Color.userBubble,
+                            in: RoundedRectangle(cornerRadius: CoachDesignTokens.Radius.bubble, style: .continuous)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: CoachDesignTokens.Radius.bubble, style: .continuous)
+                                .strokeBorder(CoachDesignTokens.Color.border.opacity(0.6), lineWidth: 0.5)
+                        )
+                }
+            }
+            .frame(maxWidth: 280, alignment: .trailing)
         }
     }
 

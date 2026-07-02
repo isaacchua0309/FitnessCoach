@@ -138,30 +138,31 @@ final class CoachModel: ObservableObject {
 
     func sendCurrentMessage() async {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let stagedAttachment = inputAttachmentState.attachment
-        guard !text.isEmpty || stagedAttachment != nil else { return }
+        let imageJPEGData = inputAttachmentState.attachment?.jpegData
+        guard !text.isEmpty || imageJPEGData != nil else { return }
         guard !isSending else { return }
         guard !inputAttachmentState.isImporting else { return }
 
-        if let stagedAttachment {
-            let messageText = text.isEmpty ? CoachMealPhotoPipeline.userMessageLabel : text
-            inputText = ""
-            appendUserMessage(messageText)
-            clearInputAttachment()
-            await analyzeMealPhoto(stagedAttachment.jpegData, userMessageAlreadyAppended: true)
-            return
-        }
+        let displayText = outgoingMessageText(text: text, hasImage: imageJPEGData != nil)
+        appendUserMessage(displayText, imageJPEGData: imageJPEGData)
+        clearComposerInput()
 
-        inputText = ""
-        await send(text)
+        if let imageJPEGData {
+            await analyzeMealPhoto(imageJPEGData, userMessageAlreadyAppended: true)
+        } else {
+            await send(displayText, userMessageAlreadyAppended: true)
+        }
     }
 
-    func send(_ text: String) async {
+    func send(_ text: String, userMessageAlreadyAppended: Bool = false) async {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         guard !isSending else { return }
 
-        appendUserMessage(trimmed)
+        if !userMessageAlreadyAppended {
+            appendUserMessage(trimmed)
+            clearComposerInput()
+        }
 
         let traceId = FormaPipelineTracer.beginTrace(userMessage: trimmed)
         let traceStarted = Date()
@@ -511,7 +512,22 @@ final class CoachModel: ObservableObject {
 
     // MARK: Message Helpers
 
-    private func appendUserMessage(_ text: String) {
+    private func clearComposerInput() {
+        inputText = ""
+        clearInputAttachment()
+    }
+
+    private func outgoingMessageText(text: String, hasImage: Bool) -> String {
+        if !text.isEmpty {
+            return text
+        }
+        if hasImage {
+            return CoachMealPhotoPipeline.userMessageLabel
+        }
+        return text
+    }
+
+    private func appendUserMessage(_ text: String, imageJPEGData: Data? = nil) {
         messages.append(
             ChatMessage(
                 id: UUID(),
@@ -519,7 +535,8 @@ final class CoachModel: ObservableObject {
                 text: text,
                 createdAt: Date(),
                 relatedDailyLogId: nil,
-                relatedEntryId: nil
+                relatedEntryId: nil,
+                attachedImageJPEGData: imageJPEGData
             )
         )
     }

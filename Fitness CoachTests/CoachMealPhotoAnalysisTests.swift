@@ -54,6 +54,8 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
 
         XCTAssertEqual(aiService.estimateFoodCallCount, 1)
         XCTAssertTrue(CoachMealPhotoPipeline.hasImagePayload(aiService.lastImageJPEGData))
+        let userMessage = model.messages.last(where: { $0.role == .user })
+        XCTAssertTrue(userMessage?.hasAttachedImage == true)
         if case .success(let expectedPayload) = CoachMealPhotoPipeline.prepareJPEG(from: imageData) {
             XCTAssertEqual(aiService.lastImageJPEGData, expectedPayload)
         } else {
