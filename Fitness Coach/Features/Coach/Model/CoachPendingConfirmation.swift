@@ -30,10 +30,16 @@ enum CoachPendingConfirmation: Equatable {
         switch self {
         case .food(let draft):
             let meal = draft.primaryMealDraft
+            var summary: String
             if meal.hasUsableNutritionEstimate {
-                return "\(meal.displayName) · \(meal.totalCalories) kcal · \(AIFoodConfirmationFormatter.macroSummary(for: meal))"
+                summary = "\(meal.displayName) · \(meal.totalCalories) kcal · \(AIFoodConfirmationFormatter.macroSummary(for: meal))"
+            } else {
+                summary = meal.displayName
             }
-            return meal.displayName
+            if let sanityWarning = draft.sanityWarning, !sanityWarning.isEmpty {
+                summary += "\n\(sanityWarning)"
+            }
+            return summary
         case .water(let draft, _):
             return "\(draft.amountMl) ml water"
         case .weight(let draft, _):

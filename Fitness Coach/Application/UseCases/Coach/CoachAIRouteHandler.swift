@@ -310,13 +310,20 @@ final class CoachAIRouteHandler {
         confidence: AIConfidence
     ) -> CoachActionResult {
         let sanitized = FoodLogDraftNutritionCompleter.sanitize(mealDraft, hintText: originalText)
-        switch ConfirmationPolicy.decision(for: sanitized) {
+        let sanity = NutritionSanityValidator.validate(
+            meal: sanitized,
+            prompt: originalText,
+            confidence: confidence
+        )
+
+        switch ConfirmationPolicy.decision(for: sanity.mealDraft) {
         case .requiresConfirmation, .executeImmediately:
             return CoachPendingConfirmationPresenter.presentFoodPending(
                 originalText: originalText,
                 assistantMessage: assistantMessage,
-                mealDraft: sanitized,
-                confidence: confidence
+                mealDraft: sanity.mealDraft,
+                confidence: sanity.confidence,
+                sanityWarning: sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage
             )
         case .reject(let message):
             return .message(message)

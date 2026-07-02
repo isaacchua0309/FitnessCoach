@@ -25,7 +25,8 @@ enum CoachPendingCopyFormatter {
     static func foodPendingChatMessage(
         mealDraft: FoodLogDraft,
         confidence: AIConfidence,
-        originalText: String
+        originalText: String,
+        sanityWarning: String? = nil
     ) -> String {
         guard mealDraft.hasUsableNutritionEstimate else {
             return "Estimating nutrition for \(naturalFoodName(mealDraft.displayName))."
@@ -38,12 +39,16 @@ enum CoachPendingCopyFormatter {
             style: tone == .highConfidenceSimple ? .compact : .full
         )
         let componentLines = componentSummaryLines(for: mealDraft)
-        let footer = foodFooter(tone: tone)
+        let footer = foodFooter(tone: tone, sanityWarning: sanityWarning)
 
         var sections = [headline, nutritionLine]
         if !componentLines.isEmpty {
             sections.append("")
             sections.append(contentsOf: componentLines)
+        }
+        if let sanityWarning, !sanityWarning.isEmpty {
+            sections.append("")
+            sections.append(sanityWarning)
         }
         sections.append("")
         sections.append(footer)
@@ -94,7 +99,10 @@ enum CoachPendingCopyFormatter {
         chatNutritionLine(for: FoodLogDraftMapper.fromLegacyDraft(draft), style: style)
     }
 
-    static func foodFooter(tone: FoodCopyTone) -> String {
+    static func foodFooter(tone: FoodCopyTone, sanityWarning: String? = nil) -> String {
+        if sanityWarning != nil {
+            return FormaProductCopy.Coach.foodEditPortionFooter
+        }
         switch tone {
         case .vague:
             return FormaProductCopy.Coach.foodEditIngredientsFooter

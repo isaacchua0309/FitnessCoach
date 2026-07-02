@@ -70,12 +70,14 @@ enum CoachResponseBuilder {
     static func aiFoodEstimatePending(
         mealDraft: FoodLogDraft,
         confidence: AIConfidence,
-        originalText: String
+        originalText: String,
+        sanityWarning: String? = nil
     ) -> String {
         CoachPendingCopyFormatter.foodPendingChatMessage(
             mealDraft: mealDraft,
             confidence: confidence,
-            originalText: originalText
+            originalText: originalText,
+            sanityWarning: sanityWarning
         )
     }
 

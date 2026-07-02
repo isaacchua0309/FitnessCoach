@@ -14,6 +14,7 @@ struct AIFoodConfirmationDraft: Identifiable, Equatable {
     var mealDraft: FoodLogDraft
     var confidence: AIConfidence
     var requiresConfirmation: Bool
+    var sanityWarning: String?
     var createdAt: Date
 
     init(
@@ -23,6 +24,7 @@ struct AIFoodConfirmationDraft: Identifiable, Equatable {
         mealDraft: FoodLogDraft,
         confidence: AIConfidence,
         requiresConfirmation: Bool,
+        sanityWarning: String? = nil,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -31,6 +33,7 @@ struct AIFoodConfirmationDraft: Identifiable, Equatable {
         self.mealDraft = mealDraft
         self.confidence = confidence
         self.requiresConfirmation = requiresConfirmation
+        self.sanityWarning = sanityWarning
         self.createdAt = createdAt
     }
 

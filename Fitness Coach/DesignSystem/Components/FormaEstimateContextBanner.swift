@@ -10,14 +10,20 @@ import SwiftUI
 struct FormaEstimateContextBanner: View {
     let confidence: AIConfidence
     let context: String?
+    var sanityWarning: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             Text(AIFoodConfirmationFormatter.confidenceLabel(confidence))
                 .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.accent)
+                .foregroundStyle(confidence == .low ? FormaTokens.Color.destructive : FormaTokens.Color.accent)
 
-            if let context, !context.isEmpty {
+            if let sanityWarning, !sanityWarning.isEmpty {
+                Text(sanityWarning)
+                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                    .foregroundStyle(FormaTokens.Color.destructive)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if let context, !context.isEmpty {
                 Text(context)
                     .font(FormaTokens.Typography.sectionSubtitle)
                     .foregroundStyle(FormaTokens.Color.textSecondary)
@@ -33,11 +39,18 @@ struct FormaEstimateContextBanner: View {
         .padding(FormaTokens.Spacing.md)
         .background {
             RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                .fill(FormaTokens.Color.accentMuted)
+                .fill(
+                    sanityWarning == nil
+                        ? FormaTokens.Color.accentMuted
+                        : FormaTokens.Color.destructive.opacity(0.12)
+                )
         }
         .overlay {
             RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                .stroke(FormaTokens.Color.border, lineWidth: 1)
+                .stroke(
+                    sanityWarning == nil ? FormaTokens.Color.border : FormaTokens.Color.destructive.opacity(0.35),
+                    lineWidth: 1
+                )
         }
     }
 }

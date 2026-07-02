@@ -45,7 +45,8 @@ struct AIFoodConfirmationSheet: View {
                     FormaFormCard(title: FormaProductCopy.FoodForm.estimateSection) {
                         FormaEstimateContextBanner(
                             confidence: draft.confidence,
-                            context: estimateContext
+                            context: estimateContext,
+                            sanityWarning: draft.sanityWarning
                         )
                     }
 
