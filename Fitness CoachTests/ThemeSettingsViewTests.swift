@@ -93,8 +93,8 @@ final class ThemeSettingsViewTests: XCTestCase {
 
     func testUnselectedPaletteAccessibilityLabelIncludesNotSelectedCopy() {
         let label = AppThemePalette.emeraldGreen.accessibilityLabel(isSelected: false)
-        XCTAssertTrue(label.contains("not selected"))
-        XCTAssertFalse(label.hasSuffix("selected"))
+        XCTAssertTrue(label.hasSuffix("not selected"))
+        XCTAssertFalse(label.hasSuffix(", selected"))
     }
 
     func testReloadAppliesShippingPolicyToPersistedAppearance() async {

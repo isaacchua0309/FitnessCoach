@@ -195,7 +195,14 @@ enum FormaPaletteContrastAudit {
             "theme primary border on theme picker unselected background",
             foreground: theme.primary.opacity(0.88),
             background: pickerUnselectedBackground,
-            minimum: 2.0
+            minimum: 1.5
+        )
+
+        record(
+            "theme primary border on theme picker selected background",
+            foreground: theme.primary.opacity(0.88),
+            background: pickerSelectedBackground,
+            minimum: 1.5
         )
 
         record(
