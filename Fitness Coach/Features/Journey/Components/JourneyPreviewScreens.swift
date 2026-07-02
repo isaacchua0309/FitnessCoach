@@ -11,7 +11,7 @@ import SwiftUI
 enum JourneyPreviewScreens {
 
   @ViewBuilder
-  static func dashboard(_ scenario: JourneyPreviewData.Scenario, palette: AppThemePalette = .default) -> some View {
+  static func dashboard(_ scenario: JourneyPreviewData.Scenario, palette: AppThemePalette = .oceanBlue) -> some View {
     ScrollView {
       JourneyDashboardContent(state: JourneyPreviewData.dashboard(scenario))
     }
@@ -21,15 +21,15 @@ enum JourneyPreviewScreens {
   }
 }
 
-#Preview("Journey — Pink") {
+#Preview("Journey — Blossom Pink") {
   NavigationStack {
-    JourneyPreviewScreens.dashboard(.strongMomentum, palette: .pink)
+    JourneyPreviewScreens.dashboard(.strongMomentum, palette: .blossomPink)
   }
 }
 
-#Preview("Journey — Cool Blue") {
+#Preview("Journey — Emerald Green") {
   NavigationStack {
-    JourneyPreviewScreens.dashboard(.strongMomentum, palette: .coolBlue)
+    JourneyPreviewScreens.dashboard(.strongMomentum, palette: .emeraldGreen)
   }
 }
 

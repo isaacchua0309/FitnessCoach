@@ -13,7 +13,7 @@ struct AppThemePreferences: Equatable, Codable, Sendable {
 
     static let `default` = AppThemePreferences(
         appearance: .dark,
-        palette: .default
+        palette: .oceanBlue
     )
 
     enum PersistenceKey {

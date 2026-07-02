@@ -31,6 +31,8 @@ struct FormaColorPalette: Equatable, Sendable {
     let selectedBorder: Color
     let chartPrimary: Color
     let chartSecondary: Color
+    let gradientStart: Color
+    let gradientEnd: Color
     let success: Color
     let warning: Color
     let destructive: Color
@@ -62,6 +64,8 @@ struct FormaColorPalette: Equatable, Sendable {
             "selectedBorder": selectedBorder,
             "chartPrimary": chartPrimary,
             "chartSecondary": chartSecondary,
+            "gradientStart": gradientStart,
+            "gradientEnd": gradientEnd,
             "success": success,
             "warning": warning,
             "destructive": destructive,

@@ -25,6 +25,7 @@ final class ThemeStore: ObservableObject {
         self.userDefaults = userDefaults
         self.analyticsLogger = analyticsLogger
         var loaded = AppThemePreferences(userDefaults: userDefaults)
+        loaded = Self.migratePersistedPaletteIfNeeded(loaded, userDefaults: userDefaults)
         let sanitizedAppearance = AppThemeShippingPolicy.sanitizedAppearance(loaded.appearance)
         if sanitizedAppearance != loaded.appearance {
             loaded.appearance = sanitizedAppearance
@@ -80,7 +81,7 @@ final class ThemeStore: ObservableObject {
     func legacyThemePalette(resolvingWith systemColorScheme: ColorScheme) -> FormaThemePalette {
         let resolved = resolvedTheme(systemColorScheme: systemColorScheme)
         return FormaPaletteCatalog.legacyThemePalette(
-            for: legacyPaletteID(from: preferences.palette),
+            for: preferences.palette,
             colorScheme: resolved.resolvedColorScheme
         )
     }
@@ -94,7 +95,7 @@ final class ThemeStore: ObservableObject {
             systemColorScheme: systemColorScheme
         )
         return FormaPaletteCatalog.legacyThemePalette(
-            for: legacyPaletteID(from: palette),
+            for: palette,
             colorScheme: resolvedScheme
         )
     }
@@ -105,11 +106,18 @@ final class ThemeStore: ObservableObject {
         preferences.write(to: userDefaults)
     }
 
-    private func legacyPaletteID(from palette: AppThemePalette) -> FormaColorPaletteID {
-        switch palette {
-        case .default: .defaultForma
-        case .pink: .pink
-        case .coolBlue: .coolBlue
-        }
+    private static func migratePersistedPaletteIfNeeded(
+        _ preferences: AppThemePreferences,
+        userDefaults: UserDefaults
+    ) -> AppThemePreferences {
+        let storedRaw = userDefaults.string(forKey: AppThemePreferences.PersistenceKey.palette)
+            ?? userDefaults.string(forKey: AppThemePreferences.PersistenceKey.legacyPalette)
+        guard let storedRaw else { return preferences }
+        guard AppThemePalette.shouldMigratePersistedRawValue(storedRaw) else { return preferences }
+
+        var migrated = preferences
+        migrated.palette = AppThemePalette(storedRawValue: storedRaw)
+        migrated.write(to: userDefaults)
+        return migrated
     }
 }

@@ -14,7 +14,7 @@ enum PublicEntryPreviewScreens {
 
     @ViewBuilder
     static func welcome(
-        palette: AppThemePalette = .default,
+        palette: AppThemePalette = .oceanBlue,
         appearance: AppAppearanceMode = .dark
     ) -> some View {
         PublicWelcomeView(
@@ -27,7 +27,7 @@ enum PublicEntryPreviewScreens {
 
     @ViewBuilder
     static func existingSignIn(
-        palette: AppThemePalette = .default,
+        palette: AppThemePalette = .oceanBlue,
         appearance: AppAppearanceMode = .dark,
         localError: ExistingUserSignInFailureKind? = nil
     ) -> some View {
@@ -44,7 +44,7 @@ enum PublicEntryPreviewScreens {
 
     @ViewBuilder
     static func noExistingProfile(
-        palette: AppThemePalette = .default,
+        palette: AppThemePalette = .oceanBlue,
         appearance: AppAppearanceMode = .dark
     ) -> some View {
         NoExistingProfileFoundView(
@@ -108,28 +108,32 @@ private struct PublicEntryFailureBannerPreview: View {
     }
 }
 
-#Preview("Welcome — Default") {
+#Preview("Welcome — Ocean Blue") {
     PublicEntryPreviewScreens.welcome()
 }
 
-#Preview("Welcome — Pink") {
-    PublicEntryPreviewScreens.welcome(palette: .pink)
+#Preview("Welcome — Blossom Pink") {
+    PublicEntryPreviewScreens.welcome(palette: .blossomPink)
 }
 
-#Preview("Welcome — Cool Blue") {
-    PublicEntryPreviewScreens.welcome(palette: .coolBlue)
+#Preview("Welcome — Emerald Green") {
+    PublicEntryPreviewScreens.welcome(palette: .emeraldGreen)
 }
 
-#Preview("Existing sign-in — Default") {
+#Preview("Welcome — Sunset Orange") {
+    PublicEntryPreviewScreens.welcome(palette: .sunsetOrange)
+}
+
+#Preview("Existing sign-in — Ocean Blue") {
     PublicEntryPreviewScreens.existingSignIn()
 }
 
-#Preview("Existing sign-in — Pink") {
-    PublicEntryPreviewScreens.existingSignIn(palette: .pink)
+#Preview("Existing sign-in — Blossom Pink") {
+    PublicEntryPreviewScreens.existingSignIn(palette: .blossomPink)
 }
 
-#Preview("Existing sign-in — Cool Blue") {
-    PublicEntryPreviewScreens.existingSignIn(palette: .coolBlue)
+#Preview("Existing sign-in — Emerald Green") {
+    PublicEntryPreviewScreens.existingSignIn(palette: .emeraldGreen)
 }
 
 #Preview("Existing sign-in — auth failed") {
@@ -148,12 +152,12 @@ private struct PublicEntryFailureBannerPreview: View {
     PublicEntryPreviewScreens.noExistingProfile()
 }
 
-#Preview("No profile found — Pink") {
-    PublicEntryPreviewScreens.noExistingProfile(palette: .pink)
+#Preview("No profile found — Blossom Pink") {
+    PublicEntryPreviewScreens.noExistingProfile(palette: .blossomPink)
 }
 
-#Preview("No profile found — Cool Blue") {
-    PublicEntryPreviewScreens.noExistingProfile(palette: .coolBlue)
+#Preview("No profile found — Emerald Green") {
+    PublicEntryPreviewScreens.noExistingProfile(palette: .emeraldGreen)
 }
 
 #Preview("Loading — app launch") {

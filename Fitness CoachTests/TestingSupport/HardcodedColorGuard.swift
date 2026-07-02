@@ -158,10 +158,10 @@ enum HardcodedColorGuard {
 
     private static func isExplicitlyAllowedContext(_ line: String) -> Bool {
         let allowances = [
-            #"case\s+\.(pink|default|coolBlue)\b"#,
-            #"palette:\s*\.(pink|default|coolBlue)\b"#,
-            #"AppThemePalette\.(pink|default|coolBlue)\b"#,
-            #"appearance:\s*\.(pink|default|coolBlue)\b"#,
+            #"case\s+\.(oceanBlue|blossomPink|emeraldGreen|sunsetOrange)\b"#,
+            #"palette:\s*\.(oceanBlue|blossomPink|emeraldGreen|sunsetOrange)\b"#,
+            #"AppThemePalette\.(oceanBlue|blossomPink|emeraldGreen|sunsetOrange)\b"#,
+            #"appearance:\s*\.(oceanBlue|blossomPink|emeraldGreen|sunsetOrange)\b"#,
             #"\.whitespaces"#,
             #"\.whitespacesAndNewlines"#,
             #"\.reduce\b"#,

@@ -204,28 +204,36 @@ struct ThemePalettePreviewSwatches: View {
 
 // MARK: - Previews
 
-#Preview("Default Light") {
-    ThemeSettingsPreviewHost(appearance: .light, palette: .default)
+#Preview("Ocean Blue Light") {
+    ThemeSettingsPreviewHost(appearance: .light, palette: .oceanBlue)
 }
 
-#Preview("Pink Light") {
-    ThemeSettingsPreviewHost(appearance: .light, palette: .pink)
+#Preview("Blossom Pink Light") {
+    ThemeSettingsPreviewHost(appearance: .light, palette: .blossomPink)
 }
 
-#Preview("Cool Blue Light") {
-    ThemeSettingsPreviewHost(appearance: .light, palette: .coolBlue)
+#Preview("Emerald Green Light") {
+    ThemeSettingsPreviewHost(appearance: .light, palette: .emeraldGreen)
 }
 
-#Preview("Default Dark") {
-    ThemeSettingsPreviewHost(appearance: .dark, palette: .default)
+#Preview("Sunset Orange Light") {
+    ThemeSettingsPreviewHost(appearance: .light, palette: .sunsetOrange)
 }
 
-#Preview("Pink Dark") {
-    ThemeSettingsPreviewHost(appearance: .dark, palette: .pink)
+#Preview("Ocean Blue Dark") {
+    ThemeSettingsPreviewHost(appearance: .dark, palette: .oceanBlue)
 }
 
-#Preview("Cool Blue Dark") {
-    ThemeSettingsPreviewHost(appearance: .dark, palette: .coolBlue)
+#Preview("Blossom Pink Dark") {
+    ThemeSettingsPreviewHost(appearance: .dark, palette: .blossomPink)
+}
+
+#Preview("Emerald Green Dark") {
+    ThemeSettingsPreviewHost(appearance: .dark, palette: .emeraldGreen)
+}
+
+#Preview("Sunset Orange Dark") {
+    ThemeSettingsPreviewHost(appearance: .dark, palette: .sunsetOrange)
 }
 
 private struct ThemeSettingsPreviewHost: View {

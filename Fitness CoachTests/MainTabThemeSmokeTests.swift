@@ -72,21 +72,21 @@ final class MainTabThemeSmokeTests: XCTestCase {
 
     func testCoachDesignTokensTrackSelectedPalette() async {
         await MainActor.run {
-            FormaThemeAccess.update(resolved: ThemeTestSupport.makeResolved(palette: .pink, systemColorScheme: .dark))
+            FormaThemeAccess.update(resolved: ThemeTestSupport.makeResolved(palette: .blossomPink, systemColorScheme: .dark))
             let pinkAccent = CoachDesignTokens.Color.accent
 
-            FormaThemeAccess.update(resolved: ThemeTestSupport.makeResolved(palette: .coolBlue, systemColorScheme: .dark))
+            FormaThemeAccess.update(resolved: ThemeTestSupport.makeResolved(palette: .emeraldGreen, systemColorScheme: .dark))
             XCTAssertGreaterThan(ThemeTestSupport.colorDistance(pinkAccent, CoachDesignTokens.Color.accent), 0.08)
         }
     }
 
     func testProgressAndChartTokensTrackSelectedPalette() async {
         await MainActor.run {
-            FormaThemeAccess.update(resolved: ThemeTestSupport.makeResolved(palette: .pink, systemColorScheme: .dark))
+            FormaThemeAccess.update(resolved: ThemeTestSupport.makeResolved(palette: .blossomPink, systemColorScheme: .dark))
             let pinkProgress = FormaTokens.Color.progress
             let pinkChart = FormaTokens.Color.chartPrimary
 
-            FormaThemeAccess.update(resolved: ThemeTestSupport.makeResolved(palette: .coolBlue, systemColorScheme: .dark))
+            FormaThemeAccess.update(resolved: ThemeTestSupport.makeResolved(palette: .emeraldGreen, systemColorScheme: .dark))
             XCTAssertGreaterThan(ThemeTestSupport.colorDistance(pinkProgress, FormaTokens.Color.progress), 0.08)
             XCTAssertGreaterThan(ThemeTestSupport.colorDistance(pinkChart, FormaTokens.Color.chartPrimary), 0.08)
         }
@@ -97,21 +97,21 @@ final class MainTabThemeSmokeTests: XCTestCase {
             ThemeTestSupport.resetThemeAccessToProductDefault()
             let defaultCanvas = FormaTokens.Color.canvas
 
-            FormaThemeAccess.update(resolved: ThemeTestSupport.makeResolved(palette: .pink, systemColorScheme: .dark))
+            FormaThemeAccess.update(resolved: ThemeTestSupport.makeResolved(palette: .blossomPink, systemColorScheme: .dark))
             XCTAssertGreaterThan(ThemeTestSupport.colorDistance(FormaTokens.Color.canvas, defaultCanvas), 0.02)
             ThemeTestSupport.assertSameColor(
                 FormaTokens.Color.surfaceElevated,
-                FormaPaletteCatalog.palette(for: .pink, colorScheme: .dark).surfaceElevated
+                FormaPaletteCatalog.palette(for: .blossomPink, colorScheme: .dark).surfaceElevated
             )
         }
     }
 
     func testCTATokensTrackSelectedPalette() async {
         await MainActor.run {
-            FormaThemeAccess.update(resolved: ThemeTestSupport.makeResolved(palette: .pink, systemColorScheme: .dark))
+            FormaThemeAccess.update(resolved: ThemeTestSupport.makeResolved(palette: .blossomPink, systemColorScheme: .dark))
             ThemeTestSupport.assertSameColor(
                 FormaTokens.Color.ctaBackground,
-                FormaPaletteCatalog.palette(for: .pink, colorScheme: .dark).ctaBackground
+                FormaPaletteCatalog.palette(for: .blossomPink, colorScheme: .dark).ctaBackground
             )
         }
     }
