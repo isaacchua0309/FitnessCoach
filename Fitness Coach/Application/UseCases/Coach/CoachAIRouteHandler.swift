@@ -207,6 +207,14 @@ final class CoachAIRouteHandler {
             return .message(CoachResponseBuilder.aiNotUnderstood)
         }
 
+        let extractionValidation = FoodEstimateResponseValidator.validate(
+            response: response,
+            prompt: prompt
+        )
+        guard extractionValidation.isValid else {
+            return .message(CoachResponseBuilder.aiNotUnderstood)
+        }
+
         if photoAnalysis {
             meal.source = .aiPhotoEstimate
         }

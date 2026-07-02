@@ -103,6 +103,7 @@ final class AIService: AIServiceProtocol {
                     message: "Food estimate still invalid after client repair retry",
                     fields: ["errors": secondErrors.joined(separator: " | ")]
                 )
+                throw AIServiceError.validationFailed(secondErrors.joined(separator: " | "))
             }
 
             return response
