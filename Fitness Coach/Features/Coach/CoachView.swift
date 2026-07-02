@@ -55,28 +55,9 @@ struct CoachView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                     coachErrorBanner
-
-                    if let pending = model.pendingConfirmation {
-                        CoachConfirmationBar(
-                            confirmation: pending,
-                            isConfirming: model.isConfirmingPending,
-                            onConfirm: {
-                                dismissKeyboard()
-                                Task { await model.confirmPendingFromBar() }
-                            },
-                            onReject: {
-                                dismissKeyboard()
-                                model.rejectPendingFromBar()
-                            },
-                            onEdit: pending.supportsEdit ? {
-                                dismissKeyboard()
-                                model.openFoodEditSheet()
-                            } : nil
-                        )
-                    }
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
-                    composerChrome
+                    bottomChrome
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -126,6 +107,31 @@ struct CoachView: View {
         }
     }
 
+    private var bottomChrome: some View {
+        VStack(spacing: 0) {
+            if let pending = model.pendingConfirmation {
+                CoachConfirmationBar(
+                    confirmation: pending,
+                    isConfirming: model.isConfirmingPending,
+                    onConfirm: {
+                        dismissKeyboard()
+                        Task { await model.confirmPendingFromBar() }
+                    },
+                    onReject: {
+                        dismissKeyboard()
+                        model.rejectPendingFromBar()
+                    },
+                    onEdit: pending.supportsEdit ? {
+                        dismissKeyboard()
+                        model.openFoodEditSheet()
+                    } : nil
+                )
+            }
+
+            composerChrome
+        }
+    }
+
     private var composerChrome: some View {
         CoachComposer(
             text: $model.inputText,
@@ -145,7 +151,6 @@ struct CoachView: View {
             CoachDesignTokens.Color.background
                 .shadow(color: FormaTokens.Color.shadow, radius: 12, y: -4)
         )
-        .padding(.bottom, CoachDesignTokens.Layout.bottomChromeInset)
     }
 
     private func handleStarterTap(_ prompt: CoachStarterPromptSpec) {

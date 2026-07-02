@@ -74,7 +74,6 @@ struct CoachConfirmationBar: View {
                 }
         }
         .padding(.horizontal, CoachDesignTokens.Layout.horizontalPadding)
-        .padding(.bottom, CoachDesignTokens.Spacing.xs)
     }
 
     private var iconName: String {
