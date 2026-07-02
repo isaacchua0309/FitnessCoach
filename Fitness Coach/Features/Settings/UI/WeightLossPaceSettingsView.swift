@@ -53,7 +53,7 @@ struct WeightLossPaceSettingsView: View {
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(
                         paceChoice == choice
-                            ? FormaTokens.Color.accent
+                            ? FormaTokens.Theme.primary
                             : FormaTokens.Color.textTertiary
                     )
                     .frame(width: 26)
