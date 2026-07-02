@@ -112,14 +112,16 @@ struct CoachView: View {
             .photosPicker(
                 isPresented: photoLibraryPickerPresented,
                 selection: $photoPickerItem,
-                matching: .images
+                matching: .images,
+                preferredItemEncoding: .compatible
             )
             .onChange(of: photoPickerItem) { _, item in
                 guard let item else { return }
+                let selectedItem = item
                 photoPickerItem = nil
                 resetPickerPresentation()
-                Task {
-                    await model.importAttachment(from: item)
+                Task { @MainActor in
+                    await model.importAttachment(from: selectedItem)
                 }
             }
             .fullScreenCover(isPresented: cameraPickerPresented) {

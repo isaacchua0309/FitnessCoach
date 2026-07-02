@@ -321,8 +321,9 @@ final class CoachModel: ObservableObject {
 
     func importAttachment(from item: PhotosPickerItem) async {
         beginAttachmentImport()
+        let sourceLabel = CoachMealPhotoPipeline.librarySourceLabel(for: item)
         let result = await CoachMealPhotoPipeline.loadJPEG(from: item)
-        await applyAttachmentImport(result, sourceLabel: item.itemIdentifier)
+        await applyPreparedAttachmentImport(result, sourceLabel: sourceLabel)
     }
 
     func importAttachment(from result: Result<Data, CoachMealPhotoError>, sourceLabel: String? = nil) async {
@@ -337,7 +338,7 @@ final class CoachModel: ObservableObject {
             break
         }
         beginAttachmentImport()
-        await applyAttachmentImport(result, sourceLabel: sourceLabel)
+        await applyPreparedAttachmentImport(result, sourceLabel: sourceLabel)
     }
 
     func beginAttachmentImport() {
@@ -353,7 +354,7 @@ final class CoachModel: ObservableObject {
         inputAttachmentState.dismissImportError()
     }
 
-    private func applyAttachmentImport(
+    private func applyPreparedAttachmentImport(
         _ result: Result<Data, CoachMealPhotoError>,
         sourceLabel: String?
     ) async {
@@ -362,14 +363,8 @@ final class CoachModel: ObservableObject {
             inputAttachmentState.cancelImport()
         case .failure(let error):
             inputAttachmentState.failImport(error)
-        case .success(let rawData):
-            let prepared = await prepareAttachmentJPEG(from: rawData)
-            switch prepared {
-            case .failure(let error):
-                inputAttachmentState.failImport(error)
-            case .success(let jpegData):
-                inputAttachmentState.applyImported(jpegData: jpegData, sourceLabel: sourceLabel)
-            }
+        case .success(let jpegData):
+            inputAttachmentState.applyImported(jpegData: jpegData, sourceLabel: sourceLabel)
         }
     }
 
