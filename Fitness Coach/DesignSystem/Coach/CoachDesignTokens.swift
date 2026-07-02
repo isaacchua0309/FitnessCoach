@@ -102,6 +102,7 @@ enum CoachDesignTokens {
         static let composerMaxLines = 5
         static let composerTrailingWidth: CGFloat = 40
         static let composerButtonSize: CGFloat = 32
+        static let attachmentThumbnailSize: CGFloat = 64
         static let horizontalPadding = FormaTokens.Spacing.pageHorizontal
         static let messageSpacing = Spacing.lg
         static let maxBubbleWidthRatio: CGFloat = 0.82

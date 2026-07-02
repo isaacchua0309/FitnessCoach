@@ -20,7 +20,7 @@ struct CoachComposer: View {
     let onVoiceTap: () -> Void
     let onAttachmentOptionSelected: (CoachPhotoPickerDestination) -> Void
     let onRemoveAttachment: () -> Void
-    let onDismissAttachmentError: () -> Void
+    let onRetryAttachment: () -> Void
 
     private var trimmedText: String {
         text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -40,13 +40,19 @@ struct CoachComposer: View {
         canPresentPhotoPicker && !isSending && !attachmentState.isImporting
     }
 
+    private var showsAttachmentPreview: Bool {
+        attachmentState.hasAttachment
+            || attachmentState.isImporting
+            || attachmentState.importError != nil
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            if attachmentState.hasAttachment || attachmentState.isImporting || attachmentState.importError != nil {
+            if showsAttachmentPreview {
                 CoachInputAttachmentPreview(
                     attachmentState: attachmentState,
                     onRemove: onRemoveAttachment,
-                    onDismissError: onDismissAttachmentError
+                    onRetry: onRetryAttachment
                 )
             }
 
@@ -196,7 +202,7 @@ private struct CoachComposerButtonStyle: ButtonStyle {
                     onVoiceTap: {},
                     onAttachmentOptionSelected: { _ in },
                     onRemoveAttachment: {},
-                    onDismissAttachmentError: {}
+                    onRetryAttachment: {}
                 )
             }
             .background(CoachDesignTokens.Color.background)

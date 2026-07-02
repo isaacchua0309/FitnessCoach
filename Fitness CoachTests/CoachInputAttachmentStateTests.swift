@@ -63,6 +63,20 @@ final class CoachInputAttachmentStateTests: XCTestCase {
         XCTAssertEqual(model.inputAttachmentState.importPhase, .idle)
     }
 
+    func testRemoveClearsAttachmentButPreservesTypedMessage() async throws {
+        let container = try AppContainer(inMemory: true)
+        let model = makeModel(container: container)
+
+        model.inputText = "Lunch log"
+        await model.importAttachment(from: .success(Self.makeTestJPEGData()))
+        XCTAssertTrue(model.inputAttachmentState.hasAttachment)
+
+        model.removeInputAttachment()
+
+        XCTAssertEqual(model.inputAttachmentState, .none)
+        XCTAssertEqual(model.inputText, "Lunch log")
+    }
+
     func testRemoveClearsAllAttachmentState() async throws {
         let container = try AppContainer(inMemory: true)
         let model = makeModel(container: container)

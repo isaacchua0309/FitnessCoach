@@ -198,8 +198,9 @@ struct CoachView: View {
             onRemoveAttachment: {
                 model.removeInputAttachment()
             },
-            onDismissAttachmentError: {
+            onRetryAttachment: {
                 model.dismissAttachmentImportError()
+                isAttachmentSourceDialogPresented = true
             }
         )
         .fixedSize(horizontal: false, vertical: true)
