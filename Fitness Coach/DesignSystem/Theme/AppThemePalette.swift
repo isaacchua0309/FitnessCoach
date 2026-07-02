@@ -48,12 +48,27 @@ enum AppThemePalette: String, CaseIterable, Codable, Identifiable, Sendable {
 
     /// Whether a persisted raw value should be rewritten to the canonical palette key.
     static func shouldMigratePersistedRawValue(_ storedRawValue: String) -> Bool {
-        if legacyMigrationMap[storedRawValue] != nil {
-            return true
-        }
-        return AppThemePalette(rawValue: storedRawValue) == nil
+        resolveStoredPalette(
+            primaryRawValue: storedRawValue,
+            legacyRawValue: nil
+        ).shouldRewriteCanonicalStore
+    }
+
+    /// Returns the canonical palette for a known legacy alias.
+    static func legacyMappedPalette(for rawValue: String) -> AppThemePalette? {
+        legacyMigrationMap[rawValue]
     }
 
     /// Raw value written for persistence.
     var persistenceRawValue: String { rawValue }
+
+    private static func resolveStoredPalette(
+        primaryRawValue: String?,
+        legacyRawValue: String?
+    ) -> ThemePalettePersistence.LoadResult {
+        ThemePalettePersistence.resolveStoredPalette(
+            primaryRawValue: primaryRawValue,
+            legacyRawValue: legacyRawValue
+        )
+    }
 }

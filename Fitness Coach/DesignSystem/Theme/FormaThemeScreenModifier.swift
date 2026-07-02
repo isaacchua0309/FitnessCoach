@@ -12,6 +12,9 @@ struct FormaRootThemeModifier: ViewModifier {
     @Environment(\.colorScheme) private var systemColorScheme
 
     func body(content: Content) -> some View {
+        // Explicit dependencies keep palette/appearance changes live across auth, onboarding, and tabs.
+        let activePalette = store.palette
+        let activeAppearance = store.appearance
         let state = FormaThemeRootState.make(store: store, systemColorScheme: systemColorScheme)
         FormaThemeAccess.update(resolved: state.resolved)
 

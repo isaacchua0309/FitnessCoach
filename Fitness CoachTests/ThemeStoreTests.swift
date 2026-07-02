@@ -163,6 +163,56 @@ final class ThemeStoreTests: XCTestCase {
         }
     }
 
+    func testLegacyBlueRawValueMigratesToOceanBlueOnLoad() async {
+        await MainActor.run {
+            let defaults = makeIsolatedDefaults()
+            defaults.set("blue", forKey: AppThemePreferences.PersistenceKey.palette)
+
+            let store = ThemeStore(userDefaults: defaults)
+            XCTAssertEqual(store.palette, .oceanBlue)
+            XCTAssertEqual(
+                defaults.string(forKey: AppThemePreferences.PersistenceKey.palette),
+                AppThemePalette.oceanBlue.rawValue
+            )
+            XCTAssertNil(defaults.string(forKey: AppThemePreferences.PersistenceKey.legacyPalette))
+        }
+    }
+
+    func testCanonicalWriteRemovesLegacyPaletteKey() async {
+        await MainActor.run {
+            let defaults = makeIsolatedDefaults()
+            defaults.set("pink", forKey: AppThemePreferences.PersistenceKey.legacyPalette)
+
+            let store = ThemeStore(userDefaults: defaults)
+            XCTAssertEqual(store.palette, .blossomPink)
+            XCTAssertNil(defaults.string(forKey: AppThemePreferences.PersistenceKey.legacyPalette))
+        }
+    }
+
+    func testPaletteChangeUpdatesFormaThemeAccessImmediately() async {
+        await MainActor.run {
+            let defaults = makeIsolatedDefaults()
+            let store = ThemeStore(userDefaults: defaults)
+
+            store.setPalette(.sunsetOrange)
+            let state = FormaThemeRootState.make(store: store, systemColorScheme: .dark)
+            FormaThemeAccess.update(resolved: state.resolved)
+
+            ThemeTestSupport.assertSameColor(
+                FormaTokens.Color.accent,
+                FormaPaletteCatalog.palette(for: .sunsetOrange, colorScheme: .dark).accent
+            )
+            ThemeTestSupport.assertSameColor(
+                CoachDesignTokens.Color.accent,
+                FormaPaletteCatalog.palette(for: .sunsetOrange, colorScheme: .dark).accent
+            )
+            ThemeTestSupport.assertSameColor(
+                OnboardingTheme.accent,
+                FormaPaletteCatalog.palette(for: .sunsetOrange, colorScheme: .dark).accent
+            )
+        }
+    }
+
     // MARK: - Logout hygiene
 
     func testLogoutDoesNotClearThemePreferences() async {

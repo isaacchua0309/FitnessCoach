@@ -97,4 +97,22 @@ final class FormaThemeEnvironmentTests: XCTestCase {
             XCTAssertEqual(fromStore.colors.accent, fromResolver.colors.accent)
         }
     }
+
+    func testPaletteChangeUpdatesFormaThemeAccessThroughRootState() async {
+        await MainActor.run {
+            let store = ThemeStore(
+                userDefaults: ThemeTestSupport.makeIsolatedDefaults(suiteNamePrefix: "FormaThemeEnvironmentTests.live")
+            )
+            store.setPalette(.emeraldGreen)
+
+            let state = FormaThemeRootState.make(store: store, systemColorScheme: .dark)
+            FormaThemeAccess.update(resolved: state.resolved)
+
+            XCTAssertEqual(FormaThemeAccess.currentThemePalette.id, .emeraldGreen)
+            ThemeTestSupport.assertSameColor(
+                FormaTokens.Theme.primary,
+                FormaPaletteCatalog.themePalette(for: .emeraldGreen, colorScheme: .dark).primary
+            )
+        }
+    }
 }
