@@ -60,20 +60,20 @@ final class AppThemePaletteTests: XCTestCase {
     }
 
     func testDescriptionsMatchFormaProductCopy() {
-        XCTAssertEqual(AppThemePalette.oceanBlue.description, "Calm ocean blues.")
-        XCTAssertEqual(AppThemePalette.blossomPink.description, "Warm blossom pinks.")
-        XCTAssertEqual(AppThemePalette.emeraldGreen.description, "Fresh emerald greens.")
-        XCTAssertEqual(AppThemePalette.sunsetOrange.description, "Warm sunset oranges.")
+        XCTAssertEqual(AppThemePalette.oceanBlue.description, "Calm and focused")
+        XCTAssertEqual(AppThemePalette.blossomPink.description, "Warm and friendly")
+        XCTAssertEqual(AppThemePalette.emeraldGreen.description, "Fresh and healthy")
+        XCTAssertEqual(AppThemePalette.sunsetOrange.description, "Energetic and bold")
     }
 
     func testAccessibilityLabelsIncludeSelectionState() {
         XCTAssertEqual(
             AppThemePalette.blossomPink.accessibilityLabel(isSelected: true),
-            "Blossom Pink, selected, Warm blossom pinks"
+            "Blossom Pink, selected, Warm and friendly"
         )
         XCTAssertEqual(
             AppThemePalette.emeraldGreen.accessibilityLabel(isSelected: false),
-            "Emerald Green, Fresh emerald greens"
+            "Emerald Green, Fresh and healthy"
         )
     }
 

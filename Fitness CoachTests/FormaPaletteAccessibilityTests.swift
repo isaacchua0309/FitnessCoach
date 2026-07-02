@@ -131,15 +131,15 @@ final class FormaPaletteAccessibilityTests: XCTestCase {
     func testThemeSettingsPaletteAccessibilityLabelsIncludeSelectionState() {
         XCTAssertEqual(
             AppThemePalette.oceanBlue.accessibilityLabel(isSelected: true),
-            "Ocean Blue, selected, Calm ocean blues"
+            "Ocean Blue, selected, Calm and focused"
         )
         XCTAssertEqual(
             AppThemePalette.blossomPink.accessibilityLabel(isSelected: false),
-            "Blossom Pink, Warm blossom pinks"
+            "Blossom Pink, Warm and friendly"
         )
         XCTAssertEqual(
             AppThemePalette.emeraldGreen.accessibilityLabel(isSelected: true),
-            "Emerald Green, selected, Fresh emerald greens"
+            "Emerald Green, selected, Fresh and healthy"
         )
     }
 

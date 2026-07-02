@@ -2270,13 +2270,13 @@ enum FormaProductCopy {
 
             enum ColorPalette {
                 static let oceanBlueTitle = "Ocean Blue"
-                static let oceanBlueDescription = "Calm ocean blues."
+                static let oceanBlueDescription = "Calm and focused"
                 static let blossomPinkTitle = "Blossom Pink"
-                static let blossomPinkDescription = "Warm blossom pinks."
+                static let blossomPinkDescription = "Warm and friendly"
                 static let emeraldGreenTitle = "Emerald Green"
-                static let emeraldGreenDescription = "Fresh emerald greens."
+                static let emeraldGreenDescription = "Fresh and healthy"
                 static let sunsetOrangeTitle = "Sunset Orange"
-                static let sunsetOrangeDescription = "Warm sunset oranges."
+                static let sunsetOrangeDescription = "Energetic and bold"
             }
 
             enum Error {
