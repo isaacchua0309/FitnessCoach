@@ -37,7 +37,10 @@ struct CoachComposer: View {
     }
 
     private var canOpenAttachmentDialog: Bool {
-        canPresentPhotoPicker && !isSending && !attachmentState.isImporting
+        canPresentPhotoPicker
+            && !isSending
+            && !attachmentState.isImporting
+            && !isAttachmentSourceDialogPresented
     }
 
     private var showsAttachmentPreview: Bool {
@@ -102,6 +105,7 @@ struct CoachComposer: View {
 
     private var attachmentButton: some View {
         Button {
+            guard canOpenAttachmentDialog else { return }
             isFocused.wrappedValue = false
             CoachHaptics.attachmentToggle()
             isAttachmentSourceDialogPresented = true

@@ -47,6 +47,9 @@ final class CoachModel: ObservableObject {
     private let routeHandler: CoachAIRouteHandler
     private let mealPhotoAnalyzer: CoachMealPhotoAnalyzer
 
+    private var attachmentImportCoordinator = CoachAttachmentImportCoordinator()
+    private var isOutboundSendInFlight = false
+
     init(
         localCommandParser: LocalCommandParser? = nil,
         localNutritionEstimator: LocalNutritionEstimator? = nil,
@@ -137,6 +140,9 @@ final class CoachModel: ObservableObject {
     // MARK: Intent
 
     func sendCurrentMessage() async {
+        guard acquireOutboundSend() else { return }
+        defer { releaseOutboundSend() }
+
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         let imageJPEGData = inputAttachmentState.attachment?.jpegData
         guard !text.isEmpty || imageJPEGData != nil else { return }
@@ -152,6 +158,18 @@ final class CoachModel: ObservableObject {
         } else {
             await send(displayText, userMessageAlreadyAppended: true)
         }
+    }
+
+    private func acquireOutboundSend() -> Bool {
+        guard !isOutboundSendInFlight, !isSending, !inputAttachmentState.isImporting else {
+            return false
+        }
+        isOutboundSendInFlight = true
+        return true
+    }
+
+    private func releaseOutboundSend() {
+        isOutboundSendInFlight = false
     }
 
     func send(_ text: String, userMessageAlreadyAppended: Bool = false) async {
@@ -321,10 +339,15 @@ final class CoachModel: ObservableObject {
     }
 
     func importAttachment(from item: PhotosPickerItem) async {
-        beginAttachmentImport()
+        guard !isSending else { return }
+        let importToken = beginAttachmentImport()
         let sourceLabel = CoachMealPhotoPipeline.librarySourceLabel(for: item)
         let result = await CoachMealPhotoPipeline.loadJPEG(from: item)
-        await applyPreparedAttachmentImport(result, sourceLabel: sourceLabel)
+        applyPreparedAttachmentImport(
+            result,
+            sourceLabel: sourceLabel,
+            importToken: importToken
+        )
     }
 
     func importAttachment(from result: Result<Data, CoachMealPhotoError>, sourceLabel: String? = nil) async {
@@ -338,16 +361,24 @@ final class CoachModel: ObservableObject {
         default:
             break
         }
-        beginAttachmentImport()
-        await applyPreparedAttachmentImport(result, sourceLabel: sourceLabel)
+        guard !isSending else { return }
+        let importToken = beginAttachmentImport()
+        applyPreparedAttachmentImport(
+            result,
+            sourceLabel: sourceLabel,
+            importToken: importToken
+        )
     }
 
-    func beginAttachmentImport() {
-        guard !isSending else { return }
+    @discardableResult
+    private func beginAttachmentImport() -> UInt {
+        let token = attachmentImportCoordinator.beginImport()
         inputAttachmentState.beginImport()
+        return token
     }
 
     func removeInputAttachment() {
+        attachmentImportCoordinator.invalidate()
         inputAttachmentState.clear()
     }
 
@@ -357,8 +388,11 @@ final class CoachModel: ObservableObject {
 
     private func applyPreparedAttachmentImport(
         _ result: Result<Data, CoachMealPhotoError>,
-        sourceLabel: String?
-    ) async {
+        sourceLabel: String?,
+        importToken: UInt
+    ) {
+        guard attachmentImportCoordinator.isCurrent(importToken) else { return }
+
         switch result {
         case .failure(.userCancelled):
             inputAttachmentState.cancelImport()
