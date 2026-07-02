@@ -124,8 +124,13 @@ struct CoachView: View {
             }
             .fullScreenCover(isPresented: cameraPickerPresented) {
                 CoachCameraPicker { result in
-                    resetPickerPresentation()
-                    Task { await model.importAttachment(from: result) }
+                    Task { @MainActor in
+                        resetPickerPresentation()
+                        await model.importAttachment(
+                            from: result,
+                            sourceLabel: CoachMealPhotoPipeline.cameraCaptureLabel
+                        )
+                    }
                 }
                 .ignoresSafeArea()
             }
@@ -260,7 +265,9 @@ struct CoachView: View {
     private func presentCameraPicker() {
         guard canPresentPhotoPicker else { return }
         guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
-            Task { await model.importAttachment(from: .failure(.cameraUnavailable)) }
+            Task { @MainActor in
+                await model.importAttachment(from: .failure(.cameraUnavailable))
+            }
             return
         }
         activePicker = .camera

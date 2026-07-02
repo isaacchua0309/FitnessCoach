@@ -73,6 +73,54 @@ final class CoachInputAttachmentStateTests: XCTestCase {
         XCTAssertEqual(model.inputAttachmentState, .none)
     }
 
+    func testCameraCaptureStagesAttachmentWithoutSending() async throws {
+        let container = try AppContainer(inMemory: true)
+        let model = makeModel(container: container)
+        let imageData = Self.makeTestJPEGData()
+
+        await model.importAttachment(
+            from: .success(imageData),
+            sourceLabel: CoachMealPhotoPipeline.cameraCaptureLabel
+        )
+
+        XCTAssertTrue(model.inputAttachmentState.hasAttachment)
+        XCTAssertEqual(model.inputAttachmentState.attachment?.sourceLabel, CoachMealPhotoPipeline.cameraCaptureLabel)
+        XCTAssertNotNil(model.inputAttachmentState.previewImage)
+        XCTAssertTrue(model.messages.isEmpty)
+    }
+
+    func testCameraUnavailableShowsErrorWithoutClearingExistingAttachment() async throws {
+        let container = try AppContainer(inMemory: true)
+        let model = makeModel(container: container)
+        let existingImage = Self.makeTestJPEGData()
+
+        await model.importAttachment(from: .success(existingImage), sourceLabel: "library.jpg")
+        guard let existingAttachment = model.inputAttachmentState.attachment else {
+            return XCTFail("Expected existing attachment")
+        }
+
+        await model.importAttachment(from: .failure(.cameraUnavailable))
+
+        XCTAssertEqual(model.inputAttachmentState.attachment?.id, existingAttachment.id)
+        XCTAssertEqual(model.inputAttachmentState.importError, .cameraUnavailable)
+    }
+
+    func testCameraCancelPreservesExistingAttachment() async throws {
+        let container = try AppContainer(inMemory: true)
+        let model = makeModel(container: container)
+        let existingImage = Self.makeTestJPEGData()
+
+        await model.importAttachment(from: .success(existingImage), sourceLabel: "library.jpg")
+        guard let existingAttachment = model.inputAttachmentState.attachment else {
+            return XCTFail("Expected existing attachment")
+        }
+
+        await model.importAttachment(from: .failure(.userCancelled))
+
+        XCTAssertEqual(model.inputAttachmentState.attachment?.id, existingAttachment.id)
+        XCTAssertEqual(model.inputAttachmentState.importPhase, .idle)
+    }
+
     func testSendClearsAttachmentAfterUserMessageAccepted() async throws {
         let container = try AppContainer(inMemory: true)
         try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)

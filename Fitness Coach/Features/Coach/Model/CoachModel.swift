@@ -326,6 +326,16 @@ final class CoachModel: ObservableObject {
     }
 
     func importAttachment(from result: Result<Data, CoachMealPhotoError>, sourceLabel: String? = nil) async {
+        switch result {
+        case .failure(.userCancelled):
+            inputAttachmentState.cancelImport()
+            return
+        case .failure(.cameraUnavailable):
+            inputAttachmentState.failImport(.cameraUnavailable)
+            return
+        default:
+            break
+        }
         beginAttachmentImport()
         await applyAttachmentImport(result, sourceLabel: sourceLabel)
     }

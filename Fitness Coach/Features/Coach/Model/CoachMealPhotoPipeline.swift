@@ -16,6 +16,7 @@ enum CoachMealPhotoPipeline {
     static let defaultAnalysisPrompt =
         "Analyze this meal photo. Estimate food name, portion, calories, and macros."
     static let userMessageLabel = "Meal photo"
+    static let cameraCaptureLabel = "Camera"
 
     /// Client wiring is complete when image bytes can reach `photoFoodAnalysis`.
     static let isClientPipelineReady = true
@@ -61,6 +62,10 @@ enum CoachMealPhotoPipeline {
             return .failure(.loadFailed)
         }
 
+        return prepareJPEG(from: image)
+    }
+
+    static func prepareJPEG(from image: UIImage) -> Result<Data, CoachMealPhotoError> {
         guard let jpeg = compress(image, quality: initialCompressionQuality) else {
             return .failure(.loadFailed)
         }
