@@ -11,11 +11,14 @@ import SwiftUI
 
 struct CoachComposer: View {
     @Binding var text: String
+    let attachmentState: CoachInputAttachmentState
     var isFocused: FocusState<Bool>.Binding
     let isSending: Bool
     let onSend: () -> Void
     let onVoiceTap: () -> Void
     let onAttachmentSelect: (CoachAttachmentOption) -> Void
+    let onRemoveAttachment: () -> Void
+    let onDismissAttachmentError: () -> Void
 
     @State private var isAttachmentMenuPresented = false
 
@@ -24,15 +27,25 @@ struct CoachComposer: View {
     }
 
     private var canSend: Bool {
-        !isSending && !trimmedText.isEmpty
+        !isSending
+            && !attachmentState.isImporting
+            && (!trimmedText.isEmpty || attachmentState.hasAttachment)
     }
 
     private var showVoiceButton: Bool {
-        text.isEmpty && !isSending
+        text.isEmpty && !attachmentState.hasAttachment && !isSending && !attachmentState.isImporting
     }
 
     var body: some View {
         VStack(spacing: 0) {
+            if attachmentState.hasAttachment || attachmentState.isImporting || attachmentState.importError != nil {
+                CoachInputAttachmentPreview(
+                    attachmentState: attachmentState,
+                    onRemove: onRemoveAttachment,
+                    onDismissError: onDismissAttachmentError
+                )
+            }
+
             if isAttachmentMenuPresented {
                 CoachAttachmentMenu(isPresented: $isAttachmentMenuPresented, onSelect: onAttachmentSelect)
                     .padding(.horizontal, CoachDesignTokens.Layout.horizontalPadding)
@@ -82,6 +95,7 @@ struct CoachComposer: View {
         .animation(CoachDesignTokens.Motion.standard, value: canSend)
         .animation(CoachDesignTokens.Motion.standard, value: showVoiceButton)
         .animation(CoachDesignTokens.Motion.standard, value: isAttachmentMenuPresented)
+        .animation(CoachDesignTokens.Motion.standard, value: attachmentState)
     }
 
     private var attachmentButton: some View {
@@ -102,7 +116,7 @@ struct CoachComposer: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(CoachComposerButtonStyle())
-        .disabled(isSending)
+        .disabled(isSending || attachmentState.isImporting)
         .rotationEffect(.degrees(isAttachmentMenuPresented ? 45 : 0))
         .animation(CoachDesignTokens.Motion.spring, value: isAttachmentMenuPresented)
         .accessibilityLabel("Add attachment")
@@ -165,11 +179,14 @@ private struct CoachComposerButtonStyle: ButtonStyle {
                 Spacer()
                 CoachComposer(
                     text: $text,
+                    attachmentState: .none,
                     isFocused: $isFocused,
                     isSending: false,
                     onSend: {},
                     onVoiceTap: {},
-                    onAttachmentSelect: { _ in }
+                    onAttachmentSelect: { _ in },
+                    onRemoveAttachment: {},
+                    onDismissAttachmentError: {}
                 )
             }
             .background(CoachDesignTokens.Color.background)

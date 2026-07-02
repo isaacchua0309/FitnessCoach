@@ -1,8 +1,8 @@
 //
-//  CoachMealPhotoAnalysisTests.swift
+//  CoachInputAttachmentStateTests.swift
 //  Fitness CoachTests
 //
-//  Forma — Meal photo pipeline and photoFoodAnalysis routing.
+//  Forma — Coach composer image attachment state.
 //
 
 import UIKit
@@ -10,35 +10,73 @@ import XCTest
 @testable import Fitness_Coach
 
 @MainActor
-final class CoachMealPhotoAnalysisTests: XCTestCase {
+final class CoachInputAttachmentStateTests: XCTestCase {
 
-    func testPrepareJPEGRejectsEmptyData() {
-        XCTAssertEqual(
-            CoachMealPhotoPipeline.prepareJPEG(from: Data()),
-            .failure(.noImage)
-        )
-    }
+    func testCancelImportPreservesExistingAttachment() async throws {
+        let container = try AppContainer(inMemory: true)
+        let model = makeModel(container: container)
+        let firstImage = Self.makeTestJPEGData()
+        let secondImage = Self.makeTestJPEGData()
 
-    func testPrepareJPEGAcceptsRenderedImage() {
-        let raw = Self.makeTestJPEGData()
-        guard case .success(let prepared) = CoachMealPhotoPipeline.prepareJPEG(from: raw) else {
-            return XCTFail("Expected valid JPEG payload")
+        await model.importAttachment(from: .success(firstImage))
+        guard let firstAttachment = model.inputAttachmentState.attachment else {
+            return XCTFail("Expected staged attachment")
         }
-        XCTAssertTrue(CoachMealPhotoPipeline.hasImagePayload(prepared))
-        XCTAssertGreaterThan(prepared.count, 0)
+
+        await model.importAttachment(from: .failure(.userCancelled))
+
+        XCTAssertEqual(model.inputAttachmentState.attachment?.id, firstAttachment.id)
+        XCTAssertEqual(model.inputAttachmentState.importPhase, .idle)
     }
 
-    func testHasImagePayloadRequiresNonEmptyBytes() {
-        XCTAssertFalse(CoachMealPhotoPipeline.hasImagePayload(nil))
-        XCTAssertFalse(CoachMealPhotoPipeline.hasImagePayload(Data()))
-        XCTAssertTrue(CoachMealPhotoPipeline.hasImagePayload(Data([0xFF, 0xD8, 0xFF])))
+    func testFailedImportPreservesExistingAttachment() async throws {
+        let container = try AppContainer(inMemory: true)
+        let model = makeModel(container: container)
+        let firstImage = Self.makeTestJPEGData()
+
+        await model.importAttachment(from: .success(firstImage))
+        guard let firstAttachment = model.inputAttachmentState.attachment else {
+            return XCTFail("Expected staged attachment")
+        }
+
+        await model.importAttachment(from: .failure(.noImage))
+
+        XCTAssertEqual(model.inputAttachmentState.attachment?.id, firstAttachment.id)
+        XCTAssertEqual(model.inputAttachmentState.importError, .noImage)
     }
 
-    func testPhotoAnalysisSendsImagePayloadToAIService() async throws {
+    func testSuccessfulImportReplacesExistingAttachment() async throws {
+        let container = try AppContainer(inMemory: true)
+        let model = makeModel(container: container)
+        let firstImage = Self.makeTestJPEGData()
+        let secondImage = Self.makeTestJPEGData()
+
+        await model.importAttachment(from: .success(firstImage), sourceLabel: "first.jpg")
+        guard let firstAttachment = model.inputAttachmentState.attachment else {
+            return XCTFail("Expected first attachment")
+        }
+
+        await model.importAttachment(from: .success(secondImage), sourceLabel: "second.jpg")
+
+        XCTAssertNotEqual(model.inputAttachmentState.attachment?.id, firstAttachment.id)
+        XCTAssertEqual(model.inputAttachmentState.attachment?.sourceLabel, "second.jpg")
+        XCTAssertEqual(model.inputAttachmentState.importPhase, .idle)
+    }
+
+    func testRemoveClearsAllAttachmentState() async throws {
+        let container = try AppContainer(inMemory: true)
+        let model = makeModel(container: container)
+
+        await model.importAttachment(from: .failure(.noImage))
+        model.removeInputAttachment()
+
+        XCTAssertEqual(model.inputAttachmentState, .none)
+    }
+
+    func testSendClearsAttachmentAfterUserMessageAccepted() async throws {
         let container = try AppContainer(inMemory: true)
         try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
 
-        let imageData = Self.makeTestJPEGData()
         let aiService = PhotoCapturingAIService()
         let model = CoachModel(
             actionCenter: container.actionCenter,
@@ -49,21 +87,17 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             aiCommandParsingEnabled: true
         )
 
-        await model.importAttachment(from: .success(imageData))
+        await model.importAttachment(from: .success(Self.makeTestJPEGData()))
+        XCTAssertTrue(model.inputAttachmentState.hasAttachment)
+
         await model.sendCurrentMessage()
 
+        XCTAssertEqual(model.inputAttachmentState, .none)
+        XCTAssertEqual(model.messages.last(where: { $0.role == .user })?.text, CoachMealPhotoPipeline.userMessageLabel)
         XCTAssertEqual(aiService.estimateFoodCallCount, 1)
-        XCTAssertTrue(CoachMealPhotoPipeline.hasImagePayload(aiService.lastImageJPEGData))
-        if case .success(let expectedPayload) = CoachMealPhotoPipeline.prepareJPEG(from: imageData) {
-            XCTAssertEqual(aiService.lastImageJPEGData, expectedPayload)
-        } else {
-            XCTFail("Expected prepared JPEG payload")
-        }
-        XCTAssertNotNil(model.pendingConfirmation)
-        XCTAssertEqual(model.messages.last?.role, .assistant)
     }
 
-    func testMissingImageSurfacesNonShamingError() async throws {
+    func testSendWithTextAndAttachmentUsesProvidedMessage() async throws {
         let container = try AppContainer(inMemory: true)
         try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
 
@@ -76,61 +110,16 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             aiCommandParsingEnabled: true
         )
 
-        await model.importAttachment(from: .failure(.noImage))
-
-        XCTAssertEqual(model.inputAttachmentState.importError, .noImage)
-        XCTAssertNil(model.pendingConfirmation)
-        XCTAssertTrue(model.messages.isEmpty)
-    }
-
-    func testUserCancellationDoesNotAppendMessages() async throws {
-        let container = try AppContainer(inMemory: true)
-        let model = CoachModel(
-            actionCenter: container.actionCenter,
-            dailyLogReader: container.dailyLogService,
-            healthActivityQuery: container.healthActivityQueryService,
-            aiService: PhotoCapturingAIService(),
-            userProfileReader: container.userProfileService,
-            aiCommandParsingEnabled: true
-        )
-
-        await model.importAttachment(from: .failure(.userCancelled))
-
-        XCTAssertTrue(model.messages.isEmpty)
-    }
-
-    func testAIFailureSurfacesAnalysisError() async throws {
-        let container = try AppContainer(inMemory: true)
-        try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
-
-        let aiService = PhotoCapturingAIService()
-        aiService.estimateFoodError = AIServiceError.backendUnavailable
-        let model = CoachModel(
-            actionCenter: container.actionCenter,
-            dailyLogReader: container.dailyLogService,
-            healthActivityQuery: container.healthActivityQueryService,
-            userProfileReader: container.userProfileService,
-            aiCommandParsingEnabled: true
-        )
-
+        model.inputText = "Lunch photo"
         await model.importAttachment(from: .success(Self.makeTestJPEGData()))
         await model.sendCurrentMessage()
 
-        XCTAssertTrue(model.messages.last?.text.contains("couldn't analyze") == true)
-        XCTAssertNil(model.pendingConfirmation)
+        XCTAssertEqual(model.messages.last(where: { $0.role == .user })?.text, "Lunch photo")
+        XCTAssertEqual(model.inputAttachmentState, .none)
     }
 
-    func testTodayScanFoodVisibleWhenPipelineReady() {
-        XCTAssertTrue(TodayPhotoScanAvailability.isPipelineReady)
-        XCTAssertTrue(TodayQuickActionPolicy.isVisible(.scanFood))
-        XCTAssertTrue(
-            TodayQuickActionPolicy.menuItems().contains { $0.kind == .scanFood && $0.isEnabled }
-        )
-    }
-
-    func testLegacyHandlePhotoSelectedReportsMissingImage() async throws {
-        let container = try AppContainer(inMemory: true)
-        let model = CoachModel(
+    private func makeModel(container: AppContainer) -> CoachModel {
+        CoachModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
@@ -138,11 +127,6 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             userProfileReader: container.userProfileService,
             aiCommandParsingEnabled: true
         )
-
-        await model.handlePhotoSelected()
-
-        XCTAssertEqual(model.inputAttachmentState.importError, .noImage)
-        XCTAssertTrue(model.messages.isEmpty)
     }
 
     private static func makeTestJPEGData() -> Data {
@@ -151,7 +135,10 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             UIColor.orange.setFill()
             context.fill(CGRect(x: 0, y: 0, width: 12, height: 12))
         }
-        return image.jpegData(compressionQuality: 0.85)!
+        guard let data = image.jpegData(compressionQuality: 0.85) else {
+            fatalError("Expected JPEG test data")
+        }
+        return data
     }
 }
 

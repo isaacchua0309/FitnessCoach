@@ -95,13 +95,12 @@ struct CoachView: View {
                 guard let item else { return }
                 photoPickerItem = nil
                 Task {
-                    let result = await CoachMealPhotoPipeline.loadJPEG(from: item)
-                    await model.handleMealPhotoSelection(result)
+                    await model.importAttachment(from: item)
                 }
             }
             .fullScreenCover(isPresented: $isCameraPresented) {
                 CoachCameraPicker { result in
-                    Task { await model.handleMealPhotoSelection(result) }
+                    Task { await model.importAttachment(from: result) }
                 }
                 .ignoresSafeArea()
             }
@@ -129,6 +128,7 @@ struct CoachView: View {
     private var composerChrome: some View {
         CoachComposer(
             text: $model.inputText,
+            attachmentState: model.inputAttachmentState,
             isFocused: $isInputFocused,
             isSending: model.isSending,
             onSend: {
@@ -138,7 +138,13 @@ struct CoachView: View {
                 }
             },
             onVoiceTap: {},
-            onAttachmentSelect: handleAttachmentSelection
+            onAttachmentSelect: handleAttachmentSelection,
+            onRemoveAttachment: {
+                model.removeInputAttachment()
+            },
+            onDismissAttachmentError: {
+                model.dismissAttachmentImportError()
+            }
         )
         .fixedSize(horizontal: false, vertical: true)
         .background(
