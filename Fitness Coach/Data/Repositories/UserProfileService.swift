@@ -62,6 +62,17 @@ final class UserProfileService {
         return try insertProfile(from: document, ownerUID: ownerUID)
     }
 
+    /// Replaces the on-device profile with onboarding draft data (re-commit during onboarding).
+    func replaceLocalProfile(
+        with draft: UserProfileDraft,
+        ownerUID: String? = nil
+    ) throws -> UserProfile {
+        if let existing = try latestProfileEntity() {
+            try store.delete(existing)
+        }
+        return try createProfile(draft, ownerUID: ownerUID)
+    }
+
     private func insertProfile(
         from document: CloudUserProfileDocument,
         ownerUID: String

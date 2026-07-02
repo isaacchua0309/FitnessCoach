@@ -383,10 +383,8 @@ final class OnboardingModel: ObservableObject {
     }
 
     func awaitSignInAndFinish() {
-        if !(hasCommittedLocalProfile || hasLocalProfile) {
-            commitLocalProfileForSavePlan()
-            guard errorMessage == nil else { return }
-        }
+        commitLocalProfileForSavePlan()
+        guard errorMessage == nil else { return }
 
         pendingCompletionIntent = .signIn
         viewState = .awaitingSignIn

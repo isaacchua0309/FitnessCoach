@@ -418,7 +418,7 @@ final class AuthGateCoordinator: ObservableObject {
             finishOnboardingCompletionAfterSuccessfulSync()
         case .cloudProfileConflict(let document):
             conflictCloudDocument = document
-            profileConflictContext = .accountOrOwnershipReconcile
+            profileConflictContext = .onboardingCompletion
             rootModel.presentProfilePlanConflict()
         case .cloudCheckFailed:
             rootModel.presentOnboardingCloudCheckFailed()
@@ -499,6 +499,9 @@ final class AuthGateCoordinator: ObservableObject {
 
         Task { @MainActor in
             do {
+                if profileConflictContext == .onboardingCompletion {
+                    onboardingModel?.commitLocalProfileForSavePlan()
+                }
                 try await container.profileBootstrapCoordinatorService.uploadDevicePlanAfterConflict(uid: uid)
                 isResolvingProfileConflict = false
                 finishProfileConflictAfterUpload()
@@ -529,6 +532,7 @@ final class AuthGateCoordinator: ObservableObject {
     }
 
     func finishProfileConflictAfterUpload() {
+        try? container.actionCenter.syncTodayTargetsFromProfile()
         switch profileConflictContext {
         case .onboardingCompletion:
             onboardingModel?.finalizeAfterSuccessfulSignIn()
