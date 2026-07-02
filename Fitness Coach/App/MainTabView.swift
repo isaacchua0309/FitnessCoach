@@ -37,6 +37,7 @@ struct MainTabView: View {
     private let journeyAnalyticsCoordinator: JourneyAnalyticsCoordinator
 
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.formaResolvedTheme) private var resolvedTheme
 
     @StateObject private var todayModel: TodayModel
     @StateObject private var coachModel: CoachModel
@@ -113,7 +114,7 @@ struct MainTabView: View {
                 }
             .tag(AppTab.plan)
         }
-        .tint(FormaTokens.Color.accent)
+        .tint(resolvedTheme.colors.accent)
         .environmentObject(container.refreshCenter)
         .environmentObject(container.trainingInsightsStore)
         .environmentObject(container.trainingInsightsModel)
