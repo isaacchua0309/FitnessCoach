@@ -116,7 +116,7 @@ struct CoachComposer: View {
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(CoachDesignTokens.Color.textOnAccent)
                     .frame(width: 30, height: 30)
-                    .background(CoachDesignTokens.Color.gradientStart, in: Circle())
+                    .background(FormaTokens.Theme.primaryButtonBackground, in: Circle())
             }
             .buttonStyle(CoachComposerButtonStyle())
             .transition(.scale(scale: 0.85).combined(with: .opacity))

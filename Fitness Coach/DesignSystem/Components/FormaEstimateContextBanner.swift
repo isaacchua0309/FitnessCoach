@@ -15,7 +15,7 @@ struct FormaEstimateContextBanner: View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             Text(AIFoodConfirmationFormatter.confidenceLabel(confidence))
                 .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.accent)
+                .foregroundStyle(confidenceLabelColor)
 
             if let context, !context.isEmpty {
                 Text(context)
@@ -33,11 +33,29 @@ struct FormaEstimateContextBanner: View {
         .padding(FormaTokens.Spacing.md)
         .background {
             RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                .fill(FormaTokens.Color.accentMuted)
+                .fill(confidenceBackgroundColor)
         }
         .overlay {
             RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
                 .stroke(FormaTokens.Color.border, lineWidth: 1)
+        }
+    }
+
+    private var confidenceLabelColor: Color {
+        switch confidence {
+        case .low:
+            FormaTokens.Color.warning
+        case .medium, .high:
+            FormaTokens.Theme.primary
+        }
+    }
+
+    private var confidenceBackgroundColor: Color {
+        switch confidence {
+        case .low:
+            FormaTokens.Color.warning.opacity(0.12)
+        case .medium, .high:
+            FormaTokens.Theme.softBackground
         }
     }
 }

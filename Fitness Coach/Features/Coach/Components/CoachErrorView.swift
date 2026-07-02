@@ -38,7 +38,7 @@ struct CoachErrorView: View {
                         }
                     }
                     .font(CoachDesignTokens.Typography.confirmationMetric)
-                    .foregroundStyle(CoachDesignTokens.Color.accent)
+                    .foregroundStyle(CoachDesignTokens.Color.primary)
                     .disabled(isRetrying)
                 }
             }

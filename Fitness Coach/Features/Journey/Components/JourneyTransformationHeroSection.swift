@@ -58,10 +58,10 @@ struct JourneyTransformationHeroSection: View {
         HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
             Text(state.emotionalStatusLabel)
                 .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.accent)
+                .foregroundStyle(FormaTokens.Theme.primary)
                 .padding(.horizontal, FormaTokens.Spacing.sm)
                 .padding(.vertical, 5)
-                .background(FormaTokens.Color.accentMuted)
+                .background(FormaTokens.Theme.softBackground)
                 .clipShape(Capsule())
                 .accessibilityHidden(true)
 

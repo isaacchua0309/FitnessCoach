@@ -22,7 +22,7 @@ struct TodayCoachTipSection: View {
                     HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
                         Image(systemName: "sparkles")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(FormaTokens.Color.accent)
+                            .foregroundStyle(FormaTokens.Theme.primary)
                             .padding(.top, 2)
 
                         Text(tip.message)

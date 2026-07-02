@@ -97,7 +97,7 @@ struct JourneyMilestonesSection: View {
         .overlay {
             if isNext {
                 RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                    .strokeBorder(FormaTokens.Color.accent.opacity(0.45), lineWidth: 1)
+                    .strokeBorder(FormaTokens.Theme.primary.opacity(0.45), lineWidth: 1)
             }
         }
         .accessibilityElement(children: .combine)
@@ -117,7 +117,7 @@ struct JourneyMilestonesSection: View {
         case .completed:
             return FormaTokens.Color.textPrimary
         case .current:
-            return FormaTokens.Color.accent
+            return FormaTokens.Theme.primary
         case .upcoming:
             return isNext ? FormaTokens.Color.textPrimary : FormaTokens.Color.textSecondary
         }
@@ -128,7 +128,7 @@ struct JourneyMilestonesSection: View {
         case .completed:
             return FormaTokens.Color.success.opacity(0.12)
         case .current:
-            return FormaTokens.Color.accentMuted
+            return FormaTokens.Theme.softBackground
         case .upcoming:
             return isNext ? FormaTokens.Color.surfaceSubtle : FormaTokens.Color.canvas
         }

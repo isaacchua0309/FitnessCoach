@@ -36,7 +36,7 @@ struct PlanTrainingIntegrationSection: View {
                             if let ctaTitle = presentation.ctaTitle {
                                 Text(ctaTitle)
                                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                                    .foregroundStyle(FormaTokens.Color.accent)
+                                    .foregroundStyle(FormaTokens.Theme.primary)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .frame(minHeight: FormaTokens.Layout.minTouchTarget)
                                     .padding(.top, FormaTokens.Spacing.xs)
@@ -57,7 +57,7 @@ struct PlanTrainingIntegrationSection: View {
             if presentation.showsStatusCheckmark {
                 Text("✓")
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.accent)
+                    .foregroundStyle(FormaTokens.Theme.primary)
             }
 
             Text(presentation.statusLabel)

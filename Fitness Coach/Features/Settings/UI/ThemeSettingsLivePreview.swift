@@ -102,22 +102,19 @@ struct ThemeSettingsLivePreview: View {
     }
 
     private var coachLogPillSample: some View {
-        Label {
-            Text(FormaProductCopy.Settings.Theme.livePreviewLogPill)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-        } icon: {
-            Image(systemName: "fork.knife")
-                .font(.caption.weight(.semibold))
+        Button {} label: {
+            Label {
+                Text(FormaProductCopy.Settings.Theme.livePreviewLogPill)
+                    .font(FormaTokens.Typography.caption.weight(.semibold))
+            } icon: {
+                Image(systemName: "fork.knife")
+                    .font(.caption.weight(.semibold))
+            }
+            .labelStyle(.titleAndIcon)
         }
-        .labelStyle(.titleAndIcon)
-        .padding(.horizontal, FormaTokens.Spacing.sm)
-        .padding(.vertical, FormaTokens.Spacing.xs)
-        .background(FormaTokens.Color.surfaceSubtle, in: Capsule())
-        .overlay {
-            Capsule()
-                .stroke(FormaTokens.Theme.primary.opacity(0.42), lineWidth: 0.75)
-        }
-        .foregroundStyle(FormaTokens.Theme.primary)
+        .buttonStyle(.bordered)
+        .tint(FormaTokens.Theme.primary)
+        .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
 

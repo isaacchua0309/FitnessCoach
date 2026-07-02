@@ -104,7 +104,7 @@ private struct CoachConfirmationPrimaryButtonStyle: ButtonStyle {
             .foregroundStyle(CoachDesignTokens.Color.textOnAccent)
             .padding(.horizontal, CoachDesignTokens.Spacing.md)
             .padding(.vertical, CoachDesignTokens.Spacing.xs)
-            .background(CoachDesignTokens.Color.gradientStart, in: Capsule())
+            .background(FormaTokens.Theme.primaryButtonBackground, in: Capsule())
             .opacity(configuration.isPressed ? 0.85 : 1)
     }
 }

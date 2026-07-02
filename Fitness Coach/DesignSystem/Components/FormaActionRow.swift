@@ -54,7 +54,7 @@ struct FormaActionRow<Leading: View>: View {
         HStack(spacing: FormaTokens.Spacing.sm) {
             Text(title)
                 .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(FormaTokens.Color.accent)
+                .foregroundStyle(FormaTokens.Theme.primary)
 
             Spacer(minLength: 0)
 
@@ -94,7 +94,7 @@ struct FormaActionRow<Leading: View>: View {
         ) {
             Image(systemName: systemImage)
                 .font(FormaTokens.Typography.body)
-                .foregroundStyle(FormaTokens.Color.accent)
+                .foregroundStyle(FormaTokens.Theme.primary)
 
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
                 Text(title)

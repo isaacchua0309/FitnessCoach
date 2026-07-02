@@ -35,7 +35,7 @@ struct CoachStarterChips: View {
                     HStack(spacing: CoachDesignTokens.Spacing.xs) {
                         Image(systemName: prompt.symbolName)
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(CoachDesignTokens.Color.accent)
+                            .foregroundStyle(CoachDesignTokens.Color.primary)
 
                         Text(prompt.label)
                             .font(CoachDesignTokens.Typography.chip)
