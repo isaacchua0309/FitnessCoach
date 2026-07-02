@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, require-jsdoc, max-len */
+/* eslint-disable @typescript-eslint/no-explicit-any, require-jsdoc, max-len, valid-jsdoc */
 
 export class GatewayError extends Error {
   constructor(readonly status: number, message: string) {
@@ -13,6 +13,8 @@ const DEFAULT_MAX_QUESTION_CHARS = 4_000;
 const DEFAULT_MAX_IMAGE_B64_CHARS = 1_500_000;
 const DEFAULT_BURST_PER_MINUTE = 30;
 const DEFAULT_DAILY_PER_USER = 400;
+
+const ZERO_WIDTH_PATTERN = /[\u200B-\u200D\uFEFF]/g;
 
 const burstHits = new Map<string, number[]>();
 const dailyCounts = new Map<string, {day: string; count: number}>();
@@ -65,10 +67,14 @@ function requireString(
   if (typeof value !== "string" || value.trim().length === 0) {
     throw new GatewayError(400, `Missing or invalid ${field}.`);
   }
-  if (value.length > maxChars) {
+  const normalized = normalizeGatewayText(value);
+  if (normalized.length === 0) {
+    throw new GatewayError(400, `Missing or invalid ${field}.`);
+  }
+  if (normalized.length > maxChars) {
     throw new GatewayError(400, `${field} exceeds maximum length.`);
   }
-  return value;
+  return normalized;
 }
 
 function requireObject(value: unknown, field: string): Record<string, any> {
@@ -85,7 +91,7 @@ export function validatePayload(path: string, body: Record<string, any>): void {
 
   switch (path) {
   case "/v1/ai/generate-meal-advice":
-    requireString(body.question, "question", maxQuestion);
+    body.question = requireString(body.question, "question", maxQuestion);
     if (body.context !== undefined) requireObject(body.context, "context");
     return;
   case "/v1/ai/generate-daily-review":
@@ -99,16 +105,16 @@ export function validatePayload(path: string, body: Record<string, any>): void {
       if (body.text !== undefined && typeof body.text !== "string") {
         throw new GatewayError(400, "Invalid text.");
       }
-      if (typeof body.text === "string" && body.text.length > maxText) {
-        throw new GatewayError(400, "text exceeds maximum length.");
+      if (typeof body.text === "string") {
+        body.text = requireString(body.text, "text", maxText);
       }
     } else {
-      requireString(body.text, "text", maxText);
+      body.text = requireString(body.text, "text", maxText);
     }
     if (body.context !== undefined) requireObject(body.context, "context");
     return;
   default:
-    requireString(body.text, "text", maxText);
+    body.text = requireString(body.text, "text", maxText);
     if (body.context !== undefined) requireObject(body.context, "context");
   }
 }
@@ -147,6 +153,35 @@ export function enforceRequestQuota(uid: string | null): void {
       );
     }
     entry.count += 1;
+  }
+}
+
+/** Normalizes gateway text for safe length checks and model input. */
+export function normalizeGatewayText(value: string): string {
+  const withoutZeroWidth = value.replace(ZERO_WIDTH_PATTERN, "");
+  const normalizedScalars = Array.from(withoutZeroWidth).map((char) => {
+    const code = char.codePointAt(0);
+    if (code === undefined) return char;
+    if (code >= 0xFF10 && code <= 0xFF19) {
+      return String.fromCodePoint(code - 0xFF10 + 0x30);
+    }
+    if (code >= 0xFF21 && code <= 0xFF3A) {
+      return String.fromCodePoint(code - 0xFF21 + 0x41);
+    }
+    if (code >= 0xFF41 && code <= 0xFF5A) {
+      return String.fromCodePoint(code - 0xFF41 + 0x61);
+    }
+    return char;
+  });
+  return normalizedScalars.join("").trim();
+}
+
+export function normalizeGatewayPayloadText(body: Record<string, any>): void {
+  if (typeof body.text === "string") {
+    body.text = normalizeGatewayText(body.text);
+  }
+  if (typeof body.question === "string") {
+    body.question = normalizeGatewayText(body.question);
   }
 }
 

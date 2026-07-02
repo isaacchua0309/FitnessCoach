@@ -18,9 +18,14 @@ enum LocalNoAPIRoute: Equatable, Sendable {
 
 struct LocalNoAPIGuard: Sendable {
     private let localCommandParser: LocalCommandParser
+    private let localNutritionEstimator: LocalNutritionEstimator
 
-    nonisolated init(localCommandParser: LocalCommandParser = .standard) {
+    nonisolated init(
+        localCommandParser: LocalCommandParser = .standard,
+        localNutritionEstimator: LocalNutritionEstimator = .standard
+    ) {
         self.localCommandParser = localCommandParser
+        self.localNutritionEstimator = localNutritionEstimator
     }
 
     func evaluate(_ input: NormalizedCoachInput) -> LocalNoAPIRoute {
@@ -42,7 +47,7 @@ struct LocalNoAPIGuard: Sendable {
             return route
         }
 
-        switch localCommandParser.parse(input.originalText) {
+        switch localCommandParser.parse(input.normalizedText, originalText: input.originalText) {
         case .success(let command):
             let route = LocalNoAPIRoute.deterministicCommand(command)
             traceGuardRoute(route, input: input, parserResult: "success")
@@ -59,10 +64,34 @@ struct LocalNoAPIGuard: Sendable {
             return route
 
         case .needsAI, .unsupported:
+            if let localFoodRoute = evaluateLocalFoodEstimate(input) {
+                traceGuardRoute(
+                    localFoodRoute,
+                    input: input,
+                    parserResult: "localFoodEstimate",
+                    foodConfidence: "high"
+                )
+                return localFoodRoute
+            }
             let route = LocalNoAPIRoute.passToCheapLLM
             traceGuardRoute(route, input: input, parserResult: "needsAI")
             return route
         }
+    }
+
+    private func evaluateLocalFoodEstimate(_ input: NormalizedCoachInput) -> LocalNoAPIRoute? {
+        guard localNutritionEstimator.userAskedToLog(input) else { return nil }
+        guard input.meaningfulTokenCount <= 8 else { return nil }
+        guard let estimate = localNutritionEstimator.estimate(input) else { return nil }
+        guard estimate.confidence == .high else { return nil }
+
+        return .localFoodEstimate(
+            LocalFoodEstimateRequest(
+                estimate: estimate,
+                originalText: input.originalText,
+                userAskedToLog: true
+            )
+        )
     }
 
     private func traceGuardRoute(

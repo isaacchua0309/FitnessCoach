@@ -274,7 +274,18 @@ enum CoachResponseBuilder {
         "Tell me what you ate, drank, weighed, trained, or ask what to do next."
 
     static let unknownResponse =
-        "I can help with food, water, weight, workouts, or meal decisions. Try: 'log 500g chicken breast'."
+        "I can help with food, water, weight, workouts, and fitness guidance. What would you like to track or ask?"
+
+    static let unsupportedScopeResponse = unknownResponse
+
+    static let inputTooLongResponse =
+        "That message is too long for Coach. Please shorten it and try again."
+
+    static let lowConfidenceClarification =
+        "I'm not fully sure what you want me to log. Could you rephrase it with the amount and item?"
+
+    static let classifierUnavailableResponse =
+        "I'm having trouble understanding right now. Could you rephrase what you'd like to log or ask?"
 
     static let backendUnavailableResponse = FormaProductCopy.Error.coachUnavailable
 

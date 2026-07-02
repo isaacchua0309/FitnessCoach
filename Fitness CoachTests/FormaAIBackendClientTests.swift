@@ -192,7 +192,7 @@ final class FormaAIBackendClientTests: XCTestCase {
 
     func testDecodesClassifyResponseWhenActionDraftIsMissing() async throws {
         GatewayMockURLProtocol.reset()
-        GatewayMockURLProtocol.responseData = Data(
+        GatewayMockURLProtocol.responseBody = Data(
             """
             {"intentResult":{"intent":"general_conversation","confidence":0.9,"domain":"general","requiresAppMutation":false,"requiresUserContext":true,"canAnswerWithCheapModel":true,"requiresEscalation":false,"entities":{"food":null,"meal":null,"amountMl":null,"weightKg":null,"durationMinutes":null,"distanceKm":null,"calories":null,"proteinGrams":null,"carbsGrams":null,"fatGrams":null,"quantity":null,"unit":null,"notes":null},"action":{"type":"log_food","foodDraft":null,"waterDraft":null,"weightDraft":null,"workoutDraft":null,"selector":null,"undoTarget":null},"reason":"Greeting."}}
             """.utf8

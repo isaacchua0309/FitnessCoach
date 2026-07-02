@@ -24,12 +24,11 @@ enum ConfirmationPolicy {
     }
 
     static func decision(for request: LocalFoodEstimateRequest) -> ConfirmationDecision {
-        if request.estimate.confidence == .high, request.userAskedToLog {
-            return .executeImmediately
-        }
-
-        return .requiresConfirmation(
-            "I estimated \(request.estimate.draft.name). Please confirm before I log it."
+        .requiresConfirmation(
+            CoachResponseBuilder.localFoodEstimatePending(
+                request.estimate,
+                originalText: request.originalText
+            )
         )
     }
 

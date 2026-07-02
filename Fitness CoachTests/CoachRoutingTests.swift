@@ -92,19 +92,9 @@ final class CoachRoutingTests: XCTestCase {
         )
     }
 
-    func testCatalogFoodRoutesToClassifier() async throws {
-        try await assertClassifierRoute(
-            "log 500g chicken breast",
-            stub: stubIntent(.logFood),
-            expectedHandler: "ai_estimate_food",
-            expectedTier: .cheap
-        )
-        try await assertClassifierRoute(
-            "log 2 eggs",
-            stub: stubIntent(.logFood),
-            expectedHandler: "ai_estimate_food",
-            expectedTier: .cheap
-        )
+    func testCatalogFoodRoutesToLocalEstimator() async throws {
+        try await assertLocalGuard("log 500g chicken breast", expectedHandler: "local_food_estimate")
+        try await assertLocalGuard("log 2 eggs", expectedHandler: "local_food_estimate")
     }
 
     func testLogFoodWithCheapModelFalseStillRoutesToEstimateFood() async throws {
@@ -225,7 +215,7 @@ final class CoachRoutingTests: XCTestCase {
 
     // MARK: - Confirmation policy
 
-    func testHighConfidenceLocalFoodExecutesImmediately() {
+    func testHighConfidenceLocalFoodRequiresConfirmation() {
         let estimate = LocalFoodEstimate(
             draft: FoodDraft(
                 mealType: nil,
@@ -244,7 +234,7 @@ final class CoachRoutingTests: XCTestCase {
                 notes: nil
             ),
             confidence: .high,
-            requiresConfirmation: false,
+            requiresConfirmation: true,
             explanation: "Local table"
         )
         let request = LocalFoodEstimateRequest(
@@ -252,7 +242,11 @@ final class CoachRoutingTests: XCTestCase {
             originalText: "log 500g chicken breast",
             userAskedToLog: true
         )
-        XCTAssertEqual(ConfirmationPolicy.decision(for: request), .executeImmediately)
+        if case .requiresConfirmation = ConfirmationPolicy.decision(for: request) {
+            XCTAssertTrue(true)
+        } else {
+            XCTFail("Expected confirmation for local food estimate")
+        }
     }
 
     func testMediumConfidenceLocalFoodRequiresConfirmation() {
@@ -312,33 +306,12 @@ final class CoachRoutingTests: XCTestCase {
     func testLocalRegressionMessagesSaveToInMemoryStore() async throws {
         let harness = try CoachRoutingIntegrationTestSupport.makeHarness()
         try CoachRoutingIntegrationTestSupport.seedCoachProfile(in: harness)
-        let chickenDraft = FoodDraft(
-            mealType: nil,
-            name: "Chicken breast",
-            quantity: 500,
-            unit: "g",
-            calories: 825,
-            protein: 155,
-            carbs: 0,
-            fat: 18,
-            fiber: nil,
-            sodium: nil,
-            source: .aiTextEstimate,
-            confidence: .high,
-            imageUrl: nil,
-            notes: nil
-        )
-        let service = StubClassifierAIService(
-            classifyResult: stubIntent(.logFood),
-            estimateFoodResponse: AIFoodEstimateResponse(
-                foodDrafts: [chickenDraft],
-                confidence: .high,
-                requiresConfirmation: false
-            )
-        )
+        let service = StubClassifierAIService(classifyResult: stubIntent(.logFood))
         let model = harness.makeCoach(aiService: service)
 
         await model.send("log 500g chicken breast")
+        XCTAssertEqual(service.classifyCoachIntentCallCount, 0)
+        XCTAssertEqual(service.estimateFoodCallCount, 0)
         await model.confirmPendingFromBar()
         XCTAssertEqual(try harness.actionCenter.getFoodEntries(for: harness.today).count, 1)
 

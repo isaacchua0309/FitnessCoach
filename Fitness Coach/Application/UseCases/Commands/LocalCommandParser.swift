@@ -18,13 +18,13 @@ struct LocalCommandParser {
     /// Maximum millilitres allowed for a single water entry.
     static let maxSingleWaterMl = 5000
 
-    func parse(_ text: String) -> CommandParseResult {
-        let original = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    func parse(_ text: String, originalText: String? = nil) -> CommandParseResult {
+        let original = (originalText ?? text).trimmingCharacters(in: .whitespacesAndNewlines)
         guard !original.isEmpty else {
-            return .unsupported(originalText: text, reason: "Empty command.")
+            return .unsupported(originalText: original, reason: "Empty command.")
         }
 
-        let normalized = CommandParserUtilities.normalized(original)
+        let normalized = CommandParserUtilities.normalized(text)
 
         // Deterministic matching order. Earlier, more specific intents are
         // checked first to avoid keyword collisions (for example, "undo weight"

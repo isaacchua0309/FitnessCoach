@@ -166,12 +166,12 @@ final class TodayModelHydrationTests: XCTestCase {
                 calendar: Calendar.current,
                 now: harness.today
             ),
-            hydrationContextProvider: {
+            hydrationContextProvider: { [self] in
                 TodayHydrationGate.resolve(
                     authState: .signedIn(uid: activeUID),
-                    profile: try? harness.profileService.getCurrentProfile(),
+                    profile: try? self.harness.profileService.getCurrentProfile(),
                     calendar: Calendar.current,
-                    now: harness.today
+                    now: self.harness.today
                 )
             }
         )

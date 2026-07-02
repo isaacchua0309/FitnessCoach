@@ -38,7 +38,9 @@ struct NormalizedCoachInput: Equatable, Sendable {
 enum InputNormalizer {
     static func normalize(_ text: String) -> NormalizedCoachInput {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let normalized = CommandParserUtilities.normalized(trimmed)
+        let routingSafe = CoachInputSafety.normalizeForRouting(trimmed)
+        let fuzzyCorrected = CommandKeywordFuzzyMatcher.correctKeywords(in: routingSafe)
+        let normalized = CommandParserUtilities.normalized(fuzzyCorrected)
         let routingText = stripPunctuationForRouting(normalized)
         let tokens = routingText
             .components(separatedBy: CharacterSet.alphanumerics.inverted)

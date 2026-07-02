@@ -56,19 +56,19 @@ enum PublicEntryPreviewScreens {
     }
 
     @ViewBuilder
-    static func appLaunchLoading(palette: AppThemePalette = .default) -> some View {
+    static func appLaunchLoading(palette: AppThemePalette = .oceanBlue) -> some View {
         LaunchLoadingView()
             .formaThemePreview(palette: palette)
     }
 
     @ViewBuilder
-    static func restoringPlanLoading(palette: AppThemePalette = .default) -> some View {
+    static func restoringPlanLoading(palette: AppThemePalette = .oceanBlue) -> some View {
         ExistingUserSignInResolvingView()
             .formaThemePreview(palette: palette)
     }
 
     @ViewBuilder
-    static func profileLookupFailed(palette: AppThemePalette = .default) -> some View {
+    static func profileLookupFailed(palette: AppThemePalette = .oceanBlue) -> some View {
         ExistingUserProfileLookupFailedView(onRetry: {})
             .formaThemePreview(palette: palette)
     }
@@ -76,7 +76,7 @@ enum PublicEntryPreviewScreens {
     @ViewBuilder
     static func failureBanner(
         kind: ExistingUserSignInFailureKind,
-        palette: AppThemePalette = .default
+        palette: AppThemePalette = .oceanBlue
     ) -> some View {
         PublicEntryFailureBannerPreview(kind: kind)
             .formaThemePreview(palette: palette)

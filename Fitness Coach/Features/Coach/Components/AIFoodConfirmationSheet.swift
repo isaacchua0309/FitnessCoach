@@ -64,7 +64,7 @@ struct AIFoodConfirmationSheet: View {
                         componentsSection
                         multiComponentNutritionSection
                     } else if !formState.componentStates.isEmpty {
-                        singleComponentSection(index: 0)
+                        singleComponentSection(componentIndex: 0)
                     }
 
                     if let errorMessage {
@@ -134,20 +134,21 @@ struct AIFoodConfirmationSheet: View {
         }
     }
 
-    private var mealTypeBinding: Binding<MealType> {
+    @ViewBuilder
+    private func singleComponentSection(componentIndex: Int) -> some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.sectionSpacing) {
             FormaFormCard(title: FormaProductCopy.FoodForm.portionSection) {
                 HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
                     FormaLabeledNumberField(
                         title: FormaProductCopy.FoodForm.amount,
                         placeholder: FormaProductCopy.FoodForm.amountPlaceholder,
-                        text: $formState.componentStates[index].quantityText,
+                        text: $formState.componentStates[componentIndex].quantityText,
                         keyboard: .decimalPad
                     )
                     FormaLabeledField(
                         title: FormaProductCopy.FoodForm.unit,
                         placeholder: FormaProductCopy.FoodForm.unitPlaceholder,
-                        text: $formState.componentStates[index].unit,
+                        text: $formState.componentStates[componentIndex].unit,
                         capitalization: .never
                     )
                 }
@@ -155,10 +156,10 @@ struct AIFoodConfirmationSheet: View {
 
             FormaFormCard(title: FormaProductCopy.FoodForm.nutritionSection) {
                 FormaMacroInputGrid(
-                    caloriesText: $formState.componentStates[index].caloriesText,
-                    proteinText: $formState.componentStates[index].proteinText,
-                    carbsText: $formState.componentStates[index].carbsText,
-                    fatText: $formState.componentStates[index].fatText
+                    caloriesText: $formState.componentStates[componentIndex].caloriesText,
+                    proteinText: $formState.componentStates[componentIndex].proteinText,
+                    carbsText: $formState.componentStates[componentIndex].carbsText,
+                    fatText: $formState.componentStates[componentIndex].fatText
                 )
             }
         }

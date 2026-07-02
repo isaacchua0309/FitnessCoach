@@ -118,7 +118,7 @@ final class OnboardingProfileCommitterTests: XCTestCase {
 
         XCTAssertEqual(harness.cloudStore.saveCallCount, 1)
         XCTAssertEqual(harness.cloudStore.lastSavedProfile?.targets.calorieTarget, 2_050)
-        XCTAssertEqual(harness.cloudStore.lastSavedProfile?.goalWeightKg, 57, accuracy: 0.01)
+        XCTAssertEqual(try XCTUnwrap(harness.cloudStore.lastSavedProfile?.goalWeightKg), 57, accuracy: 0.01)
         XCTAssertEqual(try harness.profileService.getCurrentProfile()?.ownerUID, "signed-in-user")
     }
 

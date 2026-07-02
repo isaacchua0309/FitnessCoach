@@ -43,7 +43,8 @@ enum FormaPaletteCatalog {
         colorScheme: ColorScheme
     ) -> FormaThemePalette {
         let colors = palette(for: themePalette, colorScheme: colorScheme)
-        return FormaThemePalette(colors: colors, colorScheme: colorScheme, theme: themePalette(for: themePalette, colorScheme: colorScheme))
+        let theme = Self.themePalette(for: themePalette, colorScheme: colorScheme)
+        return FormaThemePalette(colors: colors, colorScheme: colorScheme, theme: theme)
     }
 
     // MARK: - Builder

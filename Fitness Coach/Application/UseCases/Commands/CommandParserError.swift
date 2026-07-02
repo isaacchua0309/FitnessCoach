@@ -38,7 +38,7 @@ enum CommandParserError: Equatable, Sendable {
         case .emptyFoodName:
             return "A food name is required."
         case .ambiguousNumbers:
-            return "Too many numbers to interpret this command confidently."
+            return "I found more than one weight value. Which one should I save?"
         case .vagueFood:
             return "Food estimate requires AI interpretation."
         }

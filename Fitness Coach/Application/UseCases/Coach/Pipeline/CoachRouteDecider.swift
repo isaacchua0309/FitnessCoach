@@ -152,6 +152,23 @@ final class CoachRouteDecider: Sendable {
                 context: context,
                 config: resolvedConfig
             )
+        } catch let error as AIServiceError where error.isTransientClassifierFailure {
+            let durationMs = Int(Date().timeIntervalSince(classifyStarted) * 1_000)
+            FormaPipelineTracer.logError(
+                stage: .classify,
+                message: "Intent classification failed after retry",
+                fields: [
+                    "durationMs": String(durationMs),
+                    "error": error.userMessage,
+                    "errorType": String(describing: type(of: error))
+                ]
+            )
+            return localDecision(
+                route: .clarification(CoachResponseBuilder.classifierUnavailableResponse),
+                input: input,
+                handler: "classify_fallback",
+                reason: "Transient classifier failure."
+            )
         } catch {
             let durationMs = Int(Date().timeIntervalSince(classifyStarted) * 1_000)
             FormaPipelineTracer.logError(
@@ -183,21 +200,36 @@ final class CoachRouteDecider: Sendable {
             "classify intent=\(intentResult.intent.rawValue) escalation=\(intentResult.requiresEscalation)"
         )
 
-        let route = intentRouter.route(intentResult: intentResult, originalText: input.originalText)
-        let requiresAPI = routeRequiresAPI(route)
-        let tier = routedTier(from: route)
+        switch CoachIntentConfidenceGate.evaluate(intentResult) {
+        case .clarify(let message):
+            return CoachRouteDecision(
+                route: .clarification(message),
+                rawMessage: input.originalText,
+                normalizedMessage: input.normalizedText,
+                routeSource: .cheapClassifier,
+                intent: intentResult.intent,
+                modelTier: nil,
+                chosenHandler: "confidence_clarify",
+                reason: "Classifier confidence below threshold.",
+                requiresAPI: false
+            )
+        case .proceed(let gatedResult):
+            let route = intentRouter.route(intentResult: gatedResult, originalText: input.originalText)
+            let requiresAPI = routeRequiresAPI(route)
+            let tier = routedTier(from: route)
 
-        return CoachRouteDecision(
-            route: route,
-            rawMessage: input.originalText,
-            normalizedMessage: input.normalizedText,
-            routeSource: .cheapClassifier,
-            intent: intentResult.intent,
-            modelTier: tier,
-            chosenHandler: handler(for: route, intent: intentResult.intent),
-            reason: intentResult.reason,
-            requiresAPI: requiresAPI
-        )
+            return CoachRouteDecision(
+                route: route,
+                rawMessage: input.originalText,
+                normalizedMessage: input.normalizedText,
+                routeSource: .cheapClassifier,
+                intent: gatedResult.intent,
+                modelTier: tier,
+                chosenHandler: handler(for: route, intent: gatedResult.intent),
+                reason: gatedResult.reason,
+                requiresAPI: requiresAPI
+            )
+        }
     }
 
     // MARK: - Local decisions

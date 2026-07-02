@@ -35,4 +35,14 @@ enum AIServiceError: Error, Equatable {
             return FormaProductCopy.Error.coachNotUnderstood
         }
     }
+
+    /// Transient failures eligible for a single classifier retry.
+    var isTransientClassifierFailure: Bool {
+        switch self {
+        case .backendUnavailable, .requestFailed, .decodingFailed, .requestTimedOut:
+            return true
+        case .authenticationFailed, .validationFailed, .invalidResponse, .featureDisabled:
+            return false
+        }
+    }
 }

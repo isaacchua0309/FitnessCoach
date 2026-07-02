@@ -59,11 +59,7 @@ enum FoodComponentDisplayFormatter {
         if let quantity = component.quantity {
             let unit = component.unit?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             if unit.isEmpty {
-                if let formatted = FoodEntryFormFormatter.formatOptionalDouble(quantity) {
-                    parts.append(formatted)
-                } else {
-                    parts.append(String(quantity))
-                }
+                parts.append(FoodEntryFormFormatter.formatOptionalDouble(quantity))
             } else if unit == "g" || unit == "ml" {
                 let amount = FoodEntryFormFormatter.formatOptionalDouble(quantity)
                     ?? String(format: "%.0f", quantity)

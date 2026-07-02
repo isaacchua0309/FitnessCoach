@@ -99,7 +99,7 @@ enum CoachFoodEstimateDebugLogger {
         let parsedComponents = CoachFoodEstimateDebugLogFormatter.componentsSummary(parsedMeal.components)
         let llmTotals = snapshot.llmMealDraft.map(CoachFoodEstimateDebugLogFormatter.totalsSummary)
         let fallbackTotals = snapshot.fallbackMealDraft.map(CoachFoodEstimateDebugLogFormatter.totalsSummary)
-        let finalTotals = CoachFoodEstimateDebugLogFormatter.totalsSummary(snapshot.displayedMealDraft)
+        let finalTotals = CoachFoodEstimateDebugLogFormatter.totalsSummary(for: snapshot.displayedMealDraft)
         let sanity = CoachFoodEstimateDebugLogFormatter.sanitySummary(snapshot.sanityResult)
         let warnings = CoachFoodEstimateDebugLogFormatter.warningsSummary(snapshot.displayedMealDraft.warnings)
 

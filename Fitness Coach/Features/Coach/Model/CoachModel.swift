@@ -143,6 +143,17 @@ final class CoachModel: ObservableObject {
         guard !trimmed.isEmpty else { return }
         guard !isSending else { return }
 
+        switch CoachInputSafety.validate(trimmed) {
+        case .empty:
+            return
+        case .tooLong:
+            appendUserMessage(trimmed)
+            appendAssistantMessage(CoachResponseBuilder.inputTooLongResponse)
+            return
+        case .valid:
+            break
+        }
+
         appendUserMessage(trimmed)
 
         let traceId = FormaPipelineTracer.beginTrace(userMessage: trimmed)
