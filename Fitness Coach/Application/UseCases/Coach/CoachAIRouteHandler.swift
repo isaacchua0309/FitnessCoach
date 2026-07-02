@@ -157,6 +157,31 @@ final class CoachAIRouteHandler {
     }
 
     private func handleLocalFoodEstimate(_ request: LocalFoodEstimateRequest) -> CoachActionResult {
+        let mealDraft = FoodLogDraftNutritionCompleter.sanitize(
+            FoodLogDraftMapper.fromLegacyDraft(request.estimate.draft),
+            hintText: request.originalText
+        )
+        let confidence: AIConfidence = request.estimate.confidence == .high ? .high : .medium
+        let sanity = NutritionSanityValidator.validate(
+            meal: mealDraft,
+            prompt: request.originalText,
+            confidence: confidence
+        )
+        logFoodEstimateDebug(
+            CoachFoodEstimateDebugSnapshot(
+                source: .localEstimator,
+                originalText: request.originalText,
+                llmMealDraft: nil,
+                fallbackMealDraft: mealDraft,
+                fallbackLabel: "local_nutrition_estimator",
+                sanitizedMealDraft: mealDraft,
+                sanityResult: sanity,
+                displayedMealDraft: sanity.mealDraft,
+                responseConfidence: confidence,
+                sanityWarning: sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage
+            )
+        )
+
         switch ConfirmationPolicy.decision(for: request) {
         case .executeImmediately:
             return .message(mutationExecutor.executeLogFood(request.estimate.draft))
@@ -186,6 +211,8 @@ final class CoachAIRouteHandler {
             meal.source = .aiPhotoEstimate
         }
 
+        let llmMeal = meal
+
         if let classifierDraft, !classifierDraft.hasCompleteNutritionEstimate {
             meal = FoodLogDraftNutritionCompleter.mergeExplicit(
                 classifierDraft,
@@ -194,11 +221,19 @@ final class CoachAIRouteHandler {
             )
         }
 
+        let usedClassifierMerge = meal != llmMeal
+
         return presentAIFoodEstimate(
             mealDraft: meal,
             originalText: prompt,
             assistantMessage: response.assistantMessage,
-            confidence: response.confidence
+            confidence: response.confidence,
+            debugContext: FoodEstimateDebugContext(
+                source: photoAnalysis ? .aiPhoto : .aiText,
+                llmMealDraft: llmMeal,
+                fallbackMealDraft: usedClassifierMerge ? meal : nil,
+                fallbackLabel: usedClassifierMerge ? "classifier_merge" : nil
+            )
         )
     }
 
@@ -235,7 +270,13 @@ final class CoachAIRouteHandler {
                 mealDraft: FoodLogDraftMapper.fromLegacyDraft(draft),
                 originalText: parsed.originalText,
                 assistantMessage: parsed.assistantMessage,
-                confidence: parsed.confidence
+                confidence: parsed.confidence,
+                debugContext: FoodEstimateDebugContext(
+                    source: .parsedCommand,
+                    llmMealDraft: nil,
+                    fallbackMealDraft: FoodLogDraftMapper.fromLegacyDraft(draft),
+                    fallbackLabel: "parsed_command"
+                )
             )
         case .logWorkout:
             guard action.workoutDraft != nil else { return .message(fallback) }
@@ -303,11 +344,19 @@ final class CoachAIRouteHandler {
         return responses.isEmpty ? CoachResponseBuilder.aiNotUnderstood : responses.joined(separator: "\n\n")
     }
 
+    private struct FoodEstimateDebugContext {
+        var source: CoachFoodEstimateDebugSnapshot.Source
+        var llmMealDraft: FoodLogDraft?
+        var fallbackMealDraft: FoodLogDraft?
+        var fallbackLabel: String?
+    }
+
     private func presentAIFoodEstimate(
         mealDraft: FoodLogDraft,
         originalText: String,
         assistantMessage: String?,
-        confidence: AIConfidence
+        confidence: AIConfidence,
+        debugContext: FoodEstimateDebugContext? = nil
     ) -> CoachActionResult {
         let sanitized = FoodLogDraftNutritionCompleter.sanitize(mealDraft, hintText: originalText)
         let sanity = NutritionSanityValidator.validate(
@@ -315,6 +364,23 @@ final class CoachAIRouteHandler {
             prompt: originalText,
             confidence: confidence
         )
+
+        if let debugContext {
+            logFoodEstimateDebug(
+                CoachFoodEstimateDebugSnapshot(
+                    source: debugContext.source,
+                    originalText: originalText,
+                    llmMealDraft: debugContext.llmMealDraft,
+                    fallbackMealDraft: debugContext.fallbackMealDraft,
+                    fallbackLabel: debugContext.fallbackLabel,
+                    sanitizedMealDraft: sanitized,
+                    sanityResult: sanity,
+                    displayedMealDraft: sanity.mealDraft,
+                    responseConfidence: confidence,
+                    sanityWarning: sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage
+                )
+            )
+        }
 
         switch ConfirmationPolicy.decision(for: sanity.mealDraft) {
         case .requiresConfirmation, .executeImmediately:
@@ -328,5 +394,9 @@ final class CoachAIRouteHandler {
         case .reject(let message):
             return .message(message)
         }
+    }
+
+    private func logFoodEstimateDebug(_ snapshot: CoachFoodEstimateDebugSnapshot) {
+        CoachFoodEstimateDebugLogger.log(snapshot)
     }
 }
