@@ -396,7 +396,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AppURLSchemes.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Forma;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Forma uses your camera so you can attach meal photos to Coach conversations.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Forma uses Apple Health workout data to show training consistency and progress insights.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Forma uses your photo library so you can attach meal photos to Coach conversations.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -434,7 +436,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AppURLSchemes.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Forma;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Forma uses your camera so you can attach meal photos to Coach conversations.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Forma uses Apple Health workout data to show training consistency and progress insights.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Forma uses your photo library so you can attach meal photos to Coach conversations.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
