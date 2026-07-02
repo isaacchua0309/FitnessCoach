@@ -38,6 +38,8 @@ final class FoodEntryEntity {
     var confidenceRawValue: String
     var imageUrl: String?
     var notes: String?
+    /// JSON-encoded `[FoodComponent]` for multi-component meals.
+    var componentsJSON: String?
 
     // MARK: Metadata
 
@@ -65,6 +67,7 @@ final class FoodEntryEntity {
         confidenceRawValue: String,
         imageUrl: String?,
         notes: String?,
+        componentsJSON: String? = nil,
         createdAt: Date,
         updatedAt: Date
     ) {
@@ -84,6 +87,7 @@ final class FoodEntryEntity {
         self.confidenceRawValue = confidenceRawValue
         self.imageUrl = imageUrl
         self.notes = notes
+        self.componentsJSON = componentsJSON
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

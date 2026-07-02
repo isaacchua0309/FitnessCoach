@@ -505,11 +505,15 @@ function foodEstimateInstructions(): string {
   return `${sharedRules()}
 
 Task: Estimate nutrition for the described food.
-Return one FoodDraft in foodDrafts unless the user clearly described multiple foods.
-If the user supplied partial nutrition (only calories, only protein, or some macros missing), estimate the missing values and keep the user-provided numbers.
-quantity and unit must describe portion weight or count (e.g. 200g, 1 breast), never macro grams. "50g protein" is a nutrition value, not a 50g portion.
-Respect preparation state: raw/uncooked vs cooked weight at the same grams are different foods nutritionally (e.g. 500g raw chicken breast ≠ 500g cooked chicken breast).
-Every foodDraft must include calories > 0 and realistic protein, carbs, and fat for the food, portion, and preparation stated.
+Return one FoodLogDraft in foodLogDrafts for each distinct meal the user wants logged.
+When the user lists multiple ingredients (bullets, numbered lines, commas, or "and"), put each ingredient in components[] with its own name, quantity, unit, preparationState, sourceText, and nutrition.
+Never set the meal-level portion to the first ingredient's grams. Mixed meals should not borrow one component's quantity as the whole meal amount.
+displayName should summarize the meal (e.g. "Chicken barley bowl").
+Each component must preserve the user's source line in sourceText when available.
+total calories/macros are the sum of components. Every component must include calories > 0 and realistic protein, carbs, and fat.
+quantity and unit on each component describe portion weight or count (e.g. 200g, 1 tbsp), never macro grams.
+Respect preparation state: raw/uncooked vs cooked weight at the same grams are different foods nutritionally.
+Also populate legacy foodDrafts with one collapsed draft whose calories/macros equal the summed totals and whose quantity/unit are null for multi-component meals.
 Use source aiTextEstimate and require confirmation unless the user supplied exact complete nutrition values in their message.`;
 }
 
@@ -518,8 +522,9 @@ function foodPhotoEstimateInstructions(): string {
 
 Task: Analyze the attached meal photo and estimate nutrition.
 Identify visible foods, reasonable portion size, and preparation when inferable from the image.
-Return one FoodDraft in foodDrafts unless the photo clearly shows multiple distinct items that should be logged separately.
-Every foodDraft must include calories > 0 and realistic protein, carbs, and fat for what is visible.
+Return one FoodLogDraft in foodLogDrafts with each distinct visible item in components[].
+When multiple items are visible, never collapse them into one component.
+Also populate legacy foodDrafts with one collapsed draft for backward compatibility.
 Use source aiPhotoEstimate and always require confirmation before logging.`;
 }
 
@@ -592,6 +597,52 @@ const mealType = enumSchema(["breakfast", "lunch", "dinner", "snack", "unknown"]
 const source = enumSchema(["manual", "aiTextEstimate", "aiPhotoEstimate", "nutritionLabel", "savedMeal", "corrected"]);
 const intensity = enumSchema(["low", "moderate", "high"]);
 const recoveryDemand = enumSchema(["low", "moderate", "high"]);
+
+function foodComponentSchema(): JSONSchema {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: [
+      "id", "name", "quantity", "unit", "preparationState",
+      "calories", "protein", "carbs", "fat", "confidence", "sourceText",
+    ],
+    properties: {
+      id: nullable({type: "string"}),
+      name: {type: "string"},
+      quantity: nullable({type: "number"}),
+      unit: nullable({type: "string"}),
+      preparationState: nullable({type: "string"}),
+      calories: {type: "integer"},
+      protein: {type: "number"},
+      carbs: {type: "number"},
+      fat: {type: "number"},
+      confidence,
+      sourceText: nullable({type: "string"}),
+    },
+  };
+}
+
+function foodLogDraftSchema(): JSONSchema {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: [
+      "id", "displayName", "mealType", "components", "confidence",
+      "source", "notes", "warnings", "imageUrl",
+    ],
+    properties: {
+      id: nullable({type: "string"}),
+      displayName: {type: "string"},
+      mealType: nullable(mealType),
+      components: {type: "array", items: foodComponentSchema()},
+      confidence,
+      source,
+      notes: nullable({type: "string"}),
+      warnings: {type: "array", items: {type: "string"}},
+      imageUrl: nullable({type: "string"}),
+    },
+  };
+}
 
 function foodDraftSchema(): JSONSchema {
   return {
@@ -714,8 +765,11 @@ function aiFoodEstimateResponseSchema(): ResponseSchema {
     schema: {
       type: "object",
       additionalProperties: false,
-      required: ["foodDrafts", "confidence", "requiresConfirmation", "assistantMessage"],
+      required: [
+        "foodLogDrafts", "foodDrafts", "confidence", "requiresConfirmation", "assistantMessage",
+      ],
       properties: {
+        foodLogDrafts: {type: "array", items: foodLogDraftSchema()},
         foodDrafts: {type: "array", items: foodDraftSchema()},
         confidence,
         requiresConfirmation: {type: "boolean"},

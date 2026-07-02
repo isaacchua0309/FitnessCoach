@@ -178,24 +178,24 @@ final class CoachAIRouteHandler {
             return nil
         }()
 
-        guard var draft = response.foodDrafts.first else {
+        guard var meal = FoodLogDraftMapper.primaryMeal(from: response) else {
             return .message(CoachResponseBuilder.aiNotUnderstood)
         }
 
         if photoAnalysis {
-            draft.source = .aiPhotoEstimate
+            meal.source = .aiPhotoEstimate
         }
 
         if let classifierDraft, !classifierDraft.hasCompleteNutritionEstimate {
-            draft = FoodDraftNutritionCompleter.mergeExplicit(
+            meal = FoodLogDraftNutritionCompleter.mergeExplicit(
                 classifierDraft,
-                into: draft,
+                into: meal,
                 hintText: prompt
             )
         }
 
         return presentAIFoodEstimate(
-            draft: draft,
+            mealDraft: meal,
             originalText: prompt,
             assistantMessage: response.assistantMessage,
             confidence: response.confidence
@@ -232,7 +232,7 @@ final class CoachAIRouteHandler {
         case .logFood:
             guard let draft = action.foodDraft else { return .message(fallback) }
             return presentAIFoodEstimate(
-                draft: draft,
+                mealDraft: FoodLogDraftMapper.fromLegacyDraft(draft),
                 originalText: parsed.originalText,
                 assistantMessage: parsed.assistantMessage,
                 confidence: parsed.confidence
@@ -304,18 +304,18 @@ final class CoachAIRouteHandler {
     }
 
     private func presentAIFoodEstimate(
-        draft: FoodDraft,
+        mealDraft: FoodLogDraft,
         originalText: String,
         assistantMessage: String?,
         confidence: AIConfidence
     ) -> CoachActionResult {
-        let sanitized = FoodDraftNutritionCompleter.sanitizePartial(draft, hintText: originalText)
+        let sanitized = FoodLogDraftNutritionCompleter.sanitize(mealDraft, hintText: originalText)
         switch ConfirmationPolicy.decision(for: sanitized) {
         case .requiresConfirmation, .executeImmediately:
             return CoachPendingConfirmationPresenter.presentFoodPending(
                 originalText: originalText,
                 assistantMessage: assistantMessage,
-                foodDraft: sanitized,
+                mealDraft: sanitized,
                 confidence: confidence
             )
         case .reject(let message):

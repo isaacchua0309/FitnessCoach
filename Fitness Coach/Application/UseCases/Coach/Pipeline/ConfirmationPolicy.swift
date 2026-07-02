@@ -34,7 +34,11 @@ enum ConfirmationPolicy {
     }
 
     static func decision(for food: FoodDraft) -> ConfirmationDecision {
-        switch AIResponseValidator.validateFood(food, confidence: aiConfidence(from: food.confidence)) {
+        decision(for: FoodLogDraftMapper.fromLegacyDraft(food))
+    }
+
+    static func decision(for meal: FoodLogDraft) -> ConfirmationDecision {
+        switch AIResponseValidator.validateFood(meal, confidence: aiConfidence(from: meal.confidence)) {
         case .valid, .requiresConfirmation:
             return .requiresConfirmation(CoachResponseBuilder.aiFoodPendingConfirmation)
         case .invalid(let message):
@@ -75,10 +79,10 @@ enum ConfirmationPolicy {
     }
 
     static func decision(for photoEstimate: AIFoodEstimateResponse) -> ConfirmationDecision {
-        guard let draft = photoEstimate.foodDrafts.first else {
+        guard let meal = FoodLogDraftMapper.primaryMeal(from: photoEstimate) else {
             return .reject(CoachResponseBuilder.aiNotUnderstood)
         }
-        return decision(for: draft)
+        return decision(for: meal)
     }
 
     private static func aiConfidence(from level: ConfidenceLevel) -> AIConfidence {

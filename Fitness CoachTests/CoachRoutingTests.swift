@@ -401,7 +401,7 @@ final class CoachRoutingTests: XCTestCase {
         XCTAssertEqual(service.estimateFoodCallCount, 1)
         XCTAssertFalse(model.isShowingFoodEditSheet)
         if case .food(let draft) = model.pendingConfirmation {
-            XCTAssertEqual(draft.foodDrafts.first?.calories, 1_150)
+            XCTAssertEqual(draft.primaryMealDraft.totalCalories, 1_150)
         } else {
             XCTFail("Expected food pending confirmation")
         }
@@ -511,12 +511,12 @@ final class CoachRoutingTests: XCTestCase {
 
         await model.send("log chicken rice")
 
-        var formState = FoodEntryFormState(foodDraft: estimatedDraft)
-        formState.caloriesText = "700"
+        var formState = FoodLogEditFormState(foodDraft: estimatedDraft)
+        formState.componentStates[0].caloriesText = "700"
         model.saveFoodEdit(formState)
 
         if case .food(let draft) = model.pendingConfirmation {
-            XCTAssertEqual(draft.foodDrafts.first?.calories, 700)
+            XCTAssertEqual(draft.primaryMealDraft.totalCalories, 700)
         } else {
             XCTFail("Expected food pending confirmation")
         }

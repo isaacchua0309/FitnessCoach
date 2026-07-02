@@ -62,6 +62,7 @@ const AI_GATEWAY_ROUTES = [
     path: "/v1/ai/estimate-food",
     body: {text: "2 eggs", context: {}},
     assertShape: (body: Record<string, unknown>) => {
+      expect(body).toHaveProperty("foodLogDrafts");
       expect(body).toHaveProperty("foodDrafts");
       expect(body).toHaveProperty("confidence");
       expect(body).toHaveProperty("requiresConfirmation");

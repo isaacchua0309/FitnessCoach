@@ -94,13 +94,45 @@ final class CoachPendingCopyTests: XCTestCase {
         XCTAssertFalse(message.contains(FormaProductCopy.Coach.pendingBarHint))
     }
 
-    func testWeightPendingIsSingleLine() {
-        let message = CoachResponseBuilder.weightPending(
-            WeightDraft(weightKg: 75.5, note: nil),
-            assistantMessage: nil
+    func testMultiComponentPendingCopyListsIngredients() {
+        let meal = FoodLogDraft(
+            displayName: "Chicken barley bowl",
+            components: [
+                FoodComponent(
+                    name: "chicken breast",
+                    quantity: 150,
+                    unit: "g",
+                    calories: 248,
+                    protein: 46,
+                    carbs: 0,
+                    fat: 5,
+                    sourceText: "150 g cooked chicken breast"
+                ),
+                FoodComponent(
+                    name: "barley rice",
+                    quantity: 150,
+                    unit: "g",
+                    calories: 165,
+                    protein: 4,
+                    carbs: 34,
+                    fat: 1,
+                    sourceText: "150 g cooked barley rice"
+                )
+            ],
+            confidence: .medium,
+            source: .aiTextEstimate
         )
 
-        XCTAssertEqual(message, "Log 75.50 kg?")
-        XCTAssertFalse(message.contains(FormaProductCopy.Coach.pendingBarHint))
+        let message = CoachResponseBuilder.aiFoodEstimatePending(
+            mealDraft: meal,
+            confidence: .medium,
+            originalText: "log this bowl"
+        )
+
+        XCTAssertTrue(message.contains("413 kcal"))
+        XCTAssertTrue(message.contains("chicken breast"))
+        XCTAssertTrue(message.contains("barley rice"))
+        XCTAssertTrue(message.contains("150"))
+        XCTAssertFalse(message.contains(FormaProductCopy.Coach.foodEditIngredientsFooter))
     }
 }

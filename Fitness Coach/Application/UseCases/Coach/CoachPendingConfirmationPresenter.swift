@@ -16,18 +16,18 @@ enum CoachPendingConfirmationPresenter {
     static func presentFoodPending(
         originalText: String,
         assistantMessage: String?,
-        foodDraft: FoodDraft,
+        mealDraft: FoodLogDraft,
         confidence: AIConfidence
     ) -> CoachActionResult {
         let draft = AIFoodConfirmationDraft(
             originalText: originalText,
             assistantMessage: assistantMessage,
-            foodDrafts: [foodDraft],
+            mealDraft: mealDraft,
             confidence: confidence,
             requiresConfirmation: true
         )
         let message = CoachResponseBuilder.aiFoodEstimatePending(
-            draft: foodDraft,
+            mealDraft: mealDraft,
             confidence: confidence,
             originalText: originalText
         )
@@ -61,7 +61,7 @@ enum CoachPendingConfirmationPresenter {
         let draft = AIFoodConfirmationDraft(
             originalText: request.originalText,
             assistantMessage: request.estimate.explanation,
-            foodDrafts: [request.estimate.draft],
+            mealDraft: FoodLogDraftMapper.fromLegacyDraft(request.estimate.draft),
             confidence: confidence,
             requiresConfirmation: true
         )

@@ -96,11 +96,31 @@ struct AIFoodEstimateRequest: Codable, Equatable, Sendable {
 }
 
 struct AIFoodEstimateResponse: Codable, Equatable, Sendable {
+    var foodLogDrafts: [FoodLogDraft]
+    /// Legacy single-item drafts retained for backward-compatible API decoding.
     var foodDrafts: [FoodDraft]
     var confidence: AIConfidence
     var requiresConfirmation: Bool
     var assistantMessage: String?
     var usage: AIUsageMetadata?
+
+    init(
+        foodLogDrafts: [FoodLogDraft],
+        foodDrafts: [FoodDraft] = [],
+        confidence: AIConfidence,
+        requiresConfirmation: Bool,
+        assistantMessage: String? = nil,
+        usage: AIUsageMetadata? = nil
+    ) {
+        self.foodLogDrafts = foodLogDrafts
+        self.foodDrafts = foodDrafts.isEmpty
+            ? foodLogDrafts.map(FoodLogDraftMapper.toLegacyDraft)
+            : foodDrafts
+        self.confidence = confidence
+        self.requiresConfirmation = requiresConfirmation
+        self.assistantMessage = assistantMessage
+        self.usage = usage
+    }
 
     init(
         foodDrafts: [FoodDraft],
@@ -109,11 +129,51 @@ struct AIFoodEstimateResponse: Codable, Equatable, Sendable {
         assistantMessage: String? = nil,
         usage: AIUsageMetadata? = nil
     ) {
+        self.foodLogDrafts = foodDrafts.map(FoodLogDraftMapper.fromLegacyDraft)
         self.foodDrafts = foodDrafts
         self.confidence = confidence
         self.requiresConfirmation = requiresConfirmation
         self.assistantMessage = assistantMessage
         self.usage = usage
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let decodedLogDrafts = try container.decodeIfPresent([FoodLogDraft].self, forKey: .foodLogDrafts) ?? []
+        let decodedDrafts = try container.decodeIfPresent([FoodDraft].self, forKey: .foodDrafts) ?? []
+        confidence = try container.decode(AIConfidence.self, forKey: .confidence)
+        requiresConfirmation = try container.decode(Bool.self, forKey: .requiresConfirmation)
+        assistantMessage = try container.decodeIfPresent(String.self, forKey: .assistantMessage)
+        usage = try container.decodeIfPresent(AIUsageMetadata.self, forKey: .usage)
+
+        if !decodedLogDrafts.isEmpty {
+            foodLogDrafts = decodedLogDrafts
+            foodDrafts = decodedDrafts.isEmpty
+                ? decodedLogDrafts.map(FoodLogDraftMapper.toLegacyDraft)
+                : decodedDrafts
+        } else {
+            foodDrafts = decodedDrafts
+            foodLogDrafts = decodedDrafts.map(FoodLogDraftMapper.fromLegacyDraft)
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(foodLogDrafts, forKey: .foodLogDrafts)
+        try container.encode(foodDrafts, forKey: .foodDrafts)
+        try container.encode(confidence, forKey: .confidence)
+        try container.encode(requiresConfirmation, forKey: .requiresConfirmation)
+        try container.encodeIfPresent(assistantMessage, forKey: .assistantMessage)
+        try container.encodeIfPresent(usage, forKey: .usage)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case foodLogDrafts
+        case foodDrafts
+        case confidence
+        case requiresConfirmation
+        case assistantMessage
+        case usage
     }
 }
 

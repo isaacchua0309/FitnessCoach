@@ -68,12 +68,24 @@ enum CoachResponseBuilder {
     }
 
     static func aiFoodEstimatePending(
-        draft: FoodDraft,
+        mealDraft: FoodLogDraft,
         confidence: AIConfidence,
         originalText: String
     ) -> String {
         CoachPendingCopyFormatter.foodPendingChatMessage(
-            draft: draft,
+            mealDraft: mealDraft,
+            confidence: confidence,
+            originalText: originalText
+        )
+    }
+
+    static func aiFoodEstimatePending(
+        draft: FoodDraft,
+        confidence: AIConfidence,
+        originalText: String
+    ) -> String {
+        aiFoodEstimatePending(
+            mealDraft: FoodLogDraftMapper.fromLegacyDraft(draft),
             confidence: confidence,
             originalText: originalText
         )

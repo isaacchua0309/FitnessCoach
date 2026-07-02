@@ -11,7 +11,7 @@ struct AIFoodConfirmationDraft: Identifiable, Equatable {
     let id: UUID
     var originalText: String
     var assistantMessage: String?
-    var foodDrafts: [FoodDraft]
+    var mealDraft: FoodLogDraft
     var confidence: AIConfidence
     var requiresConfirmation: Bool
     var createdAt: Date
@@ -20,7 +20,7 @@ struct AIFoodConfirmationDraft: Identifiable, Equatable {
         id: UUID = UUID(),
         originalText: String,
         assistantMessage: String?,
-        foodDrafts: [FoodDraft],
+        mealDraft: FoodLogDraft,
         confidence: AIConfidence,
         requiresConfirmation: Bool,
         createdAt: Date = Date()
@@ -28,14 +28,22 @@ struct AIFoodConfirmationDraft: Identifiable, Equatable {
         self.id = id
         self.originalText = originalText
         self.assistantMessage = assistantMessage
-        self.foodDrafts = foodDrafts
+        self.mealDraft = mealDraft
         self.confidence = confidence
         self.requiresConfirmation = requiresConfirmation
         self.createdAt = createdAt
+    }
+
+    /// Legacy accessor for single-item flows and tests.
+    var foodDrafts: [FoodDraft] {
+        [FoodLogDraftMapper.toLegacyDraft(mealDraft)]
     }
 
     var primaryFoodDraft: FoodDraft? {
         foodDrafts.first
     }
 
+    var primaryMealDraft: FoodLogDraft {
+        mealDraft
+    }
 }

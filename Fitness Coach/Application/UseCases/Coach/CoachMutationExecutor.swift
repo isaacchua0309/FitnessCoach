@@ -60,10 +60,7 @@ final class CoachMutationExecutor {
     func executePendingConfirmation(_ confirmation: CoachPendingConfirmation) async -> String {
         switch confirmation {
         case .food(let draft):
-            guard let foodDraft = draft.primaryFoodDraft else {
-                return CoachResponseBuilder.aiNotUnderstood
-            }
-            return executeLogFood(foodDraft)
+            return executeLogFood(draft.primaryMealDraft)
         case .water(let draft, _):
             return executeLogWater(draft)
         case .weight(let draft, _):
@@ -110,9 +107,9 @@ final class CoachMutationExecutor {
         }
     }
 
-    func executeLogFood(_ draft: FoodDraft) -> String {
+    func executeLogFood(_ meal: FoodLogDraft) -> String {
         do {
-            let entry = try actionCenter.logFood(draft, date: Date())
+            let entry = try actionCenter.logFood(meal, date: Date())
             let log = try? dailyLogReader.getLog(for: Date())
             mutationHistory.record(entryId: entry.id, type: .food, summary: entry.name)
             return CoachResponseBuilder.food(entry, log: log)
@@ -123,6 +120,10 @@ final class CoachMutationExecutor {
         } catch {
             return "I could not log that food entry. Please check the calories and macro values."
         }
+    }
+
+    func executeLogFood(_ draft: FoodDraft) -> String {
+        executeLogFood(FoodLogDraftMapper.fromLegacyDraft(draft))
     }
 
     func executeEditAction(_ action: AICommandAction) -> String {

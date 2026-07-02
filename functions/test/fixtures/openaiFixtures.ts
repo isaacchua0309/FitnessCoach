@@ -14,6 +14,32 @@ const nullEntities = {
   notes: null,
 };
 
+const sampleFoodComponent = {
+  id: null,
+  name: "Eggs",
+  quantity: 2,
+  unit: "count",
+  preparationState: null,
+  calories: 140,
+  protein: 12,
+  carbs: 1,
+  fat: 10,
+  confidence: "medium",
+  sourceText: "2 eggs",
+};
+
+const sampleFoodLogDraft = {
+  id: null,
+  displayName: "Eggs",
+  mealType: "lunch",
+  components: [sampleFoodComponent],
+  confidence: "medium",
+  source: "aiTextEstimate",
+  notes: null,
+  warnings: [],
+  imageUrl: null,
+};
+
 const sampleFoodDraft = {
   mealType: "lunch",
   name: "Eggs",
@@ -64,6 +90,7 @@ export const openAIOutputBySchemaName: Record<string, Record<string, unknown>> =
     reasoningSummary: null,
   },
   ai_food_estimate_response: {
+    foodLogDrafts: [sampleFoodLogDraft],
     foodDrafts: [sampleFoodDraft],
     confidence: "medium",
     requiresConfirmation: true,

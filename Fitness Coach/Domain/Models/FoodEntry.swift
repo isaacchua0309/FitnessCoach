@@ -36,9 +36,15 @@ struct FoodEntry: Codable, Identifiable, Equatable, Sendable {
     var confidence: ConfidenceLevel
     var imageUrl: String?
     var notes: String?
+    /// Structured ingredients for multi-component meals. Nil for legacy single-item logs.
+    var components: [FoodComponent]? = nil
 
     // MARK: Metadata
 
     var createdAt: Date
     var updatedAt: Date
+
+    var isMultiComponent: Bool {
+        (components?.count ?? 0) > 1
+    }
 }

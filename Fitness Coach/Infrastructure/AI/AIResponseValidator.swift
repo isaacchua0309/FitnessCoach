@@ -102,18 +102,40 @@ enum AIResponseValidator {
     // MARK: Draft Validation
 
     static func validateFood(_ draft: FoodDraft, confidence: AIConfidence) -> AIValidationResult {
-        let trimmedName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        validateFood(FoodLogDraftMapper.fromLegacyDraft(draft), confidence: confidence)
+    }
+
+    static func validateFood(_ meal: FoodLogDraft, confidence: AIConfidence) -> AIValidationResult {
+        let trimmedName = meal.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else {
             return .invalid("A food name is required.")
         }
-        guard draft.calories >= 0 else {
+        guard !meal.components.isEmpty else {
+            return .invalid("Missing food components.")
+        }
+        guard meal.totalCalories >= 0 else {
             return .invalid("Calories cannot be negative.")
         }
-        guard draft.protein >= 0, draft.carbs >= 0, draft.fat >= 0 else {
+        guard meal.totalProtein >= 0, meal.totalCarbs >= 0, meal.totalFat >= 0 else {
             return .invalid("Macros cannot be negative.")
         }
-        guard draft.hasCompleteNutritionEstimate else {
+        guard meal.hasCompleteNutritionEstimate else {
             return .invalid("Missing calorie and macro estimate.")
+        }
+
+        for component in meal.components {
+            guard component.calories >= 0 else {
+                return .invalid("Calories cannot be negative.")
+            }
+            guard component.protein >= 0, component.carbs >= 0, component.fat >= 0 else {
+                return .invalid("Macros cannot be negative.")
+            }
+        }
+
+        if meal.isMultiComponent, meal.legacyQuantity != nil {
+            return .requiresConfirmation(
+                "This mixed meal should not use a single portion amount. Please review before logging."
+            )
         }
 
         // AI-estimated food always requires user confirmation before logging.

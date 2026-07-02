@@ -26,24 +26,26 @@ final class MockLLMClient: LLMClient {
     func estimateFood(request: AIFoodEstimateRequest) async throws -> AIFoodEstimateResponse {
         logMockHit(operation: "estimateFood")
         let isPhoto = request.imageJPEGBase64?.isEmpty == false
-        let draft = FoodDraft(
-            mealType: nil,
-            name: isPhoto ? "Photo meal" : request.text,
-            quantity: nil,
-            unit: nil,
-            calories: 500,
-            protein: 25,
-            carbs: 60,
-            fat: 18,
-            fiber: nil,
-            sodium: nil,
-            source: isPhoto ? .aiPhotoEstimate : .aiTextEstimate,
-            confidence: .medium,
-            imageUrl: nil,
-            notes: isPhoto ? "Photo estimate." : "Test estimate."
-        )
         return AIFoodEstimateResponse(
-            foodDrafts: [draft],
+            foodLogDrafts: [
+                FoodLogDraft(
+                    displayName: isPhoto ? "Photo meal" : request.text,
+                    components: [
+                        FoodComponent(
+                            name: isPhoto ? "Photo meal" : request.text,
+                            calories: 500,
+                            protein: 25,
+                            carbs: 60,
+                            fat: 18,
+                            confidence: .medium,
+                            sourceText: isPhoto ? "Photo estimate." : request.text
+                        )
+                    ],
+                    confidence: .medium,
+                    source: isPhoto ? .aiPhotoEstimate : .aiTextEstimate,
+                    notes: isPhoto ? "Photo estimate." : "Test estimate."
+                )
+            ],
             confidence: .medium,
             requiresConfirmation: true,
             assistantMessage: "Test estimate — confirm before logging."
