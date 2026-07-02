@@ -11,33 +11,49 @@ import SwiftUI
 
 struct CoachComposer: View {
     @Binding var text: String
+    @Binding var isAttachmentSourceDialogPresented: Bool
+    let attachmentState: CoachInputAttachmentState
     var isFocused: FocusState<Bool>.Binding
     let isSending: Bool
+    let canPresentPhotoPicker: Bool
     let onSend: () -> Void
     let onVoiceTap: () -> Void
-    let onAttachmentSelect: (CoachAttachmentOption) -> Void
-
-    @State private var isAttachmentMenuPresented = false
+    let onAttachmentOptionSelected: (CoachPhotoPickerDestination) -> Void
+    let onRemoveAttachment: () -> Void
+    let onRetryAttachment: () -> Void
 
     private var trimmedText: String {
         text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private var canSend: Bool {
-        !isSending && !trimmedText.isEmpty
+        !isSending
+            && !attachmentState.isImporting
+            && (!trimmedText.isEmpty || attachmentState.hasAttachment)
     }
 
     private var showVoiceButton: Bool {
-        text.isEmpty && !isSending
+        text.isEmpty && !attachmentState.hasAttachment && !isSending && !attachmentState.isImporting
+    }
+
+    private var canOpenAttachmentDialog: Bool {
+        canPresentPhotoPicker && !isSending && !attachmentState.isImporting
+    }
+
+    private var showsAttachmentPreview: Bool {
+        attachmentState.hasAttachment
+            || attachmentState.isImporting
+            || attachmentState.importError != nil
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            if isAttachmentMenuPresented {
-                CoachAttachmentMenu(isPresented: $isAttachmentMenuPresented, onSelect: onAttachmentSelect)
-                    .padding(.horizontal, CoachDesignTokens.Layout.horizontalPadding)
-                    .padding(.bottom, CoachDesignTokens.Spacing.xs)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            if showsAttachmentPreview {
+                CoachInputAttachmentPreview(
+                    attachmentState: attachmentState,
+                    onRemove: onRemoveAttachment,
+                    onRetry: onRetryAttachment
+                )
             }
 
             HStack(alignment: .center, spacing: 0) {
@@ -81,16 +97,14 @@ struct CoachComposer: View {
         .background(CoachDesignTokens.Color.background)
         .animation(CoachDesignTokens.Motion.standard, value: canSend)
         .animation(CoachDesignTokens.Motion.standard, value: showVoiceButton)
-        .animation(CoachDesignTokens.Motion.standard, value: isAttachmentMenuPresented)
+        .animation(CoachDesignTokens.Motion.standard, value: attachmentState)
     }
 
     private var attachmentButton: some View {
         Button {
             isFocused.wrappedValue = false
             CoachHaptics.attachmentToggle()
-            withAnimation(CoachDesignTokens.Motion.spring) {
-                isAttachmentMenuPresented.toggle()
-            }
+            isAttachmentSourceDialogPresented = true
         } label: {
             Image(systemName: "plus")
                 .font(.system(size: 18, weight: .semibold))
@@ -102,9 +116,22 @@ struct CoachComposer: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(CoachComposerButtonStyle())
-        .disabled(isSending)
-        .rotationEffect(.degrees(isAttachmentMenuPresented ? 45 : 0))
-        .animation(CoachDesignTokens.Motion.spring, value: isAttachmentMenuPresented)
+        .disabled(!canOpenAttachmentDialog)
+        .confirmationDialog(
+            "Add Photo",
+            isPresented: $isAttachmentSourceDialogPresented,
+            titleVisibility: .visible
+        ) {
+            Button("Take Photo") {
+                onAttachmentOptionSelected(.camera)
+            }
+            Button("Choose from Library") {
+                onAttachmentOptionSelected(.photoLibrary)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Attach a meal photo to your Coach message.")
+        }
         .accessibilityLabel("Add attachment")
     }
 
@@ -159,17 +186,23 @@ private struct CoachComposerButtonStyle: ButtonStyle {
     struct PreviewWrapper: View {
         @FocusState private var isFocused: Bool
         @State private var text = ""
+        @State private var isAttachmentSourceDialogPresented = false
 
         var body: some View {
             VStack {
                 Spacer()
                 CoachComposer(
                     text: $text,
+                    isAttachmentSourceDialogPresented: $isAttachmentSourceDialogPresented,
+                    attachmentState: .none,
                     isFocused: $isFocused,
                     isSending: false,
+                    canPresentPhotoPicker: true,
                     onSend: {},
                     onVoiceTap: {},
-                    onAttachmentSelect: { _ in }
+                    onAttachmentOptionSelected: { _ in },
+                    onRemoveAttachment: {},
+                    onRetryAttachment: {}
                 )
             }
             .background(CoachDesignTokens.Color.background)

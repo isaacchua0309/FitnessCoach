@@ -8,7 +8,7 @@
 import Foundation
 
 enum CoachMessagePresentation: Equatable {
-    case user(String)
+    case user(text: String, imageJPEGData: Data?)
     case confirmation(CoachConfirmationContent)
     case assistant(String)
     case system(String)
@@ -29,7 +29,7 @@ enum CoachMessagePresenter {
     static func presentation(for message: ChatMessage) -> CoachMessagePresentation {
         switch message.role {
         case .user:
-            return .user(message.text)
+            return .user(text: message.text, imageJPEGData: message.attachedImageJPEGData)
         case .system:
             return .system(message.text)
         case .assistant:

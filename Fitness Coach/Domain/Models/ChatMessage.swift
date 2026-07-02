@@ -17,4 +17,29 @@ struct ChatMessage: Codable, Identifiable, Equatable, Sendable {
     var createdAt: Date
     var relatedDailyLogId: UUID?
     var relatedEntryId: UUID?
+    /// Optional JPEG bytes for a user-sent meal photo shown in the conversation.
+    var attachedImageJPEGData: Data?
+
+    init(
+        id: UUID,
+        role: ChatMessageRole,
+        text: String,
+        createdAt: Date,
+        relatedDailyLogId: UUID?,
+        relatedEntryId: UUID?,
+        attachedImageJPEGData: Data? = nil
+    ) {
+        self.id = id
+        self.role = role
+        self.text = text
+        self.createdAt = createdAt
+        self.relatedDailyLogId = relatedDailyLogId
+        self.relatedEntryId = relatedEntryId
+        self.attachedImageJPEGData = attachedImageJPEGData
+    }
+
+    var hasAttachedImage: Bool {
+        guard let attachedImageJPEGData else { return false }
+        return !attachedImageJPEGData.isEmpty
+    }
 }

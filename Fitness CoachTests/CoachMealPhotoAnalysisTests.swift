@@ -49,10 +49,13 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             aiCommandParsingEnabled: true
         )
 
-        await model.handleMealPhotoSelection(.success(imageData))
+        await model.importAttachment(from: .success(imageData))
+        await model.sendCurrentMessage()
 
         XCTAssertEqual(aiService.estimateFoodCallCount, 1)
         XCTAssertTrue(CoachMealPhotoPipeline.hasImagePayload(aiService.lastImageJPEGData))
+        let userMessage = model.messages.last(where: { $0.role == .user })
+        XCTAssertTrue(userMessage?.hasAttachedImage == true)
         if case .success(let expectedPayload) = CoachMealPhotoPipeline.prepareJPEG(from: imageData) {
             XCTAssertEqual(aiService.lastImageJPEGData, expectedPayload)
         } else {
@@ -75,10 +78,11 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             aiCommandParsingEnabled: true
         )
 
-        await model.handleMealPhotoSelection(.failure(.noImage))
+        await model.importAttachment(from: .failure(.noImage))
 
-        XCTAssertEqual(model.messages.last?.text, CoachResponseBuilder.mealPhotoError(.noImage))
+        XCTAssertEqual(model.inputAttachmentState.importError, .noImage)
         XCTAssertNil(model.pendingConfirmation)
+        XCTAssertTrue(model.messages.isEmpty)
     }
 
     func testUserCancellationDoesNotAppendMessages() async throws {
@@ -92,7 +96,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             aiCommandParsingEnabled: true
         )
 
-        await model.handleMealPhotoSelection(.failure(.userCancelled))
+        await model.importAttachment(from: .failure(.userCancelled))
 
         XCTAssertTrue(model.messages.isEmpty)
     }
@@ -111,7 +115,8 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             aiCommandParsingEnabled: true
         )
 
-        await model.handleMealPhotoSelection(.success(Self.makeTestJPEGData()))
+        await model.importAttachment(from: .success(Self.makeTestJPEGData()))
+        await model.sendCurrentMessage()
 
         XCTAssertTrue(model.messages.last?.text.contains("couldn't analyze") == true)
         XCTAssertNil(model.pendingConfirmation)
@@ -138,7 +143,8 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
 
         await model.handlePhotoSelected()
 
-        XCTAssertEqual(model.messages.last?.text, CoachResponseBuilder.mealPhotoError(.noImage))
+        XCTAssertEqual(model.inputAttachmentState.importError, .noImage)
+        XCTAssertTrue(model.messages.isEmpty)
     }
 
     private static func makeTestJPEGData() -> Data {

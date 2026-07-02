@@ -7,12 +7,14 @@
 
 import Combine
 import Foundation
+import PhotosUI
 
 @MainActor
 final class CoachModel: ObservableObject {
 
     @Published private(set) var messages: [ChatMessage] = []
     @Published var inputText: String = ""
+    @Published private(set) var inputAttachmentState = CoachInputAttachmentState.none
     @Published private(set) var isSending: Bool = false
     @Published private(set) var errorTitle: String?
     @Published private(set) var errorMessage: String?
@@ -136,17 +138,31 @@ final class CoachModel: ObservableObject {
 
     func sendCurrentMessage() async {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
-        inputText = ""
-        await send(text)
+        let imageJPEGData = inputAttachmentState.attachment?.jpegData
+        guard !text.isEmpty || imageJPEGData != nil else { return }
+        guard !isSending else { return }
+        guard !inputAttachmentState.isImporting else { return }
+
+        let displayText = outgoingMessageText(text: text, hasImage: imageJPEGData != nil)
+        appendUserMessage(displayText, imageJPEGData: imageJPEGData)
+        clearComposerInput()
+
+        if let imageJPEGData {
+            await analyzeMealPhoto(imageJPEGData, userMessageAlreadyAppended: true)
+        } else {
+            await send(displayText, userMessageAlreadyAppended: true)
+        }
     }
 
-    func send(_ text: String) async {
+    func send(_ text: String, userMessageAlreadyAppended: Bool = false) async {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         guard !isSending else { return }
 
-        appendUserMessage(trimmed)
+        if !userMessageAlreadyAppended {
+            appendUserMessage(trimmed)
+            clearComposerInput()
+        }
 
         let traceId = FormaPipelineTracer.beginTrace(userMessage: trimmed)
         let traceStarted = Date()
@@ -304,24 +320,77 @@ final class CoachModel: ObservableObject {
         await send(text)
     }
 
-    func handleMealPhotoSelection(_ result: Result<Data, CoachMealPhotoError>) async {
+    func importAttachment(from item: PhotosPickerItem) async {
+        beginAttachmentImport()
+        let sourceLabel = CoachMealPhotoPipeline.librarySourceLabel(for: item)
+        let result = await CoachMealPhotoPipeline.loadJPEG(from: item)
+        await applyPreparedAttachmentImport(result, sourceLabel: sourceLabel)
+    }
+
+    func importAttachment(from result: Result<Data, CoachMealPhotoError>, sourceLabel: String? = nil) async {
         switch result {
         case .failure(.userCancelled):
+            inputAttachmentState.cancelImport()
             return
+        case .failure(.cameraUnavailable):
+            inputAttachmentState.failImport(.cameraUnavailable)
+            return
+        default:
+            break
+        }
+        beginAttachmentImport()
+        await applyPreparedAttachmentImport(result, sourceLabel: sourceLabel)
+    }
+
+    func beginAttachmentImport() {
+        guard !isSending else { return }
+        inputAttachmentState.beginImport()
+    }
+
+    func removeInputAttachment() {
+        inputAttachmentState.clear()
+    }
+
+    func dismissAttachmentImportError() {
+        inputAttachmentState.dismissImportError()
+    }
+
+    private func applyPreparedAttachmentImport(
+        _ result: Result<Data, CoachMealPhotoError>,
+        sourceLabel: String?
+    ) async {
+        switch result {
+        case .failure(.userCancelled):
+            inputAttachmentState.cancelImport()
         case .failure(let error):
-            appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
-        case .success(let rawData):
-            await analyzeMealPhoto(rawData)
+            inputAttachmentState.failImport(error)
+        case .success(let jpegData):
+            inputAttachmentState.applyImported(jpegData: jpegData, sourceLabel: sourceLabel)
         }
     }
 
-    /// Legacy entry point — prefer `handleMealPhotoSelection`.
-    func handlePhotoSelected() async {
-        await handleMealPhotoSelection(.failure(.noImage))
+    private func prepareAttachmentJPEG(from rawData: Data) async -> Result<Data, CoachMealPhotoError> {
+        await Task.detached(priority: .userInitiated) {
+            CoachMealPhotoPipeline.prepareJPEG(from: rawData)
+        }.value
     }
 
-    private func analyzeMealPhoto(_ rawData: Data) async {
-        let prepared = mealPhotoAnalyzer.prepareJPEG(from: rawData)
+    private func clearInputAttachment() {
+        inputAttachmentState.clear()
+    }
+
+    /// Legacy entry point — prefer `importAttachment(from:)`.
+    func handleMealPhotoSelection(_ result: Result<Data, CoachMealPhotoError>) async {
+        await importAttachment(from: result)
+    }
+
+    /// Legacy entry point — prefer `importAttachment(from:)`.
+    func handlePhotoSelected() async {
+        await importAttachment(from: .failure(.noImage))
+    }
+
+    private func analyzeMealPhoto(_ rawData: Data, userMessageAlreadyAppended: Bool = false) async {
+        let prepared = await prepareAttachmentJPEG(from: rawData)
         guard case .success(let jpegData) = prepared else {
             if case .failure(let error) = prepared {
                 appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
@@ -332,7 +401,9 @@ final class CoachModel: ObservableObject {
         CoachMealPhotoPipeline.assertImagePayloadPresent(jpegData)
         guard !isSending else { return }
 
-        appendUserMessage(CoachMealPhotoPipeline.userMessageLabel)
+        if !userMessageAlreadyAppended {
+            appendUserMessage(CoachMealPhotoPipeline.userMessageLabel)
+        }
 
         let traceId = FormaPipelineTracer.beginTrace(userMessage: CoachMealPhotoPipeline.userMessageLabel)
         let traceStarted = Date()
@@ -441,7 +512,22 @@ final class CoachModel: ObservableObject {
 
     // MARK: Message Helpers
 
-    private func appendUserMessage(_ text: String) {
+    private func clearComposerInput() {
+        inputText = ""
+        clearInputAttachment()
+    }
+
+    private func outgoingMessageText(text: String, hasImage: Bool) -> String {
+        if !text.isEmpty {
+            return text
+        }
+        if hasImage {
+            return CoachMealPhotoPipeline.userMessageLabel
+        }
+        return text
+    }
+
+    private func appendUserMessage(_ text: String, imageJPEGData: Data? = nil) {
         messages.append(
             ChatMessage(
                 id: UUID(),
@@ -449,7 +535,8 @@ final class CoachModel: ObservableObject {
                 text: text,
                 createdAt: Date(),
                 relatedDailyLogId: nil,
-                relatedEntryId: nil
+                relatedEntryId: nil,
+                attachedImageJPEGData: imageJPEGData
             )
         )
     }

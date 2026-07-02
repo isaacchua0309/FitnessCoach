@@ -87,6 +87,8 @@ enum CoachResponseBuilder {
             return "I couldn't read that photo. Try another image or log the meal manually."
         case .loadFailed:
             return "That photo couldn't be prepared for analysis. Try again or use manual entry."
+        case .cameraUnavailable:
+            return "Camera isn't available on this device. Choose a photo from your library instead."
         }
     }
 
