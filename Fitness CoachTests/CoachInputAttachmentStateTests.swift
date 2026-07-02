@@ -135,10 +135,7 @@ final class CoachInputAttachmentStateTests: XCTestCase {
             UIColor.orange.setFill()
             context.fill(CGRect(x: 0, y: 0, width: 12, height: 12))
         }
-        guard let data = image.jpegData(compressionQuality: 0.85) else {
-            fatalError("Expected JPEG test data")
-        }
-        return data
+        return image.jpegData(compressionQuality: 0.85)!
     }
 }
 

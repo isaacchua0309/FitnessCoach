@@ -11,16 +11,16 @@ import SwiftUI
 
 struct CoachComposer: View {
     @Binding var text: String
+    @Binding var isAttachmentSourceDialogPresented: Bool
     let attachmentState: CoachInputAttachmentState
     var isFocused: FocusState<Bool>.Binding
     let isSending: Bool
+    let canPresentPhotoPicker: Bool
     let onSend: () -> Void
     let onVoiceTap: () -> Void
-    let onAttachmentSelect: (CoachAttachmentOption) -> Void
+    let onAttachmentOptionSelected: (CoachPhotoPickerDestination) -> Void
     let onRemoveAttachment: () -> Void
     let onDismissAttachmentError: () -> Void
-
-    @State private var isAttachmentMenuPresented = false
 
     private var trimmedText: String {
         text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -36,6 +36,10 @@ struct CoachComposer: View {
         text.isEmpty && !attachmentState.hasAttachment && !isSending && !attachmentState.isImporting
     }
 
+    private var canOpenAttachmentDialog: Bool {
+        canPresentPhotoPicker && !isSending && !attachmentState.isImporting
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             if attachmentState.hasAttachment || attachmentState.isImporting || attachmentState.importError != nil {
@@ -44,13 +48,6 @@ struct CoachComposer: View {
                     onRemove: onRemoveAttachment,
                     onDismissError: onDismissAttachmentError
                 )
-            }
-
-            if isAttachmentMenuPresented {
-                CoachAttachmentMenu(isPresented: $isAttachmentMenuPresented, onSelect: onAttachmentSelect)
-                    .padding(.horizontal, CoachDesignTokens.Layout.horizontalPadding)
-                    .padding(.bottom, CoachDesignTokens.Spacing.xs)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
 
             HStack(alignment: .center, spacing: 0) {
@@ -94,7 +91,6 @@ struct CoachComposer: View {
         .background(CoachDesignTokens.Color.background)
         .animation(CoachDesignTokens.Motion.standard, value: canSend)
         .animation(CoachDesignTokens.Motion.standard, value: showVoiceButton)
-        .animation(CoachDesignTokens.Motion.standard, value: isAttachmentMenuPresented)
         .animation(CoachDesignTokens.Motion.standard, value: attachmentState)
     }
 
@@ -102,9 +98,7 @@ struct CoachComposer: View {
         Button {
             isFocused.wrappedValue = false
             CoachHaptics.attachmentToggle()
-            withAnimation(CoachDesignTokens.Motion.spring) {
-                isAttachmentMenuPresented.toggle()
-            }
+            isAttachmentSourceDialogPresented = true
         } label: {
             Image(systemName: "plus")
                 .font(.system(size: 18, weight: .semibold))
@@ -116,9 +110,22 @@ struct CoachComposer: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(CoachComposerButtonStyle())
-        .disabled(isSending || attachmentState.isImporting)
-        .rotationEffect(.degrees(isAttachmentMenuPresented ? 45 : 0))
-        .animation(CoachDesignTokens.Motion.spring, value: isAttachmentMenuPresented)
+        .disabled(!canOpenAttachmentDialog)
+        .confirmationDialog(
+            "Add Photo",
+            isPresented: $isAttachmentSourceDialogPresented,
+            titleVisibility: .visible
+        ) {
+            Button("Take Photo") {
+                onAttachmentOptionSelected(.camera)
+            }
+            Button("Choose from Library") {
+                onAttachmentOptionSelected(.photoLibrary)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Attach a meal photo to your Coach message.")
+        }
         .accessibilityLabel("Add attachment")
     }
 
@@ -173,18 +180,21 @@ private struct CoachComposerButtonStyle: ButtonStyle {
     struct PreviewWrapper: View {
         @FocusState private var isFocused: Bool
         @State private var text = ""
+        @State private var isAttachmentSourceDialogPresented = false
 
         var body: some View {
             VStack {
                 Spacer()
                 CoachComposer(
                     text: $text,
+                    isAttachmentSourceDialogPresented: $isAttachmentSourceDialogPresented,
                     attachmentState: .none,
                     isFocused: $isFocused,
                     isSending: false,
+                    canPresentPhotoPicker: true,
                     onSend: {},
                     onVoiceTap: {},
-                    onAttachmentSelect: { _ in },
+                    onAttachmentOptionSelected: { _ in },
                     onRemoveAttachment: {},
                     onDismissAttachmentError: {}
                 )

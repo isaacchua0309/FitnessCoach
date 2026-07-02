@@ -7,6 +7,7 @@
 
 import PhotosUI
 import SwiftUI
+import UIKit
 
 struct CoachView: View {
 
@@ -15,8 +16,9 @@ struct CoachView: View {
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
     @FocusState private var isInputFocused: Bool
 
-    @State private var isPhotoPickerPresented = false
-    @State private var isCameraPresented = false
+    @State private var isAttachmentSourceDialogPresented = false
+    @State private var pendingPickerDestination: CoachPhotoPickerDestination = .none
+    @State private var activePicker: CoachPhotoPickerDestination = .none
     @State private var photoPickerItem: PhotosPickerItem?
     @State private var isRetryingCoachSession = false
 
@@ -26,6 +28,10 @@ struct CoachView: View {
 
     private var showEmptyChrome: Bool {
         model.messages.isEmpty
+    }
+
+    private var canPresentPhotoPicker: Bool {
+        activePicker == .none && !model.isShowingFoodEditSheet
     }
 
     var body: some View {
@@ -89,17 +95,36 @@ struct CoachView: View {
             .onChange(of: refreshCenter.refreshToken) { _, _ in
                 model.refreshTodayContext()
             }
+            .onChange(of: isAttachmentSourceDialogPresented) { _, isPresented in
+                if isPresented {
+                    pendingPickerDestination = .none
+                } else {
+                    openPendingPickerIfNeeded()
+                }
+            }
+            .onChange(of: model.isShowingFoodEditSheet) { _, isPresented in
+                guard isPresented else { return }
+                resetPickerPresentation()
+                isAttachmentSourceDialogPresented = false
+                pendingPickerDestination = .none
+            }
             .animation(CoachDesignTokens.Motion.standard, value: showEmptyChrome)
-            .photosPicker(isPresented: $isPhotoPickerPresented, selection: $photoPickerItem, matching: .images)
+            .photosPicker(
+                isPresented: photoLibraryPickerPresented,
+                selection: $photoPickerItem,
+                matching: .images
+            )
             .onChange(of: photoPickerItem) { _, item in
                 guard let item else { return }
                 photoPickerItem = nil
+                resetPickerPresentation()
                 Task {
                     await model.importAttachment(from: item)
                 }
             }
-            .fullScreenCover(isPresented: $isCameraPresented) {
+            .fullScreenCover(isPresented: cameraPickerPresented) {
                 CoachCameraPicker { result in
+                    resetPickerPresentation()
                     Task { await model.importAttachment(from: result) }
                 }
                 .ignoresSafeArea()
@@ -108,6 +133,28 @@ struct CoachView: View {
                 foodEditSheet
             }
         }
+    }
+
+    private var photoLibraryPickerPresented: Binding<Bool> {
+        Binding(
+            get: { activePicker == .photoLibrary },
+            set: { isPresented in
+                if !isPresented {
+                    resetPickerPresentation()
+                }
+            }
+        )
+    }
+
+    private var cameraPickerPresented: Binding<Bool> {
+        Binding(
+            get: { activePicker == .camera },
+            set: { isPresented in
+                if !isPresented {
+                    resetPickerPresentation()
+                }
+            }
+        )
     }
 
     @ViewBuilder
@@ -128,9 +175,11 @@ struct CoachView: View {
     private var composerChrome: some View {
         CoachComposer(
             text: $model.inputText,
+            isAttachmentSourceDialogPresented: $isAttachmentSourceDialogPresented,
             attachmentState: model.inputAttachmentState,
             isFocused: $isInputFocused,
             isSending: model.isSending,
+            canPresentPhotoPicker: canPresentPhotoPicker,
             onSend: {
                 Task {
                     await model.sendCurrentMessage()
@@ -138,7 +187,7 @@ struct CoachView: View {
                 }
             },
             onVoiceTap: {},
-            onAttachmentSelect: handleAttachmentSelection,
+            onAttachmentOptionSelected: handleAttachmentOptionSelected,
             onRemoveAttachment: {
                 model.removeInputAttachment()
             },
@@ -158,7 +207,7 @@ struct CoachView: View {
         dismissKeyboard()
         switch prompt.behavior {
         case .openPhotoPicker:
-            isPhotoPickerPresented = true
+            queuePhotoLibraryPicker()
         case .prefill:
             Task { await model.applyStarterPromptSpec(prompt) }
             isInputFocused = true
@@ -167,13 +216,59 @@ struct CoachView: View {
         }
     }
 
-    private func handleAttachmentSelection(_ option: CoachAttachmentOption) {
-        switch option {
-        case .takePhoto:
-            isCameraPresented = true
-        case .choosePhoto:
-            isPhotoPickerPresented = true
+    private func handleAttachmentOptionSelected(_ destination: CoachPhotoPickerDestination) {
+        guard destination != .none else { return }
+        pendingPickerDestination = destination
+    }
+
+    private func openPendingPickerIfNeeded() {
+        guard activePicker == .none else { return }
+        guard pendingPickerDestination != .none else { return }
+        guard canPresentPhotoPicker else {
+            pendingPickerDestination = .none
+            return
         }
+
+        let destination = pendingPickerDestination
+        pendingPickerDestination = .none
+
+        switch destination {
+        case .none:
+            break
+        case .camera:
+            presentCameraPicker()
+        case .photoLibrary:
+            presentPhotoLibraryPicker()
+        }
+    }
+
+    private func queuePhotoLibraryPicker() {
+        guard canPresentPhotoPicker else { return }
+        pendingPickerDestination = .photoLibrary
+        if isAttachmentSourceDialogPresented {
+            isAttachmentSourceDialogPresented = false
+        } else {
+            openPendingPickerIfNeeded()
+        }
+    }
+
+    private func presentPhotoLibraryPicker() {
+        guard canPresentPhotoPicker else { return }
+        activePicker = .photoLibrary
+    }
+
+    private func presentCameraPicker() {
+        guard canPresentPhotoPicker else { return }
+        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+            Task { await model.importAttachment(from: .failure(.cameraUnavailable)) }
+            return
+        }
+        activePicker = .camera
+    }
+
+    private func resetPickerPresentation() {
+        activePicker = .none
+        photoPickerItem = nil
     }
 
     private func dismissKeyboard() {

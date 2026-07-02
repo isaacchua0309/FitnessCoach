@@ -11,4 +11,5 @@ enum CoachMealPhotoError: Equatable, Error {
     case userCancelled
     case noImage
     case loadFailed
+    case cameraUnavailable
 }
