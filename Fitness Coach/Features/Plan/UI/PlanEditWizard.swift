@@ -72,6 +72,7 @@ struct PlanEditWizard: View {
             }
             .navigationTitle("Edit Plan")
             .navigationBarTitleDisplayMode(.inline)
+            .tint(FormaTokens.Theme.primary)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -183,7 +184,7 @@ struct PlanEditWizard: View {
                                 Spacer()
                                 if formState.sex == sex {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(FormaTokens.Color.accent)
+                                        .foregroundStyle(FormaTokens.Theme.primary)
                                 }
                             }
                             .padding(.vertical, FormaTokens.Spacing.xs)
@@ -258,7 +259,7 @@ struct PlanEditWizard: View {
                                 Spacer(minLength: 0)
                                 if formState.activityLevel == level {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(FormaTokens.Color.accent)
+                                        .foregroundStyle(FormaTokens.Theme.primary)
                                 }
                             }
                             .padding(.vertical, FormaTokens.Spacing.xs)

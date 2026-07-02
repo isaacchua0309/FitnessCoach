@@ -21,7 +21,7 @@ struct FormaPickerRow<SelectionValue: Hashable, Content: View>: View {
 
             Picker(title, selection: $selection, content: content)
                 .labelsHidden()
-                .tint(FormaTokens.Color.accent)
+                .tint(FormaTokens.Theme.primary)
         }
         .padding(.horizontal, FormaTokens.Spacing.sm + 2)
         .padding(.vertical, FormaTokens.Spacing.xs)

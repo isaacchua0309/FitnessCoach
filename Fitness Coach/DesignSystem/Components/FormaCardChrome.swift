@@ -63,7 +63,7 @@ enum FormaCardChrome {
                         accentLeading
                             ? LinearGradient(
                                 colors: [
-                                    FormaTokens.Color.accent.opacity(0.22),
+                                    FormaTokens.Theme.primary.opacity(0.22),
                                     FormaTokens.Color.border
                                 ],
                                 startPoint: .topLeading,
@@ -71,7 +71,7 @@ enum FormaCardChrome {
                             )
                             : LinearGradient(
                                 colors: [
-                                    FormaTokens.Color.accent.opacity(0.14),
+                                    FormaTokens.Theme.primary.opacity(0.14),
                                     FormaTokens.Color.border
                                 ],
                                 startPoint: .topLeading,
@@ -83,7 +83,7 @@ enum FormaCardChrome {
             .overlay(alignment: .leading) {
                 if accentLeading {
                     RoundedRectangle(cornerRadius: 2, style: .continuous)
-                        .fill(FormaTokens.Color.accent.opacity(0.55))
+                        .fill(FormaTokens.Theme.primary.opacity(0.55))
                         .frame(width: 3)
                         .padding(.vertical, FormaTokens.Spacing.sm)
                         .padding(.leading, 1)

@@ -26,7 +26,7 @@ struct PlanEmptyStateView: View {
 
             Button(FormaProductCopy.Common.getStarted, action: onCreateProfile)
                 .buttonStyle(.borderedProminent)
-                .tint(FormaTokens.Color.ctaBackground)
+                .tint(FormaTokens.Theme.primaryButtonBackground)
                 .accessibilityHint(FormaProductCopy.EmptyState.planGetStartedAccessibilityHint)
         }
         .padding()

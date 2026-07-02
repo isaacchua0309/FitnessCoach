@@ -17,14 +17,19 @@ enum ThemeResolver {
             appearance: preferences.appearance,
             systemColorScheme: systemColorScheme
         )
-        let colors = FormaColorPaletteCatalog.palette(
+        let themePalette = ThemePaletteCatalog.palette(
             for: preferences.palette,
+            colorScheme: resolvedColorScheme
+        )
+        let colors = FormaPaletteCatalog.formaColorPalette(
+            from: themePalette,
             colorScheme: resolvedColorScheme
         )
 
         return ResolvedAppTheme(
             preferences: preferences,
             resolvedColorScheme: resolvedColorScheme,
+            themePalette: themePalette,
             colors: colors
         )
     }

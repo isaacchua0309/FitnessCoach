@@ -169,7 +169,7 @@ struct OnboardingSavePlanStepView: View {
                 .frame(minHeight: FormaTokens.Layout.minTouchTarget)
         }
         .buttonStyle(.borderedProminent)
-        .tint(OnboardingTheme.accent)
+        .tint(OnboardingTheme.primary)
         .disabled(isBusy)
         .accessibilityLabel(copy.signedInContinueCTA)
         .accessibilityHint(copy.signedInContinueAccessibilityHint)

@@ -12,9 +12,17 @@ struct ThemeSettingsView: View {
     @EnvironmentObject private var themeStore: ThemeStore
     @Environment(\.colorScheme) private var systemColorScheme
 
+    private var resolvedPreviewColorScheme: ColorScheme {
+        ThemeResolver.resolveColorScheme(
+            appearance: themeStore.appearance,
+            systemColorScheme: systemColorScheme
+        )
+    }
+
     var body: some View {
         List {
             appearanceSection
+            livePreviewSection
             colorThemeSection
         }
         .formaGroupedList()
@@ -50,23 +58,48 @@ struct ThemeSettingsView: View {
         }
     }
 
+    private var livePreviewSection: some View {
+        Section {
+            ThemeSettingsLivePreview()
+                .animation(.easeInOut(duration: 0.22), value: themeStore.palette)
+                .formaFormSection()
+        } header: {
+            FormaSettingsSectionHeader(title: FormaProductCopy.Settings.Theme.livePreviewSectionTitle)
+        }
+    }
+
     private var colorThemeSection: some View {
         Section {
-            ForEach(AppThemePalette.allCases) { palette in
-                ThemeColorPaletteOptionRow(
-                    palette: palette,
-                    previewPalette: themeStore.previewLegacyThemePalette(
-                        for: palette,
-                        resolvingWith: systemColorScheme
-                    ),
-                    isSelected: themeStore.palette == palette,
-                    onSelect: { themeStore.setPalette(palette) }
-                )
-                .formaSettingsRowChrome()
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: FormaTokens.Spacing.sm),
+                    GridItem(.flexible(), spacing: FormaTokens.Spacing.sm)
+                ],
+                spacing: FormaTokens.Spacing.sm
+            ) {
+                ForEach(AppThemePalette.allCases) { palette in
+                    ThemePremiumPickerCard(
+                        palette: palette,
+                        preview: ThemePaletteCatalog.palette(
+                            for: palette,
+                            colorScheme: resolvedPreviewColorScheme
+                        ),
+                        isSelected: themeStore.palette == palette,
+                        onSelect: { selectPalette(palette) }
+                    )
+                }
             }
+            .padding(.vertical, FormaTokens.Spacing.xs)
+            .formaFormSection()
         } header: {
             FormaSettingsSectionHeader(title: FormaProductCopy.Settings.Theme.colorThemeSectionTitle)
         }
+    }
+
+    private func selectPalette(_ palette: AppThemePalette) {
+        guard themeStore.palette != palette else { return }
+        ThemeSettingsHaptics.selectionChanged()
+        themeStore.setPalette(palette)
     }
 }
 
@@ -97,7 +130,7 @@ private struct ThemeAppearanceOptionRow: View {
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(FormaTokens.Typography.body.weight(.semibold))
-                        .foregroundStyle(FormaTokens.Color.accent)
+                        .foregroundStyle(FormaTokens.Theme.primary)
                         .accessibilityHidden(true)
                 }
             }
@@ -107,10 +140,13 @@ private struct ThemeAppearanceOptionRow: View {
             .background {
                 if isSelected {
                     RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                        .fill(FormaTokens.Color.accentMuted)
+                        .fill(FormaTokens.Theme.softBackground)
                         .overlay {
                             RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                                .stroke(FormaTokens.Color.borderSelected, lineWidth: 1.4)
+                                .stroke(
+                                    FormaTokens.Theme.primary.opacity(0.72),
+                                    lineWidth: ThemeSettingsPickerAccessibility.appearanceRowSelectedBorderLineWidth
+                                )
                         }
                 }
             }
@@ -122,110 +158,156 @@ private struct ThemeAppearanceOptionRow: View {
     }
 }
 
-// MARK: - Color palette row
+// MARK: - Premium theme card
 
-private struct ThemeColorPaletteOptionRow: View {
+private struct ThemePremiumPickerCard: View {
     let palette: AppThemePalette
-    let previewPalette: FormaThemePalette
+    let preview: ThemePalette
     let isSelected: Bool
     let onSelect: () -> Void
+
+    @ScaledMetric(relativeTo: .body) private var minCardHeight: CGFloat = FormaTokens.Layout.minTouchTarget
+
+    private let cardCornerRadius = FormaCardChrome.cornerRadius
+    private let previewCornerRadius: CGFloat = 10
+
+    private var resolvedMinCardHeight: CGFloat {
+        max(minCardHeight, ThemeSettingsPickerAccessibility.minimumCardTouchTarget)
+    }
 
     var body: some View {
         Button(action: onSelect) {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(palette.displayName)
-                            .font(FormaTokens.Typography.body)
-                            .foregroundStyle(FormaTokens.Color.textPrimary)
-                            .multilineTextAlignment(.leading)
+                gradientPreview
 
-                        Text(palette.description)
-                            .font(FormaTokens.Typography.sectionSubtitle)
-                            .foregroundStyle(FormaTokens.Color.textSecondary)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    if isSelected {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(FormaTokens.Typography.body.weight(.semibold))
-                            .foregroundStyle(FormaTokens.Color.accent)
-                            .accessibilityHidden(true)
-                    }
+                HStack(spacing: 6) {
+                    ThemeColorTokenDot(color: preview.primary)
+                    ThemeColorTokenDot(color: preview.secondary)
+                    ThemeColorTokenDot(color: preview.accent)
                 }
+                .accessibilityHidden(true)
 
-                ThemePalettePreviewSwatches(palette: previewPalette)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(preview.displayName)
+                        .font(FormaTokens.Typography.body.weight(.semibold))
+                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
+
+                    Text(preview.subtitle)
+                        .font(FormaTokens.Typography.sectionSubtitle)
+                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, 2)
-            .padding(FormaTokens.Spacing.xs)
-            .background {
+            .frame(maxWidth: .infinity, minHeight: resolvedMinCardHeight, alignment: .topLeading)
+            .padding(FormaTokens.Spacing.sm)
+            .background(cardBackground)
+            .overlay(alignment: .topTrailing) {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                        .fill(FormaTokens.Color.accentMuted)
-                        .overlay {
-                            RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                                .stroke(FormaTokens.Color.borderSelected, lineWidth: 1.4)
-                        }
+                    selectedCheckmark
+                        .padding(FormaTokens.Spacing.xs)
                 }
             }
+            .contentShape(RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous))
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(palette.accessibilityLabel(isSelected: isSelected))
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
+
+    private var gradientPreview: some View {
+        RoundedRectangle(cornerRadius: previewCornerRadius, style: .continuous)
+            .fill(preview.primaryGradient)
+            .frame(height: 40)
+            .overlay {
+                RoundedRectangle(cornerRadius: previewCornerRadius, style: .continuous)
+                    .stroke(FormaTokens.Color.border.opacity(0.25), lineWidth: 0.5)
+            }
+            .accessibilityHidden(true)
+    }
+
+    private var selectedCheckmark: some View {
+        Image(systemName: "checkmark.circle.fill")
+            .font(.body.weight(.semibold))
+            .symbolRenderingMode(.palette)
+            .foregroundStyle(preview.textOnAccent, preview.primary)
+            .shadow(color: preview.primary.opacity(0.35), radius: 4, y: 1)
+            .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+            .fill(isSelected ? preview.softBackground : FormaTokens.Color.surfaceSubtle)
+            .overlay {
+                RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+                    .stroke(
+                        isSelected ? preview.primary.opacity(0.88) : FormaTokens.Color.border.opacity(0.65),
+                        lineWidth: isSelected
+                            ? ThemeSettingsPickerAccessibility.premiumPickerSelectedBorderLineWidth
+                            : ThemeSettingsPickerAccessibility.premiumPickerUnselectedBorderLineWidth
+                    )
+            }
+            .shadow(
+                color: isSelected ? preview.primary.opacity(0.22) : .clear,
+                radius: isSelected ? 8 : 0,
+                y: isSelected ? 2 : 0
+            )
+    }
 }
 
-// MARK: - Swatches
+// MARK: - Color dots
 
-struct ThemePalettePreviewSwatches: View {
-    let palette: FormaThemePalette
+private struct ThemeColorTokenDot: View {
+    let color: Color
 
     var body: some View {
-        HStack(spacing: FormaTokens.Spacing.xs) {
-            ForEach(Array(palette.previewSwatches.enumerated()), id: \.offset) { index, swatch in
+        Circle()
+            .fill(color)
+            .overlay {
                 Circle()
-                    .fill(swatch)
-                    .overlay {
-                        Circle()
-                            .stroke(FormaTokens.Color.border, lineWidth: 1)
-                    }
-                    .frame(width: 28, height: 28)
-                    .accessibilityHidden(true)
-                    .accessibilityIdentifier("theme-swatch-\(index)")
+                    .stroke(FormaTokens.Color.border.opacity(0.45), lineWidth: 0.5)
             }
-        }
-        .accessibilityHidden(true)
+            .frame(width: 11, height: 11)
+            .accessibilityHidden(true)
     }
 }
 
 // MARK: - Previews
 
-#Preview("Default Light") {
-    ThemeSettingsPreviewHost(appearance: .light, palette: .default)
+#Preview("Ocean Blue Light") {
+    ThemeSettingsPreviewHost(appearance: .light, palette: .oceanBlue)
 }
 
-#Preview("Pink Light") {
-    ThemeSettingsPreviewHost(appearance: .light, palette: .pink)
+#Preview("Blossom Pink Light") {
+    ThemeSettingsPreviewHost(appearance: .light, palette: .blossomPink)
 }
 
-#Preview("Cool Blue Light") {
-    ThemeSettingsPreviewHost(appearance: .light, palette: .coolBlue)
+#Preview("Emerald Green Light") {
+    ThemeSettingsPreviewHost(appearance: .light, palette: .emeraldGreen)
 }
 
-#Preview("Default Dark") {
-    ThemeSettingsPreviewHost(appearance: .dark, palette: .default)
+#Preview("Sunset Orange Light") {
+    ThemeSettingsPreviewHost(appearance: .light, palette: .sunsetOrange)
 }
 
-#Preview("Pink Dark") {
-    ThemeSettingsPreviewHost(appearance: .dark, palette: .pink)
+#Preview("Ocean Blue Dark") {
+    ThemeSettingsPreviewHost(appearance: .dark, palette: .oceanBlue)
 }
 
-#Preview("Cool Blue Dark") {
-    ThemeSettingsPreviewHost(appearance: .dark, palette: .coolBlue)
+#Preview("Blossom Pink Dark") {
+    ThemeSettingsPreviewHost(appearance: .dark, palette: .blossomPink)
+}
+
+#Preview("Emerald Green Dark") {
+    ThemeSettingsPreviewHost(appearance: .dark, palette: .emeraldGreen)
+}
+
+#Preview("Sunset Orange Dark") {
+    ThemeSettingsPreviewHost(appearance: .dark, palette: .sunsetOrange)
 }
 
 private struct ThemeSettingsPreviewHost: View {

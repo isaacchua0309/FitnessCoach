@@ -13,13 +13,13 @@ final class ThemeStoreTests: XCTestCase {
 
     // MARK: - Defaults
 
-    func testInitialDefaultIsDarkAndDefaultPalette() async {
+    func testInitialDefaultIsDarkAndOceanBluePalette() async {
         await MainActor.run {
             let defaults = makeIsolatedDefaults()
             let store = ThemeStore(userDefaults: defaults)
             XCTAssertEqual(store.preferences, .default)
             XCTAssertEqual(store.appearance, .dark)
-            XCTAssertEqual(store.palette, .default)
+            XCTAssertEqual(store.palette, .oceanBlue)
             XCTAssertEqual(store.preferredColorScheme, .dark)
         }
     }
@@ -51,15 +51,15 @@ final class ThemeStoreTests: XCTestCase {
             let defaults = makeIsolatedDefaults()
             let store = ThemeStore(userDefaults: defaults)
 
-            store.setPalette(.pink)
-            XCTAssertEqual(store.palette, .pink)
+            store.setPalette(.blossomPink)
+            XCTAssertEqual(store.palette, .blossomPink)
             XCTAssertEqual(
                 defaults.string(forKey: AppThemePreferences.PersistenceKey.palette),
-                AppThemePalette.pink.rawValue
+                AppThemePalette.blossomPink.rawValue
             )
 
             let reloaded = ThemeStore(userDefaults: defaults)
-            XCTAssertEqual(reloaded.palette, .pink)
+            XCTAssertEqual(reloaded.palette, .blossomPink)
         }
     }
 
@@ -68,10 +68,10 @@ final class ThemeStoreTests: XCTestCase {
             let defaults = makeIsolatedDefaults()
             let store = ThemeStore(userDefaults: defaults)
             store.setAppearance(.dark)
-            store.setPalette(.coolBlue)
+            store.setPalette(.emeraldGreen)
 
             let relaunched = ThemeStore(userDefaults: defaults)
-            XCTAssertEqual(relaunched.preferences, AppThemePreferences(appearance: .dark, palette: .coolBlue))
+            XCTAssertEqual(relaunched.preferences, AppThemePreferences(appearance: .dark, palette: .emeraldGreen))
         }
     }
 
@@ -87,13 +87,17 @@ final class ThemeStoreTests: XCTestCase {
         }
     }
 
-    func testCorruptPaletteFallsBackToDefault() async {
+    func testCorruptPaletteFallsBackToOceanBlue() async {
         await MainActor.run {
             let defaults = makeIsolatedDefaults()
             defaults.set("neon", forKey: AppThemePreferences.PersistenceKey.palette)
 
             let store = ThemeStore(userDefaults: defaults)
-            XCTAssertEqual(store.palette, .default)
+            XCTAssertEqual(store.palette, .oceanBlue)
+            XCTAssertEqual(
+                defaults.string(forKey: AppThemePreferences.PersistenceKey.palette),
+                AppThemePalette.oceanBlue.rawValue
+            )
         }
     }
 
@@ -103,12 +107,108 @@ final class ThemeStoreTests: XCTestCase {
             defaults.set("defaultForma", forKey: AppThemePreferences.PersistenceKey.legacyPalette)
 
             let store = ThemeStore(userDefaults: defaults)
-            XCTAssertEqual(store.palette, .default)
-
-            store.setPalette(.pink)
+            XCTAssertEqual(store.palette, .oceanBlue)
             XCTAssertEqual(
                 defaults.string(forKey: AppThemePreferences.PersistenceKey.palette),
-                AppThemePalette.pink.rawValue
+                AppThemePalette.oceanBlue.rawValue
+            )
+
+            store.setPalette(.blossomPink)
+            XCTAssertEqual(
+                defaults.string(forKey: AppThemePreferences.PersistenceKey.palette),
+                AppThemePalette.blossomPink.rawValue
+            )
+        }
+    }
+
+    func testLegacyDefaultRawValueMigratesToOceanBlueOnLoad() async {
+        await MainActor.run {
+            let defaults = makeIsolatedDefaults()
+            defaults.set("default", forKey: AppThemePreferences.PersistenceKey.palette)
+
+            let store = ThemeStore(userDefaults: defaults)
+            XCTAssertEqual(store.palette, .oceanBlue)
+            XCTAssertEqual(
+                defaults.string(forKey: AppThemePreferences.PersistenceKey.palette),
+                AppThemePalette.oceanBlue.rawValue
+            )
+        }
+    }
+
+    func testLegacyPinkRawValueMigratesToBlossomPinkOnLoad() async {
+        await MainActor.run {
+            let defaults = makeIsolatedDefaults()
+            defaults.set("pink", forKey: AppThemePreferences.PersistenceKey.palette)
+
+            let store = ThemeStore(userDefaults: defaults)
+            XCTAssertEqual(store.palette, .blossomPink)
+            XCTAssertEqual(
+                defaults.string(forKey: AppThemePreferences.PersistenceKey.palette),
+                AppThemePalette.blossomPink.rawValue
+            )
+        }
+    }
+
+    func testLegacyCoolBlueRawValueMigratesToOceanBlueOnLoad() async {
+        await MainActor.run {
+            let defaults = makeIsolatedDefaults()
+            defaults.set("coolBlue", forKey: AppThemePreferences.PersistenceKey.palette)
+
+            let store = ThemeStore(userDefaults: defaults)
+            XCTAssertEqual(store.palette, .oceanBlue)
+            XCTAssertEqual(
+                defaults.string(forKey: AppThemePreferences.PersistenceKey.palette),
+                AppThemePalette.oceanBlue.rawValue
+            )
+        }
+    }
+
+    func testLegacyBlueRawValueMigratesToOceanBlueOnLoad() async {
+        await MainActor.run {
+            let defaults = makeIsolatedDefaults()
+            defaults.set("blue", forKey: AppThemePreferences.PersistenceKey.palette)
+
+            let store = ThemeStore(userDefaults: defaults)
+            XCTAssertEqual(store.palette, .oceanBlue)
+            XCTAssertEqual(
+                defaults.string(forKey: AppThemePreferences.PersistenceKey.palette),
+                AppThemePalette.oceanBlue.rawValue
+            )
+            XCTAssertNil(defaults.string(forKey: AppThemePreferences.PersistenceKey.legacyPalette))
+        }
+    }
+
+    func testCanonicalWriteRemovesLegacyPaletteKey() async {
+        await MainActor.run {
+            let defaults = makeIsolatedDefaults()
+            defaults.set("pink", forKey: AppThemePreferences.PersistenceKey.legacyPalette)
+
+            let store = ThemeStore(userDefaults: defaults)
+            XCTAssertEqual(store.palette, .blossomPink)
+            XCTAssertNil(defaults.string(forKey: AppThemePreferences.PersistenceKey.legacyPalette))
+        }
+    }
+
+    func testPaletteChangeUpdatesFormaThemeAccessImmediately() async {
+        await MainActor.run {
+            let defaults = makeIsolatedDefaults()
+            let store = ThemeStore(userDefaults: defaults)
+
+            store.setPalette(.sunsetOrange)
+            let state = FormaThemeRootState.make(store: store, systemColorScheme: .dark)
+            FormaThemeAccess.update(resolved: state.resolved)
+
+            ThemeTestSupport.assertSameColor(
+                FormaTokens.Color.accent,
+                FormaPaletteCatalog.palette(for: .sunsetOrange, colorScheme: .dark).accent
+            )
+            ThemeTestSupport.assertSameColor(
+                CoachDesignTokens.Color.accent,
+                FormaPaletteCatalog.palette(for: .sunsetOrange, colorScheme: .dark).accent
+            )
+            ThemeTestSupport.assertSameColor(
+                OnboardingTheme.accent,
+                FormaPaletteCatalog.palette(for: .sunsetOrange, colorScheme: .dark).accent
             )
         }
     }
@@ -120,7 +220,7 @@ final class ThemeStoreTests: XCTestCase {
             let defaults = makeIsolatedDefaults()
             let store = ThemeStore(userDefaults: defaults)
             store.setAppearance(.dark)
-            store.setPalette(.coolBlue)
+            store.setPalette(.emeraldGreen)
 
             let syncStore = ProfileCloudSyncStore(userDefaults: defaults)
             syncStore.markSynced(uid: "signed-in-user", updatedAt: ProfileTestFixtures.referenceDate)
@@ -131,7 +231,7 @@ final class ThemeStoreTests: XCTestCase {
 
             let reloaded = ThemeStore(userDefaults: defaults)
             XCTAssertEqual(reloaded.appearance, .dark)
-            XCTAssertEqual(reloaded.palette, .coolBlue)
+            XCTAssertEqual(reloaded.palette, .emeraldGreen)
         }
     }
 
@@ -142,12 +242,15 @@ final class ThemeStoreTests: XCTestCase {
             let defaults = makeIsolatedDefaults()
             let store = ThemeStore(userDefaults: defaults)
             store.setAppearance(.system)
-            store.setPalette(.pink)
+            store.setPalette(.blossomPink)
 
             let resolved = store.resolvedTheme(systemColorScheme: .light)
             XCTAssertEqual(resolved.preferences, store.preferences)
             XCTAssertEqual(resolved.resolvedColorScheme, .light)
-            XCTAssertEqual(resolved.colors.accent, FormaPaletteCatalog.palette(for: .pink, colorScheme: .light).accent)
+            XCTAssertEqual(
+                resolved.colors.accent,
+                FormaPaletteCatalog.palette(for: .blossomPink, colorScheme: .light).accent
+            )
         }
     }
 

@@ -13,20 +13,17 @@ final class CoachMutationExecutor {
     private let actionCenter: FitnessActionCenter
     private let dailyLogReader: any DailyLogReading
     private let healthActivityQuery: HealthActivityQueryService
-    private let localNutritionEstimator: LocalNutritionEstimator
     private let mutationHistory: CoachMutationHistory
 
     init(
         actionCenter: FitnessActionCenter,
         dailyLogReader: any DailyLogReading,
         healthActivityQuery: HealthActivityQueryService,
-        localNutritionEstimator: LocalNutritionEstimator,
         mutationHistory: CoachMutationHistory
     ) {
         self.actionCenter = actionCenter
         self.dailyLogReader = dailyLogReader
         self.healthActivityQuery = healthActivityQuery
-        self.localNutritionEstimator = localNutritionEstimator
         self.mutationHistory = mutationHistory
     }
 

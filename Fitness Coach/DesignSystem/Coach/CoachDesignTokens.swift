@@ -37,6 +37,20 @@ enum CoachDesignTokens {
         @MainActor
         static var accent: SwiftUI.Color { active.accent }
         @MainActor
+        static var primary: SwiftUI.Color { active.themePalette.primary }
+        @MainActor
+        static var secondary: SwiftUI.Color { active.themePalette.secondary }
+        @MainActor
+        static var highlightAccent: SwiftUI.Color { active.themePalette.accent }
+        @MainActor
+        static var gradientStart: SwiftUI.Color { active.themePalette.gradientStart }
+        @MainActor
+        static var gradientEnd: SwiftUI.Color { active.themePalette.gradientEnd }
+        @MainActor
+        static var softBackground: SwiftUI.Color { active.themePalette.softBackground }
+        @MainActor
+        static var textOnAccent: SwiftUI.Color { active.themePalette.textOnAccent }
+        @MainActor
         static var ctaBackground: SwiftUI.Color { active.ctaBackground }
         @MainActor
         static var border: SwiftUI.Color { active.border }

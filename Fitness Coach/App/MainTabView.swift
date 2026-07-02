@@ -114,7 +114,7 @@ struct MainTabView: View {
                 }
             .tag(AppTab.plan)
         }
-        .tint(resolvedTheme.colors.accent)
+        .tint(resolvedTheme.themePalette.primary)
         .environmentObject(container.refreshCenter)
         .environmentObject(container.trainingInsightsStore)
         .environmentObject(container.trainingInsightsModel)

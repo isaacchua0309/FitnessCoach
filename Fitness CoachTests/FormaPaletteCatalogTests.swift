@@ -35,6 +35,8 @@ final class FormaPaletteCatalogTests: XCTestCase {
         "selectedBorder",
         "chartPrimary",
         "chartSecondary",
+        "gradientStart",
+        "gradientEnd",
         "success",
         "warning",
         "destructive",
@@ -51,7 +53,7 @@ final class FormaPaletteCatalogTests: XCTestCase {
             }
         }
 
-        XCTAssertEqual(FormaPaletteCatalog.registeredThemePalettes.count, 3)
+        XCTAssertEqual(FormaPaletteCatalog.registeredThemePalettes.count, AppThemePalette.allCases.count)
         XCTAssertEqual(FormaPaletteCatalog.registeredColorSchemes.count, 2)
     }
 
@@ -73,14 +75,15 @@ final class FormaPaletteCatalogTests: XCTestCase {
 
     // MARK: - Production baseline
 
-    func testDefaultDarkMatchesCurrentProductionBaseline() {
+    func testOceanBlueDarkMatchesSpecifiedPrimaryColor() {
         let palette = FormaPaletteCatalog.defaultDark
 
-        assertColor(palette.canvas, red: 0.03, green: 0.05, blue: 0.08)
-        assertColor(palette.accent, red: 0.0, green: 0.48, blue: 1.0)
+        assertColor(palette.accent, red: 59.0 / 255.0, green: 130.0 / 255.0, blue: 246.0 / 255.0)
+        assertColor(palette.ctaBackground, red: 37.0 / 255.0, green: 99.0 / 255.0, blue: 235.0 / 255.0)
+        assertColor(palette.chartSecondary, red: 96.0 / 255.0, green: 165.0 / 255.0, blue: 250.0 / 255.0)
+        assertColor(palette.gradientStart, red: 37.0 / 255.0, green: 99.0 / 255.0, blue: 235.0 / 255.0)
+        assertColor(palette.gradientEnd, red: 96.0 / 255.0, green: 165.0 / 255.0, blue: 250.0 / 255.0)
         assertColor(palette.textPrimary, red: 1.0, green: 1.0, blue: 1.0)
-        assertColor(palette.surface, red: 1.0, green: 1.0, blue: 1.0, alpha: 0.07, accuracy: 0.02)
-        assertColor(palette.border, red: 1.0, green: 1.0, blue: 1.0, alpha: 0.12, accuracy: 0.02)
     }
 
     // MARK: - Readability
@@ -162,14 +165,24 @@ final class FormaPaletteCatalogTests: XCTestCase {
         }
     }
 
-    func testPinkAndCoolBlueDarkCanvasesDifferFromDefault() {
-        let defaultCanvas = FormaPaletteCatalog.palette(for: .default, colorScheme: .dark).canvas
-        let pinkCanvas = FormaPaletteCatalog.palette(for: .pink, colorScheme: .dark).canvas
-        let coolCanvas = FormaPaletteCatalog.palette(for: .coolBlue, colorScheme: .dark).canvas
+    func testThemeDarkCanvasesAreNeutralAcrossPalettes() {
+        let oceanCanvas = FormaPaletteCatalog.palette(for: .oceanBlue, colorScheme: .dark).canvas
+        let blossomCanvas = FormaPaletteCatalog.palette(for: .blossomPink, colorScheme: .dark).canvas
+        let emeraldCanvas = FormaPaletteCatalog.palette(for: .emeraldGreen, colorScheme: .dark).canvas
 
-        XCTAssertGreaterThan(colorDistance(defaultCanvas, pinkCanvas), 0.03)
-        XCTAssertGreaterThan(colorDistance(defaultCanvas, coolCanvas), 0.02)
-        XCTAssertGreaterThan(colorDistance(pinkCanvas, coolCanvas), 0.03)
+        XCTAssertEqual(oceanCanvas, blossomCanvas)
+        XCTAssertEqual(blossomCanvas, emeraldCanvas)
+    }
+
+    func testThemePrimaryColorsAreDistinctAcrossPalettes() {
+        let oceanPrimary = ThemePaletteCatalog.palette(for: .oceanBlue, colorScheme: .dark).primary
+        let blossomPrimary = ThemePaletteCatalog.palette(for: .blossomPink, colorScheme: .dark).primary
+        let emeraldPrimary = ThemePaletteCatalog.palette(for: .emeraldGreen, colorScheme: .dark).primary
+        let sunsetPrimary = ThemePaletteCatalog.palette(for: .sunsetOrange, colorScheme: .dark).primary
+
+        XCTAssertGreaterThan(colorDistance(oceanPrimary, blossomPrimary), 0.08)
+        XCTAssertGreaterThan(colorDistance(oceanPrimary, emeraldPrimary), 0.08)
+        XCTAssertGreaterThan(colorDistance(blossomPrimary, sunsetPrimary), 0.08)
     }
 
     func testSecondaryTextReadableOnLightSurfaces() {

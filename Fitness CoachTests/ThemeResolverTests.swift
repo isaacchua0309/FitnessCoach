@@ -23,11 +23,11 @@ final class ThemeResolverTests: XCTestCase {
 
     func testSystemAppearanceFollowsDeviceColorScheme() {
         let lightResolved = ThemeResolver.resolve(
-            preferences: AppThemePreferences(appearance: .system, palette: .default),
+            preferences: AppThemePreferences(appearance: .system, palette: .oceanBlue),
             systemColorScheme: .light
         )
         let darkResolved = ThemeResolver.resolve(
-            preferences: AppThemePreferences(appearance: .system, palette: .default),
+            preferences: AppThemePreferences(appearance: .system, palette: .oceanBlue),
             systemColorScheme: .dark
         )
 
@@ -37,11 +37,11 @@ final class ThemeResolverTests: XCTestCase {
 
     func testFixedLightAndDarkAppearanceIgnoreSystemColorScheme() {
         let light = ThemeResolver.resolve(
-            preferences: AppThemePreferences(appearance: .light, palette: .default),
+            preferences: AppThemePreferences(appearance: .light, palette: .oceanBlue),
             systemColorScheme: .dark
         )
         let dark = ThemeResolver.resolve(
-            preferences: AppThemePreferences(appearance: .dark, palette: .default),
+            preferences: AppThemePreferences(appearance: .dark, palette: .oceanBlue),
             systemColorScheme: .light
         )
 
@@ -57,11 +57,11 @@ final class ThemeResolverTests: XCTestCase {
 
     func testChangingPaletteChangesResolvedAccent() {
         let defaultResolved = ThemeResolver.resolve(
-            preferences: AppThemePreferences(appearance: .dark, palette: .default),
+            preferences: AppThemePreferences(appearance: .dark, palette: .oceanBlue),
             systemColorScheme: .dark
         )
         let pinkResolved = ThemeResolver.resolve(
-            preferences: AppThemePreferences(appearance: .dark, palette: .pink),
+            preferences: AppThemePreferences(appearance: .dark, palette: .blossomPink),
             systemColorScheme: .dark
         )
 
@@ -71,17 +71,17 @@ final class ThemeResolverTests: XCTestCase {
         )
         XCTAssertEqual(
             pinkResolved.colors.accent,
-            FormaPaletteCatalog.palette(for: .pink, colorScheme: .dark).accent
+            FormaPaletteCatalog.palette(for: .blossomPink, colorScheme: .dark).accent
         )
     }
 
     func testChangingAppearanceChangesResolvedColorScheme() {
         let light = ThemeResolver.resolve(
-            preferences: AppThemePreferences(appearance: .light, palette: .default),
+            preferences: AppThemePreferences(appearance: .light, palette: .oceanBlue),
             systemColorScheme: .dark
         )
         let dark = ThemeResolver.resolve(
-            preferences: AppThemePreferences(appearance: .dark, palette: .default),
+            preferences: AppThemePreferences(appearance: .dark, palette: .oceanBlue),
             systemColorScheme: .light
         )
 

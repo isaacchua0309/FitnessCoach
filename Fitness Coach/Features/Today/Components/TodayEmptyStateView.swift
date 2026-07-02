@@ -34,7 +34,7 @@ struct TodayEmptyStateView: View {
             if let actionTitle = copy.actionTitle {
                 Button(actionTitle, action: onOpenPlan)
                     .buttonStyle(.borderedProminent)
-                    .tint(FormaTokens.Color.ctaBackground)
+                    .tint(FormaTokens.Theme.primaryButtonBackground)
                     .accessibilityHint(copy.accessibilityHint ?? "")
             }
         }

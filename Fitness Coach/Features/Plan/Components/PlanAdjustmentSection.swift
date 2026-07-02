@@ -63,7 +63,7 @@ struct PlanAdjustmentSection: View {
                                 .frame(minHeight: FormaTokens.Layout.minTouchTarget)
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(FormaTokens.Color.ctaBackground)
+                        .tint(FormaTokens.Theme.primaryButtonBackground)
                         .padding(.top, FormaTokens.Spacing.sm)
                         .accessibilityLabel(state.adjustPlanTitle)
                         .accessibilityHint(FormaProductCopy.PlanMissionControl.adjustPlanAccessibilityHint)

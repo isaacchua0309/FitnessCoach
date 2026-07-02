@@ -48,7 +48,7 @@ struct JourneyHabitInsightsSection: View {
                 percent: state.weakestScorePercent,
                 percentPrefix: state.weakestScorePrefix,
                 qualitative: nil,
-                accent: FormaTokens.Color.accent
+                accent: FormaTokens.Theme.primary
             )
 
             FormaPlanCard {

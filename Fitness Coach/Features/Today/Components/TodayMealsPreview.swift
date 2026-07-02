@@ -120,7 +120,7 @@ struct TodayMealsPreview: View {
             if group.isLogged {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.body)
-                    .foregroundStyle(FormaTokens.Color.accent)
+                    .foregroundStyle(FormaTokens.Theme.primary)
                     .accessibilityLabel("Logged")
             } else {
                 Button {
@@ -128,7 +128,7 @@ struct TodayMealsPreview: View {
                 } label: {
                     Text(FormaProductCopy.Today.Meals.addAction)
                         .font(FormaTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(FormaTokens.Color.accent)
+                        .foregroundStyle(FormaTokens.Theme.primary)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(FormaProductCopy.Today.Meals.addAccessibilityLabel(for: group.mealType))
@@ -213,7 +213,7 @@ struct TodayMealsPreview: View {
                         + " (\(group.entries.count))"
             )
             .font(FormaTokens.Typography.caption.weight(.medium))
-            .foregroundStyle(FormaTokens.Color.accent)
+            .foregroundStyle(FormaTokens.Theme.primary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, FormaTokens.Spacing.md)
             .padding(.vertical, FormaTokens.Spacing.xs)

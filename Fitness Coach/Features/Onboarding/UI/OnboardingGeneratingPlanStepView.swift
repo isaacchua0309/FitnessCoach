@@ -157,7 +157,7 @@ struct OnboardingGeneratingPlanStepView: View {
                 HStack(spacing: FormaTokens.Spacing.md) {
                     SwiftUI.ProgressView()
                         .controlSize(.regular)
-                        .tint(OnboardingTheme.accent)
+                        .tint(OnboardingTheme.primary)
                         .accessibilityHidden(true)
 
                     Text(activeStepLabel)
@@ -249,7 +249,7 @@ struct OnboardingGeneratingPlanStepView: View {
             case .active:
                 SwiftUI.ProgressView()
                     .controlSize(.small)
-                    .tint(OnboardingTheme.accent)
+                    .tint(OnboardingTheme.primary)
             case .completed:
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(OnboardingTheme.accent)
@@ -296,7 +296,7 @@ struct OnboardingGeneratingPlanStepView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .tint(OnboardingTheme.accent)
+            .tint(OnboardingTheme.primary)
 
             Button(action: onGoBack) {
                 Text(FormaProductCopy.Onboarding.V2.Generating.goBackCTA)

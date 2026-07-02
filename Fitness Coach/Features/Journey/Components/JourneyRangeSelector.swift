@@ -23,7 +23,7 @@ struct JourneyRangeSelector: View {
             }
         }
         .pickerStyle(.segmented)
-        .tint(FormaTokens.Color.accent)
+        .tint(FormaTokens.Theme.primary)
     }
 }
 

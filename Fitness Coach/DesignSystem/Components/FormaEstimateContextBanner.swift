@@ -16,7 +16,7 @@ struct FormaEstimateContextBanner: View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             Text(AIFoodConfirmationFormatter.confidenceLabel(confidence))
                 .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(confidence == .low ? FormaTokens.Color.destructive : FormaTokens.Color.accent)
+                .foregroundStyle(confidenceLabelColor)
 
             if let sanityWarning, !sanityWarning.isEmpty {
                 Text(sanityWarning)
@@ -39,11 +39,7 @@ struct FormaEstimateContextBanner: View {
         .padding(FormaTokens.Spacing.md)
         .background {
             RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                .fill(
-                    sanityWarning == nil
-                        ? FormaTokens.Color.accentMuted
-                        : FormaTokens.Color.destructive.opacity(0.12)
-                )
+                .fill(confidenceBackgroundColor)
         }
         .overlay {
             RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
@@ -51,6 +47,24 @@ struct FormaEstimateContextBanner: View {
                     sanityWarning == nil ? FormaTokens.Color.border : FormaTokens.Color.destructive.opacity(0.35),
                     lineWidth: 1
                 )
+        }
+    }
+
+    private var confidenceLabelColor: Color {
+        switch confidence {
+        case .low:
+            FormaTokens.Color.warning
+        case .medium, .high:
+            FormaTokens.Theme.primary
+        }
+    }
+
+    private var confidenceBackgroundColor: Color {
+        switch confidence {
+        case .low:
+            FormaTokens.Color.warning.opacity(0.12)
+        case .medium, .high:
+            FormaTokens.Theme.softBackground
         }
     }
 }

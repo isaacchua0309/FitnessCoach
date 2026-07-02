@@ -18,11 +18,11 @@ final class ThemeSettingsViewTests: XCTestCase {
         )
     }
 
-    func testExistingUsersDefaultToDarkDefaultPalette() async {
+    func testExistingUsersDefaultToDarkOceanBluePalette() async {
         await MainActor.run {
             let store = ThemeStore(userDefaults: ThemeTestSupport.makeIsolatedDefaults(suiteNamePrefix: "ThemeSettingsViewTests"))
             XCTAssertEqual(store.appearance, .dark)
-            XCTAssertEqual(store.palette, .default)
+            XCTAssertEqual(store.palette, .oceanBlue)
             XCTAssertEqual(store.preferredColorScheme, .dark)
         }
     }
@@ -50,15 +50,15 @@ final class ThemeSettingsViewTests: XCTestCase {
             let defaults = ThemeTestSupport.makeIsolatedDefaults(suiteNamePrefix: "ThemeSettingsViewTests.palette")
             let store = ThemeStore(userDefaults: defaults)
 
-            store.setPalette(.pink)
-            XCTAssertEqual(store.palette, .pink)
+            store.setPalette(.blossomPink)
+            XCTAssertEqual(store.palette, .blossomPink)
             XCTAssertEqual(
                 defaults.string(forKey: AppThemePreferences.PersistenceKey.palette),
-                AppThemePalette.pink.rawValue
+                AppThemePalette.blossomPink.rawValue
             )
 
-            store.setPalette(.coolBlue)
-            XCTAssertEqual(store.palette, .coolBlue)
+            store.setPalette(.emeraldGreen)
+            XCTAssertEqual(store.palette, .emeraldGreen)
         }
     }
 
@@ -66,17 +66,17 @@ final class ThemeSettingsViewTests: XCTestCase {
         await MainActor.run {
             let store = ThemeStore(userDefaults: ThemeTestSupport.makeIsolatedDefaults(suiteNamePrefix: "ThemeSettingsViewTests.selected"))
             store.setAppearance(.light)
-            store.setPalette(.pink)
+            store.setPalette(.blossomPink)
 
             XCTAssertTrue(store.appearance == .light)
             XCTAssertFalse(store.appearance == .dark)
-            XCTAssertTrue(store.palette == .pink)
-            XCTAssertFalse(store.palette == .default)
+            XCTAssertTrue(store.palette == .blossomPink)
+            XCTAssertFalse(store.palette == .oceanBlue)
         }
     }
 
     func testPalettePreviewSwatchesUseCatalogValues() {
-        let palette = FormaPaletteCatalog.palette(for: .pink, colorScheme: .dark)
+        let palette = FormaPaletteCatalog.palette(for: .blossomPink, colorScheme: .dark)
         XCTAssertEqual(palette.previewSwatches.count, 3)
         XCTAssertEqual(palette.previewSwatches[0], palette.accent)
         XCTAssertEqual(palette.previewSwatches[1], palette.surfaceElevated)
@@ -84,9 +84,17 @@ final class ThemeSettingsViewTests: XCTestCase {
     }
 
     func testSelectedPaletteAccessibilityLabelIncludesSelectedTraitCopy() {
-        let label = AppThemePalette.pink.accessibilityLabel(isSelected: true)
+        let label = AppThemePalette.blossomPink.accessibilityLabel(isSelected: true)
         XCTAssertTrue(label.contains("selected"))
-        XCTAssertTrue(label.contains("Pink"))
+        XCTAssertFalse(label.contains("not selected"))
+        XCTAssertTrue(label.contains("Blossom Pink"))
+        XCTAssertTrue(label.contains("Warm and friendly"))
+    }
+
+    func testUnselectedPaletteAccessibilityLabelIncludesNotSelectedCopy() {
+        let label = AppThemePalette.emeraldGreen.accessibilityLabel(isSelected: false)
+        XCTAssertTrue(label.hasSuffix("not selected"))
+        XCTAssertFalse(label.hasSuffix(", selected"))
     }
 
     func testReloadAppliesShippingPolicyToPersistedAppearance() async {
@@ -97,13 +105,13 @@ final class ThemeSettingsViewTests: XCTestCase {
                 forKey: AppThemePreferences.PersistenceKey.appearance
             )
             defaults.set(
-                AppThemePalette.coolBlue.rawValue,
+                AppThemePalette.emeraldGreen.rawValue,
                 forKey: AppThemePreferences.PersistenceKey.palette
             )
 
             let store = ThemeStore(userDefaults: defaults)
             XCTAssertEqual(store.appearance, .dark)
-            XCTAssertEqual(store.palette, .coolBlue)
+            XCTAssertEqual(store.palette, .emeraldGreen)
         }
     }
 
@@ -111,11 +119,13 @@ final class ThemeSettingsViewTests: XCTestCase {
         XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.includesCheckmarkForSelectedState)
         XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.includesSelectedTraitForSelectedState)
         XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.includesSelectedInAccessibilityLabel)
+        XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.includesNotSelectedInAccessibilityLabel)
         XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.includesBorderForSelectedState)
+        XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.meetsMinimumTouchTarget)
     }
 
-    func testAppearanceMatrixCoversSixPaletteCombinations() {
-        XCTAssertEqual(FormaThemeAppearanceMatrix.combinations.count, 6)
+    func testAppearanceMatrixCoversAllPaletteCombinations() {
+        XCTAssertEqual(FormaThemeAppearanceMatrix.combinations.count, 8)
         XCTAssertEqual(FormaThemeAppearanceMatrix.palettes, AppThemePalette.allCases)
         XCTAssertEqual(FormaThemeAppearanceMatrix.appearances, [.light, .dark])
     }

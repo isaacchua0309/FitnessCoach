@@ -35,24 +35,24 @@ final class FormaTokensColorTests: XCTestCase {
 
     // MARK: - Palette changes
 
-    func testTokenFacadeChangesAccentUnderPinkAndCoolBlue() async {
+    func testTokenFacadeChangesAccentAcrossPalettes() async {
         await MainActor.run {
-            let pinkResolved = makeResolved(palette: .pink, colorScheme: .dark)
-            FormaThemeAccess.update(resolved: pinkResolved)
+            let blossomResolved = makeResolved(palette: .blossomPink, colorScheme: .dark)
+            FormaThemeAccess.update(resolved: blossomResolved)
             assertSameColor(
                 FormaTokens.Color.accent,
-                FormaPaletteCatalog.palette(for: .pink, colorScheme: .dark).accent
+                FormaPaletteCatalog.palette(for: .blossomPink, colorScheme: .dark).accent
             )
 
-            let coolResolved = makeResolved(palette: .coolBlue, colorScheme: .dark)
-            FormaThemeAccess.update(resolved: coolResolved)
+            let emeraldResolved = makeResolved(palette: .emeraldGreen, colorScheme: .dark)
+            FormaThemeAccess.update(resolved: emeraldResolved)
             assertSameColor(
                 FormaTokens.Color.accent,
-                FormaPaletteCatalog.palette(for: .coolBlue, colorScheme: .dark).accent
+                FormaPaletteCatalog.palette(for: .emeraldGreen, colorScheme: .dark).accent
             )
 
             XCTAssertGreaterThan(
-                colorDistance(FormaTokens.Color.accent, pinkResolved.colors.accent),
+                colorDistance(FormaTokens.Color.accent, blossomResolved.colors.accent),
                 0
             )
         }
@@ -98,7 +98,7 @@ final class FormaTokensColorTests: XCTestCase {
             XCTAssertTrue(FormaBrandColorTokens.approvedTokenIDs.contains("googleSignIn.border"))
 
             // Accent follows theme; Google fill/label stay brand-fixed.
-            let pinkResolved = makeResolved(palette: .pink, colorScheme: .dark)
+            let pinkResolved = makeResolved(palette: .blossomPink, colorScheme: .dark)
             FormaThemeAccess.update(resolved: pinkResolved)
             assertSameColor(FormaTokens.Color.googleButtonBackground, approved.background)
             assertSameColor(FormaTokens.Color.googleButtonForeground, approved.foreground)
@@ -115,7 +115,7 @@ final class FormaTokensColorTests: XCTestCase {
 
     func testThemeColorProviderMatchesFormaTokensAfterRootUpdate() async {
         await MainActor.run {
-            let resolved = makeResolved(palette: .coolBlue, colorScheme: .light)
+            let resolved = makeResolved(palette: .emeraldGreen, colorScheme: .light)
             FormaThemeAccess.update(resolved: resolved)
 
             let providerColors = ThemeColorProvider.colors(from: resolved)

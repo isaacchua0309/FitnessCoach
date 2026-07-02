@@ -43,7 +43,7 @@ struct FormaLabeledField: View {
             .textInputAutocapitalization(capitalization)
             .font(FormaTokens.Typography.bodyMedium)
             .foregroundStyle(FormaTokens.Color.textPrimary)
-            .tint(FormaTokens.Color.accent)
+            .tint(FormaTokens.Theme.primary)
             .padding(.horizontal, FormaTokens.Spacing.sm + 2)
             .padding(.vertical, FormaTokens.Spacing.sm)
             .background(fieldBackground)
@@ -86,7 +86,7 @@ struct FormaLabeledNumberField: View {
                     .keyboardType(keyboard)
                     .font(FormaTokens.Typography.bodyMedium)
                     .foregroundStyle(FormaTokens.Color.textPrimary)
-                    .tint(FormaTokens.Color.accent)
+                    .tint(FormaTokens.Theme.primary)
                     .multilineTextAlignment(.leading)
 
                 if let unit {
@@ -134,7 +134,7 @@ struct FormaInlineNumberField: View {
                     .keyboardType(keyboard)
                     .font(FormaTokens.Typography.bodyMedium)
                     .foregroundStyle(FormaTokens.Color.textPrimary)
-                    .tint(FormaTokens.Color.accent)
+                    .tint(FormaTokens.Theme.primary)
                     .multilineTextAlignment(.center)
 
                 if let unit {

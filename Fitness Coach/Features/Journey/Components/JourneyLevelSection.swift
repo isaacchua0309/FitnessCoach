@@ -34,7 +34,7 @@ struct JourneyLevelSection: View {
 
                 Text(state.levelTitle)
                     .font(FormaTokens.Typography.sectionSubtitle)
-                    .foregroundStyle(FormaTokens.Color.accent)
+                    .foregroundStyle(FormaTokens.Theme.primary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .accessibilityElement(children: .combine)

@@ -104,34 +104,8 @@ private struct TodayMacroBalanceMetricsCard<Content: View>: View {
             .padding(.horizontal, FormaTokens.Spacing.md)
             .padding(.vertical, FormaTokens.Spacing.xs)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(macroBalanceCardBackground())
+            .background(FormaCardChrome.background(.accentLeading))
     }
-}
-
-private func macroBalanceCardBackground() -> some View {
-    RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-        .fill(FormaTokens.Color.surface)
-        .overlay {
-            RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            FormaTokens.Color.accent.opacity(0.22),
-                            FormaTokens.Color.border
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
-        }
-        .overlay(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(FormaTokens.Color.accent.opacity(0.55))
-                .frame(width: 3)
-                .padding(.vertical, FormaTokens.Spacing.sm)
-                .padding(.leading, 1)
-        }
 }
 
 #Preview("Macro balance") {

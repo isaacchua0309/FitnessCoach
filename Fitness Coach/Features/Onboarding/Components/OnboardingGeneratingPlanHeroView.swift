@@ -55,8 +55,8 @@ struct OnboardingGeneratingPlanHeroView: View {
             .fill(
                 RadialGradient(
                     colors: [
-                        OnboardingTheme.accent.opacity(style == .failure ? 0.08 : 0.22),
-                        OnboardingTheme.accent.opacity(0.04),
+                        OnboardingTheme.warning.opacity(style == .failure ? 0.08 : 0.22),
+                        OnboardingTheme.warning.opacity(0.04),
                         .clear
                     ],
                     center: .center,
@@ -129,10 +129,8 @@ struct OnboardingGeneratingPlanHeroView: View {
 
     private var ringColor: Color {
         switch style {
-        case .generating:
-            return OnboardingTheme.accent
-        case .success:
-            return OnboardingTheme.accent
+        case .generating, .success:
+            return OnboardingTheme.progress
         case .failure:
             return OnboardingTheme.warning
         }

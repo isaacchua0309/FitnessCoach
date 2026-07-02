@@ -26,7 +26,7 @@ struct ProfilePlanConflictView: View {
                 VStack(spacing: FormaTokens.Spacing.md) {
                     Image(systemName: "arrow.triangle.2.circlepath")
                         .font(.system(size: 40, weight: .semibold))
-                        .foregroundStyle(OnboardingTheme.accent)
+                        .foregroundStyle(OnboardingTheme.warning)
                         .accessibilityHidden(true)
 
                     Text(copy.title)

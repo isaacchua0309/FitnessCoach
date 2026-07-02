@@ -45,9 +45,15 @@ enum ThemeSettingsSelectionAccessibilityPolicy {
     /// Selected rows expose `.isSelected` for VoiceOver.
     static let includesSelectedTraitForSelectedState = true
 
-    /// Selected rows include the word "selected" in the accessibility label.
+    /// Selected palette cards include the word "selected" in the accessibility label.
     static let includesSelectedInAccessibilityLabel = true
 
-    /// Selected rows use a thicker `borderSelected` stroke (1.4pt) in addition to fill tint.
+    /// Unselected palette cards include the phrase "not selected" in the accessibility label.
+    static let includesNotSelectedInAccessibilityLabel = true
+
+    /// Selected rows use a thicker border stroke in addition to fill tint.
     static let includesBorderForSelectedState = true
+
+    /// Premium picker cards meet the minimum 44pt touch target.
+    static let meetsMinimumTouchTarget = true
 }
