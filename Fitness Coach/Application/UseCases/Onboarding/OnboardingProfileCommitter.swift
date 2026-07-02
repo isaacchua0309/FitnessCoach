@@ -29,17 +29,18 @@ struct OnboardingProfileCommitter {
             throw OnboardingProfileCommitError.missingGeneratedPlan
         }
 
-        if try userProfileReader.getCurrentProfile() != nil {
-            return false
-        }
-
         var mutableForm = formState
         mutableForm.applyTrainingRhythmDefaultsForCurrentActivity()
         let draft = try mutableForm.makeUserProfileDraft(targets: generatedPlan.targets)
         if draft.birthDate == nil {
             throw OnboardingProfileCommitError.missingBirthDate
         }
-        _ = try actionCenter.createProfile(draft)
+
+        if try userProfileReader.getCurrentProfile() != nil {
+            _ = try actionCenter.replaceProfile(draft, ownerUID: nil)
+        } else {
+            _ = try actionCenter.createProfile(draft)
+        }
         return true
     }
 

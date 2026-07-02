@@ -162,6 +162,14 @@ final class FitnessActionCenter {
     }
 
     @discardableResult
+    func replaceProfile(_ draft: UserProfileDraft, ownerUID: String? = nil) throws -> UserProfile {
+        let profile = try userProfileService.replaceLocalProfile(with: draft, ownerUID: ownerUID)
+        try dailyLogService.syncTodayTargetsFromProfile()
+        notifyDataChanged()
+        return profile
+    }
+
+    @discardableResult
     func updatePlan(_ update: UserProfileUpdate) throws -> UserProfile {
         let profile = try userProfileService.updateProfile(update)
         if update.targets != nil {
