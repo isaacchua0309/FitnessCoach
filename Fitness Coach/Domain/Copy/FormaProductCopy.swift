@@ -1354,8 +1354,6 @@ enum FormaProductCopy {
 
         static let showCarbsAndFat = "Show carbs & fat"
         static let hideCarbsAndFat = "Hide carbs & fat"
-        static let syncAccessibilityLabel = "Sync today"
-        static let syncAccessibilityHint = "Reloads your local food, water, and workout log."
     }
 
     // MARK: - Training

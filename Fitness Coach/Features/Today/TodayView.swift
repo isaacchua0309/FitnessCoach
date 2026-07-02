@@ -48,21 +48,6 @@ struct TodayView: View {
         NavigationStack {
             content
                 .navigationTitle("Today")
-                .toolbar {
-                    #if DEBUG
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            Task { await refreshDashboard() }
-                        } label: {
-                            Image(systemName: "arrow.clockwise")
-                                .font(FormaTokens.Typography.caption)
-                                .foregroundStyle(FormaTokens.Color.textTertiary)
-                        }
-                        .accessibilityLabel(FormaProductCopy.Today.syncAccessibilityLabel)
-                        .accessibilityHint(FormaProductCopy.Today.syncAccessibilityHint)
-                    }
-                    #endif
-                }
                 .task {
                     await trainingInsightsStore.refresh()
                     await model.loadToday(activityContext: currentActivityContext)
