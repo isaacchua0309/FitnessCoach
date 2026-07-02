@@ -157,9 +157,8 @@ final class CoachPendingCopyTests: XCTestCase {
         )
 
         XCTAssertTrue(message.contains("413 kcal"))
-        XCTAssertTrue(message.contains("chicken breast"))
-        XCTAssertTrue(message.contains("barley rice"))
-        XCTAssertTrue(message.contains("150"))
+        XCTAssertTrue(message.contains("Chicken breast — 150g"))
+        XCTAssertTrue(message.contains("Barley rice — 150g"))
         XCTAssertFalse(message.contains(FormaProductCopy.Coach.foodEditIngredientsFooter))
     }
 }

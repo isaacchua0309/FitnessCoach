@@ -62,7 +62,7 @@ struct AIFoodConfirmationSheet: View {
 
                     if formState.isMultiComponent {
                         componentsSection
-                        totalsSection
+                        multiComponentNutritionSection
                     } else if !formState.componentStates.isEmpty {
                         singleComponentSection(index: 0)
                     }
@@ -105,28 +105,36 @@ struct AIFoodConfirmationSheet: View {
     }
 
     private var componentsSection: some View {
-        FormaFormCard(title: "Ingredients") {
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
-                ForEach($formState.componentStates) { $component in
-                    FoodComponentEditCard(component: $component)
+        FormaFormCard(title: FormaProductCopy.FoodForm.componentsSection) {
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+                ForEach(Array(formState.componentStates.enumerated()), id: \.element.id) { index, component in
+                    FoodComponentReadOnlyRow(
+                        line: component.portionLine,
+                        index: index + 1
+                    )
                 }
             }
         }
     }
 
-    private var totalsSection: some View {
+    private var multiComponentNutritionSection: some View {
         FormaFormCard(title: FormaProductCopy.FoodForm.nutritionSection) {
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-                Text("\(formState.totalCalories) kcal total")
-                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                Text("Totals are calculated from the ingredients above.")
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+                Text("Total meal nutrition")
                     .font(FormaTokens.Typography.caption)
                     .foregroundStyle(FormaTokens.Color.textSecondary)
+
+                FormaMacroInputGrid(
+                    caloriesText: $formState.totalCaloriesText,
+                    proteinText: $formState.totalProteinText,
+                    carbsText: $formState.totalCarbsText,
+                    fatText: $formState.totalFatText
+                )
             }
         }
     }
 
-    private func singleComponentSection(index: Int) -> some View {
+    private var mealTypeBinding: Binding<MealType> {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.sectionSpacing) {
             FormaFormCard(title: FormaProductCopy.FoodForm.portionSection) {
                 HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
@@ -172,61 +180,23 @@ struct AIFoodConfirmationSheet: View {
     }
 }
 
-private struct FoodComponentEditCard: View {
-    @Binding var component: FoodComponentFormState
+private struct FoodComponentReadOnlyRow: View {
+    let line: String
+    let index: Int
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-            FormaLabeledField(
-                title: FormaProductCopy.FoodForm.foodName,
-                placeholder: FormaProductCopy.FoodForm.foodNamePlaceholder,
-                text: $component.name,
-                capitalization: .words
-            )
+        HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
+            Text("\(index).")
+                .font(FormaTokens.Typography.body.weight(.semibold))
+                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .frame(width: 20, alignment: .trailing)
 
-            HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
-                FormaLabeledNumberField(
-                    title: FormaProductCopy.FoodForm.amount,
-                    placeholder: FormaProductCopy.FoodForm.amountPlaceholder,
-                    text: $component.quantityText,
-                    keyboard: .decimalPad
-                )
-                FormaLabeledField(
-                    title: FormaProductCopy.FoodForm.unit,
-                    placeholder: FormaProductCopy.FoodForm.unitPlaceholder,
-                    text: $component.unit,
-                    capitalization: .never
-                )
-            }
-
-            FormaLabeledField(
-                title: "Preparation",
-                placeholder: "cooked, raw, etc.",
-                text: $component.preparationState,
-                capitalization: .never
-            )
-
-            FormaMacroInputGrid(
-                caloriesText: $component.caloriesText,
-                proteinText: $component.proteinText,
-                carbsText: $component.carbsText,
-                fatText: $component.fatText
-            )
-
-            if !component.sourceText.isEmpty {
-                Text(component.sourceText)
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
-            }
+            Text(line)
+                .font(FormaTokens.Typography.body)
+                .foregroundStyle(FormaTokens.Color.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(FormaTokens.Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                .fill(FormaTokens.Color.surface)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                .stroke(FormaTokens.Color.border, lineWidth: 1)
-        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Component \(index): \(line)")
     }
 }

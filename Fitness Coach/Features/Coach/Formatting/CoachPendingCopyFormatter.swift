@@ -163,21 +163,7 @@ enum CoachPendingCopyFormatter {
 
     private static func componentSummaryLines(for mealDraft: FoodLogDraft) -> [String] {
         guard mealDraft.isMultiComponent else { return [] }
-        return mealDraft.components.map(componentLine)
-    }
-
-    private static func componentLine(_ component: FoodComponent) -> String {
-        var parts: [String] = [component.name]
-        if let quantity = component.quantity,
-           let unit = component.unit?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !unit.isEmpty {
-            let amount = FoodEntryFormFormatter.formatOptionalDouble(quantity) ?? "\(quantity)"
-            parts.append("(\(amount) \(unit))")
-        } else if let preparation = component.preparationState, !preparation.isEmpty {
-            parts.append("(\(preparation))")
-        }
-        parts.append("· \(component.calories) kcal")
-        return "• " + parts.joined(separator: " ")
+        return mealDraft.components.map(FoodComponentDisplayFormatter.summaryLine)
     }
 
     private static func naturalFoodName(_ name: String) -> String {

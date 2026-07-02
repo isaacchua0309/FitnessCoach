@@ -14,6 +14,10 @@ enum FoodLogDraftNutritionCompleter {
         result.components = meal.components.map {
             sanitizeComponent($0, hintText: hintText)
         }
+        result.displayName = FoodMealDisplayNameFormatter.readableDisplayName(
+            proposed: result.displayName,
+            components: result.components
+        )
         result = clearMixedMealPortionFields(result)
         return FoodLogDraftMapper.reconcileTotals(result)
     }
