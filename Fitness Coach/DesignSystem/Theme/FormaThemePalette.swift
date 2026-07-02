@@ -30,6 +30,7 @@ struct FormaThemePalette: Equatable, Sendable {
     let previewSwatchAccent: Color
     let previewSwatchSurface: Color
     let previewSwatchCanvas: Color
+    let iconSymbol: String
 
     var previewSwatches: [Color] {
         [previewSwatchAccent, previewSwatchSurface, previewSwatchCanvas]

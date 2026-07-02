@@ -113,7 +113,7 @@ struct MainTabView: View {
                 }
             .tag(AppTab.plan)
         }
-        .tint(FormaTokens.Color.accent)
+        .tint(FormaTokens.Theme.primary)
         .environmentObject(container.refreshCenter)
         .environmentObject(container.trainingInsightsStore)
         .environmentObject(container.trainingInsightsModel)

@@ -96,7 +96,7 @@ struct OnboardingPlanRevealHeroIllustration: View {
                 Circle()
                     .trim(from: 0, to: 1)
                     .stroke(
-                        OnboardingTheme.accent,
+                        OnboardingTheme.progress,
                         style: StrokeStyle(lineWidth: ringLineWidth, lineCap: .round)
                     )
                     .frame(width: ringDiameter, height: ringDiameter)
@@ -105,12 +105,12 @@ struct OnboardingPlanRevealHeroIllustration: View {
                 Circle()
                     .trim(from: 0, to: 0.82)
                     .stroke(
-                        OnboardingTheme.accent,
+                        OnboardingTheme.progress,
                         style: StrokeStyle(lineWidth: ringLineWidth, lineCap: .round)
                     )
                     .frame(width: ringDiameter, height: ringDiameter)
                     .rotationEffect(.degrees(-118))
-                    .shadow(color: OnboardingTheme.accent.opacity(0.3), radius: 6, y: 2)
+                    .shadow(color: OnboardingTheme.primary.opacity(0.3), radius: 6, y: 2)
             }
         }
     }
@@ -121,7 +121,7 @@ struct OnboardingPlanRevealHeroIllustration: View {
         case .successHandoff:
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: ringDiameter * 0.42, weight: .semibold))
-                .foregroundStyle(OnboardingTheme.accent)
+                .foregroundStyle(OnboardingTheme.primary)
                 .symbolRenderingMode(.hierarchical)
         case let .destination(direction):
             destinationGlyph(direction)

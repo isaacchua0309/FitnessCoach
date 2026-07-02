@@ -82,6 +82,7 @@ struct OnboardingHeightWeightStepView: View {
             Text(FormaProductCopy.Onboarding.V2.Body.unitImperialLabel).tag(UnitSystem.imperial)
         }
         .pickerStyle(.segmented)
+        .tint(OnboardingTheme.primary)
         .accessibilityLabel(FormaProductCopy.Onboarding.V2.Body.unitSectionTitle)
     }
 

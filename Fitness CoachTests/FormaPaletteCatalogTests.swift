@@ -165,15 +165,24 @@ final class FormaPaletteCatalogTests: XCTestCase {
         }
     }
 
-    func testThemeDarkCanvasesAreDistinct() {
+    func testThemeDarkCanvasesAreNeutralAcrossPalettes() {
         let oceanCanvas = FormaPaletteCatalog.palette(for: .oceanBlue, colorScheme: .dark).canvas
         let blossomCanvas = FormaPaletteCatalog.palette(for: .blossomPink, colorScheme: .dark).canvas
         let emeraldCanvas = FormaPaletteCatalog.palette(for: .emeraldGreen, colorScheme: .dark).canvas
-        let sunsetCanvas = FormaPaletteCatalog.palette(for: .sunsetOrange, colorScheme: .dark).canvas
 
-        XCTAssertGreaterThan(colorDistance(oceanCanvas, blossomCanvas), 0.03)
-        XCTAssertGreaterThan(colorDistance(oceanCanvas, emeraldCanvas), 0.02)
-        XCTAssertGreaterThan(colorDistance(blossomCanvas, sunsetCanvas), 0.03)
+        XCTAssertEqual(oceanCanvas, blossomCanvas)
+        XCTAssertEqual(blossomCanvas, emeraldCanvas)
+    }
+
+    func testThemePrimaryColorsAreDistinctAcrossPalettes() {
+        let oceanPrimary = ThemePaletteCatalog.palette(for: .oceanBlue, colorScheme: .dark).primary
+        let blossomPrimary = ThemePaletteCatalog.palette(for: .blossomPink, colorScheme: .dark).primary
+        let emeraldPrimary = ThemePaletteCatalog.palette(for: .emeraldGreen, colorScheme: .dark).primary
+        let sunsetPrimary = ThemePaletteCatalog.palette(for: .sunsetOrange, colorScheme: .dark).primary
+
+        XCTAssertGreaterThan(colorDistance(oceanPrimary, blossomPrimary), 0.08)
+        XCTAssertGreaterThan(colorDistance(oceanPrimary, emeraldPrimary), 0.08)
+        XCTAssertGreaterThan(colorDistance(blossomPrimary, sunsetPrimary), 0.08)
     }
 
     func testSecondaryTextReadableOnLightSurfaces() {

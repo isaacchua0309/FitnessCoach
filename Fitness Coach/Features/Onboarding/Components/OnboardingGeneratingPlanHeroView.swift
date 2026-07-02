@@ -129,10 +129,8 @@ struct OnboardingGeneratingPlanHeroView: View {
 
     private var ringColor: Color {
         switch style {
-        case .generating:
-            return OnboardingTheme.accent
-        case .success:
-            return OnboardingTheme.accent
+        case .generating, .success:
+            return OnboardingTheme.progress
         case .failure:
             return OnboardingTheme.warning
         }

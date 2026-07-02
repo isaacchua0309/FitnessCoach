@@ -19,7 +19,8 @@ struct FormaRootThemeModifier: ViewModifier {
             .preferredColorScheme(state.preferredColorScheme)
             .environment(\.formaResolvedTheme, state.resolved)
             .environment(\.formaThemePalette, state.legacyPalette)
-            .tint(state.resolved.colors.accent)
+            .environment(\.themePalette, state.resolved.themePalette)
+            .tint(state.resolved.themePalette.primary)
     }
 }
 

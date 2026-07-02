@@ -29,7 +29,7 @@ final class OnboardingThemeTokenTests: XCTestCase {
             let palette = FormaPaletteCatalog.palette(for: .oceanBlue, colorScheme: .dark)
 
             ThemeTestSupport.assertSameColor(OnboardingTheme.background, palette.canvas)
-            ThemeTestSupport.assertSameColor(OnboardingTheme.accent, palette.accent)
+            ThemeTestSupport.assertSameColor(OnboardingTheme.primary, palette.accent)
             ThemeTestSupport.assertSameColor(OnboardingTheme.progress, palette.progress)
             ThemeTestSupport.assertSameColor(OnboardingTheme.chartPrimary, palette.chartPrimary)
             ThemeTestSupport.assertSameColor(OnboardingTheme.ctaBackground, palette.ctaBackground)
@@ -107,13 +107,13 @@ final class OnboardingThemeTokenTests: XCTestCase {
     func testOnboardingThemeRecomputesWhenPaletteChanges() async {
         await MainActor.run {
             ThemeTestSupport.resetThemeAccessToProductDefault()
-            let defaultAccent = OnboardingTheme.accent
+            let defaultPrimary = OnboardingTheme.primary
 
             FormaThemeAccess.update(resolved: ThemeTestSupport.makeResolved(palette: .blossomPink, systemColorScheme: .dark))
-            XCTAssertGreaterThan(ThemeTestSupport.colorDistance(OnboardingTheme.accent, defaultAccent), 0.08)
+            XCTAssertGreaterThan(ThemeTestSupport.colorDistance(OnboardingTheme.primary, defaultPrimary), 0.08)
 
             ThemeTestSupport.resetThemeAccessToProductDefault()
-            ThemeTestSupport.assertSameColor(OnboardingTheme.accent, defaultAccent)
+            ThemeTestSupport.assertSameColor(OnboardingTheme.primary, defaultPrimary)
         }
     }
 

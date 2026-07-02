@@ -85,6 +85,7 @@ struct WeightLossPaceSettingsView: View {
                 }
             }
             .pickerStyle(.segmented)
+            .tint(FormaTokens.Theme.primary)
 
             FormaLabeledNumberField(
                 title: advancedDraft.period.fieldTitle,

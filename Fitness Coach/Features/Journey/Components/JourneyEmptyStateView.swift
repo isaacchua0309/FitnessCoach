@@ -25,7 +25,7 @@ struct JourneyEmptyStateView: View {
 
             Button(FormaProductCopy.Common.refresh, action: onRefresh)
                 .buttonStyle(.bordered)
-                .tint(FormaTokens.Color.accent)
+                .tint(FormaTokens.Theme.primary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()

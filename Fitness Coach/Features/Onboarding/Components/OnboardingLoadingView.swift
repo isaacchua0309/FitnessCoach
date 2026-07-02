@@ -13,7 +13,7 @@ struct OnboardingLoadingView: View {
     var body: some View {
         VStack(spacing: 14) {
             SwiftUI.ProgressView()
-                .tint(OnboardingTheme.accent)
+                .tint(OnboardingTheme.primary)
 
             Text(message)
                 .font(.subheadline.weight(.medium))

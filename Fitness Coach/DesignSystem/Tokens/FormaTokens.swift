@@ -81,6 +81,42 @@ enum FormaTokens {
         static var borderSelected: SwiftUI.Color { active.borderSelected }
     }
 
+    // MARK: - Theme (canonical accent tokens)
+
+    /// User-selectable theme accent tokens from `ThemePaletteCatalog`.
+    ///
+    /// Use for primary buttons, tab selection, progress, charts, toggles, and picker selection.
+    /// Do **not** use for canvas, primary text, destructive, warning, or error surfaces.
+    enum Theme {
+        @MainActor
+        private static var palette: ThemePalette { FormaThemeAccess.currentThemePalette }
+
+        @MainActor
+        static var primary: SwiftUI.Color { palette.primary }
+        @MainActor
+        static var secondary: SwiftUI.Color { palette.secondary }
+        @MainActor
+        static var accent: SwiftUI.Color { palette.accent }
+        @MainActor
+        static var gradientStart: SwiftUI.Color { palette.gradientStart }
+        @MainActor
+        static var gradientEnd: SwiftUI.Color { palette.gradientEnd }
+        @MainActor
+        static var softBackground: SwiftUI.Color { palette.softBackground }
+        @MainActor
+        static var cardTint: SwiftUI.Color { palette.cardTint }
+        @MainActor
+        static var borderTint: SwiftUI.Color { palette.borderTint }
+        @MainActor
+        static var textOnAccent: SwiftUI.Color { palette.textOnAccent }
+        @MainActor
+        static var iconSymbol: String { palette.iconSymbol }
+        @MainActor
+        static var primaryButtonBackground: SwiftUI.Color { palette.primaryButtonBackground }
+        @MainActor
+        static var primaryGradient: LinearGradient { palette.primaryGradient }
+    }
+
     // MARK: - Spacing
 
     enum Spacing {

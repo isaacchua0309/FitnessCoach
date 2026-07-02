@@ -96,7 +96,7 @@ struct TodayMetricProgressBar: View {
 
                 RoundedRectangle(cornerRadius: 2, style: .continuous)
                     .fill(
-                        FormaTokens.Color.accent.opacity(subdued ? 0.42 : 0.78)
+                        FormaTokens.Theme.primary.opacity(subdued ? 0.42 : 0.78)
                     )
                     .frame(width: max(geometry.size.width * clampedProgress, clampedProgress > 0 ? 3 : 0))
             }

@@ -29,6 +29,8 @@ enum HardcodedColorGuard {
 
     /// Files that may contain raw `Color(red:)` / brand literals.
     static let approvedFileNames: Set<String> = [
+        "ThemePaletteCatalog.swift",
+        "NeutralAppearanceColors.swift",
         "FormaPaletteCatalog.swift",
         "FormaBrandColorTokens.swift",
         "FormaColorContrast.swift"

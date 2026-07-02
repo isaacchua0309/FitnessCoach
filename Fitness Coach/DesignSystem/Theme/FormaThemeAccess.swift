@@ -12,18 +12,20 @@ import SwiftUI
 /// **Tradeoff:** SwiftUI environment is only available inside `View` bodies. Static token access
 /// (`FormaTokens.Color.accent`) reads `currentColors`, which `FormaRootThemeModifier` updates
 /// synchronously at the app root. Until the first root update, values fall back to
-/// `ThemeColorProvider.productDefault`. Prefer `@Environment(\.formaColors)` in new views.
+/// `ThemeColorProvider.productDefault`. Prefer `@Environment(\.themePalette)` in new views.
 @MainActor
 enum FormaThemeAccess {
     private(set) static var currentResolvedTheme: ResolvedAppTheme = ResolvedAppTheme.resolve(
         preferences: .default,
         systemColorScheme: .dark
     )
+    private(set) static var currentThemePalette: ThemePalette = FormaPaletteCatalog.defaultThemePalette
     private(set) static var currentColors: FormaThemeColors = ThemeColorProvider.productDefault
     private(set) static var currentPalette: FormaThemePalette = .defaultOceanBlue
 
     static func update(resolved: ResolvedAppTheme) {
         currentResolvedTheme = resolved
+        currentThemePalette = resolved.themePalette
         currentColors = ThemeColorProvider.colors(from: resolved)
         currentPalette = FormaPaletteCatalog.legacyThemePalette(
             for: resolved.preferences.palette,
@@ -33,6 +35,7 @@ enum FormaThemeAccess {
 
     static func update(colors: FormaThemeColors, legacyPalette: FormaThemePalette) {
         currentColors = colors
+        currentThemePalette = colors.themePalette
         currentPalette = legacyPalette
     }
 

@@ -15,6 +15,7 @@ final class FormaThemeEnvironmentTests: XCTestCase {
         let environment = EnvironmentValues()
         XCTAssertEqual(environment.formaResolvedTheme.preferences, .default)
         XCTAssertEqual(environment.formaColors, FormaThemeEnvironment.defaultResolvedTheme.colors)
+        XCTAssertEqual(environment.themePalette, FormaThemeEnvironment.defaultResolvedTheme.themePalette)
         XCTAssertEqual(environment.formaResolvedTheme.colors, environment.formaColors)
     }
 
@@ -27,6 +28,7 @@ final class FormaThemeEnvironmentTests: XCTestCase {
         environment.formaResolvedTheme = resolved
 
         XCTAssertEqual(environment.formaColors, resolved.colors)
+        XCTAssertEqual(environment.themePalette, resolved.themePalette)
         XCTAssertEqual(environment.formaResolvedTheme, resolved)
     }
 

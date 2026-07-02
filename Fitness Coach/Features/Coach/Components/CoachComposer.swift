@@ -114,9 +114,9 @@ struct CoachComposer: View {
             Button(action: performSend) {
                 Image(systemName: "arrow.up")
                     .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(CoachDesignTokens.Color.background)
+                    .foregroundStyle(CoachDesignTokens.Color.textOnAccent)
                     .frame(width: 30, height: 30)
-                    .background(CoachDesignTokens.Color.accent, in: Circle())
+                    .background(CoachDesignTokens.Color.gradientStart, in: Circle())
             }
             .buttonStyle(CoachComposerButtonStyle())
             .transition(.scale(scale: 0.85).combined(with: .opacity))

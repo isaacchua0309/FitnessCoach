@@ -19,7 +19,7 @@ extension View {
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
             .background(FormaTokens.Color.canvas.ignoresSafeArea())
-            .tint(FormaTokens.Color.accent)
+            .tint(FormaTokens.Theme.primary)
     }
 
     func formaScrollBottomInset() -> some View {

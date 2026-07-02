@@ -100,7 +100,7 @@ struct JourneyDetailedAnalyticsSection: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .tint(FormaTokens.Color.accent)
+            .tint(FormaTokens.Theme.primary)
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(FormaProductCopy.Journey.DetailedAnalytics.title)

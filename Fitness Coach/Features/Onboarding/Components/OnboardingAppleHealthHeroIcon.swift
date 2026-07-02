@@ -28,7 +28,7 @@ struct OnboardingAppleHealthHeroIcon: View {
             case .loading:
                 SwiftUI.ProgressView()
                     .controlSize(.regular)
-                    .tint(OnboardingTheme.accent)
+                    .tint(OnboardingTheme.primary)
             case .success:
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: iconSize, weight: .semibold))

@@ -23,6 +23,7 @@ struct UnitsSettingsScreen: View {
                     }
                 }
                 .disabled(isSaving)
+                .tint(FormaTokens.Theme.primary)
                 .formaSettingsRowChrome()
             } footer: {
                 Text("Values are stored in metric internally. Imperial is a display preference for now.")

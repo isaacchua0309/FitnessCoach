@@ -38,6 +38,20 @@ enum OnboardingTheme {
     @MainActor
     static var accent: Color { colors.accent }
     @MainActor
+    static var primary: Color { colors.themePalette.primary }
+    @MainActor
+    static var secondary: Color { colors.themePalette.secondary }
+    @MainActor
+    static var highlightAccent: Color { colors.themePalette.accent }
+    @MainActor
+    static var gradientStart: Color { colors.themePalette.gradientStart }
+    @MainActor
+    static var gradientEnd: Color { colors.themePalette.gradientEnd }
+    @MainActor
+    static var softBackground: Color { colors.themePalette.softBackground }
+    @MainActor
+    static var textOnAccent: Color { colors.themePalette.textOnAccent }
+    @MainActor
     static var accentMuted: Color { colors.accentMuted }
     @MainActor
     static var ctaBackground: Color { colors.ctaBackground }

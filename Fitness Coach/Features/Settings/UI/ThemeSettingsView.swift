@@ -97,7 +97,7 @@ private struct ThemeAppearanceOptionRow: View {
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(FormaTokens.Typography.body.weight(.semibold))
-                        .foregroundStyle(FormaTokens.Color.accent)
+                        .foregroundStyle(FormaTokens.Theme.primary)
                         .accessibilityHidden(true)
                 }
             }
@@ -107,10 +107,10 @@ private struct ThemeAppearanceOptionRow: View {
             .background {
                 if isSelected {
                     RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                        .fill(FormaTokens.Color.accentMuted)
+                        .fill(FormaTokens.Theme.softBackground)
                         .overlay {
                             RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                                .stroke(FormaTokens.Color.borderSelected, lineWidth: 1.4)
+                                .stroke(FormaTokens.Theme.primary.opacity(0.72), lineWidth: 1.4)
                         }
                 }
             }
@@ -134,6 +134,12 @@ private struct ThemeColorPaletteOptionRow: View {
         Button(action: onSelect) {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
+                    Image(systemName: previewPalette.iconSymbol)
+                        .font(.title3)
+                        .foregroundStyle(FormaTokens.Theme.primary)
+                        .frame(width: 28, height: 28)
+                        .accessibilityHidden(true)
+
                     VStack(alignment: .leading, spacing: 4) {
                         Text(palette.displayName)
                             .font(FormaTokens.Typography.body)
@@ -151,7 +157,7 @@ private struct ThemeColorPaletteOptionRow: View {
                     if isSelected {
                         Image(systemName: "checkmark.circle.fill")
                             .font(FormaTokens.Typography.body.weight(.semibold))
-                            .foregroundStyle(FormaTokens.Color.accent)
+                            .foregroundStyle(FormaTokens.Theme.primary)
                             .accessibilityHidden(true)
                     }
                 }
@@ -164,10 +170,10 @@ private struct ThemeColorPaletteOptionRow: View {
             .background {
                 if isSelected {
                     RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                        .fill(FormaTokens.Color.accentMuted)
+                        .fill(FormaTokens.Theme.softBackground)
                         .overlay {
                             RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                                .stroke(FormaTokens.Color.borderSelected, lineWidth: 1.4)
+                                .stroke(FormaTokens.Theme.primary.opacity(0.72), lineWidth: 1.4)
                         }
                 }
             }

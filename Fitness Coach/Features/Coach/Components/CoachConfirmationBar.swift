@@ -19,7 +19,7 @@ struct CoachConfirmationBar: View {
             HStack(alignment: .top, spacing: CoachDesignTokens.Spacing.sm) {
                 Image(systemName: iconName)
                     .font(.title3)
-                    .foregroundStyle(CoachDesignTokens.Color.accent)
+                    .foregroundStyle(CoachDesignTokens.Color.primary)
 
                 VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.xxs) {
                     Text(confirmation.kindLabel)
@@ -55,7 +55,7 @@ struct CoachConfirmationBar: View {
                 } label: {
                     if isConfirming {
                         SwiftUI.ProgressView()
-                            .tint(CoachDesignTokens.Color.background)
+                            .tint(CoachDesignTokens.Color.textOnAccent)
                     } else {
                         Text(confirmLabel)
                     }
@@ -101,10 +101,10 @@ private struct CoachConfirmationPrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(CoachDesignTokens.Typography.confirmationMetric.weight(.semibold))
-            .foregroundStyle(CoachDesignTokens.Color.background)
+            .foregroundStyle(CoachDesignTokens.Color.textOnAccent)
             .padding(.horizontal, CoachDesignTokens.Spacing.md)
             .padding(.vertical, CoachDesignTokens.Spacing.xs)
-            .background(CoachDesignTokens.Color.accent, in: Capsule())
+            .background(CoachDesignTokens.Color.gradientStart, in: Capsule())
             .opacity(configuration.isPressed ? 0.85 : 1)
     }
 }
