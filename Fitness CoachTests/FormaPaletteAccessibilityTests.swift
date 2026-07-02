@@ -131,15 +131,15 @@ final class FormaPaletteAccessibilityTests: XCTestCase {
     func testThemeSettingsPaletteAccessibilityLabelsIncludeSelectionState() {
         XCTAssertEqual(
             AppThemePalette.oceanBlue.accessibilityLabel(isSelected: true),
-            "Ocean Blue, selected, Calm and focused"
+            "Ocean Blue, Calm and focused, selected"
         )
         XCTAssertEqual(
             AppThemePalette.blossomPink.accessibilityLabel(isSelected: false),
-            "Blossom Pink, Warm and friendly"
+            "Blossom Pink, Warm and friendly, not selected"
         )
         XCTAssertEqual(
             AppThemePalette.emeraldGreen.accessibilityLabel(isSelected: true),
-            "Emerald Green, selected, Fresh and healthy"
+            "Emerald Green, Fresh and healthy, selected"
         )
     }
 
@@ -147,7 +147,9 @@ final class FormaPaletteAccessibilityTests: XCTestCase {
         XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.includesCheckmarkForSelectedState)
         XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.includesSelectedTraitForSelectedState)
         XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.includesSelectedInAccessibilityLabel)
+        XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.includesNotSelectedInAccessibilityLabel)
         XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.includesBorderForSelectedState)
+        XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.meetsMinimumTouchTarget)
     }
 
     // MARK: - System accessibility settings (documented policy)

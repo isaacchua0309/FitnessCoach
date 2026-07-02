@@ -69,11 +69,11 @@ final class AppThemePaletteTests: XCTestCase {
     func testAccessibilityLabelsIncludeSelectionState() {
         XCTAssertEqual(
             AppThemePalette.blossomPink.accessibilityLabel(isSelected: true),
-            "Blossom Pink, selected, Warm and friendly"
+            "Blossom Pink, Warm and friendly, selected"
         )
         XCTAssertEqual(
             AppThemePalette.emeraldGreen.accessibilityLabel(isSelected: false),
-            "Emerald Green, Fresh and healthy"
+            "Emerald Green, Fresh and healthy, not selected"
         )
     }
 

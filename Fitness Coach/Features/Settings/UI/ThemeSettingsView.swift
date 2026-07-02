@@ -143,7 +143,10 @@ private struct ThemeAppearanceOptionRow: View {
                         .fill(FormaTokens.Theme.softBackground)
                         .overlay {
                             RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                                .stroke(FormaTokens.Theme.primary.opacity(0.72), lineWidth: 1.4)
+                                .stroke(
+                                    FormaTokens.Theme.primary.opacity(0.72),
+                                    lineWidth: ThemeSettingsPickerAccessibility.appearanceRowSelectedBorderLineWidth
+                                )
                         }
                 }
             }
@@ -163,8 +166,14 @@ private struct ThemePremiumPickerCard: View {
     let isSelected: Bool
     let onSelect: () -> Void
 
+    @ScaledMetric(relativeTo: .body) private var minCardHeight: CGFloat = FormaTokens.Layout.minTouchTarget
+
     private let cardCornerRadius = FormaCardChrome.cornerRadius
     private let previewCornerRadius: CGFloat = 10
+
+    private var resolvedMinCardHeight: CGFloat {
+        max(minCardHeight, ThemeSettingsPickerAccessibility.minimumCardTouchTarget)
+    }
 
     var body: some View {
         Button(action: onSelect) {
@@ -176,22 +185,23 @@ private struct ThemePremiumPickerCard: View {
                     ThemeColorTokenDot(color: preview.secondary)
                     ThemeColorTokenDot(color: preview.accent)
                 }
+                .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(preview.displayName)
                         .font(FormaTokens.Typography.body.weight(.semibold))
                         .foregroundStyle(FormaTokens.Color.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.9)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
 
                     Text(preview.subtitle)
                         .font(FormaTokens.Typography.sectionSubtitle)
                         .foregroundStyle(FormaTokens.Color.textSecondary)
-                        .lineLimit(2)
+                        .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: FormaTokens.Layout.minTouchTarget, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: resolvedMinCardHeight, alignment: .topLeading)
             .padding(FormaTokens.Spacing.sm)
             .background(cardBackground)
             .overlay(alignment: .topTrailing) {
@@ -200,6 +210,7 @@ private struct ThemePremiumPickerCard: View {
                         .padding(FormaTokens.Spacing.xs)
                 }
             }
+            .contentShape(RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous))
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
@@ -234,14 +245,16 @@ private struct ThemePremiumPickerCard: View {
             .overlay {
                 RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
                     .stroke(
-                        isSelected ? preview.primary.opacity(0.78) : FormaTokens.Color.border.opacity(0.55),
-                        lineWidth: isSelected ? 2 : 0.75
+                        isSelected ? preview.primary.opacity(0.88) : FormaTokens.Color.border.opacity(0.65),
+                        lineWidth: isSelected
+                            ? ThemeSettingsPickerAccessibility.premiumPickerSelectedBorderLineWidth
+                            : ThemeSettingsPickerAccessibility.premiumPickerUnselectedBorderLineWidth
                     )
             }
             .shadow(
-                color: isSelected ? preview.primary.opacity(0.28) : .clear,
-                radius: isSelected ? 10 : 0,
-                y: isSelected ? 3 : 0
+                color: isSelected ? preview.primary.opacity(0.22) : .clear,
+                radius: isSelected ? 8 : 0,
+                y: isSelected ? 2 : 0
             )
     }
 }

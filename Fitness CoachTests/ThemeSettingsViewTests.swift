@@ -86,7 +86,15 @@ final class ThemeSettingsViewTests: XCTestCase {
     func testSelectedPaletteAccessibilityLabelIncludesSelectedTraitCopy() {
         let label = AppThemePalette.blossomPink.accessibilityLabel(isSelected: true)
         XCTAssertTrue(label.contains("selected"))
+        XCTAssertFalse(label.contains("not selected"))
         XCTAssertTrue(label.contains("Blossom Pink"))
+        XCTAssertTrue(label.contains("Warm and friendly"))
+    }
+
+    func testUnselectedPaletteAccessibilityLabelIncludesNotSelectedCopy() {
+        let label = AppThemePalette.emeraldGreen.accessibilityLabel(isSelected: false)
+        XCTAssertTrue(label.contains("not selected"))
+        XCTAssertFalse(label.hasSuffix("selected"))
     }
 
     func testReloadAppliesShippingPolicyToPersistedAppearance() async {
@@ -111,7 +119,9 @@ final class ThemeSettingsViewTests: XCTestCase {
         XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.includesCheckmarkForSelectedState)
         XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.includesSelectedTraitForSelectedState)
         XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.includesSelectedInAccessibilityLabel)
+        XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.includesNotSelectedInAccessibilityLabel)
         XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.includesBorderForSelectedState)
+        XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.meetsMinimumTouchTarget)
     }
 
     func testAppearanceMatrixCoversAllPaletteCombinations() {

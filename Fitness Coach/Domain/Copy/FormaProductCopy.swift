@@ -2338,12 +2338,10 @@ enum FormaProductCopy {
                 for palette: AppThemePalette,
                 isSelected: Bool
             ) -> String {
-                let selection = isSelected ? "selected, " : ""
-                let normalizedDescription = colorPaletteDescription(for: palette)
-                    .replacingOccurrences(of: ",", with: "")
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                    .trimmingCharacters(in: CharacterSet(charactersIn: "."))
-                return "\(colorPaletteTitle(for: palette)), \(selection)\(normalizedDescription)"
+                let title = colorPaletteTitle(for: palette)
+                let description = colorPaletteDescription(for: palette)
+                let selection = isSelected ? "selected" : "not selected"
+                return "\(title), \(description), \(selection)"
             }
         }
     }
