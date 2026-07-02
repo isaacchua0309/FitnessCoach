@@ -98,35 +98,7 @@ enum FoodEstimateResponseValidator {
     // MARK: - Private
 
     private static func countListedIngredients(in text: String) -> Int {
-        let lines = text
-            .components(separatedBy: .newlines)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-
-        var count = 0
-        for line in lines {
-            if line.range(of: #"^[-*•]\s+"#, options: .regularExpression) != nil
-                || line.range(of: #"^\d+[.)]\s+"#, options: .regularExpression) != nil {
-                count += 1
-                continue
-            }
-            if line.range(
-                of: #"\d+(?:\.\d+)?\s*(?:g|gram|grams|kg|ml|tbsp|tablespoon|cup|cups)\b"#,
-                options: [.regularExpression, .caseInsensitive]
-            ) != nil {
-                count += 1
-            }
-        }
-
-        if count > 0 { return count }
-
-        let commaSeparated = text
-            .components(separatedBy: CharacterSet(charactersIn: ",;"))
-            .flatMap { $0.components(separatedBy: " and ") }
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { $0.rangeOfCharacter(from: .decimalDigits) != nil && $0.rangeOfCharacter(from: .letters) != nil }
-
-        return commaSeparated.count >= 2 ? commaSeparated.count : 0
+        FoodListedIngredientCounter.count(in: text)
     }
 
     private static func sumComponents(_ components: [FoodComponent]) -> (calories: Double, protein: Double, carbs: Double, fat: Double) {

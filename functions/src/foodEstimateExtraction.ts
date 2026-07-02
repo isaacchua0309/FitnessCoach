@@ -61,19 +61,50 @@ export function countListedIngredients(text: string): number {
       count += 1;
       continue;
     }
+    if (/\d+\s*[-–]\s*\d+\s*(?:g|gram|grams)\b/i.test(line)) {
+      count += 1;
+      continue;
+    }
     if (/\d+(?:\.\d+)?\s*(?:g|gram|grams|kg|ml|tbsp|tablespoon|cup|cups)\b/i.test(line)) {
       count += 1;
     }
   }
 
-  if (count > 0) {
+  if (count >= 2) {
     return count;
+  }
+
+  const normalized = text.replace(/\n/g, " ").trim();
+  const clauses = splitClauses(normalized).filter(Boolean);
+  const foodClauseCount = clauses.filter((part) => isFoodClause(part)).length;
+  if (foodClauseCount >= 2) {
+    return foodClauseCount;
   }
 
   const commaSeparated = text.split(/,| and /i).filter((part) =>
     /\d/.test(part) && /[a-z]/i.test(part)
   );
-  return commaSeparated.length >= 2 ? commaSeparated.length : 0;
+  return commaSeparated.length >= 2 ? commaSeparated.length : Math.max(count, 0);
+}
+
+function splitClauses(text: string): string[] {
+  return text
+    .replace(/\band\b/gi, ",")
+    .split(/,|;/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function isFoodClause(part: string): boolean {
+  if (/\d+\s*[-–]\s*\d+\s*(?:g|gram|grams)\b/i.test(part)) return true;
+  if (/\d+(?:\.\d+)?\s*(?:g|gram|grams|kg|ml|tbsp|tablespoon|cup|cups)\b/i.test(part)) {
+    return true;
+  }
+  if (/\b(one|two|a|an)\s+(bowl|plate|cup|serving)\b/i.test(part)) return true;
+  if (/\b(chicken|rice|beef|fish|egg|sauce|dressing|salad|pasta|barley)\b/i.test(part)) {
+    return true;
+  }
+  return false;
 }
 
 export function validateFoodExtraction(
