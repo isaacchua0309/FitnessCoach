@@ -340,7 +340,8 @@ enum HealthIntelligencePhase11IntegrationTestSupport {
         harness: FitnessActionCenterTestSupport.Harness,
         flags: HealthIntelligencePhase11FlagPreset,
         snapshotProvider: Phase11TrackingSnapshotService,
-        hydrationContext: TodayHydrationContext? = nil
+        hydrationContext: TodayHydrationContext? = nil,
+        healthRepository: Phase11MockHealthDataRepository? = nil
     ) -> TodayModel {
         let resolvedContext = hydrationContext ?? TodayHydrationGate.resolve(
             authState: .signedIn(uid: "test-user-1"),
@@ -357,6 +358,7 @@ enum HealthIntelligencePhase11IntegrationTestSupport {
             userProfileReader: harness.profileService,
             healthActivityQuery: harness.healthActivityQuery,
             healthIntelligenceSnapshotProvider: snapshotProvider,
+            healthDataRepository: healthRepository,
             hydrationContextProvider: { resolvedContext },
             authStateProvider: { .signedIn(uid: "test-user-1") },
             healthIntelligenceLoadEnabled: { flags.loadEnabled },
