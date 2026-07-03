@@ -2252,6 +2252,25 @@ enum FormaProductCopy {
         static func expectedPace(_ amount: String) -> String { "~\(amount)/week" }
     }
 
+    // MARK: - Plan Edit Goal
+
+    enum PlanEditGoal {
+        static let sectionTitle = "Your goal"
+        static let recommendedBadge = "Recommended"
+
+        static let loseFatTitle = "Lose Fat"
+        static let loseFatExplanation = "Reduce body fat while preserving muscle."
+        static let loseFatOutcome = "Best for cutting and improving definition."
+
+        static let maintainTitle = "Maintain"
+        static let maintainExplanation = "Keep weight stable while building consistency."
+        static let maintainOutcome = "Best for habits, recovery, and recomposition."
+
+        static let gainMuscleTitle = "Gain Muscle"
+        static let gainMuscleExplanation = "Build muscle with a controlled surplus."
+        static let gainMuscleOutcome = "Best when training performance is the priority."
+    }
+
     // MARK: - Plan Edit Hero
 
     enum PlanEditHero {

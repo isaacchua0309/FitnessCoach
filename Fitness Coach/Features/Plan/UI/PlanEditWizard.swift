@@ -174,15 +174,14 @@ struct PlanEditWizard: View {
     private var goalAndTargetWeightStep: some View {
         Group {
             Section {
-                Picker("Goal", selection: $goalType) {
-                    ForEach(PlanGoalType.allCases) { type in
-                        Text(type.rawValue).tag(type)
-                    }
-                }
-                .pickerStyle(.inline)
-                .onChange(of: goalType) { _, newValue in
-                    applyGoalType(newValue)
-                }
+                PlanGoalSelectionView(
+                    selection: $goalType,
+                    recommendedGoal: PlanGoalSelectionBuilder.recommendedGoal(for: baselineProfile),
+                    onSelect: applyGoalType
+                )
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             }
 
             Section {
