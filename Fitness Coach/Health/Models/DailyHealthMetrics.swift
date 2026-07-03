@@ -88,4 +88,14 @@ struct HealthNormalizedDayBundle: Equatable, Sendable {
     let sleepRecords: [NormalizedSleepRecord]
     let heartMetrics: [NormalizedHeartMetric]
     let bodyMassRecords: [NormalizedBodyMass]
+
+    static func empty(for date: Date, calendar: Calendar = .current) -> HealthNormalizedDayBundle {
+        HealthNormalizedDayBundle(
+            dailyMetrics: .empty(for: calendar.startOfDay(for: date)),
+            workouts: [],
+            sleepRecords: [],
+            heartMetrics: [],
+            bodyMassRecords: []
+        )
+    }
 }

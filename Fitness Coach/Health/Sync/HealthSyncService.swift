@@ -47,11 +47,12 @@ struct HealthSyncService: HealthSyncServing {
             throw HealthDataRepositoryError.permissionDenied
         }
 
+        let refresh = await repository.refreshHealthData(days: 1, endingOn: date, calendar: calendar)
         let samples = try await repository.normalizedSamples(for: date, calendar: calendar)
         return HealthSyncResult(
             date: calendar.startOfDay(for: date),
             sampleCount: samples.count,
-            syncedAt: Date()
+            syncedAt: refresh.refreshedAt
         )
     }
 
