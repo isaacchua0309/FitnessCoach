@@ -31,7 +31,7 @@ final class ExistingUserSignInTests: XCTestCase {
 
         XCTAssertEqual(errorCopy.cancelledTitle, "Sign-in cancelled")
         XCTAssertNotEqual(errorCopy.profileLookupFailedTitle, savePlanCopy.title)
-        XCTAssertNotEqual(errorCopy.profileLookupFailedMessage, savePlanCopy.signInRetryMessage)
+        XCTAssertNotEqual(errorCopy.profileLookupFailedMessage, savePlanCopy.signInRetryHeadline)
     }
 
     // MARK: - Analytics

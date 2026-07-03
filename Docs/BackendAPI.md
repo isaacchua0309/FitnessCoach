@@ -54,7 +54,7 @@ Debug, Release, and TestFlight builds all use the same hosted gateway URL baked 
 
 ### Pipeline tracing
 
-`FormaPipelineTracer` records in-memory diagnostics in DEBUG. Disk persistence remains disabled (`PipelineTracePersistence` stub).
+`FormaPipelineTracer` records in-memory diagnostics in DEBUG. Disk persistence is not used.
 
 `FormaAIBackendClient` sends the active trace UUID in the **`X-Forma-Trace-Id`** HTTP header. Firebase `aiGateway` reads that header and includes `traceId` in structured logs so client pipeline traces can be correlated with gateway/OpenAI request logs.
 

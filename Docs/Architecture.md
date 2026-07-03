@@ -467,20 +467,9 @@ Tracked for later stages. **Do not treat as blockers for feature work** — but 
 
 ### Dead previews / unused components
 
-High-confidence orphans (grep shows no production references):
+**Status (Batch 5, 2026-07):** Prior orphan rows (`PlanAdaptiveCoachSection`, `PlanSettingsSection`, `PlanLifestyleSection`, `GoalSettingsView`, `ActivitySettingsView`, legacy training dashboard) were already removed in earlier passes. No additional high-confidence orphan Swift types remain in this category.
 
-| Item | Notes |
-|------|-------|
-| `PlanAdaptiveCoachSection` | Never referenced |
-| `PlanSettingsSection` | Never referenced |
-| `PlanLifestyleSection` | Never referenced |
-| `GoalSettingsView`, `ActivitySettingsView` | Preview-only |
-| `TrainingView`, `TrainingConnectedDashboard` | Removed (legacy training cluster) |
-| `WeeklyReview` model + entity | Removed in v2 migration (Journey uses log-derived weekly review) |
-| `ChatMessageEntity` | Removed in v2 migration; Coach keeps messages in memory |
-| `CalorieTargetCalculator`, `MaintenanceCalculator`, `AIFoodEstimator` | Removed |
-
-**Action:** verify with full-text search + build, then remove in a dead-code pass.
+Migration-only entity files (`ChatMessageEntity`, `WeeklyReviewEntity`, `DebugRecordEntity`, `WorkoutEntryEntity`, `ExerciseSetEntity`) stay on disk for schema upgrades — see [PersistenceCleanupNotes.md](./PersistenceCleanupNotes.md).
 
 ---
 
@@ -516,5 +505,6 @@ Items that need confirmation before deletion or large refactors:
 | 2026-06-30 | Phase 3: `AuthGateCoordinator` extracted; `AuthGateView` thinned to shell wiring |
 | 2026-06-30 | Phase 2: `DailyNutritionSummaryBuilder` consolidated as runtime nutrition SSOT |
 | 2026-06-30 | Phase 1 dead-code pass: orphan views, deprecated aliases, retired workout write APIs |
+| 2026-07-03 | Batch 5 dead-code pass: Today preview orphans, copy aliases, PipelineTracePersistence, npm deps |
 | 2026-06-28 | Journey section: link to `JourneyArchitecture.md`; fix `Features/Journey` path; replace stale `JourneyStateBuilder` / hidden-milestones notes |
 | 2026-06-27 | Initial architecture doc (Stage 1 audit) |

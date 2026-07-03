@@ -63,16 +63,6 @@ function intEnv(name: string, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-export function requestBodyHasMealImage(body: Record<string, any>): boolean {
-  const image = body?.image;
-  return Boolean(
-    image &&
-    typeof image === "object" &&
-    typeof image.base64 === "string" &&
-    image.base64.length > 0
-  );
-}
-
 export function stripDataUrlPrefix(value: string): string {
   const trimmed = value.trim();
   const match = /^data:[^;]+;base64,(.*)$/i.exec(trimmed);

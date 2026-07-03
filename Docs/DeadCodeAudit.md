@@ -40,32 +40,7 @@ Reachable via flags, shared with active code, preview-only tooling, or intention
 
 ### B1 — Legacy manual Training dashboard (tab removed)
 
-Production training UX is **`TrainingInsightsView`** (Apple Health). The SwiftData workout dashboard under `Features/TrainingInsights/Legacy/` is **not routed** from `MainTabView` (`TrainingView` comment: tab removed).
-
-| File path | Type | Reference search | Reason verify | Risk | Action | Validation |
-|-----------|------|------------------|---------------|------|--------|------------|
-| `Legacy/TrainingView.swift` | `TrainingView` | `rg TrainingView` → self, `MainTabView` comment, preview | Thin wrapper around `TrainingInsightsView`; may be future push target | **Medium** | **delete** after cluster | Build; Training Insights smoke |
-| `Legacy/TrainingConnectedDashboard.swift` | `TrainingConnectedDashboard` | Preview + `TrainingModel` only | Old connected dashboard | **Medium** | **delete** | Previews only |
-| `Legacy/TrainingModel.swift` | `TrainingModel` | `makeTrainingModel()` preview only | Orphan model | **Medium** | **delete** | With cluster |
-| `Legacy/TrainingDashboardState.swift` | `TrainingDashboardState` | `TrainingModel`, `TrainingPreviewData` | State for dead dashboard | **Medium** | **delete** | With cluster |
-| `Legacy/TrainingViewState.swift` | `TrainingViewState` | `TrainingModel` only | Dead enum | **Medium** | **delete** | With cluster |
-| `Legacy/TrainingHeroSection.swift` | View | `TrainingConnectedDashboard` + previews | Section UI | **Medium** | **delete** | With cluster |
-| `Legacy/TrainingWeeklySummarySection.swift` | View | `TrainingConnectedDashboard` + previews | Section UI | **Medium** | **delete** | With cluster |
-| `Legacy/TrainingMuscleDistributionSection.swift` | View | `TrainingConnectedDashboard` + previews | Section UI | **Medium** | **delete** | With cluster |
-| `Legacy/TrainingRecentWorkoutsSection.swift` | View | `TrainingConnectedDashboard` + previews | Section UI | **Medium** | **delete** | With cluster |
-| `Legacy/WorkoutDetailView.swift` | View | Preview only | Detail push never wired | **Medium** | **delete** | With cluster |
-| `Legacy/ExerciseSetListView.swift` | View | `WorkoutDetailView` + preview | Child of dead detail | **Medium** | **delete** | With cluster |
-| `Legacy/TrainingMuscleDistributionBuilder.swift` | `enum` | `TrainingModel` only | Builder for dead dashboard | **Medium** | **delete** | With cluster |
-| `Legacy/TrainingPreviewData.swift` | `TrainingPreviewData` | Legacy section previews + `TrainingModel` | Not same as `TrainingInsightsPreviewData` (active) | **Medium** | **delete** | With cluster |
-
-**Shared with active Training Insights — do not delete with cluster:**
-
-| File path | Type | Reference search | Reason verify | Risk | Action | Validation |
-|-----------|------|------------------|---------------|------|--------|------------|
-| `Legacy/TrainingLayout.swift` | `enum TrainingLayout` | `TrainingInsightsConnectedView`, `GateView`, `EmptyConnectedView` | Active layout constants | **High** if deleted with cluster | **move** out of `Legacy/` then delete rest | Training Insights UI |
-| `Legacy/TrainingFormatter.swift` | `enum TrainingFormatter` | `TrainingInsightsFormatter` + legacy sections | Active delegate for duration formatting | **High** | **move** then delete legacy-only methods | Formatter tests |
-| `Legacy/TrainingLoadingView.swift` | View | `TrainingInsightsConnectedView` | Active loading state | **High** | **move** | Connected view smoke |
-| `Legacy/TrainingErrorView.swift` | View | `TrainingInsightsConnectedView` | Active error state | **High** | **move** | Connected view smoke |
+**Status:** ✅ **Completed 2026-06-30** — entire `Features/TrainingInsights/Legacy/` cluster deleted. Shared layout/formatters moved to `Features/TrainingInsights/Components/` (Phase 7). Production training UX is **`TrainingInsightsView`** (Apple Health only).
 
 ### B2 — Journey UI (resolved 2026-06-28)
 
@@ -305,3 +280,47 @@ xcodebuild -scheme "Fitness Coach" \
 | `JourneyPreviewData.swift` move to test target | 15+ test files + 40+ previews depend on production target |
 | `OnboardingProofCards` preview-only views | Models still covered by `OnboardingComponentsTests` |
 | `PlanDashboardState` dead fields (`strategy`, `lifestyle`, `todaysTargets`) | **Removed** in Tier 4 — Mission Control + rationale only |
+
+---
+
+## Batch 5 deletions (2026-07-03)
+
+### Deleted files
+
+| File | Why safe |
+|------|----------|
+| `Features/Today/Components/TodayGoalChecklist.swift` | Preview-only; no production or test references |
+| `Features/Today/Components/TodayFocusSection.swift` | Replaced by Coach Tip; preview-only |
+| `Infrastructure/Persistence/SwiftData/PipelineTracePersistence.swift` | No-op v1 bridge; tracing is in-memory via `FormaPipelineTracer` |
+| `Tools/phase6-rename.py`, `Tools/phase7-design-system.py`, `Tools/tier1-test-migration.py` | One-time migration scripts; work completed in prior phases |
+
+### Deleted types / symbols
+
+| Location | Symbol | Why safe |
+|----------|--------|----------|
+| `OnboardingProofCards.swift` | `OnboardingWeightTrajectoryComparisonProofCard` | Preview-only wrapper; production uses `OnboardingWeightTrajectoryHeroChart` |
+| `mealImageAnalysis.ts` | `requestBodyHasMealImage` | Exported but never imported |
+| `FormaProductCopy.swift` | `useNewPlanCTA`, `newPlanLabel`, `signInRetryMessage`, `trustCardCopy` | Legacy aliases with zero call sites; guardrail tests updated to canonical names |
+| `AppContainer.swift` | `PipelineTracePersistence.install(on:)` call | No-op |
+
+### npm dependency removals
+
+| Package | Location |
+|---------|----------|
+| `dotenv` | Root `package.json` — unused |
+| `firebase-functions-test` | `functions/package.json` — tests use Jest + custom mocks |
+
+### Documentation
+
+| Doc | Change |
+|-----|--------|
+| `Docs/Architecture.md` | Cleared stale dead-preview table (items already removed) |
+| `arch.md`, `rules.mdc` | Added canonical pointer to `Docs/Architecture.md` |
+| `Docs/BackendAPI.md` | Removed `PipelineTracePersistence` reference |
+
+### Batch 5 validation
+
+| Check | Result |
+|-------|--------|
+| `functions` Jest (`npm test`) | 57/57 passed |
+| Swift build + Fast-Core tests | Run on merge CI / local `xcodebuild` |
