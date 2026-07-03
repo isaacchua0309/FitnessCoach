@@ -38,6 +38,8 @@ enum CoachTimelineEventSourceAttribution: String, Codable, CaseIterable, Equatab
     case estimateFood
     /// Meal image analysis endpoint (`analyze-meal-image`).
     case mealImage
+    /// Estimate resolved from `commonFoods` memory (e.g. "same as usual").
+    case commonFoodReference
     /// User explicitly confirmed or rejected a pending mutation.
     case userConfirmation
     /// Apple HealthKit workout or step reads.

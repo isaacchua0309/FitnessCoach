@@ -237,6 +237,8 @@ struct ConfirmationPayload: Codable, Equatable, Sendable {
     var assistantMessagePreview: String?
     var pendingConfirmationId: UUID?
     var relatedPhotoSessionId: UUID?
+    var linkedEntryId: UUID?
+    var relatedTimelineEventId: UUID?
     var userInputMethod: String?
 
     init(
@@ -245,6 +247,8 @@ struct ConfirmationPayload: Codable, Equatable, Sendable {
         assistantMessagePreview: String? = nil,
         pendingConfirmationId: UUID? = nil,
         relatedPhotoSessionId: UUID? = nil,
+        linkedEntryId: UUID? = nil,
+        relatedTimelineEventId: UUID? = nil,
         userInputMethod: String? = nil
     ) {
         self.kind = kind
@@ -252,6 +256,8 @@ struct ConfirmationPayload: Codable, Equatable, Sendable {
         self.assistantMessagePreview = assistantMessagePreview
         self.pendingConfirmationId = pendingConfirmationId
         self.relatedPhotoSessionId = relatedPhotoSessionId
+        self.linkedEntryId = linkedEntryId
+        self.relatedTimelineEventId = relatedTimelineEventId
         self.userInputMethod = userInputMethod
     }
 }

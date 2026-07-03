@@ -19,6 +19,7 @@ final class CoachMutationExecutor {
 
     private var completedPendingConfirmationIDs = Set<UUID>()
     private var recordedFoodLogEntryIDs = Set<UUID>()
+    private(set) var lastAffectedEntryId: UUID?
 
     init(
         actionCenter: FitnessActionCenter,
@@ -42,7 +43,8 @@ final class CoachMutationExecutor {
 
     func execute(
         _ command: ParsedCommand,
-        healthIntelligence: CoachHealthIntelligenceContext? = nil
+        healthIntelligence: CoachHealthIntelligenceContext? = nil,
+        contextHints: CoachResponseContextHints? = nil
     ) async -> String {
         switch command.intent {
         case .logWater(let draft):
@@ -54,9 +56,12 @@ final class CoachMutationExecutor {
         case .undo(let target):
             return executeUndo(target)
         case .status:
-            return executeStatus(healthIntelligence: healthIntelligence)
+            return executeStatus(
+                healthIntelligence: healthIntelligence,
+                contextHints: contextHints
+            )
         case .dailyReview:
-            return await executeDailyReview()
+            return await executeDailyReview(contextHints: contextHints)
         case .logSteps:
             return CoachResponseBuilder.stepsPlaceholder
         case .unsupported:
@@ -165,6 +170,7 @@ final class CoachMutationExecutor {
 
         do {
             let entry = try actionCenter.logFood(meal, date: Date())
+            lastAffectedEntryId = entry.id
             let log = try? dailyLogReader.getLog(for: Date())
             mutationHistory.record(entryId: entry.id, type: .food, summary: entry.name)
             timelineRecordFoodLoggedIfNeeded(
@@ -198,12 +204,20 @@ final class CoachMutationExecutor {
 
     func executeEditAction(_ action: AICommandAction) async -> String {
         if let foodDraft = action.foodDraft {
-            return await applyFoodEdit(from: foodDraft, selector: action.targetEntrySelector)
+            return await applyFoodEdit(
+                from: foodDraft,
+                selector: action.targetEntrySelector,
+                linkedEntryId: action.linkedEntryId
+            )
         }
         return "I couldn't find which entry to edit. Try being more specific."
     }
 
     func executeDeleteAction(_ action: AICommandAction) async -> String {
+        if let linkedEntryId = action.linkedEntryId {
+            return await deleteFood(entryId: linkedEntryId)
+        }
+
         if let mealType = action.foodDraft?.mealType {
             return await deleteFood(mealType: mealType)
         }
@@ -305,6 +319,31 @@ final class CoachMutationExecutor {
         }
     }
 
+    private func deleteFood(entryId: UUID) async -> String {
+        do {
+            let entries = try actionCenter.getFoodEntries(for: Date())
+            guard let entry = entries.first(where: { $0.id == entryId }) else {
+                return "I did not find that food entry for today."
+            }
+
+            let supersededEventId = await CoachMutationTimelineLookup.latestFoodMutationEventId(
+                forEntryId: entry.id,
+                store: timelineStore
+            )
+            try actionCenter.deleteFoodEntry(id: entry.id)
+            lastAffectedEntryId = entry.id
+            timelineRecorder.recordFoodDeleted(
+                entry: entry,
+                supersedesEventId: supersededEventId,
+                occurredAt: Date()
+            )
+            return CoachResponseBuilder.deleteFood(entry)
+        } catch {
+            timelineRecordMutationFailure(message: error.localizedDescription, category: "food_delete")
+            return "I could not delete that food entry. Please try again."
+        }
+    }
+
     private func deleteFood(mealType: MealType) async -> String {
         do {
             let entries = try actionCenter.getFoodEntries(for: Date())
@@ -323,6 +362,7 @@ final class CoachMutationExecutor {
                 store: timelineStore
             )
             try actionCenter.deleteFoodEntry(id: entry.id)
+            lastAffectedEntryId = entry.id
             timelineRecorder.recordFoodDeleted(
                 entry: entry,
                 supersedesEventId: supersededEventId,
@@ -335,11 +375,24 @@ final class CoachMutationExecutor {
         }
     }
 
-    private func applyFoodEdit(from draft: FoodDraft, selector: String?) async -> String {
+    private func applyFoodEdit(
+        from draft: FoodDraft,
+        selector: String?,
+        linkedEntryId: UUID?
+    ) async -> String {
         do {
             let entries = try actionCenter.getFoodEntries(for: Date())
-            guard let entry = entries.last else {
-                return "There is no food entry to edit today."
+            let entry: FoodEntry?
+            if let linkedEntryId {
+                entry = entries.first(where: { $0.id == linkedEntryId })
+            } else {
+                entry = entries.last
+            }
+
+            guard let entry else {
+                return linkedEntryId == nil
+                    ? "There is no food entry to edit today."
+                    : "I did not find that food entry for today."
             }
 
             let update = FoodEntryUpdate(
@@ -363,6 +416,7 @@ final class CoachMutationExecutor {
                 store: timelineStore
             )
             let updated = try actionCenter.editFoodEntry(id: entry.id, update: update)
+            lastAffectedEntryId = updated.id
             mutationHistory.record(entryId: updated.id, type: .food, summary: "edit \(updated.name)")
             timelineRecorder.recordFoodEdited(
                 entry: updated,
@@ -379,10 +433,17 @@ final class CoachMutationExecutor {
         }
     }
 
-    private func executeStatus(healthIntelligence: CoachHealthIntelligenceContext? = nil) -> String {
+    private func executeStatus(
+        healthIntelligence: CoachHealthIntelligenceContext? = nil,
+        contextHints: CoachResponseContextHints? = nil
+    ) -> String {
         do {
             let log = try dailyLogReader.getTodayLog()
-            return CoachResponseBuilder.status(log, healthIntelligence: healthIntelligence)
+            return CoachResponseBuilder.status(
+                log,
+                healthIntelligence: healthIntelligence,
+                contextHints: contextHints
+            )
         } catch ServiceError.missingUserProfile {
             return "I could not load your status. Please check that your profile is set up."
         } catch {
@@ -390,10 +451,10 @@ final class CoachMutationExecutor {
         }
     }
 
-    private func executeDailyReview() async -> String {
+    private func executeDailyReview(contextHints: CoachResponseContextHints? = nil) async -> String {
         do {
             let review = try await actionCenter.generateDailyReview(for: Date())
-            return CoachResponseBuilder.dailyReview(review)
+            return CoachResponseBuilder.dailyReview(review, contextHints: contextHints)
         } catch ServiceError.missingUserProfile {
             return "I could not generate your daily review yet. Please start a day and make sure your profile is set up."
         } catch ServiceError.dailyLogNotFound {

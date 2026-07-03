@@ -66,18 +66,22 @@ enum CoachModelTimelineSupport {
                 assistantMessagePreview: assistantMessage,
                 userInputMethod: userInputMethod
             )
-        case .edit(_, let originalText, let assistantMessage):
+        case .edit(let action, let originalText, let assistantMessage):
             return ConfirmationPayload(
                 kind: "edit",
                 originalText: originalText,
                 assistantMessagePreview: assistantMessage,
+                linkedEntryId: action.linkedEntryId,
+                relatedTimelineEventId: action.linkedTimelineEventId,
                 userInputMethod: userInputMethod
             )
-        case .delete(_, let originalText, let assistantMessage):
+        case .delete(let action, let originalText, let assistantMessage):
             return ConfirmationPayload(
                 kind: "delete",
                 originalText: originalText,
                 assistantMessagePreview: assistantMessage,
+                linkedEntryId: action.linkedEntryId,
+                relatedTimelineEventId: action.linkedTimelineEventId,
                 userInputMethod: userInputMethod
             )
         case .undo(_, let originalText, let assistantMessage):

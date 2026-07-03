@@ -195,18 +195,44 @@ enum CoachResponseBuilder {
 
     // MARK: Status
 
-    static func status(_ log: DailyLog, healthIntelligence: CoachHealthIntelligenceContext? = nil) -> String {
+    static func status(
+        _ log: DailyLog,
+        healthIntelligence: CoachHealthIntelligenceContext? = nil,
+        contextHints: CoachResponseContextHints? = nil
+    ) -> String {
         var message = CoachNutritionSummaryFormatter.statusMessage(from: nutritionSummary(from: log))
         if let insight = CoachHealthGuidanceFormatter.dailyHealthInsight(from: healthIntelligence) {
             message += "\n\n\(insight)"
+        }
+        if let stepsLine = CoachAIResponseContextAdapter.stepsLine(from: contextHints) {
+            message += "\n\n\(stepsLine)"
+        }
+        if let timelineSupplement = CoachAIResponseContextAdapter.statusTimelineSupplement(
+            from: contextHints?.timelineEvents ?? []
+        ) {
+            message += "\n\n\(timelineSupplement)"
         }
         return message
     }
 
     // MARK: Daily Review
 
-    static func dailyReview(_ review: DailyReview) -> String {
-        DailyReviewFormatter.coachMessage(from: review)
+    static func dailyReview(
+        _ review: DailyReview,
+        contextHints: CoachResponseContextHints? = nil
+    ) -> String {
+        var message = DailyReviewFormatter.coachMessage(from: review)
+        if let timelineSupplement = CoachAIResponseContextAdapter.statusTimelineSupplement(
+            from: contextHints?.timelineEvents ?? []
+        ) {
+            message += "\n\n\(timelineSupplement)"
+        }
+        return CoachAIResponseContextAdapter.appendMissingDataDisclaimer(
+            to: message,
+            hints: contextHints,
+            includeSteps: true,
+            includeWorkouts: true
+        )
     }
 
     // MARK: Meal Advice
@@ -217,89 +243,106 @@ enum CoachResponseBuilder {
         hasWorkoutToday: Bool,
         healthIntelligence: CoachHealthIntelligenceContext? = nil,
         intent: CoachIntent? = nil,
-        assistantMessage: String?
+        assistantMessage: String?,
+        contextHints: CoachResponseContextHints? = nil
     ) -> String {
         if intent == .workoutAdvice {
             return workoutAdviceResponse(
                 hasWorkoutToday: hasWorkoutToday,
                 healthIntelligence: healthIntelligence,
-                assistantMessage: assistantMessage
+                assistantMessage: assistantMessage,
+                contextHints: contextHints
             )
         }
 
+        let message: String
         if let assistantMessage,
            !assistantMessage.isEmpty,
            !isGenericPlaceholder(assistantMessage) {
-            return composeMealAdviceResponse(
+            message = composeMealAdviceResponse(
                 assistantMessage: assistantMessage,
                 log: log,
                 hasWorkoutToday: hasWorkoutToday,
                 healthIntelligence: healthIntelligence
             )
+        } else if let log {
+            let nutrition = nutritionSummary(from: log)
+            let brief = DailyBriefBuilder.todayBrief(
+                nutrition: nutrition,
+                hasWorkoutToday: hasWorkoutToday,
+                trainingFrequency: profile?.trainingFrequencyPerWeek ?? 0,
+                healthIntelligence: healthIntelligence
+            )
+
+            var lines = CoachNutritionSummaryFormatter.mealAdviceLines(
+                nutrition: nutrition,
+                brief: brief,
+                healthIntelligence: healthIntelligence
+            )
+
+            if let opening = CoachHealthGuidanceFormatter.mealAdviceOpening(from: healthIntelligence) {
+                lines.insert(opening, at: 0)
+            }
+
+            let supplements = CoachHealthGuidanceFormatter.mealAdviceSupplementLines(from: healthIntelligence)
+            lines.append(contentsOf: supplements.filter { line in
+                !lines.joined(separator: " ").lowercased().contains(line.lowercased())
+            })
+
+            message = lines.joined(separator: " ")
+        } else {
+            message = "Tell me what you've eaten so far and I'll suggest your next move."
         }
 
-        guard let log else {
-            return "Tell me what you've eaten so far and I'll suggest your next move."
-        }
-
-        let nutrition = nutritionSummary(from: log)
-        let brief = DailyBriefBuilder.todayBrief(
-            nutrition: nutrition,
-            hasWorkoutToday: hasWorkoutToday,
-            trainingFrequency: profile?.trainingFrequencyPerWeek ?? 0,
-            healthIntelligence: healthIntelligence
+        return CoachAIResponseContextAdapter.appendMissingDataDisclaimer(
+            to: message,
+            hints: contextHints,
+            includeSteps: true,
+            includeWorkouts: true
         )
-
-        var lines = CoachNutritionSummaryFormatter.mealAdviceLines(
-            nutrition: nutrition,
-            brief: brief,
-            healthIntelligence: healthIntelligence
-        )
-
-        if let opening = CoachHealthGuidanceFormatter.mealAdviceOpening(from: healthIntelligence) {
-            lines.insert(opening, at: 0)
-        }
-
-        let supplements = CoachHealthGuidanceFormatter.mealAdviceSupplementLines(from: healthIntelligence)
-        lines.append(contentsOf: supplements.filter { line in
-            !lines.joined(separator: " ").lowercased().contains(line.lowercased())
-        })
-
-        return lines.joined(separator: " ")
     }
 
     static func workoutAdviceResponse(
         hasWorkoutToday: Bool,
         healthIntelligence: CoachHealthIntelligenceContext? = nil,
-        assistantMessage: String?
+        assistantMessage: String?,
+        contextHints: CoachResponseContextHints? = nil
     ) -> String {
         let localAdvice = CoachHealthGuidanceFormatter.workoutAdvice(
             from: healthIntelligence,
             hasWorkoutToday: hasWorkoutToday
         )
 
-        guard let assistantMessage,
-              !assistantMessage.isEmpty,
-              !isGenericPlaceholder(assistantMessage) else {
-            return localAdvice
-        }
-
-        let sanitized = CoachHealthGuidanceFormatter.removeRedundantWorkoutQuestions(
-            from: assistantMessage,
-            knowsWorkoutStatus: CoachHealthGuidanceFormatter.knowsWorkoutStatus(from: healthIntelligence)
-                || hasWorkoutToday
-        )
-
-        if sanitized.lowercased().contains("recovery")
-            || sanitized.lowercased().contains("train")
-            || sanitized.lowercased().contains("workout") {
-            return CoachHealthGuidanceFormatter.appendUniqueLines(
-                to: sanitized,
-                lines: [localAdvice]
+        let composed: String
+        if let assistantMessage,
+           !assistantMessage.isEmpty,
+           !isGenericPlaceholder(assistantMessage) {
+            let sanitized = CoachHealthGuidanceFormatter.removeRedundantWorkoutQuestions(
+                from: assistantMessage,
+                knowsWorkoutStatus: CoachHealthGuidanceFormatter.knowsWorkoutStatus(from: healthIntelligence)
+                    || hasWorkoutToday
             )
+
+            if sanitized.lowercased().contains("recovery")
+                || sanitized.lowercased().contains("train")
+                || sanitized.lowercased().contains("workout") {
+                composed = CoachHealthGuidanceFormatter.appendUniqueLines(
+                    to: sanitized,
+                    lines: [localAdvice]
+                )
+            } else {
+                composed = "\(sanitized) \(localAdvice)"
+            }
+        } else {
+            composed = localAdvice
         }
 
-        return "\(sanitized) \(localAdvice)"
+        return CoachAIResponseContextAdapter.appendMissingDataDisclaimer(
+            to: composed,
+            hints: contextHints,
+            includeSteps: false,
+            includeWorkouts: true
+        )
     }
 
     private static func composeMealAdviceResponse(

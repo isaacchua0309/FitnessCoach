@@ -777,6 +777,10 @@ final class DefaultCoachTimelineRecorder: CoachTimelineRecording, @unchecked Sen
         sourceAttribution: CoachTimelineEventSourceAttribution = .estimateFood,
         occurredAt: Date? = nil
     ) {
+        var relatedEventIds = payload.pendingConfirmationId.map { [$0] } ?? []
+        if let timelineEventId = payload.relatedTimelineEventId {
+            relatedEventIds.append(timelineEventId)
+        }
         append(
             type: .pendingConfirmationCreated,
             source: .coachUI,
@@ -785,8 +789,9 @@ final class DefaultCoachTimelineRecorder: CoachTimelineRecording, @unchecked Sen
             payload: .confirmation(payload),
             occurredAt: occurredAt,
             link: CoachTimelineEventLink(
+                linkedEntryId: payload.linkedEntryId,
                 linkedPhotoSessionId: payload.relatedPhotoSessionId,
-                relatedEventIds: payload.pendingConfirmationId.map { [$0] } ?? []
+                relatedEventIds: relatedEventIds
             )
         )
     }
@@ -796,6 +801,10 @@ final class DefaultCoachTimelineRecorder: CoachTimelineRecording, @unchecked Sen
         entryId: UUID? = nil,
         occurredAt: Date? = nil
     ) {
+        var relatedEventIds = payload.pendingConfirmationId.map { [$0] } ?? []
+        if let timelineEventId = payload.relatedTimelineEventId {
+            relatedEventIds.append(timelineEventId)
+        }
         append(
             type: .pendingConfirmationConfirmed,
             source: .coachUI,
@@ -804,9 +813,9 @@ final class DefaultCoachTimelineRecorder: CoachTimelineRecording, @unchecked Sen
             payload: .confirmation(payload),
             occurredAt: occurredAt,
             link: CoachTimelineEventLink(
-                linkedEntryId: entryId,
+                linkedEntryId: entryId ?? payload.linkedEntryId,
                 linkedPhotoSessionId: payload.relatedPhotoSessionId,
-                relatedEventIds: payload.pendingConfirmationId.map { [$0] } ?? []
+                relatedEventIds: relatedEventIds
             )
         )
     }
