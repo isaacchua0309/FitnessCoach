@@ -2043,6 +2043,7 @@ enum FormaProductCopy {
         static let quickActionsSectionTitle = "Quick actions"
         static let emptyIntro = EmptyState.CoachConversation.body
         static let composerPlaceholder = "Message Coach…"
+        static let composerListeningPlaceholder = "Listening…"
         static let composerPhotoClarificationPlaceholder = "Add a detail about your meal…"
         static let foodEstimatePending = "Food estimate ready"
         static let reviewEstimate = "Review estimate"

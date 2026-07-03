@@ -118,6 +118,21 @@ enum CoachResponseBuilder {
         }
     }
 
+    static func speechError(_ error: CoachSpeechError) -> String {
+        switch error {
+        case .microphonePermissionDenied:
+            return "Microphone access is turned off for Forma. Enable it in Settings to dictate messages to Coach."
+        case .speechRecognitionPermissionDenied:
+            return "Speech recognition is turned off for Forma. Enable it in Settings to dictate messages to Coach."
+        case .recognizerUnavailable:
+            return "Voice input isn't available on this device right now. Type your message instead."
+        case .audioSessionFailed:
+            return "Coach couldn't start listening. Try again or type your message instead."
+        case .recognitionFailed:
+            return "Coach couldn't understand that. Try again or type your message instead."
+        }
+    }
+
     static func mealPhotoAnalysisFailed(_ error: AIServiceError) -> String {
         switch error {
         case .authenticationFailed:

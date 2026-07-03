@@ -11,6 +11,7 @@ import SwiftUI
 struct CoachView: View {
 
     @StateObject private var model: CoachModel
+    @StateObject private var speechService = CoachSpeechRecognizerService()
     @EnvironmentObject private var authManager: AuthManager
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
     @FocusState private var isInputFocused: Bool
@@ -69,6 +70,14 @@ struct CoachView: View {
             }
             .onAppear {
                 model.refreshTodayContext()
+            }
+            .onDisappear {
+                speechService.stopRecording()
+            }
+            .onChange(of: model.isSending) { _, isSending in
+                if isSending {
+                    speechService.stopRecording()
+                }
             }
             .onChange(of: refreshCenter.refreshToken) { _, _ in
                 model.refreshTodayContext()
@@ -150,18 +159,23 @@ struct CoachView: View {
             ),
             attachment: model.inputState.attachment,
             attachmentError: model.inputState.error,
+            speechError: speechService.errorMessage,
+            isListening: speechService.isRecording,
             canPickAttachment: model.inputState.canPickImage,
             textFieldPlaceholder: model.photoClarificationComposerPlaceholder
                 ?? FormaProductCopy.Coach.composerPlaceholder,
             isFocused: $isInputFocused,
             isSending: model.isSending,
             onSend: {
+                speechService.stopRecording()
                 Task {
                     await model.sendCurrentMessage()
                     dismissKeyboard()
                 }
             },
-            onVoiceTap: {},
+            onVoiceTap: {
+                handleVoiceTap()
+            },
             onAttachmentSelect: handleAttachmentSelection,
             onRemoveAttachment: {
                 model.removeStagedMealPhoto()
@@ -175,6 +189,7 @@ struct CoachView: View {
 
     private func handleStarterTap(_ prompt: CoachStarterPromptSpec) {
         dismissKeyboard()
+        speechService.stopRecording()
         switch prompt.behavior {
         case .openPhotoPicker:
             isPhotoPickerPresented = true
@@ -188,6 +203,7 @@ struct CoachView: View {
 
     private func handleAttachmentSelection(_ option: CoachAttachmentOption) {
         guard model.requestPhotoPick() else { return }
+        speechService.stopRecording()
         switch option {
         case .takePhoto:
             Task {
@@ -205,6 +221,15 @@ struct CoachView: View {
 
     private func dismissKeyboard() {
         isInputFocused = false
+    }
+
+    private func handleVoiceTap() {
+        dismissKeyboard()
+        Task {
+            await speechService.toggleRecording { transcript in
+                model.inputText = transcript
+            }
+        }
     }
 
     private func retryCoachSession() {
