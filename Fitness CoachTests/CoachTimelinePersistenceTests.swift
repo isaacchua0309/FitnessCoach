@@ -92,7 +92,7 @@ final class CoachTimelinePersistenceTests: XCTestCase {
             updatedAt: Date()
         )
 
-        let model = entity.toModel()
+        let model = entity.toModelSafe()
         XCTAssertEqual(model.type, .unknown)
         XCTAssertEqual(model.payload, .empty)
         XCTAssertEqual(model.source, .system)
@@ -126,7 +126,7 @@ final class CoachTimelinePersistenceTests: XCTestCase {
         )
 
         let entity = CoachTimelineEventEntity(model: original, userId: "user-123")
-        let roundTripped = entity.toModel()
+        let roundTripped = entity.toModelSafe()
 
         XCTAssertEqual(roundTripped.id, original.id)
         XCTAssertEqual(roundTripped.type, original.type)
@@ -141,9 +141,9 @@ final class CoachTimelinePersistenceTests: XCTestCase {
         XCTAssertFalse(entity.payloadJSON.isEmpty)
     }
 
-    // MARK: Store
+    // MARK: Repository
 
-    func testStoreAppendAndFetchOrderedHistory() throws {
+    func testRepositoryAppendAndFetchOrderedHistory() throws {
         let first = CoachTimelineEvent.make(
             type: .userMessage,
             source: .coachUI,
@@ -161,14 +161,17 @@ final class CoachTimelinePersistenceTests: XCTestCase {
             occurredAt: harness.now
         )
 
-        try harness.store.append(first, userId: "uid-a")
-        try harness.store.append(second, userId: "uid-a")
+        try harness.repository.appendIdempotent(first, userId: "uid-a")
+        try harness.repository.appendIdempotent(second, userId: "uid-a")
 
-        let history = try harness.store.fetchOrderedHistory(userId: "uid-a")
+        let history = try harness.repository.fetch(
+            query: CoachTimelineQuery(includeSuperseded: false),
+            userId: "uid-a"
+        )
         XCTAssertEqual(history.map(\.type), [.userMessage, .assistantMessage])
     }
 
-    func testPruneDoesNotDeleteSameDayEvents() throws {
+    func testCompactionDoesNotDeleteSameDayEvents() throws {
         let todayEvent = CoachTimelineEvent.make(
             type: .stepsUpdated,
             source: .healthSync,
@@ -177,18 +180,18 @@ final class CoachTimelinePersistenceTests: XCTestCase {
             payload: .steps(StepsPayload(steps: 4_000)),
             occurredAt: harness.now
         )
-        try harness.store.append(todayEvent, userId: nil)
+        try harness.repository.appendIdempotent(todayEvent, userId: nil)
 
-        let deleted = try harness.store.prune(
-            policy: CoachTimelinePruningPolicy(detailedRetentionDays: 0, writeCompactSummaries: false),
+        let deleted = try harness.repository.deleteEventsOlderThan(
+            policy: CoachTimelineCompactionPolicy(retainDays: 0),
             calendar: harness.calendar
         )
 
         XCTAssertEqual(deleted, 0)
-        XCTAssertEqual(try harness.store.fetchOrderedHistory().count, 1)
+        XCTAssertEqual(try harness.repository.fetch(userId: nil).count, 1)
     }
 
-    func testPruneRemovesOldCollapsibleEventsAndWritesSummary() throws {
+    func testCompactionRemovesOldCollapsibleEvents() throws {
         let oldDate = harness.day(offset: -40)
         for stepCount in [1000, 1100, 1200] {
             let event = CoachTimelineEvent.make(
@@ -200,29 +203,19 @@ final class CoachTimelinePersistenceTests: XCTestCase {
                 occurredAt: oldDate,
                 calendar: harness.calendar
             )
-            try harness.store.append(event, userId: nil)
+            try harness.repository.appendIdempotent(event, userId: nil)
         }
 
-        let deleted = try harness.store.prune(
-            policy: CoachTimelinePruningPolicy(
-                detailedRetentionDays: 30,
-                writeCompactSummaries: true
-            ),
+        let deleted = try harness.repository.deleteEventsOlderThan(
+            policy: CoachTimelineCompactionPolicy(retainDays: 30),
             calendar: harness.calendar
         )
 
         XCTAssertEqual(deleted, 3)
-        let remaining = try harness.store.fetchOrderedHistory()
-        XCTAssertEqual(remaining.count, 1)
-        XCTAssertEqual(remaining.first?.type, .systemRefresh)
-        if case .systemRefresh(let payload) = remaining.first?.payload {
-            XCTAssertTrue(payload.reason?.contains("Compact summary") == true)
-        } else {
-            XCTFail("Expected compact summary event")
-        }
+        XCTAssertTrue(try harness.repository.fetch(userId: nil).isEmpty)
     }
 
-    func testPrunePreservesConfirmedMutationsBeyondRetention() throws {
+    func testCompactionPreservesConfirmedMutationsBeyondRetention() throws {
         let oldDate = harness.day(offset: -45)
         let food = CoachTimelineEvent.make(
             type: .foodLogged,
@@ -242,11 +235,11 @@ final class CoachTimelinePersistenceTests: XCTestCase {
             occurredAt: oldDate,
             calendar: harness.calendar
         )
-        try harness.store.append(food, userId: nil)
+        try harness.repository.appendIdempotent(food, userId: nil)
 
-        _ = try harness.store.prune(calendar: harness.calendar)
+        _ = try harness.repository.deleteEventsOlderThan(calendar: harness.calendar)
 
-        let remaining = try harness.store.fetchOrderedHistory()
+        let remaining = try harness.repository.fetch(userId: nil)
         XCTAssertEqual(remaining.count, 1)
         XCTAssertEqual(remaining.first?.type, .foodLogged)
     }
@@ -257,7 +250,7 @@ final class CoachTimelinePersistenceTests: XCTestCase {
 @MainActor
 private final class Harness {
 
-    let store: CoachTimelineStore
+    let repository: CoachTimelinePersistenceRepository
     let calendar: Calendar
     let now: Date
 
@@ -268,7 +261,7 @@ private final class Harness {
             now: CoachTimelinePersistenceTestFixtures.referenceNow,
             calendar: CoachTimelinePersistenceTestFixtures.calendar
         )
-        store = CoachTimelineStore(store: swiftDataStore, dateProvider: dateProvider)
+        repository = CoachTimelinePersistenceRepository(store: swiftDataStore, dateProvider: dateProvider)
         calendar = dateProvider.calendar
         now = dateProvider.now
     }

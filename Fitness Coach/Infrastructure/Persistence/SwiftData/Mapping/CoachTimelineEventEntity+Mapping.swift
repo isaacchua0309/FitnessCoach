@@ -35,6 +35,11 @@ extension CoachTimelineEventEntity {
     }
 
     func toModel() -> CoachTimelineEvent {
+        toModelSafe()
+    }
+
+    /// Never throws. Returns `.unknown` + `.empty` payload when row data is corrupt.
+    func toModelSafe() -> CoachTimelineEvent {
         let decodedType = CoachTimelineEventTypeCodec.decode(eventTypeRaw)
         let decodedSource = CoachTimelineEventSourceCodec.decode(sourceRaw)
         let decodedStatus = CoachTimelineEventStatusCodec.decode(statusRaw)
@@ -43,31 +48,24 @@ extension CoachTimelineEventEntity {
 
         let payloadResult = CoachTimelineEventPayloadCodec.decode(payloadJSON)
         let envelope: CoachTimelinePersistedEnvelope
-        let resolvedSummary: String
 
         switch payloadResult {
         case .success(let decodedEnvelope):
             envelope = decodedEnvelope
-            resolvedSummary = summary
-        case .unknownPayload:
+        case .unknownPayload, .empty:
             envelope = CoachTimelinePersistedEnvelope(payload: .empty)
-            resolvedSummary = CoachTimelineEventSummaryBuilder.summaryForUnknownPayload(
-                eventTypeRaw: eventTypeRaw,
-                existingSummary: summary
-            )
-        case .empty:
-            envelope = CoachTimelinePersistedEnvelope(payload: .empty)
-            resolvedSummary = summary.isEmpty
-                ? CoachTimelineEventSummaryBuilder.summaryForUnknownPayload(
-                    eventTypeRaw: eventTypeRaw,
-                    existingSummary: ""
-                )
-                : summary
         }
+
+        let resolvedType: CoachTimelineEventType = {
+            if CoachTimelineEventType(rawValue: eventTypeRaw) == nil {
+                return .unknown
+            }
+            return decodedType
+        }()
 
         return CoachTimelineEvent(
             id: id,
-            type: decodedType,
+            type: resolvedType,
             source: decodedSource,
             sourceAttribution: decodedAttribution,
             confidence: decodedConfidence,

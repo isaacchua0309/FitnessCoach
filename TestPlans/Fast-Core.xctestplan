@@ -1,7 +1,7 @@
 {
   "configurations": [
     {
-      "id": "67E88139-CA5C-4BCA-9F88-D26E399D916A",
+      "id": "8DF87076-AB39-4028-BA4D-020989E14F18",
       "name": "Configuration 1",
       "options": {}
     }
@@ -89,6 +89,7 @@
         "CoachSpeechTests",
         "CoachTimelineDomainTests",
         "CoachTimelinePersistenceTests",
+        "CoachTimelineStoreTests",
         "CoachTodayContextBuilderTests",
         "CoachWorkoutAwareResponsesTests",
         "CommandKeywordFuzzyMatcherTests",
