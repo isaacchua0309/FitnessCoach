@@ -38,12 +38,13 @@ extension CoachImagePipeline {
 
             switch pipelineResult {
             case .success(let processed):
-                return .success(
-                    ProcessedImageImport(
-                        processed: processed,
-                        originalEstimatedBytes: originalEstimatedBytes
-                    )
+            return .success(
+                ProcessedImageImport(
+                    processed: processed,
+                    originalEstimatedBytes: originalEstimatedBytes,
+                    localReferenceID: UUID()
                 )
+            )
             case .failure(let error):
                 return .failure(error.mealPhotoError)
             }

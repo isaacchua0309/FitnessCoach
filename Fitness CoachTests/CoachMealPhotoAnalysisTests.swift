@@ -40,8 +40,8 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
 
         await model.handleMealPhotoSelection(.success(Self.makeTestJPEGData()), source: .library)
 
-        XCTAssertNotNil(model.inputState.attachment)
-        XCTAssertEqual(model.inputState.attachment?.source, .library)
+        XCTAssertNotNil(model.inputState.pendingImage)
+        XCTAssertEqual(model.inputState.pendingImage?.source, .library)
         XCTAssertTrue(model.messages.isEmpty)
         XCTAssertFalse(model.isSending)
     }
@@ -52,26 +52,30 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         let first = Self.makeTestJPEGData()
 
         await model.handleMealPhotoSelection(.success(first), source: .library)
-        XCTAssertNotNil(model.inputState.attachment)
+        XCTAssertNotNil(model.inputState.pendingImage)
 
         model.removeStagedMealPhoto()
-        XCTAssertNil(model.inputState.attachment)
+        XCTAssertNil(model.inputState.pendingImage)
 
         await model.handleMealPhotoSelection(.success(first), source: .camera)
-        XCTAssertEqual(model.inputState.attachment?.source, .camera)
+        XCTAssertEqual(model.inputState.pendingImage?.source, .camera)
     }
 
-    func testSecondPickWithoutRemoveSetsComposerError() async throws {
+    func testSecondPickWithoutRemoveReplacesPendingImageAfterSuccess() async throws {
         let container = try AppContainer(inMemory: true)
         let model = makeModel(container: container)
         let first = Self.makeTestJPEGData()
+        let second = Self.makeTestJPEGData(color: .systemBlue)
 
         await model.handleMealPhotoSelection(.success(first), source: .library)
-        let firstID = try XCTUnwrap(model.inputState.attachment?.id)
+        let firstID = try XCTUnwrap(model.inputState.pendingImage?.id)
 
-        XCTAssertFalse(model.requestPhotoPick())
-        XCTAssertEqual(model.inputState.error, .attachmentAlreadyPresent)
-        XCTAssertEqual(model.inputState.attachment?.id, firstID)
+        XCTAssertTrue(model.requestPhotoPick())
+        await model.handleMealPhotoSelection(.success(second), source: .camera)
+
+        XCTAssertNotEqual(model.inputState.pendingImage?.id, firstID)
+        XCTAssertEqual(model.inputState.pendingImage?.source, .camera)
+        XCTAssertNil(model.inputState.imageError)
     }
 
     func testPhotoAnalysisSendsImagePayloadToAIService() async throws {
@@ -353,10 +357,10 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         )
     }
 
-    private static func makeTestJPEGData() -> Data {
+    private static func makeTestJPEGData(color: UIColor = .orange) -> Data {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 12, height: 12))
         let image = renderer.image { context in
-            UIColor.orange.setFill()
+            color.setFill()
             context.fill(CGRect(x: 0, y: 0, width: 12, height: 12))
         }
         return image.jpegData(compressionQuality: 0.85)!

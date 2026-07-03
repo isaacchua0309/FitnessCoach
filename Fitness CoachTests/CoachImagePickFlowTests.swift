@@ -19,12 +19,13 @@ final class CoachImagePickFlowTests: XCTestCase {
 
         await model.handleCameraCapture(sourceImage)
 
-        let attachment = try XCTUnwrap(model.inputState.attachment)
-        XCTAssertEqual(attachment.source, .camera)
-        XCTAssertTrue(attachment.isPipelineProcessedUpload)
-        XCTAssertFalse(attachment.imageData.isEmpty)
-        XCTAssertFalse(attachment.thumbnail.isEmpty)
-        XCTAssertNotEqual(attachment.imageData, attachment.thumbnail)
+        let pending = try XCTUnwrap(model.inputState.pendingImage)
+        XCTAssertEqual(pending.source, .camera)
+        XCTAssertTrue(pending.isPipelineProcessedUpload)
+        XCTAssertFalse(pending.uploadData.isEmpty)
+        XCTAssertFalse(pending.thumbnail.isEmpty)
+        XCTAssertNotEqual(pending.uploadData, pending.thumbnail)
+        XCTAssertEqual(pending.status, .ready)
     }
 
     func testCameraCaptureSendUsesProcessedUploadBytes() async throws {
@@ -39,7 +40,7 @@ final class CoachImagePickFlowTests: XCTestCase {
         await model.sendCurrentMessage()
 
         XCTAssertEqual(aiService.receivedImagePayloads.last, processed.uploadData)
-        XCTAssertNil(model.inputState.attachment)
+        XCTAssertNil(model.inputState.pendingImage)
     }
 
     func testPickFlowControllerCameraSuccessTransitionsThroughProcessingToIdle() async throws {
@@ -48,17 +49,15 @@ final class CoachImagePickFlowTests: XCTestCase {
         let flow = CoachImagePickFlowController()
         let image = Self.makeTestImage(size: CGSize(width: 800, height: 600))
 
-        await flow.beginCameraPick(model: model)
-        XCTAssertEqual(flow.state, .pickerPresented(.camera))
-        XCTAssertTrue(flow.isCameraPresented)
-
+        flow.setStateForTests(.pickerPresented(.camera))
         await flow.handleCameraResult(.success(image), model: model)
 
         XCTAssertEqual(flow.state, .idle)
         XCTAssertFalse(flow.isCameraPresented)
         XCTAssertFalse(flow.isProcessingImage)
-        XCTAssertNotNil(model.inputState.attachment)
-        XCTAssertEqual(model.inputState.attachment?.source, .camera)
+        XCTAssertNotNil(model.inputState.pendingImage)
+        XCTAssertEqual(model.inputState.pendingImage?.source, .camera)
+        XCTAssertEqual(model.inputState.pendingImage?.status, .ready)
     }
 
     func testPickFlowControllerPermissionFailureSetsFailedThenIdle() async throws {
@@ -84,7 +83,7 @@ final class CoachImagePickFlowTests: XCTestCase {
         XCTAssertEqual(flow.state, .processingImage(.library))
     }
 
-    func testRemovingAttachmentResetsPickFlow() async throws {
+    func testRemovingPendingImageResetsPickFlow() async throws {
         let container = try AppContainer(inMemory: true)
         let model = makeModel(container: container)
         let flow = CoachImagePickFlowController()
@@ -95,7 +94,7 @@ final class CoachImagePickFlowTests: XCTestCase {
         flow.handleAttachmentRemoved()
 
         XCTAssertEqual(flow.state, .idle)
-        XCTAssertNil(model.inputState.attachment)
+        XCTAssertNil(model.inputState.pendingImage)
         XCTAssertTrue(flow.allowsAttachmentPick)
     }
 

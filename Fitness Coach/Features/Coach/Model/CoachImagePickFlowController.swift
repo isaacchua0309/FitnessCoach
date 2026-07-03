@@ -24,15 +24,6 @@ final class CoachImagePickFlowController: ObservableObject {
         state.isProcessingImage
     }
 
-    func resetIfNeeded() {
-        switch state {
-        case .idle, .imageReady, .failed:
-            state = .idle
-        default:
-            break
-        }
-    }
-
     func handleAttachmentRemoved() {
         state = .idle
     }
@@ -79,6 +70,7 @@ final class CoachImagePickFlowController: ObservableObject {
 
         isPhotoPickerPresented = false
         state = .processingImage(.library)
+        model.beginPendingImageProcessing(source: .library)
 
         let importResult = await CoachImagePipeline.importFromPhotoLibrary(item)
         await completeImport(importResult, source: .library, model: model)
@@ -92,6 +84,7 @@ final class CoachImagePickFlowController: ObservableObject {
 
         switch result {
         case .failure(.userCancelled):
+            model.revertPendingImageProcessingCancel()
             if case .pickerPresented(.camera) = state {
                 state = .idle
             }
@@ -104,6 +97,7 @@ final class CoachImagePickFlowController: ObservableObject {
                 return
             }
             state = .processingImage(.camera)
+            model.beginPendingImageProcessing(source: .camera)
             let importResult = await CoachImagePipeline.importFromCamera(image)
             await completeImport(importResult, source: .camera, model: model)
         }
@@ -122,6 +116,7 @@ final class CoachImagePickFlowController: ObservableObject {
     ) async {
         switch result {
         case .failure(.userCancelled):
+            model.revertPendingImageProcessingCancel()
             state = .idle
         case .failure(let error):
             await handleFailure(error, model: model)
@@ -138,11 +133,13 @@ final class CoachImagePickFlowController: ObservableObject {
 
     private func handleFailure(_ error: CoachMealPhotoError, model: CoachModel) async {
         guard error != .userCancelled else {
+            model.revertPendingImageProcessingCancel()
             state = .idle
             return
         }
 
         state = .failed(error)
+        model.failPendingImageProcessing(error)
         CoachImageAnalysisDebugLogger.logError(error)
         model.appendMealPhotoSelectionFailure(error)
         state = .idle

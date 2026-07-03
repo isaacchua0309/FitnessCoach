@@ -29,12 +29,12 @@ final class CoachModel: ObservableObject {
         set { mutateInputState { $0.updateText(newValue) } }
     }
 
-    var stagedAttachment: CoachInputAttachment? {
-        inputState.attachment
+    var stagedAttachment: CoachPendingImageState? {
+        inputState.pendingImage
     }
 
     var stagedMealPhotoJPEG: Data? {
-        inputState.attachment?.imageData
+        inputState.pendingImage?.uploadData
     }
 
     var messageCount: Int {
@@ -165,16 +165,19 @@ final class CoachModel: ObservableObject {
     // MARK: Composer — meal photo attachment
 
     func removeStagedMealPhoto() {
-        mutateInputState { $0.removeAttachment() }
+        mutateInputState { $0.clearPendingImage() }
+    }
+
+    @discardableResult
+    func beginPendingImageProcessing(source: CoachInputAttachmentSource) -> Bool {
+        guard inputState.canStartImageSelection else { return false }
+        mutateInputState { $0.beginProcessingNewSelection(source: source) }
+        return true
     }
 
     @discardableResult
     func requestPhotoPick() -> Bool {
-        guard inputState.canPickImage else {
-            mutateInputState { $0.error = .attachmentAlreadyPresent }
-            return false
-        }
-        return true
+        inputState.canStartImageSelection
     }
 
     func handleMealPhotoSelection(
@@ -192,16 +195,20 @@ final class CoachModel: ObservableObject {
     }
 
     func handlePhotoLibrarySelection(_ item: PhotosPickerItem) async {
-        guard inputState.canPickImage else {
-            mutateInputState { $0.error = .attachmentAlreadyPresent }
-            return
-        }
+        guard inputState.canStartImageSelection else { return }
+        beginPendingImageProcessing(source: .library)
 
         let importResult = await CoachImagePipeline.importFromPhotoLibrary(item)
         switch importResult {
         case .failure(.userCancelled):
-            return
+            mutateInputState { state in
+                state.pendingImage?.markFailedPreservingReadyPayload()
+                if state.pendingImage?.byteSize == 0 {
+                    state.pendingImage = nil
+                }
+            }
         case .failure(let error):
+            mutateInputState { $0.failImageProcessing(error) }
             appendMealPhotoSelectionFailure(error)
         case .success(let imported):
             _ = await stagePipelineProcessedPhoto(imported, source: .library)
@@ -209,16 +216,20 @@ final class CoachModel: ObservableObject {
     }
 
     func handleCameraCapture(_ image: UIImage) async {
-        guard inputState.canPickImage else {
-            mutateInputState { $0.error = .attachmentAlreadyPresent }
-            return
-        }
+        guard inputState.canStartImageSelection else { return }
+        beginPendingImageProcessing(source: .camera)
 
         let importResult = await CoachImagePipeline.importFromCamera(image)
         switch importResult {
         case .failure(.userCancelled):
-            return
+            mutateInputState { state in
+                state.pendingImage?.markFailedPreservingReadyPayload()
+                if state.pendingImage?.byteSize == 0 {
+                    state.pendingImage = nil
+                }
+            }
         case .failure(let error):
+            mutateInputState { $0.failImageProcessing(error) }
             appendMealPhotoSelectionFailure(error)
         case .success(let imported):
             _ = await stagePipelineProcessedPhoto(imported, source: .camera)
@@ -233,10 +244,11 @@ final class CoachModel: ObservableObject {
         let processed = imported.processed
 
         let staged = mutateInputState { state -> Bool in
-            state.stageProcessedImage(
+            state.applyProcessedImage(
                 processed,
+                source: source,
                 originalEstimatedBytes: imported.originalEstimatedBytes,
-                source: source
+                localReferenceID: imported.localReferenceID
             )
         }
 
@@ -271,6 +283,22 @@ final class CoachModel: ObservableObject {
         appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
     }
 
+    func failPendingImageProcessing(_ error: CoachMealPhotoError) {
+        mutateInputState { $0.failImageProcessing(error) }
+    }
+
+    func revertPendingImageProcessingCancel() {
+        mutateInputState { state in
+            guard var pending = state.pendingImage, pending.isProcessing else { return }
+            if pending.byteSize == 0 {
+                state.clearPendingImage()
+            } else {
+                pending.markFailedPreservingReadyPayload()
+                state.pendingImage = pending
+            }
+        }
+    }
+
     /// Legacy entry point — prefer `handleMealPhotoSelection`.
     func handlePhotoSelected() async {
         await handleMealPhotoSelection(.failure(.noImage), source: .library)
@@ -298,7 +326,13 @@ final class CoachModel: ObservableObject {
             rawBytes: rawBytes,
             compressedBytes: jpegData.count
         )
-        mutateInputState { $0.stagePreparedImage(jpegData: jpegData, thumbnail: thumbnail, source: source) }
+        mutateInputState {
+            $0.applyLegacyPreparedImage(
+                uploadData: jpegData,
+                thumbnail: thumbnail,
+                source: source
+            )
+        }
     }
 
     @discardableResult
@@ -343,18 +377,18 @@ final class CoachModel: ObservableObject {
             await sendMealPhoto(
                 jpegData: jpegData,
                 caption: nil,
-                source: snapshot.attachment?.source,
-                thumbnailJPEG: snapshot.attachment?.thumbnail,
-                isPipelineProcessedUpload: snapshot.attachment?.isPipelineProcessedUpload == true,
+                source: snapshot.pendingImage?.source,
+                thumbnailJPEG: snapshot.pendingImage?.thumbnail,
+                isPipelineProcessedUpload: snapshot.pendingImage?.isPipelineProcessedUpload == true,
                 restoreSnapshotOnEarlyFailure: snapshot
             )
         case .textAndImage(let text, let jpegData):
             await sendMealPhoto(
                 jpegData: jpegData,
                 caption: text,
-                source: snapshot.attachment?.source,
-                thumbnailJPEG: snapshot.attachment?.thumbnail,
-                isPipelineProcessedUpload: snapshot.attachment?.isPipelineProcessedUpload == true,
+                source: snapshot.pendingImage?.source,
+                thumbnailJPEG: snapshot.pendingImage?.thumbnail,
+                isPipelineProcessedUpload: snapshot.pendingImage?.isPipelineProcessedUpload == true,
                 restoreSnapshotOnEarlyFailure: snapshot
             )
         }

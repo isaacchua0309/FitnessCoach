@@ -26,17 +26,15 @@ final class CoachPhotoLibraryPipelineTests: XCTestCase {
             source: .library
         )
 
-        let attachment = try XCTUnwrap(model.inputState.attachment)
-        XCTAssertEqual(attachment.imageData, processed.uploadData)
-        XCTAssertEqual(attachment.thumbnail, processed.thumbnailData)
-        XCTAssertNotEqual(attachment.imageData, attachment.thumbnail)
-        XCTAssertTrue(attachment.isPipelineProcessedUpload)
-        XCTAssertEqual(attachment.processingMetadata?.compressionStrategy, processed.compressionStrategy)
-        XCTAssertEqual(attachment.processingMetadata?.originalEstimatedBytes, 2_500_000)
-        XCTAssertEqual(
-            attachment.processingMetadata?.processedPixelSize,
-            processed.processedPixelSize
-        )
+        let pending = try XCTUnwrap(model.inputState.pendingImage)
+        XCTAssertEqual(pending.uploadData, processed.uploadData)
+        XCTAssertEqual(pending.thumbnail, processed.thumbnailData)
+        XCTAssertNotEqual(pending.uploadData, pending.thumbnail)
+        XCTAssertTrue(pending.isPipelineProcessedUpload)
+        XCTAssertEqual(pending.compressionStrategy, processed.compressionStrategy)
+        XCTAssertEqual(pending.originalEstimatedBytes, 2_500_000)
+        XCTAssertEqual(pending.processedSize, processed.processedPixelSize)
+        XCTAssertEqual(pending.status, .ready)
     }
 
     func testPipelineProcessedSendUsesUploadDataWithoutLegacyRecompression() async throws {
@@ -55,7 +53,7 @@ final class CoachPhotoLibraryPipelineTests: XCTestCase {
         )
         await model.sendCurrentMessage()
 
-        XCTAssertNil(model.inputState.attachment)
+        XCTAssertNil(model.inputState.pendingImage)
         XCTAssertEqual(aiService.analyzeMealImageCallCount, 1)
         XCTAssertEqual(aiService.receivedImagePayloads.last, processed.uploadData)
         XCTAssertLessThanOrEqual(processed.uploadData.count, CoachImageUploadConfig.default.maxUploadBytes)
@@ -74,39 +72,50 @@ final class CoachPhotoLibraryPipelineTests: XCTestCase {
             originalEstimatedBytes: 900_000,
             source: .library
         )
-        XCTAssertNotNil(model.inputState.attachment?.processingMetadata)
+        XCTAssertNotNil(model.inputState.pendingImage?.compressionStrategy)
 
         model.removeStagedMealPhoto()
 
-        XCTAssertNil(model.inputState.attachment)
-        XCTAssertNil(model.inputState.error)
-        XCTAssertTrue(model.inputState.canPickImage)
+        XCTAssertNil(model.inputState.pendingImage)
+        XCTAssertNil(model.inputState.imageError)
+        XCTAssertTrue(model.inputState.canStartImageSelection)
     }
 
-    func testSecondPipelinePickWithoutRemoveSetsComposerError() async throws {
+    func testProcessingPreservesReadyImageUntilReplacementSucceeds() async throws {
         let container = try AppContainer(inMemory: true)
         let model = makeModel(container: container)
         let sourceImage = Self.makeTestImage(size: CGSize(width: 512, height: 512))
-        guard case .success(let processed) = CoachImagePipeline.process(image: sourceImage) else {
+        guard case .success(let firstProcessed) = CoachImagePipeline.process(image: sourceImage),
+              case .success(let secondProcessed) = CoachImagePipeline.process(
+                image: Self.makeTestImage(size: CGSize(width: 768, height: 768))
+              ) else {
             return XCTFail("Expected pipeline success")
         }
 
         await model.handlePipelineProcessedMealPhoto(
-            processed,
+            firstProcessed,
             originalEstimatedBytes: 700_000,
             source: .library
         )
-        let firstID = try XCTUnwrap(model.inputState.attachment?.id)
+        let firstID = try XCTUnwrap(model.inputState.pendingImage?.id)
+        let firstUpload = try XCTUnwrap(model.inputState.pendingImage?.uploadData)
+
+        XCTAssertTrue(model.beginPendingImageProcessing(source: .library))
+        XCTAssertEqual(model.inputState.pendingImage?.id, firstID)
+        XCTAssertEqual(model.inputState.pendingImage?.uploadData, firstUpload)
+        XCTAssertEqual(model.inputState.pendingImage?.status, .processing)
 
         await model.handlePipelineProcessedMealPhoto(
-            processed,
-            originalEstimatedBytes: 700_000,
+            secondProcessed,
+            originalEstimatedBytes: 800_000,
             source: .library
         )
 
-        XCTAssertFalse(model.requestPhotoPick())
-        XCTAssertEqual(model.inputState.error, .attachmentAlreadyPresent)
-        XCTAssertEqual(model.inputState.attachment?.id, firstID)
+        XCTAssertNotEqual(model.inputState.pendingImage?.id, firstID)
+        XCTAssertEqual(model.inputState.pendingImage?.uploadData, secondProcessed.uploadData)
+        XCTAssertEqual(model.inputState.pendingImage?.status, .ready)
+        XCTAssertTrue(model.requestPhotoPick())
+        XCTAssertNil(model.inputState.imageError)
     }
 
     private func makeModel(container: AppContainer) -> CoachModel {

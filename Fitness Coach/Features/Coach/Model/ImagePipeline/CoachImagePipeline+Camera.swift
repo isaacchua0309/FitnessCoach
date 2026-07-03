@@ -21,7 +21,8 @@ extension CoachImagePipeline {
             return .success(
                 ProcessedImageImport(
                     processed: processed,
-                    originalEstimatedBytes: nil
+                    originalEstimatedBytes: nil,
+                    localReferenceID: UUID()
                 )
             )
         case .failure(let error):

@@ -186,12 +186,12 @@ struct CoachView: View {
                     model.inputText = newValue
                 }
             ),
-            attachment: model.inputState.attachment,
-            attachmentError: model.inputState.error,
+            pendingImage: model.inputState.pendingImage,
+            attachmentError: model.inputState.imageErrorMessage,
             speechError: speechService.errorMessage,
             isListening: speechService.isRecording,
             isVoiceInputBusy: speechService.isVoiceInputBusy,
-            canPickAttachment: model.inputState.canPickImage && imagePickFlow.allowsAttachmentPick,
+            canPickAttachment: model.inputState.canStartImageSelection && imagePickFlow.allowsAttachmentPick,
             isProcessingImage: imagePickFlow.isProcessingImage,
             textFieldPlaceholder: model.photoClarificationComposerPlaceholder
                 ?? FormaProductCopy.Coach.composerPlaceholder,

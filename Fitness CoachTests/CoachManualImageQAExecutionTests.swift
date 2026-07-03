@@ -33,17 +33,17 @@ final class CoachManualImageQAExecutionTests: XCTestCase {
         await model.handleMealPhotoSelection(.success(libraryJPEG), source: .library)
 
         // Step 5: Confirm image appears in input bar.
-        XCTAssertNotNil(model.inputState.attachment)
-        XCTAssertEqual(model.inputState.attachment?.source, .library)
+        XCTAssertNotNil(model.inputState.pendingImage)
+        XCTAssertEqual(model.inputState.pendingImage?.source, .library)
 
         // Steps 6–7: Remove image, confirm composer clears.
         model.removeStagedMealPhoto()
-        XCTAssertNil(model.inputState.attachment)
+        XCTAssertNil(model.inputState.pendingImage)
         XCTAssertFalse(model.inputState.canSend)
 
         // Step 8: Add another image.
         await model.handleMealPhotoSelection(.success(secondJPEG), source: .library)
-        XCTAssertNotNil(model.inputState.attachment)
+        XCTAssertNotNil(model.inputState.pendingImage)
 
         // Steps 9–12: Send without text; bubble, analysis, draft on success only.
         await model.sendCurrentMessage()

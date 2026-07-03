@@ -12,10 +12,16 @@ extension CoachImagePipeline {
     struct ProcessedImageImport: Equatable, Sendable {
         let processed: CoachProcessedImage
         let originalEstimatedBytes: Int?
+        let localReferenceID: UUID
 
-        init(processed: CoachProcessedImage, originalEstimatedBytes: Int?) {
+        init(
+            processed: CoachProcessedImage,
+            originalEstimatedBytes: Int?,
+            localReferenceID: UUID = UUID()
+        ) {
             self.processed = processed
             self.originalEstimatedBytes = originalEstimatedBytes
+            self.localReferenceID = localReferenceID
         }
     }
 

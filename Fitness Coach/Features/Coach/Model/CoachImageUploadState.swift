@@ -7,8 +7,8 @@
 
 import Foundation
 
-// MARK: - Composer attachment (pre-send)
-// See CoachInputState.swift for composer attachment modeling.
+// MARK: - Composer pending image (pre-send)
+// See CoachPendingImageState.swift and CoachInputState.swift.
 
 // MARK: - In-flight / outbound processing
 

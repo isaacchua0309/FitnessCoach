@@ -26,9 +26,9 @@ final class CoachImageWorkflowE2ETests: XCTestCase {
             source: .library
         )
 
-        XCTAssertNotNil(model.inputState.attachment)
-        XCTAssertEqual(model.inputState.attachment?.source, .library)
-        XCTAssertFalse(model.inputState.attachment?.thumbnail.isEmpty == true)
+        XCTAssertNotNil(model.inputState.pendingImage)
+        XCTAssertEqual(model.inputState.pendingImage?.source, .library)
+        XCTAssertFalse(model.inputState.pendingImage?.thumbnail.isEmpty == true)
         XCTAssertTrue(model.inputState.canSend)
         XCTAssertTrue(model.messages.isEmpty)
     }
@@ -46,7 +46,7 @@ final class CoachImageWorkflowE2ETests: XCTestCase {
         )
         model.removeStagedMealPhoto()
 
-        XCTAssertNil(model.inputState.attachment)
+        XCTAssertNil(model.inputState.pendingImage)
         XCTAssertNil(model.stagedMealPhotoJPEG)
         XCTAssertFalse(model.inputState.canSend)
     }
@@ -59,7 +59,7 @@ final class CoachImageWorkflowE2ETests: XCTestCase {
         ).0
 
         XCTAssertFalse(model.inputState.canSend)
-        XCTAssertTrue(model.inputState.canPickImage)
+        XCTAssertTrue(model.inputState.canStartImageSelection)
     }
 
     // MARK: - 2. Take photo
@@ -76,7 +76,7 @@ final class CoachImageWorkflowE2ETests: XCTestCase {
             source: .camera
         )
 
-        XCTAssertEqual(model.inputState.attachment?.source, .camera)
+        XCTAssertEqual(model.inputState.pendingImage?.source, .camera)
         XCTAssertTrue(model.inputState.canSend)
         XCTAssertNotNil(model.stagedMealPhotoJPEG)
     }
@@ -296,11 +296,11 @@ final class CoachImageWorkflowE2ETests: XCTestCase {
             model.removeStagedMealPhoto()
         }
 
-        XCTAssertNil(model.inputState.attachment)
+        XCTAssertNil(model.inputState.pendingImage)
         XCTAssertNil(model.stagedMealPhotoJPEG)
-        XCTAssertNil(model.inputState.error)
+        XCTAssertNil(model.inputState.imageError)
         XCTAssertFalse(model.inputState.canSend)
-        XCTAssertTrue(model.inputState.canPickImage)
+        XCTAssertTrue(model.inputState.canStartImageSelection)
 
         model.inputText = "hello"
         await model.sendCurrentMessage()
