@@ -1,8 +1,10 @@
 # Health Intelligence — Phase 6–10 Engine Audit
 
+> **Historical document.** Written before Phases 6–10 implementation. Engines, snapshot caching, and orchestration described below as "stubs" or "not populated" are **now implemented**. For current architecture see [PHASE_1_5_IMPLEMENTATION.md](./PHASE_1_5_IMPLEMENTATION.md) and [CLEANUP_STATUS.md](./CLEANUP_STATUS.md).
+
 Pre-implementation audit of the Phase 1–5 foundation before building Health Intelligence Phases 6–10.
 
-**Status:** Audit only — no Phase 6–10 code implemented.  
+**Status:** Historical audit — superseded by implemented engine layer.  
 **Related:** [PHASE_1_5_IMPLEMENTATION.md](./PHASE_1_5_IMPLEMENTATION.md) · [PHASE_1_5_VERIFICATION.md](./PHASE_1_5_VERIFICATION.md) · PR [#51](https://github.com/isaacchua0309/FitnessCoach/pull/51)
 
 ---

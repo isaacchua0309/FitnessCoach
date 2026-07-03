@@ -2,7 +2,9 @@
 //  HealthIntelligenceFeatureFlags.swift
 //  Fitness Coach
 //
-//  Forma — Phase 11–15 rollout flags for Health Intelligence.
+//  Forma — Health Intelligence rollout flags and derived load gates.
+//
+//  See Docs/HealthIntelligence/CLEANUP_STATUS.md for deprecated paths and removal plan.
 //
 //  ## Production defaults (safe release)
 //  | Flag | Env key | Default | Effect when off |
@@ -226,6 +228,7 @@ struct EnvironmentHealthIntelligenceFeatureFlags: HealthIntelligenceFeatureFlagP
 
     var isRepositoryReadRoutingEnabled: Bool {
         guard healthIntelligenceEnabled else { return false }
+        // Deprecated rollback flag — default true; remove after Training Insights migrates off direct readers.
         return flag(
             primary: HealthIntelligenceFeatureFlags.EnvironmentKey.repositoryReads,
             legacy: HealthIntelligenceFeatureFlags.EnvironmentKey.repositoryReadsLegacy,

@@ -44,6 +44,9 @@ final class TrainingInsightsModel: ObservableObject {
         do {
             let now = dateProvider.now
             let start = TrainingInsightsAggregator.lookbackStart(asOf: now, calendar: calendar)
+        do {
+            // Deprecated: direct HealthKit reader bypasses HealthDataRepository cache.
+            // Migrate to HealthActivityQueryService (repository routing) before removing.
             let workouts = try await workoutReader.fetchWorkouts(from: start, to: now)
 
             guard !workouts.isEmpty else {

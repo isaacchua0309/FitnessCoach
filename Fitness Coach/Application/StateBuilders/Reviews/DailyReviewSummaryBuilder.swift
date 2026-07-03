@@ -51,6 +51,7 @@ struct DailyReviewSummaryBuilder {
             latestWeightKg: latestWeightEntry?.weightKg,
             steps: dailyLog.steps,
             workoutCount: training.workoutCount,
+            // Legacy merge: see TodayModel — keep in sync until HI owns workout calories.
             workoutCaloriesBurned: max(dailyLog.workoutCaloriesBurned, training.workoutCaloriesBurned),
             hasWorkout: training.hasWorkout,
             foodEntryCount: foodEntries.count,

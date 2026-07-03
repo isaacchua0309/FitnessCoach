@@ -344,6 +344,7 @@ final class JourneyModel: ObservableObject {
             return await healthActivityQuery.workouts(from: startDate, to: endDate)
         }
 
+        // Deprecated fallback: remove when all JourneyModel callers inject healthActivityQuery.
         return try await workoutReader.fetchWorkouts(from: startDate, to: endDate)
     }
 

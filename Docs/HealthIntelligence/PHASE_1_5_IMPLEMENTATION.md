@@ -135,10 +135,10 @@ Fitness Coach/Health/
 ├── Intelligence/
 │   ├── HealthIntelligenceEngine.swift
 │   ├── HealthIntelligenceBaseline.swift
-│   ├── RecoveryEngine.swift             # stub for Phase 6
-│   ├── WorkoutIntelligenceEngine.swift  # stub for Phase 7
-│   ├── AdaptiveNutritionEngine.swift    # stub for Phase 8
-│   └── HealthNextBestActionEngine.swift # stub for Phase 9
+│   ├── RecoveryEngine.swift             # implemented (Phase 6+)
+│   ├── WorkoutIntelligenceEngine.swift  # implemented (Phase 7+)
+│   ├── AdaptiveNutritionEngine.swift    # implemented (Phase 8+)
+│   └── HealthNextBestActionEngine.swift # implemented (Phase 9+)
 ├── Compatibility/
 │   └── NormalizedWorkout+HealthWorkoutRecord.swift
 └── HealthIntelligenceFeatureFlags.swift

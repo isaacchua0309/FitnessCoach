@@ -128,6 +128,9 @@ struct HealthDataRepository: HealthDataRepositorying {
     }
 
     // MARK: - Legacy bridge
+    //
+    // Deprecated: prefer prefetched bundle derivation via HealthNormalizedSampleDeriver.
+    // Retained for repository contract tests until callers migrate fully.
 
     func normalizedSamples(
         for date: Date,

@@ -131,7 +131,9 @@ final class AppContainer {
 
         themeStore = ThemeStore(analyticsLogger: self.themeAnalyticsLogger)
 
-        healthTrainingService = HealthTrainingService()
+        healthTrainingService = HealthTrainingService(
+            authorizer: SystemHealthKitTrainingAuthorization(healthKitManager: sharedHealthKitManager)
+        )
         let sharedHealthKitManager = HealthKitManager()
         let workoutReader = HealthTrainingReaderFactory.makeWorkoutReader(
             healthKitManager: sharedHealthKitManager
@@ -160,6 +162,7 @@ final class AppContainer {
         )
         healthSyncService = HealthSyncService(
             repository: healthDataRepository,
+            permissionService: HealthPermissionService(healthKitManager: sharedHealthKitManager),
             cacheStore: healthCacheStore
         )
         let remoteSummarySyncCapable = HealthIntelligenceFeatureFlags.healthSummaryRemoteSyncEnabled

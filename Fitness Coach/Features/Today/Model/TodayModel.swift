@@ -375,6 +375,8 @@ final class TodayModel: ObservableObject {
         let hasRecentWeight = latestWeight != nil || profile?.currentWeightKg != nil
 
         let workoutSummary = TodayWorkoutSummary(
+            // Legacy merge: prefers the higher of manual log vs HealthKit aggregate.
+            // Remove after HI workout display fully owns Today activity calories.
             workoutCaloriesBurned: max(dailyLog.workoutCaloriesBurned, training.workoutCaloriesBurned),
             workoutCount: training.workoutCount,
             hasWorkout: training.hasWorkout

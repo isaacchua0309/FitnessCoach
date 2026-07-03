@@ -4,6 +4,9 @@
 //
 //  Application-layer queries for Apple Health workouts and steps.
 //
+//  Primary path routes through HealthDataRepository when repositoryReadRoutingEnabled
+//  (default). Direct HealthKit reader fallback remains for flag-off rollback only.
+//
 
 import Foundation
 
@@ -38,6 +41,7 @@ struct HealthActivityQueryService: Sendable {
         do {
             return try await workoutReader.fetchWorkouts(from: startDate, to: endDate)
         } catch {
+            // Deprecated fallback path — remove when isRepositoryReadRoutingEnabled flag is retired.
             let fields: [String: String] = [
                 "start": ISO8601DateFormatter().string(from: startDate),
                 "end": ISO8601DateFormatter().string(from: endDate),
