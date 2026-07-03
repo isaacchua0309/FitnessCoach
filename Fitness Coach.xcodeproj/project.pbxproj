@@ -393,6 +393,7 @@
 				DEVELOPMENT_TEAM = C3PWC866NM;
 				ENABLE_PREVIEWS = YES;
 				FORMA_AI_BACKEND_URL = "https://us-central1-fitness-coach-732fd.cloudfunctions.net/aiGateway";
+				FORMA_INTERNAL_BUILD = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AppURLSchemes.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Forma;
@@ -433,6 +434,7 @@
 				DEVELOPMENT_TEAM = C3PWC866NM;
 				ENABLE_PREVIEWS = YES;
 				FORMA_AI_BACKEND_URL = "https://us-central1-fitness-coach-732fd.cloudfunctions.net/aiGateway";
+				FORMA_INTERNAL_BUILD = 0;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AppURLSchemes.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Forma;

@@ -49,7 +49,10 @@ final class SettingsPresentationBuilderTests: XCTestCase {
         XCTAssertNotNil(state.developer)
         XCTAssertTrue(state.isDebugOrInternalBuild)
         XCTAssertEqual(state.developer?.rows.map(\.id), [.authDiagnostics, .pipelineTraces])
-        XCTAssertNil(state.developer?.footer)
+        XCTAssertEqual(
+            state.developer?.footer,
+            FormaProductCopy.Settings.Developer.sectionFooter
+        )
     }
 
     func testProductionSettingsHidesComingSoonRows() {

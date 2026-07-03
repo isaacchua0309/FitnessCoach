@@ -31,7 +31,9 @@ enum SettingsPresentationBuilder {
                     privacyPolicyShownInPrivacySection: input.legalAvailability.isPrivacyPolicyAvailable
                 )
             ),
-            developer: developerSection(isDebugOrInternalBuild: input.isDebugOrInternalBuild),
+            developer: SettingsDeveloperPresentationBuilder.buildSection(
+                isVisible: input.isDebugOrInternalBuild
+            ),
             legalAvailability: input.legalAvailability,
             isDebugOrInternalBuild: input.isDebugOrInternalBuild
         )
@@ -136,31 +138,6 @@ enum SettingsPresentationBuilder {
             title: FormaProductCopy.Settings.Hub.privacyDataSectionTitle,
             rows: rows,
             footer: FormaProductCopy.Settings.PrivacyData.sectionFooter
-        )
-    }
-
-    private static func developerSection(
-        isDebugOrInternalBuild: Bool
-    ) -> SettingsDeveloperSectionState? {
-        guard isDebugOrInternalBuild else {
-            return nil
-        }
-
-        return SettingsDeveloperSectionState(
-            title: FormaProductCopy.Settings.Hub.developerSectionTitle,
-            rows: [
-                row(
-                    id: .authDiagnostics,
-                    title: FormaProductCopy.Settings.Rows.authDiagnostics,
-                    destination: .authDiagnostics
-                ),
-                row(
-                    id: .pipelineTraces,
-                    title: FormaProductCopy.Settings.Rows.pipelineTraces,
-                    destination: .pipelineTraces
-                )
-            ],
-            footer: nil
         )
     }
 

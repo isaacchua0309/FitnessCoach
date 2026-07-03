@@ -2418,6 +2418,10 @@ enum FormaProductCopy {
             static let pipelineTraces = "Pipeline traces"
         }
 
+        enum Developer {
+            static let sectionFooter = "Debug tools are only visible in internal builds."
+        }
+
         enum Support {
             static let feedbackMailSubject = "Forma Feedback"
             static let contactMailSubject = "Forma Support"
