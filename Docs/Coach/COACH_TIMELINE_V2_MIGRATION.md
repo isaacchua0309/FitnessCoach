@@ -76,3 +76,5 @@ xcodebuild test -scheme "Fitness Coach" -testPlan Fast-Core \
 ```
 
 Key test suites: `CoachContextPacketV2BuilderTests`, `CoachTimelineHardeningTests`, `CoachTimelineRegressionTests`, `coachContextPacketV2.test.ts`.
+
+See also [COACH_TIMELINE_CONTEXT_V2_IMPLEMENTATION.md](./COACH_TIMELINE_CONTEXT_V2_IMPLEMENTATION.md) for the complete implementation reference.
