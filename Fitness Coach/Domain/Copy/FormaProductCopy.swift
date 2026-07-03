@@ -2004,17 +2004,27 @@ enum FormaProductCopy {
 
         enum WeeklyReview {
             static let sectionTitle = "This week"
-            static let foodTitle = "Logged food"
-            static let proteinTitle = "Protein goal"
-            static let waterTitle = "Water goal"
-            static let trainingTitle = "Gym goal"
-            static let calorieTitle = "Calorie target"
-            static let weightTitle = "Weight"
+            static let foodTitle = "Food Logging"
+            static let proteinTitle = "Protein"
+            static let waterTitle = "Water"
+            static let trainingTitle = "Workout"
+            static let calorieTitle = "Calorie Target"
+            static let weightTitle = "Weight Logging"
             static let trainingNone = "None yet"
 
             static let weightUnavailable = "Log weight to see weekly change"
             static let trainingConnectAppleHealth = TrainingIntegrationCopy.includeWorkoutsInProgress
             static let noFoodLogsSummary = "Log a meal to start building your weekly pattern."
+            static let emptyState = "Your weekly pattern starts today."
+            static let oneMoreDayMomentum = "One more day builds momentum."
+
+            static func weekDayCount(current: Int, total: Int) -> String {
+                "\(current) / \(total) days"
+            }
+
+            static func streakLabel(days: Int) -> String {
+                "🔥 \(days)-day streak"
+            }
 
             static func dayFraction(achieved: Int, total: Int) -> String {
                 "\(achieved)/\(total) days"

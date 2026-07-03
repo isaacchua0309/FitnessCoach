@@ -127,7 +127,39 @@ enum StreakCalculator {
         return streak
     }
 
-    /// Logged days in the rolling window ending on `date` (inclusive).
+    /// Consecutive days ending on `date` with calorie target met.
+    static func calorieStreak(
+        logs: [DailyLog],
+        asOf date: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Int {
+        let logByDay = Dictionary(uniqueKeysWithValues: logs.map {
+            (calendar.startOfDay(for: $0.date), $0)
+        })
+
+        return consecutiveDays(startingFrom: date, calendar: calendar) { day in
+            guard let log = logByDay[day] else { return false }
+            return calorieGoalMet(log)
+        }
+    }
+
+    /// Consecutive days ending on `date` with a weight entry logged.
+    static func weightLogStreak(
+        logs: [DailyLog],
+        weights: [WeightEntry],
+        asOf date: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Int {
+        let logByDay = Dictionary(uniqueKeysWithValues: logs.map {
+            (calendar.startOfDay(for: $0.date), $0)
+        })
+        let weightDays = JourneyLogMetrics.weightDays(in: logs, weights: weights, calendar: calendar)
+
+        return consecutiveDays(startingFrom: date, calendar: calendar) { day in
+            JourneyLogMetrics.isWeightLogged(on: day, logsByDay: logByDay, weightDays: weightDays)
+        }
+    }
+
     static func loggedDaysInRollingWindow(
         logs: [DailyLog],
         windowDays: Int = 7,
@@ -159,6 +191,13 @@ enum StreakCalculator {
     }
 
     // MARK: - Private
+
+    private static func calorieGoalMet(_ log: DailyLog) -> Bool {
+        let target = log.targets.calorieTarget
+        guard target > 0 else { return false }
+        let delta = abs(Double(log.totals.calories - target)) / Double(target)
+        return delta <= JourneyLogMetrics.calorieAdherenceTolerance
+    }
 
     private static func proteinGoalMet(_ log: DailyLog) -> Bool {
         log.targets.proteinTarget > 0

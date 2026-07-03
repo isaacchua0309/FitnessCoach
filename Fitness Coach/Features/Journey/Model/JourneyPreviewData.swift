@@ -543,7 +543,44 @@ enum JourneyPreviewData {
             for: review,
             goalDirection: dashboard.baseline.goalDirection
         )
-        dashboard.weeklyHabit = JourneyWeeklyHabitState.fromWeeklyReview(review)
+
+        let weekLogs = makeLogs(
+            count: 7,
+            proteinGoalDays: 6,
+            waterGoalDays: 5,
+            calorieAdherenceDays: 6,
+            trainingWorkoutDays: 0
+        )
+        let maturityLogs = makeLogs(
+            count: 32,
+            proteinGoalDays: 18,
+            waterGoalDays: 16,
+            calorieAdherenceDays: 32,
+            trainingWorkoutDays: 0
+        )
+        let weights = weightEntriesFromChart(dashboard.baseline.chartPoints)
+
+        dashboard.weeklyHabit = JourneyWeeklyPatternBuilder.build(
+            JourneyWeeklyPatternBuilder.Input(
+                weekLogs: weekLogs,
+                weekWeights: weights,
+                maturityLogs: maturityLogs,
+                allWeights: weights,
+                healthWorkoutDayStarts: [],
+                weeklyTraining: review.training,
+                expectedTrainingDays: review.expectedTrainingDays,
+                streaks: dashboard.streaks,
+                streakSummary: StreakSummary(
+                    loggingStreak: dashboard.streaks.currentLoggingStreakDays,
+                    proteinStreak: dashboard.streaks.currentProteinStreakDays,
+                    hydrationStreak: dashboard.streaks.currentWaterStreakDays,
+                    workoutStreak: 0
+                ),
+                weeklyReview: review,
+                asOf: today,
+                calendar: calendar
+            )
+        )
         return dashboard
     }
 

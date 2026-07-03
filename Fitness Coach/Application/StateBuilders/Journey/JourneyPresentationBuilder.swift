@@ -17,6 +17,30 @@ enum JourneyPresentationBuilder {
         loggedDays: Int
     ) -> JourneyDashboardState {
         let weeklyReview = JourneyDashboardBuilder.weeklyReview(context: context)
+        let streakSummary = StreakCalculator.calculate(
+            logs: context.maturityLogs,
+            workoutDates: context.healthWorkoutDayStarts,
+            asOf: context.asOf,
+            calendar: context.calendar
+        )
+        let weeklyHabit = JourneyWeeklyPatternBuilder.build(
+            JourneyWeeklyPatternBuilder.Input(
+                weekLogs: context.weekLogs,
+                weekWeights: context.weekWeights,
+                maturityLogs: context.maturityLogs,
+                allWeights: context.allWeights,
+                healthWorkoutDayStarts: context.healthWorkoutDayStarts,
+                weeklyTraining: context.weeklyTraining,
+                expectedTrainingDays: JourneyWeeklyReviewBuilder.expectedTrainingDays(
+                    profile: context.profile
+                ),
+                streaks: context.journeyStreaks,
+                streakSummary: streakSummary,
+                weeklyReview: weeklyReview,
+                asOf: context.asOf,
+                calendar: context.calendar
+            )
+        )
         let milestoneResult = JourneyNextMilestoneBuilder.build(
             JourneyNextMilestoneBuilder.Input(
                 profile: context.profile,
@@ -84,7 +108,7 @@ enum JourneyPresentationBuilder {
             milestone: milestoneResult.presentation,
             storyEvents: storyEvents(from: timeline, calendar: context.calendar),
             insight: JourneyInsightState.fromHabitInsights(habitInsights),
-            weeklyHabit: JourneyWeeklyHabitState.fromWeeklyReview(weeklyReview),
+            weeklyHabit: weeklyHabit,
             monthlyRecap: monthlyRecapState(from: monthlyRecap),
             chapter: JourneyChapterState.fromLevel(level)
         )
@@ -255,6 +279,29 @@ enum JourneyPresentationBuilder {
             )
         )
 
+        let streakSummary = StreakCalculator.calculate(
+            logs: maturityLogs,
+            workoutDates: healthWorkoutDayStarts,
+            asOf: asOf,
+            calendar: calendar
+        )
+        let weeklyHabit = JourneyWeeklyPatternBuilder.build(
+            JourneyWeeklyPatternBuilder.Input(
+                weekLogs: weekLogs,
+                weekWeights: weekWeights,
+                maturityLogs: maturityLogs,
+                allWeights: allWeights,
+                healthWorkoutDayStarts: healthWorkoutDayStarts,
+                weeklyTraining: training,
+                expectedTrainingDays: JourneyWeeklyReviewBuilder.expectedTrainingDays(profile: profile),
+                streaks: streaks,
+                streakSummary: streakSummary,
+                weeklyReview: weeklyReview,
+                asOf: asOf,
+                calendar: calendar
+            )
+        )
+
         if maturityLogs.isEmpty, weekLogs.isEmpty {
             return JourneyDashboardState(
                 hasProfile: hasProfile,
@@ -270,7 +317,7 @@ enum JourneyPresentationBuilder {
                 milestone: milestoneResult.presentation,
                 storyEvents: storyEvents(from: storyTimeline, calendar: calendar),
                 insight: JourneyInsightState.fromHabitInsights(.locked),
-                weeklyHabit: JourneyWeeklyHabitState.fromWeeklyReview(weeklyReview),
+                weeklyHabit: weeklyHabit,
                 monthlyRecap: JourneyMonthlyRecapState(
                     isVisible: false,
                     sectionTitle: FormaProductCopy.Journey.MonthlyRecap.sectionTitle(

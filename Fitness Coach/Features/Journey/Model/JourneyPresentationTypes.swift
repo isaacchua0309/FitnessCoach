@@ -276,46 +276,53 @@ struct JourneyWeeklyHabitRow: Equatable, Identifiable {
     var winScore: Double
 }
 
+struct JourneyWeeklyHabitRowState: Equatable, Identifiable {
+    var id: String
+    var title: String
+    var weeklyCountLabel: String
+    var streakLabel: String?
+    var supportiveCopy: String?
+    var dayCells: [Bool]
+    var showsDayProgress: Bool = true
+}
+
 struct JourneyWeeklyHabitState: Equatable {
     var isVisible: Bool
     var sectionTitle: String
-    var weekSummary: String
-    var rows: [JourneyWeeklyHabitRow]
-    var consistencyHeadline: String?
-    var consistencyDetail: String?
-    var weekOverWeekDetail: String?
-    var training: JourneyWeeklyTrainingStatus
+    var showsHabitRows: Bool
     var emptyMessage: String?
+    var habits: [JourneyWeeklyHabitRowState]
+    var training: JourneyWeeklyTrainingStatus
+    var accessibilitySummary: String
     var weeklyReviewState: JourneyWeeklyReviewState
 
-    static func fromWeeklyReview(_ review: JourneyWeeklyReviewState) -> JourneyWeeklyHabitState {
-        let copy = FormaProductCopy.Journey.WeeklyReview.self
-        let isEmpty = review.foodLoggedDays == 0
-            && review.proteinGoalDays == 0
-            && review.waterGoalDays == 0
-            && review.trainingDays == 0
+    var rows: [JourneyWeeklyHabitRow] {
+        weeklyReviewState.rows.map {
+            JourneyWeeklyHabitRow(
+                id: $0.id,
+                icon: $0.icon,
+                title: $0.title,
+                value: $0.value,
+                detail: $0.detail,
+                winScore: $0.winScore
+            )
+        }
+    }
 
-        return JourneyWeeklyHabitState(
-            isVisible: true,
-            sectionTitle: copy.sectionTitle,
-            weekSummary: review.weekSummaryCopy,
-            rows: review.rows.map {
-                JourneyWeeklyHabitRow(
-                    id: $0.id,
-                    icon: $0.icon,
-                    title: $0.title,
-                    value: $0.value,
-                    detail: $0.detail,
-                    winScore: $0.winScore
-                )
-            },
-            consistencyHeadline: review.consistencyHeadline,
-            consistencyDetail: review.consistencyDetail,
-            weekOverWeekDetail: review.weekOverWeekDetail,
-            training: review.training,
-            emptyMessage: isEmpty ? copy.noFoodLogsSummary : nil,
-            weeklyReviewState: review
-        )
+    var weekSummary: String {
+        weeklyReviewState.weekSummaryCopy
+    }
+
+    var consistencyHeadline: String? {
+        weeklyReviewState.consistencyHeadline
+    }
+
+    var consistencyDetail: String? {
+        weeklyReviewState.consistencyDetail
+    }
+
+    var weekOverWeekDetail: String? {
+        weeklyReviewState.weekOverWeekDetail
     }
 }
 

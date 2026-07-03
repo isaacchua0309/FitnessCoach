@@ -55,7 +55,7 @@ struct JourneyDashboardContent: View {
                 .onAppear { analyticsCoordinator?.logGoalProjectionViewed() }
 
         case .weeklyReview:
-            JourneyWeeklyReviewSection(review: state.weeklyReview, onCTA: onCTA)
+            JourneyWeeklyReviewSection(state: state.weeklyHabit, onCTA: onCTA)
                 .onAppear { analyticsCoordinator?.logWeeklyReviewViewed() }
 
         case .milestones:

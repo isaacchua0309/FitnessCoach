@@ -32,9 +32,10 @@ final class JourneyPresentationBuilderTests: XCTestCase {
         XCTAssertFalse(dashboard.chapter.isVisible)
         XCTAssertFalse(dashboard.monthlyRecap.isVisible)
         XCTAssertTrue(dashboard.milestone.isVisible)
+        XCTAssertFalse(dashboard.weeklyHabit.showsHabitRows)
         XCTAssertEqual(
-            dashboard.milestone.title,
-            FormaProductCopy.Journey.Milestones.NextAchievement.firstMealTitle
+            dashboard.weeklyHabit.emptyMessage,
+            FormaProductCopy.Journey.WeeklyReview.emptyState
         )
         XCTAssertFalse(dashboard.showsStartingEmptyState)
     }
