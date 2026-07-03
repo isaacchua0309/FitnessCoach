@@ -498,7 +498,7 @@ enum JourneyPersonalizedInsightsBuilder {
     }
 
     private static func habitName(for kind: JourneyHabitKind) -> String {
-        let copy = FormaProductCopy.Journey.HabitInsights.self
+        let copy = FormaProductCopy.Journey.HabitLabels.self
         switch kind {
         case .foodLogging: return copy.foodLoggingLabel
         case .protein: return copy.proteinLabel

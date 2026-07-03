@@ -22,7 +22,7 @@ struct JourneyHeaderSection: View {
         state: JourneyHeaderState(
             title: FormaProductCopy.Journey.Header.title,
             subtitle: FormaProductCopy.Journey.Momentum.buildingHeadline,
-            accessibilitySummary: "Your journey"
+            accessibilitySummary: "\(FormaProductCopy.Journey.Header.title). \(FormaProductCopy.Journey.Momentum.buildingHeadline)"
         )
     )
     .padding()

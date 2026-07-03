@@ -85,4 +85,28 @@ final class JourneyCleanupTests: XCTestCase {
         XCTAssertFalse(dashboard.milestones.items.isEmpty)
         XCTAssertFalse(dashboard.storyTimeline.displayEvents.isEmpty)
     }
+
+    func testRevampPreviewPersonasExcludeBannedCopy() {
+        let personas: [JourneyDashboardState] = [
+            JourneyPreviewData.brandNewUser,
+            JourneyPreviewData.weekOne,
+            JourneyPreviewData.strongMomentum,
+            JourneyPreviewData.sparseData,
+            JourneyPreviewData.foodLogsOnly,
+            JourneyPreviewData.weightLogsNoLoss,
+            JourneyPreviewData.monthlyRecapActive
+        ]
+
+        for dashboard in personas {
+            JourneyRevampQAChecklistSupport.assertNoBannedLiveCopy(in: dashboard)
+            JourneyRevampQAChecklistSupport.assertNoFakeZeroPercentMonthlyRecap(dashboard.monthlyRecap)
+            JourneyRevampQAChecklistSupport.assertHeroDoesNotShowZeroKgLost(dashboard.transformation)
+        }
+    }
+
+    func testChapterSectionDoesNotSurfaceCosmeticXP() {
+        let chapter = JourneyPreviewData.strongMomentum.chapter
+        XCTAssertFalse(chapter.accessibilitySummary.localizedCaseInsensitiveContains("xp"))
+        XCTAssertFalse(chapter.accessibilitySummary.contains("/"))
+    }
 }

@@ -207,5 +207,6 @@ final class JourneyRevampQAChecklistTests: XCTestCase {
         XCTAssertEqual(JourneyProductLayout.sectionOrder.first, .header)
         XCTAssertEqual(JourneyProductLayout.sectionOrder.last, .startingEmptyState)
         JourneyRevampQAChecklistSupport.assertNoRemovedClutter()
+        JourneyRevampQAChecklistSupport.assertNoBannedLiveCopy(in: JourneyPreviewData.strongMomentum)
     }
 }

@@ -1704,13 +1704,7 @@ enum FormaProductCopy {
 
         typealias StoryTimeline = Timeline
 
-        enum HabitInsights {
-            static let sectionTitle = "Habit insights"
-            static let lockedBody = "Keep logging to unlock habit insights."
-            static let strongestTitle = "Your strongest habit"
-            static let nextFocusTitle = "Your next focus"
-            static let suggestionTitle = "Next step"
-
+        enum HabitLabels {
             static let foodLoggingLabel = "Food logging consistency"
             static let proteinLabel = "Protein consistency"
             static let waterLabel = "Water consistency"
@@ -1718,24 +1712,6 @@ enum FormaProductCopy {
             static let trainingLabel = "Training consistency"
             static let weightLabel = "Weight logging consistency"
             static let weekendLabel = "Weekend logging"
-
-            static let suggestWeekendLogging = "Try logging lunch first on weekends."
-            static let suggestWaterCheckIn = "Add a water check-in after breakfast."
-            static let suggestProteinFirstMeal = "Keep prioritising protein at your first meal."
-            static let suggestLogWeightTwice = "Log weight twice this week to sharpen your trend."
-            static let suggestLogNextMeal = "Log your next meal to keep your momentum going."
-            static let suggestCaloriePlanning = "Plan tomorrow's meals tonight to build consistency."
-            static let suggestTrainingWalk = "A short walk or workout counts — start with ten minutes."
-
-            static func strongestQualitative(percent: Int) -> String {
-                switch percent {
-                case 90...: return "Excellent."
-                case 75..<90: return "Strong."
-                case 60..<75: return "Solid."
-                case 40..<60: return "Building."
-                default: return "Getting started."
-                }
-            }
         }
 
         enum PersonalizedInsights {
@@ -1800,111 +1776,6 @@ enum FormaProductCopy {
 
             static func opportunityDetail(habit: String) -> String {
                 "A little more focus on \(habit.lowercased()) would balance your week."
-            }
-        }
-
-        enum ProgressAttribution {
-            static let sectionTitle = "What's driving your progress"
-            static let biggestReasonTitle = "A steady pattern likely helped most."
-            static let insufficientTitle = "Your consistency is starting to create a useful pattern."
-            static let insufficientDetail = "Keep logging meals and weight so Forma can spot what's helping."
-
-            static let calorieLikelyHelpedTitle = "Your calorie consistency likely helped most."
-            static let proteinAnchorTitle = "Protein likely became one of your strongest anchors."
-            static let loggingControlTitle = "Logging more often likely gave you better control."
-            static let trainingRhythmTitle = "Your training rhythm likely became more consistent."
-            static let habitsBeforeScaleTitle = "Your habits are building before the scale catches up."
-            static let waterSupportTitle = "Water consistency likely supported your routine."
-
-            static func stayedWithinCalories(achieved: Int, eligible: Int) -> String {
-                "You stayed within calories \(achieved) of the last \(eligible) days."
-            }
-
-            static func increasedProteinConsistency(percent: Int) -> String {
-                "You increased protein consistency by \(percent)%."
-            }
-
-            static func loggedFoodDaysThisWeek(_ days: Int) -> String {
-                days == 1
-                    ? "You logged food 1 day this week."
-                    : "You logged food \(days) days this week."
-            }
-
-            static func trainingDaysThisWeek(_ days: Int) -> String {
-                days == 1
-                    ? "Training showed up 1 day this week."
-                    : "Training showed up \(days) days this week."
-            }
-
-            static func improvedWaterConsistency(percent: Int) -> String {
-                "Water consistency improved by \(percent)% week over week."
-            }
-
-            static func weightTrendTowardGoal(direction: JourneyGoalDirection) -> String {
-                switch direction {
-                case .lose:
-                    return "Your weight trend is moving toward your goal."
-                case .gain:
-                    return "Your weight trend is moving toward your gain goal."
-                case .maintain:
-                    return "Your weight trend is staying steady around your target."
-                }
-            }
-        }
-
-        typealias WhyProgress = ProgressAttribution
-
-        enum BeforeToday {
-            static let sectionTitle = "Before vs today"
-            static let maintenanceLabel = "Maintenance"
-            static let targetLabel = "Target"
-            static let adaptedTargetCopy = "Your target has adapted with you"
-        }
-
-        enum PersonalRecords {
-            static let sectionTitle = "Personal records"
-            static let lockedBody = "Keep logging to unlock personal records."
-            static let earlyRecord = "Early record"
-
-            static let longestStreakTitle = "Longest streak"
-            static let highestProteinWeekTitle = "Highest protein week"
-            static let largestWeeklyLossTitle = "Largest weekly weight loss"
-            static let largestWeeklyGainTitle = "Largest weekly weight gain"
-            static let mostStableWeekTitle = "Most stable week"
-            static let mostConsistentMonthTitle = "Most consistent month"
-            static let bestWaterWeekTitle = "Best water week"
-            static let mostTrainingSessionsTitle = "Most training sessions"
-            static let mostMealsLoggedTitle = "Most meals logged"
-
-            static func streakDays(_ days: Int) -> String {
-                days == 1 ? "1 day" : "\(days) days"
-            }
-
-            static func proteinPerDay(_ grams: Double) -> String {
-                let rounded = grams.rounded()
-                return rounded.truncatingRemainder(dividingBy: 1) == 0
-                    ? "\(Int(rounded))g/day"
-                    : "\(Int(rounded))g/day"
-            }
-
-            static func daysOfWeek(_ days: Int) -> String {
-                "\(days)/7 days"
-            }
-
-            static func sessionsPerWeek(_ count: Int) -> String {
-                count == 1 ? "1/week" : "\(count)/week"
-            }
-
-            static func mealsLoggedInWeek(_ days: Int) -> String {
-                days == 1 ? "1 day" : "\(days) days"
-            }
-
-            static func averageOverDays(_ days: Int) -> String {
-                "Avg over \(days) logged days"
-            }
-
-            static func loggedDaysInMonth(_ days: Int) -> String {
-                days == 1 ? "1 day logged" : "\(days) days logged"
             }
         }
 
@@ -2042,25 +1913,6 @@ enum FormaProductCopy {
             }
         }
 
-        enum Level {
-            static let sectionTitle = Chapters.sectionTitle
-            static let xpLabel = "XP"
-            static let earnExplanation = "Progress comes from logging consistently and unlocking milestones."
-            static let emptyBody = Chapters.emptyBody
-
-            static func levelLabel(_ level: Int) -> String {
-                Chapters.chapterLabel(level)
-            }
-
-            static func xpProgress(current: Int, required: Int) -> String {
-                "\(current) / \(required) XP"
-            }
-
-            static func title(for level: Int) -> String {
-                Chapters.title(for: level)
-            }
-        }
-
         enum CTA {
             static let updateGoal = "Update goal"
             static let opensCoach = "Opens Coach"
@@ -2102,32 +1954,8 @@ enum FormaProductCopy {
             static let weightTrendAction = FormaProductCopy.EmptyState.WeightTrend.action
             static let weightTrendActionHint = FormaProductCopy.EmptyState.WeightTrend.actionAccessibilityHint
             static let consistencyBody = FormaProductCopy.EmptyState.Consistency.body
-            static let habitInsightsBody = HabitInsights.lockedBody
-            static let personalRecordsBody = PersonalRecords.lockedBody
             static let timelineBody = Timeline.emptyBody
             static let milestonesBody = Milestones.emptyBody
-            static let levelBody = Level.emptyBody
-        }
-
-        enum DetailedAnalytics {
-            static let title = "Detailed analytics"
-            static let subtitle = "Nutrition, water, training, and trend details"
-            static let weightTrendTitle = "Weight trend"
-            static let nutritionTitle = "Nutrition"
-            static let waterTitle = "Water"
-            static let trainingTitle = "Training"
-            static let rangeTitle = "Range"
-            static let noWorkoutsThisWeek = "No Apple Health workouts this week."
-            static let trainingSourceNote = TrainingIntegrationCopy.trainingInsightsUseAppleHealth
-
-            enum WeightTrend {
-                static let spikeUp = "A recent bump is likely water retention — your longer trend matters more."
-                static let spikeGeneral = "Daily weight jumped — often water or sodium. Keep logging and watch the weekly shape."
-                static let decreasing = "The trend is moving toward your goal. Stay patient through normal daily fluctuations."
-                static let increasing = "Weight has drifted up recently. Review intake and recovery when you're ready."
-                static let stable = "Weight is holding steady — recomposition and maintenance both show up here first."
-                static let insufficientData = FormaProductCopy.EmptyState.WeightTrend.body
-            }
         }
 
         enum WeeklyReview {

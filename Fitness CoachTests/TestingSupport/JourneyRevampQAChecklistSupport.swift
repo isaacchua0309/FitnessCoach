@@ -22,6 +22,18 @@ enum JourneyRevampQAChecklistSupport {
         "achievements",
     ]
 
+    static let bannedLiveCopyPhrases: [String] = [
+        "You've lost 0 kg",
+        "Keep logging to unlock personal records",
+        "Detailed analytics",
+        "Before vs Today",
+        "Before vs today",
+        "Your first monthly recap is building",
+        "Your consistency is starting to create a useful pattern",
+        "Level 1 / 25 XP",
+        "Keep logging to unlock habit insights",
+    ]
+
     static let shamePhrases: [String] = [
         "you failed",
         "falling behind",
@@ -66,6 +78,22 @@ enum JourneyRevampQAChecklistSupport {
             XCTAssertFalse(
                 identifiers.contains(clutter),
                 "Removed clutter section reintroduced: \(clutter)",
+                file: file,
+                line: line
+            )
+        }
+    }
+
+    static func assertNoBannedLiveCopy(
+        in dashboard: JourneyDashboardState,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let copy = allCopyStrings(from: dashboard)
+        for phrase in bannedLiveCopyPhrases {
+            XCTAssertFalse(
+                copy.localizedCaseInsensitiveContains(phrase),
+                "Banned Journey copy found: \(phrase)",
                 file: file,
                 line: line
             )
@@ -194,8 +222,12 @@ enum JourneyRevampQAChecklistSupport {
 
     private static func allCopyStrings(from dashboard: JourneyDashboardState) -> String {
         [
+            dashboard.header.title,
+            dashboard.header.subtitle,
+            dashboard.transformation.title,
             dashboard.transformation.primaryMessage,
             dashboard.transformation.body,
+            dashboard.transformation.progressLabel,
             dashboard.goalProjection.title,
             dashboard.goalProjection.detail,
             dashboard.milestone.title,
@@ -204,11 +236,17 @@ enum JourneyRevampQAChecklistSupport {
             dashboard.weeklyHabit.accessibilitySummary,
             dashboard.insight.learningTitle ?? "",
             dashboard.insight.learningDetail ?? "",
+            dashboard.monthlyRecap.teaserTitle ?? "",
             dashboard.monthlyRecap.teaserDetail ?? "",
+            dashboard.chapter.chapterTitle,
+            dashboard.chapter.nextUnlockLabel ?? "",
+            dashboard.chapter.emptyMessage ?? "",
         ]
         .joined(separator: " ")
         + " "
         + dashboard.insight.insights.map { "\($0.title) \($0.detail)" }.joined(separator: " ")
+        + " "
+        + dashboard.monthlyRecap.rows.map { "\($0.title) \($0.value)" }.joined(separator: " ")
         + " "
         + dashboard.storyTimeline.displayEvents.map { "\($0.title) \($0.subtitle ?? "")" }.joined(separator: " ")
     }

@@ -55,25 +55,6 @@ struct JourneyStreakChipState: Equatable {
     static let hidden = JourneyStreakChipState(isVisible: false, days: 0, label: "")
 }
 
-struct JourneyTransformationHeroState: Equatable {
-    var headlineCopy: String
-    var changeValueCopy: String
-    var emotionalStatusLabel: String
-    /// Normalized 0...1 fill for the SwiftUI progress bar (includes a visible sliver at 0%).
-    var progressBarFill: Double
-    var progressLabel: String
-    var progressBarAccessibilityValue: String
-    var startedWeightCopy: String
-    var todayWeightCopy: String
-    var goalWeightCopy: String
-    var startedFootnote: String?
-    var paceForecastText: String
-    var streakChip: JourneyStreakChipState
-    var usesSyntheticBaseline: Bool
-    var showsUpdateGoalCTA: Bool
-    var accessibilitySummary: String
-}
-
 // MARK: - Streaks
 
 struct JourneyStreakState: Equatable {
@@ -289,22 +270,6 @@ extension JourneyWeightChartPointLabel {
 }
 
 // MARK: - Analytics summaries
-
-struct ProgressNutritionSummary: Equatable {
-    var loggedDays: Int
-    var averageCalories: Int?
-    var averageProtein: Double?
-    var averageCarbs: Double?
-    var averageFat: Double?
-    var averageFiber: Double?
-}
-
-struct ProgressWaterSummary: Equatable {
-    var loggedDays: Int
-    var averageWaterMl: Int?
-    var averageWaterTargetMl: Int?
-    var consistencyPercent: Double?
-}
 
 struct ProgressWorkoutSummary: Equatable {
     var workoutCount: Int

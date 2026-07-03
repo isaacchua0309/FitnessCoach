@@ -21,7 +21,7 @@ enum JourneyPreviewScreens {
     .formaMainTabScrollInsets()
     .background(FormaTokens.Color.canvas)
     .formaThemePreview(palette: palette)
-    .navigationTitle("Journey")
+    .navigationTitle(FormaProductCopy.Journey.Header.title)
   }
 }
 

@@ -32,24 +32,6 @@ enum JourneyDashboardBuilder {
         var calendar: Calendar
     }
 
-    // MARK: - Transformation
-
-    static func transformation(
-        context: Context,
-        loggedDays: Int
-    ) -> JourneyTransformationHeroState {
-        JourneyTransformationHeroBuilder.build(
-            JourneyTransformationHeroBuilder.Input(
-                baseline: context.baseline,
-                loggedDays: loggedDays,
-                heroStreakChip: context.journeyStreaks.heroStreakChip,
-                weightTrendDirection: context.weightSummary.direction,
-                asOf: context.asOf,
-                calendar: context.calendar
-            )
-        )
-    }
-
     // MARK: - Weekly review
 
     static func weeklyReview(context: Context) -> JourneyWeeklyReviewState {

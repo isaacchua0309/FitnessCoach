@@ -175,38 +175,6 @@ struct JourneyStoryEvent: Identifiable, Equatable {
 
 // MARK: - Insights
 
-/// Internal builder output retained for deterministic habit scoring.
-struct JourneyHabitInsightsState: Equatable {
-    var isUnlocked: Bool
-    var lockedMessage: String?
-
-    var strongestHabitLabel: String
-    var strongestScorePercent: Int
-    var strongestQualitative: String?
-
-    var weakestHabitLabel: String
-    var weakestHabitKind: JourneyHabitKind?
-    var weakestScorePercent: Int
-    var weakestScorePrefix: String?
-
-    var suggestedNextAction: String
-    var suggestionCTA: JourneyCTA?
-
-    static let locked = JourneyHabitInsightsState(
-        isUnlocked: false,
-        lockedMessage: FormaProductCopy.Journey.HabitInsights.lockedBody,
-        strongestHabitLabel: "",
-        strongestScorePercent: 0,
-        strongestQualitative: nil,
-        weakestHabitLabel: "",
-        weakestHabitKind: nil,
-        weakestScorePercent: 0,
-        weakestScorePrefix: nil,
-        suggestedNextAction: "",
-        suggestionCTA: nil
-    )
-}
-
 enum JourneyPersonalizedInsightType: String, Equatable, Sendable {
     case proteinConsistency
     case waterConsistency
@@ -235,38 +203,6 @@ struct JourneyInsightState: Equatable {
 
     var isUnlocked: Bool {
         !showsLearningState && !insights.isEmpty
-    }
-
-    var lockedMessage: String? {
-        showsLearningState ? learningDetail : nil
-    }
-
-    var strongestTitle: String {
-        insights.first?.title ?? ""
-    }
-
-    var strongestDetail: String? {
-        insights.first?.detail
-    }
-
-    var focusTitle: String {
-        insights.count > 1 ? insights[1].title : ""
-    }
-
-    var focusDetail: String? {
-        insights.count > 1 ? insights[1].detail : nil
-    }
-
-    var suggestionTitle: String {
-        insights.count > 2 ? insights[2].title : ""
-    }
-
-    var suggestion: String {
-        insights.count > 2 ? insights[2].detail : ""
-    }
-
-    var suggestionCTA: JourneyCTA? {
-        nil
     }
 }
 
@@ -377,20 +313,8 @@ struct JourneyMonthlyRecapState: Equatable {
         isVisible && !showsTeaser
     }
 
-    var buildingMessage: String? {
-        showsTeaser ? teaserDetail : nil
-    }
-
-    var summaryCopy: String {
-        accessibilitySummary
-    }
-
     var showsTrainingRow: Bool {
         trainingSessions != nil
-    }
-
-    var bestHabitCopy: String? {
-        nil
     }
 }
 

@@ -40,7 +40,7 @@ struct JourneyView: View {
     var body: some View {
         NavigationStack {
             content
-                .navigationTitle("Journey")
+                .navigationTitle(FormaProductCopy.Journey.Header.title)
                 .task {
                     await model.loadProgress()
                 }
