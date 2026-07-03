@@ -7,6 +7,11 @@
 
 import Foundation
 
+struct PhotoAnalysisPresentation: Equatable {
+    let actionResult: CoachActionResult
+    let sessionResult: ImageAnalysisSessionResult
+}
+
 @MainActor
 final class CoachAIRouteHandler {
 
@@ -95,23 +100,19 @@ final class CoachAIRouteHandler {
                 routed: routed
             )
 
-        case .photoFoodAnalysis(let imageData, let prompt):
-            guard CoachMealPhotoPipeline.hasImagePayload(imageData) else {
+        case .photoFoodAnalysis(let imageData, let prompt, let recommission):
+            guard let imageData, CoachMealPhotoPipeline.hasImagePayload(imageData) else {
                 return .message(CoachResponseBuilder.mealPhotoError(.noImage))
             }
-            CoachMealPhotoPipeline.assertImagePayloadPresent(imageData!)
+            CoachMealPhotoPipeline.assertImagePayloadPresent(imageData)
 
-            let response = try await aiService.estimateFood(
+            let presentation = try await analyzeMealPhoto(
+                imageData: imageData,
                 prompt: prompt,
-                context: context,
-                imageJPEGData: imageData
+                recommission: recommission,
+                context: context
             )
-            return presentEstimateFoodResponse(
-                response,
-                prompt: prompt,
-                routed: routed,
-                photoAnalysis: true
-            )
+            return presentation.actionResult
 
         case .mealAdvice(let prompt):
             let advice = try await aiService.generateMealAdvice(
@@ -144,6 +145,77 @@ final class CoachAIRouteHandler {
             let parsed = try await aiService.parseCommand(prompt, context: context)
             return try await handleParsedAICommand(parsed, context: context)
         }
+    }
+
+    func analyzeMealPhoto(
+        imageData: Data,
+        prompt: String,
+        recommission: ImageAnalysisRecommissionContext?,
+        context: AIContext
+    ) async throws -> PhotoAnalysisPresentation {
+        guard let aiService else {
+            throw AIServiceError.backendUnavailable
+        }
+
+        let request = AIMealImageAnalysisRequest(
+            message: prompt,
+            image: .jpeg(imageData),
+            clarification: recommission?.clarification,
+            previousAnalysis: recommission?.previousResult.map(MealImageAnalysisMapper.previousAnalysis)
+        )
+        let response = try await aiService.analyzeMealImage(request: request)
+        let extractionValidation = MealImageAnalysisResponseValidator.validate(response: response)
+        guard extractionValidation.isValid else {
+            throw AIServiceError.invalidNutritionJSON(extractionValidation.errors.joined(separator: " | "))
+        }
+
+        let sessionResult = MealImageAnalysisMapper.sessionResult(from: response)
+
+        let sanity = NutritionSanityValidator.validate(
+            meal: sessionResult.mealDraft,
+            prompt: prompt,
+            confidence: sessionResult.confidence
+        )
+
+        switch ConfirmationPolicy.decision(for: sanity.mealDraft) {
+        case .reject(let message):
+            throw AIServiceError.invalidNutritionJSON(message)
+        case .requiresConfirmation, .executeImmediately:
+            break
+        }
+
+        let actionResult = presentAIFoodEstimate(
+            mealDraft: sanity.mealDraft,
+            originalText: prompt,
+            assistantMessage: response.summary,
+            confidence: sanity.confidence,
+            debugContext: FoodEstimateDebugContext(
+                source: .aiPhoto,
+                llmMealDraft: sessionResult.mealDraft,
+                fallbackMealDraft: nil,
+                fallbackLabel: nil
+            ),
+            sanityWarning: sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage,
+            fromPhotoAnalysis: true
+        )
+
+        guard actionResult.pendingConfirmation != nil else {
+            throw AIServiceError.invalidNutritionJSON(
+                actionResult.message.isEmpty ?
+                    "Could not extract reliable nutrition from the meal photo." :
+                    actionResult.message
+            )
+        }
+
+        return PhotoAnalysisPresentation(
+            actionResult: actionResult,
+            sessionResult: ImageAnalysisSessionResult(
+                mealDraft: sanity.mealDraft,
+                confidence: sanity.confidence,
+                summary: sessionResult.summary,
+                clarifyingQuestion: sessionResult.clarifyingQuestion
+            )
+        )
     }
 
     func trainingLogRedirectMessage() async -> String {
@@ -204,6 +276,11 @@ final class CoachAIRouteHandler {
         }()
 
         guard var meal = FoodLogDraftMapper.primaryMeal(from: response) else {
+            if photoAnalysis {
+                return .message(CoachResponseBuilder.mealPhotoAnalysisFailed(
+                    .invalidNutritionJSON("Response is missing food log drafts.")
+                ))
+            }
             return .message(CoachResponseBuilder.aiNotUnderstood)
         }
 
@@ -212,6 +289,11 @@ final class CoachAIRouteHandler {
             prompt: prompt
         )
         guard extractionValidation.isValid else {
+            if photoAnalysis {
+                return .message(CoachResponseBuilder.mealPhotoAnalysisFailed(
+                    .invalidNutritionJSON(extractionValidation.errors.joined(separator: " | "))
+                ))
+            }
             return .message(CoachResponseBuilder.aiNotUnderstood)
         }
 
@@ -241,7 +323,8 @@ final class CoachAIRouteHandler {
                 llmMealDraft: llmMeal,
                 fallbackMealDraft: usedClassifierMerge ? meal : nil,
                 fallbackLabel: usedClassifierMerge ? "classifier_merge" : nil
-            )
+            ),
+            fromPhotoAnalysis: photoAnalysis
         )
     }
 
@@ -364,7 +447,9 @@ final class CoachAIRouteHandler {
         originalText: String,
         assistantMessage: String?,
         confidence: AIConfidence,
-        debugContext: FoodEstimateDebugContext? = nil
+        debugContext: FoodEstimateDebugContext? = nil,
+        sanityWarning: String? = nil,
+        fromPhotoAnalysis: Bool = false
     ) -> CoachActionResult {
         let sanitized = FoodLogDraftNutritionCompleter.sanitize(mealDraft, hintText: originalText)
         let sanity = NutritionSanityValidator.validate(
@@ -372,6 +457,7 @@ final class CoachAIRouteHandler {
             prompt: originalText,
             confidence: confidence
         )
+        let resolvedSanityWarning = sanityWarning ?? (sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage)
 
         if let debugContext {
             logFoodEstimateDebug(
@@ -385,7 +471,7 @@ final class CoachAIRouteHandler {
                     sanityResult: sanity,
                     displayedMealDraft: sanity.mealDraft,
                     responseConfidence: confidence,
-                    sanityWarning: sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage
+                    sanityWarning: resolvedSanityWarning
                 )
             )
         }
@@ -397,7 +483,8 @@ final class CoachAIRouteHandler {
                 assistantMessage: assistantMessage,
                 mealDraft: sanity.mealDraft,
                 confidence: sanity.confidence,
-                sanityWarning: sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage
+                sanityWarning: resolvedSanityWarning,
+                fromPhotoAnalysis: fromPhotoAnalysis
             )
         case .reject(let message):
             return .message(message)

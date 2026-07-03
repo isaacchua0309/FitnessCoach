@@ -19,6 +19,7 @@ protocol AIServiceProtocol: Sendable {
         context: AIContext,
         imageJPEGData: Data?
     ) async throws -> AIFoodEstimateResponse
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse
     func generateMealAdvice(
         prompt: String,
         context: AIContext,
@@ -67,7 +68,20 @@ final class AIService: AIServiceProtocol {
         context: AIContext,
         imageJPEGData: Data? = nil
     ) async throws -> AIFoodEstimateResponse {
-        try await traced(method: "estimateFood") {
+        if let imageJPEGData, !imageJPEGData.isEmpty {
+            guard AIGatewayPayloadLimits.fitsImagePayload(imageJPEGData) else {
+                throw AIServiceError.payloadTooLarge
+            }
+            let estimatedBodyBytes = AIGatewayPayloadLimits.estimatedEstimateFoodBodyBytes(
+                text: prompt,
+                imageJPEGData: imageJPEGData
+            )
+            if estimatedBodyBytes > AIGatewayPayloadLimits.maxRequestBodyBytes {
+                throw AIServiceError.payloadTooLarge
+            }
+        }
+
+        return try await traced(method: "estimateFood", mapError: AICommandParser.mapFoodEstimate) {
             let initialRequest = AIFoodEstimateRequest(
                 text: prompt,
                 context: context,
@@ -103,9 +117,48 @@ final class AIService: AIServiceProtocol {
                     message: "Food estimate still invalid after client repair retry",
                     fields: ["errors": secondErrors.joined(separator: " | ")]
                 )
-                throw AIServiceError.validationFailed(secondErrors.joined(separator: " | "))
+                throw AIServiceError.invalidNutritionJSON(secondErrors.joined(separator: " | "))
             }
 
+            return response
+        }
+    }
+
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
+        if let imageData = Data(base64Encoded: request.image.base64) {
+            guard AIGatewayPayloadLimits.fitsImagePayload(imageData) else {
+                let error = AIServiceError.payloadTooLarge
+                CoachImageAnalysisDebugLogger.logError(error)
+                throw error
+            }
+        }
+
+        CoachImageAnalysisDebugLogger.logGatewayRequestStarted(
+            mimeType: request.image.mimeType,
+            compressedBytes: Data(base64Encoded: request.image.base64)?.count ?? 0,
+            base64Chars: request.image.base64.count,
+            hasCaption: request.message?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+            hasClarification: request.clarification?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+            hasPreviousAnalysis: request.previousAnalysis != nil
+        )
+
+        return try await traced(method: "analyzeMealImage", mapError: AICommandParser.mapFoodEstimate) {
+            let response = try await llmClient.analyzeMealImage(request: request)
+            let validation = MealImageAnalysisResponseValidator.validate(response: response)
+            guard validation.isValid else {
+                let error = AIServiceError.invalidNutritionJSON(validation.errors.joined(separator: " | "))
+                CoachImageAnalysisDebugLogger.logResponseParsed(
+                    success: false,
+                    errorCategory: CoachImageAnalysisDebugLogFormatter.errorCategory(for: error),
+                    validationErrorCount: validation.errors.count
+                )
+                throw error
+            }
+            CoachImageAnalysisDebugLogger.logResponseParsed(
+                success: true,
+                itemCount: response.items.count,
+                summaryLength: response.summary.count
+            )
             return response
         }
     }
@@ -188,6 +241,7 @@ final class AIService: AIServiceProtocol {
 
     private func traced<T>(
         method: String,
+        mapError: (LLMClientError) -> AIServiceError = AICommandParser.map,
         work: () async throws -> T
     ) async throws -> T {
         let started = Date()
@@ -223,13 +277,13 @@ final class AIService: AIServiceProtocol {
                 ]
             )
             #if DEBUG
-            let mapped = AICommandParser.map(error)
+            let mapped = mapError(error)
             Self.debugLogger.error(
                 "Coach AI backend failure [\(method, privacy: .public)]: llm=\(String(describing: error), privacy: .public) mapped=\(String(describing: mapped), privacy: .public)"
             )
             throw mapped
             #else
-            throw AICommandParser.map(error)
+            throw mapError(error)
             #endif
         } catch let error as AIServiceError {
             let durationMs = Int(Date().timeIntervalSince(started) * 1_000)
@@ -256,5 +310,11 @@ final class AIService: AIServiceProtocol {
             )
             throw AIServiceError.requestFailed(error.localizedDescription)
         }
+    }
+}
+
+extension AIServiceProtocol {
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
+        throw AIServiceError.backendUnavailable
     }
 }

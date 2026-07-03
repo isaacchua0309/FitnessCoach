@@ -117,6 +117,33 @@ final class MockLLMClient: LLMClient {
         return AIMultiActionParseResponse(parsedCommand: command)
     }
 
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
+        logMockHit(operation: "analyzeMealImage")
+        return AIMealImageAnalysisResponse(
+            summary: request.message ?? "Photo meal",
+            items: [
+                AIMealImageAnalysisItem(
+                    name: "Photo meal",
+                    quantity: "1 serving",
+                    calories: 420,
+                    protein: 28,
+                    carbs: 35,
+                    fat: 14,
+                    confidence: .medium,
+                    assumptions: ["Test photo estimate"]
+                )
+            ],
+            total: AIMealImageAnalysisTotals(
+                calories: 420,
+                protein: 28,
+                carbs: 35,
+                fat: 14
+            ),
+            needsUserReview: true,
+            clarifyingQuestion: nil
+        )
+    }
+
     private func logMockHit(operation: String) {
         FormaPipelineTracer.event(
             stage: .mockLLM,

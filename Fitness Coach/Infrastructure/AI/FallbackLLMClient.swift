@@ -67,27 +67,41 @@ final class FallbackLLMClient: LLMClient {
         }
     }
 
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
+        try await perform(operation: "analyzeMealImage") {
+            try await primary.analyzeMealImage(request: request)
+        }
+    }
+
     private func perform<Output>(
         operation: String,
         primary work: () async throws -> Output
     ) async throws -> Output {
         do {
             return try await work()
-        } catch let error as LLMClientError where error == .authenticationFailed || error == .requestTimedOut {
+        } catch let error as LLMClientError {
+            logger.info("LLM backend call failed for \(operation, privacy: .public).")
+            var fields: [String: String] = [
+                "operation": operation,
+                "errorType": String(describing: type(of: error)),
+                "llmError": String(describing: error)
+            ]
+            FormaPipelineTracer.logError(
+                stage: .aiTask,
+                message: "Primary LLM client failed",
+                fields: fields
+            )
             throw error
         } catch {
             logger.info("LLM backend unavailable for \(operation, privacy: .public).")
             var fields: [String: String] = [
                 "operation": operation,
-                "errorType": String(describing: type(of: error))
+                "errorType": String(describing: type(of: error)),
+                "error": error.localizedDescription
             ]
-            if let llmError = error as? LLMClientError {
-                fields["llmError"] = String(describing: llmError)
-            }
-            fields["error"] = error.localizedDescription
             FormaPipelineTracer.logError(
                 stage: .aiTask,
-                message: "Primary LLM client failed; marking backend unavailable",
+                message: "Primary LLM client failed with unexpected error",
                 fields: fields
             )
             throw LLMClientError.backendUnavailable

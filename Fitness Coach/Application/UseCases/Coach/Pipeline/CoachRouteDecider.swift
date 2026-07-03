@@ -19,7 +19,11 @@ enum CoachAITask: Equatable, Sendable {
     case editEntry(String)
     case deleteEntry(String)
     case multiAction(String)
-    case photoFoodAnalysis(imageData: Data?, prompt: String)
+    case photoFoodAnalysis(
+        imageData: Data?,
+        prompt: String,
+        recommission: ImageAnalysisRecommissionContext? = nil
+    )
     case parseCommand(String)
 }
 

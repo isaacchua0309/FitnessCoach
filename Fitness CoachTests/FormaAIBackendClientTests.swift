@@ -23,6 +23,7 @@ final class FormaAIBackendClientTests: XCTestCase {
         "v1/ai/parse-workout",
         "v1/ai/parse-edit-delete",
         "v1/ai/parse-multi-action",
+        "v1/ai/analyze-meal-image",
     ]
 
     override func tearDown() {
@@ -124,6 +125,93 @@ final class FormaAIBackendClientTests: XCTestCase {
     }
 
     // MARK: - Error mapping
+
+    func testHTTP413MapsToPayloadTooLarge() async {
+        GatewayMockURLProtocol.reset()
+        GatewayMockURLProtocol.responseStatusCode = 413
+        GatewayMockURLProtocol.responseBody = Data(
+            #"{"error":"Request body too large (2500000 bytes; limit 2097152)."}"#.utf8
+        )
+
+        let client = makeClient(baseURL: productionBaseURL)
+
+        do {
+            _ = try await client.estimateFood(
+                request: AIFoodEstimateRequest(text: "meal", context: Self.sampleContext)
+            )
+            XCTFail("Expected payload too large.")
+        } catch let error as LLMClientError {
+            XCTAssertEqual(error, .payloadTooLarge("Request body too large (2500000 bytes; limit 2097152)."))
+            XCTAssertEqual(AICommandParser.mapFoodEstimate(error), .payloadTooLarge)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testHTTP422MapsToBackendRejected() async {
+        GatewayMockURLProtocol.reset()
+        GatewayMockURLProtocol.responseStatusCode = 422
+        GatewayMockURLProtocol.responseBody = Data(
+            #"{"error":"Could not extract reliable nutrition from the meal photo."}"#.utf8
+        )
+
+        let client = makeClient(baseURL: productionBaseURL)
+
+        do {
+            _ = try await client.estimateFood(
+                request: AIFoodEstimateRequest(text: "meal", context: Self.sampleContext)
+            )
+            XCTFail("Expected nutrition extraction failure.")
+        } catch let error as LLMClientError {
+            XCTAssertEqual(
+                error,
+                .backendRejected("Could not extract reliable nutrition from the meal photo.")
+            )
+            XCTAssertEqual(
+                AICommandParser.mapFoodEstimate(error),
+                .invalidNutritionJSON("Could not extract reliable nutrition from the meal photo.")
+            )
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testNetworkLossMapsToNetworkUnavailable() async {
+        GatewayMockURLProtocol.reset()
+        GatewayMockURLProtocol.responseError = URLError(.notConnectedToInternet)
+
+        let client = makeClient(baseURL: productionBaseURL)
+
+        do {
+            _ = try await client.classifyCoachIntent(request: Self.sampleClassifyRequest())
+            XCTFail("Expected network unavailable.")
+        } catch let error as LLMClientError {
+            XCTAssertEqual(error, .networkUnavailable)
+            XCTAssertEqual(AICommandParser.map(error), .networkUnavailable)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testHTTP500MapsToModelUnavailable() async {
+        GatewayMockURLProtocol.reset()
+        GatewayMockURLProtocol.responseStatusCode = 500
+        GatewayMockURLProtocol.responseBody = Data(#"{"error":"Upstream model provider error"}"#.utf8)
+
+        let client = makeClient(baseURL: productionBaseURL)
+
+        do {
+            _ = try await client.estimateFood(
+                request: AIFoodEstimateRequest(text: "meal", context: Self.sampleContext)
+            )
+            XCTFail("Expected model unavailable.")
+        } catch let error as LLMClientError {
+            XCTAssertEqual(error, .modelUnavailable("Upstream model provider error"))
+            XCTAssertEqual(AICommandParser.mapFoodEstimate(error), .modelUnavailable)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
 
     func testHTTP401MapsToAuthenticationFailure() async {
         GatewayMockURLProtocol.reset()
@@ -262,6 +350,13 @@ private extension FormaAIBackendClientTests {
             _ = try await client.parseMultiAction(
                 request: AIMultiActionParseRequest(text: "log water and weight", context: Self.sampleContext)
             )
+        case .analyzeMealImage:
+            _ = try await client.analyzeMealImage(
+                request: AIMealImageAnalysisRequest(
+                    message: "Lunch",
+                    image: .jpeg(Data([0xFF, 0xD8, 0xFF]))
+                )
+            )
         }
     }
 
@@ -291,8 +386,16 @@ private extension FormaAIBackendClientTests {
             return validCoachResponseData
         case .parseWorkout:
             return validWorkoutParseResponseData
+        case .analyzeMealImage:
+            return validMealImageAnalysisResponseData
         }
     }
+
+    static let validMealImageAnalysisResponseData = Data(
+        """
+        {"summary":"Chicken bowl","items":[{"name":"Chicken","quantity":"150 g","calories":248,"protein":46,"carbs":0,"fat":5,"confidence":"high","assumptions":[]}],"total":{"calories":248,"protein":46,"carbs":0,"fat":5},"needsUserReview":true,"clarifyingQuestion":null}
+        """.utf8
+    )
 
     static let validClassifyResponseData = Data(
         """

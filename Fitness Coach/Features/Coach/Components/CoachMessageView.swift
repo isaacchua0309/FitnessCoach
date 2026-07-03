@@ -9,6 +9,7 @@ import SwiftUI
 
 struct CoachMessageView: View {
     let message: ChatMessage
+    var onRetryMealPhotoAnalysis: ((UUID) -> Void)?
 
     private var presentation: CoachMessagePresentation {
         CoachMessagePresenter.presentation(for: message)
@@ -19,10 +20,18 @@ struct CoachMessageView: View {
             switch presentation {
             case .user(let text):
                 userMessage(text)
+            case .userMealPhoto(let attachment, let caption):
+                CoachChatPhotoMessageView(attachment: attachment, caption: caption)
             case .confirmation(let content):
                 confirmationMessage(content)
             case .assistant(let text):
                 assistantMessage(text)
+            case .assistantPhotoAnalysis(let text, let relatedUserMessageID, let kind):
+                assistantPhotoAnalysisMessage(
+                    text: text,
+                    relatedUserMessageID: relatedUserMessageID,
+                    kind: kind
+                )
             case .system(let text):
                 systemMessage(text)
             }
@@ -58,6 +67,34 @@ struct CoachMessageView: View {
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 32)
         }
+    }
+
+    @ViewBuilder
+    private func assistantPhotoAnalysisMessage(
+        text: String,
+        relatedUserMessageID: UUID,
+        kind: ChatMessagePhotoAnalysisLinkKind
+    ) -> some View {
+        VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.sm) {
+            Text(text)
+                .font(CoachDesignTokens.Typography.messageBody)
+                .foregroundStyle(
+                    kind == .clarification ?
+                        CoachDesignTokens.Color.primaryText :
+                        CoachDesignTokens.Color.textLegal
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if kind == .failure, let onRetryMealPhotoAnalysis {
+                Button(FormaProductCopy.Coach.retryMealPhotoAnalysis) {
+                    onRetryMealPhotoAnalysis(relatedUserMessageID)
+                }
+                .font(CoachDesignTokens.Typography.confirmationMetric.weight(.semibold))
+                .foregroundStyle(CoachDesignTokens.Color.primary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
@@ -103,7 +140,12 @@ struct CoachMessageView: View {
     ScrollView {
         VStack(spacing: CoachDesignTokens.Layout.messageSpacing) {
             CoachMessageView(message: CoachPreviewData.messages[0])
-            CoachMessageView(message: CoachPreviewData.messages[1])
+            if let photoMessage = CoachPreviewData.mealPhotoUserMessage {
+                CoachMessageView(message: photoMessage)
+            }
+            if let analysisMessage = CoachPreviewData.mealPhotoAssistantMessage {
+                CoachMessageView(message: analysisMessage)
+            }
             CoachMessageView(message: CoachPreviewData.confirmationMessage)
         }
         .padding()

@@ -31,18 +31,17 @@ enum CoachMealPhotoPipeline {
         reason: "Meal photo selected"
     )
 
-    private static let maxJPEGBytes = 4 * 1_024 * 1_024
-    private static let initialCompressionQuality: CGFloat = 0.85
-    private static let fallbackCompressionQuality: CGFloat = 0.6
+    private static let maxJPEGBytes = AIGatewayPayloadLimits.maxJPEGBytes
+    private static let fallbackLongEdges: [CGFloat] = [1_536, 1_024, 768]
+    private static let compressionQualities: [CGFloat] = [0.85, 0.7, 0.55, 0.4, 0.3]
 
-    @MainActor
     static func loadJPEG(from item: PhotosPickerItem) async -> Result<Data, CoachMealPhotoError> {
         do {
             if let transfer = try await item.loadTransferable(type: CoachPhotoPickerTransfer.self) {
-                return prepareJPEG(from: transfer.data)
+                return await prepareJPEG(from: transfer.data)
             }
             if let data = try await item.loadTransferable(type: Data.self) {
-                return prepareJPEG(from: data)
+                return await prepareJPEG(from: data)
             }
             return .failure(.noImage)
         } catch {
@@ -50,10 +49,18 @@ enum CoachMealPhotoPipeline {
         }
     }
 
-    static func prepareJPEG(from rawData: Data) -> Result<Data, CoachMealPhotoError> {
+    /// CPU-heavy decode/resize/JPEG work — runs off the main actor.
+    static func prepareJPEG(from rawData: Data) async -> Result<Data, CoachMealPhotoError> {
+        await Task.detached(priority: .userInitiated) {
+            prepareJPEGSync(from: rawData)
+        }.value
+    }
+
+    /// Synchronous path for unit tests and callers that already run off the main thread.
+    static func prepareJPEGSync(from rawData: Data) -> Result<Data, CoachMealPhotoError> {
         guard !rawData.isEmpty else { return .failure(.noImage) }
 
-        if isLikelyJPEG(rawData), rawData.count <= maxJPEGBytes {
+        if isLikelyJPEG(rawData), AIGatewayPayloadLimits.fitsImagePayload(rawData) {
             return .success(rawData)
         }
 
@@ -61,20 +68,21 @@ enum CoachMealPhotoPipeline {
             return .failure(.loadFailed)
         }
 
-        guard let jpeg = compress(image, quality: initialCompressionQuality) else {
-            return .failure(.loadFailed)
+        guard let jpeg = compressForGateway(image) else {
+            return .failure(.encodingFailed)
         }
 
-        if jpeg.count <= maxJPEGBytes {
+        return .success(jpeg)
+    }
+
+    /// Compress a captured `UIImage` without an intermediate full-resolution JPEG encode.
+    static func prepareJPEG(from image: UIImage) async -> Result<Data, CoachMealPhotoError> {
+        await Task.detached(priority: .userInitiated) {
+            guard let jpeg = compressForGateway(image) else {
+                return .failure(.encodingFailed)
+            }
             return .success(jpeg)
-        }
-
-        guard let smaller = compress(image, quality: fallbackCompressionQuality),
-              smaller.count <= maxJPEGBytes else {
-            return .failure(.loadFailed)
-        }
-
-        return .success(smaller)
+        }.value
     }
 
     static func hasImagePayload(_ data: Data?) -> Bool {
@@ -88,12 +96,54 @@ enum CoachMealPhotoPipeline {
         #endif
     }
 
+    static func makeThumbnailJPEG(from jpegData: Data, maxEdge: CGFloat = 128) async -> Data? {
+        await Task.detached(priority: .utility) {
+            makeThumbnailJPEGSync(from: jpegData, maxEdge: maxEdge)
+        }.value
+    }
+
+    static func makeThumbnailJPEGSync(from jpegData: Data, maxEdge: CGFloat = 128) -> Data? {
+        guard let image = UIImage(data: jpegData) else { return nil }
+        let resized = resize(image, maxLongEdge: maxEdge)
+        return resized.jpegData(compressionQuality: 0.75)
+    }
+
     private static func isLikelyJPEG(_ data: Data) -> Bool {
         data.count >= 2 && data[0] == 0xFF && data[1] == 0xD8
     }
 
     private static func compress(_ image: UIImage, quality: CGFloat) -> Data? {
         image.jpegData(compressionQuality: quality)
+    }
+
+    private static func compressForGateway(_ image: UIImage) -> Data? {
+        for maxEdge in fallbackLongEdges {
+            let scaled = resize(image, maxLongEdge: maxEdge)
+            for quality in compressionQualities {
+                guard let jpeg = compress(scaled, quality: quality),
+                      AIGatewayPayloadLimits.fitsImagePayload(jpeg) else {
+                    continue
+                }
+                return jpeg
+            }
+        }
+        return nil
+    }
+
+    private static func resize(_ image: UIImage, maxLongEdge: CGFloat) -> UIImage {
+        let longest = max(image.size.width, image.size.height)
+        guard longest > maxLongEdge, longest > 0 else { return image }
+
+        let scale = maxLongEdge / longest
+        let targetSize = CGSize(
+            width: image.size.width * scale,
+            height: image.size.height * scale
+        )
+
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        return renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
     }
 }
 

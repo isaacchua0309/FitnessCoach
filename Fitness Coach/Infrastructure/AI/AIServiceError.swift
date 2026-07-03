@@ -16,6 +16,13 @@ enum AIServiceError: Error, Equatable {
     case requestTimedOut
     case featureDisabled
     case authenticationFailed
+    case payloadTooLarge
+    case networkUnavailable
+    case imageEncodingFailed
+    case backendRejectedImage
+    case modelUnavailable
+    case invalidNutritionJSON(String)
+    case parsingFailed(String)
 
     static let coachSessionFailureTitle = FormaProductCopy.Error.coachSessionTitle
     static let coachSessionFailureMessage = FormaProductCopy.Error.coachSessionMessage
@@ -27,10 +34,20 @@ enum AIServiceError: Error, Equatable {
             return Self.coachSessionFailureMessage
         case .requestTimedOut:
             return FormaProductCopy.Error.coachTimeout
-        case .featureDisabled:
+        case .featureDisabled, .backendUnavailable, .modelUnavailable:
             return FormaProductCopy.Error.coachUnavailable
-        case .backendUnavailable, .requestFailed:
+        case .networkUnavailable:
+            return FormaProductCopy.Error.coachNetworkUnavailable
+        case .payloadTooLarge:
+            return FormaProductCopy.Error.coachPhotoTooLarge
+        case .imageEncodingFailed:
+            return FormaProductCopy.Error.coachPhotoEncodingFailed
+        case .backendRejectedImage:
+            return FormaProductCopy.Error.coachPhotoRejected
+        case .requestFailed:
             return FormaProductCopy.Error.coachUnavailable
+        case .invalidNutritionJSON, .parsingFailed:
+            return FormaProductCopy.Error.coachPhotoAnalysisUnreadable
         case .invalidResponse, .decodingFailed, .validationFailed:
             return FormaProductCopy.Error.coachNotUnderstood
         }
@@ -39,9 +56,12 @@ enum AIServiceError: Error, Equatable {
     /// Transient failures eligible for a single classifier retry.
     var isTransientClassifierFailure: Bool {
         switch self {
-        case .backendUnavailable, .requestFailed, .decodingFailed, .requestTimedOut:
+        case .backendUnavailable, .requestFailed, .decodingFailed, .requestTimedOut,
+             .networkUnavailable, .modelUnavailable:
             return true
-        case .authenticationFailed, .validationFailed, .invalidResponse, .featureDisabled:
+        case .authenticationFailed, .validationFailed, .invalidResponse, .featureDisabled,
+             .payloadTooLarge, .imageEncodingFailed, .backendRejectedImage,
+             .invalidNutritionJSON, .parsingFailed:
             return false
         }
     }

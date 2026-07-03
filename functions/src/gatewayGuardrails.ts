@@ -27,11 +27,24 @@ function intEnv(name: string, fallback: number): number {
 }
 
 export function maxBodyBytes(requestBody: Record<string, any>): number {
-  if (typeof requestBody.imageJPEGBase64 === "string" &&
-    requestBody.imageJPEGBase64.length > 0) {
+  if (requestBodyHasImage(requestBody)) {
     return intEnv("FORMA_AI_MAX_BODY_BYTES_WITH_IMAGE", DEFAULT_MAX_BODY_BYTES_WITH_IMAGE);
   }
   return intEnv("FORMA_AI_MAX_BODY_BYTES", DEFAULT_MAX_BODY_BYTES);
+}
+
+function requestBodyHasImage(requestBody: Record<string, any>): boolean {
+  if (typeof requestBody.imageJPEGBase64 === "string" &&
+    requestBody.imageJPEGBase64.length > 0) {
+    return true;
+  }
+  const image = requestBody.image;
+  return Boolean(
+    image &&
+    typeof image === "object" &&
+    typeof image.base64 === "string" &&
+    image.base64.length > 0
+  );
 }
 
 export function requestBodyByteLength(request: any): number {

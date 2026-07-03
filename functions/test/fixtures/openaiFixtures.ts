@@ -85,6 +85,39 @@ export const openAIOutputBySchemaName: Record<string, Record<string, unknown>> =
     assistantMessage: "Ready to log this run?",
     confidence: "medium",
   },
+  meal_image_analysis_response: {
+    summary: "Grilled chicken with rice.",
+    items: [
+      {
+        name: "Grilled chicken breast",
+        quantity: "150 g",
+        calories: 248,
+        protein: 46,
+        carbs: 0,
+        fat: 5,
+        confidence: "high",
+        assumptions: ["Skinless portion"],
+      },
+      {
+        name: "Cooked white rice",
+        quantity: "1 cup",
+        calories: 205,
+        protein: 4,
+        carbs: 45,
+        fat: 0.4,
+        confidence: "medium",
+        assumptions: ["Steamed"],
+      },
+    ],
+    total: {
+      calories: 453,
+      protein: 50,
+      carbs: 45,
+      fat: 5.4,
+    },
+    needsUserReview: true,
+    clarifyingQuestion: null,
+  },
 };
 
 export function openAIOutputTextForSchema(schemaName: string): string {

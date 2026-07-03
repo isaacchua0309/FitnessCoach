@@ -100,6 +100,10 @@ final class FormaAIBackendClient: LLMClient {
         try await post(endpoint: .parseMultiAction, body: request)
     }
 
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
+        try await post(endpoint: .analyzeMealImage, body: request)
+    }
+
     // MARK: HTTP
 
     private func post<Body: Encodable, Response: Decodable>(
@@ -203,6 +207,17 @@ final class FormaAIBackendClient: LLMClient {
                     "mappedError": String(describing: mappedError)
                 ]
             )
+            #if DEBUG
+            if endpoint == .analyzeMealImage {
+                CoachImageAnalysisDebugLogger.logBackendResponse(
+                    status: -1,
+                    durationMs: durationMs,
+                    responseBytes: 0,
+                    success: false,
+                    errorCategory: CoachImageAnalysisDebugLogFormatter.errorCategory(for: mappedError)
+                )
+            }
+            #endif
             throw mappedError
         }
 
@@ -210,6 +225,7 @@ final class FormaAIBackendClient: LLMClient {
         let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
 
         if !(200...299).contains(statusCode) {
+            let gatewayError = Self.safeGatewayErrorMessage(from: data)
             var errorFields: [String: String] = [
                 "endpoint": endpoint.rawValue,
                 "url": url.absoluteString,
@@ -217,12 +233,24 @@ final class FormaAIBackendClient: LLMClient {
                 "durationMs": String(durationMs),
                 "responseBytes": String(data.count)
             ]
-            if let gatewayError = Self.safeGatewayErrorMessage(from: data) {
+            if let gatewayError {
                 errorFields["gatewayError"] = gatewayError
             }
             if let snippet = FormaPipelineTracer.sanitizedJSONSnippet(data) {
                 errorFields["responseBody"] = snippet
             }
+
+            #if DEBUG
+            if endpoint == .analyzeMealImage {
+                CoachImageAnalysisDebugLogger.logBackendResponse(
+                    status: statusCode,
+                    durationMs: durationMs,
+                    responseBytes: data.count,
+                    success: false,
+                    errorCategory: Self.mealImageBackendErrorCategory(statusCode: statusCode)
+                )
+            }
+            #endif
 
             if statusCode == 401 {
                 FormaPipelineTracer.logError(
@@ -233,6 +261,7 @@ final class FormaAIBackendClient: LLMClient {
                 throw LLMClientError.authenticationFailed
             }
 
+            let mappedStatusError = Self.mapHTTPStatusError(statusCode: statusCode, message: gatewayError)
             if (500...599).contains(statusCode) {
                 FormaPipelineTracer.logError(
                     stage: .httpResponse,
@@ -246,7 +275,7 @@ final class FormaAIBackendClient: LLMClient {
                     fields: errorFields
                 )
             }
-            throw LLMClientError.invalidStatusCode(statusCode)
+            throw mappedStatusError
         }
 
         var responseFields: [String: String] = [
@@ -266,6 +295,17 @@ final class FormaAIBackendClient: LLMClient {
             fields: responseFields
         )
 
+        #if DEBUG
+        if endpoint == .analyzeMealImage {
+            CoachImageAnalysisDebugLogger.logBackendResponse(
+                status: statusCode,
+                durationMs: durationMs,
+                responseBytes: data.count,
+                success: true
+            )
+        }
+        #endif
+
         do {
             return try decoder.decode(Response.self, from: data)
         } catch {
@@ -280,6 +320,14 @@ final class FormaAIBackendClient: LLMClient {
                     "error": error.localizedDescription
                 ]
             )
+            #if DEBUG
+            if endpoint == .analyzeMealImage {
+                CoachImageAnalysisDebugLogger.logResponseParsed(
+                    success: false,
+                    errorCategory: "parse_failure"
+                )
+            }
+            #endif
             throw LLMClientError.decodingFailed("Could not decode backend response.")
         }
     }
@@ -293,15 +341,49 @@ final class FormaAIBackendClient: LLMClient {
     }
 
     private static func mapTransportError(_ error: Error) -> LLMClientError {
-        if let urlError = error as? URLError, urlError.code == .timedOut {
-            return .requestTimedOut
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .timedOut:
+                return .requestTimedOut
+            case .notConnectedToInternet,
+                 .networkConnectionLost,
+                 .cannotFindHost,
+                 .cannotConnectToHost,
+                 .dnsLookupFailed,
+                 .dataNotAllowed:
+                return .networkUnavailable
+            default:
+                break
+            }
         }
 
         if error.localizedDescription.localizedCaseInsensitiveContains("timed out") {
             return .requestTimedOut
         }
 
+        if error.localizedDescription.localizedCaseInsensitiveContains("offline") ||
+            error.localizedDescription.localizedCaseInsensitiveContains("internet") {
+            return .networkUnavailable
+        }
+
         return .requestFailed(error.localizedDescription)
+    }
+
+    private static func mapHTTPStatusError(statusCode: Int, message: String?) -> LLMClientError {
+        switch statusCode {
+        case 413:
+            return .payloadTooLarge(message)
+        case 400:
+            return .backendRejected(message)
+        case 422:
+            return .backendRejected(message)
+        case 429:
+            return .rateLimited(message)
+        case 500...599:
+            return .modelUnavailable(message)
+        default:
+            return .invalidStatusCode(statusCode)
+        }
     }
 
     /// Redacted gateway `{ "error": "..." }` text for diagnostics only.
@@ -332,4 +414,17 @@ final class FormaAIBackendClient: LLMClient {
 
         return String(redacted.prefix(200))
     }
+
+    #if DEBUG
+    private static func mealImageBackendErrorCategory(statusCode: Int) -> String {
+        switch statusCode {
+        case 401: return "authentication"
+        case 413: return "payload_too_large"
+        case 400, 422: return "backend_rejected"
+        case 429: return "rate_limited"
+        case 500...599: return "model_unavailable"
+        default: return "http_status"
+        }
+    }
+    #endif
 }

@@ -62,6 +62,16 @@ enum FormaProductCopy {
             "Coach took too long to respond. Please try again."
         static let coachNotUnderstood =
             "I couldn't quite follow that. Try rephrasing, or log with explicit calories and macros."
+        static let coachNetworkUnavailable =
+            "Coach couldn't reach the server. Check your connection and try again."
+        static let coachPhotoTooLarge =
+            "That photo is too large to send for analysis. Try a closer crop."
+        static let coachPhotoEncodingFailed =
+            "That photo couldn't be prepared for analysis. Try again."
+        static let coachPhotoRejected =
+            "Coach couldn't use that photo for analysis. Try another image."
+        static let coachPhotoAnalysisUnreadable =
+            "Coach couldn't read a reliable nutrition estimate from that photo."
         static let signInTitle = "Couldn't sign in"
         static let signInMessage = "We couldn't sign you in. Check your connection and try again."
     }
@@ -1916,12 +1926,16 @@ enum FormaProductCopy {
         static let quickActionsSectionTitle = "Quick actions"
         static let emptyIntro = EmptyState.CoachConversation.body
         static let composerPlaceholder = "Message Coach…"
+        static let composerPhotoClarificationPlaceholder = "Add a detail about your meal…"
         static let foodEstimatePending = "Food estimate ready"
         static let reviewEstimate = "Review estimate"
         static let logPending = "Log"
         static let confirmPending = "Confirm"
         static let editPending = "Edit"
         static let discardPending = "Discard"
+        static let retryMealPhotoAnalysis = "Retry analysis"
+        static let removePhotoBeforeAddingAnother = "Remove the current photo before adding another."
+        static let photoAnalysisLeadIn = "From your meal photo:"
         static let foodEditPortionFooter = "Edit if the portion or cut is different."
         static let foodEditIngredientsFooter = "Edit if you know the ingredients."
         static let foodConfirmBelowFooter = "Confirm below to add it."

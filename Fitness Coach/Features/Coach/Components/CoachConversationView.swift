@@ -14,6 +14,7 @@ struct CoachConversationView: View {
     var starterPrompts: [CoachStarterPromptSpec] = CoachStarterPrompt.defaultQuickActionSpecs
     var onDismissKeyboard: (() -> Void)?
     var onStarterTap: ((CoachStarterPromptSpec) -> Void)?
+    var onRetryMealPhotoAnalysis: ((UUID) -> Void)?
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -31,8 +32,11 @@ struct CoachConversationView: View {
                     } else {
                         LazyVStack(spacing: CoachDesignTokens.Layout.messageSpacing) {
                             ForEach(messages) { message in
-                                CoachMessageView(message: message)
-                                    .id(message.id)
+                                CoachMessageView(
+                                    message: message,
+                                    onRetryMealPhotoAnalysis: onRetryMealPhotoAnalysis
+                                )
+                                .id(message.id)
                             }
 
                             if isSending {

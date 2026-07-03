@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import UIKit
 
 enum CoachPreviewData {
     static let messages: [ChatMessage] = [
@@ -48,4 +49,40 @@ enum CoachPreviewData {
         relatedDailyLogId: nil,
         relatedEntryId: nil
     )
+
+    static var sampleMealPhotoAttachment: ChatMessageImageAttachment? {
+        guard let data = UIImage(systemName: "fork.knife")?
+            .jpegData(compressionQuality: 0.9) else {
+            return nil
+        }
+        return ChatMessageImageAttachment.fromJPEG(data, source: .library)
+    }
+
+    static var mealPhotoUserMessage: ChatMessage? {
+        guard let attachment = sampleMealPhotoAttachment else { return nil }
+        return ChatMessage.userMealPhoto(caption: "Lunch bowl", attachment: attachment)
+    }
+
+    static var mealPhotoAssistantMessage: ChatMessage? {
+        guard let userMessage = mealPhotoUserMessage else { return nil }
+        return ChatMessage.assistantPhotoAnalysisResult(
+            text: """
+            From your meal photo, I estimated lunch bowl:
+            420 kcal · 28g protein · 35g carbs · 14g fat
+
+            Edit if the portion or cut is different.
+            """,
+            sessionID: UUID(),
+            relatedUserMessageID: userMessage.id
+        )
+    }
+
+    static var mealPhotoFailureMessage: ChatMessage? {
+        guard let userMessage = mealPhotoUserMessage else { return nil }
+        return ChatMessage.assistantPhotoAnalysisFailure(
+            text: "I couldn't analyze that photo right now. Coach is temporarily unavailable. Please try again later. You can try again or log manually.",
+            sessionID: UUID(),
+            relatedUserMessageID: userMessage.id
+        )
+    }
 }

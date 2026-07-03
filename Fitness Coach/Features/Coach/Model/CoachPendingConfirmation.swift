@@ -30,16 +30,23 @@ enum CoachPendingConfirmation: Equatable {
         switch self {
         case .food(let draft):
             let meal = draft.primaryMealDraft
-            var summary: String
+            var lines: [String] = []
             if meal.hasUsableNutritionEstimate {
-                summary = "\(meal.displayName) · \(meal.totalCalories) kcal · \(AIFoodConfirmationFormatter.macroSummary(for: meal))"
+                lines.append(
+                    "\(meal.displayName) · \(meal.totalCalories) kcal · \(AIFoodConfirmationFormatter.macroSummary(for: meal))"
+                )
             } else {
-                summary = meal.displayName
+                lines.append(meal.displayName)
+            }
+            lines.append(AIFoodConfirmationFormatter.confidenceLabel(draft.confidence))
+            let assumptions = AIFoodConfirmationFormatter.assumptionLines(for: meal)
+            if !assumptions.isEmpty {
+                lines.append(contentsOf: assumptions)
             }
             if let sanityWarning = draft.sanityWarning, !sanityWarning.isEmpty {
-                summary += "\n\(sanityWarning)"
+                lines.append(sanityWarning)
             }
-            return summary
+            return lines.joined(separator: "\n")
         case .water(let draft, _):
             return "\(draft.amountMl) ml water"
         case .weight(let draft, _):
@@ -52,6 +59,15 @@ enum CoachPendingConfirmation: Equatable {
     var supportsEdit: Bool {
         if case .food = self { return true }
         return false
+    }
+
+    var supportsPhotoRetry: Bool {
+        guard case .food(let draft) = self else { return false }
+        return draft.relatedPhotoUserMessageID != nil && draft.confidence == .low
+    }
+
+    var relatedPhotoUserMessageID: UUID? {
+        foodDraft?.relatedPhotoUserMessageID
     }
 
     var foodDraft: AIFoodConfirmationDraft? {

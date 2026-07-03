@@ -15,6 +15,8 @@ struct AIFoodConfirmationDraft: Identifiable, Equatable {
     var confidence: AIConfidence
     var requiresConfirmation: Bool
     var sanityWarning: String?
+    var imageAnalysisSessionID: UUID?
+    var relatedPhotoUserMessageID: UUID?
     var createdAt: Date
 
     init(
@@ -25,6 +27,8 @@ struct AIFoodConfirmationDraft: Identifiable, Equatable {
         confidence: AIConfidence,
         requiresConfirmation: Bool,
         sanityWarning: String? = nil,
+        imageAnalysisSessionID: UUID? = nil,
+        relatedPhotoUserMessageID: UUID? = nil,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -34,6 +38,8 @@ struct AIFoodConfirmationDraft: Identifiable, Equatable {
         self.confidence = confidence
         self.requiresConfirmation = requiresConfirmation
         self.sanityWarning = sanityWarning
+        self.imageAnalysisSessionID = imageAnalysisSessionID
+        self.relatedPhotoUserMessageID = relatedPhotoUserMessageID
         self.createdAt = createdAt
     }
 

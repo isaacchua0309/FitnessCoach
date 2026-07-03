@@ -50,6 +50,9 @@ struct CoachView: View {
                         },
                         onStarterTap: { prompt in
                             handleStarterTap(prompt)
+                        },
+                        onRetryMealPhotoAnalysis: { userMessageID in
+                            Task { await model.retryMealPhotoAnalysis(for: userMessageID) }
                         }
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -77,12 +80,14 @@ struct CoachView: View {
                 photoPickerItem = nil
                 Task {
                     let result = await CoachMealPhotoPipeline.loadJPEG(from: item)
-                    await model.handleMealPhotoSelection(result)
+                    await model.handleMealPhotoSelection(result, source: .library)
                 }
             }
             .fullScreenCover(isPresented: $isCameraPresented) {
                 CoachCameraPicker { result in
-                    Task { await model.handleMealPhotoSelection(result) }
+                    Task {
+                        await model.handleMealPhotoSelection(result, source: .camera)
+                    }
                 }
                 .ignoresSafeArea()
             }
@@ -124,6 +129,11 @@ struct CoachView: View {
                     onEdit: pending.supportsEdit ? {
                         dismissKeyboard()
                         model.openFoodEditSheet()
+                    } : nil,
+                    onRetryPhotoAnalysis: pending.supportsPhotoRetry ? {
+                        dismissKeyboard()
+                        guard let userMessageID = pending.relatedPhotoUserMessageID else { return }
+                        Task { await model.retryMealPhotoAnalysis(for: userMessageID) }
                     } : nil
                 )
             }
@@ -134,7 +144,15 @@ struct CoachView: View {
 
     private var composerChrome: some View {
         CoachComposer(
-            text: $model.inputText,
+            text: Binding(
+                get: { model.inputState.text },
+                set: { model.inputText = $0 }
+            ),
+            attachment: model.inputState.attachment,
+            attachmentError: model.inputState.error,
+            canPickAttachment: model.inputState.canPickImage,
+            textFieldPlaceholder: model.photoClarificationComposerPlaceholder
+                ?? FormaProductCopy.Coach.composerPlaceholder,
             isFocused: $isInputFocused,
             isSending: model.isSending,
             onSend: {
@@ -144,9 +162,11 @@ struct CoachView: View {
                 }
             },
             onVoiceTap: {},
-            onAttachmentSelect: handleAttachmentSelection
+            onAttachmentSelect: handleAttachmentSelection,
+            onRemoveAttachment: {
+                model.removeStagedMealPhoto()
+            }
         )
-        .fixedSize(horizontal: false, vertical: true)
         .background(
             CoachDesignTokens.Color.background
                 .shadow(color: FormaTokens.Color.shadow, radius: 12, y: -4)
@@ -167,9 +187,17 @@ struct CoachView: View {
     }
 
     private func handleAttachmentSelection(_ option: CoachAttachmentOption) {
+        guard model.requestPhotoPick() else { return }
         switch option {
         case .takePhoto:
-            isCameraPresented = true
+            Task {
+                switch await CoachCameraAccess.resolveForCapture() {
+                case .success:
+                    isCameraPresented = true
+                case .failure(let error):
+                    await model.handleMealPhotoSelection(.failure(error), source: .camera)
+                }
+            }
         case .choosePhoto:
             isPhotoPickerPresented = true
         }

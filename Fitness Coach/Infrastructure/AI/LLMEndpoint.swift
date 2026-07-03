@@ -16,4 +16,5 @@ enum LLMEndpoint: String, Codable, Equatable, Sendable {
     case parseWorkout = "v1/ai/parse-workout"
     case parseEditDelete = "v1/ai/parse-edit-delete"
     case parseMultiAction = "v1/ai/parse-multi-action"
+    case analyzeMealImage = "v1/ai/analyze-meal-image"
 }

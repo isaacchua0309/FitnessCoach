@@ -7,6 +7,13 @@
 
 import Foundation
 
+struct MealPhotoAnalysisOutcome: Equatable {
+    var result: CoachActionResult
+    var sessionResult: ImageAnalysisSessionResult?
+    var errorMessage: String?
+    var errorCategory: String?
+}
+
 @MainActor
 final class CoachMealPhotoAnalyzer {
 
@@ -24,57 +31,90 @@ final class CoachMealPhotoAnalyzer {
         self.routeHandler = routeHandler
     }
 
-    func prepareJPEG(from rawData: Data) -> Result<Data, CoachMealPhotoError> {
-        CoachMealPhotoPipeline.prepareJPEG(from: rawData)
+    func prepareJPEG(from rawData: Data) async -> Result<Data, CoachMealPhotoError> {
+        await CoachMealPhotoPipeline.prepareJPEG(from: rawData)
     }
 
     func analyze(
-        jpegData: Data,
+        session: ImageAnalysisSession,
+        recommission: ImageAnalysisRecommissionContext? = nil,
         recentMessages: [ChatMessage]
-    ) async -> CoachActionResult {
+    ) async -> MealPhotoAnalysisOutcome {
         guard aiCommandParsingEnabled, let aiContextBuilder else {
-            return .message(CoachResponseBuilder.backendUnavailableResponse)
+            let error = AIServiceError.backendUnavailable
+            CoachImageAnalysisDebugLogger.logError(error)
+            return MealPhotoAnalysisOutcome(
+                result: .message(CoachResponseBuilder.backendUnavailableResponse),
+                errorMessage: error.userMessage,
+                errorCategory: CoachImageAnalysisDebugLogFormatter.errorCategory(for: error)
+            )
         }
+
+        let prompt: String
+        if let recommission {
+            prompt = ImageAnalysisPromptBuilder.recommissionMessage(
+                session: session,
+                clarification: recommission.clarification
+            )
+        } else {
+            prompt = ImageAnalysisPromptBuilder.initialPrompt(caption: session.userCaption)
+        }
+
         return await performAnalysis(
-            jpegData: jpegData,
-            recentMessages: recentMessages,
-            aiContextBuilder: aiContextBuilder
+            jpegData: session.originalImageAttachment.imageJPEG,
+            prompt: prompt,
+            recommission: recommission,
+            recentMessages: recentMessages
         )
     }
 
     private func performAnalysis(
         jpegData: Data,
-        recentMessages: [ChatMessage],
-        aiContextBuilder: CoachContextBuilder
-    ) async -> CoachActionResult {
+        prompt: String,
+        recommission: ImageAnalysisRecommissionContext?,
+        recentMessages: [ChatMessage]
+    ) async -> MealPhotoAnalysisOutcome {
         FormaPipelineTracer.event(
             stage: .coachSend,
             level: .info,
             message: "Meal photo analysis started",
             fields: [
                 "jpegBytes": String(jpegData.count),
-                "hasImagePayload": String(CoachMealPhotoPipeline.hasImagePayload(jpegData))
+                "hasImagePayload": String(CoachMealPhotoPipeline.hasImagePayload(jpegData)),
+                "isRecommission": String(recommission != nil)
             ]
         )
 
-        let context = aiContextBuilder.makeContext(recentMessages: recentMessages)
-        let routed = RoutedAITask(
-            task: .photoFoodAnalysis(
-                imageData: jpegData,
-                prompt: CoachMealPhotoPipeline.defaultAnalysisPrompt
-            ),
-            tier: .cheap,
-            intentResult: CoachMealPhotoPipeline.photoAnalysisIntentResult
-        )
+        let context = aiContextBuilder!.makeContext(recentMessages: recentMessages)
 
         do {
-            return try await routeHandler.handleAITask(routed, context: context)
+            let presentation = try await routeHandler.analyzeMealPhoto(
+                imageData: jpegData,
+                prompt: prompt,
+                recommission: recommission,
+                context: context
+            )
+            return MealPhotoAnalysisOutcome(
+                result: presentation.actionResult,
+                sessionResult: presentation.sessionResult
+            )
         } catch let error as AIServiceError {
-            return .message(CoachResponseBuilder.mealPhotoAnalysisFailed(error))
+            let message = CoachResponseBuilder.mealPhotoAnalysisFailed(error)
+            CoachImageAnalysisDebugLogger.logError(error)
+            return MealPhotoAnalysisOutcome(
+                result: .message(message),
+                errorMessage: message,
+                errorCategory: CoachImageAnalysisDebugLogFormatter.errorCategory(for: error)
+            )
         } catch {
-            return .message(CoachResponseBuilder.mealPhotoAnalysisFailed(
-                AIServiceError.requestFailed(error.localizedDescription)
-            ))
+            let wrapped = AIServiceError.requestFailed(error.localizedDescription)
+            let message = CoachResponseBuilder.mealPhotoAnalysisFailed(wrapped)
+            CoachImageAnalysisDebugLogger.logError(wrapped)
+            return MealPhotoAnalysisOutcome(
+                result: .message(message),
+                errorMessage: message,
+                errorCategory: CoachImageAnalysisDebugLogFormatter.errorCategory(for: wrapped)
+            )
         }
     }
 }
