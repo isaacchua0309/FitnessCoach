@@ -2238,6 +2238,14 @@ enum FormaProductCopy {
         static let foodEditIngredientsFooter = "Edit if you know the ingredients."
         static let foodConfirmBelowFooter = "Confirm below to add it."
         static let pendingBarHint = "Use the bar below to log, edit, or discard."
+        static let foodLoggedTimelineNote = "Added to today's timeline."
+        static let pendingReviewBeforeLogging = "Please review before logging."
+        static let pendingSourceMealPhoto = "Source: meal photo"
+        static let pendingSourceCommonFood = "Source: usual food"
+
+        static func latestMealLine(name: String, calories: Int) -> String {
+            "Latest: \(name) · \(calories) kcal"
+        }
     }
 
     // MARK: - Food form

@@ -182,7 +182,12 @@ final class CoachMutationExecutor {
             if let pendingId = timelineContext.pendingConfirmationId {
                 completedPendingConfirmationIDs.insert(pendingId)
             }
-            return CoachResponseBuilder.food(entry, log: log)
+            return CoachResponseBuilder.food(
+                entry,
+                log: log,
+                fromPhotoAnalysis: timelineContext.sourceAttribution == .mealImage
+                    || entry.source == .aiPhotoEstimate
+            )
         } catch ServiceError.invalidInput(let message) {
             timelineRecordMutationFailure(message: message, category: "invalid_input")
             return message
