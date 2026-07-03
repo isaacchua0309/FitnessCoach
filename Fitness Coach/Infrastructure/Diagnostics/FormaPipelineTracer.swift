@@ -25,6 +25,7 @@ enum PipelineTraceStage: String, Sendable, CaseIterable {
     case httpResponse
     case authToken
     case mockLLM
+    case mealImageAnalysis
     case error
 }
 
@@ -238,13 +239,15 @@ enum FormaPipelineTracer {
         guard isVerbose else { return nil }
         let limit = 2_048
         let raw = String(data: data.prefix(limit), encoding: .utf8) ?? "<non-utf8>"
-        let sanitized = raw
-            .replacingOccurrences(of: #"Bearer\s+\S+"#, with: "Bearer <redacted>", options: .regularExpression)
-            .replacingOccurrences(of: #""Authorization"\s*:\s*"[^"]*""#, with: "\"Authorization\":\"<redacted>\"", options: .regularExpression)
+        let sanitized = CoachImageAnalysisDebugLogFormatter.redactSensitiveJSONFields(raw)
         if data.count > limit {
             return sanitized + "…(truncated)"
         }
         return sanitized
+    }
+
+    static func redactSensitiveJSONFields(_ raw: String) -> String {
+        CoachImageAnalysisDebugLogFormatter.redactSensitiveJSONFields(raw)
     }
 
     // MARK: - Private

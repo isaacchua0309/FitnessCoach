@@ -11,6 +11,7 @@ struct MealPhotoAnalysisOutcome: Equatable {
     var result: CoachActionResult
     var sessionResult: ImageAnalysisSessionResult?
     var errorMessage: String?
+    var errorCategory: String?
 }
 
 @MainActor
@@ -40,9 +41,12 @@ final class CoachMealPhotoAnalyzer {
         recentMessages: [ChatMessage]
     ) async -> MealPhotoAnalysisOutcome {
         guard aiCommandParsingEnabled, let aiContextBuilder else {
+            let error = AIServiceError.backendUnavailable
+            CoachImageAnalysisDebugLogger.logError(error)
             return MealPhotoAnalysisOutcome(
                 result: .message(CoachResponseBuilder.backendUnavailableResponse),
-                errorMessage: AIServiceError.backendUnavailable.userMessage
+                errorMessage: error.userMessage,
+                errorCategory: CoachImageAnalysisDebugLogFormatter.errorCategory(for: error)
             )
         }
 
@@ -96,12 +100,21 @@ final class CoachMealPhotoAnalyzer {
             )
         } catch let error as AIServiceError {
             let message = CoachResponseBuilder.mealPhotoAnalysisFailed(error)
-            return MealPhotoAnalysisOutcome(result: .message(message), errorMessage: message)
-        } catch {
-            let message = CoachResponseBuilder.mealPhotoAnalysisFailed(
-                AIServiceError.requestFailed(error.localizedDescription)
+            CoachImageAnalysisDebugLogger.logError(error)
+            return MealPhotoAnalysisOutcome(
+                result: .message(message),
+                errorMessage: message,
+                errorCategory: CoachImageAnalysisDebugLogFormatter.errorCategory(for: error)
             )
-            return MealPhotoAnalysisOutcome(result: .message(message), errorMessage: message)
+        } catch {
+            let wrapped = AIServiceError.requestFailed(error.localizedDescription)
+            let message = CoachResponseBuilder.mealPhotoAnalysisFailed(wrapped)
+            CoachImageAnalysisDebugLogger.logError(wrapped)
+            return MealPhotoAnalysisOutcome(
+                result: .message(message),
+                errorMessage: message,
+                errorCategory: CoachImageAnalysisDebugLogFormatter.errorCategory(for: wrapped)
+            )
         }
     }
 }

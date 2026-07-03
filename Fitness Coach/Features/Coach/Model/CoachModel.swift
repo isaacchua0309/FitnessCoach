@@ -196,15 +196,22 @@ final class CoachModel: ObservableObject {
     }
 
     private func stageMealPhoto(_ rawData: Data, source: CoachInputAttachmentSource) {
+        let rawBytes = rawData.count
         let prepared = mealPhotoAnalyzer.prepareJPEG(from: rawData)
         guard case .success(let jpegData) = prepared else {
             if case .failure(let error) = prepared {
+                CoachImageAnalysisDebugLogger.logError(error)
                 appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
             }
             return
         }
 
         CoachMealPhotoPipeline.assertImagePayloadPresent(jpegData)
+        CoachImageAnalysisDebugLogger.logImageSelected(
+            source: source,
+            rawBytes: rawBytes,
+            compressedBytes: jpegData.count
+        )
         mutateInputState { $0.stageImage(jpegData: jpegData, source: source) }
     }
 
@@ -420,6 +427,16 @@ final class CoachModel: ObservableObject {
         _ = imageAnalysisSessionStore.apply(userMessageID: userMessageID, event: .analysisStarted)
         let activeSession = imageAnalysisSessionStore.session(forUserMessageID: userMessageID) ?? session
 
+        CoachImageAnalysisDebugLogger.logAnalysisStarted(
+            sessionId: activeSession.sessionId,
+            userMessageId: userMessageID,
+            attempt: activeSession.attempts,
+            isRetry: isRetry,
+            isRecommission: recommission != nil,
+            hasCaption: !session.userCaption.isEmpty,
+            compressedBytes: jpegData.count
+        )
+
         beginProcessing(.mealPhoto(userMessageID: userMessageID, prompt: session.userCaption))
         defer {
             endProcessing()
@@ -458,6 +475,13 @@ final class CoachModel: ObservableObject {
             traceOutcome = updatedSession.status == .needsClarification ?
                 "photoAnalysisNeedsClarification" :
                 "photoAnalysisCompleted"
+            CoachImageAnalysisDebugLogger.logSessionOutcome(
+                sessionId: updatedSession.sessionId,
+                attempt: updatedSession.attempts,
+                sessionStatus: String(describing: updatedSession.status),
+                confidence: sessionResult.confidence.rawValue,
+                itemCount: sessionResult.mealDraft.components.count
+            )
             return
         }
 
@@ -468,6 +492,12 @@ final class CoachModel: ObservableObject {
         )
         clearPendingConfirmationIfLinked(to: userMessageID)
         if let failedSession = imageAnalysisSessionStore.session(forUserMessageID: userMessageID) {
+            CoachImageAnalysisDebugLogger.logSessionOutcome(
+                sessionId: failedSession.sessionId,
+                attempt: failedSession.attempts,
+                sessionStatus: "failed",
+                errorCategory: outcome.errorCategory ?? "unknown"
+            )
             appendMealPhotoFailureMessage(
                 text: errorMessage,
                 session: failedSession

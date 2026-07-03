@@ -127,16 +127,38 @@ final class AIService: AIServiceProtocol {
     func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
         if let imageData = Data(base64Encoded: request.image.base64) {
             guard AIGatewayPayloadLimits.fitsImagePayload(imageData) else {
-                throw AIServiceError.payloadTooLarge
+                let error = AIServiceError.payloadTooLarge
+                CoachImageAnalysisDebugLogger.logError(error)
+                throw error
             }
         }
+
+        CoachImageAnalysisDebugLogger.logGatewayRequestStarted(
+            mimeType: request.image.mimeType,
+            compressedBytes: Data(base64Encoded: request.image.base64)?.count ?? 0,
+            base64Chars: request.image.base64.count,
+            hasCaption: request.message?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+            hasClarification: request.clarification?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+            hasPreviousAnalysis: request.previousAnalysis != nil
+        )
 
         return try await traced(method: "analyzeMealImage", mapError: AICommandParser.mapFoodEstimate) {
             let response = try await llmClient.analyzeMealImage(request: request)
             let validation = MealImageAnalysisResponseValidator.validate(response: response)
             guard validation.isValid else {
-                throw AIServiceError.invalidNutritionJSON(validation.errors.joined(separator: " | "))
+                let error = AIServiceError.invalidNutritionJSON(validation.errors.joined(separator: " | "))
+                CoachImageAnalysisDebugLogger.logResponseParsed(
+                    success: false,
+                    errorCategory: CoachImageAnalysisDebugLogFormatter.errorCategory(for: error),
+                    validationErrorCount: validation.errors.count
+                )
+                throw error
             }
+            CoachImageAnalysisDebugLogger.logResponseParsed(
+                success: true,
+                itemCount: response.items.count,
+                summaryLength: response.summary.count
+            )
             return response
         }
     }

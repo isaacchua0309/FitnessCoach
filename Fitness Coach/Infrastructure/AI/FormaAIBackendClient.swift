@@ -207,6 +207,17 @@ final class FormaAIBackendClient: LLMClient {
                     "mappedError": String(describing: mappedError)
                 ]
             )
+            #if DEBUG
+            if endpoint == .analyzeMealImage {
+                CoachImageAnalysisDebugLogger.logBackendResponse(
+                    status: -1,
+                    durationMs: durationMs,
+                    responseBytes: 0,
+                    success: false,
+                    errorCategory: CoachImageAnalysisDebugLogFormatter.errorCategory(for: mappedError)
+                )
+            }
+            #endif
             throw mappedError
         }
 
@@ -228,6 +239,18 @@ final class FormaAIBackendClient: LLMClient {
             if let snippet = FormaPipelineTracer.sanitizedJSONSnippet(data) {
                 errorFields["responseBody"] = snippet
             }
+
+            #if DEBUG
+            if endpoint == .analyzeMealImage {
+                CoachImageAnalysisDebugLogger.logBackendResponse(
+                    status: statusCode,
+                    durationMs: durationMs,
+                    responseBytes: data.count,
+                    success: false,
+                    errorCategory: Self.mealImageBackendErrorCategory(statusCode: statusCode)
+                )
+            }
+            #endif
 
             if statusCode == 401 {
                 FormaPipelineTracer.logError(
@@ -272,6 +295,17 @@ final class FormaAIBackendClient: LLMClient {
             fields: responseFields
         )
 
+        #if DEBUG
+        if endpoint == .analyzeMealImage {
+            CoachImageAnalysisDebugLogger.logBackendResponse(
+                status: statusCode,
+                durationMs: durationMs,
+                responseBytes: data.count,
+                success: true
+            )
+        }
+        #endif
+
         do {
             return try decoder.decode(Response.self, from: data)
         } catch {
@@ -286,6 +320,14 @@ final class FormaAIBackendClient: LLMClient {
                     "error": error.localizedDescription
                 ]
             )
+            #if DEBUG
+            if endpoint == .analyzeMealImage {
+                CoachImageAnalysisDebugLogger.logResponseParsed(
+                    success: false,
+                    errorCategory: "parse_failure"
+                )
+            }
+            #endif
             throw LLMClientError.decodingFailed("Could not decode backend response.")
         }
     }
@@ -372,4 +414,17 @@ final class FormaAIBackendClient: LLMClient {
 
         return String(redacted.prefix(200))
     }
+
+    #if DEBUG
+    private static func mealImageBackendErrorCategory(statusCode: Int) -> String {
+        switch statusCode {
+        case 401: return "authentication"
+        case 413: return "payload_too_large"
+        case 400, 422: return "backend_rejected"
+        case 429: return "rate_limited"
+        case 500...599: return "model_unavailable"
+        default: return "http_status"
+        }
+    }
+    #endif
 }
