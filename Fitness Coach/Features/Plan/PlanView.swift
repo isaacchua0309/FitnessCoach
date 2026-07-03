@@ -20,7 +20,7 @@ struct PlanView: View {
     var body: some View {
         NavigationStack {
             content
-                .navigationTitle("Plan")
+                .navigationTitle(FormaProductCopy.PlanHeader.title)
                 .toolbar {
                     if case .loaded = model.viewState {
                         ToolbarItem(placement: .topBarTrailing) {
@@ -160,78 +160,58 @@ struct PlanView: View {
         let healthConnected = trainingInsightsStore.integrationState.isConnected
 
         ScrollView {
-            VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
-                PlanMissionControlHeroSection(strategy: state.strategy)
-                    .onAppear {
-                        model.logSectionImpression(.goalCard, healthConnected: healthConnected)
+            PlanDashboardContent(
+                state: state,
+                onGoToToday: onGoToToday.map { handler in
+                    {
+                        model.logPlanTodayTapped(healthConnected: healthConnected)
+                        handler()
                     }
-
-                PlanDailyTargetsSection(
-                    state: state.dailyTargets,
-                    onGoToToday: onGoToToday.map { handler in
-                        {
-                            model.logPlanTodayTapped(healthConnected: healthConnected)
-                            handler()
-                        }
+                },
+                onAdjustActivity: {
+                    model.showEditPlanActivity()
+                },
+                onAdjustPlan: {
+                    model.showEditPlan()
+                },
+                onCalculationDetailsOpened: {
+                    model.logPlanCalculationDetailsOpened(healthConnected: healthConnected)
+                },
+                onAppleHealthTap: state.confidence.showsAppleHealthAction
+                    ? {
+                        model.logPlanHealthConnectTapped(
+                            entryPoint: .planConfidence,
+                            healthConnected: healthConnected
+                        )
+                        isShowingTrainingInsights = true
                     }
-                )
-                .onAppear {
-                    model.logSectionImpression(.todayMission, healthConnected: healthConnected)
+                    : nil,
+                onSectionAppear: { section in
+                    logSectionImpression(section, healthConnected: healthConnected)
                 }
-
-                PlanStatusSection(state: state.status)
-
-                PlanRationaleSection(
-                    explanation: state.explanation,
-                    onCalculationDetailsOpened: {
-                        model.logPlanCalculationDetailsOpened(healthConnected: healthConnected)
-                    }
-                )
-                .onAppear {
-                    model.logSectionImpression(.rationale, healthConnected: healthConnected)
-                }
-
-                PlanAssumptionsSection(
-                    state: state.assumptions,
-                    onAdjustActivity: {
-                        model.showEditPlanActivity()
-                    }
-                )
-                .onAppear {
-                    model.logSectionImpression(.planAssumptions, healthConnected: healthConnected)
-                }
-
-                PlanAdjustmentRulesSection(state: state.adjustmentRules)
-
-                PlanReviewSection(state: state.review)
-
-                PlanConfidenceSection(
-                    state: state.confidence,
-                    onAppleHealthTap: state.confidence.showsAppleHealthAction
-                        ? {
-                            model.logPlanHealthConnectTapped(
-                                entryPoint: .planConfidence,
-                                healthConnected: healthConnected
-                            )
-                            isShowingTrainingInsights = true
-                        }
-                        : nil
-                )
-
-                PlanAdjustPlanCTASection(
-                    state: state.adjustPlanCTA,
-                    onAdjustPlan: {
-                        model.showEditPlan()
-                    }
-                )
-            }
-            .padding(.horizontal, PlanLayout.horizontalPadding)
-            .padding(.top, FormaTokens.Spacing.xs)
-            .padding(.bottom, FormaMainTabLayout.scrollContentBottomPadding)
+            )
         }
         .formaMainTabScrollInsets()
         .onAppear {
             model.logPlanViewed(healthConnected: healthConnected)
+        }
+    }
+
+    private func logSectionImpression(
+        _ section: PlanProductSection,
+        healthConnected: Bool
+    ) {
+        switch section {
+        case .goalProgress:
+            model.logSectionImpression(.goalCard, healthConnected: healthConnected)
+        case .todayMission:
+            model.logSectionImpression(.todayMission, healthConnected: healthConnected)
+        case .whyThisWorks:
+            model.logSectionImpression(.rationale, healthConnected: healthConnected)
+        case .planAssumptions:
+            model.logSectionImpression(.planAssumptions, healthConnected: healthConnected)
+        case .header, .planStatus, .planConfidence, .whenToAdjust, .nextReview, .adjustPlanCTA:
+            break
         }
     }
 }
@@ -248,30 +228,8 @@ struct PlanView: View {
 }
 
 #Preview("Loaded Plan") {
-    ScrollView {
-        VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
-            PlanMissionControlHeroSection(strategy: PlanPreviewData.state.strategy)
-            PlanDailyTargetsSection(
-                state: PlanPreviewData.state.dailyTargets,
-                onGoToToday: {}
-            )
-            PlanStatusSection(state: PlanPreviewData.state.status)
-            PlanRationaleSection(explanation: PlanPreviewData.state.explanation)
-            PlanAssumptionsSection(
-                state: PlanPreviewData.state.assumptions,
-                onAdjustActivity: {}
-            )
-            PlanAdjustmentRulesSection(state: PlanPreviewData.state.adjustmentRules)
-            PlanReviewSection(state: PlanPreviewData.state.review)
-            PlanConfidenceSection(state: PlanPreviewData.state.confidence)
-            PlanAdjustPlanCTASection(
-                state: PlanPreviewData.state.adjustPlanCTA,
-                onAdjustPlan: {}
-            )
-        }
-        .padding(.horizontal, PlanLayout.horizontalPadding)
-        .padding(.vertical, 24)
+    NavigationStack {
+        PlanPreviewScreens.content(.aggressiveCut)
+            .navigationTitle(FormaProductCopy.PlanHeader.title)
     }
-    .background(FormaTokens.Color.canvas)
-    .formaThemePreview()
 }

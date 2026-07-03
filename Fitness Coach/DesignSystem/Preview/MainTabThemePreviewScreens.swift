@@ -37,29 +37,9 @@ enum MainTabThemePreviewScreens {
         appearance: AppAppearanceMode = .dark
     ) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
-                PlanMissionControlHeroSection(strategy: PlanPreviewData.state.strategy)
-                PlanDailyTargetsSection(
-                    state: PlanPreviewData.state.dailyTargets,
-                    onGoToToday: {}
-                )
-                PlanStatusSection(state: PlanPreviewData.state.status)
-                PlanRationaleSection(explanation: PlanPreviewData.state.explanation)
-                PlanAssumptionsSection(
-                    state: PlanPreviewData.state.assumptions,
-                    onAdjustActivity: {}
-                )
-                PlanAdjustmentRulesSection(state: PlanPreviewData.state.adjustmentRules)
-                PlanReviewSection(state: PlanPreviewData.state.review)
-                PlanConfidenceSection(state: PlanPreviewData.state.confidence)
-                PlanAdjustPlanCTASection(
-                    state: PlanPreviewData.state.adjustPlanCTA,
-                    onAdjustPlan: {}
-                )
-            }
-            .padding(.horizontal, PlanLayout.horizontalPadding)
-            .padding(.vertical, FormaTokens.Spacing.lg)
+            PlanDashboardContent(state: PlanPreviewScreens.dashboard(.aggressiveCut))
         }
+        .formaMainTabScrollInsets()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview(appearance: appearance, palette: palette)
     }

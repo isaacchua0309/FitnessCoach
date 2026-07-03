@@ -41,6 +41,14 @@ struct PlanStatusState: Equatable, Sendable {
     var accessibilitySummary: String
 }
 
+// MARK: - Header
+
+struct PlanHeaderState: Equatable, Sendable {
+    var title: String
+    var subtitle: String
+    var accessibilitySummary: String
+}
+
 // MARK: - Strategy
 
 struct PlanStrategyState: Equatable, Sendable {

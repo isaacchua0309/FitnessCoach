@@ -9,6 +9,7 @@ import Foundation
 
 struct PlanDashboardState: Equatable, Sendable {
     var profile: UserProfile
+    var header: PlanHeaderState
     var strategy: PlanStrategyState
     var dailyTargets: DailyTargetsState
     var status: PlanStatusState

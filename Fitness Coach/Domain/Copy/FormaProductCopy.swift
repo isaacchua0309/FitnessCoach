@@ -2205,6 +2205,13 @@ enum FormaProductCopy {
         }
     }
 
+    // MARK: - Plan Header
+
+    enum PlanHeader {
+        static let title = "Plan"
+        static let subtitle = "Your strategy, targets, and checkpoints."
+    }
+
     // MARK: - Plan Strategy Hero
 
     enum PlanStrategyHero {

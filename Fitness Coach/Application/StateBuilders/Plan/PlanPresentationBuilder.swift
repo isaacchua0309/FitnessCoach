@@ -34,6 +34,7 @@ enum PlanPresentationBuilder {
 
         return PlanDashboardState(
             profile: context.profile,
+            header: PlanHeaderStateBuilder.build(),
             strategy: strategy,
             dailyTargets: DailyTargetsStateBuilder.build(profile: context.profile),
             status: status,

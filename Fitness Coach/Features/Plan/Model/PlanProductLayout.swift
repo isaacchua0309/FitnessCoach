@@ -8,27 +8,46 @@
 import Foundation
 
 enum PlanProductSection: String, CaseIterable, Equatable {
+    case header = "header"
     case goalProgress = "goal_progress"
     case todayMission = "today_mission"
     case planStatus = "plan_status"
     case whyThisWorks = "why_this_works"
-    case planAssumptions = "plan_assumptions"
-    case whenToAdjust = "when_to_adjust"
-    case nextReview = "next_review"
     case planConfidence = "plan_confidence"
+    case whenToAdjust = "when_to_adjust"
+    case planAssumptions = "plan_assumptions"
+    case nextReview = "next_review"
     case adjustPlanCTA = "adjust_plan_cta"
 }
 
 enum PlanProductLayout {
+    /// Canonical Plan screen order (header → hero → targets → status → rationale → confidence → adjust → assumptions → review → CTA).
     static let sectionOrder: [PlanProductSection] = [
+        .header,
         .goalProgress,
         .todayMission,
         .planStatus,
         .whyThisWorks,
-        .planAssumptions,
-        .whenToAdjust,
-        .nextReview,
         .planConfidence,
+        .whenToAdjust,
+        .planAssumptions,
+        .nextReview,
+        .adjustPlanCTA
+    ]
+
+    static let primarySectionOrder: [PlanProductSection] = [
+        .header,
+        .goalProgress,
+        .todayMission,
+        .planStatus,
+        .whyThisWorks,
+        .planConfidence
+    ]
+
+    static let secondarySectionOrder: [PlanProductSection] = [
+        .whenToAdjust,
+        .planAssumptions,
+        .nextReview,
         .adjustPlanCTA
     ]
 
