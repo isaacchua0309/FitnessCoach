@@ -10,46 +10,91 @@ import Foundation
 
 enum CoachHealthIntelligenceContextBuilder {
 
+    struct BuildInput: Equatable, Sendable {
+        var availability: HealthDataAvailability?
+        var baseline: HealthBaselineContext?
+        var lastHealthSyncAt: Date?
+        var isAppleHealthConnected: Bool = false
+        var syncPhase: HealthSyncPhase? = nil
+        var remoteSyncConsentDecision: HealthSummarySyncConsentDecision = .notDetermined
+        var isRemoteSyncCapabilityEnabled: Bool = false
+        var awarenessAvailable: Bool = true
+        var now: Date = Date()
+    }
+
     static func build(
         from snapshot: HealthIntelligenceSnapshot,
         trainingLoad: TrainingLoadSummary = .unknown,
+        input: BuildInput = BuildInput(),
         calendar: Calendar = .current
     ) -> CoachHealthIntelligenceContext {
+        let resolverInput = CoachHealthContextStatusResolver.Input(
+            snapshot: snapshot,
+            availability: input.availability,
+            baseline: input.baseline,
+            lastHealthSyncAt: input.lastHealthSyncAt,
+            isAppleHealthConnected: input.isAppleHealthConnected,
+            syncPhase: input.syncPhase,
+            remoteSyncConsentDecision: input.remoteSyncConsentDecision,
+            isRemoteSyncCapabilityEnabled: input.isRemoteSyncCapabilityEnabled,
+            awarenessAvailable: input.awarenessAvailable,
+            now: input.now
+        )
+
+        let healthContextStatus = CoachHealthContextStatusResolver.resolveStatus(from: resolverInput)
+        let availableSignals = CoachHealthContextStatusResolver.availableSignalLabels(from: resolverInput)
+        let missingSignals = CoachHealthContextStatusResolver.missingSignalLabels(from: resolverInput)
+
         let recovery = snapshot.recovery
         let workout = snapshot.workout
         let activity = snapshot.activity
         let nutrition = snapshot.nutritionAdjustment
         let nextBestAction = snapshot.nextBestAction
 
+        let workoutsAvailable = availableSignals.contains("workouts")
+        let stepsAvailable = availableSignals.contains("steps")
+
         return CoachHealthIntelligenceContext(
             date: calendar.startOfDay(for: snapshot.date),
+            healthContextStatus: healthContextStatus,
+            availableSignals: availableSignals,
+            missingSignals: missingSignals,
+            lastHealthSyncAt: input.lastHealthSyncAt,
+            healthContextInstruction: CoachHealthContextInstruction.doNotAssumeMissingData,
             recoveryStatus: coachSafeRecoveryStatus(from: recovery),
             recoveryScore: coachSafeRecoveryScore(from: recovery),
             recoveryConfidence: conservativeConfidenceLabel(for: recovery.confidence),
             recoveryExplanation: coachSafeRecoveryExplanation(from: recovery),
-            workoutCompletedToday: workout?.hasWorkout == true,
-            workoutSummaryText: coachSafeWorkoutSummary(from: workout),
-            workoutDemand: coachSafeWorkoutDemand(from: workout),
-            totalWorkoutMinutesToday: workout?.totalDurationMinutes ?? 0,
-            totalActiveCaloriesToday: coachSafeActiveCalories(from: workout),
-            stepsToday: activity.steps,
+            workoutCompletedToday: workoutsAvailable && workout?.hasWorkout == true,
+            workoutSummaryText: workoutsAvailable
+                ? coachSafeWorkoutSummary(from: workout)
+                : nil,
+            workoutDemand: workoutsAvailable ? coachSafeWorkoutDemand(from: workout) : nil,
+            totalWorkoutMinutesToday: workoutsAvailable ? (workout?.totalDurationMinutes ?? 0) : 0,
+            totalActiveCaloriesToday: workoutsAvailable ? coachSafeActiveCalories(from: workout) : nil,
+            stepsToday: stepsAvailable ? activity.steps : nil,
             adaptiveNutritionAdvice: coachSafeNutritionAdvice(from: nutrition),
             proteinRecommendation: coachSafeProteinRecommendation(from: nutrition),
             hydrationRecommendationMl: coachSafeHydrationRecommendation(from: nutrition),
             trainingLoadStatus: coachSafeTrainingLoadStatus(from: trainingLoad),
             nextBestActionTitle: coachSafeNextBestActionTitle(from: nextBestAction),
             nextBestActionReason: coachSafeNextBestActionReason(from: nextBestAction),
-            missingSignals: plainLanguageMissingSignals(
-                recovery: recovery,
-                nutrition: nutrition,
-                trainingLoad: trainingLoad
-            ),
             healthDataConfidenceLabel: healthDataConfidenceLabel(
                 recovery: recovery,
                 planConfidence: snapshot.planConfidence,
-                trainingLoad: trainingLoad
+                trainingLoad: trainingLoad,
+                healthContextStatus: healthContextStatus
             )
         )
+    }
+
+    /// Backward-compatible entry point for tests and direct snapshot mapping.
+    static func build(
+        from snapshot: HealthIntelligenceSnapshot,
+        trainingLoad: TrainingLoadSummary = .unknown,
+        calendar: Calendar = .current
+    ) -> CoachHealthIntelligenceContext {
+        build(from: snapshot, trainingLoad: trainingLoad, input: BuildInput(), calendar: calendar)
     }
 
     // MARK: - Recovery
@@ -311,13 +356,22 @@ enum CoachHealthIntelligenceContextBuilder {
     private static func healthDataConfidenceLabel(
         recovery: RecoverySummary,
         planConfidence: PlanHealthConfidence,
-        trainingLoad: TrainingLoadSummary
+        trainingLoad: TrainingLoadSummary,
+        healthContextStatus: CoachHealthContextStatus
     ) -> String {
+        if healthContextStatus == .unavailable {
+            return FormaProductCopy.HealthIntelligence.limitedEstimateLabel
+        }
+
+        if healthContextStatus == .stale {
+            return "Stale estimate"
+        }
+
         if recovery.confidence == .low || recovery.confidence == .unknown {
             return FormaProductCopy.HealthIntelligence.limitedEstimateLabel
         }
 
-        if !recovery.missingSignals.isEmpty {
+        if !recovery.missingSignals.isEmpty || healthContextStatus == .partial {
             return FormaProductCopy.HealthIntelligence.partialDataLabel
         }
 

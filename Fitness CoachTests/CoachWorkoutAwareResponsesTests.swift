@@ -117,7 +117,8 @@ final class CoachWorkoutAwareResponsesTests: XCTestCase {
 
         let context = builder.makeContext(recentMessages: [], activity: activity)
 
-        XCTAssertNil(context.healthIntelligence)
+        XCTAssertNotNil(context.healthIntelligence)
+        XCTAssertEqual(context.healthIntelligence?.healthContextStatus, .unavailable)
         XCTAssertFalse(context.healthIntelligenceAwarenessAvailable)
         XCTAssertNotNil(context.todaySummary)
     }

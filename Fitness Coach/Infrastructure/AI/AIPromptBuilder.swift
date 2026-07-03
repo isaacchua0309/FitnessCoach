@@ -29,12 +29,17 @@ enum AIPromptBuilder {
 
     private static let healthIntelligenceRules = """
     Health intelligence context rules:
-    - When context.healthIntelligenceAwarenessAvailable is true, use context.healthIntelligence before asking whether the user worked out today.
+    - Always read context.healthIntelligence.healthContextStatus, availableSignals, missingSignals, and lastHealthSyncAt before making health claims.
+    - Instruction: \(CoachHealthContextInstruction.doNotAssumeMissingData)
+    - When healthContextStatus is unavailable, answer using logged food, plan, and user-stated data only. Do not claim Apple Health awareness.
+    - When healthContextStatus is partial or recoveryConfidence is limited, describe recovery and activity guidance as a limited estimate.
+    - When healthContextStatus is stale, mention that synced health data may be outdated only if it matters to the answer.
+    - When context.healthIntelligenceAwarenessAvailable is true and a signal is listed in availableSignals, you may use the corresponding field in context.healthIntelligence.
+    - When a signal is missing or not listed in availableSignals, say that data is unavailable. Never infer low activity from missing steps or claim the user did not work out when workout data is unavailable.
     - Treat Apple Health workout calories and active energy as estimates, not precise facts.
-    - If health signals are missing, mention limitations only when relevant to the user's question.
-    - Tailor nutrition advice to today's workout and recovery signals when available.
+    - Tailor nutrition advice to today's workout and recovery signals only when those signals are available.
     - Do not state or imply medical diagnoses.
-    - When context.healthIntelligenceAwarenessAvailable is false, do not claim Apple Health awareness, recovery scores, or synced workout insights. Rely on logged app data and what the user tells you.
+    - When the user asks about an unavailable signal, explain they can connect or manage Apple Health permissions in Forma Settings.
     """
 
     static func commandParsingSystemPrompt() -> String {

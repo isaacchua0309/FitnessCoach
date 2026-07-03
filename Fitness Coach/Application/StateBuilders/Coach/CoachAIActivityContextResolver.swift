@@ -20,18 +20,46 @@ struct CoachAIActivityContext: Equatable, Sendable {
 
 enum CoachAIActivityContextResolver {
 
+    struct ResolveInput: Equatable, Sendable {
+        var availability: HealthDataAvailability?
+        var baseline: HealthBaselineContext?
+        var lastHealthSyncAt: Date?
+        var isAppleHealthConnected: Bool = false
+        var syncPhase: HealthSyncPhase? = nil
+        var remoteSyncConsentDecision: HealthSummarySyncConsentDecision = .notDetermined
+        var isRemoteSyncCapabilityEnabled: Bool = false
+    }
+
     static func resolve(
         date: Date = Date(),
         snapshotProvider: (any HealthIntelligenceSnapshotServing)?,
         healthActivityQuery: HealthActivityQueryService,
         loadHealthIntelligence: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.shouldCoachLoadHealthIntelligence },
+        resolveInput: ResolveInput = ResolveInput(),
         calendar: Calendar = .current
     ) async -> CoachAIActivityContext {
         if loadHealthIntelligence(), let snapshotProvider {
             let snapshot = await snapshotProvider.loadTodaySnapshot(for: date, calendar: calendar)
             if let snapshot {
-                return context(from: snapshot, calendar: calendar)
+                return context(
+                    from: snapshot,
+                    resolveInput: resolveInput,
+                    calendar: calendar
+                )
             }
+
+            let training = await healthActivityQuery.dailyTrainingActivity(on: date, calendar: calendar)
+            return CoachAIActivityContext(
+                workoutsToday: training.workoutCount,
+                hasWorkoutToday: training.hasWorkout,
+                stepsOverride: nil,
+                healthIntelligence: unavailableHealthContext(
+                    date: date,
+                    resolveInput: resolveInput,
+                    calendar: calendar
+                ),
+                healthIntelligenceAwarenessAvailable: false
+            )
         }
 
         let training = await healthActivityQuery.dailyTrainingActivity(on: date, calendar: calendar)
@@ -39,7 +67,10 @@ enum CoachAIActivityContextResolver {
             workoutsToday: training.workoutCount,
             hasWorkoutToday: training.hasWorkout,
             stepsOverride: nil,
-            healthIntelligence: nil,
+            healthIntelligence: CoachHealthIntelligenceContext.unavailable(
+                for: calendar.startOfDay(for: date),
+                lastHealthSyncAt: resolveInput.lastHealthSyncAt
+            ),
             healthIntelligenceAwarenessAvailable: false
         )
     }
@@ -71,21 +102,77 @@ enum CoachAIActivityContextResolver {
 
     private static func context(
         from snapshot: HealthIntelligenceSnapshot,
+        resolveInput: ResolveInput,
         calendar: Calendar
     ) -> CoachAIActivityContext {
-        let healthIntelligence = CoachHealthIntelligenceContextBuilder.build(from: snapshot)
+        let provisional = CoachHealthIntelligenceContextBuilder.build(
+            from: snapshot,
+            input: CoachHealthIntelligenceContextBuilder.BuildInput(
+                availability: resolveInput.availability,
+                baseline: resolveInput.baseline,
+                lastHealthSyncAt: resolveInput.lastHealthSyncAt,
+                isAppleHealthConnected: resolveInput.isAppleHealthConnected,
+                syncPhase: resolveInput.syncPhase,
+                remoteSyncConsentDecision: resolveInput.remoteSyncConsentDecision,
+                isRemoteSyncCapabilityEnabled: resolveInput.isRemoteSyncCapabilityEnabled,
+                awarenessAvailable: true
+            ),
+            calendar: calendar
+        )
+
         let awareness = healthIntelligenceAwarenessAvailable(
             snapshot: snapshot,
-            healthIntelligence: healthIntelligence
+            healthIntelligence: provisional
+        )
+
+        let healthIntelligence = CoachHealthIntelligenceContextBuilder.build(
+            from: snapshot,
+            input: CoachHealthIntelligenceContextBuilder.BuildInput(
+                availability: resolveInput.availability,
+                baseline: resolveInput.baseline,
+                lastHealthSyncAt: resolveInput.lastHealthSyncAt,
+                isAppleHealthConnected: resolveInput.isAppleHealthConnected,
+                syncPhase: resolveInput.syncPhase,
+                remoteSyncConsentDecision: resolveInput.remoteSyncConsentDecision,
+                isRemoteSyncCapabilityEnabled: resolveInput.isRemoteSyncCapabilityEnabled,
+                awarenessAvailable: awareness
+            ),
+            calendar: calendar
         )
 
         return CoachAIActivityContext(
-            workoutsToday: snapshot.workout?.workoutCount ?? 0,
-            hasWorkoutToday: snapshot.workout?.hasWorkout == true,
-            stepsOverride: snapshot.activity.steps,
-            healthIntelligence: awareness ? healthIntelligence : nil,
+            workoutsToday: healthIntelligence.workoutCompletedToday
+                ? max(snapshot.workout?.workoutCount ?? 1, 1)
+                : 0,
+            hasWorkoutToday: healthIntelligence.workoutCompletedToday,
+            stepsOverride: healthIntelligence.stepsToday,
+            healthIntelligence: healthIntelligence,
             healthIntelligenceAwarenessAvailable: awareness,
             sourceSnapshot: snapshot
+        )
+    }
+
+    private static func unavailableHealthContext(
+        date: Date,
+        resolveInput: ResolveInput,
+        calendar: Calendar
+    ) -> CoachHealthIntelligenceContext {
+        CoachHealthIntelligenceContext.unavailable(
+            for: calendar.startOfDay(for: date),
+            lastHealthSyncAt: resolveInput.lastHealthSyncAt,
+            missingSignals: CoachHealthContextStatusResolver.missingSignalLabels(
+                from: CoachHealthContextStatusResolver.Input(
+                    snapshot: nil,
+                    availability: resolveInput.availability,
+                    baseline: resolveInput.baseline,
+                    lastHealthSyncAt: resolveInput.lastHealthSyncAt,
+                    isAppleHealthConnected: resolveInput.isAppleHealthConnected,
+                    syncPhase: resolveInput.syncPhase,
+                    remoteSyncConsentDecision: resolveInput.remoteSyncConsentDecision,
+                    isRemoteSyncCapabilityEnabled: resolveInput.isRemoteSyncCapabilityEnabled,
+                    awarenessAvailable: false
+                )
+            )
         )
     }
 }

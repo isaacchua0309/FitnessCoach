@@ -53,7 +53,12 @@ final class CoachModel: ObservableObject {
     private let dailyLogReader: any DailyLogReading
     private let healthActivityQuery: HealthActivityQueryService
     private let healthIntelligenceSnapshotProvider: (any HealthIntelligenceSnapshotServing)?
+    private let healthDataRepository: (any HealthDataRepositorying)?
     private let healthIntelligenceLoadEnabled: () -> Bool
+    private let healthSyncPhaseProvider: () -> HealthSyncPhase?
+    private let lastSuccessfulLocalSyncAtProvider: () -> Date?
+    private let remoteSyncConsentDecisionProvider: () -> HealthSummarySyncConsentDecision
+    private let isRemoteSyncCapabilityEnabled: () -> Bool
     private let weightLogReader: (any WeightLogReading)?
     private let mutationHistory = CoachMutationHistory()
 
@@ -90,7 +95,12 @@ final class CoachModel: ObservableObject {
         dailyLogReader: any DailyLogReading,
         healthActivityQuery: HealthActivityQueryService,
         healthIntelligenceSnapshotProvider: (any HealthIntelligenceSnapshotServing)? = nil,
+        healthDataRepository: (any HealthDataRepositorying)? = nil,
         healthIntelligenceLoadEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.shouldCoachLoadHealthIntelligence },
+        healthSyncPhaseProvider: @escaping () -> HealthSyncPhase? = { nil },
+        lastSuccessfulLocalSyncAtProvider: @escaping () -> Date? = { nil },
+        remoteSyncConsentDecisionProvider: @escaping () -> HealthSummarySyncConsentDecision = { .notDetermined },
+        isRemoteSyncCapabilityEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.healthSummaryRemoteSyncEnabled },
         weightLogReader: (any WeightLogReading)? = nil,
         aiService: AIServiceProtocol? = nil,
         userProfileReader: (any UserProfileReading)? = nil,
@@ -106,7 +116,12 @@ final class CoachModel: ObservableObject {
         self.dailyLogReader = dailyLogReader
         self.healthActivityQuery = healthActivityQuery
         self.healthIntelligenceSnapshotProvider = healthIntelligenceSnapshotProvider
+        self.healthDataRepository = healthDataRepository
         self.healthIntelligenceLoadEnabled = healthIntelligenceLoadEnabled
+        self.healthSyncPhaseProvider = healthSyncPhaseProvider
+        self.lastSuccessfulLocalSyncAtProvider = lastSuccessfulLocalSyncAtProvider
+        self.remoteSyncConsentDecisionProvider = remoteSyncConsentDecisionProvider
+        self.isRemoteSyncCapabilityEnabled = isRemoteSyncCapabilityEnabled
         self.weightLogReader = weightLogReader
         self.aiService = aiService
         self.aiCommandParsingEnabled = aiCommandParsingEnabled
@@ -187,11 +202,27 @@ final class CoachModel: ObservableObject {
     }
 
     private func resolveAIActivityContext(for date: Date = Date()) async -> CoachAIActivityContext {
-        await CoachAIActivityContextResolver.resolve(
+        async let availabilityTask: HealthDataAvailability? = {
+            guard let healthDataRepository else { return nil }
+            return await healthDataRepository.getHealthDataAvailability()
+        }()
+
+        let availability = await availabilityTask
+        let resolveInput = CoachAIActivityContextResolver.ResolveInput(
+            availability: availability,
+            lastHealthSyncAt: lastSuccessfulLocalSyncAtProvider(),
+            isAppleHealthConnected: trainingInsightsStore?.integrationState.isConnected == true,
+            syncPhase: healthSyncPhaseProvider(),
+            remoteSyncConsentDecision: remoteSyncConsentDecisionProvider(),
+            isRemoteSyncCapabilityEnabled: isRemoteSyncCapabilityEnabled()
+        )
+
+        return await CoachAIActivityContextResolver.resolve(
             date: date,
             snapshotProvider: healthIntelligenceSnapshotProvider,
             healthActivityQuery: healthActivityQuery,
-            loadHealthIntelligence: healthIntelligenceLoadEnabled
+            loadHealthIntelligence: healthIntelligenceLoadEnabled,
+            resolveInput: resolveInput
         )
     }
 

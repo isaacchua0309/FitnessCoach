@@ -10,6 +10,11 @@ import Foundation
 
 struct CoachHealthIntelligenceContext: Equatable, Sendable, Codable {
     let date: Date
+    let healthContextStatus: CoachHealthContextStatus
+    let availableSignals: [String]
+    let missingSignals: [String]
+    let lastHealthSyncAt: Date?
+    let healthContextInstruction: String
     let recoveryStatus: String
     let recoveryScore: Int?
     let recoveryConfidence: String
@@ -26,20 +31,23 @@ struct CoachHealthIntelligenceContext: Equatable, Sendable, Codable {
     let trainingLoadStatus: String
     let nextBestActionTitle: String?
     let nextBestActionReason: String?
-    let missingSignals: [String]
     let healthDataConfidenceLabel: String
 
     func toPromptContext(calendar: Calendar = .current) -> String {
         var lines: [String] = []
 
         lines.append("Health intelligence for \(Self.formatDate(date, calendar: calendar)):")
+        lines.append("Health context status: \(healthContextStatus.rawValue).")
+        lines.append(availableSignalsLine)
+        lines.append(missingSignalsLine)
+        lines.append(lastHealthSyncLine(calendar: calendar))
+        lines.append("Instruction: \(healthContextInstruction)")
         lines.append(recoveryLine)
         lines.append(workoutLine)
         lines.append(activityLine)
         lines.append("Training load: \(trainingLoadStatus).")
         lines.append(nutritionLine)
         lines.append(nextActionLine)
-        lines.append(missingSignalsLine)
         lines.append("Data confidence: \(healthDataConfidenceLabel).")
 
         return lines.joined(separator: "\n")
@@ -47,7 +55,32 @@ struct CoachHealthIntelligenceContext: Equatable, Sendable, Codable {
 
     // MARK: - Prompt lines
 
+    private var availableSignalsLine: String {
+        if availableSignals.isEmpty {
+            return "Available signals: none."
+        }
+        return "Available signals: \(availableSignals.joined(separator: ", "))."
+    }
+
+    private var missingSignalsLine: String {
+        if missingSignals.isEmpty {
+            return "Missing signals: none reported."
+        }
+        return "Missing signals: \(missingSignals.joined(separator: ", "))."
+    }
+
+    private func lastHealthSyncLine(calendar: Calendar) -> String {
+        guard let lastHealthSyncAt else {
+            return "Last health sync: unavailable."
+        }
+        return "Last health sync: \(Self.formatTimestamp(lastHealthSyncAt, calendar: calendar))."
+    }
+
     private var recoveryLine: String {
+        guard hasRecoverySignal else {
+            return "Recovery data: unavailable."
+        }
+
         var parts = ["Recovery: \(recoveryStatus) (\(recoveryConfidence) confidence)."]
 
         if let scoreLine = recoveryScoreLine {
@@ -68,8 +101,12 @@ struct CoachHealthIntelligenceContext: Equatable, Sendable, Codable {
     }
 
     private var workoutLine: String {
+        guard hasWorkoutSignal else {
+            return "Workout data: unavailable."
+        }
+
         guard workoutCompletedToday else {
-            return "Workout: none logged today."
+            return "Workout data: no synced workout today."
         }
 
         var parts = ["Workout: completed"]
@@ -86,9 +123,14 @@ struct CoachHealthIntelligenceContext: Equatable, Sendable, Codable {
     }
 
     private var activityLine: String {
-        guard let stepsToday else {
-            return "Activity: unavailable."
+        guard hasStepsSignal else {
+            return "Steps data: unavailable."
         }
+
+        guard let stepsToday else {
+            return "Steps data: unavailable."
+        }
+
         return "Activity: \(stepsToday.formatted()) steps."
     }
 
@@ -124,11 +166,21 @@ struct CoachHealthIntelligenceContext: Equatable, Sendable, Codable {
         return "Next best action: \(nextBestActionTitle)."
     }
 
-    private var missingSignalsLine: String {
-        if missingSignals.isEmpty {
-            return "Missing signals: none reported."
-        }
-        return "Missing signals: \(missingSignals.joined(separator: ", "))."
+    private var hasRecoverySignal: Bool {
+        healthContextStatus != .unavailable
+            && (availableSignals.contains("sleep")
+                || availableSignals.contains("HRV")
+                || availableSignals.contains("resting heart rate")
+                || availableSignals.contains("recovery baseline")
+                || recoveryStatus != RecoveryStatus.unknown.rawValue)
+    }
+
+    private var hasWorkoutSignal: Bool {
+        availableSignals.contains("workouts")
+    }
+
+    private var hasStepsSignal: Bool {
+        availableSignals.contains("steps")
     }
 
     // MARK: - Formatting
@@ -143,6 +195,13 @@ struct CoachHealthIntelligenceContext: Equatable, Sendable, Codable {
         return formatter.string(from: day)
     }
 
+    private static func formatTimestamp(_ date: Date, calendar: Calendar) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        formatter.timeZone = calendar.timeZone
+        return formatter.string(from: date)
+    }
+
     private static func humanizedReason(_ reason: String) -> String {
         reason
             .replacingOccurrences(of: "([a-z])([A-Z])", with: "$1 $2", options: .regularExpression)
@@ -152,18 +211,36 @@ struct CoachHealthIntelligenceContext: Equatable, Sendable, Codable {
 
 extension CoachHealthIntelligenceContext {
 
-    static func unavailable(for date: Date = Date()) -> CoachHealthIntelligenceContext {
-        CoachHealthIntelligenceContextBuilder.build(
-            from: HealthIntelligenceSnapshot(
-                date: date,
-                recovery: .unknown,
-                workout: nil,
-                activity: .empty,
-                nutritionAdjustment: .none,
-                weeklyReview: nil,
-                planConfidence: .unknown,
-                nextBestAction: .none
-            )
+    static func unavailable(
+        for date: Date = Date(),
+        lastHealthSyncAt: Date? = nil,
+        status: CoachHealthContextStatus = .unavailable,
+        missingSignals: [String] = ["health data"]
+    ) -> CoachHealthIntelligenceContext {
+        CoachHealthIntelligenceContext(
+            date: date,
+            healthContextStatus: status,
+            availableSignals: [],
+            missingSignals: missingSignals,
+            lastHealthSyncAt: lastHealthSyncAt,
+            healthContextInstruction: CoachHealthContextInstruction.doNotAssumeMissingData,
+            recoveryStatus: RecoveryStatus.unknown.rawValue,
+            recoveryScore: nil,
+            recoveryConfidence: "limited",
+            recoveryExplanation: "Recovery data is unavailable.",
+            workoutCompletedToday: false,
+            workoutSummaryText: nil,
+            workoutDemand: nil,
+            totalWorkoutMinutesToday: 0,
+            totalActiveCaloriesToday: nil,
+            stepsToday: nil,
+            adaptiveNutritionAdvice: nil,
+            proteinRecommendation: nil,
+            hydrationRecommendationMl: nil,
+            trainingLoadStatus: "unknown",
+            nextBestActionTitle: nil,
+            nextBestActionReason: nil,
+            healthDataConfidenceLabel: FormaProductCopy.HealthIntelligence.limitedEstimateLabel
         )
     }
 }

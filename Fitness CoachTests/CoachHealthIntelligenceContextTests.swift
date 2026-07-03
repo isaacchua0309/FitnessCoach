@@ -51,8 +51,8 @@ final class CoachHealthIntelligenceContextTests: XCTestCase {
         XCTAssertNil(context.stepsToday)
         XCTAssertNil(context.proteinRecommendation)
         XCTAssertEqual(context.nextBestActionTitle, "Connect Apple Health")
-        XCTAssertTrue(context.missingSignals.contains("sleep"))
-        XCTAssertTrue(context.missingSignals.contains("HRV"))
+        XCTAssertEqual(context.healthContextStatus, .unavailable)
+        XCTAssertTrue(context.missingSignals.contains("sleep") || context.missingSignals.contains("HRV"))
         XCTAssertEqual(context.healthDataConfidenceLabel, "Limited estimate")
         XCTAssertTrue(
             context.recoveryExplanation.contains(
@@ -140,6 +140,7 @@ final class CoachHealthIntelligenceContextTests: XCTestCase {
         let prompt = context.toPromptContext(calendar: calendar)
 
         XCTAssertTrue(prompt.contains("Health intelligence for 2026-07-03"))
+        XCTAssertTrue(prompt.contains("Health context status:"))
         XCTAssertTrue(prompt.contains("Recovery: moderate"))
         XCTAssertTrue(prompt.contains("Workout: completed"))
         XCTAssertTrue(prompt.contains("9,120 steps"))

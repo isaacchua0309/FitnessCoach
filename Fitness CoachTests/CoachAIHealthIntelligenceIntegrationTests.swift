@@ -72,7 +72,8 @@ final class CoachAIHealthIntelligenceIntegrationTests: XCTestCase {
         XCTAssertEqual(snapshotProvider.loadCallCount, 1)
         XCTAssertTrue(activity.hasWorkoutToday)
         XCTAssertEqual(activity.workoutsToday, 1)
-        XCTAssertNil(activity.healthIntelligence)
+        XCTAssertNotNil(activity.healthIntelligence)
+        XCTAssertEqual(activity.healthIntelligence?.healthContextStatus, .unavailable)
         XCTAssertFalse(activity.healthIntelligenceAwarenessAvailable)
     }
 
@@ -96,7 +97,8 @@ final class CoachAIHealthIntelligenceIntegrationTests: XCTestCase {
 
         XCTAssertEqual(snapshotProvider.loadCallCount, 0)
         XCTAssertFalse(activity.hasWorkoutToday)
-        XCTAssertNil(activity.healthIntelligence)
+        XCTAssertNotNil(activity.healthIntelligence)
+        XCTAssertFalse(activity.healthIntelligenceAwarenessAvailable)
     }
 
     func testConnectHealthSnapshotDoesNotClaimHealthAwareness() async {
@@ -131,7 +133,8 @@ final class CoachAIHealthIntelligenceIntegrationTests: XCTestCase {
         )
 
         XCTAssertFalse(activity.healthIntelligenceAwarenessAvailable)
-        XCTAssertNil(activity.healthIntelligence)
+        XCTAssertNotNil(activity.healthIntelligence)
+        XCTAssertEqual(activity.healthIntelligence?.healthContextStatus, .unavailable)
     }
 
     func testCoachContextBuilderIncludesHealthIntelligenceInAIContext() throws {

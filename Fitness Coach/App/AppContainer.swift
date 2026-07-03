@@ -443,6 +443,20 @@ final class AppContainer {
             dailyLogReader: dailyLogService,
             healthActivityQuery: healthActivityQueryService,
             healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
+            healthDataRepository: healthDataRepository,
+            healthIntelligenceLoadEnabled: { HealthIntelligenceFeatureFlags.shouldCoachLoadHealthIntelligence },
+            healthSyncPhaseProvider: { [weak self] in
+                self?.healthSyncStateStore.state.phase
+            },
+            lastSuccessfulLocalSyncAtProvider: { [weak self] in
+                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
+            },
+            remoteSyncConsentDecisionProvider: { [weak self] in
+                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
+            },
+            isRemoteSyncCapabilityEnabled: {
+                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
+            },
             weightLogReader: weightLogService,
             aiService: aiService,
             userProfileReader: userProfileService,

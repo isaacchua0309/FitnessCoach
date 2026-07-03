@@ -84,8 +84,9 @@ enum TodayHealthIntelligencePresentationBuilder {
         presentationContext: HealthIntelligencePresentationContext
     ) -> TodayHealthIntelligenceSectionState {
         let staleLabel = staleDataLabel(for: uiState)
+        let recoveryForCards = uiState.kind == .healthKitUnavailable ? RecoverySummary.unknown : snapshot.recovery
         let recoveryCard = recoveryCard(
-            from: snapshot.recovery,
+            from: recoveryForCards,
             uiState: uiState,
             staleDataLabel: staleLabel
         )
@@ -94,7 +95,7 @@ enum TodayHealthIntelligencePresentationBuilder {
             nutritionProgress: nutritionProgress
         )
         let dailyMission = dailyMission(
-            recovery: snapshot.recovery,
+            recovery: recoveryForCards,
             workout: snapshot.workout,
             nutritionProgress: nutritionProgress,
             nutritionAdjustment: snapshot.nutritionAdjustment,
