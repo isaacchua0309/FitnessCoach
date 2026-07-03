@@ -14,13 +14,14 @@ struct PlanEditWizard: View {
     let baselineProfile: UserProfile
     var initialStep: PlanEditWizardStep = .goalAndTargetWeight
     let errorMessage: String?
-    let onSave: (PlanFormState) async -> Void
+    let onSave: (PlanFormState) async throws -> Void
     let onCancel: () -> Void
     let onPrepareTargets: (PlanFormState) async throws -> CalorieTargetResult
 
     @State private var stepIndex = 0
     @State private var goalType: PlanGoalType = .loseFat
     @State private var isSaving = false
+    @State private var saveSuccessState: PlanEditSaveSuccessState?
     @State private var isGeneratingTargets = false
     @State private var showExpertAdjustments = false
     @State private var targetPreview: CalorieTargetResult?
@@ -38,7 +39,30 @@ struct PlanEditWizard: View {
 
     var body: some View {
         NavigationStack {
-            PlanEditShell(
+            Group {
+                if let saveSuccessState {
+                    PlanEditSaveSuccessView(state: saveSuccessState)
+                } else {
+                    wizardContent
+                }
+            }
+            .onAppear {
+                goalType = PlanStateBuilder.goalType(for: formState.asProfileSnapshot())
+                if let index = PlanEditWizardFlow.index(of: initialStep, formState: formState) {
+                    stepIndex = index
+                } else {
+                    stepIndex = 0
+                }
+                formState.applyTrainingRhythmDefaultsForCurrentActivity()
+            }
+            .onChange(of: formState.birthDate) { _, _ in
+                formState.syncAgeTextFromBirthDate()
+            }
+        }
+    }
+
+    private var wizardContent: some View {
+        PlanEditShell(
                 title: FormaProductCopy.PlanEditHero.shellTitle,
                 stepCount: flow.count,
                 currentStepIndex: stepIndex,
@@ -66,19 +90,6 @@ struct PlanEditWizard: View {
                 }
                 .scrollContentBackground(.hidden)
                 .environment(\.planProjection, projection)
-            }
-            .onAppear {
-                goalType = PlanStateBuilder.goalType(for: formState.asProfileSnapshot())
-                if let index = PlanEditWizardFlow.index(of: initialStep, formState: formState) {
-                    stepIndex = index
-                } else {
-                    stepIndex = 0
-                }
-                formState.applyTrainingRhythmDefaultsForCurrentActivity()
-            }
-            .onChange(of: formState.birthDate) { _, _ in
-                formState.syncAgeTextFromBirthDate()
-            }
         }
     }
 
@@ -139,7 +150,7 @@ struct PlanEditWizard: View {
     private var isConfirmationEnabled: Bool {
         switch currentStep {
         case .confirmTargets:
-            return targetPreview != nil && !isSaving
+            return targetPreview != nil && !isSaving && saveSuccessState == nil
         case .reviewChanges:
             return canAdvanceFromCurrentStep
         default:
@@ -474,11 +485,20 @@ struct PlanEditWizard: View {
     }
 
     private func save() {
-        guard !isSaving else { return }
+        guard !isSaving, saveSuccessState == nil else { return }
         isSaving = true
         Task {
-            await onSave(formState)
-            isSaving = false
+            do {
+                try await onSave(formState)
+                let success = PlanEditSaveSuccessBuilder.build(projection: projection)
+                saveSuccessState = success
+                isSaving = false
+                try? await Task.sleep(nanoseconds: PlanEditSaveSuccessBuilder.displayDurationNanoseconds)
+                onCancel()
+                dismiss()
+            } catch {
+                isSaving = false
+            }
         }
     }
 

@@ -216,7 +216,7 @@ final class PlanAnalyticsEventTests: XCTestCase {
             return XCTFail("Expected edit form state")
         }
 
-        await model.savePlanFromWizard(formState)
+        try await model.savePlanFromWizard(formState)
 
         XCTAssertTrue(analytics.events.contains { $0.event == .editSaved })
         XCTAssertNil(analytics.events.first { $0.event == .editSaved }?.properties.entryPoint)

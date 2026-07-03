@@ -2432,6 +2432,24 @@ enum FormaProductCopy {
         }
     }
 
+    // MARK: - Plan Edit Save
+
+    enum PlanEditSave {
+        static let planUpdatedTitle = "Plan updated"
+        static let todayTargetsRegenerated = "Today's targets have been regenerated."
+
+        static let onTrackMaintaining =
+            "You're on track for maintaining your target weight."
+
+        static func onTrackForGoal(_ goal: String, by estimatedDate: String) -> String {
+            "You're on track for \(goal) by \(estimatedDate)."
+        }
+
+        static func onTrackForGoalOnly(_ goal: String) -> String {
+            "You're on track for \(goal)."
+        }
+    }
+
     // MARK: - Plan Edit Hero
 
     enum PlanEditHero {

@@ -100,7 +100,7 @@ struct PlanView: View {
                             initialStep: model.editPlanInitialStep,
                             errorMessage: model.formErrorMessage,
                             onSave: { state in
-                                await model.savePlanFromWizard(state)
+                                try await model.savePlanFromWizard(state)
                             },
                             onCancel: {
                                 model.dismissEditPlan()

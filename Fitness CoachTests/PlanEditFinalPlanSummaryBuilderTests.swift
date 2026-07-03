@@ -57,11 +57,9 @@ final class PlanEditFinalPlanSummaryBuilderTests: XCTestCase {
         XCTAssertTrue(summary.inputChanges.first?.summary.contains("now") == true)
     }
 
-    func testTodayChangesDetectTargetDifferences() {
+    func testTodayChangesNoteWhenTargetsMatchBaseline() {
         let baseline = PlanMissionControlFixtures.loseProfile
-        var formState = PlanFormState(profile: baseline)
-        formState.selectActivityLevel(.veryActive)
-
+        let formState = PlanFormState(profile: baseline)
         let projection = PlanProjectionBuilder.build(formState: formState, goalType: .loseFat)
         let review = PlanEditReviewBuilder.build(baseline: baseline, formState: formState)
 
@@ -73,10 +71,10 @@ final class PlanEditFinalPlanSummaryBuilderTests: XCTestCase {
             review: review
         )
 
-        XCTAssertTrue(summary.hasTodayChanges || !summary.todayChanges.isEmpty)
+        XCTAssertFalse(summary.todayChanges.isEmpty)
         XCTAssertEqual(
             summary.todayNote,
-            FormaProductCopy.PlanEditReview.todayChangesNote
+            FormaProductCopy.PlanEditReview.todayNoChangeNote
         )
     }
 }
