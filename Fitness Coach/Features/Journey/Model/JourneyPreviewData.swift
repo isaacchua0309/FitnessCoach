@@ -23,6 +23,8 @@ enum JourneyPreviewData {
         case healthDisconnected
         case healthConnected
         case sparseData
+        case foodLogsOnly
+        case weightLogsNoLoss
     }
 
     static let today = TrainingInsightsPreviewData.referenceNow
@@ -47,6 +49,8 @@ enum JourneyPreviewData {
     static let healthDisconnected = dashboard(.healthDisconnected)
     static let healthConnected = dashboard(.healthConnected)
     static let sparseData = dashboard(.sparseData)
+    static let foodLogsOnly = dashboard(.foodLogsOnly)
+    static let weightLogsNoLoss = dashboard(.weightLogsNoLoss)
 
     static var monthlyRecapActive: JourneyMonthlyRecapState {
         strongMomentum.monthlyRecap
@@ -76,6 +80,10 @@ enum JourneyPreviewData {
             return makeHealthConnectedDashboard()
         case .sparseData:
             return makeSparseDataDashboard()
+        case .foodLogsOnly:
+            return makeFoodLogsOnlyDashboard()
+        case .weightLogsNoLoss:
+            return makeWeightLogsNoLossDashboard()
         }
     }
 
@@ -654,6 +662,181 @@ enum JourneyPreviewData {
 
     private static func makeHealthConnectedDashboard() -> JourneyDashboardState {
         makeStrongMomentumDashboard()
+    }
+
+    private static func makeFoodLogsOnlyDashboard() -> JourneyDashboardState {
+        let direction: JourneyGoalDirection = .lose
+        let profile = makeProfile(
+            name: "Alex",
+            currentWeight: 82,
+            goalWeight: 74,
+            createdDaysAgo: 5,
+            trainingFrequencyPerWeek: 4
+        )
+        let baseline = makeBaseline(
+            startWeight: 82,
+            currentWeight: 82,
+            goalWeight: 74,
+            direction: direction,
+            progressPercent: 0,
+            daysOnJourney: 5,
+            hasRealWeightEntries: false,
+            usesSyntheticBaseline: true,
+            chartPoints: syntheticChartPoints(startKg: 82)
+        )
+        let streaks = makeStreaks(
+            currentLogging: 3,
+            longestLogging: 3,
+            proteinStreak: 1,
+            waterStreak: 1,
+            trainingWeeks: nil,
+            isTodayLogged: true
+        )
+        let maturityLogs = makeLogs(
+            count: 5,
+            proteinGoalDays: 2,
+            waterGoalDays: 2,
+            calorieAdherenceDays: 5,
+            trainingWorkoutDays: 0
+        )
+        let weekLogs = makeLogs(
+            count: 5,
+            proteinGoalDays: 2,
+            waterGoalDays: 2,
+            calorieAdherenceDays: 5,
+            trainingWorkoutDays: 0
+        )
+
+        return JourneyPresentationBuilder.assembleFromLegacy(
+            hasProfile: true,
+            baseline: baseline,
+            streaks: streaks,
+            loggedDays: 5,
+            weeklyReview: makeWeeklyReview(
+                foodLoggedDays: 5,
+                proteinGoalDays: 2,
+                waterGoalDays: 2,
+                trainingDays: 0,
+                expectedTrainingDays: 4,
+                training: .hidden,
+                weightDeltaThisWeekKg: nil,
+                calorieAdherenceDays: 4,
+                goalDirection: direction,
+                streaks: streaks
+            ),
+            milestones: makeMilestones(
+                baseline: baseline,
+                foodLogDays: 5,
+                proteinGoalDays: 2,
+                waterGoalDays: 2,
+                trainingWorkoutDays: 0,
+                streaks: streaks
+            ),
+            storyTimeline: makeStoryTimeline(
+                profile: profile,
+                baseline: baseline,
+                foodLogDays: 5,
+                proteinGoalDays: 2,
+                waterGoalDays: 2,
+                trainingWorkoutDays: 0,
+                streaks: streaks,
+                healthConnected: false
+            ),
+            profile: profile,
+            maturityLogs: maturityLogs,
+            monthLogs: maturityLogs,
+            weekLogs: weekLogs,
+            allWeights: [],
+            weightTrendDirection: .insufficientData,
+            calendar: calendar,
+            asOf: today
+        )
+    }
+
+    private static func makeWeightLogsNoLossDashboard() -> JourneyDashboardState {
+        let direction: JourneyGoalDirection = .lose
+        let profile = makeProfile(
+            name: "Alex",
+            currentWeight: 88.0,
+            goalWeight: 75,
+            createdDaysAgo: 20,
+            trainingFrequencyPerWeek: 4
+        )
+        let chartPoints = flatWeightPoints(kg: 88.0, count: 8)
+        let baseline = makeBaseline(
+            startWeight: 88,
+            currentWeight: 88.0,
+            goalWeight: 75,
+            direction: direction,
+            progressPercent: 0,
+            daysOnJourney: 20,
+            hasRealWeightEntries: true,
+            usesSyntheticBaseline: false,
+            chartPoints: chartPoints
+        )
+        let streaks = makeStreaks(
+            currentLogging: 2,
+            longestLogging: 4,
+            proteinStreak: 1,
+            waterStreak: 0,
+            trainingWeeks: nil,
+            isTodayLogged: false
+        )
+        let maturityLogs = makeLogs(
+            count: 4,
+            proteinGoalDays: 2,
+            waterGoalDays: 1,
+            calorieAdherenceDays: 4,
+            trainingWorkoutDays: 0
+        )
+        let weights = weightEntriesFromChart(chartPoints)
+
+        return JourneyPresentationBuilder.assembleFromLegacy(
+            hasProfile: true,
+            baseline: baseline,
+            streaks: streaks,
+            loggedDays: 4,
+            weeklyReview: makeWeeklyReview(
+                foodLoggedDays: 3,
+                proteinGoalDays: 2,
+                waterGoalDays: 1,
+                trainingDays: 0,
+                expectedTrainingDays: 4,
+                training: .hidden,
+                weightDeltaThisWeekKg: 0.0,
+                calorieAdherenceDays: 3,
+                goalDirection: direction,
+                streaks: streaks
+            ),
+            milestones: makeMilestones(
+                baseline: baseline,
+                foodLogDays: 4,
+                proteinGoalDays: 2,
+                waterGoalDays: 1,
+                trainingWorkoutDays: 0,
+                streaks: streaks
+            ),
+            storyTimeline: makeStoryTimeline(
+                profile: profile,
+                baseline: baseline,
+                foodLogDays: 4,
+                proteinGoalDays: 2,
+                waterGoalDays: 1,
+                trainingWorkoutDays: 0,
+                streaks: streaks,
+                healthConnected: false,
+                weightEntries: weights
+            ),
+            profile: profile,
+            maturityLogs: maturityLogs,
+            monthLogs: maturityLogs,
+            weekLogs: Array(maturityLogs.prefix(3)),
+            allWeights: weights,
+            weekWeights: weights,
+            weightTrendDirection: .stable,
+            calendar: calendar,
+            asOf: today
+        )
     }
 
     private static func makeSparseDataDashboard() -> JourneyDashboardState {
