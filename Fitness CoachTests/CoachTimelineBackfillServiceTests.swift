@@ -141,6 +141,20 @@ final class CoachTimelineBackfillServiceTests: XCTestCase {
         XCTAssertTrue(timelineStore.events.filter { $0.type == .stepsUpdated }.isEmpty)
     }
 
+    func testStepsBackfillCreatesStepsUpdatedEvent() async throws {
+        healthQuery.stepsByDay[harness.dateProvider.startOfDay(for: harness.today)] = 4_500
+
+        await service.runBackfill()
+
+        let stepsEvents = timelineStore.events.filter { $0.type == .stepsUpdated }
+        XCTAssertEqual(stepsEvents.count, 1)
+        XCTAssertEqual(stepsEvents[0].sourceAttribution, .systemBackfill)
+        guard case .steps(let payload) = stepsEvents[0].payload else {
+            return XCTFail("Expected steps payload")
+        }
+        XCTAssertEqual(payload.steps, 4_500)
+    }
+
     // MARK: HealthKit denied
 
     func testHealthKitDeniedDoesNotCrashAndSkipsHealthEvents() async throws {

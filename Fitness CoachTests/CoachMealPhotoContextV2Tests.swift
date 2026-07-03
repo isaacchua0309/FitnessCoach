@@ -193,6 +193,30 @@ final class CoachMealPhotoContextV2Tests: XCTestCase {
         XCTAssertNotNil(foodLogged.linkedEntryId)
     }
 
+    func testPhotoClarificationRecordsTimelineEvents() async throws {
+        let fitness = try FitnessActionCenterTestSupport.makeHarness(referenceNow: harness.today)
+        try fitness.seedProfile()
+        let aiService = ClarifyingPhotoContextAIService()
+        let recorder = DefaultCoachTimelineRecorder(store: timelineStore)
+        let model = makePhotoCoachModel(
+            fitness: fitness,
+            aiService: aiService,
+            timelineRecorder: recorder
+        )
+
+        await model.handleMealPhotoSelection(.success(makeTestJPEGData()), source: .library)
+        await model.sendCurrentMessage()
+
+        let asked = try await waitForEvent { $0.type == .clarificationAsked }
+        XCTAssertNotNil(asked.linkedPhotoSessionId)
+
+        await model.send("It was barley, not quinoa.")
+
+        let answered = try await waitForEvent { $0.type == .clarificationAnswered }
+        XCTAssertEqual(answered.linkedPhotoSessionId, asked.linkedPhotoSessionId)
+        XCTAssertEqual(aiService.receivedClarifications.last??, "It was barley, not quinoa.")
+    }
+
     // MARK: Helpers
 
     private func makeContextBuilder() -> CoachContextPacketV2Builder {
@@ -279,6 +303,104 @@ final class CoachMealPhotoContextV2Tests: XCTestCase {
 }
 
 // MARK: - Test doubles
+
+@MainActor
+private final class ClarifyingPhotoContextAIService: AIServiceProtocol, @unchecked Sendable {
+    private(set) var receivedClarifications: [String?] = []
+
+    func classifyCoachIntent(
+        _ text: String,
+        context: CoachContextPacketV2,
+        config: CoachModelConfig
+    ) async throws -> CoachIntentResult {
+        CoachMealPhotoPipeline.photoAnalysisIntentResult
+    }
+
+    func estimateFood(
+        prompt: String,
+        context: CoachContextPacketV2,
+        imageJPEGData: Data?
+    ) async throws -> AIFoodEstimateResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
+        receivedClarifications.append(request.clarification)
+        let isClarification = request.clarification?.isEmpty == false
+        return AIMealImageAnalysisResponse(
+            summary: isClarification ? "Barley bowl" : "Grain bowl",
+            items: [
+                AIMealImageAnalysisItem(
+                    name: isClarification ? "Barley bowl" : "Grain bowl",
+                    quantity: "1 bowl",
+                    calories: 420,
+                    protein: 28,
+                    carbs: 35,
+                    fat: 14,
+                    confidence: isClarification ? .medium : .low,
+                    assumptions: []
+                )
+            ],
+            total: AIMealImageAnalysisTotals(calories: 420, protein: 28, carbs: 35, fat: 14),
+            needsUserReview: true,
+            clarifyingQuestion: isClarification ? nil : "Was this rice or barley?"
+        )
+    }
+
+    func generateMealAdvice(
+        prompt: String,
+        context: CoachContextPacketV2,
+        intentResult: CoachIntentResult?,
+        tier: CoachModelTier
+    ) async throws -> AICoachResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateNutritionEstimate(
+        prompt: String,
+        context: CoachContextPacketV2,
+        intentResult: CoachIntentResult?,
+        tier: CoachModelTier
+    ) async throws -> NutritionEstimateResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateNutritionComparison(
+        prompt: String,
+        context: CoachContextPacketV2,
+        intentResult: CoachIntentResult?,
+        tier: CoachModelTier
+    ) async throws -> NutritionComparisonResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateDailyReviewText(
+        input: DailyReviewAIInput,
+        context: CoachContextPacketV2
+    ) async throws -> AICoachResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
+        throw AIServiceError.backendUnavailable
+    }
+}
 
 @MainActor
 private final class PhotoContextCapturingAIService: AIServiceProtocol, @unchecked Sendable {
