@@ -2,78 +2,130 @@
 //  TodayAnalyticsContextBuilder.swift
 //  Fitness Coach
 //
-//  Forma — Safe Today analytics snapshots and progress buckets (no PII).
+//  Forma — Safe Today analytics snapshots and status buckets (no PII).
 //
 
 import Foundation
 
 struct TodayAnalyticsSnapshot: Equatable, Sendable {
-    var hasMeals: Bool
-    var calorieProgressBucket: String
-    var proteinProgressBucket: String
+    var dayStage: String
+    var nextActionType: String?
+    var hasMealLogged: Bool
+    var proteinStatus: String
+    var waterStatus: String
+    var calorieStatus: String
+    var workoutStatus: String
     var healthConnected: Bool
-    var nextActionReason: String?
 
     static let empty = TodayAnalyticsSnapshot(
-        hasMeals: false,
-        calorieProgressBucket: TodayAnalyticsProgressBucket.none.rawValue,
-        proteinProgressBucket: TodayAnalyticsProgressBucket.none.rawValue,
-        healthConnected: false,
-        nextActionReason: nil
+        dayStage: TodayAnalyticsDayStage.morning.rawValue,
+        nextActionType: nil,
+        hasMealLogged: false,
+        proteinStatus: TodayAnalyticsNutrientStatus.behind.rawValue,
+        waterStatus: TodayAnalyticsNutrientStatus.behind.rawValue,
+        calorieStatus: TodayAnalyticsCalorieStatus.under.rawValue,
+        workoutStatus: TodayAnalyticsWorkoutStatus.none.rawValue,
+        healthConnected: false
     )
 }
 
-enum TodayAnalyticsProgressBucket: String, Sendable {
-    case none
-    case low
-    case mid
+enum TodayAnalyticsDayStage: String, Sendable {
+    case morning
+    case afternoon
+    case evening
+    case night
+}
+
+enum TodayAnalyticsNutrientStatus: String, Sendable {
+    case behind
     case onTrack = "on_track"
+    case hit
+}
+
+enum TodayAnalyticsCalorieStatus: String, Sendable {
+    case under
+    case near
+    case hit
     case over
+}
+
+enum TodayAnalyticsWorkoutStatus: String, Sendable {
+    case none
+    case planned
+    case completed
 }
 
 enum TodayAnalyticsContextBuilder {
 
     static func snapshot(
         from state: TodayDashboardState,
-        healthConnected: Bool
+        healthConnected: Bool,
+        calendar: Calendar = .current
     ) -> TodayAnalyticsSnapshot {
         TodayAnalyticsSnapshot(
-            hasMeals: !state.meals.isEmpty,
-            calorieProgressBucket: calorieBucket(from: state.mission.calorieSummary),
-            proteinProgressBucket: proteinBucket(from: state.macroHydration.macroSummary.protein),
-            healthConnected: healthConnected,
-            nextActionReason: TodayNextActionFormatting.analyticsReason(state.nextBestAction.reason)
+            dayStage: dayStage(for: state.date, calendar: calendar).rawValue,
+            nextActionType: TodayNextActionFormatting.analyticsReason(state.nextBestAction.reason),
+            hasMealLogged: !state.meals.isEmpty,
+            proteinStatus: proteinStatus(from: state.macroHydration.macroSummary.protein).rawValue,
+            waterStatus: waterStatus(from: state.macroHydration.waterSummary).rawValue,
+            calorieStatus: calorieStatus(from: state.mission.calorieSummary).rawValue,
+            workoutStatus: workoutStatus(from: state.activity).rawValue,
+            healthConnected: healthConnected
         )
     }
 
-    static func calorieBucket(from summary: CalorieSummary) -> String {
-        guard summary.consumed > 0 else {
-            return TodayAnalyticsProgressBucket.none.rawValue
+    static func dayStage(
+        for date: Date,
+        calendar: Calendar = .current
+    ) -> TodayAnalyticsDayStage {
+        let hour = calendar.component(.hour, from: date)
+        switch hour {
+        case 5..<12:
+            return .morning
+        case 12..<17:
+            return .afternoon
+        case 17..<21:
+            return .evening
+        default:
+            return .night
         }
-        if summary.isOverTarget {
-            return TodayAnalyticsProgressBucket.over.rawValue
-        }
-        return progressBucket(for: summary.progress).rawValue
     }
 
-    static func proteinBucket(from protein: MacroProgress) -> String {
-        guard protein.consumed > 0 else {
-            return TodayAnalyticsProgressBucket.none.rawValue
-        }
-        return progressBucket(for: protein.progress).rawValue
+    static func proteinStatus(from protein: MacroProgress) -> TodayAnalyticsNutrientStatus {
+        nutrientStatus(
+            consumed: protein.consumed,
+            progress: protein.progress,
+            onTrackThreshold: TodayFocusBuilder.proteinOnTrackThreshold
+        )
     }
 
-    static func progressBucket(for progress: Double) -> TodayAnalyticsProgressBucket {
-        if progress >= 1.0 {
-            return .over
+    static func waterStatus(from water: WaterSummary) -> TodayAnalyticsNutrientStatus {
+        guard water.consumedMl > 0 else { return .behind }
+        if water.progress >= 1.0 || water.consumedMl >= water.targetMl {
+            return .hit
         }
-        if progress >= 0.9 {
+        if water.progress >= TodayFocusBuilder.waterOnTrackThreshold {
             return .onTrack
         }
-        if progress >= 0.5 {
-            return .mid
+        return .behind
+    }
+
+    static func calorieStatus(from summary: CalorieSummary) -> TodayAnalyticsCalorieStatus {
+        guard summary.consumed > 0 else { return .under }
+        if summary.isOverTarget { return .over }
+        if TodayPresentationBuilder.isCalorieTargetMet(summary) { return .hit }
+        if TodayMissionHeroFormatter.isNearTarget(summary) { return .near }
+        return .under
+    }
+
+    static func workoutStatus(from activity: TodayActivityState) -> TodayAnalyticsWorkoutStatus {
+        if activity.hasWorkout {
+            return .completed
         }
-        return .low
+        if TodayActivitySectionFormatting.workoutStatus(for: activity) == .planned {
+            return .planned
+        }
+        return .none
     }
 
     static func mealTypeAction(_ mealType: MealType?) -> String {
@@ -93,5 +145,16 @@ enum TodayAnalyticsContextBuilder {
         case 400..<700: return "medium"
         default: return "large"
         }
+    }
+
+    private static func nutrientStatus(
+        consumed: Double,
+        progress: Double,
+        onTrackThreshold: Double
+    ) -> TodayAnalyticsNutrientStatus {
+        guard consumed > 0 else { return .behind }
+        if progress >= 1.0 { return .hit }
+        if progress >= onTrackThreshold { return .onTrack }
+        return .behind
     }
 }

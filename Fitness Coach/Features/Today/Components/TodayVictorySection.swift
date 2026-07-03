@@ -9,6 +9,7 @@ import SwiftUI
 
 struct TodayVictorySection: View {
     let victory: TodayVictoryState
+    var onViewed: (() -> Void)?
 
     var body: some View {
         if victory.isVisible {
@@ -38,6 +39,9 @@ struct TodayVictorySection: View {
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel(victory.message)
+            .onAppear {
+                onViewed?()
+            }
         }
     }
 }

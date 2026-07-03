@@ -10,6 +10,7 @@ import SwiftUI
 struct TodaySmartCoachBanner: View {
     let smartCoach: TodaySmartCoachState
     let onOpenCoach: (String?) -> Void
+    var onViewed: (() -> Void)?
 
     var body: some View {
         if smartCoach.isVisible {
@@ -33,6 +34,9 @@ struct TodaySmartCoachBanner: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel(smartCoach.accessibilityLabel)
+            .onAppear {
+                onViewed?()
+            }
         }
     }
 }

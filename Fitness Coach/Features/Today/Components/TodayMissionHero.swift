@@ -10,6 +10,7 @@ import SwiftUI
 struct TodayMissionHero: View {
     let mission: TodayMissionState
     let onLogMeal: () -> Void
+    var onViewed: (() -> Void)?
 
     @ScaledMetric(relativeTo: .largeTitle) private var heroValueSize: CGFloat = 52
 
@@ -29,6 +30,9 @@ struct TodayMissionHero: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .onAppear {
+            onViewed?()
+        }
     }
 
     private var metricsBlock: some View {

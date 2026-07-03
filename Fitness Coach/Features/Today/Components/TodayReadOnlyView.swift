@@ -107,7 +107,11 @@ struct TodayReadOnlyView: View {
             TodayMissionHero(
                 mission: state.mission,
                 onLogMeal: {
+                    actionCoordinator.logPrimaryCTATapped()
                     actionCoordinator.performQuickAction(.manualEntry)
+                },
+                onViewed: {
+                    actionCoordinator.logMissionViewed()
                 }
             )
 
@@ -135,18 +139,29 @@ struct TodayReadOnlyView: View {
 
     private var reinforcementBlock: some View {
         VStack(alignment: .leading, spacing: TodayLayout.reinforcementSpacing) {
-            TodayVictorySection(victory: state.victory)
+            TodayVictorySection(
+                victory: state.victory,
+                onViewed: {
+                    actionCoordinator.logDailyVictoryViewed()
+                }
+            )
 
             TodaySmartCoachBanner(
                 smartCoach: state.smartCoach,
                 onOpenCoach: { prefill in
                     actionCoordinator.onOpenCoach?(prefill)
+                },
+                onViewed: {
+                    actionCoordinator.logSmartCoachViewed()
                 }
             )
 
             TodayEndOfDayWrapUpSection(
                 wrapUp: state.endOfDay,
-                onOpenJourney: onOpenJourney
+                onOpenJourney: onOpenJourney,
+                onViewed: {
+                    actionCoordinator.logEndOfDayWrapViewed()
+                }
             )
         }
     }

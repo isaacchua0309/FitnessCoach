@@ -10,6 +10,7 @@ import SwiftUI
 struct TodayEndOfDayWrapUpSection: View {
     let wrapUp: TodayEndOfDayState
     let onOpenJourney: () -> Void
+    var onViewed: (() -> Void)?
 
     var body: some View {
         if wrapUp.isVisible {
@@ -51,6 +52,9 @@ struct TodayEndOfDayWrapUpSection: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel(wrapUp.accessibilityLabel)
+            .onAppear {
+                onViewed?()
+            }
         }
     }
 

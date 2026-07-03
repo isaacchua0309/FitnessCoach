@@ -9,12 +9,17 @@ import Foundation
 
 enum TodayAnalyticsEvent: String, Sendable {
     case viewed = "today_viewed"
-    case nextActionViewed = "today_next_action_viewed"
-    case nextActionTapped = "today_next_action_tapped"
+    case missionViewed = "today_mission_viewed"
+    case primaryCTATapped = "today_primary_cta_tapped"
+    case nextBestActionViewed = "today_next_best_action_viewed"
+    case nextBestActionTapped = "today_next_best_action_tapped"
     case quickActionTapped = "today_quick_action_tapped"
-    case logMealStarted = "today_log_meal_started"
+    case mealAddTapped = "today_meal_add_tapped"
+    case mealEditTapped = "today_meal_edit_tapped"
+    case dailyVictoryViewed = "today_daily_victory_viewed"
+    case smartCoachViewed = "today_smart_coach_viewed"
+    case endOfDayWrapViewed = "today_end_of_day_wrap_viewed"
     case logMealSaved = "today_log_meal_saved"
-    case mealEditStarted = "today_meal_edit_started"
     case mealEditSaved = "today_meal_edit_saved"
     case mealDeleted = "today_meal_deleted"
     case waterAdded = "today_water_added"
@@ -24,12 +29,15 @@ enum TodayAnalyticsEvent: String, Sendable {
 }
 
 struct TodayAnalyticsProperties: Sendable {
-    var hasMeals: Bool?
-    var calorieProgressBucket: String?
-    var proteinProgressBucket: String?
+    var dayStage: String?
+    var nextActionType: String?
+    var hasMealLogged: Bool?
+    var proteinStatus: String?
+    var waterStatus: String?
+    var calorieStatus: String?
+    var workoutStatus: String?
     var healthConnected: Bool?
     var actionType: String?
-    var reason: String?
     var cta: String?
     var route: String?
     var action: String?
@@ -39,17 +47,20 @@ struct TodayAnalyticsProperties: Sendable {
 
     func asParameters() -> [String: String] {
         var parameters: [String: String] = [:]
-        if let hasMeals { parameters["hasMeals"] = hasMeals ? "true" : "false" }
-        if let calorieProgressBucket { parameters["calorieProgressBucket"] = calorieProgressBucket }
-        if let proteinProgressBucket { parameters["proteinProgressBucket"] = proteinProgressBucket }
-        if let healthConnected { parameters["healthConnected"] = healthConnected ? "true" : "false" }
-        if let actionType { parameters["actionType"] = actionType }
-        if let reason { parameters["reason"] = reason }
+        if let dayStage { parameters["day_stage"] = dayStage }
+        if let nextActionType { parameters["next_action_type"] = nextActionType }
+        if let hasMealLogged { parameters["has_meal_logged"] = hasMealLogged ? "true" : "false" }
+        if let proteinStatus { parameters["protein_status"] = proteinStatus }
+        if let waterStatus { parameters["water_status"] = waterStatus }
+        if let calorieStatus { parameters["calorie_status"] = calorieStatus }
+        if let workoutStatus { parameters["workout_status"] = workoutStatus }
+        if let healthConnected { parameters["health_connected"] = healthConnected ? "true" : "false" }
+        if let actionType { parameters["action_type"] = actionType }
         if let cta { parameters["cta"] = cta }
         if let route { parameters["route"] = route }
         if let action { parameters["action"] = action }
-        if let mealType { parameters["mealType"] = mealType }
-        if let waterAmountBucket { parameters["waterAmountBucket"] = waterAmountBucket }
+        if let mealType { parameters["meal_type"] = mealType }
+        if let waterAmountBucket { parameters["water_amount_bucket"] = waterAmountBucket }
         if let destination { parameters["destination"] = destination }
         return parameters
     }
@@ -64,7 +75,6 @@ extension TodayAnalyticsProperties {
     static func from(
         snapshot: TodayAnalyticsSnapshot,
         actionType: String? = nil,
-        reason: String? = nil,
         cta: String? = nil,
         route: String? = nil,
         action: String? = nil,
@@ -73,12 +83,15 @@ extension TodayAnalyticsProperties {
         destination: String? = nil
     ) -> TodayAnalyticsProperties {
         TodayAnalyticsProperties(
-            hasMeals: snapshot.hasMeals,
-            calorieProgressBucket: snapshot.calorieProgressBucket,
-            proteinProgressBucket: snapshot.proteinProgressBucket,
+            dayStage: snapshot.dayStage,
+            nextActionType: snapshot.nextActionType,
+            hasMealLogged: snapshot.hasMealLogged,
+            proteinStatus: snapshot.proteinStatus,
+            waterStatus: snapshot.waterStatus,
+            calorieStatus: snapshot.calorieStatus,
+            workoutStatus: snapshot.workoutStatus,
             healthConnected: snapshot.healthConnected,
             actionType: actionType,
-            reason: reason ?? snapshot.nextActionReason,
             cta: cta,
             route: route,
             action: action,
