@@ -2367,6 +2367,41 @@ enum FormaProductCopy {
         static let validationWeightOutOfRange = "Choose a weight between 35 and 200 kg."
     }
 
+    // MARK: - Plan Edit Activity
+
+    enum PlanEditActivity {
+        static let sectionTitle = "How active are you?"
+        static let targetPreviewTitle = "Live target preview"
+        static let maintenanceImpactLabel = "Est. maintenance"
+        static let trainingAssumptionLabel = "Training assumption"
+        static let expertTitle = "Fine-tune assumptions"
+        static let expertSubtitle = "Body fat, training days, macro preferences"
+
+        static let sedentaryDescription = "Mostly sitting"
+        static let sedentaryExample = "Little structured exercise"
+
+        static let lightlyActiveDescription = "Light movement"
+        static let lightlyActiveExample = "1–3 training days/week"
+
+        static let moderatelyActiveDescription = "Consistent training"
+        static let moderatelyActiveExample = "3–5 sessions/week"
+
+        static let veryActiveDescription = "High output"
+        static let veryActiveExample = "6–7 hard sessions/week"
+
+        static let athleteDescription = "Performance lifestyle"
+        static let athleteExample = "Hard training plus physical job"
+
+        static func maintenanceImpact(_ kcal: String) -> String {
+            "≈ \(kcal) maintenance"
+        }
+
+        static func trainingAssumption(days: Int, steps: Int) -> String {
+            let dayLabel = days == 1 ? "day" : "days"
+            return "\(days) training \(dayLabel)/week · \(steps.formatted()) steps/day"
+        }
+    }
+
     // MARK: - Plan Edit Hero
 
     enum PlanEditHero {

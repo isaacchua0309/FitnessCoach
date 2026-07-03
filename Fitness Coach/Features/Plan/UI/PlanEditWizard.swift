@@ -303,114 +303,18 @@ struct PlanEditWizard: View {
     }
 
     private var activityLevelStep: some View {
-        Group {
-            Section {
-                VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                    ForEach(Array(OnboardingActivityLevelValues.orderedLevels.enumerated()), id: \.element) { index, level in
-                        if index > 0 {
-                            Divider()
-                        }
-
-                        Button {
-                            formState.selectActivityLevel(level)
-                        } label: {
-                            HStack(alignment: .top, spacing: FormaTokens.Spacing.md) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(PlanFormatter.activityLevel(level))
-                                        .font(FormaTokens.Typography.body.weight(.medium))
-                                        .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
-                                    Text(OnboardingActivityLevelValues.optionDescription(for: level))
-                                        .font(FormaTokens.Typography.caption)
-                                        .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-                                        .multilineTextAlignment(.leading)
-                                }
-                                Spacer(minLength: 0)
-                                if formState.activityLevel == level {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(FormaPlanTokens.Color.planAccent)
-                                }
-                            }
-                            .padding(.vertical, FormaTokens.Spacing.xs)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
+        Section {
+            PlanEditActivityStepView(
+                formState: $formState,
+                showExpertAdjustments: $showExpertAdjustments,
+                projection: projection,
+                onRegenerateTargets: {
+                    Task { await regenerateTargetsForExpertSection() }
                 }
-                .padding(.vertical, FormaTokens.Spacing.xs)
-                .formaFormSection()
-            } header: {
-                FormaSettingsSectionHeader(title: FormaProductCopy.ProfileForm.activityLevel)
-            } footer: {
-                let rhythm = ActivityTrainingDefaultsResolver().defaults(for: formState.activityLevel)
-                Text("Defaults: \(rhythm.trainingDaysPerWeek) training days/week, \(rhythm.averageStepsPerDay.formatted()) steps/day.")
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-            }
-
-            Section {
-                DisclosureGroup("Expert adjustments", isExpanded: $showExpertAdjustments) {
-                    VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
-                        FormaLabeledNumberField(
-                            title: FormaProductCopy.ProfileForm.bodyFat,
-                            placeholder: "Optional",
-                            text: $formState.estimatedBodyFatPercentageText,
-                            unit: "%",
-                            keyboard: .decimalPad
-                        )
-
-                        FormaLabeledNumberField(
-                            title: FormaProductCopy.ProfileForm.trainingDays,
-                            placeholder: "3",
-                            text: Binding(
-                                get: { formState.trainingFrequencyPerWeekText },
-                                set: { formState.setTrainingFrequencyPerWeekText($0) }
-                            ),
-                            keyboard: .numberPad
-                        )
-
-                        FormaLabeledNumberField(
-                            title: FormaProductCopy.ProfileForm.averageSteps,
-                            placeholder: "5000",
-                            text: Binding(
-                                get: { formState.averageStepsText },
-                                set: { formState.setAverageStepsText($0) }
-                            ),
-                            keyboard: .numberPad
-                        )
-
-                        MacroTargetSettingsView(
-                            calorieTargetText: $formState.calorieTargetText,
-                            proteinTargetText: $formState.proteinTargetText,
-                            carbTargetText: $formState.carbTargetText,
-                            fatTargetText: $formState.fatTargetText,
-                            expectedWeeklyWeightLossKgText: $formState.expectedWeeklyWeightLossKgText,
-                            aggressiveness: $formState.aggressiveness,
-                            onRegenerate: {
-                                Task { await regenerateTargetsForExpertSection() }
-                            }
-                        )
-                    }
-                    .padding(.vertical, FormaTokens.Spacing.sm)
-                }
-            } footer: {
-                Text("Optional overrides for body fat, macros, and training assumptions.")
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-            }
-
-            Section {
-                PlanProjectionImpactCard(projection: projection)
-            } header: {
-                FormaSettingsSectionHeader(title: FormaProductCopy.PlanProjection.impactTitle)
-            }
-
-            if projection.hasEnergyTargets {
-                Section {
-                    PlanProjectionEnergyCard(projection: projection)
-                } header: {
-                    FormaSettingsSectionHeader(title: FormaProductCopy.PlanProjection.energyTitle)
-                }
-            }
+            )
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
         }
     }
 

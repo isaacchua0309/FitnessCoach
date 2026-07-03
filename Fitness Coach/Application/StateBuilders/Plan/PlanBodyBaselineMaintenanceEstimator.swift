@@ -16,10 +16,39 @@ enum PlanBodyBaselineMaintenanceEstimator {
         if let maintenance = projection.maintenanceCalories {
             return maintenance
         }
-        return preliminaryMaintenanceKcal(formState: formState)
+        return preliminaryMaintenanceKcal(
+            formState: formState,
+            activityLevel: formState.activityLevel
+        )
     }
 
-    private static func preliminaryMaintenanceKcal(formState: PlanFormState) -> Int? {
+    static func preliminaryMaintenanceKcal(
+        formState: PlanFormState,
+        activityLevel: ActivityLevel
+    ) -> Int? {
+        preliminaryMaintenanceKcal(
+            formState: formState,
+            activityLevel: activityLevel,
+            useLevelTrainingDefaults: false
+        )
+    }
+
+    static func previewMaintenanceKcal(
+        for activityLevel: ActivityLevel,
+        formState: PlanFormState
+    ) -> Int? {
+        preliminaryMaintenanceKcal(
+            formState: formState,
+            activityLevel: activityLevel,
+            useLevelTrainingDefaults: true
+        )
+    }
+
+    private static func preliminaryMaintenanceKcal(
+        formState: PlanFormState,
+        activityLevel: ActivityLevel,
+        useLevelTrainingDefaults: Bool
+    ) -> Int? {
         guard let heightCm = parsedPositive(formState.heightCmText),
               let weightKg = parsedPositive(formState.currentWeightKgText),
               OnboardingPickerDefaults.metricHeightCmRange.contains(heightCm),
@@ -37,15 +66,26 @@ enum PlanBodyBaselineMaintenanceEstimator {
             ageYears: ageYears,
             sex: sex
         )
-        let steps = Int(formState.averageStepsText.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
-        let trainingDays = Int(formState.trainingFrequencyPerWeekText.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
+        let rhythm = ActivityTrainingDefaultsResolver().defaults(for: activityLevel)
+        let steps = useLevelTrainingDefaults
+            ? rhythm.averageStepsPerDay
+            : (parsedPositiveInt(formState.averageStepsText) ?? rhythm.averageStepsPerDay)
+        let trainingDays = useLevelTrainingDefaults
+            ? rhythm.trainingDaysPerWeek
+            : (parsedPositiveInt(formState.trainingFrequencyPerWeekText) ?? rhythm.trainingDaysPerWeek)
 
         return EnergyCalculator.tdeeKcal(
             bmrKcal: bmr,
-            activityLevel: formState.activityLevel,
+            activityLevel: activityLevel,
             averageStepsPerDay: steps,
             trainingFrequencyPerWeek: trainingDays
         )
+    }
+
+    private static func parsedPositiveInt(_ text: String) -> Int? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let value = Int(trimmed), value >= 0 else { return nil }
+        return value
     }
 
     private static func parsedPositive(_ text: String) -> Double? {

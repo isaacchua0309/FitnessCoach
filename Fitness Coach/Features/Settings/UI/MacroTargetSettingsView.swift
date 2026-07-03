@@ -17,11 +17,38 @@ struct MacroTargetSettingsView: View {
     @Binding var expectedWeeklyWeightLossKgText: String
     @Binding var aggressiveness: CalorieAggressiveness
 
+    var presentationStyle: PresentationStyle = .formSection
     let onRegenerate: () -> Void
 
+    enum PresentationStyle {
+        case formSection
+        case embedded
+    }
+
     var body: some View {
-        Section {
+        switch presentationStyle {
+        case .formSection:
+            Section {
+                fields
+            } header: {
+                FormaSettingsSectionHeader(title: "Macro Targets")
+            } footer: {
+                Text("Manual edits are saved as-is. Regenerate to recalculate from your profile and pace settings.")
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaPlanTokens.Color.planMutedText)
+            }
+        case .embedded:
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+                Text("Macro Targets")
+                    .font(FormaTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(FormaPlanTokens.Color.planMutedText)
+                fields
+            }
+        }
+    }
+
+    private var fields: some View {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
                 FormaLabeledNumberField(
                     title: FormaProductCopy.ProfileForm.calorieTarget,
                     placeholder: "2000",
@@ -58,26 +85,33 @@ struct MacroTargetSettingsView: View {
                     keyboard: .decimalPad
                 )
 
-                Button {
-                    onRegenerate()
-                } label: {
-                    Label("Regenerate Targets", systemImage: "arrow.triangle.2.circlepath")
-                }
-                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                .foregroundStyle(FormaPlanTokens.Color.planAccent)
-
-                if let projection = planProjection, projection.hasEnergyTargets {
-                    PlanProjectionEnergyCard(projection: projection)
-                }
+            Button {
+                onRegenerate()
+            } label: {
+                Label("Regenerate Targets", systemImage: "arrow.triangle.2.circlepath")
             }
-            .padding(.vertical, FormaTokens.Spacing.xs)
-            .formaFormSection()
-        } header: {
-            FormaSettingsSectionHeader(title: "Macro Targets")
-        } footer: {
-            Text("Manual edits are saved as-is. Regenerate to recalculate from your profile and pace settings.")
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaPlanTokens.Color.planMutedText)
+            .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+            .foregroundStyle(FormaPlanTokens.Color.planAccent)
+
+            if presentationStyle == .formSection,
+               let projection = planProjection,
+               projection.hasEnergyTargets {
+                PlanProjectionEnergyCard(projection: projection)
+            }
+        }
+        .padding(.vertical, presentationStyle == .formSection ? FormaTokens.Spacing.xs : 0)
+        .modifier(FormSectionChromeModifier(enabled: presentationStyle == .formSection))
+    }
+}
+
+private struct FormSectionChromeModifier: ViewModifier {
+    let enabled: Bool
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content.formaFormSection()
+        } else {
+            content
         }
     }
 }
