@@ -234,7 +234,7 @@ struct LegalDocumentSection: Identifiable, Equatable {
     let body: String
 }
 
-enum FormaLegalDocument: String, Identifiable {
+enum FormaLegalDocument: String, Identifiable, Sendable {
     case terms
     case privacyPolicy
 

@@ -10,6 +10,7 @@ import SwiftUI
 struct SettingsRootView: View {
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @EnvironmentObject private var insightsStore: TrainingInsightsStore
 
     @Binding var formState: PlanFormState
@@ -17,16 +18,36 @@ struct SettingsRootView: View {
     let onSaveUnits: (PlanFormState) async -> Void
     let onDismiss: () -> Void
 
+    var featureAvailability: SettingsFeatureAvailability = .production
+    var isDebugOrInternalBuild: Bool = FormaBuildConfiguration.isDebugOrInternalBuild
+
+    private var presentationState: SettingsPresentationState {
+        SettingsPresentationBuilder.build(
+            input: SettingsPresentationInput(
+                integrationState: insightsStore.integrationState,
+                appVersionDisplay: FormaAppMetadata.versionDisplayString(),
+                featureAvailability: featureAvailability,
+                isDebugOrInternalBuild: isDebugOrInternalBuild
+            )
+        )
+    }
+
     var body: some View {
         NavigationStack {
             List {
-                accountSection
-                preferencesSection
-                integrationsSection
+                sectionView(presentationState.account)
+                sectionView(presentationState.preferences)
+                sectionView(presentationState.integrations)
+                    .task {
+                        await insightsStore.refresh()
+                    }
+                sectionView(presentationState.privacyData)
+                sectionView(presentationState.support)
+                sectionView(presentationState.about)
 
-                #if DEBUG
-                developerSection
-                #endif
+                if let developer = presentationState.developer {
+                    sectionView(developer)
+                }
 
                 if let errorMessage {
                     Section {
@@ -38,7 +59,7 @@ struct SettingsRootView: View {
                 }
             }
             .formaGroupedList()
-            .navigationTitle("Settings")
+            .navigationTitle(FormaProductCopy.Settings.Hub.screenTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -56,111 +77,134 @@ struct SettingsRootView: View {
 
     // MARK: - Sections
 
-    private var accountSection: some View {
-        Section {
-            NavigationLink {
-                AccountSettingsView()
-            } label: {
-                settingsRowLabel("Account")
-            }
-            .formaSettingsRowChrome()
-        } header: {
-            FormaSettingsSectionHeader(title: "Account")
-        }
+    @ViewBuilder
+    private func sectionView(_ section: SettingsAccountSectionState) -> some View {
+        sectionView(title: section.title, footer: nil, rows: section.rows)
     }
 
-    private var preferencesSection: some View {
-        Section {
-            NavigationLink {
-                UnitsSettingsScreen(
-                    formState: $formState,
-                    onSave: onSaveUnits
-                )
-            } label: {
-                settingsRowLabel("Units")
-            }
-            .formaSettingsRowChrome()
-
-            NavigationLink {
-                PlanBodyDetailsSettingsView(formState: formState)
-            } label: {
-                settingsRowLabel(FormaProductCopy.PlanCalculation.bodyDetailsSettingsTitle)
-            }
-            .formaSettingsRowChrome()
-
-            NavigationLink {
-                ThemeSettingsView()
-            } label: {
-                settingsRowLabel(SettingsPreferencesCatalog.themeRowTitle)
-            }
-            .formaSettingsRowChrome()
-        } header: {
-            FormaSettingsSectionHeader(title: SettingsPreferencesCatalog.sectionTitle)
-        }
+    @ViewBuilder
+    private func sectionView(_ section: SettingsPreferencesSectionState) -> some View {
+        sectionView(title: section.title, footer: nil, rows: section.rows)
     }
 
-    private var integrationsSection: some View {
-        Section {
-            NavigationLink {
-                AppleHealthIntegrationView(insightsStore: insightsStore)
-            } label: {
-                HStack(spacing: FormaTokens.Spacing.sm) {
-                    Text("Apple Health")
-                        .font(FormaTokens.Typography.body)
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
-                    Spacer(minLength: FormaTokens.Spacing.xs)
-                    Text(
-                        TrainingIntegrationCopy.settingsStatusLabel(
-                            for: insightsStore.integrationState
-                        )
-                    )
-                    .font(FormaTokens.Typography.sectionSubtitle)
-                    .foregroundStyle(FormaTokens.Color.textTertiary)
-                }
-                .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .center)
-            }
-            .formaSettingsRowChrome()
-        } header: {
-            FormaSettingsSectionHeader(title: "Integrations")
-        }
-        .task {
-            await insightsStore.refresh()
-        }
+    @ViewBuilder
+    private func sectionView(_ section: SettingsIntegrationsSectionState) -> some View {
+        sectionView(title: section.title, footer: nil, rows: section.rows)
     }
 
-    #if DEBUG
-    private var developerSection: some View {
-        Section {
-            NavigationLink {
-                AuthDiagnosticsView()
-            } label: {
-                settingsRowLabel("Auth diagnostics")
-            }
-            .formaSettingsRowChrome()
+    @ViewBuilder
+    private func sectionView(_ section: SettingsPrivacyDataSectionState) -> some View {
+        sectionView(title: section.title, footer: nil, rows: section.rows)
+    }
 
-            NavigationLink {
-                PipelineDiagnosticsView()
-            } label: {
-                settingsRowLabel("Pipeline traces")
+    @ViewBuilder
+    private func sectionView(_ section: SettingsSupportSectionState) -> some View {
+        sectionView(title: section.title, footer: nil, rows: section.rows)
+    }
+
+    @ViewBuilder
+    private func sectionView(_ section: SettingsAboutSectionState) -> some View {
+        sectionView(title: section.title, footer: nil, rows: section.rows)
+    }
+
+    @ViewBuilder
+    private func sectionView(_ section: SettingsDeveloperSectionState) -> some View {
+        sectionView(title: section.title, footer: section.footer, rows: section.rows)
+    }
+
+    @ViewBuilder
+    private func sectionView(
+        title: String,
+        footer: String?,
+        rows: [SettingsRowPresentation]
+    ) -> some View {
+        Section {
+            ForEach(rows) { row in
+                rowView(row)
             }
-            .formaSettingsRowChrome()
         } header: {
-            FormaSettingsSectionHeader(title: "Developer")
+            FormaSettingsSectionHeader(title: title)
         } footer: {
-            Text("Debug builds only. Pipeline traces help troubleshoot Coach AI routing and backend calls.")
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textTertiary)
+            if let footer {
+                Text(footer)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaTokens.Color.textTertiary)
+            }
         }
     }
-    #endif
 
-    // MARK: - Row chrome
+    @ViewBuilder
+    private func rowView(_ row: SettingsRowPresentation) -> some View {
+        if case .supportMail(let topic) = row.destination {
+            Button {
+                openSupportMail(topic)
+            } label: {
+                FormaSettingsRowLabel(
+                    title: row.title,
+                    subtitle: row.subtitle,
+                    status: row.status
+                )
+            }
+            .formaSettingsRowChrome()
+        } else if row.isNavigable, let destination = row.destination {
+            NavigationLink {
+                destinationView(for: destination)
+            } label: {
+                FormaSettingsRowLabel(
+                    title: row.title,
+                    subtitle: row.subtitle,
+                    status: row.status
+                )
+            }
+            .formaSettingsRowChrome()
+        } else {
+            FormaSettingsRowLabel(
+                title: row.title,
+                subtitle: row.subtitle,
+                status: row.status
+            )
+            .formaSettingsRowChrome(isEnabled: false)
+        }
+    }
 
-    private func settingsRowLabel(_ title: String) -> some View {
-        Text(title)
-            .font(FormaTokens.Typography.body)
-            .foregroundStyle(FormaTokens.Color.textPrimary)
-            .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .leading)
+    @ViewBuilder
+    private func destinationView(for destination: SettingsRowDestination) -> some View {
+        switch destination {
+        case .account:
+            AccountSettingsView()
+        case .units:
+            UnitsSettingsScreen(
+                formState: $formState,
+                onSave: onSaveUnits
+            )
+        case .bodyAndStats:
+            PlanBodyDetailsSettingsView(formState: formState)
+        case .theme:
+            ThemeSettingsView()
+        case .appleHealthIntegration:
+            AppleHealthIntegrationView(insightsStore: insightsStore)
+        case .legalDocument(let document):
+            SettingsLegalDocumentView(document: document)
+        case .supportMail:
+            EmptyView()
+        case .authDiagnostics:
+            #if DEBUG
+            AuthDiagnosticsView()
+            #else
+            EmptyView()
+            #endif
+        case .pipelineTraces:
+            #if DEBUG
+            PipelineDiagnosticsView()
+            #else
+            EmptyView()
+            #endif
+        }
+    }
+
+    private func openSupportMail(_ topic: SettingsSupportMailTopic) {
+        guard let url = SettingsSupportMailURLBuilder.url(for: topic) else { return }
+        openURL(url)
     }
 }
 

@@ -11,9 +11,18 @@ import XCTest
 final class ThemeSettingsViewTests: XCTestCase {
 
     func testSettingsPreferencesIncludesThemeRow() {
-        XCTAssertTrue(SettingsPreferencesCatalog.rowTitles.contains("Theme"))
+        let state = SettingsPresentationBuilder.build(
+            input: SettingsPresentationInput(
+                integrationState: .connected,
+                appVersionDisplay: "1.0",
+                featureAvailability: .production,
+                isDebugOrInternalBuild: false
+            )
+        )
+
+        XCTAssertTrue(state.preferences.rows.contains(where: { $0.id == .theme }))
         XCTAssertEqual(
-            SettingsPreferencesCatalog.themeRowTitle,
+            state.preferences.rows.first(where: { $0.id == .theme })?.title,
             FormaProductCopy.Settings.Theme.navigationRowTitle
         )
     }

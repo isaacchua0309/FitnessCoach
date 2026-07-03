@@ -140,12 +140,21 @@ final class ThemeSettingsCopyGuardrailTests: XCTestCase {
     }
 
     func testSettingsCatalogUsesCanonicalThemeRowTitle() {
+        let state = SettingsPresentationBuilder.build(
+            input: SettingsPresentationInput(
+                integrationState: .connected,
+                appVersionDisplay: "1.0",
+                featureAvailability: .production,
+                isDebugOrInternalBuild: false
+            )
+        )
+
         XCTAssertEqual(
-            SettingsPreferencesCatalog.themeRowTitle,
+            state.preferences.rows.first(where: { $0.id == .theme })?.title,
             FormaProductCopy.Settings.Theme.navigationRowTitle
         )
         XCTAssertEqual(
-            SettingsPreferencesCatalog.themeRowTitle,
+            state.preferences.rows.first(where: { $0.id == .theme })?.title,
             FormaProductCopy.Settings.Theme.screenTitle
         )
     }

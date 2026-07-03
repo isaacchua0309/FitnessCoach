@@ -2376,6 +2376,41 @@ enum FormaProductCopy {
 
     enum Settings {
 
+        enum Hub {
+            static let screenTitle = "Settings"
+            static let accountSectionTitle = "Account"
+            static let preferencesSectionTitle = "Preferences"
+            static let integrationsSectionTitle = "Integrations"
+            static let privacyDataSectionTitle = "Privacy & Data"
+            static let supportSectionTitle = "Support"
+            static let aboutSectionTitle = "About"
+            static let developerSectionTitle = "Developer"
+            static let developerSectionFooter =
+                "Debug builds only. Pipeline traces help troubleshoot Coach AI routing and backend calls."
+        }
+
+        enum Rows {
+            static let account = "Account"
+            static let units = "Units"
+            static let appleHealth = "Apple Health"
+            static let privacyPolicy = "Privacy Policy"
+            static let exportData = "Export Data"
+            static let deleteData = "Delete Data"
+            static let sendFeedback = "Send Feedback"
+            static let contactSupport = "Contact Support"
+            static let reportProblem = "Report a Problem"
+            static let appVersion = "App Version"
+            static let termsOfService = "Terms of Service"
+            static let authDiagnostics = "Auth diagnostics"
+            static let pipelineTraces = "Pipeline traces"
+        }
+
+        enum Support {
+            static let feedbackMailSubject = "Forma Feedback"
+            static let contactMailSubject = "Forma Support"
+            static let reportProblemMailSubject = "Forma Problem Report"
+        }
+
         /// Theme preferences screen and color palette copy.
         enum Theme {
             static let screenTitle = "Theme"
