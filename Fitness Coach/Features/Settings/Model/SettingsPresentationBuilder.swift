@@ -146,14 +146,12 @@ enum SettingsPresentationBuilder {
     private static func row(
         id: SettingsRowID,
         title: String,
-        subtitle: String? = nil,
         status: String? = nil,
         destination: SettingsRowDestination?
     ) -> SettingsRowPresentation {
         SettingsRowPresentation(
             id: id,
             title: title,
-            subtitle: subtitle,
             status: status,
             destination: destination,
             isEnabled: destination != nil

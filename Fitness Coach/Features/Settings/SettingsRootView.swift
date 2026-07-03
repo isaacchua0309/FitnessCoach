@@ -328,18 +328,25 @@ struct SettingsRootView: View {
                 }
         case .supportMail:
             EmptyView()
-        case .authDiagnostics:
-            #if DEBUG
-            AuthDiagnosticsView()
-            #else
+        case .authDiagnostics, .pipelineTraces:
+            developerDestinationView(for: destination)
+        }
+    }
+
+    @ViewBuilder
+    private func developerDestinationView(for destination: SettingsRowDestination) -> some View {
+        if presentationState.isDebugOrInternalBuild,
+           FormaBuildConfiguration.includesCompiledDeveloperTools {
+            switch destination {
+            case .authDiagnostics:
+                AuthDiagnosticsView()
+            case .pipelineTraces:
+                PipelineDiagnosticsView()
+            default:
+                EmptyView()
+            }
+        } else {
             EmptyView()
-            #endif
-        case .pipelineTraces:
-            #if DEBUG
-            PipelineDiagnosticsView()
-            #else
-            EmptyView()
-            #endif
         }
     }
 

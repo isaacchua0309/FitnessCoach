@@ -45,7 +45,6 @@ enum SettingsSupportPresentationBuilder {
         SettingsRowPresentation(
             id: id,
             title: title,
-            subtitle: nil,
             status: nil,
             destination: destination,
             isEnabled: true

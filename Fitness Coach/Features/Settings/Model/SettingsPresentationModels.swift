@@ -54,7 +54,6 @@ enum SettingsSupportMailTopic: String, CaseIterable, Sendable, Identifiable {
 struct SettingsRowPresentation: Equatable, Identifiable, Sendable {
     let id: SettingsRowID
     let title: String
-    let subtitle: String?
     let status: String?
     let destination: SettingsRowDestination?
     let isEnabled: Bool

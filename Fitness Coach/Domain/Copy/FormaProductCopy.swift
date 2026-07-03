@@ -2444,8 +2444,6 @@ enum FormaProductCopy {
 
         enum AppleHealth {
             static let screenTitle = "Apple Health"
-            static let heroConnected = "Connected"
-            static let heroNotConnected = "Not Connected"
             static let readsWorkoutsCopy =
                 "Forma reads workouts to improve activity, Plan confidence, and Journey insights."
             static let doesNotWriteCopy =

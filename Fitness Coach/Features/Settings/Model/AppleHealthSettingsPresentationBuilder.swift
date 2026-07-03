@@ -22,7 +22,7 @@ enum AppleHealthSettingsPresentationBuilder {
 
         return AppleHealthSettingsPresentation(
             screenTitle: copy.screenTitle,
-            heroStatus: heroShowsConnected ? copy.heroConnected : copy.heroNotConnected,
+            heroStatus: heroShowsConnected ? copy.statusConnected : copy.statusNotConnected,
             heroShowsConnected: heroShowsConnected,
             trustCopy: [copy.readsWorkoutsCopy, copy.doesNotWriteCopy],
             connectionCardTitle: copy.connectionCardTitle,

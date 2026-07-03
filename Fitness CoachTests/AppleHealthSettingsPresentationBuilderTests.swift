@@ -27,7 +27,7 @@ final class AppleHealthSettingsPresentationBuilderTests: XCTestCase {
     func testConnectedState() {
         let presentation = build(integrationState: .connected)
 
-        XCTAssertEqual(presentation.heroStatus, FormaProductCopy.Settings.AppleHealth.heroConnected)
+        XCTAssertEqual(presentation.heroStatus, FormaProductCopy.Settings.AppleHealth.statusConnected)
         XCTAssertTrue(presentation.heroShowsConnected)
         XCTAssertEqual(
             rowValue("status", in: presentation),
@@ -44,7 +44,7 @@ final class AppleHealthSettingsPresentationBuilderTests: XCTestCase {
     func testDisconnectedState() {
         let presentation = build(integrationState: .notConnected)
 
-        XCTAssertEqual(presentation.heroStatus, FormaProductCopy.Settings.AppleHealth.heroNotConnected)
+        XCTAssertEqual(presentation.heroStatus, FormaProductCopy.Settings.AppleHealth.statusNotConnected)
         XCTAssertFalse(presentation.heroShowsConnected)
         XCTAssertEqual(
             rowValue("status", in: presentation),
@@ -60,7 +60,7 @@ final class AppleHealthSettingsPresentationBuilderTests: XCTestCase {
     func testPermissionNeededState() {
         let presentation = build(integrationState: .denied)
 
-        XCTAssertEqual(presentation.heroStatus, FormaProductCopy.Settings.AppleHealth.heroNotConnected)
+        XCTAssertEqual(presentation.heroStatus, FormaProductCopy.Settings.AppleHealth.statusNotConnected)
         XCTAssertEqual(
             rowValue("status", in: presentation),
             FormaProductCopy.Settings.AppleHealth.statusPermissionNeeded

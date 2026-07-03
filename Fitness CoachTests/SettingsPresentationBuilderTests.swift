@@ -62,7 +62,7 @@ final class SettingsPresentationBuilderTests: XCTestCase {
         XCTAssertFalse(state.visibleRowIDs.contains(.deleteData))
 
         let titles = allRowTitles(in: state)
-        XCTAssertFalse(titles.contains(where: { $0.localizedCaseInsensitiveContains("coming soon") }))
+        XCTAssertFalse(SettingsProductionVisibility.containsProhibitedPlaceholderCopy(titles))
     }
 
     func testFunctionalRowsAppearInProduction() {
@@ -255,7 +255,6 @@ final class SettingsPresentationBuilderTests: XCTestCase {
         let appVersionRow = state.about.rows.first { $0.id == .appVersion }
 
         XCTAssertEqual(appVersionRow?.status, "2.4.1")
-        XCTAssertNil(appVersionRow?.subtitle)
         XCTAssertNil(appVersionRow?.destination)
         XCTAssertFalse(appVersionRow?.isNavigable ?? true)
     }

@@ -51,7 +51,6 @@ enum SettingsAboutPresentationBuilder {
         SettingsRowPresentation(
             id: .appVersion,
             title: FormaProductCopy.Settings.Rows.appVersion,
-            subtitle: nil,
             status: display,
             destination: nil,
             isEnabled: false
@@ -66,7 +65,6 @@ enum SettingsAboutPresentationBuilder {
         SettingsRowPresentation(
             id: id,
             title: title,
-            subtitle: nil,
             status: nil,
             destination: .legalDocument(document),
             isEnabled: true
