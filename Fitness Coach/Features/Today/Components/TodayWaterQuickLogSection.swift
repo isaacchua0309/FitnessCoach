@@ -116,32 +116,7 @@ struct TodayWaterQuickLogSection: View {
                 Button {
                     logWater(amountMl: amountMl)
                 } label: {
-                    Text(FormaProductCopy.Today.Water.quickAddLabel(amountMl))
-                        .font(FormaTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(
-                            highlightedAmountMl == amountMl
-                                ? FormaTokens.Theme.textOnAccent
-                                : FormaTokens.Theme.primary
-                        )
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, FormaTokens.Spacing.sm)
-                        .background(
-                            RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
-                                .fill(
-                                    highlightedAmountMl == amountMl
-                                        ? FormaTokens.Theme.primary
-                                        : FormaTokens.Theme.softBackground
-                                )
-                        )
-                        .overlay {
-                            RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
-                                .stroke(
-                                    highlightedAmountMl == amountMl
-                                        ? FormaTokens.Theme.primary.opacity(0.5)
-                                        : FormaTokens.Theme.borderTint.opacity(0.28),
-                                    lineWidth: highlightedAmountMl == amountMl ? 1 : 0.5
-                                )
-                        }
+                    quickAddButtonLabel(amountMl: amountMl)
                 }
                 .buttonStyle(
                     TodayWaterQuickAddButtonStyle(
@@ -150,12 +125,46 @@ struct TodayWaterQuickLogSection: View {
                     )
                 )
                 .disabled(isTapLocked)
-                .opacity(isTapLocked ? 0.72 : 1)
                 .accessibilityLabel(FormaProductCopy.Today.QuickActions.waterAmountAccessibilityLabel(amountMl))
             }
         }
         .padding(.top, FormaTokens.Spacing.xs)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: isTapLocked)
+    }
+
+    private func quickAddButtonLabel(amountMl: Int) -> some View {
+        let isSelected = highlightedAmountMl == amountMl
+        let isDisabled = isTapLocked
+
+        return Text(FormaProductCopy.Today.Water.quickAddLabel(amountMl))
+            .font(FormaTokens.Typography.caption.weight(.semibold))
+            .foregroundStyle(
+                TodayWaterQuickAddColors.foreground(
+                    isDisabled: isDisabled,
+                    isSelected: isSelected
+                )
+            )
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, FormaTokens.Spacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
+                    .fill(
+                        TodayWaterQuickAddColors.background(
+                            isDisabled: isDisabled,
+                            isSelected: isSelected
+                        )
+                    )
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
+                    .stroke(
+                        TodayWaterQuickAddColors.border(
+                            isDisabled: isDisabled,
+                            isSelected: isSelected
+                        ),
+                        lineWidth: TodayWaterQuickAddColors.borderWidth(isSelected: isSelected)
+                    )
+            }
     }
 
     private func logWater(amountMl: Int) {
@@ -202,25 +211,6 @@ private struct WaterValueTransitionModifier: ViewModifier {
         } else {
             content.contentTransition(.numericText())
         }
-    }
-}
-
-private struct TodayWaterQuickAddButtonStyle: ButtonStyle {
-    let isSelected: Bool
-    let reduceMotion: Bool
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(scale(isPressed: configuration.isPressed))
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: isSelected)
-    }
-
-    private func scale(isPressed: Bool) -> CGFloat {
-        guard !reduceMotion else { return 1 }
-        if isPressed { return 0.94 }
-        if isSelected { return 0.97 }
-        return 1
     }
 }
 

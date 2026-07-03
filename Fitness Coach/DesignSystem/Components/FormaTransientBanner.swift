@@ -37,7 +37,7 @@ struct FormaTransientBanner: View {
     private var backgroundColor: SwiftUI.Color {
         switch style {
         case .success:
-            return FormaTokens.Theme.primary.opacity(0.94)
+            return FormaTokens.Theme.primaryButtonBackground.opacity(0.94)
         case .error:
             return FormaTokens.Color.destructive.opacity(0.94)
         }

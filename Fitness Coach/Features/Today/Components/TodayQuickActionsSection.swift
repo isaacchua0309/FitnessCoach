@@ -19,25 +19,24 @@ struct TodayQuickActionsSection: View {
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
             TodaySectionLabel(title: FormaProductCopy.Today.QuickActions.sectionTitle)
 
-            VStack(spacing: FormaTokens.Spacing.sm) {
-                VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-                    primaryActionCard(
-                        title: FormaProductCopy.Today.QuickActions.title(for: .logMeal),
-                        symbolName: FormaProductCopy.Today.QuickActions.symbolName(for: .logMeal),
-                        action: onLogMeal
-                    )
-                    .accessibilityLabel(FormaProductCopy.Today.QuickActions.title(for: .logMeal))
-                    .accessibilityHint(FormaProductCopy.Today.QuickActions.inlineAccessibilityHint(for: .logMeal))
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+                primaryActionCard(
+                    title: FormaProductCopy.Today.QuickActions.title(for: .logMeal),
+                    symbolName: FormaProductCopy.Today.QuickActions.symbolName(for: .logMeal),
+                    action: onLogMeal
+                )
+                .accessibilityLabel(FormaProductCopy.Today.QuickActions.title(for: .logMeal))
+                .accessibilityHint(FormaProductCopy.Today.QuickActions.inlineAccessibilityHint(for: .logMeal))
 
-                    Text(FormaProductCopy.Today.QuickActions.logMealMicrocopy)
-                        .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityHidden(true)
-                }
+                Text(FormaProductCopy.Today.QuickActions.logMealMicrocopy)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityHidden(true)
 
                 if showsScanMeal {
                     scanMealSecondaryAction
+                        .padding(.top, FormaTokens.Spacing.xs)
                 }
             }
         }
@@ -68,7 +67,7 @@ struct TodayQuickActionsSection: View {
             .frame(maxWidth: .infinity, minHeight: FormaTokens.Layout.minTouchTarget)
             .background(FormaCardChrome.background(.bordered))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TodayBorderedRowPressStyle())
         .accessibilityLabel(FormaProductCopy.Today.QuickActions.title(for: .scanFood))
         .accessibilityHint(FormaProductCopy.Today.QuickActions.inlineAccessibilityHint(for: .scanFood))
     }
@@ -94,18 +93,11 @@ struct TodayQuickActionsSection: View {
             }
             .frame(maxWidth: .infinity)
             .frame(minHeight: primaryActionMinHeight)
-            .padding(.horizontal, FormaTokens.Spacing.sm)
+            .padding(.horizontal, FormaTokens.Spacing.md)
             .padding(.vertical, FormaTokens.Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-                    .fill(FormaTokens.Color.surface)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-                    .stroke(FormaTokens.Theme.borderTint.opacity(0.22), lineWidth: 0.5)
-            }
+            .background(FormaCardChrome.background(.accentLeading))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TodaySurfaceCardPressStyle())
     }
 }
 
@@ -118,4 +110,15 @@ struct TodayQuickActionsSection: View {
     .padding(.horizontal, TodayLayout.horizontalPadding)
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
+}
+
+#Preview("Pink theme") {
+    TodayQuickActionsSection(
+        showsScanMeal: false,
+        onLogMeal: {},
+        onScanMeal: {}
+    )
+    .padding(.horizontal, TodayLayout.horizontalPadding)
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview(palette: .blossomPink)
 }

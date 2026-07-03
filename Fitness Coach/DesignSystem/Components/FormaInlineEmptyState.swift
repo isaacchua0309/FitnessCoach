@@ -52,9 +52,52 @@ struct FormaQuickActionChip: View {
 
     var body: some View {
         Button(title, action: action)
-            .buttonStyle(.bordered)
-            .tint(FormaTokens.Theme.primary)
-            .font(FormaTokens.Typography.caption.weight(.semibold))
+            .buttonStyle(FormaThemedChipButtonStyle())
             .accessibilityHint(accessibilityHint ?? "")
+    }
+}
+
+private struct FormaThemedChipButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(FormaTokens.Typography.caption.weight(.semibold))
+            .padding(.horizontal, FormaTokens.Spacing.md)
+            .padding(.vertical, FormaTokens.Spacing.xs)
+            .foregroundStyle(foreground(isPressed: configuration.isPressed))
+            .background(background(isPressed: configuration.isPressed), in: Capsule())
+            .overlay {
+                Capsule()
+                    .stroke(borderColor, lineWidth: 0.5)
+            }
+            .scaleEffect(scale(isPressed: configuration.isPressed))
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+
+    private func foreground(isPressed: Bool) -> Color {
+        guard isEnabled else { return FormaTokens.Color.textTertiary }
+        return isPressed
+            ? FormaTokens.Theme.primary.opacity(0.85)
+            : FormaTokens.Theme.primary
+    }
+
+    private func background(isPressed: Bool) -> Color {
+        guard isEnabled else { return FormaTokens.Color.surfaceSubtle }
+        return isPressed
+            ? FormaTokens.Theme.softBackground.opacity(0.9)
+            : FormaTokens.Theme.softBackground
+    }
+
+    private var borderColor: Color {
+        isEnabled
+            ? FormaTokens.Theme.borderTint.opacity(0.35)
+            : FormaTokens.Color.border.opacity(0.45)
+    }
+
+    private func scale(isPressed: Bool) -> CGFloat {
+        guard isEnabled, !reduceMotion else { return 1 }
+        return isPressed ? 0.96 : 1
     }
 }
