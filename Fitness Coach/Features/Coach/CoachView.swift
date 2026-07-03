@@ -57,9 +57,18 @@ struct CoachView: View {
                         },
                         onRetryMealPhotoAnalysis: { userMessageID in
                             Task { await model.retryMealPhotoAnalysis(for: userMessageID) }
+                        },
+                        onNutritionAction: { action in
+                            Task { await model.handleNutritionEstimateAction(action) }
                         }
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .onChange(of: model.shouldFocusComposer) { _, shouldFocus in
+                        if shouldFocus {
+                            isInputFocused = true
+                            model.shouldFocusComposer = false
+                        }
+                    }
 
                     coachErrorBanner
                 }

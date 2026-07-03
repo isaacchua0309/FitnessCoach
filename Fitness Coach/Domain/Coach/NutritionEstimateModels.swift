@@ -1,0 +1,295 @@
+//
+//  NutritionEstimateModels.swift
+//  Fitness Coach
+//
+//  Forma — Structured nutrition estimate and comparison responses for Coach cards.
+//
+
+import Foundation
+
+// MARK: - Suggested actions
+
+enum NutritionSuggestedActionType: String, Codable, Equatable, Sendable {
+    case logMeal = "logMeal"
+    case estimateAnother = "estimateAnother"
+    case addCommonSide = "addCommonSide"
+    case addDrink = "addDrink"
+    case compareAlternative = "compareAlternative"
+    case healthierAlternative = "healthierAlternative"
+    case askFollowUp = "askFollowUp"
+}
+
+struct NutritionSuggestedAction: Codable, Equatable, Sendable, Identifiable {
+    var id: String
+    var title: String
+    var type: NutritionSuggestedActionType
+    var payload: [String: String]
+
+    init(
+        id: String = UUID().uuidString,
+        title: String,
+        type: NutritionSuggestedActionType,
+        payload: [String: String] = [:]
+    ) {
+        self.id = id
+        self.title = title
+        self.type = type
+        self.payload = payload
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
+        title = try container.decode(String.self, forKey: .title)
+        type = try container.decode(NutritionSuggestedActionType.self, forKey: .type)
+        payload = try container.decodeIfPresent([String: String].self, forKey: .payload) ?? [:]
+    }
+}
+
+// MARK: - Transport responses
+
+enum NutritionEstimateSourceType: String, Codable, Equatable, Sendable {
+    case branded
+    case common
+    case restaurant
+    case homemade
+    case unknown
+}
+
+struct NutritionEstimateResponse: Codable, Equatable, Sendable {
+    var type: String
+    var foodName: String
+    var displayEmoji: String?
+    var caloriesKcal: Int?
+    var caloriesRangeLowerKcal: Int?
+    var caloriesRangeUpperKcal: Int?
+    var proteinGrams: Double?
+    var carbsGrams: Double?
+    var fatGrams: Double?
+    var servingDescription: String?
+    var confidenceLevel: AIConfidence
+    var confidenceLabel: String?
+    var confidenceReason: String?
+    var sourceType: NutritionEstimateSourceType?
+    var todayCaloriesTarget: Int?
+    var todayCaloriesConsumed: Int?
+    var todayCaloriesRemainingAfterEstimate: Int?
+    var todayProteinTarget: Double?
+    var todayProteinConsumed: Double?
+    var todayProteinRemainingAfterEstimate: Double?
+    var coachSummary: String?
+    var coachTip: String?
+    var caveats: [String]
+    var suggestedActions: [NutritionSuggestedAction]
+
+    init(
+        type: String = "nutrition_estimate",
+        foodName: String,
+        displayEmoji: String? = nil,
+        caloriesKcal: Int? = nil,
+        caloriesRangeLowerKcal: Int? = nil,
+        caloriesRangeUpperKcal: Int? = nil,
+        proteinGrams: Double? = nil,
+        carbsGrams: Double? = nil,
+        fatGrams: Double? = nil,
+        servingDescription: String? = nil,
+        confidenceLevel: AIConfidence = .medium,
+        confidenceLabel: String? = nil,
+        confidenceReason: String? = nil,
+        sourceType: NutritionEstimateSourceType? = nil,
+        todayCaloriesTarget: Int? = nil,
+        todayCaloriesConsumed: Int? = nil,
+        todayCaloriesRemainingAfterEstimate: Int? = nil,
+        todayProteinTarget: Double? = nil,
+        todayProteinConsumed: Double? = nil,
+        todayProteinRemainingAfterEstimate: Double? = nil,
+        coachSummary: String? = nil,
+        coachTip: String? = nil,
+        caveats: [String] = [],
+        suggestedActions: [NutritionSuggestedAction] = []
+    ) {
+        self.type = type
+        self.foodName = foodName
+        self.displayEmoji = displayEmoji
+        self.caloriesKcal = caloriesKcal
+        self.caloriesRangeLowerKcal = caloriesRangeLowerKcal
+        self.caloriesRangeUpperKcal = caloriesRangeUpperKcal
+        self.proteinGrams = proteinGrams
+        self.carbsGrams = carbsGrams
+        self.fatGrams = fatGrams
+        self.servingDescription = servingDescription
+        self.confidenceLevel = confidenceLevel
+        self.confidenceLabel = confidenceLabel
+        self.confidenceReason = confidenceReason
+        self.sourceType = sourceType
+        self.todayCaloriesTarget = todayCaloriesTarget
+        self.todayCaloriesConsumed = todayCaloriesConsumed
+        self.todayCaloriesRemainingAfterEstimate = todayCaloriesRemainingAfterEstimate
+        self.todayProteinTarget = todayProteinTarget
+        self.todayProteinConsumed = todayProteinConsumed
+        self.todayProteinRemainingAfterEstimate = todayProteinRemainingAfterEstimate
+        self.coachSummary = coachSummary
+        self.coachTip = coachTip
+        self.caveats = caveats
+        self.suggestedActions = suggestedActions
+    }
+}
+
+struct NutritionComparisonItem: Codable, Equatable, Sendable, Identifiable {
+    var id: String
+    var foodName: String
+    var displayEmoji: String?
+    var caloriesKcal: Int?
+    var caloriesRangeLowerKcal: Int?
+    var caloriesRangeUpperKcal: Int?
+    var proteinGrams: Double?
+    var carbsGrams: Double?
+    var fatGrams: Double?
+    var servingDescription: String?
+
+    init(
+        id: String = UUID().uuidString,
+        foodName: String,
+        displayEmoji: String? = nil,
+        caloriesKcal: Int? = nil,
+        caloriesRangeLowerKcal: Int? = nil,
+        caloriesRangeUpperKcal: Int? = nil,
+        proteinGrams: Double? = nil,
+        carbsGrams: Double? = nil,
+        fatGrams: Double? = nil,
+        servingDescription: String? = nil
+    ) {
+        self.id = id
+        self.foodName = foodName
+        self.displayEmoji = displayEmoji
+        self.caloriesKcal = caloriesKcal
+        self.caloriesRangeLowerKcal = caloriesRangeLowerKcal
+        self.caloriesRangeUpperKcal = caloriesRangeUpperKcal
+        self.proteinGrams = proteinGrams
+        self.carbsGrams = carbsGrams
+        self.fatGrams = fatGrams
+        self.servingDescription = servingDescription
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
+        foodName = try container.decode(String.self, forKey: .foodName)
+        displayEmoji = try container.decodeIfPresent(String.self, forKey: .displayEmoji)
+        caloriesKcal = try container.decodeIfPresent(Int.self, forKey: .caloriesKcal)
+        caloriesRangeLowerKcal = try container.decodeIfPresent(Int.self, forKey: .caloriesRangeLowerKcal)
+        caloriesRangeUpperKcal = try container.decodeIfPresent(Int.self, forKey: .caloriesRangeUpperKcal)
+        proteinGrams = try container.decodeIfPresent(Double.self, forKey: .proteinGrams)
+        carbsGrams = try container.decodeIfPresent(Double.self, forKey: .carbsGrams)
+        fatGrams = try container.decodeIfPresent(Double.self, forKey: .fatGrams)
+        servingDescription = try container.decodeIfPresent(String.self, forKey: .servingDescription)
+    }
+}
+
+struct NutritionComparisonResponse: Codable, Equatable, Sendable {
+    var type: String
+    var leftItem: NutritionComparisonItem
+    var rightItem: NutritionComparisonItem
+    var coachPick: String?
+    var suggestedActions: [NutritionSuggestedAction]
+
+    init(
+        type: String = "nutrition_comparison",
+        leftItem: NutritionComparisonItem,
+        rightItem: NutritionComparisonItem,
+        coachPick: String? = nil,
+        suggestedActions: [NutritionSuggestedAction] = []
+    ) {
+        self.type = type
+        self.leftItem = leftItem
+        self.rightItem = rightItem
+        self.coachPick = coachPick
+        self.suggestedActions = suggestedActions
+    }
+}
+
+// MARK: - UI display state
+
+struct NutritionEstimateTodayContext: Equatable, Sendable, Codable {
+    var caloriesAfterLine: String
+    var caloriesRemainingLine: String
+    var proteinLine: String
+}
+
+struct NutritionEstimateCardState: Equatable, Sendable, Identifiable, Codable {
+    let id: UUID
+    var foodName: String
+    var displayEmoji: String?
+    var servingDescription: String?
+    var caloriesDisplay: String
+    var proteinDisplay: String?
+    var carbsDisplay: String?
+    var fatDisplay: String?
+    var confidenceTitle: String
+    var confidenceSubtitle: String?
+    var coachSummary: String?
+    var coachTip: String?
+    var caveats: [String]
+    var todayContext: NutritionEstimateTodayContext?
+    var suggestedActions: [NutritionSuggestedAction]
+    var sourceType: NutritionEstimateSourceType?
+    var confidenceLevel: AIConfidence
+    var hasMacros: Bool
+    var hasTodayContext: Bool
+    var logMealPayload: NutritionSuggestedAction?
+}
+
+struct NutritionComparisonCardState: Equatable, Sendable, Identifiable, Codable {
+    let id: UUID
+    var leftItem: NutritionComparisonItem
+    var rightItem: NutritionComparisonItem
+    var leftCaloriesDisplay: String
+    var rightCaloriesDisplay: String
+    var leftProteinDisplay: String?
+    var rightProteinDisplay: String?
+    var leftFatDisplay: String?
+    var rightFatDisplay: String?
+    var coachPick: String?
+    var suggestedActions: [NutritionSuggestedAction]
+}
+
+// MARK: - Chat structured content
+
+enum CoachStructuredMessageContent: Codable, Equatable, Sendable {
+    case nutritionEstimate(NutritionEstimateCardState)
+    case nutritionComparison(NutritionComparisonCardState)
+
+    private enum CodingKeys: String, CodingKey {
+        case type
+        case estimate
+        case comparison
+    }
+
+    private enum ContentType: String, Codable {
+        case nutritionEstimate
+        case nutritionComparison
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let type = try container.decode(ContentType.self, forKey: .type)
+        switch type {
+        case .nutritionEstimate:
+            self = .nutritionEstimate(try container.decode(NutritionEstimateCardState.self, forKey: .estimate))
+        case .nutritionComparison:
+            self = .nutritionComparison(try container.decode(NutritionComparisonCardState.self, forKey: .comparison))
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .nutritionEstimate(let state):
+            try container.encode(ContentType.nutritionEstimate, forKey: .type)
+            try container.encode(state, forKey: .estimate)
+        case .nutritionComparison(let state):
+            try container.encode(ContentType.nutritionComparison, forKey: .type)
+            try container.encode(state, forKey: .comparison)
+        }
+    }
+}

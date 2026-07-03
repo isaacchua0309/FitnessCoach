@@ -84,6 +84,18 @@ final class FormaAIBackendClient: LLMClient {
         try await post(endpoint: .mealAdvice, body: request)
     }
 
+    func generateNutritionEstimate(
+        request: AINutritionEstimateRequest
+    ) async throws -> AINutritionEstimateResponse {
+        try await post(endpoint: .nutritionEstimate, body: request)
+    }
+
+    func generateNutritionComparison(
+        request: AINutritionComparisonRequest
+    ) async throws -> AINutritionComparisonResponse {
+        try await post(endpoint: .nutritionComparison, body: request)
+    }
+
     func generateDailyReview(request: AIDailyReviewRequest) async throws -> AIDailyReviewResponse {
         try await post(endpoint: .dailyReview, body: request)
     }

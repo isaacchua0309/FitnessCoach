@@ -15,6 +15,7 @@ struct CoachConversationView: View {
     var onDismissKeyboard: (() -> Void)?
     var onStarterTap: ((CoachStarterPromptSpec) -> Void)?
     var onRetryMealPhotoAnalysis: ((UUID) -> Void)?
+    var onNutritionAction: ((NutritionSuggestedAction) -> Void)?
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -34,7 +35,8 @@ struct CoachConversationView: View {
                             ForEach(messages) { message in
                                 CoachMessageView(
                                     message: message,
-                                    onRetryMealPhotoAnalysis: onRetryMealPhotoAnalysis
+                                    onRetryMealPhotoAnalysis: onRetryMealPhotoAnalysis,
+                                    onNutritionAction: onNutritionAction
                                 )
                                 .id(message.id)
                             }

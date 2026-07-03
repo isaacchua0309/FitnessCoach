@@ -16,6 +16,8 @@ protocol LLMClient: Sendable {
     func parseCommand(request: AIParseCommandRequest) async throws -> AIParseCommandResponse
     func estimateFood(request: AIFoodEstimateRequest) async throws -> AIFoodEstimateResponse
     func generateMealAdvice(request: AIMealAdviceRequest) async throws -> AIMealAdviceResponse
+    func generateNutritionEstimate(request: AINutritionEstimateRequest) async throws -> AINutritionEstimateResponse
+    func generateNutritionComparison(request: AINutritionComparisonRequest) async throws -> AINutritionComparisonResponse
     func generateDailyReview(request: AIDailyReviewRequest) async throws -> AIDailyReviewResponse
     func parseWorkout(request: AIWorkoutParseRequest) async throws -> AIWorkoutParseResponse
     func parseEditOrDelete(request: AIEditDeleteParseRequest) async throws -> AIEditDeleteParseResponse

@@ -139,11 +139,11 @@ final class CoachRoutingTests: XCTestCase {
         )
     }
 
-    func testCalorieLookupRoutesToCheapMealAdvice() async throws {
+    func testCalorieLookupRoutesToCheapNutritionEstimate() async throws {
         try await assertClassifierRoute(
             "how many calories does a double mcspicy have",
             stub: stubIntent(.calorieLookup),
-            expectedHandler: "cheap_meal_advice",
+            expectedHandler: "cheap_nutrition_estimate",
             expectedTier: .cheap
         )
     }

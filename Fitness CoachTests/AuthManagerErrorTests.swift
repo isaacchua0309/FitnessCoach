@@ -129,6 +129,14 @@ private final class AuthenticationFailingLLMClient: LLMClient, @unchecked Sendab
         throw LLMClientError.authenticationFailed
     }
 
+    func generateNutritionEstimate(request: AINutritionEstimateRequest) async throws -> AINutritionEstimateResponse {
+        throw LLMClientError.authenticationFailed
+    }
+
+    func generateNutritionComparison(request: AINutritionComparisonRequest) async throws -> AINutritionComparisonResponse {
+        throw LLMClientError.authenticationFailed
+    }
+
     func generateDailyReview(request: AIDailyReviewRequest) async throws -> AIDailyReviewResponse {
         throw LLMClientError.authenticationFailed
     }

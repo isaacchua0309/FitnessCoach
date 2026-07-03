@@ -94,6 +94,24 @@ const AI_GATEWAY_ROUTES = [
     },
   },
   {
+    path: "/v1/ai/generate-nutrition-estimate",
+    body: {question: "Calories in a Big Mac", context: {}},
+    assertShape: (body: Record<string, unknown>) => {
+      expect(body).toHaveProperty("estimate");
+      expect(body.estimate).toHaveProperty("foodName");
+      expect(body.estimate).toHaveProperty("suggestedActions");
+    },
+  },
+  {
+    path: "/v1/ai/generate-nutrition-comparison",
+    body: {question: "Big Mac vs McSpicy", context: {}},
+    assertShape: (body: Record<string, unknown>) => {
+      expect(body).toHaveProperty("comparison");
+      expect(body.comparison).toHaveProperty("leftItem");
+      expect(body.comparison).toHaveProperty("rightItem");
+    },
+  },
+  {
     path: "/v1/ai/generate-daily-review",
     body: {
       input: {

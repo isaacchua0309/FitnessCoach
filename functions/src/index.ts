@@ -126,6 +126,24 @@ export async function handleAiGatewayRequest(
         ),
       };
       break;
+    case "/v1/ai/generate-nutrition-estimate":
+      modelUsed = resolveModel({
+        tier: body.modelTier ?? "cheap",
+        modelName: body.modelName,
+      });
+      payload = {
+        estimate: await nutritionEstimateResponse(body, traceId),
+      };
+      break;
+    case "/v1/ai/generate-nutrition-comparison":
+      modelUsed = resolveModel({
+        tier: body.modelTier ?? "cheap",
+        modelName: body.modelName,
+      });
+      payload = {
+        comparison: await nutritionComparisonResponse(body, traceId),
+      };
+      break;
     case "/v1/ai/generate-daily-review":
       modelUsed = resolveModel({
         tier: "cheap",
@@ -592,6 +610,40 @@ async function coachResponse(
   });
 }
 
+async function nutritionEstimateResponse(
+  request: Record<string, any>,
+  traceId?: string
+) {
+  return openAIJSON({
+    instructions: nutritionEstimateInstructions(),
+    input: JSON.stringify(request),
+    schema: nutritionEstimateResponseSchema(),
+    maxOutputTokens: 1200,
+    model: resolveModel({
+      tier: request.modelTier ?? "cheap",
+      modelName: request.modelName,
+    }),
+    traceId,
+  });
+}
+
+async function nutritionComparisonResponse(
+  request: Record<string, any>,
+  traceId?: string
+) {
+  return openAIJSON({
+    instructions: nutritionComparisonInstructions(),
+    input: JSON.stringify(request),
+    schema: nutritionComparisonResponseSchema(),
+    maxOutputTokens: 1200,
+    model: resolveModel({
+      tier: request.modelTier ?? "cheap",
+      modelName: request.modelName,
+    }),
+    traceId,
+  });
+}
+
 function sharedRules(): string {
   return [
     "You are FitPilot's parsing and coaching assistant.",
@@ -671,6 +723,32 @@ Task: Give brief meal advice using the provided fitness context.
 Do not log anything. Mention practical portions or tradeoffs when helpful.`;
 }
 
+function nutritionEstimateInstructions(): string {
+  return `${sharedRules()}
+
+Task: Return a structured nutrition estimate card for the user's food question.
+Do not log anything. Do not write long prose or markdown articles.
+Rules:
+- Return structured fields only matching the schema.
+- foodName and caloriesKcal (or calorie range) are required when possible.
+- confidenceLevel: high for branded/common foods, medium for portion assumptions, low for vague items.
+- coachSummary max 120 characters. coachTip max 140 characters. Each caveat max 90 characters, max 2 caveats.
+- Avoid phrases: "Short answer", "It depends", "In general", "If you're watching calories", "A typical".
+- Include suggestedActions: logMeal, addCommonSide when relevant, estimateAnother.
+- Use concise product copy: "Estimated", "High confidence", "Fits today", "Values may vary slightly".`;
+}
+
+function nutritionComparisonInstructions(): string {
+  return `${sharedRules()}
+
+Task: Compare two foods side-by-side for calories and macros.
+Do not log anything. Do not write long prose.
+Rules:
+- leftItem and rightItem must each include foodName and caloriesKcal when possible.
+- coachPick max 140 characters with a practical recommendation.
+- Include estimateAnother or compareAlternative suggestedActions when helpful.`;
+}
+
 function coachIntentClassificationInstructions(): string {
   return `${sharedRules()}
 
@@ -679,8 +757,12 @@ ${healthIntelligenceRules()}
 Task: Classify the user's Coach message. You are not answering the user yet.
 Return valid JSON only matching CoachIntentResult.
 - Choose one intent: log_food, log_water, log_weight, log_workout, edit_log, delete_log, undo,
-  daily_summary, calorie_lookup, macro_lookup, meal_decision, nutrition_advice,
-  workout_advice, weight_loss_advice, app_help, general_conversation, unrelated_or_unsupported.
+  daily_summary, calorie_lookup, macro_lookup, meal_decision, nutrition_estimate_query,
+  nutrition_comparison_query, nutrition_advice, workout_advice, weight_loss_advice, app_help,
+  general_conversation, unrelated_or_unsupported.
+- Prefer nutrition_estimate_query for calorie/macro estimates and meal-fit questions without logging.
+- Prefer nutrition_comparison_query for "X vs Y" food comparisons without logging.
+- Use log_food only when the user wants to log or record food. Set requiresAppMutation true.
 - Prefer app-domain intents for food, calories, weight, workouts, hydration, meals, and fitness.
 - Set requiresAppMutation true only when the user wants to change FitPilot data.
 - Include action only when mutation data is clear enough to validate and the matching draft object is populated.
@@ -1009,6 +1091,103 @@ function aiCoachResponseSchema(): ResponseSchema {
   };
 }
 
+function nutritionSuggestedActionSchema(): JSONSchema {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: ["id", "title", "type", "payload"],
+    properties: {
+      id: {type: "string"},
+      title: {type: "string"},
+      type: enumSchema([
+        "logMeal", "estimateAnother", "addCommonSide", "addDrink",
+        "compareAlternative", "healthierAlternative", "askFollowUp",
+      ]),
+      payload: {
+        type: "object",
+        additionalProperties: {type: "string"},
+      },
+    },
+  };
+}
+
+function nutritionEstimateResponseSchema(): ResponseSchema {
+  return {
+    name: "nutrition_estimate_response",
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      required: [
+        "type", "foodName", "displayEmoji", "caloriesKcal", "caloriesRangeLowerKcal",
+        "caloriesRangeUpperKcal", "proteinGrams", "carbsGrams", "fatGrams",
+        "servingDescription", "confidenceLevel", "confidenceLabel", "confidenceReason",
+        "sourceType", "coachSummary", "coachTip", "caveats", "suggestedActions",
+      ],
+      properties: {
+        type: {type: "string", enum: ["nutrition_estimate"]},
+        foodName: {type: "string"},
+        displayEmoji: nullable({type: "string"}),
+        caloriesKcal: nullable({type: "integer"}),
+        caloriesRangeLowerKcal: nullable({type: "integer"}),
+        caloriesRangeUpperKcal: nullable({type: "integer"}),
+        proteinGrams: nullable({type: "number"}),
+        carbsGrams: nullable({type: "number"}),
+        fatGrams: nullable({type: "number"}),
+        servingDescription: nullable({type: "string"}),
+        confidenceLevel: confidence,
+        confidenceLabel: nullable({type: "string"}),
+        confidenceReason: nullable({type: "string"}),
+        sourceType: nullable(enumSchema(["branded", "common", "restaurant", "homemade", "unknown"])),
+        coachSummary: nullable({type: "string"}),
+        coachTip: nullable({type: "string"}),
+        caveats: {type: "array", items: {type: "string"}},
+        suggestedActions: {type: "array", items: nutritionSuggestedActionSchema()},
+      },
+    },
+  };
+}
+
+function nutritionComparisonItemSchema(): JSONSchema {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: [
+      "id", "foodName", "displayEmoji", "caloriesKcal", "caloriesRangeLowerKcal",
+      "caloriesRangeUpperKcal", "proteinGrams", "carbsGrams", "fatGrams", "servingDescription",
+    ],
+    properties: {
+      id: {type: "string"},
+      foodName: {type: "string"},
+      displayEmoji: nullable({type: "string"}),
+      caloriesKcal: nullable({type: "integer"}),
+      caloriesRangeLowerKcal: nullable({type: "integer"}),
+      caloriesRangeUpperKcal: nullable({type: "integer"}),
+      proteinGrams: nullable({type: "number"}),
+      carbsGrams: nullable({type: "number"}),
+      fatGrams: nullable({type: "number"}),
+      servingDescription: nullable({type: "string"}),
+    },
+  };
+}
+
+function nutritionComparisonResponseSchema(): ResponseSchema {
+  return {
+    name: "nutrition_comparison_response",
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["type", "leftItem", "rightItem", "coachPick", "suggestedActions"],
+      properties: {
+        type: {type: "string", enum: ["nutrition_comparison"]},
+        leftItem: nutritionComparisonItemSchema(),
+        rightItem: nutritionComparisonItemSchema(),
+        coachPick: nullable({type: "string"}),
+        suggestedActions: {type: "array", items: nutritionSuggestedActionSchema()},
+      },
+    },
+  };
+}
+
 function aiWorkoutParseResponseSchema(): ResponseSchema {
   return {
     name: "ai_workout_parse_response",
@@ -1055,7 +1234,8 @@ function coachIntentResultSchema(): ResponseSchema {
       properties: {
         intent: enumSchema([
           "log_food", "log_water", "log_weight", "log_workout", "edit_log", "delete_log", "undo",
-          "daily_summary", "calorie_lookup", "macro_lookup", "meal_decision", "nutrition_advice",
+          "daily_summary", "calorie_lookup", "macro_lookup", "meal_decision",
+          "nutrition_estimate_query", "nutrition_comparison_query", "nutrition_advice",
           "workout_advice", "weight_loss_advice", "app_help", "general_conversation",
           "unrelated_or_unsupported",
         ]),

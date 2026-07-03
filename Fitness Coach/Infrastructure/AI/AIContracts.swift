@@ -219,6 +219,74 @@ struct AIMealAdviceResponse: Codable, Equatable, Sendable {
     }
 }
 
+// MARK: Nutrition Estimate
+
+struct AINutritionEstimateRequest: Codable, Equatable, Sendable {
+    var question: String
+    var context: AIContext
+    var intentResult: CoachIntentResult?
+    var modelTier: CoachModelTier?
+    var modelName: String?
+
+    init(
+        question: String,
+        context: AIContext,
+        intentResult: CoachIntentResult? = nil,
+        modelTier: CoachModelTier? = nil,
+        modelName: String? = nil
+    ) {
+        self.question = question
+        self.context = context
+        self.intentResult = intentResult
+        self.modelTier = modelTier
+        self.modelName = modelName
+    }
+}
+
+struct AINutritionEstimateResponse: Codable, Equatable, Sendable {
+    var estimate: NutritionEstimateResponse
+    var usage: AIUsageMetadata?
+
+    init(estimate: NutritionEstimateResponse, usage: AIUsageMetadata? = nil) {
+        self.estimate = estimate
+        self.usage = usage
+    }
+}
+
+// MARK: Nutrition Comparison
+
+struct AINutritionComparisonRequest: Codable, Equatable, Sendable {
+    var question: String
+    var context: AIContext
+    var intentResult: CoachIntentResult?
+    var modelTier: CoachModelTier?
+    var modelName: String?
+
+    init(
+        question: String,
+        context: AIContext,
+        intentResult: CoachIntentResult? = nil,
+        modelTier: CoachModelTier? = nil,
+        modelName: String? = nil
+    ) {
+        self.question = question
+        self.context = context
+        self.intentResult = intentResult
+        self.modelTier = modelTier
+        self.modelName = modelName
+    }
+}
+
+struct AINutritionComparisonResponse: Codable, Equatable, Sendable {
+    var comparison: NutritionComparisonResponse
+    var usage: AIUsageMetadata?
+
+    init(comparison: NutritionComparisonResponse, usage: AIUsageMetadata? = nil) {
+        self.comparison = comparison
+        self.usage = usage
+    }
+}
+
 // MARK: Daily Review
 
 struct AIDailyReviewRequest: Codable, Equatable, Sendable {

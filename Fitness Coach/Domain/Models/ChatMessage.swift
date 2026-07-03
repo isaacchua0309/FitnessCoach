@@ -24,6 +24,8 @@ struct ChatMessage: Codable, Identifiable, Equatable, Sendable {
     var imageAttachment: ChatMessageImageAttachment?
     /// Assistant ↔ user photo linkage for analysis results, including failures.
     var photoAnalysisLink: ChatMessagePhotoAnalysisLink?
+    /// Structured nutrition estimate or comparison card payload.
+    var structuredContent: CoachStructuredMessageContent?
 
     init(
         id: UUID = UUID(),
@@ -33,7 +35,8 @@ struct ChatMessage: Codable, Identifiable, Equatable, Sendable {
         relatedDailyLogId: UUID? = nil,
         relatedEntryId: UUID? = nil,
         imageAttachment: ChatMessageImageAttachment? = nil,
-        photoAnalysisLink: ChatMessagePhotoAnalysisLink? = nil
+        photoAnalysisLink: ChatMessagePhotoAnalysisLink? = nil,
+        structuredContent: CoachStructuredMessageContent? = nil
     ) {
         self.id = id
         self.role = role
@@ -43,6 +46,7 @@ struct ChatMessage: Codable, Identifiable, Equatable, Sendable {
         self.relatedEntryId = relatedEntryId
         self.imageAttachment = imageAttachment
         self.photoAnalysisLink = photoAnalysisLink
+        self.structuredContent = structuredContent
     }
 
     var hasMealPhotoAttachment: Bool {

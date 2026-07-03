@@ -62,6 +62,44 @@ final class MockLLMClient: LLMClient {
         )
     }
 
+    func generateNutritionEstimate(
+        request: AINutritionEstimateRequest
+    ) async throws -> AINutritionEstimateResponse {
+        logMockHit(operation: "generateNutritionEstimate")
+        return AINutritionEstimateResponse(
+            estimate: NutritionEstimateResponse(
+                foodName: request.question,
+                displayEmoji: "🍔",
+                caloriesKcal: 550,
+                proteinGrams: 25,
+                carbsGrams: 45,
+                fatGrams: 30,
+                servingDescription: "1 standard serving",
+                confidenceLevel: .medium,
+                confidenceLabel: "Medium",
+                coachSummary: "Estimated for your question.",
+                coachTip: "Confirm portion size if unsure.",
+                suggestedActions: [
+                    NutritionSuggestedAction(title: "Log meal", type: .logMeal, payload: ["foodName": request.question]),
+                    NutritionSuggestedAction(title: "Estimate another", type: .estimateAnother)
+                ]
+            )
+        )
+    }
+
+    func generateNutritionComparison(
+        request: AINutritionComparisonRequest
+    ) async throws -> AINutritionComparisonResponse {
+        logMockHit(operation: "generateNutritionComparison")
+        return AINutritionComparisonResponse(
+            comparison: NutritionComparisonResponse(
+                leftItem: NutritionComparisonItem(foodName: "Option A", caloriesKcal: 550, proteinGrams: 25, fatGrams: 30),
+                rightItem: NutritionComparisonItem(foodName: "Option B", caloriesKcal: 540, proteinGrams: 27, fatGrams: 29),
+                coachPick: "Calories are similar; pick based on preference."
+            )
+        )
+    }
+
     func generateDailyReview(request: AIDailyReviewRequest) async throws -> AIDailyReviewResponse {
         logMockHit(operation: "generateDailyReview")
         return AIDailyReviewResponse(

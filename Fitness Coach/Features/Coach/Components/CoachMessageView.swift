@@ -10,6 +10,7 @@ import SwiftUI
 struct CoachMessageView: View {
     let message: ChatMessage
     var onRetryMealPhotoAnalysis: ((UUID) -> Void)?
+    var onNutritionAction: ((NutritionSuggestedAction) -> Void)?
 
     private var presentation: CoachMessagePresentation {
         CoachMessagePresenter.presentation(for: message)
@@ -26,6 +27,10 @@ struct CoachMessageView: View {
                 confirmationMessage(content)
             case .assistant(let text):
                 assistantMessage(text)
+            case .nutritionEstimate(let state):
+                nutritionEstimateMessage(state)
+            case .nutritionComparison(let state):
+                nutritionComparisonMessage(state)
             case .assistantPhotoAnalysis(let text, let relatedUserMessageID, let kind):
                 assistantPhotoAnalysisMessage(
                     text: text,
@@ -66,6 +71,28 @@ struct CoachMessageView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 32)
+        }
+    }
+
+    @ViewBuilder
+    private func nutritionEstimateMessage(_ state: NutritionEstimateCardState) -> some View {
+        HStack {
+            NutritionEstimateCard(state: state) { action in
+                onNutritionAction?(action)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer(minLength: 16)
+        }
+    }
+
+    @ViewBuilder
+    private func nutritionComparisonMessage(_ state: NutritionComparisonCardState) -> some View {
+        HStack {
+            NutritionComparisonCard(state: state) { action in
+                onNutritionAction?(action)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer(minLength: 16)
         }
     }
 

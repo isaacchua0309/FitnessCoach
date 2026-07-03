@@ -75,7 +75,8 @@ enum CoachIntentConfidenceGate {
         guard !result.requiresAppMutation else { return false }
         switch result.intent {
         case .generalConversation, .appHelp, .calorieLookup, .macroLookup,
-             .mealDecision, .nutritionAdvice, .workoutAdvice, .weightLossAdvice,
+             .mealDecision, .nutritionEstimateQuery, .nutritionComparisonQuery,
+             .nutritionAdvice, .workoutAdvice, .weightLossAdvice,
              .dailySummary:
             return true
         default:

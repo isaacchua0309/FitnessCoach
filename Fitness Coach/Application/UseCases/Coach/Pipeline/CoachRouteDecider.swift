@@ -14,6 +14,8 @@ enum NoOpResponse: Equatable, Sendable {
 
 enum CoachAITask: Equatable, Sendable {
     case estimateFood(String)
+    case nutritionEstimate(String)
+    case nutritionComparison(String)
     case mealAdvice(String)
     case parseWorkout(String)
     case editEntry(String)
@@ -300,6 +302,10 @@ final class CoachRouteDecider: Sendable {
         case .ai(let task):
             switch task.task {
             case .estimateFood: return "ai_estimate_food"
+            case .nutritionEstimate:
+                return task.tier == .strong ? "strong_nutrition_estimate" : "cheap_nutrition_estimate"
+            case .nutritionComparison:
+                return task.tier == .strong ? "strong_nutrition_comparison" : "cheap_nutrition_comparison"
             case .mealAdvice: return task.tier == .strong ? "strong_meal_advice" : "cheap_meal_advice"
             case .parseWorkout: return "ai_parse_workout"
             case .editEntry: return "ai_edit_entry"

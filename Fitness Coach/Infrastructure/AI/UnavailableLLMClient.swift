@@ -42,6 +42,18 @@ final class UnavailableLLMClient: LLMClient, @unchecked Sendable {
         try unavailable(operation: "generateMealAdvice")
     }
 
+    func generateNutritionEstimate(
+        request: AINutritionEstimateRequest
+    ) async throws -> AINutritionEstimateResponse {
+        try unavailable(operation: "generateNutritionEstimate")
+    }
+
+    func generateNutritionComparison(
+        request: AINutritionComparisonRequest
+    ) async throws -> AINutritionComparisonResponse {
+        try unavailable(operation: "generateNutritionComparison")
+    }
+
     func generateDailyReview(request: AIDailyReviewRequest) async throws -> AIDailyReviewResponse {
         try unavailable(operation: "generateDailyReview")
     }

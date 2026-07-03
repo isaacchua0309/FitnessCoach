@@ -45,6 +45,8 @@ enum CoachIntent: String, Codable, Equatable, Sendable {
     case calorieLookup = "calorie_lookup"
     case macroLookup = "macro_lookup"
     case mealDecision = "meal_decision"
+    case nutritionEstimateQuery = "nutrition_estimate_query"
+    case nutritionComparisonQuery = "nutrition_comparison_query"
     case nutritionAdvice = "nutrition_advice"
     case workoutAdvice = "workout_advice"
     case weightLossAdvice = "weight_loss_advice"

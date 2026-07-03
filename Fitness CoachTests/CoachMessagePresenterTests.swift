@@ -84,6 +84,41 @@ final class CoachMessagePresenterTests: XCTestCase {
         XCTAssertEqual(text, "log water")
     }
 
+    func testNutritionEstimateStructuredMessageRendersCardPresentation() {
+        let card = NutritionEstimateCardState(
+            id: UUID(),
+            foodName: "Big Mac",
+            displayEmoji: "🍔",
+            servingDescription: "1 burger",
+            caloriesDisplay: "550 kcal",
+            proteinDisplay: "Protein 25g",
+            carbsDisplay: "Carbs 45g",
+            fatDisplay: "Fat 30g",
+            confidenceTitle: "High confidence",
+            confidenceSubtitle: nil,
+            coachSummary: nil,
+            coachTip: "Skip fries.",
+            caveats: [],
+            todayContext: nil,
+            suggestedActions: [],
+            sourceType: .branded,
+            confidenceLevel: .high,
+            hasMacros: true,
+            hasTodayContext: false,
+            logMealPayload: nil
+        )
+        let message = ChatMessage(
+            role: .assistant,
+            text: "Big Mac estimate",
+            structuredContent: .nutritionEstimate(card)
+        )
+
+        guard case .nutritionEstimate(let state) = CoachMessagePresenter.presentation(for: message) else {
+            return XCTFail("Expected nutrition estimate presentation")
+        }
+        XCTAssertEqual(state.foodName, "Big Mac")
+    }
+
     private func makeAttachment() throws -> ChatMessageImageAttachment {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 24, height: 24))
         let image = renderer.image { context in
