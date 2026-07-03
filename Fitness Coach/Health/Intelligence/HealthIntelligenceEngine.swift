@@ -81,12 +81,7 @@ struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
             calendar: calendar
         )
         let recovery = HealthIntelligenceBaseline.recoverySummary(availability: availability)
-        let nutritionAdjustment = await adaptiveNutritionEngine.nutritionAdjustment(
-            for: day,
-            activity: activity,
-            workout: workout,
-            trainingLoad: .unknown
-        )
+        let nutritionAdjustment = AdaptiveNutritionSummary.none
         let daysWithActivityData = weekMetrics.filter { HealthIntelligenceBaseline.dayHasActivity($0) }.count
         let weeklyReview = HealthIntelligenceBaseline.weeklyReview(
             metricsInWeek: weekMetrics,

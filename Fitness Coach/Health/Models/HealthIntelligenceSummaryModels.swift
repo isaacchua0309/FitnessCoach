@@ -148,13 +148,46 @@ struct ActivitySummary: Equatable, Sendable, Codable {
 }
 
 struct AdaptiveNutritionSummary: Equatable, Sendable, Codable {
-    var calorieAdjustment: Int
-    var rationale: String
+    var proteinRecommendationGrams: Int?
+    var suggestedProteinRemaining: Int?
+    var waterIncreaseMl: Int
+    var suggestedWaterRemainingMl: Int?
+    var calorieAdvice: String
+    var shouldChangeTarget: Bool
+    var suggestedCalorieAdjustment: Int
+    var adjustmentReason: String
+    var priority: Int
+    var confidence: AdaptiveNutritionConfidence
+    var missingSignals: Set<AdaptiveNutritionMissingSignal>
 
     static let none = AdaptiveNutritionSummary(
-        calorieAdjustment: 0,
-        rationale: ""
+        proteinRecommendationGrams: nil,
+        suggestedProteinRemaining: nil,
+        waterIncreaseMl: 0,
+        suggestedWaterRemainingMl: nil,
+        calorieAdvice: "",
+        shouldChangeTarget: false,
+        suggestedCalorieAdjustment: 0,
+        adjustmentReason: "",
+        priority: 0,
+        confidence: .low,
+        missingSignals: [.nutritionProgress, .userPlan, .workout]
     )
+}
+
+enum AdaptiveNutritionConfidence: String, Equatable, Sendable, Codable {
+    case low
+    case moderate
+    case high
+}
+
+enum AdaptiveNutritionMissingSignal: String, Equatable, Sendable, Hashable, Codable {
+    case nutritionProgress
+    case userPlan
+    case workout
+    case workoutCalories
+    case recovery
+    case trainingLoad
 }
 
 struct WeeklyHealthReview: Equatable, Sendable, Codable {
