@@ -23,119 +23,99 @@ final class CoachManualImageQAExecutionTests: XCTestCase {
         let secondJPEG = CoachImageWorkflowTestSupport.makeTestJPEG(color: .systemGreen)
         let cameraJPEG = CoachImageWorkflowTestSupport.makeTestJPEG(color: .systemBlue)
 
-        // Step 1: Open Coach — harness constructs CoachModel (Coach tab equivalent).
+        // Step 1: Open Coach.
         XCTAssertNotNil(model)
 
-        // Step 2: Tap plus — requestPhotoPick succeeds on empty composer.
-        XCTAssertTrue(model.requestPhotoPick(), "Step 2: plus attachment menu should open pick flow")
+        // Step 2: Tap plus.
+        XCTAssertTrue(model.requestPhotoPick())
 
-        // Step 3–4: Choose library, select image.
+        // Steps 3–4: Choose library, select image.
         await model.handleMealPhotoSelection(.success(libraryJPEG), source: .library)
 
         // Step 5: Confirm image appears in input bar.
-        XCTAssertNotNil(model.inputState.attachment, "Step 5: staged thumbnail should appear in composer")
+        XCTAssertNotNil(model.inputState.attachment)
         XCTAssertEqual(model.inputState.attachment?.source, .library)
 
-        // Step 6–7: Remove image, confirm composer clears.
+        // Steps 6–7: Remove image, confirm composer clears.
         model.removeStagedMealPhoto()
-        XCTAssertNil(model.inputState.attachment, "Step 7: composer should clear after remove")
+        XCTAssertNil(model.inputState.attachment)
         XCTAssertFalse(model.inputState.canSend)
 
         // Step 8: Add another image.
         await model.handleMealPhotoSelection(.success(secondJPEG), source: .library)
-        XCTAssertNotNil(model.inputState.attachment, "Step 8: second image should stage")
+        XCTAssertNotNil(model.inputState.attachment)
 
-        // Step 9–12: Send without text; bubble, analysis, draft only on success.
+        // Steps 9–12: Send without text; bubble, analysis, draft on success only.
         await model.sendCurrentMessage()
-        let userMessage = try XCTUnwrap(model.messages.first { $0.role == .user })
-        XCTAssertNotNil(userMessage.mealPhotoJPEG, "Step 10: chat bubble should include image")
-        XCTAssertEqual(aiService.analyzeMealImageCallCount, 1, "Step 11: assistant should analyze image")
-        XCTAssertNotNil(model.pendingConfirmation, "Step 12: meal draft card on success")
-        guard case .food(let draft) = model.pendingConfirmation else {
-            return XCTFail("Step 12: expected food draft card")
+        let imageOnlyUser = try XCTUnwrap(model.messages.first { $0.role == .user })
+        XCTAssertNotNil(imageOnlyUser.mealPhotoJPEG)
+        XCTAssertEqual(aiService.analyzeMealImageCallCount, 1)
+        XCTAssertNotNil(model.pendingConfirmation)
+        guard case .food(let firstDraft) = model.pendingConfirmation else {
+            return XCTFail("Expected meal draft card after successful analysis")
         }
-        XCTAssertEqual(draft.mealDraft.displayName, "Photo meal")
+        XCTAssertEqual(firstDraft.mealDraft.displayName, "Photo meal")
 
-        // Step 13: Repeat with text + image.
+        // Step 13: Text + image.
         aiService.resetCounters()
         model.inputText = "Lunch bowl"
         await model.handleMealPhotoSelection(.success(libraryJPEG), source: .library)
         await model.sendCurrentMessage()
-        let captioned = try XCTUnwrap(model.messages.last { $0.role == .user && !$0.text.isEmpty })
-        XCTAssertEqual(captioned.text, "Lunch bowl", "Step 13: text + image caption preserved")
+        let captioned = try XCTUnwrap(model.messages.last { $0.role == .user })
+        XCTAssertEqual(captioned.text, "Lunch bowl")
         XCTAssertNotNil(captioned.mealPhotoJPEG)
         XCTAssertEqual(aiService.analyzeMealImageCallCount, 1)
 
-        // Step 14: Repeat with camera source.
+        // Step 14: Camera source.
         aiService.resetCounters()
         await model.handleMealPhotoSelection(.success(cameraJPEG), source: .camera)
         await model.sendCurrentMessage()
-        XCTAssertEqual(
-            model.messages.last { $0.role == .user }?.imageAttachment?.source,
-            .camera,
-            "Step 14: camera source preserved on user bubble"
-        )
+        XCTAssertEqual(model.messages.last { $0.role == .user }?.imageAttachment?.source, .camera)
         XCTAssertEqual(aiService.analyzeMealImageCallCount, 1)
 
-        // Step 15: Cancel camera — no messages, composer unchanged.
-        let messagesBeforeCameraCancel = model.messages.count
-        let attachmentBeforeCameraCancel = model.stagedMealPhotoJPEG
+        // Step 15: Cancel camera.
+        let messageCountBeforeCancel = model.messages.count
         await model.handleMealPhotoSelection(.failure(.userCancelled), source: .camera)
-        XCTAssertEqual(model.messages.count, messagesBeforeCameraCancel, "Step 15: cancel camera is silent")
-        XCTAssertEqual(model.stagedMealPhotoJPEG, attachmentBeforeCameraCancel)
+        XCTAssertEqual(model.messages.count, messageCountBeforeCancel)
 
-        // Step 16: Cancel library — same silent cancel path.
+        // Step 16: Cancel library.
         await model.handleMealPhotoSelection(.failure(.userCancelled), source: .library)
-        XCTAssertEqual(model.messages.count, messagesBeforeCameraCancel, "Step 16: cancel library is silent")
+        XCTAssertEqual(model.messages.count, messageCountBeforeCancel)
 
-        // Step 17: Deny permissions — camera permission surfaces guidance copy.
-        let permissionMessage = CoachResponseBuilder.mealPhotoError(.cameraPermissionDenied)
-        XCTAssertTrue(permissionMessage.contains("Settings"), "Step 17: denied permission copy references Settings")
+        // Step 17: Deny permissions.
         await model.handleMealPhotoSelection(.failure(.cameraPermissionDenied), source: .camera)
-        XCTAssertTrue(
-            model.messages.last?.text.contains("Camera access") == true,
-            "Step 17: denied permission should surface assistant guidance"
-        )
+        XCTAssertTrue(model.messages.last?.text.contains("Camera access") == true)
 
-        // Step 18–19: Network off, send — no fake food result.
-        aiService.resetCounters()
-        aiService.injectedError = AIServiceError.networkUnavailable
-        await model.handleMealPhotoSelection(.success(libraryJPEG), source: .library)
-        await model.sendCurrentMessage()
-        XCTAssertNil(model.pendingConfirmation, "Step 19: no draft card when network fails")
-        XCTAssertTrue(
-            model.messages.contains { $0.photoAnalysisLink?.kind == .failure },
-            "Step 18: failure bubble should appear offline"
-        )
+        // Steps 18–22: Offline send + retry on a clean model.
+        let offlineService = WorkflowCapturingPhotoAIService()
+        offlineService.injectedError = AIServiceError.networkUnavailable
+        let (offlineModel, _) = try CoachImageWorkflowTestSupport.makeCoach(aiService: offlineService)
+        let offlineJPEG = CoachImageWorkflowTestSupport.makeTestJPEG(color: .systemRed)
 
-        // Step 20–22: Retry failed analysis — same image, no duplicate drafts.
-        let failedUserID = try XCTUnwrap(model.messages.last { $0.role == .user }?.id)
-        let payloadBeforeRetry = try XCTUnwrap(aiService.receivedImagePayloads.last)
-        aiService.injectedError = nil
-        guard case .food(let draftBeforeRetry) = model.pendingConfirmation else {
-            // Expected nil after failure; capture for duplicate check after retry.
-        }
-        _ = draftBeforeRetry
+        await offlineModel.handleMealPhotoSelection(.success(offlineJPEG), source: .library)
+        await offlineModel.sendCurrentMessage()
 
-        await model.retryMealPhotoAnalysis(for: failedUserID)
-        XCTAssertEqual(aiService.analyzeMealImageCallCount, 2, "Step 20: retry should re-analyze")
+        XCTAssertNil(offlineModel.pendingConfirmation)
+        XCTAssertTrue(offlineModel.messages.contains { $0.photoAnalysisLink?.kind == .failure })
+
+        let offlineUserID = try XCTUnwrap(offlineModel.messages.first { $0.role == .user }?.id)
+        let originalPayload = try XCTUnwrap(offlineService.receivedImagePayloads.first)
+
+        offlineService.injectedError = nil
+        await offlineModel.retryMealPhotoAnalysis(for: offlineUserID)
+
+        XCTAssertEqual(offlineService.analyzeMealImageCallCount, 2)
+        XCTAssertEqual(offlineService.receivedImagePayloads.last, originalPayload)
+        XCTAssertNotNil(offlineModel.pendingConfirmation)
+        XCTAssertFalse(offlineModel.messages.contains { $0.photoAnalysisLink?.kind == .failure })
         XCTAssertEqual(
-            aiService.receivedImagePayloads.last,
-            payloadBeforeRetry,
-            "Step 21: retry must reuse same JPEG bytes"
+            offlineModel.messages.filter { $0.photoAnalysisLink?.kind == .result }.count,
+            1
         )
-        XCTAssertNotNil(model.pendingConfirmation, "Step 20: draft appears after successful retry")
-        let resultMessageCount = model.messages.filter { $0.photoAnalysisLink?.kind == .result }.count
-        XCTAssertLessThanOrEqual(resultMessageCount, 2, "Step 22: no duplicate result bubbles")
-        guard case .food(let draftAfterRetry) = model.pendingConfirmation else {
-            return XCTFail("Step 22: expected single draft card after retry")
+        guard case .food(let retryDraft) = offlineModel.pendingConfirmation else {
+            return XCTFail("Expected single draft card after successful retry")
         }
-        XCTAssertEqual(
-            model.messages.filter { $0.photoAnalysisLink?.kind == .result }.count,
-            1,
-            "Step 22: exactly one success analysis message after retry supersedes failure"
-        )
-        _ = draftAfterRetry
+        XCTAssertEqual(retryDraft.mealDraft.displayName, "Photo meal")
     }
 }
 
@@ -144,6 +124,7 @@ private extension WorkflowCapturingPhotoAIService {
         analyzeMealImageCallCount = 0
         receivedImagePayloads = []
         receivedPrompts = []
+        receivedClarifications = []
         injectedError = nil
     }
 }

@@ -337,7 +337,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         let container = try AppContainer(inMemory: true)
         let model = makeModel(container: container)
 
-        model.handlePhotoSelected()
+        await model.handlePhotoSelected()
 
         XCTAssertEqual(model.messages.last?.text, CoachResponseBuilder.mealPhotoError(.noImage))
     }

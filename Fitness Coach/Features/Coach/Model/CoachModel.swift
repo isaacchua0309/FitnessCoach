@@ -240,8 +240,6 @@ final class CoachModel: ObservableObject {
     func sendCurrentMessage() async {
         guard !isSending else { return }
 
-        beginProcessing(.text)
-
         guard let snapshot = {
             var next = inputState
             guard let frozen = next.takeSendSnapshot() else { return nil }
@@ -249,10 +247,10 @@ final class CoachModel: ObservableObject {
             syncInputSendingFlag()
             return frozen
         }() else {
-            endProcessing()
             return
         }
 
+        beginProcessing(.text)
         defer { endProcessing() }
 
         switch snapshot.sendPayload {

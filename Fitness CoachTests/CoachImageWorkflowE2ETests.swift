@@ -98,6 +98,20 @@ final class CoachImageWorkflowE2ETests: XCTestCase {
 
     // MARK: - 3. Image-only send
 
+    func testSendCurrentMessageDoesNotAbortWhenProcessingLockAcquired() async throws {
+        let aiService = WorkflowCapturingPhotoAIService()
+        let model = try CoachImageWorkflowTestSupport.makeCoach(aiService: aiService).0
+        let jpeg = CoachImageWorkflowTestSupport.makeTestJPEG()
+
+        model.inputText = "Estimate this food caloric amount"
+        await model.handleMealPhotoSelection(.success(jpeg), source: .library)
+        await model.sendCurrentMessage()
+
+        XCTAssertEqual(aiService.analyzeMealImageCallCount, 1)
+        XCTAssertNotNil(model.messages.first { $0.role == .user }?.mealPhotoJPEG)
+        XCTAssertNotNil(model.pendingConfirmation)
+    }
+
     func testImageOnlySendCreatesUserBubbleBackendPayloadAndMealDraft() async throws {
         let aiService = WorkflowCapturingPhotoAIService()
         let model = try CoachImageWorkflowTestSupport.makeCoach(aiService: aiService).0

@@ -303,10 +303,15 @@ private struct CoachComposerPreviewHost: View {
 
     static var sampleAttachment: CoachInputAttachment? {
         guard let data = UIImage(systemName: "fork.knife")?
-            .jpegData(compressionQuality: 0.9) else {
+            .jpegData(compressionQuality: 0.9),
+            let thumbnail = CoachMealPhotoPipeline.makeThumbnailJPEGSync(from: data) else {
             return nil
         }
-        return CoachInputAttachment.make(jpegData: data, source: .library)
+        return CoachInputAttachment(
+            imageData: data,
+            thumbnail: thumbnail,
+            source: .library
+        )
     }
 
     init(attachment: CoachInputAttachment?, text: String) {
