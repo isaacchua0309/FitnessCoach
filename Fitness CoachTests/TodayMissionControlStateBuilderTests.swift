@@ -57,7 +57,8 @@ final class TodayMissionControlStateBuilderTests: XCTestCase {
         let state = TodayPreviewData.partialDay
 
         XCTAssertEqual(state.activity.appleHealthWorkoutCount, 1)
-        XCTAssertEqual(state.activity.displayLine, FormaProductCopy.Today.Activity.workoutCompletedLine)
+        let display = TodayActivitySectionFormatting.displayModel(for: state.activity)
+        XCTAssertEqual(display.workoutLine, FormaProductCopy.Today.Activity.workoutCompletedLine)
     }
 
     func testNoProfileUsesEmptyViewStateNotDashboardState() {

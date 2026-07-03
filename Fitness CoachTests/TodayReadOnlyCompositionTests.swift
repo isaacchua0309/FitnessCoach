@@ -24,7 +24,8 @@ final class TodayReadOnlyCompositionTests: XCTestCase {
         XCTAssertFalse(state.meals.isEmpty)
         XCTAssertNotNil(state.nextBestAction.title)
         XCTAssertGreaterThan(state.macroHydration.macroSummary.protein.target, 0)
-        XCTAssertFalse(state.activity.displayLine.isEmpty)
+        let activityDisplay = TodayActivitySectionFormatting.displayModel(for: state.activity)
+        XCTAssertFalse(activityDisplay.workoutLine.isEmpty)
         XCTAssertTrue(state.victory.isVisible)
     }
 

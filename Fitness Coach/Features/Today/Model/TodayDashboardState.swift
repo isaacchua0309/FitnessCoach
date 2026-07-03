@@ -194,9 +194,6 @@ struct TodayMealsState: Equatable {
     var sectionTitle: String
     var entries: [FoodEntry]
     var entryCount: Int
-    var emptyTitle: String?
-    var emptyBody: String?
-    var emptyActionTitle: String?
 
     var isEmpty: Bool { entries.isEmpty }
 }
@@ -213,7 +210,6 @@ enum TodayMacroHydrationFocus: Equatable, Sendable {
 struct TodayMacroHydrationState: Equatable {
     var focus: TodayMacroHydrationFocus
     var sectionTitle: String
-    var guidanceLine: String?
     var macroSummary: MacroSummary
     var waterSummary: WaterSummary
 }
@@ -237,7 +233,6 @@ struct TodayActivityState: Equatable {
     var appleHealthWorkoutCount: Int?
     var stepsToday: Int?
     var stepGoalAssumption: Int?
-    var displayLine: String
     var showsConnectCTA: Bool
     var date: Date
     var trainingFrequencyPerWeek: Int

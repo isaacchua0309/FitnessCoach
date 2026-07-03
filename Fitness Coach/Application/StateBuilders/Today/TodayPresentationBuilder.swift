@@ -216,21 +216,11 @@ enum TodayPresentationBuilder {
             phase = .noMealsToday
         }
 
-        let emptyCopy: TodayEmptyStateCopy?
-        if phase != .hasMeals {
-            emptyCopy = TodayEmptyStateFormatting.mealsEmptyCopy(for: emptyContext.mealsEmptyKind)
-        } else {
-            emptyCopy = nil
-        }
-
         return TodayMealsState(
             phase: phase,
             sectionTitle: FormaProductCopy.Today.Meals.sectionTitle,
             entries: inputs.foodEntries,
-            entryCount: inputs.foodEntries.count,
-            emptyTitle: emptyCopy?.title,
-            emptyBody: emptyCopy?.body,
-            emptyActionTitle: emptyCopy?.actionTitle
+            entryCount: inputs.foodEntries.count
         )
     }
 
@@ -245,7 +235,6 @@ enum TodayPresentationBuilder {
         return TodayMacroHydrationState(
             focus: focus,
             sectionTitle: FormaProductCopy.Today.MacroBalance.sectionTitle,
-            guidanceLine: nil,
             macroSummary: inputs.macroSummary,
             waterSummary: inputs.waterSummary
         )
@@ -270,10 +259,6 @@ enum TodayPresentationBuilder {
         }
     }
 
-    static func macroHydrationGuidance(for focus: TodayMacroHydrationFocus) -> String? {
-        nil
-    }
-
     // MARK: - Activity
 
     static func activity(from inputs: TodayMissionControlInputs) -> TodayActivityState {
@@ -281,14 +266,6 @@ enum TodayPresentationBuilder {
         let showsConnectCTA = context.trainingDataSource == .appleHealth
             && context.trainingIntegration.showsConnectionGate
         let hasWorkout = inputs.workoutSummary.hasWorkout || (context.appleHealthWorkoutCount ?? 0) > 0
-        let displayLine = activityDisplayLine(
-            context: context,
-            legacyWorkoutSummary: inputs.workoutSummary,
-            date: inputs.date,
-            trainingFrequencyPerWeek: inputs.trainingFrequencyPerWeek,
-            showsConnectCTA: showsConnectCTA,
-            stepGoalAssumption: inputs.stepGoalAssumption
-        )
 
         let phase: TodayActivityPhase
         switch context.trainingDataSource {
@@ -315,37 +292,9 @@ enum TodayPresentationBuilder {
             appleHealthWorkoutCount: context.appleHealthWorkoutCount,
             stepsToday: context.stepsToday,
             stepGoalAssumption: inputs.stepGoalAssumption,
-            displayLine: displayLine,
             showsConnectCTA: showsConnectCTA,
             date: inputs.date,
             trainingFrequencyPerWeek: inputs.trainingFrequencyPerWeek
-        )
-    }
-
-    static func activityDisplayLine(
-        context: TodayActivityContext,
-        legacyWorkoutSummary: TodayWorkoutSummary,
-        date: Date,
-        trainingFrequencyPerWeek: Int,
-        showsConnectCTA: Bool,
-        stepGoalAssumption: Int?
-    ) -> String {
-        let activity = TodayActivityState(
-            phase: .hasData,
-            sectionTitle: FormaProductCopy.Today.Activity.sectionTitle,
-            legacyWorkoutSummary: legacyWorkoutSummary,
-            trainingIntegration: context.trainingIntegration,
-            trainingDataSource: context.trainingDataSource,
-            appleHealthWorkoutCount: context.appleHealthWorkoutCount,
-            stepsToday: context.stepsToday,
-            stepGoalAssumption: stepGoalAssumption,
-            displayLine: "",
-            showsConnectCTA: showsConnectCTA,
-            date: date,
-            trainingFrequencyPerWeek: trainingFrequencyPerWeek
-        )
-        return TodayActivitySectionFormatting.workoutLine(
-            for: TodayActivitySectionFormatting.workoutStatus(for: activity)
         )
     }
 

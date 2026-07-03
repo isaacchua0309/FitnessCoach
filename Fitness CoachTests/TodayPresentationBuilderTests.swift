@@ -97,7 +97,6 @@ final class TodayPresentationBuilderTests: XCTestCase {
         )
 
         XCTAssertEqual(state.macroHydration.focus, .proteinBehind)
-        XCTAssertNil(state.macroHydration.guidanceLine)
         XCTAssertTrue(state.smartCoach.isVisible)
         XCTAssertEqual(state.smartCoach.context, .proteinBehind)
     }
@@ -113,7 +112,6 @@ final class TodayPresentationBuilderTests: XCTestCase {
         )
 
         XCTAssertEqual(state.macroHydration.focus, .waterBehind)
-        XCTAssertNil(state.macroHydration.guidanceLine)
         XCTAssertTrue(state.smartCoach.isVisible)
         XCTAssertEqual(state.smartCoach.context, .waterBehind)
     }

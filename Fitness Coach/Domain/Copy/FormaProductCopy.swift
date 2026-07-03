@@ -955,24 +955,13 @@ enum FormaProductCopy {
     // MARK: - Today
 
     enum Today {
-        static let askCoachCTATitle = "Update today with Coach"
-        static let askCoachCTASubtitle = "Log meals, water, weight, or training."
         static let askCoachCTAAccessibilityHint = "Opens Coach"
-        static let mealsEmptyTitle = FormaProductCopy.EmptyState.Meals.title
-        static let mealsEmptyBody = FormaProductCopy.EmptyState.Meals.body
-        static let mealsLogMealAction = FormaProductCopy.EmptyState.Meals.action
         static let mealsLogMealAccessibilityHint = FormaProductCopy.EmptyState.Meals.actionAccessibilityHint
-        static let caloriesRemaining = "Calories remaining"
-        static let caloriesAboveTarget = "Above today's target"
-        static let defaultCoachNote = "Anchor your next meal with protein."
-        static let focusSectionTitle = "Today's focus"
         static let focusProteinLow = "Anchor your next meal with protein."
         static let focusWaterLow = "Drink water before your next meal."
         static let focusLogWeight = "Log your weight to keep your trend accurate."
         static let focusTraining = "Keep training simple and consistent."
         static let focusOnTrack = "You're on track. Keep the next choice simple."
-        static let nextActionsSectionTitle = "Next actions"
-        static let targetsSectionTitle = "Targets"
 
         enum Header {
             static let title = "Today"
@@ -1160,9 +1149,6 @@ enum FormaProductCopy {
         static let statusWorkoutRecorded = "Workout recorded"
         static let statusNoWorkoutToday = "No workout today"
         static let statusNoAppleHealthWorkoutToday = "No Apple Health workout today"
-        static let nextActionQuickChipTitle = "Coach"
-        static let nextActionCoachHint = "Opens Coach"
-        static let nextActionConnectAppleHealthHint = "Connect Apple Health for training insights"
         static let nextActionTrainingInsightsHint = "Opens Training Insights"
 
         static func workoutsToday(_ count: Int) -> String {

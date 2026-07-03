@@ -31,9 +31,6 @@ final class TodayCopyGuardrailTests: XCTestCase {
 
     private func todayCopySamples() -> [String] {
         var samples: [String] = [
-            FormaProductCopy.Today.caloriesRemaining,
-            FormaProductCopy.Today.caloriesAboveTarget,
-            FormaProductCopy.Today.defaultCoachNote,
             FormaProductCopy.Today.focusProteinLow,
             FormaProductCopy.Today.focusWaterLow,
             FormaProductCopy.Today.focusOnTrack,

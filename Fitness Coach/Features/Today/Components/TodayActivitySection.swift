@@ -85,7 +85,6 @@ struct TodayActivitySection: View {
             appleHealthWorkoutCount: 0,
             stepsToday: 1_827,
             stepGoalAssumption: 7_500,
-            displayLine: FormaProductCopy.Today.Activity.workoutNotLoggedLine,
             showsConnectCTA: false,
             date: Date(),
             trainingFrequencyPerWeek: 3
@@ -112,7 +111,6 @@ struct TodayActivitySection: View {
             appleHealthWorkoutCount: nil,
             stepsToday: nil,
             stepGoalAssumption: 7_500,
-            displayLine: FormaProductCopy.Today.Activity.workoutNotLoggedLine,
             showsConnectCTA: true,
             date: Date(),
             trainingFrequencyPerWeek: 0
