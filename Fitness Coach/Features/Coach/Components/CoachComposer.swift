@@ -107,20 +107,18 @@ struct CoachComposer: View {
     }
 
     private var composerControlRow: some View {
-        HStack(alignment: .bottom, spacing: 0) {
+        HStack(alignment: .center, spacing: 0) {
             attachmentButton
 
-            TextField(textFieldPlaceholder, text: $text, axis: .vertical)
+            TextField(textFieldPlaceholder, text: $text)
                 .font(CoachDesignTokens.Typography.composer)
                 .foregroundStyle(CoachDesignTokens.Color.primaryText)
                 .textFieldStyle(.plain)
-                .lineLimit(1...CoachDesignTokens.Layout.composerMaxLines)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
+                .frame(height: CoachDesignTokens.Layout.composerBarHeight)
                 .focused(isFocused)
-                .padding(.leading, CoachDesignTokens.Spacing.xs)
-                .padding(.trailing, CoachDesignTokens.Spacing.xs)
-                .padding(.vertical, CoachDesignTokens.Spacing.xs)
+                .padding(.horizontal, CoachDesignTokens.Spacing.xs)
                 .submitLabel(.send)
                 .onSubmit {
                     if canSend { performSend() }
@@ -134,7 +132,7 @@ struct CoachComposer: View {
         }
         .padding(.leading, CoachDesignTokens.Spacing.xs)
         .padding(.trailing, CoachDesignTokens.Spacing.xxs)
-        .frame(minHeight: CoachDesignTokens.Layout.composerBarHeight)
+        .frame(height: CoachDesignTokens.Layout.composerBarHeight)
     }
 
     private var attachmentTransition: AnyTransition {
