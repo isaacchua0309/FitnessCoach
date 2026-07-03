@@ -457,7 +457,7 @@ private final class MockIntelligenceRepository: HealthDataRepositorying, @unchec
 
     func getRecentWorkouts(days: Int, calendar: Calendar) async -> [NormalizedWorkout] { workouts }
 
-    func getWorkouts(from startDate: Date, to endDate: Date) async -> [NormalizedWorkout] { workouts }
+    func getWorkouts(from startDate: Date, to endDate: Date, calendar: Calendar) async -> [NormalizedWorkout] { workouts }
 
     func getRecentSleep(days: Int, calendar: Calendar) async -> [NormalizedSleepRecord] { sleepRecords }
 

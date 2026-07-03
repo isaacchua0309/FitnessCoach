@@ -202,8 +202,8 @@ struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
             sleepRecords: context.sleepRecords,
             heartMetrics: context.heartMetrics,
             baselineContext: context.baselineContext,
-            trainingLoadProvider: dependencies.trainingLoad,
             recoveryProvider: dependencies.recovery,
+            trainingLoadProvider: dependencies.trainingLoad,
             calendar: context.calendar
         )
 

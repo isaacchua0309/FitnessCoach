@@ -144,7 +144,7 @@ private final class MockRoutingRepository: HealthDataRepositorying, @unchecked S
         workouts
     }
 
-    func getWorkouts(from startDate: Date, to endDate: Date) async -> [NormalizedWorkout] {
+    func getWorkouts(from startDate: Date, to endDate: Date, calendar: Calendar) async -> [NormalizedWorkout] {
         workoutsCallCount += 1
         return workouts
     }

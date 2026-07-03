@@ -467,7 +467,7 @@ final class PipelineMockRepository: HealthDataRepositorying, @unchecked Sendable
 
     func getRecentWorkouts(days: Int, calendar: Calendar) async -> [NormalizedWorkout] { workouts }
 
-    func getWorkouts(from startDate: Date, to endDate: Date) async -> [NormalizedWorkout] {
+    func getWorkouts(from startDate: Date, to endDate: Date, calendar: Calendar) async -> [NormalizedWorkout] {
         let rangeStart = calendar.startOfDay(for: startDate)
         let rangeEnd = calendar.startOfDay(for: endDate)
         return workouts.filter {

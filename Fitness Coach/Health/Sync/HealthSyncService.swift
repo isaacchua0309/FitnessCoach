@@ -63,7 +63,7 @@ actor HealthSyncService: HealthSyncServing {
 
     func syncLastNDays(_ days: Int) async -> HealthSyncState {
         let resolvedDays = max(days, 1)
-        await runSync(trigger: .manual, days: resolvedDays)
+        return await runSync(trigger: .manual, days: resolvedDays)
     }
 
     func refreshOnAppForeground() async -> HealthSyncState {

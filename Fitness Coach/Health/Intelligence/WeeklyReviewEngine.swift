@@ -266,7 +266,7 @@ struct WeeklyReviewEngine: WeeklyReviewProviding {
             ranked.append(
                 RankedWeeklyReviewCopy(
                     kind: WeeklyReviewWinKind.weight.rawValue,
-                    message: weightTrendWin(change: change, goal: input.userPlan.goal)
+                    message: weightTrendWin(changeKg: change, goal: input.userPlan.goal)
                 )
             )
         }

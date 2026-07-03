@@ -41,7 +41,7 @@ struct WorkoutIntelligenceEngine: WorkoutIntelligenceProviding {
     func evaluate(_ input: WorkoutIntelligenceInput) throws -> WorkoutSummary {
         let calendar = input.calendar
         let targetDay = calendar.startOfDay(for: input.targetDate)
-        let workoutsToday = workoutsOnTargetDay(
+        let workoutsToday = Self.workoutsOnTargetDay(
             input.workoutsToday,
             targetDay: targetDay,
             calendar: calendar
@@ -64,7 +64,7 @@ struct WorkoutIntelligenceEngine: WorkoutIntelligenceProviding {
             ? nil
             : calorieValues.reduce(0, +)
 
-        let intensity = aggregateIntensity(for: workoutsToday, totalDuration: totalDuration)
+        let intensity = Self.aggregateIntensity(for: workoutsToday, totalDuration: totalDuration)
         let demand = resolveDemand(
             workouts: workoutsToday,
             totalDuration: totalDuration,
@@ -129,10 +129,10 @@ struct WorkoutIntelligenceEngine: WorkoutIntelligenceProviding {
 
     // MARK: - Intensity
 
-    static func intensity(for workout: WorkoutRecord) -> WorkoutIntensity {
+    static func intensity(for workout: WorkoutRecord) -> WorkoutSummaryIntensity {
         if workout.durationMinutes > 0, workout.activeEnergyKcal > 0 {
             let perMinute = workout.activeEnergyKcal / Double(workout.durationMinutes)
-            let base: WorkoutIntensity
+            let base: WorkoutSummaryIntensity
             if perMinute < WorkoutIntelligencePolicy.lowIntensityCaloriesPerMinute {
                 base = .low
             } else if perMinute <= WorkoutIntelligencePolicy.highIntensityCaloriesPerMinute {
@@ -148,10 +148,10 @@ struct WorkoutIntelligenceEngine: WorkoutIntelligenceProviding {
     private static func aggregateIntensity(
         for workouts: [WorkoutRecord],
         totalDuration: Int
-    ) -> WorkoutIntensity {
+    ) -> WorkoutSummaryIntensity {
         guard totalDuration > 0 else { return .unknown }
 
-        let weighted = workouts.map { workout -> (WorkoutIntensity, Int) in
+        let weighted = workouts.map { workout -> (WorkoutSummaryIntensity, Int) in
             (intensity(for: workout), workout.durationMinutes)
         }
 
@@ -166,9 +166,9 @@ struct WorkoutIntelligenceEngine: WorkoutIntelligenceProviding {
     }
 
     private static func adjustIntensity(
-        _ base: WorkoutIntensity,
+        _ base: WorkoutSummaryIntensity,
         for category: FormaWorkoutCategory
-    ) -> WorkoutIntensity {
+    ) -> WorkoutSummaryIntensity {
         switch category {
         case .walking, .yoga:
             switch base {
@@ -186,7 +186,7 @@ struct WorkoutIntelligenceEngine: WorkoutIntelligenceProviding {
         }
     }
 
-    private static func inferredIntensity(for workout: WorkoutRecord) -> WorkoutIntensity {
+    private static func inferredIntensity(for workout: WorkoutRecord) -> WorkoutSummaryIntensity {
         switch workout.category {
         case .hiit:
             return workout.durationMinutes >= 20 ? .moderate : .low
@@ -208,7 +208,7 @@ struct WorkoutIntelligenceEngine: WorkoutIntelligenceProviding {
     private func resolveDemand(
         workouts: [WorkoutRecord],
         totalDuration: Int,
-        intensity: WorkoutIntensity,
+        intensity: WorkoutSummaryIntensity,
         primary: WorkoutRecord
     ) -> WorkoutDemand {
         if isHighDemandLongSession(
@@ -244,7 +244,7 @@ struct WorkoutIntelligenceEngine: WorkoutIntelligenceProviding {
     private func isHighDemandLongSession(
         workouts: [WorkoutRecord],
         totalDuration: Int,
-        intensity: WorkoutIntensity
+        intensity: WorkoutSummaryIntensity
     ) -> Bool {
         let demandingCategories: Set<FormaWorkoutCategory> = [.hiit, .running, .strength]
         return workouts.contains { workout in
@@ -310,7 +310,7 @@ struct WorkoutIntelligenceEngine: WorkoutIntelligenceProviding {
         for workouts: [WorkoutRecord],
         primary: WorkoutRecord,
         totalDuration: Int,
-        intensity: WorkoutIntensity,
+        intensity: WorkoutSummaryIntensity,
         demand: WorkoutDemand
     ) -> String {
         let name = displayName(for: primary.category)

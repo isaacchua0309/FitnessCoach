@@ -270,7 +270,7 @@ private final class MockContextRepository: HealthDataRepositorying, @unchecked S
         workouts
     }
 
-    func getWorkouts(from startDate: Date, to endDate: Date) async -> [NormalizedWorkout] {
+    func getWorkouts(from startDate: Date, to endDate: Date, calendar: Calendar) async -> [NormalizedWorkout] {
         getWorkoutsCallCount += 1
         let rangeStart = calendar.startOfDay(for: startDate)
         let rangeEnd = calendar.startOfDay(for: endDate)

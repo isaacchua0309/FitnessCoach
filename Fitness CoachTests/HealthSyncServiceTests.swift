@@ -244,7 +244,7 @@ private final class MockSyncRepository: HealthDataRepositorying, @unchecked Send
         []
     }
 
-    func getWorkouts(from startDate: Date, to endDate: Date) async -> [NormalizedWorkout] {
+    func getWorkouts(from startDate: Date, to endDate: Date, calendar: Calendar) async -> [NormalizedWorkout] {
         []
     }
 

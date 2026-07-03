@@ -10,11 +10,16 @@ import Foundation
 protocol HealthSampleNormalizing: Sendable {
     func normalize(day: HealthRawDayInput, calendar: Calendar) -> HealthNormalizedDayBundle
     func normalizeDailyMetrics(_ raw: HealthDailyMetrics) -> DailyHealthMetrics
+    func normalizeDailyMetrics(_ raw: HealthDailyMetrics, calendar: Calendar) -> DailyHealthMetrics
     func normalizeWorkouts(_ raw: [HealthFetchedWorkout]) -> [NormalizedWorkout]
     func normalizeSleepRecords(_ raw: [HealthSleepRecord]) -> [NormalizedSleepRecord]
     func normalizeHeartMetrics(_ raw: [HealthHeartMetric]) -> [NormalizedHeartMetric]
     func normalizeBodyMassRecords(_ raw: [HealthBodyMassRecord]) -> [NormalizedBodyMass]
     func deduplicate(samples: [HealthNormalizedSample]) -> [HealthNormalizedSample]
+    func deduplicateWorkouts(_ workouts: [NormalizedWorkout]) -> [NormalizedWorkout]
+    func deduplicateSleepRecords(_ records: [NormalizedSleepRecord]) -> [NormalizedSleepRecord]
+    func deduplicateHeartMetrics(_ metrics: [NormalizedHeartMetric]) -> [NormalizedHeartMetric]
+    func deduplicateBodyMassRecords(_ records: [NormalizedBodyMass]) -> [NormalizedBodyMass]
 }
 
 struct HealthSampleNormalizer: HealthSampleNormalizing {

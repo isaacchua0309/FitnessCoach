@@ -86,7 +86,7 @@ struct WorkoutSummary: Equatable, Sendable, Codable {
     var workoutCount: Int
     var totalDurationMinutes: Int
     var totalActiveCalories: Int?
-    var intensity: WorkoutIntensity
+    var intensity: WorkoutSummaryIntensity
     var demand: WorkoutDemand
     var latestWorkoutStart: Date?
     var latestWorkoutEnd: Date?
@@ -115,7 +115,7 @@ struct WorkoutSummary: Equatable, Sendable, Codable {
     )
 }
 
-enum WorkoutIntensity: String, Equatable, Sendable, Codable {
+enum WorkoutSummaryIntensity: String, Equatable, Sendable, Codable {
     case low
     case moderate
     case high

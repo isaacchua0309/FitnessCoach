@@ -36,7 +36,7 @@ protocol HealthDataRepositorying: Sendable {
         calendar: Calendar
     ) async -> [DailyHealthMetrics]
     func getRecentWorkouts(days: Int, calendar: Calendar) async -> [NormalizedWorkout]
-    func getWorkouts(from startDate: Date, to endDate: Date) async -> [NormalizedWorkout]
+    func getWorkouts(from startDate: Date, to endDate: Date, calendar: Calendar) async -> [NormalizedWorkout]
     func getRecentSleep(days: Int, calendar: Calendar) async -> [NormalizedSleepRecord]
     func getSleepRecords(
         from startDate: Date,
@@ -73,6 +73,10 @@ extension HealthDataRepositorying {
 
     func getRecentWorkouts(days: Int = HealthDataRepositoryDefaults.recentWorkoutsDays) async -> [NormalizedWorkout] {
         await getRecentWorkouts(days: days, calendar: .current)
+    }
+
+    func getWorkouts(from startDate: Date, to endDate: Date) async -> [NormalizedWorkout] {
+        await getWorkouts(from: startDate, to: endDate, calendar: .current)
     }
 
     func getRecentSleep(days: Int = HealthDataRepositoryDefaults.recentSleepDays) async -> [NormalizedSleepRecord] {

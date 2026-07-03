@@ -115,7 +115,7 @@ private final class CompositionMockRepository: HealthDataRepositorying, @uncheck
     }
 
     func getRecentWorkouts(days: Int, calendar: Calendar) async -> [NormalizedWorkout] { [] }
-    func getWorkouts(from startDate: Date, to endDate: Date) async -> [NormalizedWorkout] { [] }
+    func getWorkouts(from startDate: Date, to endDate: Date, calendar: Calendar) async -> [NormalizedWorkout] { [] }
     func getRecentSleep(days: Int, calendar: Calendar) async -> [NormalizedSleepRecord] { [] }
     func getSleepRecords(from startDate: Date, to endDate: Date, calendar: Calendar) async -> [NormalizedSleepRecord] { [] }
     func getRecentHeartMetrics(days: Int, calendar: Calendar) async -> [NormalizedHeartMetric] { [] }
