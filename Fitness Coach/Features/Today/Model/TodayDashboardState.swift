@@ -126,6 +126,52 @@ struct TodayNextBestActionState: Equatable {
     var primaryCTA: TodayNextBestActionCTA
     var secondaryCTAs: [TodayNextBestActionCTA]
     var accessibilityLabel: String
+
+    init(
+        sectionTitle: String,
+        title: String,
+        subtitle: String?,
+        reason: TodayNextBestActionReason,
+        primaryCTA: TodayNextBestActionCTA,
+        secondaryCTAs: [TodayNextBestActionCTA],
+        accessibilityLabel: String
+    ) {
+        self.sectionTitle = sectionTitle
+        self.title = title
+        self.subtitle = subtitle
+        self.reason = reason
+        self.primaryCTA = primaryCTA
+        self.secondaryCTAs = secondaryCTAs
+        self.accessibilityLabel = accessibilityLabel
+    }
+
+    init(
+        title: String,
+        subtitle: String?,
+        reason: TodayNextBestActionReason,
+        primaryCTA: TodayNextBestActionCTA,
+        secondaryCTAs: [TodayNextBestActionCTA] = []
+    ) {
+        let provisional = TodayNextBestActionState(
+            sectionTitle: FormaProductCopy.Today.NextAction.sectionTitle,
+            title: title,
+            subtitle: subtitle,
+            reason: reason,
+            primaryCTA: primaryCTA,
+            secondaryCTAs: secondaryCTAs,
+            accessibilityLabel: ""
+        )
+        let display = TodayNextActionFormatting.displayModel(for: provisional)
+        self.init(
+            sectionTitle: display.sectionTitle,
+            title: title,
+            subtitle: subtitle,
+            reason: reason,
+            primaryCTA: primaryCTA,
+            secondaryCTAs: secondaryCTAs,
+            accessibilityLabel: display.accessibilityLabel
+        )
+    }
 }
 
 // MARK: - Quick actions
