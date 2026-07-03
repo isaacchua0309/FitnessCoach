@@ -107,6 +107,16 @@ extension HealthBaselineContext {
     }
 }
 
+// MARK: - Prefetch
+
+struct HealthBaselinePrefetch: Equatable, Sendable {
+    let availability: HealthDataAvailability
+    let metrics28: [DailyHealthMetrics]
+    let workouts: [NormalizedWorkout]
+    let sleepRecords: [NormalizedSleepRecord]
+    let heartMetrics: [NormalizedHeartMetric]
+}
+
 // MARK: - Service
 
 protocol HealthBaselineServing: Sendable {
@@ -166,11 +176,40 @@ struct HealthBaselineService: HealthBaselineServing {
             calendar: calendar
         )
 
-        let availability = await availabilityTask
-        let metrics28 = await metricsTask
-        let workouts = await workoutsTask
-        let sleepRecords = await sleepTask
-        let heartMetrics = await heartTask
+        let prefetched = HealthBaselinePrefetch(
+            availability: await availabilityTask,
+            metrics28: await metricsTask,
+            workouts: await workoutsTask,
+            sleepRecords: await sleepTask,
+            heartMetrics: await heartTask
+        )
+
+        return Self.buildContext(
+            for: targetDay,
+            prefetched: prefetched,
+            calendar: calendar
+        )
+    }
+
+    static func buildContext(
+        for targetDate: Date,
+        prefetched: HealthBaselinePrefetch,
+        calendar: Calendar
+    ) -> HealthBaselineContext {
+        let targetDay = calendar.startOfDay(for: targetDate)
+        let availability = prefetched.availability
+        let metrics28 = prefetched.metrics28
+        let workouts = prefetched.workouts
+        let sleepRecords = prefetched.sleepRecords
+        let heartMetrics = prefetched.heartMetrics
+
+        guard let window28 = lookbackWindow(
+            endingBefore: targetDay,
+            days: HealthBaselinePolicy.lookback28Days,
+            calendar: calendar
+        ) else {
+            return emptyContext(targetDate: targetDay)
+        }
 
         let permissions = availability.permissionStatus
         let stepsReadable = permissions.access(for: .stepCount).isReadable

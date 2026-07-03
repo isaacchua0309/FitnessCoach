@@ -119,7 +119,7 @@ final class HealthIntelligenceEngineTests: XCTestCase {
         XCTAssertNil(snapshot.weeklyReview)
         XCTAssertEqual(snapshot.planConfidence.label, "Unknown")
         XCTAssertEqual(snapshot.planConfidence.score, 0)
-        XCTAssertEqual(snapshot.nutritionAdjustment, .none)
+        XCTAssertFalse(snapshot.nutritionAdjustment.shouldChangeTarget)
     }
 
     func testComposeSnapshotIncludesAccurateActivityWhenStepsAvailable() async {

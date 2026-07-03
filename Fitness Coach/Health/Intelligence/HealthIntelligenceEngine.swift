@@ -31,30 +31,19 @@ extension HealthIntelligenceEngineing {
 
 struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
 
-    private let repository: any HealthDataRepositorying
-    private let recoveryEngine: any RecoveryEngineing
-    private let workoutEngine: any WorkoutIntelligenceEngineing
-    private let trainingLoadEngine: any TrainingLoadEngineing
-    private let adaptiveNutritionEngine: any AdaptiveNutritionEngineing
+    private let contextBuilder: any HealthIntelligenceContextBuilding
     private let weeklyReviewEngine: any WeeklyReviewEngineing
     private let planConfidenceEngine: any PlanConfidenceEngineing
     private let nextBestActionEngine: any HealthNextBestActionEngineing
 
     init(
         repository: any HealthDataRepositorying = HealthDataRepository(),
-        recoveryEngine: any RecoveryEngineing = RecoveryEngine(),
-        workoutEngine: any WorkoutIntelligenceEngineing = WorkoutIntelligenceEngine(),
-        trainingLoadEngine: any TrainingLoadEngineing = TrainingLoadEngine(),
-        adaptiveNutritionEngine: any AdaptiveNutritionEngineing = AdaptiveNutritionEngine(),
+        contextBuilder: (any HealthIntelligenceContextBuilding)? = nil,
         weeklyReviewEngine: any WeeklyReviewEngineing = WeeklyReviewEngine(),
         planConfidenceEngine: any PlanConfidenceEngineing = PlanConfidenceEngine(),
         nextBestActionEngine: any HealthNextBestActionEngineing = HealthNextBestActionEngine()
     ) {
-        self.repository = repository
-        self.recoveryEngine = recoveryEngine
-        self.workoutEngine = workoutEngine
-        self.trainingLoadEngine = trainingLoadEngine
-        self.adaptiveNutritionEngine = adaptiveNutritionEngine
+        self.contextBuilder = contextBuilder ?? HealthIntelligenceContextBuilder(repository: repository)
         self.weeklyReviewEngine = weeklyReviewEngine
         self.planConfidenceEngine = planConfidenceEngine
         self.nextBestActionEngine = nextBestActionEngine
@@ -64,53 +53,55 @@ struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
         for date: Date,
         calendar: Calendar = .current
     ) async -> HealthIntelligenceSnapshot {
-        let day = calendar.startOfDay(for: date)
-        let availability = await repository.getHealthDataAvailability()
-        let dailyMetrics = await repository.getDailyMetrics(for: day, calendar: calendar)
+        let context = await contextBuilder.buildContext(for: date, calendar: calendar)
+        let day = context.targetDate
+        let summaries = context.summaries
 
-        let weekWorkouts = await recentWeekWorkouts(endingOn: day, calendar: calendar)
-        let weekMetrics = await recentWeekMetrics(endingOn: day, calendar: calendar)
+        let workout = summaries.workout.hasWorkout ? summaries.workout : nil
+        let daysWithActivityData = context.metricsLast7Days.filter {
+            HealthIntelligenceBaseline.dayHasActivity($0)
+        }.count
 
-        let activity = HealthIntelligenceBaseline.activitySummary(
-            metrics: dailyMetrics,
-            availability: availability
-        )
-        let workout = HealthIntelligenceBaseline.workoutSummary(
-            workouts: weekWorkouts,
-            on: day,
-            calendar: calendar
-        )
-        let recovery = HealthIntelligenceBaseline.recoverySummary(availability: availability)
-        let nutritionAdjustment = AdaptiveNutritionSummary.none
-        let daysWithActivityData = weekMetrics.filter { HealthIntelligenceBaseline.dayHasActivity($0) }.count
-        let weeklyReview = HealthIntelligenceBaseline.weeklyReview(
-            metricsInWeek: weekMetrics,
-            workoutDays: HealthIntelligenceBaseline.workoutDays(
-                in: weekWorkouts,
-                endingOn: day,
+        let weeklyReview = context.weeklyReviewInput.flatMap { weeklyReviewEngine.evaluate($0) }
+            ?? HealthIntelligenceBaseline.weeklyReview(
+                metricsInWeek: context.metricsLast7Days,
+                workoutDays: HealthIntelligenceBaseline.workoutDays(
+                    in: workoutsInWeek(from: context),
+                    endingOn: day,
+                    calendar: calendar
+                ),
+                weekEndDate: day,
                 calendar: calendar
-            ),
-            weekEndDate: day,
-            calendar: calendar
+            )
+
+        let planConfidence = await planConfidenceEngine.planConfidence(
+            for: day,
+            recovery: summaries.recovery,
+            activity: summaries.activity,
+            trainingLoad: summaries.trainingLoad
         )
-        let planConfidence = HealthIntelligenceBaseline.planConfidence(
-            availability: availability,
-            daysWithActivityData: daysWithActivityData
-        )
-        let nextBestAction = HealthIntelligenceBaseline.nextBestAction(
-            availability: availability,
-            activity: activity,
+
+        let availabilityAction = HealthIntelligenceBaseline.nextBestAction(
+            availability: context.availability,
+            activity: summaries.activity,
             workout: workout
         )
+        let nextBestAction = availabilityAction == .none
+            ? nextBestActionEngine.evaluate(context.nextBestActionInput)
+            : availabilityAction
 
         return HealthIntelligenceSnapshot(
             date: day,
-            recovery: recovery,
+            recovery: summaries.recovery,
             workout: workout,
-            activity: activity,
-            nutritionAdjustment: nutritionAdjustment,
+            activity: summaries.activity,
+            nutritionAdjustment: summaries.adaptiveNutrition,
             weeklyReview: weeklyReview,
-            planConfidence: planConfidence,
+            planConfidence: degradedPlanConfidence(
+                engineConfidence: planConfidence,
+                availability: context.availability,
+                daysWithActivityData: daysWithActivityData
+            ),
             nextBestAction: nextBestAction
         )
     }
@@ -124,26 +115,29 @@ struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
 
     // MARK: - Private
 
-    private func recentWeekWorkouts(
-        endingOn day: Date,
-        calendar: Calendar
-    ) async -> [NormalizedWorkout] {
-        await repository.getRecentWorkouts(
-            days: HealthIntelligenceBaseline.minimumWeeklyReviewDays,
-            calendar: calendar
+    private func degradedPlanConfidence(
+        engineConfidence: PlanHealthConfidence,
+        availability: HealthDataAvailability,
+        daysWithActivityData: Int
+    ) -> PlanHealthConfidence {
+        if engineConfidence != .unknown {
+            return engineConfidence
+        }
+        return HealthIntelligenceBaseline.planConfidence(
+            availability: availability,
+            daysWithActivityData: daysWithActivityData
         )
     }
 
-    private func recentWeekMetrics(
-        endingOn day: Date,
-        calendar: Calendar
-    ) async -> [DailyHealthMetrics] {
+    private func workoutsInWeek(from context: HealthIntelligenceContext) -> [NormalizedWorkout] {
+        let calendar = context.calendar
+        let day = context.targetDate
         guard let range = HealthIntelligenceBaseline.metricsInWeek(endingOn: day, calendar: calendar) else {
             return []
         }
-        return await repository.getDailyMetrics(
-            from: range.start,
-            to: range.end,
+        return HealthIntelligenceContextBuilder.workouts(
+            in: range,
+            from: context.trainingLoadInput.workoutsLast28Days,
             calendar: calendar
         )
     }
