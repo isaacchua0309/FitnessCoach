@@ -141,26 +141,12 @@ final class TodayGoalConnectionFormattingTests: XCTestCase {
                 ),
                 foodEntries: [],
                 hasPriorFoodLogs: false,
-                streaks: StreakSummary(
-                    loggingStreak: 0,
-                    proteinStreak: 0,
-                    hydrationStreak: 0,
-                    workoutStreak: 0
-                ),
-                weekLoggedDays: 0,
-                dailyBrief: TodayDailyBrief(
-                    greeting: "Good morning.",
-                    priorities: [],
-                    recommendation: "Stay consistent today."
-                ),
                 dailyReview: nil,
                 goalWeightKg: 75,
                 profileWeightKg: 80,
                 latestWeightKg: 87.4,
-                userName: nil,
                 activityContext: .default,
-                stepGoalAssumption: nil,
-                trainingFrequencyPerWeek: nil
+                stepGoalAssumption: nil
             )
         )
 

@@ -18,17 +18,12 @@ struct TodayMissionControlInputs: Equatable {
     var workoutSummary: TodayWorkoutSummary
     var foodEntries: [FoodEntry]
     var hasPriorFoodLogs: Bool
-    var streaks: StreakSummary
-    var weekLoggedDays: Int
-    var dailyBrief: TodayDailyBrief
     var dailyReview: DailyReview?
     var goalWeightKg: Double?
     var profileWeightKg: Double?
     var latestWeightKg: Double?
-    var userName: String?
     var activityContext: TodayActivityContext
     var stepGoalAssumption: Int?
-    var trainingFrequencyPerWeek: Int?
 }
 
 enum TodayMissionControlStateBuilder {
@@ -67,27 +62,6 @@ enum TodayMissionControlStateBuilder {
             macroBalance: MacroBalanceState(
                 macroSummary: inputs.macroSummary,
                 waterSummary: inputs.waterSummary
-            ),
-            momentum: buildMomentum(
-                streaks: inputs.streaks,
-                weekLoggedDays: inputs.weekLoggedDays
-            ),
-            dailyScorecard: buildDailyScorecard(from: inputs),
-            dailySummary: DailySummaryState(
-                greeting: inputs.dailyBrief.greeting,
-                priorities: inputs.dailyBrief.priorities,
-                userName: inputs.userName,
-                dailyReview: inputs.dailyReview
-            ),
-            aiCoachTip: TodayCoachTipBuilder.build(
-                from: TodayCoachTipInput(
-                    date: inputs.date,
-                    calendar: .current,
-                    calorieSummary: inputs.calorieSummary,
-                    macroSummary: inputs.macroSummary,
-                    waterSummary: inputs.waterSummary,
-                    foodEntries: inputs.foodEntries
-                )
             )
         )
     }
@@ -229,9 +203,7 @@ enum TodayMissionControlStateBuilder {
             trainingDataSource: context.trainingDataSource,
             appleHealthWorkoutCount: context.appleHealthWorkoutCount,
             stepsToday: context.stepsToday,
-            weeklyWorkoutCount: context.weeklyWorkoutCount,
             stepGoalAssumption: inputs.stepGoalAssumption,
-            trainingFrequencyPerWeek: inputs.trainingFrequencyPerWeek,
             displayLine: displayLine,
             showsConnectCTA: showsConnectCTA
         )
@@ -266,19 +238,7 @@ enum TodayMissionControlStateBuilder {
         }
     }
 
-    // MARK: - Momentum
-
-    static func buildMomentum(
-        streaks: StreakSummary,
-        weekLoggedDays: Int
-    ) -> TodayMomentumState {
-        TodayMomentumState(
-            streaks: streaks,
-            weekLoggedDays: weekLoggedDays
-        )
-    }
-
-    static func buildEmptyContext(from inputs: TodayMissionControlInputs) -> TodayDashboardEmptyContext {
+    // MARK: - Activity
         TodayDashboardEmptyContext(
             mealsEmptyKind: TodayEmptyStateFormatting.mealsEmptyKind(
                 mealsEmpty: inputs.foodEntries.isEmpty,
@@ -290,19 +250,4 @@ enum TodayMissionControlStateBuilder {
             )
         )
     }
-
-    static func buildDailyScorecard(from inputs: TodayMissionControlInputs) -> TodayDailySummaryScorecardState {
-        TodayDailySummaryScoring.scorecard(
-            from: TodayDailySummaryScoreInput(
-                calorieSummary: inputs.calorieSummary,
-                macroSummary: inputs.macroSummary,
-                waterSummary: inputs.waterSummary,
-                activity: buildActivity(from: inputs)
-            )
-        )
-    }
-
-    // MARK: - Coach Tip
-
-    // Tip generation lives in TodayCoachTipBuilder (deterministic, no API).
 }

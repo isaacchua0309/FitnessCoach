@@ -82,9 +82,7 @@ struct TodayActivitySection: View {
                         detail: model.stepAssumptionLine
                     )
 
-                    if model.weeklyProgressLine != nil || !model.workoutStatusLine.isEmpty {
-                        FormaPlanRowDivider()
-                    }
+                    FormaPlanRowDivider()
                 } else if let stepAssumptionLine = model.stepAssumptionLine {
                     metricRow(
                         title: FormaProductCopy.Today.Activity.stepsLabel,
@@ -99,16 +97,6 @@ struct TodayActivitySection: View {
                     value: model.workoutStatusLine,
                     detail: nil
                 )
-
-                if let weeklyProgressLine = model.weeklyProgressLine {
-                    FormaPlanRowDivider()
-
-                    metricRow(
-                        title: FormaProductCopy.Today.Activity.weeklyProgressLabel,
-                        value: weeklyProgressLine,
-                        detail: nil
-                    )
-                }
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel(model.accessibilitySummary)
@@ -155,9 +143,7 @@ struct TodayActivitySection: View {
             trainingDataSource: .appleHealth,
             appleHealthWorkoutCount: 1,
             stepsToday: 8_432,
-            weeklyWorkoutCount: 1,
             stepGoalAssumption: 7_500,
-            trainingFrequencyPerWeek: 4,
             displayLine: FormaProductCopy.Today.workoutsToday(1),
             showsConnectCTA: false
         ),
@@ -180,9 +166,7 @@ struct TodayActivitySection: View {
             trainingDataSource: .appleHealth,
             appleHealthWorkoutCount: nil,
             stepsToday: nil,
-            weeklyWorkoutCount: nil,
             stepGoalAssumption: 7_500,
-            trainingFrequencyPerWeek: 4,
             displayLine: FormaProductCopy.Training.Integration.connectAppleHealth,
             showsConnectCTA: true
         ),

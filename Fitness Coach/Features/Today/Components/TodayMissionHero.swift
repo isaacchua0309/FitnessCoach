@@ -65,8 +65,6 @@ struct TodayMissionHero: View {
                         : FormaTokens.Color.progress
                 )
 
-            subMetricsBlock
-
             Text(display.statusLine)
                 .font(FormaTokens.Typography.sectionSubtitle)
                 .foregroundStyle(FormaTokens.Color.textLegal)
@@ -75,24 +73,6 @@ struct TodayMissionHero: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(display.accessibilityLabel)
-    }
-
-    private var subMetricsBlock: some View {
-        VStack(alignment: .leading, spacing: TodayLayout.compactSpacing) {
-            subMetricRow(display.goalLine)
-            subMetricRow(display.consumedLine)
-            subMetricRow(display.proteinLine)
-        }
-        .padding(.top, TodayLayout.compactSpacing)
-    }
-
-    private func subMetricRow(_ text: String) -> some View {
-        Text(text)
-            .font(FormaTokens.Typography.caption)
-            .foregroundStyle(FormaTokens.Color.textTertiary)
-            .lineLimit(2)
-            .minimumScaleFactor(0.85)
-            .fixedSize(horizontal: false, vertical: true)
     }
 }
 

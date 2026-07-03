@@ -85,22 +85,9 @@ enum TodayDashboardFixtures {
                 ),
                 foodEntries: [],
                 hasPriorFoodLogs: false,
-                streaks: StreakSummary(
-                    loggingStreak: 0,
-                    proteinStreak: 0,
-                    hydrationStreak: 0,
-                    workoutStreak: 0
-                ),
-                weekLoggedDays: 0,
-                dailyBrief: TodayDailyBrief(
-                    greeting: "Good morning.",
-                    priorities: [],
-                    recommendation: "Log your first meal to start today's picture."
-                ),
                 dailyReview: nil,
                 goalWeightKg: 65,
                 profileWeightKg: 70,
-                userName: nil,
                 activityContext: .default
             )
         )
@@ -158,22 +145,9 @@ enum TodayDashboardFixtures {
                 ),
                 foodEntries: foodEntries,
                 hasPriorFoodLogs: !foodEntries.isEmpty,
-                streaks: StreakSummary(
-                    loggingStreak: 0,
-                    proteinStreak: 0,
-                    hydrationStreak: 0,
-                    workoutStreak: 0
-                ),
-                weekLoggedDays: 0,
-                dailyBrief: TodayDailyBrief(
-                    greeting: "Good morning.",
-                    priorities: [],
-                    recommendation: "Stay consistent today."
-                ),
                 dailyReview: nil,
                 goalWeightKg: 65,
                 profileWeightKg: weightKg ?? 70,
-                userName: nil,
                 activityContext: activityContext
             )
         )
@@ -214,22 +188,9 @@ enum TodayDashboardFixtures {
                 ),
                 foodEntries: TodayPreviewData.foodEntries,
                 hasPriorFoodLogs: true,
-                streaks: StreakSummary(
-                    loggingStreak: 7,
-                    proteinStreak: 5,
-                    hydrationStreak: 3,
-                    workoutStreak: 2
-                ),
-                weekLoggedDays: 5,
-                dailyBrief: TodayDailyBrief(
-                    greeting: "Good evening.",
-                    priorities: ["Protein is on track — keep it up."],
-                    recommendation: "Stay consistent today. Small wins compound."
-                ),
                 dailyReview: nil,
                 goalWeightKg: 65,
                 profileWeightKg: 68.5,
-                userName: "Test",
                 activityContext: TodayActivityContext(
                     trainingIntegration: .connected,
                     trainingDataSource: .appleHealth,
@@ -274,22 +235,9 @@ enum TodayDashboardFixtures {
                 ),
                 foodEntries: TodayPreviewData.foodEntries,
                 hasPriorFoodLogs: true,
-                streaks: StreakSummary(
-                    loggingStreak: 2,
-                    proteinStreak: 0,
-                    hydrationStreak: 0,
-                    workoutStreak: 0
-                ),
-                weekLoggedDays: 2,
-                dailyBrief: TodayDailyBrief(
-                    greeting: "Good evening.",
-                    priorities: ["0 kcal remaining for today."],
-                    recommendation: "You're above today's target. Log honestly tonight — we care about the weekly trend, not one meal."
-                ),
                 dailyReview: nil,
                 goalWeightKg: 65,
                 profileWeightKg: 70,
-                userName: nil,
                 activityContext: .default
             )
         )

@@ -46,21 +46,9 @@ enum TodayPreviewData {
             ),
             foodEntries: [],
             hasPriorFoodLogs: false,
-            streaks: StreakSummary(loggingStreak: 0, proteinStreak: 0, hydrationStreak: 0, workoutStreak: 0),
-            weekLoggedDays: 0,
-            dailyBrief: TodayDailyBrief(
-                greeting: "Good morning.",
-                priorities: [
-                    "Aim for 170g protein today.",
-                    "Drink 3.5L water.",
-                    "1800 kcal remaining for today."
-                ],
-                recommendation: "Log your first meal to start today's picture."
-            ),
             dailyReview: nil,
             goalWeightKg: 75,
             profileWeightKg: 90.15,
-            userName: "Isaac",
             activityContext: .default
         )
     )
@@ -99,31 +87,16 @@ enum TodayPreviewData {
             ),
             foodEntries: foodEntries,
             hasPriorFoodLogs: true,
-            streaks: StreakSummary(loggingStreak: 5, proteinStreak: 3, hydrationStreak: 2, workoutStreak: 1),
-            weekLoggedDays: 4,
-            dailyBrief: TodayDailyBrief(
-                greeting: "Good morning.",
-                priorities: [
-                    "Aim for 170g protein today.",
-                    "Drink 3.5L water.",
-                    "Training day — fuel with 40–60g carbs pre-workout.",
-                    "1090 kcal remaining for today."
-                ],
-                recommendation: "Prioritize lean protein in your next meal."
-            ),
             dailyReview: nil,
             goalWeightKg: 75,
             profileWeightKg: 90.15,
-            userName: "Isaac",
             activityContext: TodayActivityContext(
                 trainingIntegration: .connected,
                 trainingDataSource: .appleHealth,
                 appleHealthWorkoutCount: 1,
-                stepsToday: 8_432,
-                weeklyWorkoutCount: 1
+                stepsToday: 8_432
             ),
-            stepGoalAssumption: 7_500,
-            trainingFrequencyPerWeek: 4
+            stepGoalAssumption: 7_500
         )
     )
 
@@ -161,21 +134,9 @@ enum TodayPreviewData {
             ),
             foodEntries: foodEntries,
             hasPriorFoodLogs: true,
-            streaks: StreakSummary(loggingStreak: 12, proteinStreak: 8, hydrationStreak: 5, workoutStreak: 4),
-            weekLoggedDays: 6,
-            dailyBrief: TodayDailyBrief(
-                greeting: "Good evening.",
-                priorities: [
-                    "Protein is on track — keep it up.",
-                    "Hydration is nearly complete.",
-                    "80 kcal remaining for today."
-                ],
-                recommendation: "Stay consistent today. Small wins compound."
-            ),
             dailyReview: nil,
             goalWeightKg: 75,
             profileWeightKg: 89.8,
-            userName: "Isaac",
             activityContext: TodayActivityContext(
                 trainingIntegration: .connected,
                 trainingDataSource: .appleHealth,
@@ -218,21 +179,9 @@ enum TodayPreviewData {
             ),
             foodEntries: foodEntries,
             hasPriorFoodLogs: true,
-            streaks: StreakSummary(loggingStreak: 3, proteinStreak: 1, hydrationStreak: 0, workoutStreak: 0),
-            weekLoggedDays: 2,
-            dailyBrief: TodayDailyBrief(
-                greeting: "Good evening.",
-                priorities: [
-                    "Aim for 170g protein today.",
-                    "Drink 3.5L water.",
-                    "0 kcal remaining for today."
-                ],
-                recommendation: "You're above today's target. Log honestly tonight — we care about the weekly trend, not one meal."
-            ),
             dailyReview: nil,
             goalWeightKg: 75,
             profileWeightKg: 90.15,
-            userName: "Isaac",
             activityContext: .default
         )
     )

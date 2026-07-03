@@ -104,7 +104,6 @@ final class TodayMissionHeroTests: XCTestCase {
 
         XCTAssertTrue(model.accessibilityLabel.contains(FormaProductCopy.Today.Mission.sectionTitle))
         XCTAssertTrue(model.accessibilityLabel.contains("remaining"))
-        XCTAssertTrue(model.accessibilityLabel.contains("Goal:"))
     }
 
     func testProteinLowShowsProteinGapStatus() {

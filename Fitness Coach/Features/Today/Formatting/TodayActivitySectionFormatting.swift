@@ -24,7 +24,6 @@ struct TodayActivityConnectedDisplayModel: Equatable {
     var stepsLine: String?
     var stepAssumptionLine: String?
     var workoutStatusLine: String
-    var weeklyProgressLine: String?
     var showsEmptyState: Bool
     var emptyStateTitle: String?
     var emptyStateLine: String?
@@ -86,7 +85,6 @@ enum TodayActivitySectionFormatting {
             FormaProductCopy.Today.Activity.typicalStepsAssumption($0)
         }
         let workoutStatusLine = workoutStatus(for: activity)
-        let weeklyProgressLine = weeklyProgressLine(for: activity)
         let showsEmptyState = hasNoActivityData(activity)
         let emptyCopy = TodayEmptyStateFormatting.copy(for: .noActivityData)
 
@@ -94,7 +92,6 @@ enum TodayActivitySectionFormatting {
             stepsLine: stepsLine,
             stepAssumptionLine: stepAssumptionLine,
             workoutStatusLine: workoutStatusLine,
-            weeklyProgressLine: weeklyProgressLine,
             showsEmptyState: showsEmptyState,
             emptyStateTitle: showsEmptyState ? emptyCopy.title : nil,
             emptyStateLine: showsEmptyState ? emptyCopy.body : nil,
@@ -102,16 +99,13 @@ enum TodayActivitySectionFormatting {
                 stepsLine: stepsLine,
                 stepAssumptionLine: stepAssumptionLine,
                 workoutStatusLine: workoutStatusLine,
-                weeklyProgressLine: weeklyProgressLine,
                 showsEmptyState: showsEmptyState
             )
         )
     }
 
     static func hasNoActivityData(_ activity: ActivityTodayState) -> Bool {
-        activity.stepsToday == nil
-            && (activity.appleHealthWorkoutCount ?? 0) == 0
-            && (activity.weeklyWorkoutCount ?? 0) == 0
+        activity.stepsToday == nil && (activity.appleHealthWorkoutCount ?? 0) == 0
     }
 
     static func workoutStatus(for activity: ActivityTodayState) -> String {
@@ -129,18 +123,6 @@ enum TodayActivitySectionFormatting {
         }
     }
 
-    static func weeklyProgressLine(for activity: ActivityTodayState) -> String? {
-        guard let targetSessions = activity.trainingFrequencyPerWeek, targetSessions > 0 else {
-            return nil
-        }
-
-        let completedSessions = activity.weeklyWorkoutCount ?? 0
-        return FormaProductCopy.Today.Activity.sessionsThisWeek(
-            completed: completedSessions,
-            target: targetSessions
-        )
-    }
-
     static func formatSteps(_ value: Int) -> String {
         stepFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
@@ -149,7 +131,6 @@ enum TodayActivitySectionFormatting {
         stepsLine: String?,
         stepAssumptionLine: String?,
         workoutStatusLine: String,
-        weeklyProgressLine: String?,
         showsEmptyState: Bool
     ) -> String {
         if showsEmptyState {
@@ -164,7 +145,6 @@ enum TodayActivitySectionFormatting {
         if let stepsLine { parts.append(stepsLine) }
         if let stepAssumptionLine { parts.append(stepAssumptionLine) }
         parts.append(workoutStatusLine)
-        if let weeklyProgressLine { parts.append(weeklyProgressLine) }
         return parts.joined(separator: ". ")
     }
 }

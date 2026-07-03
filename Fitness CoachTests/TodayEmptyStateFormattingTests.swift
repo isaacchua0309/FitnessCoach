@@ -136,22 +136,9 @@ final class TodayEmptyStateFormattingTests: XCTestCase {
                 ),
                 foodEntries: [],
                 hasPriorFoodLogs: true,
-                streaks: StreakSummary(
-                    loggingStreak: 3,
-                    proteinStreak: 0,
-                    hydrationStreak: 0,
-                    workoutStreak: 0
-                ),
-                weekLoggedDays: 2,
-                dailyBrief: TodayDailyBrief(
-                    greeting: "Good morning.",
-                    priorities: [],
-                    recommendation: ""
-                ),
                 dailyReview: nil,
                 goalWeightKg: 75,
                 profileWeightKg: 80,
-                userName: "Test",
                 activityContext: .default
             )
         )
@@ -218,22 +205,9 @@ final class TodayEmptyStateFormattingTests: XCTestCase {
                 ),
                 foodEntries: [],
                 hasPriorFoodLogs: false,
-                streaks: StreakSummary(
-                    loggingStreak: 0,
-                    proteinStreak: 0,
-                    hydrationStreak: 0,
-                    workoutStreak: 0
-                ),
-                weekLoggedDays: 0,
-                dailyBrief: TodayDailyBrief(
-                    greeting: "Good morning.",
-                    priorities: [],
-                    recommendation: ""
-                ),
                 dailyReview: nil,
                 goalWeightKg: 75,
                 profileWeightKg: 80,
-                userName: nil,
                 activityContext: .default
             )
         )

@@ -35,10 +35,6 @@ struct TodayDashboardState: Equatable {
     var meals: MealStatusState
     var activity: ActivityTodayState
     var macroBalance: MacroBalanceState
-    var momentum: TodayMomentumState
-    var dailyScorecard: TodayDailySummaryScorecardState
-    var dailySummary: DailySummaryState
-    var aiCoachTip: AICoachTipState
 }
 
 struct TodayDashboardEmptyContext: Equatable, Sendable {
@@ -126,14 +122,12 @@ struct TodayActivityContext: Equatable, Sendable {
     var trainingDataSource: TrainingDataSource
     var appleHealthWorkoutCount: Int?
     var stepsToday: Int?
-    var weeklyWorkoutCount: Int?
 
     static let `default` = TodayActivityContext(
         trainingIntegration: .connected,
         trainingDataSource: .appleHealth,
         appleHealthWorkoutCount: nil,
-        stepsToday: nil,
-        weeklyWorkoutCount: nil
+        stepsToday: nil
     )
 }
 
@@ -143,9 +137,7 @@ struct ActivityTodayState: Equatable {
     var trainingDataSource: TrainingDataSource
     var appleHealthWorkoutCount: Int?
     var stepsToday: Int?
-    var weeklyWorkoutCount: Int?
     var stepGoalAssumption: Int?
-    var trainingFrequencyPerWeek: Int?
     var displayLine: String
     var showsConnectCTA: Bool
 }
@@ -155,30 +147,6 @@ struct ActivityTodayState: Equatable {
 struct MacroBalanceState: Equatable {
     var macroSummary: MacroSummary
     var waterSummary: WaterSummary
-}
-
-// MARK: - Section 6: Momentum
-
-struct TodayMomentumState: Equatable {
-    var streaks: StreakSummary
-    var weekLoggedDays: Int
-    static let weekTotalDays = 7
-}
-
-// MARK: - Section 7: Daily Summary
-
-struct DailySummaryState: Equatable {
-    var greeting: String
-    var priorities: [String]
-    var userName: String?
-    var dailyReview: DailyReview?
-}
-
-// MARK: - Section 8: AI Coach Tip
-
-struct AICoachTipState: Equatable {
-    var message: String
-    var coachPrefill: String?
 }
 
 // MARK: - Shared nutrition summaries

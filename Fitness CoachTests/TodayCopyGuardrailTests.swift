@@ -39,18 +39,11 @@ final class TodayCopyGuardrailTests: XCTestCase {
             FormaProductCopy.Today.focusOnTrack,
             FormaProductCopy.Today.Mission.statusOverTarget,
             FormaProductCopy.Today.Mission.statusOnTrack,
-            FormaProductCopy.Today.CoachTip.overTarget,
-            FormaProductCopy.Today.CoachTip.allGoalsMet,
-            FormaProductCopy.Today.CoachTip.morningNoBreakfast,
-            FormaProductCopy.Today.CoachTip.eveningSimpleDinner,
-            FormaProductCopy.Today.CoachTip.lunchProteinGap(caloriesRemaining: "1,200", proteinGrams: 35),
             FormaProductCopy.Today.EmptyState.newProfileMissionStatus,
             FormaProductCopy.Today.EmptyState.newDayMissionStatus,
             FormaProductCopy.Today.EmptyState.loadErrorLocalBody,
             FormaProductCopy.Today.EmptyState.refreshErrorLocalBody,
             FormaProductCopy.Today.Activity.disconnectedMessage,
-            FormaProductCopy.Today.DailySummary.explanationDetail,
-            TodayPreviewData.partialDay.aiCoachTip.message
         ]
 
         let overTarget = TodayPreviewData.overTargetDay

@@ -8,13 +8,11 @@ import XCTest
 
 final class TodayActivityStateTests: XCTestCase {
 
-    func testConnectedWithWorkoutsShowsStepsWorkoutStatusAndWeeklyProgress() {
+    func testConnectedWithWorkoutsShowsStepsAndWorkoutStatus() {
         let activity = makeActivity(
             stepsToday: 8_432,
-            weeklyWorkoutCount: 1,
             appleHealthWorkoutCount: 1,
-            stepGoalAssumption: 7_500,
-            trainingFrequencyPerWeek: 4
+            stepGoalAssumption: 7_500
         )
 
         let display = TodayActivitySectionFormatting.displayModel(for: activity)
@@ -27,9 +25,8 @@ final class TodayActivityStateTests: XCTestCase {
         XCTAssertEqual(model.stepsLine, "8,432 steps")
         XCTAssertEqual(model.stepAssumptionLine, "Typical: 7,500/day")
         XCTAssertEqual(model.workoutStatusLine, FormaProductCopy.Today.workoutsToday(1))
-        XCTAssertEqual(model.weeklyProgressLine, "1 of 4 sessions")
         XCTAssertTrue(model.accessibilitySummary.contains("8,432 steps"))
-        XCTAssertTrue(model.accessibilitySummary.contains("1 of 4 sessions"))
+        XCTAssertFalse(model.accessibilitySummary.contains("sessions"))
         XCTAssertFalse(model.accessibilitySummary.contains("calorie"))
         XCTAssertFalse(model.accessibilitySummary.contains("adjust"))
     }
@@ -38,7 +35,6 @@ final class TodayActivityStateTests: XCTestCase {
         let activity = makeActivity(
             trainingIntegration: .notConnected,
             stepGoalAssumption: 7_500,
-            trainingFrequencyPerWeek: 4,
             showsConnectCTA: true
         )
 
@@ -58,10 +54,8 @@ final class TodayActivityStateTests: XCTestCase {
     func testNoWorkoutsTodayShowsWorkoutStatusWithoutEmptyStateWhenStepsAvailable() {
         let activity = makeActivity(
             stepsToday: 6_120,
-            weeklyWorkoutCount: 0,
             appleHealthWorkoutCount: 0,
-            stepGoalAssumption: 7_500,
-            trainingFrequencyPerWeek: 4
+            stepGoalAssumption: 7_500
         )
 
         let display = TodayActivitySectionFormatting.displayModel(for: activity)
@@ -72,34 +66,12 @@ final class TodayActivityStateTests: XCTestCase {
 
         XCTAssertFalse(model.showsEmptyState)
         XCTAssertEqual(model.workoutStatusLine, FormaProductCopy.Today.statusNoAppleHealthWorkoutToday)
-        XCTAssertEqual(model.weeklyProgressLine, "0 of 4 sessions")
-    }
-
-    func testTrainingFrequencyUnavailableHidesWeeklyProgressLine() {
-        let activity = makeActivity(
-            stepsToday: 4_500,
-            weeklyWorkoutCount: 2,
-            appleHealthWorkoutCount: 1,
-            stepGoalAssumption: 7_500,
-            trainingFrequencyPerWeek: nil
-        )
-
-        let display = TodayActivitySectionFormatting.displayModel(for: activity)
-
-        guard case .connected(let model) = display else {
-            return XCTFail("Expected connected presentation")
-        }
-
-        XCTAssertNil(model.weeklyProgressLine)
-        XCTAssertFalse(model.accessibilitySummary.contains("sessions"))
     }
 
     func testNoActivityDataShowsEmptyStateWhenConnectedAndHealthReadsAreEmpty() {
         let activity = makeActivity(
             stepsToday: nil,
-            weeklyWorkoutCount: 0,
-            appleHealthWorkoutCount: 0,
-            trainingFrequencyPerWeek: 4
+            appleHealthWorkoutCount: 0
         )
 
         let display = TodayActivitySectionFormatting.displayModel(for: activity)
@@ -160,10 +132,8 @@ final class TodayActivityStateTests: XCTestCase {
         trainingIntegration: TrainingIntegrationState = .connected,
         trainingDataSource: TrainingDataSource = .appleHealth,
         stepsToday: Int? = nil,
-        weeklyWorkoutCount: Int? = nil,
         appleHealthWorkoutCount: Int? = nil,
         stepGoalAssumption: Int? = nil,
-        trainingFrequencyPerWeek: Int? = nil,
         showsConnectCTA: Bool = false
     ) -> ActivityTodayState {
         ActivityTodayState(
@@ -176,9 +146,7 @@ final class TodayActivityStateTests: XCTestCase {
             trainingDataSource: trainingDataSource,
             appleHealthWorkoutCount: appleHealthWorkoutCount,
             stepsToday: stepsToday,
-            weeklyWorkoutCount: weeklyWorkoutCount,
             stepGoalAssumption: stepGoalAssumption,
-            trainingFrequencyPerWeek: trainingFrequencyPerWeek,
             displayLine: FormaProductCopy.Today.statusNoAppleHealthWorkoutToday,
             showsConnectCTA: showsConnectCTA
         )

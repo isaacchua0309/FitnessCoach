@@ -18,30 +18,27 @@ final class TodayReadOnlyCompositionTests: XCTestCase {
         XCTAssertFalse(TodayViewState.error("x").isLoaded)
     }
 
-    func testPartialDayBuildsAllMissionControlSections() {
+    func testPartialDayBuildsCoreMissionControlSections() {
         let state = TodayPreviewData.partialDay
 
         XCTAssertFalse(state.meals.isEmpty)
         XCTAssertNotNil(state.nextBestAction.title)
-        XCTAssertFalse(state.dailyScorecard.items.isEmpty)
-        XCTAssertFalse(state.aiCoachTip.message.isEmpty)
         XCTAssertGreaterThan(state.macroBalance.macroSummary.protein.target, 0)
+        XCTAssertFalse(state.activity.displayLine.isEmpty)
     }
 
-    func testCompleteDayIncludesCoachTipAndDailyScorecard() {
+    func testCompleteDayMissionOnTrack() {
         let state = TodayPreviewData.completeDay
 
         XCTAssertEqual(state.mission.status, .onTrack)
-        XCTAssertFalse(state.aiCoachTip.message.isEmpty)
-        XCTAssertEqual(state.dailyScorecard.overallPercent, 100)
+        XCTAssertEqual(state.nextBestAction.reason, .onTrack)
     }
 
-    func testEmptyDayStillBuildsDeterministicCoachTipAndScorecard() {
+    func testEmptyDayBuildsMealsAndNextAction() {
         let state = TodayDashboardFixtures.emptyDay()
 
         XCTAssertTrue(state.meals.isEmpty)
-        XCTAssertEqual(state.dailyScorecard.overallPercent, 0)
-        XCTAssertEqual(state.aiCoachTip.message, FormaProductCopy.Today.CoachTip.morningNoBreakfast)
+        XCTAssertEqual(state.nextBestAction.reason, .logFirstMeal)
     }
 
     func testQuickActionsSectionIncludesCoreLoggingActions() {
@@ -55,10 +52,10 @@ final class TodayReadOnlyCompositionTests: XCTestCase {
         XCTAssertFalse(kinds.contains(.scanFood))
     }
 
-    func testOverTargetDayUsesNonPunitiveCoachTip() {
+    func testOverTargetDayMissionOverBudget() {
         let state = TodayDashboardFixtures.overTargetDay()
 
-        XCTAssertEqual(state.aiCoachTip.message, FormaProductCopy.Today.CoachTip.overTarget)
         XCTAssertEqual(state.mission.status, .overBudget)
+        XCTAssertTrue(state.mission.calorieSummary.isOverTarget)
     }
 }

@@ -20,10 +20,6 @@ enum TodayMissionHeroFormatting {
         calorieFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 
-    static func proteinGrams(_ value: Double) -> String {
-        FoodEntryFormFormatter.formatMacro(max(value, 0))
-    }
-
     static func primaryMetricValue(calorieSummary: CalorieSummary) -> String {
         if calorieSummary.isOverTarget {
             let overBy = max(calorieSummary.consumed - calorieSummary.target, 0)
@@ -36,9 +32,6 @@ enum TodayMissionHeroFormatting {
 struct TodayMissionHeroDisplayModel: Equatable {
     var primaryMetricLabel: String
     var primaryMetricValue: String
-    var goalLine: String
-    var consumedLine: String
-    var proteinLine: String
     var statusLine: String
     var progress: Double
     var isOverTarget: Bool
@@ -62,16 +55,12 @@ enum TodayMissionHeroFormatter {
             calorieSummary: calories,
             proteinProgress: proteinProgress
         )
-        let proteinLine = proteinSubMetricLine(for: proteinProgress)
 
         return TodayMissionHeroDisplayModel(
             primaryMetricLabel: calories.isOverTarget
                 ? FormaProductCopy.Today.Mission.caloriesOverLabel
                 : FormaProductCopy.Today.Mission.caloriesRemainingLabel,
             primaryMetricValue: TodayMissionHeroFormatting.primaryMetricValue(calorieSummary: calories),
-            goalLine: goalLine(calories.target),
-            consumedLine: consumedLine(calories.consumed),
-            proteinLine: proteinLine,
             statusLine: statusLine,
             progress: min(max(calories.progress, 0), 1),
             isOverTarget: calories.isOverTarget,
@@ -81,24 +70,9 @@ enum TodayMissionHeroFormatter {
                     ? FormaProductCopy.Today.Mission.caloriesOverLabel
                     : FormaProductCopy.Today.Mission.caloriesRemainingLabel,
                 primaryMetricValue: TodayMissionHeroFormatting.primaryMetricValue(calorieSummary: calories),
-                goalLine: goalLine(calories.target),
-                consumedLine: consumedLine(calories.consumed),
-                proteinLine: proteinLine,
                 statusLine: statusLine
             )
         )
-    }
-
-    static func goalLine(_ targetKcal: Int) -> String {
-        "Goal: \(TodayMissionHeroFormatting.calories(targetKcal)) kcal"
-    }
-
-    static func consumedLine(_ consumedKcal: Int) -> String {
-        "Consumed: \(TodayMissionHeroFormatting.calories(consumedKcal)) kcal"
-    }
-
-    static func proteinRemainingLine(_ grams: Double) -> String {
-        "Protein remaining: \(TodayMissionHeroFormatting.proteinGrams(grams))g"
     }
 
     static func isNearTarget(_ summary: CalorieSummary) -> Bool {
@@ -107,27 +81,14 @@ enum TodayMissionHeroFormatter {
         return remainingRatio <= nearTargetRemainingRatio && summary.consumed > 0
     }
 
-    static func proteinSubMetricLine(for proteinProgress: MacroProgress) -> String {
-        if proteinProgress.progress >= TodayFocusBuilder.proteinOnTrackThreshold {
-            return FormaProductCopy.Today.Mission.proteinOnTrack
-        }
-        return proteinRemainingLine(proteinProgress.remaining)
-    }
-
     private static func accessibilityLabel(
         primaryMetricLabel: String,
         primaryMetricValue: String,
-        goalLine: String,
-        consumedLine: String,
-        proteinLine: String,
         statusLine: String
     ) -> String {
         [
             FormaProductCopy.Today.Mission.sectionTitle,
             "\(primaryMetricLabel), \(primaryMetricValue)",
-            goalLine,
-            consumedLine,
-            proteinLine,
             statusLine
         ].joined(separator: ". ")
     }

@@ -216,14 +216,7 @@ final class TodayModel: ObservableObject {
             hasWorkout: training.hasWorkout
         )
 
-        let trainingFrequency = profile?.trainingFrequencyPerWeek ?? 0
-        let (streaks, weekLoggedDays) = try await buildMomentumMetrics(asOf: dailyLog.date)
         let hasPriorFoodLogs = try hasPriorFoodLogs(before: dailyLog.date)
-        let dailyBrief = DailyBriefBuilder.todayBrief(
-            nutrition: nutrition,
-            hasWorkoutToday: workoutSummary.hasWorkout,
-            trainingFrequency: trainingFrequency
-        )
 
         return TodayMissionControlStateBuilder.build(
             from: TodayMissionControlInputs(
@@ -237,40 +230,14 @@ final class TodayModel: ObservableObject {
                 workoutSummary: workoutSummary,
                 foodEntries: foodEntries,
                 hasPriorFoodLogs: hasPriorFoodLogs,
-                streaks: streaks,
-                weekLoggedDays: weekLoggedDays,
-                dailyBrief: dailyBrief,
                 dailyReview: dailyReview,
                 goalWeightKg: profile?.goalWeightKg,
                 profileWeightKg: profile?.currentWeightKg,
                 latestWeightKg: displayWeight,
-                userName: profile?.name,
                 activityContext: activityContext,
-                stepGoalAssumption: profile.flatMap { $0.averageSteps > 0 ? $0.averageSteps : nil },
-                trainingFrequencyPerWeek: profile.flatMap { $0.trainingFrequencyPerWeek > 0 ? $0.trainingFrequencyPerWeek : nil }
+                stepGoalAssumption: profile.flatMap { $0.averageSteps > 0 ? $0.averageSteps : nil }
             )
         )
-    }
-
-    private func buildMomentumMetrics(asOf date: Date) async throws -> (StreakSummary, Int) {
-        let calendar = Calendar.current
-        let startDate = calendar.date(byAdding: .day, value: -90, to: date) ?? date
-        let logs = try dailyLogReader.getLogs(from: startDate, to: date)
-        let workoutDates = await optionalWorkoutDayStarts(
-            from: startDate,
-            to: date,
-            calendar: calendar
-        )
-        let streaks = StreakCalculator.calculate(
-            logs: logs,
-            workoutDates: workoutDates,
-            asOf: date
-        )
-        let weekLoggedDays = StreakCalculator.loggedDaysInRollingWindow(
-            logs: logs,
-            asOf: date
-        )
-        return (streaks, weekLoggedDays)
     }
 
     private func optionalDailyTrainingActivity(on date: Date) async -> DailyTrainingActivity {
@@ -278,21 +245,6 @@ final class TodayModel: ObservableObject {
             return .empty
         }
         return await healthActivityQuery.dailyTrainingActivity(on: date)
-    }
-
-    private func optionalWorkoutDayStarts(
-        from startDate: Date,
-        to endDate: Date,
-        calendar: Calendar
-    ) async -> Set<Date> {
-        guard activityContext.trainingIntegration.isConnected else {
-            return []
-        }
-        return await healthActivityQuery.workoutDayStarts(
-            from: startDate,
-            to: endDate,
-            calendar: calendar
-        )
     }
 
     private func hasPriorFoodLogs(before date: Date) throws -> Bool {

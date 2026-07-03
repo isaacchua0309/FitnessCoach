@@ -1005,7 +1005,6 @@ enum FormaProductCopy {
             static let sectionTitle = "Today's Activity"
             static let stepsLabel = "Steps"
             static let workoutLabel = "Workout"
-            static let weeklyProgressLabel = "This week"
             static let noDataYet = "No workouts or steps yet today — rest days count too."
             static let stepsUnavailable = "Steps unavailable"
             static let disconnectedMessage = "Activity stays optional. Connect Apple Health when you want steps and workouts here."
@@ -1017,10 +1016,6 @@ enum FormaProductCopy {
 
             static func typicalStepsAssumption(_ steps: Int) -> String {
                 "Typical: \(TodayActivitySectionFormatting.formatSteps(steps))/day"
-            }
-
-            static func sessionsThisWeek(completed: Int, target: Int) -> String {
-                "\(completed) of \(target) sessions"
             }
         }
 
@@ -1037,84 +1032,6 @@ enum FormaProductCopy {
             static func closerToGoal(_ goalKg: String) -> String {
                 "Today's effort moves you closer to \(goalKg)kg."
             }
-        }
-
-        enum Momentum {
-            static let sectionTitle = "Today's Momentum"
-            static let startStreakToday = "Start your streak today."
-
-            static func loggingStreakLine(days: Int) -> String {
-                "Logging streak: \(dayCount(days))"
-            }
-
-            static func weekProgressLine(loggedDays: Int, totalDays: Int) -> String {
-                "This week: \(loggedDays) of \(totalDays) days logged"
-            }
-
-            static func proteinStreakLine(days: Int) -> String {
-                "Protein streak: \(dayCount(days))"
-            }
-
-            static func waterStreakLine(days: Int) -> String {
-                "Water streak: \(dayCount(days))"
-            }
-
-            private static func dayCount(_ days: Int) -> String {
-                days == 1 ? "1 day" : "\(days) days"
-            }
-        }
-
-        enum DailySummary {
-            static let sectionTitle = "Daily Summary"
-            static let cardTitle = "Today"
-            static let calories = "Calories"
-            static let protein = "Protein"
-            static let water = "Water"
-            static let workout = "Workout"
-            static let overallTitle = "Overall"
-            static let explanationCaption = "Tap for how your score is calculated."
-            static let explanationHint = "Shows how today's completion score is calculated"
-            static let explanationTitle = "How your score works"
-            static let explanationDone = "Done"
-            static let accessibilityMet = "met"
-            static let accessibilityNotMet = "not met"
-            static let accessibilityNotApplicable = "not applicable"
-
-            static func overallComplete(_ percent: Int) -> String {
-                "\(percent)% complete"
-            }
-
-            static let explanationDetail = """
-            Your daily score counts how many of today's targets you've met — not how far you've missed them.
-
-            • Calories: within 10% of your target once you've logged food
-            • Protein: at least 90% of your target
-            • Water: at least 80% of your target
-            • Workout: logged when training applies to your plan
-
-            Overall is the share of applicable targets met today. Going over on calories doesn't reduce other targets — each counts separately.
-            """
-        }
-
-        enum CoachTip {
-            static let sectionTitle = "Coach Tip"
-            static let accessibilityHint = "Opens Coach"
-
-            static let morningNoBreakfast =
-                "Start with breakfast when you're ready — protein and fiber help you stay steady through lunch."
-
-            static func lunchProteinGap(caloriesRemaining: String, proteinGrams: Int) -> String {
-                "You have \(caloriesRemaining) kcal left. Aim for \(proteinGrams)g protein at lunch."
-            }
-
-            static let eveningSimpleDinner =
-                "Dinner can be simple: lean protein, rice, and vegetables."
-
-            static let overTarget =
-                "You're above today's target — keep logging honestly. Weekly consistency matters more than one meal."
-
-            static let allGoalsMet =
-                "Nice work today — protein and hydration are on track. Finish the day steady."
         }
 
         enum EmptyState {

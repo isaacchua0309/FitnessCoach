@@ -5,7 +5,7 @@
 //  FitPilot AI — Read-only Today dashboard. Mutations route through TodayActionCoordinator.
 //
 //  Section order: Mission → Next Best Action → Quick Actions → Meals → Activity
-//  → Macro Balance → Momentum → Daily Summary → Coach Tip
+//  → Macro Balance + Water
 //
 
 import SwiftUI
@@ -13,7 +13,6 @@ import SwiftUI
 struct TodayReadOnlyView: View {
     let state: TodayDashboardState
     let actionCoordinator: TodayActionCoordinator
-    let onOpenCoach: (String?) -> Void
     let onOpenJourney: () -> Void
     let onOpenPlan: () -> Void
 
@@ -31,13 +30,11 @@ struct TodayReadOnlyView: View {
         trainingIntegration: TrainingIntegrationState = .connected,
         trainingDataSource: TrainingDataSource = .appleHealth,
         appleHealthWorkoutCount: Int? = nil,
-        onOpenCoach: @escaping (String?) -> Void,
         onOpenJourney: @escaping () -> Void = {},
         onOpenPlan: @escaping () -> Void = {}
     ) {
         self.state = state
         self.actionCoordinator = actionCoordinator
-        self.onOpenCoach = onOpenCoach
         self.onOpenJourney = onOpenJourney
         self.onOpenPlan = onOpenPlan
     }
@@ -95,14 +92,6 @@ struct TodayReadOnlyView: View {
                 macros: state.macroBalance.macroSummary,
                 water: state.macroBalance.waterSummary
             )
-
-            TodayMomentumSection(momentum: state.momentum)
-
-            TodayDailySummarySection(scorecard: state.dailyScorecard)
-
-            TodayCoachTipSection(tip: state.aiCoachTip) { prefill in
-                onOpenCoach(prefill)
-            }
         }
     }
 
@@ -146,8 +135,7 @@ struct TodayReadOnlyView: View {
             state: TodayPreviewData.state,
             actionCoordinator: TodayActionCoordinator(
                 actionCenter: try! AppContainer(inMemory: true).actionCenter
-            ),
-            onOpenCoach: { _ in }
+            )
         )
         .padding(.horizontal, TodayLayout.horizontalPadding)
         .padding(.vertical, FormaTokens.Spacing.md)
@@ -162,8 +150,7 @@ struct TodayReadOnlyView: View {
             state: TodayPreviewData.emptyDay,
             actionCoordinator: TodayActionCoordinator(
                 actionCenter: try! AppContainer(inMemory: true).actionCenter
-            ),
-            onOpenCoach: { _ in }
+            )
         )
         .padding(.horizontal, TodayLayout.horizontalPadding)
         .padding(.vertical, FormaTokens.Spacing.md)
@@ -178,8 +165,7 @@ struct TodayReadOnlyView: View {
             state: TodayPreviewData.completeDay,
             actionCoordinator: TodayActionCoordinator(
                 actionCenter: try! AppContainer(inMemory: true).actionCenter
-            ),
-            onOpenCoach: { _ in }
+            )
         )
         .padding(.horizontal, TodayLayout.horizontalPadding)
         .padding(.vertical, FormaTokens.Spacing.md)
