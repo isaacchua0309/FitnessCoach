@@ -97,8 +97,7 @@ struct CoachView: View {
                 guard let item else { return }
                 photoPickerItem = nil
                 Task {
-                    let result = await CoachMealPhotoPipeline.loadJPEG(from: item)
-                    await model.handleMealPhotoSelection(result, source: .library)
+                    await model.handlePhotoLibrarySelection(item)
                 }
             }
             .fullScreenCover(isPresented: $isCameraPresented) {

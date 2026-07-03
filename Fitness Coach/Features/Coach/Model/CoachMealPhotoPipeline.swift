@@ -150,16 +150,3 @@ enum CoachMealPhotoPipeline {
         }
     }
 }
-
-private struct CoachPhotoPickerTransfer: Transferable {
-    let data: Data
-
-    static var transferRepresentation: some TransferRepresentation {
-        DataRepresentation(importedContentType: .image) { received in
-            CoachPhotoPickerTransfer(data: received)
-        }
-        DataRepresentation(importedContentType: .jpeg) { received in
-            CoachPhotoPickerTransfer(data: received)
-        }
-    }
-}

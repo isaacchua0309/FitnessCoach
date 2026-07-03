@@ -19,6 +19,13 @@ enum CoachInputAttachmentSource: Equatable, Codable, Sendable {
     case library
 }
 
+struct CoachInputAttachmentProcessingMetadata: Equatable, Sendable {
+    let originalPixelSize: CoachImagePixelSize
+    let processedPixelSize: CoachImagePixelSize
+    let originalEstimatedBytes: Int?
+    let compressionStrategy: CoachImagePipelineCompressionStrategy
+}
+
 struct CoachInputAttachment: Equatable, Identifiable, Sendable {
     let id: UUID
     let kind: CoachInputAttachmentKind
@@ -26,6 +33,7 @@ struct CoachInputAttachment: Equatable, Identifiable, Sendable {
     let thumbnail: Data
     let source: CoachInputAttachmentSource
     let createdAt: Date
+    let processingMetadata: CoachInputAttachmentProcessingMetadata?
 
     init(
         id: UUID = UUID(),
@@ -33,7 +41,8 @@ struct CoachInputAttachment: Equatable, Identifiable, Sendable {
         imageData: Data,
         thumbnail: Data,
         source: CoachInputAttachmentSource,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        processingMetadata: CoachInputAttachmentProcessingMetadata? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -41,6 +50,11 @@ struct CoachInputAttachment: Equatable, Identifiable, Sendable {
         self.thumbnail = thumbnail
         self.source = source
         self.createdAt = createdAt
+        self.processingMetadata = processingMetadata
+    }
+
+    var isPipelineProcessedUpload: Bool {
+        processingMetadata != nil
     }
 
     var uiImage: UIImage? {
@@ -137,6 +151,33 @@ struct CoachInputState: Equatable {
             imageData: jpegData,
             thumbnail: thumbnail,
             source: source
+        )
+        error = nil
+        return true
+    }
+
+    /// Stages a `CoachImagePipeline` result when `canPickImage`; otherwise records `attachmentAlreadyPresent`.
+    @discardableResult
+    mutating func stageProcessedImage(
+        _ processed: CoachProcessedImage,
+        originalEstimatedBytes: Int?,
+        source: CoachInputAttachmentSource
+    ) -> Bool {
+        guard canPickImage else {
+            error = .attachmentAlreadyPresent
+            return false
+        }
+        attachment = CoachInputAttachment(
+            kind: .image,
+            imageData: processed.uploadData,
+            thumbnail: processed.thumbnailData,
+            source: source,
+            processingMetadata: CoachInputAttachmentProcessingMetadata(
+                originalPixelSize: processed.originalPixelSize,
+                processedPixelSize: processed.processedPixelSize,
+                originalEstimatedBytes: originalEstimatedBytes,
+                compressionStrategy: processed.compressionStrategy
+            )
         )
         error = nil
         return true

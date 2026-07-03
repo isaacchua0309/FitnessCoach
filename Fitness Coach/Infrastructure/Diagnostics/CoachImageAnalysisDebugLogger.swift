@@ -16,6 +16,11 @@ struct CoachImageAnalysisDebugContext: Equatable, Sendable {
     var mimeType: String?
     var rawBytes: Int?
     var compressedBytes: Int?
+    var originalPixelWidth: Int?
+    var originalPixelHeight: Int?
+    var processedPixelWidth: Int?
+    var processedPixelHeight: Int?
+    var compressionStrategy: String?
     var base64Chars: Int?
     var attempt: Int?
     var isRetry: Bool?
@@ -54,7 +59,18 @@ enum CoachImageAnalysisDebugLogFormatter {
         if let photoError = error as? CoachMealPhotoError {
             return errorCategory(for: photoError)
         }
+        if let pipelineError = error as? CoachImagePipelineError {
+            return errorCategory(for: pipelineError)
+        }
         return "unknown"
+    }
+
+    static func errorCategory(for error: CoachImagePipelineError) -> String {
+        switch error {
+        case .invalidInput: return "invalid_input"
+        case .encodingFailed: return "encoding_failed"
+        case .exceedsMaxSize: return "payload_too_large"
+        }
     }
 
     static func errorCategory(for error: CoachMealPhotoError) -> String {
@@ -123,6 +139,21 @@ enum CoachImageAnalysisDebugLogFormatter {
         }
         if let compressedBytes = context.compressedBytes {
             fields["compressedBytes"] = String(compressedBytes)
+        }
+        if let originalPixelWidth = context.originalPixelWidth {
+            fields["originalPixelWidth"] = String(originalPixelWidth)
+        }
+        if let originalPixelHeight = context.originalPixelHeight {
+            fields["originalPixelHeight"] = String(originalPixelHeight)
+        }
+        if let processedPixelWidth = context.processedPixelWidth {
+            fields["processedPixelWidth"] = String(processedPixelWidth)
+        }
+        if let processedPixelHeight = context.processedPixelHeight {
+            fields["processedPixelHeight"] = String(processedPixelHeight)
+        }
+        if let compressionStrategy = context.compressionStrategy {
+            fields["compressionStrategy"] = compressionStrategy
         }
         if let base64Chars = context.base64Chars {
             fields["base64Chars"] = String(base64Chars)
@@ -219,6 +250,27 @@ enum CoachImageAnalysisDebugLogger {
                 mimeType: mimeType,
                 rawBytes: rawBytes,
                 compressedBytes: compressedBytes
+            )
+        )
+    }
+
+    static func logPipelineProcessed(
+        source: CoachInputAttachmentSource,
+        processed: CoachProcessedImage,
+        originalEstimatedBytes: Int?
+    ) {
+        emit(
+            message: "Coach image pipeline processed photo library selection",
+            context: CoachImageAnalysisDebugContext(
+                source: source,
+                mimeType: processed.uploadMIMEType,
+                rawBytes: originalEstimatedBytes,
+                compressedBytes: processed.finalByteSize,
+                originalPixelWidth: processed.originalPixelSize.width,
+                originalPixelHeight: processed.originalPixelSize.height,
+                processedPixelWidth: processed.processedPixelSize.width,
+                processedPixelHeight: processed.processedPixelSize.height,
+                compressionStrategy: processed.compressionStrategy.rawValue
             )
         )
     }
