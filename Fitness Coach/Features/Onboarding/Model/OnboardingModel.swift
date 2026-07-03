@@ -66,7 +66,8 @@ final class OnboardingModel: ObservableObject {
         analyticsEntry: OnboardingAnalyticsEntry = .preAuth,
         generationDelay: (any OnboardingGenerationDelayProviding)? = nil,
         healthTrainingIntegration: TrainingIntegrationProviding? = nil,
-        trainingInsightsStore: TrainingInsightsStore? = nil
+        trainingInsightsStore: TrainingInsightsStore? = nil,
+        healthSyncStateStore: HealthSyncStateStore? = nil
     ) {
         let resolvedDraftStore = draftStore ?? OnboardingDraftStore()
         let resolvedCoachingContextStore = coachingContextStore ?? OnboardingCoachingContextStore()
@@ -92,7 +93,8 @@ final class OnboardingModel: ObservableObject {
         )
         appleHealthCoordinator = OnboardingAppleHealthCoordinator(
             healthTrainingIntegration: resolvedHealthIntegration,
-            trainingInsightsStore: trainingInsightsStore
+            trainingInsightsStore: trainingInsightsStore,
+            healthSyncStateStore: healthSyncStateStore
         )
         analyticsTracker = OnboardingAnalyticsTracker(
             analyticsLogger: resolvedAnalyticsLogger,

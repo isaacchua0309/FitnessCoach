@@ -39,6 +39,11 @@ final class AppContainer {
     let healthKitWorkoutReader: HealthKitWorkoutReading
     let healthKitStepReader: HealthKitStepReading
     let healthActivityQueryService: HealthActivityQueryService
+    let healthCacheStore: LocalHealthCacheStore
+    let healthDataRepository: HealthDataRepository
+    let healthSyncService: HealthSyncService
+    let healthSyncStateStore: HealthSyncStateStore
+    private let authUIDCache: AuthUIDCache
 
     let onboardingUserDefaults: UserDefaults
     let onboardingDraftStore: OnboardingDraftStore
@@ -71,6 +76,8 @@ final class AppContainer {
         refreshCenter = AppRefreshCenter()
         let authManager = AuthManager()
         self.authManager = authManager
+        self.authUIDCache = AuthUIDCache()
+        authUIDCache.update(uid: authManager.currentUID)
 
         self.onboardingUserDefaults = Self.makeOnboardingUserDefaults(
             inMemory: inMemory,
@@ -103,7 +110,6 @@ final class AppContainer {
         themeStore = ThemeStore(analyticsLogger: self.themeAnalyticsLogger)
 
         healthTrainingService = HealthTrainingService()
-        trainingInsightsStore = TrainingInsightsStore(integration: healthTrainingService)
         let workoutReader = HealthTrainingReaderFactory.makeWorkoutReader()
         let stepReader = HealthTrainingReaderFactory.makeStepReader()
         healthKitWorkoutReader = workoutReader
@@ -111,6 +117,20 @@ final class AppContainer {
         healthActivityQueryService = HealthActivityQueryService(
             workoutReader: workoutReader,
             stepReader: stepReader
+        )
+        healthCacheStore = LocalHealthCacheStore(userProvider: authUIDCache)
+        healthDataRepository = HealthDataRepository(cacheStore: healthCacheStore)
+        healthSyncService = HealthSyncService(
+            repository: healthDataRepository,
+            cacheStore: healthCacheStore
+        )
+        healthSyncStateStore = HealthSyncStateStore(syncService: healthSyncService)
+        refreshCenter.healthDayChangeHandler = { [healthSyncStateStore] in
+            healthSyncStateStore.refreshOnDayChange()
+        }
+        trainingInsightsStore = TrainingInsightsStore(
+            integration: healthTrainingService,
+            healthSyncStateStore: healthSyncStateStore
         )
         trainingInsightsModel = TrainingInsightsModel(workoutReader: workoutReader)
         HealthTrainingDebugLogger.event(
@@ -227,6 +247,10 @@ final class AppContainer {
         #endif
     }
 
+    func syncHealthCacheUserID() {
+        authUIDCache.update(uid: authManager.currentUID)
+    }
+
     func makeTodayActionCoordinator() -> TodayActionCoordinator {
         TodayActionCoordinator(
             actionCenter: actionCenter,
@@ -316,7 +340,8 @@ final class AppContainer {
             analyticsLogger: onboardingAnalyticsLogger,
             analyticsEntry: entry,
             healthTrainingIntegration: healthTrainingService,
-            trainingInsightsStore: trainingInsightsStore
+            trainingInsightsStore: trainingInsightsStore,
+            healthSyncStateStore: healthSyncStateStore
         )
     }
 

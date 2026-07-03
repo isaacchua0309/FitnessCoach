@@ -16,9 +16,14 @@ final class TrainingInsightsStore: ObservableObject {
     @Published private(set) var lastSyncedAt: Date?
 
     private let integration: TrainingIntegrationProviding
+    private let healthSyncStateStore: HealthSyncStateStore?
 
-    init(integration: TrainingIntegrationProviding) {
+    init(
+        integration: TrainingIntegrationProviding,
+        healthSyncStateStore: HealthSyncStateStore? = nil
+    ) {
         self.integration = integration
+        self.healthSyncStateStore = healthSyncStateStore
         self.dataSource = integration.dataSource
     }
 
@@ -61,6 +66,7 @@ final class TrainingInsightsStore: ObservableObject {
         dataSource = integration.dataSource
         if result.isConnected {
             lastSyncedAt = Date()
+            healthSyncStateStore?.syncInitialHealthData()
         }
 
         HealthTrainingDebugLogger.logIntegrationTransition(

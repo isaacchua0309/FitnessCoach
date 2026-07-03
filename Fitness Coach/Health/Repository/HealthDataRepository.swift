@@ -473,6 +473,11 @@ struct HealthDataRepository: HealthDataRepositorying {
             ]
         )
 
+        cacheStore.pruneOldEntries(
+            keepingLastDays: HealthCachePolicy.retentionDays,
+            calendar: calendar
+        )
+
         return HealthRefreshResult(daysRefreshed: refreshed, refreshedAt: Date())
     }
 

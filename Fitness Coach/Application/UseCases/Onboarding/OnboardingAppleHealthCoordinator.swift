@@ -12,14 +12,17 @@ final class OnboardingAppleHealthCoordinator {
 
     private let healthTrainingIntegration: TrainingIntegrationProviding
     private let trainingInsightsStore: TrainingInsightsStore?
+    private let healthSyncStateStore: HealthSyncStateStore?
     private var isPermissionRequestInFlight = false
 
     init(
         healthTrainingIntegration: TrainingIntegrationProviding,
-        trainingInsightsStore: TrainingInsightsStore?
+        trainingInsightsStore: TrainingInsightsStore?,
+        healthSyncStateStore: HealthSyncStateStore? = nil
     ) {
         self.healthTrainingIntegration = healthTrainingIntegration
         self.trainingInsightsStore = trainingInsightsStore
+        self.healthSyncStateStore = healthSyncStateStore
     }
 
     var isHealthDataAvailable: Bool {
@@ -69,6 +72,7 @@ final class OnboardingAppleHealthCoordinator {
         switch state {
         case .connected:
             logAuthorizationSuccess()
+            healthSyncStateStore?.syncInitialHealthData()
         case .denied:
             logAuthorizationDenied()
         case .unavailable:
