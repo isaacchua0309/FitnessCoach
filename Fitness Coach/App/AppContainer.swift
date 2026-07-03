@@ -185,9 +185,6 @@ final class AppContainer {
             wiring = ("UnavailableLLMClient", nil, false)
             #endif
         }
-        #if DEBUG
-        PipelineTracePersistence.install(on: store)
-        #endif
         aiService = AIService(llmClient: llmClient)
         aiCommandParsingEnabled = true
 

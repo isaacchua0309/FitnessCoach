@@ -161,56 +161,6 @@ struct OnboardingWeightMaintenanceProofCard: View {
     }
 }
 
-struct OnboardingWeightTrajectoryComparisonProofCard: View {
-    let model: OnboardingWeightTrajectoryComparisonModel
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
-            OnboardingWeightTrajectoryHeroChart(model: model)
-                .frame(height: 220)
-                .accessibilityLabel(model.chartAccessibilityLabel)
-
-            HStack(spacing: FormaTokens.Spacing.lg) {
-                legendSwatch(color: OnboardingTheme.chartPrimary, label: model.formaLabel, dashed: false)
-                legendSwatch(
-                    color: OnboardingTheme.chartSecondary,
-                    label: model.traditionalLabel,
-                    dashed: true
-                )
-            }
-
-            Text(model.takeaway)
-                .font(FormaTokens.Typography.bodyMedium)
-                .foregroundStyle(OnboardingTheme.primaryText)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .contain)
-    }
-
-    private func legendSwatch(color: Color, label: String, dashed: Bool) -> some View {
-        HStack(spacing: FormaTokens.Spacing.sm) {
-            Group {
-                if dashed {
-                    HStack(spacing: 3) {
-                        Capsule().fill(color).frame(width: 8, height: 3)
-                        Capsule().fill(color).frame(width: 5, height: 3)
-                    }
-                } else {
-                    Capsule().fill(color).frame(width: 18, height: 3)
-                }
-            }
-            .accessibilityHidden(true)
-
-            Text(label)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(OnboardingTheme.primaryText)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(label)
-    }
-}
-
 private struct OnboardingProofComparisonBarRow: View {
     let label: String
     let valueLabel: String

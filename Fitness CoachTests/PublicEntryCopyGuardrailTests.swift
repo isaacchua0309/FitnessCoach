@@ -36,7 +36,7 @@ final class PublicEntryCopyGuardrailTests: XCTestCase {
                 "Save-plan language in existing-user sign-in copy: \(sample)"
             )
             XCTAssertNotEqual(sample, savePlan.title)
-            XCTAssertNotEqual(sample, savePlan.signInRetryMessage)
+            XCTAssertNotEqual(sample, savePlan.signInRetryHeadline)
         }
     }
 

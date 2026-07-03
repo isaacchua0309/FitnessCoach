@@ -200,12 +200,8 @@ enum FormaProductCopy {
                     "This Google account already has a saved plan. You can restore it, or replace it with the plan on this device."
                 static let restoreCTA = "Restore existing plan"
                 static let useDevicePlanCTA = "Use this device plan"
-                /// Legacy alias retained for older call sites.
-                static let useNewPlanCTA = useDevicePlanCTA
                 static let existingPlanLabel = "Existing plan"
                 static let devicePlanLabel = "This device plan"
-                /// Legacy alias retained for older call sites.
-                static let newPlanLabel = devicePlanLabel
                 static let dailyTargetLabel = "Daily target"
                 static let goalWeightLabel = "Goal weight"
                 static let updatedLabel = "Updated"
@@ -408,8 +404,6 @@ enum FormaProductCopy {
                 static var signInRetryAccessibilitySummary: String {
                     [signInRetryHeadline, signInRetryReassurance, signInRetryInvitation].joined(separator: " ")
                 }
-                /// Legacy alias used by routing and tests.
-                static let signInRetryMessage = signInRetryHeadline
                 static let googleSignInCTA = "Save My Plan"
                 static let googleSignInCTASubtitle = "Continue with Google"
                 static let googleSignInLoadingTitle = "Saving your plan…"
@@ -551,8 +545,6 @@ enum FormaProductCopy {
                 static let ageExplanation = "Age helps estimate energy needs."
                 static let trustNote =
                     "Used only to build your plan. You can update this later."
-                /// Legacy alias kept for guardrail/copy audits.
-                static let trustCardCopy = trustNote
                 static let birthDateRequiredMessage = "Select your birthday to continue."
                 static let ageOutOfRangeMessage =
                     "Age must be between \(BirthDateAgeResolver.minimumAge) and \(BirthDateAgeResolver.maximumAge)."

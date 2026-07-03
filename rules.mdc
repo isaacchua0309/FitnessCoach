@@ -1,6 +1,9 @@
 ---
 alwaysApply: true
 ---
+
+> **Canonical architecture (2026-07):** This file is a legacy rules snapshot. For current structure and conventions, see **[Docs/Architecture.md](./Docs/Architecture.md)**.
+
 ---
 
 description: FitPilot AI architecture rules for a low-depth SwiftUI iOS codebase
