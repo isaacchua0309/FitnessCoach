@@ -35,6 +35,7 @@ struct MainTabView: View {
 
     private let container: AppContainer
     private let journeyAnalyticsCoordinator: JourneyAnalyticsCoordinator
+    private let settingsAnalyticsCoordinator: SettingsAnalyticsCoordinator
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.formaResolvedTheme) private var resolvedTheme
@@ -49,6 +50,7 @@ struct MainTabView: View {
     init(container: AppContainer) {
         self.container = container
         self.journeyAnalyticsCoordinator = container.makeJourneyAnalyticsCoordinator()
+        self.settingsAnalyticsCoordinator = container.makeSettingsAnalyticsCoordinator()
         _todayModel = StateObject(wrappedValue: container.makeTodayModel())
         _coachModel = StateObject(wrappedValue: container.makeCoachModel())
         _journeyModel = StateObject(wrappedValue: container.makeJourneyModel())
@@ -119,6 +121,7 @@ struct MainTabView: View {
         .environmentObject(container.trainingInsightsStore)
         .environmentObject(container.trainingInsightsModel)
         .environmentObject(container.themeStore)
+        .environment(\.settingsAnalyticsCoordinator, settingsAnalyticsCoordinator)
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 container.refreshCenter.refreshIfDayChanged()

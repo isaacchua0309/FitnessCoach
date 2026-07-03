@@ -23,6 +23,8 @@ enum FormaProductCopy {
         static let continueAction = "Continue"
         static let back = "Back"
         static let cancel = "Cancel"
+        static let ok = "OK"
+        static let done = "Done"
         static let completeRequiredFields = "Fill in the required fields to continue."
     }
 
@@ -904,9 +906,21 @@ enum FormaProductCopy {
     enum Account {
         static let logoutConfirmationTitle = "Log out of Forma?"
         static let logoutConfirmationMessage =
-            "Signing out keeps this device's local data unless you delete it. If another account signs in, Forma will ask before using or replacing this profile."
+            "Signing out keeps this device's local data unless you delete it."
         static let signOutHint = "Sign out of Forma on this device"
-        static let signOutDataNote = logoutConfirmationMessage
+        static let signOutUnavailableHint = "Unavailable while signing in"
+        static let missingNameFallback = "Not provided"
+        static let missingEmailFallback = "Not provided"
+        static let signedInBadgeGoogle = "Signed in with Google"
+        static let signedInBadgeGeneric = "Signed in"
+        static let signInMethodGoogle = "Google"
+        static let detailNameLabel = "Name"
+        static let detailEmailLabel = "Email"
+        static let detailSignInLabel = "Sign-in"
+        static let avatarAccessibilityLabel = "Profile photo"
+        static let logoutButtonTitle = "Log out"
+        static let logoutConfirmActionTitle = "Log Out"
+        static let logoutCancelActionTitle = "Cancel"
     }
 
     // MARK: - Empty states
@@ -2346,13 +2360,88 @@ enum FormaProductCopy {
         static let personalDetailsAgeFromBirthday = "Derived from your birthday."
         static let personalDetailsAgeLegacy = "From your profile age."
         static let bodyDetailsSettingsTitle = "Body & stats"
+        /// Legacy footnote — superseded by `Settings.BodyDetails.introCopy` on the Body & stats screen.
         static let bodyDetailsSettingsFootnote =
-            "To update these, use Adjust Plan on the Plan tab."
+            "These details help Forma estimate targets and personalize your plan."
     }
 
     // MARK: - Settings
 
     enum Settings {
+
+        enum Hub {
+            static let screenTitle = "Settings"
+            static let doneAccessibilityLabel = "Done"
+            static let accountSectionTitle = "Account"
+            static let preferencesSectionTitle = "Preferences"
+            static let integrationsSectionTitle = "Integrations"
+            static let privacyDataSectionTitle = "Privacy & Data"
+            static let supportSectionTitle = "Support"
+            static let aboutSectionTitle = "About"
+            static let developerSectionTitle = "Developer"
+        }
+
+        enum Rows {
+            static let account = "Account"
+            static let units = "Units"
+            static let appleHealth = "Apple Health"
+            static let privacyPolicy = "Privacy Policy"
+            static let exportData = "Export Data"
+            static let deleteData = "Delete Data"
+            static let sendFeedback = "Send Feedback"
+            static let contactSupport = "Contact Support"
+            static let reportProblem = "Report a Problem"
+            static let appVersion = "App Version"
+            static let termsOfService = "Terms of Service"
+            static let authDiagnostics = "Auth diagnostics"
+            static let pipelineTraces = "Pipeline traces"
+        }
+
+        enum Developer {
+            static let sectionFooter = "Debug tools are only visible in internal builds."
+        }
+
+        enum Support {
+            static let feedbackMailSubject = "Forma Feedback"
+            static let contactMailSubject = "Forma Support"
+            static let reportProblemMailSubject = "Forma Problem Report"
+            static let sectionFooter = "We read every message. Diagnostics help us troubleshoot — no health data is included."
+            static let diagnosticsHeader = "Diagnostics"
+            static let feedbackMailPrompt = "Share your feedback:"
+            static let contactMailPrompt = "How can we help?"
+            static let reportProblemMailPrompt = "What went wrong?"
+        }
+
+        enum Status {
+            static let connected = "Connected"
+            static let notConnected = "Not connected"
+            static let metric = "Metric"
+            static let imperial = "Imperial"
+        }
+
+        enum AppleHealth {
+            static let screenTitle = "Apple Health"
+            static let readsWorkoutsCopy =
+                "Forma reads workouts to improve activity, Plan confidence, and Journey insights."
+            static let doesNotWriteCopy =
+                "Forma does not write or change your Health data."
+            static let connectionCardTitle = "Connection"
+            static let statusLabel = "Status"
+            static let lastSyncLabel = "Last sync"
+            static let permissionsLabel = "Permissions"
+            static let accessLabel = "Access"
+            static let permissionsWorkouts = "Workouts"
+            static let accessManagedInHealthApp = "Managed in Health app"
+            static let statusConnected = "Connected"
+            static let statusNotConnected = "Not Connected"
+            static let statusPermissionNeeded = "Permission Needed"
+            static let openHealthAppAction = "Open Health app"
+            static let connectAction = "Connect Apple Health"
+            static let connectingAction = "Connecting…"
+            static let openHealthAccessibilityHint = "Opens the Health app to manage workout access"
+            static let connectAccessibilityHint = "Requests permission to read workouts from Apple Health"
+            static let connectingAccessibilityHint = "Unavailable while connecting"
+        }
 
         /// Theme preferences screen and color palette copy.
         enum Theme {
@@ -2445,6 +2534,68 @@ enum FormaProductCopy {
                 let selection = isSelected ? "selected" : "not selected"
                 return "\(title), \(description), \(selection)"
             }
+        }
+
+        /// Units preference screen copy.
+        enum Units {
+            static let screenTitle = "Units"
+            static let unitSystemSectionTitle = "Unit system"
+            static let examplesSectionTitle = "Examples"
+            static let storageFootnote =
+                "Forma stores values consistently and converts them for display."
+            static let imperialDisplayOnlyFootnote =
+                "Imperial changes display units only. Values are stored internally in metric."
+
+            static let exampleWeightLabel = "Weight"
+            static let exampleHeightLabel = "Height"
+            static let exampleWaterLabel = "Water"
+            static let exampleEnergyLabel = "Energy"
+
+            static func unitSystemPickerLabel(for unitSystem: UnitSystem) -> String {
+                switch unitSystem {
+                case .metric:
+                    return "Metric (kg, cm, ml)"
+                case .imperial:
+                    return "Imperial (lb, ft/in, fl oz)"
+                }
+            }
+
+            static func unitSystemAccessibilityLabel(
+                for unitSystem: UnitSystem,
+                isSelected: Bool
+            ) -> String {
+                let selection = isSelected ? "selected" : "not selected"
+                return "\(unitSystemPickerLabel(for: unitSystem)), \(selection)"
+            }
+        }
+
+        /// Body & stats settings screen copy.
+        enum BodyDetails {
+            static let profileDetailsSectionTitle = "Profile details"
+            static let introCopy =
+                "These details help Forma estimate targets and personalize your plan."
+            static let updateInPlanCTA = "Update in Plan"
+            static let updateInPlanAccessibilityHint = "Opens Adjust Plan to update your body details"
+            static let startingWeightLabel = "Starting weight"
+            static let currentWeightLabel = "Current weight"
+            static let notSetValue = "Not set"
+        }
+
+        /// Privacy & Data settings section copy.
+        enum PrivacyData {
+            static let sectionFooter =
+                "Your fitness data stays on this device unless you choose to sign in or use connected services."
+            static let deleteConfirmationTitle = "Delete your data?"
+            static let deleteConfirmationMessage =
+                """
+                This permanently removes your Forma profile, daily logs, Coach history, and weight entries from this device. Your Google sign-in account is not deleted.
+
+                This cannot be undone.
+                """
+            static let deleteConfirmActionTitle = "Delete my data"
+            static let deleteUnavailableTitle = "Deletion isn't available yet"
+            static let deleteUnavailableMessage =
+                "Data deletion is not available in this version of Forma. Contact \(FormaProductCopy.Legal.supportEmail) for help."
         }
     }
 

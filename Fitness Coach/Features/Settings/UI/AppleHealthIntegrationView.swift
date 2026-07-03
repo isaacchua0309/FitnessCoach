@@ -11,140 +11,150 @@ struct AppleHealthIntegrationView: View {
 
     @ObservedObject var insightsStore: TrainingInsightsStore
 
+    private var presentation: AppleHealthSettingsPresentation {
+        AppleHealthSettingsPresentationBuilder.build(
+            input: AppleHealthSettingsPresentationInput(
+                integrationState: insightsStore.integrationState,
+                lastSyncDate: insightsStore.lastSyncedAt
+            )
+        )
+    }
+
     var body: some View {
-        List {
-            Section {
-                VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                    Text(TrainingIntegrationCopy.healthIntegrationTitle)
-                        .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
-
-                    Text(TrainingIntegrationCopy.healthIntegrationBody)
-                        .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textLegal)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .formaSettingsRowChrome()
-            }
-
-            Section {
-                FormaPlanDisplayRow(
-                    label: "Status",
-                    value: TrainingIntegrationCopy.settingsStatusLabel(
-                        for: insightsStore.integrationState
-                    ),
-                    multilineValue: false
-                )
-                .formaSettingsRowChrome()
-
-                FormaPlanDisplayRow(
-                    label: "Details",
-                    value: TrainingIntegrationCopy.settingsDetailDescription(
-                        for: insightsStore.integrationState
-                    ),
-                    multilineValue: true
-                )
-                .formaSettingsRowChrome()
-            } header: {
-                FormaSettingsSectionHeader(title: "Connection")
-            }
-
-            if let actionTitle = primaryActionTitle {
-                Section {
-                    Button {
-                        Task { await handlePrimaryAction() }
-                    } label: {
-                        settingsRowLabel(
-                            actionTitle,
-                            isEnabled: !insightsStore.integrationState.isRequestingPermission
-                        )
-                    }
-                    .formaSettingsRowChrome()
-                    .disabled(insightsStore.integrationState.isRequestingPermission)
-                    .accessibilityHint(
-                        insightsStore.integrationState.isRequestingPermission
-                            ? "Unavailable while connecting"
-                            : "Performs the primary Apple Health action"
-                    )
-                }
-            }
-
-            if showsManageAccess {
-                Section {
-                    Button {
-                        openHealthAccessSettings()
-                    } label: {
-                        settingsRowLabel(TrainingIntegrationCopy.manageHealthAccess)
-                    }
-                    .formaSettingsRowChrome()
-                } footer: {
-                    Text(
-                        insightsStore.integrationState.isConnected
-                            ? TrainingIntegrationCopy.healthPermissionsLocationHint
-                            : TrainingIntegrationCopy.healthIntegrationFooter
-                    )
-                        .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaTokens.Color.textTertiary)
-                }
+        formaSettingsDetailScreen {
+            VStack(alignment: .leading, spacing: SettingsChromeAccessibility.detailSectionSpacing) {
+                heroSection
+                trustCopySection
+                connectionCard
+                primaryActionSection
             }
         }
-        .formaGroupedList()
-        .navigationTitle("Apple Health")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle(presentation.screenTitle)
         .task {
             await insightsStore.refresh()
         }
     }
 
-    private var primaryActionTitle: String? {
-        TrainingIntegrationCopy.connectButtonTitle(for: insightsStore.integrationState)
+    // MARK: - Hero
+
+    private var heroSection: some View {
+        Text(presentation.heroStatus)
+            .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
+            .foregroundStyle(
+                presentation.heroShowsConnected
+                    ? FormaTokens.Color.success
+                    : FormaTokens.Color.textPrimary
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
     }
 
-    private var showsManageAccess: Bool {
-        switch insightsStore.integrationState {
-        case .connected, .denied:
-            return true
-        case .notConnected, .unavailable, .requestingPermission, .failed:
-            return false
+    // MARK: - Trust copy
+
+    private var trustCopySection: some View {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+            ForEach(presentation.trustCopy, id: \.self) { line in
+                Text(line)
+                    .font(FormaTokens.Typography.sectionSubtitle)
+                    .foregroundStyle(FormaTokens.Color.textLegal)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    // MARK: - Connection card
+
+    private var connectionCard: some View {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+            Text(presentation.connectionCardTitle)
+                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .accessibilityAddTraits(.isHeader)
+
+            FormaPlanCard(compact: true) {
+                VStack(spacing: 0) {
+                    ForEach(Array(presentation.connectionRows.enumerated()), id: \.element.id) { index, row in
+                        if index > 0 {
+                            connectionRowDivider
+                        }
+                        connectionRow(row)
+                    }
+                }
+            }
+        }
+    }
+
+    private func connectionRow(_ row: AppleHealthSettingsConnectionRow) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.md) {
+            Text(row.label)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .frame(
+                    width: SettingsChromeAccessibility.connectionLabelColumnWidth,
+                    alignment: .leading
+                )
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
+
+            Text(row.value)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(FormaTokens.Color.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .multilineTextAlignment(.leading)
+        }
+        .padding(.vertical, FormaTokens.Spacing.xs)
+    }
+
+    private var connectionRowDivider: some View {
+        Divider()
+            .overlay(FormaTokens.Color.border)
+            .padding(.vertical, FormaTokens.Spacing.xs)
+    }
+
+    // MARK: - Primary action
+
+    @ViewBuilder
+    private var primaryActionSection: some View {
+        if let title = presentation.primaryActionTitle {
+            Button {
+                Task { await handlePrimaryAction() }
+            } label: {
+                Text(title)
+                    .font(FormaTokens.Typography.body.weight(.medium))
+                    .foregroundStyle(
+                        presentation.isPrimaryActionEnabled
+                            ? FormaTokens.Color.accent
+                            : FormaTokens.Color.textTertiary
+                    )
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: SettingsChromeAccessibility.minimumActionButtonHeight)
+            }
+            .buttonStyle(.plain)
+            .background(
+                RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
+                    .fill(FormaTokens.Color.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
+                            .stroke(FormaTokens.Color.border, lineWidth: 1)
+                    )
+            )
+            .disabled(!presentation.isPrimaryActionEnabled)
+            .accessibilityLabel(title)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint(presentation.primaryActionAccessibilityHint ?? "")
         }
     }
 
     private func handlePrimaryAction() async {
-        switch insightsStore.integrationState {
-        case .denied:
-            openHealthAccessSettings()
-        case .notConnected, .failed:
-            await insightsStore.connectAppleHealth()
-        case .unavailable, .requestingPermission, .connected:
-            break
-        }
-    }
-
-    private func settingsRowLabel(_ title: String, isEnabled: Bool = true) -> some View {
-        Text(title)
-            .font(FormaTokens.Typography.body)
-            .foregroundStyle(
-                isEnabled
-                    ? FormaTokens.Color.accent
-                    : FormaTokens.Color.textTertiary
-            )
-            .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .leading)
+        await AppleHealthSettingsActionHandler.perform(
+            action: presentation.primaryAction,
+            openHealthApp: openHealthAccessSettings,
+            connect: { await insightsStore.connectAppleHealth() }
+        )
     }
 
     private func openHealthAccessSettings() {
         HealthAppSettingsNavigator.openHealthPermissions()
     }
-}
-
-#Preview {
-    NavigationStack {
-        AppleHealthIntegrationView(
-            insightsStore: TrainingInsightsStore(
-                integration: StubTrainingIntegrationProvider(
-                    refreshResult: .connected
-                )
-            )
-        )
-    }
-    .formaThemePreview()
 }

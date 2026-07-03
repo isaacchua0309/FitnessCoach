@@ -61,7 +61,9 @@ struct ThemeSettingsView: View {
     private var livePreviewSection: some View {
         Section {
             ThemeSettingsLivePreview()
+                .formaThemeReactive()
                 .animation(.easeInOut(duration: 0.22), value: themeStore.palette)
+                .animation(.easeInOut(duration: 0.22), value: themeStore.appearance)
                 .formaFormSection()
         } header: {
             FormaSettingsSectionHeader(title: FormaProductCopy.Settings.Theme.livePreviewSectionTitle)
@@ -72,8 +74,13 @@ struct ThemeSettingsView: View {
         Section {
             LazyVGrid(
                 columns: [
-                    GridItem(.flexible(), spacing: FormaTokens.Spacing.sm),
-                    GridItem(.flexible(), spacing: FormaTokens.Spacing.sm)
+                    GridItem(
+                        .adaptive(
+                            minimum: ThemeSettingsPickerAccessibility.paletteGridMinimumColumnWidth,
+                            maximum: .infinity
+                        ),
+                        spacing: FormaTokens.Spacing.sm
+                    )
                 ],
                 spacing: FormaTokens.Spacing.sm
             ) {
@@ -191,14 +198,15 @@ private struct ThemePremiumPickerCard: View {
                     Text(preview.displayName)
                         .font(FormaTokens.Typography.body.weight(.semibold))
                         .foregroundStyle(FormaTokens.Color.textPrimary)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.85)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
 
                     Text(preview.subtitle)
                         .font(FormaTokens.Typography.sectionSubtitle)
                         .foregroundStyle(FormaTokens.Color.textSecondary)
-                        .lineLimit(3)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.9)
+                        .multilineTextAlignment(.leading)
                 }
             }
             .frame(maxWidth: .infinity, minHeight: resolvedMinCardHeight, alignment: .topLeading)
@@ -208,11 +216,13 @@ private struct ThemePremiumPickerCard: View {
                 if isSelected {
                     selectedCheckmark
                         .padding(FormaTokens.Spacing.xs)
+                        .transition(.scale.combined(with: .opacity))
                 }
             }
             .contentShape(RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous))
         }
         .buttonStyle(.plain)
+        .animation(.easeInOut(duration: 0.18), value: isSelected)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(palette.accessibilityLabel(isSelected: isSelected))
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
@@ -230,12 +240,25 @@ private struct ThemePremiumPickerCard: View {
     }
 
     private var selectedCheckmark: some View {
-        Image(systemName: "checkmark.circle.fill")
-            .font(.body.weight(.semibold))
-            .symbolRenderingMode(.palette)
-            .foregroundStyle(preview.textOnAccent, preview.primary)
-            .shadow(color: preview.primary.opacity(0.35), radius: 4, y: 1)
-            .accessibilityHidden(true)
+        ZStack {
+            Circle()
+                .fill(FormaTokens.Color.canvas)
+                .frame(
+                    width: ThemeSettingsPickerAccessibility.selectedCheckmarkBackingDiameter,
+                    height: ThemeSettingsPickerAccessibility.selectedCheckmarkBackingDiameter
+                )
+                .overlay {
+                    Circle()
+                        .stroke(FormaTokens.Color.border.opacity(0.55), lineWidth: 0.75)
+                }
+                .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
+
+            Image(systemName: "checkmark.circle.fill")
+                .font(.body.weight(.semibold))
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(preview.textOnAccent, preview.primary)
+        }
+        .accessibilityHidden(true)
     }
 
     @ViewBuilder

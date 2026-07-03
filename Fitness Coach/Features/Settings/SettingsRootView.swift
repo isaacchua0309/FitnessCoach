@@ -2,7 +2,7 @@
 //  SettingsRootView.swift
 //  Fitness Coach
 //
-//  FitPilot — Consumer settings hub (grouped list, modal Done).
+//  Forma — Consumer settings hub (grouped list, modal Done).
 //
 
 import SwiftUI
@@ -10,6 +10,8 @@ import SwiftUI
 struct SettingsRootView: View {
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
+    @Environment(\.settingsAnalyticsCoordinator) private var analyticsCoordinator
     @EnvironmentObject private var insightsStore: TrainingInsightsStore
     @EnvironmentObject private var themeStore: ThemeStore
 
@@ -18,18 +20,53 @@ struct SettingsRootView: View {
     let onSaveUnits: (PlanFormState) async -> Void
     let onDismiss: () -> Void
 
+    var featureAvailability: SettingsFeatureAvailability = .production
+    var supportConfiguration: SettingsSupportConfiguration = .production
+    var isDebugOrInternalBuild: Bool = FormaBuildConfiguration.isDebugOrInternalBuild
+    var bodyDetailsInput: BodyDetailsSettingsPresentationInput?
+    var onUpdateInPlan: (() -> Void)?
+
+    @State private var showsDeleteDataConfirmation = false
+    @State private var showsDeleteUnavailableAlert = false
+    @State private var supportMailTopic: SettingsSupportMailTopic?
+
+    private var resolvedBodyDetailsInput: BodyDetailsSettingsPresentationInput {
+        bodyDetailsInput ?? BodyDetailsSettingsPresentationInput(formState: formState)
+    }
+
+    private var presentationState: SettingsPresentationState {
+        SettingsPresentationBuilder.build(
+            input: SettingsPresentationInput(
+                integrationState: insightsStore.integrationState,
+                unitSystem: formState.unitSystem,
+                themePalette: themeStore.palette,
+                appVersion: FormaAppMetadata.versionDisplayString(),
+                featureAvailability: featureAvailability,
+                legalAvailability: .production,
+                supportConfiguration: supportConfiguration,
+                isDebugOrInternalBuild: isDebugOrInternalBuild
+            )
+        )
+    }
+
     var body: some View {
         NavigationStack {
             List {
-                accountSection
-                preferencesSection
-                notificationsSection
-                integrationsSection
-                privacySection
+                section(presentationState.account)
+                section(presentationState.preferences)
+                section(presentationState.integrations)
+                    .task {
+                        await insightsStore.refresh()
+                    }
+                section(presentationState.privacyData)
+                if let support = presentationState.support {
+                    section(support)
+                }
+                section(presentationState.about)
 
-                #if DEBUG
-                developerSection
-                #endif
+                if let developer = presentationState.developer {
+                    section(developer)
+                }
 
                 if let errorMessage {
                     Section {
@@ -41,174 +78,310 @@ struct SettingsRootView: View {
                 }
             }
             .formaGroupedList()
-            .navigationTitle("Settings")
+            .navigationTitle(FormaProductCopy.Settings.Hub.screenTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button(FormaProductCopy.Common.done) {
                         onDismiss()
                         dismiss()
                     }
                     .fontWeight(.semibold)
                     .foregroundStyle(FormaTokens.Color.accent)
+                    .accessibilityLabel(FormaProductCopy.Settings.Hub.doneAccessibilityLabel)
                 }
             }
             .formaScrollBottomInset()
+            .onAppear {
+                analyticsCoordinator.updateContext(
+                    unitSystem: formState.unitSystem,
+                    themePalette: themeStore.palette,
+                    integrationState: insightsStore.integrationState
+                )
+                analyticsCoordinator.logSettingsViewed()
+            }
+            .confirmationDialog(
+                deleteDataPresentation.confirmationTitle,
+                isPresented: $showsDeleteDataConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button(deleteDataPresentation.confirmActionTitle, role: .destructive) {
+                    let result = SettingsDeleteDataActionHandler.perform()
+                    if case .notImplemented = result {
+                        showsDeleteUnavailableAlert = true
+                    }
+                }
+                Button(FormaProductCopy.Common.cancel, role: .cancel) {}
+            } message: {
+                Text(deleteDataPresentation.confirmationMessage)
+            }
+            .alert(
+                deleteDataPresentation.unavailableTitle,
+                isPresented: $showsDeleteUnavailableAlert
+            ) {
+                Button(FormaProductCopy.Common.ok, role: .cancel) {}
+            } message: {
+                Text(deleteDataPresentation.unavailableMessage)
+            }
+            .sheet(item: $supportMailTopic) { topic in
+                #if canImport(MessageUI)
+                if let email = supportConfiguration.supportEmail {
+                    SettingsSupportMailComposer(
+                        topic: topic,
+                        supportEmail: email,
+                        diagnostics: SettingsSupportDiagnosticsBuilder.build(),
+                        onFinish: { supportMailTopic = nil }
+                    )
+                }
+                #endif
+            }
         }
+    }
+
+    private var deleteDataPresentation: SettingsDeleteDataPresentation {
+        SettingsDeleteDataPresentationBuilder.build()
     }
 
     // MARK: - Sections
 
-    private var accountSection: some View {
-        Section {
-            NavigationLink {
-                AccountSettingsView()
-            } label: {
-                settingsRowLabel("Account")
-            }
-            .formaSettingsRowChrome()
-        } header: {
-            FormaSettingsSectionHeader(title: "Account")
-        }
+    @ViewBuilder
+    private func section(_ section: SettingsAccountSectionState) -> some View {
+        section(title: section.title, footer: nil, rows: section.rows, sectionType: .account)
     }
 
-    private var preferencesSection: some View {
-        Section {
-            NavigationLink {
-                UnitsSettingsScreen(
-                    formState: $formState,
-                    onSave: onSaveUnits
-                )
-            } label: {
-                settingsRowLabel("Units")
-            }
-            .formaSettingsRowChrome()
-
-            NavigationLink {
-                PlanBodyDetailsSettingsView(formState: formState)
-            } label: {
-                settingsRowLabel(FormaProductCopy.PlanCalculation.bodyDetailsSettingsTitle)
-            }
-            .formaSettingsRowChrome()
-
-            NavigationLink {
-                ThemeSettingsView()
-            } label: {
-                settingsRowLabel(SettingsPreferencesCatalog.themeRowTitle)
-            }
-            .formaSettingsRowChrome()
-
-            FormaComingSoonRow(title: "AI preferences")
-                .formaSettingsRowChrome(isEnabled: false)
-        } header: {
-            FormaSettingsSectionHeader(title: SettingsPreferencesCatalog.sectionTitle)
-        }
+    @ViewBuilder
+    private func section(_ section: SettingsPreferencesSectionState) -> some View {
+        section(title: section.title, footer: nil, rows: section.rows, sectionType: .preferences)
     }
 
-    private var notificationsSection: some View {
-        Section {
-            FormaComingSoonRow(title: "Daily reminders")
-                .formaSettingsRowChrome(isEnabled: false)
-            FormaComingSoonRow(title: "Coach check-ins")
-                .formaSettingsRowChrome(isEnabled: false)
-        } header: {
-            FormaSettingsSectionHeader(title: "Notifications")
-        }
+    @ViewBuilder
+    private func section(_ section: SettingsIntegrationsSectionState) -> some View {
+        section(title: section.title, footer: nil, rows: section.rows, sectionType: .integrations)
     }
 
-    private var integrationsSection: some View {
+    @ViewBuilder
+    private func section(_ section: SettingsPrivacyDataSectionState) -> some View {
+        section(title: section.title, footer: section.footer, rows: section.rows, sectionType: .privacyData)
+    }
+
+    @ViewBuilder
+    private func section(_ section: SettingsSupportSectionState) -> some View {
+        section(title: section.title, footer: section.footer, rows: section.rows, sectionType: .support)
+    }
+
+    @ViewBuilder
+    private func section(_ section: SettingsAboutSectionState) -> some View {
+        section(title: section.title, footer: nil, rows: section.rows, sectionType: .about)
+    }
+
+    @ViewBuilder
+    private func section(_ section: SettingsDeveloperSectionState) -> some View {
+        section(title: section.title, footer: section.footer, rows: section.rows, sectionType: .developer)
+    }
+
+    @ViewBuilder
+    private func section(
+        title: String,
+        footer: String?,
+        rows: [SettingsRowPresentation],
+        sectionType: SettingsAnalyticsSectionType
+    ) -> some View {
         Section {
-            NavigationLink {
-                AppleHealthIntegrationView(insightsStore: insightsStore)
-            } label: {
-                HStack(spacing: FormaTokens.Spacing.sm) {
-                    Text("Apple Health")
-                        .font(FormaTokens.Typography.body)
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
-                    Spacer(minLength: FormaTokens.Spacing.xs)
-                    Text(
-                        TrainingIntegrationCopy.settingsStatusLabel(
-                            for: insightsStore.integrationState
-                        )
-                    )
-                    .font(FormaTokens.Typography.sectionSubtitle)
+            ForEach(rows) { row in
+                rowView(row, sectionType: sectionType)
+            }
+        } header: {
+            FormaSettingsSectionHeader(title: title)
+        } footer: {
+            if let footer {
+                Text(footer)
+                    .font(FormaTokens.Typography.caption)
                     .foregroundStyle(FormaTokens.Color.textTertiary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func rowView(_ row: SettingsRowPresentation, sectionType: SettingsAnalyticsSectionType) -> some View {
+        if case .supportMail(let topic) = row.destination {
+            settingsButtonRow(
+                row: row,
+                showsDisclosure: true,
+                disclosureSystemName: "envelope",
+                accessibilityHint: "Opens mail composer"
+            ) {
+                analyticsCoordinator.logSupportTapped(topic: topic, sectionType: sectionType)
+                openSupportMail(topic)
+            }
+        } else if case .legalDocument(let document) = row.destination,
+                  let url = presentationState.externalURL(for: document) {
+            settingsButtonRow(
+                row: row,
+                showsDisclosure: true,
+                disclosureSystemName: "arrow.up.right",
+                accessibilityHint: SettingsRowAccessibilityFormatter.buttonHint(opensExternally: true)
+            ) {
+                logLegalDocumentTapped(document, sectionType: sectionType)
+                openURL(url)
+            }
+        } else if case .deleteData = row.destination {
+            settingsButtonRow(
+                row: row,
+                isDestructive: true,
+                accessibilityHint: "Opens confirmation"
+            ) {
+                analyticsCoordinator.logRowTapped(rowID: row.id, sectionType: sectionType)
+                showsDeleteDataConfirmation = true
+            }
+        } else if case .exportData = row.destination {
+            settingsButtonRow(
+                row: row,
+                showsDisclosure: true,
+                accessibilityHint: SettingsRowAccessibilityFormatter.buttonHint(opensExternally: false)
+            ) {
+                analyticsCoordinator.logRowTapped(rowID: row.id, sectionType: sectionType)
+                handleExportData()
+            }
+        } else if row.isNavigable, let destination = row.destination {
+            NavigationLink {
+                destinationView(for: destination, sectionType: sectionType)
+            } label: {
+                FormaSettingsRowLabel(title: row.title, status: row.status)
+            }
+            .formaSettingsRowChrome()
+            .accessibilityLabel(SettingsRowAccessibilityFormatter.label(title: row.title, status: row.status))
+            .accessibilityHint(SettingsRowAccessibilityFormatter.buttonHint(opensExternally: false))
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    analyticsCoordinator.logRowTapped(rowID: row.id, sectionType: sectionType)
                 }
-                .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .center)
-            }
-            .formaSettingsRowChrome()
-        } header: {
-            FormaSettingsSectionHeader(title: "Integrations")
-        } footer: {
-            Text(TrainingIntegrationCopy.healthIntegrationFooter)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textTertiary)
-        }
-        .task {
-            await insightsStore.refresh()
+            )
+        } else {
+            FormaSettingsRowLabel(title: row.title, status: row.status)
+                .formaSettingsRowChrome(isEnabled: false)
+                .accessibilityLabel(SettingsRowAccessibilityFormatter.label(title: row.title, status: row.status))
         }
     }
 
-    private var privacySection: some View {
-        Section {
-            FormaComingSoonRow(title: "Data export")
-                .formaSettingsRowChrome(isEnabled: false)
-            FormaComingSoonRow(title: "Delete data")
-                .formaSettingsRowChrome(isEnabled: false)
-        } header: {
-            FormaSettingsSectionHeader(title: "Privacy")
+    private func settingsButtonRow(
+        row: SettingsRowPresentation,
+        showsDisclosure: Bool = false,
+        disclosureSystemName: String = "chevron.right",
+        isDestructive: Bool = false,
+        accessibilityHint: String? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(role: isDestructive ? .destructive : nil, action: action) {
+            FormaSettingsRowLabel(
+                title: row.title,
+                status: row.status,
+                showsDisclosure: showsDisclosure,
+                disclosureSystemName: disclosureSystemName,
+                isDestructive: isDestructive
+            )
+        }
+        .formaSettingsRowChrome()
+        .accessibilityLabel(SettingsRowAccessibilityFormatter.label(title: row.title, status: row.status))
+        .accessibilityHint(accessibilityHint ?? "")
+    }
+
+    @ViewBuilder
+    private func destinationView(
+        for destination: SettingsRowDestination,
+        sectionType: SettingsAnalyticsSectionType
+    ) -> some View {
+        switch destination {
+        case .account:
+            AccountSettingsView()
+                .onAppear { analyticsCoordinator.logAccountViewed() }
+        case .units:
+            UnitsSettingsScreen(
+                formState: $formState,
+                onSave: onSaveUnits
+            )
+            .onAppear { analyticsCoordinator.logUnitsSettingsViewed() }
+        case .bodyAndStats:
+            PlanBodyDetailsSettingsView(
+                presentation: BodyDetailsSettingsPresentationBuilder.build(
+                    input: resolvedBodyDetailsInput
+                ),
+                onUpdateInPlan: {
+                    onUpdateInPlan?()
+                }
+            )
+            .onAppear { analyticsCoordinator.logBodyStatsViewed() }
+        case .theme:
+            ThemeSettingsView()
+                .onAppear { analyticsCoordinator.logThemeSettingsViewed() }
+        case .appleHealthIntegration:
+            AppleHealthIntegrationView(insightsStore: insightsStore)
+                .onAppear { analyticsCoordinator.logAppleHealthSettingsViewed() }
+        case .legalDocument(let document):
+            SettingsLegalDocumentView(document: document)
+                .onAppear {
+                    switch document {
+                    case .privacyPolicy:
+                        analyticsCoordinator.logPrivacyPolicyTapped(sectionType: sectionType)
+                    case .terms:
+                        analyticsCoordinator.logTermsTapped(sectionType: sectionType)
+                    }
+                }
+        case .supportMail:
+            EmptyView()
+        case .authDiagnostics, .pipelineTraces:
+            developerDestinationView(for: destination)
         }
     }
 
-    #if DEBUG
-    private var developerSection: some View {
-        Section {
-            NavigationLink {
+    @ViewBuilder
+    private func developerDestinationView(for destination: SettingsRowDestination) -> some View {
+        if presentationState.isDebugOrInternalBuild,
+           FormaBuildConfiguration.includesCompiledDeveloperTools {
+            switch destination {
+            case .authDiagnostics:
                 AuthDiagnosticsView()
-            } label: {
-                settingsRowLabel("Auth diagnostics")
-            }
-            .formaSettingsRowChrome()
-
-            NavigationLink {
+            case .pipelineTraces:
                 PipelineDiagnosticsView()
-            } label: {
-                settingsRowLabel("Pipeline traces")
+            default:
+                EmptyView()
             }
-            .formaSettingsRowChrome()
-        } header: {
-            FormaSettingsSectionHeader(title: "Developer")
-        } footer: {
-            Text("Debug builds only. Pipeline traces help troubleshoot Coach AI routing and backend calls.")
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textTertiary)
+        } else {
+            EmptyView()
         }
     }
-    #endif
 
-    // MARK: - Row chrome
-
-    private func settingsRowLabel(_ title: String) -> some View {
-        Text(title)
-            .font(FormaTokens.Typography.body)
-            .foregroundStyle(FormaTokens.Color.textPrimary)
-            .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .leading)
+    private func logLegalDocumentTapped(
+        _ document: FormaLegalDocument,
+        sectionType: SettingsAnalyticsSectionType
+    ) {
+        switch document {
+        case .privacyPolicy:
+            analyticsCoordinator.logPrivacyPolicyTapped(sectionType: sectionType)
+            analyticsCoordinator.logRowTapped(rowID: .privacyPolicy, sectionType: sectionType)
+        case .terms:
+            analyticsCoordinator.logTermsTapped(sectionType: sectionType)
+            analyticsCoordinator.logRowTapped(rowID: .termsOfService, sectionType: sectionType)
+        }
     }
-}
 
-#Preview {
-    SettingsRootView(
-        formState: .constant(PlanPreviewData.formState),
-        errorMessage: nil,
-        onSaveUnits: { _ in },
-        onDismiss: {}
-    )
-    .environmentObject(AuthManager())
-    .environmentObject(
-        TrainingInsightsStore(
-            integration: StubTrainingIntegrationProvider(refreshResult: .connected)
-        )
-    )
-    .environmentObject(ThemeStore(userDefaults: UserDefaults(suiteName: "SettingsRootPreview")!))
-    .formaThemePreview()
+    private func openSupportMail(_ topic: SettingsSupportMailTopic) {
+        guard let email = supportConfiguration.supportEmail else { return }
+        let diagnostics = SettingsSupportDiagnosticsBuilder.build()
+
+        if SettingsSupportMailComposerCapability.canSendMail {
+            supportMailTopic = topic
+            return
+        }
+
+        guard let url = SettingsSupportMailURLBuilder.url(
+            for: topic,
+            supportEmail: email,
+            diagnostics: diagnostics
+        ) else { return }
+        openURL(url)
+    }
+
+    private func handleExportData() {
+        _ = SettingsExportDataActionHandler.perform()
+    }
 }

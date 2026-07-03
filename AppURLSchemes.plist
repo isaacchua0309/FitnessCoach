@@ -15,5 +15,7 @@
 	</array>
 	<key>FORMA_AI_BACKEND_URL</key>
 	<string>$(FORMA_AI_BACKEND_URL)</string>
+	<key>FORMA_INTERNAL_BUILD</key>
+	<string>$(FORMA_INTERNAL_BUILD)</string>
 </dict>
 </plist>

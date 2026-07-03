@@ -17,6 +17,19 @@ struct PlanView: View {
 
     @State private var isShowingTrainingInsights = false
 
+    private var settingsBodyDetailsInput: BodyDetailsSettingsPresentationInput? {
+        guard let formState = model.editFormState else { return nil }
+        if case .loaded(let state) = model.viewState {
+            let mission = state.missionControl.mission
+            return BodyDetailsSettingsPresentationInput(
+                formState: formState,
+                startingWeightKg: mission.startWeightKg,
+                currentWeightKg: mission.currentWeightKg
+            )
+        }
+        return BodyDetailsSettingsPresentationInput(formState: formState)
+    }
+
     var body: some View {
         NavigationStack {
             content
@@ -111,6 +124,18 @@ struct PlanView: View {
                             },
                             onDismiss: {
                                 model.dismissSettings()
+                            },
+                            bodyDetailsInput: settingsBodyDetailsInput,
+                            onUpdateInPlan: {
+                                BodyDetailsSettingsActionHandler.openUpdateInPlan(
+                                    dismissSettings: { model.dismissSettings() },
+                                    showAdjustPlan: {
+                                        model.showEditPlan(
+                                            initialStep: .heightAndWeight,
+                                            entryPoint: PlanAdjustPlanEntryPoint.settingsBodyDetails
+                                        )
+                                    }
+                                )
                             }
                         )
                         .environmentObject(themeStore)

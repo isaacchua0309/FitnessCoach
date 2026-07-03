@@ -68,6 +68,7 @@ enum PlanAdjustPlanEntryPoint {
     static let dashboard = "plan_dashboard"
     static let planAssumptions = "plan_assumptions"
     static let adjustPlanCTA = "plan_adjust_cta"
+    static let settingsBodyDetails = "settings_body_details"
 }
 
 extension PlanAnalyticsProperties {

@@ -234,7 +234,7 @@ struct LegalDocumentSection: Identifiable, Equatable {
     let body: String
 }
 
-enum FormaLegalDocument: String, Identifiable {
+enum FormaLegalDocument: String, Identifiable, Sendable {
     case terms
     case privacyPolicy
 
@@ -283,6 +283,7 @@ enum FormaLegalDocument: String, Identifiable {
 }
 
 enum FormaLegalURLs {
+    // TODO: Publish hosted Terms and Privacy Policy URLs before App Store release.
     static let terms: URL? = nil
     static let privacyPolicy: URL? = nil
 }

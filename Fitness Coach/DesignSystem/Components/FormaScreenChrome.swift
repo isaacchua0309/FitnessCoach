@@ -17,6 +17,7 @@ extension View {
     func formaGroupedList() -> some View {
         self
             .listStyle(.insetGrouped)
+            .listSectionSpacing(FormaTokens.Spacing.sm)
             .scrollContentBackground(.hidden)
             .background(FormaTokens.Color.canvas.ignoresSafeArea())
             .tint(FormaTokens.Theme.primary)
@@ -48,5 +49,27 @@ extension View {
                     : FormaTokens.Color.surfaceSubtle
             )
             .allowsHitTesting(isEnabled)
+    }
+
+    /// Centers readable settings detail content and caps width on large phones.
+    func formaSettingsDetailContent() -> some View {
+        frame(maxWidth: FormaTokens.Layout.maxContentWidth)
+            .frame(maxWidth: .infinity)
+    }
+
+    /// Shared scroll layout for pushed settings detail screens.
+    func formaSettingsDetailScreen<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        ScrollView {
+            content()
+                .formaSettingsDetailContent()
+                .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
+                .padding(.top, SettingsChromeAccessibility.detailPageTopPadding)
+                .padding(.bottom, SettingsChromeAccessibility.detailPageBottomPadding)
+        }
+        .formaScreenBackground()
+        .navigationBarTitleDisplayMode(.inline)
+        .formaScrollBottomInset()
     }
 }

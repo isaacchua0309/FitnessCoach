@@ -11,9 +11,22 @@ import XCTest
 final class ThemeSettingsViewTests: XCTestCase {
 
     func testSettingsPreferencesIncludesThemeRow() {
-        XCTAssertTrue(SettingsPreferencesCatalog.rowTitles.contains("Theme"))
+        let state = SettingsPresentationBuilder.build(
+            input: SettingsPresentationInput(
+                integrationState: .connected,
+                unitSystem: .metric,
+                themePalette: .oceanBlue,
+                appVersion: "1.0",
+                featureAvailability: .production,
+                legalAvailability: .production,
+                supportConfiguration: .production,
+                isDebugOrInternalBuild: false
+            )
+        )
+
+        XCTAssertTrue(state.preferences.rows.contains(where: { $0.id == .theme }))
         XCTAssertEqual(
-            SettingsPreferencesCatalog.themeRowTitle,
+            state.preferences.rows.first(where: { $0.id == .theme })?.title,
             FormaProductCopy.Settings.Theme.navigationRowTitle
         )
     }
@@ -59,6 +72,106 @@ final class ThemeSettingsViewTests: XCTestCase {
 
             store.setPalette(.emeraldGreen)
             XCTAssertEqual(store.palette, .emeraldGreen)
+        }
+    }
+
+    func testSelectedThemePersistsAcrossStoreReload() async {
+        await MainActor.run {
+            let defaults = ThemeTestSupport.makeIsolatedDefaults(suiteNamePrefix: "ThemeSettingsViewTests.persist")
+            let store = ThemeStore(userDefaults: defaults)
+
+            store.setPalette(.sunsetOrange)
+            XCTAssertEqual(
+                defaults.string(forKey: AppThemePreferences.PersistenceKey.palette),
+                AppThemePalette.sunsetOrange.rawValue
+            )
+
+            let reloaded = ThemeStore(userDefaults: defaults)
+            XCTAssertEqual(reloaded.palette, .sunsetOrange)
+            XCTAssertEqual(reloaded.appearance, .dark)
+        }
+    }
+
+    func testResolvedPreviewUpdatesWhenPaletteChanges() async {
+        await MainActor.run {
+            let store = ThemeStore(userDefaults: ThemeTestSupport.makeIsolatedDefaults(suiteNamePrefix: "ThemeSettingsViewTests.preview"))
+            let before = store.legacyThemePalette(resolvingWith: .dark)
+            XCTAssertEqual(store.palette, .oceanBlue)
+
+            store.setPalette(.blossomPink)
+            let after = store.legacyThemePalette(resolvingWith: .dark)
+
+            XCTAssertEqual(store.palette, .blossomPink)
+            XCTAssertNotEqual(before.primary, after.primary)
+            ThemeTestSupport.assertSameColor(after.primary, store.resolvedTheme(systemColorScheme: .dark).themePalette.primary)
+        }
+    }
+
+    func testMainSettingsRowDisplaysSelectedThemePalette() {
+        let state = SettingsPresentationBuilder.build(
+            input: SettingsPresentationInput(
+                integrationState: .connected,
+                unitSystem: .metric,
+                themePalette: .emeraldGreen,
+                appVersion: "1.0",
+                featureAvailability: .production,
+                legalAvailability: .production,
+                supportConfiguration: .production,
+                isDebugOrInternalBuild: false
+            )
+        )
+
+        XCTAssertEqual(
+            state.preferences.rows.first(where: { $0.id == .theme })?.status,
+            SettingsRowStatusFormatter.themePalette(.emeraldGreen)
+        )
+        XCTAssertEqual(
+            state.preferences.rows.first(where: { $0.id == .theme })?.status,
+            AppThemePalette.emeraldGreen.displayName
+        )
+    }
+
+    func testThemePaletteChangeDoesNotAffectUnrelatedSettingsRows() async {
+        await MainActor.run {
+            let defaults = ThemeTestSupport.makeIsolatedDefaults(suiteNamePrefix: "ThemeSettingsViewTests.isolation")
+            let store = ThemeStore(userDefaults: defaults)
+            store.setPalette(.oceanBlue)
+
+            func buildState(palette: AppThemePalette) -> SettingsPresentationState {
+                SettingsPresentationBuilder.build(
+                    input: SettingsPresentationInput(
+                        integrationState: .denied,
+                        unitSystem: .imperial,
+                        themePalette: palette,
+                        appVersion: "3.1.0",
+                        featureAvailability: .production,
+                        legalAvailability: .production,
+                        supportConfiguration: .production,
+                        isDebugOrInternalBuild: false
+                    )
+                )
+            }
+
+            let before = buildState(palette: store.palette)
+            store.setPalette(.sunsetOrange)
+            let after = buildState(palette: store.palette)
+
+            XCTAssertEqual(
+                before.preferences.rows.first(where: { $0.id == .units })?.status,
+                after.preferences.rows.first(where: { $0.id == .units })?.status
+            )
+            XCTAssertEqual(
+                before.integrations.rows.first(where: { $0.id == .appleHealth })?.status,
+                after.integrations.rows.first(where: { $0.id == .appleHealth })?.status
+            )
+            XCTAssertEqual(
+                before.about.rows.first(where: { $0.id == .appVersion })?.status,
+                after.about.rows.first(where: { $0.id == .appVersion })?.status
+            )
+            XCTAssertNotEqual(
+                before.preferences.rows.first(where: { $0.id == .theme })?.status,
+                after.preferences.rows.first(where: { $0.id == .theme })?.status
+            )
         }
     }
 
@@ -122,6 +235,11 @@ final class ThemeSettingsViewTests: XCTestCase {
         XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.includesNotSelectedInAccessibilityLabel)
         XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.includesBorderForSelectedState)
         XCTAssertTrue(ThemeSettingsSelectionAccessibilityPolicy.meetsMinimumTouchTarget)
+    }
+
+    func testAppearanceSectionHiddenWhenOnlyDarkShips() {
+        XCTAssertEqual(AppAppearanceMode.settingsSelectableCases, [.dark])
+        XCTAssertFalse(AppThemeShippingPolicy.shipsLightAndSystemAppearance)
     }
 
     func testAppearanceMatrixCoversAllPaletteCombinations() {
