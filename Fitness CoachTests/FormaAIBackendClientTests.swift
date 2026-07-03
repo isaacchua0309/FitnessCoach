@@ -23,6 +23,7 @@ final class FormaAIBackendClientTests: XCTestCase {
         "v1/ai/parse-workout",
         "v1/ai/parse-edit-delete",
         "v1/ai/parse-multi-action",
+        "v1/ai/analyze-meal-image",
     ]
 
     override func tearDown() {
@@ -349,6 +350,13 @@ private extension FormaAIBackendClientTests {
             _ = try await client.parseMultiAction(
                 request: AIMultiActionParseRequest(text: "log water and weight", context: Self.sampleContext)
             )
+        case .analyzeMealImage:
+            _ = try await client.analyzeMealImage(
+                request: AIMealImageAnalysisRequest(
+                    message: "Lunch",
+                    image: .jpeg(Data([0xFF, 0xD8, 0xFF]))
+                )
+            )
         }
     }
 
@@ -378,8 +386,16 @@ private extension FormaAIBackendClientTests {
             return validCoachResponseData
         case .parseWorkout:
             return validWorkoutParseResponseData
+        case .analyzeMealImage:
+            return validMealImageAnalysisResponseData
         }
     }
+
+    static let validMealImageAnalysisResponseData = Data(
+        """
+        {"summary":"Chicken bowl","items":[{"name":"Chicken","quantity":"150 g","calories":248,"protein":46,"carbs":0,"fat":5,"confidence":"high","assumptions":[]}],"total":{"calories":248,"protein":46,"carbs":0,"fat":5},"needsUserReview":true,"clarifyingQuestion":null}
+        """.utf8
+    )
 
     static let validClassifyResponseData = Data(
         """

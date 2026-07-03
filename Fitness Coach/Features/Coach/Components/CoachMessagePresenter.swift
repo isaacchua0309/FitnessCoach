@@ -12,7 +12,11 @@ enum CoachMessagePresentation: Equatable {
     case userMealPhoto(attachment: ChatMessageImageAttachment, caption: String?)
     case confirmation(CoachConfirmationContent)
     case assistant(String)
-    case assistantPhotoAnalysis(text: String, relatedUserMessageID: UUID, isFailure: Bool)
+    case assistantPhotoAnalysis(
+        text: String,
+        relatedUserMessageID: UUID,
+        kind: ChatMessagePhotoAnalysisLinkKind
+    )
     case system(String)
 }
 
@@ -46,7 +50,7 @@ enum CoachMessagePresenter {
                 return .assistantPhotoAnalysis(
                     text: message.text,
                     relatedUserMessageID: link.relatedUserMessageID,
-                    isFailure: link.isFailure
+                    kind: link.kind
                 )
             }
             if let confirmation = parseConfirmation(from: message.text) {

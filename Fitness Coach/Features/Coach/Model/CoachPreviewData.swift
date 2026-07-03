@@ -72,6 +72,7 @@ enum CoachPreviewData {
 
             Edit if the portion or cut is different.
             """,
+            sessionID: UUID(),
             relatedUserMessageID: userMessage.id
         )
     }
@@ -80,6 +81,7 @@ enum CoachPreviewData {
         guard let userMessage = mealPhotoUserMessage else { return nil }
         return ChatMessage.assistantPhotoAnalysisFailure(
             text: "I couldn't analyze that photo right now. Coach is temporarily unavailable. Please try again later. You can try again or log manually.",
+            sessionID: UUID(),
             relatedUserMessageID: userMessage.id
         )
     }

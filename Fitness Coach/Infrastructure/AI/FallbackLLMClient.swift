@@ -67,6 +67,12 @@ final class FallbackLLMClient: LLMClient {
         }
     }
 
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
+        try await perform(operation: "analyzeMealImage") {
+            try await primary.analyzeMealImage(request: request)
+        }
+    }
+
     private func perform<Output>(
         operation: String,
         primary work: () async throws -> Output

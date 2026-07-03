@@ -187,6 +187,10 @@ private final class PayloadTooLargeFailingLLMClient: LLMClient, @unchecked Senda
         throw LLMClientError.payloadTooLarge(nil)
     }
 
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
+        throw LLMClientError.payloadTooLarge(nil)
+    }
+
     func generateMealAdvice(request: AIMealAdviceRequest) async throws -> AIMealAdviceResponse {
         throw LLMClientError.payloadTooLarge(nil)
     }

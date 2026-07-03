@@ -100,6 +100,10 @@ final class FormaAIBackendClient: LLMClient {
         try await post(endpoint: .parseMultiAction, body: request)
     }
 
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
+        try await post(endpoint: .analyzeMealImage, body: request)
+    }
+
     // MARK: HTTP
 
     private func post<Body: Encodable, Response: Decodable>(

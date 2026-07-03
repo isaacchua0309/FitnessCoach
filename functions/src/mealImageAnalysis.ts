@@ -195,6 +195,24 @@ export function validateAnalyzeMealImagePayload(body: Record<string, any>): void
     }
   }
 
+  if (body.clarification !== undefined) {
+    if (typeof body.clarification !== "string") {
+      throw new GatewayError(400, "Invalid clarification.");
+    }
+    const clarification = body.clarification.trim();
+    if (clarification.length === 0) {
+      throw new GatewayError(400, "Invalid clarification.");
+    }
+    if (clarification.length > maxMessage) {
+      throw new GatewayError(400, "clarification exceeds maximum length.");
+    }
+    body.clarification = clarification;
+  }
+
+  if (body.previousAnalysis !== undefined) {
+    validatePreviousAnalysis(body.previousAnalysis, maxMessage);
+  }
+
   body.image = {
     mimeType,
     base64,
@@ -271,11 +289,32 @@ export function mealImageAnalysisInstructions(): string {
     "Each distinct visible food must be its own item with realistic calories and macros.",
     "Never invent a generic catch-all item such as 'unknown meal', 'mixed food', or 'generic plate'.",
     "If the photo is unclear, set a clarifyingQuestion and keep items to only what you can identify with evidence.",
+    "When previousAnalysis and clarification are provided, refine that estimate using the same image.",
+    "Treat clarification as authoritative for ambiguous ingredients, sauces, grains, or portion sizes.",
     "Sum item nutrition into total exactly.",
     "Always set needsUserReview to true.",
     "Prefer realistic or slightly conservative estimates.",
     "Do not diagnose medical conditions.",
   ].join("\n");
+}
+
+function validatePreviousAnalysis(value: unknown, maxMessage: number): void {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new GatewayError(400, "Invalid previousAnalysis.");
+  }
+  const previous = value as Record<string, any>;
+  if (typeof previous.summary !== "string" || previous.summary.trim().length === 0) {
+    throw new GatewayError(400, "Invalid previousAnalysis.summary.");
+  }
+  if (!Array.isArray(previous.items) || previous.items.length === 0) {
+    throw new GatewayError(400, "Invalid previousAnalysis.items.");
+  }
+  if (!previous.total || typeof previous.total !== "object") {
+    throw new GatewayError(400, "Invalid previousAnalysis.total.");
+  }
+  if (previous.summary.length > maxMessage) {
+    throw new GatewayError(400, "previousAnalysis.summary exceeds maximum length.");
+  }
 }
 
 export function validateMealImageAnalysisResponse(

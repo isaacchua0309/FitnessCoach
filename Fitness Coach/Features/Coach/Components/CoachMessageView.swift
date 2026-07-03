@@ -26,11 +26,11 @@ struct CoachMessageView: View {
                 confirmationMessage(content)
             case .assistant(let text):
                 assistantMessage(text)
-            case .assistantPhotoAnalysis(let text, let relatedUserMessageID, let isFailure):
+            case .assistantPhotoAnalysis(let text, let relatedUserMessageID, let kind):
                 assistantPhotoAnalysisMessage(
                     text: text,
                     relatedUserMessageID: relatedUserMessageID,
-                    isFailure: isFailure
+                    kind: kind
                 )
             case .system(let text):
                 systemMessage(text)
@@ -73,16 +73,20 @@ struct CoachMessageView: View {
     private func assistantPhotoAnalysisMessage(
         text: String,
         relatedUserMessageID: UUID,
-        isFailure: Bool
+        kind: ChatMessagePhotoAnalysisLinkKind
     ) -> some View {
         VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.sm) {
             Text(text)
                 .font(CoachDesignTokens.Typography.messageBody)
-                .foregroundStyle(CoachDesignTokens.Color.textLegal)
+                .foregroundStyle(
+                    kind == .clarification ?
+                        CoachDesignTokens.Color.primaryText :
+                        CoachDesignTokens.Color.textLegal
+                )
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
 
-            if isFailure, let onRetryMealPhotoAnalysis {
+            if kind == .failure, let onRetryMealPhotoAnalysis {
                 Button(FormaProductCopy.Coach.retryMealPhotoAnalysis) {
                     onRetryMealPhotoAnalysis(relatedUserMessageID)
                 }

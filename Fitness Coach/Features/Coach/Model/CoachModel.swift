@@ -63,6 +63,11 @@ final class CoachModel: ObservableObject {
     private let routeHandler: CoachAIRouteHandler
     private let mealPhotoAnalyzer: CoachMealPhotoAnalyzer
     private let transcriptStore: CoachChatTranscriptStore
+    private let imageAnalysisSessionStore = ImageAnalysisSessionStore()
+
+    var awaitingPhotoClarification: Bool {
+        imageAnalysisSessionStore.sessionAwaitingClarification() != nil
+    }
 
     init(
         localCommandParser: LocalCommandParser? = nil,
@@ -280,26 +285,69 @@ final class CoachModel: ObservableObject {
             return
         }
 
+        if let clarificationSession = imageAnalysisSessionStore.sessionAwaitingClarification() {
+            appendUserMessage(text: trimmed)
+            await submitImageAnalysisClarification(trimmed, for: clarificationSession.userMessageID)
+            traceOutcome = "photoClarification"
+            return
+        }
+
         let result = await processCoachMessage(trimmed, traceId: traceId, traceOutcome: &traceOutcome)
         applyActionResult(result)
     }
 
     func retryMealPhotoAnalysis(for userMessageID: UUID) async {
         guard !isSending else { return }
-        guard let userMessage = messages.first(where: { $0.id == userMessageID }),
-              let jpegData = userMessage.mealPhotoJPEG else {
+        guard let session = imageAnalysisSessionStore.session(forUserMessageID: userMessageID),
+              let jpegData = messages.first(where: { $0.id == userMessageID })?.mealPhotoJPEG else {
             return
         }
 
-        removeMealPhotoFailureMessages(relatedTo: userMessageID)
+        removePhotoAnalysisMessages(for: userMessageID, sessionID: session.sessionId)
+        clearPendingConfirmationIfLinked(to: userMessageID)
 
-        let caption = userMessage.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let prompt = caption.isEmpty ? CoachMealPhotoPipeline.defaultAnalysisPrompt : caption
-        await analyzeMealPhoto(
-            jpegData: jpegData,
+        await runImageAnalysisSession(
             userMessageID: userMessageID,
-            prompt: prompt,
+            jpegData: jpegData,
+            recommission: nil,
             isRetry: true
+        )
+    }
+
+    func submitImageAnalysisClarification(_ clarification: String, for userMessageID: UUID) async {
+        guard !isSending else { return }
+        guard let session = imageAnalysisSessionStore.session(forUserMessageID: userMessageID),
+              let jpegData = messages.first(where: { $0.id == userMessageID })?.mealPhotoJPEG else {
+            return
+        }
+
+        let trimmed = clarification.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        _ = imageAnalysisSessionStore.apply(
+            userMessageID: userMessageID,
+            event: .clarificationAnswered(trimmed)
+        )
+        guard let updatedSession = imageAnalysisSessionStore.session(forUserMessageID: userMessageID) else {
+            return
+        }
+
+        removePhotoAnalysisMessages(for: userMessageID, sessionID: updatedSession.sessionId)
+        clearPendingConfirmationIfLinked(to: userMessageID)
+
+        appendAssistantMessage(ImageAnalysisSessionCopy.recommissionAcknowledgement(trimmed))
+
+        let recommission = ImageAnalysisRecommissionContext(
+            clarification: trimmed,
+            clarificationHistory: updatedSession.clarificationTurns,
+            previousResult: updatedSession.latestResult
+        )
+
+        await runImageAnalysisSession(
+            userMessageID: userMessageID,
+            jpegData: jpegData,
+            recommission: recommission,
+            isRetry: false
         )
     }
 
@@ -325,32 +373,47 @@ final class CoachModel: ObservableObject {
             source: source
         )
 
-        let prompt = displayCaption.isEmpty ?
-            CoachMealPhotoPipeline.defaultAnalysisPrompt :
-            displayCaption
-
-        await analyzeMealPhoto(
-            jpegData: normalizedJPEG,
+        let attachment = userMessage.imageAttachment ?? ChatMessageImageAttachment(
+            imageJPEG: normalizedJPEG,
+            thumbnailJPEG: CoachMealPhotoPipeline.makeThumbnailJPEG(from: normalizedJPEG) ?? normalizedJPEG,
+            source: source
+        )
+        var session = ImageAnalysisSession.newSession(
             userMessageID: userMessage.id,
-            prompt: prompt,
+            attachment: attachment,
+            userCaption: displayCaption
+        )
+        imageAnalysisSessionStore.upsert(session)
+
+        await runImageAnalysisSession(
+            userMessageID: userMessage.id,
+            jpegData: normalizedJPEG,
+            recommission: nil,
             isRetry: false
         )
     }
 
-    private func analyzeMealPhoto(
-        jpegData: Data,
+    private func runImageAnalysisSession(
         userMessageID: UUID,
-        prompt: String,
+        jpegData: Data,
+        recommission: ImageAnalysisRecommissionContext?,
         isRetry: Bool
     ) async {
         CoachMealPhotoPipeline.assertImagePayloadPresent(jpegData)
 
+        guard let session = imageAnalysisSessionStore.session(forUserMessageID: userMessageID) else {
+            return
+        }
+
         let traceLabel = isRetry ? "Meal photo retry" : CoachMealPhotoPipeline.userMessageLabel
         let traceId = FormaPipelineTracer.beginTrace(userMessage: traceLabel)
         let traceStarted = Date()
-        var traceOutcome = "photoAnalysis"
+        var traceOutcome = recommission == nil ? "photoAnalysis" : "photoRecommission"
 
-        beginProcessing(.mealPhoto(userMessageID: userMessageID, prompt: prompt))
+        _ = imageAnalysisSessionStore.apply(userMessageID: userMessageID, event: .analysisStarted)
+        let activeSession = imageAnalysisSessionStore.session(forUserMessageID: userMessageID) ?? session
+
+        beginProcessing(.mealPhoto(userMessageID: userMessageID, prompt: session.userCaption))
         defer {
             endProcessing()
             FormaPipelineTracer.endTrace(
@@ -361,21 +424,48 @@ final class CoachModel: ObservableObject {
         }
 
         let priorChatMessages = messages.filter { $0.id != userMessageID }
-        let result = await mealPhotoAnalyzer.analyze(
-            jpegData: jpegData,
-            prompt: prompt,
+        let outcome = await mealPhotoAnalyzer.analyze(
+            session: activeSession,
+            recommission: recommission,
             recentMessages: priorChatMessages
         )
-        traceOutcome = "photoAnalysisCompleted"
 
-        if result.pendingConfirmation != nil {
-            applyActionResult(result, relatedPhotoUserMessageID: userMessageID)
-        } else if !result.message.isEmpty {
+        if let sessionResult = outcome.sessionResult, outcome.result.pendingConfirmation != nil {
+            _ = imageAnalysisSessionStore.apply(
+                userMessageID: userMessageID,
+                event: .analysisSucceeded(sessionResult)
+            )
+            let updatedSession = imageAnalysisSessionStore.session(forUserMessageID: userMessageID) ?? activeSession
+            applyPhotoAnalysisSuccess(
+                outcome.result,
+                session: updatedSession,
+                supersedeExisting: recommission != nil || isRetry
+            )
+            if updatedSession.status == .needsClarification,
+               let question = updatedSession.activeClarifyingQuestion {
+                appendAssistantPhotoClarification(
+                    CoachResponseBuilder.mealPhotoClarification(question),
+                    session: updatedSession
+                )
+            }
+            traceOutcome = updatedSession.status == .needsClarification ?
+                "photoAnalysisNeedsClarification" :
+                "photoAnalysisCompleted"
+            return
+        }
+
+        let errorMessage = outcome.errorMessage ?? outcome.result.message
+        _ = imageAnalysisSessionStore.apply(
+            userMessageID: userMessageID,
+            event: .analysisFailed(errorMessage)
+        )
+        if let failedSession = imageAnalysisSessionStore.session(forUserMessageID: userMessageID) {
             appendMealPhotoFailureMessage(
-                text: result.message,
-                relatedUserMessageID: userMessageID
+                text: errorMessage,
+                session: failedSession
             )
         }
+        traceOutcome = "photoAnalysisFailed"
     }
 
     private func handlePendingConfirmationInput(_ text: String) async -> CoachActionResult? {
@@ -560,6 +650,20 @@ final class CoachModel: ObservableObject {
             let updated = try formState.makeMealDraft(original: draft.primaryMealDraft)
             draft.mealDraft = updated
             pendingConfirmation = .food(draft)
+            if let userMessageID = draft.relatedPhotoUserMessageID {
+                _ = imageAnalysisSessionStore.apply(
+                    userMessageID: userMessageID,
+                    event: .draftEdited(updated)
+                )
+                if let session = imageAnalysisSessionStore.session(forUserMessageID: userMessageID),
+                   session.status == .needsClarification,
+                   let question = session.activeClarifyingQuestion {
+                    appendAssistantPhotoClarification(
+                        CoachResponseBuilder.mealPhotoClarification(question),
+                        session: session
+                    )
+                }
+            }
             foodEditErrorMessage = nil
             isShowingFoodEditSheet = false
         } catch let error as FoodEntryFormError {
@@ -583,6 +687,35 @@ final class CoachModel: ObservableObject {
 
     // MARK: Action result application
 
+    private func applyPhotoAnalysisSuccess(
+        _ result: CoachActionResult,
+        session: ImageAnalysisSession,
+        supersedeExisting: Bool
+    ) {
+        if supersedeExisting {
+            removePhotoAnalysisMessages(
+                for: session.userMessageID,
+                sessionID: session.sessionId
+            )
+            clearPendingConfirmationIfLinked(to: session.userMessageID)
+        }
+
+        if var confirmation = result.pendingConfirmation,
+           case .food(var draft) = confirmation {
+            draft.imageAnalysisSessionID = session.sessionId
+            draft.relatedPhotoUserMessageID = session.userMessageID
+            confirmation = .food(draft)
+            setPendingConfirmation(confirmation)
+        }
+
+        if !result.message.isEmpty {
+            appendAssistantPhotoAnalysisMessage(
+                result.message,
+                session: session
+            )
+        }
+    }
+
     private func applyActionResult(
         _ result: CoachActionResult,
         relatedPhotoUserMessageID: UUID? = nil
@@ -591,16 +724,21 @@ final class CoachModel: ObservableObject {
             setPendingConfirmation(confirmation)
         }
         if !result.message.isEmpty {
-            if let relatedPhotoUserMessageID {
-                appendAssistantPhotoAnalysisMessage(
-                    result.message,
-                    relatedUserMessageID: relatedPhotoUserMessageID,
-                    isFailure: false
-                )
+            if let relatedPhotoUserMessageID,
+               let session = imageAnalysisSessionStore.session(forUserMessageID: relatedPhotoUserMessageID) {
+                appendAssistantPhotoAnalysisMessage(result.message, session: session)
             } else {
                 appendAssistantMessage(result.message)
             }
         }
+    }
+
+    private func clearPendingConfirmationIfLinked(to userMessageID: UUID) {
+        guard case .food(let draft) = pendingConfirmation,
+              draft.relatedPhotoUserMessageID == userMessageID else {
+            return
+        }
+        clearPendingConfirmation()
     }
 
     private func clearPendingConfirmation() {
@@ -664,37 +802,47 @@ final class CoachModel: ObservableObject {
 
     private func appendAssistantPhotoAnalysisMessage(
         _ text: String,
-        relatedUserMessageID: UUID,
-        isFailure: Bool
+        session: ImageAnalysisSession
     ) {
-        let message: ChatMessage
-        if isFailure {
-            message = ChatMessage.assistantPhotoAnalysisFailure(
+        messages.append(
+            ChatMessage.assistantPhotoAnalysisResult(
                 text: text,
-                relatedUserMessageID: relatedUserMessageID
+                sessionID: session.sessionId,
+                relatedUserMessageID: session.userMessageID
             )
-        } else {
-            message = ChatMessage.assistantPhotoAnalysisResult(
-                text: text,
-                relatedUserMessageID: relatedUserMessageID
-            )
-        }
-        messages.append(message)
+        )
         persistTranscript()
     }
 
-    private func appendMealPhotoFailureMessage(text: String, relatedUserMessageID: UUID) {
-        appendAssistantPhotoAnalysisMessage(
-            text,
-            relatedUserMessageID: relatedUserMessageID,
-            isFailure: true
+    private func appendAssistantPhotoClarification(
+        _ text: String,
+        session: ImageAnalysisSession
+    ) {
+        messages.append(
+            ChatMessage.assistantPhotoClarification(
+                text: text,
+                sessionID: session.sessionId,
+                relatedUserMessageID: session.userMessageID
+            )
         )
+        persistTranscript()
     }
 
-    private func removeMealPhotoFailureMessages(relatedTo userMessageID: UUID) {
+    private func appendMealPhotoFailureMessage(text: String, session: ImageAnalysisSession) {
+        messages.append(
+            ChatMessage.assistantPhotoAnalysisFailure(
+                text: text,
+                sessionID: session.sessionId,
+                relatedUserMessageID: session.userMessageID
+            )
+        )
+        persistTranscript()
+    }
+
+    private func removePhotoAnalysisMessages(for userMessageID: UUID, sessionID: UUID) {
         messages.removeAll { message in
-            message.photoAnalysisLink?.relatedUserMessageID == userMessageID &&
-            message.photoAnalysisLink?.isFailure == true
+            guard let link = message.photoAnalysisLink else { return false }
+            return link.relatedUserMessageID == userMessageID && link.sessionID == sessionID
         }
         persistTranscript()
     }

@@ -58,6 +58,10 @@ final class UnavailableLLMClient: LLMClient, @unchecked Sendable {
         try unavailable(operation: "parseMultiAction")
     }
 
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
+        try unavailable(operation: "analyzeMealImage")
+    }
+
     private func unavailable(operation: String) throws -> Never {
         logger.info(
             "LLM call blocked (\(operation, privacy: .public)): \(self.reason.logMessage, privacy: .public)"

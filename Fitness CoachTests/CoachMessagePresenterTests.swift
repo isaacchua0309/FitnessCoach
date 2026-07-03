@@ -39,37 +39,41 @@ final class CoachMessagePresenterTests: XCTestCase {
 
     func testAssistantPhotoAnalysisFailurePresentation() throws {
         let userID = UUID()
+        let sessionID = UUID()
         let message = ChatMessage.assistantPhotoAnalysisFailure(
             text: "I couldn't analyze that photo right now.",
+            sessionID: sessionID,
             relatedUserMessageID: userID
         )
 
-        guard case .assistantPhotoAnalysis(let text, let relatedID, let isFailure) =
+        guard case .assistantPhotoAnalysis(let text, let relatedID, let kind) =
             CoachMessagePresenter.presentation(for: message) else {
             return XCTFail("Expected assistant photo analysis presentation")
         }
 
         XCTAssertTrue(text.contains("couldn't analyze"))
         XCTAssertEqual(relatedID, userID)
-        XCTAssertTrue(isFailure)
+        XCTAssertEqual(kind, .failure)
         XCTAssertNotNil(message.mealPhotoAnalysisFailure)
     }
 
     func testAssistantPhotoAnalysisSuccessPresentation() throws {
         let userID = UUID()
+        let sessionID = UUID()
         let message = ChatMessage.assistantPhotoAnalysisResult(
             text: "From your meal photo, I estimated chicken bowl:",
+            sessionID: sessionID,
             relatedUserMessageID: userID
         )
 
-        guard case .assistantPhotoAnalysis(let text, let relatedID, let isFailure) =
+        guard case .assistantPhotoAnalysis(let text, let relatedID, let kind) =
             CoachMessagePresenter.presentation(for: message) else {
             return XCTFail("Expected assistant photo analysis presentation")
         }
 
         XCTAssertTrue(text.contains("meal photo"))
         XCTAssertEqual(relatedID, userID)
-        XCTAssertFalse(isFailure)
+        XCTAssertEqual(kind, .result)
     }
 
     func testPlainTextUserMessageStaysTextPresentation() {

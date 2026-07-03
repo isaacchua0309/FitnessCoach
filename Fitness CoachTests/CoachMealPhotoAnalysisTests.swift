@@ -92,7 +92,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         model.handleMealPhotoSelection(.success(imageData), source: .library)
         await model.sendCurrentMessage()
 
-        XCTAssertEqual(aiService.estimateFoodCallCount, 1)
+        XCTAssertEqual(aiService.analyzeMealImageCallCount, 1)
         XCTAssertTrue(CoachMealPhotoPipeline.hasImagePayload(aiService.lastImageJPEGData))
         if case .success(let expectedPayload) = CoachMealPhotoPipeline.prepareJPEG(from: imageData) {
             XCTAssertEqual(aiService.lastImageJPEGData, expectedPayload)
@@ -208,10 +208,40 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         let userMessageID = try XCTUnwrap(model.messages.first { $0.role == .user }?.id)
         await model.retryMealPhotoAnalysis(for: userMessageID)
 
-        XCTAssertEqual(aiService.estimateFoodCallCount, 2)
+        XCTAssertEqual(aiService.analyzeMealImageCallCount, 2)
         XCTAssertNotNil(model.pendingConfirmation)
         XCTAssertFalse(model.messages.contains { $0.photoAnalysisLink?.isFailure == true })
         XCTAssertTrue(model.messages.contains { $0.photoAnalysisLink?.isFailure == false })
+    }
+
+    func testLowConfidenceClarificationRecommissionsWithSameImage() async throws {
+        let container = try AppContainer(inMemory: true)
+        try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+
+        let aiService = ClarifyingPhotoAIService()
+        let model = CoachModel(
+            actionCenter: container.actionCenter,
+            dailyLogReader: container.dailyLogService,
+            healthActivityQuery: container.healthActivityQueryService,
+            aiService: aiService,
+            userProfileReader: container.userProfileService,
+            aiCommandParsingEnabled: true
+        )
+
+        model.handleMealPhotoSelection(.success(Self.makeTestJPEGData()), source: .library)
+        await model.sendCurrentMessage()
+
+        XCTAssertTrue(model.awaitingPhotoClarification)
+        XCTAssertNotNil(model.pendingConfirmation)
+
+        let userMessageID = try XCTUnwrap(model.messages.first { $0.role == .user }?.id)
+        model.inputText = "It was barley, not rice."
+        await model.sendCurrentMessage()
+
+        XCTAssertEqual(aiService.analyzeMealImageCallCount, 2)
+        XCTAssertEqual(aiService.lastClarification, "It was barley, not rice.")
+        XCTAssertFalse(model.messages.filter { $0.photoAnalysisLink?.kind == .result }.count > 2)
+        XCTAssertNotNil(model.pendingConfirmation)
     }
 
     func testTodayScanFoodVisibleWhenPipelineReady() {
@@ -254,8 +284,10 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
 
 private final class PhotoCapturingAIService: AIServiceProtocol, @unchecked Sendable {
     var estimateFoodCallCount = 0
+    var analyzeMealImageCallCount = 0
     var lastImageJPEGData: Data?
     var lastPrompt: String?
+    var lastClarification: String?
     var estimateFoodError: Error?
 
     func classifyCoachIntent(
@@ -298,6 +330,122 @@ private final class PhotoCapturingAIService: AIServiceProtocol, @unchecked Senda
             requiresConfirmation: true,
             assistantMessage: "Estimated from your photo — confirm before logging."
         )
+    }
+
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
+        analyzeMealImageCallCount += 1
+        if let data = Data(base64Encoded: request.image.base64) {
+            lastImageJPEGData = data
+        }
+        lastPrompt = request.message
+        lastClarification = request.clarification
+        if let estimateFoodError { throw estimateFoodError }
+        return AIMealImageAnalysisResponse(
+            summary: "Photo meal",
+            items: [
+                AIMealImageAnalysisItem(
+                    name: "Photo meal",
+                    quantity: "1 serving",
+                    calories: 420,
+                    protein: 28,
+                    carbs: 35,
+                    fat: 14,
+                    confidence: .medium,
+                    assumptions: ["Estimated from your photo — confirm before logging."]
+                )
+            ],
+            total: AIMealImageAnalysisTotals(
+                calories: 420,
+                protein: 28,
+                carbs: 35,
+                fat: 14
+            ),
+            needsUserReview: true,
+            clarifyingQuestion: nil
+        )
+    }
+
+    func generateMealAdvice(
+        prompt: String,
+        context: AIContext,
+        intentResult: CoachIntentResult?,
+        tier: CoachModelTier
+    ) async throws -> AICoachResponse {
+        AICoachResponse(message: "Stub", confidence: .medium)
+    }
+
+    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func parseEditOrDelete(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func parseMultiAction(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateDailyReview(context: AIContext) async throws -> AICoachResponse {
+        AICoachResponse(message: "Stub", confidence: .medium)
+    }
+
+    func generateDailyReviewText(input: DailyReviewAIInput, context: AIContext) async throws -> AICoachResponse {
+        AICoachResponse(message: "Stub", confidence: .medium)
+    }
+
+    func parseCommand(_ text: String, context: AIContext) async throws -> AIParsedCommand {
+        throw AIServiceError.backendUnavailable
+    }
+}
+
+private final class ClarifyingPhotoAIService: AIServiceProtocol, @unchecked Sendable {
+    var analyzeMealImageCallCount = 0
+    var lastClarification: String?
+
+    func classifyCoachIntent(
+        _ text: String,
+        context: AIContext,
+        config: CoachModelConfig
+    ) async throws -> CoachIntentResult {
+        CoachMealPhotoPipeline.photoAnalysisIntentResult
+    }
+
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
+        analyzeMealImageCallCount += 1
+        lastClarification = request.clarification
+        let confidence: AIConfidence = request.clarification == nil ? .low : .medium
+        return AIMealImageAnalysisResponse(
+            summary: request.clarification == nil ? "Grain bowl" : "Barley bowl",
+            items: [
+                AIMealImageAnalysisItem(
+                    name: request.clarification == nil ? "Grain bowl" : "Barley bowl",
+                    quantity: "1 bowl",
+                    calories: 420,
+                    protein: 18,
+                    carbs: 55,
+                    fat: 12,
+                    confidence: confidence,
+                    assumptions: []
+                )
+            ],
+            total: AIMealImageAnalysisTotals(
+                calories: 420,
+                protein: 18,
+                carbs: 55,
+                fat: 12
+            ),
+            needsUserReview: true,
+            clarifyingQuestion: request.clarification == nil ? "Was this rice or barley?" : nil
+        )
+    }
+
+    func estimateFood(
+        prompt: String,
+        context: AIContext,
+        imageJPEGData: Data?
+    ) async throws -> AIFoodEstimateResponse {
+        throw AIServiceError.backendUnavailable
     }
 
     func generateMealAdvice(

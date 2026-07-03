@@ -77,6 +77,7 @@ extension ChatMessage {
 
     static func assistantPhotoAnalysisFailure(
         text: String,
+        sessionID: UUID,
         relatedUserMessageID: UUID,
         createdAt: Date = Date()
     ) -> ChatMessage {
@@ -85,14 +86,16 @@ extension ChatMessage {
             text: text,
             createdAt: createdAt,
             photoAnalysisLink: ChatMessagePhotoAnalysisLink(
+                sessionID: sessionID,
                 relatedUserMessageID: relatedUserMessageID,
-                isFailure: true
+                kind: .failure
             )
         )
     }
 
     static func assistantPhotoAnalysisResult(
         text: String,
+        sessionID: UUID,
         relatedUserMessageID: UUID,
         createdAt: Date = Date()
     ) -> ChatMessage {
@@ -101,8 +104,27 @@ extension ChatMessage {
             text: text,
             createdAt: createdAt,
             photoAnalysisLink: ChatMessagePhotoAnalysisLink(
+                sessionID: sessionID,
                 relatedUserMessageID: relatedUserMessageID,
-                isFailure: false
+                kind: .result
+            )
+        )
+    }
+
+    static func assistantPhotoClarification(
+        text: String,
+        sessionID: UUID,
+        relatedUserMessageID: UUID,
+        createdAt: Date = Date()
+    ) -> ChatMessage {
+        ChatMessage(
+            role: .assistant,
+            text: text,
+            createdAt: createdAt,
+            photoAnalysisLink: ChatMessagePhotoAnalysisLink(
+                sessionID: sessionID,
+                relatedUserMessageID: relatedUserMessageID,
+                kind: .clarification
             )
         )
     }

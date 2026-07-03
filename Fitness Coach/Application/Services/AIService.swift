@@ -19,6 +19,7 @@ protocol AIServiceProtocol: Sendable {
         context: AIContext,
         imageJPEGData: Data?
     ) async throws -> AIFoodEstimateResponse
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse
     func generateMealAdvice(
         prompt: String,
         context: AIContext,
@@ -120,6 +121,18 @@ final class AIService: AIServiceProtocol {
             }
 
             return response
+        }
+    }
+
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
+        if let imageData = Data(base64Encoded: request.image.base64) {
+            guard AIGatewayPayloadLimits.fitsImagePayload(imageData) else {
+                throw AIServiceError.payloadTooLarge
+            }
+        }
+
+        return try await traced(method: "analyzeMealImage", mapError: AICommandParser.mapFoodEstimate) {
+            try await llmClient.analyzeMealImage(request: request)
         }
     }
 
@@ -270,5 +283,11 @@ final class AIService: AIServiceProtocol {
             )
             throw AIServiceError.requestFailed(error.localizedDescription)
         }
+    }
+}
+
+extension AIServiceProtocol {
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
+        throw AIServiceError.backendUnavailable
     }
 }

@@ -54,9 +54,18 @@ struct ChatMessageImageAttachment: Codable, Equatable, Sendable {
 }
 
 /// Links an assistant message to the user photo message it analyzes or responds to.
+enum ChatMessagePhotoAnalysisLinkKind: String, Codable, Equatable, Sendable {
+    case result
+    case failure
+    case clarification
+}
+
 struct ChatMessagePhotoAnalysisLink: Equatable, Codable, Sendable {
+    let sessionID: UUID
     let relatedUserMessageID: UUID
-    var isFailure: Bool
+    var kind: ChatMessagePhotoAnalysisLinkKind
+
+    var isFailure: Bool { kind == .failure }
 }
 
 /// Backward-compatible view of failure linkage on assistant messages.

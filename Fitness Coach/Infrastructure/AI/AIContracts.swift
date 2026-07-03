@@ -295,3 +295,90 @@ struct AIMultiActionParseResponse: Codable, Equatable, Sendable {
         self.usage = usage
     }
 }
+
+// MARK: Meal Image Analysis
+
+struct AIMealImagePayload: Codable, Equatable, Sendable {
+    var mimeType: String
+    var base64: String
+    var width: Int?
+    var height: Int?
+
+    static func jpeg(_ data: Data, width: Int? = nil, height: Int? = nil) -> AIMealImagePayload {
+        AIMealImagePayload(
+            mimeType: "image/jpeg",
+            base64: data.base64EncodedString(),
+            width: width,
+            height: height
+        )
+    }
+}
+
+struct AIMealImageAnalysisPreviousItem: Codable, Equatable, Sendable {
+    var name: String
+    var quantity: String?
+    var calories: Int
+    var protein: Double
+    var carbs: Double
+    var fat: Double
+    var confidence: AIConfidence
+    var assumptions: [String]
+}
+
+struct AIMealImageAnalysisPreviousAnalysis: Codable, Equatable, Sendable {
+    var summary: String
+    var items: [AIMealImageAnalysisPreviousItem]
+    var total: AIMealImageAnalysisTotals
+}
+
+struct AIMealImageAnalysisTotals: Codable, Equatable, Sendable {
+    var calories: Int
+    var protein: Double
+    var carbs: Double
+    var fat: Double
+}
+
+struct AIMealImageAnalysisRequest: Codable, Equatable, Sendable {
+    var message: String?
+    var image: AIMealImagePayload
+    var locale: String?
+    var userContext: [String: String]?
+    var clarification: String?
+    var previousAnalysis: AIMealImageAnalysisPreviousAnalysis?
+
+    init(
+        message: String? = nil,
+        image: AIMealImagePayload,
+        locale: String? = nil,
+        userContext: [String: String]? = nil,
+        clarification: String? = nil,
+        previousAnalysis: AIMealImageAnalysisPreviousAnalysis? = nil
+    ) {
+        self.message = message
+        self.image = image
+        self.locale = locale
+        self.userContext = userContext
+        self.clarification = clarification
+        self.previousAnalysis = previousAnalysis
+    }
+}
+
+struct AIMealImageAnalysisItem: Codable, Equatable, Sendable {
+    var name: String
+    var quantity: String?
+    var calories: Int
+    var protein: Double
+    var carbs: Double
+    var fat: Double
+    var confidence: AIConfidence
+    var assumptions: [String]
+}
+
+struct AIMealImageAnalysisResponse: Codable, Equatable, Sendable {
+    var summary: String
+    var items: [AIMealImageAnalysisItem]
+    var total: AIMealImageAnalysisTotals
+    var needsUserReview: Bool
+    var clarifyingQuestion: String?
+    var usage: AIUsageMetadata?
+}

@@ -110,6 +110,29 @@ describe("mealImageAnalysis validation", () => {
       },
     })).toThrow("Invalid image.width.");
   });
+
+  it("accepts recommission clarification and previousAnalysis", () => {
+    const body = {
+      image: {mimeType: "image/png", base64: tinyPngBase64},
+      clarification: "It was barley.",
+      previousAnalysis: {
+        summary: "Grain bowl",
+        items: [{
+          name: "Grain bowl",
+          calories: 400,
+          protein: 16,
+          carbs: 52,
+          fat: 10,
+          confidence: "low",
+          assumptions: [],
+        }],
+        total: {calories: 400, protein: 16, carbs: 52, fat: 10},
+      },
+    };
+
+    expect(() => validateAnalyzeMealImagePayload(body)).not.toThrow();
+    expect(body.clarification).toBe("It was barley.");
+  });
 });
 
 describe("mealImageAnalysis response parsing", () => {

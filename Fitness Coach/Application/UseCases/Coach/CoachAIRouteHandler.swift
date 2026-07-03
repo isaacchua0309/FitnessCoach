@@ -7,6 +7,11 @@
 
 import Foundation
 
+struct PhotoAnalysisPresentation: Equatable {
+    let actionResult: CoachActionResult
+    let sessionResult: ImageAnalysisSessionResult
+}
+
 @MainActor
 final class CoachAIRouteHandler {
 
@@ -95,23 +100,19 @@ final class CoachAIRouteHandler {
                 routed: routed
             )
 
-        case .photoFoodAnalysis(let imageData, let prompt):
-            guard CoachMealPhotoPipeline.hasImagePayload(imageData) else {
+        case .photoFoodAnalysis(let imageData, let prompt, let recommission):
+            guard let imageData, CoachMealPhotoPipeline.hasImagePayload(imageData) else {
                 return .message(CoachResponseBuilder.mealPhotoError(.noImage))
             }
-            CoachMealPhotoPipeline.assertImagePayloadPresent(imageData!)
+            CoachMealPhotoPipeline.assertImagePayloadPresent(imageData)
 
-            let response = try await aiService.estimateFood(
+            let presentation = try await analyzeMealPhoto(
+                imageData: imageData,
                 prompt: prompt,
-                context: context,
-                imageJPEGData: imageData
+                recommission: recommission,
+                context: context
             )
-            return presentEstimateFoodResponse(
-                response,
-                prompt: prompt,
-                routed: routed,
-                photoAnalysis: true
-            )
+            return presentation.actionResult
 
         case .mealAdvice(let prompt):
             let advice = try await aiService.generateMealAdvice(
@@ -144,6 +145,50 @@ final class CoachAIRouteHandler {
             let parsed = try await aiService.parseCommand(prompt, context: context)
             return try await handleParsedAICommand(parsed, context: context)
         }
+    }
+
+    func analyzeMealPhoto(
+        imageData: Data,
+        prompt: String,
+        recommission: ImageAnalysisRecommissionContext?,
+        context: AIContext
+    ) async throws -> PhotoAnalysisPresentation {
+        guard let aiService else {
+            throw AIServiceError.backendUnavailable
+        }
+
+        let request = AIMealImageAnalysisRequest(
+            message: prompt,
+            image: .jpeg(imageData),
+            clarification: recommission?.clarification,
+            previousAnalysis: recommission?.previousResult.map(MealImageAnalysisMapper.previousAnalysis)
+        )
+        let response = try await aiService.analyzeMealImage(request: request)
+        let sessionResult = MealImageAnalysisMapper.sessionResult(from: response)
+
+        let sanity = NutritionSanityValidator.validate(
+            meal: sessionResult.mealDraft,
+            prompt: prompt,
+            confidence: sessionResult.confidence
+        )
+        let resolvedWarning = sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage
+        let actionResult = CoachPendingConfirmationPresenter.presentFoodPending(
+            originalText: prompt,
+            assistantMessage: response.summary,
+            mealDraft: sanity.mealDraft,
+            confidence: sanity.confidence,
+            sanityWarning: resolvedWarning,
+            fromPhotoAnalysis: true
+        )
+        return PhotoAnalysisPresentation(
+            actionResult: actionResult,
+            sessionResult: ImageAnalysisSessionResult(
+                mealDraft: sanity.mealDraft,
+                confidence: sanity.confidence,
+                summary: sessionResult.summary,
+                clarifyingQuestion: sessionResult.clarifyingQuestion
+            )
+        )
     }
 
     func trainingLogRedirectMessage() async -> String {

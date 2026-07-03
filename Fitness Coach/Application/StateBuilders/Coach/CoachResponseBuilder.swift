@@ -97,6 +97,10 @@ enum CoachResponseBuilder {
         )
     }
 
+    static func mealPhotoClarification(_ question: String) -> String {
+        ImageAnalysisSessionCopy.clarificationPrompt(question)
+    }
+
     static func mealPhotoError(_ error: CoachMealPhotoError) -> String {
         switch error {
         case .userCancelled:
