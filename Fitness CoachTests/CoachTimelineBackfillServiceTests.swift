@@ -275,6 +275,7 @@ final class CoachTimelineBackfillServiceTests: XCTestCase {
 struct FakeCoachTimelineHealthActivityQuery: CoachTimelineHealthActivityQuerying {
 
     var workouts: [HealthWorkoutRecord] = []
+    var workoutsError: Error?
     var stepsByDay: [Date: Int] = [:]
     var stepsError: Error?
 
