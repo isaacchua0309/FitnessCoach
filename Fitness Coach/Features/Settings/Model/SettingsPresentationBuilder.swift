@@ -24,7 +24,13 @@ enum SettingsPresentationBuilder {
             support: SettingsSupportPresentationBuilder.buildSection(
                 configuration: input.supportConfiguration
             ),
-            about: aboutSection(appVersion: input.appVersion),
+            about: SettingsAboutPresentationBuilder.buildSection(
+                input: SettingsAboutPresentationInput(
+                    appVersionDisplay: input.appVersion,
+                    legalAvailability: input.legalAvailability,
+                    privacyPolicyShownInPrivacySection: input.legalAvailability.isPrivacyPolicyAvailable
+                )
+            ),
             developer: developerSection(isDebugOrInternalBuild: input.isDebugOrInternalBuild),
             legalAvailability: input.legalAvailability,
             isDebugOrInternalBuild: input.isDebugOrInternalBuild
@@ -106,16 +112,6 @@ enum SettingsPresentationBuilder {
             )
         }
 
-        if legalAvailability.isTermsAvailable {
-            rows.append(
-                row(
-                    id: .termsOfService,
-                    title: FormaProductCopy.Settings.Rows.termsOfService,
-                    destination: .legalDocument(.terms)
-                )
-            )
-        }
-
         if featureAvailability.isDataExportEnabled {
             rows.append(
                 row(
@@ -140,22 +136,6 @@ enum SettingsPresentationBuilder {
             title: FormaProductCopy.Settings.Hub.privacyDataSectionTitle,
             rows: rows,
             footer: FormaProductCopy.Settings.PrivacyData.sectionFooter
-        )
-    }
-
-    private static func aboutSection(appVersion: String) -> SettingsAboutSectionState {
-        SettingsAboutSectionState(
-            title: FormaProductCopy.Settings.Hub.aboutSectionTitle,
-            rows: [
-                SettingsRowPresentation(
-                    id: .appVersion,
-                    title: FormaProductCopy.Settings.Rows.appVersion,
-                    subtitle: nil,
-                    status: appVersion,
-                    destination: nil,
-                    isEnabled: false
-                )
-            ]
         )
     }
 

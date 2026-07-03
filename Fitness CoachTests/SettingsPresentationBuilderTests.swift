@@ -74,11 +74,11 @@ final class SettingsPresentationBuilderTests: XCTestCase {
                 .theme,
                 .appleHealth,
                 .privacyPolicy,
-                .termsOfService,
                 .sendFeedback,
                 .contactSupport,
                 .reportProblem,
-                .appVersion
+                .appVersion,
+                .termsOfService
             ]
         )
 
@@ -88,8 +88,8 @@ final class SettingsPresentationBuilderTests: XCTestCase {
             FormaProductCopy.PlanCalculation.bodyDetailsSettingsTitle,
             FormaProductCopy.Settings.Theme.navigationRowTitle
         ])
-        XCTAssertEqual(state.privacyData.rows.map(\.id), [.privacyPolicy, .termsOfService])
-        XCTAssertEqual(state.about.rows.map(\.id), [.appVersion])
+        XCTAssertEqual(state.privacyData.rows.map(\.id), [.privacyPolicy])
+        XCTAssertEqual(state.about.rows.map(\.id), [.appVersion, .termsOfService])
         XCTAssertNotNil(state.support)
         XCTAssertEqual(state.support?.rows.map(\.id), [.sendFeedback, .contactSupport, .reportProblem])
     }
@@ -149,9 +149,9 @@ final class SettingsPresentationBuilderTests: XCTestCase {
         let state = SettingsPresentationBuilder.build(input: makeInput())
 
         XCTAssertEqual(state.privacyData.rows.filter { $0.id == .privacyPolicy }.count, 1)
-        XCTAssertEqual(state.privacyData.rows.filter { $0.id == .termsOfService }.count, 1)
         XCTAssertFalse(state.about.rows.contains(where: { $0.id == .privacyPolicy }))
-        XCTAssertFalse(state.about.rows.contains(where: { $0.id == .termsOfService }))
+        XCTAssertEqual(state.about.rows.filter { $0.id == .termsOfService }.count, 1)
+        XCTAssertFalse(state.privacyData.rows.contains(where: { $0.id == .termsOfService }))
     }
 
     func testPrivacyPolicyRowHiddenWhenURLAndInAppContentUnavailable() {
@@ -169,7 +169,7 @@ final class SettingsPresentationBuilderTests: XCTestCase {
         )
 
         XCTAssertFalse(state.privacyData.rows.contains(where: { $0.id == .privacyPolicy }))
-        XCTAssertFalse(state.privacyData.rows.contains(where: { $0.id == .termsOfService }))
+        XCTAssertFalse(state.about.rows.contains(where: { $0.id == .termsOfService }))
     }
 
     func testPrivacyPolicyRowAppearsWhenURLExists() {
@@ -202,7 +202,7 @@ final class SettingsPresentationBuilderTests: XCTestCase {
 
         XCTAssertEqual(
             state.privacyData.rows.map(\.id),
-            [.privacyPolicy, .termsOfService, .exportData, .deleteData]
+            [.privacyPolicy, .exportData, .deleteData]
         )
         XCTAssertEqual(state.privacyData.rows.first(where: { $0.id == .exportData })?.destination, .exportData)
         XCTAssertEqual(state.privacyData.rows.first(where: { $0.id == .deleteData })?.destination, .deleteData)

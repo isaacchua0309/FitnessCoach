@@ -107,6 +107,8 @@ final class SettingsPrivacyDataTests: XCTestCase {
         )
 
         XCTAssertTrue(state.privacyData.rows.isEmpty)
+        XCTAssertFalse(state.about.rows.contains(where: { $0.id == .termsOfService }))
+        XCTAssertFalse(state.about.rows.contains(where: { $0.id == .privacyPolicy }))
     }
 
     func testTermsRowUsesExternalURLWhenPublished() {
@@ -118,6 +120,25 @@ final class SettingsPrivacyDataTests: XCTestCase {
 
         XCTAssertTrue(availability.isTermsAvailable)
         XCTAssertEqual(availability.externalURL(for: .terms), termsURL)
+
+        let state = SettingsPresentationBuilder.build(
+            input: SettingsPresentationInput(
+                integrationState: .connected,
+                unitSystem: .metric,
+                themePalette: .oceanBlue,
+                appVersion: "1.0",
+                featureAvailability: .production,
+                legalAvailability: availability,
+                supportConfiguration: .production,
+                isDebugOrInternalBuild: false
+            )
+        )
+
+        XCTAssertEqual(state.externalURL(for: .terms), termsURL)
+        XCTAssertEqual(
+            state.about.rows.first(where: { $0.id == .termsOfService })?.destination,
+            .legalDocument(.terms)
+        )
     }
 
     // MARK: - Delete confirmation

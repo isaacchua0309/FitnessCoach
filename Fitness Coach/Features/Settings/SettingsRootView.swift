@@ -39,7 +39,7 @@ struct SettingsRootView: View {
                 integrationState: insightsStore.integrationState,
                 unitSystem: formState.unitSystem,
                 themePalette: themeStore.palette,
-                appVersion: FormaAppMetadata.marketingVersion(),
+                appVersion: FormaAppMetadata.versionDisplayString(),
                 featureAvailability: featureAvailability,
                 legalAvailability: .production,
                 supportConfiguration: supportConfiguration,
