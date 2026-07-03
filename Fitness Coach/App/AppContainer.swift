@@ -42,7 +42,15 @@ final class AppContainer {
     let healthCacheStore: LocalHealthCacheStore
     let healthDataRepository: HealthDataRepository
     let healthBaselineService: HealthBaselineService
+    let trainingLoadEngine: TrainingLoadEngine
+    let workoutIntelligenceEngine: WorkoutIntelligenceEngine
+    let recoveryEngine: RecoveryEngine
+    let adaptiveNutritionEngine: AdaptiveNutritionEngine
+    let nextBestActionEngine: HealthNextBestActionEngine
+    let weeklyReviewEngine: WeeklyReviewEngine
+    let healthIntelligenceContextBuilder: HealthIntelligenceContextBuilder
     let healthIntelligenceEngine: any HealthIntelligenceEngineing
+    let healthIntelligenceSnapshotService: any HealthIntelligenceSnapshotServing
     let healthSyncService: HealthSyncService
     let healthSyncStateStore: HealthSyncStateStore
     private let authUIDCache: AuthUIDCache
@@ -127,6 +135,12 @@ final class AppContainer {
             cacheStore: healthCacheStore
         )
         healthBaselineService = HealthBaselineService(repository: healthDataRepository)
+        trainingLoadEngine = TrainingLoadEngine()
+        workoutIntelligenceEngine = WorkoutIntelligenceEngine()
+        recoveryEngine = RecoveryEngine()
+        adaptiveNutritionEngine = AdaptiveNutritionEngine()
+        nextBestActionEngine = HealthNextBestActionEngine()
+        weeklyReviewEngine = WeeklyReviewEngine()
         healthActivityQueryService = HealthActivityQueryService(
             workoutReader: workoutReader,
             stepReader: stepReader,
@@ -207,10 +221,34 @@ final class AppContainer {
             weightProvider: WeightLogWeightProvider(reader: weightLogService),
             userPlanProvider: UserProfilePlanProvider(profileService: userProfileService)
         )
+        self.healthIntelligenceContextBuilder = healthIntelligenceContextBuilder
         healthIntelligenceEngine = HealthIntelligenceEngine(
             contextBuilder: healthIntelligenceContextBuilder,
-            dependencies: .production()
+            dependencies: HealthIntelligenceEngineDependencies(
+                trainingLoad: trainingLoadEngine,
+                workout: workoutIntelligenceEngine,
+                recovery: recoveryEngine,
+                adaptiveNutrition: adaptiveNutritionEngine,
+                nextBestAction: nextBestActionEngine,
+                weeklyReview: weeklyReviewEngine
+            )
         )
+        healthIntelligenceSnapshotService = HealthIntelligenceSnapshotService(
+            engine: healthIntelligenceEngine,
+            cacheStore: healthCacheStore,
+            enginesEnabled: HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled
+        )
+
+        #if DEBUG
+        HealthIntelligenceEngineLogger.wiringRegistered(
+            fields: [
+                "enginesEnabled": String(HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled),
+                "uiEnabled": String(HealthIntelligenceFeatureFlags.isUIEnabled),
+                "repository": "HealthDataRepository",
+                "contextBuilder": "HealthIntelligenceContextBuilder"
+            ]
+        )
+        #endif
 
         // All builds call the hosted Firebase aiGateway. Provider keys stay in Secret Manager.
         // Previews and in-memory containers use MockLLMClient; production wiring requires auth.
@@ -285,6 +323,11 @@ final class AppContainer {
 
     func makeHealthIntelligenceEngine() -> any HealthIntelligenceEngineing {
         healthIntelligenceEngine
+    }
+
+    func refreshHealthIntelligenceSnapshotIfNeeded() async {
+        guard HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled else { return }
+        await healthIntelligenceSnapshotService.refreshTodaySnapshot(calendar: .current)
     }
 
     func makeTodayActionCoordinator() -> TodayActionCoordinator {

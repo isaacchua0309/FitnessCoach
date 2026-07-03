@@ -51,6 +51,37 @@ enum HealthIntelligenceEngineLogger {
         log(level: "warn", message: "Health intelligence section failed", fields: merged)
     }
 
+    #if DEBUG
+    static func snapshotComposed(
+        dayKey: String,
+        recoveryStatus: String,
+        hasWorkout: Bool,
+        activitySteps: String?,
+        nutritionShouldChange: Bool,
+        nextBestActionID: String,
+        planConfidence: String,
+        hasWeeklyReview: Bool
+    ) {
+        var fields: [String: String] = [
+            "dayKey": dayKey,
+            "recoveryStatus": recoveryStatus,
+            "hasWorkout": String(hasWorkout),
+            "nutritionShouldChange": String(nutritionShouldChange),
+            "nextBestActionID": nextBestActionID,
+            "planConfidence": planConfidence,
+            "hasWeeklyReview": String(hasWeeklyReview)
+        ]
+        if let activitySteps {
+            fields["activitySteps"] = activitySteps
+        }
+        log(level: "info", message: "Health intelligence snapshot composed", fields: fields)
+    }
+
+    static func wiringRegistered(fields: [String: String]) {
+        log(level: "info", message: "Health intelligence engines wired", fields: fields)
+    }
+    #endif
+
     // MARK: - Private
 
     private static let logger = Logger(subsystem: "FitPilot", category: "HealthIntelligenceEngine")

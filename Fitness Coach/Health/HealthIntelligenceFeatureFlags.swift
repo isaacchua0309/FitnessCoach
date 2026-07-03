@@ -53,4 +53,18 @@ enum HealthIntelligenceFeatureFlags {
             defaultEnabled: true
         )
     }
+
+    /// Phase 6–10 engine orchestration and internal snapshot composition.
+    ///
+    /// Defaults to `true` when the foundation is enabled so snapshots can be composed
+    /// and cached without exposing new UI. Set `FORMA_HEALTH_INTELLIGENCE_ENGINES_ENABLED=0`
+    /// to disable engine wiring side effects.
+    static var healthIntelligenceEnginesEnabled: Bool {
+        guard healthIntelligenceEnabled else { return false }
+        return FormaEnvironment.isTracingEnabled(
+            primary: "FORMA_HEALTH_INTELLIGENCE_ENGINES_ENABLED",
+            legacy: "FITPILOT_HEALTH_INTELLIGENCE_ENGINES_ENABLED",
+            defaultEnabled: true
+        )
+    }
 }

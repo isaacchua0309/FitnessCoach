@@ -144,6 +144,9 @@ struct MainTabView: View {
         if HealthIntelligenceFeatureFlags.isSyncEnabled {
             await container.healthSyncStateStore.refreshState()
         }
+        if HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled {
+            await container.refreshHealthIntelligenceSnapshotIfNeeded()
+        }
     }
 
     // MARK: - Tab selection
