@@ -1216,13 +1216,12 @@ enum FormaProductCopy {
 
         enum Meals {
             static let sectionTitle = "Meals"
-            static let notLogged = "Not logged"
+            static let readyStatus = "Ready"
             static let addAction = "Add"
             static let optionalLabel = "Optional"
+            static let loggedAccessibilityValue = "Logged"
             static let loggedAccessibilityHint = "Edit this food entry"
             static let addAccessibilityHint = "Log food for this meal"
-            static let expandEntries = "Show all items"
-            static let collapseEntries = "Show less"
             static let emptyDayHint = "Log a meal to start today's picture."
             static let editSheetTitle = "Edit food"
             static let saveEditAction = "Save"
@@ -1235,8 +1234,16 @@ enum FormaProductCopy {
             static let deleteConfirmAction = "Delete"
             static let deleteCancelAction = "Cancel"
 
-            static func loggedSummary(calories: Int, protein: Double) -> String {
-                "\(calories) kcal · \(FoodEntryFormFormatter.formatMacro(protein))g protein"
+            static func caloriesLine(_ calories: Int) -> String {
+                "\(calories) kcal"
+            }
+
+            static func proteinLine(_ protein: Double) -> String {
+                "\(FoodEntryFormFormatter.formatMacro(protein))g protein"
+            }
+
+            static func multipleItemsAccessibilityLabel(_ count: Int) -> String {
+                "\(count) logged items"
             }
 
             static func mealTitle(_ mealType: MealType, isOptional: Bool) -> String {

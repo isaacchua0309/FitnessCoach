@@ -2,7 +2,7 @@
 //  TodayMealsPreview.swift
 //  Fitness Coach
 //
-//  Forma — Grouped Today meals by type with logged / missing states.
+//  Forma — Compact grouped Today meals by type.
 //
 
 import SwiftUI
@@ -16,15 +16,8 @@ struct TodayMealsPreview: View {
     let onDeleteEntry: (FoodEntry) -> Void
     let onLogFirstMeal: () -> Void
 
-    @State private var expandedGroups: Set<MealType> = []
-
     private var section: TodayMealsSectionState {
         TodayMealsGroupingEngine.build(entries: entries, date: date)
-    }
-
-    private var emptyCopy: TodayEmptyStateCopy? {
-        guard mealsEmptyKind != .hasMeals else { return nil }
-        return TodayEmptyStateFormatting.mealsEmptyCopy(for: mealsEmptyKind)
     }
 
     var body: some View {
@@ -33,11 +26,6 @@ struct TodayMealsPreview: View {
 
             FormaPlanCard {
                 VStack(spacing: 0) {
-                    if section.isFullyEmpty, let emptyCopy, !emptyCopy.title.isEmpty {
-                        mealsEmptyHeader(emptyCopy)
-                        FormaPlanRowDivider()
-                    }
-
                     ForEach(section.groups) { group in
                         mealGroupRow(group)
 
@@ -50,183 +38,122 @@ struct TodayMealsPreview: View {
         }
     }
 
-    private func mealsEmptyHeader(_ copy: TodayEmptyStateCopy) -> some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-            Text(copy.title)
-                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(copy.body)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.horizontal, FormaTokens.Spacing.md)
-        .padding(.vertical, FormaTokens.Spacing.sm)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
-    }
-
     @ViewBuilder
     private func mealGroupRow(_ group: TodayMealGroupState) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            mealGroupHeader(group)
+        let display = TodayMealsSectionFormatting.rowDisplayModel(for: group)
 
-            if group.isLogged {
-                loggedEntries(for: group)
-            }
+        if group.isLogged {
+            loggedMealRow(group: group, display: display)
+        } else {
+            emptyMealRow(group: group, display: display)
         }
-        .padding(.vertical, FormaTokens.Spacing.xs)
     }
 
-    private func mealGroupHeader(_ group: TodayMealGroupState) -> some View {
+    private func emptyMealRow(group: TodayMealGroupState, display: TodayMealRowDisplayModel) -> some View {
         HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: FormaTokens.Spacing.xs) {
-                    Text(FormaProductCopy.Today.Meals.mealTitle(group.mealType, isOptional: group.isOptional))
-                        .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
-
-                    if group.isOptional, !group.isLogged {
-                        Text(FormaProductCopy.Today.Meals.optionalLabel)
-                            .font(FormaTokens.Typography.caption)
-                            .foregroundStyle(FormaTokens.Color.textTertiary)
-                    }
-                }
-
-                if group.isLogged {
-                    Text(
-                        FormaProductCopy.Today.Meals.loggedSummary(
-                            calories: group.totalCalories,
-                            protein: group.totalProtein
-                        )
-                    )
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
-                } else {
-                    Text(FormaProductCopy.Today.Meals.notLogged)
-                        .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(
-                            group.isPastDueMissing
-                                ? FormaTokens.Color.textSecondary
-                                : FormaTokens.Color.textTertiary
-                        )
-                }
-            }
+            mealTitleBlock(display: display)
 
             Spacer(minLength: 8)
 
-            if group.isLogged {
+            Button {
+                onAddMeal(group.mealType)
+            } label: {
+                Text(FormaProductCopy.Today.Meals.addAction)
+                    .font(FormaTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(FormaTokens.Theme.primary)
+                    .frame(minHeight: FormaTokens.Layout.minTouchTarget)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(FormaProductCopy.Today.Meals.addAccessibilityLabel(for: group.mealType))
+            .accessibilityHint(display.accessibilityHint ?? "")
+        }
+        .padding(.horizontal, FormaTokens.Spacing.md)
+        .padding(.vertical, FormaTokens.Spacing.sm)
+    }
+
+    private func loggedMealRow(group: TodayMealGroupState, display: TodayMealRowDisplayModel) -> some View {
+        Button {
+            if let entry = group.entries.first {
+                onEditEntry(entry)
+            }
+        } label: {
+            HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
+                mealTitleBlock(display: display)
+
+                Spacer(minLength: 8)
+
                 Image(systemName: "checkmark.circle.fill")
                     .font(.body)
                     .foregroundStyle(FormaTokens.Theme.primary)
-                    .accessibilityLabel("Logged")
-            } else {
-                Button {
-                    onAddMeal(group.mealType)
-                } label: {
-                    Text(FormaProductCopy.Today.Meals.addAction)
-                        .font(FormaTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(FormaTokens.Theme.primary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(FormaProductCopy.Today.Meals.addAccessibilityLabel(for: group.mealType))
-                .accessibilityHint(FormaProductCopy.Today.Meals.addAccessibilityHint)
+                    .accessibilityHidden(true)
             }
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .frame(minHeight: FormaTokens.Layout.minTouchTarget)
         .padding(.horizontal, FormaTokens.Spacing.md)
-    }
-
-    @ViewBuilder
-    private func loggedEntries(for group: TodayMealGroupState) -> some View {
-        let isExpanded = expandedGroups.contains(group.mealType)
-        let previewLimit = TodayMealsGroupingEngine.entryPreviewLimit
-        let visibleEntries = isExpanded || !group.hasMultipleEntries
-            ? group.entries
-            : Array(group.entries.prefix(previewLimit))
-
-        if group.hasMultipleEntries {
-            VStack(spacing: 0) {
-                ForEach(visibleEntries) { entry in
-                    entryButton(entry)
-
-                    if entry.id != visibleEntries.last?.id {
-                        FormaPlanRowDivider()
-                            .padding(.leading, FormaTokens.Spacing.md)
-                    }
-                }
-
-                expandToggle(for: group, isExpanded: isExpanded)
-            }
-            .padding(.top, FormaTokens.Spacing.xs)
-        } else if let entry = group.entries.first {
-            entryButton(entry)
-                .padding(.top, FormaTokens.Spacing.xs)
-        }
-    }
-
-    private func entryButton(_ entry: FoodEntry) -> some View {
-        Button {
-            onEditEntry(entry)
-        } label: {
-            FoodTimelineRow(entry: entry, showsMealType: false)
-                .padding(.horizontal, FormaTokens.Spacing.md)
-        }
-        .buttonStyle(.plain)
-        .accessibilityHint(FormaProductCopy.Today.Meals.editAccessibilityHint)
+        .padding(.vertical, FormaTokens.Spacing.sm)
+        .accessibilityLabel(display.accessibilityLabel)
+        .accessibilityHint(display.accessibilityHint ?? "")
         .contextMenu {
-            Button {
-                onEditEntry(entry)
-            } label: {
-                Label(
-                    FormaProductCopy.Today.Meals.contextMenuEdit,
-                    systemImage: "pencil"
-                )
-            }
+            ForEach(group.entries) { entry in
+                Button {
+                    onEditEntry(entry)
+                } label: {
+                    Label(
+                        entry.name,
+                        systemImage: "pencil"
+                    )
+                }
 
-            Button(role: .destructive) {
-                onDeleteEntry(entry)
-            } label: {
-                Label(
-                    FormaProductCopy.Today.Meals.contextMenuDelete,
-                    systemImage: "trash"
-                )
+                Button(role: .destructive) {
+                    onDeleteEntry(entry)
+                } label: {
+                    Label(
+                        FormaProductCopy.Today.Meals.contextMenuDelete,
+                        systemImage: "trash"
+                    )
+                }
             }
         }
     }
 
-    private func expandToggle(for group: TodayMealGroupState, isExpanded: Bool) -> some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                if isExpanded {
-                    expandedGroups.remove(group.mealType)
-                } else {
-                    expandedGroups.insert(group.mealType)
+    private func mealTitleBlock(display: TodayMealRowDisplayModel) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: FormaTokens.Spacing.xs) {
+                Text(display.title)
+                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                    .foregroundStyle(FormaTokens.Color.textPrimary)
+
+                if display.isOptional {
+                    Text(FormaProductCopy.Today.Meals.optionalLabel)
+                        .font(FormaTokens.Typography.caption)
+                        .foregroundStyle(FormaTokens.Color.textTertiary)
                 }
             }
-        } label: {
-            Text(
-                isExpanded
-                    ? FormaProductCopy.Today.Meals.collapseEntries
-                    : FormaProductCopy.Today.Meals.expandEntries
-                        + " (\(group.entries.count))"
-            )
-            .font(FormaTokens.Typography.caption.weight(.medium))
-            .foregroundStyle(FormaTokens.Theme.primary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, FormaTokens.Spacing.md)
-            .padding(.vertical, FormaTokens.Spacing.xs)
+
+            Text(display.statusLine)
+                .font(FormaTokens.Typography.caption)
+                .foregroundStyle(
+                    display.showsAddAction
+                        ? FormaTokens.Color.textTertiary
+                        : FormaTokens.Color.textSecondary
+                )
+
+            if let detailLine = display.detailLine {
+                Text(detailLine)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaTokens.Color.textSecondary)
+            }
         }
-        .buttonStyle(.plain)
     }
 }
 
-#Preview("New profile") {
+#Preview("Empty day") {
     TodayMealsPreview(
         entries: [],
         date: Date(),
-        mealsEmptyKind: .newProfileNoMeals,
+        mealsEmptyKind: .newDayNoMeals,
         onAddMeal: { _ in },
         onEditEntry: { _ in },
         onDeleteEntry: { _ in },

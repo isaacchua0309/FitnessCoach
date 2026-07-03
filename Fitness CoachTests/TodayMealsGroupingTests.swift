@@ -79,6 +79,12 @@ final class TodayMealsGroupingTests: XCTestCase {
         XCTAssertEqual(snacks.totalCalories, 300)
         XCTAssertEqual(snacks.totalProtein, 22)
         XCTAssertFalse(snacks.isPastDueMissing)
+
+        let display = TodayMealsSectionFormatting.rowDisplayModel(for: snacks)
+        XCTAssertEqual(display.title, "Snacks")
+        XCTAssertTrue(display.isOptional)
+        XCTAssertEqual(display.statusLine, "300 kcal")
+        XCTAssertEqual(display.detailLine, "22g protein")
     }
 
     func testMultipleEntriesSameMealTotals() throws {
@@ -113,6 +119,10 @@ final class TodayMealsGroupingTests: XCTestCase {
 
         let breakfast = try XCTUnwrap(group(.breakfast, in: section))
         XCTAssertFalse(breakfast.isPastDueMissing)
+        XCTAssertEqual(
+            TodayMealsSectionFormatting.rowDisplayModel(for: breakfast).statusLine,
+            FormaProductCopy.Today.Meals.readyStatus
+        )
 
         let lunch = try XCTUnwrap(group(.lunch, in: section))
         XCTAssertFalse(lunch.isPastDueMissing)
