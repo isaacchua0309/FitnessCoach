@@ -6,6 +6,15 @@ import {defineSecret} from "firebase-functions/params";
 import {onRequest} from "firebase-functions/v2/https";
 import {sanitizeCoachIntentResult} from "./coachIntentSanitizer";
 import {
+  classifyCoachIntentPromptRules,
+  coachContextHealthRules,
+  coachContextV2Rules,
+  dailyReviewPromptRules,
+  editDeletePromptRules,
+  estimateFoodPromptRules,
+  mealAdvicePromptRules,
+} from "./coachContextPromptRules";
+import {
   GatewayError,
   assertBodySizeWithinLimit,
   coachContextLogFields,
@@ -662,22 +671,10 @@ function sharedRules(): string {
   ].join("\n");
 }
 
-function healthIntelligenceRules(): string {
-  return [
-    "Health intelligence context rules:",
-    "- When context.healthIntelligence is present, use it before asking whether the user worked out today.",
-    "- Use context.training.workoutsToday and context.training.workouts for workout-aware guidance.",
-    "- Treat Apple Health workout calories and active energy as estimates, not precise facts.",
-    "- If context.missingData flags unavailable signals, do not invent steps, workouts, sleep, HRV, or weight.",
-    "- Tailor nutrition advice to today's workout and recovery signals when available.",
-    "- Use context.recentMealsStructured and context.commonFoods for meal-history awareness.",
-    "- Do not state or imply medical diagnoses.",
-    "- When health intelligence is absent, rely on logged app data in context.today and what the user tells you.",
-  ].join("\n");
-}
-
 function commandInstructions(): string {
   return `${sharedRules()}
+
+${coachContextV2Rules()}
 
 Task: Parse the user's text into AIParsedCommand.
 Allowed intents: logFood, logWater, logWeight, logWorkout, startNewDay, mealAdvice, status, dailyReview, editEntry, deleteEntry, undo, multiAction, casual, unknown.
@@ -686,6 +683,10 @@ Use actions for logging/status/review/advice. For edits/deletes, include targetE
 
 function foodEstimateInstructions(): string {
   return `${sharedRules()}
+
+${coachContextV2Rules()}
+
+${estimateFoodPromptRules()}
 
 Task: Extract and estimate nutrition for the described food using strict per-ingredient components.
 
@@ -709,6 +710,10 @@ Hard requirements:
 function foodPhotoEstimateInstructions(): string {
   return `${sharedRules()}
 
+${coachContextV2Rules()}
+
+${estimateFoodPromptRules()}
+
 Task: Analyze the attached meal photo and estimate nutrition with strict per-item components.
 
 Return JSON matching the schema with meals[] entries.
@@ -722,7 +727,11 @@ Set requiresConfirmation true.`;
 function mealAdviceInstructions(): string {
   return `${sharedRules()}
 
-${healthIntelligenceRules()}
+${coachContextV2Rules()}
+
+${coachContextHealthRules()}
+
+${mealAdvicePromptRules()}
 
 Task: Give brief meal advice using the provided fitness context.
 Do not log anything. Mention practical portions or tradeoffs when helpful.`;
@@ -730,6 +739,8 @@ Do not log anything. Mention practical portions or tradeoffs when helpful.`;
 
 function nutritionEstimateInstructions(): string {
   return `${sharedRules()}
+
+${coachContextV2Rules()}
 
 Task: Return a structured nutrition estimate card for the user's food question.
 Do not log anything. Do not write long prose or markdown articles.
@@ -746,6 +757,8 @@ Rules:
 function nutritionComparisonInstructions(): string {
   return `${sharedRules()}
 
+${coachContextV2Rules()}
+
 Task: Compare two foods side-by-side for calories and macros.
 Do not log anything. Do not write long prose.
 Rules:
@@ -757,7 +770,11 @@ Rules:
 function coachIntentClassificationInstructions(): string {
   return `${sharedRules()}
 
-${healthIntelligenceRules()}
+${coachContextV2Rules()}
+
+${coachContextHealthRules()}
+
+${classifyCoachIntentPromptRules()}
 
 Task: Classify the user's Coach message. You are not answering the user yet.
 Return valid JSON only matching CoachIntentResult.
@@ -783,12 +800,18 @@ Return valid JSON only matching CoachIntentResult.
 function dailyReviewInstructions(): string {
   return `${sharedRules()}
 
+${coachContextV2Rules()}
+
+${dailyReviewPromptRules()}
+
 Task: Write a concise daily review using only the provided deterministic input.
 Use numbers as provided. Highlight one win and one next move.`;
 }
 
 function workoutParseInstructions(): string {
   return `${sharedRules()}
+
+${coachContextV2Rules()}
 
 Task: Parse the workout description into a WorkoutDraft plus a short assistantMessage.
 Infer duration, calories burned, intensity, recovery demand, and exercise sets when possible.
@@ -798,6 +821,10 @@ Always require user confirmation before logging.`;
 function editDeleteInstructions(): string {
   return `${sharedRules()}
 
+${coachContextV2Rules()}
+
+${editDeletePromptRules()}
+
 Task: Parse an edit or delete request into AIParsedCommand.
 Use editEntry or deleteEntry intent. Include targetEntrySelector and require confirmation.
 Never guess destructive deletes when ambiguous — ask for clarification in assistantMessage.`;
@@ -805,6 +832,10 @@ Never guess destructive deletes when ambiguous — ask for clarification in assi
 
 function multiActionInstructions(): string {
   return `${sharedRules()}
+
+${coachContextV2Rules()}
+
+${editDeletePromptRules()}
 
 Task: Parse a multi-action command into AIParsedCommand with intent multiAction.
 Return all proposed actions and require confirmation.`;
