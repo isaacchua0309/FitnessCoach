@@ -2547,6 +2547,39 @@ enum FormaProductCopy {
                 return "\(title), \(description), \(selection)"
             }
         }
+
+        /// Units preference screen copy.
+        enum Units {
+            static let screenTitle = "Units"
+            static let unitSystemSectionTitle = "Unit system"
+            static let examplesSectionTitle = "Examples"
+            static let storageFootnote =
+                "Forma stores values consistently and converts them for display."
+            static let imperialDisplayOnlyFootnote =
+                "Imperial changes display units only. Values are stored internally in metric."
+
+            static let exampleWeightLabel = "Weight"
+            static let exampleHeightLabel = "Height"
+            static let exampleWaterLabel = "Water"
+            static let exampleEnergyLabel = "Energy"
+
+            static func unitSystemPickerLabel(for unitSystem: UnitSystem) -> String {
+                switch unitSystem {
+                case .metric:
+                    return "Metric (kg, cm, ml)"
+                case .imperial:
+                    return "Imperial (lb, ft/in, fl oz)"
+                }
+            }
+
+            static func unitSystemAccessibilityLabel(
+                for unitSystem: UnitSystem,
+                isSelected: Bool
+            ) -> String {
+                let selection = isSelected ? "selected" : "not selected"
+                return "\(unitSystemPickerLabel(for: unitSystem)), \(selection)"
+            }
+        }
     }
 
     // MARK: - Profile form

@@ -59,12 +59,7 @@ enum PlanFormatter {
     }
 
     nonisolated static func unitSystem(_ unitSystem: UnitSystem) -> String {
-        switch unitSystem {
-        case .metric:
-            return "Metric (kg, cm, ml)"
-        case .imperial:
-            return "Imperial (display preference)"
-        }
+        FormaProductCopy.Settings.Units.unitSystemPickerLabel(for: unitSystem)
     }
 
     nonisolated static func dietPreference(_ preference: String?) -> String {

@@ -235,4 +235,10 @@ final class ThemeSettingsViewTests: XCTestCase {
         XCTAssertEqual(AppAppearanceMode.settingsSelectableCases, [.dark])
         XCTAssertFalse(AppThemeShippingPolicy.shipsLightAndSystemAppearance)
     }
+
+    func testAppearanceMatrixCoversAllPaletteCombinations() {
+        XCTAssertEqual(FormaThemeAppearanceMatrix.combinations.count, 8)
+        XCTAssertEqual(FormaThemeAppearanceMatrix.palettes, AppThemePalette.allCases)
+        XCTAssertEqual(FormaThemeAppearanceMatrix.appearances, [.light, .dark])
+    }
 }

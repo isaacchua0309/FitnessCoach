@@ -10,6 +10,20 @@ import SwiftUI
 struct PlanBodyDetailsSettingsView: View {
     let formState: PlanFormState
 
+    private var heightDisplay: String {
+        SettingsUnitsDisplayFormatter.formatHeight(
+            fromMetricCmText: formState.heightCmText,
+            unitSystem: formState.unitSystem
+        )
+    }
+
+    private var weightDisplay: String {
+        SettingsUnitsDisplayFormatter.formatWeight(
+            fromMetricKgText: formState.currentWeightKgText,
+            unitSystem: formState.unitSystem
+        )
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
@@ -22,7 +36,7 @@ struct PlanBodyDetailsSettingsView: View {
                         FormaPlanRowDivider()
                         detailRow(
                             label: FormaProductCopy.ProfileForm.height,
-                            value: "\(formState.heightCmText) cm"
+                            value: heightDisplay
                         )
                         FormaPlanRowDivider()
                         detailRow(
@@ -32,12 +46,12 @@ struct PlanBodyDetailsSettingsView: View {
                         FormaPlanRowDivider()
                         detailRow(
                             label: FormaProductCopy.ProfileForm.baselineWeight,
-                            value: "\(formState.currentWeightKgText) kg"
+                            value: weightDisplay
                         )
                         FormaPlanRowDivider()
                         detailRow(
                             label: FormaProductCopy.ProfileForm.unitSystem,
-                            value: PlanFormatter.unitSystem(formState.unitSystem)
+                            value: SettingsUnitsDisplayFormatter.unitSystemSummary(formState.unitSystem)
                         )
                     }
                 }
@@ -64,6 +78,17 @@ struct PlanBodyDetailsSettingsView: View {
 #Preview {
     NavigationStack {
         PlanBodyDetailsSettingsView(formState: PlanPreviewData.formState)
+    }
+    .formaThemePreview()
+}
+
+#Preview("Imperial display") {
+    NavigationStack {
+        PlanBodyDetailsSettingsView(formState: {
+            var state = PlanPreviewData.formState
+            state.unitSystem = .imperial
+            return state
+        }())
     }
     .formaThemePreview()
 }
