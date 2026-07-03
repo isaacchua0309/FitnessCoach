@@ -40,11 +40,11 @@ final class JourneyProgressStructureTests: XCTestCase {
 
         XCTAssertFalse(dashboard.showsStartingEmptyState)
         XCTAssertTrue(dashboard.showsMilestonesSection)
+        XCTAssertTrue(dashboard.showsStoryTimelineSection)
         XCTAssertEqual(
             dashboard.milestone.title,
             FormaProductCopy.Journey.Milestones.NextAchievement.firstMealTitle
         )
-        XCTAssertFalse(dashboard.showsStoryTimelineSection)
     }
 
     func testStrongMomentumHidesStartingEmptyState() {

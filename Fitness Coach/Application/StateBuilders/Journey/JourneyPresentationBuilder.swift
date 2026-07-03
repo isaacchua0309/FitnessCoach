@@ -54,7 +54,7 @@ enum JourneyPresentationBuilder {
         )
         let timeline = JourneyDashboardBuilder.storyTimeline(
             context: context,
-            additionalEvents: milestoneResult.completedTimelineEvents
+            unlockedMilestoneCount: milestoneResult.unlockedCount
         )
 
         let habitInsights = JourneyHabitInsightsBuilder.build(

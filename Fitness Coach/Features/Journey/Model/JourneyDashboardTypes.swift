@@ -219,6 +219,7 @@ enum JourneyTimelineEventType: Equatable, Sendable {
     case halfwayToGoal
     case longestStreakAchieved
     case firstMonthComplete
+    case chapterReached
     case monthlyRecapCompleted
 }
 

@@ -942,7 +942,7 @@ enum JourneyPreviewData {
                 allWeights: weights,
                 healthWorkoutDayStarts: makeHealthWorkoutDayStarts(healthWorkoutDayOffsets),
                 isAppleHealthConnected: healthConnected,
-                journeyStreaks: streaks,
+                unlockedMilestoneCount: 0,
                 asOf: today,
                 calendar: calendar
             )

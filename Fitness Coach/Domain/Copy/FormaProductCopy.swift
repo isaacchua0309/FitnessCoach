@@ -1644,28 +1644,61 @@ enum FormaProductCopy {
 
             static let startedForma = "Started Forma"
             static let loggedFirstMeal = "Logged first meal"
-            static let loggedFirstWater = "Logged first water"
-            static let loggedFirstWeight = "Logged first weight"
-            static let completedFirstWorkoutWeek = "Completed first workout week"
+            static let completedFirstWorkout = "Completed first workout"
+            static let loggedFirstWeight = "Logged first weigh-in"
+            static let completedFirstFullDay = "Completed first full day"
             static let completedFirstWeek = "Completed first week"
             static let stayedConsistentFirstWeek = "Stayed consistent for first week"
-            static let loggedThirtyMeals = "Logged 30 meals"
-            static let reachedHalfway = "Reached halfway to goal"
-            static let monthlyRecapCompleted = "Monthly recap completed"
+            static let proteinThreeDaysInWeek = "Hit protein goal for 3 days"
+            static let waterThreeDaysInWeek = "Hit water goal for 3 days"
+            static let reachedNewChapter = "Reached a new chapter"
+            static let completedFirstMonth = "Completed first month"
 
-            static func hitCalorieGoalDays(_ count: Int) -> String {
-                "Hit calorie goal \(count) days"
+            static func lostFirstKilogram() -> String { "Lost first 1 kg" }
+            static func gainedFirstKilogram() -> String { "Gained first 1 kg" }
+
+            enum Reflection {
+                static let startedForma = "This is where your transformation began."
+                static let loggedFirstMeal = "You began building your daily rhythm."
+                static let completedFirstWorkout = "Your training story started here."
+                static let loggedFirstWeight = "Your first weigh-in marks the start of your trend."
+                static let completedFirstFullDay = "A full day of logging builds real momentum."
+                static let completedFirstWeek = "Seven days in — consistency is forming."
+                static let lostFirstKg = "Your effort is starting to show."
+                static let gainedFirstKg = "Your consistency is starting to pay off."
+                static let proteinThreeDays = "Protein is becoming a steady anchor."
+                static let waterThreeDays = "Hydration is turning into a habit."
+                static let reachedNewChapter = "A new chapter of your journey is opening."
+                static let completedFirstMonth = "Your first month is part of your story now."
             }
 
-            static func hitProteinGoalDays(_ count: Int) -> String {
-                "Hit protein target \(count) days"
-            }
-
-            static func lostFirstKilogram() -> String { "Lost first kilogram" }
-            static func gainedFirstKilogram() -> String { "Gained first kilogram" }
-
-            static func longestLoggingStreak(days: Int) -> String {
-                "Reached \(days)-day logging streak"
+            static func reflection(for type: JourneyTimelineEventType) -> String? {
+                switch type {
+                case .onboardingStarted:
+                    return Reflection.startedForma
+                case .firstMealLogged:
+                    return Reflection.loggedFirstMeal
+                case .firstWorkoutLogged:
+                    return Reflection.completedFirstWorkout
+                case .firstWeightLogged:
+                    return Reflection.loggedFirstWeight
+                case .firstFullDayComplete:
+                    return Reflection.completedFirstFullDay
+                case .firstWeekComplete:
+                    return Reflection.completedFirstWeek
+                case .firstKgTowardGoal:
+                    return Reflection.lostFirstKg
+                case .proteinThreeDaysInWeek:
+                    return Reflection.proteinThreeDays
+                case .waterThreeDaysInWeek:
+                    return Reflection.waterThreeDays
+                case .chapterReached:
+                    return Reflection.reachedNewChapter
+                case .firstMonthComplete:
+                    return Reflection.completedFirstMonth
+                default:
+                    return nil
+                }
             }
         }
 

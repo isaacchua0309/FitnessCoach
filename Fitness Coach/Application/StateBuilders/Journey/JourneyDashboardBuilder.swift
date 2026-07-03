@@ -131,6 +131,7 @@ enum JourneyDashboardBuilder {
 
     static func storyTimeline(
         context: Context,
+        unlockedMilestoneCount: Int = 0,
         additionalEvents: [JourneyTimelineEvent] = []
     ) -> JourneyStoryTimelineState {
         JourneyTimelineBuilder.build(
@@ -141,7 +142,7 @@ enum JourneyDashboardBuilder {
                 allWeights: context.allWeights,
                 healthWorkoutDayStarts: context.healthWorkoutDayStarts,
                 isAppleHealthConnected: context.weeklyTraining.isConnected,
-                journeyStreaks: context.journeyStreaks,
+                unlockedMilestoneCount: unlockedMilestoneCount,
                 asOf: context.asOf,
                 calendar: context.calendar
             ),

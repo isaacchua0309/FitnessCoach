@@ -38,6 +38,12 @@ final class JourneyPresentationBuilderTests: XCTestCase {
             FormaProductCopy.Journey.WeeklyReview.emptyState
         )
         XCTAssertFalse(dashboard.showsStartingEmptyState)
+        XCTAssertTrue(dashboard.showsStoryTimelineSection)
+        XCTAssertTrue(
+            dashboard.storyEvents.contains {
+                $0.eventType == .onboardingStarted
+            }
+        )
     }
 
     func testHabitLogsWithoutWeightLossStillBuildsWeeklyHabits() {

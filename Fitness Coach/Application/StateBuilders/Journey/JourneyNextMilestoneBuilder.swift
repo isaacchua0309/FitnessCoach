@@ -71,7 +71,10 @@ enum JourneyNextMilestoneBuilder {
                 date: input.calendar.startOfDay(for: date),
                 type: milestone.timelineType,
                 title: milestone.timelineTitle,
-                subtitle: nil,
+                subtitle: timelineReflection(
+                    for: milestone.timelineType,
+                    goalDirection: input.baseline.goalDirection
+                ),
                 icon: milestone.icon,
                 isMajorEvent: milestone.isMajorTimelineEvent
             )
@@ -690,5 +693,22 @@ enum JourneyNextMilestoneBuilder {
         bestFoodDays = max(bestFoodDays, currentFoodDays)
 
         return (nil, bestFoodDays)
+    }
+
+    private static func timelineReflection(
+        for type: JourneyTimelineEventType,
+        goalDirection: JourneyGoalDirection
+    ) -> String? {
+        if type == .firstKgTowardGoal {
+            switch goalDirection {
+            case .lose:
+                return FormaProductCopy.Journey.Timeline.Reflection.lostFirstKg
+            case .gain:
+                return FormaProductCopy.Journey.Timeline.Reflection.gainedFirstKg
+            case .maintain:
+                return FormaProductCopy.Journey.Timeline.Reflection.completedFirstWeek
+            }
+        }
+        return FormaProductCopy.Journey.Timeline.reflection(for: type)
     }
 }
