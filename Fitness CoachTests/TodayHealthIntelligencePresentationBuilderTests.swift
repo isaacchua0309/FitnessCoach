@@ -249,16 +249,14 @@ final class TodayHealthIntelligencePresentationBuilderTests: XCTestCase {
         XCTAssertNil(section.fallbackMessage)
     }
 
-    func testSyncFailedShowsCachedDataWithStaleLabel() {
+    func testSyncFailedShowsCachedDataWithoutStaleLabelWhenInsightBlocked() {
         let section = TodayHealthIntelligencePreviewData.syncFailed
 
         XCTAssertEqual(section.uiState?.kind, .syncFailed)
+        XCTAssertFalse(section.uiState?.canShowInsight ?? true)
         XCTAssertTrue(section.recoveryCard.title.contains("Moderate"))
-        XCTAssertEqual(
-            section.staleDataLabel,
-            FormaProductCopy.Today.HealthIntelligence.syncFailedWithCacheLabel
-        )
-        XCTAssertNil(section.fallbackMessage)
+        XCTAssertNil(section.staleDataLabel)
+        XCTAssertNotNil(section.fallbackMessage)
     }
 
     func testNoWorkoutHistoryShowsEmptyWorkoutCard() {

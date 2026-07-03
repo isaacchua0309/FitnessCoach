@@ -220,7 +220,7 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
         XCTAssertEqual(section?.progress.errorMessage, "Network unavailable")
     }
 
-    func testSyncFailedWithCachedDataShowsStaleLabelAndLoadedCards() {
+    func testSyncFailedWithCachedDataShowsErrorTimeline() {
         let section = JourneyHealthIntelligencePresentationBuilder.buildSection(
             input: JourneyHealthIntelligenceBuildInput(
                 todaySnapshot: makeCurrentSnapshot(),
@@ -236,12 +236,11 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
         )
 
         XCTAssertNotNil(section)
-        XCTAssertEqual(section?.recoveryTimeline.phase, .loaded)
-        XCTAssertEqual(
-            section?.staleDataLabel,
-            FormaProductCopy.Journey.HealthIntelligence.syncFailedWithCacheLabel
-        )
-        XCTAssertNil(section?.recoveryTimeline.errorMessage)
+        XCTAssertEqual(section?.uiState?.kind, .syncFailed)
+        XCTAssertFalse(section?.uiState?.canShowInsight ?? true)
+        XCTAssertEqual(section?.recoveryTimeline.phase, .error)
+        XCTAssertNotNil(section?.recoveryTimeline.errorMessage)
+        XCTAssertNil(section?.staleDataLabel)
     }
 
     func testPartialPermissionShowsPartialSignalsNote() {
