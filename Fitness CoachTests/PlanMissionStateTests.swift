@@ -6,57 +6,49 @@
 import XCTest
 @testable import Fitness_Coach
 
-final class PlanMissionStateTests: XCTestCase {
+final class PlanStrategyHeroTests: XCTestCase {
 
-    private let calendar = Calendar.current
-    private let referenceDate = Calendar.current.date(
-        from: DateComponents(year: 2026, month: 6, day: 28)
-    )!
+    func testWeightLossHeroShowsStrategyFocusedCopy() {
+        let strategy = PlanMissionControlFixtures.loseDashboard.strategy
 
-    func testLoseWeightHeroShowsGoalProgressFirst() {
-        let dashboard = PlanMissionControlFixtures.loseDashboard
-        let strategy = dashboard.strategy
-
-        XCTAssertEqual(strategy.sectionTitle, FormaProductCopy.PlanMissionControl.heroSectionTitle)
-        XCTAssertEqual(strategy.headline, "Lose 15 kg")
-        XCTAssertEqual(strategy.progressRouteLabel, "Current 90 kg → Goal 75 kg")
-        XCTAssertTrue(strategy.showsProgressBar)
+        XCTAssertEqual(strategy.sectionTitle, "Your Strategy")
+        XCTAssertEqual(strategy.primaryGoal, "Lose 15 kg")
+        XCTAssertEqual(strategy.dailyTargetValue, "2233 kcal")
+        XCTAssertEqual(strategy.expectedPaceValue, "~0.8 kg/week")
+        XCTAssertEqual(strategy.strategyStatusValue, "Aggressive Cut")
+        XCTAssertEqual(strategy.supportiveLine, "Demanding but achievable.")
         XCTAssertEqual(strategy.goalDirection, .lose)
-        XCTAssertNotNil(strategy.expectedPaceLabel)
-        XCTAssertTrue(strategy.expectedPaceLabel?.contains("/week") == true)
         XCTAssertFalse(strategy.accessibilitySummary.isEmpty)
-        XCTAssertTrue(strategy.accessibilitySummary.contains(strategy.headline))
+        XCTAssertFalse(strategy.accessibilitySummary.contains("% complete"))
     }
 
-    func testGainWeightHeroShowsGainHeadline() {
-        let strategy = PlanMissionControlFixtures.gainDashboard.strategy
-
-        XCTAssertEqual(strategy.goalDirection, .gain)
-        XCTAssertEqual(strategy.headline, "Gain 6 kg")
-        XCTAssertEqual(strategy.progressRouteLabel, "Current 70 kg → Goal 76 kg")
-        XCTAssertTrue(strategy.showsProgressBar)
-        XCTAssertNil(strategy.expectedPaceLabel)
-    }
-
-    func testMaintainHeroShowsHoldCopy() {
+    func testMaintenanceHeroShowsHoldStrategy() {
         let strategy = PlanMissionControlFixtures.maintainDashboard.strategy
 
+        XCTAssertEqual(strategy.primaryGoal, "Maintain weight")
         XCTAssertEqual(strategy.goalDirection, .maintain)
-        XCTAssertEqual(strategy.headline, "Maintain 72 kg")
-        XCTAssertEqual(strategy.progressRouteLabel, "Current 72 kg · Goal hold")
-        XCTAssertFalse(strategy.showsProgressBar)
-        XCTAssertEqual(strategy.progressCompleteLabel, FormaProductCopy.PlanMissionControl.progressOnPlan)
-        XCTAssertNil(strategy.expectedPaceLabel)
+        XCTAssertNil(strategy.expectedPaceValue)
+        XCTAssertEqual(strategy.strategyStatusValue, "Maintenance")
+        XCTAssertEqual(strategy.supportiveLine, "Designed to maintain your current weight.")
     }
 
-    func testMissingGoalUsesFallbackHeadline() {
-        let headline = PlanMissionHeroCopyBuilder.headlineValue(
+    func testMuscleGainHeroShowsBuildMuscleStrategy() {
+        let strategy = PlanMissionControlFixtures.gainDashboard.strategy
+
+        XCTAssertEqual(strategy.primaryGoal, "Build muscle")
+        XCTAssertEqual(strategy.goalDirection, .gain)
+        XCTAssertNil(strategy.expectedPaceValue)
+        XCTAssertEqual(strategy.strategyStatusValue, "Lean Gain")
+        XCTAssertEqual(strategy.supportiveLine, "Built for lean muscle growth.")
+    }
+
+    func testMissingTargetUsesFallbackPrimaryGoal() {
+        let fallback = PlanMissionHeroCopyBuilder.primaryGoalValue(
             direction: .lose,
-            totalChangeKg: nil,
-            goalWeightKg: 75
+            totalChangeKg: nil
         )
 
-        XCTAssertEqual(headline, FormaProductCopy.PlanMissionControl.headlineLoseFallback)
+        XCTAssertEqual(fallback, "Lose weight")
 
         var profile = PlanMissionControlFixtures.loseProfile
         profile.currentWeightKg = 75
@@ -64,45 +56,30 @@ final class PlanMissionStateTests: XCTestCase {
         let strategy = PlanMissionControlFixtures.dashboard(for: profile).strategy
 
         XCTAssertEqual(strategy.goalDirection, .maintain)
-        XCTAssertEqual(strategy.headline, "Maintain 75 kg")
+        XCTAssertEqual(strategy.primaryGoal, "Maintain weight")
     }
 
-    func testNoLoggedWeightUsesProfileCurrentWeight() {
+    func testAggressiveCutStatusInStrategyHero() {
         let strategy = PlanMissionControlFixtures.loseDashboard.strategy
 
-        XCTAssertFalse(strategy.usesLoggedCurrentWeight)
-        XCTAssertEqual(strategy.progressRouteLabel, "Current 90 kg → Goal 75 kg")
+        XCTAssertEqual(strategy.strategyStatusValue, FormaProductCopy.PlanStrategyHero.statusAggressiveCut)
+        XCTAssertEqual(strategy.supportiveLine, FormaProductCopy.PlanStrategyHero.supportiveAggressiveCut)
     }
 
-    func testLatestLoggedWeightOverridesProfileCurrentWeight() {
-        let strategy = PlanMissionControlFixtures.activeUserDashboard.strategy
+    func testModerateCutStatusUsesSteadyProgressSupportiveLine() {
+        let strategy = PlanMissionControlFixtures.moderateDeficitDashboard.strategy
 
-        XCTAssertTrue(strategy.usesLoggedCurrentWeight)
-        XCTAssertEqual(strategy.progressRouteLabel, "Current 89.6 kg → Goal 75 kg")
+        XCTAssertEqual(strategy.strategyStatusValue, "Moderate Cut")
+        XCTAssertEqual(strategy.supportiveLine, "Built for steady progress.")
     }
 
-    func testNewUserWithoutLogsShowsNeedsDataStatus() {
-        let status = PlanMissionControlFixtures.newUserDashboard.status
+    func testAccessibilitySummaryIncludesStrategyFields() {
+        let strategy = PlanMissionControlFixtures.loseDashboard.strategy
 
-        XCTAssertEqual(status.tone, .needsData)
-        XCTAssertFalse(status.message.isEmpty)
-    }
-
-    func testAccessibilitySummaryIncludesHeroFields() {
-        let dashboard = PlanMissionControlFixtures.loseDashboard
-
-        XCTAssertTrue(dashboard.strategy.accessibilitySummary.contains("Your Goal"))
-        XCTAssertFalse(dashboard.strategy.accessibilitySummary.lowercased().contains("onboarding baseline"))
-    }
-
-    func testProgressBarAccessibilityValueFormatsPercent() {
-        XCTAssertEqual(
-            PlanMissionHeroCopyBuilder.progressBarAccessibilityValue(percent: 42),
-            "42 percent complete"
-        )
-        XCTAssertEqual(
-            PlanMissionHeroCopyBuilder.progressBarAccessibilityValue(percent: nil),
-            FormaProductCopy.PlanMissionControl.accessibilityProgressZero
-        )
+        XCTAssertTrue(strategy.accessibilitySummary.contains("Your Strategy"))
+        XCTAssertTrue(strategy.accessibilitySummary.contains(strategy.primaryGoal))
+        XCTAssertTrue(strategy.accessibilitySummary.contains(strategy.dailyTargetValue))
+        XCTAssertTrue(strategy.accessibilitySummary.contains(strategy.strategyStatusValue))
+        XCTAssertTrue(strategy.accessibilitySummary.contains(strategy.supportiveLine))
     }
 }

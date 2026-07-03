@@ -33,7 +33,7 @@ final class PlanStructureTests: XCTestCase {
     func testPresentationSectionTitlesMatchProductLayout() {
         let dashboard = PlanMissionControlFixtures.loseDashboard
 
-        XCTAssertEqual(dashboard.strategy.sectionTitle, FormaProductCopy.PlanMissionControl.heroSectionTitle)
+        XCTAssertEqual(dashboard.strategy.sectionTitle, FormaProductCopy.PlanStrategyHero.sectionTitle)
         XCTAssertEqual(dashboard.dailyTargets.sectionTitle, "Today's Mission")
         XCTAssertEqual(dashboard.explanation.sectionTitle, "Why This Works")
         XCTAssertEqual(dashboard.assumptions.sectionTitle, "Plan Assumptions")

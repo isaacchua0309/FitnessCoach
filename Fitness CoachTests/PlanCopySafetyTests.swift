@@ -135,8 +135,8 @@ final class PlanCopySafetyTests: XCTestCase {
     private func missionControlDashboardCopy(from dashboard: PlanDashboardState) -> [String] {
         [
             dashboard.strategy.accessibilitySummary,
-            dashboard.strategy.headline,
-            dashboard.status.message,
+            dashboard.strategy.primaryGoal,
+            dashboard.strategy.supportiveLine,
             dashboard.dailyTargets.summaryCopy,
             dashboard.assumptions.assumptionsNote,
             dashboard.assumptions.accessibilitySummary,

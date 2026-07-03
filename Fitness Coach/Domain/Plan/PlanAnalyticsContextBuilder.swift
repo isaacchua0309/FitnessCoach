@@ -64,23 +64,7 @@ enum PlanAnalyticsContextBuilder {
     }
 
     static func progressBucket(from strategy: PlanStrategyState) -> String {
-        guard strategy.showsProgressBar else {
-            return PlanAnalyticsGoalProgressBucket.unknown.rawValue
-        }
-        let progress = strategy.progressBarFill
-        if progress <= 0 {
-            return PlanAnalyticsGoalProgressBucket.none.rawValue
-        }
-        if progress >= 1.0 {
-            return PlanAnalyticsGoalProgressBucket.complete.rawValue
-        }
-        if progress >= 0.75 {
-            return PlanAnalyticsGoalProgressBucket.onTrack.rawValue
-        }
-        if progress >= 0.35 {
-            return PlanAnalyticsGoalProgressBucket.mid.rawValue
-        }
-        return PlanAnalyticsGoalProgressBucket.low.rawValue
+        PlanAnalyticsGoalProgressBucket.unknown.rawValue
     }
 
     static func activityLevel(_ level: ActivityLevel) -> String {

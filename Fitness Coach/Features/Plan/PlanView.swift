@@ -161,10 +161,7 @@ struct PlanView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
-                PlanMissionControlHeroSection(
-                    strategy: state.strategy,
-                    status: state.status
-                )
+                PlanMissionControlHeroSection(strategy: state.strategy)
                     .onAppear {
                         model.logSectionImpression(.goalCard, healthConnected: healthConnected)
                     }
@@ -240,10 +237,7 @@ struct PlanView: View {
 #Preview("Loaded Plan") {
     ScrollView {
         VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
-            PlanMissionControlHeroSection(
-                strategy: PlanPreviewData.state.strategy,
-                status: PlanPreviewData.state.status
-            )
+            PlanMissionControlHeroSection(strategy: PlanPreviewData.state.strategy)
             PlanTodayMissionSection(
                 state: PlanPreviewData.state.dailyTargets,
                 onGoToToday: {}

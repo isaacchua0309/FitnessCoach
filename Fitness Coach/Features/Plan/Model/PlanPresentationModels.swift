@@ -35,16 +35,15 @@ struct PlanStatusState: Equatable, Sendable {
 
 struct PlanStrategyState: Equatable, Sendable {
     var sectionTitle: String
-    var headline: String
-    var strategyName: String
+    var primaryGoal: String
     var goalDirection: PlanGoalDirection
-    var progressRouteLabel: String
-    var progressCompleteLabel: String?
-    var progressBarFill: Double
-    var showsProgressBar: Bool
-    var expectedCompletionLabel: String?
+    var dailyTargetLabel: String
+    var dailyTargetValue: String
     var expectedPaceLabel: String?
-    var usesLoggedCurrentWeight: Bool
+    var expectedPaceValue: String?
+    var strategyStatusLabel: String
+    var strategyStatusValue: String
+    var supportiveLine: String
     var accessibilitySummary: String
 }
 

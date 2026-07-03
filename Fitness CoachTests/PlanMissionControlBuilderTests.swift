@@ -19,10 +19,9 @@ final class PlanMissionControlBuilderTests: XCTestCase {
         let dashboard = PlanMissionControlFixtures.loseDashboard
 
         XCTAssertEqual(dashboard.strategy.goalDirection, .lose)
-        XCTAssertNotNil(dashboard.strategy.expectedPaceLabel)
-        XCTAssertFalse(dashboard.strategy.strategyName.isEmpty)
-        XCTAssertEqual(dashboard.strategy.sectionTitle, "Your Goal")
-        XCTAssertEqual(dashboard.strategy.headline, "Lose 15 kg")
+        XCTAssertNotNil(dashboard.strategy.expectedPaceValue)
+        XCTAssertEqual(dashboard.strategy.sectionTitle, "Your Strategy")
+        XCTAssertEqual(dashboard.strategy.primaryGoal, "Lose 15 kg")
         XCTAssertFalse(dashboard.strategy.accessibilitySummary.isEmpty)
         XCTAssertEqual(dashboard.adjustPlanCTA.title, "Adjust Plan")
     }
@@ -31,21 +30,22 @@ final class PlanMissionControlBuilderTests: XCTestCase {
         let dashboard = PlanMissionControlFixtures.gainDashboard
 
         XCTAssertEqual(dashboard.strategy.goalDirection, .gain)
-        XCTAssertNil(dashboard.strategy.expectedPaceLabel)
+        XCTAssertNil(dashboard.strategy.expectedPaceValue)
+        XCTAssertEqual(dashboard.strategy.primaryGoal, "Build muscle")
     }
 
     func testMaintainMissionStateUsesMaintainDirection() {
         let dashboard = PlanMissionControlFixtures.maintainDashboard
 
         XCTAssertEqual(dashboard.strategy.goalDirection, .maintain)
-        XCTAssertFalse(dashboard.strategy.showsProgressBar)
+        XCTAssertEqual(dashboard.strategy.primaryGoal, "Maintain weight")
     }
 
-    func testActiveUserMissionUsesLoggedCurrentWeight() {
+    func testActiveUserStrategyShowsDailyTargetAndStatus() {
         let dashboard = PlanMissionControlFixtures.activeUserDashboard
 
-        XCTAssertTrue(dashboard.strategy.usesLoggedCurrentWeight)
-        XCTAssertTrue(dashboard.strategy.progressRouteLabel.contains("89.6"))
+        XCTAssertEqual(dashboard.strategy.dailyTargetValue, "2233 kcal")
+        XCTAssertEqual(dashboard.strategy.strategyStatusValue, "Aggressive Cut")
     }
 
     // MARK: - Daily targets

@@ -20,7 +20,7 @@ final class PlanPresentationStateTests: XCTestCase {
         let state = PlanMissionControlFixtures.loseDashboard
 
         XCTAssertEqual(state.strategy.goalDirection, .lose)
-        XCTAssertEqual(state.strategy.headline, "Lose 15 kg")
+        XCTAssertEqual(state.strategy.primaryGoal, "Lose 15 kg")
         XCTAssertFalse(state.dailyTargets.caloriesLabel.isEmpty)
     }
 
@@ -28,15 +28,15 @@ final class PlanPresentationStateTests: XCTestCase {
         let state = PlanMissionControlFixtures.maintainDashboard
 
         XCTAssertEqual(state.strategy.goalDirection, .maintain)
-        XCTAssertEqual(state.strategy.headline, "Maintain 72 kg")
-        XCTAssertFalse(state.strategy.showsProgressBar)
+        XCTAssertEqual(state.strategy.primaryGoal, "Maintain weight")
+        XCTAssertNil(state.strategy.expectedPaceValue)
     }
 
     func testMuscleGainStrategyState() {
         let state = PlanMissionControlFixtures.gainDashboard
 
         XCTAssertEqual(state.strategy.goalDirection, .gain)
-        XCTAssertEqual(state.strategy.headline, "Gain 6 kg")
+        XCTAssertEqual(state.strategy.primaryGoal, "Build muscle")
     }
 
     // MARK: - Deficit pacing

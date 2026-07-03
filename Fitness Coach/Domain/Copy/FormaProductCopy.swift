@@ -2112,10 +2112,37 @@ enum FormaProductCopy {
         static let viewCalculationDetails = "See calculation"
     }
 
+    // MARK: - Plan Strategy Hero
+
+    enum PlanStrategyHero {
+        static let sectionTitle = "Your Strategy"
+        static let dailyTargetLabel = "Daily target"
+        static let expectedPaceLabel = "Expected pace"
+        static let statusLabel = "Status"
+
+        static let primaryGoalMaintain = "Maintain weight"
+        static let primaryGoalGain = "Build muscle"
+        static let primaryGoalLoseFallback = "Lose weight"
+
+        static let statusAggressiveCut = "Aggressive Cut"
+        static let statusModerateCut = "Moderate Cut"
+        static let statusMaintenance = "Maintenance"
+        static let statusLeanGain = "Lean Gain"
+
+        static let supportiveAggressiveCut = "Demanding but achievable."
+        static let supportiveModerateCut = "Built for steady progress."
+        static let supportiveMaintenance = "Designed to maintain your current weight."
+        static let supportiveLeanGain = "Built for lean muscle growth."
+
+        static func primaryGoalLose(_ amount: String) -> String { "Lose \(amount)" }
+
+        static func expectedPace(_ amount: String) -> String { "~\(amount)/week" }
+    }
+
     // MARK: - Plan Mission Control
 
     enum PlanMissionControl {
-        static let heroSectionTitle = "Your Goal"
+        static let heroSectionTitle = PlanStrategyHero.sectionTitle
         static let adjustPlan = "Adjust Plan"
         static let progressOnPlan = "On plan"
         static let headlineLoseFallback = "Lose weight"

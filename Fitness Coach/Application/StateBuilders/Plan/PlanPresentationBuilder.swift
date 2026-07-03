@@ -108,8 +108,6 @@ enum PlanStrategyStateBuilder {
     ) -> (PlanStrategyState, PlanStatusState) {
         let profile = context.profile
         let direction = goalDirection(for: profile)
-        let strategyName = PlanStateBuilder.strategyName(for: profile)
-        let currentKg = baseline.currentWeightKg ?? profile.currentWeightKg
         let goalKg = profile.goalWeightKg
         let startKg = baseline.startWeightKg ?? profile.currentWeightKg
         let totalChange = abs(goalKg - startKg)
@@ -118,16 +116,10 @@ enum PlanStrategyStateBuilder {
         return PlanMissionHeroCopyBuilder.buildPresentation(
             input: PlanMissionHeroCopyBuilder.Input(
                 goalDirection: direction,
-                strategyName: strategyName,
-                currentWeightKg: currentKg,
-                goalWeightKg: goalKg,
                 totalChangeKg: totalToLoseOrGain,
-                progressPercent: baseline.progressPercent,
-                expectedCompletionDate: baseline.estimatedCompletionDate,
+                calorieTargetKcal: profile.targets.calorieTarget,
                 expectedWeeklyChangeKg: profile.targets.expectedWeeklyWeightLossKg,
-                usesLoggedCurrentWeight: baseline.hasRealWeightEntries,
-                currentWeightLabel: PlanFormatter.kg(currentKg),
-                goalWeightLabel: PlanFormatter.kg(goalKg)
+                aggressiveness: profile.targets.aggressiveness
             ),
             context: context,
             profile: profile,
