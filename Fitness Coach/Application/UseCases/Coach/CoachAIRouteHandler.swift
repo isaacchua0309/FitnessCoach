@@ -49,7 +49,10 @@ final class CoachAIRouteHandler {
         case .localCommand(let command):
             switch ConfirmationPolicy.decision(for: command) {
             case .executeImmediately:
-                let response = await mutationExecutor.execute(command)
+                let response = await mutationExecutor.execute(
+                    command,
+                    healthIntelligence: resolvedHealthIntelligence(from: context)
+                )
                 return .message(response)
             case .requiresConfirmation(let message):
                 return .message(message)
@@ -126,6 +129,8 @@ final class CoachAIRouteHandler {
                 log: try? dailyLogReader.getTodayLog(),
                 profile: try? userProfileReader?.getCurrentProfile(),
                 hasWorkoutToday: hasWorkoutToday(from: context),
+                healthIntelligence: resolvedHealthIntelligence(from: context),
+                intent: routed.intentResult.intent,
                 assistantMessage: advice.message
             )
             return .message(message)
@@ -519,5 +524,9 @@ final class CoachAIRouteHandler {
             return healthIntelligence.workoutCompletedToday
         }
         return (context.todaySummary?.workoutsToday ?? 0) > 0
+    }
+
+    private func resolvedHealthIntelligence(from context: AIContext) -> CoachHealthIntelligenceContext? {
+        context.healthIntelligenceAwarenessAvailable ? context.healthIntelligence : nil
     }
 }

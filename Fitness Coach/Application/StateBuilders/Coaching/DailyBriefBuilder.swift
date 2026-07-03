@@ -18,10 +18,15 @@ enum DailyBriefBuilder {
     static func todayBrief(
         nutrition: DailyNutritionSummary,
         hasWorkoutToday: Bool,
-        trainingFrequency: Int
+        trainingFrequency: Int,
+        healthIntelligence: CoachHealthIntelligenceContext? = nil
     ) -> TodayDailyBrief {
         let greeting = timeBasedGreeting()
         var priorities: [String] = []
+
+        if let healthInsight = CoachHealthGuidanceFormatter.dailyHealthInsight(from: healthIntelligence) {
+            priorities.append(healthInsight)
+        }
 
         if nutrition.remaining.protein > 30 {
             priorities.append("Aim for \(formatGrams(nutrition.targets.protein)) protein today.")
@@ -36,7 +41,9 @@ enum DailyBriefBuilder {
             priorities.append("Hydration is nearly complete.")
         }
 
-        if hasWorkoutToday || isLikelyTrainingDay(frequency: trainingFrequency) {
+        if healthIntelligence?.workoutCompletedToday == true {
+            priorities.append("Post-workout — prioritize protein and hydration.")
+        } else if hasWorkoutToday || isLikelyTrainingDay(frequency: trainingFrequency) {
             priorities.append("Training day — fuel with 40–60g carbs pre-workout.")
         } else if trainingFrequency > 0 {
             priorities.append("Rest or light movement — recovery supports progress.")
@@ -47,6 +54,10 @@ enum DailyBriefBuilder {
         let recommendation: String
         if nutrition.isOverCalories {
             recommendation = "You're above today's target. Log honestly tonight — we care about the weekly trend, not one meal."
+        } else if healthIntelligence?.recoveryStatus == RecoveryStatus.low.rawValue {
+            recommendation = "Keep meals steady and protein-forward while recovery is limited."
+        } else if healthIntelligence?.workoutCompletedToday == true {
+            recommendation = "Anchor your next meal with protein and fluids after training."
         } else if nutrition.remaining.protein > 50 {
             recommendation = "Anchor your next meal with protein."
         } else if nutrition.water.remainingMl > 1_000 {

@@ -31,7 +31,10 @@ final class CoachMutationExecutor {
         (await healthActivityQuery.dailyTrainingActivity().hasWorkout)
     }
 
-    func execute(_ command: ParsedCommand) async -> String {
+    func execute(
+        _ command: ParsedCommand,
+        healthIntelligence: CoachHealthIntelligenceContext? = nil
+    ) async -> String {
         switch command.intent {
         case .logWater(let draft):
             return executeLogWater(draft)
@@ -42,7 +45,7 @@ final class CoachMutationExecutor {
         case .undo(let target):
             return executeUndo(target)
         case .status:
-            return executeStatus()
+            return executeStatus(healthIntelligence: healthIntelligence)
         case .dailyReview:
             return await executeDailyReview()
         case .logSteps:
@@ -258,10 +261,10 @@ final class CoachMutationExecutor {
         }
     }
 
-    private func executeStatus() -> String {
+    private func executeStatus(healthIntelligence: CoachHealthIntelligenceContext? = nil) -> String {
         do {
             let log = try dailyLogReader.getTodayLog()
-            return CoachResponseBuilder.status(log)
+            return CoachResponseBuilder.status(log, healthIntelligence: healthIntelligence)
         } catch ServiceError.missingUserProfile {
             return "I could not load your status. Please check that your profile is set up."
         } catch {

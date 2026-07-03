@@ -52,9 +52,14 @@ enum CoachNutritionSummaryFormatter {
 
     static func mealAdviceLines(
         nutrition: DailyNutritionSummary,
-        brief: TodayDailyBrief
+        brief: TodayDailyBrief,
+        healthIntelligence: CoachHealthIntelligenceContext? = nil
     ) -> [String] {
         var lines: [String] = [brief.recommendation]
+
+        if healthIntelligence?.workoutCompletedToday == true {
+            lines.append("Refuel with protein and fluids after training.")
+        }
 
         if nutrition.remaining.protein > 30 {
             lines.append(
