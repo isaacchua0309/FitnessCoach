@@ -29,6 +29,10 @@ private struct ThemePaletteKey: EnvironmentKey {
     static let defaultValue = FormaThemeEnvironment.defaultResolvedTheme.themePalette
 }
 
+private struct FormaPlanColorsKey: EnvironmentKey {
+    static let defaultValue = PlanThemeColorProvider.productDefault
+}
+
 extension EnvironmentValues {
 
     /// Fully resolved appearance + palette for the active screen tree.
@@ -38,6 +42,7 @@ extension EnvironmentValues {
             self[FormaResolvedThemeKey.self] = newValue
             self[FormaColorsKey.self] = newValue.colors
             self[ThemePaletteKey.self] = newValue.themePalette
+            self[FormaPlanColorsKey.self] = PlanThemeColorProvider.planColors(from: newValue)
         }
     }
 
@@ -51,6 +56,12 @@ extension EnvironmentValues {
     var themePalette: ThemePalette {
         get { self[ThemePaletteKey.self] }
         set { self[ThemePaletteKey.self] = newValue }
+    }
+
+    /// Semantic colors for the Edit / Adjust Plan flow.
+    var formaPlanColors: FormaPlanColors {
+        get { self[FormaPlanColorsKey.self] }
+        set { self[FormaPlanColorsKey.self] = newValue }
     }
 }
 
@@ -110,6 +121,7 @@ extension View {
         )
         FormaThemeAccess.update(resolved: theme)
         return environment(\.formaResolvedTheme, theme)
+            .environment(\.formaPlanColors, PlanThemeColorProvider.planColors(from: theme))
             .environment(\.formaThemePalette, legacyPalette)
             .tint(theme.themePalette.primary)
             .formaThemeReactive()
@@ -128,5 +140,10 @@ extension View {
         )
         return preferredColorScheme(ThemeResolver.preferredColorScheme(for: appearance))
             .formaResolvedTheme(resolved)
+    }
+
+    /// Injects resolved plan-flow colors for previews and tests.
+    func formaPlanColors(_ colors: FormaPlanColors) -> some View {
+        environment(\.formaPlanColors, colors)
     }
 }

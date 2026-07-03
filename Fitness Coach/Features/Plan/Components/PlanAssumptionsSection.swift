@@ -29,7 +29,7 @@ struct PlanAssumptionsSection: View {
                         Button(action: onAdjustActivity) {
                             Text(state.adjustActivityTitle)
                                 .font(FormaTokens.Typography.caption.weight(.semibold))
-                                .foregroundStyle(FormaTokens.Theme.primary)
+                                .foregroundStyle(FormaPlanTokens.Color.planAccent)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .frame(minHeight: FormaTokens.Layout.minTouchTarget)
                         }
@@ -56,6 +56,6 @@ struct PlanAssumptionsSection: View {
         onAdjustActivity: {}
     )
     .padding()
-    .background(FormaTokens.Color.canvas)
+    .background(FormaPlanTokens.Color.planBackground)
     .formaThemePreview()
 }

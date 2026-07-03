@@ -16,7 +16,7 @@ struct PlanBodyDetailsSettingsView: View {
             VStack(alignment: .leading, spacing: SettingsChromeAccessibility.detailSectionSpacing) {
                 Text(presentation.introCopy)
                     .font(FormaTokens.Typography.sectionSubtitle)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
                     .fixedSize(horizontal: false, vertical: true)
 
                 profileDetailsSection
@@ -32,7 +32,7 @@ struct PlanBodyDetailsSettingsView: View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             sectionHeader(presentation.profileDetailsSectionTitle)
 
-            FormaPlanCard(compact: true) {
+            PlanEditCard(compact: true) {
                 VStack(spacing: 0) {
                     ForEach(Array(presentation.detailRows.enumerated()), id: \.element.id) { index, row in
                         if index > 0 {
@@ -54,7 +54,7 @@ struct PlanBodyDetailsSettingsView: View {
                 .frame(minHeight: SettingsChromeAccessibility.minimumActionButtonHeight)
         }
         .buttonStyle(.borderedProminent)
-        .tint(FormaTokens.Theme.primary)
+        .tint(FormaPlanTokens.Color.planAccentButton)
         .accessibilityLabel(presentation.updateInPlanCTA)
         .accessibilityHint(presentation.updateInPlanAccessibilityHint)
     }
@@ -62,7 +62,7 @@ struct PlanBodyDetailsSettingsView: View {
     private func sectionHeader(_ title: String) -> some View {
         Text(title.uppercased())
             .font(FormaTokens.Typography.caption.weight(.semibold))
-            .foregroundStyle(FormaTokens.Color.textTertiary)
+            .foregroundStyle(FormaPlanTokens.Color.planMutedText)
             .accessibilityAddTraits(.isHeader)
     }
 }

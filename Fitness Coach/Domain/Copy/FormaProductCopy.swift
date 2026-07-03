@@ -2251,6 +2251,265 @@ enum FormaProductCopy {
         static func expectedPace(_ amount: String) -> String { "~\(amount)/week" }
     }
 
+    // MARK: - Plan Edit Goal
+
+    enum PlanEditGoal {
+        static let sectionTitle = "Your goal"
+        static let recommendedBadge = "Recommended"
+
+        static let loseFatTitle = "Lose Fat"
+        static let loseFatExplanation = "Reduce body fat while preserving muscle."
+        static let loseFatOutcome = "Best for cutting and improving definition."
+
+        static let maintainTitle = "Maintain"
+        static let maintainExplanation = "Keep weight stable while building consistency."
+        static let maintainOutcome = "Best for habits, recovery, and recomposition."
+
+        static let gainMuscleTitle = "Gain Muscle"
+        static let gainMuscleExplanation = "Build muscle with a controlled surplus."
+        static let gainMuscleOutcome = "Best when training performance is the priority."
+    }
+
+    // MARK: - Plan Edit Target & Pace
+
+    enum PlanEditTarget {
+        static let transformationTitle = "Your transformation"
+        static let targetWeightTitle = "Target weight"
+        static let paceTitle = "Choose your pace"
+        static let currentLabel = "Current"
+        static let targetLabel = "Target"
+        static let totalChangeLabel = "Total change"
+        static let estimatedDurationLabel = "Estimated duration"
+        static let estimatedFinishLabel = "Estimated finish"
+        static let unavailable = "—"
+        static let advancedCustomTitle = "Custom pace"
+        static let advancedPeriodWeekly = "Weekly"
+        static let advancedPeriodMonthly = "Monthly"
+        static let advancedAmountWeeklyTitle = "Lose per week"
+        static let advancedAmountMonthlyTitle = "Lose per month"
+
+        static let paceGentleTitle = "Gentle"
+        static let paceGentleSubtitle = "Sustainable"
+        static let paceModerateTitle = "Moderate"
+        static let paceModerateSubtitle = "Balanced"
+        static let paceAggressiveTitle = "Aggressive"
+        static let paceAggressiveSubtitle = "Fast"
+        static let paceAdvancedTitle = "Advanced"
+        static let paceAdvancedSubtitle = "Custom"
+
+        static let weeklyChangeLabel = "Weekly change"
+        static let monthlyChangeLabel = "Monthly change"
+        static let difficultyLabel = "Difficulty"
+        static let energyPreviewLabel = "Energy balance"
+
+        static func estimatedDuration(weeks: Int) -> String {
+            weeks == 1 ? "About 1 week" : "About \(weeks) weeks"
+        }
+
+        static func validationEnterGoalWeight() -> String {
+            "Enter a target weight to continue."
+        }
+
+        static func validationGoalMustBeLower(current: String) -> String {
+            "For fat loss, target weight should be below \(current)."
+        }
+
+        static func validationGoalMustBeHigher(current: String) -> String {
+            "For muscle gain, target weight should be above \(current)."
+        }
+
+        static func validationGoalShouldMatchCurrent(current: String) -> String {
+            "For maintenance, keep your target near \(current)."
+        }
+
+        static func validationGoalOutOfRange(range: String) -> String {
+            "Choose a target between \(range)."
+        }
+    }
+
+    // MARK: - Plan Edit Body Baseline
+
+    enum PlanEditBodyBaseline {
+        static let sectionTitle = "Height & weight"
+        static let summaryTitle = "Your body baseline"
+        static let coachingLine = "These inputs shape your calorie target."
+        static let heightLabel = "Height"
+        static let weightLabel = "Current weight"
+        static let heightUnit = "cm"
+        static let maintenanceLabel = "Maintenance preview"
+        static let bodyContextLabel = "Profile context"
+        static let projectionTitle = "Energy baseline"
+        static let unitMetric = "Metric"
+        static let unitImperial = "Imperial"
+
+        static func maintenanceAtBaseline(_ kcal: String) -> String {
+            "At this baseline, Forma estimates your maintenance at \(kcal)."
+        }
+
+        static let targetAdjustedFromBaseline =
+            "Your target will be adjusted from this."
+
+        static let maintenancePlaceholder =
+            "Enter height and weight to preview maintenance."
+
+        static func bodyProfileContext(height: String, weight: String) -> String {
+            "Based on \(height) and \(weight)."
+        }
+
+        static func maintenancePreviewValue(_ kcal: String) -> String {
+            "≈ \(kcal) estimated maintenance"
+        }
+
+        static let validationEnterHeight = "Enter your height to continue."
+        static let validationEnterWeight = "Enter your current weight to continue."
+        static let validationHeightOutOfRange = "Choose a height between 120 and 220 cm."
+        static let validationWeightOutOfRange = "Choose a weight between 35 and 200 kg."
+    }
+
+    // MARK: - Plan Edit Activity
+
+    enum PlanEditActivity {
+        static let sectionTitle = "How active are you?"
+        static let targetPreviewTitle = "Live target preview"
+        static let maintenanceImpactLabel = "Est. maintenance"
+        static let trainingAssumptionLabel = "Training assumption"
+        static let expertTitle = "Fine-tune assumptions"
+        static let expertSubtitle = "Body fat, training days, macro preferences"
+
+        static let sedentaryDescription = "Mostly sitting"
+        static let sedentaryExample = "Little structured exercise"
+
+        static let lightlyActiveDescription = "Light movement"
+        static let lightlyActiveExample = "1–3 training days/week"
+
+        static let moderatelyActiveDescription = "Consistent training"
+        static let moderatelyActiveExample = "3–5 sessions/week"
+
+        static let veryActiveDescription = "High output"
+        static let veryActiveExample = "6–7 hard sessions/week"
+
+        static let athleteDescription = "Performance lifestyle"
+        static let athleteExample = "Hard training plus physical job"
+
+        static func maintenanceImpact(_ kcal: String) -> String {
+            "≈ \(kcal) maintenance"
+        }
+
+        static func trainingAssumption(days: Int, steps: Int) -> String {
+            let dayLabel = days == 1 ? "day" : "days"
+            return "\(days) training \(dayLabel)/week · \(steps.formatted()) steps/day"
+        }
+    }
+
+    // MARK: - Plan Edit Review
+
+    enum PlanEditReview {
+        static let finalPlanTitle = "Your plan"
+        static let inputChangesTitle = "What changed"
+        static let todayChangesTitle = "What changes today"
+        static let todayChangesNote =
+            "Today's targets will update after you save this plan."
+        static let todayNoChangeNote =
+            "Today's targets should stay the same after saving."
+
+        static let planUpToDateHeadline = "Your plan is already up to date."
+        static let planReadyHeadline = "Your new plan is ready."
+
+        static let goalLabel = "Goal"
+        static let currentWeightLabel = "Current weight"
+        static let targetWeightLabel = "Target weight"
+        static let estimatedFinishLabel = "Estimated finish"
+        static let difficultyAdherenceLabel = "Difficulty & adherence"
+        static let unavailable = "—"
+
+        static let aggressiveDeficitTitle = "This is an aggressive deficit."
+        static let aggressiveDeficitBody =
+            "Recovery and hunger may be harder. Consider a slower pace if consistency drops."
+
+        static func friendlyChangeSummary(before: String, after: String) -> String {
+            "Was \(before), now \(after)"
+        }
+    }
+
+    // MARK: - Plan Edit Save
+
+    enum PlanEditSave {
+        static let planUpdatedTitle = "Plan updated"
+        static let todayTargetsRegenerated = "Today's targets have been regenerated."
+
+        static let onTrackMaintaining =
+            "You're on track for maintaining your target weight."
+
+        static func onTrackForGoal(_ goal: String, by estimatedDate: String) -> String {
+            "You're on track for \(goal) by \(estimatedDate)."
+        }
+
+        static func onTrackForGoalOnly(_ goal: String) -> String {
+            "You're on track for \(goal)."
+        }
+    }
+
+    // MARK: - Plan Edit Hero
+
+    enum PlanEditHero {
+        static let shellTitle = "Edit Plan"
+        static let motivationalFatLoss = "You're building a fat-loss plan."
+        static let motivationalMaintenance = "You're building a maintenance plan."
+        static let motivationalMuscleGain = "You're building a muscle-gain plan."
+        static let goalLabel = "Goal"
+        static let currentWeightLabel = "Current"
+        static let targetWeightLabel = "Target"
+        static let maintainingTarget = "Staying at your target weight."
+        static let weightUnavailable = "—"
+
+        static func totalChangeToTarget(_ amount: String) -> String {
+            "\(amount) to your target."
+        }
+
+        static func estimatedFinish(_ monthYear: String) -> String {
+            "Estimated finish: \(monthYear)."
+        }
+    }
+
+    // MARK: - Plan Projection (Edit Plan)
+
+    enum PlanProjection {
+        static let incompleteCalculation =
+            "Add height, birthday, and activity to preview full targets."
+        static let unavailable = "—"
+        static let pacePreviewTitle = "Pace preview"
+        static let energyTitle = "Energy & targets"
+        static let impactTitle = "What to expect"
+        static let maintenanceLabel = "Maintenance"
+        static let targetCaloriesLabel = "Target calories"
+        static let proteinLabel = "Protein"
+        static let carbsLabel = "Carbs"
+        static let fatLabel = "Fat"
+        static let waterLabel = "Water"
+        static let weeklyPaceLabel = "Weekly"
+        static let monthlyPaceLabel = "Monthly"
+        static let energyBalanceLabel = "Energy balance"
+        static let adherenceLabel = "Adherence"
+        static let recoveryLabel = "Recovery"
+        static let hungerLabel = "Hunger"
+
+        static let adherenceHigh = "High — designed for steady consistency"
+        static let adherenceModerate = "Moderate — reward consistent logging"
+        static let adherenceChallenging = "Challenging — prioritize recovery and sleep"
+
+        static let recoveryLow = "Low strain — gradual changes support recovery"
+        static let recoveryModerate = "Moderate — watch training quality on hard weeks"
+        static let recoveryHigh = "Higher strain — schedule deloads if performance dips"
+
+        static let hungerLow = "Usually manageable day to day"
+        static let hungerModerate = "May notice hunger on harder training days"
+        static let hungerHigh = "Expect stronger hunger — plan satisfying meals"
+
+        static func dailyDeficit(_ kcal: Int) -> String { "\(kcal) kcal deficit/day" }
+        static func dailySurplus(_ kcal: Int) -> String { "\(kcal) kcal surplus/day" }
+        static let dailyBalanceNeutral = "Aligned with maintenance"
+    }
+
     // MARK: - Plan Mission Control
 
     enum PlanMissionControl {

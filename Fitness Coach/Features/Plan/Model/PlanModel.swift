@@ -179,7 +179,8 @@ final class PlanModel: ObservableObject {
         }
     }
 
-    func savePlanFromWizard(_ formState: PlanFormState) async {
+    func savePlanFromWizard(_ formState: PlanFormState) async throws {
+        formErrorMessage = nil
         do {
             var state = formState
             let input = try state.makeCalorieTargetInput()
@@ -200,18 +201,21 @@ final class PlanModel: ObservableObject {
                     healthConnected: trainingInsightsStore.integrationState.isConnected
                 )
             )
-            dismissEditPlan()
             dismissSettings()
             await refresh()
             actionCenter.notifyDataChanged()
         } catch let error as ProfileFormError {
             formErrorMessage = error.message
+            throw error
         } catch let error as PlanCalculationError {
             formErrorMessage = error.userMessage
+            throw error
         } catch ServiceError.invalidInput(let message) {
             formErrorMessage = message
+            throw ServiceError.invalidInput(message)
         } catch {
             formErrorMessage = FormaProductCopy.Error.savePlan
+            throw error
         }
     }
 
