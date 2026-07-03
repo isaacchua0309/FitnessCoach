@@ -29,7 +29,7 @@ extension HealthIntelligenceSnapshot {
         let day = calendar.startOfDay(for: date)
         return HealthIntelligenceSnapshot(
             date: day,
-            recovery: RecoverySummary(score: nil, readinessLabel: "Unknown"),
+            recovery: .unknown,
             workout: nil,
             activity: .empty,
             nutritionAdjustment: .none,
@@ -50,7 +50,17 @@ extension HealthIntelligenceSnapshot {
         let day = calendar.startOfDay(for: date)
         return HealthIntelligenceSnapshot(
             date: day,
-            recovery: RecoverySummary(score: nil, readinessLabel: "Insufficient data"),
+            recovery: RecoverySummary(
+                score: nil,
+                status: .unknown,
+                title: "Recovery unclear",
+                explanation: "Recovery signals are available, but today's estimate is not ready yet.",
+                recommendedTraining: "Use how you feel before adding intensity today.",
+                recommendedNutrition: "Stay on your usual plan until more data arrives.",
+                confidence: .low,
+                contributingFactors: [],
+                missingSignals: [.activity, .workouts, .trainingLoad]
+            ),
             workout: WorkoutSummary(
                 hasWorkout: true,
                 primaryWorkoutType: .running,
@@ -91,7 +101,7 @@ extension HealthIntelligenceSnapshot {
         let day = calendar.startOfDay(for: date)
         return HealthIntelligenceSnapshot(
             date: day,
-            recovery: RecoverySummary(score: nil, readinessLabel: "Unknown"),
+            recovery: .unknown,
             workout: nil,
             activity: ActivitySummary(steps: 4_210, activeEnergyKcal: 280, exerciseMinutes: 18),
             nutritionAdjustment: .none,

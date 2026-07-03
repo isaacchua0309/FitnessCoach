@@ -147,7 +147,17 @@ final class LocalHealthCacheStoreTests: XCTestCase {
 
     func testRecoveryAndSnapshotPlaceholdersRoundTrip() {
         let day = makeDate(2026, 7, 3)
-        let recovery = RecoverySummary(score: 0.82, readinessLabel: "Ready")
+        let recovery = RecoverySummary(
+            score: 82,
+            status: .ready,
+            title: "Ready for training",
+            explanation: "Recovery signals look supportive for your usual training plan.",
+            recommendedTraining: "Your usual training plan looks reasonable today.",
+            recommendedNutrition: "Stick with your normal protein and hydration rhythm.",
+            confidence: .high,
+            contributingFactors: [],
+            missingSignals: []
+        )
         cache.storeRecoverySummary(recovery, for: day, calendar: calendar)
 
         let reloaded = LocalHealthCacheStore(

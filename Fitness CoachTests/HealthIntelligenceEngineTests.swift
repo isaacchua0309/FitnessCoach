@@ -85,7 +85,7 @@ final class HealthIntelligenceEngineTests: XCTestCase {
 
         let snapshot = await engine.composeSnapshot(for: day, calendar: calendar)
 
-        XCTAssertEqual(snapshot.recovery.readinessLabel, "Unknown")
+        XCTAssertEqual(snapshot.recovery.status, .unknown)
         XCTAssertNil(snapshot.recovery.score)
     }
 
@@ -101,7 +101,7 @@ final class HealthIntelligenceEngineTests: XCTestCase {
 
         let snapshot = await engine.composeSnapshot(for: day, calendar: calendar)
 
-        XCTAssertEqual(snapshot.recovery.readinessLabel, "Insufficient data")
+        XCTAssertEqual(snapshot.recovery.status, .unknown)
         XCTAssertNil(snapshot.recovery.score)
     }
 
@@ -112,7 +112,7 @@ final class HealthIntelligenceEngineTests: XCTestCase {
         let snapshot = await engine.composeSnapshot(for: day, calendar: calendar)
 
         XCTAssertEqual(snapshot.date, day)
-        XCTAssertEqual(snapshot.recovery.readinessLabel, "Unknown")
+        XCTAssertEqual(snapshot.recovery.status, .unknown)
         XCTAssertNil(snapshot.recovery.score)
         XCTAssertNil(snapshot.workout)
         XCTAssertEqual(snapshot.activity, .empty)

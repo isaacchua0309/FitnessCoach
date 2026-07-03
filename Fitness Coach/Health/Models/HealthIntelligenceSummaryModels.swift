@@ -8,13 +8,75 @@
 import Foundation
 
 struct RecoverySummary: Equatable, Sendable, Codable {
-    var score: Double?
-    var readinessLabel: String
+    var score: Int?
+    var status: RecoveryStatus
+    var title: String
+    var explanation: String
+    var recommendedTraining: String
+    var recommendedNutrition: String
+    var confidence: RecoveryConfidence
+    var contributingFactors: [RecoveryContributingFactor]
+    var missingSignals: Set<RecoveryMissingSignal>
 
-    static let placeholder = RecoverySummary(
+    static let unknown = RecoverySummary(
         score: nil,
-        readinessLabel: "Unavailable"
+        status: .unknown,
+        title: "Recovery unclear",
+        explanation: "Not enough recovery signals are available yet.",
+        recommendedTraining: "Use how you feel before adding intensity today.",
+        recommendedNutrition: "Stay on your usual plan until more data arrives.",
+        confidence: .unknown,
+        contributingFactors: [],
+        missingSignals: [.sleep, .restingHeartRate, .hrv, .activity, .workouts, .trainingLoad]
     )
+
+    static let placeholder = unknown
+}
+
+enum RecoveryStatus: String, Equatable, Sendable, Codable {
+    case ready
+    case moderate
+    case low
+    case unknown
+}
+
+enum RecoveryConfidence: String, Equatable, Sendable, Codable {
+    case low
+    case moderate
+    case high
+    case unknown
+}
+
+enum RecoveryMissingSignal: String, Equatable, Sendable, Hashable, Codable {
+    case sleep
+    case restingHeartRate
+    case hrv
+    case activity
+    case workouts
+    case trainingLoad
+}
+
+enum RecoverySignalKind: String, Equatable, Sendable, Codable {
+    case sleep
+    case restingHeartRate
+    case hrv
+    case trainingLoad
+    case consecutiveWorkouts
+    case yesterdayActivity
+    case limitedActivity
+}
+
+enum RecoveryFactorImpact: String, Equatable, Sendable, Codable {
+    case positive
+    case negative
+    case neutral
+    case limited
+}
+
+struct RecoveryContributingFactor: Equatable, Sendable, Codable {
+    var signal: RecoverySignalKind
+    var impact: RecoveryFactorImpact
+    var detail: String
 }
 
 struct WorkoutSummary: Equatable, Sendable, Codable {

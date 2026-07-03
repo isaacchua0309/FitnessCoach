@@ -65,7 +65,7 @@ enum HealthIntelligenceBaseline {
 
     static func recoverySummary(availability: HealthDataAvailability) -> RecoverySummary {
         guard availability.isHealthDataAvailable else {
-            return RecoverySummary(score: nil, readinessLabel: "Unknown")
+            return .unknown
         }
 
         let sleepReadable = availability.permissionStatus.access(for: .sleepAnalysis).isReadable
@@ -73,10 +73,30 @@ enum HealthIntelligenceBaseline {
         let hrvReadable = availability.permissionStatus.access(for: .heartRateVariabilitySDNN).isReadable
 
         guard sleepReadable || restingHRReadable || hrvReadable else {
-            return RecoverySummary(score: nil, readinessLabel: "Unknown")
+            return RecoverySummary(
+                score: nil,
+                status: .unknown,
+                title: "Recovery unclear",
+                explanation: "Sleep and heart signals are not available yet.",
+                recommendedTraining: "Use how you feel before adding intensity today.",
+                recommendedNutrition: "Stay on your usual plan until more data arrives.",
+                confidence: .unknown,
+                contributingFactors: [],
+                missingSignals: [.sleep, .restingHeartRate, .hrv]
+            )
         }
 
-        return RecoverySummary(score: nil, readinessLabel: "Insufficient data")
+        return RecoverySummary(
+            score: nil,
+            status: .unknown,
+            title: "Recovery unclear",
+            explanation: "Recovery signals are available, but today's estimate is not ready yet.",
+            recommendedTraining: "Use how you feel before adding intensity today.",
+            recommendedNutrition: "Stay on your usual plan until more data arrives.",
+            confidence: .low,
+            contributingFactors: [],
+            missingSignals: [.activity, .workouts, .trainingLoad]
+        )
     }
 
     // MARK: - Weekly review
