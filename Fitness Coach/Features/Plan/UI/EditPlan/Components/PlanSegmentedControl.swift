@@ -12,6 +12,8 @@ struct PlanSegmentedControl: View {
     let selectedID: String
     let onSelect: (String) -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         HStack(spacing: FormaTokens.Spacing.sm) {
             ForEach(options) { option in
@@ -53,6 +55,10 @@ struct PlanSegmentedControl: View {
                 }
         }
         .buttonStyle(.plain)
+        .animation(
+            PlanEditMotion.animation(PlanEditMotion.selection, reduceMotion: reduceMotion),
+            value: isSelected
+        )
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

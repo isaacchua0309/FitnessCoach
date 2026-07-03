@@ -22,13 +22,22 @@ struct PlanSelectableCard<Content: View>: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(cardBackground)
                 .overlay(cardBorder)
+                .scaleEffect(selectionScale, anchor: .center)
                 .contentShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous))
         }
         .buttonStyle(.plain)
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: isSelected)
+        .animation(
+            PlanEditMotion.animation(PlanEditMotion.selection, reduceMotion: reduceMotion),
+            value: isSelected
+        )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+
+    private var selectionScale: CGFloat {
+        guard isSelected, !reduceMotion else { return 1 }
+        return PlanEditMotion.selectedScale
     }
 
     private var cardBackground: some View {
@@ -53,7 +62,7 @@ extension PlanSelectableCard {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(FormaPlanTokens.Color.planAccent)
-                    .transition(.scale.combined(with: .opacity))
+                    .transition(.opacity)
                     .accessibilityHidden(true)
             }
         }

@@ -17,6 +17,7 @@ struct PlanHeroCard: View {
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                     .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
                     .fixedSize(horizontal: false, vertical: true)
+                    .contentTransition(.interpolate)
 
                 HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
                     heroMetric(label: state.goalLabel, value: state.goalValue)
@@ -29,6 +30,8 @@ struct PlanHeroCard: View {
                         .font(FormaTokens.Typography.caption.weight(.medium))
                         .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
                         .fixedSize(horizontal: false, vertical: true)
+                        .contentTransition(.interpolate)
+                        .transition(.opacity)
                 }
 
                 if let estimatedFinishLine = state.estimatedFinishLine {
@@ -36,6 +39,8 @@ struct PlanHeroCard: View {
                         .font(FormaTokens.Typography.caption)
                         .foregroundStyle(FormaPlanTokens.Color.planMutedText)
                         .fixedSize(horizontal: false, vertical: true)
+                        .contentTransition(.interpolate)
+                        .transition(.opacity)
                 }
             }
         }
@@ -56,6 +61,7 @@ struct PlanHeroCard: View {
                 .lineLimit(2)
                 .minimumScaleFactor(0.85)
                 .fixedSize(horizontal: false, vertical: true)
+                .contentTransition(.numericText())
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

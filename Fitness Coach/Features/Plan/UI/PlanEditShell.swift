@@ -22,6 +22,8 @@ struct PlanEditShell<Content: View>: View {
     let onConfirm: () -> Void
     @ViewBuilder var content: () -> Content
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     private enum Layout {
         static let progressHeight: CGFloat = 3
         static let progressSpacing: CGFloat = 6
@@ -42,6 +44,10 @@ struct PlanEditShell<Content: View>: View {
             PlanHeroCard(state: heroState)
                 .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
                 .padding(.bottom, Layout.sectionSpacing)
+                .animation(
+                    PlanEditMotion.animation(PlanEditMotion.heroUpdate, reduceMotion: reduceMotion),
+                    value: heroState
+                )
 
             content()
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -89,6 +95,8 @@ struct PlanEditProgressIndicator: View {
     let stepCount: Int
     let currentStepIndex: Int
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         HStack(spacing: 6) {
             ForEach(0..<max(stepCount, 1), id: \.self) { index in
@@ -101,6 +109,10 @@ struct PlanEditProgressIndicator: View {
                     .frame(height: 3)
             }
         }
+        .animation(
+            PlanEditMotion.animation(PlanEditMotion.progress, reduceMotion: reduceMotion),
+            value: currentStepIndex
+        )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Step \(currentStepIndex + 1) of \(max(stepCount, 1))")
     }

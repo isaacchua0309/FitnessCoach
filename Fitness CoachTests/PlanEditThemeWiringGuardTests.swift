@@ -31,6 +31,7 @@ final class PlanEditThemeWiringGuardTests: XCTestCase {
         "Fitness Coach/Features/Plan/UI/PlanEditSelectionChrome.swift",
         "Fitness Coach/Application/StateBuilders/Plan/PlanEditWizardStepGate.swift",
         "Fitness Coach/Domain/PlanCalculation/PlanNumericInputParser.swift",
+        "Fitness Coach/Features/Plan/UI/EditPlan/PlanEditMotion.swift",
         "Fitness Coach/Features/Plan/UI/EditPlan/Components/PlanEditComponentModels.swift",
         "Fitness Coach/Features/Plan/UI/EditPlan/Components/PlanHeroCard.swift",
         "Fitness Coach/Features/Plan/UI/EditPlan/Components/PlanSelectableCard.swift",

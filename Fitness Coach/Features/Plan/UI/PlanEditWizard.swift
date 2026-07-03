@@ -10,6 +10,7 @@ import SwiftUI
 struct PlanEditWizard: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @Binding var formState: PlanFormState
     let baselineProfile: UserProfile
@@ -28,6 +29,8 @@ struct PlanEditWizard: View {
     @State private var targetPreview: CalorieTargetResult?
     @State private var didInitialize = false
     @State private var showsDiscardChangesConfirmation = false
+    @State private var isStepTransitionInFlight = false
+    @State private var stepTransitionGeneration = 0
 
     /// Activity step — used by Plan tab deep links.
     static let activityLevelStep: PlanEditWizardStep = .activityLevel
@@ -52,10 +55,16 @@ struct PlanEditWizard: View {
             Group {
                 if let saveSuccessState {
                     PlanEditSaveSuccessView(state: saveSuccessState)
+                        .transition(reduceMotion ? .identity : .opacity)
                 } else {
                     wizardContent
+                        .transition(reduceMotion ? .identity : .opacity)
                 }
             }
+            .animation(
+                PlanEditMotion.animation(PlanEditMotion.stepTransition, reduceMotion: reduceMotion),
+                value: saveSuccessState != nil
+            )
             .onAppear(perform: initializeIfNeeded)
             .onChange(of: scenePhase) { _, newPhase in
                 // Preserve in-progress edits when the app backgrounds.
@@ -84,7 +93,7 @@ struct PlanEditWizard: View {
                 onConfirm: handleConfirmation
             ) {
                 Form {
-                    stepContent
+                    animatedStepContent
 
                     if let inlineNotice = stepInlineNotice {
                         Section {
@@ -104,6 +113,10 @@ struct PlanEditWizard: View {
                     }
                 }
                 .scrollContentBackground(.hidden)
+                .animation(
+                    PlanEditMotion.animation(PlanEditMotion.stepTransition, reduceMotion: reduceMotion),
+                    value: currentStep
+                )
                 .environment(\.planProjection, projection)
         }
         .interactiveDismissDisabled(hasUnsavedChanges)
@@ -118,6 +131,15 @@ struct PlanEditWizard: View {
             Button(FormaProductCopy.PlanEditWizardCopy.keepEditing, role: .cancel) {}
         } message: {
             Text(FormaProductCopy.PlanEditWizardCopy.discardChangesMessage)
+        }
+    }
+
+    @ViewBuilder
+    private var animatedStepContent: some View {
+        if let step = currentStep {
+            stepContent
+                .id(step)
+                .transition(reduceMotion ? .identity : PlanEditMotion.stepContentTransition)
         }
     }
 
@@ -176,6 +198,8 @@ struct PlanEditWizard: View {
     }
 
     private var isConfirmationEnabled: Bool {
+        guard !isNavigationLocked else { return false }
+
         switch currentStep {
         case .confirmTargets:
             return PlanEditWizardStepGate.canSave(
@@ -206,6 +230,10 @@ struct PlanEditWizard: View {
         )
     }
 
+    private var isNavigationLocked: Bool {
+        isStepTransitionInFlight || isSaving || isGeneratingTargets
+    }
+
     private var stepInlineNotice: String? {
         switch currentStep {
         case .confirmTargets where !reviewState.hasChanges:
@@ -219,6 +247,8 @@ struct PlanEditWizard: View {
     }
 
     private func handleConfirmation() {
+        guard !isNavigationLocked else { return }
+
         switch currentStep {
         case .confirmTargets:
             save()
@@ -554,16 +584,40 @@ struct PlanEditWizard: View {
     }
 
     private func advance() {
-        withAnimation(.easeInOut(duration: 0.2)) {
+        guard !isStepTransitionInFlight else { return }
+        guard stepIndex < flow.count - 1 else { return }
+
+        beginStepTransition {
             stepIndex = min(stepIndex + 1, flow.count - 1)
         }
     }
 
+    private func beginStepTransition(_ updates: @escaping () -> Void) {
+        guard !isStepTransitionInFlight else { return }
+
+        isStepTransitionInFlight = true
+        stepTransitionGeneration += 1
+        let generation = stepTransitionGeneration
+
+        PlanEditMotion.withAnimationIfEnabled(
+            PlanEditMotion.stepTransition,
+            reduceMotion: reduceMotion,
+            updates
+        )
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + PlanEditMotion.stepTransitionDuration) {
+            guard generation == stepTransitionGeneration else { return }
+            isStepTransitionInFlight = false
+        }
+    }
+
     private func advanceFromReview() {
+        guard !isGeneratingTargets else { return }
         isGeneratingTargets = true
         Task {
             do {
                 let preview = try await onPrepareTargets(formState)
+                guard !Task.isCancelled else { return }
                 targetPreview = preview
                 formState.applyGeneratedTargets(preview.targets)
                 isGeneratingTargets = false
@@ -599,6 +653,7 @@ struct PlanEditWizard: View {
     }
 
     private func save() {
+        guard !isNavigationLocked else { return }
         guard PlanEditWizardStepGate.canSave(
             targetPreview: targetPreview,
             reviewHasChanges: reviewState.hasChanges,
@@ -608,8 +663,14 @@ struct PlanEditWizard: View {
         Task {
             do {
                 try await onSave(formState)
+                guard !Task.isCancelled else { return }
                 let success = PlanEditSaveSuccessBuilder.build(projection: projection)
-                saveSuccessState = success
+                PlanEditMotion.withAnimationIfEnabled(
+                    PlanEditMotion.successReveal,
+                    reduceMotion: reduceMotion
+                ) {
+                    saveSuccessState = success
+                }
                 isSaving = false
                 try? await Task.sleep(nanoseconds: PlanEditSaveSuccessBuilder.displayDurationNanoseconds)
                 performCancel()
