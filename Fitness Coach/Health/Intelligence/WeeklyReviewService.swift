@@ -67,6 +67,7 @@ struct WeeklyReviewService: WeeklyReviewServing {
     private let cacheStore: any HealthCacheStore
     private let clock: any HealthIntelligenceClockProviding
     private let enginesEnabled: Bool
+    private let weeklyReviewEnabled: Bool
 
     init(
         contextBuilder: any HealthIntelligenceContextBuilding,
@@ -75,7 +76,8 @@ struct WeeklyReviewService: WeeklyReviewServing {
         trainingLoadEngine: any TrainingLoadProviding = TrainingLoadEngine(),
         cacheStore: any HealthCacheStore,
         clock: any HealthIntelligenceClockProviding = SystemHealthIntelligenceClockProvider(),
-        enginesEnabled: Bool = HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled
+        enginesEnabled: Bool = HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled,
+        weeklyReviewEnabled: Bool = HealthIntelligenceFeatureFlags.healthIntelligenceWeeklyReviewEnabled
     ) {
         self.contextBuilder = contextBuilder
         self.weeklyReviewEngine = weeklyReviewEngine
@@ -84,10 +86,15 @@ struct WeeklyReviewService: WeeklyReviewServing {
         self.cacheStore = cacheStore
         self.clock = clock
         self.enginesEnabled = enginesEnabled
+        self.weeklyReviewEnabled = weeklyReviewEnabled
+    }
+
+    private var isOperational: Bool {
+        enginesEnabled && weeklyReviewEnabled
     }
 
     func getLatestCompletedWeeklyReview(calendar: Calendar = .current) async -> WeeklyHealthReview? {
-        guard enginesEnabled else { return nil }
+        guard isOperational else { return nil }
 
         let referenceDate = clock.now()
         guard let weekStart = WeeklyReviewWeekPolicy.latestCompletedWeekStart(
@@ -104,7 +111,7 @@ struct WeeklyReviewService: WeeklyReviewServing {
         for weekStartDate: Date,
         calendar: Calendar = .current
     ) async -> WeeklyHealthReview? {
-        guard enginesEnabled else { return nil }
+        guard isOperational else { return nil }
 
         guard let weekStart = WeeklyReviewWeekPolicy.normalizedWeekStart(weekStartDate, calendar: calendar) else {
             return nil
@@ -138,7 +145,7 @@ struct WeeklyReviewService: WeeklyReviewServing {
         allowPreview: Bool = false,
         calendar: Calendar = .current
     ) async -> WeeklyHealthReview? {
-        guard enginesEnabled else { return nil }
+        guard isOperational else { return nil }
 
         guard let weekStart = WeeklyReviewWeekPolicy.normalizedWeekStart(weekStartDate, calendar: calendar),
               let weekEnd = WeeklyReviewWeekPolicy.weekEndDate(forWeekStarting: weekStart, calendar: calendar) else {

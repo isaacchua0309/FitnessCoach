@@ -67,7 +67,17 @@ final class HealthIntelligenceCompositionTests: XCTestCase {
     }
 
     func testUIEnabledRemainsFalseByDefault() {
+        XCTAssertFalse(HealthIntelligenceFeatureFlags.healthIntelligenceUIEnabled)
         XCTAssertFalse(HealthIntelligenceFeatureFlags.isUIEnabled)
+    }
+
+    func testCoachContextDisabledByDefault() {
+        XCTAssertFalse(HealthIntelligenceFeatureFlags.healthIntelligenceCoachContextEnabled)
+        XCTAssertFalse(HealthIntelligenceFeatureFlags.shouldCoachLoadHealthIntelligence)
+    }
+
+    func testWeeklyReviewDisabledByDefault() {
+        XCTAssertFalse(HealthIntelligenceFeatureFlags.healthIntelligenceWeeklyReviewEnabled)
     }
 
     func testTodayModelLoadDisabledByDefaultWhenUIIsOff() {

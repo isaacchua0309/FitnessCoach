@@ -249,14 +249,18 @@ private enum WeeklyReviewServiceTestSupport {
         calendar: Calendar,
         nutritionProvider: (any HealthIntelligenceNutritionProviding)? = nil,
         weightProvider: (any HealthIntelligenceWeightProviding)? = nil,
-        userPlanProvider: (any HealthIntelligenceUserPlanProviding)? = nil
+        userPlanProvider: (any HealthIntelligenceUserPlanProviding)? = nil,
+        enginesEnabled: Bool = true,
+        weeklyReviewEnabled: Bool = true
     ) -> WeeklyReviewServiceTestHarness {
         WeeklyReviewServiceTestHarness(
             referenceDate: referenceDate,
             calendar: calendar,
             nutritionProvider: nutritionProvider,
             weightProvider: weightProvider,
-            userPlanProvider: userPlanProvider
+            userPlanProvider: userPlanProvider,
+            enginesEnabled: enginesEnabled,
+            weeklyReviewEnabled: weeklyReviewEnabled
         )
     }
 }
@@ -278,7 +282,9 @@ private final class WeeklyReviewServiceTestHarness {
         calendar: Calendar,
         nutritionProvider: (any HealthIntelligenceNutritionProviding)? = nil,
         weightProvider: (any HealthIntelligenceWeightProviding)? = nil,
-        userPlanProvider: (any HealthIntelligenceUserPlanProviding)? = nil
+        userPlanProvider: (any HealthIntelligenceUserPlanProviding)? = nil,
+        enginesEnabled: Bool = true,
+        weeklyReviewEnabled: Bool = true
     ) {
         self.calendar = calendar
         self.repository = PipelineMockRepository(calendar: calendar)
@@ -308,7 +314,8 @@ private final class WeeklyReviewServiceTestHarness {
             trainingLoadEngine: TrainingLoadEngine(),
             cacheStore: cacheStore,
             clock: clock,
-            enginesEnabled: true
+            enginesEnabled: enginesEnabled,
+            weeklyReviewEnabled: weeklyReviewEnabled
         )
 
         if userPlanProvider == nil {

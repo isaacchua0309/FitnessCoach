@@ -245,14 +245,17 @@ final class AppContainer {
             recoveryEngine: recoveryEngine,
             trainingLoadEngine: trainingLoadEngine,
             cacheStore: healthCacheStore,
-            enginesEnabled: HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled
+            enginesEnabled: HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled,
+            weeklyReviewEnabled: HealthIntelligenceFeatureFlags.healthIntelligenceWeeklyReviewEnabled
         )
 
         #if DEBUG
         HealthIntelligenceEngineLogger.wiringRegistered(
             fields: [
                 "enginesEnabled": String(HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled),
-                "uiEnabled": String(HealthIntelligenceFeatureFlags.isUIEnabled),
+                "uiEnabled": String(HealthIntelligenceFeatureFlags.healthIntelligenceUIEnabled),
+                "coachContextEnabled": String(HealthIntelligenceFeatureFlags.healthIntelligenceCoachContextEnabled),
+                "weeklyReviewEnabled": String(HealthIntelligenceFeatureFlags.healthIntelligenceWeeklyReviewEnabled),
                 "repository": "HealthDataRepository",
                 "contextBuilder": "HealthIntelligenceContextBuilder"
             ]

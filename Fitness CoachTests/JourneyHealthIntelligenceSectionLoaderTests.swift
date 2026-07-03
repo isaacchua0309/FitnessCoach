@@ -118,6 +118,27 @@ final class JourneyHealthIntelligenceSectionLoaderTests: XCTestCase {
         XCTAssertTrue(input.recoveryDays.contains { $0.recovery.score == 80 })
     }
 
+    func testLoadInputSkipsWeeklyReviewWhenFlagDisabled() async {
+        let weeklyReviewService = LoaderMockWeeklyReviewService()
+        weeklyReviewService.latestReview = makeWeeklyReview()
+
+        let input = await JourneyHealthIntelligenceSectionLoader.loadInput(
+            referenceDate: referenceDay,
+            isAppleHealthConnected: true,
+            snapshotProvider: LoaderMockSnapshotService(snapshot: makeSnapshot(on: referenceDay, score: 72)),
+            weeklyReviewProvider: weeklyReviewService,
+            engine: NoOpHealthIntelligenceEngine(),
+            cacheStore: MemoryHealthCacheStore(),
+            healthActivityQuery: makeActivityQuery(workouts: []),
+            healthDataRepository: LoaderMockRepository(connected: true),
+            weeklyReviewEnabled: false,
+            calendar: calendar
+        )
+
+        XCTAssertNil(input.weeklyReview)
+        XCTAssertEqual(weeklyReviewService.getLatestCallCount, 0)
+    }
+
     func testLoadInputUsesWeeklyReviewServiceWithoutForceRefresh() async {
         let weeklyReviewService = LoaderMockWeeklyReviewService()
         weeklyReviewService.latestReview = makeWeeklyReview()
@@ -133,6 +154,7 @@ final class JourneyHealthIntelligenceSectionLoaderTests: XCTestCase {
             healthDataRepository: LoaderMockRepository(connected: true),
             forceWeeklyReviewRefresh: false,
             enginesEnabled: false,
+            weeklyReviewEnabled: true,
             calendar: calendar
         )
 
@@ -156,6 +178,7 @@ final class JourneyHealthIntelligenceSectionLoaderTests: XCTestCase {
             healthDataRepository: LoaderMockRepository(connected: true),
             forceWeeklyReviewRefresh: true,
             enginesEnabled: false,
+            weeklyReviewEnabled: true,
             calendar: calendar
         )
 

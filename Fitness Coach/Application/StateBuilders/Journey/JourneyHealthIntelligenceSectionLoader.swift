@@ -23,6 +23,7 @@ enum JourneyHealthIntelligenceSectionLoader {
         healthDataRepository: any HealthDataRepositorying,
         forceWeeklyReviewRefresh: Bool = false,
         enginesEnabled: Bool = HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled,
+        weeklyReviewEnabled: Bool = HealthIntelligenceFeatureFlags.healthIntelligenceWeeklyReviewEnabled,
         recoveryTimelineDayCount: Int = defaultRecoveryDayCount,
         workoutHistoryWindowDays: Int = defaultWorkoutWindowDays,
         calendar: Calendar = .current
@@ -57,12 +58,14 @@ enum JourneyHealthIntelligenceSectionLoader {
             healthActivityQuery: healthActivityQuery,
             calendar: calendar
         )
-        let weeklyReview = await loadWeeklyReview(
-            referenceDate: referenceDate,
-            provider: weeklyReviewProvider,
-            forceRefresh: forceWeeklyReviewRefresh,
-            calendar: calendar
-        )
+        let weeklyReview = weeklyReviewEnabled
+            ? await loadWeeklyReview(
+                referenceDate: referenceDate,
+                provider: weeklyReviewProvider,
+                forceRefresh: forceWeeklyReviewRefresh,
+                calendar: calendar
+            )
+            : nil
 
         return JourneyHealthIntelligenceBuildInput(
             todaySnapshot: todaySnapshot,

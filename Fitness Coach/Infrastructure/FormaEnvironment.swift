@@ -53,8 +53,13 @@ enum FormaEnvironment {
     }
 
     /// Returns whether a trace-style flag is enabled (`!= "0"`). Checks primary then legacy.
-    static func isTracingEnabled(primary: String, legacy: String, defaultEnabled: Bool = true) -> Bool {
-        if let value = string(primary: primary, legacy: legacy) {
+    static func isTracingEnabled(
+        primary: String,
+        legacy: String,
+        defaultEnabled: Bool = true,
+        environment: [String: String]? = nil
+    ) -> Bool {
+        if let value = string(primary: primary, legacy: legacy, environment: environment) {
             return value != "0"
         }
         return defaultEnabled
