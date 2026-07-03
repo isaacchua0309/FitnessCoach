@@ -106,8 +106,9 @@ final class CoachAIRouteHandler {
             }
             CoachMealPhotoPipeline.assertImagePayloadPresent(imageData)
 
+            let uploadAttachment = CoachMealImageUploadAttachment.fromUploadData(imageData)
             let presentation = try await analyzeMealPhoto(
-                imageData: imageData,
+                uploadAttachment: uploadAttachment,
                 prompt: prompt,
                 recommission: recommission,
                 context: context
@@ -148,7 +149,7 @@ final class CoachAIRouteHandler {
     }
 
     func analyzeMealPhoto(
-        imageData: Data,
+        uploadAttachment: CoachMealImageUploadAttachment,
         prompt: String,
         recommission: ImageAnalysisRecommissionContext?,
         context: AIContext
@@ -157,12 +158,30 @@ final class CoachAIRouteHandler {
             throw AIServiceError.backendUnavailable
         }
 
-        let request = AIMealImageAnalysisRequest(
-            message: prompt,
-            image: .jpeg(imageData),
+        let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        let requestResult = CoachMealImageAIRequestBuilder.buildAnalysisRequest(
+            attachment: uploadAttachment,
+            message: trimmedPrompt.isEmpty ? nil : trimmedPrompt,
             clarification: recommission?.clarification,
             previousAnalysis: recommission?.previousResult.map(MealImageAnalysisMapper.previousAnalysis)
         )
+
+        let request: AIMealImageAnalysisRequest
+        switch requestResult {
+        case .failure(let error):
+            CoachImageAnalysisDebugLogger.logUploadValidationFailed(
+                error,
+                attachment: uploadAttachment
+            )
+            throw CoachMealImageAIRequestBuilder.mapBuildError(error)
+        case .success(let built):
+            request = built
+            CoachImageAnalysisDebugLogger.logUploadPayloadReady(
+                attachment: uploadAttachment,
+                request: request
+            )
+        }
+
         let response = try await aiService.analyzeMealImage(request: request)
         let extractionValidation = MealImageAnalysisResponseValidator.validate(response: response)
         guard extractionValidation.isValid else {

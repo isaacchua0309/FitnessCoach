@@ -301,16 +301,38 @@ struct AIMultiActionParseResponse: Codable, Equatable, Sendable {
 struct AIMealImagePayload: Codable, Equatable, Sendable {
     var mimeType: String
     var base64: String
+    var filename: String?
     var width: Int?
     var height: Int?
 
-    static func jpeg(_ data: Data, width: Int? = nil, height: Int? = nil) -> AIMealImagePayload {
+    /// Default gateway filename for compressed Coach meal-photo uploads.
+    static let defaultUploadFilename = "coach-image.jpg"
+
+    /// Builds a gateway payload from pipeline-compressed upload bytes.
+    /// Base64 encodes only `uploadData` — never a full-resolution original.
+    static func fromCompressedUpload(
+        _ uploadData: Data,
+        mimeType: String = CoachImageUploadConfig.default.mimeType,
+        filename: String = defaultUploadFilename,
+        processedSize: CoachImagePixelSize? = nil
+    ) -> AIMealImagePayload {
         AIMealImagePayload(
-            mimeType: CoachImageUploadConfig.default.mimeType,
-            base64: data.base64EncodedString(),
-            width: width,
-            height: height
+            mimeType: mimeType,
+            base64: uploadData.base64EncodedString(),
+            filename: filename,
+            width: processedSize?.width,
+            height: processedSize?.height
         )
+    }
+
+    static func jpeg(_ data: Data, width: Int? = nil, height: Int? = nil) -> AIMealImagePayload {
+        let processedSize: CoachImagePixelSize?
+        if let width, let height {
+            processedSize = CoachImagePixelSize(width: width, height: height)
+        } else {
+            processedSize = nil
+        }
+        return fromCompressedUpload(data, processedSize: processedSize)
     }
 }
 
