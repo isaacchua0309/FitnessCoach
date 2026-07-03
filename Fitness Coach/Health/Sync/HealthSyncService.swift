@@ -438,36 +438,3 @@ actor HealthSyncService: HealthSyncServing {
         )
     }
 }
-
-// MARK: - Legacy result type
-
-struct HealthSyncResult: Equatable, Sendable {
-    let date: Date
-    let sampleCount: Int
-    let syncedAt: Date
-}
-
-extension HealthSyncService {
-    func syncDay(
-        _ date: Date,
-        calendar: Calendar? = nil
-    ) async throws -> HealthSyncResult {
-        let resolvedCalendar = calendar ?? self.calendar
-        let status = await permissionService.currentStatus()
-        guard status.hasAnyAvailableReadAccess else {
-            throw HealthSyncError.permissionDenied
-        }
-
-        let refresh = await repository.refreshHealthData(
-            days: 1,
-            endingOn: date,
-            calendar: resolvedCalendar
-        )
-        let samples = try await repository.normalizedSamples(for: date, calendar: resolvedCalendar)
-        return HealthSyncResult(
-            date: resolvedCalendar.startOfDay(for: date),
-            sampleCount: samples.count,
-            syncedAt: refresh.refreshedAt
-        )
-    }
-}

@@ -73,10 +73,9 @@ final class HealthIntelligenceObservabilityTests: XCTestCase {
     }
 
     func testPipelineAnalyticsRespectsFeatureFlag() {
-        HealthIntelligenceFeatureFlags.testOverride = TestHealthIntelligenceFeatureFlags(
-            healthIntelligenceEnabled: true,
-            healthIntelligencePipelineAnalyticsEnabled: false
-        )
+        var flags = TestHealthIntelligenceFeatureFlags()
+        flags.healthIntelligencePipelineAnalyticsEnabled = false
+        HealthIntelligenceFeatureFlags.testOverride = flags
         let analytics = CapturingHealthIntelligenceAnalyticsLogger()
         HealthIntelligencePipelineAnalytics.register(analytics)
 
@@ -104,25 +103,3 @@ final class HealthIntelligenceObservabilityTests: XCTestCase {
         XCTAssertNotNil(analytics.lastProperties(for: .coachHealthContextAvailable)?["surface"])
     }
 }
-
-#if DEBUG
-extension TestHealthIntelligenceFeatureFlags {
-    init(
-        healthIntelligenceEnabled: Bool = true,
-        healthIntelligencePipelineAnalyticsEnabled: Bool = true
-    ) {
-        self.healthIntelligenceEnabled = healthIntelligenceEnabled
-        self.healthIntelligenceEnginesEnabled = true
-        self.healthIntelligenceUIEnabled = false
-        self.healthIntelligenceCoachContextEnabled = false
-        self.healthIntelligenceWeeklyReviewEnabled = false
-        self.isSyncEnabled = true
-        self.healthSummaryRemoteSyncEnabled = false
-        self.healthIntelligencePipelineAnalyticsEnabled = healthIntelligencePipelineAnalyticsEnabled
-        self.isRepositoryReadRoutingEnabled = true
-        self.isTodayModelDebugFetchEnabled = false
-        self.isJourneyModelDebugFetchEnabled = false
-        self.isPlanModelDebugFetchEnabled = false
-    }
-}
-#endif
