@@ -91,10 +91,10 @@ final class JourneyCleanupTests: XCTestCase {
             JourneyPreviewData.brandNewUser,
             JourneyPreviewData.weekOne,
             JourneyPreviewData.strongMomentum,
+            JourneyPreviewData.highlyConsistent,
             JourneyPreviewData.sparseData,
             JourneyPreviewData.foodLogsOnly,
             JourneyPreviewData.weightLogsNoLoss,
-            JourneyPreviewData.monthlyRecapActive
         ]
 
         for dashboard in personas {
