@@ -91,9 +91,33 @@ enum FormaSchemaV5: VersionedSchema {
     }
 }
 
+enum FormaSchemaV6: VersionedSchema {
+    static var versionIdentifier = Schema.Version(6, 0, 0)
+
+    static var models: [any PersistentModel.Type] {
+        [
+            UserProfileEntity.self,
+            DailyLogEntity.self,
+            FoodEntryEntity.self,
+            WaterEntryEntity.self,
+            WeightEntryEntity.self,
+            DailyReviewEntity.self,
+            CoachTimelineEventEntity.self,
+            CoachChatTranscriptMessageEntity.self
+        ]
+    }
+}
+
 enum FormaMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
-        [FormaSchemaV1.self, FormaSchemaV2.self, FormaSchemaV3.self, FormaSchemaV4.self, FormaSchemaV5.self]
+        [
+            FormaSchemaV1.self,
+            FormaSchemaV2.self,
+            FormaSchemaV3.self,
+            FormaSchemaV4.self,
+            FormaSchemaV5.self,
+            FormaSchemaV6.self
+        ]
     }
 
     static var stages: [MigrationStage] {
@@ -113,6 +137,10 @@ enum FormaMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(
                 fromVersion: FormaSchemaV4.self,
                 toVersion: FormaSchemaV5.self
+            ),
+            MigrationStage.lightweight(
+                fromVersion: FormaSchemaV5.self,
+                toVersion: FormaSchemaV6.self
             )
         ]
     }

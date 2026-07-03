@@ -54,6 +54,7 @@ final class AppContainer {
     let healthSyncService: HealthSyncService
     let healthSyncStateStore: HealthSyncStateStore
     let coachTimelineStore: SwiftDataCoachTimelineStore
+    let coachChatTranscriptStore: SwiftDataCoachChatTranscriptStore
     let coachTimelineBackfillService: CoachTimelineBackfillService
     let coachTimelineRecorder: DefaultCoachTimelineRecorder
     private let authUIDCache: AuthUIDCache
@@ -246,6 +247,10 @@ final class AppContainer {
             store: store,
             userIdProvider: { [weak authManager] in authManager?.currentUID }
         )
+        coachChatTranscriptStore = SwiftDataCoachChatTranscriptStore(
+            store: store,
+            userIdProvider: { [weak authManager] in authManager?.currentUID }
+        )
         coachTimelineBackfillService = CoachTimelineBackfillService(
             timelineStore: coachTimelineStore,
             foodLogService: foodLogService,
@@ -402,6 +407,7 @@ final class AppContainer {
             userProfileReader: userProfileService,
             aiCommandParsingEnabled: aiCommandParsingEnabled,
             trainingInsightsStore: trainingInsightsStore,
+            transcriptStore: coachChatTranscriptStore,
             timelineRecorder: coachTimelineRecorder,
             timelineStore: coachTimelineStore
         )
