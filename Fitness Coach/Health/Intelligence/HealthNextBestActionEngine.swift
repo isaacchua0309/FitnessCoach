@@ -37,8 +37,9 @@ enum NextBestActionPolicy {
     static let waterBehindProgress = 0.55
     static let lateMorningHour = 11
     static let afternoonHour = 15
-    static let lateDayHour = 15
-    static let lowStepsThreshold = 4_500
+    static let lateDayHour = 16
+    static let weightReminderHour = 17
+    static let lowStepsThreshold = 3_500
     static let postWorkoutExpiryHours = 3
 }
 
@@ -111,11 +112,7 @@ struct HealthNextBestActionEngine: NextBestActionProviding {
         let progress = input.nutritionProgress
         let adaptive = input.adaptiveNutritionSummary
 
-        let waterBehind = isWaterBehind(progress)
-        let needsWorkoutHydration = adaptive.waterIncreaseMl > 0
-            || input.workoutSummary.hydrationAdviceMl > 0
-
-        guard waterBehind || needsWorkoutHydration else { return nil }
+        guard isWaterBehind(progress) else { return nil }
 
         return NextBestAction(
             id: "hydration",
@@ -138,7 +135,7 @@ struct HealthNextBestActionEngine: NextBestActionProviding {
 
         return NextBestAction(
             id: "low-recovery",
-            title: "Take recovery seriously",
+            title: "Ease up today",
             message: "A lighter day with steady fuel may feel better right now.",
             ctaTitle: "Ask Coach",
             destination: .askCoach,
@@ -177,8 +174,9 @@ struct HealthNextBestActionEngine: NextBestActionProviding {
         let hour = input.calendar.component(.hour, from: input.timeOfDay)
         guard hour >= NextBestActionPolicy.lateDayHour else { return nil }
         guard !input.workoutSummary.hasWorkout else { return nil }
+        guard input.recoverySummary.status != .low else { return nil }
 
-        let steps = input.activitySummary.steps ?? 0
+        guard let steps = input.activitySummary.steps else { return nil }
         guard steps < NextBestActionPolicy.lowStepsThreshold else { return nil }
 
         return NextBestAction(
@@ -200,10 +198,16 @@ struct HealthNextBestActionEngine: NextBestActionProviding {
     ) -> NextBestAction? {
         guard !input.hasLoggedWeightRecently else { return nil }
 
+        let hour = input.calendar.component(.hour, from: input.timeOfDay)
+        guard hour >= NextBestActionPolicy.weightReminderHour else { return nil }
+        guard input.nutritionProgress.caloriesConsumed > 0 else { return nil }
+        guard input.recoverySummary.status != .low else { return nil }
+        guard !input.workoutSummary.hasWorkout else { return nil }
+
         return NextBestAction(
             id: "log-weight",
             title: "Log your weight",
-            message: "A recent weigh-in helps keep your plan confidence up to date.",
+            message: "A recent weigh-in helps keep plan feedback current.",
             ctaTitle: "Log weight",
             destination: .logWeight,
             priority: 6,

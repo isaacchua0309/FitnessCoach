@@ -83,6 +83,8 @@ struct TrainingLoadEngineInput: Equatable, Sendable {
 enum TrainingLoadPolicy {
     static let minimumWorkoutsForKnownStatus = 3
     static let maxSingleWorkoutLoad = 200.0
+    static let minimumBaselineWeeklyLoad = 75.0
+    static let maximumLoadRatio = 2.5
     static let lightRatioUpperBound = 0.70
     static let normalRatioUpperBound = 1.30
     static let highRatioUpperBound = 1.70
@@ -198,9 +200,11 @@ struct TrainingLoadEngine: TrainingLoadProviding {
             baseline: input.baselineAverageWeeklyLoad,
             twentyEightDayAverageWeeklyLoad: twentyEightDayAverageWeeklyLoad
         )
-        let loadRatio = denominator.map { base in
-            base > 0 ? sevenDayLoad / base : nil
-        } ?? nil
+        let loadRatio = denominator.flatMap { base -> Double? in
+            guard base > 0 else { return nil }
+            let rawRatio = sevenDayLoad / base
+            return min(rawRatio, TrainingLoadPolicy.maximumLoadRatio)
+        }
 
         let status = resolveStatus(
             loadRatio: loadRatio,
@@ -238,10 +242,13 @@ struct TrainingLoadEngine: TrainingLoadProviding {
         twentyEightDayAverageWeeklyLoad: Double
     ) -> Double? {
         if let baseline, baseline > 0 {
-            return baseline
+            return max(baseline, TrainingLoadPolicy.minimumBaselineWeeklyLoad)
         }
         if twentyEightDayAverageWeeklyLoad > 0 {
-            return twentyEightDayAverageWeeklyLoad
+            return max(
+                twentyEightDayAverageWeeklyLoad,
+                TrainingLoadPolicy.minimumBaselineWeeklyLoad
+            )
         }
         return nil
     }

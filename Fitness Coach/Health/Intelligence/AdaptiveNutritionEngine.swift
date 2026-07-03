@@ -313,7 +313,7 @@ struct AdaptiveNutritionEngine: AdaptiveNutritionProviding {
         guard progress.isAvailable, plan.isAvailable else { return .low }
 
         if workout.hasWorkout {
-            if workout.totalActiveCalories != nil, workout.confidence != .low {
+            if workout.totalActiveCalories != nil, workout.confidence == .high {
                 return .high
             }
             return .moderate

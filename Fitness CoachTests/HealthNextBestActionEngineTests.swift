@@ -137,7 +137,7 @@ final class HealthNextBestActionEngineTests: XCTestCase {
 
     func testMissingWeight() {
         let input = makeInput(
-            timeOfDay: makeDate(2026, 7, 3, hour: 9),
+            timeOfDay: makeDate(2026, 7, 3, hour: 17),
             nutritionProgress: makeNutritionProgress(
                 caloriesConsumed: 500,
                 waterConsumed: 2_300,

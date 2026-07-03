@@ -185,7 +185,8 @@ enum HealthIntelligenceBaseline {
     static func nextBestAction(
         availability: HealthDataAvailability,
         activity: ActivitySummary,
-        workout: WorkoutSummary?
+        workout: WorkoutSummary?,
+        referenceDate: Date = Date()
     ) -> NextBestAction {
         guard availability.isHealthDataAvailable else {
             return NextBestAction(
@@ -196,7 +197,7 @@ enum HealthIntelligenceBaseline {
                 destination: .none,
                 priority: 1,
                 reason: .connectHealth,
-                createdAt: Date(),
+                createdAt: referenceDate,
                 expiresAt: nil
             )
         }
@@ -210,7 +211,7 @@ enum HealthIntelligenceBaseline {
                 destination: .none,
                 priority: 1,
                 reason: .connectHealth,
-                createdAt: Date(),
+                createdAt: referenceDate,
                 expiresAt: nil
             )
         }
@@ -226,7 +227,7 @@ enum HealthIntelligenceBaseline {
                 destination: .none,
                 priority: 2,
                 reason: .waitingForData,
-                createdAt: Date(),
+                createdAt: referenceDate,
                 expiresAt: nil
             )
         }

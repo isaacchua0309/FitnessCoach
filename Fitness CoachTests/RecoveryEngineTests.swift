@@ -49,7 +49,7 @@ final class RecoveryEngineTests: XCTestCase {
             baseline: baseline(steps7d: 6_000, energy7d: 350)
         )
 
-        XCTAssertNotNil(summary.score)
+        XCTAssertNil(summary.score)
         XCTAssertEqual(summary.confidence, .low)
         XCTAssertTrue(summary.missingSignals.contains(.sleep))
         XCTAssertTrue(summary.explanation.contains("limited recovery estimate"))
@@ -188,6 +188,15 @@ final class RecoveryEngineTests: XCTestCase {
 
         XCTAssertEqual(high.confidence, .high)
         XCTAssertEqual(low.confidence, .low)
+    }
+
+    func testScoreIsQuantizedToNearestFive() {
+        let summary = evaluate(
+            sleepRecords: [sleepRecord(wakeDayOffset: 0, asleepMinutes: 300)],
+            baseline: baseline(sleep28d: 450)
+        )
+
+        XCTAssertEqual(summary.score, 55)
     }
 
     func testPartialMissingSignalsAreTracked() {

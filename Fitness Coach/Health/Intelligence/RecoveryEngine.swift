@@ -30,6 +30,8 @@ enum RecoveryPolicy {
     static let baseScore = 70
     static let readyScoreThreshold = 75
     static let moderateScoreThreshold = 55
+    static let scoreQuantizationStep = 5
+    static let minimumCoreRecoverySignalsForHighConfidence = 2
 
     static let defaultHealthySleepMinutes = 450.0
     static let shortSleepMinutes = 360.0
@@ -211,21 +213,26 @@ struct RecoveryEngine: RecoveryEngineProviding {
             return .unknown
         }
 
-        let hasRecoverySignals = !missingSignals.contains(.sleep)
-            || !missingSignals.contains(.restingHeartRate)
-            || !missingSignals.contains(.hrv)
+        let coreRecoverySignalCount = [
+            RecoveryMissingSignal.sleep,
+            .restingHeartRate,
+            .hrv
+        ].filter { !missingSignals.contains($0) }.count
 
-        if !hasRecoverySignals {
+        if coreRecoverySignalCount == 0 {
+            limitedEstimate = true
+        } else if coreRecoverySignalCount < RecoveryPolicy.minimumCoreRecoverySignalsForHighConfidence {
             limitedEstimate = true
         }
 
-        score = max(0, min(100, score))
+        score = Self.quantizedScore(max(0, min(100, score)))
 
         let status = resolveStatus(score: score, limitedEstimate: limitedEstimate)
         let confidence = resolveConfidence(
             reliableSignalCount: reliableSignalCount,
             meaningfulSignalCount: meaningfulSignalCount,
-            limitedEstimate: limitedEstimate
+            limitedEstimate: limitedEstimate,
+            coreRecoverySignalCount: coreRecoverySignalCount
         )
 
         let copy = recoveryCopy(
@@ -234,8 +241,10 @@ struct RecoveryEngine: RecoveryEngineProviding {
             confidence: confidence
         )
 
+        let publishedScore = coreRecoverySignalCount > 0 ? score : nil
+
         return RecoverySummary(
-            score: score,
+            score: publishedScore,
             status: status,
             title: copy.title,
             explanation: copy.explanation,
@@ -514,13 +523,25 @@ struct RecoveryEngine: RecoveryEngineProviding {
     private func resolveConfidence(
         reliableSignalCount: Int,
         meaningfulSignalCount: Int,
-        limitedEstimate: Bool
+        limitedEstimate: Bool,
+        coreRecoverySignalCount: Int
     ) -> RecoveryConfidence {
         guard meaningfulSignalCount > 0 else { return .unknown }
-        if reliableSignalCount >= 3, !limitedEstimate { return .high }
-        if reliableSignalCount == 2 { return .moderate }
-        if reliableSignalCount == 1 || limitedEstimate { return .low }
+        if reliableSignalCount >= 3,
+           !limitedEstimate,
+           coreRecoverySignalCount >= RecoveryPolicy.minimumCoreRecoverySignalsForHighConfidence {
+            return .high
+        }
+        if reliableSignalCount >= 2,
+           coreRecoverySignalCount >= RecoveryPolicy.minimumCoreRecoverySignalsForHighConfidence {
+            return .moderate
+        }
         return .low
+    }
+
+    static func quantizedScore(_ score: Int) -> Int {
+        let step = RecoveryPolicy.scoreQuantizationStep
+        return ((score + step / 2) / step) * step
     }
 
     private func recoveryCopy(
@@ -549,7 +570,7 @@ struct RecoveryEngine: RecoveryEngineProviding {
             )
         case .low:
             return (
-                title: "Recovery needs attention",
+                title: "Recovery looks low",
                 explanation: limitedPrefix + "Recovery signals suggest today is better for lighter movement and extra rest.",
                 training: "Favor lighter movement or active recovery today.",
                 nutrition: "Extra protein and fluids will support recovery."

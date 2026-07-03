@@ -88,7 +88,7 @@ final class WeeklyReviewEngineTests: XCTestCase {
         )
 
         XCTAssertLessThanOrEqual(review?.stats.proteinHitDays ?? 0, 2)
-        XCTAssertTrue(review?.risks.contains(where: { $0.contains("Protein targets") }) == true)
+        XCTAssertTrue(review?.risks.contains(where: { $0.contains("Protein was below target") }) == true)
         XCTAssertTrue(review?.nextWeekFocus.contains("Anchor protein at breakfast and lunch.") == true)
     }
 
@@ -193,7 +193,7 @@ final class WeeklyReviewEngineTests: XCTestCase {
 
         XCTAssertTrue(review?.missingSignals.contains(.nutrition) == true)
         XCTAssertEqual(review?.stats.loggingConsistencyDays, 0)
-        XCTAssertFalse(review?.risks.contains(where: { $0.contains("Protein targets") }) == true)
+        XCTAssertFalse(review?.risks.contains(where: { $0.contains("Protein was below target") }) == true)
     }
 
     func testFocusItemLimitMaxThree() {

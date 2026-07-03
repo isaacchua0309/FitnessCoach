@@ -78,6 +78,42 @@ enum WeeklyReviewPolicy {
     static let stableLowRecoveryDaysMax = 1
     static let minHealthDaysForModerateConfidence = 4
     static let minNutritionDaysForModerateConfidence = 4
+    static let minRecoveryDaysForHighConfidence = 3
+}
+
+private enum WeeklyReviewWinKind: Int, Comparable {
+    case workouts = 0
+    case steps = 1
+    case protein = 2
+    case calories = 3
+    case weight = 4
+    case recovery = 5
+
+    static func < (lhs: Self, rhs: Self) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+}
+
+private enum WeeklyReviewRiskKind: Int, Comparable {
+    case recovery = 0
+    case workouts = 1
+    case protein = 2
+    case calories = 3
+    case steps = 4
+    case weight = 5
+
+    static func < (lhs: Self, rhs: Self) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+}
+
+private struct RankedWeeklyReviewCopy: Comparable {
+    let kind: Int
+    let message: String
+
+    static func < (lhs: Self, rhs: Self) -> Bool {
+        lhs.kind < rhs.kind
+    }
 }
 
 // MARK: - Engine
@@ -154,7 +190,7 @@ struct WeeklyReviewEngine: WeeklyReviewProviding {
         let recoveryScores = input.recoverySummaries.compactMap(\.summary.score).map(Double.init)
         let averageRecoveryScore = recoveryScores.isEmpty
             ? nil
-            : recoveryScores.reduce(0, +) / Double(recoveryScores.count)
+            : Self.roundedAverage(recoveryScores)
         let lowRecoveryDays = input.recoverySummaries.filter { $0.summary.status == .low }.count
 
         let sortedWeights = input.weightRecords.sorted { $0.date < $1.date }
@@ -184,39 +220,69 @@ struct WeeklyReviewEngine: WeeklyReviewProviding {
     // MARK: - Wins
 
     private func buildWins(stats: WeeklyStats, input: WeeklyReviewEngineInput) -> [String] {
-        var wins: [String] = []
+        var ranked: [RankedWeeklyReviewCopy] = []
 
         let workoutDays = uniqueWorkoutDays(in: workoutsInWeek(input), calendar: input.calendar)
         if workoutDays >= WeeklyReviewPolicy.strongWorkoutDays {
-            wins.append("You trained on \(workoutDays) days this week.")
+            ranked.append(
+                RankedWeeklyReviewCopy(
+                    kind: WeeklyReviewWinKind.workouts.rawValue,
+                    message: "You trained on \(workoutDays) days this week."
+                )
+            )
         }
 
         if let averageSteps = stats.averageSteps {
             let target = Int(Double(WeeklyReviewPolicy.targetDailySteps) * WeeklyReviewPolicy.stepConsistencyRatio)
             if averageSteps >= target {
-                wins.append("Daily movement stayed steady at about \(formatSteps(averageSteps)) steps.")
+                ranked.append(
+                    RankedWeeklyReviewCopy(
+                        kind: WeeklyReviewWinKind.steps.rawValue,
+                        message: "Daily movement stayed steady at about \(formatSteps(averageSteps)) steps."
+                    )
+                )
             }
         }
 
         if stats.proteinHitDays >= WeeklyReviewPolicy.strongProteinDays {
-            wins.append("Protein targets were hit on \(stats.proteinHitDays) days.")
+            ranked.append(
+                RankedWeeklyReviewCopy(
+                    kind: WeeklyReviewWinKind.protein.rawValue,
+                    message: "Protein targets were hit on \(stats.proteinHitDays) days."
+                )
+            )
         }
 
         if stats.calorieTargetHitDays >= WeeklyReviewPolicy.strongCalorieDays {
-            wins.append("Calorie intake stayed close to plan on \(stats.calorieTargetHitDays) days.")
+            ranked.append(
+                RankedWeeklyReviewCopy(
+                    kind: WeeklyReviewWinKind.calories.rawValue,
+                    message: "Calorie intake stayed close to plan on \(stats.calorieTargetHitDays) days."
+                )
+            )
         }
 
         if let change = stats.weightChangeKg, isWeightTrendAligned(change, goal: input.userPlan.goal) {
-            wins.append(weightTrendWin(change: change, goal: input.userPlan.goal))
+            ranked.append(
+                RankedWeeklyReviewCopy(
+                    kind: WeeklyReviewWinKind.weight.rawValue,
+                    message: weightTrendWin(change: change, goal: input.userPlan.goal)
+                )
+            )
         }
 
         if let averageRecovery = stats.averageRecoveryScore,
            stats.lowRecoveryDays <= WeeklyReviewPolicy.stableLowRecoveryDaysMax,
            averageRecovery >= WeeklyReviewPolicy.stableRecoveryScoreThreshold {
-            wins.append("Recovery stayed stable through the week.")
+            ranked.append(
+                RankedWeeklyReviewCopy(
+                    kind: WeeklyReviewWinKind.recovery.rawValue,
+                    message: "Recovery stayed stable through the week."
+                )
+            )
         }
 
-        return wins
+        return ranked.sorted().map(\.message)
     }
 
     // MARK: - Risks
@@ -226,37 +292,67 @@ struct WeeklyReviewEngine: WeeklyReviewProviding {
         input: WeeklyReviewEngineInput,
         missingSignals: Set<WeeklyReviewMissingSignal>
     ) -> [String] {
-        var risks: [String] = []
+        var ranked: [RankedWeeklyReviewCopy] = []
 
         if stats.lowRecoveryDays >= WeeklyReviewPolicy.repeatedLowRecoveryDays {
-            risks.append("Recovery was low on \(stats.lowRecoveryDays) days.")
+            ranked.append(
+                RankedWeeklyReviewCopy(
+                    kind: WeeklyReviewRiskKind.recovery.rawValue,
+                    message: "Recovery was low on \(stats.lowRecoveryDays) days."
+                )
+            )
         }
 
         if !missingSignals.contains(.nutrition), stats.proteinHitDays <= WeeklyReviewPolicy.lowProteinDaysThreshold {
-            risks.append("Protein targets were missed on most days.")
+            ranked.append(
+                RankedWeeklyReviewCopy(
+                    kind: WeeklyReviewRiskKind.protein.rawValue,
+                    message: "Protein was below target on most days."
+                )
+            )
         }
 
         if !missingSignals.contains(.nutrition),
            stats.calorieTargetHitDays <= WeeklyReviewPolicy.lowCalorieDaysThreshold {
-            risks.append("Calorie intake varied widely from your plan.")
+            ranked.append(
+                RankedWeeklyReviewCopy(
+                    kind: WeeklyReviewRiskKind.calories.rawValue,
+                    message: "Calorie intake varied widely from your plan."
+                )
+            )
         }
 
         if stats.totalWorkouts == 0 {
-            risks.append("No workouts were logged this week.")
+            ranked.append(
+                RankedWeeklyReviewCopy(
+                    kind: WeeklyReviewRiskKind.workouts.rawValue,
+                    message: "No workouts were logged this week."
+                )
+            )
         }
 
         if let averageSteps = stats.averageSteps {
             let threshold = Int(Double(WeeklyReviewPolicy.targetDailySteps) * WeeklyReviewPolicy.lowStepsRatio)
             if averageSteps < threshold {
-                risks.append("Average steps were below your usual movement baseline.")
+                ranked.append(
+                    RankedWeeklyReviewCopy(
+                        kind: WeeklyReviewRiskKind.steps.rawValue,
+                        message: "Average steps were below your usual movement baseline."
+                    )
+                )
             }
         }
 
         if missingSignals.contains(.weight) {
-            risks.append("Not enough weigh-ins to track progress confidently.")
+            ranked.append(
+                RankedWeeklyReviewCopy(
+                    kind: WeeklyReviewRiskKind.weight.rawValue,
+                    message: "Not enough weigh-ins to track progress confidently."
+                )
+            )
         }
 
-        return risks
+        return ranked.sorted().map(\.message)
     }
 
     // MARK: - Focus
@@ -270,7 +366,7 @@ struct WeeklyReviewEngine: WeeklyReviewProviding {
         if risks.contains(where: { $0.contains("No workouts") }) {
             focus.append("Schedule 2–3 training sessions.")
         }
-        if risks.contains(where: { $0.contains("Protein targets") }) {
+        if risks.contains(where: { $0.contains("Protein was below target") }) {
             focus.append("Anchor protein at breakfast and lunch.")
         }
         if risks.contains(where: { $0.contains("Recovery was low") }) {
@@ -361,8 +457,10 @@ struct WeeklyReviewEngine: WeeklyReviewProviding {
         let hasNutrition = nutritionDays >= WeeklyReviewPolicy.minNutritionDaysForModerateConfidence
 
         let hasWeight = input.weightRecords.count >= WeeklyReviewPolicy.minWeightRecords
+        let recoveryDays = input.recoverySummaries.filter { $0.summary.status != .unknown }.count
+        let hasRecovery = recoveryDays >= WeeklyReviewPolicy.minRecoveryDaysForHighConfidence
 
-        if hasHealth, hasNutrition, hasWeight {
+        if hasHealth, hasNutrition, hasWeight, hasRecovery {
             return .high
         }
         if hasHealth, hasNutrition {
@@ -504,5 +602,11 @@ struct WeeklyReviewEngine: WeeklyReviewProviding {
         formatter.numberStyle = .decimal
         formatter.groupingSeparator = ","
         return formatter.string(from: NSNumber(value: steps)) ?? "\(steps)"
+    }
+
+    private static func roundedAverage(_ values: [Double]) -> Double {
+        guard !values.isEmpty else { return 0 }
+        let average = values.reduce(0, +) / Double(values.count)
+        return average.rounded()
     }
 }

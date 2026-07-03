@@ -122,7 +122,8 @@ struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
         let availabilityAction = HealthIntelligenceBaseline.nextBestAction(
             availability: context.availability,
             activity: activity,
-            workout: workout
+            workout: workout,
+            referenceDate: context.generatedAt
         )
         let nextBestAction: NextBestAction
         if availabilityAction == .none {
