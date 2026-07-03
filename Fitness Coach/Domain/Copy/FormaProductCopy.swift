@@ -3171,6 +3171,173 @@ enum FormaProductCopy {
         }
     }
 
+    // MARK: - Plan Health Intelligence presentation
+
+    enum PlanHealthIntelligencePresentation {
+        static let sectionTitle = "Plan health fit"
+        static let confidenceSectionTitle = "Plan confidence"
+        static let assumptionsSectionTitle = "What shapes your plan"
+        static let dataQualitySectionTitle = "Health signals in use"
+
+        static let loadingTitle = "Reviewing health signals"
+        static let loadingSubtitle = "Checking how well your recent data supports this plan."
+        static let loadingAccessibilityLabel = "Loading plan health intelligence"
+
+        static let emptyTitle = "Health signals still building"
+        static let emptySummary =
+            "Connect Apple Health and keep logging to see how well your plan matches your recent patterns."
+        static let emptyAccessibilityLabel = "Plan health intelligence unavailable. Connect health and keep logging."
+
+        static let disclaimer =
+            "Coaching estimates only — not a medical assessment."
+
+        static let confidenceUnknown = "Still learning"
+        static let confidenceLow = "Limited fit"
+        static let confidenceModerate = "Reasonable fit"
+        static let confidenceHigh = "Strong fit"
+
+        static let assumptionsSummaryAvailable =
+            "Your plan leans on the health patterns below. More consistent data makes adjustments smarter."
+        static let assumptionsSummaryLimited =
+            "Your plan uses partial health data today. Logging more will sharpen these estimates."
+        static let assumptionsSummaryEmpty =
+            "Your plan still works from profile settings. Health signals will refine it as they arrive."
+
+        static let dataQualitySummaryAvailable =
+            "These signals help Forma judge whether your plan still fits your week."
+        static let dataQualitySummaryLimited =
+            "Some signals are limited, so plan-fit guidance stays cautious."
+        static let dataQualitySummaryEmpty =
+            "Health signals have not synced enough yet for plan-fit guidance."
+
+        static let signalRecoveryTrend = "Recovery trend"
+        static let signalWorkoutConsistency = "Workout consistency"
+        static let signalAverageSteps = "Average steps"
+        static let signalTrainingFrequency = "Training frequency"
+        static let signalSleep = "Sleep"
+        static let signalHeartVariability = "Heart variability"
+        static let signalWeight = "Weight"
+        static let signalNutrition = "Nutrition logging"
+        static let signalActivityEnergy = "Activity energy"
+
+        static let signalUnavailable = "Not enough data yet"
+        static let signalLimitedDetail = "Limited data this period"
+        static let signalWeightLogged = "Recent weigh-ins logged"
+        static let signalNutritionLogged = "Logging this week"
+        static let limitedStatAccessibilitySuffix = "Limited data"
+
+        static let recoveryTrendReady = "Recovery looks steady"
+        static let recoveryTrendModerate = "Recovery is mixed"
+        static let recoveryTrendLow = "Recovery has been lower"
+        static let recoveryTrendUnknown = "Recovery trend unclear"
+
+        static let actionConnectHealthTitle = "Connect Apple Health"
+        static let actionConnectHealthMessage =
+            "Sync activity, sleep, and heart signals so your plan fit stays grounded in real patterns."
+        static let actionLogWeightTitle = "Log weight this week"
+        static let actionLogWeightMessage =
+            "A few weigh-ins help Forma track whether your plan pace still makes sense."
+        static let actionLogNutritionTitle = "Log meals consistently"
+        static let actionLogNutritionMessage =
+            "Regular food logs make calorie and protein guidance more trustworthy."
+        static let actionEnableSleepTitle = "Improve sleep sync"
+        static let actionEnableSleepMessage =
+            "Sleep history helps Forma read recovery before suggesting harder training days."
+        static let actionEnableHRVTitle = "Add heart variability data"
+        static let actionEnableHRVMessage =
+            "HRV readings give Forma another recovery cue — optional, but helpful."
+
+        static func confidenceHeadline(label: String) -> String {
+            "\(label) for your current plan"
+        }
+
+        static func confidenceSummary(score: Double, label: String) -> String {
+            switch normalizedConfidenceLabel(label) {
+            case confidenceHigh:
+                return "Recent health patterns line up well with your plan direction. Forma will still adjust as your week changes."
+            case confidenceModerate:
+                return "Your plan looks workable with the health data available. Keep logging to strengthen these estimates."
+            case confidenceLow:
+                return "Health data is still sparse, so treat pace and recovery guidance as a starting point — not an exact target."
+            default:
+                return score > 0
+                    ? "Forma is still learning how your health patterns match this plan."
+                    : "Connect health and log a few basics to see how well this plan fits your week."
+            }
+        }
+
+        static func confidenceLabel(for confidence: PlanHealthConfidence) -> String {
+            let normalized = normalizedConfidenceLabel(confidence.label)
+            if !normalized.isEmpty, normalized != confidenceUnknown {
+                return normalized
+            }
+            switch confidence.score {
+            case 0.7...:
+                return confidenceHigh
+            case 0.45..<0.7:
+                return confidenceModerate
+            case 0.01..<0.45:
+                return confidenceLow
+            default:
+                return confidenceUnknown
+            }
+        }
+
+        static func workoutConsistencyValue(days: Int, windowDays: Int = 7) -> String {
+            guard days > 0 else { return "No workouts logged" }
+            return "\(days) of \(windowDays) days"
+        }
+
+        static func trainingFrequencyValue(days: Int) -> String {
+            switch days {
+            case 0:
+                return "No training days yet"
+            case 1:
+                return "About 1 day per week"
+            case 2...3:
+                return "About \(days) days per week"
+            default:
+                return "About \(days)+ days per week"
+            }
+        }
+
+        static func averageStepsValue(_ steps: Double?) -> String {
+            guard let steps, steps > 0 else { return signalUnavailable }
+            return Int(steps.rounded()).formatted()
+        }
+
+        static func recoveryTrendValue(score: Int?, status: RecoveryStatus) -> String {
+            switch status {
+            case .ready:
+                return recoveryTrendReady
+            case .moderate:
+                return recoveryTrendModerate
+            case .low:
+                return recoveryTrendLow
+            case .unknown:
+                if let score {
+                    return "Recent score around \(score)"
+                }
+                return recoveryTrendUnknown
+            }
+        }
+
+        private static func normalizedConfidenceLabel(_ label: String) -> String {
+            switch label.lowercased() {
+            case "high":
+                return confidenceHigh
+            case "moderate":
+                return confidenceModerate
+            case "limited", "low":
+                return confidenceLow
+            case "unknown":
+                return confidenceUnknown
+            default:
+                return label
+            }
+        }
+    }
+
     // MARK: - Legal
 
     enum Legal {
