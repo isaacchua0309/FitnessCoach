@@ -185,48 +185,56 @@ struct PlanEditWizard: View {
             }
 
             Section {
-                FormaLabeledNumberField(
-                    title: FormaProductCopy.ProfileForm.goalWeight,
-                    placeholder: "65",
-                    text: $formState.goalWeightKgText,
-                    unit: FormaProductCopy.FoodForm.kgUnit,
-                    keyboard: .decimalPad
-                )
-                .padding(.vertical, FormaTokens.Spacing.xs)
-                .formaFormSection()
-            } header: {
-                FormaSettingsSectionHeader(title: "Target weight")
-            }
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
+                    PlanTransformationSummaryCard(state: transformationSummary)
 
-            Section {
-                WeightLossPaceSettingsView(
-                    paceChoice: $formState.weightLossPaceChoice,
-                    advancedDraft: $formState.advancedPaceDraft,
-                    weightKg: parsedWeightKg,
-                    goalWeightKg: parsedGoalWeightKg,
-                    isPaceApplicable: goalType == .loseFat
-                )
-                .onChange(of: formState.weightLossPaceChoice) { _, _ in
-                    formState.syncAggressivenessFromPaceChoice()
-                }
-            } header: {
-                FormaSettingsSectionHeader(title: "Pace")
-            } footer: {
-                if goalType == .loseFat {
-                    Text("Forma computes calorie and macro targets from your pace, weight, and lifestyle.")
-                        .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-                }
-            }
+                    PlanGoalWeightInputField(
+                        text: $formState.goalWeightKgText,
+                        unitSystem: formState.unitSystem,
+                        validationMessage: goalWeightValidationMessage
+                    )
 
-            if goalType != .loseFat {
-                Section {
-                    PlanProjectionImpactCard(projection: projection)
-                } header: {
-                    FormaSettingsSectionHeader(title: FormaProductCopy.PlanProjection.impactTitle)
+                    if goalType == .loseFat {
+                        WeightLossPaceSettingsView(
+                            paceChoice: $formState.weightLossPaceChoice,
+                            advancedDraft: $formState.advancedPaceDraft,
+                            formState: formState,
+                            goalType: goalType,
+                            weightKg: parsedWeightKg,
+                            goalWeightKg: parsedGoalWeightKg,
+                            isPaceApplicable: true
+                        )
+                        .onChange(of: formState.weightLossPaceChoice) { _, _ in
+                            formState.syncAggressivenessFromPaceChoice()
+                        }
+                    } else {
+                        PlanProjectionImpactCard(projection: projection)
+                    }
                 }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             }
         }
+    }
+
+    private var transformationSummary: PlanTransformationSummaryState {
+        PlanTransformationSummaryBuilder.build(
+            projection: projection,
+            currentWeightKg: parsedPositive(formState.currentWeightKgText),
+            goalWeightKg: parsedPositive(formState.goalWeightKgText),
+            goalType: goalType
+        )
+    }
+
+    private var goalWeightValidationMessage: String? {
+        PlanGoalWeightValidationBuilder.validate(
+            goalWeightText: formState.goalWeightKgText,
+            currentWeightKg: parsedPositive(formState.currentWeightKgText),
+            heightCm: parsedPositive(formState.heightCmText),
+            goalType: goalType,
+            unitSystem: formState.unitSystem
+        )
     }
 
     private var birthdayAndSexStep: some View {
@@ -563,6 +571,7 @@ struct PlanEditWizard: View {
     private var canAdvanceFromCurrentStep: Bool {
         switch currentStep {
         case .goalAndTargetWeight:
+            guard goalWeightValidationMessage == nil else { return false }
             guard goalType == .loseFat else { return true }
             return pacePreview.isSaveable
         case .birthdayAndSex:

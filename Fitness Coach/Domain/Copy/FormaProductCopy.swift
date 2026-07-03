@@ -2271,6 +2271,63 @@ enum FormaProductCopy {
         static let gainMuscleOutcome = "Best when training performance is the priority."
     }
 
+    // MARK: - Plan Edit Target & Pace
+
+    enum PlanEditTarget {
+        static let transformationTitle = "Your transformation"
+        static let targetWeightTitle = "Target weight"
+        static let paceTitle = "Choose your pace"
+        static let currentLabel = "Current"
+        static let targetLabel = "Target"
+        static let totalChangeLabel = "Total change"
+        static let estimatedDurationLabel = "Estimated duration"
+        static let estimatedFinishLabel = "Estimated finish"
+        static let unavailable = "—"
+        static let advancedCustomTitle = "Custom pace"
+        static let advancedPeriodWeekly = "Weekly"
+        static let advancedPeriodMonthly = "Monthly"
+        static let advancedAmountWeeklyTitle = "Lose per week"
+        static let advancedAmountMonthlyTitle = "Lose per month"
+
+        static let paceGentleTitle = "Gentle"
+        static let paceGentleSubtitle = "Sustainable"
+        static let paceModerateTitle = "Moderate"
+        static let paceModerateSubtitle = "Balanced"
+        static let paceAggressiveTitle = "Aggressive"
+        static let paceAggressiveSubtitle = "Fast"
+        static let paceAdvancedTitle = "Advanced"
+        static let paceAdvancedSubtitle = "Custom"
+
+        static let weeklyChangeLabel = "Weekly change"
+        static let monthlyChangeLabel = "Monthly change"
+        static let difficultyLabel = "Difficulty"
+        static let energyPreviewLabel = "Energy balance"
+
+        static func estimatedDuration(weeks: Int) -> String {
+            weeks == 1 ? "About 1 week" : "About \(weeks) weeks"
+        }
+
+        static func validationEnterGoalWeight() -> String {
+            "Enter a target weight to continue."
+        }
+
+        static func validationGoalMustBeLower(current: String) -> String {
+            "For fat loss, target weight should be below \(current)."
+        }
+
+        static func validationGoalMustBeHigher(current: String) -> String {
+            "For muscle gain, target weight should be above \(current)."
+        }
+
+        static func validationGoalShouldMatchCurrent(current: String) -> String {
+            "For maintenance, keep your target near \(current)."
+        }
+
+        static func validationGoalOutOfRange(range: String) -> String {
+            "Choose a target between \(range)."
+        }
+    }
+
     // MARK: - Plan Edit Hero
 
     enum PlanEditHero {
