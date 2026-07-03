@@ -110,27 +110,43 @@ final class AppContainer {
         themeStore = ThemeStore(analyticsLogger: self.themeAnalyticsLogger)
 
         healthTrainingService = HealthTrainingService()
-        let workoutReader = HealthTrainingReaderFactory.makeWorkoutReader()
-        let stepReader = HealthTrainingReaderFactory.makeStepReader()
+        let sharedHealthKitManager = HealthKitManager()
+        let workoutReader = HealthTrainingReaderFactory.makeWorkoutReader(
+            healthKitManager: sharedHealthKitManager
+        )
+        let stepReader = HealthTrainingReaderFactory.makeStepReader(
+            healthKitManager: sharedHealthKitManager
+        )
         healthKitWorkoutReader = workoutReader
         healthKitStepReader = stepReader
+        healthCacheStore = LocalHealthCacheStore(userProvider: authUIDCache)
+        healthDataRepository = HealthDataRepository(
+            healthKitManager: sharedHealthKitManager,
+            cacheStore: healthCacheStore
+        )
         healthActivityQueryService = HealthActivityQueryService(
             workoutReader: workoutReader,
-            stepReader: stepReader
+            stepReader: stepReader,
+            healthDataRepository: healthDataRepository
         )
-        healthCacheStore = LocalHealthCacheStore(userProvider: authUIDCache)
-        healthDataRepository = HealthDataRepository(cacheStore: healthCacheStore)
         healthSyncService = HealthSyncService(
             repository: healthDataRepository,
             cacheStore: healthCacheStore
         )
-        healthSyncStateStore = HealthSyncStateStore(syncService: healthSyncService)
-        refreshCenter.healthDayChangeHandler = { [healthSyncStateStore] in
-            healthSyncStateStore.refreshOnDayChange()
+        healthSyncStateStore = HealthSyncStateStore(
+            syncService: healthSyncService,
+            syncEnabled: HealthIntelligenceFeatureFlags.isSyncEnabled
+        )
+        if HealthIntelligenceFeatureFlags.isSyncEnabled {
+            refreshCenter.healthDayChangeHandler = { [healthSyncStateStore] in
+                healthSyncStateStore.refreshOnDayChange()
+            }
         }
         trainingInsightsStore = TrainingInsightsStore(
             integration: healthTrainingService,
-            healthSyncStateStore: healthSyncStateStore
+            healthSyncStateStore: HealthIntelligenceFeatureFlags.isSyncEnabled
+                ? healthSyncStateStore
+                : nil
         )
         trainingInsightsModel = TrainingInsightsModel(workoutReader: workoutReader)
         HealthTrainingDebugLogger.event(
@@ -341,7 +357,9 @@ final class AppContainer {
             analyticsEntry: entry,
             healthTrainingIntegration: healthTrainingService,
             trainingInsightsStore: trainingInsightsStore,
-            healthSyncStateStore: healthSyncStateStore
+            healthSyncStateStore: HealthIntelligenceFeatureFlags.isSyncEnabled
+                ? healthSyncStateStore
+                : nil
         )
     }
 

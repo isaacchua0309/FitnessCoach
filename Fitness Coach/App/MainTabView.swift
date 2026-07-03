@@ -127,7 +127,9 @@ struct MainTabView: View {
             if phase == .active {
                 container.syncHealthCacheUserID()
                 container.refreshCenter.refreshIfDayChanged()
-                container.healthSyncStateStore.refreshOnAppForeground()
+                if HealthIntelligenceFeatureFlags.isSyncEnabled {
+                    container.healthSyncStateStore.refreshOnAppForeground()
+                }
             }
         }
         .task {
@@ -139,7 +141,9 @@ struct MainTabView: View {
         container.syncHealthCacheUserID()
         coachModel.refreshTodayContext()
         await planModel.refresh()
-        await container.healthSyncStateStore.refreshState()
+        if HealthIntelligenceFeatureFlags.isSyncEnabled {
+            await container.healthSyncStateStore.refreshState()
+        }
     }
 
     // MARK: - Tab selection
