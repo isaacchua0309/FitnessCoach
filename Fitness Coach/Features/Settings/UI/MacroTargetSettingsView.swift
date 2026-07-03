@@ -39,10 +39,15 @@ struct MacroTargetSettingsView: View {
             }
         case .embedded:
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
-                Text("Macro Targets")
+                Text(FormaProductCopy.PlanEditActivity.macroTargetsTitle)
                     .font(FormaTokens.Typography.caption.weight(.semibold))
                     .foregroundStyle(FormaPlanTokens.Color.planMutedText)
                 fields
+
+                Text(FormaProductCopy.PlanEditActivity.macroTargetsNote)
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaPlanTokens.Color.planMutedText)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -88,7 +93,12 @@ struct MacroTargetSettingsView: View {
             Button {
                 onRegenerate()
             } label: {
-                Label("Regenerate Targets", systemImage: "arrow.triangle.2.circlepath")
+                Label(
+                    presentationStyle == .embedded
+                        ? FormaProductCopy.PlanEditActivity.regenerateTargets
+                        : "Regenerate Targets",
+                    systemImage: "arrow.triangle.2.circlepath"
+                )
             }
             .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
             .foregroundStyle(FormaPlanTokens.Color.planAccent)

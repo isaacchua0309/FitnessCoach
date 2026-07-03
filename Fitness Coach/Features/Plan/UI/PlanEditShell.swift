@@ -52,7 +52,7 @@ struct PlanEditShell<Content: View>: View {
         .tint(FormaPlanTokens.Color.planAccent)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel", action: onCancel)
+                Button(FormaProductCopy.PlanEditCommon.cancel, action: onCancel)
             }
             ToolbarItem(placement: .confirmationAction) {
                 if showsConfirmation {

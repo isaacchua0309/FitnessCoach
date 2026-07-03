@@ -49,6 +49,6 @@ enum PlanEditWarningCopyMapper {
     }
 
     private static func shouldWarn(for projection: PlanProjection) -> Bool {
-        projection.difficultyLabel == "Faster cut"
+        projection.difficultyLabel == PlanEditDifficultyLabelBuilder.fasterCutLabel
     }
 }

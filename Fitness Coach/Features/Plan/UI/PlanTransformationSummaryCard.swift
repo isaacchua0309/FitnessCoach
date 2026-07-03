@@ -137,7 +137,7 @@ struct PlanTransformationProgressTrack: View {
         state: PlanTransformationSummaryState(
             currentWeight: "80 kg",
             targetWeight: "70 kg",
-            totalChange: "10 kg to your target.",
+            totalChange: "10 kg between now and your goal.",
             estimatedDuration: "About 10 weeks",
             estimatedFinish: "March 2026",
             progressFraction: 0,

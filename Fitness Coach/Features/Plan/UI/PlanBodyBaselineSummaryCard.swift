@@ -115,14 +115,14 @@ struct PlanBodyBaselineProjectionCard: View {
                 heightDisplay: "175 cm",
                 weightDisplay: "80 kg",
                 bodyContextLine: "Based on 175 cm and 80 kg.",
-                maintenancePreviewLine: "≈ 2,400 kcal/day estimated maintenance",
+                maintenancePreviewLine: FormaProductCopy.PlanEditBodyBaseline.maintenancePreviewValue("2,400 kcal/day"),
                 coachingLine: FormaProductCopy.PlanEditBodyBaseline.coachingLine,
                 isComplete: true
             )
         )
         PlanBodyBaselineProjectionCard(
             state: PlanBodyBaselineProjectionState(
-                maintenanceLine: "At this baseline, Forma estimates your maintenance at 2,400 kcal/day.",
+                maintenanceLine: FormaProductCopy.PlanEditBodyBaseline.maintenanceAtBaseline("2,400 kcal/day"),
                 adjustmentLine: FormaProductCopy.PlanEditBodyBaseline.targetAdjustedFromBaseline,
                 isPlaceholder: false
             )

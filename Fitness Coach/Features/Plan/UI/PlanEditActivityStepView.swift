@@ -48,7 +48,7 @@ struct PlanEditActivityStepView: View {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
                     FormaLabeledNumberField(
                         title: FormaProductCopy.ProfileForm.bodyFat,
-                        placeholder: "Optional",
+                        placeholder: FormaProductCopy.PlanEditActivity.optionalPlaceholder,
                         text: $formState.estimatedBodyFatPercentageText,
                         unit: "%",
                         keyboard: .decimalPad

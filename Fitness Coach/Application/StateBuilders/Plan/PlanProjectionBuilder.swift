@@ -250,8 +250,9 @@ enum PlanProjectionBuilder {
         calendar: Calendar
     ) -> TimelineMetrics {
         if let goalDatePace, goalDatePace > referenceDate {
-            let completionLabel = FormaProductCopy.PlanEditHero.estimatedFinish(
-                formattedMonthYear(goalDatePace, calendar: calendar)
+            let completionLabel = PlanEditTimelineCopy.estimatedFinishLabel(
+                for: goalDatePace,
+                calendar: calendar
             )
             return TimelineMetrics(
                 weeklyRateKg: weeklyRateKg,
@@ -293,7 +294,7 @@ enum PlanProjectionBuilder {
 
         let completionDate = calendar.date(byAdding: .day, value: weeks * 7, to: referenceDate)
         let completionLabel = completionDate.map {
-            FormaProductCopy.PlanEditHero.estimatedFinish(formattedMonthYear($0, calendar: calendar))
+            PlanEditTimelineCopy.estimatedFinishLabel(for: $0, calendar: calendar)
         }
 
         return TimelineMetrics(
@@ -477,7 +478,7 @@ enum PlanProjectionBuilder {
         pacePreview: WeightLossPacePreviewModel
     ) -> DifficultyMetrics {
         let resolvedDirection = direction ?? goalType.planGoalDirection
-        let label = OnboardingPlanRevealStrategyFormatter.label(
+        let label = PlanEditDifficultyLabelBuilder.label(
             goalDirection: resolvedDirection,
             paceChoice: paceChoice
         )
@@ -553,17 +554,18 @@ enum PlanProjectionBuilder {
 
     private static func sustainabilityNote(for result: PlanCalculationResult?) -> String? {
         guard let result else { return nil }
+        let copy = FormaProductCopy.PlanProjection.self
         switch result.safetyLevel {
         case .ok:
-            return "This pace is designed to be sustainable alongside your training and recovery."
+            return copy.sustainabilityOk
         case .caution:
             if result.warnings.contains(where: { $0.code == "paceAggressive" }) {
-                return "This pace is demanding — monitor energy and recovery, and adjust if needed."
+                return copy.sustainabilityCautionPace
             }
             if result.calories.calorieFloorApplied {
-                return "A minimum calorie floor is applied to keep intake supportive of recovery."
+                return copy.sustainabilityCalorieFloor
             }
-            return "This plan balances progress with recovery — listen to your body as you train."
+            return copy.sustainabilityBalanced
         case .strongWarning:
             return WeightLossPacePreviewBuilder.paceWarningCopy
         case .error:
@@ -622,7 +624,7 @@ enum PlanProjectionBuilder {
     // MARK: - Labels
 
     private static func goalLabel(for goalType: PlanGoalType) -> String {
-        goalType.rawValue
+        PlanGoalSelectionBuilder.displayTitle(for: goalType)
     }
 
     // MARK: - Parsing & formatting

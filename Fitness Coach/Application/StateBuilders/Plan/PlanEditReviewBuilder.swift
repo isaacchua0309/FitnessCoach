@@ -49,9 +49,9 @@ enum PlanEditReviewBuilder {
         appendChange(
             to: &rows,
             id: "goal",
-            label: "Goal",
-            before: baselineGoal.rawValue,
-            after: formGoal.rawValue
+            label: FormaProductCopy.PlanEditReview.goalLabel,
+            before: PlanGoalSelectionBuilder.displayTitle(for: baselineGoal),
+            after: PlanGoalSelectionBuilder.displayTitle(for: formGoal)
         )
 
         appendChange(
@@ -66,7 +66,7 @@ enum PlanEditReviewBuilder {
             appendChange(
                 to: &rows,
                 id: "birthday",
-                label: "Birthday",
+                label: FormaProductCopy.PlanEditCommon.birthdayTitle,
                 before: formattedBirthDate(baselineBirthDate, calendar: calendar),
                 after: formattedBirthDate(formBirthDate, calendar: calendar)
             )
@@ -74,8 +74,8 @@ enum PlanEditReviewBuilder {
             appendChange(
                 to: &rows,
                 id: "birthday",
-                label: "Birthday",
-                before: "Not set",
+                label: FormaProductCopy.PlanEditCommon.birthdayTitle,
+                before: FormaProductCopy.PlanEditCommon.notSet,
                 after: formattedBirthDate(formBirthDate, calendar: calendar)
             )
         }
@@ -135,16 +135,16 @@ enum PlanEditReviewBuilder {
                 to: &rows,
                 id: "bodyFat",
                 label: FormaProductCopy.ProfileForm.bodyFat,
-                before: PlanFormatter.percent(baselineBodyFat) ?? "Not set",
-                after: PlanFormatter.percent(formBodyFat) ?? "Not set"
+                before: PlanFormatter.percent(baselineBodyFat) ?? FormaProductCopy.PlanEditCommon.notSet,
+                after: PlanFormatter.percent(formBodyFat) ?? FormaProductCopy.PlanEditCommon.notSet
             )
         } else if let formBodyFat = formSnapshot.estimatedBodyFatPercentage {
             appendChange(
                 to: &rows,
                 id: "bodyFat",
                 label: FormaProductCopy.ProfileForm.bodyFat,
-                before: "Not set",
-                after: PlanFormatter.percent(formBodyFat) ?? "Not set"
+                before: FormaProductCopy.PlanEditCommon.notSet,
+                after: PlanFormatter.percent(formBodyFat) ?? FormaProductCopy.PlanEditCommon.notSet
             )
         }
 

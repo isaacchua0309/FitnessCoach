@@ -121,9 +121,19 @@ final class PlanCopySafetyTests: XCTestCase {
         samples += missionControlDashboardCopy(from: PlanMissionControlFixtures.loseDashboard)
         samples += missionControlDashboardCopy(from: PlanMissionControlFixtures.newUserDashboard)
         samples += missionControlDashboardCopy(from: PlanMissionControlFixtures.connectedDashboard)
+        samples += editPlanWizardCopySamples()
         samples += rationaleCopySamples()
 
         return samples
+    }
+
+    private func editPlanWizardCopySamples() -> [String] {
+        [
+            FormaProductCopy.PlanEditBodyBaseline.coachingLine,
+            FormaProductCopy.PlanEditActivity.expertTitle,
+            FormaProductCopy.PlanEditReview.planUpToDateHeadline,
+            FormaProductCopy.PlanEditHero.shellTitle
+        ]
     }
 
     private func planDashboardCopySamples() -> [String] {

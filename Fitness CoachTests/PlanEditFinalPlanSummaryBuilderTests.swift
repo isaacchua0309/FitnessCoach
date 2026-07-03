@@ -54,7 +54,7 @@ final class PlanEditFinalPlanSummaryBuilderTests: XCTestCase {
             FormaProductCopy.PlanEditReview.planReadyHeadline
         )
         XCTAssertEqual(summary.inputChanges.count, 1)
-        XCTAssertTrue(summary.inputChanges.first?.summary.contains("now") == true)
+        XCTAssertTrue(summary.inputChanges.first?.summary.contains("Changed from") == true)
     }
 
     func testTodayChangesNoteWhenTargetsMatchBaseline() {

@@ -42,7 +42,7 @@ final class PlanTransformationSummaryBuilderTests: XCTestCase {
 
         XCTAssertEqual(summary.currentWeight, "80 kg")
         XCTAssertEqual(summary.targetWeight, "70 kg")
-        XCTAssertEqual(summary.totalChange, "10 kg to your target.")
+        XCTAssertEqual(summary.totalChange, "10 kg between now and your goal.")
         XCTAssertEqual(summary.estimatedDuration, "About 10 weeks")
         XCTAssertEqual(summary.estimatedFinish, "March 2026")
         XCTAssertTrue(summary.isComplete)

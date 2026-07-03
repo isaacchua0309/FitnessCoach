@@ -40,7 +40,7 @@ final class PlanBodyBaselineSummaryBuilderTests: XCTestCase {
 
         XCTAssertFalse(projectionState.isPlaceholder)
         XCTAssertTrue(
-            projectionState.maintenanceLine?.contains("maintenance at") == true
+            projectionState.maintenanceLine?.contains("maintenance is about") == true
         )
         XCTAssertEqual(
             projectionState.adjustmentLine,

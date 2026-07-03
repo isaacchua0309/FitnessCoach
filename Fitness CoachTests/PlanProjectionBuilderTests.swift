@@ -30,7 +30,7 @@ final class PlanProjectionBuilderTests: XCTestCase {
 
         XCTAssertTrue(projection.isCalculationComplete)
         XCTAssertNil(projection.validationMessage)
-        XCTAssertEqual(projection.goalLabel, PlanGoalType.loseFat.rawValue)
+        XCTAssertEqual(projection.goalLabel, PlanGoalSelectionBuilder.displayTitle(for: .loseFat))
         XCTAssertEqual(projection.goalDirection, .cut)
         XCTAssertNotNil(projection.maintenanceCalories)
         XCTAssertNotNil(projection.targetCalories)
@@ -79,7 +79,7 @@ final class PlanProjectionBuilderTests: XCTestCase {
         XCTAssertEqual(projection.weightToLoseOrGainKg, 10)
         XCTAssertEqual(projection.weeklyRateKg, 1.0)
         XCTAssertEqual(projection.estimatedWeeks, 10)
-        XCTAssertEqual(projection.estimatedCompletionLabel, "Estimated finish: March 2026.")
+        XCTAssertEqual(projection.estimatedCompletionLabel, "On track for March 2026.")
         XCTAssertNotNil(projection.monthlyRateKg)
     }
 
@@ -141,12 +141,13 @@ final class PlanProjectionBuilderTests: XCTestCase {
         )
 
         XCTAssertFalse(projection.difficultyLabel.contains("loseFat"))
-        XCTAssertFalse(projection.difficultyLabel.contains("aggressive"))
+        XCTAssertFalse(projection.difficultyLabel.contains("aggressiveDeficit"))
+        let difficulty = FormaProductCopy.PlanEditDifficulty.self
         XCTAssertTrue(
-            projection.difficultyLabel == "Gentle cut"
-                || projection.difficultyLabel == "Moderate cut"
-                || projection.difficultyLabel == "Faster cut"
-                || projection.difficultyLabel == "Custom cut"
+            projection.difficultyLabel == difficulty.gentleCut
+                || projection.difficultyLabel == difficulty.moderateCut
+                || projection.difficultyLabel == difficulty.fasterCut
+                || projection.difficultyLabel == difficulty.customCut
         )
     }
 
@@ -185,7 +186,7 @@ final class PlanProjectionBuilderTests: XCTestCase {
         )
 
         XCTAssertEqual(projection.weightToLoseOrGainKg, 3)
-        XCTAssertEqual(projection.weightChangeLabel, "3 kg to your target.")
-        XCTAssertEqual(projection.goalLabel, PlanGoalType.gainMuscle.rawValue)
+        XCTAssertEqual(projection.weightChangeLabel, "3 kg between now and your goal.")
+        XCTAssertEqual(projection.goalLabel, PlanGoalSelectionBuilder.displayTitle(for: .gainMuscle))
     }
 }

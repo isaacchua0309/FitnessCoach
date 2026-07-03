@@ -72,7 +72,7 @@ struct PlanEditSaveSuccessView: View {
     PlanEditSaveSuccessView(
         state: PlanEditSaveSuccessState(
             title: FormaProductCopy.PlanEditSave.planUpdatedTitle,
-            trackLine: FormaProductCopy.PlanEditSave.onTrackForGoal("Lose Fat", by: "March 2026"),
+            trackLine: FormaProductCopy.PlanEditSave.onTrackForGoal("Lose fat", by: "March 2026"),
             todayLine: FormaProductCopy.PlanEditSave.todayTargetsRegenerated,
             accessibilitySummary: "Plan updated"
         )

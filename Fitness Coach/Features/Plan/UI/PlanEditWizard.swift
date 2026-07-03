@@ -132,9 +132,9 @@ struct PlanEditWizard: View {
     private var confirmationTitle: String {
         switch currentStep {
         case .confirmTargets:
-            return "Save Plan"
+            return FormaProductCopy.PlanEditCommon.savePlan
         default:
-            return "Next"
+            return FormaProductCopy.PlanEditCommon.next
         }
     }
 
@@ -255,10 +255,14 @@ struct PlanEditWizard: View {
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
             } header: {
-                FormaSettingsSectionHeader(title: "Birthday")
+                FormaSettingsSectionHeader(title: FormaProductCopy.PlanEditCommon.birthdayTitle)
             } footer: {
                 if let birthDate = formState.birthDate {
-                    Text("Age used for calculations: \(PlanFormatter.age(BirthDateAgeResolver.age(from: birthDate)))")
+                    Text(
+                        FormaProductCopy.PlanEditCommon.ageForPlan(
+                            PlanFormatter.age(BirthDateAgeResolver.age(from: birthDate))
+                        )
+                    )
                         .font(FormaTokens.Typography.caption)
                         .foregroundStyle(FormaPlanTokens.Color.planMutedText)
                 } else {
@@ -294,7 +298,7 @@ struct PlanEditWizard: View {
             } header: {
                 FormaSettingsSectionHeader(title: FormaProductCopy.ProfileForm.sex)
             } footer: {
-                Text("Biological sex is required for calorie and macro calculations.")
+                Text(FormaProductCopy.PlanEditCommon.sexRequiredNote)
                     .font(FormaTokens.Typography.caption)
                     .foregroundStyle(FormaPlanTokens.Color.planMutedText)
             }
@@ -356,7 +360,7 @@ struct PlanEditWizard: View {
             Section {
                 HStack {
                     Spacer()
-                    SwiftUI.ProgressView("Calculating targets…")
+                    SwiftUI.ProgressView(FormaProductCopy.PlanEditActivity.calculatingTargets)
                     Spacer()
                 }
             }
@@ -395,7 +399,7 @@ struct PlanEditWizard: View {
             }
         } else {
             Section {
-                Text("Unable to preview targets. Go back and check your inputs.")
+                Text(FormaProductCopy.PlanEditActivity.previewUnavailable)
                                 .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
             }
         }
