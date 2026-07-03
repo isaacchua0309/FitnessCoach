@@ -12,6 +12,7 @@ import Foundation
 final class PlanModel: ObservableObject {
 
     @Published private(set) var viewState: PlanViewState = .loading
+    @Published private(set) var planHealthIntelligenceSectionState: PlanHealthIntelligenceSectionState?
     @Published var isShowingEditSheet = false
     @Published var isShowingSettingsSheet = false
     @Published var isShowingTargetRegenerationSheet = false
@@ -30,6 +31,11 @@ final class PlanModel: ObservableObject {
     private let weightLogReader: any WeightLogReading
     private let trainingInsightsStore: TrainingInsightsStore
     private let analyticsLogger: any PlanAnalyticsLogging
+    private let healthIntelligenceSnapshotProvider: any HealthIntelligenceSnapshotServing
+    private let healthBaselineService: any HealthBaselineProviding
+    private let healthDataRepository: (any HealthDataRepositorying)?
+    private let healthIntelligenceLoadEnabled: () -> Bool
+    private let healthIntelligenceUIEnabled: () -> Bool
 
     init(
         actionCenter: FitnessActionCenter,
@@ -38,7 +44,12 @@ final class PlanModel: ObservableObject {
         dailyLogReader: any DailyLogReading,
         weightLogReader: any WeightLogReading,
         trainingInsightsStore: TrainingInsightsStore,
-        analyticsLogger: (any PlanAnalyticsLogging)? = nil
+        analyticsLogger: (any PlanAnalyticsLogging)? = nil,
+        healthBaselineService: any HealthBaselineProviding,
+        healthIntelligenceSnapshotProvider: any HealthIntelligenceSnapshotServing = NoOpHealthIntelligenceSnapshotService(),
+        healthDataRepository: (any HealthDataRepositorying)? = nil,
+        healthIntelligenceLoadEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.shouldPlanModelLoadHealthIntelligence },
+        healthIntelligenceUIEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.isUIEnabled }
     ) {
         self.actionCenter = actionCenter
         self.userProfileReader = userProfileReader
@@ -47,29 +58,125 @@ final class PlanModel: ObservableObject {
         self.weightLogReader = weightLogReader
         self.trainingInsightsStore = trainingInsightsStore
         self.analyticsLogger = analyticsLogger ?? NoOpPlanAnalyticsLogger()
+        self.healthBaselineService = healthBaselineService
+        self.healthIntelligenceSnapshotProvider = healthIntelligenceSnapshotProvider
+        self.healthDataRepository = healthDataRepository
+        self.healthIntelligenceLoadEnabled = healthIntelligenceLoadEnabled
+        self.healthIntelligenceUIEnabled = healthIntelligenceUIEnabled
     }
 
     // MARK: Loading
 
     func loadProfile() async {
         viewState = .loading
+        planHealthIntelligenceSectionState = nil
         await refresh()
     }
 
     func refresh() async {
         do {
             guard let profile = try userProfileReader.getCurrentProfile() else {
+                planHealthIntelligenceSectionState = nil
                 viewState = .empty
                 return
             }
             let context = try await makePlanDashboardContext(profile: profile)
+            async let healthIntelligenceTask = refreshPlanHealthIntelligenceSection(
+                profile: profile,
+                context: context
+            )
             viewState = .loaded(
                 PlanStateBuilder.dashboardState(profile: profile, context: context)
             )
             loggedSectionImpressions.removeAll()
+            await healthIntelligenceTask
         } catch {
+            planHealthIntelligenceSectionState = nil
             viewState = .error(FormaProductCopy.Error.loadPlan)
         }
+    }
+
+    // MARK: Health Intelligence
+
+    private func refreshPlanHealthIntelligenceSection(
+        profile: UserProfile,
+        context: PlanDashboardContext
+    ) async {
+        guard healthIntelligenceLoadEnabled() else {
+            planHealthIntelligenceSectionState = nil
+            return
+        }
+
+        let uiEnabled = healthIntelligenceUIEnabled()
+        let isAppleHealthConnected = trainingInsightsStore.integrationState.isConnected
+
+        guard let healthDataRepository else {
+            planHealthIntelligenceSectionState = fallbackPlanHealthIntelligenceSection(
+                profile: profile,
+                context: context,
+                isAppleHealthConnected: isAppleHealthConnected,
+                uiEnabled: uiEnabled
+            )
+            return
+        }
+
+        do {
+            try Task.checkCancellation()
+
+            let sectionState = await PlanHealthIntelligenceSectionLoader.loadSectionState(
+                profile: profile,
+                context: context,
+                isAppleHealthConnected: isAppleHealthConnected,
+                snapshotProvider: healthIntelligenceSnapshotProvider,
+                baselineService: healthBaselineService,
+                healthDataRepository: healthDataRepository
+            )
+
+            try Task.checkCancellation()
+
+            planHealthIntelligenceSectionState = uiEnabled ? sectionState : nil
+        } catch is CancellationError {
+            return
+        } catch {
+            planHealthIntelligenceSectionState = fallbackPlanHealthIntelligenceSection(
+                profile: profile,
+                context: context,
+                isAppleHealthConnected: isAppleHealthConnected,
+                uiEnabled: uiEnabled
+            )
+        }
+    }
+
+    private func fallbackPlanHealthIntelligenceSection(
+        profile: UserProfile,
+        context: PlanDashboardContext,
+        isAppleHealthConnected: Bool,
+        uiEnabled: Bool
+    ) -> PlanHealthIntelligenceSectionState? {
+        guard uiEnabled else { return nil }
+
+        let hasNutritionLogging = JourneyLogMetrics.foodLoggedDays(in: context.weekLogs) >= 3
+        let hasRecentWeightLog = PlanConfidenceStateBuilder.hasRecentWeightLog(
+            in: context.allWeights,
+            asOf: context.asOf,
+            calendar: context.calendar
+        )
+
+        return PlanHealthIntelligencePresentationBuilder.buildSection(
+            input: PlanHealthIntelligenceBuildInput(
+                planConfidence: .unknown,
+                baselineContext: .empty(for: context.asOf),
+                recovery: .unknown,
+                userPlan: UserPlanContext.from(
+                    profile: profile,
+                    isAppleHealthConnected: isAppleHealthConnected
+                ),
+                healthConnection: isAppleHealthConnected ? .partial : .disconnected,
+                hasNutritionLogging: hasNutritionLogging,
+                hasRecentWeightLog: hasRecentWeightLog
+            ),
+            calendar: context.calendar
+        )
     }
 
     // MARK: Dashboard context

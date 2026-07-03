@@ -114,4 +114,24 @@ enum HealthIntelligenceFeatureFlags {
         guard healthIntelligenceEnginesEnabled else { return false }
         return isUIEnabled || isJourneyModelDebugFetchEnabled
     }
+
+    /// DEBUG-only: allows PlanModel to compose snapshots when UI is disabled (diagnostics).
+    static var isPlanModelDebugFetchEnabled: Bool {
+        #if DEBUG
+        guard healthIntelligenceEnabled else { return false }
+        return FormaEnvironment.isTracingEnabled(
+            primary: "FORMA_HEALTH_INTELLIGENCE_PLAN_FETCH_ENABLED",
+            legacy: "FITPILOT_HEALTH_INTELLIGENCE_PLAN_FETCH_ENABLED",
+            defaultEnabled: false
+        )
+        #else
+        return false
+        #endif
+    }
+
+    /// Whether PlanModel should load Health Intelligence on refresh.
+    static var shouldPlanModelLoadHealthIntelligence: Bool {
+        guard healthIntelligenceEnginesEnabled else { return false }
+        return isUIEnabled || isPlanModelDebugFetchEnabled
+    }
 }

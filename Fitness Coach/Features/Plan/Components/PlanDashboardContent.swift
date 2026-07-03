@@ -9,12 +9,20 @@ import SwiftUI
 
 struct PlanDashboardContent: View {
     let state: PlanDashboardState
+    var healthIntelligenceUIEnabled: Bool = false
+    var planHealthIntelligenceSectionState: PlanHealthIntelligenceSectionState?
     var onGoToToday: (() -> Void)? = nil
     var onAdjustActivity: () -> Void = {}
     var onAdjustPlan: () -> Void = {}
     var onCalculationDetailsOpened: () -> Void = {}
     var onAppleHealthTap: (() -> Void)? = nil
+    var onConnectHealth: (() -> Void)? = nil
+    var onPlanHealthMissingDataAction: ((PlanHealthMissingDataActionState) -> Void)? = nil
     var onSectionAppear: ((PlanProductSection) -> Void)? = nil
+
+    private var showsHealthIntelligenceSection: Bool {
+        healthIntelligenceUIEnabled && planHealthIntelligenceSectionState != nil
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
@@ -30,6 +38,7 @@ struct PlanDashboardContent: View {
         .padding(.top, FormaTokens.Spacing.xs)
         .padding(.bottom, FormaMainTabLayout.scrollContentBottomPadding)
         .accessibilityIdentifier("plan-dashboard")
+        .formaThemeReactive()
     }
 
     @ViewBuilder
@@ -74,10 +83,22 @@ struct PlanDashboardContent: View {
             .onAppear { onSectionAppear?(.whyThisWorks) }
 
         case .planConfidence:
-            PlanConfidenceSection(
-                state: state.confidence,
-                onAppleHealthTap: onAppleHealthTap
-            )
+            if showsHealthIntelligenceSection,
+               let planHealthIntelligenceSectionState {
+                PlanHealthIntelligenceSection(
+                    state: planHealthIntelligenceSectionState,
+                    onMissingDataAction: onPlanHealthMissingDataAction,
+                    onConnectHealth: onConnectHealth
+                )
+                .onAppear { onSectionAppear?(.planConfidence) }
+                .accessibilityIdentifier("plan-health-intelligence-section")
+            } else {
+                PlanConfidenceSection(
+                    state: state.confidence,
+                    onAppleHealthTap: onAppleHealthTap
+                )
+                .onAppear { onSectionAppear?(.planConfidence) }
+            }
 
         case .whenToAdjust:
             PlanAdjustmentRulesSection(state: state.adjustmentRules)

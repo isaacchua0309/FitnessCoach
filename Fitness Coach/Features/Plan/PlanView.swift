@@ -182,10 +182,15 @@ struct PlanView: View {
     @ViewBuilder
     private func strategyContent(_ state: PlanDashboardState) -> some View {
         let healthConnected = trainingInsightsStore.integrationState.isConnected
+        let healthIntelligenceUIEnabled = HealthIntelligenceFeatureFlags.isUIEnabled
 
         ScrollView {
             PlanDashboardContent(
                 state: state,
+                healthIntelligenceUIEnabled: healthIntelligenceUIEnabled,
+                planHealthIntelligenceSectionState: healthIntelligenceUIEnabled
+                    ? model.planHealthIntelligenceSectionState
+                    : nil,
                 onGoToToday: onGoToToday.map { handler in
                     {
                         model.logPlanTodayTapped(healthConnected: healthConnected)
@@ -211,6 +216,23 @@ struct PlanView: View {
                         isShowingTrainingInsights = true
                     }
                     : nil,
+                onConnectHealth: healthIntelligenceUIEnabled
+                    ? {
+                        model.logPlanHealthConnectTapped(
+                            entryPoint: .planConfidence,
+                            healthConnected: healthConnected
+                        )
+                        isShowingTrainingInsights = true
+                    }
+                    : nil,
+                onPlanHealthMissingDataAction: healthIntelligenceUIEnabled
+                    ? { action in
+                        handlePlanHealthMissingDataAction(
+                            action,
+                            healthConnected: healthConnected
+                        )
+                    }
+                    : nil,
                 onSectionAppear: { section in
                     logSectionImpression(section, healthConnected: healthConnected)
                 }
@@ -219,6 +241,22 @@ struct PlanView: View {
         .formaMainTabScrollInsets()
         .onAppear {
             model.logPlanViewed(healthConnected: healthConnected)
+        }
+    }
+
+    private func handlePlanHealthMissingDataAction(
+        _ action: PlanHealthMissingDataActionState,
+        healthConnected: Bool
+    ) {
+        switch action.id {
+        case "connect-health", "partial-permissions":
+            model.logPlanHealthConnectTapped(
+                entryPoint: .planConfidence,
+                healthConnected: healthConnected
+            )
+            isShowingTrainingInsights = true
+        default:
+            break
         }
     }
 
