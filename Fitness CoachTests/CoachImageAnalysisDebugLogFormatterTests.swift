@@ -63,6 +63,10 @@ final class CoachImageAnalysisDebugLogFormatterTests: XCTestCase {
             CoachImageAnalysisDebugLogFormatter.errorCategory(for: LLMClientError.rateLimited(nil)),
             "rate_limited"
         )
+        XCTAssertEqual(
+            CoachImageAnalysisDebugLogFormatter.errorCategory(for: CoachMealPhotoError.cameraPermissionDenied),
+            "camera_permission_denied"
+        )
     }
 
     func testRedactSensitiveJSONFieldsStripsBase64AndUserText() {

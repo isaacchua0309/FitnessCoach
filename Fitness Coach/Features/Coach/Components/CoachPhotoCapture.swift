@@ -49,21 +49,12 @@ struct CoachCameraPicker: UIViewControllerRepresentable {
                 onResult(.failure(.noImage))
                 return
             }
-            switch CoachMealPhotoPipeline.prepareJPEG(from: image) {
-            case .success(let data):
-                onResult(.success(data))
-            case .failure(let error):
-                onResult(.failure(error))
+            Task {
+                let result = await CoachMealPhotoPipeline.prepareJPEG(from: image)
+                await MainActor.run {
+                    onResult(result)
+                }
             }
         }
-    }
-}
-
-private extension CoachMealPhotoPipeline {
-    static func prepareJPEG(from image: UIImage) -> Result<Data, CoachMealPhotoError> {
-        guard let data = image.jpegData(compressionQuality: 0.85) else {
-            return .failure(.loadFailed)
-        }
-        return prepareJPEG(from: data)
     }
 }

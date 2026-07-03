@@ -80,12 +80,14 @@ struct CoachView: View {
                 photoPickerItem = nil
                 Task {
                     let result = await CoachMealPhotoPipeline.loadJPEG(from: item)
-                    model.handleMealPhotoSelection(result, source: .library)
+                    await model.handleMealPhotoSelection(result, source: .library)
                 }
             }
             .fullScreenCover(isPresented: $isCameraPresented) {
                 CoachCameraPicker { result in
-                    model.handleMealPhotoSelection(result, source: .camera)
+                    Task {
+                        await model.handleMealPhotoSelection(result, source: .camera)
+                    }
                 }
                 .ignoresSafeArea()
             }
@@ -188,7 +190,14 @@ struct CoachView: View {
         guard model.requestPhotoPick() else { return }
         switch option {
         case .takePhoto:
-            isCameraPresented = true
+            Task {
+                switch await CoachCameraAccess.resolveForCapture() {
+                case .success:
+                    isCameraPresented = true
+                case .failure(let error):
+                    await model.handleMealPhotoSelection(.failure(error), source: .camera)
+                }
+            }
         case .choosePhoto:
             isPhotoPickerPresented = true
         }

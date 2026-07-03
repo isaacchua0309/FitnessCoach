@@ -42,7 +42,7 @@ struct ChatMessageImageAttachment: Codable, Equatable, Sendable {
         _ imageJPEG: Data,
         source: CoachInputAttachmentSource? = nil
     ) -> ChatMessageImageAttachment? {
-        guard let thumbnailJPEG = CoachMealPhotoPipeline.makeThumbnailJPEG(from: imageJPEG) else {
+        guard let thumbnailJPEG = CoachMealPhotoPipeline.makeThumbnailJPEGSync(from: imageJPEG) else {
             return nil
         }
         return ChatMessageImageAttachment(

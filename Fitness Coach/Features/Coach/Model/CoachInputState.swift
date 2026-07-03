@@ -56,8 +56,8 @@ struct CoachInputAttachment: Equatable, Identifiable, Sendable {
         source: CoachInputAttachmentSource,
         id: UUID = UUID(),
         createdAt: Date = Date()
-    ) -> CoachInputAttachment? {
-        guard let thumbnail = CoachMealPhotoPipeline.makeThumbnailJPEG(from: jpegData) else {
+    ) async -> CoachInputAttachment? {
+        guard let thumbnail = await CoachMealPhotoPipeline.makeThumbnailJPEG(from: jpegData) else {
             return nil
         }
         return CoachInputAttachment(
@@ -123,19 +123,21 @@ struct CoachInputState: Equatable {
 
     /// Stages an image when `canPickImage`; otherwise records `attachmentAlreadyPresent`.
     @discardableResult
-    mutating func stageImage(
+    mutating func stagePreparedImage(
         jpegData: Data,
+        thumbnail: Data,
         source: CoachInputAttachmentSource
     ) -> Bool {
         guard canPickImage else {
             error = .attachmentAlreadyPresent
             return false
         }
-        guard let attachment = CoachInputAttachment.make(jpegData: jpegData, source: source) else {
-            error = .preparationFailed(.loadFailed)
-            return false
-        }
-        self.attachment = attachment
+        attachment = CoachInputAttachment(
+            kind: .image,
+            imageData: jpegData,
+            thumbnail: thumbnail,
+            source: source
+        )
         error = nil
         return true
     }
@@ -150,6 +152,7 @@ struct CoachInputState: Equatable {
         guard canSend else { return nil }
 
         let snapshot = CoachInputSendSnapshot(
+            text: text,
             trimmedText: trimmedText,
             attachment: attachment
         )
@@ -157,6 +160,13 @@ struct CoachInputState: Equatable {
         attachment = nil
         error = nil
         return snapshot
+    }
+
+    /// Restores composer fields after an outbound send aborts before a user message is created.
+    mutating func restore(from snapshot: CoachInputSendSnapshot) {
+        text = snapshot.text
+        attachment = snapshot.attachment
+        error = nil
     }
 
     mutating func clearAfterSuccessfulSend() {
@@ -173,6 +183,7 @@ struct CoachInputState: Equatable {
 // MARK: - Frozen outbound payload
 
 struct CoachInputSendSnapshot: Equatable {
+    let text: String
     let trimmedText: String
     let attachment: CoachInputAttachment?
 

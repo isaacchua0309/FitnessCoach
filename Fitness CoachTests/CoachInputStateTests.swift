@@ -27,7 +27,7 @@ final class CoachInputStateTests: XCTestCase {
     func testAttachmentOnlyCanSend() throws {
         var state = CoachInputState.empty
         let jpeg = try makeTestJPEG()
-        XCTAssertTrue(state.stageImage(jpegData: jpeg, source: .library))
+        XCTAssertTrue(stageTestImage(&state, jpeg: jpeg, source: .library))
         XCTAssertTrue(state.canSend)
         XCTAssertFalse(state.canPickImage)
     }
@@ -37,10 +37,10 @@ final class CoachInputStateTests: XCTestCase {
         let first = try makeTestJPEG()
         let second = try makeTestJPEG()
 
-        XCTAssertTrue(state.stageImage(jpegData: first, source: .camera))
+        XCTAssertTrue(stageTestImage(&state, jpeg: first, source: .camera))
         let firstAttachmentID = try XCTUnwrap(state.attachment?.id)
 
-        XCTAssertFalse(state.stageImage(jpegData: second, source: .library))
+        XCTAssertFalse(stageTestImage(&state, jpeg: second, source: .library))
         XCTAssertEqual(state.error, .attachmentAlreadyPresent)
         XCTAssertEqual(state.attachment?.id, firstAttachmentID)
         XCTAssertEqual(state.attachment?.source, .camera)
@@ -51,14 +51,14 @@ final class CoachInputStateTests: XCTestCase {
         let first = try makeTestJPEG()
         let second = try makeTestJPEG()
 
-        XCTAssertTrue(state.stageImage(jpegData: first, source: .library))
-        _ = state.stageImage(jpegData: second, source: .camera)
+        XCTAssertTrue(stageTestImage(&state, jpeg: first, source: .library))
+        _ = stageTestImage(&state, jpeg: second, source: .camera)
         XCTAssertEqual(state.error, .attachmentAlreadyPresent)
 
         state.removeAttachment()
         XCTAssertNil(state.error)
         XCTAssertTrue(state.canPickImage)
-        XCTAssertTrue(state.stageImage(jpegData: second, source: .camera))
+        XCTAssertTrue(stageTestImage(&state, jpeg: second, source: .camera))
         XCTAssertEqual(state.attachment?.source, .camera)
     }
 
@@ -66,11 +66,12 @@ final class CoachInputStateTests: XCTestCase {
         var state = CoachInputState.empty
         let jpeg = try makeTestJPEG()
         state.updateText("  Lunch bowl  ")
-        XCTAssertTrue(state.stageImage(jpegData: jpeg, source: .library))
+        XCTAssertTrue(stageTestImage(&state, jpeg: jpeg, source: .library))
 
         let snapshot = state.takeSendSnapshot()
         let frozen = try XCTUnwrap(snapshot)
 
+        XCTAssertEqual(frozen.text, "  Lunch bowl  ")
         XCTAssertEqual(frozen.trimmedText, "Lunch bowl")
         XCTAssertEqual(frozen.attachment?.imageData, jpeg)
         XCTAssertEqual(frozen.attachment?.source, .library)
@@ -80,11 +81,26 @@ final class CoachInputStateTests: XCTestCase {
         XCTAssertFalse(state.canSend)
     }
 
+    func testRestoreSnapshotReturnsComposerToPreSendState() throws {
+        var state = CoachInputState.empty
+        let jpeg = try makeTestJPEG()
+        state.updateText("  Lunch bowl  ")
+        XCTAssertTrue(stageTestImage(&state, jpeg: jpeg, source: .library))
+
+        let snapshot = try XCTUnwrap(state.takeSendSnapshot())
+        state.restore(from: snapshot)
+
+        XCTAssertEqual(state.text, "  Lunch bowl  ")
+        XCTAssertEqual(state.attachment?.imageData, jpeg)
+        XCTAssertEqual(state.attachment?.source, .library)
+        XCTAssertTrue(state.canSend)
+    }
+
     func testSendSnapshotPayloadVariants() throws {
         let jpeg = try makeTestJPEG()
 
         var imageOnly = CoachInputState.empty
-        _ = imageOnly.stageImage(jpegData: jpeg, source: .camera)
+        _ = stageTestImage(&imageOnly, jpeg: jpeg, source: .camera)
         if case .imageOnly(let data) = imageOnly.takeSendSnapshot()?.sendPayload {
             XCTAssertEqual(data, jpeg)
         } else {
@@ -101,7 +117,7 @@ final class CoachInputStateTests: XCTestCase {
 
         var combined = CoachInputState.empty
         combined.updateText("caption")
-        _ = combined.stageImage(jpegData: jpeg, source: .library)
+        _ = stageTestImage(&combined, jpeg: jpeg, source: .library)
         if case .textAndImage(let text, let data) = combined.takeSendSnapshot()?.sendPayload {
             XCTAssertEqual(text, "caption")
             XCTAssertEqual(data, jpeg)
@@ -123,7 +139,7 @@ final class CoachInputStateTests: XCTestCase {
     func testRemoveAttachmentDisablesSendUntilTextOrImageReturns() throws {
         var state = CoachInputState.empty
         let jpeg = try makeTestJPEG()
-        XCTAssertTrue(state.stageImage(jpegData: jpeg, source: .library))
+        XCTAssertTrue(stageTestImage(&state, jpeg: jpeg, source: .library))
         XCTAssertTrue(state.canSend)
 
         state.removeAttachment()
@@ -134,10 +150,10 @@ final class CoachInputStateTests: XCTestCase {
         XCTAssertFalse(state.canPickImage)
     }
 
-    func testAttachmentBuildsThumbnail() throws {
+    func testAttachmentBuildsThumbnail() async throws {
         let jpeg = try makeTestJPEG()
         let attachment = try XCTUnwrap(
-            CoachInputAttachment.make(jpegData: jpeg, source: .library)
+            await CoachInputAttachment.make(jpegData: jpeg, source: .library)
         )
 
         XCTAssertEqual(attachment.kind, .image)
@@ -145,6 +161,15 @@ final class CoachInputStateTests: XCTestCase {
         XCTAssertLessThan(attachment.thumbnail.count, jpeg.count)
         XCTAssertNotNil(attachment.uiImage)
         XCTAssertNotNil(attachment.thumbnailImage)
+    }
+
+    private func stageTestImage(
+        _ state: inout CoachInputState,
+        jpeg: Data,
+        source: CoachInputAttachmentSource
+    ) -> Bool {
+        let thumbnail = CoachMealPhotoPipeline.makeThumbnailJPEGSync(from: jpeg) ?? jpeg
+        return state.stagePreparedImage(jpegData: jpeg, thumbnail: thumbnail, source: source)
     }
 
     private func makeTestJPEG() throws -> Data {

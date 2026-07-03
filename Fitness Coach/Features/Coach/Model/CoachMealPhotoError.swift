@@ -12,4 +12,6 @@ enum CoachMealPhotoError: Equatable, Error {
     case noImage
     case loadFailed
     case encodingFailed
+    case cameraUnavailable
+    case cameraPermissionDenied
 }

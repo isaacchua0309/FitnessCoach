@@ -179,30 +179,35 @@ final class CoachModel: ObservableObject {
     func handleMealPhotoSelection(
         _ result: Result<Data, CoachMealPhotoError>,
         source: CoachInputAttachmentSource
-    ) {
+    ) async {
         switch result {
         case .failure(.userCancelled):
             return
         case .failure(let error):
             appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
         case .success(let rawData):
-            stageMealPhoto(rawData, source: source)
+            await stageMealPhoto(rawData, source: source)
         }
     }
 
     /// Legacy entry point — prefer `handleMealPhotoSelection`.
-    func handlePhotoSelected() {
-        handleMealPhotoSelection(.failure(.noImage), source: .library)
+    func handlePhotoSelected() async {
+        await handleMealPhotoSelection(.failure(.noImage), source: .library)
     }
 
-    private func stageMealPhoto(_ rawData: Data, source: CoachInputAttachmentSource) {
+    private func stageMealPhoto(_ rawData: Data, source: CoachInputAttachmentSource) async {
         let rawBytes = rawData.count
-        let prepared = mealPhotoAnalyzer.prepareJPEG(from: rawData)
+        let prepared = await mealPhotoAnalyzer.prepareJPEG(from: rawData)
         guard case .success(let jpegData) = prepared else {
             if case .failure(let error) = prepared {
                 CoachImageAnalysisDebugLogger.logError(error)
                 appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
             }
+            return
+        }
+
+        guard let thumbnail = await CoachMealPhotoPipeline.makeThumbnailJPEG(from: jpegData) else {
+            appendAssistantMessage(CoachResponseBuilder.mealPhotoError(.loadFailed))
             return
         }
 
@@ -212,7 +217,11 @@ final class CoachModel: ObservableObject {
             rawBytes: rawBytes,
             compressedBytes: jpegData.count
         )
-        mutateInputState { $0.stageImage(jpegData: jpegData, source: source) }
+        mutateInputState { $0.stagePreparedImage(jpegData: jpegData, thumbnail: thumbnail, source: source) }
+    }
+
+    private func restoreComposer(from snapshot: CoachInputSendSnapshot) {
+        mutateInputState { $0.restore(from: snapshot) }
     }
 
     private func mutateInputState(_ transform: (inout CoachInputState) -> Void) {
@@ -231,6 +240,8 @@ final class CoachModel: ObservableObject {
     func sendCurrentMessage() async {
         guard !isSending else { return }
 
+        beginProcessing(.text)
+
         guard let snapshot = {
             var next = inputState
             guard let frozen = next.takeSendSnapshot() else { return nil }
@@ -238,31 +249,45 @@ final class CoachModel: ObservableObject {
             syncInputSendingFlag()
             return frozen
         }() else {
+            endProcessing()
             return
         }
 
+        defer { endProcessing() }
+
         switch snapshot.sendPayload {
         case .textOnly(let text):
-            await send(text)
+            await send(text, managesProcessingLock: false)
         case .imageOnly(let jpegData):
             await sendMealPhoto(
                 jpegData: jpegData,
                 caption: nil,
-                source: snapshot.attachment?.source
+                source: snapshot.attachment?.source,
+                restoreSnapshotOnEarlyFailure: snapshot
             )
         case .textAndImage(let text, let jpegData):
             await sendMealPhoto(
                 jpegData: jpegData,
                 caption: text,
-                source: snapshot.attachment?.source
+                source: snapshot.attachment?.source,
+                restoreSnapshotOnEarlyFailure: snapshot
             )
         }
     }
 
-    func send(_ text: String) async {
+    func send(_ text: String, managesProcessingLock: Bool = true) async {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        guard !isSending else { return }
+        if managesProcessingLock {
+            guard !isSending else { return }
+            beginProcessing(.text)
+        }
+
+        defer {
+            if managesProcessingLock {
+                endProcessing()
+            }
+        }
 
         switch CoachInputSafety.validate(trimmed) {
         case .empty:
@@ -280,10 +305,7 @@ final class CoachModel: ObservableObject {
         let traceId = FormaPipelineTracer.beginTrace(userMessage: trimmed)
         let traceStarted = Date()
         var traceOutcome = "completed"
-
-        beginProcessing(.text)
         defer {
-            endProcessing()
             FormaPipelineTracer.endTrace(
                 traceId: traceId,
                 outcome: traceOutcome,
@@ -366,14 +388,16 @@ final class CoachModel: ObservableObject {
     private func sendMealPhoto(
         jpegData: Data,
         caption: String?,
-        source: CoachInputAttachmentSource?
+        source: CoachInputAttachmentSource?,
+        restoreSnapshotOnEarlyFailure: CoachInputSendSnapshot? = nil
     ) async {
-        guard !isSending else { return }
-
-        let prepared = mealPhotoAnalyzer.prepareJPEG(from: jpegData)
+        let prepared = await mealPhotoAnalyzer.prepareJPEG(from: jpegData)
         guard case .success(let normalizedJPEG) = prepared else {
             if case .failure(let error) = prepared {
                 appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
+            }
+            if let restoreSnapshotOnEarlyFailure {
+                restoreComposer(from: restoreSnapshotOnEarlyFailure)
             }
             return
         }
@@ -389,7 +413,7 @@ final class CoachModel: ObservableObject {
 
         let attachment = userMessage.imageAttachment ?? ChatMessageImageAttachment(
             imageJPEG: normalizedJPEG,
-            thumbnailJPEG: CoachMealPhotoPipeline.makeThumbnailJPEG(from: normalizedJPEG) ?? normalizedJPEG,
+            thumbnailJPEG: CoachMealPhotoPipeline.makeThumbnailJPEGSync(from: normalizedJPEG) ?? normalizedJPEG,
             source: source
         )
         var session = ImageAnalysisSession.newSession(
@@ -491,6 +515,9 @@ final class CoachModel: ObservableObject {
             event: .analysisFailed(errorMessage)
         )
         clearPendingConfirmationIfLinked(to: userMessageID)
+        if outcome.errorCategory == "authentication" {
+            presentCoachSessionFailure()
+        }
         if let failedSession = imageAnalysisSessionStore.session(forUserMessageID: userMessageID) {
             CoachImageAnalysisDebugLogger.logSessionOutcome(
                 sessionId: failedSession.sessionId,

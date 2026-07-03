@@ -111,6 +111,10 @@ enum CoachResponseBuilder {
             return "That photo couldn't be prepared for analysis. Try again or use manual entry."
         case .encodingFailed:
             return "That photo is too large to send for analysis. Try a closer crop or log the meal manually."
+        case .cameraUnavailable:
+            return "This device can't take photos for Coach. Choose an image from your library or log the meal manually."
+        case .cameraPermissionDenied:
+            return "Camera access is turned off for Forma. Enable it in Settings to take meal photos, or choose from your library."
         }
     }
 

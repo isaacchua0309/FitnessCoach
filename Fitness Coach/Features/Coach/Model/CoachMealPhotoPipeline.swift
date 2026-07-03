@@ -32,18 +32,16 @@ enum CoachMealPhotoPipeline {
     )
 
     private static let maxJPEGBytes = AIGatewayPayloadLimits.maxJPEGBytes
-    private static let maxUploadLongEdge: CGFloat = 1_536
     private static let fallbackLongEdges: [CGFloat] = [1_536, 1_024, 768]
     private static let compressionQualities: [CGFloat] = [0.85, 0.7, 0.55, 0.4, 0.3]
 
-    @MainActor
     static func loadJPEG(from item: PhotosPickerItem) async -> Result<Data, CoachMealPhotoError> {
         do {
             if let transfer = try await item.loadTransferable(type: CoachPhotoPickerTransfer.self) {
-                return prepareJPEG(from: transfer.data)
+                return await prepareJPEG(from: transfer.data)
             }
             if let data = try await item.loadTransferable(type: Data.self) {
-                return prepareJPEG(from: data)
+                return await prepareJPEG(from: data)
             }
             return .failure(.noImage)
         } catch {
@@ -51,7 +49,15 @@ enum CoachMealPhotoPipeline {
         }
     }
 
-    static func prepareJPEG(from rawData: Data) -> Result<Data, CoachMealPhotoError> {
+    /// CPU-heavy decode/resize/JPEG work — runs off the main actor.
+    static func prepareJPEG(from rawData: Data) async -> Result<Data, CoachMealPhotoError> {
+        await Task.detached(priority: .userInitiated) {
+            prepareJPEGSync(from: rawData)
+        }.value
+    }
+
+    /// Synchronous path for unit tests and callers that already run off the main thread.
+    static func prepareJPEGSync(from rawData: Data) -> Result<Data, CoachMealPhotoError> {
         guard !rawData.isEmpty else { return .failure(.noImage) }
 
         if isLikelyJPEG(rawData), AIGatewayPayloadLimits.fitsImagePayload(rawData) {
@@ -69,6 +75,16 @@ enum CoachMealPhotoPipeline {
         return .success(jpeg)
     }
 
+    /// Compress a captured `UIImage` without an intermediate full-resolution JPEG encode.
+    static func prepareJPEG(from image: UIImage) async -> Result<Data, CoachMealPhotoError> {
+        await Task.detached(priority: .userInitiated) {
+            guard let jpeg = compressForGateway(image) else {
+                return .failure(.encodingFailed)
+            }
+            return .success(jpeg)
+        }.value
+    }
+
     static func hasImagePayload(_ data: Data?) -> Bool {
         guard let data, !data.isEmpty else { return false }
         return true
@@ -78,6 +94,18 @@ enum CoachMealPhotoPipeline {
         #if DEBUG
         assert(hasImagePayload(data), "photoFoodAnalysis requires non-empty JPEG payload", file: file, line: line)
         #endif
+    }
+
+    static func makeThumbnailJPEG(from jpegData: Data, maxEdge: CGFloat = 128) async -> Data? {
+        await Task.detached(priority: .utility) {
+            makeThumbnailJPEGSync(from: jpegData, maxEdge: maxEdge)
+        }.value
+    }
+
+    static func makeThumbnailJPEGSync(from jpegData: Data, maxEdge: CGFloat = 128) -> Data? {
+        guard let image = UIImage(data: jpegData) else { return nil }
+        let resized = resize(image, maxLongEdge: maxEdge)
+        return resized.jpegData(compressionQuality: 0.75)
     }
 
     private static func isLikelyJPEG(_ data: Data) -> Bool {
@@ -116,12 +144,6 @@ enum CoachMealPhotoPipeline {
         return renderer.image { _ in
             image.draw(in: CGRect(origin: .zero, size: targetSize))
         }
-    }
-
-    static func makeThumbnailJPEG(from jpegData: Data, maxEdge: CGFloat = 128) -> Data? {
-        guard let image = UIImage(data: jpegData) else { return nil }
-        let resized = resize(image, maxLongEdge: maxEdge)
-        return resized.jpegData(compressionQuality: 0.75)
     }
 }
 

@@ -13,7 +13,7 @@ final class CoachMealPhotoPipelineTests: XCTestCase {
 
     func testLargePhotoCompressesUnderGatewayLimits() {
         let raw = Self.makeLargeTestJPEGData()
-        guard case .success(let prepared) = CoachMealPhotoPipeline.prepareJPEG(from: raw) else {
+        guard case .success(let prepared) = CoachMealPhotoPipeline.prepareJPEGSync(from: raw) else {
             return XCTFail("Expected compressed JPEG payload")
         }
 
