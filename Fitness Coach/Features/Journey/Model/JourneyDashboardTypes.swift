@@ -202,16 +202,23 @@ struct JourneyMilestonesState: Equatable {
 enum JourneyTimelineEventType: Equatable, Sendable {
     case onboardingStarted
     case firstMealLogged
+    case firstFullDayComplete
     case firstWaterLogged
     case firstWeightLogged
+    case firstWorkoutLogged
     case firstWorkoutWeek
     case firstWeekComplete
+    case weightLoggedThreeTimes
+    case proteinThreeDaysInWeek
+    case waterThreeDaysInWeek
     case firstKgTowardGoal
+    case fourWorkoutWeeksComplete
     case calorieGoalFiveDays
     case proteinGoalFiveDays
     case thirtyMealsLogged
     case halfwayToGoal
     case longestStreakAchieved
+    case firstMonthComplete
     case monthlyRecapCompleted
 }
 

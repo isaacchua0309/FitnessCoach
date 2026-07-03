@@ -60,7 +60,7 @@ final class JourneyDashboardBuilderTests: XCTestCase {
         XCTAssertFalse(milestones.items.isEmpty)
         XCTAssertEqual(
             milestones.items.first(where: { $0.id == "first-kg" })?.title,
-            "Lost first kilogram"
+            FormaProductCopy.Journey.Milestones.NextAchievement.firstKgTitle
         )
         XCTAssertNotNil(milestones.next)
     }

@@ -217,11 +217,10 @@ final class JourneyManualQAChecklistTests: XCTestCase {
         XCTAssertTrue(unlockedIDs.contains("first-meal"))
         XCTAssertTrue(unlockedIDs.contains("first-week"))
         XCTAssertTrue(unlockedIDs.contains("first-kg"))
-        XCTAssertTrue(unlockedIDs.contains("thirty-meals"))
-
-        if dashboard.baseline.progressPercent ?? 0 >= 50 {
-            XCTAssertTrue(unlockedIDs.contains("halfway"))
-        }
+        XCTAssertTrue(unlockedIDs.contains("protein-three-week"))
+        XCTAssertTrue(unlockedIDs.contains("water-three-week"))
+        XCTAssertTrue(dashboard.milestone.isVisible)
+        XCTAssertFalse(dashboard.milestones.items.contains(where: { $0.status == .upcoming }))
     }
 
     // MARK: - 9. Story Timeline
@@ -300,7 +299,7 @@ final class JourneyManualQAChecklistTests: XCTestCase {
         let firstKg = dashboard.milestones.items.first { $0.id == "first-kg" }
         XCTAssertEqual(
             firstKg?.title,
-            FormaProductCopy.Journey.Milestones.firstKilogramTitle(direction: .gain)
+            FormaProductCopy.Journey.Milestones.NextAchievement.firstKgGainTitle
         )
     }
 
@@ -355,13 +354,9 @@ final class JourneyManualQAChecklistTests: XCTestCase {
                 || dashboard.transformation.accessibilitySummary.localizedCaseInsensitiveContains("%")
         )
 
-        if let next = dashboard.milestones.next, let progress = dashboard.milestones.nextProgressFraction {
-            let milestoneA11y = FormaProductCopy.Journey.Milestones.Accessibility.progressPercent(
-                Int((progress * 100).rounded())
-            )
-            XCTAssertFalse(milestoneA11y.isEmpty)
-            XCTAssertFalse(next.title.isEmpty)
-        }
+        XCTAssertFalse(dashboard.milestone.accessibilitySummary.isEmpty)
+        XCTAssertFalse(dashboard.milestone.title.isEmpty)
+        XCTAssertFalse(dashboard.milestone.progressText.isEmpty)
     }
 
     // MARK: - Canonical layout smoke
@@ -369,6 +364,7 @@ final class JourneyManualQAChecklistTests: XCTestCase {
     func testManualQA_LeanLayoutMountsOnlyRevampSections() {
         let order = JourneyProductLayout.sectionOrder.map(\.rawValue)
         XCTAssertTrue(order.contains("transformation"))
+        XCTAssertTrue(order.contains("goalProjection"))
         XCTAssertTrue(order.contains("weeklyReview"))
         XCTAssertTrue(order.contains("milestones"))
         XCTAssertTrue(order.contains("storyTimeline"))

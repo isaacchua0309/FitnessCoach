@@ -17,8 +17,21 @@ enum JourneyPresentationBuilder {
         loggedDays: Int
     ) -> JourneyDashboardState {
         let weeklyReview = JourneyDashboardBuilder.weeklyReview(context: context)
-        let milestones = JourneyDashboardBuilder.milestones(context: context)
-        let timeline = JourneyDashboardBuilder.storyTimeline(context: context)
+        let milestoneResult = JourneyNextMilestoneBuilder.build(
+            JourneyNextMilestoneBuilder.Input(
+                profile: context.profile,
+                baseline: context.baseline,
+                maturityLogs: context.maturityLogs,
+                allWeights: context.allWeights,
+                healthWorkoutDayStarts: context.healthWorkoutDayStarts,
+                asOf: context.asOf,
+                calendar: context.calendar
+            )
+        )
+        let timeline = JourneyDashboardBuilder.storyTimeline(
+            context: context,
+            additionalEvents: milestoneResult.completedTimelineEvents
+        )
 
         let habitInsights = JourneyHabitInsightsBuilder.build(
             JourneyHabitInsightsBuilder.Input(
@@ -56,7 +69,7 @@ enum JourneyPresentationBuilder {
                 allWeights: context.allWeights,
                 healthWorkoutDayStarts: context.healthWorkoutDayStarts,
                 isAppleHealthConnected: context.weeklyTraining.isConnected,
-                unlockedMilestoneCount: milestones.unlocked.count,
+                unlockedMilestoneCount: milestoneResult.unlockedCount,
                 calendar: context.calendar
             )
         )
@@ -68,7 +81,7 @@ enum JourneyPresentationBuilder {
             momentum: momentum(context: context, loggedDays: loggedDays),
             transformation: hero(context: context, loggedDays: loggedDays, hasProfile: hasProfile),
             goalProjection: goalProjection(context: context),
-            milestone: JourneyMilestoneState.fromMilestones(milestones),
+            milestone: milestoneResult.presentation,
             storyEvents: storyEvents(from: timeline, calendar: context.calendar),
             insight: JourneyInsightState.fromHabitInsights(habitInsights),
             weeklyHabit: JourneyWeeklyHabitState.fromWeeklyReview(weeklyReview),
@@ -230,6 +243,18 @@ enum JourneyPresentationBuilder {
             calendar: calendar
         )
 
+        let milestoneResult = JourneyNextMilestoneBuilder.build(
+            JourneyNextMilestoneBuilder.Input(
+                profile: profile,
+                baseline: baseline,
+                maturityLogs: maturityLogs,
+                allWeights: allWeights,
+                healthWorkoutDayStarts: healthWorkoutDayStarts,
+                asOf: asOf,
+                calendar: calendar
+            )
+        )
+
         if maturityLogs.isEmpty, weekLogs.isEmpty {
             return JourneyDashboardState(
                 hasProfile: hasProfile,
@@ -242,7 +267,7 @@ enum JourneyPresentationBuilder {
                     hasProfile: hasProfile
                 ),
                 goalProjection: goalProjection(context: context),
-                milestone: JourneyMilestoneState.fromMilestones(milestones),
+                milestone: milestoneResult.presentation,
                 storyEvents: storyEvents(from: storyTimeline, calendar: calendar),
                 insight: JourneyInsightState.fromHabitInsights(.locked),
                 weeklyHabit: JourneyWeeklyHabitState.fromWeeklyReview(weeklyReview),

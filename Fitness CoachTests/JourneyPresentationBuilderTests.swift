@@ -31,7 +31,12 @@ final class JourneyPresentationBuilderTests: XCTestCase {
         )
         XCTAssertFalse(dashboard.chapter.isVisible)
         XCTAssertFalse(dashboard.monthlyRecap.isVisible)
-        XCTAssertTrue(dashboard.showsStartingEmptyState)
+        XCTAssertTrue(dashboard.milestone.isVisible)
+        XCTAssertEqual(
+            dashboard.milestone.title,
+            FormaProductCopy.Journey.Milestones.NextAchievement.firstMealTitle
+        )
+        XCTAssertFalse(dashboard.showsStartingEmptyState)
     }
 
     func testHabitLogsWithoutWeightLossStillBuildsWeeklyHabits() {

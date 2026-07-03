@@ -35,11 +35,15 @@ final class JourneyProgressStructureTests: XCTestCase {
         XCTAssertFalse(identifiers.contains("achievements"))
     }
 
-    func testBrandNewUserShowsStartingEmptyState() {
+    func testBrandNewUserShowsNextAchievementCard() {
         let dashboard = JourneyPreviewData.brandNewUser
 
-        XCTAssertTrue(dashboard.showsStartingEmptyState)
-        XCTAssertFalse(dashboard.showsMilestonesSection)
+        XCTAssertFalse(dashboard.showsStartingEmptyState)
+        XCTAssertTrue(dashboard.showsMilestonesSection)
+        XCTAssertEqual(
+            dashboard.milestone.title,
+            FormaProductCopy.Journey.Milestones.NextAchievement.firstMealTitle
+        )
         XCTAssertFalse(dashboard.showsStoryTimelineSection)
     }
 

@@ -1542,6 +1542,56 @@ enum FormaProductCopy {
             static let nextUp = "Next up"
             static let emptyBody = "Log your first meal to start building your milestone path."
 
+            enum NextAchievement {
+                static let header = "Next Achievement"
+
+                static let firstMealTitle = "Log Your First Meal"
+                static let firstFullDayTitle = "Complete Your First Full Day"
+                static let firstWorkoutTitle = "Complete Your First Workout"
+                static let weightThreeTimesTitle = "Log Weight 3 Times"
+                static let firstWeekTitle = "First Week Complete"
+                static let proteinThreeDaysTitle = "Hit Protein 3 Days in a Week"
+                static let waterThreeDaysTitle = "Hit Water 3 Days in a Week"
+                static let firstKgTitle = "Lose Your First Kilogram"
+                static let firstKgGainTitle = "Gain Your First Kilogram"
+                static let fourWorkoutWeeksTitle = "Complete 4 Workout Weeks"
+                static let firstMonthTitle = "Complete Your First Month"
+
+                static let firstMealReward = "Log your first meal to start your milestone path."
+                static let firstFullDayReward = "Complete a full day of logging to build momentum."
+                static let firstWorkoutReward = "Show up for your first workout to unlock training milestones."
+                static let weightThreeTimesReward = "Three weigh-ins help Forma see your real trend."
+                static let firstWeekReward = "Complete your first week to unlock your first Journey chapter."
+                static let proteinThreeDaysReward = "Three protein days in a week builds a strong anchor."
+                static let waterThreeDaysReward = "Three water days in a week keeps your routine steady."
+                static let firstKgReward = "Your first kilogram toward goal is a major checkpoint."
+                static let fourWorkoutWeeksReward = "Four workout weeks turn training into a habit."
+                static let firstMonthReward = "Your first month of consistency becomes part of your story."
+
+                static func progressDays(current: Int, total: Int) -> String {
+                    "\(current) / \(total) days"
+                }
+
+                static func progressCount(current: Int, total: Int, unit: String) -> String {
+                    "\(current) / \(total) \(unit)"
+                }
+
+                static func progressKg(current: Double, total: Double) -> String {
+                    let currentLabel = String(format: "%.1f", current)
+                    let totalLabel = String(format: "%.0f", total)
+                    return "\(currentLabel) / \(totalLabel) kg"
+                }
+
+                static func accessibilitySummary(
+                    header: String,
+                    title: String,
+                    progress: String,
+                    reward: String
+                ) -> String {
+                    "\(header). \(title). \(progress). \(reward)"
+                }
+            }
+
             static let loggedFirstMeal = "Logged first meal"
             static let proteinFiveDays = "Hit protein target 5 days"
             static let waterFiveDays = "Hit water target 5 days"

@@ -23,7 +23,7 @@ enum JourneyTimelineBuilder {
 
     private static let displayEventLimit = 5
 
-    static func build(_ input: Input) -> JourneyStoryTimelineState {
+    static func build(_ input: Input, additionalEvents: [JourneyTimelineEvent] = []) -> JourneyStoryTimelineState {
         let copy = FormaProductCopy.Journey.Timeline.self
         var events: [JourneyTimelineEvent] = []
 
@@ -256,7 +256,10 @@ enum JourneyTimelineBuilder {
             )
         }
 
-        let deduped = deduplicateByDay(events: events, calendar: input.calendar)
+        let deduped = deduplicateByDay(
+            events: mergeAdditionalEvents(events, additionalEvents: additionalEvents),
+            calendar: input.calendar
+        )
         let sortedNewestFirst = deduped.sorted { lhs, rhs in
             if lhs.date != rhs.date {
                 return lhs.date > rhs.date
@@ -384,17 +387,39 @@ enum JourneyTimelineBuilder {
         }
     }
 
+    private static func mergeAdditionalEvents(
+        _ events: [JourneyTimelineEvent],
+        additionalEvents: [JourneyTimelineEvent]
+    ) -> [JourneyTimelineEvent] {
+        guard !additionalEvents.isEmpty else { return events }
+
+        var merged = events
+        let existingIDs = Set(events.map(\.id))
+
+        for event in additionalEvents where !existingIDs.contains(event.id) {
+            merged.append(event)
+        }
+
+        return merged
+    }
+
     private static func typePriority(_ type: JourneyTimelineEventType) -> Int {
         switch type {
         case .onboardingStarted: return 100
         case .halfwayToGoal: return 90
         case .firstKgTowardGoal: return 85
         case .longestStreakAchieved: return 80
+        case .firstMonthComplete: return 78
+        case .fourWorkoutWeeksComplete: return 76
         case .firstWeekComplete: return 75
         case .thirtyMealsLogged: return 70
         case .monthlyRecapCompleted: return 65
         case .proteinGoalFiveDays, .calorieGoalFiveDays: return 60
+        case .proteinThreeDaysInWeek, .waterThreeDaysInWeek: return 58
         case .firstWorkoutWeek: return 55
+        case .firstWorkoutLogged: return 54
+        case .firstFullDayComplete: return 53
+        case .weightLoggedThreeTimes: return 52
         case .firstMealLogged: return 50
         case .firstWeightLogged: return 45
         case .firstWaterLogged: return 40

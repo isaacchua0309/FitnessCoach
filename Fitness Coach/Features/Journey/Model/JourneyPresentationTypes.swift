@@ -116,40 +116,19 @@ struct JourneyGoalProjectionState: Equatable {
 struct JourneyMilestoneState: Equatable {
     var isVisible: Bool
     var sectionTitle: String
-    var unlocked: [JourneyMilestone]
-    var upcoming: [JourneyMilestone]
-    var next: JourneyMilestone?
-    var nextProgressFraction: Double?
-    var items: [JourneyMilestone]
-    var emptyMessage: String?
+    var header: String
+    var icon: String
+    var title: String
+    var progressText: String
+    var progressFraction: Double
+    var rewardCopy: String
+    var accessibilitySummary: String
+    var unlockedCount: Int
+    var completedMilestoneIDs: [String]
+    var legacyMilestones: JourneyMilestonesState
 
     var milestonesState: JourneyMilestonesState {
-        JourneyMilestonesState(
-            unlocked: unlocked,
-            upcoming: upcoming,
-            next: next,
-            nextProgressFraction: nextProgressFraction,
-            items: items
-        )
-    }
-
-    static func fromMilestones(_ milestones: JourneyMilestonesState) -> JourneyMilestoneState {
-        let hasProgress = !milestones.unlocked.isEmpty
-            || milestones.items.contains { $0.status == .completed }
-            || (milestones.nextProgressFraction ?? 0) > 0
-
-        return JourneyMilestoneState(
-            isVisible: hasProgress,
-            sectionTitle: FormaProductCopy.Journey.Milestones.sectionTitle,
-            unlocked: milestones.unlocked,
-            upcoming: milestones.upcoming,
-            next: milestones.next,
-            nextProgressFraction: milestones.nextProgressFraction,
-            items: milestones.items,
-            emptyMessage: milestones.items.isEmpty
-                ? FormaProductCopy.Journey.Milestones.emptyBody
-                : nil
-        )
+        legacyMilestones
     }
 }
 

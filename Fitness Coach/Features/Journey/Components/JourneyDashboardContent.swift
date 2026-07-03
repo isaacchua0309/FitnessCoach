@@ -59,7 +59,7 @@ struct JourneyDashboardContent: View {
                 .onAppear { analyticsCoordinator?.logWeeklyReviewViewed() }
 
         case .milestones:
-            JourneyMilestonesSection(state: state.milestones)
+            JourneyMilestonesSection(state: state.milestone)
                 .onAppear { analyticsCoordinator?.logMilestoneRailViewed() }
 
         case .storyTimeline:

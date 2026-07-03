@@ -16,83 +16,70 @@ final class JourneyMilestonesBuilderTests: XCTestCase {
 
     private let asOf = ProfileTestFixtures.referenceDate
 
-    func testNewUserShowsLockedFirstMilestone() {
+    func testNewUserShowsCurrentFirstMealMilestone() {
         let state = build(foodLogDays: 0, direction: .lose)
 
         XCTAssertFalse(state.items.isEmpty)
         XCTAssertEqual(state.unlocked.count, 0)
         XCTAssertEqual(state.next?.id, "first-meal")
-        XCTAssertEqual(state.next?.title, FormaProductCopy.Journey.Milestones.loggedFirstMeal)
         XCTAssertEqual(state.next?.status, .current)
+        XCTAssertTrue(state.upcoming.isEmpty)
     }
 
     func testOneMealLoggedUnlocksFirstMilestone() {
         let state = build(foodLogDays: 1, direction: .lose)
 
         XCTAssertTrue(state.unlocked.contains(where: { $0.id == "first-meal" }))
-        XCTAssertEqual(state.next?.id, "first-week")
+        XCTAssertEqual(state.next?.id, "first-full-day")
     }
 
     func testSevenDaysUnlocksFirstWeek() {
         let state = build(foodLogDays: 7, direction: .lose)
 
         XCTAssertTrue(state.unlocked.contains(where: { $0.id == "first-week" }))
-        XCTAssertEqual(state.next?.id, "first-kg")
     }
 
-    func testThirtyMealsUnlocksThirtyMealMilestone() {
-        let state = build(foodLogDays: 30, proteinGoalDays: 8, direction: .lose)
-
-        XCTAssertTrue(state.unlocked.contains(where: { $0.id == "thirty-meals" }))
-    }
-
-    func testHalfwayToGoalUnlocksForLoseGoal() {
-        let state = build(
-            foodLogDays: 20,
-            proteinGoalDays: 6,
-            startWeight: 90,
-            currentWeight: 82.5,
-            goalWeight: 75,
-            direction: .lose,
-            progressPercent: 50
-        )
-
-        XCTAssertTrue(state.unlocked.contains(where: { $0.id == "halfway" }))
-    }
-
-    func testLoseGoalUsesLostCopy() {
+    func testLoseGoalUsesNextAchievementKgCopy() {
         let state = build(
             foodLogDays: 10,
             startWeight: 90,
             currentWeight: 88.5,
             goalWeight: 75,
             direction: .lose,
-            progressPercent: 10
+            progressPercent: 10,
+            weights: [
+                makeWeight(daysAgo: 10, kg: 90),
+                makeWeight(daysAgo: 0, kg: 88.5)
+            ]
         )
 
         XCTAssertEqual(
             state.items.first(where: { $0.id == "first-kg" })?.title,
-            FormaProductCopy.Journey.Milestones.firstKilogramTitle(direction: .lose)
+            FormaProductCopy.Journey.Milestones.NextAchievement.firstKgTitle
         )
     }
 
-    func testGainGoalUsesGainedCopy() {
+    func testGainGoalUsesNextAchievementKgCopy() {
         let state = build(
             foodLogDays: 10,
             startWeight: 60,
             currentWeight: 61.5,
             goalWeight: 70,
             direction: .gain,
-            progressPercent: 15
+            progressPercent: 15,
+            weights: [
+                makeWeight(daysAgo: 10, kg: 60),
+                makeWeight(daysAgo: 0, kg: 61.5)
+            ]
         )
 
         XCTAssertEqual(
             state.items.first(where: { $0.id == "first-kg" })?.title,
-            FormaProductCopy.Journey.Milestones.firstKilogramTitle(direction: .gain)
+            FormaProductCopy.Journey.Milestones.NextAchievement.firstKgGainTitle
         )
     }
 
-    func testMaintainGoalUsesConsistencyCopy() {
+    func testMaintainGoalOmitsDirectionalKgMilestone() {
         let state = build(
             foodLogDays: 7,
             startWeight: 72,
@@ -102,20 +89,16 @@ final class JourneyMilestonesBuilderTests: XCTestCase {
             progressPercent: nil
         )
 
-        XCTAssertEqual(
-            state.items.first(where: { $0.id == "first-week" })?.title,
-            FormaProductCopy.Journey.Milestones.firstWeekTitle(direction: .maintain)
-        )
-        XCTAssertFalse(state.items.contains(where: { $0.id == "halfway" }))
+        XCTAssertFalse(state.items.contains(where: { $0.id == "first-kg" }))
     }
 
-    func testUnlockedBeforeLockedOrdering() {
+    func testUnlockedBeforeCurrentOrdering() {
         let state = build(foodLogDays: 3, direction: .lose)
-        let firstLockedIndex = state.items.firstIndex(where: { $0.status != .completed })
+        let firstCurrentIndex = state.items.firstIndex(where: { $0.status == .current })
         let lastUnlockedIndex = state.items.lastIndex(where: { $0.status == .completed })
 
-        if let firstLockedIndex, let lastUnlockedIndex {
-            XCTAssertLessThan(lastUnlockedIndex, firstLockedIndex)
+        if let firstCurrentIndex, let lastUnlockedIndex {
+            XCTAssertLessThan(lastUnlockedIndex, firstCurrentIndex)
         }
     }
 
@@ -123,14 +106,8 @@ final class JourneyMilestonesBuilderTests: XCTestCase {
         let state = build(foodLogDays: 2, direction: .lose)
 
         XCTAssertEqual(state.next?.status, .current)
-        XCTAssertEqual(state.next?.id, "first-week")
+        XCTAssertEqual(state.next?.id, "first-full-day")
         XCTAssertNotNil(state.nextProgressFraction)
-    }
-
-    func testWaterFiveDaysUnlocksWaterMilestone() {
-        let state = build(foodLogDays: 5, waterHitsGoal: true, direction: .lose)
-
-        XCTAssertTrue(state.unlocked.contains(where: { $0.id == "water-five" }))
     }
 
     func testFirstWorkoutUnlocksTrainingMilestone() {
@@ -139,44 +116,13 @@ final class JourneyMilestonesBuilderTests: XCTestCase {
         XCTAssertTrue(state.unlocked.contains(where: { $0.id == "first-workout" }))
     }
 
-    func testLockedMilestonesStayUpcomingAfterCurrent() {
+    func testNoUpcomingLockedRows() {
         let state = build(foodLogDays: 0, direction: .lose)
 
         XCTAssertEqual(state.unlocked.count, 0)
         XCTAssertEqual(state.next?.status, .current)
-        XCTAssertTrue(state.items.filter { $0.status == .upcoming }.count >= 2)
-    }
-
-    func testLoggingStreakSevenUnlocksStreakMilestone() {
-        let state = build(
-            foodLogDays: 7,
-            proteinGoalDays: 4,
-            direction: .lose
-        )
-
-        XCTAssertTrue(state.unlocked.contains(where: { $0.id == "logging-streak-seven" }))
-    }
-
-    func testTenKgMilestoneOnlyWhenSpanIsLargeEnough() {
-        let smallSpan = build(
-            foodLogDays: 50,
-            startWeight: 72,
-            currentWeight: 65,
-            goalWeight: 68,
-            direction: .lose,
-            progressPercent: 80
-        )
-        let largeSpan = build(
-            foodLogDays: 50,
-            startWeight: 95,
-            currentWeight: 82,
-            goalWeight: 75,
-            direction: .lose,
-            progressPercent: 72
-        )
-
-        XCTAssertFalse(smallSpan.items.contains(where: { $0.id == "ten-kg" }))
-        XCTAssertTrue(largeSpan.items.contains(where: { $0.id == "ten-kg" }))
+        XCTAssertTrue(state.upcoming.isEmpty)
+        XCTAssertFalse(state.items.contains(where: { $0.status == .upcoming }))
     }
 
     // MARK: - Helpers
@@ -190,7 +136,8 @@ final class JourneyMilestonesBuilderTests: XCTestCase {
         currentWeight: Double = 90,
         goalWeight: Double = 75,
         direction: JourneyGoalDirection = .lose,
-        progressPercent: Double? = 0
+        progressPercent: Double? = 0,
+        weights: [WeightEntry] = []
     ) -> JourneyMilestonesState {
         let logs = (0..<foodLogDays).map { offset in
             makeLog(
@@ -237,7 +184,9 @@ final class JourneyMilestonesBuilderTests: XCTestCase {
                 baseline: baseline,
                 maturityLogs: logs,
                 journeyStreaks: streaks,
+                allWeights: weights,
                 healthWorkoutDayStarts: [],
+                asOf: asOf,
                 calendar: calendar
             )
         )
@@ -269,6 +218,17 @@ final class JourneyMilestonesBuilderTests: XCTestCase {
             dailyReviewId: nil,
             createdAt: date,
             updatedAt: date
+        )
+    }
+
+    private func makeWeight(daysAgo: Int, kg: Double) -> WeightEntry {
+        let date = calendar.date(byAdding: .day, value: -daysAgo, to: asOf)!
+        return WeightEntry(
+            id: UUID(),
+            date: date,
+            weightKg: kg,
+            note: nil,
+            createdAt: date
         )
     }
 }

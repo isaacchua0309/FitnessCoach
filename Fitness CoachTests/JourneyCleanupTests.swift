@@ -22,10 +22,11 @@ final class JourneyCleanupTests: XCTestCase {
         XCTAssertFalse(identifiers.contains("detailedAnalytics"))
     }
 
-    func testBrandNewUserShowsStartingEmptyState() {
+    func testBrandNewUserShowsNextAchievementCard() {
         let dashboard = JourneyPreviewData.brandNewUser
 
-        XCTAssertTrue(dashboard.showsStartingEmptyState)
+        XCTAssertTrue(dashboard.milestone.isVisible)
+        XCTAssertFalse(dashboard.showsStartingEmptyState)
     }
 
     func testStrongMomentumDoesNotShowStartingEmptyState() {

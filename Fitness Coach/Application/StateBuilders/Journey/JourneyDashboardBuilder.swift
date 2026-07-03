@@ -114,20 +114,25 @@ enum JourneyDashboardBuilder {
     // MARK: - Milestones
 
     static func milestones(context: Context) -> JourneyMilestonesState {
-        JourneyMilestonesBuilder.build(
-            JourneyMilestonesBuilder.Input(
+        JourneyNextMilestoneBuilder.build(
+            JourneyNextMilestoneBuilder.Input(
+                profile: context.profile,
                 baseline: context.baseline,
                 maturityLogs: context.maturityLogs,
-                journeyStreaks: context.journeyStreaks,
+                allWeights: context.allWeights,
                 healthWorkoutDayStarts: context.healthWorkoutDayStarts,
+                asOf: context.asOf,
                 calendar: context.calendar
             )
-        )
+        ).legacyMilestones
     }
 
     // MARK: - Story timeline
 
-    static func storyTimeline(context: Context) -> JourneyStoryTimelineState {
+    static func storyTimeline(
+        context: Context,
+        additionalEvents: [JourneyTimelineEvent] = []
+    ) -> JourneyStoryTimelineState {
         JourneyTimelineBuilder.build(
             JourneyTimelineBuilder.Input(
                 profile: context.profile,
@@ -139,7 +144,8 @@ enum JourneyDashboardBuilder {
                 journeyStreaks: context.journeyStreaks,
                 asOf: context.asOf,
                 calendar: context.calendar
-            )
+            ),
+            additionalEvents: additionalEvents
         )
     }
 }
