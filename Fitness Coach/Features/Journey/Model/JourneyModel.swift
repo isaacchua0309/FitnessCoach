@@ -20,6 +20,7 @@ final class JourneyModel: ObservableObject {
     private let trainingInsightsStore: TrainingInsightsStore
     private let workoutReader: HealthKitWorkoutReading
     private let healthIntelligenceSnapshotProvider: any HealthIntelligenceSnapshotServing
+    private let weeklyReviewService: any WeeklyReviewServing
     private let healthIntelligenceEngine: any HealthIntelligenceEngineing
     private let healthCacheStore: any HealthCacheStore
     private let healthActivityQuery: HealthActivityQueryService?
@@ -34,6 +35,7 @@ final class JourneyModel: ObservableObject {
         trainingInsightsStore: TrainingInsightsStore,
         workoutReader: HealthKitWorkoutReading? = nil,
         healthIntelligenceSnapshotProvider: any HealthIntelligenceSnapshotServing = NoOpHealthIntelligenceSnapshotService(),
+        weeklyReviewService: any WeeklyReviewServing = NoOpWeeklyReviewService(),
         healthIntelligenceEngine: any HealthIntelligenceEngineing = NoOpHealthIntelligenceEngine(),
         healthCacheStore: any HealthCacheStore = MemoryHealthCacheStore(),
         healthActivityQuery: HealthActivityQueryService? = nil,
@@ -47,6 +49,7 @@ final class JourneyModel: ObservableObject {
         self.trainingInsightsStore = trainingInsightsStore
         self.workoutReader = workoutReader ?? MockHealthKitWorkoutReader(workouts: [])
         self.healthIntelligenceSnapshotProvider = healthIntelligenceSnapshotProvider
+        self.weeklyReviewService = weeklyReviewService
         self.healthIntelligenceEngine = healthIntelligenceEngine
         self.healthCacheStore = healthCacheStore
         self.healthActivityQuery = healthActivityQuery
@@ -63,11 +66,13 @@ final class JourneyModel: ObservableObject {
         await refresh()
     }
 
-    func refresh() async {
+    func refresh(forceWeeklyReviewRefresh: Bool = false) async {
         do {
             await trainingInsightsStore.refresh()
             async let dashboardTask = makeDashboardState()
-            async let healthIntelligenceTask = refreshHealthIntelligenceSection()
+            async let healthIntelligenceTask = refreshHealthIntelligenceSection(
+                forceWeeklyReviewRefresh: forceWeeklyReviewRefresh
+            )
             let state = try await dashboardTask
             await healthIntelligenceTask
             viewState = state.hasProfile ? .loaded(state) : .empty
@@ -82,7 +87,7 @@ final class JourneyModel: ObservableObject {
 
     // MARK: Health Intelligence
 
-    private func refreshHealthIntelligenceSection() async {
+    private func refreshHealthIntelligenceSection(forceWeeklyReviewRefresh: Bool = false) async {
         guard healthIntelligenceLoadEnabled() else {
             journeyHealthIntelligenceSectionState = nil
             return
@@ -105,10 +110,12 @@ final class JourneyModel: ObservableObject {
                 referenceDate: Date(),
                 isAppleHealthConnected: trainingInsightsStore.integrationState.isConnected,
                 snapshotProvider: healthIntelligenceSnapshotProvider,
+                weeklyReviewProvider: weeklyReviewService,
                 engine: healthIntelligenceEngine,
                 cacheStore: healthCacheStore,
                 healthActivityQuery: healthActivityQuery,
-                healthDataRepository: healthDataRepository
+                healthDataRepository: healthDataRepository,
+                forceWeeklyReviewRefresh: forceWeeklyReviewRefresh
             )
 
             try Task.checkCancellation()

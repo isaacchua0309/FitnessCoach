@@ -10,6 +10,7 @@ import SwiftUI
 struct JourneyHealthIntelligenceSection: View {
     let state: JourneyHealthIntelligenceSectionState
     var onConnectHealth: (() -> Void)?
+    var onWeeklyReviewSelected: ((WeeklyReviewDetailState) -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.sectionSpacing) {
@@ -17,11 +18,8 @@ struct JourneyHealthIntelligenceSection: View {
                 connectHealthCard(connectCTA)
             }
 
-            if let weeklyReview = state.weeklyReviewPreview, weeklyReview.phase != .loading || state.isLoading {
-                JourneyWeeklyReviewPreviewCard(
-                    state: weeklyReview,
-                    isLoading: state.isLoading
-                )
+            if let weeklyReviewCard = state.weeklyReviewCard {
+                weeklyReviewCardView(weeklyReviewCard)
             }
 
             JourneyRecoveryTimelineCard(
@@ -50,6 +48,25 @@ struct JourneyHealthIntelligenceSection: View {
 
     private var referenceDay: Date? {
         state.recoveryTimeline.days.last?.date
+    }
+
+    @ViewBuilder
+    private func weeklyReviewCardView(_ card: WeeklyReviewCardState) -> some View {
+        if card.phase == .loaded,
+           let detail = state.weeklyReviewDetail,
+           let onWeeklyReviewSelected {
+            Button {
+                onWeeklyReviewSelected(detail)
+            } label: {
+                WeeklyReviewCard(state: card, isLoading: state.isLoading)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Opens weekly review report")
+            .accessibilityIdentifier("journey-weekly-review-card")
+        } else {
+            WeeklyReviewCard(state: card, isLoading: state.isLoading)
+                .accessibilityIdentifier("journey-weekly-review-card")
+        }
     }
 
     @ViewBuilder
@@ -86,139 +103,13 @@ struct JourneyHealthIntelligenceSection: View {
     }
 }
 
-// MARK: - Weekly review preview card
-
-private struct JourneyWeeklyReviewPreviewCard: View {
-    let state: JourneyWeeklyReviewPreviewState
-    var isLoading: Bool = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: JourneyLayout.headerToCardSpacing) {
-            JourneySectionLabel(title: state.sectionTitle)
-
-            JourneyHealthIntelligenceLoadingCard(isLoading: isLoading || state.phase == .loading) {
-                JourneyCard(elevation: .standard) {
-                    VStack(alignment: .leading, spacing: JourneyHealthIntelligenceCardSupport.cardContentSpacing) {
-                        if !state.weekRangeLabel.isEmpty {
-                            Text(state.weekRangeLabel)
-                                .font(FormaTokens.Typography.caption2.weight(.semibold))
-                                .foregroundStyle(FormaTokens.Color.textTertiary)
-                                .textCase(.uppercase)
-                                .tracking(0.4)
-                        }
-
-                        switch state.phase {
-                        case .loading:
-                            loadingContent
-                        case .empty, .error:
-                            phaseMessage
-                        case .loaded:
-                            loadedContent
-                        }
-                    }
-                }
-            }
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(state.accessibilityLabel)
-        .formaThemeReactive()
-    }
-
-    @ViewBuilder
-    private var loadingContent: some View {
-        Text(state.title)
-            .font(JourneyTypography.cardHeadline)
-            .foregroundStyle(FormaTokens.Color.textPrimary)
-        Text(state.summary)
-            .font(JourneyTypography.cardSupporting)
-            .foregroundStyle(FormaTokens.Color.textSecondary)
-    }
-
-    @ViewBuilder
-    private var phaseMessage: some View {
-        Text(state.summary)
-            .font(JourneyTypography.cardSupporting)
-            .foregroundStyle(
-                state.phase == .error
-                    ? FormaTokens.Color.warning
-                    : FormaTokens.Color.textSecondary
-            )
-            .fixedSize(horizontal: false, vertical: true)
-    }
-
-    @ViewBuilder
-    private var loadedContent: some View {
-        Text(state.title)
-            .font(JourneyTypography.cardHeadline)
-            .foregroundStyle(FormaTokens.Color.textPrimary)
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityAddTraits(.isHeader)
-
-        Text(state.summary)
-            .font(JourneyTypography.cardSupporting)
-            .foregroundStyle(FormaTokens.Color.textSecondary)
-            .fixedSize(horizontal: false, vertical: true)
-
-        if !state.winLines.isEmpty {
-            winLinesBlock
-        }
-
-        if !state.focusLines.isEmpty {
-            focusLinesBlock
-        }
-
-        if let confidenceNote = state.confidenceNote {
-            JourneyHealthIntelligencePhaseMessage(message: confidenceNote, tone: .caution)
-        }
-    }
-
-    @ViewBuilder
-    private var winLinesBlock: some View {
-        FormaPlanRowDivider()
-
-        VStack(alignment: .leading, spacing: JourneyLayout.compactSpacing) {
-            Text("Wins")
-                .font(FormaTokens.Typography.caption2.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.textTertiary)
-                .textCase(.uppercase)
-                .tracking(0.4)
-
-            ForEach(Array(state.winLines.enumerated()), id: \.offset) { _, line in
-                Text(line)
-                    .font(JourneyTypography.cardSupporting)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var focusLinesBlock: some View {
-        FormaPlanRowDivider()
-
-        VStack(alignment: .leading, spacing: JourneyLayout.compactSpacing) {
-            Text("Focus")
-                .font(FormaTokens.Typography.caption2.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.textTertiary)
-                .textCase(.uppercase)
-                .tracking(0.4)
-
-            ForEach(Array(state.focusLines.enumerated()), id: \.offset) { _, line in
-                Text(line)
-                    .font(JourneyTypography.cardSupporting)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-}
-
 // MARK: - Previews
 
 #Preview("Strong week") {
     ScrollView {
         JourneyHealthIntelligenceSection(
-            state: JourneyHealthIntelligencePreviewData.strongWeek
+            state: JourneyHealthIntelligencePreviewData.strongWeek,
+            onWeeklyReviewSelected: { _ in }
         )
         .padding(.horizontal, JourneyLayout.horizontalPadding)
         .padding(.vertical, FormaTokens.Spacing.md)
@@ -267,7 +158,8 @@ private struct JourneyWeeklyReviewPreviewCard: View {
 #Preview("Theme matrix — Blossom Pink") {
     ScrollView {
         JourneyHealthIntelligenceSection(
-            state: JourneyHealthIntelligencePreviewData.strongWeek
+            state: JourneyHealthIntelligencePreviewData.strongWeek,
+            onWeeklyReviewSelected: { _ in }
         )
         .padding(.horizontal, JourneyLayout.horizontalPadding)
         .padding(.vertical, FormaTokens.Spacing.md)
@@ -279,7 +171,8 @@ private struct JourneyWeeklyReviewPreviewCard: View {
 #Preview("Dark mode") {
     ScrollView {
         JourneyHealthIntelligenceSection(
-            state: JourneyHealthIntelligencePreviewData.strongWeek
+            state: JourneyHealthIntelligencePreviewData.strongWeek,
+            onWeeklyReviewSelected: { _ in }
         )
         .padding(.horizontal, JourneyLayout.horizontalPadding)
         .padding(.vertical, FormaTokens.Spacing.md)

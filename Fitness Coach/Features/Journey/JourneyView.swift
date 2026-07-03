@@ -13,6 +13,7 @@ struct JourneyView: View {
     @ObservedObject var model: JourneyModel
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
     @EnvironmentObject private var trainingInsightsStore: TrainingInsightsStore
+    @State private var presentedWeeklyReviewDetail: WeeklyReviewDetailPresentation?
 
     let analyticsCoordinator: JourneyAnalyticsCoordinator
 
@@ -53,9 +54,25 @@ struct JourneyView: View {
                     }
                 }
                 .refreshable {
-                    await model.refresh()
+                    await model.refresh(forceWeeklyReviewRefresh: true)
                 }
                 .background(FormaTokens.Color.canvas)
+                .sheet(item: $presentedWeeklyReviewDetail) { presentation in
+                    NavigationStack {
+                        WeeklyReviewDetailView(state: presentation.state)
+                            .navigationTitle(FormaProductCopy.WeeklyReviewPresentation.sectionTitle)
+                            .navigationBarTitleDisplayMode(.inline)
+                            .toolbar {
+                                ToolbarItem(placement: .cancellationAction) {
+                                    Button(FormaProductCopy.Common.done) {
+                                        presentedWeeklyReviewDetail = nil
+                                    }
+                                }
+                            }
+                    }
+                    .background(FormaTokens.Color.canvas)
+                    .formaThemeReactive()
+                }
         }
     }
 
@@ -97,7 +114,10 @@ struct JourneyView: View {
                 analyticsCoordinator: analyticsCoordinator,
                 onCTA: handleCTA,
                 onGoToToday: { onOpenToday?() },
-                onConnectHealth: healthIntelligenceUIEnabled ? { onOpenPlan?() } : nil
+                onConnectHealth: healthIntelligenceUIEnabled ? { onOpenPlan?() } : nil,
+                onWeeklyReviewSelected: { detail in
+                    presentedWeeklyReviewDetail = WeeklyReviewDetailPresentation(state: detail)
+                }
             )
         }
         .formaMainTabScrollInsets()

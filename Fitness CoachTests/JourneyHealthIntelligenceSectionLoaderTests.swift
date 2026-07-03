@@ -118,6 +118,71 @@ final class JourneyHealthIntelligenceSectionLoaderTests: XCTestCase {
         XCTAssertTrue(input.recoveryDays.contains { $0.recovery.score == 80 })
     }
 
+    func testLoadInputUsesWeeklyReviewServiceWithoutForceRefresh() async {
+        let weeklyReviewService = LoaderMockWeeklyReviewService()
+        weeklyReviewService.latestReview = makeWeeklyReview()
+
+        let input = await JourneyHealthIntelligenceSectionLoader.loadInput(
+            referenceDate: referenceDay,
+            isAppleHealthConnected: true,
+            snapshotProvider: LoaderMockSnapshotService(snapshot: nil),
+            weeklyReviewProvider: weeklyReviewService,
+            engine: NoOpHealthIntelligenceEngine(),
+            cacheStore: MemoryHealthCacheStore(),
+            healthActivityQuery: makeActivityQuery(workouts: []),
+            healthDataRepository: LoaderMockRepository(connected: true),
+            forceWeeklyReviewRefresh: false,
+            enginesEnabled: false,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(weeklyReviewService.getLatestCallCount, 1)
+        XCTAssertEqual(weeklyReviewService.generateCallCount, 0)
+        XCTAssertEqual(input.weeklyReview?.title, "Solid training week")
+    }
+
+    func testLoadInputForceRefreshUsesGenerateWeeklyReview() async {
+        let weeklyReviewService = LoaderMockWeeklyReviewService()
+        weeklyReviewService.latestReview = makeWeeklyReview()
+
+        _ = await JourneyHealthIntelligenceSectionLoader.loadInput(
+            referenceDate: referenceDay,
+            isAppleHealthConnected: true,
+            snapshotProvider: LoaderMockSnapshotService(snapshot: nil),
+            weeklyReviewProvider: weeklyReviewService,
+            engine: NoOpHealthIntelligenceEngine(),
+            cacheStore: MemoryHealthCacheStore(),
+            healthActivityQuery: makeActivityQuery(workouts: []),
+            healthDataRepository: LoaderMockRepository(connected: true),
+            forceWeeklyReviewRefresh: true,
+            enginesEnabled: false,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(weeklyReviewService.generateCallCount, 1)
+        XCTAssertTrue(weeklyReviewService.lastForceRefresh)
+    }
+
+    // MARK: - Helpers
+
+    private func makeWeeklyReview() -> WeeklyHealthReview {
+        let weekEnd = referenceDay
+        let weekStart = calendar.date(byAdding: .day, value: -6, to: weekEnd) ?? weekEnd
+        return WeeklyHealthReview(
+            weekStartDate: weekStart,
+            weekEndDate: weekEnd,
+            title: "Solid training week",
+            summary: "Summary",
+            stats: .empty,
+            wins: [],
+            risks: [],
+            nextWeekFocus: [],
+            confidence: .moderate,
+            missingSignals: [],
+            generatedAt: weekEnd
+        )
+    }
+
     // MARK: - Helpers
 
     private func makeSnapshot(on day: Date, score: Int) -> HealthIntelligenceSnapshot {
@@ -215,5 +280,32 @@ private final class LoaderMockRepository: HealthDataRepositorying, @unchecked Se
 
     func refreshHealthData(days: Int, endingOn date: Date, calendar: Calendar) async -> HealthRefreshResult {
         HealthRefreshResult(daysRefreshed: 0, refreshedAt: Date())
+    }
+}
+
+private final class LoaderMockWeeklyReviewService: WeeklyReviewServing, @unchecked Sendable {
+    var latestReview: WeeklyHealthReview?
+    private(set) var getLatestCallCount = 0
+    private(set) var generateCallCount = 0
+    var lastForceRefresh = false
+
+    func getLatestCompletedWeeklyReview(calendar: Calendar) async -> WeeklyHealthReview? {
+        getLatestCallCount += 1
+        return latestReview
+    }
+
+    func getWeeklyReview(for weekStartDate: Date, calendar: Calendar) async -> WeeklyHealthReview? {
+        latestReview
+    }
+
+    func generateWeeklyReview(
+        for weekStartDate: Date,
+        forceRefresh: Bool,
+        allowPreview: Bool,
+        calendar: Calendar
+    ) async -> WeeklyHealthReview? {
+        generateCallCount += 1
+        lastForceRefresh = forceRefresh
+        return latestReview
     }
 }

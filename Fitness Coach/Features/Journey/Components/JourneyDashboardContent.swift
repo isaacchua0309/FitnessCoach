@@ -15,6 +15,7 @@ struct JourneyDashboardContent: View {
     var onCTA: (JourneyCTA) -> Void = { _ in }
     var onGoToToday: () -> Void = {}
     var onConnectHealth: (() -> Void)?
+    var onWeeklyReviewSelected: ((WeeklyReviewDetailState) -> Void)?
 
     var body: some View {
         LazyVStack(alignment: .leading, spacing: JourneyLayout.sectionSpacing) {
@@ -87,7 +88,8 @@ struct JourneyDashboardContent: View {
             if let healthIntelligenceSectionState {
                 JourneyHealthIntelligenceSection(
                     state: healthIntelligenceSectionState,
-                    onConnectHealth: onConnectHealth
+                    onConnectHealth: onConnectHealth,
+                    onWeeklyReviewSelected: onWeeklyReviewSelected
                 )
                 .accessibilityIdentifier("journey-health-intelligence-section")
             }

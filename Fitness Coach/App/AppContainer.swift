@@ -398,6 +398,7 @@ final class AppContainer {
             trainingInsightsStore: trainingInsightsStore,
             workoutReader: healthKitWorkoutReader,
             healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
+            weeklyReviewService: weeklyReviewService,
             healthIntelligenceEngine: healthIntelligenceEngine,
             healthCacheStore: healthCacheStore,
             healthActivityQuery: healthActivityQueryService,

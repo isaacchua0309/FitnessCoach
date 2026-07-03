@@ -16,10 +16,12 @@ enum JourneyHealthIntelligenceSectionLoader {
         referenceDate: Date = Date(),
         isAppleHealthConnected: Bool,
         snapshotProvider: any HealthIntelligenceSnapshotServing,
+        weeklyReviewProvider: any WeeklyReviewServing = NoOpWeeklyReviewService(),
         engine: any HealthIntelligenceEngineing,
         cacheStore: any HealthCacheStore,
         healthActivityQuery: HealthActivityQueryService,
         healthDataRepository: any HealthDataRepositorying,
+        forceWeeklyReviewRefresh: Bool = false,
         enginesEnabled: Bool = HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled,
         recoveryTimelineDayCount: Int = defaultRecoveryDayCount,
         workoutHistoryWindowDays: Int = defaultWorkoutWindowDays,
@@ -55,16 +57,46 @@ enum JourneyHealthIntelligenceSectionLoader {
             healthActivityQuery: healthActivityQuery,
             calendar: calendar
         )
+        let weeklyReview = await loadWeeklyReview(
+            referenceDate: referenceDate,
+            provider: weeklyReviewProvider,
+            forceRefresh: forceWeeklyReviewRefresh,
+            calendar: calendar
+        )
 
         return JourneyHealthIntelligenceBuildInput(
             todaySnapshot: todaySnapshot,
             recoveryDays: recoveryDays,
             workoutRecords: workoutRecords,
-            weeklyReview: todaySnapshot?.weeklyReview,
-            planProgress: planProgress(from: todaySnapshot?.weeklyReview),
+            weeklyReview: weeklyReview,
+            planProgress: planProgress(from: weeklyReview),
             healthConnection: .connected,
             recoveryTimelineDayCount: recoveryTimelineDayCount
         )
+    }
+
+    // MARK: - Weekly review
+
+    private static func loadWeeklyReview(
+        referenceDate: Date,
+        provider: any WeeklyReviewServing,
+        forceRefresh: Bool,
+        calendar: Calendar
+    ) async -> WeeklyHealthReview? {
+        if forceRefresh,
+           let weekStart = WeeklyReviewWeekPolicy.latestCompletedWeekStart(
+               referenceDate: referenceDate,
+               calendar: calendar
+           ) {
+            return await provider.generateWeeklyReview(
+                for: weekStart,
+                forceRefresh: true,
+                allowPreview: false,
+                calendar: calendar
+            )
+        }
+
+        return await provider.getLatestCompletedWeeklyReview(calendar: calendar)
     }
 
     // MARK: - Recovery

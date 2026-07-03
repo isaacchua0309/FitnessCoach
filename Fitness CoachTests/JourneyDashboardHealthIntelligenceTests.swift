@@ -73,7 +73,9 @@ final class JourneyDashboardHealthIntelligenceTests: XCTestCase {
     func testHealthIntelligenceSectionStateIncludesExpectedSubsections() {
         let section = JourneyHealthIntelligencePreviewData.strongWeek
 
-        XCTAssertNotNil(section.weeklyReviewPreview)
+        XCTAssertNotNil(section.weeklyReviewCard)
+        XCTAssertEqual(section.weeklyReviewCard?.phase, .loaded)
+        XCTAssertNotNil(section.weeklyReviewDetail)
         XCTAssertEqual(section.recoveryTimeline.phase, .loaded)
         XCTAssertEqual(section.workoutHistory.phase, .loaded)
         XCTAssertEqual(section.milestones.phase, .loaded)

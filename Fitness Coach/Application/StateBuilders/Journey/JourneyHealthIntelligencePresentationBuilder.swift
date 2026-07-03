@@ -46,13 +46,16 @@ enum JourneyHealthIntelligencePresentationBuilder {
             return connectHealthSection()
         }
 
-        let weeklyReview = weeklyReviewPreview(
-            from: input.weeklyReview ?? input.todaySnapshot?.weeklyReview,
+        let weeklyPresentation = weeklyReviewPresentation(
+            from: input.weeklyReview,
+            isLoading: false,
+            showBuildingWhenMissing: connection == .connected && hasAnyHealthData,
             calendar: calendar
         )
 
         return JourneyHealthIntelligenceSectionState(
-            weeklyReviewPreview: weeklyReview,
+            weeklyReviewCard: weeklyPresentation.card,
+            weeklyReviewDetail: weeklyPresentation.detail,
             recoveryTimeline: recoveryTimeline(
                 from: recoveryDays,
                 dayCount: timelineDayCount,
@@ -83,6 +86,32 @@ enum JourneyHealthIntelligencePresentationBuilder {
 
     // MARK: - Weekly review
 
+    static func weeklyReviewPresentation(
+        from review: WeeklyHealthReview?,
+        isLoading: Bool,
+        showBuildingWhenMissing: Bool,
+        calendar: Calendar = .current
+    ) -> (card: WeeklyReviewCardState?, detail: WeeklyReviewDetailState?) {
+        if isLoading {
+            return (WeeklyReviewCardState.loading, nil)
+        }
+
+        if let review {
+            let card = WeeklyReviewPresentationBuilder.buildCard(from: review, calendar: calendar)
+            let detail = WeeklyReviewPresentationBuilder.buildDetail(from: review, calendar: calendar)
+            if card.phase == .loaded {
+                return (card, detail)
+            }
+        }
+
+        if showBuildingWhenMissing {
+            return (.empty, nil)
+        }
+
+        return (nil, nil)
+    }
+
+    /// Legacy weekly review preview mapping retained for migration reference.
     static func weeklyReviewPreview(
         from review: WeeklyHealthReview?,
         calendar: Calendar
@@ -592,7 +621,8 @@ enum JourneyHealthIntelligencePresentationBuilder {
 
     private static func loadingSection() -> JourneyHealthIntelligenceSectionState {
         JourneyHealthIntelligenceSectionState(
-            weeklyReviewPreview: .loading,
+            weeklyReviewCard: .loading,
+            weeklyReviewDetail: nil,
             recoveryTimeline: .loading,
             workoutHistory: .loading,
             milestones: .loading,
@@ -612,7 +642,8 @@ enum JourneyHealthIntelligencePresentationBuilder {
         )
 
         return JourneyHealthIntelligenceSectionState(
-            weeklyReviewPreview: nil,
+            weeklyReviewCard: nil,
+            weeklyReviewDetail: nil,
             recoveryTimeline: JourneyRecoveryTimelineState(
                 phase: .empty,
                 sectionTitle: FormaProductCopy.Journey.HealthIntelligence.RecoveryTimeline.sectionTitle,
@@ -661,17 +692,8 @@ enum JourneyHealthIntelligencePresentationBuilder {
 
     private static func errorSection(message: String) -> JourneyHealthIntelligenceSectionState {
         JourneyHealthIntelligenceSectionState(
-            weeklyReviewPreview: JourneyWeeklyReviewPreviewState(
-                phase: .error,
-                sectionTitle: FormaProductCopy.Journey.HealthIntelligence.WeeklyReview.sectionTitle,
-                weekRangeLabel: "",
-                title: FormaProductCopy.Journey.HealthIntelligence.errorTitle,
-                summary: message,
-                winLines: [],
-                focusLines: [],
-                confidenceNote: nil,
-                accessibilityLabel: message
-            ),
+            weeklyReviewCard: nil,
+            weeklyReviewDetail: nil,
             recoveryTimeline: JourneyRecoveryTimelineState(
                 phase: .error,
                 sectionTitle: FormaProductCopy.Journey.HealthIntelligence.RecoveryTimeline.sectionTitle,

@@ -324,6 +324,32 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
 
     // MARK: - Weekly review preview
 
+    func testWeeklyReviewPresentationMapsCardAndDetail() {
+        let presentation = JourneyHealthIntelligencePresentationBuilder.weeklyReviewPresentation(
+            from: makeWeeklyReview(),
+            isLoading: false,
+            showBuildingWhenMissing: false,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(presentation.card?.phase, .loaded)
+        XCTAssertEqual(presentation.card?.title, "Solid training week")
+        XCTAssertEqual(presentation.detail?.title, "Solid training week")
+        XCTAssertFalse(presentation.detail?.statsGrid.items.isEmpty ?? true)
+    }
+
+    func testWeeklyReviewPresentationShowsBuildingStateWhenMissingReview() {
+        let presentation = JourneyHealthIntelligencePresentationBuilder.weeklyReviewPresentation(
+            from: nil,
+            isLoading: false,
+            showBuildingWhenMissing: true,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(presentation.card?.phase, .empty)
+        XCTAssertNil(presentation.detail)
+    }
+
     func testWeeklyReviewPreviewMapsWeekRangeAndSummary() {
         let preview = JourneyHealthIntelligencePresentationBuilder.weeklyReviewPreview(
             from: makeWeeklyReview(),
@@ -350,7 +376,8 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
         )
 
         XCTAssertNotNil(section)
-        XCTAssertNotNil(section?.weeklyReviewPreview)
+        XCTAssertEqual(section?.weeklyReviewCard?.phase, .loaded)
+        XCTAssertNotNil(section?.weeklyReviewDetail)
         XCTAssertEqual(section?.recoveryTimeline.phase, .loaded)
         XCTAssertEqual(section?.workoutHistory.phase, .loaded)
         XCTAssertEqual(section?.milestones.phase, .loaded)

@@ -11,17 +11,20 @@ final class JourneyModelHealthIntelligenceTests: XCTestCase {
 
     private var harness: FitnessActionCenterTestSupport.Harness!
     private var snapshotProvider: MockJourneyHealthIntelligenceSnapshotService!
+    private var weeklyReviewService: MockJourneyWeeklyReviewService!
     private var healthRepository: MockJourneyHealthDataRepository!
 
     override func setUp() async throws {
         harness = try FitnessActionCenterTestSupport.makeHarness()
         snapshotProvider = MockJourneyHealthIntelligenceSnapshotService()
+        weeklyReviewService = MockJourneyWeeklyReviewService()
         healthRepository = MockJourneyHealthDataRepository()
     }
 
     override func tearDown() {
         harness = nil
         snapshotProvider = nil
+        weeklyReviewService = nil
         healthRepository = nil
         super.tearDown()
     }
@@ -37,6 +40,44 @@ final class JourneyModelHealthIntelligenceTests: XCTestCase {
         guard case .loaded = model.viewState else {
             return XCTFail("Expected loaded Journey dashboard")
         }
+    }
+
+    func testUIEnabledLoadsWeeklyReviewFromService() async throws {
+        _ = try harness.seedProfile(ownerUID: "test-user-1")
+        snapshotProvider.snapshot = makeReadySnapshot(on: harness.today)
+        weeklyReviewService.latestReview = makeCompletedWeeklyReview(endingOn: harness.today)
+        let model = makeModel(loadEnabled: true, uiEnabled: true, trainingConnected: true)
+
+        await model.refresh()
+
+        XCTAssertEqual(weeklyReviewService.getLatestCallCount, 1)
+        XCTAssertEqual(weeklyReviewService.generateCallCount, 0)
+        XCTAssertEqual(model.journeyHealthIntelligenceSectionState?.weeklyReviewCard?.phase, .loaded)
+        XCTAssertNotNil(model.journeyHealthIntelligenceSectionState?.weeklyReviewDetail)
+    }
+
+    func testPullToRefreshForceRegeneratesWeeklyReview() async throws {
+        _ = try harness.seedProfile(ownerUID: "test-user-1")
+        snapshotProvider.snapshot = makeReadySnapshot(on: harness.today)
+        weeklyReviewService.latestReview = makeCompletedWeeklyReview(endingOn: harness.today)
+        let model = makeModel(loadEnabled: true, uiEnabled: true, trainingConnected: true)
+
+        await model.refresh(forceWeeklyReviewRefresh: true)
+
+        XCTAssertEqual(weeklyReviewService.generateCallCount, 1)
+        XCTAssertTrue(weeklyReviewService.lastForceRefresh)
+    }
+
+    func testNoCompletedWeeklyReviewShowsBuildingCardWhenConnected() async throws {
+        _ = try harness.seedProfile(ownerUID: "test-user-1")
+        snapshotProvider.snapshot = makeReadySnapshot(on: harness.today)
+        weeklyReviewService.latestReview = nil
+        let model = makeModel(loadEnabled: true, uiEnabled: true, trainingConnected: true)
+
+        await model.refresh()
+
+        XCTAssertEqual(model.journeyHealthIntelligenceSectionState?.weeklyReviewCard?.phase, .empty)
+        XCTAssertNil(model.journeyHealthIntelligenceSectionState?.weeklyReviewDetail)
     }
 
     func testUIEnabledLoadsAndMapsHealthIntelligenceSection() async throws {
@@ -159,6 +200,7 @@ final class JourneyModelHealthIntelligenceTests: XCTestCase {
             trainingInsightsStore: trainingStore,
             workoutReader: MockHealthKitWorkoutReader(workouts: []),
             healthIntelligenceSnapshotProvider: snapshotProvider,
+            weeklyReviewService: weeklyReviewService,
             healthIntelligenceEngine: NoOpHealthIntelligenceEngine(),
             healthCacheStore: MemoryHealthCacheStore(),
             healthActivityQuery: harness.healthActivityQuery,
@@ -190,9 +232,67 @@ final class JourneyModelHealthIntelligenceTests: XCTestCase {
             nextBestAction: .none
         )
     }
+    private func makeCompletedWeeklyReview(endingOn day: Date) -> WeeklyHealthReview {
+        let calendar = Calendar.current
+        let weekEnd = calendar.startOfDay(for: day)
+        let weekStart = calendar.date(byAdding: .day, value: -6, to: weekEnd) ?? weekEnd
+        return WeeklyHealthReview(
+            weekStartDate: weekStart,
+            weekEndDate: weekEnd,
+            title: "Solid training week",
+            summary: "You logged consistent workouts and kept protein on track most days.",
+            stats: WeeklyStats(
+                totalWorkouts: 4,
+                totalWorkoutMinutes: 210,
+                totalActiveCalories: 1_420,
+                averageSteps: 8_200,
+                totalSteps: 57_400,
+                proteinHitDays: 5,
+                calorieTargetHitDays: 4,
+                waterHitDays: 3,
+                averageRecoveryScore: 68,
+                lowRecoveryDays: 1,
+                weightChangeKg: -0.3,
+                loggingConsistencyDays: 6
+            ),
+            wins: ["4 workouts logged"],
+            risks: ["Hydration dipped mid-week"],
+            nextWeekFocus: ["Front-load water"],
+            confidence: .moderate,
+            missingSignals: [],
+            generatedAt: weekEnd
+        )
+    }
 }
 
 // MARK: - Mocks
+
+private final class MockJourneyWeeklyReviewService: WeeklyReviewServing, @unchecked Sendable {
+    var latestReview: WeeklyHealthReview?
+    private(set) var getLatestCallCount = 0
+    private(set) var generateCallCount = 0
+    var lastForceRefresh = false
+
+    func getLatestCompletedWeeklyReview(calendar: Calendar) async -> WeeklyHealthReview? {
+        getLatestCallCount += 1
+        return latestReview
+    }
+
+    func getWeeklyReview(for weekStartDate: Date, calendar: Calendar) async -> WeeklyHealthReview? {
+        latestReview
+    }
+
+    func generateWeeklyReview(
+        for weekStartDate: Date,
+        forceRefresh: Bool,
+        allowPreview: Bool,
+        calendar: Calendar
+    ) async -> WeeklyHealthReview? {
+        generateCallCount += 1
+        lastForceRefresh = forceRefresh
+        return latestReview
+    }
+}
 
 private final class MockJourneyHealthIntelligenceSnapshotService: HealthIntelligenceSnapshotServing, @unchecked Sendable {
     var snapshot: HealthIntelligenceSnapshot?

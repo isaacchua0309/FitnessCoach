@@ -14,7 +14,8 @@ import Foundation
 // MARK: - Section root
 
 struct JourneyHealthIntelligenceSectionState: Equatable, Sendable, Codable {
-    var weeklyReviewPreview: JourneyWeeklyReviewPreviewState?
+    var weeklyReviewCard: WeeklyReviewCardState?
+    var weeklyReviewDetail: WeeklyReviewDetailState?
     var recoveryTimeline: JourneyRecoveryTimelineState
     var workoutHistory: JourneyWorkoutHistoryState
     var milestones: JourneyHealthMilestonesState
