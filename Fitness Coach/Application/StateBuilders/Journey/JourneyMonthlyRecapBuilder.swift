@@ -2,7 +2,7 @@
 //  JourneyMonthlyRecapBuilder.swift
 //  Fitness Coach
 //
-//  Forma — Current-month summary for Journey.
+//  Forma — Current-month progress story for Journey.
 //
 
 import Foundation
@@ -22,14 +22,29 @@ enum JourneyMonthlyRecapBuilder {
         var calendar: Calendar
     }
 
-    private static let minimumFoodLogDaysForCompleteRecap = 3
-
     static func build(_ input: Input) -> JourneyMonthlyRecapState {
         let copy = FormaProductCopy.Journey.MonthlyRecap.self
         let monthName = input.asOf.formatted(
             .dateTime.month(.wide).locale(input.calendar.locale ?? .current)
         )
         let sectionTitle = copy.sectionTitle(monthName: monthName)
+
+        let foodLoggedDays = JourneyLogMetrics.foodLoggedDays(in: input.monthLogs)
+        let isComplete = foodLoggedDays >= copy.minimumFoodLogDaysForRecap
+        let isVisible = foodLoggedDays > 0 || isComplete
+
+        guard isVisible else {
+            return hiddenState(sectionTitle: sectionTitle)
+        }
+
+        guard isComplete else {
+            return teaserState(
+                copy: copy,
+                sectionTitle: sectionTitle,
+                teaserTitle: copy.teaserTitle(monthName: monthName),
+                loggedDays: foodLoggedDays
+            )
+        }
 
         let monthWeights = input.allWeights.filter {
             input.calendar.isDate($0.date, equalTo: input.asOf, toGranularity: .month)
@@ -40,63 +55,120 @@ enum JourneyMonthlyRecapBuilder {
         let waterEligible = input.monthLogs.filter { $0.targets.waterTargetMl > 0 }
         let calorieEligible = input.monthLogs.filter { $0.targets.calorieTarget > 0 }
 
+        let proteinAchieved = JourneyLogMetrics.proteinGoalDays(in: input.monthLogs)
+        let waterAchieved = JourneyLogMetrics.waterGoalDays(in: input.monthLogs)
+        let calorieAchieved = JourneyLogMetrics.calorieAdherenceDays(in: input.monthLogs)
+
         let proteinPercent = JourneyLogMetrics.adherencePercent(
-            achieved: JourneyLogMetrics.proteinGoalDays(in: input.monthLogs),
+            achieved: proteinAchieved,
             eligible: proteinEligible.count
         )
         let waterPercent = JourneyLogMetrics.adherencePercent(
-            achieved: JourneyLogMetrics.waterGoalDays(in: input.monthLogs),
+            achieved: waterAchieved,
             eligible: waterEligible.count
         )
         let caloriePercent = JourneyLogMetrics.adherencePercent(
-            achieved: JourneyLogMetrics.calorieAdherenceDays(in: input.monthLogs),
+            achieved: calorieAchieved,
             eligible: calorieEligible.count
         )
 
-        let foodLoggedDays = JourneyLogMetrics.foodLoggedDays(in: input.monthLogs)
-        let isComplete = foodLoggedDays >= minimumFoodLogDaysForCompleteRecap
-
-        let bestHabit = bestHabitKind(input: input, daysElapsedInMonth: daysElapsedInMonth(input: input))
-        let bestHabitCopy = bestHabit.map { copy.bestHabit(for: $0) }
-
-        let showsTrainingRow = input.isAppleHealthConnected
-        let trainingSessions = showsTrainingRow ? input.monthHealthWorkoutCount : nil
-
-        var rows = metricRows(
-            copy: copy,
-            monthWeightDelta: monthWeightDelta,
-            goalDirection: input.goalDirection,
-            caloriePercent: caloriePercent,
+        let workoutDays = input.isAppleHealthConnected ? input.monthHealthWorkoutCount : nil
+        let bestStreakDays = bestLoggingStreak(in: input.monthLogs, calendar: input.calendar)
+        let daysElapsed = daysElapsedInMonth(input: input)
+        let grade = consistencyGrade(
+            foodLoggedDays: foodLoggedDays,
+            daysElapsed: daysElapsed,
             proteinPercent: proteinPercent,
             waterPercent: waterPercent,
-            trainingSessions: trainingSessions,
-            showsTrainingRow: showsTrainingRow,
-            foodLoggedDays: foodLoggedDays,
-            isComplete: isComplete
+            caloriePercent: caloriePercent,
+            workoutDays: workoutDays,
+            expectedTrainingDaysPerWeek: input.expectedTrainingDaysPerWeek,
+            isAppleHealthConnected: input.isAppleHealthConnected
         )
 
-        let summaryCopy = summaryCopy(
+        let rows = metricRows(
             copy: copy,
-            isComplete: isComplete,
             foodLoggedDays: foodLoggedDays,
-            bestHabitCopy: bestHabitCopy
+            proteinPercent: proteinPercent,
+            waterPercent: waterPercent,
+            caloriePercent: caloriePercent,
+            workoutDays: workoutDays,
+            monthWeightDelta: monthWeightDelta,
+            bestStreakDays: bestStreakDays,
+            grade: grade
         )
+
+        let gradeLabel = copy.overallGrade(grade)
+        let accessibilitySummary = ([sectionTitle] + rows.map { "\($0.title): \($0.value)" })
+            .joined(separator: ". ")
 
         return JourneyMonthlyRecapState(
-            isVisible: false,
+            isVisible: true,
             sectionTitle: sectionTitle,
-            isComplete: isComplete,
-            buildingMessage: isComplete ? nil : copy.buildingBody,
+            showsTeaser: false,
+            teaserTitle: nil,
+            teaserDetail: nil,
+            overallGrade: mapGrade(grade),
+            overallGradeLabel: gradeLabel,
+            loggedDays: foodLoggedDays,
             monthWeightDeltaKg: monthWeightDelta,
             calorieAdherencePercent: caloriePercent,
             proteinAdherencePercent: proteinPercent,
             waterAdherencePercent: waterPercent,
-            trainingSessions: trainingSessions,
-            showsTrainingRow: showsTrainingRow,
-            loggedDays: foodLoggedDays,
-            bestHabitCopy: isComplete ? bestHabitCopy : nil,
-            summaryCopy: summaryCopy,
-            rows: rows
+            trainingSessions: workoutDays,
+            bestStreakDays: bestStreakDays,
+            rows: rows,
+            accessibilitySummary: accessibilitySummary
+        )
+    }
+
+    // MARK: - Visibility
+
+    private static func hiddenState(sectionTitle: String) -> JourneyMonthlyRecapState {
+        JourneyMonthlyRecapState(
+            isVisible: false,
+            sectionTitle: sectionTitle,
+            showsTeaser: false,
+            teaserTitle: nil,
+            teaserDetail: nil,
+            overallGrade: nil,
+            overallGradeLabel: nil,
+            loggedDays: 0,
+            monthWeightDeltaKg: nil,
+            calorieAdherencePercent: nil,
+            proteinAdherencePercent: nil,
+            waterAdherencePercent: nil,
+            trainingSessions: nil,
+            bestStreakDays: nil,
+            rows: [],
+            accessibilitySummary: sectionTitle
+        )
+    }
+
+    private static func teaserState(
+        copy: FormaProductCopy.Journey.MonthlyRecap.Type,
+        sectionTitle: String,
+        teaserTitle: String,
+        loggedDays: Int
+    ) -> JourneyMonthlyRecapState {
+        let detail = copy.teaserDetail
+        return JourneyMonthlyRecapState(
+            isVisible: true,
+            sectionTitle: sectionTitle,
+            showsTeaser: true,
+            teaserTitle: teaserTitle,
+            teaserDetail: detail,
+            overallGrade: nil,
+            overallGradeLabel: nil,
+            loggedDays: loggedDays,
+            monthWeightDeltaKg: nil,
+            calorieAdherencePercent: nil,
+            proteinAdherencePercent: nil,
+            waterAdherencePercent: nil,
+            trainingSessions: nil,
+            bestStreakDays: nil,
+            rows: [],
+            accessibilitySummary: "\(sectionTitle). \(teaserTitle) \(detail)"
         )
     }
 
@@ -104,201 +176,158 @@ enum JourneyMonthlyRecapBuilder {
 
     private static func metricRows(
         copy: FormaProductCopy.Journey.MonthlyRecap.Type,
-        monthWeightDelta: Double?,
-        goalDirection: JourneyGoalDirection,
-        caloriePercent: Double?,
+        foodLoggedDays: Int,
         proteinPercent: Double?,
         waterPercent: Double?,
-        trainingSessions: Int?,
-        showsTrainingRow: Bool,
-        foodLoggedDays: Int,
-        isComplete: Bool
+        caloriePercent: Double?,
+        workoutDays: Int?,
+        monthWeightDelta: Double?,
+        bestStreakDays: Int?,
+        grade: FormaProductCopy.Journey.MonthlyRecap.Grade
     ) -> [JourneyMonthlyRecapMetricRow] {
         var rows: [JourneyMonthlyRecapMetricRow] = []
 
-        if isComplete {
-            if let monthWeightDelta, abs(monthWeightDelta) >= 0.1 {
-                rows.append(
-                    JourneyMonthlyRecapMetricRow(
-                        id: "weight",
-                        title: copy.weightTitle,
-                        value: copy.weightDelta(deltaKg: monthWeightDelta, direction: goalDirection)
-                    )
+        if foodLoggedDays > 0 {
+            rows.append(
+                JourneyMonthlyRecapMetricRow(
+                    id: "meals",
+                    title: copy.mealsLoggedTitle,
+                    value: copy.mealsLoggedValue(foodLoggedDays)
                 )
-            }
-            if let caloriePercent {
-                rows.append(
-                    JourneyMonthlyRecapMetricRow(
-                        id: "calories",
-                        title: copy.caloriesTitle,
-                        value: copy.calorieAdherence(percent: Int((caloriePercent * 100).rounded()))
-                    )
-                )
-            }
-            if let proteinPercent {
-                rows.append(
-                    JourneyMonthlyRecapMetricRow(
-                        id: "protein",
-                        title: copy.proteinTitle,
-                        value: copy.adherencePercent(Int((proteinPercent * 100).rounded()))
-                    )
-                )
-            }
-            if let waterPercent {
-                rows.append(
-                    JourneyMonthlyRecapMetricRow(
-                        id: "water",
-                        title: copy.waterTitle,
-                        value: copy.adherencePercent(Int((waterPercent * 100).rounded()))
-                    )
-                )
-            }
-            if showsTrainingRow, let trainingSessions {
-                rows.append(
-                    JourneyMonthlyRecapMetricRow(
-                        id: "training",
-                        title: copy.trainingTitle,
-                        value: copy.trainingSessions(trainingSessions)
-                    )
-                )
-            }
-        } else {
-            if foodLoggedDays > 0 {
-                rows.append(
-                    JourneyMonthlyRecapMetricRow(
-                        id: "logged-days",
-                        title: copy.loggedDaysTitle,
-                        value: copy.loggedDaysValue(foodLoggedDays)
-                    )
-                )
-            }
-            if let proteinPercent {
-                rows.append(
-                    JourneyMonthlyRecapMetricRow(
-                        id: "protein",
-                        title: copy.proteinTitle,
-                        value: copy.adherencePercent(Int((proteinPercent * 100).rounded()))
-                    )
-                )
-            }
-            if let waterPercent {
-                rows.append(
-                    JourneyMonthlyRecapMetricRow(
-                        id: "water",
-                        title: copy.waterTitle,
-                        value: copy.adherencePercent(Int((waterPercent * 100).rounded()))
-                    )
-                )
-            }
+            )
         }
+
+        if let proteinPercent, proteinPercent > 0 {
+            rows.append(
+                JourneyMonthlyRecapMetricRow(
+                    id: "protein",
+                    title: copy.proteinTitle,
+                    value: copy.hitRatePercent(Int((proteinPercent * 100).rounded()))
+                )
+            )
+        }
+
+        if let waterPercent, waterPercent > 0 {
+            rows.append(
+                JourneyMonthlyRecapMetricRow(
+                    id: "water",
+                    title: copy.waterTitle,
+                    value: copy.hitRatePercent(Int((waterPercent * 100).rounded()))
+                )
+            )
+        }
+
+        if let workoutDays, workoutDays > 0 {
+            rows.append(
+                JourneyMonthlyRecapMetricRow(
+                    id: "workouts",
+                    title: copy.workoutDaysTitle,
+                    value: copy.workoutDays(workoutDays)
+                )
+            )
+        }
+
+        if let caloriePercent, caloriePercent > 0 {
+            rows.append(
+                JourneyMonthlyRecapMetricRow(
+                    id: "calories",
+                    title: copy.caloriesTitle,
+                    value: copy.hitRatePercent(Int((caloriePercent * 100).rounded()))
+                )
+            )
+        }
+
+        if let monthWeightDelta, abs(monthWeightDelta) >= 0.1 {
+            rows.append(
+                JourneyMonthlyRecapMetricRow(
+                    id: "weight",
+                    title: copy.weightTitle,
+                    value: copy.weightChange(deltaKg: monthWeightDelta)
+                )
+            )
+        }
+
+        if let bestStreakDays, bestStreakDays > 1 {
+            rows.append(
+                JourneyMonthlyRecapMetricRow(
+                    id: "streak",
+                    title: copy.bestStreakTitle,
+                    value: copy.bestStreak(days: bestStreakDays)
+                )
+            )
+        }
+
+        rows.append(
+            JourneyMonthlyRecapMetricRow(
+                id: "overall",
+                title: copy.overallTitle,
+                value: copy.overallGrade(grade)
+            )
+        )
 
         return rows
     }
 
-    // MARK: - Summary
+    // MARK: - Grade
 
-    private static func summaryCopy(
-        copy: FormaProductCopy.Journey.MonthlyRecap.Type,
-        isComplete: Bool,
+    private static func consistencyGrade(
         foodLoggedDays: Int,
-        bestHabitCopy: String?
-    ) -> String {
-        if !isComplete {
-            if foodLoggedDays > 0 {
-                return copy.loggedDaysSummary(foodLoggedDays)
-            }
-            return ""
+        daysElapsed: Int,
+        proteinPercent: Double?,
+        waterPercent: Double?,
+        caloriePercent: Double?,
+        workoutDays: Int?,
+        expectedTrainingDaysPerWeek: Int,
+        isAppleHealthConnected: Bool
+    ) -> FormaProductCopy.Journey.MonthlyRecap.Grade {
+        var rates: [Double] = []
+
+        if daysElapsed > 0 {
+            rates.append(Double(foodLoggedDays) / Double(daysElapsed))
         }
+        if let proteinPercent { rates.append(proteinPercent) }
+        if let waterPercent { rates.append(waterPercent) }
+        if let caloriePercent { rates.append(caloriePercent) }
 
-        var parts = [copy.loggedDaysSummary(foodLoggedDays)]
-        if let bestHabitCopy {
-            parts.append(bestHabitCopy)
-        }
-        return parts.joined(separator: " ")
-    }
-
-    // MARK: - Best habit
-
-    private static func bestHabitKind(
-        input: Input,
-        daysElapsedInMonth: Int
-    ) -> JourneyHabitKind? {
-        let monthLogs = input.monthLogs
-        guard !monthLogs.isEmpty, daysElapsedInMonth > 0 else { return nil }
-
-        var scores: [(JourneyHabitKind, Int)] = []
-
-        let foodDays = JourneyLogMetrics.foodLoggedDays(in: monthLogs)
-        scores.append((
-            .foodLogging,
-            percentScore(achieved: foodDays, eligible: daysElapsedInMonth)
-        ))
-
-        let proteinEligible = monthLogs.filter { $0.targets.proteinTarget > 0 }
-        if !proteinEligible.isEmpty {
-            scores.append((
-                .protein,
-                percentScore(
-                    achieved: JourneyLogMetrics.proteinGoalDays(in: monthLogs),
-                    eligible: proteinEligible.count
-                )
-            ))
-        }
-
-        let waterEligible = monthLogs.filter { $0.targets.waterTargetMl > 0 }
-        if !waterEligible.isEmpty {
-            scores.append((
-                .water,
-                percentScore(
-                    achieved: JourneyLogMetrics.waterGoalDays(in: monthLogs),
-                    eligible: waterEligible.count
-                )
-            ))
-        }
-
-        let calorieEligible = monthLogs.filter { $0.targets.calorieTarget > 0 }
-        if !calorieEligible.isEmpty {
-            scores.append((
-                .calorieAdherence,
-                percentScore(
-                    achieved: JourneyLogMetrics.calorieAdherenceDays(in: monthLogs),
-                    eligible: calorieEligible.count
-                )
-            ))
-        }
-
-        if input.isAppleHealthConnected, input.expectedTrainingDaysPerWeek > 0 {
+        if isAppleHealthConnected, let workoutDays, expectedTrainingDaysPerWeek > 0 {
             let expected = max(
                 1,
-                Int(ceil(Double(input.expectedTrainingDaysPerWeek) * Double(daysElapsedInMonth) / 7.0))
+                Int(ceil(Double(expectedTrainingDaysPerWeek) * Double(daysElapsed) / 7.0))
             )
-            scores.append((
-                .training,
-                percentScore(achieved: input.monthHealthWorkoutCount, eligible: expected)
-            ))
+            rates.append(Double(workoutDays) / Double(expected))
         }
 
-        return scores.max { lhs, rhs in
-            if lhs.1 != rhs.1 { return lhs.1 < rhs.1 }
-            return habitOrder(lhs.0) > habitOrder(rhs.0)
-        }?.0
-    }
+        guard !rates.isEmpty else { return .starting }
 
-    private static func percentScore(achieved: Int, eligible: Int) -> Int {
-        guard eligible > 0 else { return 0 }
-        return Int((Double(achieved) / Double(eligible) * 100).rounded())
-    }
+        let average = rates.reduce(0, +) / Double(rates.count)
+        let score = Int((average * 100).rounded())
 
-    private static func habitOrder(_ kind: JourneyHabitKind) -> Int {
-        switch kind {
-        case .foodLogging: return 0
-        case .protein: return 1
-        case .water: return 2
-        case .calorieAdherence: return 3
-        case .training: return 4
-        case .weightLogging: return 5
-        case .weekendLogging: return 6
+        switch score {
+        case 80...: return .excellent
+        case 60..<80: return .strong
+        case 40..<60: return .consistent
+        case 20..<40: return .building
+        default: return .starting
         }
+    }
+
+    private static func mapGrade(
+        _ grade: FormaProductCopy.Journey.MonthlyRecap.Grade
+    ) -> JourneyMonthlyRecapGrade {
+        switch grade {
+        case .starting: return .starting
+        case .building: return .building
+        case .consistent: return .consistent
+        case .strong: return .strong
+        case .excellent: return .excellent
+        }
+    }
+
+    // MARK: - Helpers
+
+    private static func bestLoggingStreak(in logs: [DailyLog], calendar: Calendar) -> Int? {
+        let streak = StreakCalculator.longestLoggingStreak(in: logs, calendar: calendar)
+        return streak > 0 ? streak : nil
     }
 
     private static func daysElapsedInMonth(input: Input) -> Int {

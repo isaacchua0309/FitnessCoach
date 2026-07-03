@@ -17,16 +17,18 @@ final class JourneyCleanupTests: XCTestCase {
         XCTAssertFalse(identifiers.contains("whyProgress"))
         XCTAssertFalse(identifiers.contains("beforeToday"))
         XCTAssertFalse(identifiers.contains("personalRecords"))
-        XCTAssertFalse(identifiers.contains("monthlyRecap"))
         XCTAssertFalse(identifiers.contains("journeyLevel"))
         XCTAssertFalse(identifiers.contains("detailedAnalytics"))
+        XCTAssertTrue(identifiers.contains("monthlyRecap"))
+        XCTAssertTrue(identifiers.contains("chapters"))
+        XCTAssertTrue(identifiers.contains("header"))
     }
 
-    func testBrandNewUserShowsNextAchievementCard() {
+    func testBrandNewUserShowsNextAchievementAndStartingEmptyState() {
         let dashboard = JourneyPreviewData.brandNewUser
 
         XCTAssertTrue(dashboard.milestone.isVisible)
-        XCTAssertFalse(dashboard.showsStartingEmptyState)
+        XCTAssertTrue(dashboard.showsStartingEmptyState)
     }
 
     func testStrongMomentumDoesNotShowStartingEmptyState() {
@@ -61,6 +63,7 @@ final class JourneyCleanupTests: XCTestCase {
                 "hasProfile",
                 "baseline",
                 "streaks",
+                "header",
                 "momentum",
                 "transformation",
                 "goalProjection",

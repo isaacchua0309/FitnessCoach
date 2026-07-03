@@ -1908,19 +1908,109 @@ enum FormaProductCopy {
             }
         }
 
-        enum MonthlyRecap {
-            static let buildingBody = "Your first monthly recap is building."
+        enum Header {
+            static let title = "Your journey"
+        }
 
-            static let weightTitle = "Weight"
-            static let caloriesTitle = "Calories"
+        enum Chapters {
+            static let sectionTitle = "Your chapter"
+            static let emptyBody = "Log your first meal to begin Chapter 1."
+
+            static func chapterLabel(_ number: Int) -> String {
+                "Chapter \(number)"
+            }
+
+            static func nextUnlock(_ chapterTitle: String) -> String {
+                "Next: \(chapterTitle)"
+            }
+
+            static func title(for chapter: Int) -> String {
+                switch chapter {
+                case 1: return "Building Foundations"
+                case 2: return "Creating Consistency"
+                case 3: return "Building Momentum"
+                case 4: return "Transformation"
+                case 5: return "Lifestyle"
+                default: return "Lifestyle"
+                }
+            }
+        }
+
+        enum MonthlyRecap {
+            static let minimumFoodLogDaysForRecap = 5
+
+            static let mealsLoggedTitle = "Meals logged"
             static let proteinTitle = "Protein"
             static let waterTitle = "Water"
-            static let trainingTitle = "Training"
-            static let loggedDaysTitle = "Logged days"
+            static let caloriesTitle = "Calories"
+            static let workoutDaysTitle = "Workout days"
+            static let weightTitle = "Weight"
+            static let bestStreakTitle = "Best streak"
+            static let overallTitle = "Overall"
+
+            static let teaserDetail =
+                "Complete more logs to unlock your first monthly recap."
 
             static func sectionTitle(monthName: String) -> String {
-                "\(monthName) Summary"
+                "\(monthName) Recap"
             }
+
+            static func teaserTitle(monthName: String) -> String {
+                "\(monthName) is building."
+            }
+
+            static func mealsLoggedValue(_ count: Int) -> String {
+                "\(count)"
+            }
+
+            static func hitRatePercent(_ percent: Int) -> String {
+                "\(percent)%"
+            }
+
+            static func workoutDays(_ count: Int) -> String {
+                "\(count)"
+            }
+
+            static func bestStreak(days: Int) -> String {
+                days == 1 ? "1 day" : "\(days) days"
+            }
+
+            static func weightChange(deltaKg: Double) -> String {
+                let formatted = abs(deltaKg).truncatingRemainder(dividingBy: 1) == 0
+                    ? String(format: "%.0f", abs(deltaKg))
+                    : String(format: "%.1f", abs(deltaKg))
+                if deltaKg < -0.05 {
+                    return "-\(formatted) kg"
+                }
+                if deltaKg > 0.05 {
+                    return "+\(formatted) kg"
+                }
+                return "\(formatted) kg"
+            }
+
+            enum Grade: String, Equatable, Sendable {
+                case starting
+                case building
+                case consistent
+                case strong
+                case excellent
+
+                var label: String {
+                    switch self {
+                    case .starting: return "Starting"
+                    case .building: return "Building"
+                    case .consistent: return "Consistent"
+                    case .strong: return "Strong month"
+                    case .excellent: return "Excellent month"
+                    }
+                }
+            }
+
+            static func overallGrade(_ grade: Grade) -> String {
+                grade.label
+            }
+
+            static let buildingBody = teaserDetail
 
             static func loggedDaysSummary(_ days: Int) -> String {
                 days == 1
@@ -1928,34 +2018,7 @@ enum FormaProductCopy {
                     : "You logged \(days) days this month."
             }
 
-            static func calorieAdherence(percent: Int) -> String {
-                "\(percent)% adherence"
-            }
-
-            static func adherencePercent(_ percent: Int) -> String {
-                "\(percent)%"
-            }
-
-            static func trainingSessions(_ count: Int) -> String {
-                count == 1 ? "1 session" : "\(count) sessions"
-            }
-
-            static func loggedDaysValue(_ days: Int) -> String {
-                days == 1 ? "1 day" : "\(days) days"
-            }
-
-            // Deprecated: preserved for future monthly recap revamp.
-            enum HabitKind {
-                case foodLogging
-                case protein
-                case water
-                case calorieAdherence
-                case training
-                case weightLogging
-                case weekendLogging
-            }
-
-            static func bestHabit(for kind: HabitKind) -> String {
+            static func bestHabit(for kind: JourneyHabitKind) -> String {
                 switch kind {
                 case .foodLogging:
                     return "Food logging was your strongest habit this month."
@@ -1975,30 +2038,18 @@ enum FormaProductCopy {
             }
 
             static func weightDelta(deltaKg: Double, direction: JourneyGoalDirection) -> String {
-                let magnitude = String(format: "%.1fkg", abs(deltaKg))
-                switch direction {
-                case .lose:
-                    if deltaKg < -0.05 { return "↓ \(magnitude)" }
-                    if deltaKg > 0.05 { return "↑ \(magnitude)" }
-                    return magnitude
-                case .gain:
-                    if deltaKg > 0.05 { return "↑ \(magnitude)" }
-                    if deltaKg < -0.05 { return "↓ \(magnitude)" }
-                    return magnitude
-                case .maintain:
-                    return String(format: "±%.1fkg", abs(deltaKg))
-                }
+                weightChange(deltaKg: deltaKg)
             }
         }
 
         enum Level {
-            static let sectionTitle = "Your level"
+            static let sectionTitle = Chapters.sectionTitle
             static let xpLabel = "XP"
-            static let earnExplanation = "Earn XP by logging consistently and building momentum."
-            static let emptyBody = "Log your first meal to start earning XP and building momentum."
+            static let earnExplanation = "Progress comes from logging consistently and unlocking milestones."
+            static let emptyBody = Chapters.emptyBody
 
             static func levelLabel(_ level: Int) -> String {
-                "Level \(level)"
+                Chapters.chapterLabel(level)
             }
 
             static func xpProgress(current: Int, required: Int) -> String {
@@ -2006,28 +2057,7 @@ enum FormaProductCopy {
             }
 
             static func title(for level: Int) -> String {
-                switch level {
-                case 1:
-                    return "Getting Started"
-                case 2:
-                    return "Building Habits"
-                case 3:
-                    return "Rhythm Builder"
-                case 4:
-                    return "Steady Progress"
-                case 5:
-                    return "Momentum Builder"
-                case 6:
-                    return "Habit Keeper"
-                case 7:
-                    return "Consistency Master"
-                case 8:
-                    return "Goal Driver"
-                case 9:
-                    return "Long-game Athlete"
-                default:
-                    return "Transformation Leader"
-                }
+                Chapters.title(for: level)
             }
         }
 

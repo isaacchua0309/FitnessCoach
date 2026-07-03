@@ -117,7 +117,27 @@ struct JourneyView: View {
     }
 }
 
-#Preview("Strong momentum") {
+#Preview("New user") {
+    let container = try! AppContainer(inMemory: true)
+    JourneyView(
+        model: JourneyModel.preview(scenario: .brandNewUser),
+        analyticsCoordinator: container.makeJourneyAnalyticsCoordinator()
+    )
+    .environmentObject(container.refreshCenter)
+    .environmentObject(container.trainingInsightsStore)
+}
+
+#Preview("Week 1 user") {
+    let container = try! AppContainer(inMemory: true)
+    JourneyView(
+        model: JourneyModel.preview(scenario: .weekOne),
+        analyticsCoordinator: container.makeJourneyAnalyticsCoordinator()
+    )
+    .environmentObject(container.refreshCenter)
+    .environmentObject(container.trainingInsightsStore)
+}
+
+#Preview("Weight loss user") {
     let container = try! AppContainer(inMemory: true)
     JourneyView(
         model: JourneyModel.preview(scenario: .strongMomentum),
@@ -127,10 +147,20 @@ struct JourneyView: View {
     .environmentObject(container.trainingInsightsStore)
 }
 
-#Preview("Plateau") {
+#Preview("Highly consistent user") {
     let container = try! AppContainer(inMemory: true)
     JourneyView(
-        model: JourneyModel.preview(scenario: .plateau),
+        model: JourneyModel.preview(scenario: .highlyConsistent),
+        analyticsCoordinator: container.makeJourneyAnalyticsCoordinator()
+    )
+    .environmentObject(container.refreshCenter)
+    .environmentObject(container.trainingInsightsStore)
+}
+
+#Preview("Insufficient data user") {
+    let container = try! AppContainer(inMemory: true)
+    JourneyView(
+        model: JourneyModel.preview(scenario: .sparseData),
         analyticsCoordinator: container.makeJourneyAnalyticsCoordinator()
     )
     .environmentObject(container.refreshCenter)

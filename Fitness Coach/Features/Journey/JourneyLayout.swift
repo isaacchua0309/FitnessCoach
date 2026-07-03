@@ -12,10 +12,12 @@ enum JourneyLayout {
     static let itemSpacing = FormaFeatureLayout.itemSpacing
     static let horizontalPadding = FormaFeatureLayout.horizontalPadding
 
+    /// Tighter stack between momentum strip and transformation hero.
+    static let heroStackSpacing = FormaTokens.Spacing.sm
+
     /// Extra breathing room after the flagship transformation hero.
     static let heroBottomSpacing = FormaTokens.Spacing.md
 
     /// Padding below the last Journey section (see `FormaMainTabLayout`).
     static let scrollBottomContentPadding = FormaFeatureLayout.scrollBottomPadding
 }
-

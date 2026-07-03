@@ -331,7 +331,23 @@ struct JourneyWeeklyHabitState: Equatable {
     }
 }
 
+// MARK: - Header
+
+struct JourneyHeaderState: Equatable {
+    var title: String
+    var subtitle: String
+    var accessibilitySummary: String
+}
+
 // MARK: - Monthly recap
+
+enum JourneyMonthlyRecapGrade: String, Equatable, Sendable {
+    case starting
+    case building
+    case consistent
+    case strong
+    case excellent
+}
 
 struct JourneyMonthlyRecapMetricRow: Identifiable, Equatable {
     var id: String
@@ -342,60 +358,52 @@ struct JourneyMonthlyRecapMetricRow: Identifiable, Equatable {
 struct JourneyMonthlyRecapState: Equatable {
     var isVisible: Bool
     var sectionTitle: String
-    var isComplete: Bool
-    var buildingMessage: String?
+    var showsTeaser: Bool
+    var teaserTitle: String?
+    var teaserDetail: String?
+    var overallGrade: JourneyMonthlyRecapGrade?
+    var overallGradeLabel: String?
+    var loggedDays: Int
     var monthWeightDeltaKg: Double?
     var calorieAdherencePercent: Double?
     var proteinAdherencePercent: Double?
     var waterAdherencePercent: Double?
     var trainingSessions: Int?
-    var showsTrainingRow: Bool
-    var loggedDays: Int
-    var bestHabitCopy: String?
-    var summaryCopy: String
+    var bestStreakDays: Int?
     var rows: [JourneyMonthlyRecapMetricRow]
+    var accessibilitySummary: String
+
+    var isComplete: Bool {
+        isVisible && !showsTeaser
+    }
+
+    var buildingMessage: String? {
+        showsTeaser ? teaserDetail : nil
+    }
+
+    var summaryCopy: String {
+        accessibilitySummary
+    }
+
+    var showsTrainingRow: Bool {
+        trainingSessions != nil
+    }
+
+    var bestHabitCopy: String? {
+        nil
+    }
 }
 
-// MARK: - Chapter / XP
+// MARK: - Chapter
 
 struct JourneyChapterState: Equatable {
     var isVisible: Bool
     var sectionTitle: String
-    var levelLabel: String
-    var levelTitle: String
-    var xpProgressLabel: String
+    var chapterNumber: Int
+    var chapterTitle: String
+    var nextUnlockLabel: String?
     var progressPercent: Double
-    var totalXP: Int
-    var explanation: String
     var emptyMessage: String?
-
-    static func fromLevel(_ level: JourneyLevelState) -> JourneyChapterState {
-        let copy = FormaProductCopy.Journey.Level.self
-        return JourneyChapterState(
-            isVisible: level.hasData,
-            sectionTitle: copy.sectionTitle,
-            levelLabel: copy.levelLabel(level.currentLevel),
-            levelTitle: level.levelTitle,
-            xpProgressLabel: copy.xpProgress(
-                current: level.currentXP,
-                required: level.xpRequiredForNextLevel
-            ),
-            progressPercent: level.progressPercent,
-            totalXP: level.totalXP,
-            explanation: level.xpEarnedExplanation,
-            emptyMessage: level.hasData ? nil : copy.emptyBody
-        )
-    }
-}
-
-/// Internal builder output for XP progression.
-struct JourneyLevelState: Equatable {
-    var currentLevel: Int
-    var levelTitle: String
-    var currentXP: Int
-    var xpRequiredForNextLevel: Int
     var totalXP: Int
-    var progressPercent: Double
-    var xpEarnedExplanation: String
-    var hasData: Bool
+    var accessibilitySummary: String
 }

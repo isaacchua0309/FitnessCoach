@@ -363,15 +363,20 @@ final class JourneyManualQAChecklistTests: XCTestCase {
 
     func testManualQA_LeanLayoutMountsOnlyRevampSections() {
         let order = JourneyProductLayout.sectionOrder.map(\.rawValue)
+        XCTAssertEqual(order.first, "header")
         XCTAssertTrue(order.contains("transformation"))
         XCTAssertTrue(order.contains("goalProjection"))
         XCTAssertTrue(order.contains("weeklyReview"))
         XCTAssertTrue(order.contains("insights"))
         XCTAssertTrue(order.contains("milestones"))
         XCTAssertTrue(order.contains("storyTimeline"))
-        XCTAssertTrue(order.contains("startingEmptyState"))
+        XCTAssertTrue(order.contains("monthlyRecap"))
+        XCTAssertTrue(order.contains("chapters"))
+        XCTAssertEqual(order.last, "startingEmptyState")
         XCTAssertFalse(order.contains("detailedAnalytics"))
         XCTAssertFalse(order.contains("consistencyCalendar"))
+        XCTAssertFalse(order.contains("beforeToday"))
+        XCTAssertFalse(order.contains("journeyLevel"))
     }
 
     // MARK: - Helpers

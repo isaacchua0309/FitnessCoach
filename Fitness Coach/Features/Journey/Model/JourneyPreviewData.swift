@@ -15,6 +15,7 @@ enum JourneyPreviewData {
         case brandNewUser
         case weekOne
         case strongMomentum
+        case highlyConsistent
         case plateau
         case nearGoal
         case gainGoal
@@ -38,6 +39,7 @@ enum JourneyPreviewData {
 
     static let brandNewUser = dashboard(.brandNewUser)
     static let weekOne = dashboard(.weekOne)
+    static let highlyConsistent = dashboard(.highlyConsistent)
     static let plateau = dashboard(.plateau)
     static let nearGoal = dashboard(.nearGoal)
     static let gainGoal = dashboard(.gainGoal)
@@ -54,6 +56,8 @@ enum JourneyPreviewData {
             return makeWeekOneDashboard()
         case .strongMomentum:
             return makeStrongMomentumDashboard()
+        case .highlyConsistent:
+            return makeHighlyConsistentDashboard()
         case .plateau:
             return makePlateauDashboard()
         case .nearGoal:
@@ -250,6 +254,66 @@ enum JourneyPreviewData {
             previousWeek: nil,
             healthConnected: true,
             healthWorkoutDayOffsets: [1]
+        )
+    }
+
+    private static func makeHighlyConsistentDashboard() -> JourneyDashboardState {
+        let direction: JourneyGoalDirection = .lose
+        let profile = makeProfile(
+            name: "Alex",
+            currentWeight: 85.4,
+            goalWeight: 75,
+            createdDaysAgo: 56,
+            trainingFrequencyPerWeek: 4
+        )
+        let baseline = makeBaseline(
+            startWeight: 90,
+            currentWeight: 85.4,
+            goalWeight: 75,
+            direction: direction,
+            progressPercent: 46,
+            daysOnJourney: 56,
+            hasRealWeightEntries: true,
+            usesSyntheticBaseline: false,
+            chartPoints: decliningWeightPoints(startKg: 90.2, dropPerStep: 0.38, count: 12),
+            estimatedMonth: "September"
+        )
+
+        return assembleRichDashboard(
+            profile: profile,
+            baseline: baseline,
+            loggedDays: 48,
+            loggingStreak: 14,
+            longestStreak: 21,
+            proteinStreak: 10,
+            waterStreak: 9,
+            trainingWeeks: 6,
+            isTodayLogged: true,
+            weightTrendDirection: .decreasing,
+            foodLogDays: 48,
+            proteinGoalDays: 42,
+            waterGoalDays: 40,
+            weekFoodLoggedDays: 7,
+            weekProteinGoalDays: 7,
+            weekWaterGoalDays: 7,
+            weekCalorieAdherenceDays: 7,
+            trainingDays: 4,
+            training: .connected(
+                workoutDays: 4,
+                averageCaloriesBurned: 330,
+                averageTrainingDurationMinutes: 48
+            ),
+            weeklyWeightDeltaKg: -0.5,
+            previousWeek: JourneyWeeklyReviewPreviousWeek(
+                foodLoggedDays: 7,
+                proteinGoalDays: 7,
+                waterGoalDays: 6,
+                calorieAdherenceDays: 7,
+                trainingDays: 4,
+                weightDeltaKg: -0.4
+            ),
+            healthConnected: true,
+            healthWorkoutDayOffsets: [28, 21, 14, 7]
         )
     }
 

@@ -72,8 +72,8 @@ enum JourneyPresentationBuilder {
             )
         )
 
-        let level = JourneyLevelBuilder.build(
-            JourneyLevelBuilder.Input(
+        let chapter = JourneyChapterBuilder.build(
+            JourneyChapterBuilder.Input(
                 maturityLogs: context.maturityLogs,
                 allWeights: context.allWeights,
                 healthWorkoutDayStarts: context.healthWorkoutDayStarts,
@@ -83,19 +83,45 @@ enum JourneyPresentationBuilder {
             )
         )
 
+        let momentumState = momentum(context: context, loggedDays: loggedDays)
+        let transformationState = hero(
+            context: context,
+            loggedDays: loggedDays,
+            hasProfile: hasProfile
+        )
+
         return JourneyDashboardState(
             hasProfile: hasProfile,
             baseline: context.baseline,
             streaks: context.journeyStreaks,
-            momentum: momentum(context: context, loggedDays: loggedDays),
-            transformation: hero(context: context, loggedDays: loggedDays, hasProfile: hasProfile),
+            header: header(momentum: momentumState, transformation: transformationState),
+            momentum: momentumState,
+            transformation: transformationState,
             goalProjection: goalProjection(context: context),
             milestone: milestoneResult.presentation,
             storyEvents: storyEvents(from: timeline, calendar: context.calendar),
             insight: personalizedInsights(context: context),
             weeklyHabit: weeklyHabit,
             monthlyRecap: monthlyRecapState(from: monthlyRecap),
-            chapter: JourneyChapterState.fromLevel(level)
+            chapter: chapter
+        )
+    }
+
+    // MARK: - Header
+
+    static func header(
+        momentum: JourneyMomentumState,
+        transformation: JourneyTransformationState
+    ) -> JourneyHeaderState {
+        let copy = FormaProductCopy.Journey.Header.self
+        let subtitle = momentum.isVisible
+            ? momentum.headline
+            : transformation.primaryMessage
+
+        return JourneyHeaderState(
+            title: copy.title,
+            subtitle: subtitle,
+            accessibilitySummary: "\(copy.title). \(subtitle)"
         )
     }
 
@@ -330,16 +356,23 @@ enum JourneyPresentationBuilder {
         )
 
         if maturityLogs.isEmpty, weekLogs.isEmpty {
+            let momentumState = momentum(context: context, loggedDays: loggedDays)
+            let transformationState = hero(
+                context: context,
+                loggedDays: loggedDays,
+                hasProfile: hasProfile
+            )
+            let monthName = asOf.formatted(.dateTime.month(.wide))
+            let recapCopy = FormaProductCopy.Journey.MonthlyRecap.self
+            let chapterCopy = FormaProductCopy.Journey.Chapters.self
+
             return JourneyDashboardState(
                 hasProfile: hasProfile,
                 baseline: baseline,
                 streaks: streaks,
-                momentum: momentum(context: context, loggedDays: loggedDays),
-                transformation: hero(
-                    context: context,
-                    loggedDays: loggedDays,
-                    hasProfile: hasProfile
-                ),
+                header: header(momentum: momentumState, transformation: transformationState),
+                momentum: momentumState,
+                transformation: transformationState,
                 goalProjection: goalProjection(context: context),
                 milestone: milestoneResult.presentation,
                 storyEvents: storyEvents(from: storyTimeline, calendar: calendar),
@@ -356,32 +389,32 @@ enum JourneyPresentationBuilder {
                 weeklyHabit: weeklyHabit,
                 monthlyRecap: JourneyMonthlyRecapState(
                     isVisible: false,
-                    sectionTitle: FormaProductCopy.Journey.MonthlyRecap.sectionTitle(
-                        monthName: asOf.formatted(.dateTime.month(.wide))
-                    ),
-                    isComplete: false,
-                    buildingMessage: FormaProductCopy.Journey.MonthlyRecap.buildingBody,
+                    sectionTitle: recapCopy.sectionTitle(monthName: monthName),
+                    showsTeaser: false,
+                    teaserTitle: nil,
+                    teaserDetail: nil,
+                    overallGrade: nil,
+                    overallGradeLabel: nil,
+                    loggedDays: 0,
                     monthWeightDeltaKg: nil,
                     calorieAdherencePercent: nil,
                     proteinAdherencePercent: nil,
                     waterAdherencePercent: nil,
                     trainingSessions: nil,
-                    showsTrainingRow: training.isConnected,
-                    loggedDays: 0,
-                    bestHabitCopy: nil,
-                    summaryCopy: "",
-                    rows: []
+                    bestStreakDays: nil,
+                    rows: [],
+                    accessibilitySummary: recapCopy.sectionTitle(monthName: monthName)
                 ),
                 chapter: JourneyChapterState(
-                    isVisible: false,
-                    sectionTitle: FormaProductCopy.Journey.Level.sectionTitle,
-                    levelLabel: FormaProductCopy.Journey.Level.levelLabel(1),
-                    levelTitle: FormaProductCopy.Journey.Level.title(for: 1),
-                    xpProgressLabel: FormaProductCopy.Journey.Level.xpProgress(current: 0, required: 100),
+                    isVisible: true,
+                    sectionTitle: chapterCopy.sectionTitle,
+                    chapterNumber: 1,
+                    chapterTitle: chapterCopy.title(for: 1),
+                    nextUnlockLabel: chapterCopy.nextUnlock(chapterCopy.title(for: 2)),
                     progressPercent: 0,
+                    emptyMessage: chapterCopy.emptyBody,
                     totalXP: 0,
-                    explanation: FormaProductCopy.Journey.Level.emptyBody,
-                    emptyMessage: FormaProductCopy.Journey.Level.emptyBody
+                    accessibilitySummary: "\(chapterCopy.sectionTitle). \(chapterCopy.chapterLabel(1))"
                 )
             )
         }

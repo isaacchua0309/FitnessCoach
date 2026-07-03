@@ -502,8 +502,8 @@ enum JourneyTimelineBuilder {
             let logsThroughDay = input.maturityLogs.filter {
                 input.calendar.startOfDay(for: $0.date) <= day
             }
-            let xp = JourneyLevelBuilder.computeTotalXP(
-                input: JourneyLevelBuilder.Input(
+            let xp = JourneyChapterBuilder.computeTotalXP(
+                input: JourneyChapterBuilder.Input(
                     maturityLogs: logsThroughDay,
                     allWeights: input.allWeights.filter {
                         input.calendar.startOfDay(for: $0.date) <= day
@@ -514,8 +514,8 @@ enum JourneyTimelineBuilder {
                     calendar: input.calendar
                 )
             )
-            let level = JourneyLevelBuilder.levelProgress(totalXP: xp).level
-            if level > 1, previousLevel == 1 {
+            let chapter = JourneyChapterBuilder.chapterProgress(totalXP: xp).chapter
+            if chapter > 1, previousLevel == 1 {
                 return day
             }
             previousLevel = max(previousLevel, level)

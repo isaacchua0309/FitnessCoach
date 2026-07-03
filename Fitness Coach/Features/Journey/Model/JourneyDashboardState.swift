@@ -13,6 +13,7 @@ struct JourneyDashboardState: Equatable {
     var baseline: JourneyBaseline
     var streaks: JourneyStreakState
 
+    var header: JourneyHeaderState
     var momentum: JourneyMomentumState
     var transformation: JourneyTransformationState
     var goalProjection: JourneyGoalProjectionState
@@ -44,16 +45,24 @@ extension JourneyDashboardState {
         )
     }
 
+    var hasMeaningfulJourneyData: Bool {
+        weeklyHabit.showsHabitRows
+            || !milestones.unlocked.isEmpty
+            || baseline.hasRealWeightEntries
+            || streaks.currentLoggingStreakDays >= 2
+            || insight.isUnlocked
+    }
+
     var showsMilestonesSection: Bool {
         milestone.isVisible
     }
 
     var showsStoryTimelineSection: Bool {
-        !storyEvents.isEmpty
+        hasMeaningfulJourneyData && !storyEvents.isEmpty
     }
 
     var showsStartingEmptyState: Bool {
-        !showsMilestonesSection && !showsStoryTimelineSection
+        !hasMeaningfulJourneyData
     }
 
     var showsMomentumSection: Bool {
@@ -61,18 +70,22 @@ extension JourneyDashboardState {
     }
 
     var showsGoalProjectionSection: Bool {
-        goalProjection.isVisible
+        hasMeaningfulJourneyData && goalProjection.isVisible
+    }
+
+    var showsWeeklyReviewSection: Bool {
+        hasMeaningfulJourneyData && weeklyHabit.isVisible
     }
 
     var showsInsightSection: Bool {
-        insight.isVisible
+        hasMeaningfulJourneyData && insight.isVisible
     }
 
     var showsMonthlyRecapSection: Bool {
-        monthlyRecap.isVisible
+        hasMeaningfulJourneyData && monthlyRecap.isVisible
     }
 
     var showsChapterSection: Bool {
-        chapter.isVisible
+        hasMeaningfulJourneyData
     }
 }

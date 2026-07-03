@@ -10,12 +10,15 @@ final class JourneyProgressStructureTests: XCTestCase {
 
     func testProductSectionOrderMatchesCanonicalLayout() {
         XCTAssertEqual(JourneyProductLayout.sectionOrder, [
+            .header,
             .transformation,
             .goalProjection,
-            .weeklyReview,
-            .insights,
             .milestones,
+            .weeklyReview,
             .storyTimeline,
+            .insights,
+            .monthlyRecap,
+            .chapters,
             .startingEmptyState
         ])
         XCTAssertEqual(JourneyProductLayout.sectionOrder.last, .startingEmptyState)
@@ -28,7 +31,6 @@ final class JourneyProgressStructureTests: XCTestCase {
         XCTAssertFalse(identifiers.contains("whyProgress"))
         XCTAssertFalse(identifiers.contains("beforeToday"))
         XCTAssertFalse(identifiers.contains("personalRecords"))
-        XCTAssertFalse(identifiers.contains("monthlyRecap"))
         XCTAssertFalse(identifiers.contains("journeyLevel"))
         XCTAssertFalse(identifiers.contains("detailedAnalytics"))
         XCTAssertFalse(identifiers.contains("consistencyCalendar"))
@@ -36,12 +38,17 @@ final class JourneyProgressStructureTests: XCTestCase {
         XCTAssertFalse(identifiers.contains("achievements"))
     }
 
-    func testBrandNewUserShowsNextAchievementCard() {
+    func testBrandNewUserShowsLeanAboveTheFoldLayout() {
         let dashboard = JourneyPreviewData.brandNewUser
 
-        XCTAssertFalse(dashboard.showsStartingEmptyState)
+        XCTAssertTrue(dashboard.showsStartingEmptyState)
         XCTAssertTrue(dashboard.showsMilestonesSection)
-        XCTAssertTrue(dashboard.showsStoryTimelineSection)
+        XCTAssertFalse(dashboard.showsStoryTimelineSection)
+        XCTAssertFalse(dashboard.showsGoalProjectionSection)
+        XCTAssertFalse(dashboard.showsWeeklyReviewSection)
+        XCTAssertFalse(dashboard.showsInsightSection)
+        XCTAssertFalse(dashboard.showsMonthlyRecapSection)
+        XCTAssertFalse(dashboard.showsChapterSection)
         XCTAssertEqual(
             dashboard.milestone.title,
             FormaProductCopy.Journey.Milestones.NextAchievement.firstMealTitle
@@ -54,5 +61,7 @@ final class JourneyProgressStructureTests: XCTestCase {
         XCTAssertFalse(dashboard.showsStartingEmptyState)
         XCTAssertTrue(dashboard.showsMilestonesSection)
         XCTAssertTrue(dashboard.showsStoryTimelineSection)
+        XCTAssertTrue(dashboard.showsMonthlyRecapSection)
+        XCTAssertTrue(dashboard.showsChapterSection)
     }
 }

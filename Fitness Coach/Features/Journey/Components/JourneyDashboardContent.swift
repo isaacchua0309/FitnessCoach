@@ -20,7 +20,7 @@ struct JourneyDashboardContent: View {
             }
         }
         .padding(.horizontal, JourneyLayout.horizontalPadding)
-        .padding(.top, FormaTokens.Spacing.md)
+        .padding(.top, FormaTokens.Spacing.sm)
         .padding(.bottom, JourneyLayout.scrollBottomContentPadding)
         .accessibilityIdentifier("journey-dashboard")
     }
@@ -28,18 +28,26 @@ struct JourneyDashboardContent: View {
     private var visibleSections: [JourneyProductSection] {
         JourneyProductLayout.sectionOrder.filter { section in
             switch section {
-            case .milestones:
-                return state.showsMilestonesSection
-            case .storyTimeline:
-                return state.showsStoryTimelineSection
-            case .startingEmptyState:
-                return state.showsStartingEmptyState
+            case .header:
+                return true
+            case .transformation:
+                return true
             case .goalProjection:
                 return state.showsGoalProjectionSection
+            case .milestones:
+                return state.showsMilestonesSection
+            case .weeklyReview:
+                return state.showsWeeklyReviewSection
+            case .storyTimeline:
+                return state.showsStoryTimelineSection
             case .insights:
                 return state.showsInsightSection
-            case .transformation, .weeklyReview:
-                return true
+            case .monthlyRecap:
+                return state.showsMonthlyRecapSection
+            case .chapters:
+                return state.showsChapterSection
+            case .startingEmptyState:
+                return state.showsStartingEmptyState
             }
         }
     }
@@ -47,29 +55,43 @@ struct JourneyDashboardContent: View {
     @ViewBuilder
     private func sectionView(for section: JourneyProductSection) -> some View {
         switch section {
+        case .header:
+            JourneyHeaderSection(state: state.header)
+
         case .transformation:
-            JourneyTransformationHeroSection(state: state.transformation, onCTA: onCTA)
-                .padding(.bottom, JourneyLayout.heroBottomSpacing)
-                .onAppear { analyticsCoordinator?.logTransformationViewed() }
+            VStack(alignment: .leading, spacing: JourneyLayout.heroStackSpacing) {
+                if state.showsMomentumSection {
+                    JourneyMomentumStrip(state: state.momentum)
+                }
+                JourneyTransformationHeroSection(state: state.transformation, onCTA: onCTA)
+            }
+            .padding(.bottom, JourneyLayout.heroBottomSpacing)
+            .onAppear { analyticsCoordinator?.logTransformationViewed() }
 
         case .goalProjection:
             JourneyGoalProjectionSection(state: state.goalProjection, onCTA: onCTA)
                 .onAppear { analyticsCoordinator?.logGoalProjectionViewed() }
 
-        case .weeklyReview:
-            JourneyWeeklyReviewSection(state: state.weeklyHabit, onCTA: onCTA)
-                .onAppear { analyticsCoordinator?.logWeeklyReviewViewed() }
-
-        case .insights:
-            JourneyInsightsSection(state: state.insight)
-
         case .milestones:
             JourneyMilestonesSection(state: state.milestone)
                 .onAppear { analyticsCoordinator?.logMilestoneRailViewed() }
 
+        case .weeklyReview:
+            JourneyWeeklyReviewSection(state: state.weeklyHabit, onCTA: onCTA)
+                .onAppear { analyticsCoordinator?.logWeeklyReviewViewed() }
+
         case .storyTimeline:
             JourneyStoryTimelineSection(state: state.storyTimeline)
                 .onAppear { analyticsCoordinator?.logTimelineViewed() }
+
+        case .insights:
+            JourneyInsightsSection(state: state.insight)
+
+        case .monthlyRecap:
+            JourneyMonthlyRecapSection(state: state.monthlyRecap)
+
+        case .chapters:
+            JourneyChapterSection(state: state.chapter)
 
         case .startingEmptyState:
             JourneyStartingEmptyStateView(onGoToToday: onGoToToday)
