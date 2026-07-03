@@ -67,4 +67,13 @@ enum AIFoodConfirmationFormatter {
             return "This is a low-confidence estimate. Please review and edit before logging."
         }
     }
+
+    static func assumptionLines(for meal: FoodLogDraft) -> [String] {
+        meal.components.compactMap { component in
+            let assumptions = component.sourceText?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !assumptions.isEmpty else { return nil }
+            return "\(component.name): \(assumptions)"
+        }
+    }
 }

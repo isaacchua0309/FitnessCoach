@@ -13,6 +13,7 @@ struct CoachConfirmationBar: View {
     let onConfirm: () -> Void
     let onReject: () -> Void
     let onEdit: (() -> Void)?
+    let onRetryPhotoAnalysis: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.sm) {
@@ -29,7 +30,7 @@ struct CoachConfirmationBar: View {
                     Text(confirmation.summaryLine)
                         .font(CoachDesignTokens.Typography.messageBody)
                         .foregroundStyle(CoachDesignTokens.Color.primaryText)
-                        .lineLimit(3)
+                        .lineLimit(6)
                 }
 
                 Spacer(minLength: 0)
@@ -39,6 +40,13 @@ struct CoachConfirmationBar: View {
                 if let onEdit {
                     Button(FormaProductCopy.Coach.editPending) {
                         onEdit()
+                    }
+                    .buttonStyle(CoachConfirmationSecondaryButtonStyle())
+                }
+
+                if let onRetryPhotoAnalysis, confirmation.supportsPhotoRetry {
+                    Button(FormaProductCopy.Coach.retryMealPhotoAnalysis) {
+                        onRetryPhotoAnalysis()
                     }
                     .buttonStyle(CoachConfirmationSecondaryButtonStyle())
                 }
@@ -153,7 +161,8 @@ private struct CoachConfirmationSecondaryButtonStyle: ButtonStyle {
             isConfirming: false,
             onConfirm: {},
             onReject: {},
-            onEdit: {}
+            onEdit: {},
+            onRetryPhotoAnalysis: nil
         )
     }
     .background(CoachDesignTokens.Color.background)

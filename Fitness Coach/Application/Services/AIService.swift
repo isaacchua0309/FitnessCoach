@@ -132,7 +132,12 @@ final class AIService: AIServiceProtocol {
         }
 
         return try await traced(method: "analyzeMealImage", mapError: AICommandParser.mapFoodEstimate) {
-            try await llmClient.analyzeMealImage(request: request)
+            let response = try await llmClient.analyzeMealImage(request: request)
+            let validation = MealImageAnalysisResponseValidator.validate(response: response)
+            guard validation.isValid else {
+                throw AIServiceError.invalidNutritionJSON(validation.errors.joined(separator: " | "))
+            }
+            return response
         }
     }
 

@@ -372,6 +372,8 @@ final class CoachModel: ObservableObject {
         }
 
         let displayCaption = caption?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        clearPhotoLinkedPendingConfirmation()
+
         let userMessage = appendUserMealPhotoMessage(
             caption: displayCaption.isEmpty ? nil : displayCaption,
             jpegData: normalizedJPEG,
@@ -464,6 +466,7 @@ final class CoachModel: ObservableObject {
             userMessageID: userMessageID,
             event: .analysisFailed(errorMessage)
         )
+        clearPendingConfirmationIfLinked(to: userMessageID)
         if let failedSession = imageAnalysisSessionStore.session(forUserMessageID: userMessageID) {
             appendMealPhotoFailureMessage(
                 text: errorMessage,
@@ -697,18 +700,33 @@ final class CoachModel: ObservableObject {
         session: ImageAnalysisSession,
         supersedeExisting: Bool
     ) {
+        let priorFoodDraft: AIFoodConfirmationDraft? = {
+            guard supersedeExisting,
+                  case .food(let draft) = pendingConfirmation,
+                  draft.relatedPhotoUserMessageID == session.userMessageID else {
+                return nil
+            }
+            return draft
+        }()
+
         if supersedeExisting {
             removePhotoAnalysisMessages(
                 for: session.userMessageID,
                 sessionID: session.sessionId
             )
-            clearPendingConfirmationIfLinked(to: session.userMessageID)
+            if priorFoodDraft == nil {
+                clearPendingConfirmationIfLinked(to: session.userMessageID)
+            }
         }
 
         if var confirmation = result.pendingConfirmation,
            case .food(var draft) = confirmation {
             draft.imageAnalysisSessionID = session.sessionId
             draft.relatedPhotoUserMessageID = session.userMessageID
+            if let priorFoodDraft {
+                draft.id = priorFoodDraft.id
+                draft.createdAt = priorFoodDraft.createdAt
+            }
             confirmation = .food(draft)
             setPendingConfirmation(confirmation)
         }
@@ -741,6 +759,14 @@ final class CoachModel: ObservableObject {
     private func clearPendingConfirmationIfLinked(to userMessageID: UUID) {
         guard case .food(let draft) = pendingConfirmation,
               draft.relatedPhotoUserMessageID == userMessageID else {
+            return
+        }
+        clearPendingConfirmation()
+    }
+
+    private func clearPhotoLinkedPendingConfirmation() {
+        guard case .food(let draft) = pendingConfirmation,
+              draft.relatedPhotoUserMessageID != nil else {
             return
         }
         clearPendingConfirmation()

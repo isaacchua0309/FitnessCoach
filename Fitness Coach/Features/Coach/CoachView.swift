@@ -127,6 +127,11 @@ struct CoachView: View {
                     onEdit: pending.supportsEdit ? {
                         dismissKeyboard()
                         model.openFoodEditSheet()
+                    } : nil,
+                    onRetryPhotoAnalysis: pending.supportsPhotoRetry ? {
+                        dismissKeyboard()
+                        guard let userMessageID = pending.relatedPhotoUserMessageID else { return }
+                        Task { await model.retryMealPhotoAnalysis(for: userMessageID) }
                     } : nil
                 )
             }

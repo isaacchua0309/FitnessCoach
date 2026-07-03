@@ -164,6 +164,11 @@ final class CoachAIRouteHandler {
             previousAnalysis: recommission?.previousResult.map(MealImageAnalysisMapper.previousAnalysis)
         )
         let response = try await aiService.analyzeMealImage(request: request)
+        let extractionValidation = MealImageAnalysisResponseValidator.validate(response: response)
+        guard extractionValidation.isValid else {
+            throw AIServiceError.invalidNutritionJSON(extractionValidation.errors.joined(separator: " | "))
+        }
+
         let sessionResult = MealImageAnalysisMapper.sessionResult(from: response)
 
         let sanity = NutritionSanityValidator.validate(
@@ -171,15 +176,37 @@ final class CoachAIRouteHandler {
             prompt: prompt,
             confidence: sessionResult.confidence
         )
-        let resolvedWarning = sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage
-        let actionResult = CoachPendingConfirmationPresenter.presentFoodPending(
+
+        switch ConfirmationPolicy.decision(for: sanity.mealDraft) {
+        case .reject(let message):
+            throw AIServiceError.invalidNutritionJSON(message)
+        case .requiresConfirmation, .executeImmediately:
+            break
+        }
+
+        let actionResult = presentAIFoodEstimate(
+            mealDraft: sanity.mealDraft,
             originalText: prompt,
             assistantMessage: response.summary,
-            mealDraft: sanity.mealDraft,
             confidence: sanity.confidence,
-            sanityWarning: resolvedWarning,
+            debugContext: FoodEstimateDebugContext(
+                source: .aiPhoto,
+                llmMealDraft: sessionResult.mealDraft,
+                fallbackMealDraft: nil,
+                fallbackLabel: nil
+            ),
+            sanityWarning: sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage,
             fromPhotoAnalysis: true
         )
+
+        guard actionResult.pendingConfirmation != nil else {
+            throw AIServiceError.invalidNutritionJSON(
+                actionResult.message.isEmpty ?
+                    "Could not extract reliable nutrition from the meal photo." :
+                    actionResult.message
+            )
+        }
+
         return PhotoAnalysisPresentation(
             actionResult: actionResult,
             sessionResult: ImageAnalysisSessionResult(
