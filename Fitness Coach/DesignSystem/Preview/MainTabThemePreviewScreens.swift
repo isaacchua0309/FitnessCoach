@@ -39,7 +39,7 @@ enum MainTabThemePreviewScreens {
         ScrollView {
             VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
                 PlanMissionControlHeroSection(strategy: PlanPreviewData.state.strategy)
-                PlanTodayMissionSection(
+                PlanDailyTargetsSection(
                     state: PlanPreviewData.state.dailyTargets,
                     onGoToToday: {}
                 )

@@ -56,7 +56,8 @@ struct DailyTargetsState: Equatable, Sendable {
     var carbsLabel: String
     var fatLabel: String
     var waterLabel: String
-    var summaryCopy: String
+    var trainingTargetLabel: String?
+    var prescriptionCopy: String
     var goToTodayTitle: String?
     var accessibilitySummary: String
 }

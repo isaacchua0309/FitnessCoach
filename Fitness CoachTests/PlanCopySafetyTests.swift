@@ -137,7 +137,7 @@ final class PlanCopySafetyTests: XCTestCase {
             dashboard.strategy.accessibilitySummary,
             dashboard.strategy.primaryGoal,
             dashboard.strategy.supportiveLine,
-            dashboard.dailyTargets.summaryCopy,
+            dashboard.dailyTargets.prescriptionCopy,
             dashboard.assumptions.assumptionsNote,
             dashboard.assumptions.accessibilitySummary,
             dashboard.confidence.footerCopy,

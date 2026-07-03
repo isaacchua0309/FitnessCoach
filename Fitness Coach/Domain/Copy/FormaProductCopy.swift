@@ -2112,6 +2112,24 @@ enum FormaProductCopy {
         static let viewCalculationDetails = "See calculation"
     }
 
+    // MARK: - Plan Daily Targets
+
+    enum PlanDailyTargets {
+        static let sectionTitle = "Daily Targets"
+        static let goToToday = "Go to Today"
+        static let goToTodayAccessibilityHint = "Opens the Today tab"
+
+        static let prescriptionLose = "Built for fat loss while preserving muscle."
+        static let prescriptionGain = "Built for lean muscle growth and recovery."
+        static let prescriptionMaintain = "Designed to maintain your current weight."
+
+        static func trainingTarget(sessionsPerWeek: Int) -> String {
+            sessionsPerWeek == 1
+                ? "1 training session/week"
+                : "\(sessionsPerWeek) training sessions/week"
+        }
+    }
+
     // MARK: - Plan Strategy Hero
 
     enum PlanStrategyHero {
@@ -2272,9 +2290,9 @@ enum FormaProductCopy {
             "\(amount) to gain"
         }
 
-        static let todayMissionSectionTitle = "Today's Mission"
-        static let goToToday = "Go to Today"
-        static let goToTodayAccessibilityHint = "Opens the Today tab"
+        static let todayMissionSectionTitle = PlanDailyTargets.sectionTitle
+        static let goToToday = PlanDailyTargets.goToToday
+        static let goToTodayAccessibilityHint = PlanDailyTargets.goToTodayAccessibilityHint
         static let adjustPlanAccessibilityHint = "Opens the plan editor"
         static let seeCalculationAccessibilityHint = "Shows how your targets were calculated"
         static let updateActivityAccessibilityHint = "Opens activity settings in the plan editor"

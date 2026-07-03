@@ -50,15 +50,17 @@ final class PlanMissionControlBuilderTests: XCTestCase {
 
     // MARK: - Daily targets
 
-    func testTodayMissionIncludesFullMacroTargets() {
+    func testDailyTargetsIncludeFullMacroPrescription() {
         let today = PlanMissionControlFixtures.loseDashboard.dailyTargets
 
+        XCTAssertEqual(today.sectionTitle, "Daily Targets")
         XCTAssertEqual(today.caloriesLabel, "2233 kcal")
         XCTAssertEqual(today.proteinLabel, "180g protein")
         XCTAssertEqual(today.carbsLabel, "180g carbs")
         XCTAssertEqual(today.fatLabel, "58g fat")
         XCTAssertEqual(today.waterLabel, DailyTargetsStateBuilder.waterLabel(for: 3150))
-        XCTAssertEqual(today.summaryCopy, "Designed for about 0.8 kg/week progress.")
+        XCTAssertEqual(today.prescriptionCopy, "Built for fat loss while preserving muscle.")
+        XCTAssertEqual(today.trainingTargetLabel, "3 training sessions/week")
     }
 
     // MARK: - Rationale

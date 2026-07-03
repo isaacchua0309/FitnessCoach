@@ -166,7 +166,7 @@ struct PlanView: View {
                         model.logSectionImpression(.goalCard, healthConnected: healthConnected)
                     }
 
-                PlanTodayMissionSection(
+                PlanDailyTargetsSection(
                     state: state.dailyTargets,
                     onGoToToday: onGoToToday.map { handler in
                         {
@@ -238,7 +238,7 @@ struct PlanView: View {
     ScrollView {
         VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
             PlanMissionControlHeroSection(strategy: PlanPreviewData.state.strategy)
-            PlanTodayMissionSection(
+            PlanDailyTargetsSection(
                 state: PlanPreviewData.state.dailyTargets,
                 onGoToToday: {}
             )

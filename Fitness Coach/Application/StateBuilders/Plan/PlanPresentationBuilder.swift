@@ -151,20 +151,21 @@ enum DailyTargetsStateBuilder {
         let carbsLabel = macroLabel(targets.carbTarget, suffix: "carbs")
         let fatLabel = macroLabel(targets.fatTarget, suffix: "fat")
         let waterLabel = waterLabel(for: targets.waterTargetMl)
-        let summaryCopy = summaryCopy(
-            weeklyKg: targets.expectedWeeklyWeightLossKg,
-            direction: direction
+        let trainingTargetLabel = trainingTargetLabel(
+            sessionsPerWeek: profile.trainingFrequencyPerWeek
         )
+        let prescriptionCopy = prescriptionCopy(for: direction)
 
         var state = DailyTargetsState(
-            sectionTitle: FormaProductCopy.PlanMissionControl.todayMissionSectionTitle,
+            sectionTitle: FormaProductCopy.PlanDailyTargets.sectionTitle,
             caloriesLabel: caloriesLabel,
             proteinLabel: proteinLabel,
             carbsLabel: carbsLabel,
             fatLabel: fatLabel,
             waterLabel: waterLabel,
-            summaryCopy: summaryCopy,
-            goToTodayTitle: FormaProductCopy.PlanMissionControl.goToToday,
+            trainingTargetLabel: trainingTargetLabel,
+            prescriptionCopy: prescriptionCopy,
+            goToTodayTitle: FormaProductCopy.PlanDailyTargets.goToToday,
             accessibilitySummary: ""
         )
         state.accessibilitySummary = accessibilitySummary(for: state)
@@ -186,26 +187,36 @@ enum DailyTargetsStateBuilder {
         return "\(PlanFormatter.litersCompact(ml)) water"
     }
 
-    static func summaryCopy(weeklyKg: Double?, direction: PlanGoalDirection) -> String {
-        if direction == .lose, let weeklyKg, weeklyKg > 0 {
-            let formatted = weeklyKg.truncatingRemainder(dividingBy: 1) == 0
-                ? "\(Int(weeklyKg)) kg"
-                : String(format: "%.1f kg", weeklyKg)
-            return FormaProductCopy.PlanMissionControl.todayMissionDesignedForProgress(formatted)
+    static func trainingTargetLabel(sessionsPerWeek: Int) -> String? {
+        guard sessionsPerWeek > 0 else { return nil }
+        return FormaProductCopy.PlanDailyTargets.trainingTarget(sessionsPerWeek: sessionsPerWeek)
+    }
+
+    static func prescriptionCopy(for direction: PlanGoalDirection) -> String {
+        switch direction {
+        case .lose:
+            return FormaProductCopy.PlanDailyTargets.prescriptionLose
+        case .gain:
+            return FormaProductCopy.PlanDailyTargets.prescriptionGain
+        case .maintain:
+            return FormaProductCopy.PlanDailyTargets.prescriptionMaintain
         }
-        return FormaProductCopy.PlanMissionControl.todayMissionProgressFallback(for: direction)
     }
 
     private static func accessibilitySummary(for state: DailyTargetsState) -> String {
-        [
+        var parts = [
             state.sectionTitle,
             state.caloriesLabel,
             state.proteinLabel,
             state.carbsLabel,
             state.fatLabel,
             state.waterLabel,
-            state.summaryCopy
-        ].joined(separator: ". ")
+            state.prescriptionCopy
+        ]
+        if let trainingTargetLabel = state.trainingTargetLabel {
+            parts.insert(trainingTargetLabel, at: parts.count - 1)
+        }
+        return parts.joined(separator: ". ")
     }
 }
 
