@@ -1110,16 +1110,35 @@ enum FormaProductCopy {
 
         enum Mission {
             static let sectionTitle = "Today's Mission"
-            static let caloriesRemainingLabel = "Calories remaining"
-            static let caloriesOverLabel = "Above today's target"
+            static let targetReachedPrimary = "Target reached"
             static let remainingSuffix = "remaining"
             static let overSuffix = "over"
-            static let statusOnTrack = "You're perfectly on track."
-            static let statusStartFirstMeal = "Start with your first meal."
-            static let statusOverTarget = "You're above today's target — keep logging honestly."
-            static let statusProteinGap = "Protein is your biggest gap today."
-            static let statusNearTarget = "You're close to today's target — finish strong."
+            static let logMealCTA = "Log meal"
+            static let statusPlanReady = "Your plan is ready. Log your first meal to start today."
+            static let statusOverTarget = "You're over target. Focus on protein and hydration for the rest of today."
+            static let statusTargetReached = "Nice work. Keep the rest of the day steady."
+            static let missingCalorieTarget = "No calorie target set"
             static let proteinOnTrack = "Protein on track"
+
+            static func goalLine(targetKcal: Int) -> String {
+                "Goal: \(TodayMissionHeroFormatting.calories(targetKcal)) kcal"
+            }
+
+            static func consumedLine(consumedKcal: Int) -> String {
+                "Consumed: \(TodayMissionHeroFormatting.calories(consumedKcal)) kcal"
+            }
+
+            static func proteinRemainingLine(grams: Double) -> String {
+                "Protein remaining: \(TodayMissionHeroFormatting.proteinGrams(grams))g"
+            }
+
+            static func primaryRemaining(_ calories: Int) -> String {
+                "\(TodayMissionHeroFormatting.calories(calories)) \(remainingSuffix)"
+            }
+
+            static func primaryOver(_ calories: Int) -> String {
+                "\(TodayMissionHeroFormatting.calories(calories)) \(overSuffix)"
+            }
         }
 
         enum NextAction {

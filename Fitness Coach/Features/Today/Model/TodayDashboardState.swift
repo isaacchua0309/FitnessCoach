@@ -81,10 +81,12 @@ struct TodayMissionState: Equatable {
     var phase: TodayMissionPhase
     var status: TodayMissionStatus
     var sectionTitle: String
-    var primaryMetricLabel: String
-    var primaryMetricValue: String
+    var primaryKind: TodayMissionPrimaryKind
+    var primaryValue: String
+    var goalLine: String
+    var consumedLine: String
+    var proteinRemainingLine: String
     var statusLine: String
-    var progress: Double
     var showsLogMealCTA: Bool
     var accessibilityLabel: String
     var calorieSummary: CalorieSummary

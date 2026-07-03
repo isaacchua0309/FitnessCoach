@@ -38,7 +38,8 @@ final class TodayCopyGuardrailTests: XCTestCase {
             FormaProductCopy.Today.focusWaterLow,
             FormaProductCopy.Today.focusOnTrack,
             FormaProductCopy.Today.Mission.statusOverTarget,
-            FormaProductCopy.Today.Mission.statusOnTrack,
+            FormaProductCopy.Today.Mission.statusPlanReady,
+            FormaProductCopy.Today.Mission.statusTargetReached,
             FormaProductCopy.Today.EmptyState.newProfileMissionStatus,
             FormaProductCopy.Today.EmptyState.newDayMissionStatus,
             FormaProductCopy.Today.EmptyState.loadErrorLocalBody,
@@ -48,11 +49,11 @@ final class TodayCopyGuardrailTests: XCTestCase {
 
         let overTarget = TodayPreviewData.overTargetDay
         samples.append(
-            TodayEmptyStateFormatting.missionStatusLine(
-                mealsEmptyKind: overTarget.emptyContext.mealsEmptyKind,
+            TodayMissionHeroFormatter.displayModel(
                 calorieSummary: overTarget.mission.calorieSummary,
-                proteinProgress: overTarget.macroHydration.macroSummary.protein
-            )
+                proteinProgress: overTarget.macroHydration.macroSummary.protein,
+                mealsEmptyKind: overTarget.emptyContext.mealsEmptyKind
+            ).statusLine
         )
 
         return samples

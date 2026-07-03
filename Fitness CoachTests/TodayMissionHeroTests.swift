@@ -8,95 +8,100 @@ import XCTest
 
 final class TodayMissionHeroTests: XCTestCase {
 
-    func testNewProfileNoMealsShowsPlanReadyStatusAndLogCTA() {
+    func testNewDayState() {
         let model = displayModel(
             consumed: 0,
-            target: 2_230,
-            remaining: 2_230,
-            proteinConsumed: 0,
-            proteinTarget: 170,
-            mealsEmptyKind: .newProfileNoMeals
-        )
-
-        XCTAssertEqual(model.statusLine, FormaProductCopy.Today.EmptyState.newProfileMissionStatus)
-        XCTAssertEqual(model.primaryMetricValue, "2,230 remaining")
-        XCTAssertTrue(model.showsLogMealCTA)
-    }
-
-    func testReturningUserNewDayShowsFreshTargetsStatus() {
-        let model = displayModel(
-            consumed: 0,
-            target: 2_230,
-            remaining: 2_230,
+            target: 1_800,
+            remaining: 1_800,
             proteinConsumed: 0,
             proteinTarget: 170,
             mealsEmptyKind: .newDayNoMeals
         )
 
-        XCTAssertEqual(model.statusLine, FormaProductCopy.Today.EmptyState.newDayMissionStatus)
+        XCTAssertEqual(model.primaryKind, .remaining)
+        XCTAssertEqual(model.primaryValue, "1,800 remaining")
+        XCTAssertEqual(model.statusLine, FormaProductCopy.Today.Mission.statusPlanReady)
+        XCTAssertEqual(model.goalLine, "Goal: 1,800 kcal")
+        XCTAssertEqual(model.consumedLine, "Consumed: 0 kcal")
+        XCTAssertEqual(model.proteinRemainingLine, "Protein remaining: 170g")
         XCTAssertTrue(model.showsLogMealCTA)
     }
 
-    func testUnderTargetShowsOnTrackStatus() {
+    func testMealLoggedState() {
         let model = displayModel(
-            consumed: 380,
-            target: 2_230,
-            remaining: 1_850,
-            proteinConsumed: 160,
+            consumed: 710,
+            target: 1_800,
+            remaining: 1_090,
+            proteinConsumed: 79,
             proteinTarget: 170,
             mealsEmptyKind: .hasMeals
         )
 
-        XCTAssertEqual(model.statusLine, FormaProductCopy.Today.Mission.statusOnTrack)
-        XCTAssertEqual(model.primaryMetricValue, "1,850 remaining")
+        XCTAssertEqual(model.primaryKind, .remaining)
+        XCTAssertEqual(model.primaryValue, "1,090 remaining")
+        XCTAssertEqual(model.goalLine, "Goal: 1,800 kcal")
+        XCTAssertEqual(model.consumedLine, "Consumed: 710 kcal")
+        XCTAssertEqual(model.proteinRemainingLine, "Protein remaining: 91g")
+        XCTAssertTrue(model.statusLine.isEmpty)
         XCTAssertFalse(model.showsLogMealCTA)
     }
 
-    func testNearTargetShowsNearTargetStatus() {
+    func testOverTargetState() {
         let model = displayModel(
             consumed: 2_050,
-            target: 2_230,
-            remaining: 180,
-            proteinConsumed: 160,
-            proteinTarget: 170,
-            mealsEmptyKind: .hasMeals
-        )
-
-        XCTAssertTrue(TodayMissionHeroFormatter.isNearTarget(
-            CalorieSummary(
-                consumed: 2_050,
-                target: 2_230,
-                remaining: 180,
-                progress: Double(2_050) / Double(2_230),
-                isOverTarget: false
-            )
-        ))
-        XCTAssertEqual(model.statusLine, FormaProductCopy.Today.Mission.statusNearTarget)
-    }
-
-    func testOverTargetUsesNonShamingStatusAndOverMetric() {
-        let model = displayModel(
-            consumed: 2_400,
-            target: 2_230,
+            target: 1_800,
             remaining: 0,
-            progress: 1.08,
+            progress: 1.14,
             isOverTarget: true,
             proteinConsumed: 120,
             proteinTarget: 170,
             mealsEmptyKind: .hasMeals
         )
 
-        XCTAssertTrue(model.isOverTarget)
-        XCTAssertEqual(model.primaryMetricLabel, FormaProductCopy.Today.Mission.caloriesOverLabel)
-        XCTAssertEqual(model.primaryMetricValue, "170 \(FormaProductCopy.Today.Mission.overSuffix)")
+        XCTAssertEqual(model.primaryKind, .over)
+        XCTAssertEqual(model.primaryValue, "250 over")
         XCTAssertEqual(model.statusLine, FormaProductCopy.Today.Mission.statusOverTarget)
+        XCTAssertFalse(model.showsLogMealCTA)
+    }
+
+    func testTargetReachedState() {
+        let model = displayModel(
+            consumed: 1_720,
+            target: 1_800,
+            remaining: 80,
+            progress: 0.96,
+            proteinConsumed: 165,
+            proteinTarget: 170,
+            mealsEmptyKind: .hasMeals
+        )
+
+        XCTAssertEqual(model.primaryKind, .targetReached)
+        XCTAssertEqual(model.primaryValue, FormaProductCopy.Today.Mission.targetReachedPrimary)
+        XCTAssertEqual(model.statusLine, FormaProductCopy.Today.Mission.statusTargetReached)
+        XCTAssertEqual(model.proteinRemainingLine, FormaProductCopy.Today.Mission.proteinOnTrack)
+    }
+
+    func testMissingCalorieTargetFallback() {
+        let model = displayModel(
+            consumed: 500,
+            target: 0,
+            remaining: 0,
+            proteinConsumed: 40,
+            proteinTarget: 0,
+            mealsEmptyKind: .hasMeals
+        )
+
+        XCTAssertEqual(model.primaryKind, .missingTarget)
+        XCTAssertEqual(model.primaryValue, FormaProductCopy.Today.Mission.missingCalorieTarget)
+        XCTAssertEqual(model.goalLine, FormaProductCopy.Today.Mission.missingCalorieTarget)
+        XCTAssertEqual(model.consumedLine, "Consumed: 500 kcal")
     }
 
     func testAccessibilityLabelIncludesMissionSummary() {
         let model = displayModel(
             consumed: 500,
-            target: 2_230,
-            remaining: 1_730,
+            target: 1_800,
+            remaining: 1_300,
             proteinConsumed: 40,
             proteinTarget: 170,
             mealsEmptyKind: .hasMeals
@@ -104,19 +109,9 @@ final class TodayMissionHeroTests: XCTestCase {
 
         XCTAssertTrue(model.accessibilityLabel.contains(FormaProductCopy.Today.Mission.sectionTitle))
         XCTAssertTrue(model.accessibilityLabel.contains("remaining"))
-    }
-
-    func testProteinLowShowsProteinGapStatus() {
-        let model = displayModel(
-            consumed: 900,
-            target: 2_230,
-            remaining: 1_330,
-            proteinConsumed: 40,
-            proteinTarget: 170,
-            mealsEmptyKind: .hasMeals
-        )
-
-        XCTAssertEqual(model.statusLine, FormaProductCopy.Today.Mission.statusProteinGap)
+        XCTAssertTrue(model.accessibilityLabel.contains("Goal:"))
+        XCTAssertTrue(model.accessibilityLabel.contains("Consumed:"))
+        XCTAssertTrue(model.accessibilityLabel.contains("Protein remaining:"))
     }
 
     // MARK: - Helpers
