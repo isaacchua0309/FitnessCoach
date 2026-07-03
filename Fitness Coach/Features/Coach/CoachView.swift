@@ -158,11 +158,6 @@ struct CoachView: View {
                 model.removeStagedMealPhoto()
             }
         )
-        .fixedSize(horizontal: false, vertical: true)
-        .background(
-            CoachDesignTokens.Color.background
-                .shadow(color: FormaTokens.Color.shadow, radius: 12, y: -4)
-        )
     }
 
     private func handleStarterTap(_ prompt: CoachStarterPromptSpec) {
