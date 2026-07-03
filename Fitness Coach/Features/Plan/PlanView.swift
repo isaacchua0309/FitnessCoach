@@ -172,10 +172,11 @@ struct PlanView: View {
                     model.showEditPlanActivity()
                 },
                 onAdjustPlan: {
+                    model.logPlanAdjustCTATapped(healthConnected: healthConnected)
                     model.showEditPlan()
                 },
                 onCalculationDetailsOpened: {
-                    model.logPlanCalculationDetailsOpened(healthConnected: healthConnected)
+                    model.logPlanCalculationTapped(healthConnected: healthConnected)
                 },
                 onAppleHealthTap: state.confidence.showsAppleHealthAction
                     ? {
@@ -203,14 +204,12 @@ struct PlanView: View {
     ) {
         switch section {
         case .goalProgress:
-            model.logSectionImpression(.goalCard, healthConnected: healthConnected)
-        case .todayMission:
-            model.logSectionImpression(.todayMission, healthConnected: healthConnected)
-        case .whyThisWorks:
-            model.logSectionImpression(.rationale, healthConnected: healthConnected)
-        case .planAssumptions:
-            model.logSectionImpression(.planAssumptions, healthConnected: healthConnected)
-        case .header, .planStatus, .planConfidence, .whenToAdjust, .nextReview, .adjustPlanCTA:
+            model.logSectionImpression(.strategy, healthConnected: healthConnected)
+        case .planStatus:
+            model.logSectionImpression(.status, healthConnected: healthConnected)
+        case .planConfidence:
+            model.logSectionImpression(.confidence, healthConnected: healthConnected)
+        case .header, .todayMission, .whyThisWorks, .whenToAdjust, .planAssumptions, .nextReview, .adjustPlanCTA:
             break
         }
     }

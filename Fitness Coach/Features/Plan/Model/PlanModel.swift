@@ -118,6 +118,9 @@ final class PlanModel: ObservableObject {
     }
 
     func showEditPlanActivity() {
+        logPlanActivityUpdateTapped(
+            healthConnected: trainingInsightsStore.integrationState.isConnected
+        )
         showEditPlan(
             initialStep: PlanEditWizard.activityLevelStep,
             entryPoint: PlanAdjustPlanEntryPoint.planAssumptions
@@ -303,14 +306,27 @@ final class PlanModel: ObservableObject {
         guard loggedSectionImpressions.insert(section).inserted else { return }
 
         let event: PlanAnalyticsEvent = switch section {
-        case .goalCard: .goalCardViewed
-        case .todayMission: .todayMissionViewed
-        case .rationale: .rationaleOpened
-        case .planAssumptions: .planAssumptionsViewed
+        case .strategy: .strategyViewed
+        case .status: .statusViewed
+        case .confidence: .confidenceViewed
         }
 
         analyticsLogger.log(
             event,
+            properties: makeAnalyticsProperties(healthConnected: healthConnected)
+        )
+    }
+
+    func logPlanAdjustCTATapped(healthConnected: Bool) {
+        analyticsLogger.log(
+            .adjustCTATapped,
+            properties: makeAnalyticsProperties(healthConnected: healthConnected)
+        )
+    }
+
+    func logPlanActivityUpdateTapped(healthConnected: Bool) {
+        analyticsLogger.log(
+            .activityUpdateTapped,
             properties: makeAnalyticsProperties(healthConnected: healthConnected)
         )
     }
@@ -334,9 +350,9 @@ final class PlanModel: ObservableObject {
         )
     }
 
-    func logPlanCalculationDetailsOpened(healthConnected: Bool) {
+    func logPlanCalculationTapped(healthConnected: Bool) {
         analyticsLogger.log(
-            .calculationDetailsOpened,
+            .calculationTapped,
             properties: makeAnalyticsProperties(healthConnected: healthConnected)
         )
     }
@@ -354,7 +370,7 @@ final class PlanModel: ObservableObject {
                 )
             )
         } else {
-            properties = PlanAnalyticsProperties(healthConnected: healthConnected)
+            properties = PlanAnalyticsProperties(appleHealthConnected: healthConnected)
         }
         configure(&properties)
         return properties

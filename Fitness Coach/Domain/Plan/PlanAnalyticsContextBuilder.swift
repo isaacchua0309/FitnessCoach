@@ -8,27 +8,11 @@
 import Foundation
 
 struct PlanAnalyticsSnapshot: Equatable, Sendable {
-    var goalType: String
-    var calorieTargetBucket: String
-    var progressBucket: String
-    var healthConnected: Bool
-    var activityLevel: String
-}
-
-enum PlanAnalyticsCalorieTargetBucket: String, Sendable {
-    case under1800 = "under_1800"
-    case _1800to2199 = "1800_2199"
-    case _2200to2599 = "2200_2599"
-    case _2600plus = "2600_plus"
-}
-
-enum PlanAnalyticsGoalProgressBucket: String, Sendable {
-    case unknown
-    case none
-    case low
-    case mid
-    case onTrack = "on_track"
-    case complete
+    var planType: String
+    var confidenceBucket: String
+    var appleHealthConnected: Bool
+    var hasRecentWeighIn: Bool
+    var hasEnoughFoodLogs: Bool
 }
 
 enum PlanAnalyticsContextBuilder {
@@ -38,36 +22,40 @@ enum PlanAnalyticsContextBuilder {
         healthConnected: Bool
     ) -> PlanAnalyticsSnapshot {
         PlanAnalyticsSnapshot(
-            goalType: goalType(for: state.profile),
-            calorieTargetBucket: calorieTargetBucket(state.profile.targets.calorieTarget),
-            progressBucket: progressBucket(from: state.strategy),
-            healthConnected: healthConnected,
-            activityLevel: activityLevel(state.profile.activityLevel)
+            planType: planType(from: state.status.classification),
+            confidenceBucket: confidenceBucket(from: state.confidence.estimateBucket),
+            appleHealthConnected: healthConnected,
+            hasRecentWeighIn: hasRecentWeighIn(from: state.confidence),
+            hasEnoughFoodLogs: hasEnoughFoodLogs(from: state.confidence)
         )
     }
 
-    static func goalType(for profile: UserProfile) -> String {
-        switch PlanStateBuilder.goalType(for: profile) {
-        case .loseFat: return "lose"
-        case .gainMuscle: return "gain"
-        case .maintain: return "maintain"
+    static func planType(from classification: PlanStrategyClassification) -> String {
+        switch classification {
+        case .aggressiveCut:
+            return "aggressive_cut"
+        case .moderateCut, .gentleCut:
+            return "moderate_cut"
+        case .maintenance:
+            return "maintenance"
+        case .leanGain, .rebuild:
+            return "lean_gain"
+        case .needsReview:
+            return "needs_review"
         }
     }
 
-    static func calorieTargetBucket(_ kcal: Int) -> String {
-        switch kcal {
-        case ..<1800: return PlanAnalyticsCalorieTargetBucket.under1800.rawValue
-        case 1800..<2200: return PlanAnalyticsCalorieTargetBucket._1800to2199.rawValue
-        case 2200..<2600: return PlanAnalyticsCalorieTargetBucket._2200to2599.rawValue
-        default: return PlanAnalyticsCalorieTargetBucket._2600plus.rawValue
-        }
+    static func confidenceBucket(from bucket: PlanConfidenceEstimateBucket) -> String {
+        bucket.rawValue
     }
 
-    static func progressBucket(from strategy: PlanStrategyState) -> String {
-        PlanAnalyticsGoalProgressBucket.unknown.rawValue
+    static func hasRecentWeighIn(from confidence: PlanConfidenceState) -> Bool {
+        confidence.compactSignals.first { $0.id == "weighIn" }?.value
+            == FormaProductCopy.PlanMissionControl.planConfidenceSignalYes
     }
 
-    static func activityLevel(_ level: ActivityLevel) -> String {
-        level.rawValue
+    static func hasEnoughFoodLogs(from confidence: PlanConfidenceState) -> Bool {
+        confidence.compactSignals.first { $0.id == "foodLogs" }?.value
+            == FormaProductCopy.PlanMissionControl.planConfidenceSignalEnough
     }
 }

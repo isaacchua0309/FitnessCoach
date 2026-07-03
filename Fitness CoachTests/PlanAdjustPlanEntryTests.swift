@@ -38,12 +38,15 @@ final class PlanAdjustPlanEntryTests: XCTestCase {
 
         XCTAssertTrue(model.isShowingEditSheet)
         XCTAssertEqual(model.editPlanInitialStep, .activityLevel)
-        XCTAssertEqual(analytics.events.last?.properties.entryPoint, PlanAdjustPlanEntryPoint.planAssumptions)
+        XCTAssertEqual(analytics.events.count, 2)
+        XCTAssertEqual(analytics.events[0].event, .activityUpdateTapped)
+        XCTAssertEqual(analytics.events[1].event, .adjustStarted)
+        XCTAssertEqual(analytics.events[1].properties.entryPoint, PlanAdjustPlanEntryPoint.planAssumptions)
         guard let formState = model.editFormState else {
             return XCTFail("Expected edit form state")
         }
         XCTAssertEqual(
-            analytics.events.last?.properties.initialStep,
+            analytics.events[1].properties.initialStep,
             PlanEditWizardFlow.index(of: .activityLevel, formState: formState)
         )
     }
