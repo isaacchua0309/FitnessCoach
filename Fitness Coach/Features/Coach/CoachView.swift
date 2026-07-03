@@ -49,9 +49,13 @@ struct CoachView: View {
                         messages: model.messages,
                         isSending: model.isSending,
                         todayContext: model.todayContext,
+                        launchPresentation: model.activeLaunchPresentation,
                         starterPrompts: model.starterPromptSpecs,
                         onDismissKeyboard: {
                             dismissKeyboard()
+                        },
+                        onLaunchChipTap: { chip in
+                            handleLaunchChip(chip)
                         },
                         onStarterTap: { prompt in
                             handleStarterTap(prompt)
@@ -81,6 +85,7 @@ struct CoachView: View {
             .onChange(of: isActive) { _, active in
                 if !active {
                     speechService.stopRecording()
+                    model.handleCoachBecameInactive()
                 } else {
                     focusComposerIfRequested()
                 }
@@ -192,15 +197,20 @@ struct CoachView: View {
             isSending: model.isSending,
             onSend: {
                 speechService.stopRecording()
+                model.noteComposerInteraction()
                 Task {
                     await model.sendCurrentMessage()
                     dismissKeyboard()
                 }
             },
             onVoiceTap: {
+                model.noteComposerInteraction()
                 handleVoiceTap()
             },
-            onAttachmentSelect: handleAttachmentSelection,
+            onAttachmentSelect: { option in
+                model.noteComposerInteraction()
+                handleAttachmentSelection(option)
+            },
             onRemoveAttachment: {
                 model.removeStagedMealPhoto()
             }
@@ -209,6 +219,25 @@ struct CoachView: View {
             CoachDesignTokens.Color.background
                 .shadow(color: FormaTokens.Color.shadow, radius: 12, y: -4)
         )
+    }
+
+    private func handleLaunchChip(_ chip: CoachLaunchChip) {
+        dismissKeyboard()
+        speechService.stopRecording()
+        model.consumeLaunchPresentation()
+
+        switch chip {
+        case .takePhoto:
+            handleAttachmentSelection(.takePhoto)
+        case .describeMeal:
+            isInputFocused = true
+        case .useVoice:
+            handleVoiceTap()
+        case .addWater(let amountMl):
+            Task {
+                await model.send(CoachLaunchPresentationBuilder.waterLogCommand(amountMl: amountMl))
+            }
+        }
     }
 
     private func handleStarterTap(_ prompt: CoachStarterPromptSpec) {

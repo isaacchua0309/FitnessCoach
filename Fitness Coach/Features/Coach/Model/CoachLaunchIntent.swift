@@ -2,16 +2,20 @@
 //  CoachLaunchIntent.swift
 //  Fitness Coach
 //
-//  Forma — Lightweight launch routing into Coach without duplicating Coach state.
+//  Forma — One-shot launch routing into Coach without duplicating Coach state.
 //
 
 import Foundation
 
 enum CoachLaunchIntent: Equatable, Sendable {
-    /// Opens Coach ready for photo, text, or voice meal logging.
+    /// Standard Coach tab — no launch-specific starter chrome.
+    case normal
+    /// Meal logging via photo, text, or voice.
     case logMeal(mealType: MealType?)
-    /// Opens Coach with the scan-meal prefill (photo pipeline).
-    case scanFood
-    /// Generic text prefill for Journey, review, protein, water, etc.
+    /// Photo meal analysis (Today Scan Food and similar entry points).
+    case analyzePhotoMeal
+    /// Hydration logging via Coach command pipeline.
+    case logWater(amountMl: Int = 500)
+    /// Legacy text prefill for Journey / review / protein / weight prompts.
     case prefill(String)
 }

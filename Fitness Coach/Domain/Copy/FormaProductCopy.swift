@@ -2078,6 +2078,43 @@ enum FormaProductCopy {
         static let foodEditIngredientsFooter = "Edit if you know the ingredients."
         static let foodConfirmBelowFooter = "Confirm below to add it."
         static let pendingBarHint = "Use the bar below to log, edit, or discard."
+
+        enum Launch {
+            static let logMealBody = "Send a photo, describe your meal, or use voice — whatever is easiest."
+            static let analyzePhotoHeadline = "Scan your meal"
+            static let analyzePhotoBody = "Take a photo or describe what you ate and Coach will estimate it."
+            static let logWaterHeadline = "Log water"
+            static let logWaterBody = "Tap below to add water, or tell Coach how much you drank."
+            static let chipSectionTitle = "Get started"
+
+            static func logMealHeadline(mealType: MealType?) -> String {
+                switch mealType {
+                case .breakfast: return "Log breakfast"
+                case .lunch: return "Log lunch"
+                case .dinner: return "Log dinner"
+                case .snack: return "Log a snack"
+                case .unknown, nil: return "Log your meal"
+                }
+            }
+
+            static func waterLogCommand(amountMl: Int) -> String {
+                "Add \(amountMl)ml water"
+            }
+
+            enum Chip {
+                static let takePhoto = "Take photo"
+                static let describeMeal = "Describe meal"
+                static let useVoice = "Use voice"
+                static let takePhotoHint = "Opens the camera to photograph your meal"
+                static let describeMealHint = "Focuses the message field to type your meal"
+                static let useVoiceHint = "Starts voice input for your meal"
+                static let addWaterHint = "Sends a water log command to Coach"
+
+                static func addWater(amountMl: Int) -> String {
+                    amountMl >= 1_000 ? "Add \(amountMl / 1_000)L water" : "Add \(amountMl)ml water"
+                }
+            }
+        }
     }
 
     // MARK: - Food form

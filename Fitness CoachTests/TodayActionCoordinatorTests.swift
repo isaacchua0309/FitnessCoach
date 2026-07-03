@@ -145,7 +145,7 @@ final class TodayActionCoordinatorTests: XCTestCase {
 
         coordinator.performQuickAction(.scanFood)
 
-        XCTAssertEqual(launchedIntent, .scanFood)
+        XCTAssertEqual(launchedIntent, .analyzePhotoMeal)
     }
 
     func testLogMealSavedDoesNotIncludeFoodName() throws {

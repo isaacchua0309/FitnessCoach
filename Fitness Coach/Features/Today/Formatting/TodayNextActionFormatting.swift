@@ -103,7 +103,7 @@ enum TodayNextActionFormatting {
         case .logMeal(let prefill):
             return .openCoach(.logMeal(mealType: mealType(from: prefill)))
         case .scanFood:
-            return .openCoach(.scanFood)
+            return .openCoach(.analyzePhotoMeal)
         case .addWater(let amountMl):
             return .logWater(amountMl: amountMl)
         case .logWorkout:

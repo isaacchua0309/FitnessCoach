@@ -97,7 +97,7 @@ final class TodayNextActionFormattingTests: XCTestCase {
     func testRouteMapsScanFoodToCoach() {
         XCTAssertEqual(
             TodayNextActionFormatting.route(for: .scanFood),
-            .openCoach(.scanFood)
+            .openCoach(.analyzePhotoMeal)
         )
     }
 

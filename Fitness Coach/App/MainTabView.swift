@@ -141,9 +141,12 @@ struct MainTabView: View {
     }
 
     private func coachLaunchIntent(fromLegacyPrefill prefill: String?) -> CoachLaunchIntent {
-        guard let prefill, !prefill.isEmpty else { return .prefill("") }
+        guard let prefill, !prefill.isEmpty else { return .normal }
         if prefill == TodayCoachPrompt.scanFood {
-            return .scanFood
+            return .analyzePhotoMeal
+        }
+        if prefill == TodayCoachPrompt.logWater {
+            return .logWater(amountMl: 500)
         }
         if isMealLoggingPrefill(prefill) {
             return .logMeal(mealType: TodayNextActionFormatting.mealType(from: prefill))

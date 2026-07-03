@@ -221,7 +221,7 @@ final class TodayActionCoordinator: ObservableObject {
     private func route(for kind: TodayQuickActionKind) -> TodayNextActionRoute {
         switch kind {
         case .scanFood:
-            return .openCoach(.scanFood)
+            return .openCoach(.analyzePhotoMeal)
         case .logMeal:
             return .openCoach(.logMeal(mealType: nil))
         case .addWater:
@@ -254,7 +254,7 @@ final class TodayActionCoordinator: ObservableObject {
             isPresentingAddWaterSheet = true
         case .openCoach(let intent):
             switch intent {
-            case .scanFood:
+            case .analyzePhotoMeal:
                 log(.scanFoodTapped, actionType: "scan_food", route: "open_coach")
             case .logMeal(let mealType):
                 log(
@@ -262,7 +262,7 @@ final class TodayActionCoordinator: ObservableObject {
                     actionType: "log_meal",
                     mealType: TodayAnalyticsContextBuilder.mealTypeAction(mealType)
                 )
-            case .prefill:
+            case .normal, .logWater, .prefill:
                 break
             }
             onOpenCoach?(intent)

@@ -45,6 +45,7 @@ final class CoachModel: ObservableObject {
     @Published private(set) var foodEditErrorMessage: String?
     @Published private(set) var todayContext: CoachTodayContextState?
     @Published private(set) var starterPromptSpecs: [CoachStarterPromptSpec] = CoachStarterPrompt.defaultQuickActionSpecs
+    @Published private(set) var activeLaunchPresentation: CoachLaunchPresentation?
     @Published private(set) var composerPlaceholderOverride: String?
     @Published private(set) var requestsComposerFocus = false
 
@@ -257,7 +258,8 @@ final class CoachModel: ObservableObject {
             guard let frozen = next.takeSendSnapshot() else { return nil }
             inputState = next
             syncInputSendingFlag()
-            clearLaunchChrome()
+            clearComposerLaunchChrome()
+            consumeLaunchPresentation()
             return frozen
         }() else {
             return
@@ -683,41 +685,61 @@ final class CoachModel: ObservableObject {
     }
 
     func prepareInput(prefill: String?) {
-        launch(with: .prefill(prefill ?? ""))
+        guard let prefill, !prefill.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            launch(with: .normal)
+            return
+        }
+        launch(with: .prefill(prefill))
     }
 
     func launch(with intent: CoachLaunchIntent) {
-        requestsComposerFocus = false
-        composerPlaceholderOverride = nil
+        abandonLaunchSession()
 
         switch intent {
-        case .logMeal(let mealType):
+        case .normal:
+            return
+        case .prefill(let text):
+            mutateInputState { $0.updateText(text) }
+            requestsComposerFocus = true
+        case .logMeal, .analyzePhotoMeal, .logWater:
+            guard let presentation = CoachLaunchPresentationBuilder.presentation(for: intent) else { return }
             mutateInputState { state in
                 state.updateText("")
                 state.removeAttachment()
                 state.error = nil
             }
-            composerPlaceholderOverride = FormaProductCopy.Coach.mealLoggingComposerPlaceholder(mealType: mealType)
-            requestsComposerFocus = true
-        case .scanFood:
-            mutateInputState { state in
-                state.updateText(FormaProductCopy.Coach.scanMealPrefill)
-                state.error = nil
-            }
-            requestsComposerFocus = true
-        case .prefill(let text):
-            mutateInputState { $0.updateText(text) }
-            if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                requestsComposerFocus = true
-            }
+            activeLaunchPresentation = presentation
+            composerPlaceholderOverride = presentation.composerPlaceholder
+            requestsComposerFocus = presentation.focusesComposer
         }
+    }
+
+    func consumeLaunchPresentation() {
+        activeLaunchPresentation = nil
+        requestsComposerFocus = false
     }
 
     func consumeComposerFocusRequest() {
         requestsComposerFocus = false
     }
 
-    private func clearLaunchChrome() {
+    func handleCoachBecameInactive() {
+        consumeLaunchPresentation()
+        if inputState.trimmedText.isEmpty, inputState.attachment == nil {
+            clearComposerLaunchChrome()
+        }
+    }
+
+    func noteComposerInteraction() {
+        consumeLaunchPresentation()
+    }
+
+    private func abandonLaunchSession() {
+        consumeLaunchPresentation()
+        clearComposerLaunchChrome()
+    }
+
+    private func clearComposerLaunchChrome() {
         composerPlaceholderOverride = nil
     }
 
