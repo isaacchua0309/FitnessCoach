@@ -40,23 +40,13 @@ final class CoachPhotoLibraryPipelineTests: XCTestCase {
     }
 
     func testPipelineProcessedSendUsesUploadDataWithoutLegacyRecompression() async throws {
-        let container = try AppContainer(inMemory: true)
-        try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+        let aiService = WorkflowCapturingPhotoAIService()
+        let (model, _) = try CoachImageWorkflowTestSupport.makeCoach(aiService: aiService)
 
         let sourceImage = Self.makeTestImage(size: CGSize(width: 1_600, height: 1_200))
         guard case .success(let processed) = CoachImagePipeline.process(image: sourceImage) else {
             return XCTFail("Expected pipeline success")
         }
-
-        let aiService = PhotoCapturingAIService()
-        let model = CoachModel(
-            actionCenter: container.actionCenter,
-            dailyLogReader: container.dailyLogService,
-            healthActivityQuery: container.healthActivityQueryService,
-            aiService: aiService,
-            userProfileReader: container.userProfileService,
-            aiCommandParsingEnabled: true
-        )
 
         await model.handlePipelineProcessedMealPhoto(
             processed,
@@ -67,7 +57,7 @@ final class CoachPhotoLibraryPipelineTests: XCTestCase {
 
         XCTAssertNil(model.inputState.attachment)
         XCTAssertEqual(aiService.analyzeMealImageCallCount, 1)
-        XCTAssertEqual(aiService.lastImageJPEGData, processed.uploadData)
+        XCTAssertEqual(aiService.receivedImagePayloads.last, processed.uploadData)
         XCTAssertLessThanOrEqual(processed.uploadData.count, CoachImageUploadConfig.default.maxUploadBytes)
     }
 

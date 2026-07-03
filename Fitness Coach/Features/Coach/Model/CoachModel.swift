@@ -202,11 +202,53 @@ final class CoachModel: ObservableObject {
         case .failure(.userCancelled):
             return
         case .failure(let error):
-            CoachImageAnalysisDebugLogger.logError(error)
-            appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
+            appendMealPhotoSelectionFailure(error)
         case .success(let imported):
-            await stageProcessedMealPhoto(imported, source: .library)
+            _ = await stagePipelineProcessedPhoto(imported, source: .library)
         }
+    }
+
+    func handleCameraCapture(_ image: UIImage) async {
+        guard inputState.canPickImage else {
+            mutateInputState { $0.error = .attachmentAlreadyPresent }
+            return
+        }
+
+        let importResult = await CoachImagePipeline.importFromCamera(image)
+        switch importResult {
+        case .failure(.userCancelled):
+            return
+        case .failure(let error):
+            appendMealPhotoSelectionFailure(error)
+        case .success(let imported):
+            _ = await stagePipelineProcessedPhoto(imported, source: .camera)
+        }
+    }
+
+    @discardableResult
+    func stagePipelineProcessedPhoto(
+        _ imported: CoachImagePipeline.ProcessedImageImport,
+        source: CoachInputAttachmentSource
+    ) async -> Bool {
+        let processed = imported.processed
+
+        let staged = mutateInputState { state -> Bool in
+            state.stageProcessedImage(
+                processed,
+                originalEstimatedBytes: imported.originalEstimatedBytes,
+                source: source
+            )
+        }
+
+        guard staged else { return false }
+
+        CoachMealPhotoPipeline.assertImagePayloadPresent(processed.uploadData)
+        CoachImageAnalysisDebugLogger.logPipelineProcessed(
+            source: source,
+            processed: processed,
+            originalEstimatedBytes: imported.originalEstimatedBytes
+        )
+        return true
     }
 
     func handlePipelineProcessedMealPhoto(
@@ -214,13 +256,19 @@ final class CoachModel: ObservableObject {
         originalEstimatedBytes: Int?,
         source: CoachInputAttachmentSource
     ) async {
-        await stageProcessedMealPhoto(
-            CoachImagePipeline.PhotoLibraryImport(
+        _ = await stagePipelineProcessedPhoto(
+            CoachImagePipeline.ProcessedImageImport(
                 processed: processed,
                 originalEstimatedBytes: originalEstimatedBytes
             ),
             source: source
         )
+    }
+
+    func appendMealPhotoSelectionFailure(_ error: CoachMealPhotoError) {
+        guard error != .userCancelled else { return }
+        CoachImageAnalysisDebugLogger.logError(error)
+        appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
     }
 
     /// Legacy entry point — prefer `handleMealPhotoSelection`.
@@ -251,30 +299,6 @@ final class CoachModel: ObservableObject {
             compressedBytes: jpegData.count
         )
         mutateInputState { $0.stagePreparedImage(jpegData: jpegData, thumbnail: thumbnail, source: source) }
-    }
-
-    private func stageProcessedMealPhoto(
-        _ imported: CoachImagePipeline.PhotoLibraryImport,
-        source: CoachInputAttachmentSource
-    ) async {
-        let processed = imported.processed
-
-        let staged = mutateInputState { state -> Bool in
-            state.stageProcessedImage(
-                processed,
-                originalEstimatedBytes: imported.originalEstimatedBytes,
-                source: source
-            )
-        }
-
-        guard staged else { return }
-
-        CoachMealPhotoPipeline.assertImagePayloadPresent(processed.uploadData)
-        CoachImageAnalysisDebugLogger.logPipelineProcessed(
-            source: source,
-            processed: processed,
-            originalEstimatedBytes: imported.originalEstimatedBytes
-        )
     }
 
     @discardableResult

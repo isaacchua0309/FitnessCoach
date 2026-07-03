@@ -10,16 +10,11 @@ import UIKit
 
 extension CoachImagePipeline {
 
-    struct PhotoLibraryImport: Equatable, Sendable {
-        let processed: CoachProcessedImage
-        let originalEstimatedBytes: Int?
-    }
-
     /// Loads a `UIImage` from the photo library, then processes it for Coach upload.
     static func importFromPhotoLibrary(
         _ item: PhotosPickerItem,
         config: CoachImageProcessingConfig = .default
-    ) async -> Result<PhotoLibraryImport, CoachMealPhotoError> {
+    ) async -> Result<ProcessedImageImport, CoachMealPhotoError> {
         do {
             let rawData: Data?
             if let transfer = try await item.loadTransferable(type: CoachPhotoPickerTransfer.self) {
@@ -44,7 +39,7 @@ extension CoachImagePipeline {
             switch pipelineResult {
             case .success(let processed):
                 return .success(
-                    PhotoLibraryImport(
+                    ProcessedImageImport(
                         processed: processed,
                         originalEstimatedBytes: originalEstimatedBytes
                     )

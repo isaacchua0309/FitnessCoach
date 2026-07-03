@@ -18,6 +18,7 @@ struct CoachComposer: View {
     var isListening: Bool = false
     var isVoiceInputBusy: Bool = false
     var canPickAttachment: Bool
+    var isProcessingImage: Bool = false
     var textFieldPlaceholder: String = FormaProductCopy.Coach.composerPlaceholder
     var isFocused: FocusState<Bool>.Binding
     let isSending: Bool
@@ -34,7 +35,7 @@ struct CoachComposer: View {
     }
 
     private var canSend: Bool {
-        !isSending && (!trimmedText.isEmpty || attachment != nil)
+        !isSending && !isProcessingImage && (!trimmedText.isEmpty || attachment != nil)
     }
 
     private var showVoiceButton: Bool {
@@ -72,6 +73,7 @@ struct CoachComposer: View {
         .animation(CoachDesignTokens.Motion.standard, value: isVoiceInputBusy)
         .animation(CoachDesignTokens.Motion.standard, value: isAttachmentMenuPresented)
         .animation(CoachDesignTokens.Motion.standard, value: attachmentError)
+        .animation(CoachDesignTokens.Motion.standard, value: isProcessingImage)
         .animation(CoachDesignTokens.Motion.standard, value: speechError)
         .onChange(of: isListening) { _, listening in
             listeningPulse = listening
@@ -93,6 +95,15 @@ struct CoachComposer: View {
 
             if let attachmentError {
                 Text(attachmentError.message)
+                    .font(CoachDesignTokens.Typography.confirmationMetric)
+                    .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
+                    .padding(.horizontal, CoachDesignTokens.Spacing.sm)
+                    .padding(.bottom, CoachDesignTokens.Spacing.xs)
+                    .transition(.opacity)
+            }
+
+            if isProcessingImage {
+                Text(FormaProductCopy.Coach.composerImageProcessing)
                     .font(CoachDesignTokens.Typography.confirmationMetric)
                     .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
                     .padding(.horizontal, CoachDesignTokens.Spacing.sm)
@@ -231,7 +242,7 @@ struct CoachComposer: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(CoachComposerButtonStyle())
-        .disabled(isSending || !canPickAttachment || isListening)
+        .disabled(isSending || !canPickAttachment || isListening || isProcessingImage)
         .rotationEffect(.degrees(isAttachmentMenuPresented ? 45 : 0))
         .animation(CoachDesignTokens.Motion.spring, value: isAttachmentMenuPresented)
         .accessibilityLabel("Add attachment")

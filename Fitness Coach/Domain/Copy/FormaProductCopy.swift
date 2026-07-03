@@ -2058,6 +2058,7 @@ enum FormaProductCopy {
         static let discardPending = "Discard"
         static let retryMealPhotoAnalysis = "Retry analysis"
         static let removePhotoBeforeAddingAnother = "Remove the current photo before adding another."
+        static let composerImageProcessing = "Preparing photo…"
         static let photoAnalysisLeadIn = "From your meal photo:"
         static let foodEditPortionFooter = "Edit if the portion or cut is different."
         static let foodEditIngredientsFooter = "Edit if you know the ingredients."
