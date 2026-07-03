@@ -40,6 +40,11 @@ final class AuthManager: ObservableObject {
         trimmedNonEmpty(user?.email)
     }
 
+    var accountSignInProvider: AccountSignInProvider {
+        guard let user else { return .unknown }
+        return isGoogleUser(user) ? .google : .unknown
+    }
+
     private var listenerHandle: AuthStateDidChangeListenerHandle?
     private let logger = Logger(subsystem: "FitPilot", category: "Auth")
 

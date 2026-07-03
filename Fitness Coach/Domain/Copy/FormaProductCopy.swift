@@ -904,8 +904,21 @@ enum FormaProductCopy {
     enum Account {
         static let logoutConfirmationTitle = "Log out of Forma?"
         static let logoutConfirmationMessage =
-            "Signing out keeps this device's local data unless you delete it. If another account signs in, Forma will ask before using or replacing this profile."
+            "Signing out keeps this device's local data unless you delete it."
         static let signOutHint = "Sign out of Forma on this device"
+        static let signOutUnavailableHint = "Unavailable while signing in"
+        static let missingNameFallback = "Not provided"
+        static let missingEmailFallback = "Not provided"
+        static let signedInBadgeGoogle = "Signed in with Google"
+        static let signedInBadgeGeneric = "Signed in"
+        static let signInMethodGoogle = "Google"
+        static let detailNameLabel = "Name"
+        static let detailEmailLabel = "Email"
+        static let detailSignInLabel = "Sign-in"
+        static let avatarAccessibilityLabel = "Profile photo"
+        static let logoutButtonTitle = "Log out"
+        static let logoutConfirmActionTitle = "Log Out"
+        static let logoutCancelActionTitle = "Cancel"
     }
 
     // MARK: - Empty states

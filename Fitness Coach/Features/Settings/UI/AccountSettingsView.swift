@@ -13,11 +13,22 @@ struct AccountSettingsView: View {
     @Environment(\.performAppSignOut) private var performAppSignOut
     @State private var showsLogoutConfirmation = false
 
-    @ScaledMetric(relativeTo: .title2) private var avatarDiameter: CGFloat = 64
+    @ScaledMetric(relativeTo: .title2) private var avatarDiameter: CGFloat = 56
+
+    private var presentation: AccountSettingsPresentation {
+        AccountSettingsPresentationBuilder.build(
+            input: AccountSettingsPresentationInput(
+                authState: authManager.authState,
+                displayName: authManager.accountDisplayName,
+                email: authManager.accountEmail,
+                signInProvider: authManager.accountSignInProvider
+            )
+        )
+    }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
                 profileHeader
                 accountDetailsCard
                 logoutSection
@@ -31,20 +42,19 @@ struct AccountSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .formaScrollBottomInset()
         .confirmationDialog(
-            FormaProductCopy.Account.logoutConfirmationTitle,
+            presentation.logoutConfirmationTitle,
             isPresented: $showsLogoutConfirmation,
             titleVisibility: .visible
         ) {
-            Button("Log Out", role: .destructive) {
-                if let performAppSignOut {
-                    performAppSignOut()
-                } else {
-                    authManager.signOut()
-                }
+            Button(FormaProductCopy.Account.logoutConfirmActionTitle, role: .destructive) {
+                AccountSettingsLogoutHandler.perform(
+                    performAppSignOut: performAppSignOut,
+                    authManagerSignOut: authManager.signOut
+                )
             }
-            Button("Cancel", role: .cancel) {}
+            Button(FormaProductCopy.Account.logoutCancelActionTitle, role: .cancel) {}
         } message: {
-            Text(FormaProductCopy.Account.logoutConfirmationMessage)
+            Text(presentation.logoutConfirmationMessage)
         }
     }
 
@@ -55,29 +65,36 @@ struct AccountSettingsView: View {
             avatarView
 
             VStack(spacing: FormaTokens.Spacing.xs) {
-                if let displayName = accountDisplayName {
+                if let displayName = presentation.header.displayName {
                     Text(displayName)
                         .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
                         .foregroundStyle(FormaTokens.Color.textPrimary)
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                         .minimumScaleFactor(0.85)
+                } else if let email = presentation.header.email {
+                    Text(email)
+                        .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
+                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
+                        .textSelection(.enabled)
                 }
 
-                if let email = accountEmail {
+                if let email = presentation.header.email, presentation.header.displayName != nil {
                     Text(email)
                         .font(FormaTokens.Typography.sectionSubtitle)
                         .foregroundStyle(FormaTokens.Color.textSecondary)
                         .multilineTextAlignment(.center)
-                        .lineLimit(3)
+                        .lineLimit(2)
                         .minimumScaleFactor(0.9)
-                        .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
                 }
             }
 
-            if showsSignedInBadge {
-                signedInBadge
+            if presentation.showsProviderBadge {
+                providerBadge
             }
         }
         .frame(maxWidth: .infinity)
@@ -117,25 +134,25 @@ struct AccountSettingsView: View {
                         .stroke(FormaTokens.Color.border, lineWidth: 0.5)
                 }
 
-            if showsStatusProgress {
+            if presentation.header.showsProgress {
                 SwiftUI.ProgressView()
                     .tint(FormaTokens.Color.textPrimary)
             } else {
-                Text(profileInitials)
-                    .font(.title2.weight(.semibold))
+                Text(presentation.header.initials)
+                    .font(.title3.weight(.semibold))
                     .foregroundStyle(FormaTokens.Color.accent)
                     .minimumScaleFactor(0.8)
                     .lineLimit(1)
             }
         }
-        .accessibilityLabel(avatarAccessibilityLabel)
+        .accessibilityLabel(presentation.header.avatarAccessibilityLabel)
     }
 
-    private var signedInBadge: some View {
+    private var providerBadge: some View {
         HStack(spacing: 6) {
             Image(systemName: "checkmark.circle.fill")
                 .font(FormaTokens.Typography.caption)
-            Text("Signed in with Google")
+            Text(presentation.header.providerBadge)
                 .font(FormaTokens.Typography.caption.weight(.medium))
         }
         .foregroundStyle(FormaTokens.Color.textSecondary)
@@ -150,7 +167,7 @@ struct AccountSettingsView: View {
                 }
         )
         .padding(.top, 2)
-        .accessibilityLabel("Signed in with Google")
+        .accessibilityLabel(presentation.header.providerBadge)
     }
 
     // MARK: - Details card
@@ -158,26 +175,16 @@ struct AccountSettingsView: View {
     private var accountDetailsCard: some View {
         FormaPlanCard {
             VStack(alignment: .leading, spacing: 0) {
-                AccountInfoRow(
-                    label: "Name",
-                    value: accountDisplayName ?? "—"
-                )
-
-                accountRowDivider
-
-                AccountInfoRow(
-                    label: "Email",
-                    value: accountEmail ?? "—",
-                    layout: .stacked,
-                    allowsTextSelection: true
-                )
-
-                accountRowDivider
-
-                AccountInfoRow(
-                    label: "Sign-in",
-                    value: "Google"
-                )
+                ForEach(Array(presentation.detailRows.enumerated()), id: \.element.id) { index, row in
+                    if index > 0 {
+                        accountRowDivider
+                    }
+                    AccountInfoRow(
+                        label: row.label,
+                        value: row.value,
+                        allowsTextSelection: row.allowsTextSelection
+                    )
+                }
             }
         }
     }
@@ -194,9 +201,9 @@ struct AccountSettingsView: View {
         Button {
             showsLogoutConfirmation = true
         } label: {
-            Text("Log out")
+            Text(FormaProductCopy.Account.logoutButtonTitle)
                 .font(FormaTokens.Typography.body.weight(.medium))
-                .foregroundStyle(FormaTokens.Color.destructive.opacity(canLogOut ? 0.95 : 0.5))
+                .foregroundStyle(FormaTokens.Color.destructive.opacity(presentation.canLogOut ? 0.95 : 0.5))
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: FormaTokens.Layout.minTouchTarget)
         }
@@ -209,108 +216,36 @@ struct AccountSettingsView: View {
                         .stroke(FormaTokens.Color.border, lineWidth: 1)
                 )
         )
-        .disabled(!canLogOut)
-        .accessibilityLabel("Log out")
-        .accessibilityHint(canLogOut ? FormaProductCopy.Account.signOutHint : "Unavailable while signing in")
-    }
-
-    // MARK: - Helpers
-
-    private var showsSignedInBadge: Bool {
-        if case .signedIn = authManager.authState {
-            return true
-        }
-        return false
-    }
-
-    private var showsStatusProgress: Bool {
-        switch authManager.authState {
-        case .unknown, .signingIn:
-            return true
-        default:
-            return false
-        }
-    }
-
-    private var canLogOut: Bool {
-        showsSignedInBadge && !showsStatusProgress
-    }
-
-    private var accountDisplayName: String? {
-        authManager.accountDisplayName
-    }
-
-    private var accountEmail: String? {
-        authManager.accountEmail
-    }
-
-    private var profileInitials: String {
-        if let name = accountDisplayName {
-            let parts = name.split(whereSeparator: \.isWhitespace)
-            let initials = parts.prefix(2).compactMap(\.first)
-            if !initials.isEmpty {
-                return String(initials).uppercased()
-            }
-        }
-        if let email = accountEmail, let first = email.first {
-            return String(first).uppercased()
-        }
-        return "?"
-    }
-
-    private var avatarAccessibilityLabel: String {
-        if let name = accountDisplayName {
-            return "Profile photo for \(name)"
-        }
-        return "Profile photo"
+        .disabled(!presentation.canLogOut)
+        .accessibilityLabel(FormaProductCopy.Account.logoutButtonTitle)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint(presentation.logoutButtonAccessibilityHint)
     }
 }
 
 // MARK: - Account row
 
 private struct AccountInfoRow: View {
-
-    enum Layout {
-        case inline
-        case stacked
-    }
-
     let label: String
     let value: String
-    var layout: Layout = .inline
     var allowsTextSelection: Bool = false
 
     private let labelColumnWidth: CGFloat = 76
 
     var body: some View {
-        Group {
-            switch layout {
-            case .inline:
-                HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.md) {
-                    labelText
-                        .frame(width: labelColumnWidth, alignment: .leading)
+        HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.md) {
+            Text(label)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
+                .frame(width: labelColumnWidth, alignment: .leading)
 
-                    valueText
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            case .stacked:
-                VStack(alignment: .leading, spacing: 4) {
-                    labelText
-                    valueText
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
+            valueText
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, FormaTokens.Spacing.xs)
-    }
-
-    private var labelText: some View {
-        Text(label)
-            .font(FormaTokens.Typography.sectionSubtitle)
-            .foregroundStyle(FormaTokens.Color.textSecondary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.9)
     }
 
     @ViewBuilder
