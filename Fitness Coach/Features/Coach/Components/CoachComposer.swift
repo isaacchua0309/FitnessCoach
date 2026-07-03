@@ -306,7 +306,11 @@ private struct CoachComposerPreviewHost: View {
             .jpegData(compressionQuality: 0.9) else {
             return nil
         }
-        return CoachInputAttachment.make(jpegData: data, source: .library)
+        return CoachInputAttachment(
+            imageData: data,
+            thumbnail: data,
+            source: .library
+        )
     }
 
     init(attachment: CoachInputAttachment?, text: String) {
