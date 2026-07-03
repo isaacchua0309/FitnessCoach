@@ -135,10 +135,10 @@ final class OnboardingAppleHealthFlowTests: XCTestCase {
 
     func testHealthKitAuthorizationRequestsReadOnlyTypes() {
         #if canImport(HealthKit) && os(iOS)
-        XCTAssertTrue(SystemHealthKitTrainingAuthorization.writeTypes.isEmpty)
-        XCTAssertFalse(SystemHealthKitTrainingAuthorization.readTypes.isEmpty)
+        XCTAssertTrue(HealthKitReadTypeRegistry.writeTypes.isEmpty)
+        XCTAssertFalse(HealthKitReadTypeRegistry.defaultReadTypes.isEmpty)
         XCTAssertTrue(
-            SystemHealthKitTrainingAuthorization.readTypes.contains(HKObjectType.workoutType())
+            HealthKitReadTypeRegistry.defaultReadTypes.contains(HKObjectType.workoutType())
         )
         #else
         throw XCTSkip("HealthKit read-type assertions require iOS HealthKit")

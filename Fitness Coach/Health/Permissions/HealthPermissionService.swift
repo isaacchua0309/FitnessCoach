@@ -47,7 +47,7 @@ struct HealthPermissionService: HealthPermissionServing {
             return .unavailable()
         }
 
-        let status = await healthKitManager.resolvePermissionStatus(
+        let status = await healthKitManager.getAuthorizationStatus(
             includingFutureTypes: includingFutureTypes
         )
         HealthPermissionLogger.logResolvedStatus(status, context: "currentStatus")

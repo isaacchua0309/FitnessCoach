@@ -2,7 +2,7 @@
 //  HealthKitManager.swift
 //  Fitness Coach
 //
-//  Forma — Low-level HealthKit access for Health Intelligence (isolated import boundary).
+//  Forma — Sole HealthKit I/O class for Health Intelligence.
 //
 
 import Foundation
@@ -19,23 +19,39 @@ enum HealthKitManagerError: Error, Equatable, Sendable {
 
 protocol HealthKitManaging: Sendable {
     var isHealthDataAvailable: Bool { get }
-    func resolvePermissionStatus(
-        includingFutureTypes: Bool
-    ) async -> HealthPermissionStatus
-    func requestAuthorization(
-        includingFutureTypes: Bool
-    ) async throws -> HealthPermissionStatus
-    func fetchSamples(
-        from startDate: Date,
-        to endDate: Date
-    ) async throws -> [HealthNormalizedSample]
+    func requestAuthorization(includingFutureTypes: Bool) async throws -> HealthPermissionStatus
+    func getAuthorizationStatus(includingFutureTypes: Bool) async -> HealthPermissionStatus
+    func fetchDailyMetrics(for date: Date, calendar: Calendar) async throws -> HealthDailyMetrics
+    func fetchDailyMetrics(from startDate: Date, to endDate: Date, calendar: Calendar) async throws -> [HealthDailyMetrics]
+    func fetchWorkouts(from startDate: Date, to endDate: Date) async throws -> [HealthFetchedWorkout]
+    func fetchSleepRecords(from startDate: Date, to endDate: Date) async throws -> [HealthSleepRecord]
+    func fetchHeartMetrics(from startDate: Date, to endDate: Date) async throws -> [HealthHeartMetric]
+    func fetchBodyMassRecords(from startDate: Date, to endDate: Date) async throws -> [HealthBodyMassRecord]
+}
+
+extension HealthKitManaging {
+    func requestAuthorization() async throws -> HealthPermissionStatus {
+        try await requestAuthorization(includingFutureTypes: false)
+    }
+
+    func getAuthorizationStatus() async -> HealthPermissionStatus {
+        await getAuthorizationStatus(includingFutureTypes: false)
+    }
+
+    func fetchDailyMetrics(for date: Date) async throws -> HealthDailyMetrics {
+        try await fetchDailyMetrics(for: date, calendar: .current)
+    }
+
+    func fetchDailyMetrics(from startDate: Date, to endDate: Date) async throws -> [HealthDailyMetrics] {
+        try await fetchDailyMetrics(from: startDate, to: endDate, calendar: .current)
+    }
 }
 
 #if canImport(HealthKit) && os(iOS)
 
 final class HealthKitManager: HealthKitManaging, @unchecked Sendable {
 
-    private let healthStore: HKHealthStore
+    let healthStore: HKHealthStore
 
     nonisolated init(healthStore: HKHealthStore = HKHealthStore()) {
         self.healthStore = healthStore
@@ -45,11 +61,13 @@ final class HealthKitManager: HealthKitManaging, @unchecked Sendable {
         HKHealthStore.isHealthDataAvailable()
     }
 
-    func resolvePermissionStatus(
+    // MARK: - Authorization
+
+    func getAuthorizationStatus(
         includingFutureTypes: Bool = false
     ) async -> HealthPermissionStatus {
         guard isHealthDataAvailable else {
-            HealthPermissionLogger.warn("resolvePermissionStatus: Health data unavailable")
+            HealthPermissionLogger.warn("getAuthorizationStatus: Health data unavailable")
             return .unavailable()
         }
 
@@ -59,7 +77,7 @@ final class HealthKitManager: HealthKitManaging, @unchecked Sendable {
         let requestStatus = await fetchAuthorizationRequestStatus(for: signals)
 
         HealthPermissionLogger.event(
-            "resolvePermissionStatus",
+            "getAuthorizationStatus",
             fields: [
                 "requestStatus": Self.requestStatusLabel(requestStatus),
                 "signalCount": String(signals.count),
@@ -124,29 +142,33 @@ final class HealthKitManager: HealthKitManaging, @unchecked Sendable {
         return resolved
     }
 
-    func fetchSamples(
-        from startDate: Date,
-        to endDate: Date
-    ) async throws -> [HealthNormalizedSample] {
+    /// Legacy synchronous share-status for workout type (unreliable for read access).
+    func legacyWorkoutShareAuthorizationStatus() -> HealthTrainingAuthorizationStatus {
         guard isHealthDataAvailable else {
-            throw HealthKitManagerError.unavailable
+            return .unavailable
         }
-        _ = (startDate, endDate, healthStore)
-        // TODO: Issue anchored/statistics queries and map HK samples to HealthNormalizedSample.
-        return []
+        return Self.mapLegacyShareStatus(
+            healthStore.authorizationStatus(for: HKObjectType.workoutType())
+        )
     }
 
-    // MARK: - Private
+    // MARK: - Authorization internals
 
-    private func fetchAuthorizationRequestStatus(
+    func fetchAuthorizationRequestStatus(
         for signals: [HealthSignalKind]
     ) async -> HKAuthorizationRequestStatus {
         let readTypes = HealthKitReadTypeRegistry.readTypes(for: signals)
         return await withCheckedContinuation { continuation in
+            var resumed = false
+            let lock = NSLock()
             healthStore.getRequestStatusForAuthorization(
                 toShare: HealthKitReadTypeRegistry.writeTypes,
                 read: readTypes
             ) { status, error in
+                lock.lock()
+                defer { lock.unlock() }
+                guard !resumed else { return }
+                resumed = true
                 if let error {
                     HealthPermissionLogger.authorizationFailure(
                         context: "getRequestStatusForAuthorization",
@@ -158,7 +180,7 @@ final class HealthKitManager: HealthKitManaging, @unchecked Sendable {
         }
     }
 
-    private func probeSignalAccess(for signals: [HealthSignalKind]) async -> HealthPermissionStatus {
+    func probeSignalAccess(for signals: [HealthSignalKind]) async -> HealthPermissionStatus {
         var access: [HealthSignalKind: HealthSignalAccess] = [:]
         access.reserveCapacity(signals.count)
 
@@ -179,7 +201,7 @@ final class HealthKitManager: HealthKitManaging, @unchecked Sendable {
         return status
     }
 
-    private func probeAccess(for signal: HealthSignalKind) async -> HealthSignalAccess {
+    func probeAccess(for signal: HealthSignalKind) async -> HealthSignalAccess {
         guard let sampleType = HealthKitReadTypeRegistry.hkSampleType(for: signal) else {
             HealthPermissionLogger.warn(
                 "Signal type unavailable on device",
@@ -188,24 +210,205 @@ final class HealthKitManager: HealthKitManaging, @unchecked Sendable {
             return .unavailable
         }
 
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(
+        do {
+            _ = try await executeSampleQuery(
                 sampleType: sampleType,
-                predicate: nil,
+                startDate: nil,
+                endDate: nil,
                 limit: 1,
                 sortDescriptors: nil
-            ) { _, _, error in
+            )
+            return .available
+        } catch let error as HealthKitManagerError {
+            switch error {
+            case .authorizationDenied:
+                return .denied
+            case .unavailable:
+                return .unavailable
+            case .queryFailed:
+                return .unknown
+            }
+        } catch {
+            return Self.mapProbeError(error, signal: signal)
+        }
+    }
+
+    // MARK: - Query execution
+
+    func executeStatisticsSum(
+        quantityType: HKQuantityType,
+        startDate: Date,
+        endDate: Date,
+        unit: HKUnit
+    ) async throws -> Double? {
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startDate,
+            end: endDate,
+            options: .strictStartDate
+        )
+
+        return try await withCheckedThrowingContinuation { continuation in
+            var resumed = false
+            let lock = NSLock()
+
+            let query = HKStatisticsQuery(
+                quantityType: quantityType,
+                quantitySamplePredicate: predicate,
+                options: .cumulativeSum
+            ) { _, statistics, error in
+                lock.lock()
+                defer { lock.unlock() }
+                guard !resumed else { return }
+                resumed = true
+
                 if let error {
-                    continuation.resume(returning: Self.mapProbeError(error, signal: signal))
+                    continuation.resume(throwing: Self.mapQueryError(error))
                     return
                 }
-                continuation.resume(returning: .available)
+
+                guard let quantity = statistics?.sumQuantity() else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+
+                continuation.resume(returning: quantity.doubleValue(for: unit))
             }
             healthStore.execute(query)
         }
     }
 
-    private static func mapProbeError(
+    func executeStatisticsCollection(
+        quantityType: HKQuantityType,
+        startDate: Date,
+        endDate: Date,
+        anchorDate: Date,
+        interval: DateComponents,
+        unit: HKUnit
+    ) async throws -> [(Date, Double)] {
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startDate,
+            end: endDate,
+            options: .strictStartDate
+        )
+
+        return try await withCheckedThrowingContinuation { continuation in
+            var resumed = false
+            let lock = NSLock()
+
+            let query = HKStatisticsCollectionQuery(
+                quantityType: quantityType,
+                quantitySamplePredicate: predicate,
+                options: .cumulativeSum,
+                anchorDate: anchorDate,
+                intervalComponents: interval
+            )
+
+            query.initialResultsHandler = { _, collection, error in
+                lock.lock()
+                defer { lock.unlock() }
+                guard !resumed else { return }
+                resumed = true
+
+                if let error {
+                    continuation.resume(throwing: Self.mapQueryError(error))
+                    return
+                }
+
+                guard let collection else {
+                    continuation.resume(returning: [])
+                    return
+                }
+
+                var values: [(Date, Double)] = []
+                collection.enumerateStatistics(from: startDate, to: endDate) { statistics, _ in
+                    guard let quantity = statistics.sumQuantity() else { return }
+                    let value = quantity.doubleValue(for: unit)
+                    if value > 0 {
+                        values.append((statistics.startDate, value))
+                    }
+                }
+                continuation.resume(returning: values)
+            }
+
+            healthStore.execute(query)
+        }
+    }
+
+    func executeSampleQuery(
+        sampleType: HKSampleType,
+        startDate: Date?,
+        endDate: Date?,
+        limit: Int,
+        sortDescriptors: [NSSortDescriptor]?
+    ) async throws -> [HKSample] {
+        let predicate: NSPredicate?
+        if let startDate, let endDate {
+            predicate = HKQuery.predicateForSamples(
+                withStart: startDate,
+                end: endDate,
+                options: .strictStartDate
+            )
+        } else {
+            predicate = nil
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            var resumed = false
+            let lock = NSLock()
+
+            let query = HKSampleQuery(
+                sampleType: sampleType,
+                predicate: predicate,
+                limit: limit,
+                sortDescriptors: sortDescriptors
+            ) { _, samples, error in
+                lock.lock()
+                defer { lock.unlock() }
+                guard !resumed else { return }
+                resumed = true
+
+                if let error {
+                    continuation.resume(throwing: Self.mapQueryError(error))
+                    return
+                }
+
+                continuation.resume(returning: samples ?? [])
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    func quantityType(for signal: HealthSignalKind) -> HKQuantityType? {
+        HealthKitReadTypeRegistry.hkObjectType(for: signal) as? HKQuantityType
+    }
+
+    // MARK: - Error mapping
+
+    static func mapQueryError(_ error: Error) -> HealthKitManagerError {
+        if let hkError = error as? HKError {
+            switch hkError.code {
+            case .errorAuthorizationDenied, .errorAuthorizationNotDetermined:
+                return .authorizationDenied
+            default:
+                return .queryFailed
+            }
+        }
+
+        let nsError = error as NSError
+        if nsError.domain == HKError.errorDomain,
+           let code = HKError.Code(rawValue: nsError.code) {
+            switch code {
+            case .errorAuthorizationDenied, .errorAuthorizationNotDetermined:
+                return .authorizationDenied
+            default:
+                return .queryFailed
+            }
+        }
+
+        return .queryFailed
+    }
+
+    static func mapProbeError(
         _ error: Error,
         signal: HealthSignalKind
     ) -> HealthSignalAccess {
@@ -246,7 +449,7 @@ final class HealthKitManager: HealthKitManaging, @unchecked Sendable {
         return .unknown
     }
 
-    private static func uniformNotDetermined(
+    static func uniformNotDetermined(
         signals: [HealthSignalKind]
     ) -> HealthPermissionStatus {
         .uniform(
@@ -256,7 +459,7 @@ final class HealthKitManager: HealthKitManaging, @unchecked Sendable {
         )
     }
 
-    private static func requestStatusLabel(_ status: HKAuthorizationRequestStatus) -> String {
+    static func requestStatusLabel(_ status: HKAuthorizationRequestStatus) -> String {
         switch status {
         case .unknown:
             return "unknown"
@@ -268,6 +471,19 @@ final class HealthKitManager: HealthKitManaging, @unchecked Sendable {
             return "unknown(\(status.rawValue))"
         }
     }
+
+    static func mapLegacyShareStatus(_ status: HKAuthorizationStatus) -> HealthTrainingAuthorizationStatus {
+        switch status {
+        case .notDetermined:
+            return .notDetermined
+        case .sharingDenied:
+            return .sharingDenied
+        case .sharingAuthorized:
+            return .sharingAuthorized
+        @unknown default:
+            return .notDetermined
+        }
+    }
 }
 
 #else
@@ -276,7 +492,7 @@ struct HealthKitManager: HealthKitManaging, Sendable {
 
     var isHealthDataAvailable: Bool { false }
 
-    func resolvePermissionStatus(
+    func getAuthorizationStatus(
         includingFutureTypes: Bool = false
     ) async -> HealthPermissionStatus {
         _ = includingFutureTypes
@@ -290,10 +506,36 @@ struct HealthKitManager: HealthKitManaging, Sendable {
         throw HealthKitManagerError.unavailable
     }
 
-    func fetchSamples(
+    func fetchDailyMetrics(for date: Date, calendar: Calendar = .current) async throws -> HealthDailyMetrics {
+        _ = (date, calendar)
+        throw HealthKitManagerError.unavailable
+    }
+
+    func fetchDailyMetrics(
         from startDate: Date,
-        to endDate: Date
-    ) async throws -> [HealthNormalizedSample] {
+        to endDate: Date,
+        calendar: Calendar = .current
+    ) async throws -> [HealthDailyMetrics] {
+        _ = (startDate, endDate, calendar)
+        throw HealthKitManagerError.unavailable
+    }
+
+    func fetchWorkouts(from startDate: Date, to endDate: Date) async throws -> [HealthFetchedWorkout] {
+        _ = (startDate, endDate)
+        throw HealthKitManagerError.unavailable
+    }
+
+    func fetchSleepRecords(from startDate: Date, to endDate: Date) async throws -> [HealthSleepRecord] {
+        _ = (startDate, endDate)
+        throw HealthKitManagerError.unavailable
+    }
+
+    func fetchHeartMetrics(from startDate: Date, to endDate: Date) async throws -> [HealthHeartMetric] {
+        _ = (startDate, endDate)
+        throw HealthKitManagerError.unavailable
+    }
+
+    func fetchBodyMassRecords(from startDate: Date, to endDate: Date) async throws -> [HealthBodyMassRecord] {
         _ = (startDate, endDate)
         throw HealthKitManagerError.unavailable
     }

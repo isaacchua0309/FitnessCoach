@@ -2,27 +2,23 @@
 //  SystemHealthKitTrainingAuthorization.swift
 //  Fitness Coach
 //
-//  Forma — Read-only HealthKit authorization for Training Insights (Stage 4).
+//  Forma — Read-only HealthKit authorization via HealthKitManager.
 //
 
 import Foundation
-
-#if canImport(HealthKit)
-import HealthKit
-#endif
 
 #if canImport(HealthKit) && os(iOS)
 
 final class SystemHealthKitTrainingAuthorization: HealthKitTrainingAuthorizing, @unchecked Sendable {
 
-    private let healthStore: HKHealthStore
+    private let healthKitManager: HealthKitManager
 
-    nonisolated init(healthStore: HKHealthStore = HKHealthStore()) {
-        self.healthStore = healthStore
+    nonisolated init(healthKitManager: HealthKitManager = HealthKitManager()) {
+        self.healthKitManager = healthKitManager
     }
 
     var isHealthDataAvailable: Bool {
-        HKHealthStore.isHealthDataAvailable()
+        healthKitManager.isHealthDataAvailable
     }
 
     func workoutReadAuthorizationStatus() -> HealthTrainingAuthorizationStatus {
@@ -31,15 +27,12 @@ final class SystemHealthKitTrainingAuthorization: HealthKitTrainingAuthorizing, 
             return .unavailable
         }
 
-        let hkStatus = healthStore.authorizationStatus(for: HKObjectType.workoutType())
-        HealthTrainingDebugLogger.logHKAuthorizationStatus(
-            hkStatus,
-            context: "workoutReadAuthorizationStatus.legacyShareStatus"
-        )
+        let status = healthKitManager.legacyWorkoutShareAuthorizationStatus()
+        HealthTrainingDebugLogger.logAuthorizationStatus(status, context: "workoutReadAuthorizationStatus.legacyShareStatus")
         HealthTrainingDebugLogger.event(
             "Note: authorizationStatus(for:) reflects write/share permission, not read access — use resolveWorkoutReadAccess()"
         )
-        return Self.mapLegacyShareStatus(hkStatus)
+        return status
     }
 
     func resolveWorkoutReadAccess() async -> HealthTrainingAuthorizationStatus {
@@ -48,20 +41,10 @@ final class SystemHealthKitTrainingAuthorization: HealthKitTrainingAuthorizing, 
             return .unavailable
         }
 
-        let requestStatus = await fetchAuthorizationRequestStatus()
-        HealthTrainingDebugLogger.event(
-            "getRequestStatusForAuthorization",
-            fields: ["requestStatus": Self.requestStatusLabel(requestStatus)]
-        )
-
-        switch requestStatus {
-        case .shouldRequest:
-            return .notDetermined
-        case .unnecessary, .unknown:
-            return await probeReadAccess()
-        @unknown default:
-            return await probeReadAccess()
-        }
+        let permissionStatus = await healthKitManager.getAuthorizationStatus()
+        let mapped = Self.mapTrainingStatus(from: permissionStatus)
+        HealthTrainingDebugLogger.logAuthorizationStatus(mapped, context: "resolveWorkoutReadAccess")
+        return mapped
     }
 
     func requestReadAuthorization() async -> HealthTrainingAuthorizationStatus {
@@ -70,149 +53,52 @@ final class SystemHealthKitTrainingAuthorization: HealthKitTrainingAuthorizing, 
             return .unavailable
         }
 
-        let requestStatus = await fetchAuthorizationRequestStatus()
         HealthTrainingDebugLogger.event(
             "requestReadAuthorization starting",
-            fields: ["requestStatusBefore": Self.requestStatusLabel(requestStatus)]
-        )
-
-        HealthTrainingDebugLogger.event(
-            "Calling HKHealthStore.requestAuthorization",
             fields: [
-                "readTypeCount": String(Self.readTypes.count),
-                "writeTypeCount": String(Self.writeTypes.count),
-                "readTypes": Self.readTypeLabels.joined(separator: ",")
+                "readTypeCount": String(HealthKitReadTypeRegistry.defaultRequestedSignals.count),
+                "writeTypeCount": "0",
+                "readTypes": HealthKitReadTypeRegistry.readTypeLabels(
+                    for: HealthKitReadTypeRegistry.defaultRequestedSignals
+                ).joined(separator: ",")
             ]
         )
 
         do {
-            try await healthStore.requestAuthorization(
-                toShare: Self.writeTypes,
-                read: Self.readTypes
-            )
-            HealthTrainingDebugLogger.event("HKHealthStore.requestAuthorization completed without error")
+            let permissionStatus = try await healthKitManager.requestAuthorization()
+            let mapped = Self.mapTrainingStatus(from: permissionStatus)
+            HealthTrainingDebugLogger.logAuthorizationStatus(mapped, context: "requestReadAuthorization.resolvedReadAccess")
+            return mapped
         } catch {
             HealthTrainingDebugLogger.error(
-                "HKHealthStore.requestAuthorization threw",
+                "requestReadAuthorization failed",
                 underlying: error
             )
             return .sharingDenied
         }
-
-        let resolved = await probeReadAccess()
-        let legacyStatus = healthStore.authorizationStatus(for: HKObjectType.workoutType())
-        HealthTrainingDebugLogger.logHKAuthorizationStatus(
-            legacyStatus,
-            context: "requestReadAuthorization.legacyShareStatusAfterRequest"
-        )
-        HealthTrainingDebugLogger.logAuthorizationStatus(
-            resolved,
-            context: "requestReadAuthorization.resolvedReadAccess"
-        )
-        return resolved
-    }
-
-    // MARK: - HealthKit types
-
-    static var readTypes: Set<HKObjectType> {
-        HealthKitReadTypeRegistry.defaultReadTypes
-    }
-
-    static let writeTypes: Set<HKSampleType> = HealthKitReadTypeRegistry.writeTypes
-
-    static var readTypeLabels: [String] {
-        HealthKitReadTypeRegistry.readTypeLabels(for: HealthKitReadTypeRegistry.defaultRequestedSignals)
     }
 
     // MARK: - Private
 
-    private func fetchAuthorizationRequestStatus() async -> HKAuthorizationRequestStatus {
-        await withCheckedContinuation { continuation in
-            healthStore.getRequestStatusForAuthorization(
-                toShare: Self.writeTypes,
-                read: Self.readTypes
-            ) { status, error in
-                if let error {
-                    HealthTrainingDebugLogger.error(
-                        "getRequestStatusForAuthorization failed",
-                        underlying: error
-                    )
-                }
-                continuation.resume(returning: status)
-            }
+    private static func mapTrainingStatus(
+        from permissionStatus: HealthPermissionStatus
+    ) -> HealthTrainingAuthorizationStatus {
+        if permissionStatus.access(for: .workout).isReadable {
+            return .sharingAuthorized
         }
-    }
-
-    private func probeReadAccess() async -> HealthTrainingAuthorizationStatus {
-        await withCheckedContinuation { continuation in
-            let workoutType = HKObjectType.workoutType()
-            let query = HKSampleQuery(
-                sampleType: workoutType,
-                predicate: nil,
-                limit: 1,
-                sortDescriptors: nil
-            ) { _, samples, error in
-                if let error {
-                    if let hkError = error as? HKError {
-                        HealthTrainingDebugLogger.error(
-                            "Read access probe failed",
-                            fields: ["hkErrorCode": String(describing: hkError.code)],
-                            underlying: error
-                        )
-                        switch hkError.code {
-                        case .errorAuthorizationDenied:
-                            continuation.resume(returning: .sharingDenied)
-                        case .errorAuthorizationNotDetermined:
-                            continuation.resume(returning: .notDetermined)
-                        default:
-                            continuation.resume(returning: .sharingAuthorized)
-                        }
-                    } else {
-                        HealthTrainingDebugLogger.error(
-                            "Read access probe failed with non-HK error",
-                            underlying: error
-                        )
-                        continuation.resume(returning: .sharingAuthorized)
-                    }
-                    return
-                }
-
-                HealthTrainingDebugLogger.event(
-                    "Read access probe succeeded",
-                    fields: ["sampleCount": String(samples?.count ?? 0)]
-                )
-                HealthTrainingDebugLogger.event(
-                    "Connected: verify permissions in Health app → Apps → Forma (not Settings → Forma)"
-                )
-                continuation.resume(returning: .sharingAuthorized)
-            }
-            healthStore.execute(query)
+        if permissionStatus.access(for: .stepCount).isReadable {
+            return .sharingAuthorized
         }
-    }
 
-    private static func mapLegacyShareStatus(_ status: HKAuthorizationStatus) -> HealthTrainingAuthorizationStatus {
-        switch status {
+        switch permissionStatus.access(for: .workout) {
+        case .denied:
+            return .sharingDenied
         case .notDetermined:
             return .notDetermined
-        case .sharingDenied:
-            return .sharingDenied
-        case .sharingAuthorized:
-            return .sharingAuthorized
-        @unknown default:
+        case .unavailable:
+            return .unavailable
+        case .unknown, .available:
             return .notDetermined
-        }
-    }
-
-    private static func requestStatusLabel(_ status: HKAuthorizationRequestStatus) -> String {
-        switch status {
-        case .unknown:
-            return "unknown"
-        case .shouldRequest:
-            return "shouldRequest"
-        case .unnecessary:
-            return "unnecessary"
-        @unknown default:
-            return "unknown(\(status.rawValue))"
         }
     }
 }

@@ -21,6 +21,14 @@ protocol HealthKitWorkoutReading: Sendable {
 enum HealthKitOptionalAccessPolicy {
 
     nonisolated static func isOptionalAccessFailure(_ error: Error) -> Bool {
+        if let managerError = error as? HealthKitManagerError {
+            switch managerError {
+            case .authorizationDenied:
+                return true
+            case .unavailable, .queryFailed:
+                return false
+            }
+        }
         #if canImport(HealthKit)
         if let hkError = error as? HKError {
             switch hkError.code {

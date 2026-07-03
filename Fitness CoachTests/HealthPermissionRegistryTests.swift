@@ -93,9 +93,6 @@ final class HealthPermissionRegistryTests: XCTestCase {
         XCTAssertFalse(HealthKitReadTypeRegistry.defaultReadTypes.isEmpty)
         XCTAssertTrue(HealthKitReadTypeRegistry.defaultReadTypes.contains(HKObjectType.workoutType()))
         XCTAssertTrue(HealthKitReadTypeRegistry.writeTypes.isEmpty)
-        XCTAssertTrue(
-            SystemHealthKitTrainingAuthorization.readTypes.contains(HKObjectType.workoutType())
-        )
     }
     #endif
 }

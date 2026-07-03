@@ -2,27 +2,23 @@
 //  SystemHealthKitWorkoutReader.swift
 //  Fitness Coach
 //
-//  Forma — Reads workout samples from Apple Health (read-only).
+//  Forma — Reads workout samples from Apple Health via HealthKitManager.
 //
 
 import Foundation
-
-#if canImport(HealthKit)
-import HealthKit
-#endif
 
 #if canImport(HealthKit) && os(iOS)
 
 final class SystemHealthKitWorkoutReader: HealthKitWorkoutReading, @unchecked Sendable {
 
-    private let healthStore: HKHealthStore
+    private let healthKitManager: HealthKitManager
 
-    nonisolated init(healthStore: HKHealthStore = HKHealthStore()) {
-        self.healthStore = healthStore
+    nonisolated init(healthKitManager: HealthKitManager = HealthKitManager()) {
+        self.healthKitManager = healthKitManager
     }
 
     func fetchWorkouts(from startDate: Date, to endDate: Date) async throws -> [HealthWorkoutRecord] {
-        guard HKHealthStore.isHealthDataAvailable() else {
+        guard healthKitManager.isHealthDataAvailable else {
             HealthTrainingDebugLogger.warn("fetchWorkouts aborted: Health data unavailable")
             return []
         }
@@ -35,74 +31,28 @@ final class SystemHealthKitWorkoutReader: HealthKitWorkoutReading, @unchecked Se
             ]
         )
 
-        let predicate = HKQuery.predicateForSamples(
-            withStart: startDate,
-            end: endDate,
-            options: .strictStartDate
-        )
-        let sort = NSSortDescriptor(
-            key: HKSampleSortIdentifierStartDate,
-            ascending: false
-        )
-
-        let samples = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[HKSample], Error>) in
-            let query = HKSampleQuery(
-                sampleType: HKObjectType.workoutType(),
-                predicate: predicate,
-                limit: HKObjectQueryNoLimit,
-                sortDescriptors: [sort]
-            ) { _, samples, error in
-                if let error {
-                    HealthTrainingDebugLogger.error(
-                        "fetchWorkouts query failed",
-                        fields: [
-                            "start": ISO8601DateFormatter().string(from: startDate),
-                            "end": ISO8601DateFormatter().string(from: endDate)
-                        ],
-                        underlying: error
-                    )
-                    continuation.resume(throwing: error)
-                    return
-                }
-                continuation.resume(returning: samples ?? [])
-            }
-            healthStore.execute(query)
-        }
-
-        let workouts: [HealthWorkoutRecord] = samples.compactMap { sample -> HealthWorkoutRecord? in
-            guard let workout = sample as? HKWorkout else { return nil }
-            return Self.map(workout)
-        }
+        let workouts = try await healthKitManager.fetchWorkouts(from: startDate, to: endDate)
+        let records = workouts.map(Self.mapToHealthWorkoutRecord)
 
         HealthTrainingDebugLogger.event(
             "fetchWorkouts completed",
             fields: [
-                "sampleCount": String(samples.count),
-                "workoutCount": String(workouts.count)
+                "workoutCount": String(records.count)
             ]
         )
 
-        return workouts
+        return records
     }
 
-    private static func map(_ workout: HKWorkout) -> HealthWorkoutRecord {
-        let durationMinutes = max(Int((workout.duration / 60.0).rounded()), 1)
-        let calories = activeCalories(from: workout)
-
-        return HealthWorkoutRecord(
-            id: workout.uuid,
-            activityName: HealthWorkoutActivityFormatter.displayName(for: workout.workoutActivityType),
+    private static func mapToHealthWorkoutRecord(_ workout: HealthFetchedWorkout) -> HealthWorkoutRecord {
+        HealthWorkoutRecord(
+            id: workout.id,
+            activityName: workout.activityTypeName,
             startDate: workout.startDate,
             endDate: workout.endDate,
-            durationMinutes: durationMinutes,
-            activeCalories: calories
+            durationMinutes: workout.durationMinutes,
+            activeCalories: workout.activeCaloriesKcal.map { Int($0.rounded()) }
         )
-    }
-
-    private static func activeCalories(from workout: HKWorkout) -> Int? {
-        let energyType = HKQuantityType(.activeEnergyBurned)
-        guard let sum = workout.statistics(for: energyType)?.sumQuantity() else { return nil }
-        return Int(sum.doubleValue(for: .kilocalorie()).rounded())
     }
 }
 

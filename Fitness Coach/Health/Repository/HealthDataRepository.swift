@@ -54,7 +54,11 @@ struct HealthDataRepository: HealthDataRepositorying {
         }
 
         do {
-            let rawSamples = try await healthKitManager.fetchSamples(from: dayStart, to: dayEnd)
+            let rawSamples = try await loadNormalizedSamples(
+                dayStart: dayStart,
+                dayEnd: dayEnd,
+                calendar: calendar
+            )
             let normalized = normalizer.normalize(samples: rawSamples)
             cacheStore.store(
                 HealthCacheEntry(date: dayStart, samples: normalized, cachedAt: Date()),
@@ -68,5 +72,97 @@ struct HealthDataRepository: HealthDataRepositorying {
         } catch {
             throw HealthDataRepositoryError.fetchFailed
         }
+    }
+
+    // MARK: - Private
+
+    private func loadNormalizedSamples(
+        dayStart: Date,
+        dayEnd: Date,
+        calendar: Calendar
+    ) async throws -> [HealthNormalizedSample] {
+        var samples: [HealthNormalizedSample] = []
+
+        let metrics = try await healthKitManager.fetchDailyMetrics(for: dayStart, calendar: calendar)
+        if let steps = metrics.steps {
+            samples.append(
+                HealthNormalizedSample(
+                    kind: .stepCount,
+                    startDate: dayStart,
+                    endDate: dayEnd,
+                    value: Double(steps),
+                    unitSymbol: HealthUnitSymbol.count
+                )
+            )
+        }
+        if let energy = metrics.activeEnergyKcal {
+            samples.append(
+                HealthNormalizedSample(
+                    kind: .activeEnergy,
+                    startDate: dayStart,
+                    endDate: dayEnd,
+                    value: energy,
+                    unitSymbol: HealthUnitSymbol.kilocalorie
+                )
+            )
+        }
+        if let exercise = metrics.exerciseMinutes {
+            samples.append(
+                HealthNormalizedSample(
+                    kind: .exerciseTime,
+                    startDate: dayStart,
+                    endDate: dayEnd,
+                    value: exercise,
+                    unitSymbol: HealthUnitSymbol.minutes
+                )
+            )
+        }
+
+        let workouts = try await healthKitManager.fetchWorkouts(from: dayStart, to: dayEnd)
+        for workout in workouts {
+            samples.append(
+                HealthNormalizedSample(
+                    id: workout.id,
+                    kind: .workout,
+                    startDate: workout.startDate,
+                    endDate: workout.endDate,
+                    value: Double(workout.durationMinutes),
+                    unitSymbol: HealthUnitSymbol.minutes,
+                    sourceBundleIdentifier: workout.sourceName
+                )
+            )
+        }
+
+        let heartMetrics = try await healthKitManager.fetchHeartMetrics(from: dayStart, to: dayEnd)
+        for metric in heartMetrics {
+            let kind: HealthSampleKind = metric.kind == .restingHeartRate ? .restingHeartRate : .heartRate
+            samples.append(
+                HealthNormalizedSample(
+                    id: metric.id,
+                    kind: kind,
+                    startDate: metric.date,
+                    endDate: metric.date,
+                    value: metric.value,
+                    unitSymbol: metric.unitSymbol
+                )
+            )
+        }
+
+        let sleepRecords = try await healthKitManager.fetchSleepRecords(from: dayStart, to: dayEnd)
+        for sleep in sleepRecords where sleep.asleepDuration > 0 {
+            samples.append(
+                HealthNormalizedSample(
+                    id: sleep.id,
+                    kind: .sleep,
+                    startDate: sleep.startDate,
+                    endDate: sleep.endDate,
+                    value: sleep.asleepDuration / 60.0,
+                    unitSymbol: HealthUnitSymbol.minutes
+                )
+            )
+        }
+
+        _ = calendar
+        return samples
     }
 }
