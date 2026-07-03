@@ -155,12 +155,21 @@ struct CoachView: View {
         CoachComposer(
             text: Binding(
                 get: { model.inputState.text },
-                set: { model.inputText = $0 }
+                set: { newValue in
+                    let previousValue = model.inputState.text
+                    if speechService.isRecording,
+                       !speechService.isApplyingTranscriptUpdate,
+                       newValue != previousValue {
+                        speechService.userDidEditInput()
+                    }
+                    model.inputText = newValue
+                }
             ),
             attachment: model.inputState.attachment,
             attachmentError: model.inputState.error,
             speechError: speechService.errorMessage,
             isListening: speechService.isRecording,
+            isVoiceInputBusy: speechService.isVoiceInputBusy,
             canPickAttachment: model.inputState.canPickImage,
             textFieldPlaceholder: model.photoClarificationComposerPlaceholder
                 ?? FormaProductCopy.Coach.composerPlaceholder,
@@ -224,9 +233,11 @@ struct CoachView: View {
     }
 
     private func handleVoiceTap() {
+        guard !speechService.isVoiceInputBusy || speechService.isRecording else { return }
+
         dismissKeyboard()
         Task {
-            await speechService.toggleRecording { transcript in
+            await speechService.toggleRecording(currentText: model.inputState.text) { transcript in
                 model.inputText = transcript
             }
         }

@@ -16,6 +16,7 @@ struct CoachComposer: View {
     var attachmentError: CoachInputComposerError?
     var speechError: String?
     var isListening: Bool = false
+    var isVoiceInputBusy: Bool = false
     var canPickAttachment: Bool
     var textFieldPlaceholder: String = FormaProductCopy.Coach.composerPlaceholder
     var isFocused: FocusState<Bool>.Binding
@@ -68,6 +69,7 @@ struct CoachComposer: View {
         .animation(CoachDesignTokens.Motion.standard, value: showVoiceButton)
         .animation(CoachDesignTokens.Motion.standard, value: showSendButton)
         .animation(CoachDesignTokens.Motion.standard, value: isListening)
+        .animation(CoachDesignTokens.Motion.standard, value: isVoiceInputBusy)
         .animation(CoachDesignTokens.Motion.standard, value: isAttachmentMenuPresented)
         .animation(CoachDesignTokens.Motion.standard, value: attachmentError)
         .animation(CoachDesignTokens.Motion.standard, value: speechError)
@@ -143,7 +145,6 @@ struct CoachComposer: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: CoachDesignTokens.Layout.composerBarHeight)
                 .focused(isFocused)
-                .disabled(isListening)
                 .padding(.horizontal, CoachDesignTokens.Spacing.xs)
                 .submitLabel(.send)
                 .onSubmit {
@@ -274,9 +275,14 @@ struct CoachComposer: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(CoachComposerButtonStyle())
+            .disabled(isVoiceInputBusy && !isListening)
             .transition(.scale(scale: 0.85).combined(with: .opacity))
             .accessibilityLabel(isListening ? "Stop voice input" : "Voice input")
-            .accessibilityHint(isListening ? "Stops listening and keeps the transcribed text" : "Starts dictating a message")
+            .accessibilityHint(
+                isVoiceInputBusy && !isListening
+                    ? "Voice input is starting"
+                    : (isListening ? "Stops listening and keeps the transcribed text" : "Starts dictating a message")
+            )
         }
     }
 
@@ -371,6 +377,7 @@ private struct CoachComposerPreviewHost: View {
                 attachmentError: nil,
                 speechError: nil,
                 isListening: isListening,
+                isVoiceInputBusy: isVoiceInputBusy,
                 canPickAttachment: attachment == nil,
                 isFocused: $isFocused,
                 isSending: false,
