@@ -58,8 +58,9 @@ final class SettingsPresentationBuilderTests: XCTestCase {
     func testProductionSettingsHidesComingSoonRows() {
         let state = SettingsPresentationBuilder.build(input: makeInput())
 
-        XCTAssertFalse(state.visibleRowIDs.contains(.exportData))
-        XCTAssertFalse(state.visibleRowIDs.contains(.deleteData))
+        for rowID in SettingsProductionVisibility.hiddenRowIDs {
+            XCTAssertFalse(state.visibleRowIDs.contains(rowID))
+        }
 
         let titles = allRowTitles(in: state)
         XCTAssertFalse(SettingsProductionVisibility.containsProhibitedPlaceholderCopy(titles))
