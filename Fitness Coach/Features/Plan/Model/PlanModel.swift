@@ -126,7 +126,7 @@ final class PlanModel: ObservableObject {
         do {
             try Task.checkCancellation()
 
-            async let sectionTask = PlanHealthIntelligenceSectionLoader.loadSectionState(
+            let loadResult = await PlanHealthIntelligenceSectionLoader.loadSection(
                 profile: profile,
                 context: context,
                 isAppleHealthConnected: isAppleHealthConnected,
@@ -134,30 +134,21 @@ final class PlanModel: ObservableObject {
                 baselineService: healthBaselineService,
                 healthDataRepository: healthDataRepository
             )
-            async let snapshotTask = healthIntelligenceSnapshotProvider.loadTodaySnapshot(
-                for: context.asOf,
-                calendar: context.calendar
-            )
-            async let availabilityTask = healthDataRepository.getHealthDataAvailability()
-
-            let sectionState = await sectionTask
-            let snapshot = await snapshotTask
-            let availability = await availabilityTask
 
             try Task.checkCancellation()
 
-            planHealthIntelligenceSectionState = uiEnabled ? sectionState : nil
+            planHealthIntelligenceSectionState = uiEnabled ? loadResult.sectionState : nil
 
             let analyticsContext = HealthIntelligencePresentationContext(
-                availability: availability,
-                snapshot: snapshot,
+                availability: loadResult.availability,
+                snapshot: loadResult.snapshot,
                 isAppleHealthConnected: isAppleHealthConnected,
-                cachedDayCount: availability.cachedDayCount
+                cachedDayCount: loadResult.availability.cachedDayCount
             )
-            let confidenceBucket = snapshot.map {
+            let confidenceBucket = loadResult.snapshot.map {
                 HealthIntelligenceAnalyticsContextBuilder.confidenceBucket(from: $0.planConfidence)
             } ?? HealthIntelligenceAnalyticsContextBuilder.confidenceBucket(
-                from: sectionState.confidenceCard.confidenceLabel
+                from: loadResult.sectionState.confidenceCard.confidenceLabel
             )
             healthIntelligenceAnalyticsCoordinator?.logSnapshotLoaded(
                 surface: .plan,
@@ -210,7 +201,10 @@ final class PlanModel: ObservableObject {
                     profile: profile,
                     isAppleHealthConnected: isAppleHealthConnected
                 ),
-                healthConnection: isAppleHealthConnected ? .partial : .disconnected,
+                healthConnection: PlanHealthConnectionState.resolve(
+                    isAppleHealthConnected: isAppleHealthConnected,
+                    availability: nil
+                ),
                 hasNutritionLogging: hasNutritionLogging,
                 hasRecentWeightLog: hasRecentWeightLog
             ),

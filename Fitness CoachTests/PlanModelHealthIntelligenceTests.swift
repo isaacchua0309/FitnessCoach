@@ -48,7 +48,7 @@ final class PlanModelHealthIntelligenceTests: XCTestCase {
 
         await model.loadProfile()
 
-        XCTAssertEqual(snapshotProvider.loadCallCount, 1)
+        XCTAssertEqual(snapshotProvider.loadCallCount, 1, "Plan should compose snapshot once per refresh")
         XCTAssertNotNil(model.planHealthIntelligenceSectionState)
         XCTAssertEqual(
             model.planHealthIntelligenceSectionState?.confidenceCard.confidenceLabel,

@@ -171,10 +171,31 @@ final class PlanHealthIntelligencePresentationBuilderTests: XCTestCase {
         )
 
         XCTAssertTrue(section.missingDataActions.contains { $0.id == "partial-permissions" })
+        XCTAssertFalse(section.missingDataActions.contains { $0.id == "sleep" })
+        XCTAssertFalse(section.missingDataActions.contains { $0.id == "heart-metrics" })
         XCTAssertEqual(
             section.dataQuality.explanation,
             FormaProductCopy.PlanHealthIntelligencePresentation.dataQualitySummaryPartial
         )
+    }
+
+    func testPartialPermissionsSuppressesGranularSleepAndHeartActions() {
+        let section = PlanHealthIntelligencePresentationBuilder.buildSection(
+            input: PlanHealthIntelligenceBuildInput(
+                planConfidence: PlanHealthConfidence(score: 0.52, label: "Moderate"),
+                baselineContext: makeSparseBaseline(),
+                recovery: .unknown,
+                userPlan: connectedPlan(),
+                healthConnection: .partial,
+                hasNutritionLogging: false,
+                hasRecentWeightLog: false
+            ),
+            calendar: calendar
+        )
+
+        XCTAssertTrue(section.missingDataActions.contains { $0.id == "partial-permissions" })
+        XCTAssertFalse(section.missingDataActions.contains { $0.id == "sleep" })
+        XCTAssertFalse(section.missingDataActions.contains { $0.id == "heart-metrics" })
     }
 
     func testCodableRoundTripForSectionState() throws {

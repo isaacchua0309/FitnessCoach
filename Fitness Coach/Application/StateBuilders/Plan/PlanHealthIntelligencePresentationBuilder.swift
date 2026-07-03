@@ -182,7 +182,9 @@ enum PlanHealthIntelligencePresentationBuilder {
             )
         }
 
-        if baseline.missingSignals.contains(.sleep) {
+        let showsPartialPermissionsAction = input.healthConnection == .partial
+
+        if baseline.missingSignals.contains(.sleep), !showsPartialPermissionsAction {
             actions.append(
                 PlanHealthMissingDataActionState(
                     id: "sleep",
@@ -194,7 +196,8 @@ enum PlanHealthIntelligencePresentationBuilder {
         }
 
         if baseline.missingSignals.contains(.hrv)
-            || baseline.missingSignals.contains(.restingHeartRate) {
+            || baseline.missingSignals.contains(.restingHeartRate),
+           !showsPartialPermissionsAction {
             actions.append(
                 PlanHealthMissingDataActionState(
                     id: "heart-metrics",

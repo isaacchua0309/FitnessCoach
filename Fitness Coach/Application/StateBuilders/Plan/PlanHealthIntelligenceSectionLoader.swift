@@ -11,7 +11,7 @@ enum PlanHealthIntelligenceSectionLoader {
 
     private static let nutritionLoggingMinimumDays = 3
 
-    static func loadSectionState(
+    static func loadSection(
         profile: UserProfile,
         context: PlanDashboardContext,
         isAppleHealthConnected: Bool,
@@ -19,7 +19,7 @@ enum PlanHealthIntelligenceSectionLoader {
         baselineService: any HealthBaselineProviding,
         healthDataRepository: any HealthDataRepositorying,
         calendar: Calendar = .current
-    ) async -> PlanHealthIntelligenceSectionState {
+    ) async -> PlanHealthIntelligenceLoadResult {
         let referenceDate = context.asOf
 
         async let snapshotTask = snapshotProvider.loadTodaySnapshot(
@@ -48,8 +48,9 @@ enum PlanHealthIntelligenceSectionLoader {
             calendar: calendar
         )
 
+        let sectionState: PlanHealthIntelligenceSectionState
         if let snapshot {
-            return PlanHealthIntelligencePresentationBuilder.buildSection(
+            sectionState = PlanHealthIntelligencePresentationBuilder.buildSection(
                 input: .from(
                     snapshot: snapshot,
                     baselineContext: baselineContext,
@@ -60,22 +61,28 @@ enum PlanHealthIntelligenceSectionLoader {
                 ),
                 calendar: calendar
             )
+        } else {
+            sectionState = PlanHealthIntelligencePresentationBuilder.buildSection(
+                input: PlanHealthIntelligenceBuildInput(
+                    planConfidence: .unknown,
+                    baselineContext: baselineContext,
+                    recovery: .unknown,
+                    userPlan: userPlan,
+                    healthConnection: PlanHealthConnectionState.resolve(
+                        isAppleHealthConnected: isAppleHealthConnected,
+                        availability: availability
+                    ),
+                    hasNutritionLogging: hasNutritionLogging,
+                    hasRecentWeightLog: hasRecentWeightLog
+                ),
+                calendar: calendar
+            )
         }
 
-        return PlanHealthIntelligencePresentationBuilder.buildSection(
-            input: PlanHealthIntelligenceBuildInput(
-                planConfidence: .unknown,
-                baselineContext: baselineContext,
-                recovery: .unknown,
-                userPlan: userPlan,
-                healthConnection: PlanHealthConnectionState.resolve(
-                    isAppleHealthConnected: isAppleHealthConnected,
-                    availability: availability
-                ),
-                hasNutritionLogging: hasNutritionLogging,
-                hasRecentWeightLog: hasRecentWeightLog
-            ),
-            calendar: calendar
+        return PlanHealthIntelligenceLoadResult(
+            sectionState: sectionState,
+            snapshot: snapshot,
+            availability: availability
         )
     }
 }

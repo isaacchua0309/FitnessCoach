@@ -160,14 +160,49 @@ final class CoachHealthIntelligenceContextBuilderTests: XCTestCase {
     }
 
     func testMissingSignalsOnlyUsesSnapshotReportedSignals() {
+        let recovery = RecoverySummary(
+            score: 72,
+            status: .moderate,
+            title: "Moderate recovery",
+            explanation: "Recovery looks acceptable today.",
+            recommendedTraining: "Train based on how you feel.",
+            recommendedNutrition: "Stay on your usual plan.",
+            confidence: .moderate,
+            contributingFactors: [],
+            missingSignals: [.workouts, .trainingLoad]
+        )
+
         let labels = CoachHealthIntelligenceContextBuilder.plainLanguageMissingSignals(
-            recovery: .unknown,
+            recovery: recovery,
             nutrition: .none,
             trainingLoad: .unknown
         )
 
-        XCTAssertTrue(labels.contains("sleep"))
-        XCTAssertTrue(labels.contains("HRV"))
+        XCTAssertTrue(labels.contains("workouts"))
+        XCTAssertTrue(labels.contains("training load"))
         XCTAssertFalse(labels.contains("workout logged today"))
+    }
+
+    func testMissingSignalsOmitsRedundantHeartSleepLabelsWhenLimitedRecoveryWordingUsed() {
+        let recovery = RecoverySummary(
+            score: nil,
+            status: .unknown,
+            title: "Recovery unclear",
+            explanation: "Sleep and HRV are missing.",
+            recommendedTraining: "Use how you feel today.",
+            recommendedNutrition: "Stay on your usual plan.",
+            confidence: .low,
+            contributingFactors: [],
+            missingSignals: [.sleep, .hrv]
+        )
+
+        let labels = CoachHealthIntelligenceContextBuilder.plainLanguageMissingSignals(
+            recovery: recovery,
+            nutrition: .none,
+            trainingLoad: .unknown
+        )
+
+        XCTAssertFalse(labels.contains("sleep"))
+        XCTAssertFalse(labels.contains("HRV"))
     }
 }

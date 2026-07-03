@@ -21,6 +21,7 @@ final class TodayModel: ObservableObject {
     private let userProfileReader: any UserProfileReading
     private let healthActivityQuery: HealthActivityQueryService
     private let healthIntelligenceSnapshotProvider: any HealthIntelligenceSnapshotServing
+    private let healthDataRepository: (any HealthDataRepositorying)?
     private let hydrationContextProvider: () -> TodayHydrationContext?
     private let authStateProvider: () -> AuthState
     private let healthIntelligenceLoadEnabled: () -> Bool
@@ -39,6 +40,7 @@ final class TodayModel: ObservableObject {
         userProfileReader: any UserProfileReading,
         healthActivityQuery: HealthActivityQueryService,
         healthIntelligenceSnapshotProvider: any HealthIntelligenceSnapshotServing = NoOpHealthIntelligenceSnapshotService(),
+        healthDataRepository: (any HealthDataRepositorying)? = nil,
         hydrationContextProvider: @escaping () -> TodayHydrationContext? = { nil },
         authStateProvider: @escaping () -> AuthState = { .unknown },
         healthIntelligenceLoadEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.shouldTodayModelLoadHealthIntelligence },
@@ -52,6 +54,7 @@ final class TodayModel: ObservableObject {
         self.userProfileReader = userProfileReader
         self.healthActivityQuery = healthActivityQuery
         self.healthIntelligenceSnapshotProvider = healthIntelligenceSnapshotProvider
+        self.healthDataRepository = healthDataRepository
         self.hydrationContextProvider = hydrationContextProvider
         self.authStateProvider = authStateProvider
         self.healthIntelligenceLoadEnabled = healthIntelligenceLoadEnabled
@@ -232,26 +235,42 @@ final class TodayModel: ObservableObject {
             waterSummary: waterSummary
         )
         let uiEnabled = healthIntelligenceUIEnabled()
+        let isAppleHealthConnected = activityContext.trainingIntegration.isConnected
 
         do {
             try Task.checkCancellation()
-            let snapshot = await healthIntelligenceSnapshotProvider.loadTodaySnapshot(
+            async let snapshotTask = healthIntelligenceSnapshotProvider.loadTodaySnapshot(
                 for: date,
                 calendar: .current
             )
+            async let availabilityTask: HealthDataAvailability? = {
+                guard let healthDataRepository else { return nil }
+                return await healthDataRepository.getHealthDataAvailability()
+            }()
+
+            let snapshot = await snapshotTask
+            let availability = await availabilityTask
             try Task.checkCancellation()
 
             healthIntelligenceSectionState = TodayHealthIntelligencePresentationBuilder.buildSection(
                 snapshot: snapshot,
                 nutritionProgress: nutritionProgress,
-                isUIEnabled: uiEnabled
+                isUIEnabled: uiEnabled,
+                availability: availability,
+                isAppleHealthConnected: isAppleHealthConnected,
+                cachedDayCount: availability?.cachedDayCount ?? 0
             ) ?? fallbackHealthIntelligenceSection(
                 nutritionProgress: nutritionProgress,
-                uiEnabled: uiEnabled
+                uiEnabled: uiEnabled,
+                availability: availability,
+                isAppleHealthConnected: isAppleHealthConnected
             )
 
             let analyticsContext = HealthIntelligencePresentationContext(
-                snapshot: snapshot
+                availability: availability,
+                snapshot: snapshot,
+                isAppleHealthConnected: isAppleHealthConnected,
+                cachedDayCount: availability?.cachedDayCount ?? 0
             )
             healthIntelligenceAnalyticsCoordinator?.logSnapshotLoaded(
                 surface: .today,
@@ -262,12 +281,15 @@ final class TodayModel: ObservableObject {
         } catch {
             healthIntelligenceSectionState = fallbackHealthIntelligenceSection(
                 nutritionProgress: nutritionProgress,
-                uiEnabled: uiEnabled
+                uiEnabled: uiEnabled,
+                availability: nil,
+                isAppleHealthConnected: isAppleHealthConnected
             )
 
             let analyticsContext = HealthIntelligencePresentationContext(
                 explicitErrorMessage: "load_failed",
-                snapshot: nil
+                snapshot: nil,
+                isAppleHealthConnected: isAppleHealthConnected
             )
             healthIntelligenceAnalyticsCoordinator?.logSnapshotFailed(
                 surface: .today,
@@ -279,14 +301,19 @@ final class TodayModel: ObservableObject {
 
     private func fallbackHealthIntelligenceSection(
         nutritionProgress: TodayHealthIntelligenceNutritionProgress,
-        uiEnabled: Bool
+        uiEnabled: Bool,
+        availability: HealthDataAvailability?,
+        isAppleHealthConnected: Bool
     ) -> TodayHealthIntelligenceSectionState? {
         guard uiEnabled else { return nil }
 
         return TodayHealthIntelligencePresentationBuilder.buildSection(
             snapshot: nil,
             nutritionProgress: nutritionProgress,
-            isUIEnabled: true
+            isUIEnabled: true,
+            availability: availability,
+            isAppleHealthConnected: isAppleHealthConnected,
+            cachedDayCount: availability?.cachedDayCount ?? 0
         )
     }
 

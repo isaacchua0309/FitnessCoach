@@ -28,7 +28,7 @@ final class PlanHealthIntelligenceSectionLoaderTests: XCTestCase {
         let snapshot = makeSnapshot(on: referenceDay)
         let baseline = makeBaseline(on: referenceDay)
 
-        let section = await PlanHealthIntelligenceSectionLoader.loadSectionState(
+        let loadResult = await PlanHealthIntelligenceSectionLoader.loadSection(
             profile: context.profile,
             context: context,
             isAppleHealthConnected: true,
@@ -37,6 +37,10 @@ final class PlanHealthIntelligenceSectionLoaderTests: XCTestCase {
             healthDataRepository: LoaderRepository(connected: true),
             calendar: calendar
         )
+        let section = loadResult.sectionState
+
+        XCTAssertNotNil(loadResult.snapshot)
+        XCTAssertTrue(loadResult.availability.isHealthDataAvailable)
 
         XCTAssertEqual(section.confidenceCard.phase, .loaded)
         XCTAssertEqual(
@@ -51,7 +55,7 @@ final class PlanHealthIntelligenceSectionLoaderTests: XCTestCase {
         let context = makeContext()
         let baseline = HealthBaselineContext.empty(for: referenceDay)
 
-        let section = await PlanHealthIntelligenceSectionLoader.loadSectionState(
+        let loadResult = await PlanHealthIntelligenceSectionLoader.loadSection(
             profile: context.profile,
             context: context,
             isAppleHealthConnected: false,
@@ -60,6 +64,7 @@ final class PlanHealthIntelligenceSectionLoaderTests: XCTestCase {
             healthDataRepository: LoaderRepository(connected: false),
             calendar: calendar
         )
+        let section = loadResult.sectionState
 
         XCTAssertEqual(section.dataQuality.qualityLevel, .limited)
         XCTAssertTrue(section.missingDataActions.contains { $0.id == "connect-health" })

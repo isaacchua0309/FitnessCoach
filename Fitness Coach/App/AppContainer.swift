@@ -375,6 +375,7 @@ final class AppContainer {
             userProfileReader: userProfileService,
             healthActivityQuery: healthActivityQueryService,
             healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
+            healthDataRepository: healthDataRepository,
             hydrationContextProvider: { [weak self] in
                 guard let self else { return nil }
                 return TodayHydrationGate.resolve(

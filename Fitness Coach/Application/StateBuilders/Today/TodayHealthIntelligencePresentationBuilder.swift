@@ -43,17 +43,19 @@ enum TodayHealthIntelligencePresentationBuilder {
         }
 
         let recoveryCard = recoveryCard(from: snapshot.recovery)
-        let dailyMission = dailyMission(
-            recovery: snapshot.recovery,
-            workout: snapshot.workout,
-            nutritionProgress: nutritionProgress
-        )
-        let mappedNextBestAction = nextBestAction(from: snapshot.nextBestAction)
-        let workoutCard = workoutCard(from: snapshot.workout)
         let adaptiveNutritionCard = adaptiveNutritionCard(
             from: snapshot.nutritionAdjustment,
             nutritionProgress: nutritionProgress
         )
+        let dailyMission = dailyMission(
+            recovery: snapshot.recovery,
+            workout: snapshot.workout,
+            nutritionProgress: nutritionProgress,
+            nutritionAdjustment: snapshot.nutritionAdjustment,
+            hasVisibleAdaptiveNutritionCard: adaptiveNutritionCard?.isVisible == true
+        )
+        let mappedNextBestAction = nextBestAction(from: snapshot.nextBestAction)
+        let workoutCard = workoutCard(from: snapshot.workout)
         let fallbackMessage = fallbackMessage(for: context)
 
         return TodayHealthIntelligenceSectionState(
@@ -78,9 +80,9 @@ enum TodayHealthIntelligencePresentationBuilder {
         let missingDataNote = missingDataNote(for: recovery)
 
         let title = recovery.title
-        let subtitle = trimmed(recovery.explanation)
-        let trainingGuidance = trimmed(recovery.recommendedTraining)
-        let nutritionGuidance = trimmed(recovery.recommendedNutrition)
+        let subtitle = recoverySubtitle(from: recovery)
+        let trainingGuidance = sanitizedGuidance(recovery.recommendedTraining)
+        let nutritionGuidance = sanitizedGuidance(recovery.recommendedNutrition)
 
         return TodayRecoveryCardState(
             phase: phase,
@@ -197,17 +199,27 @@ enum TodayHealthIntelligencePresentationBuilder {
     static func dailyMission(
         recovery: RecoverySummary,
         workout: WorkoutSummary?,
-        nutritionProgress: TodayHealthIntelligenceNutritionProgress
+        nutritionProgress: TodayHealthIntelligenceNutritionProgress,
+        nutritionAdjustment: AdaptiveNutritionSummary = .none,
+        hasVisibleAdaptiveNutritionCard: Bool = false
     ) -> TodayDailyMissionState {
         let headline = dailyMissionHeadline(for: recovery.status)
         var detailLines = dailyMissionRecoveryDetail(for: recovery)
         detailLines.append(contentsOf: dailyMissionWorkoutDetail(for: workout))
-        detailLines.append(contentsOf: dailyMissionNutritionDetail(from: nutritionProgress))
+        detailLines.append(
+            contentsOf: dailyMissionNutritionDetail(
+                from: nutritionProgress,
+                nutritionAdjustment: nutritionAdjustment,
+                suppressOverlapWithAdaptiveCard: hasVisibleAdaptiveNutritionCard
+            )
+        )
 
         let focusSummary = dailyMissionFocusSummary(
             recovery: recovery,
             workout: workout,
-            nutritionProgress: nutritionProgress
+            nutritionProgress: nutritionProgress,
+            nutritionAdjustment: nutritionAdjustment,
+            suppressOverlapWithAdaptiveCard: hasVisibleAdaptiveNutritionCard
         )
 
         return TodayDailyMissionState(
@@ -504,8 +516,7 @@ enum TodayHealthIntelligencePresentationBuilder {
 
     private static func dailyMissionRecoveryDetail(for recovery: RecoverySummary) -> [String] {
         var lines: [String] = []
-        let training = trimmed(recovery.recommendedTraining)
-        if let training, !training.isEmpty {
+        if let training = sanitizedGuidance(recovery.recommendedTraining) {
             lines.append(training)
         }
         return lines
@@ -519,17 +530,30 @@ enum TodayHealthIntelligencePresentationBuilder {
     }
 
     private static func dailyMissionNutritionDetail(
-        from progress: TodayHealthIntelligenceNutritionProgress
+        from progress: TodayHealthIntelligenceNutritionProgress,
+        nutritionAdjustment: AdaptiveNutritionSummary,
+        suppressOverlapWithAdaptiveCard: Bool
     ) -> [String] {
         var lines: [String] = []
+
+        let suppressProtein = suppressOverlapWithAdaptiveCard
+            && adaptiveCardWouldShowProteinGuidance(from: nutritionAdjustment, nutritionProgress: progress)
+        let suppressWater = suppressOverlapWithAdaptiveCard
+            && adaptiveCardWouldShowWaterGuidance(from: nutritionAdjustment, nutritionProgress: progress)
 
         if let calories = progress.calorieRemaining, progress.hasCalorieTarget {
             lines.append(FormaProductCopy.Today.HealthIntelligence.DailyMission.caloriesRemaining(calories))
         }
-        if let protein = progress.proteinRemainingGrams, progress.hasProteinTarget, protein > 0 {
+        if !suppressProtein,
+           let protein = progress.proteinRemainingGrams,
+           progress.hasProteinTarget,
+           protein > 0 {
             lines.append(FormaProductCopy.Today.HealthIntelligence.DailyMission.proteinRemaining(protein))
         }
-        if let water = progress.waterRemainingMl, progress.hasWaterTarget, water > 0 {
+        if !suppressWater,
+           let water = progress.waterRemainingMl,
+           progress.hasWaterTarget,
+           water > 0 {
             lines.append(FormaProductCopy.Today.HealthIntelligence.DailyMission.waterRemaining(water))
         }
 
@@ -539,20 +563,99 @@ enum TodayHealthIntelligencePresentationBuilder {
     private static func dailyMissionFocusSummary(
         recovery: RecoverySummary,
         workout: WorkoutSummary?,
-        nutritionProgress: TodayHealthIntelligenceNutritionProgress
+        nutritionProgress: TodayHealthIntelligenceNutritionProgress,
+        nutritionAdjustment: AdaptiveNutritionSummary,
+        suppressOverlapWithAdaptiveCard: Bool
     ) -> String? {
         if recovery.status == .low {
-            return recovery.recommendedNutrition
+            return sanitizedGuidance(recovery.recommendedNutrition)
         }
         if let workout, workout.hasWorkout, !workout.nutritionAdvice.isEmpty {
-            return workout.nutritionAdvice
+            return sanitizedGuidance(workout.nutritionAdvice)
         }
-        if nutritionProgress.hasProteinTarget,
+        let suppressProtein = suppressOverlapWithAdaptiveCard
+            && adaptiveCardWouldShowProteinGuidance(from: nutritionAdjustment, nutritionProgress: nutritionProgress)
+        if !suppressProtein,
+           nutritionProgress.hasProteinTarget,
            let protein = nutritionProgress.proteinRemainingGrams,
            protein > 0 {
             return FormaProductCopy.Today.HealthIntelligence.DailyMission.proteinRemaining(protein)
         }
         return nil
+    }
+
+    private static func adaptiveCardWouldShowProteinGuidance(
+        from summary: AdaptiveNutritionSummary,
+        nutritionProgress: TodayHealthIntelligenceNutritionProgress
+    ) -> Bool {
+        proteinGuidance(from: summary, nutritionProgress: nutritionProgress) != nil
+    }
+
+    private static func adaptiveCardWouldShowWaterGuidance(
+        from summary: AdaptiveNutritionSummary,
+        nutritionProgress: TodayHealthIntelligenceNutritionProgress
+    ) -> Bool {
+        waterGuidance(from: summary, nutritionProgress: nutritionProgress) != nil
+    }
+
+    private static func recoverySubtitle(from recovery: RecoverySummary) -> String? {
+        if shouldPreferLimitedRecoveryWording(for: recovery) {
+            return limitedRecoveryExplanation(for: recovery)
+        }
+
+        if let sanitized = HealthIntelligencePresentationTextSanitizer.sanitize(recovery.explanation) {
+            return sanitized
+        }
+
+        if let title = HealthIntelligencePresentationTextSanitizer.sanitize(recovery.title) {
+            return title
+        }
+
+        return statusBasedRecoveryExplanation(for: recovery)
+    }
+
+    private static func shouldPreferLimitedRecoveryWording(for recovery: RecoverySummary) -> Bool {
+        if recovery.confidence == .low || recovery.confidence == .unknown {
+            return true
+        }
+        if recovery.status == .unknown {
+            return true
+        }
+        return hasMissingHeartOrSleepSignals(recovery.missingSignals)
+    }
+
+    private static func limitedRecoveryExplanation(for recovery: RecoverySummary) -> String {
+        if hasMissingHeartOrSleepSignals(recovery.missingSignals) {
+            return FormaProductCopy.Today.HealthIntelligence.limitedRecoveryMissingSignals
+        }
+        if recovery.status == .unknown {
+            return FormaProductCopy.Today.HealthIntelligence.limitedRecoveryUnavailable
+        }
+        return FormaProductCopy.Today.HealthIntelligence.limitedRecoveryPartialSignals
+    }
+
+    private static func statusBasedRecoveryExplanation(for recovery: RecoverySummary) -> String? {
+        switch recovery.status {
+        case .ready:
+            return FormaProductCopy.Today.HealthIntelligence.Recovery.readyExplanation
+        case .moderate:
+            return FormaProductCopy.Today.HealthIntelligence.Recovery.moderateExplanation
+        case .low:
+            return FormaProductCopy.Today.HealthIntelligence.Recovery.lowExplanation
+        case .unknown:
+            return FormaProductCopy.Today.HealthIntelligence.limitedRecoveryUnavailable
+        }
+    }
+
+    private static func hasMissingHeartOrSleepSignals(_ signals: Set<RecoveryMissingSignal>) -> Bool {
+        signals.contains(.sleep)
+            || signals.contains(.hrv)
+            || signals.contains(.restingHeartRate)
+    }
+
+    private static func sanitizedGuidance(_ value: String) -> String? {
+        guard let trimmed = trimmed(value) else { return nil }
+        return HealthIntelligencePresentationTextSanitizer.sanitize(trimmed) ?? trimmed
     }
 
     private static func trimmed(_ value: String?) -> String? {

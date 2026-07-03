@@ -1277,6 +1277,12 @@ enum FormaProductCopy {
                 FormaProductCopy.HealthIntelligence.message(for: .noHealthPermission, surface: .today).bannerMessage
             static let continueLoggingFallback =
                 FormaProductCopy.HealthIntelligence.message(for: .limitedEstimate, surface: .today).bannerMessage
+            static let limitedRecoveryMissingSignals =
+                "Recovery estimate is limited because key sleep or heart signals are missing."
+            static let limitedRecoveryUnavailable =
+                "Recovery estimate is unavailable because not enough signals are available yet."
+            static let limitedRecoveryPartialSignals =
+                "Recovery estimate is limited because some recovery signals are incomplete."
 
             static func missingRecoverySignals(_ signals: [String]) -> String {
                 "Missing: \(signals.joined(separator: ", "))."
@@ -1284,6 +1290,12 @@ enum FormaProductCopy {
 
             enum Recovery {
                 static let sectionTitle = "Recovery"
+                static let readyExplanation =
+                    "Available recovery signals look supportive for your usual plan today."
+                static let moderateExplanation =
+                    "Available recovery signals look mixed, so steady pacing may work better than pushing hard."
+                static let lowExplanation =
+                    "Available recovery signals suggest keeping today lighter and prioritizing rest."
             }
 
             enum DailyMission {

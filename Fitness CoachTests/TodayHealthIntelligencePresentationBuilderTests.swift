@@ -163,8 +163,54 @@ final class TodayHealthIntelligencePresentationBuilderTests: XCTestCase {
 
         XCTAssertEqual(card.confidenceNote, FormaProductCopy.Today.HealthIntelligence.limitedEstimate)
         XCTAssertEqual(card.missingDataNote, "Missing: sleep, HRV.")
+        XCTAssertEqual(
+            card.subtitle,
+            FormaProductCopy.Today.HealthIntelligence.limitedRecoveryMissingSignals
+        )
         XCTAssertFalse(card.accessibilityLabel.contains("ms"))
         XCTAssertFalse(card.accessibilityLabel.contains("bpm"))
+    }
+
+    func testWorkoutDayDailyMissionOmitsNutritionOverlapWhenAdaptiveCardVisible() {
+        let snapshot = makeWorkoutDaySnapshot()
+        let nutrition = TodayHealthIntelligenceNutritionProgress(
+            calorieRemaining: 620,
+            proteinRemainingGrams: 28,
+            waterRemainingMl: 900,
+            hasCalorieTarget: true,
+            hasProteinTarget: true,
+            hasWaterTarget: true
+        )
+
+        let section = build(snapshot: snapshot, nutritionProgress: nutrition)
+
+        XCTAssertNotNil(section.adaptiveNutritionCard)
+        XCTAssertTrue(section.dailyMission.detailLines.contains(where: { $0.contains("620") && $0.contains("kcal") }))
+        XCTAssertFalse(section.dailyMission.detailLines.contains(where: { $0.contains("protein") }))
+        XCTAssertFalse(section.dailyMission.detailLines.contains(where: { $0.contains("water") }))
+        XCTAssertEqual(
+            section.dailyMission.focusSummary,
+            "Aim for 30–40g protein in your next meal."
+        )
+    }
+
+    func testRecoveryExplanationSanitizesRawMetricLanguage() {
+        let recovery = RecoverySummary(
+            score: 55,
+            status: .low,
+            title: "Recovery is low",
+            explanation: "HRV was below your recent baseline and sleep was short.",
+            recommendedTraining: "Keep today lighter.",
+            recommendedNutrition: "Fuel steadily.",
+            confidence: .moderate,
+            contributingFactors: [],
+            missingSignals: []
+        )
+
+        let card = TodayHealthIntelligencePresentationBuilder.recoveryCard(from: recovery)
+
+        XCTAssertEqual(card.subtitle, FormaProductCopy.Today.HealthIntelligence.Recovery.lowExplanation)
+        XCTAssertFalse(card.subtitle?.lowercased().contains("hrv") ?? true)
     }
 
     func testMissingSignalsFallbackMessageWhenConfidenceLow() {

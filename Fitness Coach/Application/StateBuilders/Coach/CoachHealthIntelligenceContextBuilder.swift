@@ -285,6 +285,13 @@ enum CoachHealthIntelligenceContextBuilder {
             labels.insert(trainingLoadMissingSignalLabel(signal))
         }
 
+        if shouldPreferLimitedRecoveryWording(for: recovery),
+           hasMissingHeartOrSleepSignals(recovery.missingSignals) {
+            labels.remove("sleep")
+            labels.remove("HRV")
+            labels.remove("resting heart rate")
+        }
+
         return labels.sorted()
     }
 
@@ -328,28 +335,8 @@ enum CoachHealthIntelligenceContextBuilder {
 
     // MARK: - Sanitization
 
-    private static let riskyMetricSubstrings = [
-        "hrv",
-        "heart rate",
-        "resting heart",
-        "bpm",
-        " ms",
-        "millisecond",
-        "baseline",
-        "below your recent",
-        "above your recent"
-    ]
-
     private static func sanitizedCoachText(_ text: String) -> String? {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        guard !containsRiskyMetricLanguage(trimmed) else { return nil }
-        return trimmed
-    }
-
-    private static func containsRiskyMetricLanguage(_ text: String) -> Bool {
-        let lower = text.lowercased()
-        return riskyMetricSubstrings.contains { lower.contains($0) }
+        HealthIntelligencePresentationTextSanitizer.sanitize(text)
     }
 
     private static func humanizedReason(_ reason: String) -> String {
