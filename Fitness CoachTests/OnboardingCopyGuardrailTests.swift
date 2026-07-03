@@ -71,6 +71,8 @@ final class OnboardingCopyGuardrailTests: XCTestCase {
         return [
             flow.IntroProof.title,
             flow.IntroProof.subtitle,
+            flow.IntroProof.insightPill,
+            flow.IntroProof.supportingCopy,
             flow.IntroProof.takeaway,
             flow.HeightWeight.subtitle,
             flow.HeightWeight.helper,

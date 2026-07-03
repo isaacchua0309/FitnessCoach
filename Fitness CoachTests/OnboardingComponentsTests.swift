@@ -108,6 +108,8 @@ final class OnboardingComponentsTests: XCTestCase {
         let intro = FormaProductCopy.Onboarding.Flow.IntroProof.self
         let trajectory = FormaProductCopy.Onboarding.Flow.Proof.TrajectoryComparison.self
 
+        XCTAssertEqual(model.insightPill, intro.insightPill)
+        XCTAssertEqual(model.supportingCopy, intro.supportingCopy)
         XCTAssertEqual(model.takeaway, intro.takeaway)
         XCTAssertEqual(model.formaLabel, trajectory.formaLabel)
         XCTAssertEqual(model.traditionalLabel, trajectory.traditionalLabel)
@@ -141,6 +143,21 @@ final class OnboardingComponentsTests: XCTestCase {
 
         XCTAssertEqual(step.title, copy.title)
         XCTAssertEqual(step.subtitle, copy.subtitle)
-        XCTAssertEqual(copy.takeaway, "Small consistent habits beat restrictive dieting.")
+        XCTAssertEqual(copy.insightPill, "Consistency beats restriction.")
+        XCTAssertEqual(copy.supportingCopy, "Your plan adapts around your weight, activity, and progress.")
+    }
+
+    func testIntroProofTrajectoryShowsRestrictiveDietRebound() {
+        let model = OnboardingWeightTrajectoryComparisonModel.introProofDefault
+        let formaStart = model.formaSeries.first!.weightKg
+        let formaEnd = model.formaSeries.last!.weightKg
+        let restrictiveStart = model.traditionalSeries.first!.weightKg
+        let restrictiveLow = model.traditionalSeries.map(\.weightKg).min()!
+        let restrictiveEnd = model.traditionalSeries.last!.weightKg
+
+        XCTAssertLessThan(formaEnd, formaStart, "Forma should show net sustainable loss")
+        XCTAssertLessThan(restrictiveLow, restrictiveStart, "Restrictive diet should show early drop")
+        XCTAssertGreaterThan(restrictiveEnd, restrictiveLow, "Restrictive diet should regain weight")
+        XCTAssertEqual(model.traditionalLabel, "Restrictive diet")
     }
 }

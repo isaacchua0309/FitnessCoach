@@ -43,17 +43,31 @@ final class OnboardingStepLayoutMetricsTests: XCTestCase {
         XCTAssertLessThan(height, 700)
     }
 
-    func testIntroProofChartHeightScalesWithContentArea() {
-        let compact = OnboardingStepLayoutMetrics.introProofChartHeight(
+    func testIntroProofHeroCardHeightScalesWithContentArea() {
+        let compact = OnboardingStepLayoutMetrics.introProofHeroCardHeight(
             contentHeight: 320,
-            profile: .compact
+            profile: .compact,
+            dynamicTypeSize: .large
         )
-        let regular = OnboardingStepLayoutMetrics.introProofChartHeight(
+        let regular = OnboardingStepLayoutMetrics.introProofHeroCardHeight(
             contentHeight: 520,
-            profile: .regular
+            profile: .regular,
+            dynamicTypeSize: .large
         )
         XCTAssertGreaterThan(regular, compact)
-        XCTAssertGreaterThanOrEqual(compact, 150)
-        XCTAssertLessThanOrEqual(regular, 320)
+        XCTAssertGreaterThanOrEqual(compact, 190)
+        XCTAssertLessThanOrEqual(regular, 380)
+    }
+
+    func testIntroProofFooterStackGrowsForAccessibilityDynamicType() {
+        let regular = OnboardingStepLayoutMetrics.introProofFooterStackHeight(
+            profile: .regular,
+            dynamicTypeSize: .large
+        )
+        let accessibility = OnboardingStepLayoutMetrics.introProofFooterStackHeight(
+            profile: .regular,
+            dynamicTypeSize: .accessibility3
+        )
+        XCTAssertGreaterThan(accessibility, regular)
     }
 }

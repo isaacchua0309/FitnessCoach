@@ -252,6 +252,16 @@ enum OnboardingComponentsPreviewCatalog {
     }
 
     @ViewBuilder
+    static var introProofHero: some View {
+        OnboardingIntroProofHeroSection(
+            model: .introProofDefault,
+            chartReveal: 1
+        )
+        .padding(.horizontal, OnboardingTheme.pagePadding)
+        .environment(\.onboardingStepContentHeight, 460)
+    }
+
+    @ViewBuilder
     static var pageShell: some View {
         OnboardingPageShell(
             currentStep: .heightWeight,

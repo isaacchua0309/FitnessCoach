@@ -63,15 +63,41 @@ enum OnboardingStepLayoutMetrics {
         return max(0, viewportHeight - chrome - profile.chromeBottomSpacing)
     }
 
+    static func introProofFooterStackHeight(
+        profile: OnboardingStepLayoutProfile,
+        dynamicTypeSize: DynamicTypeSize
+    ) -> CGFloat {
+        let base: CGFloat = profile == .compact ? 78 : 92
+        guard dynamicTypeSize.isAccessibilitySize else { return base }
+        return base + 36
+    }
+
+    /// Hero card height fills most of the step content area below shared chrome.
+    static func introProofHeroCardHeight(
+        contentHeight: CGFloat,
+        profile: OnboardingStepLayoutProfile,
+        dynamicTypeSize: DynamicTypeSize
+    ) -> CGFloat {
+        let footerStack = introProofFooterStackHeight(
+            profile: profile,
+            dynamicTypeSize: dynamicTypeSize
+        )
+        let spacing = profile.sectionSpacing * 2
+        let available = max(0, contentHeight - footerStack - spacing)
+        let cap: CGFloat = profile == .compact ? 320 : 380
+        return max(190, min(available, cap))
+    }
+
+    @available(*, deprecated, renamed: "introProofHeroCardHeight")
     static func introProofChartHeight(
         contentHeight: CGFloat,
         profile: OnboardingStepLayoutProfile
     ) -> CGFloat {
-        let legendAndTakeawayReserve: CGFloat = profile == .compact ? 72 : 84
-        let available = max(0, contentHeight - legendAndTakeawayReserve - profile.sectionSpacing * 2)
-        let ratio: CGFloat = profile == .compact ? 0.58 : 0.64
-        let maxHeight: CGFloat = profile == .compact ? 260 : 320
-        return max(150, min(available * ratio, maxHeight))
+        introProofHeroCardHeight(
+            contentHeight: contentHeight,
+            profile: profile,
+            dynamicTypeSize: .large
+        )
     }
 
     static func appleHealthSectionSpacing(profile: OnboardingStepLayoutProfile) -> CGFloat {

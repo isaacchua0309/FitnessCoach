@@ -461,9 +461,13 @@ enum FormaProductCopy {
 
         enum Flow {
             enum IntroProof {
-                static let title = "Forma creates long-term results"
-                static let subtitle = "Backed by science.\nBuilt around lasting habits."
-                static let takeaway = "Small consistent habits beat restrictive dieting."
+                static let title = "Build results that last"
+                static let subtitle =
+                    "Forma helps you lose weight through small habits you can actually keep."
+                static let insightPill = "Consistency beats restriction."
+                static let supportingCopy =
+                    "Your plan adapts around your weight, activity, and progress."
+                static let takeaway = insightPill
                 static let continueCTA = "Next"
             }
 
@@ -853,12 +857,12 @@ enum FormaProductCopy {
             enum Proof {
                 enum TrajectoryComparison {
                     static let formaLabel = "Forma"
-                    static let traditionalLabel = "Traditional diet"
-                    static let formaDescription = "Maintains weight loss over time"
-                    static let traditionalDescription = "Often rebounds"
+                    static let traditionalLabel = "Restrictive diet"
+                    static let formaDescription = "Steady, sustainable progress"
+                    static let traditionalDescription = "Fast loss, then regain"
                     static let disclaimer = "Illustrative example — individual results vary."
                     static let chartAccessibilityLabel =
-                        "Illustrative weight trajectory. Forma maintains loss over time while a traditional diet often rebounds."
+                        "Illustrative weight trajectory. Forma shows steady sustainable progress while a restrictive diet shows fast early loss followed by regain."
                 }
 
                 enum WeightMaintenance {
