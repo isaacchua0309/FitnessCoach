@@ -182,7 +182,7 @@ describe("coachContextPacketV2", () => {
     expect(events[0].linkedEntryId).toBe("entry-salad");
   });
 
-  it("retains rejected timeline events for ordering while status marks non-facts", () => {
+  it("filters rejected and failed timeline events from prompt embedding", () => {
     const sanitized = parseCoachContextForPrompt({
       meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},
       timeline: {
@@ -195,6 +195,30 @@ describe("coachContextPacketV2", () => {
             summary: "Rejected chicken estimate",
             timestamp: "2026-07-03T09:00:00.000Z",
           },
+          {
+            id: "confirmed-1",
+            type: "foodLogged",
+            status: "confirmed",
+            source: "coachUI",
+            summary: "Logged eggs",
+            timestamp: "2026-07-03T10:00:00.000Z",
+            linkedEntryId: "entry-eggs",
+          },
+        ],
+      },
+    });
+
+    const events = (sanitized?.timeline as {recentEvents: Array<{type: string}>})
+      .recentEvents;
+    expect(events).toHaveLength(1);
+    expect(events[0].type).toBe("foodLogged");
+  });
+
+  it("retains pending confirmation events with pending status", () => {
+    const sanitized = parseCoachContextForPrompt({
+      meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},
+      timeline: {
+        recentEvents: [
           {
             id: "pending-1",
             type: "pendingConfirmationCreated",
@@ -210,7 +234,6 @@ describe("coachContextPacketV2", () => {
             source: "coachUI",
             summary: "Logged eggs",
             timestamp: "2026-07-03T10:00:00.000Z",
-            linkedEntryId: "entry-eggs",
           },
         ],
       },
@@ -218,12 +241,8 @@ describe("coachContextPacketV2", () => {
 
     const events = (sanitized?.timeline as {recentEvents: Array<{type: string; status: string}>})
       .recentEvents;
-    expect(events).toHaveLength(3);
-    expect(events.some((event) => event.type === "foodRejected" && event.status === "rejected"))
-      .toBe(true);
+    expect(events).toHaveLength(2);
     expect(events.some((event) => event.type === "pendingConfirmationCreated" && event.status === "pending"))
-      .toBe(true);
-    expect(events.some((event) => event.type === "foodLogged" && event.status === "confirmed"))
       .toBe(true);
   });
 

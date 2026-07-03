@@ -92,6 +92,7 @@
         "CoachTimelineBackfillServiceTests",
         "CoachTimelineContextV2ComprehensiveTests",
         "CoachTimelineDomainTests",
+        "CoachTimelineHardeningTests",
         "CoachTimelinePersistenceTests",
         "CoachTimelineRecorderTests",
         "CoachTimelineRegressionTests",

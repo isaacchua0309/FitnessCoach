@@ -79,6 +79,7 @@ final class CoachModel: ObservableObject {
     private var recordedTimelineUserMessageIDs = Set<UUID>()
     private var recordedTimelineAssistantMessageIDs = Set<UUID>()
     private var recordedTimelinePendingConfirmationKeys = Set<String>()
+    private var pendingConfirmationTimelineKey: UUID?
     private var lastTimelineAttribution: CoachTimelineEventSourceAttribution = .localParser
 
     var awaitingPhotoClarification: Bool {
@@ -1182,6 +1183,7 @@ final class CoachModel: ObservableObject {
 
     private func clearPendingConfirmation() {
         pendingConfirmation = nil
+        pendingConfirmationTimelineKey = nil
         userEditedPendingBeforeConfirm = false
         foodEditErrorMessage = nil
         isShowingFoodEditSheet = false
@@ -1213,6 +1215,7 @@ final class CoachModel: ObservableObject {
     @discardableResult
     private func setPendingConfirmation(_ confirmation: CoachPendingConfirmation) -> CoachPendingConfirmation {
         pendingConfirmation = confirmation
+        pendingConfirmationTimelineKey = UUID()
         foodEditErrorMessage = nil
         isShowingFoodEditSheet = false
         timelineRecordPendingCreatedIfNeeded(confirmation)
@@ -1435,8 +1438,14 @@ final class CoachModel: ObservableObject {
         case .food(let draft):
             return "food:\(draft.id.uuidString)"
         case .water(let draft, _):
+            if let pendingConfirmationTimelineKey {
+                return "water:\(pendingConfirmationTimelineKey.uuidString):\(draft.amountMl)"
+            }
             return "water:\(draft.amountMl)"
         case .weight(let draft, _):
+            if let pendingConfirmationTimelineKey {
+                return "weight:\(pendingConfirmationTimelineKey.uuidString):\(draft.weightKg)"
+            }
             return "weight:\(draft.weightKg)"
         case .edit(let action, let originalText, _):
             return "edit:\(originalText):\(action.type.rawValue)"

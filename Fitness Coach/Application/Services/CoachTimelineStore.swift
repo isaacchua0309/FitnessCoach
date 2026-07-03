@@ -38,6 +38,9 @@ enum CoachTimelineStoreError: Error, Equatable {
 @MainActor
 final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
 
+    /// Upper bound for per-day and ranged timeline reads used by context assembly.
+    static let maxQueryEventLimit = 250
+
     private let repository: CoachTimelinePersistenceRepository
     private let userIdProvider: () -> String?
     private let calendar: Calendar
@@ -74,12 +77,12 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
     }
 
     func events(forLocalDate localDate: String) async throws -> [CoachTimelineEvent] {
-        var query = CoachTimelineQuery(
+        let query = CoachTimelineQuery(
             fromLocalDate: localDate,
             toLocalDate: localDate,
-            includeSuperseded: false
+            includeSuperseded: false,
+            limit: Self.maxQueryEventLimit
         )
-        query.limit = nil
         return try repository.fetch(query: query, userId: userIdProvider())
     }
 
@@ -88,11 +91,18 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
             throw CoachTimelineStoreError.invalidDateRange
         }
 
-        let all = try repository.fetch(
-            query: CoachTimelineQuery(includeSuperseded: false),
+        let startLocalDate = Self.localDateString(for: start, calendar: calendar)
+        let endLocalDate = Self.localDateString(for: end, calendar: calendar)
+        let ranged = try repository.fetch(
+            query: CoachTimelineQuery(
+                fromLocalDate: startLocalDate,
+                toLocalDate: endLocalDate,
+                includeSuperseded: false,
+                limit: Self.maxQueryEventLimit
+            ),
             userId: userIdProvider()
         )
-        return all.filter { event in
+        return ranged.filter { event in
             event.utcTimestamp >= start && event.utcTimestamp <= end
         }
     }
@@ -100,12 +110,16 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
     func recentEvents(limit: Int, before date: Date?) async throws -> [CoachTimelineEvent] {
         guard limit > 0 else { return [] }
 
-        let all = try repository.fetch(
-            query: CoachTimelineQuery(includeSuperseded: false),
+        let fetchLimit = min(max(limit * 4, limit), Self.maxQueryEventLimit)
+        let candidates = try repository.fetch(
+            query: CoachTimelineQuery(
+                includeSuperseded: false,
+                limit: fetchLimit
+            ),
             userId: userIdProvider()
         )
 
-        let filtered = all.filter { event in
+        let filtered = candidates.filter { event in
             guard let date else { return true }
             return event.utcTimestamp < date
         }
@@ -164,5 +178,9 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
             userId: userIdProvider(),
             calendar: calendar
         )
+    }
+
+    private static func localDateString(for date: Date, calendar: Calendar) -> String {
+        CoachTimelineEvent.makeTimestamps(from: date, calendar: calendar).localDate
     }
 }

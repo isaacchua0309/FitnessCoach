@@ -41,6 +41,9 @@ final class CoachTimelineBackfillService: CoachTimelineBackfilling {
     /// Events with the same type, local day, and linked entry within this window are duplicates.
     static let timestampTolerance: TimeInterval = 60
 
+    /// Minimum interval between backfill runs during active Coach context builds.
+    static let minBackfillInterval: TimeInterval = 60
+
     private let timelineStore: (any CoachTimelineStoring)?
     private let foodLogService: FoodLogService?
     private let waterLogService: WaterLogService?
@@ -49,6 +52,7 @@ final class CoachTimelineBackfillService: CoachTimelineBackfilling {
     private let dateProvider: DateProviding
     private let calendar: Calendar
     private let logger = Logger(subsystem: "Forma", category: "CoachTimelineBackfill")
+    private var lastBackfillAt: Date?
 
     init(
         timelineStore: (any CoachTimelineStoring)?,
@@ -71,8 +75,15 @@ final class CoachTimelineBackfillService: CoachTimelineBackfilling {
     func runBackfill() async {
         guard let timelineStore else { return }
 
+        let now = dateProvider.now
+        if let lastBackfillAt,
+           now.timeIntervalSince(lastBackfillAt) < Self.minBackfillInterval {
+            return
+        }
+        lastBackfillAt = now
+
         do {
-            let referenceDate = dateProvider.now
+            let referenceDate = now
             let dates = Self.backfillDates(endingOn: referenceDate, calendar: calendar)
             guard let oldestDay = dates.first, let newestDay = dates.last else { return }
 
