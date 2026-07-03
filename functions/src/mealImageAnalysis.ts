@@ -155,6 +155,10 @@ export function validateAnalyzeMealImagePayload(body: Record<string, any>): void
     }
   }
 
+  if (!body.context || typeof body.context !== "object" || Array.isArray(body.context)) {
+    throw new GatewayError(400, "Missing or invalid context.");
+  }
+
   if (body.message !== undefined) {
     if (typeof body.message !== "string") {
       throw new GatewayError(400, "Invalid message.");
@@ -276,6 +280,11 @@ export function mealImageAnalysisInstructions(): string {
     "You are FitPilot's meal photo analysis assistant.",
     "Return JSON only, matching the supplied schema.",
     "Analyze the attached meal image and estimate nutrition per visible food item.",
+    "Use the provided CoachContextPacketV2 context for workout-aware, timeline-aware estimates.",
+    "Use context.training.workoutsToday and context.healthIntelligence before assuming the user did not work out today.",
+    "Use context.today for consumed nutrition, hydration, and remaining targets when relevant.",
+    "Use context.recentMealsStructured and context.timeline.recentEvents for recent meal history.",
+    "When context.missingData indicates unavailable signals, do not invent steps, workouts, or weight.",
     "Each distinct visible food must be its own item with realistic calories and macros.",
     "Never invent a generic catch-all item such as 'unknown meal', 'mixed food', or 'generic plate'.",
     "If the photo is unclear, set a clarifyingQuestion and keep items to only what you can identify with evidence.",

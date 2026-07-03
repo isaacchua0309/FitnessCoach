@@ -11,6 +11,7 @@ struct CoachMutationTimelineContext: Sendable, Equatable {
     var pendingConfirmationId: UUID?
     var sourceAttribution: CoachTimelineEventSourceAttribution = .userConfirmation
     var userEditedBeforeConfirm: Bool = false
+    var relatedPhotoSessionId: UUID?
 }
 
 enum CoachMutationTimelineLookup {

@@ -374,6 +374,7 @@ private final class MutationTimelineCapturingRecorder: CoachTimelineRecording, @
         entry: FoodEntry,
         sourceAttribution: CoachTimelineEventSourceAttribution,
         userEditedBeforeConfirm: Bool,
+        linkedPhotoSessionId: UUID?,
         occurredAt: Date?
     ) {
         foodLoggedCalls.append(

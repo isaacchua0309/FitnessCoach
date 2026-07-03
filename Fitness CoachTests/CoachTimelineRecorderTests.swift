@@ -125,6 +125,7 @@ final class CoachTimelineRecorderTests: XCTestCase {
             entry: entry,
             sourceAttribution: .userConfirmation,
             userEditedBeforeConfirm: false,
+            linkedPhotoSessionId: nil,
             occurredAt: now
         )
 

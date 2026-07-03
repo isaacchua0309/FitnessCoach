@@ -631,6 +631,12 @@ final class CoachModel: ObservableObject {
             userCaption: displayCaption
         )
         imageAnalysisSessionStore.upsert(session)
+        timelineRecordPhotoAttached(
+            session: session,
+            messageId: userMessage.id,
+            jpegData: normalizedJPEG,
+            source: source
+        )
 
         await runImageAnalysisSession(
             userMessageID: userMessage.id,
@@ -668,6 +674,12 @@ final class CoachModel: ObservableObject {
             isRecommission: recommission != nil,
             hasCaption: !session.userCaption.isEmpty,
             compressedBytes: jpegData.count
+        )
+        timelineRecordPhotoAnalysisStarted(
+            session: activeSession,
+            messageId: userMessageID,
+            isRetry: isRetry,
+            isRecommission: recommission != nil
         )
 
         beginProcessing(.mealPhoto(userMessageID: userMessageID, prompt: session.userCaption))
@@ -712,6 +724,11 @@ final class CoachModel: ObservableObject {
                     session: updatedSession
                 )
             }
+            timelineRecordPhotoAnalysisCompleted(
+                session: updatedSession,
+                sessionResult: sessionResult,
+                messageId: messages.last(where: { $0.photoAnalysisLink?.sessionID == updatedSession.sessionId })?.id
+            )
             traceOutcome = updatedSession.status == .needsClarification ?
                 "photoAnalysisNeedsClarification" :
                 "photoAnalysisCompleted"
@@ -744,6 +761,12 @@ final class CoachModel: ObservableObject {
             appendMealPhotoFailureMessage(
                 text: errorMessage,
                 session: failedSession
+            )
+            timelineRecordPhotoAnalysisFailed(
+                session: failedSession,
+                errorCategory: outcome.errorCategory ?? "unknown",
+                userMessage: errorMessage,
+                messageId: userMessageID
             )
         }
         traceOutcome = "photoAnalysisFailed"
@@ -1144,6 +1167,7 @@ final class CoachModel: ObservableObject {
         )
         if case .food(let draft) = confirmation {
             context.pendingConfirmationId = draft.id
+            context.relatedPhotoSessionId = draft.imageAnalysisSessionID
         }
         return context
     }
@@ -1421,6 +1445,75 @@ final class CoachModel: ObservableObject {
                 occurredAt: Date()
             )
         }
+    }
+
+    private func timelineRecordPhotoAttached(
+        session: ImageAnalysisSession,
+        messageId: UUID,
+        jpegData: Data,
+        source: CoachInputAttachmentSource?
+    ) {
+        timelineRecorder.recordPhotoAttached(
+            payload: PhotoPayload(
+                sessionId: session.sessionId,
+                mimeType: CoachImageUploadConfig.default.mimeType,
+                compressedByteSize: jpegData.count,
+                attachmentSource: source?.rawValue,
+                hasCaption: !session.userCaption.isEmpty
+            ),
+            messageId: messageId,
+            occurredAt: Date()
+        )
+    }
+
+    private func timelineRecordPhotoAnalysisStarted(
+        session: ImageAnalysisSession,
+        messageId: UUID,
+        isRetry: Bool,
+        isRecommission: Bool
+    ) {
+        timelineRecorder.recordPhotoAnalysisStarted(
+            sessionId: session.sessionId,
+            messageId: messageId,
+            occurredAt: Date()
+        )
+    }
+
+    private func timelineRecordPhotoAnalysisCompleted(
+        session: ImageAnalysisSession,
+        sessionResult: ImageAnalysisSessionResult,
+        messageId: UUID?
+    ) {
+        timelineRecorder.recordPhotoAnalysisCompleted(
+            sessionId: session.sessionId,
+            messageId: messageId,
+            mealName: sessionResult.mealDraft.displayName,
+            estimateId: pendingConfirmation?.foodDraft?.id,
+            confidence: {
+                switch sessionResult.confidence {
+                case .high: return .high
+                case .medium: return .medium
+                case .low: return .low
+                }
+            }(),
+            occurredAt: Date()
+        )
+    }
+
+    private func timelineRecordPhotoAnalysisFailed(
+        session: ImageAnalysisSession,
+        errorCategory: String,
+        userMessage: String?,
+        messageId: UUID
+    ) {
+        timelineRecorder.recordPhotoAnalysisFailed(
+            sessionId: session.sessionId,
+            messageId: messageId,
+            errorCategory: errorCategory,
+            userMessage: userMessage,
+            isRetryable: errorCategory != "authentication",
+            occurredAt: Date()
+        )
     }
 
     private func timelineRecordBackendError(_ error: AIServiceError) {

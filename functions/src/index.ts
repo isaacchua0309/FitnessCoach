@@ -517,6 +517,7 @@ async function analyzeMealImage(request: Record<string, any>, traceId?: string) 
     message: request.message ?? null,
     locale: request.locale ?? null,
     userContext: request.userContext ?? null,
+    context: request.context ?? null,
     clarification: request.clarification ?? null,
     previousAnalysis: request.previousAnalysis ?? null,
     image: {

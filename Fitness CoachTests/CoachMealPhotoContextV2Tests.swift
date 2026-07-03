@@ -1,0 +1,464 @@
+//
+//  CoachMealPhotoContextV2Tests.swift
+//  Fitness CoachTests
+//
+//  Verifies meal photo analysis sends CoachContextPacketV2 and records timeline events.
+//
+
+import UIKit
+import XCTest
+@testable import Fitness_Coach
+
+@MainActor
+final class CoachMealPhotoContextV2Tests: XCTestCase {
+
+    private var harness: DailyLogServiceTestSupport.Harness!
+    private var weightLogService: WeightLogService!
+    private var healthQuery: FakeCoachTimelineHealthActivityQuery!
+    private var timelineStore: FakeCoachTimelineStore!
+
+    override func setUp() async throws {
+        harness = try DailyLogServiceTestSupport.makeHarness()
+        try harness.seedProfile()
+        weightLogService = WeightLogService(
+            store: harness.store,
+            dailyLogService: harness.dailyLogService,
+            dateProvider: harness.dateProvider
+        )
+        healthQuery = FakeCoachTimelineHealthActivityQuery()
+        timelineStore = FakeCoachTimelineStore()
+    }
+
+    override func tearDown() {
+        timelineStore = nil
+        healthQuery = nil
+        weightLogService = nil
+        harness = nil
+        super.tearDown()
+    }
+
+    func testPhotoRequestIncludesContextV2() async throws {
+        _ = try? harness.foodLogService.addFoodEntry(
+            DailyLogServiceTestSupport.foodDraft(name: "Salad", calories: 420),
+            date: harness.today
+        )
+        healthQuery.stepsByDay[harness.dateProvider.startOfDay(for: harness.today)] = 6_000
+
+        let context = await makeContextBuilder().makeContext(
+            recentMessages: [],
+            currentUserMessage: "Lunch photo"
+        )
+        let attachment = try makeUploadAttachment()
+
+        let request = try XCTUnwrap(
+            CoachMealImageAIRequestBuilder.buildAnalysisRequest(
+                attachment: attachment,
+                context: context,
+                message: "Lunch photo"
+            ).successValue
+        )
+
+        XCTAssertEqual(request.context.meta.schemaVersion, CoachContextPacketV2.schemaVersion)
+        XCTAssertEqual(request.context.today?.nutrition?.caloriesConsumed, 420)
+        XCTAssertEqual(request.context.today?.steps?.value, 6_000)
+        XCTAssertEqual(request.context.recentMealsStructured.first?.name, "Salad")
+        let contextJSON = try request.context.encodedJSONData()
+        let contextString = String(data: contextJSON, encoding: .utf8) ?? ""
+        XCTAssertFalse(contextString.contains(String(request.image.base64.prefix(16))))
+        XCTAssertFalse(request.image.base64.isEmpty)
+    }
+
+    func testWorkoutTodayIncludedAfterWorkout() async throws {
+        healthQuery.workouts = [
+            HealthWorkoutRecord(
+                id: UUID(),
+                activityName: "Run",
+                startDate: harness.today,
+                endDate: harness.today.addingTimeInterval(1_800),
+                durationMinutes: 30,
+                activeCalories: 260
+            )
+        ]
+
+        let context = await makeContextBuilder().makeContext(recentMessages: [], mode: .live)
+        let attachment = try makeUploadAttachment()
+        let request = try XCTUnwrap(
+            CoachMealImageAIRequestBuilder.buildAnalysisRequest(
+                attachment: attachment,
+                context: context,
+                message: nil
+            ).successValue
+        )
+
+        XCTAssertEqual(request.context.training?.workoutsToday, 1)
+        XCTAssertEqual(request.context.training?.workouts?.first?.title, "Run")
+    }
+
+    func testStepsIncludedOrMissingDataPopulated() async throws {
+        healthQuery.stepsByDay[harness.dateProvider.startOfDay(for: harness.today)] = 9_500
+        let withSteps = await makeContextBuilder().makeContext(recentMessages: [], mode: .live)
+        XCTAssertEqual(withSteps.today?.steps?.value, 9_500)
+        XCTAssertFalse(withSteps.missingData.stepsMissing)
+
+        healthQuery.stepsError = HealthKitManagerError.authorizationDenied
+        let withoutSteps = await makeContextBuilder().makeContext(recentMessages: [], mode: .degraded)
+        XCTAssertNil(withoutSteps.today?.steps)
+        XCTAssertTrue(withoutSteps.missingData.stepsMissing)
+    }
+
+    func testClarificationPreservesPreviousAnalysis() throws {
+        let attachment = try makeUploadAttachment()
+        let previous = AIMealImageAnalysisPreviousAnalysis(
+            summary: "Grain bowl",
+            items: [
+                AIMealImageAnalysisPreviousItem(
+                    name: "Grain bowl",
+                    quantity: "1 bowl",
+                    calories: 400,
+                    protein: 16,
+                    carbs: 52,
+                    fat: 10,
+                    confidence: .low,
+                    assumptions: ["Looked like quinoa"]
+                )
+            ],
+            total: AIMealImageAnalysisTotals(
+                calories: 400,
+                protein: 16,
+                carbs: 52,
+                fat: 10
+            )
+        )
+
+        let request = try XCTUnwrap(
+            CoachMealImageAIRequestBuilder.buildAnalysisRequest(
+                attachment: attachment,
+                context: .test,
+                message: "Lunch",
+                clarification: "It was barley, not quinoa.",
+                previousAnalysis: previous
+            ).successValue
+        )
+
+        XCTAssertEqual(request.clarification, "It was barley, not quinoa.")
+        XCTAssertEqual(request.previousAnalysis?.summary, "Grain bowl")
+        XCTAssertEqual(request.previousAnalysis?.items.count, 1)
+        XCTAssertEqual(request.previousAnalysis?.total.calories, 400)
+    }
+
+    func testPhotoFailureRecordsTimelineEvent() async throws {
+        let fitness = try FitnessActionCenterTestSupport.makeHarness(referenceNow: harness.today)
+        try fitness.seedProfile()
+        let aiService = FailingMealPhotoAIService()
+        let recorder = DefaultCoachTimelineRecorder(store: timelineStore)
+        let model = makePhotoCoachModel(
+            fitness: fitness,
+            aiService: aiService,
+            timelineRecorder: recorder
+        )
+
+        await model.handleMealPhotoSelection(.success(makeTestJPEGData()), source: .library)
+        await model.sendCurrentMessage()
+
+        let failedEvent = try await waitForEvent { $0.type == .photoAnalysisFailed }
+        XCTAssertEqual(failedEvent.linkedPhotoSessionId, failedEvent.link.linkedPhotoSessionId)
+        XCTAssertTrue(timelineStore.events.contains { $0.type == .photoAttached })
+        XCTAssertTrue(timelineStore.events.contains { $0.type == .photoAnalysisStarted })
+    }
+
+    func testConfirmedPhotoFoodCreatesLinkedFoodLoggedEvent() async throws {
+        let fitness = try FitnessActionCenterTestSupport.makeHarness(referenceNow: harness.today)
+        try fitness.seedProfile()
+        let aiService = PhotoContextCapturingAIService()
+        let recorder = DefaultCoachTimelineRecorder(store: timelineStore)
+        let model = makePhotoCoachModel(
+            fitness: fitness,
+            aiService: aiService,
+            timelineRecorder: recorder
+        )
+
+        await model.handleMealPhotoSelection(.success(makeTestJPEGData()), source: .library)
+        await model.sendCurrentMessage()
+        XCTAssertNotNil(model.pendingConfirmation)
+
+        _ = try await waitForEvent { $0.type == .photoAnalysisCompleted }
+        let sessionId = try XCTUnwrap(model.pendingConfirmation?.foodDraft?.imageAnalysisSessionID)
+        XCTAssertEqual(aiService.lastRequest?.context.meta.schemaVersion, CoachContextPacketV2.schemaVersion)
+        XCTAssertGreaterThanOrEqual(aiService.lastRequest?.context.training?.workoutsToday ?? 0, 0)
+
+        await model.confirmPendingFromBar()
+
+        let foodLogged = try await waitForEvent { $0.type == .foodLogged }
+        XCTAssertEqual(foodLogged.linkedPhotoSessionId, sessionId)
+        XCTAssertNotNil(foodLogged.linkedEntryId)
+    }
+
+    // MARK: Helpers
+
+    private func makeContextBuilder() -> CoachContextPacketV2Builder {
+        CoachContextPacketV2Builder(
+            dailyLogService: harness.dailyLogService,
+            foodLogService: harness.foodLogService,
+            waterLogService: harness.waterLogService,
+            weightLogService: weightLogService,
+            userProfileService: harness.profileService,
+            healthActivityQuery: HealthActivityQueryService(
+                workoutReader: StubHealthKitWorkoutReader(workouts: healthQuery.workouts),
+                stepReader: StubHealthKitStepReader(
+                    stepsByDay: healthQuery.stepsByDay,
+                    error: healthQuery.stepsError
+                ),
+                repositoryReadRoutingEnabled: false
+            ),
+            timelineStore: timelineStore,
+            dateProvider: harness.dateProvider,
+            calendar: harness.dateProvider.calendar
+        )
+    }
+
+    private func makePhotoCoachModel(
+        fitness: FitnessActionCenterTestSupport.Harness,
+        aiService: AIServiceProtocol,
+        timelineRecorder: any CoachTimelineRecording
+    ) -> CoachModel {
+        let packetBuilder = CoachContextPacketV2Builder(
+            dailyLogService: fitness.dailyLogService,
+            foodLogService: fitness.base.foodLogService,
+            waterLogService: fitness.base.waterLogService,
+            weightLogService: fitness.weightLogService,
+            userProfileService: fitness.profileService,
+            healthActivityQuery: fitness.healthActivityQuery,
+            timelineStore: timelineStore,
+            timelineRecorder: timelineRecorder,
+            dateProvider: fitness.base.dateProvider,
+            calendar: fitness.base.dateProvider.calendar
+        )
+        return CoachModel(
+            actionCenter: fitness.actionCenter,
+            dailyLogReader: fitness.dailyLogService,
+            healthActivityQuery: fitness.healthActivityQuery,
+            aiService: aiService,
+            contextPacketBuilder: packetBuilder,
+            userProfileReader: fitness.profileService,
+            aiCommandParsingEnabled: true,
+            timelineRecorder: timelineRecorder,
+            timelineStore: timelineStore
+        )
+    }
+
+    private func makeUploadAttachment() throws -> CoachMealImageUploadAttachment {
+        let image = makeTestImage()
+        guard case .success(let processed) = CoachImagePipeline.process(image: image) else {
+            throw NSError(domain: "CoachMealPhotoContextV2Tests", code: 1)
+        }
+        return CoachMealImageUploadAttachment.from(processed: processed)
+    }
+
+    private func makeTestImage() -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 24, height: 24))
+        return renderer.image { context in
+            UIColor.systemGreen.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 24, height: 24))
+        }
+    }
+
+    private func makeTestJPEGData() -> Data {
+        makeTestImage().jpegData(compressionQuality: 0.85)!
+    }
+
+    private func waitForEvent(
+        _ predicate: @escaping (CoachTimelineEvent) -> Bool,
+        timeout: TimeInterval = 2.0
+    ) async throws -> CoachTimelineEvent {
+        let satisfied = await AsyncTestSupport.waitUntil(maxYields: Int(timeout * 100)) {
+            self.timelineStore.events.contains(where: predicate)
+        }
+        XCTAssertTrue(satisfied, "Timed out waiting for timeline event")
+        return try XCTUnwrap(timelineStore.events.first(where: predicate))
+    }
+}
+
+// MARK: - Test doubles
+
+@MainActor
+private final class PhotoContextCapturingAIService: AIServiceProtocol, @unchecked Sendable {
+    private(set) var lastRequest: AIMealImageAnalysisRequest?
+
+    func classifyCoachIntent(
+        _ text: String,
+        context: CoachContextPacketV2,
+        config: CoachModelConfig
+    ) async throws -> CoachIntentResult {
+        CoachMealPhotoPipeline.photoAnalysisIntentResult
+    }
+
+    func estimateFood(
+        prompt: String,
+        context: CoachContextPacketV2,
+        imageJPEGData: Data?
+    ) async throws -> AIFoodEstimateResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
+        lastRequest = request
+        return AIMealImageAnalysisResponse(
+            summary: "Photo meal",
+            items: [
+                AIMealImageAnalysisItem(
+                    name: "Photo meal",
+                    quantity: "1 serving",
+                    calories: 420,
+                    protein: 28,
+                    carbs: 35,
+                    fat: 14,
+                    confidence: .medium,
+                    assumptions: []
+                )
+            ],
+            total: AIMealImageAnalysisTotals(calories: 420, protein: 28, carbs: 35, fat: 14),
+            needsUserReview: true,
+            clarifyingQuestion: nil
+        )
+    }
+
+    func generateMealAdvice(
+        prompt: String,
+        context: CoachContextPacketV2,
+        intentResult: CoachIntentResult?,
+        tier: CoachModelTier
+    ) async throws -> AICoachResponse {
+        AICoachResponse(message: "Stub", confidence: .medium)
+    }
+
+    func generateNutritionEstimate(
+        prompt: String,
+        context: CoachContextPacketV2,
+        intentResult: CoachIntentResult?,
+        tier: CoachModelTier
+    ) async throws -> NutritionEstimateResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateNutritionComparison(
+        prompt: String,
+        context: CoachContextPacketV2,
+        intentResult: CoachIntentResult?,
+        tier: CoachModelTier
+    ) async throws -> NutritionComparisonResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateDailyReviewText(
+        input: DailyReviewAIInput,
+        context: CoachContextPacketV2
+    ) async throws -> AICoachResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
+        throw AIServiceError.backendUnavailable
+    }
+}
+
+@MainActor
+private final class FailingMealPhotoAIService: AIServiceProtocol, @unchecked Sendable {
+    func classifyCoachIntent(
+        _ text: String,
+        context: CoachContextPacketV2,
+        config: CoachModelConfig
+    ) async throws -> CoachIntentResult {
+        CoachMealPhotoPipeline.photoAnalysisIntentResult
+    }
+
+    func estimateFood(
+        prompt: String,
+        context: CoachContextPacketV2,
+        imageJPEGData: Data?
+    ) async throws -> AIFoodEstimateResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateMealAdvice(
+        prompt: String,
+        context: CoachContextPacketV2,
+        intentResult: CoachIntentResult?,
+        tier: CoachModelTier
+    ) async throws -> AICoachResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateNutritionEstimate(
+        prompt: String,
+        context: CoachContextPacketV2,
+        intentResult: CoachIntentResult?,
+        tier: CoachModelTier
+    ) async throws -> NutritionEstimateResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateNutritionComparison(
+        prompt: String,
+        context: CoachContextPacketV2,
+        intentResult: CoachIntentResult?,
+        tier: CoachModelTier
+    ) async throws -> NutritionComparisonResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateDailyReviewText(
+        input: DailyReviewAIInput,
+        context: CoachContextPacketV2
+    ) async throws -> AICoachResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
+        throw AIServiceError.backendUnavailable
+    }
+}
+
+private extension Result {
+    var successValue: Success? {
+        switch self {
+        case .success(let value): return value
+        case .failure: return nil
+        }
+    }
+}
