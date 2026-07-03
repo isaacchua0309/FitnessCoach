@@ -2,7 +2,7 @@
 //  JourneyHealthIntelligencePresentationBuilder.swift
 //  Fitness Coach
 //
-//  Forma — Maps HealthIntelligenceSnapshot history into Journey presentation state.
+//  Forma — Maps Health Intelligence data into Journey presentation state.
 //  Pure deterministic mapping; no SwiftUI or HealthKit.
 //
 
@@ -10,8 +10,9 @@ import Foundation
 
 enum JourneyHealthIntelligencePresentationBuilder {
 
-    private static let timelineDayCount = 7
-    private static let workoutHistoryLimit = 8
+    private static let defaultTimelineDayCount = 7
+    private static let maxTimelineDayCount = 14
+    private static let workoutHistoryWindowDays = 30
 
     // MARK: - Section
 
@@ -31,27 +32,50 @@ enum JourneyHealthIntelligencePresentationBuilder {
             return errorSection(message: errorMessage)
         }
 
-        let snapshots = normalizedSnapshots(
-            current: input.currentSnapshot,
-            historical: input.historicalSnapshots,
-            calendar: calendar
-        )
+        let connection = resolvedHealthConnection(from: input)
+        if connection == .notConnected {
+            return connectHealthSection()
+        }
 
-        guard !snapshots.isEmpty else {
-            return unavailableSection()
+        let timelineDayCount = min(max(input.recoveryTimelineDayCount, defaultTimelineDayCount), maxTimelineDayCount)
+        let recoveryDays = normalizedRecoveryDays(from: input, calendar: calendar)
+        let workoutRecords = normalizedWorkoutRecords(from: input, referenceDate: input.todaySnapshot?.date ?? Date(), calendar: calendar)
+
+        let hasAnyHealthData = !recoveryDays.isEmpty || !workoutRecords.isEmpty || input.weeklyReview != nil
+        guard hasAnyHealthData else {
+            return connectHealthSection()
         }
 
         let weeklyReview = weeklyReviewPreview(
-            from: input.currentSnapshot?.weeklyReview,
+            from: input.weeklyReview ?? input.todaySnapshot?.weeklyReview,
             calendar: calendar
         )
 
         return JourneyHealthIntelligenceSectionState(
             weeklyReviewPreview: weeklyReview,
-            recoveryTimeline: recoveryTimeline(from: snapshots, calendar: calendar),
-            workoutHistory: workoutHistory(from: snapshots, calendar: calendar),
-            milestones: milestones(from: input.currentSnapshot?.weeklyReview),
-            progress: progress(from: input.currentSnapshot?.weeklyReview),
+            recoveryTimeline: recoveryTimeline(
+                from: recoveryDays,
+                dayCount: timelineDayCount,
+                referenceDate: input.todaySnapshot?.date ?? Date(),
+                calendar: calendar
+            ),
+            workoutHistory: workoutHistory(
+                from: workoutRecords,
+                healthConnection: connection,
+                calendar: calendar
+            ),
+            milestones: milestones(
+                workoutRecords: workoutRecords,
+                recoveryDays: recoveryDays,
+                weeklyReview: input.weeklyReview ?? input.todaySnapshot?.weeklyReview,
+                calendar: calendar
+            ),
+            progress: progress(
+                weeklyReview: input.weeklyReview ?? input.todaySnapshot?.weeklyReview,
+                planProgress: input.planProgress,
+                workoutRecords: workoutRecords
+            ),
+            connectHealthCTA: nil,
             isLoading: false,
             errorMessage: nil
         )
@@ -101,18 +125,27 @@ enum JourneyHealthIntelligencePresentationBuilder {
     // MARK: - Recovery timeline
 
     static func recoveryTimeline(
-        from snapshots: [HealthIntelligenceSnapshot],
-        calendar: Calendar
+        from recoveryDays: [JourneyHealthIntelligenceRecoveryDayInput],
+        dayCount: Int = defaultTimelineDayCount,
+        referenceDate: Date = Date(),
+        calendar: Calendar = .current
     ) -> JourneyRecoveryTimelineState {
-        let timelineSnapshots = Array(snapshots.suffix(timelineDayCount))
-        let days = timelineSnapshots.map { recoveryDay(from: $0, calendar: calendar) }
+        let endDay = calendar.startOfDay(for: referenceDate)
+        let days = (0..<dayCount).reversed().compactMap { offset -> JourneyRecoveryDayState? in
+            guard let date = calendar.date(byAdding: .day, value: -offset, to: endDay) else { return nil }
+            let input = recoveryDays.first {
+                calendar.isDate($0.date, inSameDayAs: date)
+            }
+            return recoveryDay(for: date, input: input, calendar: calendar)
+        }
 
-        if days.isEmpty {
+        if days.allSatisfy({ $0.statusKind == .unknown && $0.recoveryScore == nil }) {
             return JourneyRecoveryTimelineState(
                 phase: .empty,
                 sectionTitle: FormaProductCopy.Journey.HealthIntelligence.RecoveryTimeline.sectionTitle,
-                headline: FormaProductCopy.Journey.HealthIntelligence.RecoveryTimeline.headline,
-                days: [],
+                headline: timelineHeadline(dayCount: dayCount),
+                days: days,
+                dayCount: dayCount,
                 emptyMessage: FormaProductCopy.Journey.HealthIntelligence.RecoveryTimeline.emptyMessage,
                 errorMessage: nil,
                 accessibilityLabel: FormaProductCopy.Journey.HealthIntelligence.RecoveryTimeline.emptyMessage
@@ -122,8 +155,9 @@ enum JourneyHealthIntelligencePresentationBuilder {
         return JourneyRecoveryTimelineState(
             phase: .loaded,
             sectionTitle: FormaProductCopy.Journey.HealthIntelligence.RecoveryTimeline.sectionTitle,
-            headline: FormaProductCopy.Journey.HealthIntelligence.RecoveryTimeline.headline,
+            headline: timelineHeadline(dayCount: dayCount),
             days: days,
+            dayCount: dayCount,
             emptyMessage: nil,
             errorMessage: nil,
             accessibilityLabel: recoveryTimelineAccessibilityLabel(days: days)
@@ -131,136 +165,197 @@ enum JourneyHealthIntelligencePresentationBuilder {
     }
 
     static func recoveryDay(
-        from snapshot: HealthIntelligenceSnapshot,
+        for date: Date,
+        input: JourneyHealthIntelligenceRecoveryDayInput?,
         calendar: Calendar
     ) -> JourneyRecoveryDayState {
-        let recovery = snapshot.recovery
+        let recovery = input?.recovery ?? .unknown
         let statusKind = recoveryStatusKind(from: recovery)
         let statusLabel = recoveryStatusLabel(for: statusKind)
-        let explanation = coachSafeRecoveryExplanation(from: recovery)
+        let statusColorToken = recoveryStatusColorToken(for: statusKind)
         let limited = statusKind == .limitedEstimate
-        let dateLabel = JourneyFormatter.timelineDayLabel(snapshot.date, calendar: calendar)
-        let weekdayLabel = weekdayLabel(for: snapshot.date, calendar: calendar)
-        let id = dayIdentifier(for: snapshot.date, calendar: calendar)
+        let limitedEstimateLabel = limited ? FormaProductCopy.Journey.HealthIntelligence.limitedEstimate : nil
+        let score = coachSafeRecoveryScore(from: recovery)
+        let explanation = coachSafeRecoveryExplanation(from: recovery)
+        let dateLabel = JourneyFormatter.timelineDayLabel(date, calendar: calendar)
+        let weekdayLabel = weekdayLabel(for: date, calendar: calendar)
+        let id = dayIdentifier(for: date, calendar: calendar)
 
         return JourneyRecoveryDayState(
             id: id,
-            date: calendar.startOfDay(for: snapshot.date),
+            date: calendar.startOfDay(for: date),
             dateLabel: dateLabel,
             weekdayLabel: weekdayLabel,
             statusLabel: statusLabel,
             statusKind: statusKind,
+            statusColorToken: statusColorToken,
+            recoveryScore: score,
+            limitedEstimateLabel: limitedEstimateLabel,
             shortExplanation: explanation,
             isLimitedEstimate: limited,
             accessibilityLabel: recoveryDayAccessibilityLabel(
                 dateLabel: dateLabel,
                 weekdayLabel: weekdayLabel,
                 statusLabel: statusLabel,
+                score: score,
                 explanation: explanation,
                 limited: limited
             )
         )
     }
 
+    /// Legacy snapshot-based recovery day mapping.
+    static func recoveryDay(
+        from snapshot: HealthIntelligenceSnapshot,
+        calendar: Calendar
+    ) -> JourneyRecoveryDayState {
+        recoveryDay(
+            for: snapshot.date,
+            input: JourneyHealthIntelligenceRecoveryDayInput(
+                date: snapshot.date,
+                recovery: snapshot.recovery,
+                steps: snapshot.activity.steps
+            ),
+            calendar: calendar
+        )
+    }
+
+    /// Legacy snapshot-array recovery timeline.
+    static func recoveryTimeline(
+        from snapshots: [HealthIntelligenceSnapshot],
+        calendar: Calendar
+    ) -> JourneyRecoveryTimelineState {
+        let recoveryDays = snapshots.map {
+            JourneyHealthIntelligenceRecoveryDayInput(
+                date: $0.date,
+                recovery: $0.recovery,
+                steps: $0.activity.steps
+            )
+        }
+        let referenceDate = snapshots.last?.date ?? Date()
+        return recoveryTimeline(from: recoveryDays, referenceDate: referenceDate, calendar: calendar)
+    }
+
     // MARK: - Workout history
 
     static func workoutHistory(
-        from snapshots: [HealthIntelligenceSnapshot],
-        calendar: Calendar
+        from workoutRecords: [JourneyHealthIntelligenceWorkoutRecordInput],
+        healthConnection: JourneyHealthConnectionState = .connected,
+        calendar: Calendar = .current
     ) -> JourneyWorkoutHistoryState {
-        let items = snapshots
-            .compactMap { workoutItem(from: $0, calendar: calendar) }
+        let items = workoutRecords
+            .map { workoutItem(from: $0, calendar: calendar) }
             .sorted { $0.date > $1.date }
-            .prefix(workoutHistoryLimit)
 
         if items.isEmpty {
+            let emptyKind: JourneyHealthIntelligenceEmptyKind = healthConnection == .connected
+                ? .connectedNoWorkouts
+                : .insufficientHistory
+            let emptyMessage = healthConnection == .connected
+                ? FormaProductCopy.Journey.HealthIntelligence.connectedNoWorkoutsMessage
+                : FormaProductCopy.Journey.HealthIntelligence.WorkoutHistory.emptyMessage
+
             return JourneyWorkoutHistoryState(
                 phase: .empty,
                 sectionTitle: FormaProductCopy.Journey.HealthIntelligence.WorkoutHistory.sectionTitle,
                 headline: FormaProductCopy.Journey.HealthIntelligence.WorkoutHistory.headline,
+                groups: [],
                 items: [],
-                emptyMessage: FormaProductCopy.Journey.HealthIntelligence.WorkoutHistory.emptyMessage,
+                emptyKind: emptyKind,
+                emptyMessage: emptyMessage,
                 errorMessage: nil,
-                accessibilityLabel: FormaProductCopy.Journey.HealthIntelligence.WorkoutHistory.emptyMessage
+                accessibilityLabel: emptyMessage
             )
         }
 
-        let mapped = Array(items)
+        let groups = groupedWorkoutItems(items, calendar: calendar)
         return JourneyWorkoutHistoryState(
             phase: .loaded,
             sectionTitle: FormaProductCopy.Journey.HealthIntelligence.WorkoutHistory.sectionTitle,
             headline: FormaProductCopy.Journey.HealthIntelligence.WorkoutHistory.headline,
-            items: mapped,
+            groups: groups,
+            items: items,
+            emptyKind: nil,
             emptyMessage: nil,
             errorMessage: nil,
-            accessibilityLabel: workoutHistoryAccessibilityLabel(items: mapped)
+            accessibilityLabel: workoutHistoryAccessibilityLabel(items: items)
         )
     }
 
     static func workoutItem(
-        from snapshot: HealthIntelligenceSnapshot,
+        from record: JourneyHealthIntelligenceWorkoutRecordInput,
         calendar: Calendar
-    ) -> JourneyWorkoutHistoryItemState? {
-        guard let workout = snapshot.workout, workout.hasWorkout else { return nil }
-
-        let dateLabel = JourneyFormatter.timelineDayLabel(snapshot.date, calendar: calendar)
-        let title = trimmed(workout.title) ?? FormaProductCopy.Today.HealthIntelligence.workoutComplete
-        let durationLabel = FormaProductCopy.Journey.HealthIntelligence.durationLabel(
-            minutes: workout.totalDurationMinutes
-        )
-        let demandLabel = workout.demand == .unknown
+    ) -> JourneyWorkoutHistoryItemState {
+        let day = calendar.startOfDay(for: record.date)
+        let dateLabel = JourneyFormatter.timelineDayLabel(day, calendar: calendar)
+        let title = trimmed(record.title) ?? FormaProductCopy.Today.HealthIntelligence.workoutComplete
+        let durationLabel = FormaProductCopy.Journey.HealthIntelligence.durationLabel(minutes: record.durationMinutes)
+        let caloriesLabel = coachSafeCaloriesLabel(from: record.activeCalories)
+        let demandLabel = record.demand == .unknown
             ? nil
-            : FormaProductCopy.Journey.HealthIntelligence.demandLabel(workout.demand.rawValue)
-        let intensityLabel = workout.intensity == .unknown
+            : FormaProductCopy.Journey.HealthIntelligence.demandLabel(record.demand.rawValue)
+        let intensityLabel = record.intensity == .unknown
             ? nil
-            : workout.intensity.rawValue.capitalized
-        let explanation = sanitizedText(workout.explanation)
-        let id = "\(dayIdentifier(for: snapshot.date, calendar: calendar))-workout"
+            : record.intensity.rawValue.capitalized
 
         return JourneyWorkoutHistoryItemState(
-            id: id,
-            date: calendar.startOfDay(for: snapshot.date),
+            id: record.id,
+            date: day,
             dateLabel: dateLabel,
             workoutTitle: title,
             durationLabel: durationLabel,
+            caloriesLabel: caloriesLabel,
             demandLabel: demandLabel,
             intensityLabel: intensityLabel,
-            shortExplanation: explanation,
+            shortExplanation: nil,
             accessibilityLabel: workoutItemAccessibilityLabel(
                 dateLabel: dateLabel,
                 title: title,
                 durationLabel: durationLabel,
-                demandLabel: demandLabel,
-                explanation: explanation
+                caloriesLabel: caloriesLabel,
+                demandLabel: demandLabel
             )
         )
     }
 
-    // MARK: - Milestones
-
-    static func milestones(from review: WeeklyHealthReview?) -> JourneyHealthMilestonesState {
-        guard let review else {
-            return JourneyHealthMilestonesState(
-                phase: .empty,
-                sectionTitle: FormaProductCopy.Journey.HealthIntelligence.Milestones.sectionTitle,
-                headline: FormaProductCopy.Journey.HealthIntelligence.Milestones.headline,
-                items: [],
-                emptyMessage: FormaProductCopy.Journey.HealthIntelligence.Milestones.emptyMessage,
-                errorMessage: nil,
-                accessibilityLabel: FormaProductCopy.Journey.HealthIntelligence.Milestones.emptyMessage
+    /// Legacy snapshot-based workout history.
+    static func workoutHistory(
+        from snapshots: [HealthIntelligenceSnapshot],
+        calendar: Calendar
+    ) -> JourneyWorkoutHistoryState {
+        let records = snapshots.compactMap { snapshot -> JourneyHealthIntelligenceWorkoutRecordInput? in
+            guard let workout = snapshot.workout, workout.hasWorkout else { return nil }
+            return JourneyHealthIntelligenceWorkoutRecordInput(
+                id: "\(dayIdentifier(for: snapshot.date, calendar: calendar))-workout",
+                date: snapshot.date,
+                title: workout.title,
+                durationMinutes: workout.totalDurationMinutes,
+                activeCalories: workout.totalActiveCalories,
+                demand: workout.demand,
+                intensity: workout.intensity
             )
         }
+        return workoutHistory(from: records, calendar: calendar)
+    }
 
+    // MARK: - Milestones
+
+    static func milestones(
+        workoutRecords: [JourneyHealthIntelligenceWorkoutRecordInput],
+        recoveryDays: [JourneyHealthIntelligenceRecoveryDayInput],
+        weeklyReview: WeeklyHealthReview?,
+        calendar: Calendar = .current
+    ) -> JourneyHealthMilestonesState {
         var items: [JourneyHealthMilestoneState] = []
 
-        for (index, win) in review.wins.enumerated() {
-            let title = sanitizedText(win) ?? win
-            guard !title.isEmpty else { continue }
+        if let streak = workoutStreak(from: workoutRecords, calendar: calendar), streak > 1 {
+            let title = FormaProductCopy.Journey.HealthIntelligence.workoutStreak(streak)
             items.append(
                 JourneyHealthMilestoneState(
-                    id: "win-\(index)",
+                    id: "workout-streak",
+                    kind: .workoutStreak,
                     title: title,
-                    detail: FormaProductCopy.Journey.HealthIntelligence.WeeklyReview.sectionTitle,
+                    detail: "Keep showing up — consistency builds momentum.",
                     status: .achieved,
                     statusLabel: FormaProductCopy.Journey.HealthIntelligence.milestoneAchieved,
                     progressLabel: nil,
@@ -269,20 +364,85 @@ enum JourneyHealthIntelligencePresentationBuilder {
             )
         }
 
-        for (index, focus) in review.nextWeekFocus.enumerated() {
-            let title = sanitizedText(focus) ?? focus
-            guard !title.isEmpty else { continue }
+        if let longest = longestWorkout(from: workoutRecords) {
+            let title = FormaProductCopy.Journey.HealthIntelligence.longestWorkout(
+                minutes: longest.durationMinutes,
+                title: longest.title
+            )
             items.append(
                 JourneyHealthMilestoneState(
-                    id: "focus-\(index)",
+                    id: "longest-workout",
+                    kind: .longestWorkout,
                     title: title,
-                    detail: "Focus for next week",
-                    status: .inProgress,
-                    statusLabel: FormaProductCopy.Journey.HealthIntelligence.milestoneInProgress,
+                    detail: "Your longest session in the last 30 days.",
+                    status: .achieved,
+                    statusLabel: FormaProductCopy.Journey.HealthIntelligence.milestoneAchieved,
                     progressLabel: nil,
-                    accessibilityLabel: "\(title). \(FormaProductCopy.Journey.HealthIntelligence.milestoneInProgress)."
+                    accessibilityLabel: "\(title). \(FormaProductCopy.Journey.HealthIntelligence.milestoneAchieved)."
                 )
             )
+        }
+
+        if let mostActive = mostActiveDay(from: recoveryDays, calendar: calendar) {
+            let title = FormaProductCopy.Journey.HealthIntelligence.mostActiveDay(
+                steps: mostActive.steps,
+                dateLabel: mostActive.dateLabel
+            )
+            items.append(
+                JourneyHealthMilestoneState(
+                    id: "most-active-day",
+                    kind: .mostActiveDay,
+                    title: title,
+                    detail: "Your highest step day in the recent window.",
+                    status: .achieved,
+                    statusLabel: FormaProductCopy.Journey.HealthIntelligence.milestoneAchieved,
+                    progressLabel: nil,
+                    accessibilityLabel: "\(title). \(FormaProductCopy.Journey.HealthIntelligence.milestoneAchieved)."
+                )
+            )
+        }
+
+        let workoutDayCount = Set(
+            workoutRecords.map { calendar.startOfDay(for: $0.date) }
+        ).count
+        if workoutDayCount >= 2 {
+            let title = FormaProductCopy.Journey.HealthIntelligence.workoutConsistency(
+                days: workoutDayCount,
+                windowDays: workoutHistoryWindowDays
+            )
+            items.append(
+                JourneyHealthMilestoneState(
+                    id: "workout-consistency",
+                    kind: .consistency,
+                    title: title,
+                    detail: "Steady training adds up over time.",
+                    status: workoutDayCount >= 4 ? .achieved : .inProgress,
+                    statusLabel: workoutDayCount >= 4
+                        ? FormaProductCopy.Journey.HealthIntelligence.milestoneAchieved
+                        : FormaProductCopy.Journey.HealthIntelligence.milestoneInProgress,
+                    progressLabel: nil,
+                    accessibilityLabel: "\(title)."
+                )
+            )
+        }
+
+        if let review = weeklyReview {
+            for (index, win) in review.wins.enumerated() {
+                let title = sanitizedText(win) ?? win
+                guard !title.isEmpty else { continue }
+                items.append(
+                    JourneyHealthMilestoneState(
+                        id: "weekly-win-\(index)",
+                        kind: .weeklyWin,
+                        title: title,
+                        detail: FormaProductCopy.Journey.HealthIntelligence.WeeklyReview.sectionTitle,
+                        status: .achieved,
+                        statusLabel: FormaProductCopy.Journey.HealthIntelligence.milestoneAchieved,
+                        progressLabel: nil,
+                        accessibilityLabel: "\(title). \(FormaProductCopy.Journey.HealthIntelligence.milestoneAchieved)."
+                    )
+                )
+            }
         }
 
         if items.isEmpty {
@@ -308,10 +468,89 @@ enum JourneyHealthIntelligencePresentationBuilder {
         )
     }
 
+    /// Legacy weekly-review-only milestones.
+    static func milestones(from review: WeeklyHealthReview?) -> JourneyHealthMilestonesState {
+        milestones(
+            workoutRecords: [],
+            recoveryDays: [],
+            weeklyReview: review
+        )
+    }
+
     // MARK: - Progress
 
-    static func progress(from review: WeeklyHealthReview?) -> JourneyHealthProgressState {
-        guard let review, review.stats.totalWorkouts > 0 || review.stats.loggingConsistencyDays > 0 else {
+    static func progress(
+        weeklyReview: WeeklyHealthReview?,
+        planProgress: JourneyHealthIntelligencePlanProgressInput?,
+        workoutRecords: [JourneyHealthIntelligenceWorkoutRecordInput]
+    ) -> JourneyHealthProgressState {
+        let stats = weeklyReview?.stats
+        let progress = planProgress
+
+        var detailLines: [String] = []
+        var metrics: [JourneyHealthProgressMetricRow] = []
+
+        let totalWorkouts = progress?.totalWorkouts ?? stats?.totalWorkouts ?? workoutRecords.count
+        if totalWorkouts > 0 {
+            detailLines.append(
+                "\(FormaProductCopy.Journey.HealthIntelligence.workoutsThisWeek(totalWorkouts)) logged recently."
+            )
+            metrics.append(
+                JourneyHealthProgressMetricRow(
+                    id: "workouts",
+                    title: "Workouts",
+                    value: "\(totalWorkouts)",
+                    detail: stats.map {
+                        FormaProductCopy.Journey.HealthIntelligence.durationLabel(minutes: $0.totalWorkoutMinutes)
+                    }
+                )
+            )
+        }
+
+        let averageSteps = progress?.averageSteps ?? stats?.averageSteps
+        if let averageSteps, averageSteps > 0 {
+            metrics.append(
+                JourneyHealthProgressMetricRow(
+                    id: "steps",
+                    title: "Average steps",
+                    value: averageSteps.formatted(),
+                    detail: "Daily average"
+                )
+            )
+        }
+
+        let proteinHitDays = progress?.proteinHitDays ?? stats?.proteinHitDays ?? 0
+        if proteinHitDays > 0 {
+            metrics.append(
+                JourneyHealthProgressMetricRow(
+                    id: "protein",
+                    title: "Protein days",
+                    value: "\(proteinHitDays)",
+                    detail: "Days on target"
+                )
+            )
+        }
+
+        if let weightChange = progress?.weightChangeKg ?? stats?.weightChangeKg {
+            let trend = FormaProductCopy.Journey.HealthIntelligence.weightTrend(weightChange)
+            detailLines.append(trend + ".")
+            metrics.append(
+                JourneyHealthProgressMetricRow(
+                    id: "weight",
+                    title: "Weight trend",
+                    value: trend,
+                    detail: "This week"
+                )
+            )
+        }
+
+        if stats?.lowRecoveryDays ?? 0 > 0 {
+            detailLines.append(
+                FormaProductCopy.Journey.HealthIntelligence.limitedRecoveryDays(stats!.lowRecoveryDays) + "."
+            )
+        }
+
+        guard !metrics.isEmpty else {
             return JourneyHealthProgressState(
                 phase: .empty,
                 sectionTitle: FormaProductCopy.Journey.HealthIntelligence.Progress.sectionTitle,
@@ -324,62 +563,9 @@ enum JourneyHealthIntelligencePresentationBuilder {
             )
         }
 
-        let stats = review.stats
-        var detailLines: [String] = []
-        var metrics: [JourneyHealthProgressMetricRow] = []
-
-        if stats.totalWorkouts > 0 {
-            let value = FormaProductCopy.Journey.HealthIntelligence.workoutsThisWeek(stats.totalWorkouts)
-            detailLines.append("\(value) logged this week.")
-            metrics.append(
-                JourneyHealthProgressMetricRow(
-                    id: "workouts",
-                    title: "Workouts",
-                    value: "\(stats.totalWorkouts)",
-                    detail: FormaProductCopy.Journey.HealthIntelligence.durationLabel(minutes: stats.totalWorkoutMinutes)
-                )
-            )
-        }
-
-        if stats.lowRecoveryDays > 0 {
-            detailLines.append(
-                FormaProductCopy.Journey.HealthIntelligence.limitedRecoveryDays(stats.lowRecoveryDays) + "."
-            )
-            metrics.append(
-                JourneyHealthProgressMetricRow(
-                    id: "recovery",
-                    title: "Limited recovery",
-                    value: "\(stats.lowRecoveryDays)",
-                    detail: "Days this week"
-                )
-            )
-        }
-
-        if let averageSteps = stats.averageSteps, averageSteps > 0 {
-            metrics.append(
-                JourneyHealthProgressMetricRow(
-                    id: "steps",
-                    title: "Average steps",
-                    value: averageSteps.formatted(),
-                    detail: "Daily average"
-                )
-            )
-        }
-
-        if stats.proteinHitDays > 0 {
-            metrics.append(
-                JourneyHealthProgressMetricRow(
-                    id: "protein",
-                    title: "Protein days",
-                    value: "\(stats.proteinHitDays)",
-                    detail: "Days on target"
-                )
-            )
-        }
-
-        let headline = review.title.isEmpty
-            ? FormaProductCopy.Journey.HealthIntelligence.Progress.headline
-            : review.title
+        let headline = weeklyReview?.title.isEmpty == false
+            ? weeklyReview!.title
+            : FormaProductCopy.Journey.HealthIntelligence.Progress.headline
 
         return JourneyHealthProgressState(
             phase: .loaded,
@@ -397,6 +583,11 @@ enum JourneyHealthIntelligencePresentationBuilder {
         )
     }
 
+    /// Legacy weekly-review-only progress.
+    static func progress(from review: WeeklyHealthReview?) -> JourneyHealthProgressState {
+        progress(weeklyReview: review, planProgress: nil, workoutRecords: [])
+    }
+
     // MARK: - Private section builders
 
     private static func loadingSection() -> JourneyHealthIntelligenceSectionState {
@@ -406,33 +597,42 @@ enum JourneyHealthIntelligencePresentationBuilder {
             workoutHistory: .loading,
             milestones: .loading,
             progress: .loading,
+            connectHealthCTA: nil,
             isLoading: true,
             errorMessage: nil
         )
     }
 
-    private static func unavailableSection() -> JourneyHealthIntelligenceSectionState {
-        let emptyTimeline = JourneyRecoveryTimelineState(
-            phase: .empty,
-            sectionTitle: FormaProductCopy.Journey.HealthIntelligence.RecoveryTimeline.sectionTitle,
-            headline: FormaProductCopy.Journey.HealthIntelligence.unavailableTitle,
-            days: [],
-            emptyMessage: FormaProductCopy.Journey.HealthIntelligence.unavailableSubtitle,
-            errorMessage: nil,
-            accessibilityLabel: FormaProductCopy.Journey.HealthIntelligence.unavailableSubtitle
+    private static func connectHealthSection() -> JourneyHealthIntelligenceSectionState {
+        let cta = JourneyHealthConnectCTAState(
+            title: FormaProductCopy.Journey.HealthIntelligence.connectHealthTitle,
+            message: FormaProductCopy.Journey.HealthIntelligence.connectHealthMessage,
+            ctaTitle: FormaProductCopy.Journey.HealthIntelligence.connectHealthCTA,
+            accessibilityLabel: "\(FormaProductCopy.Journey.HealthIntelligence.connectHealthTitle). \(FormaProductCopy.Journey.HealthIntelligence.connectHealthMessage)"
         )
 
         return JourneyHealthIntelligenceSectionState(
             weeklyReviewPreview: nil,
-            recoveryTimeline: emptyTimeline,
+            recoveryTimeline: JourneyRecoveryTimelineState(
+                phase: .empty,
+                sectionTitle: FormaProductCopy.Journey.HealthIntelligence.RecoveryTimeline.sectionTitle,
+                headline: FormaProductCopy.Journey.HealthIntelligence.unavailableTitle,
+                days: [],
+                dayCount: defaultTimelineDayCount,
+                emptyMessage: FormaProductCopy.Journey.HealthIntelligence.unavailableSubtitle,
+                errorMessage: nil,
+                accessibilityLabel: cta.accessibilityLabel
+            ),
             workoutHistory: JourneyWorkoutHistoryState(
                 phase: .empty,
                 sectionTitle: FormaProductCopy.Journey.HealthIntelligence.WorkoutHistory.sectionTitle,
                 headline: FormaProductCopy.Journey.HealthIntelligence.unavailableTitle,
+                groups: [],
                 items: [],
+                emptyKind: .noHealthData,
                 emptyMessage: FormaProductCopy.Journey.HealthIntelligence.unavailableSubtitle,
                 errorMessage: nil,
-                accessibilityLabel: FormaProductCopy.Journey.HealthIntelligence.unavailableSubtitle
+                accessibilityLabel: cta.accessibilityLabel
             ),
             milestones: JourneyHealthMilestonesState(
                 phase: .empty,
@@ -441,7 +641,7 @@ enum JourneyHealthIntelligencePresentationBuilder {
                 items: [],
                 emptyMessage: FormaProductCopy.Journey.HealthIntelligence.unavailableSubtitle,
                 errorMessage: nil,
-                accessibilityLabel: FormaProductCopy.Journey.HealthIntelligence.unavailableSubtitle
+                accessibilityLabel: cta.accessibilityLabel
             ),
             progress: JourneyHealthProgressState(
                 phase: .empty,
@@ -451,10 +651,11 @@ enum JourneyHealthIntelligencePresentationBuilder {
                 metrics: [],
                 emptyMessage: FormaProductCopy.Journey.HealthIntelligence.unavailableSubtitle,
                 errorMessage: nil,
-                accessibilityLabel: FormaProductCopy.Journey.HealthIntelligence.unavailableSubtitle
+                accessibilityLabel: cta.accessibilityLabel
             ),
+            connectHealthCTA: cta,
             isLoading: false,
-            errorMessage: FormaProductCopy.Journey.HealthIntelligence.unavailableSubtitle
+            errorMessage: nil
         )
     }
 
@@ -476,6 +677,7 @@ enum JourneyHealthIntelligencePresentationBuilder {
                 sectionTitle: FormaProductCopy.Journey.HealthIntelligence.RecoveryTimeline.sectionTitle,
                 headline: FormaProductCopy.Journey.HealthIntelligence.errorTitle,
                 days: [],
+                dayCount: defaultTimelineDayCount,
                 emptyMessage: nil,
                 errorMessage: message,
                 accessibilityLabel: message
@@ -484,7 +686,9 @@ enum JourneyHealthIntelligencePresentationBuilder {
                 phase: .error,
                 sectionTitle: FormaProductCopy.Journey.HealthIntelligence.WorkoutHistory.sectionTitle,
                 headline: FormaProductCopy.Journey.HealthIntelligence.errorTitle,
+                groups: [],
                 items: [],
+                emptyKind: nil,
                 emptyMessage: nil,
                 errorMessage: message,
                 accessibilityLabel: message
@@ -508,8 +712,51 @@ enum JourneyHealthIntelligencePresentationBuilder {
                 errorMessage: message,
                 accessibilityLabel: message
             ),
+            connectHealthCTA: nil,
             isLoading: false,
             errorMessage: message
+        )
+    }
+
+    // MARK: - Milestone calculations
+
+    private static func workoutStreak(
+        from records: [JourneyHealthIntelligenceWorkoutRecordInput],
+        calendar: Calendar
+    ) -> Int? {
+        let workoutDays = Set(records.map { calendar.startOfDay(for: $0.date) })
+        guard let latest = workoutDays.max() else { return nil }
+
+        var streak = 0
+        var cursor = latest
+        while workoutDays.contains(cursor) {
+            streak += 1
+            guard let previous = calendar.date(byAdding: .day, value: -1, to: cursor) else { break }
+            cursor = calendar.startOfDay(for: previous)
+        }
+        return streak > 0 ? streak : nil
+    }
+
+    private static func longestWorkout(
+        from records: [JourneyHealthIntelligenceWorkoutRecordInput]
+    ) -> JourneyHealthIntelligenceWorkoutRecordInput? {
+        records.max(by: { $0.durationMinutes < $1.durationMinutes })
+    }
+
+    private static func mostActiveDay(
+        from recoveryDays: [JourneyHealthIntelligenceRecoveryDayInput],
+        calendar: Calendar
+    ) -> (steps: Int, dateLabel: String)? {
+        guard let best = recoveryDays.compactMap({ input -> (Int, Date)? in
+            guard let steps = input.steps, steps > 0 else { return nil }
+            return (steps, input.date)
+        }).max(by: { $0.0 < $1.0 }) else {
+            return nil
+        }
+
+        return (
+            steps: best.0,
+            dateLabel: JourneyFormatter.timelineDayLabel(best.1, calendar: calendar)
         )
     }
 
@@ -543,6 +790,24 @@ enum JourneyHealthIntelligencePresentationBuilder {
         case .limitedEstimate: return FormaProductCopy.Journey.HealthIntelligence.limitedEstimate
         case .unknown: return "Unknown"
         }
+    }
+
+    private static func recoveryStatusColorToken(for kind: JourneyRecoveryDayStatusKind) -> String {
+        switch kind {
+        case .ready: return "recoveryReady"
+        case .moderate: return "recoveryModerate"
+        case .low: return "recoveryLow"
+        case .limitedEstimate: return "recoveryLimited"
+        case .unknown: return "recoveryUnknown"
+        }
+    }
+
+    private static func coachSafeRecoveryScore(from recovery: RecoverySummary) -> Int? {
+        guard let score = recovery.score else { return nil }
+        guard recovery.confidence == .moderate || recovery.confidence == .high else { return nil }
+        guard recoveryStatusKind(from: recovery) != .limitedEstimate else { return nil }
+        guard recovery.status != .unknown else { return nil }
+        return score
     }
 
     private static func coachSafeRecoveryExplanation(from recovery: RecoverySummary) -> String? {
@@ -586,26 +851,79 @@ enum JourneyHealthIntelligencePresentationBuilder {
             && (signals.contains(.hrv) || signals.contains(.restingHeartRate))
     }
 
+    private static func coachSafeCaloriesLabel(from calories: Int?) -> String? {
+        guard let calories, calories > 0 else { return nil }
+        return "\(calories.formatted()) kcal est."
+    }
+
     // MARK: - Normalization
 
-    private static func normalizedSnapshots(
-        current: HealthIntelligenceSnapshot?,
-        historical: [HealthIntelligenceSnapshot],
+    private static func resolvedHealthConnection(from input: JourneyHealthIntelligenceBuildInput) -> JourneyHealthConnectionState {
+        if input.healthConnection != .unknown {
+            return input.healthConnection
+        }
+        if input.todaySnapshot?.nextBestAction.reason == .connectHealth,
+           input.todaySnapshot?.nextBestAction.id.isEmpty == false {
+            return .notConnected
+        }
+        return .connected
+    }
+
+    private static func normalizedRecoveryDays(
+        from input: JourneyHealthIntelligenceBuildInput,
         calendar: Calendar
-    ) -> [HealthIntelligenceSnapshot] {
-        var byDay: [Date: HealthIntelligenceSnapshot] = [:]
-
-        for snapshot in historical {
-            let day = calendar.startOfDay(for: snapshot.date)
-            byDay[day] = snapshot
+    ) -> [JourneyHealthIntelligenceRecoveryDayInput] {
+        if !input.recoveryDays.isEmpty {
+            return input.recoveryDays
         }
 
-        if let current {
-            let day = calendar.startOfDay(for: current.date)
-            byDay[day] = current
+        return JourneyHealthIntelligenceBuildInput(
+            currentSnapshot: input.todaySnapshot,
+            historicalSnapshots: [],
+            calendar: calendar
+        ).recoveryDays
+    }
+
+    private static func normalizedWorkoutRecords(
+        from input: JourneyHealthIntelligenceBuildInput,
+        referenceDate: Date,
+        calendar: Calendar
+    ) -> [JourneyHealthIntelligenceWorkoutRecordInput] {
+        let cutoff = calendar.date(byAdding: .day, value: -workoutHistoryWindowDays, to: calendar.startOfDay(for: referenceDate)) ?? referenceDate
+        let source = input.workoutRecords.isEmpty
+            ? JourneyHealthIntelligenceBuildInput(currentSnapshot: input.todaySnapshot, historicalSnapshots: [], calendar: calendar).workoutRecords
+            : input.workoutRecords
+
+        return source.filter { calendar.startOfDay(for: $0.date) >= cutoff }
+    }
+
+    private static func groupedWorkoutItems(
+        _ items: [JourneyWorkoutHistoryItemState],
+        calendar: Calendar
+    ) -> [JourneyWorkoutHistoryGroupState] {
+        let grouped = Dictionary(grouping: items) { item in
+            dayIdentifier(for: item.date, calendar: calendar)
         }
 
-        return byDay.values.sorted { $0.date < $1.date }
+        return grouped.keys.sorted(by: >).compactMap { key in
+            guard let groupItems = grouped[key]?.sorted(by: { $0.workoutTitle < $1.workoutTitle }) else {
+                return nil
+            }
+            guard let first = groupItems.first else { return nil }
+            return JourneyWorkoutHistoryGroupState(
+                id: key,
+                date: first.date,
+                dateLabel: first.dateLabel,
+                items: groupItems,
+                accessibilityLabel: "\(first.dateLabel). \(groupItems.map(\.accessibilityLabel).joined(separator: ". "))"
+            )
+        }
+    }
+
+    private static func timelineHeadline(dayCount: Int) -> String {
+        dayCount > defaultTimelineDayCount
+            ? FormaProductCopy.Journey.HealthIntelligence.RecoveryTimeline.headline14Days
+            : FormaProductCopy.Journey.HealthIntelligence.RecoveryTimeline.headline
     }
 
     // MARK: - Formatting
@@ -695,10 +1013,14 @@ enum JourneyHealthIntelligencePresentationBuilder {
         dateLabel: String,
         weekdayLabel: String,
         statusLabel: String,
+        score: Int?,
         explanation: String?,
         limited: Bool
     ) -> String {
         var parts = ["\(weekdayLabel) \(dateLabel)", statusLabel]
+        if let score {
+            parts.append(FormaProductCopy.Journey.HealthIntelligence.recoveryScoreLabel(score))
+        }
         if let explanation {
             parts.append(explanation)
         }
@@ -716,15 +1038,15 @@ enum JourneyHealthIntelligencePresentationBuilder {
         dateLabel: String,
         title: String,
         durationLabel: String,
-        demandLabel: String?,
-        explanation: String?
+        caloriesLabel: String?,
+        demandLabel: String?
     ) -> String {
         var parts = ["\(dateLabel)", title, durationLabel]
+        if let caloriesLabel {
+            parts.append(caloriesLabel)
+        }
         if let demandLabel {
             parts.append(demandLabel)
-        }
-        if let explanation {
-            parts.append(explanation)
         }
         return parts.joined(separator: ". ")
     }

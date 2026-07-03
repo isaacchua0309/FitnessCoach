@@ -20,6 +20,152 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
         )
     }
 
+    // MARK: - Required scenarios
+
+    func testFullSevenDayRecoveryTimeline() {
+        let recoveryDays = makeRecoveryDays(count: 7, score: 72, status: .moderate, confidence: .moderate)
+
+        let timeline = JourneyHealthIntelligencePresentationBuilder.recoveryTimeline(
+            from: recoveryDays,
+            dayCount: 7,
+            referenceDate: referenceDay,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(timeline.phase, .loaded)
+        XCTAssertEqual(timeline.days.count, 7)
+        XCTAssertEqual(timeline.dayCount, 7)
+        XCTAssertTrue(timeline.days.allSatisfy { !$0.dateLabel.isEmpty })
+        XCTAssertTrue(timeline.days.allSatisfy { !$0.weekdayLabel.isEmpty })
+        XCTAssertTrue(timeline.days.allSatisfy { !$0.statusColorToken.isEmpty })
+        XCTAssertTrue(timeline.days.allSatisfy { $0.recoveryScore != nil })
+        XCTAssertEqual(timeline.days.last?.date, referenceDay)
+    }
+
+    func testMissingRecoveryScoresSuppressScoreAndShowLimitedEstimate() {
+        let recoveryDays = [
+            JourneyHealthIntelligenceRecoveryDayInput(
+                date: referenceDay,
+                recovery: RecoverySummary(
+                    score: 58,
+                    status: .moderate,
+                    title: "Moderate recovery",
+                    explanation: "Partial signals only.",
+                    recommendedTraining: "Train based on how you feel.",
+                    recommendedNutrition: "Stay on your usual plan.",
+                    confidence: .low,
+                    contributingFactors: [],
+                    missingSignals: [.sleep, .hrv]
+                ),
+                steps: nil
+            )
+        ]
+
+        let timeline = JourneyHealthIntelligencePresentationBuilder.recoveryTimeline(
+            from: recoveryDays,
+            dayCount: 7,
+            referenceDate: referenceDay,
+            calendar: calendar
+        )
+
+        let today = timeline.days.last
+        XCTAssertEqual(today?.statusKind, .limitedEstimate)
+        XCTAssertNil(today?.recoveryScore)
+        XCTAssertEqual(
+            today?.limitedEstimateLabel,
+            FormaProductCopy.Journey.HealthIntelligence.limitedEstimate
+        )
+        XCTAssertEqual(today?.statusColorToken, "recoveryLimited")
+    }
+
+    func testNoWorkoutsShowsSupportiveEmptyStateWhenConnected() {
+        let section = JourneyHealthIntelligencePresentationBuilder.buildSection(
+            input: JourneyHealthIntelligenceBuildInput(
+                todaySnapshot: makeCurrentSnapshot(includeWorkout: false),
+                recoveryDays: makeRecoveryDays(count: 3),
+                workoutRecords: [],
+                healthConnection: .connected
+            ),
+            calendar: calendar,
+            isUIEnabled: true
+        )
+
+        XCTAssertNotNil(section)
+        XCTAssertNil(section?.connectHealthCTA)
+        XCTAssertEqual(section?.workoutHistory.phase, .empty)
+        XCTAssertEqual(section?.workoutHistory.emptyKind, .connectedNoWorkouts)
+        XCTAssertEqual(
+            section?.workoutHistory.emptyMessage,
+            FormaProductCopy.Journey.HealthIntelligence.connectedNoWorkoutsMessage
+        )
+        XCTAssertEqual(section?.recoveryTimeline.phase, .loaded)
+    }
+
+    func testMultipleWorkoutsGroupedByDate() {
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: referenceDay)!
+        let workouts = [
+            makeWorkoutRecord(date: referenceDay, title: "Strength training", durationMinutes: 50, demand: .high),
+            makeWorkoutRecord(date: referenceDay, title: "Evening walk", durationMinutes: 25, demand: .low),
+            makeWorkoutRecord(date: yesterday, title: "Run", durationMinutes: 35, demand: .moderate)
+        ]
+
+        let history = JourneyHealthIntelligencePresentationBuilder.workoutHistory(
+            from: workouts,
+            healthConnection: .connected,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(history.phase, .loaded)
+        XCTAssertEqual(history.items.count, 3)
+        XCTAssertEqual(history.groups.count, 2)
+        XCTAssertTrue(history.groups.contains { $0.items.count == 2 })
+        XCTAssertTrue(history.items.contains { $0.caloriesLabel?.contains("kcal") == true })
+        XCTAssertTrue(history.items.contains { $0.demandLabel == "High demand" })
+    }
+
+    func testMilestonesGeneratedFromWorkoutAndRecoveryData() {
+        let recoveryDays = makeRecoveryDays(count: 7, stepsBase: 7_000)
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: referenceDay)!
+        let threeDaysAgo = calendar.date(byAdding: .day, value: -3, to: referenceDay)!
+        let workouts = [
+            makeWorkoutRecord(date: referenceDay, title: "Long run", durationMinutes: 65),
+            makeWorkoutRecord(date: yesterday, title: "Strength training", durationMinutes: 45),
+            makeWorkoutRecord(date: threeDaysAgo, title: "Walk", durationMinutes: 30)
+        ]
+
+        let milestones = JourneyHealthIntelligencePresentationBuilder.milestones(
+            workoutRecords: workouts,
+            recoveryDays: recoveryDays,
+            weeklyReview: nil,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(milestones.phase, .loaded)
+        XCTAssertTrue(milestones.items.contains { $0.kind == .workoutStreak })
+        XCTAssertTrue(milestones.items.contains { $0.kind == .longestWorkout })
+        XCTAssertTrue(milestones.items.contains { $0.kind == .mostActiveDay })
+        XCTAssertTrue(milestones.items.contains { $0.kind == .consistency })
+    }
+
+    func testNoHealthPermissionShowsConnectHealthCTA() {
+        let section = JourneyHealthIntelligencePresentationBuilder.buildSection(
+            input: JourneyHealthIntelligenceBuildInput(
+                healthConnection: .notConnected
+            ),
+            calendar: calendar,
+            isUIEnabled: true
+        )
+
+        XCTAssertNotNil(section)
+        XCTAssertNotNil(section?.connectHealthCTA)
+        XCTAssertNil(section?.errorMessage)
+        XCTAssertEqual(
+            section?.connectHealthCTA?.ctaTitle,
+            FormaProductCopy.Journey.HealthIntelligence.connectHealthCTA
+        )
+        XCTAssertEqual(section?.workoutHistory.emptyKind, .noHealthData)
+    }
+
     // MARK: - Feature flag
 
     func testBuildSectionReturnsNilWhenUIEnabledIsFalse() {
@@ -48,7 +194,7 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
         XCTAssertEqual(section?.progress.phase, .loading)
     }
 
-    func testUnavailableSectionUsesEmptyStates() {
+    func testUnavailableSectionUsesConnectHealthCTA() {
         let section = JourneyHealthIntelligencePresentationBuilder.buildSection(
             input: JourneyHealthIntelligenceBuildInput(),
             calendar: calendar,
@@ -56,9 +202,10 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
         )
 
         XCTAssertNotNil(section)
+        XCTAssertNotNil(section?.connectHealthCTA)
+        XCTAssertNil(section?.errorMessage)
         XCTAssertEqual(section?.recoveryTimeline.phase, .empty)
         XCTAssertEqual(section?.workoutHistory.phase, .empty)
-        XCTAssertNotNil(section?.errorMessage)
     }
 
     func testErrorSectionMapsErrorMessage() {
@@ -115,6 +262,7 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
         )
 
         XCTAssertEqual(day.statusLabel, "Low")
+        XCTAssertEqual(day.statusColorToken, "recoveryLow")
         XCTAssertFalse(day.shortExplanation?.lowercased().contains("hrv") ?? true)
         XCTAssertFalse(day.shortExplanation?.contains("baseline") ?? true)
     }
@@ -133,40 +281,29 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
         XCTAssertTrue(history.items.contains { $0.demandLabel == "High demand" })
     }
 
-    func testWorkoutHistoryEmptyWhenNoWorkouts() {
-        let snapshots = historicalSnapshots.map { snapshot in
-            HealthIntelligenceSnapshot(
-                date: snapshot.date,
-                recovery: snapshot.recovery,
-                workout: nil,
-                activity: snapshot.activity,
-                nutritionAdjustment: snapshot.nutritionAdjustment,
-                weeklyReview: snapshot.weeklyReview,
-                planConfidence: snapshot.planConfidence,
-                nextBestAction: snapshot.nextBestAction
-            )
-        }
-
+    func testWorkoutHistoryEmptyWhenNoWorkoutsAndNotConnected() {
         let history = JourneyHealthIntelligencePresentationBuilder.workoutHistory(
-            from: snapshots,
+            from: [],
+            healthConnection: .notConnected,
             calendar: calendar
         )
 
         XCTAssertEqual(history.phase, .empty)
         XCTAssertTrue(history.items.isEmpty)
+        XCTAssertEqual(history.emptyKind, .insufficientHistory)
     }
 
     // MARK: - Milestones
 
-    func testMilestonesMapWeeklyReviewWinsAndFocus() {
+    func testMilestonesMapWeeklyReviewWins() {
         let milestones = JourneyHealthIntelligencePresentationBuilder.milestones(
             from: makeWeeklyReview()
         )
 
         XCTAssertEqual(milestones.phase, .loaded)
-        XCTAssertEqual(milestones.items.count, 4)
-        XCTAssertTrue(milestones.items.contains { $0.status == .achieved })
-        XCTAssertTrue(milestones.items.contains { $0.status == .inProgress })
+        XCTAssertEqual(milestones.items.count, 2)
+        XCTAssertTrue(milestones.items.allSatisfy { $0.kind == .weeklyWin })
+        XCTAssertTrue(milestones.items.allSatisfy { $0.status == .achieved })
     }
 
     // MARK: - Progress
@@ -179,6 +316,9 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
         XCTAssertEqual(progress.phase, .loaded)
         XCTAssertTrue(progress.detailLines.contains { $0.contains("4 workouts") })
         XCTAssertTrue(progress.metrics.contains { $0.id == "workouts" })
+        XCTAssertTrue(progress.metrics.contains { $0.id == "steps" })
+        XCTAssertTrue(progress.metrics.contains { $0.id == "protein" })
+        XCTAssertTrue(progress.metrics.contains { $0.id == "weight" })
         XCTAssertFalse(progress.accessibilityLabel.lowercased().contains("hrv"))
     }
 
@@ -215,6 +355,7 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
         XCTAssertEqual(section?.workoutHistory.phase, .loaded)
         XCTAssertEqual(section?.milestones.phase, .loaded)
         XCTAssertEqual(section?.progress.phase, .loaded)
+        XCTAssertNil(section?.connectHealthCTA)
     }
 
     func testCodableRoundTripForSectionState() throws {
@@ -235,7 +376,54 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
 
     // MARK: - Fixtures
 
-    private func makeCurrentSnapshot() -> HealthIntelligenceSnapshot {
+    private func makeRecoveryDays(
+        count: Int,
+        score: Int = 72,
+        status: RecoveryStatus = .moderate,
+        confidence: RecoveryConfidence = .moderate,
+        stepsBase: Int = 7_000
+    ) -> [JourneyHealthIntelligenceRecoveryDayInput] {
+        (0..<count).compactMap { offset in
+            guard let day = calendar.date(byAdding: .day, value: -offset, to: referenceDay) else {
+                return nil
+            }
+            return JourneyHealthIntelligenceRecoveryDayInput(
+                date: day,
+                recovery: RecoverySummary(
+                    score: score - offset,
+                    status: status,
+                    title: "Moderate recovery",
+                    explanation: "Recovery is acceptable after recent training.",
+                    recommendedTraining: "Train based on how you feel.",
+                    recommendedNutrition: "Stay on your usual plan.",
+                    confidence: confidence,
+                    contributingFactors: [],
+                    missingSignals: []
+                ),
+                steps: stepsBase + offset * 250
+            )
+        }
+    }
+
+    private func makeWorkoutRecord(
+        date: Date,
+        title: String,
+        durationMinutes: Int,
+        demand: WorkoutDemand = .high,
+        activeCalories: Int = 300
+    ) -> JourneyHealthIntelligenceWorkoutRecordInput {
+        JourneyHealthIntelligenceWorkoutRecordInput(
+            id: "\(date.timeIntervalSince1970)-\(title)",
+            date: date,
+            title: title,
+            durationMinutes: durationMinutes,
+            activeCalories: activeCalories,
+            demand: demand,
+            intensity: .moderate
+        )
+    }
+
+    private func makeCurrentSnapshot(includeWorkout: Bool = true) -> HealthIntelligenceSnapshot {
         HealthIntelligenceSnapshot(
             date: referenceDay,
             recovery: RecoverySummary(
@@ -249,23 +437,25 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
                 contributingFactors: [],
                 missingSignals: []
             ),
-            workout: WorkoutSummary(
-                hasWorkout: true,
-                primaryWorkoutType: .strength,
-                title: "Strength training",
-                workoutCount: 1,
-                totalDurationMinutes: 50,
-                totalActiveCalories: 320,
-                intensity: .moderate,
-                demand: .high,
-                latestWorkoutStart: referenceDay,
-                latestWorkoutEnd: referenceDay,
-                nutritionAdvice: "Aim for 30–40g protein in your next meal.",
-                hydrationAdviceMl: 700,
-                explanation: "Strength training added meaningful load today.",
-                confidence: .high,
-                sourceSummary: "Synced workout."
-            ),
+            workout: includeWorkout
+                ? WorkoutSummary(
+                    hasWorkout: true,
+                    primaryWorkoutType: .strength,
+                    title: "Strength training",
+                    workoutCount: 1,
+                    totalDurationMinutes: 50,
+                    totalActiveCalories: 320,
+                    intensity: .moderate,
+                    demand: .high,
+                    latestWorkoutStart: referenceDay,
+                    latestWorkoutEnd: referenceDay,
+                    nutritionAdvice: "Aim for 30–40g protein in your next meal.",
+                    hydrationAdviceMl: 700,
+                    explanation: "Strength training added meaningful load today.",
+                    confidence: .high,
+                    sourceSummary: "Synced workout."
+                )
+                : nil,
             activity: ActivitySummary(steps: 9_120, activeEnergyKcal: 560, exerciseMinutes: 52),
             nutritionAdjustment: .none,
             weeklyReview: makeWeeklyReview(),

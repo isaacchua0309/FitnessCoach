@@ -1709,29 +1709,32 @@ enum FormaProductCopy {
             static let limitedEstimate = "Limited estimate"
             static let unavailableTitle = "Health insights unavailable"
             static let unavailableSubtitle = "Connect Apple Health or keep logging to unlock recovery trends."
+            static let connectHealthTitle = "Connect Apple Health"
+            static let connectHealthMessage =
+                "Link Apple Health to see recovery trends, workouts, and weekly health progress on your Journey."
+            static let connectHealthCTA = "Connect Apple Health"
+            static let connectedNoWorkoutsMessage =
+                "Apple Health is connected. When you log a workout, it will show up here."
             static let errorTitle = "Couldn't load health insights"
             static let errorSubtitle = "Pull to refresh or try again later."
-
-            enum WeeklyReview {
-                static let sectionTitle = "Weekly health review"
-            }
 
             enum RecoveryTimeline {
                 static let sectionTitle = "Recovery timeline"
                 static let headline = "Last 7 days"
+                static let headline14Days = "Last 14 days"
                 static let emptyMessage = "Recovery trends appear after a few days of synced signals."
             }
 
             enum WorkoutHistory {
                 static let sectionTitle = "Recent workouts"
-                static let headline = "Training history"
+                static let headline = "Last 30 days"
                 static let emptyMessage = "Workouts from Apple Health will show up here."
             }
 
             enum Milestones {
                 static let sectionTitle = "Health milestones"
-                static let headline = "Recent wins"
-                static let emptyMessage = "Weekly wins and focus areas appear as more data arrives."
+                static let headline = "Highlights"
+                static let emptyMessage = "Milestones appear as workouts and recovery patterns build."
             }
 
             enum Progress {
@@ -1743,6 +1746,41 @@ enum FormaProductCopy {
             static let milestoneAchieved = "Achieved"
             static let milestoneInProgress = "In progress"
             static let milestoneUpcoming = "Up next"
+
+            static func workoutStreak(_ days: Int) -> String {
+                days == 1 ? "1-day workout streak" : "\(days)-day workout streak"
+            }
+
+            static func longestWorkout(minutes: Int, title: String) -> String {
+                "Longest session: \(durationLabel(minutes: minutes)) \(title)"
+            }
+
+            static func mostActiveDay(steps: Int, dateLabel: String) -> String {
+                "Most active day: \(steps.formatted()) steps on \(dateLabel)"
+            }
+
+            static func workoutConsistency(days: Int, windowDays: Int) -> String {
+                "\(days) workout days in the last \(windowDays) days"
+            }
+
+            static func weightTrend(_ changeKg: Double) -> String {
+                let formatted = String(format: "%.1f", abs(changeKg))
+                if changeKg < 0 {
+                    return "\(formatted) kg down this week"
+                }
+                if changeKg > 0 {
+                    return "\(formatted) kg up this week"
+                }
+                return "Weight held steady this week"
+            }
+
+            static func recoveryScoreLabel(_ score: Int) -> String {
+                "Score \(score)"
+            }
+
+            enum WeeklyReview {
+                static let sectionTitle = "Weekly health review"
+            }
 
             static func durationLabel(minutes: Int) -> String {
                 guard minutes > 0 else { return "—" }

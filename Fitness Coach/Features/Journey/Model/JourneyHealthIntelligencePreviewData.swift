@@ -43,10 +43,41 @@ enum JourneyHealthIntelligencePreviewData {
 
     static var unavailable: JourneyHealthIntelligenceSectionState {
         JourneyHealthIntelligencePresentationBuilder.buildSection(
-            input: JourneyHealthIntelligenceBuildInput(),
+            input: JourneyHealthIntelligenceBuildInput(
+                healthConnection: .notConnected
+            ),
             calendar: calendar,
             isUIEnabled: true
         )!
+    }
+
+    static var connectedNoWorkouts: JourneyHealthIntelligenceSectionState {
+        JourneyHealthIntelligencePresentationBuilder.buildSection(
+            input: JourneyHealthIntelligenceBuildInput(
+                todaySnapshot: currentSnapshotWithoutWorkout,
+                recoveryDays: recoveryDaysOnly,
+                workoutRecords: [],
+                healthConnection: .connected
+            ),
+            calendar: calendar,
+            isUIEnabled: true
+        )!
+    }
+
+    private static var currentSnapshotWithoutWorkout: HealthIntelligenceSnapshot {
+        var snapshot = currentSnapshot
+        snapshot.workout = nil
+        return snapshot
+    }
+
+    private static var recoveryDaysOnly: [JourneyHealthIntelligenceRecoveryDayInput] {
+        historicalSnapshots.map { snapshot in
+            JourneyHealthIntelligenceRecoveryDayInput(
+                date: snapshot.date,
+                recovery: snapshot.recovery,
+                steps: snapshot.activity.steps
+            )
+        }
     }
 
     private static var currentSnapshot: HealthIntelligenceSnapshot {
