@@ -1,7 +1,7 @@
 {
   "configurations": [
     {
-      "id": "6E284C9F-2874-4C5D-A5B2-FDEAC10F13E0",
+      "id": "3A5D6587-306A-4A93-91B8-A2775B95194C",
       "name": "Configuration 1",
       "options": {}
     }
@@ -65,7 +65,6 @@
         "OnboardingProfileRoutingSafetyTests",
         "PipelineTracerTests",
         "PlanAdjustPlanEntryTests",
-        "PlanAdjustmentTests",
         "PlanAnalyticsContextBuilderTests",
         "PlanAnalyticsEventTests",
         "PlanEditWizardTests",
@@ -73,7 +72,6 @@
         "ProfileBootstrapServiceTests",
         "ProfilePlanConflictFlowTests",
         "ProfileRestoreRoutingTests",
-        "ReleaseAIBackendConfigurationTests",
         "SignOutHygieneTests",
         "TodayActionCoordinatorTests",
         "TodayAnalyticsEventEmissionTests",

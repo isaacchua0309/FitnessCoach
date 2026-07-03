@@ -116,4 +116,54 @@ final class PlanEditWizardStepGateTests: XCTestCase {
         XCTAssertEqual(formState.weightLossPaceChoice, .moderate)
         XCTAssertNil(formState.customPaceActivityLevel)
     }
+
+    func testBirthdayAndSexStepRequiresBothFields() {
+        var formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
+        formState.birthDate = nil
+        formState.sex = .preferNotToSay
+
+        XCTAssertFalse(
+            PlanEditWizardStepGate.canAdvance(
+                from: .birthdayAndSex,
+                formState: formState,
+                goalType: .loseFat,
+                goalWeightValidationMessage: nil,
+                pacePreview: .empty
+            )
+        )
+
+        formState.birthDate = Calendar.current.date(from: DateComponents(year: 1995, month: 5, day: 10))
+        formState.sex = .female
+
+        XCTAssertTrue(
+            PlanEditWizardStepGate.canAdvance(
+                from: .birthdayAndSex,
+                formState: formState,
+                goalType: .loseFat,
+                goalWeightValidationMessage: nil,
+                pacePreview: .empty
+            )
+        )
+    }
+
+    func testBodyBaselineStepBlocksInvalidHeightOrWeight() {
+        var formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
+        formState.heightCmText = "abc"
+
+        let validation = PlanBodyBaselineValidationBuilder.validate(
+            heightText: formState.heightCmText,
+            weightText: formState.currentWeightKgText
+        )
+
+        XCTAssertFalse(
+            PlanEditWizardStepGate.canAdvance(
+                from: .heightAndWeight,
+                formState: formState,
+                goalType: .loseFat,
+                goalWeightValidationMessage: nil,
+                pacePreview: .empty
+            )
+        )
+        XCTAssertNotNil(validation.heightMessage)
+    }
 }

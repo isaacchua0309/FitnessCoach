@@ -189,4 +189,64 @@ final class PlanProjectionBuilderTests: XCTestCase {
         XCTAssertEqual(projection.weightChangeLabel, "3 kg between now and your goal.")
         XCTAssertEqual(projection.goalLabel, PlanGoalSelectionBuilder.displayTitle(for: .gainMuscle))
     }
+
+    func testAggressiveCutUsesFasterDifficultyLabel() {
+        var formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
+        formState.weightLossPaceChoice = .aggressive
+
+        let projection = PlanProjectionBuilder.build(
+            formState: formState,
+            goalType: .loseFat,
+            referenceDate: referenceDate,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(
+            projection.difficultyLabel,
+            PlanEditDifficultyLabelBuilder.fasterCutLabel
+        )
+        XCTAssertEqual(
+            projection.adherenceEstimate,
+            FormaProductCopy.PlanProjection.adherenceChallenging
+        )
+    }
+
+    func testEngineBackedProjectionExposesMacroTargets() {
+        let formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
+
+        let projection = PlanProjectionBuilder.build(
+            formState: formState,
+            goalType: .loseFat,
+            referenceDate: referenceDate,
+            calendar: calendar
+        )
+
+        XCTAssertTrue(projection.hasMacroTargets)
+        XCTAssertNotNil(projection.proteinTargetG)
+        XCTAssertNotNil(projection.carbTargetG)
+        XCTAssertNotNil(projection.fatTargetG)
+        XCTAssertNotNil(projection.waterTargetMl)
+    }
+
+    func testExcessiveTimelineBeyondCapOmitsEstimatedCompletion() {
+        var formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
+        formState.currentWeightKgText = "120"
+        formState.goalWeightKgText = "70"
+        formState.weightLossPaceChoice = .advanced
+        formState.advancedPaceDraft = WeightLossAdvancedPaceDraft(
+            period: .weekly,
+            amountText: "0.01"
+        )
+
+        let projection = PlanProjectionBuilder.build(
+            formState: formState,
+            goalType: .loseFat,
+            referenceDate: referenceDate,
+            calendar: calendar
+        )
+
+        XCTAssertNil(projection.estimatedWeeks)
+        XCTAssertNil(projection.estimatedCompletionDate)
+        XCTAssertNil(projection.estimatedCompletionLabel)
+    }
 }
