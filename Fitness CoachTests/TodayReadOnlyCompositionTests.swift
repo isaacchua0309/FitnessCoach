@@ -42,14 +42,15 @@ final class TodayReadOnlyCompositionTests: XCTestCase {
     }
 
     func testQuickActionsSectionIncludesCoreLoggingActions() {
-        let items = TodayQuickActionPolicy.menuItems(isScanFoodAvailable: false)
+        let items = TodayQuickActionPolicy.menuItems(isScanFoodAvailable: true)
         let kinds = Set(items.map(\.kind))
 
+        XCTAssertTrue(kinds.contains(.scanFood))
+        XCTAssertTrue(kinds.contains(.logMeal))
         XCTAssertTrue(kinds.contains(.manualEntry))
         XCTAssertTrue(kinds.contains(.addWater))
         XCTAssertTrue(kinds.contains(.logWeight))
-        XCTAssertTrue(kinds.contains(.askCoach))
-        XCTAssertFalse(kinds.contains(.scanFood))
+        XCTAssertTrue(kinds.contains(.logWorkout))
     }
 
     func testOverTargetDayMissionOverBudget() {

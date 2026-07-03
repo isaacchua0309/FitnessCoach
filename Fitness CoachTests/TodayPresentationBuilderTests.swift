@@ -179,7 +179,7 @@ final class TodayPresentationBuilderTests: XCTestCase {
 
         XCTAssertFalse(state.quickActions.items.isEmpty)
         XCTAssertEqual(state.quickActions.sectionTitle, FormaProductCopy.Today.QuickActions.sectionTitle)
-        XCTAssertTrue(state.quickActions.items.contains { $0.kind == .manualEntry })
+        XCTAssertTrue(state.quickActions.items.contains { $0.kind == .logMeal })
     }
 
     // MARK: - Fixtures

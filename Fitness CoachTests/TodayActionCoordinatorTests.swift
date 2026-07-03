@@ -51,10 +51,29 @@ final class TodayActionCoordinatorTests: XCTestCase {
         var coachOpened = false
         coordinator.onOpenCoach = { _ in coachOpened = true }
 
+        coordinator.performQuickAction(.logMeal)
+
+        XCTAssertFalse(coachOpened)
+        XCTAssertNotNil(coordinator.logMealPresentation)
+    }
+
+    func testManualEntryPresentsNativeSheet() {
+        var coachOpened = false
+        coordinator.onOpenCoach = { _ in coachOpened = true }
+
         coordinator.performQuickAction(.manualEntry)
 
         XCTAssertFalse(coachOpened)
         XCTAssertNotNil(coordinator.logMealPresentation)
+    }
+
+    func testScanFoodOpensCoachScanFlow() {
+        var coachPrefill: String?
+        coordinator.onOpenCoach = { coachPrefill = $0 }
+
+        coordinator.performQuickAction(.scanFood)
+
+        XCTAssertEqual(coachPrefill, TodayCoachPrompt.scanFood)
     }
 
     func testAddWaterPresentsNativeSheet() {
@@ -63,13 +82,19 @@ final class TodayActionCoordinatorTests: XCTestCase {
         XCTAssertTrue(coordinator.isPresentingAddWaterSheet)
     }
 
-    func testAskCoachRoutesToCoach() {
-        var coachPrefill: String?
-        coordinator.onOpenCoach = { coachPrefill = $0 }
+    func testLogWeightPresentsNativeSheet() {
+        coordinator.performQuickAction(.logWeight)
 
-        coordinator.performQuickAction(.askCoach)
+        XCTAssertTrue(coordinator.isPresentingLogWeightSheet)
+    }
 
-        XCTAssertNil(coachPrefill)
+    func testLogWorkoutQuickActionOpensTrainingInsights() {
+        var openedInsights = false
+        coordinator.onOpenTrainingInsights = { openedInsights = true }
+
+        coordinator.performQuickAction(.logWorkout)
+
+        XCTAssertTrue(openedInsights)
     }
 
     func testLogWorkoutRoutesToTrainingInsights() {

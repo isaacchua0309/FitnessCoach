@@ -8,14 +8,15 @@ import XCTest
 
 final class TodayQuickActionsTests: XCTestCase {
 
-    func testScanFoodHiddenWhenPipelineUnavailable() {
+    func testScanFoodAlwaysPresentEvenWhenPipelineUnavailable() {
         let items = TodayQuickActionPolicy.menuItems(isScanFoodAvailable: false)
 
-        XCTAssertFalse(items.contains { $0.kind == .scanFood })
-        XCTAssertEqual(items.map(\.kind), [.manualEntry, .addWater, .logWeight, .askCoach])
+        XCTAssertEqual(items.first?.kind, .scanFood)
+        XCTAssertFalse(items.first?.isEnabled == true)
+        XCTAssertEqual(items.map(\.kind), [.scanFood, .logMeal, .manualEntry, .addWater, .logWeight, .logWorkout])
     }
 
-    func testScanFoodVisibleWhenPipelineAvailable() {
+    func testScanFoodEnabledAndFirstWhenPipelineAvailable() {
         let items = TodayQuickActionPolicy.menuItems(isScanFoodAvailable: true)
 
         XCTAssertEqual(items.first?.kind, .scanFood)
@@ -23,46 +24,59 @@ final class TodayQuickActionsTests: XCTestCase {
         XCTAssertTrue(TodayQuickActionPolicy.isVisible(.scanFood, isScanFoodAvailable: true))
     }
 
+    func testManualEntryIsSecondaryWhenLogMealExists() {
+        let items = TodayQuickActionPolicy.menuItems(isScanFoodAvailable: true)
+
+        let logMeal = items.first { $0.kind == .logMeal }
+        let manualEntry = items.first { $0.kind == .manualEntry }
+
+        XCTAssertEqual(logMeal?.presentation, .primary)
+        XCTAssertEqual(manualEntry?.presentation, .secondary)
+    }
+
     func testCoreActionsAlwaysVisibleRegardlessOfScanFood() {
         for scanAvailable in [true, false] {
+            XCTAssertTrue(TodayQuickActionPolicy.isVisible(.logMeal, isScanFoodAvailable: scanAvailable))
             XCTAssertTrue(TodayQuickActionPolicy.isVisible(.manualEntry, isScanFoodAvailable: scanAvailable))
             XCTAssertTrue(TodayQuickActionPolicy.isVisible(.addWater, isScanFoodAvailable: scanAvailable))
             XCTAssertTrue(TodayQuickActionPolicy.isVisible(.logWeight, isScanFoodAvailable: scanAvailable))
-            XCTAssertTrue(TodayQuickActionPolicy.isVisible(.askCoach, isScanFoodAvailable: scanAvailable))
+            XCTAssertTrue(TodayQuickActionPolicy.isVisible(.logWorkout, isScanFoodAvailable: scanAvailable))
+            XCTAssertTrue(TodayQuickActionPolicy.isVisible(.scanFood, isScanFoodAvailable: scanAvailable))
         }
     }
 
-    func testScanFoodNotVisibleWhenPipelineUnavailable() {
-        XCTAssertFalse(TodayQuickActionPolicy.isVisible(.scanFood, isScanFoodAvailable: false))
-    }
+    func testActionOrderPrioritizesHighFrequencyLogging() {
+        let items = TodayQuickActionPolicy.menuItems(isScanFoodAvailable: true)
 
-    func testScanFoodPipelineReadyWhenClientWired() {
-        XCTAssertTrue(CoachMealPhotoPipeline.isClientPipelineReady)
-        XCTAssertTrue(TodayPhotoScanAvailability.isPipelineReady)
+        XCTAssertEqual(
+            items.map(\.kind),
+            [.scanFood, .logMeal, .manualEntry, .addWater, .logWeight, .logWorkout]
+        )
     }
 
     func testQuickActionTitlesUseProductCopy() {
+        XCTAssertEqual(
+            FormaProductCopy.Today.QuickActions.title(for: .logMeal),
+            "Log Meal"
+        )
         XCTAssertEqual(
             FormaProductCopy.Today.QuickActions.title(for: .manualEntry),
             "Manual Entry"
         )
         XCTAssertEqual(
-            FormaProductCopy.Today.QuickActions.title(for: .addWater),
-            "Add Water"
+            FormaProductCopy.Today.QuickActions.title(for: .logWorkout),
+            "Log Workout"
         )
-        XCTAssertFalse(FormaProductCopy.Today.QuickActions.inlineAccessibilityHint(for: .manualEntry).isEmpty)
+        XCTAssertFalse(FormaProductCopy.Today.QuickActions.inlineAccessibilityHint(for: .logWorkout).isEmpty)
     }
 
     func testProductionMenuReflectsPipelineReadiness() {
         let productionItems = TodayQuickActionPolicy.menuItems()
-        let kinds = Set(productionItems.map(\.kind))
+        let scanItem = productionItems.first { $0.kind == .scanFood }
 
-        if TodayPhotoScanAvailability.isPipelineReady {
-            XCTAssertTrue(kinds.contains(.scanFood))
-            XCTAssertTrue(kinds.contains(.manualEntry))
-        } else {
-            XCTAssertFalse(kinds.contains(.scanFood))
-            XCTAssertEqual(productionItems.map(\.kind), [.manualEntry, .addWater, .logWeight, .askCoach])
-        }
+        XCTAssertNotNil(scanItem)
+        XCTAssertEqual(scanItem?.isEnabled, TodayPhotoScanAvailability.isPipelineReady)
+        XCTAssertTrue(productionItems.contains { $0.kind == .logMeal })
+        XCTAssertTrue(productionItems.contains { $0.kind == .logWorkout })
     }
 }
