@@ -39,35 +39,24 @@ final class JourneyPresentationBuilderTests: XCTestCase {
 
         XCTAssertTrue(dashboard.weeklyHabit.isVisible)
         XCTAssertGreaterThan(dashboard.weeklyReview.foodLoggedDays, 0)
-        if case .insufficientData = dashboard.goalProjection.status {
-            XCTAssertEqual(
-                dashboard.transformation.headlineCopy,
-                FormaProductCopy.Journey.Transformation.lostHeadline
-            )
-        } else {
-            XCTFail("Expected insufficient projection when weight trend is still forming")
-        }
+        XCTAssertEqual(dashboard.transformation.variant, .earlyHabits)
     }
 
     func testLosingWeightShowsTransformationHeadlineAndMomentum() {
         let dashboard = JourneyPreviewData.strongMomentum
 
-        XCTAssertEqual(
-            dashboard.transformation.headlineCopy,
-            FormaProductCopy.Journey.Transformation.lostHeadline
-        )
+        XCTAssertEqual(dashboard.transformation.variant, .weightLossProgress)
+        XCTAssertTrue(dashboard.transformation.primaryMessage.localizedCaseInsensitiveContains("lost"))
         XCTAssertTrue(dashboard.momentum.isVisible)
         XCTAssertGreaterThan(dashboard.momentum.streakDays, 0)
         XCTAssertTrue(dashboard.milestone.isVisible)
     }
 
-    func testGainingWeightUsesGainHeadline() {
+    func testGainingWeightUsesPositiveFraming() {
         let dashboard = JourneyPreviewData.gainGoal
 
-        XCTAssertEqual(
-            dashboard.transformation.headlineCopy,
-            FormaProductCopy.Journey.Transformation.gainedHeadline
-        )
+        XCTAssertNotEqual(dashboard.transformation.variant, .weightLossProgress)
+        XCTAssertFalse(dashboard.transformation.primaryMessage.contains("0 kg"))
         XCTAssertEqual(dashboard.baseline.goalDirection, .gain)
     }
 

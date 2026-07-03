@@ -25,10 +25,6 @@ struct JourneyDashboardState: Equatable {
 }
 
 extension JourneyDashboardState {
-    var transformationHero: JourneyTransformationHeroState {
-        transformation.heroState
-    }
-
     var weeklyReview: JourneyWeeklyReviewState {
         weeklyHabit.weeklyReviewState
     }

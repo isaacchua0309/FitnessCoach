@@ -76,7 +76,7 @@ final class JourneyCleanupTests: XCTestCase {
     func testLegacySectionAccessorsRemainAvailable() {
         let dashboard = JourneyPreviewData.strongMomentum
 
-        XCTAssertFalse(dashboard.transformationHero.headlineCopy.isEmpty)
+        XCTAssertFalse(dashboard.transformation.primaryMessage.isEmpty)
         XCTAssertFalse(dashboard.weeklyReview.weekSummaryCopy.isEmpty)
         XCTAssertFalse(dashboard.milestones.items.isEmpty)
         XCTAssertFalse(dashboard.storyTimeline.displayEvents.isEmpty)

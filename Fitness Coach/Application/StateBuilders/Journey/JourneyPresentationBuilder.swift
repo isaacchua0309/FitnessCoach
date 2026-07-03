@@ -16,10 +16,6 @@ enum JourneyPresentationBuilder {
         context: JourneyDashboardBuilder.Context,
         loggedDays: Int
     ) -> JourneyDashboardState {
-        let hero = JourneyDashboardBuilder.transformation(
-            context: context,
-            loggedDays: loggedDays
-        )
         let weeklyReview = JourneyDashboardBuilder.weeklyReview(context: context)
         let milestones = JourneyDashboardBuilder.milestones(context: context)
         let timeline = JourneyDashboardBuilder.storyTimeline(context: context)
@@ -70,11 +66,7 @@ enum JourneyPresentationBuilder {
             baseline: context.baseline,
             streaks: context.journeyStreaks,
             momentum: momentum(context: context, loggedDays: loggedDays),
-            transformation: transformation(
-                hero: hero,
-                baseline: context.baseline,
-                hasProfile: hasProfile
-            ),
+            transformation: hero(context: context, loggedDays: loggedDays, hasProfile: hasProfile),
             goalProjection: goalProjection(context: context),
             milestone: JourneyMilestoneState.fromMilestones(milestones),
             storyEvents: storyEvents(from: timeline, calendar: context.calendar),
@@ -130,26 +122,22 @@ enum JourneyPresentationBuilder {
         )
     }
 
-    // MARK: - Transformation
+    // MARK: - Hero
 
-    static func transformation(
-        hero: JourneyTransformationHeroState,
-        baseline: JourneyBaseline,
+    static func hero(
+        context: JourneyDashboardBuilder.Context,
+        loggedDays: Int,
         hasProfile: Bool
     ) -> JourneyTransformationState {
-        let emptyMessage: String?
-        if !hasProfile {
-            emptyMessage = FormaProductCopy.Journey.StartingEmptyState.body
-        } else if baseline.goalWeightKg == nil {
-            emptyMessage = FormaProductCopy.Journey.Transformation.paceForecastFallback
-        } else {
-            emptyMessage = nil
-        }
-
-        return JourneyTransformationState.fromHero(
-            hero,
-            isVisible: hasProfile,
-            emptyMessage: emptyMessage
+        JourneyHeroBuilder.build(
+            JourneyHeroBuilder.Input(
+                baseline: context.baseline,
+                loggedDays: loggedDays,
+                journeyStreaks: context.journeyStreaks,
+                hasProfile: hasProfile,
+                asOf: context.asOf,
+                calendar: context.calendar
+            )
         )
     }
 
@@ -253,7 +241,6 @@ enum JourneyPresentationBuilder {
         baseline: JourneyBaseline,
         streaks: JourneyStreakState,
         loggedDays: Int,
-        hero: JourneyTransformationHeroState,
         weeklyReview: JourneyWeeklyReviewState,
         milestones: JourneyMilestonesState,
         storyTimeline: JourneyStoryTimelineState,
@@ -306,9 +293,9 @@ enum JourneyPresentationBuilder {
                 baseline: baseline,
                 streaks: streaks,
                 momentum: momentum(context: context, loggedDays: loggedDays),
-                transformation: transformation(
-                    hero: hero,
-                    baseline: baseline,
+                transformation: hero(
+                    context: context,
+                    loggedDays: loggedDays,
                     hasProfile: hasProfile
                 ),
                 goalProjection: goalProjection(context: context),

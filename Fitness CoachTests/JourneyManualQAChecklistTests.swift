@@ -33,7 +33,7 @@ final class JourneyManualQAChecklistTests: XCTestCase {
         XCTAssertTrue(dashboard.baseline.usesSyntheticBaselinePoint)
         XCTAssertTrue(dashboard.baseline.showsWeightChart)
         XCTAssertGreaterThanOrEqual(dashboard.baseline.chartPoints.count, 1)
-        XCTAssertFalse(dashboard.transformation.headlineCopy.isEmpty)
+        XCTAssertFalse(dashboard.transformation.primaryMessage.isEmpty)
         XCTAssertFalse(dashboard.transformation.accessibilitySummary.isEmpty)
     }
 
@@ -92,21 +92,32 @@ final class JourneyManualQAChecklistTests: XCTestCase {
             )
         )
 
-        let hero = JourneyTransformationHeroBuilder.build(
-            JourneyTransformationHeroBuilder.Input(
+        XCTAssertEqual(baseline.currentWeightKg ?? 0, 85, accuracy: 0.01)
+        XCTAssertGreaterThanOrEqual(baseline.chartPoints.filter { !$0.isSynthetic }.count, 3)
+        XCTAssertGreaterThan(baseline.progressPercent ?? 0, 0)
+
+        let hero = JourneyHeroBuilder.build(
+            JourneyHeroBuilder.Input(
                 baseline: baseline,
                 loggedDays: 0,
-                heroStreakChip: .hidden,
-                weightTrendDirection: .decreasing,
+                journeyStreaks: JourneyStreakState(
+                    currentLoggingStreakDays: 0,
+                    longestLoggingStreakDays: 0,
+                    currentProteinStreakDays: 0,
+                    currentWaterStreakDays: 0,
+                    currentTrainingStreakWeeks: nil,
+                    isTodayLogged: false,
+                    heroStreakChip: .hidden,
+                    weeklyConsistencyHeadline: "",
+                    weeklyConsistencyDetail: nil,
+                    keepStreakAliveCopy: nil
+                ),
+                hasProfile: true,
                 asOf: asOf,
                 calendar: calendar
             )
         )
-
-        XCTAssertEqual(baseline.currentWeightKg ?? 0, 85, accuracy: 0.01)
-        XCTAssertEqual(hero.todayWeightCopy, JourneyFormatter.heroWeightKg(85))
-        XCTAssertGreaterThanOrEqual(baseline.chartPoints.filter { !$0.isSynthetic }.count, 3)
-        XCTAssertGreaterThan(baseline.progressPercent ?? 0, 0)
+        XCTAssertEqual(hero.variant, .newUser)
     }
 
     // MARK: - 4. Food logging
@@ -281,11 +292,9 @@ final class JourneyManualQAChecklistTests: XCTestCase {
     func testManualQA12_GainGoalCopyAndMilestones() {
         let dashboard = JourneyPreviewData.gainGoal
 
-        XCTAssertEqual(
-            dashboard.transformation.headlineCopy,
-            FormaProductCopy.Journey.Transformation.gainedHeadline
-        )
-        XCTAssertFalse(dashboard.transformation.headlineCopy.localizedCaseInsensitiveContains("lost"))
+        XCTAssertNotEqual(dashboard.transformation.variant, .weightLossProgress)
+        XCTAssertFalse(dashboard.transformation.primaryMessage.localizedCaseInsensitiveContains("lost"))
+        XCTAssertFalse(dashboard.transformation.primaryMessage.contains("0 kg"))
         XCTAssertEqual(dashboard.baseline.goalDirection, .gain)
 
         let firstKg = dashboard.milestones.items.first { $0.id == "first-kg" }
@@ -301,12 +310,8 @@ final class JourneyManualQAChecklistTests: XCTestCase {
         let dashboard = JourneyPreviewData.maintainGoal
 
         XCTAssertEqual(dashboard.baseline.goalDirection, .maintain)
-        XCTAssertEqual(
-            dashboard.transformation.headlineCopy,
-            FormaProductCopy.Journey.Transformation.maintainingHeadline
-        )
-        XCTAssertFalse(dashboard.transformation.headlineCopy.localizedCaseInsensitiveContains("lost"))
-        XCTAssertFalse(dashboard.transformation.headlineCopy.localizedCaseInsensitiveContains("gained"))
+        XCTAssertFalse(dashboard.transformation.primaryMessage.localizedCaseInsensitiveContains("lost"))
+        XCTAssertFalse(dashboard.transformation.primaryMessage.localizedCaseInsensitiveContains("0 kg"))
     }
 
     // MARK: - 14. Pull to refresh

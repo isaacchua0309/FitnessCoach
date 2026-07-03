@@ -1410,6 +1410,53 @@ enum FormaProductCopy {
             }
         }
 
+        enum Hero {
+            static let newUserTitle = "Your journey is just starting."
+            static let newUserPrimary = "Build your first week."
+            static let newUserBody = "Log today to start creating your transformation story."
+            static let newUserAction = "Log today"
+
+            static let earlyHabitsTitle = "Building Momentum"
+            static let earlyHabitsBody = "Every healthy decision is starting to compound."
+
+            static let weightLossTitle = "Transformation in progress"
+            static let gainProgressTitle = "Transformation in progress"
+            static let strongConsistencyTitle = "Strong Momentum"
+            static let strongConsistencyBody = "Your habits are becoming consistent."
+
+            static let noGoalTitle = "Building Momentum"
+            static let noGoalPrimary = "Keep logging"
+            static let noGoalBody = "Log meals and weight so Forma can map your progress."
+
+            static func weekLabel(_ week: Int) -> String {
+                "Week \(week)"
+            }
+
+            static func kgLost(_ kg: String) -> String {
+                "\(kg) lost"
+            }
+
+            static func kgGained(_ kg: String) -> String {
+                "\(kg) gained"
+            }
+
+            static func percentTowardGoal(_ percent: Int) -> String {
+                "\(percent)% of the way to your goal."
+            }
+
+            static func daysShowingUp(_ days: Int) -> String {
+                days == 1 ? "1 day showing up" : "\(days) days showing up"
+            }
+
+            static func compactWeights(started: String, today: String, goal: String) -> String {
+                "\(started) → \(today) → \(goal)"
+            }
+
+            static func accessibilitySummary(title: String, primary: String, body: String) -> String {
+                "\(title). \(primary). \(body)"
+            }
+        }
+
         enum GoalProjection {
             static let sectionTitle = "Goal projection"
             static let insufficientTitle = "Need more weight logs"

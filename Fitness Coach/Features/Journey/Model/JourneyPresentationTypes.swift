@@ -39,72 +39,24 @@ struct JourneyMomentumState: Equatable {
     )
 }
 
-// MARK: - Transformation
+// MARK: - Transformation hero
 
 struct JourneyTransformationState: Equatable {
     var isVisible: Bool
-    var headlineCopy: String
-    var changeValueCopy: String
-    var emotionalStatusLabel: String
+    var variant: JourneyHeroBuilder.Variant
+    var title: String
+    var primaryMessage: String
+    var body: String
+    var nextActionTitle: String?
+    var nextActionCTA: JourneyCTA?
+    var showsProgressBar: Bool
     var progressBarFill: Double
     var progressLabel: String
     var progressBarAccessibilityValue: String
-    var startedWeightCopy: String
-    var todayWeightCopy: String
-    var goalWeightCopy: String
-    var startedFootnote: String?
-    var paceForecastText: String
-    var streakChip: JourneyStreakChipState
-    var usesSyntheticBaseline: Bool
-    var showsUpdateGoalCTA: Bool
+    var showsWeightAnchors: Bool
+    var weightAnchorsCopy: String?
     var accessibilitySummary: String
     var emptyMessage: String?
-
-    var heroState: JourneyTransformationHeroState {
-        JourneyTransformationHeroState(
-            headlineCopy: headlineCopy,
-            changeValueCopy: changeValueCopy,
-            emotionalStatusLabel: emotionalStatusLabel,
-            progressBarFill: progressBarFill,
-            progressLabel: progressLabel,
-            progressBarAccessibilityValue: progressBarAccessibilityValue,
-            startedWeightCopy: startedWeightCopy,
-            todayWeightCopy: todayWeightCopy,
-            goalWeightCopy: goalWeightCopy,
-            startedFootnote: startedFootnote,
-            paceForecastText: paceForecastText,
-            streakChip: streakChip,
-            usesSyntheticBaseline: usesSyntheticBaseline,
-            showsUpdateGoalCTA: showsUpdateGoalCTA,
-            accessibilitySummary: accessibilitySummary
-        )
-    }
-
-    static func fromHero(
-        _ hero: JourneyTransformationHeroState,
-        isVisible: Bool = true,
-        emptyMessage: String? = nil
-    ) -> JourneyTransformationState {
-        JourneyTransformationState(
-            isVisible: isVisible,
-            headlineCopy: hero.headlineCopy,
-            changeValueCopy: hero.changeValueCopy,
-            emotionalStatusLabel: hero.emotionalStatusLabel,
-            progressBarFill: hero.progressBarFill,
-            progressLabel: hero.progressLabel,
-            progressBarAccessibilityValue: hero.progressBarAccessibilityValue,
-            startedWeightCopy: hero.startedWeightCopy,
-            todayWeightCopy: hero.todayWeightCopy,
-            goalWeightCopy: hero.goalWeightCopy,
-            startedFootnote: hero.startedFootnote,
-            paceForecastText: hero.paceForecastText,
-            streakChip: hero.streakChip,
-            usesSyntheticBaseline: hero.usesSyntheticBaseline,
-            showsUpdateGoalCTA: hero.showsUpdateGoalCTA,
-            accessibilitySummary: hero.accessibilitySummary,
-            emptyMessage: emptyMessage
-        )
-    }
 }
 
 // MARK: - Goal projection

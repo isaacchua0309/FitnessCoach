@@ -73,28 +73,28 @@ enum JourneyPreviewData {
 
     // MARK: - Section fixtures
 
-    static var transformationNewUser: JourneyTransformationHeroState {
-        brandNewUser.transformationHero
+    static var transformationNewUser: JourneyTransformationState {
+        brandNewUser.transformation
     }
 
-    static var transformationActiveFatLoss: JourneyTransformationHeroState {
-        strongMomentum.transformationHero
+    static var transformationActiveFatLoss: JourneyTransformationState {
+        strongMomentum.transformation
     }
 
-    static var transformationNearGoal: JourneyTransformationHeroState {
-        nearGoal.transformationHero
+    static var transformationNearGoal: JourneyTransformationState {
+        nearGoal.transformation
     }
 
-    static var transformationGainGoal: JourneyTransformationHeroState {
-        gainGoal.transformationHero
+    static var transformationGainGoal: JourneyTransformationState {
+        gainGoal.transformation
     }
 
-    static var transformationMaintainGoal: JourneyTransformationHeroState {
-        maintainGoal.transformationHero
+    static var transformationMaintainGoal: JourneyTransformationState {
+        maintainGoal.transformation
     }
 
-    static var transformationPlateau: JourneyTransformationHeroState {
-        plateau.transformationHero
+    static var transformationPlateau: JourneyTransformationState {
+        plateau.transformation
     }
 
     static var weeklyReviewFullWeek: JourneyWeeklyReviewState {
@@ -165,12 +165,6 @@ enum JourneyPreviewData {
             baseline: baseline,
             streaks: streaks,
             loggedDays: 0,
-            hero: makeTransformation(
-                baseline: baseline,
-                loggedDays: 0,
-                loggingStreak: 0,
-                weightTrendDirection: .insufficientData
-            ),
             weeklyReview: makeWeeklyReview(
                 foodLoggedDays: 0,
                 proteinGoalDays: 0,
@@ -591,12 +585,6 @@ enum JourneyPreviewData {
             baseline: baseline,
             streaks: streaks,
             loggedDays: 2,
-            hero: makeTransformation(
-                baseline: baseline,
-                loggedDays: 2,
-                loggingStreak: 0,
-                weightTrendDirection: .insufficientData
-            ),
             weeklyReview: makeWeeklyReview(
                 foodLoggedDays: 2,
                 proteinGoalDays: 1,
@@ -720,12 +708,6 @@ enum JourneyPreviewData {
             baseline: baseline,
             streaks: streaks,
             loggedDays: loggedDays,
-            hero: makeTransformation(
-                baseline: baseline,
-                loggedDays: loggedDays,
-                loggingStreak: loggingStreak,
-                weightTrendDirection: weightTrendDirection
-            ),
             weeklyReview: makeWeeklyReview(
                 foodLoggedDays: weekFoodLoggedDays,
                 proteinGoalDays: weekProteinGoalDays,
@@ -1011,33 +993,6 @@ enum JourneyPreviewData {
             weeklyConsistencyHeadline: headline,
             weeklyConsistencyDetail: detail,
             keepStreakAliveCopy: nil
-        )
-    }
-
-    private static func makeTransformation(
-        baseline: JourneyBaseline,
-        loggedDays: Int,
-        loggingStreak: Int,
-        weightTrendDirection: WeightTrendDirection
-    ) -> JourneyTransformationHeroState {
-        let streakChip = makeStreaks(
-            currentLogging: loggingStreak,
-            longestLogging: max(loggingStreak, 7),
-            proteinStreak: 0,
-            waterStreak: 0,
-            trainingWeeks: nil,
-            isTodayLogged: loggingStreak > 0
-        ).heroStreakChip
-
-        return JourneyTransformationHeroBuilder.build(
-            JourneyTransformationHeroBuilder.Input(
-                baseline: baseline,
-                loggedDays: loggedDays,
-                heroStreakChip: streakChip,
-                weightTrendDirection: weightTrendDirection,
-                asOf: today,
-                calendar: calendar
-            )
         )
     }
 
