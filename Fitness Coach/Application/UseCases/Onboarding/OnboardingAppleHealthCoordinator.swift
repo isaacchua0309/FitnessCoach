@@ -50,13 +50,6 @@ final class OnboardingAppleHealthCoordinator {
         )
     }
 
-    func shouldAdvanceFromConnected(
-        presentation: OnboardingAppleHealthPresentationState,
-        deviceState: TrainingIntegrationState
-    ) -> Bool {
-        presentation == .connected || deviceState == .connected
-    }
-
     func logCTAState(
         action: String,
         presentation: OnboardingAppleHealthPresentationState,
@@ -70,10 +63,8 @@ final class OnboardingAppleHealthCoordinator {
                 "action": action,
                 "authorizationState": deviceState.debugLabel,
                 "presentationState": String(describing: presentation),
-                "localConnected": String(shouldAdvanceFromConnected(
-                    presentation: presentation,
-                    deviceState: deviceState
-                )),
+                "primaryAction": String(describing: screenState.primaryAction),
+                "showsSkip": String(screenState.showsSkipButton),
                 "ctaTitle": screenState.primaryTitle,
                 "ctaEnabled": String(screenState.isPrimaryEnabled),
                 "ctaLoading": String(isConnecting)

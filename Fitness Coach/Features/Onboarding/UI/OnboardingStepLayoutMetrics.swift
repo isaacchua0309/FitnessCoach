@@ -88,7 +88,6 @@ enum OnboardingStepLayoutMetrics {
         return max(190, min(available, cap))
     }
 
-    @available(*, deprecated, renamed: "introProofHeroCardHeight")
     static func introProofChartHeight(
         contentHeight: CGFloat,
         profile: OnboardingStepLayoutProfile

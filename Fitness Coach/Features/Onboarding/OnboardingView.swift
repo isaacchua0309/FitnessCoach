@@ -200,15 +200,17 @@ struct OnboardingView: View {
                     ? appleHealthScreenState.primaryTitle
                     : nil,
                 appleHealthSecondaryTitle: model.currentStep == .appleHealth
-                    ? appleHealthScreenState.secondaryTitle
+                    && appleHealthScreenState.showsSkipButton
+                    ? appleHealthScreenState.skipTitle
                     : nil,
                 isAppleHealthPrimaryEnabled: model.currentStep == .appleHealth
                     ? appleHealthScreenState.isPrimaryEnabled
                     : true,
                 isAppleHealthSkipEnabled: model.currentStep == .appleHealth
-                    ? appleHealthScreenState.isSkipEnabled
+                    ? appleHealthScreenState.showsSkipButton
                     : true,
                 onAppleHealthSkip: model.currentStep == .appleHealth
+                    && appleHealthScreenState.showsSkipButton
                     ? {
                         fieldNavigator.dismissFocus()
                         model.skipAppleHealth()

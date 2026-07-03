@@ -590,30 +590,31 @@ enum FormaProductCopy {
             enum AppleHealth {
                 static let title = "Connect Apple Health"
                 static let subtitle =
-                    "Sync workouts and activity to improve your progress insights."
+                    "Sync workouts and activity so Forma can adjust your plan with less manual tracking."
                 static let connectCTA = "Connect Apple Health"
+                static let continueCTA = Common.continueAction
                 static let skipCTA = "Skip for now"
-                static let unavailableCTA = "Apple Health unavailable"
-                static let connectedCTA = Common.continueAction
                 static let requestingMessage = "Opening Apple Health…"
-                static let connectedMessage = "Apple Health connected."
+                static let connectedMessage =
+                    "Apple Health connected. Your plan can now use activity and workout data."
                 static let deniedMessage =
-                    "No problem — you can connect later in Settings."
+                    "Permission wasn't granted. You can connect Apple Health later in Settings."
                 static let unavailableMessage =
-                    "Apple Health isn't available on this device."
+                    "Apple Health isn't available on this device. You can continue without it."
                 static let failedMessage =
                     "Something went wrong. Try again or skip for now."
-                static let summaryCardTitle = "What Forma can read"
-                static let readableDataRows: [String] = [
-                    "Workouts and duration",
-                    "Active calories",
-                    "Training consistency"
+                static let summaryCardTitle = "What Forma uses"
+                static let permissionItems: [(icon: String, title: String)] = [
+                    ("figure.run", "Workouts"),
+                    ("flame.fill", "Active energy"),
+                    ("calendar.badge.clock", "Training consistency")
                 ]
+                static let readableDataRows: [String] = permissionItems.map(\.title)
                 static let readableDataAccessibilityLabel =
-                    "What Forma can read: workouts and duration, active calories, training consistency."
+                    "What Forma uses: workouts, active energy, training consistency."
                 static let privacyTitle = "Private by design"
                 static let privacyBody =
-                    "Forma only reads data you allow. You can connect later."
+                    "Forma only reads the data you allow. You can change this anytime in Apple Health."
             }
 
             enum AlmostThere {

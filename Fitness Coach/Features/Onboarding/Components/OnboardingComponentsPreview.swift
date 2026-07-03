@@ -40,7 +40,7 @@ enum OnboardingComponentsPreviewCatalog {
     static var appleHealth: some View {
         OnboardingAppleHealthStepView(
             screenState: OnboardingAppleHealthPresentationBuilder.build(
-                presentation: .ready,
+                presentation: .notDetermined,
                 deviceState: .notConnected
             )
         )

@@ -10,44 +10,52 @@ import XCTest
 
 final class OnboardingAppleHealthPresentationBuilderTests: XCTestCase {
 
-    func testReadyStateUsesConnectCTA() {
+    func testNotDeterminedStateUsesConnectCTAAndSkip() {
         let state = OnboardingAppleHealthPresentationBuilder.build(
-            presentation: .ready,
+            presentation: .notDetermined,
             deviceState: .notConnected
         )
 
+        XCTAssertEqual(state.presentation, .notDetermined)
         XCTAssertEqual(state.primaryTitle, FormaProductCopy.Onboarding.Flow.AppleHealth.connectCTA)
-        XCTAssertEqual(state.secondaryTitle, FormaProductCopy.Onboarding.Flow.AppleHealth.skipCTA)
+        XCTAssertEqual(state.skipTitle, FormaProductCopy.Onboarding.Flow.AppleHealth.skipCTA)
         XCTAssertNil(state.statusMessage)
         XCTAssertTrue(state.isPrimaryEnabled)
-        XCTAssertTrue(state.isSkipEnabled)
+        XCTAssertTrue(state.showsSkipButton)
+        XCTAssertEqual(state.primaryAction, .requestPermission)
+        XCTAssertTrue(state.showsHeroIcon)
+        XCTAssertTrue(state.showsPermissionCard)
     }
 
-    func testUnavailableDeviceDisablesPrimaryAndShowsMessage() {
+    func testUnavailableDeviceUsesContinueCTAAndHidesPermissionCard() {
         let state = OnboardingAppleHealthPresentationBuilder.build(
-            presentation: .ready,
+            presentation: .notDetermined,
             deviceState: .unavailable
         )
 
         XCTAssertEqual(state.presentation, .unavailable)
-        XCTAssertEqual(state.primaryTitle, FormaProductCopy.Onboarding.Flow.AppleHealth.unavailableCTA)
-        XCTAssertFalse(state.isPrimaryEnabled)
-        XCTAssertTrue(state.isSkipEnabled)
+        XCTAssertEqual(state.primaryTitle, FormaProductCopy.Onboarding.Flow.AppleHealth.continueCTA)
+        XCTAssertTrue(state.isPrimaryEnabled)
+        XCTAssertFalse(state.showsSkipButton)
+        XCTAssertEqual(state.primaryAction, .advance)
+        XCTAssertFalse(state.showsPermissionCard)
         XCTAssertEqual(state.statusMessage, FormaProductCopy.Onboarding.Flow.AppleHealth.unavailableMessage)
     }
 
-    func testDeniedStateAllowsRetryAndSkip() {
+    func testDeniedStateUsesContinueAndHidesSkip() {
         let state = OnboardingAppleHealthPresentationBuilder.build(
             presentation: .denied,
             deviceState: .denied
         )
 
         XCTAssertEqual(state.statusMessage, FormaProductCopy.Onboarding.Flow.AppleHealth.deniedMessage)
+        XCTAssertEqual(state.primaryTitle, FormaProductCopy.Onboarding.Flow.AppleHealth.continueCTA)
         XCTAssertTrue(state.isPrimaryEnabled)
-        XCTAssertTrue(state.isSkipEnabled)
+        XCTAssertFalse(state.showsSkipButton)
+        XCTAssertEqual(state.primaryAction, .advance)
     }
 
-    func testConnectedStateUsesContinueCTAAndAllowsAdvance() {
+    func testConnectedStateUsesContinueCTAAndHidesSkip() {
         let state = OnboardingAppleHealthPresentationBuilder.build(
             presentation: .connected,
             deviceState: .connected
@@ -57,21 +65,23 @@ final class OnboardingAppleHealthPresentationBuilderTests: XCTestCase {
         XCTAssertEqual(state.primaryTitle, FormaProductCopy.Common.continueAction)
         XCTAssertEqual(state.statusMessage, FormaProductCopy.Onboarding.Flow.AppleHealth.connectedMessage)
         XCTAssertTrue(state.isPrimaryEnabled)
-        XCTAssertTrue(state.isSkipEnabled)
-        XCTAssertTrue(state.showsSuccessCheckmark)
+        XCTAssertFalse(state.showsSkipButton)
+        XCTAssertEqual(state.primaryAction, .advance)
+        XCTAssertFalse(state.showsHeroIcon)
     }
 
-    func testRequestingStateDisablesPrimaryCTA() {
+    func testRequestingStateDisablesPrimaryCTAAndSkip() {
         let state = OnboardingAppleHealthPresentationBuilder.build(
             presentation: .requesting,
             deviceState: .requestingPermission
         )
 
         XCTAssertFalse(state.isPrimaryEnabled)
-        XCTAssertFalse(state.isSkipEnabled)
+        XCTAssertFalse(state.showsSkipButton)
+        XCTAssertEqual(state.heroStyle, .loading)
     }
 
-    func testFailedStateShowsRetryMessage() {
+    func testFailedStateAllowsRetryAndSkip() {
         let state = OnboardingAppleHealthPresentationBuilder.build(
             presentation: .failed(message: "HealthKit unavailable"),
             deviceState: .failed(message: "HealthKit unavailable")
@@ -79,6 +89,8 @@ final class OnboardingAppleHealthPresentationBuilderTests: XCTestCase {
 
         XCTAssertEqual(state.statusMessage, FormaProductCopy.Onboarding.Flow.AppleHealth.failedMessage)
         XCTAssertTrue(state.isPrimaryEnabled)
+        XCTAssertTrue(state.showsSkipButton)
+        XCTAssertEqual(state.primaryAction, .requestPermission)
     }
 
     func testCopyAvoidsDynamicCaloriesAndAutomaticAdjustmentClaims() {
@@ -104,13 +116,13 @@ final class OnboardingAppleHealthPresentationBuilderTests: XCTestCase {
 
     func testAccessibilitySummaryAnnouncesOptionalConnection() {
         let state = OnboardingAppleHealthPresentationBuilder.build(
-            presentation: .ready,
+            presentation: .notDetermined,
             deviceState: .notConnected
         )
 
         XCTAssertEqual(
             state.accessibilitySummary,
-            "Connect Apple Health. Optional. Sync workouts and activity to improve your progress insights."
+            "Connect Apple Health. Optional. Sync workouts and activity so Forma can adjust your plan with less manual tracking."
         )
     }
 }

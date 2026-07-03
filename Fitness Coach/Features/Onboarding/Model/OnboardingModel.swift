@@ -27,7 +27,7 @@ final class OnboardingModel: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published private(set) var hasLocalProfile = false
     @Published private(set) var pendingCompletionIntent: OnboardingCompletionIntent?
-    @Published private(set) var appleHealthPresentation: OnboardingAppleHealthPresentationState = .ready
+    @Published private(set) var appleHealthPresentation: OnboardingAppleHealthPresentationState = .notDetermined
     @Published private(set) var appleHealthDeviceState: TrainingIntegrationState = .notConnected
 
     let flowFloor: OnboardingStep
@@ -221,14 +221,19 @@ final class OnboardingModel: ObservableObject {
 
         logAppleHealthCTAState(action: "primary_tapped")
 
-        if shouldAdvanceFromConnectedAppleHealth {
+        switch appleHealthScreenState.primaryAction {
+        case .advance:
             logAppleHealthCTAState(action: "advance_without_permission_request")
             advanceFromAppleHealth(completedStep: .appleHealth)
             return
+        case .openSettings:
+            HealthAppSettingsNavigator.openHealthPermissions()
+            return
+        case .requestPermission:
+            break
         }
 
         guard appleHealthScreenState.isPrimaryEnabled else { return }
-        guard appleHealthPresentation.allowsPermissionRequest else { return }
 
         let completedStep = currentStep
         viewState = .connectingAppleHealth
@@ -245,7 +250,7 @@ final class OnboardingModel: ObservableObject {
     func skipAppleHealth() {
         guard currentStep == .appleHealth else { return }
         guard viewState != .connectingAppleHealth else { return }
-        guard appleHealthScreenState.isSkipEnabled else { return }
+        guard appleHealthScreenState.showsSkipButton else { return }
 
         analyticsTracker.logAppleHealth(.appleHealthSkipTapped)
         advanceFromAppleHealth(completedStep: .appleHealth)
@@ -453,13 +458,6 @@ final class OnboardingModel: ObservableObject {
         }
         syncAppleHealthPresentation(from: appleHealthDeviceState)
         logAppleHealthCTAState(action: "advanced_from_step")
-    }
-
-    private var shouldAdvanceFromConnectedAppleHealth: Bool {
-        appleHealthCoordinator.shouldAdvanceFromConnected(
-            presentation: appleHealthPresentation,
-            deviceState: appleHealthDeviceState
-        )
     }
 
     private func syncAppleHealthPresentation(from deviceState: TrainingIntegrationState) {
