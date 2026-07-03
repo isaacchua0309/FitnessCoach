@@ -2,7 +2,7 @@
 //  SettingsRootView.swift
 //  Fitness Coach
 //
-//  FitPilot — Consumer settings hub (grouped list, modal Done).
+//  Forma — Consumer settings hub (grouped list, modal Done).
 //
 
 import SwiftUI
@@ -11,7 +11,6 @@ struct SettingsRootView: View {
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var insightsStore: TrainingInsightsStore
-    @EnvironmentObject private var themeStore: ThemeStore
 
     @Binding var formState: PlanFormState
     let errorMessage: String?
@@ -23,9 +22,7 @@ struct SettingsRootView: View {
             List {
                 accountSection
                 preferencesSection
-                notificationsSection
                 integrationsSection
-                privacySection
 
                 #if DEBUG
                 developerSection
@@ -97,22 +94,8 @@ struct SettingsRootView: View {
                 settingsRowLabel(SettingsPreferencesCatalog.themeRowTitle)
             }
             .formaSettingsRowChrome()
-
-            FormaComingSoonRow(title: "AI preferences")
-                .formaSettingsRowChrome(isEnabled: false)
         } header: {
             FormaSettingsSectionHeader(title: SettingsPreferencesCatalog.sectionTitle)
-        }
-    }
-
-    private var notificationsSection: some View {
-        Section {
-            FormaComingSoonRow(title: "Daily reminders")
-                .formaSettingsRowChrome(isEnabled: false)
-            FormaComingSoonRow(title: "Coach check-ins")
-                .formaSettingsRowChrome(isEnabled: false)
-        } header: {
-            FormaSettingsSectionHeader(title: "Notifications")
         }
     }
 
@@ -139,24 +122,9 @@ struct SettingsRootView: View {
             .formaSettingsRowChrome()
         } header: {
             FormaSettingsSectionHeader(title: "Integrations")
-        } footer: {
-            Text(TrainingIntegrationCopy.healthIntegrationFooter)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textTertiary)
         }
         .task {
             await insightsStore.refresh()
-        }
-    }
-
-    private var privacySection: some View {
-        Section {
-            FormaComingSoonRow(title: "Data export")
-                .formaSettingsRowChrome(isEnabled: false)
-            FormaComingSoonRow(title: "Delete data")
-                .formaSettingsRowChrome(isEnabled: false)
-        } header: {
-            FormaSettingsSectionHeader(title: "Privacy")
         }
     }
 

@@ -21,12 +21,6 @@ struct AccountSettingsView: View {
                 profileHeader
                 accountDetailsCard
                 logoutSection
-
-                Text(FormaProductCopy.Account.signOutDataNote)
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
             .padding(.top, FormaTokens.Spacing.md)

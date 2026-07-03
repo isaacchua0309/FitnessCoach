@@ -77,14 +77,6 @@ struct AppleHealthIntegrationView: View {
                         settingsRowLabel(TrainingIntegrationCopy.manageHealthAccess)
                     }
                     .formaSettingsRowChrome()
-                } footer: {
-                    Text(
-                        insightsStore.integrationState.isConnected
-                            ? TrainingIntegrationCopy.healthPermissionsLocationHint
-                            : TrainingIntegrationCopy.healthIntegrationFooter
-                    )
-                        .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaTokens.Color.textTertiary)
                 }
             }
         }

@@ -44,10 +44,6 @@ enum TrainingIntegrationCopy {
 
     static let healthIntegrationTitle = "Apple Health"
     static let healthIntegrationBody = valueProposition
-    static let healthIntegrationFooter =
-        "Forma reads workouts from Apple Health. It does not write or change your Health data."
-    static let healthPermissionsLocationHint =
-        "Workout access is managed in the Health app (Sharing → Apps → Forma), not on Forma's page in Settings."
     static let manageHealthAccess = "Open Health app"
     static let manageConnection = "Manage Apple Health connection"
 

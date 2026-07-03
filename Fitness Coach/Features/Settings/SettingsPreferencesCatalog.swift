@@ -14,7 +14,6 @@ enum SettingsPreferencesCatalog {
     static let rowTitles: [String] = [
         "Units",
         FormaProductCopy.PlanCalculation.bodyDetailsSettingsTitle,
-        themeRowTitle,
-        "AI preferences"
+        themeRowTitle
     ]
 }
