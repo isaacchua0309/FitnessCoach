@@ -31,7 +31,7 @@ enum TodayNextActionRoute: Equatable {
 enum TodayNextActionFormatting {
 
     static func displayModel(for action: NextBestActionState) -> TodayNextActionDisplayModel {
-        let buttonTitle = primaryButtonTitle(for: action)
+        let primaryTitle = primaryButtonTitle(for: action)
         let secondaryTitle = action.secondaryCTAs.first.flatMap { buttonTitle(for: $0, reason: action.reason) }
         let subtitle = action.subtitle?.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasSubtitle = !(subtitle?.isEmpty ?? true)
@@ -43,8 +43,8 @@ enum TodayNextActionFormatting {
         if hasSubtitle, let subtitle {
             accessibilityParts.append(subtitle)
         }
-        if let buttonTitle {
-            accessibilityParts.append("\(buttonTitle) button")
+        if let primaryTitle {
+            accessibilityParts.append("\(primaryTitle) button")
         }
         if let secondaryTitle {
             accessibilityParts.append("\(secondaryTitle) button")
@@ -54,10 +54,10 @@ enum TodayNextActionFormatting {
             sectionTitle: FormaProductCopy.Today.NextAction.sectionTitle,
             headline: action.title,
             subtitle: hasSubtitle ? subtitle : nil,
-            primaryButtonTitle: buttonTitle,
+            primaryButtonTitle: primaryTitle,
             secondaryButtonTitle: secondaryTitle,
             accessibilityLabel: accessibilityParts.joined(separator: ". "),
-            showsPrimaryButton: buttonTitle != nil,
+            showsPrimaryButton: primaryTitle != nil,
             showsSecondaryButton: secondaryTitle != nil
         )
     }

@@ -145,38 +145,38 @@ struct SettingsRootView: View {
     // MARK: - Sections
 
     @ViewBuilder
-    private func section(_ section: SettingsAccountSectionState) -> some View {
-        section(title: section.title, footer: nil, rows: section.rows, sectionType: .account)
+    private func section(_ state: SettingsAccountSectionState) -> some View {
+        section(title: state.title, footer: nil, rows: state.rows, sectionType: .account)
     }
 
     @ViewBuilder
-    private func section(_ section: SettingsPreferencesSectionState) -> some View {
-        section(title: section.title, footer: nil, rows: section.rows, sectionType: .preferences)
+    private func section(_ state: SettingsPreferencesSectionState) -> some View {
+        section(title: state.title, footer: nil, rows: state.rows, sectionType: .preferences)
     }
 
     @ViewBuilder
-    private func section(_ section: SettingsIntegrationsSectionState) -> some View {
-        section(title: section.title, footer: nil, rows: section.rows, sectionType: .integrations)
+    private func section(_ state: SettingsIntegrationsSectionState) -> some View {
+        section(title: state.title, footer: nil, rows: state.rows, sectionType: .integrations)
     }
 
     @ViewBuilder
-    private func section(_ section: SettingsPrivacyDataSectionState) -> some View {
-        section(title: section.title, footer: section.footer, rows: section.rows, sectionType: .privacyData)
+    private func section(_ state: SettingsPrivacyDataSectionState) -> some View {
+        section(title: state.title, footer: state.footer, rows: state.rows, sectionType: .privacyData)
     }
 
     @ViewBuilder
-    private func section(_ section: SettingsSupportSectionState) -> some View {
-        section(title: section.title, footer: section.footer, rows: section.rows, sectionType: .support)
+    private func section(_ state: SettingsSupportSectionState) -> some View {
+        section(title: state.title, footer: state.footer, rows: state.rows, sectionType: .support)
     }
 
     @ViewBuilder
-    private func section(_ section: SettingsAboutSectionState) -> some View {
-        section(title: section.title, footer: nil, rows: section.rows, sectionType: .about)
+    private func section(_ state: SettingsAboutSectionState) -> some View {
+        section(title: state.title, footer: nil, rows: state.rows, sectionType: .about)
     }
 
     @ViewBuilder
-    private func section(_ section: SettingsDeveloperSectionState) -> some View {
-        section(title: section.title, footer: section.footer, rows: section.rows, sectionType: .developer)
+    private func section(_ state: SettingsDeveloperSectionState) -> some View {
+        section(title: state.title, footer: state.footer, rows: state.rows, sectionType: .developer)
     }
 
     @ViewBuilder
@@ -327,6 +327,8 @@ struct SettingsRootView: View {
                     }
                 }
         case .supportMail:
+            EmptyView()
+        case .exportData, .deleteData:
             EmptyView()
         case .authDiagnostics, .pipelineTraces:
             developerDestinationView(for: destination)

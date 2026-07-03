@@ -20,11 +20,9 @@ struct PlanView: View {
     private var settingsBodyDetailsInput: BodyDetailsSettingsPresentationInput? {
         guard let formState = model.editFormState else { return nil }
         if case .loaded(let state) = model.viewState {
-            let mission = state.missionControl.mission
             return BodyDetailsSettingsPresentationInput(
                 formState: formState,
-                startingWeightKg: mission.startWeightKg,
-                currentWeightKg: mission.currentWeightKg
+                currentWeightKg: state.profile.currentWeightKg
             )
         }
         return BodyDetailsSettingsPresentationInput(formState: formState)

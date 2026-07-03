@@ -10,21 +10,18 @@ import SwiftUI
 #if DEBUG
 enum SettingsRootViewPreviews {
 
-    @ViewBuilder
     static func host(
         integrationState: TrainingIntegrationState = .connected,
         isDebugOrInternalBuild: Bool = false,
         palette: AppThemePalette = .oceanBlue,
         unitSystem: UnitSystem = .metric
     ) -> some View {
-        var formState = PlanPreviewData.formState
-        formState.unitSystem = unitSystem
-
+        let formState = configuredFormState(unitSystem: unitSystem)
         let themeDefaults = UserDefaults(suiteName: "SettingsRootPreview.\(palette.rawValue)")!
         let themeStore = ThemeStore(userDefaults: themeDefaults)
         themeStore.setPalette(palette)
 
-        SettingsRootView(
+        return SettingsRootView(
             formState: .constant(formState),
             errorMessage: nil,
             onSaveUnits: { _ in },
@@ -39,6 +36,12 @@ enum SettingsRootViewPreviews {
         )
         .environmentObject(themeStore)
         .formaThemePreview(appearance: .dark, palette: palette)
+    }
+
+    private static func configuredFormState(unitSystem: UnitSystem) -> PlanFormState {
+        var formState = PlanPreviewData.formState
+        formState.unitSystem = unitSystem
+        return formState
     }
 }
 

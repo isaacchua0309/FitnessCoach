@@ -17,7 +17,7 @@ final class PlanStrategyHeroTests: XCTestCase {
         XCTAssertEqual(strategy.expectedPaceValue, "~0.8 kg/week")
         XCTAssertEqual(strategy.strategyStatusValue, "Aggressive Cut")
         XCTAssertEqual(strategy.supportiveLine, "Demanding but achievable.")
-        XCTAssertEqual(strategy.goalDirection, .lose)
+        XCTAssertEqual(strategy.goalDirection, .cut)
         XCTAssertFalse(strategy.accessibilitySummary.isEmpty)
         XCTAssertFalse(strategy.accessibilitySummary.contains("% complete"))
     }
@@ -44,7 +44,7 @@ final class PlanStrategyHeroTests: XCTestCase {
 
     func testMissingTargetUsesFallbackPrimaryGoal() {
         let fallback = PlanMissionHeroCopyBuilder.primaryGoalValue(
-            direction: .lose,
+            direction: .cut,
             totalChangeKg: nil
         )
 

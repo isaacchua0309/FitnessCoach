@@ -19,7 +19,7 @@ final class PlanPresentationStateTests: XCTestCase {
     func testWeightLossStrategyState() {
         let state = PlanMissionControlFixtures.loseDashboard
 
-        XCTAssertEqual(state.strategy.goalDirection, .lose)
+        XCTAssertEqual(state.strategy.goalDirection, .cut)
         XCTAssertEqual(state.strategy.primaryGoal, "Lose 15 kg")
         XCTAssertFalse(state.dailyTargets.caloriesLabel.isEmpty)
     }
@@ -125,7 +125,7 @@ final class PlanPresentationStateTests: XCTestCase {
             referenceDate: referenceDate
         )
 
-        XCTAssertEqual(state.strategy.goalDirection, .lose)
+        XCTAssertEqual(state.strategy.goalDirection, .cut)
         XCTAssertNotNil(state.explanation.calculationDetails)
         XCTAssertGreaterThan(state.adjustmentRules.rules.count, 0)
     }

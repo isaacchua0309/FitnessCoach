@@ -8,14 +8,8 @@
 import Foundation
 
 // MARK: - Goal direction
-
-enum PlanGoalDirection: String, Equatable, Sendable, CaseIterable {
-    case lose
-    case gain
-    case maintain
-}
-
-typealias PlanMissionGoalDirection = PlanGoalDirection
+//
+// Uses domain `PlanGoalDirection` from PlanCalculationInput (.cut / .maintain / .gain).
 
 // MARK: - Status
 

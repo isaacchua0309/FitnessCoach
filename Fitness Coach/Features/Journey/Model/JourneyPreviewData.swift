@@ -902,7 +902,7 @@ enum JourneyPreviewData {
                 trainingWorkoutDays: 0,
                 streaks: streaks,
                 healthConnected: false,
-                weightEntries: [(daysAgo: 0, kg: 87.8)]
+                weightEntries: weightEntries(from: [(daysAgo: 0, kg: 87.8)])
             ),
             profile: profile,
             maturityLogs: makeLogs(
@@ -1163,7 +1163,7 @@ enum JourneyPreviewData {
         streaks: JourneyStreakState,
         healthConnected: Bool,
         healthWorkoutDayOffsets: [Int] = [],
-        weightEntries: [(daysAgo: Int, kg: Double)] = []
+        weightEntries: [WeightEntry] = []
     ) -> JourneyStoryTimelineState {
         let logs = makeLogs(
             count: foodLogDays,
@@ -1172,18 +1172,7 @@ enum JourneyPreviewData {
             calorieAdherenceDays: foodLogDays,
             trainingWorkoutDays: trainingWorkoutDays
         )
-        let weights = weightEntries.compactMap { entry -> WeightEntry? in
-            guard let date = calendar.date(byAdding: .day, value: -entry.daysAgo, to: today) else {
-                return nil
-            }
-            return WeightEntry(
-                id: UUID(),
-                date: date,
-                weightKg: entry.kg,
-                note: nil,
-                createdAt: date
-            )
-        }
+        let weights = weightEntries
 
         return JourneyTimelineBuilder.build(
             JourneyTimelineBuilder.Input(
@@ -1411,19 +1400,38 @@ enum JourneyPreviewData {
         }
     }
 
+    private static func weightEntries(
+        from tuples: [(daysAgo: Int, kg: Double)]
+    ) -> [WeightEntry] {
+        tuples.compactMap { entry -> WeightEntry? in
+            guard let date = calendar.date(byAdding: .day, value: -entry.daysAgo, to: today) else {
+                return nil
+            }
+            return WeightEntry(
+                id: UUID(),
+                date: date,
+                weightKg: entry.kg,
+                note: nil,
+                createdAt: date
+            )
+        }
+    }
+
     private static func weightEntriesFromChart(
         _ points: [WeightChartPoint]
-    ) -> [(daysAgo: Int, kg: Double)] {
-        points
-            .filter { !$0.isSynthetic }
-            .compactMap { point in
-                let days = calendar.dateComponents(
-                    [.day],
-                    from: calendar.startOfDay(for: point.date),
-                    to: calendar.startOfDay(for: today)
-                ).day ?? 0
-                return (daysAgo: max(days, 0), kg: point.weightKg)
-            }
+    ) -> [WeightEntry] {
+        weightEntries(
+            from: points
+                .filter { !$0.isSynthetic }
+                .compactMap { point in
+                    let days = calendar.dateComponents(
+                        [.day],
+                        from: calendar.startOfDay(for: point.date),
+                        to: calendar.startOfDay(for: today)
+                    ).day ?? 0
+                    return (daysAgo: max(days, 0), kg: point.weightKg)
+                }
+        )
     }
 
     private static func makeHealthWorkoutDayStarts(_ offsets: [Int]) -> Set<Date> {

@@ -373,7 +373,7 @@ enum JourneyPresentationBuilder {
                 header: header(momentum: momentumState, transformation: transformationState),
                 momentum: momentumState,
                 transformation: transformationState,
-                goalProjection: goalProjection(context: context),
+                goalProjection: Self.goalProjection(context: context),
                 milestone: milestoneResult.presentation,
                 storyEvents: storyEvents(from: storyTimeline, calendar: calendar),
                 insight: personalizedInsights(

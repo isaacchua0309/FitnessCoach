@@ -518,7 +518,7 @@ enum JourneyTimelineBuilder {
             if chapter > 1, previousLevel == 1 {
                 return day
             }
-            previousLevel = max(previousLevel, level)
+            previousLevel = max(previousLevel, chapter)
         }
 
         return nil

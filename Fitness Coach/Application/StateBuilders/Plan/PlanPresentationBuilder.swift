@@ -140,7 +140,7 @@ enum PlanStrategyStateBuilder {
 
     static func goalDirection(for profile: UserProfile) -> PlanGoalDirection {
         switch PlanStateBuilder.goalType(for: profile) {
-        case .loseFat: return .lose
+        case .loseFat: return .cut
         case .gainMuscle: return .gain
         case .maintain: return .maintain
         }
@@ -203,7 +203,7 @@ enum DailyTargetsStateBuilder {
 
     static func prescriptionCopy(for direction: PlanGoalDirection) -> String {
         switch direction {
-        case .lose:
+        case .cut:
             return FormaProductCopy.PlanDailyTargets.prescriptionLose
         case .gain:
             return FormaProductCopy.PlanDailyTargets.prescriptionGain

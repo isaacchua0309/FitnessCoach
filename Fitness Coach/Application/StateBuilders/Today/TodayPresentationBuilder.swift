@@ -438,7 +438,7 @@ enum TodayPresentationBuilder {
                 isVisible: true,
                 context: .waterBehind,
                 message: FormaProductCopy.Today.SmartCoach.waterBehind,
-                coachPrefill: TodayCoachPrompt.logWater()
+                coachPrefill: TodayCoachPrompt.logWater
             )
         case .bothBehind:
             return TodaySmartCoachState(

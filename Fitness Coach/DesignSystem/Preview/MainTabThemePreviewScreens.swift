@@ -10,17 +10,15 @@ import SwiftUI
 #if DEBUG
 enum MainTabThemePreviewScreens {
 
-    @ViewBuilder
     static func today(
         palette: AppThemePalette = .oceanBlue,
         appearance: AppAppearanceMode = .dark
     ) -> some View {
         let container = try! AppContainer(inMemory: true)
-        ScrollView {
+        return ScrollView {
             TodayReadOnlyView(
                 state: TodayPreviewData.state,
                 actionCoordinator: container.makeTodayActionCoordinator(),
-                onOpenCoach: { _ in },
                 onOpenJourney: {},
                 onOpenPlan: {}
             )
@@ -67,7 +65,6 @@ enum MainTabThemePreviewScreens {
             .formaThemePreview(appearance: appearance, palette: palette)
     }
 
-    @ViewBuilder
     static func settings(
         palette: AppThemePalette = .oceanBlue,
         appearance: AppAppearanceMode = .dark
@@ -76,7 +73,7 @@ enum MainTabThemePreviewScreens {
         let themeStore = ThemeStore(userDefaults: themeDefaults)
         themeStore.setPalette(palette)
 
-        SettingsRootView(
+        return SettingsRootView(
             formState: .constant(PlanPreviewData.formState),
             errorMessage: nil,
             onSaveUnits: { _ in },

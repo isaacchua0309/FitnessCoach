@@ -64,7 +64,7 @@ enum PlanMissionHeroCopyBuilder {
         totalChangeKg: Double?
     ) -> String {
         switch direction {
-        case .lose:
+        case .cut:
             guard let totalChangeKg, totalChangeKg > 0.1 else {
                 return FormaProductCopy.PlanStrategyHero.primaryGoalLoseFallback
             }
@@ -87,7 +87,7 @@ enum PlanMissionHeroCopyBuilder {
         weeklyKg: Double?,
         direction: PlanGoalDirection
     ) -> String? {
-        guard direction == .lose, let weeklyKg, weeklyKg > 0 else { return nil }
+        guard direction == .cut, let weeklyKg, weeklyKg > 0 else { return nil }
         return FormaProductCopy.PlanStrategyHero.expectedPace(formatKg(weeklyKg))
     }
 
@@ -96,7 +96,7 @@ enum PlanMissionHeroCopyBuilder {
         aggressiveness: CalorieAggressiveness
     ) -> String {
         switch direction {
-        case .lose:
+        case .cut:
             switch aggressiveness {
             case .aggressive:
                 return FormaProductCopy.PlanStrategyHero.statusAggressiveCut
@@ -115,7 +115,7 @@ enum PlanMissionHeroCopyBuilder {
         aggressiveness: CalorieAggressiveness
     ) -> String {
         switch direction {
-        case .lose:
+        case .cut:
             switch aggressiveness {
             case .aggressive:
                 return FormaProductCopy.PlanStrategyHero.supportiveAggressiveCut

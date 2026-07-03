@@ -80,7 +80,7 @@ final class PlanStructureTests: XCTestCase {
     func testDashboardStateEmbedsPresentationSectionsNotLegacyProductSections() {
         let state = PlanStateBuilder.dashboardState(profile: PlanMissionControlFixtures.loseProfile)
 
-        XCTAssertEqual(state.strategy.goalDirection, .lose)
+        XCTAssertEqual(state.strategy.goalDirection, .cut)
         XCTAssertFalse(state.dailyTargets.caloriesLabel.isEmpty)
         XCTAssertFalse(state.assumptions.rows.isEmpty)
         XCTAssertNotNil(state.explanation.calculationDetails)

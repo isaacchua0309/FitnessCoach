@@ -18,7 +18,7 @@ final class PlanMissionControlBuilderTests: XCTestCase {
     func testLoseMissionStateUsesGoalDirectionAndWeeklyPace() {
         let dashboard = PlanMissionControlFixtures.loseDashboard
 
-        XCTAssertEqual(dashboard.strategy.goalDirection, .lose)
+        XCTAssertEqual(dashboard.strategy.goalDirection, .cut)
         XCTAssertNotNil(dashboard.strategy.expectedPaceValue)
         XCTAssertEqual(dashboard.strategy.sectionTitle, "Your Strategy")
         XCTAssertEqual(dashboard.strategy.primaryGoal, "Lose 15 kg")
@@ -163,7 +163,7 @@ final class PlanMissionControlBuilderTests: XCTestCase {
             referenceDate: referenceDate
         )
 
-        XCTAssertEqual(state.strategy.goalDirection, .lose)
+        XCTAssertEqual(state.strategy.goalDirection, .cut)
         XCTAssertEqual(rationale.metrics?.targetCaloriesKcal, result.calorieTargetKcal)
         XCTAssertNotNil(state.explanation.calculationDetails)
         XCTAssertFalse(state.adjustmentRules.rules.isEmpty)
