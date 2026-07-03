@@ -47,9 +47,12 @@ enum PlanPresentationBuilder {
                 planResult: planResult,
                 baseline: baseline
             ),
-            adjustmentRules: AdjustmentRulesStateBuilder.build(
+            adjustmentRules: PlanAdjustmentRulesStateBuilder.build(
                 profile: context.profile,
-                planResult: planResult
+                planResult: planResult,
+                allWeights: context.allWeights,
+                referenceDate: asOf,
+                calendar: context.calendar
             ),
             assumptions: PlanAssumptionsStateBuilder.build(context: context, asOf: asOf),
             review: PlanReviewStateBuilder.build(
@@ -272,55 +275,6 @@ enum PlanAssumptionsStateBuilder {
 
     private static func trainingSessionsLabel(_ count: Int) -> String {
         count == 1 ? "1 session/week" : "\(count) sessions/week"
-    }
-}
-
-// MARK: - Adjustment rules
-
-enum AdjustmentRulesStateBuilder {
-
-    static func build(
-        profile: UserProfile,
-        planResult: PlanCalculationResult?
-    ) -> AdjustmentRulesState {
-        let direction = PlanStrategyStateBuilder.goalDirection(for: profile)
-        var rules = [
-            AdjustmentRuleItem(
-                id: "activity",
-                text: FormaProductCopy.PlanMissionControl.adjustmentRuleActivityChange()
-            ),
-            AdjustmentRuleItem(
-                id: "pace",
-                text: FormaProductCopy.PlanMissionControl.adjustmentRulePaceReview(for: direction)
-            ),
-            AdjustmentRuleItem(
-                id: "stall",
-                text: FormaProductCopy.PlanMissionControl.adjustmentRuleWeightStall(for: direction)
-            )
-        ]
-
-        if let result = planResult, result.safetyLevel == .strongWarning {
-            rules.append(
-                AdjustmentRuleItem(
-                    id: "safety",
-                    text: FormaProductCopy.PlanMissionControl.confidenceTargetsGuardrailed
-                )
-            )
-        }
-
-        let footerCopy = FormaProductCopy.PlanMissionControl.adjustmentRulesFooter
-        var state = AdjustmentRulesState(
-            sectionTitle: FormaProductCopy.PlanMissionControl.adjustmentRulesSectionTitle,
-            rules: rules,
-            footerCopy: footerCopy,
-            accessibilitySummary: ""
-        )
-        state.accessibilitySummary = [
-            state.sectionTitle,
-            rules.map(\.text).joined(separator: ". "),
-            footerCopy
-        ].joined(separator: ". ")
-        return state
     }
 }
 

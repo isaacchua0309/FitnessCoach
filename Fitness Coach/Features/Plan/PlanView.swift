@@ -201,6 +201,8 @@ struct PlanView: View {
                     model.logSectionImpression(.planAssumptions, healthConnected: healthConnected)
                 }
 
+                PlanAdjustmentRulesSection(state: state.adjustmentRules)
+
                 PlanConfidenceSection(
                     state: state.confidence,
                     onAppleHealthTap: state.confidence.showsAppleHealthAction
@@ -250,6 +252,7 @@ struct PlanView: View {
                 state: PlanPreviewData.state.assumptions,
                 onAdjustActivity: {}
             )
+            PlanAdjustmentRulesSection(state: PlanPreviewData.state.adjustmentRules)
             PlanConfidenceSection(state: PlanPreviewData.state.confidence)
         }
         .padding(.horizontal, PlanLayout.horizontalPadding)

@@ -180,8 +180,10 @@ struct AdjustmentRuleItem: Equatable, Sendable, Identifiable {
 
 struct AdjustmentRulesState: Equatable, Sendable {
     var sectionTitle: String
+    var reviewHeading: String
     var rules: [AdjustmentRuleItem]
-    var footerCopy: String
+    var trendHint: String?
+    var aggressivePlanNote: String?
     var accessibilitySummary: String
 }
 

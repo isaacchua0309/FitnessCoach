@@ -49,6 +49,7 @@ enum MainTabThemePreviewScreens {
                     state: PlanPreviewData.state.assumptions,
                     onAdjustActivity: {}
                 )
+                PlanAdjustmentRulesSection(state: PlanPreviewData.state.adjustmentRules)
                 PlanConfidenceSection(state: PlanPreviewData.state.confidence)
             }
             .padding(.horizontal, PlanLayout.horizontalPadding)

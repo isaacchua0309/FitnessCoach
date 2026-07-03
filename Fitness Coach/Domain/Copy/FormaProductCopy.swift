@@ -2410,34 +2410,18 @@ enum FormaProductCopy {
             }
         }
 
-        static let adjustmentRulesSectionTitle = "When to adjust"
-        static let adjustmentRulesFooter =
-            "Small, intentional changes beat frequent target resets."
+        static let adjustmentRulesSectionTitle = "When to Adjust"
+        static let adjustmentRulesReviewHeading = "Review your plan if:"
+        static let adjustmentRuleWeightFlat = "Weight is flat for 14 days"
+        static let adjustmentRulePoorEnergy = "Energy is poor for 3+ days"
+        static let adjustmentRuleTrainingDrops = "Training performance drops"
+        static let adjustmentRuleHighHunger = "Hunger is consistently high"
+        static let adjustmentRuleAggressiveRecoveryNote =
+            "Because this is an aggressive plan, recovery matters."
+        static let adjustmentTrendTooEarly = "Your trend is still too early to judge."
 
-        static func adjustmentRuleActivityChange() -> String {
-            "Update activity if training frequency changes."
-        }
-
-        static func adjustmentRulePaceReview(for direction: PlanGoalDirection) -> String {
-            switch direction {
-            case .lose:
-                return "Review pace if recovery or strength drops."
-            case .gain:
-                return "Review surplus if gains stall without strength progress."
-            case .maintain:
-                return "Review targets if weight drifts from your hold range."
-            }
-        }
-
-        static func adjustmentRuleWeightStall(for direction: PlanGoalDirection) -> String {
-            switch direction {
-            case .lose:
-                return "Consider a plan review if weight stalls 2+ weeks."
-            case .gain:
-                return "Consider a plan review if weight stalls 2+ weeks."
-            case .maintain:
-                return "Adjust if your hold range feels hard to maintain."
-            }
+        static func adjustmentTrendStable(days: Int) -> String {
+            "Your weight has been stable for \(days) days."
         }
 
         static let planReviewLastUpdatedPrefix = "Last updated:"

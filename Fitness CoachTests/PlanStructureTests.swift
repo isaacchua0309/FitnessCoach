@@ -15,6 +15,7 @@ final class PlanStructureTests: XCTestCase {
             .planStatus,
             .whyThisWorks,
             .planAssumptions,
+            .whenToAdjust,
             .planConfidence
         ])
         XCTAssertEqual(PlanProductLayout.sectionOrder.last, .planConfidence)
@@ -39,6 +40,7 @@ final class PlanStructureTests: XCTestCase {
         XCTAssertEqual(dashboard.status.sectionTitle, "Plan Status")
         XCTAssertEqual(dashboard.explanation.sectionTitle, "Why This Works")
         XCTAssertEqual(dashboard.assumptions.sectionTitle, "Plan Assumptions")
+        XCTAssertEqual(dashboard.adjustmentRules.sectionTitle, "When to Adjust")
         XCTAssertEqual(dashboard.confidence.sectionTitle, "Plan Confidence")
     }
 
