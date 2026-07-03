@@ -36,6 +36,7 @@ struct JourneyHealthProgressCard: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
+        .accessibilityIdentifier("journey-hi-progress-card")
         .formaThemeReactive()
     }
 
@@ -82,6 +83,8 @@ struct JourneyHealthProgressCard: View {
                         .font(JourneyTypography.cardSupporting)
                         .foregroundStyle(FormaTokens.Color.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(4)
+                        .minimumScaleFactor(0.85)
                 }
             }
         }
@@ -112,6 +115,9 @@ struct JourneyHealthProgressCard: View {
                 Text(detail)
                     .font(FormaTokens.Typography.caption2)
                     .foregroundStyle(FormaTokens.Color.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
                     .padding(.leading, 0)
             }
         }

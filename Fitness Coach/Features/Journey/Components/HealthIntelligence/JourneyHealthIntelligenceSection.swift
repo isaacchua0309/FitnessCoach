@@ -43,6 +43,7 @@ struct JourneyHealthIntelligenceSection: View {
                 isLoading: state.isLoading
             )
         }
+        .accessibilityIdentifier("journey-health-intelligence-section")
         .formaThemeReactive()
     }
 
@@ -77,29 +78,40 @@ struct JourneyHealthIntelligenceSection: View {
                     .font(JourneyTypography.cardHeadline)
                     .foregroundStyle(FormaTokens.Color.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.85)
 
                 Text(cta.message)
                     .font(JourneyTypography.cardSupporting)
                     .foregroundStyle(FormaTokens.Color.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .healthIntelligenceMultilineText()
 
                 if let onConnectHealth {
-                    Button(cta.ctaTitle, action: onConnectHealth)
-                        .buttonStyle(.borderedProminent)
-                        .tint(FormaTokens.Theme.primary)
-                        .controlSize(.regular)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.top, JourneyLayout.compactSpacing)
+                    Button(action: onConnectHealth) {
+                        Text(cta.ctaTitle)
+                            .font(FormaTokens.Typography.caption.weight(.semibold))
+                            .foregroundStyle(FormaTokens.Theme.primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .frame(minHeight: FormaTokens.Layout.minTouchTarget)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.85)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, JourneyLayout.compactSpacing)
+                    .accessibilityLabel(cta.ctaTitle)
                 } else {
                     Text(cta.ctaTitle)
                         .font(JourneyTypography.cardHeadline)
                         .foregroundStyle(FormaTokens.Theme.primary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
                         .padding(.top, JourneyLayout.compactSpacing)
                 }
             }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(cta.accessibilityLabel)
+        .accessibilityIdentifier("journey-hi-connect-health-card")
     }
 }
 
@@ -180,4 +192,18 @@ struct JourneyHealthIntelligenceSection: View {
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
     .preferredColorScheme(.dark)
+}
+
+#Preview("Accessibility — Large Text") {
+    ScrollView {
+        JourneyHealthIntelligenceSection(
+            state: JourneyHealthIntelligencePreviewData.strongWeek,
+            onWeeklyReviewSelected: { _ in }
+        )
+        .padding(.horizontal, JourneyLayout.horizontalPadding)
+        .padding(.vertical, FormaTokens.Spacing.md)
+    }
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+    .dynamicTypeSize(.accessibility2)
 }

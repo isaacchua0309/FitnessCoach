@@ -37,6 +37,7 @@ struct JourneyRecoveryTimelineCard: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
+        .accessibilityIdentifier("journey-hi-recovery-timeline-card")
         .formaThemeReactive()
     }
 
@@ -47,6 +48,8 @@ struct JourneyRecoveryTimelineCard: View {
             .foregroundStyle(FormaTokens.Color.textTertiary)
             .textCase(.uppercase)
             .tracking(0.4)
+            .lineLimit(2)
+            .minimumScaleFactor(0.85)
             .accessibilityHidden(state.phase == .loading)
     }
 

@@ -40,12 +40,13 @@ struct TodayAdaptiveNutritionCard: View {
                             TodayHealthIntelligenceCardNote(text: confidenceNote, tone: .caution)
                         }
                     }
-                    .padding(.vertical, FormaTokens.Spacing.xs)
+                    .healthIntelligenceCardInnerPadding()
                 }
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
+        .accessibilityIdentifier("today-hi-adaptive-nutrition-card")
         .formaThemeReactive()
     }
 

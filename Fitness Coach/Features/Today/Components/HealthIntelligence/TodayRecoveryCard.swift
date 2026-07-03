@@ -40,12 +40,13 @@ struct TodayRecoveryCard: View {
 
                         notesBlock
                     }
-                    .padding(.vertical, FormaTokens.Spacing.xs)
+                    .healthIntelligenceCardInnerPadding()
                 }
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
+        .accessibilityIdentifier("today-hi-recovery-card")
         .formaThemeReactive()
     }
 

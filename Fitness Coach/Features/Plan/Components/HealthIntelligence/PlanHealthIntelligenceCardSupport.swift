@@ -8,7 +8,7 @@
 import SwiftUI
 
 enum PlanHealthIntelligenceCardSupport {
-    static let headerToCardSpacing = FormaTokens.Spacing.xs
+    static let headerToCardSpacing = PlanLayout.itemSpacing
     static let contentSpacing = FormaTokens.Spacing.sm
     static let rowSpacing = FormaTokens.Spacing.xs
     static let actionSpacing = FormaTokens.Spacing.md
@@ -21,9 +21,9 @@ struct PlanHealthIntelligenceLoadingContainer<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        content
-            .redacted(reason: isLoading ? .placeholder : [])
-            .allowsHitTesting(!isLoading)
+        HealthIntelligenceLoadingContainer(isLoading: isLoading) {
+            content
+        }
     }
 }
 
@@ -113,9 +113,13 @@ struct PlanHealthConfidenceBadge: View {
             .padding(.vertical, PlanHealthIntelligenceCardSupport.rowSpacing)
             .background(
                 Capsule(style: .continuous)
-                    .fill(PlanHealthIntelligenceVisualSupport.confidenceAccentColor(for: label).opacity(0.14))
+                    .fill(
+                        PlanHealthIntelligenceVisualSupport.confidenceAccentColor(for: label)
+                            .opacity(HealthIntelligenceCardLayout.badgeBackgroundOpacity)
+                    )
             )
             .accessibilityLabel("Confidence, \(label)")
+            .formaThemeReactive()
     }
 }
 
@@ -130,13 +134,17 @@ struct PlanHealthScoreBadge: View {
             .padding(.vertical, PlanHealthIntelligenceCardSupport.rowSpacing)
             .background(
                 Capsule(style: .continuous)
-                    .fill(FormaTokens.Theme.softBackground.opacity(0.72))
+                    .fill(FormaTokens.Theme.softBackground.opacity(HealthIntelligenceCardLayout.chipBackgroundOpacity))
             )
             .overlay {
                 Capsule(style: .continuous)
-                    .stroke(FormaTokens.Theme.borderTint.opacity(0.35), lineWidth: 0.5)
+                    .stroke(
+                        FormaTokens.Theme.borderTint.opacity(HealthIntelligenceCardLayout.chipBorderOpacity),
+                        lineWidth: 0.5
+                    )
             }
             .accessibilityLabel("\(scorePercent) percent plan fit")
+            .formaThemeReactive()
     }
 }
 
@@ -152,9 +160,13 @@ struct PlanHealthDataQualityBadge: View {
             .padding(.vertical, PlanHealthIntelligenceCardSupport.rowSpacing)
             .background(
                 Capsule(style: .continuous)
-                    .fill(PlanHealthIntelligenceVisualSupport.dataQualityAccentColor(for: level).opacity(0.14))
+                    .fill(
+                        PlanHealthIntelligenceVisualSupport.dataQualityAccentColor(for: level)
+                            .opacity(HealthIntelligenceCardLayout.badgeBackgroundOpacity)
+                    )
             )
             .accessibilityLabel(label)
+            .formaThemeReactive()
     }
 }
 
@@ -163,11 +175,13 @@ struct PlanHealthDataQualityBadge: View {
 struct PlanHealthSignalStatusRow: View {
     let signal: PlanHealthSignalState
 
+    @ScaledMetric(relativeTo: .caption) private var statusDotSize: CGFloat = 8
+
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
             Circle()
                 .fill(PlanHealthIntelligenceVisualSupport.signalStatusColor(for: signal.status))
-                .frame(width: 8, height: 8)
+                .frame(width: statusDotSize, height: statusDotSize)
                 .padding(.top, 5)
                 .accessibilityHidden(true)
 
@@ -176,12 +190,16 @@ struct PlanHealthSignalStatusRow: View {
                 .foregroundStyle(FormaTokens.Color.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
 
             Text(PlanHealthIntelligenceVisualSupport.displayValue(for: signal))
                 .font(PlanHealthIntelligenceTypography.rowValue)
                 .foregroundStyle(FormaTokens.Color.textPrimary)
                 .multilineTextAlignment(.trailing)
                 .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
         }
         .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .center)
         .accessibilityElement(children: .ignore)
@@ -192,12 +210,14 @@ struct PlanHealthSignalStatusRow: View {
 struct PlanHealthReasonBulletRow: View {
     let text: String
 
+    @ScaledMetric(relativeTo: .body) private var bulletColumnWidth: CGFloat = 14
+
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.xs) {
             Text("•")
                 .font(PlanHealthIntelligenceTypography.rowLabel.weight(.semibold))
                 .foregroundStyle(FormaTokens.Color.textTertiary)
-                .frame(width: 14, alignment: .leading)
+                .frame(width: bulletColumnWidth, alignment: .leading)
                 .accessibilityHidden(true)
 
             Text(text)
@@ -222,8 +242,8 @@ struct PlanHealthPhaseMessage: View {
         Text(message)
             .font(PlanHealthIntelligenceTypography.cardBody)
             .foregroundStyle(foregroundColor)
-            .fixedSize(horizontal: false, vertical: true)
-            .lineLimit(nil)
+            .healthIntelligenceMultilineText()
+            .formaThemeReactive()
     }
 
     private var foregroundColor: Color {

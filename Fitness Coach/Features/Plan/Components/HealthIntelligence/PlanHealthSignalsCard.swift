@@ -22,7 +22,7 @@ struct PlanHealthSignalsCard: View {
                         Text(introMessage)
                             .font(PlanHealthIntelligenceTypography.cardBody)
                             .foregroundStyle(FormaTokens.Color.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                            .healthIntelligenceMultilineText()
                             .accessibilityHidden(true)
 
                         if signals.isEmpty {
@@ -39,6 +39,7 @@ struct PlanHealthSignalsCard: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(signalsAccessibilityLabel)
+        .accessibilityIdentifier("plan-hi-signals-card")
         .formaThemeReactive()
     }
 

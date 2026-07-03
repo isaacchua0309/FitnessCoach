@@ -43,6 +43,7 @@ struct PlanHealthIntelligenceSection: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
+        .accessibilityIdentifier("plan-health-intelligence-section")
         .formaThemeReactive()
     }
 
@@ -63,13 +64,15 @@ struct PlanHealthIntelligenceSection: View {
                     .font(PlanHealthIntelligenceTypography.cardHeadline)
                     .foregroundStyle(FormaTokens.Color.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.85)
 
                 PlanHealthPhaseMessage(message: action.message)
 
                 if shouldShowActionButton(for: action), let handler = actionHandler(for: action) {
                     Button(action.title, action: handler)
                         .font(FormaTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(FormaPlanTokens.Color.planAccent)
+                        .foregroundStyle(FormaTokens.Theme.primary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .frame(minHeight: FormaTokens.Layout.minTouchTarget)
                         .buttonStyle(.plain)
@@ -80,6 +83,7 @@ struct PlanHealthIntelligenceSection: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(action.accessibilityLabel)
+        .accessibilityIdentifier("plan-hi-missing-data-\(action.id)")
     }
 
     private func shouldShowActionButton(for action: PlanHealthMissingDataActionState) -> Bool {
@@ -185,4 +189,17 @@ struct PlanHealthIntelligenceSection: View {
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
     .preferredColorScheme(.dark)
+}
+
+#Preview("Accessibility — Large Text") {
+    ScrollView {
+        PlanHealthIntelligenceSection(
+            state: PlanHealthIntelligencePresentationPreviewData.strongFit
+        )
+        .padding(.horizontal, PlanLayout.horizontalPadding)
+        .padding(.vertical, FormaTokens.Spacing.md)
+    }
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+    .dynamicTypeSize(.accessibility2)
 }

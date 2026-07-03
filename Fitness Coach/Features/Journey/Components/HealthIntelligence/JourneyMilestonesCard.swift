@@ -36,6 +36,7 @@ struct JourneyMilestonesCard: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
+        .accessibilityIdentifier("journey-hi-milestones-card")
         .formaThemeReactive()
     }
 

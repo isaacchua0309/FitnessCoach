@@ -45,12 +45,13 @@ struct TodayNextBestActionCard: View {
                             .accessibilityLabel(actionTitle)
                         }
                     }
-                    .padding(.vertical, FormaTokens.Spacing.xs)
+                    .healthIntelligenceCardInnerPadding()
                 }
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
+        .accessibilityIdentifier("today-hi-next-best-action-card")
         .formaThemeReactive()
     }
 

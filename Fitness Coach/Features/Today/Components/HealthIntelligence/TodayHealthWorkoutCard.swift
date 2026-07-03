@@ -29,18 +29,20 @@ struct TodayHealthWorkoutCard: View {
                             Text(subtitle)
                                 .font(TodayHealthIntelligenceCardTypography.detail)
                                 .foregroundStyle(FormaTokens.Color.textSecondary)
-                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .lineLimit(3)
                                 .minimumScaleFactor(0.85)
                         }
 
                         tipsBlock
                     }
-                    .padding(.vertical, FormaTokens.Spacing.xs)
+                    .healthIntelligenceCardInnerPadding()
                 }
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
+        .accessibilityIdentifier("today-hi-workout-card")
         .formaThemeReactive()
     }
 

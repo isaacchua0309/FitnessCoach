@@ -19,9 +19,9 @@ struct JourneyHealthIntelligenceLoadingCard<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        content
-            .redacted(reason: isLoading ? .placeholder : [])
-            .allowsHitTesting(!isLoading)
+        HealthIntelligenceLoadingContainer(isLoading: isLoading) {
+            content
+        }
     }
 }
 
@@ -164,11 +164,13 @@ struct JourneyRecoveryWeekRow: View {
 struct JourneyHealthMilestoneChip: View {
     let milestone: JourneyHealthMilestoneState
 
+    @ScaledMetric(relativeTo: .caption) private var chipDotSize: CGFloat = 6
+
     var body: some View {
         HStack(spacing: JourneyLayout.compactSpacing) {
             Circle()
                 .fill(JourneyHealthIntelligenceVisualSupport.milestoneStatusColor(for: milestone.status))
-                .frame(width: 6, height: 6)
+                .frame(width: chipDotSize, height: chipDotSize)
                 .accessibilityHidden(true)
 
             Text(milestone.title)
@@ -182,14 +184,18 @@ struct JourneyHealthMilestoneChip: View {
         .padding(.vertical, FormaTokens.Spacing.xs)
         .background(
             RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                .fill(FormaTokens.Theme.softBackground.opacity(0.72))
+                .fill(FormaTokens.Theme.softBackground.opacity(HealthIntelligenceCardLayout.chipBackgroundOpacity))
         )
         .overlay {
             RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                .stroke(FormaTokens.Theme.borderTint.opacity(0.35), lineWidth: 0.5)
+                .stroke(
+                    FormaTokens.Theme.borderTint.opacity(HealthIntelligenceCardLayout.chipBorderOpacity),
+                    lineWidth: 0.5
+                )
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(milestone.accessibilityLabel)
+        .formaThemeReactive()
     }
 }
 

@@ -36,6 +36,7 @@ struct JourneyWorkoutHistoryCard: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
+        .accessibilityIdentifier("journey-hi-workout-history-card")
         .formaThemeReactive()
     }
 

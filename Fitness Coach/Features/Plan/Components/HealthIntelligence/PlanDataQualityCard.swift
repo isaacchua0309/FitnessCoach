@@ -33,6 +33,7 @@ struct PlanDataQualityCard: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
+        .accessibilityIdentifier("plan-hi-data-quality-card")
         .formaThemeReactive()
     }
 }

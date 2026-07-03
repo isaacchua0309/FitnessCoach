@@ -23,12 +23,16 @@ struct JourneyWorkoutHistoryRow: View {
                 .font(JourneyTypography.cardHeadline)
                 .foregroundStyle(FormaTokens.Color.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(3)
+                .minimumScaleFactor(0.85)
+                .layoutPriority(1)
 
             metadataRow
         }
         .padding(.vertical, JourneyLayout.compactSpacing)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(item.accessibilityLabel)
+        .formaThemeReactive()
     }
 
     @ViewBuilder
@@ -62,8 +66,10 @@ struct JourneyWorkoutHistoryRow: View {
             .padding(.vertical, 2)
             .background(
                 Capsule(style: .continuous)
-                    .fill(FormaTokens.Theme.softBackground.opacity(0.72))
+                    .fill(FormaTokens.Theme.softBackground.opacity(HealthIntelligenceCardLayout.chipBackgroundOpacity))
             )
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
     }
 }
 

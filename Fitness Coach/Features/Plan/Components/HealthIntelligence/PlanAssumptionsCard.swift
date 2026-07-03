@@ -29,6 +29,7 @@ struct PlanAssumptionsCard: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
+        .accessibilityIdentifier("plan-hi-assumptions-card")
         .formaThemeReactive()
     }
 
@@ -47,18 +48,30 @@ struct PlanAssumptionsCard: View {
 
     @ViewBuilder
     private func assumptionRow(_ item: PlanAssumptionItemState) -> some View {
+        AssumptionRowView(item: item)
+    }
+}
+
+private struct AssumptionRowView: View {
+    let item: PlanAssumptionItemState
+
+    @ScaledMetric(relativeTo: .caption) private var limitedDotSize: CGFloat = 6
+
+    var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
             Text(item.label)
                 .font(PlanHealthIntelligenceTypography.rowLabel)
                 .foregroundStyle(FormaTokens.Color.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
 
             HStack(spacing: FormaTokens.Spacing.xs) {
                 if item.isLimited {
                     Circle()
                         .fill(FormaTokens.Color.warning)
-                        .frame(width: 6, height: 6)
+                        .frame(width: limitedDotSize, height: limitedDotSize)
                         .accessibilityHidden(true)
                 }
 
@@ -71,6 +84,8 @@ struct PlanAssumptionsCard: View {
                     )
                     .multilineTextAlignment(.trailing)
                     .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
             }
         }
         .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .center)

@@ -32,6 +32,7 @@ struct PlanHealthConfidenceCard: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
+        .accessibilityIdentifier("plan-hi-confidence-card")
         .formaThemeReactive()
     }
 
@@ -40,6 +41,9 @@ struct PlanHealthConfidenceCard: View {
         Text(state.headline)
             .font(PlanHealthIntelligenceTypography.cardHeadline)
             .foregroundStyle(FormaTokens.Color.textPrimary)
+            .fixedSize(horizontal: false, vertical: true)
+            .lineLimit(3)
+            .minimumScaleFactor(0.85)
 
         PlanHealthPhaseMessage(message: state.summary)
     }

@@ -50,6 +50,7 @@ struct TodayHealthIntelligenceSection: View {
                 fallbackBanner(message: fallbackMessage)
             }
         }
+        .accessibilityIdentifier("today-health-intelligence-section")
         .formaThemeReactive()
     }
 
@@ -72,13 +73,12 @@ struct TodayHealthIntelligenceSection: View {
             Text(message)
                 .font(TodayHealthIntelligenceCardTypography.detail)
                 .foregroundStyle(FormaTokens.Color.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .lineLimit(nil)
-                .minimumScaleFactor(0.85)
-                .padding(.vertical, FormaTokens.Spacing.xs)
+                .healthIntelligenceMultilineText()
+                .healthIntelligenceCardInnerPadding()
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(message)
+        .accessibilityIdentifier("today-hi-fallback-banner")
     }
 }
 
@@ -157,4 +157,18 @@ struct TodayHealthIntelligenceSection: View {
     }
     .background(FormaTokens.Color.canvas)
     .formaThemePreview(palette: .blossomPink)
+}
+
+#Preview("Accessibility — Large Text") {
+    ScrollView {
+        TodayHealthIntelligenceSection(
+            state: TodayHealthIntelligencePreviewData.workoutDay,
+            onNextBestAction: { _ in }
+        )
+        .padding(.horizontal, TodayLayout.horizontalPadding)
+        .padding(.vertical, FormaTokens.Spacing.md)
+    }
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+    .dynamicTypeSize(.accessibility2)
 }

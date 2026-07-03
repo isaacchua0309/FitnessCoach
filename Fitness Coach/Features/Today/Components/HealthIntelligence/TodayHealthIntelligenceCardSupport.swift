@@ -11,6 +11,7 @@ enum TodayHealthIntelligenceCardSupport {
 
     static let cardContentSpacing = FormaTokens.Spacing.sm
     static let guidanceSpacing = FormaTokens.Spacing.xs
+    static let cardInnerVerticalPadding = HealthIntelligenceCardLayout.cardInnerVerticalPadding
 }
 
 // MARK: - Phase badge
@@ -18,17 +19,20 @@ enum TodayHealthIntelligenceCardSupport {
 struct TodayHealthIntelligencePhaseBadge: View {
     let phase: TodayRecoveryCardPhase
 
+    @ScaledMetric(relativeTo: .caption) private var verticalPadding: CGFloat = 4
+
     var body: some View {
         Text(label)
             .font(FormaTokens.Typography.caption2.weight(.semibold))
             .foregroundStyle(foregroundColor)
             .padding(.horizontal, FormaTokens.Spacing.sm)
-            .padding(.vertical, TodayLayout.compactSpacing)
+            .padding(.vertical, verticalPadding)
             .background(
                 Capsule(style: .continuous)
                     .fill(backgroundColor)
             )
             .accessibilityLabel(accessibilityLabel)
+            .formaThemeReactive()
     }
 
     private var label: String {
@@ -60,7 +64,7 @@ struct TodayHealthIntelligencePhaseBadge: View {
     }
 
     private var backgroundColor: Color {
-        foregroundColor.opacity(0.14)
+        foregroundColor.opacity(HealthIntelligenceCardLayout.badgeBackgroundOpacity)
     }
 
     private var accessibilityLabel: String {
@@ -132,9 +136,9 @@ struct TodayHealthIntelligenceLoadingCard<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        content
-            .redacted(reason: isLoading ? .placeholder : [])
-            .allowsHitTesting(!isLoading)
+        HealthIntelligenceLoadingContainer(isLoading: isLoading) {
+            content
+        }
     }
 }
 

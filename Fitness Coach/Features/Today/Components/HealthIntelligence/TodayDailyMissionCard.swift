@@ -41,12 +41,13 @@ struct TodayDailyMissionCard: View {
                             focusSummaryBlock(focusSummary)
                         }
                     }
-                    .padding(.vertical, FormaTokens.Spacing.xs)
+                    .healthIntelligenceCardInnerPadding()
                 }
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(state.accessibilityLabel)
+        .accessibilityIdentifier("today-hi-daily-mission-card")
         .formaThemeReactive()
     }
 
