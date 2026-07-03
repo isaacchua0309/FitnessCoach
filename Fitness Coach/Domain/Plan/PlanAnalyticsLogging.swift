@@ -65,6 +65,7 @@ protocol PlanAnalyticsLogging: Sendable {
 enum PlanAdjustPlanEntryPoint {
     static let dashboard = "plan_dashboard"
     static let activityAssumptions = "plan_activity_assumptions"
+    static let settingsBodyDetails = "settings_body_details"
 }
 
 extension PlanAnalyticsProperties {

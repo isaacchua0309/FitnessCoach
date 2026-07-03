@@ -2381,8 +2381,9 @@ enum FormaProductCopy {
         static let personalDetailsAgeFromBirthday = "Derived from your birthday."
         static let personalDetailsAgeLegacy = "From your profile age."
         static let bodyDetailsSettingsTitle = "Body & stats"
+        /// Legacy footnote — superseded by `Settings.BodyDetails.introCopy` on the Body & stats screen.
         static let bodyDetailsSettingsFootnote =
-            "To update these, use Adjust Plan on the Plan tab."
+            "These details help Forma estimate targets and personalize your plan."
     }
 
     // MARK: - Settings
@@ -2579,6 +2580,18 @@ enum FormaProductCopy {
                 let selection = isSelected ? "selected" : "not selected"
                 return "\(unitSystemPickerLabel(for: unitSystem)), \(selection)"
             }
+        }
+
+        /// Body & stats settings screen copy.
+        enum BodyDetails {
+            static let profileDetailsSectionTitle = "Profile details"
+            static let introCopy =
+                "These details help Forma estimate targets and personalize your plan."
+            static let updateInPlanCTA = "Update in Plan"
+            static let updateInPlanAccessibilityHint = "Opens Adjust Plan to update your body details"
+            static let startingWeightLabel = "Starting weight"
+            static let currentWeightLabel = "Current weight"
+            static let notSetValue = "Not set"
         }
     }
 

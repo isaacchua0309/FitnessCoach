@@ -124,6 +124,8 @@ final class PlanCopySafetyTests: XCTestCase {
             rationale.sectionTitle,
             rationale.seeCalculation,
             calculation.bodyDetailsSettingsFootnote,
+            FormaProductCopy.Settings.BodyDetails.introCopy,
+            FormaProductCopy.Settings.BodyDetails.updateInPlanCTA,
             TrainingIntegrationCopy.planCardConnectedBody,
             TrainingIntegrationCopy.planCardDisconnectedBody,
             TrainingIntegrationCopy.planCardDeniedBody,

@@ -21,6 +21,12 @@ struct SettingsRootView: View {
 
     var featureAvailability: SettingsFeatureAvailability = .production
     var isDebugOrInternalBuild: Bool = FormaBuildConfiguration.isDebugOrInternalBuild
+    var bodyDetailsInput: BodyDetailsSettingsPresentationInput?
+    var onUpdateInPlan: (() -> Void)?
+
+    private var resolvedBodyDetailsInput: BodyDetailsSettingsPresentationInput {
+        bodyDetailsInput ?? BodyDetailsSettingsPresentationInput(formState: formState)
+    }
 
     private var presentationState: SettingsPresentationState {
         SettingsPresentationBuilder.build(
@@ -169,7 +175,14 @@ struct SettingsRootView: View {
                 onSave: onSaveUnits
             )
         case .bodyAndStats:
-            PlanBodyDetailsSettingsView(formState: formState)
+            PlanBodyDetailsSettingsView(
+                presentation: BodyDetailsSettingsPresentationBuilder.build(
+                    input: resolvedBodyDetailsInput
+                ),
+                onUpdateInPlan: {
+                    onUpdateInPlan?()
+                }
+            )
         case .theme:
             ThemeSettingsView()
         case .appleHealthIntegration:
