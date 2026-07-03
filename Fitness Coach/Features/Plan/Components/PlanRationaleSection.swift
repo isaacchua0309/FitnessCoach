@@ -6,27 +6,27 @@
 import SwiftUI
 
 struct PlanRationaleSection: View {
-    let rationale: PlanRationaleState
+    let explanation: PlanExplanationState
     var onCalculationDetailsOpened: (() -> Void)? = nil
 
     @State private var showsCalculationDetailsSheet = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
-            FormaSectionLabel(title: FormaProductCopy.PlanRationale.sectionTitle)
+            FormaSectionLabel(title: explanation.sectionTitle)
 
             FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
                     rationaleContent
 
-                    if rationale.calculationDetails != nil {
+                    if explanation.calculationDetails != nil {
                         calculationDetailsButton
                     }
                 }
             }
         }
         .sheet(isPresented: $showsCalculationDetailsSheet) {
-            if let details = rationale.calculationDetails {
+            if let details = explanation.calculationDetails {
                 PlanCalculationDetailsSheet(details: details)
             }
         }
@@ -35,19 +35,19 @@ struct PlanRationaleSection: View {
     @ViewBuilder
     private var rationaleContent: some View {
         Group {
-            if rationale.usesVisualFlowLayout, let flowSteps = rationale.flowSteps {
+            if explanation.usesVisualFlowLayout, let flowSteps = explanation.flowSteps {
                 visualFlowContent(flowSteps)
 
-                if let basedOnItems = rationale.basedOnItems {
+                if let basedOnItems = explanation.basedOnItems {
                     basedOnBlock(basedOnItems)
                 }
-            } else if rationale.usesHighlightLayout, let highlights = rationale.highlights {
+            } else if explanation.usesHighlightLayout, let highlights = explanation.highlights {
                 highlightsContent(highlights)
             } else {
                 paragraphContent
             }
 
-            if let sustainabilityNote = rationale.sustainabilityNote {
+            if let sustainabilityNote = explanation.sustainabilityNote {
                 Text(sustainabilityNote)
                     .font(FormaTokens.Typography.caption)
                     .foregroundStyle(FormaTokens.Color.textSecondary)
@@ -56,11 +56,11 @@ struct PlanRationaleSection: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(rationale.accessibilitySummary)
+        .accessibilityLabel(explanation.accessibilitySummary)
     }
 
     private var paragraphContent: some View {
-        Text(rationale.summary)
+        Text(explanation.summary)
             .font(FormaTokens.Typography.sectionSubtitle)
             .foregroundStyle(FormaTokens.Color.textPrimary)
             .fixedSize(horizontal: false, vertical: true)
@@ -164,7 +164,7 @@ struct PlanRationaleSection: View {
             onCalculationDetailsOpened?()
             showsCalculationDetailsSheet = true
         } label: {
-            Text(rationale.seeCalculationTitle)
+            Text(explanation.seeCalculationTitle)
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                 .foregroundStyle(FormaTokens.Theme.primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -172,15 +172,16 @@ struct PlanRationaleSection: View {
         }
         .buttonStyle(.plain)
         .padding(.top, FormaTokens.Spacing.xs)
-        .accessibilityLabel(rationale.seeCalculationTitle)
+        .accessibilityLabel(explanation.seeCalculationTitle)
         .accessibilityHint(FormaProductCopy.PlanMissionControl.seeCalculationAccessibilityHint)
     }
 }
 
 #Preview {
-    PlanRationaleSection(
-        rationale: PlanRationaleCopyBuilder.build(for: PlanPreviewData.profile)
+    let explanation = PlanExplanationStateBuilder.build(
+        from: PlanRationaleCopyBuilder.build(for: PlanPreviewData.profile)
     )
+    PlanRationaleSection(explanation: explanation)
     .padding()
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()

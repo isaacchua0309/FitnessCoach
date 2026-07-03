@@ -9,44 +9,40 @@ import XCTest
 final class PlanTodayMissionStateTests: XCTestCase {
 
     func testLoseTodayMissionFormatsAllMacrosFromStoredTargets() {
-        let today = PlanMissionControlFixtures.loseDashboard.todayMission
+        let today = PlanMissionControlFixtures.loseDashboard.dailyTargets
 
-        XCTAssertEqual(today.calorieTarget, 2233)
         XCTAssertEqual(today.caloriesLabel, "2233 kcal")
         XCTAssertEqual(today.proteinLabel, "180g protein")
         XCTAssertEqual(today.carbsLabel, "180g carbs")
         XCTAssertEqual(today.fatLabel, "58g fat")
-        XCTAssertEqual(
-            today.waterLabel,
-            PlanTodayMissionStateBuilder.waterLabel(for: today.waterTargetMl)
-        )
+        XCTAssertEqual(today.waterLabel, DailyTargetsStateBuilder.waterLabel(for: 3150))
         XCTAssertEqual(today.sectionTitle, "Today's Mission")
         XCTAssertEqual(today.goToTodayTitle, "Go to Today")
     }
 
     func testTodayMissionProgressCopyUsesStoredWeeklyPace() {
-        let today = PlanMissionControlFixtures.loseDashboard.todayMission
+        let today = PlanMissionControlFixtures.loseDashboard.dailyTargets
 
         XCTAssertEqual(
-            today.progressCopy,
+            today.summaryCopy,
             "Designed for about 0.8 kg/week progress."
         )
     }
 
     func testGainTodayMissionUsesFallbackProgressCopyWithoutWeeklyPace() {
-        let today = PlanMissionControlFixtures.gainDashboard.todayMission
+        let today = PlanMissionControlFixtures.gainDashboard.dailyTargets
 
         XCTAssertEqual(
-            today.progressCopy,
+            today.summaryCopy,
             FormaProductCopy.PlanMissionControl.todayMissionProgressFallback(for: .gain)
         )
     }
 
     func testMaintainTodayMissionUsesFallbackProgressCopy() {
-        let today = PlanMissionControlFixtures.maintainDashboard.todayMission
+        let today = PlanMissionControlFixtures.maintainDashboard.dailyTargets
 
         XCTAssertEqual(
-            today.progressCopy,
+            today.summaryCopy,
             FormaProductCopy.PlanMissionControl.todayMissionProgressFallback(for: .maintain)
         )
     }
@@ -80,7 +76,7 @@ final class PlanTodayMissionStateTests: XCTestCase {
             updatedAt: Date()
         )
 
-        let today = PlanTodayMissionStateBuilder.build(profile: profile)
+        let today = DailyTargetsStateBuilder.build(profile: profile)
 
         XCTAssertEqual(today.caloriesLabel, "—")
         XCTAssertEqual(today.proteinLabel, "—")
@@ -88,25 +84,25 @@ final class PlanTodayMissionStateTests: XCTestCase {
         XCTAssertEqual(today.fatLabel, "—")
         XCTAssertEqual(today.waterLabel, "—")
         XCTAssertEqual(
-            today.progressCopy,
+            today.summaryCopy,
             FormaProductCopy.PlanMissionControl.todayMissionProgressFallback(for: .lose)
         )
     }
 
     func testAccessibilitySummaryIncludesAllMacroLines() {
-        let today = PlanMissionControlFixtures.loseDashboard.todayMission
+        let today = PlanMissionControlFixtures.loseDashboard.dailyTargets
 
         XCTAssertTrue(today.accessibilitySummary.contains("Today's Mission"))
         XCTAssertTrue(today.accessibilitySummary.contains(today.caloriesLabel))
         XCTAssertTrue(today.accessibilitySummary.contains(today.waterLabel))
-        XCTAssertTrue(today.accessibilitySummary.contains(today.progressCopy))
+        XCTAssertTrue(today.accessibilitySummary.contains(today.summaryCopy))
     }
 
     func testLitersCompactFormatsWaterForMissionCard() {
         XCTAssertEqual(PlanFormatter.litersCompact(3400), "3.4L")
         XCTAssertEqual(PlanFormatter.litersCompact(3150), "3.1L")
         XCTAssertEqual(
-            PlanTodayMissionStateBuilder.waterLabel(for: 3150),
+            DailyTargetsStateBuilder.waterLabel(for: 3150),
             "3.1L water"
         )
     }

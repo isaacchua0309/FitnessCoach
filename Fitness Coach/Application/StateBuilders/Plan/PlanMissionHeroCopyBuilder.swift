@@ -2,7 +2,7 @@
 //  PlanMissionHeroCopyBuilder.swift
 //  Fitness Coach
 //
-//  Forma — Hero copy and accessibility for the Plan Mission Control header.
+//  Forma — Hero copy and accessibility for the Plan strategy header.
 //
 
 import Foundation
@@ -10,68 +10,91 @@ import Foundation
 enum PlanMissionHeroCopyBuilder {
 
     struct Input: Equatable {
-        var mission: PlanMissionState
-        var profile: UserProfile
-        var baseline: JourneyBaseline
-        var asOf: Date
-        var calendar: Calendar
+        var goalDirection: PlanGoalDirection
+        var strategyName: String
+        var currentWeightKg: Double
+        var goalWeightKg: Double
+        var totalChangeKg: Double?
+        var progressPercent: Double?
+        var expectedCompletionDate: Date?
+        var expectedWeeklyChangeKg: Double?
+        var usesLoggedCurrentWeight: Bool
+        var currentWeightLabel: String
+        var goalWeightLabel: String
     }
 
     private static let scheduleLeadPercent = 5.0
     private static let newPlanGraceDays = 3
+    private static let consistentFoodLogDays = 5
 
-    static func applyHeroPresentation(
-        to mission: PlanMissionState,
+    static func buildPresentation(
+        input: Input,
+        context: PlanDashboardContext,
         profile: UserProfile,
         baseline: JourneyBaseline,
         asOf: Date,
         calendar: Calendar
-    ) -> PlanMissionState {
-        var updated = mission
-        updated.sectionTitle = FormaProductCopy.PlanMissionControl.heroSectionTitle
-        updated.headlineValue = headlineValue(
-            direction: mission.goalDirection,
-            totalChangeKg: mission.totalToLoseOrGainKg,
-            goalWeightKg: mission.goalWeightKg
+    ) -> (PlanStrategyState, PlanStatusState) {
+        let headline = headlineValue(
+            direction: input.goalDirection,
+            totalChangeKg: input.totalChangeKg,
+            goalWeightKg: input.goalWeightKg
         )
-        updated.progressRouteLabel = progressRouteLabel(
-            direction: mission.goalDirection,
-            currentLabel: mission.currentWeightLabel,
-            goalLabel: mission.goalWeightLabel
+        let progressRouteLabel = progressRouteLabel(
+            direction: input.goalDirection,
+            currentLabel: input.currentWeightLabel,
+            goalLabel: input.goalWeightLabel
         )
-        updated.progressCompleteLabel = progressCompleteLabel(
-            direction: mission.goalDirection,
-            percent: baseline.progressPercent
+        let progressCompleteLabel = progressCompleteLabel(
+            direction: input.goalDirection,
+            percent: input.progressPercent
         )
-        updated.progressBarFill = progressBarFill(from: baseline.progressPercent)
-        updated.showsProgressBar = showsProgressBar(
-            direction: mission.goalDirection,
-            totalChangeKg: mission.totalToLoseOrGainKg
+        let progressBarFill = progressBarFill(from: input.progressPercent)
+        let showsProgressBar = showsProgressBar(
+            direction: input.goalDirection,
+            totalChangeKg: input.totalChangeKg
         )
-        updated.statusCopy = statusCopy(
+        let expectedCompletionLabel = expectedCompletionLabel(date: input.expectedCompletionDate)
+        let expectedPaceLabel = expectedProgressLabel(
+            weeklyKg: input.expectedWeeklyChangeKg,
+            direction: input.goalDirection
+        )
+
+        var strategy = PlanStrategyState(
+            sectionTitle: FormaProductCopy.PlanMissionControl.heroSectionTitle,
+            headline: headline,
+            strategyName: input.strategyName,
+            goalDirection: input.goalDirection,
+            progressRouteLabel: progressRouteLabel,
+            progressCompleteLabel: progressCompleteLabel,
+            progressBarFill: progressBarFill,
+            showsProgressBar: showsProgressBar,
+            expectedCompletionLabel: expectedCompletionLabel,
+            expectedPaceLabel: expectedPaceLabel,
+            usesLoggedCurrentWeight: input.usesLoggedCurrentWeight,
+            accessibilitySummary: ""
+        )
+        strategy.accessibilitySummary = strategyAccessibilitySummary(
+            strategy: strategy,
+            baseline: baseline
+        )
+
+        let status = buildStatus(
+            input: input,
+            context: context,
+            profile: profile,
             baseline: baseline,
-            strategySummary: PlanStateBuilder.strategySummary(for: profile),
-            usesLoggedCurrentWeight: mission.usesLoggedCurrentWeight,
             asOf: asOf,
             calendar: calendar
         )
-        updated.expectedCompletionLabel = expectedCompletionLabel(date: mission.expectedCompletionDate)
-        updated.expectedWeeklyChangeLabel = expectedProgressLabel(
-            weeklyKg: mission.expectedWeeklyChangeKg,
-            direction: mission.goalDirection
-        )
-        updated.accessibilitySummary = accessibilitySummary(
-            mission: updated,
-            baseline: baseline
-        )
-        updated.adjustPlanTitle = FormaProductCopy.PlanMissionControl.adjustPlan
-        return updated
+
+        return (strategy, status)
     }
 
     // MARK: - Headline
 
     static func headlineValue(
-        direction: PlanMissionGoalDirection,
+        direction: PlanGoalDirection,
         totalChangeKg: Double?,
         goalWeightKg: Double?
     ) -> String {
@@ -95,7 +118,7 @@ enum PlanMissionHeroCopyBuilder {
     }
 
     static func progressRouteLabel(
-        direction: PlanMissionGoalDirection,
+        direction: PlanGoalDirection,
         currentLabel: String,
         goalLabel: String
     ) -> String {
@@ -108,7 +131,7 @@ enum PlanMissionHeroCopyBuilder {
     }
 
     static func progressCompleteLabel(
-        direction: PlanMissionGoalDirection,
+        direction: PlanGoalDirection,
         percent: Double?
     ) -> String? {
         guard direction != .maintain else {
@@ -125,7 +148,7 @@ enum PlanMissionHeroCopyBuilder {
     }
 
     static func showsProgressBar(
-        direction: PlanMissionGoalDirection,
+        direction: PlanGoalDirection,
         totalChangeKg: Double?
     ) -> Bool {
         guard direction != .maintain else { return false }
@@ -143,58 +166,106 @@ enum PlanMissionHeroCopyBuilder {
 
     static func expectedProgressLabel(
         weeklyKg: Double?,
-        direction: PlanMissionGoalDirection
+        direction: PlanGoalDirection
     ) -> String? {
         guard direction == .lose, let weeklyKg, weeklyKg > 0 else { return nil }
         return FormaProductCopy.PlanMissionControl.expectedProgress(formatKg(weeklyKg))
     }
 
-    // MARK: - Status copy
+    // MARK: - Status
 
-    static func statusCopy(
+    static func buildStatus(
+        input: Input,
+        context: PlanDashboardContext,
+        profile: UserProfile,
         baseline: JourneyBaseline,
-        strategySummary: String,
-        usesLoggedCurrentWeight: Bool,
         asOf: Date,
         calendar: Calendar
-    ) -> String {
+    ) -> PlanStatusState {
+        let hasRecentWeight = PlanConfidenceStateBuilder.hasRecentWeightLog(
+            in: context.allWeights,
+            asOf: asOf,
+            calendar: calendar
+        )
+        let foodDays = JourneyLogMetrics.foodLoggedDays(in: context.weekLogs)
+        let hasFoodLogs = foodDays > 0
+        let hasBirthdayAndHeight = profile.birthDate != nil && profile.heightCm > 0
+        let planResult = PlanPresentationBuilder.planResult(from: profile, referenceDate: asOf)
+        let hasInsufficientData = !hasBirthdayAndHeight || planResult == nil
+
+        if hasInsufficientData {
+            return PlanStatusState(
+                message: "Add profile details and a weigh-in so Forma can build your plan.",
+                tone: .needsData
+            )
+        }
+
+        if !hasRecentWeight {
+            return PlanStatusState(
+                message: "Log a recent weigh-in so Forma can track progress.",
+                tone: .needsData
+            )
+        }
+
+        if !hasFoodLogs {
+            return PlanStatusState(
+                message: "Log meals this week to refine calorie and macro targets.",
+                tone: .needsData
+            )
+        }
+
         if isNewPlan(baseline: baseline, asOf: asOf, calendar: calendar),
-           !usesLoggedCurrentWeight {
-            return FormaProductCopy.PlanMissionControl.statusStartLogging
+           !input.usesLoggedCurrentWeight {
+            return PlanStatusState(
+                message: FormaProductCopy.PlanMissionControl.statusStartLogging,
+                tone: .newPlan
+            )
         }
 
         if isAheadOfSchedule(baseline: baseline, asOf: asOf, calendar: calendar) {
-            return FormaProductCopy.PlanMissionControl.statusAheadOfSchedule
+            return PlanStatusState(
+                message: FormaProductCopy.PlanMissionControl.statusAheadOfSchedule,
+                tone: .aheadOfSchedule
+            )
         }
 
-        return strategySummary
+        if input.goalDirection == .lose {
+            let message = PlanStateBuilder.strategySummary(for: profile)
+            let tone: PlanStatusTone = profile.targets.aggressiveness == .aggressive
+                ? .needsData
+                : .onTrack
+            return PlanStatusState(message: message, tone: tone)
+        }
+
+        return PlanStatusState(
+            message: PlanStateBuilder.strategySummary(for: profile),
+            tone: .onTrack
+        )
     }
 
     // MARK: - Accessibility
 
-    static func accessibilitySummary(
-        mission: PlanMissionState,
+    static func strategyAccessibilitySummary(
+        strategy: PlanStrategyState,
         baseline: JourneyBaseline
     ) -> String {
         var parts: [String] = [
-            mission.sectionTitle,
-            mission.headlineValue,
-            mission.progressRouteLabel
+            strategy.sectionTitle,
+            strategy.headline,
+            strategy.progressRouteLabel
         ]
 
-        if let progressCompleteLabel = mission.progressCompleteLabel {
+        if let progressCompleteLabel = strategy.progressCompleteLabel {
             parts.append(progressCompleteLabel)
         }
 
-        if let expectedCompletionLabel = mission.expectedCompletionLabel {
+        if let expectedCompletionLabel = strategy.expectedCompletionLabel {
             parts.append(expectedCompletionLabel)
         }
 
-        if let expectedWeeklyChangeLabel = mission.expectedWeeklyChangeLabel {
-            parts.append(expectedWeeklyChangeLabel)
+        if let expectedPaceLabel = strategy.expectedPaceLabel {
+            parts.append(expectedPaceLabel)
         }
-
-        parts.append(mission.statusCopy)
 
         if baseline.usesSyntheticBaselinePoint {
             parts.append(FormaProductCopy.PlanMissionControl.accessibilityOnboardingBaseline)

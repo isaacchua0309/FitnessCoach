@@ -2,23 +2,24 @@
 //  PlanMissionControlHeroSection.swift
 //  Fitness Coach
 //
-//  Forma — Goal-first Mission Control hero for the Plan dashboard.
+//  Forma — Goal-first hero for the Plan dashboard.
 //
 
 import SwiftUI
 
 struct PlanMissionControlHeroSection: View {
-    let state: PlanMissionState
+    let strategy: PlanStrategyState
+    let status: PlanStatusState
 
     @ScaledMetric(relativeTo: .largeTitle) private var heroValueSize: CGFloat = 52
 
     var body: some View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
-            FormaSectionLabel(title: state.sectionTitle)
+            FormaSectionLabel(title: strategy.sectionTitle)
 
             FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
-                    Text(state.headlineValue)
+                    Text(strategy.headline)
                         .font(.system(size: heroValueSize, weight: .bold, design: .rounded))
                         .foregroundStyle(FormaTokens.Color.textPrimary)
                         .minimumScaleFactor(0.65)
@@ -30,40 +31,40 @@ struct PlanMissionControlHeroSection: View {
 
                     secondaryLines
 
-                    Text(state.statusCopy)
+                    Text(status.message)
                         .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .foregroundStyle(statusToneColor)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityHidden(true)
                 }
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(state.accessibilitySummary)
+            .accessibilityLabel(accessibilitySummary)
         }
     }
 
     @ViewBuilder
     private var progressBlock: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-            Text(state.progressRouteLabel)
+            Text(strategy.progressRouteLabel)
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
                 .foregroundStyle(FormaTokens.Color.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityHidden(true)
 
-            if state.showsProgressBar {
+            if strategy.showsProgressBar {
                 SwiftUI.ProgressView(value: progressBarFill)
                     .tint(FormaTokens.Color.progress)
                     .accessibilityLabel(FormaProductCopy.PlanMissionControl.heroSectionTitle)
                     .accessibilityValue(progressBarAccessibilityValue)
 
-                if let progressCompleteLabel = state.progressCompleteLabel {
+                if let progressCompleteLabel = strategy.progressCompleteLabel {
                     Text(progressCompleteLabel)
                         .font(FormaTokens.Typography.caption.weight(.semibold))
                         .foregroundStyle(FormaTokens.Color.textTertiary)
                         .accessibilityHidden(true)
                 }
-            } else if let progressCompleteLabel = state.progressCompleteLabel {
+            } else if let progressCompleteLabel = strategy.progressCompleteLabel {
                 Text(progressCompleteLabel)
                     .font(FormaTokens.Typography.caption.weight(.semibold))
                     .foregroundStyle(FormaTokens.Color.textTertiary)
@@ -75,15 +76,15 @@ struct PlanMissionControlHeroSection: View {
     @ViewBuilder
     private var secondaryLines: some View {
         VStack(alignment: .leading, spacing: 4) {
-            if let expectedCompletionLabel = state.expectedCompletionLabel {
+            if let expectedCompletionLabel = strategy.expectedCompletionLabel {
                 Text(expectedCompletionLabel)
                     .font(FormaTokens.Typography.sectionSubtitle)
                     .foregroundStyle(FormaTokens.Color.textTertiary)
                     .accessibilityHidden(true)
             }
 
-            if let expectedWeeklyChangeLabel = state.expectedWeeklyChangeLabel {
-                Text(expectedWeeklyChangeLabel)
+            if let expectedPaceLabel = strategy.expectedPaceLabel {
+                Text(expectedPaceLabel)
                     .font(FormaTokens.Typography.sectionSubtitle)
                     .foregroundStyle(FormaTokens.Color.textTertiary)
                     .accessibilityHidden(true)
@@ -92,8 +93,8 @@ struct PlanMissionControlHeroSection: View {
     }
 
     private var progressBarFill: Double {
-        let fill = max(state.progressBarFill, 0)
-        if fill <= 0, state.showsProgressBar {
+        let fill = max(strategy.progressBarFill, 0)
+        if fill <= 0, strategy.showsProgressBar {
             return 0.02
         }
         return min(fill, 1)
@@ -101,8 +102,21 @@ struct PlanMissionControlHeroSection: View {
 
     private var progressBarAccessibilityValue: String {
         PlanMissionHeroCopyBuilder.progressBarAccessibilityValue(
-            percent: state.progressPercent.map { $0 * 100 }
+            percent: strategy.showsProgressBar ? strategy.progressBarFill * 100 : nil
         )
+    }
+
+    private var statusToneColor: Color {
+        switch status.tone {
+        case .onTrack, .aheadOfSchedule, .newPlan:
+            return FormaTokens.Color.textSecondary
+        case .needsData:
+            return FormaTokens.Color.textSecondary
+        }
+    }
+
+    private var accessibilitySummary: String {
+        [strategy.accessibilitySummary, status.message].joined(separator: ". ")
     }
 }
 
@@ -110,7 +124,8 @@ struct PlanMissionControlHeroSection: View {
 
 #Preview("Lose weight") {
     PlanMissionControlHeroSection(
-        state: PlanMissionControlFixtures.loseDashboard.mission
+        strategy: PlanMissionControlFixtures.loseDashboard.strategy,
+        status: PlanMissionControlFixtures.loseDashboard.status
     )
     .padding()
     .background(FormaTokens.Color.canvas)
@@ -119,7 +134,8 @@ struct PlanMissionControlHeroSection: View {
 
 #Preview("Large Dynamic Type") {
     PlanMissionControlHeroSection(
-        state: PlanMissionControlFixtures.loseDashboard.mission
+        strategy: PlanMissionControlFixtures.loseDashboard.strategy,
+        status: PlanMissionControlFixtures.loseDashboard.status
     )
     .padding()
     .background(FormaTokens.Color.canvas)
@@ -129,7 +145,8 @@ struct PlanMissionControlHeroSection: View {
 
 #Preview("Active user") {
     PlanMissionControlHeroSection(
-        state: PlanMissionControlFixtures.activeUserDashboard.mission
+        strategy: PlanMissionControlFixtures.activeUserDashboard.strategy,
+        status: PlanMissionControlFixtures.activeUserDashboard.status
     )
     .padding()
     .background(FormaTokens.Color.canvas)
@@ -138,7 +155,8 @@ struct PlanMissionControlHeroSection: View {
 
 #Preview("Maintain") {
     PlanMissionControlHeroSection(
-        state: PlanMissionControlFixtures.maintainDashboard.mission
+        strategy: PlanMissionControlFixtures.maintainDashboard.strategy,
+        status: PlanMissionControlFixtures.maintainDashboard.status
     )
     .padding()
     .background(FormaTokens.Color.canvas)

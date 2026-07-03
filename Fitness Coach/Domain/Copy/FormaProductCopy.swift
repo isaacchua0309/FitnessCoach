@@ -2267,6 +2267,40 @@ enum FormaProductCopy {
                 return "Designed to hold your current weight."
             }
         }
+
+        static let adjustmentRulesSectionTitle = "When to adjust"
+        static let adjustmentRulesFooter =
+            "Small, intentional changes beat frequent target resets."
+
+        static func adjustmentRuleActivityChange() -> String {
+            "Update activity if training frequency changes."
+        }
+
+        static func adjustmentRulePaceReview(for direction: PlanGoalDirection) -> String {
+            switch direction {
+            case .lose:
+                return "Review pace if recovery or strength drops."
+            case .gain:
+                return "Review surplus if gains stall without strength progress."
+            case .maintain:
+                return "Review targets if weight drifts from your hold range."
+            }
+        }
+
+        static func adjustmentRuleWeightStall(for direction: PlanGoalDirection) -> String {
+            switch direction {
+            case .lose:
+                return "Consider a plan review if weight stalls 2+ weeks."
+            case .gain:
+                return "Consider a plan review if weight stalls 2+ weeks."
+            case .maintain:
+                return "Adjust if your hold range feels hard to maintain."
+            }
+        }
+
+        static let planReviewLastUpdatedPrefix = "Last updated:"
+        static let planReviewRecalculateHint =
+            "Stored targets differ from a fresh calculation — review before changing pace."
     }
 
     // MARK: - Plan calculation details

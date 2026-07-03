@@ -40,7 +40,7 @@ enum PlanAnalyticsContextBuilder {
         PlanAnalyticsSnapshot(
             goalType: goalType(for: state.profile),
             calorieTargetBucket: calorieTargetBucket(state.profile.targets.calorieTarget),
-            progressBucket: progressBucket(from: state.missionControl.mission),
+            progressBucket: progressBucket(from: state.strategy),
             healthConnected: healthConnected,
             activityLevel: activityLevel(state.profile.activityLevel)
         )
@@ -63,11 +63,13 @@ enum PlanAnalyticsContextBuilder {
         }
     }
 
-    static func progressBucket(from mission: PlanMissionState) -> String {
-        guard let progress = mission.progressPercent else {
-            return mission.showsProgressBar
-                ? PlanAnalyticsGoalProgressBucket.none.rawValue
-                : PlanAnalyticsGoalProgressBucket.unknown.rawValue
+    static func progressBucket(from strategy: PlanStrategyState) -> String {
+        guard strategy.showsProgressBar else {
+            return PlanAnalyticsGoalProgressBucket.unknown.rawValue
+        }
+        let progress = strategy.progressBarFill
+        if progress <= 0 {
+            return PlanAnalyticsGoalProgressBucket.none.rawValue
         }
         if progress >= 1.0 {
             return PlanAnalyticsGoalProgressBucket.complete.rawValue

@@ -39,18 +39,19 @@ enum MainTabThemePreviewScreens {
         ScrollView {
             VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
                 PlanMissionControlHeroSection(
-                    state: PlanPreviewData.state.missionControl.mission
+                    strategy: PlanPreviewData.state.strategy,
+                    status: PlanPreviewData.state.status
                 )
                 PlanTodayMissionSection(
-                    state: PlanPreviewData.state.missionControl.todayMission,
+                    state: PlanPreviewData.state.dailyTargets,
                     onGoToToday: {}
                 )
-                PlanRationaleSection(rationale: PlanPreviewData.state.rationale)
+                PlanRationaleSection(explanation: PlanPreviewData.state.explanation)
                 PlanAssumptionsSection(
-                    state: PlanPreviewData.state.missionControl.assumptions,
+                    state: PlanPreviewData.state.assumptions,
                     onAdjustActivity: {}
                 )
-                PlanConfidenceSection(state: PlanPreviewData.state.missionControl.confidence)
+                PlanConfidenceSection(state: PlanPreviewData.state.confidence)
             }
             .padding(.horizontal, PlanLayout.horizontalPadding)
             .padding(.vertical, FormaTokens.Spacing.lg)

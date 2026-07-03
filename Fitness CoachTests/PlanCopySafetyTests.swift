@@ -132,15 +132,15 @@ final class PlanCopySafetyTests: XCTestCase {
         ]
     }
 
-    private func missionControlDashboardCopy(from dashboard: PlanMissionControlDashboard) -> [String] {
+    private func missionControlDashboardCopy(from dashboard: PlanDashboardState) -> [String] {
         [
-            dashboard.mission.accessibilitySummary,
-            dashboard.mission.headlineValue,
-            dashboard.mission.statusCopy,
-            dashboard.todayMission.progressCopy,
+            dashboard.strategy.accessibilitySummary,
+            dashboard.strategy.headline,
+            dashboard.status.message,
+            dashboard.dailyTargets.summaryCopy,
             dashboard.assumptions.assumptionsNote,
             dashboard.assumptions.accessibilitySummary,
-            dashboard.confidence.safeCopy,
+            dashboard.confidence.footerCopy,
             dashboard.confidence.accessibilitySummary,
             dashboard.confidence.appleHealthStatusLabel
         ].compactMap { $0 }

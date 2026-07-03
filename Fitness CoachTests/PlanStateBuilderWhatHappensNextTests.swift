@@ -15,13 +15,13 @@ final class PlanStateBuilderWhatHappensNextTests: XCTestCase {
         XCTAssertTrue(PlanProductLayout.removedSectionIdentifiers.contains("what_happens_next"))
     }
 
-    func testDashboardStateEmbedsMissionControlNotLegacyProductSections() {
+    func testDashboardStateEmbedsPresentationSectionsNotLegacyProductSections() {
         let state = PlanStateBuilder.dashboardState(profile: PlanMissionControlFixtures.loseProfile)
 
-        XCTAssertEqual(state.missionControl.mission.goalDirection, .lose)
-        XCTAssertFalse(state.missionControl.todayMission.caloriesLabel.isEmpty)
-        XCTAssertFalse(state.missionControl.assumptions.activityLevel.isEmpty)
-        XCTAssertNotNil(state.rationale.calculationDetails)
+        XCTAssertEqual(state.strategy.goalDirection, .lose)
+        XCTAssertFalse(state.dailyTargets.caloriesLabel.isEmpty)
+        XCTAssertFalse(state.assumptions.activityLevel.isEmpty)
+        XCTAssertNotNil(state.explanation.calculationDetails)
     }
 
     func testRemovedLegacyPlanSectionsStayOutOfMissionControlLayout() {

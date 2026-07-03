@@ -161,13 +161,16 @@ struct PlanView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
-                PlanMissionControlHeroSection(state: state.missionControl.mission)
+                PlanMissionControlHeroSection(
+                    strategy: state.strategy,
+                    status: state.status
+                )
                     .onAppear {
                         model.logSectionImpression(.goalCard, healthConnected: healthConnected)
                     }
 
                 PlanTodayMissionSection(
-                    state: state.missionControl.todayMission,
+                    state: state.dailyTargets,
                     onGoToToday: onGoToToday.map { handler in
                         {
                             model.logPlanTodayTapped(healthConnected: healthConnected)
@@ -180,7 +183,7 @@ struct PlanView: View {
                 }
 
                 PlanRationaleSection(
-                    rationale: state.rationale,
+                    explanation: state.explanation,
                     onCalculationDetailsOpened: {
                         model.logPlanCalculationDetailsOpened(healthConnected: healthConnected)
                     }
@@ -190,7 +193,7 @@ struct PlanView: View {
                 }
 
                 PlanAssumptionsSection(
-                    state: state.missionControl.assumptions,
+                    state: state.assumptions,
                     onAdjustActivity: {
                         model.showEditPlanActivity()
                     }
@@ -200,8 +203,8 @@ struct PlanView: View {
                 }
 
                 PlanConfidenceSection(
-                    state: state.missionControl.confidence,
-                    onAppleHealthTap: state.missionControl.confidence.showsAppleHealthAction
+                    state: state.confidence,
+                    onAppleHealthTap: state.confidence.showsAppleHealthAction
                         ? {
                             model.logPlanHealthConnectTapped(
                                 entryPoint: .planConfidence,
@@ -238,18 +241,19 @@ struct PlanView: View {
     ScrollView {
         VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
             PlanMissionControlHeroSection(
-                state: PlanPreviewData.state.missionControl.mission
+                strategy: PlanPreviewData.state.strategy,
+                status: PlanPreviewData.state.status
             )
             PlanTodayMissionSection(
-                state: PlanPreviewData.state.missionControl.todayMission,
+                state: PlanPreviewData.state.dailyTargets,
                 onGoToToday: {}
             )
-            PlanRationaleSection(rationale: PlanPreviewData.state.rationale)
+            PlanRationaleSection(explanation: PlanPreviewData.state.explanation)
             PlanAssumptionsSection(
-                state: PlanPreviewData.state.missionControl.assumptions,
+                state: PlanPreviewData.state.assumptions,
                 onAdjustActivity: {}
             )
-            PlanConfidenceSection(state: PlanPreviewData.state.missionControl.confidence)
+            PlanConfidenceSection(state: PlanPreviewData.state.confidence)
         }
         .padding(.horizontal, PlanLayout.horizontalPadding)
         .padding(.vertical, 24)

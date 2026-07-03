@@ -49,24 +49,25 @@ final class PlanAnalyticsContextBuilderTests: XCTestCase {
         XCTAssertNil(parameters["name"])
     }
 
-    func testProgressBucketFromMissionState() {
-        var mission = PlanMissionControlFixtures.loseDashboard.mission
-        mission.progressPercent = nil
-        mission.showsProgressBar = false
+    func testProgressBucketFromStrategyState() {
+        var strategy = PlanMissionControlFixtures.loseDashboard.strategy
+        strategy.showsProgressBar = false
+        strategy.progressBarFill = 0
         XCTAssertEqual(
-            PlanAnalyticsContextBuilder.progressBucket(from: mission),
+            PlanAnalyticsContextBuilder.progressBucket(from: strategy),
             PlanAnalyticsGoalProgressBucket.unknown.rawValue
         )
 
-        mission.showsProgressBar = true
+        strategy.showsProgressBar = true
+        strategy.progressBarFill = 0
         XCTAssertEqual(
-            PlanAnalyticsContextBuilder.progressBucket(from: mission),
+            PlanAnalyticsContextBuilder.progressBucket(from: strategy),
             PlanAnalyticsGoalProgressBucket.none.rawValue
         )
 
-        mission.progressPercent = 0.9
+        strategy.progressBarFill = 0.9
         XCTAssertEqual(
-            PlanAnalyticsContextBuilder.progressBucket(from: mission),
+            PlanAnalyticsContextBuilder.progressBucket(from: strategy),
             PlanAnalyticsGoalProgressBucket.onTrack.rawValue
         )
     }

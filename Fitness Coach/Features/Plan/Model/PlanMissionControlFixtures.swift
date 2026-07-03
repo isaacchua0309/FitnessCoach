@@ -2,7 +2,7 @@
 //  PlanMissionControlFixtures.swift
 //  Fitness Coach
 //
-//  Forma — Static fixtures for Plan Mission Control previews and tests.
+//  Forma — Static fixtures for Plan previews and tests.
 //
 
 import Foundation
@@ -45,6 +45,20 @@ enum PlanMissionControlFixtures {
             updatedAt: referenceDate,
             lastPlanUpdateReason: .goalChanged
         )
+    }
+
+    static var moderateDeficitProfile: UserProfile {
+        var profile = loseProfile
+        profile.targets = UserTargets(
+            calorieTarget: 2000,
+            proteinTarget: 170,
+            carbTarget: 170,
+            fatTarget: 55,
+            waterTargetMl: 3000,
+            expectedWeeklyWeightLossKg: 0.5,
+            aggressiveness: .moderate
+        )
+        return profile
     }
 
     static var gainProfile: UserProfile {
@@ -147,7 +161,7 @@ enum PlanMissionControlFixtures {
         weekLogs: [DailyLog] = [],
         allWeights: [WeightEntry] = [],
         integrationState: TrainingIntegrationState = .notConnected
-    ) -> PlanMissionControlDashboard {
+    ) -> PlanDashboardState {
         let context = PlanDashboardContext(
             profile: profile,
             weekLogs: weekLogs,
@@ -157,33 +171,37 @@ enum PlanMissionControlFixtures {
             asOf: referenceDate,
             calendar: calendar
         )
-        return PlanDashboardBuilder.missionControlDashboard(
+        return PlanPresentationBuilder.dashboardState(
             context: context,
             referenceDate: referenceDate
         )
     }
 
-    static var loseDashboard: PlanMissionControlDashboard {
+    static var loseDashboard: PlanDashboardState {
         dashboard(for: loseProfile)
     }
 
-    static var connectedDashboard: PlanMissionControlDashboard {
+    static var moderateDeficitDashboard: PlanDashboardState {
+        dashboard(for: moderateDeficitProfile)
+    }
+
+    static var connectedDashboard: PlanDashboardState {
         dashboard(for: loseProfile, integrationState: .connected)
     }
 
-    static var gainDashboard: PlanMissionControlDashboard {
+    static var gainDashboard: PlanDashboardState {
         dashboard(for: gainProfile)
     }
 
-    static var maintainDashboard: PlanMissionControlDashboard {
+    static var maintainDashboard: PlanDashboardState {
         dashboard(for: maintainProfile)
     }
 
-    static var newUserDashboard: PlanMissionControlDashboard {
+    static var newUserDashboard: PlanDashboardState {
         dashboard(for: newUserProfile)
     }
 
-    static var activeUserDashboard: PlanMissionControlDashboard {
+    static var activeUserDashboard: PlanDashboardState {
         let weights = activeWeightEntries
         return dashboard(
             for: loseProfile,
@@ -193,11 +211,20 @@ enum PlanMissionControlFixtures {
         )
     }
 
-    static var incompleteDataDashboard: PlanMissionControlDashboard {
+    static var activeModerateDeficitDashboard: PlanDashboardState {
+        dashboard(
+            for: moderateDeficitProfile,
+            weekLogs: activeWeekLogs,
+            allWeights: activeWeightEntries,
+            integrationState: .connected
+        )
+    }
+
+    static var incompleteDataDashboard: PlanDashboardState {
         dashboard(for: legacyAgeOnlyProfile)
     }
 
-    static var staleWeightDashboard: PlanMissionControlDashboard {
+    static var staleWeightDashboard: PlanDashboardState {
         let staleDate = calendar.date(byAdding: .day, value: -30, to: referenceDate)!
         let staleWeight = WeightEntry(
             id: UUID(),
@@ -213,7 +240,7 @@ enum PlanMissionControlFixtures {
         )
     }
 
-    static var noLogsDashboard: PlanMissionControlDashboard {
+    static var noLogsDashboard: PlanDashboardState {
         dashboard(
             for: loseProfile,
             weekLogs: [],

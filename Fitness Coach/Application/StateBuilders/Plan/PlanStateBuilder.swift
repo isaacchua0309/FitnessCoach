@@ -2,7 +2,7 @@
 //  PlanStateBuilder.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Builds Mission Control Plan state from profile.
+//  FitPilot AI — Builds Plan presentation state from profile.
 //
 
 import Foundation
@@ -18,20 +18,9 @@ enum PlanStateBuilder {
             profile: profile,
             referenceDate: referenceDate
         )
-        let missionControl = PlanDashboardBuilder.missionControlDashboard(
+        return PlanPresentationBuilder.dashboardState(
             context: dashboardContext,
             referenceDate: referenceDate
-        )
-        let rationale = PlanDashboardBuilder.rationaleState(
-            profile: profile,
-            result: PlanDashboardBuilder.planResult(from: profile, referenceDate: referenceDate),
-            referenceDate: referenceDate
-        )
-
-        return PlanDashboardState(
-            profile: profile,
-            missionControl: missionControl,
-            rationale: rationale
         )
     }
 

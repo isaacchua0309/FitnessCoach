@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct PlanTodayMissionSection: View {
-    let state: PlanTodayMissionState
+    let state: DailyTargetsState
     var onGoToToday: (() -> Void)?
 
     @ScaledMetric(relativeTo: .title) private var calorieTargetSize: CGFloat = 30
@@ -34,7 +34,7 @@ struct PlanTodayMissionSection: View {
 
                     secondaryMacroTargetsBlock
 
-                    Text(state.progressCopy)
+                    Text(state.summaryCopy)
                         .font(FormaTokens.Typography.sectionSubtitle)
                         .foregroundStyle(FormaTokens.Color.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -42,7 +42,7 @@ struct PlanTodayMissionSection: View {
                 }
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(cardAccessibilitySummary)
+            .accessibilityLabel(state.accessibilitySummary)
         }
     }
 
@@ -62,25 +62,13 @@ struct PlanTodayMissionSection: View {
             .foregroundStyle(FormaTokens.Color.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
     }
-
-    private var cardAccessibilitySummary: String {
-        [
-            state.sectionTitle,
-            state.caloriesLabel,
-            state.proteinLabel,
-            state.carbsLabel,
-            state.fatLabel,
-            state.waterLabel,
-            state.progressCopy
-        ].joined(separator: ". ")
-    }
 }
 
 // MARK: - Previews
 
 #Preview("Lose weight") {
     PlanTodayMissionSection(
-        state: PlanMissionControlFixtures.loseDashboard.todayMission,
+        state: PlanMissionControlFixtures.loseDashboard.dailyTargets,
         onGoToToday: {}
     )
     .padding()
@@ -90,7 +78,7 @@ struct PlanTodayMissionSection: View {
 
 #Preview("Large Dynamic Type") {
     PlanTodayMissionSection(
-        state: PlanMissionControlFixtures.loseDashboard.todayMission,
+        state: PlanMissionControlFixtures.loseDashboard.dailyTargets,
         onGoToToday: {}
     )
     .padding()
@@ -101,7 +89,7 @@ struct PlanTodayMissionSection: View {
 
 #Preview("Maintain") {
     PlanTodayMissionSection(
-        state: PlanMissionControlFixtures.maintainDashboard.todayMission,
+        state: PlanMissionControlFixtures.maintainDashboard.dailyTargets,
         onGoToToday: {}
     )
     .padding()
