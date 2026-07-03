@@ -326,7 +326,15 @@ private final class MockIntelligenceRepository: HealthDataRepositorying, @unchec
         []
     }
 
+    func getSleepRecords(from startDate: Date, to endDate: Date, calendar: Calendar) async -> [NormalizedSleepRecord] {
+        []
+    }
+
     func getRecentHeartMetrics(days: Int, calendar: Calendar) async -> [NormalizedHeartMetric] {
+        []
+    }
+
+    func getHeartMetrics(from startDate: Date, to endDate: Date, calendar: Calendar) async -> [NormalizedHeartMetric] {
         []
     }
 

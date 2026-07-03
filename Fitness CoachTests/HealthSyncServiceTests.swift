@@ -149,11 +149,7 @@ final class HealthSyncServiceTests: XCTestCase {
             resolvedAt: Date()
         )
         mockPermission.status = deniedSleepStatus
-        mockRepository.availability = HealthDataAvailability(
-            isHealthDataAvailable: true,
-            permissionStatus: deniedSleepStatus,
-            cachedDayCount: 0
-        )
+        setSyncAvailability(deniedSleepStatus)
 
         let state = await service.syncToday()
 
@@ -256,7 +252,15 @@ private final class MockSyncRepository: HealthDataRepositorying, @unchecked Send
         []
     }
 
+    func getSleepRecords(from startDate: Date, to endDate: Date, calendar: Calendar) async -> [NormalizedSleepRecord] {
+        []
+    }
+
     func getRecentHeartMetrics(days: Int, calendar: Calendar) async -> [NormalizedHeartMetric] {
+        []
+    }
+
+    func getHeartMetrics(from startDate: Date, to endDate: Date, calendar: Calendar) async -> [NormalizedHeartMetric] {
         []
     }
 

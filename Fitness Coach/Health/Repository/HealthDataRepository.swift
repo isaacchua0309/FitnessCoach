@@ -38,7 +38,17 @@ protocol HealthDataRepositorying: Sendable {
     func getRecentWorkouts(days: Int, calendar: Calendar) async -> [NormalizedWorkout]
     func getWorkouts(from startDate: Date, to endDate: Date) async -> [NormalizedWorkout]
     func getRecentSleep(days: Int, calendar: Calendar) async -> [NormalizedSleepRecord]
+    func getSleepRecords(
+        from startDate: Date,
+        to endDate: Date,
+        calendar: Calendar
+    ) async -> [NormalizedSleepRecord]
     func getRecentHeartMetrics(days: Int, calendar: Calendar) async -> [NormalizedHeartMetric]
+    func getHeartMetrics(
+        from startDate: Date,
+        to endDate: Date,
+        calendar: Calendar
+    ) async -> [NormalizedHeartMetric]
     func getBodyMassHistory(days: Int, calendar: Calendar) async -> [NormalizedBodyMass]
     func getHealthDataAvailability() async -> HealthDataAvailability
     func refreshHealthData(
@@ -69,10 +79,18 @@ extension HealthDataRepositorying {
         await getRecentSleep(days: days, calendar: .current)
     }
 
+    func getSleepRecords(from startDate: Date, to endDate: Date) async -> [NormalizedSleepRecord] {
+        await getSleepRecords(from: startDate, to: endDate, calendar: .current)
+    }
+
     func getRecentHeartMetrics(
         days: Int = HealthDataRepositoryDefaults.recentHeartMetricsDays
     ) async -> [NormalizedHeartMetric] {
         await getRecentHeartMetrics(days: days, calendar: .current)
+    }
+
+    func getHeartMetrics(from startDate: Date, to endDate: Date) async -> [NormalizedHeartMetric] {
+        await getHeartMetrics(from: startDate, to: endDate, calendar: .current)
     }
 
     func getBodyMassHistory(
@@ -321,6 +339,56 @@ struct HealthDataRepository: HealthDataRepositorying {
         }
     }
 
+    func getSleepRecords(
+        from startDate: Date,
+        to endDate: Date,
+        calendar: Calendar = .current
+    ) async -> [NormalizedSleepRecord] {
+        guard healthKitManager.isHealthDataAvailable else {
+            HealthDataRepositoryLogger.warn("getSleepRecords unavailable")
+            return []
+        }
+
+        let range = Self.queryDateRange(from: startDate, to: endDate, calendar: calendar)
+        let inclusiveEnd = Self.inclusiveEndDay(for: range.end, calendar: calendar)
+
+        if shouldServeAggregateFromCache(
+            aggregate: .sleep,
+            from: range.start,
+            to: inclusiveEnd,
+            calendar: calendar
+        ) {
+            let cached = cacheStore.sleepRecords(from: range.start, to: inclusiveEnd, calendar: calendar)
+            HealthDataRepositoryLogger.event(
+                "getSleepRecords cache hit",
+                fields: ["count": String(cached.count)]
+            )
+            return cached
+        }
+
+        do {
+            let raw = try await healthKitManager.fetchSleepRecords(from: range.start, to: range.end)
+            let records = normalizer.normalizeSleepRecords(raw)
+            cacheStore.upsertSleepRecords(records, calendar: calendar)
+            HealthDataRepositoryLogger.event(
+                "getSleepRecords refreshed",
+                fields: [
+                    "count": String(records.count),
+                    "start": Self.isoDay(range.start, calendar: calendar),
+                    "end": Self.isoDay(inclusiveEnd, calendar: calendar)
+                ]
+            )
+            return cacheStore.sleepRecords(from: range.start, to: inclusiveEnd, calendar: calendar)
+        } catch {
+            let cached = cacheStore.sleepRecords(from: range.start, to: inclusiveEnd, calendar: calendar)
+            if !cached.isEmpty {
+                return cached
+            }
+            logGracefulFetchFailure(context: "getSleepRecords", error: error)
+            return []
+        }
+    }
+
     // MARK: - Heart metrics
 
     func getRecentHeartMetrics(
@@ -372,6 +440,56 @@ struct HealthDataRepository: HealthDataRepositorying {
                 return cached
             }
             logGracefulFetchFailure(context: "getRecentHeartMetrics", error: error)
+            return []
+        }
+    }
+
+    func getHeartMetrics(
+        from startDate: Date,
+        to endDate: Date,
+        calendar: Calendar = .current
+    ) async -> [NormalizedHeartMetric] {
+        guard healthKitManager.isHealthDataAvailable else {
+            HealthDataRepositoryLogger.warn("getHeartMetrics unavailable")
+            return []
+        }
+
+        let range = Self.queryDateRange(from: startDate, to: endDate, calendar: calendar)
+        let inclusiveEnd = Self.inclusiveEndDay(for: range.end, calendar: calendar)
+
+        if shouldServeAggregateFromCache(
+            aggregate: .heart,
+            from: range.start,
+            to: inclusiveEnd,
+            calendar: calendar
+        ) {
+            let cached = cacheStore.heartMetrics(from: range.start, to: inclusiveEnd, calendar: calendar)
+            HealthDataRepositoryLogger.event(
+                "getHeartMetrics cache hit",
+                fields: ["count": String(cached.count)]
+            )
+            return cached
+        }
+
+        do {
+            let raw = try await healthKitManager.fetchHeartMetrics(from: range.start, to: range.end)
+            let metrics = normalizer.normalizeHeartMetrics(raw)
+            cacheStore.upsertHeartMetrics(metrics, calendar: calendar)
+            HealthDataRepositoryLogger.event(
+                "getHeartMetrics refreshed",
+                fields: [
+                    "count": String(metrics.count),
+                    "start": Self.isoDay(range.start, calendar: calendar),
+                    "end": Self.isoDay(inclusiveEnd, calendar: calendar)
+                ]
+            )
+            return cacheStore.heartMetrics(from: range.start, to: inclusiveEnd, calendar: calendar)
+        } catch {
+            let cached = cacheStore.heartMetrics(from: range.start, to: inclusiveEnd, calendar: calendar)
+            if !cached.isEmpty {
+                return cached
+            }
+            logGracefulFetchFailure(context: "getHeartMetrics", error: error)
             return []
         }
     }
