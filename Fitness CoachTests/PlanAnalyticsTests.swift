@@ -8,67 +8,110 @@ import XCTest
 
 final class PlanAnalyticsContextBuilderTests: XCTestCase {
 
-    func testCalorieTargetBuckets() {
-        XCTAssertEqual(PlanAnalyticsContextBuilder.calorieTargetBucket(1700), "under_1800")
-        XCTAssertEqual(PlanAnalyticsContextBuilder.calorieTargetBucket(2000), "1800_2199")
-        XCTAssertEqual(PlanAnalyticsContextBuilder.calorieTargetBucket(2400), "2200_2599")
-        XCTAssertEqual(PlanAnalyticsContextBuilder.calorieTargetBucket(2800), "2600_plus")
+    func testPlanTypeBuckets() {
+        XCTAssertEqual(
+            PlanAnalyticsContextBuilder.planType(from: .aggressiveCut),
+            "aggressive_cut"
+        )
+        XCTAssertEqual(
+            PlanAnalyticsContextBuilder.planType(from: .moderateCut),
+            "moderate_cut"
+        )
+        XCTAssertEqual(
+            PlanAnalyticsContextBuilder.planType(from: .gentleCut),
+            "moderate_cut"
+        )
+        XCTAssertEqual(
+            PlanAnalyticsContextBuilder.planType(from: .maintenance),
+            "maintenance"
+        )
+        XCTAssertEqual(
+            PlanAnalyticsContextBuilder.planType(from: .leanGain),
+            "lean_gain"
+        )
+        XCTAssertEqual(
+            PlanAnalyticsContextBuilder.planType(from: .rebuild),
+            "lean_gain"
+        )
+        XCTAssertEqual(
+            PlanAnalyticsContextBuilder.planType(from: .needsReview),
+            "needs_review"
+        )
     }
 
-    func testGoalTypeBuckets() {
+    func testConfidenceBucketUsesEstimateBucketRawValue() {
         XCTAssertEqual(
-            PlanAnalyticsContextBuilder.goalType(for: PlanMissionControlFixtures.loseProfile),
-            "lose"
+            PlanAnalyticsContextBuilder.confidenceBucket(from: .low),
+            "low"
         )
         XCTAssertEqual(
-            PlanAnalyticsContextBuilder.goalType(for: PlanMissionControlFixtures.gainProfile),
-            "gain"
+            PlanAnalyticsContextBuilder.confidenceBucket(from: .fair),
+            "fair"
         )
         XCTAssertEqual(
-            PlanAnalyticsContextBuilder.goalType(for: PlanMissionControlFixtures.maintainProfile),
-            "maintain"
+            PlanAnalyticsContextBuilder.confidenceBucket(from: .good),
+            "good"
+        )
+        XCTAssertEqual(
+            PlanAnalyticsContextBuilder.confidenceBucket(from: .strong),
+            "strong"
         )
     }
 
     func testSnapshotUsesBucketsNotRawProfileValues() {
-        let dashboard = PlanStateBuilder.dashboardState(profile: PlanMissionControlFixtures.loseProfile)
+        let dashboard = PlanMissionControlFixtures.loseDashboard
         let snapshot = PlanAnalyticsContextBuilder.snapshot(
             from: dashboard,
             healthConnected: true
         )
 
-        XCTAssertEqual(snapshot.goalType, "lose")
-        XCTAssertEqual(snapshot.calorieTargetBucket, "2200_2599")
-        XCTAssertEqual(snapshot.activityLevel, ActivityLevel.moderatelyActive.rawValue)
-        XCTAssertTrue(snapshot.healthConnected)
-        XCTAssertFalse(snapshot.progressBucket.isEmpty)
+        XCTAssertEqual(snapshot.planType, "aggressive_cut")
+        XCTAssertFalse(snapshot.confidenceBucket.isEmpty)
+        XCTAssertTrue(snapshot.appleHealthConnected)
+        XCTAssertFalse(snapshot.hasRecentWeighIn)
+        XCTAssertFalse(snapshot.hasEnoughFoodLogs)
 
         let parameters = PlanAnalyticsProperties.from(snapshot: snapshot).asParameters()
         XCTAssertNil(parameters["calorieTarget"])
         XCTAssertNil(parameters["currentWeightKg"])
         XCTAssertNil(parameters["name"])
+        XCTAssertNil(parameters["age"])
+        XCTAssertNil(parameters["sex"])
     }
 
-    func testProgressBucketFromMissionState() {
-        var mission = PlanMissionControlFixtures.loseDashboard.mission
-        mission.progressPercent = nil
-        mission.showsProgressBar = false
-        XCTAssertEqual(
-            PlanAnalyticsContextBuilder.progressBucket(from: mission),
-            PlanAnalyticsGoalProgressBucket.unknown.rawValue
+    func testSnapshotReflectsEngagementSignals() {
+        let activeSnapshot = PlanAnalyticsContextBuilder.snapshot(
+            from: PlanMissionControlFixtures.activeUserDashboard,
+            healthConnected: true
+        )
+        XCTAssertTrue(activeSnapshot.hasRecentWeighIn)
+        XCTAssertTrue(activeSnapshot.hasEnoughFoodLogs)
+        XCTAssertTrue(activeSnapshot.appleHealthConnected)
+
+        let sparseSnapshot = PlanAnalyticsContextBuilder.snapshot(
+            from: PlanMissionControlFixtures.noLogsDashboard,
+            healthConnected: false
+        )
+        XCTAssertFalse(sparseSnapshot.hasRecentWeighIn)
+        XCTAssertFalse(sparseSnapshot.hasEnoughFoodLogs)
+        XCTAssertFalse(sparseSnapshot.appleHealthConnected)
+    }
+
+    func testAsParametersUseSnakeCaseKeys() {
+        let snapshot = PlanAnalyticsSnapshot(
+            planType: "moderate_cut",
+            confidenceBucket: "good",
+            appleHealthConnected: true,
+            hasRecentWeighIn: false,
+            hasEnoughFoodLogs: true
         )
 
-        mission.showsProgressBar = true
-        XCTAssertEqual(
-            PlanAnalyticsContextBuilder.progressBucket(from: mission),
-            PlanAnalyticsGoalProgressBucket.none.rawValue
-        )
-
-        mission.progressPercent = 0.9
-        XCTAssertEqual(
-            PlanAnalyticsContextBuilder.progressBucket(from: mission),
-            PlanAnalyticsGoalProgressBucket.onTrack.rawValue
-        )
+        let parameters = PlanAnalyticsProperties.from(snapshot: snapshot).asParameters()
+        XCTAssertEqual(parameters["plan_type"], "moderate_cut")
+        XCTAssertEqual(parameters["confidence_bucket"], "good")
+        XCTAssertEqual(parameters["apple_health_connected"], "true")
+        XCTAssertEqual(parameters["has_recent_weigh_in"], "false")
+        XCTAssertEqual(parameters["has_enough_food_logs"], "true")
     }
 }
 
@@ -88,37 +131,34 @@ final class PlanAnalyticsEventTests: XCTestCase {
     }
 
     func testLogPlanViewedIncludesBucketProperties() {
-        guard case .loaded(let state) = model.viewState else {
-            return XCTFail("Expected loaded state")
-        }
-        let expectedBucket = PlanAnalyticsContextBuilder.calorieTargetBucket(
-            state.profile.targets.calorieTarget
-        )
-
         model.logPlanViewed(healthConnected: false)
 
         XCTAssertEqual(analytics.events.count, 1)
         XCTAssertEqual(analytics.events[0].event, .viewed)
-        XCTAssertEqual(analytics.events[0].properties.goalType, "lose")
-        XCTAssertEqual(analytics.events[0].properties.calorieTargetBucket, expectedBucket)
-        XCTAssertEqual(analytics.events[0].properties.healthConnected, false)
-        XCTAssertEqual(analytics.events[0].properties.activityLevel, ActivityLevel.moderatelyActive.rawValue)
+        XCTAssertEqual(analytics.events[0].properties.planType, "aggressive_cut")
+        XCTAssertFalse(analytics.events[0].properties.confidenceBucket?.isEmpty ?? true)
+        XCTAssertEqual(analytics.events[0].properties.appleHealthConnected, false)
+        XCTAssertEqual(analytics.events[0].properties.hasRecentWeighIn, false)
+        XCTAssertEqual(analytics.events[0].properties.hasEnoughFoodLogs, false)
     }
 
     func testSectionImpressionsDedupeWithinSession() {
-        model.logSectionImpression(.goalCard, healthConnected: true)
-        model.logSectionImpression(.goalCard, healthConnected: true)
-        model.logSectionImpression(.todayMission, healthConnected: true)
+        model.logSectionImpression(.strategy, healthConnected: true)
+        model.logSectionImpression(.strategy, healthConnected: true)
+        model.logSectionImpression(.status, healthConnected: true)
 
-        XCTAssertEqual(analytics.events.map(\.event), [.goalCardViewed, .todayMissionViewed])
+        XCTAssertEqual(
+            analytics.events.map(\.event),
+            [.strategyViewed, .statusViewed]
+        )
     }
 
     func testSectionImpressionsResetAfterRefresh() async {
-        model.logSectionImpression(.goalCard, healthConnected: true)
+        model.logSectionImpression(.strategy, healthConnected: true)
         await model.refresh()
-        model.logSectionImpression(.goalCard, healthConnected: true)
+        model.logSectionImpression(.strategy, healthConnected: true)
 
-        XCTAssertEqual(analytics.events.filter { $0.event == .goalCardViewed }.count, 2)
+        XCTAssertEqual(analytics.events.filter { $0.event == .strategyViewed }.count, 2)
     }
 
     func testAdjustStartedIncludesEntryPointAndBuckets() {
@@ -126,33 +166,48 @@ final class PlanAnalyticsEventTests: XCTestCase {
 
         XCTAssertEqual(analytics.events.last?.event, .adjustStarted)
         XCTAssertEqual(analytics.events.last?.properties.entryPoint, PlanAdjustPlanEntryPoint.dashboard)
-        XCTAssertEqual(analytics.events.last?.properties.goalType, "lose")
-        XCTAssertNotNil(analytics.events.last?.properties.calorieTargetBucket)
+        XCTAssertEqual(analytics.events.last?.properties.planType, "aggressive_cut")
+        XCTAssertNotNil(analytics.events.last?.properties.confidenceBucket)
     }
 
-    func testLogPlanTodayAndJourneyTapped() {
-        model.logPlanTodayTapped(healthConnected: true)
-        model.logPlanJourneyTapped(healthConnected: true)
+    func testLogPlanAdjustCTATapped() {
+        model.logPlanAdjustCTATapped(healthConnected: true)
 
-        XCTAssertEqual(analytics.events.map(\.event), [.todayTapped, .journeyTapped])
-        XCTAssertEqual(analytics.events[0].properties.goalType, "lose")
+        XCTAssertEqual(analytics.events.last?.event, .adjustCTATapped)
+        XCTAssertEqual(analytics.events.last?.properties.planType, "aggressive_cut")
+        XCTAssertEqual(analytics.events.last?.properties.appleHealthConnected, true)
+    }
+
+    func testLogPlanActivityUpdateTapped() {
+        model.logPlanActivityUpdateTapped(healthConnected: false)
+
+        XCTAssertEqual(analytics.events.last?.event, .activityUpdateTapped)
+        XCTAssertEqual(analytics.events.last?.properties.planType, "aggressive_cut")
+        XCTAssertEqual(analytics.events.last?.properties.appleHealthConnected, false)
+    }
+
+    func testLogPlanTodayTapped() {
+        model.logPlanTodayTapped(healthConnected: true)
+
+        XCTAssertEqual(analytics.events.map(\.event), [.todayTapped])
+        XCTAssertEqual(analytics.events[0].properties.planType, "aggressive_cut")
     }
 
     func testLogPlanHealthConnectTappedIncludesEntryPoint() {
         model.logPlanHealthConnectTapped(
-            entryPoint: .activityAssumptions,
+            entryPoint: .planConfidence,
             healthConnected: false
         )
 
         XCTAssertEqual(analytics.events.last?.event, .healthConnectTapped)
-        XCTAssertEqual(analytics.events.last?.properties.entryPoint, "activity_assumptions")
+        XCTAssertEqual(analytics.events.last?.properties.entryPoint, "plan_confidence")
     }
 
-    func testLogPlanCalculationDetailsOpened() {
-        model.logPlanCalculationDetailsOpened(healthConnected: true)
+    func testLogPlanCalculationTapped() {
+        model.logPlanCalculationTapped(healthConnected: true)
 
-        XCTAssertEqual(analytics.events.last?.event, .calculationDetailsOpened)
-        XCTAssertEqual(analytics.events.last?.properties.goalType, "lose")
+        XCTAssertEqual(analytics.events.last?.event, .calculationTapped)
+        XCTAssertEqual(analytics.events.last?.properties.planType, "aggressive_cut")
     }
 
     func testSavePlanFromWizardLogsEditSaved() async throws {
@@ -180,18 +235,17 @@ final class PlanAnalyticsEventTests: XCTestCase {
 
     func testAllEventRawValuesMatchContract() {
         XCTAssertEqual(PlanAnalyticsEvent.viewed.rawValue, "plan_viewed")
-        XCTAssertEqual(PlanAnalyticsEvent.goalCardViewed.rawValue, "plan_goal_card_viewed")
-        XCTAssertEqual(PlanAnalyticsEvent.todayMissionViewed.rawValue, "plan_today_mission_viewed")
-        XCTAssertEqual(PlanAnalyticsEvent.weekSectionViewed.rawValue, "plan_week_section_viewed")
-        XCTAssertEqual(PlanAnalyticsEvent.rationaleOpened.rawValue, "plan_rationale_opened")
-        XCTAssertEqual(PlanAnalyticsEvent.calculationDetailsOpened.rawValue, "plan_calculation_details_opened")
-        XCTAssertEqual(PlanAnalyticsEvent.activityAssumptionsViewed.rawValue, "plan_activity_assumptions_viewed")
+        XCTAssertEqual(PlanAnalyticsEvent.strategyViewed.rawValue, "plan_strategy_viewed")
+        XCTAssertEqual(PlanAnalyticsEvent.statusViewed.rawValue, "plan_status_viewed")
+        XCTAssertEqual(PlanAnalyticsEvent.confidenceViewed.rawValue, "plan_confidence_viewed")
+        XCTAssertEqual(PlanAnalyticsEvent.adjustCTATapped.rawValue, "plan_adjust_cta_tapped")
+        XCTAssertEqual(PlanAnalyticsEvent.calculationTapped.rawValue, "plan_calculation_tapped")
+        XCTAssertEqual(PlanAnalyticsEvent.activityUpdateTapped.rawValue, "plan_activity_update_tapped")
         XCTAssertEqual(PlanAnalyticsEvent.adjustStarted.rawValue, "plan_adjust_started")
         XCTAssertEqual(PlanAnalyticsEvent.editSaved.rawValue, "plan_edit_saved")
         XCTAssertEqual(PlanAnalyticsEvent.targetsRegenerated.rawValue, "plan_targets_regenerated")
         XCTAssertEqual(PlanAnalyticsEvent.healthConnectTapped.rawValue, "plan_health_connect_tapped")
         XCTAssertEqual(PlanAnalyticsEvent.todayTapped.rawValue, "plan_today_tapped")
-        XCTAssertEqual(PlanAnalyticsEvent.journeyTapped.rawValue, "plan_journey_tapped")
     }
 
     private func seedProfile() async throws {

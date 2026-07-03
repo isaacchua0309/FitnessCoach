@@ -2,16 +2,23 @@
 //  PlanDashboardState.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Mission Control view state for the Plan screen.
+//  Forma — Presentation state for the Plan strategy screen.
 //
 
 import Foundation
 
-struct PlanDashboardState: Equatable {
+struct PlanDashboardState: Equatable, Sendable {
     var profile: UserProfile
-    /// Product-facing Mission Control read model for the Plan dashboard redesign.
-    var missionControl: PlanMissionControlDashboard
-    var rationale: PlanRationaleState
+    var header: PlanHeaderState
+    var strategy: PlanStrategyState
+    var dailyTargets: DailyTargetsState
+    var status: PlanStatusState
+    var explanation: PlanExplanationState
+    var confidence: PlanConfidenceState
+    var adjustmentRules: AdjustmentRulesState
+    var assumptions: PlanAssumptionsState
+    var review: PlanReviewState
+    var adjustPlanCTA: AdjustPlanCTAState
 }
 
 // MARK: Wizard

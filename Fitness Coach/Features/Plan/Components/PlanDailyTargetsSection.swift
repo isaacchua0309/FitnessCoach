@@ -1,26 +1,21 @@
 //
-//  PlanTodayMissionSection.swift
+//  PlanDailyTargetsSection.swift
 //  Fitness Coach
 //
-//  Forma — Today's Mission card on the Plan dashboard.
+//  Forma — Daily prescription targets on the Plan dashboard.
 //
 
 import SwiftUI
 
-struct PlanTodayMissionSection: View {
-    let state: PlanTodayMissionState
+struct PlanDailyTargetsSection: View {
+    let state: DailyTargetsState
     var onGoToToday: (() -> Void)?
 
     @ScaledMetric(relativeTo: .title) private var calorieTargetSize: CGFloat = 30
 
     var body: some View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
-            PlanSectionHeader(
-                title: state.sectionTitle,
-                actionTitle: onGoToToday == nil ? nil : state.goToTodayTitle,
-                actionAccessibilityHint: FormaProductCopy.PlanMissionControl.goToTodayAccessibilityHint,
-                action: onGoToToday
-            )
+            FormaSectionLabel(title: state.sectionTitle)
 
             FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
@@ -32,55 +27,59 @@ struct PlanTodayMissionSection: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityHidden(true)
 
-                    secondaryMacroTargetsBlock
+                    macroTargetsBlock
 
-                    Text(state.progressCopy)
+                    Text(state.prescriptionCopy)
                         .font(FormaTokens.Typography.sectionSubtitle)
                         .foregroundStyle(FormaTokens.Color.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, FormaTokens.Spacing.xs)
                         .accessibilityHidden(true)
                 }
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(cardAccessibilitySummary)
+            .accessibilityLabel(state.accessibilitySummary)
+
+            if let onGoToToday, let goToTodayTitle = state.goToTodayTitle {
+                Button(action: onGoToToday) {
+                    Text(goToTodayTitle)
+                        .font(FormaTokens.Typography.caption.weight(.semibold))
+                        .foregroundStyle(FormaTokens.Theme.primary)
+                }
+                .buttonStyle(.plain)
+                .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .leading)
+                .accessibilityLabel(goToTodayTitle)
+                .accessibilityHint(FormaProductCopy.PlanDailyTargets.goToTodayAccessibilityHint)
+            }
         }
     }
 
-    private var secondaryMacroTargetsBlock: some View {
+    private var macroTargetsBlock: some View {
         VStack(alignment: .leading, spacing: 4) {
-            secondaryMacroLine(state.proteinLabel)
-            secondaryMacroLine(state.carbsLabel)
-            secondaryMacroLine(state.fatLabel)
-            secondaryMacroLine(state.waterLabel)
+            macroLine(state.proteinLabel)
+            macroLine(state.carbsLabel)
+            macroLine(state.fatLabel)
+            macroLine(state.waterLabel)
+            if let trainingTargetLabel = state.trainingTargetLabel {
+                macroLine(trainingTargetLabel)
+            }
         }
         .accessibilityHidden(true)
     }
 
-    private func secondaryMacroLine(_ text: String) -> some View {
+    private func macroLine(_ text: String) -> some View {
         Text(text)
             .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
             .foregroundStyle(FormaTokens.Color.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
-    }
-
-    private var cardAccessibilitySummary: String {
-        [
-            state.sectionTitle,
-            state.caloriesLabel,
-            state.proteinLabel,
-            state.carbsLabel,
-            state.fatLabel,
-            state.waterLabel,
-            state.progressCopy
-        ].joined(separator: ". ")
     }
 }
 
 // MARK: - Previews
 
 #Preview("Lose weight") {
-    PlanTodayMissionSection(
-        state: PlanMissionControlFixtures.loseDashboard.todayMission,
+    PlanDailyTargetsSection(
+        state: PlanMissionControlFixtures.loseDashboard.dailyTargets,
         onGoToToday: {}
     )
     .padding()
@@ -89,8 +88,8 @@ struct PlanTodayMissionSection: View {
 }
 
 #Preview("Large Dynamic Type") {
-    PlanTodayMissionSection(
-        state: PlanMissionControlFixtures.loseDashboard.todayMission,
+    PlanDailyTargetsSection(
+        state: PlanMissionControlFixtures.loseDashboard.dailyTargets,
         onGoToToday: {}
     )
     .padding()
@@ -100,9 +99,9 @@ struct PlanTodayMissionSection: View {
 }
 
 #Preview("Maintain") {
-    PlanTodayMissionSection(
-        state: PlanMissionControlFixtures.maintainDashboard.todayMission,
-        onGoToToday: {}
+    PlanDailyTargetsSection(
+        state: PlanMissionControlFixtures.maintainDashboard.dailyTargets,
+        onGoToToday: nil
     )
     .padding()
     .background(FormaTokens.Color.canvas)

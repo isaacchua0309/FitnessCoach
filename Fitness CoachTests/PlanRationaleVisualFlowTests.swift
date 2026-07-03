@@ -115,7 +115,7 @@ final class PlanRationaleVisualFlowTests: XCTestCase {
             referenceDate: referenceDate
         )
 
-        XCTAssertEqual(rationale.seeCalculationTitle, "See calculation")
+        XCTAssertEqual(rationale.seeCalculationTitle, "View calculation")
         XCTAssertNotNil(rationale.calculationDetails)
     }
 

@@ -2,7 +2,7 @@
 //  PlanChangeExplanationTests.swift
 //  Fitness CoachTests
 //
-//  Forma — Last updated labels and human-readable plan change reasons.
+//  Forma — Human-readable plan change reasons.
 //
 
 import XCTest
@@ -16,22 +16,23 @@ final class PlanChangeExplanationTests: XCTestCase {
     )!
 
     func testLastUpdatedLabelUsesTodayForSameDayEdits() {
-        let adjustment = PlanMissionControlFixtures.newUserDashboard.adjustment
-        XCTAssertEqual(adjustment.lastUpdatedLabel, "Last updated: Today")
+        let label = PlanLastUpdatedLabelFormatter.label(
+            for: PlanMissionControlFixtures.newUserProfile.updatedAt,
+            referenceDate: referenceDate,
+            calendar: calendar
+        )
+        XCTAssertEqual(label, "Today")
     }
 
     func testLastUpdatedLabelUsesAbsoluteDateForOlderEdits() {
-        var profile = PlanMissionControlFixtures.newUserProfile
-        profile.updatedAt = calendar.date(from: DateComponents(year: 2026, month: 6, day: 1))!
-
-        let adjustment = PlanAdjustmentStateBuilder.build(
-            profile: profile,
-            planResult: nil,
+        let updatedAt = calendar.date(from: DateComponents(year: 2026, month: 6, day: 1))!
+        let label = PlanLastUpdatedLabelFormatter.label(
+            for: updatedAt,
             referenceDate: referenceDate,
             calendar: calendar
         )
 
-        XCTAssertEqual(adjustment.lastUpdatedLabel, "Last updated: Jun 1, 2026")
+        XCTAssertEqual(label, "Jun 1, 2026")
     }
 
     func testPlanUpdateReasonCopyMapsAllReasonCodes() {
@@ -91,13 +92,6 @@ final class PlanChangeExplanationTests: XCTestCase {
             PlanUpdateReasonResolver.resolve(baseline: baseline, update: update),
             .targetsRegenerated
         )
-    }
-
-    func testAdjustmentSectionSurfacesReasonInAccessibilitySummary() {
-        let adjustment = PlanMissionControlFixtures.loseDashboard.adjustment
-
-        XCTAssertTrue(adjustment.accessibilitySummary.contains("Reason:"))
-        XCTAssertTrue(adjustment.accessibilitySummary.contains(adjustment.lastUpdateReasonCopy))
     }
 
     func testChangeExplanationCopyAvoidsDynamicCaloriesLanguage() {
