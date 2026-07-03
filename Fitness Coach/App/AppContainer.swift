@@ -41,6 +41,8 @@ final class AppContainer {
     let healthActivityQueryService: HealthActivityQueryService
     let healthCacheStore: LocalHealthCacheStore
     let healthDataRepository: HealthDataRepository
+    let healthBaselineService: HealthBaselineService
+    let healthIntelligenceEngine: any HealthIntelligenceEngineing
     let healthSyncService: HealthSyncService
     let healthSyncStateStore: HealthSyncStateStore
     private let authUIDCache: AuthUIDCache
@@ -124,6 +126,7 @@ final class AppContainer {
             healthKitManager: sharedHealthKitManager,
             cacheStore: healthCacheStore
         )
+        healthBaselineService = HealthBaselineService(repository: healthDataRepository)
         healthActivityQueryService = HealthActivityQueryService(
             workoutReader: workoutReader,
             stepReader: stepReader,
@@ -197,6 +200,18 @@ final class AppContainer {
             store: store,
             dailyLogService: dailyLogService
         )
+
+        let healthIntelligenceContextBuilder = HealthIntelligenceContextBuilder(
+            repository: healthDataRepository,
+            nutritionProvider: DailyLogNutritionProvider(reader: dailyLogService),
+            weightProvider: WeightLogWeightProvider(reader: weightLogService),
+            userPlanProvider: UserProfilePlanProvider(profileService: userProfileService)
+        )
+        healthIntelligenceEngine = HealthIntelligenceEngine(
+            contextBuilder: healthIntelligenceContextBuilder,
+            dependencies: .production()
+        )
+
         // All builds call the hosted Firebase aiGateway. Provider keys stay in Secret Manager.
         // Previews and in-memory containers use MockLLMClient; production wiring requires auth.
         #if DEBUG
@@ -266,6 +281,10 @@ final class AppContainer {
     func syncHealthCacheUserID() {
         authUIDCache.update(uid: authManager.currentUID)
         healthSyncStateStore.cancelActiveSync()
+    }
+
+    func makeHealthIntelligenceEngine() -> any HealthIntelligenceEngineing {
+        healthIntelligenceEngine
     }
 
     func makeTodayActionCoordinator() -> TodayActionCoordinator {

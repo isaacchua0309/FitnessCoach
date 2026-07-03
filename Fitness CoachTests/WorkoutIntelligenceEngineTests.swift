@@ -184,7 +184,7 @@ final class WorkoutIntelligenceEngineTests: XCTestCase {
         today: [NormalizedWorkout],
         trainingLoad: TrainingLoadSummary = .unknown
     ) -> WorkoutSummary {
-        engine.evaluate(
+        try! engine.evaluate(
             WorkoutIntelligenceInput(
                 targetDate: targetDate,
                 workoutsToday: today,

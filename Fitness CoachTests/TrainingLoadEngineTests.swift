@@ -222,7 +222,7 @@ final class TrainingLoadEngineTests: XCTestCase {
         last28: [NormalizedWorkout],
         baseline: Double?
     ) -> TrainingLoadSummary {
-        engine.evaluate(
+        try! engine.evaluate(
             TrainingLoadEngineInput(
                 targetDate: targetDate,
                 workoutsToday: today,

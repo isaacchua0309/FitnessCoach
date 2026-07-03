@@ -44,13 +44,9 @@ enum NextBestActionPolicy {
 
 // MARK: - Engine
 
-protocol HealthNextBestActionEngineing: Sendable {
-    func evaluate(_ input: NextBestActionEngineInput) -> NextBestAction
-}
+struct HealthNextBestActionEngine: NextBestActionProviding {
 
-struct HealthNextBestActionEngine: HealthNextBestActionEngineing {
-
-    func evaluate(_ input: NextBestActionEngineInput) -> NextBestAction {
+    func evaluate(_ input: NextBestActionEngineInput) throws -> NextBestAction {
         let createdAt = input.timeOfDay
 
         if let action = postWorkoutRecoveryAction(input: input, createdAt: createdAt) {

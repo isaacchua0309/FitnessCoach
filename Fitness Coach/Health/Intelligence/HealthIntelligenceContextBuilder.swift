@@ -197,16 +197,6 @@ struct HealthIntelligenceContext: Equatable, Sendable {
 
 // MARK: - Builder
 
-protocol HealthIntelligenceContextBuilding: Sendable {
-    func buildContext(for targetDate: Date, calendar: Calendar) async -> HealthIntelligenceContext
-}
-
-extension HealthIntelligenceContextBuilding {
-    func buildContext(for targetDate: Date) async -> HealthIntelligenceContext {
-        await buildContext(for: targetDate, calendar: .current)
-    }
-}
-
 struct HealthIntelligenceContextBuilder: HealthIntelligenceContextBuilding {
 
     private let repository: any HealthDataRepositorying

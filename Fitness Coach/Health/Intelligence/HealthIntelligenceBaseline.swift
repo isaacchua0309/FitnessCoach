@@ -48,7 +48,7 @@ enum HealthIntelligenceBaseline {
             return nil
         }
 
-        let summary = WorkoutIntelligenceEngine().evaluate(
+        guard let summary = try? WorkoutIntelligenceEngine().evaluate(
             WorkoutIntelligenceInput(
                 targetDate: dayStart,
                 workoutsToday: todaysWorkouts,
@@ -57,7 +57,9 @@ enum HealthIntelligenceBaseline {
                 baselineContext: .empty(for: dayStart),
                 calendar: calendar
             )
-        )
+        ) else {
+            return nil
+        }
         return summary.hasWorkout ? summary : nil
     }
 

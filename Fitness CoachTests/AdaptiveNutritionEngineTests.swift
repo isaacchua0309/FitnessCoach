@@ -203,7 +203,7 @@ final class AdaptiveNutritionEngineTests: XCTestCase {
         progress: AdaptiveNutritionProgress? = nil,
         plan: AdaptiveNutritionUserPlan? = nil
     ) -> AdaptiveNutritionSummary {
-        engine.evaluate(
+        try! engine.evaluate(
             AdaptiveNutritionEngineInput(
                 targetDate: targetDate,
                 nutritionProgress: progress ?? defaultProgress,

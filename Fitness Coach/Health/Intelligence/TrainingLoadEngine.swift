@@ -159,13 +159,9 @@ private extension FormaWorkoutCategory {
 
 // MARK: - Engine
 
-protocol TrainingLoadEngineing: Sendable {
-    func evaluate(_ input: TrainingLoadEngineInput) -> TrainingLoadSummary
-}
+struct TrainingLoadEngine: TrainingLoadProviding {
 
-struct TrainingLoadEngine: TrainingLoadEngineing {
-
-    func evaluate(_ input: TrainingLoadEngineInput) -> TrainingLoadSummary {
+    func evaluate(_ input: TrainingLoadEngineInput) throws -> TrainingLoadSummary {
         let calendar = input.calendar
         let workouts28 = input.workoutsLast28Days
         let workouts7 = input.workoutsLast7Days

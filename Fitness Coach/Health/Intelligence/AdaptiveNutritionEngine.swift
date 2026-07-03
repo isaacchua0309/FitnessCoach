@@ -79,13 +79,9 @@ enum AdaptiveNutritionPolicy {
 
 // MARK: - Engine
 
-protocol AdaptiveNutritionEngineing: Sendable {
-    func evaluate(_ input: AdaptiveNutritionEngineInput) -> AdaptiveNutritionSummary
-}
+struct AdaptiveNutritionEngine: AdaptiveNutritionProviding {
 
-struct AdaptiveNutritionEngine: AdaptiveNutritionEngineing {
-
-    func evaluate(_ input: AdaptiveNutritionEngineInput) -> AdaptiveNutritionSummary {
+    func evaluate(_ input: AdaptiveNutritionEngineInput) throws -> AdaptiveNutritionSummary {
         var missingSignals = Set<AdaptiveNutritionMissingSignal>()
         let progress = input.nutritionProgress
         let plan = input.userPlan

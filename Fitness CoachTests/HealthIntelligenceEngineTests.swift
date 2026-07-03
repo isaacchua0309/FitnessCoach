@@ -30,7 +30,10 @@ final class HealthIntelligenceEngineTests: XCTestCase {
                 calendar: calendar
             )
         )
-        self.engine = HealthIntelligenceEngine(contextBuilder: contextBuilder)
+        self.engine = HealthIntelligenceEngine(
+            contextBuilder: contextBuilder,
+            dependencies: .production()
+        )
     }
 
     func testAllDataAvailableProducesEngineSummaries() async {
@@ -232,16 +235,17 @@ final class HealthIntelligenceEngineTests: XCTestCase {
     func testTrainingLoadFailureDegradesWithoutCrashing() async {
         let day = makeDate(2026, 7, 3)
         seedConnectedDay(day)
-        var evaluators = HealthIntelligenceEngineEvaluators.production()
-        evaluators.trainingLoad = { _ in
-            throw HealthIntelligenceEngineEvaluationError.simulatedFailure(.trainingLoad)
-        }
-        evaluators.recovery = { _ in
-            throw HealthIntelligenceEngineEvaluationError.simulatedFailure(.recovery)
-        }
+        let failingDependencies = HealthIntelligenceEngineDependencies(
+            trainingLoad: FailingTrainingLoadProvider(),
+            workout: WorkoutIntelligenceEngine(),
+            recovery: FailingRecoveryProvider(),
+            adaptiveNutrition: AdaptiveNutritionEngine(),
+            nextBestAction: HealthNextBestActionEngine(),
+            weeklyReview: WeeklyReviewEngine()
+        )
         let failingEngine = HealthIntelligenceEngine(
             contextBuilder: HealthIntelligenceContextBuilder(repository: repository),
-            evaluators: evaluators
+            dependencies: failingDependencies
         )
 
         let snapshot = await failingEngine.composeSnapshot(for: day, calendar: calendar)
@@ -394,6 +398,18 @@ final class HealthIntelligenceEngineTests: XCTestCase {
 }
 
 // MARK: - Mocks
+
+private struct FailingTrainingLoadProvider: TrainingLoadProviding {
+    func evaluate(_ input: TrainingLoadEngineInput) throws -> TrainingLoadSummary {
+        throw HealthIntelligenceEngineEvaluationError.simulatedFailure(.trainingLoad)
+    }
+}
+
+private struct FailingRecoveryProvider: RecoveryEngineProviding {
+    func evaluate(_ input: RecoveryEngineInput) throws -> RecoverySummary {
+        throw HealthIntelligenceEngineEvaluationError.simulatedFailure(.recovery)
+    }
+}
 
 private final class MockIntelligenceRepository: HealthDataRepositorying, @unchecked Sendable {
 

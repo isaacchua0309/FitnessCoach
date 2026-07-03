@@ -41,86 +41,17 @@ extension HealthIntelligenceEngineing {
     }
 }
 
-struct HealthIntelligenceEngineEvaluators: Sendable {
-    var trainingLoad: @Sendable (TrainingLoadEngineInput) throws -> TrainingLoadSummary
-    var workout: @Sendable (WorkoutIntelligenceInput) throws -> WorkoutSummary
-    var recovery: @Sendable (RecoveryEngineInput) throws -> RecoverySummary
-    var adaptiveNutrition: @Sendable (AdaptiveNutritionEngineInput) throws -> AdaptiveNutritionSummary
-    var nextBestAction: @Sendable (NextBestActionEngineInput) throws -> NextBestAction
-    var weeklyReview: @Sendable (WeeklyReviewEngineInput) throws -> WeeklyHealthReview?
-
-    static func production(
-        trainingLoadEngine: any TrainingLoadEngineing = TrainingLoadEngine(),
-        workoutEngine: any WorkoutIntelligenceEngineing = WorkoutIntelligenceEngine(),
-        recoveryEngine: any RecoveryEngineing = RecoveryEngine(),
-        adaptiveNutritionEngine: any AdaptiveNutritionEngineing = AdaptiveNutritionEngine(),
-        nextBestActionEngine: any HealthNextBestActionEngineing = HealthNextBestActionEngine(),
-        weeklyReviewEngine: any WeeklyReviewEngineing = WeeklyReviewEngine()
-    ) -> HealthIntelligenceEngineEvaluators {
-        HealthIntelligenceEngineEvaluators(
-            trainingLoad: { try $0.evaluate(trainingLoadEngine) },
-            workout: { try $0.evaluate(workoutEngine) },
-            recovery: { try $0.evaluate(recoveryEngine) },
-            adaptiveNutrition: { try $0.evaluate(adaptiveNutritionEngine) },
-            nextBestAction: { try $0.evaluate(nextBestActionEngine) },
-            weeklyReview: { input in
-                try weeklyReviewEngine.evaluate(input)
-            }
-        )
-    }
-}
-
-private extension TrainingLoadEngineInput {
-    func evaluate(_ engine: any TrainingLoadEngineing) throws -> TrainingLoadSummary {
-        engine.evaluate(self)
-    }
-}
-
-private extension WorkoutIntelligenceInput {
-    func evaluate(_ engine: any WorkoutIntelligenceEngineing) throws -> WorkoutSummary {
-        engine.evaluate(self)
-    }
-}
-
-private extension RecoveryEngineInput {
-    func evaluate(_ engine: any RecoveryEngineing) throws -> RecoverySummary {
-        engine.evaluate(self)
-    }
-}
-
-private extension AdaptiveNutritionEngineInput {
-    func evaluate(_ engine: any AdaptiveNutritionEngineing) throws -> AdaptiveNutritionSummary {
-        engine.evaluate(self)
-    }
-}
-
-private extension NextBestActionEngineInput {
-    func evaluate(_ engine: any HealthNextBestActionEngineing) throws -> NextBestAction {
-        engine.evaluate(self)
-    }
-}
-
 struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
 
     private let contextBuilder: any HealthIntelligenceContextBuilding
-    private let evaluators: HealthIntelligenceEngineEvaluators
-    private let recoveryEngine: any RecoveryEngineing
-    private let trainingLoadEngine: any TrainingLoadEngineing
+    private let dependencies: HealthIntelligenceEngineDependencies
 
     init(
-        repository: any HealthDataRepositorying = HealthDataRepository(),
-        contextBuilder: (any HealthIntelligenceContextBuilding)? = nil,
-        evaluators: HealthIntelligenceEngineEvaluators? = nil,
-        recoveryEngine: any RecoveryEngineing = RecoveryEngine(),
-        trainingLoadEngine: any TrainingLoadEngineing = TrainingLoadEngine()
+        contextBuilder: any HealthIntelligenceContextBuilding,
+        dependencies: HealthIntelligenceEngineDependencies
     ) {
-        self.contextBuilder = contextBuilder ?? HealthIntelligenceContextBuilder(repository: repository)
-        self.evaluators = evaluators ?? .production(
-            recoveryEngine: recoveryEngine,
-            trainingLoadEngine: trainingLoadEngine
-        )
-        self.recoveryEngine = recoveryEngine
-        self.trainingLoadEngine = trainingLoadEngine
+        self.contextBuilder = contextBuilder
+        self.dependencies = dependencies
     }
 
     func composeSnapshot(
@@ -151,20 +82,20 @@ struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
         let trainingLoad = runSection(
             .trainingLoad,
             fallback: .unknown,
-            work: { try evaluators.trainingLoad(context.trainingLoadInput) }
+            work: { try dependencies.trainingLoad.evaluate(context.trainingLoadInput) }
         )
 
         let workoutSummary = runSection(
             .workout,
             fallback: .noWorkout,
-            work: { try evaluators.workout(context.workoutInput(trainingLoad: trainingLoad)) }
+            work: { try dependencies.workout.evaluate(context.workoutInput(trainingLoad: trainingLoad)) }
         )
         let workout = workoutSummary.hasWorkout ? workoutSummary : nil
 
         let recovery = runSection(
             .recovery,
             fallback: recoveryFallback(for: context),
-            work: { try evaluators.recovery(context.recoveryInput(trainingLoad: trainingLoad)) }
+            work: { try dependencies.recovery.evaluate(context.recoveryInput(trainingLoad: trainingLoad)) }
         )
 
         let activity = runSection(
@@ -177,7 +108,7 @@ struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
             .adaptiveNutrition,
             fallback: .none,
             work: {
-                try evaluators.adaptiveNutrition(
+                try dependencies.adaptiveNutrition.evaluate(
                     context.adaptiveNutritionInput(
                         workout: workoutSummary,
                         recovery: recovery,
@@ -199,7 +130,7 @@ struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
                 .nextBestAction,
                 fallback: stayOnPlanAction(for: context),
                 work: {
-                    try evaluators.nextBestAction(
+                    try dependencies.nextBestAction.evaluate(
                         context.nextBestActionInput(
                             workout: workoutSummary,
                             recovery: recovery,
@@ -270,8 +201,8 @@ struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
             sleepRecords: context.sleepRecords,
             heartMetrics: context.heartMetrics,
             baselineContext: context.baselineContext,
-            recoveryEngine: recoveryEngine,
-            trainingLoadEngine: trainingLoadEngine,
+            trainingLoadProvider: dependencies.trainingLoad,
+            recoveryProvider: dependencies.recovery,
             calendar: context.calendar
         )
 
@@ -284,7 +215,7 @@ struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
 
         if let review = runOptionalSection(
             .weeklyReview,
-            work: { try evaluators.weeklyReview(input) }
+            work: { try dependencies.weeklyReview.evaluate(input) }
         ) {
             return review
         }

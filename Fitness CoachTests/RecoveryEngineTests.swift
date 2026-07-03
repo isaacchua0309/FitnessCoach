@@ -236,7 +236,7 @@ final class RecoveryEngineTests: XCTestCase {
             date: yesterdayDay
         )
 
-        return engine.evaluate(
+        return try! engine.evaluate(
             RecoveryEngineInput(
                 targetDate: targetDate,
                 todayMetrics: today,

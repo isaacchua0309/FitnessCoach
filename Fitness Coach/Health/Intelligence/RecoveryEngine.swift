@@ -46,13 +46,9 @@ enum RecoveryPolicy {
 
 // MARK: - Engine
 
-protocol RecoveryEngineing: Sendable {
-    func evaluate(_ input: RecoveryEngineInput) -> RecoverySummary
-}
+struct RecoveryEngine: RecoveryEngineProviding {
 
-struct RecoveryEngine: RecoveryEngineing {
-
-    func evaluate(_ input: RecoveryEngineInput) -> RecoverySummary {
+    func evaluate(_ input: RecoveryEngineInput) throws -> RecoverySummary {
         let calendar = input.calendar
         let targetDay = calendar.startOfDay(for: input.targetDate)
 

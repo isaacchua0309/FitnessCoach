@@ -36,13 +36,9 @@ enum WorkoutIntelligencePolicy {
 
 // MARK: - Engine
 
-protocol WorkoutIntelligenceEngineing: Sendable {
-    func evaluate(_ input: WorkoutIntelligenceInput) -> WorkoutSummary
-}
+struct WorkoutIntelligenceEngine: WorkoutIntelligenceProviding {
 
-struct WorkoutIntelligenceEngine: WorkoutIntelligenceEngineing {
-
-    func evaluate(_ input: WorkoutIntelligenceInput) -> WorkoutSummary {
+    func evaluate(_ input: WorkoutIntelligenceInput) throws -> WorkoutSummary {
         let calendar = input.calendar
         let targetDay = calendar.startOfDay(for: input.targetDate)
         let workoutsToday = workoutsOnTargetDay(

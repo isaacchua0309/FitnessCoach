@@ -228,8 +228,8 @@ final class WeeklyReviewEngineTests: XCTestCase {
             nutritionDailySummaries: weekNutrition(days: 6, proteinHit: true, calorieHit: true)
         )
 
-        let first = engine.evaluate(input)
-        let second = engine.evaluate(input)
+        let first = try! engine.evaluate(input)
+        let second = try! engine.evaluate(input)
 
         XCTAssertEqual(first, second)
     }
@@ -244,7 +244,7 @@ final class WeeklyReviewEngineTests: XCTestCase {
         weightRecords: [NormalizedBodyMass] = [],
         userPlan: WeeklyReviewUserPlan = defaultPlan()
     ) -> WeeklyHealthReview? {
-        engine.evaluate(
+        try! engine.evaluate(
             makeInput(
                 dailyMetrics: dailyMetrics,
                 workouts: workouts,

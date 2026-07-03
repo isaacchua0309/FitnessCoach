@@ -129,8 +129,8 @@ enum HealthIntelligenceWeeklyReviewSupport {
         sleepRecords: [NormalizedSleepRecord],
         heartMetrics: [NormalizedHeartMetric],
         baselineContext: HealthBaselineContext,
-        recoveryEngine: any RecoveryEngineing,
-        trainingLoadEngine: any TrainingLoadEngineing,
+        recoveryProvider: any RecoveryEngineProviding,
+        trainingLoadProvider: any TrainingLoadProviding,
         calendar: Calendar
     ) -> [DailyRecoverySummary] {
         var summaries: [DailyRecoverySummary] = []
@@ -168,7 +168,7 @@ enum HealthIntelligenceWeeklyReviewSupport {
                 calendar: calendar
             )
 
-            let trainingLoad = trainingLoadEngine.evaluate(
+            let trainingLoad = (try? trainingLoadProvider.evaluate(
                 TrainingLoadEngineInput(
                     targetDate: day,
                     workoutsToday: workoutsToday,
@@ -177,9 +177,9 @@ enum HealthIntelligenceWeeklyReviewSupport {
                     baselineAverageWeeklyLoad: baselineContext.averageWorkoutLoad28d.map { $0 * 7 },
                     calendar: calendar
                 )
-            )
+            )) ?? .unknown
 
-            let recovery = recoveryEngine.evaluate(
+            let recovery = (try? recoveryProvider.evaluate(
                 RecoveryEngineInput(
                     targetDate: day,
                     todayMetrics: todayMetrics,
@@ -192,7 +192,7 @@ enum HealthIntelligenceWeeklyReviewSupport {
                     baselineContext: baselineContext,
                     calendar: calendar
                 )
-            )
+            )) ?? .unknown
 
             summaries.append(DailyRecoverySummary(date: day, summary: recovery))
 

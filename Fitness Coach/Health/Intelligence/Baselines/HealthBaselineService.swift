@@ -119,20 +119,7 @@ struct HealthBaselinePrefetch: Equatable, Sendable {
 
 // MARK: - Service
 
-protocol HealthBaselineServing: Sendable {
-    func buildContext(
-        for targetDate: Date,
-        calendar: Calendar
-    ) async -> HealthBaselineContext
-}
-
-extension HealthBaselineServing {
-    func buildContext(for targetDate: Date) async -> HealthBaselineContext {
-        await buildContext(for: targetDate, calendar: .current)
-    }
-}
-
-struct HealthBaselineService: HealthBaselineServing {
+struct HealthBaselineService: HealthBaselineProviding {
 
     private let repository: any HealthDataRepositorying
 

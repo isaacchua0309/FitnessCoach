@@ -82,13 +82,9 @@ enum WeeklyReviewPolicy {
 
 // MARK: - Engine
 
-protocol WeeklyReviewEngineing: Sendable {
-    func evaluate(_ input: WeeklyReviewEngineInput) -> WeeklyHealthReview?
-}
+struct WeeklyReviewEngine: WeeklyReviewProviding {
 
-struct WeeklyReviewEngine: WeeklyReviewEngineing {
-
-    func evaluate(_ input: WeeklyReviewEngineInput) -> WeeklyHealthReview? {
+    func evaluate(_ input: WeeklyReviewEngineInput) throws -> WeeklyHealthReview? {
         let weekMetrics = metricsInWeek(input)
         guard hasAnySignal(weekMetrics: weekMetrics, input: input) else {
             return nil

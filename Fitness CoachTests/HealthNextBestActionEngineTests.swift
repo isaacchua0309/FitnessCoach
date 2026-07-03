@@ -24,7 +24,7 @@ final class HealthNextBestActionEngineTests: XCTestCase {
             workoutSummary: makeWorkoutSummary(demand: .high, hydrationAdviceMl: 700)
         )
 
-        let action = engine.evaluate(input)
+        let action = try! engine.evaluate(input)
 
         XCTAssertEqual(action.destination, .logMeal)
         XCTAssertEqual(action.ctaTitle, "Log meal")
@@ -46,7 +46,7 @@ final class HealthNextBestActionEngineTests: XCTestCase {
             workoutSummary: makeWorkoutSummary(demand: .high, hydrationAdviceMl: 0)
         )
 
-        let action = engine.evaluate(input)
+        let action = try! engine.evaluate(input)
 
         XCTAssertNotEqual(action.reason, .postWorkoutRecovery)
     }
@@ -65,7 +65,7 @@ final class HealthNextBestActionEngineTests: XCTestCase {
             recoverySummary: makeRecoverySummary(status: .ready)
         )
 
-        let action = engine.evaluate(input)
+        let action = try! engine.evaluate(input)
 
         XCTAssertEqual(action.destination, .addWater)
         XCTAssertEqual(action.ctaTitle, "Add water")
@@ -87,7 +87,7 @@ final class HealthNextBestActionEngineTests: XCTestCase {
             recoverySummary: makeRecoverySummary(status: .low)
         )
 
-        let action = engine.evaluate(input)
+        let action = try! engine.evaluate(input)
 
         XCTAssertEqual(action.destination, .askCoach)
         XCTAssertEqual(action.ctaTitle, "Ask Coach")
@@ -104,7 +104,7 @@ final class HealthNextBestActionEngineTests: XCTestCase {
             recoverySummary: makeRecoverySummary(status: .ready)
         )
 
-        let action = engine.evaluate(input)
+        let action = try! engine.evaluate(input)
 
         XCTAssertEqual(action.destination, .logMeal)
         XCTAssertEqual(action.reason, .noMealLogged)
@@ -127,7 +127,7 @@ final class HealthNextBestActionEngineTests: XCTestCase {
             activitySummary: ActivitySummary(steps: 2_000, activeEnergyKcal: 120, exerciseMinutes: 10)
         )
 
-        let action = engine.evaluate(input)
+        let action = try! engine.evaluate(input)
 
         XCTAssertEqual(action.reason, .stepEncouragement)
         XCTAssertTrue(action.destination == .askCoach || action.destination == .none)
@@ -150,7 +150,7 @@ final class HealthNextBestActionEngineTests: XCTestCase {
             hasLoggedWeightRecently: false
         )
 
-        let action = engine.evaluate(input)
+        let action = try! engine.evaluate(input)
 
         XCTAssertEqual(action.destination, .logWeight)
         XCTAssertEqual(action.reason, .missingWeight)
@@ -176,7 +176,7 @@ final class HealthNextBestActionEngineTests: XCTestCase {
             hasLoggedWeightRecently: true
         )
 
-        let action = engine.evaluate(input)
+        let action = try! engine.evaluate(input)
 
         XCTAssertEqual(action.title, "Stay on plan")
         XCTAssertEqual(action.reason, .stayOnPlan)
@@ -200,7 +200,7 @@ final class HealthNextBestActionEngineTests: XCTestCase {
             hasLoggedWeightRecently: false
         )
 
-        let action = engine.evaluate(input)
+        let action = try! engine.evaluate(input)
 
         XCTAssertEqual(action.reason, .postWorkoutRecovery)
         XCTAssertEqual(action.priority, 1)
@@ -215,8 +215,8 @@ final class HealthNextBestActionEngineTests: XCTestCase {
             workoutSummary: makeWorkoutSummary(demand: .moderate)
         )
 
-        let first = engine.evaluate(input)
-        let second = engine.evaluate(input)
+        let first = try! engine.evaluate(input)
+        let second = try! engine.evaluate(input)
 
         XCTAssertEqual(first, second)
     }
