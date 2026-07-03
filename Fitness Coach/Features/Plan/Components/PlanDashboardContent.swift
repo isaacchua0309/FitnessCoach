@@ -18,6 +18,7 @@ struct PlanDashboardContent: View {
     var onAppleHealthTap: (() -> Void)? = nil
     var onConnectHealth: (() -> Void)? = nil
     var onPlanHealthMissingDataAction: ((PlanHealthMissingDataActionState) -> Void)? = nil
+    var healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
     var onSectionAppear: ((PlanProductSection) -> Void)? = nil
 
     private var showsHealthIntelligenceSection: Bool {
@@ -90,6 +91,7 @@ struct PlanDashboardContent: View {
                let planHealthIntelligenceSectionState {
                 PlanHealthIntelligenceSection(
                     state: planHealthIntelligenceSectionState,
+                    healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
                     onMissingDataAction: onPlanHealthMissingDataAction,
                     onConnectHealth: onConnectHealth
                 )

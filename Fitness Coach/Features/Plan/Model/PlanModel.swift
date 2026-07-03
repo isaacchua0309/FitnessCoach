@@ -36,6 +36,7 @@ final class PlanModel: ObservableObject {
     private let healthDataRepository: (any HealthDataRepositorying)?
     private let healthIntelligenceLoadEnabled: () -> Bool
     private let healthIntelligenceUIEnabled: () -> Bool
+    private let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
 
     init(
         actionCenter: FitnessActionCenter,
@@ -49,7 +50,8 @@ final class PlanModel: ObservableObject {
         healthIntelligenceSnapshotProvider: any HealthIntelligenceSnapshotServing = NoOpHealthIntelligenceSnapshotService(),
         healthDataRepository: (any HealthDataRepositorying)? = nil,
         healthIntelligenceLoadEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.shouldPlanModelLoadHealthIntelligence },
-        healthIntelligenceUIEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.isUIEnabled }
+        healthIntelligenceUIEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.isUIEnabled },
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
     ) {
         self.actionCenter = actionCenter
         self.userProfileReader = userProfileReader
@@ -63,6 +65,7 @@ final class PlanModel: ObservableObject {
         self.healthDataRepository = healthDataRepository
         self.healthIntelligenceLoadEnabled = healthIntelligenceLoadEnabled
         self.healthIntelligenceUIEnabled = healthIntelligenceUIEnabled
+        self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
     }
 
     // MARK: Loading
@@ -123,7 +126,7 @@ final class PlanModel: ObservableObject {
         do {
             try Task.checkCancellation()
 
-            let sectionState = await PlanHealthIntelligenceSectionLoader.loadSectionState(
+            async let sectionTask = PlanHealthIntelligenceSectionLoader.loadSectionState(
                 profile: profile,
                 context: context,
                 isAppleHealthConnected: isAppleHealthConnected,
@@ -131,10 +134,36 @@ final class PlanModel: ObservableObject {
                 baselineService: healthBaselineService,
                 healthDataRepository: healthDataRepository
             )
+            async let snapshotTask = healthIntelligenceSnapshotProvider.loadTodaySnapshot(
+                for: context.asOf,
+                calendar: context.calendar
+            )
+            async let availabilityTask = healthDataRepository.getHealthDataAvailability()
+
+            let sectionState = await sectionTask
+            let snapshot = await snapshotTask
+            let availability = await availabilityTask
 
             try Task.checkCancellation()
 
             planHealthIntelligenceSectionState = uiEnabled ? sectionState : nil
+
+            let analyticsContext = HealthIntelligencePresentationContext(
+                availability: availability,
+                snapshot: snapshot,
+                isAppleHealthConnected: isAppleHealthConnected,
+                cachedDayCount: availability.cachedDayCount
+            )
+            let confidenceBucket = snapshot.map {
+                HealthIntelligenceAnalyticsContextBuilder.confidenceBucket(from: $0.planConfidence)
+            } ?? HealthIntelligenceAnalyticsContextBuilder.confidenceBucket(
+                from: sectionState.confidenceCard.confidenceLabel
+            )
+            healthIntelligenceAnalyticsCoordinator?.logSnapshotLoaded(
+                surface: .plan,
+                context: analyticsContext,
+                confidenceBucket: confidenceBucket
+            )
         } catch is CancellationError {
             return
         } catch {
@@ -143,6 +172,16 @@ final class PlanModel: ObservableObject {
                 context: context,
                 isAppleHealthConnected: isAppleHealthConnected,
                 uiEnabled: uiEnabled
+            )
+
+            let analyticsContext = HealthIntelligencePresentationContext(
+                explicitErrorMessage: "load_failed",
+                isAppleHealthConnected: isAppleHealthConnected
+            )
+            healthIntelligenceAnalyticsCoordinator?.logSnapshotFailed(
+                surface: .plan,
+                context: analyticsContext,
+                error: error
             )
         }
     }

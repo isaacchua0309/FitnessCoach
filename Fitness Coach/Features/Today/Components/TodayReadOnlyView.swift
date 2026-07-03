@@ -15,6 +15,7 @@ struct TodayReadOnlyView: View {
     let actionCoordinator: TodayActionCoordinator
     let healthIntelligenceSection: TodayHealthIntelligenceSectionState?
     let isHealthIntelligenceUIEnabled: Bool
+    var healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
     let onHealthNextBestAction: ((TodayHealthNextBestActionDestination) -> Void)?
     let onOpenJourney: () -> Void
     let onOpenPlan: () -> Void
@@ -54,6 +55,7 @@ struct TodayReadOnlyView: View {
         actionCoordinator: TodayActionCoordinator,
         healthIntelligenceSection: TodayHealthIntelligenceSectionState? = nil,
         isHealthIntelligenceUIEnabled: Bool = false,
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
         onHealthNextBestAction: ((TodayHealthNextBestActionDestination) -> Void)? = nil,
         onOpenJourney: @escaping () -> Void = {},
         onOpenPlan: @escaping () -> Void = {}
@@ -62,6 +64,7 @@ struct TodayReadOnlyView: View {
         self.actionCoordinator = actionCoordinator
         self.healthIntelligenceSection = healthIntelligenceSection
         self.isHealthIntelligenceUIEnabled = isHealthIntelligenceUIEnabled
+        self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
         self.onHealthNextBestAction = onHealthNextBestAction
         self.onOpenJourney = onOpenJourney
         self.onOpenPlan = onOpenPlan
@@ -74,6 +77,7 @@ struct TodayReadOnlyView: View {
             if showsHealthIntelligence, let healthIntelligenceSection {
                 TodayHealthIntelligenceSection(
                     state: healthIntelligenceSection,
+                    healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
                     onNextBestAction: onHealthNextBestAction
                 )
             }

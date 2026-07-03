@@ -27,6 +27,7 @@ final class JourneyModel: ObservableObject {
     private let healthDataRepository: (any HealthDataRepositorying)?
     private let healthIntelligenceLoadEnabled: () -> Bool
     private let healthIntelligenceUIEnabled: () -> Bool
+    private let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
 
     init(
         dailyLogReader: any DailyLogReading,
@@ -41,7 +42,8 @@ final class JourneyModel: ObservableObject {
         healthActivityQuery: HealthActivityQueryService? = nil,
         healthDataRepository: (any HealthDataRepositorying)? = nil,
         healthIntelligenceLoadEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.shouldJourneyModelLoadHealthIntelligence },
-        healthIntelligenceUIEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.isUIEnabled }
+        healthIntelligenceUIEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.isUIEnabled },
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
     ) {
         self.dailyLogReader = dailyLogReader
         self.weightLogReader = weightLogReader
@@ -56,6 +58,7 @@ final class JourneyModel: ObservableObject {
         self.healthDataRepository = healthDataRepository
         self.healthIntelligenceLoadEnabled = healthIntelligenceLoadEnabled
         self.healthIntelligenceUIEnabled = healthIntelligenceUIEnabled
+        self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
     }
 
     // MARK: Loading
@@ -127,12 +130,33 @@ final class JourneyModel: ObservableObject {
                 isAppleHealthConnected: trainingInsightsStore.integrationState.isConnected,
                 uiEnabled: uiEnabled
             )
+
+            let analyticsContext = HealthIntelligencePresentationContext(
+                availability: input.availability,
+                snapshot: input.todaySnapshot,
+                isAppleHealthConnected: input.healthConnection == .connected,
+                cachedDayCount: input.cachedDayCount
+            )
+            healthIntelligenceAnalyticsCoordinator?.logSnapshotLoaded(
+                surface: .journey,
+                context: analyticsContext
+            )
         } catch is CancellationError {
             return
         } catch {
             journeyHealthIntelligenceSectionState = fallbackHealthIntelligenceSection(
                 isAppleHealthConnected: trainingInsightsStore.integrationState.isConnected,
                 uiEnabled: uiEnabled
+            )
+
+            let analyticsContext = HealthIntelligencePresentationContext(
+                explicitErrorMessage: "load_failed",
+                isAppleHealthConnected: trainingInsightsStore.integrationState.isConnected
+            )
+            healthIntelligenceAnalyticsCoordinator?.logSnapshotFailed(
+                surface: .journey,
+                context: analyticsContext,
+                error: error
             )
         }
     }

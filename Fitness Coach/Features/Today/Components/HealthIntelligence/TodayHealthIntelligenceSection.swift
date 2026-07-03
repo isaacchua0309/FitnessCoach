@@ -9,6 +9,7 @@ import SwiftUI
 
 struct TodayHealthIntelligenceSection: View {
     let state: TodayHealthIntelligenceSectionState
+    var healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
     var onNextBestAction: ((TodayHealthNextBestActionDestination) -> Void)?
 
     var body: some View {
@@ -17,6 +18,10 @@ struct TodayHealthIntelligenceSection: View {
                 state: state.recoveryCard,
                 isLoading: state.isLoading
             )
+            .onAppear {
+                guard !state.isLoading, state.recoveryCard.phase != .loading else { return }
+                healthIntelligenceAnalyticsCoordinator?.logTodayRecoveryCardViewed()
+            }
 
             TodayDailyMissionCard(
                 state: state.dailyMission,

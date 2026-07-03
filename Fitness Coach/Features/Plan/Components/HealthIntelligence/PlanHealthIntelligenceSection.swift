@@ -9,6 +9,7 @@ import SwiftUI
 
 struct PlanHealthIntelligenceSection: View {
     let state: PlanHealthIntelligenceSectionState
+    var healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
     var onMissingDataAction: ((PlanHealthMissingDataActionState) -> Void)? = nil
     var onConnectHealth: (() -> Void)? = nil
 
@@ -18,6 +19,14 @@ struct PlanHealthIntelligenceSection: View {
                 state: state.confidenceCard,
                 isLoading: state.isLoading
             )
+            .onAppear {
+                guard !state.isLoading, state.confidenceCard.phase == .loaded else { return }
+                healthIntelligenceAnalyticsCoordinator?.logPlanHealthConfidenceViewed(
+                    confidenceBucket: HealthIntelligenceAnalyticsContextBuilder.confidenceBucket(
+                        from: state.confidenceCard.confidenceLabel
+                    )
+                )
+            }
 
             if state.confidenceCard.phase != .empty {
                 PlanHealthSignalsCard(

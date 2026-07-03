@@ -36,6 +36,8 @@ struct MainTabView: View {
     private let container: AppContainer
     private let journeyAnalyticsCoordinator: JourneyAnalyticsCoordinator
     private let settingsAnalyticsCoordinator: SettingsAnalyticsCoordinator
+    private let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator
+    private let todayActionCoordinator: TodayActionCoordinator
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.formaResolvedTheme) private var resolvedTheme
@@ -51,10 +53,31 @@ struct MainTabView: View {
         self.container = container
         self.journeyAnalyticsCoordinator = container.makeJourneyAnalyticsCoordinator()
         self.settingsAnalyticsCoordinator = container.makeSettingsAnalyticsCoordinator()
-        _todayModel = StateObject(wrappedValue: container.makeTodayModel())
-        _coachModel = StateObject(wrappedValue: container.makeCoachModel())
-        _journeyModel = StateObject(wrappedValue: container.makeJourneyModel())
-        _planModel = StateObject(wrappedValue: container.makePlanModel())
+        let healthIntelligenceAnalyticsCoordinator = container.makeHealthIntelligenceAnalyticsCoordinator()
+        self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
+        self.todayActionCoordinator = container.makeTodayActionCoordinator(
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+        )
+        _todayModel = StateObject(
+            wrappedValue: container.makeTodayModel(
+                healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+            )
+        )
+        _coachModel = StateObject(
+            wrappedValue: container.makeCoachModel(
+                healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+            )
+        )
+        _journeyModel = StateObject(
+            wrappedValue: container.makeJourneyModel(
+                healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+            )
+        )
+        _planModel = StateObject(
+            wrappedValue: container.makePlanModel(
+                healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+            )
+        )
         _selectedTab = State(initialValue: Self.resolveInitialTab())
     }
 
@@ -62,8 +85,9 @@ struct MainTabView: View {
         TabView(selection: $selectedTab) {
             TodayView(
                 model: todayModel,
-                actionCoordinator: container.makeTodayActionCoordinator(),
+                actionCoordinator: todayActionCoordinator,
                 healthActivityQuery: container.healthActivityQueryService,
+                healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
                 onOpenCoach: { prefill in
                     coachModel.prepareInput(prefill: prefill)
                     selectedTab = .coach
@@ -89,6 +113,7 @@ struct MainTabView: View {
             JourneyView(
                 model: journeyModel,
                 analyticsCoordinator: journeyAnalyticsCoordinator,
+                healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
                 onOpenCoach: { prefill in
                     coachModel.prepareInput(prefill: prefill)
                     selectedTab = .coach
@@ -107,6 +132,7 @@ struct MainTabView: View {
 
             PlanView(
                 model: planModel,
+                healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
                 onGoToToday: {
                     selectedTab = .today
                 }

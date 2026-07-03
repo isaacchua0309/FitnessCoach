@@ -17,6 +17,7 @@ struct TodayView: View {
     @EnvironmentObject private var authManager: AuthManager
 
     private let healthActivityQuery: HealthActivityQueryService
+    private let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
 
     @State private var appleHealthWorkoutCount: Int?
     @State private var appleHealthStepsToday: Int?
@@ -31,6 +32,7 @@ struct TodayView: View {
         model: TodayModel,
         actionCoordinator: TodayActionCoordinator,
         healthActivityQuery: HealthActivityQueryService,
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
         onOpenCoach: ((String?) -> Void)? = nil,
         onOpenJourney: (() -> Void)? = nil,
         onOpenPlan: (() -> Void)? = nil
@@ -38,6 +40,7 @@ struct TodayView: View {
         self.model = model
         _actionCoordinator = StateObject(wrappedValue: actionCoordinator)
         self.healthActivityQuery = healthActivityQuery
+        self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
         self.onOpenCoach = onOpenCoach
         self.onOpenJourney = onOpenJourney
         self.onOpenPlan = onOpenPlan
@@ -216,6 +219,7 @@ struct TodayView: View {
                         ? model.healthIntelligenceSectionState
                         : nil,
                     isHealthIntelligenceUIEnabled: isHealthIntelligenceUIEnabled,
+                    healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
                     onHealthNextBestAction: { destination in
                         actionCoordinator.handleHealthNextBestAction(destination)
                     },

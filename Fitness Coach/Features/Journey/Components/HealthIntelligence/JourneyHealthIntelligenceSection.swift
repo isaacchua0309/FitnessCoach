@@ -9,6 +9,7 @@ import SwiftUI
 
 struct JourneyHealthIntelligenceSection: View {
     let state: JourneyHealthIntelligenceSectionState
+    var healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
     var onConnectHealth: (() -> Void)?
     var onWeeklyReviewSelected: ((WeeklyReviewDetailState) -> Void)?
 
@@ -27,11 +28,19 @@ struct JourneyHealthIntelligenceSection: View {
                 isLoading: state.isLoading,
                 referenceDay: referenceDay
             )
+            .onAppear {
+                guard !state.isLoading, state.recoveryTimeline.phase == .loaded else { return }
+                healthIntelligenceAnalyticsCoordinator?.logJourneyRecoveryTimelineViewed()
+            }
 
             JourneyWorkoutHistoryCard(
                 state: state.workoutHistory,
                 isLoading: state.isLoading
             )
+            .onAppear {
+                guard !state.isLoading, state.workoutHistory.phase == .loaded else { return }
+                healthIntelligenceAnalyticsCoordinator?.logJourneyWorkoutHistoryViewed()
+            }
 
             JourneyMilestonesCard(
                 state: state.milestones,
@@ -64,9 +73,17 @@ struct JourneyHealthIntelligenceSection: View {
             .buttonStyle(.plain)
             .accessibilityHint("Opens weekly review report")
             .accessibilityIdentifier("journey-weekly-review-card")
+            .onAppear {
+                guard !state.isLoading, card.phase == .loaded else { return }
+                healthIntelligenceAnalyticsCoordinator?.logWeeklyReviewCardViewed()
+            }
         } else {
             WeeklyReviewCard(state: card, isLoading: state.isLoading)
                 .accessibilityIdentifier("journey-weekly-review-card")
+                .onAppear {
+                    guard !state.isLoading, card.phase == .loaded else { return }
+                    healthIntelligenceAnalyticsCoordinator?.logWeeklyReviewCardViewed()
+                }
         }
     }
 

@@ -71,6 +71,7 @@ final class CoachModel: ObservableObject {
     private let imageAnalysisSessionStore = ImageAnalysisSessionStore()
     private let pendingImageLocalSources = CoachPendingImageLocalSourceStore()
     private let coachAnalyticsLogger: any CoachAnalyticsLogging
+    private let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
     private var nutritionEstimateLogPending = false
     private var lastNutritionActionTapAt: Date?
 
@@ -98,7 +99,8 @@ final class CoachModel: ObservableObject {
         routeDecider: CoachRouteDecider? = nil,
         trainingInsightsStore: TrainingInsightsStore? = nil,
         transcriptStore: CoachChatTranscriptStore = CoachInMemoryChatTranscriptStore(),
-        coachAnalyticsLogger: (any CoachAnalyticsLogging)? = nil
+        coachAnalyticsLogger: (any CoachAnalyticsLogging)? = nil,
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
     ) {
         self.localCommandParser = localCommandParser ?? .standard
         self.dailyLogReader = dailyLogReader
@@ -148,6 +150,7 @@ final class CoachModel: ObservableObject {
         #else
         self.coachAnalyticsLogger = coachAnalyticsLogger ?? NoOpCoachAnalyticsLogger()
         #endif
+        self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
         self.messages = transcriptStore.loadMessages()
     }
 
@@ -195,6 +198,11 @@ final class CoachModel: ObservableObject {
     private func prepareAIContext(recentMessages: [ChatMessage]) async -> AIContext? {
         guard let aiContextBuilder else { return nil }
         let activity = await resolveAIActivityContext()
+        if activity.healthIntelligence != nil {
+            healthIntelligenceAnalyticsCoordinator?.logCoachHealthContextUsed(
+                from: activity.sourceSnapshot
+            )
+        }
         return aiContextBuilder.makeContext(
             recentMessages: recentMessages,
             activity: activity

@@ -25,6 +25,7 @@ final class TodayModel: ObservableObject {
     private let authStateProvider: () -> AuthState
     private let healthIntelligenceLoadEnabled: () -> Bool
     private let healthIntelligenceUIEnabled: () -> Bool
+    private let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
 
     private var activityContext: TodayActivityContext = .default
     private var boundHydrationContext: TodayHydrationContext?
@@ -41,7 +42,8 @@ final class TodayModel: ObservableObject {
         hydrationContextProvider: @escaping () -> TodayHydrationContext? = { nil },
         authStateProvider: @escaping () -> AuthState = { .unknown },
         healthIntelligenceLoadEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.shouldTodayModelLoadHealthIntelligence },
-        healthIntelligenceUIEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.isUIEnabled }
+        healthIntelligenceUIEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.isUIEnabled },
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
     ) {
         self.dailyLogReader = dailyLogReader
         self.foodLogReader = foodLogReader
@@ -54,6 +56,7 @@ final class TodayModel: ObservableObject {
         self.authStateProvider = authStateProvider
         self.healthIntelligenceLoadEnabled = healthIntelligenceLoadEnabled
         self.healthIntelligenceUIEnabled = healthIntelligenceUIEnabled
+        self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
     }
 
     // MARK: Session lifecycle
@@ -246,12 +249,30 @@ final class TodayModel: ObservableObject {
                 nutritionProgress: nutritionProgress,
                 uiEnabled: uiEnabled
             )
+
+            let analyticsContext = HealthIntelligencePresentationContext(
+                snapshot: snapshot
+            )
+            healthIntelligenceAnalyticsCoordinator?.logSnapshotLoaded(
+                surface: .today,
+                context: analyticsContext
+            )
         } catch is CancellationError {
             return
         } catch {
             healthIntelligenceSectionState = fallbackHealthIntelligenceSection(
                 nutritionProgress: nutritionProgress,
                 uiEnabled: uiEnabled
+            )
+
+            let analyticsContext = HealthIntelligencePresentationContext(
+                explicitErrorMessage: "load_failed",
+                snapshot: nil
+            )
+            healthIntelligenceAnalyticsCoordinator?.logSnapshotFailed(
+                surface: .today,
+                context: analyticsContext,
+                error: error
             )
         }
     }

@@ -9,6 +9,7 @@ import SwiftUI
 
 struct PlanView: View {
     @ObservedObject var model: PlanModel
+    var healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
     var onGoToToday: (() -> Void)? = nil
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
     @EnvironmentObject private var trainingInsightsStore: TrainingInsightsStore
@@ -222,6 +223,7 @@ struct PlanView: View {
                             entryPoint: .planConfidence,
                             healthConnected: healthConnected
                         )
+                        healthIntelligenceAnalyticsCoordinator?.logHealthPermissionCTATapped(surface: .plan)
                         isShowingTrainingInsights = true
                     }
                     : nil,
@@ -233,6 +235,7 @@ struct PlanView: View {
                         )
                     }
                     : nil,
+                healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
                 onSectionAppear: { section in
                     logSectionImpression(section, healthConnected: healthConnected)
                 }
@@ -254,6 +257,7 @@ struct PlanView: View {
                 entryPoint: .planConfidence,
                 healthConnected: healthConnected
             )
+            healthIntelligenceAnalyticsCoordinator?.logHealthPermissionCTATapped(surface: .plan)
             isShowingTrainingInsights = true
         default:
             break

@@ -16,6 +16,7 @@ struct JourneyView: View {
     @State private var presentedWeeklyReviewDetail: WeeklyReviewDetailPresentation?
 
     let analyticsCoordinator: JourneyAnalyticsCoordinator
+    let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
 
     /// Optional prefill text for Coach input. `nil` opens Coach without prefilling.
     var onOpenCoach: ((String?) -> Void)?
@@ -27,12 +28,14 @@ struct JourneyView: View {
     init(
         model: JourneyModel,
         analyticsCoordinator: JourneyAnalyticsCoordinator,
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
         onOpenCoach: ((String?) -> Void)? = nil,
         onOpenPlan: (() -> Void)? = nil,
         onOpenToday: (() -> Void)? = nil
     ) {
         self.model = model
         self.analyticsCoordinator = analyticsCoordinator
+        self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
         self.onOpenCoach = onOpenCoach
         self.onOpenPlan = onOpenPlan
         self.onOpenToday = onOpenToday
@@ -72,6 +75,9 @@ struct JourneyView: View {
                     }
                     .background(FormaTokens.Color.canvas)
                     .formaThemeReactive()
+                    .onAppear {
+                        healthIntelligenceAnalyticsCoordinator?.logWeeklyReviewDetailOpened()
+                    }
                 }
         }
     }
@@ -114,10 +120,14 @@ struct JourneyView: View {
                 analyticsCoordinator: analyticsCoordinator,
                 onCTA: handleCTA,
                 onGoToToday: { onOpenToday?() },
-                onConnectHealth: healthIntelligenceUIEnabled ? { onOpenPlan?() } : nil,
+                onConnectHealth: healthIntelligenceUIEnabled ? {
+                    healthIntelligenceAnalyticsCoordinator?.logHealthPermissionCTATapped(surface: .journey)
+                    onOpenPlan?()
+                } : nil,
                 onWeeklyReviewSelected: { detail in
                     presentedWeeklyReviewDetail = WeeklyReviewDetailPresentation(state: detail)
-                }
+                },
+                healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
             )
         }
         .formaMainTabScrollInsets()

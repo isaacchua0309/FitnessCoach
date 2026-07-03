@@ -147,6 +147,34 @@ final class CapturingCoachAnalyticsLogger: CoachAnalyticsLogging, @unchecked Sen
     }
 }
 
+final class CapturingHealthIntelligenceAnalyticsLogger: HealthIntelligenceAnalyticsLogging, @unchecked Sendable {
+    struct Entry {
+        let event: HealthIntelligenceAnalyticsEvent
+        let properties: HealthIntelligenceAnalyticsProperties
+    }
+
+    private(set) var events: [Entry] = []
+
+    var lastEvent: HealthIntelligenceAnalyticsEvent? { events.last?.event }
+    var lastProperties: [String: String]? { events.last?.properties.asParameters() }
+
+    func log(_ event: HealthIntelligenceAnalyticsEvent, properties: HealthIntelligenceAnalyticsProperties) {
+        events.append(Entry(event: event, properties: properties))
+    }
+
+    func contains(_ event: HealthIntelligenceAnalyticsEvent) -> Bool {
+        events.contains { $0.event == event }
+    }
+
+    func lastProperties(for event: HealthIntelligenceAnalyticsEvent) -> [String: String]? {
+        events.last { $0.event == event }?.properties.asParameters()
+    }
+
+    func eventCount(for event: HealthIntelligenceAnalyticsEvent) -> Int {
+        events.filter { $0.event == event }.count
+    }
+}
+
 final class CapturingSettingsAnalyticsLogger: SettingsAnalyticsLogging, @unchecked Sendable {
     struct Entry {
         let event: SettingsAnalyticsEvent

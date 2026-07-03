@@ -15,6 +15,7 @@ struct CoachAIActivityContext: Equatable, Sendable {
     var stepsOverride: Int?
     var healthIntelligence: CoachHealthIntelligenceContext?
     var healthIntelligenceAwarenessAvailable: Bool = false
+    var sourceSnapshot: HealthIntelligenceSnapshot?
 }
 
 enum CoachAIActivityContextResolver {
@@ -83,7 +84,8 @@ enum CoachAIActivityContextResolver {
             hasWorkoutToday: snapshot.workout?.hasWorkout == true,
             stepsOverride: snapshot.activity.steps,
             healthIntelligence: awareness ? healthIntelligence : nil,
-            healthIntelligenceAwarenessAvailable: awareness
+            healthIntelligenceAwarenessAvailable: awareness,
+            sourceSnapshot: snapshot
         )
     }
 }

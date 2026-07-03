@@ -12,6 +12,7 @@ struct JourneyDashboardContent: View {
     var healthIntelligenceUIEnabled: Bool = HealthIntelligenceFeatureFlags.isUIEnabled
     var healthIntelligenceSectionState: JourneyHealthIntelligenceSectionState?
     var analyticsCoordinator: JourneyAnalyticsCoordinator?
+    var healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
     var onCTA: (JourneyCTA) -> Void = { _ in }
     var onGoToToday: () -> Void = {}
     var onConnectHealth: (() -> Void)?
@@ -95,6 +96,7 @@ struct JourneyDashboardContent: View {
             if let healthIntelligenceSectionState {
                 JourneyHealthIntelligenceSection(
                     state: healthIntelligenceSectionState,
+                    healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
                     onConnectHealth: onConnectHealth,
                     onWeeklyReviewSelected: onWeeklyReviewSelected
                 )

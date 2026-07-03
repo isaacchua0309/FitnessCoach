@@ -33,6 +33,7 @@ final class TodayActionCoordinator: ObservableObject {
 
     private let actionCenter: FitnessActionCenter
     private let analyticsLogger: any TodayAnalyticsLogging
+    private let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
     private let logDate: () -> Date
     private var analyticsSnapshot: TodayAnalyticsSnapshot = .empty
 
@@ -42,10 +43,12 @@ final class TodayActionCoordinator: ObservableObject {
     init(
         actionCenter: FitnessActionCenter,
         analyticsLogger: any TodayAnalyticsLogging = NoOpTodayAnalyticsLogger(),
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
         logDate: @escaping () -> Date = { Date() }
     ) {
         self.actionCenter = actionCenter
         self.analyticsLogger = analyticsLogger
+        self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
         self.logDate = logDate
     }
 
@@ -92,6 +95,8 @@ final class TodayActionCoordinator: ObservableObject {
     }
 
     func handleHealthNextBestAction(_ destination: TodayHealthNextBestActionDestination) {
+        healthIntelligenceAnalyticsCoordinator?.logTodayNextBestActionTapped(destination: destination)
+
         switch destination {
         case .logMeal:
             perform(.presentLogMeal(mealType: nil))

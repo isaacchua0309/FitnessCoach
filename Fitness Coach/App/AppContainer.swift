@@ -67,6 +67,7 @@ final class AppContainer {
     let publicEntryAnalyticsLogger: any PublicEntryAnalyticsLogging
     let themeAnalyticsLogger: any ThemeAnalyticsLogging
     let settingsAnalyticsLogger: any SettingsAnalyticsLogging
+    let healthIntelligenceAnalyticsLogger: any HealthIntelligenceAnalyticsLogging
     let onboardingRoutingConfiguration: OnboardingRoutingConfiguration
 
     let themeStore: ThemeStore
@@ -81,6 +82,7 @@ final class AppContainer {
         publicEntryAnalyticsLogger: (any PublicEntryAnalyticsLogging)? = nil,
         themeAnalyticsLogger: (any ThemeAnalyticsLogging)? = nil,
         settingsAnalyticsLogger: (any SettingsAnalyticsLogging)? = nil,
+        healthIntelligenceAnalyticsLogger: (any HealthIntelligenceAnalyticsLogging)? = nil,
         onboardingRoutingConfiguration: OnboardingRoutingConfiguration? = nil
     ) throws {
         let resolvedOnboardingRoutingConfiguration = onboardingRoutingConfiguration ?? .production
@@ -107,6 +109,8 @@ final class AppContainer {
         self.publicEntryAnalyticsLogger = publicEntryAnalyticsLogger ?? OSLogPublicEntryAnalyticsLogger()
         self.themeAnalyticsLogger = themeAnalyticsLogger ?? OSLogThemeAnalyticsLogger()
         self.settingsAnalyticsLogger = settingsAnalyticsLogger ?? OSLogSettingsAnalyticsLogger()
+        self.healthIntelligenceAnalyticsLogger = healthIntelligenceAnalyticsLogger
+            ?? OSLogHealthIntelligenceAnalyticsLogger()
         #else
         self.onboardingAnalyticsLogger = onboardingAnalyticsLogger ?? NoOpOnboardingAnalyticsLogger()
         self.todayAnalyticsLogger = todayAnalyticsLogger ?? NoOpTodayAnalyticsLogger()
@@ -115,6 +119,8 @@ final class AppContainer {
         self.publicEntryAnalyticsLogger = publicEntryAnalyticsLogger ?? NoOpPublicEntryAnalyticsLogger()
         self.themeAnalyticsLogger = themeAnalyticsLogger ?? NoOpThemeAnalyticsLogger()
         self.settingsAnalyticsLogger = settingsAnalyticsLogger ?? NoOpSettingsAnalyticsLogger()
+        self.healthIntelligenceAnalyticsLogger = healthIntelligenceAnalyticsLogger
+            ?? NoOpHealthIntelligenceAnalyticsLogger()
         #endif
         self.onboardingRoutingConfiguration = resolvedOnboardingRoutingConfiguration
 
@@ -342,14 +348,25 @@ final class AppContainer {
         await healthIntelligenceSnapshotService.refreshTodaySnapshot(calendar: .current)
     }
 
-    func makeTodayActionCoordinator() -> TodayActionCoordinator {
-        TodayActionCoordinator(
-            actionCenter: actionCenter,
-            analyticsLogger: todayAnalyticsLogger
+    func makeHealthIntelligenceAnalyticsCoordinator() -> HealthIntelligenceAnalyticsCoordinator {
+        HealthIntelligenceAnalyticsCoordinator(
+            analyticsLogger: healthIntelligenceAnalyticsLogger
         )
     }
 
-    func makeTodayModel() -> TodayModel {
+    func makeTodayActionCoordinator(
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+    ) -> TodayActionCoordinator {
+        TodayActionCoordinator(
+            actionCenter: actionCenter,
+            analyticsLogger: todayAnalyticsLogger,
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+        )
+    }
+
+    func makeTodayModel(
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+    ) -> TodayModel {
         TodayModel(
             dailyLogReader: dailyLogService,
             foodLogReader: foodLogService,
@@ -367,11 +384,14 @@ final class AppContainer {
             },
             authStateProvider: { [weak self] in
                 self?.authManager.authState ?? .unknown
-            }
+            },
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
         )
     }
 
-    func makeCoachModel() -> CoachModel {
+    func makeCoachModel(
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+    ) -> CoachModel {
         CoachModel(
             actionCenter: actionCenter,
             dailyLogReader: dailyLogService,
@@ -381,7 +401,8 @@ final class AppContainer {
             aiService: aiService,
             userProfileReader: userProfileService,
             aiCommandParsingEnabled: aiCommandParsingEnabled,
-            trainingInsightsStore: trainingInsightsStore
+            trainingInsightsStore: trainingInsightsStore,
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
         )
     }
 
@@ -393,7 +414,9 @@ final class AppContainer {
         SettingsAnalyticsCoordinator(analyticsLogger: settingsAnalyticsLogger)
     }
 
-    func makeJourneyModel() -> JourneyModel {
+    func makeJourneyModel(
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+    ) -> JourneyModel {
         JourneyModel(
             dailyLogReader: dailyLogService,
             weightLogReader: weightLogService,
@@ -405,11 +428,14 @@ final class AppContainer {
             healthIntelligenceEngine: healthIntelligenceEngine,
             healthCacheStore: healthCacheStore,
             healthActivityQuery: healthActivityQueryService,
-            healthDataRepository: healthDataRepository
+            healthDataRepository: healthDataRepository,
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
         )
     }
 
-    func makePlanModel() -> PlanModel {
+    func makePlanModel(
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+    ) -> PlanModel {
         PlanModel(
             actionCenter: actionCenter,
             userProfileReader: userProfileService,
@@ -420,7 +446,8 @@ final class AppContainer {
             analyticsLogger: planAnalyticsLogger,
             healthBaselineService: healthBaselineService,
             healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
-            healthDataRepository: healthDataRepository
+            healthDataRepository: healthDataRepository,
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
         )
     }
 
