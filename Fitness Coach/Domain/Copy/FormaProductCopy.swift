@@ -36,6 +36,7 @@ enum FormaProductCopy {
         static let plan = "Loading your plan…"
         static let journey = "Loading your journey…"
         static let training = "Loading training…"
+        static let settings = "Loading settings…"
         static let generatingPlan = "Generating your plan…"
         static let creatingProfile = "Creating your profile…"
     }
@@ -2880,26 +2881,72 @@ enum FormaProductCopy {
 
         enum AppleHealth {
             static let screenTitle = "Apple Health"
+            static let healthDataDetailsTitle = "Health data details"
+            static let permissionsSectionTitle = "Permissions"
+            static let statusLabel = "Connection status"
+            static let lastLocalSyncLabel = "Last local sync"
+            static let lastRemoteSyncLabel = "Last remote summary sync"
+            static let lastSyncNever = "Not yet synced"
+            static let statusConnected = "Connected"
+            static let statusPartiallyConnected = "Partially connected"
+            static let statusNotConnected = "Not connected"
+            static let statusPermissionNeeded = "Permission needed"
+            static let statusUnavailable = "Unavailable"
+            static let statusConnecting = "Connecting…"
+            static let connectAction = "Connect Apple Health"
+            static let connectingAction = "Connecting…"
+            static let refreshHealthDataAction = "Refresh health data"
+            static let refreshingHealthDataAction = "Refreshing…"
+            static let openHealthAppAction = "Manage in Apple Health"
+            static let manageHealthDataSyncAction = "Manage health data sync"
+            static let deleteRemoteSummariesAction = "Delete remote health summaries"
+            static let deletingRemoteSummariesAction = "Deleting…"
+            static let loadFailedMessage = "Couldn't load Apple Health settings. Try again."
+            static let healthKitUnavailableMessage =
+                "Apple Health isn't available on this device. Health settings stay read-only here."
+            static let deleteRemoteSummariesFailedMessage =
+                "Couldn't delete remote health summaries. Try again when you're signed in."
+            static let connectAccessibilityHint = "Requests permission to read selected Apple Health signals"
+            static let connectingAccessibilityHint = "Unavailable while connecting"
+            static let openHealthAccessibilityHint = "Opens the Health app to manage Forma permissions"
+            static let refreshHealthDataAccessibilityHint = "Refreshes cached health summaries on this device"
+            static let manageHealthDataSyncAccessibilityHint = "Opens cloud health summary sync settings"
+            static let deleteRemoteSummariesAccessibilityHint =
+                "Deletes normalized health summaries stored for your account"
+
+            enum RemoteSync {
+                static let screenTitle = "Health data sync"
+                static let intro =
+                    "Forma can store normalized health summaries in your account when cloud sync is enabled. Raw HealthKit samples are never uploaded."
+                static let statusLabel = "Sync status"
+                static let lastSyncLabel = "Last remote sync"
+                static let lastSyncNever = "Not yet synced"
+                static let syncNowAction = "Sync now"
+                static let syncingAction = "Syncing…"
+                static let deleteRemoteSummariesAction = "Delete remote health summaries"
+                static let deleteConfirmationTitle = "Delete remote health summaries?"
+                static let deleteConfirmationMessage =
+                    "This removes normalized health summaries stored for your Forma account. Your Apple Health data is not changed."
+                static let deleteConfirmActionTitle = "Delete summaries"
+                static let statusDisabled = "Off"
+                static let statusIdle = "Ready"
+                static let statusSyncing = "Syncing"
+                static let statusSucceeded = "Up to date"
+                static let statusPartialSuccess = "Partially synced"
+                static let statusFailed = "Needs attention"
+            }
+
+            // Legacy copy retained for settings hub row summaries.
             static let readsWorkoutsCopy =
                 "Forma reads workouts to improve activity, Plan confidence, and Journey insights."
             static let doesNotWriteCopy =
                 "Forma does not write or change your Health data."
             static let connectionCardTitle = "Connection"
-            static let statusLabel = "Status"
             static let lastSyncLabel = "Last sync"
             static let permissionsLabel = "Permissions"
             static let accessLabel = "Access"
             static let permissionsWorkouts = "Workouts"
             static let accessManagedInHealthApp = "Managed in Health app"
-            static let statusConnected = "Connected"
-            static let statusNotConnected = "Not Connected"
-            static let statusPermissionNeeded = "Permission Needed"
-            static let openHealthAppAction = "Open Health app"
-            static let connectAction = "Connect Apple Health"
-            static let connectingAction = "Connecting…"
-            static let openHealthAccessibilityHint = "Opens the Health app to manage workout access"
-            static let connectAccessibilityHint = "Requests permission to read workouts from Apple Health"
-            static let connectingAccessibilityHint = "Unavailable while connecting"
         }
 
         /// Theme preferences screen and color palette copy.

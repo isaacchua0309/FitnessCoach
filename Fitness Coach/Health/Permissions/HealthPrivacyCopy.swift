@@ -140,6 +140,25 @@ enum HealthPrivacyCopy {
         HealthPermissionCategory.displayCategories.map(definition(for:))
     }
 
+    // MARK: - Settings permission status labels
+
+    enum SettingsStatus {
+        static func label(for displayStatus: HealthPermissionDisplayStatus) -> String {
+            switch displayStatus {
+            case .connected:
+                return "Connected"
+            case .notDetermined:
+                return "Not shared"
+            case .denied:
+                return "Denied"
+            case .unavailable:
+                return "Unavailable"
+            case .unknown:
+                return "Unknown"
+            }
+        }
+    }
+
     // MARK: - Permission status copy
 
     enum Status {

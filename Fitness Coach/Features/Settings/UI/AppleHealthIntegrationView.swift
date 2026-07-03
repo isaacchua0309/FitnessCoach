@@ -2,7 +2,7 @@
 //  AppleHealthIntegrationView.swift
 //  Fitness Coach
 //
-//  Forma — Settings destination for Apple Health training access.
+//  Forma — Settings destination for Apple Health permissions and sync.
 //
 
 import SwiftUI
@@ -10,32 +10,141 @@ import SwiftUI
 struct AppleHealthIntegrationView: View {
 
     @ObservedObject var insightsStore: TrainingInsightsStore
+    @EnvironmentObject private var healthSyncStateStore: HealthSyncStateStore
+    @Environment(\.appleHealthSettingsEnvironment) private var settingsEnvironment
+
+    @StateObject private var viewModel: AppleHealthSettingsViewModel
+    @State private var didInitialLoad = false
+
+    init(insightsStore: TrainingInsightsStore) {
+        self.insightsStore = insightsStore
+        _viewModel = StateObject(wrappedValue: AppleHealthSettingsViewModel(insightsStore: insightsStore))
+    }
 
     private var presentation: AppleHealthSettingsPresentation {
-        AppleHealthSettingsPresentationBuilder.build(
-            input: AppleHealthSettingsPresentationInput(
-                integrationState: insightsStore.integrationState,
-                lastSyncDate: insightsStore.lastSyncedAt
-            )
+        viewModel.presentation(
+            healthSyncStateStore: healthSyncStateStore,
+            isHealthDataAvailable: settingsEnvironment.permissionService.isHealthDataAvailable,
+            isRemoteSyncEnabled: settingsEnvironment.remoteSyncEnabled()
+        )
+    }
+
+    private var remoteSyncPresentation: AppleHealthRemoteSyncSettingsPresentation {
+        viewModel.remoteSyncPresentation(
+            healthSyncStateStore: healthSyncStateStore,
+            isHealthDataAvailable: settingsEnvironment.permissionService.isHealthDataAvailable,
+            isRemoteSyncEnabled: settingsEnvironment.remoteSyncEnabled()
         )
     }
 
     var body: some View {
         formaSettingsDetailScreen {
-            VStack(alignment: .leading, spacing: SettingsChromeAccessibility.detailSectionSpacing) {
-                heroSection
-                trustCopySection
-                connectionCard
-                primaryActionSection
-            }
+            content
         }
         .navigationTitle(presentation.screenTitle)
+        .navigationDestination(isPresented: $viewModel.showsRemoteSyncSettings) {
+            AppleHealthRemoteSyncSettingsView(
+                viewModel: viewModel,
+                healthSyncStateStore: healthSyncStateStore,
+                settingsEnvironment: settingsEnvironment
+            )
+        }
+        .confirmationDialog(
+            remoteSyncPresentation.deleteConfirmationTitle,
+            isPresented: $viewModel.showsDeleteRemoteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(remoteSyncPresentation.deleteConfirmActionTitle, role: .destructive) {
+                Task {
+                    await viewModel.deleteRemoteSummaries(environment: settingsEnvironment)
+                }
+            }
+            Button(FormaProductCopy.Common.cancel, role: .cancel) {}
+        } message: {
+            Text(remoteSyncPresentation.deleteConfirmationMessage)
+        }
+        .refreshable {
+            await viewModel.loadSnapshot(
+                healthSyncStateStore: healthSyncStateStore,
+                environment: settingsEnvironment
+            )
+        }
         .task {
-            await insightsStore.refresh()
+            guard !didInitialLoad else { return }
+            didInitialLoad = true
+            await viewModel.loadSnapshot(
+                healthSyncStateStore: healthSyncStateStore,
+                environment: settingsEnvironment
+            )
+        }
+        .formaThemeReactive()
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if presentation.showsLoadingState {
+            loadingSection
+        } else {
+            VStack(alignment: .leading, spacing: SettingsChromeAccessibility.detailSectionSpacing) {
+                if let emptyStateMessage = presentation.emptyStateMessage {
+                    emptyStateSection(emptyStateMessage)
+                }
+
+                if let errorMessage = presentation.errorMessage {
+                    errorSection(errorMessage)
+                }
+
+                heroSection
+                privacySection
+                healthDataDetailsSection
+                permissionsSection
+                actionsSection
+            }
         }
     }
 
-    // MARK: - Hero
+    // MARK: - States
+
+    private var loadingSection: some View {
+        VStack(spacing: FormaTokens.Spacing.md) {
+            ProgressView()
+                .tint(FormaTokens.Color.accent)
+            Text(FormaProductCopy.Loading.settings)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, FormaTokens.Spacing.xl)
+    }
+
+    private func emptyStateSection(_ message: String) -> some View {
+        Text(message)
+            .font(FormaTokens.Typography.sectionSubtitle)
+            .foregroundStyle(FormaTokens.Color.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func errorSection(_ message: String) -> some View {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+            Text(message)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(FormaTokens.Color.warning)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button(FormaProductCopy.Common.tryAgain) {
+                Task {
+                    await viewModel.loadSnapshot(
+                        healthSyncStateStore: healthSyncStateStore,
+                        environment: settingsEnvironment
+                    )
+                }
+            }
+            .font(FormaTokens.Typography.body.weight(.medium))
+            .foregroundStyle(FormaTokens.Color.accent)
+        }
+    }
+
+    // MARK: - Sections
 
     private var heroSection: some View {
         Text(presentation.heroStatus)
@@ -49,54 +158,87 @@ struct AppleHealthIntegrationView: View {
             .accessibilityAddTraits(.isHeader)
     }
 
-    // MARK: - Trust copy
-
-    private var trustCopySection: some View {
+    private var privacySection: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-            ForEach(presentation.trustCopy, id: \.self) { line in
+            ForEach(presentation.privacyBullets, id: \.self) { line in
                 Text(line)
                     .font(FormaTokens.Typography.sectionSubtitle)
                     .foregroundStyle(FormaTokens.Color.textLegal)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(HealthPrivacyCopy.Principles.overviewAccessibilityLabel)
     }
 
-    // MARK: - Connection card
+    private var healthDataDetailsSection: some View {
+        sectionCard(title: presentation.healthDataDetailsTitle) {
+            detailRows(presentation.healthDataDetailRows)
+        }
+    }
 
-    private var connectionCard: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-            Text(presentation.connectionCardTitle)
-                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.textSecondary)
-                .accessibilityAddTraits(.isHeader)
-
-            FormaPlanCard(compact: true) {
-                VStack(spacing: 0) {
-                    ForEach(Array(presentation.connectionRows.enumerated()), id: \.element.id) { index, row in
-                        if index > 0 {
-                            connectionRowDivider
-                        }
-                        connectionRow(row)
+    private var permissionsSection: some View {
+        sectionCard(title: presentation.permissionsSectionTitle) {
+            VStack(spacing: 0) {
+                ForEach(Array(presentation.permissionRows.enumerated()), id: \.element.id) { index, row in
+                    if index > 0 {
+                        rowDivider
                     }
+                    permissionRow(row)
                 }
             }
         }
     }
 
-    private func connectionRow(_ row: AppleHealthSettingsConnectionRow) -> some View {
+    private var actionsSection: some View {
+        VStack(spacing: FormaTokens.Spacing.sm) {
+            ForEach(presentation.actions) { action in
+                actionButton(action)
+            }
+        }
+    }
+
+    // MARK: - Rows
+
+    private func sectionCard<Content: View>(
+        title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+            Text(title)
+                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .accessibilityAddTraits(.isHeader)
+
+            FormaPlanCard(compact: true) {
+                content()
+            }
+        }
+    }
+
+    private func detailRows(_ rows: [AppleHealthSettingsConnectionRow]) -> some View {
+        VStack(spacing: 0) {
+            ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                if index > 0 {
+                    rowDivider
+                }
+                detailRow(label: row.label, value: row.value)
+            }
+        }
+    }
+
+    private func detailRow(label: String, value: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.md) {
-            Text(row.label)
+            Text(label)
                 .font(FormaTokens.Typography.sectionSubtitle)
                 .foregroundStyle(FormaTokens.Color.textSecondary)
                 .frame(
                     width: SettingsChromeAccessibility.connectionLabelColumnWidth,
                     alignment: .leading
                 )
-                .lineLimit(1)
-                .minimumScaleFactor(0.9)
+                .fixedSize(horizontal: false, vertical: true)
 
-            Text(row.value)
+            Text(value)
                 .font(FormaTokens.Typography.sectionSubtitle)
                 .foregroundStyle(FormaTokens.Color.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -106,55 +248,99 @@ struct AppleHealthIntegrationView: View {
         .padding(.vertical, FormaTokens.Spacing.xs)
     }
 
-    private var connectionRowDivider: some View {
+    private func permissionRow(_ row: AppleHealthSettingsPermissionRow) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.md) {
+            Text(row.title)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(FormaTokens.Color.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(row.statusLabel)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(statusColor(for: row.status))
+                .multilineTextAlignment(.trailing)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.vertical, FormaTokens.Spacing.xs)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(row.title), \(row.statusLabel)")
+    }
+
+    private var rowDivider: some View {
         Divider()
             .overlay(FormaTokens.Color.border)
             .padding(.vertical, FormaTokens.Spacing.xs)
     }
 
-    // MARK: - Primary action
-
-    @ViewBuilder
-    private var primaryActionSection: some View {
-        if let title = presentation.primaryActionTitle {
-            Button {
-                Task { await handlePrimaryAction() }
-            } label: {
-                Text(title)
-                    .font(FormaTokens.Typography.body.weight(.medium))
-                    .foregroundStyle(
-                        presentation.isPrimaryActionEnabled
-                            ? FormaTokens.Color.accent
-                            : FormaTokens.Color.textTertiary
-                    )
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: SettingsChromeAccessibility.minimumActionButtonHeight)
-            }
-            .buttonStyle(.plain)
-            .background(
-                RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                    .fill(FormaTokens.Color.surface)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
-                            .stroke(FormaTokens.Color.border, lineWidth: 1)
-                    )
-            )
-            .disabled(!presentation.isPrimaryActionEnabled)
-            .accessibilityLabel(title)
-            .accessibilityAddTraits(.isButton)
-            .accessibilityHint(presentation.primaryActionAccessibilityHint ?? "")
+    private func statusColor(for status: AppleHealthSettingsPermissionDisplayStatus) -> Color {
+        switch status {
+        case .connected:
+            return FormaTokens.Color.success
+        case .notShared, .unknown:
+            return FormaTokens.Color.textTertiary
+        case .denied:
+            return FormaTokens.Color.warning
+        case .unavailable:
+            return FormaTokens.Color.textSecondary
         }
     }
 
-    private func handlePrimaryAction() async {
-        await AppleHealthSettingsActionHandler.perform(
-            action: presentation.primaryAction,
-            openHealthApp: openHealthAccessSettings,
-            connect: { await insightsStore.connectAppleHealth() }
+    // MARK: - Actions
+
+    private func actionButton(_ action: AppleHealthSettingsActionModel) -> some View {
+        Button {
+            Task { await handleAction(action) }
+        } label: {
+            Text(action.title)
+                .font(FormaTokens.Typography.body.weight(.medium))
+                .foregroundStyle(actionTitleColor(for: action))
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: SettingsChromeAccessibility.minimumActionButtonHeight)
+        }
+        .buttonStyle(.plain)
+        .background(
+            RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
+                .fill(FormaTokens.Color.surface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: FormaCardChrome.cornerRadius, style: .continuous)
+                        .stroke(FormaTokens.Color.border, lineWidth: 1)
+                )
         )
+        .disabled(!action.isEnabled)
+        .accessibilityLabel(action.title)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint(action.accessibilityHint ?? "")
     }
 
-    private func openHealthAccessSettings() {
-        HealthAppSettingsNavigator.openHealthPermissions()
+    private func actionTitleColor(for action: AppleHealthSettingsActionModel) -> Color {
+        guard action.isEnabled else {
+            return FormaTokens.Color.textTertiary
+        }
+        if action.isDestructive {
+            return FormaTokens.Color.destructive
+        }
+        return FormaTokens.Color.accent
+    }
+
+    private func handleAction(_ action: AppleHealthSettingsActionModel) async {
+        switch action.kind {
+        case .connectAppleHealth:
+            await viewModel.connectAppleHealth(
+                healthSyncStateStore: healthSyncStateStore,
+                environment: settingsEnvironment
+            )
+        case .refreshHealthData:
+            await viewModel.refreshHealthData(
+                healthSyncStateStore: healthSyncStateStore,
+                environment: settingsEnvironment
+            )
+        case .manageInAppleHealth:
+            HealthAppSettingsNavigator.openHealthPermissions()
+        case .manageHealthDataSync:
+            viewModel.showsRemoteSyncSettings = true
+        case .deleteRemoteHealthSummaries:
+            viewModel.showsDeleteRemoteConfirmation = true
+        }
     }
 }

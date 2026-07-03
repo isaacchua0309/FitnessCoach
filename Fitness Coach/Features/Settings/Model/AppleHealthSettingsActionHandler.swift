@@ -10,17 +10,28 @@ import Foundation
 enum AppleHealthSettingsActionHandler {
 
     static func perform(
-        action: AppleHealthSettingsPrimaryAction,
+        action: AppleHealthSettingsActionKind,
         openHealthApp: () -> Void,
-        connect: () async -> Void
+        connect: () async -> Void,
+        refreshHealthData: () async -> Void,
+        syncRemoteSummaries: () async -> Void,
+        deleteRemoteSummaries: () async throws -> Void
     ) async {
         switch action {
-        case .openHealthApp:
-            openHealthApp()
         case .connectAppleHealth:
             await connect()
-        case .none:
+        case .refreshHealthData:
+            await refreshHealthData()
+        case .manageInAppleHealth:
+            openHealthApp()
+        case .manageHealthDataSync:
             break
+        case .deleteRemoteHealthSummaries:
+            try? await deleteRemoteSummaries()
         }
+    }
+
+    static func performRemoteSyncNow(syncRemoteSummaries: () async -> Void) async {
+        await syncRemoteSummaries()
     }
 }

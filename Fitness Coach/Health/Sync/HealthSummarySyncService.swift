@@ -17,6 +17,7 @@ protocol HealthSummarySyncServing: Sendable {
     func syncAfterLocalHealthRefresh(days: Int) async
     func syncOnAppForeground() async
     func getRemoteSyncState() async -> HealthSummaryRemoteSyncState
+    func deleteRemoteHealthSummaries() async throws
 }
 
 extension HealthSummarySyncServing {
@@ -73,6 +74,26 @@ actor HealthSummarySyncService: HealthSummarySyncServing {
             return disabledState()
         }
         return state
+    }
+
+    func deleteRemoteHealthSummaries() async throws {
+        guard remoteSyncEnabled() else { return }
+        guard !isSyncing else {
+            throw HealthSummarySyncError.deleteFailed(reason: "sync_in_progress")
+        }
+
+        guard let userID = authenticatedUserID() else {
+            throw HealthSummarySyncError.notAuthenticated
+        }
+
+        try await remoteSyncClient.deleteRemoteHealthSummaries()
+        stateStore.clear(for: userID)
+        state = .idle
+
+        HealthSummaryRemoteSyncLogger.serviceEvent(
+            "remote health summaries deleted",
+            fields: ["uid": userID]
+        )
     }
 
     func syncRecentHealthSummaries(days: Int) async {

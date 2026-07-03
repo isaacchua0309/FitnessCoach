@@ -15,6 +15,8 @@ struct PlanView: View {
     @EnvironmentObject private var trainingInsightsStore: TrainingInsightsStore
     @EnvironmentObject private var trainingInsightsModel: TrainingInsightsModel
     @EnvironmentObject private var themeStore: ThemeStore
+    @EnvironmentObject private var healthSyncStateStore: HealthSyncStateStore
+    @Environment(\.appleHealthSettingsEnvironment) private var appleHealthSettingsEnvironment
 
     @State private var isShowingTrainingInsights = false
 
@@ -138,7 +140,10 @@ struct PlanView: View {
                                 )
                             }
                         )
+                        .environmentObject(trainingInsightsStore)
+                        .environmentObject(healthSyncStateStore)
                         .environmentObject(themeStore)
+                        .environment(\.appleHealthSettingsEnvironment, appleHealthSettingsEnvironment)
                     }
                 }
                 .sheet(isPresented: $model.isShowingTargetRegenerationSheet) {

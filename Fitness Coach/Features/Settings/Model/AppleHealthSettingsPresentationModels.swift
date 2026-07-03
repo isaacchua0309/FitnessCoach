@@ -7,10 +7,28 @@
 
 import Foundation
 
-enum AppleHealthSettingsPrimaryAction: Equatable, Sendable {
-    case openHealthApp
+enum AppleHealthSettingsLoadPhase: Equatable, Sendable {
+    case idle
+    case loading
+    case loaded
+    case error(String)
+    case healthKitUnavailable
+}
+
+enum AppleHealthSettingsActionKind: Equatable, Sendable {
     case connectAppleHealth
-    case none
+    case refreshHealthData
+    case manageInAppleHealth
+    case manageHealthDataSync
+    case deleteRemoteHealthSummaries
+}
+
+enum AppleHealthSettingsPermissionDisplayStatus: String, Equatable, Sendable {
+    case connected
+    case notShared
+    case denied
+    case unavailable
+    case unknown
 }
 
 struct AppleHealthSettingsConnectionRow: Equatable, Identifiable, Sendable {
@@ -19,20 +37,59 @@ struct AppleHealthSettingsConnectionRow: Equatable, Identifiable, Sendable {
     let value: String
 }
 
+struct AppleHealthSettingsPermissionRow: Equatable, Identifiable, Sendable {
+    let id: String
+    let title: String
+    let statusLabel: String
+    let status: AppleHealthSettingsPermissionDisplayStatus
+}
+
+struct AppleHealthSettingsActionModel: Equatable, Identifiable, Sendable {
+    let id: String
+    let kind: AppleHealthSettingsActionKind
+    let title: String
+    let isEnabled: Bool
+    let isDestructive: Bool
+    let accessibilityHint: String?
+}
+
 struct AppleHealthSettingsPresentationInput: Equatable, Sendable {
     let integrationState: TrainingIntegrationState
-    let lastSyncDate: Date?
+    let permissionStatus: HealthPermissionStatus?
+    let localSyncState: HealthSyncState
+    let remoteSyncState: HealthSummaryRemoteSyncState
+    let isRemoteSyncEnabled: Bool
+    let isHealthDataAvailable: Bool
+    let loadPhase: AppleHealthSettingsLoadPhase
+    let isRefreshingHealthData: Bool
+    let isDeletingRemoteSummaries: Bool
 }
 
 struct AppleHealthSettingsPresentation: Equatable, Sendable {
     let screenTitle: String
     let heroStatus: String
     let heroShowsConnected: Bool
-    let trustCopy: [String]
-    let connectionCardTitle: String
-    let connectionRows: [AppleHealthSettingsConnectionRow]
-    let primaryAction: AppleHealthSettingsPrimaryAction
-    let primaryActionTitle: String?
-    let isPrimaryActionEnabled: Bool
-    let primaryActionAccessibilityHint: String?
+    let privacyBullets: [String]
+    let healthDataDetailsTitle: String
+    let healthDataDetailRows: [AppleHealthSettingsConnectionRow]
+    let permissionsSectionTitle: String
+    let permissionRows: [AppleHealthSettingsPermissionRow]
+    let actions: [AppleHealthSettingsActionModel]
+    let showsLoadingState: Bool
+    let errorMessage: String?
+    let emptyStateMessage: String?
+    let showsRemoteSyncDestination: Bool
+}
+
+struct AppleHealthRemoteSyncSettingsPresentation: Equatable, Sendable {
+    let screenTitle: String
+    let intro: String
+    let detailRows: [AppleHealthSettingsConnectionRow]
+    let syncNowActionTitle: String
+    let isSyncNowEnabled: Bool
+    let deleteActionTitle: String
+    let isDeleteEnabled: Bool
+    let deleteConfirmationTitle: String
+    let deleteConfirmationMessage: String
+    let deleteConfirmActionTitle: String
 }

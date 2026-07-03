@@ -38,6 +38,8 @@ final class MockHealthSummarySyncService: HealthSummarySyncServing, @unchecked S
         .idle
     }
 
+    func deleteRemoteHealthSummaries() async throws {}
+
     func reset() {
         lock.lock()
         syncAfterLocalHealthRefreshCallCount = 0

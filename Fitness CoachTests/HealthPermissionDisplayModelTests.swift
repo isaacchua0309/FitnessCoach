@@ -128,6 +128,14 @@ final class HealthPermissionDisplayModelTests: XCTestCase {
         XCTAssertEqual(model.requirement, .optional)
     }
 
+    func testSettingsStatusLabels() {
+        XCTAssertEqual(HealthPrivacyCopy.SettingsStatus.label(for: .connected), "Connected")
+        XCTAssertEqual(HealthPrivacyCopy.SettingsStatus.label(for: .notDetermined), "Not shared")
+        XCTAssertEqual(HealthPrivacyCopy.SettingsStatus.label(for: .denied), "Denied")
+        XCTAssertEqual(HealthPrivacyCopy.SettingsStatus.label(for: .unavailable), "Unavailable")
+        XCTAssertEqual(HealthPrivacyCopy.SettingsStatus.label(for: .unknown), "Unknown")
+    }
+
     func testDisplayModelExposesPrivacyOverview() {
         XCTAssertEqual(
             HealthPermissionDisplayModel.privacyOverviewBullets,

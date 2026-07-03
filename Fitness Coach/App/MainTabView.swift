@@ -148,6 +148,12 @@ struct MainTabView: View {
         .environmentObject(container.trainingInsightsModel)
         .environmentObject(container.healthSyncStateStore)
         .environmentObject(container.themeStore)
+        .environment(
+            \.appleHealthSettingsEnvironment,
+            AppleHealthSettingsEnvironment(
+                remoteSyncService: container.healthSummarySyncService
+            )
+        )
         .environment(\.settingsAnalyticsCoordinator, settingsAnalyticsCoordinator)
         #if DEBUG
         .environment(\.healthIntelligenceDebugVerification) { [container] in

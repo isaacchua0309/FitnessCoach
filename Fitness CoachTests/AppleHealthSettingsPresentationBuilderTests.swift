@@ -24,55 +24,68 @@ final class AppleHealthSettingsPresentationBuilderTests: XCTestCase {
         TimeZone(secondsFromGMT: 0)!
     }
 
-    func testConnectedState() {
-        let presentation = build(integrationState: .connected)
+    func testConnectedStateShowsHealthDataDetailsAndPermissions() {
+        let presentation = build(
+            integrationState: .connected,
+            permissionStatus: uniformPermission(.available)
+        )
 
         XCTAssertEqual(presentation.heroStatus, FormaProductCopy.Settings.AppleHealth.statusConnected)
         XCTAssertTrue(presentation.heroShowsConnected)
-        XCTAssertEqual(
-            rowValue("status", in: presentation),
-            FormaProductCopy.Settings.AppleHealth.statusConnected
-        )
-        XCTAssertEqual(presentation.primaryAction, .openHealthApp)
-        XCTAssertEqual(
-            presentation.primaryActionTitle,
-            FormaProductCopy.Settings.AppleHealth.openHealthAppAction
-        )
-        XCTAssertTrue(presentation.isPrimaryActionEnabled)
+        XCTAssertEqual(presentation.healthDataDetailRows.first?.value, FormaProductCopy.Settings.AppleHealth.statusConnected)
+        XCTAssertEqual(presentation.permissionRows.count, 8)
+        XCTAssertTrue(presentation.permissionRows.allSatisfy { $0.statusLabel == "Connected" })
+        XCTAssertFalse(presentation.showsLoadingState)
     }
 
-    func testDisconnectedState() {
+    func testPartialPermissionsShowPartiallyConnectedStatus() {
+        var access = Dictionary(
+            uniqueKeysWithValues: HealthSignalKind.allCases.map { ($0, HealthSignalAccess.denied) }
+        )
+        access[.stepCount] = .available
+        access[.workout] = .available
+
+        let presentation = build(
+            integrationState: .connected,
+            permissionStatus: HealthPermissionStatus(
+                isHealthDataAvailable: true,
+                signalAccess: access,
+                resolvedAt: Date()
+            )
+        )
+
+        XCTAssertEqual(
+            presentation.heroStatus,
+            FormaProductCopy.Settings.AppleHealth.statusPartiallyConnected
+        )
+        XCTAssertTrue(presentation.heroShowsConnected)
+
+        let steps = presentation.permissionRows.first(where: { $0.id == HealthPermissionCategory.steps.rawValue })
+        let sleep = presentation.permissionRows.first(where: { $0.id == HealthPermissionCategory.sleep.rawValue })
+        XCTAssertEqual(steps?.statusLabel, "Connected")
+        XCTAssertEqual(sleep?.statusLabel, "Denied")
+    }
+
+    func testDisconnectedStateOffersConnectAction() {
         let presentation = build(integrationState: .notConnected)
 
         XCTAssertEqual(presentation.heroStatus, FormaProductCopy.Settings.AppleHealth.statusNotConnected)
         XCTAssertFalse(presentation.heroShowsConnected)
+        XCTAssertTrue(presentation.actions.contains(where: { $0.kind == .connectAppleHealth }))
         XCTAssertEqual(
-            rowValue("status", in: presentation),
-            FormaProductCopy.Settings.AppleHealth.statusNotConnected
-        )
-        XCTAssertEqual(presentation.primaryAction, .connectAppleHealth)
-        XCTAssertEqual(
-            presentation.primaryActionTitle,
+            presentation.actions.first(where: { $0.kind == .connectAppleHealth })?.title,
             FormaProductCopy.Settings.AppleHealth.connectAction
         )
     }
 
-    func testPermissionNeededState() {
+    func testDeniedStateOffersManageInHealthApp() {
         let presentation = build(integrationState: .denied)
 
-        XCTAssertEqual(presentation.heroStatus, FormaProductCopy.Settings.AppleHealth.statusNotConnected)
-        XCTAssertEqual(
-            rowValue("status", in: presentation),
-            FormaProductCopy.Settings.AppleHealth.statusPermissionNeeded
-        )
-        XCTAssertEqual(presentation.primaryAction, .openHealthApp)
-        XCTAssertEqual(
-            presentation.primaryActionTitle,
-            FormaProductCopy.Settings.AppleHealth.openHealthAppAction
-        )
+        XCTAssertEqual(presentation.heroStatus, FormaProductCopy.Settings.AppleHealth.statusPermissionNeeded)
+        XCTAssertTrue(presentation.actions.contains(where: { $0.kind == .manageInAppleHealth }))
     }
 
-    func testLastSyncAvailable() {
+    func testLastLocalSyncFormattedWhenAvailable() {
         let syncDate = calendar.date(from: DateComponents(
             year: 2026,
             month: 7,
@@ -80,14 +93,24 @@ final class AppleHealthSettingsPresentationBuilderTests: XCTestCase {
             hour: 14,
             minute: 30
         ))!
+        let localState = HealthSyncState(
+            phase: .succeeded,
+            trigger: .manual,
+            progress: .zero,
+            signalResults: [],
+            lastSuccessfulSyncAt: syncDate,
+            lastError: nil,
+            updatedAt: syncDate
+        )
+
         let presentation = build(
             integrationState: .connected,
-            lastSyncDate: syncDate,
+            localSyncState: localState,
             now: syncDate
         )
 
         XCTAssertEqual(
-            rowValue("last-sync", in: presentation),
+            rowValue("last-local-sync", in: presentation.healthDataDetailRows),
             AppleHealthSettingsLastSyncFormatter.format(
                 syncDate,
                 calendar: calendar,
@@ -95,46 +118,109 @@ final class AppleHealthSettingsPresentationBuilderTests: XCTestCase {
                 timeZone: timeZone
             )
         )
-        XCTAssertEqual(
-            rowValue("permissions", in: presentation),
-            FormaProductCopy.Settings.AppleHealth.permissionsWorkouts
-        )
-        XCTAssertEqual(
-            rowValue("access", in: presentation),
-            FormaProductCopy.Settings.AppleHealth.accessManagedInHealthApp
-        )
     }
 
-    func testLastSyncUnavailable() {
-        let presentation = build(integrationState: .connected, lastSyncDate: nil)
+    func testRemoteSyncRowShownWhenEnabled() {
+        let remoteDate = Date()
+        let presentation = build(
+            integrationState: .connected,
+            isRemoteSyncEnabled: true,
+            remoteSyncState: HealthSummaryRemoteSyncState(
+                phase: .succeeded,
+                trigger: .manual,
+                lastSuccessfulRemoteSyncAt: remoteDate,
+                lastAttemptedRemoteSyncAt: remoteDate,
+                lastError: nil,
+                failedPayloadKinds: [],
+                backoffUntil: nil,
+                updatedAt: remoteDate
+            ),
+            now: remoteDate
+        )
 
-        XCTAssertNil(rowValue("last-sync", in: presentation))
-        XCTAssertEqual(presentation.connectionRows.map(\.id), ["status", "permissions", "access"])
+        XCTAssertNotNil(rowValue("last-remote-sync", in: presentation.healthDataDetailRows))
+        XCTAssertTrue(presentation.showsRemoteSyncDestination)
+        XCTAssertTrue(presentation.actions.contains(where: { $0.kind == .manageHealthDataSync }))
+        XCTAssertTrue(presentation.actions.contains(where: { $0.kind == .deleteRemoteHealthSummaries }))
     }
 
-    func testTrustCopyIsPrivacyConscious() {
+    func testRemoteSyncActionsHiddenWhenDisabled() {
+        let presentation = build(
+            integrationState: .connected,
+            isRemoteSyncEnabled: false
+        )
+
+        XCTAssertNil(rowValue("last-remote-sync", in: presentation.healthDataDetailRows))
+        XCTAssertFalse(presentation.actions.contains(where: { $0.kind == .manageHealthDataSync }))
+        XCTAssertFalse(presentation.actions.contains(where: { $0.kind == .deleteRemoteHealthSummaries }))
+    }
+
+    func testPrivacyBulletsUseProductionCopy() {
         let presentation = build(integrationState: .connected)
 
-        XCTAssertEqual(
-            presentation.trustCopy,
-            [
-                FormaProductCopy.Settings.AppleHealth.readsWorkoutsCopy,
-                FormaProductCopy.Settings.AppleHealth.doesNotWriteCopy
-            ]
+        XCTAssertEqual(presentation.privacyBullets, HealthPrivacyCopy.Principles.overviewBullets)
+    }
+
+    func testHealthKitUnavailableShowsEmptyState() {
+        let presentation = build(
+            integrationState: .unavailable,
+            isHealthDataAvailable: false,
+            loadPhase: .healthKitUnavailable
         )
-        XCTAssertTrue(presentation.trustCopy[0].localizedCaseInsensitiveContains("workouts"))
-        XCTAssertTrue(presentation.trustCopy[1].localizedCaseInsensitiveContains("does not write"))
+
+        XCTAssertEqual(
+            presentation.emptyStateMessage,
+            FormaProductCopy.Settings.AppleHealth.healthKitUnavailableMessage
+        )
+        XCTAssertFalse(presentation.actions.contains(where: { $0.kind == .connectAppleHealth }))
+    }
+
+    func testPermissionStatusLabelsMatchSettingsSpec() {
+        let rows = AppleHealthSettingsPresentationBuilder.permissionRows(
+            from: uniformPermission(.notDetermined)
+        )
+
+        XCTAssertEqual(rows.first?.statusLabel, "Not shared")
+
+        let deniedRows = AppleHealthSettingsPresentationBuilder.permissionRows(
+            from: uniformPermission(.denied)
+        )
+        XCTAssertEqual(deniedRows.first?.statusLabel, "Denied")
+    }
+
+    func testLoadingState() {
+        let presentation = build(
+            integrationState: .notConnected,
+            loadPhase: .loading
+        )
+
+        XCTAssertTrue(presentation.showsLoadingState)
+        XCTAssertFalse(
+            presentation.actions.first(where: { $0.kind == .connectAppleHealth })?.isEnabled ?? true
+        )
     }
 
     private func build(
         integrationState: TrainingIntegrationState,
-        lastSyncDate: Date? = nil,
+        permissionStatus: HealthPermissionStatus? = nil,
+        localSyncState: HealthSyncState = .idle,
+        remoteSyncState: HealthSummaryRemoteSyncState = .disabled,
+        isRemoteSyncEnabled: Bool = false,
+        isHealthDataAvailable: Bool = true,
+        loadPhase: AppleHealthSettingsLoadPhase = .loaded,
         now: Date = Date()
     ) -> AppleHealthSettingsPresentation {
         AppleHealthSettingsPresentationBuilder.build(
             input: AppleHealthSettingsPresentationInput(
                 integrationState: integrationState,
-                lastSyncDate: lastSyncDate
+                permissionStatus: permissionStatus ?? uniformPermission(.available),
+                localSyncState: localSyncState,
+                remoteSyncState: remoteSyncState,
+                isRemoteSyncEnabled: isRemoteSyncEnabled,
+                isHealthDataAvailable: isHealthDataAvailable,
+                loadPhase: loadPhase,
+                isRefreshingHealthData: false,
+                isDeletingRemoteSummaries: false
             ),
             now: now,
             calendar: calendar,
@@ -143,41 +229,51 @@ final class AppleHealthSettingsPresentationBuilderTests: XCTestCase {
         )
     }
 
+    private func uniformPermission(_ access: HealthSignalAccess) -> HealthPermissionStatus {
+        HealthPermissionStatus.uniform(access, isHealthDataAvailable: true)
+    }
+
     private func rowValue(
         _ id: String,
-        in presentation: AppleHealthSettingsPresentation
+        in rows: [AppleHealthSettingsConnectionRow]
     ) -> String? {
-        presentation.connectionRows.first(where: { $0.id == id })?.value
+        rows.first(where: { $0.id == id })?.value
     }
 }
 
 final class AppleHealthSettingsActionHandlerTests: XCTestCase {
 
-    func testOpenHealthAction() async {
+    func testConnectActionOnlyConnects() async {
         var openedHealthApp = false
         var connected = false
-
-        await AppleHealthSettingsActionHandler.perform(
-            action: .openHealthApp,
-            openHealthApp: { openedHealthApp = true },
-            connect: { connected = true }
-        )
-
-        XCTAssertTrue(openedHealthApp)
-        XCTAssertFalse(connected)
-    }
-
-    func testConnectAction() async {
-        var openedHealthApp = false
-        var connected = false
+        var refreshed = false
 
         await AppleHealthSettingsActionHandler.perform(
             action: .connectAppleHealth,
             openHealthApp: { openedHealthApp = true },
-            connect: { connected = true }
+            connect: { connected = true },
+            refreshHealthData: { refreshed = true },
+            syncRemoteSummaries: {},
+            deleteRemoteSummaries: {}
         )
 
-        XCTAssertFalse(openedHealthApp)
         XCTAssertTrue(connected)
+        XCTAssertFalse(openedHealthApp)
+        XCTAssertFalse(refreshed)
+    }
+
+    func testManageInHealthAppAction() async {
+        var openedHealthApp = false
+
+        await AppleHealthSettingsActionHandler.perform(
+            action: .manageInAppleHealth,
+            openHealthApp: { openedHealthApp = true },
+            connect: {},
+            refreshHealthData: {},
+            syncRemoteSummaries: {},
+            deleteRemoteSummaries: {}
+        )
+
+        XCTAssertTrue(openedHealthApp)
     }
 }
