@@ -25,9 +25,11 @@ enum PlanHealthIntelligencePresentationPreviewData {
     static var strongFit: PlanHealthIntelligenceSectionState {
         PlanHealthIntelligencePresentationBuilder.buildSection(
             input: PlanHealthIntelligenceBuildInput(
-                planConfidence: PlanHealthConfidence(score: 0.78, label: "Moderate"),
+                planConfidence: PlanHealthConfidence(score: 0.82, label: "High"),
                 baselineContext: strongBaseline,
                 recovery: strongRecovery,
+                userPlan: connectedPlan,
+                healthConnection: .connected,
                 hasNutritionLogging: true,
                 hasRecentWeightLog: true
             ),
@@ -41,6 +43,23 @@ enum PlanHealthIntelligencePresentationPreviewData {
                 planConfidence: PlanHealthConfidence(score: 0.42, label: "Limited"),
                 baselineContext: sparseBaseline,
                 recovery: .unknown,
+                userPlan: connectedPlan,
+                healthConnection: .partial,
+                hasNutritionLogging: false,
+                hasRecentWeightLog: false
+            ),
+            calendar: calendar
+        )
+    }
+
+    static var disconnected: PlanHealthIntelligenceSectionState {
+        PlanHealthIntelligencePresentationBuilder.buildSection(
+            input: PlanHealthIntelligenceBuildInput(
+                planConfidence: .unknown,
+                baselineContext: .empty(for: referenceDay),
+                recovery: .unknown,
+                userPlan: UserPlanContext(calorieTarget: 2_100, proteinTargetGrams: 150),
+                healthConnection: .disconnected,
                 hasNutritionLogging: false,
                 hasRecentWeightLog: false
             ),
@@ -52,6 +71,14 @@ enum PlanHealthIntelligencePresentationPreviewData {
         PlanHealthIntelligencePresentationBuilder.buildSection(
             input: PlanHealthIntelligenceBuildInput(isLoading: true),
             calendar: calendar
+        )
+    }
+
+    private static var connectedPlan: UserPlanContext {
+        UserPlanContext(
+            calorieTarget: 2_200,
+            proteinTargetGrams: 165,
+            isAppleHealthConnected: true
         )
     }
 

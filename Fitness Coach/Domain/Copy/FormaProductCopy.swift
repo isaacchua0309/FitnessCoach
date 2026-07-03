@@ -3209,15 +3209,65 @@ enum FormaProductCopy {
             "Some signals are limited, so plan-fit guidance stays cautious."
         static let dataQualitySummaryEmpty =
             "Health signals have not synced enough yet for plan-fit guidance."
+        static let dataQualitySummaryPartial =
+            "Apple Health is connected, but only part of your data is syncing."
+
+        static let dataQualityStrongLabel = "Strong data quality"
+        static let dataQualityModerateLabel = "Moderate data quality"
+        static let dataQualityLimitedLabel = "Limited data quality"
+
+        static let dataQualityStrongExplanation =
+            "Most of the health signals Forma uses are syncing consistently."
+        static let dataQualityModerateExplanation =
+            "Forma has enough to guide your plan, but a few signals are still partial."
+        static let dataQualityLimitedExplanation =
+            "Plan-fit guidance stays cautious until more health and logging data arrives."
+
+        static let signalAppleHealthWorkouts = "Apple Health workouts"
+        static let signalStepHistory = "Step history"
+        static let signalActiveEnergy = "Active energy"
+        static let signalSleep = "Sleep"
+        static let signalHeartMetrics = "Heart recovery signals"
+        static let signalWeight = "Weight"
+        static let signalNutrition = "Nutrition logs"
+
+        static let signalSynced = "Syncing"
+        static let signalPartialSync = "Partial sync"
+        static let signalAvailableQualitative = "Available"
+        static let signalLimitedSync = "Limited sync"
+        static let signalHeartSynced = "Recovery signals syncing"
+        static let signalHeartPartial = "Partial heart recovery sync"
+
+        static let assumptionAverageSteps = "Average steps/day"
+        static let assumptionWorkoutsPerWeek = "Workouts/week"
+        static let assumptionWorkoutLoad = "Workout load"
+        static let assumptionRecoveryTrend = "Recovery trend"
+        static let assumptionCalorieTarget = "Calorie target"
+        static let assumptionProteinTarget = "Protein target"
+
+        static let reasonWorkoutsSyncing = "Apple Health workouts are syncing"
+        static let reasonStepsConsistent = "Step history looks consistent"
+        static let reasonActiveEnergyAvailable = "Active energy history is available"
+        static let reasonSleepAvailable = "Sleep history is contributing"
+        static let reasonHeartSignalsAvailable = "Heart recovery signals are contributing"
+        static let reasonNutritionLogged = "Nutrition logs are active this week"
+        static let reasonWeightLogged = "Recent weigh-ins are logged"
+        static let reasonTargetsSet = "Daily targets are set from your plan"
+
+        static let improveConnectHealth = "Connect Apple Health to sync workouts, steps, and recovery signals."
+        static let improveLogNutrition = "Log meals for several days to strengthen calorie guidance."
+        static let improveLogWeight = "Add a few weigh-ins to improve pace feedback."
+        static let improveSleepSync = "Enable sleep access so recovery trend can guide training load."
+        static let improveHeartSync = "Allow heart metrics in Apple Health for richer recovery reads."
+        static let improvePartialPermissions =
+            "Some Apple Health permissions are still partial — open Settings to allow more signals."
 
         static let signalRecoveryTrend = "Recovery trend"
         static let signalWorkoutConsistency = "Workout consistency"
         static let signalAverageSteps = "Average steps"
         static let signalTrainingFrequency = "Training frequency"
-        static let signalSleep = "Sleep"
         static let signalHeartVariability = "Heart variability"
-        static let signalWeight = "Weight"
-        static let signalNutrition = "Nutrition logging"
+        static let signalNutritionLogging = "Nutrition logging"
         static let signalActivityEnergy = "Activity energy"
 
         static let signalUnavailable = "Not enough data yet"
@@ -3246,6 +3296,9 @@ enum FormaProductCopy {
         static let actionEnableHRVTitle = "Add heart variability data"
         static let actionEnableHRVMessage =
             "HRV readings give Forma another recovery cue — optional, but helpful."
+        static let actionPartialPermissionsTitle = "Finish Apple Health setup"
+        static let actionPartialPermissionsMessage =
+            "Some Apple Health permissions are still partial — open Settings to allow more signals."
 
         static func confidenceHeadline(label: String) -> String {
             "\(label) for your current plan"
@@ -3315,10 +3368,89 @@ enum FormaProductCopy {
             case .low:
                 return recoveryTrendLow
             case .unknown:
-                if let score {
-                    return "Recent score around \(score)"
-                }
                 return recoveryTrendUnknown
+            }
+        }
+
+        static func averageStepsPerDayValue(_ steps: Double?) -> String {
+            guard let steps, steps > 0 else { return signalUnavailable }
+            return "\(Int(steps.rounded()).formatted())/day"
+        }
+
+        static func workoutsPerWeekValue(_ days: Int?) -> String {
+            guard let days else { return signalUnavailable }
+            return "\(days) days/week"
+        }
+
+        static func workoutLoadValue(_ load: Double?) -> String {
+            guard let load, load > 0 else { return signalUnavailable }
+            if load >= 200 {
+                return "Higher recent load"
+            }
+            if load >= 100 {
+                return "Moderate recent load"
+            }
+            return "Lighter recent load"
+        }
+
+        static func calorieTargetValue(_ target: Int?) -> String {
+            guard let target, target > 0 else { return signalUnavailable }
+            return "\(target.formatted()) kcal/day"
+        }
+
+        static func proteinTargetValue(_ grams: Double?) -> String {
+            guard let grams, grams > 0 else { return signalUnavailable }
+            return "\(Int(grams.rounded())) g/day"
+        }
+
+        static func activeEnergyValue(_ kcal: Double?) -> String {
+            guard let kcal, kcal > 0 else { return signalUnavailable }
+            return "\(Int(kcal.rounded())) kcal/day avg"
+        }
+
+        static func sleepAverageValue(minutes: Double?) -> String {
+            guard let minutes, minutes > 0 else { return signalUnavailable }
+            let hours = minutes / 60.0
+            return String(format: "%.1f h avg", hours)
+        }
+
+        static func heartMetricsQualitativeValue(
+            baseline: HealthBaselineContext
+        ) -> String {
+            let hasHRV = baseline.availableSignals.contains(.hrv)
+                && baseline.averageHRV28d != nil
+            let hasRestingHR = baseline.availableSignals.contains(.restingHeartRate)
+                && baseline.averageRestingHeartRate28d != nil
+
+            switch (hasHRV, hasRestingHR) {
+            case (true, true):
+                return signalHeartSynced
+            case (true, false), (false, true):
+                return signalHeartPartial
+            default:
+                return signalUnavailable
+            }
+        }
+
+        static func dataQualityLabel(for level: PlanHealthDataQualityLevel) -> String {
+            switch level {
+            case .strong: return dataQualityStrongLabel
+            case .moderate: return dataQualityModerateLabel
+            case .limited: return dataQualityLimitedLabel
+            }
+        }
+
+        static func dataQualityExplanation(
+            for level: PlanHealthDataQualityLevel,
+            connection: PlanHealthConnectionState
+        ) -> String {
+            if connection == .partial {
+                return dataQualitySummaryPartial
+            }
+            switch level {
+            case .strong: return dataQualityStrongExplanation
+            case .moderate: return dataQualityModerateExplanation
+            case .limited: return dataQualityLimitedExplanation
             }
         }
 
