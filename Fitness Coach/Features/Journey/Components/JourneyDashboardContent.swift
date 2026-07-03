@@ -9,12 +9,15 @@ import SwiftUI
 
 struct JourneyDashboardContent: View {
     let state: JourneyDashboardState
+    var healthIntelligenceUIEnabled: Bool = HealthIntelligenceFeatureFlags.isUIEnabled
+    var healthIntelligenceSectionState: JourneyHealthIntelligenceSectionState?
     var analyticsCoordinator: JourneyAnalyticsCoordinator?
     var onCTA: (JourneyCTA) -> Void = { _ in }
     var onGoToToday: () -> Void = {}
+    var onConnectHealth: (() -> Void)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: JourneyLayout.sectionSpacing) {
+        LazyVStack(alignment: .leading, spacing: JourneyLayout.sectionSpacing) {
             ForEach(visibleSections, id: \.self) { section in
                 sectionView(for: section)
             }
@@ -27,6 +30,10 @@ struct JourneyDashboardContent: View {
         .accessibilityIdentifier("journey-dashboard")
     }
 
+    private var showsHealthIntelligenceSection: Bool {
+        healthIntelligenceUIEnabled && healthIntelligenceSectionState != nil
+    }
+
     private var visibleSections: [JourneyProductSection] {
         JourneyProductLayout.sectionOrder.filter { section in
             switch section {
@@ -36,6 +43,8 @@ struct JourneyDashboardContent: View {
                 return true
             case .goalProjection:
                 return state.showsGoalProjectionSection
+            case .healthIntelligence:
+                return showsHealthIntelligenceSection
             case .milestones:
                 return state.showsMilestonesSection
             case .weeklyReview:
@@ -74,13 +83,26 @@ struct JourneyDashboardContent: View {
             JourneyGoalProjectionSection(state: state.goalProjection, onCTA: onCTA)
                 .onAppear { analyticsCoordinator?.logProjectionViewed() }
 
+        case .healthIntelligence:
+            if let healthIntelligenceSectionState {
+                JourneyHealthIntelligenceSection(
+                    state: healthIntelligenceSectionState,
+                    onConnectHealth: onConnectHealth
+                )
+                .accessibilityIdentifier("journey-health-intelligence-section")
+            }
+
         case .milestones:
             JourneyMilestonesSection(state: state.milestone)
                 .onAppear { analyticsCoordinator?.logMilestoneViewed() }
 
         case .weeklyReview:
-            JourneyWeeklyReviewSection(state: state.weeklyHabit, onCTA: onCTA)
-                .onAppear { analyticsCoordinator?.logWeeklyConsistencyViewed() }
+            JourneyWeeklyReviewSection(
+                state: state.weeklyHabit,
+                hidesTrainingHabitRow: showsHealthIntelligenceSection,
+                onCTA: onCTA
+            )
+            .onAppear { analyticsCoordinator?.logWeeklyConsistencyViewed() }
 
         case .storyTimeline:
             JourneyStoryTimelineSection(state: state.storyTimeline)
@@ -91,8 +113,11 @@ struct JourneyDashboardContent: View {
                 .onAppear { analyticsCoordinator?.logInsightsViewed() }
 
         case .monthlyRecap:
-            JourneyMonthlyRecapSection(state: state.monthlyRecap)
-                .onAppear { analyticsCoordinator?.logMonthlyRecapViewed() }
+            JourneyMonthlyRecapSection(
+                state: state.monthlyRecap,
+                hidesWorkoutMetrics: showsHealthIntelligenceSection
+            )
+            .onAppear { analyticsCoordinator?.logMonthlyRecapViewed() }
 
         case .chapters:
             JourneyChapterSection(state: state.chapter)
@@ -106,3 +131,31 @@ struct JourneyDashboardContent: View {
         }
     }
 }
+
+#if DEBUG
+#Preview("Health Intelligence enabled") {
+    ScrollView {
+        JourneyDashboardContent(
+            state: JourneyPreviewData.strongMomentum,
+            healthIntelligenceUIEnabled: true,
+            healthIntelligenceSectionState: JourneyHealthIntelligencePreviewData.strongWeek,
+            onConnectHealth: {}
+        )
+    }
+    .formaMainTabScrollInsets()
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
+#Preview("Health Intelligence disabled") {
+    ScrollView {
+        JourneyDashboardContent(
+            state: JourneyPreviewData.strongMomentum,
+            healthIntelligenceUIEnabled: false
+        )
+    }
+    .formaMainTabScrollInsets()
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+#endif

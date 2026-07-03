@@ -11,11 +11,18 @@ import SwiftUI
 enum JourneyPreviewScreens {
 
   @ViewBuilder
-  static func dashboard(_ scenario: JourneyPreviewData.Scenario, palette: AppThemePalette = .oceanBlue) -> some View {
+  static func dashboard(
+    _ scenario: JourneyPreviewData.Scenario,
+    palette: AppThemePalette = .oceanBlue,
+    healthIntelligenceSectionState: JourneyHealthIntelligenceSectionState? = nil
+  ) -> some View {
     ScrollView {
       JourneyDashboardContent(
         state: JourneyPreviewData.dashboard(scenario),
-        onGoToToday: {}
+        healthIntelligenceUIEnabled: healthIntelligenceSectionState != nil,
+        healthIntelligenceSectionState: healthIntelligenceSectionState,
+        onGoToToday: {},
+        onConnectHealth: {}
       )
     }
     .formaMainTabScrollInsets()

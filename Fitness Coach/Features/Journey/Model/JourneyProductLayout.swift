@@ -11,6 +11,7 @@ enum JourneyProductSection: String, CaseIterable, Equatable {
     case header
     case transformation
     case goalProjection
+    case healthIntelligence
     case milestones
     case weeklyReview
     case storyTimeline
@@ -25,6 +26,7 @@ enum JourneyProductLayout {
         .header,
         .transformation,
         .goalProjection,
+        .healthIntelligence,
         .milestones,
         .weeklyReview,
         .storyTimeline,

@@ -7,7 +7,13 @@ import SwiftUI
 
 struct JourneyWeeklyReviewSection: View {
     let state: JourneyWeeklyHabitState
+    var hidesTrainingHabitRow: Bool = false
     var onCTA: ((JourneyCTA) -> Void)?
+
+    private var visibleHabits: [JourneyWeeklyHabitRowState] {
+        guard hidesTrainingHabitRow else { return state.habits }
+        return state.habits.filter { $0.id != "training" }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.headerToCardSpacing) {
@@ -16,14 +22,15 @@ struct JourneyWeeklyReviewSection: View {
             JourneyCard(elevation: .standard) {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     if state.showsHabitRows {
-                        ForEach(Array(state.habits.enumerated()), id: \.element.id) { index, habit in
+                        ForEach(Array(visibleHabits.enumerated()), id: \.element.id) { index, habit in
                             if index > 0 {
                                 FormaPlanRowDivider()
                             }
                             habitRow(habit)
                         }
 
-                        if let cta = JourneyCTARouter.weeklyTrainingCTA(training: state.training),
+                        if !hidesTrainingHabitRow,
+                           let cta = JourneyCTARouter.weeklyTrainingCTA(training: state.training),
                            let onCTA {
                             FormaPlanRowDivider()
                             JourneyCTAButton(cta: cta) {

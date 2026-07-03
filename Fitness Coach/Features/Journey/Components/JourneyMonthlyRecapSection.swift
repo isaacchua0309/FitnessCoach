@@ -7,6 +7,12 @@ import SwiftUI
 
 struct JourneyMonthlyRecapSection: View {
     let state: JourneyMonthlyRecapState
+    var hidesWorkoutMetrics: Bool = false
+
+    private var visibleRows: [JourneyMonthlyRecapMetricRow] {
+        guard hidesWorkoutMetrics else { return state.rows }
+        return state.rows.filter { $0.id != "workouts" }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.headerToCardSpacing) {
@@ -17,9 +23,9 @@ struct JourneyMonthlyRecapSection: View {
                     if state.showsTeaser {
                         teaserContent
                     } else {
-                        ForEach(Array(state.rows.enumerated()), id: \.element.id) { index, row in
+                        ForEach(Array(visibleRows.enumerated()), id: \.element.id) { index, row in
                             metricRow(row, isOverall: row.id == "overall")
-                            if index < state.rows.count - 1 {
+                            if index < visibleRows.count - 1 {
                                 FormaPlanRowDivider()
                             }
                         }

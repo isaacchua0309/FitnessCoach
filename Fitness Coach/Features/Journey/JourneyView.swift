@@ -82,13 +82,22 @@ struct JourneyView: View {
         }
     }
 
+    private var healthIntelligenceUIEnabled: Bool {
+        HealthIntelligenceFeatureFlags.isUIEnabled
+    }
+
     private func dashboard(_ state: JourneyDashboardState) -> some View {
         ScrollView {
             JourneyDashboardContent(
                 state: state,
+                healthIntelligenceUIEnabled: healthIntelligenceUIEnabled,
+                healthIntelligenceSectionState: healthIntelligenceUIEnabled
+                    ? model.journeyHealthIntelligenceSectionState
+                    : nil,
                 analyticsCoordinator: analyticsCoordinator,
                 onCTA: handleCTA,
-                onGoToToday: { onOpenToday?() }
+                onGoToToday: { onOpenToday?() },
+                onConnectHealth: healthIntelligenceUIEnabled ? { onOpenPlan?() } : nil
             )
         }
         .formaMainTabScrollInsets()
@@ -166,4 +175,15 @@ struct JourneyView: View {
     )
     .environmentObject(container.refreshCenter)
     .environmentObject(container.trainingInsightsStore)
+}
+
+#Preview("Health Intelligence enabled") {
+    let container = try! AppContainer(inMemory: true)
+    JourneyView(
+        model: JourneyModel.preview(scenario: .strongMomentum),
+        analyticsCoordinator: container.makeJourneyAnalyticsCoordinator()
+    )
+    .environmentObject(container.refreshCenter)
+    .environmentObject(container.trainingInsightsStore)
+    .formaThemePreview(palette: .blossomPink)
 }

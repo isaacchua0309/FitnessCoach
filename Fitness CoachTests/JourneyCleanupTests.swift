@@ -22,6 +22,7 @@ final class JourneyCleanupTests: XCTestCase {
         XCTAssertTrue(identifiers.contains("monthlyRecap"))
         XCTAssertTrue(identifiers.contains("chapters"))
         XCTAssertTrue(identifiers.contains("header"))
+        XCTAssertTrue(identifiers.contains("healthIntelligence"))
     }
 
     func testBrandNewUserShowsNextAchievementAndStartingEmptyState() {
