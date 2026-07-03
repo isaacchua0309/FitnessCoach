@@ -77,6 +77,12 @@ enum HealthIntelligenceEngineLogger {
         log(level: "info", message: "Health intelligence snapshot composed", fields: fields)
     }
 
+    static func snapshotVerification(dayKey: String, fields: [String: String]) {
+        var merged = fields
+        merged["dayKey"] = dayKey
+        log(level: "info", message: "Health intelligence snapshot verification", fields: merged)
+    }
+
     static func wiringRegistered(fields: [String: String]) {
         log(level: "info", message: "Health intelligence engines wired", fields: fields)
     }

@@ -123,6 +123,11 @@ struct MainTabView: View {
         .environmentObject(container.healthSyncStateStore)
         .environmentObject(container.themeStore)
         .environment(\.settingsAnalyticsCoordinator, settingsAnalyticsCoordinator)
+        #if DEBUG
+        .environment(\.healthIntelligenceDebugVerification) { [container] in
+            await container.verifyTodayHealthIntelligenceSnapshot()
+        }
+        #endif
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 container.syncHealthCacheUserID()

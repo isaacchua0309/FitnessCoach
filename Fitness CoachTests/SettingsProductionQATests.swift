@@ -240,7 +240,7 @@ final class SettingsProductionQATests: XCTestCase {
 
         XCTAssertNotNil(state.developer)
         XCTAssertTrue(state.isDebugOrInternalBuild)
-        XCTAssertEqual(state.developer?.rows.map(\.id), [.authDiagnostics, .pipelineTraces])
+        XCTAssertEqual(state.developer?.rows.map(\.id), [.authDiagnostics, .pipelineTraces, .healthIntelligenceSnapshot])
     }
 
     // MARK: - 13. No broken coming-soon rows

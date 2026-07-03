@@ -48,7 +48,7 @@ final class SettingsPresentationBuilderTests: XCTestCase {
 
         XCTAssertNotNil(state.developer)
         XCTAssertTrue(state.isDebugOrInternalBuild)
-        XCTAssertEqual(state.developer?.rows.map(\.id), [.authDiagnostics, .pipelineTraces])
+        XCTAssertEqual(state.developer?.rows.map(\.id), [.authDiagnostics, .pipelineTraces, .healthIntelligenceSnapshot])
         XCTAssertEqual(
             state.developer?.footer,
             FormaProductCopy.Settings.Developer.sectionFooter

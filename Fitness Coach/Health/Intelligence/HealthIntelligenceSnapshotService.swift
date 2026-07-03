@@ -39,33 +39,11 @@ struct HealthIntelligenceSnapshotService: HealthIntelligenceSnapshotServing {
 
         cacheStore.storeIntelligenceSnapshot(snapshot, for: today, calendar: calendar)
 
-        #if DEBUG
-        logSnapshotVerification(snapshot: snapshot, calendar: calendar)
-        #endif
-    }
-
-    #if DEBUG
-    private func logSnapshotVerification(snapshot: HealthIntelligenceSnapshot, calendar: Calendar) {
-        let dayKey = Self.dayKey(for: snapshot.date, calendar: calendar)
-        HealthIntelligenceEngineLogger.snapshotComposed(
-            dayKey: dayKey,
-            recoveryStatus: snapshot.recovery.status.rawValue,
-            hasWorkout: snapshot.workout?.hasWorkout == true,
-            activitySteps: snapshot.activity.steps.map(String.init),
-            nutritionShouldChange: snapshot.nutritionAdjustment.shouldChangeTarget,
-            nextBestActionID: snapshot.nextBestAction.id,
-            planConfidence: snapshot.planConfidence.label,
-            hasWeeklyReview: snapshot.weeklyReview != nil
+        let report = HealthIntelligenceSnapshotVerifier.buildReport(
+            snapshot: snapshot,
+            trainingLoad: nil,
+            calendar: calendar
         )
-    }
-    #endif
-
-    private static func dayKey(for day: Date, calendar: Calendar) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = calendar.timeZone
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: calendar.startOfDay(for: day))
+        HealthIntelligenceSnapshotVerifier.log(report)
     }
 }

@@ -24,6 +24,11 @@ enum SettingsDeveloperPresentationBuilder {
                     id: .pipelineTraces,
                     title: FormaProductCopy.Settings.Rows.pipelineTraces,
                     destination: .pipelineTraces
+                ),
+                row(
+                    id: .healthIntelligenceSnapshot,
+                    title: FormaProductCopy.Settings.Rows.healthIntelligenceSnapshot,
+                    destination: .healthIntelligenceSnapshot
                 )
             ],
             footer: FormaProductCopy.Settings.Developer.sectionFooter
