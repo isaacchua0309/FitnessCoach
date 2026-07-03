@@ -33,6 +33,55 @@ final class LocalHealthCacheStoreTests: XCTestCase {
         super.tearDown()
     }
 
+    func testSaveAndReadDailyMetricsRoundTrip() {
+        let day = makeDate(2026, 7, 3)
+        let metrics = DailyHealthMetrics(
+            date: day,
+            steps: 11_234,
+            activeEnergyKcal: 480,
+            exerciseMinutes: 38
+        )
+        let bundle = HealthNormalizedDayBundle(
+            dailyMetrics: metrics,
+            workouts: [],
+            sleepRecords: [],
+            heartMetrics: [],
+            bodyMassRecords: []
+        )
+
+        cache.store(
+            HealthCacheEntry(date: day, bundle: bundle, cachedAt: Date()),
+            calendar: calendar
+        )
+
+        XCTAssertEqual(cache.dailyMetrics(for: day, calendar: calendar)?.steps, 11_234)
+        XCTAssertEqual(cache.dailyMetrics(for: day, calendar: calendar)?.activeEnergyKcal, 480)
+    }
+
+    func testCorruptedDayFileReturnsNilWithoutCrashing() throws {
+        let day = makeDate(2026, 7, 3)
+        let userDirectory = tempDirectory.appendingPathComponent("test-user", isDirectory: true)
+        let daysDirectory = userDirectory.appendingPathComponent("days", isDirectory: true)
+        try FileManager.default.createDirectory(at: daysDirectory, withIntermediateDirectories: true)
+
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = "yyyy-MM-dd"
+        let key = formatter.string(from: day)
+        let corruptURL = daysDirectory.appendingPathComponent("\(key).json")
+        try Data("{ not valid json".utf8).write(to: corruptURL)
+
+        let reloaded = LocalHealthCacheStore(
+            userProvider: StaticHealthCacheUserProvider(userID: "test-user"),
+            rootDirectory: tempDirectory
+        )
+
+        XCTAssertNil(reloaded.entry(for: day, calendar: calendar))
+        XCTAssertNil(reloaded.dailyMetrics(for: day, calendar: calendar))
+    }
+
     func testStoreAndReloadDayBundleFromDisk() {
         let day = makeDate(2026, 7, 3)
         let bundle = HealthNormalizedDayBundle(

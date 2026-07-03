@@ -216,6 +216,35 @@ final class HealthSampleNormalizerTests: XCTestCase {
         XCTAssertEqual(bundle.bodyMassRecords.first?.valueKg, 72.4, accuracy: 0.001)
     }
 
+    func testNormalizeWorkoutUsesMinimumDurationWhenZero() {
+        let start = makeDate(2026, 7, 3, hour: 8)
+        let end = makeDate(2026, 7, 3, hour: 8, minute: 5)
+        let raw = HealthFetchedWorkout(
+            id: UUID(),
+            activityTypeName: "Walking",
+            startDate: start,
+            endDate: end,
+            durationMinutes: 0,
+            activeCaloriesKcal: nil,
+            sourceName: nil
+        )
+
+        let workout = normalizer.normalizeWorkout(raw)
+
+        XCTAssertEqual(workout.durationMinutes, 1)
+        XCTAssertEqual(workout.activeEnergyKcal, 0)
+        XCTAssertEqual(workout.sourceName, nil)
+    }
+
+    func testNormalizeBodyMassHandlesMissingUnitConversion() {
+        let day = makeDate(2026, 7, 3)
+        let record = normalizer.normalizeBodyMassRecord(
+            HealthBodyMassRecord(id: UUID(), date: day, valueKg: 72.4)
+        )
+
+        XCTAssertEqual(record.valueKg, 72.4, accuracy: 0.001)
+    }
+
     // MARK: - Sample deduplication
 
     func testDeduplicateSamplesRemovesExactDuplicates() {
@@ -285,5 +314,27 @@ final class HealthStableIdentifierTests: XCTestCase {
 
         XCTAssertEqual(first, second)
         XCTAssertNotEqual(first, different)
+    }
+
+    func testWorkoutStableIDChangesWhenSourceChanges() {
+        let start = Date(timeIntervalSince1970: 1_000)
+        let end = Date(timeIntervalSince1970: 2_000)
+
+        let appleWatch = HealthStableIdentifier.workoutID(
+            sourceName: "Apple Watch",
+            startDate: start,
+            endDate: end,
+            durationMinutes: 30,
+            category: .running
+        )
+        let iPhone = HealthStableIdentifier.workoutID(
+            sourceName: "iPhone",
+            startDate: start,
+            endDate: end,
+            durationMinutes: 30,
+            category: .running
+        )
+
+        XCTAssertNotEqual(appleWatch, iPhone)
     }
 }

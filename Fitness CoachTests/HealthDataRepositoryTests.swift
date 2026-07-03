@@ -91,6 +91,56 @@ final class HealthDataRepositoryTests: XCTestCase {
         XCTAssertEqual(mockManager.fetchDailyMetricsRangeCallCount, 1)
     }
 
+    func testGetDailyMetricsCacheHitAvoidsRefetchForFreshEntry() async {
+        let day = makeDate(2026, 7, 3)
+        mockManager.dailyMetricsByDay[day] = HealthDailyMetrics(
+            date: day, steps: 3_000, activeEnergyKcal: 200, exerciseMinutes: 20
+        )
+
+        _ = await repository.getDailyMetrics(for: day, calendar: calendar)
+        mockManager.fetchDailyMetricsCallCount = 0
+
+        let cached = await repository.getDailyMetrics(for: day, calendar: calendar)
+
+        XCTAssertEqual(cached.steps, 3_000)
+        XCTAssertEqual(mockManager.fetchDailyMetricsCallCount, 0)
+    }
+
+    func testGetDailyMetricsCacheMissFetchesFromHealthKit() async {
+        let day = makeDate(2026, 7, 3)
+        mockManager.dailyMetricsByDay[day] = HealthDailyMetrics(
+            date: day, steps: 4_500, activeEnergyKcal: 250, exerciseMinutes: 25
+        )
+
+        let metrics = await repository.getDailyMetrics(for: day, calendar: calendar)
+
+        XCTAssertEqual(metrics.steps, 4_500)
+        XCTAssertEqual(mockManager.fetchDailyMetricsCallCount, 1)
+        XCTAssertEqual(cache.cachedDayCount(calendar: calendar), 1)
+    }
+
+    func testPartialDataReturnsStepsWhenWorkoutsDenied() async {
+        let day = makeDate(2026, 7, 3)
+        mockManager.dailyMetricsByDay[day] = HealthDailyMetrics(
+            date: day, steps: 6_000, activeEnergyKcal: 300, exerciseMinutes: 30
+        )
+        mockManager.workoutsError = HealthKitManagerError.authorizationDenied
+
+        let metrics = await repository.getDailyMetrics(for: day, calendar: calendar)
+        let workouts = await repository.getWorkouts(from: day, to: day)
+
+        XCTAssertEqual(metrics.steps, 6_000)
+        XCTAssertTrue(workouts.isEmpty)
+    }
+
+    func testPermissionDeniedReturnsGracefulEmptyWorkoutsWithoutCrashing() async {
+        mockManager.workoutsError = HealthKitManagerError.authorizationDenied
+
+        let results = await repository.getRecentWorkouts(days: 7, calendar: calendar)
+
+        XCTAssertTrue(results.isEmpty)
+    }
+
     // MARK: - Workouts
 
     func testGetRecentWorkoutsUsesDefaultDaysWhenZeroPassed() async {
@@ -246,6 +296,7 @@ private final class MockHealthKitManager: HealthKitManaging, @unchecked Sendable
     var bodyMassRecords: [HealthBodyMassRecord] = []
     var bodyMassError: HealthKitManagerError?
     var permissionStatus = HealthPermissionStatus.uniform(.available, isHealthDataAvailable: true)
+    var fetchDailyMetricsCallCount = 0
     var fetchDailyMetricsRangeCallCount = 0
 
     var isHealthDataAvailable: Bool { isAvailable }
@@ -262,7 +313,7 @@ private final class MockHealthKitManager: HealthKitManaging, @unchecked Sendable
     }
 
     func fetchDailyMetrics(for date: Date, calendar: Calendar) async throws -> HealthDailyMetrics {
-        _ = calendar
+        fetchDailyMetricsCallCount += 1
         try throwIfNeeded()
         let day = calendar.startOfDay(for: date)
         return dailyMetricsByDay[day] ?? .empty(for: day)

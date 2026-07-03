@@ -59,6 +59,70 @@ final class HealthSyncServiceTests: XCTestCase {
         XCTAssertNotNil(state.lastSuccessfulSyncAt)
     }
 
+    func testConcurrentSyncPreventsOverlappingRuns() async {
+        mockPermission.status = .uniform(.available, isHealthDataAvailable: true)
+        mockRepository.refreshDelayNanoseconds = 300_000_000
+
+        let service = self.service
+        async let first = Task { await service.syncLastNDays(2) }
+        async let second = Task { await service.syncToday() }
+        _ = await (first.value, second.value)
+
+        XCTAssertLessThanOrEqual(mockRepository.refreshCallCount, 2)
+    }
+
+    func testSyncStateTransitionsFromIdleToSucceeded() async {
+        mockPermission.status = .uniform(.available, isHealthDataAvailable: true)
+
+        let initial = await service.getCurrentSyncState()
+        XCTAssertEqual(initial.phase, .idle)
+
+        let finished = await service.syncToday()
+
+        XCTAssertEqual(finished.phase, .succeeded)
+        XCTAssertEqual(finished.trigger, .today)
+        XCTAssertEqual(finished.progress.daysCompleted, 1)
+        XCTAssertFalse(finished.isSyncing)
+    }
+
+    func testPartialSyncFailureDoesNotWipeExistingCacheEntry() async {
+        let day = makeDate(2026, 7, 3)
+        let bundle = HealthNormalizedDayBundle(
+            dailyMetrics: DailyHealthMetrics(date: day, steps: 5_500, activeEnergyKcal: 320, exerciseMinutes: 28),
+            workouts: [],
+            sleepRecords: [],
+            heartMetrics: [],
+            bodyMassRecords: []
+        )
+        cache.store(HealthCacheEntry(date: day, bundle: bundle, cachedAt: Date()), calendar: calendar)
+
+        let deniedSleepStatus = HealthPermissionStatus(
+            isHealthDataAvailable: true,
+            signalAccess: [
+                .stepCount: .available,
+                .activeEnergyBurned: .available,
+                .appleExerciseTime: .available,
+                .workout: .available,
+                .restingHeartRate: .available,
+                .heartRateVariabilitySDNN: .available,
+                .sleepAnalysis: .denied,
+                .bodyMass: .available
+            ],
+            resolvedAt: Date()
+        )
+        mockPermission.status = deniedSleepStatus
+        mockRepository.availability = HealthDataAvailability(
+            isHealthDataAvailable: true,
+            permissionStatus: deniedSleepStatus,
+            cachedDayCount: 1
+        )
+
+        let state = await service.syncToday()
+
+        XCTAssertEqual(state.phase, .partialSuccess)
+        XCTAssertEqual(cache.dailyMetrics(for: day, calendar: calendar)?.steps, 5_500)
+    }
+
     func testConcurrentSyncIsIgnored() async {
         mockPermission.status = .uniform(.available, isHealthDataAvailable: true)
         mockRepository.refreshDelayNanoseconds = 200_000_000
@@ -73,7 +137,7 @@ final class HealthSyncServiceTests: XCTestCase {
     }
 
     func testPartialSuccessWhenOneSignalUnavailable() async {
-        mockPermission.status = HealthPermissionStatus(
+        let deniedSleepStatus = HealthPermissionStatus(
             isHealthDataAvailable: true,
             signalAccess: [
                 .stepCount: .available,
@@ -86,6 +150,12 @@ final class HealthSyncServiceTests: XCTestCase {
                 .bodyMass: .available
             ],
             resolvedAt: Date()
+        )
+        mockPermission.status = deniedSleepStatus
+        mockRepository.availability = HealthDataAvailability(
+            isHealthDataAvailable: true,
+            permissionStatus: deniedSleepStatus,
+            cachedDayCount: 0
         )
 
         let state = await service.syncToday()
@@ -120,6 +190,12 @@ final class HealthSyncServiceTests: XCTestCase {
         XCTAssertEqual(state.progress.daysRequested, HealthCachePolicy.retentionDays)
         XCTAssertEqual(mockRepository.refreshCallCount, HealthCachePolicy.retentionDays)
         XCTAssertEqual(state.phase, .succeeded)
+    }
+
+    // MARK: - Helpers
+
+    private func makeDate(_ year: Int, _ month: Int, _ day: Int) -> Date {
+        calendar.date(from: DateComponents(year: year, month: month, day: day))!
     }
 }
 

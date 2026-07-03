@@ -21,6 +21,90 @@ final class HealthIntelligenceEngineTests: XCTestCase {
         self.engine = HealthIntelligenceEngine(repository: repository)
     }
 
+    func testComposeSnapshotStepsOnlyWhenOtherSignalsDenied() async {
+        let day = makeDate(2026, 7, 3)
+        repository.availability = HealthDataAvailability(
+            isHealthDataAvailable: true,
+            permissionStatus: HealthPermissionStatus(
+                isHealthDataAvailable: true,
+                signalAccess: [
+                    .stepCount: .available,
+                    .activeEnergyBurned: .denied,
+                    .appleExerciseTime: .denied,
+                    .workout: .denied,
+                    .restingHeartRate: .denied,
+                    .heartRateVariabilitySDNN: .denied,
+                    .sleepAnalysis: .denied,
+                    .bodyMass: .denied
+                ],
+                resolvedAt: Date()
+            ),
+            cachedDayCount: 1
+        )
+        repository.dailyMetricsByDay[day] = DailyHealthMetrics(
+            date: day,
+            steps: 12_345,
+            activeEnergyKcal: 500,
+            exerciseMinutes: 40
+        )
+
+        let snapshot = await engine.composeSnapshot(for: day, calendar: calendar)
+
+        XCTAssertEqual(snapshot.activity.steps, 12_345)
+        XCTAssertNil(snapshot.activity.activeEnergyKcal)
+        XCTAssertNil(snapshot.activity.exerciseMinutes)
+        XCTAssertNil(snapshot.workout)
+    }
+
+    func testComposeSnapshotMissingSleepHRVFallsBackToUnknownRecovery() async {
+        let day = makeDate(2026, 7, 3)
+        repository.availability = HealthDataAvailability(
+            isHealthDataAvailable: true,
+            permissionStatus: HealthPermissionStatus(
+                isHealthDataAvailable: true,
+                signalAccess: [
+                    .stepCount: .available,
+                    .activeEnergyBurned: .available,
+                    .appleExerciseTime: .available,
+                    .workout: .available,
+                    .restingHeartRate: .denied,
+                    .heartRateVariabilitySDNN: .denied,
+                    .sleepAnalysis: .denied,
+                    .bodyMass: .available
+                ],
+                resolvedAt: Date()
+            ),
+            cachedDayCount: 1
+        )
+        repository.dailyMetricsByDay[day] = DailyHealthMetrics(
+            date: day,
+            steps: 8_000,
+            activeEnergyKcal: 400,
+            exerciseMinutes: 35
+        )
+
+        let snapshot = await engine.composeSnapshot(for: day, calendar: calendar)
+
+        XCTAssertEqual(snapshot.recovery.readinessLabel, "Unknown")
+        XCTAssertNil(snapshot.recovery.score)
+    }
+
+    func testComposeSnapshotWithReadableSleepSignalsUsesInsufficientDataRecovery() async {
+        let day = makeDate(2026, 7, 3)
+        repository.availability = .connectedSnapshot
+        repository.dailyMetricsByDay[day] = DailyHealthMetrics(
+            date: day,
+            steps: 8_000,
+            activeEnergyKcal: 400,
+            exerciseMinutes: 35
+        )
+
+        let snapshot = await engine.composeSnapshot(for: day, calendar: calendar)
+
+        XCTAssertEqual(snapshot.recovery.readinessLabel, "Insufficient data")
+        XCTAssertNil(snapshot.recovery.score)
+    }
+
     func testComposeSnapshotWhenHealthUnavailableReturnsUnknownRecovery() async {
         repository.availability = .unavailableSnapshot
 
