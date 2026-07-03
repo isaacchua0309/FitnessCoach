@@ -40,8 +40,9 @@ final class HealthIntelligenceBaselineTests: XCTestCase {
             calendar: calendar
         )
 
-        XCTAssertEqual(summary?.primaryActivityName, "Running")
-        XCTAssertEqual(summary?.primaryDurationMinutes, 55)
+        XCTAssertEqual(summary?.title, "Running")
+        XCTAssertEqual(summary?.totalDurationMinutes, 55)
+        XCTAssertEqual(summary?.primaryWorkoutType, .running)
     }
 
     func testPlanConfidenceRequiresSevenDaysForModerateLabel() {

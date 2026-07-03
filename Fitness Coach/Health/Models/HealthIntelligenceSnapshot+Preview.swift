@@ -52,12 +52,21 @@ extension HealthIntelligenceSnapshot {
             date: day,
             recovery: RecoverySummary(score: nil, readinessLabel: "Insufficient data"),
             workout: WorkoutSummary(
-                hasWorkoutToday: true,
+                hasWorkout: true,
+                primaryWorkoutType: .running,
+                title: "Running",
                 workoutCount: 1,
-                primaryActivityName: "Running",
-                primaryDurationMinutes: 42,
-                primaryActiveEnergyKcal: 380,
-                primaryCategory: .running
+                totalDurationMinutes: 42,
+                totalActiveCalories: 380,
+                intensity: .moderate,
+                demand: .moderate,
+                latestWorkoutStart: nil,
+                latestWorkoutEnd: nil,
+                nutritionAdvice: "Aim for 20–35g protein in your next meal.",
+                hydrationAdviceMl: 500,
+                explanation: "Running added solid training volume today. A balanced next meal will help you stay on track.",
+                confidence: .high,
+                sourceSummary: "Based on synced workouts. Calorie figures are estimates and can vary."
             ),
             activity: ActivitySummary(
                 steps: 8_432,

@@ -18,21 +18,59 @@ struct RecoverySummary: Equatable, Sendable, Codable {
 }
 
 struct WorkoutSummary: Equatable, Sendable, Codable {
-    var hasWorkoutToday: Bool
+    var hasWorkout: Bool
+    var primaryWorkoutType: FormaWorkoutCategory?
+    var title: String
     var workoutCount: Int
-    var primaryActivityName: String?
-    var primaryDurationMinutes: Int?
-    var primaryActiveEnergyKcal: Int?
-    var primaryCategory: FormaWorkoutCategory?
+    var totalDurationMinutes: Int
+    var totalActiveCalories: Int?
+    var intensity: WorkoutIntensity
+    var demand: WorkoutDemand
+    var latestWorkoutStart: Date?
+    var latestWorkoutEnd: Date?
+    var nutritionAdvice: String
+    var hydrationAdviceMl: Int
+    var explanation: String
+    var confidence: WorkoutSummaryConfidence
+    var sourceSummary: String
 
-    static let empty = WorkoutSummary(
-        hasWorkoutToday: false,
+    static let noWorkout = WorkoutSummary(
+        hasWorkout: false,
+        primaryWorkoutType: nil,
+        title: "Rest day so far",
         workoutCount: 0,
-        primaryActivityName: nil,
-        primaryDurationMinutes: nil,
-        primaryActiveEnergyKcal: nil,
-        primaryCategory: nil
+        totalDurationMinutes: 0,
+        totalActiveCalories: nil,
+        intensity: .unknown,
+        demand: .low,
+        latestWorkoutStart: nil,
+        latestWorkoutEnd: nil,
+        nutritionAdvice: "Stay on your usual plan today.",
+        hydrationAdviceMl: 0,
+        explanation: "No workouts are logged for today yet.",
+        confidence: .low,
+        sourceSummary: ""
     )
+}
+
+enum WorkoutIntensity: String, Equatable, Sendable, Codable {
+    case low
+    case moderate
+    case high
+    case unknown
+}
+
+enum WorkoutDemand: String, Equatable, Sendable, Codable {
+    case low
+    case moderate
+    case high
+    case unknown
+}
+
+enum WorkoutSummaryConfidence: String, Equatable, Sendable, Codable {
+    case low
+    case moderate
+    case high
 }
 
 struct ActivitySummary: Equatable, Sendable, Codable {

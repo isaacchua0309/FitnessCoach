@@ -38,39 +38,27 @@ enum HealthIntelligenceBaseline {
         calendar: Calendar
     ) -> WorkoutSummary? {
         let dayStart = calendar.startOfDay(for: day)
-        guard let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) else {
-            return nil
-        }
-
-        let todaysWorkouts = workouts
-            .filter { $0.startDate >= dayStart && $0.startDate < dayEnd }
-            .sorted { lhs, rhs in
-                if lhs.durationMinutes == rhs.durationMinutes {
-                    if lhs.startDate == rhs.startDate {
-                        return lhs.id.uuidString < rhs.id.uuidString
-                    }
-                    return lhs.startDate < rhs.startDate
-                }
-                return lhs.durationMinutes > rhs.durationMinutes
-            }
+        let todaysWorkouts = WorkoutIntelligenceEngine.workoutsOnTargetDay(
+            workouts,
+            targetDay: dayStart,
+            calendar: calendar
+        )
 
         guard !todaysWorkouts.isEmpty else {
             return nil
         }
 
-        let primary = todaysWorkouts[0]
-        let energyKcal = primary.activeEnergyKcal > 0
-            ? Int(primary.activeEnergyKcal.rounded())
-            : nil
-
-        return WorkoutSummary(
-            hasWorkoutToday: true,
-            workoutCount: todaysWorkouts.count,
-            primaryActivityName: primary.activityLabel,
-            primaryDurationMinutes: primary.durationMinutes,
-            primaryActiveEnergyKcal: energyKcal,
-            primaryCategory: primary.category
+        let summary = WorkoutIntelligenceEngine().evaluate(
+            WorkoutIntelligenceInput(
+                targetDate: dayStart,
+                workoutsToday: todaysWorkouts,
+                recentWorkouts: workouts,
+                trainingLoadSummary: .unknown,
+                baselineContext: .empty(for: dayStart),
+                calendar: calendar
+            )
         )
+        return summary.hasWorkout ? summary : nil
     }
 
     // MARK: - Recovery
@@ -157,7 +145,7 @@ enum HealthIntelligenceBaseline {
             )
         }
 
-        if workout == nil,
+        if workout?.hasWorkout != true,
            activity.steps == nil,
            activity.exerciseMinutes == nil {
             return NextBestAction(

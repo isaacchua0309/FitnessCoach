@@ -168,10 +168,11 @@ final class HealthIntelligenceEngineTests: XCTestCase {
         let snapshot = await engine.composeSnapshot(for: day, calendar: calendar)
 
         XCTAssertEqual(snapshot.workout?.workoutCount, 2)
-        XCTAssertEqual(snapshot.workout?.primaryActivityName, "Running")
-        XCTAssertEqual(snapshot.workout?.primaryDurationMinutes, 55)
-        XCTAssertEqual(snapshot.workout?.primaryActiveEnergyKcal, 410)
-        XCTAssertEqual(snapshot.workout?.primaryCategory, .running)
+        XCTAssertEqual(snapshot.workout?.title, "Running + 1 more")
+        XCTAssertEqual(snapshot.workout?.totalDurationMinutes, 85)
+        XCTAssertEqual(snapshot.workout?.totalActiveCalories, 530)
+        XCTAssertEqual(snapshot.workout?.primaryWorkoutType, .running)
+        XCTAssertTrue(snapshot.workout?.hasWorkout == true)
     }
 
     func testComposeSnapshotOmitsWorkoutWhenNoneToday() async {

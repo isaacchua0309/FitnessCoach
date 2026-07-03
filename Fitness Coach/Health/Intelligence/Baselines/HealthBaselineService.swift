@@ -86,6 +86,27 @@ enum HealthTrainingLoadCalculator {
     }
 }
 
+extension HealthBaselineContext {
+    static func empty(for date: Date) -> HealthBaselineContext {
+        HealthBaselineContext(
+            targetDate: date,
+            averageSteps7d: nil,
+            averageSteps28d: nil,
+            averageActiveEnergy7d: nil,
+            averageActiveEnergy28d: nil,
+            averageSleepDuration7d: nil,
+            averageSleepDuration28d: nil,
+            averageRestingHeartRate28d: nil,
+            averageHRV28d: nil,
+            averageWorkoutLoad28d: nil,
+            workoutDays7d: nil,
+            workoutDays28d: nil,
+            availableSignals: [],
+            missingSignals: Set(HealthBaselineSignal.allCases)
+        )
+    }
+}
+
 // MARK: - Service
 
 protocol HealthBaselineServing: Sendable {
