@@ -487,20 +487,11 @@ struct PlanEditWizard: View {
             )
 
             Section {
-                VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
-                    if let warning = summary.warning {
-                        PlanEditReviewWarningCard(warning: warning)
-                    }
-
-                    PlanEditFinalPlanCard(state: summary)
-
-                    if !summary.todayChanges.isEmpty {
-                        PlanEditTodayChangesCard(
-                            changes: summary.todayChanges,
-                            note: summary.todayNote
-                        )
-                    }
-                }
+                PlanEditReviewStepView(
+                    summary: summary,
+                    showsStatusBanner: false,
+                    showsInputChanges: false
+                )
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
@@ -766,4 +757,5 @@ private extension PlanFormState {
         onCancel: {},
         onPrepareTargets: { _ in PlanPreviewData.generatedPreview }
     )
+    .formaThemePreview()
 }

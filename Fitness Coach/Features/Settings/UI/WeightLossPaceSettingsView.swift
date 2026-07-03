@@ -70,7 +70,10 @@ struct WeightLossPaceSettingsView: View {
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                     .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
 
-                PlanNativeSegmentedPicker(title: "Period", selection: $advancedDraft.period) {
+                PlanNativeSegmentedPicker(
+                    title: copy.advancedPeriodPickerTitle,
+                    selection: $advancedDraft.period
+                ) {
                     Text(copy.advancedPeriodWeekly).tag(WeightLossAdvancedPaceDraft.Period.weekly)
                     Text(copy.advancedPeriodMonthly).tag(WeightLossAdvancedPaceDraft.Period.monthly)
                 }
@@ -95,26 +98,26 @@ struct WeightLossPaceSettingsView: View {
         PlanProjectionCard {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 if let energy = presentation.energyBalanceLabel {
-                    impactMetricRow(
+                    PlanProjectionImpactRow(
                         label: copy.energyPreviewLabel,
                         value: energy
                     )
                 }
 
                 if let adherence = presentation.adherenceEstimate {
-                    impactMetricRow(
+                    PlanProjectionImpactRow(
                         label: FormaProductCopy.PlanProjection.adherenceLabel,
                         value: adherence
                     )
                 }
                 if let recovery = presentation.recoveryImpact {
-                    impactMetricRow(
+                    PlanProjectionImpactRow(
                         label: FormaProductCopy.PlanProjection.recoveryLabel,
                         value: recovery
                     )
                 }
                 if let hunger = presentation.hungerImpact {
-                    impactMetricRow(
+                    PlanProjectionImpactRow(
                         label: FormaProductCopy.PlanProjection.hungerLabel,
                         value: hunger
                     )
@@ -126,18 +129,6 @@ struct WeightLossPaceSettingsView: View {
                         .foregroundStyle(FormaPlanTokens.Color.planDanger)
                 }
             }
-        }
-    }
-
-    private func impactMetricRow(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-            Text(value)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

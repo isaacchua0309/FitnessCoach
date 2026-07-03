@@ -2284,6 +2284,7 @@ enum FormaProductCopy {
         static let estimatedFinishLabel = "Goal date"
         static let unavailable = "—"
         static let advancedCustomTitle = "Your custom pace"
+        static let advancedPeriodPickerTitle = "Period"
         static let advancedPeriodWeekly = "Weekly"
         static let advancedPeriodMonthly = "Monthly"
         static let advancedAmountWeeklyTitle = "Lose per week"
@@ -2497,6 +2498,28 @@ enum FormaProductCopy {
         static func friendlyChangeSummary(before: String, after: String) -> String {
             "Changed from \(before) to \(after)"
         }
+    }
+
+    // MARK: - Plan Target Regeneration
+
+    enum PlanTargetRegeneration {
+        static let navigationTitle = "Regenerated Targets"
+        static let cancel = "Cancel"
+        static let apply = "Apply"
+        static let estimatesTitle = "Estimates"
+        static let targetsTitle = "Generated Targets"
+        static let aggressiveReviewMessage =
+            "These targets may be aggressive. Review before applying."
+        static let bmrLabel = "BMR"
+        static let tdeeLabel = "TDEE"
+        static let dailyDeficitLabel = "Daily deficit"
+        static let caloriesLabel = "Calories"
+        static let proteinLabel = "Protein"
+        static let carbsLabel = "Carbs"
+        static let fatLabel = "Fat"
+        static let waterLabel = "Water"
+        static let aggressivenessLabel = "Aggressiveness"
+        static let expectedWeeklyLossLabel = "Expected weekly loss"
     }
 
     // MARK: - Plan Edit Save

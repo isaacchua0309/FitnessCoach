@@ -1,7 +1,7 @@
 {
   "configurations": [
     {
-      "id": "A9F1E327-41DB-4B7B-8237-258ADA684F1D",
+      "id": "914885E0-8ECC-4D2E-B6FF-66DDD23FCD87",
       "name": "Configuration 1",
       "options": {}
     }
@@ -198,6 +198,7 @@
         "PlanEditCopyGuardrailTests",
         "PlanEditDifficultyLabelBuilderTests",
         "PlanEditFinalPlanSummaryBuilderTests",
+        "PlanEditFinalQATests",
         "PlanEditHeroStateBuilderTests",
         "PlanEditMacroPresentationTests",
         "PlanEditMotionTests",

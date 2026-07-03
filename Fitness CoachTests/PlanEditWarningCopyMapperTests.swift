@@ -10,7 +10,7 @@ final class PlanEditWarningCopyMapperTests: XCTestCase {
 
     func testAggressiveDeficitCodeMapsToFriendlyCopy() {
         let warning = PlanEditWarningCopyMapper.userFacingWarning(
-            warningCode: "aggressiveDeficit",
+            warningCode: PlanEditWarningCode.aggressiveDeficit,
             isAggressive: false
         )
 

@@ -59,6 +59,7 @@ final class PlanEditCopyGuardrailTests: XCTestCase {
         let pace = FormaProductCopy.PlanEditPace.self
         let wizard = FormaProductCopy.PlanEditWizardCopy.self
         let accessibility = FormaProductCopy.PlanEditAccessibility.self
+        let regeneration = FormaProductCopy.PlanTargetRegeneration.self
 
         return [
             goal.sectionTitle,
@@ -108,7 +109,10 @@ final class PlanEditCopyGuardrailTests: XCTestCase {
             accessibility.errorPrefix,
             accessibility.emptyFieldValue,
             accessibility.progressValue(currentStep: 0, stepCount: 5),
-            accessibility.fieldLabel(title: "Height", unit: "cm")
+            accessibility.fieldLabel(title: "Height", unit: "cm"),
+            target.advancedPeriodPickerTitle,
+            regeneration.navigationTitle,
+            regeneration.aggressiveReviewMessage
         ]
     }
 }
