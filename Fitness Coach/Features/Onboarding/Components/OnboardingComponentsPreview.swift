@@ -40,7 +40,7 @@ enum OnboardingComponentsPreviewCatalog {
     static var appleHealth: some View {
         OnboardingAppleHealthStepView(
             screenState: OnboardingAppleHealthPresentationBuilder.build(
-                presentation: .ready,
+                presentation: .notDetermined,
                 deviceState: .notConnected
             )
         )
@@ -231,8 +231,34 @@ enum OnboardingComponentsPreviewCatalog {
 
     @ViewBuilder
     static var introProof: some View {
-        OnboardingIntroProofStepView()
-            .padding(.horizontal, OnboardingTheme.pagePadding)
+        OnboardingStepContainer(
+            currentStep: .introProof,
+            viewState: .editing,
+            validationMessage: nil,
+            fieldNavigator: OnboardingFieldNavigator(),
+            bottomBar: {
+                OnboardingBottomBar(
+                    currentStep: .introProof,
+                    isLoading: false,
+                    canContinue: true,
+                    onBack: {},
+                    onContinue: {},
+                    onComplete: {}
+                )
+            }
+        ) {
+            OnboardingIntroProofStepView()
+        }
+    }
+
+    @ViewBuilder
+    static var introProofHero: some View {
+        OnboardingIntroProofHeroSection(
+            model: .introProofDefault,
+            chartReveal: 1
+        )
+        .padding(.horizontal, OnboardingTheme.pagePadding)
+        .environment(\.onboardingStepContentHeight, 460)
     }
 
     @ViewBuilder

@@ -13,6 +13,9 @@ protocol TrainingIntegrationProviding: Sendable {
     /// Backend that should supply official training insights on this device.
     var dataSource: TrainingDataSource { get }
 
+    /// Whether HealthKit (or the platform health backend) is available on this device.
+    var isHealthDataAvailable: Bool { get }
+
     /// Reconcile integration state from persistence or HealthKit (stub until Stage 3).
     func refreshState() async -> TrainingIntegrationState
 

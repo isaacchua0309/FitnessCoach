@@ -83,8 +83,9 @@ struct OnboardingPrimaryCTA: View {
             }
             Text(title)
                 .font(FormaTokens.Typography.body.weight(.semibold))
-                .lineLimit(1)
+                .lineLimit(2)
                 .minimumScaleFactor(0.85)
+                .multilineTextAlignment(.center)
         }
     }
 
@@ -110,10 +111,12 @@ struct OnboardingPrimaryCTA: View {
 }
 
 private struct OnboardingLaunchCTAPressStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.965 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.965 : 1)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 

@@ -2,49 +2,60 @@
 //  OnboardingAppleHealthPermissionSummaryCard.swift
 //  Fitness Coach
 //
-//  Forma — Compact permission summary for Apple Health onboarding.
+//  Forma — Permission summary for Apple Health onboarding.
 //
 
 import SwiftUI
 
 struct OnboardingAppleHealthPermissionSummaryCard: View {
     let title: String
-    let rows: [String]
+    let items: [(icon: String, title: String)]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: OnboardingLayout.compactFieldSpacing) {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
             Text(title)
                 .font(FormaTokens.Typography.body.weight(.semibold))
                 .foregroundStyle(OnboardingTheme.primaryText)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
 
-            VStack(alignment: .leading, spacing: OnboardingLayout.compactLabelGap) {
-                ForEach(rows, id: \.self) { row in
-                    HStack(alignment: .center, spacing: FormaTokens.Spacing.sm) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(OnboardingTheme.accent)
-                            .accessibilityHidden(true)
-
-                        Text(row)
-                            .font(FormaTokens.Typography.sectionSubtitle)
-                            .foregroundStyle(OnboardingTheme.secondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel(row)
+            VStack(spacing: FormaTokens.Spacing.xs) {
+                ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                    permissionRow(icon: item.icon, title: item.title)
                 }
             }
         }
-        .padding(OnboardingLayout.compactCardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-                .fill(FormaTokens.Color.surfaceSubtle)
-        )
+        .onboardingUnifiedStepCard()
         .accessibilityElement(children: .contain)
         .accessibilityLabel(FormaProductCopy.Onboarding.Flow.AppleHealth.readableDataAccessibilityLabel)
+    }
+
+    private func permissionRow(icon: String, title: String) -> some View {
+        HStack(spacing: FormaTokens.Spacing.sm) {
+            Image(systemName: icon)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(OnboardingTheme.accent)
+                .frame(width: 22, alignment: .center)
+                .accessibilityHidden(true)
+
+            Text(title)
+                .font(FormaTokens.Typography.sectionSubtitle)
+                .foregroundStyle(OnboardingTheme.primaryText)
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, FormaTokens.Spacing.sm)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
+                .fill(OnboardingTheme.surfaceSubtle)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(title)
     }
 }
 
@@ -52,7 +63,7 @@ struct OnboardingAppleHealthPermissionSummaryCard: View {
 #Preview {
     OnboardingAppleHealthPermissionSummaryCard(
         title: FormaProductCopy.Onboarding.Flow.AppleHealth.summaryCardTitle,
-        rows: FormaProductCopy.Onboarding.Flow.AppleHealth.readableDataRows
+        items: FormaProductCopy.Onboarding.Flow.AppleHealth.permissionItems
     )
     .padding()
     .background(OnboardingTheme.background)

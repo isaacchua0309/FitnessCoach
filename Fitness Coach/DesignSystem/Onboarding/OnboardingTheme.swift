@@ -183,4 +183,22 @@ extension View {
         padding(OnboardingLayout.compactCardPadding)
             .background(OnboardingTheme.cardBackground(selected: selected))
     }
+
+    func onboardingUnifiedStepCard() -> some View {
+        padding(OnboardingUnifiedCardMetrics.padding)
+            .background(
+                RoundedRectangle(cornerRadius: OnboardingUnifiedCardMetrics.cornerRadius, style: .continuous)
+                    .fill(OnboardingTheme.card.opacity(OnboardingUnifiedCardMetrics.backgroundOpacity))
+                    .overlay {
+                        RoundedRectangle(
+                            cornerRadius: OnboardingUnifiedCardMetrics.cornerRadius,
+                            style: .continuous
+                        )
+                        .stroke(
+                            OnboardingTheme.border.opacity(OnboardingUnifiedCardMetrics.borderOpacity),
+                            lineWidth: 1
+                        )
+                    }
+            )
+    }
 }

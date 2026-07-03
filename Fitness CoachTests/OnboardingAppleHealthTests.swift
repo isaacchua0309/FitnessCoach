@@ -105,21 +105,21 @@ final class OnboardingAppleHealthFlowTests: XCTestCase {
         )
         XCTAssertEqual(
             OnboardingStep.appleHealth.subtitle,
-            "Sync workouts and activity to improve your progress insights."
+            "Sync workouts and activity so Forma can adjust your plan with less manual tracking."
         )
     }
 
     func testAppleHealthReadableDataRowsUseCompactSummaryCopy() {
         let copy = FormaProductCopy.Onboarding.Flow.AppleHealth.self
-        XCTAssertEqual(copy.summaryCardTitle, "What Forma can read")
+        XCTAssertEqual(copy.summaryCardTitle, "What Forma uses")
         XCTAssertEqual(copy.readableDataRows, [
-            "Workouts and duration",
-            "Active calories",
+            "Workouts",
+            "Active energy",
             "Training consistency"
         ])
         XCTAssertEqual(
             copy.readableDataAccessibilityLabel,
-            "What Forma can read: workouts and duration, active calories, training consistency."
+            "What Forma uses: workouts, active energy, training consistency."
         )
     }
 
@@ -129,8 +129,8 @@ final class OnboardingAppleHealthFlowTests: XCTestCase {
         XCTAssertEqual(copy.subtitle, OnboardingStep.appleHealth.subtitle)
     }
 
-    func testAppleHealthStepUsesFixedViewportShell() {
-        XCTAssertTrue(OnboardingStep.appleHealth.usesFixedViewportShell)
+    func testAppleHealthStepUsesUnifiedLayoutShell() {
+        XCTAssertTrue(OnboardingStep.appleHealth.usesUnifiedLayoutShell)
     }
 
     func testHealthKitAuthorizationRequestsReadOnlyTypes() {
@@ -194,7 +194,7 @@ final class OnboardingAppleHealthAnalyticsTests: XCTestCase {
         super.tearDown()
     }
 
-    func testAppleHealthContinueLogsPermissionEventsAndAllowsSkipAfterDenial() async throws {
+    func testAppleHealthContinueLogsPermissionEventsAndAllowsContinueAfterDenial() async throws {
         let integration = StubTrainingIntegrationProvider(requestConnectionResult: .denied)
         let model = try makeOnboardingModel(integration: integration)
         await advanceModelToAppleHealth(model)
@@ -219,10 +219,9 @@ final class OnboardingAppleHealthAnalyticsTests: XCTestCase {
             "denied"
         )
 
-        model.skipAppleHealth()
+        model.connectAppleHealth()
 
         XCTAssertEqual(model.currentStep, .almostThere)
-        XCTAssertTrue(analytics.contains(.appleHealthSkipTapped, step: "apple_health"))
         XCTAssertTrue(analytics.contains(.stepCompleted, step: "apple_health"))
     }
 
@@ -254,7 +253,7 @@ final class OnboardingAppleHealthAnalyticsTests: XCTestCase {
         XCTAssertEqual(integration.requestConnectionCallCount, 1)
     }
 
-    func testAppleHealthUnavailableStillAllowsSkip() async throws {
+    func testAppleHealthUnavailableStillAllowsContinue() async throws {
         let integration = StubTrainingIntegrationProvider(
             dataSource: .unavailable,
             refreshResult: .unavailable,
@@ -269,7 +268,7 @@ final class OnboardingAppleHealthAnalyticsTests: XCTestCase {
         }
 
         XCTAssertEqual(model.appleHealthPresentation, .unavailable)
-        model.skipAppleHealth()
+        model.connectAppleHealth()
         XCTAssertEqual(model.currentStep, .almostThere)
     }
 
@@ -285,7 +284,7 @@ final class OnboardingAppleHealthAnalyticsTests: XCTestCase {
         await AsyncTestSupport.drainMainActorTasks()
 
         XCTAssertEqual(model.appleHealthDeviceState, .notConnected)
-        XCTAssertEqual(model.appleHealthPresentation, .ready)
+        XCTAssertEqual(model.appleHealthPresentation, .notDetermined)
         XCTAssertTrue(model.appleHealthScreenState.isPrimaryEnabled)
         XCTAssertEqual(
             model.appleHealthScreenState.primaryTitle,
@@ -293,7 +292,7 @@ final class OnboardingAppleHealthAnalyticsTests: XCTestCase {
         )
     }
 
-    func testAppleHealthConnectSuccessShowsContinueCTA() async throws {
+    func testAppleHealthConnectSuccessHidesSkipAndShowsContinueCTA() async throws {
         let integration = StubTrainingIntegrationProvider(requestConnectionResult: .connected)
         let model = try makeOnboardingModel(integration: integration)
         await advanceModelToAppleHealth(model)
@@ -306,6 +305,7 @@ final class OnboardingAppleHealthAnalyticsTests: XCTestCase {
 
         XCTAssertEqual(model.currentStep, .appleHealth)
         XCTAssertTrue(model.appleHealthScreenState.isPrimaryEnabled)
+        XCTAssertFalse(model.appleHealthScreenState.showsSkipButton)
         XCTAssertEqual(
             model.appleHealthScreenState.primaryTitle,
             FormaProductCopy.Common.continueAction
@@ -366,7 +366,7 @@ final class OnboardingAppleHealthAnalyticsTests: XCTestCase {
         XCTAssertEqual(integration.requestConnectionCallCount, 1)
     }
 
-    func testAppleHealthDeniedPrimaryCTAAllowsRetryAndSkip() async throws {
+    func testAppleHealthDeniedPrimaryCTAAllowsContinueWithoutSkip() async throws {
         let integration = StubTrainingIntegrationProvider(requestConnectionResult: .denied)
         let model = try makeOnboardingModel(integration: integration)
         await advanceModelToAppleHealth(model)
@@ -379,13 +379,17 @@ final class OnboardingAppleHealthAnalyticsTests: XCTestCase {
 
         XCTAssertEqual(model.currentStep, .appleHealth)
         XCTAssertTrue(model.appleHealthScreenState.isPrimaryEnabled)
-        XCTAssertTrue(model.appleHealthScreenState.isSkipEnabled)
+        XCTAssertFalse(model.appleHealthScreenState.showsSkipButton)
+        XCTAssertEqual(
+            model.appleHealthScreenState.primaryTitle,
+            FormaProductCopy.Onboarding.Flow.AppleHealth.continueCTA
+        )
 
-        model.skipAppleHealth()
+        model.connectAppleHealth()
         XCTAssertEqual(model.currentStep, .almostThere)
     }
 
-    func testAppleHealthUnavailableAllowsSkipWithoutTrappingUser() async throws {
+    func testAppleHealthUnavailableAllowsContinueWithoutTrappingUser() async throws {
         let integration = StubTrainingIntegrationProvider(
             dataSource: .unavailable,
             refreshResult: .unavailable,
@@ -397,10 +401,71 @@ final class OnboardingAppleHealthAnalyticsTests: XCTestCase {
         await AsyncTestSupport.drainMainActorTasks()
 
         XCTAssertEqual(model.appleHealthPresentation, .unavailable)
-        XCTAssertFalse(model.appleHealthScreenState.isPrimaryEnabled)
-        XCTAssertTrue(model.appleHealthScreenState.isSkipEnabled)
+        XCTAssertTrue(model.appleHealthScreenState.isPrimaryEnabled)
+        XCTAssertFalse(model.appleHealthScreenState.showsSkipButton)
+        XCTAssertEqual(
+            model.appleHealthScreenState.primaryTitle,
+            FormaProductCopy.Onboarding.Flow.AppleHealth.continueCTA
+        )
 
-        model.skipAppleHealth()
+        model.connectAppleHealth()
+        XCTAssertEqual(model.currentStep, .almostThere)
+        XCTAssertEqual(integration.requestConnectionCallCount, 0)
+    }
+
+    @MainActor
+    func testAppleHealthRequestingIgnoresDuplicatePrimaryTaps() async throws {
+        let integration = StubTrainingIntegrationProvider(requestConnectionResult: .connected)
+        let model = try makeOnboardingModel(integration: integration)
+        await advanceModelToAppleHealth(model)
+
+        model.connectAppleHealth()
+        model.connectAppleHealth()
+        model.connectAppleHealth()
+
+        _ = await AsyncTestSupport.waitUntil(maxYields: 200) {
+            model.appleHealthPresentation == .connected
+        }
+
+        XCTAssertEqual(integration.requestConnectionCallCount, 1)
+    }
+
+    func testAppleHealthForegroundReturnClearsStuckLoadingState() async throws {
+        let integration = StubTrainingIntegrationProvider(
+            refreshResult: .denied,
+            requestConnectionResult: .denied
+        )
+        let model = try makeOnboardingModel(integration: integration)
+        await advanceModelToAppleHealth(model)
+
+        model.connectAppleHealth()
+        XCTAssertEqual(model.viewState, .connectingAppleHealth)
+
+        model.handleAppleHealthForegroundReturn()
+        _ = await AsyncTestSupport.waitUntil(maxYields: 200) {
+            model.viewState != .connectingAppleHealth
+        }
+
+        XCTAssertEqual(model.viewState, .editing)
+        XCTAssertEqual(model.appleHealthPresentation, .denied)
+        XCTAssertTrue(model.appleHealthScreenState.isPrimaryEnabled)
+    }
+
+    func testAppleHealthUnavailableOnDeviceSkipsPermissionRequest() async throws {
+        let integration = StubTrainingIntegrationProvider(
+            dataSource: .unavailable,
+            isHealthDataAvailable: false,
+            refreshResult: .unavailable,
+            requestConnectionResult: .unavailable
+        )
+        let model = try makeOnboardingModel(integration: integration)
+        await advanceModelToAppleHealth(model)
+
+        await AsyncTestSupport.drainMainActorTasks()
+
+        XCTAssertEqual(model.appleHealthPresentation, .unavailable)
+        model.connectAppleHealth()
+
         XCTAssertEqual(model.currentStep, .almostThere)
         XCTAssertEqual(integration.requestConnectionCallCount, 0)
     }

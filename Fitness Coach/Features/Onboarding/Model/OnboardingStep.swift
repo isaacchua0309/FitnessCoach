@@ -224,10 +224,20 @@ enum OnboardingStep: Int, Equatable, Identifiable, Sendable, CaseIterable {
         false
     }
 
+    /// Steps that use the shared fixed layout with progress chrome and bottom inset.
+    var usesUnifiedLayoutShell: Bool {
+        switch self {
+        case .introProof, .appleHealth:
+            return true
+        default:
+            return false
+        }
+    }
+
     /// Steps that fit in one viewport and should not scroll.
     var usesFixedViewportShell: Bool {
         switch self {
-        case .birthday, .activityLevel, .appleHealth, .almostThere, .formaProof, .review,
+        case .birthday, .activityLevel, .almostThere, .formaProof, .review,
              .generatingPlan, .planReveal, .savePlan, .targetWeight:
             return true
         default:

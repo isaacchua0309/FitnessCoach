@@ -88,6 +88,22 @@ enum OnboardingMarketingTypography {
     static let blueprintDetail = Font.caption2.weight(.medium)
 }
 
+// MARK: - Unified step chrome (intro proof, Apple Health)
+
+enum OnboardingUnifiedChromeTypography {
+    static let stepTitle = Font.system(.title2, design: .rounded).weight(.bold)
+    static let stepSubtitle = FormaTokens.Typography.sectionSubtitle
+    static let subtitleLineSpacing: CGFloat = 3
+    static let subtitleMaxWidth: CGFloat = FormaTokens.Layout.maxContentWidth
+}
+
+enum OnboardingUnifiedCardMetrics {
+    static let cornerRadius = FormaTokens.Radius.card
+    static let padding = FormaTokens.Spacing.cardPadding
+    static let borderOpacity = 0.55
+    static let backgroundOpacity = 1.0
+}
+
 // MARK: - Benefit item
 
 struct OnboardingBenefitItem: Equatable, Identifiable, Sendable {

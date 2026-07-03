@@ -79,66 +79,16 @@ struct OnboardingView: View {
                 viewState: model.viewState,
                 validationMessage: displayedValidationMessage,
                 keyboardHeight: keyboardMonitor.keyboardHeight,
-                fieldNavigator: fieldNavigator
+                fieldNavigator: fieldNavigator,
+                bottomBar: {
+                    bottomBarContent
+                }
             ) {
                 stepContent
                     .animation(
                         .easeOut(duration: OnboardingGeneratingPlanTiming.stepTransitionAnimation),
                         value: model.currentStep
                     )
-            }
-            .background(OnboardingTheme.background.ignoresSafeArea())
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if showsBottomBar {
-                    OnboardingBottomBar(
-                        currentStep: model.currentStep,
-                        isLoading: isBottomBarBusy,
-                        canContinue: canContinue,
-                        showsRequiredFieldsHint: showsRequiredFieldsHint,
-                        requiredFieldsHint: continueRequiredFieldsHint,
-                        appleHealthPrimaryTitle: model.currentStep == .appleHealth
-                            ? appleHealthScreenState.primaryTitle
-                            : nil,
-                        appleHealthSecondaryTitle: model.currentStep == .appleHealth
-                            ? appleHealthScreenState.secondaryTitle
-                            : nil,
-                        isAppleHealthPrimaryEnabled: model.currentStep == .appleHealth
-                            ? appleHealthScreenState.isPrimaryEnabled
-                            : true,
-                        isAppleHealthSkipEnabled: model.currentStep == .appleHealth
-                            ? appleHealthScreenState.isSkipEnabled
-                            : true,
-                        onAppleHealthSkip: model.currentStep == .appleHealth
-                            ? {
-                                fieldNavigator.dismissFocus()
-                                model.skipAppleHealth()
-                            }
-                            : nil,
-                        onBack: {
-                            fieldNavigator.dismissFocus()
-                            model.goBack()
-                        },
-                        onContinue: handleContinueTapped,
-                        onComplete: {
-                            fieldNavigator.dismissFocus()
-                            model.completeOnboarding()
-                        },
-                        onAdjustPlan: isPlanRevealStep
-                            ? {
-                                fieldNavigator.dismissFocus()
-                                model.adjustPlanFromReveal()
-                            }
-                            : nil,
-                        saveTrustNote: planRevealSaveTrustNote,
-                        canExitToWelcome: model.canExitToWelcome,
-                        onExitToWelcome: onExitToWelcome,
-                        flowFloor: model.flowFloor
-                    )
-                    .transition(.opacity)
-                } else if reservesPlanRevealFooterSpace {
-                    OnboardingPlanRevealFooterReserve()
-                        .transition(.opacity)
-                }
             }
             .animation(
                 .easeOut(duration: OnboardingGeneratingPlanTiming.stepTransitionAnimation),
@@ -166,6 +116,8 @@ struct OnboardingView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .background || phase == .inactive {
                 model.flushDraftSnapshotIfNeeded()
+            } else if phase == .active {
+                model.handleAppleHealthForegroundReturn()
             }
         }
     }
@@ -234,6 +186,62 @@ struct OnboardingView: View {
                     model.goBack()
                 }
             )
+        }
+    }
+
+    @ViewBuilder
+    private var bottomBarContent: some View {
+        if showsBottomBar {
+            OnboardingBottomBar(
+                currentStep: model.currentStep,
+                isLoading: isBottomBarBusy,
+                canContinue: canContinue,
+                showsRequiredFieldsHint: showsRequiredFieldsHint,
+                requiredFieldsHint: continueRequiredFieldsHint,
+                appleHealthPrimaryTitle: model.currentStep == .appleHealth
+                    ? appleHealthScreenState.primaryTitle
+                    : nil,
+                appleHealthSecondaryTitle: model.currentStep == .appleHealth
+                    && appleHealthScreenState.showsSkipButton
+                    ? appleHealthScreenState.skipTitle
+                    : nil,
+                isAppleHealthPrimaryEnabled: model.currentStep == .appleHealth
+                    ? appleHealthScreenState.isPrimaryEnabled
+                    : true,
+                isAppleHealthSkipEnabled: model.currentStep == .appleHealth
+                    ? appleHealthScreenState.showsSkipButton
+                    : true,
+                onAppleHealthSkip: model.currentStep == .appleHealth
+                    && appleHealthScreenState.showsSkipButton
+                    ? {
+                        fieldNavigator.dismissFocus()
+                        model.skipAppleHealth()
+                    }
+                    : nil,
+                onBack: {
+                    fieldNavigator.dismissFocus()
+                    model.goBack()
+                },
+                onContinue: handleContinueTapped,
+                onComplete: {
+                    fieldNavigator.dismissFocus()
+                    model.completeOnboarding()
+                },
+                onAdjustPlan: isPlanRevealStep
+                    ? {
+                        fieldNavigator.dismissFocus()
+                        model.adjustPlanFromReveal()
+                    }
+                    : nil,
+                saveTrustNote: planRevealSaveTrustNote,
+                canExitToWelcome: model.canExitToWelcome,
+                onExitToWelcome: onExitToWelcome,
+                flowFloor: model.flowFloor
+            )
+            .transition(.opacity)
+        } else if reservesPlanRevealFooterSpace {
+            OnboardingPlanRevealFooterReserve()
+                .transition(.opacity)
         }
     }
 

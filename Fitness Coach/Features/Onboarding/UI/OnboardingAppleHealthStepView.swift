@@ -10,30 +10,54 @@ import SwiftUI
 struct OnboardingAppleHealthStepView: View {
     let screenState: OnboardingAppleHealthScreenState
 
+    @Environment(\.onboardingStepLayoutProfile) private var layoutProfile
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @State private var headerVisible = false
-    @State private var heroVisible = false
-    @State private var summaryVisible = false
-    @State private var privacyVisible = false
+    @State private var contentVisible = false
     @State private var didPlayAppearHaptic = false
 
     private let copy = FormaProductCopy.Onboarding.Flow.AppleHealth.self
 
+    private var sectionSpacing: CGFloat {
+        OnboardingStepLayoutMetrics.appleHealthSectionSpacing(profile: layoutProfile)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
-            headerSection
-            heroSection
-            summarySection
-            statusSection
-            privacySection
-            Spacer(minLength: 0)
+        VStack(alignment: .leading, spacing: sectionSpacing) {
+            if screenState.showsHeroIcon {
+                OnboardingAppleHealthHeroIcon(style: screenState.heroStyle)
+                    .opacity(contentVisible ? 1 : 0)
+                    .scaleEffect(contentVisible ? 1 : 0.96)
+            }
+
+            if screenState.showsPermissionCard {
+                OnboardingAppleHealthPermissionSummaryCard(
+                    title: copy.summaryCardTitle,
+                    items: copy.permissionItems
+                )
+                .opacity(contentVisible ? 1 : 0)
+                .offset(y: contentVisible ? 0 : 4)
+            }
+
+            if let statusMessage = screenState.statusMessage {
+                OnboardingAppleHealthStatusBanner(
+                    message: statusMessage,
+                    style: bannerStyle(for: screenState.presentation)
+                )
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
+            if screenState.showsPrivacyCard {
+                OnboardingAppleHealthPrivacyCard(
+                    title: copy.privacyTitle,
+                    bodyCopy: copy.privacyBody
+                )
+                .opacity(contentVisible ? 1 : 0)
+                .offset(y: contentVisible ? 0 : 4)
+            }
         }
-        .padding(.horizontal, OnboardingTheme.pagePadding)
-        .padding(.top, OnboardingLayout.progressHeaderTop)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(screenState.accessibilitySummary)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: screenState.presentation)
         .onAppear {
             runEntranceAnimation()
@@ -46,74 +70,27 @@ struct OnboardingAppleHealthStepView: View {
         }
     }
 
-    private var headerSection: some View {
-        OnboardingStageProgressHeader(currentStep: .appleHealth)
-            .opacity(headerVisible ? 1 : 0)
-            .offset(y: headerVisible ? 0 : 6)
-    }
-
-    private var heroSection: some View {
-        OnboardingAppleHealthHeroIcon(style: screenState.heroStyle)
-            .opacity(heroVisible ? 1 : 0)
-            .scaleEffect(heroVisible ? 1 : 0.94)
-    }
-
-    private var summarySection: some View {
-        OnboardingAppleHealthPermissionSummaryCard(
-            title: copy.summaryCardTitle,
-            rows: copy.readableDataRows
-        )
-        .opacity(summaryVisible ? 1 : 0)
-        .offset(y: summaryVisible ? 0 : 6)
-    }
-
-    @ViewBuilder
-    private var statusSection: some View {
-        if let statusMessage = screenState.statusMessage {
-            Text(statusMessage)
-                .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
-                .foregroundStyle(
-                    screenState.presentation == .connected
-                        ? OnboardingTheme.accent
-                        : OnboardingTheme.secondaryText
-                )
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityLabel(statusMessage)
-                .transition(.opacity.combined(with: .move(edge: .top)))
+    private func bannerStyle(
+        for presentation: OnboardingAppleHealthPresentationState
+    ) -> OnboardingAppleHealthStatusBanner.Style {
+        switch presentation {
+        case .connected:
+            return .success
+        case .denied, .unavailable, .failed:
+            return .warning
+        case .notDetermined, .requesting:
+            return .neutral
         }
-    }
-
-    private var privacySection: some View {
-        OnboardingAppleHealthPrivacyCard(
-            title: copy.privacyTitle,
-            bodyCopy: copy.privacyBody
-        )
-        .opacity(privacyVisible ? 1 : 0)
-        .offset(y: privacyVisible ? 0 : 6)
     }
 
     private func runEntranceAnimation() {
         if reduceMotion {
-            headerVisible = true
-            heroVisible = true
-            summaryVisible = true
-            privacyVisible = true
+            contentVisible = true
             return
         }
 
         withAnimation(.easeOut(duration: 0.22)) {
-            headerVisible = true
-        }
-        withAnimation(.easeOut(duration: 0.24).delay(0.06)) {
-            heroVisible = true
-        }
-        withAnimation(.easeOut(duration: 0.24).delay(0.12)) {
-            summaryVisible = true
-        }
-        withAnimation(.easeOut(duration: 0.22).delay(0.18)) {
-            privacyVisible = true
+            contentVisible = true
         }
     }
 
@@ -132,66 +109,96 @@ private enum OnboardingAppleHealthPreviewFactory {
     ) -> OnboardingAppleHealthScreenState {
         OnboardingAppleHealthPresentationBuilder.build(
             presentation: presentation,
-            deviceState: presentation == .unavailable ? .unavailable : .notConnected
+            deviceState: deviceState(for: presentation)
         )
+    }
+
+    private static func deviceState(
+        for presentation: OnboardingAppleHealthPresentationState
+    ) -> TrainingIntegrationState {
+        switch presentation {
+        case .connected:
+            return .connected
+        case .denied:
+            return .denied
+        case .unavailable:
+            return .unavailable
+        case .requesting:
+            return .requestingPermission
+        case .failed(let message):
+            return .failed(message: message)
+        case .notDetermined:
+            return .notConnected
+        }
     }
 }
 
-#Preview("Apple Health — Ready") {
-    OnboardingAppleHealthStepView(
-        screenState: OnboardingAppleHealthPreviewFactory.screenState(for: .ready)
+private struct OnboardingAppleHealthPreviewShell: View {
+    let screenState: OnboardingAppleHealthScreenState
+    var isLoading: Bool = false
+
+    var body: some View {
+        OnboardingStepContainer(
+            currentStep: .appleHealth,
+            viewState: isLoading ? .connectingAppleHealth : .editing,
+            validationMessage: nil,
+            fieldNavigator: OnboardingFieldNavigator(),
+            bottomBar: {
+                OnboardingBottomBar(
+                    currentStep: .appleHealth,
+                    isLoading: isLoading,
+                    canContinue: true,
+                    appleHealthPrimaryTitle: screenState.primaryTitle,
+                    appleHealthSecondaryTitle: screenState.showsSkipButton
+                        ? screenState.skipTitle
+                        : nil,
+                    isAppleHealthPrimaryEnabled: screenState.isPrimaryEnabled,
+                    isAppleHealthSkipEnabled: screenState.showsSkipButton,
+                    onAppleHealthSkip: screenState.showsSkipButton ? {} : nil,
+                    onBack: {},
+                    onContinue: {},
+                    onComplete: {}
+                )
+            }
+        ) {
+            OnboardingAppleHealthStepView(screenState: screenState)
+        }
+    }
+}
+
+#Preview("Apple Health — Not Determined") {
+    OnboardingAppleHealthPreviewShell(
+        screenState: OnboardingAppleHealthPreviewFactory.screenState(for: .notDetermined)
     )
-    .background(OnboardingTheme.background)
     .formaThemePreview()
 }
 
 #Preview("Apple Health — Requesting") {
-    OnboardingAppleHealthStepView(
-        screenState: OnboardingAppleHealthPreviewFactory.screenState(for: .requesting)
+    OnboardingAppleHealthPreviewShell(
+        screenState: OnboardingAppleHealthPreviewFactory.screenState(for: .requesting),
+        isLoading: true
     )
-    .background(OnboardingTheme.background)
     .formaThemePreview()
 }
 
 #Preview("Apple Health — Connected") {
-    OnboardingAppleHealthStepView(
+    OnboardingAppleHealthPreviewShell(
         screenState: OnboardingAppleHealthPreviewFactory.screenState(for: .connected)
     )
-    .background(OnboardingTheme.background)
     .formaThemePreview()
 }
 
 #Preview("Apple Health — Denied") {
-    OnboardingAppleHealthStepView(
+    OnboardingAppleHealthPreviewShell(
         screenState: OnboardingAppleHealthPreviewFactory.screenState(for: .denied)
     )
-    .background(OnboardingTheme.background)
     .formaThemePreview()
 }
 
 #Preview("Apple Health — Unavailable") {
-    OnboardingAppleHealthStepView(
+    OnboardingAppleHealthPreviewShell(
         screenState: OnboardingAppleHealthPreviewFactory.screenState(for: .unavailable)
     )
-    .background(OnboardingTheme.background)
-    .formaThemePreview()
-}
-
-#Preview("Apple Health — Failed") {
-    OnboardingAppleHealthStepView(
-        screenState: OnboardingAppleHealthPreviewFactory.screenState(
-            for: .failed(message: "HealthKit unavailable")
-        )
-    )
-    .background(OnboardingTheme.background)
-    .formaThemePreview()
-}
-
-#Preview("Apple Health — Small iPhone") {
-    OnboardingAppleHealthStepView(
-        screenState: OnboardingAppleHealthPreviewFactory.screenState(for: .ready)
-    )
-    .background(OnboardingTheme.background)
     .formaThemePreview()
 }
 #endif

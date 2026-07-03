@@ -12,28 +12,37 @@ struct OnboardingWeightTrajectoryHeroChart: View {
     let model: OnboardingWeightTrajectoryComparisonModel
     var revealProgress: CGFloat = 1
 
-    @ScaledMetric(relativeTo: .body) private var axisLabelSize: CGFloat = 13
-    @ScaledMetric(relativeTo: .body) private var formaLineWidth: CGFloat = 4
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .body) private var axisLabelSize: CGFloat = 12
+    @ScaledMetric(relativeTo: .body) private var formaLineWidth: CGFloat = 4.5
     @ScaledMetric(relativeTo: .body) private var traditionalLineWidth: CGFloat = 3
-
-    private enum Series: String, CaseIterable {
-        case forma = "Forma"
-        case traditional = "Traditional diet"
-    }
 
     private struct ChartPoint: Identifiable {
         let id: String
         let weekIndex: Int
         let weightKg: Double
-        let series: Series
+        let seriesLabel: String
+        let isDashed: Bool
     }
 
     private var chartPoints: [ChartPoint] {
         let formaPoints = model.formaSeries.enumerated().map { index, point in
-            ChartPoint(id: point.id, weekIndex: index, weightKg: point.weightKg, series: .forma)
+            ChartPoint(
+                id: point.id,
+                weekIndex: index,
+                weightKg: point.weightKg,
+                seriesLabel: model.formaLabel,
+                isDashed: false
+            )
         }
         let traditionalPoints = model.traditionalSeries.enumerated().map { index, point in
-            ChartPoint(id: point.id, weekIndex: index, weightKg: point.weightKg, series: .traditional)
+            ChartPoint(
+                id: point.id,
+                weekIndex: index,
+                weightKg: point.weightKg,
+                seriesLabel: model.traditionalLabel,
+                isDashed: true
+            )
         }
         return formaPoints + traditionalPoints
     }
@@ -55,13 +64,13 @@ struct OnboardingWeightTrajectoryHeroChart: View {
                 x: .value("Week", point.weekIndex),
                 y: .value("Weight", point.weightKg)
             )
-            .foregroundStyle(by: .value("Series", point.series.rawValue))
+            .foregroundStyle(by: .value("Series", point.seriesLabel))
             .interpolationMethod(.catmullRom)
-            .lineStyle(lineStyle(for: point.series))
+            .lineStyle(lineStyle(isDashed: point.isDashed))
         }
         .chartForegroundStyleScale([
-            Series.forma.rawValue: OnboardingTheme.chartPrimary,
-            Series.traditional.rawValue: OnboardingTheme.chartSecondary
+            model.formaLabel: OnboardingTheme.chartPrimary,
+            model.traditionalLabel: OnboardingTheme.chartSecondary
         ])
         .chartXScale(domain: 0...(max(model.formaSeries.count - 1, 0)))
         .chartYScale(domain: yAxisDomain)
@@ -79,37 +88,31 @@ struct OnboardingWeightTrajectoryHeroChart: View {
         .chartYAxis {
             AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { _ in
                 AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [4, 6]))
-                    .foregroundStyle(OnboardingTheme.border.opacity(0.35))
-                AxisValueLabel()
-                    .font(.system(size: axisLabelSize, weight: .medium, design: .rounded))
-                    .foregroundStyle(OnboardingTheme.secondaryText)
+                    .foregroundStyle(OnboardingTheme.border.opacity(0.3))
             }
-        }
-        .chartYAxisLabel {
-            Text(FormaProductCopy.Onboarding.Flow.Proof.WeightMaintenance.yAxisLabel)
-                .font(.system(size: axisLabelSize, weight: .medium, design: .rounded))
-                .foregroundStyle(OnboardingTheme.tertiaryText)
         }
         .chartLegend(.hidden)
         .chartPlotStyle { plotArea in
             plotArea
-                .background(OnboardingTheme.surfaceSubtle.opacity(0.4))
-                .clipShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous))
+                .background(OnboardingTheme.surfaceSubtle.opacity(0.55))
+                .clipShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous))
         }
         .mask(alignment: .leading) {
             Rectangle()
-                .scaleEffect(x: max(0, min(revealProgress, 1)), y: 1, anchor: .leading)
+                .scaleEffect(x: max(0, min(resolvedRevealProgress, 1)), y: 1, anchor: .leading)
         }
         .accessibilityElement(children: .ignore)
+        .accessibilityAddTraits(.isImage)
         .accessibilityLabel(model.chartAccessibilityLabel)
-        .accessibilityValue(model.takeaway)
+        .accessibilityValue(model.insightPill)
     }
 
-    private func lineStyle(for series: Series) -> StrokeStyle {
-        switch series {
-        case .forma:
-            return StrokeStyle(lineWidth: formaLineWidth, lineCap: .round, lineJoin: .round)
-        case .traditional:
+    private var resolvedRevealProgress: CGFloat {
+        reduceMotion ? 1 : revealProgress
+    }
+
+    private func lineStyle(isDashed: Bool) -> StrokeStyle {
+        if isDashed {
             return StrokeStyle(
                 lineWidth: traditionalLineWidth,
                 lineCap: .round,
@@ -117,6 +120,7 @@ struct OnboardingWeightTrajectoryHeroChart: View {
                 dash: [7, 5]
             )
         }
+        return StrokeStyle(lineWidth: formaLineWidth, lineCap: .round, lineJoin: .round)
     }
 }
 
@@ -153,7 +157,7 @@ enum OnboardingWeightTrajectoryChartLayout {
         model: .introProofDefault,
         revealProgress: 1
     )
-    .frame(height: 320)
+    .frame(height: 260)
     .padding()
     .background(OnboardingTheme.background)
     .formaThemePreview()

@@ -27,7 +27,7 @@ final class OnboardingModel: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published private(set) var hasLocalProfile = false
     @Published private(set) var pendingCompletionIntent: OnboardingCompletionIntent?
-    @Published private(set) var appleHealthPresentation: OnboardingAppleHealthPresentationState = .ready
+    @Published private(set) var appleHealthPresentation: OnboardingAppleHealthPresentationState = .notDetermined
     @Published private(set) var appleHealthDeviceState: TrainingIntegrationState = .notConnected
 
     let flowFloor: OnboardingStep
@@ -52,6 +52,8 @@ final class OnboardingModel: ObservableObject {
     private let analyticsTracker: OnboardingAnalyticsTracker
 
     private var generationTask: Task<Void, Never>?
+    private var appleHealthPermissionTask: Task<Void, Never>?
+    private var isAppleHealthPermissionRequestActive = false
 
     init(
         actionCenter: FitnessActionCenter,
@@ -202,7 +204,14 @@ final class OnboardingModel: ObservableObject {
 
     func prepareAppleHealthStep() {
         guard currentStep == .appleHealth else { return }
-        syncAppleHealthPresentation(from: appleHealthDeviceState)
+
+        if !appleHealthCoordinator.isHealthDataAvailable {
+            appleHealthDeviceState = .unavailable
+            syncAppleHealthPresentation(from: .unavailable)
+            logAppleHealthCTAState(action: "healthkit_unavailable_on_prepare")
+        } else {
+            syncAppleHealthPresentation(from: appleHealthDeviceState)
+        }
         logAppleHealthCTAState(action: "step_prepared")
 
         Task { [weak self] in
@@ -215,20 +224,41 @@ final class OnboardingModel: ObservableObject {
         }
     }
 
+    func handleAppleHealthForegroundReturn() {
+        guard currentStep == .appleHealth else { return }
+        Task { [weak self] in
+            await self?.reconcileAppleHealthAfterForeground()
+        }
+    }
+
     func connectAppleHealth() {
         guard currentStep == .appleHealth else { return }
         guard viewState != .connectingAppleHealth else { return }
 
         logAppleHealthCTAState(action: "primary_tapped")
 
-        if shouldAdvanceFromConnectedAppleHealth {
+        switch appleHealthScreenState.primaryAction {
+        case .advance:
             logAppleHealthCTAState(action: "advance_without_permission_request")
             advanceFromAppleHealth(completedStep: .appleHealth)
             return
+        case .openSettings:
+            HealthAppSettingsNavigator.openHealthPermissions()
+            return
+        case .requestPermission:
+            guard appleHealthCoordinator.isHealthDataAvailable else {
+                appleHealthDeviceState = .unavailable
+                syncAppleHealthPresentation(from: .unavailable)
+                logAppleHealthCTAState(action: "healthkit_unavailable_on_connect")
+                if appleHealthScreenState.primaryAction == .advance {
+                    advanceFromAppleHealth(completedStep: .appleHealth)
+                }
+                return
+            }
+            break
         }
 
         guard appleHealthScreenState.isPrimaryEnabled else { return }
-        guard appleHealthPresentation.allowsPermissionRequest else { return }
 
         let completedStep = currentStep
         viewState = .connectingAppleHealth
@@ -237,7 +267,8 @@ final class OnboardingModel: ObservableObject {
         analyticsTracker.logAppleHealth(.appleHealthConnectTapped)
         analyticsTracker.logAppleHealth(.appleHealthPermissionRequested)
 
-        Task { [weak self] in
+        appleHealthPermissionTask?.cancel()
+        appleHealthPermissionTask = Task { [weak self] in
             await self?.performAppleHealthPermissionFlow(completedStep: completedStep)
         }
     }
@@ -245,7 +276,7 @@ final class OnboardingModel: ObservableObject {
     func skipAppleHealth() {
         guard currentStep == .appleHealth else { return }
         guard viewState != .connectingAppleHealth else { return }
-        guard appleHealthScreenState.isSkipEnabled else { return }
+        guard appleHealthScreenState.showsSkipButton else { return }
 
         analyticsTracker.logAppleHealth(.appleHealthSkipTapped)
         advanceFromAppleHealth(completedStep: .appleHealth)
@@ -445,6 +476,30 @@ final class OnboardingModel: ObservableObject {
 
     // MARK: Private
 
+    private func reconcileAppleHealthAfterForeground() async {
+        let refreshed = await appleHealthCoordinator.refreshDeviceState()
+        guard currentStep == .appleHealth else { return }
+
+        appleHealthDeviceState = refreshed
+
+        if isAppleHealthPermissionRequestActive || appleHealthCoordinator.hasActivePermissionRequest {
+            if viewState == .connectingAppleHealth {
+                appleHealthPresentation = .requesting
+            }
+            logAppleHealthCTAState(action: "foreground_authorization_refreshed_in_flight")
+            return
+        }
+
+        syncAppleHealthPresentation(from: refreshed)
+
+        if viewState == .connectingAppleHealth {
+            viewState = .editing
+            appleHealthPresentation = appleHealthCoordinator.mapPresentation(from: refreshed)
+        }
+
+        logAppleHealthCTAState(action: "foreground_authorization_refreshed")
+    }
+
     private func advanceFromAppleHealth(completedStep: OnboardingStep) {
         guard currentStep == .appleHealth else { return }
         viewState = .editing
@@ -453,13 +508,6 @@ final class OnboardingModel: ObservableObject {
         }
         syncAppleHealthPresentation(from: appleHealthDeviceState)
         logAppleHealthCTAState(action: "advanced_from_step")
-    }
-
-    private var shouldAdvanceFromConnectedAppleHealth: Bool {
-        appleHealthCoordinator.shouldAdvanceFromConnected(
-            presentation: appleHealthPresentation,
-            deviceState: appleHealthDeviceState
-        )
     }
 
     private func syncAppleHealthPresentation(from deviceState: TrainingIntegrationState) {
@@ -477,7 +525,12 @@ final class OnboardingModel: ObservableObject {
     }
 
     private func performAppleHealthPermissionFlow(completedStep: OnboardingStep) async {
+        isAppleHealthPermissionRequestActive = true
+        defer { isAppleHealthPermissionRequestActive = false }
+
         let resultState = await appleHealthCoordinator.requestPermission()
+
+        guard !Task.isCancelled else { return }
 
         analyticsTracker.logAppleHealth(
             .appleHealthPermissionResult,
@@ -491,12 +544,15 @@ final class OnboardingModel: ObservableObject {
         viewState = .editing
         logAppleHealthCTAState(action: "permission_request_finished")
 
-        if appleHealthPresentation == .connected {
-            OnboardingHaptics.selectionChanged()
-            try? await Task.sleep(nanoseconds: 900_000_000)
-            guard currentStep == .appleHealth, appleHealthPresentation == .connected else { return }
-            advanceFromAppleHealth(completedStep: completedStep)
-        }
+        guard appleHealthPresentation == .connected, appleHealthDeviceState == .connected else { return }
+
+        OnboardingHaptics.selectionChanged()
+        try? await Task.sleep(nanoseconds: 900_000_000)
+
+        guard !Task.isCancelled else { return }
+        guard currentStep == .appleHealth else { return }
+        guard appleHealthPresentation == .connected, appleHealthDeviceState == .connected else { return }
+        advanceFromAppleHealth(completedStep: completedStep)
     }
 
     private func nextStep(after step: OnboardingStep) -> OnboardingStep? {
