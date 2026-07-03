@@ -16,7 +16,7 @@ struct JourneyDashboardContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.sectionSpacing) {
-            ForEach(JourneyProductLayout.sectionOrder, id: \.self) { section in
+            ForEach(visibleSections, id: \.self) { section in
                 sectionView(for: section)
             }
         }
@@ -24,6 +24,17 @@ struct JourneyDashboardContent: View {
         .padding(.top, FormaTokens.Spacing.md)
         .padding(.bottom, JourneyLayout.scrollBottomContentPadding)
         .accessibilityIdentifier("journey-dashboard")
+    }
+
+    private var visibleSections: [JourneyProductSection] {
+        JourneyProductLayout.sectionOrder.filter { section in
+            switch section {
+            case .monthlyRecap:
+                return state.monthlyRecap.isVisible
+            default:
+                return true
+            }
+        }
     }
 
     @ViewBuilder

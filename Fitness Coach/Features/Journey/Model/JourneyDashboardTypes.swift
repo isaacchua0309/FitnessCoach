@@ -356,6 +356,14 @@ struct JourneyPersonalRecordsState: Equatable {
 
 // MARK: - Monthly recap
 
+enum JourneyMonthlyRecapGrade: String, Equatable, Sendable {
+    case starting
+    case building
+    case consistent
+    case strong
+    case excellent
+}
+
 struct JourneyMonthlyRecapMetricRow: Identifiable, Equatable {
     var id: String
     var title: String
@@ -363,19 +371,42 @@ struct JourneyMonthlyRecapMetricRow: Identifiable, Equatable {
 }
 
 struct JourneyMonthlyRecapState: Equatable {
+    var isVisible: Bool
     var sectionTitle: String
-    var isComplete: Bool
-    var buildingMessage: String?
+    var showsTeaser: Bool
+    var teaserTitle: String?
+    var teaserDetail: String?
+    var overallGrade: JourneyMonthlyRecapGrade?
+    var overallGradeLabel: String?
+    var loggedDays: Int
     var monthWeightDeltaKg: Double?
     var calorieAdherencePercent: Double?
     var proteinAdherencePercent: Double?
     var waterAdherencePercent: Double?
     var trainingSessions: Int?
-    var showsTrainingRow: Bool
-    var loggedDays: Int
-    var bestHabitCopy: String?
-    var summaryCopy: String
+    var bestStreakDays: Int?
     var rows: [JourneyMonthlyRecapMetricRow]
+    var accessibilitySummary: String
+
+    var isComplete: Bool {
+        isVisible && !showsTeaser
+    }
+
+    var buildingMessage: String? {
+        showsTeaser ? teaserDetail : nil
+    }
+
+    var summaryCopy: String {
+        accessibilitySummary
+    }
+
+    var showsTrainingRow: Bool {
+        trainingSessions != nil
+    }
+
+    var bestHabitCopy: String? {
+        nil
+    }
 }
 
 // MARK: - Journey level / XP

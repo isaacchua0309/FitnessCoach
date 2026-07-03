@@ -1135,22 +1135,48 @@ enum JourneyPreviewData {
 
     private static func makeMonthlyRecapBuilding(loggedDays: Int) -> JourneyMonthlyRecapState {
         let monthName = today.formatted(.dateTime.month(.wide))
+        let sectionTitle = FormaProductCopy.Journey.MonthlyRecap.sectionTitle(monthName: monthName)
+        let teaserTitle = FormaProductCopy.Journey.MonthlyRecap.teaserTitle(monthName: monthName)
+        let teaserDetail = FormaProductCopy.Journey.MonthlyRecap.teaserDetail
+
+        if loggedDays == 0 {
+            return JourneyMonthlyRecapState(
+                isVisible: false,
+                sectionTitle: sectionTitle,
+                showsTeaser: false,
+                teaserTitle: nil,
+                teaserDetail: nil,
+                overallGrade: nil,
+                overallGradeLabel: nil,
+                loggedDays: 0,
+                monthWeightDeltaKg: nil,
+                calorieAdherencePercent: nil,
+                proteinAdherencePercent: nil,
+                waterAdherencePercent: nil,
+                trainingSessions: nil,
+                bestStreakDays: nil,
+                rows: [],
+                accessibilitySummary: sectionTitle
+            )
+        }
+
         return JourneyMonthlyRecapState(
-            sectionTitle: FormaProductCopy.Journey.MonthlyRecap.sectionTitle(monthName: monthName),
-            isComplete: false,
-            buildingMessage: FormaProductCopy.Journey.MonthlyRecap.buildingBody,
+            isVisible: true,
+            sectionTitle: sectionTitle,
+            showsTeaser: true,
+            teaserTitle: teaserTitle,
+            teaserDetail: teaserDetail,
+            overallGrade: nil,
+            overallGradeLabel: nil,
+            loggedDays: loggedDays,
             monthWeightDeltaKg: nil,
             calorieAdherencePercent: nil,
             proteinAdherencePercent: nil,
             waterAdherencePercent: nil,
             trainingSessions: nil,
-            showsTrainingRow: false,
-            loggedDays: loggedDays,
-            bestHabitCopy: nil,
-            summaryCopy: loggedDays > 0
-                ? FormaProductCopy.Journey.MonthlyRecap.loggedDaysSummary(loggedDays)
-                : "",
-            rows: []
+            bestStreakDays: nil,
+            rows: [],
+            accessibilitySummary: "\(sectionTitle). \(teaserTitle) \(teaserDetail)"
         )
     }
 
@@ -1160,50 +1186,69 @@ enum JourneyPreviewData {
         weightDelta: Double? = -2.4
     ) -> JourneyMonthlyRecapState {
         let monthName = today.formatted(.dateTime.month(.wide))
-        let deltaLabel = weightDelta.map {
-            FormaProductCopy.Journey.MonthlyRecap.weightDelta(deltaKg: $0, direction: direction)
-        } ?? "—"
+        let sectionTitle = FormaProductCopy.Journey.MonthlyRecap.sectionTitle(monthName: monthName)
+        let copy = FormaProductCopy.Journey.MonthlyRecap.self
+        let weightValue = weightDelta.map { copy.weightChange(deltaKg: $0) } ?? "—"
+        let grade = JourneyMonthlyRecapGrade.strong
 
         return JourneyMonthlyRecapState(
-            sectionTitle: FormaProductCopy.Journey.MonthlyRecap.sectionTitle(monthName: monthName),
-            isComplete: true,
-            buildingMessage: nil,
+            isVisible: true,
+            sectionTitle: sectionTitle,
+            showsTeaser: false,
+            teaserTitle: nil,
+            teaserDetail: nil,
+            overallGrade: grade,
+            overallGradeLabel: copy.overallGrade(.strong),
+            loggedDays: loggedDays,
             monthWeightDeltaKg: weightDelta,
             calorieAdherencePercent: 0.91,
             proteinAdherencePercent: 0.87,
             waterAdherencePercent: 0.72,
             trainingSessions: 13,
-            showsTrainingRow: true,
-            loggedDays: loggedDays,
-            bestHabitCopy: FormaProductCopy.Journey.MonthlyRecap.bestHabit(for: .protein),
-            summaryCopy: FormaProductCopy.Journey.MonthlyRecap.loggedDaysSummary(loggedDays),
+            bestStreakDays: 7,
             rows: [
                 JourneyMonthlyRecapMetricRow(
-                    id: "weight",
-                    title: FormaProductCopy.Journey.MonthlyRecap.weightTitle,
-                    value: deltaLabel
-                ),
-                JourneyMonthlyRecapMetricRow(
-                    id: "calories",
-                    title: FormaProductCopy.Journey.MonthlyRecap.caloriesTitle,
-                    value: FormaProductCopy.Journey.MonthlyRecap.calorieAdherence(percent: 91)
+                    id: "meals",
+                    title: copy.mealsLoggedTitle,
+                    value: copy.mealsLoggedValue(loggedDays)
                 ),
                 JourneyMonthlyRecapMetricRow(
                     id: "protein",
-                    title: FormaProductCopy.Journey.MonthlyRecap.proteinTitle,
-                    value: FormaProductCopy.Journey.MonthlyRecap.adherencePercent(87)
+                    title: copy.proteinTitle,
+                    value: copy.hitRatePercent(87)
                 ),
                 JourneyMonthlyRecapMetricRow(
                     id: "water",
-                    title: FormaProductCopy.Journey.MonthlyRecap.waterTitle,
-                    value: FormaProductCopy.Journey.MonthlyRecap.adherencePercent(72)
+                    title: copy.waterTitle,
+                    value: copy.hitRatePercent(72)
                 ),
                 JourneyMonthlyRecapMetricRow(
-                    id: "training",
-                    title: FormaProductCopy.Journey.MonthlyRecap.trainingTitle,
-                    value: FormaProductCopy.Journey.MonthlyRecap.trainingSessions(13)
+                    id: "workouts",
+                    title: copy.workoutDaysTitle,
+                    value: copy.workoutDays(13)
+                ),
+                JourneyMonthlyRecapMetricRow(
+                    id: "calories",
+                    title: copy.caloriesTitle,
+                    value: copy.hitRatePercent(91)
+                ),
+                JourneyMonthlyRecapMetricRow(
+                    id: "weight",
+                    title: copy.weightTitle,
+                    value: weightValue
+                ),
+                JourneyMonthlyRecapMetricRow(
+                    id: "streak",
+                    title: copy.bestStreakTitle,
+                    value: copy.bestStreak(days: 7)
+                ),
+                JourneyMonthlyRecapMetricRow(
+                    id: "overall",
+                    title: copy.overallTitle,
+                    value: copy.overallGrade(.strong)
                 )
-            ]
+            ],
+            accessibilitySummary: sectionTitle
         )
     }
 

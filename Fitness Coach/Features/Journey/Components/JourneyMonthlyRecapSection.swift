@@ -14,31 +14,11 @@ struct JourneyMonthlyRecapSection: View {
 
             FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                    if let buildingMessage = state.buildingMessage {
-                        Text(buildingMessage)
-                            .font(FormaTokens.Typography.sectionSubtitle)
-                            .foregroundStyle(FormaTokens.Color.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    if !state.summaryCopy.isEmpty {
-                        Text(state.summaryCopy)
-                            .font(FormaTokens.Typography.sectionSubtitle)
-                            .foregroundStyle(
-                                state.isComplete
-                                    ? FormaTokens.Color.textSecondary
-                                    : FormaTokens.Color.textTertiary
-                            )
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    if !state.rows.isEmpty {
-                        if state.isComplete || state.loggedDays > 0 {
-                            FormaPlanRowDivider()
-                        }
-
+                    if state.showsTeaser {
+                        teaserContent
+                    } else {
                         ForEach(Array(state.rows.enumerated()), id: \.element.id) { index, row in
-                            metricRow(row)
+                            metricRow(row, isOverall: row.id == "overall")
                             if index < state.rows.count - 1 {
                                 FormaPlanRowDivider()
                             }
@@ -47,25 +27,60 @@ struct JourneyMonthlyRecapSection: View {
                 }
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(state.accessibilitySummary)
     }
 
-    private func metricRow(_ row: JourneyMonthlyRecapMetricRow) -> some View {
+    private var teaserContent: some View {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+            if let title = state.teaserTitle {
+                Text(title)
+                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                    .foregroundStyle(FormaTokens.Color.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityHidden(true)
+            }
+
+            if let detail = state.teaserDetail {
+                Text(detail)
+                    .font(FormaTokens.Typography.sectionSubtitle)
+                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityHidden(true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func metricRow(_ row: JourneyMonthlyRecapMetricRow, isOverall: Bool) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
-            Text(row.title)
-                .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
+            Text("\(row.title):")
+                .font(
+                    FormaTokens.Typography.sectionSubtitle.weight(
+                        isOverall ? .semibold : .medium
+                    )
+                )
                 .foregroundStyle(FormaTokens.Color.textPrimary)
 
             Spacer(minLength: FormaTokens.Spacing.xs)
 
             Text(row.value)
-                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .font(
+                    FormaTokens.Typography.sectionSubtitle.weight(
+                        isOverall ? .semibold : .regular
+                    )
+                )
+                .foregroundStyle(
+                    isOverall
+                        ? FormaTokens.Color.textPrimary
+                        : FormaTokens.Color.textSecondary
+                )
                 .multilineTextAlignment(.trailing)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.vertical, FormaTokens.Spacing.xs)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(row.title), \(row.value)")
+        .accessibilityHidden(true)
     }
 }
 
@@ -73,6 +88,15 @@ struct JourneyMonthlyRecapSection: View {
 #Preview("Monthly recap") {
     ScrollView {
         JourneyMonthlyRecapSection(state: JourneyPreviewData.monthlyRecapActive)
+            .padding()
+    }
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
+#Preview("Monthly recap teaser") {
+    ScrollView {
+        JourneyMonthlyRecapSection(state: JourneyPreviewData.sparseData.monthlyRecap)
             .padding()
     }
     .background(FormaTokens.Color.canvas)

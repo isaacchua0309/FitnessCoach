@@ -1670,39 +1670,86 @@ enum FormaProductCopy {
         }
 
         enum MonthlyRecap {
-            static let buildingBody = "Your first monthly recap is building."
+            static let minimumFoodLogDaysForRecap = 5
 
-            static let weightTitle = "Weight"
-            static let caloriesTitle = "Calories"
+            static let mealsLoggedTitle = "Meals logged"
             static let proteinTitle = "Protein"
             static let waterTitle = "Water"
-            static let trainingTitle = "Training"
-            static let loggedDaysTitle = "Logged days"
+            static let caloriesTitle = "Calories"
+            static let workoutDaysTitle = "Workout days"
+            static let weightTitle = "Weight"
+            static let bestStreakTitle = "Best streak"
+            static let overallTitle = "Overall"
+
+            static let teaserDetail =
+                "Complete more logs to unlock your first monthly recap."
 
             static func sectionTitle(monthName: String) -> String {
-                "\(monthName) Summary"
+                "\(monthName) Recap"
             }
+
+            static func teaserTitle(monthName: String) -> String {
+                "\(monthName) is building."
+            }
+
+            static func mealsLoggedValue(_ count: Int) -> String {
+                "\(count)"
+            }
+
+            static func hitRatePercent(_ percent: Int) -> String {
+                "\(percent)%"
+            }
+
+            static func workoutDays(_ count: Int) -> String {
+                "\(count)"
+            }
+
+            static func bestStreak(days: Int) -> String {
+                days == 1 ? "1 day" : "\(days) days"
+            }
+
+            static func weightChange(deltaKg: Double) -> String {
+                let formatted = abs(deltaKg).truncatingRemainder(dividingBy: 1) == 0
+                    ? String(format: "%.0f", abs(deltaKg))
+                    : String(format: "%.1f", abs(deltaKg))
+                if deltaKg < -0.05 {
+                    return "-\(formatted) kg"
+                }
+                if deltaKg > 0.05 {
+                    return "+\(formatted) kg"
+                }
+                return "\(formatted) kg"
+            }
+
+            enum Grade: String, Equatable, Sendable {
+                case starting
+                case building
+                case consistent
+                case strong
+                case excellent
+
+                var label: String {
+                    switch self {
+                    case .starting: return "Starting"
+                    case .building: return "Building"
+                    case .consistent: return "Consistent"
+                    case .strong: return "Strong month"
+                    case .excellent: return "Excellent month"
+                    }
+                }
+            }
+
+            static func overallGrade(_ grade: Grade) -> String {
+                grade.label
+            }
+
+            // Legacy helpers retained for preview fixtures and timeline copy.
+            static let buildingBody = teaserDetail
 
             static func loggedDaysSummary(_ days: Int) -> String {
                 days == 1
                     ? "You logged 1 day this month."
                     : "You logged \(days) days this month."
-            }
-
-            static func calorieAdherence(percent: Int) -> String {
-                "\(percent)% adherence"
-            }
-
-            static func adherencePercent(_ percent: Int) -> String {
-                "\(percent)%"
-            }
-
-            static func trainingSessions(_ count: Int) -> String {
-                count == 1 ? "1 session" : "\(count) sessions"
-            }
-
-            static func loggedDaysValue(_ days: Int) -> String {
-                days == 1 ? "1 day" : "\(days) days"
             }
 
             static func bestHabit(for kind: JourneyHabitKind) -> String {
@@ -1725,19 +1772,7 @@ enum FormaProductCopy {
             }
 
             static func weightDelta(deltaKg: Double, direction: JourneyGoalDirection) -> String {
-                let magnitude = String(format: "%.1fkg", abs(deltaKg))
-                switch direction {
-                case .lose:
-                    if deltaKg < -0.05 { return "↓ \(magnitude)" }
-                    if deltaKg > 0.05 { return "↑ \(magnitude)" }
-                    return magnitude
-                case .gain:
-                    if deltaKg > 0.05 { return "↑ \(magnitude)" }
-                    if deltaKg < -0.05 { return "↓ \(magnitude)" }
-                    return magnitude
-                case .maintain:
-                    return String(format: "±%.1fkg", abs(deltaKg))
-                }
+                weightChange(deltaKg: deltaKg)
             }
         }
 

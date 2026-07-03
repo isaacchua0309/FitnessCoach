@@ -28,10 +28,10 @@ enum JourneyProductLayout {
         .milestones,
         .storyTimeline,
         .habitInsights,
+        .monthlyRecap,
         .whyProgress,
         .beforeToday,
         .personalRecords,
-        .monthlyRecap,
         .journeyLevel,
         .detailedAnalytics
     ]

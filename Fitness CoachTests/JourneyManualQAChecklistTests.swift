@@ -410,10 +410,12 @@ final class JourneyManualQAChecklistTests: XCTestCase {
         )
 
         XCTAssertFalse(partial.isComplete)
-        XCTAssertNotNil(partial.buildingMessage)
+        XCTAssertTrue(partial.showsTeaser)
+        XCTAssertEqual(partial.teaserDetail, FormaProductCopy.Journey.MonthlyRecap.teaserDetail)
         XCTAssertTrue(full.isComplete)
-        XCTAssertNil(full.buildingMessage)
+        XCTAssertFalse(full.showsTeaser)
         XCTAssertFalse(full.rows.isEmpty)
+        XCTAssertNotNil(full.rows.first { $0.id == "overall" })
     }
 
     // MARK: - 14. Journey Level
