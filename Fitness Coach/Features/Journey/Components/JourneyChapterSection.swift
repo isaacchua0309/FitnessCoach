@@ -9,30 +9,31 @@ struct JourneyChapterSection: View {
     let state: JourneyChapterState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
-            FormaSectionLabel(title: state.sectionTitle)
+        VStack(alignment: .leading, spacing: JourneyLayout.headerToCardSpacing) {
+            JourneySectionLabel(title: state.sectionTitle)
 
-            FormaPlanCard {
+            JourneyCard(elevation: .quiet) {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     chapterHeader
 
-                    SwiftUI.ProgressView(value: min(max(state.progressPercent / 100, 0), 1))
-                        .tint(FormaTokens.Color.progress)
+                    JourneyProgressBar(progress: state.progressPercent / 100)
                         .accessibilityLabel(state.chapterTitle)
                         .accessibilityValue("\(Int(state.progressPercent.rounded())) percent")
 
                     if let nextUnlock = state.nextUnlockLabel {
                         Text(nextUnlock)
-                            .font(FormaTokens.Typography.sectionSubtitle)
+                            .font(JourneyTypography.cardSupporting)
                             .foregroundStyle(FormaTokens.Color.textSecondary)
+                            .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityHidden(true)
                     }
 
                     if let emptyMessage = state.emptyMessage {
                         Text(emptyMessage)
-                            .font(FormaTokens.Typography.caption)
+                            .font(FormaTokens.Typography.caption2)
                             .foregroundStyle(FormaTokens.Color.textTertiary)
+                            .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityHidden(true)
                     }
@@ -44,14 +45,14 @@ struct JourneyChapterSection: View {
     }
 
     private var chapterHeader: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+        VStack(alignment: .leading, spacing: JourneyLayout.compactSpacing) {
             Text(FormaProductCopy.Journey.Chapters.chapterLabel(state.chapterNumber))
-                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                .font(JourneyTypography.cardHeadline)
                 .foregroundStyle(FormaTokens.Color.textPrimary)
                 .accessibilityHidden(true)
 
             Text(state.chapterTitle)
-                .font(FormaTokens.Typography.sectionSubtitle)
+                .font(JourneyTypography.cardSupporting.weight(.medium))
                 .foregroundStyle(FormaTokens.Theme.primary)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityHidden(true)
@@ -63,7 +64,7 @@ struct JourneyChapterSection: View {
 #if DEBUG
 #Preview("Journey chapter") {
     ScrollView {
-        JourneyChapterSection(state: JourneyPreviewData.chapterActive)
+        JourneyChapterSection(state: JourneyPreviewData.strongMomentum.chapter)
             .padding()
     }
     .background(FormaTokens.Color.canvas)

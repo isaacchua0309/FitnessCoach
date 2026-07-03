@@ -9,22 +9,10 @@ struct JourneyHeaderSection: View {
     let state: JourneyHeaderState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-            Text(state.title)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.textTertiary)
-                .textCase(.uppercase)
-                .accessibilityHidden(true)
-
-            Text(state.subtitle)
-                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityHidden(true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(state.accessibilitySummary)
+        JourneyEyebrowLabel(title: state.title)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(state.accessibilitySummary)
     }
 }
 

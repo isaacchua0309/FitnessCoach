@@ -55,6 +55,34 @@ enum JourneyPreviewScreens {
   }
 }
 
+#Preview("New user — dark mode") {
+  NavigationStack {
+    JourneyPreviewScreens.dashboard(.brandNewUser)
+      .preferredColorScheme(.dark)
+  }
+}
+
+#Preview("Data-rich — dark mode") {
+  NavigationStack {
+    JourneyPreviewScreens.dashboard(.highlyConsistent)
+      .preferredColorScheme(.dark)
+  }
+}
+
+#Preview("New user — large text") {
+  NavigationStack {
+    JourneyPreviewScreens.dashboard(.brandNewUser)
+      .dynamicTypeSize(.accessibility2)
+  }
+}
+
+#Preview("Data-rich — large text") {
+  NavigationStack {
+    JourneyPreviewScreens.dashboard(.strongMomentum)
+      .dynamicTypeSize(.accessibility2)
+  }
+}
+
 #Preview("Journey — Blossom Pink") {
   NavigationStack {
     JourneyPreviewScreens.dashboard(.strongMomentum, palette: .blossomPink)

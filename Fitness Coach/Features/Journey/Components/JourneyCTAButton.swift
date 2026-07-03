@@ -12,11 +12,20 @@ struct JourneyCTAButton: View {
 
     var body: some View {
         Button(action: onTap) {
-            Text(title ?? cta.title)
-                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                .foregroundStyle(FormaTokens.Theme.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(minHeight: FormaTokens.Layout.minTouchTarget)
+            HStack(spacing: FormaTokens.Spacing.xs) {
+                Text(title ?? cta.title)
+                    .font(JourneyTypography.cardHeadline)
+                    .foregroundStyle(FormaTokens.Theme.primary)
+                    .multilineTextAlignment(.leading)
+
+                Spacer(minLength: FormaTokens.Spacing.xs)
+
+                Image(systemName: "chevron.right")
+                    .font(FormaTokens.Typography.caption.weight(.semibold))
+                    .foregroundStyle(FormaTokens.Theme.primary.opacity(0.75))
+            }
+            .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .leading)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityHint(cta.accessibilityHint ?? "")

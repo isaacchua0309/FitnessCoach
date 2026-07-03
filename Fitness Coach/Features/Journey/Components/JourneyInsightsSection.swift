@@ -9,10 +9,10 @@ struct JourneyInsightsSection: View {
     let state: JourneyInsightState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
-            FormaSectionLabel(title: state.sectionTitle)
+        VStack(alignment: .leading, spacing: JourneyLayout.headerToCardSpacing) {
+            JourneySectionLabel(title: state.sectionTitle)
 
-            FormaPlanCard {
+            JourneyCard(elevation: .quiet) {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     if state.showsLearningState {
                         learningContent
@@ -32,10 +32,10 @@ struct JourneyInsightsSection: View {
     }
 
     private var learningContent: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+        VStack(alignment: .leading, spacing: JourneyLayout.compactSpacing) {
             if let title = state.learningTitle {
                 Text(title)
-                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                    .font(JourneyTypography.cardHeadline)
                     .foregroundStyle(FormaTokens.Color.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
@@ -44,8 +44,9 @@ struct JourneyInsightsSection: View {
 
             if let detail = state.learningDetail {
                 Text(detail)
-                    .font(FormaTokens.Typography.sectionSubtitle)
+                    .font(JourneyTypography.cardSupporting)
                     .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityHidden(true)
             }
@@ -54,17 +55,18 @@ struct JourneyInsightsSection: View {
     }
 
     private func insightRow(_ insight: JourneyPersonalizedInsight) -> some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+        VStack(alignment: .leading, spacing: JourneyLayout.compactSpacing) {
             Text(insight.title)
-                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                .font(JourneyTypography.cardHeadline)
                 .foregroundStyle(FormaTokens.Color.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityHidden(true)
 
             Text(insight.detail)
-                .font(FormaTokens.Typography.sectionSubtitle)
+                .font(JourneyTypography.cardSupporting)
                 .foregroundStyle(FormaTokens.Color.textSecondary)
+                .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityHidden(true)
         }

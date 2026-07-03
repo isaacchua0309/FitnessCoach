@@ -19,8 +19,10 @@ struct JourneyDashboardContent: View {
                 sectionView(for: section)
             }
         }
+        .frame(maxWidth: FormaTokens.Layout.maxContentWidth)
+        .frame(maxWidth: .infinity)
         .padding(.horizontal, JourneyLayout.horizontalPadding)
-        .padding(.top, FormaTokens.Spacing.sm)
+        .padding(.top, FormaTokens.Spacing.md)
         .padding(.bottom, JourneyLayout.scrollBottomContentPadding)
         .accessibilityIdentifier("journey-dashboard")
     }

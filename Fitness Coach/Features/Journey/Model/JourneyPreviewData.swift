@@ -48,6 +48,10 @@ enum JourneyPreviewData {
     static let healthConnected = dashboard(.healthConnected)
     static let sparseData = dashboard(.sparseData)
 
+    static var monthlyRecapActive: JourneyMonthlyRecapState {
+        strongMomentum.monthlyRecap
+    }
+
     static func dashboard(_ scenario: Scenario) -> JourneyDashboardState {
         switch scenario {
         case .brandNewUser:

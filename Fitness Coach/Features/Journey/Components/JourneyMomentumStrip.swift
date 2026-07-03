@@ -11,21 +11,8 @@ struct JourneyMomentumStrip: View {
     let state: JourneyMomentumState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-            Text(state.headline)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(FormaTokens.Theme.primary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            if let detail = state.detail {
-                Text(detail)
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
+        JourneyMomentumChip(headline: state.headline, detail: state.detail)
+            .accessibilityElement(children: .combine)
     }
 }
 

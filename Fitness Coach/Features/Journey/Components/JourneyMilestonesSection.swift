@@ -9,25 +9,26 @@ struct JourneyMilestonesSection: View {
     let state: JourneyMilestoneState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
-            FormaSectionLabel(title: state.sectionTitle)
+        VStack(alignment: .leading, spacing: JourneyLayout.headerToCardSpacing) {
+            JourneySectionLabel(title: state.sectionTitle)
 
-            FormaPlanCard {
+            JourneyCard(elevation: .featured) {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     HStack(alignment: .top, spacing: FormaTokens.Spacing.sm) {
-                        Text(state.icon)
-                            .font(.system(size: 28))
-                            .accessibilityHidden(true)
+                        if !state.icon.isEmpty {
+                            JourneyMilestoneIcon(symbol: state.icon)
+                        }
 
-                        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+                        VStack(alignment: .leading, spacing: JourneyLayout.compactSpacing) {
                             Text(state.header)
-                                .font(FormaTokens.Typography.caption.weight(.semibold))
+                                .font(JourneyTypography.cardSupporting.weight(.semibold))
                                 .foregroundStyle(FormaTokens.Color.textTertiary)
                                 .textCase(.uppercase)
+                                .tracking(0.4)
                                 .accessibilityHidden(true)
 
                             Text(state.title)
-                                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                                .font(JourneyTypography.cardHeadline)
                                 .foregroundStyle(FormaTokens.Color.textPrimary)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .accessibilityAddTraits(.isHeader)
@@ -36,12 +37,11 @@ struct JourneyMilestonesSection: View {
                     }
 
                     Text(state.progressText)
-                        .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
+                        .font(JourneyTypography.metricValue)
                         .foregroundStyle(FormaTokens.Theme.primary)
                         .accessibilityHidden(true)
 
-                    SwiftUI.ProgressView(value: min(max(state.progressFraction, 0), 1))
-                        .tint(FormaTokens.Color.progress)
+                    JourneyProgressBar(progress: state.progressFraction)
                         .accessibilityLabel(state.title)
                         .accessibilityValue(
                             FormaProductCopy.Journey.Milestones.Accessibility.progressPercent(
@@ -50,12 +50,12 @@ struct JourneyMilestonesSection: View {
                         )
 
                     Text(state.rewardCopy)
-                        .font(FormaTokens.Typography.caption)
+                        .font(JourneyTypography.cardSupporting)
                         .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityHidden(true)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .accessibilityElement(children: .ignore)
@@ -74,13 +74,6 @@ struct JourneyMilestonesSection: View {
 
 #Preview("Active progress") {
     JourneyMilestonesSection(state: JourneyPreviewData.strongMomentum.milestone)
-        .padding()
-        .background(FormaTokens.Color.canvas)
-        .formaThemePreview()
-}
-
-#Preview("Near goal") {
-    JourneyMilestonesSection(state: JourneyPreviewData.nearGoal.milestone)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()

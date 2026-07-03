@@ -11,24 +11,30 @@ struct JourneyEmptyStateView: View {
     let onGoToToday: () -> Void
 
     var body: some View {
-        VStack(spacing: FormaTokens.Spacing.sm + 2) {
+        VStack(spacing: FormaTokens.Spacing.md) {
+            JourneyEyebrowLabel(title: FormaProductCopy.Journey.Header.title)
+
             Text(FormaProductCopy.Journey.StartingEmptyState.title)
-                .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
+                .font(JourneyTypography.cardHeadline)
                 .foregroundStyle(FormaTokens.Color.textPrimary)
                 .multilineTextAlignment(.center)
 
             Text(FormaProductCopy.Journey.StartingEmptyState.body)
-                .font(FormaTokens.Typography.sectionSubtitle)
+                .font(JourneyTypography.cardSupporting)
                 .foregroundStyle(FormaTokens.Color.textSecondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal)
+                .lineLimit(4)
+                .padding(.horizontal, FormaTokens.Spacing.sm)
 
             Button(FormaProductCopy.Journey.StartingEmptyState.action, action: onGoToToday)
                 .buttonStyle(.borderedProminent)
                 .tint(FormaTokens.Theme.primary)
+                .padding(.top, FormaTokens.Spacing.xs)
         }
+        .frame(maxWidth: FormaTokens.Layout.maxContentWidth)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
+        .padding(.horizontal, JourneyLayout.horizontalPadding)
+        .padding(.bottom, FormaMainTabLayout.scrollBottomInset)
         .background(FormaTokens.Color.canvas)
         .accessibilityIdentifier("journey-empty-state")
     }

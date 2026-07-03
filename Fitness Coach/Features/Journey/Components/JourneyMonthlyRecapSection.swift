@@ -9,10 +9,10 @@ struct JourneyMonthlyRecapSection: View {
     let state: JourneyMonthlyRecapState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
-            FormaSectionLabel(title: state.sectionTitle)
+        VStack(alignment: .leading, spacing: JourneyLayout.headerToCardSpacing) {
+            JourneySectionLabel(title: state.sectionTitle)
 
-            FormaPlanCard {
+            JourneyCard(elevation: .standard) {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     if state.showsTeaser {
                         teaserContent
@@ -32,10 +32,10 @@ struct JourneyMonthlyRecapSection: View {
     }
 
     private var teaserContent: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+        VStack(alignment: .leading, spacing: JourneyLayout.compactSpacing) {
             if let title = state.teaserTitle {
                 Text(title)
-                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                    .font(JourneyTypography.cardHeadline)
                     .foregroundStyle(FormaTokens.Color.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
@@ -44,8 +44,9 @@ struct JourneyMonthlyRecapSection: View {
 
             if let detail = state.teaserDetail {
                 Text(detail)
-                    .font(FormaTokens.Typography.sectionSubtitle)
+                    .font(JourneyTypography.cardSupporting)
                     .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityHidden(true)
             }
@@ -55,31 +56,30 @@ struct JourneyMonthlyRecapSection: View {
 
     private func metricRow(_ row: JourneyMonthlyRecapMetricRow, isOverall: Bool) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
-            Text("\(row.title):")
-                .font(
-                    FormaTokens.Typography.sectionSubtitle.weight(
-                        isOverall ? .semibold : .medium
-                    )
-                )
+            Text(row.title)
+                .font(isOverall ? JourneyTypography.cardHeadline : JourneyTypography.metricLabel)
                 .foregroundStyle(FormaTokens.Color.textPrimary)
 
             Spacer(minLength: FormaTokens.Spacing.xs)
 
             Text(row.value)
-                .font(
-                    FormaTokens.Typography.sectionSubtitle.weight(
-                        isOverall ? .semibold : .regular
-                    )
-                )
+                .font(isOverall ? JourneyTypography.metricValue : JourneyTypography.cardSupporting.weight(.medium))
                 .foregroundStyle(
                     isOverall
-                        ? FormaTokens.Color.textPrimary
+                        ? FormaTokens.Theme.primary
                         : FormaTokens.Color.textSecondary
                 )
                 .multilineTextAlignment(.trailing)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.vertical, FormaTokens.Spacing.xs)
+        .padding(.vertical, JourneyLayout.compactSpacing)
+        .padding(.horizontal, isOverall ? FormaTokens.Spacing.xs : 0)
+        .background {
+            if isOverall {
+                RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
+                    .fill(FormaTokens.Theme.softBackground.opacity(0.55))
+            }
+        }
         .accessibilityHidden(true)
     }
 }

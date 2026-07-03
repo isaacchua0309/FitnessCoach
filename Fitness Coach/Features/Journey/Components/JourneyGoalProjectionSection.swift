@@ -10,21 +10,22 @@ struct JourneyGoalProjectionSection: View {
     var onCTA: ((JourneyCTA) -> Void)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
-            FormaSectionLabel(title: state.sectionTitle)
+        VStack(alignment: .leading, spacing: JourneyLayout.headerToCardSpacing) {
+            JourneySectionLabel(title: state.sectionTitle)
 
-            FormaPlanCard {
-                VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+            JourneyCard(elevation: .standard) {
+                VStack(alignment: .leading, spacing: JourneyLayout.compactSpacing) {
                     Text(state.title)
-                        .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                        .font(JourneyTypography.cardHeadline)
                         .foregroundStyle(FormaTokens.Color.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
                         .accessibilityHidden(true)
 
                     Text(state.detail)
-                        .font(FormaTokens.Typography.sectionSubtitle)
+                        .font(JourneyTypography.cardSupporting)
                         .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityHidden(true)
 
@@ -32,11 +33,10 @@ struct JourneyGoalProjectionSection: View {
                         JourneyCTAButton(cta: .logWeight) {
                             onCTA(.logWeight)
                         }
-                        .padding(.top, FormaTokens.Spacing.xs)
+                        .padding(.top, JourneyLayout.compactSpacing)
                         .accessibilityHidden(true)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .accessibilityElement(children: .ignore)
@@ -64,20 +64,6 @@ struct JourneyGoalProjectionSection: View {
 
 #Preview("Toward goal") {
     JourneyGoalProjectionSection(state: JourneyPreviewData.strongMomentum.goalProjection)
-        .padding()
-        .background(FormaTokens.Color.canvas)
-        .formaThemePreview()
-}
-
-#Preview("Near goal") {
-    JourneyGoalProjectionSection(state: JourneyPreviewData.nearGoal.goalProjection)
-        .padding()
-        .background(FormaTokens.Color.canvas)
-        .formaThemePreview()
-}
-
-#Preview("Sparse data") {
-    JourneyGoalProjectionSection(state: JourneyPreviewData.sparseData.goalProjection)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()
