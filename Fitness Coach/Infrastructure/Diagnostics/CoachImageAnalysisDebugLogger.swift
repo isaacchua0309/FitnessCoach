@@ -263,19 +263,10 @@ enum CoachImageAnalysisDebugLogger {
         processed: CoachProcessedImage,
         originalEstimatedBytes: Int?
     ) {
-        emit(
-            message: "Coach image pipeline processed photo library selection",
-            context: CoachImageAnalysisDebugContext(
-                source: source,
-                mimeType: processed.uploadMIMEType,
-                rawBytes: originalEstimatedBytes,
-                compressedBytes: processed.finalByteSize,
-                originalPixelWidth: processed.originalPixelSize.width,
-                originalPixelHeight: processed.originalPixelSize.height,
-                processedPixelWidth: processed.processedPixelSize.width,
-                processedPixelHeight: processed.processedPixelSize.height,
-                compressionStrategy: processed.compressionStrategy.rawValue
-            )
+        CoachImageProcessingLogger.logPipelineSuccess(
+            source: source,
+            processed: processed,
+            processingDurationMs: 0
         )
     }
 
