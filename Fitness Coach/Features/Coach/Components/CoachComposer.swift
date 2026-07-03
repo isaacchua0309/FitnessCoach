@@ -14,6 +14,7 @@ struct CoachComposer: View {
     @Binding var text: String
     var pendingImage: CoachPendingImageState?
     var attachmentError: String?
+    var showsImageErrorRetry: Bool = false
     var speechError: String?
     var isListening: Bool = false
     var isVoiceInputBusy: Bool = false
@@ -26,6 +27,7 @@ struct CoachComposer: View {
     let onVoiceTap: () -> Void
     let onAttachmentSelect: (CoachAttachmentOption) -> Void
     let onRemoveAttachment: () -> Void
+    let onRetryImageSelection: () -> Void
 
     @State private var isAttachmentMenuPresented = false
     @State private var listeningPulse = false
@@ -94,12 +96,25 @@ struct CoachComposer: View {
             }
 
             if let attachmentError {
-                Text(attachmentError.message)
-                    .font(CoachDesignTokens.Typography.confirmationMetric)
-                    .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
-                    .padding(.horizontal, CoachDesignTokens.Spacing.sm)
-                    .padding(.bottom, CoachDesignTokens.Spacing.xs)
-                    .transition(.opacity)
+                HStack(alignment: .firstTextBaseline, spacing: CoachDesignTokens.Spacing.sm) {
+                    Text(attachmentError)
+                        .font(CoachDesignTokens.Typography.confirmationMetric)
+                        .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if showsImageErrorRetry {
+                        Button(action: onRetryImageSelection) {
+                            Text(FormaProductCopy.Coach.composerImageRetry)
+                                .font(CoachDesignTokens.Typography.confirmationMetric)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(CoachDesignTokens.Color.accent)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, CoachDesignTokens.Spacing.sm)
+                .padding(.bottom, CoachDesignTokens.Spacing.xs)
+                .transition(.opacity)
             }
 
             if isProcessingImage {
@@ -397,7 +412,8 @@ private struct CoachComposerPreviewHost: View {
                 onSend: {},
                 onVoiceTap: {},
                 onAttachmentSelect: { _ in },
-                onRemoveAttachment: {}
+                onRemoveAttachment: {},
+                onRetryImageSelection: {}
             )
         }
         .background(CoachDesignTokens.Color.background)

@@ -65,6 +65,7 @@ final class CoachModel: ObservableObject {
     private let mealPhotoAnalyzer: CoachMealPhotoAnalyzer
     private let transcriptStore: CoachChatTranscriptStore
     private let imageAnalysisSessionStore = ImageAnalysisSessionStore()
+    private let pendingImageLocalSources = CoachPendingImageLocalSourceStore()
 
     var awaitingPhotoClarification: Bool {
         imageAnalysisSessionStore.sessionAwaitingClarification() != nil
@@ -165,7 +166,29 @@ final class CoachModel: ObservableObject {
     // MARK: Composer — meal photo attachment
 
     func removeStagedMealPhoto() {
+        let localReferenceID = inputState.pendingImage?.localReferenceID
         mutateInputState { $0.clearPendingImage() }
+        pendingImageLocalSources.remove(localReferenceID)
+    }
+
+    func storePendingImageLocalSource(_ image: UIImage) -> UUID {
+        pendingImageLocalSources.store(image)
+    }
+
+    func pendingImageLocalSource(for id: UUID) -> UIImage? {
+        pendingImageLocalSources.image(for: id)
+    }
+
+    func attachPendingImageLocalReference(_ id: UUID) {
+        mutateInputState { state in
+            guard var pending = state.pendingImage else { return }
+            pending.localReferenceID = id
+            state.pendingImage = pending
+        }
+    }
+
+    func clearPendingImageError() {
+        mutateInputState { $0.clearImageError() }
     }
 
     @discardableResult
@@ -188,7 +211,11 @@ final class CoachModel: ObservableObject {
         case .failure(.userCancelled):
             return
         case .failure(let error):
-            appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
+            if error.supportsComposerRetry {
+                mutateInputState { $0.failImageProcessing(error) }
+            } else {
+                appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
+            }
         case .success(let rawData):
             await stageMealPhoto(rawData, source: source)
         }
@@ -198,20 +225,25 @@ final class CoachModel: ObservableObject {
         guard inputState.canStartImageSelection else { return }
         beginPendingImageProcessing(source: .library)
 
-        let importResult = await CoachImagePipeline.importFromPhotoLibrary(item)
-        switch importResult {
-        case .failure(.userCancelled):
-            mutateInputState { state in
-                state.pendingImage?.markFailedPreservingReadyPayload()
-                if state.pendingImage?.byteSize == 0 {
-                    state.pendingImage = nil
-                }
-            }
+        switch await CoachImagePipeline.loadImageFromPhotoLibrary(item) {
         case .failure(let error):
             mutateInputState { $0.failImageProcessing(error) }
             appendMealPhotoSelectionFailure(error)
-        case .success(let imported):
-            _ = await stagePipelineProcessedPhoto(imported, source: .library)
+        case .success(let loaded):
+            let localReferenceID = storePendingImageLocalSource(loaded.image)
+            attachPendingImageLocalReference(localReferenceID)
+            let importResult = await CoachImagePipeline.processImportedImage(
+                loaded.image,
+                originalEstimatedBytes: loaded.originalEstimatedBytes,
+                localReferenceID: localReferenceID
+            )
+            switch importResult {
+            case .failure(let error):
+                mutateInputState { $0.failImageProcessing(error) }
+                appendMealPhotoSelectionFailure(error)
+            case .success(let imported):
+                _ = await stagePipelineProcessedPhoto(imported, source: .library)
+            }
         }
     }
 
@@ -219,7 +251,12 @@ final class CoachModel: ObservableObject {
         guard inputState.canStartImageSelection else { return }
         beginPendingImageProcessing(source: .camera)
 
-        let importResult = await CoachImagePipeline.importFromCamera(image)
+        let localReferenceID = storePendingImageLocalSource(image)
+        attachPendingImageLocalReference(localReferenceID)
+        let importResult = await CoachImagePipeline.importFromCamera(
+            image,
+            localReferenceID: localReferenceID
+        )
         switch importResult {
         case .failure(.userCancelled):
             mutateInputState { state in
@@ -279,6 +316,7 @@ final class CoachModel: ObservableObject {
 
     func appendMealPhotoSelectionFailure(_ error: CoachMealPhotoError) {
         guard error != .userCancelled else { return }
+        guard !error.supportsComposerRetry else { return }
         CoachImageAnalysisDebugLogger.logError(error)
         appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
     }

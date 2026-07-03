@@ -51,6 +51,26 @@ final class CoachPendingImageStateTests: XCTestCase {
         XCTAssertEqual(processing.source, .library)
     }
 
+    func testProcessingPreservesFailedSelectionMetadataForRetry() {
+        var failed = CoachPendingImageState(
+            thumbnail: Data(),
+            uploadData: Data(),
+            mimeType: CoachImageUploadConfig.default.mimeType,
+            processedSize: CoachImagePixelSize(width: 0, height: 0),
+            byteSize: 0,
+            status: .failed,
+            source: .library,
+            localReferenceID: UUID(uuidString: "00000000-0000-0000-0000-000000000002")
+        )
+        let failedID = failed.id
+
+        let processing = CoachPendingImageState.processing(source: .library, preserving: failed)
+
+        XCTAssertEqual(processing.id, failedID)
+        XCTAssertEqual(processing.localReferenceID, UUID(uuidString: "00000000-0000-0000-0000-000000000002"))
+        XCTAssertEqual(processing.status, .processing)
+    }
+
     private func makeTestImage(size: CGSize) -> UIImage {
         let renderer = UIGraphicsImageRenderer(size: size)
         return renderer.image { context in

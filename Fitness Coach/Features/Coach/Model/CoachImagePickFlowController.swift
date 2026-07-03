@@ -72,8 +72,19 @@ final class CoachImagePickFlowController: ObservableObject {
         state = .processingImage(.library)
         model.beginPendingImageProcessing(source: .library)
 
-        let importResult = await CoachImagePipeline.importFromPhotoLibrary(item)
-        await completeImport(importResult, source: .library, model: model)
+        switch await CoachImagePipeline.loadImageFromPhotoLibrary(item) {
+        case .failure(let error):
+            await handleFailure(error, model: model)
+        case .success(let loaded):
+            let localReferenceID = model.storePendingImageLocalSource(loaded.image)
+            model.attachPendingImageLocalReference(localReferenceID)
+            let importResult = await CoachImagePipeline.processImportedImage(
+                loaded.image,
+                originalEstimatedBytes: loaded.originalEstimatedBytes,
+                localReferenceID: localReferenceID
+            )
+            await completeImport(importResult, source: .library, model: model)
+        }
     }
 
     func handleCameraResult(
@@ -98,8 +109,44 @@ final class CoachImagePickFlowController: ObservableObject {
             }
             state = .processingImage(.camera)
             model.beginPendingImageProcessing(source: .camera)
-            let importResult = await CoachImagePipeline.importFromCamera(image)
+            let localReferenceID = model.storePendingImageLocalSource(image)
+            model.attachPendingImageLocalReference(localReferenceID)
+            let importResult = await CoachImagePipeline.importFromCamera(
+                image,
+                localReferenceID: localReferenceID
+            )
             await completeImport(importResult, source: .camera, model: model)
+        }
+    }
+
+    func retryFailedImageSelection(model: CoachModel) async {
+        guard let error = model.inputState.imageError, error.supportsComposerRetry else { return }
+        guard !model.inputState.isImageProcessing else { return }
+
+        let source = model.inputState.pendingImage?.source ?? .library
+        model.clearPendingImageError()
+
+        if let localReferenceID = model.inputState.pendingImage?.localReferenceID,
+           let image = model.pendingImageLocalSource(for: localReferenceID) {
+            state = .processingImage(source == .camera ? .camera : .library)
+            model.beginPendingImageProcessing(source: source)
+            model.attachPendingImageLocalReference(localReferenceID)
+
+            let originalEstimatedBytes = model.inputState.pendingImage?.originalEstimatedBytes
+            let importResult = await CoachImagePipeline.processImportedImage(
+                image,
+                originalEstimatedBytes: originalEstimatedBytes,
+                localReferenceID: localReferenceID
+            )
+            await completeImport(importResult, source: source, model: model)
+            return
+        }
+
+        switch source {
+        case .library:
+            _ = beginPhotoLibraryPick(model: model)
+        case .camera:
+            await beginCameraPick(model: model)
         }
     }
 

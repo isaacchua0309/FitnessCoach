@@ -131,12 +131,19 @@ struct CoachPendingImageState: Equatable, Identifiable, Sendable {
 
     static func processing(
         source: CoachInputAttachmentSource,
-        preserving ready: CoachPendingImageState?
+        preserving existing: CoachPendingImageState?
     ) -> CoachPendingImageState {
-        if var ready, ready.status == .ready {
-            ready.status = .processing
-            ready.source = source
-            return ready
+        if var existing {
+            switch existing.status {
+            case .ready:
+                existing.status = .processing
+                existing.source = source
+                return existing
+            case .failed, .processing:
+                existing.status = .processing
+                existing.source = source
+                return existing
+            }
         }
 
         return CoachPendingImageState(

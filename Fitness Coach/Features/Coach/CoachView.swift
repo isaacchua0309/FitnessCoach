@@ -188,6 +188,7 @@ struct CoachView: View {
             ),
             pendingImage: model.inputState.pendingImage,
             attachmentError: model.inputState.imageErrorMessage,
+            showsImageErrorRetry: model.inputState.imageErrorSupportsRetry,
             speechError: speechService.errorMessage,
             isListening: speechService.isRecording,
             isVoiceInputBusy: speechService.isVoiceInputBusy,
@@ -211,6 +212,11 @@ struct CoachView: View {
             onRemoveAttachment: {
                 model.removeStagedMealPhoto()
                 imagePickFlow.handleAttachmentRemoved()
+            },
+            onRetryImageSelection: {
+                Task {
+                    await imagePickFlow.retryFailedImageSelection(model: model)
+                }
             }
         )
         .background(

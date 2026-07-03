@@ -44,6 +44,10 @@ struct CoachInputState: Equatable {
         imageError.map { CoachResponseBuilder.mealPhotoError($0) }
     }
 
+    var imageErrorSupportsRetry: Bool {
+        imageError?.supportsComposerRetry == true
+    }
+
     mutating func updateText(_ newText: String) {
         text = newText
     }
@@ -102,6 +106,10 @@ struct CoachInputState: Equatable {
 
     mutating func clearPendingImage() {
         pendingImage = nil
+        imageError = nil
+    }
+
+    mutating func clearImageError() {
         imageError = nil
     }
 

@@ -66,10 +66,8 @@ enum FormaProductCopy {
             "I couldn't quite follow that. Try rephrasing, or log with explicit calories and macros."
         static let coachNetworkUnavailable =
             "Coach couldn't reach the server. Check your connection and try again."
-        static let coachPhotoTooLarge =
-            "That photo is too large to send for analysis. Try a closer crop."
-        static let coachPhotoEncodingFailed =
-            "That photo couldn't be prepared for analysis. Try again."
+        static let coachPhotoTooLarge = Coach.mealPhotoPreparationFailed
+        static let coachPhotoEncodingFailed = Coach.mealPhotoPreparationFailed
         static let coachPhotoRejected =
             "Coach couldn't use that photo for analysis. Try another image."
         static let coachPhotoAnalysisUnreadable =
@@ -2059,6 +2057,9 @@ enum FormaProductCopy {
         static let retryMealPhotoAnalysis = "Retry analysis"
         static let removePhotoBeforeAddingAnother = "Remove the current photo before adding another."
         static let composerImageProcessing = "Preparing photo…"
+        static let composerImageRetry = "Retry"
+        static let mealPhotoPreparationFailed =
+            "Couldn't prepare this photo. Try taking another photo in better lighting."
         static let photoAnalysisLeadIn = "From your meal photo:"
         static let foodEditPortionFooter = "Edit if the portion or cut is different."
         static let foodEditIngredientsFooter = "Edit if you know the ingredients."

@@ -12,21 +12,14 @@ extension CoachImagePipeline {
     /// Processes a captured `UIImage` for Coach upload (orientation normalized in-pipeline).
     static func importFromCamera(
         _ image: UIImage,
+        localReferenceID: UUID = UUID(),
         config: CoachImageProcessingConfig = .default
     ) async -> Result<ProcessedImageImport, CoachMealPhotoError> {
-        let pipelineResult = await processAsync(image: image, config: config)
-
-        switch pipelineResult {
-        case .success(let processed):
-            return .success(
-                ProcessedImageImport(
-                    processed: processed,
-                    originalEstimatedBytes: nil,
-                    localReferenceID: UUID()
-                )
-            )
-        case .failure(let error):
-            return .failure(error.mealPhotoError)
-        }
+        await processImportedImage(
+            image,
+            originalEstimatedBytes: nil,
+            localReferenceID: localReferenceID,
+            config: config
+        )
     }
 }
