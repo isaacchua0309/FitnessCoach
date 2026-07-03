@@ -215,14 +215,47 @@ struct PlanHealthConfidence: Equatable, Sendable, Codable {
 /// Health Intelligence recommendation — distinct from Today `NextBestActionState`.
 typealias NextBestAction = HealthIntelligenceNextBestAction
 
+enum NextBestActionDestination: String, Equatable, Sendable, Codable {
+    case logMeal
+    case addWater
+    case askCoach
+    case viewRecovery
+    case logWeight
+    case none
+}
+
+enum HealthNextBestActionReason: String, Equatable, Sendable, Codable {
+    case postWorkoutRecovery
+    case hydration
+    case lowRecovery
+    case noMealLogged
+    case stepEncouragement
+    case missingWeight
+    case stayOnPlan
+    case connectHealth
+    case waitingForData
+}
+
 struct HealthIntelligenceNextBestAction: Equatable, Sendable, Codable {
+    var id: String
     var title: String
-    var detail: String?
+    var message: String
+    var ctaTitle: String
+    var destination: NextBestActionDestination
     var priority: Int
+    var reason: HealthNextBestActionReason
+    var createdAt: Date
+    var expiresAt: Date?
 
     static let none = HealthIntelligenceNextBestAction(
+        id: "",
         title: "",
-        detail: nil,
-        priority: 0
+        message: "",
+        ctaTitle: "",
+        destination: .none,
+        priority: 0,
+        reason: .stayOnPlan,
+        createdAt: .distantPast,
+        expiresAt: nil
     )
 }

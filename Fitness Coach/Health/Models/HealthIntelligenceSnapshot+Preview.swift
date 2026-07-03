@@ -36,9 +36,15 @@ extension HealthIntelligenceSnapshot {
             weeklyReview: nil,
             planConfidence: PlanHealthConfidence(score: 0, label: "Unknown"),
             nextBestAction: NextBestAction(
+                id: "health-unavailable",
                 title: "Apple Health unavailable",
-                detail: "Recovery and activity insights need a device with Apple Health.",
-                priority: 1
+                message: "Recovery and activity insights need a device with Apple Health.",
+                ctaTitle: "",
+                destination: .none,
+                priority: 1,
+                reason: .connectHealth,
+                createdAt: day,
+                expiresAt: nil
             )
         )
     }
@@ -108,9 +114,15 @@ extension HealthIntelligenceSnapshot {
             weeklyReview: nil,
             planConfidence: PlanHealthConfidence(score: 0.45, label: "Limited"),
             nextBestAction: NextBestAction(
+                id: "connect-health",
                 title: "Connect Apple Health",
-                detail: "Enable activity reads to improve plan confidence.",
-                priority: 1
+                message: "Enable activity reads to improve plan confidence.",
+                ctaTitle: "",
+                destination: .none,
+                priority: 1,
+                reason: .connectHealth,
+                createdAt: day,
+                expiresAt: nil
             )
         )
     }

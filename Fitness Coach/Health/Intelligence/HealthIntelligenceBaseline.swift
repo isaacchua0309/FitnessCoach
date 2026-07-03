@@ -151,17 +151,29 @@ enum HealthIntelligenceBaseline {
     ) -> NextBestAction {
         guard availability.isHealthDataAvailable else {
             return NextBestAction(
+                id: "health-unavailable",
                 title: "Apple Health unavailable",
-                detail: "Recovery and activity insights need a device with Apple Health.",
-                priority: 1
+                message: "Recovery and activity insights need a device with Apple Health.",
+                ctaTitle: "",
+                destination: .none,
+                priority: 1,
+                reason: .connectHealth,
+                createdAt: Date(),
+                expiresAt: nil
             )
         }
 
         guard availability.hasTrainingReadAccess else {
             return NextBestAction(
+                id: "connect-health",
                 title: "Connect Apple Health",
-                detail: "Enable activity reads to improve plan confidence.",
-                priority: 1
+                message: "Enable activity reads to improve plan confidence.",
+                ctaTitle: "",
+                destination: .none,
+                priority: 1,
+                reason: .connectHealth,
+                createdAt: Date(),
+                expiresAt: nil
             )
         }
 
@@ -169,9 +181,15 @@ enum HealthIntelligenceBaseline {
            activity.steps == nil,
            activity.exerciseMinutes == nil {
             return NextBestAction(
+                id: "waiting-for-activity",
                 title: "Waiting for activity data",
-                detail: "No steps or workouts are available for today yet.",
-                priority: 2
+                message: "No steps or workouts are available for today yet.",
+                ctaTitle: "",
+                destination: .none,
+                priority: 2,
+                reason: .waitingForData,
+                createdAt: Date(),
+                expiresAt: nil
             )
         }
 

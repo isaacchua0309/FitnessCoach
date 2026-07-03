@@ -259,18 +259,3 @@ final class TrainingLoadEngineTests: XCTestCase {
         )
     }
 }
-
-private extension FormaWorkoutCategory {
-    var typeMultiplier: Double {
-        switch self {
-        case .walking: 0.75
-        case .yoga: 0.8
-        case .strength: 1.2
-        case .hiit: 1.4
-        case .running: 1.3
-        case .cycling: 1.1
-        case .swimming: 1.2
-        case .other: 1.0
-        }
-    }
-}
