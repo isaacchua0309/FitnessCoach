@@ -21,10 +21,15 @@ enum PlanPresentationBuilder {
             result: planResult,
             referenceDate: asOf
         )
-        let (strategy, status) = PlanStrategyStateBuilder.build(
+        let strategy = PlanStrategyStateBuilder.build(
             context: context,
             baseline: baseline,
             asOf: asOf
+        )
+        let status = PlanStatusStateBuilder.build(
+            profile: context.profile,
+            planResult: planResult,
+            referenceDate: asOf
         )
 
         return PlanDashboardState(
@@ -105,7 +110,7 @@ enum PlanStrategyStateBuilder {
         context: PlanDashboardContext,
         baseline: JourneyBaseline,
         asOf: Date
-    ) -> (PlanStrategyState, PlanStatusState) {
+    ) -> PlanStrategyState {
         let profile = context.profile
         let direction = goalDirection(for: profile)
         let goalKg = profile.goalWeightKg
@@ -120,12 +125,7 @@ enum PlanStrategyStateBuilder {
                 calorieTargetKcal: profile.targets.calorieTarget,
                 expectedWeeklyChangeKg: profile.targets.expectedWeeklyWeightLossKg,
                 aggressiveness: profile.targets.aggressiveness
-            ),
-            context: context,
-            profile: profile,
-            baseline: baseline,
-            asOf: asOf,
-            calendar: context.calendar
+            )
         )
     }
 

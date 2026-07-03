@@ -12,6 +12,7 @@ final class PlanStructureTests: XCTestCase {
         XCTAssertEqual(PlanProductLayout.sectionOrder, [
             .goalProgress,
             .todayMission,
+            .planStatus,
             .whyThisWorks,
             .planAssumptions,
             .planConfidence
@@ -35,6 +36,7 @@ final class PlanStructureTests: XCTestCase {
 
         XCTAssertEqual(dashboard.strategy.sectionTitle, FormaProductCopy.PlanStrategyHero.sectionTitle)
         XCTAssertEqual(dashboard.dailyTargets.sectionTitle, "Daily Targets")
+        XCTAssertEqual(dashboard.status.sectionTitle, "Plan Status")
         XCTAssertEqual(dashboard.explanation.sectionTitle, "Why This Works")
         XCTAssertEqual(dashboard.assumptions.sectionTitle, "Plan Assumptions")
         XCTAssertEqual(dashboard.confidence.sectionTitle, "Plan Confidence")

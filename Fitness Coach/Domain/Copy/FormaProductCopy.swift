@@ -2112,6 +2112,63 @@ enum FormaProductCopy {
         static let viewCalculationDetails = "See calculation"
     }
 
+    // MARK: - Plan Status
+
+    enum PlanStatus {
+        static let sectionTitle = "Plan Status"
+        static let bestForLabel = "Best for"
+        static let watchForLabel = "Watch for"
+
+        static let aggressiveCutName = "Aggressive Cut"
+        static let aggressiveCutExplanation =
+            "A larger calorie deficit designed for faster fat loss."
+        static let aggressiveCutBestFor = "Fast fat loss"
+        static let aggressiveCutWatchFor =
+            "Low energy, poor workout performance, high hunger"
+
+        static let moderateCutName = "Moderate Cut"
+        static let moderateCutExplanation =
+            "A steady calorie deficit with room for training and recovery."
+        static let moderateCutBestFor = "Sustainable fat loss"
+        static let moderateCutWatchFor =
+            "Plateaus, creeping hunger on hard training days"
+
+        static let gentleCutName = "Gentle Cut"
+        static let gentleCutExplanation =
+            "A smaller calorie deficit that prioritizes consistency and recovery."
+        static let gentleCutBestFor = "Gradual fat loss"
+        static let gentleCutWatchFor =
+            "Slower scale changes — focus on trends, not daily noise"
+
+        static let maintenanceName = "Maintenance"
+        static let maintenanceExplanation =
+            "Calorie targets aligned to hold your current weight."
+        static let maintenanceBestFor = "Weight stability"
+        static let maintenanceWatchFor =
+            "Slow drift up or down — adjust if trends shift"
+
+        static let leanGainName = "Lean Gain"
+        static let leanGainExplanation =
+            "A calorie surplus sized to support muscle and training."
+        static let leanGainBestFor = "Building muscle"
+        static let leanGainWatchFor =
+            "Unwanted fat gain, digestive load, recovery dips"
+
+        static let rebuildName = "Rebuild / Recomposition"
+        static let rebuildExplanation =
+            "A modest surplus focused on strength and body recomposition."
+        static let rebuildBestFor = "Rebuilding muscle while staying lean"
+        static let rebuildWatchFor =
+            "Fat gain if surplus outpaces training stimulus"
+
+        static let needsReviewName = "Needs Review"
+        static let needsReviewExplanation =
+            "Forma needs a bit more information before classifying this plan."
+        static let needsReviewBestFor = "Confirming your setup"
+        static let needsReviewWatchFor =
+            "Missing profile details or targets that need adjustment"
+    }
+
     // MARK: - Plan Daily Targets
 
     enum PlanDailyTargets {

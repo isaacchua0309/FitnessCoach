@@ -10,6 +10,7 @@ import Foundation
 enum PlanProductSection: String, CaseIterable, Equatable {
     case goalProgress = "goal_progress"
     case todayMission = "today_mission"
+    case planStatus = "plan_status"
     case whyThisWorks = "why_this_works"
     case planAssumptions = "plan_assumptions"
     case planConfidence = "plan_confidence"
@@ -19,6 +20,7 @@ enum PlanProductLayout {
     static let sectionOrder: [PlanProductSection] = [
         .goalProgress,
         .todayMission,
+        .planStatus,
         .whyThisWorks,
         .planAssumptions,
         .planConfidence

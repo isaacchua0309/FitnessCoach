@@ -179,6 +179,8 @@ struct PlanView: View {
                     model.logSectionImpression(.todayMission, healthConnected: healthConnected)
                 }
 
+                PlanStatusSection(state: state.status)
+
                 PlanRationaleSection(
                     explanation: state.explanation,
                     onCalculationDetailsOpened: {
@@ -242,6 +244,7 @@ struct PlanView: View {
                 state: PlanPreviewData.state.dailyTargets,
                 onGoToToday: {}
             )
+            PlanStatusSection(state: PlanPreviewData.state.status)
             PlanRationaleSection(explanation: PlanPreviewData.state.explanation)
             PlanAssumptionsSection(
                 state: PlanPreviewData.state.assumptions,

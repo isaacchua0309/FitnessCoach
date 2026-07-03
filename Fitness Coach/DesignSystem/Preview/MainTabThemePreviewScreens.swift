@@ -43,6 +43,7 @@ enum MainTabThemePreviewScreens {
                     state: PlanPreviewData.state.dailyTargets,
                     onGoToToday: {}
                 )
+                PlanStatusSection(state: PlanPreviewData.state.status)
                 PlanRationaleSection(explanation: PlanPreviewData.state.explanation)
                 PlanAssumptionsSection(
                     state: PlanPreviewData.state.assumptions,

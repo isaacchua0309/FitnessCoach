@@ -61,6 +61,26 @@ enum PlanMissionControlFixtures {
         return profile
     }
 
+    static var gentleDeficitProfile: UserProfile {
+        var profile = loseProfile
+        profile.targets = UserTargets(
+            calorieTarget: 2100,
+            proteinTarget: 165,
+            carbTarget: 175,
+            fatTarget: 56,
+            waterTargetMl: 3000,
+            expectedWeeklyWeightLossKg: 0.35,
+            aggressiveness: .conservative
+        )
+        return profile
+    }
+
+    static var rebuildProfile: UserProfile {
+        var profile = gainProfile
+        profile.targets.aggressiveness = .conservative
+        return profile
+    }
+
     static var gainProfile: UserProfile {
         var profile = loseProfile
         profile.currentWeightKg = 70
@@ -183,6 +203,14 @@ enum PlanMissionControlFixtures {
 
     static var moderateDeficitDashboard: PlanDashboardState {
         dashboard(for: moderateDeficitProfile)
+    }
+
+    static var gentleDeficitDashboard: PlanDashboardState {
+        dashboard(for: gentleDeficitProfile)
+    }
+
+    static var rebuildDashboard: PlanDashboardState {
+        dashboard(for: rebuildProfile)
     }
 
     static var connectedDashboard: PlanDashboardState {

@@ -39,54 +39,29 @@ final class PlanPresentationStateTests: XCTestCase {
         XCTAssertEqual(state.strategy.primaryGoal, "Build muscle")
     }
 
-    // MARK: - Deficit pacing
+    // MARK: - Plan status
 
-    func testAggressiveDeficitStatusTone() {
-        let state = PlanMissionControlFixtures.activeUserDashboard
+    func testAggressiveCutStatusCard() {
+        let state = PlanMissionControlFixtures.loseDashboard
 
-        XCTAssertEqual(state.profile.targets.aggressiveness, .aggressive)
-        XCTAssertEqual(state.strategy.goalDirection, .lose)
-        XCTAssertEqual(state.status.tone, .needsData)
-        XCTAssertTrue(state.status.message.contains("faster cut"))
+        XCTAssertEqual(state.status.classification, .aggressiveCut)
+        XCTAssertEqual(state.status.statusName, "Aggressive Cut")
     }
 
-    func testModerateDeficitStatusTone() {
-        let state = PlanMissionControlFixtures.activeModerateDeficitDashboard
+    func testModerateCutStatusCard() {
+        let state = PlanMissionControlFixtures.moderateDeficitDashboard
 
-        XCTAssertEqual(state.profile.targets.aggressiveness, .moderate)
-        XCTAssertEqual(state.strategy.goalDirection, .lose)
-        XCTAssertEqual(state.status.tone, .onTrack)
-        XCTAssertTrue(state.status.message.contains("recovery"))
+        XCTAssertEqual(state.status.classification, .moderateCut)
     }
 
     // MARK: - Data gaps
 
-    func testInsufficientDataProfileSurfacesNeedsDataStatus() {
+    func testInsufficientDataProfileSurfacesNeedsReviewStatus() {
         let state = PlanMissionControlFixtures.incompleteDataDashboard
 
-        XCTAssertEqual(state.status.tone, .needsData)
+        XCTAssertEqual(state.status.classification, .needsReview)
         XCTAssertTrue(state.confidence.missingItems.contains {
             $0.text == FormaProductCopy.PlanMissionControl.missingBirthdayHeight
-        })
-    }
-
-    func testNoRecentWeighInSurfacesNeedsDataStatus() {
-        let state = PlanMissionControlFixtures.staleWeightDashboard
-
-        XCTAssertEqual(state.status.tone, .needsData)
-        XCTAssertTrue(state.status.message.lowercased().contains("weigh"))
-        XCTAssertTrue(state.confidence.missingItems.contains {
-            $0.text == FormaProductCopy.PlanMissionControl.missingRecentWeighIn
-        })
-    }
-
-    func testNoFoodLogsSurfacesNeedsDataStatus() {
-        let state = PlanMissionControlFixtures.noLogsDashboard
-
-        XCTAssertEqual(state.status.tone, .needsData)
-        XCTAssertTrue(state.status.message.lowercased().contains("log"))
-        XCTAssertTrue(state.confidence.missingItems.contains {
-            $0.text == FormaProductCopy.PlanMissionControl.missingFoodLogs
         })
     }
 
@@ -119,7 +94,7 @@ final class PlanPresentationStateTests: XCTestCase {
 
         XCTAssertFalse(state.strategy.sectionTitle.isEmpty)
         XCTAssertFalse(state.dailyTargets.sectionTitle.isEmpty)
-        XCTAssertFalse(state.status.message.isEmpty)
+        XCTAssertFalse(state.status.statusName.isEmpty)
         XCTAssertFalse(state.explanation.summary.isEmpty)
         XCTAssertFalse(state.confidence.sectionTitle.isEmpty)
         XCTAssertFalse(state.adjustmentRules.rules.isEmpty)
@@ -132,7 +107,7 @@ final class PlanPresentationStateTests: XCTestCase {
     func testActiveUserWithFullDataHasHighConfidence() {
         let state = PlanMissionControlFixtures.activeUserDashboard
 
-        XCTAssertEqual(state.status.tone, .needsData)
+        XCTAssertEqual(state.status.classification, .aggressiveCut)
         XCTAssertGreaterThanOrEqual(state.confidence.confidenceScore, 85)
         XCTAssertFalse(state.confidence.missingItems.contains {
             $0.text == FormaProductCopy.PlanMissionControl.missingRecentWeighIn

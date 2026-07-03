@@ -19,16 +19,26 @@ typealias PlanMissionGoalDirection = PlanGoalDirection
 
 // MARK: - Status
 
-enum PlanStatusTone: String, Equatable, Sendable {
-    case onTrack
-    case needsData
-    case aheadOfSchedule
-    case newPlan
+enum PlanStrategyClassification: String, Equatable, Sendable, CaseIterable {
+    case aggressiveCut
+    case moderateCut
+    case gentleCut
+    case maintenance
+    case leanGain
+    case rebuild
+    case needsReview
 }
 
 struct PlanStatusState: Equatable, Sendable {
-    var message: String
-    var tone: PlanStatusTone
+    var sectionTitle: String
+    var classification: PlanStrategyClassification
+    var statusName: String
+    var explanation: String
+    var bestForLabel: String
+    var bestForValue: String
+    var watchForLabel: String
+    var watchForValue: String
+    var accessibilitySummary: String
 }
 
 // MARK: - Strategy
