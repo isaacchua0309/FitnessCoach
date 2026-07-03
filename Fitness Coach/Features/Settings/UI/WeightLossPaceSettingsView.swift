@@ -53,18 +53,18 @@ struct WeightLossPaceSettingsView: View {
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(
                         paceChoice == choice
-                            ? FormaTokens.Theme.primary
-                            : FormaTokens.Color.textTertiary
+                            ? FormaPlanTokens.Color.planAccent
+                            : FormaPlanTokens.Color.planMutedText
                     )
                     .frame(width: 26)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(choice.displayName)
                         .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                        .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
                     Text(choice.subtitle)
                         .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
@@ -85,7 +85,7 @@ struct WeightLossPaceSettingsView: View {
                 }
             }
             .pickerStyle(.segmented)
-            .tint(FormaTokens.Theme.primary)
+            .tint(FormaPlanTokens.Color.planAccent)
 
             FormaLabeledNumberField(
                 title: advancedDraft.period.fieldTitle,
@@ -101,12 +101,12 @@ struct WeightLossPaceSettingsView: View {
     // MARK: - Preview
 
     private var previewCard: some View {
-        FormaPlanCard {
+        PlanEditCard {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 if let validationError = preview.validationError {
                     Text(validationError)
                         .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
                 } else {
                     if let safetyDisplay = preview.safetyDisplay {
                         safetyBadge(safetyDisplay)
@@ -115,7 +115,7 @@ struct WeightLossPaceSettingsView: View {
                     if let summary = preview.deficitSummaryLine {
                         Text(summary)
                             .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
-                            .foregroundStyle(FormaTokens.Color.textPrimary)
+                            .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
                     }
 
                     equivalentRows
@@ -123,7 +123,7 @@ struct WeightLossPaceSettingsView: View {
                     if let warning = preview.warningMessage {
                         Text(warning)
                             .font(FormaTokens.Typography.caption)
-                            .foregroundStyle(FormaTokens.Color.textSecondary)
+                            .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -157,11 +157,11 @@ struct WeightLossPaceSettingsView: View {
         HStack {
             Text(label)
                 .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textTertiary)
+                .foregroundStyle(FormaPlanTokens.Color.planMutedText)
             Spacer()
             Text(value)
                 .font(FormaTokens.Typography.caption.weight(.medium))
-                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
         }
     }
 
@@ -173,18 +173,25 @@ struct WeightLossPaceSettingsView: View {
             .padding(.vertical, 4)
             .background {
                 Capsule()
-                    .fill(safetyColor(display).opacity(0.16))
+                    .fill(safetyBadgeBackground(display))
             }
     }
 
     private func safetyColor(_ display: WeightLossPaceSafetyDisplay) -> Color {
         switch display {
         case .sustainable:
-            return FormaTokens.Color.success
-        case .demanding:
-            return FormaTokens.Color.warning
-        case .tooAggressive:
-            return FormaTokens.Color.warning
+            return FormaPlanTokens.Color.planSuccess
+        case .demanding, .tooAggressive:
+            return FormaPlanTokens.Color.planWarning
+        }
+    }
+
+    private func safetyBadgeBackground(_ display: WeightLossPaceSafetyDisplay) -> Color {
+        switch display {
+        case .sustainable:
+            return FormaPlanTokens.Color.planAccentSoft
+        case .demanding, .tooAggressive:
+            return FormaPlanTokens.Color.planWarningSoft
         }
     }
 

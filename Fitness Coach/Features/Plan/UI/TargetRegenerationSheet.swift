@@ -26,11 +26,11 @@ struct TargetRegenerationSheet: View {
                             systemImage: "exclamationmark.triangle.fill"
                         )
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(FormaTokens.Color.warning)
+                        .foregroundStyle(FormaPlanTokens.Color.planWarning)
                         .padding()
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(
-                            FormaTokens.Color.warning.opacity(0.14),
+                            FormaPlanTokens.Color.planWarningSoft,
                             in: RoundedRectangle(cornerRadius: 16, style: .continuous)
                         )
                     }
@@ -44,7 +44,7 @@ struct TargetRegenerationSheet: View {
                     }
                     .padding()
                     .background(
-                        FormaTokens.Color.surfaceElevated,
+                        FormaPlanTokens.Color.planElevatedSurface,
                         in: RoundedRectangle(cornerRadius: 16, style: .continuous)
                     )
 
@@ -66,15 +66,16 @@ struct TargetRegenerationSheet: View {
                     }
                     .padding()
                     .background(
-                        FormaTokens.Color.surfaceElevated,
+                        FormaPlanTokens.Color.planElevatedSurface,
                         in: RoundedRectangle(cornerRadius: 16, style: .continuous)
                     )
                 }
                 .padding()
             }
-            .background(FormaTokens.Color.canvas)
+            .background(FormaPlanTokens.Color.planBackground)
             .navigationTitle("Regenerated Targets")
             .navigationBarTitleDisplayMode(.inline)
+            .tint(FormaPlanTokens.Color.planAccent)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -102,11 +103,11 @@ struct TargetRegenerationSheet: View {
         HStack {
             Text(title)
                 .font(.subheadline)
-                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
             Spacer()
             Text(value)
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(FormaTokens.Color.textPrimary)
+                .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
         }
     }
 

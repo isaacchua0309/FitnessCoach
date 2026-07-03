@@ -65,14 +65,14 @@ struct PlanEditWizard: View {
                         Section {
                             Text(errorMessage)
                                 .font(.subheadline)
-                                .foregroundStyle(FormaTokens.Color.destructive)
+                                .foregroundStyle(FormaPlanTokens.Color.planDanger)
                         }
                     }
                 }
             }
             .navigationTitle("Edit Plan")
             .navigationBarTitleDisplayMode(.inline)
-            .tint(FormaTokens.Theme.primary)
+            .tint(FormaPlanTokens.Color.planAccent)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -146,7 +146,7 @@ struct PlanEditWizard: View {
                 if goalType == .loseFat {
                     Text("Forma computes calorie and macro targets from your pace, weight, and lifestyle.")
                         .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaTokens.Color.textTertiary)
+                        .foregroundStyle(FormaPlanTokens.Color.planMutedText)
                 }
             }
         }
@@ -164,11 +164,11 @@ struct PlanEditWizard: View {
                 if let birthDate = formState.birthDate {
                     Text("Age used for calculations: \(PlanFormatter.age(BirthDateAgeResolver.age(from: birthDate)))")
                         .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaTokens.Color.textTertiary)
+                        .foregroundStyle(FormaPlanTokens.Color.planMutedText)
                 } else {
                     Text(FormaProductCopy.Onboarding.Flow.Birthday.birthDateRequiredMessage)
                         .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaTokens.Color.textTertiary)
+                        .foregroundStyle(FormaPlanTokens.Color.planMutedText)
                 }
             }
 
@@ -180,11 +180,11 @@ struct PlanEditWizard: View {
                         } label: {
                             HStack {
                                 Text(PlanFormatter.sex(sex))
-                                    .foregroundStyle(FormaTokens.Color.textPrimary)
+                                    .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
                                 Spacer()
                                 if formState.sex == sex {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(FormaTokens.Theme.primary)
+                                        .foregroundStyle(FormaPlanTokens.Color.planAccent)
                                 }
                             }
                             .padding(.vertical, FormaTokens.Spacing.xs)
@@ -200,7 +200,7 @@ struct PlanEditWizard: View {
             } footer: {
                 Text("Biological sex is required for calorie and macro calculations.")
                     .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textTertiary)
+                    .foregroundStyle(FormaPlanTokens.Color.planMutedText)
             }
         }
     }
@@ -230,7 +230,7 @@ struct PlanEditWizard: View {
         } footer: {
             Text("Current weight drives your maintenance and target calculations.")
                 .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textTertiary)
+                .foregroundStyle(FormaPlanTokens.Color.planMutedText)
         }
     }
 
@@ -250,16 +250,16 @@ struct PlanEditWizard: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(PlanFormatter.activityLevel(level))
                                         .font(FormaTokens.Typography.body.weight(.medium))
-                                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                                        .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
                                     Text(OnboardingActivityLevelValues.optionDescription(for: level))
                                         .font(FormaTokens.Typography.caption)
-                                        .foregroundStyle(FormaTokens.Color.textTertiary)
+                                        .foregroundStyle(FormaPlanTokens.Color.planMutedText)
                                         .multilineTextAlignment(.leading)
                                 }
                                 Spacer(minLength: 0)
                                 if formState.activityLevel == level {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(FormaTokens.Theme.primary)
+                                        .foregroundStyle(FormaPlanTokens.Color.planAccent)
                                 }
                             }
                             .padding(.vertical, FormaTokens.Spacing.xs)
@@ -276,7 +276,7 @@ struct PlanEditWizard: View {
                 let rhythm = ActivityTrainingDefaultsResolver().defaults(for: formState.activityLevel)
                 Text("Defaults: \(rhythm.trainingDaysPerWeek) training days/week, \(rhythm.averageStepsPerDay.formatted()) steps/day.")
                     .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textTertiary)
+                    .foregroundStyle(FormaPlanTokens.Color.planMutedText)
             }
 
             Section {
@@ -327,7 +327,7 @@ struct PlanEditWizard: View {
             } footer: {
                 Text("Optional overrides for body fat, macros, and training assumptions.")
                     .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textTertiary)
+                    .foregroundStyle(FormaPlanTokens.Color.planMutedText)
             }
         }
     }
@@ -343,20 +343,20 @@ struct PlanEditWizard: View {
                 if review.changes.isEmpty {
                     Text("No plan inputs changed.")
                         .font(.subheadline)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
                 } else {
                     ForEach(review.changes) { change in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(change.label)
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(FormaTokens.Color.textSecondary)
+                                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
                             HStack {
                                 Text(change.before)
                                     .strikethrough()
-                                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                                    .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
                                 Image(systemName: "arrow.right")
                                     .font(.caption)
-                                    .foregroundStyle(FormaTokens.Color.textTertiary)
+                                    .foregroundStyle(FormaPlanTokens.Color.planMutedText)
                                 Text(change.after)
                                     .fontWeight(.medium)
                             }
@@ -370,7 +370,7 @@ struct PlanEditWizard: View {
             } footer: {
                 Text("Next, Forma will regenerate your daily targets from these inputs.")
                     .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textTertiary)
+                    .foregroundStyle(FormaPlanTokens.Color.planMutedText)
             }
         }
     }
@@ -398,7 +398,7 @@ struct PlanEditWizard: View {
                         systemImage: "exclamationmark.triangle.fill"
                     )
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(FormaTokens.Color.warning)
+                    .foregroundStyle(FormaPlanTokens.Color.planWarning)
                 }
             }
 
@@ -407,14 +407,14 @@ struct PlanEditWizard: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(row.label)
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(FormaTokens.Color.textSecondary)
+                            .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
                         HStack {
                             Text(row.before)
                                 .strikethrough()
-                                .foregroundStyle(FormaTokens.Color.textSecondary)
+                                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
                             Image(systemName: "arrow.right")
                                 .font(.caption)
-                                .foregroundStyle(FormaTokens.Color.textTertiary)
+                                .foregroundStyle(FormaPlanTokens.Color.planMutedText)
                             Text(row.after)
                                 .fontWeight(.medium)
                         }
@@ -427,12 +427,12 @@ struct PlanEditWizard: View {
             } footer: {
                 Text("Saving updates your plan and today's targets.")
                     .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textTertiary)
+                    .foregroundStyle(FormaPlanTokens.Color.planMutedText)
             }
         } else {
             Section {
                 Text("Unable to preview targets. Go back and check your inputs.")
-                                .foregroundStyle(FormaTokens.Color.textSecondary)
+                                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
             }
         }
     }
@@ -478,7 +478,7 @@ struct PlanEditWizard: View {
         HStack(spacing: 6) {
             ForEach(flow.indices, id: \.self) { index in
                 Capsule()
-                    .fill(index <= stepIndex ? FormaTokens.Color.progress : FormaTokens.Color.progressTrack)
+                    .fill(index <= stepIndex ? FormaPlanTokens.Color.planProgressFill : FormaPlanTokens.Color.planProgressTrack)
                     .frame(height: 3)
             }
         }

@@ -62,7 +62,7 @@ struct MacroTargetSettingsView: View {
                     Label("Regenerate Targets", systemImage: "arrow.triangle.2.circlepath")
                 }
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.accent)
+                .foregroundStyle(FormaPlanTokens.Color.planAccent)
             }
             .padding(.vertical, FormaTokens.Spacing.xs)
             .formaFormSection()
@@ -71,7 +71,7 @@ struct MacroTargetSettingsView: View {
         } footer: {
             Text("Manual edits are saved as-is. Regenerate to recalculate from your profile and pace settings.")
                 .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textTertiary)
+                .foregroundStyle(FormaPlanTokens.Color.planMutedText)
         }
     }
 }

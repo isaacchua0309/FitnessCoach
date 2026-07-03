@@ -21,12 +21,14 @@ enum FormaThemeAccess {
     )
     private(set) static var currentThemePalette: ThemePalette = FormaPaletteCatalog.defaultThemePalette
     private(set) static var currentColors: FormaThemeColors = ThemeColorProvider.productDefault
+    private(set) static var currentPlanColors: FormaPlanColors = PlanThemeColorProvider.productDefault
     private(set) static var currentPalette: FormaThemePalette = .defaultOceanBlue
 
     static func update(resolved: ResolvedAppTheme) {
         currentResolvedTheme = resolved
         currentThemePalette = resolved.themePalette
         currentColors = ThemeColorProvider.colors(from: resolved)
+        currentPlanColors = PlanThemeColorProvider.planColors(from: resolved)
         currentPalette = FormaPaletteCatalog.legacyThemePalette(
             for: resolved.preferences.palette,
             colorScheme: resolved.resolvedColorScheme
@@ -36,6 +38,11 @@ enum FormaThemeAccess {
     static func update(colors: FormaThemeColors, legacyPalette: FormaThemePalette) {
         currentColors = colors
         currentThemePalette = colors.themePalette
+        currentPlanColors = PlanThemeColorProvider.planColors(
+            from: currentResolvedTheme.colors,
+            themePalette: colors.themePalette,
+            colorScheme: currentResolvedTheme.resolvedColorScheme
+        )
         currentPalette = legacyPalette
     }
 

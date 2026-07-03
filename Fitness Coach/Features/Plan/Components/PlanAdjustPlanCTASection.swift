@@ -16,13 +16,13 @@ struct PlanAdjustPlanCTASection: View {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 Text(state.heading)
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textPrimary)
+                    .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityHidden(true)
 
                 Text(state.bodyCopy)
                     .font(FormaTokens.Typography.sectionSubtitle)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityHidden(true)
 
@@ -33,7 +33,7 @@ struct PlanAdjustPlanCTASection: View {
                         .frame(minHeight: FormaTokens.Layout.minTouchTarget)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(FormaTokens.Theme.primaryButtonBackground)
+                .tint(FormaPlanTokens.Color.planAccentButton)
                 .disabled(!state.isEnabled)
                 .padding(.top, FormaTokens.Spacing.xs)
                 .accessibilityLabel(state.buttonTitle)
@@ -51,6 +51,6 @@ struct PlanAdjustPlanCTASection: View {
         onAdjustPlan: {}
     )
     .padding()
-    .background(FormaTokens.Color.canvas)
+    .background(FormaPlanTokens.Color.planBackground)
     .formaThemePreview()
 }

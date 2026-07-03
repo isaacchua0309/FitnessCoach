@@ -43,7 +43,7 @@ struct PlanView: View {
                                 } label: {
                                     Text(FormaProductCopy.PlanMissionControl.adjustPlan)
                                         .font(FormaTokens.Typography.body.weight(.semibold))
-                                        .foregroundStyle(FormaTokens.Theme.primary)
+                                        .foregroundStyle(FormaPlanTokens.Color.planAccent)
                                 }
                                 .accessibilityHint(FormaProductCopy.PlanMissionControl.adjustPlanAccessibilityHint)
 
@@ -109,6 +109,7 @@ struct PlanView: View {
                                 try await model.prepareTargetPreview(from: state)
                             }
                         )
+                        .tint(FormaPlanTokens.Color.planAccent)
                     }
                 }
                 .sheet(isPresented: $model.isShowingSettingsSheet) {
