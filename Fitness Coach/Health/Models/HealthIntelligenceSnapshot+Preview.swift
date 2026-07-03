@@ -4,6 +4,9 @@
 //
 //  Forma — Preview and mock factories for HealthIntelligenceSnapshot.
 //
+//  Named scenario mocks (`mockReadyDay`, `mockWorkoutDay`, etc.) live in
+//  `HealthIntelligenceMocks.swift` and compile in DEBUG builds only.
+//
 
 import Foundation
 
