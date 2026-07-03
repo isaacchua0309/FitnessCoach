@@ -39,7 +39,9 @@ protocol HealthCacheStore: Sendable {
     func storeRecoverySummary(_ summary: RecoverySummary, for date: Date, calendar: Calendar)
 
     func intelligenceSnapshot(for date: Date, calendar: Calendar) -> HealthIntelligenceSnapshot?
+    func intelligenceSnapshotEntry(for date: Date, calendar: Calendar) -> HealthIntelligenceSnapshotCacheEntry?
     func storeIntelligenceSnapshot(_ snapshot: HealthIntelligenceSnapshot, for date: Date, calendar: Calendar)
+    func removeIntelligenceSnapshots(from startDay: Date, through endDay: Date, calendar: Calendar)
 
     func weeklyReview(for weekStartDate: Date, calendar: Calendar) -> WeeklyHealthReview?
     func storeWeeklyReview(_ review: WeeklyHealthReview, calendar: Calendar)
@@ -208,20 +210,45 @@ final class MemoryHealthCacheStore: HealthCacheStore, @unchecked Sendable {
     }
 
     func intelligenceSnapshot(for date: Date, calendar: Calendar = .current) -> HealthIntelligenceSnapshot? {
+        intelligenceSnapshotEntry(for: date, calendar: calendar)?.snapshot
+    }
+
+    func intelligenceSnapshotEntry(for date: Date, calendar: Calendar = .current) -> HealthIntelligenceSnapshotCacheEntry? {
         let key = calendar.startOfDay(for: date)
         lock.lock()
         defer { lock.unlock() }
-        return snapshotsByDay[key]?.snapshot
+        guard let stored = snapshotsByDay[key] else { return nil }
+        return HealthIntelligenceSnapshotCacheEntry(
+            snapshot: stored.snapshot,
+            cachedAt: stored.cachedAt
+        )
     }
 
     func storeIntelligenceSnapshot(
         _ snapshot: HealthIntelligenceSnapshot,
         for date: Date,
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        cachedAt: Date = Date()
     ) {
         let key = calendar.startOfDay(for: date)
         lock.lock()
-        snapshotsByDay[key] = (snapshot, Date())
+        snapshotsByDay[key] = (snapshot, cachedAt)
+        lock.unlock()
+    }
+
+    func removeIntelligenceSnapshots(
+        from startDay: Date,
+        through endDay: Date,
+        calendar: Calendar = .current
+    ) {
+        let start = calendar.startOfDay(for: startDay)
+        let end = calendar.startOfDay(for: endDay)
+        guard start <= end else { return }
+
+        lock.lock()
+        snapshotsByDay = snapshotsByDay.filter { key, _ in
+            key < start || key > end
+        }
         lock.unlock()
     }
 

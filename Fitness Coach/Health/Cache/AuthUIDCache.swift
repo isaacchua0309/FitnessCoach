@@ -19,6 +19,18 @@ final class AuthUIDCache: HealthCacheUserProviding, @unchecked Sendable {
         lock.unlock()
     }
 
+    /// Returns `true` when the cached UID changed.
+    @discardableResult
+    func updateIfChanged(uid: String?) -> Bool {
+        let trimmed = uid?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalized = trimmed?.isEmpty == false ? trimmed : nil
+        lock.lock()
+        let changed = normalized != self.uid
+        self.uid = normalized
+        lock.unlock()
+        return changed
+    }
+
     func currentUserID() -> String? {
         lock.lock()
         defer { lock.unlock() }

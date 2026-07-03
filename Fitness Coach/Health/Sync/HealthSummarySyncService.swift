@@ -18,6 +18,11 @@ protocol HealthSummarySyncServing: Sendable {
     func syncOnAppForeground() async
     func getRemoteSyncState() async -> HealthSummaryRemoteSyncState
     func deleteRemoteHealthSummaries() async throws
+    func cancelActiveSync() async
+}
+
+extension HealthSummarySyncServing {
+    func cancelActiveSync() async {}
 }
 
 extension HealthSummarySyncServing {
@@ -41,6 +46,7 @@ actor HealthSummarySyncService: HealthSummarySyncServing {
     private var state: HealthSummaryRemoteSyncState
     private var isSyncing = false
     private var lastForegroundSyncAt: Date?
+    private var activeSyncGeneration = 0
 
     init(
         remoteSyncClient: any HealthSummaryRemoteSyncing,
@@ -77,6 +83,7 @@ actor HealthSummarySyncService: HealthSummarySyncServing {
     }
 
     func deleteRemoteHealthSummaries() async throws {
+        await cancelActiveSync()
         guard HealthIntelligenceFeatureFlags.healthSummaryRemoteSyncEnabled else { return }
         guard !isSyncing else {
             throw HealthSummarySyncError.deleteFailed(reason: "sync_in_progress")
@@ -222,6 +229,11 @@ actor HealthSummarySyncService: HealthSummarySyncServing {
         )
     }
 
+    func cancelActiveSync() async {
+        activeSyncGeneration += 1
+        isSyncing = false
+    }
+
     // MARK: - Orchestration
 
     private func runSync(
@@ -243,7 +255,14 @@ actor HealthSummarySyncService: HealthSummarySyncServing {
         }
 
         isSyncing = true
-        defer { isSyncing = false }
+        let generation = activeSyncGeneration
+        defer {
+            if generation == activeSyncGeneration {
+                isSyncing = false
+            }
+        }
+
+        guard !Task.isCancelled else { return }
 
         guard let userID = authenticatedUserID() else {
             state = unauthenticatedState()
@@ -295,34 +314,40 @@ actor HealthSummarySyncService: HealthSummarySyncServing {
         var lastError: HealthSummarySyncError?
         var didUploadAnyPayload = false
 
-        didUploadAnyPayload = await uploadIfNotEmpty(
-            composed.dailySummaries,
-            kind: .daily,
-            failedKinds: &failedKinds,
-            lastError: &lastError
-        ) {
-            try await remoteSyncClient.uploadDailySummaries(composed.dailySummaries)
-        } || didUploadAnyPayload
+        if remoteSyncStillActive(generation: generation) {
+            didUploadAnyPayload = await uploadIfNotEmpty(
+                composed.dailySummaries,
+                kind: .daily,
+                failedKinds: &failedKinds,
+                lastError: &lastError
+            ) {
+                try await remoteSyncClient.uploadDailySummaries(composed.dailySummaries)
+            } || didUploadAnyPayload
+        }
 
-        didUploadAnyPayload = await uploadIfNotEmpty(
-            composed.workoutSummaries,
-            kind: .workouts,
-            failedKinds: &failedKinds,
-            lastError: &lastError
-        ) {
-            try await remoteSyncClient.uploadWorkoutSummaries(composed.workoutSummaries)
-        } || didUploadAnyPayload
+        if remoteSyncStillActive(generation: generation) {
+            didUploadAnyPayload = await uploadIfNotEmpty(
+                composed.workoutSummaries,
+                kind: .workouts,
+                failedKinds: &failedKinds,
+                lastError: &lastError
+            ) {
+                try await remoteSyncClient.uploadWorkoutSummaries(composed.workoutSummaries)
+            } || didUploadAnyPayload
+        }
 
-        didUploadAnyPayload = await uploadIfNotEmpty(
-            composed.recoverySummaries,
-            kind: .recovery,
-            failedKinds: &failedKinds,
-            lastError: &lastError
-        ) {
-            try await remoteSyncClient.uploadRecoverySummaries(composed.recoverySummaries)
-        } || didUploadAnyPayload
+        if remoteSyncStillActive(generation: generation) {
+            didUploadAnyPayload = await uploadIfNotEmpty(
+                composed.recoverySummaries,
+                kind: .recovery,
+                failedKinds: &failedKinds,
+                lastError: &lastError
+            ) {
+                try await remoteSyncClient.uploadRecoverySummaries(composed.recoverySummaries)
+            } || didUploadAnyPayload
+        }
 
-        if didUploadAnyPayload {
+        if didUploadAnyPayload, remoteSyncStillActive(generation: generation) {
             await uploadMetadata(
                 userID: userID,
                 context: context,
@@ -330,6 +355,10 @@ actor HealthSummarySyncService: HealthSummarySyncServing {
                 failedKinds: &failedKinds,
                 lastError: &lastError
             )
+        }
+
+        guard remoteSyncStillActive(generation: generation) else {
+            return
         }
 
         finishAttempt(
@@ -435,6 +464,12 @@ actor HealthSummarySyncService: HealthSummarySyncServing {
             return nil
         }
         return raw
+    }
+
+    private func remoteSyncStillActive(generation: Int) -> Bool {
+        generation == activeSyncGeneration
+            && remoteSyncEnabled()
+            && !Task.isCancelled
     }
 
     private func shouldAttemptSync(userID: String, bypassBackoff: Bool) -> Bool {

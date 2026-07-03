@@ -297,12 +297,27 @@ struct HealthIntelligenceContextBuilder: HealthIntelligenceContextBuilding {
         let hasLoggedWeightRecently = await hasRecentWeightTask
         let appWeightEntries = await appWeightEntriesTask
 
-        var normalizedSamples: [HealthNormalizedSample] = []
-        do {
-            normalizedSamples = try await repository.normalizedSamples(for: targetDay, calendar: calendar)
-        } catch {
-            dataGaps.insert(.normalizedSamplesFailed)
+        let targetDaySleep = sleepRecords.filter {
+            calendar.isDate($0.startDate, inSameDayAs: targetDay)
+                || calendar.isDate($0.endDate, inSameDayAs: targetDay)
         }
+        let targetDayHeart = heartMetrics.filter {
+            calendar.isDate($0.date, inSameDayAs: targetDay)
+        }
+        let targetDayBodyMass = healthWeightRecords.filter {
+            calendar.isDate($0.date, inSameDayAs: targetDay)
+        }
+        let normalizedDayBundle = HealthNormalizedDayBundle(
+            dailyMetrics: todayMetrics,
+            workouts: workoutsToday,
+            sleepRecords: targetDaySleep,
+            heartMetrics: targetDayHeart,
+            bodyMassRecords: targetDayBodyMass
+        )
+        let normalizedSamples = HealthNormalizedSampleDeriver.derive(
+            from: normalizedDayBundle,
+            calendar: calendar
+        )
 
         if todayLog == nil, weekLogs.isEmpty {
             dataGaps.insert(.nutritionUnavailable)

@@ -14,6 +14,7 @@ final class MockHealthSummarySyncService: HealthSummarySyncServing, @unchecked S
 
     private(set) var syncAfterLocalHealthRefreshCallCount = 0
     private(set) var lastSyncAfterLocalHealthRefreshDays = 0
+    private(set) var cancelActiveSyncCallCount = 0
     var syncAfterLocalHealthRefreshDelayNanoseconds: UInt64 = 0
 
     func syncRecentHealthSummaries(days: Int) async {}
@@ -40,10 +41,17 @@ final class MockHealthSummarySyncService: HealthSummarySyncServing, @unchecked S
 
     func deleteRemoteHealthSummaries() async throws {}
 
+    func cancelActiveSync() async {
+        lock.lock()
+        cancelActiveSyncCallCount += 1
+        lock.unlock()
+    }
+
     func reset() {
         lock.lock()
         syncAfterLocalHealthRefreshCallCount = 0
         lastSyncAfterLocalHealthRefreshDays = 0
+        cancelActiveSyncCallCount = 0
         syncAfterLocalHealthRefreshDelayNanoseconds = 0
         lock.unlock()
     }

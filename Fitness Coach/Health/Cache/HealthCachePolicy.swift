@@ -18,18 +18,35 @@ enum HealthCachePolicy {
     static let historicalFreshnessInterval: TimeInterval = 24 * 60 * 60
     static let anonymousUserID = "anonymous"
 
+    static func freshnessInterval(
+        for date: Date,
+        calendar: Calendar = .current,
+        now: Date = Date()
+    ) -> TimeInterval {
+        let dayStart = calendar.startOfDay(for: date)
+        let todayStart = calendar.startOfDay(for: now)
+        return dayStart == todayStart
+            ? todayFreshnessInterval
+            : historicalFreshnessInterval
+    }
+
     static func isFresh(
         cachedAt: Date,
         for date: Date,
         calendar: Calendar = .current,
         now: Date = Date()
     ) -> Bool {
-        let dayStart = calendar.startOfDay(for: date)
-        let todayStart = calendar.startOfDay(for: now)
-        let interval = dayStart == todayStart
-            ? todayFreshnessInterval
-            : historicalFreshnessInterval
-        return now.timeIntervalSince(cachedAt) < interval
+        now.timeIntervalSince(cachedAt) < freshnessInterval(for: date, calendar: calendar, now: now)
+    }
+
+    /// Intelligence snapshots follow the same TTL as normalized day bundles.
+    static func isIntelligenceSnapshotFresh(
+        cachedAt: Date,
+        for date: Date,
+        calendar: Calendar = .current,
+        now: Date = Date()
+    ) -> Bool {
+        isFresh(cachedAt: cachedAt, for: date, calendar: calendar, now: now)
     }
 
     static func pruneCutoffDate(

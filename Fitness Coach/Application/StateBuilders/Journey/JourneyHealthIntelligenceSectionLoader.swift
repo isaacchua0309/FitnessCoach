@@ -17,7 +17,6 @@ enum JourneyHealthIntelligenceSectionLoader {
         isAppleHealthConnected: Bool,
         snapshotProvider: any HealthIntelligenceSnapshotServing,
         weeklyReviewProvider: any WeeklyReviewServing = NoOpWeeklyReviewService(),
-        engine: any HealthIntelligenceEngineing,
         cacheStore: any HealthCacheStore,
         healthActivityQuery: HealthActivityQueryService,
         healthDataRepository: any HealthDataRepositorying,
@@ -52,7 +51,7 @@ enum JourneyHealthIntelligenceSectionLoader {
             referenceDate: referenceDate,
             dayCount: recoveryTimelineDayCount,
             todaySnapshot: todaySnapshot,
-            engine: engine,
+            snapshotProvider: snapshotProvider,
             cacheStore: cacheStore,
             enginesEnabled: enginesEnabled,
             calendar: calendar
@@ -115,7 +114,7 @@ enum JourneyHealthIntelligenceSectionLoader {
         referenceDate: Date,
         dayCount: Int,
         todaySnapshot: HealthIntelligenceSnapshot?,
-        engine: any HealthIntelligenceEngineing,
+        snapshotProvider: any HealthIntelligenceSnapshotServing,
         cacheStore: any HealthCacheStore,
         enginesEnabled: Bool,
         calendar: Calendar
@@ -154,12 +153,13 @@ enum JourneyHealthIntelligenceSectionLoader {
 
             guard enginesEnabled else { continue }
 
-            let snapshot = await engine.composeSnapshot(
+            guard let snapshot = await snapshotProvider.loadSnapshot(
                 for: day,
-                calendar: calendar,
-                mode: .preview
-            )
-            cacheStore.storeIntelligenceSnapshot(snapshot, for: day, calendar: calendar)
+                mode: .preview,
+                calendar: calendar
+            ) else {
+                continue
+            }
             recoveryDays.append(recoveryDayInput(from: snapshot))
         }
 

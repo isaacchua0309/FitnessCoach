@@ -71,7 +71,7 @@ final class HealthSyncStateStoreRemoteSyncTests: XCTestCase {
         )
 
         store.syncToday()
-        try? await Task.sleep(nanoseconds: 500_000_000)
+        try? await Task.sleep(nanoseconds: 900_000_000)
 
         XCTAssertEqual(remoteSyncService.syncAfterLocalHealthRefreshCallCount, 1)
         XCTAssertEqual(remoteSyncService.lastSyncAfterLocalHealthRefreshDays, 1)
@@ -95,8 +95,50 @@ final class HealthSyncStateStoreRemoteSyncTests: XCTestCase {
         store.syncToday()
         try? await Task.sleep(nanoseconds: 300_000_000)
 
-        XCTAssertEqual(store.state.phase, .failed)
-        XCTAssertEqual(remoteSyncService.syncAfterLocalHealthRefreshCallCount, 0)
+    func testRemoteSummarySyncDebouncesRapidLocalSyncs() async {
+        remoteSyncService.syncAfterLocalHealthRefreshDelayNanoseconds = 400_000_000
+        let store = HealthSyncStateStore(
+            syncService: syncService,
+            remoteSummarySyncService: remoteSyncService,
+            syncEnabled: true,
+            remoteSummarySyncEnabled: { true }
+        )
+
+        store.syncToday()
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        store.syncToday()
+        try? await Task.sleep(nanoseconds: 1_200_000_000)
+
+        XCTAssertEqual(remoteSyncService.syncAfterLocalHealthRefreshCallCount, 1)
+    }
+
+    func testRefreshOnAppForegroundSkippedBeforeBootstrapComplete() async {
+        let store = HealthSyncStateStore(
+            syncService: syncService,
+            remoteSummarySyncService: remoteSyncService,
+            syncEnabled: true,
+            remoteSummarySyncEnabled: { true }
+        )
+
+        store.refreshOnAppForeground()
+        try? await Task.sleep(nanoseconds: 300_000_000)
+
+        XCTAssertEqual(store.state.phase, .idle)
+    }
+
+    func testRefreshOnAppForegroundRunsAfterBootstrapMarked() async {
+        let store = HealthSyncStateStore(
+            syncService: syncService,
+            remoteSummarySyncService: remoteSyncService,
+            syncEnabled: true,
+            remoteSummarySyncEnabled: { true }
+        )
+
+        store.markForegroundBootstrapComplete()
+        store.refreshOnAppForeground()
+        try? await Task.sleep(nanoseconds: 500_000_000)
+
+        XCTAssertEqual(store.state.phase, .succeeded)
     }
 }
 

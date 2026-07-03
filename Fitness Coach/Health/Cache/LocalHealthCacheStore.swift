@@ -252,20 +252,28 @@ final class LocalHealthCacheStore: HealthCacheStore, @unchecked Sendable {
     }
 
     func intelligenceSnapshot(for date: Date, calendar: Calendar = .current) -> HealthIntelligenceSnapshot? {
+        intelligenceSnapshotEntry(for: date, calendar: calendar)?.snapshot
+    }
+
+    func intelligenceSnapshotEntry(for date: Date, calendar: Calendar = .current) -> HealthIntelligenceSnapshotCacheEntry? {
         ensureUserStorage()
-        if let snapshot = memory.intelligenceSnapshot(for: date, calendar: calendar) {
-            return snapshot
+        if let entry = memory.intelligenceSnapshotEntry(for: date, calendar: calendar) {
+            return entry
         }
 
         let day = calendar.startOfDay(for: date)
         let url = snapshotURL(for: day, calendar: calendar)
         guard let data = try? Data(contentsOf: url),
-              let file = try? decoder.decode(HealthCacheSnapshotFile.self, from: data) else {
+              let file = try? decoder.decode(HealthCacheSnapshotFile.self, from: data),
+              file.schemaVersion == HealthCachePolicy.schemaVersion else {
+            if FileManager.default.fileExists(atPath: url.path) {
+                try? FileManager.default.removeItem(at: url)
+            }
             return nil
         }
 
         memory.storeIntelligenceSnapshot(file.snapshot, for: day, calendar: calendar)
-        return file.snapshot
+        return HealthIntelligenceSnapshotCacheEntry(snapshot: file.snapshot, cachedAt: file.cachedAt)
     }
 
     func storeIntelligenceSnapshot(
@@ -284,6 +292,29 @@ final class LocalHealthCacheStore: HealthCacheStore, @unchecked Sendable {
         write(file, to: url)
         touchMetadata()
         lock.unlock()
+    }
+
+    func removeIntelligenceSnapshots(
+        from startDay: Date,
+        through endDay: Date,
+        calendar: Calendar = .current
+    ) {
+        ensureUserStorage()
+        memory.removeIntelligenceSnapshots(from: startDay, through: endDay, calendar: calendar)
+
+        let start = calendar.startOfDay(for: startDay)
+        let end = calendar.startOfDay(for: endDay)
+        guard start <= end else { return }
+
+        var cursor = start
+        while cursor <= end {
+            let url = snapshotURL(for: cursor, calendar: calendar)
+            try? FileManager.default.removeItem(at: url)
+            guard let next = calendar.date(byAdding: .day, value: 1, to: cursor) else {
+                break
+            }
+            cursor = next
+        }
     }
 
     func weeklyReview(for weekStartDate: Date, calendar: Calendar = .current) -> WeeklyHealthReview? {

@@ -277,6 +277,7 @@ final class AppContainer {
             cacheStore: healthCacheStore,
             enginesEnabled: HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled
         )
+        healthSyncStateStore.setSnapshotService(healthIntelligenceSnapshotService)
         weeklyReviewService = WeeklyReviewService(
             contextBuilder: healthIntelligenceContextBuilder,
             weeklyReviewEngine: weeklyReviewEngine,
@@ -367,9 +368,11 @@ final class AppContainer {
     }
 
     func syncHealthCacheUserID() {
-        authUIDCache.update(uid: authManager.currentUID)
-        healthSyncStateStore.cancelActiveSync()
+        let uidChanged = authUIDCache.updateIfChanged(uid: authManager.currentUID)
         healthSummarySyncConsentStore.refresh()
+        if uidChanged {
+            healthSyncStateStore.cancelActiveSync()
+        }
     }
 
     func makeHealthIntelligenceEngine() -> any HealthIntelligenceEngineing {

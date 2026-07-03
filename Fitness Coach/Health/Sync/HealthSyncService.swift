@@ -168,11 +168,19 @@ actor HealthSyncService: HealthSyncServing {
             lastError: nil
         )
 
-        let aggregateResults = await syncAggregateSignals(
-            days: days,
-            availability: availability
-        )
-        signalResults.append(contentsOf: aggregateResults)
+        if daysCompleted > 0 {
+            signalResults = signalResultsAfterRefresh(availability: availability)
+            invalidateIntelligenceSnapshots(
+                days: days,
+                endingOn: endingOn,
+                calendar: calendar
+            )
+        } else {
+            signalResults = await syncAggregateSignals(
+                days: days,
+                availability: availability
+            )
+        }
 
         cacheStore.pruneOldEntries(
             keepingLastDays: HealthCachePolicy.retentionDays,
@@ -339,6 +347,60 @@ actor HealthSyncService: HealthSyncServing {
 
         let records = await repository.getBodyMassHistory(days: days, calendar: calendar)
         return .success(signal: .bodyMass, recordCount: records.count)
+    }
+
+    private func signalResultsAfterRefresh(
+        availability: HealthDataAvailability
+    ) -> [HealthSyncSignalResult] {
+        let status = availability.permissionStatus
+        var results: [HealthSyncSignalResult] = []
+
+        results.append(signalResult(for: .workout, access: status.access(for: .workout)))
+        results.append(signalResult(for: .sleepAnalysis, access: status.access(for: .sleepAnalysis)))
+        results.append(contentsOf: heartSignalResults(from: status))
+        results.append(signalResult(for: .bodyMass, access: status.access(for: .bodyMass)))
+
+        return results.sorted { $0.signal.rawValue < $1.signal.rawValue }
+    }
+
+    private func signalResult(
+        for signal: HealthSignalKind,
+        access: HealthSignalAccess
+    ) -> HealthSyncSignalResult {
+        guard access.isReadable else {
+            let error: HealthSyncError = access == .denied
+                ? .permissionDenied
+                : .signalUnavailable(signal)
+            HealthSyncLogger.signalFailure(signal: signal, context: "signalResultsAfterRefresh", error: error)
+            return .failure(signal: signal, error: error)
+        }
+        return .success(signal: signal, recordCount: 0)
+    }
+
+    private func heartSignalResults(
+        from status: HealthPermissionStatus
+    ) -> [HealthSyncSignalResult] {
+        [
+            signalResult(for: .restingHeartRate, access: status.access(for: .restingHeartRate)),
+            signalResult(for: .heartRateVariabilitySDNN, access: status.access(for: .heartRateVariabilitySDNN))
+        ]
+    }
+
+    private func invalidateIntelligenceSnapshots(
+        days: Int,
+        endingOn: Date,
+        calendar: Calendar
+    ) {
+        let endDay = calendar.startOfDay(for: endingOn)
+        guard let startDay = calendar.date(byAdding: .day, value: -(max(days, 1) - 1), to: endDay) else {
+            cacheStore.removeIntelligenceSnapshots(from: endDay, through: endDay, calendar: calendar)
+            return
+        }
+        cacheStore.removeIntelligenceSnapshots(
+            from: calendar.startOfDay(for: startDay),
+            through: endDay,
+            calendar: calendar
+        )
     }
 
     private func finalizeState(

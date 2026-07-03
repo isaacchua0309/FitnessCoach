@@ -116,7 +116,112 @@ final class HealthIntelligenceCompositionTests: XCTestCase {
         XCTAssertNotNil(first)
         XCTAssertEqual(first?.activity.steps, 5_000)
         XCTAssertEqual(second?.activity.steps, 5_000)
+    func testConcurrentLoadTodaySnapshotCoalescesInFlightCompose() async {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
+        let today = calendar.startOfDay(for: Date())
+
+        let repository = CompositionMockRepository(calendar: calendar)
+        repository.dailyMetricsByDay[today] = DailyHealthMetrics(
+            date: today,
+            steps: 6_000,
+            activeEnergyKcal: 320,
+            exerciseMinutes: 25
+        )
+
+        let engine = SlowSpyCompositionEngine(
+            base: HealthIntelligenceEngine(
+                contextBuilder: HealthIntelligenceContextBuilder(repository: repository),
+                dependencies: .production()
+            ),
+            delayNanoseconds: 200_000_000
+        )
+        let cache = MemoryHealthCacheStore()
+        let service = HealthIntelligenceSnapshotService(
+            engine: engine,
+            cacheStore: cache,
+            enginesEnabled: true
+        )
+
+        async let first = service.loadTodaySnapshot(for: today, calendar: calendar)
+        async let second = service.loadTodaySnapshot(for: today, calendar: calendar)
+        let snapshots = await [first, second]
+
+        XCTAssertEqual(snapshots.compactMap { $0 }.count, 2)
         XCTAssertEqual(engine.composeCallCount, 1)
+    }
+
+    func testInvalidateSnapshotsForcesRecompose() async {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
+        let today = calendar.startOfDay(for: Date())
+
+        let repository = CompositionMockRepository(calendar: calendar)
+        repository.dailyMetricsByDay[today] = DailyHealthMetrics(
+            date: today,
+            steps: 4_000,
+            activeEnergyKcal: 250,
+            exerciseMinutes: 20
+        )
+
+        let engine = SpyCompositionEngine(
+            base: HealthIntelligenceEngine(
+                contextBuilder: HealthIntelligenceContextBuilder(repository: repository),
+                dependencies: .production()
+            )
+        )
+        let cache = MemoryHealthCacheStore()
+        let service = HealthIntelligenceSnapshotService(
+            engine: engine,
+            cacheStore: cache,
+            enginesEnabled: true
+        )
+
+        _ = await service.loadTodaySnapshot(for: today, calendar: calendar)
+        await service.invalidateSnapshots(from: today, through: today, calendar: calendar)
+        _ = await service.loadTodaySnapshot(for: today, calendar: calendar)
+
+        XCTAssertEqual(engine.composeCallCount, 2)
+    }
+
+    func testStaleSnapshotCacheTriggersRecompose() async {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
+        let today = calendar.startOfDay(for: Date())
+        let staleCachedAt = Date().addingTimeInterval(-(HealthCachePolicy.todayFreshnessInterval + 60))
+
+        let repository = CompositionMockRepository(calendar: calendar)
+        repository.dailyMetricsByDay[today] = DailyHealthMetrics(
+            date: today,
+            steps: 9_000,
+            activeEnergyKcal: 500,
+            exerciseMinutes: 45
+        )
+
+        let engine = SpyCompositionEngine(
+            base: HealthIntelligenceEngine(
+                contextBuilder: HealthIntelligenceContextBuilder(repository: repository),
+                dependencies: .production()
+            )
+        )
+        let cache = MemoryHealthCacheStore()
+        cache.storeIntelligenceSnapshot(
+            HealthIntelligenceSnapshot.placeholder(for: today),
+            for: today,
+            calendar: calendar,
+            cachedAt: staleCachedAt
+        )
+        let service = HealthIntelligenceSnapshotService(
+            engine: engine,
+            cacheStore: cache,
+            enginesEnabled: true
+        )
+
+        let snapshot = await service.loadTodaySnapshot(for: today, calendar: calendar)
+
+        XCTAssertNotNil(snapshot)
+        XCTAssertEqual(engine.composeCallCount, 1)
+        XCTAssertEqual(snapshot?.activity.steps, 9_000)
     }
 }
 
@@ -133,6 +238,33 @@ private struct NoOpCompositionEngine: HealthIntelligenceEngineing {
 
     func generateSnapshot(for date: Date, calendar: Calendar) async throws -> HealthIntelligenceSnapshot {
         await composeSnapshot(for: date, calendar: calendar, mode: .today)
+    }
+}
+
+private final class SlowSpyCompositionEngine: HealthIntelligenceEngineing, @unchecked Sendable {
+    private let base: any HealthIntelligenceEngineing
+    private let delayNanoseconds: UInt64
+    private(set) var composeCallCount = 0
+
+    init(base: any HealthIntelligenceEngineing, delayNanoseconds: UInt64) {
+        self.base = base
+        self.delayNanoseconds = delayNanoseconds
+    }
+
+    func composeSnapshot(
+        for date: Date,
+        calendar: Calendar,
+        mode: HealthIntelligenceComposeMode
+    ) async -> HealthIntelligenceSnapshot {
+        composeCallCount += 1
+        if delayNanoseconds > 0 {
+            try? await Task.sleep(nanoseconds: delayNanoseconds)
+        }
+        return await base.composeSnapshot(for: date, calendar: calendar, mode: mode)
+    }
+
+    func generateSnapshot(for date: Date, calendar: Calendar) async throws -> HealthIntelligenceSnapshot {
+        try await base.generateSnapshot(for: date, calendar: calendar)
     }
 }
 

@@ -145,6 +145,7 @@ final class AppleHealthSettingsViewModel: ObservableObject {
         consentStore: HealthSummarySyncConsentStore,
         environment: AppleHealthSettingsEnvironment
     ) async {
+        await environment.remoteSyncService?.cancelActiveSync()
         consentStore.optOut()
         if deleteRemoteSummaries {
             await deleteRemoteSummaries(environment: environment, consentStore: consentStore)

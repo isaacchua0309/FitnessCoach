@@ -131,15 +131,16 @@ final class HealthIntelligenceContextBuilderTests: XCTestCase {
         XCTAssertEqual(context.metricsLast7Days.count, 7)
     }
 
-    func testNormalizedSampleFailureRecordsGapWithoutThrowing() async {
+    func testNormalizedSamplesDerivedFromPrefetchedDataWithoutRepositoryCall() async {
         let day = makeDate(2026, 7, 8)
         repository.dailyMetricsByDay[day] = metrics(day: day, steps: 5_000)
         repository.normalizedSamplesError = HealthDataRepositoryError.unavailable
 
         let context = await builder.buildContext(for: day, calendar: calendar)
 
-        XCTAssertTrue(context.dataGaps.contains(.normalizedSamplesFailed))
-        XCTAssertTrue(context.normalizedSamples.isEmpty)
+        XCTAssertFalse(context.dataGaps.contains(.normalizedSamplesFailed))
+        XCTAssertEqual(context.normalizedSamples.count, 3)
+        XCTAssertTrue(context.normalizedSamples.contains { $0.kind == .stepCount })
     }
 
     func testDeterministicOutput() async {

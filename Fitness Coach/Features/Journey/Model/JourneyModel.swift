@@ -126,7 +126,6 @@ final class JourneyModel: ObservableObject {
                 isAppleHealthConnected: trainingInsightsStore.integrationState.isConnected,
                 snapshotProvider: healthIntelligenceSnapshotProvider,
                 weeklyReviewProvider: weeklyReviewService,
-                engine: healthIntelligenceEngine,
                 cacheStore: healthCacheStore,
                 healthActivityQuery: healthActivityQuery,
                 healthDataRepository: healthDataRepository,

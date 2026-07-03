@@ -82,10 +82,28 @@ struct HealthCacheRecoveryFile: Codable, Equatable, Sendable {
     let summary: RecoverySummary
 }
 
+struct HealthIntelligenceSnapshotCacheEntry: Equatable, Sendable {
+    let snapshot: HealthIntelligenceSnapshot
+    let cachedAt: Date
+}
+
 struct HealthCacheSnapshotFile: Codable, Equatable, Sendable {
+    let schemaVersion: Int
     let date: Date
     let cachedAt: Date
     let snapshot: HealthIntelligenceSnapshot
+
+    init(
+        schemaVersion: Int = HealthCachePolicy.schemaVersion,
+        date: Date,
+        cachedAt: Date,
+        snapshot: HealthIntelligenceSnapshot
+    ) {
+        self.schemaVersion = schemaVersion
+        self.date = date
+        self.cachedAt = cachedAt
+        self.snapshot = snapshot
+    }
 }
 
 struct HealthCacheWeeklyReviewFile: Codable, Equatable, Sendable {
