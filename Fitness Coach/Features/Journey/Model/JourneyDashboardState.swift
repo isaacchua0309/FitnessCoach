@@ -22,6 +22,6 @@ struct JourneyDashboardState: Equatable {
     var beforeToday: JourneyBeforeTodayState
     var personalRecords: JourneyPersonalRecordsState
     var monthlyRecap: JourneyMonthlyRecapState
-    var journeyLevel: JourneyLevelState
+    var chapter: JourneyChapterState
     var detailedAnalytics: JourneyDetailedAnalyticsState
 }

@@ -164,8 +164,8 @@ enum JourneyPreviewData {
         strongMomentum.monthlyRecap
     }
 
-    static var journeyLevelActive: JourneyLevelState {
-        strongMomentum.journeyLevel
+    static var chapterActive: JourneyChapterState {
+        strongMomentum.chapter
     }
 
     // MARK: - Dashboard builders
@@ -246,7 +246,7 @@ enum JourneyPreviewData {
             ),
             personalRecords: .locked,
             monthlyRecap: makeMonthlyRecapBuilding(loggedDays: 0),
-            journeyLevel: makeJourneyLevelEmpty(),
+            chapter: makeChapterEmpty(),
             detailedAnalytics: makeDetailedAnalytics(
                 loggedDays: 0,
                 showsWeightChart: true,
@@ -335,7 +335,7 @@ enum JourneyPreviewData {
             ),
             personalRecords: makePersonalRecordsEarly(),
             monthlyRecap: makeMonthlyRecapBuilding(loggedDays: 3),
-            journeyLevel: makeJourneyLevelStarter(),
+            chapter: makeChapterStarter(),
             detailedAnalytics: makeDetailedAnalytics(
                 loggedDays: 3,
                 showsWeightChart: true,
@@ -418,7 +418,7 @@ enum JourneyPreviewData {
             ),
             weightInterpretation: FormaProductCopy.Journey.DetailedAnalytics.WeightTrend.decreasing,
             progressAttribution: makeProgressAttributionActive(),
-            journeyLevel: makeJourneyLevelActive(),
+            chapter: makeChapterActive(),
             monthlyRecap: makeMonthlyRecapActive(direction: direction, loggedDays: 18),
             personalRecords: makePersonalRecordsActive(direction: direction)
         )
@@ -485,7 +485,7 @@ enum JourneyPreviewData {
             ),
             weightInterpretation: FormaProductCopy.Journey.DetailedAnalytics.WeightTrend.stable,
             progressAttribution: makeProgressAttributionPlateau(),
-            journeyLevel: makeJourneyLevelMid(),
+            chapter: makeChapterMid(),
             monthlyRecap: makeMonthlyRecapActive(direction: direction, loggedDays: 16, weightDelta: -0.2),
             personalRecords: makePersonalRecordsActive(direction: direction)
         )
@@ -545,7 +545,7 @@ enum JourneyPreviewData {
             ),
             weightInterpretation: FormaProductCopy.Journey.DetailedAnalytics.WeightTrend.decreasing,
             progressAttribution: makeProgressAttributionActive(),
-            journeyLevel: makeJourneyLevelHigh(),
+            chapter: makeChapterHigh(),
             monthlyRecap: makeMonthlyRecapActive(direction: direction, loggedDays: 22, weightDelta: -1.1),
             personalRecords: makePersonalRecordsActive(direction: direction)
         )
@@ -612,7 +612,7 @@ enum JourneyPreviewData {
                 ],
                 confidence: .medium
             ),
-            journeyLevel: makeJourneyLevelMid(),
+            chapter: makeChapterMid(),
             monthlyRecap: makeMonthlyRecapActive(direction: direction, loggedDays: 14, weightDelta: 1.2),
             personalRecords: makePersonalRecordsActive(direction: direction)
         )
@@ -678,7 +678,7 @@ enum JourneyPreviewData {
                 ],
                 confidence: .medium
             ),
-            journeyLevel: makeJourneyLevelMid(),
+            chapter: makeChapterMid(),
             monthlyRecap: makeMonthlyRecapActive(direction: direction, loggedDays: 15, weightDelta: 0.2),
             personalRecords: makePersonalRecordsActive(direction: direction)
         )
@@ -783,7 +783,7 @@ enum JourneyPreviewData {
             ),
             personalRecords: .locked,
             monthlyRecap: makeMonthlyRecapBuilding(loggedDays: 2),
-            journeyLevel: makeJourneyLevelEmpty(),
+            chapter: makeChapterEmpty(),
             detailedAnalytics: makeDetailedAnalytics(
                 loggedDays: 2,
                 showsWeightChart: false,
@@ -812,7 +812,7 @@ enum JourneyPreviewData {
         trainingDisplay: JourneyDetailedAnalyticsTrainingDisplay,
         weightInterpretation: String,
         progressAttribution: JourneyProgressAttributionState,
-        journeyLevel: JourneyLevelState,
+        chapter: JourneyChapterState,
         monthlyRecap: JourneyMonthlyRecapState,
         personalRecords: JourneyPersonalRecordsState
     ) -> JourneyDashboardState {
@@ -868,7 +868,7 @@ enum JourneyPreviewData {
             ),
             personalRecords: personalRecords,
             monthlyRecap: monthlyRecap,
-            journeyLevel: journeyLevel,
+            chapter: chapter,
             detailedAnalytics: makeDetailedAnalytics(
                 loggedDays: loggedDays,
                 showsWeightChart: baseline.showsWeightChart,
@@ -1207,68 +1207,78 @@ enum JourneyPreviewData {
         )
     }
 
-    private static func makeJourneyLevelEmpty() -> JourneyLevelState {
-        JourneyLevelState(
-            currentLevel: 1,
-            levelTitle: FormaProductCopy.Journey.Level.title(for: 1),
-            currentXP: 0,
-            xpRequiredForNextLevel: 100,
-            totalXP: 0,
+    private static func makeChapterEmpty() -> JourneyChapterState {
+        let copy = FormaProductCopy.Journey.Chapters.self
+        return JourneyChapterState(
+            isVisible: true,
+            sectionTitle: copy.sectionTitle,
+            chapterNumber: 1,
+            chapterTitle: copy.title(for: 1),
+            nextUnlockLabel: copy.nextUnlock(copy.title(for: 2)),
             progressPercent: 0,
-            xpEarnedExplanation: FormaProductCopy.Journey.Level.emptyBody,
-            hasData: false
+            emptyMessage: copy.emptyBody,
+            totalXP: 0,
+            accessibilitySummary: "\(copy.sectionTitle). \(copy.chapterLabel(1)). \(copy.title(for: 1))"
         )
     }
 
-    private static func makeJourneyLevelStarter() -> JourneyLevelState {
-        JourneyLevelState(
-            currentLevel: 2,
-            levelTitle: FormaProductCopy.Journey.Level.title(for: 2),
-            currentXP: 35,
-            xpRequiredForNextLevel: 150,
-            totalXP: 135,
-            progressPercent: 35.0 / 150.0 * 100,
-            xpEarnedExplanation: FormaProductCopy.Journey.Level.earnExplanation,
-            hasData: true
+    private static func makeChapterStarter() -> JourneyChapterState {
+        let copy = FormaProductCopy.Journey.Chapters.self
+        return JourneyChapterState(
+            isVisible: true,
+            sectionTitle: copy.sectionTitle,
+            chapterNumber: 2,
+            chapterTitle: copy.title(for: 2),
+            nextUnlockLabel: copy.nextUnlock(copy.title(for: 3)),
+            progressPercent: 35,
+            emptyMessage: nil,
+            totalXP: 235,
+            accessibilitySummary: "\(copy.sectionTitle). \(copy.chapterLabel(2)). \(copy.title(for: 2))"
         )
     }
 
-    private static func makeJourneyLevelMid() -> JourneyLevelState {
-        JourneyLevelState(
-            currentLevel: 5,
-            levelTitle: FormaProductCopy.Journey.Level.title(for: 5),
-            currentXP: 180,
-            xpRequiredForNextLevel: 350,
-            totalXP: 880,
-            progressPercent: 180.0 / 350.0 * 100,
-            xpEarnedExplanation: FormaProductCopy.Journey.Level.earnExplanation,
-            hasData: true
+    private static func makeChapterMid() -> JourneyChapterState {
+        let copy = FormaProductCopy.Journey.Chapters.self
+        return JourneyChapterState(
+            isVisible: true,
+            sectionTitle: copy.sectionTitle,
+            chapterNumber: 3,
+            chapterTitle: copy.title(for: 3),
+            nextUnlockLabel: copy.nextUnlock(copy.title(for: 4)),
+            progressPercent: 60,
+            emptyMessage: nil,
+            totalXP: 520,
+            accessibilitySummary: "\(copy.sectionTitle). \(copy.chapterLabel(3)). \(copy.title(for: 3))"
         )
     }
 
-    private static func makeJourneyLevelActive() -> JourneyLevelState {
-        JourneyLevelState(
-            currentLevel: 7,
-            levelTitle: FormaProductCopy.Journey.Level.title(for: 7),
-            currentXP: 350,
-            xpRequiredForNextLevel: 450,
-            totalXP: 2_000,
-            progressPercent: 350.0 / 450.0 * 100,
-            xpEarnedExplanation: FormaProductCopy.Journey.Level.earnExplanation,
-            hasData: true
+    private static func makeChapterActive() -> JourneyChapterState {
+        let copy = FormaProductCopy.Journey.Chapters.self
+        return JourneyChapterState(
+            isVisible: true,
+            sectionTitle: copy.sectionTitle,
+            chapterNumber: 4,
+            chapterTitle: copy.title(for: 4),
+            nextUnlockLabel: copy.nextUnlock(copy.title(for: 5)),
+            progressPercent: 75,
+            emptyMessage: nil,
+            totalXP: 750,
+            accessibilitySummary: "\(copy.sectionTitle). \(copy.chapterLabel(4)). \(copy.title(for: 4))"
         )
     }
 
-    private static func makeJourneyLevelHigh() -> JourneyLevelState {
-        JourneyLevelState(
-            currentLevel: 9,
-            levelTitle: FormaProductCopy.Journey.Level.title(for: 9),
-            currentXP: 420,
-            xpRequiredForNextLevel: 500,
-            totalXP: 3_400,
-            progressPercent: 420.0 / 500.0 * 100,
-            xpEarnedExplanation: FormaProductCopy.Journey.Level.earnExplanation,
-            hasData: true
+    private static func makeChapterHigh() -> JourneyChapterState {
+        let copy = FormaProductCopy.Journey.Chapters.self
+        return JourneyChapterState(
+            isVisible: true,
+            sectionTitle: copy.sectionTitle,
+            chapterNumber: 5,
+            chapterTitle: copy.title(for: 5),
+            nextUnlockLabel: nil,
+            progressPercent: 100,
+            emptyMessage: nil,
+            totalXP: 1_000,
+            accessibilitySummary: "\(copy.sectionTitle). \(copy.chapterLabel(5)). \(copy.title(for: 5))"
         )
     }
 

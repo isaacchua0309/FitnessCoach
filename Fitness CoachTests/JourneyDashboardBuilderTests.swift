@@ -65,16 +65,16 @@ final class JourneyDashboardBuilderTests: XCTestCase {
         XCTAssertNotNil(milestones.next)
     }
 
-    func testJourneyLevelXPIncreasesWithLoggedFoodDays() {
+    func testChapterXPIncreasesWithLoggedFoodDays() {
         let logs = (0..<3).map { makeLog(daysAgo: $0, calories: 500) }
         let emptyContext = makeContext(maturityLogs: [])
         let loggedContext = makeContext(maturityLogs: logs)
 
-        let emptyLevel = JourneyDashboardBuilder.journeyLevel(context: emptyContext)
-        let loggedLevel = JourneyDashboardBuilder.journeyLevel(context: loggedContext)
+        let emptyChapter = JourneyDashboardBuilder.chapter(context: emptyContext)
+        let loggedChapter = JourneyDashboardBuilder.chapter(context: loggedContext)
 
-        XCTAssertGreaterThan(loggedLevel.totalXP, emptyLevel.totalXP)
-        XCTAssertFalse(loggedLevel.xpEarnedExplanation.isEmpty)
+        XCTAssertGreaterThan(loggedChapter.totalXP, emptyChapter.totalXP)
+        XCTAssertEqual(emptyChapter.chapterNumber, 1)
     }
 
     func testDetailedAnalyticsShowsChartWithSingleLoggedWeightUsingSyntheticBaseline() {

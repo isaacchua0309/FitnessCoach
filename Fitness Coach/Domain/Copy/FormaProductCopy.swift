@@ -1741,14 +1741,44 @@ enum FormaProductCopy {
             }
         }
 
+        enum Chapters {
+            static let sectionTitle = "Your chapter"
+            static let emptyBody = "Log your first meal to begin Chapter 1."
+
+            static func chapterLabel(_ number: Int) -> String {
+                "Chapter \(number)"
+            }
+
+            static func nextUnlock(_ chapterTitle: String) -> String {
+                "Next: \(chapterTitle)"
+            }
+
+            static func title(for chapter: Int) -> String {
+                switch chapter {
+                case 1:
+                    return "Building Foundations"
+                case 2:
+                    return "Creating Consistency"
+                case 3:
+                    return "Building Momentum"
+                case 4:
+                    return "Transformation"
+                case 5:
+                    return "Lifestyle"
+                default:
+                    return "Lifestyle"
+                }
+            }
+        }
+
         enum Level {
-            static let sectionTitle = "Your level"
+            static let sectionTitle = Chapters.sectionTitle
             static let xpLabel = "XP"
-            static let earnExplanation = "Earn XP by logging consistently and building momentum."
-            static let emptyBody = "Log your first meal to start earning XP and building momentum."
+            static let earnExplanation = "Progress comes from logging consistently and unlocking milestones."
+            static let emptyBody = Chapters.emptyBody
 
             static func levelLabel(_ level: Int) -> String {
-                "Level \(level)"
+                Chapters.chapterLabel(level)
             }
 
             static func xpProgress(current: Int, required: Int) -> String {
@@ -1756,28 +1786,7 @@ enum FormaProductCopy {
             }
 
             static func title(for level: Int) -> String {
-                switch level {
-                case 1:
-                    return "Getting Started"
-                case 2:
-                    return "Building Habits"
-                case 3:
-                    return "Rhythm Builder"
-                case 4:
-                    return "Steady Progress"
-                case 5:
-                    return "Momentum Builder"
-                case 6:
-                    return "Habit Keeper"
-                case 7:
-                    return "Consistency Master"
-                case 8:
-                    return "Goal Driver"
-                case 9:
-                    return "Long-game Athlete"
-                default:
-                    return "Transformation Leader"
-                }
+                Chapters.title(for: level)
             }
         }
 

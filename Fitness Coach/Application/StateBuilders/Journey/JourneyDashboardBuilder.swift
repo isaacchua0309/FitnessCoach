@@ -238,10 +238,10 @@ enum JourneyDashboardBuilder {
 
     // MARK: - Journey level
 
-    static func journeyLevel(context: Context) -> JourneyLevelState {
+    static func chapter(context: Context) -> JourneyChapterState {
         let unlockedMilestones = milestones(context: context).unlocked.count
-        return JourneyLevelBuilder.build(
-            JourneyLevelBuilder.Input(
+        return JourneyChapterBuilder.build(
+            JourneyChapterBuilder.Input(
                 maturityLogs: context.maturityLogs,
                 allWeights: context.allWeights,
                 healthWorkoutDayStarts: context.healthWorkoutDayStarts,

@@ -212,7 +212,7 @@ final class JourneyModel: ObservableObject {
             beforeToday: JourneyDashboardBuilder.beforeToday(context: builderContext),
             personalRecords: JourneyDashboardBuilder.personalRecords(context: builderContext),
             monthlyRecap: JourneyDashboardBuilder.monthlyRecap(context: builderContext),
-            journeyLevel: JourneyDashboardBuilder.journeyLevel(context: builderContext),
+            chapter: JourneyDashboardBuilder.chapter(context: builderContext),
             detailedAnalytics: JourneyDashboardBuilder.detailedAnalytics(
                 context: builderContext,
                 weightInterpretation: weightInterpretation

@@ -378,17 +378,18 @@ struct JourneyMonthlyRecapState: Equatable {
     var rows: [JourneyMonthlyRecapMetricRow]
 }
 
-// MARK: - Journey level / XP
+// MARK: - Journey chapters
 
-struct JourneyLevelState: Equatable {
-    var currentLevel: Int
-    var levelTitle: String
-    var currentXP: Int
-    var xpRequiredForNextLevel: Int
-    var totalXP: Int
+struct JourneyChapterState: Equatable {
+    var isVisible: Bool
+    var sectionTitle: String
+    var chapterNumber: Int
+    var chapterTitle: String
+    var nextUnlockLabel: String?
     var progressPercent: Double
-    var xpEarnedExplanation: String
-    var hasData: Bool
+    var emptyMessage: String?
+    var totalXP: Int
+    var accessibilitySummary: String
 }
 
 // MARK: - Detailed analytics

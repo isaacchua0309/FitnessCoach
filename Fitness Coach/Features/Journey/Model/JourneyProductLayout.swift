@@ -17,7 +17,7 @@ enum JourneyProductSection: String, CaseIterable, Equatable {
     case beforeToday
     case personalRecords
     case monthlyRecap
-    case journeyLevel
+    case chapters
     case detailedAnalytics
 }
 
@@ -32,7 +32,7 @@ enum JourneyProductLayout {
         .beforeToday,
         .personalRecords,
         .monthlyRecap,
-        .journeyLevel,
+        .chapters,
         .detailedAnalytics
     ]
 }

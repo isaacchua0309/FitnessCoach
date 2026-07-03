@@ -112,7 +112,7 @@ enum JourneyAnalyticsContextBuilder {
             currentStreakBucket: streakBucket(state.streaks.currentLoggingStreakDays),
             unlockedMilestoneCount: state.milestones.unlocked.count,
             healthConnected: healthConnected,
-            journeyLevel: state.journeyLevel.currentLevel
+            journeyLevel: state.chapter.chapterNumber
         )
     }
 

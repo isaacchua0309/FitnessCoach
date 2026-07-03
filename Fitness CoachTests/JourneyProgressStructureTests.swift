@@ -27,7 +27,7 @@ final class JourneyProgressStructureTests: XCTestCase {
             .beforeToday,
             .personalRecords,
             .monthlyRecap,
-            .journeyLevel,
+            .chapters,
             .detailedAnalytics
         ])
         XCTAssertEqual(JourneyProductLayout.sectionOrder.last, .detailedAnalytics)

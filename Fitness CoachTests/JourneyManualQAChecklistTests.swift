@@ -156,7 +156,7 @@ final class JourneyManualQAChecklistTests: XCTestCase {
             dashboardAfter.storyTimeline.displayEvents.contains { $0.type == .firstMealLogged }
                 || dashboardAfter.storyTimeline.events.contains { $0.type == .firstMealLogged }
         )
-        XCTAssertGreaterThanOrEqual(dashboardAfter.journeyLevel.totalXP, 10)
+        XCTAssertGreaterThanOrEqual(dashboardAfter.chapter.totalXP, 10)
     }
 
     // MARK: - 5. Water logging
@@ -418,15 +418,15 @@ final class JourneyManualQAChecklistTests: XCTestCase {
 
     // MARK: - 14. Journey Level
 
-    func testManualQA14_JourneyLevelXPFromConsistencyNotRepeatedEdits() {
+    func testManualQA14_ChapterXPFromConsistencyNotRepeatedEdits() {
         let day = calendar.startOfDay(for: asOf)
         var older = makeLog(on: day, calories: 1_200, protein: 60, waterMl: 500)
         var newer = older
         newer.totals = MacroTotals(calories: 1_900, protein: 140, carbs: 100, fat: 40)
         newer.updatedAt = calendar.date(byAdding: .hour, value: 2, to: day)!
 
-        let xp = JourneyLevelBuilder.dailyBehaviorXP(
-            input: JourneyLevelBuilder.Input(
+        let xp = JourneyChapterBuilder.dailyBehaviorXP(
+            input: JourneyChapterBuilder.Input(
                 maturityLogs: [older, newer],
                 allWeights: [],
                 healthWorkoutDayStarts: [],
@@ -436,8 +436,8 @@ final class JourneyManualQAChecklistTests: XCTestCase {
             )
         )
 
-        XCTAssertEqual(xp, 30, "Repeated same-day edits must not stack food XP")
-        XCTAssertLessThanOrEqual(xp, 50)
+        XCTAssertEqual(xp, 25, "Repeated same-day edits must not stack food XP")
+        XCTAssertLessThanOrEqual(xp, 40)
     }
 
     // MARK: - 15. Apple Health disconnected
@@ -689,7 +689,7 @@ final class JourneyManualQAChecklistTests: XCTestCase {
             beforeToday: JourneyDashboardBuilder.beforeToday(context: context),
             personalRecords: JourneyDashboardBuilder.personalRecords(context: context),
             monthlyRecap: JourneyDashboardBuilder.monthlyRecap(context: context),
-            journeyLevel: JourneyDashboardBuilder.journeyLevel(context: context),
+            chapter: JourneyDashboardBuilder.chapter(context: context),
             detailedAnalytics: JourneyDashboardBuilder.detailedAnalytics(
                 context: context,
                 weightInterpretation: JourneyDashboardBuilder.weightTrendInterpretation(summary: weightSummary)

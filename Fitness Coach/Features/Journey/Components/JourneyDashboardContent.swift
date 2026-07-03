@@ -62,8 +62,8 @@ struct JourneyDashboardContent: View {
         case .monthlyRecap:
             JourneyMonthlyRecapSection(state: state.monthlyRecap)
 
-        case .journeyLevel:
-            JourneyLevelSection(state: state.journeyLevel)
+        case .chapters:
+            JourneyChapterSection(state: state.chapter)
 
         case .detailedAnalytics:
             JourneyDetailedAnalyticsSection(
