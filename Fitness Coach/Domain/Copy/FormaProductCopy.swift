@@ -3097,6 +3097,9 @@ enum FormaProductCopy {
         static let weightTitle = "Weight trend"
         static let loggingTitle = "Logging days"
 
+        static let statsSectionTitle = "This week at a glance"
+        static let limitedStatAccessibilitySuffix = "Limited data"
+
         static let winsHeader = "Wins"
         static let risksHeader = "Watch next week"
         static let focusHeader = "Next week focus"

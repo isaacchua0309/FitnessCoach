@@ -28,6 +28,10 @@ enum WeeklyReviewPresentationPreviewData {
         WeeklyReviewPresentationBuilder.buildCard(from: nil, calendar: calendar)
     }
 
+    static var sparseWeekDetail: WeeklyReviewDetailState {
+        WeeklyReviewPresentationBuilder.buildDetail(from: sparseReview, calendar: calendar)!
+    }
+
     private static var strongReview: WeeklyHealthReview {
         let weekEnd = calendar.startOfDay(
             for: calendar.date(from: DateComponents(year: 2026, month: 7, day: 3))!
@@ -57,6 +61,39 @@ enum WeeklyReviewPresentationPreviewData {
             nextWeekFocus: ["Front-load water", "Keep one rest day lighter"],
             confidence: .moderate,
             missingSignals: [],
+            generatedAt: weekEnd
+        )
+    }
+
+    private static var sparseReview: WeeklyHealthReview {
+        let weekEnd = calendar.startOfDay(
+            for: calendar.date(from: DateComponents(year: 2026, month: 7, day: 3))!
+        )
+        let weekStart = calendar.date(byAdding: .day, value: -6, to: weekEnd)!
+        return WeeklyHealthReview(
+            weekStartDate: weekStart,
+            weekEndDate: weekEnd,
+            title: "Building week",
+            summary: "A lighter week with partial signals. Keep logging to strengthen next week's review.",
+            stats: WeeklyStats(
+                totalWorkouts: 1,
+                totalWorkoutMinutes: 35,
+                totalActiveCalories: 220,
+                averageSteps: 5_400,
+                totalSteps: 37_800,
+                proteinHitDays: 2,
+                calorieTargetHitDays: 2,
+                waterHitDays: 1,
+                averageRecoveryScore: nil,
+                lowRecoveryDays: 2,
+                weightChangeKg: nil,
+                loggingConsistencyDays: 3
+            ),
+            wins: ["1 workout logged"],
+            risks: ["Recovery was limited on 2 days"],
+            nextWeekFocus: ["Add one more training day"],
+            confidence: .low,
+            missingSignals: [.recovery, .weight],
             generatedAt: weekEnd
         )
     }
