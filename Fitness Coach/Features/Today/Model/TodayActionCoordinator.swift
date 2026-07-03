@@ -21,9 +21,9 @@ final class TodayActionCoordinator: ObservableObject {
     @Published var editFoodPresentation: EditFoodPresentation?
     @Published var pendingDeleteFoodEntry: FoodEntry?
     @Published var isPresentingLogWeightSheet = false
-    @Published var isPresentingAddWaterSheet = false
     @Published private(set) var lastErrorMessage: String?
     @Published private(set) var foodEditErrorMessage: String?
+    @Published private(set) var snackbarMessage: String?
 
     private let actionCenter: FitnessActionCenter
     private let analyticsLogger: any TodayAnalyticsLogging
@@ -187,8 +187,8 @@ final class TodayActionCoordinator: ObservableObject {
         isPresentingLogWeightSheet = false
     }
 
-    func dismissAddWaterSheet() {
-        isPresentingAddWaterSheet = false
+    func clearSnackbar() {
+        snackbarMessage = nil
     }
 
     func saveMeal(from formState: FoodEntryFormState) {
@@ -221,9 +221,33 @@ final class TodayActionCoordinator: ObservableObject {
         }
     }
 
-    func addWater(amountMl: Int) {
-        perform(.logWater(amountMl: amountMl))
-        isPresentingAddWaterSheet = false
+    @discardableResult
+    func addWater(amountMl: Int) -> Bool {
+        switch logWater(amountMl: amountMl) {
+        case .success:
+            return true
+        case .failure:
+            return false
+        }
+    }
+
+    @discardableResult
+    private func logWater(amountMl: Int) -> Result<Void, Error> {
+        do {
+            _ = try actionCenter.logWater(amountMl: amountMl, date: logDate())
+            lastErrorMessage = nil
+            snackbarMessage = nil
+            TodayHaptics.saveSucceeded()
+            log(
+                .waterAdded,
+                actionType: "add_water",
+                waterAmountBucket: TodayAnalyticsContextBuilder.waterAmountBucket(amountMl)
+            )
+            return .success(())
+        } catch {
+            snackbarMessage = FormaProductCopy.Today.Water.logFailedMessage
+            return .failure(error)
+        }
     }
 
     // MARK: - Routing
@@ -235,7 +259,7 @@ final class TodayActionCoordinator: ObservableObject {
         case .logMeal:
             return .openCoach(.logMeal(mealType: nil))
         case .addWater:
-            return .presentAddWater
+            return .logWater(amountMl: 500)
         case .logWeight:
             return .presentLogWeight
         case .logWorkout:
@@ -246,22 +270,9 @@ final class TodayActionCoordinator: ObservableObject {
     private func perform(_ route: TodayNextActionRoute) {
         switch route {
         case .logWater(let amountMl):
-            do {
-                _ = try actionCenter.logWater(amountMl: amountMl, date: logDate())
-                lastErrorMessage = nil
-                TodayHaptics.saveSucceeded()
-                log(
-                    .waterAdded,
-                    actionType: "add_water",
-                    waterAmountBucket: TodayAnalyticsContextBuilder.waterAmountBucket(amountMl)
-                )
-            } catch {
-                lastErrorMessage = FormaProductCopy.Error.checkInputs
-            }
+            _ = logWater(amountMl: amountMl)
         case .presentLogWeight:
             isPresentingLogWeightSheet = true
-        case .presentAddWater:
-            isPresentingAddWaterSheet = true
         case .openCoach(let intent):
             switch intent {
             case .analyzePhotoMeal:

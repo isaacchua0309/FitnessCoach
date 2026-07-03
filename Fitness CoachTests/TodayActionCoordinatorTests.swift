@@ -72,12 +72,12 @@ final class TodayActionCoordinatorTests: XCTestCase {
         var coachOpened = false
         coordinator.onOpenCoach = { _ in coachOpened = true }
 
-        coordinator.addWater(amountMl: 500)
+        XCTAssertTrue(coordinator.addWater(amountMl: 500))
 
         XCTAssertFalse(coachOpened)
-        XCTAssertFalse(coordinator.isPresentingAddWaterSheet)
         let log = try XCTUnwrap(try harness.dailyLogService.getLog(for: harness.today))
         XCTAssertEqual(log.waterConsumedMl, 500)
+        XCTAssertNil(coordinator.snackbarMessage)
     }
 
     func testLogWeightQuickActionIsNotAvailableFromTodayQuickActions() {

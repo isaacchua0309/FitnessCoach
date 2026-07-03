@@ -21,7 +21,6 @@ struct TodayNextActionDisplayModel: Equatable {
 enum TodayNextActionRoute: Equatable {
     case logWater(amountMl: Int)
     case presentLogWeight
-    case presentAddWater
     case openCoach(CoachLaunchIntent)
     case openTrainingInsights
     case none
@@ -159,7 +158,6 @@ enum TodayNextActionFormatting {
         switch route {
         case .logWater: return "native_log_water"
         case .presentLogWeight: return "native_log_weight_sheet"
-        case .presentAddWater: return "native_add_water_sheet"
         case .openCoach: return "open_coach"
         case .openTrainingInsights: return "open_training_insights"
         case .none: return "none"

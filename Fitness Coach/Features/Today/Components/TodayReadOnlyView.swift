@@ -61,13 +61,17 @@ struct TodayReadOnlyView: View {
 
             TodayQuickActionsSection(
                 showsScanMeal: state.quickActions.showsScanMeal,
-                waterPresetAmountsMl: state.quickActions.waterPresetAmountsMl,
                 onLogMeal: {
                     actionCoordinator.performQuickAction(.logMeal)
                 },
                 onScanMeal: {
                     actionCoordinator.performQuickAction(.scanFood)
-                },
+                }
+            )
+
+            TodayWaterQuickLogSection(
+                water: state.macroHydration.waterSummary,
+                presetAmountsMl: TodayActionCoordinator.defaultWaterPresetAmountsMl,
                 onAddWater: { amountMl in
                     actionCoordinator.addWater(amountMl: amountMl)
                 }

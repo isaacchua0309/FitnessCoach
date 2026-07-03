@@ -45,7 +45,7 @@ final class TodayReadOnlyCompositionTests: XCTestCase {
         let configuration = TodayQuickActionPolicy.configuration(isScanFoodAvailable: true)
 
         XCTAssertTrue(TodayQuickActionPolicy.isVisible(.logMeal, isScanFoodAvailable: true))
-        XCTAssertTrue(TodayQuickActionPolicy.isVisible(.addWater, isScanFoodAvailable: true))
+        XCTAssertFalse(TodayQuickActionPolicy.isVisible(.addWater, isScanFoodAvailable: true))
         XCTAssertTrue(configuration.showsScanMeal)
         XCTAssertFalse(TodayQuickActionPolicy.isVisible(.logWeight, isScanFoodAvailable: true))
         XCTAssertFalse(TodayQuickActionPolicy.isVisible(.logWorkout, isScanFoodAvailable: true))

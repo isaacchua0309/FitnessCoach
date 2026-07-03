@@ -178,11 +178,11 @@ final class TodayPresentationBuilderTests: XCTestCase {
         let state = build(foodEntries: [], hasPriorFoodLogs: false)
 
         XCTAssertEqual(state.quickActions.sectionTitle, FormaProductCopy.Today.QuickActions.sectionTitle)
-        XCTAssertFalse(state.quickActions.waterPresetAmountsMl.isEmpty)
         XCTAssertEqual(
             state.quickActions.showsScanMeal,
             TodayPhotoScanAvailability.isPipelineReady
         )
+        XCTAssertGreaterThan(state.macroHydration.waterSummary.targetMl, 0)
     }
 
     // MARK: - Fixtures

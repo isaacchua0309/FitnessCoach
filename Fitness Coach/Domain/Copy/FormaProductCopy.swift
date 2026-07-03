@@ -1365,6 +1365,15 @@ enum FormaProductCopy {
             }
         }
 
+        enum Water {
+            static let sectionTitle = "Water"
+            static let logFailedMessage = "Couldn't log water. Try again."
+
+            static func quickAddLabel(_ amountMl: Int) -> String {
+                amountMl >= 1_000 ? "+1 L" : "+\(amountMl) ml"
+            }
+        }
+
         static let showCarbsAndFat = "Show carbs & fat"
         static let hideCarbsAndFat = "Hide carbs & fat"
     }

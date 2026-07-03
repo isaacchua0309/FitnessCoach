@@ -203,8 +203,7 @@ enum TodayPresentationBuilder {
         let configuration = TodayQuickActionPolicy.configuration(isScanFoodAvailable: isScanFoodAvailable)
         return TodayQuickActionsState(
             sectionTitle: FormaProductCopy.Today.QuickActions.sectionTitle,
-            showsScanMeal: configuration.showsScanMeal,
-            waterPresetAmountsMl: configuration.waterPresetAmountsMl
+            showsScanMeal: configuration.showsScanMeal
         )
     }
 

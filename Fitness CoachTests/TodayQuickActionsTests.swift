@@ -16,19 +16,9 @@ final class TodayQuickActionsTests: XCTestCase {
         XCTAssertFalse(unavailable.showsScanMeal)
     }
 
-    func testConfigurationIncludesWaterPresets() {
-        let configuration = TodayQuickActionPolicy.configuration(isScanFoodAvailable: true)
-
-        XCTAssertEqual(
-            configuration.waterPresetAmountsMl,
-            TodayActionCoordinator.defaultWaterPresetAmountsMl
-        )
-    }
-
-    func testPrimaryActionsAlwaysVisibleRegardlessOfScanFood() {
+    func testLogMealAlwaysVisibleRegardlessOfScanFood() {
         for scanAvailable in [true, false] {
             XCTAssertTrue(TodayQuickActionPolicy.isVisible(.logMeal, isScanFoodAvailable: scanAvailable))
-            XCTAssertTrue(TodayQuickActionPolicy.isVisible(.addWater, isScanFoodAvailable: scanAvailable))
         }
     }
 
@@ -37,8 +27,9 @@ final class TodayQuickActionsTests: XCTestCase {
         XCTAssertFalse(TodayQuickActionPolicy.isVisible(.scanFood, isScanFoodAvailable: false))
     }
 
-    func testWeightAndWorkoutNotVisibleInQuickActions() {
+    func testWaterWeightAndWorkoutNotVisibleInQuickActions() {
         for scanAvailable in [true, false] {
+            XCTAssertFalse(TodayQuickActionPolicy.isVisible(.addWater, isScanFoodAvailable: scanAvailable))
             XCTAssertFalse(TodayQuickActionPolicy.isVisible(.logWeight, isScanFoodAvailable: scanAvailable))
             XCTAssertFalse(TodayQuickActionPolicy.isVisible(.logWorkout, isScanFoodAvailable: scanAvailable))
         }
@@ -50,10 +41,6 @@ final class TodayQuickActionsTests: XCTestCase {
             "Log Meal"
         )
         XCTAssertEqual(
-            FormaProductCopy.Today.QuickActions.title(for: .addWater),
-            "Water"
-        )
-        XCTAssertEqual(
             FormaProductCopy.Today.QuickActions.title(for: .scanFood),
             "Scan Meal"
         )
@@ -61,6 +48,11 @@ final class TodayQuickActionsTests: XCTestCase {
             FormaProductCopy.Today.QuickActions.sectionTitle,
             "Fast log"
         )
+    }
+
+    func testWaterQuickAddLabelsUseProductCopy() {
+        XCTAssertEqual(FormaProductCopy.Today.Water.quickAddLabel(250), "+250 ml")
+        XCTAssertEqual(FormaProductCopy.Today.Water.quickAddLabel(1_000), "+1 L")
     }
 
     func testProductionConfigurationReflectsPipelineReadiness() {

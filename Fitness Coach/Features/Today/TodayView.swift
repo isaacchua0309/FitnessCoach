@@ -86,13 +86,6 @@ struct TodayView: View {
                         onSave: { actionCoordinator.saveWeight($0) }
                     )
                 }
-                .sheet(isPresented: $actionCoordinator.isPresentingAddWaterSheet) {
-                    TodayAddWaterSheet(
-                        presetAmountsMl: TodayActionCoordinator.defaultWaterPresetAmountsMl,
-                        errorMessage: actionCoordinator.lastErrorMessage,
-                        onAdd: { actionCoordinator.addWater(amountMl: $0) }
-                    )
-                }
                 .sheet(item: $actionCoordinator.editFoodPresentation) { presentation in
                     TodayEditFoodEntrySheet(
                         entry: presentation.entry,
@@ -124,6 +117,21 @@ struct TodayView: View {
                     Text(FormaProductCopy.Today.Meals.deleteConfirmationMessage)
                 }
                 .background(FormaTokens.Color.canvas)
+                .overlay(alignment: .bottom) {
+                    if let message = actionCoordinator.snackbarMessage {
+                        FormaTransientBanner(message: message)
+                            .padding(.bottom, FormaTokens.Spacing.md)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                }
+                .animation(.easeInOut(duration: 0.2), value: actionCoordinator.snackbarMessage)
+                .onChange(of: actionCoordinator.snackbarMessage) { _, message in
+                    guard message != nil else { return }
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 3_000_000_000)
+                        actionCoordinator.clearSnackbar()
+                    }
+                }
         }
     }
 

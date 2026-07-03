@@ -9,7 +9,6 @@ import Foundation
 
 struct TodayQuickActionsConfiguration: Equatable, Sendable {
     var showsScanMeal: Bool
-    var waterPresetAmountsMl: [Int]
 }
 
 enum TodayQuickActionPolicy {
@@ -17,10 +16,7 @@ enum TodayQuickActionPolicy {
     static func configuration(
         isScanFoodAvailable: Bool = TodayPhotoScanAvailability.isPipelineReady
     ) -> TodayQuickActionsConfiguration {
-        TodayQuickActionsConfiguration(
-            showsScanMeal: isScanFoodAvailable,
-            waterPresetAmountsMl: TodayActionCoordinator.defaultWaterPresetAmountsMl
-        )
+        TodayQuickActionsConfiguration(showsScanMeal: isScanFoodAvailable)
     }
 
     static func isVisible(
@@ -28,11 +24,11 @@ enum TodayQuickActionPolicy {
         isScanFoodAvailable: Bool = TodayPhotoScanAvailability.isPipelineReady
     ) -> Bool {
         switch kind {
-        case .logMeal, .addWater:
+        case .logMeal:
             return true
         case .scanFood:
             return isScanFoodAvailable
-        case .logWeight, .logWorkout:
+        case .addWater, .logWeight, .logWorkout:
             return false
         }
     }

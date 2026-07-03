@@ -179,7 +179,6 @@ struct TodayNextBestActionState: Equatable {
 struct TodayQuickActionsState: Equatable {
     var sectionTitle: String
     var showsScanMeal: Bool
-    var waterPresetAmountsMl: [Int]
 }
 
 // MARK: - Meals
