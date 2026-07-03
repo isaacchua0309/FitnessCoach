@@ -766,6 +766,7 @@ final class CoachModel: ObservableObject {
 
     func confirmPendingFromBar() async {
         guard let confirmation = pendingConfirmation else { return }
+        guard !isConfirmingPending else { return }
         isConfirmingPending = true
         defer { isConfirmingPending = false }
 

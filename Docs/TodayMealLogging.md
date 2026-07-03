@@ -21,6 +21,17 @@ Today routes **new** meal logs through **Coach**:
 
 Save paths (`TodayActionCoordinator.saveMeal`, `saveFoodEdit`, `CoachModel.saveFoodEdit`) are intentionally retained.
 
+## Today refresh after Coach meal save
+
+Coach persists meals through `FitnessActionCenter.logFood`, which bumps `AppRefreshCenter.refreshToken`. Today stays in sync through:
+
+1. **`TodayView`** — listens for `refreshToken` changes and reloads the dashboard (calories, protein, meals, next best action).
+2. **`MainTabView`** — when the user returns to the Today tab, calls `TodayModel.refresh()` so a mounted-but-hidden Today surface always reflects the latest log.
+3. **Failed saves** — `CoachMutationExecutor.executeLogFood` only calls `logFood` on success; failed confirmations do not bump `refreshToken` or change Today totals.
+4. **Duplicate guard** — `CoachModel.confirmPendingFromBar` ignores re-entrant confirms while a save is in flight.
+
+Trace with Console filter `CoachTodaySync` (subsystem `FitPilot`). In DEBUG, set `FITPILOT_COACH_TODAY_SYNC_TRACE=0` to silence.
+
 ## Do not add
 
 - Manual Entry (or equivalent) as a visible Today quick action

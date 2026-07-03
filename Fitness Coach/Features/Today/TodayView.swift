@@ -58,9 +58,13 @@ struct TodayView: View {
                         await model.loadToday(activityContext: currentActivityContext)
                     }
                 }
-                .onChange(of: refreshCenter.refreshToken) { _, _ in
+                .onChange(of: refreshCenter.refreshToken) { _, newToken in
+                    CoachTodaySyncDebugLogger.todayRefreshTriggered(
+                        source: "refresh_token",
+                        refreshToken: newToken
+                    )
                     Task<Void, Never> {
-                        await refreshDashboard()
+                        await refreshDashboard(triggerSource: "refresh_token")
                     }
                 }
                 .onAppear {
@@ -165,7 +169,7 @@ struct TodayView: View {
         }
     }
 
-    private func refreshDashboard() async {
+    private func refreshDashboard(triggerSource: String? = nil) async {
         await trainingInsightsStore.refresh()
         if trainingInsightsStore.integrationState.isConnected {
             appleHealthWorkoutCount = await healthActivityQuery.workoutCountToday()
@@ -177,6 +181,13 @@ struct TodayView: View {
         await model.refresh(activityContext: currentActivityContext)
         if case .loaded(let state) = model.viewState {
             syncAnalyticsContext(for: state)
+            if let triggerSource {
+                CoachTodaySyncDebugLogger.todayRefreshApplied(
+                    source: triggerSource,
+                    refreshToken: refreshCenter.refreshToken,
+                    state: state
+                )
+            }
         }
     }
 

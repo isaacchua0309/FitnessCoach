@@ -128,6 +128,23 @@ struct MainTabView: View {
         .task {
             await bootstrapAfterEntry()
         }
+        .onChange(of: selectedTab) { _, newTab in
+            guard newTab == .today else { return }
+            CoachTodaySyncDebugLogger.todayRefreshTriggered(
+                source: "tab_return",
+                refreshToken: container.refreshCenter.refreshToken
+            )
+            Task {
+                await todayModel.refresh()
+                if case .loaded(let state) = todayModel.viewState {
+                    CoachTodaySyncDebugLogger.todayRefreshApplied(
+                        source: "tab_return",
+                        refreshToken: container.refreshCenter.refreshToken,
+                        state: state
+                    )
+                }
+            }
+        }
     }
 
     private func bootstrapAfterEntry() async {

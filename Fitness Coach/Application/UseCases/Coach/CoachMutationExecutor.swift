@@ -109,6 +109,14 @@ final class CoachMutationExecutor {
             let entry = try actionCenter.logFood(meal, date: Date())
             let log = try? dailyLogReader.getLog(for: Date())
             mutationHistory.record(entryId: entry.id, type: .food, summary: entry.name)
+            CoachTodaySyncDebugLogger.coachMealSaved(
+                entryId: entry.id,
+                name: entry.name,
+                calories: entry.calories,
+                protein: entry.protein,
+                mealType: entry.mealType.rawValue,
+                refreshToken: actionCenter.dataRefreshToken
+            )
             return CoachResponseBuilder.food(entry, log: log)
         } catch ServiceError.invalidInput(let message) {
             return message
