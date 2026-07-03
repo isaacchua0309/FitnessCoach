@@ -155,46 +155,6 @@ enum JourneyHealthIntelligencePresentationBuilder {
         )
     }
 
-    /// Legacy weekly review preview mapping retained for migration reference.
-    static func weeklyReviewPreview(
-        from review: WeeklyHealthReview?,
-        calendar: Calendar
-    ) -> JourneyWeeklyReviewPreviewState? {
-        guard let review, !review.title.isEmpty else { return nil }
-
-        let weekRangeLabel = weekRangeLabel(
-            start: review.weekStartDate,
-            end: review.weekEndDate,
-            calendar: calendar
-        )
-        let title = review.title
-        let summary = sanitizedText(review.summary) ?? review.summary
-        let winLines = review.wins.map { sanitizedText($0) ?? $0 }.filter { !$0.isEmpty }
-        let focusLines = review.nextWeekFocus.map { sanitizedText($0) ?? $0 }.filter { !$0.isEmpty }
-        let confidenceNote = review.confidence == .low
-            ? FormaProductCopy.Journey.HealthIntelligence.limitedEstimate
-            : nil
-
-        return JourneyWeeklyReviewPreviewState(
-            phase: .loaded,
-            sectionTitle: FormaProductCopy.Journey.HealthIntelligence.WeeklyReview.sectionTitle,
-            weekRangeLabel: weekRangeLabel,
-            title: title,
-            summary: summary,
-            winLines: winLines,
-            focusLines: focusLines,
-            confidenceNote: confidenceNote,
-            accessibilityLabel: weeklyReviewAccessibilityLabel(
-                weekRangeLabel: weekRangeLabel,
-                title: title,
-                summary: summary,
-                winLines: winLines,
-                focusLines: focusLines,
-                confidenceNote: confidenceNote
-            )
-        )
-    }
-
     // MARK: - Recovery timeline
 
     static func recoveryTimeline(
@@ -286,38 +246,6 @@ enum JourneyHealthIntelligencePresentationBuilder {
         )
     }
 
-    /// Legacy snapshot-based recovery day mapping.
-    static func recoveryDay(
-        from snapshot: HealthIntelligenceSnapshot,
-        calendar: Calendar
-    ) -> JourneyRecoveryDayState {
-        recoveryDay(
-            for: snapshot.date,
-            input: JourneyHealthIntelligenceRecoveryDayInput(
-                date: snapshot.date,
-                recovery: snapshot.recovery,
-                steps: snapshot.activity.steps
-            ),
-            calendar: calendar
-        )
-    }
-
-    /// Legacy snapshot-array recovery timeline.
-    static func recoveryTimeline(
-        from snapshots: [HealthIntelligenceSnapshot],
-        calendar: Calendar
-    ) -> JourneyRecoveryTimelineState {
-        let recoveryDays = snapshots.map {
-            JourneyHealthIntelligenceRecoveryDayInput(
-                date: $0.date,
-                recovery: $0.recovery,
-                steps: $0.activity.steps
-            )
-        }
-        let referenceDate = snapshots.last?.date ?? Date()
-        return recoveryTimeline(from: recoveryDays, referenceDate: referenceDate, calendar: calendar)
-    }
-
     // MARK: - Workout history
 
     static func workoutHistory(
@@ -400,26 +328,6 @@ enum JourneyHealthIntelligencePresentationBuilder {
                 demandLabel: demandLabel
             )
         )
-    }
-
-    /// Legacy snapshot-based workout history.
-    static func workoutHistory(
-        from snapshots: [HealthIntelligenceSnapshot],
-        calendar: Calendar
-    ) -> JourneyWorkoutHistoryState {
-        let records = snapshots.compactMap { snapshot -> JourneyHealthIntelligenceWorkoutRecordInput? in
-            guard let workout = snapshot.workout, workout.hasWorkout else { return nil }
-            return JourneyHealthIntelligenceWorkoutRecordInput(
-                id: "\(dayIdentifier(for: snapshot.date, calendar: calendar))-workout",
-                date: snapshot.date,
-                title: workout.title,
-                durationMinutes: workout.totalDurationMinutes,
-                activeCalories: workout.totalActiveCalories,
-                demand: workout.demand,
-                intensity: workout.intensity
-            )
-        }
-        return workoutHistory(from: records, calendar: calendar)
     }
 
     // MARK: - Milestones
@@ -552,15 +460,6 @@ enum JourneyHealthIntelligencePresentationBuilder {
         )
     }
 
-    /// Legacy weekly-review-only milestones.
-    static func milestones(from review: WeeklyHealthReview?) -> JourneyHealthMilestonesState {
-        milestones(
-            workoutRecords: [],
-            recoveryDays: [],
-            weeklyReview: review
-        )
-    }
-
     // MARK: - Progress
 
     static func progress(
@@ -665,11 +564,6 @@ enum JourneyHealthIntelligencePresentationBuilder {
                 metrics: metrics
             )
         )
-    }
-
-    /// Legacy weekly-review-only progress.
-    static func progress(from review: WeeklyHealthReview?) -> JourneyHealthProgressState {
-        progress(weeklyReview: review, planProgress: nil, workoutRecords: [])
     }
 
     // MARK: - Private section builders

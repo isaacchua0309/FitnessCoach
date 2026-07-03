@@ -303,7 +303,8 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
 
     func testRecoveryTimelineMapsDisplayFriendlyDayStates() {
         let timeline = JourneyHealthIntelligencePresentationBuilder.recoveryTimeline(
-            from: historicalSnapshots,
+            from: recoveryDays(from: historicalSnapshots),
+            referenceDate: referenceDay,
             calendar: calendar
         )
 
@@ -336,7 +337,12 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
         )
 
         let day = JourneyHealthIntelligencePresentationBuilder.recoveryDay(
-            from: snapshot,
+            for: snapshot.date,
+            input: JourneyHealthIntelligenceRecoveryDayInput(
+                date: snapshot.date,
+                recovery: snapshot.recovery,
+                steps: snapshot.activity.steps
+            ),
             calendar: calendar
         )
 
@@ -350,7 +356,8 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
 
     func testWorkoutHistoryMapsDurationAndDemandLabels() {
         let history = JourneyHealthIntelligencePresentationBuilder.workoutHistory(
-            from: historicalSnapshots,
+            from: workoutRecords(from: historicalSnapshots),
+            healthConnection: .connected,
             calendar: calendar
         )
 
@@ -376,7 +383,10 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
 
     func testMilestonesMapWeeklyReviewWins() {
         let milestones = JourneyHealthIntelligencePresentationBuilder.milestones(
-            from: makeWeeklyReview()
+            workoutRecords: [],
+            recoveryDays: [],
+            weeklyReview: makeWeeklyReview(),
+            calendar: calendar
         )
 
         XCTAssertEqual(milestones.phase, .loaded)
@@ -389,7 +399,9 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
 
     func testProgressMapsWeeklyStatsWithoutRawMetrics() {
         let progress = JourneyHealthIntelligencePresentationBuilder.progress(
-            from: makeWeeklyReview()
+            weeklyReview: makeWeeklyReview(),
+            planProgress: nil,
+            workoutRecords: []
         )
 
         XCTAssertEqual(progress.phase, .loaded)
@@ -428,21 +440,6 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
         XCTAssertEqual(presentation.card?.phase, .empty)
         XCTAssertNil(presentation.detail)
     }
-
-    func testWeeklyReviewPreviewMapsWeekRangeAndSummary() {
-        let preview = JourneyHealthIntelligencePresentationBuilder.weeklyReviewPreview(
-            from: makeWeeklyReview(),
-            calendar: calendar
-        )
-
-        XCTAssertNotNil(preview)
-        XCTAssertEqual(preview?.title, "Solid training week")
-        XCTAssertFalse(preview?.weekRangeLabel.isEmpty ?? true)
-        XCTAssertEqual(preview?.winLines.count, 2)
-        XCTAssertEqual(preview?.focusLines.count, 2)
-    }
-
-    // MARK: - Section integration
 
     func testStrongWeekSectionIncludesAllSubsections() {
         let section = JourneyHealthIntelligencePresentationBuilder.buildSection(
@@ -598,6 +595,35 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
             missingSignals: [],
             generatedAt: referenceDay
         )
+    }
+
+    private func recoveryDays(
+        from snapshots: [HealthIntelligenceSnapshot]
+    ) -> [JourneyHealthIntelligenceRecoveryDayInput] {
+        snapshots.map {
+            JourneyHealthIntelligenceRecoveryDayInput(
+                date: $0.date,
+                recovery: $0.recovery,
+                steps: $0.activity.steps
+            )
+        }
+    }
+
+    private func workoutRecords(
+        from snapshots: [HealthIntelligenceSnapshot]
+    ) -> [JourneyHealthIntelligenceWorkoutRecordInput] {
+        snapshots.compactMap { snapshot in
+            guard let workout = snapshot.workout, workout.hasWorkout else { return nil }
+            return JourneyHealthIntelligenceWorkoutRecordInput(
+                id: "\(snapshot.date.timeIntervalSince1970)-workout",
+                date: snapshot.date,
+                title: workout.title,
+                durationMinutes: workout.totalDurationMinutes,
+                activeCalories: workout.totalActiveCalories,
+                demand: workout.demand,
+                intensity: workout.intensity
+            )
+        }
     }
 
     private var historicalSnapshots: [HealthIntelligenceSnapshot] {
