@@ -56,6 +56,8 @@ final class PlanEditCopyGuardrailTests: XCTestCase {
         let difficulty = FormaProductCopy.PlanEditDifficulty.self
         let common = FormaProductCopy.PlanEditCommon.self
         let save = FormaProductCopy.PlanEditSave.self
+        let pace = FormaProductCopy.PlanEditPace.self
+        let wizard = FormaProductCopy.PlanEditWizardCopy.self
 
         return [
             goal.sectionTitle,
@@ -92,7 +94,11 @@ final class PlanEditCopyGuardrailTests: XCTestCase {
             projection.sustainabilityOk,
             difficulty.fasterCut,
             common.sexRequiredNote,
-            save.todayTargetsRegenerated
+            save.todayTargetsRegenerated,
+            pace.aggressivePaceWarning,
+            pace.activityChangedCustomPace,
+            wizard.discardChangesMessage,
+            target.validationInvalidNumber()
         ]
     }
 }
