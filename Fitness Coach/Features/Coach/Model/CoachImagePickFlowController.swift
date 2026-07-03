@@ -74,12 +74,14 @@ final class CoachImagePickFlowController: ObservableObject {
 
         switch await CoachImagePipeline.loadImageFromPhotoLibrary(item) {
         case .failure(let error):
+            CoachImageProcessingLogger.logSelectionFailure(source: .library, originalSize: nil, error: error)
             await handleFailure(error, model: model)
         case .success(let loaded):
             let localReferenceID = model.storePendingImageLocalSource(loaded.image)
             model.attachPendingImageLocalReference(localReferenceID)
             let importResult = await CoachImagePipeline.processImportedImage(
                 loaded.image,
+                source: .library,
                 originalEstimatedBytes: loaded.originalEstimatedBytes,
                 localReferenceID: localReferenceID
             )
@@ -113,6 +115,7 @@ final class CoachImagePickFlowController: ObservableObject {
             model.attachPendingImageLocalReference(localReferenceID)
             let importResult = await CoachImagePipeline.importFromCamera(
                 image,
+                source: .camera,
                 localReferenceID: localReferenceID
             )
             await completeImport(importResult, source: .camera, model: model)
@@ -135,6 +138,7 @@ final class CoachImagePickFlowController: ObservableObject {
             let originalEstimatedBytes = model.inputState.pendingImage?.originalEstimatedBytes
             let importResult = await CoachImagePipeline.processImportedImage(
                 image,
+                source: source,
                 originalEstimatedBytes: originalEstimatedBytes,
                 localReferenceID: localReferenceID
             )

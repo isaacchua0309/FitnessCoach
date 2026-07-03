@@ -13,6 +13,7 @@ extension CoachImagePipeline {
     /// Loads a `UIImage` from the photo library, then processes it for Coach upload.
     static func importFromPhotoLibrary(
         _ item: PhotosPickerItem,
+        source: CoachInputAttachmentSource = .library,
         localReferenceID: UUID = UUID(),
         config: CoachImageProcessingConfig = .default
     ) async -> Result<ProcessedImageImport, CoachMealPhotoError> {
@@ -22,6 +23,7 @@ extension CoachImagePipeline {
         case .success(let loaded):
             return await processImportedImage(
                 loaded.image,
+                source: source,
                 originalEstimatedBytes: loaded.originalEstimatedBytes,
                 localReferenceID: localReferenceID,
                 config: config

@@ -227,6 +227,7 @@ final class CoachModel: ObservableObject {
 
         switch await CoachImagePipeline.loadImageFromPhotoLibrary(item) {
         case .failure(let error):
+            CoachImageProcessingLogger.logSelectionFailure(source: .library, originalSize: nil, error: error)
             mutateInputState { $0.failImageProcessing(error) }
             appendMealPhotoSelectionFailure(error)
         case .success(let loaded):
@@ -234,6 +235,7 @@ final class CoachModel: ObservableObject {
             attachPendingImageLocalReference(localReferenceID)
             let importResult = await CoachImagePipeline.processImportedImage(
                 loaded.image,
+                source: .library,
                 originalEstimatedBytes: loaded.originalEstimatedBytes,
                 localReferenceID: localReferenceID
             )
@@ -255,6 +257,7 @@ final class CoachModel: ObservableObject {
         attachPendingImageLocalReference(localReferenceID)
         let importResult = await CoachImagePipeline.importFromCamera(
             image,
+            source: .camera,
             localReferenceID: localReferenceID
         )
         switch importResult {
@@ -292,11 +295,6 @@ final class CoachModel: ObservableObject {
         guard staged else { return false }
 
         CoachMealPhotoPipeline.assertImagePayloadPresent(processed.uploadData)
-        CoachImageAnalysisDebugLogger.logPipelineProcessed(
-            source: source,
-            processed: processed,
-            originalEstimatedBytes: imported.originalEstimatedBytes
-        )
         return true
     }
 
@@ -348,13 +346,19 @@ final class CoachModel: ObservableObject {
         guard case .success(let jpegData) = prepared else {
             if case .failure(let error) = prepared {
                 CoachImageAnalysisDebugLogger.logError(error)
-                appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
+                if error.supportsComposerRetry {
+                    beginPendingImageProcessing(source: source)
+                    mutateInputState { $0.failImageProcessing(error) }
+                } else {
+                    appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
+                }
             }
             return
         }
 
         guard let thumbnail = await CoachMealPhotoPipeline.makeThumbnailJPEG(from: jpegData) else {
-            appendAssistantMessage(CoachResponseBuilder.mealPhotoError(.loadFailed))
+            beginPendingImageProcessing(source: source)
+            mutateInputState { $0.failImageProcessing(.loadFailed) }
             return
         }
 

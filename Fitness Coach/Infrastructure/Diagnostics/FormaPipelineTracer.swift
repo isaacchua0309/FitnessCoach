@@ -26,6 +26,7 @@ enum PipelineTraceStage: String, Sendable, CaseIterable {
     case authToken
     case mockLLM
     case mealImageAnalysis
+    case mealImageProcessing
     case error
 }
 
