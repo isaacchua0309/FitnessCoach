@@ -38,28 +38,23 @@ struct PlanEditWizard: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                stepIndicator
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-
+            PlanEditShell(
+                title: FormaProductCopy.PlanEditHero.shellTitle,
+                stepCount: flow.count,
+                currentStepIndex: stepIndex,
+                heroState: heroState,
+                confirmationTitle: confirmationTitle,
+                showsConfirmation: showsConfirmation,
+                isConfirmationEnabled: isConfirmationEnabled,
+                isConfirmationLoading: isConfirmationLoading,
+                onCancel: {
+                    onCancel()
+                    dismiss()
+                },
+                onConfirm: handleConfirmation
+            ) {
                 Form {
-                    switch currentStep {
-                    case .goalAndTargetWeight:
-                        goalAndTargetWeightStep
-                    case .birthdayAndSex:
-                        birthdayAndSexStep
-                    case .heightAndWeight:
-                        heightAndWeightStep
-                    case .activityLevel:
-                        activityLevelStep
-                    case .reviewChanges:
-                        reviewChangesStep
-                    case .confirmTargets:
-                        confirmTargetsStep
-                    case .none:
-                        EmptyView()
-                    }
+                    stepContent
 
                     if let errorMessage {
                         Section {
@@ -69,20 +64,7 @@ struct PlanEditWizard: View {
                         }
                     }
                 }
-            }
-            .navigationTitle("Edit Plan")
-            .navigationBarTitleDisplayMode(.inline)
-            .tint(FormaPlanTokens.Color.planAccent)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        onCancel()
-                        dismiss()
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    toolbarConfirmationButton
-                }
+                .scrollContentBackground(.hidden)
             }
             .onAppear {
                 goalType = PlanStateBuilder.goalType(for: formState.asProfileSnapshot())
@@ -96,6 +78,93 @@ struct PlanEditWizard: View {
             .onChange(of: formState.birthDate) { _, _ in
                 formState.syncAgeTextFromBirthDate()
             }
+        }
+    }
+
+    @ViewBuilder
+    private var stepContent: some View {
+        switch currentStep {
+        case .goalAndTargetWeight:
+            goalAndTargetWeightStep
+        case .birthdayAndSex:
+            birthdayAndSexStep
+        case .heightAndWeight:
+            heightAndWeightStep
+        case .activityLevel:
+            activityLevelStep
+        case .reviewChanges:
+            reviewChangesStep
+        case .confirmTargets:
+            confirmTargetsStep
+        case .none:
+            EmptyView()
+        }
+    }
+
+    // MARK: Shell state
+
+    private var heroState: PlanEditHeroState {
+        PlanEditHeroStateBuilder.build(
+            input: PlanEditHeroStateBuilder.Input(
+                goalType: goalType,
+                currentWeightKg: parsedPositive(formState.currentWeightKgText),
+                goalWeightKg: parsedPositive(formState.goalWeightKgText),
+                weeklyPaceKg: pacePreview.weeklyLossKg,
+                goalDatePace: nil,
+                referenceDate: Date(),
+                calendar: .current
+            )
+        )
+    }
+
+    private var confirmationTitle: String {
+        switch currentStep {
+        case .confirmTargets:
+            return "Save Plan"
+        default:
+            return "Next"
+        }
+    }
+
+    private var showsConfirmation: Bool {
+        switch currentStep {
+        case .confirmTargets, .reviewChanges:
+            return true
+        default:
+            return stepIndex < flow.count - 1
+        }
+    }
+
+    private var isConfirmationEnabled: Bool {
+        switch currentStep {
+        case .confirmTargets:
+            return targetPreview != nil && !isSaving
+        case .reviewChanges:
+            return canAdvanceFromCurrentStep
+        default:
+            return canAdvanceFromCurrentStep
+        }
+    }
+
+    private var isConfirmationLoading: Bool {
+        switch currentStep {
+        case .confirmTargets:
+            return isSaving
+        case .reviewChanges:
+            return isGeneratingTargets
+        default:
+            return false
+        }
+    }
+
+    private func handleConfirmation() {
+        switch currentStep {
+        case .confirmTargets:
+            save()
+        case .reviewChanges:
+            advanceFromReview()
+        default:
+            advance()
         }
     }
 
@@ -433,53 +502,6 @@ struct PlanEditWizard: View {
             Section {
                 Text("Unable to preview targets. Go back and check your inputs.")
                                 .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-            }
-        }
-    }
-
-    // MARK: Chrome
-
-    @ViewBuilder
-    private var toolbarConfirmationButton: some View {
-        switch currentStep {
-        case .confirmTargets:
-            Button {
-                save()
-            } label: {
-                if isSaving {
-                    SwiftUI.ProgressView()
-                } else {
-                    Text("Save Plan")
-                }
-            }
-            .disabled(isSaving || targetPreview == nil || isGeneratingTargets)
-        case .reviewChanges:
-            Button {
-                advanceFromReview()
-            } label: {
-                if isGeneratingTargets {
-                    SwiftUI.ProgressView()
-                } else {
-                    Text("Next")
-                }
-            }
-            .disabled(isGeneratingTargets || !canAdvanceFromCurrentStep)
-        default:
-            if stepIndex < flow.count - 1 {
-                Button("Next") { advance() }
-                    .disabled(!canAdvanceFromCurrentStep)
-            } else {
-                EmptyView()
-            }
-        }
-    }
-
-    private var stepIndicator: some View {
-        HStack(spacing: 6) {
-            ForEach(flow.indices, id: \.self) { index in
-                Capsule()
-                    .fill(index <= stepIndex ? FormaPlanTokens.Color.planProgressFill : FormaPlanTokens.Color.planProgressTrack)
-                    .frame(height: 3)
             }
         }
     }

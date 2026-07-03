@@ -2252,6 +2252,28 @@ enum FormaProductCopy {
         static func expectedPace(_ amount: String) -> String { "~\(amount)/week" }
     }
 
+    // MARK: - Plan Edit Hero
+
+    enum PlanEditHero {
+        static let shellTitle = "Edit Plan"
+        static let motivationalFatLoss = "You're building a fat-loss plan."
+        static let motivationalMaintenance = "You're building a maintenance plan."
+        static let motivationalMuscleGain = "You're building a muscle-gain plan."
+        static let goalLabel = "Goal"
+        static let currentWeightLabel = "Current"
+        static let targetWeightLabel = "Target"
+        static let maintainingTarget = "Staying at your target weight."
+        static let weightUnavailable = "—"
+
+        static func totalChangeToTarget(_ amount: String) -> String {
+            "\(amount) to your target."
+        }
+
+        static func estimatedFinish(_ monthYear: String) -> String {
+            "Estimated finish: \(monthYear)."
+        }
+    }
+
     // MARK: - Plan Mission Control
 
     enum PlanMissionControl {
