@@ -20,13 +20,21 @@ struct TodayQuickActionsSection: View {
             TodaySectionLabel(title: FormaProductCopy.Today.QuickActions.sectionTitle)
 
             VStack(spacing: FormaTokens.Spacing.sm) {
-                primaryActionCard(
-                    title: FormaProductCopy.Today.QuickActions.title(for: .logMeal),
-                    symbolName: FormaProductCopy.Today.QuickActions.symbolName(for: .logMeal),
-                    action: onLogMeal
-                )
-                .accessibilityLabel(FormaProductCopy.Today.QuickActions.title(for: .logMeal))
-                .accessibilityHint(FormaProductCopy.Today.QuickActions.inlineAccessibilityHint(for: .logMeal))
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+                    primaryActionCard(
+                        title: FormaProductCopy.Today.QuickActions.title(for: .logMeal),
+                        symbolName: FormaProductCopy.Today.QuickActions.symbolName(for: .logMeal),
+                        action: onLogMeal
+                    )
+                    .accessibilityLabel(FormaProductCopy.Today.QuickActions.title(for: .logMeal))
+                    .accessibilityHint(FormaProductCopy.Today.QuickActions.inlineAccessibilityHint(for: .logMeal))
+
+                    Text(FormaProductCopy.Today.QuickActions.logMealMicrocopy)
+                        .font(FormaTokens.Typography.caption)
+                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityHidden(true)
+                }
 
                 if showsScanMeal {
                     scanMealSecondaryAction

@@ -32,6 +32,7 @@ final class TodayNextActionFormattingTests: XCTestCase {
         let display = TodayNextActionFormatting.displayModel(for: action)
 
         XCTAssertEqual(display.headline, "Log breakfast to start today.")
+        XCTAssertEqual(display.subtitle, "Send a photo, speak, or describe your meal.")
         XCTAssertEqual(display.primaryButtonTitle, "Log breakfast")
     }
 

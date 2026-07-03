@@ -942,9 +942,9 @@ enum FormaProductCopy {
 
         enum Meals {
             static let title = "Ready for your first log"
-            static let body = "Pick a meal below or tap Log meal — we'll track the rest."
+            static let body = "Tell Coach with a photo, voice note, or quick description — we'll track the rest."
             static let action = "Log meal"
-            static let actionAccessibilityHint = "Opens meal logging"
+            static let actionAccessibilityHint = "Opens Coach to log a meal"
         }
 
         enum WeightTrend {
@@ -1118,10 +1118,10 @@ enum FormaProductCopy {
             static let newDayMissionStatus = "New day, fresh targets. Log your first meal when you're ready."
 
             static let newProfileMealsTitle = "Ready for your first log"
-            static let newProfileMealsBody = "Pick a meal below or tap Log meal — we'll track the rest."
+            static let newProfileMealsBody = "Tell Coach with a photo, voice note, or quick description — we'll track the rest."
 
             static let newDayMealsTitle = "Nothing logged yet today"
-            static let newDayMealsBody = "Your usual rhythm picks up with one quick log."
+            static let newDayMealsBody = "Send a photo, speak, or describe your meal in Coach."
 
             static let logMealAction = "Log meal"
             static let logWeightAction = "Log weight"
@@ -1198,9 +1198,9 @@ enum FormaProductCopy {
         enum NextAction {
             static let sectionTitle = "Next Best Action"
             static let logBreakfastTitle = "Log breakfast to start today."
-            static let logBreakfastSubtitle = "A morning log helps Forma guide the rest of your day."
+            static let logBreakfastSubtitle = "Send a photo, speak, or describe your meal."
             static let logFirstMealTitle = "Log your first meal to start today."
-            static let logFirstMealSubtitle = "A quick log helps Forma guide the rest of your day."
+            static let logFirstMealSubtitle = "Send a photo, speak, or describe your meal."
             static let eatProteinTitle = "Protein is your biggest gap."
             static let eatProteinSubtitle = "A high-protein meal will help protect muscle during your cut."
             static let hydrationBehindTitle = "Hydration is behind."
@@ -1275,8 +1275,8 @@ enum FormaProductCopy {
             static let optionalLabel = "Optional"
             static let loggedAccessibilityValue = "Logged"
             static let loggedAccessibilityHint = "Edit this food entry"
-            static let addAccessibilityHint = "Log food for this meal"
-            static let emptyDayHint = "Log a meal to start today's picture."
+            static let addAccessibilityHint = "Opens Coach to log food for this meal"
+            static let emptyDayHint = "Log with Coach to start today's picture."
             static let editSheetTitle = "Edit food"
             static let saveEditAction = "Save"
             static let deleteAction = "Delete entry"
@@ -1318,6 +1318,7 @@ enum FormaProductCopy {
 
         enum QuickActions {
             static let sectionTitle = "Fast log"
+            static let logMealMicrocopy = "Coach will estimate it from a photo, voice note, or text."
             static let fabAccessibilityLabel = "Quick log"
             static let fabAccessibilityHint = "Log food in Coach"
             static let scanFoodUnavailableNote = "Photo scan is coming soon — use Log Meal for now."
@@ -1326,7 +1327,7 @@ enum FormaProductCopy {
             static func inlineAccessibilityHint(for kind: TodayQuickActionKind) -> String {
                 switch kind {
                 case .scanFood: return scanMealAccessibilityHint
-                case .logMeal: return "Opens meal logging in Coach"
+                case .logMeal: return "Opens Coach to log your meal"
                 case .addWater: return "Log water with one tap"
                 case .logWeight: return "Opens weight logging"
                 case .logWorkout: return "Opens workout logging"
@@ -2096,9 +2097,9 @@ enum FormaProductCopy {
         static let pendingBarHint = "Use the bar below to log, edit, or discard."
 
         enum Launch {
-            static let logMealBody = "Send a photo, describe your meal, or use voice — whatever is easiest."
+            static let logMealBody = "Send a photo, speak, or describe your meal — whatever is easiest."
             static let analyzePhotoHeadline = "Scan your meal"
-            static let analyzePhotoBody = "Take a photo or describe what you ate and Coach will estimate it."
+            static let analyzePhotoBody = "Take a photo or describe what you ate — Coach handles the rest."
             static let logWaterHeadline = "Log water"
             static let logWaterBody = "Tap below to add water, or tell Coach how much you drank."
             static let chipSectionTitle = "Get started"
