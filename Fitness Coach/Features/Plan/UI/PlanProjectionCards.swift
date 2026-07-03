@@ -17,14 +17,19 @@ struct PlanProjectionPaceCard: View {
     private let copy = FormaProductCopy.PlanProjection.self
 
     var body: some View {
-        PlanEditCard {
+        PlanProjectionCard {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 if let validationError {
                     Text(validationError)
                         .font(FormaTokens.Typography.caption)
                         .foregroundStyle(FormaPlanTokens.Color.planDanger)
                 } else {
-                    difficultyHeader
+                    PlanDifficultyBadge(
+                        model: PlanDifficultyBadgeDisplayModel(
+                            label: projection.difficultyLabel,
+                            description: projection.difficultyDescription
+                        )
+                    )
 
                     if projection.hasPaceMetrics {
                         paceRows
@@ -48,55 +53,25 @@ struct PlanProjectionPaceCard: View {
     }
 
     @ViewBuilder
-    private var difficultyHeader: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(projection.difficultyLabel)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(FormaPlanTokens.Color.planAccent)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background {
-                    Capsule()
-                        .fill(FormaPlanTokens.Color.planAccentSoft)
-                }
-
-            Text(projection.difficultyDescription)
-                .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
-                .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    @ViewBuilder
     private var paceRows: some View {
         VStack(alignment: .leading, spacing: 4) {
             if let weekly = projection.weeklyRateKg {
-                metricRow(
+                PlanMetricRow(
                     label: copy.weeklyPaceLabel,
-                    value: formatKgRate(weekly, period: "/week")
+                    value: formatKgRate(weekly, period: "/week"),
+                    valueWeight: .medium
                 )
             }
             if let monthly = projection.monthlyRateKg {
-                metricRow(
+                PlanMetricRow(
                     label: copy.monthlyPaceLabel,
-                    value: formatKgRate(monthly, period: "/month")
+                    value: formatKgRate(monthly, period: "/month"),
+                    valueWeight: .medium
                 )
             }
             if let balance = projection.dailyDeficitOrSurplusLabel {
-                metricRow(label: copy.energyBalanceLabel, value: balance)
+                PlanMetricRow(label: copy.energyBalanceLabel, value: balance, valueWeight: .medium)
             }
-        }
-    }
-
-    private func metricRow(label: String, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-            Spacer()
-            Text(value)
-                .font(FormaTokens.Typography.caption.weight(.medium))
-                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
         }
     }
 
@@ -117,42 +92,48 @@ struct PlanProjectionEnergyCard: View {
 
     var body: some View {
         if projection.hasEnergyTargets || projection.hasMacroTargets {
-            PlanEditCard {
+            PlanProjectionCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     if let maintenance = projection.maintenanceCalories {
-                        metricRow(
+                        PlanMetricRow(
                             label: copy.maintenanceLabel,
-                            value: "\(maintenance) kcal"
+                            value: "\(maintenance) kcal",
+                            valueWeight: .medium
                         )
                     }
                     if let target = projection.targetCalories {
-                        metricRow(
+                        PlanMetricRow(
                             label: copy.targetCaloriesLabel,
-                            value: "\(target) kcal"
+                            value: "\(target) kcal",
+                            valueWeight: .medium
                         )
                     }
                     if let protein = projection.proteinTargetG {
-                        metricRow(
+                        PlanMetricRow(
                             label: copy.proteinLabel,
-                            value: formatGrams(protein)
+                            value: formatGrams(protein),
+                            valueWeight: .medium
                         )
                     }
                     if let carbs = projection.carbTargetG {
-                        metricRow(
+                        PlanMetricRow(
                             label: copy.carbsLabel,
-                            value: formatGrams(carbs)
+                            value: formatGrams(carbs),
+                            valueWeight: .medium
                         )
                     }
                     if let fat = projection.fatTargetG {
-                        metricRow(
+                        PlanMetricRow(
                             label: copy.fatLabel,
-                            value: formatGrams(fat)
+                            value: formatGrams(fat),
+                            valueWeight: .medium
                         )
                     }
                     if let water = projection.waterTargetMl {
-                        metricRow(
+                        PlanMetricRow(
                             label: copy.waterLabel,
-                            value: "\(water) ml"
+                            value: "\(water) ml",
+                            valueWeight: .medium
                         )
                     }
                     if let validationMessage = projection.validationMessage,
@@ -163,18 +144,6 @@ struct PlanProjectionEnergyCard: View {
                     }
                 }
             }
-        }
-    }
-
-    private func metricRow(label: String, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-            Spacer()
-            Text(value)
-                .font(FormaTokens.Typography.caption.weight(.medium))
-                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
         }
     }
 
@@ -193,7 +162,7 @@ struct PlanProjectionImpactCard: View {
     private let copy = FormaProductCopy.PlanProjection.self
 
     var body: some View {
-        PlanEditCard {
+        PlanProjectionCard {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 impactRow(label: copy.adherenceLabel, value: projection.adherenceEstimate)
                 impactRow(label: copy.recoveryLabel, value: projection.recoveryImpact)

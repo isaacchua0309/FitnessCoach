@@ -12,12 +12,14 @@ struct PlanActivityLevelCard: View {
     let isSelected: Bool
     let action: () -> Void
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     private let copy = FormaProductCopy.PlanEditActivity.self
 
     var body: some View {
-        Button(action: action) {
+        PlanSelectableCard(
+            isSelected: isSelected,
+            accessibilityLabel: accessibilityLabel,
+            action: action
+        ) {
             HStack(alignment: .top, spacing: FormaTokens.Spacing.md) {
                 Image(systemName: presentation.iconSystemName)
                     .font(.title3.weight(.semibold))
@@ -51,26 +53,10 @@ struct PlanActivityLevelCard: View {
                     }
                 }
 
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(FormaPlanTokens.Color.planAccent)
-                        .padding(.top, 2)
-                        .transition(.scale.combined(with: .opacity))
-                        .accessibilityHidden(true)
-                }
+                PlanSelectableCard.selectionCheckmark(isSelected: isSelected)
+                    .padding(.top, 2)
             }
-            .padding(FormaTokens.Spacing.cardPadding)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(cardBackground)
-            .overlay(cardBorder)
-            .contentShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous))
         }
-        .buttonStyle(.plain)
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: isSelected)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityLabel)
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
     private var headerRow: some View {
@@ -80,19 +66,6 @@ struct PlanActivityLevelCard: View {
                 .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
             Spacer(minLength: 0)
         }
-    }
-
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-            .fill(PlanEditSelectionChrome.cardBackground(isSelected: isSelected))
-    }
-
-    private var cardBorder: some View {
-        RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-            .stroke(
-                PlanEditSelectionChrome.cardStrokeColor(isSelected: isSelected),
-                lineWidth: PlanEditSelectionChrome.cardStrokeWidth(isSelected: isSelected)
-            )
     }
 
     private var accessibilityLabel: String {

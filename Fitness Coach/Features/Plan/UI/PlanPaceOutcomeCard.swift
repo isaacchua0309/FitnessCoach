@@ -12,28 +12,20 @@ struct PlanPaceOutcomeCard: View {
     let isSelected: Bool
     let action: () -> Void
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     private let copy = FormaProductCopy.PlanEditTarget.self
 
     var body: some View {
-        Button(action: action) {
+        PlanSelectableCard(
+            isSelected: isSelected,
+            accessibilityLabel: accessibilityLabel,
+            action: action
+        ) {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 headerRow
                 outcomeRows
                 coachingLine
             }
-            .padding(FormaTokens.Spacing.cardPadding)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(cardBackground)
-            .overlay(cardBorder)
-            .contentShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous))
         }
-        .buttonStyle(.plain)
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: isSelected)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityLabel)
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
     private var headerRow: some View {
@@ -57,13 +49,7 @@ struct PlanPaceOutcomeCard: View {
 
             Spacer(minLength: 0)
 
-            if isSelected {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(FormaPlanTokens.Color.planAccent)
-                    .transition(.scale.combined(with: .opacity))
-                    .accessibilityHidden(true)
-            }
+            PlanSelectableCard.selectionCheckmark(isSelected: isSelected)
         }
     }
 
@@ -77,15 +63,16 @@ struct PlanPaceOutcomeCard: View {
         } else {
             VStack(alignment: .leading, spacing: 4) {
                 if let weekly = presentation.weeklyChangeLabel {
-                    metricRow(label: copy.weeklyChangeLabel, value: weekly)
+                    PlanMetricRow(label: copy.weeklyChangeLabel, value: weekly, valueWeight: .medium)
                 }
                 if let monthly = presentation.monthlyChangeLabel {
-                    metricRow(label: copy.monthlyChangeLabel, value: monthly)
+                    PlanMetricRow(label: copy.monthlyChangeLabel, value: monthly, valueWeight: .medium)
                 }
                 if let finish = presentation.estimatedFinishLabel {
-                    metricRow(
+                    PlanMetricRow(
                         label: FormaProductCopy.PlanEditTarget.estimatedFinishLabel,
-                        value: finish
+                        value: finish,
+                        valueWeight: .medium
                     )
                 }
             }
@@ -107,31 +94,6 @@ struct PlanPaceOutcomeCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-    }
-
-    private func metricRow(label: String, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-            Spacer()
-            Text(value)
-                .font(FormaTokens.Typography.caption.weight(.medium))
-                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-        }
-    }
-
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-            .fill(PlanEditSelectionChrome.cardBackground(isSelected: isSelected))
-    }
-
-    private var cardBorder: some View {
-        RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-            .stroke(
-                PlanEditSelectionChrome.cardStrokeColor(isSelected: isSelected),
-                lineWidth: PlanEditSelectionChrome.cardStrokeWidth(isSelected: isSelected)
-            )
     }
 
     private var accessibilityLabel: String {

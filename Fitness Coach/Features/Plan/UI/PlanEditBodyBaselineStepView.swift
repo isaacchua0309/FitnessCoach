@@ -43,11 +43,30 @@ struct PlanEditBodyBaselineStepView: View {
         OnboardingFormatter.weightUnitAbbreviation(for: formState.unitSystem)
     }
 
+    private var unitSystemSelectionID: String {
+        formState.unitSystem == .metric ? "metric" : "imperial"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
             PlanBodyBaselineSummaryCard(state: summaryState)
 
-            unitSystemChips
+            PlanSegmentedControl(
+                options: [
+                    PlanSegmentedOption(
+                        id: "metric",
+                        title: FormaProductCopy.PlanEditBodyBaseline.unitMetric
+                    ),
+                    PlanSegmentedOption(
+                        id: "imperial",
+                        title: FormaProductCopy.PlanEditBodyBaseline.unitImperial
+                    )
+                ],
+                selectedID: unitSystemSelectionID,
+                onSelect: { id in
+                    formState.unitSystem = id == "metric" ? .metric : .imperial
+                }
+            )
 
             VStack(spacing: FormaTokens.Spacing.md) {
                 PlanBodyMetricInputField(
@@ -74,56 +93,6 @@ struct PlanEditBodyBaselineStepView: View {
             PlanBodyBaselineProjectionCard(state: projectionState)
         }
         .accessibilityElement(children: .contain)
-    }
-
-    private var unitSystemChips: some View {
-        HStack(spacing: FormaTokens.Spacing.sm) {
-            unitChip(
-                title: FormaProductCopy.PlanEditBodyBaseline.unitMetric,
-                isSelected: formState.unitSystem == .metric
-            ) {
-                formState.unitSystem = .metric
-            }
-
-            unitChip(
-                title: FormaProductCopy.PlanEditBodyBaseline.unitImperial,
-                isSelected: formState.unitSystem == .imperial
-            ) {
-                formState.unitSystem = .imperial
-            }
-        }
-    }
-
-    private func unitChip(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(
-                    isSelected
-                        ? FormaPlanTokens.Color.planAccent
-                        : FormaPlanTokens.Color.planSecondaryText
-                )
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .frame(minHeight: FormaTokens.Layout.minTouchTarget)
-                .background {
-                    Capsule()
-                        .fill(
-                            isSelected
-                                ? FormaPlanTokens.Color.planAccentSoft
-                                : FormaPlanTokens.Color.planUnselectedCardBackground
-                        )
-                }
-                .overlay {
-                    Capsule()
-                        .stroke(
-                            PlanEditSelectionChrome.cardStrokeColor(isSelected: isSelected),
-                            lineWidth: PlanEditSelectionChrome.cardStrokeWidth(isSelected: isSelected)
-                        )
-                }
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

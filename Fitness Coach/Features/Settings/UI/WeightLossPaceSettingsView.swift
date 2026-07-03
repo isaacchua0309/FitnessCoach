@@ -64,62 +64,35 @@ struct WeightLossPaceSettingsView: View {
     // MARK: - Advanced
 
     private var advancedEditor: some View {
-        PlanEditCard {
+        PlanProjectionCard {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
                 Text(copy.advancedCustomTitle)
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                     .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
 
-                Picker("Period", selection: $advancedDraft.period) {
+                PlanNativeSegmentedPicker(title: "Period", selection: $advancedDraft.period) {
                     Text(copy.advancedPeriodWeekly).tag(WeightLossAdvancedPaceDraft.Period.weekly)
                     Text(copy.advancedPeriodMonthly).tag(WeightLossAdvancedPaceDraft.Period.monthly)
                 }
-                .pickerStyle(.segmented)
-                .tint(FormaPlanTokens.Color.planAccent)
 
-                VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-                    Text(
-                        advancedDraft.period == .weekly
+                PlanInputField(
+                    model: PlanInputFieldDisplayModel(
+                        title: advancedDraft.period == .weekly
                             ? copy.advancedAmountWeeklyTitle
-                            : copy.advancedAmountMonthlyTitle
-                    )
-                    .font(FormaTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-
-                    HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.md) {
-                        TextField(advancedDraft.amountPlaceholder, text: $advancedDraft.amountText)
-                            .font(.system(.title, design: .rounded).weight(.bold))
-                            .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
-                            .keyboardType(.decimalPad)
-
-                        Text(FormaProductCopy.FoodForm.kgUnit)
-                            .font(FormaTokens.Typography.caption.weight(.semibold))
-                            .foregroundStyle(FormaPlanTokens.Color.planAccent)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background {
-                                Capsule()
-                                    .fill(FormaPlanTokens.Color.planAccentSoft)
-                            }
-                    }
-                    .padding(.horizontal, FormaTokens.Spacing.md)
-                    .padding(.vertical, FormaTokens.Spacing.sm)
-                    .background {
-                        RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                            .fill(FormaPlanTokens.Color.planInputBackground)
-                    }
-                    .overlay {
-                RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                    .stroke(FormaPlanTokens.Color.planInputBorder, lineWidth: 1)
-                    }
-                }
+                            : copy.advancedAmountMonthlyTitle,
+                        placeholder: advancedDraft.amountPlaceholder,
+                        unitLabel: FormaProductCopy.FoodForm.kgUnit,
+                        usesCompactChrome: true
+                    ),
+                    text: $advancedDraft.amountText
+                )
             }
         }
     }
 
     @ViewBuilder
     private func advancedImpactPreview(_ presentation: PlanPaceOutcomePresentation) -> some View {
-        PlanEditCard {
+        PlanProjectionCard {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 if let energy = presentation.energyBalanceLabel {
                     impactMetricRow(

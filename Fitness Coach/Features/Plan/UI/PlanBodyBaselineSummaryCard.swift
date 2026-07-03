@@ -13,46 +13,38 @@ struct PlanBodyBaselineSummaryCard: View {
     private let copy = FormaProductCopy.PlanEditBodyBaseline.self
 
     var body: some View {
-        PlanEditCard {
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
-                Text(copy.summaryTitle)
-                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
-
-                VStack(spacing: FormaTokens.Spacing.sm) {
-                    metricRow(label: copy.heightLabel, value: state.heightDisplay)
-                    metricRow(label: copy.weightLabel, value: state.weightDisplay)
-
-                    if let bodyContextLine = state.bodyContextLine {
-                        metricRow(label: copy.bodyContextLabel, value: bodyContextLine)
-                    }
-
-                    if let maintenancePreviewLine = state.maintenancePreviewLine {
-                        metricRow(label: copy.maintenanceLabel, value: maintenancePreviewLine)
-                    }
-                }
-
-                Text(state.coachingLine)
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilitySummary)
+        PlanMacroSummaryCard(model: summaryModel)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(accessibilitySummary)
     }
 
-    private func metricRow(label: String, value: String) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(label)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-            Spacer(minLength: FormaTokens.Spacing.sm)
-            Text(value)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-                .multilineTextAlignment(.trailing)
+    private var summaryModel: PlanMacroSummaryCardDisplayModel {
+        var rows: [PlanMetricRowDisplayModel] = [
+            PlanMetricRowDisplayModel(id: "height", label: copy.heightLabel, value: state.heightDisplay),
+            PlanMetricRowDisplayModel(id: "weight", label: copy.weightLabel, value: state.weightDisplay)
+        ]
+
+        if let bodyContextLine = state.bodyContextLine {
+            rows.append(
+                PlanMetricRowDisplayModel(id: "context", label: copy.bodyContextLabel, value: bodyContextLine)
+            )
         }
+
+        if let maintenancePreviewLine = state.maintenancePreviewLine {
+            rows.append(
+                PlanMetricRowDisplayModel(
+                    id: "maintenance",
+                    label: copy.maintenanceLabel,
+                    value: maintenancePreviewLine
+                )
+            )
+        }
+
+        return PlanMacroSummaryCardDisplayModel(
+            title: copy.summaryTitle,
+            rows: rows,
+            footerText: state.coachingLine
+        )
     }
 
     private var accessibilitySummary: String {
@@ -78,7 +70,7 @@ struct PlanBodyBaselineProjectionCard: View {
     private let copy = FormaProductCopy.PlanEditBodyBaseline.self
 
     var body: some View {
-        PlanEditCard(compact: true) {
+        PlanProjectionCard(compact: true) {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 Text(copy.projectionTitle)
                     .font(FormaTokens.Typography.caption.weight(.semibold))

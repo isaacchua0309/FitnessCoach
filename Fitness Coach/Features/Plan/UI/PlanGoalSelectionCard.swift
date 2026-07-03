@@ -12,25 +12,17 @@ struct PlanGoalSelectionCard: View {
     let isSelected: Bool
     let action: () -> Void
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     var body: some View {
-        Button(action: action) {
+        PlanSelectableCard(
+            isSelected: isSelected,
+            accessibilityLabel: accessibilityLabel,
+            action: action
+        ) {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 headerRow
                 explanationBlock
             }
-            .padding(FormaTokens.Spacing.cardPadding)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(cardBackground)
-            .overlay(cardBorder)
-            .contentShape(RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous))
         }
-        .buttonStyle(.plain)
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: isSelected)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityLabel)
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
     private var headerRow: some View {
@@ -53,19 +45,13 @@ struct PlanGoalSelectionCard: View {
                     .minimumScaleFactor(0.9)
 
                 if presentation.isRecommended {
-                    recommendedBadge
+                    PlanMetricPill(text: FormaProductCopy.PlanEditGoal.recommendedBadge)
                 }
 
                 Spacer(minLength: 0)
             }
 
-            if isSelected {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(FormaPlanTokens.Color.planAccent)
-                    .transition(.scale.combined(with: .opacity))
-                    .accessibilityHidden(true)
-            }
+            PlanSelectableCard.selectionCheckmark(isSelected: isSelected)
         }
     }
 
@@ -82,32 +68,6 @@ struct PlanGoalSelectionCard: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.leading, 30 + FormaTokens.Spacing.md)
-    }
-
-    private var recommendedBadge: some View {
-        Text(FormaProductCopy.PlanEditGoal.recommendedBadge)
-            .font(FormaTokens.Typography.caption.weight(.semibold))
-            .foregroundStyle(FormaPlanTokens.Color.planAccent)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background {
-                Capsule()
-                    .fill(FormaPlanTokens.Color.planAccentSoft)
-            }
-            .accessibilityHidden(true)
-    }
-
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-            .fill(PlanEditSelectionChrome.cardBackground(isSelected: isSelected))
-    }
-
-    private var cardBorder: some View {
-        RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-            .stroke(
-                PlanEditSelectionChrome.cardStrokeColor(isSelected: isSelected),
-                lineWidth: PlanEditSelectionChrome.cardStrokeWidth(isSelected: isSelected)
-            )
     }
 
     private var accessibilityLabel: String {

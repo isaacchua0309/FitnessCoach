@@ -12,41 +12,12 @@ struct PlanEditReviewStatusBanner: View {
     let isUpToDate: Bool
 
     var body: some View {
-        HStack(alignment: .top, spacing: FormaTokens.Spacing.md) {
-            Image(systemName: isUpToDate ? "checkmark.circle.fill" : "sparkles")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(
-                    isUpToDate
-                        ? FormaPlanTokens.Color.planSuccess
-                        : FormaPlanTokens.Color.planAccent
-                )
-
-            Text(headline)
-                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Spacer(minLength: 0)
-        }
-        .padding(FormaTokens.Spacing.cardPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-                .fill(
-                    isUpToDate
-                        ? FormaPlanTokens.Color.planUpToDateBackground
-                        : FormaPlanTokens.Color.planSelectedCardBackground
-                )
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-                .stroke(
-                    isUpToDate
-                        ? FormaPlanTokens.Color.planSuccessBorder
-                        : FormaPlanTokens.Color.planAccentBorder,
-                    lineWidth: 1
-                )
-        }
+        PlanSuccessCard(
+            model: PlanSuccessCardDisplayModel(
+                headline: headline,
+                variant: .statusBanner(isUpToDate: isUpToDate)
+            )
+        )
     }
 }
 
@@ -56,55 +27,83 @@ struct PlanEditFinalPlanCard: View {
     private let copy = FormaProductCopy.PlanEditReview.self
 
     var body: some View {
-        PlanEditCard {
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                Text(copy.finalPlanTitle)
-                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
-
-                metricRow(label: copy.goalLabel, value: state.goal)
-                metricRow(label: copy.currentWeightLabel, value: state.currentWeight)
-                metricRow(label: copy.targetWeightLabel, value: state.targetWeight)
-
-                if let estimatedFinish = state.estimatedFinish {
-                    metricRow(label: copy.estimatedFinishLabel, value: estimatedFinish)
-                }
-
-                if let calories = state.calories {
-                    metricRow(
-                        label: FormaProductCopy.PlanProjection.targetCaloriesLabel,
-                        value: calories
-                    )
-                }
-                if let protein = state.protein {
-                    metricRow(label: FormaProductCopy.PlanProjection.proteinLabel, value: protein)
-                }
-                if let carbs = state.carbs {
-                    metricRow(label: FormaProductCopy.PlanProjection.carbsLabel, value: carbs)
-                }
-                if let fat = state.fat {
-                    metricRow(label: FormaProductCopy.PlanProjection.fatLabel, value: fat)
-                }
-                if let water = state.water {
-                    metricRow(label: FormaProductCopy.PlanProjection.waterLabel, value: water)
-                }
-
-                metricRow(label: copy.difficultyAdherenceLabel, value: state.difficultyAdherence)
-            }
-        }
+        PlanMacroSummaryCard(model: summaryModel)
     }
 
-    private func metricRow(label: String, value: String) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(label)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-            Spacer(minLength: FormaTokens.Spacing.sm)
-            Text(value)
-                .font(FormaTokens.Typography.caption.weight(.semibold))
-                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-                .multilineTextAlignment(.trailing)
+    private var summaryModel: PlanMacroSummaryCardDisplayModel {
+        var rows: [PlanMetricRowDisplayModel] = [
+            PlanMetricRowDisplayModel(id: "goal", label: copy.goalLabel, value: state.goal),
+            PlanMetricRowDisplayModel(id: "current", label: copy.currentWeightLabel, value: state.currentWeight),
+            PlanMetricRowDisplayModel(id: "target", label: copy.targetWeightLabel, value: state.targetWeight)
+        ]
+
+        if let estimatedFinish = state.estimatedFinish {
+            rows.append(
+                PlanMetricRowDisplayModel(
+                    id: "finish",
+                    label: copy.estimatedFinishLabel,
+                    value: estimatedFinish
+                )
+            )
         }
+        if let calories = state.calories {
+            rows.append(
+                PlanMetricRowDisplayModel(
+                    id: "calories",
+                    label: FormaProductCopy.PlanProjection.targetCaloriesLabel,
+                    value: calories
+                )
+            )
+        }
+        if let protein = state.protein {
+            rows.append(
+                PlanMetricRowDisplayModel(
+                    id: "protein",
+                    label: FormaProductCopy.PlanProjection.proteinLabel,
+                    value: protein
+                )
+            )
+        }
+        if let carbs = state.carbs {
+            rows.append(
+                PlanMetricRowDisplayModel(
+                    id: "carbs",
+                    label: FormaProductCopy.PlanProjection.carbsLabel,
+                    value: carbs
+                )
+            )
+        }
+        if let fat = state.fat {
+            rows.append(
+                PlanMetricRowDisplayModel(
+                    id: "fat",
+                    label: FormaProductCopy.PlanProjection.fatLabel,
+                    value: fat
+                )
+            )
+        }
+        if let water = state.water {
+            rows.append(
+                PlanMetricRowDisplayModel(
+                    id: "water",
+                    label: FormaProductCopy.PlanProjection.waterLabel,
+                    value: water
+                )
+            )
+        }
+
+        rows.append(
+            PlanMetricRowDisplayModel(
+                id: "difficulty",
+                label: copy.difficultyAdherenceLabel,
+                value: state.difficultyAdherence
+            )
+        )
+
+        return PlanMacroSummaryCardDisplayModel(
+            title: copy.finalPlanTitle,
+            rows: rows
+        )
     }
 }
 
@@ -114,7 +113,7 @@ struct PlanEditInputChangesCard: View {
     private let copy = FormaProductCopy.PlanEditReview.self
 
     var body: some View {
-        PlanEditCard {
+        PlanProjectionCard {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 Text(copy.inputChangesTitle)
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
@@ -141,31 +140,12 @@ struct PlanEditReviewWarningCard: View {
     let warning: PlanEditReviewWarning
 
     var body: some View {
-        HStack(alignment: .top, spacing: FormaTokens.Spacing.md) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(FormaPlanTokens.Color.planWarning)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(warning.title)
-                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(FormaPlanTokens.Color.planWarning)
-                Text(warning.body)
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(FormaTokens.Spacing.cardPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-                .fill(FormaPlanTokens.Color.planWarningSoft)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-                .stroke(FormaPlanTokens.Color.planWarningBorder, lineWidth: 1)
-        }
+        PlanWarningCard(
+            model: PlanWarningCardDisplayModel(
+                title: warning.title,
+                body: warning.body
+            )
+        )
     }
 }
 
@@ -176,7 +156,7 @@ struct PlanEditTodayChangesCard: View {
     private let copy = FormaProductCopy.PlanEditReview.self
 
     var body: some View {
-        PlanEditCard {
+        PlanProjectionCard {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                 Text(copy.todayChangesTitle)
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
