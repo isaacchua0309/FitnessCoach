@@ -19,7 +19,7 @@ struct TodayHealthIntelligenceSection: View {
                 isLoading: state.isLoading
             )
             .onAppear {
-                guard !state.isLoading, state.recoveryCard.phase != .loading else { return }
+                guard !state.isLoading else { return }
                 healthIntelligenceAnalyticsCoordinator?.logTodayRecoveryCardViewed()
             }
 
