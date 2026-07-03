@@ -574,6 +574,8 @@ extension CoachTimelineEventType {
             return .healthAvailability
         case .contextGenerated:
             return .contextGeneration
+        case .unknown:
+            return .empty
         }
     }
 }

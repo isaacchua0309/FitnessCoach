@@ -92,4 +92,7 @@ enum CoachTimelineEventType: String, Codable, CaseIterable, Equatable, Sendable 
     case healthDataUnavailable
     /// Compact AI context packet assembled for an outbound request.
     case contextGenerated
+
+    /// Forward-compatible fallback when persisted `eventTypeRaw` is unknown.
+    case unknown
 }
