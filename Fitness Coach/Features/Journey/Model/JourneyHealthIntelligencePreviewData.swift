@@ -7,7 +7,6 @@
 
 import Foundation
 
-#if DEBUG
 enum JourneyHealthIntelligencePreviewData {
 
     private static var calendar: Calendar {
@@ -65,9 +64,26 @@ enum JourneyHealthIntelligencePreviewData {
     }
 
     private static var currentSnapshotWithoutWorkout: HealthIntelligenceSnapshot {
-        var snapshot = currentSnapshot
-        snapshot.workout = nil
-        return snapshot
+        HealthIntelligenceSnapshot(
+            date: referenceDay,
+            recovery: RecoverySummary(
+                score: 74,
+                status: .moderate,
+                title: "Moderate recovery",
+                explanation: "Recovery is acceptable after recent training.",
+                recommendedTraining: "You can train, but avoid stacking intensity tonight.",
+                recommendedNutrition: "Prioritize protein and hydration after your workout.",
+                confidence: .moderate,
+                contributingFactors: [],
+                missingSignals: []
+            ),
+            workout: nil,
+            activity: ActivitySummary(steps: 9_120, activeEnergyKcal: 560, exerciseMinutes: 52),
+            nutritionAdjustment: .none,
+            weeklyReview: weeklyReview,
+            planConfidence: PlanHealthConfidence(score: 0.78, label: "Moderate"),
+            nextBestAction: .none
+        )
     }
 
     private static var recoveryDaysOnly: [JourneyHealthIntelligenceRecoveryDayInput] {
@@ -198,4 +214,4 @@ enum JourneyHealthIntelligencePreviewData {
         }
     }
 }
-#endif
+
