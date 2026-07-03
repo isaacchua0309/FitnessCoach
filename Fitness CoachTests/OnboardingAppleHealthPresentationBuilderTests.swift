@@ -70,6 +70,28 @@ final class OnboardingAppleHealthPresentationBuilderTests: XCTestCase {
         XCTAssertFalse(state.showsHeroIcon)
     }
 
+    func testConnectedPresentationRequiresDeviceReadAccess() {
+        let state = OnboardingAppleHealthPresentationBuilder.build(
+            presentation: .connected,
+            deviceState: .notConnected
+        )
+
+        XCTAssertEqual(state.presentation, .notDetermined)
+        XCTAssertEqual(state.primaryAction, .requestPermission)
+        XCTAssertTrue(state.showsSkipButton)
+    }
+
+    func testRequestingPresentationReconcilesToDeniedAfterRefresh() {
+        let state = OnboardingAppleHealthPresentationBuilder.build(
+            presentation: .requesting,
+            deviceState: .denied
+        )
+
+        XCTAssertEqual(state.presentation, .denied)
+        XCTAssertEqual(state.primaryAction, .advance)
+        XCTAssertTrue(state.isPrimaryEnabled)
+    }
+
     func testRequestingStateDisablesPrimaryCTAAndSkip() {
         let state = OnboardingAppleHealthPresentationBuilder.build(
             presentation: .requesting,

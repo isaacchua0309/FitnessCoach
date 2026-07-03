@@ -10,6 +10,7 @@ import Foundation
 final class StubTrainingIntegrationProvider: TrainingIntegrationProviding, @unchecked Sendable {
 
     var dataSource: TrainingDataSource
+    var isHealthDataAvailable: Bool
     var refreshResult: TrainingIntegrationState
     var requestConnectionResult: TrainingIntegrationState?
 
@@ -18,10 +19,12 @@ final class StubTrainingIntegrationProvider: TrainingIntegrationProviding, @unch
 
     init(
         dataSource: TrainingDataSource = .appleHealth,
+        isHealthDataAvailable: Bool? = nil,
         refreshResult: TrainingIntegrationState = .notConnected,
         requestConnectionResult: TrainingIntegrationState? = nil
     ) {
         self.dataSource = dataSource
+        self.isHealthDataAvailable = isHealthDataAvailable ?? (dataSource != .unavailable)
         self.refreshResult = refreshResult
         self.requestConnectionResult = requestConnectionResult
     }

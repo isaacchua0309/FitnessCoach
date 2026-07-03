@@ -79,6 +79,25 @@ enum OnboardingAppleHealthPresentationBuilder {
         presentation: OnboardingAppleHealthPresentationState,
         deviceState: TrainingIntegrationState
     ) -> OnboardingAppleHealthPresentationState {
+        if presentation == .connected, deviceState != .connected {
+            return mapPermissionResult(deviceState)
+        }
+
+        if presentation == .requesting {
+            switch deviceState {
+            case .connected:
+                return .connected
+            case .denied:
+                return .denied
+            case .unavailable:
+                return .unavailable
+            case .failed(let message):
+                return .failed(message: message)
+            case .notConnected, .requestingPermission:
+                return .requesting
+            }
+        }
+
         if presentation == .notDetermined, deviceState == .unavailable {
             return .unavailable
         }

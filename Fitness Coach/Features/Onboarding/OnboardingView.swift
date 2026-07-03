@@ -116,6 +116,8 @@ struct OnboardingView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .background || phase == .inactive {
                 model.flushDraftSnapshotIfNeeded()
+            } else if phase == .active {
+                model.handleAppleHealthForegroundReturn()
             }
         }
     }
