@@ -1,3 +1,4 @@
+import {minimalCoachContextV2, workoutAwareCoachContextV2} from "./fixtures/coachContextPacketV2";
 import {openAIOutputTextForSchema} from "./fixtures/openaiFixtures";
 import {createMockRequest, createMockResponse} from "./helpers/mockHttp";
 import {resetGatewayGuardrailsForTests} from "../src/gatewayGuardrails";
@@ -39,7 +40,7 @@ const AI_GATEWAY_ROUTES = [
     path: "/v1/ai/classify-coach-intent",
     body: {
       text: "hello",
-      context: {},
+      context: {...minimalCoachContextV2},
       modelName: "gpt-5-nano",
       modelConfig: {
         cheapClassifierModel: "gpt-5-nano",
@@ -53,14 +54,14 @@ const AI_GATEWAY_ROUTES = [
   },
   {
     path: "/v1/ai/parse-command",
-    body: {text: "log water", context: {}},
+    body: {text: "log water", context: {...minimalCoachContextV2}},
     assertShape: (body: Record<string, unknown>) => {
       expect(body).toHaveProperty("parsedCommand");
     },
   },
   {
     path: "/v1/ai/estimate-food",
-    body: {text: "2 eggs", context: {}},
+    body: {text: "2 eggs", context: {...minimalCoachContextV2}},
     assertShape: (body: Record<string, unknown>) => {
       expect(body).toHaveProperty("foodLogDrafts");
       expect(body).toHaveProperty("foodDrafts");
@@ -73,10 +74,7 @@ const AI_GATEWAY_ROUTES = [
     path: "/v1/ai/analyze-meal-image",
     body: {
       message: "Lunch",
-      context: {
-        meta: {schemaVersion: 2, localDate: "2026-07-03"},
-        training: {workoutsToday: 1},
-      },
+      context: {...workoutAwareCoachContextV2},
       image: {
         mimeType: "image/png",
         base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
@@ -92,14 +90,14 @@ const AI_GATEWAY_ROUTES = [
   },
   {
     path: "/v1/ai/generate-meal-advice",
-    body: {question: "Should I eat pasta?", context: {}},
+    body: {question: "Should I eat pasta?", context: {...minimalCoachContextV2}},
     assertShape: (body: Record<string, unknown>) => {
       expect(body).toHaveProperty("response");
     },
   },
   {
     path: "/v1/ai/generate-nutrition-estimate",
-    body: {question: "Calories in a Big Mac", context: {}},
+    body: {question: "Calories in a Big Mac", context: {...minimalCoachContextV2}},
     assertShape: (body: Record<string, unknown>) => {
       expect(body).toHaveProperty("estimate");
       expect(body.estimate).toHaveProperty("foodName");
@@ -108,7 +106,7 @@ const AI_GATEWAY_ROUTES = [
   },
   {
     path: "/v1/ai/generate-nutrition-comparison",
-    body: {question: "Big Mac vs McSpicy", context: {}},
+    body: {question: "Big Mac vs McSpicy", context: {...minimalCoachContextV2}},
     assertShape: (body: Record<string, unknown>) => {
       expect(body).toHaveProperty("comparison");
       expect(body.comparison).toHaveProperty("leftItem");
@@ -148,7 +146,7 @@ const AI_GATEWAY_ROUTES = [
         topProteinFoodNames: [],
         deterministicNotes: [],
       },
-      context: {},
+      context: {...minimalCoachContextV2},
     },
     assertShape: (body: Record<string, unknown>) => {
       expect(body).toHaveProperty("response");
@@ -156,7 +154,7 @@ const AI_GATEWAY_ROUTES = [
   },
   {
     path: "/v1/ai/parse-workout",
-    body: {text: "ran 30 minutes", context: {}},
+    body: {text: "ran 30 minutes", context: {...minimalCoachContextV2}},
     assertShape: (body: Record<string, unknown>) => {
       expect(body).toHaveProperty("workoutDraft");
       expect(body).toHaveProperty("confidence");
@@ -165,14 +163,14 @@ const AI_GATEWAY_ROUTES = [
   },
   {
     path: "/v1/ai/parse-edit-delete",
-    body: {text: "delete my last meal", context: {}},
+    body: {text: "delete my last meal", context: {...minimalCoachContextV2}},
     assertShape: (body: Record<string, unknown>) => {
       expect(body).toHaveProperty("parsedCommand");
     },
   },
   {
     path: "/v1/ai/parse-multi-action",
-    body: {text: "log water and log weight", context: {}},
+    body: {text: "log water and log weight", context: {...minimalCoachContextV2}},
     assertShape: (body: Record<string, unknown>) => {
       expect(body).toHaveProperty("parsedCommand");
     },
@@ -282,7 +280,7 @@ describe("aiGateway contract", () => {
         headers: {Authorization: "Bearer test-token"},
         body: {
           text: "hello",
-          context: {},
+          context: {...minimalCoachContextV2},
           modelName: "gpt-5-nano",
           modelConfig: {},
         },
@@ -304,11 +302,7 @@ describe("aiGateway contract", () => {
         headers: {Authorization: "Bearer test-token"},
         body: {
           message: "Lunch",
-          context: {
-            meta: {schemaVersion: 2},
-            training: {workoutsToday: 1},
-            today: {steps: {value: 8000}},
-          },
+          context: {...workoutAwareCoachContextV2},
           image: {mimeType: "image/png", base64: pngBase64},
         },
       });
@@ -334,6 +328,40 @@ describe("aiGateway contract", () => {
       expect(textPayload.context.training.workoutsToday).toBe(1);
       expect(textPayload.context).toBeDefined();
       expect(textPayload.context.today.steps.value).toBe(8000);
+    });
+  });
+
+  describe("CoachContextPacketV2 validation", () => {
+    it("returns 400 for invalid context schema version", async () => {
+      const request = createMockRequest({
+        path: "/v1/ai/classify-coach-intent",
+        headers: {Authorization: "Bearer test-token"},
+        body: {
+          text: "hello",
+          context: {meta: {schemaVersion: 1}},
+        },
+      });
+      const response = createMockResponse();
+
+      await handleAiGatewayRequest(request, response);
+
+      expect(response.statusCode).toBe(400);
+      expect((response.body as {error: string}).error).toContain("schemaVersion");
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 for empty context object", async () => {
+      const request = createMockRequest({
+        path: "/v1/ai/estimate-food",
+        headers: {Authorization: "Bearer test-token"},
+        body: {text: "2 eggs", context: {}},
+      });
+      const response = createMockResponse();
+
+      await handleAiGatewayRequest(request, response);
+
+      expect(response.statusCode).toBe(400);
+      expect(fetchMock).not.toHaveBeenCalled();
     });
   });
 
@@ -372,7 +400,7 @@ describe("aiGateway contract", () => {
       const request = createMockRequest({
         path: "/v1/ai/classify-coach-intent",
         headers: {Authorization: "Bearer test-token"},
-        body: {context: {}},
+        body: {context: {...minimalCoachContextV2}},
       });
       const response = createMockResponse();
 
@@ -388,7 +416,7 @@ describe("aiGateway contract", () => {
       const request = createMockRequest({
         path: "/v1/ai/classify-coach-intent",
         headers: {Authorization: "Bearer test-token"},
-        body: {text: "hello", context: {}},
+        body: {text: "hello", context: {...minimalCoachContextV2}},
         rawBody: Buffer.alloc(64, "a"),
       });
       const response = createMockResponse();
@@ -410,7 +438,7 @@ describe("aiGateway contract", () => {
           createMockRequest({
             path: "/v1/ai/classify-coach-intent",
             headers: {Authorization: "Bearer test-token"},
-            body: {text: "hello", context: {}, modelName: "gpt-5-nano", modelConfig: {}},
+            body: {text: "hello", context: {...minimalCoachContextV2}, modelName: "gpt-5-nano", modelConfig: {}},
           }),
           okResponse
         );
@@ -422,7 +450,7 @@ describe("aiGateway contract", () => {
         createMockRequest({
           path: "/v1/ai/classify-coach-intent",
           headers: {Authorization: "Bearer test-token"},
-          body: {text: "hello again", context: {}, modelName: "gpt-5-nano", modelConfig: {}},
+          body: {text: "hello again", context: {...minimalCoachContextV2}, modelName: "gpt-5-nano", modelConfig: {}},
         }),
         throttled
       );

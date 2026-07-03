@@ -8,6 +8,7 @@ import {sanitizeCoachIntentResult} from "./coachIntentSanitizer";
 import {
   GatewayError,
   assertBodySizeWithinLimit,
+  coachContextLogFields,
   enforceRequestQuota,
   validatePayload,
 } from "./gatewayGuardrails";
@@ -87,6 +88,7 @@ export async function handleAiGatewayRequest(
       path,
       uid: authUID,
       bodyBytes,
+      ...coachContextLogFields(body.context),
     });
 
     let payload: Record<string, unknown>;
@@ -111,7 +113,7 @@ export async function handleAiGatewayRequest(
       break;
     case MEAL_IMAGE_ANALYSIS_PATH:
       modelUsed = resolveModel({tier: "strong"});
-      payload = await analyzeMealImage(body, traceId);
+      payload = await analyzeMealImage(body, traceId) as unknown as Record<string, unknown>;
       break;
     case "/v1/ai/generate-meal-advice":
       modelUsed = resolveModel({
@@ -663,12 +665,14 @@ function sharedRules(): string {
 function healthIntelligenceRules(): string {
   return [
     "Health intelligence context rules:",
-    "- When context.healthIntelligenceAwarenessAvailable is true, use context.healthIntelligence before asking whether the user worked out today.",
+    "- When context.healthIntelligence is present, use it before asking whether the user worked out today.",
+    "- Use context.training.workoutsToday and context.training.workouts for workout-aware guidance.",
     "- Treat Apple Health workout calories and active energy as estimates, not precise facts.",
-    "- If health signals are missing, mention limitations only when relevant to the user's question.",
+    "- If context.missingData flags unavailable signals, do not invent steps, workouts, sleep, HRV, or weight.",
     "- Tailor nutrition advice to today's workout and recovery signals when available.",
+    "- Use context.recentMealsStructured and context.commonFoods for meal-history awareness.",
     "- Do not state or imply medical diagnoses.",
-    "- When context.healthIntelligenceAwarenessAvailable is false, do not claim Apple Health awareness, recovery scores, or synced workout insights. Rely on logged app data and what the user tells you.",
+    "- When health intelligence is absent, rely on logged app data in context.today and what the user tells you.",
   ].join("\n");
 }
 
@@ -895,52 +899,6 @@ function aiFoodExtractionResponseSchema(): ResponseSchema {
   };
 }
 
-function foodComponentSchema(): JSONSchema {
-  return {
-    type: "object",
-    additionalProperties: false,
-    required: [
-      "id", "name", "quantity", "unit", "preparationState",
-      "calories", "protein", "carbs", "fat", "confidence", "sourceText",
-    ],
-    properties: {
-      id: nullable({type: "string"}),
-      name: {type: "string"},
-      quantity: nullable({type: "number"}),
-      unit: nullable({type: "string"}),
-      preparationState: nullable({type: "string"}),
-      calories: {type: "integer"},
-      protein: {type: "number"},
-      carbs: {type: "number"},
-      fat: {type: "number"},
-      confidence,
-      sourceText: nullable({type: "string"}),
-    },
-  };
-}
-
-function foodLogDraftSchema(): JSONSchema {
-  return {
-    type: "object",
-    additionalProperties: false,
-    required: [
-      "id", "displayName", "mealType", "components", "confidence",
-      "source", "notes", "warnings", "imageUrl",
-    ],
-    properties: {
-      id: nullable({type: "string"}),
-      displayName: {type: "string"},
-      mealType: nullable(mealType),
-      components: {type: "array", items: foodComponentSchema()},
-      confidence,
-      source,
-      notes: nullable({type: "string"}),
-      warnings: {type: "array", items: {type: "string"}},
-      imageUrl: nullable({type: "string"}),
-    },
-  };
-}
-
 function foodDraftSchema(): JSONSchema {
   return {
     type: "object",
@@ -1051,26 +1009,6 @@ function aiParsedCommandSchema(): ResponseSchema {
         requiresConfirmation: {type: "boolean"},
         assistantMessage: nullable({type: "string"}),
         reasoningSummary: nullable({type: "string"}),
-      },
-    },
-  };
-}
-
-function aiFoodEstimateResponseSchema(): ResponseSchema {
-  return {
-    name: "ai_food_estimate_response",
-    schema: {
-      type: "object",
-      additionalProperties: false,
-      required: [
-        "foodLogDrafts", "foodDrafts", "confidence", "requiresConfirmation", "assistantMessage",
-      ],
-      properties: {
-        foodLogDrafts: {type: "array", items: foodLogDraftSchema()},
-        foodDrafts: {type: "array", items: foodDraftSchema()},
-        confidence,
-        requiresConfirmation: {type: "boolean"},
-        assistantMessage: nullable({type: "string"}),
       },
     },
   };

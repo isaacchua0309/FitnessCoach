@@ -1,3 +1,5 @@
+import {minimalCoachContextV2} from "../fixtures/coachContextPacketV2";
+
 type HeaderMap = Record<string, string>;
 
 export interface MockResponseState {
@@ -66,7 +68,7 @@ export function createMockRequest(options: MockRequestOptions = {}) {
     headers[key.toLowerCase()] = value;
   }
 
-  const body = options.body ?? {text: "hello", context: {}};
+  const body = options.body ?? {text: "hello", context: {...minimalCoachContextV2}};
   const rawBody = options.rawBody ?? Buffer.from(JSON.stringify(body), "utf8");
 
   return {

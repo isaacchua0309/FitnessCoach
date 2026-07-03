@@ -2,6 +2,7 @@ import {
   normalizeGatewayText,
   resetGatewayGuardrailsForTests,
 } from "../src/gatewayGuardrails";
+import {minimalCoachContextV2} from "./fixtures/coachContextPacketV2";
 import {createMockRequest, createMockResponse} from "./helpers/mockHttp";
 
 const verifyIdTokenMock = jest.fn();
@@ -60,7 +61,7 @@ describe("gatewayGuardrails normalization", () => {
     const request = createMockRequest({
       path: "/v1/ai/classify-coach-intent",
       headers: {Authorization: "Bearer test-token"},
-      body: {text: "   \u200B", context: {}},
+      body: {text: "   \u200B", context: {...minimalCoachContextV2}},
     });
     const response = createMockResponse();
 
@@ -74,7 +75,7 @@ describe("gatewayGuardrails normalization", () => {
     const request = createMockRequest({
       path: "/v1/ai/classify-coach-intent",
       headers: {Authorization: "Bearer test-token"},
-      body: {text: "５００ml water", context: {}, modelName: "gpt-5-nano", modelConfig: {}},
+      body: {text: "５００ml water", context: {...minimalCoachContextV2}, modelName: "gpt-5-nano", modelConfig: {}},
     });
     const response = createMockResponse();
 
@@ -90,7 +91,7 @@ describe("gatewayGuardrails normalization", () => {
     const request = createMockRequest({
       path: "/v1/ai/classify-coach-intent",
       headers: {Authorization: "Bearer test-token"},
-      body: {text: "a".repeat(4001), context: {}},
+      body: {text: "a".repeat(4001), context: {...minimalCoachContextV2}},
     });
     const response = createMockResponse();
 
@@ -108,7 +109,7 @@ describe("gatewayGuardrails normalization", () => {
       body: {
         text: "meal photo",
         imageJPEGBase64: "a".repeat(100),
-        context: {},
+        context: {...minimalCoachContextV2},
       },
       rawBody: Buffer.alloc(2 * 1024 * 1024 + 1, "a"),
     });

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, require-jsdoc, max-len, valid-jsdoc */
 
 import {GatewayError} from "./gatewayGuardrails";
+import {parseCoachContextForPrompt} from "./coachContextPacketV2";
 
 export const MEAL_IMAGE_ANALYSIS_PATH = "/v1/ai/analyze-meal-image";
 
@@ -155,9 +156,7 @@ export function validateAnalyzeMealImagePayload(body: Record<string, any>): void
     }
   }
 
-  if (!body.context || typeof body.context !== "object" || Array.isArray(body.context)) {
-    throw new GatewayError(400, "Missing or invalid context.");
-  }
+  body.context = parseCoachContextForPrompt(body.context, {required: true});
 
   if (body.message !== undefined) {
     if (typeof body.message !== "string") {
