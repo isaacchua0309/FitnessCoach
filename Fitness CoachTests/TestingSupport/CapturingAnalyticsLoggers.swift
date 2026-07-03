@@ -130,6 +130,31 @@ final class CapturingThemeAnalyticsLogger: ThemeAnalyticsLogging, @unchecked Sen
     }
 }
 
+final class CapturingSettingsAnalyticsLogger: SettingsAnalyticsLogging, @unchecked Sendable {
+    struct Entry {
+        let event: SettingsAnalyticsEvent
+        let properties: SettingsAnalyticsProperties
+    }
+
+    private(set) var events: [Entry] = []
+
+    func log(_ event: SettingsAnalyticsEvent, properties: SettingsAnalyticsProperties) {
+        events.append(Entry(event: event, properties: properties))
+    }
+
+    func contains(_ event: SettingsAnalyticsEvent) -> Bool {
+        events.contains { $0.event == event }
+    }
+
+    func lastProperties(for event: SettingsAnalyticsEvent) -> [String: String]? {
+        events.last { $0.event == event }?.properties.asParameters()
+    }
+
+    func eventCount(for event: SettingsAnalyticsEvent) -> Int {
+        events.filter { $0.event == event }.count
+    }
+}
+
 extension OnboardingAnalyticsProperties {
     subscript(key: String) -> String? {
         asParameters()[key]

@@ -50,6 +50,7 @@ final class AppContainer {
     let journeyAnalyticsLogger: any JourneyAnalyticsLogging
     let publicEntryAnalyticsLogger: any PublicEntryAnalyticsLogging
     let themeAnalyticsLogger: any ThemeAnalyticsLogging
+    let settingsAnalyticsLogger: any SettingsAnalyticsLogging
     let onboardingRoutingConfiguration: OnboardingRoutingConfiguration
 
     let themeStore: ThemeStore
@@ -63,6 +64,7 @@ final class AppContainer {
         journeyAnalyticsLogger: (any JourneyAnalyticsLogging)? = nil,
         publicEntryAnalyticsLogger: (any PublicEntryAnalyticsLogging)? = nil,
         themeAnalyticsLogger: (any ThemeAnalyticsLogging)? = nil,
+        settingsAnalyticsLogger: (any SettingsAnalyticsLogging)? = nil,
         onboardingRoutingConfiguration: OnboardingRoutingConfiguration? = nil
     ) throws {
         let resolvedOnboardingRoutingConfiguration = onboardingRoutingConfiguration ?? .production
@@ -86,6 +88,7 @@ final class AppContainer {
         self.journeyAnalyticsLogger = journeyAnalyticsLogger ?? OSLogJourneyAnalyticsLogger()
         self.publicEntryAnalyticsLogger = publicEntryAnalyticsLogger ?? OSLogPublicEntryAnalyticsLogger()
         self.themeAnalyticsLogger = themeAnalyticsLogger ?? OSLogThemeAnalyticsLogger()
+        self.settingsAnalyticsLogger = settingsAnalyticsLogger ?? OSLogSettingsAnalyticsLogger()
         #else
         self.onboardingAnalyticsLogger = onboardingAnalyticsLogger ?? NoOpOnboardingAnalyticsLogger()
         self.todayAnalyticsLogger = todayAnalyticsLogger ?? NoOpTodayAnalyticsLogger()
@@ -93,6 +96,7 @@ final class AppContainer {
         self.journeyAnalyticsLogger = journeyAnalyticsLogger ?? NoOpJourneyAnalyticsLogger()
         self.publicEntryAnalyticsLogger = publicEntryAnalyticsLogger ?? NoOpPublicEntryAnalyticsLogger()
         self.themeAnalyticsLogger = themeAnalyticsLogger ?? NoOpThemeAnalyticsLogger()
+        self.settingsAnalyticsLogger = settingsAnalyticsLogger ?? NoOpSettingsAnalyticsLogger()
         #endif
         self.onboardingRoutingConfiguration = resolvedOnboardingRoutingConfiguration
 
@@ -266,6 +270,10 @@ final class AppContainer {
 
     func makeJourneyAnalyticsCoordinator() -> JourneyAnalyticsCoordinator {
         JourneyAnalyticsCoordinator(analyticsLogger: journeyAnalyticsLogger)
+    }
+
+    func makeSettingsAnalyticsCoordinator() -> SettingsAnalyticsCoordinator {
+        SettingsAnalyticsCoordinator(analyticsLogger: settingsAnalyticsLogger)
     }
 
     func makeJourneyModel() -> JourneyModel {

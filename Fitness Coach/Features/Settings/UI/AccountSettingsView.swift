@@ -11,6 +11,7 @@ struct AccountSettingsView: View {
 
     @EnvironmentObject private var authManager: AuthManager
     @Environment(\.performAppSignOut) private var performAppSignOut
+    @Environment(\.settingsAnalyticsCoordinator) private var analyticsCoordinator
     @State private var showsLogoutConfirmation = false
 
     @ScaledMetric(relativeTo: .title2) private var avatarDiameter: CGFloat = 56
@@ -47,6 +48,7 @@ struct AccountSettingsView: View {
             titleVisibility: .visible
         ) {
             Button(FormaProductCopy.Account.logoutConfirmActionTitle, role: .destructive) {
+                analyticsCoordinator.logLogoutConfirmed()
                 AccountSettingsLogoutHandler.perform(
                     performAppSignOut: performAppSignOut,
                     authManagerSignOut: authManager.signOut
@@ -199,6 +201,7 @@ struct AccountSettingsView: View {
 
     private var logoutSection: some View {
         Button {
+            analyticsCoordinator.logLogoutTapped()
             showsLogoutConfirmation = true
         } label: {
             Text(FormaProductCopy.Account.logoutButtonTitle)
