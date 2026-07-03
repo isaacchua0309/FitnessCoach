@@ -9,7 +9,7 @@ import SwiftUI
 
 struct FoodEntryFormView: View {
     @Binding var formState: FoodEntryFormState
-    var mode: FoodEntryFormMode = .manualEntry
+    var mode: FoodEntryFormMode = .createCustomFood
 
     var body: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.sectionSpacing) {

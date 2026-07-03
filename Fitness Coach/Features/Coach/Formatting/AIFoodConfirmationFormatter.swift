@@ -23,7 +23,7 @@ enum AIFoodConfirmationFormatter {
     static func sourceLabel(_ source: FoodEntrySource) -> String {
         switch source {
         case .manual:
-            return "Manual"
+            return "Custom food"
         case .aiTextEstimate:
             return "AI text estimate"
         case .aiPhotoEstimate:

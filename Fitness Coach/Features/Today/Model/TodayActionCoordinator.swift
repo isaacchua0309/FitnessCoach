@@ -194,6 +194,7 @@ final class TodayActionCoordinator: ObservableObject {
         snackbarMessage = nil
     }
 
+    /// Fallback save path for custom food creation (tests, debug). Today UI routes new logs through Coach.
     func saveMeal(from formState: FoodEntryFormState) {
         do {
             let draft = try formState.makeFoodDraft()

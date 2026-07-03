@@ -1224,8 +1224,8 @@ enum FormaProductCopy {
             static let ctaConnectHealth = "Connect Apple Health"
             static let ctaReviewToday = "Review today"
 
-            static let sheetLogMealTitle = "Log meal"
             static let sheetLogWeightTitle = "Log weight"
+            static let createCustomFoodSheetTitle = Meals.createCustomFoodSheetTitle
             static let sheetLogWeightSection = "Today's weight"
             static let sheetWeightField = "Weight (kg)"
             static let sheetWeightPlaceholder = "e.g. 72.5"
@@ -1277,7 +1277,8 @@ enum FormaProductCopy {
             static let loggedAccessibilityHint = "Edit this food entry"
             static let addAccessibilityHint = "Opens Coach to log food for this meal"
             static let emptyDayHint = "Log with Coach to start today's picture."
-            static let editSheetTitle = "Edit food"
+            static let editSheetTitle = "Edit nutrition"
+        static let createCustomFoodSheetTitle = "Create custom food"
             static let saveEditAction = "Save"
             static let deleteAction = "Delete entry"
             static let editAccessibilityHint = "Edit this food entry"
@@ -2159,6 +2160,9 @@ enum FormaProductCopy {
         static let sodium = "Sodium"
         static let notes = "Notes"
         static let notesPlaceholder = "Optional notes"
+
+        static let editNutritionTitle = "Edit nutrition"
+        static let createCustomFoodTitle = "Create custom food"
 
         static let kcalUnit = "kcal"
         static let gramsUnit = "g"

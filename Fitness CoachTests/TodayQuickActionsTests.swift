@@ -76,6 +76,12 @@ final class TodayQuickActionsTests: XCTestCase {
         )
     }
 
+    func testFoodFormTitlesReflectFallbackEditingRoles() {
+        XCTAssertEqual(FormaProductCopy.FoodForm.editNutritionTitle, "Edit nutrition")
+        XCTAssertEqual(FormaProductCopy.FoodForm.createCustomFoodTitle, "Create custom food")
+        XCTAssertEqual(FormaProductCopy.Today.Meals.editSheetTitle, "Edit nutrition")
+    }
+
     func testProductionConfigurationReflectsPipelineReadiness() {
         let configuration = TodayQuickActionPolicy.configuration()
 
