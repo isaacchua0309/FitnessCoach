@@ -10,7 +10,6 @@ import Foundation
 enum TodayQuickActionKind: String, Equatable, CaseIterable, Sendable {
     case scanFood
     case logMeal
-    case manualEntry
     case addWater
     case logWeight
     case logWorkout

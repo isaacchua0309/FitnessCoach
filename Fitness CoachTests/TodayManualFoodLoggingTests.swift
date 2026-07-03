@@ -58,7 +58,7 @@ final class TodayManualFoodLoggingTests: XCTestCase {
     // MARK: - Coordinator save path
 
     func testValidSaveDismissesSheetRecalculatesTotalsAndNotifiesRefresh() throws {
-        coordinator.performQuickAction(.manualEntry)
+        coordinator.performQuickAction(.logMeal)
         XCTAssertNotNil(coordinator.logMealPresentation)
 
         let refreshTokenBefore = harness.refreshCenter.refreshToken
@@ -94,7 +94,7 @@ final class TodayManualFoodLoggingTests: XCTestCase {
     }
 
     func testInvalidCaloriesKeepsSheetOpenWithError() {
-        coordinator.performQuickAction(.manualEntry)
+        coordinator.performQuickAction(.logMeal)
         let presentationID = coordinator.logMealPresentation?.id
 
         coordinator.saveMeal(from: makeFormState(calories: "-10"))
@@ -105,7 +105,7 @@ final class TodayManualFoodLoggingTests: XCTestCase {
     }
 
     func testInvalidMacrosKeepsSheetOpenWithError() {
-        coordinator.performQuickAction(.manualEntry)
+        coordinator.performQuickAction(.logMeal)
         let presentationID = coordinator.logMealPresentation?.id
 
         coordinator.saveMeal(from: makeFormState(protein: "lots"))

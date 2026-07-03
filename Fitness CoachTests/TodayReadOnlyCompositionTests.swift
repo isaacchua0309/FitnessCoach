@@ -47,7 +47,6 @@ final class TodayReadOnlyCompositionTests: XCTestCase {
 
         XCTAssertTrue(kinds.contains(.scanFood))
         XCTAssertTrue(kinds.contains(.logMeal))
-        XCTAssertTrue(kinds.contains(.manualEntry))
         XCTAssertTrue(kinds.contains(.addWater))
         XCTAssertTrue(kinds.contains(.logWeight))
         XCTAssertTrue(kinds.contains(.logWorkout))

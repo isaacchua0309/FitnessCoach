@@ -1322,13 +1322,12 @@ enum FormaProductCopy {
             static let fabAccessibilityHint = "Log food, water, weight, or open Coach"
             static let addWaterSheetTitle = "Add water"
             static let addWaterSheetBody = "Pick an amount to log now."
-            static let scanFoodUnavailableNote = "Photo scan is coming soon — use manual entry for now."
+            static let scanFoodUnavailableNote = "Photo scan is coming soon — use Log Meal for now."
 
             static func inlineAccessibilityHint(for kind: TodayQuickActionKind) -> String {
                 switch kind {
                 case .scanFood: return "Opens food photo scan"
                 case .logMeal: return "Opens meal logging"
-                case .manualEntry: return "Opens manual meal entry"
                 case .addWater: return "Opens water logging"
                 case .logWeight: return "Opens weight logging"
                 case .logWorkout: return "Opens workout logging"
@@ -1339,7 +1338,6 @@ enum FormaProductCopy {
                 switch kind {
                 case .scanFood: return "Scan Food"
                 case .logMeal: return "Log Meal"
-                case .manualEntry: return "Manual Entry"
                 case .addWater: return "Add Water"
                 case .logWeight: return "Log Weight"
                 case .logWorkout: return "Log Workout"
@@ -1350,7 +1348,6 @@ enum FormaProductCopy {
                 switch kind {
                 case .scanFood: return "camera.viewfinder"
                 case .logMeal: return "fork.knife"
-                case .manualEntry: return "square.and.pencil"
                 case .addWater: return "drop.fill"
                 case .logWeight: return "scalemass.fill"
                 case .logWorkout: return "figure.run"

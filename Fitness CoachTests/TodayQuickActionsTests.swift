@@ -13,7 +13,7 @@ final class TodayQuickActionsTests: XCTestCase {
 
         XCTAssertEqual(items.first?.kind, .scanFood)
         XCTAssertFalse(items.first?.isEnabled == true)
-        XCTAssertEqual(items.map(\.kind), [.scanFood, .logMeal, .manualEntry, .addWater, .logWeight, .logWorkout])
+        XCTAssertEqual(items.map(\.kind), [.scanFood, .logMeal, .addWater, .logWeight, .logWorkout])
     }
 
     func testScanFoodEnabledAndFirstWhenPipelineAvailable() {
@@ -24,20 +24,17 @@ final class TodayQuickActionsTests: XCTestCase {
         XCTAssertTrue(TodayQuickActionPolicy.isVisible(.scanFood, isScanFoodAvailable: true))
     }
 
-    func testManualEntryIsSecondaryWhenLogMealExists() {
+    func testLogMealIsPrimaryQuickAction() {
         let items = TodayQuickActionPolicy.menuItems(isScanFoodAvailable: true)
 
         let logMeal = items.first { $0.kind == .logMeal }
-        let manualEntry = items.first { $0.kind == .manualEntry }
 
         XCTAssertEqual(logMeal?.presentation, .primary)
-        XCTAssertEqual(manualEntry?.presentation, .secondary)
     }
 
     func testCoreActionsAlwaysVisibleRegardlessOfScanFood() {
         for scanAvailable in [true, false] {
             XCTAssertTrue(TodayQuickActionPolicy.isVisible(.logMeal, isScanFoodAvailable: scanAvailable))
-            XCTAssertTrue(TodayQuickActionPolicy.isVisible(.manualEntry, isScanFoodAvailable: scanAvailable))
             XCTAssertTrue(TodayQuickActionPolicy.isVisible(.addWater, isScanFoodAvailable: scanAvailable))
             XCTAssertTrue(TodayQuickActionPolicy.isVisible(.logWeight, isScanFoodAvailable: scanAvailable))
             XCTAssertTrue(TodayQuickActionPolicy.isVisible(.logWorkout, isScanFoodAvailable: scanAvailable))
@@ -50,7 +47,7 @@ final class TodayQuickActionsTests: XCTestCase {
 
         XCTAssertEqual(
             items.map(\.kind),
-            [.scanFood, .logMeal, .manualEntry, .addWater, .logWeight, .logWorkout]
+            [.scanFood, .logMeal, .addWater, .logWeight, .logWorkout]
         )
     }
 
@@ -58,10 +55,6 @@ final class TodayQuickActionsTests: XCTestCase {
         XCTAssertEqual(
             FormaProductCopy.Today.QuickActions.title(for: .logMeal),
             "Log Meal"
-        )
-        XCTAssertEqual(
-            FormaProductCopy.Today.QuickActions.title(for: .manualEntry),
-            "Manual Entry"
         )
         XCTAssertEqual(
             FormaProductCopy.Today.QuickActions.title(for: .logWorkout),
