@@ -3178,6 +3178,8 @@ enum FormaProductCopy {
         static let confidenceSectionTitle = "Plan confidence"
         static let assumptionsSectionTitle = "What shapes your plan"
         static let dataQualitySectionTitle = "Health signals in use"
+        static let dataQualityCardSectionTitle = "Data quality"
+        static let confidenceReasonsHeading = "What Forma is using"
 
         static let loadingTitle = "Reviewing health signals"
         static let loadingSubtitle = "Checking how well your recent data supports this plan."

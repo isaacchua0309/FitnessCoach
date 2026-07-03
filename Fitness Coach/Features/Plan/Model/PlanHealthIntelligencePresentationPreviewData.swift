@@ -52,6 +52,25 @@ enum PlanHealthIntelligencePresentationPreviewData {
         )
     }
 
+    static var partialData: PlanHealthIntelligenceSectionState {
+        PlanHealthIntelligencePresentationBuilder.buildSection(
+            input: PlanHealthIntelligenceBuildInput(
+                planConfidence: PlanHealthConfidence(score: 0.55, label: "Moderate"),
+                baselineContext: partialBaseline,
+                recovery: makeRecovery(status: .moderate),
+                userPlan: connectedPlan,
+                healthConnection: .partial,
+                hasNutritionLogging: true,
+                hasRecentWeightLog: false
+            ),
+            calendar: calendar
+        )
+    }
+
+    static var limitedConfidence: PlanHealthIntelligenceSectionState {
+        sparseSignals
+    }
+
     static var disconnected: PlanHealthIntelligenceSectionState {
         PlanHealthIntelligencePresentationBuilder.buildSection(
             input: PlanHealthIntelligenceBuildInput(
@@ -117,6 +136,39 @@ enum PlanHealthIntelligencePresentationPreviewData {
             workoutDays28d: 2,
             availableSignals: [.steps, .workoutLoad],
             missingSignals: [.sleep, .hrv, .restingHeartRate, .activeEnergy]
+        )
+    }
+
+    private static var partialBaseline: HealthBaselineContext {
+        HealthBaselineContext(
+            targetDate: referenceDay,
+            averageSteps7d: 7_100,
+            averageSteps28d: 6_900,
+            averageActiveEnergy7d: 350,
+            averageActiveEnergy28d: nil,
+            averageSleepDuration7d: nil,
+            averageSleepDuration28d: nil,
+            averageRestingHeartRate28d: nil,
+            averageHRV28d: nil,
+            averageWorkoutLoad28d: 110,
+            workoutDays7d: 3,
+            workoutDays28d: 8,
+            availableSignals: [.steps, .activeEnergy, .workoutLoad],
+            missingSignals: [.sleep, .hrv, .restingHeartRate]
+        )
+    }
+
+    private static func makeRecovery(status: RecoveryStatus) -> RecoverySummary {
+        RecoverySummary(
+            score: 64,
+            status: status,
+            title: "Moderate recovery",
+            explanation: "Recovery is acceptable after recent training.",
+            recommendedTraining: "Train based on how you feel.",
+            recommendedNutrition: "Stay on your usual plan.",
+            confidence: .moderate,
+            contributingFactors: [],
+            missingSignals: []
         )
     }
 
