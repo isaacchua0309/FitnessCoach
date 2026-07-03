@@ -9,24 +9,24 @@ import Foundation
 
 enum SettingsSupportMailURLBuilder {
 
-    static func url(for topic: SettingsSupportMailTopic) -> URL? {
+    static func url(
+        for topic: SettingsSupportMailTopic,
+        supportEmail: String,
+        diagnostics: SettingsSupportDiagnostics
+    ) -> URL? {
         var components = URLComponents()
         components.scheme = "mailto"
-        components.path = FormaProductCopy.Legal.supportEmail
+        components.path = supportEmail
         components.queryItems = [
-            URLQueryItem(name: "subject", value: subject(for: topic))
+            URLQueryItem(
+                name: "subject",
+                value: SettingsSupportMailContent.subject(for: topic)
+            ),
+            URLQueryItem(
+                name: "body",
+                value: SettingsSupportMailContent.messageBody(for: topic, diagnostics: diagnostics)
+            )
         ]
         return components.url
-    }
-
-    private static func subject(for topic: SettingsSupportMailTopic) -> String {
-        switch topic {
-        case .feedback:
-            return FormaProductCopy.Settings.Support.feedbackMailSubject
-        case .contactSupport:
-            return FormaProductCopy.Settings.Support.contactMailSubject
-        case .reportProblem:
-            return FormaProductCopy.Settings.Support.reportProblemMailSubject
-        }
     }
 }

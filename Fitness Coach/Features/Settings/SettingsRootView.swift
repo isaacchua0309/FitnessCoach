@@ -20,12 +20,14 @@ struct SettingsRootView: View {
     let onDismiss: () -> Void
 
     var featureAvailability: SettingsFeatureAvailability = .production
+    var supportConfiguration: SettingsSupportConfiguration = .production
     var isDebugOrInternalBuild: Bool = FormaBuildConfiguration.isDebugOrInternalBuild
     var bodyDetailsInput: BodyDetailsSettingsPresentationInput?
     var onUpdateInPlan: (() -> Void)?
 
     @State private var showsDeleteDataConfirmation = false
     @State private var showsDeleteUnavailableAlert = false
+    @State private var supportMailTopic: SettingsSupportMailTopic?
 
     private var resolvedBodyDetailsInput: BodyDetailsSettingsPresentationInput {
         bodyDetailsInput ?? BodyDetailsSettingsPresentationInput(formState: formState)
@@ -40,6 +42,7 @@ struct SettingsRootView: View {
                 appVersion: FormaAppMetadata.marketingVersion(),
                 featureAvailability: featureAvailability,
                 legalAvailability: .production,
+                supportConfiguration: supportConfiguration,
                 isDebugOrInternalBuild: isDebugOrInternalBuild
             )
         )
@@ -55,7 +58,9 @@ struct SettingsRootView: View {
                         await insightsStore.refresh()
                     }
                 section(presentationState.privacyData)
-                section(presentationState.support)
+                if let support = presentationState.support {
+                    section(support)
+                }
                 section(presentationState.about)
 
                 if let developer = presentationState.developer {
@@ -108,6 +113,18 @@ struct SettingsRootView: View {
             } message: {
                 Text(deleteDataPresentation.unavailableMessage)
             }
+            .sheet(item: $supportMailTopic) { topic in
+                #if canImport(MessageUI)
+                if let email = supportConfiguration.supportEmail {
+                    SettingsSupportMailComposer(
+                        topic: topic,
+                        supportEmail: email,
+                        diagnostics: SettingsSupportDiagnosticsBuilder.build(),
+                        onFinish: { supportMailTopic = nil }
+                    )
+                }
+                #endif
+            }
         }
     }
 
@@ -139,7 +156,7 @@ struct SettingsRootView: View {
 
     @ViewBuilder
     private func section(_ section: SettingsSupportSectionState) -> some View {
-        section(title: section.title, footer: nil, rows: section.rows)
+        section(title: section.title, footer: section.footer, rows: section.rows)
     }
 
     @ViewBuilder
@@ -260,7 +277,19 @@ struct SettingsRootView: View {
     }
 
     private func openSupportMail(_ topic: SettingsSupportMailTopic) {
-        guard let url = SettingsSupportMailURLBuilder.url(for: topic) else { return }
+        guard let email = supportConfiguration.supportEmail else { return }
+        let diagnostics = SettingsSupportDiagnosticsBuilder.build()
+
+        if SettingsSupportMailComposerCapability.canSendMail {
+            supportMailTopic = topic
+            return
+        }
+
+        guard let url = SettingsSupportMailURLBuilder.url(
+            for: topic,
+            supportEmail: email,
+            diagnostics: diagnostics
+        ) else { return }
         openURL(url)
     }
 

@@ -73,6 +73,7 @@ final class UnitsSettingsTests: XCTestCase {
                 appVersion: "1.0",
                 featureAvailability: .production,
                 legalAvailability: .production,
+                supportConfiguration: .production,
                 isDebugOrInternalBuild: false
             )
         )
@@ -96,6 +97,7 @@ final class UnitsSettingsTests: XCTestCase {
                 appVersion: "1.0",
                 featureAvailability: .production,
                 legalAvailability: .production,
+                supportConfiguration: .production,
                 isDebugOrInternalBuild: false
             )
         )

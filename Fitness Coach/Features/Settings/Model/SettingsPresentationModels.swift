@@ -41,10 +41,12 @@ enum SettingsRowDestination: Equatable, Sendable {
     case pipelineTraces
 }
 
-enum SettingsSupportMailTopic: String, CaseIterable, Sendable {
+enum SettingsSupportMailTopic: String, CaseIterable, Sendable, Identifiable {
     case feedback
     case contactSupport
     case reportProblem
+
+    var id: String { rawValue }
 }
 
 // MARK: - Rows and sections
@@ -86,6 +88,7 @@ struct SettingsPrivacyDataSectionState: Equatable, Sendable {
 struct SettingsSupportSectionState: Equatable, Sendable {
     let title: String
     let rows: [SettingsRowPresentation]
+    let footer: String?
 }
 
 struct SettingsAboutSectionState: Equatable, Sendable {
@@ -108,6 +111,7 @@ struct SettingsPresentationInput: Equatable, Sendable {
     let appVersion: String
     let featureAvailability: SettingsFeatureAvailability
     let legalAvailability: SettingsLegalAvailability
+    let supportConfiguration: SettingsSupportConfiguration
     let isDebugOrInternalBuild: Bool
 }
 
@@ -116,7 +120,7 @@ struct SettingsPresentationState: Equatable, Sendable {
     let preferences: SettingsPreferencesSectionState
     let integrations: SettingsIntegrationsSectionState
     let privacyData: SettingsPrivacyDataSectionState
-    let support: SettingsSupportSectionState
+    let support: SettingsSupportSectionState?
     let about: SettingsAboutSectionState
     let developer: SettingsDeveloperSectionState?
     let legalAvailability: SettingsLegalAvailability
@@ -132,7 +136,9 @@ struct SettingsPresentationState: Equatable, Sendable {
         rows += preferences.rows.map(\.id)
         rows += integrations.rows.map(\.id)
         rows += privacyData.rows.map(\.id)
-        rows += support.rows.map(\.id)
+        if let support {
+            rows += support.rows.map(\.id)
+        }
         rows += about.rows.map(\.id)
         if let developer {
             rows += developer.rows.map(\.id)

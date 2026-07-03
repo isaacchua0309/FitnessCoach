@@ -21,7 +21,9 @@ enum SettingsPresentationBuilder {
                 featureAvailability: input.featureAvailability,
                 legalAvailability: input.legalAvailability
             ),
-            support: supportSection(),
+            support: SettingsSupportPresentationBuilder.buildSection(
+                configuration: input.supportConfiguration
+            ),
             about: aboutSection(appVersion: input.appVersion),
             developer: developerSection(isDebugOrInternalBuild: input.isDebugOrInternalBuild),
             legalAvailability: input.legalAvailability,
@@ -138,29 +140,6 @@ enum SettingsPresentationBuilder {
             title: FormaProductCopy.Settings.Hub.privacyDataSectionTitle,
             rows: rows,
             footer: FormaProductCopy.Settings.PrivacyData.sectionFooter
-        )
-    }
-
-    private static func supportSection() -> SettingsSupportSectionState {
-        SettingsSupportSectionState(
-            title: FormaProductCopy.Settings.Hub.supportSectionTitle,
-            rows: [
-                row(
-                    id: .sendFeedback,
-                    title: FormaProductCopy.Settings.Rows.sendFeedback,
-                    destination: .supportMail(.feedback)
-                ),
-                row(
-                    id: .contactSupport,
-                    title: FormaProductCopy.Settings.Rows.contactSupport,
-                    destination: .supportMail(.contactSupport)
-                ),
-                row(
-                    id: .reportProblem,
-                    title: FormaProductCopy.Settings.Rows.reportProblem,
-                    destination: .supportMail(.reportProblem)
-                )
-            ]
         )
     }
 

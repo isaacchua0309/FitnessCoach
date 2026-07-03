@@ -2422,6 +2422,11 @@ enum FormaProductCopy {
             static let feedbackMailSubject = "Forma Feedback"
             static let contactMailSubject = "Forma Support"
             static let reportProblemMailSubject = "Forma Problem Report"
+            static let sectionFooter = "We read every message. Diagnostics help us troubleshoot — no health data is included."
+            static let diagnosticsHeader = "Diagnostics"
+            static let feedbackMailPrompt = "Share your feedback:"
+            static let contactMailPrompt = "How can we help?"
+            static let reportProblemMailPrompt = "What went wrong?"
         }
 
         enum Status {

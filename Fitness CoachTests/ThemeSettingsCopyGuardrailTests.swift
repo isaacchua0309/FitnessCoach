@@ -148,6 +148,7 @@ final class ThemeSettingsCopyGuardrailTests: XCTestCase {
                 appVersion: "1.0",
                 featureAvailability: .production,
                 legalAvailability: .production,
+                supportConfiguration: .production,
                 isDebugOrInternalBuild: false
             )
         )

@@ -19,6 +19,7 @@ final class ThemeSettingsViewTests: XCTestCase {
                 appVersion: "1.0",
                 featureAvailability: .production,
                 legalAvailability: .production,
+                supportConfiguration: .production,
                 isDebugOrInternalBuild: false
             )
         )
@@ -115,6 +116,7 @@ final class ThemeSettingsViewTests: XCTestCase {
                 appVersion: "1.0",
                 featureAvailability: .production,
                 legalAvailability: .production,
+                supportConfiguration: .production,
                 isDebugOrInternalBuild: false
             )
         )
@@ -144,6 +146,7 @@ final class ThemeSettingsViewTests: XCTestCase {
                         appVersion: "3.1.0",
                         featureAvailability: .production,
                         legalAvailability: .production,
+                        supportConfiguration: .production,
                         isDebugOrInternalBuild: false
                     )
                 )

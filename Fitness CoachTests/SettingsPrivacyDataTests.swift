@@ -24,6 +24,7 @@ final class SettingsPrivacyDataTests: XCTestCase {
                 appVersion: "1.0",
                 featureAvailability: .production,
                 legalAvailability: .production,
+                supportConfiguration: .production,
                 isDebugOrInternalBuild: false
             )
         )
@@ -44,6 +45,7 @@ final class SettingsPrivacyDataTests: XCTestCase {
                     isDeleteDataEnabled: true
                 ),
                 legalAvailability: .production,
+                supportConfiguration: .production,
                 isDebugOrInternalBuild: false
             )
         )
@@ -73,6 +75,7 @@ final class SettingsPrivacyDataTests: XCTestCase {
                 appVersion: "1.0",
                 featureAvailability: .production,
                 legalAvailability: availability,
+                supportConfiguration: .production,
                 isDebugOrInternalBuild: false
             )
         )
@@ -98,6 +101,7 @@ final class SettingsPrivacyDataTests: XCTestCase {
                 appVersion: "1.0",
                 featureAvailability: .production,
                 legalAvailability: availability,
+                supportConfiguration: .production,
                 isDebugOrInternalBuild: false
             )
         )
@@ -146,6 +150,7 @@ final class SettingsPrivacyDataTests: XCTestCase {
                 appVersion: "1.0",
                 featureAvailability: .production,
                 legalAvailability: .production,
+                supportConfiguration: .production,
                 isDebugOrInternalBuild: false
             )
         )

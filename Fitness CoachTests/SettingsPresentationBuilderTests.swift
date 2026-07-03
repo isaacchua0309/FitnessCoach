@@ -17,6 +17,7 @@ final class SettingsPresentationBuilderTests: XCTestCase {
         appVersion: String = "1.0",
         featureAvailability: SettingsFeatureAvailability = .production,
         legalAvailability: SettingsLegalAvailability = .production,
+        supportConfiguration: SettingsSupportConfiguration = .production,
         isDebugOrInternalBuild: Bool = false
     ) -> SettingsPresentationInput {
         SettingsPresentationInput(
@@ -26,6 +27,7 @@ final class SettingsPresentationBuilderTests: XCTestCase {
             appVersion: appVersion,
             featureAvailability: featureAvailability,
             legalAvailability: legalAvailability,
+            supportConfiguration: supportConfiguration,
             isDebugOrInternalBuild: isDebugOrInternalBuild
         )
     }
@@ -88,6 +90,16 @@ final class SettingsPresentationBuilderTests: XCTestCase {
         ])
         XCTAssertEqual(state.privacyData.rows.map(\.id), [.privacyPolicy, .termsOfService])
         XCTAssertEqual(state.about.rows.map(\.id), [.appVersion])
+        XCTAssertNotNil(state.support)
+        XCTAssertEqual(state.support?.rows.map(\.id), [.sendFeedback, .contactSupport, .reportProblem])
+    }
+
+    func testSupportSectionHiddenWhenEmailUnconfigured() {
+        let state = SettingsPresentationBuilder.build(
+            input: makeInput(supportConfiguration: .unconfigured)
+        )
+
+        XCTAssertNil(state.support)
     }
 
     func testStatusLabelsAppearWhenUseful() {
@@ -196,15 +208,36 @@ final class SettingsPresentationBuilderTests: XCTestCase {
         XCTAssertEqual(state.privacyData.rows.first(where: { $0.id == .deleteData })?.destination, .deleteData)
     }
 
-    func testSupportMailURLsUseSupportEmail() {
-        let feedbackURL = SettingsSupportMailURLBuilder.url(for: .feedback)
+    func testSupportMailURLsUseSupportEmailAndDiagnostics() {
+        let diagnostics = SettingsSupportDiagnosticsBuilder.build(
+            input: SettingsSupportDiagnosticsInput(
+                appVersion: "2.4.1",
+                buildNumber: "512",
+                deviceModel: "iPhone15,2",
+                systemVersion: "18.2"
+            )
+        )
+        let email = "support@forma.app"
+
+        let feedbackURL = SettingsSupportMailURLBuilder.url(
+            for: .feedback,
+            supportEmail: email,
+            diagnostics: diagnostics
+        )
         XCTAssertEqual(feedbackURL?.scheme, "mailto")
-        XCTAssertEqual(feedbackURL?.path, FormaProductCopy.Legal.supportEmail)
+        XCTAssertEqual(feedbackURL?.path, email)
 
         let components = URLComponents(url: feedbackURL!, resolvingAgainstBaseURL: false)
         XCTAssertEqual(components?.queryItems?.first(where: { $0.name == "subject" })?.value, "Forma Feedback")
+        XCTAssertTrue(components?.queryItems?.first(where: { $0.name == "body" })?.value?.contains("2.4.1") ?? false)
+        XCTAssertTrue(components?.queryItems?.first(where: { $0.name == "body" })?.value?.contains("iPhone15,2") ?? false)
+        XCTAssertTrue(SettingsSupportMailContent.isPrivacySafe(components?.queryItems?.first(where: { $0.name == "body" })?.value ?? ""))
 
-        let reportURL = SettingsSupportMailURLBuilder.url(for: .reportProblem)
+        let reportURL = SettingsSupportMailURLBuilder.url(
+            for: .reportProblem,
+            supportEmail: email,
+            diagnostics: diagnostics
+        )
         let reportComponents = URLComponents(url: reportURL!, resolvingAgainstBaseURL: false)
         XCTAssertEqual(
             reportComponents?.queryItems?.first(where: { $0.name == "subject" })?.value,
