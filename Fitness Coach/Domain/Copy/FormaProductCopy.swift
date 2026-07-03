@@ -1702,6 +1702,79 @@ enum FormaProductCopy {
             }
         }
 
+        enum HealthIntelligence {
+            static let loadingTitle = "Loading health insights"
+            static let loadingSubtitle = "Reviewing recovery and training patterns."
+            static let loadingAccessibilityLabel = "Loading health insights"
+            static let limitedEstimate = "Limited estimate"
+            static let unavailableTitle = "Health insights unavailable"
+            static let unavailableSubtitle = "Connect Apple Health or keep logging to unlock recovery trends."
+            static let errorTitle = "Couldn't load health insights"
+            static let errorSubtitle = "Pull to refresh or try again later."
+
+            enum WeeklyReview {
+                static let sectionTitle = "Weekly health review"
+            }
+
+            enum RecoveryTimeline {
+                static let sectionTitle = "Recovery timeline"
+                static let headline = "Last 7 days"
+                static let emptyMessage = "Recovery trends appear after a few days of synced signals."
+            }
+
+            enum WorkoutHistory {
+                static let sectionTitle = "Recent workouts"
+                static let headline = "Training history"
+                static let emptyMessage = "Workouts from Apple Health will show up here."
+            }
+
+            enum Milestones {
+                static let sectionTitle = "Health milestones"
+                static let headline = "Recent wins"
+                static let emptyMessage = "Weekly wins and focus areas appear as more data arrives."
+            }
+
+            enum Progress {
+                static let sectionTitle = "Health progress"
+                static let headline = "This week at a glance"
+                static let emptyMessage = "Weekly health progress unlocks with more synced activity."
+            }
+
+            static let milestoneAchieved = "Achieved"
+            static let milestoneInProgress = "In progress"
+            static let milestoneUpcoming = "Up next"
+
+            static func durationLabel(minutes: Int) -> String {
+                guard minutes > 0 else { return "—" }
+                if minutes >= 60 {
+                    let hours = minutes / 60
+                    let remainder = minutes % 60
+                    if remainder == 0 {
+                        return hours == 1 ? "1 hr" : "\(hours) hr"
+                    }
+                    return "\(hours) hr \(remainder) min"
+                }
+                return "\(minutes) min"
+            }
+
+            static func demandLabel(_ demand: String) -> String {
+                switch demand.lowercased() {
+                case "high": return "High demand"
+                case "moderate": return "Moderate demand"
+                case "low": return "Low demand"
+                default: return demand.capitalized
+                }
+            }
+
+            static func workoutsThisWeek(_ count: Int) -> String {
+                count == 1 ? "1 workout" : "\(count) workouts"
+            }
+
+            static func limitedRecoveryDays(_ count: Int) -> String {
+                count == 1 ? "1 day with limited recovery" : "\(count) days with limited recovery"
+            }
+        }
+
         enum Timeline {
             static let sectionTitle = "Your story"
             static let emptyBody = "Your story starts today."

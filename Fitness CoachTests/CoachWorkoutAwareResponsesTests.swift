@@ -6,6 +6,7 @@
 import XCTest
 @testable import Fitness_Coach
 
+@MainActor
 final class CoachWorkoutAwareResponsesTests: XCTestCase {
 
     private var calendar: Calendar {
