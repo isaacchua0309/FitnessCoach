@@ -129,8 +129,8 @@ final class OnboardingAppleHealthFlowTests: XCTestCase {
         XCTAssertEqual(copy.subtitle, OnboardingStep.appleHealth.subtitle)
     }
 
-    func testAppleHealthStepUsesFixedViewportShell() {
-        XCTAssertTrue(OnboardingStep.appleHealth.usesFixedViewportShell)
+    func testAppleHealthStepUsesUnifiedLayoutShell() {
+        XCTAssertTrue(OnboardingStep.appleHealth.usesUnifiedLayoutShell)
     }
 
     func testHealthKitAuthorizationRequestsReadOnlyTypes() {

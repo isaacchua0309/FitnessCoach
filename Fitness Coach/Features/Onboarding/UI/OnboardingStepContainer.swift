@@ -2,21 +2,26 @@
 //  OnboardingStepContainer.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Shared scrollable shell for onboarding steps.
+//  FitPilot AI — Shared shell for onboarding steps.
 //
 
 import SwiftUI
 
-struct OnboardingStepContainer<Content: View>: View {
+struct OnboardingStepContainer<Content: View, BottomBar: View>: View {
     let currentStep: OnboardingStep
     let viewState: OnboardingViewState
     let validationMessage: String?
     var keyboardHeight: CGFloat = 0
     @ObservedObject var fieldNavigator: OnboardingFieldNavigator
-    @ViewBuilder let content: Content
+    @ViewBuilder let bottomBar: () -> BottomBar
+    @ViewBuilder let content: () -> Content
 
     private var usesFullScreenShell: Bool {
         currentStep.usesFullScreenChrome
+    }
+
+    private var usesUnifiedLayoutShell: Bool {
+        currentStep.usesUnifiedLayoutShell
     }
 
     private var usesFixedViewportShell: Bool {
@@ -49,11 +54,17 @@ struct OnboardingStepContainer<Content: View>: View {
         Group {
             if usesFullScreenShell {
                 fullScreenShell
+            } else if usesUnifiedLayoutShell {
+                unifiedLayoutShell
             } else if usesFixedViewportShell {
                 fixedViewportShell
             } else {
                 scrollableShell
             }
+        }
+        .background(OnboardingTheme.background.ignoresSafeArea())
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            bottomBar()
         }
         .onChange(of: currentStep) { _, _ in
             fieldNavigator.clearFocus()
@@ -61,8 +72,52 @@ struct OnboardingStepContainer<Content: View>: View {
         }
     }
 
+    // MARK: - Unified layout (intro proof, Apple Health)
+
+    private var unifiedLayoutShell: some View {
+        GeometryReader { geometry in
+            let profile = OnboardingStepLayoutProfile.resolve(viewportHeight: geometry.size.height)
+            let showsSubtitle = !currentStep.subtitle.isEmpty
+            let contentHeight = OnboardingStepLayoutMetrics.contentAreaHeight(
+                viewportHeight: geometry.size.height,
+                step: currentStep,
+                profile: profile,
+                showsSubtitle: showsSubtitle
+            )
+
+            VStack(alignment: .leading, spacing: 0) {
+                OnboardingStageProgressHeader(
+                    currentStep: currentStep,
+                    showsSubtitle: showsSubtitle
+                )
+                .padding(.top, profile.progressTopPadding)
+
+                if showsContainerValidationBanner {
+                    OnboardingWarningBanner(message: validationMessage ?? "")
+                        .padding(.top, profile.sectionSpacing)
+                }
+
+                content()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .padding(.top, profile.chromeBottomSpacing)
+
+                if showsLoadingOverlay, let message = viewState.loadingOverlayMessage {
+                    OnboardingLoadingView(message: message)
+                        .padding(.top, profile.sectionSpacing)
+                }
+            }
+            .padding(.horizontal, OnboardingTheme.pagePadding)
+            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
+            .environment(\.onboardingStepContentHeight, contentHeight)
+            .environment(\.onboardingStepLayoutProfile, profile)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    // MARK: - Legacy shells
+
     private var fullScreenShell: some View {
-        content
+        content()
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .padding(.horizontal, OnboardingTheme.pagePadding)
             .padding(.top, 12)
@@ -77,7 +132,7 @@ struct OnboardingStepContainer<Content: View>: View {
                     .padding(.top, OnboardingLayout.progressHeaderTop)
             }
 
-            content
+            content()
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
             if showsLoadingOverlay, let message = viewState.loadingOverlayMessage {
@@ -99,7 +154,7 @@ struct OnboardingStepContainer<Content: View>: View {
                         OnboardingWarningBanner(message: validationMessage ?? "")
                     }
 
-                    content
+                    content()
 
                     if showsLoadingOverlay, let message = viewState.loadingOverlayMessage {
                         OnboardingLoadingView(message: message)

@@ -10,9 +10,9 @@ import SwiftUI
 struct OnboardingAppleHealthStepView: View {
     let screenState: OnboardingAppleHealthScreenState
 
+    @Environment(\.onboardingStepLayoutProfile) private var layoutProfile
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @State private var headerVisible = false
     @State private var heroVisible = false
     @State private var summaryVisible = false
     @State private var privacyVisible = false
@@ -20,17 +20,17 @@ struct OnboardingAppleHealthStepView: View {
 
     private let copy = FormaProductCopy.Onboarding.Flow.AppleHealth.self
 
+    private var sectionSpacing: CGFloat {
+        OnboardingStepLayoutMetrics.appleHealthSectionSpacing(profile: layoutProfile)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: OnboardingLayout.compactSectionSpacing) {
-            headerSection
+        VStack(alignment: .leading, spacing: sectionSpacing) {
             heroSection
             summarySection
             statusSection
             privacySection
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, OnboardingTheme.pagePadding)
-        .padding(.top, OnboardingLayout.progressHeaderTop)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(screenState.accessibilitySummary)
@@ -44,12 +44,6 @@ struct OnboardingAppleHealthStepView: View {
                 OnboardingHaptics.selectionChanged()
             }
         }
-    }
-
-    private var headerSection: some View {
-        OnboardingStageProgressHeader(currentStep: .appleHealth)
-            .opacity(headerVisible ? 1 : 0)
-            .offset(y: headerVisible ? 0 : 6)
     }
 
     private var heroSection: some View {
@@ -96,23 +90,19 @@ struct OnboardingAppleHealthStepView: View {
 
     private func runEntranceAnimation() {
         if reduceMotion {
-            headerVisible = true
             heroVisible = true
             summaryVisible = true
             privacyVisible = true
             return
         }
 
-        withAnimation(.easeOut(duration: 0.22)) {
-            headerVisible = true
-        }
-        withAnimation(.easeOut(duration: 0.24).delay(0.06)) {
+        withAnimation(.easeOut(duration: 0.24)) {
             heroVisible = true
         }
-        withAnimation(.easeOut(duration: 0.24).delay(0.12)) {
+        withAnimation(.easeOut(duration: 0.24).delay(0.06)) {
             summaryVisible = true
         }
-        withAnimation(.easeOut(duration: 0.22).delay(0.18)) {
+        withAnimation(.easeOut(duration: 0.22).delay(0.12)) {
             privacyVisible = true
         }
     }
@@ -137,61 +127,77 @@ private enum OnboardingAppleHealthPreviewFactory {
     }
 }
 
+private struct OnboardingAppleHealthPreviewShell: View {
+    let screenState: OnboardingAppleHealthScreenState
+
+    var body: some View {
+        OnboardingStepContainer(
+            currentStep: .appleHealth,
+            viewState: .editing,
+            validationMessage: nil,
+            fieldNavigator: OnboardingFieldNavigator(),
+            bottomBar: {
+                OnboardingBottomBar(
+                    currentStep: .appleHealth,
+                    isLoading: false,
+                    canContinue: true,
+                    appleHealthPrimaryTitle: screenState.primaryTitle,
+                    appleHealthSecondaryTitle: screenState.secondaryTitle,
+                    isAppleHealthPrimaryEnabled: screenState.isPrimaryEnabled,
+                    isAppleHealthSkipEnabled: screenState.isSkipEnabled,
+                    onAppleHealthSkip: {},
+                    onBack: {},
+                    onContinue: {},
+                    onComplete: {}
+                )
+            }
+        ) {
+            OnboardingAppleHealthStepView(screenState: screenState)
+        }
+    }
+}
+
 #Preview("Apple Health — Ready") {
-    OnboardingAppleHealthStepView(
+    OnboardingAppleHealthPreviewShell(
         screenState: OnboardingAppleHealthPreviewFactory.screenState(for: .ready)
     )
-    .background(OnboardingTheme.background)
     .formaThemePreview()
 }
 
 #Preview("Apple Health — Requesting") {
-    OnboardingAppleHealthStepView(
+    OnboardingAppleHealthPreviewShell(
         screenState: OnboardingAppleHealthPreviewFactory.screenState(for: .requesting)
     )
-    .background(OnboardingTheme.background)
     .formaThemePreview()
 }
 
 #Preview("Apple Health — Connected") {
-    OnboardingAppleHealthStepView(
+    OnboardingAppleHealthPreviewShell(
         screenState: OnboardingAppleHealthPreviewFactory.screenState(for: .connected)
     )
-    .background(OnboardingTheme.background)
     .formaThemePreview()
 }
 
 #Preview("Apple Health — Denied") {
-    OnboardingAppleHealthStepView(
+    OnboardingAppleHealthPreviewShell(
         screenState: OnboardingAppleHealthPreviewFactory.screenState(for: .denied)
     )
-    .background(OnboardingTheme.background)
     .formaThemePreview()
 }
 
 #Preview("Apple Health — Unavailable") {
-    OnboardingAppleHealthStepView(
+    OnboardingAppleHealthPreviewShell(
         screenState: OnboardingAppleHealthPreviewFactory.screenState(for: .unavailable)
     )
-    .background(OnboardingTheme.background)
     .formaThemePreview()
 }
 
 #Preview("Apple Health — Failed") {
-    OnboardingAppleHealthStepView(
+    OnboardingAppleHealthPreviewShell(
         screenState: OnboardingAppleHealthPreviewFactory.screenState(
             for: .failed(message: "HealthKit unavailable")
         )
     )
-    .background(OnboardingTheme.background)
-    .formaThemePreview()
-}
-
-#Preview("Apple Health — Small iPhone") {
-    OnboardingAppleHealthStepView(
-        screenState: OnboardingAppleHealthPreviewFactory.screenState(for: .ready)
-    )
-    .background(OnboardingTheme.background)
     .formaThemePreview()
 }
 #endif

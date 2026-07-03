@@ -231,8 +231,24 @@ enum OnboardingComponentsPreviewCatalog {
 
     @ViewBuilder
     static var introProof: some View {
-        OnboardingIntroProofStepView()
-            .padding(.horizontal, OnboardingTheme.pagePadding)
+        OnboardingStepContainer(
+            currentStep: .introProof,
+            viewState: .editing,
+            validationMessage: nil,
+            fieldNavigator: OnboardingFieldNavigator(),
+            bottomBar: {
+                OnboardingBottomBar(
+                    currentStep: .introProof,
+                    isLoading: false,
+                    canContinue: true,
+                    onBack: {},
+                    onContinue: {},
+                    onComplete: {}
+                )
+            }
+        ) {
+            OnboardingIntroProofStepView()
+        }
     }
 
     @ViewBuilder
