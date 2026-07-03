@@ -1741,12 +1741,16 @@ enum FormaProductCopy {
                 FormaProductCopy.HealthIntelligence.SyncFailed.title
             static let errorSubtitle =
                 FormaProductCopy.HealthIntelligence.message(for: .syncFailed, surface: .journey).bannerMessage
+            static let staleDataLabel = FormaProductCopy.Today.HealthIntelligence.staleDataLabel
+            static let syncFailedWithCacheLabel = FormaProductCopy.Today.HealthIntelligence.syncFailedWithCacheLabel
 
             enum RecoveryTimeline {
                 static let sectionTitle = "Recovery timeline"
                 static let headline = "Last 7 days"
                 static let headline14Days = "Last 14 days"
                 static let emptyMessage = "Recovery trends appear after a few days of synced signals."
+                static let limitedTimelineNote =
+                    "Limited timeline — recovery history is still building from Apple Health."
             }
 
             enum WorkoutHistory {
@@ -3160,6 +3164,11 @@ enum FormaProductCopy {
         static let loadingSubtitle = "Summarizing your week."
         static let loadingAccessibilityLabel = "Loading weekly health review"
         static let emptyTitle = "Weekly review building"
+        static let notEnoughDataTitle = "Not enough data yet"
+        static let notEnoughDataSummary =
+            "Log meals, workouts, and recovery signals for at least 7 days to unlock your weekly review."
+        static let notEnoughDataRequirements =
+            "Requires: 7 days of activity or recovery signals, plus consistent meal logging."
         static let emptySummary =
             "Keep logging meals, workouts, and recovery signals to unlock your weekly health review."
         static let emptyAccessibilityLabel = "Weekly health review unavailable. Keep logging to unlock it."
@@ -3266,6 +3275,8 @@ enum FormaProductCopy {
         static let confidenceSectionTitle = "Plan confidence"
         static let assumptionsSectionTitle = "What shapes your plan"
         static let dataQualitySectionTitle = "Health signals in use"
+        static let coreSignalsSectionTitle = "Health signals in use"
+        static let missingSignalsSectionTitle = "Optional improvements"
         static let dataQualityCardSectionTitle = "Data quality"
         static let confidenceReasonsHeading = "What Forma is using"
 
@@ -3315,11 +3326,11 @@ enum FormaProductCopy {
         static let dataQualityLimitedExplanation =
             "Plan-fit guidance stays cautious until more health and logging data arrives."
 
-        static let signalAppleHealthWorkouts = "Apple Health workouts"
-        static let signalStepHistory = "Step history"
+        static let signalAppleHealthWorkouts = "Workouts"
+        static let signalStepHistory = "Steps"
         static let signalActiveEnergy = "Active energy"
         static let signalSleep = "Sleep"
-        static let signalHeartMetrics = "Heart recovery signals"
+        static let signalHeartMetrics = "Heart recovery"
         static let signalWeight = "Weight"
         static let signalNutrition = "Nutrition logs"
 

@@ -28,6 +28,10 @@ final class JourneyModel: ObservableObject {
     private let healthIntelligenceLoadEnabled: () -> Bool
     private let healthIntelligenceUIEnabled: () -> Bool
     private let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
+    private let healthSyncPhaseProvider: () -> HealthSyncPhase?
+    private let lastSuccessfulLocalSyncAtProvider: () -> Date?
+    private let remoteSyncConsentDecisionProvider: () -> HealthSummarySyncConsentDecision
+    private let isRemoteSyncCapabilityEnabled: () -> Bool
 
     init(
         dailyLogReader: any DailyLogReading,
@@ -43,7 +47,11 @@ final class JourneyModel: ObservableObject {
         healthDataRepository: (any HealthDataRepositorying)? = nil,
         healthIntelligenceLoadEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.shouldJourneyModelLoadHealthIntelligence },
         healthIntelligenceUIEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.isUIEnabled },
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
+        healthSyncPhaseProvider: @escaping () -> HealthSyncPhase? = { nil },
+        lastSuccessfulLocalSyncAtProvider: @escaping () -> Date? = { nil },
+        remoteSyncConsentDecisionProvider: @escaping () -> HealthSummarySyncConsentDecision = { .notDetermined },
+        isRemoteSyncCapabilityEnabled: @escaping () -> Bool = { false }
     ) {
         self.dailyLogReader = dailyLogReader
         self.weightLogReader = weightLogReader
@@ -59,6 +67,10 @@ final class JourneyModel: ObservableObject {
         self.healthIntelligenceLoadEnabled = healthIntelligenceLoadEnabled
         self.healthIntelligenceUIEnabled = healthIntelligenceUIEnabled
         self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
+        self.healthSyncPhaseProvider = healthSyncPhaseProvider
+        self.lastSuccessfulLocalSyncAtProvider = lastSuccessfulLocalSyncAtProvider
+        self.remoteSyncConsentDecisionProvider = remoteSyncConsentDecisionProvider
+        self.isRemoteSyncCapabilityEnabled = isRemoteSyncCapabilityEnabled
     }
 
     // MARK: Loading
@@ -124,7 +136,7 @@ final class JourneyModel: ObservableObject {
             try Task.checkCancellation()
 
             journeyHealthIntelligenceSectionState = JourneyHealthIntelligencePresentationBuilder.buildSection(
-                input: input,
+                input: enrichedInput(from: input),
                 isUIEnabled: uiEnabled
             ) ?? fallbackHealthIntelligenceSection(
                 isAppleHealthConnected: trainingInsightsStore.integrationState.isConnected,
@@ -146,7 +158,9 @@ final class JourneyModel: ObservableObject {
         } catch {
             journeyHealthIntelligenceSectionState = fallbackHealthIntelligenceSection(
                 isAppleHealthConnected: trainingInsightsStore.integrationState.isConnected,
-                uiEnabled: uiEnabled
+                uiEnabled: uiEnabled,
+                errorMessage: "load_failed",
+                syncPhase: healthSyncPhaseProvider()
             )
 
             let analyticsContext = HealthIntelligencePresentationContext(
@@ -163,16 +177,38 @@ final class JourneyModel: ObservableObject {
 
     private func fallbackHealthIntelligenceSection(
         isAppleHealthConnected: Bool,
-        uiEnabled: Bool
+        uiEnabled: Bool,
+        errorMessage: String? = nil,
+        syncPhase: HealthSyncPhase? = nil
     ) -> JourneyHealthIntelligenceSectionState? {
         guard uiEnabled else { return nil }
 
+        let input = JourneyHealthIntelligenceBuildInput(
+            healthConnection: isAppleHealthConnected ? .connected : .notConnected,
+            errorMessage: errorMessage,
+            syncPhase: syncPhase,
+            lastSuccessfulLocalSyncAt: lastSuccessfulLocalSyncAtProvider(),
+            isRemoteSyncCapabilityEnabled: isRemoteSyncCapabilityEnabled(),
+            remoteSyncConsentDecision: remoteSyncConsentDecisionProvider()
+        )
+
         return JourneyHealthIntelligencePresentationBuilder.buildSection(
-            input: JourneyHealthIntelligenceBuildInput(
-                healthConnection: isAppleHealthConnected ? .connected : .notConnected
-            ),
+            input: enrichedInput(from: input),
             isUIEnabled: true
         )
+    }
+
+    private func enrichedInput(
+        from input: JourneyHealthIntelligenceBuildInput
+    ) -> JourneyHealthIntelligenceBuildInput {
+        var enriched = input
+        enriched.syncPhase = input.syncPhase ?? healthSyncPhaseProvider()
+        enriched.lastSuccessfulLocalSyncAt = input.lastSuccessfulLocalSyncAt ?? lastSuccessfulLocalSyncAtProvider()
+        enriched.isRemoteSyncCapabilityEnabled = input.isRemoteSyncCapabilityEnabled || isRemoteSyncCapabilityEnabled()
+        enriched.remoteSyncConsentDecision = input.remoteSyncConsentDecision == .notDetermined
+            ? remoteSyncConsentDecisionProvider()
+            : input.remoteSyncConsentDecision
+        return enriched
     }
 
     // MARK: State Building

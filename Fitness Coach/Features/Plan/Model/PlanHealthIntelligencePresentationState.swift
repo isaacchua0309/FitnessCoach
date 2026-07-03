@@ -183,8 +183,12 @@ struct PlanHealthIntelligenceSectionState: Equatable, Sendable, Codable {
     var confidenceCard: PlanHealthConfidenceCardState
     var assumptions: PlanHealthAssumptionsState
     var dataQuality: PlanHealthDataQualityState
+    var coreSignals: [PlanHealthSignalState]
     var missingDataActions: [PlanHealthMissingDataActionState]
     var isLoading: Bool
+    var fallbackMessage: String?
+    var staleDataLabel: String?
+    var uiState: HealthIntelligenceUIState?
     var accessibilityLabel: String
 }
 
@@ -196,9 +200,16 @@ struct PlanHealthIntelligenceBuildInput: Equatable, Sendable {
     var recovery: RecoverySummary?
     var userPlan: UserPlanContext
     var healthConnection: PlanHealthConnectionState
+    var healthAvailability: HealthDataAvailability?
     var hasNutritionLogging: Bool
     var hasRecentWeightLog: Bool
+    var cachedDayCount: Int
     var isLoading: Bool
+    var errorMessage: String?
+    var syncPhase: HealthSyncPhase?
+    var lastSuccessfulLocalSyncAt: Date?
+    var isRemoteSyncCapabilityEnabled: Bool
+    var remoteSyncConsentDecision: HealthSummarySyncConsentDecision
 
     init(
         planConfidence: PlanHealthConfidence = .unknown,
@@ -206,18 +217,32 @@ struct PlanHealthIntelligenceBuildInput: Equatable, Sendable {
         recovery: RecoverySummary? = nil,
         userPlan: UserPlanContext = UserPlanContext(),
         healthConnection: PlanHealthConnectionState = .disconnected,
+        healthAvailability: HealthDataAvailability? = nil,
         hasNutritionLogging: Bool = false,
         hasRecentWeightLog: Bool = false,
-        isLoading: Bool = false
+        cachedDayCount: Int = 0,
+        isLoading: Bool = false,
+        errorMessage: String? = nil,
+        syncPhase: HealthSyncPhase? = nil,
+        lastSuccessfulLocalSyncAt: Date? = nil,
+        isRemoteSyncCapabilityEnabled: Bool = false,
+        remoteSyncConsentDecision: HealthSummarySyncConsentDecision = .notDetermined
     ) {
         self.planConfidence = planConfidence
         self.baselineContext = baselineContext
         self.recovery = recovery
         self.userPlan = userPlan
         self.healthConnection = healthConnection
+        self.healthAvailability = healthAvailability
         self.hasNutritionLogging = hasNutritionLogging
         self.hasRecentWeightLog = hasRecentWeightLog
+        self.cachedDayCount = cachedDayCount
         self.isLoading = isLoading
+        self.errorMessage = errorMessage
+        self.syncPhase = syncPhase
+        self.lastSuccessfulLocalSyncAt = lastSuccessfulLocalSyncAt
+        self.isRemoteSyncCapabilityEnabled = isRemoteSyncCapabilityEnabled
+        self.remoteSyncConsentDecision = remoteSyncConsentDecision
     }
 
     static func from(
@@ -238,8 +263,10 @@ struct PlanHealthIntelligenceBuildInput: Equatable, Sendable {
                 isAppleHealthConnected: userPlan.isAppleHealthConnected,
                 availability: healthAvailability
             ),
+            healthAvailability: healthAvailability,
             hasNutritionLogging: hasNutritionLogging,
             hasRecentWeightLog: hasRecentWeightLog,
+            cachedDayCount: healthAvailability?.cachedDayCount ?? 0,
             isLoading: isLoading
         )
     }

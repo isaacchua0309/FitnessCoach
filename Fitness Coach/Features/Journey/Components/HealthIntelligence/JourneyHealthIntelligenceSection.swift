@@ -15,8 +15,16 @@ struct JourneyHealthIntelligenceSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.sectionSpacing) {
+            if let staleDataLabel = state.staleDataLabel {
+                journeyInfoBanner(label: staleDataLabel)
+            }
+
             if let connectCTA = state.connectHealthCTA {
                 connectHealthCard(connectCTA)
+            }
+
+            if let partialSignalsNote = state.partialSignalsNote {
+                journeyInfoBanner(label: partialSignalsNote)
             }
 
             if let weeklyReviewCard = state.weeklyReviewCard {
@@ -51,6 +59,11 @@ struct JourneyHealthIntelligenceSection: View {
                 state: state.progress,
                 isLoading: state.isLoading
             )
+
+            if let fallbackMessage = state.fallbackMessage,
+               state.connectHealthCTA == nil {
+                journeyInfoBanner(label: fallbackMessage)
+            }
         }
         .accessibilityIdentifier("journey-health-intelligence-section")
         .formaThemeReactive()
@@ -129,6 +142,17 @@ struct JourneyHealthIntelligenceSection: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(cta.accessibilityLabel)
         .accessibilityIdentifier("journey-hi-connect-health-card")
+    }
+
+    @ViewBuilder
+    private func journeyInfoBanner(label: String) -> some View {
+        JourneyCard(elevation: .quiet) {
+            Text(label)
+                .font(JourneyTypography.cardSupporting)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .healthIntelligenceMultilineText()
+        }
+        .accessibilityIdentifier("journey-hi-fallback-banner")
     }
 }
 
@@ -209,6 +233,44 @@ struct JourneyHealthIntelligenceSection: View {
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
     .preferredColorScheme(.dark)
+}
+
+#Preview("Partial permission") {
+    ScrollView {
+        JourneyHealthIntelligenceSection(
+            state: JourneyHealthIntelligencePreviewData.partialPermission,
+            onConnectHealth: {}
+        )
+        .padding(.horizontal, JourneyLayout.horizontalPadding)
+        .padding(.vertical, FormaTokens.Spacing.md)
+    }
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
+#Preview("Sync failed — cached data") {
+    ScrollView {
+        JourneyHealthIntelligenceSection(
+            state: JourneyHealthIntelligencePreviewData.syncFailedWithCache,
+            onWeeklyReviewSelected: { _ in }
+        )
+        .padding(.horizontal, JourneyLayout.horizontalPadding)
+        .padding(.vertical, FormaTokens.Spacing.md)
+    }
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
+#Preview("Building weekly review") {
+    ScrollView {
+        JourneyHealthIntelligenceSection(
+            state: JourneyHealthIntelligencePreviewData.buildingWeeklyReview
+        )
+        .padding(.horizontal, JourneyLayout.horizontalPadding)
+        .padding(.vertical, FormaTokens.Spacing.md)
+    }
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
 }
 
 #Preview("Accessibility — Large Text") {

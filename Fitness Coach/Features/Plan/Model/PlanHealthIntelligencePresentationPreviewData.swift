@@ -93,6 +93,27 @@ enum PlanHealthIntelligencePresentationPreviewData {
         )
     }
 
+    static var degradedDisconnected: PlanHealthIntelligenceSectionState {
+        disconnected
+    }
+
+    static var staleData: PlanHealthIntelligenceSectionState {
+        PlanHealthIntelligencePresentationBuilder.buildSection(
+            input: PlanHealthIntelligenceBuildInput(
+                planConfidence: PlanHealthConfidence(score: 0.62, label: "Moderate"),
+                baselineContext: partialBaseline,
+                recovery: makeRecovery(status: .moderate),
+                userPlan: connectedPlan,
+                healthConnection: .connected,
+                hasNutritionLogging: true,
+                hasRecentWeightLog: false,
+                cachedDayCount: 10,
+                lastSuccessfulLocalSyncAt: referenceDay.addingTimeInterval(-48 * 60 * 60)
+            ),
+            calendar: calendar
+        )
+    }
+
     private static var connectedPlan: UserPlanContext {
         UserPlanContext(
             calorieTarget: 2_200,

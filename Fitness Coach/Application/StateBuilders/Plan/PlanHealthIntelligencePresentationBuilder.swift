@@ -20,18 +20,24 @@ enum PlanHealthIntelligencePresentationBuilder {
             return loadingSection()
         }
 
-        let signals = healthSignals(from: input)
-        let dataQuality = dataQuality(from: input, signals: signals)
-        let confidenceCard = confidenceCard(from: input, dataQuality: dataQuality)
-        let assumptions = assumptions(from: input)
-        let missingDataActions = missingDataActions(from: input)
+        let uiState = resolveUIState(from: input)
+        let allSignals = healthSignals(from: input)
+        let coreSignals = coreHealthSignals(from: input, allSignals: allSignals)
+        let dataQuality = dataQuality(from: input, signals: allSignals)
+        let confidenceCard = confidenceCard(from: input, dataQuality: dataQuality, uiState: uiState)
+        let assumptions = assumptions(from: input, uiState: uiState)
+        let missingDataActions = missingDataActions(from: input, coreSignals: coreSignals)
 
         return PlanHealthIntelligenceSectionState(
             confidenceCard: confidenceCard,
             assumptions: assumptions,
             dataQuality: dataQuality,
+            coreSignals: coreSignals,
             missingDataActions: missingDataActions,
             isLoading: false,
+            fallbackMessage: fallbackMessage(for: uiState),
+            staleDataLabel: staleDataLabel(for: uiState),
+            uiState: uiState,
             accessibilityLabel: sectionAccessibilityLabel(
                 confidenceCard: confidenceCard,
                 assumptions: assumptions,
@@ -67,21 +73,16 @@ enum PlanHealthIntelligencePresentationBuilder {
 
     static func confidenceCard(
         from input: PlanHealthIntelligenceBuildInput,
-        dataQuality: PlanHealthDataQualityState
+        dataQuality: PlanHealthDataQualityState,
+        uiState: HealthIntelligenceUIState? = nil
     ) -> PlanHealthConfidenceCardState {
         let copy = FormaProductCopy.PlanHealthIntelligencePresentation.self
-        let confidence = input.planConfidence
-        let hasAnySignal = hasRenderableSignals(input)
-
-        guard hasAnySignal || confidence.score > 0 else {
-            return .empty
-        }
-
+        let confidence = degradedConfidence(from: input, dataQuality: dataQuality, uiState: uiState)
         let label = copy.confidenceLabel(for: confidence)
         let scorePercent = confidence.score > 0 ? Int((confidence.score * 100).rounded()) : nil
         let headline = copy.confidenceHeadline(label: label)
         let summary = copy.confidenceSummary(score: confidence.score, label: label)
-        let reasons = confidenceReasons(from: input, label: label)
+        let reasons = confidenceReasons(from: input, label: label, uiState: uiState)
 
         return PlanHealthConfidenceCardState(
             phase: .loaded,
@@ -131,8 +132,15 @@ enum PlanHealthIntelligencePresentationBuilder {
     // MARK: - Assumptions
 
     static func assumptions(from input: PlanHealthIntelligenceBuildInput) -> PlanHealthAssumptionsState {
+        assumptions(from: input, uiState: nil)
+    }
+
+    static func assumptions(
+        from input: PlanHealthIntelligenceBuildInput,
+        uiState: HealthIntelligenceUIState?
+    ) -> PlanHealthAssumptionsState {
         let copy = FormaProductCopy.PlanHealthIntelligencePresentation.self
-        let items = assumptionItems(from: input)
+        let items = assumptionItems(from: input, uiState: uiState)
         let summary: String
 
         if items.contains(where: { !$0.isLimited }) {
@@ -155,6 +163,14 @@ enum PlanHealthIntelligencePresentationBuilder {
 
     static func missingDataActions(
         from input: PlanHealthIntelligenceBuildInput
+    ) -> [PlanHealthMissingDataActionState] {
+        let coreSignals = coreHealthSignals(from: input)
+        return missingDataActions(from: input, coreSignals: coreSignals)
+    }
+
+    static func missingDataActions(
+        from input: PlanHealthIntelligenceBuildInput,
+        coreSignals: [PlanHealthSignalState]
     ) -> [PlanHealthMissingDataActionState] {
         let copy = FormaProductCopy.PlanHealthIntelligencePresentation.self
         let baseline = input.baselineContext
@@ -230,7 +246,175 @@ enum PlanHealthIntelligencePresentationBuilder {
             )
         }
 
-        return actions
+        return deduplicatedMissingActions(actions, coreSignals: coreSignals)
+    }
+
+    // MARK: - Core health signals
+
+    static func coreHealthSignals(
+        from input: PlanHealthIntelligenceBuildInput,
+        allSignals: [PlanHealthSignalState]? = nil
+    ) -> [PlanHealthSignalState] {
+        let resolved = allSignals ?? healthSignals(from: input)
+        let coreKinds: [PlanHealthSignalKind] = [
+            .appleHealthWorkouts,
+            .stepHistory,
+            .sleep,
+            .heartMetrics,
+            .weight
+        ]
+        return coreKinds.compactMap { kind in
+            resolved.first { $0.kind == kind }
+        }
+    }
+
+    // MARK: - UI state
+
+    private static func resolveUIState(from input: PlanHealthIntelligenceBuildInput) -> HealthIntelligenceUIState {
+        let presentationContext = HealthIntelligencePresentationContext(
+            isLoading: input.isLoading,
+            explicitErrorMessage: input.errorMessage,
+            syncPhase: input.syncPhase,
+            availability: input.healthAvailability,
+            snapshot: syntheticSnapshot(from: input),
+            isAppleHealthConnected: input.healthConnection != .disconnected,
+            cachedDayCount: input.cachedDayCount
+        )
+
+        let uiContext = HealthIntelligenceUIContext.from(
+            presentationContext: presentationContext,
+            baseline: input.baselineContext,
+            lastSuccessfulLocalSyncAt: input.lastSuccessfulLocalSyncAt,
+            isRemoteSyncCapabilityEnabled: input.isRemoteSyncCapabilityEnabled,
+            remoteSyncConsentDecision: input.remoteSyncConsentDecision,
+            surface: .plan
+        )
+
+        return HealthIntelligenceUIStateMapper.resolve(uiContext)
+    }
+
+    private static func syntheticSnapshot(from input: PlanHealthIntelligenceBuildInput) -> HealthIntelligenceSnapshot {
+        let hasWorkoutHistory = (input.baselineContext.workoutDays7d ?? 0) > 0
+            || (input.baselineContext.workoutDays28d ?? 0) > 0
+
+        return HealthIntelligenceSnapshot(
+            date: input.baselineContext.targetDate,
+            recovery: input.recovery ?? .unknown,
+            workout: hasWorkoutHistory
+                ? WorkoutSummary(
+                    hasWorkout: true,
+                    primaryWorkoutType: nil,
+                    title: "Workout",
+                    workoutCount: input.baselineContext.workoutDays7d ?? 1,
+                    totalDurationMinutes: 0,
+                    totalActiveCalories: nil,
+                    intensity: .unknown,
+                    demand: .unknown,
+                    latestWorkoutStart: nil,
+                    latestWorkoutEnd: nil,
+                    nutritionAdvice: "",
+                    hydrationAdviceMl: 0,
+                    explanation: "",
+                    confidence: .low,
+                    sourceSummary: ""
+                )
+                : nil,
+            activity: ActivitySummary(
+                steps: input.baselineContext.averageSteps7d ?? input.baselineContext.averageSteps28d,
+                activeEnergyKcal: input.baselineContext.averageActiveEnergy7d.map { Int($0.rounded()) },
+                exerciseMinutes: nil
+            ),
+            nutritionAdjustment: .none,
+            weeklyReview: nil,
+            planConfidence: input.planConfidence,
+            nextBestAction: input.healthConnection == .disconnected
+                ? NextBestAction(
+                    id: "connect-health",
+                    title: "Connect Apple Health",
+                    message: "",
+                    ctaTitle: "",
+                    destination: .none,
+                    priority: 1,
+                    reason: .connectHealth,
+                    createdAt: input.baselineContext.targetDate,
+                    expiresAt: nil
+                )
+                : .none
+        )
+    }
+
+    private static func degradedConfidence(
+        from input: PlanHealthIntelligenceBuildInput,
+        dataQuality: PlanHealthDataQualityState,
+        uiState: HealthIntelligenceUIState?
+    ) -> PlanHealthConfidence {
+        if input.planConfidence.score > 0 {
+            return input.planConfidence
+        }
+
+        switch dataQuality.qualityLevel {
+        case .strong:
+            return PlanHealthConfidence(score: 0.72, label: "Moderate")
+        case .moderate:
+            return PlanHealthConfidence(score: 0.55, label: "Moderate")
+        case .limited:
+            if input.healthConnection == .disconnected {
+                return PlanHealthConfidence(score: 0, label: "Unknown")
+            }
+            return PlanHealthConfidence(score: 0.35, label: "Limited")
+        }
+    }
+
+    private static func fallbackMessage(for uiState: HealthIntelligenceUIState) -> String? {
+        switch uiState.kind {
+        case .ready, .loading, .staleData:
+            return nil
+        case .partialPermission, .noSleepData, .noHeartData, .noWorkoutHistory, .notEnoughBaseline:
+            return uiState.message
+        case .syncFailed:
+            return uiState.canShowInsight ? nil : uiState.message
+        case .noHealthPermission, .healthKitUnavailable:
+            return uiState.message
+        case .remoteSyncDisabled, .unknown:
+            return uiState.message
+        }
+    }
+
+    private static func staleDataLabel(for uiState: HealthIntelligenceUIState) -> String? {
+        switch uiState.kind {
+        case .staleData:
+            return FormaProductCopy.Today.HealthIntelligence.staleDataLabel
+        case .syncFailed where uiState.canShowInsight:
+            return FormaProductCopy.Today.HealthIntelligence.syncFailedWithCacheLabel
+        default:
+            return nil
+        }
+    }
+
+    private static func deduplicatedMissingActions(
+        _ actions: [PlanHealthMissingDataActionState],
+        coreSignals: [PlanHealthSignalState]
+    ) -> [PlanHealthMissingDataActionState] {
+        let missingCoreKinds = Set(
+            coreSignals.filter { $0.status == .missing || $0.status == .limited }.map(\.kind)
+        )
+
+        return actions.filter { action in
+            switch action.id {
+            case "connect-health", "partial-permissions":
+                return true
+            case "sleep":
+                return missingCoreKinds.contains(.sleep)
+            case "heart-metrics":
+                return missingCoreKinds.contains(.heartMetrics)
+            case "weight":
+                return missingCoreKinds.contains(.weight)
+            case "nutrition":
+                return true
+            default:
+                return true
+            }
+        }
     }
 
     // MARK: - Health signals
@@ -377,13 +561,16 @@ enum PlanHealthIntelligencePresentationBuilder {
         return [workouts, steps, activeEnergy, sleep, heartMetrics, weight, nutrition]
     }
 
-    private static func assumptionItems(from input: PlanHealthIntelligenceBuildInput) -> [PlanAssumptionItemState] {
+    private static func assumptionItems(
+        from input: PlanHealthIntelligenceBuildInput,
+        uiState: HealthIntelligenceUIState? = nil
+    ) -> [PlanAssumptionItemState] {
         let copy = FormaProductCopy.PlanHealthIntelligencePresentation.self
         let baseline = input.baselineContext
         let recovery = input.recovery ?? .unknown
         let stepsValue = baseline.averageSteps7d ?? baseline.averageSteps28d
 
-        let items: [(String, String, String, Bool)] = [
+        var rows: [(String, String, String, Bool)] = [
             (
                 "average-steps",
                 copy.assumptionAverageSteps,
@@ -422,7 +609,48 @@ enum PlanHealthIntelligencePresentationBuilder {
             )
         ]
 
-        return items.map { id, label, value, isLimited in
+        if baseline.missingSignals.contains(.sleep) {
+            rows.append((
+                "sleep-assumption",
+                copy.signalSleep,
+                copy.signalUnavailable,
+                true
+            ))
+        }
+
+        if baseline.missingSignals.contains(.hrv)
+            || baseline.missingSignals.contains(.restingHeartRate) {
+            rows.append((
+                "heart-assumption",
+                copy.signalHeartMetrics,
+                copy.signalUnavailable,
+                true
+            ))
+        }
+
+        if !input.hasRecentWeightLog {
+            rows.append((
+                "weight-assumption",
+                copy.signalWeight,
+                copy.signalUnavailable,
+                true
+            ))
+        }
+
+        if let uiState {
+            for availability in uiState.missingSignals where availability.isMissing {
+                let label = coreSignalLabel(for: availability.kind)
+                guard !rows.contains(where: { $0.1 == label }) else { continue }
+                rows.append((
+                    "missing-\(availability.kind.rawValue)",
+                    label,
+                    copy.signalUnavailable,
+                    true
+                ))
+            }
+        }
+
+        return rows.map { id, label, value, isLimited in
             PlanAssumptionItemState(
                 id: id,
                 label: label,
@@ -436,9 +664,28 @@ enum PlanHealthIntelligencePresentationBuilder {
         }
     }
 
+    private static func coreSignalLabel(for kind: HealthInsightKind) -> String {
+        let copy = FormaProductCopy.PlanHealthIntelligencePresentation.self
+        switch kind {
+        case .workouts:
+            return copy.signalAppleHealthWorkouts
+        case .steps, .activeEnergy, .exerciseMinutes:
+            return copy.signalStepHistory
+        case .sleep:
+            return copy.signalSleep
+        case .restingHeartRate, .hrv:
+            return copy.signalHeartMetrics
+        case .weight:
+            return copy.signalWeight
+        case .recoveryBaseline, .remoteSync:
+            return copy.dataQualitySectionTitle
+        }
+    }
+
     private static func confidenceReasons(
         from input: PlanHealthIntelligenceBuildInput,
-        label: String
+        label: String,
+        uiState: HealthIntelligenceUIState? = nil
     ) -> [String] {
         let copy = FormaProductCopy.PlanHealthIntelligencePresentation.self
         let baseline = input.baselineContext
@@ -484,6 +731,15 @@ enum PlanHealthIntelligencePresentationBuilder {
 
         if isLowConfidence(label: label, score: input.planConfidence.score) {
             reasons.append(contentsOf: improvementHints(from: input))
+        }
+
+        if input.healthConnection == .disconnected {
+            reasons.append(copy.assumptionsSummaryEmpty)
+        }
+
+        if let uiState, !uiState.missingInsightKinds.isEmpty {
+            let missingLabels = uiState.missingInsightKinds.map(coreSignalLabel(for:)).sorted()
+            reasons.append("Optional improvements: \(missingLabels.joined(separator: ", ")).")
         }
 
         return reasons
@@ -628,8 +884,12 @@ enum PlanHealthIntelligencePresentationBuilder {
                 signals: [],
                 accessibilityLabel: copy.loadingAccessibilityLabel
             ),
+            coreSignals: [],
             missingDataActions: [],
             isLoading: true,
+            fallbackMessage: nil,
+            staleDataLabel: nil,
+            uiState: nil,
             accessibilityLabel: copy.loadingAccessibilityLabel
         )
     }

@@ -71,13 +71,13 @@ final class PlanHealthIntelligencePresentationBuilderTests: XCTestCase {
         XCTAssertTrue(section.assumptions.items.contains { $0.isLimited })
     }
 
-    func testAppleHealthDisconnectedShowsConnectActionAndLimitedQuality() {
+    func testDisconnectedPlanShowsDegradedConfidenceAndCoreSignals() {
         let section = PlanHealthIntelligencePresentationBuilder.buildSection(
             input: PlanHealthIntelligenceBuildInput(
                 planConfidence: .unknown,
                 baselineContext: .empty(for: referenceDay),
                 recovery: .unknown,
-                userPlan: UserPlanContext(isAppleHealthConnected: false),
+                userPlan: UserPlanContext(calorieTarget: 2_100, proteinTargetGrams: 150),
                 healthConnection: .disconnected,
                 hasNutritionLogging: false,
                 hasRecentWeightLog: false
@@ -85,8 +85,11 @@ final class PlanHealthIntelligencePresentationBuilderTests: XCTestCase {
             calendar: calendar
         )
 
-        XCTAssertEqual(section.confidenceCard.phase, .empty)
+        XCTAssertEqual(section.confidenceCard.phase, .loaded)
+        XCTAssertEqual(section.confidenceCard.confidenceLabel, FormaProductCopy.PlanHealthIntelligencePresentation.confidenceUnknown)
         XCTAssertEqual(section.dataQuality.qualityLevel, .limited)
+        XCTAssertEqual(section.coreSignals.count, 5)
+        XCTAssertTrue(section.assumptions.items.contains { $0.isLimited })
         XCTAssertTrue(section.missingDataActions.contains { $0.id == "connect-health" })
         XCTAssertEqual(
             section.missingDataActions.first(where: { $0.id == "connect-health" })?.title,

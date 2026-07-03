@@ -23,9 +23,13 @@ struct JourneyHealthIntelligenceSectionState: Equatable, Sendable, Codable {
     var connectHealthCTA: JourneyHealthConnectCTAState?
     var isLoading: Bool
     var errorMessage: String?
+    var fallbackMessage: String?
+    var staleDataLabel: String?
+    var partialSignalsNote: String?
+    var uiState: HealthIntelligenceUIState?
 
     var isVisible: Bool {
-        !isLoading || errorMessage != nil || connectHealthCTA != nil
+        !isLoading || errorMessage != nil || connectHealthCTA != nil || fallbackMessage != nil
     }
 }
 
@@ -111,6 +115,7 @@ struct JourneyRecoveryTimelineState: Equatable, Sendable, Codable {
     var days: [JourneyRecoveryDayState]
     var dayCount: Int
     var emptyMessage: String?
+    var limitedTimelineNote: String?
     var errorMessage: String?
     var accessibilityLabel: String
 
@@ -121,6 +126,7 @@ struct JourneyRecoveryTimelineState: Equatable, Sendable, Codable {
         days: [],
         dayCount: 7,
         emptyMessage: nil,
+        limitedTimelineNote: nil,
         errorMessage: nil,
         accessibilityLabel: FormaProductCopy.Journey.HealthIntelligence.loadingAccessibilityLabel
     )
@@ -321,10 +327,15 @@ struct JourneyHealthIntelligenceBuildInput: Equatable, Sendable {
     var planProgress: JourneyHealthIntelligencePlanProgressInput?
     var healthConnection: JourneyHealthConnectionState
     var availability: HealthDataAvailability?
+    var baseline: HealthBaselineContext?
     var cachedDayCount: Int
     var recoveryTimelineDayCount: Int
     var isLoading: Bool
     var errorMessage: String?
+    var syncPhase: HealthSyncPhase?
+    var lastSuccessfulLocalSyncAt: Date?
+    var isRemoteSyncCapabilityEnabled: Bool
+    var remoteSyncConsentDecision: HealthSummarySyncConsentDecision
 
     init(
         todaySnapshot: HealthIntelligenceSnapshot? = nil,
@@ -334,10 +345,15 @@ struct JourneyHealthIntelligenceBuildInput: Equatable, Sendable {
         planProgress: JourneyHealthIntelligencePlanProgressInput? = nil,
         healthConnection: JourneyHealthConnectionState = .unknown,
         availability: HealthDataAvailability? = nil,
+        baseline: HealthBaselineContext? = nil,
         cachedDayCount: Int = 0,
         recoveryTimelineDayCount: Int = 7,
         isLoading: Bool = false,
-        errorMessage: String? = nil
+        errorMessage: String? = nil,
+        syncPhase: HealthSyncPhase? = nil,
+        lastSuccessfulLocalSyncAt: Date? = nil,
+        isRemoteSyncCapabilityEnabled: Bool = false,
+        remoteSyncConsentDecision: HealthSummarySyncConsentDecision = .notDetermined
     ) {
         self.todaySnapshot = todaySnapshot
         self.recoveryDays = recoveryDays
@@ -346,10 +362,15 @@ struct JourneyHealthIntelligenceBuildInput: Equatable, Sendable {
         self.planProgress = planProgress
         self.healthConnection = healthConnection
         self.availability = availability
+        self.baseline = baseline
         self.cachedDayCount = cachedDayCount
         self.recoveryTimelineDayCount = recoveryTimelineDayCount
         self.isLoading = isLoading
         self.errorMessage = errorMessage
+        self.syncPhase = syncPhase
+        self.lastSuccessfulLocalSyncAt = lastSuccessfulLocalSyncAt
+        self.isRemoteSyncCapabilityEnabled = isRemoteSyncCapabilityEnabled
+        self.remoteSyncConsentDecision = remoteSyncConsentDecision
     }
 
     /// Legacy convenience for snapshot-only callers.

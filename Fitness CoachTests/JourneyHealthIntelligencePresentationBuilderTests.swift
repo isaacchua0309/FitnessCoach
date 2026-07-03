@@ -208,7 +208,7 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
         XCTAssertEqual(section?.workoutHistory.phase, .empty)
     }
 
-    func testErrorSectionMapsErrorMessage() {
+    func testErrorSectionMapsErrorMessageWhenNoCachedData() {
         let section = JourneyHealthIntelligencePresentationBuilder.buildSection(
             input: JourneyHealthIntelligenceBuildInput(errorMessage: "Network unavailable"),
             calendar: calendar,
@@ -218,6 +218,86 @@ final class JourneyHealthIntelligencePresentationBuilderTests: XCTestCase {
         XCTAssertEqual(section?.errorMessage, "Network unavailable")
         XCTAssertEqual(section?.recoveryTimeline.phase, .error)
         XCTAssertEqual(section?.progress.errorMessage, "Network unavailable")
+    }
+
+    func testSyncFailedWithCachedDataShowsStaleLabelAndLoadedCards() {
+        let section = JourneyHealthIntelligencePresentationBuilder.buildSection(
+            input: JourneyHealthIntelligenceBuildInput(
+                todaySnapshot: makeCurrentSnapshot(),
+                recoveryDays: makeRecoveryDays(count: 3),
+                workoutRecords: [],
+                healthConnection: .connected,
+                cachedDayCount: 7,
+                errorMessage: "Network unavailable",
+                syncPhase: .failed
+            ),
+            calendar: calendar,
+            isUIEnabled: true
+        )
+
+        XCTAssertNotNil(section)
+        XCTAssertEqual(section?.recoveryTimeline.phase, .loaded)
+        XCTAssertEqual(
+            section?.staleDataLabel,
+            FormaProductCopy.Journey.HealthIntelligence.syncFailedWithCacheLabel
+        )
+        XCTAssertNil(section?.recoveryTimeline.errorMessage)
+    }
+
+    func testPartialPermissionShowsPartialSignalsNote() {
+        var access: [HealthSignalKind: HealthSignalAccess] = [:]
+        for signal in HealthSignalKind.allCases {
+            access[signal] = signal == .stepCount ? .available : .denied
+        }
+        let availability = HealthDataAvailability(
+            isHealthDataAvailable: true,
+            permissionStatus: HealthPermissionStatus(
+                isHealthDataAvailable: true,
+                signalAccess: access,
+                resolvedAt: referenceDay
+            ),
+            cachedDayCount: 5
+        )
+
+        let section = JourneyHealthIntelligencePresentationBuilder.buildSection(
+            input: JourneyHealthIntelligenceBuildInput(
+                todaySnapshot: makeCurrentSnapshot(includeWorkout: false),
+                recoveryDays: makeRecoveryDays(count: 3),
+                workoutRecords: [],
+                healthConnection: .connected,
+                availability: availability,
+                cachedDayCount: 5
+            ),
+            calendar: calendar,
+            isUIEnabled: true
+        )
+
+        XCTAssertNotNil(section?.partialSignalsNote)
+        XCTAssertEqual(section?.recoveryTimeline.phase, .loaded)
+    }
+
+    func testWeeklyReviewBuildingUsesNotEnoughDataCopy() {
+        let presentation = JourneyHealthIntelligencePresentationBuilder.weeklyReviewPresentation(
+            from: nil,
+            isLoading: false,
+            showBuildingWhenMissing: true,
+            uiState: HealthIntelligenceUIStateMapper.resolve(
+                HealthIntelligenceUIContext(
+                    availability: nil,
+                    snapshot: makeCurrentSnapshot(includeWorkout: false),
+                    isAppleHealthConnected: true,
+                    cachedDayCount: 3,
+                    surface: .journey
+                )
+            ),
+            calendar: calendar
+        )
+
+        XCTAssertEqual(presentation.card?.phase, .empty)
+        XCTAssertEqual(
+            presentation.card?.title,
+            FormaProductCopy.WeeklyReviewPresentation.notEnoughDataTitle
+        )
     }
 
     // MARK: - Recovery timeline

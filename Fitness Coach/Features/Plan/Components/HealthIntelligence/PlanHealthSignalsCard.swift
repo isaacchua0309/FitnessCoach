@@ -10,7 +10,16 @@ import SwiftUI
 struct PlanHealthSignalsCard: View {
     let sectionTitle: String
     let signals: [PlanHealthSignalState]
+    var missingSignalsSectionTitle: String? = nil
     var isLoading: Bool = false
+
+    private var usedSignals: [PlanHealthSignalState] {
+        signals.filter { $0.status == .available || $0.status == .limited }
+    }
+
+    private var missingSignals: [PlanHealthSignalState] {
+        signals.filter { $0.status == .missing }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: PlanHealthIntelligenceCardSupport.headerToCardSpacing) {
@@ -31,7 +40,24 @@ struct PlanHealthSignalsCard: View {
                                 tone: .caution
                             )
                         } else {
-                            signalRows
+                            if !usedSignals.isEmpty {
+                                signalRows(for: usedSignals)
+                            }
+
+                            if !missingSignals.isEmpty {
+                                if !usedSignals.isEmpty {
+                                    FormaPlanRowDivider()
+                                }
+
+                                if let missingSignalsSectionTitle {
+                                    Text(missingSignalsSectionTitle)
+                                        .font(PlanHealthIntelligenceTypography.cardHeadline)
+                                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                                        .padding(.top, PlanHealthIntelligenceCardSupport.rowSpacing)
+                                }
+
+                                signalRows(for: missingSignals)
+                            }
                         }
                     }
                 }
@@ -44,9 +70,9 @@ struct PlanHealthSignalsCard: View {
     }
 
     @ViewBuilder
-    private var signalRows: some View {
+    private func signalRows(for rows: [PlanHealthSignalState]) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(signals.enumerated()), id: \.element.id) { index, signal in
+            ForEach(Array(rows.enumerated()), id: \.element.id) { index, signal in
                 if index > 0 {
                     FormaPlanRowDivider()
                 }

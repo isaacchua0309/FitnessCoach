@@ -63,6 +63,98 @@ enum JourneyHealthIntelligencePreviewData {
         )!
     }
 
+    static var partialPermission: JourneyHealthIntelligenceSectionState {
+        JourneyHealthIntelligencePresentationBuilder.buildSection(
+            input: JourneyHealthIntelligenceBuildInput(
+                todaySnapshot: currentSnapshotWithoutWorkout,
+                recoveryDays: recoveryDaysOnly,
+                workoutRecords: [],
+                healthConnection: .connected,
+                availability: partialAvailability,
+                cachedDayCount: 5
+            ),
+            calendar: calendar,
+            isUIEnabled: true
+        )!
+    }
+
+    static var syncFailedWithCache: JourneyHealthIntelligenceSectionState {
+        let workouts = historicalSnapshots.compactMap { snapshot -> JourneyHealthIntelligenceWorkoutRecordInput? in
+            guard let workout = snapshot.workout, workout.hasWorkout else { return nil }
+            return JourneyHealthIntelligenceWorkoutRecordInput(
+                id: "\(snapshot.date.timeIntervalSince1970)-workout",
+                date: snapshot.date,
+                title: workout.title,
+                durationMinutes: workout.totalDurationMinutes,
+                activeCalories: workout.totalActiveCalories,
+                demand: workout.demand,
+                intensity: workout.intensity
+            )
+        }
+
+        return JourneyHealthIntelligencePresentationBuilder.buildSection(
+            input: JourneyHealthIntelligenceBuildInput(
+                todaySnapshot: currentSnapshot,
+                recoveryDays: recoveryDaysOnly,
+                workoutRecords: workouts,
+                weeklyReview: weeklyReview,
+                healthConnection: .connected,
+                cachedDayCount: 7,
+                errorMessage: "Network unavailable",
+                syncPhase: .failed
+            ),
+            calendar: calendar,
+            isUIEnabled: true
+        )!
+    }
+
+    static var buildingWeeklyReview: JourneyHealthIntelligenceSectionState {
+        JourneyHealthIntelligencePresentationBuilder.buildSection(
+            input: JourneyHealthIntelligenceBuildInput(
+                todaySnapshot: currentSnapshotWithoutWorkout,
+                recoveryDays: recoveryDaysOnly,
+                workoutRecords: [],
+                weeklyReview: nil,
+                healthConnection: .connected,
+                cachedDayCount: 3
+            ),
+            calendar: calendar,
+            isUIEnabled: true
+        )!
+    }
+
+    static var limitedRecoveryTimeline: JourneyHealthIntelligenceSectionState {
+        JourneyHealthIntelligencePresentationBuilder.buildSection(
+            input: JourneyHealthIntelligenceBuildInput(
+                todaySnapshot: currentSnapshotWithoutWorkout,
+                recoveryDays: [],
+                workoutRecords: [],
+                healthConnection: .connected,
+                cachedDayCount: 2
+            ),
+            calendar: calendar,
+            isUIEnabled: true
+        )!
+    }
+
+    private static var partialAvailability: HealthDataAvailability {
+        var access: [HealthSignalKind: HealthSignalAccess] = [:]
+        for signal in HealthSignalKind.allCases {
+            access[signal] = signal == .stepCount || signal == .activeEnergyBurned
+                ? .available
+                : .denied
+        }
+        return HealthDataAvailability(
+            isHealthDataAvailable: true,
+            permissionStatus: HealthPermissionStatus(
+                isHealthDataAvailable: true,
+                signalAccess: access,
+                resolvedAt: referenceDay
+            ),
+            cachedDayCount: 5
+        )
+    }
+
     private static var currentSnapshotWithoutWorkout: HealthIntelligenceSnapshot {
         HealthIntelligenceSnapshot(
             date: referenceDay,

@@ -15,6 +15,10 @@ struct PlanHealthIntelligenceSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
+            if let staleDataLabel = state.staleDataLabel {
+                planInfoBanner(label: staleDataLabel)
+            }
+
             PlanHealthConfidenceCard(
                 state: state.confidenceCard,
                 isLoading: state.isLoading
@@ -28,10 +32,11 @@ struct PlanHealthIntelligenceSection: View {
                 )
             }
 
-            if state.confidenceCard.phase != .empty {
+            if !state.isLoading {
                 PlanHealthSignalsCard(
-                    sectionTitle: state.dataQuality.sectionTitle,
-                    signals: state.dataQuality.signals,
+                    sectionTitle: FormaProductCopy.PlanHealthIntelligencePresentation.coreSignalsSectionTitle,
+                    signals: state.coreSignals,
+                    missingSignalsSectionTitle: FormaProductCopy.PlanHealthIntelligencePresentation.missingSignalsSectionTitle,
                     isLoading: state.isLoading
                 )
 
@@ -44,6 +49,10 @@ struct PlanHealthIntelligenceSection: View {
                     state: state.dataQuality,
                     isLoading: state.isLoading
                 )
+            }
+
+            if let fallbackMessage = state.fallbackMessage {
+                planInfoBanner(label: fallbackMessage)
             }
 
             if !state.missingDataActions.isEmpty {
@@ -107,6 +116,17 @@ struct PlanHealthIntelligenceSection: View {
             return { onMissingDataAction(action) }
         }
         return nil
+    }
+
+    @ViewBuilder
+    private func planInfoBanner(label: String) -> some View {
+        FormaPlanCard {
+            Text(label)
+                .font(PlanHealthIntelligenceTypography.cardBody)
+                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .healthIntelligenceMultilineText()
+        }
+        .accessibilityIdentifier("plan-hi-fallback-banner")
     }
 }
 
@@ -198,6 +218,19 @@ struct PlanHealthIntelligenceSection: View {
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
     .preferredColorScheme(.dark)
+}
+
+#Preview("Stale data") {
+    ScrollView {
+        PlanHealthIntelligenceSection(
+            state: PlanHealthIntelligencePresentationPreviewData.staleData,
+            onMissingDataAction: { _ in }
+        )
+        .padding(.horizontal, PlanLayout.horizontalPadding)
+        .padding(.vertical, FormaTokens.Spacing.md)
+    }
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
 }
 
 #Preview("Accessibility — Large Text") {

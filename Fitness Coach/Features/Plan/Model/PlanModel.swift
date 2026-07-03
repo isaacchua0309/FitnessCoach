@@ -37,6 +37,10 @@ final class PlanModel: ObservableObject {
     private let healthIntelligenceLoadEnabled: () -> Bool
     private let healthIntelligenceUIEnabled: () -> Bool
     private let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
+    private let healthSyncPhaseProvider: () -> HealthSyncPhase?
+    private let lastSuccessfulLocalSyncAtProvider: () -> Date?
+    private let remoteSyncConsentDecisionProvider: () -> HealthSummarySyncConsentDecision
+    private let isRemoteSyncCapabilityEnabled: () -> Bool
 
     init(
         actionCenter: FitnessActionCenter,
@@ -51,7 +55,11 @@ final class PlanModel: ObservableObject {
         healthDataRepository: (any HealthDataRepositorying)? = nil,
         healthIntelligenceLoadEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.shouldPlanModelLoadHealthIntelligence },
         healthIntelligenceUIEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.isUIEnabled },
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
+        healthSyncPhaseProvider: @escaping () -> HealthSyncPhase? = { nil },
+        lastSuccessfulLocalSyncAtProvider: @escaping () -> Date? = { nil },
+        remoteSyncConsentDecisionProvider: @escaping () -> HealthSummarySyncConsentDecision = { .notDetermined },
+        isRemoteSyncCapabilityEnabled: @escaping () -> Bool = { false }
     ) {
         self.actionCenter = actionCenter
         self.userProfileReader = userProfileReader
@@ -66,6 +74,10 @@ final class PlanModel: ObservableObject {
         self.healthIntelligenceLoadEnabled = healthIntelligenceLoadEnabled
         self.healthIntelligenceUIEnabled = healthIntelligenceUIEnabled
         self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
+        self.healthSyncPhaseProvider = healthSyncPhaseProvider
+        self.lastSuccessfulLocalSyncAtProvider = lastSuccessfulLocalSyncAtProvider
+        self.remoteSyncConsentDecisionProvider = remoteSyncConsentDecisionProvider
+        self.isRemoteSyncCapabilityEnabled = isRemoteSyncCapabilityEnabled
     }
 
     // MARK: Loading
@@ -132,7 +144,11 @@ final class PlanModel: ObservableObject {
                 isAppleHealthConnected: isAppleHealthConnected,
                 snapshotProvider: healthIntelligenceSnapshotProvider,
                 baselineService: healthBaselineService,
-                healthDataRepository: healthDataRepository
+                healthDataRepository: healthDataRepository,
+                syncPhase: healthSyncPhaseProvider(),
+                lastSuccessfulLocalSyncAt: lastSuccessfulLocalSyncAtProvider(),
+                isRemoteSyncCapabilityEnabled: isRemoteSyncCapabilityEnabled(),
+                remoteSyncConsentDecision: remoteSyncConsentDecisionProvider()
             )
 
             try Task.checkCancellation()
@@ -193,23 +209,38 @@ final class PlanModel: ObservableObject {
         )
 
         return PlanHealthIntelligencePresentationBuilder.buildSection(
-            input: PlanHealthIntelligenceBuildInput(
-                planConfidence: .unknown,
-                baselineContext: .empty(for: context.asOf),
-                recovery: .unknown,
-                userPlan: UserPlanContext.from(
-                    profile: profile,
-                    isAppleHealthConnected: isAppleHealthConnected
-                ),
-                healthConnection: PlanHealthConnectionState.resolve(
-                    isAppleHealthConnected: isAppleHealthConnected,
-                    availability: nil
-                ),
-                hasNutritionLogging: hasNutritionLogging,
-                hasRecentWeightLog: hasRecentWeightLog
+            input: enrichedBuildInput(
+                PlanHealthIntelligenceBuildInput(
+                    planConfidence: .unknown,
+                    baselineContext: .empty(for: context.asOf),
+                    recovery: .unknown,
+                    userPlan: UserPlanContext.from(
+                        profile: profile,
+                        isAppleHealthConnected: isAppleHealthConnected
+                    ),
+                    healthConnection: PlanHealthConnectionState.resolve(
+                        isAppleHealthConnected: isAppleHealthConnected,
+                        availability: nil
+                    ),
+                    hasNutritionLogging: hasNutritionLogging,
+                    hasRecentWeightLog: hasRecentWeightLog
+                )
             ),
             calendar: context.calendar
         )
+    }
+
+    private func enrichedBuildInput(
+        _ input: PlanHealthIntelligenceBuildInput
+    ) -> PlanHealthIntelligenceBuildInput {
+        var enriched = input
+        enriched.syncPhase = input.syncPhase ?? healthSyncPhaseProvider()
+        enriched.lastSuccessfulLocalSyncAt = input.lastSuccessfulLocalSyncAt ?? lastSuccessfulLocalSyncAtProvider()
+        enriched.isRemoteSyncCapabilityEnabled = input.isRemoteSyncCapabilityEnabled || isRemoteSyncCapabilityEnabled()
+        enriched.remoteSyncConsentDecision = input.remoteSyncConsentDecision == .notDetermined
+            ? remoteSyncConsentDecisionProvider()
+            : input.remoteSyncConsentDecision
+        return enriched
     }
 
     // MARK: Dashboard context

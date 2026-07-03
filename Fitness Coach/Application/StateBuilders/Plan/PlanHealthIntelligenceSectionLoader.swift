@@ -18,6 +18,11 @@ enum PlanHealthIntelligenceSectionLoader {
         snapshotProvider: any HealthIntelligenceSnapshotServing,
         baselineService: any HealthBaselineProviding,
         healthDataRepository: any HealthDataRepositorying,
+        syncPhase: HealthSyncPhase? = nil,
+        lastSuccessfulLocalSyncAt: Date? = nil,
+        isRemoteSyncCapabilityEnabled: Bool = false,
+        remoteSyncConsentDecision: HealthSummarySyncConsentDecision = .notDetermined,
+        errorMessage: String? = nil,
         calendar: Calendar = .current
     ) async -> PlanHealthIntelligenceLoadResult {
         let referenceDate = context.asOf
@@ -48,36 +53,30 @@ enum PlanHealthIntelligenceSectionLoader {
             calendar: calendar
         )
 
-        let sectionState: PlanHealthIntelligenceSectionState
-        if let snapshot {
-            sectionState = PlanHealthIntelligencePresentationBuilder.buildSection(
-                input: .from(
-                    snapshot: snapshot,
-                    baselineContext: baselineContext,
-                    userPlan: userPlan,
-                    healthAvailability: availability,
-                    hasNutritionLogging: hasNutritionLogging,
-                    hasRecentWeightLog: hasRecentWeightLog
-                ),
-                calendar: calendar
-            )
-        } else {
-            sectionState = PlanHealthIntelligencePresentationBuilder.buildSection(
-                input: PlanHealthIntelligenceBuildInput(
-                    planConfidence: .unknown,
-                    baselineContext: baselineContext,
-                    recovery: .unknown,
-                    userPlan: userPlan,
-                    healthConnection: PlanHealthConnectionState.resolve(
-                        isAppleHealthConnected: isAppleHealthConnected,
-                        availability: availability
-                    ),
-                    hasNutritionLogging: hasNutritionLogging,
-                    hasRecentWeightLog: hasRecentWeightLog
-                ),
-                calendar: calendar
-            )
-        }
+        let buildInput = PlanHealthIntelligenceBuildInput(
+            planConfidence: snapshot?.planConfidence ?? .unknown,
+            baselineContext: baselineContext,
+            recovery: snapshot?.recovery ?? .unknown,
+            userPlan: userPlan,
+            healthConnection: PlanHealthConnectionState.resolve(
+                isAppleHealthConnected: isAppleHealthConnected,
+                availability: availability
+            ),
+            healthAvailability: availability,
+            hasNutritionLogging: hasNutritionLogging,
+            hasRecentWeightLog: hasRecentWeightLog,
+            cachedDayCount: availability.cachedDayCount,
+            errorMessage: errorMessage,
+            syncPhase: syncPhase,
+            lastSuccessfulLocalSyncAt: lastSuccessfulLocalSyncAt,
+            isRemoteSyncCapabilityEnabled: isRemoteSyncCapabilityEnabled,
+            remoteSyncConsentDecision: remoteSyncConsentDecision
+        )
+
+        let sectionState = PlanHealthIntelligencePresentationBuilder.buildSection(
+            input: buildInput,
+            calendar: calendar
+        )
 
         return PlanHealthIntelligenceLoadResult(
             sectionState: sectionState,

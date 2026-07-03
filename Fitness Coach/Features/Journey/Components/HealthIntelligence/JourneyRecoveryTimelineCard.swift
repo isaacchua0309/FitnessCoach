@@ -70,6 +70,10 @@ struct JourneyRecoveryTimelineCard: View {
         if let emptyMessage = state.emptyMessage {
             JourneyHealthIntelligencePhaseMessage(message: emptyMessage)
         }
+
+        if let limitedTimelineNote = state.limitedTimelineNote {
+            JourneyHealthIntelligencePhaseMessage(message: limitedTimelineNote, tone: .caution)
+        }
     }
 
     @ViewBuilder
@@ -83,6 +87,10 @@ struct JourneyRecoveryTimelineCard: View {
     private var loadedContent: some View {
         if !state.days.isEmpty {
             JourneyRecoveryWeekRow(days: state.days, referenceDay: referenceDay)
+        }
+
+        if let limitedTimelineNote = state.limitedTimelineNote {
+            JourneyHealthIntelligencePhaseMessage(message: limitedTimelineNote, tone: .caution)
         }
 
         if let today = state.days.last,

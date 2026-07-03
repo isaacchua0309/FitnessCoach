@@ -489,7 +489,19 @@ final class AppContainer {
             healthCacheStore: healthCacheStore,
             healthActivityQuery: healthActivityQueryService,
             healthDataRepository: healthDataRepository,
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+            healthSyncPhaseProvider: { [weak self] in
+                self?.healthSyncStateStore.state.phase
+            },
+            lastSuccessfulLocalSyncAtProvider: { [weak self] in
+                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
+            },
+            remoteSyncConsentDecisionProvider: { [weak self] in
+                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
+            },
+            isRemoteSyncCapabilityEnabled: {
+                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
+            }
         )
     }
 
@@ -507,7 +519,19 @@ final class AppContainer {
             healthBaselineService: healthBaselineService,
             healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
             healthDataRepository: healthDataRepository,
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+            healthSyncPhaseProvider: { [weak self] in
+                self?.healthSyncStateStore.state.phase
+            },
+            lastSuccessfulLocalSyncAtProvider: { [weak self] in
+                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
+            },
+            remoteSyncConsentDecisionProvider: { [weak self] in
+                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
+            },
+            isRemoteSyncCapabilityEnabled: {
+                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
+            }
         )
     }
 
