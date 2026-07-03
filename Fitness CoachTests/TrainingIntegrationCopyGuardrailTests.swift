@@ -69,18 +69,7 @@ final class TrainingIntegrationCopyGuardrailTests: XCTestCase {
         )
     }
 
-    func testPlanIntegrationMessageReflectsConnection() {
-        XCTAssertEqual(
-            TrainingIntegrationCopy.planIntegrationMessage(isAppleHealthConnected: true),
-            TrainingIntegrationCopy.planCardConnectedBody
-        )
-        XCTAssertEqual(
-            TrainingIntegrationCopy.planIntegrationMessage(isAppleHealthConnected: false),
-            TrainingIntegrationCopy.planCardDisconnectedBody
-        )
-    }
-
-    func testRequestingAndFailedDetailDescriptions() {
+    func testSettingsDetailCopyAvoidsHealthKitTerminology() {
         XCTAssertEqual(
             TrainingIntegrationCopy.settingsDetailDescription(for: .requestingPermission),
             TrainingIntegrationCopy.requestingMessage
@@ -96,10 +85,6 @@ final class TrainingIntegrationCopyGuardrailTests: XCTestCase {
             TrainingIntegrationCopy.lockedTitle,
             TrainingIntegrationCopy.lockedBody,
             TrainingIntegrationCopy.lockedSecondaryNote,
-            TrainingIntegrationCopy.planCardConnectedBody,
-            TrainingIntegrationCopy.planCardDisconnectedBody,
-            TrainingIntegrationCopy.planCardDeniedBody,
-            TrainingIntegrationCopy.planCardUnavailableBody,
             TrainingIntegrationCopy.gateMessage(for: .notConnected),
             TrainingIntegrationCopy.gateTitle(for: .notConnected),
             TrainingIntegrationCopy.coachWorkoutLogNotConnected,

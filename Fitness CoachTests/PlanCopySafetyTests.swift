@@ -104,22 +104,16 @@ final class PlanCopySafetyTests: XCTestCase {
         var samples: [String] = [
             mission.adjustActivity,
             mission.planAssumptionsNotSet,
-            mission.confidenceSafeCopy,
             mission.planCreatedFromOnboarding,
             mission.planUpdatedAfterEdit,
             mission.planUpdateReasonGoalChanged,
             mission.planUpdateReasonActivityChanged,
             mission.planUpdateReasonTargetsRegenerated,
-            mission.missingAppleHealthConnection,
             rationale.sectionTitle,
             rationale.seeCalculation,
             calculation.bodyDetailsSettingsFootnote,
-            TrainingIntegrationCopy.planCardConnectedBody,
-            TrainingIntegrationCopy.planCardDisconnectedBody,
-            TrainingIntegrationCopy.planCardDeniedBody,
-            TrainingIntegrationCopy.planCardUnavailableBody,
-            TrainingIntegrationCopy.planIntegrationMessage(isAppleHealthConnected: true),
-            TrainingIntegrationCopy.planIntegrationMessage(isAppleHealthConnected: false)
+            TrainingIntegrationCopy.trainingInsightsUseAppleHealth,
+            TrainingIntegrationCopy.includeWorkoutsInProgress
         ]
 
         samples += missionControlDashboardCopy(from: PlanMissionControlFixtures.loseDashboard)

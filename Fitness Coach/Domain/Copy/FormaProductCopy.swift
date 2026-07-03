@@ -2242,51 +2242,10 @@ enum FormaProductCopy {
     // MARK: - Plan Mission Control
 
     enum PlanMissionControl {
-        static let heroSectionTitle = PlanStrategyHero.sectionTitle
         static let adjustPlan = "Adjust Plan"
         static let adjustPlanCTAHeading = "Need to change direction?"
         static let adjustPlanCTABody =
             "Update your goal, target weight, activity, or calories."
-        static let progressOnPlan = "On plan"
-        static let headlineLoseFallback = "Lose weight"
-        static let headlineGainFallback = "Gain weight"
-        static let headlineMaintainFallback = "Maintain your weight"
-
-        static let statusStartLogging = "Your plan is set. Start logging today."
-        static let statusAheadOfSchedule = "You're ahead of schedule."
-
-        static let accessibilityOnboardingBaseline = "Current weight uses your starting baseline."
-        static let accessibilityProgressZero = "0 percent complete"
-
-        static func headlineLose(_ amount: String) -> String { "Lose \(amount)" }
-        static func headlineGain(_ amount: String) -> String { "Gain \(amount)" }
-        static func headlineMaintain(_ amount: String) -> String { "Maintain \(amount)" }
-
-        static func progressRoute(_ current: String, _ goal: String) -> String {
-            "Current \(current) → Goal \(goal)"
-        }
-
-        static func progressRouteMaintain(_ current: String) -> String {
-            "Current \(current) · Goal hold"
-        }
-
-        static func progressComplete(_ percent: Int) -> String {
-            "\(percent)% complete"
-        }
-
-        static func expectedCompletion(_ label: String) -> String {
-            "Expected completion: \(label)"
-        }
-
-        static func expectedProgress(_ amount: String) -> String {
-            "Expected progress: \(amount)/week"
-        }
-
-        static func accessibilityProgressComplete(_ percent: Int) -> String {
-            "\(percent) percent complete"
-        }
-
-        static let dailySurplus = "Daily surplus"
 
         static let planAssumptionsSectionTitle = "Plan Assumptions"
         static let planAssumptionsAge = "Age"
@@ -2297,7 +2256,6 @@ enum FormaProductCopy {
         static let planAssumptionsGoalWeight = "Goal weight"
         static let planAssumptionsNotSet = "Not set"
         static let adjustActivity = "Update activity level"
-        static let planAssumptionsAppleHealth = "Apple Health"
         static let connectAppleHealthAccessibilityHint = "Opens Apple Health settings"
         static let planCreatedFromOnboarding =
             "Set when you first created your plan."
@@ -2324,10 +2282,6 @@ enum FormaProductCopy {
                 return planUpdatedAfterEdit
             }
         }
-
-        static let lastUpdateReasonHeading = "Reason:"
-        static let confidenceSafeCopy =
-            "These targets are estimates from what you've shared. Keep logging for sharper weekly feedback."
 
         static let planConfidenceSectionTitle = "Plan Confidence"
         static let planConfidenceImproveAccuracyHeading = "Improve accuracy:"
@@ -2359,68 +2313,12 @@ enum FormaProductCopy {
         static let planConfidenceSignalEnough = "Enough"
         static let planConfidenceSignalNotEnough = "Not enough"
 
-        static let confidenceRecentWeightLogged = "Recent weight logged"
-        static let confidenceActivityLevelSelected = "Activity level selected"
-        static let confidenceBirthdayHeightAvailable = "Birthday and height available"
-        static let confidenceConsistentFoodLogging = "Consistent food logging"
-        static let confidenceAppleHealthConnected = "Apple Health connected"
-        static let confidenceTargetsReasonable = "Calorie targets look reasonable"
-        static let confidenceTargetsGuardrailed = "Targets include sensible guardrails"
-
-        static let missingRecentWeighIn = "No recent weigh-in"
-        static let missingFoodLogs = "Not enough food logs yet"
-        static let missingBirthdayHeight = "Birthday and height not fully set"
-        static let missingAppleHealthConnection = "Apple Health not connected"
-
-        static let confidenceSafetyOk = "Targets pass Forma's safety checks."
-        static let confidenceSafetyCaution = "Targets include safety guardrails for your pace."
-        static let confidenceSafetyWarning = "Your pace is demanding — review targets before committing."
-        static let confidenceBirthdayAge = "Age is derived from your birthday."
-        static let confidenceWeightTrend = "Recent weight entries improve projections."
-        static let confidenceWeeklyLogging = "This week's logging supports adherence tracking."
-
         static let missingCalculation = "Plan calculation unavailable."
-        static let missingBirthday = "Add your birthday for precise age-based estimates."
-        static let missingWeightLogs = "Log weight to track goal progress."
 
-        static func estimatedCompletion(_ label: String) -> String {
-            "Expected completion: \(label)"
-        }
-
-        static func expectedWeeklyLoss(_ amount: String) -> String {
-            "Expected pace: \(amount)/week"
-        }
-
-        static func totalToLose(_ amount: String) -> String {
-            "\(amount) to lose"
-        }
-
-        static func totalToGain(_ amount: String) -> String {
-            "\(amount) to gain"
-        }
-
-        static let todayMissionSectionTitle = PlanDailyTargets.sectionTitle
-        static let goToToday = PlanDailyTargets.goToToday
-        static let goToTodayAccessibilityHint = PlanDailyTargets.goToTodayAccessibilityHint
         static let adjustPlanAccessibilityHint = "Opens the plan editor"
         static let seeCalculationAccessibilityHint = "Shows how your targets were calculated"
         static let updateActivityAccessibilityHint = "Opens activity settings in the plan editor"
         static let targetUnavailable = "—"
-
-        static func todayMissionDesignedForProgress(_ weeklyAmount: String) -> String {
-            "Designed for about \(weeklyAmount)/week progress."
-        }
-
-        static func todayMissionProgressFallback(for direction: PlanMissionGoalDirection) -> String {
-            switch direction {
-            case .lose:
-                return "Designed to support steady fat loss."
-            case .gain:
-                return "Designed to support gradual lean gains."
-            case .maintain:
-                return "Designed to hold your current weight."
-            }
-        }
 
         static let adjustmentRulesSectionTitle = "When to Adjust"
         static let adjustmentRulesReviewHeading = "Review your plan if:"

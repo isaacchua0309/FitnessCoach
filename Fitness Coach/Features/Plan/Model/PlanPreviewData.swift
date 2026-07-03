@@ -35,8 +35,6 @@ enum PlanPreviewData {
         updatedAt: Date()
     )
 
-    static let state = PlanStateBuilder.dashboardState(profile: profile)
-
     static let formState = PlanFormState(profile: profile)
 
     static let generatedPreview = CalorieTargetResult(

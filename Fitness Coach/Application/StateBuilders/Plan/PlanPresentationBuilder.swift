@@ -276,8 +276,3 @@ enum PlanRationaleMetricsBuilder {
         )
     }
 }
-
-// Legacy aliases for transitional callers.
-
-typealias PlanDashboardBuilder = PlanPresentationBuilder
-typealias PlanTodayMissionStateBuilder = DailyTargetsStateBuilder
