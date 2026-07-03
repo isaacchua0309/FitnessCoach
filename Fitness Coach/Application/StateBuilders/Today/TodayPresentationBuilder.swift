@@ -9,7 +9,7 @@ import Foundation
 
 enum TodayPresentationBuilder {
 
-    static let endOfDayStartHour = 19
+    static let endOfDayStartHour = 20
     static let calorieTargetMetRemainingRatio = TodayMissionHeroFormatter.nearTargetRemainingRatio
 
     // MARK: - Dashboard
@@ -383,27 +383,18 @@ enum TodayPresentationBuilder {
     // MARK: - End of day
 
     static func endOfDay(from inputs: TodayMissionControlInputs) -> TodayEndOfDayState {
-        let hour = Calendar.current.component(.hour, from: inputs.date)
-        let isEvening = hour >= endOfDayStartHour
-        let hasMeals = !inputs.foodEntries.isEmpty
-        let suggestsReview = isEvening && hasMeals && inputs.dailyReview == nil
-
-        guard isEvening, hasMeals else {
-            return TodayEndOfDayState(
-                isVisible: false,
-                message: "",
-                suggestsReview: false,
-                reviewCTATitle: nil
+        EndOfDayWrapUpEngine.resolve(
+            EndOfDayWrapUpInput(
+                date: inputs.date,
+                calendar: .current,
+                foodEntries: inputs.foodEntries,
+                calorieSummary: inputs.calorieSummary,
+                proteinProgress: inputs.macroSummary.protein,
+                waterSummary: inputs.waterSummary,
+                workoutSummary: inputs.workoutSummary,
+                activityContext: inputs.activityContext,
+                weightLoggedToday: inputs.weightLoggedToday
             )
-        }
-
-        return TodayEndOfDayState(
-            isVisible: true,
-            message: suggestsReview
-                ? FormaProductCopy.Today.EndOfDay.reviewPrompt
-                : FormaProductCopy.Today.EndOfDay.wrapUp,
-            suggestsReview: suggestsReview,
-            reviewCTATitle: suggestsReview ? FormaProductCopy.Today.EndOfDay.reviewAction : nil
         )
     }
 

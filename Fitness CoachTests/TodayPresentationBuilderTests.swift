@@ -152,7 +152,7 @@ final class TodayPresentationBuilderTests: XCTestCase {
         XCTAssertTrue(state.activity.showsConnectCTA == false)
     }
 
-    func testEndOfDayStateVisibleInEveningWithMeals() {
+    func testEndOfDayWrapUpVisibleInEveningWithMeals() {
         let evening = TodayDashboardFixtures.date(hour: 20)
         let state = build(
             date: evening,
@@ -161,11 +161,12 @@ final class TodayPresentationBuilderTests: XCTestCase {
         )
 
         XCTAssertTrue(state.endOfDay.isVisible)
-        XCTAssertTrue(state.endOfDay.suggestsReview)
-        XCTAssertEqual(state.endOfDay.reviewCTATitle, FormaProductCopy.Today.EndOfDay.reviewAction)
+        XCTAssertEqual(state.endOfDay.sectionTitle, FormaProductCopy.Today.EndOfDay.sectionTitle)
+        XCTAssertEqual(state.endOfDay.journeyActionTitle, FormaProductCopy.Today.EndOfDay.seeJourneyAction)
+        XCTAssertFalse(state.endOfDay.rows.isEmpty)
     }
 
-    func testEndOfDayHiddenDuringMorning() {
+    func testEndOfDayWrapUpHiddenDuringMorning() {
         let morning = TodayDashboardFixtures.date(hour: 9)
         let state = build(
             date: morning,

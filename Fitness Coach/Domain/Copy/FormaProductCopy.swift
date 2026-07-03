@@ -1095,9 +1095,20 @@ enum FormaProductCopy {
         }
 
         enum EndOfDay {
-            static let wrapUp = "Wrap up today when you're ready."
-            static let reviewPrompt = "Review today's log with Coach."
-            static let reviewAction = "Review today"
+            static let sectionTitle = "Today's Wrap-Up"
+            static let overallGreatWork = "Great work"
+            static let overallGoodStart = "Good start"
+            static let overallStillTime = "Still time to finish strong"
+            static let noLogsMessage = "One small log still counts."
+            static let seeJourneyAction = "See Journey"
+            static let seeJourneyHint = "Opens Journey"
+            static let rowCalories = "Calories"
+            static let rowProtein = "Protein"
+            static let rowWater = "Water"
+            static let rowWorkout = "Workout"
+            static let rowNotLogged = "Not logged"
+            static let workoutCompleted = "Completed"
+            static let workoutNotLogged = "Not logged"
         }
 
         enum EmptyState {

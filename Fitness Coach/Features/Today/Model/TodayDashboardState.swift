@@ -312,9 +312,24 @@ struct TodaySmartCoachState: Equatable {
 
 struct TodayEndOfDayState: Equatable {
     var isVisible: Bool
-    var message: String
-    var suggestsReview: Bool
-    var reviewCTATitle: String?
+    var sectionTitle: String
+    var overallMessage: String?
+    var noLogsMessage: String?
+    var rows: [TodayEndOfDayRowState]
+    var journeyActionTitle: String
+    var journeyActionHint: String
+    var accessibilityLabel: String
+
+    static let hidden = TodayEndOfDayState(
+        isVisible: false,
+        sectionTitle: "",
+        overallMessage: nil,
+        noLogsMessage: nil,
+        rows: [],
+        journeyActionTitle: "",
+        journeyActionHint: "",
+        accessibilityLabel: ""
+    )
 }
 
 // MARK: - Shared nutrition summaries

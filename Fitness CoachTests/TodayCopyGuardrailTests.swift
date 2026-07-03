@@ -53,6 +53,8 @@ final class TodayCopyGuardrailTests: XCTestCase {
             FormaProductCopy.Today.Victory.caloriesOnTarget,
             FormaProductCopy.Today.SmartCoach.proteinBehind,
             FormaProductCopy.Today.SmartCoach.caloriesCloseToTarget,
+            FormaProductCopy.Today.EndOfDay.noLogsMessage,
+            FormaProductCopy.Today.EndOfDay.overallGreatWork,
         ]
 
         let overTarget = TodayPreviewData.overTargetDay
