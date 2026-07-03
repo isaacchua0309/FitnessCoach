@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct DailyHealthMetrics: Equatable, Sendable {
+struct DailyHealthMetrics: Equatable, Sendable, Codable {
     let date: Date
     let steps: Int
     let activeEnergyKcal: Double
@@ -41,7 +41,7 @@ enum FormaWorkoutCategory: String, CaseIterable, Codable, Sendable, Hashable {
     case other
 }
 
-struct NormalizedWorkout: Equatable, Sendable, Identifiable {
+struct NormalizedWorkout: Equatable, Sendable, Identifiable, Codable {
     let id: UUID
     let category: FormaWorkoutCategory
     let activityLabel: String
@@ -52,7 +52,7 @@ struct NormalizedWorkout: Equatable, Sendable, Identifiable {
     let sourceName: String?
 }
 
-struct NormalizedSleepRecord: Equatable, Sendable, Identifiable {
+struct NormalizedSleepRecord: Equatable, Sendable, Identifiable, Codable {
     let id: UUID
     let startDate: Date
     let endDate: Date
@@ -60,7 +60,7 @@ struct NormalizedSleepRecord: Equatable, Sendable, Identifiable {
     let inBedMinutes: Double?
 }
 
-struct NormalizedHeartMetric: Equatable, Sendable, Identifiable {
+struct NormalizedHeartMetric: Equatable, Sendable, Identifiable, Codable {
     let id: UUID
     let kind: HealthHeartMetricKind
     let date: Date
@@ -68,7 +68,7 @@ struct NormalizedHeartMetric: Equatable, Sendable, Identifiable {
     let unitSymbol: String
 }
 
-struct NormalizedBodyMass: Equatable, Sendable, Identifiable {
+struct NormalizedBodyMass: Equatable, Sendable, Identifiable, Codable {
     let id: UUID
     let date: Date
     let valueKg: Double
@@ -82,7 +82,7 @@ struct HealthRawDayInput: Equatable, Sendable {
     let bodyMassRecords: [HealthBodyMassRecord]
 }
 
-struct HealthNormalizedDayBundle: Equatable, Sendable {
+struct HealthNormalizedDayBundle: Equatable, Sendable, Codable {
     let dailyMetrics: DailyHealthMetrics
     let workouts: [NormalizedWorkout]
     let sleepRecords: [NormalizedSleepRecord]

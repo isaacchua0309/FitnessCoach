@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct HealthIntelligenceSnapshot: Equatable, Sendable {
+struct HealthIntelligenceSnapshot: Equatable, Sendable, Codable {
     let date: Date
     let recovery: RecoverySummary
     let workout: WorkoutSummary?

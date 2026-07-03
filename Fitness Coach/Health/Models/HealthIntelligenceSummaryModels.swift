@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct RecoverySummary: Equatable, Sendable {
+struct RecoverySummary: Equatable, Sendable, Codable {
     var score: Double?
     var readinessLabel: String
 
@@ -17,7 +17,7 @@ struct RecoverySummary: Equatable, Sendable {
     )
 }
 
-struct WorkoutSummary: Equatable, Sendable {
+struct WorkoutSummary: Equatable, Sendable, Codable {
     var hasWorkoutToday: Bool
     var workoutCount: Int
     var primaryActivityName: String?
@@ -29,7 +29,7 @@ struct WorkoutSummary: Equatable, Sendable {
     )
 }
 
-struct ActivitySummary: Equatable, Sendable {
+struct ActivitySummary: Equatable, Sendable, Codable {
     var steps: Int?
     var activeEnergyKcal: Int?
     var exerciseMinutes: Int?
@@ -41,7 +41,7 @@ struct ActivitySummary: Equatable, Sendable {
     )
 }
 
-struct AdaptiveNutritionSummary: Equatable, Sendable {
+struct AdaptiveNutritionSummary: Equatable, Sendable, Codable {
     var calorieAdjustment: Int
     var rationale: String
 
@@ -51,7 +51,7 @@ struct AdaptiveNutritionSummary: Equatable, Sendable {
     )
 }
 
-struct WeeklyHealthReview: Equatable, Sendable {
+struct WeeklyHealthReview: Equatable, Sendable, Codable {
     var headline: String
     var workoutDays: Int
     var narrative: String?
@@ -63,7 +63,7 @@ struct WeeklyHealthReview: Equatable, Sendable {
     )
 }
 
-struct PlanHealthConfidence: Equatable, Sendable {
+struct PlanHealthConfidence: Equatable, Sendable, Codable {
     var score: Double
     var label: String
 
@@ -76,7 +76,7 @@ struct PlanHealthConfidence: Equatable, Sendable {
 /// Health Intelligence recommendation — distinct from Today `NextBestActionState`.
 typealias NextBestAction = HealthIntelligenceNextBestAction
 
-struct HealthIntelligenceNextBestAction: Equatable, Sendable {
+struct HealthIntelligenceNextBestAction: Equatable, Sendable, Codable {
     var title: String
     var detail: String?
     var priority: Int

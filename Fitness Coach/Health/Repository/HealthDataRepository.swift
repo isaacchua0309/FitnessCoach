@@ -83,12 +83,12 @@ struct HealthDataRepository: HealthDataRepositorying {
 
     private let healthKitManager: any HealthKitManaging
     private let normalizer: any HealthSampleNormalizing
-    private let cacheStore: any HealthCacheStoring
+    private let cacheStore: any HealthCacheStore
 
     init(
         healthKitManager: any HealthKitManaging = HealthKitManager(),
         normalizer: any HealthSampleNormalizing = HealthSampleNormalizer(),
-        cacheStore: any HealthCacheStoring = HealthCacheStore()
+        cacheStore: any HealthCacheStore = LocalHealthCacheStore()
     ) {
         self.healthKitManager = healthKitManager
         self.normalizer = normalizer
@@ -211,21 +211,46 @@ struct HealthDataRepository: HealthDataRepositorying {
             return []
         }
 
-        let range = Self.queryDateRange(from: startDate, to: endDate, calendar: .current)
+        let calendar = Calendar.current
+        let range = Self.queryDateRange(from: startDate, to: endDate, calendar: calendar)
+        let inclusiveEnd = Self.inclusiveEndDay(for: range.end, calendar: calendar)
+
+        if shouldServeAggregateFromCache(
+            aggregate: .workouts,
+            from: range.start,
+            to: inclusiveEnd,
+            calendar: calendar
+        ) {
+            let cached = cacheStore.workouts(from: range.start, to: inclusiveEnd, calendar: calendar)
+            HealthDataRepositoryLogger.event(
+                "getWorkouts cache hit",
+                fields: ["count": String(cached.count)]
+            )
+            return cached
+        }
 
         do {
             let raw = try await healthKitManager.fetchWorkouts(from: range.start, to: range.end)
             let workouts = normalizer.normalizeWorkouts(raw)
+            cacheStore.upsertWorkouts(workouts, calendar: calendar)
             HealthDataRepositoryLogger.event(
-                "getWorkouts",
+                "getWorkouts refreshed",
                 fields: [
                     "count": String(workouts.count),
-                    "start": Self.isoDay(range.start, calendar: .current),
-                    "end": Self.isoDay(range.end, calendar: .current)
+                    "start": Self.isoDay(range.start, calendar: calendar),
+                    "end": Self.isoDay(inclusiveEnd, calendar: calendar)
                 ]
             )
             return workouts
         } catch {
+            let cached = cacheStore.workouts(from: range.start, to: inclusiveEnd, calendar: calendar)
+            if !cached.isEmpty {
+                HealthDataRepositoryLogger.event(
+                    "getWorkouts stale cache fallback",
+                    fields: ["count": String(cached.count)]
+                )
+                return cached
+            }
             logGracefulFetchFailure(context: "getWorkouts", error: error)
             return []
         }
@@ -251,16 +276,36 @@ struct HealthDataRepository: HealthDataRepositorying {
             endingOn: Date(),
             calendar: calendar
         )
+        let inclusiveEnd = Self.inclusiveEndDay(for: range.end, calendar: calendar)
+
+        if shouldServeAggregateFromCache(
+            aggregate: .sleep,
+            from: range.start,
+            to: inclusiveEnd,
+            calendar: calendar
+        ) {
+            let cached = cacheStore.sleepRecords(from: range.start, to: inclusiveEnd, calendar: calendar)
+            HealthDataRepositoryLogger.event(
+                "getRecentSleep cache hit",
+                fields: ["count": String(cached.count), "days": String(dayCount)]
+            )
+            return cached
+        }
 
         do {
             let raw = try await healthKitManager.fetchSleepRecords(from: range.start, to: range.end)
             let records = normalizer.normalizeSleepRecords(raw)
+            cacheStore.upsertSleepRecords(records, calendar: calendar)
             HealthDataRepositoryLogger.event(
-                "getRecentSleep",
+                "getRecentSleep refreshed",
                 fields: ["count": String(records.count), "days": String(dayCount)]
             )
             return records
         } catch {
+            let cached = cacheStore.sleepRecords(from: range.start, to: inclusiveEnd, calendar: calendar)
+            if !cached.isEmpty {
+                return cached
+            }
             logGracefulFetchFailure(context: "getRecentSleep", error: error)
             return []
         }
@@ -286,16 +331,36 @@ struct HealthDataRepository: HealthDataRepositorying {
             endingOn: Date(),
             calendar: calendar
         )
+        let inclusiveEnd = Self.inclusiveEndDay(for: range.end, calendar: calendar)
+
+        if shouldServeAggregateFromCache(
+            aggregate: .heart,
+            from: range.start,
+            to: inclusiveEnd,
+            calendar: calendar
+        ) {
+            let cached = cacheStore.heartMetrics(from: range.start, to: inclusiveEnd, calendar: calendar)
+            HealthDataRepositoryLogger.event(
+                "getRecentHeartMetrics cache hit",
+                fields: ["count": String(cached.count), "days": String(dayCount)]
+            )
+            return cached
+        }
 
         do {
             let raw = try await healthKitManager.fetchHeartMetrics(from: range.start, to: range.end)
             let metrics = normalizer.normalizeHeartMetrics(raw)
+            cacheStore.upsertHeartMetrics(metrics, calendar: calendar)
             HealthDataRepositoryLogger.event(
-                "getRecentHeartMetrics",
+                "getRecentHeartMetrics refreshed",
                 fields: ["count": String(metrics.count), "days": String(dayCount)]
             )
             return metrics
         } catch {
+            let cached = cacheStore.heartMetrics(from: range.start, to: inclusiveEnd, calendar: calendar)
+            if !cached.isEmpty {
+                return cached
+            }
             logGracefulFetchFailure(context: "getRecentHeartMetrics", error: error)
             return []
         }
@@ -321,16 +386,36 @@ struct HealthDataRepository: HealthDataRepositorying {
             endingOn: Date(),
             calendar: calendar
         )
+        let inclusiveEnd = Self.inclusiveEndDay(for: range.end, calendar: calendar)
+        let cached = cacheStore.bodyMassRecords(from: range.start, to: inclusiveEnd, calendar: calendar)
+
+        if !cached.isEmpty,
+           shouldServeAggregateFromCache(
+               aggregate: .bodyMass,
+               from: range.start,
+               to: inclusiveEnd,
+               calendar: calendar
+           ) {
+            HealthDataRepositoryLogger.event(
+                "getBodyMassHistory cache hit",
+                fields: ["count": String(cached.count), "days": String(dayCount)]
+            )
+            return cached
+        }
 
         do {
             let raw = try await healthKitManager.fetchBodyMassRecords(from: range.start, to: range.end)
             let records = normalizer.normalizeBodyMassRecords(raw)
+            cacheStore.upsertBodyMassRecords(records, calendar: calendar)
             HealthDataRepositoryLogger.event(
-                "getBodyMassHistory",
+                "getBodyMassHistory refreshed",
                 fields: ["count": String(records.count), "days": String(dayCount)]
             )
             return records
         } catch {
+            if !cached.isEmpty {
+                return cached
+            }
             logGracefulFetchFailure(context: "getBodyMassHistory", error: error)
             return []
         }
@@ -400,7 +485,9 @@ struct HealthDataRepository: HealthDataRepositorying {
     ) async -> HealthNormalizedDayBundle {
         let dayStart = calendar.startOfDay(for: date)
 
-        if !forceRefresh, let cached = cacheStore.entry(for: dayStart, calendar: calendar) {
+        if !forceRefresh,
+           let cached = cacheStore.entry(for: dayStart, calendar: calendar),
+           cacheStore.isFresh(cachedAt: cached.cachedAt, for: dayStart, calendar: calendar) {
             HealthDataRepositoryLogger.event(
                 "cache hit",
                 fields: ["date": Self.isoDay(dayStart, calendar: calendar)]
@@ -477,7 +564,24 @@ struct HealthDataRepository: HealthDataRepositorying {
                 to: endDate,
                 calendar: calendar
             )
-            return raw.map { normalizer.normalizeDailyMetrics($0, calendar: calendar) }
+            let normalized = raw.map { normalizer.normalizeDailyMetrics($0, calendar: calendar) }
+            let cachedAt = Date()
+            for metric in normalized {
+                let day = calendar.startOfDay(for: metric.date)
+                let existing = cacheStore.entry(for: day, calendar: calendar)?.bundle
+                let bundle = HealthNormalizedDayBundle(
+                    dailyMetrics: metric,
+                    workouts: existing?.workouts ?? [],
+                    sleepRecords: existing?.sleepRecords ?? [],
+                    heartMetrics: existing?.heartMetrics ?? [],
+                    bodyMassRecords: existing?.bodyMassRecords ?? []
+                )
+                cacheStore.store(
+                    HealthCacheEntry(date: day, bundle: bundle, cachedAt: cachedAt),
+                    calendar: calendar
+                )
+            }
+            return normalized
         } catch {
             logGracefulFetchFailure(context: "fetchDailyMetricsRange", error: error)
             return []
@@ -600,6 +704,33 @@ struct HealthDataRepository: HealthDataRepositorying {
         let endDay = calendar.startOfDay(for: endDate)
         let endExclusive = calendar.date(byAdding: .day, value: 1, to: endDay) ?? endDay
         return (start, endExclusive)
+    }
+
+    private func shouldServeAggregateFromCache(
+        aggregate: HealthCacheAggregateKind,
+        from startDate: Date,
+        to inclusiveEnd: Date,
+        calendar: Calendar
+    ) -> Bool {
+        if cacheStore.dayCoverageIsFresh(from: startDate, to: inclusiveEnd, calendar: calendar) {
+            return true
+        }
+
+        guard let updatedAt = cacheStore.indexUpdatedAt(for: aggregate) else {
+            return false
+        }
+
+        let today = calendar.startOfDay(for: Date())
+        let rangeStart = calendar.startOfDay(for: startDate)
+        let rangeIncludesToday = today >= rangeStart && today <= inclusiveEnd
+        let freshnessDate = rangeIncludesToday ? today : inclusiveEnd
+        return cacheStore.isFresh(cachedAt: updatedAt, for: freshnessDate, calendar: calendar)
+    }
+
+    private static func inclusiveEndDay(for exclusiveEnd: Date, calendar: Calendar) -> Date {
+        calendar.date(byAdding: .day, value: -1, to: exclusiveEnd)
+            .map { calendar.startOfDay(for: $0) }
+            ?? calendar.startOfDay(for: exclusiveEnd)
     }
 
     private static func isoDay(_ date: Date, calendar: Calendar) -> String {

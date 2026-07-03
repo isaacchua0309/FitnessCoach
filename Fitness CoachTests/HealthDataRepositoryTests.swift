@@ -9,7 +9,7 @@ import XCTest
 final class HealthDataRepositoryTests: XCTestCase {
 
     private var calendar: Calendar!
-    private var cache: HealthCacheStore!
+    private var cache: MemoryHealthCacheStore!
     private var mockManager: MockHealthKitManager!
     private var repository: HealthDataRepository!
 
@@ -18,7 +18,7 @@ final class HealthDataRepositoryTests: XCTestCase {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
         self.calendar = calendar
-        self.cache = HealthCacheStore()
+        self.cache = MemoryHealthCacheStore()
         self.mockManager = MockHealthKitManager()
         self.repository = HealthDataRepository(
             healthKitManager: mockManager,
