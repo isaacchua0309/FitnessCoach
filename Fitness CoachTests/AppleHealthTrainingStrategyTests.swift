@@ -538,7 +538,7 @@ private final class StrategyStubClassifierAIService: AIServiceProtocol, @uncheck
         AICoachResponse(message: "Stub advice.", confidence: .medium)
     }
 
-    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
+    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
         parseWorkoutCallCount += 1
         throw AIServiceError.backendUnavailable
     }

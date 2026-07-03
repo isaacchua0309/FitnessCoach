@@ -123,7 +123,7 @@ final class WorkflowCapturingPhotoAIService: AIServiceProtocol, @unchecked Senda
         AICoachResponse(message: "Stub", confidence: .medium)
     }
 
-    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
+    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
         throw AIServiceError.backendUnavailable
     }
 
@@ -202,7 +202,7 @@ final class HoldablePhotoAIService: AIServiceProtocol, @unchecked Sendable {
         AICoachResponse(message: "Stub", confidence: .medium)
     }
 
-    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
+    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
         throw AIServiceError.backendUnavailable
     }
 
@@ -267,7 +267,7 @@ final class RetryImprovingWorkflowAIService: AIServiceProtocol, @unchecked Senda
         AICoachResponse(message: "Stub", confidence: .medium)
     }
 
-    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
+    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
         throw AIServiceError.backendUnavailable
     }
 

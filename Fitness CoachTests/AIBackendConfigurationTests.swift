@@ -70,7 +70,7 @@ final class AIBackendConfigurationTests: XCTestCase {
         let client = UnavailableLLMClient(reason: .releaseBackendNotConfigured)
         let request = AIParseCommandRequest(
             text: "log water",
-            context: AIContext(date: Date(timeIntervalSince1970: 0), timezoneIdentifier: "UTC")
+            context: CoachContextPacketV2.test
         )
 
         do {

@@ -673,7 +673,7 @@ private final class RecordingAIService: AIServiceProtocol, @unchecked Sendable {
         return AICoachResponse(message: "Stub advice.", confidence: .medium)
     }
 
-    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
+    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
         parseWorkoutCallCount += 1
         throw AIServiceError.backendUnavailable
     }
@@ -755,7 +755,7 @@ private final class StubClassifierAIService: AIServiceProtocol, @unchecked Senda
         return AICoachResponse(message: "Stub advice.", confidence: .medium)
     }
 
-    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
+    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
         parseWorkoutCallCount += 1
         if let parseWorkoutResponse { return parseWorkoutResponse }
         throw AIServiceError.backendUnavailable

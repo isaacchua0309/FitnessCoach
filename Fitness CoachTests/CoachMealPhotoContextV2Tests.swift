@@ -349,7 +349,7 @@ private final class PhotoContextCapturingAIService: AIServiceProtocol, @unchecke
         throw AIServiceError.backendUnavailable
     }
 
-    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
+    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
         throw AIServiceError.backendUnavailable
     }
 
@@ -426,7 +426,7 @@ private final class FailingMealPhotoAIService: AIServiceProtocol, @unchecked Sen
         throw AIServiceError.backendUnavailable
     }
 
-    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
+    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
         throw AIServiceError.backendUnavailable
     }
 

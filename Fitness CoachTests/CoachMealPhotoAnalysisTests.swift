@@ -459,7 +459,7 @@ private final class PhotoCapturingAIService: AIServiceProtocol, @unchecked Senda
         AICoachResponse(message: "Stub", confidence: .medium)
     }
 
-    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
+    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
         throw AIServiceError.backendUnavailable
     }
 
@@ -531,7 +531,7 @@ private final class GenericFallbackPhotoAIService: AIServiceProtocol, @unchecked
         throw AIServiceError.backendUnavailable
     }
 
-    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
+    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
         throw AIServiceError.backendUnavailable
     }
 
@@ -607,7 +607,7 @@ private final class RetryImprovingPhotoAIService: AIServiceProtocol, @unchecked 
         throw AIServiceError.backendUnavailable
     }
 
-    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
+    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
         throw AIServiceError.backendUnavailable
     }
 
@@ -690,7 +690,7 @@ private final class ClarifyingPhotoAIService: AIServiceProtocol, @unchecked Send
         AICoachResponse(message: "Stub", confidence: .medium)
     }
 
-    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
+    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
         throw AIServiceError.backendUnavailable
     }
 

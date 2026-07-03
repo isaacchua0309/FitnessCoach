@@ -254,7 +254,7 @@ xcodebuild -scheme "Fitness Coach" \
 | `ProfileSignInCopyPolicy.swift` | `usesSavePlanLanguage(_:)` | Deprecated alias with zero callers |
 | `FormaThemeScreenModifier.swift` | `formaThemeScreen(store:)` | Deprecated wrapper with zero callers |
 | `OnboardingBirthdayTrustCard.swift` | `typealias OnboardingBirthdayTrustCard` | Production uses `OnboardingBirthdayTrustNote` |
-| `CoachAIContextBuilder.swift` | `typealias CoachAIContextBuilder` | Production uses `CoachContextBuilder` |
+| `CoachAIContextBuilder.swift` | **Deleted** — replaced by `CoachContextPacketV2Builder` |
 | `OnboardingDailyStepsBand.swift` | `typealias OnboardingTrainingDaysOption` | Zero references |
 | `FitnessActionCenter.swift` | `logWorkout`, `deleteWorkout` | Coach redirects workouts to Apple Health |
 | `WorkoutLogService.swift` | `addWorkout`, `deleteWorkout` | Write path retired; reads remain for historical rows |

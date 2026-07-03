@@ -18,7 +18,7 @@ struct AICommandParser {
         self.llmClient = llmClient
     }
 
-    func parseCommand(_ text: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         let request = AIParseCommandRequest(text: text, context: context)
 
         let response: AIParseCommandResponse

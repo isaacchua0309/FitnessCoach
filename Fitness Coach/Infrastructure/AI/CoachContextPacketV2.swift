@@ -5,14 +5,14 @@
 //  Forma — Structured Coach AI context packet (v2 contract).
 //
 //  Transport-shaped Codable types for the FitPilot AI gateway. No HealthKit,
-//  SwiftData, or UI types. Coexists with legacy `AIContext` until migration.
+//  SwiftData, or UI types. Coach AI transport uses CoachContextPacketV2 exclusively.
 //
 
 import Foundation
 
 // MARK: - Root packet
 
-/// Structured Coach context replacing compact `AIContext` as the default model packet.
+/// Structured Coach context sent to every Coach AI gateway endpoint.
 struct CoachContextPacketV2: Codable, Equatable, Sendable {
 
     static let schemaVersion = 2

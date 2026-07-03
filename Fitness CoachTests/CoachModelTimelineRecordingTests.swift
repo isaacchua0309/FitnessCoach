@@ -190,7 +190,7 @@ private final class LocalGreetingAIService: AIServiceProtocol, @unchecked Sendab
         throw AIServiceError.backendUnavailable
     }
 
-    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
+    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
         throw AIServiceError.backendUnavailable
     }
 
@@ -295,7 +295,7 @@ private final class TimelineFoodEstimateAIService: AIServiceProtocol, @unchecked
         throw AIServiceError.backendUnavailable
     }
 
-    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
+    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
         throw AIServiceError.backendUnavailable
     }
 
@@ -378,7 +378,7 @@ private final class FailingTimelineAIService: AIServiceProtocol, @unchecked Send
         throw AIServiceError.backendUnavailable
     }
 
-    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
+    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
         throw AIServiceError.backendUnavailable
     }
 

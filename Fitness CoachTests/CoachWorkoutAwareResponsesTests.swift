@@ -101,62 +101,30 @@ final class CoachWorkoutAwareResponsesTests: XCTestCase {
         let snapshotProvider = MockCoachMissingSnapshotProvider()
         snapshotProvider.snapshot = nil
 
-        let activity = await CoachAIActivityContextResolver.resolve(
-            date: referenceDay,
-            snapshotProvider: snapshotProvider,
+        let builder = CoachContextPacketV2Builder(
+            dailyLogService: harness.dailyLogService,
+            userProfileService: harness.profileService,
             healthActivityQuery: harness.healthActivityQuery,
-            loadHealthIntelligence: { true },
-            calendar: calendar
+            healthIntelligenceSnapshotProvider: snapshotProvider,
+            dateProvider: harness.base.dateProvider,
+            calendar: calendar,
+            loadHealthIntelligence: { true }
         )
 
-        let builder = CoachContextBuilder(
-            dailyLogReader: harness.dailyLogService,
-            userProfileReader: harness.profileService,
-            actionCenter: harness.actionCenter
-        )
+        let packet = await builder.makeContext(recentMessages: [])
 
-        let context = builder.makeContext(recentMessages: [], activity: activity)
-
-        XCTAssertNil(context.healthIntelligence)
-        XCTAssertFalse(context.healthIntelligenceAwarenessAvailable)
-        XCTAssertNotNil(context.todaySummary)
+        XCTAssertNil(packet.healthIntelligence)
+        XCTAssertNotNil(packet.today)
     }
 
-    func testWorkoutAwareContextAppearsInAIContextPrompt() throws {
+    func testWorkoutAwareHealthIntelligenceAppearsInPromptContext() throws {
         let health = workoutDayHealthContext
-        let context = AIContext(
-            date: referenceDay,
-            timezoneIdentifier: "UTC",
-            todaySummary: TodayAISummary(
-                calorieTarget: 2_100,
-                caloriesConsumed: 1_200,
-                caloriesRemaining: 900,
-                proteinTarget: 160,
-                proteinConsumed: 80,
-                proteinRemaining: 80,
-                carbsTarget: 220,
-                carbsConsumed: 100,
-                carbsRemaining: 120,
-                fatTarget: 65,
-                fatConsumed: 30,
-                fatRemaining: 35,
-                waterTargetMl: 2_500,
-                waterConsumedMl: 1_000,
-                waterRemainingMl: 1_500,
-                weightKg: 90,
-                steps: 9_120,
-                workoutCaloriesBurned: 320,
-                workoutsToday: 1,
-                recentMeals: []
-            ),
-            healthIntelligence: health,
-            healthIntelligenceAwarenessAvailable: true
-        )
+        let packet = CoachContextPacketV2TestFixtures.withHealthIntelligence(health)
 
         let prompt = health.toPromptContext(calendar: calendar)
 
-        XCTAssertTrue(context.healthIntelligenceAwarenessAvailable)
-        XCTAssertEqual(context.healthIntelligence?.workoutDemand, WorkoutDemand.high.rawValue)
+        XCTAssertNotNil(packet.healthIntelligence)
+        XCTAssertEqual(packet.healthIntelligence?.workoutDemand, WorkoutDemand.high.rawValue)
         XCTAssertTrue(prompt.contains("Workout: completed"))
         XCTAssertTrue(prompt.contains("Demand: high"))
         XCTAssertTrue(prompt.contains("Protein recommendation: 35g"))

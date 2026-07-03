@@ -1,5 +1,7 @@
 # Coach Timeline Context v2 — Pre-Implementation Audit
 
+> **Superseded (2026-07-03):** Production Coach AI now uses `CoachContextPacketV2Builder` and `CoachContextPacketV2` on every gateway endpoint, including parse-command, parse-workout, and meal-image analysis. `CoachAIContextBuilder` / compact `AIContext` transport has been removed from the active flow. This document remains as a historical pre-migration audit.
+
 **Date:** 2026-07-03  
 **Scope:** Audit-only. No production code changes in this document.  
 **Branch baseline:** `main` @ detached HEAD `5a1c48da`

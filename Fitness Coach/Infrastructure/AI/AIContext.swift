@@ -2,14 +2,15 @@
 //  AIContext.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Compact app state sent to the AI boundary.
+//  FitPilot AI — Shared summary types for daily review and mapper pipelines.
 //
-//  Only minimal, summarized state is included to keep cost low and privacy
-//  better. Full database history and full chat history are never sent.
+//  Coach AI gateway transport uses CoachContextPacketV2. The legacy compact
+//  AIContext transport shape has been removed from the active Coach flow.
 //
 
 import Foundation
 
+@available(*, deprecated, message: "Coach AI transport uses CoachContextPacketV2. Retained only for Codable compatibility during cleanup.")
 struct AIContext: Codable, Equatable, Sendable {
     var date: Date
     var timezoneIdentifier: String
