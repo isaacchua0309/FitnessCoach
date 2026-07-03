@@ -4,8 +4,7 @@
 //
 //  FitPilot AI — Read-only Today dashboard. Mutations route through TodayActionCoordinator.
 //
-//  Section order: Mission → Daily Victory → Next Best Action → Smart Coach
-//  → Quick Actions → Meals → Activity → Nutrition → End-of-Day Wrap-Up
+//  Section order: see `TodayDashboardSectionOrder`.
 //
 
 import SwiftUI
@@ -41,9 +40,9 @@ struct TodayReadOnlyView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: sectionSpacing) {
-            missionBlock
+            TodayDashboardHeader(date: state.date)
 
-            TodayVictorySection(victory: state.victory)
+            missionBlock
 
             TodayNextActionSection(
                 action: state.nextBestAction,
@@ -58,13 +57,6 @@ struct TodayReadOnlyView: View {
                 },
                 onViewed: {
                     actionCoordinator.logNextActionViewed(for: state.nextBestAction)
-                }
-            )
-
-            TodaySmartCoachBanner(
-                smartCoach: state.smartCoach,
-                onOpenCoach: { prefill in
-                    actionCoordinator.onOpenCoach?(prefill)
                 }
             )
 
@@ -93,6 +85,12 @@ struct TodayReadOnlyView: View {
                 }
             )
 
+            TodayReadOnlyProgressSection(
+                macros: state.macroHydration.macroSummary,
+                water: state.macroHydration.waterSummary,
+                calorieSummary: state.mission.calorieSummary
+            )
+
             TodayActivitySection(
                 activity: state.activity,
                 onConnectAppleHealth: {
@@ -100,16 +98,7 @@ struct TodayReadOnlyView: View {
                 }
             )
 
-            TodayReadOnlyProgressSection(
-                macros: state.macroHydration.macroSummary,
-                water: state.macroHydration.waterSummary,
-                calorieSummary: state.mission.calorieSummary
-            )
-
-            TodayEndOfDayWrapUpSection(
-                wrapUp: state.endOfDay,
-                onOpenJourney: onOpenJourney
-            )
+            reinforcementBlock
         }
     }
 
@@ -143,49 +132,48 @@ struct TodayReadOnlyView: View {
             }
         }
     }
+
+    private var reinforcementBlock: some View {
+        VStack(alignment: .leading, spacing: TodayLayout.reinforcementSpacing) {
+            TodayVictorySection(victory: state.victory)
+
+            TodaySmartCoachBanner(
+                smartCoach: state.smartCoach,
+                onOpenCoach: { prefill in
+                    actionCoordinator.onOpenCoach?(prefill)
+                }
+            )
+
+            TodayEndOfDayWrapUpSection(
+                wrapUp: state.endOfDay,
+                onOpenJourney: onOpenJourney
+            )
+        }
+    }
 }
 
-#Preview("Partial day") {
-    ScrollView {
-        TodayReadOnlyView(
-            state: TodayPreviewData.state,
-            actionCoordinator: TodayActionCoordinator(
-                actionCenter: try! AppContainer(inMemory: true).actionCenter
-            )
+#if DEBUG
+enum TodayReadOnlyPreviewSupport {
+    static func coordinator() -> TodayActionCoordinator {
+        TodayActionCoordinator(
+            actionCenter: try! AppContainer(inMemory: true).actionCenter
         )
-        .padding(.horizontal, TodayLayout.horizontalPadding)
-        .padding(.vertical, FormaTokens.Spacing.md)
     }
-    .background(FormaTokens.Color.canvas)
-    .formaThemePreview()
-}
 
-#Preview("New day") {
-    ScrollView {
-        TodayReadOnlyView(
-            state: TodayPreviewData.emptyDay,
-            actionCoordinator: TodayActionCoordinator(
-                actionCenter: try! AppContainer(inMemory: true).actionCenter
+    @ViewBuilder
+    static func screen(_ state: TodayDashboardState) -> some View {
+        ScrollView {
+            TodayReadOnlyView(
+                state: state,
+                actionCoordinator: coordinator()
             )
-        )
-        .padding(.horizontal, TodayLayout.horizontalPadding)
-        .padding(.vertical, FormaTokens.Spacing.md)
+            .padding(.horizontal, TodayLayout.horizontalPadding)
+            .padding(.top, FormaTokens.Spacing.md)
+            .padding(.bottom, TodayLayout.bottomScrollPadding)
+        }
+        .formaMainTabScrollInsets()
+        .background(FormaTokens.Color.canvas)
+        .formaThemePreview()
     }
-    .background(FormaTokens.Color.canvas)
-    .formaThemePreview()
 }
-
-#Preview("Complete day") {
-    ScrollView {
-        TodayReadOnlyView(
-            state: TodayPreviewData.completeDay,
-            actionCoordinator: TodayActionCoordinator(
-                actionCenter: try! AppContainer(inMemory: true).actionCenter
-            )
-        )
-        .padding(.horizontal, TodayLayout.horizontalPadding)
-        .padding(.vertical, FormaTokens.Spacing.md)
-    }
-    .background(FormaTokens.Color.canvas)
-    .formaThemePreview()
-}
+#endif

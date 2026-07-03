@@ -46,7 +46,8 @@ struct TodayView: View {
     var body: some View {
         NavigationStack {
             content
-                .navigationTitle("Today")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar(.hidden, for: .navigationBar)
                 .task {
                     await trainingInsightsStore.refresh()
                     await model.loadToday(activityContext: currentActivityContext)

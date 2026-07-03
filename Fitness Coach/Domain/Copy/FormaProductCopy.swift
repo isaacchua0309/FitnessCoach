@@ -974,6 +974,10 @@ enum FormaProductCopy {
         static let nextActionsSectionTitle = "Next actions"
         static let targetsSectionTitle = "Targets"
 
+        enum Header {
+            static let title = "Today"
+        }
+
         enum MacroBalance {
             static let sectionTitle = "Nutrition"
             static let protein = "Protein"

@@ -27,6 +27,8 @@ enum TodayLayout {
     static let metricsProgressHeight: CGFloat = 4
     /// Scroll padding below the last Today section (see `FormaMainTabLayout`).
     static let bottomScrollPadding = FormaFeatureLayout.scrollBottomPadding
+    /// Tighter spacing for reinforcement sections at the bottom of Today.
+    static let reinforcementSpacing = FormaTokens.Spacing.md
 }
 
 struct TodaySectionLabel: View {
