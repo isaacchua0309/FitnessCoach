@@ -119,7 +119,7 @@ final class OnboardingAppleHealthFlowTests: XCTestCase {
         ])
         XCTAssertEqual(
             copy.readableDataAccessibilityLabel,
-            "What Forma can read: workouts and duration, active calories, training consistency."
+            "What Forma uses: workouts, active energy, training consistency."
         )
     }
 
@@ -412,6 +412,23 @@ final class OnboardingAppleHealthAnalyticsTests: XCTestCase {
         model.connectAppleHealth()
         XCTAssertEqual(model.currentStep, .almostThere)
         XCTAssertEqual(integration.requestConnectionCallCount, 0)
+    }
+
+    @MainActor
+    func testAppleHealthRequestingIgnoresDuplicatePrimaryTaps() async throws {
+        let integration = StubTrainingIntegrationProvider(requestConnectionResult: .connected)
+        let model = try makeOnboardingModel(integration: integration)
+        await advanceModelToAppleHealth(model)
+
+        model.connectAppleHealth()
+        model.connectAppleHealth()
+        model.connectAppleHealth()
+
+        _ = await AsyncTestSupport.waitUntil(maxYields: 200) {
+            model.appleHealthPresentation == .connected
+        }
+
+        XCTAssertEqual(integration.requestConnectionCallCount, 1)
     }
 
     private func makeOnboardingModel(
