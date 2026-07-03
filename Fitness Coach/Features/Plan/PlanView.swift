@@ -17,6 +17,7 @@ struct PlanView: View {
     @EnvironmentObject private var themeStore: ThemeStore
     @EnvironmentObject private var healthSyncStateStore: HealthSyncStateStore
     @Environment(\.appleHealthSettingsEnvironment) private var appleHealthSettingsEnvironment
+    @EnvironmentObject private var consentStore: HealthSummarySyncConsentStore
 
     @State private var isShowingTrainingInsights = false
 
@@ -142,6 +143,7 @@ struct PlanView: View {
                         )
                         .environmentObject(trainingInsightsStore)
                         .environmentObject(healthSyncStateStore)
+                        .environmentObject(consentStore)
                         .environmentObject(themeStore)
                         .environment(\.appleHealthSettingsEnvironment, appleHealthSettingsEnvironment)
                     }

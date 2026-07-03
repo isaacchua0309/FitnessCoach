@@ -11,6 +11,7 @@ struct AppleHealthIntegrationView: View {
 
     @ObservedObject var insightsStore: TrainingInsightsStore
     @EnvironmentObject private var healthSyncStateStore: HealthSyncStateStore
+    @EnvironmentObject private var consentStore: HealthSummarySyncConsentStore
     @Environment(\.appleHealthSettingsEnvironment) private var settingsEnvironment
 
     @StateObject private var viewModel: AppleHealthSettingsViewModel
@@ -24,16 +25,18 @@ struct AppleHealthIntegrationView: View {
     private var presentation: AppleHealthSettingsPresentation {
         viewModel.presentation(
             healthSyncStateStore: healthSyncStateStore,
+            consentStore: consentStore,
             isHealthDataAvailable: settingsEnvironment.permissionService.isHealthDataAvailable,
-            isRemoteSyncEnabled: settingsEnvironment.remoteSyncEnabled()
+            isRemoteSyncCapabilityEnabled: settingsEnvironment.isRemoteSyncCapabilityEnabled
         )
     }
 
     private var remoteSyncPresentation: AppleHealthRemoteSyncSettingsPresentation {
         viewModel.remoteSyncPresentation(
             healthSyncStateStore: healthSyncStateStore,
+            consentStore: consentStore,
             isHealthDataAvailable: settingsEnvironment.permissionService.isHealthDataAvailable,
-            isRemoteSyncEnabled: settingsEnvironment.remoteSyncEnabled()
+            isRemoteSyncCapabilityEnabled: settingsEnvironment.isRemoteSyncCapabilityEnabled
         )
     }
 
@@ -46,6 +49,7 @@ struct AppleHealthIntegrationView: View {
             AppleHealthRemoteSyncSettingsView(
                 viewModel: viewModel,
                 healthSyncStateStore: healthSyncStateStore,
+                consentStore: consentStore,
                 settingsEnvironment: settingsEnvironment
             )
         }
@@ -56,7 +60,10 @@ struct AppleHealthIntegrationView: View {
         ) {
             Button(remoteSyncPresentation.deleteConfirmActionTitle, role: .destructive) {
                 Task {
-                    await viewModel.deleteRemoteSummaries(environment: settingsEnvironment)
+                    await viewModel.deleteRemoteSummaries(
+                        environment: settingsEnvironment,
+                        consentStore: consentStore
+                    )
                 }
             }
             Button(FormaProductCopy.Common.cancel, role: .cancel) {}
@@ -66,6 +73,7 @@ struct AppleHealthIntegrationView: View {
         .refreshable {
             await viewModel.loadSnapshot(
                 healthSyncStateStore: healthSyncStateStore,
+                consentStore: consentStore,
                 environment: settingsEnvironment
             )
         }
@@ -74,6 +82,7 @@ struct AppleHealthIntegrationView: View {
             didInitialLoad = true
             await viewModel.loadSnapshot(
                 healthSyncStateStore: healthSyncStateStore,
+                consentStore: consentStore,
                 environment: settingsEnvironment
             )
         }
@@ -135,6 +144,7 @@ struct AppleHealthIntegrationView: View {
                 Task {
                     await viewModel.loadSnapshot(
                         healthSyncStateStore: healthSyncStateStore,
+                        consentStore: consentStore,
                         environment: settingsEnvironment
                     )
                 }
@@ -328,11 +338,13 @@ struct AppleHealthIntegrationView: View {
         case .connectAppleHealth:
             await viewModel.connectAppleHealth(
                 healthSyncStateStore: healthSyncStateStore,
+                consentStore: consentStore,
                 environment: settingsEnvironment
             )
         case .refreshHealthData:
             await viewModel.refreshHealthData(
                 healthSyncStateStore: healthSyncStateStore,
+                consentStore: consentStore,
                 environment: settingsEnvironment
             )
         case .manageInAppleHealth:

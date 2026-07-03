@@ -2886,6 +2886,7 @@ enum FormaProductCopy {
             static let statusLabel = "Connection status"
             static let lastLocalSyncLabel = "Last local sync"
             static let lastRemoteSyncLabel = "Last remote summary sync"
+            static let remoteSummarySyncLabel = "Remote summary sync"
             static let lastSyncNever = "Not yet synced"
             static let statusConnected = "Connected"
             static let statusPartiallyConnected = "Partially connected"
@@ -2917,7 +2918,7 @@ enum FormaProductCopy {
             enum RemoteSync {
                 static let screenTitle = "Health data sync"
                 static let intro =
-                    "Forma can store normalized health summaries in your account when cloud sync is enabled. Raw HealthKit samples are never uploaded."
+                    "Choose whether Forma stores normalized health summaries in your account. Raw HealthKit samples are never uploaded."
                 static let statusLabel = "Sync status"
                 static let lastSyncLabel = "Last remote sync"
                 static let lastSyncNever = "Not yet synced"
@@ -2934,6 +2935,23 @@ enum FormaProductCopy {
                 static let statusSucceeded = "Up to date"
                 static let statusPartialSuccess = "Partially synced"
                 static let statusFailed = "Needs attention"
+
+                enum Consent {
+                    static let toggleTitle = "Sync health summaries"
+                    static let toggleDescription =
+                        "Forma can sync normalized health summaries to keep Coach and weekly insights consistent across devices. This may include daily step totals, workout summaries, recovery status, and weekly review summaries. Forma does not upload raw Apple Health samples."
+                    static let enableTitle = "Enable health summary sync?"
+                    static let enableMessage = toggleDescription
+                    static let enableConfirmAction = "Enable sync"
+                    static let disableTitle = "Turn off health summary sync?"
+                    static let disableMessage =
+                        "Forma will stop syncing new health summaries. Local Apple Health features on this device keep working."
+                    static let disableConfirmAction = "Turn off sync"
+                    static let disableAndDeleteAction = "Turn off and delete summaries"
+                    static let statusOn = "On"
+                    static let statusOff = "Off"
+                    static let statusNotSet = "Not enabled"
+                }
             }
 
             // Legacy copy retained for settings hub row summaries.

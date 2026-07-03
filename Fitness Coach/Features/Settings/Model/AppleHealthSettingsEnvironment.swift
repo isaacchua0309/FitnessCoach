@@ -11,18 +11,30 @@ import SwiftUI
 struct AppleHealthSettingsEnvironment: Sendable {
     let permissionService: any HealthPermissionServing
     let remoteSyncService: (any HealthSummarySyncServing)?
-    let remoteSyncEnabled: @Sendable () -> Bool
+    let remoteSyncCapabilityEnabled: @Sendable () -> Bool
 
     init(
         permissionService: any HealthPermissionServing = HealthPermissionService(),
         remoteSyncService: (any HealthSummarySyncServing)? = nil,
-        remoteSyncEnabled: @escaping @Sendable () -> Bool = {
+        remoteSyncCapabilityEnabled: @escaping @Sendable () -> Bool = {
             HealthIntelligenceFeatureFlags.healthSummaryRemoteSyncEnabled
         }
     ) {
         self.permissionService = permissionService
         self.remoteSyncService = remoteSyncService
-        self.remoteSyncEnabled = remoteSyncEnabled
+        self.remoteSyncCapabilityEnabled = remoteSyncCapabilityEnabled
+    }
+
+    var isRemoteSyncCapabilityEnabled: Bool {
+        remoteSyncCapabilityEnabled()
+    }
+
+    @MainActor
+    func isRemoteSyncActive(consentStore: HealthSummarySyncConsentStore) -> Bool {
+        HealthSummaryRemoteSyncGate.isActive(
+            consent: consentStore.state,
+            featureFlagEnabled: isRemoteSyncCapabilityEnabled
+        )
     }
 
     static let production = AppleHealthSettingsEnvironment()

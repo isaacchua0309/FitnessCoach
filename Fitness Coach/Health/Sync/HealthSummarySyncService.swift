@@ -77,7 +77,7 @@ actor HealthSummarySyncService: HealthSummarySyncServing {
     }
 
     func deleteRemoteHealthSummaries() async throws {
-        guard remoteSyncEnabled() else { return }
+        guard HealthIntelligenceFeatureFlags.healthSummaryRemoteSyncEnabled else { return }
         guard !isSyncing else {
             throw HealthSummarySyncError.deleteFailed(reason: "sync_in_progress")
         }

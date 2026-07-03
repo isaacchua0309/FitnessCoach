@@ -13,20 +13,24 @@ private struct AppleHealthIntegrationPreviewHost: View {
     let permissionAccess: HealthSignalAccess
     let localSyncDate: Date?
     let remoteSyncEnabled: Bool
+    let consentDecision: HealthSummarySyncConsentDecision
 
     @StateObject private var store: TrainingInsightsStore
     @StateObject private var healthSyncStateStore: HealthSyncStateStore
+    @StateObject private var consentStore: HealthSummarySyncConsentStore
 
     init(
         integrationState: TrainingIntegrationState,
         permissionAccess: HealthSignalAccess = .available,
         localSyncDate: Date? = nil,
-        remoteSyncEnabled: Bool = false
+        remoteSyncEnabled: Bool = false,
+        consentDecision: HealthSummarySyncConsentDecision = .notDetermined
     ) {
         self.integrationState = integrationState
         self.permissionAccess = permissionAccess
         self.localSyncDate = localSyncDate
         self.remoteSyncEnabled = remoteSyncEnabled
+        self.consentDecision = consentDecision
 
         let store = TrainingInsightsStore(
             integration: StubTrainingIntegrationProvider(refreshResult: integrationState)
@@ -43,6 +47,18 @@ private struct AppleHealthIntegrationPreviewHost: View {
         )
         let syncStore = HealthSyncStateStore(syncService: syncService, syncEnabled: false)
         _healthSyncStateStore = StateObject(wrappedValue: syncStore)
+
+        let consentStorage = LockedHealthSummarySyncConsentStore()
+        consentStorage.save(
+            HealthSummarySyncConsentState(decision: consentDecision, updatedAt: Date()),
+            for: "preview-user"
+        )
+        _consentStore = StateObject(
+            wrappedValue: HealthSummarySyncConsentStore(
+                storage: consentStorage,
+                userProvider: StaticHealthCacheUserProvider(userID: "preview-user")
+            )
+        )
     }
 
     var body: some View {
@@ -50,12 +66,13 @@ private struct AppleHealthIntegrationPreviewHost: View {
             AppleHealthIntegrationView(insightsStore: store)
         }
         .environmentObject(healthSyncStateStore)
+        .environmentObject(consentStore)
         .environment(
             \.appleHealthSettingsEnvironment,
             AppleHealthSettingsEnvironment(
                 permissionService: PreviewHealthPermissionService(access: permissionAccess),
                 remoteSyncService: remoteSyncEnabled ? PreviewHealthSummarySyncService() : nil,
-                remoteSyncEnabled: { remoteSyncEnabled }
+                remoteSyncCapabilityEnabled: { remoteSyncEnabled }
             )
         )
         .formaThemePreview()
@@ -112,7 +129,8 @@ private actor PreviewHealthSummarySyncService: HealthSummarySyncServing {
     AppleHealthIntegrationPreviewHost(
         integrationState: .connected,
         localSyncDate: Date(),
-        remoteSyncEnabled: true
+        remoteSyncEnabled: true,
+        consentDecision: .optedIn
     )
 }
 #endif

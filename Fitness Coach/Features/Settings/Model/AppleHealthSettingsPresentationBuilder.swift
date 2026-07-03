@@ -45,7 +45,7 @@ enum AppleHealthSettingsPresentationBuilder {
             showsLoadingState: input.loadPhase == .loading || input.loadPhase == .idle,
             errorMessage: errorMessage(for: input.loadPhase),
             emptyStateMessage: emptyStateMessage(for: input),
-            showsRemoteSyncDestination: input.isRemoteSyncEnabled && input.isHealthDataAvailable
+            showsRemoteSyncDestination: input.isRemoteSyncCapabilityEnabled && input.isHealthDataAvailable
         )
     }
 
@@ -57,10 +57,16 @@ enum AppleHealthSettingsPresentationBuilder {
         timeZone: TimeZone = .current
     ) -> AppleHealthRemoteSyncSettingsPresentation {
         let copy = FormaProductCopy.Settings.AppleHealth.RemoteSync.self
+        let consentCopy = FormaProductCopy.Settings.AppleHealth.RemoteSync.Consent.self
 
         return AppleHealthRemoteSyncSettingsPresentation(
             screenTitle: copy.screenTitle,
             intro: copy.intro,
+            consentTitle: consentCopy.toggleTitle,
+            consentDescription: consentCopy.toggleDescription,
+            isConsentToggleOn: input.isRemoteSyncUserEnabled,
+            isConsentToggleEnabled: input.loadPhase == .loaded && !input.isDeletingRemoteSummaries,
+            consentStatusLabel: consentStatusLabel(for: input.remoteSyncConsent),
             detailRows: remoteSyncDetailRows(
                 remoteSyncState: input.remoteSyncState,
                 now: now,
@@ -68,17 +74,26 @@ enum AppleHealthSettingsPresentationBuilder {
                 locale: locale,
                 timeZone: timeZone
             ),
+            showsSyncDetails: input.isRemoteSyncActive,
             syncNowActionTitle: input.remoteSyncState.isSyncing
                 ? copy.syncingAction
                 : copy.syncNowAction,
-            isSyncNowEnabled: input.isRemoteSyncEnabled
+            isSyncNowEnabled: input.isRemoteSyncActive
                 && !input.remoteSyncState.isSyncing
                 && input.loadPhase == .loaded,
             deleteActionTitle: copy.deleteRemoteSummariesAction,
-            isDeleteEnabled: input.isRemoteSyncEnabled
+            isDeleteEnabled: input.isRemoteSyncCapabilityEnabled
+                && input.isRemoteSyncUserEnabled
                 && !input.remoteSyncState.isSyncing
                 && !input.isDeletingRemoteSummaries
                 && input.loadPhase == .loaded,
+            enableConfirmationTitle: consentCopy.enableTitle,
+            enableConfirmationMessage: consentCopy.enableMessage,
+            enableConfirmActionTitle: consentCopy.enableConfirmAction,
+            disableConfirmationTitle: consentCopy.disableTitle,
+            disableConfirmationMessage: consentCopy.disableMessage,
+            disableConfirmActionTitle: consentCopy.disableConfirmAction,
+            disableAndDeleteActionTitle: consentCopy.disableAndDeleteAction,
             deleteConfirmationTitle: copy.deleteConfirmationTitle,
             deleteConfirmationMessage: copy.deleteConfirmationMessage,
             deleteConfirmActionTitle: copy.deleteConfirmActionTitle
@@ -119,7 +134,17 @@ enum AppleHealthSettingsPresentationBuilder {
             )
         )
 
-        if input.isRemoteSyncEnabled {
+        if input.isRemoteSyncCapabilityEnabled {
+            rows.append(
+                AppleHealthSettingsConnectionRow(
+                    id: "remote-sync-consent",
+                    label: copy.remoteSummarySyncLabel,
+                    value: consentStatusLabel(for: input.remoteSyncConsent)
+                )
+            )
+        }
+
+        if input.isRemoteSyncActive {
             rows.append(
                 AppleHealthSettingsConnectionRow(
                     id: "last-remote-sync",
@@ -137,6 +162,20 @@ enum AppleHealthSettingsPresentationBuilder {
         }
 
         return rows
+    }
+
+    private static func consentStatusLabel(
+        for consent: HealthSummarySyncConsentState
+    ) -> String {
+        let copy = FormaProductCopy.Settings.AppleHealth.RemoteSync.Consent.self
+        switch consent.decision {
+        case .optedIn:
+            return copy.statusOn
+        case .optedOut:
+            return copy.statusOff
+        case .notDetermined:
+            return copy.statusNotSet
+        }
     }
 
     private static func remoteSyncDetailRows(
@@ -265,7 +304,7 @@ enum AppleHealthSettingsPresentationBuilder {
             )
         }
 
-        if input.isRemoteSyncEnabled, input.isHealthDataAvailable {
+        if input.isRemoteSyncCapabilityEnabled, input.isHealthDataAvailable {
             models.append(
                 AppleHealthSettingsActionModel(
                     id: "manage-remote-sync",
@@ -278,7 +317,7 @@ enum AppleHealthSettingsPresentationBuilder {
             )
         }
 
-        if input.isRemoteSyncEnabled, input.isHealthDataAvailable {
+        if input.isRemoteSyncActive, input.isHealthDataAvailable {
             models.append(
                 AppleHealthSettingsActionModel(
                     id: "delete-remote-summaries",
@@ -432,7 +471,8 @@ enum AppleHealthSettingsPresentationBuilder {
     }
 
     private static func canDeleteRemoteSummaries(for input: AppleHealthSettingsPresentationInput) -> Bool {
-        input.loadPhase == .loaded
+        input.isRemoteSyncActive
+            && input.loadPhase == .loaded
             && !input.isDeletingRemoteSummaries
             && !input.remoteSyncState.isSyncing
     }

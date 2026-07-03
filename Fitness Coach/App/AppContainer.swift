@@ -56,6 +56,8 @@ final class AppContainer {
     let healthSyncStateStore: HealthSyncStateStore
     let healthSummaryRemoteSyncClient: any HealthSummaryRemoteSyncing
     let healthSummarySyncService: HealthSummarySyncService
+    let healthSummarySyncConsentStore: HealthSummarySyncConsentStore
+    private let healthSummarySyncConsentStorage: any HealthSummarySyncConsentStoring
     private let authUIDCache: AuthUIDCache
 
     let onboardingUserDefaults: UserDefaults
@@ -159,8 +161,22 @@ final class AppContainer {
             repository: healthDataRepository,
             cacheStore: healthCacheStore
         )
-        let remoteSummarySyncEnabled = HealthIntelligenceFeatureFlags.healthSummaryRemoteSyncEnabled
-        healthSummaryRemoteSyncClient = (inMemory || !remoteSummarySyncEnabled)
+        let remoteSummarySyncCapable = HealthIntelligenceFeatureFlags.healthSummaryRemoteSyncEnabled
+        healthSummarySyncConsentStorage = inMemory
+            ? LockedHealthSummarySyncConsentStore()
+            : UserDefaultsHealthSummarySyncConsentStore()
+        healthSummarySyncConsentStore = HealthSummarySyncConsentStore(
+            storage: healthSummarySyncConsentStorage,
+            userProvider: authUIDCache
+        )
+        let remoteSyncActiveProvider: @Sendable () -> Bool = { [authUIDCache, healthSummarySyncConsentStorage] in
+            HealthSummarySyncConsentResolver.isRemoteSyncActive(
+                storage: healthSummarySyncConsentStorage,
+                userProvider: authUIDCache,
+                featureFlagEnabled: remoteSummarySyncCapable
+            )
+        }
+        healthSummaryRemoteSyncClient = (inMemory || !remoteSummarySyncCapable)
             ? NoopHealthSummaryRemoteSyncClient()
             : FirestoreHealthSummaryRemoteSyncClient(userProvider: authUIDCache)
         healthSummarySyncService = HealthSummarySyncService(
@@ -168,13 +184,14 @@ final class AppContainer {
             cacheStore: healthCacheStore,
             repository: healthDataRepository,
             userProvider: authUIDCache,
-            localHealthSyncService: healthSyncService
+            localHealthSyncService: healthSyncService,
+            remoteSyncEnabled: remoteSyncActiveProvider
         )
         healthSyncStateStore = HealthSyncStateStore(
             syncService: healthSyncService,
-            remoteSummarySyncService: remoteSummarySyncEnabled ? healthSummarySyncService : nil,
+            remoteSummarySyncService: remoteSummarySyncCapable ? healthSummarySyncService : nil,
             syncEnabled: HealthIntelligenceFeatureFlags.isSyncEnabled,
-            remoteSummarySyncEnabled: { HealthIntelligenceFeatureFlags.healthSummaryRemoteSyncEnabled }
+            remoteSummarySyncEnabled: remoteSyncActiveProvider
         )
         if HealthIntelligenceFeatureFlags.isSyncEnabled {
             refreshCenter.healthDayChangeHandler = { [healthSyncStateStore] in
@@ -352,6 +369,7 @@ final class AppContainer {
     func syncHealthCacheUserID() {
         authUIDCache.update(uid: authManager.currentUID)
         healthSyncStateStore.cancelActiveSync()
+        healthSummarySyncConsentStore.refresh()
     }
 
     func makeHealthIntelligenceEngine() -> any HealthIntelligenceEngineing {

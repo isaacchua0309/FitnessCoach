@@ -26,39 +26,45 @@ final class AppleHealthSettingsViewModel: ObservableObject {
 
     func presentation(
         healthSyncStateStore: HealthSyncStateStore,
+        consentStore: HealthSummarySyncConsentStore,
         isHealthDataAvailable: Bool,
-        isRemoteSyncEnabled: Bool
+        isRemoteSyncCapabilityEnabled: Bool
     ) -> AppleHealthSettingsPresentation {
         AppleHealthSettingsPresentationBuilder.build(
             input: presentationInput(
                 localSyncState: healthSyncStateStore.state,
+                consentStore: consentStore,
                 isHealthDataAvailable: isHealthDataAvailable,
-                isRemoteSyncEnabled: isRemoteSyncEnabled
+                isRemoteSyncCapabilityEnabled: isRemoteSyncCapabilityEnabled
             )
         )
     }
 
     func remoteSyncPresentation(
         healthSyncStateStore: HealthSyncStateStore,
+        consentStore: HealthSummarySyncConsentStore,
         isHealthDataAvailable: Bool,
-        isRemoteSyncEnabled: Bool
+        isRemoteSyncCapabilityEnabled: Bool
     ) -> AppleHealthRemoteSyncSettingsPresentation {
         AppleHealthSettingsPresentationBuilder.buildRemoteSyncSettings(
             input: presentationInput(
                 localSyncState: healthSyncStateStore.state,
+                consentStore: consentStore,
                 isHealthDataAvailable: isHealthDataAvailable,
-                isRemoteSyncEnabled: isRemoteSyncEnabled
+                isRemoteSyncCapabilityEnabled: isRemoteSyncCapabilityEnabled
             )
         )
     }
 
     func loadSnapshot(
         healthSyncStateStore: HealthSyncStateStore,
+        consentStore: HealthSummarySyncConsentStore,
         environment: AppleHealthSettingsEnvironment
     ) async {
         guard loadPhase != .loading else { return }
 
         loadPhase = .loading
+        consentStore.refresh()
 
         guard environment.permissionService.isHealthDataAvailable else {
             permissionStatus = .unavailable()
@@ -74,7 +80,10 @@ final class AppleHealthSettingsViewModel: ObservableObject {
                 await healthSyncStateStore.refreshState()
             }
         }()
-        async let remoteState = loadRemoteSyncState(environment: environment)
+        async let remoteState = loadRemoteSyncState(
+            environment: environment,
+            consentStore: consentStore
+        )
 
         _ = await integrationRefresh
         _ = await localSyncRefresh
@@ -85,6 +94,7 @@ final class AppleHealthSettingsViewModel: ObservableObject {
 
     func connectAppleHealth(
         healthSyncStateStore: HealthSyncStateStore,
+        consentStore: HealthSummarySyncConsentStore,
         environment: AppleHealthSettingsEnvironment
     ) async {
         await insightsStore.connectAppleHealth()
@@ -92,12 +102,16 @@ final class AppleHealthSettingsViewModel: ObservableObject {
         if HealthIntelligenceFeatureFlags.isSyncEnabled {
             await healthSyncStateStore.refreshState()
         }
-        remoteSyncState = await loadRemoteSyncState(environment: environment)
+        remoteSyncState = await loadRemoteSyncState(
+            environment: environment,
+            consentStore: consentStore
+        )
         loadPhase = .loaded
     }
 
     func refreshHealthData(
         healthSyncStateStore: HealthSyncStateStore,
+        consentStore: HealthSummarySyncConsentStore,
         environment: AppleHealthSettingsEnvironment
     ) async {
         guard !isRefreshingHealthData else { return }
@@ -111,20 +125,57 @@ final class AppleHealthSettingsViewModel: ObservableObject {
         }
 
         permissionStatus = await environment.permissionService.currentStatus()
-        remoteSyncState = await loadRemoteSyncState(environment: environment)
+        remoteSyncState = await loadRemoteSyncState(
+            environment: environment,
+            consentStore: consentStore
+        )
         loadPhase = .loaded
     }
 
-    func syncRemoteSummariesNow(environment: AppleHealthSettingsEnvironment) async {
-        guard environment.remoteSyncEnabled(), let remoteSyncService = environment.remoteSyncService else {
+    func optInToRemoteSync(
+        consentStore: HealthSummarySyncConsentStore,
+        environment: AppleHealthSettingsEnvironment
+    ) async {
+        consentStore.optIn()
+        await syncRemoteSummariesNow(environment: environment, consentStore: consentStore)
+    }
+
+    func optOutOfRemoteSync(
+        deleteRemoteSummaries: Bool,
+        consentStore: HealthSummarySyncConsentStore,
+        environment: AppleHealthSettingsEnvironment
+    ) async {
+        consentStore.optOut()
+        if deleteRemoteSummaries {
+            await deleteRemoteSummaries(environment: environment, consentStore: consentStore)
+        } else {
+            remoteSyncState = await loadRemoteSyncState(
+                environment: environment,
+                consentStore: consentStore
+            )
+        }
+    }
+
+    func syncRemoteSummariesNow(
+        environment: AppleHealthSettingsEnvironment,
+        consentStore: HealthSummarySyncConsentStore
+    ) async {
+        guard environment.isRemoteSyncActive(consentStore: consentStore),
+              let remoteSyncService = environment.remoteSyncService else {
             return
         }
         await remoteSyncService.syncRecentHealthSummaries()
-        remoteSyncState = await loadRemoteSyncState(environment: environment)
+        remoteSyncState = await loadRemoteSyncState(
+            environment: environment,
+            consentStore: consentStore
+        )
     }
 
-    func deleteRemoteSummaries(environment: AppleHealthSettingsEnvironment) async {
-        guard environment.remoteSyncEnabled(),
+    func deleteRemoteSummaries(
+        environment: AppleHealthSettingsEnvironment,
+        consentStore: HealthSummarySyncConsentStore
+    ) async {
+        guard environment.isRemoteSyncCapabilityEnabled,
               let remoteSyncService = environment.remoteSyncService else {
             return
         }
@@ -135,7 +186,10 @@ final class AppleHealthSettingsViewModel: ObservableObject {
 
         do {
             try await remoteSyncService.deleteRemoteHealthSummaries()
-            remoteSyncState = await loadRemoteSyncState(environment: environment)
+            remoteSyncState = await loadRemoteSyncState(
+                environment: environment,
+                consentStore: consentStore
+            )
         } catch {
             loadPhase = .error(FormaProductCopy.Settings.AppleHealth.deleteRemoteSummariesFailedMessage)
         }
@@ -145,15 +199,17 @@ final class AppleHealthSettingsViewModel: ObservableObject {
 
     private func presentationInput(
         localSyncState: HealthSyncState,
+        consentStore: HealthSummarySyncConsentStore,
         isHealthDataAvailable: Bool,
-        isRemoteSyncEnabled: Bool
+        isRemoteSyncCapabilityEnabled: Bool
     ) -> AppleHealthSettingsPresentationInput {
         AppleHealthSettingsPresentationInput(
             integrationState: insightsStore.integrationState,
             permissionStatus: permissionStatus,
             localSyncState: localSyncState,
             remoteSyncState: remoteSyncState,
-            isRemoteSyncEnabled: isRemoteSyncEnabled,
+            isRemoteSyncCapabilityEnabled: isRemoteSyncCapabilityEnabled,
+            remoteSyncConsent: consentStore.state,
             isHealthDataAvailable: isHealthDataAvailable,
             loadPhase: loadPhase,
             isRefreshingHealthData: isRefreshingHealthData,
@@ -162,9 +218,11 @@ final class AppleHealthSettingsViewModel: ObservableObject {
     }
 
     private func loadRemoteSyncState(
-        environment: AppleHealthSettingsEnvironment
+        environment: AppleHealthSettingsEnvironment,
+        consentStore: HealthSummarySyncConsentStore
     ) async -> HealthSummaryRemoteSyncState {
-        guard environment.remoteSyncEnabled(), let remoteSyncService = environment.remoteSyncService else {
+        guard environment.isRemoteSyncActive(consentStore: consentStore),
+              let remoteSyncService = environment.remoteSyncService else {
             return .disabled
         }
         return await remoteSyncService.getRemoteSyncState()

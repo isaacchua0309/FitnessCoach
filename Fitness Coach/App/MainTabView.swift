@@ -148,6 +148,7 @@ struct MainTabView: View {
         .environmentObject(container.trainingInsightsModel)
         .environmentObject(container.healthSyncStateStore)
         .environmentObject(container.themeStore)
+        .environmentObject(container.healthSummarySyncConsentStore)
         .environment(
             \.appleHealthSettingsEnvironment,
             AppleHealthSettingsEnvironment(

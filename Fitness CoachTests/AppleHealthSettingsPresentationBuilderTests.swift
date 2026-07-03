@@ -120,11 +120,29 @@ final class AppleHealthSettingsPresentationBuilderTests: XCTestCase {
         )
     }
 
-    func testRemoteSyncRowShownWhenEnabled() {
+    func testRemoteSyncCapabilityShowsConsentRowButNotLastSyncWithoutOptIn() {
+        let presentation = build(
+            integrationState: .connected,
+            isRemoteSyncCapabilityEnabled: true,
+            remoteSyncConsent: .default
+        )
+
+        XCTAssertEqual(
+            rowValue("remote-sync-consent", in: presentation.healthDataDetailRows),
+            FormaProductCopy.Settings.AppleHealth.RemoteSync.Consent.statusNotSet
+        )
+        XCTAssertNil(rowValue("last-remote-sync", in: presentation.healthDataDetailRows))
+        XCTAssertTrue(presentation.showsRemoteSyncDestination)
+        XCTAssertTrue(presentation.actions.contains(where: { $0.kind == .manageHealthDataSync }))
+        XCTAssertFalse(presentation.actions.contains(where: { $0.kind == .deleteRemoteHealthSummaries }))
+    }
+
+    func testRemoteSyncLastSyncShownWhenUserOptedIn() {
         let remoteDate = Date()
         let presentation = build(
             integrationState: .connected,
-            isRemoteSyncEnabled: true,
+            isRemoteSyncCapabilityEnabled: true,
+            remoteSyncConsent: HealthSummarySyncConsentState(decision: .optedIn, updatedAt: remoteDate),
             remoteSyncState: HealthSummaryRemoteSyncState(
                 phase: .succeeded,
                 trigger: .manual,
@@ -139,20 +157,34 @@ final class AppleHealthSettingsPresentationBuilderTests: XCTestCase {
         )
 
         XCTAssertNotNil(rowValue("last-remote-sync", in: presentation.healthDataDetailRows))
-        XCTAssertTrue(presentation.showsRemoteSyncDestination)
-        XCTAssertTrue(presentation.actions.contains(where: { $0.kind == .manageHealthDataSync }))
         XCTAssertTrue(presentation.actions.contains(where: { $0.kind == .deleteRemoteHealthSummaries }))
     }
 
-    func testRemoteSyncActionsHiddenWhenDisabled() {
+    func testRemoteSyncActionsHiddenWhenCapabilityDisabled() {
         let presentation = build(
             integrationState: .connected,
-            isRemoteSyncEnabled: false
+            isRemoteSyncCapabilityEnabled: false
         )
 
-        XCTAssertNil(rowValue("last-remote-sync", in: presentation.healthDataDetailRows))
+        XCTAssertNil(rowValue("remote-sync-consent", in: presentation.healthDataDetailRows))
         XCTAssertFalse(presentation.actions.contains(where: { $0.kind == .manageHealthDataSync }))
         XCTAssertFalse(presentation.actions.contains(where: { $0.kind == .deleteRemoteHealthSummaries }))
+    }
+
+    func testRemoteSyncSettingsIncludeConsentConfirmationCopy() {
+        let remote = AppleHealthSettingsPresentationBuilder.buildRemoteSyncSettings(
+            input: buildInput(
+                integrationState: .connected,
+                isRemoteSyncCapabilityEnabled: true
+            )
+        )
+
+        XCTAssertEqual(
+            remote.enableConfirmationMessage,
+            FormaProductCopy.Settings.AppleHealth.RemoteSync.Consent.enableMessage
+        )
+        XCTAssertFalse(remote.isConsentToggleOn)
+        XCTAssertFalse(remote.showsSyncDetails)
     }
 
     func testPrivacyBulletsUseProductionCopy() {
@@ -205,27 +237,51 @@ final class AppleHealthSettingsPresentationBuilderTests: XCTestCase {
         permissionStatus: HealthPermissionStatus? = nil,
         localSyncState: HealthSyncState = .idle,
         remoteSyncState: HealthSummaryRemoteSyncState = .disabled,
-        isRemoteSyncEnabled: Bool = false,
+        isRemoteSyncCapabilityEnabled: Bool = false,
+        remoteSyncConsent: HealthSummarySyncConsentState = .default,
         isHealthDataAvailable: Bool = true,
         loadPhase: AppleHealthSettingsLoadPhase = .loaded,
         now: Date = Date()
     ) -> AppleHealthSettingsPresentation {
         AppleHealthSettingsPresentationBuilder.build(
-            input: AppleHealthSettingsPresentationInput(
+            input: buildInput(
                 integrationState: integrationState,
-                permissionStatus: permissionStatus ?? uniformPermission(.available),
+                permissionStatus: permissionStatus,
                 localSyncState: localSyncState,
                 remoteSyncState: remoteSyncState,
-                isRemoteSyncEnabled: isRemoteSyncEnabled,
+                isRemoteSyncCapabilityEnabled: isRemoteSyncCapabilityEnabled,
+                remoteSyncConsent: remoteSyncConsent,
                 isHealthDataAvailable: isHealthDataAvailable,
-                loadPhase: loadPhase,
-                isRefreshingHealthData: false,
-                isDeletingRemoteSummaries: false
+                loadPhase: loadPhase
             ),
             now: now,
             calendar: calendar,
             locale: locale,
             timeZone: timeZone
+        )
+    }
+
+    private func buildInput(
+        integrationState: TrainingIntegrationState,
+        permissionStatus: HealthPermissionStatus? = nil,
+        localSyncState: HealthSyncState = .idle,
+        remoteSyncState: HealthSummaryRemoteSyncState = .disabled,
+        isRemoteSyncCapabilityEnabled: Bool = false,
+        remoteSyncConsent: HealthSummarySyncConsentState = .default,
+        isHealthDataAvailable: Bool = true,
+        loadPhase: AppleHealthSettingsLoadPhase = .loaded
+    ) -> AppleHealthSettingsPresentationInput {
+        AppleHealthSettingsPresentationInput(
+            integrationState: integrationState,
+            permissionStatus: permissionStatus ?? uniformPermission(.available),
+            localSyncState: localSyncState,
+            remoteSyncState: remoteSyncState,
+            isRemoteSyncCapabilityEnabled: isRemoteSyncCapabilityEnabled,
+            remoteSyncConsent: remoteSyncConsent,
+            isHealthDataAvailable: isHealthDataAvailable,
+            loadPhase: loadPhase,
+            isRefreshingHealthData: false,
+            isDeletingRemoteSummaries: false
         )
     }
 

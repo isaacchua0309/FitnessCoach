@@ -58,11 +58,23 @@ struct AppleHealthSettingsPresentationInput: Equatable, Sendable {
     let permissionStatus: HealthPermissionStatus?
     let localSyncState: HealthSyncState
     let remoteSyncState: HealthSummaryRemoteSyncState
-    let isRemoteSyncEnabled: Bool
+    let isRemoteSyncCapabilityEnabled: Bool
+    let remoteSyncConsent: HealthSummarySyncConsentState
     let isHealthDataAvailable: Bool
     let loadPhase: AppleHealthSettingsLoadPhase
     let isRefreshingHealthData: Bool
     let isDeletingRemoteSummaries: Bool
+
+    var isRemoteSyncUserEnabled: Bool {
+        remoteSyncConsent.isRemoteSyncAllowed
+    }
+
+    var isRemoteSyncActive: Bool {
+        HealthSummaryRemoteSyncGate.isActive(
+            consent: remoteSyncConsent,
+            featureFlagEnabled: isRemoteSyncCapabilityEnabled
+        )
+    }
 }
 
 struct AppleHealthSettingsPresentation: Equatable, Sendable {
@@ -84,11 +96,24 @@ struct AppleHealthSettingsPresentation: Equatable, Sendable {
 struct AppleHealthRemoteSyncSettingsPresentation: Equatable, Sendable {
     let screenTitle: String
     let intro: String
+    let consentTitle: String
+    let consentDescription: String
+    let isConsentToggleOn: Bool
+    let isConsentToggleEnabled: Bool
+    let consentStatusLabel: String
     let detailRows: [AppleHealthSettingsConnectionRow]
+    let showsSyncDetails: Bool
     let syncNowActionTitle: String
     let isSyncNowEnabled: Bool
     let deleteActionTitle: String
     let isDeleteEnabled: Bool
+    let enableConfirmationTitle: String
+    let enableConfirmationMessage: String
+    let enableConfirmActionTitle: String
+    let disableConfirmationTitle: String
+    let disableConfirmationMessage: String
+    let disableConfirmActionTitle: String
+    let disableAndDeleteActionTitle: String
     let deleteConfirmationTitle: String
     let deleteConfirmationMessage: String
     let deleteConfirmActionTitle: String
