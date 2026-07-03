@@ -93,7 +93,8 @@ struct TodayReadOnlyView: View {
 
             TodayReadOnlyProgressSection(
                 macros: state.macroHydration.macroSummary,
-                water: state.macroHydration.waterSummary
+                water: state.macroHydration.waterSummary,
+                calorieSummary: state.mission.calorieSummary
             )
         }
     }

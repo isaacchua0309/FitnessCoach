@@ -975,10 +975,12 @@ enum FormaProductCopy {
         static let targetsSectionTitle = "Targets"
 
         enum MacroBalance {
-            static let sectionTitle = "Macro balance"
+            static let sectionTitle = "Nutrition"
             static let protein = "Protein"
+            static let calories = "Calories"
             static let carbs = "Carbs"
             static let fat = "Fat"
+            static let water = "Water"
             static let remainingSuffix = "remaining"
             static let overSuffix = "over"
             static let atTarget = "At target"
@@ -998,6 +1000,38 @@ enum FormaProductCopy {
 
             static func over(grams: Double) -> String {
                 "\(FoodEntryFormFormatter.formatMacro(max(grams, 0)))g \(overSuffix)"
+            }
+
+            static func caloriesRatio(consumed: Int, target: Int) -> String {
+                "\(TodayMissionHeroFormatting.calories(consumed)) / \(TodayMissionHeroFormatting.calories(target)) kcal"
+            }
+
+            static func loggedCalories(_ consumed: Int) -> String {
+                "\(TodayMissionHeroFormatting.calories(consumed)) kcal logged"
+            }
+
+            static func caloriesRemaining(_ amount: Int) -> String {
+                "\(TodayMissionHeroFormatting.calories(max(amount, 0))) kcal \(remainingSuffix)"
+            }
+
+            static func caloriesOver(_ amount: Int) -> String {
+                "\(TodayMissionHeroFormatting.calories(max(amount, 0))) kcal \(overSuffix)"
+            }
+
+            static func waterRatio(consumedMl: Int, targetMl: Int) -> String {
+                "\(consumedMl) / \(targetMl) ml"
+            }
+
+            static func loggedWater(_ consumedMl: Int) -> String {
+                "\(consumedMl) ml logged"
+            }
+
+            static func waterRemaining(_ amountMl: Int) -> String {
+                "\(max(amountMl, 0))ml \(remainingSuffix)"
+            }
+
+            static func waterOver(_ amountMl: Int) -> String {
+                "\(max(amountMl, 0))ml \(overSuffix)"
             }
         }
 

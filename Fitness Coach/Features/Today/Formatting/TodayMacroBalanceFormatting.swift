@@ -2,28 +2,14 @@
 //  TodayMacroBalanceFormatting.swift
 //  Fitness Coach
 //
-//  Forma — Display formatting for the Macro Balance card.
+//  Legacy typealiases — prefer TodayNutritionProgressFormatting.
 //
 
 import Foundation
 
-enum TodayMacroBalanceDisplayState: Equatable {
-    case belowTarget
-    case nearTarget
-    case overTarget
-    case missingTarget
-}
+typealias TodayMacroBalanceDisplayState = TodayNutritionDisplayState
 
-struct TodayMacroBalanceRowDisplayModel: Equatable {
-    var name: String
-    var ratioText: String
-    var remainingText: String
-    var barProgress: Double
-    var displayState: TodayMacroBalanceDisplayState
-    var isProteinPriority: Bool
-    var accessibilityLabel: String
-    var accessibilityValue: String
-}
+typealias TodayMacroBalanceRowDisplayModel = TodayNutritionProgressRowDisplayModel
 
 struct TodayMacroBalanceCardDisplayModel: Equatable {
     var protein: TodayMacroBalanceRowDisplayModel
@@ -34,34 +20,27 @@ struct TodayMacroBalanceCardDisplayModel: Equatable {
 
 enum TodayMacroBalanceFormatting {
 
-    /// Remaining grams at or below this share of the macro target count as “near target”.
-    static let nearTargetRemainingRatio = TodayMissionHeroFormatter.nearTargetRemainingRatio
-
-    /// Absolute gram threshold for near-target on small macro targets.
-    static let nearTargetRemainingGrams = 15.0
+    static let nearTargetRemainingRatio = TodayNutritionProgressFormatting.nearTargetRemainingRatio
+    static let nearTargetRemainingGrams = TodayNutritionProgressFormatting.nearTargetRemainingGrams
 
     static func displayModel(for macros: MacroSummary) -> TodayMacroBalanceCardDisplayModel {
-        let protein = rowDisplayModel(
-            name: FormaProductCopy.Today.MacroBalance.protein,
-            progress: macros.protein,
-            isProteinPriority: true
-        )
-        let carbs = rowDisplayModel(
-            name: FormaProductCopy.Today.MacroBalance.carbs,
-            progress: macros.carbs,
-            isProteinPriority: false
-        )
-        let fat = rowDisplayModel(
-            name: FormaProductCopy.Today.MacroBalance.fat,
-            progress: macros.fat,
-            isProteinPriority: false
+        let display = TodayNutritionProgressFormatting.displayModel(
+            macros: macros,
+            water: WaterSummary(consumedMl: 0, targetMl: 0, remainingMl: 0, progress: 0),
+            calorieSummary: CalorieSummary(
+                consumed: 0,
+                target: 1,
+                remaining: 0,
+                progress: 0,
+                isOverTarget: false
+            )
         )
 
         return TodayMacroBalanceCardDisplayModel(
-            protein: protein,
-            carbs: carbs,
-            fat: fat,
-            accessibilitySummary: accessibilitySummary(protein: protein, carbs: carbs, fat: fat)
+            protein: display.rows[0],
+            carbs: display.rows[1],
+            fat: display.rows[2],
+            accessibilitySummary: display.accessibilitySummary
         )
     }
 
@@ -70,75 +49,41 @@ enum TodayMacroBalanceFormatting {
         progress: MacroProgress,
         isProteinPriority: Bool
     ) -> TodayMacroBalanceRowDisplayModel {
-        let state = displayState(for: progress)
-        let ratioText = ratioText(consumed: progress.consumed, target: progress.target)
-        let remainingText = remainingText(for: progress, state: state)
-        let barProgress = barProgress(for: progress)
-
-        return TodayMacroBalanceRowDisplayModel(
+        TodayNutritionProgressFormatting.macroRow(
             name: name,
-            ratioText: ratioText,
-            remainingText: remainingText,
-            barProgress: barProgress,
-            displayState: state,
-            isProteinPriority: isProteinPriority,
-            accessibilityLabel: name,
-            accessibilityValue: accessibilityValue(
-                ratioText: ratioText,
-                remainingText: remainingText,
-                barProgress: barProgress,
-                state: state
-            )
+            progress: progress,
+            emphasis: isProteinPriority ? .primary : .secondary
         )
     }
 
     static func displayState(for progress: MacroProgress) -> TodayMacroBalanceDisplayState {
-        guard progress.target > 0 else { return .missingTarget }
-        if progress.consumed > progress.target { return .overTarget }
-
-        let remaining = effectiveRemaining(progress)
-        if remaining <= 0 { return .nearTarget }
-
-        if progress.consumed > 0 {
-            let remainingRatio = remaining / progress.target
-            if remainingRatio <= nearTargetRemainingRatio || remaining <= nearTargetRemainingGrams {
-                return .nearTarget
-            }
-        }
-
-        return .belowTarget
+        TodayNutritionProgressFormatting.displayState(
+            consumed: progress.consumed,
+            target: progress.target,
+            remaining: progress.remaining
+        )
     }
 
     static func ratioText(consumed: Double, target: Double) -> String {
-        guard target > 0 else {
-            return FormaProductCopy.Today.MacroBalance.loggedAmount(consumed)
-        }
-        return FormaProductCopy.Today.MacroBalance.ratio(consumed: consumed, target: target)
+        TodayNutritionProgressFormatting.macroRatioText(consumed: consumed, target: target)
     }
 
     static func remainingText(
         for progress: MacroProgress,
         state: TodayMacroBalanceDisplayState
     ) -> String {
-        switch state {
-        case .missingTarget:
-            return FormaProductCopy.Today.MacroBalance.noTarget
-        case .overTarget:
-            return FormaProductCopy.Today.MacroBalance.over(grams: abs(effectiveRemaining(progress)))
-        case .nearTarget:
-            let remaining = effectiveRemaining(progress)
-            if remaining <= 0 {
-                return FormaProductCopy.Today.MacroBalance.atTarget
-            }
-            return FormaProductCopy.Today.MacroBalance.remaining(grams: remaining)
-        case .belowTarget:
-            return FormaProductCopy.Today.MacroBalance.remaining(grams: effectiveRemaining(progress))
-        }
+        TodayNutritionProgressFormatting.macroRemainingText(
+            consumed: progress.consumed,
+            target: progress.target,
+            state: state
+        )
     }
 
     static func barProgress(for progress: MacroProgress) -> Double {
-        guard progress.target > 0 else { return 0 }
-        return min(max(progress.consumed / progress.target, 0), 1)
+        TodayNutritionProgressFormatting.barProgress(
+            consumed: progress.consumed,
+            target: progress.target
+        )
     }
 
     static func effectiveRemaining(_ progress: MacroProgress) -> Double {
@@ -151,31 +96,11 @@ enum TodayMacroBalanceFormatting {
         barProgress: Double,
         state: TodayMacroBalanceDisplayState
     ) -> String {
-        let percent = Int((barProgress * 100).rounded())
-        switch state {
-        case .missingTarget:
-            return "\(ratioText). \(remainingText)"
-        case .overTarget:
-            return "\(ratioText). \(remainingText). Target reached."
-        default:
-            return "\(ratioText). \(remainingText). \(percent) percent of target."
-        }
-    }
-
-    private static func accessibilitySummary(
-        protein: TodayMacroBalanceRowDisplayModel,
-        carbs: TodayMacroBalanceRowDisplayModel,
-        fat: TodayMacroBalanceRowDisplayModel
-    ) -> String {
-        [
-            FormaProductCopy.Today.MacroBalance.sectionTitle,
-            rowAccessibilitySummary(protein),
-            rowAccessibilitySummary(carbs),
-            rowAccessibilitySummary(fat)
-        ].joined(separator: ". ")
-    }
-
-    private static func rowAccessibilitySummary(_ row: TodayMacroBalanceRowDisplayModel) -> String {
-        "\(row.name): \(row.accessibilityValue)"
+        TodayNutritionProgressFormatting.accessibilityValue(
+            ratioText: ratioText,
+            remainingText: remainingText,
+            barProgress: barProgress,
+            state: state
+        )
     }
 }
