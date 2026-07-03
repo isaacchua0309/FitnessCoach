@@ -12,6 +12,7 @@
 | [COACH_CONTEXT_PACKET_V2.md](./COACH_CONTEXT_PACKET_V2.md) | Field reference and size limits |
 | [COACH_TIMELINE_V2_MIGRATION.md](./COACH_TIMELINE_V2_MIGRATION.md) | Rollout and migration notes |
 | [COACH_TIMELINE_V2_PRE_IMPLEMENTATION_AUDIT.md](./COACH_TIMELINE_V2_PRE_IMPLEMENTATION_AUDIT.md) | Historical pre-migration audit |
+| [COACH_TIMELINE_CONTEXT_V2_QA.md](./COACH_TIMELINE_CONTEXT_V2_QA.md) | Manual QA checklist (40 scenarios) |
 
 ---
 

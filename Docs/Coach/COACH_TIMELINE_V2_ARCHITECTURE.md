@@ -96,6 +96,7 @@ There is **no AB gate** for timeline v2. Production path is always `CoachContext
 ## Related docs
 
 - [COACH_TIMELINE_CONTEXT_V2_IMPLEMENTATION.md](./COACH_TIMELINE_CONTEXT_V2_IMPLEMENTATION.md) — full implementation reference
+- [COACH_TIMELINE_CONTEXT_V2_QA.md](./COACH_TIMELINE_CONTEXT_V2_QA.md) — manual QA checklist
 - [COACH_CONTEXT_PACKET_V2.md](./COACH_CONTEXT_PACKET_V2.md) — field reference
 - [COACH_TIMELINE_V2_MIGRATION.md](./COACH_TIMELINE_V2_MIGRATION.md) — migration notes
 - [COACH_TIMELINE_V2_PRE_IMPLEMENTATION_AUDIT.md](./COACH_TIMELINE_V2_PRE_IMPLEMENTATION_AUDIT.md) — historical audit
