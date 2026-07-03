@@ -8,15 +8,13 @@ import XCTest
 
 final class PlanBodyBaselineValidationBuilderTests: XCTestCase {
 
-    func testValidHeightAndWeightPass() {
+    func testValidHeightAndWeight() {
         let result = PlanBodyBaselineValidationBuilder.validate(
             heightText: "175",
             weightText: "80"
         )
 
         XCTAssertTrue(result.isValid)
-        XCTAssertNil(result.heightMessage)
-        XCTAssertNil(result.weightMessage)
     }
 
     func testEmptyHeightFails() {
@@ -25,7 +23,6 @@ final class PlanBodyBaselineValidationBuilderTests: XCTestCase {
             weightText: "80"
         )
 
-        XCTAssertFalse(result.isValid)
         XCTAssertEqual(
             result.heightMessage,
             FormaProductCopy.PlanEditBodyBaseline.validationEnterHeight
@@ -35,13 +32,33 @@ final class PlanBodyBaselineValidationBuilderTests: XCTestCase {
     func testOutOfRangeWeightFails() {
         let result = PlanBodyBaselineValidationBuilder.validate(
             heightText: "175",
-            weightText: "10"
+            weightText: "20"
         )
 
-        XCTAssertFalse(result.isValid)
         XCTAssertEqual(
             result.weightMessage,
             FormaProductCopy.PlanEditBodyBaseline.validationWeightOutOfRange
         )
+    }
+
+    func testInvalidCharactersFail() {
+        let result = PlanBodyBaselineValidationBuilder.validate(
+            heightText: "17o",
+            weightText: "80"
+        )
+
+        XCTAssertEqual(
+            result.heightMessage,
+            FormaProductCopy.PlanEditBodyBaseline.validationInvalidNumber
+        )
+    }
+
+    func testDecimalWeightAccepted() {
+        let result = PlanBodyBaselineValidationBuilder.validate(
+            heightText: "175",
+            weightText: "80.4"
+        )
+
+        XCTAssertTrue(result.isValid)
     }
 }

@@ -29,24 +29,34 @@ enum PlanBodyBaselineValidationBuilder {
     }
 
     private static func validateHeight(_ text: String) -> String? {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, let value = Double(trimmed), value > 0 else {
+        switch PlanNumericInputParser.parsePositiveDecimal(text) {
+        case .failure(.empty):
             return FormaProductCopy.PlanEditBodyBaseline.validationEnterHeight
+        case .failure(.invalidFormat):
+            return FormaProductCopy.PlanEditBodyBaseline.validationInvalidNumber
+        case .failure(.nonPositive):
+            return FormaProductCopy.PlanEditBodyBaseline.validationEnterHeight
+        case .success(let value):
+            guard OnboardingPickerDefaults.metricHeightCmRange.contains(value) else {
+                return FormaProductCopy.PlanEditBodyBaseline.validationHeightOutOfRange
+            }
+            return nil
         }
-        guard OnboardingPickerDefaults.metricHeightCmRange.contains(value) else {
-            return FormaProductCopy.PlanEditBodyBaseline.validationHeightOutOfRange
-        }
-        return nil
     }
 
     private static func validateWeight(_ text: String) -> String? {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, let value = Double(trimmed), value > 0 else {
+        switch PlanNumericInputParser.parsePositiveDecimal(text) {
+        case .failure(.empty):
             return FormaProductCopy.PlanEditBodyBaseline.validationEnterWeight
+        case .failure(.invalidFormat):
+            return FormaProductCopy.PlanEditBodyBaseline.validationInvalidNumber
+        case .failure(.nonPositive):
+            return FormaProductCopy.PlanEditBodyBaseline.validationEnterWeight
+        case .success(let value):
+            guard OnboardingPickerDefaults.metricWeightKgRange.contains(value) else {
+                return FormaProductCopy.PlanEditBodyBaseline.validationWeightOutOfRange
+            }
+            return nil
         }
-        guard OnboardingPickerDefaults.metricWeightKgRange.contains(value) else {
-            return FormaProductCopy.PlanEditBodyBaseline.validationWeightOutOfRange
-        }
-        return nil
     }
 }

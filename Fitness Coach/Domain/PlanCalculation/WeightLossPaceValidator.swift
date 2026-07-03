@@ -14,28 +14,29 @@ enum WeightLossPaceValidationError: Equatable, Sendable {
     case exceedsMaximumWeeklyLoss(weeklyKg: Double, period: WeightLossAdvancedPaceDraft.Period?)
 
     var message: String {
+        let copy = FormaProductCopy.PlanEditPace.self
         switch self {
         case .negativeValue:
-            return "Weight-loss pace cannot be negative."
+            return copy.cannotBeNegative
         case .zeroForFatLossGoal:
-            return "Weight-loss pace must be greater than zero for a fat-loss goal."
+            return copy.mustBePositive
         case .goalDateNotInFuture:
-            return "Goal date must be in the future."
+            return copy.goalDateMustBeFuture
         case .exceedsMaximumWeeklyLoss(_, let period):
             let c = FormaCalculationConstants.self
             switch period {
             case .monthly:
-                return "Weight-loss pace cannot exceed \(Self.formatKg(c.maxMonthlyWeightLossKg)) per month."
+                return copy.exceedsMonthlyMaximum(Self.formatKg(c.maxMonthlyWeightLossKg))
             case .weekly, .none:
-                return "Weight-loss pace cannot exceed \(Self.formatKg(c.maxWeeklyWeightLossKg)) per week."
+                return copy.exceedsWeeklyMaximum(Self.formatKg(c.maxWeeklyWeightLossKg))
             }
         }
     }
 
     private static func formatKg(_ value: Double) -> String {
         value.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(value))"
-            : String(format: "%.1f", value)
+            ? "\(Int(value)) kg"
+            : String(format: "%.1f kg", value)
     }
 }
 
@@ -165,6 +166,12 @@ enum WeightLossPaceValidator {
     ) -> [PlanWarning] {
         guard goalDirection == .cut, weightKg > 0 else { return [] }
 
+        let weekly = pace.weeklyLossKg(
+            weightKg: weightKg,
+            goalWeightKg: goalWeightKg,
+            referenceDate: referenceDate
+        )
+
         let fraction = weeklyLossFractionForSafety(
             pace: pace,
             weightKg: weightKg,
@@ -174,23 +181,25 @@ enum WeightLossPaceValidator {
         let c = FormaCalculationConstants.self
         var warnings: [PlanWarning] = []
 
+        if weekly > 0, weekly < c.minMeaningfulWeeklyLossKg {
+            warnings.append(PlanWarning(
+                code: "paceVerySlow",
+                severity: .warn,
+                message: FormaProductCopy.PlanEditPace.verySlowPaceWarning
+            ))
+        }
+
         if fraction > c.paceStrongWarnWeeklyLossFraction {
             warnings.append(PlanWarning(
                 code: "paceVeryAggressive",
                 severity: .strongWarning,
-                message: String(
-                    format: "Target pace exceeds %.1f%% of body weight per week; consider a slower rate.",
-                    c.paceStrongWarnWeeklyLossFraction * 100
-                )
+                message: FormaProductCopy.PlanEditPace.aggressivePaceWarning
             ))
         } else if fraction >= c.paceWarnWeeklyLossFraction {
             warnings.append(PlanWarning(
                 code: "paceAggressive",
                 severity: .warn,
-                message: String(
-                    format: "Target pace is at or above %.2f%% of body weight per week; monitor energy and recovery.",
-                    c.paceWarnWeeklyLossFraction * 100
-                )
+                message: FormaProductCopy.PlanEditPace.aggressivePaceWarning
             ))
         }
 

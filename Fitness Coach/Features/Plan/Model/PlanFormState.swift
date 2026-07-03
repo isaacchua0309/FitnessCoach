@@ -37,6 +37,7 @@ struct PlanFormState: Equatable {
     var aggressiveness: CalorieAggressiveness
     var weightLossPaceChoice: WeightLossPaceChoice
     var advancedPaceDraft: WeightLossAdvancedPaceDraft
+    var customPaceActivityLevel: ActivityLevel?
 
     var hasManuallyEditedTrainingDays: Bool = false
     var hasManuallyEditedAverageSteps: Bool = false
@@ -71,6 +72,7 @@ struct PlanFormState: Equatable {
         )
         weightLossPaceChoice = inferred.choice
         advancedPaceDraft = inferred.advancedDraft
+        customPaceActivityLevel = inferred.choice == .advanced ? profile.activityLevel : nil
         reconcileBirthDateAfterRestore()
         reconcileTrainingRhythmAfterRestore()
     }
@@ -125,8 +127,9 @@ struct PlanFormState: Equatable {
         waterTargetMlText: String,
         expectedWeeklyWeightLossKgText: String,
         aggressiveness: CalorieAggressiveness,
-        weightLossPaceChoice: WeightLossPaceChoice,
-        advancedPaceDraft: WeightLossAdvancedPaceDraft
+            weightLossPaceChoice: WeightLossPaceChoice,
+        advancedPaceDraft: WeightLossAdvancedPaceDraft,
+        customPaceActivityLevel: ActivityLevel? = nil
     ) {
         self.name = name
         self.birthDate = birthDate
@@ -150,6 +153,7 @@ struct PlanFormState: Equatable {
         self.aggressiveness = aggressiveness
         self.weightLossPaceChoice = weightLossPaceChoice
         self.advancedPaceDraft = advancedPaceDraft
+        self.customPaceActivityLevel = customPaceActivityLevel
     }
 
     func makeDraft(targets: UserTargets) throws -> UserProfileDraft {
@@ -239,6 +243,30 @@ struct PlanFormState: Equatable {
 
     mutating func syncAggressivenessFromPaceChoice() {
         aggressiveness = weightLossPaceChoice.legacyAggressiveness
+        recordCustomPaceCaptureIfNeeded()
+    }
+
+    mutating func recordCustomPaceCaptureIfNeeded() {
+        if weightLossPaceChoice == .advanced {
+            customPaceActivityLevel = activityLevel
+        } else {
+            customPaceActivityLevel = nil
+        }
+    }
+
+    mutating func resetPaceForNonCutGoal() {
+        weightLossPaceChoice = .moderate
+        advancedPaceDraft = .default
+        customPaceActivityLevel = nil
+        syncAggressivenessFromPaceChoice()
+    }
+
+    mutating func syncMaintainGoalWeightFromCurrent() {
+        guard let current = Double(currentWeightKgText.trimmingCharacters(in: .whitespacesAndNewlines)),
+              current > 0 else {
+            return
+        }
+        goalWeightKgText = Self.formatDouble(current)
     }
 
     // MARK: - Birthday

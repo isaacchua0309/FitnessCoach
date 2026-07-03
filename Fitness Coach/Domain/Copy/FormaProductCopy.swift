@@ -2326,6 +2326,63 @@ enum FormaProductCopy {
         static func validationGoalOutOfRange(range: String) -> String {
             "Choose a target between \(range)."
         }
+
+        static func validationInvalidNumber() -> String {
+            "Use numbers only — decimals are fine."
+        }
+
+        static func validationGoalBelowMinimum(minimum: String) -> String {
+            "For your height, aim for at least \(minimum)."
+        }
+
+        static func validationGoalAboveMaximum(maximum: String) -> String {
+            "Choose a target up to \(maximum)."
+        }
+
+        static let maintainTargetSummary = "You'll hold steady around your current weight."
+
+        static func maintainAroundWeight(_ weight: String) -> String {
+            "You'll maintain around \(weight)."
+        }
+    }
+
+    // MARK: - Plan Edit Pace Validation
+
+    enum PlanEditPace {
+        static let enterBaselineWeight =
+            "Enter your current weight to preview pace."
+        static let unableToPreview = "We couldn't preview this pace. Try another amount."
+        static let mustBePositive = "Pace must be greater than zero for fat loss."
+        static let cannotBeNegative = "Pace can't be negative."
+        static let goalDateMustBeFuture = "Pick a goal date in the future."
+        static func exceedsWeeklyMaximum(_ amount: String) -> String {
+            "Keep weekly loss at or below \(amount)."
+        }
+        static func exceedsMonthlyMaximum(_ amount: String) -> String {
+            "Keep monthly loss at or below \(amount)."
+        }
+        static let aggressivePaceWarning =
+            "This pace may be hard to sustain. A slower target can help recovery and consistency."
+        static let verySlowPaceWarning =
+            "This pace is very gradual — progress may feel slow, but it can be easier to stick with."
+        static let activityChangedCustomPace =
+            "You updated activity since setting a custom pace. Double-check that pace still feels right."
+        static let gainGoalIgnoresCutPace =
+            "Muscle gain uses a calorie surplus — your fat-loss pace won't apply."
+        static let maintainGoalIgnoresCutPace =
+            "Maintenance keeps calories steady — your fat-loss pace won't apply."
+    }
+
+    // MARK: - Plan Edit Wizard
+
+    enum PlanEditWizardCopy {
+        static let discardChangesTitle = "Discard your edits?"
+        static let discardChangesMessage =
+            "You have unsaved changes. Leaving now will restore your previous plan."
+        static let keepEditing = "Keep Editing"
+        static let discardChanges = "Discard Changes"
+        static let saveNoChangesHint =
+            "Nothing changed — close without saving, or tweak something first."
     }
 
     // MARK: - Plan Edit Body Baseline
@@ -2364,6 +2421,7 @@ enum FormaProductCopy {
 
         static let validationEnterHeight = "Enter your height to continue."
         static let validationEnterWeight = "Enter your current weight to continue."
+        static let validationInvalidNumber = "Use numbers only — decimals are fine."
         static let validationHeightOutOfRange = "Choose a height between 120 and 220 cm."
         static let validationWeightOutOfRange = "Choose a weight between 35 and 200 kg."
     }

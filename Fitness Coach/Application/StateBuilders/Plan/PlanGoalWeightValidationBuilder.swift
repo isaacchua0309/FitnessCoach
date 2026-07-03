@@ -16,11 +16,31 @@ enum PlanGoalWeightValidationBuilder {
         goalType: PlanGoalType,
         unitSystem: UnitSystem = .metric
     ) -> String? {
-        let trimmed = goalWeightText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, let goalKg = Double(trimmed), goalKg > 0 else {
+        switch PlanNumericInputParser.parsePositiveDecimal(goalWeightText) {
+        case .failure(.empty):
             return FormaProductCopy.PlanEditTarget.validationEnterGoalWeight()
+        case .failure(.invalidFormat):
+            return FormaProductCopy.PlanEditTarget.validationInvalidNumber()
+        case .failure(.nonPositive):
+            return FormaProductCopy.PlanEditTarget.validationEnterGoalWeight()
+        case .success(let goalKg):
+            return validateParsedGoal(
+                goalKg: goalKg,
+                currentWeightKg: currentWeightKg,
+                heightCm: heightCm,
+                goalType: goalType,
+                unitSystem: unitSystem
+            )
         }
+    }
 
+    private static func validateParsedGoal(
+        goalKg: Double,
+        currentWeightKg: Double?,
+        heightCm: Double?,
+        goalType: PlanGoalType,
+        unitSystem: UnitSystem
+    ) -> String? {
         guard let currentKg = currentWeightKg, currentKg > 0 else {
             return nil
         }
@@ -38,6 +58,12 @@ enum PlanGoalWeightValidationBuilder {
                 valueKg: allowed.upperBound,
                 unitSystem: unitSystem
             )
+            if goalKg < allowed.lowerBound {
+                return FormaProductCopy.PlanEditTarget.validationGoalBelowMinimum(minimum: lower)
+            }
+            if goalKg > allowed.upperBound {
+                return FormaProductCopy.PlanEditTarget.validationGoalAboveMaximum(maximum: upper)
+            }
             return FormaProductCopy.PlanEditTarget.validationGoalOutOfRange(
                 range: "\(lower) and \(upper)"
             )
