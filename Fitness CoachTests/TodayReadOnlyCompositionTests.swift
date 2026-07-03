@@ -25,6 +25,7 @@ final class TodayReadOnlyCompositionTests: XCTestCase {
         XCTAssertNotNil(state.nextBestAction.title)
         XCTAssertGreaterThan(state.macroHydration.macroSummary.protein.target, 0)
         XCTAssertFalse(state.activity.displayLine.isEmpty)
+        XCTAssertTrue(state.victory.isVisible)
     }
 
     func testCompleteDayMissionOnTrack() {

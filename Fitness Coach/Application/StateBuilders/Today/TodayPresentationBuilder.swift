@@ -25,7 +25,7 @@ enum TodayPresentationBuilder {
         let nextBestAction = nextBestAction(from: inputs)
         let activity = activity(from: inputs)
         let meals = meals(from: inputs, emptyContext: emptyContext)
-        let victory = victory(from: inputs, mission: mission, macroHydration: macroHydration)
+        let victory = victory(from: inputs)
         let smartCoach = smartCoach(
             from: inputs,
             mission: mission,
@@ -366,27 +366,18 @@ enum TodayPresentationBuilder {
 
     // MARK: - Victory
 
-    static func victory(
-        from inputs: TodayMissionControlInputs,
-        mission: TodayMissionState,
-        macroHydration: TodayMacroHydrationState
-    ) -> TodayVictoryState {
-        let message: String?
-        if mission.phase == .targetMet {
-            message = FormaProductCopy.Today.Victory.targetMet
-        } else if mission.status == .onTrack,
-                  !inputs.foodEntries.isEmpty,
-                  macroHydration.focus == .onTrack,
-                  inputs.workoutSummary.hasWorkout || (inputs.activityContext.appleHealthWorkoutCount ?? 0) > 0 {
-            message = FormaProductCopy.Today.Victory.workoutStrongDay
-        } else {
-            message = nil
-        }
-
-        if let message {
-            return TodayVictoryState(isVisible: true, message: message)
-        }
-        return TodayVictoryState(isVisible: false, message: "")
+    static func victory(from inputs: TodayMissionControlInputs) -> TodayVictoryState {
+        DailyVictoryEngine.resolve(
+            DailyVictoryInput(
+                foodEntries: inputs.foodEntries,
+                proteinProgress: inputs.macroSummary.protein,
+                waterSummary: inputs.waterSummary,
+                calorieSummary: inputs.calorieSummary,
+                workoutSummary: inputs.workoutSummary,
+                activityContext: inputs.activityContext,
+                weightLoggedToday: inputs.weightLoggedToday
+            )
+        )
     }
 
     // MARK: - Smart coach

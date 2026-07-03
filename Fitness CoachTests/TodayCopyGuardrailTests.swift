@@ -47,6 +47,10 @@ final class TodayCopyGuardrailTests: XCTestCase {
             FormaProductCopy.Today.Activity.healthConnectNote,
             FormaProductCopy.Today.Activity.stepsUnavailable,
             FormaProductCopy.Today.Activity.workoutNotLoggedLine,
+            FormaProductCopy.Today.Victory.startEncouragement,
+            FormaProductCopy.Today.Victory.firstMeal,
+            FormaProductCopy.Today.Victory.proteinTarget,
+            FormaProductCopy.Today.Victory.caloriesOnTarget,
         ]
 
         let overTarget = TodayPreviewData.overTargetDay

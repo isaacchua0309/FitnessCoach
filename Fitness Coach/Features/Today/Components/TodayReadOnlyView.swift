@@ -4,8 +4,8 @@
 //
 //  FitPilot AI — Read-only Today dashboard. Mutations route through TodayActionCoordinator.
 //
-//  Section order: Mission → Next Best Action → Quick Actions → Meals → Activity
-//  → Nutrition
+//  Section order: Mission → Daily Victory → Next Best Action → Quick Actions
+//  → Meals → Activity → Nutrition
 //
 
 import SwiftUI
@@ -42,6 +42,8 @@ struct TodayReadOnlyView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: sectionSpacing) {
             missionBlock
+
+            TodayVictorySection(victory: state.victory)
 
             TodayNextActionSection(
                 action: state.nextBestAction,

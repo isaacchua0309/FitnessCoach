@@ -18,7 +18,8 @@ final class TodayPresentationBuilderTests: XCTestCase {
         XCTAssertEqual(state.meals.phase, .brandNewUser)
         XCTAssertTrue(state.smartCoach.isVisible)
         XCTAssertEqual(state.smartCoach.context, .logFirstMeal)
-        XCTAssertFalse(state.victory.isVisible)
+        XCTAssertEqual(state.victory.kind, .startEncouragement)
+        XCTAssertEqual(state.victory.message, FormaProductCopy.Today.Victory.startEncouragement)
     }
 
     func testReturningUserNoMealsToday() {
@@ -63,7 +64,8 @@ final class TodayPresentationBuilderTests: XCTestCase {
 
         XCTAssertEqual(state.mission.phase, .targetMet)
         XCTAssertTrue(state.victory.isVisible)
-        XCTAssertEqual(state.victory.message, FormaProductCopy.Today.Victory.targetMet)
+        XCTAssertEqual(state.victory.kind, .caloriesOnTarget)
+        XCTAssertEqual(state.victory.message, FormaProductCopy.Today.Victory.caloriesOnTarget)
     }
 
     func testCalorieTargetExceededMissionAndSmartCoach() {
@@ -81,7 +83,7 @@ final class TodayPresentationBuilderTests: XCTestCase {
         XCTAssertEqual(state.mission.status, .overBudget)
         XCTAssertTrue(state.smartCoach.isVisible)
         XCTAssertEqual(state.smartCoach.context, .overTarget)
-        XCTAssertFalse(state.victory.isVisible)
+        XCTAssertEqual(state.victory.kind, .showedUp)
     }
 
     func testProteinBehindMacroHydrationAndSmartCoach() {

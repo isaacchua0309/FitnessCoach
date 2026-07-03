@@ -264,8 +264,14 @@ struct TodayActivityContext: Equatable, Sendable {
 // MARK: - Victory
 
 struct TodayVictoryState: Equatable {
-    var isVisible: Bool
+    var kind: TodayVictoryKind
     var message: String
+
+    var isVisible: Bool {
+        kind != .hidden
+    }
+
+    static let hidden = TodayVictoryState(kind: .hidden, message: "")
 }
 
 // MARK: - Smart coach (contextual)

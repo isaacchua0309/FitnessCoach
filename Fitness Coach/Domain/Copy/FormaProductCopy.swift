@@ -1070,8 +1070,13 @@ enum FormaProductCopy {
         }
 
         enum Victory {
-            static let targetMet = "Today's calorie target met."
-            static let workoutStrongDay = "Strong day — workout logged and nutrition on track."
+            static let startEncouragement = "Start with one log."
+            static let firstMeal = "First meal logged. Great start."
+            static let proteinTarget = "Protein target reached. Excellent work."
+            static let waterTarget = "Water target reached."
+            static let workoutCompleted = "Workout completed."
+            static let caloriesOnTarget = "Calories stayed on target."
+            static let showedUp = "You showed up today."
         }
 
         enum SmartCoach {
