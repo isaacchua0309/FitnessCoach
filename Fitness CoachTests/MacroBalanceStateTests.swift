@@ -71,7 +71,6 @@ final class MacroBalanceStateTests: XCTestCase {
         XCTAssertEqual(row.barProgress, 1, accuracy: accuracy)
         XCTAssertTrue(row.accessibilityValue.contains("50g over"))
     }
-}
 
     func testOverTargetWhenRemainingIsZeroStillDetectsOver() {
         let progress = MacroProgress(consumed: 72, target: 60, remaining: 0, progress: 1.2)

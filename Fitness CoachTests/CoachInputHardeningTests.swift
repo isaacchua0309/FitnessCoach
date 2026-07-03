@@ -167,6 +167,38 @@ final class CoachInputRoutingHardeningTests: XCTestCase {
         XCTAssertEqual(service.classifyCoachIntentCallCount, 1)
     }
 
+    func testMediumConfidenceCalorieLookupWithSpuriousActionRoutesToMealAdvice() async throws {
+        try await assertClassifierRoute(
+            "Help me estimate the calories in a big mac",
+            stub: CoachIntentResult(
+                intent: .calorieLookup,
+                confidence: 0.68,
+                domain: .nutrition,
+                requiresAppMutation: false,
+                requiresUserContext: true,
+                canAnswerWithCheapModel: true,
+                requiresEscalation: false,
+                action: .logFood(FoodDraft(
+                    mealType: nil,
+                    name: "Big Mac",
+                    quantity: 1,
+                    unit: "serving",
+                    calories: 550,
+                    protein: 25,
+                    carbs: 45,
+                    fat: 30,
+                    fiber: nil,
+                    sodium: nil,
+                    source: .manual,
+                    confidence: .medium,
+                    imageUrl: nil,
+                    notes: nil
+                ))
+            ),
+            expectedHandler: "cheap_meal_advice"
+        )
+    }
+
     func testMediumConfidenceMutationClarifies() async throws {
         let service = StubClassifierAIService(
             classifyResult: CoachIntentResult(

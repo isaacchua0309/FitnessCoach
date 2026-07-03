@@ -17,6 +17,8 @@ enum CoachIntentConfidenceGate {
     static let mediumThreshold = 0.45
 
     static func evaluate(_ result: CoachIntentResult) -> CoachIntentConfidenceDecision {
+        let result = normalizedForRouting(result)
+
         if result.confidence >= highThreshold {
             return .proceed(result)
         }
@@ -70,8 +72,29 @@ enum CoachIntentConfidenceGate {
     }
 
     private static func isHarmlessNonMutation(_ result: CoachIntentResult) -> Bool {
-        guard !result.requiresAppMutation, result.action == nil else { return false }
+        guard !result.requiresAppMutation else { return false }
         switch result.intent {
+        case .generalConversation, .appHelp, .calorieLookup, .macroLookup,
+             .mealDecision, .nutritionAdvice, .workoutAdvice, .weightLossAdvice,
+             .dailySummary:
+            return true
+        default:
+            return result.action == nil
+        }
+    }
+
+    private static func normalizedForRouting(_ result: CoachIntentResult) -> CoachIntentResult {
+        guard !result.requiresAppMutation, shouldIgnoreAction(for: result.intent) else {
+            return result
+        }
+        guard result.action != nil else { return result }
+        var copy = result
+        copy.action = nil
+        return copy
+    }
+
+    private static func shouldIgnoreAction(for intent: CoachIntent) -> Bool {
+        switch intent {
         case .generalConversation, .appHelp, .calorieLookup, .macroLookup,
              .mealDecision, .nutritionAdvice, .workoutAdvice, .weightLossAdvice,
              .dailySummary:

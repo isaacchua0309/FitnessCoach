@@ -95,6 +95,33 @@ describe("coachIntentSanitizer", () => {
     });
   });
 
+  it("drops spurious log_food action for calorie_lookup advice intents", () => {
+    const sanitized = sanitizeCoachIntentResult({
+      intent: "calorie_lookup",
+      confidence: 0.68,
+      domain: "nutrition",
+      requiresAppMutation: false,
+      requiresUserContext: true,
+      canAnswerWithCheapModel: true,
+      requiresEscalation: false,
+      entities: {food: "Big Mac"},
+      action: {
+        type: "log_food",
+        foodDraft: {name: "Big Mac", quantity: 1, unit: "serving"},
+        waterDraft: null,
+        weightDraft: null,
+        workoutDraft: null,
+        selector: null,
+        undoTarget: null,
+      },
+      reason: "Calorie estimate request.",
+    });
+
+    expect(sanitized.action).toBeNull();
+    expect(sanitized.intent).toBe("calorie_lookup");
+    expect(sanitized.confidence).toBe(0.68);
+  });
+
   it("drops invalid action types from adversarial classifier output", () => {
     const sanitized = sanitizeCoachIntentResult({
       intent: "log_food",

@@ -1054,7 +1054,23 @@ struct HealthDataRepository: HealthDataRepositorying {
         error: Error,
         fields: [String: String] = [:]
     ) {
-        HealthDataRepositoryLogger.fetchFailure(context: context, underlying: error, fields: fields)
+        let level = isExpectedHealthKitAccessFailure(error) ? "debug" : "warn"
+        HealthDataRepositoryLogger.fetchFailure(
+            context: context,
+            underlying: error,
+            fields: fields,
+            level: level
+        )
+    }
+
+    private func isExpectedHealthKitAccessFailure(_ error: Error) -> Bool {
+        guard let healthKitError = error as? HealthKitManagerError else { return false }
+        switch healthKitError {
+        case .unavailable, .authorizationDenied:
+            return true
+        case .queryFailed:
+            return false
+        }
     }
 
     private static func daysInRange(

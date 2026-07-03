@@ -23,6 +23,11 @@ final class CoachSpeechRecognizerService: ObservableObject {
         isRecording || isRequestingPermission || isStarting
     }
 
+    private static let audioSessionQueue = DispatchQueue(
+        label: "com.forma.coach.audioSession",
+        qos: .userInitiated
+    )
+
     private let speechRecognizer: SFSpeechRecognizer?
     private var audioEngine: AVAudioEngine?
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
@@ -143,19 +148,31 @@ final class CoachSpeechRecognizerService: ObservableObject {
         acceptsTranscriptUpdates = true
         onTranscriptUpdate = updateHandler
 
-        let audioSession = AVAudioSession.sharedInstance()
-        do {
-            try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
-            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
-        } catch {
+        Task {
+            let activated = await Self.activateAudioSessionForRecording()
+            await finishStartingRecording(
+                session: session,
+                activated: activated
+            )
+        }
+    }
+
+    private func finishStartingRecording(session: UUID, activated: Bool) {
+        guard sessionID == session else {
+            isStarting = false
+            tearDownRecognition()
+            return
+        }
+
+        guard activated else {
             isStarting = false
             fail(with: .audioSessionFailed)
             return
         }
 
-        guard sessionID == session else {
+        guard let speechRecognizer else {
             isStarting = false
-            tearDownRecognition()
+            fail(with: .recognizerUnavailable)
             return
         }
 
@@ -258,6 +275,30 @@ final class CoachSpeechRecognizerService: ObservableObject {
         transcriptPrefix = ""
         isApplyingTranscriptUpdate = false
 
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        Self.deactivateAudioSession()
+    }
+
+    private static func activateAudioSessionForRecording() async -> Bool {
+        await withCheckedContinuation { continuation in
+            audioSessionQueue.async {
+                let audioSession = AVAudioSession.sharedInstance()
+                do {
+                    try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+                    try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+                    continuation.resume(returning: true)
+                } catch {
+                    continuation.resume(returning: false)
+                }
+            }
+        }
+    }
+
+    private static func deactivateAudioSession() {
+        audioSessionQueue.async {
+            try? AVAudioSession.sharedInstance().setActive(
+                false,
+                options: .notifyOthersOnDeactivation
+            )
+        }
     }
 }

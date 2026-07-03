@@ -21,7 +21,8 @@ enum HealthDataRepositoryLogger {
     static func fetchFailure(
         context: String,
         underlying: Error? = nil,
-        fields: [String: String] = [:]
+        fields: [String: String] = [:],
+        level: String = "warn"
     ) {
         var merged = fields
         merged["context"] = context
@@ -33,7 +34,7 @@ enum HealthDataRepositoryLogger {
                 merged["errorDescription"] = description
             }
         }
-        log(level: "warn", message: "Health repository fetch degraded", fields: merged)
+        log(level: level, message: "Health repository fetch degraded", fields: merged)
     }
 
     // MARK: - Private

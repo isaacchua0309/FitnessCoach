@@ -1,5 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, require-jsdoc, max-len */
 
+const ADVICE_LOOKUP_INTENTS = new Set([
+  "calorie_lookup",
+  "macro_lookup",
+  "meal_decision",
+  "nutrition_advice",
+  "workout_advice",
+  "weight_loss_advice",
+  "general_conversation",
+  "app_help",
+  "daily_summary",
+]);
+
 const COACH_ACTION_TYPES = new Set([
   "log_food",
   "log_water",
@@ -135,17 +147,24 @@ export function sanitizeCoachAction(value: unknown): Record<string, unknown> | n
 
 export function sanitizeCoachIntentResult(raw: Record<string, any>): Record<string, unknown> {
   const confidence = Math.min(Math.max(coerceNumber(raw.confidence, 0.5), 0), 1);
+  const intent = typeof raw.intent === "string" ? raw.intent : "general_conversation";
+  const requiresAppMutation = Boolean(raw.requiresAppMutation);
+
+  let action = sanitizeCoachAction(raw.action);
+  if (!requiresAppMutation && ADVICE_LOOKUP_INTENTS.has(intent) && action) {
+    action = null;
+  }
 
   return {
-    intent: typeof raw.intent === "string" ? raw.intent : "general_conversation",
+    intent,
     confidence,
     domain: typeof raw.domain === "string" ? raw.domain : "general",
-    requiresAppMutation: Boolean(raw.requiresAppMutation),
+    requiresAppMutation,
     requiresUserContext: Boolean(raw.requiresUserContext),
     canAnswerWithCheapModel: raw.canAnswerWithCheapModel !== false,
     requiresEscalation: Boolean(raw.requiresEscalation),
     entities: sanitizeCoachIntentEntities(raw.entities),
-    action: sanitizeCoachAction(raw.action),
+    action,
     reason: nullableString(raw.reason),
   };
 }
