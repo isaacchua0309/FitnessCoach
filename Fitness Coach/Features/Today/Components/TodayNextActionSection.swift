@@ -10,6 +10,7 @@ import SwiftUI
 struct TodayNextActionSection: View {
     let action: NextBestActionState
     let onPrimaryCTA: () -> Void
+    var onSecondaryCTA: ((NextBestActionCTA) -> Void)?
     var onViewed: (() -> Void)?
 
     private var display: TodayNextActionDisplayModel {
@@ -38,14 +39,29 @@ struct TodayNextActionSection: View {
                             .minimumScaleFactor(0.85)
                     }
 
-                    if display.showsPrimaryButton, let buttonTitle = display.primaryButtonTitle {
-                        FormaQuickActionChip(
-                            title: buttonTitle,
-                            action: onPrimaryCTA,
-                            accessibilityHint: FormaProductCopy.Today.NextAction.primaryButtonHint
-                        )
+                    if display.showsPrimaryButton || display.showsSecondaryButton {
+                        HStack(spacing: FormaTokens.Spacing.sm) {
+                            if display.showsPrimaryButton, let buttonTitle = display.primaryButtonTitle {
+                                FormaQuickActionChip(
+                                    title: buttonTitle,
+                                    action: onPrimaryCTA,
+                                    accessibilityHint: FormaProductCopy.Today.NextAction.primaryButtonHint
+                                )
+                                .accessibilityLabel(buttonTitle)
+                            }
+
+                            if display.showsSecondaryButton,
+                               let secondaryTitle = display.secondaryButtonTitle,
+                               let secondaryCTA = action.secondaryCTAs.first {
+                                FormaQuickActionChip(
+                                    title: secondaryTitle,
+                                    action: { onSecondaryCTA?(secondaryCTA) },
+                                    accessibilityHint: FormaProductCopy.Today.NextAction.primaryButtonHint
+                                )
+                                .accessibilityLabel(secondaryTitle)
+                            }
+                        }
                         .padding(.top, FormaTokens.Spacing.xs)
-                        .accessibilityLabel(buttonTitle)
                     }
                 }
                 .padding(.vertical, FormaTokens.Spacing.xs)
@@ -62,10 +78,26 @@ struct TodayNextActionSection: View {
 #Preview("Protein") {
     TodayNextActionSection(
         action: NextBestActionState(
-            title: FormaProductCopy.Today.NextAction.eatProteinTitle(grams: 35),
+            title: FormaProductCopy.Today.NextAction.eatProteinTitle,
             subtitle: FormaProductCopy.Today.NextAction.eatProteinSubtitle,
             reason: .eatProtein,
-            primaryCTA: .logMeal(TodayCoachPrompt.logProtein),
+            primaryCTA: .scanFood,
+            secondaryCTAs: [.logMeal(TodayCoachPrompt.logMeal())]
+        ),
+        onPrimaryCTA: {}
+    )
+    .padding()
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
+#Preview("Hydration") {
+    TodayNextActionSection(
+        action: NextBestActionState(
+            title: FormaProductCopy.Today.NextAction.hydrationBehindTitle,
+            subtitle: FormaProductCopy.Today.NextAction.hydrationBehindSubtitle,
+            reason: .addWater,
+            primaryCTA: .addWater(amountMl: 500),
             secondaryCTAs: []
         ),
         onPrimaryCTA: {}
@@ -75,28 +107,12 @@ struct TodayNextActionSection: View {
     .formaThemePreview()
 }
 
-#Preview("Log lunch") {
+#Preview("All targets met") {
     TodayNextActionSection(
         action: NextBestActionState(
-            title: FormaProductCopy.Today.NextAction.logMissedMealTitle(.lunch),
-            subtitle: FormaProductCopy.Today.NextAction.logMissedMealSubtitle(.lunch),
-            reason: .logMissedMeal(.lunch),
-            primaryCTA: .logMeal(TodayCoachPrompt.logMeal(.lunch)),
-            secondaryCTAs: []
-        ),
-        onPrimaryCTA: {}
-    )
-    .padding()
-    .background(FormaTokens.Color.canvas)
-    .formaThemePreview()
-}
-
-#Preview("On track") {
-    TodayNextActionSection(
-        action: NextBestActionState(
-            title: FormaProductCopy.Today.NextAction.onTrackTitle,
-            subtitle: FormaProductCopy.Today.NextAction.onTrackSubtitle,
-            reason: .onTrack,
+            title: FormaProductCopy.Today.NextAction.allTargetsMetTitle,
+            subtitle: FormaProductCopy.Today.NextAction.allTargetsMetSubtitle,
+            reason: .allTargetsMet,
             primaryCTA: .none,
             secondaryCTAs: []
         ),

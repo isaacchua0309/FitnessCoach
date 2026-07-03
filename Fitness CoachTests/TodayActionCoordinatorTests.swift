@@ -31,7 +31,7 @@ final class TodayActionCoordinatorTests: XCTestCase {
         coordinator.onOpenCoach = { _ in coachOpened = true }
 
         let action = NextBestActionState(
-            title: FormaProductCopy.Today.NextAction.drinkWaterTitle(amountMl: 500),
+            title: FormaProductCopy.Today.NextAction.hydrationBehindTitle,
             subtitle: nil,
             reason: .addWater,
             primaryCTA: .addWater(amountMl: 500),
@@ -51,10 +51,29 @@ final class TodayActionCoordinatorTests: XCTestCase {
         var coachOpened = false
         coordinator.onOpenCoach = { _ in coachOpened = true }
 
+        coordinator.performQuickAction(.logMeal)
+
+        XCTAssertFalse(coachOpened)
+        XCTAssertNotNil(coordinator.logMealPresentation)
+    }
+
+    func testManualEntryPresentsNativeSheet() {
+        var coachOpened = false
+        coordinator.onOpenCoach = { _ in coachOpened = true }
+
         coordinator.performQuickAction(.manualEntry)
 
         XCTAssertFalse(coachOpened)
         XCTAssertNotNil(coordinator.logMealPresentation)
+    }
+
+    func testScanFoodOpensCoachScanFlow() {
+        var coachPrefill: String?
+        coordinator.onOpenCoach = { coachPrefill = $0 }
+
+        coordinator.performQuickAction(.scanFood)
+
+        XCTAssertEqual(coachPrefill, TodayCoachPrompt.scanFood)
     }
 
     func testAddWaterPresentsNativeSheet() {
@@ -63,53 +82,59 @@ final class TodayActionCoordinatorTests: XCTestCase {
         XCTAssertTrue(coordinator.isPresentingAddWaterSheet)
     }
 
-    func testAskCoachRoutesToCoach() {
-        var coachPrefill: String?
-        coordinator.onOpenCoach = { coachPrefill = $0 }
+    func testLogWeightPresentsNativeSheet() {
+        coordinator.performQuickAction(.logWeight)
 
-        coordinator.performQuickAction(.askCoach)
-
-        XCTAssertNil(coachPrefill)
+        XCTAssertTrue(coordinator.isPresentingLogWeightSheet)
     }
 
-    func testReviewTodayRoutesToCoach() {
-        var coachPrefill: String?
-        coordinator.onOpenCoach = { coachPrefill = $0 }
+    func testLogWorkoutQuickActionOpensTrainingInsights() {
+        var openedInsights = false
+        coordinator.onOpenTrainingInsights = { openedInsights = true }
+
+        coordinator.performQuickAction(.logWorkout)
+
+        XCTAssertTrue(openedInsights)
+    }
+
+    func testLogWorkoutRoutesToTrainingInsights() {
+        var openedInsights = false
+        coordinator.onOpenTrainingInsights = { openedInsights = true }
 
         let action = NextBestActionState(
-            title: FormaProductCopy.Today.NextAction.reviewTodayTitle,
+            title: FormaProductCopy.Today.NextAction.completeWorkoutTitle,
             subtitle: nil,
-            reason: .reviewToday,
-            primaryCTA: .reviewToday,
+            reason: .completeWorkout,
+            primaryCTA: .logWorkout,
             secondaryCTAs: []
         )
 
-        coordinator.handleCTA(.reviewToday, from: action)
+        coordinator.handleCTA(.logWorkout, from: action)
 
-        XCTAssertEqual(coachPrefill, TodayCoachPrompt.reviewToday)
+        XCTAssertTrue(openedInsights)
     }
 
-    func testMissedMealNextActionPresentsNativeSheetWithMealType() {
+    func testLogBreakfastNextActionPresentsNativeSheetWithMealType() {
         var coachOpened = false
         coordinator.onOpenCoach = { _ in coachOpened = true }
 
         let action = NextBestActionState(
-            title: FormaProductCopy.Today.NextAction.logMissedMealTitle(.lunch),
+            title: FormaProductCopy.Today.NextAction.logBreakfastTitle,
             subtitle: nil,
-            reason: .logMissedMeal(.lunch),
-            primaryCTA: .logMeal(TodayCoachPrompt.logMeal(.lunch)),
+            reason: .logBreakfast,
+            primaryCTA: .logMeal(TodayCoachPrompt.logMeal(.breakfast)),
             secondaryCTAs: []
         )
 
         coordinator.handleCTA(action.primaryCTA, from: action)
 
         XCTAssertFalse(coachOpened)
-        XCTAssertEqual(coordinator.logMealPresentation?.mealType, .lunch)
+        XCTAssertEqual(coordinator.logMealPresentation?.mealType, .breakfast)
     }
 
     func testCTATappedAnalyticsEvent() {
         let action = NextBestActionState(
-            title: FormaProductCopy.Today.NextAction.drinkWaterTitle(amountMl: 500),
+            title: FormaProductCopy.Today.NextAction.hydrationBehindTitle,
             subtitle: nil,
             reason: .addWater,
             primaryCTA: .addWater(amountMl: 500),
@@ -221,9 +246,9 @@ final class TodayActionCoordinatorTests: XCTestCase {
 
     func testNextActionViewedEvent() {
         let action = NextBestActionState(
-            title: FormaProductCopy.Today.NextAction.onTrackTitle,
+            title: FormaProductCopy.Today.NextAction.allTargetsMetTitle,
             subtitle: nil,
-            reason: .onTrack,
+            reason: .allTargetsMet,
             primaryCTA: .none,
             secondaryCTAs: []
         )
@@ -231,7 +256,7 @@ final class TodayActionCoordinatorTests: XCTestCase {
         coordinator.logNextActionViewed(for: action)
 
         XCTAssertEqual(analytics.events.last?.event, .nextActionViewed)
-        XCTAssertEqual(analytics.events.last?.properties.reason, "on_track")
+        XCTAssertEqual(analytics.events.last?.properties.reason, "all_targets_met")
     }
 
     func testTodayViewedEvent() {

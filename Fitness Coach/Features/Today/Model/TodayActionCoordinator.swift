@@ -94,7 +94,8 @@ final class TodayActionCoordinator: ObservableObject {
     // MARK: - Quick actions
 
     func performQuickAction(_ kind: TodayQuickActionKind) {
-        guard TodayQuickActionPolicy.isVisible(kind) else { return }
+        guard let item = TodayQuickActionPolicy.menuItems().first(where: { $0.kind == kind }),
+              item.isEnabled else { return }
 
         let route = route(for: kind)
         log(
@@ -232,14 +233,14 @@ final class TodayActionCoordinator: ObservableObject {
         switch kind {
         case .scanFood:
             return .openCoach(TodayCoachPrompt.scanFood)
-        case .manualEntry:
+        case .logMeal, .manualEntry:
             return .presentLogMeal(mealType: nil)
         case .addWater:
             return .presentAddWater
         case .logWeight:
             return .presentLogWeight
-        case .askCoach:
-            return .openCoach(nil)
+        case .logWorkout:
+            return .openTrainingInsights
         }
     }
 

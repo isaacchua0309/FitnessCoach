@@ -85,23 +85,11 @@ enum TodayDashboardFixtures {
                 ),
                 foodEntries: [],
                 hasPriorFoodLogs: false,
-                streaks: StreakSummary(
-                    loggingStreak: 0,
-                    proteinStreak: 0,
-                    hydrationStreak: 0,
-                    workoutStreak: 0
-                ),
-                weekLoggedDays: 0,
-                dailyBrief: TodayDailyBrief(
-                    greeting: "Good morning.",
-                    priorities: [],
-                    recommendation: "Log your first meal to start today's picture."
-                ),
                 dailyReview: nil,
                 goalWeightKg: 65,
                 profileWeightKg: 70,
-                userName: nil,
-                activityContext: .default
+                activityContext: .default,
+                trainingFrequencyPerWeek: 0
             )
         )
     }
@@ -158,23 +146,11 @@ enum TodayDashboardFixtures {
                 ),
                 foodEntries: foodEntries,
                 hasPriorFoodLogs: !foodEntries.isEmpty,
-                streaks: StreakSummary(
-                    loggingStreak: 0,
-                    proteinStreak: 0,
-                    hydrationStreak: 0,
-                    workoutStreak: 0
-                ),
-                weekLoggedDays: 0,
-                dailyBrief: TodayDailyBrief(
-                    greeting: "Good morning.",
-                    priorities: [],
-                    recommendation: "Stay consistent today."
-                ),
                 dailyReview: nil,
                 goalWeightKg: 65,
                 profileWeightKg: weightKg ?? 70,
-                userName: nil,
-                activityContext: activityContext
+                activityContext: activityContext,
+                trainingFrequencyPerWeek: 0
             )
         )
     }
@@ -184,10 +160,10 @@ enum TodayDashboardFixtures {
             from: TodayMissionControlInputs(
                 date: date,
                 calorieSummary: CalorieSummary(
-                    consumed: 1_750,
+                    consumed: 1_400,
                     target: 1_800,
-                    remaining: 50,
-                    progress: 0.97,
+                    remaining: 400,
+                    progress: 0.78,
                     isOverTarget: false
                 ),
                 macroSummary: MacroSummary(
@@ -214,27 +190,15 @@ enum TodayDashboardFixtures {
                 ),
                 foodEntries: TodayPreviewData.foodEntries,
                 hasPriorFoodLogs: true,
-                streaks: StreakSummary(
-                    loggingStreak: 7,
-                    proteinStreak: 5,
-                    hydrationStreak: 3,
-                    workoutStreak: 2
-                ),
-                weekLoggedDays: 5,
-                dailyBrief: TodayDailyBrief(
-                    greeting: "Good evening.",
-                    priorities: ["Protein is on track — keep it up."],
-                    recommendation: "Stay consistent today. Small wins compound."
-                ),
                 dailyReview: nil,
                 goalWeightKg: 65,
                 profileWeightKg: 68.5,
-                userName: "Test",
                 activityContext: TodayActivityContext(
                     trainingIntegration: .connected,
                     trainingDataSource: .appleHealth,
                     appleHealthWorkoutCount: 1
-                )
+                ),
+                trainingFrequencyPerWeek: 3
             )
         )
     }
@@ -274,23 +238,11 @@ enum TodayDashboardFixtures {
                 ),
                 foodEntries: TodayPreviewData.foodEntries,
                 hasPriorFoodLogs: true,
-                streaks: StreakSummary(
-                    loggingStreak: 2,
-                    proteinStreak: 0,
-                    hydrationStreak: 0,
-                    workoutStreak: 0
-                ),
-                weekLoggedDays: 2,
-                dailyBrief: TodayDailyBrief(
-                    greeting: "Good evening.",
-                    priorities: ["0 kcal remaining for today."],
-                    recommendation: "You're above today's target. Log honestly tonight — we care about the weekly trend, not one meal."
-                ),
                 dailyReview: nil,
                 goalWeightKg: 65,
                 profileWeightKg: 70,
-                userName: nil,
-                activityContext: .default
+                activityContext: .default,
+                trainingFrequencyPerWeek: 0
             )
         )
     }

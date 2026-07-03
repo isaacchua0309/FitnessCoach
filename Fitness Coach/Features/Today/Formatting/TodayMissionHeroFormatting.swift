@@ -23,27 +23,26 @@ enum TodayMissionHeroFormatting {
     static func proteinGrams(_ value: Double) -> String {
         FoodEntryFormFormatter.formatMacro(max(value, 0))
     }
+}
 
-    static func primaryMetricValue(calorieSummary: CalorieSummary) -> String {
-        if calorieSummary.isOverTarget {
-            let overBy = max(calorieSummary.consumed - calorieSummary.target, 0)
-            return "\(calories(overBy)) \(FormaProductCopy.Today.Mission.overSuffix)"
-        }
-        return "\(calories(max(calorieSummary.remaining, 0))) \(FormaProductCopy.Today.Mission.remainingSuffix)"
-    }
+enum TodayMissionPrimaryKind: Equatable, Sendable {
+    case remaining
+    case over
+    case targetReached
+    case missingTarget
 }
 
 struct TodayMissionHeroDisplayModel: Equatable {
-    var primaryMetricLabel: String
-    var primaryMetricValue: String
+    var primaryKind: TodayMissionPrimaryKind
+    var primaryValue: String
     var goalLine: String
     var consumedLine: String
-    var proteinLine: String
+    var proteinRemainingLine: String
     var statusLine: String
-    var progress: Double
-    var isOverTarget: Bool
     var showsLogMealCTA: Bool
     var accessibilityLabel: String
+
+    var isOverTarget: Bool { primaryKind == .over }
 }
 
 enum TodayMissionHeroFormatter {
@@ -52,53 +51,38 @@ enum TodayMissionHeroFormatter {
     static let nearTargetRemainingRatio = 0.15
 
     static func displayModel(
-        mission: TodayMissionState,
+        calorieSummary: CalorieSummary,
         proteinProgress: MacroProgress,
         mealsEmptyKind: TodayMealsEmptyKind
     ) -> TodayMissionHeroDisplayModel {
-        let calories = mission.calorieSummary
-        let statusLine = TodayEmptyStateFormatting.missionStatusLine(
+        let primaryKind = primaryKind(for: calorieSummary)
+        let primaryValue = primaryValue(for: calorieSummary, kind: primaryKind)
+        let goalLine = goalLine(for: calorieSummary)
+        let consumedLine = consumedLine(for: calorieSummary)
+        let proteinRemainingLine = proteinRemainingLine(for: proteinProgress)
+        let statusLine = statusLine(
             mealsEmptyKind: mealsEmptyKind,
-            calorieSummary: calories,
-            proteinProgress: proteinProgress
+            calorieSummary: calorieSummary,
+            primaryKind: primaryKind
         )
-        let proteinLine = proteinSubMetricLine(for: proteinProgress)
+        let showsLogMealCTA = mealsEmptyKind != .hasMeals
 
         return TodayMissionHeroDisplayModel(
-            primaryMetricLabel: calories.isOverTarget
-                ? FormaProductCopy.Today.Mission.caloriesOverLabel
-                : FormaProductCopy.Today.Mission.caloriesRemainingLabel,
-            primaryMetricValue: TodayMissionHeroFormatting.primaryMetricValue(calorieSummary: calories),
-            goalLine: goalLine(calories.target),
-            consumedLine: consumedLine(calories.consumed),
-            proteinLine: proteinLine,
+            primaryKind: primaryKind,
+            primaryValue: primaryValue,
+            goalLine: goalLine,
+            consumedLine: consumedLine,
+            proteinRemainingLine: proteinRemainingLine,
             statusLine: statusLine,
-            progress: min(max(calories.progress, 0), 1),
-            isOverTarget: calories.isOverTarget,
-            showsLogMealCTA: TodayEmptyStateFormatting.missionShowsLogCTA(mealsEmptyKind: mealsEmptyKind),
+            showsLogMealCTA: showsLogMealCTA,
             accessibilityLabel: accessibilityLabel(
-                primaryMetricLabel: calories.isOverTarget
-                    ? FormaProductCopy.Today.Mission.caloriesOverLabel
-                    : FormaProductCopy.Today.Mission.caloriesRemainingLabel,
-                primaryMetricValue: TodayMissionHeroFormatting.primaryMetricValue(calorieSummary: calories),
-                goalLine: goalLine(calories.target),
-                consumedLine: consumedLine(calories.consumed),
-                proteinLine: proteinLine,
+                primaryValue: primaryValue,
+                goalLine: goalLine,
+                consumedLine: consumedLine,
+                proteinRemainingLine: proteinRemainingLine,
                 statusLine: statusLine
             )
         )
-    }
-
-    static func goalLine(_ targetKcal: Int) -> String {
-        "Goal: \(TodayMissionHeroFormatting.calories(targetKcal)) kcal"
-    }
-
-    static func consumedLine(_ consumedKcal: Int) -> String {
-        "Consumed: \(TodayMissionHeroFormatting.calories(consumedKcal)) kcal"
-    }
-
-    static func proteinRemainingLine(_ grams: Double) -> String {
-        "Protein remaining: \(TodayMissionHeroFormatting.proteinGrams(grams))g"
     }
 
     static func isNearTarget(_ summary: CalorieSummary) -> Bool {
@@ -107,28 +91,94 @@ enum TodayMissionHeroFormatter {
         return remainingRatio <= nearTargetRemainingRatio && summary.consumed > 0
     }
 
-    static func proteinSubMetricLine(for proteinProgress: MacroProgress) -> String {
-        if proteinProgress.progress >= TodayFocusBuilder.proteinOnTrackThreshold {
+    static func isTargetReached(_ summary: CalorieSummary) -> Bool {
+        guard summary.target > 0, summary.consumed > 0, !summary.isOverTarget else {
+            return false
+        }
+        return isNearTarget(summary) || summary.remaining <= 0
+    }
+
+    static func primaryKind(for summary: CalorieSummary) -> TodayMissionPrimaryKind {
+        guard summary.target > 0 else { return .missingTarget }
+        if summary.isOverTarget { return .over }
+        if isTargetReached(summary) { return .targetReached }
+        return .remaining
+    }
+
+    static func primaryValue(
+        for summary: CalorieSummary,
+        kind: TodayMissionPrimaryKind
+    ) -> String {
+        switch kind {
+        case .remaining:
+            return FormaProductCopy.Today.Mission.primaryRemaining(max(summary.remaining, 0))
+        case .over:
+            let overBy = max(summary.consumed - summary.target, 0)
+            return FormaProductCopy.Today.Mission.primaryOver(overBy)
+        case .targetReached:
+            return FormaProductCopy.Today.Mission.targetReachedPrimary
+        case .missingTarget:
+            return FormaProductCopy.Today.Mission.missingCalorieTarget
+        }
+    }
+
+    static func goalLine(for summary: CalorieSummary) -> String {
+        guard summary.target > 0 else {
+            return FormaProductCopy.Today.Mission.missingCalorieTarget
+        }
+        return FormaProductCopy.Today.Mission.goalLine(targetKcal: summary.target)
+    }
+
+    static func consumedLine(for summary: CalorieSummary) -> String {
+        FormaProductCopy.Today.Mission.consumedLine(consumedKcal: summary.consumed)
+    }
+
+    static func proteinRemainingLine(for protein: MacroProgress) -> String {
+        if protein.target > 0, protein.progress >= TodayFocusBuilder.proteinOnTrackThreshold {
             return FormaProductCopy.Today.Mission.proteinOnTrack
         }
-        return proteinRemainingLine(proteinProgress.remaining)
+        return FormaProductCopy.Today.Mission.proteinRemainingLine(grams: protein.remaining)
+    }
+
+    static func statusLine(
+        mealsEmptyKind: TodayMealsEmptyKind,
+        calorieSummary: CalorieSummary,
+        primaryKind: TodayMissionPrimaryKind
+    ) -> String {
+        switch mealsEmptyKind {
+        case .newProfileNoMeals, .newDayNoMeals:
+            return FormaProductCopy.Today.Mission.statusPlanReady
+        case .hasMeals:
+            break
+        }
+
+        switch primaryKind {
+        case .over:
+            return FormaProductCopy.Today.Mission.statusOverTarget
+        case .targetReached:
+            return FormaProductCopy.Today.Mission.statusTargetReached
+        case .remaining, .missingTarget:
+            return ""
+        }
     }
 
     private static func accessibilityLabel(
-        primaryMetricLabel: String,
-        primaryMetricValue: String,
+        primaryValue: String,
         goalLine: String,
         consumedLine: String,
-        proteinLine: String,
+        proteinRemainingLine: String,
         statusLine: String
     ) -> String {
-        [
+        var parts = [
             FormaProductCopy.Today.Mission.sectionTitle,
-            "\(primaryMetricLabel), \(primaryMetricValue)",
+            primaryValue,
             goalLine,
             consumedLine,
-            proteinLine,
-            statusLine
-        ].joined(separator: ". ")
+            proteinRemainingLine
+        ]
+        if !statusLine.isEmpty {
+            parts.append(statusLine)
+        }
+        return parts.joined(separator: ". ")
     }
 }

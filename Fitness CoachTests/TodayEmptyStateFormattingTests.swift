@@ -16,17 +16,17 @@ final class TodayEmptyStateFormattingTests: XCTestCase {
         XCTAssertTrue(copy.body.localizedCaseInsensitiveContains("Plan"))
     }
 
-    func testNewProfileNoMealsUsesEncouragingMissionAndMealsCopy() {
-        let missionStatus = TodayEmptyStateFormatting.missionStatusLine(
-            mealsEmptyKind: .newProfileNoMeals,
+    func testNewProfileNoMealsUsesEncouragingMealsCopy() {
+        let mission = TodayMissionHeroFormatter.displayModel(
             calorieSummary: emptyCalories,
-            proteinProgress: emptyProtein
+            proteinProgress: emptyProtein,
+            mealsEmptyKind: .newProfileNoMeals
         )
         let mealsCopy = TodayEmptyStateFormatting.mealsEmptyCopy(for: .newProfileNoMeals)
 
-        XCTAssertEqual(missionStatus, FormaProductCopy.Today.EmptyState.newProfileMissionStatus)
+        XCTAssertEqual(mission.statusLine, FormaProductCopy.Today.Mission.statusPlanReady)
         XCTAssertEqual(mealsCopy.title, FormaProductCopy.Today.EmptyState.newProfileMealsTitle)
-        XCTAssertTrue(TodayEmptyStateFormatting.missionShowsLogCTA(mealsEmptyKind: .newProfileNoMeals))
+        XCTAssertTrue(mission.showsLogMealCTA)
     }
 
     func testReturningUserNewDayNoMealsUsesFreshDayCopy() {
@@ -34,15 +34,15 @@ final class TodayEmptyStateFormattingTests: XCTestCase {
             mealsEmpty: true,
             hasPriorFoodLogs: true
         )
-        let missionStatus = TodayEmptyStateFormatting.missionStatusLine(
-            mealsEmptyKind: kind,
+        let mission = TodayMissionHeroFormatter.displayModel(
             calorieSummary: emptyCalories,
-            proteinProgress: emptyProtein
+            proteinProgress: emptyProtein,
+            mealsEmptyKind: kind
         )
         let mealsCopy = TodayEmptyStateFormatting.mealsEmptyCopy(for: kind)
 
         XCTAssertEqual(kind, .newDayNoMeals)
-        XCTAssertEqual(missionStatus, FormaProductCopy.Today.EmptyState.newDayMissionStatus)
+        XCTAssertEqual(mission.statusLine, FormaProductCopy.Today.Mission.statusPlanReady)
         XCTAssertEqual(mealsCopy.title, FormaProductCopy.Today.EmptyState.newDayMealsTitle)
     }
 
@@ -98,7 +98,13 @@ final class TodayEmptyStateFormattingTests: XCTestCase {
             TodayEmptyStateFormatting.mealsEmptyKind(mealsEmpty: false, hasPriorFoodLogs: true),
             .hasMeals
         )
-        XCTAssertFalse(TodayEmptyStateFormatting.missionShowsLogCTA(mealsEmptyKind: .hasMeals))
+        XCTAssertFalse(
+            TodayMissionHeroFormatter.displayModel(
+                calorieSummary: emptyCalories,
+                proteinProgress: emptyProtein,
+                mealsEmptyKind: .hasMeals
+            ).showsLogMealCTA
+        )
     }
 
     func testReturningUserEmptyDayUsesNewDayMealsKind() {
@@ -136,23 +142,11 @@ final class TodayEmptyStateFormattingTests: XCTestCase {
                 ),
                 foodEntries: [],
                 hasPriorFoodLogs: true,
-                streaks: StreakSummary(
-                    loggingStreak: 3,
-                    proteinStreak: 0,
-                    hydrationStreak: 0,
-                    workoutStreak: 0
-                ),
-                weekLoggedDays: 2,
-                dailyBrief: TodayDailyBrief(
-                    greeting: "Good morning.",
-                    priorities: [],
-                    recommendation: ""
-                ),
                 dailyReview: nil,
                 goalWeightKg: 75,
                 profileWeightKg: 80,
-                userName: "Test",
-                activityContext: .default
+                activityContext: .default,
+                trainingFrequencyPerWeek: 0
             )
         )
 
@@ -218,23 +212,11 @@ final class TodayEmptyStateFormattingTests: XCTestCase {
                 ),
                 foodEntries: [],
                 hasPriorFoodLogs: false,
-                streaks: StreakSummary(
-                    loggingStreak: 0,
-                    proteinStreak: 0,
-                    hydrationStreak: 0,
-                    workoutStreak: 0
-                ),
-                weekLoggedDays: 0,
-                dailyBrief: TodayDailyBrief(
-                    greeting: "Good morning.",
-                    priorities: [],
-                    recommendation: ""
-                ),
                 dailyReview: nil,
                 goalWeightKg: 75,
                 profileWeightKg: 80,
-                userName: nil,
-                activityContext: .default
+                activityContext: .default,
+                trainingFrequencyPerWeek: 0
             )
         )
 

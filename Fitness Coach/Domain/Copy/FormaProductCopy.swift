@@ -975,10 +975,12 @@ enum FormaProductCopy {
         static let targetsSectionTitle = "Targets"
 
         enum MacroBalance {
-            static let sectionTitle = "Macro balance"
+            static let sectionTitle = "Nutrition"
             static let protein = "Protein"
+            static let calories = "Calories"
             static let carbs = "Carbs"
             static let fat = "Fat"
+            static let water = "Water"
             static let remainingSuffix = "remaining"
             static let overSuffix = "over"
             static let atTarget = "At target"
@@ -999,28 +1001,56 @@ enum FormaProductCopy {
             static func over(grams: Double) -> String {
                 "\(FoodEntryFormFormatter.formatMacro(max(grams, 0)))g \(overSuffix)"
             }
+
+            static func caloriesRatio(consumed: Int, target: Int) -> String {
+                "\(TodayMissionHeroFormatting.calories(consumed)) / \(TodayMissionHeroFormatting.calories(target)) kcal"
+            }
+
+            static func loggedCalories(_ consumed: Int) -> String {
+                "\(TodayMissionHeroFormatting.calories(consumed)) kcal logged"
+            }
+
+            static func caloriesRemaining(_ amount: Int) -> String {
+                "\(TodayMissionHeroFormatting.calories(max(amount, 0))) kcal \(remainingSuffix)"
+            }
+
+            static func caloriesOver(_ amount: Int) -> String {
+                "\(TodayMissionHeroFormatting.calories(max(amount, 0))) kcal \(overSuffix)"
+            }
+
+            static func waterRatio(consumedMl: Int, targetMl: Int) -> String {
+                "\(consumedMl) / \(targetMl) ml"
+            }
+
+            static func loggedWater(_ consumedMl: Int) -> String {
+                "\(consumedMl) ml logged"
+            }
+
+            static func waterRemaining(_ amountMl: Int) -> String {
+                "\(max(amountMl, 0))ml \(remainingSuffix)"
+            }
+
+            static func waterOver(_ amountMl: Int) -> String {
+                "\(max(amountMl, 0))ml \(overSuffix)"
+            }
         }
 
         enum Activity {
             static let sectionTitle = "Today's Activity"
-            static let stepsLabel = "Steps"
-            static let workoutLabel = "Workout"
-            static let weeklyProgressLabel = "This week"
-            static let noDataYet = "No workouts or steps yet today — rest days count too."
             static let stepsUnavailable = "Steps unavailable"
-            static let disconnectedMessage = "Activity stays optional. Connect Apple Health when you want steps and workouts here."
-            static let disconnectedDeniedMessage = "Apple Health access is off. Turn it on in Settings to see activity here."
+            static let workoutCompletedLine = "Workout: Completed"
+            static let workoutPlannedLine = "Workout: Planned"
+            static let workoutNotLoggedLine = "Workout: Not logged"
+            static let healthConnectNote = "Connect Apple Health for steps and workouts."
+            static let healthDeniedNote = "Allow Apple Health access in Settings."
+            static let healthUnavailableNote = "Apple Health activity is unavailable."
 
             static func stepsToday(_ count: Int) -> String {
                 "\(TodayActivitySectionFormatting.formatSteps(count)) steps"
             }
 
-            static func typicalStepsAssumption(_ steps: Int) -> String {
-                "Typical: \(TodayActivitySectionFormatting.formatSteps(steps))/day"
-            }
-
-            static func sessionsThisWeek(completed: Int, target: Int) -> String {
-                "\(completed) of \(target) sessions"
+            static func stepsProgress(current: Int, goal: Int) -> String {
+                "\(TodayActivitySectionFormatting.formatSteps(current)) / \(TodayActivitySectionFormatting.formatSteps(goal)) steps"
             }
         }
 
@@ -1039,82 +1069,24 @@ enum FormaProductCopy {
             }
         }
 
-        enum Momentum {
-            static let sectionTitle = "Today's Momentum"
-            static let startStreakToday = "Start your streak today."
-
-            static func loggingStreakLine(days: Int) -> String {
-                "Logging streak: \(dayCount(days))"
-            }
-
-            static func weekProgressLine(loggedDays: Int, totalDays: Int) -> String {
-                "This week: \(loggedDays) of \(totalDays) days logged"
-            }
-
-            static func proteinStreakLine(days: Int) -> String {
-                "Protein streak: \(dayCount(days))"
-            }
-
-            static func waterStreakLine(days: Int) -> String {
-                "Water streak: \(dayCount(days))"
-            }
-
-            private static func dayCount(_ days: Int) -> String {
-                days == 1 ? "1 day" : "\(days) days"
-            }
+        enum Victory {
+            static let targetMet = "Today's calorie target met."
+            static let workoutStrongDay = "Strong day — workout logged and nutrition on track."
         }
 
-        enum DailySummary {
-            static let sectionTitle = "Daily Summary"
-            static let cardTitle = "Today"
-            static let calories = "Calories"
-            static let protein = "Protein"
-            static let water = "Water"
-            static let workout = "Workout"
-            static let overallTitle = "Overall"
-            static let explanationCaption = "Tap for how your score is calculated."
-            static let explanationHint = "Shows how today's completion score is calculated"
-            static let explanationTitle = "How your score works"
-            static let explanationDone = "Done"
-            static let accessibilityMet = "met"
-            static let accessibilityNotMet = "not met"
-            static let accessibilityNotApplicable = "not applicable"
-
-            static func overallComplete(_ percent: Int) -> String {
-                "\(percent)% complete"
-            }
-
-            static let explanationDetail = """
-            Your daily score counts how many of today's targets you've met — not how far you've missed them.
-
-            • Calories: within 10% of your target once you've logged food
-            • Protein: at least 90% of your target
-            • Water: at least 80% of your target
-            • Workout: logged when training applies to your plan
-
-            Overall is the share of applicable targets met today. Going over on calories doesn't reduce other targets — each counts separately.
-            """
+        enum SmartCoach {
+            static let logFirstMeal = "Log your first meal to start today."
+            static let proteinBehind = "Add protein at your next meal."
+            static let waterBehind = "Drink water before your next meal."
+            static let bothBehind = "Catch up on protein and water at your next break."
+            static let overTarget = "Above target — keep logging honestly."
+            static let postWorkoutProtein = "Refuel with protein after your workout."
         }
 
-        enum CoachTip {
-            static let sectionTitle = "Coach Tip"
-            static let accessibilityHint = "Opens Coach"
-
-            static let morningNoBreakfast =
-                "Start with breakfast when you're ready — protein and fiber help you stay steady through lunch."
-
-            static func lunchProteinGap(caloriesRemaining: String, proteinGrams: Int) -> String {
-                "You have \(caloriesRemaining) kcal left. Aim for \(proteinGrams)g protein at lunch."
-            }
-
-            static let eveningSimpleDinner =
-                "Dinner can be simple: lean protein, rice, and vegetables."
-
-            static let overTarget =
-                "You're above today's target — keep logging honestly. Weekly consistency matters more than one meal."
-
-            static let allGoalsMet =
-                "Nice work today — protein and hydration are on track. Finish the day steady."
+        enum EndOfDay {
+            static let wrapUp = "Wrap up today when you're ready."
+            static let reviewPrompt = "Review today's log with Coach."
+            static let reviewAction = "Review today"
         }
 
         enum EmptyState {
@@ -1173,35 +1145,62 @@ enum FormaProductCopy {
 
         enum Mission {
             static let sectionTitle = "Today's Mission"
-            static let caloriesRemainingLabel = "Calories remaining"
-            static let caloriesOverLabel = "Above today's target"
+            static let targetReachedPrimary = "Target reached"
             static let remainingSuffix = "remaining"
             static let overSuffix = "over"
-            static let statusOnTrack = "You're perfectly on track."
-            static let statusStartFirstMeal = "Start with your first meal."
-            static let statusOverTarget = "You're above today's target — keep logging honestly."
-            static let statusProteinGap = "Protein is your biggest gap today."
-            static let statusNearTarget = "You're close to today's target — finish strong."
+            static let logMealCTA = "Log meal"
+            static let statusPlanReady = "Your plan is ready. Log your first meal to start today."
+            static let statusOverTarget = "You're over target. Focus on protein and hydration for the rest of today."
+            static let statusTargetReached = "Nice work. Keep the rest of the day steady."
+            static let missingCalorieTarget = "No calorie target set"
             static let proteinOnTrack = "Protein on track"
+
+            static func goalLine(targetKcal: Int) -> String {
+                "Goal: \(TodayMissionHeroFormatting.calories(targetKcal)) kcal"
+            }
+
+            static func consumedLine(consumedKcal: Int) -> String {
+                "Consumed: \(TodayMissionHeroFormatting.calories(consumedKcal)) kcal"
+            }
+
+            static func proteinRemainingLine(grams: Double) -> String {
+                "Protein remaining: \(TodayMissionHeroFormatting.proteinGrams(grams))g"
+            }
+
+            static func primaryRemaining(_ calories: Int) -> String {
+                "\(TodayMissionHeroFormatting.calories(calories)) \(remainingSuffix)"
+            }
+
+            static func primaryOver(_ calories: Int) -> String {
+                "\(TodayMissionHeroFormatting.calories(calories)) \(overSuffix)"
+            }
         }
 
         enum NextAction {
             static let sectionTitle = "Next Best Action"
+            static let logBreakfastTitle = "Log breakfast to start today."
+            static let logBreakfastSubtitle = "A morning log helps Forma guide the rest of your day."
             static let logFirstMealTitle = "Log your first meal to start today."
             static let logFirstMealSubtitle = "A quick log helps Forma guide the rest of your day."
-            static let addWaterSubtitle = "Staying hydrated makes the rest of your targets easier."
-            static let logWeightTitle = "Log your weight today."
-            static let logWeightSubtitle = "A quick weigh-in keeps your trend useful."
-            static let connectHealthTitle = TrainingIntegrationCopy.connectAppleHealth
-            static let connectHealthSubtitle = "Workouts and activity show up in Training Insights."
-            static let reviewTodayTitle = "Review today before you wrap up."
-            static let reviewTodaySubtitle = "Take a minute to reflect on what went well."
-            static let onTrackTitle = "You're on track today."
-            static let onTrackSubtitle = "Keep the next choice simple."
+            static let eatProteinTitle = "Protein is your biggest gap."
+            static let eatProteinSubtitle = "A high-protein meal will help protect muscle during your cut."
+            static let hydrationBehindTitle = "Hydration is behind."
+            static let hydrationBehindSubtitle = "Add water now to stay on pace."
+            static let completeWorkoutTitle = "Complete today's workout."
+            static let completeWorkoutSubtitle = "Logging movement keeps your plan accurate."
+            static let keepDinnerLightTitle = "Keep dinner light tonight."
+            static let keepDinnerLightSubtitle = "You're close to your calorie target — lighter choices help you finish on plan."
+            static let focusHydrationRecoveryTitle = "Focus on hydration and recovery."
+            static let focusHydrationRecoverySubtitle = "You're above today's calorie target. Water and rest matter most now."
+            static let allTargetsMetTitle = "Great work — maintain today."
+            static let allTargetsMetSubtitle = "Key targets are on track. Stay consistent with your next choices."
 
             static let ctaLogMeal = "Log meal"
-            static let ctaPlanMeal = "Plan meal"
+            static let ctaLogBreakfast = "Log breakfast"
+            static let ctaScanFood = "Scan food"
             static let ctaAddWater = "Add water"
+            static let ctaLogWorkout = "Log workout"
+            static let ctaLogDinner = "Log dinner"
             static let ctaLogWeight = "Log weight"
             static let ctaConnectHealth = "Connect Apple Health"
             static let ctaReviewToday = "Review today"
@@ -1214,24 +1213,6 @@ enum FormaProductCopy {
             static let sheetSave = "Save"
             static let primaryButtonHint = "Performs this action on Today"
 
-            static func eatProteinTitle(grams: Int) -> String {
-                "Eat \(grams)g protein in your next meal."
-            }
-
-            static let eatProteinSubtitle = "You're a bit behind on protein — one solid meal helps."
-
-            static func drinkWaterTitle(amountMl: Int) -> String {
-                "Drink \(amountMl)ml water."
-            }
-
-            static func logMissedMealTitle(_ mealType: MealType) -> String {
-                "Log \(mealLabel(mealType)) to keep today accurate."
-            }
-
-            static func logMissedMealSubtitle(_ mealType: MealType) -> String {
-                "It's past \(mealLabel(mealType)) time — logging keeps your day honest."
-            }
-
             static func ctaLogMeal(_ mealType: MealType) -> String {
                 "Log \(mealLabel(mealType))"
             }
@@ -1241,9 +1222,11 @@ enum FormaProductCopy {
                 case .logMeal:
                     return ctaLogMeal
                 case .scanFood:
-                    return "Scan food"
+                    return ctaScanFood
                 case .addWater:
                     return ctaAddWater
+                case .logWorkout:
+                    return ctaLogWorkout
                 case .logWeight:
                     return ctaLogWeight
                 case .openHealth:
@@ -1268,13 +1251,12 @@ enum FormaProductCopy {
 
         enum Meals {
             static let sectionTitle = "Meals"
-            static let notLogged = "Not logged"
+            static let readyStatus = "Ready"
             static let addAction = "Add"
             static let optionalLabel = "Optional"
+            static let loggedAccessibilityValue = "Logged"
             static let loggedAccessibilityHint = "Edit this food entry"
             static let addAccessibilityHint = "Log food for this meal"
-            static let expandEntries = "Show all items"
-            static let collapseEntries = "Show less"
             static let emptyDayHint = "Log a meal to start today's picture."
             static let editSheetTitle = "Edit food"
             static let saveEditAction = "Save"
@@ -1287,8 +1269,16 @@ enum FormaProductCopy {
             static let deleteConfirmAction = "Delete"
             static let deleteCancelAction = "Cancel"
 
-            static func loggedSummary(calories: Int, protein: Double) -> String {
-                "\(calories) kcal · \(FoodEntryFormFormatter.formatMacro(protein))g protein"
+            static func caloriesLine(_ calories: Int) -> String {
+                "\(calories) kcal"
+            }
+
+            static func proteinLine(_ protein: Double) -> String {
+                "\(FoodEntryFormFormatter.formatMacro(protein))g protein"
+            }
+
+            static func multipleItemsAccessibilityLabel(_ count: Int) -> String {
+                "\(count) logged items"
             }
 
             static func mealTitle(_ mealType: MealType, isOptional: Bool) -> String {
@@ -1318,30 +1308,33 @@ enum FormaProductCopy {
             static func inlineAccessibilityHint(for kind: TodayQuickActionKind) -> String {
                 switch kind {
                 case .scanFood: return "Opens food photo scan"
+                case .logMeal: return "Opens meal logging"
                 case .manualEntry: return "Opens manual meal entry"
                 case .addWater: return "Opens water logging"
                 case .logWeight: return "Opens weight logging"
-                case .askCoach: return FormaProductCopy.Today.askCoachCTAAccessibilityHint
+                case .logWorkout: return "Opens workout logging"
                 }
             }
 
             static func title(for kind: TodayQuickActionKind) -> String {
                 switch kind {
                 case .scanFood: return "Scan Food"
+                case .logMeal: return "Log Meal"
                 case .manualEntry: return "Manual Entry"
                 case .addWater: return "Add Water"
                 case .logWeight: return "Log Weight"
-                case .askCoach: return "Ask Coach"
+                case .logWorkout: return "Log Workout"
                 }
             }
 
             static func symbolName(for kind: TodayQuickActionKind) -> String {
                 switch kind {
                 case .scanFood: return "camera.viewfinder"
+                case .logMeal: return "fork.knife"
                 case .manualEntry: return "square.and.pencil"
                 case .addWater: return "drop.fill"
                 case .logWeight: return "scalemass.fill"
-                case .askCoach: return "bubble.left.and.bubble.right.fill"
+                case .logWorkout: return "figure.run"
                 }
             }
 
