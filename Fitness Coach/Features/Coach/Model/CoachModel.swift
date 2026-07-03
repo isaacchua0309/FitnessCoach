@@ -8,6 +8,7 @@
 import Combine
 import Foundation
 import PhotosUI
+import SwiftUI
 
 @MainActor
 final class CoachModel: ObservableObject {

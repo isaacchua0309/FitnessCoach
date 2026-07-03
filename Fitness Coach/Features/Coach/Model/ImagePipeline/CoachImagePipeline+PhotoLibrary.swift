@@ -6,6 +6,7 @@
 //
 
 import PhotosUI
+import SwiftUI
 import UIKit
 
 extension CoachImagePipeline {
