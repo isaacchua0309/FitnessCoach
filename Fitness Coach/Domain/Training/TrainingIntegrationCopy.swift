@@ -13,6 +13,7 @@ enum TrainingIntegrationCopy {
     static let includeWorkoutsInProgress =
         "Connect Apple Health to include workouts in your progress."
     static let trainingInsightsUseAppleHealth = "Training insights use Apple Health workouts."
+    static let noWorkoutsThisWeek = "No Apple Health workouts this week."
     static let poweredByAppleFitness = trainingInsightsUseAppleHealth
     static let poweredByAppleHealthStatus = trainingInsightsUseAppleHealth
     static let valueProposition =

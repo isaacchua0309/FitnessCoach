@@ -18,7 +18,34 @@ final class JourneyMonthlyRecapBuilderTests: XCTestCase {
     // Wednesday, 15 Nov 2023
     private let asOf = Date(timeIntervalSince1970: 1_700_044_800)
 
-    func testFullMonthData() {
+    func testRecapHiddenWithInsufficientData() {
+        let state = build(monthLogs: [], maturityLogs: [])
+
+        XCTAssertFalse(state.isVisible)
+        XCTAssertFalse(state.showsTeaser)
+        XCTAssertTrue(state.rows.isEmpty)
+    }
+
+    func testRecapShowsTeaserWithPartialData() {
+        let logs = (0..<2).map { makeLog(daysAgo: $0, calories: 1_800, protein: 120, waterMl: 2_000) }
+
+        let state = build(monthLogs: logs, maturityLogs: logs)
+
+        XCTAssertTrue(state.isVisible)
+        XCTAssertTrue(state.showsTeaser)
+        XCTAssertEqual(
+            state.teaserTitle,
+            FormaProductCopy.Journey.MonthlyRecap.teaserTitle(monthName: "November")
+        )
+        XCTAssertEqual(
+            state.teaserDetail,
+            FormaProductCopy.Journey.MonthlyRecap.teaserDetail
+        )
+        XCTAssertTrue(state.rows.isEmpty)
+        XCTAssertFalse(state.isComplete)
+    }
+
+    func testRealMetricsAppearWhenDataExists() {
         let logs = (0..<15).map { offset in
             makeLog(
                 daysAgo: offset,
@@ -36,52 +63,68 @@ final class JourneyMonthlyRecapBuilderTests: XCTestCase {
             monthLogs: logs,
             maturityLogs: logs,
             allWeights: weights,
-            monthHealthWorkoutCount: 13,
+            monthHealthWorkoutCount: 11,
             isAppleHealthConnected: true
         )
 
         XCTAssertTrue(state.isComplete)
-        XCTAssertNil(state.buildingMessage)
-        XCTAssertEqual(state.loggedDays, 15)
-        XCTAssertEqual(state.monthWeightDeltaKg ?? 0, -2.4, accuracy: 0.01)
-        XCTAssertEqual(state.proteinAdherencePercent ?? 0, 1.0, accuracy: 0.01)
-        XCTAssertEqual(state.trainingSessions, 13)
-        XCTAssertTrue(state.showsTrainingRow)
-        XCTAssertTrue(state.summaryCopy.contains("15 days"))
-        XCTAssertEqual(state.bestHabitCopy, FormaProductCopy.Journey.MonthlyRecap.bestHabit(for: .training))
-
-        XCTAssertEqual(state.rows.first { $0.id == "weight" }?.value, "↓ 2.4kg")
-        XCTAssertEqual(state.rows.first { $0.id == "calories" }?.value, "80% adherence")
+        XCTAssertFalse(state.showsTeaser)
+        XCTAssertEqual(state.rows.first { $0.id == "meals" }?.value, "15")
         XCTAssertEqual(state.rows.first { $0.id == "protein" }?.value, "100%")
-        XCTAssertEqual(state.rows.first { $0.id == "training" }?.value, "13 sessions")
+        XCTAssertEqual(state.rows.first { $0.id == "workouts" }?.value, "11")
+        XCTAssertEqual(state.rows.first { $0.id == "weight" }?.value, "-2.4 kg")
+        XCTAssertTrue(
+            ["Strong month", "Excellent month"].contains(
+                state.rows.first { $0.id == "overall" }?.value ?? ""
+            )
+        )
     }
 
-    func testPartialCurrentMonthShowsBuildingState() {
-        let logs = (0..<2).map { makeLog(daysAgo: $0, calories: 1_800, protein: 120, waterMl: 2_000) }
+    func testNoFakeZeroPercentMetrics() {
+        let logs = (0..<6).map { offset in
+            makeLog(
+                daysAgo: offset,
+                calories: 1_800,
+                protein: 60,
+                waterMl: 400
+            )
+        }
 
         let state = build(monthLogs: logs, maturityLogs: logs)
 
-        XCTAssertFalse(state.isComplete)
-        XCTAssertEqual(state.buildingMessage, FormaProductCopy.Journey.MonthlyRecap.buildingBody)
-        XCTAssertEqual(state.loggedDays, 2)
-        XCTAssertEqual(state.rows.first { $0.id == "logged-days" }?.value, "2 days")
-        XCTAssertNotNil(state.rows.first { $0.id == "protein" })
-        XCTAssertNil(state.bestHabitCopy)
-        XCTAssertFalse(state.rows.contains { $0.id == "weight" })
+        XCTAssertTrue(state.isComplete)
+        XCTAssertNil(state.rows.first { $0.id == "protein" })
+        XCTAssertNil(state.rows.first { $0.id == "water" })
+        XCTAssertNotNil(state.rows.first { $0.id == "meals" })
     }
 
-    func testNoLogsShowsOnlyBuildingMessage() {
-        let state = build(monthLogs: [], maturityLogs: [])
+    func testGradeCalculationWorks() {
+        let strongLogs = (0..<7).enumerated().map { index, offset in
+            makeLog(
+                daysAgo: offset,
+                calories: index < 5 ? 1_900 : 2_600,
+                protein: index < 5 ? 140 : 60,
+                waterMl: index < 5 ? 2_500 : 400
+            )
+        }
+        let startingLogs = (0..<5).map { offset in
+            makeLog(
+                daysAgo: offset,
+                calories: 2_600,
+                protein: 60,
+                waterMl: 400
+            )
+        }
 
-        XCTAssertFalse(state.isComplete)
-        XCTAssertEqual(state.buildingMessage, FormaProductCopy.Journey.MonthlyRecap.buildingBody)
-        XCTAssertEqual(state.loggedDays, 0)
-        XCTAssertTrue(state.summaryCopy.isEmpty)
-        XCTAssertTrue(state.rows.isEmpty)
+        let strong = build(monthLogs: strongLogs, maturityLogs: strongLogs)
+        let starting = build(monthLogs: startingLogs, maturityLogs: startingLogs)
+
+        XCTAssertEqual(strong.overallGrade, .strong)
+        XCTAssertEqual(starting.overallGrade, .starting)
     }
 
-    func testHealthDisconnectedOmitsTrainingRow() {
-        let logs = (0..<5).map { makeLog(daysAgo: $0, calories: 1_800, protein: 140, waterMl: 2_000) }
+    func testHealthDisconnectedOmitsWorkoutRow() {
+        let logs = (0..<6).map { makeLog(daysAgo: $0, calories: 1_800, protein: 140, waterMl: 2_000) }
 
         let disconnected = build(
             monthLogs: logs,
@@ -96,16 +139,22 @@ final class JourneyMonthlyRecapBuilderTests: XCTestCase {
             isAppleHealthConnected: true
         )
 
-        XCTAssertFalse(disconnected.showsTrainingRow)
-        XCTAssertNil(disconnected.trainingSessions)
-        XCTAssertNil(disconnected.rows.first { $0.id == "training" })
-
-        XCTAssertTrue(connected.showsTrainingRow)
-        XCTAssertEqual(connected.rows.first { $0.id == "training" }?.value, "8 sessions")
+        XCTAssertNil(disconnected.rows.first { $0.id == "workouts" })
+        XCTAssertEqual(connected.rows.first { $0.id == "workouts" }?.value, "8")
     }
 
-    func testLoseGoalWeightDeltaFormatting() {
-        let logs = (0..<4).map { makeLog(daysAgo: $0, calories: 1_800, protein: 80) }
+    func testSectionTitleUsesMonthNameRecap() {
+        let logs = (0..<6).map { makeLog(daysAgo: $0, calories: 1_800, protein: 140) }
+        let state = build(monthLogs: logs, maturityLogs: logs)
+
+        XCTAssertEqual(
+            state.sectionTitle,
+            FormaProductCopy.Journey.MonthlyRecap.sectionTitle(monthName: "November")
+        )
+    }
+
+    func testWeightChangeFormattingUsesSignedKilograms() {
+        let logs = (0..<6).map { makeLog(daysAgo: $0, calories: 1_800, protein: 140) }
         let weights = [
             makeWeight(daysAgo: 10, kg: 88),
             makeWeight(daysAgo: 1, kg: 86.5)
@@ -118,65 +167,7 @@ final class JourneyMonthlyRecapBuilderTests: XCTestCase {
             goalDirection: .lose
         )
 
-        XCTAssertEqual(state.rows.first { $0.id == "weight" }?.value, "↓ 1.5kg")
-    }
-
-    func testGainGoalWeightDeltaFormatting() {
-        let logs = (0..<4).map { makeLog(daysAgo: $0, calories: 2_200, protein: 80) }
-        let weights = [
-            makeWeight(daysAgo: 10, kg: 60),
-            makeWeight(daysAgo: 1, kg: 61.8)
-        ]
-
-        let state = build(
-            monthLogs: logs,
-            maturityLogs: logs,
-            allWeights: weights,
-            goalDirection: .gain
-        )
-
-        XCTAssertEqual(state.rows.first { $0.id == "weight" }?.value, "↑ 1.8kg")
-    }
-
-    func testMaintainGoalWeightDeltaFormatting() {
-        let logs = (0..<4).map { makeLog(daysAgo: $0, calories: 2_000, protein: 80) }
-        let weights = [
-            makeWeight(daysAgo: 10, kg: 75),
-            makeWeight(daysAgo: 1, kg: 75.3)
-        ]
-
-        let state = build(
-            monthLogs: logs,
-            maturityLogs: logs,
-            allWeights: weights,
-            goalDirection: .maintain
-        )
-
-        XCTAssertEqual(state.rows.first { $0.id == "weight" }?.value, "±0.3kg")
-    }
-
-    func testPercentageFormattingRoundsCorrectly() {
-        let logs = [
-            makeLog(daysAgo: 0, calories: 1_800, protein: 140, waterMl: 2_500),
-            makeLog(daysAgo: 1, calories: 2_500, protein: 60, waterMl: 500),
-            makeLog(daysAgo: 2, calories: 1_950, protein: 130, waterMl: 2_400)
-        ]
-
-        let state = build(monthLogs: logs, maturityLogs: logs)
-
-        XCTAssertEqual(state.proteinAdherencePercent ?? 0, 2.0 / 3.0, accuracy: 0.01)
-        XCTAssertEqual(state.rows.first { $0.id == "protein" }?.value, "67%")
-        XCTAssertEqual(state.rows.first { $0.id == "water" }?.value, "67%")
-    }
-
-    func testSectionTitleUsesMonthNameSummary() {
-        let logs = (0..<4).map { makeLog(daysAgo: $0, calories: 1_800, protein: 80) }
-        let state = build(monthLogs: logs, maturityLogs: logs)
-
-        XCTAssertEqual(
-            state.sectionTitle,
-            FormaProductCopy.Journey.MonthlyRecap.sectionTitle(monthName: "November")
-        )
+        XCTAssertEqual(state.rows.first { $0.id == "weight" }?.value, "-1.5 kg")
     }
 
     // MARK: - Helpers

@@ -2,7 +2,7 @@
 //  JourneyTimelineBuilder.swift
 //  Fitness Coach
 //
-//  Forma — Deterministic chronological Journey story events.
+//  Forma — Curated Journey story timeline from meaningful milestones only.
 //
 
 import Foundation
@@ -16,52 +16,67 @@ enum JourneyTimelineBuilder {
         var allWeights: [WeightEntry]
         var healthWorkoutDayStarts: Set<Date>
         var isAppleHealthConnected: Bool
-        var journeyStreaks: JourneyStreakState
+        var unlockedMilestoneCount: Int
         var asOf: Date
         var calendar: Calendar
     }
 
-    private static let displayEventLimit = 5
-
-    static func build(_ input: Input) -> JourneyStoryTimelineState {
+    static func build(_ input: Input, additionalEvents: [JourneyTimelineEvent] = []) -> JourneyStoryTimelineState {
         let copy = FormaProductCopy.Journey.Timeline.self
         var events: [JourneyTimelineEvent] = []
 
         if let profile = input.profile {
             events.append(
-                makeEvent(
+                curatedEvent(
                     id: "onboarding",
                     date: input.calendar.startOfDay(for: profile.createdAt),
                     type: .onboardingStarted,
                     title: copy.startedForma,
                     icon: "✨",
-                    isMajor: true
+                    isMajor: true,
+                    goalDirection: input.baseline.goalDirection
                 )
             )
         }
 
         if let firstMeal = JourneyLogMetrics.firstFoodLogDate(in: input.maturityLogs) {
             events.append(
-                makeEvent(
+                curatedEvent(
                     id: "first-meal",
                     date: input.calendar.startOfDay(for: firstMeal),
                     type: .firstMealLogged,
                     title: copy.loggedFirstMeal,
                     icon: "🍽",
-                    isMajor: true
+                    isMajor: true,
+                    goalDirection: input.baseline.goalDirection
                 )
             )
         }
 
-        if let firstWater = firstWaterLogDate(in: input.maturityLogs, calendar: input.calendar) {
+        if let firstFullDay = firstFullDayDate(input: input) {
             events.append(
-                makeEvent(
-                    id: "first-water",
-                    date: firstWater,
-                    type: .firstWaterLogged,
-                    title: copy.loggedFirstWater,
-                    icon: "💧",
-                    isMajor: false
+                curatedEvent(
+                    id: "first-full-day",
+                    date: firstFullDay,
+                    type: .firstFullDayComplete,
+                    title: copy.completedFirstFullDay,
+                    icon: "✅",
+                    isMajor: true,
+                    goalDirection: input.baseline.goalDirection
+                )
+            )
+        }
+
+        if let firstWorkout = firstWorkoutDate(input: input) {
+            events.append(
+                curatedEvent(
+                    id: "first-workout",
+                    date: firstWorkout,
+                    type: .firstWorkoutLogged,
+                    title: copy.completedFirstWorkout,
+                    icon: "🏋",
+                    isMajor: true,
+                    goalDirection: input.baseline.goalDirection
                 )
             )
         }
@@ -71,193 +86,131 @@ enum JourneyTimelineBuilder {
             .map(\.date)
             .min() {
             events.append(
-                makeEvent(
+                curatedEvent(
                     id: "first-weight",
                     date: input.calendar.startOfDay(for: firstWeight),
                     type: .firstWeightLogged,
                     title: copy.loggedFirstWeight,
                     icon: "⚖️",
-                    isMajor: false
+                    isMajor: true,
+                    goalDirection: input.baseline.goalDirection
                 )
             )
         }
 
-        if input.isAppleHealthConnected,
-           let weekEnd = firstWorkoutWeekEndDate(
-               workoutDates: input.healthWorkoutDayStarts,
-               calendar: input.calendar
-           ) {
-            events.append(
-                makeEvent(
-                    id: "first-workout-week",
-                    date: weekEnd,
-                    type: .firstWorkoutWeek,
-                    title: copy.completedFirstWorkoutWeek,
-                    icon: "🏋",
-                    isMajor: false
-                )
-            )
-        }
-
-        if let seventhFoodDay = nthUniqueFoodLogDay(
-            7,
-            in: input.maturityLogs,
-            calendar: input.calendar
-        ) {
+        if let seventhFoodDay = nthUniqueFoodLogDay(7, in: input.maturityLogs, calendar: input.calendar) {
             let title = input.baseline.goalDirection == .maintain
                 ? copy.stayedConsistentFirstWeek
                 : copy.completedFirstWeek
             events.append(
-                makeEvent(
+                curatedEvent(
                     id: "first-week",
                     date: seventhFoodDay,
                     type: .firstWeekComplete,
                     title: title,
                     icon: "📅",
-                    isMajor: true
+                    isMajor: true,
+                    goalDirection: input.baseline.goalDirection
                 )
             )
         }
 
-        if let startWeight = input.baseline.startWeightKg,
+        if let proteinWeekDate = firstWeekMeeting(
+            goalDaysByWeek: goalDaysByWeek(in: input.maturityLogs, calendar: input.calendar, kind: .protein),
+            threshold: 3
+        ) {
+            events.append(
+                curatedEvent(
+                    id: "protein-three-week",
+                    date: proteinWeekDate,
+                    type: .proteinThreeDaysInWeek,
+                    title: copy.proteinThreeDaysInWeek,
+                    icon: "🔥",
+                    isMajor: false,
+                    goalDirection: input.baseline.goalDirection
+                )
+            )
+        }
+
+        if let waterWeekDate = firstWeekMeeting(
+            goalDaysByWeek: goalDaysByWeek(in: input.maturityLogs, calendar: input.calendar, kind: .water),
+            threshold: 3
+        ) {
+            events.append(
+                curatedEvent(
+                    id: "water-three-week",
+                    date: waterWeekDate,
+                    type: .waterThreeDaysInWeek,
+                    title: copy.waterThreeDaysInWeek,
+                    icon: "💧",
+                    isMajor: false,
+                    goalDirection: input.baseline.goalDirection
+                )
+            )
+        }
+
+        if input.baseline.goalDirection == .lose || input.baseline.goalDirection == .gain,
+           let startWeight = input.baseline.startWeightKg,
            let firstKgDate = firstKgTowardGoalDate(
                weights: input.allWeights,
                startWeight: startWeight,
                direction: input.baseline.goalDirection,
                calendar: input.calendar
            ) {
-            let title: String
-            switch input.baseline.goalDirection {
-            case .lose:
-                title = copy.lostFirstKilogram()
-            case .gain:
-                title = copy.gainedFirstKilogram()
-            case .maintain:
-                title = copy.stayedConsistentFirstWeek
-            }
+            let title = input.baseline.goalDirection == .lose
+                ? copy.lostFirstKilogram()
+                : copy.gainedFirstKilogram()
             events.append(
-                makeEvent(
+                curatedEvent(
                     id: "first-kg",
                     date: firstKgDate,
                     type: .firstKgTowardGoal,
                     title: title,
                     icon: "🎯",
-                    isMajor: true
+                    isMajor: true,
+                    goalDirection: input.baseline.goalDirection
                 )
             )
         }
 
-        if let fifthCalorieDay = nthCalorieAdherenceDay(
-            5,
-            in: input.maturityLogs,
-            calendar: input.calendar
-        ) {
+        if let chapterDate = firstChapterReachedDate(input: input) {
             events.append(
-                makeEvent(
-                    id: "calorie-five",
-                    date: fifthCalorieDay,
-                    type: .calorieGoalFiveDays,
-                    title: copy.hitCalorieGoalDays(5),
-                    icon: "🎯",
-                    isMajor: false
-                )
-            )
-        }
-
-        if let fifthProteinDay = nthProteinGoalDay(
-            5,
-            in: input.maturityLogs,
-            calendar: input.calendar
-        ) {
-            events.append(
-                makeEvent(
-                    id: "protein-five",
-                    date: fifthProteinDay,
-                    type: .proteinGoalFiveDays,
-                    title: copy.hitProteinGoalDays(5),
-                    icon: "🔥",
-                    isMajor: false
-                )
-            )
-        }
-
-        if let thirtiethMealDay = nthUniqueFoodLogDay(
-            30,
-            in: input.maturityLogs,
-            calendar: input.calendar
-        ) {
-            events.append(
-                makeEvent(
-                    id: "thirty-meals",
-                    date: thirtiethMealDay,
-                    type: .thirtyMealsLogged,
-                    title: copy.loggedThirtyMeals,
-                    icon: "📝",
-                    isMajor: false
-                )
-            )
-        }
-
-        if input.baseline.goalDirection != .maintain,
-           let startWeight = input.baseline.startWeightKg,
-           let goalWeight = input.baseline.goalWeightKg,
-           abs(startWeight - goalWeight) > 0.1,
-           let halfwayDate = halfwayToGoalDate(
-               weights: input.allWeights,
-               startWeight: startWeight,
-               goalWeight: goalWeight,
-               direction: input.baseline.goalDirection,
-               calendar: input.calendar
-           ) {
-            events.append(
-                makeEvent(
-                    id: "halfway",
-                    date: halfwayDate,
-                    type: .halfwayToGoal,
-                    title: copy.reachedHalfway,
-                    icon: "🏁",
-                    isMajor: true
-                )
-            )
-        }
-
-        if let streak = longestLoggingStreakEnd(
-            logs: input.maturityLogs,
-            calendar: input.calendar
-        ), streak.length >= 7 {
-            events.append(
-                makeEvent(
-                    id: "longest-streak-\(streak.length)",
-                    date: streak.endDate,
-                    type: .longestStreakAchieved,
-                    title: copy.longestLoggingStreak(days: streak.length),
-                    icon: "🔥",
-                    isMajor: true
+                curatedEvent(
+                    id: "chapter-two",
+                    date: chapterDate,
+                    type: .chapterReached,
+                    title: copy.reachedNewChapter,
+                    icon: "📖",
+                    isMajor: true,
+                    goalDirection: input.baseline.goalDirection
                 )
             )
         }
 
         if let profile = input.profile,
-           let recapDate = firstMonthlyRecapDate(
+           let monthDate = firstCompletedMonthDate(
                profileCreatedAt: profile.createdAt,
                logs: input.maturityLogs,
                asOf: input.asOf,
                calendar: input.calendar
            ) {
             events.append(
-                makeEvent(
-                    id: "monthly-recap",
-                    date: recapDate,
-                    type: .monthlyRecapCompleted,
-                    title: copy.monthlyRecapCompleted,
-                    icon: "📊",
-                    isMajor: false
+                curatedEvent(
+                    id: "first-month",
+                    date: monthDate,
+                    type: .firstMonthComplete,
+                    title: copy.completedFirstMonth,
+                    icon: "📆",
+                    isMajor: true,
+                    goalDirection: input.baseline.goalDirection
                 )
             )
         }
 
-        let deduped = deduplicateByDay(events: events, calendar: input.calendar)
-        let sortedNewestFirst = deduped.sorted { lhs, rhs in
+        let merged = deduplicateByID(
+            events: mergeAdditionalEvents(events, additionalEvents: additionalEvents)
+        )
+        let sortedNewestFirst = merged.sorted { lhs, rhs in
             if lhs.date != rhs.date {
                 return lhs.date > rhs.date
             }
@@ -267,7 +220,10 @@ enum JourneyTimelineBuilder {
             return lhs.id < rhs.id
         }
 
-        let displayEvents = buildDisplayEvents(from: sortedNewestFirst)
+        let displayEvents = orderForDisplay(
+            nonAnchor: sortedNewestFirst.filter { $0.type != .onboardingStarted },
+            anchor: sortedNewestFirst.first { $0.type == .onboardingStarted }
+        )
         let emptyStateMessage = shouldShowEmptyStateMessage(events: sortedNewestFirst)
             ? FormaProductCopy.Journey.Timeline.emptyBody
             : nil
@@ -279,35 +235,46 @@ enum JourneyTimelineBuilder {
         )
     }
 
-    // MARK: - Display assembly
+    // MARK: - Event factory
 
-    private static func buildDisplayEvents(from events: [JourneyTimelineEvent]) -> [JourneyTimelineEvent] {
-        guard !events.isEmpty else { return [] }
-
-        let anchor = events.first { $0.type == .onboardingStarted }
-        let nonAnchor = events.filter { $0.type != .onboardingStarted }
-
-        if events.count <= displayEventLimit {
-            return orderForDisplay(nonAnchor: nonAnchor, anchor: anchor)
-        }
-
-        let ranked = nonAnchor.sorted { lhs, rhs in
-            let leftScore = selectionScore(for: lhs)
-            let rightScore = selectionScore(for: rhs)
-            if leftScore != rightScore { return leftScore > rightScore }
-            if lhs.date != rhs.date { return lhs.date > rhs.date }
-            return lhs.id < rhs.id
-        }
-
-        var selected = Array(ranked.prefix(displayEventLimit - (anchor == nil ? 0 : 1)))
-        if let anchor {
-            selected.append(anchor)
-        }
-        return orderForDisplay(
-            nonAnchor: selected.filter { $0.type != .onboardingStarted },
-            anchor: anchor
+    private static func curatedEvent(
+        id: String,
+        date: Date,
+        type: JourneyTimelineEventType,
+        title: String,
+        icon: String,
+        isMajor: Bool,
+        goalDirection: JourneyGoalDirection
+    ) -> JourneyTimelineEvent {
+        JourneyTimelineEvent(
+            id: id,
+            date: date,
+            type: type,
+            title: title,
+            subtitle: reflection(for: type, goalDirection: goalDirection),
+            icon: icon,
+            isMajorEvent: isMajor
         )
     }
+
+    private static func reflection(
+        for type: JourneyTimelineEventType,
+        goalDirection: JourneyGoalDirection
+    ) -> String? {
+        if type == .firstKgTowardGoal {
+            switch goalDirection {
+            case .lose:
+                return FormaProductCopy.Journey.Timeline.Reflection.lostFirstKg
+            case .gain:
+                return FormaProductCopy.Journey.Timeline.Reflection.gainedFirstKg
+            case .maintain:
+                return FormaProductCopy.Journey.Timeline.Reflection.completedFirstWeek
+            }
+        }
+        return FormaProductCopy.Journey.Timeline.reflection(for: type)
+    }
+
+    // MARK: - Display assembly
 
     private static func orderForDisplay(
         nonAnchor: [JourneyTimelineEvent],
@@ -327,87 +294,116 @@ enum JourneyTimelineBuilder {
     }
 
     private static func shouldShowEmptyStateMessage(events: [JourneyTimelineEvent]) -> Bool {
-        let nonOnboarding = events.filter { $0.type != .onboardingStarted }
-        return nonOnboarding.isEmpty
-    }
-
-    private static func selectionScore(for event: JourneyTimelineEvent) -> Int {
-        typePriority(event.type) + (event.isMajorEvent ? 10 : 0)
-    }
-
-    // MARK: - Event factory
-
-    private static func makeEvent(
-        id: String,
-        date: Date,
-        type: JourneyTimelineEventType,
-        title: String,
-        icon: String,
-        isMajor: Bool
-    ) -> JourneyTimelineEvent {
-        JourneyTimelineEvent(
-            id: id,
-            date: date,
-            type: type,
-            title: title,
-            subtitle: nil,
-            icon: icon,
-            isMajorEvent: isMajor
-        )
+        events.isEmpty
     }
 
     // MARK: - Deduplication
 
-    private static func deduplicateByDay(
-        events: [JourneyTimelineEvent],
-        calendar: Calendar
-    ) -> [JourneyTimelineEvent] {
-        var bestByDay: [Date: JourneyTimelineEvent] = [:]
+    private static func deduplicateByID(events: [JourneyTimelineEvent]) -> [JourneyTimelineEvent] {
+        var bestByID: [String: JourneyTimelineEvent] = [:]
 
         for event in events {
-            let day = calendar.startOfDay(for: event.date)
-            if let existing = bestByDay[day] {
-                if typePriority(event.type) > typePriority(existing.type) {
-                    bestByDay[day] = event
-                } else if typePriority(event.type) == typePriority(existing.type),
-                          event.id < existing.id {
-                    bestByDay[day] = event
+            if let existing = bestByID[event.id] {
+                let existingHasSubtitle = existing.subtitle?.isEmpty == false
+                let eventHasSubtitle = event.subtitle?.isEmpty == false
+                if eventHasSubtitle && !existingHasSubtitle {
+                    bestByID[event.id] = event
                 }
             } else {
-                bestByDay[day] = event
+                bestByID[event.id] = event
             }
         }
 
-        return bestByDay.values.sorted { lhs, rhs in
-            if lhs.date != rhs.date { return lhs.date < rhs.date }
-            return lhs.id < rhs.id
+        return Array(bestByID.values)
+    }
+
+    private static func mergeAdditionalEvents(
+        _ events: [JourneyTimelineEvent],
+        additionalEvents: [JourneyTimelineEvent]
+    ) -> [JourneyTimelineEvent] {
+        guard !additionalEvents.isEmpty else { return events }
+
+        var merged = events
+        let existingIDs = Set(events.map(\.id))
+
+        for event in additionalEvents where !existingIDs.contains(event.id) {
+            merged.append(event)
         }
+
+        return merged
     }
 
     private static func typePriority(_ type: JourneyTimelineEventType) -> Int {
         switch type {
         case .onboardingStarted: return 100
-        case .halfwayToGoal: return 90
+        case .firstMonthComplete: return 90
+        case .chapterReached: return 88
         case .firstKgTowardGoal: return 85
-        case .longestStreakAchieved: return 80
-        case .firstWeekComplete: return 75
-        case .thirtyMealsLogged: return 70
-        case .monthlyRecapCompleted: return 65
-        case .proteinGoalFiveDays, .calorieGoalFiveDays: return 60
-        case .firstWorkoutWeek: return 55
-        case .firstMealLogged: return 50
-        case .firstWeightLogged: return 45
-        case .firstWaterLogged: return 40
+        case .firstWeekComplete: return 80
+        case .firstFullDayComplete: return 75
+        case .proteinThreeDaysInWeek, .waterThreeDaysInWeek: return 70
+        case .firstWorkoutLogged: return 65
+        case .firstMealLogged: return 60
+        case .firstWeightLogged: return 55
+        case .fourWorkoutWeeksComplete: return 50
+        case .weightLoggedThreeTimes: return 45
+        case .firstWorkoutWeek, .firstWaterLogged, .calorieGoalFiveDays,
+             .proteinGoalFiveDays, .thirtyMealsLogged, .halfwayToGoal,
+             .longestStreakAchieved, .monthlyRecapCompleted: return 10
         }
     }
 
     // MARK: - Date resolution
 
-    private static func firstWaterLogDate(in logs: [DailyLog], calendar: Calendar) -> Date? {
-        guard let date = logs.filter({ $0.waterConsumedMl > 0 }).map(\.date).min() else {
-            return nil
+    private enum WeekGoalKind {
+        case protein
+        case water
+    }
+
+    private static func firstFullDayDate(input: Input) -> Date? {
+        let calendar = input.calendar
+        let weights = input.allWeights.filter { $0.weightKg > 0 }
+        let weightDays = JourneyLogMetrics.weightDays(
+            in: input.maturityLogs,
+            weights: weights,
+            calendar: calendar
+        )
+        let workoutDays = JourneyLogMetrics.workoutDaySet(
+            in: input.maturityLogs,
+            healthWorkoutDayStarts: input.healthWorkoutDayStarts,
+            calendar: calendar
+        )
+
+        let fullDays = input.maturityLogs.compactMap { log -> Date? in
+            let day = calendar.startOfDay(for: log.date)
+            guard log.totals.calories > 0, log.waterConsumedMl > 0 else { return nil }
+
+            let proteinHit = JourneyLogMetrics.isProteinGoalMet(
+                on: day,
+                logsByDay: [day: log]
+            )
+            let waterHit = JourneyLogMetrics.isWaterGoalMet(
+                on: day,
+                logsByDay: [day: log]
+            )
+            let hasWorkout = log.workoutCaloriesBurned > 0 || workoutDays.contains(day)
+            let hasWeight = weightDays.contains(day)
+
+            return (proteinHit && waterHit) || (proteinHit && (hasWorkout || hasWeight))
+                ? day
+                : nil
         }
-        return calendar.startOfDay(for: date)
+
+        return fullDays.sorted().first
+    }
+
+    private static func firstWorkoutDate(input: Input) -> Date? {
+        let calendar = input.calendar
+        let logged = input.maturityLogs
+            .filter { $0.workoutCaloriesBurned > 0 }
+            .map { calendar.startOfDay(for: $0.date) }
+        let health = input.healthWorkoutDayStarts.map { calendar.startOfDay(for: $0) }
+        return (logged + health).sorted().first
     }
 
     private static func nthUniqueFoodLogDay(
@@ -423,36 +419,41 @@ enum JourneyTimelineBuilder {
         return days[n - 1]
     }
 
-    private static func nthProteinGoalDay(
-        _ n: Int,
+    private static func goalDaysByWeek(
         in logs: [DailyLog],
-        calendar: Calendar
-    ) -> Date? {
-        let days = Set(
-            logs.filter { log in
-                log.targets.proteinTarget > 0
-                    && log.totals.protein >= log.targets.proteinTarget * JourneyLogMetrics.proteinHitThreshold
-            }.map { calendar.startOfDay(for: $0.date) }
-        ).sorted()
-        guard n > 0, n <= days.count else { return nil }
-        return days[n - 1]
+        calendar: Calendar,
+        kind: WeekGoalKind
+    ) -> [Date: Int] {
+        var daysByWeek: [Date: Set<Date>] = [:]
+
+        for log in logs {
+            let day = calendar.startOfDay(for: log.date)
+            guard let weekStart = calendar.dateInterval(of: .weekOfYear, for: day)?.start else {
+                continue
+            }
+            let weekKey = calendar.startOfDay(for: weekStart)
+
+            let hitsGoal: Bool
+            switch kind {
+            case .protein:
+                hitsGoal = JourneyLogMetrics.isProteinGoalMet(on: day, logsByDay: [day: log])
+            case .water:
+                hitsGoal = JourneyLogMetrics.isWaterGoalMet(on: day, logsByDay: [day: log])
+            }
+
+            guard hitsGoal else { continue }
+            daysByWeek[weekKey, default: []].insert(day)
+        }
+
+        return daysByWeek.mapValues(\.count)
     }
 
-    private static func nthCalorieAdherenceDay(
-        _ n: Int,
-        in logs: [DailyLog],
-        calendar: Calendar
-    ) -> Date? {
-        let days = Set(
-            logs.filter { log in
-                let target = log.targets.calorieTarget
-                guard target > 0 else { return false }
-                let delta = abs(Double(log.totals.calories - target)) / Double(target)
-                return delta <= JourneyLogMetrics.calorieAdherenceTolerance
-            }.map { calendar.startOfDay(for: $0.date) }
-        ).sorted()
-        guard n > 0, n <= days.count else { return nil }
-        return days[n - 1]
+    private static func firstWeekMeeting(goalDaysByWeek: [Date: Int], threshold: Int) -> Date? {
+        goalDaysByWeek
+            .filter { $0.value >= threshold }
+            .keys
+            .sorted()
+            .first
     }
 
     private static func firstKgTowardGoalDate(
@@ -475,30 +476,6 @@ enum JourneyTimelineBuilder {
         return nil
     }
 
-    private static func halfwayToGoalDate(
-        weights: [WeightEntry],
-        startWeight: Double,
-        goalWeight: Double,
-        direction: JourneyGoalDirection,
-        calendar: Calendar
-    ) -> Date? {
-        let span = abs(startWeight - goalWeight)
-        guard span > 0.1 else { return nil }
-
-        let sorted = weights.filter { $0.weightKg > 0 }.sorted { $0.date < $1.date }
-        for entry in sorted {
-            let traveled = traveledTowardGoal(
-                from: startWeight,
-                to: entry.weightKg,
-                direction: direction
-            )
-            if traveled / span >= 0.5 {
-                return calendar.startOfDay(for: entry.date)
-            }
-        }
-        return nil
-    }
-
     private static func traveledTowardGoal(
         from start: Double,
         to current: Double,
@@ -514,61 +491,40 @@ enum JourneyTimelineBuilder {
         }
     }
 
-    private static func firstWorkoutWeekEndDate(
-        workoutDates: Set<Date>,
-        calendar: Calendar
-    ) -> Date? {
-        guard let firstWorkout = workoutDates.min() else { return nil }
-        guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: firstWorkout) else {
-            return nil
-        }
-        guard let lastDay = calendar.date(byAdding: .day, value: -1, to: weekInterval.end) else {
-            return calendar.startOfDay(for: firstWorkout)
-        }
-        return calendar.startOfDay(for: lastDay)
-    }
-
-    private static func longestLoggingStreakEnd(
-        logs: [DailyLog],
-        calendar: Calendar
-    ) -> (length: Int, endDate: Date)? {
+    private static func firstChapterReachedDate(input: Input) -> Date? {
         let sortedDays = Set(
-            logs.filter { StreakCalculator.isLoggingDay($0) }
-                .map { calendar.startOfDay(for: $0.date) }
+            input.maturityLogs.map { input.calendar.startOfDay(for: $0.date) }
         ).sorted()
         guard !sortedDays.isEmpty else { return nil }
 
-        var bestLength = 1
-        var bestEnd = sortedDays[0]
-        var currentLength = 1
-        var currentEnd = sortedDays[0]
-
-        for index in 1..<sortedDays.count {
-            let previous = sortedDays[index - 1]
-            let day = sortedDays[index]
-            if let nextDay = calendar.date(byAdding: .day, value: 1, to: previous),
-               calendar.isDate(nextDay, inSameDayAs: day) {
-                currentLength += 1
-                currentEnd = day
-            } else {
-                if currentLength > bestLength {
-                    bestLength = currentLength
-                    bestEnd = currentEnd
-                }
-                currentLength = 1
-                currentEnd = day
+        var previousLevel = 1
+        for day in sortedDays {
+            let logsThroughDay = input.maturityLogs.filter {
+                input.calendar.startOfDay(for: $0.date) <= day
             }
+            let xp = JourneyChapterBuilder.computeTotalXP(
+                input: JourneyChapterBuilder.Input(
+                    maturityLogs: logsThroughDay,
+                    allWeights: input.allWeights.filter {
+                        input.calendar.startOfDay(for: $0.date) <= day
+                    },
+                    healthWorkoutDayStarts: input.healthWorkoutDayStarts.filter { $0 <= day },
+                    isAppleHealthConnected: input.isAppleHealthConnected,
+                    unlockedMilestoneCount: 0,
+                    calendar: input.calendar
+                )
+            )
+            let chapter = JourneyChapterBuilder.chapterProgress(totalXP: xp).chapter
+            if chapter > 1, previousLevel == 1 {
+                return day
+            }
+            previousLevel = max(previousLevel, level)
         }
 
-        if currentLength > bestLength {
-            bestLength = currentLength
-            bestEnd = currentEnd
-        }
-
-        return (bestLength, bestEnd)
+        return nil
     }
 
-    private static func firstMonthlyRecapDate(
+    private static func firstCompletedMonthDate(
         profileCreatedAt: Date,
         logs: [DailyLog],
         asOf: Date,

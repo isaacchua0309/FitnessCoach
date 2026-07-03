@@ -8,32 +8,39 @@
 import SwiftUI
 
 struct JourneyEmptyStateView: View {
-    let onRefresh: () -> Void
+    let onGoToToday: () -> Void
 
     var body: some View {
-        VStack(spacing: FormaTokens.Spacing.sm + 2) {
-            Text(FormaProductCopy.EmptyState.journeyTitle)
-                .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
+        VStack(spacing: FormaTokens.Spacing.md) {
+            JourneyEyebrowLabel(title: FormaProductCopy.Journey.Header.title)
+
+            Text(FormaProductCopy.Journey.StartingEmptyState.title)
+                .font(JourneyTypography.cardHeadline)
                 .foregroundStyle(FormaTokens.Color.textPrimary)
                 .multilineTextAlignment(.center)
 
-            Text(FormaProductCopy.EmptyState.journeyBody)
-                .font(FormaTokens.Typography.sectionSubtitle)
+            Text(FormaProductCopy.Journey.StartingEmptyState.body)
+                .font(JourneyTypography.cardSupporting)
                 .foregroundStyle(FormaTokens.Color.textSecondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal)
+                .lineLimit(4)
+                .padding(.horizontal, FormaTokens.Spacing.sm)
 
-            Button(FormaProductCopy.Common.refresh, action: onRefresh)
-                .buttonStyle(.bordered)
+            Button(FormaProductCopy.Journey.StartingEmptyState.action, action: onGoToToday)
+                .buttonStyle(.borderedProminent)
                 .tint(FormaTokens.Theme.primary)
+                .padding(.top, FormaTokens.Spacing.xs)
         }
+        .frame(maxWidth: FormaTokens.Layout.maxContentWidth)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
+        .padding(.horizontal, JourneyLayout.horizontalPadding)
+        .padding(.bottom, FormaMainTabLayout.scrollBottomInset)
         .background(FormaTokens.Color.canvas)
+        .accessibilityIdentifier("journey-empty-state")
     }
 }
 
 #Preview {
-    JourneyEmptyStateView {}
+    JourneyEmptyStateView(onGoToToday: {})
         .formaThemePreview()
 }

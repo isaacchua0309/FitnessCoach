@@ -87,19 +87,4 @@ enum FormaThemeAppearanceMatrix {
     PublicEntryPreviewScreens.existingSignIn(palette: .oceanBlue, appearance: .dark)
 }
 
-// MARK: - Journey segmented control
-
-#Preview("Range selector — Ocean Blue Light") {
-    JourneyRangeSelector(selectedRangeDays: 28) { _ in }
-        .padding()
-        .background(FormaTokens.Color.canvas)
-        .formaThemePreview(appearance: .light, palette: .oceanBlue)
-}
-
-#Preview("Range selector — Emerald Green Dark") {
-    JourneyRangeSelector(selectedRangeDays: 14) { _ in }
-        .padding()
-        .background(FormaTokens.Color.canvas)
-        .formaThemePreview(appearance: .dark, palette: .emeraldGreen)
-}
 #endif

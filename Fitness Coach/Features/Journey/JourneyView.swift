@@ -20,23 +20,27 @@ struct JourneyView: View {
     var onOpenCoach: ((String?) -> Void)?
     /// Opens the Plan tab for goal edits or Apple Health connection.
     var onOpenPlan: (() -> Void)?
+    /// Opens the Today tab for daily logging actions.
+    var onOpenToday: (() -> Void)?
 
     init(
         model: JourneyModel,
         analyticsCoordinator: JourneyAnalyticsCoordinator,
         onOpenCoach: ((String?) -> Void)? = nil,
-        onOpenPlan: (() -> Void)? = nil
+        onOpenPlan: (() -> Void)? = nil,
+        onOpenToday: (() -> Void)? = nil
     ) {
         self.model = model
         self.analyticsCoordinator = analyticsCoordinator
         self.onOpenCoach = onOpenCoach
         self.onOpenPlan = onOpenPlan
+        self.onOpenToday = onOpenToday
     }
 
     var body: some View {
         NavigationStack {
             content
-                .navigationTitle("Journey")
+                .navigationTitle(FormaProductCopy.Journey.Header.title)
                 .task {
                     await model.loadProgress()
                 }
@@ -62,11 +66,12 @@ struct JourneyView: View {
             FormaScreenLoadingView(message: FormaProductCopy.Loading.journey)
         case .empty:
             JourneyEmptyStateView {
-                Task { await model.refresh() }
+                analyticsCoordinator.logGoToTodayTapped()
+                onOpenToday?()
             }
             .onAppear {
                 syncAnalyticsContextForEmpty()
-                analyticsCoordinator.logScreenViewed()
+                analyticsCoordinator.logViewed()
             }
         case .error(let message):
             FormaScreenErrorView(message: message, onRetry: {
@@ -83,23 +88,14 @@ struct JourneyView: View {
                 state: state,
                 analyticsCoordinator: analyticsCoordinator,
                 onCTA: handleCTA,
-                onSelectRange: { days in
-                    analyticsCoordinator.logRangeChanged(days: days)
-                    Task { await model.selectRange(days: days) }
-                },
-                onAnalyticsExpanded: {
-                    analyticsCoordinator.logAnalyticsExpanded()
-                }
+                onGoToToday: { onOpenToday?() }
             )
         }
         .formaMainTabScrollInsets()
         .accessibilityIdentifier("journey-scroll")
         .onAppear {
             syncAnalyticsContext(for: state)
-            analyticsCoordinator.logScreenViewed()
-        }
-        .onChange(of: state.selectedRangeDays) { _, _ in
-            syncAnalyticsContext(for: state)
+            analyticsCoordinator.logViewed()
         }
     }
 
@@ -122,7 +118,27 @@ struct JourneyView: View {
     }
 }
 
-#Preview("Strong momentum") {
+#Preview("New user") {
+    let container = try! AppContainer(inMemory: true)
+    JourneyView(
+        model: JourneyModel.preview(scenario: .brandNewUser),
+        analyticsCoordinator: container.makeJourneyAnalyticsCoordinator()
+    )
+    .environmentObject(container.refreshCenter)
+    .environmentObject(container.trainingInsightsStore)
+}
+
+#Preview("Week 1 user") {
+    let container = try! AppContainer(inMemory: true)
+    JourneyView(
+        model: JourneyModel.preview(scenario: .weekOne),
+        analyticsCoordinator: container.makeJourneyAnalyticsCoordinator()
+    )
+    .environmentObject(container.refreshCenter)
+    .environmentObject(container.trainingInsightsStore)
+}
+
+#Preview("Weight loss user") {
     let container = try! AppContainer(inMemory: true)
     JourneyView(
         model: JourneyModel.preview(scenario: .strongMomentum),
@@ -132,10 +148,20 @@ struct JourneyView: View {
     .environmentObject(container.trainingInsightsStore)
 }
 
-#Preview("Plateau") {
+#Preview("Highly consistent user") {
     let container = try! AppContainer(inMemory: true)
     JourneyView(
-        model: JourneyModel.preview(scenario: .plateau),
+        model: JourneyModel.preview(scenario: .highlyConsistent),
+        analyticsCoordinator: container.makeJourneyAnalyticsCoordinator()
+    )
+    .environmentObject(container.refreshCenter)
+    .environmentObject(container.trainingInsightsStore)
+}
+
+#Preview("Insufficient data user") {
+    let container = try! AppContainer(inMemory: true)
+    JourneyView(
+        model: JourneyModel.preview(scenario: .sparseData),
         analyticsCoordinator: container.makeJourneyAnalyticsCoordinator()
     )
     .environmentObject(container.refreshCenter)

@@ -13,11 +13,73 @@ enum JourneyPreviewScreens {
   @ViewBuilder
   static func dashboard(_ scenario: JourneyPreviewData.Scenario, palette: AppThemePalette = .oceanBlue) -> some View {
     ScrollView {
-      JourneyDashboardContent(state: JourneyPreviewData.dashboard(scenario))
+      JourneyDashboardContent(
+        state: JourneyPreviewData.dashboard(scenario),
+        onGoToToday: {}
+      )
     }
+    .formaMainTabScrollInsets()
     .background(FormaTokens.Color.canvas)
     .formaThemePreview(palette: palette)
-    .navigationTitle("Journey")
+    .navigationTitle(FormaProductCopy.Journey.Header.title)
+  }
+}
+
+#Preview("New user") {
+  NavigationStack {
+    JourneyPreviewScreens.dashboard(.brandNewUser)
+  }
+}
+
+#Preview("Week 1 user") {
+  NavigationStack {
+    JourneyPreviewScreens.dashboard(.weekOne)
+  }
+}
+
+#Preview("Weight loss user") {
+  NavigationStack {
+    JourneyPreviewScreens.dashboard(.strongMomentum)
+  }
+}
+
+#Preview("Highly consistent user") {
+  NavigationStack {
+    JourneyPreviewScreens.dashboard(.highlyConsistent)
+  }
+}
+
+#Preview("Insufficient data user") {
+  NavigationStack {
+    JourneyPreviewScreens.dashboard(.sparseData)
+  }
+}
+
+#Preview("New user — dark mode") {
+  NavigationStack {
+    JourneyPreviewScreens.dashboard(.brandNewUser)
+      .preferredColorScheme(.dark)
+  }
+}
+
+#Preview("Data-rich — dark mode") {
+  NavigationStack {
+    JourneyPreviewScreens.dashboard(.highlyConsistent)
+      .preferredColorScheme(.dark)
+  }
+}
+
+#Preview("New user — large text") {
+  NavigationStack {
+    JourneyPreviewScreens.dashboard(.brandNewUser)
+      .dynamicTypeSize(.accessibility2)
+  }
+}
+
+#Preview("Data-rich — large text") {
+  NavigationStack {
+    JourneyPreviewScreens.dashboard(.strongMomentum)
+      .dynamicTypeSize(.accessibility2)
   }
 }
 
@@ -29,67 +91,7 @@ enum JourneyPreviewScreens {
 
 #Preview("Journey — Emerald Green") {
   NavigationStack {
-    JourneyPreviewScreens.dashboard(.strongMomentum, palette: .emeraldGreen)
-  }
-}
-
-#Preview("Brand new user") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.brandNewUser)
-  }
-}
-
-#Preview("Week 1 — 3 days") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.weekOne)
-  }
-}
-
-#Preview("Strong momentum") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.strongMomentum)
-  }
-}
-
-#Preview("Plateau") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.plateau)
-  }
-}
-
-#Preview("Near goal") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.nearGoal)
-  }
-}
-
-#Preview("Gain goal") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.gainGoal)
-  }
-}
-
-#Preview("Maintain goal") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.maintainGoal)
-  }
-}
-
-#Preview("Health disconnected") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.healthDisconnected)
-  }
-}
-
-#Preview("Health connected") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.healthConnected)
-  }
-}
-
-#Preview("Sparse data") {
-  NavigationStack {
-    JourneyPreviewScreens.dashboard(.sparseData)
+    JourneyPreviewScreens.dashboard(.highlyConsistent, palette: .emeraldGreen)
   }
 }
 #endif

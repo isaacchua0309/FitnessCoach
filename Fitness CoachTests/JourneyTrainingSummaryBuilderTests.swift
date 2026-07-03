@@ -88,91 +88,25 @@ final class JourneyTrainingSummaryBuilderTests: XCTestCase {
         XCTAssertEqual(analytics?.workoutDays, 3)
     }
 
-    func testProgressAttributionDoesNotShameMissingWorkouts() {
-        let context = JourneyDashboardBuilder.Context(
-            profile: nil,
-            baseline: JourneyBaseline(
-                startWeightKg: 80,
-                startDate: Date(),
-                currentWeightKg: 80,
-                goalWeightKg: 75,
-                goalDirection: .lose,
-                totalChangeKg: 0,
-                remainingChangeKg: 5,
-                progressPercent: 0,
-                estimatedCompletionDate: nil,
-                estimatedCompletionMonthLabel: nil,
-                hasRealWeightEntries: true,
-                usesSyntheticBaselinePoint: false,
-                onboardingBaselineWeightKg: 80,
-                chartPoints: [],
-                showsWeightChart: false
-            ),
-            maturityLogs: [],
-            weekLogs: [],
-            previousWeekLogs: [],
-            previousWeekWeights: [],
-            previousWeekTrainingDays: 0,
-            monthLogs: [],
-            allWeights: [],
-            weekWeights: [],
-            journeyStreaks: JourneyStreakBuilder.build(
-                JourneyStreakBuilder.Input(
-                    streakSummary: StreakSummary(
-                        loggingStreak: 0,
-                        proteinStreak: 0,
-                        hydrationStreak: 0,
-                        workoutStreak: 0
-                    ),
-                    maturityLogs: [],
-                    workoutDates: [],
-                    isAppleHealthConnected: false,
-                    asOf: Date(),
-                    calendar: Calendar.current
-                )
-            ),
-            weeklyTraining: .connectedEmpty,
-            weightSummary: ProgressWeightSummary(
-                latestWeightKg: 80,
-                changeKg: nil,
-                direction: .stable,
-                hasSuddenSpike: false
-            ),
-            goalProjection: nil,
-            healthWorkoutDayStarts: [],
-            monthHealthWorkoutCount: 0,
-            nutritionSummary: ProgressNutritionSummary(
-                loggedDays: 0,
-                averageCalories: nil,
-                averageProtein: nil,
-                averageCarbs: nil,
-                averageFat: nil,
-                averageFiber: nil
-            ),
-            waterSummary: ProgressWaterSummary(
-                loggedDays: 0,
-                averageWaterMl: nil,
-                averageWaterTargetMl: nil,
-                consistencyPercent: nil
-            ),
-            workoutSummary: nil,
-            selectedRangeDays: 28,
-            asOf: Date(),
-            calendar: Calendar.current
+    func testWeeklyReviewTrainingLockedUsesConnectCopy() {
+        let review = JourneyWeeklyReviewState(
+            foodLoggedDays: 0,
+            foodLoggedDaysTotal: 7,
+            proteinGoalDays: 0,
+            proteinGoalDaysTotal: 7,
+            waterGoalDays: 0,
+            waterGoalDaysTotal: 7,
+            trainingDays: 0,
+            expectedTrainingDays: 4,
+            training: .locked,
+            weightDeltaThisWeekKg: nil,
+            calorieAdherenceDays: 0,
+            calorieAdherenceDaysTotal: 7,
+            weekSummaryCopy: FormaProductCopy.Journey.WeeklyReview.noFoodLogsSummary,
+            rows: [],
+            weekOverWeekDetail: nil
         )
 
-        let attribution = JourneyDashboardBuilder.progressAttribution(context: context)
-        let messages = [
-            attribution.primaryReasonTitle,
-            attribution.primaryReasonDetail
-        ] + attribution.supportingReasons
-
-        XCTAssertFalse(messages.contains { $0.localizedCaseInsensitiveContains("behind") })
-        XCTAssertFalse(messages.contains { $0.localizedCaseInsensitiveContains("missed") })
-        XCTAssertTrue(
-            attribution.primaryReasonTitle.contains("consistency")
-                || attribution.primaryReasonTitle.contains("pattern")
-                || attribution.primaryReasonDetail.contains("logging")
-        )
+        XCTAssertEqual(JourneyCTARouter.weeklyTrainingCTA(training: review.training), .connectAppleHealth)
     }
 }

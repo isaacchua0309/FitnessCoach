@@ -55,25 +55,6 @@ struct JourneyStreakChipState: Equatable {
     static let hidden = JourneyStreakChipState(isVisible: false, days: 0, label: "")
 }
 
-struct JourneyTransformationHeroState: Equatable {
-    var headlineCopy: String
-    var changeValueCopy: String
-    var emotionalStatusLabel: String
-    /// Normalized 0...1 fill for the SwiftUI progress bar (includes a visible sliver at 0%).
-    var progressBarFill: Double
-    var progressLabel: String
-    var progressBarAccessibilityValue: String
-    var startedWeightCopy: String
-    var todayWeightCopy: String
-    var goalWeightCopy: String
-    var startedFootnote: String?
-    var paceForecastText: String
-    var streakChip: JourneyStreakChipState
-    var usesSyntheticBaseline: Bool
-    var showsUpdateGoalCTA: Bool
-    var accessibilitySummary: String
-}
-
 // MARK: - Streaks
 
 struct JourneyStreakState: Equatable {
@@ -202,16 +183,24 @@ struct JourneyMilestonesState: Equatable {
 enum JourneyTimelineEventType: Equatable, Sendable {
     case onboardingStarted
     case firstMealLogged
+    case firstFullDayComplete
     case firstWaterLogged
     case firstWeightLogged
+    case firstWorkoutLogged
     case firstWorkoutWeek
     case firstWeekComplete
+    case weightLoggedThreeTimes
+    case proteinThreeDaysInWeek
+    case waterThreeDaysInWeek
     case firstKgTowardGoal
+    case fourWorkoutWeeksComplete
     case calorieGoalFiveDays
     case proteinGoalFiveDays
     case thirtyMealsLogged
     case halfwayToGoal
     case longestStreakAchieved
+    case firstMonthComplete
+    case chapterReached
     case monthlyRecapCompleted
 }
 
@@ -235,179 +224,6 @@ struct JourneyStoryTimelineState: Equatable {
         displayEvents: [],
         emptyStateMessage: nil
     )
-}
-
-// MARK: - Habit insights
-
-enum JourneyHabitKind: Equatable, Sendable, CaseIterable {
-    case foodLogging
-    case protein
-    case water
-    case calorieAdherence
-    case training
-    case weightLogging
-    case weekendLogging
-}
-
-struct JourneyHabitInsightsState: Equatable {
-    var isUnlocked: Bool
-    var lockedMessage: String?
-
-    var strongestHabitLabel: String
-    var strongestScorePercent: Int
-    var strongestQualitative: String?
-
-    var weakestHabitLabel: String
-    var weakestHabitKind: JourneyHabitKind?
-    var weakestScorePercent: Int
-    var weakestScorePrefix: String?
-
-    var suggestedNextAction: String
-    var suggestionCTA: JourneyCTA?
-
-    static let locked = JourneyHabitInsightsState(
-        isUnlocked: false,
-        lockedMessage: FormaProductCopy.Journey.HabitInsights.lockedBody,
-        strongestHabitLabel: "",
-        strongestScorePercent: 0,
-        strongestQualitative: nil,
-        weakestHabitLabel: "",
-        weakestHabitKind: nil,
-        weakestScorePercent: 0,
-        weakestScorePrefix: nil,
-        suggestedNextAction: "",
-        suggestionCTA: nil
-    )
-}
-
-// MARK: - Progress attribution
-
-enum JourneyProgressAttributionConfidence: Equatable, Sendable {
-    case low
-    case medium
-    case high
-}
-
-struct JourneyProgressAttributionState: Equatable {
-    var primaryReasonTitle: String
-    var primaryReasonDetail: String
-    var supportingReasons: [String]
-    var confidence: JourneyProgressAttributionConfidence
-
-    static let insufficientData = JourneyProgressAttributionState(
-        primaryReasonTitle: FormaProductCopy.Journey.WhyProgress.insufficientTitle,
-        primaryReasonDetail: FormaProductCopy.Journey.WhyProgress.insufficientDetail,
-        supportingReasons: [],
-        confidence: .low
-    )
-}
-
-// MARK: - Before vs today
-
-struct JourneyBeforeTodayState: Equatable {
-    var startedWeightKg: Double?
-    var currentWeightKg: Double?
-    var startingMaintenanceCaloriesKcal: Int?
-    var currentMaintenanceCaloriesKcal: Int?
-    var startingTargetCaloriesKcal: Int?
-    var currentTargetCaloriesKcal: Int?
-    var goalWeightKg: Double?
-    var daysOnJourney: Int
-    var showsMaintenanceRow: Bool
-    var showsTargetRow: Bool
-    var showsAdaptedTargetCopy: Bool
-    var startedWeightCopy: String
-    var currentWeightCopy: String
-    var goalWeightCopy: String
-    var startingMaintenanceCopy: String?
-    var currentMaintenanceCopy: String?
-    var startingTargetCopy: String?
-    var currentTargetCopy: String?
-    var accessibilitySummary: String
-}
-
-// MARK: - Personal records
-
-struct JourneyPersonalRecord: Identifiable, Equatable {
-    var id: String
-    var title: String
-    var value: String
-    var subtitle: String?
-    var periodLabel: String?
-    var isActive: Bool
-    var isEarlyRecord: Bool
-}
-
-struct JourneyPersonalRecordsState: Equatable {
-    var isUnlocked: Bool
-    var lockedMessage: String?
-    var records: [JourneyPersonalRecord]
-
-    var displayRecords: [JourneyPersonalRecord] {
-        records.filter(\.isActive)
-    }
-
-    static let locked = JourneyPersonalRecordsState(
-        isUnlocked: false,
-        lockedMessage: FormaProductCopy.Journey.PersonalRecords.lockedBody,
-        records: []
-    )
-}
-
-// MARK: - Monthly recap
-
-struct JourneyMonthlyRecapMetricRow: Identifiable, Equatable {
-    var id: String
-    var title: String
-    var value: String
-}
-
-struct JourneyMonthlyRecapState: Equatable {
-    var sectionTitle: String
-    var isComplete: Bool
-    var buildingMessage: String?
-    var monthWeightDeltaKg: Double?
-    var calorieAdherencePercent: Double?
-    var proteinAdherencePercent: Double?
-    var waterAdherencePercent: Double?
-    var trainingSessions: Int?
-    var showsTrainingRow: Bool
-    var loggedDays: Int
-    var bestHabitCopy: String?
-    var summaryCopy: String
-    var rows: [JourneyMonthlyRecapMetricRow]
-}
-
-// MARK: - Journey level / XP
-
-struct JourneyLevelState: Equatable {
-    var currentLevel: Int
-    var levelTitle: String
-    var currentXP: Int
-    var xpRequiredForNextLevel: Int
-    var totalXP: Int
-    var progressPercent: Double
-    var xpEarnedExplanation: String
-    var hasData: Bool
-}
-
-// MARK: - Detailed analytics
-
-enum JourneyDetailedAnalyticsTrainingDisplay: Equatable {
-    case hidden
-    case connectedEmpty
-    case metrics(ProgressWorkoutSummary)
-}
-
-struct JourneyDetailedAnalyticsState: Equatable {
-    var isCollapsedByDefault: Bool
-    var nutritionSummary: ProgressNutritionSummary
-    var waterSummary: ProgressWaterSummary
-    var trainingDisplay: JourneyDetailedAnalyticsTrainingDisplay
-    var weightChartPoints: [WeightChartPoint]
-    var weightTrendInterpretation: String
-    var showsWeightChart: Bool
-    var weightLogCTA: JourneyCTA?
 }
 
 // MARK: - Weight chart
@@ -454,22 +270,6 @@ extension JourneyWeightChartPointLabel {
 }
 
 // MARK: - Analytics summaries
-
-struct ProgressNutritionSummary: Equatable {
-    var loggedDays: Int
-    var averageCalories: Int?
-    var averageProtein: Double?
-    var averageCarbs: Double?
-    var averageFat: Double?
-    var averageFiber: Double?
-}
-
-struct ProgressWaterSummary: Equatable {
-    var loggedDays: Int
-    var averageWaterMl: Int?
-    var averageWaterTargetMl: Int?
-    var consistencyPercent: Double?
-}
 
 struct ProgressWorkoutSummary: Equatable {
     var workoutCount: Int

@@ -19,39 +19,43 @@ final class JourneyCopyTests: XCTestCase {
         "weakest habit"
     ]
 
+    private let removedLegacyPhrases = [
+        "Keep logging to unlock personal records",
+        "Detailed analytics",
+        "Before vs today",
+        "Your consistency is starting to create a useful pattern",
+        "Keep logging to unlock habit insights",
+        "/ 25 XP",
+        "Level 1 /"
+    ]
+
     // MARK: - Goal direction
 
     func testLoseCopyUsesDirectionalLanguage() {
         let transformation = FormaProductCopy.Journey.Transformation.self
         let milestones = FormaProductCopy.Journey.Milestones.self
-        let attribution = FormaProductCopy.Journey.ProgressAttribution.self
 
         XCTAssertTrue(transformation.lostHeadline.localizedCaseInsensitiveContains("lost"))
         XCTAssertTrue(milestones.firstKilogramTitle(direction: .lose).localizedCaseInsensitiveContains("lost"))
-        XCTAssertTrue(attribution.weightTrendTowardGoal(direction: .lose).localizedCaseInsensitiveContains("goal"))
     }
 
     func testGainCopyUsesDirectionalLanguage() {
         let transformation = FormaProductCopy.Journey.Transformation.self
         let milestones = FormaProductCopy.Journey.Milestones.self
-        let attribution = FormaProductCopy.Journey.ProgressAttribution.self
 
         XCTAssertTrue(transformation.gainedHeadline.localizedCaseInsensitiveContains("gained"))
         XCTAssertTrue(milestones.firstKilogramTitle(direction: .gain).localizedCaseInsensitiveContains("gain"))
         XCTAssertFalse(milestones.firstKilogramTitle(direction: .gain).localizedCaseInsensitiveContains("lost"))
-        XCTAssertTrue(attribution.weightTrendTowardGoal(direction: .gain).localizedCaseInsensitiveContains("gain"))
     }
 
     func testMaintainCopyAvoidsDirectionalWeightLanguage() {
         let transformation = FormaProductCopy.Journey.Transformation.self
         let milestones = FormaProductCopy.Journey.Milestones.self
-        let attribution = FormaProductCopy.Journey.ProgressAttribution.self
 
         XCTAssertTrue(transformation.maintainingHeadline.localizedCaseInsensitiveContains("maintain"))
         XCTAssertFalse(milestones.firstKilogramTitle(direction: .maintain).localizedCaseInsensitiveContains("lost"))
         XCTAssertFalse(milestones.firstKilogramTitle(direction: .maintain).localizedCaseInsensitiveContains("gained"))
         XCTAssertFalse(milestones.tenKilogramTitle(direction: .maintain).localizedCaseInsensitiveContains("lost"))
-        XCTAssertFalse(attribution.weightTrendTowardGoal(direction: .maintain).localizedCaseInsensitiveContains("lost"))
     }
 
     // MARK: - Empty states
@@ -60,16 +64,13 @@ final class JourneyCopyTests: XCTestCase {
         let emptyStates = [
             FormaProductCopy.Journey.EmptyState.weightTrendBody,
             FormaProductCopy.Journey.EmptyState.consistencyBody,
-            FormaProductCopy.Journey.EmptyState.habitInsightsBody,
-            FormaProductCopy.Journey.EmptyState.personalRecordsBody,
             FormaProductCopy.Journey.EmptyState.timelineBody,
             FormaProductCopy.Journey.EmptyState.milestonesBody,
-            FormaProductCopy.Journey.EmptyState.levelBody,
-            FormaProductCopy.Journey.Milestones.emptyBody,
-            FormaProductCopy.Journey.Level.emptyBody,
+            FormaProductCopy.Journey.Chapters.emptyBody,
             FormaProductCopy.Journey.WeeklyReview.noFoodLogsSummary,
             FormaProductCopy.Journey.WeeklyReview.weightUnavailable,
-            FormaProductCopy.Journey.Timeline.emptyBody
+            FormaProductCopy.Journey.Timeline.emptyBody,
+            FormaProductCopy.Journey.StartingEmptyState.body
         ]
 
         for body in emptyStates {
@@ -99,22 +100,14 @@ final class JourneyCopyTests: XCTestCase {
         }
     }
 
-    func testProgressAttributionUsesLikelyHelpedLanguage() {
-        let attribution = FormaProductCopy.Journey.ProgressAttribution.self
-        let titles = [
-            attribution.calorieLikelyHelpedTitle,
-            attribution.proteinAnchorTitle,
-            attribution.loggingControlTitle,
-            attribution.trainingRhythmTitle,
-            attribution.waterSupportTitle,
-            attribution.biggestReasonTitle
-        ]
-
-        for title in titles {
-            XCTAssertTrue(
-                title.localizedCaseInsensitiveContains("likely"),
-                "Attribution title should hedge causality: \(title)"
-            )
+    func testRevampCopyExcludesRemovedLegacyPhrases() {
+        for sample in journeyCopySamples() {
+            for phrase in removedLegacyPhrases {
+                XCTAssertFalse(
+                    sample.localizedCaseInsensitiveContains(phrase),
+                    "Removed legacy phrase \"\(phrase)\" found in: \(sample)"
+                )
+            }
         }
     }
 
@@ -122,10 +115,6 @@ final class JourneyCopyTests: XCTestCase {
         XCTAssertEqual(
             FormaProductCopy.Journey.Timeline.emptyBody,
             FormaProductCopy.Journey.StoryTimeline.emptyBody
-        )
-        XCTAssertEqual(
-            FormaProductCopy.Journey.ProgressAttribution.sectionTitle,
-            FormaProductCopy.Journey.WhyProgress.sectionTitle
         )
     }
 
@@ -140,6 +129,13 @@ final class JourneyCopyTests: XCTestCase {
         )
     }
 
+    func testChaptersUseChapterLanguageNotCosmeticXP() {
+        let chapters = FormaProductCopy.Journey.Chapters.self
+        XCTAssertEqual(chapters.chapterLabel(1), "Chapter 1")
+        XCTAssertTrue(chapters.nextUnlock("Creating Consistency").contains("Creating Consistency"))
+        XCTAssertFalse(chapters.sectionTitle.localizedCaseInsensitiveContains("xp"))
+    }
+
     // MARK: - Helpers
 
     private func journeyCopySamples() -> [String] {
@@ -147,15 +143,13 @@ final class JourneyCopyTests: XCTestCase {
         let weekly = FormaProductCopy.Journey.WeeklyReview.self
         let milestones = FormaProductCopy.Journey.Milestones.self
         let timeline = FormaProductCopy.Journey.Timeline.self
-        let habits = FormaProductCopy.Journey.HabitInsights.self
-        let attribution = FormaProductCopy.Journey.ProgressAttribution.self
-        let beforeToday = FormaProductCopy.Journey.BeforeToday.self
-        let records = FormaProductCopy.Journey.PersonalRecords.self
+        let insights = FormaProductCopy.Journey.PersonalizedInsights.self
         let recap = FormaProductCopy.Journey.MonthlyRecap.self
-        let level = FormaProductCopy.Journey.Level.self
-        let analytics = FormaProductCopy.Journey.DetailedAnalytics.self
+        let chapters = FormaProductCopy.Journey.Chapters.self
         let empty = FormaProductCopy.Journey.EmptyState.self
+        let starting = FormaProductCopy.Journey.StartingEmptyState.self
         let streaks = FormaProductCopy.Journey.Streaks.self
+        let momentum = FormaProductCopy.Journey.Momentum.self
 
         return [
             transformation.lostHeadline,
@@ -176,36 +170,28 @@ final class JourneyCopyTests: XCTestCase {
             timeline.sectionTitle,
             timeline.emptyBody,
             timeline.startedForma,
-            habits.sectionTitle,
-            habits.lockedBody,
-            habits.strongestTitle,
-            habits.nextFocusTitle,
-            habits.suggestLogWeightTwice,
-            habits.suggestLogNextMeal,
-            attribution.sectionTitle,
-            attribution.insufficientTitle,
-            attribution.calorieLikelyHelpedTitle,
-            attribution.weightTrendTowardGoal(direction: .lose),
-            attribution.weightTrendTowardGoal(direction: .gain),
-            attribution.weightTrendTowardGoal(direction: .maintain),
-            beforeToday.sectionTitle,
-            beforeToday.adaptedTargetCopy,
-            records.sectionTitle,
-            records.lockedBody,
+            insights.sectionTitle,
+            insights.learningTitle,
+            insights.learningDetail,
+            insights.proteinStrongestTitle,
+            insights.bestHabitTitle,
             recap.buildingBody,
+            recap.teaserDetail,
+            recap.teaserTitle(monthName: "July"),
             recap.bestHabit(for: .protein),
-            level.sectionTitle,
-            level.emptyBody,
-            level.earnExplanation,
-            analytics.title,
-            analytics.subtitle,
-            analytics.WeightTrend.decreasing,
-            analytics.WeightTrend.increasing,
-            analytics.WeightTrend.stable,
-            empty.habitInsightsBody,
+            chapters.sectionTitle,
+            chapters.emptyBody,
+            chapters.title(for: 1),
+            chapters.nextUnlock(chapters.title(for: 2)),
+            empty.weightTrendBody,
             empty.milestonesBody,
+            starting.title,
+            starting.body,
+            starting.action,
             streaks.buildingConsistency,
-            streaks.keepStreakAlive
+            streaks.keepStreakAlive,
+            momentum.buildingHeadline,
+            momentum.activeHeadline(days: 3)
         ]
     }
 }

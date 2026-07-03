@@ -6,129 +6,90 @@
 import SwiftUI
 
 struct JourneyWeeklyReviewSection: View {
-    let review: JourneyWeeklyReviewState
+    let state: JourneyWeeklyHabitState
     var onCTA: ((JourneyCTA) -> Void)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: JourneyLayout.itemSpacing) {
-            FormaSectionLabel(title: FormaProductCopy.Journey.WeeklyReview.sectionTitle)
+        VStack(alignment: .leading, spacing: JourneyLayout.headerToCardSpacing) {
+            JourneySectionLabel(title: state.sectionTitle)
 
-            FormaPlanCard {
+            JourneyCard(elevation: .standard) {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                    Text(review.weekSummaryCopy)
-                        .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityAddTraits(.isHeader)
-
-                    if let headline = review.consistencyHeadline {
-                        consistencyBlock(headline: headline, detail: review.consistencyDetail)
-                    }
-
-                    ForEach(Array(review.rows.enumerated()), id: \.element.id) { index, row in
-                        if index == 0 {
-                            FormaPlanRowDivider()
+                    if state.showsHabitRows {
+                        ForEach(Array(state.habits.enumerated()), id: \.element.id) { index, habit in
+                            if index > 0 {
+                                FormaPlanRowDivider()
+                            }
+                            habitRow(habit)
                         }
-                        reviewRow(row)
-                        if index < review.rows.count - 1 {
-                            FormaPlanRowDivider()
-                        }
-                    }
 
-                    if let weekOverWeekDetail = review.weekOverWeekDetail {
-                        FormaPlanRowDivider()
-                        Text(weekOverWeekDetail)
-                            .font(FormaTokens.Typography.caption)
-                            .foregroundStyle(FormaTokens.Color.textTertiary)
+                        if let cta = JourneyCTARouter.weeklyTrainingCTA(training: state.training),
+                           let onCTA {
+                            FormaPlanRowDivider()
+                            JourneyCTAButton(cta: cta) {
+                                onCTA(cta)
+                            }
+                        }
+                    } else if let emptyMessage = state.emptyMessage {
+                        Text(emptyMessage)
+                            .font(JourneyTypography.cardSupporting)
+                            .foregroundStyle(FormaTokens.Color.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    if let cta = JourneyCTARouter.weeklyTrainingCTA(training: review.training),
-                       let onCTA {
-                        FormaPlanRowDivider()
-                        JourneyCTAButton(cta: cta) {
-                            onCTA(cta)
-                        }
+                            .accessibilityAddTraits(.isHeader)
                     }
                 }
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(state.accessibilitySummary)
     }
 
-    private func reviewRow(_ row: JourneyWeeklyReviewRow) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
-            Text(row.icon)
-                .font(FormaTokens.Typography.sectionSubtitle)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.xs) {
-                    Text(row.title)
-                        .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
-
-                    Spacer(minLength: FormaTokens.Spacing.xs)
-
-                    Text(row.value)
-                        .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
-                        .multilineTextAlignment(.trailing)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                if let detail = row.detail {
-                    Text(detail)
-                        .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaTokens.Color.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-        .padding(.vertical, FormaTokens.Spacing.xs)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(row.title), \(row.value)")
-    }
-
-    private func consistencyBlock(headline: String, detail: String?) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+    private func habitRow(_ habit: JourneyWeeklyHabitRowState) -> some View {
+        VStack(alignment: .leading, spacing: JourneyLayout.compactSpacing) {
             HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
-                Text("🔥")
-                    .font(FormaTokens.Typography.sectionSubtitle)
-                    .accessibilityHidden(true)
-                Text(headline)
-                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                Text(habit.title)
+                    .font(JourneyTypography.metricLabel)
                     .foregroundStyle(FormaTokens.Color.textPrimary)
+
+                Spacer(minLength: FormaTokens.Spacing.xs)
+
+                Text(habit.weeklyCountLabel)
+                    .font(JourneyTypography.cardSupporting.weight(.medium))
+                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .multilineTextAlignment(.trailing)
             }
 
-            if let detail {
-                Text(detail)
-                    .font(FormaTokens.Typography.caption)
+            if habit.showsDayProgress {
+                JourneyDayDotRow(cells: habit.dayCells)
+            }
+
+            if let streakLabel = habit.streakLabel {
+                Text(streakLabel)
+                    .font(FormaTokens.Typography.caption2.weight(.medium))
+                    .foregroundStyle(FormaTokens.Theme.primary)
+            } else if let supportiveCopy = habit.supportiveCopy {
+                Text(supportiveCopy)
+                    .font(FormaTokens.Typography.caption2)
                     .foregroundStyle(FormaTokens.Color.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(2)
             }
         }
-        .padding(.top, FormaTokens.Spacing.xs)
+        .padding(.vertical, JourneyLayout.compactSpacing)
+        .accessibilityElement(children: .combine)
     }
 }
 
 // MARK: - Previews
 
 #Preview("Full week") {
-    JourneyWeeklyReviewSection(review: JourneyPreviewData.weeklyReviewFullWeek)
+    JourneyWeeklyReviewSection(state: JourneyPreviewData.strongMomentum.weeklyHabit)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()
 }
 
 #Preview("Partial week") {
-    JourneyWeeklyReviewSection(review: JourneyPreviewData.weeklyReviewPartialWeek)
-        .padding()
-        .background(FormaTokens.Color.canvas)
-        .formaThemePreview()
-}
-
-#Preview("Apple Health locked") {
-    JourneyWeeklyReviewSection(review: JourneyPreviewData.weeklyReviewTrainingLocked)
+    JourneyWeeklyReviewSection(state: JourneyPreviewData.weekOne.weeklyHabit)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()

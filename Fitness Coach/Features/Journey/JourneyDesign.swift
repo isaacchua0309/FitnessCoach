@@ -1,0 +1,217 @@
+//
+//  JourneyDesign.swift
+//  Fitness Coach
+//
+//  Forma — Shared visual language for the Journey tab (calm, reflective, hierarchical).
+//
+
+import SwiftUI
+
+// MARK: - Section labels
+
+struct JourneySectionLabel: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(FormaTokens.Typography.caption.weight(.semibold))
+            .foregroundStyle(FormaTokens.Color.textTertiary)
+            .textCase(.uppercase)
+            .tracking(0.6)
+            .accessibilityAddTraits(.isHeader)
+    }
+}
+
+struct JourneyEyebrowLabel: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(FormaTokens.Typography.caption2.weight(.semibold))
+            .foregroundStyle(FormaTokens.Color.textTertiary)
+            .textCase(.uppercase)
+            .tracking(0.8)
+    }
+}
+
+// MARK: - Cards
+
+enum JourneyCardElevation {
+    /// Flagship transformation hero — accent stripe, generous padding.
+    case hero
+    /// Milestones and goal projection — standard accent card.
+    case featured
+    /// Weekly review and recap — default dashboard card.
+    case standard
+    /// Timeline, insights, chapters — softer secondary surfaces.
+    case quiet
+}
+
+struct JourneyCard<Content: View>: View {
+    let elevation: JourneyCardElevation
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        content
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, verticalPadding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(cardBackground)
+    }
+
+    private var horizontalPadding: CGFloat {
+        switch elevation {
+        case .hero, .featured:
+            return JourneyLayout.cardPaddingHorizontal
+        case .standard, .quiet:
+            return JourneyLayout.cardPaddingHorizontal
+        }
+    }
+
+    private var verticalPadding: CGFloat {
+        switch elevation {
+        case .hero:
+            return JourneyLayout.heroCardPaddingVertical
+        case .featured:
+            return JourneyLayout.featuredCardPaddingVertical
+        case .standard:
+            return JourneyLayout.standardCardPaddingVertical
+        case .quiet:
+            return JourneyLayout.quietCardPaddingVertical
+        }
+    }
+
+    @ViewBuilder
+    private var cardBackground: some View {
+        switch elevation {
+        case .hero:
+            FormaCardChrome.background(.accentLeading)
+        case .featured, .standard:
+            FormaCardChrome.background(.surface)
+        case .quiet:
+            FormaCardChrome.background(.surfaceSubtle)
+        }
+    }
+}
+
+// MARK: - Progress
+
+struct JourneyProgressBar: View {
+    let progress: Double
+    var height: CGFloat = JourneyLayout.progressBarHeight
+    var prominent: Bool = false
+
+    private var clampedProgress: Double {
+        min(max(progress, 0), 1)
+    }
+
+    private var displayFill: Double {
+        let fill = clampedProgress
+        guard fill > 0 else { return 0 }
+        return max(fill, 0.04)
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: height / 2, style: .continuous)
+                    .fill(FormaTokens.Color.progressTrack)
+
+                RoundedRectangle(cornerRadius: height / 2, style: .continuous)
+                    .fill(FormaTokens.Color.progress.opacity(prominent ? 1 : 0.88))
+                    .frame(
+                        width: max(
+                            geometry.size.width * displayFill,
+                            displayFill > 0 ? height : 0
+                        )
+                    )
+            }
+        }
+        .frame(height: height)
+        .accessibilityHidden(true)
+    }
+}
+
+// MARK: - Momentum chip
+
+struct JourneyMomentumChip: View {
+    let headline: String
+    let detail: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: JourneyLayout.compactSpacing) {
+            Text(headline)
+                .font(FormaTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(FormaTokens.Theme.primary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let detail {
+                Text(detail)
+                    .font(FormaTokens.Typography.caption2)
+                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.horizontal, FormaTokens.Spacing.sm)
+        .padding(.vertical, FormaTokens.Spacing.xs)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
+                .fill(FormaTokens.Theme.softBackground.opacity(0.72))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
+                .stroke(FormaTokens.Theme.borderTint.opacity(0.35), lineWidth: 0.5)
+        }
+    }
+}
+
+// MARK: - Milestone icon
+
+struct JourneyMilestoneIcon: View {
+    let symbol: String
+
+    @ScaledMetric(relativeTo: .title3) private var orbSize: CGFloat = 40
+    @ScaledMetric(relativeTo: .title3) private var symbolSize: CGFloat = 22
+
+    var body: some View {
+        Text(symbol)
+            .font(.system(size: symbolSize))
+            .frame(width: orbSize, height: orbSize)
+            .background(
+                Circle()
+                    .fill(FormaTokens.Theme.softBackground.opacity(0.85))
+            )
+            .accessibilityHidden(true)
+    }
+}
+
+// MARK: - Day dots
+
+struct JourneyDayDotRow: View {
+    let cells: [Bool]
+
+    @ScaledMetric(relativeTo: .caption) private var dotSize: CGFloat = 8
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(Array(cells.enumerated()), id: \.offset) { _, isMet in
+                Circle()
+                    .fill(isMet ? FormaTokens.Color.progress : FormaTokens.Color.progressTrack)
+                    .frame(width: dotSize, height: dotSize)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+// MARK: - Copy styles
+
+enum JourneyTypography {
+    static let heroHeadline = Font.system(.title, design: .rounded).weight(.bold)
+    static let cardHeadline = Font.subheadline.weight(.semibold)
+    static let cardSupporting = Font.caption
+    static let cardDetail = Font.subheadline
+    static let metricValue = Font.subheadline.weight(.semibold)
+    static let metricLabel = Font.subheadline.weight(.medium)
+}

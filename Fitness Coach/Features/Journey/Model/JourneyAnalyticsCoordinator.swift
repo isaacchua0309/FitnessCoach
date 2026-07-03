@@ -30,66 +30,102 @@ final class JourneyAnalyticsCoordinator {
     }
 
     func updateContextForEmptyProfile(healthConnected: Bool) {
-        snapshot = JourneyAnalyticsSnapshot(
-            hasProfile: false,
-            hasWeightLogs: false,
-            usesSyntheticBaseline: false,
-            progressPercentBucket: JourneyAnalyticsProgressPercentBucket.none.rawValue,
-            currentStreakBucket: JourneyAnalyticsStreakBucket.zero.rawValue,
-            unlockedMilestoneCount: 0,
-            healthConnected: healthConnected,
-            journeyLevel: 1
-        )
+        snapshot = .empty
+        snapshot.healthConnected = healthConnected
         resetSession()
     }
 
     // MARK: - Screen & sections
 
-    func logScreenViewed() {
+    func logViewed() {
         guard !hasLoggedScreenView else { return }
         hasLoggedScreenView = true
-        log(.screenViewed)
+        log(.viewed)
     }
 
-    func logTransformationViewed() {
-        logSectionOnce(.transformationViewed)
+    func logHeroViewed() {
+        logSectionOnce(.heroViewed)
     }
 
-    func logWeeklyReviewViewed() {
-        logSectionOnce(.weeklyReviewViewed)
+    func logProjectionViewed() {
+        logSectionOnce(.projectionViewed)
     }
 
-    func logMilestoneRailViewed() {
-        logSectionOnce(.milestoneRailViewed)
+    func logMilestoneViewed() {
+        logSectionOnce(.milestoneViewed)
     }
 
-    func logTimelineViewed() {
-        logSectionOnce(.timelineViewed)
+    func logWeeklyConsistencyViewed() {
+        logSectionOnce(.weeklyConsistencyViewed)
     }
 
-    func logHabitInsightViewed() {
-        logSectionOnce(.habitInsightViewed)
+    func logStoryViewed() {
+        logSectionOnce(.storyViewed)
+    }
+
+    func logInsightsViewed() {
+        logSectionOnce(.insightsViewed)
+    }
+
+    func logMonthlyRecapViewed() {
+        logSectionOnce(.monthlyRecapViewed)
+    }
+
+    func logChapterViewed() {
+        logSectionOnce(.chapterViewed)
     }
 
     // MARK: - Interactions
 
+    func logGoToTodayTapped() {
+        log(.goToTodayTapped)
+    }
+
     func logCTATapped(_ cta: JourneyCTA) {
+        let ctaType = JourneyAnalyticsContextBuilder.ctaType(for: cta)
+
         switch cta {
         case .logWeight:
-            log(.weightCTATapped, ctaType: JourneyAnalyticsContextBuilder.ctaType(for: cta))
+            log(.weightCTATapped, ctaType: ctaType)
         case .logFood, .logWater, .logProtein:
-            log(.coachCTATapped, ctaType: JourneyAnalyticsContextBuilder.ctaType(for: cta))
+            log(.coachCTATapped, ctaType: ctaType)
         case .connectAppleHealth, .updateGoal:
             break
         }
+
+        if JourneyAnalyticsContextBuilder.isMilestoneAdvancingCTA(cta) {
+            log(.milestoneCTATapped, ctaType: ctaType)
+        }
     }
 
-    func logAnalyticsExpanded() {
-        log(.analyticsExpanded, expanded: true)
+    // MARK: - Deprecated entry points (forward to revamp events)
+
+    func logScreenViewed() {
+        logViewed()
     }
 
-    func logRangeChanged(days: Int) {
-        log(.rangeChanged, rangeDays: days)
+    func logTransformationViewed() {
+        logHeroViewed()
+    }
+
+    func logGoalProjectionViewed() {
+        logProjectionViewed()
+    }
+
+    func logMilestoneRailViewed() {
+        logMilestoneViewed()
+    }
+
+    func logWeeklyReviewViewed() {
+        logWeeklyConsistencyViewed()
+    }
+
+    func logTimelineViewed() {
+        logStoryViewed()
+    }
+
+    func logStartingEmptyStateViewed() {
+        // Deprecated: empty-state impressions are covered by `journey_viewed`.
     }
 
     // MARK: - Private
@@ -107,14 +143,10 @@ final class JourneyAnalyticsCoordinator {
 
     private func log(
         _ event: JourneyAnalyticsEvent,
-        rangeDays: Int? = nil,
-        ctaType: String? = nil,
-        expanded: Bool? = nil
+        ctaType: String? = nil
     ) {
         var properties = JourneyAnalyticsContextBuilder.properties(from: snapshot)
-        properties.rangeDays = rangeDays
         properties.ctaType = ctaType
-        properties.expanded = expanded
         analyticsLogger.log(event, properties: properties)
     }
 }

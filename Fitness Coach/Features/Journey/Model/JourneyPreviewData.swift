@@ -11,11 +11,11 @@ enum JourneyPreviewData {
 
     // MARK: - Scenarios
 
-    /// Canonical Journey personas for previews and snapshot-style testing.
     enum Scenario: String, CaseIterable, Sendable {
         case brandNewUser
         case weekOne
         case strongMomentum
+        case highlyConsistent
         case plateau
         case nearGoal
         case gainGoal
@@ -23,24 +23,25 @@ enum JourneyPreviewData {
         case healthDisconnected
         case healthConnected
         case sparseData
+        case foodLogsOnly
+        case weightLogsNoLoss
     }
 
-    /// Fixed reference instant so previews stay stable across runs.
     static let today = TrainingInsightsPreviewData.referenceNow
 
     private static var calendar: Calendar {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
-        return calendar
+        var value = Calendar(identifier: .gregorian)
+        value.timeZone = TimeZone(secondsFromGMT: 0)!
+        return value
     }
 
-    /// Default rich lose-goal dashboard (backward compatible).
     static let strongMomentum = dashboard(.strongMomentum)
     static let state = strongMomentum
     static let baseline = strongMomentum.baseline
 
     static let brandNewUser = dashboard(.brandNewUser)
     static let weekOne = dashboard(.weekOne)
+    static let highlyConsistent = dashboard(.highlyConsistent)
     static let plateau = dashboard(.plateau)
     static let nearGoal = dashboard(.nearGoal)
     static let gainGoal = dashboard(.gainGoal)
@@ -48,6 +49,12 @@ enum JourneyPreviewData {
     static let healthDisconnected = dashboard(.healthDisconnected)
     static let healthConnected = dashboard(.healthConnected)
     static let sparseData = dashboard(.sparseData)
+    static let foodLogsOnly = dashboard(.foodLogsOnly)
+    static let weightLogsNoLoss = dashboard(.weightLogsNoLoss)
+
+    static var monthlyRecapActive: JourneyMonthlyRecapState {
+        strongMomentum.monthlyRecap
+    }
 
     static func dashboard(_ scenario: Scenario) -> JourneyDashboardState {
         switch scenario {
@@ -57,6 +64,8 @@ enum JourneyPreviewData {
             return makeWeekOneDashboard()
         case .strongMomentum:
             return makeStrongMomentumDashboard()
+        case .highlyConsistent:
+            return makeHighlyConsistentDashboard()
         case .plateau:
             return makePlateauDashboard()
         case .nearGoal:
@@ -71,32 +80,36 @@ enum JourneyPreviewData {
             return makeHealthConnectedDashboard()
         case .sparseData:
             return makeSparseDataDashboard()
+        case .foodLogsOnly:
+            return makeFoodLogsOnlyDashboard()
+        case .weightLogsNoLoss:
+            return makeWeightLogsNoLossDashboard()
         }
     }
 
-    // MARK: - Section fixtures (derived from scenarios)
+    // MARK: - Section fixtures
 
-    static var transformationNewUser: JourneyTransformationHeroState {
+    static var transformationNewUser: JourneyTransformationState {
         brandNewUser.transformation
     }
 
-    static var transformationActiveFatLoss: JourneyTransformationHeroState {
+    static var transformationActiveFatLoss: JourneyTransformationState {
         strongMomentum.transformation
     }
 
-    static var transformationNearGoal: JourneyTransformationHeroState {
+    static var transformationNearGoal: JourneyTransformationState {
         nearGoal.transformation
     }
 
-    static var transformationGainGoal: JourneyTransformationHeroState {
+    static var transformationGainGoal: JourneyTransformationState {
         gainGoal.transformation
     }
 
-    static var transformationMaintainGoal: JourneyTransformationHeroState {
+    static var transformationMaintainGoal: JourneyTransformationState {
         maintainGoal.transformation
     }
 
-    static var transformationPlateau: JourneyTransformationHeroState {
+    static var transformationPlateau: JourneyTransformationState {
         plateau.transformation
     }
 
@@ -132,46 +145,17 @@ enum JourneyPreviewData {
         strongMomentum.storyTimeline
     }
 
-    static var habitInsightsActive: JourneyHabitInsightsState {
-        strongMomentum.habitInsights
-    }
-
-    static var habitInsightsWeekOne: JourneyHabitInsightsState {
-        weekOne.habitInsights
-    }
-
-    static var progressAttributionActive: JourneyProgressAttributionState {
-        strongMomentum.progressAttribution
-    }
-
-    static var progressAttributionPlateau: JourneyProgressAttributionState {
-        plateau.progressAttribution
-    }
-
-    static var beforeTodayActive: JourneyBeforeTodayState {
-        strongMomentum.beforeToday
-    }
-
-    static var beforeTodayWeightsOnly: JourneyBeforeTodayState {
-        brandNewUser.beforeToday
-    }
-
-    static var personalRecordsActive: JourneyPersonalRecordsState {
-        strongMomentum.personalRecords
-    }
-
-    static var monthlyRecapActive: JourneyMonthlyRecapState {
-        strongMomentum.monthlyRecap
-    }
-
-    static var journeyLevelActive: JourneyLevelState {
-        strongMomentum.journeyLevel
-    }
-
-    // MARK: - Dashboard builders
+    // MARK: - Dashboard factories
 
     private static func makeBrandNewUserDashboard() -> JourneyDashboardState {
         let direction: JourneyGoalDirection = .lose
+        let profile = makeProfile(
+            name: "Alex",
+            currentWeight: 82,
+            goalWeight: 74,
+            createdDaysAgo: 0,
+            trainingFrequencyPerWeek: 4
+        )
         let baseline = makeBaseline(
             startWeight: 82,
             currentWeight: 82,
@@ -183,181 +167,177 @@ enum JourneyPreviewData {
             usesSyntheticBaseline: true,
             chartPoints: syntheticChartPoints(startKg: 82)
         )
+        let streaks = makeStreaks(
+            currentLogging: 0,
+            longestLogging: 0,
+            proteinStreak: 0,
+            waterStreak: 0,
+            trainingWeeks: nil,
+            isTodayLogged: false
+        )
 
-        return JourneyDashboardState(
-            selectedRangeDays: 28,
+        return JourneyPresentationBuilder.assembleFromLegacy(
             hasProfile: true,
             baseline: baseline,
-            transformation: makeTransformation(
-                baseline: baseline,
-                loggedDays: 0,
-                loggingStreak: 0,
-                weightTrendDirection: .insufficientData
-            ),
+            streaks: streaks,
+            loggedDays: 0,
             weeklyReview: makeWeeklyReview(
                 foodLoggedDays: 0,
                 proteinGoalDays: 0,
                 waterGoalDays: 0,
                 trainingDays: 0,
                 expectedTrainingDays: 4,
-                training: .locked,
+                training: .hidden,
                 weightDeltaThisWeekKg: nil,
                 calorieAdherenceDays: 0,
                 goalDirection: direction,
-                loggingStreak: 0
-            ),
-            streaks: makeStreaks(
-                currentLogging: 0,
-                longestLogging: 0,
-                proteinStreak: 0,
-                waterStreak: 0,
-                trainingWeeks: nil,
-                isTodayLogged: false
+                streaks: streaks
             ),
             milestones: makeMilestones(
+                baseline: baseline,
                 foodLogDays: 0,
                 proteinGoalDays: 0,
-                startWeight: 82,
-                currentWeight: 82,
-                goalWeight: 74,
-                direction: direction,
-                progressPercent: 0,
-                loggingStreak: 0,
-                longestStreak: 0
+                waterGoalDays: 0,
+                trainingWorkoutDays: 0,
+                streaks: streaks
             ),
             storyTimeline: makeStoryTimeline(
+                profile: profile,
+                baseline: baseline,
                 foodLogDays: 0,
-                startWeight: 82,
-                currentWeight: 82,
-                goalWeight: 74,
-                direction: direction,
-                progressPercent: 0,
-                loggingStreak: 0,
-                longestStreak: 0
+                proteinGoalDays: 0,
+                waterGoalDays: 0,
+                trainingWorkoutDays: 0,
+                streaks: streaks,
+                healthConnected: false
             ),
-            habitInsights: .locked,
-            progressAttribution: .insufficientData,
-            beforeToday: makeBeforeToday(
-                startedWeight: 82,
-                currentWeight: 82,
-                goalWeight: 74,
-                daysOnJourney: 0,
-                showsMacros: false
-            ),
-            personalRecords: .locked,
-            monthlyRecap: makeMonthlyRecapBuilding(loggedDays: 0),
-            journeyLevel: makeJourneyLevelEmpty(),
-            detailedAnalytics: makeDetailedAnalytics(
-                loggedDays: 0,
-                showsWeightChart: true,
-                weightPoints: syntheticChartPoints(startKg: 82),
-                interpretation: FormaProductCopy.Journey.DetailedAnalytics.WeightTrend.insufficientData,
-                weightLogCTA: .logWeight,
-                trainingDisplay: .hidden
-            )
+            profile: profile,
+            calendar: calendar,
+            asOf: today
         )
     }
 
     private static func makeWeekOneDashboard() -> JourneyDashboardState {
         let direction: JourneyGoalDirection = .lose
+        let profile = makeProfile(
+            name: "Alex",
+            currentWeight: 88.3,
+            goalWeight: 75,
+            createdDaysAgo: 6,
+            trainingFrequencyPerWeek: 4
+        )
         let baseline = makeBaseline(
-            startWeight: 84,
-            currentWeight: 83.6,
-            goalWeight: 74,
+            startWeight: 89,
+            currentWeight: 88.3,
+            goalWeight: 75,
             direction: direction,
-            progressPercent: 4,
-            daysOnJourney: 7,
+            progressPercent: 5,
+            daysOnJourney: 6,
             hasRealWeightEntries: true,
             usesSyntheticBaseline: false,
-            chartPoints: decliningWeightPoints(startKg: 84, dropPerStep: 0.08, count: 4)
+            chartPoints: decliningWeightPoints(startKg: 89, dropPerStep: 0.23, count: 4)
         )
 
-        return JourneyDashboardState(
-            selectedRangeDays: 28,
-            hasProfile: true,
+        return assembleRichDashboard(
+            profile: profile,
             baseline: baseline,
-            transformation: makeTransformation(
-                baseline: baseline,
-                loggedDays: 3,
-                loggingStreak: 3,
-                weightTrendDirection: .decreasing
+            loggedDays: 6,
+            loggingStreak: 3,
+            longestStreak: 3,
+            proteinStreak: 1,
+            waterStreak: 1,
+            trainingWeeks: nil,
+            isTodayLogged: true,
+            weightTrendDirection: .insufficientData,
+            foodLogDays: 4,
+            proteinGoalDays: 2,
+            waterGoalDays: 2,
+            weekFoodLoggedDays: 4,
+            weekProteinGoalDays: 2,
+            weekWaterGoalDays: 2,
+            weekCalorieAdherenceDays: 2,
+            trainingDays: 1,
+            training: .connected(
+                workoutDays: 1,
+                averageCaloriesBurned: 240,
+                averageTrainingDurationMinutes: 35
             ),
-            weeklyReview: makeWeeklyReview(
-                foodLoggedDays: 3,
-                proteinGoalDays: 2,
-                waterGoalDays: 2,
-                trainingDays: 1,
-                expectedTrainingDays: 4,
-                training: .connected(workoutDays: 1, averageCaloriesBurned: 180, averageTrainingDurationMinutes: 30),
-                weightDeltaThisWeekKg: -0.3,
-                calorieAdherenceDays: 2,
-                goalDirection: direction,
-                loggingStreak: 3
+            weeklyWeightDeltaKg: -0.2,
+            previousWeek: nil,
+            healthConnected: true,
+            healthWorkoutDayOffsets: [1]
+        )
+    }
+
+    private static func makeHighlyConsistentDashboard() -> JourneyDashboardState {
+        let direction: JourneyGoalDirection = .lose
+        let profile = makeProfile(
+            name: "Alex",
+            currentWeight: 85.4,
+            goalWeight: 75,
+            createdDaysAgo: 56,
+            trainingFrequencyPerWeek: 4
+        )
+        let baseline = makeBaseline(
+            startWeight: 90,
+            currentWeight: 85.4,
+            goalWeight: 75,
+            direction: direction,
+            progressPercent: 46,
+            daysOnJourney: 56,
+            hasRealWeightEntries: true,
+            usesSyntheticBaseline: false,
+            chartPoints: decliningWeightPoints(startKg: 90.2, dropPerStep: 0.38, count: 12),
+            estimatedMonth: "September"
+        )
+
+        return assembleRichDashboard(
+            profile: profile,
+            baseline: baseline,
+            loggedDays: 48,
+            loggingStreak: 14,
+            longestStreak: 21,
+            proteinStreak: 10,
+            waterStreak: 9,
+            trainingWeeks: 6,
+            isTodayLogged: true,
+            weightTrendDirection: .decreasing,
+            foodLogDays: 48,
+            proteinGoalDays: 42,
+            waterGoalDays: 40,
+            weekFoodLoggedDays: 7,
+            weekProteinGoalDays: 7,
+            weekWaterGoalDays: 7,
+            weekCalorieAdherenceDays: 7,
+            trainingDays: 4,
+            training: .connected(
+                workoutDays: 4,
+                averageCaloriesBurned: 330,
+                averageTrainingDurationMinutes: 48
             ),
-            streaks: makeStreaks(
-                currentLogging: 3,
-                longestLogging: 3,
-                proteinStreak: 2,
-                waterStreak: 1,
-                trainingWeeks: 1,
-                isTodayLogged: true
+            weeklyWeightDeltaKg: -0.5,
+            previousWeek: JourneyWeeklyReviewPreviousWeek(
+                foodLoggedDays: 7,
+                proteinGoalDays: 7,
+                waterGoalDays: 6,
+                calorieAdherenceDays: 7,
+                trainingDays: 4,
+                weightDeltaKg: -0.4
             ),
-            milestones: makeMilestones(
-                foodLogDays: 3,
-                proteinGoalDays: 2,
-                startWeight: 84,
-                currentWeight: 83.6,
-                goalWeight: 74,
-                direction: direction,
-                progressPercent: 4,
-                loggingStreak: 3,
-                longestStreak: 3
-            ),
-            storyTimeline: makeStoryTimeline(
-                foodLogDays: 3,
-                startWeight: 84,
-                currentWeight: 83.6,
-                goalWeight: 74,
-                direction: direction,
-                progressPercent: 4,
-                loggingStreak: 3,
-                longestStreak: 3,
-                weightEntries: [(daysAgo: 5, kg: 84.0), (daysAgo: 1, kg: 83.6)]
-            ),
-            habitInsights: makeHabitInsightsWeekOne(),
-            progressAttribution: .insufficientData,
-            beforeToday: makeBeforeToday(
-                startedWeight: 84,
-                currentWeight: 83.6,
-                goalWeight: 74,
-                daysOnJourney: 7,
-                showsMacros: true
-            ),
-            personalRecords: makePersonalRecordsEarly(),
-            monthlyRecap: makeMonthlyRecapBuilding(loggedDays: 3),
-            journeyLevel: makeJourneyLevelStarter(),
-            detailedAnalytics: makeDetailedAnalytics(
-                loggedDays: 3,
-                showsWeightChart: true,
-                weightPoints: decliningWeightPoints(startKg: 84, dropPerStep: 0.08, count: 4),
-                interpretation: FormaProductCopy.Journey.DetailedAnalytics.WeightTrend.decreasing,
-                weightLogCTA: nil,
-                trainingDisplay: .metrics(
-                    ProgressWorkoutSummary(
-                        workoutCount: 1,
-                        workoutDays: 1,
-                        totalEstimatedCaloriesBurned: 180,
-                        averageWorkoutsPerWeek: 1,
-                        averageDurationMinutes: 30,
-                        isFromAppleHealth: true
-                    )
-                )
-            )
+            healthConnected: true,
+            healthWorkoutDayOffsets: [28, 21, 14, 7]
         )
     }
 
     private static func makeStrongMomentumDashboard() -> JourneyDashboardState {
         let direction: JourneyGoalDirection = .lose
+        let profile = makeProfile(
+            name: "Alex",
+            currentWeight: 86.2,
+            goalWeight: 75,
+            createdDaysAgo: 40,
+            trainingFrequencyPerWeek: 4
+        )
         let baseline = makeBaseline(
             startWeight: 90,
             currentWeight: 86.2,
@@ -367,65 +347,57 @@ enum JourneyPreviewData {
             daysOnJourney: 40,
             hasRealWeightEntries: true,
             usesSyntheticBaseline: false,
-            chartPoints: decliningWeightPoints(startKg: 90.2, dropPerStep: 0.14, count: 10),
+            chartPoints: decliningWeightPoints(startKg: 90.2, dropPerStep: 0.44, count: 10),
             estimatedMonth: "October"
         )
 
         return assembleRichDashboard(
+            profile: profile,
             baseline: baseline,
-            direction: direction,
-            loggedDays: 18,
+            loggedDays: 32,
             loggingStreak: 7,
             longestStreak: 21,
-            weightTrend: .decreasing,
+            proteinStreak: 5,
+            waterStreak: 4,
+            trainingWeeks: 3,
+            isTodayLogged: true,
+            weightTrendDirection: .decreasing,
             foodLogDays: 32,
-            proteinGoalDays: 8,
-            currentWeight: 86.2,
-            progressPercent: 42,
-            weeklyReview: makeWeeklyReview(
-                foodLoggedDays: 7,
-                proteinGoalDays: 6,
-                waterGoalDays: 5,
-                trainingDays: 4,
-                expectedTrainingDays: 4,
-                training: .connected(
-                    workoutDays: 4,
-                    averageCaloriesBurned: 310,
-                    averageTrainingDurationMinutes: 45
-                ),
-                weightDeltaThisWeekKg: -0.6,
-                calorieAdherenceDays: 6,
-                goalDirection: direction,
-                loggingStreak: 7,
-                previousWeek: JourneyWeeklyReviewPreviousWeek(
-                    foodLoggedDays: 5,
-                    proteinGoalDays: 4,
-                    waterGoalDays: 3,
-                    calorieAdherenceDays: 4,
-                    trainingDays: 3,
-                    weightDeltaKg: -0.3
-                )
+            proteinGoalDays: 18,
+            waterGoalDays: 16,
+            weekFoodLoggedDays: 7,
+            weekProteinGoalDays: 6,
+            weekWaterGoalDays: 5,
+            weekCalorieAdherenceDays: 6,
+            trainingDays: 4,
+            training: .connected(
+                workoutDays: 4,
+                averageCaloriesBurned: 310,
+                averageTrainingDurationMinutes: 45
             ),
-            trainingDisplay: .metrics(
-                ProgressWorkoutSummary(
-                    workoutCount: 9,
-                    workoutDays: 6,
-                    totalEstimatedCaloriesBurned: 2_850,
-                    averageWorkoutsPerWeek: 2.25,
-                    averageDurationMinutes: 42,
-                    isFromAppleHealth: true
-                )
+            weeklyWeightDeltaKg: -0.6,
+            previousWeek: JourneyWeeklyReviewPreviousWeek(
+                foodLoggedDays: 5,
+                proteinGoalDays: 4,
+                waterGoalDays: 3,
+                calorieAdherenceDays: 4,
+                trainingDays: 3,
+                weightDeltaKg: -0.3
             ),
-            weightInterpretation: FormaProductCopy.Journey.DetailedAnalytics.WeightTrend.decreasing,
-            progressAttribution: makeProgressAttributionActive(),
-            journeyLevel: makeJourneyLevelActive(),
-            monthlyRecap: makeMonthlyRecapActive(direction: direction, loggedDays: 18),
-            personalRecords: makePersonalRecordsActive(direction: direction)
+            healthConnected: true,
+            healthWorkoutDayOffsets: [21, 15, 8, 1]
         )
     }
 
     private static func makePlateauDashboard() -> JourneyDashboardState {
         let direction: JourneyGoalDirection = .lose
+        let profile = makeProfile(
+            name: "Alex",
+            currentWeight: 86.1,
+            goalWeight: 75,
+            createdDaysAgo: 38,
+            trainingFrequencyPerWeek: 4
+        )
         let baseline = makeBaseline(
             startWeight: 90,
             currentWeight: 86.1,
@@ -439,60 +411,52 @@ enum JourneyPreviewData {
         )
 
         return assembleRichDashboard(
+            profile: profile,
             baseline: baseline,
-            direction: direction,
-            loggedDays: 20,
+            loggedDays: 28,
             loggingStreak: 7,
             longestStreak: 14,
-            weightTrend: .stable,
+            proteinStreak: 4,
+            waterStreak: 3,
+            trainingWeeks: 2,
+            isTodayLogged: true,
+            weightTrendDirection: .stable,
             foodLogDays: 28,
-            proteinGoalDays: 7,
-            currentWeight: 86.1,
-            progressPercent: 41,
-            weeklyReview: makeWeeklyReview(
+            proteinGoalDays: 15,
+            waterGoalDays: 18,
+            weekFoodLoggedDays: 6,
+            weekProteinGoalDays: 5,
+            weekWaterGoalDays: 5,
+            weekCalorieAdherenceDays: 5,
+            trainingDays: 3,
+            training: .connected(
+                workoutDays: 3,
+                averageCaloriesBurned: 280,
+                averageTrainingDurationMinutes: 40
+            ),
+            weeklyWeightDeltaKg: 0.0,
+            previousWeek: JourneyWeeklyReviewPreviousWeek(
                 foodLoggedDays: 6,
                 proteinGoalDays: 5,
-                waterGoalDays: 5,
-                trainingDays: 3,
-                expectedTrainingDays: 4,
-                training: .connected(
-                    workoutDays: 3,
-                    averageCaloriesBurned: 280,
-                    averageTrainingDurationMinutes: 40
-                ),
-                weightDeltaThisWeekKg: 0.0,
+                waterGoalDays: 4,
                 calorieAdherenceDays: 5,
-                goalDirection: direction,
-                loggingStreak: 7,
-                previousWeek: JourneyWeeklyReviewPreviousWeek(
-                    foodLoggedDays: 6,
-                    proteinGoalDays: 5,
-                    waterGoalDays: 4,
-                    calorieAdherenceDays: 5,
-                    trainingDays: 3,
-                    weightDeltaKg: 0.1
-                )
+                trainingDays: 3,
+                weightDeltaKg: 0.1
             ),
-            trainingDisplay: .metrics(
-                ProgressWorkoutSummary(
-                    workoutCount: 6,
-                    workoutDays: 4,
-                    totalEstimatedCaloriesBurned: 1_680,
-                    averageWorkoutsPerWeek: 1.5,
-                    averageDurationMinutes: 38,
-                    isFromAppleHealth: true
-                )
-            ),
-            weightInterpretation: FormaProductCopy.Journey.DetailedAnalytics.WeightTrend.stable,
-            progressAttribution: makeProgressAttributionPlateau(),
-            journeyLevel: makeJourneyLevelMid(),
-            monthlyRecap: makeMonthlyRecapActive(direction: direction, loggedDays: 16, weightDelta: -0.2),
-            personalRecords: makePersonalRecordsActive(direction: direction)
+            healthConnected: true,
+            healthWorkoutDayOffsets: [17, 10, 3]
         )
     }
 
     private static func makeNearGoalDashboard() -> JourneyDashboardState {
         let direction: JourneyGoalDirection = .lose
+        let profile = makeProfile(
+            name: "Alex",
+            currentWeight: 76.5,
+            goalWeight: 75,
+            createdDaysAgo: 60,
+            trainingFrequencyPerWeek: 4
+        )
         let baseline = makeBaseline(
             startWeight: 90,
             currentWeight: 76.5,
@@ -502,57 +466,49 @@ enum JourneyPreviewData {
             daysOnJourney: 60,
             hasRealWeightEntries: true,
             usesSyntheticBaseline: false,
-            chartPoints: decliningWeightPoints(startKg: 90, dropPerStep: 0.22, count: 12),
+            chartPoints: decliningWeightPoints(startKg: 90, dropPerStep: 1.23, count: 12),
             estimatedMonth: "July"
         )
 
         return assembleRichDashboard(
+            profile: profile,
             baseline: baseline,
-            direction: direction,
-            loggedDays: 42,
+            loggedDays: 60,
             loggingStreak: 12,
             longestStreak: 21,
-            weightTrend: .decreasing,
+            proteinStreak: 7,
+            waterStreak: 6,
+            trainingWeeks: 4,
+            isTodayLogged: true,
+            weightTrendDirection: .decreasing,
             foodLogDays: 105,
-            proteinGoalDays: 40,
-            currentWeight: 76.5,
-            progressPercent: 93,
-            weeklyReview: makeWeeklyReview(
-                foodLoggedDays: 7,
-                proteinGoalDays: 7,
-                waterGoalDays: 6,
-                trainingDays: 4,
-                expectedTrainingDays: 4,
-                training: .connected(
-                    workoutDays: 4,
-                    averageCaloriesBurned: 320,
-                    averageTrainingDurationMinutes: 48
-                ),
-                weightDeltaThisWeekKg: -0.4,
-                calorieAdherenceDays: 7,
-                goalDirection: direction,
-                loggingStreak: 12
+            proteinGoalDays: 72,
+            waterGoalDays: 70,
+            weekFoodLoggedDays: 7,
+            weekProteinGoalDays: 7,
+            weekWaterGoalDays: 6,
+            weekCalorieAdherenceDays: 7,
+            trainingDays: 4,
+            training: .connected(
+                workoutDays: 4,
+                averageCaloriesBurned: 320,
+                averageTrainingDurationMinutes: 48
             ),
-            trainingDisplay: .metrics(
-                ProgressWorkoutSummary(
-                    workoutCount: 11,
-                    workoutDays: 7,
-                    totalEstimatedCaloriesBurned: 3_520,
-                    averageWorkoutsPerWeek: 2.75,
-                    averageDurationMinutes: 44,
-                    isFromAppleHealth: true
-                )
-            ),
-            weightInterpretation: FormaProductCopy.Journey.DetailedAnalytics.WeightTrend.decreasing,
-            progressAttribution: makeProgressAttributionActive(),
-            journeyLevel: makeJourneyLevelHigh(),
-            monthlyRecap: makeMonthlyRecapActive(direction: direction, loggedDays: 22, weightDelta: -1.1),
-            personalRecords: makePersonalRecordsActive(direction: direction)
+            weeklyWeightDeltaKg: -0.4,
+            healthConnected: true,
+            healthWorkoutDayOffsets: [30, 22, 15, 8, 1]
         )
     }
 
     private static func makeGainGoalDashboard() -> JourneyDashboardState {
         let direction: JourneyGoalDirection = .gain
+        let profile = makeProfile(
+            name: "Jordan",
+            currentWeight: 65.8,
+            goalWeight: 70,
+            createdDaysAgo: 30,
+            trainingFrequencyPerWeek: 4
+        )
         let baseline = makeBaseline(
             startWeight: 62,
             currentWeight: 65.8,
@@ -562,64 +518,49 @@ enum JourneyPreviewData {
             daysOnJourney: 30,
             hasRealWeightEntries: true,
             usesSyntheticBaseline: false,
-            chartPoints: risingWeightPoints(startKg: 62, risePerStep: 0.12, count: 10),
+            chartPoints: risingWeightPoints(startKg: 62, risePerStep: 0.42, count: 10),
             estimatedMonth: "August"
         )
 
         return assembleRichDashboard(
+            profile: profile,
             baseline: baseline,
-            direction: direction,
-            loggedDays: 20,
+            loggedDays: 24,
             loggingStreak: 5,
             longestStreak: 10,
-            weightTrend: .increasing,
+            proteinStreak: 4,
+            waterStreak: 3,
+            trainingWeeks: 2,
+            isTodayLogged: true,
+            weightTrendDirection: .increasing,
             foodLogDays: 24,
-            proteinGoalDays: 6,
-            currentWeight: 65.8,
-            progressPercent: 48,
-            weeklyReview: makeWeeklyReview(
-                foodLoggedDays: 6,
-                proteinGoalDays: 5,
-                waterGoalDays: 4,
-                trainingDays: 3,
-                expectedTrainingDays: 4,
-                training: .connected(
-                    workoutDays: 3,
-                    averageCaloriesBurned: 350,
-                    averageTrainingDurationMinutes: 50
-                ),
-                weightDeltaThisWeekKg: 0.5,
-                calorieAdherenceDays: 5,
-                goalDirection: direction,
-                loggingStreak: 5
+            proteinGoalDays: 16,
+            waterGoalDays: 14,
+            weekFoodLoggedDays: 6,
+            weekProteinGoalDays: 5,
+            weekWaterGoalDays: 4,
+            weekCalorieAdherenceDays: 5,
+            trainingDays: 3,
+            training: .connected(
+                workoutDays: 3,
+                averageCaloriesBurned: 350,
+                averageTrainingDurationMinutes: 50
             ),
-            trainingDisplay: .metrics(
-                ProgressWorkoutSummary(
-                    workoutCount: 7,
-                    workoutDays: 5,
-                    totalEstimatedCaloriesBurned: 2_450,
-                    averageWorkoutsPerWeek: 1.75,
-                    averageDurationMinutes: 48,
-                    isFromAppleHealth: true
-                )
-            ),
-            weightInterpretation: FormaProductCopy.Journey.DetailedAnalytics.WeightTrend.increasing,
-            progressAttribution: JourneyProgressAttributionState(
-                primaryReasonTitle: FormaProductCopy.Journey.WhyProgress.proteinAnchorTitle,
-                primaryReasonDetail: FormaProductCopy.Journey.WhyProgress.weightTrendTowardGoal(direction: .gain),
-                supportingReasons: [
-                    FormaProductCopy.Journey.WhyProgress.loggedFoodDaysThisWeek(6)
-                ],
-                confidence: .medium
-            ),
-            journeyLevel: makeJourneyLevelMid(),
-            monthlyRecap: makeMonthlyRecapActive(direction: direction, loggedDays: 14, weightDelta: 1.2),
-            personalRecords: makePersonalRecordsActive(direction: direction)
+            weeklyWeightDeltaKg: 0.5,
+            healthConnected: true,
+            healthWorkoutDayOffsets: [16, 9, 2]
         )
     }
 
     private static func makeMaintainGoalDashboard() -> JourneyDashboardState {
         let direction: JourneyGoalDirection = .maintain
+        let profile = makeProfile(
+            name: "Taylor",
+            currentWeight: 72.4,
+            goalWeight: 72,
+            createdDaysAgo: 45,
+            trainingFrequencyPerWeek: 3
+        )
         let baseline = makeBaseline(
             startWeight: 72,
             currentWeight: 72.4,
@@ -633,72 +574,89 @@ enum JourneyPreviewData {
         )
 
         return assembleRichDashboard(
+            profile: profile,
             baseline: baseline,
-            direction: direction,
-            loggedDays: 25,
+            loggedDays: 30,
             loggingStreak: 4,
             longestStreak: 12,
-            weightTrend: .stable,
+            proteinStreak: 3,
+            waterStreak: 4,
+            trainingWeeks: 2,
+            isTodayLogged: true,
+            weightTrendDirection: .stable,
             foodLogDays: 30,
-            proteinGoalDays: 6,
-            currentWeight: 72.4,
-            progressPercent: 0,
-            weeklyReview: makeWeeklyReview(
-                foodLoggedDays: 6,
-                proteinGoalDays: 5,
-                waterGoalDays: 5,
-                trainingDays: 3,
-                expectedTrainingDays: 3,
-                training: .connected(
-                    workoutDays: 3,
-                    averageCaloriesBurned: 260,
-                    averageTrainingDurationMinutes: 35
-                ),
-                weightDeltaThisWeekKg: 0.1,
-                calorieAdherenceDays: 5,
-                goalDirection: direction,
-                loggingStreak: 4
+            proteinGoalDays: 20,
+            waterGoalDays: 22,
+            weekFoodLoggedDays: 6,
+            weekProteinGoalDays: 5,
+            weekWaterGoalDays: 5,
+            weekCalorieAdherenceDays: 5,
+            trainingDays: 3,
+            training: .connected(
+                workoutDays: 3,
+                averageCaloriesBurned: 260,
+                averageTrainingDurationMinutes: 35
             ),
-            trainingDisplay: .metrics(
-                ProgressWorkoutSummary(
-                    workoutCount: 5,
-                    workoutDays: 3,
-                    totalEstimatedCaloriesBurned: 1_300,
-                    averageWorkoutsPerWeek: 1.25,
-                    averageDurationMinutes: 35,
-                    isFromAppleHealth: true
-                )
-            ),
-            weightInterpretation: FormaProductCopy.Journey.DetailedAnalytics.WeightTrend.stable,
-            progressAttribution: JourneyProgressAttributionState(
-                primaryReasonTitle: FormaProductCopy.Journey.WhyProgress.loggingControlTitle,
-                primaryReasonDetail: FormaProductCopy.Journey.WhyProgress.weightTrendTowardGoal(direction: .maintain),
-                supportingReasons: [
-                    FormaProductCopy.Journey.WhyProgress.improvedWaterConsistency(percent: 8)
-                ],
-                confidence: .medium
-            ),
-            journeyLevel: makeJourneyLevelMid(),
-            monthlyRecap: makeMonthlyRecapActive(direction: direction, loggedDays: 15, weightDelta: 0.2),
-            personalRecords: makePersonalRecordsActive(direction: direction)
+            weeklyWeightDeltaKg: 0.1,
+            healthConnected: true,
+            healthWorkoutDayOffsets: [14, 7, 1]
         )
     }
 
     private static func makeHealthDisconnectedDashboard() -> JourneyDashboardState {
         var dashboard = makeStrongMomentumDashboard()
-        dashboard.weeklyReview = makeWeeklyReview(
-            foodLoggedDays: 5,
-            proteinGoalDays: 4,
-            waterGoalDays: 3,
+        var review = dashboard.weeklyReview
+        review.training = .locked
+        review.trainingDays = 0
+        review.weekSummaryCopy = JourneyWeeklyReviewBuilder.weekSummaryCopy(
+            foodDays: review.foodLoggedDays,
+            proteinDays: review.proteinGoalDays,
             trainingDays: 0,
-            expectedTrainingDays: 4,
-            training: .locked,
-            weightDeltaThisWeekKg: -0.2,
-            calorieAdherenceDays: 4,
-            goalDirection: .lose,
-            loggingStreak: 5
+            goalDirection: dashboard.baseline.goalDirection,
+            weightDelta: review.weightDeltaThisWeekKg
         )
-        dashboard.detailedAnalytics.trainingDisplay = .hidden
+        review.rows = JourneyWeeklyReviewBuilder.rows(
+            for: review,
+            goalDirection: dashboard.baseline.goalDirection
+        )
+
+        let weekLogs = makeLogs(
+            count: 7,
+            proteinGoalDays: 6,
+            waterGoalDays: 5,
+            calorieAdherenceDays: 6,
+            trainingWorkoutDays: 0
+        )
+        let maturityLogs = makeLogs(
+            count: 32,
+            proteinGoalDays: 18,
+            waterGoalDays: 16,
+            calorieAdherenceDays: 32,
+            trainingWorkoutDays: 0
+        )
+        let weights = weightEntriesFromChart(dashboard.baseline.chartPoints)
+
+        dashboard.weeklyHabit = JourneyWeeklyPatternBuilder.build(
+            JourneyWeeklyPatternBuilder.Input(
+                weekLogs: weekLogs,
+                weekWeights: weights,
+                maturityLogs: maturityLogs,
+                allWeights: weights,
+                healthWorkoutDayStarts: [],
+                weeklyTraining: review.training,
+                expectedTrainingDays: review.expectedTrainingDays,
+                streaks: dashboard.streaks,
+                streakSummary: StreakSummary(
+                    loggingStreak: dashboard.streaks.currentLoggingStreakDays,
+                    proteinStreak: dashboard.streaks.currentProteinStreakDays,
+                    hydrationStreak: dashboard.streaks.currentWaterStreakDays,
+                    workoutStreak: 0
+                ),
+                weeklyReview: review,
+                asOf: today,
+                calendar: calendar
+            )
+        )
         return dashboard
     }
 
@@ -706,8 +664,190 @@ enum JourneyPreviewData {
         makeStrongMomentumDashboard()
     }
 
+    private static func makeFoodLogsOnlyDashboard() -> JourneyDashboardState {
+        let direction: JourneyGoalDirection = .lose
+        let profile = makeProfile(
+            name: "Alex",
+            currentWeight: 82,
+            goalWeight: 74,
+            createdDaysAgo: 5,
+            trainingFrequencyPerWeek: 4
+        )
+        let baseline = makeBaseline(
+            startWeight: 82,
+            currentWeight: 82,
+            goalWeight: 74,
+            direction: direction,
+            progressPercent: 0,
+            daysOnJourney: 5,
+            hasRealWeightEntries: false,
+            usesSyntheticBaseline: true,
+            chartPoints: syntheticChartPoints(startKg: 82)
+        )
+        let streaks = makeStreaks(
+            currentLogging: 3,
+            longestLogging: 3,
+            proteinStreak: 1,
+            waterStreak: 1,
+            trainingWeeks: nil,
+            isTodayLogged: true
+        )
+        let maturityLogs = makeLogs(
+            count: 5,
+            proteinGoalDays: 2,
+            waterGoalDays: 2,
+            calorieAdherenceDays: 5,
+            trainingWorkoutDays: 0
+        )
+        let weekLogs = makeLogs(
+            count: 5,
+            proteinGoalDays: 2,
+            waterGoalDays: 2,
+            calorieAdherenceDays: 5,
+            trainingWorkoutDays: 0
+        )
+
+        return JourneyPresentationBuilder.assembleFromLegacy(
+            hasProfile: true,
+            baseline: baseline,
+            streaks: streaks,
+            loggedDays: 5,
+            weeklyReview: makeWeeklyReview(
+                foodLoggedDays: 5,
+                proteinGoalDays: 2,
+                waterGoalDays: 2,
+                trainingDays: 0,
+                expectedTrainingDays: 4,
+                training: .hidden,
+                weightDeltaThisWeekKg: nil,
+                calorieAdherenceDays: 4,
+                goalDirection: direction,
+                streaks: streaks
+            ),
+            milestones: makeMilestones(
+                baseline: baseline,
+                foodLogDays: 5,
+                proteinGoalDays: 2,
+                waterGoalDays: 2,
+                trainingWorkoutDays: 0,
+                streaks: streaks
+            ),
+            storyTimeline: makeStoryTimeline(
+                profile: profile,
+                baseline: baseline,
+                foodLogDays: 5,
+                proteinGoalDays: 2,
+                waterGoalDays: 2,
+                trainingWorkoutDays: 0,
+                streaks: streaks,
+                healthConnected: false
+            ),
+            profile: profile,
+            maturityLogs: maturityLogs,
+            monthLogs: maturityLogs,
+            weekLogs: weekLogs,
+            allWeights: [],
+            weightTrendDirection: .insufficientData,
+            calendar: calendar,
+            asOf: today
+        )
+    }
+
+    private static func makeWeightLogsNoLossDashboard() -> JourneyDashboardState {
+        let direction: JourneyGoalDirection = .lose
+        let profile = makeProfile(
+            name: "Alex",
+            currentWeight: 88.0,
+            goalWeight: 75,
+            createdDaysAgo: 20,
+            trainingFrequencyPerWeek: 4
+        )
+        let chartPoints = flatWeightPoints(kg: 88.0, count: 8)
+        let baseline = makeBaseline(
+            startWeight: 88,
+            currentWeight: 88.0,
+            goalWeight: 75,
+            direction: direction,
+            progressPercent: 0,
+            daysOnJourney: 20,
+            hasRealWeightEntries: true,
+            usesSyntheticBaseline: false,
+            chartPoints: chartPoints
+        )
+        let streaks = makeStreaks(
+            currentLogging: 2,
+            longestLogging: 4,
+            proteinStreak: 1,
+            waterStreak: 0,
+            trainingWeeks: nil,
+            isTodayLogged: false
+        )
+        let maturityLogs = makeLogs(
+            count: 4,
+            proteinGoalDays: 2,
+            waterGoalDays: 1,
+            calorieAdherenceDays: 4,
+            trainingWorkoutDays: 0
+        )
+        let weights = weightEntriesFromChart(chartPoints)
+
+        return JourneyPresentationBuilder.assembleFromLegacy(
+            hasProfile: true,
+            baseline: baseline,
+            streaks: streaks,
+            loggedDays: 4,
+            weeklyReview: makeWeeklyReview(
+                foodLoggedDays: 3,
+                proteinGoalDays: 2,
+                waterGoalDays: 1,
+                trainingDays: 0,
+                expectedTrainingDays: 4,
+                training: .hidden,
+                weightDeltaThisWeekKg: 0.0,
+                calorieAdherenceDays: 3,
+                goalDirection: direction,
+                streaks: streaks
+            ),
+            milestones: makeMilestones(
+                baseline: baseline,
+                foodLogDays: 4,
+                proteinGoalDays: 2,
+                waterGoalDays: 1,
+                trainingWorkoutDays: 0,
+                streaks: streaks
+            ),
+            storyTimeline: makeStoryTimeline(
+                profile: profile,
+                baseline: baseline,
+                foodLogDays: 4,
+                proteinGoalDays: 2,
+                waterGoalDays: 1,
+                trainingWorkoutDays: 0,
+                streaks: streaks,
+                healthConnected: false,
+                weightEntries: weights
+            ),
+            profile: profile,
+            maturityLogs: maturityLogs,
+            monthLogs: maturityLogs,
+            weekLogs: Array(maturityLogs.prefix(3)),
+            allWeights: weights,
+            weekWeights: weights,
+            weightTrendDirection: .stable,
+            calendar: calendar,
+            asOf: today
+        )
+    }
+
     private static func makeSparseDataDashboard() -> JourneyDashboardState {
         let direction: JourneyGoalDirection = .lose
+        let profile = makeProfile(
+            name: "Alex",
+            currentWeight: 87.8,
+            goalWeight: 75,
+            createdDaysAgo: 5,
+            trainingFrequencyPerWeek: 4
+        )
         let baseline = makeBaseline(
             startWeight: 88,
             currentWeight: 87.8,
@@ -717,170 +857,196 @@ enum JourneyPreviewData {
             daysOnJourney: 5,
             hasRealWeightEntries: true,
             usesSyntheticBaseline: false,
-            chartPoints: decliningWeightPoints(startKg: 88, dropPerStep: 0.05, count: 2)
+            chartPoints: decliningWeightPoints(startKg: 88, dropPerStep: 0.2, count: 2)
+        )
+        let streaks = makeStreaks(
+            currentLogging: 0,
+            longestLogging: 2,
+            proteinStreak: 1,
+            waterStreak: 0,
+            trainingWeeks: nil,
+            isTodayLogged: false
         )
 
-        return JourneyDashboardState(
-            selectedRangeDays: 28,
+        return JourneyPresentationBuilder.assembleFromLegacy(
             hasProfile: true,
             baseline: baseline,
-            transformation: makeTransformation(
-                baseline: baseline,
-                loggedDays: 2,
-                loggingStreak: 0,
-                weightTrendDirection: .insufficientData
-            ),
+            streaks: streaks,
+            loggedDays: 2,
             weeklyReview: makeWeeklyReview(
                 foodLoggedDays: 2,
                 proteinGoalDays: 1,
                 waterGoalDays: 1,
                 trainingDays: 0,
                 expectedTrainingDays: 4,
-                training: .locked,
+                training: .hidden,
                 weightDeltaThisWeekKg: nil,
                 calorieAdherenceDays: 1,
                 goalDirection: direction,
-                loggingStreak: 0
-            ),
-            streaks: makeStreaks(
-                currentLogging: 0,
-                longestLogging: 2,
-                proteinStreak: 1,
-                waterStreak: 0,
-                trainingWeeks: nil,
-                isTodayLogged: false
+                streaks: streaks
             ),
             milestones: makeMilestones(
+                baseline: baseline,
                 foodLogDays: 2,
                 proteinGoalDays: 1,
-                startWeight: 88,
-                currentWeight: 87.8,
-                goalWeight: 75,
-                direction: direction,
-                progressPercent: 2,
-                loggingStreak: 0,
-                longestStreak: 2
+                waterGoalDays: 1,
+                trainingWorkoutDays: 0,
+                streaks: streaks
             ),
             storyTimeline: makeStoryTimeline(
+                profile: profile,
+                baseline: baseline,
                 foodLogDays: 2,
-                startWeight: 88,
-                currentWeight: 87.8,
-                goalWeight: 75,
-                direction: direction,
-                progressPercent: 2,
-                loggingStreak: 0,
-                longestStreak: 2,
-                weightEntries: [(daysAgo: 3, kg: 88.0)]
+                proteinGoalDays: 1,
+                waterGoalDays: 1,
+                trainingWorkoutDays: 0,
+                streaks: streaks,
+                healthConnected: false,
+                weightEntries: [(daysAgo: 0, kg: 87.8)]
             ),
-            habitInsights: .locked,
-            progressAttribution: .insufficientData,
-            beforeToday: makeBeforeToday(
-                startedWeight: 88,
-                currentWeight: 87.8,
-                goalWeight: 75,
-                daysOnJourney: 5,
-                showsMacros: false
+            profile: profile,
+            maturityLogs: makeLogs(
+                count: 2,
+                proteinGoalDays: 1,
+                waterGoalDays: 1,
+                calorieAdherenceDays: 1,
+                trainingWorkoutDays: 0
             ),
-            personalRecords: .locked,
-            monthlyRecap: makeMonthlyRecapBuilding(loggedDays: 2),
-            journeyLevel: makeJourneyLevelEmpty(),
-            detailedAnalytics: makeDetailedAnalytics(
-                loggedDays: 2,
-                showsWeightChart: false,
-                weightPoints: decliningWeightPoints(startKg: 88, dropPerStep: 0.05, count: 2),
-                interpretation: FormaProductCopy.Journey.DetailedAnalytics.WeightTrend.insufficientData,
-                weightLogCTA: .logWeight,
-                trainingDisplay: .hidden
-            )
+            monthLogs: makeLogs(
+                count: 2,
+                proteinGoalDays: 1,
+                waterGoalDays: 1,
+                calorieAdherenceDays: 1,
+                trainingWorkoutDays: 0
+            ),
+            weekLogs: makeLogs(
+                count: 2,
+                proteinGoalDays: 1,
+                waterGoalDays: 1,
+                calorieAdherenceDays: 1,
+                trainingWorkoutDays: 0
+            ),
+            allWeights: weightEntriesFromChart(baseline.chartPoints),
+            weightTrendDirection: .insufficientData,
+            calendar: calendar,
+            asOf: today
         )
     }
 
     // MARK: - Shared assembly
 
     private static func assembleRichDashboard(
+        profile: UserProfile,
         baseline: JourneyBaseline,
-        direction: JourneyGoalDirection,
         loggedDays: Int,
         loggingStreak: Int,
         longestStreak: Int,
-        weightTrend: WeightTrendDirection,
+        proteinStreak: Int,
+        waterStreak: Int,
+        trainingWeeks: Int?,
+        isTodayLogged: Bool,
+        weightTrendDirection: WeightTrendDirection,
         foodLogDays: Int,
         proteinGoalDays: Int,
-        currentWeight: Double,
-        progressPercent: Double,
-        weeklyReview: JourneyWeeklyReviewState,
-        trainingDisplay: JourneyDetailedAnalyticsTrainingDisplay,
-        weightInterpretation: String,
-        progressAttribution: JourneyProgressAttributionState,
-        journeyLevel: JourneyLevelState,
-        monthlyRecap: JourneyMonthlyRecapState,
-        personalRecords: JourneyPersonalRecordsState
+        waterGoalDays: Int,
+        weekFoodLoggedDays: Int,
+        weekProteinGoalDays: Int,
+        weekWaterGoalDays: Int,
+        weekCalorieAdherenceDays: Int,
+        trainingDays: Int,
+        training: JourneyWeeklyTrainingStatus,
+        weeklyWeightDeltaKg: Double?,
+        previousWeek: JourneyWeeklyReviewPreviousWeek? = nil,
+        healthConnected: Bool,
+        healthWorkoutDayOffsets: [Int] = []
     ) -> JourneyDashboardState {
-        JourneyDashboardState(
-            selectedRangeDays: 28,
+        let streaks = makeStreaks(
+            currentLogging: loggingStreak,
+            longestLogging: longestStreak,
+            proteinStreak: proteinStreak,
+            waterStreak: waterStreak,
+            trainingWeeks: trainingWeeks,
+            isTodayLogged: isTodayLogged
+        )
+        let maturityLogs = makeLogs(
+            count: foodLogDays,
+            proteinGoalDays: proteinGoalDays,
+            waterGoalDays: waterGoalDays,
+            calorieAdherenceDays: foodLogDays,
+            trainingWorkoutDays: healthConnected ? max(trainingDays, 1) : trainingDays
+        )
+        let weekLogs = makeLogs(
+            count: weekFoodLoggedDays,
+            proteinGoalDays: weekProteinGoalDays,
+            waterGoalDays: weekWaterGoalDays,
+            calorieAdherenceDays: weekCalorieAdherenceDays,
+            trainingWorkoutDays: trainingDays
+        )
+        let weights = weightEntriesFromChart(baseline.chartPoints)
+        let goalProjection = baseline.goalWeightKg.map {
+            ProgressProjectionCalculator.projection(
+                weights: weights,
+                goalWeightKg: $0,
+                asOf: today
+            )
+        }
+
+        return JourneyPresentationBuilder.assembleFromLegacy(
             hasProfile: true,
             baseline: baseline,
-            transformation: makeTransformation(
-                baseline: baseline,
-                loggedDays: loggedDays,
-                loggingStreak: loggingStreak,
-                weightTrendDirection: weightTrend
-            ),
-            weeklyReview: weeklyReview,
-            streaks: makeStreaks(
-                currentLogging: loggingStreak,
-                longestLogging: longestStreak,
-                proteinStreak: min(proteinGoalDays, 5),
-                waterStreak: 4,
-                trainingWeeks: loggingStreak > 0 ? 3 : nil,
-                isTodayLogged: loggingStreak > 0
+            streaks: streaks,
+            loggedDays: loggedDays,
+            weeklyReview: makeWeeklyReview(
+                foodLoggedDays: weekFoodLoggedDays,
+                proteinGoalDays: weekProteinGoalDays,
+                waterGoalDays: weekWaterGoalDays,
+                trainingDays: trainingDays,
+                expectedTrainingDays: JourneyWeeklyReviewBuilder.expectedTrainingDays(profile: profile),
+                training: training,
+                weightDeltaThisWeekKg: weeklyWeightDeltaKg,
+                calorieAdherenceDays: weekCalorieAdherenceDays,
+                goalDirection: baseline.goalDirection,
+                streaks: streaks,
+                previousWeek: previousWeek
             ),
             milestones: makeMilestones(
+                baseline: baseline,
                 foodLogDays: foodLogDays,
                 proteinGoalDays: proteinGoalDays,
-                startWeight: baseline.startWeightKg ?? currentWeight,
-                currentWeight: currentWeight,
-                goalWeight: baseline.goalWeightKg ?? currentWeight,
-                direction: direction,
-                progressPercent: progressPercent,
-                loggingStreak: loggingStreak,
-                longestStreak: longestStreak
+                waterGoalDays: waterGoalDays,
+                trainingWorkoutDays: healthConnected ? max(trainingDays, 1) : trainingDays,
+                streaks: streaks,
+                healthWorkoutDayOffsets: healthWorkoutDayOffsets
             ),
             storyTimeline: makeStoryTimeline(
+                profile: profile,
+                baseline: baseline,
                 foodLogDays: foodLogDays,
-                startWeight: baseline.startWeightKg ?? currentWeight,
-                currentWeight: currentWeight,
-                goalWeight: baseline.goalWeightKg ?? currentWeight,
-                direction: direction,
-                progressPercent: progressPercent,
-                loggingStreak: loggingStreak,
-                longestStreak: longestStreak,
+                proteinGoalDays: proteinGoalDays,
+                waterGoalDays: waterGoalDays,
+                trainingWorkoutDays: healthConnected ? max(trainingDays, 1) : trainingDays,
+                streaks: streaks,
+                healthConnected: healthConnected,
+                healthWorkoutDayOffsets: healthWorkoutDayOffsets,
                 weightEntries: weightEntriesFromChart(baseline.chartPoints)
             ),
-            habitInsights: makeHabitInsightsActive(),
-            progressAttribution: progressAttribution,
-            beforeToday: makeBeforeToday(
-                startedWeight: baseline.startWeightKg,
-                currentWeight: currentWeight,
-                goalWeight: baseline.goalWeightKg,
-                daysOnJourney: loggedDays,
-                showsMacros: true
-            ),
-            personalRecords: personalRecords,
-            monthlyRecap: monthlyRecap,
-            journeyLevel: journeyLevel,
-            detailedAnalytics: makeDetailedAnalytics(
-                loggedDays: loggedDays,
-                showsWeightChart: baseline.showsWeightChart,
-                weightPoints: baseline.chartPoints,
-                interpretation: weightInterpretation,
-                weightLogCTA: nil,
-                trainingDisplay: trainingDisplay
-            )
+            goalProjection: goalProjection,
+            profile: profile,
+            maturityLogs: maturityLogs,
+            monthLogs: maturityLogs,
+            weekLogs: weekLogs,
+            allWeights: weights,
+            weekWeights: weights,
+            weeklyTraining: training,
+            healthWorkoutDayStarts: makeHealthWorkoutDayStarts(healthWorkoutDayOffsets),
+            monthHealthWorkoutCount: healthConnected ? healthWorkoutDayOffsets.count : 0,
+            weightTrendDirection: weightTrendDirection,
+            calendar: calendar,
+            asOf: today
         )
     }
 
-    // MARK: - Component factories
+    // MARK: - Helper factories
 
     private static var previewTargets: UserTargets {
         UserTargets(
@@ -894,21 +1060,28 @@ enum JourneyPreviewData {
         )
     }
 
-    private static var previewProfile: UserProfile {
-        UserProfile(
+    private static func makeProfile(
+        name: String,
+        currentWeight: Double,
+        goalWeight: Double,
+        createdDaysAgo: Int,
+        trainingFrequencyPerWeek: Int
+    ) -> UserProfile {
+        let createdAt = calendar.date(byAdding: .day, value: -createdDaysAgo, to: today) ?? today
+        return UserProfile(
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
-            name: "Alex",
+            name: name,
             age: 30,
             sex: .female,
             heightCm: 165,
-            currentWeightKg: 86.2,
-            goalWeightKg: 75,
+            currentWeightKg: currentWeight,
+            goalWeightKg: goalWeight,
             activityLevel: .lightlyActive,
-            trainingFrequencyPerWeek: 4,
+            trainingFrequencyPerWeek: trainingFrequencyPerWeek,
             averageSteps: 7_000,
             unitSystem: .metric,
             targets: previewTargets,
-            createdAt: calendar.date(byAdding: .day, value: -40, to: today) ?? today,
+            createdAt: createdAt,
             updatedAt: today
         )
     }
@@ -925,444 +1098,84 @@ enum JourneyPreviewData {
         chartPoints: [WeightChartPoint],
         estimatedMonth: String? = nil
     ) -> JourneyBaseline {
-        let traveled: Double
+        let totalChange: Double
         switch direction {
-        case .lose:
-            traveled = max(0, startWeight - currentWeight)
-        case .gain:
-            traveled = max(0, currentWeight - startWeight)
+        case .lose, .gain:
+            totalChange = currentWeight - startWeight
         case .maintain:
-            traveled = abs(currentWeight - startWeight)
+            totalChange = abs(currentWeight - startWeight)
         }
 
         return JourneyBaseline(
             startWeightKg: startWeight,
-            startDate: calendar.date(byAdding: .day, value: -max(daysOnJourney, 1), to: today) ?? today,
+            startDate: calendar.date(byAdding: .day, value: -daysOnJourney, to: today) ?? today,
             currentWeightKg: currentWeight,
             goalWeightKg: goalWeight,
             goalDirection: direction,
-            totalChangeKg: direction == .maintain ? traveled : currentWeight - startWeight,
+            totalChangeKg: totalChange,
             remainingChangeKg: abs(currentWeight - goalWeight),
             progressPercent: progressPercent,
-            estimatedCompletionDate: estimatedMonth.map { _ in
-                calendar.date(byAdding: .month, value: 3, to: today) ?? today
-            },
+            estimatedCompletionDate: estimatedMonth == nil
+                ? nil
+                : calendar.date(byAdding: .day, value: 90, to: today),
             estimatedCompletionMonthLabel: estimatedMonth,
             hasRealWeightEntries: hasRealWeightEntries,
             usesSyntheticBaselinePoint: usesSyntheticBaseline,
             onboardingBaselineWeightKg: startWeight,
             chartPoints: chartPoints,
-            showsWeightChart: true
+            showsWeightChart: !chartPoints.isEmpty
         )
     }
-
-    private static func makeBeforeToday(
-        startedWeight: Double?,
-        currentWeight: Double?,
-        goalWeight: Double?,
-        daysOnJourney: Int,
-        showsMacros: Bool
-    ) -> JourneyBeforeTodayState {
-        let startedWeightCopy = JourneyFormatter.journeyKg(startedWeight)
-        let currentWeightCopy = JourneyFormatter.journeyKg(currentWeight)
-        let goalWeightCopy = JourneyFormatter.journeyKg(goalWeight)
-        let startingMaintenance = showsMacros ? 3_100 : nil
-        let currentMaintenance = showsMacros ? 2_950 : nil
-        let startingTarget = showsMacros ? 1_600 : nil
-        let currentTarget = showsMacros ? 2_100 : nil
-        let startingMaintenanceCopy = startingMaintenance.map {
-            PlanDisplayFormatter.formatGroupedInteger($0)
-        }
-        let currentMaintenanceCopy = currentMaintenance.map {
-            PlanDisplayFormatter.formatGroupedInteger($0)
-        }
-        let startingTargetCopy = startingTarget.map {
-            PlanDisplayFormatter.formatGroupedInteger($0)
-        }
-        let currentTargetCopy = currentTarget.map {
-            PlanDisplayFormatter.formatGroupedInteger($0)
-        }
-
-        return JourneyBeforeTodayState(
-            startedWeightKg: startedWeight,
-            currentWeightKg: currentWeight,
-            startingMaintenanceCaloriesKcal: startingMaintenance,
-            currentMaintenanceCaloriesKcal: currentMaintenance,
-            startingTargetCaloriesKcal: startingTarget,
-            currentTargetCaloriesKcal: currentTarget,
-            goalWeightKg: goalWeight,
-            daysOnJourney: daysOnJourney,
-            showsMaintenanceRow: showsMacros,
-            showsTargetRow: showsMacros,
-            showsAdaptedTargetCopy: showsMacros,
-            startedWeightCopy: startedWeightCopy,
-            currentWeightCopy: currentWeightCopy,
-            goalWeightCopy: goalWeightCopy,
-            startingMaintenanceCopy: startingMaintenanceCopy,
-            currentMaintenanceCopy: currentMaintenanceCopy,
-            startingTargetCopy: startingTargetCopy,
-            currentTargetCopy: currentTargetCopy,
-            accessibilitySummary: "\(startedWeightCopy) to \(currentWeightCopy), goal \(goalWeightCopy)"
-        )
-    }
-
-    private static func makeProgressAttributionActive() -> JourneyProgressAttributionState {
-        JourneyProgressAttributionState(
-            primaryReasonTitle: FormaProductCopy.Journey.WhyProgress.calorieLikelyHelpedTitle,
-            primaryReasonDetail: FormaProductCopy.Journey.WhyProgress.stayedWithinCalories(
-                achieved: 19,
-                eligible: 23
-            ),
-            supportingReasons: [
-                FormaProductCopy.Journey.WhyProgress.increasedProteinConsistency(percent: 42),
-                FormaProductCopy.Journey.WhyProgress.loggedFoodDaysThisWeek(7)
-            ],
-            confidence: .high
-        )
-    }
-
-    private static func makeProgressAttributionPlateau() -> JourneyProgressAttributionState {
-        JourneyProgressAttributionState(
-            primaryReasonTitle: FormaProductCopy.Journey.WhyProgress.habitsBeforeScaleTitle,
-            primaryReasonDetail: FormaProductCopy.Journey.WhyProgress.loggedFoodDaysThisWeek(6),
-            supportingReasons: [
-                FormaProductCopy.Journey.WhyProgress.improvedWaterConsistency(percent: 12)
-            ],
-            confidence: .medium
-        )
-    }
-
-    private static func makeHabitInsightsWeekOne() -> JourneyHabitInsightsState {
-        JourneyHabitInsightsState(
-            isUnlocked: true,
-            lockedMessage: nil,
-            strongestHabitLabel: FormaProductCopy.Journey.HabitInsights.foodLoggingLabel,
-            strongestScorePercent: 68,
-            strongestQualitative: FormaProductCopy.Journey.HabitInsights.strongestQualitative(percent: 68),
-            weakestHabitLabel: FormaProductCopy.Journey.HabitInsights.waterLabel,
-            weakestHabitKind: .water,
-            weakestScorePercent: 33,
-            weakestScorePrefix: nil,
-            suggestedNextAction: FormaProductCopy.Journey.HabitInsights.suggestWaterCheckIn,
-            suggestionCTA: .logWater
-        )
-    }
-
-    private static func makeHabitInsightsActive() -> JourneyHabitInsightsState {
-        JourneyHabitInsightsState(
-            isUnlocked: true,
-            lockedMessage: nil,
-            strongestHabitLabel: FormaProductCopy.Journey.HabitInsights.proteinLabel,
-            strongestScorePercent: 91,
-            strongestQualitative: FormaProductCopy.Journey.HabitInsights.strongestQualitative(percent: 91),
-            weakestHabitLabel: FormaProductCopy.Journey.HabitInsights.weekendLabel,
-            weakestHabitKind: .weekendLogging,
-            weakestScorePercent: 42,
-            weakestScorePrefix: nil,
-            suggestedNextAction: FormaProductCopy.Journey.HabitInsights.suggestWeekendLogging,
-            suggestionCTA: .logFood
-        )
-    }
-
-    private static func makePersonalRecordsActive(
-        direction: JourneyGoalDirection
-    ) -> JourneyPersonalRecordsState {
-        let weightTitle = direction == .gain
-            ? FormaProductCopy.Journey.PersonalRecords.largestWeeklyGainTitle
-            : FormaProductCopy.Journey.PersonalRecords.largestWeeklyLossTitle
-
-        return JourneyPersonalRecordsState(
-            isUnlocked: true,
-            lockedMessage: nil,
-            records: [
-                JourneyPersonalRecord(
-                    id: "logging-streak",
-                    title: FormaProductCopy.Journey.PersonalRecords.longestStreakTitle,
-                    value: "21 days",
-                    subtitle: nil,
-                    periodLabel: "Jun 6",
-                    isActive: true,
-                    isEarlyRecord: false
-                ),
-                JourneyPersonalRecord(
-                    id: "protein-week",
-                    title: FormaProductCopy.Journey.PersonalRecords.highestProteinWeekTitle,
-                    value: "142g/day",
-                    subtitle: FormaProductCopy.Journey.PersonalRecords.averageOverDays(7),
-                    periodLabel: "Jun 1–7",
-                    isActive: true,
-                    isEarlyRecord: false
-                ),
-                JourneyPersonalRecord(
-                    id: "weight-week",
-                    title: weightTitle,
-                    value: direction == .gain ? "0.9 kg" : "1.3 kg",
-                    subtitle: nil,
-                    periodLabel: "May 25–31",
-                    isActive: true,
-                    isEarlyRecord: false
-                ),
-                JourneyPersonalRecord(
-                    id: "water-week",
-                    title: FormaProductCopy.Journey.PersonalRecords.bestWaterWeekTitle,
-                    value: "6/7 days",
-                    subtitle: nil,
-                    periodLabel: "Jun 8–14",
-                    isActive: true,
-                    isEarlyRecord: false
-                )
-            ]
-        )
-    }
-
-    private static func makePersonalRecordsEarly() -> JourneyPersonalRecordsState {
-        JourneyPersonalRecordsState(
-            isUnlocked: true,
-            lockedMessage: nil,
-            records: [
-                JourneyPersonalRecord(
-                    id: "logging-streak",
-                    title: FormaProductCopy.Journey.PersonalRecords.longestStreakTitle,
-                    value: "3 days",
-                    subtitle: FormaProductCopy.Journey.PersonalRecords.earlyRecord,
-                    periodLabel: nil,
-                    isActive: true,
-                    isEarlyRecord: true
-                )
-            ]
-        )
-    }
-
-    private static func makeMonthlyRecapBuilding(loggedDays: Int) -> JourneyMonthlyRecapState {
-        let monthName = today.formatted(.dateTime.month(.wide))
-        return JourneyMonthlyRecapState(
-            sectionTitle: FormaProductCopy.Journey.MonthlyRecap.sectionTitle(monthName: monthName),
-            isComplete: false,
-            buildingMessage: FormaProductCopy.Journey.MonthlyRecap.buildingBody,
-            monthWeightDeltaKg: nil,
-            calorieAdherencePercent: nil,
-            proteinAdherencePercent: nil,
-            waterAdherencePercent: nil,
-            trainingSessions: nil,
-            showsTrainingRow: false,
-            loggedDays: loggedDays,
-            bestHabitCopy: nil,
-            summaryCopy: loggedDays > 0
-                ? FormaProductCopy.Journey.MonthlyRecap.loggedDaysSummary(loggedDays)
-                : "",
-            rows: []
-        )
-    }
-
-    private static func makeMonthlyRecapActive(
-        direction: JourneyGoalDirection,
-        loggedDays: Int,
-        weightDelta: Double? = -2.4
-    ) -> JourneyMonthlyRecapState {
-        let monthName = today.formatted(.dateTime.month(.wide))
-        let deltaLabel = weightDelta.map {
-            FormaProductCopy.Journey.MonthlyRecap.weightDelta(deltaKg: $0, direction: direction)
-        } ?? "—"
-
-        return JourneyMonthlyRecapState(
-            sectionTitle: FormaProductCopy.Journey.MonthlyRecap.sectionTitle(monthName: monthName),
-            isComplete: true,
-            buildingMessage: nil,
-            monthWeightDeltaKg: weightDelta,
-            calorieAdherencePercent: 0.91,
-            proteinAdherencePercent: 0.87,
-            waterAdherencePercent: 0.72,
-            trainingSessions: 13,
-            showsTrainingRow: true,
-            loggedDays: loggedDays,
-            bestHabitCopy: FormaProductCopy.Journey.MonthlyRecap.bestHabit(for: .protein),
-            summaryCopy: FormaProductCopy.Journey.MonthlyRecap.loggedDaysSummary(loggedDays),
-            rows: [
-                JourneyMonthlyRecapMetricRow(
-                    id: "weight",
-                    title: FormaProductCopy.Journey.MonthlyRecap.weightTitle,
-                    value: deltaLabel
-                ),
-                JourneyMonthlyRecapMetricRow(
-                    id: "calories",
-                    title: FormaProductCopy.Journey.MonthlyRecap.caloriesTitle,
-                    value: FormaProductCopy.Journey.MonthlyRecap.calorieAdherence(percent: 91)
-                ),
-                JourneyMonthlyRecapMetricRow(
-                    id: "protein",
-                    title: FormaProductCopy.Journey.MonthlyRecap.proteinTitle,
-                    value: FormaProductCopy.Journey.MonthlyRecap.adherencePercent(87)
-                ),
-                JourneyMonthlyRecapMetricRow(
-                    id: "water",
-                    title: FormaProductCopy.Journey.MonthlyRecap.waterTitle,
-                    value: FormaProductCopy.Journey.MonthlyRecap.adherencePercent(72)
-                ),
-                JourneyMonthlyRecapMetricRow(
-                    id: "training",
-                    title: FormaProductCopy.Journey.MonthlyRecap.trainingTitle,
-                    value: FormaProductCopy.Journey.MonthlyRecap.trainingSessions(13)
-                )
-            ]
-        )
-    }
-
-    private static func makeJourneyLevelEmpty() -> JourneyLevelState {
-        JourneyLevelState(
-            currentLevel: 1,
-            levelTitle: FormaProductCopy.Journey.Level.title(for: 1),
-            currentXP: 0,
-            xpRequiredForNextLevel: 100,
-            totalXP: 0,
-            progressPercent: 0,
-            xpEarnedExplanation: FormaProductCopy.Journey.Level.emptyBody,
-            hasData: false
-        )
-    }
-
-    private static func makeJourneyLevelStarter() -> JourneyLevelState {
-        JourneyLevelState(
-            currentLevel: 2,
-            levelTitle: FormaProductCopy.Journey.Level.title(for: 2),
-            currentXP: 35,
-            xpRequiredForNextLevel: 150,
-            totalXP: 135,
-            progressPercent: 35.0 / 150.0 * 100,
-            xpEarnedExplanation: FormaProductCopy.Journey.Level.earnExplanation,
-            hasData: true
-        )
-    }
-
-    private static func makeJourneyLevelMid() -> JourneyLevelState {
-        JourneyLevelState(
-            currentLevel: 5,
-            levelTitle: FormaProductCopy.Journey.Level.title(for: 5),
-            currentXP: 180,
-            xpRequiredForNextLevel: 350,
-            totalXP: 880,
-            progressPercent: 180.0 / 350.0 * 100,
-            xpEarnedExplanation: FormaProductCopy.Journey.Level.earnExplanation,
-            hasData: true
-        )
-    }
-
-    private static func makeJourneyLevelActive() -> JourneyLevelState {
-        JourneyLevelState(
-            currentLevel: 7,
-            levelTitle: FormaProductCopy.Journey.Level.title(for: 7),
-            currentXP: 350,
-            xpRequiredForNextLevel: 450,
-            totalXP: 2_000,
-            progressPercent: 350.0 / 450.0 * 100,
-            xpEarnedExplanation: FormaProductCopy.Journey.Level.earnExplanation,
-            hasData: true
-        )
-    }
-
-    private static func makeJourneyLevelHigh() -> JourneyLevelState {
-        JourneyLevelState(
-            currentLevel: 9,
-            levelTitle: FormaProductCopy.Journey.Level.title(for: 9),
-            currentXP: 420,
-            xpRequiredForNextLevel: 500,
-            totalXP: 3_400,
-            progressPercent: 420.0 / 500.0 * 100,
-            xpEarnedExplanation: FormaProductCopy.Journey.Level.earnExplanation,
-            hasData: true
-        )
-    }
-
-    private static func makeDetailedAnalytics(
-        loggedDays: Int,
-        showsWeightChart: Bool,
-        weightPoints: [WeightChartPoint],
-        interpretation: String,
-        weightLogCTA: JourneyCTA?,
-        trainingDisplay: JourneyDetailedAnalyticsTrainingDisplay
-    ) -> JourneyDetailedAnalyticsState {
-        JourneyDetailedAnalyticsState(
-            isCollapsedByDefault: true,
-            nutritionSummary: ProgressNutritionSummary(
-                loggedDays: loggedDays,
-                averageCalories: loggedDays > 0 ? 1_735 : 0,
-                averageProtein: loggedDays > 0 ? 128 : 0,
-                averageCarbs: loggedDays > 0 ? 148 : 0,
-                averageFat: loggedDays > 0 ? 58 : 0,
-                averageFiber: loggedDays > 2 ? 22 : nil
-            ),
-            waterSummary: ProgressWaterSummary(
-                loggedDays: loggedDays,
-                averageWaterMl: loggedDays > 0 ? 2_400 : 0,
-                averageWaterTargetMl: 2_400,
-                consistencyPercent: loggedDays > 0 ? 0.72 : 0
-            ),
-            trainingDisplay: trainingDisplay,
-            weightChartPoints: weightPoints,
-            weightTrendInterpretation: interpretation,
-            showsWeightChart: showsWeightChart,
-            weightLogCTA: weightLogCTA
-        )
-    }
-
-    // MARK: - Builder delegates
 
     private static func makeMilestones(
+        baseline: JourneyBaseline,
         foodLogDays: Int,
         proteinGoalDays: Int,
-        startWeight: Double,
-        currentWeight: Double,
-        goalWeight: Double,
-        direction: JourneyGoalDirection,
-        progressPercent: Double,
-        loggingStreak: Int,
-        longestStreak: Int
+        waterGoalDays: Int,
+        trainingWorkoutDays: Int,
+        streaks: JourneyStreakState,
+        healthWorkoutDayOffsets: [Int] = []
     ) -> JourneyMilestonesState {
-        let logs = makeLogs(count: foodLogDays, proteinGoalDays: proteinGoalDays)
-        let baseline = makeBaseline(
-            startWeight: startWeight,
-            currentWeight: currentWeight,
-            goalWeight: goalWeight,
-            direction: direction,
-            progressPercent: progressPercent,
-            daysOnJourney: max(foodLogDays, 1),
-            hasRealWeightEntries: foodLogDays > 0,
-            usesSyntheticBaseline: foodLogDays == 0,
-            chartPoints: []
-        )
-        let streaks = makeStreaks(
-            currentLogging: loggingStreak,
-            longestLogging: longestStreak,
-            proteinStreak: min(proteinGoalDays, 5),
-            waterStreak: 2,
-            trainingWeeks: loggingStreak > 0 ? 2 : nil,
-            isTodayLogged: loggingStreak > 0
-        )
-
-        return JourneyMilestonesBuilder.build(
+        JourneyMilestonesBuilder.build(
             JourneyMilestonesBuilder.Input(
                 baseline: baseline,
-                maturityLogs: logs,
+                maturityLogs: makeLogs(
+                    count: foodLogDays,
+                    proteinGoalDays: proteinGoalDays,
+                    waterGoalDays: waterGoalDays,
+                    calorieAdherenceDays: foodLogDays,
+                    trainingWorkoutDays: trainingWorkoutDays
+                ),
                 journeyStreaks: streaks,
-                healthWorkoutDayStarts: [],
+                healthWorkoutDayStarts: makeHealthWorkoutDayStarts(healthWorkoutDayOffsets),
                 calendar: calendar
             )
         )
     }
 
     private static func makeStoryTimeline(
+        profile: UserProfile,
+        baseline: JourneyBaseline,
         foodLogDays: Int,
-        startWeight: Double,
-        currentWeight: Double,
-        goalWeight: Double,
-        direction: JourneyGoalDirection,
-        progressPercent: Double,
-        loggingStreak: Int,
-        longestStreak: Int,
+        proteinGoalDays: Int,
+        waterGoalDays: Int,
+        trainingWorkoutDays: Int,
+        streaks: JourneyStreakState,
+        healthConnected: Bool,
+        healthWorkoutDayOffsets: [Int] = [],
         weightEntries: [(daysAgo: Int, kg: Double)] = []
     ) -> JourneyStoryTimelineState {
-        let logs = makeLogs(count: foodLogDays, proteinGoalDays: foodLogDays)
-        let weights: [WeightEntry] = weightEntries.compactMap { entry in
-            guard let date = calendar.date(byAdding: .day, value: -entry.daysAgo, to: today) else { return nil }
+        let logs = makeLogs(
+            count: foodLogDays,
+            proteinGoalDays: proteinGoalDays,
+            waterGoalDays: waterGoalDays,
+            calorieAdherenceDays: foodLogDays,
+            trainingWorkoutDays: trainingWorkoutDays
+        )
+        let weights = weightEntries.compactMap { entry -> WeightEntry? in
+            guard let date = calendar.date(byAdding: .day, value: -entry.daysAgo, to: today) else {
+                return nil
+            }
             return WeightEntry(
                 id: UUID(),
                 date: date,
@@ -1372,34 +1185,15 @@ enum JourneyPreviewData {
             )
         }
 
-        let baseline = makeBaseline(
-            startWeight: startWeight,
-            currentWeight: currentWeight,
-            goalWeight: goalWeight,
-            direction: direction,
-            progressPercent: progressPercent,
-            daysOnJourney: max(foodLogDays, 1),
-            hasRealWeightEntries: !weights.isEmpty,
-            usesSyntheticBaseline: weights.isEmpty,
-            chartPoints: []
-        )
-
         return JourneyTimelineBuilder.build(
             JourneyTimelineBuilder.Input(
-                profile: previewProfile,
+                profile: profile,
                 baseline: baseline,
                 maturityLogs: logs,
                 allWeights: weights,
-                healthWorkoutDayStarts: [],
-                isAppleHealthConnected: false,
-                journeyStreaks: makeStreaks(
-                    currentLogging: loggingStreak,
-                    longestLogging: longestStreak,
-                    proteinStreak: min(foodLogDays, 5),
-                    waterStreak: min(foodLogDays, 4),
-                    trainingWeeks: foodLogDays > 0 ? 2 : nil,
-                    isTodayLogged: loggingStreak > 0
-                ),
+                healthWorkoutDayStarts: makeHealthWorkoutDayStarts(healthWorkoutDayOffsets),
+                isAppleHealthConnected: healthConnected,
+                unlockedMilestoneCount: 0,
                 asOf: today,
                 calendar: calendar
             )
@@ -1416,7 +1210,7 @@ enum JourneyPreviewData {
         weightDeltaThisWeekKg: Double?,
         calorieAdherenceDays: Int,
         goalDirection: JourneyGoalDirection,
-        loggingStreak: Int,
+        streaks: JourneyStreakState,
         previousWeek: JourneyWeeklyReviewPreviousWeek? = nil
     ) -> JourneyWeeklyReviewState {
         let base = JourneyWeeklyReviewState(
@@ -1440,21 +1234,16 @@ enum JourneyPreviewData {
                 weightDelta: weightDeltaThisWeekKg
             ),
             rows: [],
-            weekOverWeekDetail: nil
+            weekOverWeekDetail: nil,
+            consistencyHeadline: nil,
+            consistencyDetail: nil
         )
 
         return JourneyWeeklyReviewBuilder.enrich(
             review: base,
             previousWeek: previousWeek,
             goalDirection: goalDirection,
-            streaks: makeStreaks(
-                currentLogging: loggingStreak,
-                longestLogging: max(loggingStreak, 14),
-                proteinStreak: proteinGoalDays,
-                waterStreak: waterGoalDays,
-                trainingWeeks: trainingDays > 0 ? 2 : nil,
-                isTodayLogged: loggingStreak > 0
-            )
+            streaks: streaks
         )
     }
 
@@ -1474,9 +1263,12 @@ enum JourneyPreviewData {
                 label: copy.loggingStreak(days: currentLogging)
             )
             : .hidden
-        let weekly = currentLogging > 0
-            ? (copy.loggingStreak(days: currentLogging), copy.longestLoggingStreak(days: longestLogging))
-            : (copy.buildingConsistency, copy.longestLoggingStreak(days: longestLogging))
+        let headline = currentLogging > 0
+            ? copy.loggingStreak(days: currentLogging)
+            : copy.buildingConsistency
+        let detail = longestLogging > 0
+            ? copy.longestLoggingStreak(days: longestLogging)
+            : nil
 
         return JourneyStreakState(
             currentLoggingStreakDays: currentLogging,
@@ -1486,58 +1278,47 @@ enum JourneyPreviewData {
             currentTrainingStreakWeeks: trainingWeeks,
             isTodayLogged: isTodayLogged,
             heroStreakChip: heroChip,
-            weeklyConsistencyHeadline: weekly.0,
-            weeklyConsistencyDetail: weekly.1,
+            weeklyConsistencyHeadline: headline,
+            weeklyConsistencyDetail: detail,
             keepStreakAliveCopy: nil
         )
     }
 
-    private static func makeTransformation(
-        baseline: JourneyBaseline,
-        loggedDays: Int,
-        loggingStreak: Int,
-        weightTrendDirection: WeightTrendDirection
-    ) -> JourneyTransformationHeroState {
-        let streaks = makeStreaks(
-            currentLogging: loggingStreak,
-            longestLogging: max(loggingStreak, 12),
-            proteinStreak: 3,
-            waterStreak: 2,
-            trainingWeeks: loggingStreak > 0 ? 2 : nil,
-            isTodayLogged: loggingStreak > 0
-        )
-        return JourneyTransformationHeroBuilder.build(
-            JourneyTransformationHeroBuilder.Input(
-                baseline: baseline,
-                loggedDays: loggedDays,
-                heroStreakChip: streaks.heroStreakChip,
-                weightTrendDirection: weightTrendDirection,
-                asOf: today,
-                calendar: calendar
-            )
-        )
-    }
-
-    private static func makeLogs(count: Int, proteinGoalDays: Int) -> [DailyLog] {
+    private static func makeLogs(
+        count: Int,
+        proteinGoalDays: Int,
+        waterGoalDays: Int,
+        calorieAdherenceDays: Int,
+        trainingWorkoutDays: Int
+    ) -> [DailyLog] {
         guard count > 0 else { return [] }
+
         return (0..<count).compactMap { offset in
-            guard let date = calendar.date(byAdding: .day, value: -offset, to: today) else { return nil }
+            guard let date = calendar.date(byAdding: .day, value: -offset, to: today) else {
+                return nil
+            }
+
+            let hitsProtein = offset < proteinGoalDays
+            let hitsWater = offset < waterGoalDays
+            let hitsCalories = offset < calorieAdherenceDays
+            let hasWorkout = offset < trainingWorkoutDays
+
             return DailyLog(
                 id: UUID(),
                 date: date,
                 weightKg: nil,
                 targets: previewTargets,
                 totals: MacroTotals(
-                    calories: 1_800,
-                    protein: proteinGoalDays > offset ? 140 : 80,
-                    carbs: 120,
-                    fat: 50,
+                    calories: hitsCalories ? 1_800 : 2_150,
+                    protein: hitsProtein ? 140 : 85,
+                    carbs: 155,
+                    fat: 55,
                     fiber: nil,
                     sodium: nil
                 ),
-                waterConsumedMl: 2_000,
+                waterConsumedMl: hitsWater ? 2_500 : 600,
                 steps: nil,
-                workoutCaloriesBurned: 0,
+                workoutCaloriesBurned: hasWorkout ? 300 : 0,
                 dailyReviewId: nil,
                 createdAt: date,
                 updatedAt: date
@@ -1563,10 +1344,17 @@ enum JourneyPreviewData {
         dropPerStep: Double,
         count: Int
     ) -> [WeightChartPoint] {
-        (0..<count).compactMap { index in
-            guard let date = calendar.date(byAdding: .day, value: -(count - 1) + index, to: today) else {
+        guard count > 0 else { return [] }
+
+        return (0..<count).compactMap { index in
+            guard let date = calendar.date(
+                byAdding: .day,
+                value: -(count - 1) + index,
+                to: today
+            ) else {
                 return nil
             }
+
             return WeightChartPoint(
                 date: date,
                 weightKg: startKg - (Double(index) * dropPerStep),
@@ -1581,10 +1369,17 @@ enum JourneyPreviewData {
         risePerStep: Double,
         count: Int
     ) -> [WeightChartPoint] {
-        (0..<count).compactMap { index in
-            guard let date = calendar.date(byAdding: .day, value: -(count - 1) + index, to: today) else {
+        guard count > 0 else { return [] }
+
+        return (0..<count).compactMap { index in
+            guard let date = calendar.date(
+                byAdding: .day,
+                value: -(count - 1) + index,
+                to: today
+            ) else {
                 return nil
             }
+
             return WeightChartPoint(
                 date: date,
                 weightKg: startKg + (Double(index) * risePerStep),
@@ -1595,10 +1390,17 @@ enum JourneyPreviewData {
     }
 
     private static func flatWeightPoints(kg: Double, count: Int) -> [WeightChartPoint] {
-        (0..<count).compactMap { index in
-            guard let date = calendar.date(byAdding: .day, value: -(count - 1) + index, to: today) else {
+        guard count > 0 else { return [] }
+
+        return (0..<count).compactMap { index in
+            guard let date = calendar.date(
+                byAdding: .day,
+                value: -(count - 1) + index,
+                to: today
+            ) else {
                 return nil
             }
+
             let wobble = index.isMultiple(of: 2) ? 0.05 : -0.05
             return WeightChartPoint(
                 date: date,
@@ -1615,8 +1417,23 @@ enum JourneyPreviewData {
         points
             .filter { !$0.isSynthetic }
             .compactMap { point in
-                let days = calendar.dateComponents([.day], from: point.date, to: today).day ?? 0
+                let days = calendar.dateComponents(
+                    [.day],
+                    from: calendar.startOfDay(for: point.date),
+                    to: calendar.startOfDay(for: today)
+                ).day ?? 0
                 return (daysAgo: max(days, 0), kg: point.weightKg)
             }
+    }
+
+    private static func makeHealthWorkoutDayStarts(_ offsets: [Int]) -> Set<Date> {
+        Set(
+            offsets.compactMap { offset in
+                guard let date = calendar.date(byAdding: .day, value: -offset, to: today) else {
+                    return nil
+                }
+                return calendar.startOfDay(for: date)
+            }
+        )
     }
 }

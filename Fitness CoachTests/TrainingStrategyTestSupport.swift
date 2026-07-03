@@ -51,21 +51,21 @@ enum TrainingStrategyTestSupport {
         case metrics
     }
 
-    /// Mirrors `JourneyDashboardBuilder.trainingAnalyticsDisplay`.
+    /// Mirrors the removed Journey detailed analytics training display resolver.
     static func journeyTrainingAnalyticsDisplay(
         training: JourneyWeeklyTrainingStatus,
         workoutSummary: ProgressWorkoutSummary?
     ) -> JourneyTrainingAnalyticsDisplay {
-        switch JourneyDashboardBuilder.trainingAnalyticsDisplay(
-            weeklyTraining: training,
-            workoutSummary: workoutSummary
-        ) {
-        case .hidden:
+        switch training {
+        case .hidden, .locked:
             return .hidden
         case .connectedEmpty:
             return .emptyConnected
-        case .metrics:
-            return .metrics
+        case .connected:
+            if let workoutSummary, workoutSummary.isFromAppleHealth {
+                return .metrics
+            }
+            return .hidden
         }
     }
 

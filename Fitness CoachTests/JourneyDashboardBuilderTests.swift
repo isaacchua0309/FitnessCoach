@@ -60,107 +60,17 @@ final class JourneyDashboardBuilderTests: XCTestCase {
         XCTAssertFalse(milestones.items.isEmpty)
         XCTAssertEqual(
             milestones.items.first(where: { $0.id == "first-kg" })?.title,
-            "Lost first kilogram"
+            FormaProductCopy.Journey.Milestones.NextAchievement.firstKgTitle
         )
         XCTAssertNotNil(milestones.next)
     }
 
-    func testJourneyLevelXPIncreasesWithLoggedFoodDays() {
-        let logs = (0..<3).map { makeLog(daysAgo: $0, calories: 500) }
-        let emptyContext = makeContext(maturityLogs: [])
-        let loggedContext = makeContext(maturityLogs: logs)
+    func testStoryTimelineBuildsFromLoggedHistory() {
+        let logs = (0..<5).map { makeLog(daysAgo: $0, calories: 1_800, protein: 150) }
+        let context = makeContext(maturityLogs: logs)
+        let timeline = JourneyDashboardBuilder.storyTimeline(context: context)
 
-        let emptyLevel = JourneyDashboardBuilder.journeyLevel(context: emptyContext)
-        let loggedLevel = JourneyDashboardBuilder.journeyLevel(context: loggedContext)
-
-        XCTAssertGreaterThan(loggedLevel.totalXP, emptyLevel.totalXP)
-        XCTAssertFalse(loggedLevel.xpEarnedExplanation.isEmpty)
-    }
-
-    func testDetailedAnalyticsShowsChartWithSingleLoggedWeightUsingSyntheticBaseline() {
-        let logDate = calendar.date(byAdding: .day, value: 7, to: asOf)!
-        let allWeights = [
-            WeightEntry(id: UUID(), date: logDate, weightKg: 66, note: nil, createdAt: logDate)
-        ]
-        let context = makeContext(allWeights: allWeights)
-
-        let analytics = JourneyDashboardBuilder.detailedAnalytics(
-            context: context,
-            weightInterpretation: "Need more data"
-        )
-
-        XCTAssertTrue(analytics.isCollapsedByDefault)
-        XCTAssertTrue(analytics.showsWeightChart)
-        XCTAssertGreaterThanOrEqual(analytics.weightChartPoints.count, 1)
-        XCTAssertTrue(analytics.weightChartPoints.contains(where: \.isSynthetic))
-        XCTAssertNil(analytics.weightLogCTA)
-    }
-
-    func testDetailedAnalyticsWithoutWeightChartIncludesLogWeightCTA() {
-        let logs = (0..<4).map { makeLog(daysAgo: $0, calories: 1_800) }
-        let context = makeContext(
-            profile: nil,
-            maturityLogs: logs,
-            allWeights: []
-        )
-
-        let analytics = JourneyDashboardBuilder.detailedAnalytics(
-            context: context,
-            weightInterpretation: FormaProductCopy.Journey.DetailedAnalytics.WeightTrend.insufficientData
-        )
-
-        XCTAssertFalse(analytics.showsWeightChart)
-        XCTAssertEqual(analytics.weightLogCTA, .logWeight)
-    }
-
-    func testDetailedAnalyticsWithSyntheticBaselineHidesLogWeightCTA() {
-        let logs = (0..<4).map { makeLog(daysAgo: $0, calories: 1_800) }
-        let context = makeContext(maturityLogs: logs, allWeights: [])
-
-        let analytics = JourneyDashboardBuilder.detailedAnalytics(
-            context: context,
-            weightInterpretation: FormaProductCopy.Journey.DetailedAnalytics.WeightTrend.insufficientData
-        )
-
-        XCTAssertTrue(analytics.showsWeightChart)
-        XCTAssertNil(analytics.weightLogCTA)
-    }
-
-    func testDetailedAnalyticsRangeSelectionChangesChartWindow() {
-        let early = WeightEntry(
-            id: UUID(),
-            date: calendar.date(byAdding: .day, value: -20, to: asOf)!,
-            weightKg: 82,
-            note: nil,
-            createdAt: calendar.date(byAdding: .day, value: -20, to: asOf)!
-        )
-        let recent = WeightEntry(
-            id: UUID(),
-            date: calendar.date(byAdding: .day, value: -2, to: asOf)!,
-            weightKg: 80,
-            note: nil,
-            createdAt: calendar.date(byAdding: .day, value: -2, to: asOf)!
-        )
-        let weights = [early, recent]
-        let logs = (0..<5).map { makeLog(daysAgo: $0, calories: 1_800) }
-
-        var shortRange = makeContext(maturityLogs: logs, allWeights: weights)
-        shortRange.selectedRangeDays = 7
-        var longRange = makeContext(maturityLogs: logs, allWeights: weights)
-        longRange.selectedRangeDays = 28
-
-        let shortAnalytics = JourneyDashboardBuilder.detailedAnalytics(
-            context: shortRange,
-            weightInterpretation: "Short"
-        )
-        let longAnalytics = JourneyDashboardBuilder.detailedAnalytics(
-            context: longRange,
-            weightInterpretation: "Long"
-        )
-
-        XCTAssertTrue(shortAnalytics.showsWeightChart)
-        XCTAssertTrue(longAnalytics.showsWeightChart)
-        XCTAssertLessThanOrEqual(shortAnalytics.weightChartPoints.count, longAnalytics.weightChartPoints.count)
+        XCTAssertFalse(timeline.displayEvents.isEmpty)
     }
 
     // MARK: - Helpers
@@ -187,11 +97,11 @@ final class JourneyDashboardBuilderTests: XCTestCase {
             profile: profile,
             baseline: resolvedBaseline,
             maturityLogs: maturityLogs,
+            monthLogs: weekLogs,
             weekLogs: weekLogs,
             previousWeekLogs: [],
             previousWeekWeights: [],
             previousWeekTrainingDays: 0,
-            monthLogs: maturityLogs,
             allWeights: allWeights,
             weekWeights: allWeights,
             journeyStreaks: JourneyStreakBuilder.build(
@@ -219,10 +129,6 @@ final class JourneyDashboardBuilderTests: XCTestCase {
             goalProjection: nil,
             healthWorkoutDayStarts: [],
             monthHealthWorkoutCount: 0,
-            nutritionSummary: JourneyLogSummaryBuilder.nutritionSummary(from: maturityLogs),
-            waterSummary: JourneyLogSummaryBuilder.waterSummary(from: maturityLogs),
-            workoutSummary: nil,
-            selectedRangeDays: 28,
             asOf: asOf,
             calendar: calendar
         )

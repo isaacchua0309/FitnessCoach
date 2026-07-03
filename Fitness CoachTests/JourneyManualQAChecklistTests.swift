@@ -33,7 +33,7 @@ final class JourneyManualQAChecklistTests: XCTestCase {
         XCTAssertTrue(dashboard.baseline.usesSyntheticBaselinePoint)
         XCTAssertTrue(dashboard.baseline.showsWeightChart)
         XCTAssertGreaterThanOrEqual(dashboard.baseline.chartPoints.count, 1)
-        XCTAssertFalse(dashboard.transformation.headlineCopy.isEmpty)
+        XCTAssertFalse(dashboard.transformation.primaryMessage.isEmpty)
         XCTAssertFalse(dashboard.transformation.accessibilitySummary.isEmpty)
     }
 
@@ -92,26 +92,37 @@ final class JourneyManualQAChecklistTests: XCTestCase {
             )
         )
 
-        let hero = JourneyTransformationHeroBuilder.build(
-            JourneyTransformationHeroBuilder.Input(
+        XCTAssertEqual(baseline.currentWeightKg ?? 0, 85, accuracy: 0.01)
+        XCTAssertGreaterThanOrEqual(baseline.chartPoints.filter { !$0.isSynthetic }.count, 3)
+        XCTAssertGreaterThan(baseline.progressPercent ?? 0, 0)
+
+        let hero = JourneyHeroBuilder.build(
+            JourneyHeroBuilder.Input(
                 baseline: baseline,
                 loggedDays: 0,
-                heroStreakChip: .hidden,
-                weightTrendDirection: .decreasing,
+                journeyStreaks: JourneyStreakState(
+                    currentLoggingStreakDays: 0,
+                    longestLoggingStreakDays: 0,
+                    currentProteinStreakDays: 0,
+                    currentWaterStreakDays: 0,
+                    currentTrainingStreakWeeks: nil,
+                    isTodayLogged: false,
+                    heroStreakChip: .hidden,
+                    weeklyConsistencyHeadline: "",
+                    weeklyConsistencyDetail: nil,
+                    keepStreakAliveCopy: nil
+                ),
+                hasProfile: true,
                 asOf: asOf,
                 calendar: calendar
             )
         )
-
-        XCTAssertEqual(baseline.currentWeightKg ?? 0, 85, accuracy: 0.01)
-        XCTAssertEqual(hero.todayWeightCopy, JourneyFormatter.heroWeightKg(85))
-        XCTAssertGreaterThanOrEqual(baseline.chartPoints.filter { !$0.isSynthetic }.count, 3)
-        XCTAssertGreaterThan(baseline.progressPercent ?? 0, 0)
+        XCTAssertEqual(hero.variant, .newUser)
     }
 
     // MARK: - 4. Food logging
 
-    func testManualQA04_FoodLoggingUpdatesWeeklyReviewTimelineAndXP() async throws {
+    func testManualQA04_FoodLoggingUpdatesWeeklyReviewAndTimeline() async throws {
         let now = Date()
         let harness = try FitnessActionCenterTestSupport.makeHarness(referenceNow: now)
         _ = try harness.seedProfile()
@@ -156,12 +167,11 @@ final class JourneyManualQAChecklistTests: XCTestCase {
             dashboardAfter.storyTimeline.displayEvents.contains { $0.type == .firstMealLogged }
                 || dashboardAfter.storyTimeline.events.contains { $0.type == .firstMealLogged }
         )
-        XCTAssertGreaterThanOrEqual(dashboardAfter.journeyLevel.totalXP, 10)
     }
 
     // MARK: - 5. Water logging
 
-    func testManualQA05_WaterLoggingUpdatesWeeklyReviewAndHabitInsights() {
+    func testManualQA05_WaterLoggingUpdatesWeeklyReview() {
         let logs = (0..<6).map { offset in
             makeLog(
                 daysAgo: offset,
@@ -178,61 +188,6 @@ final class JourneyManualQAChecklistTests: XCTestCase {
         )
 
         XCTAssertGreaterThan(dashboard.weeklyReview.waterGoalDays, 0)
-        if dashboard.habitInsights.isUnlocked {
-            XCTAssertFalse(dashboard.habitInsights.strongestHabitLabel.isEmpty)
-        }
-    }
-
-    // MARK: - 6. Protein consistency
-
-    func testManualQA06_ProteinGoalDaysAndStrongestHabit() {
-        let logs = (0..<10).map { offset in
-            makeLog(daysAgo: offset, calories: 1_800, protein: 140, waterMl: 2_000)
-        }
-
-        let dashboard = buildDashboard(
-            maturityLogs: logs,
-            weekLogs: Array(logs.prefix(7)),
-            isAppleHealthConnected: false
-        )
-
-        XCTAssertGreaterThanOrEqual(dashboard.weeklyReview.proteinGoalDays, 5)
-        XCTAssertTrue(dashboard.habitInsights.isUnlocked)
-        XCTAssertEqual(
-            dashboard.habitInsights.strongestHabitLabel,
-            FormaProductCopy.Journey.HabitInsights.proteinLabel
-        )
-    }
-
-    // MARK: - 7. Weak weekend logging
-
-    func testManualQA07_WeekendLoggingWeakHabitAndUsefulSuggestion() {
-        let logs = weekdayLogs(count: 12, protein: 140, waterMl: 2_000)
-        var profile = ProfileTestFixtures.sampleProfile
-        profile.createdAt = calendar.date(byAdding: .day, value: -1, to: asOf)!
-
-        let insights = JourneyHabitInsightsBuilder.build(
-            JourneyHabitInsightsBuilder.Input(
-                profile: profile,
-                maturityLogs: logs,
-                weekLogs: Array(logs.prefix(7)),
-                weekWeights: [],
-                healthWorkoutDayStarts: [],
-                isAppleHealthConnected: false,
-                expectedTrainingDaysPerWeek: 3,
-                hasRealWeightEntries: false,
-                asOf: asOf,
-                calendar: calendar
-            )
-        )
-
-        XCTAssertTrue(insights.isUnlocked)
-        XCTAssertEqual(insights.weakestHabitKind, .weekendLogging)
-        XCTAssertEqual(
-            insights.suggestedNextAction,
-            FormaProductCopy.Journey.HabitInsights.suggestWeekendLogging
-        )
-        XCTAssertFalse(insights.suggestedNextAction.isEmpty)
     }
 
     // MARK: - 8. Milestones
@@ -262,11 +217,10 @@ final class JourneyManualQAChecklistTests: XCTestCase {
         XCTAssertTrue(unlockedIDs.contains("first-meal"))
         XCTAssertTrue(unlockedIDs.contains("first-week"))
         XCTAssertTrue(unlockedIDs.contains("first-kg"))
-        XCTAssertTrue(unlockedIDs.contains("thirty-meals"))
-
-        if dashboard.baseline.progressPercent ?? 0 >= 50 {
-            XCTAssertTrue(unlockedIDs.contains("halfway"))
-        }
+        XCTAssertTrue(unlockedIDs.contains("protein-three-week"))
+        XCTAssertTrue(unlockedIDs.contains("water-three-week"))
+        XCTAssertTrue(dashboard.milestone.isVisible)
+        XCTAssertFalse(dashboard.milestones.items.contains(where: { $0.status == .upcoming }))
     }
 
     // MARK: - 9. Story Timeline
@@ -303,159 +257,21 @@ final class JourneyManualQAChecklistTests: XCTestCase {
         }
     }
 
-    // MARK: - 10. Progress attribution
+    // MARK: - 10. Apple Health disconnected
 
-    func testManualQA10_ProgressAttributionUsesLikelyLanguageNotOverclaims() {
-        let logs = (0..<20).map { offset in
-            makeLog(daysAgo: offset, calories: 1_850, protein: 120, waterMl: 2_000)
-        }
-
-        let attribution = buildDashboard(
-            maturityLogs: logs,
-            weekLogs: Array(logs.prefix(7)),
-            weightSummary: ProgressWeightSummary(
-                latestWeightKg: 84,
-                changeKg: -1.2,
-                direction: .decreasing,
-                hasSuddenSpike: false
-            ),
-            isAppleHealthConnected: false
-        ).progressAttribution
-
-        let combined = "\(attribution.primaryReasonTitle) \(attribution.primaryReasonDetail)"
-        let banned = ["proved", "caused", "guaranteed", "definitely", "certainly"]
-        for word in banned {
-            XCTAssertFalse(
-                containsWholeWord(word, in: combined),
-                "Attribution overclaims with '\(word)'"
-            )
-        }
-        XCTAssertTrue(
-            combined.localizedCaseInsensitiveContains("likely")
-                || attribution.primaryReasonTitle == FormaProductCopy.Journey.WhyProgress.insufficientTitle
-        )
-    }
-
-    // MARK: - 11. Before vs Today
-
-    func testManualQA11_BeforeTodayHidesMissingMaintenanceWithoutFakePrecision() {
-        let baseline = makeBaseline(startWeight: 90, currentWeight: 86, goalWeight: 75, direction: .lose)
-        let withoutProfile = JourneyBeforeTodayBuilder.build(
-            JourneyBeforeTodayBuilder.Input(
-                profile: nil,
-                baseline: baseline,
-                asOf: asOf,
-                calendar: calendar
-            )
-        )
-
-        XCTAssertFalse(withoutProfile.showsMaintenanceRow)
-        XCTAssertNil(withoutProfile.startingMaintenanceCaloriesKcal)
-        XCTAssertFalse(withoutProfile.accessibilitySummary.contains("0 kcal"))
-    }
-
-    // MARK: - 12. Personal Records
-
-    func testManualQA12_PersonalRecordsLockedThenUnlockedWithData() {
-        let sparse = (0..<2).map { makeLog(daysAgo: $0, calories: 1_800, protein: 80) }
-        let rich = (0..<6).map { makeLog(daysAgo: $0, calories: 1_800, protein: 140, waterMl: 2_500) }
-
-        let locked = buildDashboard(maturityLogs: sparse, weekLogs: sparse, isAppleHealthConnected: false)
-            .personalRecords
-        let unlocked = buildDashboard(maturityLogs: rich, weekLogs: rich, isAppleHealthConnected: false)
-            .personalRecords
-
-        XCTAssertFalse(locked.isUnlocked)
-        XCTAssertEqual(locked.lockedMessage, FormaProductCopy.Journey.PersonalRecords.lockedBody)
-        XCTAssertTrue(unlocked.isUnlocked)
-        XCTAssertFalse(unlocked.displayRecords.isEmpty)
-    }
-
-    // MARK: - 13. Monthly Recap
-
-    func testManualQA13_MonthlyRecapPartialAndCompleteStates() {
-        let partialLogs = (0..<2).map { makeLog(daysAgo: $0, calories: 1_800, protein: 120) }
-        let fullLogs = (0..<8).map { makeLog(daysAgo: $0, calories: 1_800, protein: 130, waterMl: 2_400) }
-
-        let partial = JourneyMonthlyRecapBuilder.build(
-            JourneyMonthlyRecapBuilder.Input(
-                monthLogs: partialLogs,
-                maturityLogs: partialLogs,
-                allWeights: [],
-                healthWorkoutDayStarts: [],
-                monthHealthWorkoutCount: 0,
-                goalDirection: .lose,
-                isAppleHealthConnected: false,
-                expectedTrainingDaysPerWeek: 3,
-                asOf: asOf,
-                calendar: calendar
-            )
-        )
-        let full = JourneyMonthlyRecapBuilder.build(
-            JourneyMonthlyRecapBuilder.Input(
-                monthLogs: fullLogs,
-                maturityLogs: fullLogs,
-                allWeights: [
-                    makeWeight(date: calendar.date(byAdding: .day, value: -10, to: asOf)!, kg: 88),
-                    makeWeight(date: asOf, kg: 86)
-                ],
-                healthWorkoutDayStarts: [],
-                monthHealthWorkoutCount: 0,
-                goalDirection: .lose,
-                isAppleHealthConnected: false,
-                expectedTrainingDaysPerWeek: 3,
-                asOf: asOf,
-                calendar: calendar
-            )
-        )
-
-        XCTAssertFalse(partial.isComplete)
-        XCTAssertNotNil(partial.buildingMessage)
-        XCTAssertTrue(full.isComplete)
-        XCTAssertNil(full.buildingMessage)
-        XCTAssertFalse(full.rows.isEmpty)
-    }
-
-    // MARK: - 14. Journey Level
-
-    func testManualQA14_JourneyLevelXPFromConsistencyNotRepeatedEdits() {
-        let day = calendar.startOfDay(for: asOf)
-        var older = makeLog(on: day, calories: 1_200, protein: 60, waterMl: 500)
-        var newer = older
-        newer.totals = MacroTotals(calories: 1_900, protein: 140, carbs: 100, fat: 40)
-        newer.updatedAt = calendar.date(byAdding: .hour, value: 2, to: day)!
-
-        let xp = JourneyLevelBuilder.dailyBehaviorXP(
-            input: JourneyLevelBuilder.Input(
-                maturityLogs: [older, newer],
-                allWeights: [],
-                healthWorkoutDayStarts: [],
-                isAppleHealthConnected: false,
-                unlockedMilestoneCount: 0,
-                calendar: calendar
-            )
-        )
-
-        XCTAssertEqual(xp, 30, "Repeated same-day edits must not stack food XP")
-        XCTAssertLessThanOrEqual(xp, 50)
-    }
-
-    // MARK: - 15. Apple Health disconnected
-
-    func testManualQA15_AppleHealthDisconnectedSafeTrainingState() {
+    func testManualQA10_AppleHealthDisconnectedSafeTrainingState() {
         let dashboard = JourneyPreviewData.healthDisconnected
 
         XCTAssertEqual(dashboard.weeklyReview.training, .locked)
-        XCTAssertEqual(dashboard.detailedAnalytics.trainingDisplay, .hidden)
         let trainingRow = dashboard.weeklyReview.rows.first { $0.id == "training" }
         if let trainingRow {
             XCTAssertFalse(trainingRow.value.localizedCaseInsensitiveContains("fail"))
         }
     }
 
-    // MARK: - 16. Apple Health connected
+    // MARK: - 11. Apple Health connected
 
-    func testManualQA16_AppleHealthConnectedCountsWorkoutDays() {
+    func testManualQA11_AppleHealthConnectedCountsWorkoutDays() {
         let workoutDay = calendar.startOfDay(for: asOf)
         let logs = (0..<5).map { makeLog(daysAgo: $0, calories: 1_800, protein: 120) }
 
@@ -470,42 +286,36 @@ final class JourneyManualQAChecklistTests: XCTestCase {
         XCTAssertTrue(dashboard.weeklyReview.training.showsWorkoutRow)
     }
 
-    // MARK: - 17. Gain goal
+    // MARK: - 12. Gain goal
 
-    func testManualQA17_GainGoalCopyAndMilestones() {
+    func testManualQA12_GainGoalCopyAndMilestones() {
         let dashboard = JourneyPreviewData.gainGoal
 
-        XCTAssertEqual(
-            dashboard.transformation.headlineCopy,
-            FormaProductCopy.Journey.Transformation.gainedHeadline
-        )
-        XCTAssertFalse(dashboard.transformation.headlineCopy.localizedCaseInsensitiveContains("lost"))
+        XCTAssertNotEqual(dashboard.transformation.variant, .weightLossProgress)
+        XCTAssertFalse(dashboard.transformation.primaryMessage.localizedCaseInsensitiveContains("lost"))
+        XCTAssertFalse(dashboard.transformation.primaryMessage.contains("0 kg"))
         XCTAssertEqual(dashboard.baseline.goalDirection, .gain)
 
         let firstKg = dashboard.milestones.items.first { $0.id == "first-kg" }
         XCTAssertEqual(
             firstKg?.title,
-            FormaProductCopy.Journey.Milestones.firstKilogramTitle(direction: .gain)
+            FormaProductCopy.Journey.Milestones.NextAchievement.firstKgGainTitle
         )
     }
 
-    // MARK: - 18. Maintain goal
+    // MARK: - 13. Maintain goal
 
-    func testManualQA18_MaintainGoalStableCopy() {
+    func testManualQA13_MaintainGoalStableCopy() {
         let dashboard = JourneyPreviewData.maintainGoal
 
         XCTAssertEqual(dashboard.baseline.goalDirection, .maintain)
-        XCTAssertEqual(
-            dashboard.transformation.headlineCopy,
-            FormaProductCopy.Journey.Transformation.maintainingHeadline
-        )
-        XCTAssertFalse(dashboard.transformation.headlineCopy.localizedCaseInsensitiveContains("lost"))
-        XCTAssertFalse(dashboard.transformation.headlineCopy.localizedCaseInsensitiveContains("gained"))
+        XCTAssertFalse(dashboard.transformation.primaryMessage.localizedCaseInsensitiveContains("lost"))
+        XCTAssertFalse(dashboard.transformation.primaryMessage.localizedCaseInsensitiveContains("0 kg"))
     }
 
-    // MARK: - 19. Pull to refresh
+    // MARK: - 14. Pull to refresh
 
-    func testManualQA19_JourneyRefreshReloadsSafelyAfterDataChange() async throws {
+    func testManualQA14_JourneyRefreshReloadsSafelyAfterDataChange() async throws {
         let now = Date()
         let harness = try FitnessActionCenterTestSupport.makeHarness(referenceNow: now)
         _ = try harness.seedProfile()
@@ -532,9 +342,9 @@ final class JourneyManualQAChecklistTests: XCTestCase {
         }
     }
 
-    // MARK: - 20. Dynamic Type and VoiceOver
+    // MARK: - 15. Dynamic Type and VoiceOver
 
-    func testManualQA20_AccessibilityStringsPresentForHeroProgressAndMilestones() {
+    func testManualQA15_AccessibilityStringsPresentForHeroProgressAndMilestones() {
         let dashboard = JourneyPreviewData.strongMomentum
 
         XCTAssertFalse(dashboard.transformation.accessibilitySummary.isEmpty)
@@ -544,25 +354,29 @@ final class JourneyManualQAChecklistTests: XCTestCase {
                 || dashboard.transformation.accessibilitySummary.localizedCaseInsensitiveContains("%")
         )
 
-        if let next = dashboard.milestones.next, let progress = dashboard.milestones.nextProgressFraction {
-            let milestoneA11y = FormaProductCopy.Journey.Milestones.Accessibility.progressPercent(
-                Int((progress * 100).rounded())
-            )
-            XCTAssertFalse(milestoneA11y.isEmpty)
-            XCTAssertFalse(next.title.isEmpty)
-        }
+        XCTAssertFalse(dashboard.milestone.accessibilitySummary.isEmpty)
+        XCTAssertFalse(dashboard.milestone.title.isEmpty)
+        XCTAssertFalse(dashboard.milestone.progressText.isEmpty)
     }
 
     // MARK: - Canonical layout smoke
 
-    func testManualQA_AllSectionsMountedInCanonicalOrder() {
+    func testManualQA_LeanLayoutMountsOnlyRevampSections() {
         let order = JourneyProductLayout.sectionOrder.map(\.rawValue)
+        XCTAssertEqual(order.first, "header")
         XCTAssertTrue(order.contains("transformation"))
+        XCTAssertTrue(order.contains("goalProjection"))
         XCTAssertTrue(order.contains("weeklyReview"))
+        XCTAssertTrue(order.contains("insights"))
         XCTAssertTrue(order.contains("milestones"))
         XCTAssertTrue(order.contains("storyTimeline"))
-        XCTAssertTrue(order.contains("detailedAnalytics"))
+        XCTAssertTrue(order.contains("monthlyRecap"))
+        XCTAssertTrue(order.contains("chapters"))
+        XCTAssertEqual(order.last, "startingEmptyState")
+        XCTAssertFalse(order.contains("detailedAnalytics"))
         XCTAssertFalse(order.contains("consistencyCalendar"))
+        XCTAssertFalse(order.contains("beforeToday"))
+        XCTAssertFalse(order.contains("journeyLevel"))
     }
 
     // MARK: - Helpers
@@ -654,11 +468,11 @@ final class JourneyManualQAChecklistTests: XCTestCase {
             profile: profile,
             baseline: baseline,
             maturityLogs: maturityLogs,
+            monthLogs: weekLogs,
             weekLogs: weekLogs,
             previousWeekLogs: [],
             previousWeekWeights: [],
             previousWeekTrainingDays: 0,
-            monthLogs: maturityLogs,
             allWeights: allWeights,
             weekWeights: resolvedWeekWeights,
             journeyStreaks: journeyStreaks,
@@ -667,33 +481,14 @@ final class JourneyManualQAChecklistTests: XCTestCase {
             goalProjection: nil,
             healthWorkoutDayStarts: healthWorkoutDays,
             monthHealthWorkoutCount: healthWorkoutDays.count,
-            nutritionSummary: JourneyLogSummaryBuilder.nutritionSummary(from: maturityLogs),
-            waterSummary: JourneyLogSummaryBuilder.waterSummary(from: maturityLogs),
-            workoutSummary: nil,
-            selectedRangeDays: 28,
             asOf: resolvedAsOf,
             calendar: calendar
         )
 
-        return JourneyDashboardState(
-            selectedRangeDays: 28,
+        return JourneyPresentationBuilder.buildDashboard(
             hasProfile: profile != nil,
-            baseline: baseline,
-            transformation: JourneyDashboardBuilder.transformation(context: context, loggedDays: maturityLogs.count),
-            weeklyReview: JourneyDashboardBuilder.weeklyReview(context: context),
-            streaks: journeyStreaks,
-            milestones: JourneyDashboardBuilder.milestones(context: context),
-            storyTimeline: JourneyDashboardBuilder.storyTimeline(context: context),
-            habitInsights: JourneyDashboardBuilder.habitInsights(context: context),
-            progressAttribution: JourneyDashboardBuilder.progressAttribution(context: context),
-            beforeToday: JourneyDashboardBuilder.beforeToday(context: context),
-            personalRecords: JourneyDashboardBuilder.personalRecords(context: context),
-            monthlyRecap: JourneyDashboardBuilder.monthlyRecap(context: context),
-            journeyLevel: JourneyDashboardBuilder.journeyLevel(context: context),
-            detailedAnalytics: JourneyDashboardBuilder.detailedAnalytics(
-                context: context,
-                weightInterpretation: JourneyDashboardBuilder.weightTrendInterpretation(summary: weightSummary)
-            )
+            context: context,
+            loggedDays: maturityLogs.count
         )
     }
 

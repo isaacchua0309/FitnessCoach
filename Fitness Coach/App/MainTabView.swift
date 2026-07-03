@@ -93,6 +93,9 @@ struct MainTabView: View {
                 },
                 onOpenPlan: {
                     selectedTab = .plan
+                },
+                onOpenToday: {
+                    selectedTab = .today
                 }
             )
                 .tabItem {

@@ -2,7 +2,7 @@
 //  JourneyMilestonesBuilder.swift
 //  Fitness Coach
 //
-//  Forma — Duolingo-style Journey milestone checkpoints.
+//  Forma — Legacy milestone rail adapter for the next-achievement builder.
 //
 
 import Foundation
@@ -10,258 +10,47 @@ import Foundation
 enum JourneyMilestonesBuilder {
 
     struct Input: Equatable {
+        var profile: UserProfile?
         var baseline: JourneyBaseline
         var maturityLogs: [DailyLog]
         var journeyStreaks: JourneyStreakState
+        var allWeights: [WeightEntry]
         var healthWorkoutDayStarts: Set<Date>
+        var asOf: Date
         var calendar: Calendar
-    }
 
-    private struct Definition {
-        var id: String
-        var category: JourneyMilestoneCategory
-        var title: (JourneyGoalDirection) -> String
-        var isUnlocked: (Metrics) -> Bool
-        var progress: (Metrics) -> Double
-        var isApplicable: (Metrics) -> Bool
-    }
-
-    private struct Metrics: Equatable {
-        var foodLogDays: Int
-        var proteinGoalDays: Int
-        var waterGoalDays: Int
-        var trainingWorkoutDays: Int
-        var weightChangeTowardGoalKg: Double
-        var goalProgressPercent: Double
-        var weightSpanKg: Double
-        var currentLoggingStreak: Int
-        var longestLoggingStreak: Int
-        var goalDirection: JourneyGoalDirection
+        init(
+            profile: UserProfile? = nil,
+            baseline: JourneyBaseline,
+            maturityLogs: [DailyLog],
+            journeyStreaks: JourneyStreakState,
+            allWeights: [WeightEntry] = [],
+            healthWorkoutDayStarts: Set<Date>,
+            asOf: Date = Date(),
+            calendar: Calendar
+        ) {
+            self.profile = profile
+            self.baseline = baseline
+            self.maturityLogs = maturityLogs
+            self.journeyStreaks = journeyStreaks
+            self.allWeights = allWeights
+            self.healthWorkoutDayStarts = healthWorkoutDayStarts
+            self.asOf = asOf
+            self.calendar = calendar
+        }
     }
 
     static func build(_ input: Input) -> JourneyMilestonesState {
-        let metrics = makeMetrics(input: input)
-        let definitions = milestoneDefinitions(for: metrics)
-
-        var items: [JourneyMilestone] = []
-        var foundCurrent = false
-
-        for definition in definitions where definition.isApplicable(metrics) {
-            let unlocked = definition.isUnlocked(metrics)
-            let progress = min(max(definition.progress(metrics), 0), 1)
-
-            let status: JourneyMilestoneStatus
-            if unlocked {
-                status = .completed
-            } else if !foundCurrent {
-                status = .current
-                foundCurrent = true
-            } else {
-                status = .upcoming
-            }
-
-            items.append(
-                JourneyMilestone(
-                    id: definition.id,
-                    title: definition.title(metrics.goalDirection),
-                    category: definition.category,
-                    status: status,
-                    progressFraction: unlocked ? nil : progress
-                )
+        JourneyNextMilestoneBuilder.build(
+            JourneyNextMilestoneBuilder.Input(
+                profile: input.profile,
+                baseline: input.baseline,
+                maturityLogs: input.maturityLogs,
+                allWeights: input.allWeights,
+                healthWorkoutDayStarts: input.healthWorkoutDayStarts,
+                asOf: input.asOf,
+                calendar: input.calendar
             )
-        }
-
-        guard !items.isEmpty else { return .empty }
-
-        let unlocked = items.filter { $0.status == .completed }
-        let upcoming = items.filter { $0.status != .completed }
-        let next = items.first { $0.status == .current }
-        let nextProgress = next?.progressFraction
-
-        return JourneyMilestonesState(
-            unlocked: unlocked,
-            upcoming: upcoming,
-            next: next,
-            nextProgressFraction: nextProgress,
-            items: items
-        )
-    }
-
-    // MARK: - Definitions
-
-    private static func milestoneDefinitions(for metrics: Metrics) -> [Definition] {
-        let copy = FormaProductCopy.Journey.Milestones.self
-        var definitions: [Definition] = [
-            Definition(
-                id: "first-meal",
-                category: .foodLogging,
-                title: { _ in copy.loggedFirstMeal },
-                isUnlocked: { $0.foodLogDays >= 1 },
-                progress: { min(1, Double($0.foodLogDays)) },
-                isApplicable: { _ in true }
-            ),
-            Definition(
-                id: "first-week",
-                category: .onboarding,
-                title: { copy.firstWeekTitle(direction: $0) },
-                isUnlocked: { $0.foodLogDays >= 7 },
-                progress: { min(1, Double($0.foodLogDays) / 7) },
-                isApplicable: { _ in true }
-            ),
-            Definition(
-                id: "first-kg",
-                category: .weightProgress,
-                title: { copy.firstKilogramTitle(direction: $0) },
-                isUnlocked: { metrics in
-                    switch metrics.goalDirection {
-                    case .lose, .gain:
-                        return metrics.weightChangeTowardGoalKg >= 1
-                    case .maintain:
-                        return metrics.foodLogDays >= 7
-                    }
-                },
-                progress: { metrics in
-                    switch metrics.goalDirection {
-                    case .lose, .gain:
-                        return min(1, metrics.weightChangeTowardGoalKg)
-                    case .maintain:
-                        return min(1, Double(metrics.foodLogDays) / 7)
-                    }
-                },
-                isApplicable: { _ in true }
-            ),
-            Definition(
-                id: "protein-five",
-                category: .proteinConsistency,
-                title: { _ in copy.proteinFiveDays },
-                isUnlocked: { $0.proteinGoalDays >= 5 },
-                progress: { min(1, Double($0.proteinGoalDays) / 5) },
-                isApplicable: { _ in true }
-            ),
-            Definition(
-                id: "water-five",
-                category: .waterConsistency,
-                title: { _ in copy.waterFiveDays },
-                isUnlocked: { $0.waterGoalDays >= 5 },
-                progress: { min(1, Double($0.waterGoalDays) / 5) },
-                isApplicable: { _ in true }
-            ),
-            Definition(
-                id: "first-workout",
-                category: .trainingConsistency,
-                title: { _ in copy.loggedFirstWorkout },
-                isUnlocked: { $0.trainingWorkoutDays >= 1 },
-                progress: { min(1, Double($0.trainingWorkoutDays)) },
-                isApplicable: { _ in true }
-            ),
-            Definition(
-                id: "logging-streak-seven",
-                category: .streaks,
-                title: { _ in copy.loggingStreakSeven },
-                isUnlocked: { max($0.currentLoggingStreak, $0.longestLoggingStreak) >= 7 },
-                progress: { min(1, Double(max($0.currentLoggingStreak, $0.longestLoggingStreak)) / 7) },
-                isApplicable: { _ in true }
-            ),
-            Definition(
-                id: "thirty-meals",
-                category: .foodLogging,
-                title: { _ in copy.loggedThirtyMeals },
-                isUnlocked: { $0.foodLogDays >= 30 },
-                progress: { min(1, Double($0.foodLogDays) / 30) },
-                isApplicable: { _ in true }
-            ),
-            Definition(
-                id: "halfway",
-                category: .weightProgress,
-                title: { _ in copy.halfwayToGoal },
-                isUnlocked: { $0.goalProgressPercent >= 50 },
-                progress: { min(1, $0.goalProgressPercent / 100) },
-                isApplicable: { $0.goalDirection != .maintain && $0.weightSpanKg > 0.1 }
-            ),
-            Definition(
-                id: "hundred-meals",
-                category: .foodLogging,
-                title: { _ in copy.loggedHundredMeals },
-                isUnlocked: { $0.foodLogDays >= 100 },
-                progress: { min(1, Double($0.foodLogDays) / 100) },
-                isApplicable: { _ in true }
-            ),
-            Definition(
-                id: "ten-kg",
-                category: .weightProgress,
-                title: { copy.tenKilogramTitle(direction: $0) },
-                isUnlocked: { $0.weightChangeTowardGoalKg >= 10 },
-                progress: { min(1, $0.weightChangeTowardGoalKg / 10) },
-                isApplicable: { $0.goalDirection != .maintain && $0.weightSpanKg >= 10 }
-            )
-        ]
-
-        return definitions
-    }
-
-    // MARK: - Metrics
-
-    private static func makeMetrics(input: Input) -> Metrics {
-        let logs = input.maturityLogs
-        let calendar = input.calendar
-        let baseline = input.baseline
-        let direction = baseline.goalDirection
-
-        let foodLogDays = uniqueFoodLogDays(in: logs, calendar: calendar)
-        let proteinGoalDays = JourneyLogMetrics.proteinGoalDays(in: logs)
-        let waterGoalDays = JourneyLogMetrics.waterGoalDays(in: logs)
-
-        let start = baseline.startWeightKg ?? 0
-        let current = baseline.currentWeightKg ?? start
-        let goal = baseline.goalWeightKg ?? start
-        let span = abs(start - goal)
-
-        let traveled: Double
-        switch direction {
-        case .lose:
-            traveled = max(0, start - current)
-        case .gain:
-            traveled = max(0, current - start)
-        case .maintain:
-            traveled = abs(current - start)
-        }
-
-        let trainingWorkoutDays = uniqueTrainingWorkoutDays(
-            in: logs,
-            healthWorkoutDayStarts: input.healthWorkoutDayStarts,
-            calendar: calendar
-        )
-
-        return Metrics(
-            foodLogDays: foodLogDays,
-            proteinGoalDays: proteinGoalDays,
-            waterGoalDays: waterGoalDays,
-            trainingWorkoutDays: trainingWorkoutDays,
-            weightChangeTowardGoalKg: traveled,
-            goalProgressPercent: baseline.progressPercent ?? 0,
-            weightSpanKg: span,
-            currentLoggingStreak: input.journeyStreaks.currentLoggingStreakDays,
-            longestLoggingStreak: input.journeyStreaks.longestLoggingStreakDays,
-            goalDirection: direction
-        )
-    }
-
-    private static func uniqueFoodLogDays(in logs: [DailyLog], calendar: Calendar) -> Int {
-        Set(
-            logs.filter { $0.totals.calories > 0 }
-                .map { calendar.startOfDay(for: $0.date) }
-        ).count
-    }
-
-    private static func uniqueTrainingWorkoutDays(
-        in logs: [DailyLog],
-        healthWorkoutDayStarts: Set<Date>,
-        calendar: Calendar
-    ) -> Int {
-        let loggedWorkoutDays = Set(
-            logs.filter { $0.workoutCaloriesBurned > 0 }
-                .map { calendar.startOfDay(for: $0.date) }
-        )
-        return loggedWorkoutDays.union(healthWorkoutDayStarts).count
+        ).legacyMilestones
     }
 }

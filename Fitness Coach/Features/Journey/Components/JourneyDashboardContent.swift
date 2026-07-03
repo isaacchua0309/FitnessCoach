@@ -11,68 +11,98 @@ struct JourneyDashboardContent: View {
     let state: JourneyDashboardState
     var analyticsCoordinator: JourneyAnalyticsCoordinator?
     var onCTA: (JourneyCTA) -> Void = { _ in }
-    var onSelectRange: (Int) -> Void = { _ in }
-    var onAnalyticsExpanded: (() -> Void)?
+    var onGoToToday: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: JourneyLayout.sectionSpacing) {
-            ForEach(JourneyProductLayout.sectionOrder, id: \.self) { section in
+            ForEach(visibleSections, id: \.self) { section in
                 sectionView(for: section)
             }
         }
+        .frame(maxWidth: FormaTokens.Layout.maxContentWidth)
+        .frame(maxWidth: .infinity)
         .padding(.horizontal, JourneyLayout.horizontalPadding)
         .padding(.top, FormaTokens.Spacing.md)
         .padding(.bottom, JourneyLayout.scrollBottomContentPadding)
         .accessibilityIdentifier("journey-dashboard")
     }
 
+    private var visibleSections: [JourneyProductSection] {
+        JourneyProductLayout.sectionOrder.filter { section in
+            switch section {
+            case .header:
+                return true
+            case .transformation:
+                return true
+            case .goalProjection:
+                return state.showsGoalProjectionSection
+            case .milestones:
+                return state.showsMilestonesSection
+            case .weeklyReview:
+                return state.showsWeeklyReviewSection
+            case .storyTimeline:
+                return state.showsStoryTimelineSection
+            case .insights:
+                return state.showsInsightSection
+            case .monthlyRecap:
+                return state.showsMonthlyRecapSection
+            case .chapters:
+                return state.showsChapterSection
+            case .startingEmptyState:
+                return state.showsStartingEmptyState
+            }
+        }
+    }
+
     @ViewBuilder
     private func sectionView(for section: JourneyProductSection) -> some View {
         switch section {
-        case .transformation:
-            JourneyTransformationHeroSection(state: state.transformation, onCTA: onCTA)
-                .padding(.bottom, JourneyLayout.heroBottomSpacing)
-                .onAppear { analyticsCoordinator?.logTransformationViewed() }
+        case .header:
+            JourneyHeaderSection(state: state.header)
 
-        case .weeklyReview:
-            JourneyWeeklyReviewSection(review: state.weeklyReview, onCTA: onCTA)
-                .onAppear { analyticsCoordinator?.logWeeklyReviewViewed() }
+        case .transformation:
+            VStack(alignment: .leading, spacing: JourneyLayout.heroStackSpacing) {
+                if state.showsMomentumSection {
+                    JourneyMomentumStrip(state: state.momentum)
+                }
+                JourneyTransformationHeroSection(state: state.transformation, onCTA: onCTA)
+            }
+            .padding(.bottom, JourneyLayout.heroBottomSpacing)
+            .onAppear { analyticsCoordinator?.logHeroViewed() }
+
+        case .goalProjection:
+            JourneyGoalProjectionSection(state: state.goalProjection, onCTA: onCTA)
+                .onAppear { analyticsCoordinator?.logProjectionViewed() }
 
         case .milestones:
-            JourneyMilestonesSection(state: state.milestones)
-                .onAppear { analyticsCoordinator?.logMilestoneRailViewed() }
+            JourneyMilestonesSection(state: state.milestone)
+                .onAppear { analyticsCoordinator?.logMilestoneViewed() }
+
+        case .weeklyReview:
+            JourneyWeeklyReviewSection(state: state.weeklyHabit, onCTA: onCTA)
+                .onAppear { analyticsCoordinator?.logWeeklyConsistencyViewed() }
 
         case .storyTimeline:
             JourneyStoryTimelineSection(state: state.storyTimeline)
-                .onAppear { analyticsCoordinator?.logTimelineViewed() }
+                .onAppear { analyticsCoordinator?.logStoryViewed() }
 
-        case .habitInsights:
-            JourneyHabitInsightsSection(state: state.habitInsights, onCTA: onCTA)
-                .onAppear { analyticsCoordinator?.logHabitInsightViewed() }
-
-        case .whyProgress:
-            JourneyWhyProgressSection(state: state.progressAttribution)
-
-        case .beforeToday:
-            JourneyBeforeTodaySection(state: state.beforeToday)
-
-        case .personalRecords:
-            JourneyPersonalRecordsSection(state: state.personalRecords)
+        case .insights:
+            JourneyInsightsSection(state: state.insight)
+                .onAppear { analyticsCoordinator?.logInsightsViewed() }
 
         case .monthlyRecap:
             JourneyMonthlyRecapSection(state: state.monthlyRecap)
+                .onAppear { analyticsCoordinator?.logMonthlyRecapViewed() }
 
-        case .journeyLevel:
-            JourneyLevelSection(state: state.journeyLevel)
+        case .chapters:
+            JourneyChapterSection(state: state.chapter)
+                .onAppear { analyticsCoordinator?.logChapterViewed() }
 
-        case .detailedAnalytics:
-            JourneyDetailedAnalyticsSection(
-                analytics: state.detailedAnalytics,
-                selectedRangeDays: state.selectedRangeDays,
-                onSelectRange: onSelectRange,
-                onAnalyticsExpanded: onAnalyticsExpanded,
-                onCTA: onCTA
-            )
+        case .startingEmptyState:
+            JourneyStartingEmptyStateView {
+                analyticsCoordinator?.logGoToTodayTapped()
+                onGoToToday()
+            }
         }
     }
 }
