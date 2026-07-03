@@ -116,6 +116,7 @@ final class TrainingIntegrationTests: XCTestCase {
 
         XCTAssertEqual(store.integrationState, .connected)
         XCTAssertEqual(store.dataSource, .appleHealth)
+        XCTAssertNotNil(store.lastSyncedAt)
         XCTAssertEqual(provider.refreshCallCount, 1)
     }
 
@@ -129,6 +130,7 @@ final class TrainingIntegrationTests: XCTestCase {
         await store.connectAppleHealth()
 
         XCTAssertEqual(store.integrationState, .connected)
+        XCTAssertNotNil(store.lastSyncedAt)
         XCTAssertEqual(provider.requestConnectionCallCount, 1)
     }
 

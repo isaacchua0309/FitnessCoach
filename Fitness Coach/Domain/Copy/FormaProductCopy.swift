@@ -2429,6 +2429,32 @@ enum FormaProductCopy {
             static let imperial = "Imperial"
         }
 
+        enum AppleHealth {
+            static let screenTitle = "Apple Health"
+            static let heroConnected = "Connected"
+            static let heroNotConnected = "Not Connected"
+            static let readsWorkoutsCopy =
+                "Forma reads workouts to improve activity, Plan confidence, and Journey insights."
+            static let doesNotWriteCopy =
+                "Forma does not write or change your Health data."
+            static let connectionCardTitle = "Connection"
+            static let statusLabel = "Status"
+            static let lastSyncLabel = "Last sync"
+            static let permissionsLabel = "Permissions"
+            static let accessLabel = "Access"
+            static let permissionsWorkouts = "Workouts"
+            static let accessManagedInHealthApp = "Managed in Health app"
+            static let statusConnected = "Connected"
+            static let statusNotConnected = "Not Connected"
+            static let statusPermissionNeeded = "Permission Needed"
+            static let openHealthAppAction = "Open Health app"
+            static let connectAction = "Connect Apple Health"
+            static let connectingAction = "Connecting…"
+            static let openHealthAccessibilityHint = "Opens the Health app to manage workout access"
+            static let connectAccessibilityHint = "Requests permission to read workouts from Apple Health"
+            static let connectingAccessibilityHint = "Unavailable while connecting"
+        }
+
         /// Theme preferences screen and color palette copy.
         enum Theme {
             static let screenTitle = "Theme"

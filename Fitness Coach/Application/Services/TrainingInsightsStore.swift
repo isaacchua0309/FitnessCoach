@@ -13,6 +13,7 @@ final class TrainingInsightsStore: ObservableObject {
 
     @Published private(set) var integrationState: TrainingIntegrationState = .notConnected
     @Published private(set) var dataSource: TrainingDataSource = .unavailable
+    @Published private(set) var lastSyncedAt: Date?
 
     private let integration: TrainingIntegrationProviding
 
@@ -26,6 +27,9 @@ final class TrainingInsightsStore: ObservableObject {
         let state = await integration.refreshState()
         integrationState = state
         dataSource = integration.dataSource
+        if state.isConnected {
+            lastSyncedAt = Date()
+        }
         HealthTrainingDebugLogger.logIntegrationTransition(
             from: previous,
             to: state,
@@ -55,6 +59,9 @@ final class TrainingInsightsStore: ObservableObject {
         let result = await integration.requestConnection()
         integrationState = result
         dataSource = integration.dataSource
+        if result.isConnected {
+            lastSyncedAt = Date()
+        }
 
         HealthTrainingDebugLogger.logIntegrationTransition(
             from: previous,
@@ -63,4 +70,10 @@ final class TrainingInsightsStore: ObservableObject {
             fields: ["dataSource": dataSource.rawValue]
         )
     }
+
+    #if DEBUG
+    func configureLastSyncedAtForPreview(_ date: Date?) {
+        lastSyncedAt = date
+    }
+    #endif
 }
