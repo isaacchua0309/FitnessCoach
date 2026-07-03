@@ -21,6 +21,7 @@ final class MockHealthSummaryRemoteSyncClient: HealthSummaryRemoteSyncing, @unch
     var uploadDelayNanoseconds: UInt64 = 0
 
     private(set) var dailyUploadCallCount = 0
+    private(set) var metadataUploadCallCount = 0
 
     private(set) var uploadedDailySummaries: [HealthDailySummarySyncPayload] = []
     private(set) var uploadedWorkoutSummaries: [HealthWorkoutSummarySyncPayload] = []
@@ -59,6 +60,7 @@ final class MockHealthSummaryRemoteSyncClient: HealthSummaryRemoteSyncing, @unch
 
     func uploadSyncMetadata(_ metadata: HealthSyncMetadataPayload) async throws {
         try await performUpload(error: uploadMetadataError) {
+            metadataUploadCallCount += 1
             uploadedMetadata.append(metadata)
         }
     }
@@ -97,6 +99,7 @@ final class MockHealthSummaryRemoteSyncClient: HealthSummaryRemoteSyncing, @unch
         uploadedMetadata.removeAll()
         deleteCallCount = 0
         dailyUploadCallCount = 0
+        metadataUploadCallCount = 0
         uploadDelayNanoseconds = 0
         lock.unlock()
     }

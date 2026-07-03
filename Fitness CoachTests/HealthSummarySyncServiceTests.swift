@@ -72,7 +72,7 @@ final class HealthSummarySyncServiceTests: XCTestCase {
             calendar: calendar,
             remoteSyncEnabled: { true }
         )
-        seedDay(makeDate(2026, 7, 3))
+        seedDay(calendar.startOfDay(for: Date()))
 
         await unauthenticatedService.syncRecentHealthSummaries(days: 1)
 
@@ -82,7 +82,7 @@ final class HealthSummarySyncServiceTests: XCTestCase {
     }
 
     func testSyncUploadsComposedSummaries() async {
-        let day = makeDate(2026, 7, 3)
+        let day = calendar.startOfDay(for: Date())
         seedDay(day, steps: 9000, workouts: [makeWorkout(on: day)])
         cache.storeRecoverySummary(
             RecoverySummary(
@@ -124,6 +124,7 @@ final class HealthSummarySyncServiceTests: XCTestCase {
         XCTAssertTrue(remoteClient.uploadedDailySummaries.isEmpty)
         XCTAssertEqual(remoteClient.uploadedWorkoutSummaries.count, 1)
         XCTAssertEqual(remoteClient.uploadedRecoverySummaries.count, 1)
+        XCTAssertEqual(remoteClient.metadataUploadCallCount, 1)
 
         let state = await service.getRemoteSyncState()
         XCTAssertEqual(state.phase, .partialSuccess)
@@ -140,7 +141,7 @@ final class HealthSummarySyncServiceTests: XCTestCase {
             ),
             for: "user-123"
         )
-        seedDay(makeDate(2026, 7, 3))
+        seedDay(calendar.startOfDay(for: Date()))
 
         await service.syncRecentHealthSummaries(days: 1)
 
@@ -157,7 +158,7 @@ final class HealthSummarySyncServiceTests: XCTestCase {
             ),
             for: "user-123"
         )
-        seedDay(makeDate(2026, 7, 3))
+        seedDay(calendar.startOfDay(for: Date()))
 
         await service.syncTodayHealthSummary()
 
@@ -183,14 +184,14 @@ final class HealthSummarySyncServiceTests: XCTestCase {
     }
 
     func testConcurrentSyncIsIgnored() async {
-        seedDay(makeDate(2026, 7, 3))
+        seedDay(calendar.startOfDay(for: Date()))
         remoteClient.uploadDelayNanoseconds = 200_000_000
 
         async let first = service.syncRecentHealthSummaries(days: 1)
         async let second = service.syncTodayHealthSummary()
         _ = await (first, second)
 
-        XCTAssertLessThanOrEqual(remoteClient.dailyUploadCallCount, 2)
+        XCTAssertEqual(remoteClient.dailyUploadCallCount, 1)
     }
 
     func testSyncWeeklyReviewIfAvailableUploadsCachedReview() async {
@@ -303,30 +304,5 @@ final class HealthSummarySyncServiceTests: XCTestCase {
 
     private func makeDate(_ year: Int, _ month: Int, _ day: Int) -> Date {
         calendar.date(from: DateComponents(year: year, month: month, day: day))!
-    }
-}
-
-private final class SummarySyncMockRepository: HealthDataRepositorying, @unchecked Sendable {
-    var availability = HealthDataAvailability(
-        isHealthDataAvailable: true,
-        permissionStatus: .uniform(.available, isHealthDataAvailable: true),
-        cachedDayCount: 1
-    )
-
-    func normalizedSamples(for date: Date, calendar: Calendar) async throws -> [HealthNormalizedSample] { [] }
-    func getDailyMetrics(for date: Date, calendar: Calendar) async -> DailyHealthMetrics {
-        .empty(for: date)
-    }
-    func getDailyMetrics(from startDate: Date, to endDate: Date, calendar: Calendar) async -> [DailyHealthMetrics] { [] }
-    func getRecentWorkouts(days: Int, calendar: Calendar) async -> [NormalizedWorkout] { [] }
-    func getWorkouts(from startDate: Date, to endDate: Date, calendar: Calendar) async -> [NormalizedWorkout] { [] }
-    func getRecentSleep(days: Int, calendar: Calendar) async -> [NormalizedSleepRecord] { [] }
-    func getSleepRecords(from startDate: Date, to endDate: Date, calendar: Calendar) async -> [NormalizedSleepRecord] { [] }
-    func getRecentHeartMetrics(days: Int, calendar: Calendar) async -> [NormalizedHeartMetric] { [] }
-    func getHeartMetrics(from startDate: Date, to endDate: Date, calendar: Calendar) async -> [NormalizedHeartMetric] { [] }
-    func getBodyMassHistory(days: Int, calendar: Calendar) async -> [NormalizedBodyMass] { [] }
-    func getHealthDataAvailability() async -> HealthDataAvailability { availability }
-    func refreshHealthData(days: Int, endingOn date: Date, calendar: Calendar) async -> HealthRefreshResult {
-        HealthRefreshResult(daysRefreshed: days, refreshedAt: Date())
     }
 }

@@ -301,7 +301,7 @@ actor HealthSummarySyncService: HealthSummarySyncServing {
             try await remoteSyncClient.uploadRecoverySummaries(composed.recoverySummaries)
         } || didUploadAnyPayload
 
-        if didUploadAnyPayload || !composed.dailySummaries.isEmpty || !composed.workoutSummaries.isEmpty {
+        if didUploadAnyPayload {
             await uploadMetadata(
                 userID: userID,
                 context: context,
@@ -320,8 +320,6 @@ actor HealthSummarySyncService: HealthSummarySyncServing {
         )
 
         let metadataAttempted = didUploadAnyPayload
-            || !composed.dailySummaries.isEmpty
-            || !composed.workoutSummaries.isEmpty
         let metadataUploaded = metadataAttempted && !failedKinds.contains(.metadata)
 
         switch state.phase {
