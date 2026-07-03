@@ -146,10 +146,11 @@ final class CoachImagePickFlowQATests: XCTestCase {
         aiService.injectedError = AIServiceError.networkUnavailable
         let model = try CoachImageWorkflowTestSupport.makeCoach(aiService: aiService).0
 
-        await model.handleMealPhotoSelection(
-            .success(CoachImageWorkflowTestSupport.makeTestJPEG()),
+        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+            on: model,
+            jpeg: CoachImageWorkflowTestSupport.makeTestJPEG(),
             source: .library
-        )
+        ))
         await model.sendCurrentMessage()
 
         let userMessageID = try XCTUnwrap(model.messages.first { $0.role == .user }?.id)
@@ -173,7 +174,7 @@ final class CoachImagePickFlowQATests: XCTestCase {
             XCTAssertTrue(model.beginPendingImageProcessing(source: .library))
             model.removeStagedMealPhoto()
             flow.handleAttachmentRemoved()
-            await model.handleMealPhotoSelection(.success(jpeg), source: .library)
+            await CoachImageWorkflowTestSupport.stageTestMealPhoto(on: model, jpeg: jpeg, source: .library)
             model.removeStagedMealPhoto()
             flow.handleAttachmentRemoved()
         }

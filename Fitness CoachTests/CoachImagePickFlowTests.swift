@@ -15,9 +15,11 @@ final class CoachImagePickFlowTests: XCTestCase {
     func testCameraCaptureStagesPipelineProcessedUpload() async throws {
         let container = try AppContainer(inMemory: true)
         let model = makeModel(container: container)
+        let flow = CoachImagePickFlowController()
         let sourceImage = Self.makeTestImage(size: CGSize(width: 1_920, height: 1_080))
 
-        await model.handleCameraCapture(sourceImage)
+        flow.setStateForTests(.pickerPresented(.camera))
+        await flow.handleCameraResult(.success(sourceImage), model: model)
 
         let pending = try XCTUnwrap(model.inputState.pendingImage)
         XCTAssertEqual(pending.source, .camera)
@@ -31,12 +33,14 @@ final class CoachImagePickFlowTests: XCTestCase {
     func testCameraCaptureSendUsesProcessedUploadBytes() async throws {
         let aiService = WorkflowCapturingPhotoAIService()
         let (model, _) = try CoachImageWorkflowTestSupport.makeCoach(aiService: aiService)
+        let flow = CoachImagePickFlowController()
         let sourceImage = Self.makeTestImage(size: CGSize(width: 1_280, height: 960))
         guard case .success(let processed) = CoachImagePipeline.process(image: sourceImage) else {
             return XCTFail("Expected pipeline output")
         }
 
-        await model.handleCameraCapture(sourceImage)
+        flow.setStateForTests(.pickerPresented(.camera))
+        await flow.handleCameraResult(.success(sourceImage), model: model)
         await model.sendCurrentMessage()
 
         XCTAssertEqual(aiService.receivedImagePayloads.last, processed.uploadData)
@@ -89,7 +93,11 @@ final class CoachImagePickFlowTests: XCTestCase {
         let flow = CoachImagePickFlowController()
         flow.setStateForTests(.imageReady)
 
-        await model.handleCameraCapture(Self.makeTestImage(size: CGSize(width: 400, height: 400)))
+        flow.setStateForTests(.pickerPresented(.camera))
+        await flow.handleCameraResult(
+            .success(Self.makeTestImage(size: CGSize(width: 400, height: 400))),
+            model: model
+        )
         model.removeStagedMealPhoto()
         flow.handleAttachmentRemoved()
 

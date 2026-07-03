@@ -2,15 +2,10 @@
 //  CoachImageUploadState.swift
 //  Fitness Coach
 //
-//  Forma — Explicit state machine for Coach meal-photo composer and analysis.
+//  Forma — In-flight Coach send/analysis processing state.
 //
 
 import Foundation
-
-// MARK: - Composer pending image (pre-send)
-// See CoachPendingImageState.swift and CoachInputState.swift.
-
-// MARK: - In-flight / outbound processing
 
 enum CoachProcessingPhase: Equatable {
     case idle

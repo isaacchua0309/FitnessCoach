@@ -241,23 +241,6 @@ enum CoachImageAnalysisDebugLogFormatter {
 
 enum CoachImageAnalysisDebugLogger {
 
-    static func logImageSelected(
-        source: CoachInputAttachmentSource,
-        rawBytes: Int,
-        compressedBytes: Int,
-        mimeType: String = CoachImageUploadConfig.default.mimeType
-    ) {
-        emit(
-            message: "Meal image selected",
-            context: CoachImageAnalysisDebugContext(
-                source: source,
-                mimeType: mimeType,
-                rawBytes: rawBytes,
-                compressedBytes: compressedBytes
-            )
-        )
-    }
-
     static func logPipelineProcessed(
         source: CoachInputAttachmentSource,
         processed: CoachProcessedImage,

@@ -46,6 +46,51 @@ enum CoachImageWorkflowTestSupport {
         return (model, resolvedContainer)
     }
 
+    @MainActor
+    static func stageTestMealPhoto(
+        on model: CoachModel,
+        jpeg: Data,
+        source: CoachInputAttachmentSource
+    ) async -> Bool {
+        guard let image = UIImage(data: jpeg) else { return false }
+        return await stageTestMealPhoto(
+            on: model,
+            image: image,
+            source: source,
+            originalEstimatedBytes: jpeg.count
+        )
+    }
+
+    @MainActor
+    static func stageTestMealPhoto(
+        on model: CoachModel,
+        image: UIImage,
+        source: CoachInputAttachmentSource,
+        originalEstimatedBytes: Int? = nil
+    ) async -> Bool {
+        guard model.beginPendingImageProcessing(source: source) else { return false }
+        let localReferenceID = model.storePendingImageLocalSource(image)
+        model.attachPendingImageLocalReference(localReferenceID)
+        guard case .success(let imported) = await CoachImagePipeline.processImportedImage(
+            image,
+            source: source,
+            originalEstimatedBytes: originalEstimatedBytes,
+            localReferenceID: localReferenceID
+        ) else {
+            return false
+        }
+        return await model.stagePipelineProcessedPhoto(imported, source: source)
+    }
+
+    @MainActor
+    static func processedUploadData(from jpeg: Data) -> Data? {
+        guard let image = UIImage(data: jpeg),
+              case .success(let processed) = CoachImagePipeline.process(image: image) else {
+            return nil
+        }
+        return processed.uploadData
+    }
+
     static func validMealImageAnalysisResponse(
         summary: String = "Photo meal",
         itemName: String = "Photo meal",

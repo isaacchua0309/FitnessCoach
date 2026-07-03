@@ -20,9 +20,12 @@ final class CoachPhotoLibraryPipelineTests: XCTestCase {
             return XCTFail("Expected pipeline success")
         }
 
-        await model.handlePipelineProcessedMealPhoto(
-            processed,
-            originalEstimatedBytes: 2_500_000,
+        _ = await model.stagePipelineProcessedPhoto(
+            CoachImagePipeline.ProcessedImageImport(
+                processed: processed,
+                originalEstimatedBytes: 2_500_000,
+                localReferenceID: UUID()
+            ),
             source: .library
         )
 
@@ -46,9 +49,12 @@ final class CoachPhotoLibraryPipelineTests: XCTestCase {
             return XCTFail("Expected pipeline success")
         }
 
-        await model.handlePipelineProcessedMealPhoto(
-            processed,
-            originalEstimatedBytes: 1_800_000,
+        _ = await model.stagePipelineProcessedPhoto(
+            CoachImagePipeline.ProcessedImageImport(
+                processed: processed,
+                originalEstimatedBytes: 1_800_000,
+                localReferenceID: UUID()
+            ),
             source: .library
         )
         await model.sendCurrentMessage()
@@ -67,9 +73,12 @@ final class CoachPhotoLibraryPipelineTests: XCTestCase {
             return XCTFail("Expected pipeline success")
         }
 
-        await model.handlePipelineProcessedMealPhoto(
-            processed,
-            originalEstimatedBytes: 900_000,
+        _ = await model.stagePipelineProcessedPhoto(
+            CoachImagePipeline.ProcessedImageImport(
+                processed: processed,
+                originalEstimatedBytes: 900_000,
+                localReferenceID: UUID()
+            ),
             source: .library
         )
         XCTAssertNotNil(model.inputState.pendingImage?.compressionStrategy)
@@ -92,9 +101,12 @@ final class CoachPhotoLibraryPipelineTests: XCTestCase {
             return XCTFail("Expected pipeline success")
         }
 
-        await model.handlePipelineProcessedMealPhoto(
-            firstProcessed,
-            originalEstimatedBytes: 700_000,
+        _ = await model.stagePipelineProcessedPhoto(
+            CoachImagePipeline.ProcessedImageImport(
+                processed: firstProcessed,
+                originalEstimatedBytes: 700_000,
+                localReferenceID: UUID()
+            ),
             source: .library
         )
         let firstID = try XCTUnwrap(model.inputState.pendingImage?.id)

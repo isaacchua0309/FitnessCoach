@@ -111,24 +111,6 @@ struct CoachPendingImageState: Equatable, Identifiable, Sendable {
         )
     }
 
-    static func legacyReady(
-        uploadData: Data,
-        thumbnail: Data,
-        source: CoachInputAttachmentSource,
-        id: UUID = UUID()
-    ) -> CoachPendingImageState {
-        CoachPendingImageState(
-            id: id,
-            thumbnail: thumbnail,
-            uploadData: uploadData,
-            mimeType: CoachImageUploadConfig.default.mimeType,
-            processedSize: CoachImagePixelSize(width: 0, height: 0),
-            byteSize: uploadData.count,
-            status: .ready,
-            source: source
-        )
-    }
-
     static func processing(
         source: CoachInputAttachmentSource,
         preserving existing: CoachPendingImageState?

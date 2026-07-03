@@ -17,7 +17,7 @@ final class CoachImageWorkflowHardeningTests: XCTestCase {
         let model = try CoachImageWorkflowTestSupport.makeCoach(aiService: aiService).0
         let jpeg = CoachImageWorkflowTestSupport.makeTestJPEG()
 
-        await model.handleMealPhotoSelection(.success(jpeg), source: .library)
+        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(on: model, jpeg: jpeg, source: .library))
 
         async let firstSend = model.sendCurrentMessage()
         async let secondSend = model.sendCurrentMessage()
@@ -32,10 +32,11 @@ final class CoachImageWorkflowHardeningTests: XCTestCase {
         aiService.injectedError = AIServiceError.authenticationFailed
         let model = try CoachImageWorkflowTestSupport.makeCoach(aiService: aiService).0
 
-        await model.handleMealPhotoSelection(
-            .success(CoachImageWorkflowTestSupport.makeTestJPEG()),
+        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+            on: model,
+            jpeg: CoachImageWorkflowTestSupport.makeTestJPEG(),
             source: .library
-        )
+        ))
         await model.sendCurrentMessage()
 
         XCTAssertTrue(model.showsAuthRetry)
@@ -79,14 +80,14 @@ final class CoachImageWorkflowHardeningTests: XCTestCase {
         XCTAssertTrue(message.contains("Settings"))
     }
 
-    func testPrepareJPEGSyncAvoidsFullResolutionRoundTripForGatewaySizedJPEG() throws {
+    func testPipelinePassesThroughGatewaySizedJPEGWithoutGrowth() throws {
         let jpeg = try makeSmallJPEG()
-        XCTAssertTrue(AIGatewayPayloadLimits.fitsImagePayload(jpeg))
-
-        guard case .success(let prepared) = CoachMealPhotoPipeline.prepareJPEGSync(from: jpeg) else {
-            return XCTFail("Expected passthrough JPEG")
+        guard let image = UIImage(data: jpeg),
+              case .success(let processed) = CoachImagePipeline.process(image: image) else {
+            return XCTFail("Expected pipeline output")
         }
-        XCTAssertEqual(prepared, jpeg)
+        XCTAssertTrue(AIGatewayPayloadLimits.fitsImagePayload(processed.uploadData))
+        XCTAssertLessThanOrEqual(processed.uploadData.count, CoachImageUploadConfig.default.maxUploadBytes)
     }
 
     private func makeTranscriptAttachment() throws -> ChatMessageImageAttachment {

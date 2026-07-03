@@ -61,4 +61,16 @@ enum CoachImagePipeline {
             process(image: image, config: config)
         }.value
     }
+
+    /// Builds a composer/chat thumbnail from already-compressed upload JPEG bytes.
+    static func makeThumbnailSync(
+        from uploadJPEG: Data,
+        config: CoachImageProcessingConfig = .default
+    ) -> Data? {
+        guard let image = UIImage(data: uploadJPEG),
+              let normalized = CoachImagePipelineEncoding.normalizeOrientation(image) else {
+            return nil
+        }
+        return CoachImagePipelineEncoding.encodeThumbnail(from: normalized, config: config)
+    }
 }

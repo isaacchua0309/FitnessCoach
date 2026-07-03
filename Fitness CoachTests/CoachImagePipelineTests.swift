@@ -389,20 +389,18 @@ final class CoachImagePipelineTests: XCTestCase {
     }
 
     private static func processingConfig(maxUploadBytes: Int) -> CoachImageProcessingConfig {
-        let upload = CoachImageUploadConfig.default
+        let defaults = CoachImageUploadConfig.default
         return CoachImageProcessingConfig(
             upload: CoachImageUploadConfig(
                 maxUploadBytes: maxUploadBytes,
-                preferredLongestSide: upload.preferredLongestSide,
-                fallbackLongestSide: upload.fallbackLongestSide,
-                thumbnailLongestSide: upload.thumbnailLongestSide,
-                preferredJPEGQuality: upload.preferredJPEGQuality,
-                fallbackJPEGQuality: upload.fallbackJPEGQuality,
-                aggressiveJPEGQuality: upload.aggressiveJPEGQuality,
-                mimeType: upload.mimeType,
-                thumbnailJPEGQuality: upload.thumbnailJPEGQuality,
-                legacyUploadLongestSides: upload.legacyUploadLongestSides,
-                legacyJPEGQualities: upload.legacyJPEGQualities
+                preferredLongestSide: defaults.preferredLongestSide,
+                fallbackLongestSide: defaults.fallbackLongestSide,
+                thumbnailLongestSide: defaults.thumbnailLongestSide,
+                preferredJPEGQuality: defaults.preferredJPEGQuality,
+                fallbackJPEGQuality: defaults.fallbackJPEGQuality,
+                aggressiveJPEGQuality: defaults.aggressiveJPEGQuality,
+                mimeType: defaults.mimeType,
+                thumbnailJPEGQuality: defaults.thumbnailJPEGQuality
             )
         )
     }

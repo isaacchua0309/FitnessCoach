@@ -2,7 +2,7 @@
 //  CoachMealPhotoPipelineTests.swift
 //  Fitness CoachTests
 //
-//  Gateway-aligned meal photo compression regressions.
+//  Gateway-aligned meal photo compression regressions via CoachImagePipeline.
 //
 
 import UIKit
@@ -13,13 +13,14 @@ final class CoachMealPhotoPipelineTests: XCTestCase {
 
     func testLargePhotoCompressesUnderGatewayLimits() {
         let raw = Self.makeLargeTestJPEGData()
-        guard case .success(let prepared) = CoachMealPhotoPipeline.prepareJPEGSync(from: raw) else {
+        guard let image = UIImage(data: raw),
+              case .success(let processed) = CoachImagePipeline.process(image: image) else {
             return XCTFail("Expected compressed JPEG payload")
         }
 
-        XCTAssertTrue(AIGatewayPayloadLimits.fitsImagePayload(prepared))
+        XCTAssertTrue(AIGatewayPayloadLimits.fitsImagePayload(processed.uploadData))
         XCTAssertLessThanOrEqual(
-            AIGatewayPayloadLimits.estimatedBase64CharacterCount(for: prepared),
+            AIGatewayPayloadLimits.estimatedBase64CharacterCount(for: processed.uploadData),
             AIGatewayPayloadLimits.maxImageBase64Characters
         )
     }

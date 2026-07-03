@@ -19,6 +19,7 @@ final class CoachManualImageQAExecutionTests: XCTestCase {
     func testManualChecklistSteps1Through22() async throws {
         let aiService = WorkflowCapturingPhotoAIService()
         let (model, _) = try CoachImageWorkflowTestSupport.makeCoach(aiService: aiService)
+        let flow = CoachImagePickFlowController()
         let libraryJPEG = CoachImageWorkflowTestSupport.makeTestJPEG(color: .systemOrange)
         let secondJPEG = CoachImageWorkflowTestSupport.makeTestJPEG(color: .systemGreen)
         let cameraJPEG = CoachImageWorkflowTestSupport.makeTestJPEG(color: .systemBlue)
@@ -30,7 +31,11 @@ final class CoachManualImageQAExecutionTests: XCTestCase {
         XCTAssertTrue(model.requestPhotoPick())
 
         // Steps 3–4: Choose library, select image.
-        await model.handleMealPhotoSelection(.success(libraryJPEG), source: .library)
+        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+            on: model,
+            jpeg: libraryJPEG,
+            source: .library
+        ))
 
         // Step 5: Confirm image appears in input bar.
         XCTAssertNotNil(model.inputState.pendingImage)
@@ -38,11 +43,16 @@ final class CoachManualImageQAExecutionTests: XCTestCase {
 
         // Steps 6–7: Remove image, confirm composer clears.
         model.removeStagedMealPhoto()
+        flow.handleAttachmentRemoved()
         XCTAssertNil(model.inputState.pendingImage)
         XCTAssertFalse(model.inputState.canSend)
 
         // Step 8: Add another image.
-        await model.handleMealPhotoSelection(.success(secondJPEG), source: .library)
+        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+            on: model,
+            jpeg: secondJPEG,
+            source: .library
+        ))
         XCTAssertNotNil(model.inputState.pendingImage)
 
         // Steps 9–12: Send without text; bubble, analysis, draft on success only.
@@ -59,7 +69,11 @@ final class CoachManualImageQAExecutionTests: XCTestCase {
         // Step 13: Text + image.
         aiService.resetCounters()
         model.inputText = "Lunch bowl"
-        await model.handleMealPhotoSelection(.success(libraryJPEG), source: .library)
+        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+            on: model,
+            jpeg: libraryJPEG,
+            source: .library
+        ))
         await model.sendCurrentMessage()
         let captioned = try XCTUnwrap(model.messages.last { $0.role == .user })
         XCTAssertEqual(captioned.text, "Lunch bowl")
@@ -68,22 +82,28 @@ final class CoachManualImageQAExecutionTests: XCTestCase {
 
         // Step 14: Camera source.
         aiService.resetCounters()
-        await model.handleMealPhotoSelection(.success(cameraJPEG), source: .camera)
+        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+            on: model,
+            jpeg: cameraJPEG,
+            source: .camera
+        ))
         await model.sendCurrentMessage()
         XCTAssertEqual(model.messages.last { $0.role == .user }?.imageAttachment?.source, .camera)
         XCTAssertEqual(aiService.analyzeMealImageCallCount, 1)
 
         // Step 15: Cancel camera.
         let messageCountBeforeCancel = model.messages.count
-        await model.handleMealPhotoSelection(.failure(.userCancelled), source: .camera)
+        flow.setStateForTests(.pickerPresented(.camera))
+        await flow.handleCameraResult(.failure(.userCancelled), model: model)
         XCTAssertEqual(model.messages.count, messageCountBeforeCancel)
 
         // Step 16: Cancel library.
-        await model.handleMealPhotoSelection(.failure(.userCancelled), source: .library)
+        flow.setStateForTests(.pickerPresented(.library))
+        flow.handlePhotoLibraryPickerDismissed()
         XCTAssertEqual(model.messages.count, messageCountBeforeCancel)
 
         // Step 17: Deny permissions.
-        await model.handleMealPhotoSelection(.failure(.cameraPermissionDenied), source: .camera)
+        model.appendMealPhotoSelectionFailure(.cameraPermissionDenied)
         XCTAssertTrue(model.messages.last?.text.contains("Camera access") == true)
 
         // Steps 18–22: Offline send + retry on a clean model.
@@ -92,7 +112,11 @@ final class CoachManualImageQAExecutionTests: XCTestCase {
         let (offlineModel, _) = try CoachImageWorkflowTestSupport.makeCoach(aiService: offlineService)
         let offlineJPEG = CoachImageWorkflowTestSupport.makeTestJPEG(color: .systemRed)
 
-        await offlineModel.handleMealPhotoSelection(.success(offlineJPEG), source: .library)
+        XCTAssertTrue(await CoachImageWorkflowTestSupport.stageTestMealPhoto(
+            on: offlineModel,
+            jpeg: offlineJPEG,
+            source: .library
+        ))
         await offlineModel.sendCurrentMessage()
 
         XCTAssertNil(offlineModel.pendingConfirmation)
@@ -126,5 +150,12 @@ private extension WorkflowCapturingPhotoAIService {
         receivedPrompts = []
         receivedClarifications = []
         injectedError = nil
+    }
+}
+
+@MainActor
+private extension CoachImagePickFlowController {
+    func setStateForTests(_ newState: CoachImagePickFlowState) {
+        state = newState
     }
 }

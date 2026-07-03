@@ -31,10 +31,6 @@ final class CoachMealPhotoAnalyzer {
         self.routeHandler = routeHandler
     }
 
-    func prepareJPEG(from rawData: Data) async -> Result<Data, CoachMealPhotoError> {
-        await CoachMealPhotoPipeline.prepareJPEG(from: rawData)
-    }
-
     func analyze(
         session: ImageAnalysisSession,
         recommission: ImageAnalysisRecommissionContext? = nil,

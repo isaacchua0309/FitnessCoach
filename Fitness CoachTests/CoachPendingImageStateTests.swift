@@ -36,10 +36,14 @@ final class CoachPendingImageStateTests: XCTestCase {
     }
 
     func testProcessingPreservesReadyPayloadUntilReplacement() {
-        let ready = CoachPendingImageState.legacyReady(
-            uploadData: Data([0x01, 0x02]),
-            thumbnail: Data([0x03]),
-            source: .camera
+        let sourceImage = makeTestImage(size: CGSize(width: 400, height: 300))
+        guard case .success(let processed) = CoachImagePipeline.process(image: sourceImage) else {
+            return XCTFail("Expected processed image")
+        }
+        let ready = CoachPendingImageState.from(
+            processed: processed,
+            source: .camera,
+            originalEstimatedBytes: 500_000
         )
 
         let processing = CoachPendingImageState.processing(source: .library, preserving: ready)

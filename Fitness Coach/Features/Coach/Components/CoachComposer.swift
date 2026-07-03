@@ -379,13 +379,14 @@ private struct CoachComposerPreviewHost: View {
     static var samplePendingImage: CoachPendingImageState? {
         guard let data = UIImage(systemName: "fork.knife")?
             .jpegData(compressionQuality: 0.9),
-            let thumbnail = CoachMealPhotoPipeline.makeThumbnailJPEGSync(from: data) else {
+              let image = UIImage(data: data),
+              case .success(let processed) = CoachImagePipeline.process(image: image) else {
             return nil
         }
-        return CoachPendingImageState.legacyReady(
-            uploadData: data,
-            thumbnail: thumbnail,
-            source: .library
+        return CoachPendingImageState.from(
+            processed: processed,
+            source: .library,
+            originalEstimatedBytes: data.count
         )
     }
 
