@@ -400,7 +400,8 @@ final class AppContainer {
             userProfileReader: userProfileService,
             aiCommandParsingEnabled: aiCommandParsingEnabled,
             trainingInsightsStore: trainingInsightsStore,
-            timelineRecorder: coachTimelineRecorder
+            timelineRecorder: coachTimelineRecorder,
+            timelineStore: coachTimelineStore
         )
     }
 

@@ -303,10 +303,10 @@ private final class CapturingCoachTimelineRecorder: CoachTimelineRecording, @unc
     func recordUserMessage(text: String, messageId: UUID?, hasPhotoAttachment: Bool, occurredAt: Date?) {}
     func recordAssistantMessage(text: String, messageId: UUID?, sourceAttribution: CoachTimelineEventSourceAttribution, occurredAt: Date?) {}
     func recordFoodEstimateCreated(payload: FoodEstimatePayload, source: CoachTimelineEventSource, sourceAttribution: CoachTimelineEventSourceAttribution, confidence: CoachTimelineEventConfidence?, status: CoachTimelineEventStatus, messageId: UUID?, photoSessionId: UUID?, relatedEventIds: [UUID], occurredAt: Date?) {}
-    func recordFoodLogged(entry: FoodEntry, sourceAttribution: CoachTimelineEventSourceAttribution, occurredAt: Date?) {}
+    func recordFoodLogged(entry: FoodEntry, sourceAttribution: CoachTimelineEventSourceAttribution, userEditedBeforeConfirm: Bool, occurredAt: Date?) {}
     func recordFoodRejected(payload: FoodEstimatePayload, messageId: UUID?, photoSessionId: UUID?, relatedEventIds: [UUID], occurredAt: Date?) {}
-    func recordFoodEdited(entry: FoodEntry, occurredAt: Date?) {}
-    func recordFoodDeleted(entry: FoodEntry, occurredAt: Date?) {}
+    func recordFoodEdited(entry: FoodEntry, supersedesEventId: UUID?, occurredAt: Date?) {}
+    func recordFoodDeleted(entry: FoodEntry, supersedesEventId: UUID?, occurredAt: Date?) {}
     func recordWaterLogged(entry: WaterEntry, occurredAt: Date?) {}
     func recordWeightLogged(entry: WeightEntry, occurredAt: Date?) {}
     func recordWorkoutDetected(workoutCount: Int, totalDurationMinutes: Int, totalActiveCalories: Int?, primaryWorkoutTitle: String?, demand: String?, occurredAt: Date?) {}

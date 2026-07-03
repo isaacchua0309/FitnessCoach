@@ -50,7 +50,8 @@ enum CoachRoutingIntegrationTestSupport {
                 userProfileReader: userProfileService,
                 aiCommandParsingEnabled: true,
                 trainingInsightsStore: includeTrainingInsights ? trainingInsightsStore : nil,
-                timelineRecorder: recorder
+                timelineRecorder: recorder,
+                timelineStore: timelineStore
             )
         }
     }

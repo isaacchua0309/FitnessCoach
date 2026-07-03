@@ -124,6 +124,7 @@ final class CoachTimelineRecorderTests: XCTestCase {
         recorder.recordFoodLogged(
             entry: entry,
             sourceAttribution: .userConfirmation,
+            userEditedBeforeConfirm: false,
             occurredAt: now
         )
 

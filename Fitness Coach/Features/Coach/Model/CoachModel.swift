@@ -72,6 +72,7 @@ final class CoachModel: ObservableObject {
     private let pendingImageLocalSources = CoachPendingImageLocalSourceStore()
     private let coachAnalyticsLogger: any CoachAnalyticsLogging
     private let timelineRecorder: any CoachTimelineRecording
+    private var userEditedPendingBeforeConfirm = false
     private var nutritionEstimateLogPending = false
     private var lastNutritionActionTapAt: Date?
     private var recordedTimelineUserMessageIDs = Set<UUID>()
@@ -105,7 +106,8 @@ final class CoachModel: ObservableObject {
         trainingInsightsStore: TrainingInsightsStore? = nil,
         transcriptStore: CoachChatTranscriptStore = CoachInMemoryChatTranscriptStore(),
         coachAnalyticsLogger: (any CoachAnalyticsLogging)? = nil,
-        timelineRecorder: (any CoachTimelineRecording)? = nil
+        timelineRecorder: (any CoachTimelineRecording)? = nil,
+        timelineStore: (any CoachTimelineStoring)? = nil
     ) {
         self.localCommandParser = localCommandParser ?? .standard
         self.dailyLogReader = dailyLogReader
@@ -124,11 +126,14 @@ final class CoachModel: ObservableObject {
             self.contextPacketBuilder = nil
         }
 
+        let resolvedTimelineRecorder = timelineRecorder ?? NoOpCoachTimelineRecorder()
         let executor = CoachMutationExecutor(
             actionCenter: actionCenter,
             dailyLogReader: dailyLogReader,
             healthActivityQuery: healthActivityQuery,
-            mutationHistory: mutationHistory
+            mutationHistory: mutationHistory,
+            timelineRecorder: resolvedTimelineRecorder,
+            timelineStore: timelineStore
         )
         self.mutationExecutor = executor
         self.routeHandler = CoachAIRouteHandler(
@@ -145,7 +150,7 @@ final class CoachModel: ObservableObject {
             routeHandler: routeHandler
         )
         self.transcriptStore = transcriptStore
-        self.timelineRecorder = timelineRecorder ?? NoOpCoachTimelineRecorder()
+        self.timelineRecorder = resolvedTimelineRecorder
         #if DEBUG
         self.coachAnalyticsLogger = coachAnalyticsLogger ?? OSLogCoachAnalyticsLogger()
         #else
@@ -756,7 +761,8 @@ final class CoachModel: ObservableObject {
         guard let result = await CoachPendingConfirmationPresenter.handleTextInput(
             text,
             pendingConfirmation: confirmation,
-            executor: mutationExecutor
+            executor: mutationExecutor,
+            timelineContext: mutationTimelineContext(for: confirmation)
         ) else {
             return nil
         }
@@ -908,7 +914,10 @@ final class CoachModel: ObservableObject {
         isConfirmingPending = true
         defer { isConfirmingPending = false }
 
-        let response = await mutationExecutor.executePendingConfirmation(confirmation)
+        let response = await mutationExecutor.executePendingConfirmation(
+            confirmation,
+            timelineContext: mutationTimelineContext(for: confirmation)
+        )
         timelineRecordPendingConfirmed(confirmation: confirmation, userInputMethod: "bar")
         if nutritionEstimateLogPending {
             logCoachAnalytics(.nutritionEstimateLogConfirmed, properties: CoachAnalyticsProperties())
@@ -986,6 +995,7 @@ final class CoachModel: ObservableObject {
             let updated = try formState.makeMealDraft(original: draft.primaryMealDraft)
             draft.mealDraft = updated
             pendingConfirmation = .food(draft)
+            userEditedPendingBeforeConfirm = true
             if let userMessageID = draft.relatedPhotoUserMessageID {
                 _ = imageAnalysisSessionStore.apply(
                     userMessageID: userMessageID,
@@ -1120,8 +1130,22 @@ final class CoachModel: ObservableObject {
 
     private func clearPendingConfirmation() {
         pendingConfirmation = nil
+        userEditedPendingBeforeConfirm = false
         foodEditErrorMessage = nil
         isShowingFoodEditSheet = false
+    }
+
+    private func mutationTimelineContext(
+        for confirmation: CoachPendingConfirmation
+    ) -> CoachMutationTimelineContext {
+        var context = CoachMutationTimelineContext(
+            sourceAttribution: lastTimelineAttribution,
+            userEditedBeforeConfirm: userEditedPendingBeforeConfirm
+        )
+        if case .food(let draft) = confirmation {
+            context.pendingConfirmationId = draft.id
+        }
+        return context
     }
 
     @discardableResult

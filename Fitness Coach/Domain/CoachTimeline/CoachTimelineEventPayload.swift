@@ -90,6 +90,8 @@ struct FoodLoggedPayload: Codable, Equatable, Sendable {
     var carbsGrams: Double
     var fatGrams: Double
     var source: String?
+    var confidence: String?
+    var userEditedBeforeConfirm: Bool?
     var isEdit: Bool
     var isDelete: Bool
 
@@ -105,6 +107,8 @@ struct FoodLoggedPayload: Codable, Equatable, Sendable {
         carbsGrams: Double,
         fatGrams: Double,
         source: String? = nil,
+        confidence: String? = nil,
+        userEditedBeforeConfirm: Bool? = nil,
         isEdit: Bool = false,
         isDelete: Bool = false
     ) {
@@ -119,6 +123,8 @@ struct FoodLoggedPayload: Codable, Equatable, Sendable {
         self.carbsGrams = carbsGrams
         self.fatGrams = fatGrams
         self.source = source
+        self.confidence = confidence
+        self.userEditedBeforeConfirm = userEditedBeforeConfirm
         self.isEdit = isEdit
         self.isDelete = isDelete
     }

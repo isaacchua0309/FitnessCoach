@@ -103,7 +103,8 @@ enum CoachPendingConfirmationPresenter {
     static func handleTextInput(
         _ text: String,
         pendingConfirmation: CoachPendingConfirmation?,
-        executor: CoachMutationExecutor
+        executor: CoachMutationExecutor,
+        timelineContext: CoachMutationTimelineContext = CoachMutationTimelineContext()
     ) async -> CoachActionResult? {
         guard pendingConfirmation != nil else { return nil }
 
@@ -117,7 +118,10 @@ enum CoachPendingConfirmationPresenter {
             return nil
         }
 
-        let response = await executor.executePendingConfirmation(confirmation)
+        let response = await executor.executePendingConfirmation(
+            confirmation,
+            timelineContext: timelineContext
+        )
         return .message(response)
     }
 }
