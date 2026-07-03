@@ -41,6 +41,9 @@ protocol HealthCacheStore: Sendable {
     func intelligenceSnapshot(for date: Date, calendar: Calendar) -> HealthIntelligenceSnapshot?
     func storeIntelligenceSnapshot(_ snapshot: HealthIntelligenceSnapshot, for date: Date, calendar: Calendar)
 
+    func weeklyReview(for weekStartDate: Date, calendar: Calendar) -> WeeklyHealthReview?
+    func storeWeeklyReview(_ review: WeeklyHealthReview, calendar: Calendar)
+
     // MARK: - Freshness & maintenance
 
     func isFresh(cachedAt: Date, for date: Date, calendar: Calendar) -> Bool
@@ -80,6 +83,7 @@ final class MemoryHealthCacheStore: HealthCacheStore, @unchecked Sendable {
     private var bodyMassByID: [UUID: BodyMassRecord] = [:]
     private var recoveryByDay: [Date: (summary: RecoverySummary, cachedAt: Date)] = [:]
     private var snapshotsByDay: [Date: (snapshot: HealthIntelligenceSnapshot, cachedAt: Date)] = [:]
+    private var weeklyReviewsByWeekStart: [Date: (review: WeeklyHealthReview, cachedAt: Date)] = [:]
     private var indexUpdatedAt: [HealthCacheAggregateKind: Date] = [:]
     private let lock = NSLock()
 
@@ -221,6 +225,22 @@ final class MemoryHealthCacheStore: HealthCacheStore, @unchecked Sendable {
         lock.unlock()
     }
 
+    func weeklyReview(for weekStartDate: Date, calendar: Calendar = .current) -> WeeklyHealthReview? {
+        let key = WeeklyReviewWeekPolicy.normalizedWeekStart(weekStartDate, calendar: calendar)
+            ?? calendar.startOfDay(for: weekStartDate)
+        lock.lock()
+        defer { lock.unlock() }
+        return weeklyReviewsByWeekStart[key]?.review
+    }
+
+    func storeWeeklyReview(_ review: WeeklyHealthReview, calendar: Calendar = .current) {
+        let key = WeeklyReviewWeekPolicy.normalizedWeekStart(review.weekStartDate, calendar: calendar)
+            ?? calendar.startOfDay(for: review.weekStartDate)
+        lock.lock()
+        weeklyReviewsByWeekStart[key] = (review, Date())
+        lock.unlock()
+    }
+
     func dayCoverageIsFresh(
         from startDate: Date,
         to endDate: Date,
@@ -245,6 +265,7 @@ final class MemoryHealthCacheStore: HealthCacheStore, @unchecked Sendable {
         dayEntries = dayEntries.filter { $0.key >= cutoff }
         recoveryByDay = recoveryByDay.filter { $0.key >= cutoff }
         snapshotsByDay = snapshotsByDay.filter { $0.key >= cutoff }
+        weeklyReviewsByWeekStart = weeklyReviewsByWeekStart.filter { $0.key >= cutoff }
         lock.unlock()
     }
 
@@ -260,6 +281,7 @@ final class MemoryHealthCacheStore: HealthCacheStore, @unchecked Sendable {
         dayEntries = dayEntries.filter { $0.key >= cutoff }
         recoveryByDay = recoveryByDay.filter { $0.key >= cutoff }
         snapshotsByDay = snapshotsByDay.filter { $0.key >= cutoff }
+        weeklyReviewsByWeekStart = weeklyReviewsByWeekStart.filter { $0.key >= cutoff }
         workoutsByID = workoutsByID.filter { calendar.startOfDay(for: $0.value.startDate) >= cutoff }
         sleepByID = sleepByID.filter { calendar.startOfDay(for: $0.value.startDate) >= cutoff }
         heartByID = heartByID.filter { calendar.startOfDay(for: $0.value.date) >= cutoff }
@@ -288,6 +310,7 @@ final class MemoryHealthCacheStore: HealthCacheStore, @unchecked Sendable {
         bodyMassByID.removeAll()
         recoveryByDay.removeAll()
         snapshotsByDay.removeAll()
+        weeklyReviewsByWeekStart.removeAll()
         indexUpdatedAt.removeAll()
         lock.unlock()
     }

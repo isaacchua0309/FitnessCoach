@@ -51,6 +51,7 @@ final class AppContainer {
     let healthIntelligenceContextBuilder: HealthIntelligenceContextBuilder
     let healthIntelligenceEngine: any HealthIntelligenceEngineing
     let healthIntelligenceSnapshotService: any HealthIntelligenceSnapshotServing
+    let weeklyReviewService: any WeeklyReviewServing
     let healthSyncService: HealthSyncService
     let healthSyncStateStore: HealthSyncStateStore
     private let authUIDCache: AuthUIDCache
@@ -235,6 +236,14 @@ final class AppContainer {
         )
         healthIntelligenceSnapshotService = HealthIntelligenceSnapshotService(
             engine: healthIntelligenceEngine,
+            cacheStore: healthCacheStore,
+            enginesEnabled: HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled
+        )
+        weeklyReviewService = WeeklyReviewService(
+            contextBuilder: healthIntelligenceContextBuilder,
+            weeklyReviewEngine: weeklyReviewEngine,
+            recoveryEngine: recoveryEngine,
+            trainingLoadEngine: trainingLoadEngine,
             cacheStore: healthCacheStore,
             enginesEnabled: HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled
         )

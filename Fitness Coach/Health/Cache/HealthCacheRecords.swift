@@ -87,3 +87,9 @@ struct HealthCacheSnapshotFile: Codable, Equatable, Sendable {
     let cachedAt: Date
     let snapshot: HealthIntelligenceSnapshot
 }
+
+struct HealthCacheWeeklyReviewFile: Codable, Equatable, Sendable {
+    let weekStartDate: Date
+    let cachedAt: Date
+    let review: WeeklyHealthReview
+}

@@ -286,6 +286,47 @@ final class LocalHealthCacheStore: HealthCacheStore, @unchecked Sendable {
         lock.unlock()
     }
 
+    func weeklyReview(for weekStartDate: Date, calendar: Calendar = .current) -> WeeklyHealthReview? {
+        ensureUserStorage()
+        if let review = memory.weeklyReview(for: weekStartDate, calendar: calendar) {
+            return review
+        }
+
+        guard let weekStart = WeeklyReviewWeekPolicy.normalizedWeekStart(weekStartDate, calendar: calendar) else {
+            return nil
+        }
+
+        let url = weeklyReviewURL(for: weekStart, calendar: calendar)
+        guard let data = try? Data(contentsOf: url),
+              let file = try? decoder.decode(HealthCacheWeeklyReviewFile.self, from: data) else {
+            return nil
+        }
+
+        memory.storeWeeklyReview(file.review, calendar: calendar)
+        return file.review
+    }
+
+    func storeWeeklyReview(_ review: WeeklyHealthReview, calendar: Calendar = .current) {
+        ensureUserStorage()
+        memory.storeWeeklyReview(review, calendar: calendar)
+
+        guard let weekStart = WeeklyReviewWeekPolicy.normalizedWeekStart(review.weekStartDate, calendar: calendar) else {
+            return
+        }
+
+        let file = HealthCacheWeeklyReviewFile(
+            weekStartDate: weekStart,
+            cachedAt: Date(),
+            review: review
+        )
+        let url = weeklyReviewURL(for: weekStart, calendar: calendar)
+
+        lock.lock()
+        write(file, to: url)
+        touchMetadata()
+        lock.unlock()
+    }
+
     // MARK: - Freshness & maintenance
 
     func dayCoverageIsFresh(
@@ -327,6 +368,7 @@ final class LocalHealthCacheStore: HealthCacheStore, @unchecked Sendable {
         pruneFiles(in: daysDirectoryURL(for: userDirectory), cutoff: cutoff, calendar: calendar)
         pruneFiles(in: recoveryDirectoryURL(for: userDirectory), cutoff: cutoff, calendar: calendar)
         pruneFiles(in: snapshotsDirectoryURL(for: userDirectory), cutoff: cutoff, calendar: calendar)
+        pruneFiles(in: weeklyReviewsDirectoryURL(for: userDirectory), cutoff: cutoff, calendar: calendar)
 
         var metadata = loadMetadata() ?? .initial(userID: resolvedUserID())
         metadata.lastPrunedAt = Date()
@@ -413,6 +455,7 @@ final class LocalHealthCacheStore: HealthCacheStore, @unchecked Sendable {
         try? fileManager.createDirectory(at: daysDirectoryURL(for: userDirectory), withIntermediateDirectories: true)
         try? fileManager.createDirectory(at: recoveryDirectoryURL(for: userDirectory), withIntermediateDirectories: true)
         try? fileManager.createDirectory(at: snapshotsDirectoryURL(for: userDirectory), withIntermediateDirectories: true)
+        try? fileManager.createDirectory(at: weeklyReviewsDirectoryURL(for: userDirectory), withIntermediateDirectories: true)
 
         if loadMetadata() == nil {
             saveMetadata(.initial(userID: userID))
@@ -489,6 +532,10 @@ final class LocalHealthCacheStore: HealthCacheStore, @unchecked Sendable {
         userDirectory.appendingPathComponent("snapshots", isDirectory: true)
     }
 
+    private func weeklyReviewsDirectoryURL(for userDirectory: URL) -> URL {
+        userDirectory.appendingPathComponent("weekly-reviews", isDirectory: true)
+    }
+
     private func dayFileURL(for day: Date, calendar: Calendar) -> URL? {
         guard let userDirectory = userDirectoryURL(createIfNeeded: true) else {
             return nil
@@ -507,6 +554,12 @@ final class LocalHealthCacheStore: HealthCacheStore, @unchecked Sendable {
         let userDirectory = userDirectoryURL(createIfNeeded: true)!
         let key = dayKey(for: day, calendar: calendar)
         return snapshotsDirectoryURL(for: userDirectory).appendingPathComponent("\(key).json")
+    }
+
+    private func weeklyReviewURL(for weekStart: Date, calendar: Calendar) -> URL {
+        let userDirectory = userDirectoryURL(createIfNeeded: true)!
+        let key = dayKey(for: weekStart, calendar: calendar)
+        return weeklyReviewsDirectoryURL(for: userDirectory).appendingPathComponent("\(key).json")
     }
 
     private func workoutIndexURL() -> URL {
