@@ -130,6 +130,20 @@ final class CoachAIRouteHandler {
             )
             return .message(message)
 
+        case .nutritionEstimate(let prompt):
+            return try await presentNutritionEstimate(
+                prompt: prompt,
+                context: context,
+                routed: routed
+            )
+
+        case .nutritionComparison(let prompt):
+            return try await presentNutritionComparison(
+                prompt: prompt,
+                context: context,
+                routed: routed
+            )
+
         case .parseWorkout:
             let message = await trainingLogRedirectMessage()
             return .message(message)
@@ -507,6 +521,68 @@ final class CoachAIRouteHandler {
             )
         case .reject(let message):
             return .message(message)
+        }
+    }
+
+    private func presentNutritionEstimate(
+        prompt: String,
+        context: AIContext,
+        routed: RoutedAITask
+    ) async throws -> CoachActionResult {
+        guard let aiService else {
+            return .message(CoachResponseBuilder.backendUnavailableResponse)
+        }
+
+        let dailyLog = try? dailyLogReader.getTodayLog()
+
+        do {
+            let response = try await aiService.generateNutritionEstimate(
+                prompt: prompt,
+                context: context,
+                intentResult: routed.intentResult,
+                tier: routed.tier
+            )
+            switch NutritionEstimateResponseParser.parseEstimate(response, dailyLog: dailyLog) {
+            case .estimate(let card):
+                return .structured(
+                    .nutritionEstimate(card),
+                    accessibilityText: NutritionEstimateCardFormatter.accessibilitySummary(for: card)
+                )
+            case .comparison, .plainText(let text):
+                return .message(text)
+            }
+        } catch {
+            return .message(CoachResponseBuilder.aiNotUnderstood)
+        }
+    }
+
+    private func presentNutritionComparison(
+        prompt: String,
+        context: AIContext,
+        routed: RoutedAITask
+    ) async throws -> CoachActionResult {
+        guard let aiService else {
+            return .message(CoachResponseBuilder.backendUnavailableResponse)
+        }
+
+        do {
+            let response = try await aiService.generateNutritionComparison(
+                prompt: prompt,
+                context: context,
+                intentResult: routed.intentResult,
+                tier: routed.tier
+            )
+            switch NutritionEstimateResponseParser.parseComparison(response) {
+            case .comparison(let card):
+                return .structured(
+                    .nutritionComparison(card),
+                    accessibilityText: NutritionEstimateCardFormatter.accessibilitySummary(for: card)
+                )
+            case .estimate, .plainText(let text):
+                return .message(text)
+            }
+        } catch {
+            return .message(CoachResponseBuilder.aiNotUnderstood)
         }
     }
 

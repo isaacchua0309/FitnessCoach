@@ -55,12 +55,14 @@ enum AIPromptBuilder {
         Return valid JSON only matching CoachIntentResult.
         - Choose one intent: log_food, log_water, log_weight, log_workout, edit_log,
           delete_log, undo, daily_summary, calorie_lookup, macro_lookup, meal_decision,
-          nutrition_advice, workout_advice, weight_loss_advice, app_help,
-          general_conversation, unrelated_or_unsupported.
-        - Prefer app-domain intents for food, calories, weight, workouts, hydration,
-          meals, supplements, macros, and fitness. Do not classify valid fitness or
-          nutrition questions as unsupported.
-        - Set requiresAppMutation true only when the user wants to change Forma data.
+          nutrition_estimate_query, nutrition_comparison_query, nutrition_advice,
+          workout_advice, weight_loss_advice, app_help, general_conversation,
+          unrelated_or_unsupported.
+        - Prefer nutrition_estimate_query for calorie/macro estimates, portion questions,
+          and "should I eat X today?" fit questions. Do not set requiresAppMutation.
+        - Prefer nutrition_comparison_query for "X vs Y" food comparisons. Do not set requiresAppMutation.
+        - Use log_food only when the user wants to log or record food (e.g. "log a Big Mac",
+          "I ate a burger, add it"). Set requiresAppMutation true.
         - Include a typed action when mutation data is clear enough to validate.
         - Set canAnswerWithCheapModel true for simple nutrition, calorie, macro,
           supplement, meal-decision, workout, or general fitness questions.

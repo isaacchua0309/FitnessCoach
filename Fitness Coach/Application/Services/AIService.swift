@@ -26,6 +26,18 @@ protocol AIServiceProtocol: Sendable {
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse
+    func generateNutritionEstimate(
+        prompt: String,
+        context: AIContext,
+        intentResult: CoachIntentResult?,
+        tier: CoachModelTier
+    ) async throws -> NutritionEstimateResponse
+    func generateNutritionComparison(
+        prompt: String,
+        context: AIContext,
+        intentResult: CoachIntentResult?,
+        tier: CoachModelTier
+    ) async throws -> NutritionComparisonResponse
     func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse
     func parseEditOrDelete(prompt: String, context: AIContext) async throws -> AIParsedCommand
     func parseMultiAction(prompt: String, context: AIContext) async throws -> AIParsedCommand
@@ -185,6 +197,42 @@ final class AIService: AIServiceProtocol {
         )
         return try await traced(method: "generateMealAdvice") {
             try await llmClient.generateMealAdvice(request: request).response
+        }
+    }
+
+    func generateNutritionEstimate(
+        prompt: String,
+        context: AIContext,
+        intentResult: CoachIntentResult? = nil,
+        tier: CoachModelTier = .cheap
+    ) async throws -> NutritionEstimateResponse {
+        let request = AINutritionEstimateRequest(
+            question: prompt,
+            context: context,
+            intentResult: intentResult,
+            modelTier: tier,
+            modelName: CoachModelConfig.default.modelName(for: tier)
+        )
+        return try await traced(method: "generateNutritionEstimate") {
+            try await llmClient.generateNutritionEstimate(request: request).estimate
+        }
+    }
+
+    func generateNutritionComparison(
+        prompt: String,
+        context: AIContext,
+        intentResult: CoachIntentResult? = nil,
+        tier: CoachModelTier = .cheap
+    ) async throws -> NutritionComparisonResponse {
+        let request = AINutritionComparisonRequest(
+            question: prompt,
+            context: context,
+            intentResult: intentResult,
+            modelTier: tier,
+            modelName: CoachModelConfig.default.modelName(for: tier)
+        )
+        return try await traced(method: "generateNutritionComparison") {
+            try await llmClient.generateNutritionComparison(request: request).comparison
         }
     }
 

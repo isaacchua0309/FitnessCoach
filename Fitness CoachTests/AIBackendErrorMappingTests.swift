@@ -155,6 +155,14 @@ private final class TimeoutFailingLLMClient: LLMClient, @unchecked Sendable {
         throw LLMClientError.requestTimedOut
     }
 
+    func generateNutritionEstimate(request: AINutritionEstimateRequest) async throws -> AINutritionEstimateResponse {
+        throw LLMClientError.requestTimedOut
+    }
+
+    func generateNutritionComparison(request: AINutritionComparisonRequest) async throws -> AINutritionComparisonResponse {
+        throw LLMClientError.requestTimedOut
+    }
+
     func generateDailyReview(request: AIDailyReviewRequest) async throws -> AIDailyReviewResponse {
         throw LLMClientError.requestTimedOut
     }
@@ -192,6 +200,14 @@ private final class PayloadTooLargeFailingLLMClient: LLMClient, @unchecked Senda
     }
 
     func generateMealAdvice(request: AIMealAdviceRequest) async throws -> AIMealAdviceResponse {
+        throw LLMClientError.payloadTooLarge(nil)
+    }
+
+    func generateNutritionEstimate(request: AINutritionEstimateRequest) async throws -> AINutritionEstimateResponse {
+        throw LLMClientError.payloadTooLarge(nil)
+    }
+
+    func generateNutritionComparison(request: AINutritionComparisonRequest) async throws -> AINutritionComparisonResponse {
         throw LLMClientError.payloadTooLarge(nil)
     }
 

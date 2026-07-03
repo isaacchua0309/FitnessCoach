@@ -104,6 +104,8 @@ export function validatePayload(path: string, body: Record<string, any>): void {
 
   switch (path) {
   case "/v1/ai/generate-meal-advice":
+  case "/v1/ai/generate-nutrition-estimate":
+  case "/v1/ai/generate-nutrition-comparison":
     body.question = requireString(body.question, "question", maxQuestion);
     if (body.context !== undefined) requireObject(body.context, "context");
     return;

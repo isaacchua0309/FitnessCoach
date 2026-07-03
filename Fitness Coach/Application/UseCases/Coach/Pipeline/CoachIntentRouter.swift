@@ -56,7 +56,13 @@ struct CoachIntentRouter: Sendable {
         case .deleteLog:
             route = aiRoute(.deleteEntry(originalText), intentResult: intentResult)
 
-        case .calorieLookup, .macroLookup, .mealDecision, .nutritionAdvice:
+        case .nutritionEstimateQuery, .calorieLookup, .macroLookup, .mealDecision:
+            route = aiRoute(.nutritionEstimate(originalText), intentResult: intentResult)
+
+        case .nutritionComparisonQuery:
+            route = aiRoute(.nutritionComparison(originalText), intentResult: intentResult)
+
+        case .nutritionAdvice:
             route = aiRoute(.mealAdvice(originalText), intentResult: intentResult)
 
         case .workoutAdvice, .weightLossAdvice:
@@ -111,6 +117,8 @@ struct CoachIntentRouter: Sendable {
     private func aiTaskName(_ task: CoachAITask) -> String {
         switch task {
         case .estimateFood: return "estimateFood"
+        case .nutritionEstimate: return "nutritionEstimate"
+        case .nutritionComparison: return "nutritionComparison"
         case .mealAdvice: return "mealAdvice"
         case .parseWorkout: return "parseWorkout"
         case .editEntry: return "editEntry"
@@ -129,7 +137,7 @@ struct CoachIntentRouter: Sendable {
             // Dedicated mutation endpoints always run; classifier uncertainty means
             // "no inline draft", not "skip AI".
             return .cheap
-        case .mealAdvice, .multiAction, .parseCommand:
+        case .nutritionEstimate, .nutritionComparison, .mealAdvice, .multiAction, .parseCommand:
             if result.canAnswerWithCheapModel { return .cheap }
             return nil
         }

@@ -12,6 +12,8 @@ enum CoachMessagePresentation: Equatable {
     case userMealPhoto(attachment: ChatMessageImageAttachment, caption: String?)
     case confirmation(CoachConfirmationContent)
     case assistant(String)
+    case nutritionEstimate(NutritionEstimateCardState)
+    case nutritionComparison(NutritionComparisonCardState)
     case assistantPhotoAnalysis(
         text: String,
         relatedUserMessageID: UUID,
@@ -52,6 +54,14 @@ enum CoachMessagePresenter {
                     relatedUserMessageID: link.relatedUserMessageID,
                     kind: link.kind
                 )
+            }
+            if let structured = message.structuredContent {
+                switch structured {
+                case .nutritionEstimate(let state):
+                    return .nutritionEstimate(state)
+                case .nutritionComparison(let state):
+                    return .nutritionComparison(state)
+                }
             }
             if let confirmation = parseConfirmation(from: message.text) {
                 return .confirmation(confirmation)

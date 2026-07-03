@@ -130,6 +130,23 @@ final class CapturingThemeAnalyticsLogger: ThemeAnalyticsLogging, @unchecked Sen
     }
 }
 
+final class CapturingCoachAnalyticsLogger: CoachAnalyticsLogging, @unchecked Sendable {
+    struct Entry {
+        let event: CoachAnalyticsEvent
+        let properties: CoachAnalyticsProperties
+    }
+
+    private(set) var events: [Entry] = []
+
+    func log(_ event: CoachAnalyticsEvent, properties: CoachAnalyticsProperties) {
+        events.append(Entry(event: event, properties: properties))
+    }
+
+    func contains(_ event: CoachAnalyticsEvent) -> Bool {
+        events.contains { $0.event == event }
+    }
+}
+
 final class CapturingSettingsAnalyticsLogger: SettingsAnalyticsLogging, @unchecked Sendable {
     struct Entry {
         let event: SettingsAnalyticsEvent

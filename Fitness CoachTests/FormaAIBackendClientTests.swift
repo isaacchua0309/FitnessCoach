@@ -19,6 +19,8 @@ final class FormaAIBackendClientTests: XCTestCase {
         "v1/ai/parse-command",
         "v1/ai/estimate-food",
         "v1/ai/generate-meal-advice",
+        "v1/ai/generate-nutrition-estimate",
+        "v1/ai/generate-nutrition-comparison",
         "v1/ai/generate-daily-review",
         "v1/ai/parse-workout",
         "v1/ai/parse-edit-delete",

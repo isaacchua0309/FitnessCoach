@@ -43,6 +43,22 @@ final class FallbackLLMClient: LLMClient {
         }
     }
 
+    func generateNutritionEstimate(
+        request: AINutritionEstimateRequest
+    ) async throws -> AINutritionEstimateResponse {
+        try await perform(operation: "generateNutritionEstimate") {
+            try await primary.generateNutritionEstimate(request: request)
+        }
+    }
+
+    func generateNutritionComparison(
+        request: AINutritionComparisonRequest
+    ) async throws -> AINutritionComparisonResponse {
+        try await perform(operation: "generateNutritionComparison") {
+            try await primary.generateNutritionComparison(request: request)
+        }
+    }
+
     func generateDailyReview(request: AIDailyReviewRequest) async throws -> AIDailyReviewResponse {
         try await perform(operation: "generateDailyReview") {
             try await primary.generateDailyReview(request: request)

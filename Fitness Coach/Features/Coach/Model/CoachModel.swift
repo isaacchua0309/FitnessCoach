@@ -47,6 +47,7 @@ final class CoachModel: ObservableObject {
     @Published private(set) var foodEditErrorMessage: String?
     @Published private(set) var todayContext: CoachTodayContextState?
     @Published private(set) var starterPromptSpecs: [CoachStarterPromptSpec] = CoachStarterPrompt.defaultQuickActionSpecs
+    @Published var shouldFocusComposer = false
 
     private let localCommandParser: LocalCommandParser
     private let dailyLogReader: any DailyLogReading
@@ -67,6 +68,9 @@ final class CoachModel: ObservableObject {
     private let transcriptStore: CoachChatTranscriptStore
     private let imageAnalysisSessionStore = ImageAnalysisSessionStore()
     private let pendingImageLocalSources = CoachPendingImageLocalSourceStore()
+    private let coachAnalyticsLogger: any CoachAnalyticsLogging
+    private var nutritionEstimateLogPending = false
+    private var lastNutritionActionTapAt: Date?
 
     var awaitingPhotoClarification: Bool {
         imageAnalysisSessionStore.sessionAwaitingClarification() != nil
@@ -89,7 +93,8 @@ final class CoachModel: ObservableObject {
         coachModelConfig: CoachModelConfig? = nil,
         routeDecider: CoachRouteDecider? = nil,
         trainingInsightsStore: TrainingInsightsStore? = nil,
-        transcriptStore: CoachChatTranscriptStore = CoachInMemoryChatTranscriptStore()
+        transcriptStore: CoachChatTranscriptStore = CoachInMemoryChatTranscriptStore(),
+        coachAnalyticsLogger: (any CoachAnalyticsLogging)? = nil
     ) {
         self.localCommandParser = localCommandParser ?? .standard
         self.dailyLogReader = dailyLogReader
@@ -132,6 +137,11 @@ final class CoachModel: ObservableObject {
             routeHandler: routeHandler
         )
         self.transcriptStore = transcriptStore
+        #if DEBUG
+        self.coachAnalyticsLogger = coachAnalyticsLogger ?? OSLogCoachAnalyticsLogger()
+        #else
+        self.coachAnalyticsLogger = coachAnalyticsLogger ?? NoOpCoachAnalyticsLogger()
+        #endif
         self.messages = transcriptStore.loadMessages()
     }
 
@@ -853,6 +863,10 @@ final class CoachModel: ObservableObject {
         defer { isConfirmingPending = false }
 
         let response = await mutationExecutor.executePendingConfirmation(confirmation)
+        if nutritionEstimateLogPending {
+            logCoachAnalytics(.nutritionEstimateLogConfirmed, properties: CoachAnalyticsProperties())
+            nutritionEstimateLogPending = false
+        }
         clearPendingConfirmation()
         if !response.isEmpty {
             appendAssistantMessage(response)
@@ -861,8 +875,47 @@ final class CoachModel: ObservableObject {
 
     func rejectPendingFromBar() {
         guard pendingConfirmation != nil else { return }
+        if nutritionEstimateLogPending {
+            logCoachAnalytics(.nutritionEstimateLogCancelled, properties: CoachAnalyticsProperties())
+            nutritionEstimateLogPending = false
+        }
         clearPendingConfirmation()
         appendAssistantMessage(CoachResponseBuilder.pendingRejected)
+    }
+
+    func handleNutritionEstimateAction(_ action: NutritionSuggestedAction) async {
+        if let lastTap = lastNutritionActionTapAt, Date().timeIntervalSince(lastTap) < 0.6 {
+            return
+        }
+        lastNutritionActionTapAt = Date()
+
+        logCoachAnalytics(
+            .nutritionEstimateActionTapped,
+            properties: CoachAnalyticsProperties(actionType: action.type.rawValue)
+        )
+
+        switch action.type {
+        case .logMeal:
+            guard let mealDraft = NutritionSuggestedActionHandler.mealDraft(from: action) else { return }
+            let sanitized = FoodLogDraftNutritionCompleter.sanitize(mealDraft, hintText: mealDraft.displayName)
+            let result = CoachPendingConfirmationPresenter.presentFoodPending(
+                originalText: "Log \(sanitized.displayName)",
+                assistantMessage: nil,
+                mealDraft: sanitized,
+                confidence: .medium
+            )
+            nutritionEstimateLogPending = true
+            logCoachAnalytics(.nutritionEstimateLogStarted, properties: CoachAnalyticsProperties())
+            applyActionResult(result)
+
+        case .estimateAnother:
+            shouldFocusComposer = true
+            mutateInputState { $0.updateText("") }
+
+        case .addCommonSide, .addDrink, .compareAlternative, .healthierAlternative, .askFollowUp:
+            guard let query = NutritionSuggestedActionHandler.followUpQuery(for: action) else { return }
+            await send(query)
+        }
     }
 
     func openFoodEditSheet() {
@@ -983,7 +1036,9 @@ final class CoachModel: ObservableObject {
         if let confirmation = result.pendingConfirmation {
             setPendingConfirmation(confirmation)
         }
-        if !result.message.isEmpty {
+        if let structured = result.structuredContent {
+            appendAssistantStructuredMessage(structured, accessibilityText: result.message)
+        } else if !result.message.isEmpty {
             if let relatedPhotoUserMessageID,
                let session = imageAnalysisSessionStore.session(forUserMessageID: relatedPhotoUserMessageID) {
                 appendAssistantPhotoAnalysisMessage(result.message, session: session)
@@ -1076,6 +1131,46 @@ final class CoachModel: ObservableObject {
             )
         )
         persistTranscript()
+    }
+
+    private func appendAssistantStructuredMessage(
+        _ content: CoachStructuredMessageContent,
+        accessibilityText: String
+    ) {
+        messages.append(
+            ChatMessage(
+                id: UUID(),
+                role: .assistant,
+                text: accessibilityText,
+                createdAt: Date(),
+                relatedDailyLogId: nil,
+                relatedEntryId: nil,
+                structuredContent: content
+            )
+        )
+        persistTranscript()
+        logNutritionCardShown(content)
+    }
+
+    private func logNutritionCardShown(_ content: CoachStructuredMessageContent) {
+        switch content {
+        case .nutritionEstimate(let state):
+            logCoachAnalytics(
+                .nutritionEstimateCardShown,
+                properties: CoachAnalyticsProperties(
+                    confidenceLevel: state.confidenceLevel.rawValue,
+                    hasMacros: state.hasMacros,
+                    hasTodayContext: state.hasTodayContext,
+                    sourceType: state.sourceType?.rawValue
+                )
+            )
+        case .nutritionComparison:
+            logCoachAnalytics(.nutritionComparisonCardShown, properties: CoachAnalyticsProperties())
+        }
+    }
+
+    private func logCoachAnalytics(_ event: CoachAnalyticsEvent, properties: CoachAnalyticsProperties) {
+        coachAnalyticsLogger.log(event, properties: properties)
     }
 
     private func appendAssistantPhotoAnalysisMessage(
