@@ -387,7 +387,12 @@ final class AppContainer {
             weightLogReader: weightLogService,
             userProfileReader: userProfileService,
             trainingInsightsStore: trainingInsightsStore,
-            workoutReader: healthKitWorkoutReader
+            workoutReader: healthKitWorkoutReader,
+            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
+            healthIntelligenceEngine: healthIntelligenceEngine,
+            healthCacheStore: healthCacheStore,
+            healthActivityQuery: healthActivityQueryService,
+            healthDataRepository: healthDataRepository
         )
     }
 

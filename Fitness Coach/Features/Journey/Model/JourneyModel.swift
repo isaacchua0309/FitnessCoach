@@ -12,44 +12,136 @@ import Foundation
 final class JourneyModel: ObservableObject {
 
     @Published private(set) var viewState: JourneyViewState = .loading
+    @Published private(set) var journeyHealthIntelligenceSectionState: JourneyHealthIntelligenceSectionState?
 
     private let dailyLogReader: any DailyLogReading
     private let weightLogReader: any WeightLogReading
     private let userProfileReader: any UserProfileReading
     private let trainingInsightsStore: TrainingInsightsStore
     private let workoutReader: HealthKitWorkoutReading
+    private let healthIntelligenceSnapshotProvider: any HealthIntelligenceSnapshotServing
+    private let healthIntelligenceEngine: any HealthIntelligenceEngineing
+    private let healthCacheStore: any HealthCacheStore
+    private let healthActivityQuery: HealthActivityQueryService?
+    private let healthDataRepository: (any HealthDataRepositorying)?
+    private let healthIntelligenceLoadEnabled: () -> Bool
+    private let healthIntelligenceUIEnabled: () -> Bool
 
     init(
         dailyLogReader: any DailyLogReading,
         weightLogReader: any WeightLogReading,
         userProfileReader: any UserProfileReading,
         trainingInsightsStore: TrainingInsightsStore,
-        workoutReader: HealthKitWorkoutReading? = nil
+        workoutReader: HealthKitWorkoutReading? = nil,
+        healthIntelligenceSnapshotProvider: any HealthIntelligenceSnapshotServing = NoOpHealthIntelligenceSnapshotService(),
+        healthIntelligenceEngine: any HealthIntelligenceEngineing = NoOpHealthIntelligenceEngine(),
+        healthCacheStore: any HealthCacheStore = MemoryHealthCacheStore(),
+        healthActivityQuery: HealthActivityQueryService? = nil,
+        healthDataRepository: (any HealthDataRepositorying)? = nil,
+        healthIntelligenceLoadEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.shouldJourneyModelLoadHealthIntelligence },
+        healthIntelligenceUIEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.isUIEnabled }
     ) {
         self.dailyLogReader = dailyLogReader
         self.weightLogReader = weightLogReader
         self.userProfileReader = userProfileReader
         self.trainingInsightsStore = trainingInsightsStore
         self.workoutReader = workoutReader ?? MockHealthKitWorkoutReader(workouts: [])
+        self.healthIntelligenceSnapshotProvider = healthIntelligenceSnapshotProvider
+        self.healthIntelligenceEngine = healthIntelligenceEngine
+        self.healthCacheStore = healthCacheStore
+        self.healthActivityQuery = healthActivityQuery
+        self.healthDataRepository = healthDataRepository
+        self.healthIntelligenceLoadEnabled = healthIntelligenceLoadEnabled
+        self.healthIntelligenceUIEnabled = healthIntelligenceUIEnabled
     }
 
     // MARK: Loading
 
     func loadProgress() async {
         viewState = .loading
+        journeyHealthIntelligenceSectionState = nil
         await refresh()
     }
 
     func refresh() async {
         do {
             await trainingInsightsStore.refresh()
-            let state = try await makeDashboardState()
+            async let dashboardTask = makeDashboardState()
+            async let healthIntelligenceTask = refreshHealthIntelligenceSection()
+            let state = try await dashboardTask
+            await healthIntelligenceTask
             viewState = state.hasProfile ? .loaded(state) : .empty
         } catch ServiceError.missingUserProfile {
+            journeyHealthIntelligenceSectionState = nil
             viewState = .empty
         } catch {
+            journeyHealthIntelligenceSectionState = nil
             viewState = .error(FormaProductCopy.Error.loadJourney)
         }
+    }
+
+    // MARK: Health Intelligence
+
+    private func refreshHealthIntelligenceSection() async {
+        guard healthIntelligenceLoadEnabled() else {
+            journeyHealthIntelligenceSectionState = nil
+            return
+        }
+
+        let uiEnabled = healthIntelligenceUIEnabled()
+
+        guard let healthActivityQuery, let healthDataRepository else {
+            journeyHealthIntelligenceSectionState = fallbackHealthIntelligenceSection(
+                isAppleHealthConnected: trainingInsightsStore.integrationState.isConnected,
+                uiEnabled: uiEnabled
+            )
+            return
+        }
+
+        do {
+            try Task.checkCancellation()
+
+            let input = await JourneyHealthIntelligenceSectionLoader.loadInput(
+                referenceDate: Date(),
+                isAppleHealthConnected: trainingInsightsStore.integrationState.isConnected,
+                snapshotProvider: healthIntelligenceSnapshotProvider,
+                engine: healthIntelligenceEngine,
+                cacheStore: healthCacheStore,
+                healthActivityQuery: healthActivityQuery,
+                healthDataRepository: healthDataRepository
+            )
+
+            try Task.checkCancellation()
+
+            journeyHealthIntelligenceSectionState = JourneyHealthIntelligencePresentationBuilder.buildSection(
+                input: input,
+                isUIEnabled: uiEnabled
+            ) ?? fallbackHealthIntelligenceSection(
+                isAppleHealthConnected: trainingInsightsStore.integrationState.isConnected,
+                uiEnabled: uiEnabled
+            )
+        } catch is CancellationError {
+            return
+        } catch {
+            journeyHealthIntelligenceSectionState = fallbackHealthIntelligenceSection(
+                isAppleHealthConnected: trainingInsightsStore.integrationState.isConnected,
+                uiEnabled: uiEnabled
+            )
+        }
+    }
+
+    private func fallbackHealthIntelligenceSection(
+        isAppleHealthConnected: Bool,
+        uiEnabled: Bool
+    ) -> JourneyHealthIntelligenceSectionState? {
+        guard uiEnabled else { return nil }
+
+        return JourneyHealthIntelligencePresentationBuilder.buildSection(
+            input: JourneyHealthIntelligenceBuildInput(
+                healthConnection: isAppleHealthConnected ? .connected : .notConnected
+            ),
+            isUIEnabled: true
+        )
     }
 
     // MARK: State Building
@@ -181,6 +273,11 @@ final class JourneyModel: ObservableObject {
         guard trainingInsightsStore.integrationState.isConnected else {
             return []
         }
+
+        if let healthActivityQuery {
+            return await healthActivityQuery.workouts(from: startDate, to: endDate)
+        }
+
         return try await workoutReader.fetchWorkouts(from: startDate, to: endDate)
     }
 
@@ -198,12 +295,17 @@ final class JourneyModel: ObservableObject {
         viewState = .loaded(state)
     }
 
+    func applyPreviewHealthIntelligenceState(_ state: JourneyHealthIntelligenceSectionState?) {
+        journeyHealthIntelligenceSectionState = state
+    }
+
     static func preview(
         scenario: JourneyPreviewData.Scenario = .strongMomentum
     ) -> JourneyModel {
         let container = try! AppContainer(inMemory: true)
         let model = container.makeJourneyModel()
         model.applyPreviewState(JourneyPreviewData.dashboard(scenario))
+        model.applyPreviewHealthIntelligenceState(JourneyHealthIntelligencePreviewData.strongWeek)
         return model
     }
 #endif

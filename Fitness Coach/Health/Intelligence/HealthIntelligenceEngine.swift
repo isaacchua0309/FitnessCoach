@@ -297,3 +297,22 @@ struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
         )
     }
 }
+
+// MARK: - No-op engine
+
+struct NoOpHealthIntelligenceEngine: HealthIntelligenceEngineing {
+    func composeSnapshot(
+        for date: Date,
+        calendar: Calendar,
+        mode: HealthIntelligenceComposeMode
+    ) async -> HealthIntelligenceSnapshot {
+        HealthIntelligenceSnapshot.placeholder(for: date)
+    }
+
+    func generateSnapshot(
+        for date: Date,
+        calendar: Calendar
+    ) async throws -> HealthIntelligenceSnapshot {
+        await composeSnapshot(for: date, calendar: calendar, mode: .today)
+    }
+}

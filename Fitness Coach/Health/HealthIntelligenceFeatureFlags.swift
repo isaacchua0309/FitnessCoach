@@ -94,4 +94,24 @@ enum HealthIntelligenceFeatureFlags {
     static var shouldCoachLoadHealthIntelligence: Bool {
         healthIntelligenceEnginesEnabled
     }
+
+    /// DEBUG-only: allows JourneyModel to compose snapshots when UI is disabled (diagnostics).
+    static var isJourneyModelDebugFetchEnabled: Bool {
+        #if DEBUG
+        guard healthIntelligenceEnabled else { return false }
+        return FormaEnvironment.isTracingEnabled(
+            primary: "FORMA_HEALTH_INTELLIGENCE_JOURNEY_FETCH_ENABLED",
+            legacy: "FITPILOT_HEALTH_INTELLIGENCE_JOURNEY_FETCH_ENABLED",
+            defaultEnabled: false
+        )
+        #else
+        return false
+        #endif
+    }
+
+    /// Whether JourneyModel should load Health Intelligence on refresh.
+    static var shouldJourneyModelLoadHealthIntelligence: Bool {
+        guard healthIntelligenceEnginesEnabled else { return false }
+        return isUIEnabled || isJourneyModelDebugFetchEnabled
+    }
 }
