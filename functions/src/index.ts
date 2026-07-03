@@ -17,6 +17,13 @@ import {
   validateFoodExtraction,
   type FoodExtractionResponse,
 } from "./foodEstimateExtraction";
+import {
+  mealImageAnalysisInstructions,
+  mealImageAnalysisResponseSchema,
+  MEAL_IMAGE_ANALYSIS_PATH,
+  parseMealImageAnalysisResponse,
+  validateAnalyzeMealImagePayload,
+} from "./mealImageAnalysis";
 
 initializeApp();
 setGlobalOptions({maxInstances: 10});
@@ -69,7 +76,11 @@ export async function handleAiGatewayRequest(
     const body = readRequestBody(request);
     const bodyBytes = assertBodySizeWithinLimit(request, body);
     const path = normalizedPath(request.path || request.url || "");
-    validatePayload(path, body);
+    if (path === MEAL_IMAGE_ANALYSIS_PATH) {
+      validateAnalyzeMealImagePayload(body);
+    } else {
+      validatePayload(path, body);
+    }
 
     logger.info("AI gateway request received", {
       traceId,
@@ -97,6 +108,10 @@ export async function handleAiGatewayRequest(
         tier: body.imageJPEGBase64 ? "strong" : "cheap",
       });
       payload = await estimateFood(body, traceId);
+      break;
+    case MEAL_IMAGE_ANALYSIS_PATH:
+      modelUsed = resolveModel({tier: "strong"});
+      payload = await analyzeMealImage(body, traceId);
       break;
     case "/v1/ai/generate-meal-advice":
       modelUsed = resolveModel({
@@ -470,6 +485,48 @@ async function estimateFood(request: Record<string, any>, traceId?: string) {
   }
 
   return mapExtractionToGatewayPayload(extraction, source, validation);
+}
+
+async function analyzeMealImage(request: Record<string, any>, traceId?: string) {
+  const image = request.image as {
+    mimeType: string;
+    base64: string;
+    width?: number;
+    height?: number;
+  };
+
+  const modelInput = {
+    message: request.message ?? null,
+    locale: request.locale ?? null,
+    userContext: request.userContext ?? null,
+    image: {
+      mimeType: image.mimeType,
+      ...(image.width !== undefined ? {width: image.width} : {}),
+      ...(image.height !== undefined ? {height: image.height} : {}),
+    },
+  };
+
+  const raw = await openAIJSON({
+    instructions: mealImageAnalysisInstructions(),
+    input: [
+      {
+        role: "user",
+        content: [
+          {type: "input_text", text: JSON.stringify(modelInput)},
+          {
+            type: "input_image",
+            image_url: `data:${image.mimeType};base64,${image.base64}`,
+          },
+        ],
+      },
+    ],
+    schema: mealImageAnalysisResponseSchema(),
+    maxOutputTokens: 1800,
+    model: resolveModel({tier: "strong"}),
+    traceId,
+  });
+
+  return parseMealImageAnalysisResponse(raw);
 }
 
 async function parseWorkout(request: Record<string, any>, traceId?: string) {

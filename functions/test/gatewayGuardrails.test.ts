@@ -119,4 +119,25 @@ describe("gatewayGuardrails normalization", () => {
     expect(response.statusCode).toBe(413);
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("returns 413 for analyze-meal-image body above the 2MB limit", async () => {
+    process.env.FORMA_AI_MAX_BODY_BYTES_WITH_IMAGE = `${2 * 1024 * 1024}`;
+    const request = createMockRequest({
+      path: "/v1/ai/analyze-meal-image",
+      headers: {Authorization: "Bearer test-token"},
+      body: {
+        image: {
+          mimeType: "image/png",
+          base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+        },
+      },
+      rawBody: Buffer.alloc(2 * 1024 * 1024 + 1, "a"),
+    });
+    const response = createMockResponse();
+
+    await handleAiGatewayRequest(request, response);
+
+    expect(response.statusCode).toBe(413);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });

@@ -70,6 +70,23 @@ const AI_GATEWAY_ROUTES = [
     },
   },
   {
+    path: "/v1/ai/analyze-meal-image",
+    body: {
+      message: "Lunch",
+      image: {
+        mimeType: "image/png",
+        base64: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      },
+    },
+    assertShape: (body: Record<string, unknown>) => {
+      expect(body).toHaveProperty("summary");
+      expect(body).toHaveProperty("items");
+      expect(body).toHaveProperty("total");
+      expect(body).toHaveProperty("needsUserReview", true);
+      expect(body).not.toHaveProperty("foodDrafts");
+    },
+  },
+  {
     path: "/v1/ai/generate-meal-advice",
     body: {question: "Should I eat pasta?", context: {}},
     assertShape: (body: Record<string, unknown>) => {
@@ -255,6 +272,37 @@ describe("aiGateway contract", () => {
       expect(response.statusCode).toBe(200);
       const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
       expect(requestBody.reasoning).toEqual({effort: "minimal"});
+    });
+
+    it("sends multimodal Responses API input for analyze-meal-image", async () => {
+      const pngBase64 =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+      const request = createMockRequest({
+        path: "/v1/ai/analyze-meal-image",
+        headers: {Authorization: "Bearer test-token"},
+        body: {
+          message: "Lunch",
+          image: {mimeType: "image/png", base64: pngBase64},
+        },
+      });
+      const response = createMockResponse();
+
+      await handleAiGatewayRequest(request, response);
+
+      expect(response.statusCode).toBe(200);
+      const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+      expect(requestBody.model).toContain("gpt-5");
+      expect(requestBody.text.format.name).toBe("meal_image_analysis_response");
+      const content = requestBody.input[0].content;
+      expect(content).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({type: "input_text"}),
+          expect.objectContaining({
+            type: "input_image",
+            image_url: `data:image/png;base64,${pngBase64}`,
+          }),
+        ])
+      );
     });
   });
 
