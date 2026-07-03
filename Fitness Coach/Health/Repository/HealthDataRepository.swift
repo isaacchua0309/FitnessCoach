@@ -4,6 +4,16 @@
 //
 //  Forma — Repository boundary for normalized Health Intelligence data.
 //
+//  Architecture notes:
+//  - Raw HealthKit samples (HKSample, statistics handles) are never persisted. They are
+//    fetched, normalized into stable domain models, and discarded to limit PHI surface
+//    area, keep cache size bounded, and avoid schema coupling to HealthKit revisions.
+//  - UI should eventually consume `HealthIntelligenceSnapshot` (composed by
+//    `HealthIntelligenceEngine`) rather than reading HealthKit or repository aggregates
+//    directly. Snapshots are deterministic, testable, and decouple presentation from sync.
+//  - Partial Health permissions are valid: each signal is fetched independently so denied
+//    workout access does not discard available step counts for the same day.
+//
 
 import Foundation
 
@@ -204,14 +214,14 @@ struct HealthDataRepository: HealthDataRepositorying {
 
     func getWorkouts(
         from startDate: Date,
-        to endDate: Date
+        to endDate: Date,
+        calendar: Calendar = .current
     ) async -> [NormalizedWorkout] {
         guard healthKitManager.isHealthDataAvailable else {
             HealthDataRepositoryLogger.warn("getWorkouts unavailable")
             return []
         }
 
-        let calendar = Calendar.current
         let range = Self.queryDateRange(from: startDate, to: endDate, calendar: calendar)
         let inclusiveEnd = Self.inclusiveEndDay(for: range.end, calendar: calendar)
 
@@ -424,11 +434,15 @@ struct HealthDataRepository: HealthDataRepositorying {
     // MARK: - Availability & refresh
 
     func getHealthDataAvailability() async -> HealthDataAvailability {
+        await getHealthDataAvailability(calendar: .current)
+    }
+
+    private func getHealthDataAvailability(calendar: Calendar) async -> HealthDataAvailability {
         let permissionStatus = await healthKitManager.getAuthorizationStatus()
         let availability = HealthDataAvailability(
             isHealthDataAvailable: healthKitManager.isHealthDataAvailable,
             permissionStatus: permissionStatus,
-            cachedDayCount: cacheStore.cachedDayCount(calendar: .current)
+            cachedDayCount: cacheStore.cachedDayCount(calendar: calendar)
         )
         HealthDataRepositoryLogger.event(
             "getHealthDataAvailability",
@@ -456,26 +470,27 @@ struct HealthDataRepository: HealthDataRepositorying {
             return HealthRefreshResult(daysRefreshed: 0, refreshedAt: Date())
         }
 
-        var refreshed = 0
-        for offset in 0..<dayCount {
-            guard let day = calendar.date(byAdding: .day, value: -offset, to: date) else {
-                continue
-            }
-            _ = await loadDayBundle(for: day, calendar: calendar, forceRefresh: true)
-            refreshed += 1
+        let refreshed: Int
+        if dayCount > 1 {
+            refreshed = await refreshHealthDataBulk(
+                days: dayCount,
+                endingOn: date,
+                calendar: calendar
+            )
+        } else {
+            refreshed = await refreshHealthDataSingleDay(
+                endingOn: date,
+                calendar: calendar
+            )
         }
 
         HealthDataRepositoryLogger.event(
             "refreshHealthData",
             fields: [
                 "daysRefreshed": String(refreshed),
-                "requestedDays": String(dayCount)
+                "requestedDays": String(dayCount),
+                "bulk": String(dayCount > 1)
             ]
-        )
-
-        cacheStore.pruneOldEntries(
-            keepingLastDays: HealthCachePolicy.retentionDays,
-            calendar: calendar
         )
 
         return HealthRefreshResult(daysRefreshed: refreshed, refreshedAt: Date())
@@ -488,6 +503,19 @@ struct HealthDataRepository: HealthDataRepositorying {
         calendar: Calendar,
         forceRefresh: Bool = false
     ) async -> HealthNormalizedDayBundle {
+        let (bundle, _) = await loadDayBundleWithFetchStatus(
+            for: date,
+            calendar: calendar,
+            forceRefresh: forceRefresh
+        )
+        return bundle
+    }
+
+    private func loadDayBundleWithFetchStatus(
+        for date: Date,
+        calendar: Calendar,
+        forceRefresh: Bool = false
+    ) async -> (bundle: HealthNormalizedDayBundle, fetchedFromHealthKit: Bool) {
         let dayStart = calendar.startOfDay(for: date)
 
         if !forceRefresh,
@@ -497,65 +525,284 @@ struct HealthDataRepository: HealthDataRepositorying {
                 "cache hit",
                 fields: ["date": Self.isoDay(dayStart, calendar: calendar)]
             )
-            return cached.bundle
+            return (cached.bundle, false)
         }
 
         guard healthKitManager.isHealthDataAvailable else {
-            return .empty(for: dayStart, calendar: calendar)
+            return (.empty(for: dayStart, calendar: calendar), false)
         }
 
         guard let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) else {
-            return .empty(for: dayStart, calendar: calendar)
+            return (.empty(for: dayStart, calendar: calendar), false)
         }
 
-        do {
-            let raw = try await fetchRawDayInput(
-                dayStart: dayStart,
-                dayEnd: dayEnd,
-                calendar: calendar
+        let raw = await fetchRawDayInput(
+            dayStart: dayStart,
+            dayEnd: dayEnd,
+            calendar: calendar
+        )
+        let bundle = normalizer.normalize(day: raw, calendar: calendar)
+        cacheStore.store(
+            HealthCacheEntry(date: dayStart, bundle: bundle, cachedAt: Date()),
+            calendar: calendar
+        )
+        HealthDataRepositoryLogger.event(
+            "cached day bundle",
+            fields: [
+                "date": Self.isoDay(dayStart, calendar: calendar),
+                "workouts": String(bundle.workouts.count),
+                "sleep": String(bundle.sleepRecords.count)
+            ]
+        )
+        return (bundle, true)
+    }
+
+    private func refreshHealthDataSingleDay(
+        endingOn date: Date,
+        calendar: Calendar
+    ) async -> Int {
+        let (_, fetched) = await loadDayBundleWithFetchStatus(
+            for: date,
+            calendar: calendar,
+            forceRefresh: true
+        )
+        return fetched ? 1 : 0
+    }
+
+    private func refreshHealthDataBulk(
+        days: Int,
+        endingOn date: Date,
+        calendar: Calendar
+    ) async -> Int {
+        let range = Self.recentDateRange(days: days, endingOn: date, calendar: calendar)
+        let inclusiveEnd = Self.inclusiveEndDay(for: range.end, calendar: calendar)
+        let allDays = Self.daysInRange(from: range.start, to: inclusiveEnd, calendar: calendar)
+        guard !allDays.isEmpty else { return 0 }
+
+        cacheStore.beginBatchWrite()
+        defer { cacheStore.endBatchWrite(calendar: calendar) }
+
+        let cachedAt = Date()
+        var bundlesByDay: [Date: HealthNormalizedDayBundle] = [:]
+        bundlesByDay.reserveCapacity(allDays.count)
+
+        let metricsList = await fetchDailyMetricsRange(
+            from: range.start,
+            to: inclusiveEnd,
+            calendar: calendar
+        )
+        for metric in metricsList {
+            let day = calendar.startOfDay(for: metric.date)
+            bundlesByDay[day] = HealthNormalizedDayBundle(
+                dailyMetrics: metric,
+                workouts: [],
+                sleepRecords: [],
+                heartMetrics: [],
+                bodyMassRecords: []
             )
-            let bundle = normalizer.normalize(day: raw, calendar: calendar)
-            cacheStore.store(
-                HealthCacheEntry(date: dayStart, bundle: bundle, cachedAt: Date()),
-                calendar: calendar
-            )
-            HealthDataRepositoryLogger.event(
-                "cached day bundle",
-                fields: [
-                    "date": Self.isoDay(dayStart, calendar: calendar),
-                    "workouts": String(bundle.workouts.count),
-                    "sleep": String(bundle.sleepRecords.count)
-                ]
-            )
-            return bundle
-        } catch {
-            logGracefulFetchFailure(
-                context: "loadDayBundle",
-                error: error,
-                fields: ["date": Self.isoDay(dayStart, calendar: calendar)]
-            )
-            return .empty(for: dayStart, calendar: calendar)
         }
+
+        for day in allDays where bundlesByDay[day] == nil {
+            bundlesByDay[day] = .empty(for: day, calendar: calendar)
+        }
+
+        let workouts = normalizer.normalizeWorkouts(
+            await fetchWorkoutsSafe(from: range.start, to: range.end)
+        )
+        if !workouts.isEmpty {
+            cacheStore.upsertWorkouts(workouts, calendar: calendar)
+            mergeWorkouts(workouts, into: &bundlesByDay, calendar: calendar)
+        }
+
+        let sleepRecords = normalizer.normalizeSleepRecords(
+            await fetchSleepRecordsSafe(from: range.start, to: range.end)
+        )
+        if !sleepRecords.isEmpty {
+            cacheStore.upsertSleepRecords(sleepRecords, calendar: calendar)
+            mergeSleepRecords(sleepRecords, into: &bundlesByDay, calendar: calendar)
+        }
+
+        let heartMetrics = normalizer.normalizeHeartMetrics(
+            await fetchHeartMetricsSafe(from: range.start, to: range.end)
+        )
+        if !heartMetrics.isEmpty {
+            cacheStore.upsertHeartMetrics(heartMetrics, calendar: calendar)
+            mergeHeartMetrics(heartMetrics, into: &bundlesByDay, calendar: calendar)
+        }
+
+        let bodyMassRecords = normalizer.normalizeBodyMassRecords(
+            await fetchBodyMassRecordsSafe(from: range.start, to: range.end)
+        )
+        if !bodyMassRecords.isEmpty {
+            cacheStore.upsertBodyMassRecords(bodyMassRecords, calendar: calendar)
+            mergeBodyMassRecords(bodyMassRecords, into: &bundlesByDay, calendar: calendar)
+        }
+
+        var refreshedDays = 0
+        for day in allDays {
+            guard let bundle = bundlesByDay[day] else { continue }
+            cacheStore.store(
+                HealthCacheEntry(date: day, bundle: bundle, cachedAt: cachedAt),
+                calendar: calendar
+            )
+            if bundle.hasAnySignalData {
+                refreshedDays += 1
+            }
+        }
+
+        if refreshedDays == 0, !metricsList.isEmpty {
+            refreshedDays = allDays.count
+        } else if refreshedDays == 0,
+                  !workouts.isEmpty || !sleepRecords.isEmpty || !heartMetrics.isEmpty || !bodyMassRecords.isEmpty {
+            refreshedDays = allDays.count
+        }
+
+        return refreshedDays
     }
 
     private func fetchRawDayInput(
         dayStart: Date,
         dayEnd: Date,
         calendar: Calendar
-    ) async throws -> HealthRawDayInput {
-        async let dailyMetrics = healthKitManager.fetchDailyMetrics(for: dayStart, calendar: calendar)
-        async let workouts = healthKitManager.fetchWorkouts(from: dayStart, to: dayEnd)
-        async let sleepRecords = healthKitManager.fetchSleepRecords(from: dayStart, to: dayEnd)
-        async let heartMetrics = healthKitManager.fetchHeartMetrics(from: dayStart, to: dayEnd)
-        async let bodyMassRecords = healthKitManager.fetchBodyMassRecords(from: dayStart, to: dayEnd)
+    ) async -> HealthRawDayInput {
+        async let dailyMetrics = fetchDailyMetricsSafe(for: dayStart, calendar: calendar)
+        async let workouts = fetchWorkoutsSafe(from: dayStart, to: dayEnd)
+        async let sleepRecords = fetchSleepRecordsSafe(from: dayStart, to: dayEnd)
+        async let heartMetrics = fetchHeartMetricsSafe(from: dayStart, to: dayEnd)
+        async let bodyMassRecords = fetchBodyMassRecordsSafe(from: dayStart, to: dayEnd)
 
         return HealthRawDayInput(
-            dailyMetrics: try await dailyMetrics,
-            workouts: try await workouts,
-            sleepRecords: try await sleepRecords,
-            heartMetrics: try await heartMetrics,
-            bodyMassRecords: try await bodyMassRecords
+            dailyMetrics: await dailyMetrics,
+            workouts: await workouts,
+            sleepRecords: await sleepRecords,
+            heartMetrics: await heartMetrics,
+            bodyMassRecords: await bodyMassRecords
         )
+    }
+
+    private func fetchDailyMetricsSafe(for date: Date, calendar: Calendar) async -> HealthDailyMetrics {
+        do {
+            return try await healthKitManager.fetchDailyMetrics(for: date, calendar: calendar)
+        } catch {
+            logGracefulFetchFailure(
+                context: "fetchDailyMetrics",
+                error: error,
+                fields: ["date": Self.isoDay(date, calendar: calendar)]
+            )
+            return .empty(for: date)
+        }
+    }
+
+    private func fetchWorkoutsSafe(from startDate: Date, to endDate: Date) async -> [HealthFetchedWorkout] {
+        do {
+            return try await healthKitManager.fetchWorkouts(from: startDate, to: endDate)
+        } catch {
+            logGracefulFetchFailure(context: "fetchWorkouts", error: error)
+            return []
+        }
+    }
+
+    private func fetchSleepRecordsSafe(from startDate: Date, to endDate: Date) async -> [HealthSleepRecord] {
+        do {
+            return try await healthKitManager.fetchSleepRecords(from: startDate, to: endDate)
+        } catch {
+            logGracefulFetchFailure(context: "fetchSleepRecords", error: error)
+            return []
+        }
+    }
+
+    private func fetchHeartMetricsSafe(from startDate: Date, to endDate: Date) async -> [HealthHeartMetric] {
+        do {
+            return try await healthKitManager.fetchHeartMetrics(from: startDate, to: endDate)
+        } catch {
+            logGracefulFetchFailure(context: "fetchHeartMetrics", error: error)
+            return []
+        }
+    }
+
+    private func fetchBodyMassRecordsSafe(from startDate: Date, to endDate: Date) async -> [HealthBodyMassRecord] {
+        do {
+            return try await healthKitManager.fetchBodyMassRecords(from: startDate, to: endDate)
+        } catch {
+            logGracefulFetchFailure(context: "fetchBodyMassRecords", error: error)
+            return []
+        }
+    }
+
+    private func mergeWorkouts(
+        _ workouts: [NormalizedWorkout],
+        into bundles: inout [Date: HealthNormalizedDayBundle],
+        calendar: Calendar
+    ) {
+        for workout in workouts {
+            let day = calendar.startOfDay(for: workout.startDate)
+            var bundle = bundles[day] ?? .empty(for: day, calendar: calendar)
+            let merged = normalizer.deduplicateWorkouts(bundle.workouts + [workout])
+            bundles[day] = HealthNormalizedDayBundle(
+                dailyMetrics: bundle.dailyMetrics,
+                workouts: merged,
+                sleepRecords: bundle.sleepRecords,
+                heartMetrics: bundle.heartMetrics,
+                bodyMassRecords: bundle.bodyMassRecords
+            )
+        }
+    }
+
+    private func mergeSleepRecords(
+        _ records: [NormalizedSleepRecord],
+        into bundles: inout [Date: HealthNormalizedDayBundle],
+        calendar: Calendar
+    ) {
+        for record in records {
+            let day = calendar.startOfDay(for: record.startDate)
+            var bundle = bundles[day] ?? .empty(for: day, calendar: calendar)
+            let merged = normalizer.deduplicateSleepRecords(bundle.sleepRecords + [record])
+            bundles[day] = HealthNormalizedDayBundle(
+                dailyMetrics: bundle.dailyMetrics,
+                workouts: bundle.workouts,
+                sleepRecords: merged,
+                heartMetrics: bundle.heartMetrics,
+                bodyMassRecords: bundle.bodyMassRecords
+            )
+        }
+    }
+
+    private func mergeHeartMetrics(
+        _ metrics: [NormalizedHeartMetric],
+        into bundles: inout [Date: HealthNormalizedDayBundle],
+        calendar: Calendar
+    ) {
+        for metric in metrics {
+            let day = calendar.startOfDay(for: metric.date)
+            var bundle = bundles[day] ?? .empty(for: day, calendar: calendar)
+            let merged = normalizer.deduplicateHeartMetrics(bundle.heartMetrics + [metric])
+            bundles[day] = HealthNormalizedDayBundle(
+                dailyMetrics: bundle.dailyMetrics,
+                workouts: bundle.workouts,
+                sleepRecords: bundle.sleepRecords,
+                heartMetrics: merged,
+                bodyMassRecords: bundle.bodyMassRecords
+            )
+        }
+    }
+
+    private func mergeBodyMassRecords(
+        _ records: [NormalizedBodyMass],
+        into bundles: inout [Date: HealthNormalizedDayBundle],
+        calendar: Calendar
+    ) {
+        for record in records {
+            let day = calendar.startOfDay(for: record.date)
+            var bundle = bundles[day] ?? .empty(for: day, calendar: calendar)
+            let merged = normalizer.deduplicateBodyMassRecords(bundle.bodyMassRecords + [record])
+            bundles[day] = HealthNormalizedDayBundle(
+                dailyMetrics: bundle.dailyMetrics,
+                workouts: bundle.workouts,
+                sleepRecords: bundle.sleepRecords,
+                heartMetrics: bundle.heartMetrics,
+                bodyMassRecords: merged
+            )
+        }
     }
 
     private func fetchDailyMetricsRange(
@@ -688,6 +935,27 @@ struct HealthDataRepository: HealthDataRepositorying {
         HealthDataRepositoryLogger.fetchFailure(context: context, underlying: error, fields: fields)
     }
 
+    private static func daysInRange(
+        from startDate: Date,
+        to endDate: Date,
+        calendar: Calendar
+    ) -> [Date] {
+        let rangeStart = calendar.startOfDay(for: startDate)
+        let rangeEnd = calendar.startOfDay(for: endDate)
+        guard rangeStart <= rangeEnd else { return [] }
+
+        var days: [Date] = []
+        var cursor = rangeStart
+        while cursor <= rangeEnd {
+            days.append(cursor)
+            guard let next = calendar.date(byAdding: .day, value: 1, to: cursor) else {
+                break
+            }
+            cursor = next
+        }
+        return days
+    }
+
     private static func recentDateRange(
         days: Int,
         endingOn date: Date,
@@ -721,13 +989,20 @@ struct HealthDataRepository: HealthDataRepositorying {
             return true
         }
 
+        let rangeStart = calendar.startOfDay(for: startDate)
+        let rangeEnd = calendar.startOfDay(for: inclusiveEnd)
+        let isSingleDay = rangeStart == rangeEnd
+
+        guard isSingleDay else {
+            return false
+        }
+
         guard let updatedAt = cacheStore.indexUpdatedAt(for: aggregate) else {
             return false
         }
 
         let today = calendar.startOfDay(for: Date())
-        let rangeStart = calendar.startOfDay(for: startDate)
-        let rangeIncludesToday = today >= rangeStart && today <= inclusiveEnd
+        let rangeIncludesToday = today >= rangeStart && today <= rangeEnd
         let freshnessDate = rangeIncludesToday ? today : inclusiveEnd
         return cacheStore.isFresh(cachedAt: updatedAt, for: freshnessDate, calendar: calendar)
     }

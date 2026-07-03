@@ -15,6 +15,7 @@ final class HealthSyncStateStore: ObservableObject {
 
     private let syncService: HealthSyncService
     private let syncEnabled: Bool
+    private var activeSyncTask: Task<Void, Never>?
 
     init(
         syncService: HealthSyncService,
@@ -22,6 +23,10 @@ final class HealthSyncStateStore: ObservableObject {
     ) {
         self.syncService = syncService
         self.syncEnabled = syncEnabled
+    }
+
+    deinit {
+        activeSyncTask?.cancel()
     }
 
     func refreshState() async {
@@ -57,12 +62,20 @@ final class HealthSyncStateStore: ObservableObject {
         runDetached { await self.syncService.syncToday() }
     }
 
+    func cancelActiveSync() {
+        activeSyncTask?.cancel()
+        activeSyncTask = nil
+    }
+
     // MARK: - Private
 
     private func runDetached(_ operation: @escaping @Sendable () async -> HealthSyncState) {
-        Task {
+        activeSyncTask?.cancel()
+        activeSyncTask = Task { [weak self] in
+            guard let self else { return }
             let updated = await operation()
-            state = updated
+            guard !Task.isCancelled else { return }
+            self.state = updated
         }
     }
 }

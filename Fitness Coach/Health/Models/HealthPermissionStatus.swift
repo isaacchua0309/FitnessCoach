@@ -4,6 +4,10 @@
 //
 //  Forma — Aggregated Health Intelligence permission state with per-signal detail.
 //
+//  Partial authorization is valid and expected: users may grant steps and workouts but
+//  deny sleep or heart metrics. Sync and repository reads treat each signal independently
+//  so available data is still cached and surfaced without requiring all-or-nothing access.
+//
 
 import Foundation
 

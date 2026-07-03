@@ -4,6 +4,10 @@
 //
 //  Forma — Aggregated Health Intelligence output for a single day.
 //
+//  UI should consume `HealthIntelligenceSnapshot` (via `HealthIntelligenceEngine`) rather than
+//  querying HealthKit or repository aggregates directly. Snapshots compose normalized cache data
+//  into a stable, testable contract for Today, Journey, Plan, and Coach.
+//
 
 import Foundation
 

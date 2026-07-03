@@ -181,15 +181,25 @@ final class HealthSyncServiceTests: XCTestCase {
         XCTAssertEqual(mockRepository.refreshCallCount, before)
     }
 
-    func testSyncInitialUsesNinetyDayWindow() async {
+    func testSyncInitialUsesSingleBulkRefresh() async {
         mockPermission.status = .uniform(.available, isHealthDataAvailable: true)
 
         let state = await service.syncInitialHealthData()
 
         XCTAssertEqual(state.trigger, .initial)
         XCTAssertEqual(state.progress.daysRequested, HealthCachePolicy.retentionDays)
-        XCTAssertEqual(mockRepository.refreshCallCount, HealthCachePolicy.retentionDays)
+        XCTAssertEqual(mockRepository.refreshCallCount, 1)
         XCTAssertEqual(state.phase, .succeeded)
+    }
+
+    func testBulkRefreshReturnsRequestedDayCount() async {
+        mockPermission.status = .uniform(.available, isHealthDataAvailable: true)
+        mockRepository.refreshDaysReturned = 7
+
+        let state = await service.syncLastNDays(7)
+
+        XCTAssertEqual(state.progress.daysCompleted, 7)
+        XCTAssertEqual(mockRepository.refreshCallCount, 1)
     }
 
     // MARK: - Helpers
@@ -204,6 +214,7 @@ final class HealthSyncServiceTests: XCTestCase {
 private final class MockSyncRepository: HealthDataRepositorying, @unchecked Sendable {
 
     var refreshCallCount = 0
+    var refreshDaysReturned = 1
     var refreshDelayNanoseconds: UInt64 = 0
     var availability = HealthDataAvailability(
         isHealthDataAvailable: true,
@@ -256,7 +267,7 @@ private final class MockSyncRepository: HealthDataRepositorying, @unchecked Send
             try? await Task.sleep(nanoseconds: refreshDelayNanoseconds)
         }
         refreshCallCount += 1
-        return HealthRefreshResult(daysRefreshed: 1, refreshedAt: Date())
+        return HealthRefreshResult(daysRefreshed: refreshDaysReturned, refreshedAt: Date())
     }
 }
 

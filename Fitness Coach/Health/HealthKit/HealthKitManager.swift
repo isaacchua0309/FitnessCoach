@@ -52,6 +52,10 @@ extension HealthKitManaging {
 final class HealthKitManager: HealthKitManaging, @unchecked Sendable {
 
     let healthStore: HKHealthStore
+    private let permissionCacheLock = NSLock()
+    private var cachedPermissionStatus: HealthPermissionStatus?
+    private var permissionCachedAt: Date?
+    private let permissionCacheTTL: TimeInterval = 45
 
     nonisolated init(healthStore: HKHealthStore = HKHealthStore()) {
         self.healthStore = healthStore
@@ -65,6 +69,18 @@ final class HealthKitManager: HealthKitManaging, @unchecked Sendable {
 
     func getAuthorizationStatus(
         includingFutureTypes: Bool = false
+    ) async -> HealthPermissionStatus {
+        if let cached = cachedPermissionIfValid() {
+            return cached
+        }
+
+        let resolved = await resolveAuthorizationStatus(includingFutureTypes: includingFutureTypes)
+        cachePermissionStatus(resolved)
+        return resolved
+    }
+
+    private func resolveAuthorizationStatus(
+        includingFutureTypes: Bool
     ) async -> HealthPermissionStatus {
         guard isHealthDataAvailable else {
             HealthPermissionLogger.warn("getAuthorizationStatus: Health data unavailable")
@@ -139,6 +155,8 @@ final class HealthKitManager: HealthKitManaging, @unchecked Sendable {
 
         let resolved = await probeSignalAccess(for: signals)
         HealthPermissionLogger.logResolvedStatus(resolved, context: "requestAuthorization")
+        invalidatePermissionCache()
+        cachePermissionStatus(resolved)
         return resolved
     }
 
@@ -184,8 +202,16 @@ final class HealthKitManager: HealthKitManaging, @unchecked Sendable {
         var access: [HealthSignalKind: HealthSignalAccess] = [:]
         access.reserveCapacity(signals.count)
 
-        for signal in signals {
-            access[signal] = await probeAccess(for: signal)
+        await withTaskGroup(of: (HealthSignalKind, HealthSignalAccess).self) { group in
+            for signal in signals {
+                group.addTask {
+                    let resolved = await self.probeAccess(for: signal)
+                    return (signal, resolved)
+                }
+            }
+            for await (signal, resolved) in group {
+                access[signal] = resolved
+            }
         }
 
         for signal in HealthSignalKind.futureOptional where access[signal] == nil {
@@ -483,6 +509,31 @@ final class HealthKitManager: HealthKitManaging, @unchecked Sendable {
         @unknown default:
             return .notDetermined
         }
+    }
+
+    private func cachedPermissionIfValid() -> HealthPermissionStatus? {
+        permissionCacheLock.lock()
+        defer { permissionCacheLock.unlock() }
+        guard let cachedPermissionStatus,
+              let permissionCachedAt,
+              Date().timeIntervalSince(permissionCachedAt) < permissionCacheTTL else {
+            return nil
+        }
+        return cachedPermissionStatus
+    }
+
+    private func cachePermissionStatus(_ status: HealthPermissionStatus) {
+        permissionCacheLock.lock()
+        cachedPermissionStatus = status
+        permissionCachedAt = Date()
+        permissionCacheLock.unlock()
+    }
+
+    private func invalidatePermissionCache() {
+        permissionCacheLock.lock()
+        cachedPermissionStatus = nil
+        permissionCachedAt = nil
+        permissionCacheLock.unlock()
     }
 }
 

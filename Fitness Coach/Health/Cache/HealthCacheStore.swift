@@ -54,9 +54,16 @@ protocol HealthCacheStore: Sendable {
     func cachedDayCount(calendar: Calendar) -> Int
     func indexUpdatedAt(for aggregate: HealthCacheAggregateKind) -> Date?
     func clearAll()
+
+    // MARK: - Batch writes (defer disk index persistence during bulk sync)
+
+    func beginBatchWrite()
+    func endBatchWrite(calendar: Calendar)
 }
 
 extension HealthCacheStore {
+    func beginBatchWrite() {}
+    func endBatchWrite(calendar: Calendar) {}
     func isFresh(cachedAt: Date, for date: Date, calendar: Calendar = .current) -> Bool {
         HealthCachePolicy.isFresh(cachedAt: cachedAt, for: date, calendar: calendar)
     }

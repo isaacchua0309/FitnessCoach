@@ -9,8 +9,11 @@ import Foundation
 
 enum HealthCachePolicy {
 
+    /// Local cache retains normalized domain models for this many calendar days.
     static let schemaVersion = 1
     static let retentionDays = 90
+
+    /// Today refreshes more often; historical days use a longer TTL to avoid redundant HK queries.
     static let todayFreshnessInterval: TimeInterval = 15 * 60
     static let historicalFreshnessInterval: TimeInterval = 24 * 60 * 60
     static let anonymousUserID = "anonymous"

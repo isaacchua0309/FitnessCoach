@@ -60,19 +60,13 @@ enum HealthPermissionLogger {
     private static let logger = Logger(subsystem: "FitPilot", category: "HealthPermission")
 
     private static func log(level: String, message: String, fields: [String: String]) {
+        var metadata = fields
+        metadata["level"] = level
+
         #if DEBUG
-        let fieldLine = fields
-            .sorted { $0.key < $1.key }
-            .map { "\($0.key)=\($0.value)" }
-            .joined(separator: " ")
-        let line = fieldLine.isEmpty
-            ? "[HealthPermission] \(message)"
-            : "[HealthPermission] \(message) \(fieldLine)"
-        print(line)
+        print("[HealthPermission] \(HealthOSLogFormatting.message(message, fields: metadata))")
         #endif
 
-        var metadata: [String: String] = fields
-        metadata["level"] = level
-        logger.log("\(message, privacy: .public)")
+        logger.log("\(HealthOSLogFormatting.message(message, fields: metadata), privacy: .public)")
     }
 }

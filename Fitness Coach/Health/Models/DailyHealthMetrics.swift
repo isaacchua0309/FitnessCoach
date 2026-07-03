@@ -89,6 +89,16 @@ struct HealthNormalizedDayBundle: Equatable, Sendable, Codable {
     let heartMetrics: [NormalizedHeartMetric]
     let bodyMassRecords: [NormalizedBodyMass]
 
+    var hasAnySignalData: Bool {
+        dailyMetrics.steps > 0
+            || dailyMetrics.activeEnergyKcal > 0
+            || dailyMetrics.exerciseMinutes > 0
+            || !workouts.isEmpty
+            || !sleepRecords.isEmpty
+            || !heartMetrics.isEmpty
+            || !bodyMassRecords.isEmpty
+    }
+
     static func empty(for date: Date, calendar: Calendar = .current) -> HealthNormalizedDayBundle {
         HealthNormalizedDayBundle(
             dailyMetrics: .empty(for: calendar.startOfDay(for: date)),

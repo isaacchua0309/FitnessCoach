@@ -265,6 +265,7 @@ final class AppContainer {
 
     func syncHealthCacheUserID() {
         authUIDCache.update(uid: authManager.currentUID)
+        healthSyncStateStore.cancelActiveSync()
     }
 
     func makeTodayActionCoordinator() -> TodayActionCoordinator {

@@ -164,7 +164,7 @@ private final class MockRoutingRepository: HealthDataRepositorying, @unchecked S
     func getHealthDataAvailability() async -> HealthDataAvailability {
         HealthDataAvailability(
             isHealthDataAvailable: false,
-            permissionStatus: .unavailable,
+            permissionStatus: .unavailable(),
             cachedDayCount: 0
         )
     }

@@ -73,7 +73,10 @@ enum HealthStableIdentifier {
     // MARK: - Private
 
     private static func isoTimestamp(_ date: Date) -> String {
-        ISO8601DateFormatter().string(from: date)
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        return formatter.string(from: date)
     }
 
     private static func uuid(from string: String) -> UUID {

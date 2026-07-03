@@ -20,6 +20,8 @@ final class LocalHealthCacheStore: HealthCacheStore, @unchecked Sendable {
     private var activeUserID: String?
     private var loadedDayKeys = Set<String>()
     private var aggregateIndexesLoaded = false
+    private var batchWriteDepth = 0
+    private var deferredAggregateFlush = false
 
     init(
         userProvider: any HealthCacheUserProviding = StaticHealthCacheUserProvider(userID: nil),
@@ -87,11 +89,39 @@ final class LocalHealthCacheStore: HealthCacheStore, @unchecked Sendable {
 
         lock.lock()
         writeDayFile(file, calendar: calendar)
-        upsertAggregateIndexes(from: entry.bundle)
+        if batchWriteDepth > 0 {
+            upsertAggregateIndexes(from: entry.bundle, calendar: calendar, persistToDisk: false)
+            deferredAggregateFlush = true
+        } else {
+            upsertAggregateIndexes(from: entry.bundle, calendar: calendar, persistToDisk: true)
+        }
         touchMetadata()
+        let shouldPrune = batchWriteDepth == 0
         lock.unlock()
 
-        pruneOldEntries(keepingLastDays: HealthCachePolicy.retentionDays, calendar: calendar)
+        if shouldPrune {
+            pruneOldEntries(keepingLastDays: HealthCachePolicy.retentionDays, calendar: calendar)
+        }
+    }
+
+    func beginBatchWrite() {
+        lock.lock()
+        batchWriteDepth += 1
+        lock.unlock()
+    }
+
+    func endBatchWrite(calendar: Calendar) {
+        lock.lock()
+        batchWriteDepth = max(0, batchWriteDepth - 1)
+        let shouldFlush = batchWriteDepth == 0 && deferredAggregateFlush
+        if batchWriteDepth == 0 {
+            deferredAggregateFlush = false
+        }
+        lock.unlock()
+
+        if shouldFlush {
+            flushDeferredAggregateIndexes(calendar: calendar)
+        }
     }
 
     // MARK: - Typed record access
@@ -143,7 +173,7 @@ final class LocalHealthCacheStore: HealthCacheStore, @unchecked Sendable {
         memory.upsertWorkouts(workouts, calendar: calendar)
 
         lock.lock()
-        persistWorkoutIndex()
+        persistWorkoutIndex(calendar: calendar)
         touchAggregateIndex(.workouts)
         lock.unlock()
     }
@@ -155,7 +185,7 @@ final class LocalHealthCacheStore: HealthCacheStore, @unchecked Sendable {
         memory.upsertSleepRecords(records, calendar: calendar)
 
         lock.lock()
-        persistSleepIndex()
+        persistSleepIndex(calendar: calendar)
         touchAggregateIndex(.sleep)
         lock.unlock()
     }
@@ -167,7 +197,7 @@ final class LocalHealthCacheStore: HealthCacheStore, @unchecked Sendable {
         memory.upsertHeartMetrics(metrics, calendar: calendar)
 
         lock.lock()
-        persistHeartIndex()
+        persistHeartIndex(calendar: calendar)
         touchAggregateIndex(.heart)
         lock.unlock()
     }
@@ -179,7 +209,7 @@ final class LocalHealthCacheStore: HealthCacheStore, @unchecked Sendable {
         memory.upsertBodyMassRecords(records, calendar: calendar)
 
         lock.lock()
-        persistBodyMassIndex()
+        persistBodyMassIndex(calendar: calendar)
         touchAggregateIndex(.bodyMass)
         lock.unlock()
     }
@@ -349,6 +379,8 @@ final class LocalHealthCacheStore: HealthCacheStore, @unchecked Sendable {
         memory.clearAll()
         loadedDayKeys.removeAll()
         aggregateIndexesLoaded = false
+        batchWriteDepth = 0
+        deferredAggregateFlush = false
 
         if let userDirectory = userDirectoryURL(createIfNeeded: false) {
             try? fileManager.removeItem(at: userDirectory)
@@ -521,62 +553,88 @@ final class LocalHealthCacheStore: HealthCacheStore, @unchecked Sendable {
         loadedDayKeys.insert(dayKey(for: day, calendar: calendar))
     }
 
-    private func upsertAggregateIndexes(from bundle: HealthNormalizedDayBundle) {
+    private func upsertAggregateIndexes(
+        from bundle: HealthNormalizedDayBundle,
+        calendar: Calendar,
+        persistToDisk: Bool
+    ) {
         if !bundle.workouts.isEmpty {
-            memory.upsertWorkouts(bundle.workouts, calendar: .current)
-            persistWorkoutIndex()
-            touchAggregateIndex(.workouts)
+            memory.upsertWorkouts(bundle.workouts, calendar: calendar)
+            if persistToDisk {
+                persistWorkoutIndex(calendar: calendar)
+                touchAggregateIndex(.workouts)
+            }
         }
         if !bundle.sleepRecords.isEmpty {
-            memory.upsertSleepRecords(bundle.sleepRecords, calendar: .current)
-            persistSleepIndex()
-            touchAggregateIndex(.sleep)
+            memory.upsertSleepRecords(bundle.sleepRecords, calendar: calendar)
+            if persistToDisk {
+                persistSleepIndex(calendar: calendar)
+                touchAggregateIndex(.sleep)
+            }
         }
         if !bundle.heartMetrics.isEmpty {
-            memory.upsertHeartMetrics(bundle.heartMetrics, calendar: .current)
-            persistHeartIndex()
-            touchAggregateIndex(.heart)
+            memory.upsertHeartMetrics(bundle.heartMetrics, calendar: calendar)
+            if persistToDisk {
+                persistHeartIndex(calendar: calendar)
+                touchAggregateIndex(.heart)
+            }
         }
         if !bundle.bodyMassRecords.isEmpty {
-            memory.upsertBodyMassRecords(bundle.bodyMassRecords, calendar: .current)
-            persistBodyMassIndex()
-            touchAggregateIndex(.bodyMass)
+            memory.upsertBodyMassRecords(bundle.bodyMassRecords, calendar: calendar)
+            if persistToDisk {
+                persistBodyMassIndex(calendar: calendar)
+                touchAggregateIndex(.bodyMass)
+            }
         }
         aggregateIndexesLoaded = true
     }
 
-    private func persistWorkoutIndex() {
+    private func flushDeferredAggregateIndexes(calendar: Calendar) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        persistWorkoutIndex(calendar: calendar)
+        persistSleepIndex(calendar: calendar)
+        persistHeartIndex(calendar: calendar)
+        persistBodyMassIndex(calendar: calendar)
+        touchAggregateIndex(.workouts)
+        touchAggregateIndex(.sleep)
+        touchAggregateIndex(.heart)
+        touchAggregateIndex(.bodyMass)
+    }
+
+    private func persistWorkoutIndex(calendar: Calendar) {
         let records = dictionaryByID(memory.workouts(
             from: .distantPast,
             to: .distantFuture,
-            calendar: .current
+            calendar: calendar
         ))
         write(records, to: workoutIndexURL())
     }
 
-    private func persistSleepIndex() {
+    private func persistSleepIndex(calendar: Calendar) {
         let records = dictionaryByID(memory.sleepRecords(
             from: .distantPast,
             to: .distantFuture,
-            calendar: .current
+            calendar: calendar
         ))
         write(records, to: sleepIndexURL())
     }
 
-    private func persistHeartIndex() {
+    private func persistHeartIndex(calendar: Calendar) {
         let records = dictionaryByID(memory.heartMetrics(
             from: .distantPast,
             to: .distantFuture,
-            calendar: .current
+            calendar: calendar
         ))
         write(records, to: heartIndexURL())
     }
 
-    private func persistBodyMassIndex() {
+    private func persistBodyMassIndex(calendar: Calendar) {
         let records = dictionaryByID(memory.bodyMassRecords(
             from: .distantPast,
             to: .distantFuture,
-            calendar: .current
+            calendar: calendar
         ))
         write(records, to: bodyMassIndexURL())
     }

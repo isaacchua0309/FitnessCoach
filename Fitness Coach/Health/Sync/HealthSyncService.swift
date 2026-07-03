@@ -148,48 +148,25 @@ actor HealthSyncService: HealthSyncServing {
         )
 
         var signalResults: [HealthSyncSignalResult] = []
-        var daysCompleted = 0
+        let refresh = await repository.refreshHealthData(
+            days: days,
+            endingOn: endingOn,
+            calendar: calendar
+        )
+        let daysCompleted = refresh.daysRefreshed
 
-        for offset in 0..<days {
-            if Task.isCancelled {
-                let cancelled = finalizeState(
-                    trigger: trigger,
-                    daysRequested: days,
-                    daysCompleted: daysCompleted,
-                    signalResults: signalResults,
-                    error: .cancelled
-                )
-                state = cancelled
-                return cancelled
-            }
-
-            guard let day = calendar.date(byAdding: .day, value: -offset, to: endingOn) else {
-                continue
-            }
-
-            let dayStart = calendar.startOfDay(for: day)
-            let refresh = await repository.refreshHealthData(
-                days: 1,
-                endingOn: dayStart,
-                calendar: calendar
-            )
-            if refresh.daysRefreshed > 0 {
-                daysCompleted += 1
-            }
-
-            state = state.updating(
-                phase: .syncing,
-                trigger: trigger,
-                progress: HealthSyncProgress(
-                    daysRequested: days,
-                    daysCompleted: daysCompleted,
-                    currentDay: dayStart
-                ),
-                signalResults: signalResults,
-                lastSuccessfulSyncAt: state.lastSuccessfulSyncAt,
-                lastError: nil
-            )
-        }
+        state = state.updating(
+            phase: .syncing,
+            trigger: trigger,
+            progress: HealthSyncProgress(
+                daysRequested: days,
+                daysCompleted: daysCompleted,
+                currentDay: nil
+            ),
+            signalResults: signalResults,
+            lastSuccessfulSyncAt: state.lastSuccessfulSyncAt,
+            lastError: nil
+        )
 
         let aggregateResults = await syncAggregateSignals(
             days: days,
@@ -238,26 +215,23 @@ actor HealthSyncService: HealthSyncServing {
         days: Int,
         availability: HealthDataAvailability
     ) async -> [HealthSyncSignalResult] {
-        await withTaskGroup(of: HealthSyncSignalResult.self) { group in
+        await withTaskGroup(of: [HealthSyncSignalResult].self) { group in
             group.addTask {
-                await self.syncWorkouts(days: days, availability: availability)
+                [await self.syncWorkouts(days: days, availability: availability)]
             }
             group.addTask {
-                await self.syncSleep(days: days, availability: availability)
+                [await self.syncSleep(days: days, availability: availability)]
             }
             group.addTask {
-                await self.syncRestingHeartRate(days: days, availability: availability)
+                await self.syncHeartMetrics(days: days, availability: availability)
             }
             group.addTask {
-                await self.syncHeartRateVariability(days: days, availability: availability)
-            }
-            group.addTask {
-                await self.syncBodyMass(days: days, availability: availability)
+                [await self.syncBodyMass(days: days, availability: availability)]
             }
 
             var results: [HealthSyncSignalResult] = []
-            for await result in group {
-                results.append(result)
+            for await batch in group {
+                results.append(contentsOf: batch)
             }
             return results.sorted { $0.signal.rawValue < $1.signal.rawValue }
         }
@@ -297,31 +271,46 @@ actor HealthSyncService: HealthSyncServing {
         return .success(signal: .sleepAnalysis, recordCount: records.count)
     }
 
-    private func syncRestingHeartRate(
+    private func syncHeartMetrics(
         days: Int,
         availability: HealthDataAvailability
-    ) async -> HealthSyncSignalResult {
-        let access = availability.permissionStatus.access(for: .restingHeartRate)
-        guard access.isReadable else {
-            let error: HealthSyncError = access == .denied
-                ? .permissionDenied
-                : .signalUnavailable(.restingHeartRate)
-            HealthSyncLogger.signalFailure(signal: .restingHeartRate, context: "syncHeart", error: error)
-            return .failure(signal: .restingHeartRate, error: error)
+    ) async -> [HealthSyncSignalResult] {
+        let restingAccess = availability.permissionStatus.access(for: .restingHeartRate)
+        let hrvAccess = availability.permissionStatus.access(for: .heartRateVariabilitySDNN)
+
+        guard restingAccess.isReadable || hrvAccess.isReadable else {
+            var results: [HealthSyncSignalResult] = []
+            if restingAccess == .denied || hrvAccess == .denied {
+                let error = HealthSyncError.permissionDenied
+                if restingAccess == .denied {
+                    results.append(.failure(signal: .restingHeartRate, error: error))
+                }
+                if hrvAccess == .denied {
+                    results.append(.failure(signal: .heartRateVariabilitySDNN, error: error))
+                }
+            }
+            return results
         }
 
         let metrics = await repository.getRecentHeartMetrics(days: days, calendar: calendar)
-        let count = metrics.filter { $0.kind == .restingHeartRate }.count
-        return .success(signal: .restingHeartRate, recordCount: count)
-    }
+        var results: [HealthSyncSignalResult] = []
 
-    private func syncHeartRateVariability(
-        days: Int,
-        availability: HealthDataAvailability
-    ) async -> HealthSyncSignalResult {
-        let access = availability.permissionStatus.access(for: .heartRateVariabilitySDNN)
-        guard access.isReadable else {
-            let error: HealthSyncError = access == .denied
+        if restingAccess.isReadable {
+            let count = metrics.filter { $0.kind == .restingHeartRate }.count
+            results.append(.success(signal: .restingHeartRate, recordCount: count))
+        } else {
+            let error: HealthSyncError = restingAccess == .denied
+                ? .permissionDenied
+                : .signalUnavailable(.restingHeartRate)
+            HealthSyncLogger.signalFailure(signal: .restingHeartRate, context: "syncHeart", error: error)
+            results.append(.failure(signal: .restingHeartRate, error: error))
+        }
+
+        if hrvAccess.isReadable {
+            let count = metrics.filter { $0.kind == .heartRateVariabilitySDNN }.count
+            results.append(.success(signal: .heartRateVariabilitySDNN, recordCount: count))
+        } else {
+            let error: HealthSyncError = hrvAccess == .denied
                 ? .permissionDenied
                 : .signalUnavailable(.heartRateVariabilitySDNN)
             HealthSyncLogger.signalFailure(
@@ -329,12 +318,10 @@ actor HealthSyncService: HealthSyncServing {
                 context: "syncHeart",
                 error: error
             )
-            return .failure(signal: .heartRateVariabilitySDNN, error: error)
+            results.append(.failure(signal: .heartRateVariabilitySDNN, error: error))
         }
 
-        let metrics = await repository.getRecentHeartMetrics(days: days, calendar: calendar)
-        let count = metrics.filter { $0.kind == .heartRateVariabilitySDNN }.count
-        return .success(signal: .heartRateVariabilitySDNN, recordCount: count)
+        return results
     }
 
     private func syncBodyMass(
