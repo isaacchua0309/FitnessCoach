@@ -147,6 +147,7 @@ final class ThemeSettingsCopyGuardrailTests: XCTestCase {
                 themePalette: .oceanBlue,
                 appVersion: "1.0",
                 featureAvailability: .production,
+                legalAvailability: .production,
                 isDebugOrInternalBuild: false
             )
         )

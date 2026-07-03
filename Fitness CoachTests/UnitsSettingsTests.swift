@@ -72,6 +72,7 @@ final class UnitsSettingsTests: XCTestCase {
                 themePalette: .oceanBlue,
                 appVersion: "1.0",
                 featureAvailability: .production,
+                legalAvailability: .production,
                 isDebugOrInternalBuild: false
             )
         )
@@ -94,6 +95,7 @@ final class UnitsSettingsTests: XCTestCase {
                 themePalette: .oceanBlue,
                 appVersion: "1.0",
                 featureAvailability: .production,
+                legalAvailability: .production,
                 isDebugOrInternalBuild: false
             )
         )

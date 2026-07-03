@@ -16,6 +16,7 @@ final class SettingsPresentationBuilderTests: XCTestCase {
         themePalette: AppThemePalette = .oceanBlue,
         appVersion: String = "1.0",
         featureAvailability: SettingsFeatureAvailability = .production,
+        legalAvailability: SettingsLegalAvailability = .production,
         isDebugOrInternalBuild: Bool = false
     ) -> SettingsPresentationInput {
         SettingsPresentationInput(
@@ -24,6 +25,7 @@ final class SettingsPresentationBuilderTests: XCTestCase {
             themePalette: themePalette,
             appVersion: appVersion,
             featureAvailability: featureAvailability,
+            legalAvailability: legalAvailability,
             isDebugOrInternalBuild: isDebugOrInternalBuild
         )
     }
@@ -70,11 +72,11 @@ final class SettingsPresentationBuilderTests: XCTestCase {
                 .theme,
                 .appleHealth,
                 .privacyPolicy,
+                .termsOfService,
                 .sendFeedback,
                 .contactSupport,
                 .reportProblem,
-                .appVersion,
-                .termsOfService
+                .appVersion
             ]
         )
 
@@ -84,8 +86,8 @@ final class SettingsPresentationBuilderTests: XCTestCase {
             FormaProductCopy.PlanCalculation.bodyDetailsSettingsTitle,
             FormaProductCopy.Settings.Theme.navigationRowTitle
         ])
-        XCTAssertEqual(state.privacyData.rows.map(\.id), [.privacyPolicy])
-        XCTAssertEqual(state.about.rows.map(\.id), [.appVersion, .termsOfService])
+        XCTAssertEqual(state.privacyData.rows.map(\.id), [.privacyPolicy, .termsOfService])
+        XCTAssertEqual(state.about.rows.map(\.id), [.appVersion])
     }
 
     func testStatusLabelsAppearWhenUseful() {
@@ -135,7 +137,44 @@ final class SettingsPresentationBuilderTests: XCTestCase {
         let state = SettingsPresentationBuilder.build(input: makeInput())
 
         XCTAssertEqual(state.privacyData.rows.filter { $0.id == .privacyPolicy }.count, 1)
+        XCTAssertEqual(state.privacyData.rows.filter { $0.id == .termsOfService }.count, 1)
         XCTAssertFalse(state.about.rows.contains(where: { $0.id == .privacyPolicy }))
+        XCTAssertFalse(state.about.rows.contains(where: { $0.id == .termsOfService }))
+    }
+
+    func testPrivacyPolicyRowHiddenWhenURLAndInAppContentUnavailable() {
+        let original = FormaLegalShippingPolicy.shipsInAppLegalDocumentsWithoutPublishedURL
+        defer { FormaLegalShippingPolicy.shipsInAppLegalDocumentsWithoutPublishedURL = original }
+        FormaLegalShippingPolicy.shipsInAppLegalDocumentsWithoutPublishedURL = false
+
+        let state = SettingsPresentationBuilder.build(
+            input: makeInput(
+                legalAvailability: SettingsLegalAvailability(
+                    termsURL: nil,
+                    privacyPolicyURL: nil
+                )
+            )
+        )
+
+        XCTAssertFalse(state.privacyData.rows.contains(where: { $0.id == .privacyPolicy }))
+        XCTAssertFalse(state.privacyData.rows.contains(where: { $0.id == .termsOfService }))
+    }
+
+    func testPrivacyPolicyRowAppearsWhenURLExists() {
+        let privacyURL = URL(string: "https://forma.app/privacy")!
+        let state = SettingsPresentationBuilder.build(
+            input: makeInput(
+                legalAvailability: SettingsLegalAvailability(
+                    termsURL: nil,
+                    privacyPolicyURL: privacyURL
+                )
+            )
+        )
+
+        let privacyRow = state.privacyData.rows.first(where: { $0.id == .privacyPolicy })
+        XCTAssertNotNil(privacyRow)
+        XCTAssertEqual(state.externalURL(for: .privacyPolicy), privacyURL)
+        XCTAssertEqual(privacyRow?.destination, .legalDocument(.privacyPolicy))
     }
 
     func testFeatureFlaggedRowsAppearOnlyWhenEnabled() {
@@ -151,8 +190,10 @@ final class SettingsPresentationBuilderTests: XCTestCase {
 
         XCTAssertEqual(
             state.privacyData.rows.map(\.id),
-            [.privacyPolicy, .exportData, .deleteData]
+            [.privacyPolicy, .termsOfService, .exportData, .deleteData]
         )
+        XCTAssertEqual(state.privacyData.rows.first(where: { $0.id == .exportData })?.destination, .exportData)
+        XCTAssertEqual(state.privacyData.rows.first(where: { $0.id == .deleteData })?.destination, .deleteData)
     }
 
     func testSupportMailURLsUseSupportEmail() {

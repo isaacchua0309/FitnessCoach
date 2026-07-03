@@ -24,6 +24,9 @@ struct SettingsRootView: View {
     var bodyDetailsInput: BodyDetailsSettingsPresentationInput?
     var onUpdateInPlan: (() -> Void)?
 
+    @State private var showsDeleteDataConfirmation = false
+    @State private var showsDeleteUnavailableAlert = false
+
     private var resolvedBodyDetailsInput: BodyDetailsSettingsPresentationInput {
         bodyDetailsInput ?? BodyDetailsSettingsPresentationInput(formState: formState)
     }
@@ -36,6 +39,7 @@ struct SettingsRootView: View {
                 themePalette: themeStore.palette,
                 appVersion: FormaAppMetadata.marketingVersion(),
                 featureAvailability: featureAvailability,
+                legalAvailability: .production,
                 isDebugOrInternalBuild: isDebugOrInternalBuild
             )
         )
@@ -81,7 +85,34 @@ struct SettingsRootView: View {
                 }
             }
             .formaScrollBottomInset()
+            .confirmationDialog(
+                deleteDataPresentation.confirmationTitle,
+                isPresented: $showsDeleteDataConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button(deleteDataPresentation.confirmActionTitle, role: .destructive) {
+                    let result = SettingsDeleteDataActionHandler.perform()
+                    if case .notImplemented = result {
+                        showsDeleteUnavailableAlert = true
+                    }
+                }
+                Button(FormaProductCopy.Common.cancel, role: .cancel) {}
+            } message: {
+                Text(deleteDataPresentation.confirmationMessage)
+            }
+            .alert(
+                deleteDataPresentation.unavailableTitle,
+                isPresented: $showsDeleteUnavailableAlert
+            ) {
+                Button(FormaProductCopy.Common.ok, role: .cancel) {}
+            } message: {
+                Text(deleteDataPresentation.unavailableMessage)
+            }
         }
+    }
+
+    private var deleteDataPresentation: SettingsDeleteDataPresentation {
+        SettingsDeleteDataPresentationBuilder.build()
     }
 
     // MARK: - Sections
@@ -103,7 +134,7 @@ struct SettingsRootView: View {
 
     @ViewBuilder
     private func section(_ section: SettingsPrivacyDataSectionState) -> some View {
-        section(title: section.title, footer: nil, rows: section.rows)
+        section(title: section.title, footer: section.footer, rows: section.rows)
     }
 
     @ViewBuilder
@@ -147,6 +178,28 @@ struct SettingsRootView: View {
         if case .supportMail(let topic) = row.destination {
             Button {
                 openSupportMail(topic)
+            } label: {
+                FormaSettingsRowLabel(title: row.title, status: row.status)
+            }
+            .formaSettingsRowChrome()
+        } else if case .legalDocument(let document) = row.destination,
+                  let url = presentationState.externalURL(for: document) {
+            Button {
+                openURL(url)
+            } label: {
+                FormaSettingsRowLabel(title: row.title, status: row.status)
+            }
+            .formaSettingsRowChrome()
+        } else if case .deleteData = row.destination {
+            Button(role: .destructive) {
+                showsDeleteDataConfirmation = true
+            } label: {
+                FormaSettingsRowLabel(title: row.title, status: row.status)
+            }
+            .formaSettingsRowChrome()
+        } else if case .exportData = row.destination {
+            Button {
+                handleExportData()
             } label: {
                 FormaSettingsRowLabel(title: row.title, status: row.status)
             }
@@ -209,5 +262,9 @@ struct SettingsRootView: View {
     private func openSupportMail(_ topic: SettingsSupportMailTopic) {
         guard let url = SettingsSupportMailURLBuilder.url(for: topic) else { return }
         openURL(url)
+    }
+
+    private func handleExportData() {
+        _ = SettingsExportDataActionHandler.perform()
     }
 }

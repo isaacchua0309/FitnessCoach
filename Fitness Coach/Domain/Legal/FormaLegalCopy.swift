@@ -283,6 +283,7 @@ enum FormaLegalDocument: String, Identifiable, Sendable {
 }
 
 enum FormaLegalURLs {
+    // TODO: Publish hosted Terms and Privacy Policy URLs before App Store release.
     static let terms: URL? = nil
     static let privacyPolicy: URL? = nil
 }

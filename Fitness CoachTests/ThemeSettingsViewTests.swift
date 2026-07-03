@@ -18,6 +18,7 @@ final class ThemeSettingsViewTests: XCTestCase {
                 themePalette: .oceanBlue,
                 appVersion: "1.0",
                 featureAvailability: .production,
+                legalAvailability: .production,
                 isDebugOrInternalBuild: false
             )
         )
@@ -113,6 +114,7 @@ final class ThemeSettingsViewTests: XCTestCase {
                 themePalette: .emeraldGreen,
                 appVersion: "1.0",
                 featureAvailability: .production,
+                legalAvailability: .production,
                 isDebugOrInternalBuild: false
             )
         )
@@ -141,6 +143,7 @@ final class ThemeSettingsViewTests: XCTestCase {
                         themePalette: palette,
                         appVersion: "3.1.0",
                         featureAvailability: .production,
+                        legalAvailability: .production,
                         isDebugOrInternalBuild: false
                     )
                 )

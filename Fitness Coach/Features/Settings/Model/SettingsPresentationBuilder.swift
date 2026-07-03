@@ -17,10 +17,14 @@ enum SettingsPresentationBuilder {
                 themePalette: input.themePalette
             ),
             integrations: integrationsSection(integrationState: input.integrationState),
-            privacyData: privacyDataSection(featureAvailability: input.featureAvailability),
+            privacyData: privacyDataSection(
+                featureAvailability: input.featureAvailability,
+                legalAvailability: input.legalAvailability
+            ),
             support: supportSection(),
             about: aboutSection(appVersion: input.appVersion),
             developer: developerSection(isDebugOrInternalBuild: input.isDebugOrInternalBuild),
+            legalAvailability: input.legalAvailability,
             isDebugOrInternalBuild: input.isDebugOrInternalBuild
         )
     }
@@ -85,22 +89,37 @@ enum SettingsPresentationBuilder {
     }
 
     private static func privacyDataSection(
-        featureAvailability: SettingsFeatureAvailability
+        featureAvailability: SettingsFeatureAvailability,
+        legalAvailability: SettingsLegalAvailability
     ) -> SettingsPrivacyDataSectionState {
-        var rows: [SettingsRowPresentation] = [
-            row(
-                id: .privacyPolicy,
-                title: FormaProductCopy.Settings.Rows.privacyPolicy,
-                destination: .legalDocument(.privacyPolicy)
+        var rows: [SettingsRowPresentation] = []
+
+        if legalAvailability.isPrivacyPolicyAvailable {
+            rows.append(
+                row(
+                    id: .privacyPolicy,
+                    title: FormaProductCopy.Settings.Rows.privacyPolicy,
+                    destination: .legalDocument(.privacyPolicy)
+                )
             )
-        ]
+        }
+
+        if legalAvailability.isTermsAvailable {
+            rows.append(
+                row(
+                    id: .termsOfService,
+                    title: FormaProductCopy.Settings.Rows.termsOfService,
+                    destination: .legalDocument(.terms)
+                )
+            )
+        }
 
         if featureAvailability.isDataExportEnabled {
             rows.append(
                 row(
                     id: .exportData,
                     title: FormaProductCopy.Settings.Rows.exportData,
-                    destination: nil
+                    destination: .exportData
                 )
             )
         }
@@ -110,14 +129,15 @@ enum SettingsPresentationBuilder {
                 row(
                     id: .deleteData,
                     title: FormaProductCopy.Settings.Rows.deleteData,
-                    destination: nil
+                    destination: .deleteData
                 )
             )
         }
 
         return SettingsPrivacyDataSectionState(
             title: FormaProductCopy.Settings.Hub.privacyDataSectionTitle,
-            rows: rows
+            rows: rows,
+            footer: FormaProductCopy.Settings.PrivacyData.sectionFooter
         )
     }
 
@@ -155,11 +175,6 @@ enum SettingsPresentationBuilder {
                     status: appVersion,
                     destination: nil,
                     isEnabled: false
-                ),
-                row(
-                    id: .termsOfService,
-                    title: FormaProductCopy.Settings.Rows.termsOfService,
-                    destination: .legalDocument(.terms)
                 )
             ]
         )

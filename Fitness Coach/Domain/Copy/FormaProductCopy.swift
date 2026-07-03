@@ -23,6 +23,7 @@ enum FormaProductCopy {
         static let continueAction = "Continue"
         static let back = "Back"
         static let cancel = "Cancel"
+        static let ok = "OK"
         static let completeRequiredFields = "Fill in the required fields to continue."
     }
 
@@ -2592,6 +2593,23 @@ enum FormaProductCopy {
             static let startingWeightLabel = "Starting weight"
             static let currentWeightLabel = "Current weight"
             static let notSetValue = "Not set"
+        }
+
+        /// Privacy & Data settings section copy.
+        enum PrivacyData {
+            static let sectionFooter =
+                "Your fitness data stays on this device unless you choose to sign in or use connected services."
+            static let deleteConfirmationTitle = "Delete your data?"
+            static let deleteConfirmationMessage =
+                """
+                This permanently removes your Forma profile, daily logs, Coach history, and weight entries from this device. Your Google sign-in account is not deleted.
+
+                This cannot be undone.
+                """
+            static let deleteConfirmActionTitle = "Delete my data"
+            static let deleteUnavailableTitle = "Deletion isn't available yet"
+            static let deleteUnavailableMessage =
+                "Data deletion is not available in this version of Forma. Contact \(FormaProductCopy.Legal.supportEmail) for help."
         }
     }
 

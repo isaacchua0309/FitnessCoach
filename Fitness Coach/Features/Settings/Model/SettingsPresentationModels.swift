@@ -34,6 +34,8 @@ enum SettingsRowDestination: Equatable, Sendable {
     case theme
     case appleHealthIntegration
     case legalDocument(FormaLegalDocument)
+    case exportData
+    case deleteData
     case supportMail(SettingsSupportMailTopic)
     case authDiagnostics
     case pipelineTraces
@@ -78,6 +80,7 @@ struct SettingsIntegrationsSectionState: Equatable, Sendable {
 struct SettingsPrivacyDataSectionState: Equatable, Sendable {
     let title: String
     let rows: [SettingsRowPresentation]
+    let footer: String?
 }
 
 struct SettingsSupportSectionState: Equatable, Sendable {
@@ -104,6 +107,7 @@ struct SettingsPresentationInput: Equatable, Sendable {
     let themePalette: AppThemePalette
     let appVersion: String
     let featureAvailability: SettingsFeatureAvailability
+    let legalAvailability: SettingsLegalAvailability
     let isDebugOrInternalBuild: Bool
 }
 
@@ -115,7 +119,12 @@ struct SettingsPresentationState: Equatable, Sendable {
     let support: SettingsSupportSectionState
     let about: SettingsAboutSectionState
     let developer: SettingsDeveloperSectionState?
+    let legalAvailability: SettingsLegalAvailability
     let isDebugOrInternalBuild: Bool
+
+    func externalURL(for document: FormaLegalDocument) -> URL? {
+        legalAvailability.externalURL(for: document)
+    }
 
     var visibleRowIDs: [SettingsRowID] {
         var rows: [SettingsRowID] = []
