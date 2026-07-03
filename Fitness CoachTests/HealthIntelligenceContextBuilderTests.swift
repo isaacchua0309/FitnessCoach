@@ -38,7 +38,7 @@ final class HealthIntelligenceContextBuilderTests: XCTestCase {
         )
     }
 
-    func testBuildsTrainingLoadAndWorkoutInputsFromSharedFetch() async {
+    func testBuildsTrainingLoadInputFromSharedFetch() async {
         let day = makeDate(2026, 7, 8)
         repository.dailyMetricsByDay[day] = metrics(day: day, steps: 8_000)
         repository.workouts = [
@@ -50,13 +50,12 @@ final class HealthIntelligenceContextBuilderTests: XCTestCase {
 
         XCTAssertEqual(context.trainingLoadInput.workoutsToday.count, 1)
         XCTAssertEqual(context.trainingLoadInput.workoutsLast7Days.count, 2)
-        XCTAssertEqual(context.workoutIntelligenceInput.workoutsToday.count, 1)
-        XCTAssertTrue(context.summaries.workout.hasWorkout)
+        XCTAssertEqual(context.workoutsToday.count, 1)
         XCTAssertEqual(repository.getDailyMetricsCallCount, 1)
         XCTAssertEqual(repository.getWorkoutsCallCount, 1)
     }
 
-    func testBuildsAdaptiveNutritionAndNextBestActionInputs() async {
+    func testBuildsNutritionProgressWithoutRunningEngines() async {
         let day = makeDate(2026, 7, 8)
         repository.dailyMetricsByDay[day] = metrics(day: day, steps: 6_000)
         nutritionProvider.todayLog = makeDailyLog(on: day, calories: 1_200, protein: 90)
@@ -70,9 +69,9 @@ final class HealthIntelligenceContextBuilderTests: XCTestCase {
 
         let context = await builder.buildContext(for: day, calendar: calendar)
 
-        XCTAssertEqual(context.adaptiveNutritionInput.nutritionProgress.caloriesConsumed, 1_200)
-        XCTAssertEqual(context.nextBestActionInput.nutritionProgress.proteinConsumedGrams, 90)
-        XCTAssertTrue(context.nextBestActionInput.hasLoggedWeightRecently)
+        XCTAssertEqual(context.nutritionProgress.caloriesConsumed, 1_200)
+        XCTAssertEqual(context.nutritionProgress.proteinConsumedGrams, 90)
+        XCTAssertTrue(context.hasLoggedWeightRecently)
         XCTAssertFalse(context.dataGaps.contains(.nutritionUnavailable))
         XCTAssertFalse(context.dataGaps.contains(.userPlanUnavailable))
     }
@@ -86,10 +85,10 @@ final class HealthIntelligenceContextBuilderTests: XCTestCase {
         XCTAssertTrue(context.dataGaps.contains(.nutritionUnavailable))
         XCTAssertTrue(context.dataGaps.contains(.userPlanUnavailable))
         XCTAssertTrue(context.dataGaps.contains(.weightUnavailable))
-        XCTAssertEqual(context.adaptiveNutritionInput.nutritionProgress, .unavailable)
+        XCTAssertEqual(context.nutritionProgress, .unavailable)
     }
 
-    func testWeeklyReviewInputBuiltWhenSevenActiveDaysExist() async {
+    func testWeeklyReviewContextBuiltWhenSevenActiveDaysExist() async {
         let day = makeDate(2026, 7, 8)
         for offset in 0..<7 {
             let date = calendar.date(byAdding: .day, value: -offset, to: day)!
@@ -125,9 +124,10 @@ final class HealthIntelligenceContextBuilderTests: XCTestCase {
 
         let context = await builder.buildContext(for: day, calendar: calendar)
 
-        XCTAssertNotNil(context.weeklyReviewInput)
-        XCTAssertEqual(context.weeklyReviewInput?.nutritionDailySummaries.count, 7)
-        XCTAssertEqual(context.weeklyReviewInput?.weightRecords.count, 2)
+        XCTAssertNotNil(context.weeklyReviewContext)
+        XCTAssertTrue(context.weeklyReviewContext?.hasEnoughActivity == true)
+        XCTAssertEqual(context.weeklyReviewContext?.weekLogs.count, 7)
+        XCTAssertEqual(context.weeklyReviewContext?.weightRecords.count, 2)
         XCTAssertEqual(context.metricsLast7Days.count, 7)
     }
 
@@ -142,7 +142,7 @@ final class HealthIntelligenceContextBuilderTests: XCTestCase {
         XCTAssertTrue(context.normalizedSamples.isEmpty)
     }
 
-    func testDeterministicForSameInputs() async {
+    func testDeterministicOutput() async {
         let day = makeDate(2026, 7, 8)
         repository.dailyMetricsByDay[day] = metrics(day: day, steps: 7_500)
         repository.workouts = [makeWorkout(on: day, duration: 40)]

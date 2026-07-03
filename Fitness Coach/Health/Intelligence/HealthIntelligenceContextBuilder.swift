@@ -171,14 +171,6 @@ final class UserProfilePlanProvider: HealthIntelligenceUserPlanProviding, @unche
 
 // MARK: - Context
 
-struct HealthIntelligenceEvaluatedSummaries: Equatable, Sendable {
-    let trainingLoad: TrainingLoadSummary
-    let workout: WorkoutSummary
-    let recovery: RecoverySummary
-    let activity: ActivitySummary
-    let adaptiveNutrition: AdaptiveNutritionSummary
-}
-
 struct HealthIntelligenceContext: Equatable, Sendable {
     let targetDate: Date
     let calendar: Calendar
@@ -188,13 +180,19 @@ struct HealthIntelligenceContext: Equatable, Sendable {
     let normalizedSamples: [HealthNormalizedSample]
     let baselineContext: HealthBaselineContext
     let metricsLast7Days: [DailyHealthMetrics]
-    let summaries: HealthIntelligenceEvaluatedSummaries
+    let metricsLast28Days: [DailyHealthMetrics]
+    let todayMetrics: DailyHealthMetrics
+    let yesterdayMetrics: DailyHealthMetrics
+    let workoutsToday: [NormalizedWorkout]
+    let workoutsLast7Days: [NormalizedWorkout]
+    let workoutsLast28Days: [NormalizedWorkout]
+    let sleepRecords: [NormalizedSleepRecord]
+    let heartMetrics: [NormalizedHeartMetric]
+    let nutritionProgress: AdaptiveNutritionProgress
+    let userPlan: AdaptiveNutritionUserPlan
+    let hasLoggedWeightRecently: Bool
     let trainingLoadInput: TrainingLoadEngineInput
-    let workoutIntelligenceInput: WorkoutIntelligenceInput
-    let recoveryInput: RecoveryEngineInput
-    let adaptiveNutritionInput: AdaptiveNutritionEngineInput
-    let nextBestActionInput: NextBestActionEngineInput
-    let weeklyReviewInput: WeeklyReviewEngineInput?
+    let weeklyReviewContext: HealthIntelligenceWeeklyReviewContext?
 }
 
 // MARK: - Builder
@@ -216,31 +214,19 @@ struct HealthIntelligenceContextBuilder: HealthIntelligenceContextBuilding {
     private let weightProvider: any HealthIntelligenceWeightProviding
     private let userPlanProvider: any HealthIntelligenceUserPlanProviding
     private let clock: any HealthIntelligenceClockProviding
-    private let trainingLoadEngine: any TrainingLoadEngineing
-    private let workoutEngine: any WorkoutIntelligenceEngineing
-    private let recoveryEngine: any RecoveryEngineing
-    private let adaptiveNutritionEngine: any AdaptiveNutritionEngineing
 
     init(
         repository: any HealthDataRepositorying,
         nutritionProvider: any HealthIntelligenceNutritionProviding = EmptyHealthIntelligenceNutritionProvider(),
         weightProvider: any HealthIntelligenceWeightProviding = EmptyHealthIntelligenceWeightProvider(),
         userPlanProvider: any HealthIntelligenceUserPlanProviding = EmptyHealthIntelligenceUserPlanProvider(),
-        clock: any HealthIntelligenceClockProviding = SystemHealthIntelligenceClockProvider(),
-        trainingLoadEngine: any TrainingLoadEngineing = TrainingLoadEngine(),
-        workoutEngine: any WorkoutIntelligenceEngineing = WorkoutIntelligenceEngine(),
-        recoveryEngine: any RecoveryEngineing = RecoveryEngine(),
-        adaptiveNutritionEngine: any AdaptiveNutritionEngineing = AdaptiveNutritionEngine()
+        clock: any HealthIntelligenceClockProviding = SystemHealthIntelligenceClockProvider()
     ) {
         self.repository = repository
         self.nutritionProvider = nutritionProvider
         self.weightProvider = weightProvider
         self.userPlanProvider = userPlanProvider
         self.clock = clock
-        self.trainingLoadEngine = trainingLoadEngine
-        self.workoutEngine = workoutEngine
-        self.recoveryEngine = recoveryEngine
-        self.adaptiveNutritionEngine = adaptiveNutritionEngine
     }
 
     func buildContext(for targetDate: Date, calendar: Calendar) async -> HealthIntelligenceContext {
@@ -391,69 +377,12 @@ struct HealthIntelligenceContextBuilder: HealthIntelligenceContextBuilding {
             baselineAverageWeeklyLoad: baselineWeeklyLoad,
             calendar: calendar
         )
-        let trainingLoadSummary = trainingLoadEngine.evaluate(trainingLoadInput)
-
-        let workoutIntelligenceInput = WorkoutIntelligenceInput(
-            targetDate: targetDay,
-            workoutsToday: workoutsToday,
-            recentWorkouts: workoutsLast28,
-            trainingLoadSummary: trainingLoadSummary,
-            baselineContext: baselineContext,
-            calendar: calendar
-        )
-        let workoutSummary = workoutEngine.evaluate(workoutIntelligenceInput)
-
-        let recoveryInput = RecoveryEngineInput(
-            targetDate: targetDay,
-            todayMetrics: todayMetrics,
-            yesterdayMetrics: yesterdayMetrics,
-            sleepRecordsRecent: sleepRecords,
-            heartMetricsRecent: heartMetrics,
-            workoutsLast7Days: workoutsLast7,
-            workoutsLast28Days: workoutsLast28,
-            trainingLoadSummary: trainingLoadSummary,
-            baselineContext: baselineContext,
-            calendar: calendar
-        )
-        let recoverySummary = recoveryEngine.evaluate(recoveryInput)
-
-        let activitySummary = HealthIntelligenceBaseline.activitySummary(
-            metrics: todayMetrics,
-            availability: availability
-        )
 
         let nutritionProgress = Self.adaptiveNutritionProgress(
             from: todayLog,
             fallbackPlan: userPlanSnapshot?.adaptivePlan
         )
         let adaptivePlan = userPlanSnapshot?.adaptivePlan ?? .unavailable
-
-        let adaptiveNutritionInput = AdaptiveNutritionEngineInput(
-            targetDate: targetDay,
-            nutritionProgress: nutritionProgress,
-            userPlan: adaptivePlan,
-            workoutSummary: workoutSummary,
-            recoverySummary: recoverySummary,
-            activitySummary: activitySummary,
-            trainingLoadSummary: trainingLoadSummary,
-            baselineContext: baselineContext,
-            calendar: calendar
-        )
-        let adaptiveNutritionSummary = adaptiveNutritionEngine.evaluate(adaptiveNutritionInput)
-
-        let nextBestActionInput = NextBestActionEngineInput(
-            targetDate: targetDay,
-            timeOfDay: generatedAt,
-            nutritionProgress: nutritionProgress,
-            userPlan: adaptivePlan,
-            recoverySummary: recoverySummary,
-            workoutSummary: workoutSummary,
-            activitySummary: activitySummary,
-            adaptiveNutritionSummary: adaptiveNutritionSummary,
-            trainingLoadSummary: trainingLoadSummary,
-            hasLoggedWeightRecently: hasLoggedWeightRecently,
-            calendar: calendar
-        )
 
         let weekMetrics: [DailyHealthMetrics]
         if let weekRange {
@@ -465,23 +394,27 @@ struct HealthIntelligenceContextBuilder: HealthIntelligenceContextBuilding {
             weekMetrics = []
         }
 
-        let weeklyReviewInput = Self.weeklyReviewInput(
-            targetDay: targetDay,
-            weekRange: weekRange,
-            metrics: metrics,
-            workouts: workouts,
-            sleepRecords: sleepRecords,
-            heartMetrics: heartMetrics,
-            weekLogs: weekLogs,
-            healthWeightRecords: healthWeightRecords,
-            appWeightEntries: appWeightEntries,
-            userPlan: userPlanSnapshot?.weeklyPlan ?? .unavailable,
-            baselineContext: baselineContext,
-            recoveryEngine: recoveryEngine,
-            trainingLoadEngine: trainingLoadEngine,
-            calendar: calendar,
-            generatedAt: generatedAt
-        )
+        let activeWeekDays = weekMetrics.filter(HealthIntelligenceBaseline.dayHasActivity).count
+        let weeklyReviewContext: HealthIntelligenceWeeklyReviewContext?
+        if let weekRange {
+            weeklyReviewContext = HealthIntelligenceWeeklyReviewContext(
+                weekStartDate: weekRange.start,
+                weekEndDate: weekRange.end,
+                weekMetrics: weekMetrics,
+                weekWorkouts: Self.workouts(in: weekRange, from: workouts, calendar: calendar),
+                weekLogs: weekLogs,
+                weightRecords: Self.mergedWeightRecords(
+                    health: healthWeightRecords,
+                    app: appWeightEntries,
+                    in: weekRange,
+                    calendar: calendar
+                ),
+                userPlan: userPlanSnapshot?.weeklyPlan ?? .unavailable,
+                hasEnoughActivity: activeWeekDays >= HealthIntelligenceBaseline.minimumWeeklyReviewDays
+            )
+        } else {
+            weeklyReviewContext = nil
+        }
 
         return HealthIntelligenceContext(
             targetDate: targetDay,
@@ -492,156 +425,23 @@ struct HealthIntelligenceContextBuilder: HealthIntelligenceContextBuilding {
             normalizedSamples: normalizedSamples,
             baselineContext: baselineContext,
             metricsLast7Days: weekMetrics,
-            summaries: HealthIntelligenceEvaluatedSummaries(
-                trainingLoad: trainingLoadSummary,
-                workout: workoutSummary,
-                recovery: recoverySummary,
-                activity: activitySummary,
-                adaptiveNutrition: adaptiveNutritionSummary
-            ),
-            trainingLoadInput: trainingLoadInput,
-            workoutIntelligenceInput: workoutIntelligenceInput,
-            recoveryInput: recoveryInput,
-            adaptiveNutritionInput: adaptiveNutritionInput,
-            nextBestActionInput: nextBestActionInput,
-            weeklyReviewInput: weeklyReviewInput
-        )
-    }
-
-    // MARK: - Weekly review
-
-    private static func weeklyReviewInput(
-        targetDay: Date,
-        weekRange: (start: Date, end: Date)?,
-        metrics: [DailyHealthMetrics],
-        workouts: [NormalizedWorkout],
-        sleepRecords: [NormalizedSleepRecord],
-        heartMetrics: [NormalizedHeartMetric],
-        weekLogs: [DailyLog],
-        healthWeightRecords: [NormalizedBodyMass],
-        appWeightEntries: [WeightEntry],
-        userPlan: WeeklyReviewUserPlan,
-        baselineContext: HealthBaselineContext,
-        recoveryEngine: any RecoveryEngineing,
-        trainingLoadEngine: any TrainingLoadEngineing,
-        calendar: Calendar,
-        generatedAt: Date
-    ) -> WeeklyReviewEngineInput? {
-        guard let weekRange else { return nil }
-
-        let weekMetrics = metrics.filter {
-            let day = calendar.startOfDay(for: $0.date)
-            return day >= weekRange.start && day <= weekRange.end
-        }
-        let activeDays = weekMetrics.filter(HealthIntelligenceBaseline.dayHasActivity).count
-        guard activeDays >= HealthIntelligenceBaseline.minimumWeeklyReviewDays else {
-            return nil
-        }
-
-        let nutritionSummaries = weekLogs.map { weeklyNutritionSummary(from: $0) }
-        let weightRecords = mergedWeightRecords(
-            health: healthWeightRecords,
-            app: appWeightEntries,
-            in: weekRange,
-            calendar: calendar
-        )
-
-        let recoverySummaries = recoverySummariesForWeek(
-            weekRange: weekRange,
-            metrics: metrics,
-            workouts: workouts,
+            metricsLast28Days: metrics,
+            todayMetrics: todayMetrics,
+            yesterdayMetrics: yesterdayMetrics,
+            workoutsToday: workoutsToday,
+            workoutsLast7Days: workoutsLast7,
+            workoutsLast28Days: workoutsLast28,
             sleepRecords: sleepRecords,
             heartMetrics: heartMetrics,
-            recoveryEngine: recoveryEngine,
-            trainingLoadEngine: trainingLoadEngine,
-            baselineContext: baselineContext,
-            calendar: calendar
-        )
-
-        return WeeklyReviewEngineInput(
-            weekStartDate: weekRange.start,
-            weekEndDate: weekRange.end,
-            dailyMetrics: weekMetrics,
-            workouts: workouts,
-            recoverySummaries: recoverySummaries,
-            nutritionDailySummaries: nutritionSummaries,
-            weightRecords: weightRecords,
-            userPlan: userPlan,
-            calendar: calendar,
-            generatedAt: generatedAt
+            nutritionProgress: nutritionProgress,
+            userPlan: adaptivePlan,
+            hasLoggedWeightRecently: hasLoggedWeightRecently,
+            trainingLoadInput: trainingLoadInput,
+            weeklyReviewContext: weeklyReviewContext
         )
     }
 
-    private static func recoverySummariesForWeek(
-        weekRange: (start: Date, end: Date),
-        metrics: [DailyHealthMetrics],
-        workouts: [NormalizedWorkout],
-        sleepRecords: [NormalizedSleepRecord],
-        heartMetrics: [NormalizedHeartMetric],
-        recoveryEngine: any RecoveryEngineing,
-        trainingLoadEngine: any TrainingLoadEngineing,
-        baselineContext: HealthBaselineContext,
-        calendar: Calendar
-    ) -> [DailyRecoverySummary] {
-        var summaries: [DailyRecoverySummary] = []
-        var cursor = weekRange.start
-
-        while cursor <= weekRange.end {
-            let day = calendar.startOfDay(for: cursor)
-            let todayMetrics = metrics.first { calendar.isDate($0.date, inSameDayAs: day) }
-                ?? .empty(for: day)
-            let yesterdayDay = calendar.date(byAdding: .day, value: -1, to: day) ?? day
-            let yesterdayMetrics = metrics.first { calendar.isDate($0.date, inSameDayAs: yesterdayDay) }
-                ?? .empty(for: yesterdayDay)
-
-            let workoutsToday = workouts(on: day, in: workouts, calendar: calendar)
-            let workoutsLast7 = Self.workouts(
-                in: inclusiveDayRange(endingOn: day, days: 7, calendar: calendar),
-                from: workouts,
-                calendar: calendar
-            )
-            let workoutsLast28 = Self.workouts(
-                in: inclusiveDayRange(endingOn: day, days: 28, calendar: calendar),
-                from: workouts,
-                calendar: calendar
-            )
-
-            let trainingLoad = trainingLoadEngine.evaluate(
-                TrainingLoadEngineInput(
-                    targetDate: day,
-                    workoutsToday: workoutsToday,
-                    workoutsLast7Days: workoutsLast7,
-                    workoutsLast28Days: workoutsLast28,
-                    baselineAverageWeeklyLoad: baselineContext.averageWorkoutLoad28d.map { $0 * 7 },
-                    calendar: calendar
-                )
-            )
-
-            let recovery = recoveryEngine.evaluate(
-                RecoveryEngineInput(
-                    targetDate: day,
-                    todayMetrics: todayMetrics,
-                    yesterdayMetrics: yesterdayMetrics,
-                    sleepRecordsRecent: sleepRecords,
-                    heartMetricsRecent: heartMetrics,
-                    workoutsLast7Days: workoutsLast7,
-                    workoutsLast28Days: workoutsLast28,
-                    trainingLoadSummary: trainingLoad,
-                    baselineContext: baselineContext,
-                    calendar: calendar
-                )
-            )
-
-            summaries.append(DailyRecoverySummary(date: day, summary: recovery))
-
-            guard let next = calendar.date(byAdding: .day, value: 1, to: cursor) else { break }
-            cursor = next
-        }
-
-        return summaries
-    }
-
-    // MARK: - Nutrition mapping
+    // MARK: - Weekly review helpers (input assembly lives in engine)
 
     static func adaptiveNutritionProgress(
         from log: DailyLog?,
