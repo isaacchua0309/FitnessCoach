@@ -44,7 +44,9 @@ final class TodayCopyGuardrailTests: XCTestCase {
             FormaProductCopy.Today.EmptyState.newDayMissionStatus,
             FormaProductCopy.Today.EmptyState.loadErrorLocalBody,
             FormaProductCopy.Today.EmptyState.refreshErrorLocalBody,
-            FormaProductCopy.Today.Activity.disconnectedMessage,
+            FormaProductCopy.Today.Activity.healthConnectNote,
+            FormaProductCopy.Today.Activity.stepsUnavailable,
+            FormaProductCopy.Today.Activity.workoutNotLoggedLine,
         ]
 
         let overTarget = TodayPreviewData.overTargetDay

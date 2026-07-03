@@ -5,7 +5,7 @@
 //  FitPilot AI — Read-only Today dashboard. Mutations route through TodayActionCoordinator.
 //
 //  Section order: Mission → Next Best Action → Quick Actions → Meals → Activity
-//  → Macro Balance + Water
+//  → Nutrition
 //
 
 import SwiftUI

@@ -1037,19 +1037,20 @@ enum FormaProductCopy {
 
         enum Activity {
             static let sectionTitle = "Today's Activity"
-            static let stepsLabel = "Steps"
-            static let workoutLabel = "Workout"
-            static let noDataYet = "No workouts or steps yet today — rest days count too."
             static let stepsUnavailable = "Steps unavailable"
-            static let disconnectedMessage = "Activity stays optional. Connect Apple Health when you want steps and workouts here."
-            static let disconnectedDeniedMessage = "Apple Health access is off. Turn it on in Settings to see activity here."
+            static let workoutCompletedLine = "Workout: Completed"
+            static let workoutPlannedLine = "Workout: Planned"
+            static let workoutNotLoggedLine = "Workout: Not logged"
+            static let healthConnectNote = "Connect Apple Health for steps and workouts."
+            static let healthDeniedNote = "Allow Apple Health access in Settings."
+            static let healthUnavailableNote = "Apple Health activity is unavailable."
 
             static func stepsToday(_ count: Int) -> String {
                 "\(TodayActivitySectionFormatting.formatSteps(count)) steps"
             }
 
-            static func typicalStepsAssumption(_ steps: Int) -> String {
-                "Typical: \(TodayActivitySectionFormatting.formatSteps(steps))/day"
+            static func stepsProgress(current: Int, goal: Int) -> String {
+                "\(TodayActivitySectionFormatting.formatSteps(current)) / \(TodayActivitySectionFormatting.formatSteps(goal)) steps"
             }
         }
 

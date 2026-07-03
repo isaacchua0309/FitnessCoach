@@ -239,6 +239,8 @@ struct TodayActivityState: Equatable {
     var stepGoalAssumption: Int?
     var displayLine: String
     var showsConnectCTA: Bool
+    var date: Date
+    var trainingFrequencyPerWeek: Int
 
     var hasWorkout: Bool {
         legacyWorkoutSummary.hasWorkout || (appleHealthWorkoutCount ?? 0) > 0

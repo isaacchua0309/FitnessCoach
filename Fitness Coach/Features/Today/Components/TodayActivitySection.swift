@@ -2,7 +2,7 @@
 //  TodayActivitySection.swift
 //  Fitness Coach
 //
-//  Forma — Today's Activity: steps, workouts, and weekly training progress.
+//  Forma — Compact Today's Activity: steps and workout status.
 //
 
 import SwiftUI
@@ -11,7 +11,7 @@ struct TodayActivitySection: View {
     let activity: ActivityTodayState
     let onConnectAppleHealth: () -> Void
 
-    private var display: TodayActivitySectionPresentation {
+    private var display: TodayActivityCompactDisplayModel {
         TodayActivitySectionFormatting.displayModel(for: activity)
     }
 
@@ -20,120 +20,61 @@ struct TodayActivitySection: View {
             TodaySectionLabel(title: FormaProductCopy.Today.Activity.sectionTitle)
 
             FormaPlanCard {
-                switch display {
-                case .disconnected(let model):
-                    disconnectedContent(model)
-                case .connected(let model):
-                    connectedContent(model)
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+                    Text(display.stepsLine)
+                        .font(FormaTokens.Typography.sectionSubtitle)
+                        .foregroundStyle(FormaTokens.Color.textPrimary)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+
+                    Text(display.workoutLine)
+                        .font(FormaTokens.Typography.caption)
+                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+
+                    if let healthNote = display.healthNote {
+                        healthConnectionNote(
+                            note: healthNote,
+                            actionTitle: display.healthActionTitle
+                        )
+                    }
                 }
+                .padding(.vertical, FormaTokens.Spacing.sm)
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel(display.accessibilitySummary)
             }
         }
         .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder
-    private func disconnectedContent(_ model: TodayActivityDisconnectedDisplayModel) -> some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-            Text(model.title)
-                .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                .foregroundStyle(FormaTokens.Color.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(model.message)
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Button(model.actionTitle) {
+    private func healthConnectionNote(note: String, actionTitle: String?) -> some View {
+        if let actionTitle {
+            Button(actionTitle) {
                 onConnectAppleHealth()
             }
-            .font(FormaTokens.Typography.caption.weight(.medium))
+            .font(FormaTokens.Typography.caption)
             .foregroundStyle(FormaTokens.Theme.primary)
-            .accessibilityLabel(model.actionTitle)
-            .accessibilityHint(FormaProductCopy.Today.nextActionTrainingInsightsHint)
-        }
-        .padding(.vertical, FormaTokens.Spacing.xs)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(model.accessibilitySummary)
-    }
-
-    @ViewBuilder
-    private func connectedContent(_ model: TodayActivityConnectedDisplayModel) -> some View {
-        if model.showsEmptyState,
-           let emptyStateLine = model.emptyStateLine,
-           let emptyStateTitle = model.emptyStateTitle {
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-                Text(emptyStateTitle)
-                    .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textPrimary)
-
-                Text(emptyStateLine)
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
-            }
-            .padding(.vertical, FormaTokens.Spacing.xs)
-            .accessibilityLabel(model.accessibilitySummary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, FormaTokens.Spacing.xs)
+            .accessibilityLabel(actionTitle)
+            .accessibilityHint(note)
         } else {
-            VStack(alignment: .leading, spacing: 0) {
-                if let stepsLine = model.stepsLine {
-                    metricRow(
-                        title: FormaProductCopy.Today.Activity.stepsLabel,
-                        value: stepsLine,
-                        detail: model.stepAssumptionLine
-                    )
-
-                    FormaPlanRowDivider()
-                } else if let stepAssumptionLine = model.stepAssumptionLine {
-                    metricRow(
-                        title: FormaProductCopy.Today.Activity.stepsLabel,
-                        value: FormaProductCopy.Today.Activity.stepsUnavailable,
-                        detail: stepAssumptionLine
-                    )
-                    FormaPlanRowDivider()
-                }
-
-                metricRow(
-                    title: FormaProductCopy.Today.Activity.workoutLabel,
-                    value: model.workoutStatusLine,
-                    detail: nil
-                )
-            }
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel(model.accessibilitySummary)
-        }
-    }
-
-    private func metricRow(title: String, value: String, detail: String?) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .font(FormaTokens.Typography.caption.weight(.medium))
+            Text(note)
+                .font(FormaTokens.Typography.caption)
                 .foregroundStyle(FormaTokens.Color.textTertiary)
-
-            Text(value)
-                .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(FormaTokens.Color.textPrimary)
-                .monospacedDigit()
-                .lineLimit(2)
-                .minimumScaleFactor(0.85)
-
-            if let detail {
-                Text(detail)
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaTokens.Color.textSecondary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.85)
-            }
+                .padding(.top, FormaTokens.Spacing.xs)
         }
-        .padding(.vertical, TodayLayout.compactSpacing)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(title)
-        .accessibilityValue([value, detail].compactMap { $0 }.joined(separator: ". "))
     }
 }
 
 #Preview("Connected with data") {
     TodayActivitySection(
         activity: ActivityTodayState(
+            phase: .hasData,
+            sectionTitle: FormaProductCopy.Today.Activity.sectionTitle,
             legacyWorkoutSummary: TodayWorkoutSummary(
                 workoutCaloriesBurned: 0,
                 workoutCount: 0,
@@ -141,11 +82,13 @@ struct TodayActivitySection: View {
             ),
             trainingIntegration: .connected,
             trainingDataSource: .appleHealth,
-            appleHealthWorkoutCount: 1,
-            stepsToday: 8_432,
+            appleHealthWorkoutCount: 0,
+            stepsToday: 1_827,
             stepGoalAssumption: 7_500,
-            displayLine: FormaProductCopy.Today.workoutsToday(1),
-            showsConnectCTA: false
+            displayLine: FormaProductCopy.Today.Activity.workoutNotLoggedLine,
+            showsConnectCTA: false,
+            date: Date(),
+            trainingFrequencyPerWeek: 3
         ),
         onConnectAppleHealth: {}
     )
@@ -157,6 +100,8 @@ struct TodayActivitySection: View {
 #Preview("Disconnected") {
     TodayActivitySection(
         activity: ActivityTodayState(
+            phase: .disconnected,
+            sectionTitle: FormaProductCopy.Today.Activity.sectionTitle,
             legacyWorkoutSummary: TodayWorkoutSummary(
                 workoutCaloriesBurned: 0,
                 workoutCount: 0,
@@ -167,8 +112,10 @@ struct TodayActivitySection: View {
             appleHealthWorkoutCount: nil,
             stepsToday: nil,
             stepGoalAssumption: 7_500,
-            displayLine: FormaProductCopy.Training.Integration.connectAppleHealth,
-            showsConnectCTA: true
+            displayLine: FormaProductCopy.Today.Activity.workoutNotLoggedLine,
+            showsConnectCTA: true,
+            date: Date(),
+            trainingFrequencyPerWeek: 0
         ),
         onConnectAppleHealth: {}
     )

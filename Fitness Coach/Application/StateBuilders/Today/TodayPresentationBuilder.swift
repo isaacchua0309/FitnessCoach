@@ -293,13 +293,17 @@ enum TodayPresentationBuilder {
 
     static func activity(from inputs: TodayMissionControlInputs) -> TodayActivityState {
         let context = inputs.activityContext
-        let displayLine = activityDisplayLine(
-            context: context,
-            legacyWorkoutSummary: inputs.workoutSummary
-        )
         let showsConnectCTA = context.trainingDataSource == .appleHealth
             && context.trainingIntegration.showsConnectionGate
         let hasWorkout = inputs.workoutSummary.hasWorkout || (context.appleHealthWorkoutCount ?? 0) > 0
+        let displayLine = activityDisplayLine(
+            context: context,
+            legacyWorkoutSummary: inputs.workoutSummary,
+            date: inputs.date,
+            trainingFrequencyPerWeek: inputs.trainingFrequencyPerWeek,
+            showsConnectCTA: showsConnectCTA,
+            stepGoalAssumption: inputs.stepGoalAssumption
+        )
 
         let phase: TodayActivityPhase
         switch context.trainingDataSource {
@@ -327,37 +331,37 @@ enum TodayPresentationBuilder {
             stepsToday: context.stepsToday,
             stepGoalAssumption: inputs.stepGoalAssumption,
             displayLine: displayLine,
-            showsConnectCTA: showsConnectCTA
+            showsConnectCTA: showsConnectCTA,
+            date: inputs.date,
+            trainingFrequencyPerWeek: inputs.trainingFrequencyPerWeek
         )
     }
 
     static func activityDisplayLine(
         context: TodayActivityContext,
-        legacyWorkoutSummary: TodayWorkoutSummary
+        legacyWorkoutSummary: TodayWorkoutSummary,
+        date: Date,
+        trainingFrequencyPerWeek: Int,
+        showsConnectCTA: Bool,
+        stepGoalAssumption: Int?
     ) -> String {
-        switch context.trainingDataSource {
-        case .appleHealth:
-            if context.trainingIntegration.showsConnectionGate {
-                switch context.trainingIntegration {
-                case .denied, .failed:
-                    return FormaProductCopy.Today.actionManageHealthAccess
-                case .notConnected, .unavailable, .requestingPermission, .connected:
-                    return FormaProductCopy.Training.Integration.connectAppleHealth
-                }
-            }
-
-            if let count = context.appleHealthWorkoutCount, count > 0 {
-                return FormaProductCopy.Today.workoutsToday(count)
-            }
-
-            return FormaProductCopy.Today.statusNoAppleHealthWorkoutToday
-
-        case .unavailable:
-            if legacyWorkoutSummary.hasWorkout {
-                return FormaProductCopy.Today.statusWorkoutRecorded
-            }
-            return FormaProductCopy.Today.statusNoWorkoutToday
-        }
+        let activity = TodayActivityState(
+            phase: .hasData,
+            sectionTitle: FormaProductCopy.Today.Activity.sectionTitle,
+            legacyWorkoutSummary: legacyWorkoutSummary,
+            trainingIntegration: context.trainingIntegration,
+            trainingDataSource: context.trainingDataSource,
+            appleHealthWorkoutCount: context.appleHealthWorkoutCount,
+            stepsToday: context.stepsToday,
+            stepGoalAssumption: stepGoalAssumption,
+            displayLine: "",
+            showsConnectCTA: showsConnectCTA,
+            date: date,
+            trainingFrequencyPerWeek: trainingFrequencyPerWeek
+        )
+        return TodayActivitySectionFormatting.workoutLine(
+            for: TodayActivitySectionFormatting.workoutStatus(for: activity)
+        )
     }
 
     // MARK: - Victory
