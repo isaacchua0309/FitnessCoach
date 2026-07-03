@@ -109,10 +109,7 @@ struct HealthNextBestActionEngine: NextBestActionProviding {
         input: NextBestActionEngineInput,
         createdAt: Date
     ) -> NextBestAction? {
-        let progress = input.nutritionProgress
-        let adaptive = input.adaptiveNutritionSummary
-
-        guard isWaterBehind(progress) else { return nil }
+        guard isWaterBehind(input.nutritionProgress) else { return nil }
 
         return NextBestAction(
             id: "hydration",
