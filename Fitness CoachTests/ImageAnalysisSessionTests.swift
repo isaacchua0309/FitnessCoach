@@ -96,6 +96,27 @@ final class ImageAnalysisSessionTests: XCTestCase {
         XCTAssertEqual(session.latestResult?.mealDraft.displayName, edited.displayName)
     }
 
+    func testAnalysisStartedIncrementsAttempts() {
+        var session = makeSession()
+        XCTAssertEqual(session.attempts, 0)
+
+        session = ImageAnalysisSessionReducer.apply(session, event: .analysisStarted)
+        XCTAssertEqual(session.attempts, 1)
+        XCTAssertEqual(session.status, .analyzing)
+    }
+
+    func testFailedThenRetryIncrementsAttempts() {
+        var session = makeSession()
+        session = ImageAnalysisSessionReducer.apply(session, event: .analysisStarted)
+        session = ImageAnalysisSessionReducer.apply(session, event: .analysisFailed("Network error"))
+        XCTAssertEqual(session.status, .failed)
+        XCTAssertEqual(session.attempts, 1)
+
+        session = ImageAnalysisSessionReducer.apply(session, event: .analysisStarted)
+        XCTAssertEqual(session.attempts, 2)
+        XCTAssertEqual(session.status, .analyzing)
+    }
+
     private func makeSession() -> ImageAnalysisSession {
         let attachment = ChatMessageImageAttachment(
             imageJPEG: Data([0xFF, 0xD8, 0xFF]),

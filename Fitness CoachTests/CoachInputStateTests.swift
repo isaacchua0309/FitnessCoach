@@ -120,6 +120,20 @@ final class CoachInputStateTests: XCTestCase {
         XCTAssertNil(state.takeSendSnapshot())
     }
 
+    func testRemoveAttachmentDisablesSendUntilTextOrImageReturns() throws {
+        var state = CoachInputState.empty
+        let jpeg = try makeTestJPEG()
+        XCTAssertTrue(state.stageImage(jpegData: jpeg, source: .library))
+        XCTAssertTrue(state.canSend)
+
+        state.removeAttachment()
+        XCTAssertFalse(state.canSend)
+
+        state.updateText("caption")
+        XCTAssertTrue(state.canSend)
+        XCTAssertFalse(state.canPickImage)
+    }
+
     func testAttachmentBuildsThumbnail() throws {
         let jpeg = try makeTestJPEG()
         let attachment = try XCTUnwrap(
