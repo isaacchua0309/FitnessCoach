@@ -14,15 +14,23 @@ final class HealthSyncStateStore: ObservableObject {
     @Published private(set) var state: HealthSyncState = .idle
 
     private let syncService: HealthSyncService
+    private let remoteSummarySyncService: (any HealthSummarySyncServing)?
     private let syncEnabled: Bool
+    private let remoteSummarySyncEnabled: @Sendable () -> Bool
     private var activeSyncTask: Task<Void, Never>?
 
     init(
         syncService: HealthSyncService,
-        syncEnabled: Bool = HealthIntelligenceFeatureFlags.isSyncEnabled
+        remoteSummarySyncService: (any HealthSummarySyncServing)? = nil,
+        syncEnabled: Bool = HealthIntelligenceFeatureFlags.isSyncEnabled,
+        remoteSummarySyncEnabled: @escaping @Sendable () -> Bool = {
+            HealthIntelligenceFeatureFlags.healthSummaryRemoteSyncEnabled
+        }
     ) {
         self.syncService = syncService
+        self.remoteSummarySyncService = remoteSummarySyncService
         self.syncEnabled = syncEnabled
+        self.remoteSummarySyncEnabled = remoteSummarySyncEnabled
     }
 
     deinit {
@@ -76,6 +84,24 @@ final class HealthSyncStateStore: ObservableObject {
             let updated = await operation()
             guard !Task.isCancelled else { return }
             self.state = updated
+            self.scheduleRemoteSummarySync(after: updated)
+        }
+    }
+
+    private func scheduleRemoteSummarySync(after localState: HealthSyncState) {
+        guard remoteSummarySyncEnabled(), let remoteSummarySyncService else { return }
+        guard localState.phase == .succeeded || localState.phase == .partialSuccess else { return }
+
+        let days = max(localState.progress.daysRequested, 1)
+        HealthSummarySyncDebugLogger.localRefreshCompleted(
+            phase: localState.phase.rawValue,
+            trigger: localState.trigger?.rawValue ?? "none",
+            daysRequested: localState.progress.daysRequested,
+            daysCompleted: localState.progress.daysCompleted
+        )
+
+        Task.detached {
+            await remoteSummarySyncService.syncAfterLocalHealthRefresh(days: days)
         }
     }
 }

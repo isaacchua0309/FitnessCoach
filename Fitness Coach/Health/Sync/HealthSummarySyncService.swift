@@ -262,6 +262,14 @@ actor HealthSummarySyncService: HealthSummarySyncServing {
             calendar: calendar
         )
 
+        HealthSummarySyncDebugLogger.remoteSyncAttempted(
+            trigger: resolvedTrigger.rawValue,
+            syncWindowDays: syncWindowDays,
+            dailyCount: composed.dailySummaries.count,
+            workoutCount: composed.workoutSummaries.count,
+            recoveryCount: composed.recoverySummaries.count
+        )
+
         var failedKinds: [HealthSummaryRemoteSyncPayloadKind] = []
         var lastError: HealthSummarySyncError?
         var didUploadAnyPayload = false
@@ -310,6 +318,31 @@ actor HealthSummarySyncService: HealthSummarySyncServing {
             lastError: lastError,
             didUploadAnyPayload: didUploadAnyPayload
         )
+
+        let metadataAttempted = didUploadAnyPayload
+            || !composed.dailySummaries.isEmpty
+            || !composed.workoutSummaries.isEmpty
+        let metadataUploaded = metadataAttempted && !failedKinds.contains(.metadata)
+
+        switch state.phase {
+        case .succeeded:
+            HealthSummarySyncDebugLogger.remoteSyncSucceeded(
+                trigger: resolvedTrigger.rawValue,
+                dailyCount: composed.dailySummaries.count,
+                workoutCount: composed.workoutSummaries.count,
+                recoveryCount: composed.recoverySummaries.count,
+                metadataUploaded: metadataUploaded
+            )
+        case .partialSuccess, .failed:
+            HealthSummarySyncDebugLogger.remoteSyncFailed(
+                trigger: resolvedTrigger.rawValue,
+                phase: state.phase.rawValue,
+                failedKinds: failedKinds,
+                error: lastError
+            )
+        default:
+            break
+        }
     }
 
     // MARK: - Upload helpers

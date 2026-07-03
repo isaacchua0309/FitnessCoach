@@ -159,11 +159,8 @@ final class AppContainer {
             repository: healthDataRepository,
             cacheStore: healthCacheStore
         )
-        healthSyncStateStore = HealthSyncStateStore(
-            syncService: healthSyncService,
-            syncEnabled: HealthIntelligenceFeatureFlags.isSyncEnabled
-        )
-        healthSummaryRemoteSyncClient = inMemory
+        let remoteSummarySyncEnabled = HealthIntelligenceFeatureFlags.healthSummaryRemoteSyncEnabled
+        healthSummaryRemoteSyncClient = (inMemory || !remoteSummarySyncEnabled)
             ? NoopHealthSummaryRemoteSyncClient()
             : FirestoreHealthSummaryRemoteSyncClient(userProvider: authUIDCache)
         healthSummarySyncService = HealthSummarySyncService(
@@ -172,6 +169,12 @@ final class AppContainer {
             repository: healthDataRepository,
             userProvider: authUIDCache,
             localHealthSyncService: healthSyncService
+        )
+        healthSyncStateStore = HealthSyncStateStore(
+            syncService: healthSyncService,
+            remoteSummarySyncService: remoteSummarySyncEnabled ? healthSummarySyncService : nil,
+            syncEnabled: HealthIntelligenceFeatureFlags.isSyncEnabled,
+            remoteSummarySyncEnabled: { HealthIntelligenceFeatureFlags.healthSummaryRemoteSyncEnabled }
         )
         if HealthIntelligenceFeatureFlags.isSyncEnabled {
             refreshCenter.healthDayChangeHandler = { [healthSyncStateStore] in
