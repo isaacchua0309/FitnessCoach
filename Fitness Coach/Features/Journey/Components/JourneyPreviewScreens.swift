@@ -101,4 +101,13 @@ enum JourneyPreviewScreens {
     JourneyPreviewScreens.dashboard(.highlyConsistent, palette: .emeraldGreen)
   }
 }
+
+#Preview("Health Intelligence enabled") {
+  NavigationStack {
+    JourneyPreviewScreens.dashboard(
+      .strongMomentum,
+      healthIntelligenceSectionState: JourneyHealthIntelligencePreviewData.strongWeek
+    )
+  }
+}
 #endif

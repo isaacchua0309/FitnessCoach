@@ -3064,6 +3064,110 @@ enum FormaProductCopy {
         static let unitSystem = "Unit system"
     }
 
+    // MARK: - Weekly review presentation
+
+    enum WeeklyReviewPresentation {
+        static let sectionTitle = "Weekly health review"
+        static let loadingTitle = "Loading weekly review"
+        static let loadingSubtitle = "Summarizing your week."
+        static let loadingAccessibilityLabel = "Loading weekly health review"
+        static let emptyTitle = "Weekly review building"
+        static let emptySummary =
+            "Keep logging meals, workouts, and recovery signals to unlock your weekly health review."
+        static let emptyAccessibilityLabel = "Weekly health review unavailable. Keep logging to unlock it."
+        static let partialDataSummary =
+            "Your weekly health patterns are summarized using the data available this week."
+
+        static let confidenceHigh = "High confidence"
+        static let confidenceModerate = "Moderate confidence"
+        static let confidenceLow = "Limited confidence"
+
+        static let statUnavailable = "Not enough data"
+        static let weightUnavailable = "Log weight to see weekly change"
+        static let nutritionLimitedDetail = "Limited nutrition data this week"
+        static let activityLimitedDetail = "Limited activity data this week"
+        static let recoveryLimitedDetail = "Limited recovery data this week"
+
+        static let workoutsTitle = "Workouts"
+        static let stepsTitle = "Average steps"
+        static let proteinTitle = "Protein days"
+        static let caloriesTitle = "Calorie days"
+        static let waterTitle = "Water days"
+        static let recoveryTitle = "Recovery"
+        static let weightTitle = "Weight trend"
+        static let loggingTitle = "Logging days"
+
+        static let winsHeader = "Wins"
+        static let risksHeader = "Watch next week"
+        static let focusHeader = "Next week focus"
+
+        static func generatedAtLabel(for date: Date, calendar: Calendar = .current) -> String {
+            let dayLabel = JourneyFormatter.timelineDayLabel(date, calendar: calendar)
+            return "Updated \(dayLabel)"
+        }
+
+        static func missingDataNotice(for signals: Set<WeeklyReviewMissingSignal>) -> String {
+            guard !signals.isEmpty else { return "" }
+
+            let labels = missingSignalLabels(for: signals).sorted()
+            if labels.count == 1 {
+                return "\(labels[0]) was limited this week, so parts of this review use partial data."
+            }
+            let joined = labels.dropLast().joined(separator: ", ")
+            let last = labels.last ?? "Some signals"
+            return "\(joined), and \(last) were limited this week, so parts of this review use partial data."
+        }
+
+        static func confidenceLabel(for confidence: WeeklyReviewConfidence) -> String {
+            switch confidence {
+            case .high: return confidenceHigh
+            case .moderate: return confidenceModerate
+            case .low: return confidenceLow
+            }
+        }
+
+        static func workoutsValue(count: Int, minutes: Int) -> String {
+            guard count > 0 else { return "None logged" }
+            let workoutLabel = count == 1 ? "1 workout" : "\(count) workouts"
+            guard minutes > 0 else { return workoutLabel }
+            return "\(workoutLabel) · \(FormaProductCopy.Journey.HealthIntelligence.durationLabel(minutes: minutes))"
+        }
+
+        static func dayCountValue(_ count: Int, total: Int = 7) -> String {
+            "\(count) of \(total) days"
+        }
+
+        static func weightTrendValue(_ changeKg: Double) -> String {
+            let formatted = String(format: "%.1f", abs(changeKg))
+            if changeKg < 0 {
+                return "\(formatted) kg down"
+            }
+            if changeKg > 0 {
+                return "\(formatted) kg up"
+            }
+            return "Held steady"
+        }
+
+        static func recoveryValue(score: Double?) -> String {
+            guard let score else { return statUnavailable }
+            return "Avg \(Int(score.rounded()))"
+        }
+
+        private static func missingSignalLabels(for signals: Set<WeeklyReviewMissingSignal>) -> [String] {
+            signals.map { signal in
+                switch signal {
+                case .sleep: return "Sleep"
+                case .hrv: return "Heart variability"
+                case .weight: return "Weight"
+                case .nutrition: return "Nutrition"
+                case .workouts: return "Workouts"
+                case .activity: return "Activity"
+                case .recovery: return "Recovery"
+                }
+            }
+        }
+    }
+
     // MARK: - Legal
 
     enum Legal {
