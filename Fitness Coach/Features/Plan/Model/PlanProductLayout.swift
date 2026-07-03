@@ -16,6 +16,7 @@ enum PlanProductSection: String, CaseIterable, Equatable {
     case whenToAdjust = "when_to_adjust"
     case nextReview = "next_review"
     case planConfidence = "plan_confidence"
+    case adjustPlanCTA = "adjust_plan_cta"
 }
 
 enum PlanProductLayout {
@@ -27,7 +28,8 @@ enum PlanProductLayout {
         .planAssumptions,
         .whenToAdjust,
         .nextReview,
-        .planConfidence
+        .planConfidence,
+        .adjustPlanCTA
     ]
 
     /// Legacy section identifiers removed from the Plan screen.

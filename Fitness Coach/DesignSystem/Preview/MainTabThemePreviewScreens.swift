@@ -52,6 +52,10 @@ enum MainTabThemePreviewScreens {
                 PlanAdjustmentRulesSection(state: PlanPreviewData.state.adjustmentRules)
                 PlanReviewSection(state: PlanPreviewData.state.review)
                 PlanConfidenceSection(state: PlanPreviewData.state.confidence)
+                PlanAdjustPlanCTASection(
+                    state: PlanPreviewData.state.adjustPlanCTA,
+                    onAdjustPlan: {}
+                )
             }
             .padding(.horizontal, PlanLayout.horizontalPadding)
             .padding(.vertical, FormaTokens.Spacing.lg)

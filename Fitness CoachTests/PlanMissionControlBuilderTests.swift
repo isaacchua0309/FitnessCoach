@@ -23,7 +23,7 @@ final class PlanMissionControlBuilderTests: XCTestCase {
         XCTAssertEqual(dashboard.strategy.sectionTitle, "Your Strategy")
         XCTAssertEqual(dashboard.strategy.primaryGoal, "Lose 15 kg")
         XCTAssertFalse(dashboard.strategy.accessibilitySummary.isEmpty)
-        XCTAssertEqual(dashboard.adjustPlanCTA.title, "Adjust Plan")
+        XCTAssertEqual(dashboard.adjustPlanCTA.buttonTitle, "Adjust Plan")
     }
 
     func testGainMissionStateUsesGainDirection() {

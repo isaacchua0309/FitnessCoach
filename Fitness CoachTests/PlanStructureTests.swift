@@ -17,9 +17,10 @@ final class PlanStructureTests: XCTestCase {
             .planAssumptions,
             .whenToAdjust,
             .nextReview,
-            .planConfidence
+            .planConfidence,
+            .adjustPlanCTA
         ])
-        XCTAssertEqual(PlanProductLayout.sectionOrder.last, .planConfidence)
+        XCTAssertEqual(PlanProductLayout.sectionOrder.last, .adjustPlanCTA)
     }
 
     func testRemovedSectionsAreNotPartOfCanonicalOrder() {

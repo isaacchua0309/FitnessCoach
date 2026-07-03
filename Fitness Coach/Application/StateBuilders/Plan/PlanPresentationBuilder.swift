@@ -62,7 +62,7 @@ enum PlanPresentationBuilder {
                 referenceDate: asOf,
                 calendar: context.calendar
             ),
-            adjustPlanCTA: AdjustPlanCTAStateBuilder.build()
+            adjustPlanCTA: PlanAdjustPlanCTAStateBuilder.build()
         )
     }
 
@@ -225,19 +225,6 @@ enum DailyTargetsStateBuilder {
             parts.insert(trainingTargetLabel, at: parts.count - 1)
         }
         return parts.joined(separator: ". ")
-    }
-}
-
-// MARK: - Adjust CTA
-
-enum AdjustPlanCTAStateBuilder {
-
-    static func build(isEnabled: Bool = true) -> AdjustPlanCTAState {
-        AdjustPlanCTAState(
-            title: FormaProductCopy.PlanMissionControl.adjustPlan,
-            isEnabled: isEnabled,
-            accessibilityHint: FormaProductCopy.PlanMissionControl.adjustPlanAccessibilityHint
-        )
     }
 }
 

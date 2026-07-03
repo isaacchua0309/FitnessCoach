@@ -217,6 +217,13 @@ struct PlanView: View {
                         }
                         : nil
                 )
+
+                PlanAdjustPlanCTASection(
+                    state: state.adjustPlanCTA,
+                    onAdjustPlan: {
+                        model.showEditPlan()
+                    }
+                )
             }
             .padding(.horizontal, PlanLayout.horizontalPadding)
             .padding(.top, FormaTokens.Spacing.xs)
@@ -257,6 +264,10 @@ struct PlanView: View {
             PlanAdjustmentRulesSection(state: PlanPreviewData.state.adjustmentRules)
             PlanReviewSection(state: PlanPreviewData.state.review)
             PlanConfidenceSection(state: PlanPreviewData.state.confidence)
+            PlanAdjustPlanCTASection(
+                state: PlanPreviewData.state.adjustPlanCTA,
+                onAdjustPlan: {}
+            )
         }
         .padding(.horizontal, PlanLayout.horizontalPadding)
         .padding(.vertical, 24)

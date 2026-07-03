@@ -2237,6 +2237,9 @@ enum FormaProductCopy {
     enum PlanMissionControl {
         static let heroSectionTitle = PlanStrategyHero.sectionTitle
         static let adjustPlan = "Adjust Plan"
+        static let adjustPlanCTAHeading = "Need to change direction?"
+        static let adjustPlanCTABody =
+            "Update your goal, target weight, activity, or calories."
         static let progressOnPlan = "On plan"
         static let headlineLoseFallback = "Lose weight"
         static let headlineGainFallback = "Gain weight"

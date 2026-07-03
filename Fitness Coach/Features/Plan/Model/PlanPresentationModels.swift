@@ -193,7 +193,10 @@ struct PlanReviewState: Equatable, Sendable {
 // MARK: - Adjust CTA
 
 struct AdjustPlanCTAState: Equatable, Sendable {
-    var title: String
+    var heading: String
+    var bodyCopy: String
+    var buttonTitle: String
     var isEnabled: Bool
+    var accessibilitySummary: String
     var accessibilityHint: String
 }
