@@ -66,11 +66,12 @@ struct JourneyView: View {
             FormaScreenLoadingView(message: FormaProductCopy.Loading.journey)
         case .empty:
             JourneyEmptyStateView {
+                analyticsCoordinator.logGoToTodayTapped()
                 onOpenToday?()
             }
             .onAppear {
                 syncAnalyticsContextForEmpty()
-                analyticsCoordinator.logScreenViewed()
+                analyticsCoordinator.logViewed()
             }
         case .error(let message):
             FormaScreenErrorView(message: message, onRetry: {
@@ -94,7 +95,7 @@ struct JourneyView: View {
         .accessibilityIdentifier("journey-scroll")
         .onAppear {
             syncAnalyticsContext(for: state)
-            analyticsCoordinator.logScreenViewed()
+            analyticsCoordinator.logViewed()
         }
     }
 

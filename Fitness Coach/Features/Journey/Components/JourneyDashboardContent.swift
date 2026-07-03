@@ -68,36 +68,41 @@ struct JourneyDashboardContent: View {
                 JourneyTransformationHeroSection(state: state.transformation, onCTA: onCTA)
             }
             .padding(.bottom, JourneyLayout.heroBottomSpacing)
-            .onAppear { analyticsCoordinator?.logTransformationViewed() }
+            .onAppear { analyticsCoordinator?.logHeroViewed() }
 
         case .goalProjection:
             JourneyGoalProjectionSection(state: state.goalProjection, onCTA: onCTA)
-                .onAppear { analyticsCoordinator?.logGoalProjectionViewed() }
+                .onAppear { analyticsCoordinator?.logProjectionViewed() }
 
         case .milestones:
             JourneyMilestonesSection(state: state.milestone)
-                .onAppear { analyticsCoordinator?.logMilestoneRailViewed() }
+                .onAppear { analyticsCoordinator?.logMilestoneViewed() }
 
         case .weeklyReview:
             JourneyWeeklyReviewSection(state: state.weeklyHabit, onCTA: onCTA)
-                .onAppear { analyticsCoordinator?.logWeeklyReviewViewed() }
+                .onAppear { analyticsCoordinator?.logWeeklyConsistencyViewed() }
 
         case .storyTimeline:
             JourneyStoryTimelineSection(state: state.storyTimeline)
-                .onAppear { analyticsCoordinator?.logTimelineViewed() }
+                .onAppear { analyticsCoordinator?.logStoryViewed() }
 
         case .insights:
             JourneyInsightsSection(state: state.insight)
+                .onAppear { analyticsCoordinator?.logInsightsViewed() }
 
         case .monthlyRecap:
             JourneyMonthlyRecapSection(state: state.monthlyRecap)
+                .onAppear { analyticsCoordinator?.logMonthlyRecapViewed() }
 
         case .chapters:
             JourneyChapterSection(state: state.chapter)
+                .onAppear { analyticsCoordinator?.logChapterViewed() }
 
         case .startingEmptyState:
-            JourneyStartingEmptyStateView(onGoToToday: onGoToToday)
-                .onAppear { analyticsCoordinator?.logStartingEmptyStateViewed() }
+            JourneyStartingEmptyStateView {
+                analyticsCoordinator?.logGoToTodayTapped()
+                onGoToToday()
+            }
         }
     }
 }

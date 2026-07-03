@@ -30,61 +30,102 @@ final class JourneyAnalyticsCoordinator {
     }
 
     func updateContextForEmptyProfile(healthConnected: Bool) {
-        snapshot = JourneyAnalyticsSnapshot(
-            hasProfile: false,
-            hasWeightLogs: false,
-            usesSyntheticBaseline: false,
-            progressPercentBucket: JourneyAnalyticsProgressPercentBucket.none.rawValue,
-            currentStreakBucket: JourneyAnalyticsStreakBucket.zero.rawValue,
-            unlockedMilestoneCount: 0,
-            healthConnected: healthConnected
-        )
+        snapshot = .empty
+        snapshot.healthConnected = healthConnected
         resetSession()
     }
 
     // MARK: - Screen & sections
 
-    func logScreenViewed() {
+    func logViewed() {
         guard !hasLoggedScreenView else { return }
         hasLoggedScreenView = true
-        log(.screenViewed)
+        log(.viewed)
     }
 
-    func logTransformationViewed() {
-        logSectionOnce(.transformationViewed)
+    func logHeroViewed() {
+        logSectionOnce(.heroViewed)
     }
 
-    func logGoalProjectionViewed() {
-        logSectionOnce(.goalProjectionViewed)
+    func logProjectionViewed() {
+        logSectionOnce(.projectionViewed)
     }
 
-    func logWeeklyReviewViewed() {
-        logSectionOnce(.weeklyReviewViewed)
+    func logMilestoneViewed() {
+        logSectionOnce(.milestoneViewed)
     }
 
-    func logMilestoneRailViewed() {
-        logSectionOnce(.milestoneRailViewed)
+    func logWeeklyConsistencyViewed() {
+        logSectionOnce(.weeklyConsistencyViewed)
     }
 
-    func logTimelineViewed() {
-        logSectionOnce(.timelineViewed)
+    func logStoryViewed() {
+        logSectionOnce(.storyViewed)
     }
 
-    func logStartingEmptyStateViewed() {
-        logSectionOnce(.startingEmptyStateViewed)
+    func logInsightsViewed() {
+        logSectionOnce(.insightsViewed)
+    }
+
+    func logMonthlyRecapViewed() {
+        logSectionOnce(.monthlyRecapViewed)
+    }
+
+    func logChapterViewed() {
+        logSectionOnce(.chapterViewed)
     }
 
     // MARK: - Interactions
 
+    func logGoToTodayTapped() {
+        log(.goToTodayTapped)
+    }
+
     func logCTATapped(_ cta: JourneyCTA) {
+        let ctaType = JourneyAnalyticsContextBuilder.ctaType(for: cta)
+
         switch cta {
         case .logWeight:
-            log(.weightCTATapped, ctaType: JourneyAnalyticsContextBuilder.ctaType(for: cta))
+            log(.weightCTATapped, ctaType: ctaType)
         case .logFood, .logWater, .logProtein:
-            log(.coachCTATapped, ctaType: JourneyAnalyticsContextBuilder.ctaType(for: cta))
+            log(.coachCTATapped, ctaType: ctaType)
         case .connectAppleHealth, .updateGoal:
             break
         }
+
+        if JourneyAnalyticsContextBuilder.isMilestoneAdvancingCTA(cta) {
+            log(.milestoneCTATapped, ctaType: ctaType)
+        }
+    }
+
+    // MARK: - Deprecated entry points (forward to revamp events)
+
+    func logScreenViewed() {
+        logViewed()
+    }
+
+    func logTransformationViewed() {
+        logHeroViewed()
+    }
+
+    func logGoalProjectionViewed() {
+        logProjectionViewed()
+    }
+
+    func logMilestoneRailViewed() {
+        logMilestoneViewed()
+    }
+
+    func logWeeklyReviewViewed() {
+        logWeeklyConsistencyViewed()
+    }
+
+    func logTimelineViewed() {
+        logStoryViewed()
+    }
+
+    func logStartingEmptyStateViewed() {
+        // Deprecated: empty-state impressions are covered by `journey_viewed`.
     }
 
     // MARK: - Private
