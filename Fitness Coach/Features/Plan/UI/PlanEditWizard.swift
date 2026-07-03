@@ -323,47 +323,19 @@ struct PlanEditWizard: View {
             baseline: baselineProfile,
             formState: formState
         )
+        let summary = PlanEditFinalPlanSummaryBuilder.build(
+            baseline: baselineProfile,
+            formState: formState,
+            goalType: goalType,
+            projection: projection,
+            review: review
+        )
 
-        return Group {
-            Section {
-                if review.changes.isEmpty {
-                    Text("No plan inputs changed.")
-                        .font(.subheadline)
-                        .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-                } else {
-                    ForEach(review.changes) { change in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(change.label)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-                            HStack {
-                                Text(change.before)
-                                    .strikethrough()
-                                    .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-                                Image(systemName: "arrow.right")
-                                    .font(.caption)
-                                    .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-                                Text(change.after)
-                                    .fontWeight(.medium)
-                            }
-                            .font(.subheadline)
-                        }
-                        .padding(.vertical, 2)
-                    }
-                }
-            } header: {
-                FormaSettingsSectionHeader(title: "Review changes")
-            } footer: {
-                Text("Next, Forma will regenerate your daily targets from these inputs.")
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-            }
-
-            Section {
-                PlanProjectionImpactCard(projection: projection)
-            } header: {
-                FormaSettingsSectionHeader(title: FormaProductCopy.PlanProjection.impactTitle)
-            }
+        return Section {
+            PlanEditReviewStepView(summary: summary)
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
         }
     }
 
@@ -378,54 +350,37 @@ struct PlanEditWizard: View {
                 }
             }
         } else if let preview = targetPreview {
-            let comparison = PlanEditReviewBuilder.buildTargetComparison(
-                before: baselineProfile.targets,
-                preview: preview
+            let review = PlanEditReviewBuilder.build(
+                baseline: baselineProfile,
+                formState: formState
+            )
+            let summary = PlanEditFinalPlanSummaryBuilder.build(
+                baseline: baselineProfile,
+                formState: formState,
+                goalType: goalType,
+                projection: projection,
+                review: review,
+                targetPreview: preview
             )
 
-            if comparison.isAggressive || comparison.warning != nil {
-                Section {
-                    Label(
-                        comparison.warning ?? projection.difficultyDescription,
-                        systemImage: "exclamationmark.triangle.fill"
-                    )
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(FormaPlanTokens.Color.planWarning)
-                }
-            }
-
             Section {
-                PlanProjectionImpactCard(projection: projection)
-            } header: {
-                FormaSettingsSectionHeader(title: FormaProductCopy.PlanProjection.impactTitle)
-            }
-
-            Section {
-                ForEach(comparison.rows) { row in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(row.label)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-                        HStack {
-                            Text(row.before)
-                                .strikethrough()
-                                .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-                            Image(systemName: "arrow.right")
-                                .font(.caption)
-                                .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-                            Text(row.after)
-                                .fontWeight(.medium)
-                        }
-                        .font(.subheadline)
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
+                    if let warning = summary.warning {
+                        PlanEditReviewWarningCard(warning: warning)
                     }
-                    .padding(.vertical, 2)
+
+                    PlanEditFinalPlanCard(state: summary)
+
+                    if !summary.todayChanges.isEmpty {
+                        PlanEditTodayChangesCard(
+                            changes: summary.todayChanges,
+                            note: summary.todayNote
+                        )
+                    }
                 }
-            } header: {
-                FormaSettingsSectionHeader(title: "Target changes")
-            } footer: {
-                Text("Saving updates your plan and today's targets.")
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaPlanTokens.Color.planMutedText)
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             }
         } else {
             Section {

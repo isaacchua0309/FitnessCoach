@@ -2402,6 +2402,36 @@ enum FormaProductCopy {
         }
     }
 
+    // MARK: - Plan Edit Review
+
+    enum PlanEditReview {
+        static let finalPlanTitle = "Your plan"
+        static let inputChangesTitle = "What changed"
+        static let todayChangesTitle = "What changes today"
+        static let todayChangesNote =
+            "Today's targets will update after you save this plan."
+        static let todayNoChangeNote =
+            "Today's targets should stay the same after saving."
+
+        static let planUpToDateHeadline = "Your plan is already up to date."
+        static let planReadyHeadline = "Your new plan is ready."
+
+        static let goalLabel = "Goal"
+        static let currentWeightLabel = "Current weight"
+        static let targetWeightLabel = "Target weight"
+        static let estimatedFinishLabel = "Estimated finish"
+        static let difficultyAdherenceLabel = "Difficulty & adherence"
+        static let unavailable = "—"
+
+        static let aggressiveDeficitTitle = "This is an aggressive deficit."
+        static let aggressiveDeficitBody =
+            "Recovery and hunger may be harder. Consider a slower pace if consistency drops."
+
+        static func friendlyChangeSummary(before: String, after: String) -> String {
+            "Was \(before), now \(after)"
+        }
+    }
+
     // MARK: - Plan Edit Hero
 
     enum PlanEditHero {
