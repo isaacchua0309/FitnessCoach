@@ -30,6 +30,7 @@ final class CoachMealPhotoAnalyzer {
 
     func analyze(
         jpegData: Data,
+        prompt: String = CoachMealPhotoPipeline.defaultAnalysisPrompt,
         recentMessages: [ChatMessage]
     ) async -> CoachActionResult {
         guard aiCommandParsingEnabled, let aiContextBuilder else {
@@ -61,7 +62,7 @@ final class CoachMealPhotoAnalyzer {
         let routed = RoutedAITask(
             task: .photoFoodAnalysis(
                 imageData: jpegData,
-                prompt: CoachMealPhotoPipeline.defaultAnalysisPrompt
+                prompt: prompt
             ),
             tier: .cheap,
             intentResult: CoachMealPhotoPipeline.photoAnalysisIntentResult

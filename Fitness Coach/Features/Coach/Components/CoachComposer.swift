@@ -11,11 +11,13 @@ import SwiftUI
 
 struct CoachComposer: View {
     @Binding var text: String
+    var stagedMealPhotoJPEG: Data?
     var isFocused: FocusState<Bool>.Binding
     let isSending: Bool
     let onSend: () -> Void
     let onVoiceTap: () -> Void
     let onAttachmentSelect: (CoachAttachmentOption) -> Void
+    let onRemoveStagedPhoto: () -> Void
 
     @State private var isAttachmentMenuPresented = false
 
@@ -24,7 +26,7 @@ struct CoachComposer: View {
     }
 
     private var canSend: Bool {
-        !isSending && !trimmedText.isEmpty
+        !isSending && (!trimmedText.isEmpty || stagedMealPhotoJPEG != nil)
     }
 
     private var showVoiceButton: Bool {
@@ -37,6 +39,11 @@ struct CoachComposer: View {
                 CoachAttachmentMenu(isPresented: $isAttachmentMenuPresented, onSelect: onAttachmentSelect)
                     .padding(.horizontal, CoachDesignTokens.Layout.horizontalPadding)
                     .padding(.bottom, CoachDesignTokens.Spacing.xs)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+
+            if let stagedMealPhotoJPEG {
+                CoachComposerImagePreview(jpegData: stagedMealPhotoJPEG, onRemove: onRemoveStagedPhoto)
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
 
@@ -82,6 +89,7 @@ struct CoachComposer: View {
         .animation(CoachDesignTokens.Motion.standard, value: canSend)
         .animation(CoachDesignTokens.Motion.standard, value: showVoiceButton)
         .animation(CoachDesignTokens.Motion.standard, value: isAttachmentMenuPresented)
+        .animation(CoachDesignTokens.Motion.standard, value: stagedMealPhotoJPEG != nil)
     }
 
     private var attachmentButton: some View {
@@ -165,11 +173,13 @@ private struct CoachComposerButtonStyle: ButtonStyle {
                 Spacer()
                 CoachComposer(
                     text: $text,
+                    stagedMealPhotoJPEG: nil,
                     isFocused: $isFocused,
                     isSending: false,
                     onSend: {},
                     onVoiceTap: {},
-                    onAttachmentSelect: { _ in }
+                    onAttachmentSelect: { _ in },
+                    onRemoveStagedPhoto: {}
                 )
             }
             .background(CoachDesignTokens.Color.background)

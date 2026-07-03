@@ -50,6 +50,9 @@ struct CoachView: View {
                         },
                         onStarterTap: { prompt in
                             handleStarterTap(prompt)
+                        },
+                        onRetryMealPhotoAnalysis: { userMessageID in
+                            Task { await model.retryMealPhotoAnalysis(for: userMessageID) }
                         }
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -77,12 +80,12 @@ struct CoachView: View {
                 photoPickerItem = nil
                 Task {
                     let result = await CoachMealPhotoPipeline.loadJPEG(from: item)
-                    await model.handleMealPhotoSelection(result)
+                    model.handleMealPhotoSelection(result)
                 }
             }
             .fullScreenCover(isPresented: $isCameraPresented) {
                 CoachCameraPicker { result in
-                    Task { await model.handleMealPhotoSelection(result) }
+                    model.handleMealPhotoSelection(result)
                 }
                 .ignoresSafeArea()
             }
@@ -135,6 +138,7 @@ struct CoachView: View {
     private var composerChrome: some View {
         CoachComposer(
             text: $model.inputText,
+            stagedMealPhotoJPEG: model.stagedMealPhotoJPEG,
             isFocused: $isInputFocused,
             isSending: model.isSending,
             onSend: {
@@ -144,7 +148,10 @@ struct CoachView: View {
                 }
             },
             onVoiceTap: {},
-            onAttachmentSelect: handleAttachmentSelection
+            onAttachmentSelect: handleAttachmentSelection,
+            onRemoveStagedPhoto: {
+                model.removeStagedMealPhoto()
+            }
         )
         .fixedSize(horizontal: false, vertical: true)
         .background(

@@ -17,4 +17,28 @@ struct ChatMessage: Codable, Identifiable, Equatable, Sendable {
     var createdAt: Date
     var relatedDailyLogId: UUID?
     var relatedEntryId: UUID?
+    /// JPEG bytes for in-thread meal photo display and analysis retry.
+    var mealPhotoJPEG: Data?
+    /// When set on an assistant message, offers retry for the linked user photo message.
+    var mealPhotoAnalysisFailure: CoachMealPhotoAnalysisFailureInfo?
+
+    init(
+        id: UUID = UUID(),
+        role: ChatMessageRole,
+        text: String,
+        createdAt: Date = Date(),
+        relatedDailyLogId: UUID? = nil,
+        relatedEntryId: UUID? = nil,
+        mealPhotoJPEG: Data? = nil,
+        mealPhotoAnalysisFailure: CoachMealPhotoAnalysisFailureInfo? = nil
+    ) {
+        self.id = id
+        self.role = role
+        self.text = text
+        self.createdAt = createdAt
+        self.relatedDailyLogId = relatedDailyLogId
+        self.relatedEntryId = relatedEntryId
+        self.mealPhotoJPEG = mealPhotoJPEG
+        self.mealPhotoAnalysisFailure = mealPhotoAnalysisFailure
+    }
 }

@@ -1922,6 +1922,7 @@ enum FormaProductCopy {
         static let confirmPending = "Confirm"
         static let editPending = "Edit"
         static let discardPending = "Discard"
+        static let retryMealPhotoAnalysis = "Retry analysis"
         static let foodEditPortionFooter = "Edit if the portion or cut is different."
         static let foodEditIngredientsFooter = "Edit if you know the ingredients."
         static let foodConfirmBelowFooter = "Confirm below to add it."

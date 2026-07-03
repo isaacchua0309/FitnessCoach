@@ -34,6 +34,32 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         XCTAssertTrue(CoachMealPhotoPipeline.hasImagePayload(Data([0xFF, 0xD8, 0xFF])))
     }
 
+    func testPhotoSelectionStagesAttachmentWithoutSending() async throws {
+        let container = try AppContainer(inMemory: true)
+        let model = makeModel(container: container)
+
+        model.handleMealPhotoSelection(.success(Self.makeTestJPEGData()))
+
+        XCTAssertNotNil(model.stagedMealPhotoJPEG)
+        XCTAssertTrue(model.messages.isEmpty)
+        XCTAssertFalse(model.isSending)
+    }
+
+    func testRemovingStagedPhotoAllowsAnotherSelection() async throws {
+        let container = try AppContainer(inMemory: true)
+        let model = makeModel(container: container)
+        let first = Self.makeTestJPEGData()
+
+        model.handleMealPhotoSelection(.success(first))
+        XCTAssertNotNil(model.stagedMealPhotoJPEG)
+
+        model.removeStagedMealPhoto()
+        XCTAssertNil(model.stagedMealPhotoJPEG)
+
+        model.handleMealPhotoSelection(.success(first))
+        XCTAssertNotNil(model.stagedMealPhotoJPEG)
+    }
+
     func testPhotoAnalysisSendsImagePayloadToAIService() async throws {
         let container = try AppContainer(inMemory: true)
         try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
@@ -49,7 +75,8 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             aiCommandParsingEnabled: true
         )
 
-        await model.handleMealPhotoSelection(.success(imageData))
+        model.handleMealPhotoSelection(.success(imageData))
+        await model.sendCurrentMessage()
 
         XCTAssertEqual(aiService.estimateFoodCallCount, 1)
         XCTAssertTrue(CoachMealPhotoPipeline.hasImagePayload(aiService.lastImageJPEGData))
@@ -59,45 +86,82 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             XCTFail("Expected prepared JPEG payload")
         }
         XCTAssertNotNil(model.pendingConfirmation)
+        XCTAssertEqual(model.messages.first?.mealPhotoJPEG, aiService.lastImageJPEGData)
+        XCTAssertNil(model.stagedMealPhotoJPEG)
         XCTAssertEqual(model.messages.last?.role, .assistant)
+    }
+
+    func testSendImageOnlyCreatesPhotoBubbleWithoutPlaceholderText() async throws {
+        let container = try AppContainer(inMemory: true)
+        try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+
+        let aiService = PhotoCapturingAIService()
+        let model = CoachModel(
+            actionCenter: container.actionCenter,
+            dailyLogReader: container.dailyLogService,
+            healthActivityQuery: container.healthActivityQueryService,
+            aiService: aiService,
+            userProfileReader: container.userProfileService,
+            aiCommandParsingEnabled: true
+        )
+
+        model.handleMealPhotoSelection(.success(Self.makeTestJPEGData()))
+        await model.sendCurrentMessage()
+
+        let userMessage = try XCTUnwrap(model.messages.first { $0.role == .user })
+        XCTAssertNotNil(userMessage.mealPhotoJPEG)
+        XCTAssertTrue(userMessage.text.isEmpty)
+        XCTAssertNotEqual(userMessage.text, CoachMealPhotoPipeline.userMessageLabel)
+    }
+
+    func testSendTextAndImageUsesCaptionAsPrompt() async throws {
+        let container = try AppContainer(inMemory: true)
+        try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
+
+        let aiService = PhotoCapturingAIService()
+        let model = CoachModel(
+            actionCenter: container.actionCenter,
+            dailyLogReader: container.dailyLogService,
+            healthActivityQuery: container.healthActivityQueryService,
+            aiService: aiService,
+            userProfileReader: container.userProfileService,
+            aiCommandParsingEnabled: true
+        )
+
+        model.inputText = "Lunch bowl"
+        model.handleMealPhotoSelection(.success(Self.makeTestJPEGData()))
+        await model.sendCurrentMessage()
+
+        XCTAssertEqual(aiService.lastPrompt, "Lunch bowl")
+        let userMessage = try XCTUnwrap(model.messages.first { $0.role == .user })
+        XCTAssertEqual(userMessage.text, "Lunch bowl")
+        XCTAssertNotNil(userMessage.mealPhotoJPEG)
     }
 
     func testMissingImageSurfacesNonShamingError() async throws {
         let container = try AppContainer(inMemory: true)
         try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
 
-        let model = CoachModel(
-            actionCenter: container.actionCenter,
-            dailyLogReader: container.dailyLogService,
-            healthActivityQuery: container.healthActivityQueryService,
-            aiService: PhotoCapturingAIService(),
-            userProfileReader: container.userProfileService,
-            aiCommandParsingEnabled: true
-        )
+        let model = makeModel(container: container)
 
-        await model.handleMealPhotoSelection(.failure(.noImage))
+        model.handleMealPhotoSelection(.failure(.noImage))
 
         XCTAssertEqual(model.messages.last?.text, CoachResponseBuilder.mealPhotoError(.noImage))
         XCTAssertNil(model.pendingConfirmation)
+        XCTAssertNil(model.stagedMealPhotoJPEG)
     }
 
     func testUserCancellationDoesNotAppendMessages() async throws {
         let container = try AppContainer(inMemory: true)
-        let model = CoachModel(
-            actionCenter: container.actionCenter,
-            dailyLogReader: container.dailyLogService,
-            healthActivityQuery: container.healthActivityQueryService,
-            aiService: PhotoCapturingAIService(),
-            userProfileReader: container.userProfileService,
-            aiCommandParsingEnabled: true
-        )
+        let model = makeModel(container: container)
 
-        await model.handleMealPhotoSelection(.failure(.userCancelled))
+        model.handleMealPhotoSelection(.failure(.userCancelled))
 
         XCTAssertTrue(model.messages.isEmpty)
+        XCTAssertNil(model.stagedMealPhotoJPEG)
     }
 
-    func testAIFailureSurfacesAnalysisError() async throws {
+    func testAIFailureSurfacesAnalysisErrorAndRetry() async throws {
         let container = try AppContainer(inMemory: true)
         try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
 
@@ -107,14 +171,26 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
+            aiService: aiService,
             userProfileReader: container.userProfileService,
             aiCommandParsingEnabled: true
         )
 
-        await model.handleMealPhotoSelection(.success(Self.makeTestJPEGData()))
+        model.handleMealPhotoSelection(.success(Self.makeTestJPEGData()))
+        await model.sendCurrentMessage()
 
+        XCTAssertNotNil(model.messages.first { $0.role == .user }?.mealPhotoJPEG)
+        XCTAssertTrue(model.messages.contains { $0.mealPhotoAnalysisFailure != nil })
         XCTAssertTrue(model.messages.last?.text.contains("couldn't analyze") == true)
         XCTAssertNil(model.pendingConfirmation)
+
+        aiService.estimateFoodError = nil
+        let userMessageID = try XCTUnwrap(model.messages.first { $0.role == .user }?.id)
+        await model.retryMealPhotoAnalysis(for: userMessageID)
+
+        XCTAssertEqual(aiService.estimateFoodCallCount, 2)
+        XCTAssertNotNil(model.pendingConfirmation)
+        XCTAssertFalse(model.messages.contains { $0.mealPhotoAnalysisFailure != nil })
     }
 
     func testTodayScanFoodVisibleWhenPipelineReady() {
@@ -127,7 +203,15 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
 
     func testLegacyHandlePhotoSelectedReportsMissingImage() async throws {
         let container = try AppContainer(inMemory: true)
-        let model = CoachModel(
+        let model = makeModel(container: container)
+
+        model.handlePhotoSelected()
+
+        XCTAssertEqual(model.messages.last?.text, CoachResponseBuilder.mealPhotoError(.noImage))
+    }
+
+    private func makeModel(container: AppContainer) -> CoachModel {
+        CoachModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
             healthActivityQuery: container.healthActivityQueryService,
@@ -135,10 +219,6 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
             userProfileReader: container.userProfileService,
             aiCommandParsingEnabled: true
         )
-
-        await model.handlePhotoSelected()
-
-        XCTAssertEqual(model.messages.last?.text, CoachResponseBuilder.mealPhotoError(.noImage))
     }
 
     private static func makeTestJPEGData() -> Data {
@@ -154,6 +234,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
 private final class PhotoCapturingAIService: AIServiceProtocol, @unchecked Sendable {
     var estimateFoodCallCount = 0
     var lastImageJPEGData: Data?
+    var lastPrompt: String?
     var estimateFoodError: Error?
 
     func classifyCoachIntent(
@@ -171,6 +252,7 @@ private final class PhotoCapturingAIService: AIServiceProtocol, @unchecked Senda
     ) async throws -> AIFoodEstimateResponse {
         estimateFoodCallCount += 1
         lastImageJPEGData = imageJPEGData
+        lastPrompt = prompt
         if let estimateFoodError { throw estimateFoodError }
 
         let draft = FoodDraft(

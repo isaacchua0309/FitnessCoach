@@ -9,8 +9,10 @@ import Foundation
 
 enum CoachMessagePresentation: Equatable {
     case user(String)
+    case userMealPhoto(jpegData: Data, caption: String?)
     case confirmation(CoachConfirmationContent)
     case assistant(String)
+    case mealPhotoAnalysisFailure(text: String, relatedUserMessageID: UUID)
     case system(String)
 }
 
@@ -29,10 +31,23 @@ enum CoachMessagePresenter {
     static func presentation(for message: ChatMessage) -> CoachMessagePresentation {
         switch message.role {
         case .user:
+            if let jpegData = message.mealPhotoJPEG {
+                let caption = message.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                return .userMealPhoto(
+                    jpegData: jpegData,
+                    caption: caption.isEmpty ? nil : caption
+                )
+            }
             return .user(message.text)
         case .system:
             return .system(message.text)
         case .assistant:
+            if let failure = message.mealPhotoAnalysisFailure {
+                return .mealPhotoAnalysisFailure(
+                    text: message.text,
+                    relatedUserMessageID: failure.relatedUserMessageID
+                )
+            }
             if let confirmation = parseConfirmation(from: message.text) {
                 return .confirmation(confirmation)
             }

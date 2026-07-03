@@ -9,6 +9,7 @@ import SwiftUI
 
 struct CoachMessageView: View {
     let message: ChatMessage
+    var onRetryMealPhotoAnalysis: ((UUID) -> Void)?
 
     private var presentation: CoachMessagePresentation {
         CoachMessagePresenter.presentation(for: message)
@@ -19,10 +20,14 @@ struct CoachMessageView: View {
             switch presentation {
             case .user(let text):
                 userMessage(text)
+            case .userMealPhoto(let jpegData, let caption):
+                userMealPhotoMessage(jpegData: jpegData, caption: caption)
             case .confirmation(let content):
                 confirmationMessage(content)
             case .assistant(let text):
                 assistantMessage(text)
+            case .mealPhotoAnalysisFailure(let text, let relatedUserMessageID):
+                mealPhotoFailureMessage(text: text, relatedUserMessageID: relatedUserMessageID)
             case .system(let text):
                 systemMessage(text)
             }
@@ -49,6 +54,34 @@ struct CoachMessageView: View {
     }
 
     @ViewBuilder
+    private func userMealPhotoMessage(jpegData: Data, caption: String?) -> some View {
+        HStack {
+            Spacer(minLength: 56)
+            VStack(alignment: .trailing, spacing: CoachDesignTokens.Spacing.xs) {
+                CoachMealPhotoThumbnailView(jpegData: jpegData)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: CoachMealPhotoThumbnail.cornerRadius, style: .continuous)
+                            .strokeBorder(CoachDesignTokens.Color.border.opacity(0.6), lineWidth: 0.5)
+                    )
+
+                if let caption, !caption.isEmpty {
+                    Text(caption)
+                        .font(CoachDesignTokens.Typography.messageUser)
+                        .foregroundStyle(CoachDesignTokens.Color.primaryText)
+                        .padding(.horizontal, CoachDesignTokens.Spacing.md)
+                        .padding(.vertical, CoachDesignTokens.Spacing.sm)
+                        .background(CoachDesignTokens.Color.userBubble, in: RoundedRectangle(cornerRadius: CoachDesignTokens.Radius.bubble, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: CoachDesignTokens.Radius.bubble, style: .continuous)
+                                .strokeBorder(CoachDesignTokens.Color.border.opacity(0.6), lineWidth: 0.5)
+                        )
+                }
+            }
+            .frame(maxWidth: 280, alignment: .trailing)
+        }
+    }
+
+    @ViewBuilder
     private func assistantMessage(_ text: String) -> some View {
         HStack {
             Text(text)
@@ -58,6 +91,26 @@ struct CoachMessageView: View {
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 32)
         }
+    }
+
+    @ViewBuilder
+    private func mealPhotoFailureMessage(text: String, relatedUserMessageID: UUID) -> some View {
+        VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.sm) {
+            Text(text)
+                .font(CoachDesignTokens.Typography.messageBody)
+                .foregroundStyle(CoachDesignTokens.Color.textLegal)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let onRetryMealPhotoAnalysis {
+                Button(FormaProductCopy.Coach.retryMealPhotoAnalysis) {
+                    onRetryMealPhotoAnalysis(relatedUserMessageID)
+                }
+                .font(CoachDesignTokens.Typography.confirmationMetric.weight(.semibold))
+                .foregroundStyle(CoachDesignTokens.Color.primary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder

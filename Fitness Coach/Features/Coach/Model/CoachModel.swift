@@ -13,10 +13,23 @@ final class CoachModel: ObservableObject {
 
     @Published private(set) var messages: [ChatMessage] = []
     @Published var inputText: String = ""
-    @Published private(set) var isSending: Bool = false
+    @Published private(set) var processingPhase: CoachProcessingPhase = .idle
+    @Published private(set) var composerAttachment: CoachComposerAttachment = .none
     @Published private(set) var errorTitle: String?
     @Published private(set) var errorMessage: String?
     @Published private(set) var showsAuthRetry: Bool = false
+
+    var isSending: Bool {
+        if case .idle = processingPhase { return false }
+        return true
+    }
+
+    var stagedMealPhotoJPEG: Data? {
+        if case .mealPhoto(let staged) = composerAttachment {
+            return staged.jpegData
+        }
+        return nil
+    }
 
     var messageCount: Int {
         messages.count
@@ -129,13 +142,73 @@ final class CoachModel: ObservableObject {
         }
     }
 
-    // MARK: Intent
+    // MARK: Composer — meal photo attachment
+
+    func removeStagedMealPhoto() {
+        composerAttachment = .none
+    }
+
+    func handleMealPhotoSelection(_ result: Result<Data, CoachMealPhotoError>) {
+        switch result {
+        case .failure(.userCancelled):
+            return
+        case .failure(let error):
+            appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
+        case .success(let rawData):
+            stageMealPhoto(rawData)
+        }
+    }
+
+    /// Legacy entry point — prefer `handleMealPhotoSelection`.
+    func handlePhotoSelected() {
+        handleMealPhotoSelection(.failure(.noImage))
+    }
+
+    private func stageMealPhoto(_ rawData: Data) {
+        let prepared = mealPhotoAnalyzer.prepareJPEG(from: rawData)
+        guard case .success(let jpegData) = prepared else {
+            if case .failure(let error) = prepared {
+                appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
+            }
+            return
+        }
+
+        CoachMealPhotoPipeline.assertImagePayloadPresent(jpegData)
+        composerAttachment = .mealPhoto(CoachStagedMealPhoto(jpegData: jpegData))
+    }
+
+    // MARK: Send
 
     func sendCurrentMessage() async {
-        let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
+        guard !isSending else { return }
+
+        let trimmedText = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let stagedJPEG = stagedMealPhotoJPEG
+
+        guard !trimmedText.isEmpty || stagedJPEG != nil else { return }
+
+        let payload: CoachMealPhotoSendPayload
+        if let stagedJPEG {
+            if trimmedText.isEmpty {
+                payload = .imageOnly(jpegData: stagedJPEG)
+            } else {
+                payload = .textAndImage(text: trimmedText, jpegData: stagedJPEG)
+            }
+        } else {
+            payload = .textOnly(trimmedText)
+        }
+
         inputText = ""
-        await send(text)
+        composerAttachment = .none
+
+        switch payload {
+        case .textOnly(let text):
+            await send(text)
+        case .imageOnly(let jpegData):
+            await sendMealPhoto(jpegData: jpegData, caption: nil)
+        case .textAndImage(let text, let jpegData):
+            await sendMealPhoto(jpegData: jpegData, caption: text)
+        }
     }
 
     func send(_ text: String) async {
@@ -147,22 +220,22 @@ final class CoachModel: ObservableObject {
         case .empty:
             return
         case .tooLong:
-            appendUserMessage(trimmed)
+            appendUserMessage(text: trimmed)
             appendAssistantMessage(CoachResponseBuilder.inputTooLongResponse)
             return
         case .valid:
             break
         }
 
-        appendUserMessage(trimmed)
+        appendUserMessage(text: trimmed)
 
         let traceId = FormaPipelineTracer.beginTrace(userMessage: trimmed)
         let traceStarted = Date()
         var traceOutcome = "completed"
 
-        isSending = true
+        beginProcessing(.text)
         defer {
-            isSending = false
+            endProcessing()
             FormaPipelineTracer.endTrace(
                 traceId: traceId,
                 outcome: traceOutcome,
@@ -178,6 +251,95 @@ final class CoachModel: ObservableObject {
 
         let result = await processCoachMessage(trimmed, traceId: traceId, traceOutcome: &traceOutcome)
         applyActionResult(result)
+    }
+
+    func retryMealPhotoAnalysis(for userMessageID: UUID) async {
+        guard !isSending else { return }
+        guard let userMessage = messages.first(where: { $0.id == userMessageID }),
+              let jpegData = userMessage.mealPhotoJPEG else {
+            return
+        }
+
+        removeMealPhotoFailureMessages(relatedTo: userMessageID)
+
+        let caption = userMessage.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let prompt = caption.isEmpty ? CoachMealPhotoPipeline.defaultAnalysisPrompt : caption
+        await analyzeMealPhoto(
+            jpegData: jpegData,
+            userMessageID: userMessageID,
+            prompt: prompt,
+            isRetry: true
+        )
+    }
+
+    private func sendMealPhoto(jpegData: Data, caption: String?) async {
+        guard !isSending else { return }
+
+        let prepared = mealPhotoAnalyzer.prepareJPEG(from: jpegData)
+        guard case .success(let normalizedJPEG) = prepared else {
+            if case .failure(let error) = prepared {
+                appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
+            }
+            return
+        }
+
+        let displayCaption = caption?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let userMessage = appendUserMealPhotoMessage(
+            caption: displayCaption.isEmpty ? nil : displayCaption,
+            jpegData: normalizedJPEG
+        )
+
+        let prompt = displayCaption.isEmpty ?
+            CoachMealPhotoPipeline.defaultAnalysisPrompt :
+            displayCaption
+
+        await analyzeMealPhoto(
+            jpegData: normalizedJPEG,
+            userMessageID: userMessage.id,
+            prompt: prompt,
+            isRetry: false
+        )
+    }
+
+    private func analyzeMealPhoto(
+        jpegData: Data,
+        userMessageID: UUID,
+        prompt: String,
+        isRetry: Bool
+    ) async {
+        CoachMealPhotoPipeline.assertImagePayloadPresent(jpegData)
+
+        let traceLabel = isRetry ? "Meal photo retry" : CoachMealPhotoPipeline.userMessageLabel
+        let traceId = FormaPipelineTracer.beginTrace(userMessage: traceLabel)
+        let traceStarted = Date()
+        var traceOutcome = "photoAnalysis"
+
+        beginProcessing(.mealPhoto(userMessageID: userMessageID, prompt: prompt))
+        defer {
+            endProcessing()
+            FormaPipelineTracer.endTrace(
+                traceId: traceId,
+                outcome: traceOutcome,
+                durationMs: Int(Date().timeIntervalSince(traceStarted) * 1_000)
+            )
+        }
+
+        let priorChatMessages = messages.filter { $0.id != userMessageID }
+        let result = await mealPhotoAnalyzer.analyze(
+            jpegData: jpegData,
+            prompt: prompt,
+            recentMessages: priorChatMessages
+        )
+        traceOutcome = "photoAnalysisCompleted"
+
+        if result.pendingConfirmation != nil {
+            applyActionResult(result)
+        } else if !result.message.isEmpty {
+            appendMealPhotoFailureMessage(
+                text: result.message,
+                relatedUserMessageID: userMessageID
+            )
+        }
     }
 
     private func handlePendingConfirmationInput(_ text: String) async -> CoachActionResult? {
@@ -312,56 +474,6 @@ final class CoachModel: ObservableObject {
         await send(text)
     }
 
-    func handleMealPhotoSelection(_ result: Result<Data, CoachMealPhotoError>) async {
-        switch result {
-        case .failure(.userCancelled):
-            return
-        case .failure(let error):
-            appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
-        case .success(let rawData):
-            await analyzeMealPhoto(rawData)
-        }
-    }
-
-    /// Legacy entry point — prefer `handleMealPhotoSelection`.
-    func handlePhotoSelected() async {
-        await handleMealPhotoSelection(.failure(.noImage))
-    }
-
-    private func analyzeMealPhoto(_ rawData: Data) async {
-        let prepared = mealPhotoAnalyzer.prepareJPEG(from: rawData)
-        guard case .success(let jpegData) = prepared else {
-            if case .failure(let error) = prepared {
-                appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
-            }
-            return
-        }
-
-        CoachMealPhotoPipeline.assertImagePayloadPresent(jpegData)
-        guard !isSending else { return }
-
-        appendUserMessage(CoachMealPhotoPipeline.userMessageLabel)
-
-        let traceId = FormaPipelineTracer.beginTrace(userMessage: CoachMealPhotoPipeline.userMessageLabel)
-        let traceStarted = Date()
-        var traceOutcome = "photoAnalysis"
-
-        isSending = true
-        defer {
-            isSending = false
-            FormaPipelineTracer.endTrace(
-                traceId: traceId,
-                outcome: traceOutcome,
-                durationMs: Int(Date().timeIntervalSince(traceStarted) * 1_000)
-            )
-        }
-
-        let priorChatMessages = Array(messages.dropLast())
-        let result = await mealPhotoAnalyzer.analyze(jpegData: jpegData, recentMessages: priorChatMessages)
-        traceOutcome = "photoAnalysisCompleted"
-        applyActionResult(result)
-    }
-
     func clearError() {
         errorTitle = nil
         errorMessage = nil
@@ -421,6 +533,16 @@ final class CoachModel: ObservableObject {
         }
     }
 
+    // MARK: Processing phase
+
+    private func beginProcessing(_ operation: CoachProcessingOperation) {
+        processingPhase = .active(operation)
+    }
+
+    private func endProcessing() {
+        processingPhase = .idle
+    }
+
     // MARK: Action result application
 
     private func applyActionResult(_ result: CoachActionResult) {
@@ -448,17 +570,33 @@ final class CoachModel: ObservableObject {
 
     // MARK: Message Helpers
 
-    private func appendUserMessage(_ text: String) {
-        messages.append(
-            ChatMessage(
-                id: UUID(),
-                role: .user,
-                text: text,
-                createdAt: Date(),
-                relatedDailyLogId: nil,
-                relatedEntryId: nil
-            )
+    @discardableResult
+    private func appendUserMessage(text: String) -> ChatMessage {
+        let message = ChatMessage(
+            id: UUID(),
+            role: .user,
+            text: text,
+            createdAt: Date(),
+            relatedDailyLogId: nil,
+            relatedEntryId: nil
         )
+        messages.append(message)
+        return message
+    }
+
+    @discardableResult
+    private func appendUserMealPhotoMessage(caption: String?, jpegData: Data) -> ChatMessage {
+        let message = ChatMessage(
+            id: UUID(),
+            role: .user,
+            text: caption ?? "",
+            createdAt: Date(),
+            relatedDailyLogId: nil,
+            relatedEntryId: nil,
+            mealPhotoJPEG: jpegData
+        )
+        messages.append(message)
+        return message
     }
 
     private func appendAssistantMessage(_ text: String) {
@@ -472,5 +610,27 @@ final class CoachModel: ObservableObject {
                 relatedEntryId: nil
             )
         )
+    }
+
+    private func appendMealPhotoFailureMessage(text: String, relatedUserMessageID: UUID) {
+        messages.append(
+            ChatMessage(
+                id: UUID(),
+                role: .assistant,
+                text: text,
+                createdAt: Date(),
+                relatedDailyLogId: nil,
+                relatedEntryId: nil,
+                mealPhotoAnalysisFailure: CoachMealPhotoAnalysisFailureInfo(
+                    relatedUserMessageID: relatedUserMessageID
+                )
+            )
+        )
+    }
+
+    private func removeMealPhotoFailureMessages(relatedTo userMessageID: UUID) {
+        messages.removeAll { message in
+            message.mealPhotoAnalysisFailure?.relatedUserMessageID == userMessageID
+        }
     }
 }
