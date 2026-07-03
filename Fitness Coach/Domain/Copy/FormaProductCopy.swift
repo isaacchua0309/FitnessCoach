@@ -2279,11 +2279,13 @@ enum FormaProductCopy {
         static let dailySurplus = "Daily surplus"
 
         static let planAssumptionsSectionTitle = "Plan Assumptions"
-        static let planAssumptionsActivity = "Activity level"
-        static let planAssumptionsEstimatedSteps = "Estimated Steps"
-        static let planAssumptionsTraining = "Training"
-        static let planAssumptionsNote =
-            "Your activity level shapes your calorie estimate. Apple Health adds training insights but won't change targets."
+        static let planAssumptionsAge = "Age"
+        static let planAssumptionsHeight = "Height"
+        static let planAssumptionsWeight = "Weight"
+        static let planAssumptionsSex = "Sex"
+        static let planAssumptionsActivity = "Activity"
+        static let planAssumptionsGoalWeight = "Goal weight"
+        static let planAssumptionsNotSet = "Not set"
         static let adjustActivity = "Update activity level"
         static let planAssumptionsAppleHealth = "Apple Health"
         static let connectAppleHealthAccessibilityHint = "Opens Apple Health settings"

@@ -107,23 +107,16 @@ struct PlanRationaleMetrics: Equatable, Sendable {
 
 // MARK: - Assumptions
 
-struct PlanAssumptionsState: Equatable, Sendable {
-    var activityLevel: String
-    var estimatedStepsPerDay: Int
-    var estimatedStepsLabel: String
-    var trainingSessionsPerWeek: Int
-    var trainingSessionsLabel: String
-    var usesActivityLevelDefaults: Bool
-    var resolvedAgeYears: Int
-    var ageLabel: String
-    var heightLabel: String
-    var sexLabel: String
+struct PlanAssumptionRow: Equatable, Sendable, Identifiable {
+    var id: String
+    var label: String
+    var value: String
+    var isMissing: Bool
+}
 
+struct PlanAssumptionsState: Equatable, Sendable {
     var sectionTitle: String
-    var activityFieldLabel: String
-    var estimatedStepsFieldLabel: String
-    var trainingFieldLabel: String
-    var assumptionsNote: String
+    var rows: [PlanAssumptionRow]
     var adjustActivityTitle: String
     var accessibilitySummary: String
 }

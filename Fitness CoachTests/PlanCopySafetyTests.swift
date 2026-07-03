@@ -80,9 +80,13 @@ final class PlanCopySafetyTests: XCTestCase {
         }
     }
 
-    func testPlanAssumptionsNoteDisclaimsAutoTargetChanges() {
-        let note = FormaProductCopy.PlanMissionControl.planAssumptionsNote.lowercased()
-        XCTAssertTrue(note.contains("won't change"))
+    func testPlanAssumptionsCopyAvoidsAutoTargetLanguage() {
+        let combined = [
+            FormaProductCopy.PlanMissionControl.adjustActivity,
+            FormaProductCopy.PlanMissionControl.planAssumptionsNotSet
+        ].joined(separator: " ").lowercased()
+
+        XCTAssertFalse(combined.contains("automatically change your calorie targets"))
     }
 
     func testInitialPlanReasonUsesNeutralSetupLanguage() {
@@ -98,7 +102,8 @@ final class PlanCopySafetyTests: XCTestCase {
         let calculation = FormaProductCopy.PlanCalculation.self
 
         var samples: [String] = [
-            mission.planAssumptionsNote,
+            mission.adjustActivity,
+            mission.planAssumptionsNotSet,
             mission.confidenceSafeCopy,
             mission.planCreatedFromOnboarding,
             mission.planUpdatedAfterEdit,
@@ -140,7 +145,7 @@ final class PlanCopySafetyTests: XCTestCase {
             dashboard.status.statusName,
             dashboard.status.explanation,
             dashboard.dailyTargets.prescriptionCopy,
-            dashboard.assumptions.assumptionsNote,
+            dashboard.assumptions.adjustActivityTitle,
             dashboard.assumptions.accessibilitySummary,
             dashboard.confidence.scoreHeadline,
             dashboard.confidence.improveAccuracyHeading,

@@ -98,19 +98,16 @@ final class PlanMissionControlBuilderTests: XCTestCase {
     func testAssumptionsUseStoredProfileValues() {
         let assumptions = PlanMissionControlFixtures.loseDashboard.assumptions
 
-        XCTAssertEqual(assumptions.estimatedStepsPerDay, 7500)
-        XCTAssertEqual(assumptions.estimatedStepsLabel, "7,500/day")
-        XCTAssertEqual(assumptions.trainingSessionsPerWeek, 3)
-        XCTAssertTrue(assumptions.usesActivityLevelDefaults)
-        XCTAssertEqual(assumptions.resolvedAgeYears, 28)
+        XCTAssertEqual(assumptions.rows.first { $0.id == "activity" }?.value, "Moderately active")
+        XCTAssertEqual(assumptions.rows.first { $0.id == "age" }?.value, "28")
+        XCTAssertEqual(assumptions.rows.first { $0.id == "weight" }?.value, "90 kg")
     }
 
-    func testAssumptionsIncludeNoteWithoutAutoAdjustLanguage() {
-        let note = PlanMissionControlFixtures.loseDashboard.assumptions.assumptionsNote
+    func testAssumptionsDoNotSurfaceStepsOrTrainingRows() {
+        let assumptions = PlanMissionControlFixtures.loseDashboard.assumptions
 
-        XCTAssertFalse(note.lowercased().contains("onboarding"))
-        XCTAssertTrue(note.lowercased().contains("won't change"))
-        XCTAssertFalse(note.lowercased().contains("automatically change your calorie targets"))
+        XCTAssertFalse(assumptions.rows.contains { $0.label.contains("Steps") })
+        XCTAssertFalse(assumptions.rows.contains { $0.label.contains("Training") })
     }
 
     func testLegacyProfileMissingBirthdaySurfacesInConfidence() {

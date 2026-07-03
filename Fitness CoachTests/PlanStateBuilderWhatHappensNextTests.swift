@@ -20,7 +20,7 @@ final class PlanStateBuilderWhatHappensNextTests: XCTestCase {
 
         XCTAssertEqual(state.strategy.goalDirection, .lose)
         XCTAssertFalse(state.dailyTargets.caloriesLabel.isEmpty)
-        XCTAssertFalse(state.assumptions.activityLevel.isEmpty)
+        XCTAssertFalse(state.assumptions.rows.isEmpty)
         XCTAssertNotNil(state.explanation.calculationDetails)
     }
 

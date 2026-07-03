@@ -2,7 +2,7 @@
 //  PlanAssumptionsSection.swift
 //  Fitness Coach
 //
-//  Forma — Plan assumptions card: activity, steps, and training in one place.
+//  Forma — Collapsible Plan Assumptions card.
 //
 
 import SwiftUI
@@ -11,59 +11,42 @@ struct PlanAssumptionsSection: View {
     let state: PlanAssumptionsState
     var onAdjustActivity: () -> Void
 
+    @State private var isExpanded = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
-            FormaSectionLabel(title: state.sectionTitle)
-
             FormaPlanCard {
-                VStack(alignment: .leading, spacing: 0) {
+                DisclosureGroup(isExpanded: $isExpanded) {
                     VStack(alignment: .leading, spacing: 0) {
-                        FormaPlanDisplayRow(
-                            label: state.activityFieldLabel,
-                            value: state.activityLevel
-                        )
-                        .accessibilityHidden(true)
+                        ForEach(Array(state.rows.enumerated()), id: \.element.id) { index, row in
+                            if index > 0 {
+                                FormaPlanRowDivider()
+                            }
+                            FormaPlanDisplayRow(label: row.label, value: row.value)
+                                .accessibilityHidden(true)
+                        }
 
-                        FormaPlanRowDivider()
-
-                        FormaPlanDisplayRow(
-                            label: state.estimatedStepsFieldLabel,
-                            value: state.estimatedStepsLabel
-                        )
-                        .accessibilityHidden(true)
-
-                        FormaPlanRowDivider()
-
-                        FormaPlanDisplayRow(
-                            label: state.trainingFieldLabel,
-                            value: state.trainingSessionsLabel
-                        )
-                        .accessibilityHidden(true)
-
-                        Text(state.assumptionsNote)
-                            .font(FormaTokens.Typography.caption)
-                            .foregroundStyle(FormaTokens.Color.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.top, FormaTokens.Spacing.sm)
-                            .accessibilityHidden(true)
+                        Button(action: onAdjustActivity) {
+                            Text(state.adjustActivityTitle)
+                                .font(FormaTokens.Typography.caption.weight(.semibold))
+                                .foregroundStyle(FormaTokens.Theme.primary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .frame(minHeight: FormaTokens.Layout.minTouchTarget)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, FormaTokens.Spacing.sm)
+                        .accessibilityLabel(state.adjustActivityTitle)
+                        .accessibilityHint(FormaProductCopy.PlanMissionControl.updateActivityAccessibilityHint)
                     }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(state.accessibilitySummary)
-
-                    Button(action: onAdjustActivity) {
-                        Text(state.adjustActivityTitle)
-                            .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                            .foregroundStyle(FormaTokens.Theme.primary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .frame(minHeight: FormaTokens.Layout.minTouchTarget)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.top, FormaTokens.Spacing.sm)
-                    .accessibilityLabel(state.adjustActivityTitle)
-                    .accessibilityHint(FormaProductCopy.PlanMissionControl.updateActivityAccessibilityHint)
+                    .padding(.top, FormaTokens.Spacing.xs)
+                    .accessibilityHidden(true)
+                } label: {
+                    FormaSectionLabel(title: state.sectionTitle)
                 }
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(state.accessibilitySummary)
     }
 }
 

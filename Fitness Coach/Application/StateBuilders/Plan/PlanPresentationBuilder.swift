@@ -227,57 +227,6 @@ enum DailyTargetsStateBuilder {
     }
 }
 
-// MARK: - Assumptions
-
-enum PlanAssumptionsStateBuilder {
-
-    private static let defaultsResolver = ActivityTrainingDefaultsResolver()
-
-    static func build(context: PlanDashboardContext, asOf: Date) -> PlanAssumptionsState {
-        let profile = context.profile
-        let defaults = defaultsResolver.defaults(for: profile.activityLevel)
-        let usesDefaults = profile.trainingFrequencyPerWeek == defaults.trainingDaysPerWeek
-            && profile.averageSteps == defaults.averageStepsPerDay
-        let stepsLabel = "\(TodayActivitySectionFormatting.formatSteps(profile.averageSteps))/day"
-
-        var state = PlanAssumptionsState(
-            activityLevel: PlanFormatter.activityLevel(profile.activityLevel),
-            estimatedStepsPerDay: profile.averageSteps,
-            estimatedStepsLabel: stepsLabel,
-            trainingSessionsPerWeek: profile.trainingFrequencyPerWeek,
-            trainingSessionsLabel: trainingSessionsLabel(profile.trainingFrequencyPerWeek),
-            usesActivityLevelDefaults: usesDefaults,
-            resolvedAgeYears: profile.resolvedAge(referenceDate: asOf),
-            ageLabel: PlanFormatter.age(profile.resolvedAge(referenceDate: asOf)),
-            heightLabel: PlanFormatter.cm(profile.heightCm),
-            sexLabel: PlanFormatter.sex(profile.sex),
-            sectionTitle: FormaProductCopy.PlanMissionControl.planAssumptionsSectionTitle,
-            activityFieldLabel: FormaProductCopy.PlanMissionControl.planAssumptionsActivity,
-            estimatedStepsFieldLabel: FormaProductCopy.PlanMissionControl.planAssumptionsEstimatedSteps,
-            trainingFieldLabel: FormaProductCopy.PlanMissionControl.planAssumptionsTraining,
-            assumptionsNote: FormaProductCopy.PlanMissionControl.planAssumptionsNote,
-            adjustActivityTitle: FormaProductCopy.PlanMissionControl.adjustActivity,
-            accessibilitySummary: ""
-        )
-        state.accessibilitySummary = accessibilitySummary(for: state)
-        return state
-    }
-
-    private static func accessibilitySummary(for state: PlanAssumptionsState) -> String {
-        [
-            state.sectionTitle,
-            "\(state.activityFieldLabel), \(state.activityLevel)",
-            "\(state.estimatedStepsFieldLabel), \(state.estimatedStepsLabel)",
-            "\(state.trainingFieldLabel), \(state.trainingSessionsLabel)",
-            state.assumptionsNote
-        ].joined(separator: ". ")
-    }
-
-    private static func trainingSessionsLabel(_ count: Int) -> String {
-        count == 1 ? "1 session/week" : "\(count) sessions/week"
-    }
-}
-
 // MARK: - Review
 
 enum PlanReviewStateBuilder {
