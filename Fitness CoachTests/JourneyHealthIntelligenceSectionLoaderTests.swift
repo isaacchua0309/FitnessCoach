@@ -183,8 +183,6 @@ final class JourneyHealthIntelligenceSectionLoaderTests: XCTestCase {
         )
     }
 
-    // MARK: - Helpers
-
     private func makeSnapshot(on day: Date, score: Int) -> HealthIntelligenceSnapshot {
         HealthIntelligenceSnapshot(
             date: day,
