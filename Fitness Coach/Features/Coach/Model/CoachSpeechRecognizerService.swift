@@ -71,7 +71,10 @@ final class CoachSpeechRecognizerService: ObservableObject {
 
         let permissionResult = await CoachSpeechAccess.resolveForDictation()
 
-        guard sessionID == session else { return }
+        guard sessionID == session else {
+            tearDownRecognition()
+            return
+        }
 
         isRequestingPermission = false
 
@@ -199,6 +202,7 @@ final class CoachSpeechRecognizerService: ObservableObject {
 
             if result.isFinal {
                 tearDownRecognition()
+                return
             }
         }
 

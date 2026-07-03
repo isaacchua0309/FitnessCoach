@@ -142,8 +142,8 @@ struct CoachComposer: View {
                 .foregroundStyle(CoachDesignTokens.Color.primaryText)
                 .textFieldStyle(.plain)
                 .lineLimit(1)
-                .frame(maxWidth: .infinity)
-                .frame(height: CoachDesignTokens.Layout.composerBarHeight)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                 .focused(isFocused)
                 .padding(.horizontal, CoachDesignTokens.Spacing.xs)
                 .submitLabel(.send)
@@ -348,6 +348,7 @@ private struct CoachComposerPreviewHost: View {
     @State private var draft: String
     let attachment: CoachInputAttachment?
     var isListening: Bool = false
+    var isVoiceInputBusy: Bool = false
 
     static var sampleAttachment: CoachInputAttachment? {
         guard let data = UIImage(systemName: "fork.knife")?
@@ -362,9 +363,10 @@ private struct CoachComposerPreviewHost: View {
         )
     }
 
-    init(attachment: CoachInputAttachment?, text: String, isListening: Bool = false) {
+    init(attachment: CoachInputAttachment?, text: String, isListening: Bool = false, isVoiceInputBusy: Bool = false) {
         self.attachment = attachment
         self.isListening = isListening
+        self.isVoiceInputBusy = isVoiceInputBusy
         _draft = State(initialValue: text)
     }
 

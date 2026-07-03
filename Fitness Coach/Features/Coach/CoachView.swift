@@ -16,13 +16,17 @@ struct CoachView: View {
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
     @FocusState private var isInputFocused: Bool
 
+    /// False when another tab is selected in `MainTabView` (TabView keeps the view mounted).
+    var isActive: Bool = true
+
     @State private var isPhotoPickerPresented = false
     @State private var isCameraPresented = false
     @State private var photoPickerItem: PhotosPickerItem?
     @State private var isRetryingCoachSession = false
 
-    init(model: CoachModel) {
+    init(model: CoachModel, isActive: Bool = true) {
         _model = StateObject(wrappedValue: model)
+        self.isActive = isActive
     }
 
     private var showEmptyChrome: Bool {
@@ -73,6 +77,11 @@ struct CoachView: View {
             }
             .onDisappear {
                 speechService.stopRecording()
+            }
+            .onChange(of: isActive) { _, active in
+                if !active {
+                    speechService.stopRecording()
+                }
             }
             .onChange(of: model.isSending) { _, isSending in
                 if isSending {

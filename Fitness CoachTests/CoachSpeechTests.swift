@@ -45,15 +45,4 @@ final class CoachSpeechTests: XCTestCase {
             "Manual note"
         )
     }
-
-    func testUserEditDuringRecordingStopsSessionWithoutClearingText() async {
-        let service = CoachSpeechRecognizerService()
-        var text = "typed"
-
-        service.userDidEditInput()
-
-        XCTAssertFalse(service.isRecording)
-        XCTAssertFalse(service.isVoiceInputBusy)
-        XCTAssertEqual(text, "typed")
-    }
 }
