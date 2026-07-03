@@ -60,10 +60,12 @@ final class JourneyModel: ObservableObject {
         let weekStart = calendar.date(byAdding: .day, value: -6, to: endDate) ?? endDate
         let prevWeekStart = calendar.date(byAdding: .day, value: -13, to: endDate) ?? endDate
         let prevWeekEnd = calendar.date(byAdding: .day, value: -7, to: endDate) ?? endDate
+        let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: endDate)) ?? endDate
         let allTimeStart = calendar.date(byAdding: .day, value: -365, to: endDate) ?? endDate
 
         let weekLogs = try dailyLogReader.getLogs(from: weekStart, to: endDate)
         let previousWeekLogs = try dailyLogReader.getLogs(from: prevWeekStart, to: prevWeekEnd)
+        let monthLogs = try dailyLogReader.getLogs(from: monthStart, to: endDate)
         let maturityLogs = try dailyLogReader.getLogs(from: allTimeStart, to: endDate)
 
         let allWeights = try weightLogReader.getWeightEntries(from: allTimeStart, to: endDate)
@@ -75,6 +77,7 @@ final class JourneyModel: ObservableObject {
 
         let weekHealthWorkouts = try await fetchHealthWorkouts(from: weekStart, to: endDate)
         let previousWeekHealthWorkouts = try await fetchHealthWorkouts(from: prevWeekStart, to: prevWeekEnd)
+        let monthHealthWorkouts = try await fetchHealthWorkouts(from: monthStart, to: endDate)
         let allHealthWorkouts = try await fetchHealthWorkouts(from: allTimeStart, to: endDate)
 
         let weeklyTraining = JourneyTrainingSummaryBuilder.weeklyTrainingStatus(
@@ -148,6 +151,7 @@ final class JourneyModel: ObservableObject {
             profile: profile,
             baseline: baseline,
             maturityLogs: maturityLogs,
+            monthLogs: monthLogs,
             weekLogs: weekLogs,
             previousWeekLogs: previousWeekLogs,
             previousWeekWeights: previousWeekWeights,
@@ -159,21 +163,15 @@ final class JourneyModel: ObservableObject {
             weightSummary: weightSummary,
             goalProjection: goalProjection,
             healthWorkoutDayStarts: healthWorkoutDays,
+            monthHealthWorkoutCount: monthHealthWorkouts.count,
             asOf: endDate,
             calendar: calendar
         )
 
-        return JourneyDashboardState(
+        return JourneyPresentationBuilder.buildDashboard(
             hasProfile: profile != nil,
-            baseline: baseline,
-            transformation: JourneyDashboardBuilder.transformation(
-                context: builderContext,
-                loggedDays: loggedDays
-            ),
-            weeklyReview: JourneyDashboardBuilder.weeklyReview(context: builderContext),
-            streaks: builderContext.journeyStreaks,
-            milestones: JourneyDashboardBuilder.milestones(context: builderContext),
-            storyTimeline: JourneyDashboardBuilder.storyTimeline(context: builderContext)
+            context: builderContext,
+            loggedDays: loggedDays
         )
     }
 

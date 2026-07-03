@@ -74,27 +74,27 @@ enum JourneyPreviewData {
     // MARK: - Section fixtures
 
     static var transformationNewUser: JourneyTransformationHeroState {
-        brandNewUser.transformation
+        brandNewUser.transformationHero
     }
 
     static var transformationActiveFatLoss: JourneyTransformationHeroState {
-        strongMomentum.transformation
+        strongMomentum.transformationHero
     }
 
     static var transformationNearGoal: JourneyTransformationHeroState {
-        nearGoal.transformation
+        nearGoal.transformationHero
     }
 
     static var transformationGainGoal: JourneyTransformationHeroState {
-        gainGoal.transformation
+        gainGoal.transformationHero
     }
 
     static var transformationMaintainGoal: JourneyTransformationHeroState {
-        maintainGoal.transformation
+        maintainGoal.transformationHero
     }
 
     static var transformationPlateau: JourneyTransformationHeroState {
-        plateau.transformation
+        plateau.transformationHero
     }
 
     static var weeklyReviewFullWeek: JourneyWeeklyReviewState {
@@ -160,10 +160,12 @@ enum JourneyPreviewData {
             isTodayLogged: false
         )
 
-        return JourneyDashboardState(
+        return JourneyPresentationBuilder.assembleFromLegacy(
             hasProfile: true,
             baseline: baseline,
-            transformation: makeTransformation(
+            streaks: streaks,
+            loggedDays: 0,
+            hero: makeTransformation(
                 baseline: baseline,
                 loggedDays: 0,
                 loggingStreak: 0,
@@ -181,7 +183,6 @@ enum JourneyPreviewData {
                 goalDirection: direction,
                 streaks: streaks
             ),
-            streaks: streaks,
             milestones: makeMilestones(
                 baseline: baseline,
                 foodLogDays: 0,
@@ -199,7 +200,10 @@ enum JourneyPreviewData {
                 trainingWorkoutDays: 0,
                 streaks: streaks,
                 healthConnected: false
-            )
+            ),
+            profile: profile,
+            calendar: calendar,
+            asOf: today
         )
     }
 
@@ -531,19 +535,21 @@ enum JourneyPreviewData {
 
     private static func makeHealthDisconnectedDashboard() -> JourneyDashboardState {
         var dashboard = makeStrongMomentumDashboard()
-        dashboard.weeklyReview.training = .locked
-        dashboard.weeklyReview.trainingDays = 0
-        dashboard.weeklyReview.weekSummaryCopy = JourneyWeeklyReviewBuilder.weekSummaryCopy(
-            foodDays: dashboard.weeklyReview.foodLoggedDays,
-            proteinDays: dashboard.weeklyReview.proteinGoalDays,
+        var review = dashboard.weeklyReview
+        review.training = .locked
+        review.trainingDays = 0
+        review.weekSummaryCopy = JourneyWeeklyReviewBuilder.weekSummaryCopy(
+            foodDays: review.foodLoggedDays,
+            proteinDays: review.proteinGoalDays,
             trainingDays: 0,
             goalDirection: dashboard.baseline.goalDirection,
-            weightDelta: dashboard.weeklyReview.weightDeltaThisWeekKg
+            weightDelta: review.weightDeltaThisWeekKg
         )
-        dashboard.weeklyReview.rows = JourneyWeeklyReviewBuilder.rows(
-            for: dashboard.weeklyReview,
+        review.rows = JourneyWeeklyReviewBuilder.rows(
+            for: review,
             goalDirection: dashboard.baseline.goalDirection
         )
+        dashboard.weeklyHabit = JourneyWeeklyHabitState.fromWeeklyReview(review)
         return dashboard
     }
 
@@ -580,10 +586,12 @@ enum JourneyPreviewData {
             isTodayLogged: false
         )
 
-        return JourneyDashboardState(
+        return JourneyPresentationBuilder.assembleFromLegacy(
             hasProfile: true,
             baseline: baseline,
-            transformation: makeTransformation(
+            streaks: streaks,
+            loggedDays: 2,
+            hero: makeTransformation(
                 baseline: baseline,
                 loggedDays: 2,
                 loggingStreak: 0,
@@ -601,7 +609,6 @@ enum JourneyPreviewData {
                 goalDirection: direction,
                 streaks: streaks
             ),
-            streaks: streaks,
             milestones: makeMilestones(
                 baseline: baseline,
                 foodLogDays: 2,
@@ -620,7 +627,33 @@ enum JourneyPreviewData {
                 streaks: streaks,
                 healthConnected: false,
                 weightEntries: [(daysAgo: 0, kg: 87.8)]
-            )
+            ),
+            profile: profile,
+            maturityLogs: makeLogs(
+                count: 2,
+                proteinGoalDays: 1,
+                waterGoalDays: 1,
+                calorieAdherenceDays: 1,
+                trainingWorkoutDays: 0
+            ),
+            monthLogs: makeLogs(
+                count: 2,
+                proteinGoalDays: 1,
+                waterGoalDays: 1,
+                calorieAdherenceDays: 1,
+                trainingWorkoutDays: 0
+            ),
+            weekLogs: makeLogs(
+                count: 2,
+                proteinGoalDays: 1,
+                waterGoalDays: 1,
+                calorieAdherenceDays: 1,
+                trainingWorkoutDays: 0
+            ),
+            allWeights: weightEntriesFromChart(baseline.chartPoints),
+            weightTrendDirection: .insufficientData,
+            calendar: calendar,
+            asOf: today
         )
     }
 
@@ -659,11 +692,35 @@ enum JourneyPreviewData {
             trainingWeeks: trainingWeeks,
             isTodayLogged: isTodayLogged
         )
+        let maturityLogs = makeLogs(
+            count: foodLogDays,
+            proteinGoalDays: proteinGoalDays,
+            waterGoalDays: waterGoalDays,
+            calorieAdherenceDays: foodLogDays,
+            trainingWorkoutDays: healthConnected ? max(trainingDays, 1) : trainingDays
+        )
+        let weekLogs = makeLogs(
+            count: weekFoodLoggedDays,
+            proteinGoalDays: weekProteinGoalDays,
+            waterGoalDays: weekWaterGoalDays,
+            calorieAdherenceDays: weekCalorieAdherenceDays,
+            trainingWorkoutDays: trainingDays
+        )
+        let weights = weightEntriesFromChart(baseline.chartPoints)
+        let goalProjection = baseline.goalWeightKg.map {
+            ProgressProjectionCalculator.projection(
+                weights: weights,
+                goalWeightKg: $0,
+                asOf: today
+            )
+        }
 
-        return JourneyDashboardState(
+        return JourneyPresentationBuilder.assembleFromLegacy(
             hasProfile: true,
             baseline: baseline,
-            transformation: makeTransformation(
+            streaks: streaks,
+            loggedDays: loggedDays,
+            hero: makeTransformation(
                 baseline: baseline,
                 loggedDays: loggedDays,
                 loggingStreak: loggingStreak,
@@ -682,7 +739,6 @@ enum JourneyPreviewData {
                 streaks: streaks,
                 previousWeek: previousWeek
             ),
-            streaks: streaks,
             milestones: makeMilestones(
                 baseline: baseline,
                 foodLogDays: foodLogDays,
@@ -703,7 +759,20 @@ enum JourneyPreviewData {
                 healthConnected: healthConnected,
                 healthWorkoutDayOffsets: healthWorkoutDayOffsets,
                 weightEntries: weightEntriesFromChart(baseline.chartPoints)
-            )
+            ),
+            goalProjection: goalProjection,
+            profile: profile,
+            maturityLogs: maturityLogs,
+            monthLogs: maturityLogs,
+            weekLogs: weekLogs,
+            allWeights: weights,
+            weekWeights: weights,
+            weeklyTraining: training,
+            healthWorkoutDayStarts: makeHealthWorkoutDayStarts(healthWorkoutDayOffsets),
+            monthHealthWorkoutCount: healthConnected ? healthWorkoutDayOffsets.count : 0,
+            weightTrendDirection: weightTrendDirection,
+            calendar: calendar,
+            asOf: today
         )
     }
 

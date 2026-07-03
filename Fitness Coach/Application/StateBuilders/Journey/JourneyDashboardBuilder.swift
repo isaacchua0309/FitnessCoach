@@ -15,6 +15,7 @@ enum JourneyDashboardBuilder {
         var profile: UserProfile?
         var baseline: JourneyBaseline
         var maturityLogs: [DailyLog]
+        var monthLogs: [DailyLog]
         var weekLogs: [DailyLog]
         var previousWeekLogs: [DailyLog]
         var previousWeekWeights: [WeightEntry]
@@ -26,6 +27,7 @@ enum JourneyDashboardBuilder {
         var weightSummary: ProgressWeightSummary
         var goalProjection: ProgressProjection?
         var healthWorkoutDayStarts: Set<Date>
+        var monthHealthWorkoutCount: Int
         var asOf: Date
         var calendar: Calendar
     }

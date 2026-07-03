@@ -97,6 +97,7 @@ final class JourneyDashboardBuilderTests: XCTestCase {
             profile: profile,
             baseline: resolvedBaseline,
             maturityLogs: maturityLogs,
+            monthLogs: weekLogs,
             weekLogs: weekLogs,
             previousWeekLogs: [],
             previousWeekWeights: [],
@@ -127,6 +128,7 @@ final class JourneyDashboardBuilderTests: XCTestCase {
             ),
             goalProjection: nil,
             healthWorkoutDayStarts: [],
+            monthHealthWorkoutCount: 0,
             asOf: asOf,
             calendar: calendar
         )

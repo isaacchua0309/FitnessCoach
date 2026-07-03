@@ -49,7 +49,7 @@ final class JourneyCleanupTests: XCTestCase {
         )
     }
 
-    func testJourneyDashboardStateOnlyContainsLeanFields() {
+    func testJourneyDashboardStateContainsPresentationSections() {
         let dashboard = JourneyPreviewData.strongMomentum
         let mirror = Mirror(reflecting: dashboard)
         let propertyNames = Set(mirror.children.compactMap(\.label))
@@ -59,12 +59,26 @@ final class JourneyCleanupTests: XCTestCase {
             [
                 "hasProfile",
                 "baseline",
-                "transformation",
-                "weeklyReview",
                 "streaks",
-                "milestones",
-                "storyTimeline"
+                "momentum",
+                "transformation",
+                "goalProjection",
+                "milestone",
+                "storyEvents",
+                "insight",
+                "weeklyHabit",
+                "monthlyRecap",
+                "chapter"
             ]
         )
+    }
+
+    func testLegacySectionAccessorsRemainAvailable() {
+        let dashboard = JourneyPreviewData.strongMomentum
+
+        XCTAssertFalse(dashboard.transformationHero.headlineCopy.isEmpty)
+        XCTAssertFalse(dashboard.weeklyReview.weekSummaryCopy.isEmpty)
+        XCTAssertFalse(dashboard.milestones.items.isEmpty)
+        XCTAssertFalse(dashboard.storyTimeline.displayEvents.isEmpty)
     }
 }

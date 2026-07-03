@@ -1396,6 +1396,44 @@ enum FormaProductCopy {
             static let action = "Go to Today"
         }
 
+        enum Momentum {
+            static let sectionTitle = "Momentum"
+            static let buildingHeadline = "You're building consistency."
+            static let keepStreakAlive = "Log today to keep your streak alive."
+
+            static func activeHeadline(days: Int) -> String {
+                "\(days)-day logging streak"
+            }
+
+            static func longestStreakDetail(days: Int) -> String {
+                "Your longest streak is \(days) days."
+            }
+        }
+
+        enum GoalProjection {
+            static let sectionTitle = "Goal projection"
+            static let insufficientTitle = "Need more weight logs"
+            static let insufficientDetail = "Keep logging weight and Forma will forecast your pace."
+            static let maintainTitle = "Holding steady"
+            static let maintainDetail = "Keep logging to track how you're holding around your target."
+
+            static func projectedTitle(month: String) -> String {
+                "On track for \(month)"
+            }
+
+            static func projectedDetail(weeks: String) -> String {
+                "At this pace you'll reach your goal in about \(weeks)."
+            }
+
+            static func remainingLabel(kg: String) -> String {
+                "\(kg) to go"
+            }
+
+            static func confidenceLabel(_ confidence: String) -> String {
+                "\(confidence) confidence"
+            }
+        }
+
         static func analyticsBasedOnDays(_ days: Int) -> String {
             days == 1 ? "Based on 1 logged day" : "Based on \(days) logged days"
         }

@@ -44,7 +44,7 @@ struct JourneyDashboardContent: View {
     private func sectionView(for section: JourneyProductSection) -> some View {
         switch section {
         case .transformation:
-            JourneyTransformationHeroSection(state: state.transformation, onCTA: onCTA)
+            JourneyTransformationHeroSection(state: state.transformationHero, onCTA: onCTA)
                 .padding(.bottom, JourneyLayout.heroBottomSpacing)
                 .onAppear { analyticsCoordinator?.logTransformationViewed() }
 

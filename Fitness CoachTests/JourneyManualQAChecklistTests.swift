@@ -461,6 +461,7 @@ final class JourneyManualQAChecklistTests: XCTestCase {
             profile: profile,
             baseline: baseline,
             maturityLogs: maturityLogs,
+            monthLogs: weekLogs,
             weekLogs: weekLogs,
             previousWeekLogs: [],
             previousWeekWeights: [],
@@ -472,18 +473,15 @@ final class JourneyManualQAChecklistTests: XCTestCase {
             weightSummary: weightSummary,
             goalProjection: nil,
             healthWorkoutDayStarts: healthWorkoutDays,
+            monthHealthWorkoutCount: healthWorkoutDays.count,
             asOf: resolvedAsOf,
             calendar: calendar
         )
 
-        return JourneyDashboardState(
+        return JourneyPresentationBuilder.buildDashboard(
             hasProfile: profile != nil,
-            baseline: baseline,
-            transformation: JourneyDashboardBuilder.transformation(context: context, loggedDays: maturityLogs.count),
-            weeklyReview: JourneyDashboardBuilder.weeklyReview(context: context),
-            streaks: journeyStreaks,
-            milestones: JourneyDashboardBuilder.milestones(context: context),
-            storyTimeline: JourneyDashboardBuilder.storyTimeline(context: context)
+            context: context,
+            loggedDays: maturityLogs.count
         )
     }
 
