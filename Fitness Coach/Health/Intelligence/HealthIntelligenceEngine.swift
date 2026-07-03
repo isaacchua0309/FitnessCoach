@@ -8,10 +8,25 @@
 import Foundation
 
 protocol HealthIntelligenceEngineing: Sendable {
+    func composeSnapshot(
+        for date: Date,
+        calendar: Calendar
+    ) async -> HealthIntelligenceSnapshot
+
     func generateSnapshot(
         for date: Date,
         calendar: Calendar
     ) async throws -> HealthIntelligenceSnapshot
+}
+
+extension HealthIntelligenceEngineing {
+    func composeSnapshot(for date: Date) async -> HealthIntelligenceSnapshot {
+        await composeSnapshot(for: date, calendar: .current)
+    }
+
+    func generateSnapshot(for date: Date) async throws -> HealthIntelligenceSnapshot {
+        try await generateSnapshot(for: date, calendar: .current)
+    }
 }
 
 struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
@@ -45,83 +60,94 @@ struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
         self.nextBestActionEngine = nextBestActionEngine
     }
 
-    func generateSnapshot(
+    func composeSnapshot(
         for date: Date,
         calendar: Calendar = .current
-    ) async throws -> HealthIntelligenceSnapshot {
-        let samples = try await repository.normalizedSamples(for: date, calendar: calendar)
+    ) async -> HealthIntelligenceSnapshot {
+        let day = calendar.startOfDay(for: date)
+        let availability = await repository.getHealthDataAvailability()
+        let dailyMetrics = await repository.getDailyMetrics(for: day, calendar: calendar)
 
-        let recovery = await recoveryEngine.recoverySummary(for: date, samples: samples)
-        let workout = await workoutEngine.workoutSummary(for: date, samples: samples, calendar: calendar)
-        let activity = Self.activitySummary(from: samples)
-        let trainingLoad = await trainingLoadEngine.trainingLoad(for: date, samples: samples, calendar: calendar)
-        let nutritionAdjustment = await adaptiveNutritionEngine.nutritionAdjustment(
-            for: date,
-            activity: activity,
-            workout: workout,
-            trainingLoad: trainingLoad
+        let weekWorkouts = await recentWeekWorkouts(endingOn: day, calendar: calendar)
+        let weekMetrics = await recentWeekMetrics(endingOn: day, calendar: calendar)
+
+        let activity = HealthIntelligenceBaseline.activitySummary(
+            metrics: dailyMetrics,
+            availability: availability
         )
-        let weeklyReview = await weeklyReviewEngine.weeklyReview(
-            endingOn: date,
-            samples: samples,
+        let workout = HealthIntelligenceBaseline.workoutSummary(
+            workouts: weekWorkouts,
+            on: day,
             calendar: calendar
         )
-        let planConfidence = await planConfidenceEngine.planConfidence(
-            for: date,
-            recovery: recovery,
+        let recovery = HealthIntelligenceBaseline.recoverySummary(availability: availability)
+        let nutritionAdjustment = await adaptiveNutritionEngine.nutritionAdjustment(
+            for: day,
             activity: activity,
-            trainingLoad: trainingLoad
+            workout: workout,
+            trainingLoad: .empty
+        )
+        let daysWithActivityData = weekMetrics.filter { HealthIntelligenceBaseline.dayHasActivity($0) }.count
+        let weeklyReview = HealthIntelligenceBaseline.weeklyReview(
+            metricsInWeek: weekMetrics,
+            workoutDays: HealthIntelligenceBaseline.workoutDays(
+                in: weekWorkouts,
+                endingOn: day,
+                calendar: calendar
+            )
+        )
+        let planConfidence = HealthIntelligenceBaseline.planConfidence(
+            availability: availability,
+            daysWithActivityData: daysWithActivityData
+        )
+        let nextBestAction = HealthIntelligenceBaseline.nextBestAction(
+            availability: availability,
+            activity: activity,
+            workout: workout
         )
 
-        let provisionalSnapshot = HealthIntelligenceSnapshot(
-            date: calendar.startOfDay(for: date),
+        return HealthIntelligenceSnapshot(
+            date: day,
             recovery: recovery,
             workout: workout,
             activity: activity,
             nutritionAdjustment: nutritionAdjustment,
             weeklyReview: weeklyReview,
             planConfidence: planConfidence,
-            nextBestAction: .none
+            nextBestAction: nextBestAction
         )
+    }
 
-        let action = await nextBestActionEngine.nextBestAction(for: date, snapshot: provisionalSnapshot)
-
-        return HealthIntelligenceSnapshot(
-            date: provisionalSnapshot.date,
-            recovery: provisionalSnapshot.recovery,
-            workout: provisionalSnapshot.workout,
-            activity: provisionalSnapshot.activity,
-            nutritionAdjustment: provisionalSnapshot.nutritionAdjustment,
-            weeklyReview: provisionalSnapshot.weeklyReview,
-            planConfidence: provisionalSnapshot.planConfidence,
-            nextBestAction: action
-        )
+    func generateSnapshot(
+        for date: Date,
+        calendar: Calendar = .current
+    ) async throws -> HealthIntelligenceSnapshot {
+        await composeSnapshot(for: date, calendar: calendar)
     }
 
     // MARK: - Private
 
-    private static func activitySummary(from samples: [HealthNormalizedSample]) -> ActivitySummary {
-        // TODO: Aggregate steps, active energy, and exercise minutes from normalized samples.
-        let steps = samples
-            .filter { $0.kind == .stepCount }
-            .map(\.value)
-            .max()
-            .map { Int($0.rounded()) }
+    private func recentWeekWorkouts(
+        endingOn day: Date,
+        calendar: Calendar
+    ) async -> [NormalizedWorkout] {
+        await repository.getRecentWorkouts(
+            days: HealthIntelligenceBaseline.minimumWeeklyReviewDays,
+            calendar: calendar
+        )
+    }
 
-        let energy = samples
-            .filter { $0.kind == .activeEnergy }
-            .map(\.value)
-            .reduce(0, +)
-
-        let exerciseMinutes = samples
-            .filter { $0.kind == .exerciseTime }
-            .map(\.value)
-            .reduce(0, +)
-
-        return ActivitySummary(
-            steps: steps,
-            activeEnergyKcal: energy > 0 ? Int(energy.rounded()) : nil,
-            exerciseMinutes: exerciseMinutes > 0 ? Int(exerciseMinutes.rounded()) : nil
+    private func recentWeekMetrics(
+        endingOn day: Date,
+        calendar: Calendar
+    ) async -> [DailyHealthMetrics] {
+        guard let range = HealthIntelligenceBaseline.metricsInWeek(endingOn: day, calendar: calendar) else {
+            return []
+        }
+        return await repository.getDailyMetrics(
+            from: range.start,
+            to: range.end,
+            calendar: calendar
         )
     }
 }

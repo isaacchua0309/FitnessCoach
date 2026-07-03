@@ -21,11 +21,17 @@ struct WorkoutSummary: Equatable, Sendable, Codable {
     var hasWorkoutToday: Bool
     var workoutCount: Int
     var primaryActivityName: String?
+    var primaryDurationMinutes: Int?
+    var primaryActiveEnergyKcal: Int?
+    var primaryCategory: FormaWorkoutCategory?
 
     static let empty = WorkoutSummary(
         hasWorkoutToday: false,
         workoutCount: 0,
-        primaryActivityName: nil
+        primaryActivityName: nil,
+        primaryDurationMinutes: nil,
+        primaryActiveEnergyKcal: nil,
+        primaryCategory: nil
     )
 }
 
