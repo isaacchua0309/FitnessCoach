@@ -71,8 +71,13 @@ final class CoachModel: ObservableObject {
     private let imageAnalysisSessionStore = ImageAnalysisSessionStore()
     private let pendingImageLocalSources = CoachPendingImageLocalSourceStore()
     private let coachAnalyticsLogger: any CoachAnalyticsLogging
+    private let timelineRecorder: any CoachTimelineRecording
     private var nutritionEstimateLogPending = false
     private var lastNutritionActionTapAt: Date?
+    private var recordedTimelineUserMessageIDs = Set<UUID>()
+    private var recordedTimelineAssistantMessageIDs = Set<UUID>()
+    private var recordedTimelinePendingConfirmationKeys = Set<String>()
+    private var lastTimelineAttribution: CoachTimelineEventSourceAttribution = .localParser
 
     var awaitingPhotoClarification: Bool {
         imageAnalysisSessionStore.sessionAwaitingClarification() != nil
@@ -99,7 +104,8 @@ final class CoachModel: ObservableObject {
         routeDecider: CoachRouteDecider? = nil,
         trainingInsightsStore: TrainingInsightsStore? = nil,
         transcriptStore: CoachChatTranscriptStore = CoachInMemoryChatTranscriptStore(),
-        coachAnalyticsLogger: (any CoachAnalyticsLogging)? = nil
+        coachAnalyticsLogger: (any CoachAnalyticsLogging)? = nil,
+        timelineRecorder: (any CoachTimelineRecording)? = nil
     ) {
         self.localCommandParser = localCommandParser ?? .standard
         self.dailyLogReader = dailyLogReader
@@ -139,6 +145,7 @@ final class CoachModel: ObservableObject {
             routeHandler: routeHandler
         )
         self.transcriptStore = transcriptStore
+        self.timelineRecorder = timelineRecorder ?? NoOpCoachTimelineRecorder()
         #if DEBUG
         self.coachAnalyticsLogger = coachAnalyticsLogger ?? OSLogCoachAnalyticsLogger()
         #else
@@ -502,6 +509,10 @@ final class CoachModel: ObservableObject {
 
         if let clarificationSession = imageAnalysisSessionStore.sessionAwaitingClarification() {
             appendUserMessage(text: trimmed)
+            timelineRecordClarificationAnswered(
+                answer: trimmed,
+                session: clarificationSession
+            )
             await submitImageAnalysisClarification(trimmed, for: clarificationSession.userMessageID)
             traceOutcome = "photoClarification"
             return
@@ -734,7 +745,7 @@ final class CoachModel: ObservableObject {
     }
 
     private func handlePendingConfirmationInput(_ text: String) async -> CoachActionResult? {
-        guard pendingConfirmation != nil else { return nil }
+        guard let confirmation = pendingConfirmation else { return nil }
 
         let normalized = CommandParserUtilities.normalized(text)
         if CoachPendingConfirmationPresenter.confirmWords.contains(normalized) {
@@ -744,10 +755,16 @@ final class CoachModel: ObservableObject {
 
         guard let result = await CoachPendingConfirmationPresenter.handleTextInput(
             text,
-            pendingConfirmation: pendingConfirmation,
+            pendingConfirmation: confirmation,
             executor: mutationExecutor
         ) else {
             return nil
+        }
+
+        if result.message == CoachResponseBuilder.pendingRejected {
+            timelineRecordPendingRejected(confirmation: confirmation, userInputMethod: "typed")
+        } else if CoachPendingConfirmationPresenter.confirmWords.contains(normalized) {
+            timelineRecordPendingConfirmed(confirmation: confirmation, userInputMethod: "typed")
         }
 
         if result.pendingConfirmation == nil {
@@ -775,6 +792,7 @@ final class CoachModel: ObservableObject {
                     "hasAIService": String(self.aiService != nil)
                 ]
             )
+            timelineRecordBackendError(.backendUnavailable)
             return .message(CoachResponseBuilder.backendUnavailableResponse)
         }
 
@@ -784,6 +802,7 @@ final class CoachModel: ObservableObject {
             currentUserMessage: text
         ) else {
             traceOutcome = "aiDisabled"
+            timelineRecordBackendError(.backendUnavailable)
             return .message(CoachResponseBuilder.backendUnavailableResponse)
         }
 
@@ -795,6 +814,7 @@ final class CoachModel: ObservableObject {
                 config: coachModelConfig
             )
             CoachRouteDebugLogger.log(decision)
+            lastTimelineAttribution = CoachModelTimelineSupport.timelineAttribution(for: decision)
             let result = try await routeHandler.handle(decision.route, context: context)
             traceOutcome = "routed:\(decision.chosenHandler)"
             return result
@@ -808,6 +828,7 @@ final class CoachModel: ObservableObject {
                     fields: ["error": error.userMessage]
                 )
                 presentCoachSessionFailure()
+                timelineRecordAuthError(userMessage: error.userMessage)
                 return .message("")
             }
             traceOutcome = "aiServiceError"
@@ -826,6 +847,7 @@ final class CoachModel: ObservableObject {
                 message: "AIService error surfaced to user",
                 fields: errorFields
             )
+            timelineRecordBackendError(error)
             return .message(error.userMessage)
         } catch {
             traceOutcome = "unexpectedError"
@@ -838,7 +860,9 @@ final class CoachModel: ObservableObject {
                     "errorType": String(describing: type(of: error))
                 ]
             )
-            return .message(AIServiceError.requestFailed(error.localizedDescription).userMessage)
+            let wrapped = AIServiceError.requestFailed(error.localizedDescription)
+            timelineRecordBackendError(wrapped)
+            return .message(wrapped.userMessage)
         }
     }
 
@@ -885,6 +909,7 @@ final class CoachModel: ObservableObject {
         defer { isConfirmingPending = false }
 
         let response = await mutationExecutor.executePendingConfirmation(confirmation)
+        timelineRecordPendingConfirmed(confirmation: confirmation, userInputMethod: "bar")
         if nutritionEstimateLogPending {
             logCoachAnalytics(.nutritionEstimateLogConfirmed, properties: CoachAnalyticsProperties())
             nutritionEstimateLogPending = false
@@ -896,7 +921,8 @@ final class CoachModel: ObservableObject {
     }
 
     func rejectPendingFromBar() {
-        guard pendingConfirmation != nil else { return }
+        guard let confirmation = pendingConfirmation else { return }
+        timelineRecordPendingRejected(confirmation: confirmation, userInputMethod: "bar")
         if nutritionEstimateLogPending {
             logCoachAnalytics(.nutritionEstimateLogCancelled, properties: CoachAnalyticsProperties())
             nutritionEstimateLogPending = false
@@ -1053,19 +1079,25 @@ final class CoachModel: ObservableObject {
 
     private func applyActionResult(
         _ result: CoachActionResult,
-        relatedPhotoUserMessageID: UUID? = nil
+        relatedPhotoUserMessageID: UUID? = nil,
+        assistantAttribution: CoachTimelineEventSourceAttribution? = nil
     ) {
         if let confirmation = result.pendingConfirmation {
             setPendingConfirmation(confirmation)
         }
+        let attribution = assistantAttribution ?? lastTimelineAttribution
         if let structured = result.structuredContent {
-            appendAssistantStructuredMessage(structured, accessibilityText: result.message)
+            _ = appendAssistantStructuredMessage(structured, accessibilityText: result.message, sourceAttribution: attribution)
         } else if !result.message.isEmpty {
             if let relatedPhotoUserMessageID,
                let session = imageAnalysisSessionStore.session(forUserMessageID: relatedPhotoUserMessageID) {
-                appendAssistantPhotoAnalysisMessage(result.message, session: session)
+                _ = appendAssistantPhotoAnalysisMessage(
+                    result.message,
+                    session: session,
+                    sourceAttribution: attribution
+                )
             } else {
-                appendAssistantMessage(result.message)
+                _ = appendAssistantMessage(result.message, sourceAttribution: attribution)
             }
         }
     }
@@ -1097,6 +1129,7 @@ final class CoachModel: ObservableObject {
         pendingConfirmation = confirmation
         foodEditErrorMessage = nil
         isShowingFoodEditSheet = false
+        timelineRecordPendingCreatedIfNeeded(confirmation)
         return confirmation
     }
 
@@ -1114,6 +1147,7 @@ final class CoachModel: ObservableObject {
         )
         messages.append(message)
         persistTranscript()
+        timelineRecordUserMessageIfNeeded(message)
         return message
     }
 
@@ -1138,40 +1172,49 @@ final class CoachModel: ObservableObject {
         let message = ChatMessage.userMealPhoto(caption: caption, attachment: attachment)
         messages.append(message)
         persistTranscript()
+        timelineRecordUserMessageIfNeeded(message, hasPhotoAttachment: true)
         return message
     }
 
-    private func appendAssistantMessage(_ text: String) {
-        messages.append(
-            ChatMessage(
-                id: UUID(),
-                role: .assistant,
-                text: text,
-                createdAt: Date(),
-                relatedDailyLogId: nil,
-                relatedEntryId: nil
-            )
+    @discardableResult
+    private func appendAssistantMessage(
+        _ text: String,
+        sourceAttribution: CoachTimelineEventSourceAttribution = .localParser
+    ) -> ChatMessage {
+        let message = ChatMessage(
+            id: UUID(),
+            role: .assistant,
+            text: text,
+            createdAt: Date(),
+            relatedDailyLogId: nil,
+            relatedEntryId: nil
         )
+        messages.append(message)
         persistTranscript()
+        timelineRecordAssistantMessageIfNeeded(message, sourceAttribution: sourceAttribution)
+        return message
     }
 
+    @discardableResult
     private func appendAssistantStructuredMessage(
         _ content: CoachStructuredMessageContent,
-        accessibilityText: String
-    ) {
-        messages.append(
-            ChatMessage(
-                id: UUID(),
-                role: .assistant,
-                text: accessibilityText,
-                createdAt: Date(),
-                relatedDailyLogId: nil,
-                relatedEntryId: nil,
-                structuredContent: content
-            )
+        accessibilityText: String,
+        sourceAttribution: CoachTimelineEventSourceAttribution = .classifier
+    ) -> ChatMessage {
+        let message = ChatMessage(
+            id: UUID(),
+            role: .assistant,
+            text: accessibilityText,
+            createdAt: Date(),
+            relatedDailyLogId: nil,
+            relatedEntryId: nil,
+            structuredContent: content
         )
+        messages.append(message)
         persistTranscript()
+        timelineRecordAssistantMessageIfNeeded(message, sourceAttribution: sourceAttribution)
         logNutritionCardShown(content)
+        return message
     }
 
     private func logNutritionCardShown(_ content: CoachStructuredMessageContent) {
@@ -1195,32 +1238,43 @@ final class CoachModel: ObservableObject {
         coachAnalyticsLogger.log(event, properties: properties)
     }
 
+    @discardableResult
     private func appendAssistantPhotoAnalysisMessage(
         _ text: String,
-        session: ImageAnalysisSession
-    ) {
-        messages.append(
-            ChatMessage.assistantPhotoAnalysisResult(
-                text: text,
-                sessionID: session.sessionId,
-                relatedUserMessageID: session.userMessageID
-            )
+        session: ImageAnalysisSession,
+        sourceAttribution: CoachTimelineEventSourceAttribution = .mealImage
+    ) -> ChatMessage {
+        let message = ChatMessage.assistantPhotoAnalysisResult(
+            text: text,
+            sessionID: session.sessionId,
+            relatedUserMessageID: session.userMessageID
         )
+        messages.append(message)
         persistTranscript()
+        timelineRecordAssistantMessageIfNeeded(message, sourceAttribution: sourceAttribution)
+        return message
     }
 
+    @discardableResult
     private func appendAssistantPhotoClarification(
         _ text: String,
         session: ImageAnalysisSession
-    ) {
-        messages.append(
-            ChatMessage.assistantPhotoClarification(
-                text: text,
-                sessionID: session.sessionId,
-                relatedUserMessageID: session.userMessageID
-            )
+    ) -> ChatMessage {
+        let message = ChatMessage.assistantPhotoClarification(
+            text: text,
+            sessionID: session.sessionId,
+            relatedUserMessageID: session.userMessageID
         )
+        messages.append(message)
         persistTranscript()
+        timelineRecordAssistantMessageIfNeeded(message, sourceAttribution: .mealImage)
+        timelineRecorder.recordClarificationAsked(
+            question: text,
+            messageId: message.id,
+            sessionId: session.sessionId,
+            occurredAt: message.createdAt
+        )
+        return message
     }
 
     private func appendMealPhotoFailureMessage(text: String, session: ImageAnalysisSession) {
@@ -1244,5 +1298,133 @@ final class CoachModel: ObservableObject {
 
     private func persistTranscript() {
         transcriptStore.saveMessages(messages)
+    }
+
+    // MARK: Timeline recording (best-effort, non-blocking)
+
+    private func timelineRecordUserMessageIfNeeded(
+        _ message: ChatMessage,
+        hasPhotoAttachment: Bool? = nil
+    ) {
+        guard message.role == .user else { return }
+        guard recordedTimelineUserMessageIDs.insert(message.id).inserted else { return }
+
+        timelineRecorder.recordUserMessage(
+            text: message.text,
+            messageId: message.id,
+            hasPhotoAttachment: hasPhotoAttachment ?? message.hasMealPhotoAttachment,
+            occurredAt: message.createdAt
+        )
+    }
+
+    private func timelineRecordAssistantMessageIfNeeded(
+        _ message: ChatMessage,
+        sourceAttribution: CoachTimelineEventSourceAttribution
+    ) {
+        guard message.role == .assistant else { return }
+        guard recordedTimelineAssistantMessageIDs.insert(message.id).inserted else { return }
+
+        timelineRecorder.recordAssistantMessage(
+            text: message.text,
+            messageId: message.id,
+            sourceAttribution: sourceAttribution,
+            occurredAt: message.createdAt
+        )
+    }
+
+    private func timelineRecordPendingCreatedIfNeeded(_ confirmation: CoachPendingConfirmation) {
+        let key = pendingConfirmationDedupeKey(for: confirmation)
+        guard recordedTimelinePendingConfirmationKeys.insert(key).inserted else { return }
+
+        let payload = CoachModelTimelineSupport.confirmationPayload(from: confirmation)
+        timelineRecorder.recordPendingConfirmationCreated(
+            payload: payload,
+            sourceAttribution: lastTimelineAttribution,
+            occurredAt: Date()
+        )
+    }
+
+    private func pendingConfirmationDedupeKey(for confirmation: CoachPendingConfirmation) -> String {
+        switch confirmation {
+        case .food(let draft):
+            return "food:\(draft.id.uuidString)"
+        case .water(let draft, _):
+            return "water:\(draft.amountMl)"
+        case .weight(let draft, _):
+            return "weight:\(draft.weightKg)"
+        case .edit(let action, let originalText, _):
+            return "edit:\(originalText):\(action.type.rawValue)"
+        case .delete(let action, let originalText, _):
+            return "delete:\(originalText):\(action.type.rawValue)"
+        case .undo(let action, let originalText, _):
+            return "undo:\(originalText):\(action.type.rawValue)"
+        }
+    }
+
+    private func timelineRecordPendingConfirmed(
+        confirmation: CoachPendingConfirmation,
+        userInputMethod: String
+    ) {
+        let payload = CoachModelTimelineSupport.confirmationPayload(
+            from: confirmation,
+            userInputMethod: userInputMethod
+        )
+        timelineRecorder.recordPendingConfirmationConfirmed(
+            payload: payload,
+            entryId: nil,
+            occurredAt: Date()
+        )
+    }
+
+    private func timelineRecordPendingRejected(
+        confirmation: CoachPendingConfirmation,
+        userInputMethod: String
+    ) {
+        let payload = CoachModelTimelineSupport.confirmationPayload(
+            from: confirmation,
+            userInputMethod: userInputMethod
+        )
+        timelineRecorder.recordPendingConfirmationRejected(
+            payload: payload,
+            occurredAt: Date()
+        )
+        if case .food(let draft) = confirmation {
+            timelineRecorder.recordFoodRejected(
+                payload: CoachModelTimelineSupport.foodEstimatePayload(from: draft),
+                messageId: draft.relatedPhotoUserMessageID,
+                photoSessionId: draft.imageAnalysisSessionID,
+                relatedEventIds: [draft.id],
+                occurredAt: Date()
+            )
+        }
+    }
+
+    private func timelineRecordBackendError(_ error: AIServiceError) {
+        timelineRecorder.recordBackendError(
+            category: CoachModelTimelineSupport.backendErrorCategory(for: error),
+            userMessage: error.userMessage,
+            isRetryable: CoachModelTimelineSupport.isRetryableBackendError(error),
+            httpStatus: nil,
+            occurredAt: Date()
+        )
+    }
+
+    private func timelineRecordAuthError(userMessage: String?) {
+        timelineRecorder.recordAuthError(
+            userMessage: userMessage,
+            occurredAt: Date()
+        )
+    }
+
+    private func timelineRecordClarificationAnswered(
+        answer: String,
+        session: ImageAnalysisSession
+    ) {
+        timelineRecorder.recordClarificationAnswered(
+            answer: answer,
+            messageId: messages.last(where: { $0.role == .user })?.id,
+            sessionId: session.sessionId,
+            occurredAt: Date()
+        )
     }
 }

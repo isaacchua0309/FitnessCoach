@@ -317,7 +317,11 @@ private final class CapturingCoachTimelineRecorder: CoachTimelineRecording, @unc
     func recordPhotoAnalysisFailed(sessionId: UUID, messageId: UUID?, errorCategory: String, userMessage: String?, isRetryable: Bool, occurredAt: Date?) {}
     func recordClarificationAsked(question: String, messageId: UUID?, sessionId: UUID, occurredAt: Date?) {}
     func recordClarificationAnswered(answer: String, messageId: UUID?, sessionId: UUID, occurredAt: Date?) {}
-    func recordPendingConfirmationCreated(payload: ConfirmationPayload, occurredAt: Date?) {}
+    func recordPendingConfirmationCreated(
+        payload: ConfirmationPayload,
+        sourceAttribution: CoachTimelineEventSourceAttribution,
+        occurredAt: Date?
+    ) {}
     func recordPendingConfirmationConfirmed(payload: ConfirmationPayload, entryId: UUID?, occurredAt: Date?) {}
     func recordPendingConfirmationRejected(payload: ConfirmationPayload, occurredAt: Date?) {}
     func recordUndoPerformed(entryType: String, undoneEntryId: UUID?, summary: String?, occurredAt: Date?) {}

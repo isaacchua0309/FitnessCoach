@@ -399,7 +399,8 @@ final class AppContainer {
             contextPacketBuilder: contextPacketBuilder,
             userProfileReader: userProfileService,
             aiCommandParsingEnabled: aiCommandParsingEnabled,
-            trainingInsightsStore: trainingInsightsStore
+            trainingInsightsStore: trainingInsightsStore,
+            timelineRecorder: coachTimelineRecorder
         )
     }
 

@@ -151,6 +151,7 @@ protocol CoachTimelineRecording: Sendable {
 
     func recordPendingConfirmationCreated(
         payload: ConfirmationPayload,
+        sourceAttribution: CoachTimelineEventSourceAttribution,
         occurredAt: Date?
     )
 
@@ -299,7 +300,11 @@ struct NoOpCoachTimelineRecorder: CoachTimelineRecording {
         occurredAt: Date?
     ) {}
 
-    func recordPendingConfirmationCreated(payload: ConfirmationPayload, occurredAt: Date?) {}
+    func recordPendingConfirmationCreated(
+        payload: ConfirmationPayload,
+        sourceAttribution: CoachTimelineEventSourceAttribution,
+        occurredAt: Date?
+    ) {}
 
     func recordPendingConfirmationConfirmed(
         payload: ConfirmationPayload,
@@ -737,12 +742,13 @@ final class DefaultCoachTimelineRecorder: CoachTimelineRecording, @unchecked Sen
 
     func recordPendingConfirmationCreated(
         payload: ConfirmationPayload,
+        sourceAttribution: CoachTimelineEventSourceAttribution = .estimateFood,
         occurredAt: Date? = nil
     ) {
         append(
             type: .pendingConfirmationCreated,
             source: .coachUI,
-            sourceAttribution: .estimateFood,
+            sourceAttribution: sourceAttribution,
             status: .pending,
             payload: .confirmation(payload),
             occurredAt: occurredAt,
