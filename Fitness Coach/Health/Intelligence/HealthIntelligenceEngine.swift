@@ -85,7 +85,7 @@ struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
             for: day,
             activity: activity,
             workout: workout,
-            trainingLoad: .empty
+            trainingLoad: .unknown
         )
         let daysWithActivityData = weekMetrics.filter { HealthIntelligenceBaseline.dayHasActivity($0) }.count
         let weeklyReview = HealthIntelligenceBaseline.weeklyReview(
