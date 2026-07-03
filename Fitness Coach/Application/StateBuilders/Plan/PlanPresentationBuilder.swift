@@ -37,7 +37,11 @@ enum PlanPresentationBuilder {
             strategy: strategy,
             dailyTargets: DailyTargetsStateBuilder.build(profile: context.profile),
             status: status,
-            explanation: PlanExplanationStateBuilder.build(from: rationale),
+            explanation: PlanExplanationStateBuilder.build(
+                profile: context.profile,
+                planResult: planResult,
+                referenceDate: asOf
+            ),
             confidence: PlanConfidenceStateBuilder.build(
                 context: context,
                 planResult: planResult,
@@ -217,25 +221,6 @@ enum DailyTargetsStateBuilder {
             parts.insert(trainingTargetLabel, at: parts.count - 1)
         }
         return parts.joined(separator: ". ")
-    }
-}
-
-// MARK: - Explanation
-
-enum PlanExplanationStateBuilder {
-
-    static func build(from rationale: PlanRationaleState) -> PlanExplanationState {
-        PlanExplanationState(
-            sectionTitle: FormaProductCopy.PlanRationale.sectionTitle,
-            summary: rationale.summary,
-            highlights: rationale.highlights,
-            flowSteps: rationale.flowSteps,
-            basedOnItems: rationale.basedOnItems,
-            seeCalculationTitle: rationale.seeCalculationTitle,
-            sustainabilityNote: rationale.sustainabilityNote,
-            calculationDetails: rationale.calculationDetails,
-            accessibilitySummary: rationale.accessibilitySummary
-        )
     }
 }
 

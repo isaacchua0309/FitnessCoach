@@ -2089,6 +2089,25 @@ enum FormaProductCopy {
 
     enum PlanRationale {
         static let sectionTitle = "Why This Works"
+        static let maintenanceLine = "Maintenance"
+        static let deficitLine = "Deficit"
+        static let surplusLine = "Surplus"
+        static let targetLine = "Target"
+        static let seeCalculation = "View calculation"
+
+        static let guidanceAggressiveCut =
+            "This creates an aggressive fat-loss pace. Adjust if energy, hunger, or training performance drops."
+        static let guidanceModerateCut =
+            "This creates a steady fat-loss pace. Adjust if recovery or training quality slips."
+        static let guidanceGentleCut =
+            "This creates a gradual fat-loss pace. Adjust if progress stalls or energy fades."
+        static let guidanceMaintenance =
+            "This keeps intake aligned with estimated maintenance as your weight trends."
+        static let guidanceLeanGain =
+            "This adds a controlled surplus to support muscle gain alongside training."
+        static let guidanceFallback =
+            "Targets are based on your profile. Review assumptions if anything looks off."
+
         static let maintenanceEstimate = "Estimated Maintenance"
         static let healthyDeficit = "Healthy Deficit"
         static let healthySurplus = "Healthy Surplus"
@@ -2101,7 +2120,6 @@ enum FormaProductCopy {
         static let biologicalSex = "Biological sex"
         static let activityLevel = "Activity level"
         static let goalWeight = "Goal weight"
-        static let seeCalculation = "See calculation"
 
         static let dailyDeficit = "Daily deficit"
         static let target = "Target"
@@ -2109,7 +2127,7 @@ enum FormaProductCopy {
         static let water = "Water"
         static let proteinRecoverySuffix = "to support strength and recovery"
         static let proteinGainSuffix = "to support muscle gain and recovery"
-        static let viewCalculationDetails = "See calculation"
+        static let viewCalculationDetails = "View calculation"
     }
 
     // MARK: - Plan Status

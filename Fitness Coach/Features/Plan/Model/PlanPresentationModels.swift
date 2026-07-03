@@ -74,25 +74,22 @@ struct DailyTargetsState: Equatable, Sendable {
 
 // MARK: - Explanation
 
+struct PlanExplanationEnergyLine: Equatable, Sendable, Identifiable {
+    var id: String
+    var label: String
+    var value: String
+}
+
 struct PlanExplanationState: Equatable, Sendable {
     var sectionTitle: String
-    var summary: String
-    var highlights: [PlanRationaleHighlight]?
-    var flowSteps: [PlanRationaleFlowStep]?
-    var basedOnItems: [PlanRationaleBasedOnItem]?
+    var energyLines: [PlanExplanationEnergyLine]
+    var guidanceCopy: String
     var seeCalculationTitle: String
-    var sustainabilityNote: String?
     var calculationDetails: PlanCalculationDetailsState?
     var accessibilitySummary: String
 
-    var usesHighlightLayout: Bool {
-        guard let highlights, !highlights.isEmpty else { return false }
-        return true
-    }
-
-    var usesVisualFlowLayout: Bool {
-        guard let flowSteps, !flowSteps.isEmpty else { return false }
-        return true
+    var showsCalculationAction: Bool {
+        calculationDetails != nil
     }
 }
 

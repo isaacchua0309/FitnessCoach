@@ -95,7 +95,7 @@ final class PlanPresentationStateTests: XCTestCase {
         XCTAssertFalse(state.strategy.sectionTitle.isEmpty)
         XCTAssertFalse(state.dailyTargets.sectionTitle.isEmpty)
         XCTAssertFalse(state.status.statusName.isEmpty)
-        XCTAssertFalse(state.explanation.summary.isEmpty)
+        XCTAssertFalse(state.explanation.guidanceCopy.isEmpty)
         XCTAssertFalse(state.confidence.sectionTitle.isEmpty)
         XCTAssertFalse(state.adjustmentRules.rules.isEmpty)
         XCTAssertFalse(state.assumptions.sectionTitle.isEmpty)
