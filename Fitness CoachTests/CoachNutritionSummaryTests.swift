@@ -77,9 +77,9 @@ final class CoachNutritionSummaryTests: XCTestCase {
 
         let remainingCalories = max(nutrition.remaining.calories, 0)
         XCTAssertTrue(message.contains("\(nutrition.totals.calories) / \(nutrition.targets.calories) kcal"))
-        XCTAssertTrue(message.contains("\(formatMacro(nutrition.totals.protein)) / \(formatMacro(nutrition.targets.protein))g"))
-        XCTAssertTrue(message.contains("\(nutrition.water.consumedMl) / \(nutrition.water.targetMl)ml"))
         XCTAssertTrue(message.contains("\(remainingCalories) kcal remaining"))
+        XCTAssertTrue(message.contains("\(formatMacro(nutrition.totals.protein)) / \(formatMacro(nutrition.targets.protein))g protein"))
+        XCTAssertTrue(message.contains("\(formatWater(nutrition.water.consumedMl)) / \(formatWater(nutrition.water.targetMl))ml water"))
     }
 
     func testMealAdviceUsesSharedCalorieProteinAndWaterValues() {

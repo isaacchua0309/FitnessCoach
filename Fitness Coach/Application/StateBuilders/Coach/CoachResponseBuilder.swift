@@ -198,21 +198,20 @@ enum CoachResponseBuilder {
     static func status(
         _ log: DailyLog,
         healthIntelligence: CoachHealthIntelligenceContext? = nil,
-        contextHints: CoachResponseContextHints? = nil
+        contextHints: CoachResponseContextHints? = nil,
+        training: DailyTrainingActivity? = nil
     ) -> String {
-        var message = CoachNutritionSummaryFormatter.statusMessage(from: nutritionSummary(from: log))
-        if let insight = CoachHealthGuidanceFormatter.dailyHealthInsight(from: healthIntelligence) {
-            message += "\n\n\(insight)"
-        }
-        if let stepsLine = CoachAIResponseContextAdapter.stepsLine(from: contextHints) {
-            message += "\n\n\(stepsLine)"
-        }
-        if let timelineSupplement = CoachAIResponseContextAdapter.statusTimelineSupplement(
-            from: contextHints?.timelineEvents ?? []
-        ) {
-            message += "\n\n\(timelineSupplement)"
-        }
-        return message
+        let snapshot = CoachDailyStatusSnapshot.from(
+            log: log,
+            hints: contextHints,
+            healthIntelligence: healthIntelligence,
+            training: training
+        )
+        return CoachDailyStatusBuilder.message(from: snapshot)
+    }
+
+    static func status(from snapshot: CoachDailyStatusSnapshot) -> String {
+        CoachDailyStatusBuilder.message(from: snapshot)
     }
 
     // MARK: Daily Review

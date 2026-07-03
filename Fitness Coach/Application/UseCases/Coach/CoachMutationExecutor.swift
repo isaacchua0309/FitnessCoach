@@ -56,7 +56,7 @@ final class CoachMutationExecutor {
         case .undo(let target):
             return executeUndo(target)
         case .status:
-            return executeStatus(
+            return await executeStatus(
                 healthIntelligence: healthIntelligence,
                 contextHints: contextHints
             )
@@ -436,13 +436,53 @@ final class CoachMutationExecutor {
     private func executeStatus(
         healthIntelligence: CoachHealthIntelligenceContext? = nil,
         contextHints: CoachResponseContextHints? = nil
-    ) -> String {
+    ) async -> String {
         do {
             let log = try dailyLogReader.getTodayLog()
+            let training: DailyTrainingActivity?
+            if hints.missingData?.workoutsUnavailable == true
+                || hints.missingData?.workoutPermissionDeniedOrUnavailable == true {
+                training = nil
+            } else {
+                training = await healthActivityQuery.dailyTrainingActivity(on: log.date)
+            }
+
+            var hints = contextHints ?? CoachResponseContextHints()
+            if hints.recentMeals.isEmpty {
+                let foodEntries = (try? actionCenter.getFoodEntries(for: log.date)) ?? []
+                hints.recentMeals = foodEntries.map { CoachRecentMealContext.from(entry: $0) }
+            }
+
+            if hints.steps == nil,
+               hints.missingData?.stepsUnavailable != true,
+               hints.missingData?.stepsMissing != true {
+                hints.steps = try? await healthActivityQuery.stepsToday(on: log.date)
+            }
+            if hints.steps == nil {
+                hints.steps = log.steps
+            }
+
+            if hints.timelineEvents.isEmpty, let timelineStore {
+                let localDate = CoachContextMeta.make(generatedAt: log.date).localDate
+                if let events = try? await timelineStore.events(forLocalDate: localDate) {
+                    hints.timelineEvents = events.map { event in
+                        CoachTimelineContextEvent.from(
+                            event: event,
+                            summary: CoachTimelineEventSummaryBuilder.summary(for: event)
+                        )
+                    }
+                }
+            }
+
+            if hints.healthIntelligence == nil {
+                hints.healthIntelligence = healthIntelligence
+            }
+
             return CoachResponseBuilder.status(
                 log,
-                healthIntelligence: healthIntelligence,
-                contextHints: contextHints
+                healthIntelligence: healthIntelligence ?? hints.healthIntelligence,
+                contextHints: hints,
+                training: training
             )
         } catch ServiceError.missingUserProfile {
             return "I could not load your status. Please check that your profile is set up."
