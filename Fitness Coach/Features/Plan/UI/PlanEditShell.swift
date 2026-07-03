@@ -7,6 +7,11 @@
 
 import SwiftUI
 
+private enum PlanEditShellLayout {
+    static let sectionSpacing: CGFloat = FormaTokens.Spacing.sm
+    static let bottomInset: CGFloat = FormaTokens.Spacing.md
+}
+
 // MARK: - Shell
 
 struct PlanEditShell<Content: View>: View {
@@ -22,13 +27,6 @@ struct PlanEditShell<Content: View>: View {
     let onConfirm: () -> Void
     @ViewBuilder var content: () -> Content
 
-    private enum Layout {
-        static let progressHeight: CGFloat = 3
-        static let progressSpacing: CGFloat = 6
-        static let sectionSpacing: CGFloat = FormaTokens.Spacing.sm
-        static let bottomInset: CGFloat = FormaTokens.Spacing.md
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             PlanEditProgressIndicator(
@@ -37,11 +35,11 @@ struct PlanEditShell<Content: View>: View {
             )
             .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
             .padding(.top, FormaTokens.Spacing.xs)
-            .padding(.bottom, Layout.sectionSpacing)
+            .padding(.bottom, PlanEditShellLayout.sectionSpacing)
 
             PlanEditHeroCard(state: heroState)
                 .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
-                .padding(.bottom, Layout.sectionSpacing)
+                .padding(.bottom, PlanEditShellLayout.sectionSpacing)
 
             content()
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -68,7 +66,7 @@ struct PlanEditShell<Content: View>: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            Color.clear.frame(height: Layout.bottomInset)
+            Color.clear.frame(height: PlanEditShellLayout.bottomInset)
         }
     }
 }
@@ -153,22 +151,19 @@ struct PlanEditHeroCard: View {
 }
 
 #Preview("Edit Plan shell") {
-    NavigationStack {
+    let projection = PlanProjectionBuilder.build(
+        formState: PlanPreviewData.formState,
+        goalType: .loseFat,
+        referenceDate: Date(),
+        calendar: .current
+    )
+
+    return NavigationStack {
         PlanEditShell(
             title: FormaProductCopy.PlanEditHero.shellTitle,
             stepCount: 5,
             currentStepIndex: 1,
-            heroState: PlanEditHeroStateBuilder.build(
-                input: PlanEditHeroStateBuilder.Input(
-                    goalType: .loseFat,
-                    currentWeightKg: 90,
-                    goalWeightKg: 70,
-                    weeklyPaceKg: 0.5,
-                    goalDatePace: nil,
-                    referenceDate: Date(),
-                    calendar: .current
-                )
-            ),
+            heroState: PlanEditHeroStateBuilder.build(projection: projection),
             confirmationTitle: "Next",
             showsConfirmation: true,
             isConfirmationEnabled: true,

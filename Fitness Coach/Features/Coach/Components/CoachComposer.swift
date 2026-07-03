@@ -7,6 +7,7 @@
 //  Layout: rounded capsule with optional in-box image preview, then + | text | mic/send.
 //
 
+import Combine
 import SwiftUI
 import UIKit
 

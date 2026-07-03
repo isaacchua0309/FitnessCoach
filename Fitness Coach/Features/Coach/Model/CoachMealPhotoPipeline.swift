@@ -5,6 +5,7 @@
 //  Forma — Normalize meal photos for Coach photoFoodAnalysis (JPEG payload + gating).
 //
 
+import Combine
 import Foundation
 import PhotosUI
 import SwiftUI

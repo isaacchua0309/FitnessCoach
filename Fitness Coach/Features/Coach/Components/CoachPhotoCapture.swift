@@ -5,6 +5,7 @@
 //  FitPilot AI — Camera capture bridge for meal photo analysis.
 //
 
+import Combine
 import SwiftUI
 import UIKit
 
