@@ -49,7 +49,8 @@ enum TodayPreviewData {
             dailyReview: nil,
             goalWeightKg: 75,
             profileWeightKg: 90.15,
-            activityContext: .default
+            activityContext: .default,
+            trainingFrequencyPerWeek: 0
         )
     )
 
@@ -96,7 +97,8 @@ enum TodayPreviewData {
                 appleHealthWorkoutCount: 1,
                 stepsToday: 8_432
             ),
-            stepGoalAssumption: 7_500
+            stepGoalAssumption: 7_500,
+            trainingFrequencyPerWeek: 3
         )
     )
 
@@ -104,10 +106,10 @@ enum TodayPreviewData {
         from: TodayMissionControlInputs(
             date: date,
             calorieSummary: CalorieSummary(
-                consumed: 1_720,
+                consumed: 1_400,
                 target: 1_800,
-                remaining: 80,
-                progress: 0.96,
+                remaining: 400,
+                progress: 0.78,
                 isOverTarget: false
             ),
             macroSummary: MacroSummary(
@@ -141,7 +143,8 @@ enum TodayPreviewData {
                 trainingIntegration: .connected,
                 trainingDataSource: .appleHealth,
                 appleHealthWorkoutCount: 1
-            )
+            ),
+            trainingFrequencyPerWeek: 3
         )
     )
 
@@ -182,7 +185,8 @@ enum TodayPreviewData {
             dailyReview: nil,
             goalWeightKg: 75,
             profileWeightKg: 90.15,
-            activityContext: .default
+            activityContext: .default,
+            trainingFrequencyPerWeek: 0
         )
     )
 

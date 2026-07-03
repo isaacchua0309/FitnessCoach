@@ -10,9 +10,9 @@ final class NextBestActionBuilderTests: XCTestCase {
 
     private var calendar: Calendar { Calendar.current }
 
-    // MARK: - Priority 1: Meals
+    // MARK: - Priority 1: Log breakfast
 
-    func testLogFirstMealBeforeBreakfastWindow() {
+    func testLogBreakfastBeforeLunchWithNoMeals() {
         let action = resolve(
             hour: 9,
             foodEntries: [],
@@ -20,223 +20,220 @@ final class NextBestActionBuilderTests: XCTestCase {
             waterProgress: 0
         )
 
-        XCTAssertEqual(action.reason, .logFirstMeal)
-        XCTAssertEqual(action.primaryCTA, .logMeal(TodayCoachPrompt.logMeal()))
+        XCTAssertEqual(action.reason, .logBreakfast)
+        XCTAssertEqual(action.primaryCTA, .logMeal(TodayCoachPrompt.logMeal(.breakfast)))
         XCTAssertTrue(action.secondaryCTAs.isEmpty)
+        XCTAssertEqual(action.title, FormaProductCopy.Today.NextAction.logBreakfastTitle)
     }
 
-    func testLogMissedBreakfastAfterWindowWithNoMeals() {
+    // MARK: - Priority 2: Log first meal
+
+    func testLogFirstMealAfterLunchWithNoMeals() {
         let action = resolve(
-            hour: 12,
+            hour: 14,
             foodEntries: [],
             proteinProgress: 0,
             waterProgress: 0
         )
 
-        XCTAssertEqual(action.reason, .logMissedMeal(.breakfast))
-        XCTAssertEqual(action.primaryCTA, .logMeal(TodayCoachPrompt.logMeal(.breakfast)))
+        XCTAssertEqual(action.reason, .logFirstMeal)
+        XCTAssertEqual(action.primaryCTA, .logMeal(TodayCoachPrompt.logMeal()))
+        XCTAssertEqual(action.title, FormaProductCopy.Today.NextAction.logFirstMealTitle)
     }
 
-    func testLogMissedLunchAfterWindow() {
-        let breakfast = foodEntry(mealType: .breakfast)
-        let action = resolve(
-            hour: 16,
-            foodEntries: [breakfast],
-            proteinProgress: 0.2,
-            waterProgress: 0.5
-        )
+    // MARK: - Priority 3: Protein behind
 
-        XCTAssertEqual(action.reason, .logMissedMeal(.lunch))
-        XCTAssertEqual(action.primaryCTA, .logMeal(TodayCoachPrompt.logMeal(.lunch)))
-    }
-
-    func testLogMissedDinnerAfterWindow() {
-        let entries = [
-            foodEntry(mealType: .breakfast),
-            foodEntry(mealType: .lunch)
-        ]
-        let action = resolve(
-            hour: 22,
-            foodEntries: entries,
-            proteinProgress: 0.5,
-            waterProgress: 0.5
-        )
-
-        XCTAssertEqual(action.reason, .logMissedMeal(.dinner))
-        XCTAssertEqual(action.primaryCTA, .logMeal(TodayCoachPrompt.logMeal(.dinner)))
-    }
-
-    // MARK: - Priority 2: Protein
-
-    func testEatProteinWhenFarBelowPace() {
+    func testEatProteinWhenProteinBehind() {
         let action = resolve(
             hour: 14,
             foodEntries: [foodEntry(mealType: .breakfast)],
-            proteinProgress: 0.15,
+            proteinProgress: 0.4,
             waterProgress: 0.9
         )
 
         XCTAssertEqual(action.reason, .eatProtein)
-        XCTAssertEqual(action.primaryCTA, .logMeal(TodayCoachPrompt.logProtein))
-        XCTAssertTrue(action.secondaryCTAs.isEmpty)
-        XCTAssertTrue(action.title.contains("protein"))
+        XCTAssertEqual(action.primaryCTA, .scanFood)
+        XCTAssertEqual(action.secondaryCTAs, [.logMeal(TodayCoachPrompt.logMeal())])
+        XCTAssertEqual(action.title, FormaProductCopy.Today.NextAction.eatProteinTitle)
     }
 
-    func testProteinLowButOnPaceDoesNotTriggerProteinAction() {
-        let action = resolve(
-            hour: 8,
-            foodEntries: [foodEntry(mealType: .breakfast)],
-            proteinProgress: 0.25,
-            waterProgress: 0.2,
-            weightLoggedToday: true,
-            hasRecentWeight: true
-        )
+    // MARK: - Priority 4: Water behind
 
-        XCTAssertEqual(action.reason, .addWater)
-    }
-
-    // MARK: - Priority 3: Water
-
-    func testAddWaterWhenHydrationLow() {
+    func testAddWaterWhenHydrationBehind() {
         let action = resolve(
             hour: 14,
             foodEntries: [foodEntry(mealType: .breakfast), foodEntry(mealType: .lunch)],
-            proteinProgress: 0.85,
-            waterProgress: 0.5,
-            weightLoggedToday: true,
-            hasRecentWeight: true
+            proteinProgress: 0.9,
+            waterProgress: 0.5
         )
 
         XCTAssertEqual(action.reason, .addWater)
         XCTAssertEqual(action.primaryCTA, .addWater(amountMl: 500))
+        XCTAssertEqual(action.title, FormaProductCopy.Today.NextAction.hydrationBehindTitle)
     }
 
-    // MARK: - Priority 4: Weight
+    // MARK: - Priority 5: Workout incomplete
 
-    func testLogWeightWhenMissingTodayAndNoRecentWeight() {
+    func testCompleteWorkoutOnLikelyTrainingDay() {
+        let monday = mondayDate(hour: 14)
         let action = resolve(
-            hour: 14,
+            date: monday,
             foodEntries: [foodEntry(mealType: .breakfast), foodEntry(mealType: .lunch)],
             proteinProgress: 0.9,
             waterProgress: 0.85,
-            weightLoggedToday: false,
-            hasRecentWeight: false
+            hasWorkout: false,
+            trainingFrequencyPerWeek: 3
         )
 
-        XCTAssertEqual(action.reason, .logWeight)
-        XCTAssertEqual(action.primaryCTA, .logWeight)
+        XCTAssertEqual(action.reason, .completeWorkout)
+        XCTAssertEqual(action.primaryCTA, .logWorkout)
+        XCTAssertEqual(action.title, FormaProductCopy.Today.NextAction.completeWorkoutTitle)
     }
 
-    func testSkipsLogWeightWhenRecentWeightExists() {
+    func testSkipsWorkoutActionWhenWorkoutLogged() {
+        let monday = mondayDate(hour: 14)
         let action = resolve(
-            hour: 14,
+            date: monday,
             foodEntries: [foodEntry(mealType: .breakfast), foodEntry(mealType: .lunch)],
             proteinProgress: 0.9,
             waterProgress: 0.85,
-            weightLoggedToday: false,
-            hasRecentWeight: true,
-            activityContext: connectedActivityContext
+            hasWorkout: true,
+            trainingFrequencyPerWeek: 3,
+            calorieSummary: nearTargetCalories
         )
 
-        XCTAssertEqual(action.reason, .onTrack)
+        XCTAssertEqual(action.reason, .keepDinnerLight)
     }
 
-    // MARK: - Priority 5: Apple Health
+    // MARK: - Priority 6: Calories close to limit
 
-    func testConnectAppleHealthWhenGateShows() {
+    func testKeepDinnerLightWhenCaloriesNearTarget() {
         let action = resolve(
-            hour: 14,
+            hour: 18,
             foodEntries: [foodEntry(mealType: .breakfast), foodEntry(mealType: .lunch)],
             proteinProgress: 0.9,
             waterProgress: 0.85,
-            weightLoggedToday: true,
-            hasRecentWeight: true,
-            activityContext: TodayActivityContext(
-                trainingIntegration: .notConnected,
-                trainingDataSource: .appleHealth,
-                appleHealthWorkoutCount: nil
+            calorieSummary: nearTargetCalories
+        )
+
+        XCTAssertEqual(action.reason, .keepDinnerLight)
+        XCTAssertEqual(action.primaryCTA, .logMeal(TodayCoachPrompt.logMeal(.dinner)))
+        XCTAssertEqual(action.title, FormaProductCopy.Today.NextAction.keepDinnerLightTitle)
+    }
+
+    // MARK: - Priority 7: Calories exceeded
+
+    func testFocusHydrationRecoveryWhenOverTarget() {
+        let action = resolve(
+            hour: 20,
+            foodEntries: [foodEntry(mealType: .breakfast), foodEntry(mealType: .lunch)],
+            proteinProgress: 0.95,
+            waterProgress: 0.9,
+            calorieSummary: overTargetCalories
+        )
+
+        XCTAssertEqual(action.reason, .focusHydrationRecovery)
+        XCTAssertEqual(action.primaryCTA, .addWater(amountMl: 500))
+        XCTAssertEqual(action.title, FormaProductCopy.Today.NextAction.focusHydrationRecoveryTitle)
+    }
+
+    // MARK: - Priority 8: All targets met
+
+    func testAllTargetsMetWhenNoHigherPriorityApplies() {
+        let action = resolve(
+            hour: 14,
+            foodEntries: [foodEntry(mealType: .breakfast), foodEntry(mealType: .lunch)],
+            proteinProgress: 0.95,
+            waterProgress: 0.9,
+            calorieSummary: inProgressCalories,
+            trainingFrequencyPerWeek: 0
+        )
+
+        XCTAssertEqual(action.reason, .allTargetsMet)
+        XCTAssertEqual(action.primaryCTA, .none)
+        XCTAssertEqual(action.title, FormaProductCopy.Today.NextAction.allTargetsMetTitle)
+    }
+
+    // MARK: - Priority ordering
+
+    func testProteinBeatsWaterWhenBothBehind() {
+        let action = resolve(
+            hour: 14,
+            foodEntries: [foodEntry(mealType: .breakfast)],
+            proteinProgress: 0.4,
+            waterProgress: 0.2
+        )
+
+        XCTAssertEqual(action.reason, .eatProtein)
+    }
+
+    func testMealLoggingBeatsProteinWhenNoMealsLogged() {
+        let action = resolve(
+            hour: 10,
+            foodEntries: [],
+            proteinProgress: 0,
+            waterProgress: 0
+        )
+
+        XCTAssertEqual(action.reason, .logBreakfast)
+    }
+
+    func testIsLikelyTrainingDayUsesWeekdayHeuristic() {
+        XCTAssertTrue(
+            NextBestActionEngine.isLikelyTrainingDay(
+                frequency: 3,
+                date: mondayDate(hour: 10),
+                calendar: calendar
             )
         )
-
-        XCTAssertEqual(action.reason, .connectAppleHealth)
-        XCTAssertEqual(action.primaryCTA, .openHealth)
-    }
-
-    // MARK: - Priority 6: Review today
-
-    func testReviewTodayInEveningWhenMealsLogged() {
-        let action = resolve(
-            hour: 20,
-            foodEntries: [foodEntry(mealType: .breakfast), foodEntry(mealType: .lunch)],
-            proteinProgress: 0.9,
-            waterProgress: 0.85,
-            weightLoggedToday: true,
-            hasRecentWeight: true,
-            activityContext: connectedActivityContext,
-            hasDailyReview: false
+        XCTAssertFalse(
+            NextBestActionEngine.isLikelyTrainingDay(
+                frequency: 3,
+                date: TodayDashboardFixtures.date(hour: 10),
+                calendar: calendar
+            )
         )
-
-        XCTAssertEqual(action.reason, .reviewToday)
-        XCTAssertEqual(action.primaryCTA, .reviewToday)
-    }
-
-    func testSkipsReviewTodayWhenReviewExists() {
-        let action = resolve(
-            hour: 20,
-            foodEntries: [foodEntry(mealType: .breakfast), foodEntry(mealType: .lunch)],
-            proteinProgress: 0.9,
-            waterProgress: 0.85,
-            weightLoggedToday: true,
-            hasRecentWeight: true,
-            activityContext: connectedActivityContext,
-            hasDailyReview: true
-        )
-
-        XCTAssertEqual(action.reason, .onTrack)
-        XCTAssertEqual(action.primaryCTA, .none)
-    }
-
-    // MARK: - Priority 7: On track
-
-    func testOnTrackWhenKeyGoalsComplete() {
-        let action = resolve(
-            hour: 14,
-            foodEntries: [foodEntry(mealType: .breakfast), foodEntry(mealType: .lunch)],
-            proteinProgress: 0.9,
-            waterProgress: 0.85,
-            weightLoggedToday: true,
-            hasRecentWeight: true,
-            activityContext: connectedActivityContext
-        )
-
-        XCTAssertEqual(action.reason, .onTrack)
-        XCTAssertEqual(action.primaryCTA, .none)
-        XCTAssertEqual(action.title, FormaProductCopy.Today.NextAction.onTrackTitle)
-    }
-
-    // MARK: - Meal window helpers
-
-    func testMissedMealTypePrioritizesDinnerOverLunch() {
-        XCTAssertEqual(
-            NextBestActionEngine.missedMealType(foodEntries: [], hour: 22),
-            .dinner
-        )
-    }
-
-    func testHasLoggedMealMatchesMealType() {
-        let entries = [foodEntry(mealType: .lunch)]
-        XCTAssertTrue(NextBestActionEngine.hasLoggedMeal(.lunch, in: entries))
-        XCTAssertFalse(NextBestActionEngine.hasLoggedMeal(.dinner, in: entries))
     }
 
     // MARK: - Helpers
 
-    private var connectedActivityContext: TodayActivityContext {
-        TodayActivityContext(
-            trainingIntegration: .connected,
-            trainingDataSource: .appleHealth,
-            appleHealthWorkoutCount: 1
+    private var nearTargetCalories: CalorieSummary {
+        CalorieSummary(
+            consumed: 1_620,
+            target: 1_800,
+            remaining: 180,
+            progress: 0.9,
+            isOverTarget: false
         )
+    }
+
+    private var overTargetCalories: CalorieSummary {
+        CalorieSummary(
+            consumed: 2_050,
+            target: 1_800,
+            remaining: 0,
+            progress: 1.14,
+            isOverTarget: true
+        )
+    }
+
+    private var inProgressCalories: CalorieSummary {
+        CalorieSummary(
+            consumed: 900,
+            target: 1_800,
+            remaining: 900,
+            progress: 0.5,
+            isOverTarget: false
+        )
+    }
+
+    private func mondayDate(hour: Int) -> Date {
+        var components = DateComponents()
+        components.year = 2026
+        components.month = 6
+        components.day = 29
+        components.hour = hour
+        return calendar.date(from: components) ?? TodayDashboardFixtures.date(hour: hour)
     }
 
     private func resolve(
@@ -244,14 +241,34 @@ final class NextBestActionBuilderTests: XCTestCase {
         foodEntries: [FoodEntry],
         proteinProgress: Double,
         waterProgress: Double,
-        weightLoggedToday: Bool = false,
-        hasRecentWeight: Bool = false,
-        activityContext: TodayActivityContext = .default,
-        hasDailyReview: Bool = false
+        hasWorkout: Bool = false,
+        trainingFrequencyPerWeek: Int = 0,
+        calorieSummary: CalorieSummary? = nil
     ) -> NextBestActionState {
-        NextBestActionEngine.resolve(
+        resolve(
+            date: TodayDashboardFixtures.date(hour: hour),
+            foodEntries: foodEntries,
+            proteinProgress: proteinProgress,
+            waterProgress: waterProgress,
+            hasWorkout: hasWorkout,
+            trainingFrequencyPerWeek: trainingFrequencyPerWeek,
+            calorieSummary: calorieSummary
+        )
+    }
+
+    private func resolve(
+        date: Date,
+        foodEntries: [FoodEntry],
+        proteinProgress: Double,
+        waterProgress: Double,
+        hasWorkout: Bool = false,
+        trainingFrequencyPerWeek: Int = 0,
+        calorieSummary: CalorieSummary? = nil
+    ) -> NextBestActionState {
+        let calories = calorieSummary ?? inProgressCalories
+        return NextBestActionEngine.resolve(
             NextBestActionInput(
-                date: TodayDashboardFixtures.date(hour: hour),
+                date: date,
                 calendar: calendar,
                 foodEntries: foodEntries,
                 proteinProgress: MacroProgress(
@@ -261,10 +278,14 @@ final class NextBestActionBuilderTests: XCTestCase {
                     progress: proteinProgress
                 ),
                 waterProgress: waterProgress,
-                weightLoggedToday: weightLoggedToday,
-                hasRecentWeight: hasRecentWeight,
-                activityContext: activityContext,
-                hasDailyReview: hasDailyReview
+                calorieSummary: calories,
+                workoutSummary: TodayWorkoutSummary(
+                    workoutCaloriesBurned: hasWorkout ? 250 : 0,
+                    workoutCount: hasWorkout ? 1 : 0,
+                    hasWorkout: hasWorkout
+                ),
+                activityContext: .default,
+                trainingFrequencyPerWeek: trainingFrequencyPerWeek
             )
         )
     }

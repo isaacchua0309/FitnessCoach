@@ -8,12 +8,12 @@ import XCTest
 
 final class TodayMissionControlStateBuilderTests: XCTestCase {
 
-    func testEmptyDayMissionNeedsFocusAndLogFirstMealAction() {
+    func testEmptyDayMissionNeedsFocusAndLogBreakfastAction() {
         let state = TodayDashboardFixtures.emptyDay()
 
         XCTAssertEqual(state.mission.status, .needsFocus)
         XCTAssertTrue(state.meals.isEmpty)
-        XCTAssertEqual(state.nextBestAction.reason, .logFirstMeal)
+        XCTAssertEqual(state.nextBestAction.reason, .logBreakfast)
         XCTAssertFalse(state.mission.calorieSummary.isOverTarget)
     }
 
@@ -34,7 +34,7 @@ final class TodayMissionControlStateBuilderTests: XCTestCase {
         let state = TodayDashboardFixtures.completeDay()
 
         XCTAssertEqual(state.mission.status, .onTrack)
-        XCTAssertEqual(state.nextBestAction.reason, .onTrack)
+        XCTAssertEqual(state.nextBestAction.reason, .allTargetsMet)
         XCTAssertFalse(state.meals.isEmpty)
     }
 

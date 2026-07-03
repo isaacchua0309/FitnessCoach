@@ -248,7 +248,8 @@ final class TodayPresentationBuilderTests: XCTestCase {
                 profileWeightKg: 80,
                 latestWeightKg: nil,
                 activityContext: activityContext,
-                stepGoalAssumption: 7_500
+                stepGoalAssumption: 7_500,
+                trainingFrequencyPerWeek: 0
             )
         )
     }

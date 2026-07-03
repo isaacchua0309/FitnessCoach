@@ -88,7 +88,8 @@ enum TodayDashboardFixtures {
                 dailyReview: nil,
                 goalWeightKg: 65,
                 profileWeightKg: 70,
-                activityContext: .default
+                activityContext: .default,
+                trainingFrequencyPerWeek: 0
             )
         )
     }
@@ -148,7 +149,8 @@ enum TodayDashboardFixtures {
                 dailyReview: nil,
                 goalWeightKg: 65,
                 profileWeightKg: weightKg ?? 70,
-                activityContext: activityContext
+                activityContext: activityContext,
+                trainingFrequencyPerWeek: 0
             )
         )
     }
@@ -158,10 +160,10 @@ enum TodayDashboardFixtures {
             from: TodayMissionControlInputs(
                 date: date,
                 calorieSummary: CalorieSummary(
-                    consumed: 1_750,
+                    consumed: 1_400,
                     target: 1_800,
-                    remaining: 50,
-                    progress: 0.97,
+                    remaining: 400,
+                    progress: 0.78,
                     isOverTarget: false
                 ),
                 macroSummary: MacroSummary(
@@ -195,7 +197,8 @@ enum TodayDashboardFixtures {
                     trainingIntegration: .connected,
                     trainingDataSource: .appleHealth,
                     appleHealthWorkoutCount: 1
-                )
+                ),
+                trainingFrequencyPerWeek: 3
             )
         )
     }
@@ -238,7 +241,8 @@ enum TodayDashboardFixtures {
                 dailyReview: nil,
                 goalWeightKg: 65,
                 profileWeightKg: 70,
-                activityContext: .default
+                activityContext: .default,
+                trainingFrequencyPerWeek: 0
             )
         )
     }

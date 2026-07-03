@@ -1143,21 +1143,29 @@ enum FormaProductCopy {
 
         enum NextAction {
             static let sectionTitle = "Next Best Action"
+            static let logBreakfastTitle = "Log breakfast to start today."
+            static let logBreakfastSubtitle = "A morning log helps Forma guide the rest of your day."
             static let logFirstMealTitle = "Log your first meal to start today."
             static let logFirstMealSubtitle = "A quick log helps Forma guide the rest of your day."
-            static let addWaterSubtitle = "Staying hydrated makes the rest of your targets easier."
-            static let logWeightTitle = "Log your weight today."
-            static let logWeightSubtitle = "A quick weigh-in keeps your trend useful."
-            static let connectHealthTitle = TrainingIntegrationCopy.connectAppleHealth
-            static let connectHealthSubtitle = "Workouts and activity show up in Training Insights."
-            static let reviewTodayTitle = "Review today before you wrap up."
-            static let reviewTodaySubtitle = "Take a minute to reflect on what went well."
-            static let onTrackTitle = "You're on track today."
-            static let onTrackSubtitle = "Keep the next choice simple."
+            static let eatProteinTitle = "Protein is your biggest gap."
+            static let eatProteinSubtitle = "A high-protein meal will help protect muscle during your cut."
+            static let hydrationBehindTitle = "Hydration is behind."
+            static let hydrationBehindSubtitle = "Add water now to stay on pace."
+            static let completeWorkoutTitle = "Complete today's workout."
+            static let completeWorkoutSubtitle = "Logging movement keeps your plan accurate."
+            static let keepDinnerLightTitle = "Keep dinner light tonight."
+            static let keepDinnerLightSubtitle = "You're close to your calorie target — lighter choices help you finish on plan."
+            static let focusHydrationRecoveryTitle = "Focus on hydration and recovery."
+            static let focusHydrationRecoverySubtitle = "You're above today's calorie target. Water and rest matter most now."
+            static let allTargetsMetTitle = "Great work — maintain today."
+            static let allTargetsMetSubtitle = "Key targets are on track. Stay consistent with your next choices."
 
             static let ctaLogMeal = "Log meal"
-            static let ctaPlanMeal = "Plan meal"
+            static let ctaLogBreakfast = "Log breakfast"
+            static let ctaScanFood = "Scan food"
             static let ctaAddWater = "Add water"
+            static let ctaLogWorkout = "Log workout"
+            static let ctaLogDinner = "Log dinner"
             static let ctaLogWeight = "Log weight"
             static let ctaConnectHealth = "Connect Apple Health"
             static let ctaReviewToday = "Review today"
@@ -1170,24 +1178,6 @@ enum FormaProductCopy {
             static let sheetSave = "Save"
             static let primaryButtonHint = "Performs this action on Today"
 
-            static func eatProteinTitle(grams: Int) -> String {
-                "Eat \(grams)g protein in your next meal."
-            }
-
-            static let eatProteinSubtitle = "You're a bit behind on protein — one solid meal helps."
-
-            static func drinkWaterTitle(amountMl: Int) -> String {
-                "Drink \(amountMl)ml water."
-            }
-
-            static func logMissedMealTitle(_ mealType: MealType) -> String {
-                "Log \(mealLabel(mealType)) to keep today accurate."
-            }
-
-            static func logMissedMealSubtitle(_ mealType: MealType) -> String {
-                "It's past \(mealLabel(mealType)) time — logging keeps your day honest."
-            }
-
             static func ctaLogMeal(_ mealType: MealType) -> String {
                 "Log \(mealLabel(mealType))"
             }
@@ -1197,9 +1187,11 @@ enum FormaProductCopy {
                 case .logMeal:
                     return ctaLogMeal
                 case .scanFood:
-                    return "Scan food"
+                    return ctaScanFood
                 case .addWater:
                     return ctaAddWater
+                case .logWorkout:
+                    return ctaLogWorkout
                 case .logWeight:
                     return ctaLogWeight
                 case .openHealth:

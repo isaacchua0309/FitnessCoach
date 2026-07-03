@@ -235,7 +235,8 @@ final class TodayModel: ObservableObject {
                 profileWeightKg: profile?.currentWeightKg,
                 latestWeightKg: displayWeight,
                 activityContext: activityContext,
-                stepGoalAssumption: profile.flatMap { $0.averageSteps > 0 ? $0.averageSteps : nil }
+                stepGoalAssumption: profile.flatMap { $0.averageSteps > 0 ? $0.averageSteps : nil },
+                trainingFrequencyPerWeek: profile?.trainingFrequencyPerWeek ?? 0
             )
         )
     }

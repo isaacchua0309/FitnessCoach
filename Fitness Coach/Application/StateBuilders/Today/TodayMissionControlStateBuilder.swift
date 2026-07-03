@@ -24,6 +24,7 @@ struct TodayMissionControlInputs: Equatable {
     var latestWeightKg: Double?
     var activityContext: TodayActivityContext
     var stepGoalAssumption: Int?
+    var trainingFrequencyPerWeek: Int
 }
 
 enum TodayMissionControlStateBuilder {

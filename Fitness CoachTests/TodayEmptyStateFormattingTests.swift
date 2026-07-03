@@ -145,7 +145,8 @@ final class TodayEmptyStateFormattingTests: XCTestCase {
                 dailyReview: nil,
                 goalWeightKg: 75,
                 profileWeightKg: 80,
-                activityContext: .default
+                activityContext: .default,
+                trainingFrequencyPerWeek: 0
             )
         )
 
@@ -214,7 +215,8 @@ final class TodayEmptyStateFormattingTests: XCTestCase {
                 dailyReview: nil,
                 goalWeightKg: 75,
                 profileWeightKg: 80,
-                activityContext: .default
+                activityContext: .default,
+                trainingFrequencyPerWeek: 0
             )
         )
 

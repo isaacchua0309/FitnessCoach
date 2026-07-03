@@ -51,6 +51,9 @@ struct TodayReadOnlyView: View {
                         from: state.nextBestAction
                     )
                 },
+                onSecondaryCTA: { cta in
+                    actionCoordinator.handleCTA(cta, from: state.nextBestAction)
+                },
                 onViewed: {
                     actionCoordinator.logNextActionViewed(for: state.nextBestAction)
                 }

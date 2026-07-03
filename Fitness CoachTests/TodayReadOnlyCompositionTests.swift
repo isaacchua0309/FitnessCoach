@@ -31,14 +31,14 @@ final class TodayReadOnlyCompositionTests: XCTestCase {
         let state = TodayPreviewData.completeDay
 
         XCTAssertEqual(state.mission.status, .onTrack)
-        XCTAssertEqual(state.nextBestAction.reason, .onTrack)
+        XCTAssertEqual(state.nextBestAction.reason, .allTargetsMet)
     }
 
     func testEmptyDayBuildsMealsAndNextAction() {
         let state = TodayDashboardFixtures.emptyDay()
 
         XCTAssertTrue(state.meals.isEmpty)
-        XCTAssertEqual(state.nextBestAction.reason, .logFirstMeal)
+        XCTAssertEqual(state.nextBestAction.reason, .logBreakfast)
     }
 
     func testQuickActionsSectionIncludesCoreLoggingActions() {

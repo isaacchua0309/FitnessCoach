@@ -9,7 +9,7 @@ import Foundation
 
 enum TodayPresentationBuilder {
 
-    static let endOfDayStartHour = NextBestActionEngine.reviewTodayStartHour
+    static let endOfDayStartHour = 19
     static let calorieTargetMetRemainingRatio = TodayMissionHeroFormatter.nearTargetRemainingRatio
 
     // MARK: - Dashboard
@@ -187,10 +187,10 @@ enum TodayPresentationBuilder {
                 foodEntries: inputs.foodEntries,
                 proteinProgress: inputs.macroSummary.protein,
                 waterProgress: inputs.waterSummary.progress,
-                weightLoggedToday: inputs.weightLoggedToday,
-                hasRecentWeight: inputs.hasRecentWeight,
+                calorieSummary: inputs.calorieSummary,
+                workoutSummary: inputs.workoutSummary,
                 activityContext: inputs.activityContext,
-                hasDailyReview: inputs.dailyReview != nil
+                trainingFrequencyPerWeek: inputs.trainingFrequencyPerWeek
             )
         )
     }

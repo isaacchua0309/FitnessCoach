@@ -24,7 +24,7 @@ enum JourneyCTA: Equatable {
         case .logWater:
             return FormaProductCopy.Today.NextAction.ctaAddWater
         case .logProtein:
-            return FormaProductCopy.Today.NextAction.ctaPlanMeal
+            return FormaProductCopy.Today.NextAction.ctaScanFood
         case .connectAppleHealth:
             return FormaProductCopy.Today.NextAction.ctaConnectHealth
         case .updateGoal:

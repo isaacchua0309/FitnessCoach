@@ -100,6 +100,7 @@ enum TodayNextBestActionCTA: Equatable, Sendable {
     case logMeal(String?)
     case scanFood
     case addWater(amountMl: Int)
+    case logWorkout
     case logWeight
     case openHealth
     case reviewToday
@@ -107,14 +108,14 @@ enum TodayNextBestActionCTA: Equatable, Sendable {
 }
 
 enum TodayNextBestActionReason: Equatable, Sendable {
+    case logBreakfast
     case logFirstMeal
-    case logMissedMeal(MealType)
     case eatProtein
     case addWater
-    case logWeight
-    case connectAppleHealth
-    case reviewToday
-    case onTrack
+    case completeWorkout
+    case keepDinnerLight
+    case focusHydrationRecovery
+    case allTargetsMet
 }
 
 struct TodayNextBestActionState: Equatable {

@@ -12,8 +12,10 @@ struct TodayNextActionDisplayModel: Equatable {
     var headline: String
     var subtitle: String?
     var primaryButtonTitle: String?
+    var secondaryButtonTitle: String?
     var accessibilityLabel: String
     var showsPrimaryButton: Bool
+    var showsSecondaryButton: Bool
 }
 
 enum TodayNextActionRoute: Equatable {
@@ -30,6 +32,7 @@ enum TodayNextActionFormatting {
 
     static func displayModel(for action: NextBestActionState) -> TodayNextActionDisplayModel {
         let buttonTitle = primaryButtonTitle(for: action)
+        let secondaryTitle = action.secondaryCTAs.first.flatMap { buttonTitle(for: $0, reason: action.reason) }
         let subtitle = action.subtitle?.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasSubtitle = !(subtitle?.isEmpty ?? true)
 
@@ -43,34 +46,55 @@ enum TodayNextActionFormatting {
         if let buttonTitle {
             accessibilityParts.append("\(buttonTitle) button")
         }
+        if let secondaryTitle {
+            accessibilityParts.append("\(secondaryTitle) button")
+        }
 
         return TodayNextActionDisplayModel(
             sectionTitle: FormaProductCopy.Today.NextAction.sectionTitle,
             headline: action.title,
             subtitle: hasSubtitle ? subtitle : nil,
             primaryButtonTitle: buttonTitle,
+            secondaryButtonTitle: secondaryTitle,
             accessibilityLabel: accessibilityParts.joined(separator: ". "),
-            showsPrimaryButton: buttonTitle != nil
+            showsPrimaryButton: buttonTitle != nil,
+            showsSecondaryButton: secondaryTitle != nil
         )
     }
 
     static func primaryButtonTitle(for action: NextBestActionState) -> String? {
-        switch action.reason {
-        case .logFirstMeal:
+        buttonTitle(for: action.primaryCTA, reason: action.reason)
+    }
+
+    static func buttonTitle(for cta: NextBestActionCTA, reason: NextBestActionReason) -> String? {
+        switch (cta, reason) {
+        case (.logMeal, .logBreakfast):
+            return FormaProductCopy.Today.NextAction.ctaLogBreakfast
+        case (.logMeal(let prefill), .keepDinnerLight):
+            if let mealType = mealType(from: prefill), mealType == .dinner {
+                return FormaProductCopy.Today.NextAction.ctaLogDinner
+            }
             return FormaProductCopy.Today.NextAction.ctaLogMeal
-        case .logMissedMeal(let mealType):
-            return FormaProductCopy.Today.NextAction.ctaLogMeal(mealType)
-        case .eatProtein:
-            return FormaProductCopy.Today.NextAction.ctaPlanMeal
-        case .addWater:
+        case (.logMeal, .logFirstMeal):
+            return FormaProductCopy.Today.NextAction.ctaLogMeal
+        case (.logMeal(let prefill), _):
+            if let mealType = mealType(from: prefill) {
+                return FormaProductCopy.Today.NextAction.ctaLogMeal(mealType)
+            }
+            return FormaProductCopy.Today.NextAction.ctaLogMeal
+        case (.scanFood, _):
+            return FormaProductCopy.Today.NextAction.ctaScanFood
+        case (.addWater, _):
             return FormaProductCopy.Today.NextAction.ctaAddWater
-        case .logWeight:
+        case (.logWorkout, _):
+            return FormaProductCopy.Today.NextAction.ctaLogWorkout
+        case (.logWeight, _):
             return FormaProductCopy.Today.NextAction.ctaLogWeight
-        case .connectAppleHealth:
+        case (.openHealth, _):
             return FormaProductCopy.Today.NextAction.ctaConnectHealth
-        case .reviewToday:
+        case (.reviewToday, _):
             return FormaProductCopy.Today.NextAction.ctaReviewToday
-        case .onTrack:
+        case (.none, _):
             return nil
         }
     }
@@ -83,10 +107,10 @@ enum TodayNextActionFormatting {
             return .openCoach(TodayCoachPrompt.scanFood)
         case .addWater(let amountMl):
             return .logWater(amountMl: amountMl)
+        case .logWorkout:
+            return .openTrainingInsights
         case .logWeight:
             return .presentLogWeight
-        case .addWater:
-            return .presentAddWater
         case .openHealth:
             return .openTrainingInsights
         case .reviewToday:
@@ -108,14 +132,14 @@ enum TodayNextActionFormatting {
 
     static func analyticsReason(_ reason: NextBestActionReason) -> String {
         switch reason {
+        case .logBreakfast: return "log_breakfast"
         case .logFirstMeal: return "log_first_meal"
-        case .logMissedMeal(let mealType): return "log_missed_\(mealType.rawValue)"
         case .eatProtein: return "eat_protein"
         case .addWater: return "add_water"
-        case .logWeight: return "log_weight"
-        case .connectAppleHealth: return "connect_apple_health"
-        case .reviewToday: return "review_today"
-        case .onTrack: return "on_track"
+        case .completeWorkout: return "complete_workout"
+        case .keepDinnerLight: return "keep_dinner_light"
+        case .focusHydrationRecovery: return "focus_hydration_recovery"
+        case .allTargetsMet: return "all_targets_met"
         }
     }
 
@@ -124,6 +148,7 @@ enum TodayNextActionFormatting {
         case .logMeal: return "log_meal"
         case .scanFood: return "scan_food"
         case .addWater: return "add_water"
+        case .logWorkout: return "log_workout"
         case .logWeight: return "log_weight"
         case .openHealth: return "open_health"
         case .reviewToday: return "review_today"

@@ -146,7 +146,8 @@ final class TodayGoalConnectionFormattingTests: XCTestCase {
                 profileWeightKg: 80,
                 latestWeightKg: 87.4,
                 activityContext: .default,
-                stepGoalAssumption: nil
+                stepGoalAssumption: nil,
+                trainingFrequencyPerWeek: 0
             )
         )
 
