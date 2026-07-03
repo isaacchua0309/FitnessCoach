@@ -60,6 +60,21 @@ final class OnboardingStepLayoutMetricsTests: XCTestCase {
         )
     }
 
+    func testIntroProofNeverAllowsScrollEvenAtAccessibilitySizes() {
+        XCTAssertFalse(
+            OnboardingStepLayoutProfile.regular.allowsScrollableContent(
+                step: .introProof,
+                dynamicTypeSize: .accessibility3
+            )
+        )
+        XCTAssertFalse(
+            OnboardingStepLayoutProfile.compact.allowsScrollableContent(
+                step: .introProof,
+                dynamicTypeSize: .accessibility5
+            )
+        )
+    }
+
     func testProgressChromeHeightGrowsForAccessibilityDynamicType() {
         let regular = OnboardingStepLayoutMetrics.progressChromeHeight(
             step: .introProof,

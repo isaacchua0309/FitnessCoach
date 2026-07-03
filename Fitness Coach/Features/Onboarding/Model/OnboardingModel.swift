@@ -53,6 +53,7 @@ final class OnboardingModel: ObservableObject {
 
     private var generationTask: Task<Void, Never>?
     private var appleHealthPermissionTask: Task<Void, Never>?
+    private var isAppleHealthPermissionRequestActive = false
 
     init(
         actionCenter: FitnessActionCenter,
@@ -249,6 +250,9 @@ final class OnboardingModel: ObservableObject {
                 appleHealthDeviceState = .unavailable
                 syncAppleHealthPresentation(from: .unavailable)
                 logAppleHealthCTAState(action: "healthkit_unavailable_on_connect")
+                if appleHealthScreenState.primaryAction == .advance {
+                    advanceFromAppleHealth(completedStep: .appleHealth)
+                }
                 return
             }
             break
@@ -477,6 +481,15 @@ final class OnboardingModel: ObservableObject {
         guard currentStep == .appleHealth else { return }
 
         appleHealthDeviceState = refreshed
+
+        if isAppleHealthPermissionRequestActive || appleHealthCoordinator.hasActivePermissionRequest {
+            if viewState == .connectingAppleHealth {
+                appleHealthPresentation = .requesting
+            }
+            logAppleHealthCTAState(action: "foreground_authorization_refreshed_in_flight")
+            return
+        }
+
         syncAppleHealthPresentation(from: refreshed)
 
         if viewState == .connectingAppleHealth {
@@ -512,6 +525,9 @@ final class OnboardingModel: ObservableObject {
     }
 
     private func performAppleHealthPermissionFlow(completedStep: OnboardingStep) async {
+        isAppleHealthPermissionRequestActive = true
+        defer { isAppleHealthPermissionRequestActive = false }
+
         let resultState = await appleHealthCoordinator.requestPermission()
 
         guard !Task.isCancelled else { return }

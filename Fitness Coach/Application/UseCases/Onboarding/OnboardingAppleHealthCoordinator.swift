@@ -26,6 +26,10 @@ final class OnboardingAppleHealthCoordinator {
         healthTrainingIntegration.isHealthDataAvailable
     }
 
+    var hasActivePermissionRequest: Bool {
+        isPermissionRequestInFlight
+    }
+
     func refreshDeviceState() async -> TrainingIntegrationState {
         logAuthorizationStatusRefreshed(phase: "started")
         let state = await healthTrainingIntegration.refreshState()

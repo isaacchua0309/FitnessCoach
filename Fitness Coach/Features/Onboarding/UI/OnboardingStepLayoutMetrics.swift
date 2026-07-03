@@ -42,8 +42,9 @@ enum OnboardingStepLayoutProfile: Equatable {
         step: OnboardingStep,
         dynamicTypeSize: DynamicTypeSize
     ) -> Bool {
+        guard step == .appleHealth else { return false }
         if dynamicTypeSize.isAccessibilitySize { return true }
-        if step == .appleHealth, self == .compact { return true }
+        if self == .compact { return true }
         return false
     }
 }
@@ -73,6 +74,9 @@ enum OnboardingStepLayoutMetrics {
         if dynamicTypeSize.isAccessibilitySize {
             return showsSubtitle ? 128 : 76
         }
+        if dynamicTypeSize >= .xxLarge {
+            return showsSubtitle ? 68 : 40
+        }
         return showsSubtitle ? 56 : 34
     }
 
@@ -98,8 +102,13 @@ enum OnboardingStepLayoutMetrics {
         dynamicTypeSize: DynamicTypeSize
     ) -> CGFloat {
         let base: CGFloat = profile == .compact ? 78 : 92
-        guard dynamicTypeSize.isAccessibilitySize else { return base }
-        return base + 36
+        if dynamicTypeSize.isAccessibilitySize {
+            return base + 36
+        }
+        if dynamicTypeSize >= .xxLarge {
+            return base + 12
+        }
+        return base
     }
 
     /// Hero card height fills most of the step content area below shared chrome.
@@ -115,7 +124,12 @@ enum OnboardingStepLayoutMetrics {
         let spacing = profile.sectionSpacing * 2
         let available = max(0, contentHeight - footerStack - spacing)
         let cap: CGFloat = profile == .compact ? 320 : 380
-        return max(190, min(available, cap))
+        let minimum: CGFloat = {
+            if dynamicTypeSize.isAccessibilitySize { return 150 }
+            if dynamicTypeSize >= .xxLarge { return 170 }
+            return 190
+        }()
+        return max(minimum, min(available, cap))
     }
 
     static func introProofChartHeight(
