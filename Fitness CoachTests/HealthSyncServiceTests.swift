@@ -38,7 +38,8 @@ final class HealthSyncServiceTests: XCTestCase {
     }
 
     func testSyncTodayFailsWhenPermissionDenied() async {
-        mockPermission.status = .uniform(.denied, isHealthDataAvailable: true)
+        let deniedStatus = HealthPermissionStatus.uniform(.denied, isHealthDataAvailable: true)
+        setSyncAvailability(deniedStatus)
 
         let state = await service.syncToday()
 
@@ -48,7 +49,7 @@ final class HealthSyncServiceTests: XCTestCase {
     }
 
     func testSyncTodaySucceedsAndReportsProgress() async {
-        mockPermission.status = .uniform(.available, isHealthDataAvailable: true)
+        setSyncAvailability(.uniform(.available, isHealthDataAvailable: true))
 
         let state = await service.syncToday()
 
@@ -60,7 +61,7 @@ final class HealthSyncServiceTests: XCTestCase {
     }
 
     func testConcurrentSyncPreventsOverlappingRuns() async {
-        mockPermission.status = .uniform(.available, isHealthDataAvailable: true)
+        setSyncAvailability(.uniform(.available, isHealthDataAvailable: true))
         mockRepository.refreshDelayNanoseconds = 300_000_000
 
         let service = self.service
@@ -72,7 +73,7 @@ final class HealthSyncServiceTests: XCTestCase {
     }
 
     func testSyncStateTransitionsFromIdleToSucceeded() async {
-        mockPermission.status = .uniform(.available, isHealthDataAvailable: true)
+        setSyncAvailability(.uniform(.available, isHealthDataAvailable: true))
 
         let initial = await service.getCurrentSyncState()
         XCTAssertEqual(initial.phase, .idle)
@@ -111,11 +112,7 @@ final class HealthSyncServiceTests: XCTestCase {
             resolvedAt: Date()
         )
         mockPermission.status = deniedSleepStatus
-        mockRepository.availability = HealthDataAvailability(
-            isHealthDataAvailable: true,
-            permissionStatus: deniedSleepStatus,
-            cachedDayCount: 1
-        )
+        setSyncAvailability(deniedSleepStatus, cachedDayCount: 1)
 
         let state = await service.syncToday()
 
@@ -124,7 +121,7 @@ final class HealthSyncServiceTests: XCTestCase {
     }
 
     func testConcurrentSyncIsIgnored() async {
-        mockPermission.status = .uniform(.available, isHealthDataAvailable: true)
+        setSyncAvailability(.uniform(.available, isHealthDataAvailable: true))
         mockRepository.refreshDelayNanoseconds = 200_000_000
 
         async let first = service.syncLastNDays(3)
@@ -165,7 +162,7 @@ final class HealthSyncServiceTests: XCTestCase {
     }
 
     func testRefreshOnForegroundIsThrottled() async {
-        mockPermission.status = .uniform(.available, isHealthDataAvailable: true)
+        setSyncAvailability(.uniform(.available, isHealthDataAvailable: true))
         let throttledService = HealthSyncService(
             repository: mockRepository,
             permissionService: mockPermission,
@@ -182,7 +179,7 @@ final class HealthSyncServiceTests: XCTestCase {
     }
 
     func testSyncInitialUsesSingleBulkRefresh() async {
-        mockPermission.status = .uniform(.available, isHealthDataAvailable: true)
+        setSyncAvailability(.uniform(.available, isHealthDataAvailable: true))
 
         let state = await service.syncInitialHealthData()
 
@@ -193,7 +190,7 @@ final class HealthSyncServiceTests: XCTestCase {
     }
 
     func testBulkRefreshReturnsRequestedDayCount() async {
-        mockPermission.status = .uniform(.available, isHealthDataAvailable: true)
+        setSyncAvailability(.uniform(.available, isHealthDataAvailable: true))
         mockRepository.refreshDaysReturned = 7
 
         let state = await service.syncLastNDays(7)
@@ -203,6 +200,19 @@ final class HealthSyncServiceTests: XCTestCase {
     }
 
     // MARK: - Helpers
+
+    private func setSyncAvailability(
+        _ status: HealthPermissionStatus,
+        isHealthDataAvailable: Bool = true,
+        cachedDayCount: Int = 0
+    ) {
+        mockPermission.status = status
+        mockRepository.availability = HealthDataAvailability(
+            isHealthDataAvailable: isHealthDataAvailable,
+            permissionStatus: status,
+            cachedDayCount: cachedDayCount
+        )
+    }
 
     private func makeDate(_ year: Int, _ month: Int, _ day: Int) -> Date {
         calendar.date(from: DateComponents(year: year, month: month, day: day))!

@@ -736,7 +736,7 @@ struct HealthDataRepository: HealthDataRepositorying {
     ) {
         for workout in workouts {
             let day = calendar.startOfDay(for: workout.startDate)
-            var bundle = bundles[day] ?? .empty(for: day, calendar: calendar)
+            let bundle = bundles[day] ?? .empty(for: day, calendar: calendar)
             let merged = normalizer.deduplicateWorkouts(bundle.workouts + [workout])
             bundles[day] = HealthNormalizedDayBundle(
                 dailyMetrics: bundle.dailyMetrics,
