@@ -115,25 +115,13 @@ final class SystemHealthKitTrainingAuthorization: HealthKitTrainingAuthorizing, 
     // MARK: - HealthKit types
 
     static var readTypes: Set<HKObjectType> {
-        var types: Set<HKObjectType> = [HKObjectType.workoutType()]
-
-        if let activeEnergy = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) {
-            types.insert(activeEnergy)
-        }
-        if let exerciseTime = HKQuantityType.quantityType(forIdentifier: .appleExerciseTime) {
-            types.insert(exerciseTime)
-        }
-        if let stepCount = HKQuantityType.quantityType(forIdentifier: .stepCount) {
-            types.insert(stepCount)
-        }
-
-        return types
+        HealthKitReadTypeRegistry.defaultReadTypes
     }
 
-    static let writeTypes: Set<HKSampleType> = []
+    static let writeTypes: Set<HKSampleType> = HealthKitReadTypeRegistry.writeTypes
 
     static var readTypeLabels: [String] {
-        readTypes.map { $0.identifier }.sorted()
+        HealthKitReadTypeRegistry.readTypeLabels(for: HealthKitReadTypeRegistry.defaultRequestedSignals)
     }
 
     // MARK: - Private

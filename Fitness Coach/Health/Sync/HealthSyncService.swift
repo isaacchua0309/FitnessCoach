@@ -43,7 +43,7 @@ struct HealthSyncService: HealthSyncServing {
         calendar: Calendar = .current
     ) async throws -> HealthSyncResult {
         let status = await permissionService.currentStatus()
-        guard status == .authorized else {
+        guard status.hasAnyAvailableReadAccess else {
             throw HealthDataRepositoryError.permissionDenied
         }
 
