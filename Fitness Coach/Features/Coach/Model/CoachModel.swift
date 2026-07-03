@@ -12,9 +12,8 @@ import Foundation
 final class CoachModel: ObservableObject {
 
     @Published private(set) var messages: [ChatMessage] = []
-    @Published var inputText: String = ""
+    @Published private(set) var inputState: CoachInputState = .empty
     @Published private(set) var processingPhase: CoachProcessingPhase = .idle
-    @Published private(set) var composerAttachment: CoachComposerAttachment = .none
     @Published private(set) var errorTitle: String?
     @Published private(set) var errorMessage: String?
     @Published private(set) var showsAuthRetry: Bool = false
@@ -24,11 +23,17 @@ final class CoachModel: ObservableObject {
         return true
     }
 
+    var inputText: String {
+        get { inputState.text }
+        set { mutateInputState { $0.updateText(newValue) } }
+    }
+
+    var stagedAttachment: CoachInputAttachment? {
+        inputState.attachment
+    }
+
     var stagedMealPhotoJPEG: Data? {
-        if case .mealPhoto(let staged) = composerAttachment {
-            return staged.jpegData
-        }
-        return nil
+        inputState.attachment?.imageData
     }
 
     var messageCount: Int {
@@ -145,26 +150,38 @@ final class CoachModel: ObservableObject {
     // MARK: Composer — meal photo attachment
 
     func removeStagedMealPhoto() {
-        composerAttachment = .none
+        mutateInputState { $0.removeAttachment() }
     }
 
-    func handleMealPhotoSelection(_ result: Result<Data, CoachMealPhotoError>) {
+    @discardableResult
+    func requestPhotoPick() -> Bool {
+        guard inputState.canPickImage else {
+            mutateInputState { $0.error = .attachmentAlreadyPresent }
+            return false
+        }
+        return true
+    }
+
+    func handleMealPhotoSelection(
+        _ result: Result<Data, CoachMealPhotoError>,
+        source: CoachInputAttachmentSource
+    ) {
         switch result {
         case .failure(.userCancelled):
             return
         case .failure(let error):
             appendAssistantMessage(CoachResponseBuilder.mealPhotoError(error))
         case .success(let rawData):
-            stageMealPhoto(rawData)
+            stageMealPhoto(rawData, source: source)
         }
     }
 
     /// Legacy entry point — prefer `handleMealPhotoSelection`.
     func handlePhotoSelected() {
-        handleMealPhotoSelection(.failure(.noImage))
+        handleMealPhotoSelection(.failure(.noImage), source: .library)
     }
 
-    private func stageMealPhoto(_ rawData: Data) {
+    private func stageMealPhoto(_ rawData: Data, source: CoachInputAttachmentSource) {
         let prepared = mealPhotoAnalyzer.prepareJPEG(from: rawData)
         guard case .success(let jpegData) = prepared else {
             if case .failure(let error) = prepared {
@@ -174,7 +191,18 @@ final class CoachModel: ObservableObject {
         }
 
         CoachMealPhotoPipeline.assertImagePayloadPresent(jpegData)
-        composerAttachment = .mealPhoto(CoachStagedMealPhoto(jpegData: jpegData))
+        mutateInputState { $0.stageImage(jpegData: jpegData, source: source) }
+    }
+
+    private func mutateInputState(_ transform: (inout CoachInputState) -> Void) {
+        var next = inputState
+        transform(&next)
+        next.setSending(isSending)
+        inputState = next
+    }
+
+    private func syncInputSendingFlag() {
+        mutateInputState { $0.setSending(isSending) }
     }
 
     // MARK: Send
@@ -182,26 +210,17 @@ final class CoachModel: ObservableObject {
     func sendCurrentMessage() async {
         guard !isSending else { return }
 
-        let trimmedText = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let stagedJPEG = stagedMealPhotoJPEG
-
-        guard !trimmedText.isEmpty || stagedJPEG != nil else { return }
-
-        let payload: CoachMealPhotoSendPayload
-        if let stagedJPEG {
-            if trimmedText.isEmpty {
-                payload = .imageOnly(jpegData: stagedJPEG)
-            } else {
-                payload = .textAndImage(text: trimmedText, jpegData: stagedJPEG)
-            }
-        } else {
-            payload = .textOnly(trimmedText)
+        guard let snapshot = {
+            var next = inputState
+            guard let frozen = next.takeSendSnapshot() else { return nil }
+            inputState = next
+            syncInputSendingFlag()
+            return frozen
+        }() else {
+            return
         }
 
-        inputText = ""
-        composerAttachment = .none
-
-        switch payload {
+        switch snapshot.sendPayload {
         case .textOnly(let text):
             await send(text)
         case .imageOnly(let jpegData):
@@ -481,7 +500,7 @@ final class CoachModel: ObservableObject {
     }
 
     func prepareInput(prefill: String?) {
-        inputText = prefill ?? ""
+        mutateInputState { $0.updateText(prefill ?? "") }
     }
 
     // MARK: Pending Confirmation
@@ -537,10 +556,12 @@ final class CoachModel: ObservableObject {
 
     private func beginProcessing(_ operation: CoachProcessingOperation) {
         processingPhase = .active(operation)
+        syncInputSendingFlag()
     }
 
     private func endProcessing() {
         processingPhase = .idle
+        syncInputSendingFlag()
     }
 
     // MARK: Action result application

@@ -8,15 +8,7 @@
 import Foundation
 
 // MARK: - Composer attachment (pre-send)
-
-enum CoachComposerAttachment: Equatable {
-    case none
-    case mealPhoto(CoachStagedMealPhoto)
-}
-
-struct CoachStagedMealPhoto: Equatable {
-    let jpegData: Data
-}
+// See CoachInputState.swift for composer attachment modeling.
 
 // MARK: - In-flight / outbound processing
 

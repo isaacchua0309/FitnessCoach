@@ -11,13 +11,15 @@ import SwiftUI
 
 struct CoachComposer: View {
     @Binding var text: String
-    var stagedMealPhotoJPEG: Data?
+    var attachment: CoachInputAttachment?
+    var attachmentError: CoachInputComposerError?
+    var canPickAttachment: Bool
     var isFocused: FocusState<Bool>.Binding
     let isSending: Bool
     let onSend: () -> Void
     let onVoiceTap: () -> Void
     let onAttachmentSelect: (CoachAttachmentOption) -> Void
-    let onRemoveStagedPhoto: () -> Void
+    let onRemoveAttachment: () -> Void
 
     @State private var isAttachmentMenuPresented = false
 
@@ -26,11 +28,11 @@ struct CoachComposer: View {
     }
 
     private var canSend: Bool {
-        !isSending && (!trimmedText.isEmpty || stagedMealPhotoJPEG != nil)
+        !isSending && (!trimmedText.isEmpty || attachment != nil)
     }
 
     private var showVoiceButton: Bool {
-        text.isEmpty && !isSending
+        text.isEmpty && attachment == nil && !isSending
     }
 
     var body: some View {
@@ -42,9 +44,18 @@ struct CoachComposer: View {
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
 
-            if let stagedMealPhotoJPEG {
-                CoachComposerImagePreview(jpegData: stagedMealPhotoJPEG, onRemove: onRemoveStagedPhoto)
+            if let attachment {
+                CoachComposerImagePreview(jpegData: attachment.thumbnail, onRemove: onRemoveAttachment)
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+
+            if let attachmentError {
+                Text(attachmentError.message)
+                    .font(CoachDesignTokens.Typography.confirmationMetric)
+                    .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, CoachDesignTokens.Layout.horizontalPadding)
+                    .padding(.bottom, CoachDesignTokens.Spacing.xxs)
             }
 
             HStack(alignment: .center, spacing: 0) {
@@ -89,7 +100,8 @@ struct CoachComposer: View {
         .animation(CoachDesignTokens.Motion.standard, value: canSend)
         .animation(CoachDesignTokens.Motion.standard, value: showVoiceButton)
         .animation(CoachDesignTokens.Motion.standard, value: isAttachmentMenuPresented)
-        .animation(CoachDesignTokens.Motion.standard, value: stagedMealPhotoJPEG != nil)
+        .animation(CoachDesignTokens.Motion.standard, value: attachment?.id)
+        .animation(CoachDesignTokens.Motion.standard, value: attachmentError)
     }
 
     private var attachmentButton: some View {
@@ -110,7 +122,7 @@ struct CoachComposer: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(CoachComposerButtonStyle())
-        .disabled(isSending)
+        .disabled(isSending || !canPickAttachment)
         .rotationEffect(.degrees(isAttachmentMenuPresented ? 45 : 0))
         .animation(CoachDesignTokens.Motion.spring, value: isAttachmentMenuPresented)
         .accessibilityLabel("Add attachment")
@@ -173,13 +185,15 @@ private struct CoachComposerButtonStyle: ButtonStyle {
                 Spacer()
                 CoachComposer(
                     text: $text,
-                    stagedMealPhotoJPEG: nil,
+                    attachment: nil,
+                    attachmentError: nil,
+                    canPickAttachment: true,
                     isFocused: $isFocused,
                     isSending: false,
                     onSend: {},
                     onVoiceTap: {},
                     onAttachmentSelect: { _ in },
-                    onRemoveStagedPhoto: {}
+                    onRemoveAttachment: {}
                 )
             }
             .background(CoachDesignTokens.Color.background)

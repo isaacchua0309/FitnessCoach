@@ -95,6 +95,24 @@ enum CoachMealPhotoPipeline {
     private static func compress(_ image: UIImage, quality: CGFloat) -> Data? {
         image.jpegData(compressionQuality: quality)
     }
+
+    static func makeThumbnailJPEG(from jpegData: Data, maxEdge: CGFloat = 128) -> Data? {
+        guard let image = UIImage(data: jpegData) else { return nil }
+        let longest = max(image.size.width, image.size.height)
+        guard longest > 0 else { return nil }
+
+        let scale = min(1, maxEdge / longest)
+        let targetSize = CGSize(
+            width: image.size.width * scale,
+            height: image.size.height * scale
+        )
+
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        let resized = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+        return resized.jpegData(compressionQuality: 0.75)
+    }
 }
 
 private struct CoachPhotoPickerTransfer: Transferable {
