@@ -2,10 +2,10 @@
 //  CoachAIContextBuilder.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Builds a compact AIContext for the Coach feature.
+//  Forma — Builds a compact AIContext for the Coach feature.
 //
 //  Reads only summarized state from existing services. It never sends full
-//  database history or full chat history, and it never mutates state.
+//  database history or full chat history, and never mutates state.
 //
 
 import Foundation
@@ -15,7 +15,6 @@ struct CoachContextBuilder {
 
     private let dailyLogReader: any DailyLogReading
     private let userProfileReader: any UserProfileReading
-    private let healthActivityQuery: HealthActivityQueryService?
     private let actionCenter: FitnessActionCenter?
 
     /// Number of recent messages included for lightweight conversational context.
@@ -29,21 +28,28 @@ struct CoachContextBuilder {
     ) {
         self.dailyLogReader = dailyLogReader
         self.userProfileReader = userProfileReader
-        self.healthActivityQuery = healthActivityQuery
         self.actionCenter = actionCenter
+        _ = healthActivityQuery
     }
 
     func makeContext(
         recentMessages: [ChatMessage],
-        workoutsToday: Int = 0
+        activity: CoachAIActivityContext = CoachAIActivityContext(),
+        workoutsToday: Int? = nil
     ) -> AIContext {
+        let resolvedWorkoutsToday = workoutsToday ?? activity.workoutsToday
         let context = AIContext(
             date: Date(),
             timezoneIdentifier: TimeZone.current.identifier,
             userProfileSummary: makeProfileSummary(),
-            todaySummary: makeTodaySummary(workoutsToday: workoutsToday),
+            todaySummary: makeTodaySummary(
+                workoutsToday: resolvedWorkoutsToday,
+                stepsOverride: activity.stepsOverride
+            ),
             commonFoods: [],
-            recentMessages: makeRecentMessages(from: recentMessages)
+            recentMessages: makeRecentMessages(from: recentMessages),
+            healthIntelligence: activity.healthIntelligence,
+            healthIntelligenceAwarenessAvailable: activity.healthIntelligenceAwarenessAvailable
         )
         FormaPipelineTracer.event(
             stage: .context,
@@ -52,7 +58,9 @@ struct CoachContextBuilder {
             fields: [
                 "hasProfile": String(context.userProfileSummary != nil),
                 "hasTodaySummary": String(context.todaySummary != nil),
-                "recentMessageCount": String(context.recentMessages.count)
+                "recentMessageCount": String(context.recentMessages.count),
+                "hasHealthIntelligence": String(context.healthIntelligence != nil),
+                "healthIntelligenceAwarenessAvailable": String(context.healthIntelligenceAwarenessAvailable)
             ]
         )
         return context
@@ -77,16 +85,25 @@ struct CoachContextBuilder {
 
     // MARK: Today
 
-    private func makeTodaySummary(workoutsToday: Int) -> TodayAISummary? {
+    private func makeTodaySummary(
+        workoutsToday: Int,
+        stepsOverride: Int?
+    ) -> TodayAISummary? {
         guard let log = try? dailyLogReader.getTodayLog() else {
             return nil
         }
 
-        return TodayAISummaryMapper.from(
+        var summary = TodayAISummaryMapper.from(
             dailyLog: log,
             workoutsToday: workoutsToday,
             recentMeals: makeRecentMeals()
         )
+
+        if summary.steps == nil, let stepsOverride {
+            summary.steps = stepsOverride
+        }
+
+        return summary
     }
 
     private func makeRecentMeals() -> [String] {

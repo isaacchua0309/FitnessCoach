@@ -202,12 +202,23 @@ struct TodayView: View {
         }
     }
 
+    private var isHealthIntelligenceUIEnabled: Bool {
+        HealthIntelligenceFeatureFlags.isUIEnabled
+    }
+
     private func dashboard(_ state: TodayDashboardState) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: TodayLayout.sectionSpacing) {
                 TodayReadOnlyView(
                     state: state,
                     actionCoordinator: actionCoordinator,
+                    healthIntelligenceSection: isHealthIntelligenceUIEnabled
+                        ? model.healthIntelligenceSectionState
+                        : nil,
+                    isHealthIntelligenceUIEnabled: isHealthIntelligenceUIEnabled,
+                    onHealthNextBestAction: { destination in
+                        actionCoordinator.handleHealthNextBestAction(destination)
+                    },
                     onOpenJourney: {
                         onOpenJourney?()
                     },

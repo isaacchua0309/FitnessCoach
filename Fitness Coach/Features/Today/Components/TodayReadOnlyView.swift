@@ -4,8 +4,8 @@
 //
 //  FitPilot AI — Read-only Today dashboard. Mutations route through TodayActionCoordinator.
 //
-//  Section order: Mission → Next Best Action → Quick Actions → Meals → Activity
-//  → Nutrition
+//  Section order: Mission → [Health Intelligence] → Next Best Action → Quick Actions
+//  → Meals → Activity → Nutrition
 //
 
 import SwiftUI
@@ -13,6 +13,9 @@ import SwiftUI
 struct TodayReadOnlyView: View {
     let state: TodayDashboardState
     let actionCoordinator: TodayActionCoordinator
+    let healthIntelligenceSection: TodayHealthIntelligenceSectionState?
+    let isHealthIntelligenceUIEnabled: Bool
+    let onHealthNextBestAction: ((TodayHealthNextBestActionDestination) -> Void)?
     let onOpenJourney: () -> Void
     let onOpenPlan: () -> Void
 
@@ -24,17 +27,42 @@ struct TodayReadOnlyView: View {
             : TodayLayout.sectionSpacing
     }
 
+    private var showsHealthIntelligence: Bool {
+        TodayReadOnlyCompositionPolicy.showsHealthIntelligenceSection(
+            isUIEnabled: isHealthIntelligenceUIEnabled,
+            sectionState: healthIntelligenceSection
+        )
+    }
+
+    private var showsLegacyNextBestAction: Bool {
+        TodayReadOnlyCompositionPolicy.showsLegacyNextBestAction(
+            isUIEnabled: isHealthIntelligenceUIEnabled,
+            sectionState: healthIntelligenceSection
+        )
+    }
+
+    private var showsActivitySection: Bool {
+        TodayReadOnlyCompositionPolicy.showsActivitySection(
+            isUIEnabled: isHealthIntelligenceUIEnabled,
+            sectionState: healthIntelligenceSection,
+            activity: state.activity
+        )
+    }
+
     init(
         state: TodayDashboardState,
         actionCoordinator: TodayActionCoordinator,
-        trainingIntegration: TrainingIntegrationState = .connected,
-        trainingDataSource: TrainingDataSource = .appleHealth,
-        appleHealthWorkoutCount: Int? = nil,
+        healthIntelligenceSection: TodayHealthIntelligenceSectionState? = nil,
+        isHealthIntelligenceUIEnabled: Bool = false,
+        onHealthNextBestAction: ((TodayHealthNextBestActionDestination) -> Void)? = nil,
         onOpenJourney: @escaping () -> Void = {},
         onOpenPlan: @escaping () -> Void = {}
     ) {
         self.state = state
         self.actionCoordinator = actionCoordinator
+        self.healthIntelligenceSection = healthIntelligenceSection
+        self.isHealthIntelligenceUIEnabled = isHealthIntelligenceUIEnabled
+        self.onHealthNextBestAction = onHealthNextBestAction
         self.onOpenJourney = onOpenJourney
         self.onOpenPlan = onOpenPlan
     }
@@ -43,21 +71,30 @@ struct TodayReadOnlyView: View {
         VStack(alignment: .leading, spacing: sectionSpacing) {
             missionBlock
 
-            TodayNextActionSection(
-                action: state.nextBestAction,
-                onPrimaryCTA: {
-                    actionCoordinator.handleCTA(
-                        state.nextBestAction.primaryCTA,
-                        from: state.nextBestAction
-                    )
-                },
-                onSecondaryCTA: { cta in
-                    actionCoordinator.handleCTA(cta, from: state.nextBestAction)
-                },
-                onViewed: {
-                    actionCoordinator.logNextActionViewed(for: state.nextBestAction)
-                }
-            )
+            if showsHealthIntelligence, let healthIntelligenceSection {
+                TodayHealthIntelligenceSection(
+                    state: healthIntelligenceSection,
+                    onNextBestAction: onHealthNextBestAction
+                )
+            }
+
+            if showsLegacyNextBestAction {
+                TodayNextActionSection(
+                    action: state.nextBestAction,
+                    onPrimaryCTA: {
+                        actionCoordinator.handleCTA(
+                            state.nextBestAction.primaryCTA,
+                            from: state.nextBestAction
+                        )
+                    },
+                    onSecondaryCTA: { cta in
+                        actionCoordinator.handleCTA(cta, from: state.nextBestAction)
+                    },
+                    onViewed: {
+                        actionCoordinator.logNextActionViewed(for: state.nextBestAction)
+                    }
+                )
+            }
 
             TodayQuickActionsSection(
                 menuItems: state.quickActions.items,
@@ -81,12 +118,14 @@ struct TodayReadOnlyView: View {
                 }
             )
 
-            TodayActivitySection(
-                activity: state.activity,
-                onConnectAppleHealth: {
-                    actionCoordinator.onOpenTrainingInsights?()
-                }
-            )
+            if showsActivitySection {
+                TodayActivitySection(
+                    activity: state.activity,
+                    onConnectAppleHealth: {
+                        actionCoordinator.onOpenTrainingInsights?()
+                    }
+                )
+            }
 
             TodayReadOnlyProgressSection(
                 macros: state.macroHydration.macroSummary,
@@ -165,6 +204,24 @@ struct TodayReadOnlyView: View {
             actionCoordinator: TodayActionCoordinator(
                 actionCenter: try! AppContainer(inMemory: true).actionCenter
             )
+        )
+        .padding(.horizontal, TodayLayout.horizontalPadding)
+        .padding(.vertical, FormaTokens.Spacing.md)
+    }
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
+#Preview("Health Intelligence enabled") {
+    ScrollView {
+        TodayReadOnlyView(
+            state: TodayPreviewData.partialDay,
+            actionCoordinator: TodayActionCoordinator(
+                actionCenter: try! AppContainer(inMemory: true).actionCenter
+            ),
+            healthIntelligenceSection: TodayHealthIntelligencePreviewData.workoutDay,
+            isHealthIntelligenceUIEnabled: true,
+            onHealthNextBestAction: { _ in }
         )
         .padding(.horizontal, TodayLayout.horizontalPadding)
         .padding(.vertical, FormaTokens.Spacing.md)

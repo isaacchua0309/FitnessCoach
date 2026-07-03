@@ -38,7 +38,8 @@ final class CoachMealPhotoAnalyzer {
     func analyze(
         session: ImageAnalysisSession,
         recommission: ImageAnalysisRecommissionContext? = nil,
-        recentMessages: [ChatMessage]
+        recentMessages: [ChatMessage],
+        context preparedContext: AIContext? = nil
     ) async -> MealPhotoAnalysisOutcome {
         guard aiCommandParsingEnabled, let aiContextBuilder else {
             let error = AIServiceError.backendUnavailable
@@ -64,7 +65,8 @@ final class CoachMealPhotoAnalyzer {
             jpegData: session.originalImageAttachment.imageJPEG,
             prompt: prompt,
             recommission: recommission,
-            recentMessages: recentMessages
+            recentMessages: recentMessages,
+            preparedContext: preparedContext
         )
     }
 
@@ -72,7 +74,8 @@ final class CoachMealPhotoAnalyzer {
         jpegData: Data,
         prompt: String,
         recommission: ImageAnalysisRecommissionContext?,
-        recentMessages: [ChatMessage]
+        recentMessages: [ChatMessage],
+        preparedContext: AIContext?
     ) async -> MealPhotoAnalysisOutcome {
         FormaPipelineTracer.event(
             stage: .coachSend,
@@ -85,7 +88,7 @@ final class CoachMealPhotoAnalyzer {
             ]
         )
 
-        let context = aiContextBuilder!.makeContext(recentMessages: recentMessages)
+        let context = preparedContext ?? aiContextBuilder!.makeContext(recentMessages: recentMessages)
 
         let uploadAttachment = CoachMealImageUploadAttachment.fromUploadData(jpegData)
 

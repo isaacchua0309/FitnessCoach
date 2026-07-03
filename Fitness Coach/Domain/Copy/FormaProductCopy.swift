@@ -1266,6 +1266,71 @@ enum FormaProductCopy {
             }
         }
 
+        enum HealthIntelligence {
+            static let loadingTitle = "Loading health insights"
+            static let loadingSubtitle = "Checking recovery and activity signals."
+            static let loadingAccessibilityLabel = "Loading health insights"
+            static let limitedEstimate = "Limited estimate"
+            static let workoutComplete = "Workout complete"
+            static let noWorkoutYet = "No workout logged yet"
+            static let connectHealthFallback =
+                "Connect Apple Health for recovery insights, or keep logging meals as usual."
+            static let continueLoggingFallback =
+                "Keep logging meals and water while health signals catch up."
+
+            static func missingRecoverySignals(_ signals: [String]) -> String {
+                "Missing: \(signals.joined(separator: ", "))."
+            }
+
+            enum Recovery {
+                static let sectionTitle = "Recovery"
+            }
+
+            enum DailyMission {
+                static let sectionTitle = "Daily mission"
+                static let readyHeadline = "Ready for your plan"
+                static let moderateHeadline = "Train with care today"
+                static let lowHeadline = "Prioritize recovery"
+                static let unknownHeadline = "Recovery still forming"
+                static let workoutCompleteDetail = "Workout complete — refuel and hydrate."
+                static let noWorkoutDetail = "No workout logged yet."
+
+                static func caloriesRemaining(_ kcal: Int) -> String {
+                    "\(TodayMissionHeroFormatting.calories(max(kcal, 0))) kcal remaining"
+                }
+
+                static func proteinRemaining(_ grams: Double) -> String {
+                    "\(TodayMissionHeroFormatting.proteinGrams(max(grams, 0)))g protein remaining"
+                }
+
+                static func waterRemaining(_ ml: Int) -> String {
+                    "\(max(ml, 0))ml water remaining"
+                }
+            }
+
+            enum NextAction {
+                static let sectionTitle = "Suggested next step"
+            }
+
+            enum Workout {
+                static let sectionTitle = "Today's workout"
+            }
+
+            enum AdaptiveNutrition {
+                static let sectionTitle = "Adaptive nutrition"
+                static let defaultTitle = "Fuel for today"
+                static let postWorkoutTitle = "Refuel after training"
+
+                static func proteinRemaining(_ grams: Int) -> String {
+                    "\(grams)g protein left to target"
+                }
+
+                static func extraWater(_ ml: Int) -> String {
+                    "Aim for \(max(ml, 0))ml extra water today"
+                }
+            }
+        }
+
         enum Meals {
             static let sectionTitle = "Meals"
             static let readyStatus = "Ready"

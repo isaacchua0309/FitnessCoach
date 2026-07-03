@@ -17,6 +17,8 @@ struct AIContext: Codable, Equatable, Sendable {
     var todaySummary: TodayAISummary?
     var commonFoods: [String]
     var recentMessages: [AIMessageContext]
+    var healthIntelligence: CoachHealthIntelligenceContext?
+    var healthIntelligenceAwarenessAvailable: Bool
 
     init(
         date: Date,
@@ -24,7 +26,9 @@ struct AIContext: Codable, Equatable, Sendable {
         userProfileSummary: UserProfileSummary? = nil,
         todaySummary: TodayAISummary? = nil,
         commonFoods: [String] = [],
-        recentMessages: [AIMessageContext] = []
+        recentMessages: [AIMessageContext] = [],
+        healthIntelligence: CoachHealthIntelligenceContext? = nil,
+        healthIntelligenceAwarenessAvailable: Bool = false
     ) {
         self.date = date
         self.timezoneIdentifier = timezoneIdentifier
@@ -32,6 +36,8 @@ struct AIContext: Codable, Equatable, Sendable {
         self.todaySummary = todaySummary
         self.commonFoods = commonFoods
         self.recentMessages = recentMessages
+        self.healthIntelligence = healthIntelligence
+        self.healthIntelligenceAwarenessAvailable = healthIntelligenceAwarenessAvailable
     }
 }
 

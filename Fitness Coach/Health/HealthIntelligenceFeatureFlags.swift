@@ -67,4 +67,31 @@ enum HealthIntelligenceFeatureFlags {
             defaultEnabled: true
         )
     }
+
+    /// DEBUG-only: allows TodayModel to compose snapshots when UI is disabled (diagnostics).
+    static var isTodayModelDebugFetchEnabled: Bool {
+        #if DEBUG
+        guard healthIntelligenceEnabled else { return false }
+        return FormaEnvironment.isTracingEnabled(
+            primary: "FORMA_HEALTH_INTELLIGENCE_TODAY_FETCH_ENABLED",
+            legacy: "FITPILOT_HEALTH_INTELLIGENCE_TODAY_FETCH_ENABLED",
+            defaultEnabled: false
+        )
+        #else
+        return false
+        #endif
+    }
+
+    /// Whether TodayModel should load Health Intelligence snapshots on refresh.
+    static var shouldTodayModelLoadHealthIntelligence: Bool {
+        guard healthIntelligenceEnginesEnabled else { return false }
+        return isUIEnabled || isTodayModelDebugFetchEnabled
+    }
+
+    /// Whether Coach should compose Health Intelligence context for AI prompts.
+    ///
+    /// Enabled when engines are on so Coach can use cached snapshots without requiring HI UI.
+    static var shouldCoachLoadHealthIntelligence: Bool {
+        healthIntelligenceEnginesEnabled
+    }
 }

@@ -91,6 +91,25 @@ final class TodayActionCoordinator: ObservableObject {
         perform(route)
     }
 
+    func handleHealthNextBestAction(_ destination: TodayHealthNextBestActionDestination) {
+        switch destination {
+        case .logMeal:
+            perform(.presentLogMeal(mealType: nil))
+        case .addWater:
+            perform(.presentAddWater)
+        case .askCoach:
+            onOpenCoach?(nil)
+        case .viewRecovery:
+            onOpenCoach?(nil)
+        case .logWeight:
+            perform(.presentLogWeight)
+        case .connectHealth:
+            perform(.openTrainingInsights)
+        case .none:
+            break
+        }
+    }
+
     // MARK: - Quick actions
 
     func performQuickAction(_ kind: TodayQuickActionKind) {

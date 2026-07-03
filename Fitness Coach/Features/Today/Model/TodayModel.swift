@@ -12,6 +12,7 @@ import Foundation
 final class TodayModel: ObservableObject {
 
     @Published private(set) var viewState: TodayViewState = .loading
+    @Published private(set) var healthIntelligenceSectionState: TodayHealthIntelligenceSectionState?
 
     private let dailyLogReader: any DailyLogReading
     private let foodLogReader: any FoodLogReading
@@ -19,8 +20,11 @@ final class TodayModel: ObservableObject {
     private let dailyReviewReader: any DailyReviewReading
     private let userProfileReader: any UserProfileReading
     private let healthActivityQuery: HealthActivityQueryService
+    private let healthIntelligenceSnapshotProvider: any HealthIntelligenceSnapshotServing
     private let hydrationContextProvider: () -> TodayHydrationContext?
     private let authStateProvider: () -> AuthState
+    private let healthIntelligenceLoadEnabled: () -> Bool
+    private let healthIntelligenceUIEnabled: () -> Bool
 
     private var activityContext: TodayActivityContext = .default
     private var boundHydrationContext: TodayHydrationContext?
@@ -33,8 +37,11 @@ final class TodayModel: ObservableObject {
         dailyReviewReader: any DailyReviewReading,
         userProfileReader: any UserProfileReading,
         healthActivityQuery: HealthActivityQueryService,
+        healthIntelligenceSnapshotProvider: any HealthIntelligenceSnapshotServing = NoOpHealthIntelligenceSnapshotService(),
         hydrationContextProvider: @escaping () -> TodayHydrationContext? = { nil },
-        authStateProvider: @escaping () -> AuthState = { .unknown }
+        authStateProvider: @escaping () -> AuthState = { .unknown },
+        healthIntelligenceLoadEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.shouldTodayModelLoadHealthIntelligence },
+        healthIntelligenceUIEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.isUIEnabled }
     ) {
         self.dailyLogReader = dailyLogReader
         self.foodLogReader = foodLogReader
@@ -42,8 +49,11 @@ final class TodayModel: ObservableObject {
         self.dailyReviewReader = dailyReviewReader
         self.userProfileReader = userProfileReader
         self.healthActivityQuery = healthActivityQuery
+        self.healthIntelligenceSnapshotProvider = healthIntelligenceSnapshotProvider
         self.hydrationContextProvider = hydrationContextProvider
         self.authStateProvider = authStateProvider
+        self.healthIntelligenceLoadEnabled = healthIntelligenceLoadEnabled
+        self.healthIntelligenceUIEnabled = healthIntelligenceUIEnabled
     }
 
     // MARK: Session lifecycle
@@ -52,6 +62,7 @@ final class TodayModel: ObservableObject {
         activeLoadTask?.cancel()
         activeLoadTask = nil
         boundHydrationContext = nil
+        healthIntelligenceSectionState = nil
         viewState = .loading
     }
 
@@ -174,9 +185,21 @@ final class TodayModel: ObservableObject {
     private func loadDashboard() async throws {
         let dailyLog = try dailyLogReader.getTodayLog()
         let foodEntries = try foodLogReader.getFoodEntries(for: dailyLog.date)
-        let training = await optionalDailyTrainingActivity(on: dailyLog.date)
         let latestWeight = dailyLog.weightKg == nil ? try weightLogReader.getLatestWeight() : nil
         let dailyReview = try dailyReviewReader.getDailyReview(for: dailyLog.date)
+        let nutrition = DailyNutritionSummaryBuilder.build(from: dailyLog)
+        let (calorieSummary, macroSummary, waterSummary) = TodayDashboardNutritionMapper.maps(from: nutrition)
+
+        async let trainingTask = optionalDailyTrainingActivity(on: dailyLog.date)
+        async let healthIntelligenceTask = refreshHealthIntelligenceSection(
+            for: dailyLog.date,
+            calorieSummary: calorieSummary,
+            macroSummary: macroSummary,
+            waterSummary: waterSummary
+        )
+
+        let training = await trainingTask
+        await healthIntelligenceTask
 
         viewState = .loaded(
             try await makeDashboardState(
@@ -186,6 +209,63 @@ final class TodayModel: ObservableObject {
                 latestWeight: latestWeight,
                 dailyReview: dailyReview
             )
+        )
+    }
+
+    private func refreshHealthIntelligenceSection(
+        for date: Date,
+        calorieSummary: CalorieSummary,
+        macroSummary: MacroSummary,
+        waterSummary: WaterSummary
+    ) async {
+        guard healthIntelligenceLoadEnabled() else {
+            healthIntelligenceSectionState = nil
+            return
+        }
+
+        let nutritionProgress = TodayHealthIntelligenceNutritionProgress.from(
+            calorieSummary: calorieSummary,
+            macroSummary: macroSummary,
+            waterSummary: waterSummary
+        )
+        let uiEnabled = healthIntelligenceUIEnabled()
+
+        do {
+            try Task.checkCancellation()
+            let snapshot = await healthIntelligenceSnapshotProvider.loadTodaySnapshot(
+                for: date,
+                calendar: .current
+            )
+            try Task.checkCancellation()
+
+            healthIntelligenceSectionState = TodayHealthIntelligencePresentationBuilder.buildSection(
+                snapshot: snapshot,
+                nutritionProgress: nutritionProgress,
+                isUIEnabled: uiEnabled
+            ) ?? fallbackHealthIntelligenceSection(
+                nutritionProgress: nutritionProgress,
+                uiEnabled: uiEnabled
+            )
+        } catch is CancellationError {
+            return
+        } catch {
+            healthIntelligenceSectionState = fallbackHealthIntelligenceSection(
+                nutritionProgress: nutritionProgress,
+                uiEnabled: uiEnabled
+            )
+        }
+    }
+
+    private func fallbackHealthIntelligenceSection(
+        nutritionProgress: TodayHealthIntelligenceNutritionProgress,
+        uiEnabled: Bool
+    ) -> TodayHealthIntelligenceSectionState? {
+        guard uiEnabled else { return nil }
+
+        return TodayHealthIntelligencePresentationBuilder.buildSection(
+            snapshot: nil,
+            nutritionProgress: nutritionProgress,
+            isUIEnabled: true
         )
     }
 

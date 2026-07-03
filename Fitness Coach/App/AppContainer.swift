@@ -345,6 +345,7 @@ final class AppContainer {
             dailyReviewReader: reviewService,
             userProfileReader: userProfileService,
             healthActivityQuery: healthActivityQueryService,
+            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
             hydrationContextProvider: { [weak self] in
                 guard let self else { return nil }
                 return TodayHydrationGate.resolve(
@@ -363,6 +364,7 @@ final class AppContainer {
             actionCenter: actionCenter,
             dailyLogReader: dailyLogService,
             healthActivityQuery: healthActivityQueryService,
+            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
             weightLogReader: weightLogService,
             aiService: aiService,
             userProfileReader: userProfileService,

@@ -125,7 +125,7 @@ final class CoachAIRouteHandler {
             let message = CoachResponseBuilder.mealAdvice(
                 log: try? dailyLogReader.getTodayLog(),
                 profile: try? userProfileReader?.getCurrentProfile(),
-                hasWorkoutToday: await mutationExecutor.hasWorkoutToday(),
+                hasWorkoutToday: hasWorkoutToday(from: context),
                 assistantMessage: advice.message
             )
             return .message(message)
@@ -512,5 +512,12 @@ final class CoachAIRouteHandler {
 
     private func logFoodEstimateDebug(_ snapshot: CoachFoodEstimateDebugSnapshot) {
         CoachFoodEstimateDebugLogger.log(snapshot)
+    }
+
+    private func hasWorkoutToday(from context: AIContext) -> Bool {
+        if let healthIntelligence = context.healthIntelligence {
+            return healthIntelligence.workoutCompletedToday
+        }
+        return (context.todaySummary?.workoutsToday ?? 0) > 0
     }
 }

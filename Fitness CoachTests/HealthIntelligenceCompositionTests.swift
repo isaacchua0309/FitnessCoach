@@ -69,6 +69,45 @@ final class HealthIntelligenceCompositionTests: XCTestCase {
     func testUIEnabledRemainsFalseByDefault() {
         XCTAssertFalse(HealthIntelligenceFeatureFlags.isUIEnabled)
     }
+
+    func testTodayModelLoadDisabledByDefaultWhenUIIsOff() {
+        XCTAssertFalse(HealthIntelligenceFeatureFlags.shouldTodayModelLoadHealthIntelligence)
+    }
+
+    func testLoadTodaySnapshotUsesCacheWithoutRecomposing() async {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
+        let today = calendar.startOfDay(for: Date())
+
+        let repository = CompositionMockRepository(calendar: calendar)
+        repository.dailyMetricsByDay[today] = DailyHealthMetrics(
+            date: today,
+            steps: 5_000,
+            activeEnergyKcal: 300,
+            exerciseMinutes: 30
+        )
+
+        let engine = SpyCompositionEngine(
+            base: HealthIntelligenceEngine(
+                contextBuilder: HealthIntelligenceContextBuilder(repository: repository),
+                dependencies: .production()
+            )
+        )
+        let cache = MemoryHealthCacheStore()
+        let service = HealthIntelligenceSnapshotService(
+            engine: engine,
+            cacheStore: cache,
+            enginesEnabled: true
+        )
+
+        let first = await service.loadTodaySnapshot(for: today, calendar: calendar)
+        let second = await service.loadTodaySnapshot(for: today, calendar: calendar)
+
+        XCTAssertNotNil(first)
+        XCTAssertEqual(first?.activity.steps, 5_000)
+        XCTAssertEqual(second?.activity.steps, 5_000)
+        XCTAssertEqual(engine.composeCallCount, 1)
+    }
 }
 
 // MARK: - Mocks
@@ -84,6 +123,28 @@ private struct NoOpCompositionEngine: HealthIntelligenceEngineing {
 
     func generateSnapshot(for date: Date, calendar: Calendar) async throws -> HealthIntelligenceSnapshot {
         await composeSnapshot(for: date, calendar: calendar, mode: .today)
+    }
+}
+
+private final class SpyCompositionEngine: HealthIntelligenceEngineing, @unchecked Sendable {
+    private let base: any HealthIntelligenceEngineing
+    private(set) var composeCallCount = 0
+
+    init(base: any HealthIntelligenceEngineing) {
+        self.base = base
+    }
+
+    func composeSnapshot(
+        for date: Date,
+        calendar: Calendar,
+        mode: HealthIntelligenceComposeMode
+    ) async -> HealthIntelligenceSnapshot {
+        composeCallCount += 1
+        return await base.composeSnapshot(for: date, calendar: calendar, mode: mode)
+    }
+
+    func generateSnapshot(for date: Date, calendar: Calendar) async throws -> HealthIntelligenceSnapshot {
+        try await base.generateSnapshot(for: date, calendar: calendar)
     }
 }
 

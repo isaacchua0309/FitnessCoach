@@ -51,6 +51,8 @@ final class CoachModel: ObservableObject {
     private let localCommandParser: LocalCommandParser
     private let dailyLogReader: any DailyLogReading
     private let healthActivityQuery: HealthActivityQueryService
+    private let healthIntelligenceSnapshotProvider: (any HealthIntelligenceSnapshotServing)?
+    private let healthIntelligenceLoadEnabled: () -> Bool
     private let weightLogReader: (any WeightLogReading)?
     private let mutationHistory = CoachMutationHistory()
 
@@ -82,6 +84,8 @@ final class CoachModel: ObservableObject {
         actionCenter: FitnessActionCenter,
         dailyLogReader: any DailyLogReading,
         healthActivityQuery: HealthActivityQueryService,
+        healthIntelligenceSnapshotProvider: (any HealthIntelligenceSnapshotServing)? = nil,
+        healthIntelligenceLoadEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.shouldCoachLoadHealthIntelligence },
         weightLogReader: (any WeightLogReading)? = nil,
         aiService: AIServiceProtocol? = nil,
         userProfileReader: (any UserProfileReading)? = nil,
@@ -94,6 +98,8 @@ final class CoachModel: ObservableObject {
         self.localCommandParser = localCommandParser ?? .standard
         self.dailyLogReader = dailyLogReader
         self.healthActivityQuery = healthActivityQuery
+        self.healthIntelligenceSnapshotProvider = healthIntelligenceSnapshotProvider
+        self.healthIntelligenceLoadEnabled = healthIntelligenceLoadEnabled
         self.weightLogReader = weightLogReader
         self.aiService = aiService
         self.aiCommandParsingEnabled = aiCommandParsingEnabled
@@ -146,7 +152,7 @@ final class CoachModel: ObservableObject {
     private func refreshTodayContextAsync() async {
         do {
             let dailyLog = try dailyLogReader.getTodayLog()
-            let training = await healthActivityQuery.dailyTrainingActivity(on: dailyLog.date)
+            let activity = await resolveAIActivityContext(for: dailyLog.date)
             let latestWeight = dailyLog.weightKg == nil ? try weightLogReader?.getLatestWeight() : nil
             let weightLogged = (dailyLog.weightKg ?? latestWeight?.weightKg) != nil
             let integration = trainingInsightsStore?.integrationState ?? .connected
@@ -155,13 +161,31 @@ final class CoachModel: ObservableObject {
             todayContext = CoachTodayContextBuilder.build(
                 dailyLog: dailyLog,
                 weightLogged: weightLogged,
-                hasWorkout: training.hasWorkout,
+                hasWorkout: activity.hasWorkoutToday,
                 trainingIntegration: integration,
                 trainingDataSource: dataSource
             )
         } catch {
             todayContext = nil
         }
+    }
+
+    private func resolveAIActivityContext(for date: Date = Date()) async -> CoachAIActivityContext {
+        await CoachAIActivityContextResolver.resolve(
+            date: date,
+            snapshotProvider: healthIntelligenceSnapshotProvider,
+            healthActivityQuery: healthActivityQuery,
+            loadHealthIntelligence: healthIntelligenceLoadEnabled
+        )
+    }
+
+    private func prepareAIContext(recentMessages: [ChatMessage]) async -> AIContext? {
+        guard let aiContextBuilder else { return nil }
+        let activity = await resolveAIActivityContext()
+        return aiContextBuilder.makeContext(
+            recentMessages: recentMessages,
+            activity: activity
+        )
     }
 
     // MARK: Composer — meal photo attachment
@@ -642,10 +666,12 @@ final class CoachModel: ObservableObject {
         }
 
         let priorChatMessages = messages.filter { $0.id != userMessageID }
+        let aiContext = await prepareAIContext(recentMessages: priorChatMessages)
         let outcome = await mealPhotoAnalyzer.analyze(
             session: activeSession,
             recommission: recommission,
-            recentMessages: priorChatMessages
+            recentMessages: priorChatMessages,
+            context: aiContext
         )
 
         if let sessionResult = outcome.sessionResult, outcome.result.pendingConfirmation != nil {
@@ -749,11 +775,10 @@ final class CoachModel: ObservableObject {
         }
 
         let priorChatMessages = Array(messages.dropLast())
-        let workoutsToday = await healthActivityQuery.dailyTrainingActivity().workoutCount
-        let context = aiContextBuilder.makeContext(
-            recentMessages: priorChatMessages,
-            workoutsToday: workoutsToday
-        )
+        guard let context = await prepareAIContext(recentMessages: priorChatMessages) else {
+            traceOutcome = "aiDisabled"
+            return .message(CoachResponseBuilder.backendUnavailableResponse)
+        }
 
         do {
             let decision = try await routeDecider.decide(

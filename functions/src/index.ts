@@ -607,6 +607,18 @@ function sharedRules(): string {
   ].join("\n");
 }
 
+function healthIntelligenceRules(): string {
+  return [
+    "Health intelligence context rules:",
+    "- When context.healthIntelligenceAwarenessAvailable is true, use context.healthIntelligence before asking whether the user worked out today.",
+    "- Treat Apple Health workout calories and active energy as estimates, not precise facts.",
+    "- If health signals are missing, mention limitations only when relevant to the user's question.",
+    "- Tailor nutrition advice to today's workout and recovery signals when available.",
+    "- Do not state or imply medical diagnoses.",
+    "- When context.healthIntelligenceAwarenessAvailable is false, do not claim Apple Health awareness, recovery scores, or synced workout insights. Rely on logged app data and what the user tells you.",
+  ].join("\n");
+}
+
 function commandInstructions(): string {
   return `${sharedRules()}
 
@@ -653,12 +665,16 @@ Set requiresConfirmation true.`;
 function mealAdviceInstructions(): string {
   return `${sharedRules()}
 
+${healthIntelligenceRules()}
+
 Task: Give brief meal advice using the provided fitness context.
 Do not log anything. Mention practical portions or tradeoffs when helpful.`;
 }
 
 function coachIntentClassificationInstructions(): string {
   return `${sharedRules()}
+
+${healthIntelligenceRules()}
 
 Task: Classify the user's Coach message. You are not answering the user yet.
 Return valid JSON only matching CoachIntentResult.

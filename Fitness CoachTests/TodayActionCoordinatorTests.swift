@@ -308,4 +308,19 @@ final class TodayActionCoordinatorTests: XCTestCase {
         XCTAssertNotNil(viewed?.properties.calorieProgressBucket)
         XCTAssertNotNil(viewed?.properties.proteinProgressBucket)
     }
+
+    func testHandleHealthNextBestActionRoutesConnectHealthToTrainingInsights() {
+        var openedInsights = false
+        coordinator.onOpenTrainingInsights = { openedInsights = true }
+
+        coordinator.handleHealthNextBestAction(.connectHealth)
+
+        XCTAssertTrue(openedInsights)
+    }
+
+    func testHandleHealthNextBestActionRoutesLogMealToSheet() {
+        coordinator.handleHealthNextBestAction(.logMeal)
+
+        XCTAssertNotNil(coordinator.logMealPresentation)
+    }
 }
