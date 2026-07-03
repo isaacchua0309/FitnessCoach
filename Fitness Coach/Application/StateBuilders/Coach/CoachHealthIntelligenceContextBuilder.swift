@@ -307,15 +307,15 @@ enum CoachHealthIntelligenceContextBuilder {
         trainingLoad: TrainingLoadSummary
     ) -> String {
         if recovery.confidence == .low || recovery.confidence == .unknown {
-            return "Limited estimate"
+            return FormaProductCopy.HealthIntelligence.limitedEstimateLabel
         }
 
         if !recovery.missingSignals.isEmpty {
-            return "Partial data"
+            return FormaProductCopy.HealthIntelligence.partialDataLabel
         }
 
         if trainingLoad.confidence == .low || trainingLoad.status == .unknown {
-            return "Partial data"
+            return FormaProductCopy.HealthIntelligence.partialDataLabel
         }
 
         let planLabel = planConfidence.label.trimmingCharacters(in: .whitespacesAndNewlines)

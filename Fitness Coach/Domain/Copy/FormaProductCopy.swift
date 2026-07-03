@@ -1267,16 +1267,16 @@ enum FormaProductCopy {
         }
 
         enum HealthIntelligence {
-            static let loadingTitle = "Loading health insights"
-            static let loadingSubtitle = "Checking recovery and activity signals."
-            static let loadingAccessibilityLabel = "Loading health insights"
-            static let limitedEstimate = "Limited estimate"
+            static let loadingTitle = FormaProductCopy.HealthIntelligence.Loading.title
+            static let loadingSubtitle = FormaProductCopy.HealthIntelligence.Loading.subtitle(for: .today)
+            static let loadingAccessibilityLabel = FormaProductCopy.HealthIntelligence.Loading.accessibilityLabel
+            static let limitedEstimate = FormaProductCopy.HealthIntelligence.limitedEstimateLabel
             static let workoutComplete = "Workout complete"
             static let noWorkoutYet = "No workout logged yet"
             static let connectHealthFallback =
-                "Connect Apple Health for recovery insights, or keep logging meals as usual."
+                FormaProductCopy.HealthIntelligence.message(for: .noHealthPermission, surface: .today).bannerMessage
             static let continueLoggingFallback =
-                "Keep logging meals and water while health signals catch up."
+                FormaProductCopy.HealthIntelligence.message(for: .limitedEstimate, surface: .today).bannerMessage
 
             static func missingRecoverySignals(_ signals: [String]) -> String {
                 "Missing: \(signals.joined(separator: ", "))."
@@ -1703,20 +1703,26 @@ enum FormaProductCopy {
         }
 
         enum HealthIntelligence {
-            static let loadingTitle = "Loading health insights"
-            static let loadingSubtitle = "Reviewing recovery and training patterns."
-            static let loadingAccessibilityLabel = "Loading health insights"
-            static let limitedEstimate = "Limited estimate"
-            static let unavailableTitle = "Health insights unavailable"
-            static let unavailableSubtitle = "Connect Apple Health or keep logging to unlock recovery trends."
-            static let connectHealthTitle = "Connect Apple Health"
+            static let loadingTitle = FormaProductCopy.HealthIntelligence.Loading.title
+            static let loadingSubtitle = FormaProductCopy.HealthIntelligence.Loading.subtitle(for: .journey)
+            static let loadingAccessibilityLabel = FormaProductCopy.HealthIntelligence.Loading.accessibilityLabel
+            static let limitedEstimate = FormaProductCopy.HealthIntelligence.limitedEstimateLabel
+            static let unavailableTitle =
+                FormaProductCopy.HealthIntelligence.message(for: .noHealthDataYet, surface: .journey).title
+            static let unavailableSubtitle =
+                FormaProductCopy.HealthIntelligence.message(for: .noHealthDataYet, surface: .journey).bannerMessage
+            static let connectHealthTitle =
+                FormaProductCopy.HealthIntelligence.NoHealthPermission.title
             static let connectHealthMessage =
-                "Link Apple Health to see recovery trends, workouts, and weekly health progress on your Journey."
-            static let connectHealthCTA = "Connect Apple Health"
+                FormaProductCopy.HealthIntelligence.NoHealthPermission.message
+            static let connectHealthCTA =
+                FormaProductCopy.HealthIntelligence.NoHealthPermission.actionTitle
             static let connectedNoWorkoutsMessage =
-                "Apple Health is connected. When you log a workout, it will show up here."
-            static let errorTitle = "Couldn't load health insights"
-            static let errorSubtitle = "Pull to refresh or try again later."
+                FormaProductCopy.HealthIntelligence.message(for: .noHealthDataYet, surface: .journey).message
+            static let errorTitle =
+                FormaProductCopy.HealthIntelligence.SyncFailed.title
+            static let errorSubtitle =
+                FormaProductCopy.HealthIntelligence.message(for: .syncFailed, surface: .journey).bannerMessage
 
             enum RecoveryTimeline {
                 static let sectionTitle = "Recovery timeline"
@@ -3181,14 +3187,16 @@ enum FormaProductCopy {
         static let dataQualityCardSectionTitle = "Data quality"
         static let confidenceReasonsHeading = "What Forma is using"
 
-        static let loadingTitle = "Reviewing health signals"
-        static let loadingSubtitle = "Checking how well your recent data supports this plan."
-        static let loadingAccessibilityLabel = "Loading plan health intelligence"
+        static let loadingTitle = FormaProductCopy.HealthIntelligence.Loading.title
+        static let loadingSubtitle = FormaProductCopy.HealthIntelligence.Loading.subtitle(for: .plan)
+        static let loadingAccessibilityLabel = FormaProductCopy.HealthIntelligence.Loading.accessibilityLabel
 
-        static let emptyTitle = "Health signals still building"
+        static let emptyTitle =
+            FormaProductCopy.HealthIntelligence.message(for: .noHealthDataYet, surface: .plan).title
         static let emptySummary =
-            "Connect Apple Health and keep logging to see how well your plan matches your recent patterns."
-        static let emptyAccessibilityLabel = "Plan health intelligence unavailable. Connect health and keep logging."
+            FormaProductCopy.HealthIntelligence.message(for: .noHealthDataYet, surface: .plan).bannerMessage
+        static let emptyAccessibilityLabel =
+            FormaProductCopy.HealthIntelligence.message(for: .noHealthDataYet, surface: .plan).accessibilityLabel
 
         static let disclaimer =
             "Coaching estimates only — not a medical assessment."
@@ -3283,9 +3291,10 @@ enum FormaProductCopy {
         static let recoveryTrendLow = "Recovery has been lower"
         static let recoveryTrendUnknown = "Recovery trend unclear"
 
-        static let actionConnectHealthTitle = "Connect Apple Health"
+        static let actionConnectHealthTitle =
+            FormaProductCopy.HealthIntelligence.NoHealthPermission.actionTitle
         static let actionConnectHealthMessage =
-            "Sync activity, sleep, and heart signals so your plan fit stays grounded in real patterns."
+            FormaProductCopy.HealthIntelligence.NoHealthPermission.message
         static let actionLogWeightTitle = "Log weight this week"
         static let actionLogWeightMessage =
             "A few weigh-ins help Forma track whether your plan pace still makes sense."
@@ -3298,9 +3307,10 @@ enum FormaProductCopy {
         static let actionEnableHRVTitle = "Add heart variability data"
         static let actionEnableHRVMessage =
             "HRV readings give Forma another recovery cue — optional, but helpful."
-        static let actionPartialPermissionsTitle = "Finish Apple Health setup"
+        static let actionPartialPermissionsTitle =
+            FormaProductCopy.HealthIntelligence.PartialHealthPermission.actionTitle
         static let actionPartialPermissionsMessage =
-            "Some Apple Health permissions are still partial — open Settings to allow more signals."
+            FormaProductCopy.HealthIntelligence.PartialHealthPermission.message
 
         static func confidenceHeadline(label: String) -> String {
             "\(label) for your current plan"
@@ -3468,6 +3478,157 @@ enum FormaProductCopy {
                 return confidenceUnknown
             default:
                 return label
+            }
+        }
+    }
+
+    // MARK: - Health Intelligence (shared)
+
+    enum HealthIntelligence {
+        static let limitedEstimateLabel = "Limited estimate"
+        static let partialDataLabel = "Partial data"
+        static let buildingLabel = "Still building"
+
+        enum Loading {
+            static let title = "Checking health signals"
+            static let subtitle = "This usually takes a moment."
+            static let accessibilityLabel = "Checking health signals"
+
+            static func subtitle(for surface: HealthIntelligenceSurface) -> String {
+                switch surface {
+                case .today:
+                    return "Reviewing recovery and activity for today."
+                case .journey:
+                    return "Reviewing recovery and training patterns."
+                case .plan:
+                    return "Reviewing how your recent data supports this plan."
+                case .coach:
+                    return "Reviewing health context for Coach."
+                }
+            }
+        }
+
+        enum NoHealthPermission {
+            static let title = "Connect Apple Health"
+            static let message = "Link Apple Health to unlock recovery and activity insights."
+            static let reassurance = "You can keep logging meals and water as usual."
+            static let actionTitle = "Connect Apple Health"
+        }
+
+        enum PartialHealthPermission {
+            static let title = "Some health signals are off"
+            static let message =
+                "Forma can use what is syncing now. Allow more in Apple Health for fuller insights."
+            static let reassurance = "Your plan and logging still work normally."
+            static let actionTitle = "Manage Health permissions"
+        }
+
+        enum NoHealthDataYet {
+            static let title = "Health signals are still building"
+            static let message =
+                "Apple Health is connected. Insights appear after a few days of synced activity."
+            static let reassurance = "Keep logging meals and check back soon."
+            static let actionTitle = "Continue logging"
+        }
+
+        enum LimitedEstimate {
+            static let title = "Limited estimate"
+            static let message =
+                "Forma has partial recovery signals today, so guidance stays cautious."
+            static let reassurance = "Logging meals and water still helps your plan stay on track."
+            static let actionTitle = "Ask Coach"
+        }
+
+        enum SyncFailed {
+            static let title = "Health sync needs another try"
+            static let message = "Forma couldn't refresh Apple Health just now."
+            static let reassurance = "Your logged data is safe. Pull to refresh or try again later."
+            static let actionTitle = "Try again"
+        }
+
+        enum UnavailableOnDevice {
+            static let title = "Apple Health isn't available here"
+            static let message = "This device can't sync Apple Health data."
+            static let reassurance = "You can still log meals, water, and weight in Forma."
+        }
+
+        static func message(
+            for lifecycle: HealthIntelligencePresentationLifecycle,
+            surface: HealthIntelligenceSurface = .today
+        ) -> HealthIntelligencePresentationMessage {
+            switch lifecycle {
+            case .loading:
+                return HealthIntelligencePresentationMessage(
+                    lifecycle: lifecycle,
+                    title: Loading.title,
+                    message: Loading.subtitle(for: surface),
+                    reassurance: nil,
+                    primaryAction: .none,
+                    primaryActionTitle: nil
+                )
+            case .ready:
+                return HealthIntelligencePresentationMessage(
+                    lifecycle: lifecycle,
+                    title: "",
+                    message: "",
+                    reassurance: nil,
+                    primaryAction: .none,
+                    primaryActionTitle: nil
+                )
+            case .noHealthPermission:
+                return HealthIntelligencePresentationMessage(
+                    lifecycle: lifecycle,
+                    title: NoHealthPermission.title,
+                    message: NoHealthPermission.message,
+                    reassurance: NoHealthPermission.reassurance,
+                    primaryAction: .connectAppleHealth,
+                    primaryActionTitle: NoHealthPermission.actionTitle
+                )
+            case .partialHealthPermission:
+                return HealthIntelligencePresentationMessage(
+                    lifecycle: lifecycle,
+                    title: PartialHealthPermission.title,
+                    message: PartialHealthPermission.message,
+                    reassurance: PartialHealthPermission.reassurance,
+                    primaryAction: .manageHealthPermissions,
+                    primaryActionTitle: PartialHealthPermission.actionTitle
+                )
+            case .noHealthDataYet:
+                return HealthIntelligencePresentationMessage(
+                    lifecycle: lifecycle,
+                    title: NoHealthDataYet.title,
+                    message: NoHealthDataYet.message,
+                    reassurance: NoHealthDataYet.reassurance,
+                    primaryAction: .continueLogging,
+                    primaryActionTitle: NoHealthDataYet.actionTitle
+                )
+            case .limitedEstimate:
+                return HealthIntelligencePresentationMessage(
+                    lifecycle: lifecycle,
+                    title: LimitedEstimate.title,
+                    message: LimitedEstimate.message,
+                    reassurance: LimitedEstimate.reassurance,
+                    primaryAction: .askCoach,
+                    primaryActionTitle: LimitedEstimate.actionTitle
+                )
+            case .syncFailed:
+                return HealthIntelligencePresentationMessage(
+                    lifecycle: lifecycle,
+                    title: SyncFailed.title,
+                    message: SyncFailed.message,
+                    reassurance: SyncFailed.reassurance,
+                    primaryAction: .none,
+                    primaryActionTitle: SyncFailed.actionTitle
+                )
+            case .unavailableOnDevice:
+                return HealthIntelligencePresentationMessage(
+                    lifecycle: lifecycle,
+                    title: UnavailableOnDevice.title,
+                    message: UnavailableOnDevice.message,
+                    reassurance: UnavailableOnDevice.reassurance,
+                    primaryAction: .none,
+                    primaryActionTitle: nil
+                )
             }
         }
     }

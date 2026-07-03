@@ -17,7 +17,11 @@ enum TodayHealthIntelligencePresentationBuilder {
         snapshot: HealthIntelligenceSnapshot?,
         nutritionProgress: TodayHealthIntelligenceNutritionProgress = .unavailable,
         isLoading: Bool = false,
-        isUIEnabled: Bool = HealthIntelligenceFeatureFlags.isUIEnabled
+        isUIEnabled: Bool = HealthIntelligenceFeatureFlags.isUIEnabled,
+        availability: HealthDataAvailability? = nil,
+        isAppleHealthConnected: Bool = false,
+        cachedDayCount: Int = 0,
+        errorMessage: String? = nil
     ) -> TodayHealthIntelligenceSectionState? {
         guard isUIEnabled else { return nil }
 
@@ -25,8 +29,17 @@ enum TodayHealthIntelligencePresentationBuilder {
             return loadingSection()
         }
 
+        let context = presentationContext(
+            snapshot: snapshot,
+            isLoading: false,
+            availability: availability,
+            isAppleHealthConnected: isAppleHealthConnected,
+            cachedDayCount: cachedDayCount,
+            errorMessage: errorMessage
+        )
+
         guard let snapshot else {
-            return unavailableSection()
+            return unavailableSection(context: context)
         }
 
         let recoveryCard = recoveryCard(from: snapshot.recovery)
@@ -41,19 +54,14 @@ enum TodayHealthIntelligencePresentationBuilder {
             from: snapshot.nutritionAdjustment,
             nutritionProgress: nutritionProgress
         )
-        let fallbackMessage = fallbackMessage(
-            recovery: snapshot.recovery,
-            activity: snapshot.activity,
-            workout: snapshot.workout,
-            nextBestAction: snapshot.nextBestAction
-        )
+        let fallbackMessage = fallbackMessage(for: context)
 
         return TodayHealthIntelligenceSectionState(
             recoveryCard: recoveryCard,
             dailyMission: dailyMission,
-            nextBestAction: connectHealthActionIfNeeded(
+            nextBestAction: supplementalActionIfNeeded(
                 healthAction: mappedNextBestAction,
-                fallbackMessage: fallbackMessage
+                context: context
             ),
             workoutCard: workoutCard,
             adaptiveNutritionCard: adaptiveNutritionCard,
@@ -229,19 +237,106 @@ enum TodayHealthIntelligencePresentationBuilder {
         )
     }
 
-    private static func unavailableSection() -> TodayHealthIntelligenceSectionState {
-        TodayHealthIntelligenceSectionState(
+    private static func unavailableSection(
+        context: HealthIntelligencePresentationContext
+    ) -> TodayHealthIntelligenceSectionState {
+        let fallbackMessage = fallbackMessage(for: context)
+            ?? FormaProductCopy.Today.HealthIntelligence.connectHealthFallback
+
+        return TodayHealthIntelligenceSectionState(
             recoveryCard: recoveryCard(from: .unknown),
             dailyMission: dailyMission(
                 recovery: .unknown,
                 workout: nil,
                 nutritionProgress: .unavailable
             ),
-            nextBestAction: .hidden,
+            nextBestAction: supplementalActionIfNeeded(
+                healthAction: .hidden,
+                context: context
+            ),
             workoutCard: nil,
             adaptiveNutritionCard: nil,
             isLoading: false,
-            fallbackMessage: FormaProductCopy.Today.HealthIntelligence.connectHealthFallback
+            fallbackMessage: fallbackMessage
+        )
+    }
+
+    private static func presentationContext(
+        snapshot: HealthIntelligenceSnapshot?,
+        isLoading: Bool,
+        availability: HealthDataAvailability?,
+        isAppleHealthConnected: Bool,
+        cachedDayCount: Int,
+        errorMessage: String?
+    ) -> HealthIntelligencePresentationContext {
+        HealthIntelligencePresentationContext(
+            isLoading: isLoading,
+            explicitErrorMessage: errorMessage,
+            availability: availability,
+            snapshot: snapshot,
+            isAppleHealthConnected: isAppleHealthConnected,
+            cachedDayCount: cachedDayCount
+        )
+    }
+
+    private static func fallbackMessage(
+        for context: HealthIntelligencePresentationContext
+    ) -> String? {
+        HealthIntelligencePresentationStateMapper.bannerMessage(for: context, surface: .today)
+    }
+
+    private static func supplementalActionIfNeeded(
+        healthAction: TodayHealthNextBestActionState,
+        context: HealthIntelligencePresentationContext
+    ) -> TodayHealthNextBestActionState {
+        guard !healthAction.isVisible else { return healthAction }
+
+        let lifecycle = HealthIntelligencePresentationStateMapper.resolve(context)
+        let presentation = HealthIntelligencePresentationStateMapper.message(
+            for: lifecycle,
+            surface: .today
+        )
+
+        switch presentation.primaryAction {
+        case .connectAppleHealth:
+            return supplementalActionState(
+                from: presentation,
+                destination: .connectHealth
+            )
+        case .manageHealthPermissions:
+            return supplementalActionState(
+                from: presentation,
+                destination: .connectHealth
+            )
+        case .askCoach:
+            return supplementalActionState(
+                from: presentation,
+                destination: .askCoach
+            )
+        case .continueLogging, .none:
+            return healthAction
+        }
+    }
+
+    private static func supplementalActionState(
+        from presentation: HealthIntelligencePresentationMessage,
+        destination: TodayHealthNextBestActionDestination
+    ) -> TodayHealthNextBestActionState {
+        let title = presentation.primaryActionTitle ?? presentation.title
+        let message = presentation.bannerMessage
+
+        return TodayHealthNextBestActionState(
+            isVisible: true,
+            sectionTitle: FormaProductCopy.Today.HealthIntelligence.NextAction.sectionTitle,
+            title: title,
+            message: message,
+            ctaTitle: presentation.primaryActionTitle,
+            destination: destination,
+            accessibilityLabel: nextBestActionAccessibilityLabel(
+                title: title,
+                message: message,
+                ctaTitle: presentation.primaryActionTitle
+            )
         )
     }
 
@@ -268,7 +363,7 @@ enum TodayHealthIntelligencePresentationBuilder {
     private static func confidenceNote(for confidence: RecoveryConfidence) -> String? {
         switch confidence {
         case .low, .unknown:
-            return FormaProductCopy.Today.HealthIntelligence.limitedEstimate
+            return FormaProductCopy.HealthIntelligence.limitedEstimateLabel
         case .moderate, .high:
             return nil
         }
@@ -458,58 +553,6 @@ enum TodayHealthIntelligencePresentationBuilder {
             return FormaProductCopy.Today.HealthIntelligence.DailyMission.proteinRemaining(protein)
         }
         return nil
-    }
-
-    private static func fallbackMessage(
-        recovery: RecoverySummary,
-        activity: ActivitySummary,
-        workout: WorkoutSummary?,
-        nextBestAction: NextBestAction
-    ) -> String? {
-        if nextBestAction.reason == .connectHealth {
-            return FormaProductCopy.Today.HealthIntelligence.connectHealthFallback
-        }
-
-        let hasWorkout = workout?.hasWorkout == true
-        let hasActivity = activity.steps != nil
-            || activity.activeEnergyKcal != nil
-            || activity.exerciseMinutes != nil
-
-        if recovery.status == .unknown && !hasWorkout && !hasActivity {
-            return FormaProductCopy.Today.HealthIntelligence.connectHealthFallback
-        }
-
-        if recovery.confidence == .low || recovery.confidence == .unknown {
-            if !recovery.missingSignals.isEmpty {
-                return FormaProductCopy.Today.HealthIntelligence.continueLoggingFallback
-            }
-        }
-
-        return nil
-    }
-
-    private static func connectHealthActionIfNeeded(
-        healthAction: TodayHealthNextBestActionState,
-        fallbackMessage: String?
-    ) -> TodayHealthNextBestActionState {
-        guard !healthAction.isVisible else { return healthAction }
-        guard let fallbackMessage else { return healthAction }
-
-        return TodayHealthNextBestActionState(
-            isVisible: true,
-            sectionTitle: FormaProductCopy.Today.HealthIntelligence.NextAction.sectionTitle,
-            title: FormaProductCopy.Today.actionConnectAppleHealth,
-            message: fallbackMessage,
-            ctaTitle: FormaProductCopy.Today.NextAction.ctaConnectHealth,
-            destination: .connectHealth,
-            accessibilityLabel: [
-                FormaProductCopy.Today.HealthIntelligence.NextAction.sectionTitle,
-                FormaProductCopy.Today.actionConnectAppleHealth,
-                fallbackMessage
-            ]
-            .filter { !$0.isEmpty }
-            .joined(separator: ". ")
-        )
     }
 
     private static func trimmed(_ value: String?) -> String? {

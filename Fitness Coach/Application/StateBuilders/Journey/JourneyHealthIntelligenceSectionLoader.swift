@@ -40,7 +40,12 @@ enum JourneyHealthIntelligenceSectionLoader {
         )
 
         guard healthConnection == .connected else {
-            return JourneyHealthIntelligenceBuildInput(healthConnection: .notConnected)
+            return JourneyHealthIntelligenceBuildInput(
+                todaySnapshot: todaySnapshot,
+                healthConnection: .notConnected,
+                availability: availability,
+                cachedDayCount: availability.cachedDayCount
+            )
         }
 
         let recoveryDays = await loadRecoveryDays(
@@ -74,6 +79,8 @@ enum JourneyHealthIntelligenceSectionLoader {
             weeklyReview: weeklyReview,
             planProgress: planProgress(from: weeklyReview),
             healthConnection: .connected,
+            availability: availability,
+            cachedDayCount: availability.cachedDayCount,
             recoveryTimelineDayCount: recoveryTimelineDayCount
         )
     }

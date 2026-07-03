@@ -320,6 +320,8 @@ struct JourneyHealthIntelligenceBuildInput: Equatable, Sendable {
     var weeklyReview: WeeklyHealthReview?
     var planProgress: JourneyHealthIntelligencePlanProgressInput?
     var healthConnection: JourneyHealthConnectionState
+    var availability: HealthDataAvailability?
+    var cachedDayCount: Int
     var recoveryTimelineDayCount: Int
     var isLoading: Bool
     var errorMessage: String?
@@ -331,6 +333,8 @@ struct JourneyHealthIntelligenceBuildInput: Equatable, Sendable {
         weeklyReview: WeeklyHealthReview? = nil,
         planProgress: JourneyHealthIntelligencePlanProgressInput? = nil,
         healthConnection: JourneyHealthConnectionState = .unknown,
+        availability: HealthDataAvailability? = nil,
+        cachedDayCount: Int = 0,
         recoveryTimelineDayCount: Int = 7,
         isLoading: Bool = false,
         errorMessage: String? = nil
@@ -341,6 +345,8 @@ struct JourneyHealthIntelligenceBuildInput: Equatable, Sendable {
         self.weeklyReview = weeklyReview
         self.planProgress = planProgress
         self.healthConnection = healthConnection
+        self.availability = availability
+        self.cachedDayCount = cachedDayCount
         self.recoveryTimelineDayCount = recoveryTimelineDayCount
         self.isLoading = isLoading
         self.errorMessage = errorMessage
