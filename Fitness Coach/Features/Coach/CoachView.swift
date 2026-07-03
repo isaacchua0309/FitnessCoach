@@ -12,6 +12,7 @@ struct CoachView: View {
 
     @StateObject private var model: CoachModel
     @StateObject private var speechService = CoachSpeechRecognizerService()
+    @StateObject private var imagePickFlow = CoachImagePickFlowController()
     @EnvironmentObject private var authManager: AuthManager
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
     @FocusState private var isInputFocused: Bool
@@ -19,8 +20,6 @@ struct CoachView: View {
     /// False when another tab is selected in `MainTabView` (TabView keeps the view mounted).
     var isActive: Bool = true
 
-    @State private var isPhotoPickerPresented = false
-    @State private var isCameraPresented = false
     @State private var photoPickerItem: PhotosPickerItem?
     @State private var isRetryingCoachSession = false
 
@@ -92,19 +91,32 @@ struct CoachView: View {
                 model.refreshTodayContext()
             }
             .animation(CoachDesignTokens.Motion.standard, value: showEmptyChrome)
-            .photosPicker(isPresented: $isPhotoPickerPresented, selection: $photoPickerItem, matching: .images)
+            .photosPicker(
+                isPresented: $imagePickFlow.isPhotoPickerPresented,
+                selection: $photoPickerItem,
+                matching: .images
+            )
+            .onChange(of: imagePickFlow.isPhotoPickerPresented) { _, isPresented in
+                if !isPresented {
+                    imagePickFlow.handlePhotoLibraryPickerDismissed()
+                }
+            }
             .onChange(of: photoPickerItem) { _, item in
                 guard let item else { return }
                 photoPickerItem = nil
                 Task {
-                    let result = await CoachMealPhotoPipeline.loadJPEG(from: item)
-                    await model.handleMealPhotoSelection(result, source: .library)
+                    await imagePickFlow.handlePhotoLibrarySelection(item, model: model)
                 }
             }
-            .fullScreenCover(isPresented: $isCameraPresented) {
+            .fullScreenCover(
+                isPresented: $imagePickFlow.isCameraPresented,
+                onDismiss: {
+                    imagePickFlow.handleCameraPickerDismissedWithoutResult()
+                }
+            ) {
                 CoachCameraPicker { result in
                     Task {
-                        await model.handleMealPhotoSelection(result, source: .camera)
+                        await imagePickFlow.handleCameraResult(result, model: model)
                     }
                 }
                 .ignoresSafeArea()
@@ -174,12 +186,14 @@ struct CoachView: View {
                     model.inputText = newValue
                 }
             ),
-            attachment: model.inputState.attachment,
-            attachmentError: model.inputState.error,
+            pendingImage: model.inputState.pendingImage,
+            attachmentError: model.inputState.imageErrorMessage,
+            showsImageErrorRetry: model.inputState.imageErrorSupportsRetry,
             speechError: speechService.errorMessage,
             isListening: speechService.isRecording,
             isVoiceInputBusy: speechService.isVoiceInputBusy,
-            canPickAttachment: model.inputState.canPickImage,
+            canPickAttachment: model.inputState.canStartImageSelection && imagePickFlow.allowsAttachmentPick,
+            isProcessingImage: imagePickFlow.isProcessingImage,
             textFieldPlaceholder: model.photoClarificationComposerPlaceholder
                 ?? FormaProductCopy.Coach.composerPlaceholder,
             isFocused: $isInputFocused,
@@ -197,6 +211,12 @@ struct CoachView: View {
             onAttachmentSelect: handleAttachmentSelection,
             onRemoveAttachment: {
                 model.removeStagedMealPhoto()
+                imagePickFlow.handleAttachmentRemoved()
+            },
+            onRetryImageSelection: {
+                Task {
+                    await imagePickFlow.retryFailedImageSelection(model: model)
+                }
             }
         )
         .background(
@@ -210,7 +230,7 @@ struct CoachView: View {
         speechService.stopRecording()
         switch prompt.behavior {
         case .openPhotoPicker:
-            isPhotoPickerPresented = true
+            _ = imagePickFlow.beginPhotoLibraryPick(model: model)
         case .prefill:
             Task { await model.applyStarterPromptSpec(prompt) }
             isInputFocused = true
@@ -220,20 +240,14 @@ struct CoachView: View {
     }
 
     private func handleAttachmentSelection(_ option: CoachAttachmentOption) {
-        guard model.requestPhotoPick() else { return }
         speechService.stopRecording()
         switch option {
         case .takePhoto:
             Task {
-                switch await CoachCameraAccess.resolveForCapture() {
-                case .success:
-                    isCameraPresented = true
-                case .failure(let error):
-                    await model.handleMealPhotoSelection(.failure(error), source: .camera)
-                }
+                await imagePickFlow.beginCameraPick(model: model)
             }
         case .choosePhoto:
-            isPhotoPickerPresented = true
+            _ = imagePickFlow.beginPhotoLibraryPick(model: model)
         }
     }
 

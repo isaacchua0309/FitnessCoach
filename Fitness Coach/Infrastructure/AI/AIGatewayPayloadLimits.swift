@@ -9,14 +9,20 @@ import Foundation
 
 enum AIGatewayPayloadLimits {
 
-    /// `FORMA_AI_MAX_IMAGE_B64_CHARS` default minus JSON envelope headroom.
-    static let maxImageBase64Characters = 1_400_000
+    /// Raw JPEG ceiling sourced from centralized Coach image upload config.
+    static var maxJPEGBytes: Int {
+        CoachImageUploadConfig.default.maxUploadBytes
+    }
 
-    /// `FORMA_AI_MAX_BODY_BYTES_WITH_IMAGE` default minus text/context headroom.
-    static let maxRequestBodyBytes = 1_900_000
+    /// Base64 character ceiling derived from `maxJPEGBytes`.
+    static var maxImageBase64Characters: Int {
+        CoachImageUploadConfig.default.maxBase64CharacterLimit
+    }
 
-    /// Raw JPEG ceiling that stays under base64 and total-body limits after encoding.
-    static let maxJPEGBytes = 850_000
+    /// Total JSON body ceiling for image-bearing Coach AI requests.
+    static var maxRequestBodyBytes: Int {
+        CoachImageUploadConfig.default.maxRequestBodyBytes
+    }
 
     static func estimatedBase64CharacterCount(for jpegData: Data) -> Int {
         ((jpegData.count + 2) / 3) * 4

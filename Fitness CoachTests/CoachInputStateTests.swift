@@ -14,55 +14,83 @@ final class CoachInputStateTests: XCTestCase {
     func testEmptyStateCannotSendOrPick() {
         var state = CoachInputState.empty
         XCTAssertFalse(state.canSend)
-        XCTAssertTrue(state.canPickImage)
+        XCTAssertTrue(state.canStartImageSelection)
     }
 
     func testTextOnlyCanSend() {
         var state = CoachInputState.empty
         state.updateText("log water")
         XCTAssertTrue(state.canSend)
-        XCTAssertTrue(state.canPickImage)
+        XCTAssertTrue(state.canStartImageSelection)
     }
 
-    func testAttachmentOnlyCanSend() throws {
+    func testReadyPendingImageOnlyCanSend() throws {
         var state = CoachInputState.empty
         let jpeg = try makeTestJPEG()
         XCTAssertTrue(stageTestImage(&state, jpeg: jpeg, source: .library))
         XCTAssertTrue(state.canSend)
-        XCTAssertFalse(state.canPickImage)
+        XCTAssertTrue(state.canStartImageSelection)
     }
 
-    func testSecondImageRequiresRemoveFirst() throws {
+    func testProcessingDisablesSendAndNewSelection() throws {
+        var state = CoachInputState.empty
+        let jpeg = try makeTestJPEG()
+        XCTAssertTrue(stageTestImage(&state, jpeg: jpeg, source: .library))
+        state.beginProcessingNewSelection(source: .camera)
+
+        XCTAssertFalse(state.canSend)
+        XCTAssertFalse(state.canStartImageSelection)
+        XCTAssertTrue(state.isImageProcessing)
+    }
+
+    func testReplacePendingImageOnlyAfterProcessingSucceeds() throws {
         var state = CoachInputState.empty
         let first = try makeTestJPEG()
         let second = try makeTestJPEG()
-
         XCTAssertTrue(stageTestImage(&state, jpeg: first, source: .camera))
-        let firstAttachmentID = try XCTUnwrap(state.attachment?.id)
+        let firstID = try XCTUnwrap(state.pendingImage?.id)
 
-        XCTAssertFalse(stageTestImage(&state, jpeg: second, source: .library))
-        XCTAssertEqual(state.error, .attachmentAlreadyPresent)
-        XCTAssertEqual(state.attachment?.id, firstAttachmentID)
-        XCTAssertEqual(state.attachment?.source, .camera)
+        state.beginProcessingNewSelection(source: .library)
+        XCTAssertEqual(state.pendingImage?.id, firstID)
+        XCTAssertEqual(state.pendingImage?.uploadData, first)
+
+        let thumbnail = CoachMealPhotoPipeline.makeThumbnailJPEGSync(from: second) ?? second
+        XCTAssertTrue(state.applyLegacyPreparedImage(uploadData: second, thumbnail: thumbnail, source: .library))
+        XCTAssertNotEqual(state.pendingImage?.id, firstID)
+        XCTAssertEqual(state.pendingImage?.uploadData, second)
     }
 
-    func testRemoveAttachmentClearsErrorAndAllowsNewPick() throws {
+    func testFailedProcessingPreservesReadyPendingImage() throws {
+        var state = CoachInputState.empty
+        let jpeg = try makeTestJPEG()
+        XCTAssertTrue(stageTestImage(&state, jpeg: jpeg, source: .library))
+        let firstID = try XCTUnwrap(state.pendingImage?.id)
+
+        state.beginProcessingNewSelection(source: .camera)
+        state.failImageProcessing(.encodingFailed)
+
+        XCTAssertEqual(state.pendingImage?.id, firstID)
+        XCTAssertEqual(state.pendingImage?.status, .ready)
+        XCTAssertEqual(state.imageError, .encodingFailed)
+    }
+
+    func testClearPendingImageClearsErrorAndAllowsNewPick() throws {
         var state = CoachInputState.empty
         let first = try makeTestJPEG()
         let second = try makeTestJPEG()
 
         XCTAssertTrue(stageTestImage(&state, jpeg: first, source: .library))
-        _ = stageTestImage(&state, jpeg: second, source: .camera)
-        XCTAssertEqual(state.error, .attachmentAlreadyPresent)
+        state.failImageProcessing(.loadFailed)
+        state.clearPendingImage()
 
-        state.removeAttachment()
-        XCTAssertNil(state.error)
-        XCTAssertTrue(state.canPickImage)
+        XCTAssertNil(state.pendingImage)
+        XCTAssertNil(state.imageError)
+        XCTAssertTrue(state.canStartImageSelection)
         XCTAssertTrue(stageTestImage(&state, jpeg: second, source: .camera))
-        XCTAssertEqual(state.attachment?.source, .camera)
+        XCTAssertEqual(state.pendingImage?.source, .camera)
     }
 
-    func testTakeSendSnapshotFreezesAndClearsComposer() throws {
+    func testTakeSendSnapshotConsumesReadyPendingImage() throws {
         var state = CoachInputState.empty
         let jpeg = try makeTestJPEG()
         state.updateText("  Lunch bowl  ")
@@ -73,11 +101,11 @@ final class CoachInputStateTests: XCTestCase {
 
         XCTAssertEqual(frozen.text, "  Lunch bowl  ")
         XCTAssertEqual(frozen.trimmedText, "Lunch bowl")
-        XCTAssertEqual(frozen.attachment?.imageData, jpeg)
-        XCTAssertEqual(frozen.attachment?.source, .library)
+        XCTAssertEqual(frozen.pendingImage?.uploadData, jpeg)
+        XCTAssertEqual(frozen.pendingImage?.source, .library)
         XCTAssertTrue(state.text.isEmpty)
-        XCTAssertNil(state.attachment)
-        XCTAssertNil(state.error)
+        XCTAssertNil(state.pendingImage)
+        XCTAssertNil(state.imageError)
         XCTAssertFalse(state.canSend)
     }
 
@@ -91,8 +119,8 @@ final class CoachInputStateTests: XCTestCase {
         state.restore(from: snapshot)
 
         XCTAssertEqual(state.text, "  Lunch bowl  ")
-        XCTAssertEqual(state.attachment?.imageData, jpeg)
-        XCTAssertEqual(state.attachment?.source, .library)
+        XCTAssertEqual(state.pendingImage?.uploadData, jpeg)
+        XCTAssertEqual(state.pendingImage?.source, .library)
         XCTAssertTrue(state.canSend)
     }
 
@@ -132,35 +160,22 @@ final class CoachInputStateTests: XCTestCase {
         state.setSending(true)
 
         XCTAssertFalse(state.canSend)
-        XCTAssertFalse(state.canPickImage)
+        XCTAssertFalse(state.canStartImageSelection)
         XCTAssertNil(state.takeSendSnapshot())
     }
 
-    func testRemoveAttachmentDisablesSendUntilTextOrImageReturns() throws {
+    func testRemovePendingImageDisablesSendUntilTextOrImageReturns() throws {
         var state = CoachInputState.empty
         let jpeg = try makeTestJPEG()
         XCTAssertTrue(stageTestImage(&state, jpeg: jpeg, source: .library))
         XCTAssertTrue(state.canSend)
 
-        state.removeAttachment()
+        state.clearPendingImage()
         XCTAssertFalse(state.canSend)
 
         state.updateText("caption")
         XCTAssertTrue(state.canSend)
-        XCTAssertFalse(state.canPickImage)
-    }
-
-    func testAttachmentBuildsThumbnail() async throws {
-        let jpeg = try makeTestJPEG()
-        let attachment = try XCTUnwrap(
-            await CoachInputAttachment.make(jpegData: jpeg, source: .library)
-        )
-
-        XCTAssertEqual(attachment.kind, .image)
-        XCTAssertFalse(attachment.thumbnail.isEmpty)
-        XCTAssertLessThan(attachment.thumbnail.count, jpeg.count)
-        XCTAssertNotNil(attachment.uiImage)
-        XCTAssertNotNil(attachment.thumbnailImage)
+        XCTAssertTrue(state.canStartImageSelection)
     }
 
     private func stageTestImage(
@@ -169,7 +184,7 @@ final class CoachInputStateTests: XCTestCase {
         source: CoachInputAttachmentSource
     ) -> Bool {
         let thumbnail = CoachMealPhotoPipeline.makeThumbnailJPEGSync(from: jpeg) ?? jpeg
-        return state.stagePreparedImage(jpegData: jpeg, thumbnail: thumbnail, source: source)
+        return state.applyLegacyPreparedImage(uploadData: jpeg, thumbnail: thumbnail, source: source)
     }
 
     private func makeTestJPEG() throws -> Data {

@@ -30,11 +30,11 @@ struct ChatMessageImageAttachment: Codable, Equatable, Sendable {
         self.source = source
     }
 
-    static func fromInputAttachment(_ attachment: CoachInputAttachment) -> ChatMessageImageAttachment {
+    static func fromPendingImage(_ pendingImage: CoachPendingImageState) -> ChatMessageImageAttachment {
         ChatMessageImageAttachment(
-            imageJPEG: attachment.imageData,
-            thumbnailJPEG: attachment.thumbnail,
-            source: attachment.source
+            imageJPEG: pendingImage.uploadData,
+            thumbnailJPEG: pendingImage.thumbnail,
+            source: pendingImage.source
         )
     }
 

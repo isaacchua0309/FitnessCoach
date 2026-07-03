@@ -125,18 +125,25 @@ final class AIService: AIServiceProtocol {
     }
 
     func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
-        if let imageData = Data(base64Encoded: request.image.base64) {
-            guard AIGatewayPayloadLimits.fitsImagePayload(imageData) else {
-                let error = AIServiceError.payloadTooLarge
-                CoachImageAnalysisDebugLogger.logError(error)
-                throw error
-            }
+        guard let imageData = Data(base64Encoded: request.image.base64), !imageData.isEmpty else {
+            let error = AIServiceError.imageEncodingFailed
+            CoachImageAnalysisDebugLogger.logError(error)
+            throw error
+        }
+
+        guard AIGatewayPayloadLimits.fitsImagePayload(imageData) else {
+            let error = AIServiceError.imageEncodingFailed
+            CoachImageAnalysisDebugLogger.logError(error)
+            throw error
         }
 
         CoachImageAnalysisDebugLogger.logGatewayRequestStarted(
             mimeType: request.image.mimeType,
-            compressedBytes: Data(base64Encoded: request.image.base64)?.count ?? 0,
+            filename: request.image.filename,
+            compressedBytes: imageData.count,
             base64Chars: request.image.base64.count,
+            processedPixelWidth: request.image.width,
+            processedPixelHeight: request.image.height,
             hasCaption: request.message?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
             hasClarification: request.clarification?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
             hasPreviousAnalysis: request.previousAnalysis != nil

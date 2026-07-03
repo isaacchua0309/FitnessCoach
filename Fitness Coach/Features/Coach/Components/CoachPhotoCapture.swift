@@ -10,7 +10,7 @@ import UIKit
 
 struct CoachCameraPicker: UIViewControllerRepresentable {
     @Environment(\.dismiss) private var dismiss
-    let onResult: (Result<Data, CoachMealPhotoError>) -> Void
+    let onResult: (Result<UIImage, CoachMealPhotoError>) -> Void
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
@@ -27,10 +27,10 @@ struct CoachCameraPicker: UIViewControllerRepresentable {
     }
 
     final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        let onResult: (Result<Data, CoachMealPhotoError>) -> Void
+        let onResult: (Result<UIImage, CoachMealPhotoError>) -> Void
         let dismiss: DismissAction
 
-        init(onResult: @escaping (Result<Data, CoachMealPhotoError>) -> Void, dismiss: DismissAction) {
+        init(onResult: @escaping (Result<UIImage, CoachMealPhotoError>) -> Void, dismiss: DismissAction) {
             self.onResult = onResult
             self.dismiss = dismiss
         }
@@ -49,12 +49,7 @@ struct CoachCameraPicker: UIViewControllerRepresentable {
                 onResult(.failure(.noImage))
                 return
             }
-            Task {
-                let result = await CoachMealPhotoPipeline.prepareJPEG(from: image)
-                await MainActor.run {
-                    onResult(result)
-                }
-            }
+            onResult(.success(image))
         }
     }
 }

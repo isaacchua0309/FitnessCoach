@@ -12,12 +12,14 @@ import UIKit
 
 struct CoachComposer: View {
     @Binding var text: String
-    var attachment: CoachInputAttachment?
-    var attachmentError: CoachInputComposerError?
+    var pendingImage: CoachPendingImageState?
+    var attachmentError: String?
+    var showsImageErrorRetry: Bool = false
     var speechError: String?
     var isListening: Bool = false
     var isVoiceInputBusy: Bool = false
     var canPickAttachment: Bool
+    var isProcessingImage: Bool = false
     var textFieldPlaceholder: String = FormaProductCopy.Coach.composerPlaceholder
     var isFocused: FocusState<Bool>.Binding
     let isSending: Bool
@@ -25,6 +27,7 @@ struct CoachComposer: View {
     let onVoiceTap: () -> Void
     let onAttachmentSelect: (CoachAttachmentOption) -> Void
     let onRemoveAttachment: () -> Void
+    let onRetryImageSelection: () -> Void
 
     @State private var isAttachmentMenuPresented = false
     @State private var listeningPulse = false
@@ -34,11 +37,11 @@ struct CoachComposer: View {
     }
 
     private var canSend: Bool {
-        !isSending && (!trimmedText.isEmpty || attachment != nil)
+        !isSending && !isProcessingImage && (!trimmedText.isEmpty || hasAttachmentPreview)
     }
 
     private var showVoiceButton: Bool {
-        (text.isEmpty && attachment == nil && !isSending) || isListening
+        (text.isEmpty && !hasAttachmentPreview && !isSending) || isListening
     }
 
     private var showSendButton: Bool {
@@ -46,7 +49,7 @@ struct CoachComposer: View {
     }
 
     private var hasAttachmentPreview: Bool {
-        attachment != nil
+        pendingImage?.isReady == true
     }
 
     var body: some View {
@@ -64,7 +67,7 @@ struct CoachComposer: View {
                 .padding(.bottom, CoachDesignTokens.Spacing.sm)
         }
         .background(CoachDesignTokens.Color.background)
-        .animation(CoachDesignTokens.Motion.spring, value: attachment?.id)
+        .animation(CoachDesignTokens.Motion.spring, value: pendingImage?.id)
         .animation(CoachDesignTokens.Motion.standard, value: canSend)
         .animation(CoachDesignTokens.Motion.standard, value: showVoiceButton)
         .animation(CoachDesignTokens.Motion.standard, value: showSendButton)
@@ -72,6 +75,7 @@ struct CoachComposer: View {
         .animation(CoachDesignTokens.Motion.standard, value: isVoiceInputBusy)
         .animation(CoachDesignTokens.Motion.standard, value: isAttachmentMenuPresented)
         .animation(CoachDesignTokens.Motion.standard, value: attachmentError)
+        .animation(CoachDesignTokens.Motion.standard, value: isProcessingImage)
         .animation(CoachDesignTokens.Motion.standard, value: speechError)
         .onChange(of: isListening) { _, listening in
             listeningPulse = listening
@@ -83,8 +87,8 @@ struct CoachComposer: View {
 
     private var composerCapsule: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if let attachment {
-                attachmentPreviewStrip(attachment)
+            if let pendingImage, pendingImage.isReady {
+                attachmentPreviewStrip(pendingImage)
                     .padding(.horizontal, CoachDesignTokens.Spacing.sm)
                     .padding(.top, CoachDesignTokens.Spacing.sm)
                     .padding(.bottom, CoachDesignTokens.Spacing.xs)
@@ -92,7 +96,29 @@ struct CoachComposer: View {
             }
 
             if let attachmentError {
-                Text(attachmentError.message)
+                HStack(alignment: .firstTextBaseline, spacing: CoachDesignTokens.Spacing.sm) {
+                    Text(attachmentError)
+                        .font(CoachDesignTokens.Typography.confirmationMetric)
+                        .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if showsImageErrorRetry {
+                        Button(action: onRetryImageSelection) {
+                            Text(FormaProductCopy.Coach.composerImageRetry)
+                                .font(CoachDesignTokens.Typography.confirmationMetric)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(CoachDesignTokens.Color.accent)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, CoachDesignTokens.Spacing.sm)
+                .padding(.bottom, CoachDesignTokens.Spacing.xs)
+                .transition(.opacity)
+            }
+
+            if isProcessingImage {
+                Text(FormaProductCopy.Coach.composerImageProcessing)
                     .font(CoachDesignTokens.Typography.confirmationMetric)
                     .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
                     .padding(.horizontal, CoachDesignTokens.Spacing.sm)
@@ -173,11 +199,11 @@ struct CoachComposer: View {
     }
 
     @ViewBuilder
-    private func attachmentPreviewStrip(_ attachment: CoachInputAttachment) -> some View {
+    private func attachmentPreviewStrip(_ pendingImage: CoachPendingImageState) -> some View {
         HStack(alignment: .top, spacing: 0) {
             ZStack(alignment: .topTrailing) {
                 CoachMealPhotoThumbnailView(
-                    jpegData: attachment.thumbnail,
+                    jpegData: pendingImage.thumbnail,
                     maxWidth: CoachDesignTokens.Layout.composerAttachmentSize,
                     maxHeight: CoachDesignTokens.Layout.composerAttachmentSize,
                     cornerRadius: CoachDesignTokens.Layout.composerAttachmentCornerRadius
@@ -231,7 +257,7 @@ struct CoachComposer: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(CoachComposerButtonStyle())
-        .disabled(isSending || !canPickAttachment || isListening)
+        .disabled(isSending || !canPickAttachment || isListening || isProcessingImage)
         .rotationEffect(.degrees(isAttachmentMenuPresented ? 45 : 0))
         .animation(CoachDesignTokens.Motion.spring, value: isAttachmentMenuPresented)
         .accessibilityLabel("Add attachment")
@@ -322,49 +348,49 @@ private struct CoachComposerButtonStyle: ButtonStyle {
 }
 
 #Preview("Empty") {
-    CoachComposerPreviewHost(attachment: nil, text: "")
+    CoachComposerPreviewHost(pendingImage: nil, text: "")
 }
 
 #Preview("Image attached") {
     CoachComposerPreviewHost(
-        attachment: CoachComposerPreviewHost.sampleAttachment,
+        pendingImage: CoachComposerPreviewHost.samplePendingImage,
         text: ""
     )
 }
 
 #Preview("Image and caption") {
     CoachComposerPreviewHost(
-        attachment: CoachComposerPreviewHost.sampleAttachment,
+        pendingImage: CoachComposerPreviewHost.samplePendingImage,
         text: "Lunch bowl"
     )
 }
 
 #Preview("Listening") {
-    CoachComposerPreviewHost(attachment: nil, text: "", isListening: true)
+    CoachComposerPreviewHost(pendingImage: nil, text: "", isListening: true)
 }
 
 private struct CoachComposerPreviewHost: View {
     @FocusState private var isFocused: Bool
     @State private var draft: String
-    let attachment: CoachInputAttachment?
+    let pendingImage: CoachPendingImageState?
     var isListening: Bool = false
     var isVoiceInputBusy: Bool = false
 
-    static var sampleAttachment: CoachInputAttachment? {
+    static var samplePendingImage: CoachPendingImageState? {
         guard let data = UIImage(systemName: "fork.knife")?
             .jpegData(compressionQuality: 0.9),
             let thumbnail = CoachMealPhotoPipeline.makeThumbnailJPEGSync(from: data) else {
             return nil
         }
-        return CoachInputAttachment(
-            imageData: data,
+        return CoachPendingImageState.legacyReady(
+            uploadData: data,
             thumbnail: thumbnail,
             source: .library
         )
     }
 
-    init(attachment: CoachInputAttachment?, text: String, isListening: Bool = false, isVoiceInputBusy: Bool = false) {
-        self.attachment = attachment
+    init(pendingImage: CoachPendingImageState?, text: String, isListening: Bool = false, isVoiceInputBusy: Bool = false) {
+        self.pendingImage = pendingImage
         self.isListening = isListening
         self.isVoiceInputBusy = isVoiceInputBusy
         _draft = State(initialValue: text)
@@ -375,18 +401,19 @@ private struct CoachComposerPreviewHost: View {
             Spacer()
             CoachComposer(
                 text: $draft,
-                attachment: attachment,
+                pendingImage: pendingImage,
                 attachmentError: nil,
                 speechError: nil,
                 isListening: isListening,
                 isVoiceInputBusy: isVoiceInputBusy,
-                canPickAttachment: attachment == nil,
+                canPickAttachment: pendingImage == nil,
                 isFocused: $isFocused,
                 isSending: false,
                 onSend: {},
                 onVoiceTap: {},
                 onAttachmentSelect: { _ in },
-                onRemoveAttachment: {}
+                onRemoveAttachment: {},
+                onRetryImageSelection: {}
             )
         }
         .background(CoachDesignTokens.Color.background)

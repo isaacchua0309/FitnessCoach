@@ -14,8 +14,14 @@ struct CoachImageAnalysisDebugContext: Equatable, Sendable {
     var userMessageId: UUID?
     var source: CoachInputAttachmentSource?
     var mimeType: String?
+    var filename: String?
     var rawBytes: Int?
     var compressedBytes: Int?
+    var originalPixelWidth: Int?
+    var originalPixelHeight: Int?
+    var processedPixelWidth: Int?
+    var processedPixelHeight: Int?
+    var compressionStrategy: String?
     var base64Chars: Int?
     var attempt: Int?
     var isRetry: Bool?
@@ -54,7 +60,18 @@ enum CoachImageAnalysisDebugLogFormatter {
         if let photoError = error as? CoachMealPhotoError {
             return errorCategory(for: photoError)
         }
+        if let pipelineError = error as? CoachImagePipelineError {
+            return errorCategory(for: pipelineError)
+        }
         return "unknown"
+    }
+
+    static func errorCategory(for error: CoachImagePipelineError) -> String {
+        switch error {
+        case .invalidInput: return "invalid_input"
+        case .encodingFailed: return "encoding_failed"
+        case .exceedsMaxSize: return "payload_too_large"
+        }
     }
 
     static func errorCategory(for error: CoachMealPhotoError) -> String {
@@ -118,11 +135,29 @@ enum CoachImageAnalysisDebugLogFormatter {
         if let mimeType = context.mimeType {
             fields["mimeType"] = mimeType
         }
+        if let filename = context.filename {
+            fields["filename"] = filename
+        }
         if let rawBytes = context.rawBytes {
             fields["rawBytes"] = String(rawBytes)
         }
         if let compressedBytes = context.compressedBytes {
             fields["compressedBytes"] = String(compressedBytes)
+        }
+        if let originalPixelWidth = context.originalPixelWidth {
+            fields["originalPixelWidth"] = String(originalPixelWidth)
+        }
+        if let originalPixelHeight = context.originalPixelHeight {
+            fields["originalPixelHeight"] = String(originalPixelHeight)
+        }
+        if let processedPixelWidth = context.processedPixelWidth {
+            fields["processedPixelWidth"] = String(processedPixelWidth)
+        }
+        if let processedPixelHeight = context.processedPixelHeight {
+            fields["processedPixelHeight"] = String(processedPixelHeight)
+        }
+        if let compressionStrategy = context.compressionStrategy {
+            fields["compressionStrategy"] = compressionStrategy
         }
         if let base64Chars = context.base64Chars {
             fields["base64Chars"] = String(base64Chars)
@@ -210,7 +245,7 @@ enum CoachImageAnalysisDebugLogger {
         source: CoachInputAttachmentSource,
         rawBytes: Int,
         compressedBytes: Int,
-        mimeType: String = "image/jpeg"
+        mimeType: String = CoachImageUploadConfig.default.mimeType
     ) {
         emit(
             message: "Meal image selected",
@@ -223,6 +258,27 @@ enum CoachImageAnalysisDebugLogger {
         )
     }
 
+    static func logPipelineProcessed(
+        source: CoachInputAttachmentSource,
+        processed: CoachProcessedImage,
+        originalEstimatedBytes: Int?
+    ) {
+        emit(
+            message: "Coach image pipeline processed photo library selection",
+            context: CoachImageAnalysisDebugContext(
+                source: source,
+                mimeType: processed.uploadMIMEType,
+                rawBytes: originalEstimatedBytes,
+                compressedBytes: processed.finalByteSize,
+                originalPixelWidth: processed.originalPixelSize.width,
+                originalPixelHeight: processed.originalPixelSize.height,
+                processedPixelWidth: processed.processedPixelSize.width,
+                processedPixelHeight: processed.processedPixelSize.height,
+                compressionStrategy: processed.compressionStrategy.rawValue
+            )
+        )
+    }
+
     static func logAnalysisStarted(
         sessionId: UUID,
         userMessageId: UUID,
@@ -231,7 +287,7 @@ enum CoachImageAnalysisDebugLogger {
         isRecommission: Bool,
         hasCaption: Bool,
         compressedBytes: Int,
-        mimeType: String = "image/jpeg"
+        mimeType: String = CoachImageUploadConfig.default.mimeType
     ) {
         emit(
             message: "Image analysis request started",
@@ -248,10 +304,47 @@ enum CoachImageAnalysisDebugLogger {
         )
     }
 
+    static func logUploadPayloadReady(
+        attachment: CoachMealImageUploadAttachment,
+        request: AIMealImageAnalysisRequest
+    ) {
+        emit(
+            message: "Meal image upload payload validated for AI request",
+            context: CoachImageAnalysisDebugContext(
+                mimeType: attachment.mimeType,
+                filename: attachment.filename,
+                compressedBytes: attachment.uploadData.count,
+                processedPixelWidth: attachment.processedSize?.width ?? request.image.width,
+                processedPixelHeight: attachment.processedSize?.height ?? request.image.height,
+                base64Chars: request.image.base64.count
+            )
+        )
+    }
+
+    static func logUploadValidationFailed(
+        _ error: CoachMealImageAIRequestBuildError,
+        attachment: CoachMealImageUploadAttachment
+    ) {
+        emit(
+            message: "Meal image upload payload rejected before AI request",
+            context: CoachImageAnalysisDebugContext(
+                mimeType: attachment.mimeType,
+                filename: attachment.filename,
+                compressedBytes: attachment.uploadData.count,
+                processedPixelWidth: attachment.processedSize?.width,
+                processedPixelHeight: attachment.processedSize?.height,
+                errorCategory: uploadValidationErrorCategory(error)
+            )
+        )
+    }
+
     static func logGatewayRequestStarted(
         mimeType: String,
+        filename: String? = nil,
         compressedBytes: Int,
         base64Chars: Int,
+        processedPixelWidth: Int? = nil,
+        processedPixelHeight: Int? = nil,
         hasCaption: Bool,
         hasClarification: Bool,
         hasPreviousAnalysis: Bool
@@ -260,7 +353,10 @@ enum CoachImageAnalysisDebugLogger {
             message: "analyze-meal-image gateway request started",
             context: CoachImageAnalysisDebugContext(
                 mimeType: mimeType,
+                filename: filename,
                 compressedBytes: compressedBytes,
+                processedPixelWidth: processedPixelWidth,
+                processedPixelHeight: processedPixelHeight,
                 base64Chars: base64Chars,
                 hasCaption: hasCaption,
                 hasClarification: hasClarification,
@@ -343,6 +439,15 @@ enum CoachImageAnalysisDebugLogger {
                 errorCategory: CoachImageAnalysisDebugLogFormatter.errorCategory(for: error)
             )
         )
+    }
+
+    private static func uploadValidationErrorCategory(
+        _ error: CoachMealImageAIRequestBuildError
+    ) -> String {
+        switch error {
+        case .emptyUploadData: return "empty_upload"
+        case .uploadExceedsMaxBytes: return "upload_exceeds_limit"
+        }
     }
 
     // MARK: - Private

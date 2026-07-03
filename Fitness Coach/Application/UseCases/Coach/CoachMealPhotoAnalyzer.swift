@@ -87,9 +87,11 @@ final class CoachMealPhotoAnalyzer {
 
         let context = aiContextBuilder!.makeContext(recentMessages: recentMessages)
 
+        let uploadAttachment = CoachMealImageUploadAttachment.fromUploadData(jpegData)
+
         do {
             let presentation = try await routeHandler.analyzeMealPhoto(
-                imageData: jpegData,
+                uploadAttachment: uploadAttachment,
                 prompt: prompt,
                 recommission: recommission,
                 context: context

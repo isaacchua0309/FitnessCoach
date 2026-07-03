@@ -2,149 +2,115 @@
 //  CoachInputState.swift
 //  Fitness Coach
 //
-//  Forma — Dedicated composer state for Coach text and image attachments.
+//  Forma — Dedicated composer state for Coach text and pending meal photos.
 //
 
 import Foundation
-import UIKit
-
-// MARK: - Attachment
-
-enum CoachInputAttachmentKind: Equatable, Codable, Sendable {
-    case image
-}
-
-enum CoachInputAttachmentSource: Equatable, Codable, Sendable {
-    case camera
-    case library
-}
-
-struct CoachInputAttachment: Equatable, Identifiable, Sendable {
-    let id: UUID
-    let kind: CoachInputAttachmentKind
-    let imageData: Data
-    let thumbnail: Data
-    let source: CoachInputAttachmentSource
-    let createdAt: Date
-
-    init(
-        id: UUID = UUID(),
-        kind: CoachInputAttachmentKind = .image,
-        imageData: Data,
-        thumbnail: Data,
-        source: CoachInputAttachmentSource,
-        createdAt: Date = Date()
-    ) {
-        self.id = id
-        self.kind = kind
-        self.imageData = imageData
-        self.thumbnail = thumbnail
-        self.source = source
-        self.createdAt = createdAt
-    }
-
-    var uiImage: UIImage? {
-        UIImage(data: imageData)
-    }
-
-    var thumbnailImage: UIImage? {
-        UIImage(data: thumbnail)
-    }
-
-    static func make(
-        jpegData: Data,
-        source: CoachInputAttachmentSource,
-        id: UUID = UUID(),
-        createdAt: Date = Date()
-    ) async -> CoachInputAttachment? {
-        guard let thumbnail = await CoachMealPhotoPipeline.makeThumbnailJPEG(from: jpegData) else {
-            return nil
-        }
-        return CoachInputAttachment(
-            id: id,
-            kind: .image,
-            imageData: jpegData,
-            thumbnail: thumbnail,
-            source: source,
-            createdAt: createdAt
-        )
-    }
-}
-
-// MARK: - Composer error
-
-enum CoachInputComposerError: Equatable, Sendable {
-    case attachmentAlreadyPresent
-    case preparationFailed(CoachMealPhotoError)
-
-    var message: String {
-        switch self {
-        case .attachmentAlreadyPresent:
-            return FormaProductCopy.Coach.removePhotoBeforeAddingAnother
-        case .preparationFailed(let error):
-            return CoachResponseBuilder.mealPhotoError(error)
-        }
-    }
-}
-
-// MARK: - Input state
 
 struct CoachInputState: Equatable {
     var text: String
-    var attachment: CoachInputAttachment?
+    var pendingImage: CoachPendingImageState?
+    var imageError: CoachMealPhotoError?
     var isSending: Bool
-    var error: CoachInputComposerError?
 
     static let empty = CoachInputState(
         text: "",
-        attachment: nil,
-        isSending: false,
-        error: nil
+        pendingImage: nil,
+        imageError: nil,
+        isSending: false
     )
 
     var trimmedText: String {
         text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    var canSend: Bool {
-        !isSending && (!trimmedText.isEmpty || attachment != nil)
+    var hasReadyPendingImage: Bool {
+        pendingImage?.isReady == true
     }
 
-    var canPickImage: Bool {
-        !isSending && attachment == nil
+    var isImageProcessing: Bool {
+        pendingImage?.isProcessing == true
+    }
+
+    var canSend: Bool {
+        !isSending && (!trimmedText.isEmpty || hasReadyPendingImage)
+    }
+
+    var canStartImageSelection: Bool {
+        !isSending && !isImageProcessing
+    }
+
+    var imageErrorMessage: String? {
+        imageError.map { CoachResponseBuilder.mealPhotoError($0) }
+    }
+
+    var imageErrorSupportsRetry: Bool {
+        imageError?.supportsComposerRetry == true
     }
 
     mutating func updateText(_ newText: String) {
         text = newText
-        if error == .attachmentAlreadyPresent {
-            error = nil
-        }
     }
 
-    /// Stages an image when `canPickImage`; otherwise records `attachmentAlreadyPresent`.
-    @discardableResult
-    mutating func stagePreparedImage(
-        jpegData: Data,
-        thumbnail: Data,
-        source: CoachInputAttachmentSource
-    ) -> Bool {
-        guard canPickImage else {
-            error = .attachmentAlreadyPresent
-            return false
-        }
-        attachment = CoachInputAttachment(
-            kind: .image,
-            imageData: jpegData,
-            thumbnail: thumbnail,
-            source: source
+    mutating func beginProcessingNewSelection(source: CoachInputAttachmentSource) {
+        imageError = nil
+        pendingImage = CoachPendingImageState.processing(
+            source: source,
+            preserving: pendingImage
         )
-        error = nil
+    }
+
+    @discardableResult
+    mutating func applyProcessedImage(
+        _ processed: CoachProcessedImage,
+        source: CoachInputAttachmentSource,
+        originalEstimatedBytes: Int?,
+        localReferenceID: UUID? = nil
+    ) -> Bool {
+        imageError = nil
+        pendingImage = CoachPendingImageState.from(
+            processed: processed,
+            source: source,
+            originalEstimatedBytes: originalEstimatedBytes,
+            localReferenceID: localReferenceID
+        )
         return true
     }
 
-    mutating func removeAttachment() {
-        attachment = nil
-        error = nil
+    @discardableResult
+    mutating func applyLegacyPreparedImage(
+        uploadData: Data,
+        thumbnail: Data,
+        source: CoachInputAttachmentSource
+    ) -> Bool {
+        imageError = nil
+        pendingImage = CoachPendingImageState.legacyReady(
+            uploadData: uploadData,
+            thumbnail: thumbnail,
+            source: source
+        )
+        return true
+    }
+
+    mutating func failImageProcessing(_ error: CoachMealPhotoError) {
+        imageError = error
+        if var current = pendingImage {
+            if current.markFailedPreservingReadyPayloadIfPossible() {
+                pendingImage = current
+            } else {
+                current.status = .failed
+                pendingImage = current
+            }
+        }
+    }
+
+    mutating func clearPendingImage() {
+        pendingImage = nil
+        imageError = nil
+    }
+
+    mutating func clearImageError() {
+        imageError = nil
     }
 
     /// Freezes the current composer payload and clears editable fields for send.
@@ -154,29 +120,39 @@ struct CoachInputState: Equatable {
         let snapshot = CoachInputSendSnapshot(
             text: text,
             trimmedText: trimmedText,
-            attachment: attachment
+            pendingImage: hasReadyPendingImage ? pendingImage : nil
         )
         text = ""
-        attachment = nil
-        error = nil
+        pendingImage = nil
+        imageError = nil
         return snapshot
     }
 
     /// Restores composer fields after an outbound send aborts before a user message is created.
     mutating func restore(from snapshot: CoachInputSendSnapshot) {
         text = snapshot.text
-        attachment = snapshot.attachment
-        error = nil
+        pendingImage = snapshot.pendingImage
+        imageError = nil
     }
 
     mutating func clearAfterSuccessfulSend() {
         text = ""
-        attachment = nil
-        error = nil
+        pendingImage = nil
+        imageError = nil
     }
 
     mutating func setSending(_ sending: Bool) {
         isSending = sending
+    }
+}
+
+private extension CoachPendingImageState {
+    mutating func markFailedPreservingReadyPayloadIfPossible() -> Bool {
+        guard status == .processing, byteSize > 0, !uploadData.isEmpty else {
+            return false
+        }
+        status = .ready
+        return true
     }
 }
 
@@ -185,14 +161,14 @@ struct CoachInputState: Equatable {
 struct CoachInputSendSnapshot: Equatable {
     let text: String
     let trimmedText: String
-    let attachment: CoachInputAttachment?
+    let pendingImage: CoachPendingImageState?
 
     var sendPayload: CoachMealPhotoSendPayload {
-        if let attachment {
+        if let pendingImage {
             if trimmedText.isEmpty {
-                return .imageOnly(jpegData: attachment.imageData)
+                return .imageOnly(jpegData: pendingImage.uploadData)
             }
-            return .textAndImage(text: trimmedText, jpegData: attachment.imageData)
+            return .textAndImage(text: trimmedText, jpegData: pendingImage.uploadData)
         }
         return .textOnly(trimmedText)
     }
