@@ -242,7 +242,7 @@ final class CoachModel: ObservableObject {
 
         beginProcessing(.text)
 
-        guard let snapshot = {
+        guard let snapshot = { () -> CoachInputSendSnapshot? in
             var next = inputState
             guard let frozen = next.takeSendSnapshot() else { return nil }
             inputState = next
@@ -781,8 +781,18 @@ final class CoachModel: ObservableObject {
             draft.imageAnalysisSessionID = session.sessionId
             draft.relatedPhotoUserMessageID = session.userMessageID
             if let priorFoodDraft {
-                draft.id = priorFoodDraft.id
-                draft.createdAt = priorFoodDraft.createdAt
+                draft = AIFoodConfirmationDraft(
+                    id: priorFoodDraft.id,
+                    originalText: draft.originalText,
+                    assistantMessage: draft.assistantMessage,
+                    mealDraft: draft.mealDraft,
+                    confidence: draft.confidence,
+                    requiresConfirmation: draft.requiresConfirmation,
+                    sanityWarning: draft.sanityWarning,
+                    imageAnalysisSessionID: draft.imageAnalysisSessionID,
+                    relatedPhotoUserMessageID: draft.relatedPhotoUserMessageID,
+                    createdAt: priorFoodDraft.createdAt
+                )
             }
             confirmation = .food(draft)
             setPendingConfirmation(confirmation)
