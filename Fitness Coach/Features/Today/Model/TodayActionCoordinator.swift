@@ -233,7 +233,7 @@ final class TodayActionCoordinator: ObservableObject {
         switch kind {
         case .scanFood:
             return .openCoach(TodayCoachPrompt.scanFood)
-        case .logMeal, .manualEntry:
+        case .logMeal:
             return .presentLogMeal(mealType: nil)
         case .addWater:
             return .presentAddWater

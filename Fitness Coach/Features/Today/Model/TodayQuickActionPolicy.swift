@@ -15,12 +15,6 @@ enum TodayQuickActionPolicy {
         [
             scanFoodItem(isAvailable: isScanFoodAvailable),
             TodayQuickActionMenuItem(kind: .logMeal, isEnabled: true, disabledReason: nil),
-            TodayQuickActionMenuItem(
-                kind: .manualEntry,
-                isEnabled: true,
-                disabledReason: nil,
-                presentation: .secondary
-            ),
             TodayQuickActionMenuItem(kind: .addWater, isEnabled: true, disabledReason: nil),
             TodayQuickActionMenuItem(kind: .logWeight, isEnabled: true, disabledReason: nil),
             TodayQuickActionMenuItem(kind: .logWorkout, isEnabled: true, disabledReason: nil)

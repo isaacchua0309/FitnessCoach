@@ -78,9 +78,6 @@ struct TodayReadOnlyView: View {
                 },
                 onDeleteEntry: { entry in
                     actionCoordinator.requestDeleteFood(entry)
-                },
-                onLogFirstMeal: {
-                    actionCoordinator.performQuickAction(.manualEntry)
                 }
             )
 
@@ -104,7 +101,7 @@ struct TodayReadOnlyView: View {
             TodayMissionHero(
                 mission: state.mission,
                 onLogMeal: {
-                    actionCoordinator.performQuickAction(.manualEntry)
+                    actionCoordinator.performQuickAction(.logMeal)
                 }
             )
 

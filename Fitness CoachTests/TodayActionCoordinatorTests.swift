@@ -57,23 +57,14 @@ final class TodayActionCoordinatorTests: XCTestCase {
         XCTAssertNotNil(coordinator.logMealPresentation)
     }
 
-    func testManualEntryPresentsNativeSheet() {
-        var coachOpened = false
-        coordinator.onOpenCoach = { _ in coachOpened = true }
+    func testQuickActionAnalyticsEvent() {
+        coordinator.performQuickAction(.logMeal)
 
-        coordinator.performQuickAction(.manualEntry)
-
-        XCTAssertFalse(coachOpened)
-        XCTAssertNotNil(coordinator.logMealPresentation)
-    }
-
-    func testScanFoodOpensCoachScanFlow() {
-        var coachPrefill: String?
-        coordinator.onOpenCoach = { coachPrefill = $0 }
-
-        coordinator.performQuickAction(.scanFood)
-
-        XCTAssertEqual(coachPrefill, TodayCoachPrompt.scanFood)
+        let quickAction = analytics.events.first { $0.event == .quickActionTapped }
+        XCTAssertNotNil(quickAction)
+        XCTAssertEqual(quickAction?.properties.action, "logMeal")
+        XCTAssertEqual(quickAction?.properties.route, "native_log_meal_sheet")
+        XCTAssertTrue(analytics.events.contains { $0.event == .logMealStarted })
     }
 
     func testAddWaterPresentsNativeSheet() {
@@ -151,14 +142,13 @@ final class TodayActionCoordinatorTests: XCTestCase {
         XCTAssertEqual(analytics.events.first?.properties.actionType, "next_best_action")
     }
 
-    func testQuickActionAnalyticsEvent() {
-        coordinator.performQuickAction(.manualEntry)
+    func testScanFoodOpensCoachScanFlow() {
+        var coachPrefill: String?
+        coordinator.onOpenCoach = { coachPrefill = $0 }
 
-        let quickAction = analytics.events.first { $0.event == .quickActionTapped }
-        XCTAssertNotNil(quickAction)
-        XCTAssertEqual(quickAction?.properties.action, "manualEntry")
-        XCTAssertEqual(quickAction?.properties.route, "native_log_meal_sheet")
-        XCTAssertTrue(analytics.events.contains { $0.event == .logMealStarted })
+        coordinator.performQuickAction(.scanFood)
+
+        XCTAssertEqual(coachPrefill, TodayCoachPrompt.scanFood)
     }
 
     func testLogMealSavedDoesNotIncludeFoodName() throws {

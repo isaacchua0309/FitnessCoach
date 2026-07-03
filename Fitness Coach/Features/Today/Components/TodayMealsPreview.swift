@@ -14,7 +14,6 @@ struct TodayMealsPreview: View {
     let onAddMeal: (MealType) -> Void
     let onEditEntry: (FoodEntry) -> Void
     let onDeleteEntry: (FoodEntry) -> Void
-    let onLogFirstMeal: () -> Void
 
     private var section: TodayMealsSectionState {
         TodayMealsGroupingEngine.build(entries: entries, date: date)
@@ -156,8 +155,7 @@ struct TodayMealsPreview: View {
         mealsEmptyKind: .newDayNoMeals,
         onAddMeal: { _ in },
         onEditEntry: { _ in },
-        onDeleteEntry: { _ in },
-        onLogFirstMeal: {}
+        onDeleteEntry: { _ in }
     )
     .padding()
     .background(FormaTokens.Color.canvas)
@@ -171,8 +169,7 @@ struct TodayMealsPreview: View {
         mealsEmptyKind: .hasMeals,
         onAddMeal: { _ in },
         onEditEntry: { _ in },
-        onDeleteEntry: { _ in },
-        onLogFirstMeal: {}
+        onDeleteEntry: { _ in }
     )
     .padding()
     .background(FormaTokens.Color.canvas)
