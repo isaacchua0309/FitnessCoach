@@ -2328,6 +2328,45 @@ enum FormaProductCopy {
         }
     }
 
+    // MARK: - Plan Edit Body Baseline
+
+    enum PlanEditBodyBaseline {
+        static let sectionTitle = "Height & weight"
+        static let summaryTitle = "Your body baseline"
+        static let coachingLine = "These inputs shape your calorie target."
+        static let heightLabel = "Height"
+        static let weightLabel = "Current weight"
+        static let heightUnit = "cm"
+        static let maintenanceLabel = "Maintenance preview"
+        static let bodyContextLabel = "Profile context"
+        static let projectionTitle = "Energy baseline"
+        static let unitMetric = "Metric"
+        static let unitImperial = "Imperial"
+
+        static func maintenanceAtBaseline(_ kcal: String) -> String {
+            "At this baseline, Forma estimates your maintenance at \(kcal)."
+        }
+
+        static let targetAdjustedFromBaseline =
+            "Your target will be adjusted from this."
+
+        static let maintenancePlaceholder =
+            "Enter height and weight to preview maintenance."
+
+        static func bodyProfileContext(height: String, weight: String) -> String {
+            "Based on \(height) and \(weight)."
+        }
+
+        static func maintenancePreviewValue(_ kcal: String) -> String {
+            "≈ \(kcal) estimated maintenance"
+        }
+
+        static let validationEnterHeight = "Enter your height to continue."
+        static let validationEnterWeight = "Enter your current weight to continue."
+        static let validationHeightOutOfRange = "Choose a height between 120 and 220 cm."
+        static let validationWeightOutOfRange = "Choose a weight between 35 and 200 kg."
+    }
+
     // MARK: - Plan Edit Hero
 
     enum PlanEditHero {

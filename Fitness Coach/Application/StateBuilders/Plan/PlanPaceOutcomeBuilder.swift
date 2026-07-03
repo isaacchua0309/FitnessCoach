@@ -61,7 +61,6 @@ enum PlanPaceOutcomeBuilder {
         referenceDate: Date = Date(),
         calendar: Calendar = .current
     ) -> PlanPaceOutcomePresentation {
-        let copy = FormaProductCopy.PlanEditTarget.self
         let titles = titlePair(for: choice)
 
         var draft = formState

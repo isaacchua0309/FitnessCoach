@@ -291,41 +291,14 @@ struct PlanEditWizard: View {
     }
 
     private var heightAndWeightStep: some View {
-        Group {
-            Section {
-                VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
-                    FormaLabeledNumberField(
-                        title: FormaProductCopy.ProfileForm.height,
-                        placeholder: "175",
-                        text: $formState.heightCmText,
-                        unit: "cm",
-                        keyboard: .decimalPad
-                    )
-                    FormaLabeledNumberField(
-                        title: FormaProductCopy.ProfileForm.baselineWeight,
-                        placeholder: "70",
-                        text: $formState.currentWeightKgText,
-                        unit: FormaProductCopy.FoodForm.kgUnit,
-                        keyboard: .decimalPad
-                    )
-                }
-                .padding(.vertical, FormaTokens.Spacing.xs)
-                .formaFormSection()
-            } header: {
-                FormaSettingsSectionHeader(title: "Height & weight")
-            } footer: {
-                Text("Current weight drives your maintenance and target calculations.")
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaPlanTokens.Color.planMutedText)
-            }
-
-            if projection.hasEnergyTargets || projection.validationMessage != nil {
-                Section {
-                    PlanProjectionEnergyCard(projection: projection)
-                } header: {
-                    FormaSettingsSectionHeader(title: FormaProductCopy.PlanProjection.energyTitle)
-                }
-            }
+        Section {
+            PlanEditBodyBaselineStepView(
+                formState: $formState,
+                projection: projection
+            )
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
         }
     }
 
@@ -578,8 +551,10 @@ struct PlanEditWizard: View {
             guard let birthDate = formState.birthDate else { return false }
             return BirthDateAgeResolver.isValidBirthDate(birthDate) && formState.sex != .preferNotToSay
         case .heightAndWeight:
-            return parsedPositive(formState.heightCmText) != nil
-                && parsedPositive(formState.currentWeightKgText) != nil
+            return PlanBodyBaselineValidationBuilder.validate(
+                heightText: formState.heightCmText,
+                weightText: formState.currentWeightKgText
+            ).isValid
         case .activityLevel, .reviewChanges:
             return true
         case .confirmTargets:
