@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct WeightLossPaceSettingsView: View {
+    @Environment(\.planProjection) private var planProjection
+
     @Binding var paceChoice: WeightLossPaceChoice
     @Binding var advancedDraft: WeightLossAdvancedPaceDraft
 
@@ -15,7 +17,7 @@ struct WeightLossPaceSettingsView: View {
     let goalWeightKg: Double
     let isPaceApplicable: Bool
 
-    private var preview: WeightLossPacePreviewModel {
+    private var paceValidation: WeightLossPacePreviewModel {
         WeightLossPacePreviewBuilder.build(
             choice: paceChoice,
             advancedDraft: advancedDraft,
@@ -35,8 +37,15 @@ struct WeightLossPaceSettingsView: View {
                     advancedEditor
                 }
 
-                if preview.isSaveable || preview.validationError != nil {
-                    previewCard
+                if let projection = planProjection,
+                   paceValidation.isSaveable || paceValidation.validationError != nil {
+                    PlanProjectionPaceCard(
+                        projection: projection,
+                        validationError: paceValidation.validationError,
+                        supplementalWarning: paceValidation.warningMessage
+                    )
+                } else if paceValidation.isSaveable || paceValidation.validationError != nil {
+                    legacyPreviewCard
                 }
             }
         }
@@ -98,29 +107,25 @@ struct WeightLossPaceSettingsView: View {
         .padding(.leading, 34)
     }
 
-    // MARK: - Preview
+    // MARK: - Fallback preview (previews / missing environment)
 
-    private var previewCard: some View {
+    private var legacyPreviewCard: some View {
         PlanEditCard {
             VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                if let validationError = preview.validationError {
+                if let validationError = paceValidation.validationError {
                     Text(validationError)
                         .font(FormaTokens.Typography.caption)
                         .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
                 } else {
-                    if let safetyDisplay = preview.safetyDisplay {
-                        safetyBadge(safetyDisplay)
-                    }
-
-                    if let summary = preview.deficitSummaryLine {
+                    if let summary = paceValidation.deficitSummaryLine {
                         Text(summary)
                             .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
                             .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
                     }
 
-                    equivalentRows
+                    legacyEquivalentRows
 
-                    if let warning = preview.warningMessage {
+                    if let warning = paceValidation.warningMessage {
                         Text(warning)
                             .font(FormaTokens.Typography.caption)
                             .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
@@ -132,20 +137,20 @@ struct WeightLossPaceSettingsView: View {
     }
 
     @ViewBuilder
-    private var equivalentRows: some View {
-        if let weekly = preview.weeklyLossKg, let monthly = preview.monthlyLossKg {
+    private var legacyEquivalentRows: some View {
+        if let weekly = paceValidation.weeklyLossKg, let monthly = paceValidation.monthlyLossKg {
             VStack(alignment: .leading, spacing: 4) {
                 equivalentRow(
-                    label: "Weekly",
+                    label: FormaProductCopy.PlanProjection.weeklyPaceLabel,
                     value: formatKg(weekly) + "/week"
                 )
                 equivalentRow(
-                    label: "Monthly",
+                    label: FormaProductCopy.PlanProjection.monthlyPaceLabel,
                     value: formatKg(monthly) + "/month"
                 )
-                if let deficit = preview.dailyDeficitKcal {
+                if let deficit = paceValidation.dailyDeficitKcal {
                     equivalentRow(
-                        label: "Deficit",
+                        label: FormaProductCopy.PlanProjection.energyBalanceLabel,
                         value: "\(deficit) kcal/day"
                     )
                 }
@@ -162,36 +167,6 @@ struct WeightLossPaceSettingsView: View {
             Text(value)
                 .font(FormaTokens.Typography.caption.weight(.medium))
                 .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
-        }
-    }
-
-    private func safetyBadge(_ display: WeightLossPaceSafetyDisplay) -> some View {
-        Text(display.rawValue)
-            .font(FormaTokens.Typography.caption.weight(.semibold))
-            .foregroundStyle(safetyColor(display))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background {
-                Capsule()
-                    .fill(safetyBadgeBackground(display))
-            }
-    }
-
-    private func safetyColor(_ display: WeightLossPaceSafetyDisplay) -> Color {
-        switch display {
-        case .sustainable:
-            return FormaPlanTokens.Color.planSuccess
-        case .demanding, .tooAggressive:
-            return FormaPlanTokens.Color.planWarning
-        }
-    }
-
-    private func safetyBadgeBackground(_ display: WeightLossPaceSafetyDisplay) -> Color {
-        switch display {
-        case .sustainable:
-            return FormaPlanTokens.Color.planAccentSoft
-        case .demanding, .tooAggressive:
-            return FormaPlanTokens.Color.planWarningSoft
         }
     }
 
@@ -216,7 +191,12 @@ struct WeightLossPaceSettingsView: View {
 }
 
 #Preview {
-    Form {
+    let projection = PlanProjectionBuilder.build(
+        formState: PlanFormState(profile: PlanMissionControlFixtures.loseProfile),
+        goalType: .loseFat
+    )
+
+    return Form {
         Section {
             WeightLossPaceSettingsView(
                 paceChoice: .constant(.moderate),
@@ -225,6 +205,7 @@ struct WeightLossPaceSettingsView: View {
                 goalWeightKg: 72,
                 isPaceApplicable: true
             )
+            .environment(\.planProjection, projection)
         }
     }
 }

@@ -2274,6 +2274,45 @@ enum FormaProductCopy {
         }
     }
 
+    // MARK: - Plan Projection (Edit Plan)
+
+    enum PlanProjection {
+        static let incompleteCalculation =
+            "Add height, birthday, and activity to preview full targets."
+        static let unavailable = "—"
+        static let pacePreviewTitle = "Pace preview"
+        static let energyTitle = "Energy & targets"
+        static let impactTitle = "What to expect"
+        static let maintenanceLabel = "Maintenance"
+        static let targetCaloriesLabel = "Target calories"
+        static let proteinLabel = "Protein"
+        static let carbsLabel = "Carbs"
+        static let fatLabel = "Fat"
+        static let waterLabel = "Water"
+        static let weeklyPaceLabel = "Weekly"
+        static let monthlyPaceLabel = "Monthly"
+        static let energyBalanceLabel = "Energy balance"
+        static let adherenceLabel = "Adherence"
+        static let recoveryLabel = "Recovery"
+        static let hungerLabel = "Hunger"
+
+        static let adherenceHigh = "High — designed for steady consistency"
+        static let adherenceModerate = "Moderate — reward consistent logging"
+        static let adherenceChallenging = "Challenging — prioritize recovery and sleep"
+
+        static let recoveryLow = "Low strain — gradual changes support recovery"
+        static let recoveryModerate = "Moderate — watch training quality on hard weeks"
+        static let recoveryHigh = "Higher strain — schedule deloads if performance dips"
+
+        static let hungerLow = "Usually manageable day to day"
+        static let hungerModerate = "May notice hunger on harder training days"
+        static let hungerHigh = "Expect stronger hunger — plan satisfying meals"
+
+        static func dailyDeficit(_ kcal: Int) -> String { "\(kcal) kcal deficit/day" }
+        static func dailySurplus(_ kcal: Int) -> String { "\(kcal) kcal surplus/day" }
+        static let dailyBalanceNeutral = "Aligned with maintenance"
+    }
+
     // MARK: - Plan Mission Control
 
     enum PlanMissionControl {

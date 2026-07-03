@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct MacroTargetSettingsView: View {
+    @Environment(\.planProjection) private var planProjection
+
     @Binding var calorieTargetText: String
     @Binding var proteinTargetText: String
     @Binding var carbTargetText: String
@@ -63,6 +65,10 @@ struct MacroTargetSettingsView: View {
                 }
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                 .foregroundStyle(FormaPlanTokens.Color.planAccent)
+
+                if let projection = planProjection, projection.hasEnergyTargets {
+                    PlanProjectionEnergyCard(projection: projection)
+                }
             }
             .padding(.vertical, FormaTokens.Spacing.xs)
             .formaFormSection()

@@ -20,7 +20,7 @@ final class PlanEditHeroStateBuilderTests: XCTestCase {
     }
 
     func testFatLossHeroIncludesMotivationChangeAndEstimatedFinish() {
-        let state = makeState(
+        let state = makeHeroState(
             goalType: .loseFat,
             currentWeightKg: 80,
             goalWeightKg: 70,
@@ -37,7 +37,7 @@ final class PlanEditHeroStateBuilderTests: XCTestCase {
     }
 
     func testMaintenanceHeroOmitsEstimatedFinish() {
-        let state = makeState(
+        let state = makeHeroState(
             goalType: .maintain,
             currentWeightKg: 75,
             goalWeightKg: 75,
@@ -50,7 +50,7 @@ final class PlanEditHeroStateBuilderTests: XCTestCase {
     }
 
     func testMuscleGainHeroShowsGainDelta() {
-        let state = makeState(
+        let state = makeHeroState(
             goalType: .gainMuscle,
             currentWeightKg: 70,
             goalWeightKg: 73,
@@ -64,19 +64,20 @@ final class PlanEditHeroStateBuilderTests: XCTestCase {
 
     func testGoalDatePaceUsesProvidedDate() {
         let goalDate = calendar.date(from: DateComponents(year: 2027, month: 3, day: 1))!
-        let state = makeState(
+        let projection = makeProjection(
             goalType: .loseFat,
             currentWeightKg: 80,
             goalWeightKg: 72,
             weeklyPaceKg: nil,
             goalDatePace: goalDate
         )
+        let state = PlanEditHeroStateBuilder.build(projection: projection)
 
         XCTAssertEqual(state.estimatedFinishLine, "Estimated finish: March 2027.")
     }
 
     func testMissingWeightsUseUnavailablePlaceholder() {
-        let state = makeState(
+        let state = makeHeroState(
             goalType: .loseFat,
             currentWeightKg: nil,
             goalWeightKg: nil,
@@ -91,23 +92,86 @@ final class PlanEditHeroStateBuilderTests: XCTestCase {
 
     // MARK: - Helpers
 
-    private func makeState(
+    private func makeHeroState(
         goalType: PlanGoalType,
         currentWeightKg: Double?,
         goalWeightKg: Double?,
         weeklyPaceKg: Double?,
         goalDatePace: Date? = nil
     ) -> PlanEditHeroState {
-        PlanEditHeroStateBuilder.build(
-            input: PlanEditHeroStateBuilder.Input(
+        let projection = makeProjection(
+            goalType: goalType,
+            currentWeightKg: currentWeightKg,
+            goalWeightKg: goalWeightKg,
+            weeklyPaceKg: weeklyPaceKg,
+            goalDatePace: goalDatePace
+        )
+        return PlanEditHeroStateBuilder.build(projection: projection)
+    }
+
+    private func makeProjection(
+        goalType: PlanGoalType,
+        currentWeightKg: Double?,
+        goalWeightKg: Double?,
+        weeklyPaceKg: Double?,
+        goalDatePace: Date? = nil
+    ) -> PlanProjection {
+        var formState = formState(
+            currentWeightKg: currentWeightKg,
+            goalWeightKg: goalWeightKg,
+            weeklyPaceKg: weeklyPaceKg
+        )
+        if let weeklyPaceKg, weeklyPaceKg > 0 {
+            formState.weightLossPaceChoice = .advanced
+            formState.advancedPaceDraft = WeightLossAdvancedPaceDraft(
+                period: .weekly,
+                amountText: formatPaceAmount(weeklyPaceKg)
+            )
+        }
+
+        return PlanProjectionBuilder.build(
+            input: PlanProjectionInput(
                 goalType: goalType,
-                currentWeightKg: currentWeightKg,
-                goalWeightKg: goalWeightKg,
-                weeklyPaceKg: weeklyPaceKg,
-                goalDatePace: goalDatePace,
+                formState: formState,
+                caloriePreview: nil,
+                goalDatePaceOverride: goalDatePace,
                 referenceDate: referenceDate,
                 calendar: calendar
             )
         )
+    }
+
+    private func formState(
+        currentWeightKg: Double?,
+        goalWeightKg: Double?,
+        weeklyPaceKg: Double?
+    ) -> PlanFormState {
+        var state = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
+        if let currentWeightKg {
+            state.currentWeightKgText = formatWeight(currentWeightKg)
+        } else {
+            state.currentWeightKgText = ""
+        }
+        if let goalWeightKg {
+            state.goalWeightKgText = formatWeight(goalWeightKg)
+        } else {
+            state.goalWeightKgText = ""
+        }
+        if weeklyPaceKg != nil {
+            state.weightLossPaceChoice = .moderate
+        }
+        return state
+    }
+
+    private func formatWeight(_ value: Double) -> String {
+        value.truncatingRemainder(dividingBy: 1) == 0
+            ? "\(Int(value))"
+            : "\(value)"
+    }
+
+    private func formatPaceAmount(_ value: Double) -> String {
+        value.truncatingRemainder(dividingBy: 1) == 0
+            ? "\(Int(value))"
+            : "\(value)"
     }
 }

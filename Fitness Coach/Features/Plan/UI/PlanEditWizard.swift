@@ -65,6 +65,7 @@ struct PlanEditWizard: View {
                     }
                 }
                 .scrollContentBackground(.hidden)
+                .environment(\.planProjection, projection)
             }
             .onAppear {
                 goalType = PlanStateBuilder.goalType(for: formState.asProfileSnapshot())
@@ -103,18 +104,18 @@ struct PlanEditWizard: View {
 
     // MARK: Shell state
 
-    private var heroState: PlanEditHeroState {
-        PlanEditHeroStateBuilder.build(
-            input: PlanEditHeroStateBuilder.Input(
-                goalType: goalType,
-                currentWeightKg: parsedPositive(formState.currentWeightKgText),
-                goalWeightKg: parsedPositive(formState.goalWeightKgText),
-                weeklyPaceKg: pacePreview.weeklyLossKg,
-                goalDatePace: nil,
-                referenceDate: Date(),
-                calendar: .current
-            )
+    private var projection: PlanProjection {
+        PlanProjectionBuilder.build(
+            formState: formState,
+            goalType: goalType,
+            caloriePreview: targetPreview,
+            referenceDate: Date(),
+            calendar: .current
         )
+    }
+
+    private var heroState: PlanEditHeroState {
+        PlanEditHeroStateBuilder.build(projection: projection)
     }
 
     private var confirmationTitle: String {
@@ -218,6 +219,14 @@ struct PlanEditWizard: View {
                         .foregroundStyle(FormaPlanTokens.Color.planMutedText)
                 }
             }
+
+            if goalType != .loseFat {
+                Section {
+                    PlanProjectionImpactCard(projection: projection)
+                } header: {
+                    FormaSettingsSectionHeader(title: FormaProductCopy.PlanProjection.impactTitle)
+                }
+            }
         }
     }
 
@@ -275,31 +284,41 @@ struct PlanEditWizard: View {
     }
 
     private var heightAndWeightStep: some View {
-        Section {
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
-                FormaLabeledNumberField(
-                    title: FormaProductCopy.ProfileForm.height,
-                    placeholder: "175",
-                    text: $formState.heightCmText,
-                    unit: "cm",
-                    keyboard: .decimalPad
-                )
-                FormaLabeledNumberField(
-                    title: FormaProductCopy.ProfileForm.baselineWeight,
-                    placeholder: "70",
-                    text: $formState.currentWeightKgText,
-                    unit: FormaProductCopy.FoodForm.kgUnit,
-                    keyboard: .decimalPad
-                )
+        Group {
+            Section {
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+                    FormaLabeledNumberField(
+                        title: FormaProductCopy.ProfileForm.height,
+                        placeholder: "175",
+                        text: $formState.heightCmText,
+                        unit: "cm",
+                        keyboard: .decimalPad
+                    )
+                    FormaLabeledNumberField(
+                        title: FormaProductCopy.ProfileForm.baselineWeight,
+                        placeholder: "70",
+                        text: $formState.currentWeightKgText,
+                        unit: FormaProductCopy.FoodForm.kgUnit,
+                        keyboard: .decimalPad
+                    )
+                }
+                .padding(.vertical, FormaTokens.Spacing.xs)
+                .formaFormSection()
+            } header: {
+                FormaSettingsSectionHeader(title: "Height & weight")
+            } footer: {
+                Text("Current weight drives your maintenance and target calculations.")
+                    .font(FormaTokens.Typography.caption)
+                    .foregroundStyle(FormaPlanTokens.Color.planMutedText)
             }
-            .padding(.vertical, FormaTokens.Spacing.xs)
-            .formaFormSection()
-        } header: {
-            FormaSettingsSectionHeader(title: "Height & weight")
-        } footer: {
-            Text("Current weight drives your maintenance and target calculations.")
-                .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaPlanTokens.Color.planMutedText)
+
+            if projection.hasEnergyTargets || projection.validationMessage != nil {
+                Section {
+                    PlanProjectionEnergyCard(projection: projection)
+                } header: {
+                    FormaSettingsSectionHeader(title: FormaProductCopy.PlanProjection.energyTitle)
+                }
+            }
         }
     }
 
@@ -398,6 +417,20 @@ struct PlanEditWizard: View {
                     .font(FormaTokens.Typography.caption)
                     .foregroundStyle(FormaPlanTokens.Color.planMutedText)
             }
+
+            Section {
+                PlanProjectionImpactCard(projection: projection)
+            } header: {
+                FormaSettingsSectionHeader(title: FormaProductCopy.PlanProjection.impactTitle)
+            }
+
+            if projection.hasEnergyTargets {
+                Section {
+                    PlanProjectionEnergyCard(projection: projection)
+                } header: {
+                    FormaSettingsSectionHeader(title: FormaProductCopy.PlanProjection.energyTitle)
+                }
+            }
         }
     }
 
@@ -441,6 +474,12 @@ struct PlanEditWizard: View {
                     .font(FormaTokens.Typography.caption)
                     .foregroundStyle(FormaPlanTokens.Color.planMutedText)
             }
+
+            Section {
+                PlanProjectionImpactCard(projection: projection)
+            } header: {
+                FormaSettingsSectionHeader(title: FormaProductCopy.PlanProjection.impactTitle)
+            }
         }
     }
 
@@ -463,12 +502,18 @@ struct PlanEditWizard: View {
             if comparison.isAggressive || comparison.warning != nil {
                 Section {
                     Label(
-                        comparison.warning ?? "These targets may be aggressive. Review before saving.",
+                        comparison.warning ?? projection.difficultyDescription,
                         systemImage: "exclamationmark.triangle.fill"
                     )
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(FormaPlanTokens.Color.planWarning)
                 }
+            }
+
+            Section {
+                PlanProjectionImpactCard(projection: projection)
+            } header: {
+                FormaSettingsSectionHeader(title: FormaProductCopy.PlanProjection.impactTitle)
             }
 
             Section {

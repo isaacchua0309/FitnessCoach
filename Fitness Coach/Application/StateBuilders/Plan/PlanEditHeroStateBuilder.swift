@@ -22,130 +22,45 @@ struct PlanEditHeroState: Equatable, Sendable {
 
 enum PlanEditHeroStateBuilder {
 
-    struct Input: Equatable, Sendable {
-        var goalType: PlanGoalType
-        var currentWeightKg: Double?
-        var goalWeightKg: Double?
-        var weeklyPaceKg: Double?
-        var goalDatePace: Date?
-        var referenceDate: Date
-        var calendar: Calendar
-    }
-
-    static func build(input: Input) -> PlanEditHeroState {
+    static func build(projection: PlanProjection) -> PlanEditHeroState {
         let copy = FormaProductCopy.PlanEditHero.self
-        let motivationalLine = motivationalLine(for: input.goalType)
-        let currentWeight = formattedWeight(input.currentWeightKg)
-        let targetWeight = formattedWeight(input.goalWeightKg)
-        let totalChangeLine = totalChangeLine(
-            goalType: input.goalType,
-            currentKg: input.currentWeightKg,
-            goalKg: input.goalWeightKg
-        )
-        let estimatedFinishLine = estimatedFinishLine(
-            goalType: input.goalType,
-            currentKg: input.currentWeightKg,
-            goalKg: input.goalWeightKg,
-            weeklyPaceKg: input.weeklyPaceKg,
-            goalDatePace: input.goalDatePace,
-            referenceDate: input.referenceDate,
-            calendar: input.calendar
-        )
+        let motivationalLine = motivationalLine(for: projection.goalLabel)
 
-        let state = PlanEditHeroState(
+        return PlanEditHeroState(
             motivationalLine: motivationalLine,
             goalLabel: copy.goalLabel,
-            goalValue: input.goalType.rawValue,
+            goalValue: projection.goalLabel,
             currentWeightLabel: copy.currentWeightLabel,
-            currentWeight: currentWeight,
+            currentWeight: projection.currentWeightDisplay,
             targetWeightLabel: copy.targetWeightLabel,
-            targetWeight: targetWeight,
-            totalChangeLine: totalChangeLine,
-            estimatedFinishLine: estimatedFinishLine,
+            targetWeight: projection.targetWeightDisplay,
+            totalChangeLine: projection.weightChangeLabel,
+            estimatedFinishLine: projection.estimatedCompletionLabel,
             accessibilitySummary: accessibilitySummary(
                 motivationalLine: motivationalLine,
                 goalLabel: copy.goalLabel,
-                goalValue: input.goalType.rawValue,
+                goalValue: projection.goalLabel,
                 currentWeightLabel: copy.currentWeightLabel,
-                currentWeight: currentWeight,
+                currentWeight: projection.currentWeightDisplay,
                 targetWeightLabel: copy.targetWeightLabel,
-                targetWeight: targetWeight,
-                totalChangeLine: totalChangeLine,
-                estimatedFinishLine: estimatedFinishLine
+                targetWeight: projection.targetWeightDisplay,
+                totalChangeLine: projection.weightChangeLabel,
+                estimatedFinishLine: projection.estimatedCompletionLabel
             )
         )
-
-        return state
     }
 
-    private static func motivationalLine(for goalType: PlanGoalType) -> String {
-        switch goalType {
-        case .loseFat:
+    private static func motivationalLine(for goalLabel: String) -> String {
+        switch goalLabel {
+        case PlanGoalType.loseFat.rawValue:
             return FormaProductCopy.PlanEditHero.motivationalFatLoss
-        case .maintain:
+        case PlanGoalType.maintain.rawValue:
             return FormaProductCopy.PlanEditHero.motivationalMaintenance
-        case .gainMuscle:
+        case PlanGoalType.gainMuscle.rawValue:
             return FormaProductCopy.PlanEditHero.motivationalMuscleGain
+        default:
+            return FormaProductCopy.PlanEditHero.motivationalFatLoss
         }
-    }
-
-    private static func totalChangeLine(
-        goalType: PlanGoalType,
-        currentKg: Double?,
-        goalKg: Double?
-    ) -> String? {
-        guard let currentKg, let goalKg else { return nil }
-
-        switch goalType {
-        case .maintain:
-            return FormaProductCopy.PlanEditHero.maintainingTarget
-        case .loseFat:
-            let delta = currentKg - goalKg
-            guard delta > 0.1 else { return FormaProductCopy.PlanEditHero.maintainingTarget }
-            return FormaProductCopy.PlanEditHero.totalChangeToTarget(formatKg(delta))
-        case .gainMuscle:
-            let delta = goalKg - currentKg
-            guard delta > 0.1 else { return FormaProductCopy.PlanEditHero.maintainingTarget }
-            return FormaProductCopy.PlanEditHero.totalChangeToTarget(formatKg(delta))
-        }
-    }
-
-    private static func estimatedFinishLine(
-        goalType: PlanGoalType,
-        currentKg: Double?,
-        goalKg: Double?,
-        weeklyPaceKg: Double?,
-        goalDatePace: Date?,
-        referenceDate: Date,
-        calendar: Calendar
-    ) -> String? {
-        if let goalDatePace, goalDatePace > referenceDate {
-            return FormaProductCopy.PlanEditHero.estimatedFinish(
-                formattedMonthYear(goalDatePace, calendar: calendar)
-            )
-        }
-
-        guard goalType == .loseFat,
-              let currentKg,
-              let goalKg,
-              let weeklyPaceKg,
-              weeklyPaceKg > 0
-        else { return nil }
-
-        let remaining = currentKg - goalKg
-        guard remaining > 0.1 else { return nil }
-
-        let weeks = remaining / weeklyPaceKg
-        guard weeks > 0, weeks <= 520 else { return nil }
-
-        let days = Int((weeks * 7.0).rounded(.up))
-        guard let finishDate = calendar.date(byAdding: .day, value: days, to: referenceDate) else {
-            return nil
-        }
-
-        return FormaProductCopy.PlanEditHero.estimatedFinish(
-            formattedMonthYear(finishDate, calendar: calendar)
-        )
     }
 
     private static func accessibilitySummary(
@@ -172,29 +87,5 @@ enum PlanEditHeroStateBuilder {
             parts.append(estimatedFinishLine)
         }
         return parts.joined(separator: ". ")
-    }
-
-    // MARK: - Formatting
-
-    private static func formattedWeight(_ value: Double?) -> String {
-        guard let value, value > 0 else {
-            return FormaProductCopy.PlanEditHero.weightUnavailable
-        }
-        return PlanFormatter.kg(value)
-    }
-
-    private static func formatKg(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? "\(Int(value)) kg"
-            : String(format: "%.1f kg", value)
-    }
-
-    private static func formattedMonthYear(_ date: Date, calendar: Calendar) -> String {
-        var format = Date.FormatStyle(date: .abbreviated, time: .omitted)
-            .month(.wide)
-            .year()
-            .locale(.autoupdatingCurrent)
-        format.calendar = calendar
-        return date.formatted(format)
     }
 }
