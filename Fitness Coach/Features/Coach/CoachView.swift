@@ -11,17 +11,22 @@ import SwiftUI
 struct CoachView: View {
 
     @StateObject private var model: CoachModel
+    @StateObject private var speechService = CoachSpeechRecognizerService()
     @EnvironmentObject private var authManager: AuthManager
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
     @FocusState private var isInputFocused: Bool
+
+    /// False when another tab is selected in `MainTabView` (TabView keeps the view mounted).
+    var isActive: Bool = true
 
     @State private var isPhotoPickerPresented = false
     @State private var isCameraPresented = false
     @State private var photoPickerItem: PhotosPickerItem?
     @State private var isRetryingCoachSession = false
 
-    init(model: CoachModel) {
+    init(model: CoachModel, isActive: Bool = true) {
         _model = StateObject(wrappedValue: model)
+        self.isActive = isActive
     }
 
     private var showEmptyChrome: Bool {
@@ -69,6 +74,19 @@ struct CoachView: View {
             }
             .onAppear {
                 model.refreshTodayContext()
+            }
+            .onDisappear {
+                speechService.stopRecording()
+            }
+            .onChange(of: isActive) { _, active in
+                if !active {
+                    speechService.stopRecording()
+                }
+            }
+            .onChange(of: model.isSending) { _, isSending in
+                if isSending {
+                    speechService.stopRecording()
+                }
             }
             .onChange(of: refreshCenter.refreshToken) { _, _ in
                 model.refreshTodayContext()
@@ -146,22 +164,36 @@ struct CoachView: View {
         CoachComposer(
             text: Binding(
                 get: { model.inputState.text },
-                set: { model.inputText = $0 }
+                set: { newValue in
+                    let previousValue = model.inputState.text
+                    if speechService.isRecording,
+                       !speechService.isApplyingTranscriptUpdate,
+                       newValue != previousValue {
+                        speechService.userDidEditInput()
+                    }
+                    model.inputText = newValue
+                }
             ),
             attachment: model.inputState.attachment,
             attachmentError: model.inputState.error,
+            speechError: speechService.errorMessage,
+            isListening: speechService.isRecording,
+            isVoiceInputBusy: speechService.isVoiceInputBusy,
             canPickAttachment: model.inputState.canPickImage,
             textFieldPlaceholder: model.photoClarificationComposerPlaceholder
                 ?? FormaProductCopy.Coach.composerPlaceholder,
             isFocused: $isInputFocused,
             isSending: model.isSending,
             onSend: {
+                speechService.stopRecording()
                 Task {
                     await model.sendCurrentMessage()
                     dismissKeyboard()
                 }
             },
-            onVoiceTap: {},
+            onVoiceTap: {
+                handleVoiceTap()
+            },
             onAttachmentSelect: handleAttachmentSelection,
             onRemoveAttachment: {
                 model.removeStagedMealPhoto()
@@ -175,6 +207,7 @@ struct CoachView: View {
 
     private func handleStarterTap(_ prompt: CoachStarterPromptSpec) {
         dismissKeyboard()
+        speechService.stopRecording()
         switch prompt.behavior {
         case .openPhotoPicker:
             isPhotoPickerPresented = true
@@ -188,6 +221,7 @@ struct CoachView: View {
 
     private func handleAttachmentSelection(_ option: CoachAttachmentOption) {
         guard model.requestPhotoPick() else { return }
+        speechService.stopRecording()
         switch option {
         case .takePhoto:
             Task {
@@ -205,6 +239,17 @@ struct CoachView: View {
 
     private func dismissKeyboard() {
         isInputFocused = false
+    }
+
+    private func handleVoiceTap() {
+        guard !speechService.isVoiceInputBusy || speechService.isRecording else { return }
+
+        dismissKeyboard()
+        Task {
+            await speechService.toggleRecording(currentText: model.inputState.text) { transcript in
+                model.inputText = transcript
+            }
+        }
     }
 
     private func retryCoachSession() {

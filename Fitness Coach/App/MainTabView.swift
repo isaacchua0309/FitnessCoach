@@ -80,7 +80,7 @@ struct MainTabView: View {
             }
             .tag(AppTab.today)
 
-            CoachView(model: coachModel)
+            CoachView(model: coachModel, isActive: selectedTab == .coach)
                 .tabItem {
                     Label("Coach", systemImage: "bubble.left.and.bubble.right")
                 }

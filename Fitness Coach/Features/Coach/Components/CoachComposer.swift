@@ -14,6 +14,9 @@ struct CoachComposer: View {
     @Binding var text: String
     var attachment: CoachInputAttachment?
     var attachmentError: CoachInputComposerError?
+    var speechError: String?
+    var isListening: Bool = false
+    var isVoiceInputBusy: Bool = false
     var canPickAttachment: Bool
     var textFieldPlaceholder: String = FormaProductCopy.Coach.composerPlaceholder
     var isFocused: FocusState<Bool>.Binding
@@ -24,6 +27,7 @@ struct CoachComposer: View {
     let onRemoveAttachment: () -> Void
 
     @State private var isAttachmentMenuPresented = false
+    @State private var listeningPulse = false
 
     private var trimmedText: String {
         text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -34,7 +38,11 @@ struct CoachComposer: View {
     }
 
     private var showVoiceButton: Bool {
-        text.isEmpty && attachment == nil && !isSending
+        (text.isEmpty && attachment == nil && !isSending) || isListening
+    }
+
+    private var showSendButton: Bool {
+        canSend && !isListening
     }
 
     private var hasAttachmentPreview: Bool {
@@ -59,8 +67,18 @@ struct CoachComposer: View {
         .animation(CoachDesignTokens.Motion.spring, value: attachment?.id)
         .animation(CoachDesignTokens.Motion.standard, value: canSend)
         .animation(CoachDesignTokens.Motion.standard, value: showVoiceButton)
+        .animation(CoachDesignTokens.Motion.standard, value: showSendButton)
+        .animation(CoachDesignTokens.Motion.standard, value: isListening)
+        .animation(CoachDesignTokens.Motion.standard, value: isVoiceInputBusy)
         .animation(CoachDesignTokens.Motion.standard, value: isAttachmentMenuPresented)
         .animation(CoachDesignTokens.Motion.standard, value: attachmentError)
+        .animation(CoachDesignTokens.Motion.standard, value: speechError)
+        .onChange(of: isListening) { _, listening in
+            listeningPulse = listening
+        }
+        .onAppear {
+            listeningPulse = isListening
+        }
     }
 
     private var composerCapsule: some View {
@@ -75,6 +93,15 @@ struct CoachComposer: View {
 
             if let attachmentError {
                 Text(attachmentError.message)
+                    .font(CoachDesignTokens.Typography.confirmationMetric)
+                    .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
+                    .padding(.horizontal, CoachDesignTokens.Spacing.sm)
+                    .padding(.bottom, CoachDesignTokens.Spacing.xs)
+                    .transition(.opacity)
+            }
+
+            if let speechError {
+                Text(speechError)
                     .font(CoachDesignTokens.Typography.confirmationMetric)
                     .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
                     .padding(.horizontal, CoachDesignTokens.Spacing.sm)
@@ -107,20 +134,18 @@ struct CoachComposer: View {
     }
 
     private var composerControlRow: some View {
-        HStack(alignment: .bottom, spacing: 0) {
+        HStack(alignment: .center, spacing: 0) {
             attachmentButton
 
-            TextField(textFieldPlaceholder, text: $text, axis: .vertical)
+            TextField(isListening ? FormaProductCopy.Coach.composerListeningPlaceholder : textFieldPlaceholder, text: $text)
                 .font(CoachDesignTokens.Typography.composer)
                 .foregroundStyle(CoachDesignTokens.Color.primaryText)
                 .textFieldStyle(.plain)
-                .lineLimit(1...CoachDesignTokens.Layout.composerMaxLines)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .lineLimit(1)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                 .focused(isFocused)
-                .padding(.leading, CoachDesignTokens.Spacing.xs)
-                .padding(.trailing, CoachDesignTokens.Spacing.xs)
-                .padding(.vertical, CoachDesignTokens.Spacing.xs)
+                .padding(.horizontal, CoachDesignTokens.Spacing.xs)
                 .submitLabel(.send)
                 .onSubmit {
                     if canSend { performSend() }
@@ -134,7 +159,7 @@ struct CoachComposer: View {
         }
         .padding(.leading, CoachDesignTokens.Spacing.xs)
         .padding(.trailing, CoachDesignTokens.Spacing.xxs)
-        .frame(minHeight: CoachDesignTokens.Layout.composerBarHeight)
+        .frame(height: CoachDesignTokens.Layout.composerBarHeight)
     }
 
     private var attachmentTransition: AnyTransition {
@@ -206,7 +231,7 @@ struct CoachComposer: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(CoachComposerButtonStyle())
-        .disabled(isSending || !canPickAttachment)
+        .disabled(isSending || !canPickAttachment || isListening)
         .rotationEffect(.degrees(isAttachmentMenuPresented ? 45 : 0))
         .animation(CoachDesignTokens.Motion.spring, value: isAttachmentMenuPresented)
         .accessibilityLabel("Add attachment")
@@ -214,7 +239,7 @@ struct CoachComposer: View {
 
     @ViewBuilder
     private var trailingAction: some View {
-        if canSend {
+        if showSendButton {
             Button(action: performSend) {
                 Image(systemName: "arrow.up")
                     .font(.system(size: 15, weight: .bold))
@@ -227,19 +252,37 @@ struct CoachComposer: View {
             .accessibilityLabel("Send message")
         } else if showVoiceButton {
             Button(action: onVoiceTap) {
-                Image(systemName: "mic")
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(CoachDesignTokens.Color.secondaryText)
-                    .frame(
-                        width: CoachDesignTokens.Layout.composerTrailingWidth,
-                        height: CoachDesignTokens.Layout.composerBarHeight
-                    )
-                    .contentShape(Rectangle())
+                ZStack {
+                    if isListening {
+                        Circle()
+                            .fill(CoachDesignTokens.Color.accent.opacity(listeningPulse ? 0.22 : 0.12))
+                            .frame(width: 34, height: 34)
+                            .animation(
+                                .easeInOut(duration: 0.9).repeatForever(autoreverses: true),
+                                value: listeningPulse
+                            )
+                    }
+
+                    Image(systemName: isListening ? "mic.fill" : "mic")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(isListening ? CoachDesignTokens.Color.accent : CoachDesignTokens.Color.secondaryText)
+                        .symbolEffect(.pulse, options: .repeating, isActive: isListening)
+                }
+                .frame(
+                    width: CoachDesignTokens.Layout.composerTrailingWidth,
+                    height: CoachDesignTokens.Layout.composerBarHeight
+                )
+                .contentShape(Rectangle())
             }
             .buttonStyle(CoachComposerButtonStyle())
+            .disabled(isVoiceInputBusy && !isListening)
             .transition(.scale(scale: 0.85).combined(with: .opacity))
-            .accessibilityLabel("Voice input")
-            .accessibilityHint("Coming soon")
+            .accessibilityLabel(isListening ? "Stop voice input" : "Voice input")
+            .accessibilityHint(
+                isVoiceInputBusy && !isListening
+                    ? "Voice input is starting"
+                    : (isListening ? "Stops listening and keeps the transcribed text" : "Starts dictating a message")
+            )
         }
     }
 
@@ -296,10 +339,16 @@ private struct CoachComposerButtonStyle: ButtonStyle {
     )
 }
 
+#Preview("Listening") {
+    CoachComposerPreviewHost(attachment: nil, text: "", isListening: true)
+}
+
 private struct CoachComposerPreviewHost: View {
     @FocusState private var isFocused: Bool
     @State private var draft: String
     let attachment: CoachInputAttachment?
+    var isListening: Bool = false
+    var isVoiceInputBusy: Bool = false
 
     static var sampleAttachment: CoachInputAttachment? {
         guard let data = UIImage(systemName: "fork.knife")?
@@ -314,8 +363,10 @@ private struct CoachComposerPreviewHost: View {
         )
     }
 
-    init(attachment: CoachInputAttachment?, text: String) {
+    init(attachment: CoachInputAttachment?, text: String, isListening: Bool = false, isVoiceInputBusy: Bool = false) {
         self.attachment = attachment
+        self.isListening = isListening
+        self.isVoiceInputBusy = isVoiceInputBusy
         _draft = State(initialValue: text)
     }
 
@@ -326,6 +377,9 @@ private struct CoachComposerPreviewHost: View {
                 text: $draft,
                 attachment: attachment,
                 attachmentError: nil,
+                speechError: nil,
+                isListening: isListening,
+                isVoiceInputBusy: isVoiceInputBusy,
                 canPickAttachment: attachment == nil,
                 isFocused: $isFocused,
                 isSending: false,
