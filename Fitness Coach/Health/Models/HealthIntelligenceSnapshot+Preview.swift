@@ -91,9 +91,33 @@ extension HealthIntelligenceSnapshot {
             ),
             nutritionAdjustment: .none,
             weeklyReview: WeeklyHealthReview(
-                headline: "Weekly activity available",
-                workoutDays: 4,
-                narrative: nil
+                weekStartDate: calendar.date(byAdding: .day, value: -6, to: day) ?? day,
+                weekEndDate: day,
+                title: "Strong week",
+                summary: "You built solid momentum with consistent training and fueling.",
+                stats: WeeklyStats(
+                    totalWorkouts: 4,
+                    totalWorkoutMinutes: 180,
+                    totalActiveCalories: 1_420,
+                    averageSteps: 8_432,
+                    totalSteps: 59_024,
+                    proteinHitDays: 6,
+                    calorieTargetHitDays: 5,
+                    waterHitDays: 5,
+                    averageRecoveryScore: 72,
+                    lowRecoveryDays: 1,
+                    weightChangeKg: -0.3,
+                    loggingConsistencyDays: 6
+                ),
+                wins: [
+                    "You trained on 4 days this week.",
+                    "Protein targets were hit on 6 days."
+                ],
+                risks: [],
+                nextWeekFocus: ["Keep your current rhythm and stay consistent."],
+                confidence: .high,
+                missingSignals: [],
+                generatedAt: day
             ),
             planConfidence: PlanHealthConfidence(score: 0.75, label: "Moderate"),
             nextBestAction: .none

@@ -190,15 +190,77 @@ enum AdaptiveNutritionMissingSignal: String, Equatable, Sendable, Hashable, Coda
     case trainingLoad
 }
 
+struct WeeklyStats: Equatable, Sendable, Codable {
+    var totalWorkouts: Int
+    var totalWorkoutMinutes: Int
+    var totalActiveCalories: Int?
+    var averageSteps: Int?
+    var totalSteps: Int?
+    var proteinHitDays: Int
+    var calorieTargetHitDays: Int
+    var waterHitDays: Int
+    var averageRecoveryScore: Double?
+    var lowRecoveryDays: Int
+    var weightChangeKg: Double?
+    var loggingConsistencyDays: Int
+
+    static let empty = WeeklyStats(
+        totalWorkouts: 0,
+        totalWorkoutMinutes: 0,
+        totalActiveCalories: nil,
+        averageSteps: nil,
+        totalSteps: nil,
+        proteinHitDays: 0,
+        calorieTargetHitDays: 0,
+        waterHitDays: 0,
+        averageRecoveryScore: nil,
+        lowRecoveryDays: 0,
+        weightChangeKg: nil,
+        loggingConsistencyDays: 0
+    )
+}
+
+enum WeeklyReviewConfidence: String, Equatable, Sendable, Codable {
+    case low
+    case moderate
+    case high
+}
+
+enum WeeklyReviewMissingSignal: String, Equatable, Sendable, Hashable, Codable {
+    case sleep
+    case hrv
+    case weight
+    case nutrition
+    case workouts
+    case activity
+    case recovery
+}
+
 struct WeeklyHealthReview: Equatable, Sendable, Codable {
-    var headline: String
-    var workoutDays: Int
-    var narrative: String?
+    var weekStartDate: Date
+    var weekEndDate: Date
+    var title: String
+    var summary: String
+    var stats: WeeklyStats
+    var wins: [String]
+    var risks: [String]
+    var nextWeekFocus: [String]
+    var confidence: WeeklyReviewConfidence
+    var missingSignals: Set<WeeklyReviewMissingSignal>
+    var generatedAt: Date
 
     static let empty = WeeklyHealthReview(
-        headline: "",
-        workoutDays: 0,
-        narrative: nil
+        weekStartDate: .distantPast,
+        weekEndDate: .distantPast,
+        title: "",
+        summary: "",
+        stats: .empty,
+        wins: [],
+        risks: [],
+        nextWeekFocus: [],
+        confidence: .low,
+        missingSignals: [.activity, .nutrition, .weight, .recovery],
+        generatedAt: .distantPast
     )
 }
 

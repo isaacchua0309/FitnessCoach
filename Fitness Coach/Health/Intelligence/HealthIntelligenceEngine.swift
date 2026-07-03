@@ -89,7 +89,9 @@ struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
                 in: weekWorkouts,
                 endingOn: day,
                 calendar: calendar
-            )
+            ),
+            weekEndDate: day,
+            calendar: calendar
         )
         let planConfidence = HealthIntelligenceBaseline.planConfidence(
             availability: availability,

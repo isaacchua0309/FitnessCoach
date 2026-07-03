@@ -77,7 +77,12 @@ final class HealthIntelligenceBaselineTests: XCTestCase {
         }
 
         XCTAssertNil(
-            HealthIntelligenceBaseline.weeklyReview(metricsInWeek: metrics, workoutDays: 2)
+            HealthIntelligenceBaseline.weeklyReview(
+                metricsInWeek: metrics,
+                workoutDays: 2,
+                weekEndDate: makeDate(2026, 7, 7),
+                calendar: calendar
+            )
         )
 
         let seventh = DailyHealthMetrics(
@@ -90,7 +95,9 @@ final class HealthIntelligenceBaselineTests: XCTestCase {
         XCTAssertNotNil(
             HealthIntelligenceBaseline.weeklyReview(
                 metricsInWeek: metrics + [seventh],
-                workoutDays: 3
+                workoutDays: 3,
+                weekEndDate: makeDate(2026, 7, 7),
+                calendar: calendar
             )
         )
     }

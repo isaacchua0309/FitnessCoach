@@ -103,17 +103,53 @@ enum HealthIntelligenceBaseline {
 
     static func weeklyReview(
         metricsInWeek: [DailyHealthMetrics],
-        workoutDays: Int
+        workoutDays: Int,
+        weekEndDate: Date,
+        calendar: Calendar
     ) -> WeeklyHealthReview? {
         let daysWithActivity = metricsInWeek.filter { dayHasActivity($0) }.count
         guard daysWithActivity >= minimumWeeklyReviewDays else {
             return nil
         }
 
+        guard let weekStart = calendar.date(
+            byAdding: .day,
+            value: -(minimumWeeklyReviewDays - 1),
+            to: calendar.startOfDay(for: weekEndDate)
+        ) else {
+            return nil
+        }
+
+        let stepValues = metricsInWeek.map(\.steps).filter { $0 > 0 }
+        let averageSteps = stepValues.isEmpty
+            ? nil
+            : stepValues.reduce(0, +) / stepValues.count
+
         return WeeklyHealthReview(
-            headline: "Weekly activity available",
-            workoutDays: workoutDays,
-            narrative: nil
+            weekStartDate: weekStart,
+            weekEndDate: calendar.startOfDay(for: weekEndDate),
+            title: "Weekly activity available",
+            summary: "Activity data is available for the past week. A fuller coaching review will appear as nutrition and weight signals sync.",
+            stats: WeeklyStats(
+                totalWorkouts: workoutDays,
+                totalWorkoutMinutes: 0,
+                totalActiveCalories: nil,
+                averageSteps: averageSteps,
+                totalSteps: stepValues.isEmpty ? nil : stepValues.reduce(0, +),
+                proteinHitDays: 0,
+                calorieTargetHitDays: 0,
+                waterHitDays: 0,
+                averageRecoveryScore: nil,
+                lowRecoveryDays: 0,
+                weightChangeKg: nil,
+                loggingConsistencyDays: 0
+            ),
+            wins: averageSteps.map { ["Movement averaged about \($0) steps per day."] } ?? [],
+            risks: [],
+            nextWeekFocus: ["Keep logging activity and meals to unlock a richer review."],
+            confidence: .low,
+            missingSignals: [.nutrition, .weight, .recovery, .sleep, .hrv],
+            generatedAt: weekEndDate
         )
     }
 
