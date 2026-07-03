@@ -110,6 +110,7 @@ struct PlanEditWizard: View {
                                 .font(.subheadline)
                                 .foregroundStyle(FormaPlanTokens.Color.planDanger)
                         }
+                        .planEditAnnounces(announcedError(errorMessage))
                     }
                 }
                 .scrollContentBackground(.hidden)
@@ -120,6 +121,7 @@ struct PlanEditWizard: View {
                 .environment(\.planProjection, projection)
         }
         .interactiveDismissDisabled(hasUnsavedChanges)
+        .planEditSupportsDynamicType()
         .confirmationDialog(
             FormaProductCopy.PlanEditWizardCopy.discardChangesTitle,
             isPresented: $showsDiscardChangesConfirmation,
@@ -341,6 +343,8 @@ struct PlanEditWizard: View {
                     .font(FormaTokens.Typography.caption)
                     .foregroundStyle(FormaPlanTokens.Color.planDanger)
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel(announcedError(validationMessage))
+                    .planEditAnnounces(announcedError(validationMessage))
             }
         }
     }
@@ -402,22 +406,7 @@ struct PlanEditWizard: View {
             Section {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     ForEach([Sex.male, .female, .other], id: \.self) { sex in
-                        Button {
-                            formState.sex = sex
-                        } label: {
-                            HStack {
-                                Text(PlanFormatter.sex(sex))
-                                    .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
-                                Spacer()
-                                if formState.sex == sex {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(FormaPlanTokens.Color.planAccent)
-                                }
-                            }
-                            .padding(.vertical, FormaTokens.Spacing.xs)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
+                        sexSelectionRow(for: sex)
                     }
                 }
                 .padding(.vertical, FormaTokens.Spacing.xs)
@@ -554,6 +543,37 @@ struct PlanEditWizard: View {
     }
 
     // MARK: Actions
+
+    private func sexSelectionRow(for sex: Sex) -> some View {
+        let isSelected = formState.sex == sex
+
+        return Button {
+            formState.sex = sex
+        } label: {
+            HStack {
+                Text(PlanFormatter.sex(sex))
+                    .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(FormaPlanTokens.Color.planAccent)
+                        .accessibilityHidden(true)
+                }
+            }
+            .frame(minHeight: FormaTokens.Layout.minTouchTarget)
+            .padding(.vertical, FormaTokens.Spacing.xs)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(PlanFormatter.sex(sex))
+        .accessibilityValue(PlanEditAccessibility.selectionValue(isSelected: isSelected))
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func announcedError(_ message: String) -> String {
+        "\(FormaProductCopy.PlanEditAccessibility.errorPrefix). \(message)"
+    }
 
     private func initializeIfNeeded() {
         guard !didInitialize else { return }

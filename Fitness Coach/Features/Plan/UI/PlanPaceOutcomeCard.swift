@@ -110,9 +110,13 @@ struct PlanPaceOutcomeCard: View {
         if let finish = presentation.estimatedFinishLabel {
             parts.append("\(FormaProductCopy.PlanEditTarget.estimatedFinishLabel), \(finish)")
         }
-        parts.append(presentation.coachingDescription)
-        if isSelected {
-            parts.append("Selected")
+        if let validationError = presentation.validationError {
+            parts.append("\(FormaProductCopy.PlanEditAccessibility.errorPrefix). \(validationError)")
+        } else {
+            parts.append(presentation.coachingDescription)
+            if let warning = presentation.warningMessage {
+                parts.append("\(FormaProductCopy.PlanEditAccessibility.warningPrefix). \(warning)")
+            }
         }
         return parts.joined(separator: ". ")
     }

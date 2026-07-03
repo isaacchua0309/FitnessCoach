@@ -47,7 +47,11 @@ struct PlanEditSaveSuccessView: View {
         .background(FormaPlanTokens.Color.planBackground.ignoresSafeArea())
         .accessibilityElement(children: .combine)
         .accessibilityLabel(state.accessibilitySummary)
-        .onAppear(perform: playSuccessAnimation)
+        .planEditSupportsDynamicType()
+        .onAppear {
+            playSuccessAnimation()
+            PlanEditAccessibility.announce(state.accessibilitySummary)
+        }
     }
 
     private var checkmarkIcon: some View {

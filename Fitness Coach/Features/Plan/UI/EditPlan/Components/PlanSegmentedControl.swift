@@ -20,6 +20,7 @@ struct PlanSegmentedControl: View {
                 chip(for: option)
             }
         }
+        .accessibilityElement(children: .contain)
     }
 
     private func chip(for option: PlanSegmentedOption) -> some View {
@@ -35,9 +36,11 @@ struct PlanSegmentedControl: View {
                         ? FormaPlanTokens.Color.planAccent
                         : FormaPlanTokens.Color.planSecondaryText
                 )
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .frame(minHeight: FormaTokens.Layout.minTouchTarget)
+                .frame(minWidth: FormaTokens.Layout.minTouchTarget, minHeight: FormaTokens.Layout.minTouchTarget)
                 .background {
                     Capsule()
                         .fill(
@@ -59,6 +62,9 @@ struct PlanSegmentedControl: View {
             PlanEditMotion.animation(PlanEditMotion.selection, reduceMotion: reduceMotion),
             value: isSelected
         )
+        .accessibilityLabel(option.title)
+        .accessibilityValue(PlanEditAccessibility.selectionValue(isSelected: isSelected))
+        .accessibilityAddTraits(.isButton)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
@@ -72,6 +78,7 @@ struct PlanNativeSegmentedPicker<Selection: Hashable, Content: View>: View {
         Picker(title, selection: $selection, content: content)
             .pickerStyle(.segmented)
             .tint(FormaPlanTokens.Color.planAccent)
+            .accessibilityLabel(title)
     }
 }
 

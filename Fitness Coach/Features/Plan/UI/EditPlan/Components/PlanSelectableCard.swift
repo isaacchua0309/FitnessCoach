@@ -19,7 +19,7 @@ struct PlanSelectableCard<Content: View>: View {
         Button(action: action) {
             content()
                 .padding(FormaTokens.Spacing.cardPadding)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: FormaTokens.Layout.minTouchTarget, alignment: .leading)
                 .background(cardBackground)
                 .overlay(cardBorder)
                 .scaleEffect(selectionScale, anchor: .center)
@@ -30,9 +30,12 @@ struct PlanSelectableCard<Content: View>: View {
             PlanEditMotion.animation(PlanEditMotion.selection, reduceMotion: reduceMotion),
             value: isSelected
         )
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+        .accessibilityValue(PlanEditAccessibility.selectionValue(isSelected: isSelected))
+        .accessibilityHint(FormaProductCopy.PlanEditAccessibility.selectCardHint)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private var selectionScale: CGFloat {

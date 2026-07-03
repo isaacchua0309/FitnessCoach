@@ -26,6 +26,7 @@ struct PlanSuccessCard: View {
                         ? FormaPlanTokens.Color.planSuccess
                         : FormaPlanTokens.Color.planAccent
                 )
+                .accessibilityHidden(true)
 
             Text(headline)
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
@@ -53,6 +54,8 @@ struct PlanSuccessCard: View {
                     lineWidth: 1
                 )
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(headline)
     }
 }
 

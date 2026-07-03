@@ -15,14 +15,16 @@ struct PlanWarningCard: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(FormaPlanTokens.Color.planWarning)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(model.title)
                     .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                     .foregroundStyle(FormaPlanTokens.Color.planWarning)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(model.body)
-                    .font(FormaTokens.Typography.caption)
-                    .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
+                    .font(FormaTokens.Typography.body)
+                    .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -36,6 +38,10 @@ struct PlanWarningCard: View {
             RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
                 .stroke(FormaPlanTokens.Color.planWarningBorder, lineWidth: 1)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "\(FormaProductCopy.PlanEditAccessibility.warningPrefix). \(model.title). \(model.body)"
+        )
     }
 }
 

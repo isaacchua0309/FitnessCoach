@@ -2550,6 +2550,27 @@ enum FormaProductCopy {
         static let leanGain = "Steady build"
     }
 
+    // MARK: - Plan Edit Accessibility
+
+    enum PlanEditAccessibility {
+        static let progressLabel = "Plan progress"
+        static let selected = "Selected"
+        static let notSelected = "Not selected"
+        static let selectCardHint = "Double tap to select."
+        static let warningPrefix = "Warning"
+        static let errorPrefix = "Error"
+        static let emptyFieldValue = "Empty"
+
+        static func progressValue(currentStep: Int, stepCount: Int) -> String {
+            "Step \(currentStep + 1) of \(max(stepCount, 1))"
+        }
+
+        static func fieldLabel(title: String, unit: String?) -> String {
+            guard let unit, !unit.isEmpty else { return title }
+            return "\(title), \(unit)"
+        }
+    }
+
     // MARK: - Plan Edit Common
 
     enum PlanEditCommon {

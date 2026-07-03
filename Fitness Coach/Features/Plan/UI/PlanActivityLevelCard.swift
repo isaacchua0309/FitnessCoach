@@ -77,9 +77,6 @@ struct PlanActivityLevelCard: View {
         if let maintenanceImpactLabel = presentation.maintenanceImpactLabel {
             parts.append("\(copy.maintenanceImpactLabel), \(maintenanceImpactLabel)")
         }
-        if isSelected {
-            parts.append("Selected")
-        }
         return parts.joined(separator: ". ")
     }
 }

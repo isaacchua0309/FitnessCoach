@@ -80,6 +80,7 @@ struct PlanEditShell<Content: View>: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             Color.clear.frame(height: Layout.bottomInset)
         }
+        .planEditSupportsDynamicType()
     }
 
     private var confirmActionColor: Color {
@@ -114,7 +115,13 @@ struct PlanEditProgressIndicator: View {
             value: currentStepIndex
         )
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Step \(currentStepIndex + 1) of \(max(stepCount, 1))")
+        .accessibilityLabel(FormaProductCopy.PlanEditAccessibility.progressLabel)
+        .accessibilityValue(
+            PlanEditAccessibility.progressValue(
+                currentStep: currentStepIndex,
+                stepCount: stepCount
+            )
+        )
     }
 }
 

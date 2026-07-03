@@ -20,6 +20,7 @@ struct PlanInputField: View {
             Text(model.title)
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                 .foregroundStyle(FormaPlanTokens.Color.planPrimaryText)
+                .fixedSize(horizontal: false, vertical: true)
 
             HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.md) {
                 TextField(model.placeholder, text: $text)
@@ -28,7 +29,8 @@ struct PlanInputField: View {
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.leading)
                     .frame(minHeight: FormaTokens.Layout.minTouchTarget)
-                    .accessibilityLabel(model.title)
+                    .accessibilityLabel(inputAccessibilityLabel)
+                    .accessibilityValue(fieldAccessibilityValue)
 
                 if let unitLabel = model.unitLabel {
                     PlanMetricPill(text: unitLabel)
@@ -50,18 +52,43 @@ struct PlanInputField: View {
                     .font(FormaTokens.Typography.caption)
                     .foregroundStyle(FormaPlanTokens.Color.planDanger)
                     .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityLabel(validationMessage)
+                    .accessibilityLabel(
+                        "\(FormaProductCopy.PlanEditAccessibility.errorPrefix). \(validationMessage)"
+                    )
             }
         }
         .accessibilityElement(children: .contain)
+        .planEditAnnounces(
+            model.validationMessage.map {
+                "\(FormaProductCopy.PlanEditAccessibility.errorPrefix). \($0)"
+            }
+        )
+    }
+
+    private var inputAccessibilityLabel: String {
+        FormaProductCopy.PlanEditAccessibility.fieldLabel(
+            title: model.title,
+            unit: model.unitLabel
+        )
+    }
+
+    private var fieldAccessibilityValue: String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return FormaProductCopy.PlanEditAccessibility.emptyFieldValue
+        }
+        if let unitLabel = model.unitLabel {
+            return "\(trimmed) \(unitLabel)"
+        }
+        return trimmed
     }
 
     private var valueFont: Font {
         switch model.valueStyle {
         case .title:
-            return .system(.title, design: .rounded).weight(.bold)
+            return .title.weight(.bold).design(.rounded)
         case .largeTitle:
-            return .system(.largeTitle, design: .rounded).weight(.bold)
+            return .largeTitle.weight(.bold).design(.rounded)
         }
     }
 

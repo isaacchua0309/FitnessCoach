@@ -75,9 +75,6 @@ struct PlanGoalSelectionCard: View {
         if presentation.isRecommended {
             parts.append(FormaProductCopy.PlanEditGoal.recommendedBadge)
         }
-        if isSelected {
-            parts.append("Selected")
-        }
         return parts.joined(separator: ". ")
     }
 }
