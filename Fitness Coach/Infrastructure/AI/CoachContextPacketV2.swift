@@ -23,6 +23,7 @@ struct CoachContextPacketV2: Codable, Equatable, Sendable {
     var training: CoachTrainingContext?
     var healthIntelligence: CoachHealthIntelligenceContext?
     var timeline: CoachContextTimelinePacket
+    var recentChatMessages: [CoachChatMessageContext]
     var recentMealsStructured: [CoachRecentMealContext]
     var commonFoods: [CoachCommonFoodContext]
     var missingData: CoachMissingDataContext
@@ -37,6 +38,7 @@ struct CoachContextPacketV2: Codable, Equatable, Sendable {
         training: CoachTrainingContext? = nil,
         healthIntelligence: CoachHealthIntelligenceContext? = nil,
         timeline: CoachContextTimelinePacket = CoachContextTimelinePacket(),
+        recentChatMessages: [CoachChatMessageContext] = [],
         recentMealsStructured: [CoachRecentMealContext] = [],
         commonFoods: [CoachCommonFoodContext] = [],
         missingData: CoachMissingDataContext = CoachMissingDataContext(),
@@ -50,6 +52,7 @@ struct CoachContextPacketV2: Codable, Equatable, Sendable {
         self.training = training
         self.healthIntelligence = healthIntelligence
         self.timeline = timeline
+        self.recentChatMessages = recentChatMessages
         self.recentMealsStructured = recentMealsStructured
         self.commonFoods = commonFoods
         self.missingData = missingData
@@ -215,6 +218,14 @@ struct CoachContextTimelinePacket: Codable, Equatable, Sendable {
     }
 }
 
+struct CoachChatMessageContext: Codable, Equatable, Sendable {
+    var id: UUID
+    var role: String
+    var textPreview: String
+    var sentAt: Date
+    var hasPhotoAttachment: Bool
+}
+
 struct CoachTimelineContextEvent: Codable, Equatable, Sendable {
     var id: UUID
     var timestamp: Date
@@ -345,6 +356,7 @@ enum CoachContextPacketV2Limits {
     static let defaultMaxEncodedBytes = 24_576
 
     static let maxTimelineEvents = 40
+    static let maxChatMessages = 5
     static let maxRecentMeals = 6
     static let maxCommonFoods = 10
     static let maxAssumptions = 8
@@ -394,6 +406,9 @@ extension CoachContextPacketV2 {
                 .prefix(CoachContextPacketV2Limits.maxTimelineEvents)
                 .map { $0.clampedForTransport() }
         )
+        copy.recentChatMessages = Array(
+            recentChatMessages.prefix(CoachContextPacketV2Limits.maxChatMessages)
+        )
         copy.recentMealsStructured = Array(
             recentMealsStructured.prefix(CoachContextPacketV2Limits.maxRecentMeals)
         )
@@ -418,6 +433,7 @@ extension CoachContextPacketV2 {
             "today=\(today != nil)",
             "trainingWorkouts=\(training?.workoutsToday ?? 0)",
             "timelineEvents=\(timeline.recentEvents.count)",
+            "chatMessages=\(recentChatMessages.count)",
             "meals=\(recentMealsStructured.count)",
             "commonFoods=\(commonFoods.count)",
             "missing=\(missingData.missingSignalLabels.joined(separator: ","))",
@@ -556,6 +572,27 @@ extension CoachTimelineContextEvent {
         case .empty:
             return nil
         }
+    }
+}
+
+extension CoachChatMessageContext {
+
+    static func from(message: ChatMessage, maxPreviewLength: Int = 180) -> CoachChatMessageContext {
+        let preview = CoachChatMessageContext.clamp(message.text, maxLength: maxPreviewLength)
+        return CoachChatMessageContext(
+            id: message.id,
+            role: message.role.rawValue,
+            textPreview: preview,
+            sentAt: message.createdAt,
+            hasPhotoAttachment: message.hasMealPhotoAttachment
+        )
+    }
+
+    private static func clamp(_ text: String, maxLength: Int) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count > maxLength else { return trimmed }
+        let index = trimmed.index(trimmed.startIndex, offsetBy: maxLength)
+        return String(trimmed[..<index]) + "…"
     }
 }
 
