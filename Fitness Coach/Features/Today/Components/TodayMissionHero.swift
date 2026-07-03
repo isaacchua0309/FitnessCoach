@@ -2,34 +2,24 @@
 //  TodayMissionHero.swift
 //  Fitness Coach
 //
-//  Forma — Today's Mission hero: calories remaining, protein gap, and status.
+//  Forma — Today's Mission hero: calories remaining and contextual status.
 //
 
 import SwiftUI
 
 struct TodayMissionHero: View {
     let mission: TodayMissionState
-    let proteinProgress: MacroProgress
-    let mealsEmptyKind: TodayMealsEmptyKind
     let onLogMeal: () -> Void
 
     @ScaledMetric(relativeTo: .largeTitle) private var heroValueSize: CGFloat = 52
 
-    private var display: TodayMissionHeroDisplayModel {
-        TodayMissionHeroFormatter.displayModel(
-            mission: mission,
-            proteinProgress: proteinProgress,
-            mealsEmptyKind: mealsEmptyKind
-        )
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
-            TodaySectionLabel(title: FormaProductCopy.Today.Mission.sectionTitle)
+            TodaySectionLabel(title: mission.sectionTitle)
 
             metricsBlock
 
-            if display.showsLogMealCTA {
+            if mission.showsLogMealCTA {
                 FormaQuickActionChip(
                     title: FormaProductCopy.Today.EmptyState.logMealAction,
                     action: onLogMeal,
@@ -43,14 +33,14 @@ struct TodayMissionHero: View {
 
     private var metricsBlock: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
-            Text(display.primaryMetricLabel)
+            Text(mission.primaryMetricLabel)
                 .font(FormaTokens.Typography.sectionSubtitle)
                 .foregroundStyle(FormaTokens.Color.textSecondary)
 
-            Text(display.primaryMetricValue)
+            Text(mission.primaryMetricValue)
                 .font(.system(size: heroValueSize, weight: .bold, design: .rounded))
                 .foregroundStyle(
-                    display.isOverTarget
+                    mission.phase == .overTarget
                         ? FormaTokens.Color.destructive
                         : FormaTokens.Color.textPrimary
                 )
@@ -58,29 +48,28 @@ struct TodayMissionHero: View {
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
 
-            SwiftUI.ProgressView(value: display.progress)
+            SwiftUI.ProgressView(value: mission.progress)
                 .tint(
-                    display.isOverTarget
+                    mission.phase == .overTarget
                         ? FormaTokens.Color.destructive
                         : FormaTokens.Color.progress
                 )
 
-            Text(display.statusLine)
+            Text(mission.statusLine)
                 .font(FormaTokens.Typography.sectionSubtitle)
                 .foregroundStyle(FormaTokens.Color.textLegal)
                 .fixedSize(horizontal: false, vertical: true)
                 .lineLimit(4)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(display.accessibilityLabel)
+        .accessibilityLabel(mission.accessibilityLabel)
     }
 }
 
+#if DEBUG
 #Preview("New profile") {
     TodayMissionHero(
         mission: TodayPreviewData.emptyDay.mission,
-        proteinProgress: TodayPreviewData.emptyDay.macroBalance.macroSummary.protein,
-        mealsEmptyKind: .newProfileNoMeals,
         onLogMeal: {}
     )
     .padding()
@@ -91,8 +80,6 @@ struct TodayMissionHero: View {
 #Preview("Partial day") {
     TodayMissionHero(
         mission: TodayPreviewData.partialDay.mission,
-        proteinProgress: TodayPreviewData.partialDay.macroBalance.macroSummary.protein,
-        mealsEmptyKind: .hasMeals,
         onLogMeal: {}
     )
     .padding()
@@ -103,11 +90,10 @@ struct TodayMissionHero: View {
 #Preview("Over target") {
     TodayMissionHero(
         mission: TodayPreviewData.overTargetDay.mission,
-        proteinProgress: TodayPreviewData.overTargetDay.macroBalance.macroSummary.protein,
-        mealsEmptyKind: .hasMeals,
         onLogMeal: {}
     )
     .padding()
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
 }
+#endif

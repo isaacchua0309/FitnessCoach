@@ -1034,6 +1034,26 @@ enum FormaProductCopy {
             }
         }
 
+        enum Victory {
+            static let targetMet = "Today's calorie target met."
+            static let workoutStrongDay = "Strong day — workout logged and nutrition on track."
+        }
+
+        enum SmartCoach {
+            static let logFirstMeal = "Log your first meal to start today."
+            static let proteinBehind = "Add protein at your next meal."
+            static let waterBehind = "Drink water before your next meal."
+            static let bothBehind = "Catch up on protein and water at your next break."
+            static let overTarget = "Above target — keep logging honestly."
+            static let postWorkoutProtein = "Refuel with protein after your workout."
+        }
+
+        enum EndOfDay {
+            static let wrapUp = "Wrap up today when you're ready."
+            static let reviewPrompt = "Review today's log with Coach."
+            static let reviewAction = "Review today"
+        }
+
         enum EmptyState {
             static let missingProfileTitle = "Set up your plan first"
             static let missingProfileBody = "Finish your profile on Plan so Forma can build today's targets."

@@ -100,8 +100,8 @@ struct TodayReadOnlyProgressSection: View {
 
 #Preview("Small width") {
     TodayReadOnlyProgressSection(
-        macros: TodayPreviewData.state.macroBalance.macroSummary,
-        water: TodayPreviewData.state.macroBalance.waterSummary
+        macros: TodayPreviewData.state.macroHydration.macroSummary,
+        water: TodayPreviewData.state.macroHydration.waterSummary
     )
     .frame(width: 320)
     .padding(.horizontal, TodayLayout.horizontalPadding)

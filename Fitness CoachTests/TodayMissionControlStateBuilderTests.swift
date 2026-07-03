@@ -25,8 +25,8 @@ final class TodayMissionControlStateBuilderTests: XCTestCase {
         )
 
         XCTAssertEqual(state.mission.calorieSummary.consumed, 500)
-        XCTAssertEqual(state.macroBalance.macroSummary.protein.consumed, 79)
-        XCTAssertEqual(state.macroBalance.macroSummary.protein.remaining, 91)
+        XCTAssertEqual(state.macroHydration.macroSummary.protein.consumed, 79)
+        XCTAssertEqual(state.macroHydration.macroSummary.protein.remaining, 91)
         XCTAssertEqual(state.mission.status, .needsFocus)
     }
 

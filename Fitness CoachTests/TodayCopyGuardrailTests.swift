@@ -51,7 +51,7 @@ final class TodayCopyGuardrailTests: XCTestCase {
             TodayEmptyStateFormatting.missionStatusLine(
                 mealsEmptyKind: overTarget.emptyContext.mealsEmptyKind,
                 calorieSummary: overTarget.mission.calorieSummary,
-                proteinProgress: overTarget.macroBalance.macroSummary.protein
+                proteinProgress: overTarget.macroHydration.macroSummary.protein
             )
         )
 

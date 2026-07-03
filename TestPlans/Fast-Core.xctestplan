@@ -191,6 +191,7 @@
         "TodayMealEditDeleteTests",
         "TodayMealsGroupingTests",
         "TodayMissionControlStateBuilderTests",
+        "TodayPresentationBuilderTests",
         "TodayMissionHeroTests",
         "TodayNextActionFormattingTests",
         "TodayQuickActionsTests",

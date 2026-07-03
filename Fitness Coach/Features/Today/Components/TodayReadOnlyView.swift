@@ -57,7 +57,7 @@ struct TodayReadOnlyView: View {
             )
 
             TodayQuickActionsSection(
-                menuItems: TodayQuickActionPolicy.menuItems(),
+                menuItems: state.quickActions.items,
                 onSelect: { kind in
                     actionCoordinator.performQuickAction(kind)
                 }
@@ -89,8 +89,8 @@ struct TodayReadOnlyView: View {
             )
 
             TodayReadOnlyProgressSection(
-                macros: state.macroBalance.macroSummary,
-                water: state.macroBalance.waterSummary
+                macros: state.macroHydration.macroSummary,
+                water: state.macroHydration.waterSummary
             )
         }
     }
@@ -99,8 +99,6 @@ struct TodayReadOnlyView: View {
         VStack(alignment: .leading, spacing: TodayLayout.statusZoneSpacing) {
             TodayMissionHero(
                 mission: state.mission,
-                proteinProgress: state.macroBalance.macroSummary.protein,
-                mealsEmptyKind: state.emptyContext.mealsEmptyKind,
                 onLogMeal: {
                     actionCoordinator.performQuickAction(.manualEntry)
                 }

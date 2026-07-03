@@ -23,7 +23,7 @@ final class TodayReadOnlyCompositionTests: XCTestCase {
 
         XCTAssertFalse(state.meals.isEmpty)
         XCTAssertNotNil(state.nextBestAction.title)
-        XCTAssertGreaterThan(state.macroBalance.macroSummary.protein.target, 0)
+        XCTAssertGreaterThan(state.macroHydration.macroSummary.protein.target, 0)
         XCTAssertFalse(state.activity.displayLine.isEmpty)
     }
 

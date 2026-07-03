@@ -45,33 +45,44 @@ enum TodayMissionHeroFormatter {
     static let nearTargetRemainingRatio = 0.15
 
     static func displayModel(
-        mission: TodayMissionState,
+        calorieSummary: CalorieSummary,
         proteinProgress: MacroProgress,
         mealsEmptyKind: TodayMealsEmptyKind
     ) -> TodayMissionHeroDisplayModel {
-        let calories = mission.calorieSummary
         let statusLine = TodayEmptyStateFormatting.missionStatusLine(
             mealsEmptyKind: mealsEmptyKind,
-            calorieSummary: calories,
+            calorieSummary: calorieSummary,
             proteinProgress: proteinProgress
         )
 
         return TodayMissionHeroDisplayModel(
-            primaryMetricLabel: calories.isOverTarget
+            primaryMetricLabel: calorieSummary.isOverTarget
                 ? FormaProductCopy.Today.Mission.caloriesOverLabel
                 : FormaProductCopy.Today.Mission.caloriesRemainingLabel,
-            primaryMetricValue: TodayMissionHeroFormatting.primaryMetricValue(calorieSummary: calories),
+            primaryMetricValue: TodayMissionHeroFormatting.primaryMetricValue(calorieSummary: calorieSummary),
             statusLine: statusLine,
-            progress: min(max(calories.progress, 0), 1),
-            isOverTarget: calories.isOverTarget,
+            progress: min(max(calorieSummary.progress, 0), 1),
+            isOverTarget: calorieSummary.isOverTarget,
             showsLogMealCTA: TodayEmptyStateFormatting.missionShowsLogCTA(mealsEmptyKind: mealsEmptyKind),
             accessibilityLabel: accessibilityLabel(
-                primaryMetricLabel: calories.isOverTarget
+                primaryMetricLabel: calorieSummary.isOverTarget
                     ? FormaProductCopy.Today.Mission.caloriesOverLabel
                     : FormaProductCopy.Today.Mission.caloriesRemainingLabel,
-                primaryMetricValue: TodayMissionHeroFormatting.primaryMetricValue(calorieSummary: calories),
+                primaryMetricValue: TodayMissionHeroFormatting.primaryMetricValue(calorieSummary: calorieSummary),
                 statusLine: statusLine
             )
+        )
+    }
+
+    static func displayModel(
+        mission: TodayMissionState,
+        proteinProgress: MacroProgress,
+        mealsEmptyKind: TodayMealsEmptyKind
+    ) -> TodayMissionHeroDisplayModel {
+        displayModel(
+            calorieSummary: mission.calorieSummary,
+            proteinProgress: proteinProgress,
+            mealsEmptyKind: mealsEmptyKind
         )
     }
 

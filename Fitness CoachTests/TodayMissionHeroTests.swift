@@ -133,8 +133,7 @@ final class TodayMissionHeroTests: XCTestCase {
     ) -> TodayMissionHeroDisplayModel {
         let proteinRemaining = max(proteinTarget - proteinConsumed, 0)
         let proteinProgress = proteinTarget > 0 ? proteinConsumed / proteinTarget : 0
-        let mission = TodayMissionState(
-            status: isOverTarget ? .overBudget : .needsFocus,
+        return TodayMissionHeroFormatter.displayModel(
             calorieSummary: CalorieSummary(
                 consumed: consumed,
                 target: target,
@@ -142,13 +141,6 @@ final class TodayMissionHeroTests: XCTestCase {
                 progress: progress ?? (target > 0 ? Double(consumed) / Double(target) : 0),
                 isOverTarget: isOverTarget
             ),
-            weightSummary: TodayWeightSummary(weightKg: nil, displayText: "Not logged today"),
-            goalProgress: nil,
-            focusMessage: "",
-            proteinRemainingGrams: proteinRemaining
-        )
-        return TodayMissionHeroFormatter.displayModel(
-            mission: mission,
             proteinProgress: MacroProgress(
                 consumed: proteinConsumed,
                 target: proteinTarget,

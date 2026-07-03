@@ -114,16 +114,45 @@ enum NextBestActionEngine {
 
     // MARK: - Action builders
 
-    private static func buildMissedMealAction(from input: NextBestActionInput) -> NextBestActionState? {
+    private static func makeAction(
+        title: String,
+        subtitle: String?,
+        reason: TodayNextBestActionReason,
+        primaryCTA: TodayNextBestActionCTA,
+        secondaryCTAs: [TodayNextBestActionCTA] = []
+    ) -> TodayNextBestActionState {
+        let display = TodayNextActionFormatting.displayModel(
+            for: TodayNextBestActionState(
+                sectionTitle: FormaProductCopy.Today.NextAction.sectionTitle,
+                title: title,
+                subtitle: subtitle,
+                reason: reason,
+                primaryCTA: primaryCTA,
+                secondaryCTAs: secondaryCTAs,
+                accessibilityLabel: ""
+            )
+        )
+
+        return TodayNextBestActionState(
+            sectionTitle: display.sectionTitle,
+            title: title,
+            subtitle: subtitle,
+            reason: reason,
+            primaryCTA: primaryCTA,
+            secondaryCTAs: secondaryCTAs,
+            accessibilityLabel: display.accessibilityLabel
+        )
+    }
+
+    private static func buildMissedMealAction(from input: NextBestActionInput) -> TodayNextBestActionState? {
         let hour = input.calendar.component(.hour, from: input.date)
 
         if input.foodEntries.isEmpty, hour < breakfastWindowEndHour {
-            return NextBestActionState(
+            return makeAction(
                 title: FormaProductCopy.Today.NextAction.logFirstMealTitle,
                 subtitle: FormaProductCopy.Today.NextAction.logFirstMealSubtitle,
                 reason: .logFirstMeal,
-                primaryCTA: .logMeal(TodayCoachPrompt.logMeal()),
-                secondaryCTAs: []
+                primaryCTA: .logMeal(TodayCoachPrompt.logMeal())
             )
         }
 
@@ -131,74 +160,67 @@ enum NextBestActionEngine {
             return nil
         }
 
-        return NextBestActionState(
+        return makeAction(
             title: FormaProductCopy.Today.NextAction.logMissedMealTitle(mealType),
             subtitle: FormaProductCopy.Today.NextAction.logMissedMealSubtitle(mealType),
             reason: .logMissedMeal(mealType),
-            primaryCTA: .logMeal(TodayCoachPrompt.logMeal(mealType)),
-            secondaryCTAs: []
+            primaryCTA: .logMeal(TodayCoachPrompt.logMeal(mealType))
         )
     }
 
-    private static func proteinAction(from input: NextBestActionInput) -> NextBestActionState {
+    private static func proteinAction(from input: NextBestActionInput) -> TodayNextBestActionState {
         let suggestedGrams = max(15, Int(input.proteinProgress.remaining.rounded()))
-        return NextBestActionState(
+        return makeAction(
             title: FormaProductCopy.Today.NextAction.eatProteinTitle(grams: suggestedGrams),
             subtitle: FormaProductCopy.Today.NextAction.eatProteinSubtitle,
             reason: .eatProtein,
-            primaryCTA: .logMeal(TodayCoachPrompt.logProtein),
-            secondaryCTAs: []
+            primaryCTA: .logMeal(TodayCoachPrompt.logProtein)
         )
     }
 
-    private static func waterAction(from input: NextBestActionInput) -> NextBestActionState {
+    private static func waterAction(from input: NextBestActionInput) -> TodayNextBestActionState {
         let amountMl = 500
-        return NextBestActionState(
+        return makeAction(
             title: FormaProductCopy.Today.NextAction.drinkWaterTitle(amountMl: amountMl),
             subtitle: FormaProductCopy.Today.NextAction.addWaterSubtitle,
             reason: .addWater,
-            primaryCTA: .addWater(amountMl: amountMl),
-            secondaryCTAs: []
+            primaryCTA: .addWater(amountMl: amountMl)
         )
     }
 
-    private static func weightAction(from input: NextBestActionInput) -> NextBestActionState {
-        NextBestActionState(
+    private static func weightAction(from input: NextBestActionInput) -> TodayNextBestActionState {
+        makeAction(
             title: FormaProductCopy.Today.NextAction.logWeightTitle,
             subtitle: FormaProductCopy.Today.NextAction.logWeightSubtitle,
             reason: .logWeight,
-            primaryCTA: .logWeight,
-            secondaryCTAs: []
+            primaryCTA: .logWeight
         )
     }
 
-    private static func connectHealthAction(from input: NextBestActionInput) -> NextBestActionState {
-        NextBestActionState(
+    private static func connectHealthAction(from input: NextBestActionInput) -> TodayNextBestActionState {
+        makeAction(
             title: FormaProductCopy.Today.NextAction.connectHealthTitle,
             subtitle: FormaProductCopy.Today.NextAction.connectHealthSubtitle,
             reason: .connectAppleHealth,
-            primaryCTA: .openHealth,
-            secondaryCTAs: []
+            primaryCTA: .openHealth
         )
     }
 
-    private static func reviewTodayAction(from input: NextBestActionInput) -> NextBestActionState {
-        NextBestActionState(
+    private static func reviewTodayAction(from input: NextBestActionInput) -> TodayNextBestActionState {
+        makeAction(
             title: FormaProductCopy.Today.NextAction.reviewTodayTitle,
             subtitle: FormaProductCopy.Today.NextAction.reviewTodaySubtitle,
             reason: .reviewToday,
-            primaryCTA: .reviewToday,
-            secondaryCTAs: []
+            primaryCTA: .reviewToday
         )
     }
 
-    private static func onTrackAction(from input: NextBestActionInput) -> NextBestActionState {
-        NextBestActionState(
+    private static func onTrackAction(from input: NextBestActionInput) -> TodayNextBestActionState {
+        makeAction(
             title: FormaProductCopy.Today.NextAction.onTrackTitle,
             subtitle: FormaProductCopy.Today.NextAction.onTrackSubtitle,
             reason: .onTrack,
-            primaryCTA: .none,
-            secondaryCTAs: []
+            primaryCTA: .none
         )
     }
 }

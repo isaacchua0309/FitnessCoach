@@ -109,7 +109,7 @@ private struct TodayMacroBalanceMetricsCard<Content: View>: View {
 }
 
 #Preview("Macro balance") {
-    TodayMacroBalanceCard(macros: TodayPreviewData.state.macroBalance.macroSummary)
+    TodayMacroBalanceCard(macros: TodayPreviewData.state.macroHydration.macroSummary)
         .padding(.horizontal, TodayLayout.horizontalPadding)
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()
