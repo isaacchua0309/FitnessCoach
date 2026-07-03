@@ -41,6 +41,7 @@ struct MainTabView: View {
     @Environment(\.formaResolvedTheme) private var resolvedTheme
 
     @StateObject private var todayModel: TodayModel
+    @StateObject private var todayActionCoordinator: TodayActionCoordinator
     @StateObject private var coachModel: CoachModel
     @StateObject private var journeyModel: JourneyModel
     @StateObject private var planModel: PlanModel
@@ -51,7 +52,9 @@ struct MainTabView: View {
         self.container = container
         self.journeyAnalyticsCoordinator = container.makeJourneyAnalyticsCoordinator()
         self.settingsAnalyticsCoordinator = container.makeSettingsAnalyticsCoordinator()
-        _todayModel = StateObject(wrappedValue: container.makeTodayModel())
+        let todayModel = container.makeTodayModel()
+        _todayModel = StateObject(wrappedValue: todayModel)
+        _todayActionCoordinator = StateObject(wrappedValue: container.makeTodayActionCoordinator())
         _coachModel = StateObject(wrappedValue: container.makeCoachModel())
         _journeyModel = StateObject(wrappedValue: container.makeJourneyModel())
         _planModel = StateObject(wrappedValue: container.makePlanModel())
@@ -62,7 +65,7 @@ struct MainTabView: View {
         TabView(selection: $selectedTab) {
             TodayView(
                 model: todayModel,
-                actionCoordinator: container.makeTodayActionCoordinator(),
+                actionCoordinator: todayActionCoordinator,
                 healthActivityQuery: container.healthActivityQueryService,
                 onOpenCoach: { intent in
                     openCoach(with: intent)
@@ -123,6 +126,9 @@ struct MainTabView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 container.refreshCenter.refreshIfDayChanged()
+                Task {
+                    await todayModel.refresh()
+                }
             }
         }
         .task {

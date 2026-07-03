@@ -26,7 +26,7 @@ Save paths (`TodayActionCoordinator.saveMeal`, `saveFoodEdit`, `CoachModel.saveF
 Coach persists meals through `FitnessActionCenter.logFood`, which bumps `AppRefreshCenter.refreshToken`. Today stays in sync through:
 
 1. **`TodayView`** — listens for `refreshToken` changes and reloads the dashboard (calories, protein, meals, next best action).
-2. **`MainTabView`** — when the user returns to the Today tab, calls `TodayModel.refresh()` so a mounted-but-hidden Today surface always reflects the latest log.
+2. **`MainTabView`** — holds one `TodayActionCoordinator` for the tab lifetime (snackbar/water optimistic UI must not reset on re-render). When the user returns to the Today tab or the app becomes active, calls `TodayModel.refresh()` so a mounted-but-hidden Today surface always reflects the latest log.
 3. **Failed saves** — `CoachMutationExecutor.executeLogFood` only calls `logFood` on success; failed confirmations do not bump `refreshToken` or change Today totals.
 4. **Duplicate guard** — `CoachModel.confirmPendingFromBar` ignores re-entrant confirms while a save is in flight.
 

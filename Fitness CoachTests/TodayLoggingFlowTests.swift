@@ -187,6 +187,49 @@ final class TodayLoggingFlowTests: XCTestCase {
         XCTAssertTrue(FoodEntryFormMode.coachEdit(estimateContext: nil, confidence: .high).showsEstimateBanner)
     }
 
+    func testWaterTapDebounceDurationIsConfigured() {
+        XCTAssertEqual(FormaProductCopy.Today.Water.tapDebounceSeconds, 0.35, accuracy: 0.001)
+    }
+
+    func testCoachSaveThenTodayRefreshMatchesForegroundReturnScenario() async throws {
+        let todayModel = makeTodayModel()
+        await todayModel.loadToday()
+
+        let refreshTokenBefore = harness.refreshCenter.refreshToken
+        let coachHarness = CoachRoutingIntegrationTestSupport.Harness(
+            fitness: harness,
+            healthTrainingService: HealthTrainingService(
+                userDefaults: UserDefaults(suiteName: UUID().uuidString)!
+            ),
+            trainingInsightsStore: TrainingInsightsStore(
+                integration: HealthTrainingService(
+                    userDefaults: UserDefaults(suiteName: UUID().uuidString)!
+                )
+            )
+        )
+        let coachModel = coachHarness.makeCoach(
+            aiService: TodayLoggingFlowFoodEstimateService(
+                response: FoodLoggingGoldenFixtures.case4Response
+            )
+        )
+
+        await coachModel.send(FoodLoggingGoldenFixtures.case4Prompt)
+        await coachModel.confirmPendingFromBar()
+        XCTAssertEqual(harness.refreshCenter.refreshToken, refreshTokenBefore + 1)
+
+        await todayModel.refresh()
+
+        guard case .loaded(let afterForegroundRefresh) = todayModel.viewState else {
+            return XCTFail("Expected loaded state after foreground-style refresh")
+        }
+
+        XCTAssertEqual(
+            afterForegroundRefresh.mission.calorieSummary.consumed,
+            FoodLoggingGoldenFixtures.case4MealDraft.totalCalories
+        )
+        XCTAssertEqual(afterForegroundRefresh.meals.entryCount, 1)
+    }
+
     // MARK: - Helpers
 
     private func makeTodayModel() -> TodayModel {
@@ -354,6 +397,62 @@ final class TodayLoggingFlowCompositionTests: XCTestCase {
         XCTAssertTrue(coordinator.addWater(amountMl: 500))
         XCTAssertFalse(coordinator.isPresentingLogWeightSheet)
         XCTAssertNil(coordinator.editFoodPresentation)
+    }
+
+    func testTodayReadOnlyViewUsesTighterSpacingOnCompactHeight() {
+        XCTAssertEqual(FormaTokens.Spacing.lg < TodayLayout.sectionSpacing, true)
+    }
+
+    func testMainTabViewKeepsStableTodayActionCoordinator() throws {
+        let root = ThemeTestSupport.repositoryRoot()
+        let mainTabSource = try String(
+            contentsOf: root.appendingPathComponent("Fitness Coach/App/MainTabView.swift"),
+            encoding: .utf8
+        )
+
+        XCTAssertTrue(
+            mainTabSource.contains("@StateObject private var todayActionCoordinator: TodayActionCoordinator"),
+            "MainTabView must hold a single TodayActionCoordinator across body re-evaluations."
+        )
+        XCTAssertFalse(
+            mainTabSource.contains("actionCoordinator: container.makeTodayActionCoordinator()"),
+            "MainTabView must not construct a new TodayActionCoordinator inline in TodayView."
+        )
+        XCTAssertTrue(
+            mainTabSource.contains("await todayModel.refresh()"),
+            "MainTabView must refresh Today when the app returns to the foreground."
+        )
+    }
+
+    func testTodayLoggingSurfacesResolveAcrossLightAndDarkAppearances() async {
+        await MainActor.run {
+            for palette in AppThemePalette.allCases {
+                for appearance in [ColorScheme.dark, ColorScheme.light] {
+                    FormaThemeAccess.update(
+                        resolved: ThemeTestSupport.makeResolved(
+                            palette: palette,
+                            systemColorScheme: appearance
+                        )
+                    )
+
+                    ThemeTestSupport.assertSameColor(
+                        FormaTokens.Theme.primary,
+                        ThemePaletteCatalog.palette(for: palette, colorScheme: appearance).primary
+                    )
+                    ThemeTestSupport.assertSameColor(
+                        FormaTokens.Color.progress,
+                        FormaPaletteCatalog.palette(for: palette, colorScheme: appearance).progress
+                    )
+                    XCTAssertGreaterThan(
+                        ThemeTestSupport.colorDistance(
+                            FormaTokens.Color.textPrimary,
+                            FormaTokens.Color.canvas
+                        ),
+                        0.05
+                    )
+                }
+            }
+        }
     }
 
     // MARK: - Helpers
