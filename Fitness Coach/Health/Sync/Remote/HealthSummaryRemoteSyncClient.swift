@@ -147,6 +147,31 @@ enum HealthSummaryRemoteSyncLogger {
         )
     }
 
+    static func serviceEvent(_ message: String, fields: [String: String] = [:]) {
+        var metadata = fields
+        metadata["component"] = "HealthSummarySyncService"
+        event(message, fields: metadata)
+    }
+
+    static func serviceWarn(_ message: String, fields: [String: String] = [:]) {
+        var metadata = fields
+        metadata["component"] = "HealthSummarySyncService"
+        warn(message, fields: metadata)
+    }
+
+    static func payloadKindFailed(
+        _ kind: HealthSummaryRemoteSyncPayloadKind,
+        error: HealthSummarySyncError
+    ) {
+        serviceWarn(
+            "remote summary payload upload failed",
+            fields: [
+                "payloadKind": kind.rawValue,
+                "error": error.localizedDescription
+            ]
+        )
+    }
+
     static func deleteStarted(uid: String) {
         event(
             "Remote health summary delete started",

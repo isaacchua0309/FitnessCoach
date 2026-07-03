@@ -32,6 +32,7 @@ protocol HealthIntelligenceFeatureFlagProviding: Sendable {
     var isTodayModelDebugFetchEnabled: Bool { get }
     var isJourneyModelDebugFetchEnabled: Bool { get }
     var isPlanModelDebugFetchEnabled: Bool { get }
+    var healthSummaryRemoteSyncEnabled: Bool { get }
     var shouldTodayModelLoadHealthIntelligence: Bool { get }
     var shouldCoachLoadHealthIntelligence: Bool { get }
     var shouldJourneyModelLoadHealthIntelligence: Bool { get }
@@ -52,6 +53,7 @@ enum HealthIntelligenceFeatureFlags {
         static let coachContextEnabled = false
         static let weeklyReviewEnabled = false
         static let syncEnabled = true
+        static let remoteSummarySyncEnabled = false
         static let repositoryReadRoutingEnabled = true
     }
 
@@ -70,6 +72,8 @@ enum HealthIntelligenceFeatureFlags {
         static let syncLegacy = "FITPILOT_HEALTH_INTELLIGENCE_SYNC_ENABLED"
         static let repositoryReads = "FORMA_HEALTH_INTELLIGENCE_REPOSITORY_READS_ENABLED"
         static let repositoryReadsLegacy = "FITPILOT_HEALTH_INTELLIGENCE_REPOSITORY_READS_ENABLED"
+        static let remoteSummarySync = "FORMA_HEALTH_SUMMARY_REMOTE_SYNC_ENABLED"
+        static let remoteSummarySyncLegacy = "FITPILOT_HEALTH_SUMMARY_REMOTE_SYNC_ENABLED"
         static let todayDebugFetch = "FORMA_HEALTH_INTELLIGENCE_TODAY_FETCH_ENABLED"
         static let todayDebugFetchLegacy = "FITPILOT_HEALTH_INTELLIGENCE_TODAY_FETCH_ENABLED"
         static let journeyDebugFetch = "FORMA_HEALTH_INTELLIGENCE_JOURNEY_FETCH_ENABLED"
@@ -85,6 +89,7 @@ enum HealthIntelligenceFeatureFlags {
         var healthIntelligenceCoachContextEnabled: Bool
         var healthIntelligenceWeeklyReviewEnabled: Bool
         var isSyncEnabled: Bool
+        var healthSummaryRemoteSyncEnabled: Bool
         var isRepositoryReadRoutingEnabled: Bool
         var shouldTodayModelLoadHealthIntelligence: Bool
         var shouldJourneyModelLoadHealthIntelligence: Bool
@@ -101,6 +106,7 @@ enum HealthIntelligenceFeatureFlags {
             healthIntelligenceCoachContextEnabled: flags.healthIntelligenceCoachContextEnabled,
             healthIntelligenceWeeklyReviewEnabled: flags.healthIntelligenceWeeklyReviewEnabled,
             isSyncEnabled: flags.isSyncEnabled,
+            healthSummaryRemoteSyncEnabled: flags.healthSummaryRemoteSyncEnabled,
             isRepositoryReadRoutingEnabled: flags.isRepositoryReadRoutingEnabled,
             shouldTodayModelLoadHealthIntelligence: flags.shouldTodayModelLoadHealthIntelligence,
             shouldJourneyModelLoadHealthIntelligence: flags.shouldJourneyModelLoadHealthIntelligence,
@@ -120,6 +126,7 @@ enum HealthIntelligenceFeatureFlags {
     static var healthIntelligenceCoachContextEnabled: Bool { provider.healthIntelligenceCoachContextEnabled }
     static var healthIntelligenceWeeklyReviewEnabled: Bool { provider.healthIntelligenceWeeklyReviewEnabled }
     static var isSyncEnabled: Bool { provider.isSyncEnabled }
+    static var healthSummaryRemoteSyncEnabled: Bool { provider.healthSummaryRemoteSyncEnabled }
     static var isRepositoryReadRoutingEnabled: Bool { provider.isRepositoryReadRoutingEnabled }
     static var isTodayModelDebugFetchEnabled: Bool { provider.isTodayModelDebugFetchEnabled }
     static var isJourneyModelDebugFetchEnabled: Bool { provider.isJourneyModelDebugFetchEnabled }
@@ -189,6 +196,15 @@ struct EnvironmentHealthIntelligenceFeatureFlags: HealthIntelligenceFeatureFlagP
             primary: HealthIntelligenceFeatureFlags.EnvironmentKey.sync,
             legacy: HealthIntelligenceFeatureFlags.EnvironmentKey.syncLegacy,
             defaultEnabled: HealthIntelligenceFeatureFlags.Defaults.syncEnabled
+        )
+    }
+
+    var healthSummaryRemoteSyncEnabled: Bool {
+        guard healthIntelligenceEnabled, isSyncEnabled else { return false }
+        return flag(
+            primary: HealthIntelligenceFeatureFlags.EnvironmentKey.remoteSummarySync,
+            legacy: HealthIntelligenceFeatureFlags.EnvironmentKey.remoteSummarySyncLegacy,
+            defaultEnabled: HealthIntelligenceFeatureFlags.Defaults.remoteSummarySyncEnabled
         )
     }
 
@@ -277,6 +293,7 @@ struct TestHealthIntelligenceFeatureFlags: HealthIntelligenceFeatureFlagProvidin
     var healthIntelligenceCoachContextEnabled: Bool = false
     var healthIntelligenceWeeklyReviewEnabled: Bool = false
     var isSyncEnabled: Bool = true
+    var healthSummaryRemoteSyncEnabled: Bool = false
     var isRepositoryReadRoutingEnabled: Bool = true
     var isTodayModelDebugFetchEnabled: Bool = false
     var isJourneyModelDebugFetchEnabled: Bool = false

@@ -23,6 +23,7 @@ final class HealthIntelligenceFeatureFlagsTests: XCTestCase {
         XCTAssertFalse(defaults.healthIntelligenceUIEnabled)
         XCTAssertFalse(defaults.healthIntelligenceCoachContextEnabled)
         XCTAssertFalse(defaults.healthIntelligenceWeeklyReviewEnabled)
+        XCTAssertFalse(defaults.healthSummaryRemoteSyncEnabled)
         XCTAssertTrue(defaults.isSyncEnabled)
         XCTAssertTrue(defaults.isRepositoryReadRoutingEnabled)
     }

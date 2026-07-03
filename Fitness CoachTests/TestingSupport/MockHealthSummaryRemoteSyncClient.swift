@@ -18,6 +18,9 @@ final class MockHealthSummaryRemoteSyncClient: HealthSummaryRemoteSyncing, @unch
     var uploadWeeklyReviewError: HealthSummarySyncError?
     var uploadMetadataError: HealthSummarySyncError?
     var deleteError: HealthSummarySyncError?
+    var uploadDelayNanoseconds: UInt64 = 0
+
+    private(set) var dailyUploadCallCount = 0
 
     private(set) var uploadedDailySummaries: [HealthDailySummarySyncPayload] = []
     private(set) var uploadedWorkoutSummaries: [HealthWorkoutSummarySyncPayload] = []
@@ -27,7 +30,11 @@ final class MockHealthSummaryRemoteSyncClient: HealthSummaryRemoteSyncing, @unch
     private(set) var deleteCallCount = 0
 
     func uploadDailySummaries(_ summaries: [HealthDailySummarySyncPayload]) async throws {
+        if uploadDelayNanoseconds > 0 {
+            try await Task.sleep(nanoseconds: uploadDelayNanoseconds)
+        }
         try await performUpload(error: uploadDailyError) {
+            dailyUploadCallCount += 1
             uploadedDailySummaries.append(contentsOf: summaries)
         }
     }
@@ -89,6 +96,8 @@ final class MockHealthSummaryRemoteSyncClient: HealthSummaryRemoteSyncing, @unch
         uploadedWeeklyReviews.removeAll()
         uploadedMetadata.removeAll()
         deleteCallCount = 0
+        dailyUploadCallCount = 0
+        uploadDelayNanoseconds = 0
         lock.unlock()
     }
 
