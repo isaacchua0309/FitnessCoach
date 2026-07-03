@@ -60,6 +60,14 @@ final class ThemeSettingsAccessibilityTests: XCTestCase {
             ThemeSettingsPickerAccessibility.minimumCardTouchTarget,
             44
         )
+        XCTAssertGreaterThanOrEqual(
+            ThemeSettingsPickerAccessibility.minimumCardTouchTarget,
+            48
+        )
+        XCTAssertGreaterThanOrEqual(
+            ThemeSettingsPickerAccessibility.paletteGridMinimumColumnWidth,
+            140
+        )
         XCTAssertGreaterThan(
             ThemeSettingsPickerAccessibility.premiumPickerSelectedBorderLineWidth,
             ThemeSettingsPickerAccessibility.premiumPickerUnselectedBorderLineWidth
