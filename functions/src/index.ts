@@ -93,7 +93,9 @@ export async function handleAiGatewayRequest(
       payload = {parsedCommand: await parseCommand(body, traceId)};
       break;
     case "/v1/ai/estimate-food":
-      modelUsed = resolveModel({tier: "cheap"});
+      modelUsed = resolveModel({
+        tier: body.imageJPEGBase64 ? "strong" : "cheap",
+      });
       payload = await estimateFood(body, traceId);
       break;
     case "/v1/ai/generate-meal-advice":
@@ -423,7 +425,7 @@ async function estimateFood(request: Record<string, any>, traceId?: string) {
         ],
         schema: aiFoodExtractionResponseSchema(),
         maxOutputTokens: 1800,
-        model: resolveModel({tier: "cheap"}),
+        model: resolveModel({tier: "strong"}),
         traceId,
       }) as Promise<FoodExtractionResponse>;
     }
@@ -458,6 +460,13 @@ async function estimateFood(request: Record<string, any>, traceId?: string) {
         errors: validation.errors,
       });
     }
+  }
+
+  if (isPhoto && !validation.ok) {
+    throw new GatewayError(
+      422,
+      "Could not extract reliable nutrition from the meal photo."
+    );
   }
 
   return mapExtractionToGatewayPayload(extraction, source, validation);

@@ -16,4 +16,9 @@ enum LLMClientError: Error, Equatable {
     case missingConfiguration
     case backendUnavailable
     case authenticationFailed
+    case payloadTooLarge(String?)
+    case networkUnavailable
+    case backendRejected(String?)
+    case rateLimited(String?)
+    case modelUnavailable(String?)
 }

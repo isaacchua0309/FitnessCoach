@@ -210,6 +210,7 @@ final class FormaAIBackendClient: LLMClient {
         let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
 
         if !(200...299).contains(statusCode) {
+            let gatewayError = Self.safeGatewayErrorMessage(from: data)
             var errorFields: [String: String] = [
                 "endpoint": endpoint.rawValue,
                 "url": url.absoluteString,
@@ -217,7 +218,7 @@ final class FormaAIBackendClient: LLMClient {
                 "durationMs": String(durationMs),
                 "responseBytes": String(data.count)
             ]
-            if let gatewayError = Self.safeGatewayErrorMessage(from: data) {
+            if let gatewayError {
                 errorFields["gatewayError"] = gatewayError
             }
             if let snippet = FormaPipelineTracer.sanitizedJSONSnippet(data) {
@@ -233,6 +234,7 @@ final class FormaAIBackendClient: LLMClient {
                 throw LLMClientError.authenticationFailed
             }
 
+            let mappedStatusError = Self.mapHTTPStatusError(statusCode: statusCode, message: gatewayError)
             if (500...599).contains(statusCode) {
                 FormaPipelineTracer.logError(
                     stage: .httpResponse,
@@ -246,7 +248,7 @@ final class FormaAIBackendClient: LLMClient {
                     fields: errorFields
                 )
             }
-            throw LLMClientError.invalidStatusCode(statusCode)
+            throw mappedStatusError
         }
 
         var responseFields: [String: String] = [
@@ -293,15 +295,49 @@ final class FormaAIBackendClient: LLMClient {
     }
 
     private static func mapTransportError(_ error: Error) -> LLMClientError {
-        if let urlError = error as? URLError, urlError.code == .timedOut {
-            return .requestTimedOut
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .timedOut:
+                return .requestTimedOut
+            case .notConnectedToInternet,
+                 .networkConnectionLost,
+                 .cannotFindHost,
+                 .cannotConnectToHost,
+                 .dnsLookupFailed,
+                 .dataNotAllowed:
+                return .networkUnavailable
+            default:
+                break
+            }
         }
 
         if error.localizedDescription.localizedCaseInsensitiveContains("timed out") {
             return .requestTimedOut
         }
 
+        if error.localizedDescription.localizedCaseInsensitiveContains("offline") ||
+            error.localizedDescription.localizedCaseInsensitiveContains("internet") {
+            return .networkUnavailable
+        }
+
         return .requestFailed(error.localizedDescription)
+    }
+
+    private static func mapHTTPStatusError(statusCode: Int, message: String?) -> LLMClientError {
+        switch statusCode {
+        case 413:
+            return .payloadTooLarge(message)
+        case 400:
+            return .backendRejected(message)
+        case 422:
+            return .backendRejected(message)
+        case 429:
+            return .rateLimited(message)
+        case 500...599:
+            return .modelUnavailable(message)
+        default:
+            return .invalidStatusCode(statusCode)
+        }
     }
 
     /// Redacted gateway `{ "error": "..." }` text for diagnostics only.

@@ -67,7 +67,20 @@ final class AIService: AIServiceProtocol {
         context: AIContext,
         imageJPEGData: Data? = nil
     ) async throws -> AIFoodEstimateResponse {
-        try await traced(method: "estimateFood") {
+        if let imageJPEGData, !imageJPEGData.isEmpty {
+            guard AIGatewayPayloadLimits.fitsImagePayload(imageJPEGData) else {
+                throw AIServiceError.payloadTooLarge
+            }
+            let estimatedBodyBytes = AIGatewayPayloadLimits.estimatedEstimateFoodBodyBytes(
+                text: prompt,
+                imageJPEGData: imageJPEGData
+            )
+            if estimatedBodyBytes > AIGatewayPayloadLimits.maxRequestBodyBytes {
+                throw AIServiceError.payloadTooLarge
+            }
+        }
+
+        return try await traced(method: "estimateFood", mapError: AICommandParser.mapFoodEstimate) {
             let initialRequest = AIFoodEstimateRequest(
                 text: prompt,
                 context: context,
@@ -103,7 +116,7 @@ final class AIService: AIServiceProtocol {
                     message: "Food estimate still invalid after client repair retry",
                     fields: ["errors": secondErrors.joined(separator: " | ")]
                 )
-                throw AIServiceError.validationFailed(secondErrors.joined(separator: " | "))
+                throw AIServiceError.invalidNutritionJSON(secondErrors.joined(separator: " | "))
             }
 
             return response
@@ -188,6 +201,7 @@ final class AIService: AIServiceProtocol {
 
     private func traced<T>(
         method: String,
+        mapError: (LLMClientError) -> AIServiceError = AICommandParser.map,
         work: () async throws -> T
     ) async throws -> T {
         let started = Date()
@@ -223,13 +237,13 @@ final class AIService: AIServiceProtocol {
                 ]
             )
             #if DEBUG
-            let mapped = AICommandParser.map(error)
+            let mapped = mapError(error)
             Self.debugLogger.error(
                 "Coach AI backend failure [\(method, privacy: .public)]: llm=\(String(describing: error), privacy: .public) mapped=\(String(describing: mapped), privacy: .public)"
             )
             throw mapped
             #else
-            throw AICommandParser.map(error)
+            throw mapError(error)
             #endif
         } catch let error as AIServiceError {
             let durationMs = Int(Date().timeIntervalSince(started) * 1_000)

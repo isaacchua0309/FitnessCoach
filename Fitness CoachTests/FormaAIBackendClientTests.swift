@@ -125,6 +125,93 @@ final class FormaAIBackendClientTests: XCTestCase {
 
     // MARK: - Error mapping
 
+    func testHTTP413MapsToPayloadTooLarge() async {
+        GatewayMockURLProtocol.reset()
+        GatewayMockURLProtocol.responseStatusCode = 413
+        GatewayMockURLProtocol.responseBody = Data(
+            #"{"error":"Request body too large (2500000 bytes; limit 2097152)."}"#.utf8
+        )
+
+        let client = makeClient(baseURL: productionBaseURL)
+
+        do {
+            _ = try await client.estimateFood(
+                request: AIFoodEstimateRequest(text: "meal", context: Self.sampleContext)
+            )
+            XCTFail("Expected payload too large.")
+        } catch let error as LLMClientError {
+            XCTAssertEqual(error, .payloadTooLarge("Request body too large (2500000 bytes; limit 2097152)."))
+            XCTAssertEqual(AICommandParser.mapFoodEstimate(error), .payloadTooLarge)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testHTTP422MapsToBackendRejected() async {
+        GatewayMockURLProtocol.reset()
+        GatewayMockURLProtocol.responseStatusCode = 422
+        GatewayMockURLProtocol.responseBody = Data(
+            #"{"error":"Could not extract reliable nutrition from the meal photo."}"#.utf8
+        )
+
+        let client = makeClient(baseURL: productionBaseURL)
+
+        do {
+            _ = try await client.estimateFood(
+                request: AIFoodEstimateRequest(text: "meal", context: Self.sampleContext)
+            )
+            XCTFail("Expected nutrition extraction failure.")
+        } catch let error as LLMClientError {
+            XCTAssertEqual(
+                error,
+                .backendRejected("Could not extract reliable nutrition from the meal photo.")
+            )
+            XCTAssertEqual(
+                AICommandParser.mapFoodEstimate(error),
+                .invalidNutritionJSON("Could not extract reliable nutrition from the meal photo.")
+            )
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testNetworkLossMapsToNetworkUnavailable() async {
+        GatewayMockURLProtocol.reset()
+        GatewayMockURLProtocol.responseError = URLError(.notConnectedToInternet)
+
+        let client = makeClient(baseURL: productionBaseURL)
+
+        do {
+            _ = try await client.classifyCoachIntent(request: Self.sampleClassifyRequest())
+            XCTFail("Expected network unavailable.")
+        } catch let error as LLMClientError {
+            XCTAssertEqual(error, .networkUnavailable)
+            XCTAssertEqual(AICommandParser.map(error), .networkUnavailable)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testHTTP500MapsToModelUnavailable() async {
+        GatewayMockURLProtocol.reset()
+        GatewayMockURLProtocol.responseStatusCode = 500
+        GatewayMockURLProtocol.responseBody = Data(#"{"error":"Upstream model provider error"}"#.utf8)
+
+        let client = makeClient(baseURL: productionBaseURL)
+
+        do {
+            _ = try await client.estimateFood(
+                request: AIFoodEstimateRequest(text: "meal", context: Self.sampleContext)
+            )
+            XCTFail("Expected model unavailable.")
+        } catch let error as LLMClientError {
+            XCTAssertEqual(error, .modelUnavailable("Upstream model provider error"))
+            XCTAssertEqual(AICommandParser.mapFoodEstimate(error), .modelUnavailable)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
     func testHTTP401MapsToAuthenticationFailure() async {
         GatewayMockURLProtocol.reset()
         GatewayMockURLProtocol.responseStatusCode = 401

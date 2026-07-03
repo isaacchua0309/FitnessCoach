@@ -101,8 +101,11 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         }
         XCTAssertNotNil(model.pendingConfirmation)
         XCTAssertEqual(model.messages.first?.mealPhotoJPEG, aiService.lastImageJPEGData)
+        XCTAssertNotNil(model.messages.first?.imageAttachment?.thumbnailJPEG)
+        XCTAssertEqual(model.messages.last?.photoAnalysisLink?.isFailure, false)
         XCTAssertNil(model.stagedMealPhotoJPEG)
         XCTAssertEqual(model.messages.last?.role, .assistant)
+        XCTAssertTrue(model.messages.last?.text.contains("From your meal photo") == true)
     }
 
     func testSendImageOnlyCreatesPhotoBubbleWithoutPlaceholderText() async throws {
@@ -182,7 +185,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         try container.userProfileService.createProfile(ProfileTestFixtures.sampleDraft)
 
         let aiService = PhotoCapturingAIService()
-        aiService.estimateFoodError = AIServiceError.backendUnavailable
+        aiService.estimateFoodError = AIServiceError.networkUnavailable
         let model = CoachModel(
             actionCenter: container.actionCenter,
             dailyLogReader: container.dailyLogService,
@@ -196,8 +199,9 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         await model.sendCurrentMessage()
 
         XCTAssertNotNil(model.messages.first { $0.role == .user }?.mealPhotoJPEG)
+        XCTAssertNotNil(model.messages.first { $0.role == .user }?.imageAttachment)
         XCTAssertTrue(model.messages.contains { $0.photoAnalysisLink?.isFailure == true })
-        XCTAssertTrue(model.messages.last?.text.contains("couldn't analyze") == true)
+        XCTAssertTrue(model.messages.last?.text.contains("couldn't reach Coach") == true)
         XCTAssertNil(model.pendingConfirmation)
 
         aiService.estimateFoodError = nil

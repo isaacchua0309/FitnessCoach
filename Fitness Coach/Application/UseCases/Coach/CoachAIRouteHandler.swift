@@ -204,6 +204,11 @@ final class CoachAIRouteHandler {
         }()
 
         guard var meal = FoodLogDraftMapper.primaryMeal(from: response) else {
+            if photoAnalysis {
+                return .message(CoachResponseBuilder.mealPhotoAnalysisFailed(
+                    .invalidNutritionJSON("Response is missing food log drafts.")
+                ))
+            }
             return .message(CoachResponseBuilder.aiNotUnderstood)
         }
 
@@ -212,6 +217,11 @@ final class CoachAIRouteHandler {
             prompt: prompt
         )
         guard extractionValidation.isValid else {
+            if photoAnalysis {
+                return .message(CoachResponseBuilder.mealPhotoAnalysisFailed(
+                    .invalidNutritionJSON(extractionValidation.errors.joined(separator: " | "))
+                ))
+            }
             return .message(CoachResponseBuilder.aiNotUnderstood)
         }
 

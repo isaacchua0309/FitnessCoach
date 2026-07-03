@@ -105,16 +105,32 @@ enum CoachResponseBuilder {
             return "I couldn't read that photo. Try another image or log the meal manually."
         case .loadFailed:
             return "That photo couldn't be prepared for analysis. Try again or use manual entry."
+        case .encodingFailed:
+            return "That photo is too large to send for analysis. Try a closer crop or log the meal manually."
         }
     }
 
     static func mealPhotoAnalysisFailed(_ error: AIServiceError) -> String {
         switch error {
         case .authenticationFailed:
-            return AIServiceError.coachSessionFailureMessage
+            return "I couldn't analyze that photo because your session expired. \(AIServiceError.coachSessionFailureMessage) You can try again or log manually."
+        case .networkUnavailable:
+            return "I couldn't reach Coach to analyze that photo. Check your connection, then try again or log manually."
+        case .payloadTooLarge:
+            return "That photo is too large to send for analysis. Try a closer crop or log the meal manually."
+        case .imageEncodingFailed:
+            return "That photo couldn't be prepared for analysis. Try again or use manual entry."
+        case .backendRejectedImage:
+            return "Coach couldn't use that photo for analysis. Try another image or log the meal manually."
         case .requestTimedOut:
             return "I couldn't analyze that photo in time. \(error.userMessage) You can try again or log manually."
-        default:
+        case .modelUnavailable, .backendUnavailable:
+            return "Coach couldn't analyze that photo right now. \(error.userMessage) You can try again or log manually."
+        case .invalidNutritionJSON, .parsingFailed:
+            return "I couldn't read a reliable nutrition estimate from that photo. Try another shot or log manually."
+        case .validationFailed, .invalidResponse, .decodingFailed:
+            return "I couldn't read a reliable nutrition estimate from that photo. Try another shot or log manually."
+        case .requestFailed, .featureDisabled:
             return "I couldn't analyze that photo right now. \(error.userMessage) You can try again or log manually."
         }
     }
