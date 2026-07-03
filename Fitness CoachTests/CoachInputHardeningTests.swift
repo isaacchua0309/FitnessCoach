@@ -697,36 +697,41 @@ private final class FlakyClassifierAIService: AIServiceProtocol, @unchecked Send
     }
 }
 
-private extension AIContext {
-    static var hardeningTest: AIContext {
-        AIContext(
-            date: Date(timeIntervalSince1970: 0),
-            timezoneIdentifier: "UTC",
-            userProfileSummary: nil,
-            todaySummary: TodayAISummary(
-                calorieTarget: 2_100,
-                caloriesConsumed: 1_200,
-                caloriesRemaining: 900,
-                proteinTarget: 160,
-                proteinConsumed: 80,
-                proteinRemaining: 80,
-                carbsTarget: 220,
-                carbsConsumed: 100,
-                carbsRemaining: 120,
-                fatTarget: 65,
-                fatConsumed: 30,
-                fatRemaining: 35,
-                waterTargetMl: 2_500,
-                waterConsumedMl: 1_000,
-                waterRemainingMl: 1_500,
-                weightKg: 90,
-                steps: 5_000,
-                workoutCaloriesBurned: 0,
-                workoutsToday: 0,
-                recentMeals: []
+private extension CoachContextPacketV2 {
+    static var hardeningTest: CoachContextPacketV2 {
+        CoachContextPacketV2(
+            meta: CoachContextMeta(
+                generatedAt: Date(timeIntervalSince1970: 0),
+                timezoneIdentifier: "UTC",
+                localDate: "1970-01-01",
+                localTime: "00:00"
             ),
-            commonFoods: [],
-            recentMessages: []
+            today: CoachContextTodayPacket(
+                targets: CoachTodayTargetsContext(
+                    calorieTarget: 2_100,
+                    proteinTarget: 160,
+                    carbsTarget: 220,
+                    fatTarget: 65,
+                    waterTargetMl: 2_500
+                ),
+                nutrition: CoachTodayNutritionContext(
+                    caloriesConsumed: 1_200,
+                    caloriesRemaining: 900,
+                    proteinConsumed: 80,
+                    proteinRemaining: 80,
+                    carbsConsumed: 100,
+                    carbsRemaining: 120,
+                    fatConsumed: 30,
+                    fatRemaining: 35
+                ),
+                hydration: CoachTodayHydrationContext(
+                    waterConsumedMl: 1_000,
+                    waterRemainingMl: 1_500
+                ),
+                weight: CoachTodayWeightContext(weightKg: 90),
+                steps: CoachContextSourcedInt(value: 5_000, source: "dailyLog")
+            ),
+            training: CoachTrainingContext(workoutsToday: 0)
         )
     }
 }
