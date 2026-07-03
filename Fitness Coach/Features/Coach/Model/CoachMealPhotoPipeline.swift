@@ -31,9 +31,7 @@ enum CoachMealPhotoPipeline {
         reason: "Meal photo selected"
     )
 
-    private static let maxJPEGBytes = AIGatewayPayloadLimits.maxJPEGBytes
-    private static let fallbackLongEdges: [CGFloat] = [1_536, 1_024, 768]
-    private static let compressionQualities: [CGFloat] = [0.85, 0.7, 0.55, 0.4, 0.3]
+    private static var uploadConfig: CoachImageUploadConfig { .default }
 
     static func loadJPEG(from item: PhotosPickerItem) async -> Result<Data, CoachMealPhotoError> {
         do {
@@ -96,16 +94,22 @@ enum CoachMealPhotoPipeline {
         #endif
     }
 
-    static func makeThumbnailJPEG(from jpegData: Data, maxEdge: CGFloat = 128) async -> Data? {
+    static func makeThumbnailJPEG(
+        from jpegData: Data,
+        maxEdge: CGFloat = CoachImageUploadConfig.default.thumbnailLongestSide
+    ) async -> Data? {
         await Task.detached(priority: .utility) {
             makeThumbnailJPEGSync(from: jpegData, maxEdge: maxEdge)
         }.value
     }
 
-    static func makeThumbnailJPEGSync(from jpegData: Data, maxEdge: CGFloat = 128) -> Data? {
+    static func makeThumbnailJPEGSync(
+        from jpegData: Data,
+        maxEdge: CGFloat = CoachImageUploadConfig.default.thumbnailLongestSide
+    ) -> Data? {
         guard let image = UIImage(data: jpegData) else { return nil }
         let resized = resize(image, maxLongEdge: maxEdge)
-        return resized.jpegData(compressionQuality: 0.75)
+        return resized.jpegData(compressionQuality: uploadConfig.thumbnailJPEGQuality)
     }
 
     private static func isLikelyJPEG(_ data: Data) -> Bool {
@@ -117,9 +121,9 @@ enum CoachMealPhotoPipeline {
     }
 
     private static func compressForGateway(_ image: UIImage) -> Data? {
-        for maxEdge in fallbackLongEdges {
+        for maxEdge in uploadConfig.legacyUploadLongestSides {
             let scaled = resize(image, maxLongEdge: maxEdge)
-            for quality in compressionQualities {
+            for quality in uploadConfig.legacyJPEGQualities {
                 guard let jpeg = compress(scaled, quality: quality),
                       AIGatewayPayloadLimits.fitsImagePayload(jpeg) else {
                     continue

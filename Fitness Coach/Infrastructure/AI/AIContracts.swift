@@ -306,7 +306,7 @@ struct AIMealImagePayload: Codable, Equatable, Sendable {
 
     static func jpeg(_ data: Data, width: Int? = nil, height: Int? = nil) -> AIMealImagePayload {
         AIMealImagePayload(
-            mimeType: "image/jpeg",
+            mimeType: CoachImageUploadConfig.default.mimeType,
             base64: data.base64EncodedString(),
             width: width,
             height: height

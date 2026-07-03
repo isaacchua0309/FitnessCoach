@@ -62,17 +62,43 @@ struct CoachImageProcessingConfig: Equatable, Sendable {
     var maxUploadBytes: Int
     var uploadMIMEType: String
 
-    static let `default` = CoachImageProcessingConfig(
-        uploadLongestSide: 1_280,
-        fallbackLongestSide: 1_024,
-        initialJPEGQuality: 0.8,
-        reducedJPEGQuality: 0.7,
-        minimumJPEGQuality: 0.6,
-        thumbnailMaxEdge: 128,
-        thumbnailJPEGQuality: 0.75,
-        maxUploadBytes: AIGatewayPayloadLimits.maxJPEGBytes,
-        uploadMIMEType: "image/jpeg"
-    )
+    init(
+        uploadLongestSide: CGFloat,
+        fallbackLongestSide: CGFloat,
+        initialJPEGQuality: CGFloat,
+        reducedJPEGQuality: CGFloat,
+        minimumJPEGQuality: CGFloat,
+        thumbnailMaxEdge: CGFloat,
+        thumbnailJPEGQuality: CGFloat,
+        maxUploadBytes: Int,
+        uploadMIMEType: String
+    ) {
+        self.uploadLongestSide = uploadLongestSide
+        self.fallbackLongestSide = fallbackLongestSide
+        self.initialJPEGQuality = initialJPEGQuality
+        self.reducedJPEGQuality = reducedJPEGQuality
+        self.minimumJPEGQuality = minimumJPEGQuality
+        self.thumbnailMaxEdge = thumbnailMaxEdge
+        self.thumbnailJPEGQuality = thumbnailJPEGQuality
+        self.maxUploadBytes = maxUploadBytes
+        self.uploadMIMEType = uploadMIMEType
+    }
+
+    init(upload: CoachImageUploadConfig) {
+        self.init(
+            uploadLongestSide: upload.preferredLongestSide,
+            fallbackLongestSide: upload.fallbackLongestSide,
+            initialJPEGQuality: upload.preferredJPEGQuality,
+            reducedJPEGQuality: upload.fallbackJPEGQuality,
+            minimumJPEGQuality: upload.aggressiveJPEGQuality,
+            thumbnailMaxEdge: upload.thumbnailLongestSide,
+            thumbnailJPEGQuality: upload.thumbnailJPEGQuality,
+            maxUploadBytes: upload.maxUploadBytes,
+            uploadMIMEType: upload.mimeType
+        )
+    }
+
+    static let `default` = CoachImageProcessingConfig(upload: .default)
 
     /// Ordered compression ladder required by the Coach image pipeline spec.
     var compressionAttempts: [CoachImageCompressionAttempt] {

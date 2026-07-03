@@ -210,7 +210,7 @@ enum CoachImageAnalysisDebugLogger {
         source: CoachInputAttachmentSource,
         rawBytes: Int,
         compressedBytes: Int,
-        mimeType: String = "image/jpeg"
+        mimeType: String = CoachImageUploadConfig.default.mimeType
     ) {
         emit(
             message: "Meal image selected",
@@ -231,7 +231,7 @@ enum CoachImageAnalysisDebugLogger {
         isRecommission: Bool,
         hasCaption: Bool,
         compressedBytes: Int,
-        mimeType: String = "image/jpeg"
+        mimeType: String = CoachImageUploadConfig.default.mimeType
     ) {
         emit(
             message: "Image analysis request started",

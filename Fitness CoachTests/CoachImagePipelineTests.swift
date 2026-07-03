@@ -15,23 +15,24 @@ final class CoachImagePipelineTests: XCTestCase {
     // MARK: - Compression ladder
 
     func testCompressionAttemptsFollowRequiredOrder() {
+        let upload = CoachImageUploadConfig.default
         let attempts = CoachImageProcessingConfig.default.compressionAttempts
         XCTAssertEqual(attempts.count, 4)
         XCTAssertEqual(attempts[0].strategy, .initial)
-        XCTAssertEqual(attempts[0].maxLongestSide, 1_280)
-        XCTAssertEqual(attempts[0].quality, 0.8, accuracy: 0.001)
+        XCTAssertEqual(attempts[0].maxLongestSide, upload.preferredLongestSide)
+        XCTAssertEqual(attempts[0].quality, upload.preferredJPEGQuality, accuracy: 0.001)
 
         XCTAssertEqual(attempts[1].strategy, .reducedQuality)
-        XCTAssertEqual(attempts[1].maxLongestSide, 1_280)
-        XCTAssertEqual(attempts[1].quality, 0.7, accuracy: 0.001)
+        XCTAssertEqual(attempts[1].maxLongestSide, upload.preferredLongestSide)
+        XCTAssertEqual(attempts[1].quality, upload.fallbackJPEGQuality, accuracy: 0.001)
 
         XCTAssertEqual(attempts[2].strategy, .reducedDimensions)
-        XCTAssertEqual(attempts[2].maxLongestSide, 1_024)
-        XCTAssertEqual(attempts[2].quality, 0.7, accuracy: 0.001)
+        XCTAssertEqual(attempts[2].maxLongestSide, upload.fallbackLongestSide)
+        XCTAssertEqual(attempts[2].quality, upload.fallbackJPEGQuality, accuracy: 0.001)
 
         XCTAssertEqual(attempts[3].strategy, .minimumQuality)
-        XCTAssertEqual(attempts[3].maxLongestSide, 1_024)
-        XCTAssertEqual(attempts[3].quality, 0.6, accuracy: 0.001)
+        XCTAssertEqual(attempts[3].maxLongestSide, upload.fallbackLongestSide)
+        XCTAssertEqual(attempts[3].quality, upload.aggressiveJPEGQuality, accuracy: 0.001)
     }
 
     func testEncodeUploadPayloadSelectsFirstFittingAttempt() {
@@ -56,15 +57,19 @@ final class CoachImagePipelineTests: XCTestCase {
         }
 
         let strictConfig = CoachImageProcessingConfig(
-            uploadLongestSide: 1_280,
-            fallbackLongestSide: 1_024,
-            initialJPEGQuality: 0.8,
-            reducedJPEGQuality: 0.7,
-            minimumJPEGQuality: 0.6,
-            thumbnailMaxEdge: 128,
-            thumbnailJPEGQuality: 0.75,
-            maxUploadBytes: 32,
-            uploadMIMEType: "image/jpeg"
+            upload: CoachImageUploadConfig(
+                maxUploadBytes: 32,
+                preferredLongestSide: CoachImageUploadConfig.default.preferredLongestSide,
+                fallbackLongestSide: CoachImageUploadConfig.default.fallbackLongestSide,
+                thumbnailLongestSide: CoachImageUploadConfig.default.thumbnailLongestSide,
+                preferredJPEGQuality: CoachImageUploadConfig.default.preferredJPEGQuality,
+                fallbackJPEGQuality: CoachImageUploadConfig.default.fallbackJPEGQuality,
+                aggressiveJPEGQuality: CoachImageUploadConfig.default.aggressiveJPEGQuality,
+                mimeType: CoachImageUploadConfig.default.mimeType,
+                thumbnailJPEGQuality: CoachImageUploadConfig.default.thumbnailJPEGQuality,
+                legacyUploadLongestSides: CoachImageUploadConfig.default.legacyUploadLongestSides,
+                legacyJPEGQualities: CoachImageUploadConfig.default.legacyJPEGQualities
+            )
         )
 
         XCTAssertNil(
@@ -122,12 +127,13 @@ final class CoachImagePipelineTests: XCTestCase {
     }
 
     func testResizeLimitsLongestEdge() {
+        let upload = CoachImageUploadConfig.default
         let image = Self.makeSolidImage(size: CGSize(width: 2_560, height: 1_440))
-        let resized = CoachImagePipelineEncoding.resize(image, maxLongestSide: 1_280)
-        XCTAssertEqual(resized.pixelSize.longestEdge, 1_280)
+        let resized = CoachImagePipelineEncoding.resize(image, maxLongestSide: upload.preferredLongestSide)
+        XCTAssertEqual(resized.pixelSize.longestEdge, Int(upload.preferredLongestSide))
         XCTAssertEqual(
             CoachImagePipelineEncoding.pixelSize(of: resized),
-            CoachImagePixelSize(width: 1_280, height: 720)
+            CoachImagePixelSize(width: Int(upload.preferredLongestSide), height: 720)
         )
     }
 
@@ -144,7 +150,7 @@ final class CoachImagePipelineTests: XCTestCase {
             return XCTFail("Expected thumbnail")
         }
 
-        XCTAssertLessThanOrEqual(thumbnail.pixelSize.longestEdge, 128)
+        XCTAssertLessThanOrEqual(thumbnail.pixelSize.longestEdge, Int(CoachImageUploadConfig.default.thumbnailLongestSide))
     }
 
     func testProcessReturnsStronglyTypedSuccessPayload() {
@@ -159,7 +165,7 @@ final class CoachImagePipelineTests: XCTestCase {
         XCTAssertNotNil(processed.thumbnailUIImage)
         XCTAssertFalse(processed.uploadData.isEmpty)
         XCTAssertNotNil(processed.uploadUIImage)
-        XCTAssertEqual(processed.uploadMIMEType, "image/jpeg")
+        XCTAssertEqual(processed.uploadMIMEType, CoachImageUploadConfig.default.mimeType)
         XCTAssertEqual(processed.originalPixelSize, CoachImagePixelSize(width: 640, height: 480))
         XCTAssertEqual(processed.finalByteSize, processed.uploadData.count)
         XCTAssertLessThanOrEqual(processed.finalByteSize, CoachImageProcessingConfig.default.maxUploadBytes)
@@ -175,7 +181,7 @@ final class CoachImagePipelineTests: XCTestCase {
         }
 
         XCTAssertTrue(AIGatewayPayloadLimits.fitsImagePayload(processed.uploadData))
-        XCTAssertLessThanOrEqual(processed.processedPixelSize.longestEdge, 1_280)
+        XCTAssertLessThanOrEqual(processed.processedPixelSize.longestEdge, Int(CoachImageUploadConfig.default.preferredLongestSide))
     }
 
     func testProcessAsyncReturnsSameResultAsSync() async {
@@ -194,15 +200,19 @@ final class CoachImagePipelineTests: XCTestCase {
     func testProcessExceedsMaxSizeReturnsTypedFailure() {
         let image = Self.makeSolidImage(size: CGSize(width: 256, height: 256))
         let config = CoachImageProcessingConfig(
-            uploadLongestSide: 1_280,
-            fallbackLongestSide: 1_024,
-            initialJPEGQuality: 0.8,
-            reducedJPEGQuality: 0.7,
-            minimumJPEGQuality: 0.6,
-            thumbnailMaxEdge: 128,
-            thumbnailJPEGQuality: 0.75,
-            maxUploadBytes: 16,
-            uploadMIMEType: "image/jpeg"
+            upload: CoachImageUploadConfig(
+                maxUploadBytes: 16,
+                preferredLongestSide: CoachImageUploadConfig.default.preferredLongestSide,
+                fallbackLongestSide: CoachImageUploadConfig.default.fallbackLongestSide,
+                thumbnailLongestSide: CoachImageUploadConfig.default.thumbnailLongestSide,
+                preferredJPEGQuality: CoachImageUploadConfig.default.preferredJPEGQuality,
+                fallbackJPEGQuality: CoachImageUploadConfig.default.fallbackJPEGQuality,
+                aggressiveJPEGQuality: CoachImageUploadConfig.default.aggressiveJPEGQuality,
+                mimeType: CoachImageUploadConfig.default.mimeType,
+                thumbnailJPEGQuality: CoachImageUploadConfig.default.thumbnailJPEGQuality,
+                legacyUploadLongestSides: CoachImageUploadConfig.default.legacyUploadLongestSides,
+                legacyJPEGQualities: CoachImageUploadConfig.default.legacyJPEGQualities
+            )
         )
 
         let result = CoachImagePipeline.process(image: image, config: config)
