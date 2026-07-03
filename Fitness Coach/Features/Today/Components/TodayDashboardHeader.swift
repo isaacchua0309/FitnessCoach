@@ -18,7 +18,7 @@ struct TodayDashboardHeader: View {
 
             Text(TodayDashboardHeaderFormatting.dateLine(for: date))
                 .font(FormaTokens.Typography.caption)
-                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .foregroundStyle(FormaTokens.Color.textTertiary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)

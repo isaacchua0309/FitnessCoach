@@ -12,7 +12,7 @@ enum TodayPreviewScreens {
 
     @ViewBuilder
     static func dashboard(_ state: TodayDashboardState) -> some View {
-        TodayReadOnlyPreviewSupport.screen(state, name: "Today")
+        TodayReadOnlyPreviewSupport.screen(state)
     }
 }
 
@@ -44,13 +44,27 @@ enum TodayPreviewScreens {
     TodayPreviewScreens.dashboard(TodayPreviewData.endOfDay)
 }
 
-#Preview("Brand new day — small phone") {
+#Preview("Apple Health disconnected") {
+    TodayPreviewScreens.dashboard(TodayPreviewData.healthDisconnected)
+}
+
+#Preview("Brand new day — iPhone SE") {
     TodayPreviewScreens.dashboard(TodayPreviewData.brandNewDay)
         .previewDevice(PreviewDevice(rawValue: "iPhone SE (3rd generation)"))
+}
+
+#Preview("Calories exceeded — Pro Max") {
+    TodayPreviewScreens.dashboard(TodayPreviewData.caloriesExceeded)
+        .previewDevice(PreviewDevice(rawValue: "iPhone 15 Pro Max"))
 }
 
 #Preview("Protein behind — large text") {
     TodayPreviewScreens.dashboard(TodayPreviewData.proteinBehind)
         .dynamicTypeSize(.accessibility2)
+}
+
+#Preview("End of day — large text") {
+    TodayPreviewScreens.dashboard(TodayPreviewData.endOfDay)
+        .dynamicTypeSize(.accessibility3)
 }
 #endif

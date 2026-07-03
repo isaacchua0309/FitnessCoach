@@ -10,9 +10,11 @@ import SwiftUI
 struct TodayMissionHero: View {
     let mission: TodayMissionState
     let onLogMeal: () -> Void
+    /// When true, hides the inline log-meal chip so Next Best Action stays the single dominant CTA.
+    var suppressLogMealCTA: Bool = false
     var onViewed: (() -> Void)?
 
-    @ScaledMetric(relativeTo: .largeTitle) private var heroValueSize: CGFloat = 52
+    @ScaledMetric(relativeTo: .largeTitle) private var heroValueSize: CGFloat = 48
 
     var body: some View {
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
@@ -20,13 +22,14 @@ struct TodayMissionHero: View {
 
             metricsBlock
 
-            if mission.showsLogMealCTA {
+            if mission.showsLogMealCTA, !suppressLogMealCTA {
                 FormaQuickActionChip(
                     title: FormaProductCopy.Today.Mission.logMealCTA,
                     action: onLogMeal,
+                    style: .secondary,
                     accessibilityHint: FormaProductCopy.Today.mealsLogMealAccessibilityHint
                 )
-                .padding(.top, FormaTokens.Spacing.xs)
+                .padding(.top, TodayLayout.compactSpacing)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -36,35 +39,48 @@ struct TodayMissionHero: View {
     }
 
     private var metricsBlock: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
+        VStack(alignment: .leading, spacing: TodayLayout.heroMetricsSpacing) {
             Text(mission.primaryValue)
                 .font(.system(size: heroValueSize, weight: .bold, design: .rounded))
                 .foregroundStyle(primaryValueColor)
                 .minimumScaleFactor(0.65)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
 
-            supportingLinesBlock
+            if showsSupportingLines {
+                supportingLinesBlock
+            }
 
             if !mission.statusLine.isEmpty {
                 Text(mission.statusLine)
-                    .font(FormaTokens.Typography.sectionSubtitle)
-                    .foregroundStyle(FormaTokens.Color.textLegal)
+                    .font(FormaTokens.Typography.caption.weight(.medium))
+                    .foregroundStyle(statusLineColor)
                     .fixedSize(horizontal: false, vertical: true)
-                    .lineLimit(4)
+                    .lineLimit(3)
             }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(mission.accessibilityLabel)
     }
 
+    private var showsSupportingLines: Bool {
+        switch mission.primaryKind {
+        case .targetReached:
+            return !mission.proteinRemainingLine.isEmpty
+        case .remaining, .over, .missingTarget:
+            return true
+        }
+    }
+
     private var supportingLinesBlock: some View {
         VStack(alignment: .leading, spacing: TodayLayout.compactSpacing) {
-            supportingLine(mission.goalLine)
-            supportingLine(mission.consumedLine)
+            if mission.primaryKind != .targetReached {
+                supportingLine(mission.goalLine)
+                supportingLine(mission.consumedLine)
+            }
             supportingLine(mission.proteinRemainingLine)
         }
-        .padding(.top, TodayLayout.compactSpacing)
     }
 
     private func supportingLine(_ text: String) -> some View {
@@ -80,8 +96,21 @@ struct TodayMissionHero: View {
         switch mission.primaryKind {
         case .over:
             return FormaTokens.Color.destructive
-        case .remaining, .targetReached, .missingTarget:
+        case .targetReached:
+            return FormaTokens.Theme.primary
+        case .remaining, .missingTarget:
             return FormaTokens.Color.textPrimary
+        }
+    }
+
+    private var statusLineColor: Color {
+        switch mission.primaryKind {
+        case .over:
+            return FormaTokens.Color.destructive.opacity(0.9)
+        case .targetReached:
+            return FormaTokens.Theme.primary
+        case .remaining, .missingTarget:
+            return FormaTokens.Color.textLegal
         }
     }
 }
@@ -113,6 +142,17 @@ struct TodayMissionHero: View {
         onLogMeal: {}
     )
     .padding()
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
+#Preview("Large text") {
+    TodayMissionHero(
+        mission: TodayPreviewData.partialDay.mission,
+        onLogMeal: {}
+    )
+    .padding()
+    .dynamicTypeSize(.accessibility2)
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
 }

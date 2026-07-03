@@ -42,23 +42,25 @@ struct TodayReadOnlyView: View {
         VStack(alignment: .leading, spacing: sectionSpacing) {
             TodayDashboardHeader(date: state.date)
 
-            missionBlock
+            VStack(alignment: .leading, spacing: TodayLayout.primaryActionZoneSpacing) {
+                missionBlock
 
-            TodayNextActionSection(
-                action: state.nextBestAction,
-                onPrimaryCTA: {
-                    actionCoordinator.handleCTA(
-                        state.nextBestAction.primaryCTA,
-                        from: state.nextBestAction
-                    )
-                },
-                onSecondaryCTA: { cta in
-                    actionCoordinator.handleCTA(cta, from: state.nextBestAction)
-                },
-                onViewed: {
-                    actionCoordinator.logNextActionViewed(for: state.nextBestAction)
-                }
-            )
+                TodayNextActionSection(
+                    action: state.nextBestAction,
+                    onPrimaryCTA: {
+                        actionCoordinator.handleCTA(
+                            state.nextBestAction.primaryCTA,
+                            from: state.nextBestAction
+                        )
+                    },
+                    onSecondaryCTA: { cta in
+                        actionCoordinator.handleCTA(cta, from: state.nextBestAction)
+                    },
+                    onViewed: {
+                        actionCoordinator.logNextActionViewed(for: state.nextBestAction)
+                    }
+                )
+            }
 
             TodayQuickActionsSection(
                 menuItems: state.quickActions.items,
@@ -106,6 +108,7 @@ struct TodayReadOnlyView: View {
         VStack(alignment: .leading, spacing: TodayLayout.statusZoneSpacing) {
             TodayMissionHero(
                 mission: state.mission,
+                suppressLogMealCTA: Self.suppressesHeroLogMealCTA(for: state.nextBestAction),
                 onLogMeal: {
                     actionCoordinator.logPrimaryCTATapped()
                     actionCoordinator.performQuickAction(.manualEntry)
@@ -163,6 +166,16 @@ struct TodayReadOnlyView: View {
                     actionCoordinator.logEndOfDayWrapViewed()
                 }
             )
+        }
+    }
+
+    /// Hides the hero log-meal chip when Next Best Action already offers a meal-logging primary CTA.
+    private static func suppressesHeroLogMealCTA(for action: TodayNextBestActionState) -> Bool {
+        switch action.primaryCTA {
+        case .logMeal, .scanFood:
+            return true
+        case .addWater, .logWorkout, .logWeight, .openHealth, .reviewToday, .none:
+            return false
         }
     }
 }

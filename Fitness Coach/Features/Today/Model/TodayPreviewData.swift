@@ -170,6 +170,21 @@ enum TodayPreviewData {
         stepsToday: 4_200
     )
 
+    static let healthDisconnected = build(
+        foodEntries: foodEntries,
+        calorieConsumed: 710,
+        calorieRemaining: 1_090,
+        calorieProgress: 0.39,
+        proteinConsumed: 79,
+        waterConsumedMl: 1_200,
+        activityContext: TodayActivityContext(
+            trainingIntegration: .notConnected,
+            trainingDataSource: .appleHealth,
+            appleHealthWorkoutCount: nil,
+            stepsToday: nil
+        )
+    )
+
     static let partialDay = build(
         foodEntries: foodEntries,
         calorieConsumed: 710,
@@ -211,7 +226,8 @@ enum TodayPreviewData {
         hasWorkout: Bool = false,
         appleHealthWorkoutCount: Int? = nil,
         stepsToday: Int? = nil,
-        hasPriorFoodLogs: Bool = true
+        hasPriorFoodLogs: Bool = true,
+        activityContext: TodayActivityContext? = nil
     ) -> TodayDashboardState {
         let proteinRemaining = max(proteinTarget - proteinConsumed, 0)
         let waterRemaining = max(waterTargetMl - waterConsumedMl, 0)
@@ -258,7 +274,7 @@ enum TodayPreviewData {
                 dailyReview: nil,
                 goalWeightKg: 75,
                 profileWeightKg: 90.15,
-                activityContext: TodayActivityContext(
+                activityContext: activityContext ?? TodayActivityContext(
                     trainingIntegration: .connected,
                     trainingDataSource: .appleHealth,
                     appleHealthWorkoutCount: appleHealthWorkoutCount,

@@ -83,7 +83,7 @@ struct TodayEndOfDayWrapUpSection: View {
         case .notLogged:
             return FormaTokens.Color.textTertiary
         case .overTarget:
-            return FormaTokens.Color.textSecondary
+            return FormaTokens.Color.destructive.opacity(0.9)
         }
     }
 }

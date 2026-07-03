@@ -24,53 +24,69 @@ struct TodayNextActionSection: View {
             TodayActionCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
                     Text(display.headline)
-                        .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                        .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
                         .foregroundStyle(FormaTokens.Color.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
-                        .lineLimit(nil)
+                        .lineLimit(3)
                         .minimumScaleFactor(0.85)
+                        .accessibilityAddTraits(.isHeader)
 
                     if let subtitle = display.subtitle {
                         Text(subtitle)
-                            .font(FormaTokens.Typography.body)
+                            .font(FormaTokens.Typography.caption)
                             .foregroundStyle(FormaTokens.Color.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
-                            .lineLimit(nil)
+                            .lineLimit(3)
                             .minimumScaleFactor(0.85)
                     }
 
                     if display.showsPrimaryButton || display.showsSecondaryButton {
-                        HStack(spacing: FormaTokens.Spacing.sm) {
-                            if display.showsPrimaryButton, let buttonTitle = display.primaryButtonTitle {
-                                FormaQuickActionChip(
-                                    title: buttonTitle,
-                                    action: onPrimaryCTA,
-                                    accessibilityHint: FormaProductCopy.Today.NextAction.primaryButtonHint
-                                )
-                                .accessibilityLabel(buttonTitle)
-                            }
-
-                            if display.showsSecondaryButton,
-                               let secondaryTitle = display.secondaryButtonTitle,
-                               let secondaryCTA = action.secondaryCTAs.first {
-                                FormaQuickActionChip(
-                                    title: secondaryTitle,
-                                    action: { onSecondaryCTA?(secondaryCTA) },
-                                    accessibilityHint: FormaProductCopy.Today.NextAction.primaryButtonHint
-                                )
-                                .accessibilityLabel(secondaryTitle)
-                            }
-                        }
-                        .padding(.top, FormaTokens.Spacing.xs)
+                        actionButtons
+                            .padding(.top, TodayLayout.compactSpacing)
                     }
                 }
-                .padding(.vertical, FormaTokens.Spacing.xs)
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(display.accessibilityLabel)
         .onAppear {
             onViewed?()
+        }
+    }
+
+    @ViewBuilder
+    private var actionButtons: some View {
+        ViewThatFits(in: .horizontal) {
+            buttonRow
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+                buttonRow
+            }
+        }
+    }
+
+    private var buttonRow: some View {
+        HStack(spacing: FormaTokens.Spacing.sm) {
+            if display.showsPrimaryButton, let buttonTitle = display.primaryButtonTitle {
+                FormaQuickActionChip(
+                    title: buttonTitle,
+                    action: onPrimaryCTA,
+                    style: .primary,
+                    accessibilityHint: FormaProductCopy.Today.NextAction.primaryButtonHint
+                )
+                .accessibilityLabel(buttonTitle)
+            }
+
+            if display.showsSecondaryButton,
+               let secondaryTitle = display.secondaryButtonTitle,
+               let secondaryCTA = action.secondaryCTAs.first {
+                FormaQuickActionChip(
+                    title: secondaryTitle,
+                    action: { onSecondaryCTA?(secondaryCTA) },
+                    style: .secondary,
+                    accessibilityHint: FormaProductCopy.Today.NextAction.primaryButtonHint
+                )
+                .accessibilityLabel(secondaryTitle)
+            }
         }
     }
 }

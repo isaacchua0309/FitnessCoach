@@ -11,8 +11,10 @@ struct TodayQuickActionsSection: View {
     let menuItems: [TodayQuickActionMenuItem]
     let onSelect: (TodayQuickActionKind) -> Void
 
-    private let iconSize: CGFloat = 20
-    private let tileMinWidth: CGFloat = 76
+    @ScaledMetric(relativeTo: .body) private var primaryIconSize: CGFloat = 20
+    @ScaledMetric(relativeTo: .caption) private var secondaryIconSize: CGFloat = 17
+    @ScaledMetric(relativeTo: .caption) private var primaryTileMinWidth: CGFloat = 72
+    @ScaledMetric(relativeTo: .caption2) private var secondaryTileMinWidth: CGFloat = 64
 
     var body: some View {
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
@@ -29,7 +31,7 @@ struct TodayQuickActionsSection: View {
     }
 
     private var actionRow: some View {
-        HStack(spacing: FormaTokens.Spacing.sm) {
+        HStack(spacing: FormaTokens.Spacing.xs) {
             ForEach(menuItems) { item in
                 quickActionButton(item)
             }
@@ -50,7 +52,7 @@ struct TodayQuickActionsSection: View {
             .accessibilityHint(FormaProductCopy.Today.QuickActions.inlineAccessibilityHint(for: item.kind))
         } else {
             quickActionTile(for: item)
-                .frame(minWidth: tileMinWidth, minHeight: FormaTokens.Layout.minTouchTarget)
+                .frame(minWidth: tileMinWidth(for: item), minHeight: FormaTokens.Layout.minTouchTarget)
                 .background(FormaTokens.Color.surfaceSubtle, in: RoundedRectangle(cornerRadius: FormaTokens.Radius.button))
                 .overlay {
                     RoundedRectangle(cornerRadius: FormaTokens.Radius.button)
@@ -63,11 +65,13 @@ struct TodayQuickActionsSection: View {
     }
 
     private func quickActionTile(for item: TodayQuickActionMenuItem) -> some View {
-        let titleFont: Font = item.presentation == .secondary
-            ? FormaTokens.Typography.caption2.weight(.semibold)
-            : FormaTokens.Typography.caption.weight(.semibold)
+        let isPrimary = item.presentation == .primary
+        let titleFont: Font = isPrimary
+            ? FormaTokens.Typography.caption.weight(.semibold)
+            : FormaTokens.Typography.caption2.weight(.semibold)
+        let iconSize = isPrimary ? primaryIconSize : secondaryIconSize
 
-        return VStack(spacing: FormaTokens.Spacing.xs) {
+        return VStack(spacing: TodayLayout.compactSpacing) {
             Image(systemName: FormaProductCopy.Today.QuickActions.symbolName(for: item.kind))
                 .font(.system(size: iconSize, weight: .semibold))
                 .symbolRenderingMode(.hierarchical)
@@ -76,11 +80,15 @@ struct TodayQuickActionsSection: View {
                 .font(titleFont)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
-                .minimumScaleFactor(0.85)
+                .minimumScaleFactor(0.8)
         }
-        .frame(minWidth: tileMinWidth, minHeight: FormaTokens.Layout.minTouchTarget)
-        .padding(.horizontal, FormaTokens.Spacing.sm)
+        .frame(minWidth: tileMinWidth(for: item), minHeight: FormaTokens.Layout.minTouchTarget)
+        .padding(.horizontal, isPrimary ? FormaTokens.Spacing.sm : FormaTokens.Spacing.xs)
         .padding(.vertical, FormaTokens.Spacing.xs)
+    }
+
+    private func tileMinWidth(for item: TodayQuickActionMenuItem) -> CGFloat {
+        item.presentation == .primary ? primaryTileMinWidth : secondaryTileMinWidth
     }
 }
 
@@ -117,6 +125,17 @@ private struct QuickActionButtonModifier: ViewModifier {
         onSelect: { _ in }
     )
     .padding(.horizontal, TodayLayout.horizontalPadding)
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
+#Preview("Large text") {
+    TodayQuickActionsSection(
+        menuItems: TodayQuickActionPolicy.menuItems(isScanFoodAvailable: true),
+        onSelect: { _ in }
+    )
+    .padding(.horizontal, TodayLayout.horizontalPadding)
+    .dynamicTypeSize(.accessibility2)
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
 }

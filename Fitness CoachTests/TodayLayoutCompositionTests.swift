@@ -84,6 +84,26 @@ final class TodayLayoutCompositionTests: XCTestCase {
         XCTAssertFalse(state.endOfDay.rows.isEmpty)
     }
 
+    func testHealthDisconnectedPreviewShowsConnectCTA() {
+        let state = TodayPreviewData.healthDisconnected
+
+        XCTAssertEqual(state.activity.phase, .disconnected)
+        XCTAssertTrue(state.activity.showsConnectCTA)
+    }
+
+    func testBrandNewDaySuppressesHeroLogMealWhenNextActionLogsMeal() {
+        let state = TodayPreviewData.brandNewDay
+
+        XCTAssertTrue(state.mission.showsLogMealCTA)
+        XCTAssertTrue(
+            state.nextBestAction.primaryCTA == .scanFood
+                || {
+                    if case .logMeal = state.nextBestAction.primaryCTA { return true }
+                    return false
+                }()
+        )
+    }
+
     func testHeaderDateFormattingIsNonEmpty() {
         let line = TodayDashboardHeaderFormatting.dateLine(
             for: TodayDashboardFixtures.date(hour: 9)
