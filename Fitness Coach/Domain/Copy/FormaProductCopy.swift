@@ -2426,9 +2426,16 @@ enum FormaProductCopy {
             "Your weight has been stable for \(days) days."
         }
 
-        static let planReviewLastUpdatedPrefix = "Last updated:"
-        static let planReviewRecalculateHint =
-            "Stored targets differ from a fresh calculation — review before changing pace."
+        static let planReviewSectionTitle = "Next Review"
+        static let planReviewBodyCopy =
+            "Forma will review your weight trend and logging consistency."
+        static let planReviewReadyHeadline = "Ready for review"
+        static let planReviewWeighInHint =
+            "Log weight to make your next review more accurate."
+
+        static func planReviewInDays(_ days: Int) -> String {
+            days == 1 ? "In 1 day" : "In \(days) days"
+        }
     }
 
     // MARK: - Plan calculation details

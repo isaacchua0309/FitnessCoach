@@ -183,10 +183,10 @@ struct AdjustmentRulesState: Equatable, Sendable {
 // MARK: - Review
 
 struct PlanReviewState: Equatable, Sendable {
-    var lastUpdatedLabel: String?
-    var lastUpdateReasonCopy: String?
-    var showsRecalculateHint: Bool
-    var recalculateHintCopy: String?
+    var sectionTitle: String
+    var headline: String
+    var bodyCopy: String
+    var weighInHint: String?
     var accessibilitySummary: String
 }
 

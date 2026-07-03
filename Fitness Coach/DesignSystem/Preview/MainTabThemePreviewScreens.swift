@@ -50,6 +50,7 @@ enum MainTabThemePreviewScreens {
                     onAdjustActivity: {}
                 )
                 PlanAdjustmentRulesSection(state: PlanPreviewData.state.adjustmentRules)
+                PlanReviewSection(state: PlanPreviewData.state.review)
                 PlanConfidenceSection(state: PlanPreviewData.state.confidence)
             }
             .padding(.horizontal, PlanLayout.horizontalPadding)

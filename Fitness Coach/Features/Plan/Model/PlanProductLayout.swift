@@ -14,6 +14,7 @@ enum PlanProductSection: String, CaseIterable, Equatable {
     case whyThisWorks = "why_this_works"
     case planAssumptions = "plan_assumptions"
     case whenToAdjust = "when_to_adjust"
+    case nextReview = "next_review"
     case planConfidence = "plan_confidence"
 }
 
@@ -25,6 +26,7 @@ enum PlanProductLayout {
         .whyThisWorks,
         .planAssumptions,
         .whenToAdjust,
+        .nextReview,
         .planConfidence
     ]
 

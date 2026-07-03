@@ -57,7 +57,8 @@ enum PlanPresentationBuilder {
             assumptions: PlanAssumptionsStateBuilder.build(context: context, asOf: asOf),
             review: PlanReviewStateBuilder.build(
                 profile: context.profile,
-                planResult: planResult,
+                weekLogs: context.weekLogs,
+                allWeights: context.allWeights,
                 referenceDate: asOf,
                 calendar: context.calendar
             ),
@@ -224,65 +225,6 @@ enum DailyTargetsStateBuilder {
             parts.insert(trainingTargetLabel, at: parts.count - 1)
         }
         return parts.joined(separator: ". ")
-    }
-}
-
-// MARK: - Review
-
-enum PlanReviewStateBuilder {
-
-    private static let profileEditGraceInterval: TimeInterval = 120
-
-    static func build(
-        profile: UserProfile,
-        planResult: PlanCalculationResult?,
-        referenceDate: Date,
-        calendar: Calendar
-    ) -> PlanReviewState {
-        let relativeUpdatedLabel = PlanLastUpdatedLabelFormatter.label(
-            for: profile.updatedAt,
-            referenceDate: referenceDate,
-            calendar: calendar
-        )
-        let lastUpdateReasonCopy = resolveLastUpdateReason(profile: profile)
-        let showsRecalculateHint = showsTargetRecalculateHint(profile: profile, planResult: planResult)
-
-        var state = PlanReviewState(
-            lastUpdatedLabel: "\(FormaProductCopy.PlanMissionControl.planReviewLastUpdatedPrefix) \(relativeUpdatedLabel)",
-            lastUpdateReasonCopy: lastUpdateReasonCopy,
-            showsRecalculateHint: showsRecalculateHint,
-            recalculateHintCopy: showsRecalculateHint
-                ? FormaProductCopy.PlanMissionControl.planReviewRecalculateHint
-                : nil,
-            accessibilitySummary: ""
-        )
-        state.accessibilitySummary = [
-            state.lastUpdatedLabel,
-            lastUpdateReasonCopy,
-            state.recalculateHintCopy
-        ].compactMap { $0 }.joined(separator: ". ")
-        return state
-    }
-
-    private static func showsTargetRecalculateHint(
-        profile: UserProfile,
-        planResult: PlanCalculationResult?
-    ) -> Bool {
-        guard let result = planResult else { return false }
-        let stored = profile.targets.calorieTarget
-        let computed = result.calorieTargetKcal
-        let delta = abs(Double(stored - computed)) / Double(max(stored, 1))
-        return delta > 0.05
-    }
-
-    private static func resolveLastUpdateReason(profile: UserProfile) -> String {
-        if let reason = profile.lastPlanUpdateReason {
-            return FormaProductCopy.PlanMissionControl.planUpdateReason(reason)
-        }
-        if profile.updatedAt.timeIntervalSince(profile.createdAt) > profileEditGraceInterval {
-            return FormaProductCopy.PlanMissionControl.planUpdatedAfterEdit
-        }
-        return FormaProductCopy.PlanMissionControl.planCreatedFromOnboarding
     }
 }
 

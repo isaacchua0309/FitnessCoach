@@ -167,6 +167,6 @@ final class PlanMissionControlBuilderTests: XCTestCase {
         XCTAssertEqual(rationale.metrics?.targetCaloriesKcal, result.calorieTargetKcal)
         XCTAssertNotNil(state.explanation.calculationDetails)
         XCTAssertFalse(state.adjustmentRules.rules.isEmpty)
-        XCTAssertNotNil(state.review.lastUpdatedLabel)
+        XCTAssertFalse(state.review.headline.isEmpty)
     }
 }
