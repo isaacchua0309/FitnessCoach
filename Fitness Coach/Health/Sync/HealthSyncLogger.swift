@@ -34,6 +34,54 @@ enum HealthSyncLogger {
         )
     }
 
+    static func syncStarted(trigger: String, days: Int) {
+        event(
+            "Local sync started",
+            fields: [
+                "trigger": trigger,
+                "daysRequested": String(days)
+            ]
+        )
+    }
+
+    static func syncCompleted(
+        context: String,
+        state: HealthSyncState,
+        durationMs: Int
+    ) {
+        let failedSignals = state.signalResults
+            .filter { !$0.succeeded }
+            .map(\.signal.rawValue)
+            .sorted()
+            .joined(separator: ",")
+
+        event(
+            "Local sync completed",
+            fields: [
+                "context": context,
+                "phase": state.phase.rawValue,
+                "trigger": state.trigger?.rawValue ?? "none",
+                "daysCompleted": String(state.progress.daysCompleted),
+                "daysRequested": String(state.progress.daysRequested),
+                "durationMs": String(durationMs),
+                "failedSignals": failedSignals.isEmpty ? "none" : failedSignals,
+                "lastError": state.lastError?.localizedDescription ?? "none"
+            ]
+        )
+    }
+
+    static func syncFailed(context: String, trigger: String, reason: String, durationMs: Int) {
+        warn(
+            "Local sync failed",
+            fields: [
+                "context": context,
+                "trigger": trigger,
+                "reason": reason,
+                "durationMs": String(durationMs)
+            ]
+        )
+    }
+
     static func logState(_ state: HealthSyncState, context: String) {
         let failedSignals = state.signalResults
             .filter { !$0.succeeded }

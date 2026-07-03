@@ -2,7 +2,7 @@
 //  HealthSummarySyncDebugLogger.swift
 //  Fitness Coach
 //
-//  Forma — Debug-only logging for local → remote Health Summary Sync handoff.
+//  Forma — Production-safe logging for local → remote Health Summary Sync handoff.
 //  Logs payload counts and phases only; never raw HealthKit samples or secrets.
 //
 
@@ -24,6 +24,19 @@ enum HealthSummarySyncDebugLogger {
                 "trigger": trigger,
                 "daysRequested": String(daysRequested),
                 "daysCompleted": String(daysCompleted)
+            ]
+        )
+    }
+
+    static func remoteSyncStarted(
+        trigger: String,
+        syncWindowDays: Int
+    ) {
+        log(
+            message: "Remote health summary sync started",
+            fields: [
+                "trigger": trigger,
+                "syncWindowDays": String(syncWindowDays)
             ]
         )
     }
@@ -52,7 +65,8 @@ enum HealthSummarySyncDebugLogger {
         dailyCount: Int,
         workoutCount: Int,
         recoveryCount: Int,
-        metadataUploaded: Bool
+        metadataUploaded: Bool,
+        durationMs: Int
     ) {
         log(
             message: "Remote health summary sync succeeded",
@@ -61,7 +75,8 @@ enum HealthSummarySyncDebugLogger {
                 "dailyCount": String(dailyCount),
                 "workoutCount": String(workoutCount),
                 "recoveryCount": String(recoveryCount),
-                "metadataUploaded": metadataUploaded ? "true" : "false"
+                "metadataUploaded": metadataUploaded ? "true" : "false",
+                "durationMs": String(durationMs)
             ]
         )
     }
@@ -70,34 +85,35 @@ enum HealthSummarySyncDebugLogger {
         trigger: String,
         phase: String,
         failedKinds: [HealthSummaryRemoteSyncPayloadKind],
-        error: HealthSummarySyncError?
+        error: HealthSummarySyncError?,
+        durationMs: Int
     ) {
         log(
             message: "Remote health summary sync failed",
+            level: "warn",
             fields: [
                 "trigger": trigger,
                 "phase": phase,
                 "failedKinds": failedKinds.map(\.rawValue).joined(separator: ","),
-                "error": error?.localizedDescription ?? "none"
+                "error": error?.localizedDescription ?? "none",
+                "durationMs": String(durationMs)
             ]
         )
     }
 
     // MARK: - Private
 
-    #if DEBUG
     private static let logger = Logger(subsystem: "FitPilot", category: "HealthSummarySync")
-    #endif
 
-    private static func log(message: String, fields: [String: String]) {
-        #if DEBUG
+    private static func log(message: String, level: String = "info", fields: [String: String]) {
         var metadata = fields
-        metadata["component"] = "HealthSummarySyncDebug"
+        metadata["level"] = level
+        metadata["component"] = "HealthSummarySync"
+
+        #if DEBUG
         print("[HealthSummarySync] \(HealthOSLogFormatting.message(message, fields: metadata))")
-        logger.log("\(HealthOSLogFormatting.message(message, fields: metadata), privacy: .public)")
-        #else
-        _ = message
-        _ = fields
         #endif
+
+        logger.log("\(HealthOSLogFormatting.message(message, fields: metadata), privacy: .public)")
     }
 }

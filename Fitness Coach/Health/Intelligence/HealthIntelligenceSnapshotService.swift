@@ -96,7 +96,15 @@ actor HealthIntelligenceSnapshotService: HealthIntelligenceSnapshotServing {
         guard enginesEnabled else { return nil }
 
         let day = calendar.startOfDay(for: date)
+        let dayKey = HealthIntelligenceSnapshotLogger.dayKey(for: day, calendar: calendar)
+        let modeLabel = mode.logLabel
         let now = Date()
+
+        HealthIntelligenceSnapshotLogger.loadStarted(
+            dayKey: dayKey,
+            mode: modeLabel,
+            source: "loadSnapshot"
+        )
 
         if let entry = cacheStore.intelligenceSnapshotEntry(for: day, calendar: calendar),
            HealthCachePolicy.isIntelligenceSnapshotFresh(
@@ -105,15 +113,39 @@ actor HealthIntelligenceSnapshotService: HealthIntelligenceSnapshotServing {
                calendar: calendar,
                now: now
            ) {
+            let ageSeconds = max(0, Int(now.timeIntervalSince(entry.cachedAt)))
+            HealthIntelligenceSnapshotLogger.cacheHit(
+                dayKey: dayKey,
+                mode: modeLabel,
+                ageSeconds: ageSeconds
+            )
             return entry.snapshot
         }
 
+        if cacheStore.intelligenceSnapshotEntry(for: day, calendar: calendar) != nil {
+            HealthIntelligenceSnapshotLogger.cacheMiss(
+                dayKey: dayKey,
+                mode: modeLabel,
+                reason: "stale"
+            )
+        } else {
+            HealthIntelligenceSnapshotLogger.cacheMiss(
+                dayKey: dayKey,
+                mode: modeLabel,
+                reason: "not_cached"
+            )
+        }
+
         if let existing = inFlightLoads[day] {
+            HealthIntelligenceSnapshotLogger.coalescedInFlight(dayKey: dayKey, mode: modeLabel)
             return await existing.value
         }
 
         let engine = self.engine
         let cacheStore = self.cacheStore
+        let composeStartedAt = Date()
+        HealthIntelligenceSnapshotLogger.compositionStarted(dayKey: dayKey, mode: modeLabel)
+
         let task = Task {
             let snapshot = await engine.composeSnapshot(for: day, calendar: calendar, mode: mode)
             cacheStore.storeIntelligenceSnapshot(snapshot, for: day, calendar: calendar)
@@ -123,6 +155,22 @@ actor HealthIntelligenceSnapshotService: HealthIntelligenceSnapshotServing {
         inFlightLoads[day] = task
         let snapshot = await task.value
         inFlightLoads.removeValue(forKey: day)
+
+        let durationMs = Int(Date().timeIntervalSince(composeStartedAt) * 1_000)
+        if let snapshot {
+            HealthIntelligenceSnapshotLogger.compositionCompleted(
+                dayKey: dayKey,
+                mode: modeLabel,
+                durationMs: durationMs
+            )
+        } else {
+            HealthIntelligenceSnapshotLogger.compositionFailed(
+                dayKey: dayKey,
+                mode: modeLabel,
+                reason: "nil_snapshot"
+            )
+        }
+
         return snapshot
     }
 
@@ -141,5 +189,27 @@ actor HealthIntelligenceSnapshotService: HealthIntelligenceSnapshotServing {
         }
 
         cacheStore.removeIntelligenceSnapshots(from: start, through: end, calendar: calendar)
+
+        let dayCount = Self.inclusiveDayCount(from: start, through: end, calendar: calendar)
+        HealthIntelligenceSnapshotLogger.invalidated(
+            dayCount: dayCount,
+            cancelledInFlightCount: keysToCancel.count
+        )
+    }
+
+    private static func inclusiveDayCount(
+        from start: Date,
+        through end: Date,
+        calendar: Calendar
+    ) -> Int {
+        guard start <= end else { return 0 }
+        var count = 0
+        var cursor = start
+        while cursor <= end {
+            count += 1
+            guard let next = calendar.date(byAdding: .day, value: 1, to: cursor) else { break }
+            cursor = next
+        }
+        return count
     }
 }

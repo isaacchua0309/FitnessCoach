@@ -50,7 +50,27 @@ enum HealthPermissionLogger {
                 "deniedCount": String(status.deniedSignals.count),
                 "availableSignals": available.isEmpty ? "none" : available,
                 "deniedSignals": denied.isEmpty ? "none" : denied,
-                "hasTrainingReadAccess": String(status.hasTrainingReadAccess)
+                "hasTrainingReadAccess": String(status.hasTrainingReadAccess),
+                "allRequiredAvailable": String(status.allRequiredSignalsAvailable)
+            ]
+        )
+    }
+
+    static func permissionStateChanged(
+        context: String,
+        previousAvailableCount: Int,
+        previousDeniedCount: Int,
+        current: HealthPermissionStatus
+    ) {
+        event(
+            "Health permission state changed",
+            fields: [
+                "context": context,
+                "previousAvailableCount": String(previousAvailableCount),
+                "previousDeniedCount": String(previousDeniedCount),
+                "currentAvailableCount": String(current.availableSignals.count),
+                "currentDeniedCount": String(current.deniedSignals.count),
+                "allRequiredAvailable": String(current.allRequiredSignalsAvailable)
             ]
         )
     }

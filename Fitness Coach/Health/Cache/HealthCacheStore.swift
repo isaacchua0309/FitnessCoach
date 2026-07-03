@@ -246,10 +246,17 @@ final class MemoryHealthCacheStore: HealthCacheStore, @unchecked Sendable {
         guard start <= end else { return }
 
         lock.lock()
+        let removedCount = snapshotsByDay.filter { key, _ in
+            key >= start && key <= end
+        }.count
         snapshotsByDay = snapshotsByDay.filter { key, _ in
             key < start || key > end
         }
         lock.unlock()
+
+        if removedCount > 0 {
+            HealthCacheStoreLogger.snapshotsRemoved(dayCount: removedCount)
+        }
     }
 
     func weeklyReview(for weekStartDate: Date, calendar: Calendar = .current) -> WeeklyHealthReview? {

@@ -63,9 +63,21 @@ struct HealthPermissionService: HealthPermissionServing {
         }
 
         do {
+            let previous = await healthKitManager.getAuthorizationStatus(
+                includingFutureTypes: includingFutureTypes
+            )
             let status = try await healthKitManager.requestAuthorization(
                 includingFutureTypes: includingFutureTypes
             )
+            if previous != status {
+                HealthPermissionLogger.permissionStateChanged(
+                    context: "requestPermissions",
+                    previousAvailableCount: previous.availableSignals.count,
+                    previousDeniedCount: previous.deniedSignals.count,
+                    current: status
+                )
+                HealthIntelligencePipelineAnalytics.logPermissionResolved(status)
+            }
             HealthPermissionLogger.logResolvedStatus(status, context: "requestPermissions")
             return status
         } catch HealthKitManagerError.unavailable {

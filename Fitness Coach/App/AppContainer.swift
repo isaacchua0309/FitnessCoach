@@ -126,6 +126,7 @@ final class AppContainer {
         self.healthIntelligenceAnalyticsLogger = healthIntelligenceAnalyticsLogger
             ?? NoOpHealthIntelligenceAnalyticsLogger()
         #endif
+        HealthIntelligencePipelineAnalytics.register(self.healthIntelligenceAnalyticsLogger)
         self.onboardingRoutingConfiguration = resolvedOnboardingRoutingConfiguration
 
         themeStore = ThemeStore(analyticsLogger: self.themeAnalyticsLogger)

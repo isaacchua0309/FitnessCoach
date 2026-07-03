@@ -33,6 +33,7 @@ protocol HealthIntelligenceFeatureFlagProviding: Sendable {
     var isJourneyModelDebugFetchEnabled: Bool { get }
     var isPlanModelDebugFetchEnabled: Bool { get }
     var healthSummaryRemoteSyncEnabled: Bool { get }
+    var healthIntelligencePipelineAnalyticsEnabled: Bool { get }
     var shouldTodayModelLoadHealthIntelligence: Bool { get }
     var shouldCoachLoadHealthIntelligence: Bool { get }
     var shouldJourneyModelLoadHealthIntelligence: Bool { get }
@@ -54,6 +55,7 @@ enum HealthIntelligenceFeatureFlags {
         static let weeklyReviewEnabled = false
         static let syncEnabled = true
         static let remoteSummarySyncEnabled = false
+        static let pipelineAnalyticsEnabled = true
         static let repositoryReadRoutingEnabled = true
     }
 
@@ -74,6 +76,8 @@ enum HealthIntelligenceFeatureFlags {
         static let repositoryReadsLegacy = "FITPILOT_HEALTH_INTELLIGENCE_REPOSITORY_READS_ENABLED"
         static let remoteSummarySync = "FORMA_HEALTH_SUMMARY_REMOTE_SYNC_ENABLED"
         static let remoteSummarySyncLegacy = "FITPILOT_HEALTH_SUMMARY_REMOTE_SYNC_ENABLED"
+        static let pipelineAnalytics = "FORMA_HEALTH_INTELLIGENCE_PIPELINE_ANALYTICS_ENABLED"
+        static let pipelineAnalyticsLegacy = "FITPILOT_HEALTH_INTELLIGENCE_PIPELINE_ANALYTICS_ENABLED"
         static let todayDebugFetch = "FORMA_HEALTH_INTELLIGENCE_TODAY_FETCH_ENABLED"
         static let todayDebugFetchLegacy = "FITPILOT_HEALTH_INTELLIGENCE_TODAY_FETCH_ENABLED"
         static let journeyDebugFetch = "FORMA_HEALTH_INTELLIGENCE_JOURNEY_FETCH_ENABLED"
@@ -90,6 +94,7 @@ enum HealthIntelligenceFeatureFlags {
         var healthIntelligenceWeeklyReviewEnabled: Bool
         var isSyncEnabled: Bool
         var healthSummaryRemoteSyncEnabled: Bool
+        var healthIntelligencePipelineAnalyticsEnabled: Bool
         var isRepositoryReadRoutingEnabled: Bool
         var shouldTodayModelLoadHealthIntelligence: Bool
         var shouldJourneyModelLoadHealthIntelligence: Bool
@@ -107,6 +112,7 @@ enum HealthIntelligenceFeatureFlags {
             healthIntelligenceWeeklyReviewEnabled: flags.healthIntelligenceWeeklyReviewEnabled,
             isSyncEnabled: flags.isSyncEnabled,
             healthSummaryRemoteSyncEnabled: flags.healthSummaryRemoteSyncEnabled,
+            healthIntelligencePipelineAnalyticsEnabled: flags.healthIntelligencePipelineAnalyticsEnabled,
             isRepositoryReadRoutingEnabled: flags.isRepositoryReadRoutingEnabled,
             shouldTodayModelLoadHealthIntelligence: flags.shouldTodayModelLoadHealthIntelligence,
             shouldJourneyModelLoadHealthIntelligence: flags.shouldJourneyModelLoadHealthIntelligence,
@@ -127,6 +133,7 @@ enum HealthIntelligenceFeatureFlags {
     static var healthIntelligenceWeeklyReviewEnabled: Bool { provider.healthIntelligenceWeeklyReviewEnabled }
     static var isSyncEnabled: Bool { provider.isSyncEnabled }
     static var healthSummaryRemoteSyncEnabled: Bool { provider.healthSummaryRemoteSyncEnabled }
+    static var healthIntelligencePipelineAnalyticsEnabled: Bool { provider.healthIntelligencePipelineAnalyticsEnabled }
     static var isRepositoryReadRoutingEnabled: Bool { provider.isRepositoryReadRoutingEnabled }
     static var isTodayModelDebugFetchEnabled: Bool { provider.isTodayModelDebugFetchEnabled }
     static var isJourneyModelDebugFetchEnabled: Bool { provider.isJourneyModelDebugFetchEnabled }
@@ -205,6 +212,15 @@ struct EnvironmentHealthIntelligenceFeatureFlags: HealthIntelligenceFeatureFlagP
             primary: HealthIntelligenceFeatureFlags.EnvironmentKey.remoteSummarySync,
             legacy: HealthIntelligenceFeatureFlags.EnvironmentKey.remoteSummarySyncLegacy,
             defaultEnabled: HealthIntelligenceFeatureFlags.Defaults.remoteSummarySyncEnabled
+        )
+    }
+
+    var healthIntelligencePipelineAnalyticsEnabled: Bool {
+        guard healthIntelligenceEnabled else { return false }
+        return flag(
+            primary: HealthIntelligenceFeatureFlags.EnvironmentKey.pipelineAnalytics,
+            legacy: HealthIntelligenceFeatureFlags.EnvironmentKey.pipelineAnalyticsLegacy,
+            defaultEnabled: HealthIntelligenceFeatureFlags.Defaults.pipelineAnalyticsEnabled
         )
     }
 
@@ -294,6 +310,7 @@ struct TestHealthIntelligenceFeatureFlags: HealthIntelligenceFeatureFlagProvidin
     var healthIntelligenceWeeklyReviewEnabled: Bool = false
     var isSyncEnabled: Bool = true
     var healthSummaryRemoteSyncEnabled: Bool = false
+    var healthIntelligencePipelineAnalyticsEnabled: Bool = true
     var isRepositoryReadRoutingEnabled: Bool = true
     var isTodayModelDebugFetchEnabled: Bool = false
     var isJourneyModelDebugFetchEnabled: Bool = false

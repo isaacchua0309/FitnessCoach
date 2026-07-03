@@ -285,6 +285,12 @@ actor HealthSummarySyncService: HealthSummarySyncServing {
 
         markAttemptStarted(userID: userID, trigger: resolvedTrigger, persisted: &persisted)
 
+        HealthSummarySyncDebugLogger.remoteSyncStarted(
+            trigger: resolvedTrigger.rawValue,
+            syncWindowDays: syncWindowDays
+        )
+        let remoteSyncStartedAt = Date()
+
         let availability = await repository.getHealthDataAvailability()
         let context = makeMappingContext(userID: userID)
         let endingOn = Date()
@@ -371,6 +377,7 @@ actor HealthSummarySyncService: HealthSummarySyncServing {
 
         let metadataAttempted = didUploadAnyPayload
         let metadataUploaded = metadataAttempted && !failedKinds.contains(.metadata)
+        let durationMs = Int(Date().timeIntervalSince(remoteSyncStartedAt) * 1_000)
 
         switch state.phase {
         case .succeeded:
@@ -379,14 +386,32 @@ actor HealthSummarySyncService: HealthSummarySyncServing {
                 dailyCount: composed.dailySummaries.count,
                 workoutCount: composed.workoutSummaries.count,
                 recoveryCount: composed.recoverySummaries.count,
-                metadataUploaded: metadataUploaded
+                metadataUploaded: metadataUploaded,
+                durationMs: durationMs
+            )
+            HealthIntelligencePipelineAnalytics.logRemoteSyncFinished(
+                phase: .succeeded,
+                trigger: resolvedTrigger.rawValue,
+                dailyCount: composed.dailySummaries.count,
+                workoutCount: composed.workoutSummaries.count,
+                recoveryCount: composed.recoverySummaries.count,
+                errorDescription: nil
             )
         case .partialSuccess, .failed:
             HealthSummarySyncDebugLogger.remoteSyncFailed(
                 trigger: resolvedTrigger.rawValue,
                 phase: state.phase.rawValue,
                 failedKinds: failedKinds,
-                error: lastError
+                error: lastError,
+                durationMs: durationMs
+            )
+            HealthIntelligencePipelineAnalytics.logRemoteSyncFinished(
+                phase: state.phase,
+                trigger: resolvedTrigger.rawValue,
+                dailyCount: composed.dailySummaries.count,
+                workoutCount: composed.workoutSummaries.count,
+                recoveryCount: composed.recoverySummaries.count,
+                errorDescription: lastError?.localizedDescription
             )
         default:
             break

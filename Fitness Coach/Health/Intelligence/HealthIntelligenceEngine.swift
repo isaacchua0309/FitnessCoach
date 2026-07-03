@@ -59,9 +59,10 @@ struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
         calendar: Calendar = .current,
         mode: HealthIntelligenceComposeMode = .today
     ) async -> HealthIntelligenceSnapshot {
+        let startedAt = Date()
         let context = await contextBuilder.buildContext(for: date, calendar: calendar)
-
-        return composeSnapshot(from: context, mode: mode)
+        let snapshot = composeSnapshot(from: context, mode: mode, startedAt: startedAt)
+        return snapshot
     }
 
     func generateSnapshot(
@@ -75,7 +76,8 @@ struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
 
     private func composeSnapshot(
         from context: HealthIntelligenceContext,
-        mode: HealthIntelligenceComposeMode
+        mode: HealthIntelligenceComposeMode,
+        startedAt: Date = Date()
     ) -> HealthIntelligenceSnapshot {
         let day = context.targetDate
 
@@ -144,6 +146,11 @@ struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
             )
         } else {
             nextBestAction = availabilityAction
+            HealthIntelligenceEngineLogger.engineFallback(
+                section: .nextBestAction,
+                reason: "availability_action",
+                fields: ["actionReason": availabilityAction.reason.rawValue]
+            )
         }
 
         let weeklyReview = composeWeeklyReview(from: context, mode: mode)
@@ -165,7 +172,7 @@ struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
             }
         )
 
-        return HealthIntelligenceSnapshot(
+        let snapshot = HealthIntelligenceSnapshot(
             date: day,
             recovery: recovery,
             workout: workout,
@@ -175,6 +182,25 @@ struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
             planConfidence: planConfidence,
             nextBestAction: nextBestAction
         )
+
+        let dayKey = HealthIntelligenceSnapshotLogger.dayKey(for: day, calendar: context.calendar)
+        let durationMs = Int(Date().timeIntervalSince(startedAt) * 1_000)
+        HealthIntelligenceEngineLogger.snapshotCompositionCompleted(
+            dayKey: dayKey,
+            mode: mode.logLabel,
+            dataGapCount: context.dataGaps.count,
+            recoveryStatus: recovery.status.rawValue,
+            hasWorkout: workout != nil,
+            durationMs: durationMs
+        )
+        HealthIntelligencePipelineAnalytics.logSnapshotComposed(
+            mode: mode,
+            dataGapCount: context.dataGaps.count,
+            recoveryStatus: recovery.status.rawValue,
+            hasWorkout: workout != nil
+        )
+
+        return snapshot
     }
 
     private func composeWeeklyReview(
@@ -235,6 +261,10 @@ struct HealthIntelligenceEngine: HealthIntelligenceEngineing {
             return try work()
         } catch {
             HealthIntelligenceEngineLogger.sectionFailure(section, error: error)
+            HealthIntelligenceEngineLogger.engineFallback(
+                section: section,
+                reason: "section_error"
+            )
             return fallback
         }
     }

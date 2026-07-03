@@ -101,6 +101,7 @@ actor HealthSyncService: HealthSyncServing {
         isSyncing = true
         defer { isSyncing = false }
 
+        let syncStartedAt = Date()
         let availability = await repository.getHealthDataAvailability()
         guard availability.isHealthDataAvailable else {
             let failed = state.updating(
@@ -112,7 +113,15 @@ actor HealthSyncService: HealthSyncServing {
                 lastError: .healthDataUnavailable
             )
             state = failed
+            let durationMs = Int(Date().timeIntervalSince(syncStartedAt) * 1_000)
+            HealthSyncLogger.syncFailed(
+                context: "unavailable",
+                trigger: trigger.rawValue,
+                reason: HealthSyncError.healthDataUnavailable.localizedDescription,
+                durationMs: durationMs
+            )
             HealthSyncLogger.logState(failed, context: "unavailable")
+            HealthIntelligencePipelineAnalytics.logLocalSyncFinished(failed, durationMs: durationMs)
             return failed
         }
 
@@ -126,7 +135,15 @@ actor HealthSyncService: HealthSyncServing {
                 lastError: .permissionDenied
             )
             state = failed
+            let durationMs = Int(Date().timeIntervalSince(syncStartedAt) * 1_000)
+            HealthSyncLogger.syncFailed(
+                context: "permissionDenied",
+                trigger: trigger.rawValue,
+                reason: HealthSyncError.permissionDenied.localizedDescription,
+                durationMs: durationMs
+            )
             HealthSyncLogger.logState(failed, context: "permissionDenied")
+            HealthIntelligencePipelineAnalytics.logLocalSyncFinished(failed, durationMs: durationMs)
             return failed
         }
 
@@ -139,13 +156,7 @@ actor HealthSyncService: HealthSyncServing {
             lastSuccessfulSyncAt: state.lastSuccessfulSyncAt,
             lastError: nil
         )
-        HealthSyncLogger.event(
-            "sync started",
-            fields: [
-                "trigger": trigger.rawValue,
-                "days": String(days)
-            ]
-        )
+        HealthSyncLogger.syncStarted(trigger: trigger.rawValue, days: days)
 
         var signalResults: [HealthSyncSignalResult] = []
         let refresh = await repository.refreshHealthData(
@@ -215,7 +226,10 @@ actor HealthSyncService: HealthSyncServing {
             lastError: lastError
         )
         state = finished
+        let durationMs = Int(Date().timeIntervalSince(syncStartedAt) * 1_000)
+        HealthSyncLogger.syncCompleted(context: "completed", state: finished, durationMs: durationMs)
         HealthSyncLogger.logState(finished, context: "completed")
+        HealthIntelligencePipelineAnalytics.logLocalSyncFinished(finished, durationMs: durationMs)
         return finished
     }
 

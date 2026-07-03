@@ -14,6 +14,14 @@ enum HealthIntelligenceComposeMode: Equatable, Sendable {
     case weeklyReview
     /// Lightweight preview snapshot with reduced weekly synthesis work.
     case preview
+
+    var logLabel: String {
+        switch self {
+        case .today: return "today"
+        case .weeklyReview: return "weekly_review"
+        case .preview: return "preview"
+        }
+    }
 }
 
 enum HealthIntelligenceComposeModePolicy {

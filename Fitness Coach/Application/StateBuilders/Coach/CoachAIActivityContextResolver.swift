@@ -41,6 +41,14 @@ enum CoachAIActivityContextResolver {
         if loadHealthIntelligence(), let snapshotProvider {
             let snapshot = await snapshotProvider.loadTodaySnapshot(for: date, calendar: calendar)
             if let snapshot {
+                HealthIntelligenceEngineLogger.event(
+                    "Coach activity context resolved",
+                    fields: [
+                        "resolveSource": "snapshot",
+                        "recoveryStatus": snapshot.recovery.status.rawValue,
+                        "missingSignalCount": String(snapshot.recovery.missingSignals.count)
+                    ]
+                )
                 return context(
                     from: snapshot,
                     resolveInput: resolveInput,
@@ -48,6 +56,10 @@ enum CoachAIActivityContextResolver {
                 )
             }
 
+            HealthIntelligenceEngineLogger.event(
+                "Coach activity context resolved",
+                fields: ["resolveSource": "fallback_query"]
+            )
             let training = await healthActivityQuery.dailyTrainingActivity(on: date, calendar: calendar)
             return CoachAIActivityContext(
                 workoutsToday: training.workoutCount,
@@ -62,6 +74,10 @@ enum CoachAIActivityContextResolver {
             )
         }
 
+        HealthIntelligenceEngineLogger.event(
+            "Coach activity context resolved",
+            fields: ["resolveSource": "disabled"]
+        )
         let training = await healthActivityQuery.dailyTrainingActivity(on: date, calendar: calendar)
         return CoachAIActivityContext(
             workoutsToday: training.workoutCount,

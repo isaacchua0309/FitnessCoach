@@ -93,6 +93,8 @@ final class HealthIntelligenceAnalyticsContextBuilderTests: XCTestCase {
                 healthIntelligenceCoachContextEnabled: false,
                 healthIntelligenceWeeklyReviewEnabled: false,
                 isSyncEnabled: true,
+                healthSummaryRemoteSyncEnabled: false,
+                healthIntelligencePipelineAnalyticsEnabled: true,
                 isRepositoryReadRoutingEnabled: true,
                 shouldTodayModelLoadHealthIntelligence: false,
                 shouldJourneyModelLoadHealthIntelligence: false,

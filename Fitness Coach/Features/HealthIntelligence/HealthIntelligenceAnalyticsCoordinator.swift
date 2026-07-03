@@ -120,6 +120,16 @@ final class HealthIntelligenceAnalyticsCoordinator {
         log(.coachHealthContextUsed, properties: properties)
     }
 
+    func logCoachHealthContextAvailable(from snapshot: HealthIntelligenceSnapshot?) {
+        var properties = coachContextProperties(from: snapshot)
+        log(.coachHealthContextAvailable, properties: properties)
+    }
+
+    func logCoachHealthContextPartial(from snapshot: HealthIntelligenceSnapshot?) {
+        var properties = coachContextProperties(from: snapshot)
+        log(.coachHealthContextPartial, properties: properties)
+    }
+
     // MARK: - Journey
 
     func logJourneyRecoveryTimelineViewed() {
@@ -168,6 +178,21 @@ final class HealthIntelligenceAnalyticsCoordinator {
             featureFlagState: HealthIntelligenceAnalyticsContextBuilder.featureFlagState(),
             surface: surface.rawValue
         )
+    }
+
+    private func coachContextProperties(
+        from snapshot: HealthIntelligenceSnapshot?
+    ) -> HealthIntelligenceAnalyticsProperties {
+        var properties = HealthIntelligenceAnalyticsContextBuilder.properties(
+            from: snapshot,
+            surface: .coach
+        )
+        if properties.confidenceBucket == nil, let snapshot {
+            properties.confidenceBucket = HealthIntelligenceAnalyticsContextBuilder.confidenceBucket(
+                from: snapshot.planConfidence
+            )
+        }
+        return properties
     }
 
     private func healthIntelligenceSurface(

@@ -229,7 +229,16 @@ final class CoachModel: ObservableObject {
     private func prepareAIContext(recentMessages: [ChatMessage]) async -> AIContext? {
         guard let aiContextBuilder else { return nil }
         let activity = await resolveAIActivityContext()
-        if activity.healthIntelligence != nil {
+        if let healthIntelligence = activity.healthIntelligence {
+            if activity.healthIntelligenceAwarenessAvailable {
+                healthIntelligenceAnalyticsCoordinator?.logCoachHealthContextAvailable(
+                    from: activity.sourceSnapshot
+                )
+            } else {
+                healthIntelligenceAnalyticsCoordinator?.logCoachHealthContextPartial(
+                    from: activity.sourceSnapshot
+                )
+            }
             healthIntelligenceAnalyticsCoordinator?.logCoachHealthContextUsed(
                 from: activity.sourceSnapshot
             )

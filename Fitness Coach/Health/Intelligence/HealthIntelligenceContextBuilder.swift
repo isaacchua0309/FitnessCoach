@@ -421,7 +421,7 @@ struct HealthIntelligenceContextBuilder: HealthIntelligenceContextBuilding {
             weeklyReviewContext = nil
         }
 
-        return HealthIntelligenceContext(
+        let builtContext = HealthIntelligenceContext(
             targetDate: targetDay,
             calendar: calendar,
             generatedAt: generatedAt,
@@ -443,6 +443,26 @@ struct HealthIntelligenceContextBuilder: HealthIntelligenceContextBuilding {
             hasLoggedWeightRecently: hasLoggedWeightRecently,
             trainingLoadInput: trainingLoadInput,
             weeklyReviewContext: weeklyReviewContext
+        )
+        logBuiltContext(builtContext)
+        return builtContext
+        let dayKey = HealthIntelligenceSnapshotLogger.dayKey(
+            for: context.targetDate,
+            calendar: context.calendar
+        )
+        let gapLabels = context.dataGaps.map(\.rawValue).sorted().joined(separator: ",")
+        HealthIntelligenceEngineLogger.event(
+            "Health intelligence context built",
+            fields: [
+                "dayKey": dayKey,
+                "dataGapCount": String(context.dataGaps.count),
+                "dataGaps": gapLabels.isEmpty ? "none" : gapLabels,
+                "cachedDayCount": String(context.availability.cachedDayCount),
+                "metrics28Count": String(context.metricsLast28Days.count),
+                "workouts28Count": String(context.workoutsLast28Days.count),
+                "sleepRecordCount": String(context.sleepRecords.count),
+                "heartMetricCount": String(context.heartMetrics.count)
+            ]
         )
     }
 

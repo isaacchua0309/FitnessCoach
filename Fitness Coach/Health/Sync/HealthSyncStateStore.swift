@@ -95,6 +95,7 @@ final class HealthSyncStateStore: ObservableObject {
     }
 
     func cancelActiveSync() {
+        HealthSyncLogger.warn("Sync state store cancelling active sync")
         activeSyncTask?.cancel()
         activeSyncTask = nil
         cancelRemoteSyncWork()
@@ -112,13 +113,21 @@ final class HealthSyncStateStore: ObservableObject {
 
     private func runDetached(_ operation: @escaping @Sendable () async -> HealthSyncState) {
         activeSyncTask?.cancel()
+        HealthSyncLogger.event("Sync state store task started")
         activeSyncTask = Task { [weak self] in
             guard let self else { return }
             let updated = await operation()
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled else {
+                HealthSyncLogger.warn("Sync state store task cancelled")
+                return
+            }
             self.state = updated
             await self.invalidateSnapshotsIfNeeded(after: updated)
             self.scheduleRemoteSummarySync(after: updated)
+            HealthSyncLogger.event(
+                "Sync state store task finished",
+                fields: ["phase": updated.phase.rawValue]
+            )
         }
     }
 
@@ -130,9 +139,18 @@ final class HealthSyncStateStore: ObservableObject {
         let calendar = Calendar.current
         let endDay = calendar.startOfDay(for: Date())
         guard let startDay = calendar.date(byAdding: .day, value: -(days - 1), to: endDay) else {
+            HealthSyncLogger.event(
+                "Invalidating intelligence snapshots",
+                fields: ["dayCount": "1"]
+            )
             await snapshotService.invalidateSnapshots(from: endDay, through: endDay, calendar: calendar)
             return
         }
+
+        HealthSyncLogger.event(
+            "Invalidating intelligence snapshots",
+            fields: ["dayCount": String(days)]
+        )
 
         await snapshotService.invalidateSnapshots(
             from: calendar.startOfDay(for: startDay),
@@ -166,6 +184,11 @@ final class HealthSyncStateStore: ObservableObject {
     private func flushPendingRemoteSync(using remoteSummarySyncService: any HealthSummarySyncServing) async {
         guard let days = pendingRemoteSyncDays else { return }
         pendingRemoteSyncDays = nil
+
+        HealthSyncLogger.event(
+            "Remote summary sync flush started",
+            fields: ["days": String(days)]
+        )
 
         activeRemoteSyncTask?.cancel()
         activeRemoteSyncTask = Task {

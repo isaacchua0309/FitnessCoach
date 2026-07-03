@@ -20,6 +20,15 @@ enum HealthIntelligenceAnalyticsEvent: String, Sendable {
     case weeklyReviewDetailOpened = "weekly_review_detail_opened"
     case planHealthConfidenceViewed = "plan_health_confidence_viewed"
     case healthPermissionCTATapped = "health_permission_cta_tapped"
+    case healthPermissionConnected = "health_permission_connected"
+    case healthPermissionPartial = "health_permission_partial"
+    case healthLocalSyncSuccess = "health_local_sync_success"
+    case healthLocalSyncFailed = "health_local_sync_failed"
+    case healthSnapshotComposed = "health_snapshot_composed"
+    case healthRemoteSyncSuccess = "health_remote_sync_success"
+    case healthRemoteSyncFailed = "health_remote_sync_failed"
+    case coachHealthContextAvailable = "coach_health_context_available"
+    case coachHealthContextPartial = "coach_health_context_partial"
 }
 
 enum HealthIntelligenceAnalyticsDataState: String, Sendable {
@@ -53,6 +62,19 @@ struct HealthIntelligenceAnalyticsProperties: Sendable {
     var actionType: String?
     var ctaSurface: String?
     var failureReason: String?
+    var syncDurationMs: Int?
+    var syncTrigger: String?
+    var syncPhase: String?
+    var cacheSource: String?
+    var composeMode: String?
+    var payloadDailyCount: Int?
+    var payloadWorkoutCount: Int?
+    var payloadRecoveryCount: Int?
+    var availableSignalCount: Int?
+    var deniedSignalCount: Int?
+    var dataGapCount: Int?
+    var fallbackReason: String?
+    var resolveSource: String?
 
     static let empty = HealthIntelligenceAnalyticsProperties()
 
@@ -72,6 +94,19 @@ struct HealthIntelligenceAnalyticsProperties: Sendable {
         if let actionType { parameters["action_type"] = actionType }
         if let ctaSurface { parameters["cta_surface"] = ctaSurface }
         if let failureReason { parameters["failure_reason"] = failureReason }
+        if let syncDurationMs { parameters["sync_duration_ms"] = String(syncDurationMs) }
+        if let syncTrigger { parameters["sync_trigger"] = syncTrigger }
+        if let syncPhase { parameters["sync_phase"] = syncPhase }
+        if let cacheSource { parameters["cache_source"] = cacheSource }
+        if let composeMode { parameters["compose_mode"] = composeMode }
+        if let payloadDailyCount { parameters["payload_daily_count"] = String(payloadDailyCount) }
+        if let payloadWorkoutCount { parameters["payload_workout_count"] = String(payloadWorkoutCount) }
+        if let payloadRecoveryCount { parameters["payload_recovery_count"] = String(payloadRecoveryCount) }
+        if let availableSignalCount { parameters["available_signal_count"] = String(availableSignalCount) }
+        if let deniedSignalCount { parameters["denied_signal_count"] = String(deniedSignalCount) }
+        if let dataGapCount { parameters["data_gap_count"] = String(dataGapCount) }
+        if let fallbackReason { parameters["fallback_reason"] = fallbackReason }
+        if let resolveSource { parameters["resolve_source"] = resolveSource }
         return parameters
     }
 
@@ -87,6 +122,19 @@ struct HealthIntelligenceAnalyticsProperties: Sendable {
         if let actionType = other.actionType { merged.actionType = actionType }
         if let ctaSurface = other.ctaSurface { merged.ctaSurface = ctaSurface }
         if let failureReason = other.failureReason { merged.failureReason = failureReason }
+        if let syncDurationMs = other.syncDurationMs { merged.syncDurationMs = syncDurationMs }
+        if let syncTrigger = other.syncTrigger { merged.syncTrigger = syncTrigger }
+        if let syncPhase = other.syncPhase { merged.syncPhase = syncPhase }
+        if let cacheSource = other.cacheSource { merged.cacheSource = cacheSource }
+        if let composeMode = other.composeMode { merged.composeMode = composeMode }
+        if let payloadDailyCount = other.payloadDailyCount { merged.payloadDailyCount = payloadDailyCount }
+        if let payloadWorkoutCount = other.payloadWorkoutCount { merged.payloadWorkoutCount = payloadWorkoutCount }
+        if let payloadRecoveryCount = other.payloadRecoveryCount { merged.payloadRecoveryCount = payloadRecoveryCount }
+        if let availableSignalCount = other.availableSignalCount { merged.availableSignalCount = availableSignalCount }
+        if let deniedSignalCount = other.deniedSignalCount { merged.deniedSignalCount = deniedSignalCount }
+        if let dataGapCount = other.dataGapCount { merged.dataGapCount = dataGapCount }
+        if let fallbackReason = other.fallbackReason { merged.fallbackReason = fallbackReason }
+        if let resolveSource = other.resolveSource { merged.resolveSource = resolveSource }
         return merged
     }
 }
