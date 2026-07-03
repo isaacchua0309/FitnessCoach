@@ -11,29 +11,25 @@ enum PlanAnalyticsEvent: String, Sendable {
     case viewed = "plan_viewed"
     case goalCardViewed = "plan_goal_card_viewed"
     case todayMissionViewed = "plan_today_mission_viewed"
-    case weekSectionViewed = "plan_week_section_viewed"
     case rationaleOpened = "plan_rationale_opened"
     case calculationDetailsOpened = "plan_calculation_details_opened"
-    case activityAssumptionsViewed = "plan_activity_assumptions_viewed"
+    case planAssumptionsViewed = "plan_assumptions_viewed"
     case adjustStarted = "plan_adjust_started"
     case editSaved = "plan_edit_saved"
     case targetsRegenerated = "plan_targets_regenerated"
     case healthConnectTapped = "plan_health_connect_tapped"
     case todayTapped = "plan_today_tapped"
-    case journeyTapped = "plan_journey_tapped"
 }
 
 enum PlanAnalyticsSectionImpression: Hashable, Sendable {
     case goalCard
     case todayMission
-    case weekSection
     case rationale
-    case activityAssumptions
+    case planAssumptions
 }
 
 enum PlanAnalyticsHealthConnectEntryPoint: String, Sendable {
-    case trainingIntegrationCard = "training_integration_card"
-    case activityAssumptions = "activity_assumptions"
+    case planConfidence = "plan_confidence"
 }
 
 struct PlanAnalyticsProperties: Sendable {
@@ -64,7 +60,7 @@ protocol PlanAnalyticsLogging: Sendable {
 
 enum PlanAdjustPlanEntryPoint {
     static let dashboard = "plan_dashboard"
-    static let activityAssumptions = "plan_activity_assumptions"
+    static let planAssumptions = "plan_assumptions"
 }
 
 extension PlanAnalyticsProperties {

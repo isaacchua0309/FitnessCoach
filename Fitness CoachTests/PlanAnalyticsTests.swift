@@ -130,22 +130,21 @@ final class PlanAnalyticsEventTests: XCTestCase {
         XCTAssertNotNil(analytics.events.last?.properties.calorieTargetBucket)
     }
 
-    func testLogPlanTodayAndJourneyTapped() {
+    func testLogPlanTodayTapped() {
         model.logPlanTodayTapped(healthConnected: true)
-        model.logPlanJourneyTapped(healthConnected: true)
 
-        XCTAssertEqual(analytics.events.map(\.event), [.todayTapped, .journeyTapped])
+        XCTAssertEqual(analytics.events.map(\.event), [.todayTapped])
         XCTAssertEqual(analytics.events[0].properties.goalType, "lose")
     }
 
     func testLogPlanHealthConnectTappedIncludesEntryPoint() {
         model.logPlanHealthConnectTapped(
-            entryPoint: .activityAssumptions,
+            entryPoint: .planConfidence,
             healthConnected: false
         )
 
         XCTAssertEqual(analytics.events.last?.event, .healthConnectTapped)
-        XCTAssertEqual(analytics.events.last?.properties.entryPoint, "activity_assumptions")
+        XCTAssertEqual(analytics.events.last?.properties.entryPoint, "plan_confidence")
     }
 
     func testLogPlanCalculationDetailsOpened() {
@@ -182,16 +181,14 @@ final class PlanAnalyticsEventTests: XCTestCase {
         XCTAssertEqual(PlanAnalyticsEvent.viewed.rawValue, "plan_viewed")
         XCTAssertEqual(PlanAnalyticsEvent.goalCardViewed.rawValue, "plan_goal_card_viewed")
         XCTAssertEqual(PlanAnalyticsEvent.todayMissionViewed.rawValue, "plan_today_mission_viewed")
-        XCTAssertEqual(PlanAnalyticsEvent.weekSectionViewed.rawValue, "plan_week_section_viewed")
         XCTAssertEqual(PlanAnalyticsEvent.rationaleOpened.rawValue, "plan_rationale_opened")
         XCTAssertEqual(PlanAnalyticsEvent.calculationDetailsOpened.rawValue, "plan_calculation_details_opened")
-        XCTAssertEqual(PlanAnalyticsEvent.activityAssumptionsViewed.rawValue, "plan_activity_assumptions_viewed")
+        XCTAssertEqual(PlanAnalyticsEvent.planAssumptionsViewed.rawValue, "plan_assumptions_viewed")
         XCTAssertEqual(PlanAnalyticsEvent.adjustStarted.rawValue, "plan_adjust_started")
         XCTAssertEqual(PlanAnalyticsEvent.editSaved.rawValue, "plan_edit_saved")
         XCTAssertEqual(PlanAnalyticsEvent.targetsRegenerated.rawValue, "plan_targets_regenerated")
         XCTAssertEqual(PlanAnalyticsEvent.healthConnectTapped.rawValue, "plan_health_connect_tapped")
         XCTAssertEqual(PlanAnalyticsEvent.todayTapped.rawValue, "plan_today_tapped")
-        XCTAssertEqual(PlanAnalyticsEvent.journeyTapped.rawValue, "plan_journey_tapped")
     }
 
     private func seedProfile() async throws {

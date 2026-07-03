@@ -2,7 +2,7 @@
 //  PlanStateBuilderWhatHappensNextTests.swift
 //  Fitness CoachTests
 //
-//  Forma — Legacy "What Happens Next" and strategy-first sections stay out of Mission Control.
+//  Forma — Legacy Plan sections stay out of the strategy layout.
 //
 
 import XCTest
@@ -20,7 +20,7 @@ final class PlanStateBuilderWhatHappensNextTests: XCTestCase {
 
         XCTAssertEqual(state.missionControl.mission.goalDirection, .lose)
         XCTAssertFalse(state.missionControl.todayMission.caloriesLabel.isEmpty)
-        XCTAssertFalse(state.missionControl.week.sectionTitle.isEmpty)
+        XCTAssertFalse(state.missionControl.assumptions.activityLevel.isEmpty)
         XCTAssertNotNil(state.rationale.calculationDetails)
     }
 
@@ -28,14 +28,8 @@ final class PlanStateBuilderWhatHappensNextTests: XCTestCase {
         XCTAssertTrue(PlanProductLayout.removedSectionIdentifiers.contains("current_strategy"))
         XCTAssertTrue(PlanProductLayout.removedSectionIdentifiers.contains("todays_targets"))
         XCTAssertTrue(PlanProductLayout.removedSectionIdentifiers.contains("plan_lifestyle"))
-    }
-
-    func testMissionControlRationaleMatchesTopLevelRationale() {
-        let state = PlanStateBuilder.dashboardState(profile: PlanMissionControlFixtures.loseProfile)
-
-        XCTAssertEqual(
-            state.rationale.summary,
-            state.missionControl.rationale.summary
-        )
+        XCTAssertTrue(PlanProductLayout.removedSectionIdentifiers.contains("this_week"))
+        XCTAssertTrue(PlanProductLayout.removedSectionIdentifiers.contains("next_milestone"))
+        XCTAssertTrue(PlanProductLayout.removedSectionIdentifiers.contains("adjust_plan"))
     }
 }

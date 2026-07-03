@@ -2,23 +2,19 @@
 //  PlanMissionControlModels.swift
 //  Fitness Coach
 //
-//  Forma — Product-facing Mission Control state for the Plan dashboard.
+//  Forma — Product-facing state for the Plan strategy screen.
 //
 
 import Foundation
 
 // MARK: - Mission Control bundle
 
-/// Product-facing read model for the Plan strategy dashboard.
+/// Product-facing read model for the Plan strategy screen.
 struct PlanMissionControlDashboard: Equatable, Sendable {
     var mission: PlanMissionState
     var todayMission: PlanTodayMissionState
-    var week: PlanWeekState
-    var nextMilestone: PlanNextMilestoneState
-    var rationale: PlanRationaleState
-    var activityAssumptions: PlanActivityAssumptionsState
+    var assumptions: PlanAssumptionsState
     var confidence: PlanConfidenceState
-    var adjustment: PlanAdjustmentState
 }
 
 // MARK: - 1. Mission
@@ -86,92 +82,7 @@ struct PlanTodayMissionState: Equatable, Sendable {
     var accessibilitySummary: String
 }
 
-// MARK: - 3. This week
-
-enum PlanWeekOverallStatus: String, Equatable, Sendable {
-    case strong
-    case onTrack
-    case building
-    case incomplete
-}
-
-struct PlanWeekAdherenceCount: Equatable, Sendable {
-    var achieved: Int
-    var eligible: Int
-
-    var label: String {
-        guard eligible > 0 else { return "—" }
-        return "\(achieved)/\(eligible)"
-    }
-}
-
-struct PlanWeekState: Equatable, Sendable {
-    var calorieAdherence: PlanWeekAdherenceCount
-    var proteinAdherence: PlanWeekAdherenceCount
-    var waterAdherence: PlanWeekAdherenceCount
-    var trainingDays: Int
-    var expectedTrainingDays: Int
-    var trainingProgressLabel: String
-    var weightChangeKg: Double?
-    var weightChangeLabel: String?
-    var overallStatus: PlanWeekOverallStatus
-    var overallStatusCopy: String
-    var hasWeeklyData: Bool
-
-    // MARK: Presentation
-
-    var sectionTitle: String
-    var caloriesLine: String
-    var proteinLine: String
-    var waterLine: String
-    var trainingLine: String
-    var weightLine: String
-    var overallHeadline: String
-    var emptyStateCopy: String?
-    var showsEmptyState: Bool
-    var accessibilitySummary: String
-}
-
-// MARK: - 4. Next milestone
-
-enum PlanMilestoneType: String, Equatable, Sendable {
-    case weightCheckpoint
-    case goalWeight
-    case phaseReview
-    case loggingConsistency
-    case proteinAdherence
-    case trainingAdherence
-}
-
-enum PlanNextMilestoneKind: String, Equatable, Sendable {
-    case weightCheckpoint
-    case goalWeight
-    case loggingConsistency
-    case proteinAdherence
-    case trainingAdherence
-}
-
-struct PlanNextMilestoneState: Equatable, Sendable {
-    var milestoneLabel: String?
-    var remainingKg: Double?
-    var remainingLabel: String?
-    var expectedDate: Date?
-    var expectedDateLabel: String?
-    var milestoneType: PlanMilestoneType?
-    var detailCopy: String?
-    var showsEmptyState: Bool
-
-    // MARK: Presentation
-
-    var sectionTitle: String
-    var headline: String
-    var showsJourneyCTA: Bool
-    var goToJourneyTitle: String
-    var accessibilitySummary: String
-    var kind: PlanNextMilestoneKind?
-}
-
-// MARK: - 5. Rationale metrics (extends display-oriented PlanRationaleState)
+// MARK: - 3. Rationale metrics (extends display-oriented PlanRationaleState)
 
 struct PlanRationaleMetrics: Equatable, Sendable {
     var maintenanceCaloriesKcal: Int
@@ -183,17 +94,15 @@ struct PlanRationaleMetrics: Equatable, Sendable {
     var energyExplanation: String
 }
 
-// MARK: - 6. Activity assumptions
+// MARK: - 4. Plan assumptions
 
-struct PlanActivityAssumptionsState: Equatable, Sendable {
+struct PlanAssumptionsState: Equatable, Sendable {
     var activityLevel: String
     var estimatedStepsPerDay: Int
     var estimatedStepsLabel: String
     var trainingSessionsPerWeek: Int
     var trainingSessionsLabel: String
     var usesActivityLevelDefaults: Bool
-    var isAppleHealthConnected: Bool
-    var appleHealthInsightsNote: String
     var resolvedAgeYears: Int
     var ageLabel: String
     var heightLabel: String
@@ -205,15 +114,10 @@ struct PlanActivityAssumptionsState: Equatable, Sendable {
     var trainingFieldLabel: String
     var assumptionsNote: String
     var adjustActivityTitle: String
-    var showsAppleHealthStatus: Bool
-    var appleHealthFieldLabel: String
-    var appleHealthStatusLabel: String
-    var showsConnectAppleHealthCTA: Bool
-    var connectAppleHealthTitle: String
     var accessibilitySummary: String
 }
 
-// MARK: - 7. Confidence
+// MARK: - 5. Confidence
 
 struct PlanConfidenceReasonItem: Equatable, Sendable, Identifiable {
     var id: String
@@ -236,30 +140,9 @@ struct PlanConfidenceState: Equatable, Sendable {
     var whyItems: [PlanConfidenceReasonItem]
     var missingItems: [PlanConfidenceReasonItem]
     var footerCopy: String
+    var showsAppleHealthStatus: Bool
+    var appleHealthStatusLabel: String?
+    var showsAppleHealthAction: Bool
+    var appleHealthActionTitle: String?
     var accessibilitySummary: String
-}
-
-// MARK: - 8. Adjustment
-
-struct PlanAdjustmentState: Equatable, Sendable {
-    var canEditPlan: Bool
-    var lastUpdated: Date
-    var lastUpdatedLabel: String
-    var lastUpdateReason: String?
-    var editSafetyCopy: String
-    var showsTargetRecalculateHint: Bool
-
-    var sectionTitle: String
-    var currentHeading: String
-    var summaryRows: [PlanAdjustmentSummaryRow]
-    var lastUpdateReasonCopy: String
-    var lastUpdateReasonHeading: String
-    var adjustPlanTitle: String
-    var accessibilitySummary: String
-}
-
-struct PlanAdjustmentSummaryRow: Equatable, Sendable, Identifiable {
-    var id: String
-    var label: String
-    var value: String
 }

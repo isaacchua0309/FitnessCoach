@@ -2,7 +2,7 @@
 //  PlanView.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Plan Mission Control dashboard.
+//  FitPilot AI — Plan strategy screen.
 //
 
 import SwiftUI
@@ -10,7 +10,6 @@ import SwiftUI
 struct PlanView: View {
     @ObservedObject var model: PlanModel
     var onGoToToday: (() -> Void)? = nil
-    var onGoToJourney: (() -> Void)? = nil
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
     @EnvironmentObject private var trainingInsightsStore: TrainingInsightsStore
     @EnvironmentObject private var trainingInsightsModel: TrainingInsightsModel
@@ -25,14 +24,25 @@ struct PlanView: View {
                 .toolbar {
                     if case .loaded = model.viewState {
                         ToolbarItem(placement: .topBarTrailing) {
-                            Button {
-                                model.showSettings()
-                            } label: {
-                                Image(systemName: "gearshape")
-                                    .font(FormaTokens.Typography.body.weight(.medium))
-                                    .foregroundStyle(FormaTokens.Color.textSecondary)
+                            HStack(spacing: FormaTokens.Spacing.sm) {
+                                Button {
+                                    model.showEditPlan()
+                                } label: {
+                                    Text(FormaProductCopy.PlanMissionControl.adjustPlan)
+                                        .font(FormaTokens.Typography.body.weight(.semibold))
+                                        .foregroundStyle(FormaTokens.Theme.primary)
+                                }
+                                .accessibilityHint(FormaProductCopy.PlanMissionControl.adjustPlanAccessibilityHint)
+
+                                Button {
+                                    model.showSettings()
+                                } label: {
+                                    Image(systemName: "gearshape")
+                                        .font(FormaTokens.Typography.body.weight(.medium))
+                                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                                }
+                                .accessibilityLabel("Settings")
                             }
-                            .accessibilityLabel("Settings")
                         }
                     }
                 }
@@ -141,23 +151,21 @@ struct PlanView: View {
                 }
             }, style: .detailScreen)
         case .loaded(let state):
-            dashboard(state)
+            strategyContent(state)
         }
     }
 
     @ViewBuilder
-    private func dashboard(_ state: PlanDashboardState) -> some View {
+    private func strategyContent(_ state: PlanDashboardState) -> some View {
         let healthConnected = trainingInsightsStore.integrationState.isConnected
 
         ScrollView {
             VStack(alignment: .leading, spacing: PlanLayout.sectionSpacing) {
-                // 1. Mission Control / Goal Progress
                 PlanMissionControlHeroSection(state: state.missionControl.mission)
                     .onAppear {
                         model.logSectionImpression(.goalCard, healthConnected: healthConnected)
                     }
 
-                // 2. Today's Mission
                 PlanTodayMissionSection(
                     state: state.missionControl.todayMission,
                     onGoToToday: onGoToToday.map { handler in
@@ -171,24 +179,6 @@ struct PlanView: View {
                     model.logSectionImpression(.todayMission, healthConnected: healthConnected)
                 }
 
-                // 3. This Week
-                PlanThisWeekSection(state: state.missionControl.week)
-                    .onAppear {
-                        model.logSectionImpression(.weekSection, healthConnected: healthConnected)
-                    }
-
-                // 4. Next Milestone
-                PlanNextMilestoneSection(
-                    state: state.missionControl.nextMilestone,
-                    onGoToJourney: onGoToJourney.map { handler in
-                        {
-                            model.logPlanJourneyTapped(healthConnected: healthConnected)
-                            handler()
-                        }
-                    }
-                )
-
-                // 5. Why This Works
                 PlanRationaleSection(
                     rationale: state.rationale,
                     onCalculationDetailsOpened: {
@@ -199,37 +189,28 @@ struct PlanView: View {
                     model.logSectionImpression(.rationale, healthConnected: healthConnected)
                 }
 
-                // 6. Activity Assumptions
-                PlanActivityAssumptionsSection(
-                    state: state.missionControl.activityAssumptions,
+                PlanAssumptionsSection(
+                    state: state.missionControl.assumptions,
                     onAdjustActivity: {
                         model.showEditPlanActivity()
                     }
                 )
                 .onAppear {
-                    model.logSectionImpression(.activityAssumptions, healthConnected: healthConnected)
+                    model.logSectionImpression(.planAssumptions, healthConnected: healthConnected)
                 }
 
-                // 7. Plan Confidence
-                PlanConfidenceSection(state: state.missionControl.confidence)
-
-                // 8. Apple Health
-                PlanTrainingIntegrationSection(
-                    integrationState: trainingInsightsStore.integrationState,
-                    dataSource: trainingInsightsStore.dataSource,
-                    onTap: {
-                        model.logPlanHealthConnectTapped(
-                            entryPoint: .trainingIntegrationCard,
-                            healthConnected: healthConnected
-                        )
-                        isShowingTrainingInsights = true
-                    }
+                PlanConfidenceSection(
+                    state: state.missionControl.confidence,
+                    onAppleHealthTap: state.missionControl.confidence.showsAppleHealthAction
+                        ? {
+                            model.logPlanHealthConnectTapped(
+                                entryPoint: .planConfidence,
+                                healthConnected: healthConnected
+                            )
+                            isShowingTrainingInsights = true
+                        }
+                        : nil
                 )
-
-                // 9. Adjust Plan
-                PlanAdjustmentSection(state: state.missionControl.adjustment) {
-                    model.showEditPlan()
-                }
             }
             .padding(.horizontal, PlanLayout.horizontalPadding)
             .padding(.top, FormaTokens.Spacing.xs)
@@ -263,26 +244,12 @@ struct PlanView: View {
                 state: PlanPreviewData.state.missionControl.todayMission,
                 onGoToToday: {}
             )
-            PlanThisWeekSection(state: PlanPreviewData.state.missionControl.week)
-            PlanNextMilestoneSection(
-                state: PlanPreviewData.state.missionControl.nextMilestone,
-                onGoToJourney: {}
-            )
             PlanRationaleSection(rationale: PlanPreviewData.state.rationale)
-            PlanActivityAssumptionsSection(
-                state: PlanPreviewData.state.missionControl.activityAssumptions,
+            PlanAssumptionsSection(
+                state: PlanPreviewData.state.missionControl.assumptions,
                 onAdjustActivity: {}
             )
             PlanConfidenceSection(state: PlanPreviewData.state.missionControl.confidence)
-            PlanTrainingIntegrationSection(
-                integrationState: .notConnected,
-                dataSource: .appleHealth,
-                onTap: {}
-            )
-            PlanAdjustmentSection(
-                state: PlanPreviewData.state.missionControl.adjustment,
-                onAdjustPlan: {}
-            )
         }
         .padding(.horizontal, PlanLayout.horizontalPadding)
         .padding(.vertical, 24)

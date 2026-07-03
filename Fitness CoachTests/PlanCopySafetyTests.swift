@@ -2,7 +2,7 @@
 //  PlanCopySafetyTests.swift
 //  Fitness CoachTests
 //
-//  Forma — Plan dashboard copy safety: no Dynamic Calories, no stale onboarding handoffs.
+//  Forma — Plan copy safety: no Dynamic Calories, no stale onboarding handoffs.
 //
 
 import XCTest
@@ -80,21 +80,9 @@ final class PlanCopySafetyTests: XCTestCase {
         }
     }
 
-    func testPlanAdjustmentFooterUsesManualReviewCopy() {
-        XCTAssertEqual(
-            FormaProductCopy.PlanMissionControl.editSafetyCopy,
-            "You can adjust your plan anytime as your progress changes."
-        )
-    }
-
     func testPlanAssumptionsNoteDisclaimsAutoTargetChanges() {
         let note = FormaProductCopy.PlanMissionControl.planAssumptionsNote.lowercased()
         XCTAssertTrue(note.contains("won't change"))
-    }
-
-    func testAppleHealthPlanNoteDisclaimsAutoTargetChanges() {
-        let note = FormaProductCopy.PlanMissionControl.appleHealthInsightsNote.lowercased()
-        XCTAssertTrue(note.contains("does not automatically change"))
     }
 
     func testInitialPlanReasonUsesNeutralSetupLanguage() {
@@ -110,17 +98,14 @@ final class PlanCopySafetyTests: XCTestCase {
         let calculation = FormaProductCopy.PlanCalculation.self
 
         var samples: [String] = [
-            mission.editSafetyCopy,
             mission.planAssumptionsNote,
-            mission.appleHealthInsightsNote,
             mission.confidenceSafeCopy,
             mission.planCreatedFromOnboarding,
             mission.planUpdatedAfterEdit,
             mission.planUpdateReasonGoalChanged,
             mission.planUpdateReasonActivityChanged,
             mission.planUpdateReasonTargetsRegenerated,
-            mission.weekEmptyState,
-            mission.nextMilestoneEmpty,
+            mission.missingAppleHealthConnection,
             rationale.sectionTitle,
             rationale.seeCalculation,
             calculation.bodyDetailsSettingsFootnote,
@@ -135,7 +120,6 @@ final class PlanCopySafetyTests: XCTestCase {
         samples += missionControlDashboardCopy(from: PlanMissionControlFixtures.loseDashboard)
         samples += missionControlDashboardCopy(from: PlanMissionControlFixtures.newUserDashboard)
         samples += missionControlDashboardCopy(from: PlanMissionControlFixtures.connectedDashboard)
-        samples += trainingIntegrationCopySamples()
         samples += rationaleCopySamples()
 
         return samples
@@ -154,38 +138,12 @@ final class PlanCopySafetyTests: XCTestCase {
             dashboard.mission.headlineValue,
             dashboard.mission.statusCopy,
             dashboard.todayMission.progressCopy,
-            dashboard.week.overallHeadline,
-            dashboard.week.overallStatusCopy,
-            dashboard.week.emptyStateCopy,
-            dashboard.activityAssumptions.assumptionsNote,
-            dashboard.activityAssumptions.accessibilitySummary,
-            dashboard.rationale.summary,
-            dashboard.rationale.accessibilitySummary,
-            dashboard.rationale.sustainabilityNote,
+            dashboard.assumptions.assumptionsNote,
+            dashboard.assumptions.accessibilitySummary,
             dashboard.confidence.safeCopy,
             dashboard.confidence.accessibilitySummary,
-            dashboard.adjustment.editSafetyCopy,
-            dashboard.adjustment.lastUpdateReasonCopy,
-            dashboard.adjustment.accessibilitySummary,
-            dashboard.nextMilestone.headline,
-            dashboard.nextMilestone.detailCopy
+            dashboard.confidence.appleHealthStatusLabel
         ].compactMap { $0 }
-    }
-
-    private func trainingIntegrationCopySamples() -> [String] {
-        [
-            PlanTrainingIntegrationPresentationBuilder.build(integrationState: .connected),
-            PlanTrainingIntegrationPresentationBuilder.build(integrationState: .notConnected),
-            PlanTrainingIntegrationPresentationBuilder.build(integrationState: .denied)
-        ].flatMap { presentation in
-            [
-                presentation.sectionTitle,
-                presentation.statusLabel,
-                presentation.bodyCopy,
-                presentation.accessibilitySummary,
-                presentation.ctaTitle
-            ].compactMap { $0 }
-        }
     }
 
     private func rationaleCopySamples() -> [String] {

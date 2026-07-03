@@ -145,17 +145,13 @@ enum PlanMissionControlFixtures {
     static func dashboard(
         for profile: UserProfile,
         weekLogs: [DailyLog] = [],
-        weekWeights: [WeightEntry] = [],
         allWeights: [WeightEntry] = [],
-        weeklyTraining: JourneyWeeklyTrainingStatus = .hidden,
         integrationState: TrainingIntegrationState = .notConnected
     ) -> PlanMissionControlDashboard {
         let context = PlanDashboardContext(
             profile: profile,
             weekLogs: weekLogs,
-            weekWeights: weekWeights,
             allWeights: allWeights,
-            weeklyTraining: weeklyTraining,
             integrationState: integrationState,
             dataSource: .appleHealth,
             asOf: referenceDate,
@@ -192,13 +188,7 @@ enum PlanMissionControlFixtures {
         return dashboard(
             for: loseProfile,
             weekLogs: activeWeekLogs,
-            weekWeights: weights,
             allWeights: weights,
-            weeklyTraining: .connected(
-                workoutDays: 2,
-                averageCaloriesBurned: 320,
-                averageTrainingDurationMinutes: 45
-            ),
             integrationState: .connected
         )
     }
@@ -219,7 +209,6 @@ enum PlanMissionControlFixtures {
         return dashboard(
             for: loseProfile,
             weekLogs: [],
-            weekWeights: [staleWeight],
             allWeights: [staleWeight]
         )
     }
@@ -228,7 +217,6 @@ enum PlanMissionControlFixtures {
         dashboard(
             for: loseProfile,
             weekLogs: [],
-            weekWeights: [],
             allWeights: []
         )
     }

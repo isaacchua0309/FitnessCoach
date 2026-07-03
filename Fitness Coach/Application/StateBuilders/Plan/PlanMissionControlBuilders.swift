@@ -2,14 +2,12 @@
 //  PlanMissionControlBuilders.swift
 //  Fitness Coach
 //
-//  Forma — Deterministic builders for Plan Mission Control state.
+//  Forma — Deterministic builders for Plan strategy state.
 //
 
 import Foundation
 
 enum PlanDashboardBuilder {
-
-    private static let trainingDefaultsResolver = ActivityTrainingDefaultsResolver()
 
     // MARK: - Orchestrator
 
@@ -19,55 +17,34 @@ enum PlanDashboardBuilder {
     ) -> PlanMissionControlDashboard {
         let asOf = referenceDate ?? context.asOf
         let planResult = planResult(from: context.profile, referenceDate: asOf)
-        let rationale = rationaleState(profile: context.profile, result: planResult, referenceDate: asOf)
         let baseline = resolveBaseline(context: context, asOf: asOf)
-        let week = PlanWeekStateBuilder.build(
-            context: context,
-            baseline: baseline
-        )
 
         return PlanMissionControlDashboard(
             mission: PlanMissionStateBuilder.build(
                 context: context,
                 baseline: baseline,
-                week: week,
-                planResult: planResult,
                 asOf: asOf
             ),
             todayMission: PlanTodayMissionStateBuilder.build(profile: context.profile),
-            week: week,
-            nextMilestone: PlanNextMilestoneStateBuilder.build(
-                context: context,
-                baseline: baseline,
-                week: week,
-                asOf: asOf
-            ),
-            rationale: rationale,
-            activityAssumptions: PlanActivityAssumptionsStateBuilder.build(context: context, asOf: asOf),
+            assumptions: PlanAssumptionsStateBuilder.build(context: context, asOf: asOf),
             confidence: PlanConfidenceStateBuilder.build(
                 context: context,
                 planResult: planResult,
                 baseline: baseline
-            ),
-            adjustment: PlanAdjustmentStateBuilder.build(
-                profile: context.profile,
-                planResult: planResult,
-                referenceDate: context.asOf,
-                calendar: context.calendar
             )
         )
     }
 
     // MARK: - Helpers
 
-    private static func planResult(
+    static func planResult(
         from profile: UserProfile,
         referenceDate: Date
     ) -> PlanCalculationResult? {
         try? PlanCalculationBridge.planResult(from: profile, referenceDate: referenceDate)
     }
 
-    private static func rationaleState(
+    static func rationaleState(
         profile: UserProfile,
         result: PlanCalculationResult?,
         referenceDate: Date
@@ -111,8 +88,6 @@ enum PlanMissionStateBuilder {
     static func build(
         context: PlanDashboardContext,
         baseline: JourneyBaseline,
-        week: PlanWeekState,
-        planResult: PlanCalculationResult?,
         asOf: Date
     ) -> PlanMissionState {
         let profile = context.profile
@@ -167,8 +142,8 @@ enum PlanMissionStateBuilder {
 
         return PlanMissionHeroCopyBuilder.applyHeroPresentation(
             to: core,
+            profile: profile,
             baseline: baseline,
-            week: week,
             asOf: asOf,
             calendar: context.calendar
         )
@@ -311,175 +286,28 @@ enum PlanTodayMissionStateBuilder {
     }
 }
 
-// MARK: - Week
+// MARK: - Plan assumptions
 
-enum PlanWeekStateBuilder {
-
-    static func build(
-        context: PlanDashboardContext,
-        baseline: JourneyBaseline
-    ) -> PlanWeekState {
-        let logs = context.weekLogs
-        let profile = context.profile
-        let hasData = !logs.isEmpty || !context.weekWeights.isEmpty
-        let weekTotal = JourneyLogMetrics.weekDayCount
-
-        let calorieDays = JourneyLogMetrics.calorieAdherenceDays(in: logs)
-        let proteinDays = JourneyLogMetrics.proteinGoalDays(in: logs)
-        let waterDays = JourneyLogMetrics.waterGoalDays(in: logs)
-
-        let expectedTraining = max(profile.trainingFrequencyPerWeek, 0)
-        let trainingDays = context.weeklyTraining.workoutDays ?? 0
-
-        let weightDelta = JourneyLogMetrics.weightDelta(in: context.weekWeights)
-
-        let status = overallStatus(
-            hasData: hasData,
-            calorieDays: calorieDays,
-            proteinDays: proteinDays,
-            weekTotal: weekTotal
-        )
-
-        let overallCopy = FormaProductCopy.PlanMissionControl.weekStatusCopy(
-            for: status,
-            hasWeeklyData: hasData
-        )
-
-        var week = PlanWeekState(
-            calorieAdherence: PlanWeekAdherenceCount(
-                achieved: calorieDays,
-                eligible: weekTotal
-            ),
-            proteinAdherence: PlanWeekAdherenceCount(
-                achieved: proteinDays,
-                eligible: weekTotal
-            ),
-            waterAdherence: PlanWeekAdherenceCount(
-                achieved: waterDays,
-                eligible: weekTotal
-            ),
-            trainingDays: trainingDays,
-            expectedTrainingDays: expectedTraining,
-            trainingProgressLabel: trainingProgressLabel(
-                achieved: trainingDays,
-                expected: expectedTraining,
-                training: context.weeklyTraining
-            ),
-            weightChangeKg: weightDelta,
-            weightChangeLabel: weightDelta.map { PlanWeekPresentationBuilder.formatWeightDelta($0) },
-            overallStatus: status,
-            overallStatusCopy: overallCopy,
-            hasWeeklyData: hasData,
-            sectionTitle: FormaProductCopy.PlanMissionControl.weekSectionTitle,
-            caloriesLine: "",
-            proteinLine: "",
-            waterLine: "",
-            trainingLine: "",
-            weightLine: "",
-            overallHeadline: FormaProductCopy.PlanMissionControl.weekOverallHeadline,
-            emptyStateCopy: hasData ? nil : FormaProductCopy.PlanMissionControl.weekEmptyState,
-            showsEmptyState: !hasData,
-            accessibilitySummary: ""
-        )
-
-        week = PlanWeekPresentationBuilder.applyPresentation(
-            to: week,
-            training: context.weeklyTraining,
-            goalDirection: baseline.goalDirection
-        )
-        return week
-    }
-
-    private static func trainingProgressLabel(
-        achieved: Int,
-        expected: Int,
-        training: JourneyWeeklyTrainingStatus
-    ) -> String {
-        switch training {
-        case .hidden:
-            return expected == 0
-                ? "No structured training assumed"
-                : "\(achieved)/\(expected) sessions planned"
-        case .locked:
-            return FormaProductCopy.PlanMissionControl.trainingConnectHealth
-        case .connectedEmpty:
-            return expected == 0
-                ? "No Apple Health workouts this week"
-                : "0/\(expected) planned · connect workouts in Apple Health"
-        case .connected:
-            return expected == 0
-                ? "\(achieved) workout days logged"
-                : "\(achieved)/\(expected) planned sessions"
-        }
-    }
-
-    private static func overallStatus(
-        hasData: Bool,
-        calorieDays: Int,
-        proteinDays: Int,
-        weekTotal: Int
-    ) -> PlanWeekOverallStatus {
-        guard hasData else { return .incomplete }
-        let calorieScore = Double(calorieDays) / Double(weekTotal)
-        let proteinScore = Double(proteinDays) / Double(weekTotal)
-        let combined = (calorieScore + proteinScore) / 2.0
-        if combined >= 0.85 { return .strong }
-        if combined >= 0.55 { return .onTrack }
-        if combined > 0 { return .building }
-        return .incomplete
-    }
-}
-
-// MARK: - Next milestone
-
-enum PlanNextMilestoneStateBuilder {
-
-    static func build(
-        context: PlanDashboardContext,
-        baseline: JourneyBaseline,
-        week: PlanWeekState,
-        asOf: Date
-    ) -> PlanNextMilestoneState {
-        let candidate = PlanNextMilestoneSelector.select(
-            context: context,
-            baseline: baseline,
-            week: week,
-            asOf: asOf
-        )
-        return PlanNextMilestonePresentationBuilder.build(from: candidate)
-    }
-}
-
-// MARK: - Activity assumptions
-
-enum PlanActivityAssumptionsStateBuilder {
+enum PlanAssumptionsStateBuilder {
 
     private static let defaultsResolver = ActivityTrainingDefaultsResolver()
 
-    static func build(context: PlanDashboardContext, asOf: Date) -> PlanActivityAssumptionsState {
+    static func build(context: PlanDashboardContext, asOf: Date) -> PlanAssumptionsState {
         let profile = context.profile
         let defaults = defaultsResolver.defaults(for: profile.activityLevel)
         let usesDefaults = profile.trainingFrequencyPerWeek == defaults.trainingDaysPerWeek
             && profile.averageSteps == defaults.averageStepsPerDay
-        let showsAppleHealth = context.dataSource == .appleHealth
-        let connected = showsAppleHealth && context.integrationState.isConnected
         let stepsLabel = "\(TodayActivitySectionFormatting.formatSteps(profile.averageSteps))/day"
         let activityLevel = PlanFormatter.activityLevel(profile.activityLevel)
         let trainingLabel = trainingSessionsLabel(profile.trainingFrequencyPerWeek)
-        let assumptionsNote = FormaProductCopy.PlanMissionControl.planAssumptionsNote
-        let appleHealthStatus = TrainingIntegrationCopy.settingsStatusLabel(
-            for: context.integrationState
-        )
 
-        var state = PlanActivityAssumptionsState(
+        var state = PlanAssumptionsState(
             activityLevel: activityLevel,
             estimatedStepsPerDay: profile.averageSteps,
             estimatedStepsLabel: stepsLabel,
             trainingSessionsPerWeek: profile.trainingFrequencyPerWeek,
             trainingSessionsLabel: trainingLabel,
             usesActivityLevelDefaults: usesDefaults,
-            isAppleHealthConnected: connected,
-            appleHealthInsightsNote: FormaProductCopy.PlanMissionControl.appleHealthInsightsNote,
             resolvedAgeYears: profile.resolvedAge(referenceDate: asOf),
             ageLabel: PlanFormatter.age(profile.resolvedAge(referenceDate: asOf)),
             heightLabel: PlanFormatter.cm(profile.heightCm),
@@ -488,23 +316,20 @@ enum PlanActivityAssumptionsStateBuilder {
             activityFieldLabel: FormaProductCopy.PlanMissionControl.planAssumptionsActivity,
             estimatedStepsFieldLabel: FormaProductCopy.PlanMissionControl.planAssumptionsEstimatedSteps,
             trainingFieldLabel: FormaProductCopy.PlanMissionControl.planAssumptionsTraining,
-            assumptionsNote: assumptionsNote,
+            assumptionsNote: FormaProductCopy.PlanMissionControl.planAssumptionsNote,
             adjustActivityTitle: FormaProductCopy.PlanMissionControl.adjustActivity,
-            showsAppleHealthStatus: showsAppleHealth,
-            appleHealthFieldLabel: FormaProductCopy.PlanMissionControl.planAssumptionsAppleHealth,
-            appleHealthStatusLabel: appleHealthStatus,
-            showsConnectAppleHealthCTA: showsAppleHealth && !connected,
-            connectAppleHealthTitle: TrainingIntegrationCopy.connectAppleHealth,
             accessibilitySummary: ""
         )
         state.accessibilitySummary = accessibilitySummary(for: state)
         return state
     }
 
-    private static func accessibilitySummary(for state: PlanActivityAssumptionsState) -> String {
+    private static func accessibilitySummary(for state: PlanAssumptionsState) -> String {
         [
             state.sectionTitle,
             "\(state.activityFieldLabel), \(state.activityLevel)",
+            "\(state.estimatedStepsFieldLabel), \(state.estimatedStepsLabel)",
+            "\(state.trainingFieldLabel), \(state.trainingSessionsLabel)",
             state.assumptionsNote
         ].joined(separator: ". ")
     }
@@ -662,6 +487,13 @@ enum PlanConfidenceStateBuilder {
                 )
             )
             score += 5
+        } else if showsAppleHealth {
+            missingItems.append(
+                PlanConfidenceReasonItem(
+                    id: "appleHealth",
+                    text: FormaProductCopy.PlanMissionControl.missingAppleHealthConnection
+                )
+            )
         }
 
         score = applyEngagementCap(
@@ -674,6 +506,10 @@ enum PlanConfidenceStateBuilder {
         let clamped = min(100, max(0, score))
         let level = confidenceLevel(for: clamped)
         let footerCopy = FormaProductCopy.PlanMissionControl.confidenceSafeCopy
+        let appleHealthStatusLabel = showsAppleHealth
+            ? TrainingIntegrationCopy.planCardStatusLabel(for: context.integrationState)
+            : nil
+        let showsAppleHealthAction = showsAppleHealth && !isAppleHealthConnected
 
         var state = PlanConfidenceState(
             confidenceScore: clamped,
@@ -688,6 +524,12 @@ enum PlanConfidenceStateBuilder {
             whyItems: whyItems,
             missingItems: missingItems,
             footerCopy: footerCopy,
+            showsAppleHealthStatus: showsAppleHealth,
+            appleHealthStatusLabel: appleHealthStatusLabel,
+            showsAppleHealthAction: showsAppleHealthAction,
+            appleHealthActionTitle: showsAppleHealthAction
+                ? TrainingIntegrationCopy.connectAppleHealth
+                : nil,
             accessibilitySummary: ""
         )
         state.accessibilitySummary = accessibilitySummary(for: state)
@@ -748,118 +590,12 @@ enum PlanConfidenceStateBuilder {
             parts.append(state.missingHeading)
             parts.append(contentsOf: state.missingItems.map(\.text))
         }
-        parts.append(state.footerCopy)
-        return parts.joined(separator: ". ")
-    }
-}
-
-// MARK: - Adjustment
-
-enum PlanAdjustmentStateBuilder {
-
-    private static let profileEditGraceInterval: TimeInterval = 120
-
-    static func build(
-        profile: UserProfile,
-        planResult: PlanCalculationResult?,
-        referenceDate: Date = Date(),
-        calendar: Calendar = .current
-    ) -> PlanAdjustmentState {
-        let showsHint: Bool
-        if let result = planResult {
-            let stored = profile.targets.calorieTarget
-            let computed = result.calorieTargetKcal
-            let delta = abs(Double(stored - computed)) / Double(max(stored, 1))
-            showsHint = delta > 0.05
-        } else {
-            showsHint = false
-        }
-
-        let relativeUpdatedLabel = PlanLastUpdatedLabelFormatter.label(
-            for: profile.updatedAt,
-            referenceDate: referenceDate,
-            calendar: calendar
-        )
-        let lastUpdateReasonCopy = resolveLastUpdateReason(profile: profile)
-
-        let summaryRows = summaryRows(for: profile)
-
-        var state = PlanAdjustmentState(
-            canEditPlan: true,
-            lastUpdated: profile.updatedAt,
-            lastUpdatedLabel: FormaProductCopy.PlanMissionControl.lastUpdated(relativeUpdatedLabel),
-            lastUpdateReason: lastUpdateReasonCopy,
-            editSafetyCopy: FormaProductCopy.PlanMissionControl.editSafetyCopy,
-            showsTargetRecalculateHint: showsHint,
-            sectionTitle: FormaProductCopy.PlanMissionControl.planAdjustmentSectionTitle,
-            currentHeading: FormaProductCopy.PlanMissionControl.adjustPlanCurrentHeading,
-            summaryRows: summaryRows,
-            lastUpdateReasonCopy: lastUpdateReasonCopy,
-            lastUpdateReasonHeading: FormaProductCopy.PlanMissionControl.lastUpdateReasonHeading,
-            adjustPlanTitle: FormaProductCopy.PlanMissionControl.adjustPlan,
-            accessibilitySummary: ""
-        )
-        state.accessibilitySummary = accessibilitySummary(for: state)
-        return state
-    }
-
-    static func summaryRows(for profile: UserProfile) -> [PlanAdjustmentSummaryRow] {
-        [
-            PlanAdjustmentSummaryRow(
-                id: "goal",
-                label: FormaProductCopy.PlanMissionControl.adjustPlanGoalLabel,
-                value: goalSummaryValue(for: profile)
-            ),
-            PlanAdjustmentSummaryRow(
-                id: "targetWeight",
-                label: FormaProductCopy.PlanMissionControl.adjustPlanTargetWeightLabel,
-                value: PlanDisplayFormatter.formatKg(profile.goalWeightKg)
-            ),
-            PlanAdjustmentSummaryRow(
-                id: "activity",
-                label: FormaProductCopy.PlanMissionControl.adjustPlanActivityLabel,
-                value: PlanFormatter.activityLevel(profile.activityLevel)
-            ),
-            PlanAdjustmentSummaryRow(
-                id: "dailyTarget",
-                label: FormaProductCopy.PlanMissionControl.adjustPlanDailyTargetLabel,
-                value: PlanDisplayFormatter.formatKcal(profile.targets.calorieTarget)
+        if state.showsAppleHealthStatus, let appleHealthStatusLabel = state.appleHealthStatusLabel {
+            parts.append(
+                "\(FormaProductCopy.PlanMissionControl.planAssumptionsAppleHealth), \(appleHealthStatusLabel)"
             )
-        ]
-    }
-
-    static func goalSummaryValue(for profile: UserProfile) -> String {
-        switch PlanStateBuilder.goalType(for: profile) {
-        case .loseFat:
-            return FormaProductCopy.PlanMissionControl.adjustPlanGoalLose
-        case .gainMuscle:
-            return FormaProductCopy.PlanMissionControl.adjustPlanGoalGain
-        case .maintain:
-            return FormaProductCopy.PlanMissionControl.adjustPlanGoalMaintain
         }
-    }
-
-    static func resolveLastUpdateReason(profile: UserProfile) -> String {
-        if let reason = profile.lastPlanUpdateReason {
-            return FormaProductCopy.PlanMissionControl.planUpdateReason(reason)
-        }
-
-        if profile.updatedAt.timeIntervalSince(profile.createdAt) > profileEditGraceInterval {
-            return FormaProductCopy.PlanMissionControl.planUpdatedAfterEdit
-        }
-
-        return FormaProductCopy.PlanMissionControl.planCreatedFromOnboarding
-    }
-
-    private static func accessibilitySummary(for state: PlanAdjustmentState) -> String {
-        var parts = [
-            state.sectionTitle,
-            state.lastUpdatedLabel,
-            "\(state.lastUpdateReasonHeading) \(state.lastUpdateReasonCopy)",
-            state.currentHeading
-        ]
-        parts.append(contentsOf: state.summaryRows.map { "\($0.label), \($0.value)" })
-        parts.append(state.editSafetyCopy)
+        parts.append(state.footerCopy)
         return parts.joined(separator: ". ")
     }
 }

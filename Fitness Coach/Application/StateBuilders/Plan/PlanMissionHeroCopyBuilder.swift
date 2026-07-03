@@ -11,8 +11,8 @@ enum PlanMissionHeroCopyBuilder {
 
     struct Input: Equatable {
         var mission: PlanMissionState
+        var profile: UserProfile
         var baseline: JourneyBaseline
-        var week: PlanWeekState
         var asOf: Date
         var calendar: Calendar
     }
@@ -22,8 +22,8 @@ enum PlanMissionHeroCopyBuilder {
 
     static func applyHeroPresentation(
         to mission: PlanMissionState,
+        profile: UserProfile,
         baseline: JourneyBaseline,
-        week: PlanWeekState,
         asOf: Date,
         calendar: Calendar
     ) -> PlanMissionState {
@@ -50,7 +50,7 @@ enum PlanMissionHeroCopyBuilder {
         )
         updated.statusCopy = statusCopy(
             baseline: baseline,
-            week: week,
+            strategySummary: PlanStateBuilder.strategySummary(for: profile),
             usesLoggedCurrentWeight: mission.usesLoggedCurrentWeight,
             asOf: asOf,
             calendar: calendar
@@ -153,14 +153,13 @@ enum PlanMissionHeroCopyBuilder {
 
     static func statusCopy(
         baseline: JourneyBaseline,
-        week: PlanWeekState,
+        strategySummary: String,
         usesLoggedCurrentWeight: Bool,
         asOf: Date,
         calendar: Calendar
     ) -> String {
         if isNewPlan(baseline: baseline, asOf: asOf, calendar: calendar),
-           !usesLoggedCurrentWeight,
-           !week.hasWeeklyData {
+           !usesLoggedCurrentWeight {
             return FormaProductCopy.PlanMissionControl.statusStartLogging
         }
 
@@ -168,12 +167,7 @@ enum PlanMissionHeroCopyBuilder {
             return FormaProductCopy.PlanMissionControl.statusAheadOfSchedule
         }
 
-        switch week.overallStatus {
-        case .building, .incomplete:
-            return FormaProductCopy.PlanMissionControl.statusBuildingMomentum
-        case .strong, .onTrack:
-            return FormaProductCopy.PlanMissionControl.statusStayConsistent
-        }
+        return strategySummary
     }
 
     // MARK: - Accessibility

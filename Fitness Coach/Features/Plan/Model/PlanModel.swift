@@ -29,7 +29,6 @@ final class PlanModel: ObservableObject {
     private let dailyLogReader: any DailyLogReading
     private let weightLogReader: any WeightLogReading
     private let trainingInsightsStore: TrainingInsightsStore
-    private let workoutReader: HealthKitWorkoutReading
     private let analyticsLogger: any PlanAnalyticsLogging
 
     init(
@@ -39,7 +38,6 @@ final class PlanModel: ObservableObject {
         dailyLogReader: any DailyLogReading,
         weightLogReader: any WeightLogReading,
         trainingInsightsStore: TrainingInsightsStore,
-        workoutReader: HealthKitWorkoutReading? = nil,
         analyticsLogger: (any PlanAnalyticsLogging)? = nil
     ) {
         self.actionCenter = actionCenter
@@ -48,7 +46,6 @@ final class PlanModel: ObservableObject {
         self.dailyLogReader = dailyLogReader
         self.weightLogReader = weightLogReader
         self.trainingInsightsStore = trainingInsightsStore
-        self.workoutReader = workoutReader ?? MockHealthKitWorkoutReader(workouts: [])
         self.analyticsLogger = analyticsLogger ?? NoOpPlanAnalyticsLogger()
     }
 
@@ -85,37 +82,16 @@ final class PlanModel: ObservableObject {
 
         let weekLogs = try dailyLogReader.getLogs(from: weekStart, to: endDate)
         let allWeights = try weightLogReader.getWeightEntries(from: allTimeStart, to: endDate)
-        let weekWeights = try weightLogReader.getWeightEntries(from: weekStart, to: endDate)
-
-        let integrationState = trainingInsightsStore.integrationState
-        let dataSource = trainingInsightsStore.dataSource
-        let weekHealthWorkouts = try await fetchHealthWorkouts(from: weekStart, to: endDate)
-        let weeklyTraining = JourneyTrainingSummaryBuilder.weeklyTrainingStatus(
-            integrationState: integrationState,
-            dataSource: dataSource,
-            weekWorkouts: weekHealthWorkouts,
-            asOf: endDate,
-            calendar: calendar
-        )
 
         return PlanDashboardContext(
             profile: profile,
             weekLogs: weekLogs,
-            weekWeights: weekWeights,
             allWeights: allWeights,
-            weeklyTraining: weeklyTraining,
-            integrationState: integrationState,
-            dataSource: dataSource,
+            integrationState: trainingInsightsStore.integrationState,
+            dataSource: trainingInsightsStore.dataSource,
             asOf: endDate,
             calendar: calendar
         )
-    }
-
-    private func fetchHealthWorkouts(from startDate: Date, to endDate: Date) async throws -> [HealthWorkoutRecord] {
-        guard trainingInsightsStore.integrationState.isConnected else {
-            return []
-        }
-        return try await workoutReader.fetchWorkouts(from: startDate, to: endDate)
     }
 
     // MARK: Sheets
@@ -144,7 +120,7 @@ final class PlanModel: ObservableObject {
     func showEditPlanActivity() {
         showEditPlan(
             initialStep: PlanEditWizard.activityLevelStep,
-            entryPoint: PlanAdjustPlanEntryPoint.activityAssumptions
+            entryPoint: PlanAdjustPlanEntryPoint.planAssumptions
         )
     }
 
@@ -329,9 +305,8 @@ final class PlanModel: ObservableObject {
         let event: PlanAnalyticsEvent = switch section {
         case .goalCard: .goalCardViewed
         case .todayMission: .todayMissionViewed
-        case .weekSection: .weekSectionViewed
         case .rationale: .rationaleOpened
-        case .activityAssumptions: .activityAssumptionsViewed
+        case .planAssumptions: .planAssumptionsViewed
         }
 
         analyticsLogger.log(
@@ -343,13 +318,6 @@ final class PlanModel: ObservableObject {
     func logPlanTodayTapped(healthConnected: Bool) {
         analyticsLogger.log(
             .todayTapped,
-            properties: makeAnalyticsProperties(healthConnected: healthConnected)
-        )
-    }
-
-    func logPlanJourneyTapped(healthConnected: Bool) {
-        analyticsLogger.log(
-            .journeyTapped,
             properties: makeAnalyticsProperties(healthConnected: healthConnected)
         )
     }

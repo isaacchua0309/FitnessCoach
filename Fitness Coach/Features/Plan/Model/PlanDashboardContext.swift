@@ -2,7 +2,7 @@
 //  PlanDashboardContext.swift
 //  Fitness Coach
 //
-//  Forma — Fetch bundle for Plan Mission Control builders.
+//  Forma — Fetch bundle for Plan strategy builders.
 //
 
 import Foundation
@@ -10,9 +10,7 @@ import Foundation
 struct PlanDashboardContext: Equatable, Sendable {
     var profile: UserProfile
     var weekLogs: [DailyLog]
-    var weekWeights: [WeightEntry]
     var allWeights: [WeightEntry]
-    var weeklyTraining: JourneyWeeklyTrainingStatus
     var integrationState: TrainingIntegrationState
     var dataSource: TrainingDataSource
     var asOf: Date
@@ -28,9 +26,7 @@ struct PlanDashboardContext: Equatable, Sendable {
         PlanDashboardContext(
             profile: profile,
             weekLogs: [],
-            weekWeights: [],
             allWeights: [],
-            weeklyTraining: .hidden,
             integrationState: integrationState,
             dataSource: dataSource,
             asOf: referenceDate,

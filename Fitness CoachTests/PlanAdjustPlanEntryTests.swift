@@ -21,39 +21,6 @@ final class PlanAdjustPlanEntryTests: XCTestCase {
         await model.loadProfile()
     }
 
-    // MARK: - Summary rendering
-
-    func testLosePlanSummaryRowsMatchCurrentPlan() {
-        let adjustment = PlanMissionControlFixtures.loseDashboard.adjustment
-
-        XCTAssertEqual(adjustment.sectionTitle, "Adjust Plan")
-        XCTAssertEqual(adjustment.currentHeading, "Current:")
-        XCTAssertEqual(adjustment.summaryRows.map(\.id), ["goal", "targetWeight", "activity", "dailyTarget"])
-
-        let rows = Dictionary(uniqueKeysWithValues: adjustment.summaryRows.map { ($0.id, $0.value) })
-        XCTAssertEqual(rows["goal"], "Lose weight")
-        XCTAssertEqual(rows["targetWeight"], "75 kg")
-        XCTAssertEqual(rows["activity"], "Moderately active")
-        XCTAssertTrue(rows["dailyTarget"]?.contains("kcal") == true)
-    }
-
-    func testGainPlanSummaryUsesGainGoalCopy() {
-        let adjustment = PlanMissionControlFixtures.gainDashboard.adjustment
-        let goal = adjustment.summaryRows.first { $0.id == "goal" }
-
-        XCTAssertEqual(goal?.value, "Gain weight")
-    }
-
-    func testAccessibilitySummaryIncludesSummaryValues() {
-        let adjustment = PlanMissionControlFixtures.loseDashboard.adjustment
-
-        XCTAssertTrue(adjustment.accessibilitySummary.contains("Adjust Plan"))
-        XCTAssertTrue(adjustment.accessibilitySummary.contains("Lose weight"))
-        XCTAssertTrue(adjustment.accessibilitySummary.contains("75 kg"))
-    }
-
-    // MARK: - Routing & analytics
-
     func testShowEditPlanOpensWizardAndLogsAnalytics() {
         model.showEditPlan()
 
@@ -71,7 +38,7 @@ final class PlanAdjustPlanEntryTests: XCTestCase {
 
         XCTAssertTrue(model.isShowingEditSheet)
         XCTAssertEqual(model.editPlanInitialStep, .activityLevel)
-        XCTAssertEqual(analytics.events.last?.properties.entryPoint, PlanAdjustPlanEntryPoint.activityAssumptions)
+        XCTAssertEqual(analytics.events.last?.properties.entryPoint, PlanAdjustPlanEntryPoint.planAssumptions)
         guard let formState = model.editFormState else {
             return XCTFail("Expected edit form state")
         }
@@ -91,8 +58,6 @@ final class PlanAdjustPlanEntryTests: XCTestCase {
         XCTAssertFalse(emptyModel.isShowingEditSheet)
         XCTAssertTrue(localAnalytics.events.isEmpty)
     }
-
-    // MARK: - Fixtures
 
     private func seedProfile() async throws {
         let formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)

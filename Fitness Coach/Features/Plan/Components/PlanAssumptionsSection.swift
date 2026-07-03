@@ -1,14 +1,14 @@
 //
-//  PlanActivityAssumptionsSection.swift
+//  PlanAssumptionsSection.swift
 //  Fitness Coach
 //
-//  Forma — Activity assumptions card on the Plan dashboard.
+//  Forma — Plan assumptions card: activity, steps, and training in one place.
 //
 
 import SwiftUI
 
-struct PlanActivityAssumptionsSection: View {
-    let state: PlanActivityAssumptionsState
+struct PlanAssumptionsSection: View {
+    let state: PlanAssumptionsState
     var onAdjustActivity: () -> Void
 
     var body: some View {
@@ -21,6 +21,22 @@ struct PlanActivityAssumptionsSection: View {
                         FormaPlanDisplayRow(
                             label: state.activityFieldLabel,
                             value: state.activityLevel
+                        )
+                        .accessibilityHidden(true)
+
+                        FormaPlanRowDivider()
+
+                        FormaPlanDisplayRow(
+                            label: state.estimatedStepsFieldLabel,
+                            value: state.estimatedStepsLabel
+                        )
+                        .accessibilityHidden(true)
+
+                        FormaPlanRowDivider()
+
+                        FormaPlanDisplayRow(
+                            label: state.trainingFieldLabel,
+                            value: state.trainingSessionsLabel
                         )
                         .accessibilityHidden(true)
 
@@ -51,25 +67,12 @@ struct PlanActivityAssumptionsSection: View {
     }
 }
 
-// MARK: - Previews
-
-#Preview("Activity assumptions") {
-    PlanActivityAssumptionsSection(
-        state: PlanMissionControlFixtures.loseDashboard.activityAssumptions,
+#Preview("Plan assumptions") {
+    PlanAssumptionsSection(
+        state: PlanMissionControlFixtures.loseDashboard.assumptions,
         onAdjustActivity: {}
     )
     .padding()
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
-}
-
-#Preview("Large Dynamic Type") {
-    PlanActivityAssumptionsSection(
-        state: PlanMissionControlFixtures.loseDashboard.activityAssumptions,
-        onAdjustActivity: {}
-    )
-    .padding()
-    .background(FormaTokens.Color.canvas)
-    .formaThemePreview()
-    .dynamicTypeSize(.accessibility3)
 }

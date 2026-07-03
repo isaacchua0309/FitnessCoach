@@ -22,11 +22,16 @@ enum PlanStateBuilder {
             context: dashboardContext,
             referenceDate: referenceDate
         )
+        let rationale = PlanDashboardBuilder.rationaleState(
+            profile: profile,
+            result: PlanDashboardBuilder.planResult(from: profile, referenceDate: referenceDate),
+            referenceDate: referenceDate
+        )
 
         return PlanDashboardState(
             profile: profile,
             missionControl: missionControl,
-            rationale: missionControl.rationale
+            rationale: rationale
         )
     }
 

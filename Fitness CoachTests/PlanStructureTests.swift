@@ -12,15 +12,11 @@ final class PlanStructureTests: XCTestCase {
         XCTAssertEqual(PlanProductLayout.sectionOrder, [
             .goalProgress,
             .todayMission,
-            .thisWeek,
-            .nextMilestone,
             .whyThisWorks,
-            .activityAssumptions,
-            .planConfidence,
-            .appleHealth,
-            .adjustPlan
+            .planAssumptions,
+            .planConfidence
         ])
-        XCTAssertEqual(PlanProductLayout.sectionOrder.last, .adjustPlan)
+        XCTAssertEqual(PlanProductLayout.sectionOrder.last, .planConfidence)
     }
 
     func testRemovedSectionsAreNotPartOfCanonicalOrder() {
@@ -39,16 +35,9 @@ final class PlanStructureTests: XCTestCase {
 
         XCTAssertEqual(dashboard.mission.sectionTitle, FormaProductCopy.PlanMissionControl.heroSectionTitle)
         XCTAssertEqual(dashboard.todayMission.sectionTitle, "Today's Mission")
-        XCTAssertEqual(dashboard.week.sectionTitle, "This Week")
-        XCTAssertEqual(dashboard.nextMilestone.sectionTitle, "Next Milestone")
         XCTAssertEqual(FormaProductCopy.PlanRationale.sectionTitle, "Why This Works")
-        XCTAssertEqual(dashboard.activityAssumptions.sectionTitle, "Activity Assumptions")
+        XCTAssertEqual(dashboard.assumptions.sectionTitle, "Plan Assumptions")
         XCTAssertEqual(dashboard.confidence.sectionTitle, "Plan Confidence")
-        XCTAssertEqual(
-            PlanTrainingIntegrationPresentationBuilder.build(integrationState: .notConnected).sectionTitle,
-            "Apple Health"
-        )
-        XCTAssertEqual(dashboard.adjustment.sectionTitle, "Adjust Plan")
     }
 
     func testRationaleKeepsCalculationDetailsAccessible() throws {

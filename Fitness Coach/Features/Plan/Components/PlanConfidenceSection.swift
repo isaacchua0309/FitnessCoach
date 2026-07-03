@@ -2,13 +2,14 @@
 //  PlanConfidenceSection.swift
 //  Fitness Coach
 //
-//  Forma — Plan confidence card on the Plan dashboard.
+//  Forma — Plan confidence card with compressed Apple Health status.
 //
 
 import SwiftUI
 
 struct PlanConfidenceSection: View {
     let state: PlanConfidenceState
+    var onAppleHealthTap: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
@@ -28,6 +29,10 @@ struct PlanConfidenceSection: View {
 
                     if !state.missingItems.isEmpty {
                         missingBlock
+                    }
+
+                    if state.showsAppleHealthStatus, let appleHealthStatusLabel = state.appleHealthStatusLabel {
+                        appleHealthBlock(statusLabel: appleHealthStatusLabel)
                     }
 
                     Text(state.footerCopy)
@@ -70,6 +75,33 @@ struct PlanConfidenceSection: View {
         }
     }
 
+    @ViewBuilder
+    private func appleHealthBlock(statusLabel: String) -> some View {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+            FormaPlanDisplayRow(
+                label: FormaProductCopy.PlanMissionControl.planAssumptionsAppleHealth,
+                value: statusLabel
+            )
+            .accessibilityHidden(true)
+
+            if state.showsAppleHealthAction,
+               let actionTitle = state.appleHealthActionTitle,
+               let onAppleHealthTap {
+                Button(action: onAppleHealthTap) {
+                    Text(actionTitle)
+                        .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
+                        .foregroundStyle(FormaTokens.Theme.primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(minHeight: FormaTokens.Layout.minTouchTarget)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(actionTitle)
+                .accessibilityHint(FormaProductCopy.PlanMissionControl.connectAppleHealthAccessibilityHint)
+            }
+        }
+        .padding(.top, FormaTokens.Spacing.xs)
+    }
+
     private func reasonRow(symbol: String, text: String, symbolColor: Color) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.xs) {
             Text(symbol)
@@ -85,8 +117,6 @@ struct PlanConfidenceSection: View {
         .accessibilityHidden(true)
     }
 }
-
-// MARK: - Previews
 
 #Preview("New user") {
     PlanConfidenceSection(state: PlanMissionControlFixtures.newUserDashboard.confidence)

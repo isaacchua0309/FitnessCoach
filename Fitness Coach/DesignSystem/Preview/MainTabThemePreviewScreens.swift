@@ -45,7 +45,11 @@ enum MainTabThemePreviewScreens {
                     state: PlanPreviewData.state.missionControl.todayMission,
                     onGoToToday: {}
                 )
-                PlanThisWeekSection(state: PlanPreviewData.state.missionControl.week)
+                PlanRationaleSection(rationale: PlanPreviewData.state.rationale)
+                PlanAssumptionsSection(
+                    state: PlanPreviewData.state.missionControl.assumptions,
+                    onAdjustActivity: {}
+                )
                 PlanConfidenceSection(state: PlanPreviewData.state.missionControl.confidence)
             }
             .padding(.horizontal, PlanLayout.horizontalPadding)
