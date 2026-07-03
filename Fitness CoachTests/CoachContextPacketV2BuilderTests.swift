@@ -68,7 +68,8 @@ final class CoachContextPacketV2BuilderTests: XCTestCase {
         XCTAssertEqual(packet.recentMealsStructured.count, 1)
         XCTAssertEqual(packet.recentMealsStructured.first?.name, "Salad")
         XCTAssertEqual(packet.recentChatMessages.count, 1)
-        XCTAssertNotNil(packet.recentChatMessages.first?.sentAt)
+        XCTAssertNotNil(packet.recentChatMessages.first?.timestamp)
+        XCTAssertEqual(packet.recentChatMessages.first?.text, "How am I doing?")
         XCTAssertFalse(packet.missingData.noRecentMeals)
     }
 
@@ -433,6 +434,151 @@ final class CoachContextPacketV2BuilderTests: XCTestCase {
         XCTAssertEqual(timelineRecorder.contextGeneratedPayloads.count, 1)
         XCTAssertEqual(timelineRecorder.contextGeneratedPayloads.first?.timelineEventCount, packet.timeline.recentEvents.count)
         XCTAssertFalse(packet.timeline.recentEvents.contains { $0.type == CoachTimelineEventType.contextGenerated.rawValue })
+    }
+
+    func testChatOnlyProvidesToneWithoutLoggedFacts() async {
+        let packet = await makeBuilder(includeBackfill: false).makeContext(
+            recentMessages: [
+                ChatMessage(role: .user, text: "How was my day?", createdAt: harness.today),
+                ChatMessage(role: .assistant, text: "You're doing fine.", createdAt: harness.today)
+            ],
+            mode: .live
+        )
+
+        XCTAssertEqual(packet.recentChatMessages.count, 2)
+        XCTAssertNil(packet.currentUserMessage)
+        XCTAssertTrue(packet.recentMealsStructured.isEmpty)
+        XCTAssertEqual(packet.today?.nutrition?.caloriesConsumed ?? 0, 0)
+        XCTAssertFalse(
+            packet.timeline.recentEvents.contains {
+                $0.type == CoachTimelineEventType.foodLogged.rawValue
+                    && $0.status == CoachTimelineEventStatus.confirmed.rawValue
+            }
+        )
+        XCTAssertTrue(packet.missingData.noRecentMeals)
+    }
+
+    func testLogsWithoutChatStillProvideFactualState() async {
+        _ = try? harness.foodLogService.addFoodEntry(
+            DailyLogServiceTestSupport.foodDraft(name: "Chicken rice", calories: 520, protein: 35),
+            date: harness.today
+        )
+
+        let packet = await makeBuilder().makeContext(recentMessages: [], mode: .live)
+
+        XCTAssertTrue(packet.recentChatMessages.isEmpty)
+        XCTAssertNil(packet.currentUserMessage)
+        XCTAssertEqual(packet.recentMealsStructured.first?.name, "Chicken rice")
+        XCTAssertEqual(packet.today?.nutrition?.caloriesConsumed, 520)
+        XCTAssertTrue(
+            packet.timeline.recentEvents.contains {
+                $0.type == CoachTimelineEventType.foodLogged.rawValue
+                    && $0.status == CoachTimelineEventStatus.confirmed.rawValue
+            }
+        )
+    }
+
+    func testRejectedEstimateInChatNotTreatedAsLogged() async {
+        let rejected = CoachTimelineEvent.make(
+            type: .foodRejected,
+            source: .aiBackend,
+            sourceAttribution: .estimateFood,
+            status: .rejected,
+            payload: .foodEstimate(
+                FoodEstimatePayload(mealName: "Chicken", calories: 500, requiresConfirmation: true)
+            ),
+            occurredAt: harness.today,
+            calendar: harness.dateProvider.calendar
+        )
+        try? await timelineStore.append(rejected)
+
+        let packet = await makeBuilder(includeBackfill: false).makeContext(
+            recentMessages: [
+                ChatMessage(role: .assistant, text: "Logged 500 cal chicken for you.", createdAt: harness.today)
+            ],
+            mode: .live
+        )
+
+        XCTAssertTrue(packet.recentMealsStructured.isEmpty)
+        XCTAssertEqual(packet.today?.nutrition?.caloriesConsumed ?? 0, 0)
+        XCTAssertFalse(
+            packet.timeline.recentEvents.contains {
+                $0.type == CoachTimelineEventType.foodLogged.rawValue
+                    && $0.status == CoachTimelineEventStatus.confirmed.rawValue
+            }
+        )
+        XCTAssertTrue(
+            packet.timeline.recentEvents.contains {
+                $0.type == CoachTimelineEventType.foodRejected.rawValue
+                    && $0.status == CoachTimelineEventStatus.rejected.rawValue
+            }
+        )
+    }
+
+    func testAssistantClaimInChatNotTreatedAsFoodTruth() async {
+        let packet = await makeBuilder(includeBackfill: false).makeContext(
+            recentMessages: [
+                ChatMessage(role: .assistant, text: "I logged your oatmeal at 300 kcal.", createdAt: harness.today)
+            ],
+            mode: .live
+        )
+
+        XCTAssertTrue(packet.recentMealsStructured.isEmpty)
+        XCTAssertEqual(packet.today?.nutrition?.caloriesConsumed ?? 0, 0)
+        XCTAssertFalse(
+            packet.timeline.recentEvents.contains {
+                $0.type == CoachTimelineEventType.foodLogged.rawValue
+                    && $0.status == CoachTimelineEventStatus.confirmed.rawValue
+            }
+        )
+    }
+
+    func testCurrentUserMessageNotDoubleCounted() async {
+        let prior = [
+            ChatMessage(role: .user, text: "Good morning", createdAt: harness.today),
+            ChatMessage(role: .assistant, text: "Morning!", createdAt: harness.today)
+        ]
+
+        let packet = await makeBuilder(includeBackfill: false).makeContext(
+            recentMessages: prior,
+            currentUserMessage: "Log lunch",
+            mode: .live
+        )
+
+        XCTAssertEqual(packet.currentUserMessage, "Log lunch")
+        XCTAssertEqual(packet.recentChatMessages.count, 2)
+        XCTAssertFalse(packet.recentChatMessages.contains { $0.text == "Log lunch" })
+    }
+
+    func testCurrentUserMessageOmittedWhenAlreadyLinkedInTimeline() async {
+        let messageID = UUID()
+        let prior = [
+            ChatMessage(id: messageID, role: .user, text: "Log lunch", createdAt: harness.today)
+        ]
+        let linked = CoachTimelineEvent.make(
+            type: .userMessage,
+            source: .coachUI,
+            sourceAttribution: .localParser,
+            status: .confirmed,
+            payload: .message(MessagePayload(textPreview: "Log lunch", role: "user")),
+            occurredAt: harness.today,
+            calendar: harness.dateProvider.calendar,
+            link: CoachTimelineEventLink(linkedMessageId: messageID)
+        )
+        try? await timelineStore.append(linked)
+
+        let packet = await makeBuilder(includeBackfill: false).makeContext(
+            recentMessages: prior,
+            currentUserMessage: "Log lunch",
+            mode: .live
+        )
+
+        XCTAssertNil(packet.currentUserMessage)
+        XCTAssertEqual(packet.recentChatMessages.count, 1)
+        XCTAssertEqual(packet.recentChatMessages.first?.text, "Log lunch")
+        XCTAssertTrue(
+            packet.timeline.recentEvents.contains { $0.linkedMessageId == messageID }
+        )
     }
 
     func testTimelineSelectorPrefersTodayConfirmedMutations() {

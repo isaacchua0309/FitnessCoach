@@ -15,7 +15,7 @@ import OSLog
 struct CoachContextPacketV2Builder {
 
     static let defaultTimelineEventLimit = 20
-    static let recentChatMessageLimit = 5
+    static let recentChatMessageLimit = 12
     static let sparseTodayEventThreshold = 4
     static let crossDayLookbackDays = 7
     static let commonFoodLookbackDays = 30
@@ -141,7 +141,11 @@ struct CoachContextPacketV2Builder {
             limit: Self.defaultTimelineEventLimit
         )
 
-        var chatMessages = makeChatMessages(from: recentMessages, currentUserMessage: currentUserMessage)
+        let chatContext = makeChatContext(
+            from: recentMessages,
+            currentUserMessage: currentUserMessage,
+            timelineEvents: timelineEvents
+        )
         let foodHistory = loadFoodHistory(endingOn: now, sources: &sources)
         let recentMeals = CoachContextFoodMemoryBuilder.makeRecentMeals(
             from: foodHistory,
@@ -180,7 +184,8 @@ struct CoachContextPacketV2Builder {
             training: training,
             healthIntelligence: healthIntelligence,
             timeline: CoachContextTimelinePacket(recentEvents: timelineContextEvents),
-            recentChatMessages: chatMessages,
+            recentChatMessages: chatContext.recentChatMessages,
+            currentUserMessage: chatContext.currentUserMessage,
             recentMealsStructured: Array(recentMeals),
             commonFoods: commonFoods,
             missingData: missingData,
@@ -617,27 +622,43 @@ struct CoachContextPacketV2Builder {
         }
     }
 
-    private func makeChatMessages(
-        from messages: [ChatMessage],
-        currentUserMessage: String?
-    ) -> [CoachChatMessageContext] {
-        var combined = messages
-        if let currentUserMessage {
-            let trimmed = currentUserMessage.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty {
-                combined.append(
-                    ChatMessage(
-                        role: .user,
-                        text: trimmed,
-                        createdAt: dateProvider.now
-                    )
-                )
-            }
-        }
+    private struct ChatContextAssembly {
+        var recentChatMessages: [CoachChatMessageContext]
+        var currentUserMessage: String?
+    }
 
-        return combined
+    private func makeChatContext(
+        from messages: [ChatMessage],
+        currentUserMessage: String?,
+        timelineEvents: [CoachTimelineEvent]
+    ) -> ChatContextAssembly {
+        let persisted = messages
             .suffix(Self.recentChatMessageLimit)
             .map { CoachChatMessageContext.from(message: $0) }
+
+        guard let currentUserMessage else {
+            return ChatContextAssembly(recentChatMessages: persisted, currentUserMessage: nil)
+        }
+
+        let trimmed = currentUserMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return ChatContextAssembly(recentChatMessages: persisted, currentUserMessage: nil)
+        }
+
+        if let last = messages.last,
+           last.role == .user,
+           last.text.trimmingCharacters(in: .whitespacesAndNewlines) == trimmed {
+            return ChatContextAssembly(recentChatMessages: persisted, currentUserMessage: nil)
+        }
+
+        let timelineLinkedMessageIDs = Set(timelineEvents.compactMap(\.linkedMessageId))
+        if let lastUserMessage = messages.last(where: { $0.role == .user }),
+           timelineLinkedMessageIDs.contains(lastUserMessage.id),
+           lastUserMessage.text.trimmingCharacters(in: .whitespacesAndNewlines) == trimmed {
+            return ChatContextAssembly(recentChatMessages: persisted, currentUserMessage: nil)
+        }
+
+        return ChatContextAssembly(recentChatMessages: persisted, currentUserMessage: trimmed)
     }
 
     private func makeMissingData(
@@ -922,7 +943,7 @@ enum CoachContextPacketV2SizeCompactor {
         result.recentChatMessages = result.recentChatMessages.map { message in
             guard message.role == ChatMessageRole.assistant.rawValue else { return message }
             var compact = message
-            compact.textPreview = truncate(message.textPreview, maxLength: 80)
+            compact.text = truncate(message.text, maxLength: 80)
             return compact
         }
         bytes = result.estimatedEncodedByteCount()

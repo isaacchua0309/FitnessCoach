@@ -67,9 +67,11 @@ extension AIContext {
             recentMessages: packet.recentChatMessages.map {
                 AIMessageContext(
                     role: ChatMessageRole(rawValue: $0.role) ?? .user,
-                    text: $0.textPreview
+                    text: $0.text
                 )
-            },
+            } + (packet.currentUserMessage.map {
+                [AIMessageContext(role: .user, text: $0)]
+            } ?? []),
             healthIntelligence: packet.healthIntelligence,
             healthIntelligenceAwarenessAvailable: packet.healthIntelligence != nil
         )

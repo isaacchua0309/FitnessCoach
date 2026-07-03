@@ -6,13 +6,14 @@ export const COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION = 2;
 
 export const COACH_CONTEXT_LIMITS = {
   maxTimelineEvents: 20,
-  maxChatMessages: 5,
+  maxChatMessages: 12,
   maxRecentMeals: 10,
   maxCommonFoods: 10,
   maxAssumptions: 8,
   maxSummaryLength: 180,
   maxCompactPayloadEntries: 6,
   maxChatPreviewLength: 180,
+  maxCurrentUserMessageLength: 500,
   maxStringFieldLength: 240,
 } as const;
 
@@ -303,10 +304,17 @@ function sanitizeChatMessages(value: unknown): Record<string, unknown>[] {
     .map((message) => ({
       id: message.id,
       role: message.role,
-      textPreview: clampString(message.textPreview, COACH_CONTEXT_LIMITS.maxChatPreviewLength) ?? "",
-      sentAt: message.sentAt,
+      text: clampString(
+        message.text ?? message.textPreview,
+        COACH_CONTEXT_LIMITS.maxChatPreviewLength
+      ) ?? "",
+      timestamp: message.timestamp ?? message.sentAt,
       hasPhotoAttachment: Boolean(message.hasPhotoAttachment),
     }));
+}
+
+function sanitizeCurrentUserMessage(value: unknown): string | undefined {
+  return clampString(value, COACH_CONTEXT_LIMITS.maxCurrentUserMessageLength);
 }
 
 function sanitizeAssumptions(value: unknown): Record<string, unknown>[] {
@@ -333,6 +341,7 @@ function pickKnownTopLevelFields(
     "healthIntelligence",
     "timeline",
     "recentChatMessages",
+    "currentUserMessage",
     "recentMealsStructured",
     "commonFoods",
     "missingData",
@@ -375,6 +384,9 @@ export function parseCoachContextForPrompt(
 
   known.timeline = sanitizeTimeline(known.timeline);
   known.recentChatMessages = sanitizeChatMessages(known.recentChatMessages);
+  if (known.currentUserMessage !== undefined) {
+    known.currentUserMessage = sanitizeCurrentUserMessage(known.currentUserMessage);
+  }
   known.recentMealsStructured = sanitizeRecentMeals(known.recentMealsStructured);
   known.commonFoods = sanitizeCommonFoods(known.commonFoods);
   known.assumptions = sanitizeAssumptions(known.assumptions);

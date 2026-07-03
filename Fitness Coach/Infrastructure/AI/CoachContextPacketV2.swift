@@ -24,6 +24,8 @@ struct CoachContextPacketV2: Codable, Equatable, Sendable {
     var healthIntelligence: CoachHealthIntelligenceContext?
     var timeline: CoachContextTimelinePacket
     var recentChatMessages: [CoachChatMessageContext]
+    /// Transient in-flight user text for the active turn (not duplicated in `recentChatMessages`).
+    var currentUserMessage: String?
     var recentMealsStructured: [CoachRecentMealContext]
     var commonFoods: [CoachCommonFoodContext]
     var missingData: CoachMissingDataContext
@@ -39,6 +41,7 @@ struct CoachContextPacketV2: Codable, Equatable, Sendable {
         healthIntelligence: CoachHealthIntelligenceContext? = nil,
         timeline: CoachContextTimelinePacket = CoachContextTimelinePacket(),
         recentChatMessages: [CoachChatMessageContext] = [],
+        currentUserMessage: String? = nil,
         recentMealsStructured: [CoachRecentMealContext] = [],
         commonFoods: [CoachCommonFoodContext] = [],
         missingData: CoachMissingDataContext = CoachMissingDataContext(),
@@ -53,6 +56,7 @@ struct CoachContextPacketV2: Codable, Equatable, Sendable {
         self.healthIntelligence = healthIntelligence
         self.timeline = timeline
         self.recentChatMessages = recentChatMessages
+        self.currentUserMessage = currentUserMessage
         self.recentMealsStructured = recentMealsStructured
         self.commonFoods = commonFoods
         self.missingData = missingData
@@ -229,8 +233,8 @@ struct CoachContextTimelinePacket: Codable, Equatable, Sendable {
 struct CoachChatMessageContext: Codable, Equatable, Sendable {
     var id: UUID
     var role: String
-    var textPreview: String
-    var sentAt: Date
+    var text: String
+    var timestamp: Date
     var hasPhotoAttachment: Bool
 }
 
@@ -244,6 +248,7 @@ struct CoachTimelineContextEvent: Codable, Equatable, Sendable {
     var compactPayload: [String: String]?
     var confidence: CoachContextConfidence?
     var linkedEntryId: UUID?
+    var linkedMessageId: UUID?
 }
 
 // MARK: - Meals & foods
@@ -395,7 +400,8 @@ enum CoachContextPacketV2Limits {
     static let defaultMaxEncodedBytes = 24_576
 
     static let maxTimelineEvents = 40
-    static let maxChatMessages = 5
+    static let maxChatMessages = 12
+    static let maxChatTextLength = 180
     static let maxRecentMeals = 10
     static let maxCommonFoods = 10
     static let maxAssumptions = 8
@@ -572,7 +578,8 @@ extension CoachTimelineContextEvent {
             summary: summary,
             compactPayload: Self.compactPayload(from: event.payload),
             confidence: event.confidence.map(CoachContextConfidence.from),
-            linkedEntryId: event.linkedEntryId
+            linkedEntryId: event.linkedEntryId,
+            linkedMessageId: event.linkedMessageId
         )
     }
 
@@ -618,13 +625,16 @@ extension CoachTimelineContextEvent {
 
 extension CoachChatMessageContext {
 
-    static func from(message: ChatMessage, maxPreviewLength: Int = 180) -> CoachChatMessageContext {
-        let preview = CoachChatMessageContext.clamp(message.text, maxLength: maxPreviewLength)
+    static func from(
+        message: ChatMessage,
+        maxTextLength: Int = CoachContextPacketV2Limits.maxChatTextLength
+    ) -> CoachChatMessageContext {
+        let text = CoachChatMessageContext.clamp(message.text, maxLength: maxTextLength)
         return CoachChatMessageContext(
             id: message.id,
             role: message.role.rawValue,
-            textPreview: preview,
-            sentAt: message.createdAt,
+            text: text,
+            timestamp: message.createdAt,
             hasPhotoAttachment: message.hasMealPhotoAttachment
         )
     }

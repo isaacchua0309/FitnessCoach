@@ -195,15 +195,15 @@ final class CoachRoutingTests: XCTestCase {
             CoachChatMessageContext(
                 id: UUID(),
                 role: "user",
-                textPreview: "should I eat a burger tonight",
-                sentAt: Date(timeIntervalSince1970: 0),
+                text: "should I eat a burger tonight",
+                timestamp: Date(timeIntervalSince1970: 0),
                 hasPhotoAttachment: false
             ),
             CoachChatMessageContext(
                 id: UUID(),
                 role: "assistant",
-                textPreview: "You have 685 kcal remaining.",
-                sentAt: Date(timeIntervalSince1970: 1),
+                text: "You have 685 kcal remaining.",
+                timestamp: Date(timeIntervalSince1970: 1),
                 hasPhotoAttachment: false
             )
         ]
