@@ -398,7 +398,7 @@
 				INFOPLIST_FILE = AppURLSchemes.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Forma;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Forma uses your camera so you can attach meal photos to Coach conversations.";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "Forma uses Apple Health workout data to show training consistency and progress insights.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Forma reads steps, workouts, active energy, exercise time, sleep, heart rate and variability, and weight from Apple Health to show activity on Today, training insights, recovery guidance, and plan confidence. Forma does not write to Apple Health.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Forma uses your microphone so you can dictate messages to Coach.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Forma uses your photo library so you can attach meal photos to Coach conversations.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Forma uses speech recognition to turn your voice into text in Coach.";
@@ -441,7 +441,7 @@
 				INFOPLIST_FILE = AppURLSchemes.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Forma;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Forma uses your camera so you can attach meal photos to Coach conversations.";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "Forma uses Apple Health workout data to show training consistency and progress insights.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Forma reads steps, workouts, active energy, exercise time, sleep, heart rate and variability, and weight from Apple Health to show activity on Today, training insights, recovery guidance, and plan confidence. Forma does not write to Apple Health.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Forma uses your microphone so you can dictate messages to Coach.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Forma uses your photo library so you can attach meal photos to Coach conversations.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Forma uses speech recognition to turn your voice into text in Coach.";

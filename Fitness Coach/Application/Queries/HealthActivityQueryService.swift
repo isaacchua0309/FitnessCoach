@@ -11,11 +11,30 @@ struct HealthActivityQueryService: Sendable {
 
     let workoutReader: HealthKitWorkoutReading
     let stepReader: HealthKitStepReading
+    let healthDataRepository: (any HealthDataRepositorying)?
+    let repositoryReadRoutingEnabled: Bool
+
+    init(
+        workoutReader: HealthKitWorkoutReading,
+        stepReader: HealthKitStepReading,
+        healthDataRepository: (any HealthDataRepositorying)? = nil,
+        repositoryReadRoutingEnabled: Bool = HealthIntelligenceFeatureFlags.isRepositoryReadRoutingEnabled
+    ) {
+        self.workoutReader = workoutReader
+        self.stepReader = stepReader
+        self.healthDataRepository = healthDataRepository
+        self.repositoryReadRoutingEnabled = repositoryReadRoutingEnabled
+    }
 
     func workouts(
         from startDate: Date,
         to endDate: Date
     ) async -> [HealthWorkoutRecord] {
+        if repositoryReadRoutingEnabled, let healthDataRepository {
+            let workouts = await healthDataRepository.getWorkouts(from: startDate, to: endDate)
+            return workouts.map(\.asHealthWorkoutRecord)
+        }
+
         do {
             return try await workoutReader.fetchWorkouts(from: startDate, to: endDate)
         } catch {
@@ -74,6 +93,11 @@ struct HealthActivityQueryService: Sendable {
         on date: Date = Date(),
         calendar: Calendar = .current
     ) async throws -> Int {
+        if repositoryReadRoutingEnabled, let healthDataRepository {
+            let metrics = await healthDataRepository.getDailyMetrics(for: date, calendar: calendar)
+            return metrics.steps
+        }
+
         let dayStart = calendar.startOfDay(for: date)
         let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? date
         return try await stepReader.fetchStepCount(from: dayStart, to: dayEnd)

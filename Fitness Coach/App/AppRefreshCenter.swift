@@ -19,6 +19,7 @@ final class AppRefreshCenter: ObservableObject {
 
     private var lastKnownDayStart: Date
     private var cancellables = Set<AnyCancellable>()
+    var healthDayChangeHandler: (() -> Void)?
 
     init(now: Date = Date()) {
         lastKnownDayStart = Calendar.current.startOfDay(for: now)
@@ -41,6 +42,7 @@ final class AppRefreshCenter: ObservableObject {
         let todayStart = Calendar.current.startOfDay(for: now)
         guard todayStart != lastKnownDayStart else { return }
         lastKnownDayStart = todayStart
+        healthDayChangeHandler?()
         notifyDataChanged()
     }
 }

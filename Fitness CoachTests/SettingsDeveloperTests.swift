@@ -39,7 +39,7 @@ final class SettingsDeveloperTests: XCTestCase {
         let section = SettingsDeveloperPresentationBuilder.buildSection(isVisible: true)
 
         XCTAssertNotNil(section)
-        XCTAssertEqual(section?.rows.map(\.id), [.authDiagnostics, .pipelineTraces])
+        XCTAssertEqual(section?.rows.map(\.id), [.authDiagnostics, .pipelineTraces, .healthIntelligenceSnapshot])
         XCTAssertEqual(section?.footer, FormaProductCopy.Settings.Developer.sectionFooter)
 
         let state = SettingsPresentationBuilder.build(
@@ -71,11 +71,14 @@ final class SettingsDeveloperTests: XCTestCase {
         let section = SettingsDeveloperPresentationBuilder.buildSection(isVisible: true)
         let authRow = section?.rows.first(where: { $0.id == .authDiagnostics })
         let pipelineRow = section?.rows.first(where: { $0.id == .pipelineTraces })
+        let healthRow = section?.rows.first(where: { $0.id == .healthIntelligenceSnapshot })
 
         XCTAssertEqual(authRow?.destination, .authDiagnostics)
         XCTAssertEqual(pipelineRow?.destination, .pipelineTraces)
+        XCTAssertEqual(healthRow?.destination, .healthIntelligenceSnapshot)
         XCTAssertTrue(authRow?.isNavigable ?? false)
         XCTAssertTrue(pipelineRow?.isNavigable ?? false)
+        XCTAssertTrue(healthRow?.isNavigable ?? false)
     }
 
     func testCompiledDeveloperToolsAvailableInDebugBuilds() {

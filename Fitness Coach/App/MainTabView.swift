@@ -120,11 +120,21 @@ struct MainTabView: View {
         .environmentObject(container.refreshCenter)
         .environmentObject(container.trainingInsightsStore)
         .environmentObject(container.trainingInsightsModel)
+        .environmentObject(container.healthSyncStateStore)
         .environmentObject(container.themeStore)
         .environment(\.settingsAnalyticsCoordinator, settingsAnalyticsCoordinator)
+        #if DEBUG
+        .environment(\.healthIntelligenceDebugVerification) { [container] in
+            await container.verifyTodayHealthIntelligenceSnapshot()
+        }
+        #endif
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
+                container.syncHealthCacheUserID()
                 container.refreshCenter.refreshIfDayChanged()
+                if HealthIntelligenceFeatureFlags.isSyncEnabled {
+                    container.healthSyncStateStore.refreshOnAppForeground()
+                }
             }
         }
         .task {
@@ -133,8 +143,15 @@ struct MainTabView: View {
     }
 
     private func bootstrapAfterEntry() async {
+        container.syncHealthCacheUserID()
         coachModel.refreshTodayContext()
         await planModel.refresh()
+        if HealthIntelligenceFeatureFlags.isSyncEnabled {
+            await container.healthSyncStateStore.refreshState()
+        }
+        if HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled {
+            await container.refreshHealthIntelligenceSnapshotIfNeeded()
+        }
     }
 
     // MARK: - Tab selection

@@ -332,6 +332,8 @@ struct SettingsRootView: View {
             EmptyView()
         case .authDiagnostics, .pipelineTraces:
             developerDestinationView(for: destination)
+        case .healthIntelligenceSnapshot:
+            developerDestinationView(for: destination)
         }
     }
 
@@ -344,6 +346,8 @@ struct SettingsRootView: View {
                 AuthDiagnosticsView()
             case .pipelineTraces:
                 PipelineDiagnosticsView()
+            case .healthIntelligenceSnapshot:
+                HealthIntelligenceDiagnosticsView()
             default:
                 EmptyView()
             }

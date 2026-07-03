@@ -2659,6 +2659,7 @@ enum FormaProductCopy {
             static let termsOfService = "Terms of Service"
             static let authDiagnostics = "Auth diagnostics"
             static let pipelineTraces = "Pipeline traces"
+            static let healthIntelligenceSnapshot = "Health intelligence snapshot"
         }
 
         enum Developer {

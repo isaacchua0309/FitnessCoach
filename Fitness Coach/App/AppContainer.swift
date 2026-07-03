@@ -39,6 +39,21 @@ final class AppContainer {
     let healthKitWorkoutReader: HealthKitWorkoutReading
     let healthKitStepReader: HealthKitStepReading
     let healthActivityQueryService: HealthActivityQueryService
+    let healthCacheStore: LocalHealthCacheStore
+    let healthDataRepository: HealthDataRepository
+    let healthBaselineService: HealthBaselineService
+    let trainingLoadEngine: TrainingLoadEngine
+    let workoutIntelligenceEngine: WorkoutIntelligenceEngine
+    let recoveryEngine: RecoveryEngine
+    let adaptiveNutritionEngine: AdaptiveNutritionEngine
+    let nextBestActionEngine: HealthNextBestActionEngine
+    let weeklyReviewEngine: WeeklyReviewEngine
+    let healthIntelligenceContextBuilder: HealthIntelligenceContextBuilder
+    let healthIntelligenceEngine: any HealthIntelligenceEngineing
+    let healthIntelligenceSnapshotService: any HealthIntelligenceSnapshotServing
+    let healthSyncService: HealthSyncService
+    let healthSyncStateStore: HealthSyncStateStore
+    private let authUIDCache: AuthUIDCache
 
     let onboardingUserDefaults: UserDefaults
     let onboardingDraftStore: OnboardingDraftStore
@@ -71,6 +86,8 @@ final class AppContainer {
         refreshCenter = AppRefreshCenter()
         let authManager = AuthManager()
         self.authManager = authManager
+        self.authUIDCache = AuthUIDCache()
+        authUIDCache.update(uid: authManager.currentUID)
 
         self.onboardingUserDefaults = Self.makeOnboardingUserDefaults(
             inMemory: inMemory,
@@ -103,14 +120,50 @@ final class AppContainer {
         themeStore = ThemeStore(analyticsLogger: self.themeAnalyticsLogger)
 
         healthTrainingService = HealthTrainingService()
-        trainingInsightsStore = TrainingInsightsStore(integration: healthTrainingService)
-        let workoutReader = HealthTrainingReaderFactory.makeWorkoutReader()
-        let stepReader = HealthTrainingReaderFactory.makeStepReader()
+        let sharedHealthKitManager = HealthKitManager()
+        let workoutReader = HealthTrainingReaderFactory.makeWorkoutReader(
+            healthKitManager: sharedHealthKitManager
+        )
+        let stepReader = HealthTrainingReaderFactory.makeStepReader(
+            healthKitManager: sharedHealthKitManager
+        )
         healthKitWorkoutReader = workoutReader
         healthKitStepReader = stepReader
+        healthCacheStore = LocalHealthCacheStore(userProvider: authUIDCache)
+        healthDataRepository = HealthDataRepository(
+            healthKitManager: sharedHealthKitManager,
+            cacheStore: healthCacheStore
+        )
+        healthBaselineService = HealthBaselineService(repository: healthDataRepository)
+        trainingLoadEngine = TrainingLoadEngine()
+        workoutIntelligenceEngine = WorkoutIntelligenceEngine()
+        recoveryEngine = RecoveryEngine()
+        adaptiveNutritionEngine = AdaptiveNutritionEngine()
+        nextBestActionEngine = HealthNextBestActionEngine()
+        weeklyReviewEngine = WeeklyReviewEngine()
         healthActivityQueryService = HealthActivityQueryService(
             workoutReader: workoutReader,
-            stepReader: stepReader
+            stepReader: stepReader,
+            healthDataRepository: healthDataRepository
+        )
+        healthSyncService = HealthSyncService(
+            repository: healthDataRepository,
+            cacheStore: healthCacheStore
+        )
+        healthSyncStateStore = HealthSyncStateStore(
+            syncService: healthSyncService,
+            syncEnabled: HealthIntelligenceFeatureFlags.isSyncEnabled
+        )
+        if HealthIntelligenceFeatureFlags.isSyncEnabled {
+            refreshCenter.healthDayChangeHandler = { [healthSyncStateStore] in
+                healthSyncStateStore.refreshOnDayChange()
+            }
+        }
+        trainingInsightsStore = TrainingInsightsStore(
+            integration: healthTrainingService,
+            healthSyncStateStore: HealthIntelligenceFeatureFlags.isSyncEnabled
+                ? healthSyncStateStore
+                : nil
         )
         trainingInsightsModel = TrainingInsightsModel(workoutReader: workoutReader)
         HealthTrainingDebugLogger.event(
@@ -161,6 +214,42 @@ final class AppContainer {
             store: store,
             dailyLogService: dailyLogService
         )
+
+        let healthIntelligenceContextBuilder = HealthIntelligenceContextBuilder(
+            repository: healthDataRepository,
+            nutritionProvider: DailyLogNutritionProvider(reader: dailyLogService),
+            weightProvider: WeightLogWeightProvider(reader: weightLogService),
+            userPlanProvider: UserProfilePlanProvider(profileService: userProfileService)
+        )
+        self.healthIntelligenceContextBuilder = healthIntelligenceContextBuilder
+        healthIntelligenceEngine = HealthIntelligenceEngine(
+            contextBuilder: healthIntelligenceContextBuilder,
+            dependencies: HealthIntelligenceEngineDependencies(
+                trainingLoad: trainingLoadEngine,
+                workout: workoutIntelligenceEngine,
+                recovery: recoveryEngine,
+                adaptiveNutrition: adaptiveNutritionEngine,
+                nextBestAction: nextBestActionEngine,
+                weeklyReview: weeklyReviewEngine
+            )
+        )
+        healthIntelligenceSnapshotService = HealthIntelligenceSnapshotService(
+            engine: healthIntelligenceEngine,
+            cacheStore: healthCacheStore,
+            enginesEnabled: HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled
+        )
+
+        #if DEBUG
+        HealthIntelligenceEngineLogger.wiringRegistered(
+            fields: [
+                "enginesEnabled": String(HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled),
+                "uiEnabled": String(HealthIntelligenceFeatureFlags.isUIEnabled),
+                "repository": "HealthDataRepository",
+                "contextBuilder": "HealthIntelligenceContextBuilder"
+            ]
+        )
+        #endif
+
         // All builds call the hosted Firebase aiGateway. Provider keys stay in Secret Manager.
         // Previews and in-memory containers use MockLLMClient; production wiring requires auth.
         #if DEBUG
@@ -225,6 +314,20 @@ final class AppContainer {
             authAttached: wiring.authAttached
         )
         #endif
+    }
+
+    func syncHealthCacheUserID() {
+        authUIDCache.update(uid: authManager.currentUID)
+        healthSyncStateStore.cancelActiveSync()
+    }
+
+    func makeHealthIntelligenceEngine() -> any HealthIntelligenceEngineing {
+        healthIntelligenceEngine
+    }
+
+    func refreshHealthIntelligenceSnapshotIfNeeded() async {
+        guard HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled else { return }
+        await healthIntelligenceSnapshotService.refreshTodaySnapshot(calendar: .current)
     }
 
     func makeTodayActionCoordinator() -> TodayActionCoordinator {
@@ -316,7 +419,10 @@ final class AppContainer {
             analyticsLogger: onboardingAnalyticsLogger,
             analyticsEntry: entry,
             healthTrainingIntegration: healthTrainingService,
-            trainingInsightsStore: trainingInsightsStore
+            trainingInsightsStore: trainingInsightsStore,
+            healthSyncStateStore: HealthIntelligenceFeatureFlags.isSyncEnabled
+                ? healthSyncStateStore
+                : nil
         )
     }
 
