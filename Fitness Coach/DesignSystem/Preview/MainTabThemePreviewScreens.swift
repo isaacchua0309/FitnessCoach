@@ -83,6 +83,10 @@ enum MainTabThemePreviewScreens {
         palette: AppThemePalette = .oceanBlue,
         appearance: AppAppearanceMode = .dark
     ) -> some View {
+        let themeDefaults = UserDefaults(suiteName: "MainTabSettingsPreview.\(palette.rawValue)")!
+        let themeStore = ThemeStore(userDefaults: themeDefaults)
+        themeStore.setPalette(palette)
+
         SettingsRootView(
             formState: .constant(PlanPreviewData.formState),
             errorMessage: nil,
@@ -95,7 +99,7 @@ enum MainTabThemePreviewScreens {
                 integration: StubTrainingIntegrationProvider(refreshResult: .connected)
             )
         )
-        .environmentObject(ThemeStore(userDefaults: UserDefaults(suiteName: "MainTabSettingsPreview.\(palette.rawValue)")!))
+        .environmentObject(themeStore)
         .formaThemePreview(appearance: appearance, palette: palette)
     }
 }

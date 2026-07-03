@@ -2,7 +2,7 @@
 //  FormaSettingsRows.swift
 //  Fitness Coach
 //
-//  Forma — Settings section headers and row labels.
+//  Forma — Settings section headers and compact row labels.
 //
 
 import SwiftUI
@@ -20,22 +20,14 @@ struct FormaSettingsSectionHeader: View {
 
 struct FormaSettingsRowLabel: View {
     let title: String
-    var subtitle: String?
     var status: String?
 
     var body: some View {
         HStack(spacing: FormaTokens.Spacing.sm) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(FormaTokens.Typography.body)
-                    .foregroundStyle(FormaTokens.Color.textPrimary)
-
-                if let subtitle {
-                    Text(subtitle)
-                        .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
-                }
-            }
+            Text(title)
+                .font(FormaTokens.Typography.body)
+                .foregroundStyle(FormaTokens.Color.textPrimary)
+                .lineLimit(1)
 
             Spacer(minLength: FormaTokens.Spacing.xs)
 
@@ -43,6 +35,8 @@ struct FormaSettingsRowLabel: View {
                 Text(status)
                     .font(FormaTokens.Typography.sectionSubtitle)
                     .foregroundStyle(FormaTokens.Color.textTertiary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
             }
         }
         .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .center)

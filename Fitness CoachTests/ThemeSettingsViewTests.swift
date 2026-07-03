@@ -14,7 +14,9 @@ final class ThemeSettingsViewTests: XCTestCase {
         let state = SettingsPresentationBuilder.build(
             input: SettingsPresentationInput(
                 integrationState: .connected,
-                appVersionDisplay: "1.0",
+                unitSystem: .metric,
+                themePalette: .oceanBlue,
+                appVersion: "1.0",
                 featureAvailability: .production,
                 isDebugOrInternalBuild: false
             )

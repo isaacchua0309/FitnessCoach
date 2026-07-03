@@ -12,6 +12,7 @@ struct SettingsRootView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @EnvironmentObject private var insightsStore: TrainingInsightsStore
+    @EnvironmentObject private var themeStore: ThemeStore
 
     @Binding var formState: PlanFormState
     let errorMessage: String?
@@ -25,7 +26,9 @@ struct SettingsRootView: View {
         SettingsPresentationBuilder.build(
             input: SettingsPresentationInput(
                 integrationState: insightsStore.integrationState,
-                appVersionDisplay: FormaAppMetadata.versionDisplayString(),
+                unitSystem: formState.unitSystem,
+                themePalette: themeStore.palette,
+                appVersion: FormaAppMetadata.marketingVersion(),
                 featureAvailability: featureAvailability,
                 isDebugOrInternalBuild: isDebugOrInternalBuild
             )
@@ -35,18 +38,18 @@ struct SettingsRootView: View {
     var body: some View {
         NavigationStack {
             List {
-                sectionView(presentationState.account)
-                sectionView(presentationState.preferences)
-                sectionView(presentationState.integrations)
+                section(presentationState.account)
+                section(presentationState.preferences)
+                section(presentationState.integrations)
                     .task {
                         await insightsStore.refresh()
                     }
-                sectionView(presentationState.privacyData)
-                sectionView(presentationState.support)
-                sectionView(presentationState.about)
+                section(presentationState.privacyData)
+                section(presentationState.support)
+                section(presentationState.about)
 
                 if let developer = presentationState.developer {
-                    sectionView(developer)
+                    section(developer)
                 }
 
                 if let errorMessage {
@@ -78,42 +81,42 @@ struct SettingsRootView: View {
     // MARK: - Sections
 
     @ViewBuilder
-    private func sectionView(_ section: SettingsAccountSectionState) -> some View {
-        sectionView(title: section.title, footer: nil, rows: section.rows)
+    private func section(_ section: SettingsAccountSectionState) -> some View {
+        section(title: section.title, footer: nil, rows: section.rows)
     }
 
     @ViewBuilder
-    private func sectionView(_ section: SettingsPreferencesSectionState) -> some View {
-        sectionView(title: section.title, footer: nil, rows: section.rows)
+    private func section(_ section: SettingsPreferencesSectionState) -> some View {
+        section(title: section.title, footer: nil, rows: section.rows)
     }
 
     @ViewBuilder
-    private func sectionView(_ section: SettingsIntegrationsSectionState) -> some View {
-        sectionView(title: section.title, footer: nil, rows: section.rows)
+    private func section(_ section: SettingsIntegrationsSectionState) -> some View {
+        section(title: section.title, footer: nil, rows: section.rows)
     }
 
     @ViewBuilder
-    private func sectionView(_ section: SettingsPrivacyDataSectionState) -> some View {
-        sectionView(title: section.title, footer: nil, rows: section.rows)
+    private func section(_ section: SettingsPrivacyDataSectionState) -> some View {
+        section(title: section.title, footer: nil, rows: section.rows)
     }
 
     @ViewBuilder
-    private func sectionView(_ section: SettingsSupportSectionState) -> some View {
-        sectionView(title: section.title, footer: nil, rows: section.rows)
+    private func section(_ section: SettingsSupportSectionState) -> some View {
+        section(title: section.title, footer: nil, rows: section.rows)
     }
 
     @ViewBuilder
-    private func sectionView(_ section: SettingsAboutSectionState) -> some View {
-        sectionView(title: section.title, footer: nil, rows: section.rows)
+    private func section(_ section: SettingsAboutSectionState) -> some View {
+        section(title: section.title, footer: nil, rows: section.rows)
     }
 
     @ViewBuilder
-    private func sectionView(_ section: SettingsDeveloperSectionState) -> some View {
-        sectionView(title: section.title, footer: section.footer, rows: section.rows)
+    private func section(_ section: SettingsDeveloperSectionState) -> some View {
+        section(title: section.title, footer: section.footer, rows: section.rows)
     }
 
     @ViewBuilder
-    private func sectionView(
+    private func section(
         title: String,
         footer: String?,
         rows: [SettingsRowPresentation]
@@ -139,31 +142,19 @@ struct SettingsRootView: View {
             Button {
                 openSupportMail(topic)
             } label: {
-                FormaSettingsRowLabel(
-                    title: row.title,
-                    subtitle: row.subtitle,
-                    status: row.status
-                )
+                FormaSettingsRowLabel(title: row.title, status: row.status)
             }
             .formaSettingsRowChrome()
         } else if row.isNavigable, let destination = row.destination {
             NavigationLink {
                 destinationView(for: destination)
             } label: {
-                FormaSettingsRowLabel(
-                    title: row.title,
-                    subtitle: row.subtitle,
-                    status: row.status
-                )
+                FormaSettingsRowLabel(title: row.title, status: row.status)
             }
             .formaSettingsRowChrome()
         } else {
-            FormaSettingsRowLabel(
-                title: row.title,
-                subtitle: row.subtitle,
-                status: row.status
-            )
-            .formaSettingsRowChrome(isEnabled: false)
+            FormaSettingsRowLabel(title: row.title, status: row.status)
+                .formaSettingsRowChrome(isEnabled: false)
         }
     }
 
@@ -206,21 +197,4 @@ struct SettingsRootView: View {
         guard let url = SettingsSupportMailURLBuilder.url(for: topic) else { return }
         openURL(url)
     }
-}
-
-#Preview {
-    SettingsRootView(
-        formState: .constant(PlanPreviewData.formState),
-        errorMessage: nil,
-        onSaveUnits: { _ in },
-        onDismiss: {}
-    )
-    .environmentObject(AuthManager())
-    .environmentObject(
-        TrainingInsightsStore(
-            integration: StubTrainingIntegrationProvider(refreshResult: .connected)
-        )
-    )
-    .environmentObject(ThemeStore(userDefaults: UserDefaults(suiteName: "SettingsRootPreview")!))
-    .formaThemePreview()
 }

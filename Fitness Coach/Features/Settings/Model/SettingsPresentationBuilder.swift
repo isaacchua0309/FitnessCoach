@@ -12,11 +12,14 @@ enum SettingsPresentationBuilder {
     static func build(input: SettingsPresentationInput) -> SettingsPresentationState {
         SettingsPresentationState(
             account: accountSection(),
-            preferences: preferencesSection(),
+            preferences: preferencesSection(
+                unitSystem: input.unitSystem,
+                themePalette: input.themePalette
+            ),
             integrations: integrationsSection(integrationState: input.integrationState),
             privacyData: privacyDataSection(featureAvailability: input.featureAvailability),
             support: supportSection(),
-            about: aboutSection(appVersionDisplay: input.appVersionDisplay),
+            about: aboutSection(appVersion: input.appVersion),
             developer: developerSection(isDebugOrInternalBuild: input.isDebugOrInternalBuild),
             isDebugOrInternalBuild: input.isDebugOrInternalBuild
         )
@@ -37,13 +40,17 @@ enum SettingsPresentationBuilder {
         )
     }
 
-    private static func preferencesSection() -> SettingsPreferencesSectionState {
+    private static func preferencesSection(
+        unitSystem: UnitSystem,
+        themePalette: AppThemePalette
+    ) -> SettingsPreferencesSectionState {
         SettingsPreferencesSectionState(
             title: FormaProductCopy.Settings.Hub.preferencesSectionTitle,
             rows: [
                 row(
                     id: .units,
                     title: FormaProductCopy.Settings.Rows.units,
+                    status: SettingsRowStatusFormatter.unitSystem(unitSystem),
                     destination: .units
                 ),
                 row(
@@ -54,6 +61,7 @@ enum SettingsPresentationBuilder {
                 row(
                     id: .theme,
                     title: FormaProductCopy.Settings.Theme.navigationRowTitle,
+                    status: SettingsRowStatusFormatter.themePalette(themePalette),
                     destination: .theme
                 )
             ]
@@ -69,7 +77,7 @@ enum SettingsPresentationBuilder {
                 row(
                     id: .appleHealth,
                     title: FormaProductCopy.Settings.Rows.appleHealth,
-                    status: TrainingIntegrationCopy.settingsStatusLabel(for: integrationState),
+                    status: SettingsRowStatusFormatter.appleHealth(integrationState),
                     destination: .appleHealthIntegration
                 )
             ]
@@ -136,15 +144,15 @@ enum SettingsPresentationBuilder {
         )
     }
 
-    private static func aboutSection(appVersionDisplay: String) -> SettingsAboutSectionState {
+    private static func aboutSection(appVersion: String) -> SettingsAboutSectionState {
         SettingsAboutSectionState(
             title: FormaProductCopy.Settings.Hub.aboutSectionTitle,
             rows: [
                 SettingsRowPresentation(
                     id: .appVersion,
                     title: FormaProductCopy.Settings.Rows.appVersion,
-                    subtitle: appVersionDisplay,
-                    status: nil,
+                    subtitle: nil,
+                    status: appVersion,
                     destination: nil,
                     isEnabled: false
                 ),
@@ -178,7 +186,7 @@ enum SettingsPresentationBuilder {
                     destination: .pipelineTraces
                 )
             ],
-            footer: FormaProductCopy.Settings.Hub.developerSectionFooter
+            footer: nil
         )
     }
 

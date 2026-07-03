@@ -10,22 +10,26 @@ import XCTest
 
 final class SettingsPresentationBuilderTests: XCTestCase {
 
-    private let productionInput = SettingsPresentationInput(
-        integrationState: .connected,
-        appVersionDisplay: "1.0 (100)",
-        featureAvailability: .production,
-        isDebugOrInternalBuild: false
-    )
-
-    private let debugInput = SettingsPresentationInput(
-        integrationState: .connected,
-        appVersionDisplay: "1.0 (100)",
-        featureAvailability: .production,
-        isDebugOrInternalBuild: true
-    )
+    private func makeInput(
+        integrationState: TrainingIntegrationState = .connected,
+        unitSystem: UnitSystem = .metric,
+        themePalette: AppThemePalette = .oceanBlue,
+        appVersion: String = "1.0",
+        featureAvailability: SettingsFeatureAvailability = .production,
+        isDebugOrInternalBuild: Bool = false
+    ) -> SettingsPresentationInput {
+        SettingsPresentationInput(
+            integrationState: integrationState,
+            unitSystem: unitSystem,
+            themePalette: themePalette,
+            appVersion: appVersion,
+            featureAvailability: featureAvailability,
+            isDebugOrInternalBuild: isDebugOrInternalBuild
+        )
+    }
 
     func testProductionSettingsHidesDeveloperSection() {
-        let state = SettingsPresentationBuilder.build(input: productionInput)
+        let state = SettingsPresentationBuilder.build(input: makeInput())
 
         XCTAssertNil(state.developer)
         XCTAssertFalse(state.isDebugOrInternalBuild)
@@ -34,19 +38,18 @@ final class SettingsPresentationBuilderTests: XCTestCase {
     }
 
     func testDebugSettingsShowsDeveloperSection() {
-        let state = SettingsPresentationBuilder.build(input: debugInput)
+        let state = SettingsPresentationBuilder.build(
+            input: makeInput(isDebugOrInternalBuild: true)
+        )
 
         XCTAssertNotNil(state.developer)
         XCTAssertTrue(state.isDebugOrInternalBuild)
         XCTAssertEqual(state.developer?.rows.map(\.id), [.authDiagnostics, .pipelineTraces])
-        XCTAssertEqual(
-            state.developer?.footer,
-            FormaProductCopy.Settings.Hub.developerSectionFooter
-        )
+        XCTAssertNil(state.developer?.footer)
     }
 
     func testProductionSettingsHidesComingSoonRows() {
-        let state = SettingsPresentationBuilder.build(input: productionInput)
+        let state = SettingsPresentationBuilder.build(input: makeInput())
 
         XCTAssertFalse(state.visibleRowIDs.contains(.exportData))
         XCTAssertFalse(state.visibleRowIDs.contains(.deleteData))
@@ -56,7 +59,7 @@ final class SettingsPresentationBuilderTests: XCTestCase {
     }
 
     func testFunctionalRowsAppearInProduction() {
-        let state = SettingsPresentationBuilder.build(input: productionInput)
+        let state = SettingsPresentationBuilder.build(input: makeInput())
 
         XCTAssertEqual(
             state.visibleRowIDs,
@@ -81,33 +84,70 @@ final class SettingsPresentationBuilderTests: XCTestCase {
             FormaProductCopy.PlanCalculation.bodyDetailsSettingsTitle,
             FormaProductCopy.Settings.Theme.navigationRowTitle
         ])
-        XCTAssertEqual(
-            state.integrations.rows.first?.status,
-            TrainingIntegrationCopy.settingsStatusConnected
-        )
         XCTAssertEqual(state.privacyData.rows.map(\.id), [.privacyPolicy])
         XCTAssertEqual(state.about.rows.map(\.id), [.appVersion, .termsOfService])
     }
 
+    func testStatusLabelsAppearWhenUseful() {
+        let state = SettingsPresentationBuilder.build(
+            input: makeInput(
+                integrationState: .connected,
+                unitSystem: .imperial,
+                themePalette: .blossomPink,
+                appVersion: "2.4.1"
+            )
+        )
+
+        XCTAssertEqual(
+            state.preferences.rows.first(where: { $0.id == .units })?.status,
+            FormaProductCopy.Settings.Status.imperial
+        )
+        XCTAssertEqual(
+            state.preferences.rows.first(where: { $0.id == .theme })?.status,
+            FormaProductCopy.Settings.Theme.colorPaletteTitle(for: .blossomPink)
+        )
+        XCTAssertEqual(
+            state.integrations.rows.first(where: { $0.id == .appleHealth })?.status,
+            FormaProductCopy.Settings.Status.connected
+        )
+        XCTAssertEqual(
+            state.integrations.rows.first(where: { $0.id == .appleHealth })?.status,
+            SettingsRowStatusFormatter.appleHealth(.connected)
+        )
+        XCTAssertEqual(
+            state.about.rows.first(where: { $0.id == .appVersion })?.status,
+            "2.4.1"
+        )
+    }
+
+    func testAppleHealthDisconnectedStatusLabel() {
+        let state = SettingsPresentationBuilder.build(
+            input: makeInput(integrationState: .denied)
+        )
+
+        XCTAssertEqual(
+            state.integrations.rows.first(where: { $0.id == .appleHealth })?.status,
+            FormaProductCopy.Settings.Status.notConnected
+        )
+    }
+
     func testPrivacyPolicyAppearsOnlyInPrivacySection() {
-        let state = SettingsPresentationBuilder.build(input: productionInput)
+        let state = SettingsPresentationBuilder.build(input: makeInput())
 
         XCTAssertEqual(state.privacyData.rows.filter { $0.id == .privacyPolicy }.count, 1)
         XCTAssertFalse(state.about.rows.contains(where: { $0.id == .privacyPolicy }))
     }
 
     func testFeatureFlaggedRowsAppearOnlyWhenEnabled() {
-        let enabledInput = SettingsPresentationInput(
-            integrationState: .notConnected,
-            appVersionDisplay: "1.0",
-            featureAvailability: SettingsFeatureAvailability(
-                isDataExportEnabled: true,
-                isDeleteDataEnabled: true
-            ),
-            isDebugOrInternalBuild: false
+        let state = SettingsPresentationBuilder.build(
+            input: makeInput(
+                integrationState: .notConnected,
+                featureAvailability: SettingsFeatureAvailability(
+                    isDataExportEnabled: true,
+                    isDeleteDataEnabled: true
+                )
+            )
         )
-
-        let state = SettingsPresentationBuilder.build(input: enabledInput)
 
         XCTAssertEqual(
             state.privacyData.rows.map(\.id),
@@ -132,10 +172,13 @@ final class SettingsPresentationBuilderTests: XCTestCase {
     }
 
     func testAppVersionRowIsDisplayOnly() {
-        let state = SettingsPresentationBuilder.build(input: productionInput)
+        let state = SettingsPresentationBuilder.build(
+            input: makeInput(appVersion: "2.4.1")
+        )
         let appVersionRow = state.about.rows.first { $0.id == .appVersion }
 
-        XCTAssertEqual(appVersionRow?.subtitle, "1.0 (100)")
+        XCTAssertEqual(appVersionRow?.status, "2.4.1")
+        XCTAssertNil(appVersionRow?.subtitle)
         XCTAssertNil(appVersionRow?.destination)
         XCTAssertFalse(appVersionRow?.isNavigable ?? true)
     }

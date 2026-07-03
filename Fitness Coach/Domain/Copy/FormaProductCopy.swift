@@ -2385,8 +2385,6 @@ enum FormaProductCopy {
             static let supportSectionTitle = "Support"
             static let aboutSectionTitle = "About"
             static let developerSectionTitle = "Developer"
-            static let developerSectionFooter =
-                "Debug builds only. Pipeline traces help troubleshoot Coach AI routing and backend calls."
         }
 
         enum Rows {
@@ -2409,6 +2407,13 @@ enum FormaProductCopy {
             static let feedbackMailSubject = "Forma Feedback"
             static let contactMailSubject = "Forma Support"
             static let reportProblemMailSubject = "Forma Problem Report"
+        }
+
+        enum Status {
+            static let connected = "Connected"
+            static let notConnected = "Not connected"
+            static let metric = "Metric"
+            static let imperial = "Imperial"
         }
 
         /// Theme preferences screen and color palette copy.

@@ -100,7 +100,9 @@ struct SettingsDeveloperSectionState: Equatable, Sendable {
 
 struct SettingsPresentationInput: Equatable, Sendable {
     let integrationState: TrainingIntegrationState
-    let appVersionDisplay: String
+    let unitSystem: UnitSystem
+    let themePalette: AppThemePalette
+    let appVersion: String
     let featureAvailability: SettingsFeatureAvailability
     let isDebugOrInternalBuild: Bool
 }
