@@ -1,7 +1,7 @@
 {
   "configurations": [
     {
-      "id": "37F1691A-9923-4445-8F2A-80E6382039B1",
+      "id": "6EB11FCC-00C7-4CC7-A672-2A7AEA30DD3C",
       "name": "Configuration 1",
       "options": {}
     }
@@ -87,6 +87,7 @@
         "CoachPendingImageStateTests",
         "CoachPhotoLibraryPipelineTests",
         "CoachSpeechTests",
+        "CoachTimelineBackfillServiceTests",
         "CoachTimelineDomainTests",
         "CoachTimelinePersistenceTests",
         "CoachTimelineRecorderTests",
