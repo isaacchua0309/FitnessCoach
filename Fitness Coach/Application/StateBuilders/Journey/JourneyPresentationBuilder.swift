@@ -146,71 +146,14 @@ enum JourneyPresentationBuilder {
     static func goalProjection(
         context: JourneyDashboardBuilder.Context
     ) -> JourneyGoalProjectionState {
-        let copy = FormaProductCopy.Journey.GoalProjection.self
-        let baseline = context.baseline
-
-        guard baseline.goalWeightKg != nil else {
-            return JourneyGoalProjectionState(
-                sectionTitle: copy.sectionTitle,
-                status: .hidden
+        JourneyGoalProjectionBuilder.build(
+            JourneyGoalProjectionBuilder.Input(
+                baseline: context.baseline,
+                allWeights: context.allWeights,
+                asOf: context.asOf,
+                calendar: context.calendar
             )
-        }
-
-        switch baseline.goalDirection {
-        case .maintain:
-            guard baseline.hasRealWeightEntries else {
-                return JourneyGoalProjectionState(
-                    sectionTitle: copy.sectionTitle,
-                    status: .insufficientData(
-                        title: copy.insufficientTitle,
-                        detail: copy.insufficientDetail
-                    )
-                )
-            }
-            return JourneyGoalProjectionState(
-                sectionTitle: copy.sectionTitle,
-                status: .projected(
-                    title: copy.maintainTitle,
-                    detail: copy.maintainDetail,
-                    etaLabel: nil,
-                    confidenceLabel: nil,
-                    remainingLabel: nil
-                )
-            )
-
-        case .lose, .gain:
-            guard let projection = context.goalProjection,
-                  let projectedDate = projection.projectedGoalDate,
-                  projection.weeklyRateKg != nil else {
-                return JourneyGoalProjectionState(
-                    sectionTitle: copy.sectionTitle,
-                    status: .insufficientData(
-                        title: copy.insufficientTitle,
-                        detail: copy.insufficientDetail
-                    )
-                )
-            }
-
-            let monthLabel = JourneyFormatter.monthYear(projectedDate)
-            let weeksLabel = JourneyFormatter.weeks(projection.estimatedWeeksToGoal)
-            let remainingLabel = baseline.remainingChangeKg.map {
-                copy.remainingLabel(kg: JourneyFormatter.heroChangeKg($0))
-            }
-            let confidenceLabel = copy.confidenceLabel(
-                JourneyFormatter.shortConfidence(projection.confidence)
-            )
-
-            return JourneyGoalProjectionState(
-                sectionTitle: copy.sectionTitle,
-                status: .projected(
-                    title: copy.projectedTitle(month: monthLabel),
-                    detail: copy.projectedDetail(weeks: weeksLabel),
-                    etaLabel: monthLabel,
-                    confidenceLabel: confidenceLabel,
-                    remainingLabel: remainingLabel
-                )
-            )
-        }
+        )
     }
 
     // MARK: - Story events

@@ -9,6 +9,7 @@ import Foundation
 
 enum JourneyProductSection: String, CaseIterable, Equatable {
     case transformation
+    case goalProjection
     case weeklyReview
     case milestones
     case storyTimeline
@@ -18,6 +19,7 @@ enum JourneyProductSection: String, CaseIterable, Equatable {
 enum JourneyProductLayout {
     static let sectionOrder: [JourneyProductSection] = [
         .transformation,
+        .goalProjection,
         .weeklyReview,
         .milestones,
         .storyTimeline,

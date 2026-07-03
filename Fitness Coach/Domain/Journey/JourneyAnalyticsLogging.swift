@@ -10,6 +10,7 @@ import Foundation
 enum JourneyAnalyticsEvent: String, Sendable {
     case screenViewed = "journey_screen_viewed"
     case transformationViewed = "journey_transformation_viewed"
+    case goalProjectionViewed = "journey_goal_projection_viewed"
     case weeklyReviewViewed = "journey_weekly_review_viewed"
     case milestoneRailViewed = "journey_milestone_rail_viewed"
     case timelineViewed = "journey_timeline_viewed"

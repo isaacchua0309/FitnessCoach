@@ -54,6 +54,10 @@ final class JourneyAnalyticsCoordinator {
         logSectionOnce(.transformationViewed)
     }
 
+    func logGoalProjectionViewed() {
+        logSectionOnce(.goalProjectionViewed)
+    }
+
     func logWeeklyReviewViewed() {
         logSectionOnce(.weeklyReviewViewed)
     }

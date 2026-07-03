@@ -1459,25 +1459,25 @@ enum FormaProductCopy {
 
         enum GoalProjection {
             static let sectionTitle = "Goal projection"
-            static let insufficientTitle = "Need more weight logs"
-            static let insufficientDetail = "Keep logging weight and Forma will forecast your pace."
-            static let maintainTitle = "Holding steady"
-            static let maintainDetail = "Keep logging to track how you're holding around your target."
 
-            static func projectedTitle(month: String) -> String {
-                "On track for \(month)"
+            static let insufficientTitle = "Projection unlocks soon"
+            static let insufficientDetail = "Log weight for 7 days so Forma can estimate your pace."
+
+            static let towardGoalTitle = "At your current pace"
+            static let flatTrendTitle = "Your weight is holding steady"
+            static let flatTrendDetail = "Keep logging so Forma can detect your real trend."
+            static let awayFromGoalTitle = "Your trend needs more consistency"
+            static let awayFromGoalDetail = "Focus on meals and weigh-ins this week."
+
+            static let goalReachedTitle = "Goal reached"
+            static let goalReachedDetail = "You're at your target weight. Keep your habits steady."
+
+            static func towardGoalDetail(goalWeight: String, date: String) -> String {
+                "You may reach \(goalWeight) around \(date)."
             }
 
-            static func projectedDetail(weeks: String) -> String {
-                "At this pace you'll reach your goal in about \(weeks)."
-            }
-
-            static func remainingLabel(kg: String) -> String {
-                "\(kg) to go"
-            }
-
-            static func confidenceLabel(_ confidence: String) -> String {
-                "\(confidence) confidence"
+            static func accessibilitySummary(title: String, detail: String) -> String {
+                "\(title). \(detail)"
             }
         }
 

@@ -11,6 +11,7 @@ final class JourneyProgressStructureTests: XCTestCase {
     func testProductSectionOrderMatchesCanonicalLayout() {
         XCTAssertEqual(JourneyProductLayout.sectionOrder, [
             .transformation,
+            .goalProjection,
             .weeklyReview,
             .milestones,
             .storyTimeline,

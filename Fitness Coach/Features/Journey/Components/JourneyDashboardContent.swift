@@ -34,6 +34,8 @@ struct JourneyDashboardContent: View {
                 return state.showsStoryTimelineSection
             case .startingEmptyState:
                 return state.showsStartingEmptyState
+            case .goalProjection:
+                return state.showsGoalProjectionSection
             case .transformation, .weeklyReview:
                 return true
             }
@@ -47,6 +49,10 @@ struct JourneyDashboardContent: View {
             JourneyTransformationHeroSection(state: state.transformation, onCTA: onCTA)
                 .padding(.bottom, JourneyLayout.heroBottomSpacing)
                 .onAppear { analyticsCoordinator?.logTransformationViewed() }
+
+        case .goalProjection:
+            JourneyGoalProjectionSection(state: state.goalProjection, onCTA: onCTA)
+                .onAppear { analyticsCoordinator?.logGoalProjectionViewed() }
 
         case .weeklyReview:
             JourneyWeeklyReviewSection(review: state.weeklyReview, onCTA: onCTA)

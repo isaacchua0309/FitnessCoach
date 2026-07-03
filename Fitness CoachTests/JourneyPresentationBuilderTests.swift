@@ -64,10 +64,11 @@ final class JourneyPresentationBuilderTests: XCTestCase {
         let dashboard = JourneyPreviewData.nearGoal
 
         XCTAssertTrue(dashboard.goalProjection.isVisible)
-        if case .projected(let title, _, _, _, _) = dashboard.goalProjection.status {
-            XCTAssertFalse(title.isEmpty)
+        if case .towardGoal(let title, let detail) = dashboard.goalProjection.status {
+            XCTAssertEqual(title, FormaProductCopy.Journey.GoalProjection.towardGoalTitle)
+            XCTAssertTrue(detail.contains("around"))
         } else {
-            XCTFail("Expected projected goal state for near-goal fixture")
+            XCTFail("Expected toward-goal projection for near-goal fixture")
         }
     }
 

@@ -64,25 +64,49 @@ struct JourneyTransformationState: Equatable {
 enum JourneyGoalProjectionStatus: Equatable, Sendable {
     case hidden
     case insufficientData(title: String, detail: String)
-    case projected(
-        title: String,
-        detail: String,
-        etaLabel: String?,
-        confidenceLabel: String?,
-        remainingLabel: String?
-    )
+    case towardGoal(title: String, detail: String)
+    case flatTrend(title: String, detail: String)
+    case awayFromGoal(title: String, detail: String)
+    case goalReached(title: String, detail: String)
 }
 
 struct JourneyGoalProjectionState: Equatable {
     var sectionTitle: String
     var status: JourneyGoalProjectionStatus
+    var accessibilitySummary: String
 
     var isVisible: Bool {
         switch status {
         case .hidden:
             return false
-        case .insufficientData, .projected:
+        case .insufficientData, .towardGoal, .flatTrend, .awayFromGoal, .goalReached:
             return true
+        }
+    }
+
+    var title: String {
+        switch status {
+        case .hidden:
+            return ""
+        case .insufficientData(let title, _),
+             .towardGoal(let title, _),
+             .flatTrend(let title, _),
+             .awayFromGoal(let title, _),
+             .goalReached(let title, _):
+            return title
+        }
+    }
+
+    var detail: String {
+        switch status {
+        case .hidden:
+            return ""
+        case .insufficientData(_, let detail),
+             .towardGoal(_, let detail),
+             .flatTrend(_, let detail),
+             .awayFromGoal(_, let detail),
+             .goalReached(_, let detail):
+            return detail
         }
     }
 }
