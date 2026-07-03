@@ -24,6 +24,7 @@ enum FormaProductCopy {
         static let back = "Back"
         static let cancel = "Cancel"
         static let ok = "OK"
+        static let done = "Done"
         static let completeRequiredFields = "Fill in the required fields to continue."
     }
 
@@ -2393,6 +2394,7 @@ enum FormaProductCopy {
 
         enum Hub {
             static let screenTitle = "Settings"
+            static let doneAccessibilityLabel = "Done"
             static let accountSectionTitle = "Account"
             static let preferencesSectionTitle = "Preferences"
             static let integrationsSectionTitle = "Integrations"

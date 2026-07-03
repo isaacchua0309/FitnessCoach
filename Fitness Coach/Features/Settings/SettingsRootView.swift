@@ -82,12 +82,13 @@ struct SettingsRootView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button(FormaProductCopy.Common.done) {
                         onDismiss()
                         dismiss()
                     }
                     .fontWeight(.semibold)
                     .foregroundStyle(FormaTokens.Color.accent)
+                    .accessibilityLabel(FormaProductCopy.Settings.Hub.doneAccessibilityLabel)
                 }
             }
             .formaScrollBottomInset()
@@ -203,38 +204,44 @@ struct SettingsRootView: View {
     @ViewBuilder
     private func rowView(_ row: SettingsRowPresentation, sectionType: SettingsAnalyticsSectionType) -> some View {
         if case .supportMail(let topic) = row.destination {
-            Button {
+            settingsButtonRow(
+                row: row,
+                showsDisclosure: true,
+                disclosureSystemName: "envelope",
+                accessibilityHint: "Opens mail composer"
+            ) {
                 analyticsCoordinator.logSupportTapped(topic: topic, sectionType: sectionType)
                 openSupportMail(topic)
-            } label: {
-                FormaSettingsRowLabel(title: row.title, status: row.status)
             }
-            .formaSettingsRowChrome()
         } else if case .legalDocument(let document) = row.destination,
                   let url = presentationState.externalURL(for: document) {
-            Button {
+            settingsButtonRow(
+                row: row,
+                showsDisclosure: true,
+                disclosureSystemName: "arrow.up.right",
+                accessibilityHint: SettingsRowAccessibilityFormatter.buttonHint(opensExternally: true)
+            ) {
                 logLegalDocumentTapped(document, sectionType: sectionType)
                 openURL(url)
-            } label: {
-                FormaSettingsRowLabel(title: row.title, status: row.status)
             }
-            .formaSettingsRowChrome()
         } else if case .deleteData = row.destination {
-            Button(role: .destructive) {
+            settingsButtonRow(
+                row: row,
+                isDestructive: true,
+                accessibilityHint: "Opens confirmation"
+            ) {
                 analyticsCoordinator.logRowTapped(rowID: row.id, sectionType: sectionType)
                 showsDeleteDataConfirmation = true
-            } label: {
-                FormaSettingsRowLabel(title: row.title, status: row.status)
             }
-            .formaSettingsRowChrome()
         } else if case .exportData = row.destination {
-            Button {
+            settingsButtonRow(
+                row: row,
+                showsDisclosure: true,
+                accessibilityHint: SettingsRowAccessibilityFormatter.buttonHint(opensExternally: false)
+            ) {
                 analyticsCoordinator.logRowTapped(rowID: row.id, sectionType: sectionType)
                 handleExportData()
-            } label: {
-                FormaSettingsRowLabel(title: row.title, status: row.status)
             }
-            .formaSettingsRowChrome()
         } else if row.isNavigable, let destination = row.destination {
             NavigationLink {
                 destinationView(for: destination, sectionType: sectionType)
@@ -242,6 +249,8 @@ struct SettingsRootView: View {
                 FormaSettingsRowLabel(title: row.title, status: row.status)
             }
             .formaSettingsRowChrome()
+            .accessibilityLabel(SettingsRowAccessibilityFormatter.label(title: row.title, status: row.status))
+            .accessibilityHint(SettingsRowAccessibilityFormatter.buttonHint(opensExternally: false))
             .simultaneousGesture(
                 TapGesture().onEnded {
                     analyticsCoordinator.logRowTapped(rowID: row.id, sectionType: sectionType)
@@ -250,7 +259,30 @@ struct SettingsRootView: View {
         } else {
             FormaSettingsRowLabel(title: row.title, status: row.status)
                 .formaSettingsRowChrome(isEnabled: false)
+                .accessibilityLabel(SettingsRowAccessibilityFormatter.label(title: row.title, status: row.status))
         }
+    }
+
+    private func settingsButtonRow(
+        row: SettingsRowPresentation,
+        showsDisclosure: Bool = false,
+        disclosureSystemName: String = "chevron.right",
+        isDestructive: Bool = false,
+        accessibilityHint: String? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(role: isDestructive ? .destructive : nil, action: action) {
+            FormaSettingsRowLabel(
+                title: row.title,
+                status: row.status,
+                showsDisclosure: showsDisclosure,
+                disclosureSystemName: disclosureSystemName,
+                isDestructive: isDestructive
+            )
+        }
+        .formaSettingsRowChrome()
+        .accessibilityLabel(SettingsRowAccessibilityFormatter.label(title: row.title, status: row.status))
+        .accessibilityHint(accessibilityHint ?? "")
     }
 
     @ViewBuilder

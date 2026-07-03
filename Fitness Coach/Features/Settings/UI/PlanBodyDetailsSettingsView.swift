@@ -12,33 +12,27 @@ struct PlanBodyDetailsSettingsView: View {
     let onUpdateInPlan: () -> Void
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
+        formaSettingsDetailScreen {
+            VStack(alignment: .leading, spacing: SettingsChromeAccessibility.detailSectionSpacing) {
                 Text(presentation.introCopy)
-                    .font(FormaTokens.Typography.body)
+                    .font(FormaTokens.Typography.sectionSubtitle)
                     .foregroundStyle(FormaTokens.Color.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 profileDetailsSection
                 updateInPlanSection
             }
-            .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
-            .padding(.top, FormaTokens.Spacing.md)
-            .padding(.bottom, FormaTokens.Spacing.sm)
         }
-        .formaScreenBackground()
         .navigationTitle(presentation.screenTitle)
-        .navigationBarTitleDisplayMode(.inline)
-        .formaScrollBottomInset()
     }
 
     // MARK: - Sections
 
     private var profileDetailsSection: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             sectionHeader(presentation.profileDetailsSectionTitle)
 
-            FormaPlanCard {
+            FormaPlanCard(compact: true) {
                 VStack(spacing: 0) {
                     ForEach(Array(presentation.detailRows.enumerated()), id: \.element.id) { index, row in
                         if index > 0 {
@@ -57,7 +51,7 @@ struct PlanBodyDetailsSettingsView: View {
             Text(presentation.updateInPlanCTA)
                 .font(FormaTokens.Typography.body.weight(.semibold))
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, FormaTokens.Spacing.sm)
+                .frame(minHeight: SettingsChromeAccessibility.minimumActionButtonHeight)
         }
         .buttonStyle(.borderedProminent)
         .tint(FormaTokens.Theme.primary)

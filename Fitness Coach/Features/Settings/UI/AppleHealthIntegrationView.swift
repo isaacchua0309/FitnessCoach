@@ -21,21 +21,15 @@ struct AppleHealthIntegrationView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
+        formaSettingsDetailScreen {
+            VStack(alignment: .leading, spacing: SettingsChromeAccessibility.detailSectionSpacing) {
                 heroSection
                 trustCopySection
                 connectionCard
                 primaryActionSection
             }
-            .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
-            .padding(.top, FormaTokens.Spacing.md)
-            .padding(.bottom, FormaTokens.Spacing.sm)
         }
-        .formaScreenBackground()
         .navigationTitle(presentation.screenTitle)
-        .navigationBarTitleDisplayMode(.inline)
-        .formaScrollBottomInset()
         .task {
             await insightsStore.refresh()
         }
@@ -45,7 +39,7 @@ struct AppleHealthIntegrationView: View {
 
     private var heroSection: some View {
         Text(presentation.heroStatus)
-            .font(FormaTokens.Typography.screenTitle)
+            .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
             .foregroundStyle(
                 presentation.heroShowsConnected
                     ? FormaTokens.Color.success
@@ -58,7 +52,7 @@ struct AppleHealthIntegrationView: View {
     // MARK: - Trust copy
 
     private var trustCopySection: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             ForEach(presentation.trustCopy, id: \.self) { line in
                 Text(line)
                     .font(FormaTokens.Typography.sectionSubtitle)
@@ -71,12 +65,13 @@ struct AppleHealthIntegrationView: View {
     // MARK: - Connection card
 
     private var connectionCard: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             Text(presentation.connectionCardTitle)
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                 .foregroundStyle(FormaTokens.Color.textSecondary)
+                .accessibilityAddTraits(.isHeader)
 
-            FormaPlanCard {
+            FormaPlanCard(compact: true) {
                 VStack(spacing: 0) {
                     ForEach(Array(presentation.connectionRows.enumerated()), id: \.element.id) { index, row in
                         if index > 0 {
@@ -94,13 +89,19 @@ struct AppleHealthIntegrationView: View {
             Text(row.label)
                 .font(FormaTokens.Typography.sectionSubtitle)
                 .foregroundStyle(FormaTokens.Color.textSecondary)
-                .frame(width: 88, alignment: .leading)
+                .frame(
+                    width: SettingsChromeAccessibility.connectionLabelColumnWidth,
+                    alignment: .leading
+                )
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
 
             Text(row.value)
                 .font(FormaTokens.Typography.sectionSubtitle)
                 .foregroundStyle(FormaTokens.Color.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
+                .multilineTextAlignment(.leading)
         }
         .padding(.vertical, FormaTokens.Spacing.xs)
     }
@@ -127,7 +128,7 @@ struct AppleHealthIntegrationView: View {
                             : FormaTokens.Color.textTertiary
                     )
                     .frame(maxWidth: .infinity)
-                    .frame(minHeight: FormaTokens.Layout.minTouchTarget)
+                    .frame(minHeight: SettingsChromeAccessibility.minimumActionButtonHeight)
             }
             .buttonStyle(.plain)
             .background(

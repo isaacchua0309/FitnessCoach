@@ -28,20 +28,14 @@ struct AccountSettingsView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.md) {
+        formaSettingsDetailScreen {
+            VStack(alignment: .leading, spacing: SettingsChromeAccessibility.detailSectionSpacing) {
                 profileHeader
                 accountDetailsCard
                 logoutSection
             }
-            .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
-            .padding(.top, FormaTokens.Spacing.md)
-            .padding(.bottom, FormaTokens.Spacing.sm)
         }
-        .formaScreenBackground()
         .navigationTitle("Account")
-        .navigationBarTitleDisplayMode(.inline)
-        .formaScrollBottomInset()
         .confirmationDialog(
             presentation.logoutConfirmationTitle,
             isPresented: $showsLogoutConfirmation,
@@ -75,23 +69,11 @@ struct AccountSettingsView: View {
                         .lineLimit(2)
                         .minimumScaleFactor(0.85)
                 } else if let email = presentation.header.email {
-                    Text(email)
-                        .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
-                        .foregroundStyle(FormaTokens.Color.textPrimary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.85)
-                        .textSelection(.enabled)
+                    emailText(email, style: .primary)
                 }
 
                 if let email = presentation.header.email, presentation.header.displayName != nil {
-                    Text(email)
-                        .font(FormaTokens.Typography.sectionSubtitle)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.9)
-                        .textSelection(.enabled)
+                    emailText(email, style: .secondary)
                 }
             }
 
@@ -100,6 +82,28 @@ struct AccountSettingsView: View {
             }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private func emailText(_ email: String, style: EmailTextStyle) -> some View {
+        Text(email)
+            .font(style == .primary
+                ? FormaTokens.Typography.sectionTitle.weight(.semibold)
+                : FormaTokens.Typography.sectionSubtitle)
+            .foregroundStyle(
+                style == .primary
+                    ? FormaTokens.Color.textPrimary
+                    : FormaTokens.Color.textSecondary
+            )
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .textSelection(.enabled)
+            .accessibilityLabel("Email, \(email)")
+    }
+
+    private enum EmailTextStyle {
+        case primary
+        case secondary
     }
 
     private var avatarView: some View {
@@ -175,7 +179,7 @@ struct AccountSettingsView: View {
     // MARK: - Details card
 
     private var accountDetailsCard: some View {
-        FormaPlanCard {
+        FormaPlanCard(compact: true) {
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(presentation.detailRows.enumerated()), id: \.element.id) { index, row in
                     if index > 0 {
@@ -184,7 +188,8 @@ struct AccountSettingsView: View {
                     AccountInfoRow(
                         label: row.label,
                         value: row.value,
-                        allowsTextSelection: row.allowsTextSelection
+                        allowsTextSelection: row.allowsTextSelection,
+                        usesMultilineValue: row.allowsTextSelection
                     )
                 }
             }
@@ -206,9 +211,9 @@ struct AccountSettingsView: View {
         } label: {
             Text(FormaProductCopy.Account.logoutButtonTitle)
                 .font(FormaTokens.Typography.body.weight(.medium))
-                .foregroundStyle(FormaTokens.Color.destructive.opacity(presentation.canLogOut ? 0.95 : 0.5))
+                .foregroundStyle(logoutTitleColor)
                 .frame(maxWidth: .infinity)
-                .frame(minHeight: FormaTokens.Layout.minTouchTarget)
+                .frame(minHeight: SettingsChromeAccessibility.minimumActionButtonHeight)
         }
         .buttonStyle(.plain)
         .background(
@@ -224,6 +229,12 @@ struct AccountSettingsView: View {
         .accessibilityAddTraits(.isButton)
         .accessibilityHint(presentation.logoutButtonAccessibilityHint)
     }
+
+    private var logoutTitleColor: Color {
+        presentation.canLogOut
+            ? FormaTokens.Color.destructive
+            : FormaTokens.Color.destructive.opacity(0.45)
+    }
 }
 
 // MARK: - Account row
@@ -232,20 +243,33 @@ private struct AccountInfoRow: View {
     let label: String
     let value: String
     var allowsTextSelection: Bool = false
-
-    private let labelColumnWidth: CGFloat = 76
+    var usesMultilineValue: Bool = false
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.md) {
-            Text(label)
-                .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(FormaTokens.Color.textSecondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.9)
-                .frame(width: labelColumnWidth, alignment: .leading)
+        Group {
+            if usesMultilineValue {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(label)
+                        .font(FormaTokens.Typography.sectionSubtitle)
+                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                    valueText
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.md) {
+                    Text(label)
+                        .font(FormaTokens.Typography.sectionSubtitle)
+                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.9)
+                        .frame(
+                            width: SettingsChromeAccessibility.detailLabelColumnWidth,
+                            alignment: .leading
+                        )
 
-            valueText
-                .frame(maxWidth: .infinity, alignment: .leading)
+                    valueText
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, FormaTokens.Spacing.xs)

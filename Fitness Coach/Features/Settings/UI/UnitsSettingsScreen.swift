@@ -21,20 +21,14 @@ struct UnitsSettingsScreen: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
+        formaSettingsDetailScreen {
+            VStack(alignment: .leading, spacing: SettingsChromeAccessibility.detailSectionSpacing) {
                 unitSystemSection
                 examplesSection
                 footnotesSection
             }
-            .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
-            .padding(.top, FormaTokens.Spacing.md)
-            .padding(.bottom, FormaTokens.Spacing.sm)
         }
-        .formaScreenBackground()
         .navigationTitle(presentation.screenTitle)
-        .navigationBarTitleDisplayMode(.inline)
-        .formaScrollBottomInset()
         .onChange(of: formState.unitSystem) { _, _ in
             guard !isSaving else { return }
             isSaving = true
@@ -48,10 +42,10 @@ struct UnitsSettingsScreen: View {
     // MARK: - Unit system
 
     private var unitSystemSection: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             sectionHeader(presentation.unitSystemSectionTitle)
 
-            FormaPlanCard {
+            FormaPlanCard(compact: true) {
                 VStack(spacing: 0) {
                     ForEach(Array(presentation.unitSystemOptions.enumerated()), id: \.element) { index, unitSystem in
                         if index > 0 {
@@ -74,10 +68,10 @@ struct UnitsSettingsScreen: View {
     // MARK: - Examples
 
     private var examplesSection: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
             sectionHeader(presentation.examplesSectionTitle)
 
-            FormaPlanCard {
+            FormaPlanCard(compact: true) {
                 VStack(spacing: 0) {
                     ForEach(Array(presentation.exampleRows.enumerated()), id: \.element.id) { index, row in
                         if index > 0 {
@@ -149,7 +143,7 @@ private struct UnitsSettingsOptionRow: View {
                         .accessibilityHidden(true)
                 }
             }
-            .frame(minHeight: FormaTokens.Layout.minTouchTarget, alignment: .center)
+            .frame(minHeight: SettingsChromeAccessibility.minimumRowTouchTarget, alignment: .center)
             .padding(.vertical, FormaTokens.Spacing.xs)
             .contentShape(Rectangle())
         }

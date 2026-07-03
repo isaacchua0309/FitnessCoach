@@ -8,12 +8,13 @@
 import SwiftUI
 
 struct FormaPlanCard<Content: View>: View {
+    var compact: Bool = false
     @ViewBuilder var content: Content
 
     var body: some View {
         content
-            .padding(.horizontal, FormaTokens.Spacing.md)
-            .padding(.vertical, FormaTokens.Spacing.sm)
+            .padding(.horizontal, compact ? FormaTokens.Spacing.sm : FormaTokens.Spacing.md)
+            .padding(.vertical, compact ? FormaTokens.Spacing.xs : FormaTokens.Spacing.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(FormaCardChrome.background(.surface))
     }
@@ -42,11 +43,18 @@ struct FormaPlanDisplayRow: View {
                     Text(label)
                         .font(FormaTokens.Typography.sectionSubtitle)
                         .foregroundStyle(FormaTokens.Color.textSecondary)
-                        .frame(width: 88, alignment: .leading)
+                        .frame(
+                            width: SettingsChromeAccessibility.detailLabelColumnWidth,
+                            alignment: .leading
+                        )
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.9)
                     Text(value)
                         .font(FormaTokens.Typography.sectionSubtitle)
                         .foregroundStyle(FormaTokens.Color.textPrimary)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .multilineTextAlignment(.leading)
                 }
             }
         }

@@ -12,13 +12,14 @@ struct SettingsLegalDocumentView: View {
     let document: FormaLegalDocument
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
+        formaSettingsDetailScreen {
+            VStack(alignment: .leading, spacing: SettingsChromeAccessibility.detailSectionSpacing) {
                 ForEach(document.sections) { section in
-                    VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
+                    VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
                         Text(section.title)
                             .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
                             .foregroundStyle(FormaTokens.Color.textPrimary)
+                            .accessibilityAddTraits(.isHeader)
 
                         Text(section.body)
                             .font(FormaTokens.Typography.sectionSubtitle)
@@ -28,13 +29,8 @@ struct SettingsLegalDocumentView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .padding(.horizontal, FormaTokens.Spacing.pageHorizontal)
-            .padding(.vertical, FormaTokens.Spacing.md)
         }
-        .formaScreenBackground()
         .navigationTitle(document.navigationTitle)
-        .navigationBarTitleDisplayMode(.inline)
-        .formaScrollBottomInset()
     }
 }
 
