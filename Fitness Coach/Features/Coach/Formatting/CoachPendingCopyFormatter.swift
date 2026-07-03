@@ -26,14 +26,27 @@ enum CoachPendingCopyFormatter {
         mealDraft: FoodLogDraft,
         confidence: AIConfidence,
         originalText: String,
-        sanityWarning: String? = nil
+        sanityWarning: String? = nil,
+        fromPhotoAnalysis: Bool = false
     ) -> String {
         guard mealDraft.hasUsableNutritionEstimate else {
+            if fromPhotoAnalysis {
+                return "Analyzing your meal photo for \(naturalFoodName(mealDraft.displayName))."
+            }
             return "Estimating nutrition for \(naturalFoodName(mealDraft.displayName))."
         }
 
-        let tone = foodCopyTone(confidence: confidence, mealDraft: mealDraft, originalText: originalText)
-        let headline = foodHeadline(mealDraft: mealDraft, tone: tone)
+        let tone = foodCopyTone(
+            confidence: confidence,
+            mealDraft: mealDraft,
+            originalText: originalText,
+            fromPhotoAnalysis: fromPhotoAnalysis
+        )
+        let headline = foodHeadline(
+            mealDraft: mealDraft,
+            tone: tone,
+            fromPhotoAnalysis: fromPhotoAnalysis
+        )
         let nutritionLine = chatNutritionLine(
             for: mealDraft,
             style: tone == .highConfidenceSimple ? .compact : .full
@@ -58,17 +71,31 @@ enum CoachPendingCopyFormatter {
     static func foodPendingChatMessage(
         draft: FoodDraft,
         confidence: AIConfidence,
-        originalText: String
+        originalText: String,
+        fromPhotoAnalysis: Bool = false
     ) -> String {
         foodPendingChatMessage(
             mealDraft: FoodLogDraftMapper.fromLegacyDraft(draft),
             confidence: confidence,
-            originalText: originalText
+            originalText: originalText,
+            fromPhotoAnalysis: fromPhotoAnalysis
         )
     }
 
-    static func foodHeadline(mealDraft: FoodLogDraft, tone: FoodCopyTone) -> String {
+    static func foodHeadline(
+        mealDraft: FoodLogDraft,
+        tone: FoodCopyTone,
+        fromPhotoAnalysis: Bool = false
+    ) -> String {
         let name = naturalFoodName(mealDraft.displayName)
+        if fromPhotoAnalysis {
+            switch tone {
+            case .vague:
+                return "From your meal photo, I estimated a generic \(name):"
+            case .highConfidenceSimple, .standard:
+                return "From your meal photo, I estimated \(name):"
+            }
+        }
         switch tone {
         case .vague:
             return "Estimated a generic \(name):"
@@ -77,8 +104,16 @@ enum CoachPendingCopyFormatter {
         }
     }
 
-    static func foodHeadline(draft: FoodDraft, tone: FoodCopyTone) -> String {
-        foodHeadline(mealDraft: FoodLogDraftMapper.fromLegacyDraft(draft), tone: tone)
+    static func foodHeadline(
+        draft: FoodDraft,
+        tone: FoodCopyTone,
+        fromPhotoAnalysis: Bool = false
+    ) -> String {
+        foodHeadline(
+            mealDraft: FoodLogDraftMapper.fromLegacyDraft(draft),
+            tone: tone,
+            fromPhotoAnalysis: fromPhotoAnalysis
+        )
     }
 
     static func chatNutritionLine(for mealDraft: FoodLogDraft, style: NutritionLineStyle) -> String {
@@ -116,8 +151,12 @@ enum CoachPendingCopyFormatter {
     static func foodCopyTone(
         confidence: AIConfidence,
         mealDraft: FoodLogDraft,
-        originalText: String
+        originalText: String,
+        fromPhotoAnalysis: Bool = false
     ) -> FoodCopyTone {
+        if fromPhotoAnalysis, confidence != .low, !mealDraft.displayName.isEmpty {
+            return confidence == .high ? .highConfidenceSimple : .standard
+        }
         if isVagueFood(confidence: confidence, mealDraft: mealDraft, originalText: originalText) {
             return .vague
         }
@@ -130,12 +169,14 @@ enum CoachPendingCopyFormatter {
     static func foodCopyTone(
         confidence: AIConfidence,
         draft: FoodDraft,
-        originalText: String
+        originalText: String,
+        fromPhotoAnalysis: Bool = false
     ) -> FoodCopyTone {
         foodCopyTone(
             confidence: confidence,
             mealDraft: FoodLogDraftMapper.fromLegacyDraft(draft),
-            originalText: originalText
+            originalText: originalText,
+            fromPhotoAnalysis: fromPhotoAnalysis
         )
     }
 

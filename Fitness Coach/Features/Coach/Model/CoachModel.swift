@@ -62,6 +62,7 @@ final class CoachModel: ObservableObject {
     private let mutationExecutor: CoachMutationExecutor
     private let routeHandler: CoachAIRouteHandler
     private let mealPhotoAnalyzer: CoachMealPhotoAnalyzer
+    private let transcriptStore: CoachChatTranscriptStore
 
     init(
         localCommandParser: LocalCommandParser? = nil,
@@ -74,7 +75,8 @@ final class CoachModel: ObservableObject {
         aiCommandParsingEnabled: Bool = false,
         coachModelConfig: CoachModelConfig? = nil,
         routeDecider: CoachRouteDecider? = nil,
-        trainingInsightsStore: TrainingInsightsStore? = nil
+        trainingInsightsStore: TrainingInsightsStore? = nil,
+        transcriptStore: CoachChatTranscriptStore = CoachInMemoryChatTranscriptStore()
     ) {
         self.localCommandParser = localCommandParser ?? .standard
         self.dailyLogReader = dailyLogReader
@@ -116,6 +118,8 @@ final class CoachModel: ObservableObject {
             aiContextBuilder: self.aiContextBuilder,
             routeHandler: routeHandler
         )
+        self.transcriptStore = transcriptStore
+        self.messages = transcriptStore.loadMessages()
     }
 
     // MARK: Today context
@@ -224,9 +228,17 @@ final class CoachModel: ObservableObject {
         case .textOnly(let text):
             await send(text)
         case .imageOnly(let jpegData):
-            await sendMealPhoto(jpegData: jpegData, caption: nil)
+            await sendMealPhoto(
+                jpegData: jpegData,
+                caption: nil,
+                source: snapshot.attachment?.source
+            )
         case .textAndImage(let text, let jpegData):
-            await sendMealPhoto(jpegData: jpegData, caption: text)
+            await sendMealPhoto(
+                jpegData: jpegData,
+                caption: text,
+                source: snapshot.attachment?.source
+            )
         }
     }
 
@@ -291,7 +303,11 @@ final class CoachModel: ObservableObject {
         )
     }
 
-    private func sendMealPhoto(jpegData: Data, caption: String?) async {
+    private func sendMealPhoto(
+        jpegData: Data,
+        caption: String?,
+        source: CoachInputAttachmentSource?
+    ) async {
         guard !isSending else { return }
 
         let prepared = mealPhotoAnalyzer.prepareJPEG(from: jpegData)
@@ -305,7 +321,8 @@ final class CoachModel: ObservableObject {
         let displayCaption = caption?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let userMessage = appendUserMealPhotoMessage(
             caption: displayCaption.isEmpty ? nil : displayCaption,
-            jpegData: normalizedJPEG
+            jpegData: normalizedJPEG,
+            source: source
         )
 
         let prompt = displayCaption.isEmpty ?
@@ -352,7 +369,7 @@ final class CoachModel: ObservableObject {
         traceOutcome = "photoAnalysisCompleted"
 
         if result.pendingConfirmation != nil {
-            applyActionResult(result)
+            applyActionResult(result, relatedPhotoUserMessageID: userMessageID)
         } else if !result.message.isEmpty {
             appendMealPhotoFailureMessage(
                 text: result.message,
@@ -566,12 +583,23 @@ final class CoachModel: ObservableObject {
 
     // MARK: Action result application
 
-    private func applyActionResult(_ result: CoachActionResult) {
+    private func applyActionResult(
+        _ result: CoachActionResult,
+        relatedPhotoUserMessageID: UUID? = nil
+    ) {
         if let confirmation = result.pendingConfirmation {
             setPendingConfirmation(confirmation)
         }
         if !result.message.isEmpty {
-            appendAssistantMessage(result.message)
+            if let relatedPhotoUserMessageID {
+                appendAssistantPhotoAnalysisMessage(
+                    result.message,
+                    relatedUserMessageID: relatedPhotoUserMessageID,
+                    isFailure: false
+                )
+            } else {
+                appendAssistantMessage(result.message)
+            }
         }
     }
 
@@ -602,21 +630,21 @@ final class CoachModel: ObservableObject {
             relatedEntryId: nil
         )
         messages.append(message)
+        persistTranscript()
         return message
     }
 
     @discardableResult
-    private func appendUserMealPhotoMessage(caption: String?, jpegData: Data) -> ChatMessage {
-        let message = ChatMessage(
-            id: UUID(),
-            role: .user,
-            text: caption ?? "",
-            createdAt: Date(),
-            relatedDailyLogId: nil,
-            relatedEntryId: nil,
-            mealPhotoJPEG: jpegData
-        )
+    private func appendUserMealPhotoMessage(
+        caption: String?,
+        jpegData: Data,
+        source: CoachInputAttachmentSource?
+    ) -> ChatMessage {
+        let attachment = ChatMessageImageAttachment.fromJPEG(jpegData, source: source)
+            ?? ChatMessageImageAttachment(imageJPEG: jpegData, thumbnailJPEG: jpegData, source: source)
+        let message = ChatMessage.userMealPhoto(caption: caption, attachment: attachment)
         messages.append(message)
+        persistTranscript()
         return message
     }
 
@@ -631,27 +659,47 @@ final class CoachModel: ObservableObject {
                 relatedEntryId: nil
             )
         )
+        persistTranscript()
+    }
+
+    private func appendAssistantPhotoAnalysisMessage(
+        _ text: String,
+        relatedUserMessageID: UUID,
+        isFailure: Bool
+    ) {
+        let message: ChatMessage
+        if isFailure {
+            message = ChatMessage.assistantPhotoAnalysisFailure(
+                text: text,
+                relatedUserMessageID: relatedUserMessageID
+            )
+        } else {
+            message = ChatMessage.assistantPhotoAnalysisResult(
+                text: text,
+                relatedUserMessageID: relatedUserMessageID
+            )
+        }
+        messages.append(message)
+        persistTranscript()
     }
 
     private func appendMealPhotoFailureMessage(text: String, relatedUserMessageID: UUID) {
-        messages.append(
-            ChatMessage(
-                id: UUID(),
-                role: .assistant,
-                text: text,
-                createdAt: Date(),
-                relatedDailyLogId: nil,
-                relatedEntryId: nil,
-                mealPhotoAnalysisFailure: CoachMealPhotoAnalysisFailureInfo(
-                    relatedUserMessageID: relatedUserMessageID
-                )
-            )
+        appendAssistantPhotoAnalysisMessage(
+            text,
+            relatedUserMessageID: relatedUserMessageID,
+            isFailure: true
         )
     }
 
     private func removeMealPhotoFailureMessages(relatedTo userMessageID: UUID) {
         messages.removeAll { message in
-            message.mealPhotoAnalysisFailure?.relatedUserMessageID == userMessageID
+            message.photoAnalysisLink?.relatedUserMessageID == userMessageID &&
+            message.photoAnalysisLink?.isFailure == true
         }
+        persistTranscript()
+    }
+
+    private func persistTranscript() {
+        transcriptStore.saveMessages(messages)
     }
 }

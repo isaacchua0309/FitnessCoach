@@ -241,7 +241,8 @@ final class CoachAIRouteHandler {
                 llmMealDraft: llmMeal,
                 fallbackMealDraft: usedClassifierMerge ? meal : nil,
                 fallbackLabel: usedClassifierMerge ? "classifier_merge" : nil
-            )
+            ),
+            fromPhotoAnalysis: photoAnalysis
         )
     }
 
@@ -364,7 +365,9 @@ final class CoachAIRouteHandler {
         originalText: String,
         assistantMessage: String?,
         confidence: AIConfidence,
-        debugContext: FoodEstimateDebugContext? = nil
+        debugContext: FoodEstimateDebugContext? = nil,
+        sanityWarning: String? = nil,
+        fromPhotoAnalysis: Bool = false
     ) -> CoachActionResult {
         let sanitized = FoodLogDraftNutritionCompleter.sanitize(mealDraft, hintText: originalText)
         let sanity = NutritionSanityValidator.validate(
@@ -372,6 +375,7 @@ final class CoachAIRouteHandler {
             prompt: originalText,
             confidence: confidence
         )
+        let resolvedSanityWarning = sanityWarning ?? (sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage)
 
         if let debugContext {
             logFoodEstimateDebug(
@@ -385,7 +389,7 @@ final class CoachAIRouteHandler {
                     sanityResult: sanity,
                     displayedMealDraft: sanity.mealDraft,
                     responseConfidence: confidence,
-                    sanityWarning: sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage
+                    sanityWarning: resolvedSanityWarning
                 )
             )
         }
@@ -397,7 +401,8 @@ final class CoachAIRouteHandler {
                 assistantMessage: assistantMessage,
                 mealDraft: sanity.mealDraft,
                 confidence: sanity.confidence,
-                sanityWarning: sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage
+                sanityWarning: resolvedSanityWarning,
+                fromPhotoAnalysis: fromPhotoAnalysis
             )
         case .reject(let message):
             return .message(message)

@@ -123,7 +123,9 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         await model.sendCurrentMessage()
 
         let userMessage = try XCTUnwrap(model.messages.first { $0.role == .user })
+        XCTAssertNotNil(userMessage.imageAttachment)
         XCTAssertNotNil(userMessage.mealPhotoJPEG)
+        XCTAssertFalse(userMessage.imageAttachment?.thumbnailJPEG.isEmpty == true)
         XCTAssertTrue(userMessage.text.isEmpty)
         XCTAssertNotEqual(userMessage.text, CoachMealPhotoPipeline.userMessageLabel)
     }
@@ -194,7 +196,7 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
         await model.sendCurrentMessage()
 
         XCTAssertNotNil(model.messages.first { $0.role == .user }?.mealPhotoJPEG)
-        XCTAssertTrue(model.messages.contains { $0.mealPhotoAnalysisFailure != nil })
+        XCTAssertTrue(model.messages.contains { $0.photoAnalysisLink?.isFailure == true })
         XCTAssertTrue(model.messages.last?.text.contains("couldn't analyze") == true)
         XCTAssertNil(model.pendingConfirmation)
 
@@ -204,7 +206,8 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
 
         XCTAssertEqual(aiService.estimateFoodCallCount, 2)
         XCTAssertNotNil(model.pendingConfirmation)
-        XCTAssertFalse(model.messages.contains { $0.mealPhotoAnalysisFailure != nil })
+        XCTAssertFalse(model.messages.contains { $0.photoAnalysisLink?.isFailure == true })
+        XCTAssertTrue(model.messages.contains { $0.photoAnalysisLink?.isFailure == false })
     }
 
     func testTodayScanFoodVisibleWhenPipelineReady() {

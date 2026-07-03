@@ -18,7 +18,8 @@ enum CoachPendingConfirmationPresenter {
         assistantMessage: String?,
         mealDraft: FoodLogDraft,
         confidence: AIConfidence,
-        sanityWarning: String? = nil
+        sanityWarning: String? = nil,
+        fromPhotoAnalysis: Bool = false
     ) -> CoachActionResult {
         let draft = AIFoodConfirmationDraft(
             originalText: originalText,
@@ -32,7 +33,8 @@ enum CoachPendingConfirmationPresenter {
             mealDraft: mealDraft,
             confidence: confidence,
             originalText: originalText,
-            sanityWarning: sanityWarning
+            sanityWarning: sanityWarning,
+            fromPhotoAnalysis: fromPhotoAnalysis
         )
         return .pending(.food(draft), message: message)
     }

@@ -49,7 +49,3 @@ enum CoachMealPhotoSendPayload: Equatable {
         }
     }
 }
-
-struct CoachMealPhotoAnalysisFailureInfo: Equatable, Codable, Sendable {
-    let relatedUserMessageID: UUID
-}

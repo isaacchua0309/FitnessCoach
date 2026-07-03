@@ -118,6 +118,8 @@ enum CoachDesignTokens {
         static let composerButtonSize: CGFloat = 32
         static let composerAttachmentSize: CGFloat = 56
         static let composerAttachmentCornerRadius: CGFloat = 10
+        static let chatPhotoBubbleMaxWidth: CGFloat = 240
+        static let chatPhotoBubbleMaxHeight: CGFloat = 280
         static let horizontalPadding = FormaTokens.Spacing.pageHorizontal
         static let messageSpacing = Spacing.lg
         static let maxBubbleWidthRatio: CGFloat = 0.82

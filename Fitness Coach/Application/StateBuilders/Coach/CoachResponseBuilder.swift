@@ -71,25 +71,29 @@ enum CoachResponseBuilder {
         mealDraft: FoodLogDraft,
         confidence: AIConfidence,
         originalText: String,
-        sanityWarning: String? = nil
+        sanityWarning: String? = nil,
+        fromPhotoAnalysis: Bool = false
     ) -> String {
         CoachPendingCopyFormatter.foodPendingChatMessage(
             mealDraft: mealDraft,
             confidence: confidence,
             originalText: originalText,
-            sanityWarning: sanityWarning
+            sanityWarning: sanityWarning,
+            fromPhotoAnalysis: fromPhotoAnalysis
         )
     }
 
     static func aiFoodEstimatePending(
         draft: FoodDraft,
         confidence: AIConfidence,
-        originalText: String
+        originalText: String,
+        fromPhotoAnalysis: Bool = false
     ) -> String {
         aiFoodEstimatePending(
             mealDraft: FoodLogDraftMapper.fromLegacyDraft(draft),
             confidence: confidence,
-            originalText: originalText
+            originalText: originalText,
+            fromPhotoAnalysis: fromPhotoAnalysis
         )
     }
 
