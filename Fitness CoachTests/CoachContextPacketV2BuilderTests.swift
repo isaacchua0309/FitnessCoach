@@ -90,18 +90,133 @@ final class CoachContextPacketV2BuilderTests: XCTestCase {
 
     func testPopulatesCommonFoodsFromHistory() async {
         _ = try? harness.foodLogService.addFoodEntry(
-            DailyLogServiceTestSupport.foodDraft(name: "Oatmeal", calories: 300),
+            DailyLogServiceTestSupport.foodDraft(name: "Oatmeal", calories: 300, protein: 10),
             date: harness.day(offset: -1)
         )
         _ = try? harness.foodLogService.addFoodEntry(
-            DailyLogServiceTestSupport.foodDraft(name: "Oatmeal", calories: 320),
+            DailyLogServiceTestSupport.foodDraft(name: "Oatmeal", calories: 320, protein: 12),
             date: harness.today
         )
 
         let packet = await makeBuilder().makeContext(recentMessages: [], mode: .live)
 
         XCTAssertEqual(packet.commonFoods.first?.name, "oatmeal")
-        XCTAssertGreaterThanOrEqual(packet.commonFoods.first?.logCount ?? 0, 2)
+        XCTAssertEqual(packet.commonFoods.first?.displayName, "Oatmeal")
+        XCTAssertGreaterThanOrEqual(packet.commonFoods.first?.frequency ?? 0, 2)
+        XCTAssertEqual(packet.commonFoods.first?.typicalCalories, 310)
+        XCTAssertEqual(packet.commonFoods.first?.typicalProteinGrams, 11)
+    }
+
+    func testStructuredRecentMealsIncludeMacrosAndLocalDate() async {
+        _ = try? harness.foodLogService.addFoodEntry(
+            DailyLogServiceTestSupport.foodDraft(
+                name: "Greek yogurt",
+                calories: 180,
+                protein: 17,
+                carbs: 8,
+                fat: 4
+            ),
+            date: harness.today
+        )
+
+        let packet = await makeBuilder().makeContext(recentMessages: [], mode: .live)
+        let meal = try XCTUnwrap(packet.recentMealsStructured.first)
+
+        XCTAssertEqual(meal.name, "Greek yogurt")
+        XCTAssertEqual(meal.proteinGrams, 17)
+        XCTAssertEqual(meal.carbsGrams, 8)
+        XCTAssertEqual(meal.fatGrams, 4)
+        XCTAssertNotNil(meal.localDate)
+        XCTAssertNotNil(meal.loggedAt)
+        XCTAssertEqual(meal.source, FoodEntrySource.manual.rawValue)
+    }
+
+    func testCommonFoodsExcludeUncertainOneOffFood() async {
+        _ = try? harness.foodLogService.addFoodEntry(
+            FoodDraft(
+                mealType: .snack,
+                name: "Maybe almonds",
+                quantity: 1,
+                unit: "serving",
+                calories: 120,
+                protein: 4,
+                carbs: 4,
+                fat: 10,
+                fiber: nil,
+                sodium: nil,
+                source: .aiPhotoEstimate,
+                confidence: .low,
+                imageUrl: nil,
+                notes: nil
+            ),
+            date: harness.today
+        )
+        _ = try? harness.foodLogService.addFoodEntry(
+            DailyLogServiceTestSupport.foodDraft(name: "Eggs", calories: 140, protein: 12),
+            date: harness.day(offset: -2)
+        )
+        _ = try? harness.foodLogService.addFoodEntry(
+            DailyLogServiceTestSupport.foodDraft(name: "Eggs", calories: 150, protein: 13),
+            date: harness.today
+        )
+
+        let packet = await makeBuilder().makeContext(recentMessages: [], mode: .live)
+
+        XCTAssertFalse(packet.commonFoods.contains { $0.name == "maybe almonds" })
+        XCTAssertEqual(packet.commonFoods.first?.name, "eggs")
+    }
+
+    func testTodayMealsPrioritizedInRecentMeals() async {
+        for index in 0..<7 {
+            _ = try? harness.foodLogService.addFoodEntry(
+                DailyLogServiceTestSupport.foodDraft(name: "Today \(index)", calories: 200 + index),
+                date: harness.today
+            )
+        }
+        for index in 0..<5 {
+            _ = try? harness.foodLogService.addFoodEntry(
+                DailyLogServiceTestSupport.foodDraft(name: "Prior \(index)", calories: 100 + index),
+                date: harness.day(offset: -1)
+            )
+        }
+
+        let packet = await makeBuilder().makeContext(recentMessages: [], mode: .live)
+
+        XCTAssertEqual(packet.recentMealsStructured.count, 10)
+        XCTAssertEqual(
+            packet.recentMealsStructured.filter { $0.name.hasPrefix("Today") }.count,
+            7
+        )
+        XCTAssertEqual(
+            packet.recentMealsStructured.filter { $0.name.hasPrefix("Prior") }.count,
+            3
+        )
+    }
+
+    func testFoodMemoryKeepsContextWithinByteLimit() async {
+        for index in 0..<12 {
+            _ = try? harness.foodLogService.addFoodEntry(
+                DailyLogServiceTestSupport.foodDraft(
+                    name: "Meal \(index)",
+                    calories: 400 + index,
+                    protein: 25,
+                    carbs: 35,
+                    fat: 12
+                ),
+                date: harness.day(offset: -(index % 20))
+            )
+        }
+
+        let packet = await makeBuilder().makeContext(
+            recentMessages: (0..<8).map {
+                ChatMessage(role: .assistant, text: String(repeating: "Detail ", count: 20) + "\($0)")
+            },
+            mode: .live
+        )
+
+        XCTAssertTrue(packet.fitsWithinByteLimit())
+        XCTAssertLessThanOrEqual(packet.recentMealsStructured.count, CoachContextPacketV2Limits.maxRecentMeals)
+        XCTAssertLessThanOrEqual(packet.commonFoods.count, CoachContextPacketV2Limits.maxCommonFoods)
     }
 
     func testMissingDataWhenStepsUnavailable() async {

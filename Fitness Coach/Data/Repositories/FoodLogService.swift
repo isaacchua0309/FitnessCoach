@@ -128,6 +128,26 @@ final class FoodLogService {
             .map { $0.toModel() }
     }
 
+    /// Returns food entries across an inclusive local-day range using one daily-log fetch.
+    func getFoodEntries(
+        from startDate: Date,
+        to endDate: Date,
+        calendar: Calendar = .current
+    ) throws -> [FoodEntry] {
+        let lowerBound = calendar.startOfDay(for: startDate)
+        let upperBound = calendar.startOfDay(for: endDate)
+        let descriptor = FetchDescriptor<DailyLogEntity>(
+            predicate: #Predicate { $0.date >= lowerBound && $0.date <= upperBound },
+            sortBy: [SortDescriptor(\.date, order: .forward)]
+        )
+        let logs = try store.fetch(descriptor)
+        return logs.flatMap { log in
+            log.foodEntries
+                .sorted { $0.createdAt < $1.createdAt }
+                .map { $0.toModel() }
+        }
+    }
+
     // MARK: Helpers
 
     private func foodEntity(id: UUID) throws -> FoodEntryEntity? {

@@ -18,7 +18,7 @@ struct CoachContextPacketV2Builder {
     static let recentChatMessageLimit = 5
     static let sparseTodayEventThreshold = 4
     static let crossDayLookbackDays = 7
-    static let commonFoodLookbackDays = 14
+    static let commonFoodLookbackDays = 30
 
     private let dailyLogService: DailyLogService?
     private let foodLogService: FoodLogService?
@@ -142,8 +142,13 @@ struct CoachContextPacketV2Builder {
         )
 
         var chatMessages = makeChatMessages(from: recentMessages, currentUserMessage: currentUserMessage)
-        let recentMeals = foodEntries.suffix(CoachContextPacketV2Limits.maxRecentMeals).map(CoachRecentMealContext.from)
-        let commonFoods = makeCommonFoods(endingOn: now)
+        let foodHistory = loadFoodHistory(endingOn: now, sources: &sources)
+        let recentMeals = CoachContextFoodMemoryBuilder.makeRecentMeals(
+            from: foodHistory,
+            todayLocalDate: todayLocalDate,
+            calendar: calendar
+        )
+        let commonFoods = CoachContextFoodMemoryBuilder.makeCommonFoods(from: foodHistory)
 
         var missingData = makeMissingData(
             stepsResult: stepsResult,
@@ -152,7 +157,7 @@ struct CoachContextPacketV2Builder {
             healthUnavailable: healthUnavailable,
             healthIntelligence: healthIntelligence,
             healthSnapshot: healthSnapshot,
-            foodEntries: foodEntries,
+            recentMealCount: recentMeals.count,
             weightEntries: weightEntries,
             dailyLog: dailyLog,
             timelineEventCount: timelineContextEvents.count
@@ -241,6 +246,34 @@ struct CoachContextPacketV2Builder {
             return entries
         } catch {
             logReadFailure("foodLog", error: error)
+            return []
+        }
+    }
+
+    private func loadFoodHistory(endingOn date: Date, sources: inout [String]) -> [FoodEntry] {
+        guard let foodLogService else { return [] }
+
+        let todayStart = calendar.startOfDay(for: date)
+        guard let lookbackStart = calendar.date(
+            byAdding: .day,
+            value: -(Self.commonFoodLookbackDays - 1),
+            to: todayStart
+        ) else {
+            return []
+        }
+
+        do {
+            let entries = try foodLogService.getFoodEntries(
+                from: lookbackStart,
+                to: date,
+                calendar: calendar
+            )
+            if !entries.isEmpty {
+                sources.append("foodLogHistory")
+            }
+            return entries
+        } catch {
+            logReadFailure("foodLogHistory", error: error)
             return []
         }
     }
@@ -607,57 +640,6 @@ struct CoachContextPacketV2Builder {
             .map { CoachChatMessageContext.from(message: $0) }
     }
 
-    private func makeCommonFoods(endingOn date: Date) -> [CoachCommonFoodContext] {
-        guard let foodLogService else { return [] }
-
-        struct Aggregate {
-            var count: Int
-            var lastLoggedAt: Date
-            var calories: [Int]
-        }
-
-        var aggregates: [String: Aggregate] = [:]
-        let todayStart = calendar.startOfDay(for: date)
-
-        for offset in 0..<Self.commonFoodLookbackDays {
-            guard let day = calendar.date(byAdding: .day, value: -offset, to: todayStart) else { continue }
-            let entries = (try? foodLogService.getFoodEntries(for: day)) ?? []
-            for entry in entries {
-                let key = entry.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-                guard !key.isEmpty else { continue }
-                var aggregate = aggregates[key] ?? Aggregate(count: 0, lastLoggedAt: entry.createdAt, calories: [])
-                aggregate.count += 1
-                if entry.createdAt > aggregate.lastLoggedAt {
-                    aggregate.lastLoggedAt = entry.createdAt
-                }
-                aggregate.calories.append(entry.calories)
-                aggregates[key] = aggregate
-            }
-        }
-
-        return aggregates
-            .map { name, aggregate in
-                let typicalCalories: Int? = {
-                    guard !aggregate.calories.isEmpty else { return nil }
-                    return aggregate.calories.reduce(0, +) / aggregate.calories.count
-                }()
-                return CoachCommonFoodContext(
-                    name: name,
-                    logCount: aggregate.count,
-                    lastLoggedAt: aggregate.lastLoggedAt,
-                    typicalCalories: typicalCalories
-                )
-            }
-            .sorted {
-                if $0.logCount == $1.logCount {
-                    return ($0.lastLoggedAt ?? .distantPast) > ($1.lastLoggedAt ?? .distantPast)
-                }
-                return ($0.logCount ?? 0) > ($1.logCount ?? 0)
-            }
-            .prefix(CoachContextPacketV2Limits.maxCommonFoods)
-            .map { $0 }
-    }
-
     private func makeMissingData(
         stepsResult: StepsReadResult,
         workoutsResult: WorkoutsReadResult,
@@ -665,7 +647,7 @@ struct CoachContextPacketV2Builder {
         healthUnavailable: Bool,
         healthIntelligence: CoachHealthIntelligenceContext?,
         healthSnapshot: HealthIntelligenceSnapshot?,
-        foodEntries: [FoodEntry],
+        recentMealCount: Int,
         weightEntries: [WeightEntry],
         dailyLog: DailyLog?,
         timelineEventCount: Int
@@ -686,7 +668,7 @@ struct CoachContextPacketV2Builder {
             hrvMissing: missingSignals.contains(where: { $0.contains("hrv") })
                 || recoverySignals.contains(.hrv),
             weightMissing: weightEntries.isEmpty && dailyLog?.weightKg == nil,
-            noRecentMeals: foodEntries.isEmpty,
+            noRecentMeals: recentMealCount == 0,
             noTimelineHistory: timelineEventCount == 0,
             healthKitDenied: healthAccessDenied || workoutsDenied || stepsDenied,
             healthKitUnavailable: healthUnavailable && !healthAccessDenied,

@@ -257,6 +257,7 @@ struct CoachRecentMealContext: Codable, Equatable, Sendable {
     var carbsGrams: Double?
     var fatGrams: Double?
     var loggedAt: Date?
+    var localDate: String?
     var source: String?
     var confidence: CoachContextConfidence?
     var linkedEntryId: UUID?
@@ -264,9 +265,15 @@ struct CoachRecentMealContext: Codable, Equatable, Sendable {
 
 struct CoachCommonFoodContext: Codable, Equatable, Sendable {
     var name: String
+    var displayName: String?
+    var frequency: Int?
     var logCount: Int?
     var lastLoggedAt: Date?
     var typicalCalories: Int?
+    var typicalProteinGrams: Double?
+    var typicalCarbsGrams: Double?
+    var typicalFatGrams: Double?
+    var macroConfidence: CoachContextConfidence?
 }
 
 // MARK: - Missing data & assumptions
@@ -389,7 +396,7 @@ enum CoachContextPacketV2Limits {
 
     static let maxTimelineEvents = 40
     static let maxChatMessages = 5
-    static let maxRecentMeals = 6
+    static let maxRecentMeals = 10
     static let maxCommonFoods = 10
     static let maxAssumptions = 8
     static let maxSummaryLength = 180
@@ -632,20 +639,59 @@ extension CoachChatMessageContext {
 
 extension CoachRecentMealContext {
 
-    static func from(entry: FoodEntry) -> CoachRecentMealContext {
-        CoachRecentMealContext(
+    static func from(
+        entry: FoodEntry,
+        calendar: Calendar = .current
+    ) -> CoachRecentMealContext {
+        let timestamps = CoachTimelineEvent.makeTimestamps(from: entry.createdAt, calendar: calendar)
+        return CoachRecentMealContext(
             name: entry.name,
             quantity: entry.quantity,
             unit: entry.unit,
             calories: entry.calories,
-            proteinGrams: entry.protein,
-            carbsGrams: entry.carbs,
-            fatGrams: entry.fat,
+            proteinGrams: roundedMacro(entry.protein),
+            carbsGrams: roundedMacro(entry.carbs),
+            fatGrams: roundedMacro(entry.fat),
             loggedAt: entry.createdAt,
+            localDate: timestamps.localDate,
             source: entry.source.rawValue,
             confidence: CoachContextConfidence.from(entry.confidence),
             linkedEntryId: entry.id
         )
+    }
+
+    private static func roundedMacro(_ value: Double) -> Double {
+        guard value > 0 else { return value }
+        let rounded = (value * 10).rounded() / 10
+        return rounded.truncatingRemainder(dividingBy: 1) == 0
+            ? value.rounded()
+            : rounded
+    }
+}
+
+extension CoachCommonFoodContext {
+
+    init(
+        normalizedName: String,
+        displayName: String,
+        frequency: Int,
+        lastLoggedAt: Date,
+        typicalCalories: Int?,
+        typicalProteinGrams: Double?,
+        typicalCarbsGrams: Double?,
+        typicalFatGrams: Double?,
+        macroConfidence: CoachContextConfidence?
+    ) {
+        self.name = normalizedName
+        self.displayName = displayName
+        self.frequency = frequency
+        self.logCount = frequency
+        self.lastLoggedAt = lastLoggedAt
+        self.typicalCalories = typicalCalories
+        self.typicalProteinGrams = typicalProteinGrams
+        self.typicalCarbsGrams = typicalCarbsGrams
+        self.typicalFatGrams = typicalFatGrams
+        self.macroConfidence = macroConfidence
     }
 }
 
