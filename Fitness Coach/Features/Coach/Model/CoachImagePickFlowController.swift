@@ -16,6 +16,11 @@ final class CoachImagePickFlowController: ObservableObject {
     @Published var isPhotoPickerPresented = false
     @Published var isCameraPresented = false
 
+    /// Set before `fullScreenCover` dismiss runs so a delivered capture is not dropped.
+    private var cameraDeliveredResult = false
+    /// Set when `PhotosPicker` hands off an item before the dismiss callback runs.
+    private var librarySelectionReceived = false
+
     var allowsAttachmentPick: Bool {
         !state.isBusy
     }
@@ -25,7 +30,12 @@ final class CoachImagePickFlowController: ObservableObject {
     }
 
     func handleAttachmentRemoved() {
+        librarySelectionReceived = false
         state = .idle
+    }
+
+    func markLibrarySelectionReceived() {
+        librarySelectionReceived = true
     }
 
     @discardableResult
@@ -42,6 +52,7 @@ final class CoachImagePickFlowController: ObservableObject {
         guard state == .idle else { return }
         guard model.requestPhotoPick() else { return }
 
+        cameraDeliveredResult = false
         state = .requestingPermission(.camera)
 
         let permission = await CoachCameraAccess.resolveForCapture()
@@ -52,12 +63,16 @@ final class CoachImagePickFlowController: ObservableObject {
             state = .pickerPresented(.camera)
             isCameraPresented = true
         case .failure(let error):
-            await handleFailure(error, model: model)
+            await handleFailure(error, model: model, requiresActiveImport: false)
         }
     }
 
     func handlePhotoLibraryPickerDismissed() {
         guard case .pickerPresented(.library) = state else { return }
+        if librarySelectionReceived {
+            librarySelectionReceived = false
+            return
+        }
         state = .idle
         isPhotoPickerPresented = false
     }
@@ -66,7 +81,8 @@ final class CoachImagePickFlowController: ObservableObject {
         _ item: PhotosPickerItem,
         model: CoachModel
     ) async {
-        guard state == .pickerPresented(.library) || state == .idle else { return }
+        librarySelectionReceived = false
+        guard case .pickerPresented(.library) = state else { return }
 
         isPhotoPickerPresented = false
         state = .processingImage(.library)
@@ -85,7 +101,12 @@ final class CoachImagePickFlowController: ObservableObject {
                 originalEstimatedBytes: loaded.originalEstimatedBytes,
                 localReferenceID: localReferenceID
             )
-            await completeImport(importResult, source: .library, model: model)
+            await completeImport(
+                importResult,
+                source: .library,
+                model: model,
+                localReferenceID: localReferenceID
+            )
         }
     }
 
@@ -93,6 +114,8 @@ final class CoachImagePickFlowController: ObservableObject {
         _ result: Result<UIImage, CoachMealPhotoError>,
         model: CoachModel
     ) async {
+        cameraDeliveredResult = true
+        defer { cameraDeliveredResult = false }
         isCameraPresented = false
 
         switch result {
@@ -118,7 +141,12 @@ final class CoachImagePickFlowController: ObservableObject {
                 source: .camera,
                 localReferenceID: localReferenceID
             )
-            await completeImport(importResult, source: .camera, model: model)
+            await completeImport(
+                importResult,
+                source: .camera,
+                model: model,
+                localReferenceID: localReferenceID
+            )
         }
     }
 
@@ -142,7 +170,12 @@ final class CoachImagePickFlowController: ObservableObject {
                 originalEstimatedBytes: originalEstimatedBytes,
                 localReferenceID: localReferenceID
             )
-            await completeImport(importResult, source: source, model: model)
+            await completeImport(
+                importResult,
+                source: source,
+                model: model,
+                localReferenceID: localReferenceID
+            )
             return
         }
 
@@ -155,6 +188,7 @@ final class CoachImagePickFlowController: ObservableObject {
     }
 
     func handleCameraPickerDismissedWithoutResult() {
+        guard !cameraDeliveredResult else { return }
         guard case .pickerPresented(.camera) = state else { return }
         state = .idle
         isCameraPresented = false
@@ -163,15 +197,24 @@ final class CoachImagePickFlowController: ObservableObject {
     private func completeImport(
         _ result: Result<CoachImagePipeline.ProcessedImageImport, CoachMealPhotoError>,
         source: CoachInputAttachmentSource,
-        model: CoachModel
+        model: CoachModel,
+        localReferenceID: UUID
     ) async {
         switch result {
         case .failure(.userCancelled):
+            guard model.hasActivePendingImageImport() else {
+                state = .idle
+                return
+            }
             model.revertPendingImageProcessingCancel()
             state = .idle
         case .failure(let error):
             await handleFailure(error, model: model)
         case .success(let imported):
+            guard model.shouldAcceptImportSuccess(localReferenceID: localReferenceID) else {
+                state = .idle
+                return
+            }
             let staged = await model.stagePipelineProcessedPhoto(imported, source: source)
             if staged {
                 state = .imageReady
@@ -182,9 +225,18 @@ final class CoachImagePickFlowController: ObservableObject {
         }
     }
 
-    private func handleFailure(_ error: CoachMealPhotoError, model: CoachModel) async {
+    private func handleFailure(
+        _ error: CoachMealPhotoError,
+        model: CoachModel,
+        requiresActiveImport: Bool = true
+    ) async {
         guard error != .userCancelled else {
             model.revertPendingImageProcessingCancel()
+            state = .idle
+            return
+        }
+
+        if requiresActiveImport, !model.hasActivePendingImageImport() {
             state = .idle
             return
         }

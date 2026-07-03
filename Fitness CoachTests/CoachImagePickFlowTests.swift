@@ -98,6 +98,58 @@ final class CoachImagePickFlowTests: XCTestCase {
         XCTAssertTrue(flow.allowsAttachmentPick)
     }
 
+    func testCameraCancelLeavesComposerClean() async throws {
+        let container = try AppContainer(inMemory: true)
+        let model = makeModel(container: container)
+        let flow = CoachImagePickFlowController()
+
+        flow.setStateForTests(.pickerPresented(.camera))
+        await flow.handleCameraResult(.failure(.userCancelled), model: model)
+
+        XCTAssertEqual(flow.state, .idle)
+        XCTAssertNil(model.inputState.pendingImage)
+        XCTAssertTrue(model.inputState.canStartImageSelection)
+    }
+
+    func testCameraDismissAfterDeliveredResultDoesNotDropCapture() async throws {
+        let container = try AppContainer(inMemory: true)
+        let model = makeModel(container: container)
+        let flow = CoachImagePickFlowController()
+        let image = Self.makeTestImage(size: CGSize(width: 640, height: 480))
+
+        flow.setStateForTests(.pickerPresented(.camera))
+        let captureTask = Task {
+            await flow.handleCameraResult(.success(image), model: model)
+        }
+        await Task.yield()
+        flow.handleCameraPickerDismissedWithoutResult()
+        await captureTask.value
+
+        XCTAssertNotNil(model.inputState.pendingImage)
+        XCTAssertEqual(model.inputState.pendingImage?.status, .ready)
+        XCTAssertEqual(flow.state, .idle)
+    }
+
+    func testLibraryDismissWithoutSelectionReturnsIdle() throws {
+        let flow = CoachImagePickFlowController()
+        flow.setStateForTests(.pickerPresented(.library))
+
+        flow.handlePhotoLibraryPickerDismissed()
+
+        XCTAssertEqual(flow.state, .idle)
+        XCTAssertTrue(flow.allowsAttachmentPick)
+    }
+
+    func testLibraryDismissWithPendingSelectionDoesNotCancelPickerState() throws {
+        let flow = CoachImagePickFlowController()
+        flow.setStateForTests(.pickerPresented(.library))
+
+        flow.markLibrarySelectionReceived()
+        flow.handlePhotoLibraryPickerDismissed()
+
+        XCTAssertEqual(flow.state, .pickerPresented(.library))
+    }
+
     private func makeModel(container: AppContainer) -> CoachModel {
         CoachModel(
             actionCenter: container.actionCenter,

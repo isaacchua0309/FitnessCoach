@@ -104,6 +104,7 @@ struct CoachView: View {
             .onChange(of: photoPickerItem) { _, item in
                 guard let item else { return }
                 photoPickerItem = nil
+                imagePickFlow.markLibrarySelectionReceived()
                 Task {
                     await imagePickFlow.handlePhotoLibrarySelection(item, model: model)
                 }

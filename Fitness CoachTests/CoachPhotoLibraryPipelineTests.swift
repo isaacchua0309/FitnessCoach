@@ -105,9 +105,14 @@ final class CoachPhotoLibraryPipelineTests: XCTestCase {
         XCTAssertEqual(model.inputState.pendingImage?.uploadData, firstUpload)
         XCTAssertEqual(model.inputState.pendingImage?.status, .processing)
 
-        await model.handlePipelineProcessedMealPhoto(
-            secondProcessed,
-            originalEstimatedBytes: 800_000,
+        let replacementReferenceID = UUID()
+        model.attachPendingImageLocalReference(replacementReferenceID)
+        await model.stagePipelineProcessedPhoto(
+            CoachImagePipeline.ProcessedImageImport(
+                processed: secondProcessed,
+                originalEstimatedBytes: 800_000,
+                localReferenceID: replacementReferenceID
+            ),
             source: .library
         )
 

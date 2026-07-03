@@ -198,6 +198,15 @@ final class CoachModel: ObservableObject {
         return true
     }
 
+    func hasActivePendingImageImport() -> Bool {
+        inputState.pendingImage?.isProcessing == true
+    }
+
+    func shouldAcceptImportSuccess(localReferenceID: UUID) -> Bool {
+        guard let pending = inputState.pendingImage, pending.isProcessing else { return false }
+        return pending.localReferenceID == localReferenceID
+    }
+
     @discardableResult
     func requestPhotoPick() -> Bool {
         inputState.canStartImageSelection
@@ -284,12 +293,18 @@ final class CoachModel: ObservableObject {
         let processed = imported.processed
 
         let staged = mutateInputState { state -> Bool in
+            if let pending = state.pendingImage, pending.isProcessing {
+                guard pending.localReferenceID == imported.localReferenceID else {
+                    return false
+                }
+            }
             state.applyProcessedImage(
                 processed,
                 source: source,
                 originalEstimatedBytes: imported.originalEstimatedBytes,
                 localReferenceID: imported.localReferenceID
             )
+            return true
         }
 
         guard staged else { return false }
@@ -320,6 +335,7 @@ final class CoachModel: ObservableObject {
     }
 
     func failPendingImageProcessing(_ error: CoachMealPhotoError) {
+        guard hasActivePendingImageImport() else { return }
         mutateInputState { $0.failImageProcessing(error) }
     }
 
