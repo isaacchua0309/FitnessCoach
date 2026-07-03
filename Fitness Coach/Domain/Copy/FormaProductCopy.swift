@@ -3708,6 +3708,220 @@ enum FormaProductCopy {
                 )
             }
         }
+
+        enum UIState {
+            static func message(
+                for kind: HealthIntelligenceUIStateKind,
+                surface: HealthIntelligenceSurface = .today,
+                explicitErrorMessage: String? = nil
+            ) -> HealthIntelligenceUIStateMessage {
+                switch kind {
+                case .loading:
+                    return HealthIntelligenceUIStateMessage(
+                        title: Loading.title,
+                        message: Loading.subtitle(for: surface),
+                        reassurance: nil,
+                        primaryActionTitle: nil,
+                        secondaryActionTitle: nil,
+                        primaryAction: .none,
+                        secondaryAction: .none
+                    )
+                case .ready:
+                    return HealthIntelligenceUIStateMessage(
+                        title: "",
+                        message: "",
+                        reassurance: nil,
+                        primaryActionTitle: nil,
+                        secondaryActionTitle: nil,
+                        primaryAction: .none,
+                        secondaryAction: .none
+                    )
+                case .noHealthPermission:
+                    return HealthIntelligenceUIStateMessage(
+                        title: NoHealthPermission.title,
+                        message: NoHealthPermission.message,
+                        reassurance: NoHealthPermission.reassurance,
+                        primaryActionTitle: NoHealthPermission.actionTitle,
+                        secondaryActionTitle: Ready.continueLoggingAction,
+                        primaryAction: .connectAppleHealth,
+                        secondaryAction: .continueLogging
+                    )
+                case .partialPermission:
+                    return HealthIntelligenceUIStateMessage(
+                        title: PartialHealthPermission.title,
+                        message: PartialHealthPermission.message,
+                        reassurance: PartialHealthPermission.reassurance,
+                        primaryActionTitle: PartialHealthPermission.actionTitle,
+                        secondaryActionTitle: Ready.continueLoggingAction,
+                        primaryAction: .manageHealthPermissions,
+                        secondaryAction: .continueLogging
+                    )
+                case .healthKitUnavailable:
+                    return HealthIntelligenceUIStateMessage(
+                        title: UnavailableOnDevice.title,
+                        message: UnavailableOnDevice.message,
+                        reassurance: UnavailableOnDevice.reassurance,
+                        primaryActionTitle: nil,
+                        secondaryActionTitle: Ready.continueLoggingAction,
+                        primaryAction: .none,
+                        secondaryAction: .continueLogging
+                    )
+                case .noWorkoutHistory:
+                    return HealthIntelligenceUIStateMessage(
+                        title: NoWorkoutHistory.title,
+                        message: NoWorkoutHistory.message(for: surface),
+                        reassurance: NoWorkoutHistory.reassurance,
+                        primaryActionTitle: NoWorkoutHistory.primaryAction,
+                        secondaryActionTitle: Ready.continueLoggingAction,
+                        primaryAction: .openPlan,
+                        secondaryAction: .continueLogging
+                    )
+                case .noSleepData:
+                    return HealthIntelligenceUIStateMessage(
+                        title: NoSleepData.title,
+                        message: NoSleepData.message,
+                        reassurance: NoSleepData.reassurance,
+                        primaryActionTitle: PartialHealthPermission.actionTitle,
+                        secondaryActionTitle: Ready.continueLoggingAction,
+                        primaryAction: .manageHealthPermissions,
+                        secondaryAction: .continueLogging
+                    )
+                case .noHeartData:
+                    return HealthIntelligenceUIStateMessage(
+                        title: NoHeartData.title,
+                        message: NoHeartData.message,
+                        reassurance: NoHeartData.reassurance,
+                        primaryActionTitle: PartialHealthPermission.actionTitle,
+                        secondaryActionTitle: Ready.continueLoggingAction,
+                        primaryAction: .manageHealthPermissions,
+                        secondaryAction: .continueLogging
+                    )
+                case .notEnoughBaseline:
+                    return HealthIntelligenceUIStateMessage(
+                        title: NotEnoughBaseline.title,
+                        message: NotEnoughBaseline.message(for: surface),
+                        reassurance: NotEnoughBaseline.reassurance,
+                        primaryActionTitle: Ready.continueLoggingAction,
+                        secondaryActionTitle: nil,
+                        primaryAction: .continueLogging,
+                        secondaryAction: .none
+                    )
+                case .syncFailed:
+                    return HealthIntelligenceUIStateMessage(
+                        title: SyncFailed.title,
+                        message: explicitErrorMessage ?? SyncFailed.message,
+                        reassurance: SyncFailed.reassurance,
+                        primaryActionTitle: SyncFailed.actionTitle,
+                        secondaryActionTitle: Ready.continueLoggingAction,
+                        primaryAction: .retrySync,
+                        secondaryAction: .continueLogging
+                    )
+                case .staleData:
+                    return HealthIntelligenceUIStateMessage(
+                        title: StaleData.title,
+                        message: StaleData.message,
+                        reassurance: StaleData.reassurance,
+                        primaryActionTitle: StaleData.primaryAction,
+                        secondaryActionTitle: Ready.continueLoggingAction,
+                        primaryAction: .refreshHealthData,
+                        secondaryAction: .continueLogging
+                    )
+                case .remoteSyncDisabled:
+                    return HealthIntelligenceUIStateMessage(
+                        title: RemoteSyncDisabled.title,
+                        message: RemoteSyncDisabled.message,
+                        reassurance: RemoteSyncDisabled.reassurance,
+                        primaryActionTitle: RemoteSyncDisabled.primaryAction,
+                        secondaryActionTitle: Ready.continueLoggingAction,
+                        primaryAction: .manageHealthDataSync,
+                        secondaryAction: .continueLogging
+                    )
+                case .unknown:
+                    return HealthIntelligenceUIStateMessage(
+                        title: Unknown.title,
+                        message: Unknown.message,
+                        reassurance: Unknown.reassurance,
+                        primaryActionTitle: Ready.continueLoggingAction,
+                        secondaryActionTitle: AskCoach.actionTitle,
+                        primaryAction: .continueLogging,
+                        secondaryAction: .askCoach
+                    )
+                }
+            }
+
+            enum Ready {
+                static let continueLoggingAction = "Continue logging"
+            }
+
+            enum AskCoach {
+                static let actionTitle = "Ask Coach"
+            }
+
+            enum NoWorkoutHistory {
+                static let title = "No workout history yet"
+                static let reassurance = "Logging meals and water still keeps your plan on track."
+                static let primaryAction = "Open Plan"
+
+                static func message(for surface: HealthIntelligenceSurface) -> String {
+                    switch surface {
+                    case .journey:
+                        return "Apple Health is connected, but Forma has not synced workouts yet."
+                    case .plan:
+                        return "Plan confidence improves after Forma sees workouts from Apple Health."
+                    default:
+                        return "Workout insights appear after Apple Health syncs a workout."
+                    }
+                }
+            }
+
+            enum NoSleepData {
+                static let title = "Sleep data not available"
+                static let message =
+                    "Recovery guidance stays limited until sleep is shared from Apple Health."
+                static let reassurance = "You can still follow your plan and log meals as usual."
+            }
+
+            enum NoHeartData {
+                static let title = "Heart data not available"
+                static let message =
+                    "Resting heart rate and HRV help Forma refine recovery guidance when available."
+                static let reassurance = "Activity and logging still keep daily guidance useful."
+            }
+
+            enum NotEnoughBaseline {
+                static let title = "Health signals are still building"
+                static let reassurance = "Keep logging meals and check back after a few more days."
+                static func message(for surface: HealthIntelligenceSurface) -> String {
+                    switch surface {
+                    case .plan:
+                        return "Forma needs more synced days before plan confidence can strengthen."
+                    default:
+                        return "Apple Health is connected. Insights improve after more synced days."
+                    }
+                }
+            }
+
+            enum StaleData {
+                static let title = "Health data may be out of date"
+                static let message = "Forma has not refreshed Apple Health recently on this device."
+                static let reassurance = "Your logged meals and water are still up to date."
+                static let primaryAction = "Refresh health data"
+            }
+
+            enum RemoteSyncDisabled {
+                static let title = "Cloud health sync is off"
+                static let message =
+                    "Normalized health summaries are not syncing across devices because sync is turned off."
+                static let reassurance = "Local Apple Health features on this device still work."
+                static let primaryAction = "Manage health data sync"
+            }
+
+            enum Unknown {
+                static let title = "Health insight unavailable"
+                static let message = "Forma could not build a health summary for this screen right now."
+                static let reassurance = "You can keep logging and try again later."
+            }
+        }
     }
 
     // MARK: - Legal
