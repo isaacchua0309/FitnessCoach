@@ -67,6 +67,11 @@ struct PlanActivityExpertAdjustmentsCard<Content: View>: View {
 
     private var cardBorder: some View {
         RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-            .stroke(FormaPlanTokens.Color.planCardBorder.opacity(0.45), lineWidth: 1)
+            .stroke(
+                isExpanded
+                    ? FormaPlanTokens.Color.planAccentBorder
+                    : FormaPlanTokens.Color.planSubtleCardBorder,
+                lineWidth: isExpanded ? 1.5 : 1
+            )
     }
 }

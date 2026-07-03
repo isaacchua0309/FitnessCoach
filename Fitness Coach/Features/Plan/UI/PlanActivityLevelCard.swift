@@ -84,20 +84,14 @@ struct PlanActivityLevelCard: View {
 
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-            .fill(
-                isSelected
-                    ? FormaPlanTokens.Color.planSelectedCardBackground
-                    : FormaPlanTokens.Color.planUnselectedCardBackground
-            )
+            .fill(PlanEditSelectionChrome.cardBackground(isSelected: isSelected))
     }
 
     private var cardBorder: some View {
         RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
             .stroke(
-                isSelected
-                    ? FormaPlanTokens.Color.planAccent
-                    : FormaPlanTokens.Color.planCardBorder.opacity(0.45),
-                lineWidth: isSelected ? 1.5 : 1
+                PlanEditSelectionChrome.cardStrokeColor(isSelected: isSelected),
+                lineWidth: PlanEditSelectionChrome.cardStrokeWidth(isSelected: isSelected)
             )
     }
 

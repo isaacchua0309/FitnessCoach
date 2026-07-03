@@ -54,10 +54,14 @@ struct PlanGoalWeightInputField: View {
             .overlay {
                 RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
                     .stroke(
-                        showsValidation
-                            ? FormaPlanTokens.Color.planDanger
-                            : FormaPlanTokens.Color.planCardBorder.opacity(0.55),
-                        lineWidth: showsValidation ? 1.5 : 1
+                        PlanEditSelectionChrome.inputStrokeColor(
+                            isFocused: false,
+                            isInvalid: showsValidation
+                        ),
+                        lineWidth: PlanEditSelectionChrome.inputStrokeWidth(
+                            isFocused: false,
+                            isInvalid: showsValidation
+                        )
                     )
             }
 

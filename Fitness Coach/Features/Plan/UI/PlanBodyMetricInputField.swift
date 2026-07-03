@@ -67,17 +67,17 @@ struct PlanBodyMetricInputField: View {
     }
 
     private var borderColor: Color {
-        if showsValidation {
-            return FormaPlanTokens.Color.planDanger
-        }
-        if isFocused {
-            return FormaPlanTokens.Color.planAccent
-        }
-        return FormaPlanTokens.Color.planCardBorder.opacity(0.55)
+        PlanEditSelectionChrome.inputStrokeColor(
+            isFocused: isFocused,
+            isInvalid: showsValidation
+        )
     }
 
     private var borderWidth: CGFloat {
-        showsValidation || isFocused ? 1.5 : 1
+        PlanEditSelectionChrome.inputStrokeWidth(
+            isFocused: isFocused,
+            isInvalid: showsValidation
+        )
     }
 }
 

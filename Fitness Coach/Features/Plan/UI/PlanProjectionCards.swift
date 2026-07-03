@@ -22,7 +22,7 @@ struct PlanProjectionPaceCard: View {
                 if let validationError {
                     Text(validationError)
                         .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaPlanTokens.Color.planSecondaryText)
+                        .foregroundStyle(FormaPlanTokens.Color.planDanger)
                 } else {
                     difficultyHeader
 

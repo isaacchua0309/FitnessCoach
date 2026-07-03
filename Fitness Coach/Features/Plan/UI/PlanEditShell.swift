@@ -57,12 +57,16 @@ struct PlanEditShell<Content: View>: View {
             ToolbarItem(placement: .confirmationAction) {
                 if showsConfirmation {
                     Button(action: onConfirm) {
-                        if isConfirmationLoading {
-                            SwiftUI.ProgressView()
-                        } else {
-                            Text(confirmationTitle)
+                        Group {
+                            if isConfirmationLoading {
+                                SwiftUI.ProgressView()
+                                    .tint(FormaPlanTokens.Color.planAccent)
+                            } else {
+                                Text(confirmationTitle)
+                            }
                         }
                     }
+                    .foregroundStyle(confirmActionColor)
                     .disabled(!isConfirmationEnabled || isConfirmationLoading)
                 }
             }
@@ -70,6 +74,12 @@ struct PlanEditShell<Content: View>: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             Color.clear.frame(height: Layout.bottomInset)
         }
+    }
+
+    private var confirmActionColor: Color {
+        isConfirmationEnabled && !isConfirmationLoading
+            ? FormaPlanTokens.Color.planAccent
+            : FormaPlanTokens.Color.planDisabledAction
     }
 }
 
@@ -152,24 +162,37 @@ struct PlanEditHeroCard: View {
     }
 }
 
-#Preview("Edit Plan shell") {
-    NavigationStack {
+#Preview("Edit Plan shell — Ocean Blue") {
+    planEditShellPreview(palette: .oceanBlue, appearance: .dark)
+}
+
+#Preview("Edit Plan shell — Blossom Pink") {
+    planEditShellPreview(palette: .blossomPink, appearance: .dark)
+}
+
+#Preview("Edit Plan shell — Emerald Green") {
+    planEditShellPreview(palette: .emeraldGreen, appearance: .light)
+}
+
+#Preview("Edit Plan shell — Sunset Orange") {
+    planEditShellPreview(palette: .sunsetOrange, appearance: .light)
+}
+
+@MainActor
+private func planEditShellPreview(
+    palette: AppThemePalette,
+    appearance: AppAppearanceMode
+) -> some View {
+    let formState = PlanFormState(profile: PlanMissionControlFixtures.loseProfile)
+    let projection = PlanProjectionBuilder.build(formState: formState, goalType: .loseFat)
+
+    return NavigationStack {
         PlanEditShell(
             title: FormaProductCopy.PlanEditHero.shellTitle,
             stepCount: 5,
             currentStepIndex: 1,
-            heroState: PlanEditHeroStateBuilder.build(
-                input: PlanEditHeroStateBuilder.Input(
-                    goalType: .loseFat,
-                    currentWeightKg: 90,
-                    goalWeightKg: 70,
-                    weeklyPaceKg: 0.5,
-                    goalDatePace: nil,
-                    referenceDate: Date(),
-                    calendar: .current
-                )
-            ),
-            confirmationTitle: "Next",
+            heroState: PlanEditHeroStateBuilder.build(projection: projection),
+            confirmationTitle: FormaProductCopy.PlanEditCommon.next,
             showsConfirmation: true,
             isConfirmationEnabled: true,
             isConfirmationLoading: false,
@@ -184,5 +207,5 @@ struct PlanEditHeroCard: View {
             .scrollContentBackground(.hidden)
         }
     }
-    .formaThemePreview()
+    .formaThemePreview(appearance: appearance, palette: palette)
 }

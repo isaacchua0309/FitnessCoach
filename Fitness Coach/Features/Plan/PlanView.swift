@@ -110,6 +110,7 @@ struct PlanView: View {
                             }
                         )
                         .tint(FormaPlanTokens.Color.planAccent)
+                        .formaThemeReactive()
                     }
                 }
                 .sheet(isPresented: $model.isShowingSettingsSheet) {

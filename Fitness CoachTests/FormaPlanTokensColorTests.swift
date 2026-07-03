@@ -85,12 +85,22 @@ final class FormaPlanTokensColorTests: XCTestCase {
             accent: .pink,
             accentSoft: baseline.accentSoft,
             success: baseline.success,
+            successSoft: baseline.successSoft,
+            successBorder: baseline.successBorder,
             warning: baseline.warning,
             warningSoft: baseline.warningSoft,
+            warningBorder: baseline.warningBorder,
             danger: baseline.danger,
             divider: baseline.divider,
             inputBackground: baseline.inputBackground,
+            inputBorder: baseline.inputBorder,
             cardBorder: baseline.cardBorder,
+            subtleCardBorder: baseline.subtleCardBorder,
+            selectedBorder: baseline.selectedBorder,
+            accentBorder: baseline.accentBorder,
+            accentHighlight: baseline.accentHighlight,
+            disabledAction: baseline.disabledAction,
+            upToDateBackground: baseline.upToDateBackground,
             progressTrack: baseline.progressTrack,
             progressFill: baseline.progressFill,
             selectedCardBackground: baseline.selectedCardBackground,
@@ -114,9 +124,54 @@ final class FormaPlanTokensColorTests: XCTestCase {
                     XCTAssertGreaterThan(FormaColorContrast.alpha(planColors.planAccent), 0.5)
                     XCTAssertGreaterThan(FormaColorContrast.alpha(planColors.planWarning), 0.5)
                     XCTAssertGreaterThan(FormaColorContrast.alpha(planColors.planWarningSoft), 0.05)
+                    XCTAssertGreaterThan(FormaColorContrast.alpha(planColors.planSuccessSoft), 0.05)
+                    XCTAssertGreaterThan(FormaColorContrast.alpha(planColors.planDisabledAction), 0.5)
+                    XCTAssertGreaterThan(FormaColorContrast.alpha(planColors.planInputBorder), 0.05)
+                    XCTAssertGreaterThan(FormaColorContrast.alpha(planColors.planSelectedBorder), 0.05)
                     XCTAssertGreaterThan(FormaColorContrast.alpha(planColors.planProgressFill), 0.5)
                 }
             }
+        }
+    }
+
+    func testPlanDisabledActionUsesMutedTextAcrossThemes() async {
+        await MainActor.run {
+            for palette in AppThemePalette.allCases {
+                for scheme in [ColorScheme.light, ColorScheme.dark] {
+                    let resolved = makeResolved(palette: palette, colorScheme: scheme)
+                    FormaThemeAccess.update(resolved: resolved)
+                    let expected = PlanThemeColorProvider.planColors(from: resolved)
+
+                    assertSameColor(
+                        FormaPlanTokens.Color.planDisabledAction,
+                        expected.planDisabledAction
+                    )
+                    assertSameColor(
+                        FormaPlanTokens.Color.planDisabledAction,
+                        expected.mutedText
+                    )
+                }
+            }
+        }
+    }
+
+    func testPlanFeedbackTokensStayDistinctFromAccent() async {
+        await MainActor.run {
+            let resolved = makeResolved(palette: .sunsetOrange, colorScheme: .dark)
+            FormaThemeAccess.update(resolved: resolved)
+
+            XCTAssertGreaterThan(
+                colorDistance(FormaPlanTokens.Color.planSuccess, FormaPlanTokens.Color.planAccent),
+                0.05
+            )
+            XCTAssertGreaterThan(
+                colorDistance(FormaPlanTokens.Color.planWarning, FormaPlanTokens.Color.planAccent),
+                0.05
+            )
+            XCTAssertGreaterThan(
+                colorDistance(FormaPlanTokens.Color.planDanger, FormaPlanTokens.Color.planAccent),
+                0.05
+            )
         }
     }
 

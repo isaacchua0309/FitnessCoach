@@ -109,8 +109,8 @@ struct WeightLossPaceSettingsView: View {
                             .fill(FormaPlanTokens.Color.planInputBackground)
                     }
                     .overlay {
-                        RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
-                            .stroke(FormaPlanTokens.Color.planCardBorder.opacity(0.55), lineWidth: 1)
+                RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
+                    .stroke(FormaPlanTokens.Color.planInputBorder, lineWidth: 1)
                     }
                 }
             }

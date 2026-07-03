@@ -117,10 +117,8 @@ struct PlanEditBodyBaselineStepView: View {
                 .overlay {
                     Capsule()
                         .stroke(
-                            isSelected
-                                ? FormaPlanTokens.Color.planAccent
-                                : FormaPlanTokens.Color.planCardBorder.opacity(0.45),
-                            lineWidth: isSelected ? 1.5 : 1
+                            PlanEditSelectionChrome.cardStrokeColor(isSelected: isSelected),
+                            lineWidth: PlanEditSelectionChrome.cardStrokeWidth(isSelected: isSelected)
                         )
                 }
         }

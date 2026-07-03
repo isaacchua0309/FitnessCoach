@@ -58,6 +58,7 @@ struct PlanEditWizard: View {
             .onChange(of: formState.birthDate) { _, _ in
                 formState.syncAgeTextFromBirthDate()
             }
+            .formaThemeReactive()
         }
     }
 

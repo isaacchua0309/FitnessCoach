@@ -34,7 +34,7 @@ struct PlanEditReviewStatusBanner: View {
             RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
                 .fill(
                     isUpToDate
-                        ? FormaPlanTokens.Color.planAccentSoft.opacity(0.55)
+                        ? FormaPlanTokens.Color.planUpToDateBackground
                         : FormaPlanTokens.Color.planSelectedCardBackground
                 )
         }
@@ -42,8 +42,8 @@ struct PlanEditReviewStatusBanner: View {
             RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
                 .stroke(
                     isUpToDate
-                        ? FormaPlanTokens.Color.planSuccess.opacity(0.35)
-                        : FormaPlanTokens.Color.planAccent.opacity(0.45),
+                        ? FormaPlanTokens.Color.planSuccessBorder
+                        : FormaPlanTokens.Color.planAccentBorder,
                     lineWidth: 1
                 )
         }
@@ -164,7 +164,7 @@ struct PlanEditReviewWarningCard: View {
         }
         .overlay {
             RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-                .stroke(FormaPlanTokens.Color.planWarning.opacity(0.35), lineWidth: 1)
+                .stroke(FormaPlanTokens.Color.planWarningBorder, lineWidth: 1)
         }
     }
 }

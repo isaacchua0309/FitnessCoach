@@ -21,12 +21,22 @@ struct FormaPlanColors: Equatable, Sendable {
     let accent: Color
     let accentSoft: Color
     let success: Color
+    let successSoft: Color
+    let successBorder: Color
     let warning: Color
     let warningSoft: Color
+    let warningBorder: Color
     let danger: Color
     let divider: Color
     let inputBackground: Color
+    let inputBorder: Color
     let cardBorder: Color
+    let subtleCardBorder: Color
+    let selectedBorder: Color
+    let accentBorder: Color
+    let accentHighlight: Color
+    let disabledAction: Color
+    let upToDateBackground: Color
     let progressTrack: Color
     let progressFill: Color
     let selectedCardBackground: Color
@@ -43,12 +53,22 @@ struct FormaPlanColors: Equatable, Sendable {
     var planAccent: Color { accent }
     var planAccentSoft: Color { accentSoft }
     var planSuccess: Color { success }
+    var planSuccessSoft: Color { successSoft }
+    var planSuccessBorder: Color { successBorder }
     var planWarning: Color { warning }
     var planWarningSoft: Color { warningSoft }
+    var planWarningBorder: Color { warningBorder }
     var planDanger: Color { danger }
     var planDivider: Color { divider }
     var planInputBackground: Color { inputBackground }
+    var planInputBorder: Color { inputBorder }
     var planCardBorder: Color { cardBorder }
+    var planSubtleCardBorder: Color { subtleCardBorder }
+    var planSelectedBorder: Color { selectedBorder }
+    var planAccentBorder: Color { accentBorder }
+    var planAccentHighlight: Color { accentHighlight }
+    var planDisabledAction: Color { disabledAction }
+    var planUpToDateBackground: Color { upToDateBackground }
     var planProgressTrack: Color { progressTrack }
     var planProgressFill: Color { progressFill }
     var planSelectedCardBackground: Color { selectedCardBackground }

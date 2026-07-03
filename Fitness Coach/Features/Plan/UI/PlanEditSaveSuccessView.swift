@@ -54,7 +54,7 @@ struct PlanEditSaveSuccessView: View {
     private var checkmarkIcon: some View {
         ZStack {
             Circle()
-                .fill(FormaPlanTokens.Color.planSuccess.opacity(0.14))
+                .fill(FormaPlanTokens.Color.planSuccessSoft)
                 .frame(width: 88, height: 88)
 
             Image(systemName: "checkmark.circle.fill")
