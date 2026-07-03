@@ -1080,12 +1080,18 @@ enum FormaProductCopy {
         }
 
         enum SmartCoach {
-            static let logFirstMeal = "Log your first meal to start today."
-            static let proteinBehind = "Add protein at your next meal."
-            static let waterBehind = "Drink water before your next meal."
-            static let bothBehind = "Catch up on protein and water at your next break."
-            static let overTarget = "Above target — keep logging honestly."
-            static let postWorkoutProtein = "Refuel with protein after your workout."
+            static let proteinBehind =
+                "Protein is behind. Prioritize lean protein at your next meal."
+            static let waterBehind = "Hydration is behind. Add water now."
+            static let caloriesCloseToTarget =
+                "You're close to your calorie limit. Keep dinner simple."
+            static let caloriesExceeded =
+                "You're above today's calorie target. Focus on hydration and recovery."
+            static let workoutRecovery = "Workout logged. Protein helps recovery."
+            static let endOfDayIncomplete =
+                "Key habits are still open tonight. Finish strong with one more log."
+            static let coachProteinAction = "Log protein with Coach"
+            static let coachReviewAction = "Review with Coach"
         }
 
         enum EndOfDay {

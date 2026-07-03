@@ -26,13 +26,7 @@ enum TodayPresentationBuilder {
         let activity = activity(from: inputs)
         let meals = meals(from: inputs, emptyContext: emptyContext)
         let victory = victory(from: inputs)
-        let smartCoach = smartCoach(
-            from: inputs,
-            mission: mission,
-            macroHydration: macroHydration,
-            activity: activity,
-            mealsEmptyKind: emptyContext.mealsEmptyKind
-        )
+        let smartCoach = smartCoach(from: inputs)
         let endOfDay = endOfDay(from: inputs)
 
         return TodayDashboardState(
@@ -251,7 +245,7 @@ enum TodayPresentationBuilder {
         return TodayMacroHydrationState(
             focus: focus,
             sectionTitle: FormaProductCopy.Today.MacroBalance.sectionTitle,
-            guidanceLine: macroHydrationGuidance(for: focus),
+            guidanceLine: nil,
             macroSummary: inputs.macroSummary,
             waterSummary: inputs.waterSummary
         )
@@ -277,16 +271,7 @@ enum TodayPresentationBuilder {
     }
 
     static func macroHydrationGuidance(for focus: TodayMacroHydrationFocus) -> String? {
-        switch focus {
-        case .onTrack:
-            return nil
-        case .proteinBehind:
-            return FormaProductCopy.Today.SmartCoach.proteinBehind
-        case .waterBehind:
-            return FormaProductCopy.Today.SmartCoach.waterBehind
-        case .bothBehind:
-            return FormaProductCopy.Today.SmartCoach.bothBehind
-        }
+        nil
     }
 
     // MARK: - Activity
@@ -380,67 +365,19 @@ enum TodayPresentationBuilder {
         )
     }
 
-    // MARK: - Smart coach
-
-    static func smartCoach(
-        from inputs: TodayMissionControlInputs,
-        mission: TodayMissionState,
-        macroHydration: TodayMacroHydrationState,
-        activity: TodayActivityState,
-        mealsEmptyKind: TodayMealsEmptyKind
-    ) -> TodaySmartCoachState {
-        if mealsEmptyKind == .newProfileNoMeals || (inputs.foodEntries.isEmpty && mission.phase == .noMealsLogged) {
-            return TodaySmartCoachState(
-                isVisible: true,
-                context: .logFirstMeal,
-                message: FormaProductCopy.Today.SmartCoach.logFirstMeal,
-                coachPrefill: TodayCoachPrompt.logMeal()
+    static func smartCoach(from inputs: TodayMissionControlInputs) -> TodaySmartCoachState {
+        SmartCoachEngine.resolve(
+            SmartCoachInput(
+                date: inputs.date,
+                calendar: .current,
+                foodEntries: inputs.foodEntries,
+                proteinProgress: inputs.macroSummary.protein,
+                waterProgress: inputs.waterSummary.progress,
+                calorieSummary: inputs.calorieSummary,
+                workoutSummary: inputs.workoutSummary,
+                activityContext: inputs.activityContext
             )
-        }
-
-        if mission.phase == .overTarget {
-            return TodaySmartCoachState(
-                isVisible: true,
-                context: .overTarget,
-                message: FormaProductCopy.Today.SmartCoach.overTarget,
-                coachPrefill: TodayCoachPrompt.reviewToday
-            )
-        }
-
-        if activity.phase == .workoutCompleted, macroHydration.focus == .proteinBehind {
-            return TodaySmartCoachState(
-                isVisible: true,
-                context: .workoutCompleted,
-                message: FormaProductCopy.Today.SmartCoach.postWorkoutProtein,
-                coachPrefill: TodayCoachPrompt.logProtein
-            )
-        }
-
-        switch macroHydration.focus {
-        case .proteinBehind:
-            return TodaySmartCoachState(
-                isVisible: true,
-                context: .proteinBehind,
-                message: FormaProductCopy.Today.SmartCoach.proteinBehind,
-                coachPrefill: TodayCoachPrompt.logProtein
-            )
-        case .waterBehind:
-            return TodaySmartCoachState(
-                isVisible: true,
-                context: .waterBehind,
-                message: FormaProductCopy.Today.SmartCoach.waterBehind,
-                coachPrefill: TodayCoachPrompt.logWater()
-            )
-        case .bothBehind:
-            return TodaySmartCoachState(
-                isVisible: true,
-                context: .proteinBehind,
-                message: FormaProductCopy.Today.SmartCoach.bothBehind,
-                coachPrefill: TodayCoachPrompt.logProtein
-            )
-        case .onTrack:
-            return TodaySmartCoachState(isVisible: false, context: nil, message: "", coachPrefill: nil)
-        }
+        )
     }
 
     // MARK: - End of day

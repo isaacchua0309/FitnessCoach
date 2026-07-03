@@ -16,8 +16,8 @@ final class TodayPresentationBuilderTests: XCTestCase {
 
         XCTAssertEqual(state.mission.phase, .brandNewUser)
         XCTAssertEqual(state.meals.phase, .brandNewUser)
-        XCTAssertTrue(state.smartCoach.isVisible)
-        XCTAssertEqual(state.smartCoach.context, .logFirstMeal)
+        XCTAssertFalse(state.smartCoach.isVisible)
+        XCTAssertEqual(state.smartCoach.context, .hidden)
         XCTAssertEqual(state.victory.kind, .startEncouragement)
         XCTAssertEqual(state.victory.message, FormaProductCopy.Today.Victory.startEncouragement)
     }
@@ -30,7 +30,7 @@ final class TodayPresentationBuilderTests: XCTestCase {
 
         XCTAssertEqual(state.mission.phase, .noMealsLogged)
         XCTAssertEqual(state.meals.phase, .noMealsToday)
-        XCTAssertTrue(state.smartCoach.isVisible)
+        XCTAssertFalse(state.smartCoach.isVisible)
     }
 
     func testSomeMealsLoggedBuildsMealsState() {
@@ -82,7 +82,7 @@ final class TodayPresentationBuilderTests: XCTestCase {
         XCTAssertEqual(state.mission.phase, .overTarget)
         XCTAssertEqual(state.mission.status, .overBudget)
         XCTAssertTrue(state.smartCoach.isVisible)
-        XCTAssertEqual(state.smartCoach.context, .overTarget)
+        XCTAssertEqual(state.smartCoach.context, .caloriesExceeded)
         XCTAssertEqual(state.victory.kind, .showedUp)
     }
 
@@ -97,7 +97,7 @@ final class TodayPresentationBuilderTests: XCTestCase {
         )
 
         XCTAssertEqual(state.macroHydration.focus, .proteinBehind)
-        XCTAssertEqual(state.macroHydration.guidanceLine, FormaProductCopy.Today.SmartCoach.proteinBehind)
+        XCTAssertNil(state.macroHydration.guidanceLine)
         XCTAssertTrue(state.smartCoach.isVisible)
         XCTAssertEqual(state.smartCoach.context, .proteinBehind)
     }
@@ -113,7 +113,7 @@ final class TodayPresentationBuilderTests: XCTestCase {
         )
 
         XCTAssertEqual(state.macroHydration.focus, .waterBehind)
-        XCTAssertEqual(state.macroHydration.guidanceLine, FormaProductCopy.Today.SmartCoach.waterBehind)
+        XCTAssertNil(state.macroHydration.guidanceLine)
         XCTAssertTrue(state.smartCoach.isVisible)
         XCTAssertEqual(state.smartCoach.context, .waterBehind)
     }

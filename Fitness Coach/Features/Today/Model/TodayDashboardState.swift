@@ -277,18 +277,35 @@ struct TodayVictoryState: Equatable {
 // MARK: - Smart coach (contextual)
 
 enum TodaySmartCoachContext: Equatable, Sendable {
-    case logFirstMeal
+    case hidden
     case proteinBehind
     case waterBehind
-    case overTarget
-    case workoutCompleted
+    case caloriesCloseToTarget
+    case caloriesExceeded
+    case workoutRecovery
+    case endOfDayIncomplete
 }
 
 struct TodaySmartCoachState: Equatable {
-    var isVisible: Bool
-    var context: TodaySmartCoachContext?
+    var context: TodaySmartCoachContext
     var message: String
     var coachPrefill: String?
+    var coachActionTitle: String?
+
+    var isVisible: Bool {
+        context != .hidden
+    }
+
+    var accessibilityLabel: String {
+        [message, coachActionTitle].compactMap { $0 }.joined(separator: ". ")
+    }
+
+    static let hidden = TodaySmartCoachState(
+        context: .hidden,
+        message: "",
+        coachPrefill: nil,
+        coachActionTitle: nil
+    )
 }
 
 // MARK: - End of day
