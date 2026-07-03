@@ -13,10 +13,15 @@ enum JourneyAnalyticsEvent: String, Sendable {
     case weeklyReviewViewed = "journey_weekly_review_viewed"
     case milestoneRailViewed = "journey_milestone_rail_viewed"
     case timelineViewed = "journey_timeline_viewed"
-    case habitInsightViewed = "journey_habit_insight_viewed"
+    case startingEmptyStateViewed = "journey_starting_empty_state_viewed"
     case weightCTATapped = "journey_weight_cta_tapped"
     case coachCTATapped = "journey_coach_cta_tapped"
+
+    // Deprecated: removed during Journey revamp preparation.
+    case habitInsightViewed = "journey_habit_insight_viewed"
+    // Deprecated: removed during Journey revamp preparation.
     case analyticsExpanded = "journey_analytics_expanded"
+    // Deprecated: removed during Journey revamp preparation.
     case rangeChanged = "journey_range_changed"
 }
 
@@ -28,7 +33,6 @@ struct JourneyAnalyticsSnapshot: Equatable, Sendable {
     var currentStreakBucket: String
     var unlockedMilestoneCount: Int
     var healthConnected: Bool
-    var journeyLevel: Int
 
     static let empty = JourneyAnalyticsSnapshot(
         hasProfile: false,
@@ -37,8 +41,7 @@ struct JourneyAnalyticsSnapshot: Equatable, Sendable {
         progressPercentBucket: JourneyAnalyticsProgressPercentBucket.none.rawValue,
         currentStreakBucket: JourneyAnalyticsStreakBucket.zero.rawValue,
         unlockedMilestoneCount: 0,
-        healthConnected: false,
-        journeyLevel: 1
+        healthConnected: false
     )
 }
 
@@ -68,10 +71,7 @@ struct JourneyAnalyticsProperties: Sendable {
     var currentStreakBucket: String?
     var unlockedMilestoneCount: Int?
     var healthConnected: Bool?
-    var journeyLevel: Int?
-    var rangeDays: Int?
     var ctaType: String?
-    var expanded: Bool?
 
     func asParameters() -> [String: String] {
         var parameters: [String: String] = [:]
@@ -86,10 +86,7 @@ struct JourneyAnalyticsProperties: Sendable {
             parameters["unlocked_milestone_count"] = String(unlockedMilestoneCount)
         }
         if let healthConnected { parameters["health_connected"] = healthConnected ? "true" : "false" }
-        if let journeyLevel { parameters["journey_level"] = String(journeyLevel) }
-        if let rangeDays { parameters["range_days"] = String(rangeDays) }
         if let ctaType { parameters["cta_type"] = ctaType }
-        if let expanded { parameters["expanded"] = expanded ? "true" : "false" }
         return parameters
     }
 }
@@ -111,8 +108,7 @@ enum JourneyAnalyticsContextBuilder {
             progressPercentBucket: progressPercentBucket(state.baseline.progressPercent),
             currentStreakBucket: streakBucket(state.streaks.currentLoggingStreakDays),
             unlockedMilestoneCount: state.milestones.unlocked.count,
-            healthConnected: healthConnected,
-            journeyLevel: state.journeyLevel.currentLevel
+            healthConnected: healthConnected
         )
     }
 
@@ -124,8 +120,7 @@ enum JourneyAnalyticsContextBuilder {
             progressPercentBucket: snapshot.progressPercentBucket,
             currentStreakBucket: snapshot.currentStreakBucket,
             unlockedMilestoneCount: snapshot.unlockedMilestoneCount,
-            healthConnected: snapshot.healthConnected,
-            journeyLevel: snapshot.journeyLevel
+            healthConnected: snapshot.healthConnected
         )
     }
 

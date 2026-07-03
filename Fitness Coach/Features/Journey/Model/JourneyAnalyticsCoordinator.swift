@@ -37,8 +37,7 @@ final class JourneyAnalyticsCoordinator {
             progressPercentBucket: JourneyAnalyticsProgressPercentBucket.none.rawValue,
             currentStreakBucket: JourneyAnalyticsStreakBucket.zero.rawValue,
             unlockedMilestoneCount: 0,
-            healthConnected: healthConnected,
-            journeyLevel: 1
+            healthConnected: healthConnected
         )
         resetSession()
     }
@@ -67,8 +66,8 @@ final class JourneyAnalyticsCoordinator {
         logSectionOnce(.timelineViewed)
     }
 
-    func logHabitInsightViewed() {
-        logSectionOnce(.habitInsightViewed)
+    func logStartingEmptyStateViewed() {
+        logSectionOnce(.startingEmptyStateViewed)
     }
 
     // MARK: - Interactions
@@ -82,14 +81,6 @@ final class JourneyAnalyticsCoordinator {
         case .connectAppleHealth, .updateGoal:
             break
         }
-    }
-
-    func logAnalyticsExpanded() {
-        log(.analyticsExpanded, expanded: true)
-    }
-
-    func logRangeChanged(days: Int) {
-        log(.rangeChanged, rangeDays: days)
     }
 
     // MARK: - Private
@@ -107,14 +98,10 @@ final class JourneyAnalyticsCoordinator {
 
     private func log(
         _ event: JourneyAnalyticsEvent,
-        rangeDays: Int? = nil,
-        ctaType: String? = nil,
-        expanded: Bool? = nil
+        ctaType: String? = nil
     ) {
         var properties = JourneyAnalyticsContextBuilder.properties(from: snapshot)
-        properties.rangeDays = rangeDays
         properties.ctaType = ctaType
-        properties.expanded = expanded
         analyticsLogger.log(event, properties: properties)
     }
 }

@@ -8,32 +8,33 @@
 import SwiftUI
 
 struct JourneyEmptyStateView: View {
-    let onRefresh: () -> Void
+    let onGoToToday: () -> Void
 
     var body: some View {
         VStack(spacing: FormaTokens.Spacing.sm + 2) {
-            Text(FormaProductCopy.EmptyState.journeyTitle)
+            Text(FormaProductCopy.Journey.StartingEmptyState.title)
                 .font(FormaTokens.Typography.sectionTitle.weight(.semibold))
                 .foregroundStyle(FormaTokens.Color.textPrimary)
                 .multilineTextAlignment(.center)
 
-            Text(FormaProductCopy.EmptyState.journeyBody)
+            Text(FormaProductCopy.Journey.StartingEmptyState.body)
                 .font(FormaTokens.Typography.sectionSubtitle)
                 .foregroundStyle(FormaTokens.Color.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
-            Button(FormaProductCopy.Common.refresh, action: onRefresh)
-                .buttonStyle(.bordered)
+            Button(FormaProductCopy.Journey.StartingEmptyState.action, action: onGoToToday)
+                .buttonStyle(.borderedProminent)
                 .tint(FormaTokens.Theme.primary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
         .background(FormaTokens.Color.canvas)
+        .accessibilityIdentifier("journey-empty-state")
     }
 }
 
 #Preview {
-    JourneyEmptyStateView {}
+    JourneyEmptyStateView(onGoToToday: {})
         .formaThemePreview()
 }

@@ -926,8 +926,8 @@ enum FormaProductCopy {
         static let planGetStarted =
             "Set a goal and Forma will build your calorie, macro, and training targets."
         static let planGetStartedAccessibilityHint = "Creates your first plan"
-        static let journeyTitle = "Your journey starts with a few logs"
-        static let journeyBody = "Log meals, water, or weight in Coach to see your trend."
+        static let journeyTitle = FormaProductCopy.Journey.StartingEmptyState.title
+        static let journeyBody = FormaProductCopy.Journey.StartingEmptyState.body
 
         enum Meals {
             static let title = "Ready for your first log"
@@ -1390,6 +1390,12 @@ enum FormaProductCopy {
     enum Journey {
         static let statusNoData = "—"
 
+        enum StartingEmptyState {
+            static let title = "Your journey is just starting."
+            static let body = "Log meals, workouts, water, and weight to build your transformation story."
+            static let action = "Go to Today"
+        }
+
         static func analyticsBasedOnDays(_ days: Int) -> String {
             days == 1 ? "Based on 1 logged day" : "Based on \(days) logged days"
         }
@@ -1705,7 +1711,18 @@ enum FormaProductCopy {
                 days == 1 ? "1 day" : "\(days) days"
             }
 
-            static func bestHabit(for kind: JourneyHabitKind) -> String {
+            // Deprecated: preserved for future monthly recap revamp.
+            enum HabitKind {
+                case foodLogging
+                case protein
+                case water
+                case calorieAdherence
+                case training
+                case weightLogging
+                case weekendLogging
+            }
+
+            static func bestHabit(for kind: HabitKind) -> String {
                 switch kind {
                 case .foodLogging:
                     return "Food logging was your strongest habit this month."

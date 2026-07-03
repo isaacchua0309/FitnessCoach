@@ -72,26 +72,6 @@ enum JourneyCTA: Equatable {
 
 enum JourneyCTARouter {
 
-    static func habitSuggestionCTA(
-        weakestKind: JourneyHabitKind,
-        isAppleHealthConnected: Bool
-    ) -> JourneyCTA? {
-        switch weakestKind {
-        case .water:
-            return .logWater
-        case .foodLogging, .weekendLogging:
-            return .logFood
-        case .weightLogging:
-            return .logWeight
-        case .protein:
-            return .logProtein
-        case .training:
-            return isAppleHealthConnected ? nil : .connectAppleHealth
-        case .calorieAdherence:
-            return nil
-        }
-    }
-
     static func weeklyTrainingCTA(training: JourneyWeeklyTrainingStatus) -> JourneyCTA? {
         switch training {
         case .locked:

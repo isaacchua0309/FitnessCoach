@@ -21,7 +21,7 @@ final class JourneyAnalyticsContextBuilderTests: XCTestCase {
         XCTAssertTrue(snapshot.hasProfile)
         XCTAssertFalse(snapshot.progressPercentBucket.contains("."))
         XCTAssertFalse(snapshot.currentStreakBucket.isEmpty)
-        XCTAssertGreaterThan(snapshot.journeyLevel, 0)
+        XCTAssertGreaterThan(snapshot.unlockedMilestoneCount, 0)
     }
 
     func testProgressPercentBuckets() {
@@ -52,8 +52,7 @@ final class JourneyAnalyticsContextBuilderTests: XCTestCase {
                 progressPercentBucket: "26_50",
                 currentStreakBucket: "4_7",
                 unlockedMilestoneCount: 3,
-                healthConnected: true,
-                journeyLevel: 7
+                healthConnected: true
             )
         ).asParameters()
 
@@ -65,10 +64,7 @@ final class JourneyAnalyticsContextBuilderTests: XCTestCase {
             "current_streak_bucket",
             "unlocked_milestone_count",
             "health_connected",
-            "journey_level",
-            "range_days",
             "cta_type",
-            "expanded",
         ]
         let bannedKeys: Set<String> = [
             "weight_kg",
@@ -79,6 +75,9 @@ final class JourneyAnalyticsContextBuilderTests: XCTestCase {
             "protein_g",
             "body_fat",
             "raw_progress",
+            "journey_level",
+            "range_days",
+            "expanded",
         ]
         for key in parameters.keys {
             XCTAssertTrue(
@@ -138,6 +137,14 @@ final class JourneyAnalyticsCoordinatorTests: XCTestCase {
         XCTAssertEqual(analytics.events.filter { $0.event == .transformationViewed }.count, 2)
     }
 
+    func testStartingEmptyStateViewedFiresOncePerSession() {
+        coordinator.updateContext(from: JourneyPreviewData.brandNewUser, healthConnected: false)
+        coordinator.logStartingEmptyStateViewed()
+        coordinator.logStartingEmptyStateViewed()
+
+        XCTAssertEqual(analytics.events.filter { $0.event == .startingEmptyStateViewed }.count, 1)
+    }
+
     func testWeightCTATappedEvent() {
         coordinator.updateContext(from: JourneyPreviewData.state, healthConnected: false)
         coordinator.logCTATapped(.logWeight)
@@ -162,27 +169,10 @@ final class JourneyAnalyticsCoordinatorTests: XCTestCase {
         XCTAssertTrue(analytics.events.isEmpty)
     }
 
-    func testRangeChangedIncludesRangeDays() {
-        coordinator.updateContext(from: JourneyPreviewData.state, healthConnected: false)
-        coordinator.logRangeChanged(days: 14)
-
-        XCTAssertEqual(analytics.lastEvent, .rangeChanged)
-        XCTAssertEqual(analytics.lastProperties?["range_days"], "14")
-    }
-
-    func testAnalyticsExpandedEvent() {
-        coordinator.updateContext(from: JourneyPreviewData.state, healthConnected: false)
-        coordinator.logAnalyticsExpanded()
-
-        XCTAssertEqual(analytics.lastEvent, .analyticsExpanded)
-        XCTAssertEqual(analytics.lastProperties?["expanded"], "true")
-    }
-
     func testLoggedPropertiesNeverIncludeRawWeightOrCalories() {
         coordinator.updateContext(from: JourneyPreviewData.state, healthConnected: true)
         coordinator.logScreenViewed()
         coordinator.logCTATapped(.logWeight)
-        coordinator.logRangeChanged(days: 28)
 
         for entry in analytics.events {
             let parameters = entry.properties.asParameters()

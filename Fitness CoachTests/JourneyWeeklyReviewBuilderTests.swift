@@ -381,7 +381,6 @@ final class JourneyWeeklyReviewBuilderTests: XCTestCase {
             previousWeekLogs: [],
             previousWeekWeights: [],
             previousWeekTrainingDays: 0,
-            monthLogs: logs,
             allWeights: allWeights,
             weekWeights: allWeights,
             journeyStreaks: JourneyStreakBuilder.build(
@@ -408,11 +407,6 @@ final class JourneyWeeklyReviewBuilderTests: XCTestCase {
             ),
             goalProjection: nil,
             healthWorkoutDayStarts: [],
-            monthHealthWorkoutCount: 0,
-            nutritionSummary: JourneyLogSummaryBuilder.nutritionSummary(from: weekLogs),
-            waterSummary: JourneyLogSummaryBuilder.waterSummary(from: weekLogs),
-            workoutSummary: nil,
-            selectedRangeDays: 28,
             asOf: asOf,
             calendar: calendar
         )

@@ -12,13 +12,7 @@ enum JourneyProductSection: String, CaseIterable, Equatable {
     case weeklyReview
     case milestones
     case storyTimeline
-    case habitInsights
-    case whyProgress
-    case beforeToday
-    case personalRecords
-    case monthlyRecap
-    case journeyLevel
-    case detailedAnalytics
+    case startingEmptyState
 }
 
 enum JourneyProductLayout {
@@ -27,12 +21,6 @@ enum JourneyProductLayout {
         .weeklyReview,
         .milestones,
         .storyTimeline,
-        .habitInsights,
-        .whyProgress,
-        .beforeToday,
-        .personalRecords,
-        .monthlyRecap,
-        .journeyLevel,
-        .detailedAnalytics
+        .startingEmptyState
     ]
 }

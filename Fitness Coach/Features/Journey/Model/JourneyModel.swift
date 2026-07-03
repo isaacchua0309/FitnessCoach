@@ -12,15 +12,12 @@ import Foundation
 final class JourneyModel: ObservableObject {
 
     @Published private(set) var viewState: JourneyViewState = .loading
-    @Published private(set) var selectedRangeDays: Int = 28
 
     private let dailyLogReader: any DailyLogReading
     private let weightLogReader: any WeightLogReading
     private let userProfileReader: any UserProfileReading
     private let trainingInsightsStore: TrainingInsightsStore
     private let workoutReader: HealthKitWorkoutReading
-
-    private let supportedRanges = [7, 14, 28]
 
     init(
         dailyLogReader: any DailyLogReading,
@@ -46,7 +43,7 @@ final class JourneyModel: ObservableObject {
     func refresh() async {
         do {
             await trainingInsightsStore.refresh()
-            let state = try await makeDashboardState(rangeDays: selectedRangeDays)
+            let state = try await makeDashboardState()
             viewState = state.hasProfile ? .loaded(state) : .empty
         } catch ServiceError.missingUserProfile {
             viewState = .empty
@@ -55,30 +52,20 @@ final class JourneyModel: ObservableObject {
         }
     }
 
-    func selectRange(days: Int) async {
-        selectedRangeDays = supportedRanges.contains(days) ? days : 28
-        await refresh()
-    }
-
     // MARK: State Building
 
-    private func makeDashboardState(rangeDays: Int) async throws -> JourneyDashboardState {
+    private func makeDashboardState() async throws -> JourneyDashboardState {
         let calendar = Calendar.current
         let endDate = Date()
-        let startDate = calendar.date(byAdding: .day, value: -rangeDays + 1, to: endDate) ?? endDate
         let weekStart = calendar.date(byAdding: .day, value: -6, to: endDate) ?? endDate
         let prevWeekStart = calendar.date(byAdding: .day, value: -13, to: endDate) ?? endDate
         let prevWeekEnd = calendar.date(byAdding: .day, value: -7, to: endDate) ?? endDate
         let allTimeStart = calendar.date(byAdding: .day, value: -365, to: endDate) ?? endDate
-        let monthStart = calendar.dateInterval(of: .month, for: endDate)?.start ?? endDate
 
-        let logs = try dailyLogReader.getLogs(from: startDate, to: endDate)
         let weekLogs = try dailyLogReader.getLogs(from: weekStart, to: endDate)
         let previousWeekLogs = try dailyLogReader.getLogs(from: prevWeekStart, to: prevWeekEnd)
         let maturityLogs = try dailyLogReader.getLogs(from: allTimeStart, to: endDate)
-        let monthLogs = try dailyLogReader.getLogs(from: monthStart, to: endDate)
 
-        let weights = try weightLogReader.getWeightEntries(from: startDate, to: endDate)
         let allWeights = try weightLogReader.getWeightEntries(from: allTimeStart, to: endDate)
         let weekWeights = try weightLogReader.getWeightEntries(from: weekStart, to: endDate)
         let previousWeekWeights = try weightLogReader.getWeightEntries(from: prevWeekStart, to: prevWeekEnd)
@@ -86,11 +73,9 @@ final class JourneyModel: ObservableObject {
         let integrationState = trainingInsightsStore.integrationState
         let dataSource = trainingInsightsStore.dataSource
 
-        let rangeHealthWorkouts = try await fetchHealthWorkouts(from: startDate, to: endDate)
         let weekHealthWorkouts = try await fetchHealthWorkouts(from: weekStart, to: endDate)
         let previousWeekHealthWorkouts = try await fetchHealthWorkouts(from: prevWeekStart, to: prevWeekEnd)
         let allHealthWorkouts = try await fetchHealthWorkouts(from: allTimeStart, to: endDate)
-        let monthHealthWorkouts = try await fetchHealthWorkouts(from: monthStart, to: endDate)
 
         let weeklyTraining = JourneyTrainingSummaryBuilder.weeklyTrainingStatus(
             integrationState: integrationState,
@@ -108,22 +93,12 @@ final class JourneyModel: ObservableObject {
 
         let profile = try userProfileReader.getCurrentProfile()
 
-        let weightTrend = WeightTrendCalculator.trend(from: weights, endingOn: endDate)
+        let weightTrend = WeightTrendCalculator.trend(from: allWeights, endingOn: endDate)
         let weightSummary = ProgressWeightSummary(
             latestWeightKg: weightTrend.latestWeightKg,
-            changeKg: weightTrend.changeKg ?? WeightTrendCalculator.weightChange(from: weights),
+            changeKg: weightTrend.changeKg ?? WeightTrendCalculator.weightChange(from: allWeights),
             direction: weightTrend.direction,
             hasSuddenSpike: weightTrend.hasSuddenSpike
-        )
-
-        let nutritionSummary = JourneyLogSummaryBuilder.nutritionSummary(from: logs)
-        let waterSummary = JourneyLogSummaryBuilder.waterSummary(from: logs)
-        let workoutSummary = JourneyTrainingSummaryBuilder.workoutAnalytics(
-            integrationState: integrationState,
-            dataSource: dataSource,
-            workouts: rangeHealthWorkouts,
-            rangeDays: rangeDays,
-            calendar: calendar
         )
 
         let goalProjection = profile.map {
@@ -168,7 +143,6 @@ final class JourneyModel: ObservableObject {
         )
 
         let loggedDays = meaningfulLoggedDays(from: maturityLogs, weights: allWeights)
-        let weightInterpretation = JourneyDashboardBuilder.weightTrendInterpretation(summary: weightSummary)
 
         let builderContext = JourneyDashboardBuilder.Context(
             profile: profile,
@@ -178,7 +152,6 @@ final class JourneyModel: ObservableObject {
             previousWeekLogs: previousWeekLogs,
             previousWeekWeights: previousWeekWeights,
             previousWeekTrainingDays: previousWeekTrainingDays,
-            monthLogs: monthLogs,
             allWeights: allWeights,
             weekWeights: weekWeights,
             journeyStreaks: journeyStreaks,
@@ -186,17 +159,11 @@ final class JourneyModel: ObservableObject {
             weightSummary: weightSummary,
             goalProjection: goalProjection,
             healthWorkoutDayStarts: healthWorkoutDays,
-            monthHealthWorkoutCount: monthHealthWorkouts.count,
-            nutritionSummary: nutritionSummary,
-            waterSummary: waterSummary,
-            workoutSummary: workoutSummary,
-            selectedRangeDays: rangeDays,
             asOf: endDate,
             calendar: calendar
         )
 
         return JourneyDashboardState(
-            selectedRangeDays: rangeDays,
             hasProfile: profile != nil,
             baseline: baseline,
             transformation: JourneyDashboardBuilder.transformation(
@@ -206,17 +173,7 @@ final class JourneyModel: ObservableObject {
             weeklyReview: JourneyDashboardBuilder.weeklyReview(context: builderContext),
             streaks: builderContext.journeyStreaks,
             milestones: JourneyDashboardBuilder.milestones(context: builderContext),
-            storyTimeline: JourneyDashboardBuilder.storyTimeline(context: builderContext),
-            habitInsights: JourneyDashboardBuilder.habitInsights(context: builderContext),
-            progressAttribution: JourneyDashboardBuilder.progressAttribution(context: builderContext),
-            beforeToday: JourneyDashboardBuilder.beforeToday(context: builderContext),
-            personalRecords: JourneyDashboardBuilder.personalRecords(context: builderContext),
-            monthlyRecap: JourneyDashboardBuilder.monthlyRecap(context: builderContext),
-            journeyLevel: JourneyDashboardBuilder.journeyLevel(context: builderContext),
-            detailedAnalytics: JourneyDashboardBuilder.detailedAnalytics(
-                context: builderContext,
-                weightInterpretation: weightInterpretation
-            )
+            storyTimeline: JourneyDashboardBuilder.storyTimeline(context: builderContext)
         )
     }
 
@@ -240,7 +197,6 @@ final class JourneyModel: ObservableObject {
 #if DEBUG
     /// Applies a static dashboard for SwiftUI previews without loading services.
     func applyPreviewState(_ state: JourneyDashboardState) {
-        selectedRangeDays = state.selectedRangeDays
         viewState = .loaded(state)
     }
 

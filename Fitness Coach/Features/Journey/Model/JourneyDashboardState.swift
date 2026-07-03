@@ -8,7 +8,6 @@
 import Foundation
 
 struct JourneyDashboardState: Equatable {
-    var selectedRangeDays: Int
     var hasProfile: Bool
 
     var baseline: JourneyBaseline
@@ -17,11 +16,20 @@ struct JourneyDashboardState: Equatable {
     var streaks: JourneyStreakState
     var milestones: JourneyMilestonesState
     var storyTimeline: JourneyStoryTimelineState
-    var habitInsights: JourneyHabitInsightsState
-    var progressAttribution: JourneyProgressAttributionState
-    var beforeToday: JourneyBeforeTodayState
-    var personalRecords: JourneyPersonalRecordsState
-    var monthlyRecap: JourneyMonthlyRecapState
-    var journeyLevel: JourneyLevelState
-    var detailedAnalytics: JourneyDetailedAnalyticsState
+}
+
+extension JourneyDashboardState {
+    var showsMilestonesSection: Bool {
+        !milestones.unlocked.isEmpty
+            || milestones.items.contains { $0.status == .completed }
+            || (milestones.nextProgressFraction ?? 0) > 0
+    }
+
+    var showsStoryTimelineSection: Bool {
+        !storyTimeline.displayEvents.isEmpty
+    }
+
+    var showsStartingEmptyState: Bool {
+        !showsMilestonesSection && !showsStoryTimelineSection
+    }
 }

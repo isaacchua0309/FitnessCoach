@@ -20,17 +20,21 @@ struct JourneyView: View {
     var onOpenCoach: ((String?) -> Void)?
     /// Opens the Plan tab for goal edits or Apple Health connection.
     var onOpenPlan: (() -> Void)?
+    /// Opens the Today tab for daily logging actions.
+    var onOpenToday: (() -> Void)?
 
     init(
         model: JourneyModel,
         analyticsCoordinator: JourneyAnalyticsCoordinator,
         onOpenCoach: ((String?) -> Void)? = nil,
-        onOpenPlan: (() -> Void)? = nil
+        onOpenPlan: (() -> Void)? = nil,
+        onOpenToday: (() -> Void)? = nil
     ) {
         self.model = model
         self.analyticsCoordinator = analyticsCoordinator
         self.onOpenCoach = onOpenCoach
         self.onOpenPlan = onOpenPlan
+        self.onOpenToday = onOpenToday
     }
 
     var body: some View {
@@ -62,7 +66,7 @@ struct JourneyView: View {
             FormaScreenLoadingView(message: FormaProductCopy.Loading.journey)
         case .empty:
             JourneyEmptyStateView {
-                Task { await model.refresh() }
+                onOpenToday?()
             }
             .onAppear {
                 syncAnalyticsContextForEmpty()
@@ -83,13 +87,7 @@ struct JourneyView: View {
                 state: state,
                 analyticsCoordinator: analyticsCoordinator,
                 onCTA: handleCTA,
-                onSelectRange: { days in
-                    analyticsCoordinator.logRangeChanged(days: days)
-                    Task { await model.selectRange(days: days) }
-                },
-                onAnalyticsExpanded: {
-                    analyticsCoordinator.logAnalyticsExpanded()
-                }
+                onGoToToday: { onOpenToday?() }
             )
         }
         .formaMainTabScrollInsets()
@@ -97,9 +95,6 @@ struct JourneyView: View {
         .onAppear {
             syncAnalyticsContext(for: state)
             analyticsCoordinator.logScreenViewed()
-        }
-        .onChange(of: state.selectedRangeDays) { _, _ in
-            syncAnalyticsContext(for: state)
         }
     }
 
