@@ -59,7 +59,7 @@ struct HealthDataRepository: HealthDataRepositorying {
                 dayEnd: dayEnd,
                 calendar: calendar
             )
-            let normalized = normalizer.normalize(samples: rawSamples)
+            let normalized = normalizer.deduplicate(samples: rawSamples)
             cacheStore.store(
                 HealthCacheEntry(date: dayStart, samples: normalized, cachedAt: Date()),
                 calendar: calendar
