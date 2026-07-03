@@ -1327,7 +1327,7 @@ enum FormaProductCopy {
             static func inlineAccessibilityHint(for kind: TodayQuickActionKind) -> String {
                 switch kind {
                 case .scanFood: return "Opens food photo scan"
-                case .logMeal: return "Opens meal logging"
+                case .logMeal: return "Opens meal logging in Coach"
                 case .addWater: return "Opens water logging"
                 case .logWeight: return "Opens weight logging"
                 case .logWorkout: return "Opens workout logging"
@@ -2045,6 +2045,24 @@ enum FormaProductCopy {
         static let quickActionsSectionTitle = "Quick actions"
         static let emptyIntro = EmptyState.CoachConversation.body
         static let composerPlaceholder = "Message Coach…"
+        static let scanMealPrefill = "Scan my meal"
+        static let mealLoggingComposerPlaceholder = "Send a photo or describe your meal."
+
+        static func mealLoggingComposerPlaceholder(mealType: MealType?) -> String {
+            switch mealType {
+            case .breakfast:
+                return "What did you eat for breakfast? Send a photo or describe your meal."
+            case .lunch:
+                return "What did you eat for lunch? Send a photo or describe your meal."
+            case .dinner:
+                return "What did you eat for dinner? Send a photo or describe your meal."
+            case .snack:
+                return "What did you eat for a snack? Send a photo or describe your meal."
+            case .unknown, nil:
+                return "What did you eat? Send a photo or describe your meal."
+            }
+        }
+
         static let composerListeningPlaceholder = "Listening…"
         static let composerPhotoClarificationPlaceholder = "Add a detail about your meal…"
         static let foodEstimatePending = "Food estimate ready"

@@ -81,6 +81,13 @@ struct CoachView: View {
             .onChange(of: isActive) { _, active in
                 if !active {
                     speechService.stopRecording()
+                } else {
+                    focusComposerIfRequested()
+                }
+            }
+            .onChange(of: model.requestsComposerFocus) { _, shouldFocus in
+                if shouldFocus {
+                    focusComposerIfRequested()
                 }
             }
             .onChange(of: model.isSending) { _, isSending in
@@ -180,8 +187,7 @@ struct CoachView: View {
             isListening: speechService.isRecording,
             isVoiceInputBusy: speechService.isVoiceInputBusy,
             canPickAttachment: model.inputState.canPickImage,
-            textFieldPlaceholder: model.photoClarificationComposerPlaceholder
-                ?? FormaProductCopy.Coach.composerPlaceholder,
+            textFieldPlaceholder: model.resolvedComposerPlaceholder,
             isFocused: $isInputFocused,
             isSending: model.isSending,
             onSend: {
@@ -239,6 +245,12 @@ struct CoachView: View {
 
     private func dismissKeyboard() {
         isInputFocused = false
+    }
+
+    private func focusComposerIfRequested() {
+        guard isActive, model.requestsComposerFocus else { return }
+        isInputFocused = true
+        model.consumeComposerFocusRequest()
     }
 
     private func handleVoiceTap() {

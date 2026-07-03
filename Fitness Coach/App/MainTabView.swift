@@ -64,9 +64,8 @@ struct MainTabView: View {
                 model: todayModel,
                 actionCoordinator: container.makeTodayActionCoordinator(),
                 healthActivityQuery: container.healthActivityQueryService,
-                onOpenCoach: { prefill in
-                    coachModel.prepareInput(prefill: prefill)
-                    selectedTab = .coach
+                onOpenCoach: { intent in
+                    openCoach(with: intent)
                 },
                 onOpenJourney: {
                     selectedTab = .journey
@@ -90,8 +89,7 @@ struct MainTabView: View {
                 model: journeyModel,
                 analyticsCoordinator: journeyAnalyticsCoordinator,
                 onOpenCoach: { prefill in
-                    coachModel.prepareInput(prefill: prefill)
-                    selectedTab = .coach
+                    openCoach(with: coachLaunchIntent(fromLegacyPrefill: prefill))
                 },
                 onOpenPlan: {
                     selectedTab = .plan
@@ -135,6 +133,32 @@ struct MainTabView: View {
     private func bootstrapAfterEntry() async {
         coachModel.refreshTodayContext()
         await planModel.refresh()
+    }
+
+    private func openCoach(with intent: CoachLaunchIntent) {
+        coachModel.launch(with: intent)
+        selectedTab = .coach
+    }
+
+    private func coachLaunchIntent(fromLegacyPrefill prefill: String?) -> CoachLaunchIntent {
+        guard let prefill, !prefill.isEmpty else { return .prefill("") }
+        if prefill == TodayCoachPrompt.scanFood {
+            return .scanFood
+        }
+        if isMealLoggingPrefill(prefill) {
+            return .logMeal(mealType: TodayNextActionFormatting.mealType(from: prefill))
+        }
+        return .prefill(prefill)
+    }
+
+    private func isMealLoggingPrefill(_ prefill: String) -> Bool {
+        [
+            TodayCoachPrompt.logMeal(),
+            TodayCoachPrompt.logMeal(.breakfast),
+            TodayCoachPrompt.logMeal(.lunch),
+            TodayCoachPrompt.logMeal(.dinner),
+            TodayCoachPrompt.logMeal(.snack)
+        ].contains(prefill)
     }
 
     // MARK: - Tab selection

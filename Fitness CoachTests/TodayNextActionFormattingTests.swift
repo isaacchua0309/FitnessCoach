@@ -80,10 +80,10 @@ final class TodayNextActionFormattingTests: XCTestCase {
         )
     }
 
-    func testRouteMapsLogMealToNativeSheetWithMealType() {
+    func testRouteMapsLogMealToCoachMealLoggingWithMealType() {
         XCTAssertEqual(
             TodayNextActionFormatting.route(for: .logMeal(TodayCoachPrompt.logMeal(.lunch))),
-            .presentLogMeal(mealType: .lunch)
+            .openCoach(.logMeal(mealType: .lunch))
         )
     }
 
@@ -97,7 +97,7 @@ final class TodayNextActionFormattingTests: XCTestCase {
     func testRouteMapsScanFoodToCoach() {
         XCTAssertEqual(
             TodayNextActionFormatting.route(for: .scanFood),
-            .openCoach(TodayCoachPrompt.scanFood)
+            .openCoach(.scanFood)
         )
     }
 

@@ -20,10 +20,9 @@ struct TodayNextActionDisplayModel: Equatable {
 
 enum TodayNextActionRoute: Equatable {
     case logWater(amountMl: Int)
-    case presentLogMeal(mealType: MealType?)
     case presentLogWeight
     case presentAddWater
-    case openCoach(String?)
+    case openCoach(CoachLaunchIntent)
     case openTrainingInsights
     case none
 }
@@ -102,9 +101,9 @@ enum TodayNextActionFormatting {
     static func route(for cta: NextBestActionCTA) -> TodayNextActionRoute {
         switch cta {
         case .logMeal(let prefill):
-            return .presentLogMeal(mealType: mealType(from: prefill))
+            return .openCoach(.logMeal(mealType: mealType(from: prefill)))
         case .scanFood:
-            return .openCoach(TodayCoachPrompt.scanFood)
+            return .openCoach(.scanFood)
         case .addWater(let amountMl):
             return .logWater(amountMl: amountMl)
         case .logWorkout:
@@ -114,7 +113,7 @@ enum TodayNextActionFormatting {
         case .openHealth:
             return .openTrainingInsights
         case .reviewToday:
-            return .openCoach(TodayCoachPrompt.reviewToday)
+            return .openCoach(.prefill(TodayCoachPrompt.reviewToday))
         case .none:
             return .none
         }
@@ -159,7 +158,6 @@ enum TodayNextActionFormatting {
     static func analyticsRoute(_ route: TodayNextActionRoute) -> String {
         switch route {
         case .logWater: return "native_log_water"
-        case .presentLogMeal: return "native_log_meal_sheet"
         case .presentLogWeight: return "native_log_weight_sheet"
         case .presentAddWater: return "native_add_water_sheet"
         case .openCoach: return "open_coach"

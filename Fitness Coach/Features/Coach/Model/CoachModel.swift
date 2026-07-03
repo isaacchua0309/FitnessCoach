@@ -45,6 +45,8 @@ final class CoachModel: ObservableObject {
     @Published private(set) var foodEditErrorMessage: String?
     @Published private(set) var todayContext: CoachTodayContextState?
     @Published private(set) var starterPromptSpecs: [CoachStarterPromptSpec] = CoachStarterPrompt.defaultQuickActionSpecs
+    @Published private(set) var composerPlaceholderOverride: String?
+    @Published private(set) var requestsComposerFocus = false
 
     private let localCommandParser: LocalCommandParser
     private let dailyLogReader: any DailyLogReading
@@ -72,6 +74,16 @@ final class CoachModel: ObservableObject {
     var photoClarificationComposerPlaceholder: String? {
         guard awaitingPhotoClarification else { return nil }
         return FormaProductCopy.Coach.composerPhotoClarificationPlaceholder
+    }
+
+    var resolvedComposerPlaceholder: String {
+        if let composerPlaceholderOverride {
+            return composerPlaceholderOverride
+        }
+        if let photoClarificationComposerPlaceholder {
+            return photoClarificationComposerPlaceholder
+        }
+        return FormaProductCopy.Coach.composerPlaceholder
     }
 
     init(
@@ -245,6 +257,7 @@ final class CoachModel: ObservableObject {
             guard let frozen = next.takeSendSnapshot() else { return nil }
             inputState = next
             syncInputSendingFlag()
+            clearLaunchChrome()
             return frozen
         }() else {
             return
@@ -670,7 +683,42 @@ final class CoachModel: ObservableObject {
     }
 
     func prepareInput(prefill: String?) {
-        mutateInputState { $0.updateText(prefill ?? "") }
+        launch(with: .prefill(prefill ?? ""))
+    }
+
+    func launch(with intent: CoachLaunchIntent) {
+        requestsComposerFocus = false
+        composerPlaceholderOverride = nil
+
+        switch intent {
+        case .logMeal(let mealType):
+            mutateInputState { state in
+                state.updateText("")
+                state.removeAttachment()
+                state.error = nil
+            }
+            composerPlaceholderOverride = FormaProductCopy.Coach.mealLoggingComposerPlaceholder(mealType: mealType)
+            requestsComposerFocus = true
+        case .scanFood:
+            mutateInputState { state in
+                state.updateText(FormaProductCopy.Coach.scanMealPrefill)
+                state.error = nil
+            }
+            requestsComposerFocus = true
+        case .prefill(let text):
+            mutateInputState { $0.updateText(text) }
+            if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                requestsComposerFocus = true
+            }
+        }
+    }
+
+    func consumeComposerFocusRequest() {
+        requestsComposerFocus = false
+    }
+
+    private func clearLaunchChrome() {
+        composerPlaceholderOverride = nil
     }
 
     // MARK: Pending Confirmation

@@ -22,8 +22,8 @@ struct TodayView: View {
     @State private var appleHealthStepsToday: Int?
     @State private var isShowingTrainingInsights = false
 
-    /// Opens Coach with optional prefill when an action requires conversational AI.
-    var onOpenCoach: ((String?) -> Void)?
+    /// Opens Coach with a launch intent when an action requires conversational AI.
+    var onOpenCoach: ((CoachLaunchIntent) -> Void)?
     var onOpenJourney: (() -> Void)?
     var onOpenPlan: (() -> Void)?
 
@@ -31,7 +31,7 @@ struct TodayView: View {
         model: TodayModel,
         actionCoordinator: TodayActionCoordinator,
         healthActivityQuery: HealthActivityQueryService,
-        onOpenCoach: ((String?) -> Void)? = nil,
+        onOpenCoach: ((CoachLaunchIntent) -> Void)? = nil,
         onOpenJourney: (() -> Void)? = nil,
         onOpenPlan: (() -> Void)? = nil
     ) {
@@ -79,13 +79,6 @@ struct TodayView: View {
                         insightsModel: trainingInsightsModel
                     )
                     .environmentObject(refreshCenter)
-                }
-                .sheet(item: $actionCoordinator.logMealPresentation) { presentation in
-                    TodayLogMealSheet(
-                        initialMealType: presentation.mealType,
-                        errorMessage: actionCoordinator.lastErrorMessage,
-                        onSave: { actionCoordinator.saveMeal(from: $0) }
-                    )
                 }
                 .sheet(isPresented: $actionCoordinator.isPresentingLogWeightSheet) {
                     TodayLogWeightSheet(
@@ -146,8 +139,8 @@ struct TodayView: View {
     }
 
     private func wireActionCoordinator() {
-        actionCoordinator.onOpenCoach = { prefill in
-            onOpenCoach?(prefill)
+        actionCoordinator.onOpenCoach = { intent in
+            onOpenCoach?(intent)
         }
         actionCoordinator.onOpenTrainingInsights = {
             isShowingTrainingInsights = true
