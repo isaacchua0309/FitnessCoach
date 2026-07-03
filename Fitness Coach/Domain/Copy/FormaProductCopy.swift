@@ -1738,6 +1738,71 @@ enum FormaProductCopy {
             }
         }
 
+        enum PersonalizedInsights {
+            static let sectionTitle = "Personal insights"
+
+            static let learningTitle = "Forma is learning your pattern."
+            static let learningDetail =
+                "Log meals, water, workouts, and weight this week to unlock personal insights."
+
+            static let proteinStrongestTitle = "Protein is becoming your strongest habit."
+            static let waterStrongestTitle = "Water is becoming a steady habit."
+            static let workoutConsistencyTitle = "Training is showing up in your week."
+            static let weightTrendTowardTitle = "Your weight trend is moving in the right direction."
+            static let weightTrendMaintainTitle = "Your weight trend is holding steady."
+            static let weekendCalorieTitle = "Your weekends are where calories drift."
+            static let bestHabitTitle = "This is your strongest habit this week."
+            static let biggestOpportunityTitle = "Your biggest opportunity this week"
+
+            static func proteinDaysThisWeek(_ days: Int) -> String {
+                "You hit protein \(days) \(days == 1 ? "day" : "days") this week."
+            }
+
+            static func waterDaysThisWeek(_ days: Int) -> String {
+                "You hit water \(days) \(days == 1 ? "day" : "days") this week."
+            }
+
+            static func workoutDaysThisWeek(_ days: Int, expected: Int) -> String {
+                if expected > 0 {
+                    return "You completed \(days) of \(expected) planned workout days."
+                }
+                return days == 1
+                    ? "You logged 1 workout day this week."
+                    : "You logged \(days) workout days this week."
+            }
+
+            static func weekendCalorieDrift(averageKcal: Int) -> String {
+                "Saturday and Sunday averaged \(averageKcal) kcal above target."
+            }
+
+            static func sevenDayAverageChange(deltaKg: Double, direction: JourneyGoalDirection) -> String {
+                let magnitude = abs(deltaKg)
+                let formatted = magnitude.truncatingRemainder(dividingBy: 1) == 0
+                    ? String(format: "%.0f", magnitude)
+                    : String(format: "%.1f", magnitude)
+                switch direction {
+                case .lose:
+                    return deltaKg < 0
+                        ? "Your 7-day average is down \(formatted) kg."
+                        : "Your 7-day average is up \(formatted) kg."
+                case .gain:
+                    return deltaKg > 0
+                        ? "Your 7-day average is up \(formatted) kg."
+                        : "Your 7-day average is down \(formatted) kg."
+                case .maintain:
+                    return "Your 7-day average moved by \(formatted) kg."
+                }
+            }
+
+            static func bestHabitDetail(habit: String, days: Int, total: Int) -> String {
+                "You stayed consistent with \(habit.lowercased()) on \(days) of \(total) days."
+            }
+
+            static func opportunityDetail(habit: String) -> String {
+                "A little more focus on \(habit.lowercased()) would balance your week."
+            }
+        }
+
         enum ProgressAttribution {
             static let sectionTitle = "What's driving your progress"
             static let biggestReasonTitle = "A steady pattern likely helped most."

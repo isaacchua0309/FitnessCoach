@@ -36,6 +36,8 @@ struct JourneyDashboardContent: View {
                 return state.showsStartingEmptyState
             case .goalProjection:
                 return state.showsGoalProjectionSection
+            case .insights:
+                return state.showsInsightSection
             case .transformation, .weeklyReview:
                 return true
             }
@@ -57,6 +59,9 @@ struct JourneyDashboardContent: View {
         case .weeklyReview:
             JourneyWeeklyReviewSection(state: state.weeklyHabit, onCTA: onCTA)
                 .onAppear { analyticsCoordinator?.logWeeklyReviewViewed() }
+
+        case .insights:
+            JourneyInsightsSection(state: state.insight)
 
         case .milestones:
             JourneyMilestonesSection(state: state.milestone)

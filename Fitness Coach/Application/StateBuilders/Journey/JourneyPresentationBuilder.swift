@@ -57,21 +57,6 @@ enum JourneyPresentationBuilder {
             unlockedMilestoneCount: milestoneResult.unlockedCount
         )
 
-        let habitInsights = JourneyHabitInsightsBuilder.build(
-            JourneyHabitInsightsBuilder.Input(
-                profile: context.profile,
-                maturityLogs: context.maturityLogs,
-                weekLogs: context.weekLogs,
-                weekWeights: context.weekWeights,
-                healthWorkoutDayStarts: context.healthWorkoutDayStarts,
-                isAppleHealthConnected: context.weeklyTraining.isConnected,
-                expectedTrainingDaysPerWeek: context.profile?.trainingFrequencyPerWeek ?? 0,
-                hasRealWeightEntries: context.baseline.hasRealWeightEntries,
-                asOf: context.asOf,
-                calendar: context.calendar
-            )
-        )
-
         let monthlyRecap = JourneyMonthlyRecapBuilder.build(
             JourneyMonthlyRecapBuilder.Input(
                 monthLogs: context.monthLogs,
@@ -107,7 +92,7 @@ enum JourneyPresentationBuilder {
             goalProjection: goalProjection(context: context),
             milestone: milestoneResult.presentation,
             storyEvents: storyEvents(from: timeline, calendar: context.calendar),
-            insight: JourneyInsightState.fromHabitInsights(habitInsights),
+            insight: personalizedInsights(context: context),
             weeklyHabit: weeklyHabit,
             monthlyRecap: monthlyRecapState(from: monthlyRecap),
             chapter: JourneyChapterState.fromLevel(level)
@@ -214,6 +199,48 @@ enum JourneyPresentationBuilder {
         return state
     }
 
+    // MARK: - Personalized insights
+
+    static func personalizedInsights(context: JourneyDashboardBuilder.Context) -> JourneyInsightState {
+        personalizedInsights(
+            profile: context.profile,
+            baseline: context.baseline,
+            weekLogs: context.weekLogs,
+            allWeights: context.allWeights,
+            healthWorkoutDayStarts: context.healthWorkoutDayStarts,
+            isAppleHealthConnected: context.weeklyTraining.isConnected,
+            asOf: context.asOf,
+            calendar: context.calendar
+        )
+    }
+
+    private static func personalizedInsights(
+        profile: UserProfile?,
+        baseline: JourneyBaseline,
+        weekLogs: [DailyLog],
+        allWeights: [WeightEntry],
+        healthWorkoutDayStarts: Set<Date>,
+        isAppleHealthConnected: Bool,
+        asOf: Date,
+        calendar: Calendar
+    ) -> JourneyInsightState {
+        JourneyPersonalizedInsightsBuilder.build(
+            JourneyPersonalizedInsightsBuilder.Input(
+                profile: profile,
+                baseline: baseline,
+                weekLogs: weekLogs,
+                allWeights: allWeights,
+                healthWorkoutDayStarts: healthWorkoutDayStarts,
+                isAppleHealthConnected: isAppleHealthConnected,
+                expectedTrainingDaysPerWeek: JourneyWeeklyReviewBuilder.expectedTrainingDays(
+                    profile: profile
+                ),
+                asOf: asOf,
+                calendar: calendar
+            )
+        )
+    }
+
     // MARK: - Preview / fixture assembly
 
     static func assembleFromLegacy(
@@ -316,7 +343,16 @@ enum JourneyPresentationBuilder {
                 goalProjection: goalProjection(context: context),
                 milestone: milestoneResult.presentation,
                 storyEvents: storyEvents(from: storyTimeline, calendar: calendar),
-                insight: JourneyInsightState.fromHabitInsights(.locked),
+                insight: personalizedInsights(
+                    profile: profile,
+                    baseline: baseline,
+                    weekLogs: [],
+                    allWeights: [],
+                    healthWorkoutDayStarts: [],
+                    isAppleHealthConnected: training.isConnected,
+                    asOf: asOf,
+                    calendar: calendar
+                ),
                 weeklyHabit: weeklyHabit,
                 monthlyRecap: JourneyMonthlyRecapState(
                     isVisible: false,

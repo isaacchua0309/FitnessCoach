@@ -25,9 +25,14 @@ final class JourneyPresentationBuilderTests: XCTestCase {
         XCTAssertFalse(dashboard.momentum.isVisible)
         XCTAssertEqual(dashboard.momentum.emptyMessage, FormaProductCopy.Journey.Momentum.buildingHeadline)
         XCTAssertFalse(dashboard.insight.isUnlocked)
+        XCTAssertTrue(dashboard.insight.showsLearningState)
         XCTAssertEqual(
-            dashboard.insight.lockedMessage,
-            FormaProductCopy.Journey.HabitInsights.lockedBody
+            dashboard.insight.learningTitle,
+            FormaProductCopy.Journey.PersonalizedInsights.learningTitle
+        )
+        XCTAssertEqual(
+            dashboard.insight.learningDetail,
+            FormaProductCopy.Journey.PersonalizedInsights.learningDetail
         )
         XCTAssertFalse(dashboard.chapter.isVisible)
         XCTAssertFalse(dashboard.monthlyRecap.isVisible)
@@ -89,7 +94,8 @@ final class JourneyPresentationBuilderTests: XCTestCase {
 
         XCTAssertFalse(dashboard.milestones.unlocked.isEmpty)
         XCTAssertTrue(dashboard.insight.isUnlocked)
-        XCTAssertFalse(dashboard.insight.strongestTitle.isEmpty)
+        XCTAssertFalse(dashboard.insight.insights.isEmpty)
+        XCTAssertLessThanOrEqual(dashboard.insight.insights.count, 3)
         XCTAssertTrue(dashboard.chapter.isVisible)
         XCTAssertGreaterThan(dashboard.chapter.totalXP, 0)
     }

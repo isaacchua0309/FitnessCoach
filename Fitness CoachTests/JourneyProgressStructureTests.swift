@@ -13,6 +13,7 @@ final class JourneyProgressStructureTests: XCTestCase {
             .transformation,
             .goalProjection,
             .weeklyReview,
+            .insights,
             .milestones,
             .storyTimeline,
             .startingEmptyState

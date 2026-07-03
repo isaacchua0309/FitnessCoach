@@ -207,61 +207,66 @@ struct JourneyHabitInsightsState: Equatable {
     )
 }
 
+enum JourneyPersonalizedInsightType: String, Equatable, Sendable {
+    case proteinConsistency
+    case waterConsistency
+    case calorieOpportunity
+    case workoutConsistency
+    case weightTrend
+    case bestHabit
+    case biggestOpportunity
+}
+
+struct JourneyPersonalizedInsight: Identifiable, Equatable {
+    var id: String
+    var type: JourneyPersonalizedInsightType
+    var title: String
+    var detail: String
+}
+
 struct JourneyInsightState: Equatable {
     var isVisible: Bool
     var sectionTitle: String
-    var isUnlocked: Bool
-    var lockedMessage: String?
-    var strongestTitle: String
-    var strongestDetail: String?
-    var focusTitle: String
-    var focusDetail: String?
-    var suggestionTitle: String
-    var suggestion: String
-    var suggestionCTA: JourneyCTA?
+    var showsLearningState: Bool
+    var learningTitle: String?
+    var learningDetail: String?
+    var insights: [JourneyPersonalizedInsight]
+    var accessibilitySummary: String
 
-    static func fromHabitInsights(_ insights: JourneyHabitInsightsState) -> JourneyInsightState {
-        let copy = FormaProductCopy.Journey.HabitInsights.self
-        guard insights.isUnlocked else {
-            return JourneyInsightState(
-                isVisible: true,
-                sectionTitle: copy.sectionTitle,
-                isUnlocked: false,
-                lockedMessage: insights.lockedMessage ?? copy.lockedBody,
-                strongestTitle: "",
-                strongestDetail: nil,
-                focusTitle: "",
-                focusDetail: nil,
-                suggestionTitle: "",
-                suggestion: "",
-                suggestionCTA: nil
-            )
-        }
+    var isUnlocked: Bool {
+        !showsLearningState && !insights.isEmpty
+    }
 
-        let strongestDetail = [
-            insights.strongestHabitLabel,
-            insights.strongestQualitative
-        ]
-            .compactMap { $0?.isEmpty == false ? $0 : nil }
-            .joined(separator: " — ")
+    var lockedMessage: String? {
+        showsLearningState ? learningDetail : nil
+    }
 
-        let focusDetail = insights.weakestHabitLabel.isEmpty
-            ? nil
-            : "\(insights.weakestHabitLabel) · \(insights.weakestScorePercent)%"
+    var strongestTitle: String {
+        insights.first?.title ?? ""
+    }
 
-        return JourneyInsightState(
-            isVisible: true,
-            sectionTitle: copy.sectionTitle,
-            isUnlocked: true,
-            lockedMessage: nil,
-            strongestTitle: copy.strongestTitle,
-            strongestDetail: strongestDetail.isEmpty ? nil : strongestDetail,
-            focusTitle: copy.nextFocusTitle,
-            focusDetail: focusDetail,
-            suggestionTitle: copy.suggestionTitle,
-            suggestion: insights.suggestedNextAction,
-            suggestionCTA: insights.suggestionCTA
-        )
+    var strongestDetail: String? {
+        insights.first?.detail
+    }
+
+    var focusTitle: String {
+        insights.count > 1 ? insights[1].title : ""
+    }
+
+    var focusDetail: String? {
+        insights.count > 1 ? insights[1].detail : nil
+    }
+
+    var suggestionTitle: String {
+        insights.count > 2 ? insights[2].title : ""
+    }
+
+    var suggestion: String {
+        insights.count > 2 ? insights[2].detail : ""
+    }
+
+    var suggestionCTA: JourneyCTA? {
+        nil
     }
 }
 
