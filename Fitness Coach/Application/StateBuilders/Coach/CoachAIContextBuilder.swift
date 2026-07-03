@@ -37,7 +37,12 @@ struct CoachContextBuilder {
         activity: CoachAIActivityContext = CoachAIActivityContext(),
         workoutsToday: Int? = nil
     ) -> AIContext {
-        let resolvedWorkoutsToday = workoutsToday ?? activity.workoutsToday
+        // Legacy workoutsToday in todaySummary duplicates CoachHealthIntelligenceContext —
+        // pending removal after Health Intelligence coach rollout.
+        let resolvedWorkoutsToday = CoachCompositionPolicy.legacyWorkoutsTodayForAISummary(
+            activity: activity,
+            explicitOverride: workoutsToday
+        )
         let context = AIContext(
             date: Date(),
             timezoneIdentifier: TimeZone.current.identifier,

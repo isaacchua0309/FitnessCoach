@@ -21,7 +21,10 @@ struct PlanDashboardContent: View {
     var onSectionAppear: ((PlanProductSection) -> Void)? = nil
 
     private var showsHealthIntelligenceSection: Bool {
-        healthIntelligenceUIEnabled && planHealthIntelligenceSectionState != nil
+        PlanDashboardCompositionPolicy.showsHealthIntelligenceSection(
+            isUIEnabled: healthIntelligenceUIEnabled,
+            sectionState: planHealthIntelligenceSectionState
+        )
     }
 
     var body: some View {
@@ -92,7 +95,11 @@ struct PlanDashboardContent: View {
                 )
                 .onAppear { onSectionAppear?(.planConfidence) }
                 .accessibilityIdentifier("plan-health-intelligence-section")
-            } else {
+            } else if PlanDashboardCompositionPolicy.showsLegacyPlanConfidenceSection(
+                isUIEnabled: healthIntelligenceUIEnabled,
+                sectionState: planHealthIntelligenceSectionState
+            ) {
+                // Legacy Apple Health confidence card — pending removal after Health Intelligence rollout.
                 PlanConfidenceSection(
                     state: state.confidence,
                     onAppleHealthTap: onAppleHealthTap

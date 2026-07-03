@@ -23,16 +23,49 @@ final class PlanDashboardHealthIntelligenceTests: XCTestCase {
     }
 
     func testHealthIntelligenceVisibilityRequiresFlagAndState() {
-        XCTAssertFalse(PlanDashboardHealthIntelligenceVisibility.showsSection(
-            uiEnabled: false,
+        XCTAssertFalse(PlanDashboardCompositionPolicy.showsHealthIntelligenceSection(
+            isUIEnabled: false,
             sectionState: PlanHealthIntelligencePresentationPreviewData.strongFit
         ))
-        XCTAssertTrue(PlanDashboardHealthIntelligenceVisibility.showsSection(
-            uiEnabled: true,
+        XCTAssertTrue(PlanDashboardCompositionPolicy.showsHealthIntelligenceSection(
+            isUIEnabled: true,
             sectionState: PlanHealthIntelligencePresentationPreviewData.strongFit
         ))
-        XCTAssertFalse(PlanDashboardHealthIntelligenceVisibility.showsSection(
-            uiEnabled: true,
+        XCTAssertFalse(PlanDashboardCompositionPolicy.showsHealthIntelligenceSection(
+            isUIEnabled: true,
+            sectionState: nil
+        ))
+    }
+
+    func testFlagOffShowsLegacyPlanConfidenceSection() {
+        XCTAssertTrue(PlanDashboardCompositionPolicy.showsLegacyPlanConfidenceSection(
+            isUIEnabled: false,
+            sectionState: PlanHealthIntelligencePresentationPreviewData.strongFit
+        ))
+        XCTAssertFalse(PlanDashboardCompositionPolicy.showsHealthIntelligenceSection(
+            isUIEnabled: false,
+            sectionState: PlanHealthIntelligencePresentationPreviewData.strongFit
+        ))
+    }
+
+    func testFlagOnWithStateHidesLegacyPlanConfidenceSection() {
+        XCTAssertFalse(PlanDashboardCompositionPolicy.showsLegacyPlanConfidenceSection(
+            isUIEnabled: true,
+            sectionState: PlanHealthIntelligencePresentationPreviewData.strongFit
+        ))
+        XCTAssertTrue(PlanDashboardCompositionPolicy.showsHealthIntelligenceSection(
+            isUIEnabled: true,
+            sectionState: PlanHealthIntelligencePresentationPreviewData.strongFit
+        ))
+    }
+
+    func testFlagOnWithoutStateFallsBackToLegacyPlanConfidenceSection() {
+        XCTAssertTrue(PlanDashboardCompositionPolicy.showsLegacyPlanConfidenceSection(
+            isUIEnabled: true,
+            sectionState: nil
+        ))
+        XCTAssertFalse(PlanDashboardCompositionPolicy.showsHealthIntelligenceSection(
+            isUIEnabled: true,
             sectionState: nil
         ))
     }
@@ -43,6 +76,9 @@ enum PlanDashboardHealthIntelligenceVisibility {
         uiEnabled: Bool,
         sectionState: PlanHealthIntelligenceSectionState?
     ) -> Bool {
-        uiEnabled && sectionState != nil
+        PlanDashboardCompositionPolicy.showsHealthIntelligenceSection(
+            isUIEnabled: uiEnabled,
+            sectionState: sectionState
+        )
     }
 }

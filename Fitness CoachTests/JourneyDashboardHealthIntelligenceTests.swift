@@ -96,7 +96,10 @@ final class JourneyDashboardHealthIntelligenceTests: XCTestCase {
             case .goalProjection:
                 return state.showsGoalProjectionSection
             case .healthIntelligence:
-                return healthIntelligenceUIEnabled && healthIntelligenceSectionState != nil
+                return JourneyDashboardCompositionPolicy.showsHealthIntelligenceSection(
+                    isUIEnabled: healthIntelligenceUIEnabled,
+                    sectionState: healthIntelligenceSectionState
+                )
             case .milestones:
                 return state.showsMilestonesSection
             case .weeklyReview:
@@ -104,7 +107,11 @@ final class JourneyDashboardHealthIntelligenceTests: XCTestCase {
             case .storyTimeline:
                 return state.showsStoryTimelineSection
             case .insights:
-                return state.showsInsightSection
+                return JourneyDashboardCompositionPolicy.showsLegacyInsightsSection(
+                    isUIEnabled: healthIntelligenceUIEnabled,
+                    sectionState: healthIntelligenceSectionState,
+                    dashboardShowsInsights: state.showsInsightSection
+                )
             case .monthlyRecap:
                 return state.showsMonthlyRecapSection
             case .chapters:

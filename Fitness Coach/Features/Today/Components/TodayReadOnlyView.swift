@@ -79,6 +79,7 @@ struct TodayReadOnlyView: View {
             }
 
             if showsLegacyNextBestAction {
+                // Legacy next best action card — pending removal after Health Intelligence rollout.
                 TodayNextActionSection(
                     action: state.nextBestAction,
                     onPrimaryCTA: {
@@ -119,6 +120,7 @@ struct TodayReadOnlyView: View {
             )
 
             if showsActivitySection {
+                // Legacy activity/workout card — pending removal after Health Intelligence rollout.
                 TodayActivitySection(
                     activity: state.activity,
                     onConnectAppleHealth: {

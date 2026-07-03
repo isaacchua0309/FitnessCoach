@@ -172,6 +172,9 @@ final class CoachModel: ObservableObject {
                 dailyLog: dailyLog,
                 weightLogged: weightLogged,
                 hasWorkout: activity.hasWorkoutToday,
+                healthIntelligence: activity.healthIntelligence,
+                healthIntelligenceAwarenessAvailable: activity.healthIntelligenceAwarenessAvailable,
+                isCoachContextEnabled: healthIntelligenceLoadEnabled(),
                 trainingIntegration: integration,
                 trainingDataSource: dataSource
             )

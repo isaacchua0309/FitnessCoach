@@ -157,7 +157,7 @@ final class CoachAIHealthIntelligenceIntegrationTests: XCTestCase {
         let context = builder.makeContext(recentMessages: [], activity: activity)
 
         XCTAssertTrue(context.healthIntelligenceAwarenessAvailable)
-        XCTAssertEqual(context.todaySummary?.workoutsToday, 1)
+        XCTAssertEqual(context.todaySummary?.workoutsToday, 0)
         XCTAssertEqual(context.healthIntelligence?.workoutDemand, WorkoutDemand.high.rawValue)
         XCTAssertEqual(context.healthIntelligence?.recoveryStatus, RecoveryStatus.moderate.rawValue)
     }

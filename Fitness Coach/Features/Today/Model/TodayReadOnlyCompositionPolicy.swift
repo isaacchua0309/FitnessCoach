@@ -16,6 +16,7 @@ enum TodayReadOnlyCompositionPolicy {
         isUIEnabled && sectionState != nil
     }
 
+    /// Legacy next best action card — pending removal after Health Intelligence rollout.
     static func showsLegacyNextBestAction(
         isUIEnabled: Bool,
         sectionState: TodayHealthIntelligenceSectionState?
@@ -23,7 +24,8 @@ enum TodayReadOnlyCompositionPolicy {
         !showsHealthIntelligenceSection(isUIEnabled: isUIEnabled, sectionState: sectionState)
     }
 
-    /// Hides legacy activity when Health Intelligence already surfaces workout completion.
+    /// Legacy activity/workout card — pending removal after Health Intelligence rollout.
+    /// Hides when Health Intelligence already surfaces workout completion.
     static func showsActivitySection(
         isUIEnabled: Bool,
         sectionState: TodayHealthIntelligenceSectionState?,

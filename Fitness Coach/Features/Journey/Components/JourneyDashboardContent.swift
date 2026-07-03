@@ -32,7 +32,10 @@ struct JourneyDashboardContent: View {
     }
 
     private var showsHealthIntelligenceSection: Bool {
-        healthIntelligenceUIEnabled && healthIntelligenceSectionState != nil
+        JourneyDashboardCompositionPolicy.showsHealthIntelligenceSection(
+            isUIEnabled: healthIntelligenceUIEnabled,
+            sectionState: healthIntelligenceSectionState
+        )
     }
 
     private var visibleSections: [JourneyProductSection] {
@@ -53,7 +56,11 @@ struct JourneyDashboardContent: View {
             case .storyTimeline:
                 return state.showsStoryTimelineSection
             case .insights:
-                return state.showsInsightSection
+                return JourneyDashboardCompositionPolicy.showsLegacyInsightsSection(
+                    isUIEnabled: healthIntelligenceUIEnabled,
+                    sectionState: healthIntelligenceSectionState,
+                    dashboardShowsInsights: state.showsInsightSection
+                )
             case .monthlyRecap:
                 return state.showsMonthlyRecapSection
             case .chapters:
@@ -99,9 +106,13 @@ struct JourneyDashboardContent: View {
                 .onAppear { analyticsCoordinator?.logMilestoneViewed() }
 
         case .weeklyReview:
+            // Legacy training habit row — pending removal after Health Intelligence rollout.
             JourneyWeeklyReviewSection(
                 state: state.weeklyHabit,
-                hidesTrainingHabitRow: showsHealthIntelligenceSection,
+                hidesTrainingHabitRow: JourneyDashboardCompositionPolicy.hidesTrainingHabitRow(
+                    isUIEnabled: healthIntelligenceUIEnabled,
+                    sectionState: healthIntelligenceSectionState
+                ),
                 onCTA: onCTA
             )
             .onAppear { analyticsCoordinator?.logWeeklyConsistencyViewed() }
@@ -111,13 +122,18 @@ struct JourneyDashboardContent: View {
                 .onAppear { analyticsCoordinator?.logStoryViewed() }
 
         case .insights:
+            // Legacy training insights — pending removal after Health Intelligence rollout.
             JourneyInsightsSection(state: state.insight)
                 .onAppear { analyticsCoordinator?.logInsightsViewed() }
 
         case .monthlyRecap:
+            // Legacy monthly workout metrics — pending removal after Health Intelligence rollout.
             JourneyMonthlyRecapSection(
                 state: state.monthlyRecap,
-                hidesWorkoutMetrics: showsHealthIntelligenceSection
+                hidesWorkoutMetrics: JourneyDashboardCompositionPolicy.hidesWorkoutMetrics(
+                    isUIEnabled: healthIntelligenceUIEnabled,
+                    sectionState: healthIntelligenceSectionState
+                )
             )
             .onAppear { analyticsCoordinator?.logMonthlyRecapViewed() }
 
