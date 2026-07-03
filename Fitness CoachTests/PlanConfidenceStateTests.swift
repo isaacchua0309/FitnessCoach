@@ -8,43 +8,94 @@ import XCTest
 
 final class PlanConfidenceStateTests: XCTestCase {
 
-    func testNewUserHasModerateScoreWithMissingWeightAndLogs() {
-        let confidence = PlanMissionControlFixtures.newUserDashboard.confidence
-
-        XCTAssertEqual(confidence.sectionTitle, "Plan Confidence")
-        XCTAssertGreaterThanOrEqual(confidence.confidenceScore, 50)
-        XCTAssertLessThan(confidence.confidenceScore, 85)
-        XCTAssertTrue(confidence.missingItems.contains { $0.text == "No recent weigh-in" })
-        XCTAssertTrue(confidence.missingItems.contains { $0.text == "Not enough food logs yet" })
-    }
-
-    func testCompleteProfileIncludesBirthdayHeightAndActivityReasons() {
-        let confidence = PlanMissionControlFixtures.loseDashboard.confidence
-
-        XCTAssertTrue(confidence.whyItems.contains { $0.text == "Activity level selected" })
-        XCTAssertTrue(confidence.whyItems.contains { $0.text == "Birthday and height available" })
-        let targetWhyCopy = [
-            FormaProductCopy.PlanMissionControl.confidenceTargetsReasonable,
-            FormaProductCopy.PlanMissionControl.confidenceTargetsGuardrailed
-        ]
-        XCTAssertTrue(
-            confidence.whyItems.contains { targetWhyCopy.contains($0.text) },
-            "Expected calculated targets in why items, got: \(confidence.whyItems.map(\.text))"
+    func testLowConfidenceBucket() {
+        XCTAssertEqual(PlanConfidenceStateBuilder.estimateBucket(for: 38), .low)
+        XCTAssertEqual(
+            FormaProductCopy.PlanMissionControl.planConfidenceScoreHeadline(score: 38, bucket: .low),
+            "38% — Low estimate"
         )
     }
 
-    func testIncompleteProfileSurfacesMissingBirthdayHeight() {
-        let confidence = PlanMissionControlFixtures.incompleteDataDashboard.confidence
+    func testGoodConfidence() {
+        let confidence = PlanMissionControlFixtures.newUserDashboard.confidence
 
-        XCTAssertTrue(confidence.missingItems.contains { $0.text == "Birthday and height not fully set" })
+        XCTAssertEqual(confidence.sectionTitle, "Plan Confidence")
+        XCTAssertEqual(confidence.estimateBucket, .good)
+        XCTAssertEqual(confidence.confidenceScore, 68)
+        XCTAssertEqual(confidence.scoreHeadline, "68% — Good estimate")
     }
 
-    func testStaleWeightShowsMissingRecentWeighInWithPartialCredit() {
-        let confidence = PlanMissionControlFixtures.staleWeightDashboard.confidence
-        let noWeight = PlanMissionControlFixtures.noLogsDashboard.confidence
+    func testAppleHealthConnectedSignal() {
+        let confidence = PlanMissionControlFixtures.connectedDashboard.confidence
+        let appleHealth = confidence.compactSignals.first { $0.id == "appleHealth" }
 
-        XCTAssertTrue(confidence.missingItems.contains { $0.text == "No recent weigh-in" })
-        XCTAssertGreaterThan(confidence.confidenceScore, noWeight.confidenceScore)
+        XCTAssertEqual(appleHealth?.label, "Apple Health")
+        XCTAssertEqual(appleHealth?.value, "Connected")
+        XCTAssertFalse(confidence.showsAppleHealthAction)
+    }
+
+    func testMissingWeighInRecommendation() {
+        let confidence = PlanMissionControlFixtures.newUserDashboard.confidence
+
+        XCTAssertTrue(
+            confidence.improvementActions.contains {
+                $0.text == FormaProductCopy.PlanMissionControl.planConfidenceActionLogWeight
+            }
+        )
+        XCTAssertEqual(
+            confidence.compactSignals.first { $0.id == "weighIn" }?.value,
+            "No"
+        )
+    }
+
+    func testMissingFoodLogsRecommendation() {
+        let confidence = PlanMissionControlFixtures.newUserDashboard.confidence
+
+        XCTAssertTrue(
+            confidence.improvementActions.contains {
+                $0.text == FormaProductCopy.PlanMissionControl.planConfidenceActionLogMeals
+            }
+        )
+        XCTAssertEqual(
+            confidence.compactSignals.first { $0.id == "foodLogs" }?.value,
+            "Not enough"
+        )
+    }
+
+    func testStrongConfidenceOmitsRoutineImprovementActions() {
+        let confidence = PlanMissionControlFixtures.activeUserDashboard.confidence
+
+        XCTAssertEqual(confidence.estimateBucket, .strong)
+        XCTAssertGreaterThanOrEqual(confidence.confidenceScore, 85)
+        XCTAssertFalse(
+            confidence.improvementActions.contains {
+                $0.text == FormaProductCopy.PlanMissionControl.planConfidenceActionLogWeight
+            }
+        )
+        XCTAssertFalse(
+            confidence.improvementActions.contains {
+                $0.text == FormaProductCopy.PlanMissionControl.planConfidenceActionLogMeals
+            }
+        )
+        XCTAssertEqual(
+            confidence.compactSignals.first { $0.id == "weighIn" }?.value,
+            "Yes"
+        )
+        XCTAssertEqual(
+            confidence.compactSignals.first { $0.id == "foodLogs" }?.value,
+            "Enough"
+        )
+    }
+
+    func testDisconnectedAppleHealthSurfacesConnectAction() {
+        let confidence = PlanMissionControlFixtures.loseDashboard.confidence
+
+        XCTAssertTrue(confidence.showsAppleHealthAction)
+        XCTAssertEqual(confidence.appleHealthActionTitle, TrainingIntegrationCopy.connectAppleHealth)
+        XCTAssertEqual(
+            confidence.compactSignals.first { $0.id == "appleHealth" }?.value,
+            "Not connected"
+        )
     }
 
     func testHasRecentWeightLogWithinWindow() {
@@ -68,20 +119,12 @@ final class PlanConfidenceStateTests: XCTestCase {
         )
     }
 
-    func testStrongLoggingHistoryBoostsScoreWithConnectedSignals() {
-        let confidence = PlanMissionControlFixtures.activeUserDashboard.confidence
-
-        XCTAssertGreaterThanOrEqual(confidence.confidenceScore, 85)
-        XCTAssertEqual(confidence.confidenceLevel, .high)
-        XCTAssertTrue(confidence.whyItems.contains { $0.text == "Apple Health connected" })
-    }
-
     func testConfidenceCopyIsExplanatoryNotMedical() {
         let confidence = PlanMissionControlFixtures.activeUserDashboard.confidence
         let combined = (
-            confidence.whyItems.map(\.text)
-                + confidence.missingItems.map(\.text)
-                + [confidence.footerCopy]
+            [confidence.scoreHeadline, confidence.improveAccuracyHeading, confidence.compactSignalsHeading]
+                + confidence.improvementActions.map(\.text)
+                + confidence.compactSignals.map { "\($0.label) \($0.value)" }
         ).joined(separator: " ").lowercased()
 
         XCTAssertFalse(combined.contains("diagnos"))
@@ -89,15 +132,10 @@ final class PlanConfidenceStateTests: XCTestCase {
         XCTAssertNil(PlanCopySafetyPolicy.forbiddenViolation(in: combined))
     }
 
-    func testScoreIsClampedAndFormatted() {
-        let confidence = PlanMissionControlFixtures.activeUserDashboard.confidence
+    func testImprovementActionsAreCappedAtThree() {
+        let confidence = PlanMissionControlFixtures.incompleteDataDashboard.confidence
 
-        XCTAssertTrue((0...100).contains(confidence.confidenceScore))
-        XCTAssertEqual(
-            confidence.scoreLabel,
-            FormaProductCopy.PlanMissionControl.planConfidenceScore(confidence.confidenceScore)
-        )
-        XCTAssertTrue(confidence.scoreLabel.hasPrefix("Plan confidence:"))
+        XCTAssertLessThanOrEqual(confidence.improvementActions.count, 3)
         XCTAssertFalse(confidence.accessibilitySummary.isEmpty)
     }
 }

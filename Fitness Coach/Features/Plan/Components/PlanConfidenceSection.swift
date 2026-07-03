@@ -2,7 +2,7 @@
 //  PlanConfidenceSection.swift
 //  Fitness Coach
 //
-//  Forma — Plan confidence card with compressed Apple Health status.
+//  Forma — Compact Plan Confidence with actionable next steps.
 //
 
 import SwiftUI
@@ -17,30 +17,23 @@ struct PlanConfidenceSection: View {
 
             FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm) {
-                    Text(state.scoreLabel)
+                    Text(state.scoreHeadline)
                         .font(FormaTokens.Typography.sectionTitle.weight(.bold))
                         .foregroundStyle(FormaTokens.Color.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityHidden(true)
 
-                    if !state.whyItems.isEmpty {
-                        whyBlock
+                    if !state.improvementActions.isEmpty {
+                        improvementActionsBlock
                     }
 
-                    if !state.missingItems.isEmpty {
-                        missingBlock
-                    }
+                    compactSignalsBlock
 
-                    if state.showsAppleHealthStatus, let appleHealthStatusLabel = state.appleHealthStatusLabel {
-                        appleHealthBlock(statusLabel: appleHealthStatusLabel)
+                    if state.showsAppleHealthAction,
+                       let actionTitle = state.appleHealthActionTitle,
+                       let onAppleHealthTap {
+                        appleHealthActionButton(title: actionTitle, action: onAppleHealthTap)
                     }
-
-                    Text(state.footerCopy)
-                        .font(FormaTokens.Typography.caption)
-                        .foregroundStyle(FormaTokens.Color.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, FormaTokens.Spacing.xs)
-                        .accessibilityHidden(true)
                 }
             }
         }
@@ -48,65 +41,46 @@ struct PlanConfidenceSection: View {
         .accessibilityLabel(state.accessibilitySummary)
     }
 
-    private var whyBlock: some View {
+    private var improvementActionsBlock: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-            Text(state.whyHeading)
+            Text(state.improveAccuracyHeading)
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
                 .foregroundStyle(FormaTokens.Color.textSecondary)
+                .padding(.top, FormaTokens.Spacing.xs)
                 .accessibilityHidden(true)
 
-            ForEach(state.whyItems) { item in
-                reasonRow(symbol: "✓", text: item.text, symbolColor: FormaTokens.Theme.primary)
+            ForEach(state.improvementActions) { action in
+                actionRow(action.text)
             }
         }
     }
 
-    private var missingBlock: some View {
+    private var compactSignalsBlock: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-            Text(state.missingHeading)
+            Text(state.compactSignalsHeading)
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
                 .foregroundStyle(FormaTokens.Color.textSecondary)
-                .padding(.top, state.whyItems.isEmpty ? 0 : FormaTokens.Spacing.xs)
+                .padding(.top, state.improvementActions.isEmpty ? FormaTokens.Spacing.xs : 0)
                 .accessibilityHidden(true)
 
-            ForEach(state.missingItems) { item in
-                reasonRow(symbol: "–", text: item.text, symbolColor: FormaTokens.Color.textTertiary)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func appleHealthBlock(statusLabel: String) -> some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-            FormaPlanDisplayRow(
-                label: FormaProductCopy.PlanMissionControl.planAssumptionsAppleHealth,
-                value: statusLabel
-            )
-            .accessibilityHidden(true)
-
-            if state.showsAppleHealthAction,
-               let actionTitle = state.appleHealthActionTitle,
-               let onAppleHealthTap {
-                Button(action: onAppleHealthTap) {
-                    Text(actionTitle)
-                        .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                        .foregroundStyle(FormaTokens.Theme.primary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .frame(minHeight: FormaTokens.Layout.minTouchTarget)
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(state.compactSignals.enumerated()), id: \.element.id) { index, signal in
+                    if index > 0 {
+                        FormaPlanRowDivider()
+                    }
+                    FormaPlanDisplayRow(label: signal.label, value: signal.value)
+                        .accessibilityHidden(true)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(actionTitle)
-                .accessibilityHint(FormaProductCopy.PlanMissionControl.connectAppleHealthAccessibilityHint)
             }
+            .accessibilityHidden(true)
         }
-        .padding(.top, FormaTokens.Spacing.xs)
     }
 
-    private func reasonRow(symbol: String, text: String, symbolColor: Color) -> some View {
+    private func actionRow(_ text: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.xs) {
-            Text(symbol)
+            Text("•")
                 .font(FormaTokens.Typography.sectionSubtitle.weight(.semibold))
-                .foregroundStyle(symbolColor)
+                .foregroundStyle(FormaTokens.Color.textTertiary)
                 .frame(width: 14, alignment: .leading)
 
             Text(text)
@@ -115,6 +89,20 @@ struct PlanConfidenceSection: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityHidden(true)
+    }
+
+    private func appleHealthActionButton(title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(FormaTokens.Typography.caption.weight(.semibold))
+                .foregroundStyle(FormaTokens.Theme.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(minHeight: FormaTokens.Layout.minTouchTarget)
+        }
+        .buttonStyle(.plain)
+        .padding(.top, FormaTokens.Spacing.xs)
+        .accessibilityLabel(title)
+        .accessibilityHint(FormaProductCopy.PlanMissionControl.connectAppleHealthAccessibilityHint)
     }
 }
 

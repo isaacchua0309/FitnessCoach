@@ -142,9 +142,10 @@ final class PlanCopySafetyTests: XCTestCase {
             dashboard.dailyTargets.prescriptionCopy,
             dashboard.assumptions.assumptionsNote,
             dashboard.assumptions.accessibilitySummary,
-            dashboard.confidence.footerCopy,
-            dashboard.confidence.accessibilitySummary,
-            dashboard.confidence.appleHealthStatusLabel
+            dashboard.confidence.scoreHeadline,
+            dashboard.confidence.improveAccuracyHeading,
+            dashboard.confidence.compactSignalsHeading,
+            dashboard.confidence.accessibilitySummary
         ].compactMap { $0 }
     }
 

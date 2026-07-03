@@ -116,7 +116,9 @@ final class PlanMissionControlBuilderTests: XCTestCase {
     func testLegacyProfileMissingBirthdaySurfacesInConfidence() {
         let confidence = PlanMissionControlFixtures.incompleteDataDashboard.confidence
 
-        XCTAssertTrue(confidence.missingItems.contains { $0.text == "Birthday and height not fully set" })
+        XCTAssertTrue(confidence.improvementActions.contains {
+            $0.text == FormaProductCopy.PlanMissionControl.planConfidenceActionAddProfileDetails
+        })
     }
 
     // MARK: - Confidence
@@ -128,22 +130,23 @@ final class PlanMissionControlBuilderTests: XCTestCase {
             PlanMissionControlFixtures.incompleteDataDashboard
         ] {
             XCTAssert((0...100).contains(dashboard.confidence.confidenceScore))
-            XCTAssertFalse(dashboard.confidence.footerCopy.isEmpty)
+            XCTAssertFalse(dashboard.confidence.scoreHeadline.isEmpty)
         }
     }
 
     func testConnectedDashboardSurfacesAppleHealthInConfidence() {
         let confidence = PlanMissionControlFixtures.connectedDashboard.confidence
 
-        XCTAssertTrue(confidence.showsAppleHealthStatus)
-        XCTAssertNotNil(confidence.appleHealthStatusLabel)
+        XCTAssertEqual(
+            confidence.compactSignals.first { $0.id == "appleHealth" }?.value,
+            "Connected"
+        )
         XCTAssertFalse(confidence.showsAppleHealthAction)
     }
 
     func testDisconnectedDashboardOffersAppleHealthActionInConfidence() {
         let confidence = PlanMissionControlFixtures.loseDashboard.confidence
 
-        XCTAssertTrue(confidence.showsAppleHealthStatus)
         XCTAssertTrue(confidence.showsAppleHealthAction)
         XCTAssertEqual(confidence.appleHealthActionTitle, TrainingIntegrationCopy.connectAppleHealth)
     }

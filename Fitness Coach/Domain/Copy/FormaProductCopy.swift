@@ -2318,12 +2318,34 @@ enum FormaProductCopy {
             "These targets are estimates from what you've shared. Keep logging for sharper weekly feedback."
 
         static let planConfidenceSectionTitle = "Plan Confidence"
-        static let planConfidenceWhyHeading = "What's working:"
-        static let planConfidenceMissingHeading = "To improve accuracy:"
+        static let planConfidenceImproveAccuracyHeading = "Improve accuracy:"
+        static let planConfidenceCompactSignalsHeading = "Compact signals:"
 
-        static func planConfidenceScore(_ percent: Int) -> String {
-            "Plan confidence: \(percent)%"
+        static func planConfidenceScoreHeadline(
+            score: Int,
+            bucket: PlanConfidenceEstimateBucket
+        ) -> String {
+            "\(score)% — \(bucket.label) estimate"
         }
+
+        static let planConfidenceActionLogWeight =
+            "Log weight 3 times this week"
+        static let planConfidenceActionLogMeals =
+            "Log meals for 5 days"
+        static let planConfidenceActionConnectAppleHealth =
+            "Connect Apple Health"
+        static let planConfidenceActionAddProfileDetails =
+            "Add birthday and height for sharper estimates"
+
+        static let planConfidenceSignalAppleHealth = "Apple Health"
+        static let planConfidenceSignalRecentWeighIn = "Recent weigh-in"
+        static let planConfidenceSignalFoodLogs = "Food logs"
+        static let planConfidenceSignalConnected = "Connected"
+        static let planConfidenceSignalNotConnected = "Not connected"
+        static let planConfidenceSignalYes = "Yes"
+        static let planConfidenceSignalNo = "No"
+        static let planConfidenceSignalEnough = "Enough"
+        static let planConfidenceSignalNotEnough = "Not enough"
 
         static let confidenceRecentWeightLogged = "Recent weight logged"
         static let confidenceActivityLevelSelected = "Activity level selected"

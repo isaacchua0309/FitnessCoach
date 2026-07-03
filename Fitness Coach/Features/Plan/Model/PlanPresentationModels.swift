@@ -130,23 +130,42 @@ struct PlanAssumptionsState: Equatable, Sendable {
 
 // MARK: - Confidence
 
-struct PlanConfidenceReasonItem: Equatable, Sendable, Identifiable {
+enum PlanConfidenceEstimateBucket: String, Equatable, Sendable, CaseIterable {
+    case low
+    case fair
+    case good
+    case strong
+
+    var label: String {
+        switch self {
+        case .low: return "Low"
+        case .fair: return "Fair"
+        case .good: return "Good"
+        case .strong: return "Strong"
+        }
+    }
+}
+
+struct PlanConfidenceAction: Equatable, Sendable, Identifiable {
     var id: String
     var text: String
 }
 
+struct PlanConfidenceSignal: Equatable, Sendable, Identifiable {
+    var id: String
+    var label: String
+    var value: String
+}
+
 struct PlanConfidenceState: Equatable, Sendable {
     var confidenceScore: Int
-    var confidenceLevel: ConfidenceLevel
+    var estimateBucket: PlanConfidenceEstimateBucket
     var sectionTitle: String
-    var scoreLabel: String
-    var whyHeading: String
-    var missingHeading: String
-    var whyItems: [PlanConfidenceReasonItem]
-    var missingItems: [PlanConfidenceReasonItem]
-    var footerCopy: String
-    var showsAppleHealthStatus: Bool
-    var appleHealthStatusLabel: String?
+    var scoreHeadline: String
+    var improveAccuracyHeading: String
+    var improvementActions: [PlanConfidenceAction]
+    var compactSignalsHeading: String
+    var compactSignals: [PlanConfidenceSignal]
     var showsAppleHealthAction: Bool
     var appleHealthActionTitle: String?
     var accessibilitySummary: String

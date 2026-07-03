@@ -60,8 +60,8 @@ final class PlanPresentationStateTests: XCTestCase {
         let state = PlanMissionControlFixtures.incompleteDataDashboard
 
         XCTAssertEqual(state.status.classification, .needsReview)
-        XCTAssertTrue(state.confidence.missingItems.contains {
-            $0.text == FormaProductCopy.PlanMissionControl.missingBirthdayHeight
+        XCTAssertTrue(state.confidence.improvementActions.contains {
+            $0.text == FormaProductCopy.PlanMissionControl.planConfidenceActionAddProfileDetails
         })
     }
 
@@ -70,21 +70,21 @@ final class PlanPresentationStateTests: XCTestCase {
     func testAppleHealthConnectedConfidence() {
         let state = PlanMissionControlFixtures.connectedDashboard
 
-        XCTAssertTrue(state.confidence.showsAppleHealthStatus)
         XCTAssertFalse(state.confidence.showsAppleHealthAction)
-        XCTAssertTrue(state.confidence.whyItems.contains {
-            $0.text == FormaProductCopy.PlanMissionControl.confidenceAppleHealthConnected
-        })
+        XCTAssertEqual(
+            state.confidence.compactSignals.first { $0.id == "appleHealth" }?.value,
+            "Connected"
+        )
     }
 
     func testAppleHealthDisconnectedConfidence() {
         let state = PlanMissionControlFixtures.loseDashboard
 
-        XCTAssertTrue(state.confidence.showsAppleHealthStatus)
         XCTAssertTrue(state.confidence.showsAppleHealthAction)
-        XCTAssertTrue(state.confidence.missingItems.contains {
-            $0.text == FormaProductCopy.PlanMissionControl.missingAppleHealthConnection
-        })
+        XCTAssertEqual(
+            state.confidence.compactSignals.first { $0.id == "appleHealth" }?.value,
+            "Not connected"
+        )
     }
 
     // MARK: - Section completeness
@@ -109,9 +109,12 @@ final class PlanPresentationStateTests: XCTestCase {
 
         XCTAssertEqual(state.status.classification, .aggressiveCut)
         XCTAssertGreaterThanOrEqual(state.confidence.confidenceScore, 85)
-        XCTAssertFalse(state.confidence.missingItems.contains {
-            $0.text == FormaProductCopy.PlanMissionControl.missingRecentWeighIn
-        })
+        XCTAssertEqual(state.confidence.estimateBucket, .strong)
+        XCTAssertFalse(
+            state.confidence.improvementActions.contains {
+                $0.text == FormaProductCopy.PlanMissionControl.planConfidenceActionLogWeight
+            }
+        )
     }
 
     func testPlanStateBuilderUsesPresentationBuilder() {
