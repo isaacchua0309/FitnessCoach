@@ -139,7 +139,7 @@ final class FormaAIBackendClientTests: XCTestCase {
 
         do {
             _ = try await client.estimateFood(
-                request: AIFoodEstimateRequest(text: "meal", context: Self.sampleContext)
+                request: AIFoodEstimateRequest(text: "meal", context: Self.sampleCoachContext)
             )
             XCTFail("Expected payload too large.")
         } catch let error as LLMClientError {
@@ -161,7 +161,7 @@ final class FormaAIBackendClientTests: XCTestCase {
 
         do {
             _ = try await client.estimateFood(
-                request: AIFoodEstimateRequest(text: "meal", context: Self.sampleContext)
+                request: AIFoodEstimateRequest(text: "meal", context: Self.sampleCoachContext)
             )
             XCTFail("Expected nutrition extraction failure.")
         } catch let error as LLMClientError {
@@ -204,7 +204,7 @@ final class FormaAIBackendClientTests: XCTestCase {
 
         do {
             _ = try await client.estimateFood(
-                request: AIFoodEstimateRequest(text: "meal", context: Self.sampleContext)
+                request: AIFoodEstimateRequest(text: "meal", context: Self.sampleCoachContext)
             )
             XCTFail("Expected model unavailable.")
         } catch let error as LLMClientError {
@@ -325,44 +325,47 @@ private extension FormaAIBackendClientTests {
             _ = try await client.parseCommand(
                 request: AIParseCommandRequest(
                     text: "log water",
-                    context: Self.sampleContext
+                    context: Self.sampleLegacyContext
                 )
             )
         case .estimateFood:
             _ = try await client.estimateFood(
-                request: AIFoodEstimateRequest(text: "2 eggs", context: Self.sampleContext)
+                request: AIFoodEstimateRequest(text: "2 eggs", context: Self.sampleCoachContext)
             )
         case .mealAdvice:
             _ = try await client.generateMealAdvice(
-                request: AIMealAdviceRequest(question: "Pasta tonight?", context: Self.sampleContext)
+                request: AIMealAdviceRequest(question: "Pasta tonight?", context: Self.sampleCoachContext)
             )
         case .dailyReview:
             _ = try await client.generateDailyReview(
-                request: AIDailyReviewRequest(input: Self.sampleDailyReviewInput, context: Self.sampleContext)
+                request: AIDailyReviewRequest(input: Self.sampleDailyReviewInput, context: Self.sampleCoachContext)
             )
         case .parseWorkout:
             _ = try await client.parseWorkout(
-                request: AIWorkoutParseRequest(text: "ran 30 minutes", context: Self.sampleContext)
+                request: AIWorkoutParseRequest(text: "ran 30 minutes", context: Self.sampleLegacyContext)
             )
         case .parseEditDelete:
             _ = try await client.parseEditOrDelete(
-                request: AIEditDeleteParseRequest(text: "delete last meal", context: Self.sampleContext)
+                request: AIEditDeleteParseRequest(text: "delete last meal", context: Self.sampleCoachContext)
             )
         case .parseMultiAction:
             _ = try await client.parseMultiAction(
-                request: AIMultiActionParseRequest(text: "log water and weight", context: Self.sampleContext)
+                request: AIMultiActionParseRequest(text: "log water and weight", context: Self.sampleCoachContext)
             )
         case .analyzeMealImage:
             _ = try await client.analyzeMealImage(
                 request: AIMealImageAnalysisRequest(
                     message: "Lunch",
+                    context: Self.sampleCoachContext,
                     image: .jpeg(Data([0xFF, 0xD8, 0xFF]))
                 )
             )
         }
     }
 
-    static let sampleContext = AIContext(
+    static let sampleCoachContext = CoachContextPacketV2.test
+
+    static let sampleLegacyContext = AIContext(
         date: Date(timeIntervalSince1970: 0),
         timezoneIdentifier: "UTC"
     )
@@ -370,7 +373,7 @@ private extension FormaAIBackendClientTests {
     static func sampleClassifyRequest() -> AICoachIntentClassificationRequest {
         AICoachIntentClassificationRequest(
             text: "hello",
-            context: sampleContext,
+            context: sampleCoachContext,
             modelName: CoachModelConfig.default.cheapClassifierModel,
             modelConfig: .default
         )

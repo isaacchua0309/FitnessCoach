@@ -85,7 +85,7 @@ final class PipelineTracerTests: XCTestCase {
 
         let request = AICoachIntentClassificationRequest(
             text: "hello",
-            context: AIContext(date: Date(timeIntervalSince1970: 0), timezoneIdentifier: "UTC"),
+            context: .test,
             modelName: CoachModelConfig.default.cheapClassifierModel,
             modelConfig: .default
         )

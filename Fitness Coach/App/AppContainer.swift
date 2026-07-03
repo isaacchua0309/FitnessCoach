@@ -53,6 +53,9 @@ final class AppContainer {
     let healthIntelligenceSnapshotService: any HealthIntelligenceSnapshotServing
     let healthSyncService: HealthSyncService
     let healthSyncStateStore: HealthSyncStateStore
+    let coachTimelineStore: SwiftDataCoachTimelineStore
+    let coachTimelineBackfillService: CoachTimelineBackfillService
+    let coachTimelineRecorder: DefaultCoachTimelineRecorder
     private let authUIDCache: AuthUIDCache
 
     let onboardingUserDefaults: UserDefaults
@@ -239,6 +242,19 @@ final class AppContainer {
             enginesEnabled: HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled
         )
 
+        coachTimelineStore = SwiftDataCoachTimelineStore(
+            store: store,
+            userIdProvider: { [weak authManager] in authManager?.currentUID }
+        )
+        coachTimelineBackfillService = CoachTimelineBackfillService(
+            timelineStore: coachTimelineStore,
+            foodLogService: foodLogService,
+            waterLogService: waterLogService,
+            weightLogService: weightLogService,
+            healthActivityQuery: healthActivityQueryService
+        )
+        coachTimelineRecorder = DefaultCoachTimelineRecorder(store: coachTimelineStore)
+
         #if DEBUG
         HealthIntelligenceEngineLogger.wiringRegistered(
             fields: [
@@ -360,13 +376,27 @@ final class AppContainer {
     }
 
     func makeCoachModel() -> CoachModel {
-        CoachModel(
+        let contextPacketBuilder = CoachContextPacketV2Builder(
+            dailyLogService: dailyLogService,
+            foodLogService: foodLogService,
+            waterLogService: waterLogService,
+            weightLogService: weightLogService,
+            userProfileService: userProfileService,
+            healthActivityQuery: healthActivityQueryService,
+            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
+            timelineStore: coachTimelineStore,
+            timelineBackfillService: coachTimelineBackfillService,
+            timelineRecorder: coachTimelineRecorder
+        )
+
+        return CoachModel(
             actionCenter: actionCenter,
             dailyLogReader: dailyLogService,
             healthActivityQuery: healthActivityQueryService,
             healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
             weightLogReader: weightLogService,
             aiService: aiService,
+            contextPacketBuilder: contextPacketBuilder,
             userProfileReader: userProfileService,
             aiCommandParsingEnabled: aiCommandParsingEnabled,
             trainingInsightsStore: trainingInsightsStore

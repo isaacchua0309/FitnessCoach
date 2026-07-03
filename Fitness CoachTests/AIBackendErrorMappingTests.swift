@@ -103,7 +103,7 @@ final class AIBackendErrorMappingTests: XCTestCase {
             _ = try await client.estimateFood(
                 request: AIFoodEstimateRequest(
                     text: "meal photo",
-                    context: AIContext(date: Date(timeIntervalSince1970: 0), timezoneIdentifier: "UTC")
+                    context: .test
                 )
             )
             XCTFail("Expected payload too large.")
@@ -122,7 +122,7 @@ final class AIBackendErrorMappingTests: XCTestCase {
             _ = try await client.classifyCoachIntent(
                 request: AICoachIntentClassificationRequest(
                     text: "hello",
-                    context: AIContext(date: Date(timeIntervalSince1970: 0), timezoneIdentifier: "UTC"),
+                    context: .test,
                     modelName: CoachModelConfig.default.cheapClassifierModel,
                     modelConfig: .default
                 )
@@ -148,6 +148,10 @@ private final class TimeoutFailingLLMClient: LLMClient, @unchecked Sendable {
     }
 
     func estimateFood(request: AIFoodEstimateRequest) async throws -> AIFoodEstimateResponse {
+        throw LLMClientError.requestTimedOut
+    }
+
+    func analyzeMealImage(request: AIMealImageAnalysisRequest) async throws -> AIMealImageAnalysisResponse {
         throw LLMClientError.requestTimedOut
     }
 

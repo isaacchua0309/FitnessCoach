@@ -12,7 +12,7 @@ extension AIServiceProtocol {
 
     func generateNutritionEstimate(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> NutritionEstimateResponse {
@@ -33,7 +33,7 @@ extension AIServiceProtocol {
 
     func generateNutritionComparison(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> NutritionComparisonResponse {

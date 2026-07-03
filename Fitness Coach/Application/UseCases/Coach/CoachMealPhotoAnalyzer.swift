@@ -18,16 +18,16 @@ struct MealPhotoAnalysisOutcome: Equatable {
 final class CoachMealPhotoAnalyzer {
 
     private let aiCommandParsingEnabled: Bool
-    private let aiContextBuilder: CoachContextBuilder?
+    private let contextPacketBuilder: CoachContextPacketV2Builder?
     private let routeHandler: CoachAIRouteHandler
 
     init(
         aiCommandParsingEnabled: Bool,
-        aiContextBuilder: CoachContextBuilder?,
+        contextPacketBuilder: CoachContextPacketV2Builder?,
         routeHandler: CoachAIRouteHandler
     ) {
         self.aiCommandParsingEnabled = aiCommandParsingEnabled
-        self.aiContextBuilder = aiContextBuilder
+        self.contextPacketBuilder = contextPacketBuilder
         self.routeHandler = routeHandler
     }
 
@@ -39,9 +39,10 @@ final class CoachMealPhotoAnalyzer {
         session: ImageAnalysisSession,
         recommission: ImageAnalysisRecommissionContext? = nil,
         recentMessages: [ChatMessage],
-        context preparedContext: AIContext? = nil
+        context preparedContext: CoachContextPacketV2? = nil,
+        currentUserMessage: String? = nil
     ) async -> MealPhotoAnalysisOutcome {
-        guard aiCommandParsingEnabled, let aiContextBuilder else {
+        guard aiCommandParsingEnabled, let contextPacketBuilder else {
             let error = AIServiceError.backendUnavailable
             CoachImageAnalysisDebugLogger.logError(error)
             return MealPhotoAnalysisOutcome(
@@ -66,7 +67,8 @@ final class CoachMealPhotoAnalyzer {
             prompt: prompt,
             recommission: recommission,
             recentMessages: recentMessages,
-            preparedContext: preparedContext
+            preparedContext: preparedContext,
+            currentUserMessage: currentUserMessage
         )
     }
 
@@ -75,7 +77,8 @@ final class CoachMealPhotoAnalyzer {
         prompt: String,
         recommission: ImageAnalysisRecommissionContext?,
         recentMessages: [ChatMessage],
-        preparedContext: AIContext?
+        preparedContext: CoachContextPacketV2?,
+        currentUserMessage: String?
     ) async -> MealPhotoAnalysisOutcome {
         FormaPipelineTracer.event(
             stage: .coachSend,
@@ -88,7 +91,15 @@ final class CoachMealPhotoAnalyzer {
             ]
         )
 
-        let context = preparedContext ?? aiContextBuilder!.makeContext(recentMessages: recentMessages)
+        let context: CoachContextPacketV2
+        if let preparedContext {
+            context = preparedContext
+        } else {
+            context = await contextPacketBuilder!.makeContext(
+                recentMessages: recentMessages,
+                currentUserMessage: currentUserMessage
+            )
+        }
 
         let uploadAttachment = CoachMealImageUploadAttachment.fromUploadData(jpegData)
 

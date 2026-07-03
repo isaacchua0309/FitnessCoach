@@ -258,7 +258,7 @@ private final class RegressionFoodEstimateAIService: AIServiceProtocol, @uncheck
 
     func classifyCoachIntent(
         _ text: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         config: CoachModelConfig
     ) async throws -> CoachIntentResult {
         CoachIntentResult(
@@ -275,7 +275,7 @@ private final class RegressionFoodEstimateAIService: AIServiceProtocol, @uncheck
 
     func estimateFood(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         imageJPEGData: Data?
     ) async throws -> AIFoodEstimateResponse {
         response
@@ -283,7 +283,7 @@ private final class RegressionFoodEstimateAIService: AIServiceProtocol, @uncheck
 
     func generateMealAdvice(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
@@ -294,26 +294,26 @@ private final class RegressionFoodEstimateAIService: AIServiceProtocol, @uncheck
         throw AIServiceError.backendUnavailable
     }
 
-    func parseEditOrDelete(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func parseMultiAction(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func generateDailyReview(context: AIContext) async throws -> AICoachResponse {
+    func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
         throw AIServiceError.backendUnavailable
     }
 
     func generateDailyReviewText(
         input: DailyReviewAIInput,
-        context: AIContext
+        context: CoachContextPacketV2
     ) async throws -> AICoachResponse {
         throw AIServiceError.backendUnavailable
     }
 
-    func parseCommand(_ text: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 }

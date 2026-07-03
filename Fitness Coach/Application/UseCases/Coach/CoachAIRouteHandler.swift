@@ -38,7 +38,7 @@ final class CoachAIRouteHandler {
         self.mutationExecutor = mutationExecutor
     }
 
-    func handle(_ route: CoachRoute, context: AIContext) async throws -> CoachActionResult {
+    func handle(_ route: CoachRoute, context: CoachContextPacketV2) async throws -> CoachActionResult {
         switch route {
         case .noOp(let response):
             switch response {
@@ -85,7 +85,7 @@ final class CoachAIRouteHandler {
         }
     }
 
-    func handleAITask(_ routed: RoutedAITask, context: AIContext) async throws -> CoachActionResult {
+    func handleAITask(_ routed: RoutedAITask, context: CoachContextPacketV2) async throws -> CoachActionResult {
         guard aiCommandParsingEnabled, let aiService else {
             return .message(CoachResponseBuilder.backendUnavailableResponse)
         }
@@ -171,7 +171,7 @@ final class CoachAIRouteHandler {
         uploadAttachment: CoachMealImageUploadAttachment,
         prompt: String,
         recommission: ImageAnalysisRecommissionContext?,
-        context: AIContext
+        context: CoachContextPacketV2
     ) async throws -> PhotoAnalysisPresentation {
         guard let aiService else {
             throw AIServiceError.backendUnavailable
@@ -180,6 +180,7 @@ final class CoachAIRouteHandler {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         let requestResult = CoachMealImageAIRequestBuilder.buildAnalysisRequest(
             attachment: uploadAttachment,
+            context: context,
             message: trimmedPrompt.isEmpty ? nil : trimmedPrompt,
             clarification: recommission?.clarification,
             previousAnalysis: recommission?.previousResult.map(MealImageAnalysisMapper.previousAnalysis)
@@ -368,7 +369,7 @@ final class CoachAIRouteHandler {
 
     private func handleParsedAICommand(
         _ parsed: AIParsedCommand,
-        context: AIContext
+        context: CoachContextPacketV2
     ) async throws -> CoachActionResult {
         switch ConfirmationPolicy.decision(for: parsed) {
         case .reject(let message):
@@ -531,7 +532,7 @@ final class CoachAIRouteHandler {
 
     private func presentNutritionEstimate(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         routed: RoutedAITask
     ) async throws -> CoachActionResult {
         guard let aiService else {
@@ -563,7 +564,7 @@ final class CoachAIRouteHandler {
 
     private func presentNutritionComparison(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         routed: RoutedAITask
     ) async throws -> CoachActionResult {
         guard let aiService else {
@@ -595,14 +596,14 @@ final class CoachAIRouteHandler {
         CoachFoodEstimateDebugLogger.log(snapshot)
     }
 
-    private func hasWorkoutToday(from context: AIContext) -> Bool {
+    private func hasWorkoutToday(from context: CoachContextPacketV2) -> Bool {
         if let healthIntelligence = context.healthIntelligence {
             return healthIntelligence.workoutCompletedToday
         }
-        return (context.todaySummary?.workoutsToday ?? 0) > 0
+        return (context.training?.workoutsToday ?? 0) > 0
     }
 
-    private func resolvedHealthIntelligence(from context: AIContext) -> CoachHealthIntelligenceContext? {
-        context.healthIntelligenceAwarenessAvailable ? context.healthIntelligence : nil
+    private func resolvedHealthIntelligence(from context: CoachContextPacketV2) -> CoachHealthIntelligenceContext? {
+        context.healthIntelligence
     }
 }

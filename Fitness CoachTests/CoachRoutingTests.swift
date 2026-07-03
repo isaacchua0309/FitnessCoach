@@ -190,10 +190,22 @@ final class CoachRoutingTests: XCTestCase {
     func testFollowUpUsesClassifierNotKeywords() async throws {
         let service = StubClassifierAIService(classifyResult: stubIntent(.mealDecision))
         let localDecider = CoachRouteDecider()
-        var context = AIContext.test
-        context.recentMessages = [
-            AIMessageContext(role: .user, text: "should I eat a burger tonight"),
-            AIMessageContext(role: .assistant, text: "You have 685 kcal remaining.")
+        var context = CoachContextPacketV2.test
+        context.recentChatMessages = [
+            CoachChatMessageContext(
+                id: UUID(),
+                role: "user",
+                textPreview: "should I eat a burger tonight",
+                sentAt: Date(timeIntervalSince1970: 0),
+                hasPhotoAttachment: false
+            ),
+            CoachChatMessageContext(
+                id: UUID(),
+                role: "assistant",
+                textPreview: "You have 685 kcal remaining.",
+                sentAt: Date(timeIntervalSince1970: 1),
+                hasPhotoAttachment: false
+            )
         ]
 
         let decision = try await localDecider.decide(
@@ -626,7 +638,7 @@ private final class RecordingAIService: AIServiceProtocol, @unchecked Sendable {
 
     func classifyCoachIntent(
         _ text: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         config: CoachModelConfig
     ) async throws -> CoachIntentResult {
         classifyCoachIntentCallCount += 1
@@ -643,7 +655,7 @@ private final class RecordingAIService: AIServiceProtocol, @unchecked Sendable {
 
     func estimateFood(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         imageJPEGData: Data?
     ) async throws -> AIFoodEstimateResponse {
         estimateFoodCallCount += 1
@@ -652,7 +664,7 @@ private final class RecordingAIService: AIServiceProtocol, @unchecked Sendable {
 
     func generateMealAdvice(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
@@ -666,26 +678,26 @@ private final class RecordingAIService: AIServiceProtocol, @unchecked Sendable {
         throw AIServiceError.backendUnavailable
     }
 
-    func parseEditOrDelete(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func parseMultiAction(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func generateDailyReview(context: AIContext) async throws -> AICoachResponse {
+    func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
         AICoachResponse(message: "Stub review.", confidence: .medium)
     }
 
     func generateDailyReviewText(
         input: DailyReviewAIInput,
-        context: AIContext
+        context: CoachContextPacketV2
     ) async throws -> AICoachResponse {
         AICoachResponse(message: "Stub review.", confidence: .medium)
     }
 
-    func parseCommand(_ text: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 }
@@ -715,7 +727,7 @@ private final class StubClassifierAIService: AIServiceProtocol, @unchecked Senda
 
     func classifyCoachIntent(
         _ text: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         config: CoachModelConfig
     ) async throws -> CoachIntentResult {
         classifyCoachIntentCallCount += 1
@@ -724,7 +736,7 @@ private final class StubClassifierAIService: AIServiceProtocol, @unchecked Senda
 
     func estimateFood(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         imageJPEGData: Data?
     ) async throws -> AIFoodEstimateResponse {
         estimateFoodCallCount += 1
@@ -734,7 +746,7 @@ private final class StubClassifierAIService: AIServiceProtocol, @unchecked Senda
 
     func generateMealAdvice(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
@@ -749,60 +761,26 @@ private final class StubClassifierAIService: AIServiceProtocol, @unchecked Senda
         throw AIServiceError.backendUnavailable
     }
 
-    func parseEditOrDelete(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func parseMultiAction(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func generateDailyReview(context: AIContext) async throws -> AICoachResponse {
+    func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
         AICoachResponse(message: "Stub review.", confidence: .medium)
     }
 
     func generateDailyReviewText(
         input: DailyReviewAIInput,
-        context: AIContext
+        context: CoachContextPacketV2
     ) async throws -> AICoachResponse {
         AICoachResponse(message: "Stub review.", confidence: .medium)
     }
 
-    func parseCommand(_ text: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
-    }
-}
-
-private extension AIContext {
-    static var test: AIContext {
-        AIContext(
-            date: Date(timeIntervalSince1970: 0),
-            timezoneIdentifier: "UTC",
-            userProfileSummary: nil,
-            todaySummary: TodayAISummary(
-                calorieTarget: 2_100,
-                caloriesConsumed: 1_200,
-                caloriesRemaining: 900,
-                proteinTarget: 160,
-                proteinConsumed: 80,
-                proteinRemaining: 80,
-                carbsTarget: 220,
-                carbsConsumed: 100,
-                carbsRemaining: 120,
-                fatTarget: 65,
-                fatConsumed: 30,
-                fatRemaining: 35,
-                waterTargetMl: 2_500,
-                waterConsumedMl: 1_000,
-                waterRemainingMl: 1_500,
-                weightKg: 90,
-                steps: 5_000,
-                workoutCaloriesBurned: 0,
-                workoutsToday: 0,
-                recentMeals: []
-            ),
-            commonFoods: [],
-            recentMessages: []
-        )
     }
 }

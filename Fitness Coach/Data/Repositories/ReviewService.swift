@@ -68,7 +68,7 @@ final class ReviewService {
         let dailyLog = try dailyLogService.recalculateDailyTotals(for: dailyLogEntity.date)
         let summary = try await buildSummary(for: dailyLog)
         let aiInput = DailyReviewFormatter.dailyReviewAIInput(from: summary)
-        let aiContext = makeAIContext(from: summary)
+        let aiContext = makeReviewContext(from: summary)
 
         let aiResponse = try? await aiService.generateDailyReviewText(
             input: aiInput,
@@ -188,29 +188,8 @@ final class ReviewService {
 
     // MARK: AI Context
 
-    private func makeAIContext(from summary: DailyReviewSummary) -> AIContext {
-        AIContext(
-            date: summary.date,
-            timezoneIdentifier: TimeZone.current.identifier,
-            userProfileSummary: makeProfileSummary(),
-            todaySummary: TodayAISummaryMapper.from(reviewSummary: summary),
-            commonFoods: [],
-            recentMessages: []
-        )
-    }
-
-    private func makeProfileSummary() -> UserProfileSummary? {
-        guard let profile = try? userProfileService.getCurrentProfile() else {
-            return nil
-        }
-        return UserProfileSummary(
-            age: profile.age,
-            sex: profile.sex,
-            heightCm: profile.heightCm,
-            currentWeightKg: profile.currentWeightKg,
-            goalWeightKg: profile.goalWeightKg,
-            activityLevel: profile.activityLevel,
-            trainingFrequencyPerWeek: profile.trainingFrequencyPerWeek
-        )
+    private func makeReviewContext(from summary: DailyReviewSummary) -> CoachContextPacketV2 {
+        let profile = (try? userProfileService.getCurrentProfile()).map(CoachContextPacketV2.reviewProfile)
+        return CoachContextPacketV2.reviewContext(from: summary, profile: profile)
     }
 }

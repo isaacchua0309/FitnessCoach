@@ -504,7 +504,7 @@ private final class RecordingAIService: AIServiceProtocol, @unchecked Sendable {
 
     func classifyCoachIntent(
         _ text: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         config: CoachModelConfig
     ) async throws -> CoachIntentResult {
         classifyCoachIntentCallCount += 1
@@ -521,7 +521,7 @@ private final class RecordingAIService: AIServiceProtocol, @unchecked Sendable {
 
     func estimateFood(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         imageJPEGData: Data?
     ) async throws -> AIFoodEstimateResponse {
         throw AIServiceError.backendUnavailable
@@ -529,7 +529,7 @@ private final class RecordingAIService: AIServiceProtocol, @unchecked Sendable {
 
     func generateMealAdvice(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
@@ -540,26 +540,26 @@ private final class RecordingAIService: AIServiceProtocol, @unchecked Sendable {
         throw AIServiceError.backendUnavailable
     }
 
-    func parseEditOrDelete(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func parseMultiAction(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func generateDailyReview(context: AIContext) async throws -> AICoachResponse {
+    func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
         AICoachResponse(message: "Stub review.", confidence: .medium)
     }
 
     func generateDailyReviewText(
         input: DailyReviewAIInput,
-        context: AIContext
+        context: CoachContextPacketV2
     ) async throws -> AICoachResponse {
         AICoachResponse(message: "Stub review.", confidence: .medium)
     }
 
-    func parseCommand(_ text: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 }
@@ -576,7 +576,7 @@ private final class StubClassifierAIService: AIServiceProtocol, @unchecked Senda
 
     func classifyCoachIntent(
         _ text: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         config: CoachModelConfig
     ) async throws -> CoachIntentResult {
         classifyCoachIntentCallCount += 1
@@ -585,7 +585,7 @@ private final class StubClassifierAIService: AIServiceProtocol, @unchecked Senda
 
     func estimateFood(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         imageJPEGData: Data?
     ) async throws -> AIFoodEstimateResponse {
         if let estimateFoodResponse { return estimateFoodResponse }
@@ -594,7 +594,7 @@ private final class StubClassifierAIService: AIServiceProtocol, @unchecked Senda
 
     func generateMealAdvice(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
@@ -605,26 +605,26 @@ private final class StubClassifierAIService: AIServiceProtocol, @unchecked Senda
         throw AIServiceError.backendUnavailable
     }
 
-    func parseEditOrDelete(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func parseMultiAction(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func generateDailyReview(context: AIContext) async throws -> AICoachResponse {
+    func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
         AICoachResponse(message: "Stub review.", confidence: .medium)
     }
 
     func generateDailyReviewText(
         input: DailyReviewAIInput,
-        context: AIContext
+        context: CoachContextPacketV2
     ) async throws -> AICoachResponse {
         AICoachResponse(message: "Stub review.", confidence: .medium)
     }
 
-    func parseCommand(_ text: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 }
@@ -641,7 +641,7 @@ private final class FlakyClassifierAIService: AIServiceProtocol, @unchecked Send
 
     func classifyCoachIntent(
         _ text: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         config: CoachModelConfig
     ) async throws -> CoachIntentResult {
         classifyCoachIntentCallCount += 1
@@ -654,7 +654,7 @@ private final class FlakyClassifierAIService: AIServiceProtocol, @unchecked Send
 
     func estimateFood(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         imageJPEGData: Data?
     ) async throws -> AIFoodEstimateResponse {
         throw AIServiceError.backendUnavailable
@@ -662,7 +662,7 @@ private final class FlakyClassifierAIService: AIServiceProtocol, @unchecked Send
 
     func generateMealAdvice(
         prompt: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
@@ -673,26 +673,26 @@ private final class FlakyClassifierAIService: AIServiceProtocol, @unchecked Send
         throw AIServiceError.backendUnavailable
     }
 
-    func parseEditOrDelete(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func parseMultiAction(prompt: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 
-    func generateDailyReview(context: AIContext) async throws -> AICoachResponse {
+    func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
         AICoachResponse(message: "Stub review.", confidence: .medium)
     }
 
     func generateDailyReviewText(
         input: DailyReviewAIInput,
-        context: AIContext
+        context: CoachContextPacketV2
     ) async throws -> AICoachResponse {
         AICoachResponse(message: "Stub review.", confidence: .medium)
     }
 
-    func parseCommand(_ text: String, context: AIContext) async throws -> AIParsedCommand {
+    func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         throw AIServiceError.backendUnavailable
     }
 }

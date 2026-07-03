@@ -74,7 +74,7 @@ final class CoachRouteDecider: Sendable {
 
     func decide(
         text: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         aiService: AIServiceProtocol,
         config: CoachModelConfig? = nil
     ) async throws -> CoachRouteDecision {
@@ -261,8 +261,10 @@ final class CoachRouteDecider: Sendable {
 
     // MARK: - Classify dedup
 
-    private func classifyCacheKey(text: String, context: AIContext) -> String {
-        let fingerprint = "\(context.todaySummary?.caloriesRemaining ?? -1)-\(context.todaySummary?.proteinRemaining ?? -1)"
+    private func classifyCacheKey(text: String, context: CoachContextPacketV2) -> String {
+        let caloriesRemaining = context.today?.nutrition?.caloriesRemaining ?? -1
+        let proteinRemaining = context.today?.nutrition?.proteinRemaining ?? -1
+        let fingerprint = "\(caloriesRemaining)-\(proteinRemaining)"
         return "\(text.lowercased())|\(fingerprint)"
     }
 

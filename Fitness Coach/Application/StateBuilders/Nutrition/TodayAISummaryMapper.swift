@@ -84,6 +84,48 @@ enum TodayAISummaryMapper {
     }
 
     static func dailyReviewAIInput(
+        from packet: CoachContextPacketV2,
+        date: Date? = nil
+    ) -> DailyReviewAIInput {
+        let today = packet.today
+        let targets = today?.targets
+        let nutrition = today?.nutrition
+        let hydration = today?.hydration
+        let resolvedDate = date ?? packet.meta.generatedAt
+
+        return DailyReviewAIInput(
+            date: resolvedDate,
+            calorieTarget: targets?.calorieTarget ?? 0,
+            caloriesConsumed: nutrition?.caloriesConsumed ?? 0,
+            caloriesRemaining: nutrition?.caloriesRemaining ?? 0,
+            isOverCalorieTarget: (nutrition?.caloriesRemaining ?? 0) < 0,
+            proteinTarget: targets?.proteinTarget ?? 0,
+            proteinConsumed: nutrition?.proteinConsumed ?? 0,
+            proteinRemaining: nutrition?.proteinRemaining ?? 0,
+            hasMetProteinTarget: (nutrition?.proteinRemaining ?? 1) <= 0,
+            carbsTarget: targets?.carbsTarget ?? 0,
+            carbsConsumed: nutrition?.carbsConsumed ?? 0,
+            carbsRemaining: nutrition?.carbsRemaining ?? 0,
+            fatTarget: targets?.fatTarget ?? 0,
+            fatConsumed: nutrition?.fatConsumed ?? 0,
+            fatRemaining: nutrition?.fatRemaining ?? 0,
+            waterTargetMl: targets?.waterTargetMl ?? 0,
+            waterConsumedMl: hydration?.waterConsumedMl ?? 0,
+            waterRemainingMl: hydration?.waterRemainingMl ?? 0,
+            hasMetWaterTarget: (hydration?.waterRemainingMl ?? 1) <= 0,
+            weightKg: today?.weight?.weightKg,
+            latestWeightKg: today?.weight?.weightKg,
+            steps: today?.steps?.value,
+            workoutCount: packet.training?.workoutsToday ?? 0,
+            workoutCaloriesBurned: today?.workoutCaloriesBurned?.value ?? 0,
+            foodEntryCount: packet.recentMealsStructured.count,
+            lowConfidenceFoodCount: 0,
+            topProteinFoodNames: packet.recentMealsStructured.map(\.name),
+            deterministicNotes: []
+        )
+    }
+
+    static func dailyReviewAIInput(
         from summary: TodayAISummary,
         date: Date
     ) -> DailyReviewAIInput {

@@ -18,7 +18,7 @@ struct CheapLLMIntentClassifier: Sendable {
 
     func classify(
         text: String,
-        context: AIContext,
+        context: CoachContextPacketV2,
         config: CoachModelConfig
     ) async throws -> CoachIntentResult {
         do {
