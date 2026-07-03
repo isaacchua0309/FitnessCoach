@@ -2,107 +2,73 @@
 //  PlanMissionControlHeroSection.swift
 //  Fitness Coach
 //
-//  Forma — Goal-first Mission Control hero for the Plan dashboard.
+//  Forma — Strategy hero for the Plan dashboard.
 //
 
 import SwiftUI
 
 struct PlanMissionControlHeroSection: View {
-    let state: PlanMissionState
+    let strategy: PlanStrategyState
 
-    @ScaledMetric(relativeTo: .largeTitle) private var heroValueSize: CGFloat = 52
+    @ScaledMetric(relativeTo: .largeTitle) private var primaryGoalSize: CGFloat = 40
 
     var body: some View {
         VStack(alignment: .leading, spacing: PlanLayout.itemSpacing) {
-            FormaSectionLabel(title: state.sectionTitle)
+            FormaSectionLabel(title: strategy.sectionTitle)
 
             FormaPlanCard {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
-                    Text(state.headlineValue)
-                        .font(.system(size: heroValueSize, weight: .bold, design: .rounded))
+                    Text(strategy.primaryGoal)
+                        .font(.system(size: primaryGoalSize, weight: .bold, design: .rounded))
                         .foregroundStyle(FormaTokens.Color.textPrimary)
-                        .minimumScaleFactor(0.65)
+                        .minimumScaleFactor(0.75)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityHidden(true)
 
-                    progressBlock
+                    keyValuesBlock
 
-                    secondaryLines
-
-                    Text(state.statusCopy)
+                    Text(strategy.supportiveLine)
                         .font(FormaTokens.Typography.sectionSubtitle)
                         .foregroundStyle(FormaTokens.Color.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, FormaTokens.Spacing.xs)
                         .accessibilityHidden(true)
                 }
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(state.accessibilitySummary)
+            .accessibilityLabel(strategy.accessibilitySummary)
         }
     }
 
-    @ViewBuilder
-    private var progressBlock: some View {
-        VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
-            Text(state.progressRouteLabel)
-                .font(FormaTokens.Typography.sectionSubtitle.weight(.medium))
-                .foregroundStyle(FormaTokens.Color.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+    private var keyValuesBlock: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            FormaPlanDisplayRow(
+                label: strategy.dailyTargetLabel,
+                value: strategy.dailyTargetValue
+            )
+            .accessibilityHidden(true)
+
+            if let expectedPaceLabel = strategy.expectedPaceLabel,
+               let expectedPaceValue = strategy.expectedPaceValue {
+                FormaPlanRowDivider()
+
+                FormaPlanDisplayRow(
+                    label: expectedPaceLabel,
+                    value: expectedPaceValue
+                )
                 .accessibilityHidden(true)
-
-            if state.showsProgressBar {
-                SwiftUI.ProgressView(value: progressBarFill)
-                    .tint(FormaTokens.Color.progress)
-                    .accessibilityLabel(FormaProductCopy.PlanMissionControl.heroSectionTitle)
-                    .accessibilityValue(progressBarAccessibilityValue)
-
-                if let progressCompleteLabel = state.progressCompleteLabel {
-                    Text(progressCompleteLabel)
-                        .font(FormaTokens.Typography.caption.weight(.semibold))
-                        .foregroundStyle(FormaTokens.Color.textTertiary)
-                        .accessibilityHidden(true)
-                }
-            } else if let progressCompleteLabel = state.progressCompleteLabel {
-                Text(progressCompleteLabel)
-                    .font(FormaTokens.Typography.caption.weight(.semibold))
-                    .foregroundStyle(FormaTokens.Color.textTertiary)
-                    .accessibilityHidden(true)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var secondaryLines: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if let expectedCompletionLabel = state.expectedCompletionLabel {
-                Text(expectedCompletionLabel)
-                    .font(FormaTokens.Typography.sectionSubtitle)
-                    .foregroundStyle(FormaTokens.Color.textTertiary)
-                    .accessibilityHidden(true)
             }
 
-            if let expectedWeeklyChangeLabel = state.expectedWeeklyChangeLabel {
-                Text(expectedWeeklyChangeLabel)
-                    .font(FormaTokens.Typography.sectionSubtitle)
-                    .foregroundStyle(FormaTokens.Color.textTertiary)
-                    .accessibilityHidden(true)
-            }
-        }
-    }
+            FormaPlanRowDivider()
 
-    private var progressBarFill: Double {
-        let fill = max(state.progressBarFill, 0)
-        if fill <= 0, state.showsProgressBar {
-            return 0.02
+            FormaPlanDisplayRow(
+                label: strategy.strategyStatusLabel,
+                value: strategy.strategyStatusValue
+            )
+            .accessibilityHidden(true)
         }
-        return min(fill, 1)
-    }
-
-    private var progressBarAccessibilityValue: String {
-        PlanMissionHeroCopyBuilder.progressBarAccessibilityValue(
-            percent: state.progressPercent.map { $0 * 100 }
-        )
+        .padding(.top, FormaTokens.Spacing.xs)
     }
 }
 
@@ -110,7 +76,7 @@ struct PlanMissionControlHeroSection: View {
 
 #Preview("Lose weight") {
     PlanMissionControlHeroSection(
-        state: PlanMissionControlFixtures.loseDashboard.mission
+        strategy: PlanMissionControlFixtures.loseDashboard.strategy
     )
     .padding()
     .background(FormaTokens.Color.canvas)
@@ -119,7 +85,7 @@ struct PlanMissionControlHeroSection: View {
 
 #Preview("Large Dynamic Type") {
     PlanMissionControlHeroSection(
-        state: PlanMissionControlFixtures.loseDashboard.mission
+        strategy: PlanMissionControlFixtures.loseDashboard.strategy
     )
     .padding()
     .background(FormaTokens.Color.canvas)
@@ -129,7 +95,7 @@ struct PlanMissionControlHeroSection: View {
 
 #Preview("Active user") {
     PlanMissionControlHeroSection(
-        state: PlanMissionControlFixtures.activeUserDashboard.mission
+        strategy: PlanMissionControlFixtures.activeUserDashboard.strategy
     )
     .padding()
     .background(FormaTokens.Color.canvas)
@@ -138,7 +104,16 @@ struct PlanMissionControlHeroSection: View {
 
 #Preview("Maintain") {
     PlanMissionControlHeroSection(
-        state: PlanMissionControlFixtures.maintainDashboard.mission
+        strategy: PlanMissionControlFixtures.maintainDashboard.strategy
+    )
+    .padding()
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
+#Preview("Muscle gain") {
+    PlanMissionControlHeroSection(
+        strategy: PlanMissionControlFixtures.gainDashboard.strategy
     )
     .padding()
     .background(FormaTokens.Color.canvas)

@@ -38,28 +38,24 @@ final class TodayCopyGuardrailTests: XCTestCase {
             FormaProductCopy.Today.focusWaterLow,
             FormaProductCopy.Today.focusOnTrack,
             FormaProductCopy.Today.Mission.statusOverTarget,
-            FormaProductCopy.Today.Mission.statusOnTrack,
-            FormaProductCopy.Today.CoachTip.overTarget,
-            FormaProductCopy.Today.CoachTip.allGoalsMet,
-            FormaProductCopy.Today.CoachTip.morningNoBreakfast,
-            FormaProductCopy.Today.CoachTip.eveningSimpleDinner,
-            FormaProductCopy.Today.CoachTip.lunchProteinGap(caloriesRemaining: "1,200", proteinGrams: 35),
+            FormaProductCopy.Today.Mission.statusPlanReady,
+            FormaProductCopy.Today.Mission.statusTargetReached,
             FormaProductCopy.Today.EmptyState.newProfileMissionStatus,
             FormaProductCopy.Today.EmptyState.newDayMissionStatus,
             FormaProductCopy.Today.EmptyState.loadErrorLocalBody,
             FormaProductCopy.Today.EmptyState.refreshErrorLocalBody,
-            FormaProductCopy.Today.Activity.disconnectedMessage,
-            FormaProductCopy.Today.DailySummary.explanationDetail,
-            TodayPreviewData.partialDay.aiCoachTip.message
+            FormaProductCopy.Today.Activity.healthConnectNote,
+            FormaProductCopy.Today.Activity.stepsUnavailable,
+            FormaProductCopy.Today.Activity.workoutNotLoggedLine,
         ]
 
         let overTarget = TodayPreviewData.overTargetDay
         samples.append(
-            TodayEmptyStateFormatting.missionStatusLine(
-                mealsEmptyKind: overTarget.emptyContext.mealsEmptyKind,
+            TodayMissionHeroFormatter.displayModel(
                 calorieSummary: overTarget.mission.calorieSummary,
-                proteinProgress: overTarget.macroBalance.macroSummary.protein
-            )
+                proteinProgress: overTarget.macroHydration.macroSummary.protein,
+                mealsEmptyKind: overTarget.emptyContext.mealsEmptyKind
+            ).statusLine
         )
 
         return samples

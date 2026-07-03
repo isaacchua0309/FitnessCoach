@@ -119,36 +119,6 @@ enum TodayEmptyStateFormatting {
             return copy(for: .returningUserNewDayNoMeals)
         }
     }
-
-    static func missionStatusLine(
-        mealsEmptyKind: TodayMealsEmptyKind,
-        calorieSummary: CalorieSummary,
-        proteinProgress: MacroProgress
-    ) -> String {
-        switch mealsEmptyKind {
-        case .newProfileNoMeals:
-            return FormaProductCopy.Today.EmptyState.newProfileMissionStatus
-        case .newDayNoMeals:
-            return FormaProductCopy.Today.EmptyState.newDayMissionStatus
-        case .hasMeals:
-            break
-        }
-
-        if calorieSummary.isOverTarget {
-            return FormaProductCopy.Today.Mission.statusOverTarget
-        }
-        if proteinProgress.progress < TodayFocusBuilder.proteinOnTrackThreshold {
-            return FormaProductCopy.Today.Mission.statusProteinGap
-        }
-        if TodayMissionHeroFormatter.isNearTarget(calorieSummary) {
-            return FormaProductCopy.Today.Mission.statusNearTarget
-        }
-        return FormaProductCopy.Today.Mission.statusOnTrack
-    }
-
-    static func missionShowsLogCTA(mealsEmptyKind: TodayMealsEmptyKind) -> Bool {
-        mealsEmptyKind != .hasMeals
-    }
 }
 
 enum TodayLoadErrorFormatting {

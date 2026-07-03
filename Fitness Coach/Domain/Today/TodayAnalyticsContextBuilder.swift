@@ -40,7 +40,7 @@ enum TodayAnalyticsContextBuilder {
         TodayAnalyticsSnapshot(
             hasMeals: !state.meals.isEmpty,
             calorieProgressBucket: calorieBucket(from: state.mission.calorieSummary),
-            proteinProgressBucket: proteinBucket(from: state.macroBalance.macroSummary.protein),
+            proteinProgressBucket: proteinBucket(from: state.macroHydration.macroSummary.protein),
             healthConnected: healthConnected,
             nextActionReason: TodayNextActionFormatting.analyticsReason(state.nextBestAction.reason)
         )

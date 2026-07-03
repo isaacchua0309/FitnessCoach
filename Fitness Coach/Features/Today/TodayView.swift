@@ -19,7 +19,6 @@ struct TodayView: View {
     private let healthActivityQuery: HealthActivityQueryService
 
     @State private var appleHealthWorkoutCount: Int?
-    @State private var appleHealthWeeklyWorkoutCount: Int?
     @State private var appleHealthStepsToday: Int?
     @State private var isShowingTrainingInsights = false
 
@@ -159,11 +158,9 @@ struct TodayView: View {
         await trainingInsightsStore.refresh()
         if trainingInsightsStore.integrationState.isConnected {
             appleHealthWorkoutCount = await healthActivityQuery.workoutCountToday()
-            appleHealthWeeklyWorkoutCount = await healthActivityQuery.workoutCountThisWeek()
             appleHealthStepsToday = try? await healthActivityQuery.stepsToday()
         } else {
             appleHealthWorkoutCount = nil
-            appleHealthWeeklyWorkoutCount = nil
             appleHealthStepsToday = nil
         }
         await model.refresh(activityContext: currentActivityContext)
@@ -177,8 +174,7 @@ struct TodayView: View {
             trainingIntegration: trainingInsightsStore.integrationState,
             trainingDataSource: trainingInsightsStore.dataSource,
             appleHealthWorkoutCount: appleHealthWorkoutCount,
-            stepsToday: appleHealthStepsToday,
-            weeklyWorkoutCount: appleHealthWeeklyWorkoutCount
+            stepsToday: appleHealthStepsToday
         )
     }
 
@@ -212,9 +208,6 @@ struct TodayView: View {
                 TodayReadOnlyView(
                     state: state,
                     actionCoordinator: actionCoordinator,
-                    onOpenCoach: { prefill in
-                        onOpenCoach?(prefill)
-                    },
                     onOpenJourney: {
                         onOpenJourney?()
                     },

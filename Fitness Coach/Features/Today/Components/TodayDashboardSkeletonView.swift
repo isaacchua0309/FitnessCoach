@@ -23,8 +23,6 @@ struct TodayDashboardSkeletonView: View {
             skeletonBlock(height: 132)
 
             skeletonBlock(height: 96)
-
-            skeletonBlock(height: 88)
         }
         .redacted(reason: .placeholder)
         .allowsHitTesting(false)

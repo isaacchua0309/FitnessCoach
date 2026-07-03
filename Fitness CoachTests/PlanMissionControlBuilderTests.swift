@@ -13,95 +13,54 @@ final class PlanMissionControlBuilderTests: XCTestCase {
     )!
     private let calendar = Calendar.current
 
-    // MARK: - Mission
+    // MARK: - Strategy
 
     func testLoseMissionStateUsesGoalDirectionAndWeeklyPace() {
         let dashboard = PlanMissionControlFixtures.loseDashboard
 
-        XCTAssertEqual(dashboard.mission.goalDirection, .lose)
-        XCTAssertEqual(dashboard.mission.goalWeightKg, 75)
-        XCTAssertEqual(dashboard.mission.expectedWeeklyChangeKg, 0.8)
-        XCTAssertNotNil(dashboard.mission.expectedWeeklyChangeLabel)
-        XCTAssertFalse(dashboard.mission.strategyName.isEmpty)
-        XCTAssertEqual(dashboard.mission.sectionTitle, "Your Goal")
-        XCTAssertEqual(dashboard.mission.headlineValue, "Lose 15 kg")
-        XCTAssertEqual(dashboard.mission.adjustPlanTitle, "Adjust Plan")
-        XCTAssertFalse(dashboard.mission.accessibilitySummary.isEmpty)
+        XCTAssertEqual(dashboard.strategy.goalDirection, .lose)
+        XCTAssertNotNil(dashboard.strategy.expectedPaceValue)
+        XCTAssertEqual(dashboard.strategy.sectionTitle, "Your Strategy")
+        XCTAssertEqual(dashboard.strategy.primaryGoal, "Lose 15 kg")
+        XCTAssertFalse(dashboard.strategy.accessibilitySummary.isEmpty)
+        XCTAssertEqual(dashboard.adjustPlanCTA.buttonTitle, "Adjust Plan")
     }
 
     func testGainMissionStateUsesGainDirection() {
         let dashboard = PlanMissionControlFixtures.gainDashboard
 
-        XCTAssertEqual(dashboard.mission.goalDirection, .gain)
-        XCTAssertNil(dashboard.mission.expectedWeeklyChangeLabel)
+        XCTAssertEqual(dashboard.strategy.goalDirection, .gain)
+        XCTAssertNil(dashboard.strategy.expectedPaceValue)
+        XCTAssertEqual(dashboard.strategy.primaryGoal, "Build muscle")
     }
 
     func testMaintainMissionStateUsesMaintainDirection() {
         let dashboard = PlanMissionControlFixtures.maintainDashboard
 
-        XCTAssertEqual(dashboard.mission.goalDirection, .maintain)
-        XCTAssertNil(dashboard.mission.totalToLoseOrGainKg)
+        XCTAssertEqual(dashboard.strategy.goalDirection, .maintain)
+        XCTAssertEqual(dashboard.strategy.primaryGoal, "Maintain weight")
     }
 
-    func testActiveUserMissionUsesLoggedCurrentWeight() {
+    func testActiveUserStrategyShowsDailyTargetAndStatus() {
         let dashboard = PlanMissionControlFixtures.activeUserDashboard
 
-        XCTAssertTrue(dashboard.mission.usesLoggedCurrentWeight)
-        XCTAssertEqual(dashboard.mission.currentWeightKg, 89.6)
+        XCTAssertEqual(dashboard.strategy.dailyTargetValue, "2233 kcal")
+        XCTAssertEqual(dashboard.strategy.strategyStatusValue, "Aggressive Cut")
     }
 
-    // MARK: - Today’s mission
+    // MARK: - Daily targets
 
-    func testTodayMissionIncludesFullMacroTargets() {
-        let today = PlanMissionControlFixtures.loseDashboard.todayMission
+    func testDailyTargetsIncludeFullMacroPrescription() {
+        let today = PlanMissionControlFixtures.loseDashboard.dailyTargets
 
-        XCTAssertEqual(today.calorieTarget, 2233)
-        XCTAssertEqual(today.proteinTargetG, 180)
-        XCTAssertEqual(today.carbTargetG, 180)
-        XCTAssertEqual(today.fatTargetG, 58)
-        XCTAssertEqual(today.waterTargetMl, 3150)
+        XCTAssertEqual(today.sectionTitle, "Daily Targets")
         XCTAssertEqual(today.caloriesLabel, "2233 kcal")
         XCTAssertEqual(today.proteinLabel, "180g protein")
         XCTAssertEqual(today.carbsLabel, "180g carbs")
         XCTAssertEqual(today.fatLabel, "58g fat")
-        XCTAssertEqual(today.waterLabel, PlanTodayMissionStateBuilder.waterLabel(for: today.waterTargetMl))
-        XCTAssertEqual(today.progressCopy, "Designed for about 0.8 kg/week progress.")
-    }
-
-    // MARK: - Week
-
-    func testNewUserWeekStateIsIncompleteWithoutLogs() {
-        let week = PlanMissionControlFixtures.newUserDashboard.week
-
-        XCTAssertEqual(week.overallStatus, .incomplete)
-        XCTAssertFalse(week.hasWeeklyData)
-        XCTAssertTrue(week.showsEmptyState)
-        XCTAssertEqual(week.sectionTitle, "This Week")
-    }
-
-    func testActiveUserWeekStateReflectsLogging() {
-        let week = PlanMissionControlFixtures.activeUserDashboard.week
-
-        XCTAssertTrue(week.hasWeeklyData)
-        XCTAssertGreaterThan(week.proteinAdherence.achieved, 0)
-        XCTAssertEqual(week.trainingDays, 2)
-    }
-
-    // MARK: - Milestone
-
-    func testLoseProfileHasNextMilestone() {
-        let milestone = PlanMissionControlFixtures.loseDashboard.nextMilestone
-
-        XCTAssertFalse(milestone.showsEmptyState)
-        XCTAssertEqual(milestone.kind, .loggingConsistency)
-        XCTAssertEqual(milestone.sectionTitle, "Next Milestone")
-    }
-
-    func testMaintainProfileUsesLoggingMilestone() {
-        let milestone = PlanMissionControlFixtures.maintainDashboard.nextMilestone
-
-        XCTAssertFalse(milestone.showsEmptyState)
-        XCTAssertEqual(milestone.kind, .loggingConsistency)
+        XCTAssertEqual(today.waterLabel, DailyTargetsStateBuilder.waterLabel(for: 3150))
+        XCTAssertEqual(today.prescriptionCopy, "Built for fat loss while preserving muscle.")
+        XCTAssertEqual(today.trainingTargetLabel, "3 training sessions/week")
     }
 
     // MARK: - Rationale
@@ -109,7 +68,11 @@ final class PlanMissionControlBuilderTests: XCTestCase {
     func testRationaleIncludesStructuredMetrics() throws {
         let profile = PlanMissionControlFixtures.loseProfile
         let result = try PlanCalculationBridge.planResult(from: profile, referenceDate: referenceDate)
-        let rationale = PlanMissionControlFixtures.loseDashboard.rationale
+        let rationale = PlanRationaleCopyBuilder.build(
+            profile: profile,
+            result: result,
+            referenceDate: referenceDate
+        )
 
         XCTAssertNotNil(rationale.metrics)
         XCTAssertEqual(rationale.metrics?.targetCaloriesKcal, result.calorieTargetKcal)
@@ -130,33 +93,32 @@ final class PlanMissionControlBuilderTests: XCTestCase {
         XCTAssertTrue(rationale.summary.contains("age (28)"))
     }
 
-    // MARK: - Activity assumptions
+    // MARK: - Plan assumptions
 
-    func testActivityAssumptionsUseStoredProfileValues() {
-        let assumptions = PlanMissionControlFixtures.loseDashboard.activityAssumptions
+    func testAssumptionsUseStoredProfileValues() {
+        let assumptions = PlanMissionControlFixtures.loseDashboard.assumptions
 
-        XCTAssertEqual(assumptions.estimatedStepsPerDay, 7500)
-        XCTAssertEqual(assumptions.estimatedStepsLabel, "7,500/day")
-        XCTAssertEqual(assumptions.trainingSessionsPerWeek, 3)
-        XCTAssertTrue(assumptions.usesActivityLevelDefaults)
-        XCTAssertEqual(assumptions.resolvedAgeYears, 28)
+        XCTAssertEqual(assumptions.rows.first { $0.id == "activity" }?.value, "Moderately active")
+        XCTAssertEqual(assumptions.rows.first { $0.id == "age" }?.value, "28")
+        XCTAssertEqual(assumptions.rows.first { $0.id == "weight" }?.value, "90 kg")
     }
 
-    func testActivityAssumptionsIncludeNoteWithoutAutoAdjustLanguage() {
-        let note = PlanMissionControlFixtures.loseDashboard.activityAssumptions.assumptionsNote
+    func testAssumptionsDoNotSurfaceStepsOrTrainingRows() {
+        let assumptions = PlanMissionControlFixtures.loseDashboard.assumptions
 
-        XCTAssertFalse(note.lowercased().contains("onboarding"))
-        XCTAssertTrue(note.lowercased().contains("won't change"))
-        XCTAssertFalse(note.lowercased().contains("automatically change your calorie targets"))
+        XCTAssertFalse(assumptions.rows.contains { $0.label.contains("Steps") })
+        XCTAssertFalse(assumptions.rows.contains { $0.label.contains("Training") })
     }
 
     func testLegacyProfileMissingBirthdaySurfacesInConfidence() {
         let confidence = PlanMissionControlFixtures.incompleteDataDashboard.confidence
 
-        XCTAssertTrue(confidence.missingItems.contains { $0.text == "Birthday and height not fully set" })
+        XCTAssertTrue(confidence.improvementActions.contains {
+            $0.text == FormaProductCopy.PlanMissionControl.planConfidenceActionAddProfileDetails
+        })
     }
 
-    // MARK: - Confidence & adjustment
+    // MARK: - Confidence
 
     func testConfidenceScoreIsWithinBounds() {
         for dashboard in [
@@ -165,31 +127,46 @@ final class PlanMissionControlBuilderTests: XCTestCase {
             PlanMissionControlFixtures.incompleteDataDashboard
         ] {
             XCTAssert((0...100).contains(dashboard.confidence.confidenceScore))
-            XCTAssertFalse(dashboard.confidence.safeCopy.isEmpty)
+            XCTAssertFalse(dashboard.confidence.scoreHeadline.isEmpty)
         }
     }
 
-    func testAdjustmentStateUsesProfileUpdatedAt() {
-        let adjustment = PlanMissionControlFixtures.loseDashboard.adjustment
+    func testConnectedDashboardSurfacesAppleHealthInConfidence() {
+        let confidence = PlanMissionControlFixtures.connectedDashboard.confidence
 
-        XCTAssertTrue(adjustment.canEditPlan)
-        XCTAssertEqual(adjustment.lastUpdated, PlanMissionControlFixtures.loseProfile.updatedAt)
-        XCTAssertFalse(adjustment.editSafetyCopy.isEmpty)
         XCTAssertEqual(
-            adjustment.lastUpdateReasonCopy,
-            FormaProductCopy.PlanMissionControl.planUpdateReasonGoalChanged
+            confidence.compactSignals.first { $0.id == "appleHealth" }?.value,
+            "Connected"
         )
+        XCTAssertFalse(confidence.showsAppleHealthAction)
+    }
+
+    func testDisconnectedDashboardOffersAppleHealthActionInConfidence() {
+        let confidence = PlanMissionControlFixtures.loseDashboard.confidence
+
+        XCTAssertTrue(confidence.showsAppleHealthAction)
+        XCTAssertEqual(confidence.appleHealthActionTitle, TrainingIntegrationCopy.connectAppleHealth)
     }
 
     // MARK: - Integration with PlanDashboardState
 
-    func testPlanStateBuilderEmbedsMissionControlDashboard() {
+    func testPlanStateBuilderEmbedsPresentationSections() throws {
+        let profile = PlanMissionControlFixtures.loseProfile
         let state = PlanStateBuilder.dashboardState(
-            profile: PlanMissionControlFixtures.loseProfile,
+            profile: profile,
+            referenceDate: referenceDate
+        )
+        let result = try PlanCalculationBridge.planResult(from: profile, referenceDate: referenceDate)
+        let rationale = PlanPresentationBuilder.rationaleState(
+            profile: profile,
+            result: result,
             referenceDate: referenceDate
         )
 
-        XCTAssertEqual(state.missionControl.mission.goalDirection, .lose)
-        XCTAssertEqual(state.rationale.metrics?.targetCaloriesKcal, state.missionControl.rationale.metrics?.targetCaloriesKcal)
+        XCTAssertEqual(state.strategy.goalDirection, .lose)
+        XCTAssertEqual(rationale.metrics?.targetCaloriesKcal, result.calorieTargetKcal)
+        XCTAssertNotNil(state.explanation.calculationDetails)
+        XCTAssertFalse(state.adjustmentRules.rules.isEmpty)
+        XCTAssertFalse(state.review.headline.isEmpty)
     }
 }

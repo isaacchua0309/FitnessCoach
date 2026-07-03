@@ -9,51 +9,53 @@ import Foundation
 
 enum PlanAnalyticsEvent: String, Sendable {
     case viewed = "plan_viewed"
-    case goalCardViewed = "plan_goal_card_viewed"
-    case todayMissionViewed = "plan_today_mission_viewed"
-    case weekSectionViewed = "plan_week_section_viewed"
-    case rationaleOpened = "plan_rationale_opened"
-    case calculationDetailsOpened = "plan_calculation_details_opened"
-    case activityAssumptionsViewed = "plan_activity_assumptions_viewed"
+    case strategyViewed = "plan_strategy_viewed"
+    case statusViewed = "plan_status_viewed"
+    case confidenceViewed = "plan_confidence_viewed"
+    case adjustCTATapped = "plan_adjust_cta_tapped"
+    case calculationTapped = "plan_calculation_tapped"
+    case activityUpdateTapped = "plan_activity_update_tapped"
     case adjustStarted = "plan_adjust_started"
     case editSaved = "plan_edit_saved"
     case targetsRegenerated = "plan_targets_regenerated"
     case healthConnectTapped = "plan_health_connect_tapped"
     case todayTapped = "plan_today_tapped"
-    case journeyTapped = "plan_journey_tapped"
 }
 
 enum PlanAnalyticsSectionImpression: Hashable, Sendable {
-    case goalCard
-    case todayMission
-    case weekSection
-    case rationale
-    case activityAssumptions
+    case strategy
+    case status
+    case confidence
 }
 
 enum PlanAnalyticsHealthConnectEntryPoint: String, Sendable {
-    case trainingIntegrationCard = "training_integration_card"
-    case activityAssumptions = "activity_assumptions"
+    case planConfidence = "plan_confidence"
 }
 
 struct PlanAnalyticsProperties: Sendable {
-    var goalType: String?
-    var calorieTargetBucket: String?
-    var progressBucket: String?
-    var healthConnected: Bool?
-    var activityLevel: String?
+    var planType: String?
+    var confidenceBucket: String?
+    var appleHealthConnected: Bool?
+    var hasRecentWeighIn: Bool?
+    var hasEnoughFoodLogs: Bool?
     var entryPoint: String?
     var initialStep: Int?
 
     func asParameters() -> [String: String] {
         var parameters: [String: String] = [:]
-        if let goalType { parameters["goalType"] = goalType }
-        if let calorieTargetBucket { parameters["calorieTargetBucket"] = calorieTargetBucket }
-        if let progressBucket { parameters["progressBucket"] = progressBucket }
-        if let healthConnected { parameters["healthConnected"] = healthConnected ? "true" : "false" }
-        if let activityLevel { parameters["activityLevel"] = activityLevel }
-        if let entryPoint { parameters["entryPoint"] = entryPoint }
-        if let initialStep { parameters["initialStep"] = String(initialStep) }
+        if let planType { parameters["plan_type"] = planType }
+        if let confidenceBucket { parameters["confidence_bucket"] = confidenceBucket }
+        if let appleHealthConnected {
+            parameters["apple_health_connected"] = appleHealthConnected ? "true" : "false"
+        }
+        if let hasRecentWeighIn {
+            parameters["has_recent_weigh_in"] = hasRecentWeighIn ? "true" : "false"
+        }
+        if let hasEnoughFoodLogs {
+            parameters["has_enough_food_logs"] = hasEnoughFoodLogs ? "true" : "false"
+        }
+        if let entryPoint { parameters["entry_point"] = entryPoint }
+        if let initialStep { parameters["initial_step"] = String(initialStep) }
         return parameters
     }
 }
@@ -64,7 +66,8 @@ protocol PlanAnalyticsLogging: Sendable {
 
 enum PlanAdjustPlanEntryPoint {
     static let dashboard = "plan_dashboard"
-    static let activityAssumptions = "plan_activity_assumptions"
+    static let planAssumptions = "plan_assumptions"
+    static let adjustPlanCTA = "plan_adjust_cta"
     static let settingsBodyDetails = "settings_body_details"
 }
 
@@ -72,19 +75,19 @@ extension PlanAnalyticsProperties {
 
     static func from(snapshot: PlanAnalyticsSnapshot) -> PlanAnalyticsProperties {
         PlanAnalyticsProperties(
-            goalType: snapshot.goalType,
-            calorieTargetBucket: snapshot.calorieTargetBucket,
-            progressBucket: snapshot.progressBucket,
-            healthConnected: snapshot.healthConnected,
-            activityLevel: snapshot.activityLevel
+            planType: snapshot.planType,
+            confidenceBucket: snapshot.confidenceBucket,
+            appleHealthConnected: snapshot.appleHealthConnected,
+            hasRecentWeighIn: snapshot.hasRecentWeighIn,
+            hasEnoughFoodLogs: snapshot.hasEnoughFoodLogs
         )
     }
 
     mutating func merge(snapshot: PlanAnalyticsSnapshot) {
-        goalType = snapshot.goalType
-        calorieTargetBucket = snapshot.calorieTargetBucket
-        progressBucket = snapshot.progressBucket
-        healthConnected = snapshot.healthConnected
-        activityLevel = snapshot.activityLevel
+        planType = snapshot.planType
+        confidenceBucket = snapshot.confidenceBucket
+        appleHealthConnected = snapshot.appleHealthConnected
+        hasRecentWeighIn = snapshot.hasRecentWeighIn
+        hasEnoughFoodLogs = snapshot.hasEnoughFoodLogs
     }
 }

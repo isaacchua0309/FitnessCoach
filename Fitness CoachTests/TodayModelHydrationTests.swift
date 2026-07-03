@@ -109,8 +109,7 @@ final class TodayModelHydrationTests: XCTestCase {
                 trainingIntegration: .connected,
                 trainingDataSource: .appleHealth,
                 appleHealthWorkoutCount: nil,
-                stepsToday: nil,
-                weeklyWorkoutCount: nil
+                stepsToday: nil
             )
         )
 

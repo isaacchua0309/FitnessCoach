@@ -2,36 +2,26 @@
 //  TodayMissionHero.swift
 //  Fitness Coach
 //
-//  Forma — Today's Mission hero: calories remaining, protein gap, and status.
+//  Forma — Today's Mission hero: one dominant calorie number and supporting context.
 //
 
 import SwiftUI
 
 struct TodayMissionHero: View {
     let mission: TodayMissionState
-    let proteinProgress: MacroProgress
-    let mealsEmptyKind: TodayMealsEmptyKind
     let onLogMeal: () -> Void
 
     @ScaledMetric(relativeTo: .largeTitle) private var heroValueSize: CGFloat = 52
 
-    private var display: TodayMissionHeroDisplayModel {
-        TodayMissionHeroFormatter.displayModel(
-            mission: mission,
-            proteinProgress: proteinProgress,
-            mealsEmptyKind: mealsEmptyKind
-        )
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: TodayLayout.headerToCardSpacing) {
-            TodaySectionLabel(title: FormaProductCopy.Today.Mission.sectionTitle)
+            TodaySectionLabel(title: mission.sectionTitle)
 
             metricsBlock
 
-            if display.showsLogMealCTA {
+            if mission.showsLogMealCTA {
                 FormaQuickActionChip(
-                    title: FormaProductCopy.Today.EmptyState.logMealAction,
+                    title: FormaProductCopy.Today.Mission.logMealCTA,
                     action: onLogMeal,
                     accessibilityHint: FormaProductCopy.Today.mealsLogMealAccessibilityHint
                 )
@@ -43,50 +33,37 @@ struct TodayMissionHero: View {
 
     private var metricsBlock: some View {
         VStack(alignment: .leading, spacing: FormaTokens.Spacing.sm + 2) {
-            Text(display.primaryMetricLabel)
-                .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(FormaTokens.Color.textSecondary)
-
-            Text(display.primaryMetricValue)
+            Text(mission.primaryValue)
                 .font(.system(size: heroValueSize, weight: .bold, design: .rounded))
-                .foregroundStyle(
-                    display.isOverTarget
-                        ? FormaTokens.Color.destructive
-                        : FormaTokens.Color.textPrimary
-                )
+                .foregroundStyle(primaryValueColor)
                 .minimumScaleFactor(0.65)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
 
-            SwiftUI.ProgressView(value: display.progress)
-                .tint(
-                    display.isOverTarget
-                        ? FormaTokens.Color.destructive
-                        : FormaTokens.Color.progress
-                )
+            supportingLinesBlock
 
-            subMetricsBlock
-
-            Text(display.statusLine)
-                .font(FormaTokens.Typography.sectionSubtitle)
-                .foregroundStyle(FormaTokens.Color.textLegal)
-                .fixedSize(horizontal: false, vertical: true)
-                .lineLimit(4)
+            if !mission.statusLine.isEmpty {
+                Text(mission.statusLine)
+                    .font(FormaTokens.Typography.sectionSubtitle)
+                    .foregroundStyle(FormaTokens.Color.textLegal)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(4)
+            }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(display.accessibilityLabel)
+        .accessibilityLabel(mission.accessibilityLabel)
     }
 
-    private var subMetricsBlock: some View {
+    private var supportingLinesBlock: some View {
         VStack(alignment: .leading, spacing: TodayLayout.compactSpacing) {
-            subMetricRow(display.goalLine)
-            subMetricRow(display.consumedLine)
-            subMetricRow(display.proteinLine)
+            supportingLine(mission.goalLine)
+            supportingLine(mission.consumedLine)
+            supportingLine(mission.proteinRemainingLine)
         }
         .padding(.top, TodayLayout.compactSpacing)
     }
 
-    private func subMetricRow(_ text: String) -> some View {
+    private func supportingLine(_ text: String) -> some View {
         Text(text)
             .font(FormaTokens.Typography.caption)
             .foregroundStyle(FormaTokens.Color.textTertiary)
@@ -94,13 +71,21 @@ struct TodayMissionHero: View {
             .minimumScaleFactor(0.85)
             .fixedSize(horizontal: false, vertical: true)
     }
+
+    private var primaryValueColor: Color {
+        switch mission.primaryKind {
+        case .over:
+            return FormaTokens.Color.destructive
+        case .remaining, .targetReached, .missingTarget:
+            return FormaTokens.Color.textPrimary
+        }
+    }
 }
 
+#if DEBUG
 #Preview("New profile") {
     TodayMissionHero(
         mission: TodayPreviewData.emptyDay.mission,
-        proteinProgress: TodayPreviewData.emptyDay.macroBalance.macroSummary.protein,
-        mealsEmptyKind: .newProfileNoMeals,
         onLogMeal: {}
     )
     .padding()
@@ -111,8 +96,6 @@ struct TodayMissionHero: View {
 #Preview("Partial day") {
     TodayMissionHero(
         mission: TodayPreviewData.partialDay.mission,
-        proteinProgress: TodayPreviewData.partialDay.macroBalance.macroSummary.protein,
-        mealsEmptyKind: .hasMeals,
         onLogMeal: {}
     )
     .padding()
@@ -123,11 +106,10 @@ struct TodayMissionHero: View {
 #Preview("Over target") {
     TodayMissionHero(
         mission: TodayPreviewData.overTargetDay.mission,
-        proteinProgress: TodayPreviewData.overTargetDay.macroBalance.macroSummary.protein,
-        mealsEmptyKind: .hasMeals,
         onLogMeal: {}
     )
     .padding()
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
 }
+#endif

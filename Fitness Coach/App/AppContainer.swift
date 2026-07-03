@@ -294,7 +294,6 @@ final class AppContainer {
             dailyLogReader: dailyLogService,
             weightLogReader: weightLogService,
             trainingInsightsStore: trainingInsightsStore,
-            workoutReader: healthKitWorkoutReader,
             analyticsLogger: planAnalyticsLogger
         )
     }

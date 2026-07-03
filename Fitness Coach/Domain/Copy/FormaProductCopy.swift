@@ -989,10 +989,12 @@ enum FormaProductCopy {
         static let targetsSectionTitle = "Targets"
 
         enum MacroBalance {
-            static let sectionTitle = "Macro balance"
+            static let sectionTitle = "Nutrition"
             static let protein = "Protein"
+            static let calories = "Calories"
             static let carbs = "Carbs"
             static let fat = "Fat"
+            static let water = "Water"
             static let remainingSuffix = "remaining"
             static let overSuffix = "over"
             static let atTarget = "At target"
@@ -1013,28 +1015,56 @@ enum FormaProductCopy {
             static func over(grams: Double) -> String {
                 "\(FoodEntryFormFormatter.formatMacro(max(grams, 0)))g \(overSuffix)"
             }
+
+            static func caloriesRatio(consumed: Int, target: Int) -> String {
+                "\(TodayMissionHeroFormatting.calories(consumed)) / \(TodayMissionHeroFormatting.calories(target)) kcal"
+            }
+
+            static func loggedCalories(_ consumed: Int) -> String {
+                "\(TodayMissionHeroFormatting.calories(consumed)) kcal logged"
+            }
+
+            static func caloriesRemaining(_ amount: Int) -> String {
+                "\(TodayMissionHeroFormatting.calories(max(amount, 0))) kcal \(remainingSuffix)"
+            }
+
+            static func caloriesOver(_ amount: Int) -> String {
+                "\(TodayMissionHeroFormatting.calories(max(amount, 0))) kcal \(overSuffix)"
+            }
+
+            static func waterRatio(consumedMl: Int, targetMl: Int) -> String {
+                "\(consumedMl) / \(targetMl) ml"
+            }
+
+            static func loggedWater(_ consumedMl: Int) -> String {
+                "\(consumedMl) ml logged"
+            }
+
+            static func waterRemaining(_ amountMl: Int) -> String {
+                "\(max(amountMl, 0))ml \(remainingSuffix)"
+            }
+
+            static func waterOver(_ amountMl: Int) -> String {
+                "\(max(amountMl, 0))ml \(overSuffix)"
+            }
         }
 
         enum Activity {
             static let sectionTitle = "Today's Activity"
-            static let stepsLabel = "Steps"
-            static let workoutLabel = "Workout"
-            static let weeklyProgressLabel = "This week"
-            static let noDataYet = "No workouts or steps yet today — rest days count too."
             static let stepsUnavailable = "Steps unavailable"
-            static let disconnectedMessage = "Activity stays optional. Connect Apple Health when you want steps and workouts here."
-            static let disconnectedDeniedMessage = "Apple Health access is off. Turn it on in Settings to see activity here."
+            static let workoutCompletedLine = "Workout: Completed"
+            static let workoutPlannedLine = "Workout: Planned"
+            static let workoutNotLoggedLine = "Workout: Not logged"
+            static let healthConnectNote = "Connect Apple Health for steps and workouts."
+            static let healthDeniedNote = "Allow Apple Health access in Settings."
+            static let healthUnavailableNote = "Apple Health activity is unavailable."
 
             static func stepsToday(_ count: Int) -> String {
                 "\(TodayActivitySectionFormatting.formatSteps(count)) steps"
             }
 
-            static func typicalStepsAssumption(_ steps: Int) -> String {
-                "Typical: \(TodayActivitySectionFormatting.formatSteps(steps))/day"
-            }
-
-            static func sessionsThisWeek(completed: Int, target: Int) -> String {
-                "\(completed) of \(target) sessions"
+            static func stepsProgress(current: Int, goal: Int) -> String {
+                "\(TodayActivitySectionFormatting.formatSteps(current)) / \(TodayActivitySectionFormatting.formatSteps(goal)) steps"
             }
         }
 
@@ -1053,82 +1083,24 @@ enum FormaProductCopy {
             }
         }
 
-        enum Momentum {
-            static let sectionTitle = "Today's Momentum"
-            static let startStreakToday = "Start your streak today."
-
-            static func loggingStreakLine(days: Int) -> String {
-                "Logging streak: \(dayCount(days))"
-            }
-
-            static func weekProgressLine(loggedDays: Int, totalDays: Int) -> String {
-                "This week: \(loggedDays) of \(totalDays) days logged"
-            }
-
-            static func proteinStreakLine(days: Int) -> String {
-                "Protein streak: \(dayCount(days))"
-            }
-
-            static func waterStreakLine(days: Int) -> String {
-                "Water streak: \(dayCount(days))"
-            }
-
-            private static func dayCount(_ days: Int) -> String {
-                days == 1 ? "1 day" : "\(days) days"
-            }
+        enum Victory {
+            static let targetMet = "Today's calorie target met."
+            static let workoutStrongDay = "Strong day — workout logged and nutrition on track."
         }
 
-        enum DailySummary {
-            static let sectionTitle = "Daily Summary"
-            static let cardTitle = "Today"
-            static let calories = "Calories"
-            static let protein = "Protein"
-            static let water = "Water"
-            static let workout = "Workout"
-            static let overallTitle = "Overall"
-            static let explanationCaption = "Tap for how your score is calculated."
-            static let explanationHint = "Shows how today's completion score is calculated"
-            static let explanationTitle = "How your score works"
-            static let explanationDone = "Done"
-            static let accessibilityMet = "met"
-            static let accessibilityNotMet = "not met"
-            static let accessibilityNotApplicable = "not applicable"
-
-            static func overallComplete(_ percent: Int) -> String {
-                "\(percent)% complete"
-            }
-
-            static let explanationDetail = """
-            Your daily score counts how many of today's targets you've met — not how far you've missed them.
-
-            • Calories: within 10% of your target once you've logged food
-            • Protein: at least 90% of your target
-            • Water: at least 80% of your target
-            • Workout: logged when training applies to your plan
-
-            Overall is the share of applicable targets met today. Going over on calories doesn't reduce other targets — each counts separately.
-            """
+        enum SmartCoach {
+            static let logFirstMeal = "Log your first meal to start today."
+            static let proteinBehind = "Add protein at your next meal."
+            static let waterBehind = "Drink water before your next meal."
+            static let bothBehind = "Catch up on protein and water at your next break."
+            static let overTarget = "Above target — keep logging honestly."
+            static let postWorkoutProtein = "Refuel with protein after your workout."
         }
 
-        enum CoachTip {
-            static let sectionTitle = "Coach Tip"
-            static let accessibilityHint = "Opens Coach"
-
-            static let morningNoBreakfast =
-                "Start with breakfast when you're ready — protein and fiber help you stay steady through lunch."
-
-            static func lunchProteinGap(caloriesRemaining: String, proteinGrams: Int) -> String {
-                "You have \(caloriesRemaining) kcal left. Aim for \(proteinGrams)g protein at lunch."
-            }
-
-            static let eveningSimpleDinner =
-                "Dinner can be simple: lean protein, rice, and vegetables."
-
-            static let overTarget =
-                "You're above today's target — keep logging honestly. Weekly consistency matters more than one meal."
-
-            static let allGoalsMet =
-                "Nice work today — protein and hydration are on track. Finish the day steady."
+        enum EndOfDay {
+            static let wrapUp = "Wrap up today when you're ready."
+            static let reviewPrompt = "Review today's log with Coach."
+            static let reviewAction = "Review today"
         }
 
         enum EmptyState {
@@ -1187,35 +1159,62 @@ enum FormaProductCopy {
 
         enum Mission {
             static let sectionTitle = "Today's Mission"
-            static let caloriesRemainingLabel = "Calories remaining"
-            static let caloriesOverLabel = "Above today's target"
+            static let targetReachedPrimary = "Target reached"
             static let remainingSuffix = "remaining"
             static let overSuffix = "over"
-            static let statusOnTrack = "You're perfectly on track."
-            static let statusStartFirstMeal = "Start with your first meal."
-            static let statusOverTarget = "You're above today's target — keep logging honestly."
-            static let statusProteinGap = "Protein is your biggest gap today."
-            static let statusNearTarget = "You're close to today's target — finish strong."
+            static let logMealCTA = "Log meal"
+            static let statusPlanReady = "Your plan is ready. Log your first meal to start today."
+            static let statusOverTarget = "You're over target. Focus on protein and hydration for the rest of today."
+            static let statusTargetReached = "Nice work. Keep the rest of the day steady."
+            static let missingCalorieTarget = "No calorie target set"
             static let proteinOnTrack = "Protein on track"
+
+            static func goalLine(targetKcal: Int) -> String {
+                "Goal: \(TodayMissionHeroFormatting.calories(targetKcal)) kcal"
+            }
+
+            static func consumedLine(consumedKcal: Int) -> String {
+                "Consumed: \(TodayMissionHeroFormatting.calories(consumedKcal)) kcal"
+            }
+
+            static func proteinRemainingLine(grams: Double) -> String {
+                "Protein remaining: \(TodayMissionHeroFormatting.proteinGrams(grams))g"
+            }
+
+            static func primaryRemaining(_ calories: Int) -> String {
+                "\(TodayMissionHeroFormatting.calories(calories)) \(remainingSuffix)"
+            }
+
+            static func primaryOver(_ calories: Int) -> String {
+                "\(TodayMissionHeroFormatting.calories(calories)) \(overSuffix)"
+            }
         }
 
         enum NextAction {
             static let sectionTitle = "Next Best Action"
+            static let logBreakfastTitle = "Log breakfast to start today."
+            static let logBreakfastSubtitle = "A morning log helps Forma guide the rest of your day."
             static let logFirstMealTitle = "Log your first meal to start today."
             static let logFirstMealSubtitle = "A quick log helps Forma guide the rest of your day."
-            static let addWaterSubtitle = "Staying hydrated makes the rest of your targets easier."
-            static let logWeightTitle = "Log your weight today."
-            static let logWeightSubtitle = "A quick weigh-in keeps your trend useful."
-            static let connectHealthTitle = TrainingIntegrationCopy.connectAppleHealth
-            static let connectHealthSubtitle = "Workouts and activity show up in Training Insights."
-            static let reviewTodayTitle = "Review today before you wrap up."
-            static let reviewTodaySubtitle = "Take a minute to reflect on what went well."
-            static let onTrackTitle = "You're on track today."
-            static let onTrackSubtitle = "Keep the next choice simple."
+            static let eatProteinTitle = "Protein is your biggest gap."
+            static let eatProteinSubtitle = "A high-protein meal will help protect muscle during your cut."
+            static let hydrationBehindTitle = "Hydration is behind."
+            static let hydrationBehindSubtitle = "Add water now to stay on pace."
+            static let completeWorkoutTitle = "Complete today's workout."
+            static let completeWorkoutSubtitle = "Logging movement keeps your plan accurate."
+            static let keepDinnerLightTitle = "Keep dinner light tonight."
+            static let keepDinnerLightSubtitle = "You're close to your calorie target — lighter choices help you finish on plan."
+            static let focusHydrationRecoveryTitle = "Focus on hydration and recovery."
+            static let focusHydrationRecoverySubtitle = "You're above today's calorie target. Water and rest matter most now."
+            static let allTargetsMetTitle = "Great work — maintain today."
+            static let allTargetsMetSubtitle = "Key targets are on track. Stay consistent with your next choices."
 
             static let ctaLogMeal = "Log meal"
-            static let ctaPlanMeal = "Plan meal"
+            static let ctaLogBreakfast = "Log breakfast"
+            static let ctaScanFood = "Scan food"
             static let ctaAddWater = "Add water"
+            static let ctaLogWorkout = "Log workout"
+            static let ctaLogDinner = "Log dinner"
             static let ctaLogWeight = "Log weight"
             static let ctaConnectHealth = "Connect Apple Health"
             static let ctaReviewToday = "Review today"
@@ -1228,24 +1227,6 @@ enum FormaProductCopy {
             static let sheetSave = "Save"
             static let primaryButtonHint = "Performs this action on Today"
 
-            static func eatProteinTitle(grams: Int) -> String {
-                "Eat \(grams)g protein in your next meal."
-            }
-
-            static let eatProteinSubtitle = "You're a bit behind on protein — one solid meal helps."
-
-            static func drinkWaterTitle(amountMl: Int) -> String {
-                "Drink \(amountMl)ml water."
-            }
-
-            static func logMissedMealTitle(_ mealType: MealType) -> String {
-                "Log \(mealLabel(mealType)) to keep today accurate."
-            }
-
-            static func logMissedMealSubtitle(_ mealType: MealType) -> String {
-                "It's past \(mealLabel(mealType)) time — logging keeps your day honest."
-            }
-
             static func ctaLogMeal(_ mealType: MealType) -> String {
                 "Log \(mealLabel(mealType))"
             }
@@ -1255,9 +1236,11 @@ enum FormaProductCopy {
                 case .logMeal:
                     return ctaLogMeal
                 case .scanFood:
-                    return "Scan food"
+                    return ctaScanFood
                 case .addWater:
                     return ctaAddWater
+                case .logWorkout:
+                    return ctaLogWorkout
                 case .logWeight:
                     return ctaLogWeight
                 case .openHealth:
@@ -1282,13 +1265,12 @@ enum FormaProductCopy {
 
         enum Meals {
             static let sectionTitle = "Meals"
-            static let notLogged = "Not logged"
+            static let readyStatus = "Ready"
             static let addAction = "Add"
             static let optionalLabel = "Optional"
+            static let loggedAccessibilityValue = "Logged"
             static let loggedAccessibilityHint = "Edit this food entry"
             static let addAccessibilityHint = "Log food for this meal"
-            static let expandEntries = "Show all items"
-            static let collapseEntries = "Show less"
             static let emptyDayHint = "Log a meal to start today's picture."
             static let editSheetTitle = "Edit food"
             static let saveEditAction = "Save"
@@ -1301,8 +1283,16 @@ enum FormaProductCopy {
             static let deleteConfirmAction = "Delete"
             static let deleteCancelAction = "Cancel"
 
-            static func loggedSummary(calories: Int, protein: Double) -> String {
-                "\(calories) kcal · \(FoodEntryFormFormatter.formatMacro(protein))g protein"
+            static func caloriesLine(_ calories: Int) -> String {
+                "\(calories) kcal"
+            }
+
+            static func proteinLine(_ protein: Double) -> String {
+                "\(FoodEntryFormFormatter.formatMacro(protein))g protein"
+            }
+
+            static func multipleItemsAccessibilityLabel(_ count: Int) -> String {
+                "\(count) logged items"
             }
 
             static func mealTitle(_ mealType: MealType, isOptional: Bool) -> String {
@@ -1332,30 +1322,33 @@ enum FormaProductCopy {
             static func inlineAccessibilityHint(for kind: TodayQuickActionKind) -> String {
                 switch kind {
                 case .scanFood: return "Opens food photo scan"
+                case .logMeal: return "Opens meal logging"
                 case .manualEntry: return "Opens manual meal entry"
                 case .addWater: return "Opens water logging"
                 case .logWeight: return "Opens weight logging"
-                case .askCoach: return FormaProductCopy.Today.askCoachCTAAccessibilityHint
+                case .logWorkout: return "Opens workout logging"
                 }
             }
 
             static func title(for kind: TodayQuickActionKind) -> String {
                 switch kind {
                 case .scanFood: return "Scan Food"
+                case .logMeal: return "Log Meal"
                 case .manualEntry: return "Manual Entry"
                 case .addWater: return "Add Water"
                 case .logWeight: return "Log Weight"
-                case .askCoach: return "Ask Coach"
+                case .logWorkout: return "Log Workout"
                 }
             }
 
             static func symbolName(for kind: TodayQuickActionKind) -> String {
                 switch kind {
                 case .scanFood: return "camera.viewfinder"
+                case .logMeal: return "fork.knife"
                 case .manualEntry: return "square.and.pencil"
                 case .addWater: return "drop.fill"
                 case .logWeight: return "scalemass.fill"
-                case .askCoach: return "bubble.left.and.bubble.right.fill"
+                case .logWorkout: return "figure.run"
                 }
             }
 
@@ -2103,6 +2096,25 @@ enum FormaProductCopy {
 
     enum PlanRationale {
         static let sectionTitle = "Why This Works"
+        static let maintenanceLine = "Maintenance"
+        static let deficitLine = "Deficit"
+        static let surplusLine = "Surplus"
+        static let targetLine = "Target"
+        static let seeCalculation = "View calculation"
+
+        static let guidanceAggressiveCut =
+            "This creates an aggressive fat-loss pace. Adjust if energy, hunger, or training performance drops."
+        static let guidanceModerateCut =
+            "This creates a steady fat-loss pace. Adjust if recovery or training quality slips."
+        static let guidanceGentleCut =
+            "This creates a gradual fat-loss pace. Adjust if progress stalls or energy fades."
+        static let guidanceMaintenance =
+            "This keeps intake aligned with estimated maintenance as your weight trends."
+        static let guidanceLeanGain =
+            "This adds a controlled surplus to support muscle gain alongside training."
+        static let guidanceFallback =
+            "Targets are based on your profile. Review assumptions if anything looks off."
+
         static let maintenanceEstimate = "Estimated Maintenance"
         static let healthyDeficit = "Healthy Deficit"
         static let healthySurplus = "Healthy Surplus"
@@ -2115,7 +2127,6 @@ enum FormaProductCopy {
         static let biologicalSex = "Biological sex"
         static let activityLevel = "Activity level"
         static let goalWeight = "Goal weight"
-        static let seeCalculation = "See calculation"
 
         static let dailyDeficit = "Daily deficit"
         static let target = "Target"
@@ -2123,79 +2134,136 @@ enum FormaProductCopy {
         static let water = "Water"
         static let proteinRecoverySuffix = "to support strength and recovery"
         static let proteinGainSuffix = "to support muscle gain and recovery"
-        static let viewCalculationDetails = "See calculation"
+        static let viewCalculationDetails = "View calculation"
+    }
+
+    // MARK: - Plan Status
+
+    enum PlanStatus {
+        static let sectionTitle = "Plan Status"
+        static let bestForLabel = "Best for"
+        static let watchForLabel = "Watch for"
+
+        static let aggressiveCutName = "Aggressive Cut"
+        static let aggressiveCutExplanation =
+            "A larger calorie deficit designed for faster fat loss."
+        static let aggressiveCutBestFor = "Fast fat loss"
+        static let aggressiveCutWatchFor =
+            "Low energy, poor workout performance, high hunger"
+
+        static let moderateCutName = "Moderate Cut"
+        static let moderateCutExplanation =
+            "A steady calorie deficit with room for training and recovery."
+        static let moderateCutBestFor = "Sustainable fat loss"
+        static let moderateCutWatchFor =
+            "Plateaus, creeping hunger on hard training days"
+
+        static let gentleCutName = "Gentle Cut"
+        static let gentleCutExplanation =
+            "A smaller calorie deficit that prioritizes consistency and recovery."
+        static let gentleCutBestFor = "Gradual fat loss"
+        static let gentleCutWatchFor =
+            "Slower scale changes — focus on trends, not daily noise"
+
+        static let maintenanceName = "Maintenance"
+        static let maintenanceExplanation =
+            "Calorie targets aligned to hold your current weight."
+        static let maintenanceBestFor = "Weight stability"
+        static let maintenanceWatchFor =
+            "Slow drift up or down — adjust if trends shift"
+
+        static let leanGainName = "Lean Gain"
+        static let leanGainExplanation =
+            "A calorie surplus sized to support muscle and training."
+        static let leanGainBestFor = "Building muscle"
+        static let leanGainWatchFor =
+            "Unwanted fat gain, digestive load, recovery dips"
+
+        static let rebuildName = "Rebuild / Recomposition"
+        static let rebuildExplanation =
+            "A modest surplus focused on strength and body recomposition."
+        static let rebuildBestFor = "Rebuilding muscle while staying lean"
+        static let rebuildWatchFor =
+            "Fat gain if surplus outpaces training stimulus"
+
+        static let needsReviewName = "Needs Review"
+        static let needsReviewExplanation =
+            "Forma needs a bit more information before classifying this plan."
+        static let needsReviewBestFor = "Confirming your setup"
+        static let needsReviewWatchFor =
+            "Missing profile details or targets that need adjustment"
+    }
+
+    // MARK: - Plan Daily Targets
+
+    enum PlanDailyTargets {
+        static let sectionTitle = "Daily Targets"
+        static let goToToday = "Go to Today"
+        static let goToTodayAccessibilityHint = "Opens the Today tab"
+
+        static let prescriptionLose = "Built for fat loss while preserving muscle."
+        static let prescriptionGain = "Built for lean muscle growth and recovery."
+        static let prescriptionMaintain = "Designed to maintain your current weight."
+
+        static func trainingTarget(sessionsPerWeek: Int) -> String {
+            sessionsPerWeek == 1
+                ? "1 training session/week"
+                : "\(sessionsPerWeek) training sessions/week"
+        }
+    }
+
+    // MARK: - Plan Header
+
+    enum PlanHeader {
+        static let title = "Plan"
+        static let subtitle = "Your strategy, targets, and checkpoints."
+    }
+
+    // MARK: - Plan Strategy Hero
+
+    enum PlanStrategyHero {
+        static let sectionTitle = "Your Strategy"
+        static let dailyTargetLabel = "Daily target"
+        static let expectedPaceLabel = "Expected pace"
+        static let statusLabel = "Status"
+
+        static let primaryGoalMaintain = "Maintain weight"
+        static let primaryGoalGain = "Build muscle"
+        static let primaryGoalLoseFallback = "Lose weight"
+
+        static let statusAggressiveCut = "Aggressive Cut"
+        static let statusModerateCut = "Moderate Cut"
+        static let statusMaintenance = "Maintenance"
+        static let statusLeanGain = "Lean Gain"
+
+        static let supportiveAggressiveCut = "Demanding but achievable."
+        static let supportiveModerateCut = "Built for steady progress."
+        static let supportiveMaintenance = "Designed to maintain your current weight."
+        static let supportiveLeanGain = "Built for lean muscle growth."
+
+        static func primaryGoalLose(_ amount: String) -> String { "Lose \(amount)" }
+
+        static func expectedPace(_ amount: String) -> String { "~\(amount)/week" }
     }
 
     // MARK: - Plan Mission Control
 
     enum PlanMissionControl {
-        static let heroSectionTitle = "Your Goal"
         static let adjustPlan = "Adjust Plan"
-        static let progressOnPlan = "On plan"
-        static let headlineLoseFallback = "Lose weight"
-        static let headlineGainFallback = "Gain weight"
-        static let headlineMaintainFallback = "Maintain your weight"
+        static let adjustPlanCTAHeading = "Need to change direction?"
+        static let adjustPlanCTABody =
+            "Update your goal, target weight, activity, or calories."
 
-        static let statusStartLogging = "Your plan is set. Start logging today."
-        static let statusBuildingMomentum = "You're building momentum."
-        static let statusAheadOfSchedule = "You're ahead of schedule."
-        static let statusStayConsistent = "Stay consistent this week."
-
-        static let accessibilityOnboardingBaseline = "Current weight uses your starting baseline."
-        static let accessibilityProgressZero = "0 percent complete"
-
-        static func headlineLose(_ amount: String) -> String { "Lose \(amount)" }
-        static func headlineGain(_ amount: String) -> String { "Gain \(amount)" }
-        static func headlineMaintain(_ amount: String) -> String { "Maintain \(amount)" }
-
-        static func progressRoute(_ current: String, _ goal: String) -> String {
-            "Current \(current) → Goal \(goal)"
-        }
-
-        static func progressRouteMaintain(_ current: String) -> String {
-            "Current \(current) · Goal hold"
-        }
-
-        static func progressComplete(_ percent: Int) -> String {
-            "\(percent)% complete"
-        }
-
-        static func expectedCompletion(_ label: String) -> String {
-            "Expected completion: \(label)"
-        }
-
-        static func expectedProgress(_ amount: String) -> String {
-            "Expected progress: \(amount)/week"
-        }
-
-        static func accessibilityProgressComplete(_ percent: Int) -> String {
-            "\(percent) percent complete"
-        }
-
-        static let dailySurplus = "Daily surplus"
-
-        static let planAssumptionsSectionTitle = "Activity Assumptions"
-        static let planAssumptionsActivity = "Activity level"
-        static let planAssumptionsEstimatedSteps = "Estimated Steps"
-        static let planAssumptionsTraining = "Training"
-        static let planAssumptionsNote =
-            "Your activity level shapes your calorie estimate. Apple Health adds training insights but won't change targets."
+        static let planAssumptionsSectionTitle = "Plan Assumptions"
+        static let planAssumptionsAge = "Age"
+        static let planAssumptionsHeight = "Height"
+        static let planAssumptionsWeight = "Weight"
+        static let planAssumptionsSex = "Sex"
+        static let planAssumptionsActivity = "Activity"
+        static let planAssumptionsGoalWeight = "Goal weight"
+        static let planAssumptionsNotSet = "Not set"
         static let adjustActivity = "Update activity level"
-        static let planAssumptionsAppleHealth = "Apple Health"
-
-        static let appleHealthInsightsNote =
-            "Apple Health informs training insights. It does not automatically change your calorie targets."
-        static let editSafetyCopy =
-            "You can adjust your plan anytime as your progress changes."
-        static let planAdjustmentSectionTitle = "Adjust Plan"
-        static let adjustPlanCurrentHeading = "Current:"
-        static let adjustPlanGoalLabel = "Goal"
-        static let adjustPlanTargetWeightLabel = "Target Weight"
-        static let adjustPlanActivityLabel = "Activity"
-        static let adjustPlanDailyTargetLabel = "Daily Target"
-        static let adjustPlanGoalLose = "Lose weight"
-        static let adjustPlanGoalGain = "Gain weight"
-        static let adjustPlanGoalMaintain = "Maintain weight"
+        static let connectAppleHealthAccessibilityHint = "Opens Apple Health settings"
         static let planCreatedFromOnboarding =
             "Set when you first created your plan."
         static let planUpdatedAfterEdit =
@@ -2222,158 +2290,67 @@ enum FormaProductCopy {
             }
         }
 
-        static let lastUpdateReasonHeading = "Reason:"
-        static let confidenceSafeCopy =
-            "These targets are estimates from what you've shared. Keep logging for sharper weekly feedback."
-
         static let planConfidenceSectionTitle = "Plan Confidence"
-        static let planConfidenceWhyHeading = "What's working:"
-        static let planConfidenceMissingHeading = "To improve accuracy:"
+        static let planConfidenceImproveAccuracyHeading = "Improve accuracy:"
+        static let planConfidenceCompactSignalsHeading = "Compact signals:"
 
-        static func planConfidenceScore(_ percent: Int) -> String {
-            "Plan confidence: \(percent)%"
+        static func planConfidenceScoreHeadline(
+            score: Int,
+            bucket: PlanConfidenceEstimateBucket
+        ) -> String {
+            "\(score)% — \(bucket.label) estimate"
         }
 
-        static let confidenceRecentWeightLogged = "Recent weight logged"
-        static let confidenceActivityLevelSelected = "Activity level selected"
-        static let confidenceBirthdayHeightAvailable = "Birthday and height available"
-        static let confidenceConsistentFoodLogging = "Consistent food logging"
-        static let confidenceAppleHealthConnected = "Apple Health connected"
-        static let confidenceTargetsReasonable = "Calorie targets look reasonable"
-        static let confidenceTargetsGuardrailed = "Targets include sensible guardrails"
+        static let planConfidenceActionLogWeight =
+            "Log weight 3 times this week"
+        static let planConfidenceActionLogMeals =
+            "Log meals for 5 days"
+        static let planConfidenceActionConnectAppleHealth =
+            "Connect Apple Health"
+        static let planConfidenceActionAddProfileDetails =
+            "Add birthday and height for sharper estimates"
 
-        static let missingRecentWeighIn = "No recent weigh-in"
-        static let missingFoodLogs = "Not enough food logs yet"
-        static let missingBirthdayHeight = "Birthday and height not fully set"
-
-        static let confidenceSafetyOk = "Targets pass Forma's safety checks."
-        static let confidenceSafetyCaution = "Targets include safety guardrails for your pace."
-        static let confidenceSafetyWarning = "Your pace is demanding — review targets before committing."
-        static let confidenceBirthdayAge = "Age is derived from your birthday."
-        static let confidenceWeightTrend = "Recent weight entries improve projections."
-        static let confidenceWeeklyLogging = "This week's logging supports adherence tracking."
+        static let planConfidenceSignalAppleHealth = "Apple Health"
+        static let planConfidenceSignalRecentWeighIn = "Recent weigh-in"
+        static let planConfidenceSignalFoodLogs = "Food logs"
+        static let planConfidenceSignalConnected = "Connected"
+        static let planConfidenceSignalNotConnected = "Not connected"
+        static let planConfidenceSignalYes = "Yes"
+        static let planConfidenceSignalNo = "No"
+        static let planConfidenceSignalEnough = "Enough"
+        static let planConfidenceSignalNotEnough = "Not enough"
 
         static let missingCalculation = "Plan calculation unavailable."
-        static let missingBirthday = "Add your birthday for precise age-based estimates."
-        static let missingWeightLogs = "Log weight to track goal progress."
-        static let missingWeeklyLogs = "Log meals on Today to see weekly adherence."
 
-        static let goalMilestoneDetail = "Your next weight checkpoint on the way to goal."
-        static let checkpointMilestoneDetail = "A stepping-stone weight before your final goal."
-        static let trainingConnectHealth = "Connect Apple Health to compare planned vs logged training."
-
-        static func estimatedCompletion(_ label: String) -> String {
-            "Expected completion: \(label)"
-        }
-
-        static func expectedWeeklyLoss(_ amount: String) -> String {
-            "Expected pace: \(amount)/week"
-        }
-
-        static func totalToLose(_ amount: String) -> String {
-            "\(amount) to lose"
-        }
-
-        static func totalToGain(_ amount: String) -> String {
-            "\(amount) to gain"
-        }
-
-        static func remainingToMilestone(_ amount: String) -> String {
-            "\(amount) to go"
-        }
-
-        static func lastUpdated(_ label: String) -> String {
-            "Last updated: \(label)"
-        }
-
-        static let todayMissionSectionTitle = "Today's Mission"
-        static let goToToday = "Go to Today"
-        static let goToTodayAccessibilityHint = "Opens the Today tab"
-        static let goToJourneyAccessibilityHint = "Opens the Journey tab"
         static let adjustPlanAccessibilityHint = "Opens the plan editor"
         static let seeCalculationAccessibilityHint = "Shows how your targets were calculated"
         static let updateActivityAccessibilityHint = "Opens activity settings in the plan editor"
         static let targetUnavailable = "—"
 
-        static func todayMissionDesignedForProgress(_ weeklyAmount: String) -> String {
-            "Designed for about \(weeklyAmount)/week progress."
+        static let adjustmentRulesSectionTitle = "When to Adjust"
+        static let adjustmentRulesReviewHeading = "Review your plan if:"
+        static let adjustmentRuleWeightFlat = "Weight is flat for 14 days"
+        static let adjustmentRulePoorEnergy = "Energy is poor for 3+ days"
+        static let adjustmentRuleTrainingDrops = "Training performance drops"
+        static let adjustmentRuleHighHunger = "Hunger is consistently high"
+        static let adjustmentRuleAggressiveRecoveryNote =
+            "Because this is an aggressive plan, recovery matters."
+        static let adjustmentTrendTooEarly = "Your trend is still too early to judge."
+
+        static func adjustmentTrendStable(days: Int) -> String {
+            "Your weight has been stable for \(days) days."
         }
 
-        static func todayMissionProgressFallback(for direction: PlanMissionGoalDirection) -> String {
-            switch direction {
-            case .lose:
-                return "Designed to support steady fat loss."
-            case .gain:
-                return "Designed to support gradual lean gains."
-            case .maintain:
-                return "Designed to hold your current weight."
-            }
+        static let planReviewSectionTitle = "Next Review"
+        static let planReviewBodyCopy =
+            "Forma will review your weight trend and logging consistency."
+        static let planReviewReadyHeadline = "Ready for review"
+        static let planReviewWeighInHint =
+            "Log weight to make your next review more accurate."
+
+        static func planReviewInDays(_ days: Int) -> String {
+            days == 1 ? "In 1 day" : "In \(days) days"
         }
-
-        static func weekStatusCopy(for status: PlanWeekOverallStatus, hasWeeklyData: Bool) -> String {
-            guard hasWeeklyData else {
-                return weekEmptyState
-            }
-            switch status {
-            case .strong:
-                return "Strong week so far."
-            case .onTrack:
-                return "On track so far."
-            case .building:
-                return "Building momentum this week."
-            case .incomplete:
-                return "Keep logging to sharpen this week's picture."
-            }
-        }
-
-        static let weekSectionTitle = "This Week"
-        static let weekEmptyState = "Log meals and weight on Today to see how this week is going."
-        static let weekOverallHeadline = "This week"
-
-        static func weekDayAdherence(_ metric: String, achieved: Int, total: Int) -> String {
-            "\(metric): \(achieved) / \(total) days"
-        }
-
-        static func weekTrainingSessions(achieved: Int, expected: Int) -> String {
-            "Training: \(achieved) / \(expected) sessions"
-        }
-
-        static let weekTrainingUnavailable = "Training: No sessions planned"
-        static let weekTrainingConnectHealth = "Training: Connect Apple Health"
-        static let weekWeightUnavailable = "Weight: Log weight to track change"
-
-        static let nextMilestoneSectionTitle = "Next Milestone"
-        static let goToJourney = "View Journey"
-        static let nextMilestoneEmpty = "Keep logging to unlock your next milestone."
-
-        static func weightCheckpointHeadline(action: String, remaining: String, target: String) -> String {
-            "\(action) \(remaining) to reach \(target)"
-        }
-
-        static func loggingConsistencyHeadline(daysRemaining: Int) -> String {
-            daysRemaining >= 7
-                ? "Complete 7 days of logging"
-                : "Complete \(daysRemaining) more days of logging this week"
-        }
-
-        static let proteinAdherenceHeadline = "Hit protein 5 days this week"
-
-        static func trainingAdherenceHeadline(sessionsRemaining: Int) -> String {
-            sessionsRemaining == 1
-                ? "Complete 1 more training session this week"
-                : "Complete \(sessionsRemaining) training sessions this week"
-        }
-
-        static func weightCheckpointDetail(isGoal: Bool) -> String {
-            isGoal ? goalMilestoneDetail : checkpointMilestoneDetail
-        }
-
-        static let loggingMilestoneDetail =
-            "Consistent logging helps Forma track progress and refine your plan."
-        static let proteinMilestoneDetail =
-            "Protein supports recovery and helps protect muscle while you progress."
-        static let trainingMilestoneDetail =
-            "Training sessions count toward the weekly rhythm your plan assumes."
     }
 
     // MARK: - Plan calculation details

@@ -18,47 +18,45 @@ final class TodayReadOnlyCompositionTests: XCTestCase {
         XCTAssertFalse(TodayViewState.error("x").isLoaded)
     }
 
-    func testPartialDayBuildsAllMissionControlSections() {
+    func testPartialDayBuildsCoreMissionControlSections() {
         let state = TodayPreviewData.partialDay
 
         XCTAssertFalse(state.meals.isEmpty)
         XCTAssertNotNil(state.nextBestAction.title)
-        XCTAssertFalse(state.dailyScorecard.items.isEmpty)
-        XCTAssertFalse(state.aiCoachTip.message.isEmpty)
-        XCTAssertGreaterThan(state.macroBalance.macroSummary.protein.target, 0)
+        XCTAssertGreaterThan(state.macroHydration.macroSummary.protein.target, 0)
+        XCTAssertFalse(state.activity.displayLine.isEmpty)
     }
 
-    func testCompleteDayIncludesCoachTipAndDailyScorecard() {
+    func testCompleteDayMissionOnTrack() {
         let state = TodayPreviewData.completeDay
 
         XCTAssertEqual(state.mission.status, .onTrack)
-        XCTAssertFalse(state.aiCoachTip.message.isEmpty)
-        XCTAssertEqual(state.dailyScorecard.overallPercent, 100)
+        XCTAssertEqual(state.nextBestAction.reason, .allTargetsMet)
     }
 
-    func testEmptyDayStillBuildsDeterministicCoachTipAndScorecard() {
+    func testEmptyDayBuildsMealsAndNextAction() {
         let state = TodayDashboardFixtures.emptyDay()
 
         XCTAssertTrue(state.meals.isEmpty)
-        XCTAssertEqual(state.dailyScorecard.overallPercent, 0)
-        XCTAssertEqual(state.aiCoachTip.message, FormaProductCopy.Today.CoachTip.morningNoBreakfast)
+        XCTAssertEqual(state.nextBestAction.reason, .logBreakfast)
     }
 
     func testQuickActionsSectionIncludesCoreLoggingActions() {
-        let items = TodayQuickActionPolicy.menuItems(isScanFoodAvailable: false)
+        let items = TodayQuickActionPolicy.menuItems(isScanFoodAvailable: true)
         let kinds = Set(items.map(\.kind))
 
+        XCTAssertTrue(kinds.contains(.scanFood))
+        XCTAssertTrue(kinds.contains(.logMeal))
         XCTAssertTrue(kinds.contains(.manualEntry))
         XCTAssertTrue(kinds.contains(.addWater))
         XCTAssertTrue(kinds.contains(.logWeight))
-        XCTAssertTrue(kinds.contains(.askCoach))
-        XCTAssertFalse(kinds.contains(.scanFood))
+        XCTAssertTrue(kinds.contains(.logWorkout))
     }
 
-    func testOverTargetDayUsesNonPunitiveCoachTip() {
+    func testOverTargetDayMissionOverBudget() {
         let state = TodayDashboardFixtures.overTargetDay()
 
-        XCTAssertEqual(state.aiCoachTip.message, FormaProductCopy.Today.CoachTip.overTarget)
         XCTAssertEqual(state.mission.status, .overBudget)
+        XCTAssertTrue(state.mission.calorieSummary.isOverTarget)
     }
 }

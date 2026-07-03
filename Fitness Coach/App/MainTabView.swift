@@ -109,9 +109,6 @@ struct MainTabView: View {
                 model: planModel,
                 onGoToToday: {
                     selectedTab = .today
-                },
-                onGoToJourney: {
-                    selectedTab = .journey
                 }
             )
                 .tabItem {

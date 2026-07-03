@@ -2,11 +2,9 @@
 //  TodayDashboardState.swift
 //  Fitness Coach
 //
-//  Mission Control view state for the Today dashboard.
-//
-//  Nutrition values are mapped from DailyNutritionSummaryBuilder via
-//  TodayDashboardNutritionMapper. Section assembly lives in
-//  TodayMissionControlStateBuilder.
+//  Presentation state for the Today tab. Raw nutrition values are mapped from
+//  DailyNutritionSummaryBuilder via TodayDashboardNutritionMapper. Section
+//  assembly lives in TodayPresentationBuilder.
 //
 
 import Foundation
@@ -29,16 +27,17 @@ struct TodayDashboardState: Equatable {
     var date: Date
     var hasDailyLog: Bool
     var emptyContext: TodayDashboardEmptyContext
-    var mission: TodayMissionState
     var goalConnection: TodayGoalConnectionState?
-    var nextBestAction: NextBestActionState
-    var meals: MealStatusState
-    var activity: ActivityTodayState
-    var macroBalance: MacroBalanceState
-    var momentum: TodayMomentumState
-    var dailyScorecard: TodayDailySummaryScorecardState
-    var dailySummary: DailySummaryState
-    var aiCoachTip: AICoachTipState
+
+    var mission: TodayMissionState
+    var nextBestAction: TodayNextBestActionState
+    var quickActions: TodayQuickActionsState
+    var meals: TodayMealsState
+    var macroHydration: TodayMacroHydrationState
+    var activity: TodayActivityState
+    var victory: TodayVictoryState
+    var smartCoach: TodaySmartCoachState
+    var endOfDay: TodayEndOfDayState
 }
 
 struct TodayDashboardEmptyContext: Equatable, Sendable {
@@ -47,16 +46,23 @@ struct TodayDashboardEmptyContext: Equatable, Sendable {
 }
 
 extension TodayDashboardState {
-    /// Enough logged data to make a daily review meaningful.
     var hasMeaningfulLoggedData: Bool {
         !meals.isEmpty
-            || macroBalance.waterSummary.consumedMl > 0
-            || activity.legacyWorkoutSummary.hasWorkout
+            || macroHydration.waterSummary.consumedMl > 0
+            || activity.hasWorkout
             || mission.weightSummary.weightKg != nil
     }
 }
 
-// MARK: - Section 1: Today's Mission
+// MARK: - Mission
+
+enum TodayMissionPhase: Equatable, Sendable {
+    case brandNewUser
+    case noMealsLogged
+    case inProgress
+    case targetMet
+    case overTarget
+}
 
 enum TodayMissionStatus: Equatable, Sendable {
     case onTrack
@@ -72,113 +78,220 @@ struct TodayGoalProgressState: Equatable, Sendable {
 }
 
 struct TodayMissionState: Equatable {
+    var phase: TodayMissionPhase
     var status: TodayMissionStatus
+    var sectionTitle: String
+    var primaryKind: TodayMissionPrimaryKind
+    var primaryValue: String
+    var goalLine: String
+    var consumedLine: String
+    var proteinRemainingLine: String
+    var statusLine: String
+    var showsLogMealCTA: Bool
+    var accessibilityLabel: String
     var calorieSummary: CalorieSummary
     var weightSummary: TodayWeightSummary
     var goalProgress: TodayGoalProgressState?
-    var focusMessage: String
-    var proteinRemainingGrams: Double
 }
 
-// MARK: - Section 2: Next Best Action
+// MARK: - Next best action
 
-enum NextBestActionCTA: Equatable, Sendable {
+enum TodayNextBestActionCTA: Equatable, Sendable {
     case logMeal(String?)
     case scanFood
     case addWater(amountMl: Int)
+    case logWorkout
     case logWeight
     case openHealth
     case reviewToday
     case none
 }
 
-enum NextBestActionReason: Equatable, Sendable {
+enum TodayNextBestActionReason: Equatable, Sendable {
+    case logBreakfast
     case logFirstMeal
-    case logMissedMeal(MealType)
     case eatProtein
     case addWater
-    case logWeight
-    case connectAppleHealth
-    case reviewToday
-    case onTrack
+    case completeWorkout
+    case keepDinnerLight
+    case focusHydrationRecovery
+    case allTargetsMet
 }
 
-struct NextBestActionState: Equatable {
+struct TodayNextBestActionState: Equatable {
+    var sectionTitle: String
     var title: String
     var subtitle: String?
-    var reason: NextBestActionReason
-    var primaryCTA: NextBestActionCTA
-    var secondaryCTAs: [NextBestActionCTA]
+    var reason: TodayNextBestActionReason
+    var primaryCTA: TodayNextBestActionCTA
+    var secondaryCTAs: [TodayNextBestActionCTA]
+    var accessibilityLabel: String
+
+    init(
+        sectionTitle: String,
+        title: String,
+        subtitle: String?,
+        reason: TodayNextBestActionReason,
+        primaryCTA: TodayNextBestActionCTA,
+        secondaryCTAs: [TodayNextBestActionCTA],
+        accessibilityLabel: String
+    ) {
+        self.sectionTitle = sectionTitle
+        self.title = title
+        self.subtitle = subtitle
+        self.reason = reason
+        self.primaryCTA = primaryCTA
+        self.secondaryCTAs = secondaryCTAs
+        self.accessibilityLabel = accessibilityLabel
+    }
+
+    init(
+        title: String,
+        subtitle: String?,
+        reason: TodayNextBestActionReason,
+        primaryCTA: TodayNextBestActionCTA,
+        secondaryCTAs: [TodayNextBestActionCTA] = []
+    ) {
+        let provisional = TodayNextBestActionState(
+            sectionTitle: FormaProductCopy.Today.NextAction.sectionTitle,
+            title: title,
+            subtitle: subtitle,
+            reason: reason,
+            primaryCTA: primaryCTA,
+            secondaryCTAs: secondaryCTAs,
+            accessibilityLabel: ""
+        )
+        let display = TodayNextActionFormatting.displayModel(for: provisional)
+        self.init(
+            sectionTitle: display.sectionTitle,
+            title: title,
+            subtitle: subtitle,
+            reason: reason,
+            primaryCTA: primaryCTA,
+            secondaryCTAs: secondaryCTAs,
+            accessibilityLabel: display.accessibilityLabel
+        )
+    }
 }
 
-// MARK: - Section 3: Meals
+// MARK: - Quick actions
 
-struct MealStatusState: Equatable {
+struct TodayQuickActionsState: Equatable {
+    var sectionTitle: String
+    var items: [TodayQuickActionMenuItem]
+}
+
+// MARK: - Meals
+
+enum TodayMealsPhase: Equatable, Sendable {
+    case brandNewUser
+    case noMealsToday
+    case hasMeals
+}
+
+struct TodayMealsState: Equatable {
+    var phase: TodayMealsPhase
+    var sectionTitle: String
     var entries: [FoodEntry]
     var entryCount: Int
-    var isEmpty: Bool
+    var emptyTitle: String?
+    var emptyBody: String?
+    var emptyActionTitle: String?
+
+    var isEmpty: Bool { entries.isEmpty }
 }
 
-// MARK: - Section 4: Activity
+// MARK: - Macro + hydration
+
+enum TodayMacroHydrationFocus: Equatable, Sendable {
+    case onTrack
+    case proteinBehind
+    case waterBehind
+    case bothBehind
+}
+
+struct TodayMacroHydrationState: Equatable {
+    var focus: TodayMacroHydrationFocus
+    var sectionTitle: String
+    var guidanceLine: String?
+    var macroSummary: MacroSummary
+    var waterSummary: WaterSummary
+}
+
+// MARK: - Activity
+
+enum TodayActivityPhase: Equatable, Sendable {
+    case healthUnavailable
+    case disconnected
+    case empty
+    case hasData
+    case workoutCompleted
+}
+
+struct TodayActivityState: Equatable {
+    var phase: TodayActivityPhase
+    var sectionTitle: String
+    var legacyWorkoutSummary: TodayWorkoutSummary
+    var trainingIntegration: TrainingIntegrationState
+    var trainingDataSource: TrainingDataSource
+    var appleHealthWorkoutCount: Int?
+    var stepsToday: Int?
+    var stepGoalAssumption: Int?
+    var displayLine: String
+    var showsConnectCTA: Bool
+    var date: Date
+    var trainingFrequencyPerWeek: Int
+
+    var hasWorkout: Bool {
+        legacyWorkoutSummary.hasWorkout || (appleHealthWorkoutCount ?? 0) > 0
+    }
+}
 
 struct TodayActivityContext: Equatable, Sendable {
     var trainingIntegration: TrainingIntegrationState
     var trainingDataSource: TrainingDataSource
     var appleHealthWorkoutCount: Int?
     var stepsToday: Int?
-    var weeklyWorkoutCount: Int?
 
     static let `default` = TodayActivityContext(
         trainingIntegration: .connected,
         trainingDataSource: .appleHealth,
         appleHealthWorkoutCount: nil,
-        stepsToday: nil,
-        weeklyWorkoutCount: nil
+        stepsToday: nil
     )
 }
 
-struct ActivityTodayState: Equatable {
-    var legacyWorkoutSummary: TodayWorkoutSummary
-    var trainingIntegration: TrainingIntegrationState
-    var trainingDataSource: TrainingDataSource
-    var appleHealthWorkoutCount: Int?
-    var stepsToday: Int?
-    var weeklyWorkoutCount: Int?
-    var stepGoalAssumption: Int?
-    var trainingFrequencyPerWeek: Int?
-    var displayLine: String
-    var showsConnectCTA: Bool
+// MARK: - Victory
+
+struct TodayVictoryState: Equatable {
+    var isVisible: Bool
+    var message: String
 }
 
-// MARK: - Section 5: Macro Balance
+// MARK: - Smart coach (contextual)
 
-struct MacroBalanceState: Equatable {
-    var macroSummary: MacroSummary
-    var waterSummary: WaterSummary
+enum TodaySmartCoachContext: Equatable, Sendable {
+    case logFirstMeal
+    case proteinBehind
+    case waterBehind
+    case overTarget
+    case workoutCompleted
 }
 
-// MARK: - Section 6: Momentum
-
-struct TodayMomentumState: Equatable {
-    var streaks: StreakSummary
-    var weekLoggedDays: Int
-    static let weekTotalDays = 7
-}
-
-// MARK: - Section 7: Daily Summary
-
-struct DailySummaryState: Equatable {
-    var greeting: String
-    var priorities: [String]
-    var userName: String?
-    var dailyReview: DailyReview?
-}
-
-// MARK: - Section 8: AI Coach Tip
-
-struct AICoachTipState: Equatable {
+struct TodaySmartCoachState: Equatable {
+    var isVisible: Bool
+    var context: TodaySmartCoachContext?
     var message: String
     var coachPrefill: String?
+}
+
+// MARK: - End of day
+
+struct TodayEndOfDayState: Equatable {
+    var isVisible: Bool
+    var message: String
+    var suggestsReview: Bool
+    var reviewCTATitle: String?
 }
 
 // MARK: - Shared nutrition summaries
@@ -221,3 +334,12 @@ struct TodayWorkoutSummary: Equatable {
     var workoutCount: Int
     var hasWorkout: Bool
 }
+
+// MARK: - Legacy typealiases (migration)
+
+typealias NextBestActionCTA = TodayNextBestActionCTA
+typealias NextBestActionReason = TodayNextBestActionReason
+typealias NextBestActionState = TodayNextBestActionState
+typealias ActivityTodayState = TodayActivityState
+typealias MealStatusState = TodayMealsState
+typealias MacroBalanceState = TodayMacroHydrationState

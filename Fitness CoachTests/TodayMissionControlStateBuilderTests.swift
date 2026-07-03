@@ -8,12 +8,12 @@ import XCTest
 
 final class TodayMissionControlStateBuilderTests: XCTestCase {
 
-    func testEmptyDayMissionNeedsFocusAndLogFirstMealAction() {
+    func testEmptyDayMissionNeedsFocusAndLogBreakfastAction() {
         let state = TodayDashboardFixtures.emptyDay()
 
         XCTAssertEqual(state.mission.status, .needsFocus)
         XCTAssertTrue(state.meals.isEmpty)
-        XCTAssertEqual(state.nextBestAction.reason, .logFirstMeal)
+        XCTAssertEqual(state.nextBestAction.reason, .logBreakfast)
         XCTAssertFalse(state.mission.calorieSummary.isOverTarget)
     }
 
@@ -25,8 +25,8 @@ final class TodayMissionControlStateBuilderTests: XCTestCase {
         )
 
         XCTAssertEqual(state.mission.calorieSummary.consumed, 500)
-        XCTAssertEqual(state.macroBalance.macroSummary.protein.consumed, 79)
-        XCTAssertEqual(state.macroBalance.macroSummary.protein.remaining, 91)
+        XCTAssertEqual(state.macroHydration.macroSummary.protein.consumed, 79)
+        XCTAssertEqual(state.macroHydration.macroSummary.protein.remaining, 91)
         XCTAssertEqual(state.mission.status, .needsFocus)
     }
 
@@ -34,7 +34,7 @@ final class TodayMissionControlStateBuilderTests: XCTestCase {
         let state = TodayDashboardFixtures.completeDay()
 
         XCTAssertEqual(state.mission.status, .onTrack)
-        XCTAssertEqual(state.nextBestAction.reason, .onTrack)
+        XCTAssertEqual(state.nextBestAction.reason, .allTargetsMet)
         XCTAssertFalse(state.meals.isEmpty)
     }
 
@@ -43,10 +43,6 @@ final class TodayMissionControlStateBuilderTests: XCTestCase {
 
         XCTAssertEqual(state.mission.status, .overBudget)
         XCTAssertTrue(state.mission.calorieSummary.isOverTarget)
-        XCTAssertTrue(
-            state.aiCoachTip.message.contains("Weekly consistency"),
-            "Over-target coach tip should use non-shaming copy"
-        )
     }
 
     func testGoalProgressUsesProfileWeights() {
@@ -57,31 +53,11 @@ final class TodayMissionControlStateBuilderTests: XCTestCase {
         XCTAssertEqual(state.mission.goalProgress?.direction, .lose)
     }
 
-    func testMomentumSurfacesLoggingStreakAndWeekProgress() {
-        let state = TodayDashboardFixtures.completeDay()
-
-        XCTAssertEqual(state.momentum.streaks.loggingStreak, 7)
-        XCTAssertEqual(state.momentum.weekLoggedDays, 5)
-
-        let display = TodayMomentumSectionFormatting.displayModel(for: state.momentum)
-        XCTAssertEqual(display.loggingStreakLine, "Logging streak: 7 days")
-        XCTAssertEqual(display.weekProgressLine, "This week: 5 of 7 days logged")
-        XCTAssertFalse(display.optionalStreakLines.isEmpty)
-    }
-
-    func testDailySummaryPreservesBriefPriorities() {
-        let state = TodayPreviewData.partialDay
-
-        XCTAssertEqual(state.dailySummary.greeting, "Good morning.")
-        XCTAssertFalse(state.dailySummary.priorities.isEmpty)
-        XCTAssertEqual(state.dailySummary.userName, "Isaac")
-    }
-
     func testActivityUsesAppleHealthWorkoutCount() {
         let state = TodayPreviewData.partialDay
 
         XCTAssertEqual(state.activity.appleHealthWorkoutCount, 1)
-        XCTAssertEqual(state.activity.displayLine, FormaProductCopy.Today.workoutsToday(1))
+        XCTAssertEqual(state.activity.displayLine, FormaProductCopy.Today.Activity.workoutCompletedLine)
     }
 
     func testNoProfileUsesEmptyViewStateNotDashboardState() {
