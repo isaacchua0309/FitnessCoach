@@ -65,7 +65,7 @@ final class TodayActionCoordinatorTests: XCTestCase {
         XCTAssertTrue(analytics.events.contains { $0.event == .logMealStarted })
     }
 
-    func testAddWaterFromQuickActionsLogsNatively() throws {
+    func testAddWaterFromInlineSectionLogsNatively() throws {
         try harness.seedProfile()
         _ = try harness.actionCenter.ensureTodayLog()
 
@@ -86,25 +86,10 @@ final class TodayActionCoordinatorTests: XCTestCase {
         )
     }
 
-    func testLogWeightQuickActionIsNotAvailableFromTodayQuickActions() {
-        coordinator.performQuickAction(.logWeight)
-
-        XCTAssertFalse(coordinator.isPresentingLogWeightSheet)
-    }
-
     func testPresentLogWeightOpensNativeSheet() {
         coordinator.presentLogWeight()
 
         XCTAssertTrue(coordinator.isPresentingLogWeightSheet)
-    }
-
-    func testLogWorkoutQuickActionIsNotAvailableFromTodayQuickActions() {
-        var openedInsights = false
-        coordinator.onOpenTrainingInsights = { openedInsights = true }
-
-        coordinator.performQuickAction(.logWorkout)
-
-        XCTAssertFalse(openedInsights)
     }
 
     func testLogWorkoutRoutesToTrainingInsights() {

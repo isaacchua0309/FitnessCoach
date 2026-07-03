@@ -27,14 +27,6 @@ final class TodayQuickActionsTests: XCTestCase {
         XCTAssertFalse(TodayQuickActionPolicy.isVisible(.scanFood, isScanFoodAvailable: false))
     }
 
-    func testWaterWeightAndWorkoutNotVisibleInQuickActions() {
-        for scanAvailable in [true, false] {
-            XCTAssertFalse(TodayQuickActionPolicy.isVisible(.addWater, isScanFoodAvailable: scanAvailable))
-            XCTAssertFalse(TodayQuickActionPolicy.isVisible(.logWeight, isScanFoodAvailable: scanAvailable))
-            XCTAssertFalse(TodayQuickActionPolicy.isVisible(.logWorkout, isScanFoodAvailable: scanAvailable))
-        }
-    }
-
     func testQuickActionTitlesUseProductCopy() {
         XCTAssertEqual(
             FormaProductCopy.Today.QuickActions.title(for: .logMeal),
@@ -58,6 +50,10 @@ final class TodayQuickActionsTests: XCTestCase {
         XCTAssertEqual(
             FormaProductCopy.Today.Water.logFailedMessage,
             "Couldn't add water. Try again."
+        )
+        XCTAssertEqual(
+            FormaProductCopy.Today.Water.waterAmountAccessibilityLabel(500),
+            "Add 500 milliliters of water"
         )
     }
 

@@ -111,14 +111,3 @@ struct TodayQuickActionsSection: View {
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()
 }
-
-#Preview("Pink theme") {
-    TodayQuickActionsSection(
-        showsScanMeal: false,
-        onLogMeal: {},
-        onScanMeal: {}
-    )
-    .padding(.horizontal, TodayLayout.horizontalPadding)
-    .background(FormaTokens.Color.canvas)
-    .formaThemePreview(palette: .blossomPink)
-}

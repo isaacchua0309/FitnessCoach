@@ -75,7 +75,7 @@ struct TodayWaterQuickLogSection: View {
 
     private var headerRow: some View {
         HStack(alignment: .firstTextBaseline, spacing: FormaTokens.Spacing.sm) {
-            Image(systemName: FormaProductCopy.Today.QuickActions.symbolName(for: .addWater))
+            Image(systemName: FormaProductCopy.Today.Water.symbolName)
                 .font(.system(size: 18, weight: .semibold))
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(FormaTokens.Theme.primary)
@@ -125,7 +125,7 @@ struct TodayWaterQuickLogSection: View {
                     )
                 )
                 .disabled(isTapLocked)
-                .accessibilityLabel(FormaProductCopy.Today.QuickActions.waterAmountAccessibilityLabel(amountMl))
+                .accessibilityLabel(FormaProductCopy.Today.Water.waterAmountAccessibilityLabel(amountMl))
             }
         }
         .padding(.top, FormaTokens.Spacing.xs)

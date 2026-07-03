@@ -2,7 +2,7 @@
 //  TodayQuickActionPolicy.swift
 //  Fitness Coach
 //
-//  Forma — Which quick actions appear on Today and in what order.
+//  Forma — Which quick actions appear on Today.
 //
 
 import Foundation
@@ -28,8 +28,6 @@ enum TodayQuickActionPolicy {
             return true
         case .scanFood:
             return isScanFoodAvailable
-        case .addWater, .logWeight, .logWorkout:
-            return false
         }
     }
 }

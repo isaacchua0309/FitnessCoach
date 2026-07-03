@@ -1225,7 +1225,6 @@ enum FormaProductCopy {
             static let ctaReviewToday = "Review today"
 
             static let sheetLogWeightTitle = "Log weight"
-            static let createCustomFoodSheetTitle = Meals.createCustomFoodSheetTitle
             static let sheetLogWeightSection = "Today's weight"
             static let sheetWeightField = "Weight (kg)"
             static let sheetWeightPlaceholder = "e.g. 72.5"
@@ -1278,7 +1277,6 @@ enum FormaProductCopy {
             static let addAccessibilityHint = "Opens Coach to log food for this meal"
             static let emptyDayHint = "Log with Coach to start today's picture."
             static let editSheetTitle = "Edit nutrition"
-        static let createCustomFoodSheetTitle = "Create custom food"
             static let saveEditAction = "Save"
             static let deleteAction = "Delete entry"
             static let editAccessibilityHint = "Edit this food entry"
@@ -1320,18 +1318,12 @@ enum FormaProductCopy {
         enum QuickActions {
             static let sectionTitle = "Fast log"
             static let logMealMicrocopy = "Coach will estimate it from a photo, voice note, or text."
-            static let fabAccessibilityLabel = "Quick log"
-            static let fabAccessibilityHint = "Log food in Coach"
-            static let scanFoodUnavailableNote = "Photo scan is coming soon — use Log Meal for now."
             static let scanMealAccessibilityHint = "Opens the camera to scan your meal"
 
             static func inlineAccessibilityHint(for kind: TodayQuickActionKind) -> String {
                 switch kind {
                 case .scanFood: return scanMealAccessibilityHint
                 case .logMeal: return "Opens Coach to log your meal"
-                case .addWater: return "Log water with one tap"
-                case .logWeight: return "Opens weight logging"
-                case .logWorkout: return "Opens workout logging"
                 }
             }
 
@@ -1339,9 +1331,6 @@ enum FormaProductCopy {
                 switch kind {
                 case .scanFood: return "Scan Meal"
                 case .logMeal: return "Log Meal"
-                case .addWater: return "Water"
-                case .logWeight: return "Log Weight"
-                case .logWorkout: return "Log Workout"
                 }
             }
 
@@ -1349,23 +1338,13 @@ enum FormaProductCopy {
                 switch kind {
                 case .scanFood: return "camera.viewfinder"
                 case .logMeal: return "text.bubble.fill"
-                case .addWater: return "drop.fill"
-                case .logWeight: return "scalemass.fill"
-                case .logWorkout: return "figure.run"
                 }
-            }
-
-            static func waterAmountLabel(_ amountMl: Int) -> String {
-                amountMl >= 1_000 ? "\(amountMl / 1_000)L" : "\(amountMl)ml"
-            }
-
-            static func waterAmountAccessibilityLabel(_ amountMl: Int) -> String {
-                "Add \(amountMl) milliliters of water"
             }
         }
 
         enum Water {
             static let sectionTitle = "Water"
+            static let symbolName = "drop.fill"
             static let logFailedMessage = "Couldn't add water. Try again."
             static let tapDebounceSeconds = 0.35
 
@@ -1378,6 +1357,10 @@ enum FormaProductCopy {
                     return "Added 1 L"
                 }
                 return "Added \(amountMl) ml"
+            }
+
+            static func waterAmountAccessibilityLabel(_ amountMl: Int) -> String {
+                "Add \(amountMl) milliliters of water"
             }
         }
 

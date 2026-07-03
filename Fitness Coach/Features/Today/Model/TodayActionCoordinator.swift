@@ -181,7 +181,7 @@ final class TodayActionCoordinator: ObservableObject {
             .quickActionTapped,
             actionType: "quick_action",
             route: TodayNextActionFormatting.analyticsRoute(route),
-            action: TodayQuickActionKind.logWeight.rawValue
+            action: "log_weight"
         )
         perform(route)
     }
@@ -278,12 +278,6 @@ final class TodayActionCoordinator: ObservableObject {
             return .openCoach(.analyzePhotoMeal(openCameraImmediately: true))
         case .logMeal:
             return .openCoach(.logMeal(mealType: nil))
-        case .addWater:
-            return .logWater(amountMl: 500)
-        case .logWeight:
-            return .presentLogWeight
-        case .logWorkout:
-            return .openTrainingInsights
         }
     }
 
