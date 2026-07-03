@@ -58,7 +58,6 @@ struct OnboardingAppleHealthStepView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(screenState.accessibilitySummary)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.22), value: screenState.presentation)
         .onAppear {
             runEntranceAnimation()

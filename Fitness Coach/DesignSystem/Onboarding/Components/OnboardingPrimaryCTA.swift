@@ -83,8 +83,10 @@ struct OnboardingPrimaryCTA: View {
             }
             Text(title)
                 .font(FormaTokens.Typography.body.weight(.semibold))
-                .lineLimit(1)
+                .lineLimit(2)
                 .minimumScaleFactor(0.85)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(isEnabled && !isLoading ? OnboardingTheme.ctaText : OnboardingTheme.secondaryText)
         }
     }
 

@@ -49,9 +49,9 @@ struct OnboardingIntroProofHeroSection: View {
                 .minimumScaleFactor(0.85)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(OnboardingLayout.compactCardPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(heroCardBackground)
+        .onboardingUnifiedStepCard()
+        .shadow(color: OnboardingTheme.border.opacity(0.08), radius: 12, y: 4)
     }
 
     private var legendRow: some View {
@@ -125,16 +125,6 @@ struct OnboardingIntroProofHeroSection: View {
             profile: layoutProfile,
             dynamicTypeSize: dynamicTypeSize
         )
-    }
-
-    private var heroCardBackground: some View {
-        RoundedRectangle(cornerRadius: OnboardingTheme.cornerRadius, style: .continuous)
-            .fill(OnboardingTheme.card)
-            .overlay {
-                RoundedRectangle(cornerRadius: OnboardingTheme.cornerRadius, style: .continuous)
-                    .stroke(OnboardingTheme.border.opacity(0.55), lineWidth: 1)
-            }
-            .shadow(color: OnboardingTheme.border.opacity(0.08), radius: 12, y: 4)
     }
 }
 

@@ -28,8 +28,61 @@ final class OnboardingStepLayoutMetricsTests: XCTestCase {
     }
 
     func testCompactProfileActivatesForShortViewports() {
-        XCTAssertEqual(OnboardingStepLayoutProfile.resolve(viewportHeight: 640), .compact)
-        XCTAssertEqual(OnboardingStepLayoutProfile.resolve(viewportHeight: 844), .regular)
+        XCTAssertEqual(
+            OnboardingStepLayoutProfile.resolve(viewportHeight: 640, dynamicTypeSize: .large),
+            .compact
+        )
+        XCTAssertEqual(
+            OnboardingStepLayoutProfile.resolve(viewportHeight: 844, dynamicTypeSize: .large),
+            .regular
+        )
+    }
+
+    func testCompactProfileActivatesForAccessibilityTypeOnShorterPhones() {
+        XCTAssertEqual(
+            OnboardingStepLayoutProfile.resolve(viewportHeight: 780, dynamicTypeSize: .accessibility3),
+            .compact
+        )
+    }
+
+    func testAppleHealthAllowsScrollOnCompactProfile() {
+        XCTAssertTrue(
+            OnboardingStepLayoutProfile.compact.allowsScrollableContent(
+                step: .appleHealth,
+                dynamicTypeSize: .large
+            )
+        )
+        XCTAssertFalse(
+            OnboardingStepLayoutProfile.regular.allowsScrollableContent(
+                step: .appleHealth,
+                dynamicTypeSize: .large
+            )
+        )
+    }
+
+    func testProgressChromeHeightGrowsForAccessibilityDynamicType() {
+        let regular = OnboardingStepLayoutMetrics.progressChromeHeight(
+            step: .introProof,
+            profile: .regular,
+            showsSubtitle: true,
+            dynamicTypeSize: .large
+        )
+        let accessibility = OnboardingStepLayoutMetrics.progressChromeHeight(
+            step: .introProof,
+            profile: .regular,
+            showsSubtitle: true,
+            dynamicTypeSize: .accessibility3
+        )
+        XCTAssertGreaterThan(accessibility, regular)
+    }
+
+    func testUnifiedCardMetricsMatchDesignTokens() {
+        XCTAssertEqual(OnboardingUnifiedCardMetrics.cornerRadius, FormaTokens.Radius.card)
+        XCTAssertEqual(OnboardingUnifiedCardMetrics.padding, FormaTokens.Spacing.cardPadding)
+        XCTAssertEqual(
+            OnboardingUnifiedChromeTypography.subtitleMaxWidth,
+            FormaTokens.Layout.maxContentWidth
+        )
     }
 
     func testContentAreaHeightIsPositiveForModernPhoneViewport() {

@@ -15,10 +15,19 @@ struct OnboardingStageProgressHeader: View {
     var launchReady: Bool = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var segmentPulse = false
 
     private var progressIndex: Int {
         currentStep.flowProgressIndex
+    }
+
+    private var titleLineLimit: Int? {
+        dynamicTypeSize.isAccessibilitySize ? nil : 2
+    }
+
+    private var subtitleLineLimit: Int? {
+        dynamicTypeSize.isAccessibilitySize ? nil : 3
     }
 
     var body: some View {
@@ -28,26 +37,31 @@ struct OnboardingStageProgressHeader: View {
             if showsTitles {
                 VStack(alignment: .leading, spacing: OnboardingLayout.progressTitleSpacing) {
                     Text(currentStep.title)
-                        .font(.system(.title2, design: .rounded).weight(.bold))
+                        .font(OnboardingUnifiedChromeTypography.stepTitle)
                         .foregroundStyle(OnboardingTheme.primaryText)
+                        .lineLimit(titleLineLimit)
                         .minimumScaleFactor(0.85)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
 
                     if showsSubtitle {
                         Text(currentStep.subtitle)
-                            .font(.subheadline)
+                            .font(OnboardingUnifiedChromeTypography.stepSubtitle)
                             .foregroundStyle(OnboardingTheme.secondaryText)
-                            .lineLimit(2)
+                            .lineSpacing(OnboardingUnifiedChromeTypography.subtitleLineSpacing)
+                            .lineLimit(subtitleLineLimit)
                             .fixedSize(horizontal: false, vertical: true)
+                            .frame(
+                                maxWidth: OnboardingUnifiedChromeTypography.subtitleMaxWidth,
+                                alignment: .leading
+                            )
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Onboarding progress")
-        .accessibilityValue(currentStep.flowProgressAccessibilityLabel)
         .onChange(of: launchReady) { _, ready in
             guard ready, emphasizesLaunch, !reduceMotion else { return }
             withAnimation(
@@ -66,7 +80,7 @@ struct OnboardingStageProgressHeader: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Progress")
+        .accessibilityLabel("Onboarding progress")
         .accessibilityValue(currentStep.flowProgressAccessibilityLabel)
     }
 

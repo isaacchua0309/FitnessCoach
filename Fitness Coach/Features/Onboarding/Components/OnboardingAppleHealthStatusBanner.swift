@@ -32,14 +32,14 @@ struct OnboardingAppleHealthStatusBanner: View {
                 .minimumScaleFactor(0.85)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(OnboardingLayout.compactCardPadding)
+        .padding(OnboardingUnifiedCardMetrics.padding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
+            RoundedRectangle(cornerRadius: OnboardingUnifiedCardMetrics.cornerRadius, style: .continuous)
                 .fill(backgroundColor)
         )
         .overlay {
-            RoundedRectangle(cornerRadius: FormaTokens.Radius.compact, style: .continuous)
+            RoundedRectangle(cornerRadius: OnboardingUnifiedCardMetrics.cornerRadius, style: .continuous)
                 .stroke(borderColor, lineWidth: 1)
         }
         .accessibilityElement(children: .combine)

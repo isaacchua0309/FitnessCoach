@@ -10,6 +10,7 @@ import SwiftUI
 struct OnboardingIntroProofStepView: View {
     private let model = OnboardingWeightTrajectoryComparisonModel.introProofDefault
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var chartReveal: CGFloat = 0
     @State private var supportingVisible = false
 
@@ -23,6 +24,12 @@ struct OnboardingIntroProofStepView: View {
     }
 
     private func runEntranceAnimation() {
+        if reduceMotion {
+            chartReveal = 1
+            supportingVisible = true
+            return
+        }
+
         withAnimation(.easeOut(duration: 0.48).delay(0.06)) {
             chartReveal = 1
         }

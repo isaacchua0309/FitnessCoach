@@ -432,7 +432,7 @@ final class OnboardingAppleHealthAnalyticsTests: XCTestCase {
 
     func testAppleHealthForegroundReturnClearsStuckLoadingState() async throws {
         let integration = StubTrainingIntegrationProvider(
-            refreshResult: .notConnected,
+            refreshResult: .denied,
             requestConnectionResult: .denied
         )
         let model = try makeOnboardingModel(integration: integration)

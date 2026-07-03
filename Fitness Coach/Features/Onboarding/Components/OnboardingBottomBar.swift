@@ -126,11 +126,19 @@ struct OnboardingBottomBar: View {
                             .font(.body.weight(.semibold))
                             .foregroundStyle(OnboardingTheme.secondaryText)
                             .frame(width: resolvedButtonHeight, height: resolvedButtonHeight)
+                            .background(backButtonBackground)
+                            .clipShape(
+                                RoundedRectangle(
+                                    cornerRadius: FormaTokens.Radius.button,
+                                    style: .continuous
+                                )
+                            )
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .disabled(isLoading)
                     .accessibilityLabel(FormaProductCopy.Common.back)
+                    .accessibilityHint("Returns to the previous onboarding step")
                 }
 
                 OnboardingPrimaryCTA(
@@ -138,7 +146,7 @@ struct OnboardingBottomBar: View {
                     variant: currentStep == .review ? .launch : .standard,
                     isEnabled: currentStep == .appleHealth ? isAppleHealthPrimaryEnabled : isPrimaryActionEnabled,
                     isLoading: isLoading,
-                    accessibilityHint: canContinue ? "" : resolvedRequiredFieldsHint,
+                    accessibilityHint: resolvedPrimaryAccessibilityHint,
                     action: onContinue
                 )
                 .scaleEffect(planRevealCTAScale)
@@ -181,11 +189,13 @@ struct OnboardingBottomBar: View {
                                 : OnboardingTheme.tertiaryText
                         )
                         .frame(maxWidth: .infinity)
-                        .frame(height: resolvedButtonHeight)
+                        .frame(minHeight: resolvedButtonHeight)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .disabled(isLoading || !isAppleHealthSkipEnabled)
                 .accessibilityLabel(appleHealthSecondaryTitle)
+                .accessibilityHint("Continues onboarding without connecting Apple Health")
             }
 
             if showsRequiredFieldsHint, !canContinue, !isLoading {
@@ -199,6 +209,8 @@ struct OnboardingBottomBar: View {
             }
         }
         .padding(.horizontal, OnboardingTheme.pagePadding)
+        .frame(maxWidth: FormaTokens.Layout.maxContentWidth)
+        .frame(maxWidth: .infinity)
         .padding(.top, resolvedFooterTopPadding)
         .padding(.bottom, OnboardingLayout.footerVerticalPadding)
         .background(alignment: .top) {
@@ -250,6 +262,26 @@ struct OnboardingBottomBar: View {
 
     private var resolvedRequiredFieldsHint: String {
         requiredFieldsHint ?? FormaProductCopy.Common.completeRequiredFields
+    }
+
+    private var resolvedPrimaryAccessibilityHint: String {
+        if currentStep == .appleHealth {
+            let continueTitle = FormaProductCopy.Onboarding.Flow.AppleHealth.continueCTA
+            if primaryTitle == continueTitle || primaryTitle == FormaProductCopy.Common.continueAction {
+                return "Continues to the next onboarding step"
+            }
+            return "Requests permission to read workouts and activity from Apple Health"
+        }
+        return canContinue ? "" : resolvedRequiredFieldsHint
+    }
+
+    private var backButtonBackground: some View {
+        RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
+            .fill(OnboardingTheme.card)
+            .overlay(
+                RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
+                    .stroke(OnboardingTheme.border, lineWidth: 1)
+            )
     }
 
     private var resolvedFooterTopPadding: CGFloat {

@@ -16,6 +16,8 @@ struct OnboardingStepContainer<Content: View, BottomBar: View>: View {
     @ViewBuilder let bottomBar: () -> BottomBar
     @ViewBuilder let content: () -> Content
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     private var usesFullScreenShell: Bool {
         currentStep.usesFullScreenChrome
     }
@@ -76,42 +78,88 @@ struct OnboardingStepContainer<Content: View, BottomBar: View>: View {
 
     private var unifiedLayoutShell: some View {
         GeometryReader { geometry in
-            let profile = OnboardingStepLayoutProfile.resolve(viewportHeight: geometry.size.height)
+            let profile = OnboardingStepLayoutProfile.resolve(
+                viewportHeight: geometry.size.height,
+                dynamicTypeSize: dynamicTypeSize
+            )
             let showsSubtitle = !currentStep.subtitle.isEmpty
             let contentHeight = OnboardingStepLayoutMetrics.contentAreaHeight(
                 viewportHeight: geometry.size.height,
                 step: currentStep,
                 profile: profile,
-                showsSubtitle: showsSubtitle
+                showsSubtitle: showsSubtitle,
+                dynamicTypeSize: dynamicTypeSize
+            )
+            let scrollable = profile.allowsScrollableContent(
+                step: currentStep,
+                dynamicTypeSize: dynamicTypeSize
             )
 
-            VStack(alignment: .leading, spacing: 0) {
-                OnboardingStageProgressHeader(
-                    currentStep: currentStep,
-                    showsSubtitle: showsSubtitle
-                )
-                .padding(.top, profile.progressTopPadding)
-
-                if showsContainerValidationBanner {
-                    OnboardingWarningBanner(message: validationMessage ?? "")
-                        .padding(.top, profile.sectionSpacing)
-                }
-
-                content()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .padding(.top, profile.chromeBottomSpacing)
-
-                if showsLoadingOverlay, let message = viewState.loadingOverlayMessage {
-                    OnboardingLoadingView(message: message)
-                        .padding(.top, profile.sectionSpacing)
+            Group {
+                if scrollable {
+                    ScrollView {
+                        unifiedChromeColumn(
+                            profile: profile,
+                            showsSubtitle: showsSubtitle,
+                            contentHeight: contentHeight,
+                            expandsContent: false
+                        )
+                        .padding(.bottom, FormaTokens.Spacing.sm)
+                    }
+                    .scrollIndicators(.hidden)
+                } else {
+                    unifiedChromeColumn(
+                        profile: profile,
+                        showsSubtitle: showsSubtitle,
+                        contentHeight: contentHeight,
+                        expandsContent: true
+                    )
                 }
             }
-            .padding(.horizontal, OnboardingTheme.pagePadding)
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
-            .environment(\.onboardingStepContentHeight, contentHeight)
-            .environment(\.onboardingStepLayoutProfile, profile)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private func unifiedChromeColumn(
+        profile: OnboardingStepLayoutProfile,
+        showsSubtitle: Bool,
+        contentHeight: CGFloat,
+        expandsContent: Bool
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            OnboardingStageProgressHeader(
+                currentStep: currentStep,
+                showsSubtitle: showsSubtitle
+            )
+            .padding(.top, profile.progressTopPadding)
+
+            if showsContainerValidationBanner {
+                OnboardingWarningBanner(message: validationMessage ?? "")
+                    .padding(.top, profile.sectionSpacing)
+            }
+
+            Group {
+                if expandsContent {
+                    content()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                } else {
+                    content()
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                }
+            }
+            .padding(.top, profile.chromeBottomSpacing)
+
+            if showsLoadingOverlay, let message = viewState.loadingOverlayMessage {
+                OnboardingLoadingView(message: message)
+                    .padding(.top, profile.sectionSpacing)
+            }
+        }
+        .padding(.horizontal, OnboardingTheme.pagePadding)
+        .frame(maxWidth: FormaTokens.Layout.maxContentWidth, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .environment(\.onboardingStepContentHeight, contentHeight)
+        .environment(\.onboardingStepLayoutProfile, profile)
     }
 
     // MARK: - Legacy shells

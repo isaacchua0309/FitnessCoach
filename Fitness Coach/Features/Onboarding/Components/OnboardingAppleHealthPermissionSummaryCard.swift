@@ -25,16 +25,8 @@ struct OnboardingAppleHealthPermissionSummaryCard: View {
                 }
             }
         }
-        .padding(OnboardingLayout.compactCardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: OnboardingTheme.cornerRadius, style: .continuous)
-                .fill(OnboardingTheme.card)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: OnboardingTheme.cornerRadius, style: .continuous)
-                .stroke(OnboardingTheme.border.opacity(0.55), lineWidth: 1)
-        }
+        .onboardingUnifiedStepCard()
         .accessibilityElement(children: .contain)
         .accessibilityLabel(FormaProductCopy.Onboarding.Flow.AppleHealth.readableDataAccessibilityLabel)
     }

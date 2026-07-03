@@ -11,8 +11,13 @@ enum OnboardingStepLayoutProfile: Equatable {
     case regular
     case compact
 
-    static func resolve(viewportHeight: CGFloat) -> Self {
-        viewportHeight < 700 ? .compact : .regular
+    static func resolve(
+        viewportHeight: CGFloat,
+        dynamicTypeSize: DynamicTypeSize = .large
+    ) -> Self {
+        if viewportHeight < 700 { return .compact }
+        if dynamicTypeSize.isAccessibilitySize, viewportHeight < 820 { return .compact }
+        return .regular
     }
 
     var sectionSpacing: CGFloat {
@@ -32,6 +37,15 @@ enum OnboardingStepLayoutProfile: Equatable {
         case .compact: FormaTokens.Spacing.xs
         }
     }
+
+    func allowsScrollableContent(
+        step: OnboardingStep,
+        dynamicTypeSize: DynamicTypeSize
+    ) -> Bool {
+        if dynamicTypeSize.isAccessibilitySize { return true }
+        if step == .appleHealth, self == .compact { return true }
+        return false
+    }
 }
 
 enum OnboardingStepLayoutMetrics {
@@ -40,12 +54,26 @@ enum OnboardingStepLayoutMetrics {
     static func progressChromeHeight(
         step: OnboardingStep,
         profile: OnboardingStepLayoutProfile,
-        showsSubtitle: Bool
+        showsSubtitle: Bool,
+        dynamicTypeSize: DynamicTypeSize = .large
     ) -> CGFloat {
         let segmentBar: CGFloat = OnboardingLayout.progressSegmentHeight
-        let titleBlock: CGFloat = showsSubtitle ? 56 : 34
+        let titleBlock = estimatedTitleBlockHeight(
+            showsSubtitle: showsSubtitle,
+            dynamicTypeSize: dynamicTypeSize
+        )
         let spacing = OnboardingLayout.progressBarSpacing + OnboardingLayout.progressTitleSpacing
         return profile.progressTopPadding + segmentBar + spacing + titleBlock
+    }
+
+    private static func estimatedTitleBlockHeight(
+        showsSubtitle: Bool,
+        dynamicTypeSize: DynamicTypeSize
+    ) -> CGFloat {
+        if dynamicTypeSize.isAccessibilitySize {
+            return showsSubtitle ? 128 : 76
+        }
+        return showsSubtitle ? 56 : 34
     }
 
     /// Height available to step-specific content below the shared chrome.
@@ -53,12 +81,14 @@ enum OnboardingStepLayoutMetrics {
         viewportHeight: CGFloat,
         step: OnboardingStep,
         profile: OnboardingStepLayoutProfile,
-        showsSubtitle: Bool = true
+        showsSubtitle: Bool = true,
+        dynamicTypeSize: DynamicTypeSize = .large
     ) -> CGFloat {
         let chrome = progressChromeHeight(
             step: step,
             profile: profile,
-            showsSubtitle: showsSubtitle
+            showsSubtitle: showsSubtitle,
+            dynamicTypeSize: dynamicTypeSize
         )
         return max(0, viewportHeight - chrome - profile.chromeBottomSpacing)
     }

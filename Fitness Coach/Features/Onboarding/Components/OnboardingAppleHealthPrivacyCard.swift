@@ -27,15 +27,12 @@ struct OnboardingAppleHealthPrivacyCard: View {
                 Text(bodyCopy)
                     .font(FormaTokens.Typography.caption)
                     .foregroundStyle(OnboardingTheme.secondaryText)
+                    .lineSpacing(OnboardingUnifiedChromeTypography.subtitleLineSpacing)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(OnboardingLayout.compactCardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: FormaTokens.Radius.card, style: .continuous)
-                .fill(FormaTokens.Color.surfaceSubtle.opacity(0.72))
-        )
+        .onboardingUnifiedStepCard()
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title). \(bodyCopy)")
     }

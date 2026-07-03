@@ -12,6 +12,7 @@ struct OnboardingWeightTrajectoryHeroChart: View {
     let model: OnboardingWeightTrajectoryComparisonModel
     var revealProgress: CGFloat = 1
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .body) private var axisLabelSize: CGFloat = 12
     @ScaledMetric(relativeTo: .body) private var formaLineWidth: CGFloat = 4.5
     @ScaledMetric(relativeTo: .body) private var traditionalLineWidth: CGFloat = 3
@@ -98,11 +99,16 @@ struct OnboardingWeightTrajectoryHeroChart: View {
         }
         .mask(alignment: .leading) {
             Rectangle()
-                .scaleEffect(x: max(0, min(revealProgress, 1)), y: 1, anchor: .leading)
+                .scaleEffect(x: max(0, min(resolvedRevealProgress, 1)), y: 1, anchor: .leading)
         }
         .accessibilityElement(children: .ignore)
+        .accessibilityAddTraits(.isImage)
         .accessibilityLabel(model.chartAccessibilityLabel)
         .accessibilityValue(model.insightPill)
+    }
+
+    private var resolvedRevealProgress: CGFloat {
+        reduceMotion ? 1 : revealProgress
     }
 
     private func lineStyle(isDashed: Bool) -> StrokeStyle {
