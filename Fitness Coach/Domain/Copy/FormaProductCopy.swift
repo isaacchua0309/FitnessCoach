@@ -1319,18 +1319,15 @@ enum FormaProductCopy {
         enum QuickActions {
             static let sectionTitle = "Fast log"
             static let fabAccessibilityLabel = "Quick log"
-            static let fabAccessibilityHint = "Log food or water in Coach"
-            static let addWaterSheetTitle = "Add water"
-            static let addWaterSheetBody = "Pick an amount to log now."
+            static let fabAccessibilityHint = "Log food in Coach"
             static let scanFoodUnavailableNote = "Photo scan is coming soon — use Log Meal for now."
-            static let waterExpandAccessibilityHint = "Shows water amounts to log"
             static let scanMealAccessibilityHint = "Opens the camera to scan your meal"
 
             static func inlineAccessibilityHint(for kind: TodayQuickActionKind) -> String {
                 switch kind {
                 case .scanFood: return scanMealAccessibilityHint
                 case .logMeal: return "Opens meal logging in Coach"
-                case .addWater: return waterExpandAccessibilityHint
+                case .addWater: return "Log water with one tap"
                 case .logWeight: return "Opens weight logging"
                 case .logWorkout: return "Opens workout logging"
                 }
@@ -1367,10 +1364,18 @@ enum FormaProductCopy {
 
         enum Water {
             static let sectionTitle = "Water"
-            static let logFailedMessage = "Couldn't log water. Try again."
+            static let logFailedMessage = "Couldn't add water. Try again."
+            static let tapDebounceSeconds = 0.35
 
             static func quickAddLabel(_ amountMl: Int) -> String {
                 amountMl >= 1_000 ? "+1 L" : "+\(amountMl) ml"
+            }
+
+            static func addedMessage(amountMl: Int) -> String {
+                if amountMl >= 1_000 {
+                    return "Added 1 L"
+                }
+                return "Added \(amountMl) ml"
             }
         }
 

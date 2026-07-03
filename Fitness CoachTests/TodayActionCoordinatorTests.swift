@@ -183,6 +183,17 @@ final class TodayActionCoordinatorTests: XCTestCase {
         XCTAssertNil(saved.properties.asParameters()["name"])
     }
 
+    func testInlineAddWaterNotifiesRefresh() throws {
+        try harness.seedProfile()
+        _ = try harness.actionCenter.ensureTodayLog()
+
+        let tokenBefore = harness.refreshCenter.refreshToken
+
+        XCTAssertTrue(coordinator.addWater(amountMl: 250))
+
+        XCTAssertEqual(harness.refreshCenter.refreshToken, tokenBefore + 1)
+    }
+
     func testWaterAddedLogsAmountBucket() throws {
         try harness.seedProfile()
         _ = try harness.actionCenter.ensureTodayLog()

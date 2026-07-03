@@ -15,6 +15,7 @@ struct TodayView: View {
     @EnvironmentObject private var trainingInsightsModel: TrainingInsightsModel
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
     @EnvironmentObject private var authManager: AuthManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let healthActivityQuery: HealthActivityQueryService
 
@@ -118,18 +119,27 @@ struct TodayView: View {
                 }
                 .background(FormaTokens.Color.canvas)
                 .overlay(alignment: .bottom) {
-                    if let message = actionCoordinator.snackbarMessage {
-                        FormaTransientBanner(message: message)
-                            .padding(.bottom, FormaTokens.Spacing.md)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    if let feedback = actionCoordinator.snackbarMessage {
+                        FormaTransientBanner(
+                            message: feedback.message,
+                            style: feedback.style == .success ? .success : .error
+                        )
+                        .padding(.bottom, FormaTokens.Spacing.md)
+                        .transition(
+                            reduceMotion
+                                ? .opacity
+                                : .move(edge: .bottom).combined(with: .opacity)
+                        )
                     }
                 }
-                .animation(.easeInOut(duration: 0.2), value: actionCoordinator.snackbarMessage)
-                .onChange(of: actionCoordinator.snackbarMessage) { _, message in
-                    guard message != nil else { return }
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: actionCoordinator.snackbarMessage)
+                .onChange(of: actionCoordinator.snackbarMessage) { _, feedback in
+                    guard let feedback else { return }
                     Task { @MainActor in
-                        try? await Task.sleep(nanoseconds: 3_000_000_000)
-                        actionCoordinator.clearSnackbar()
+                        try? await Task.sleep(nanoseconds: feedback.autoDismissNanoseconds)
+                        if actionCoordinator.snackbarMessage == feedback {
+                            actionCoordinator.clearSnackbar()
+                        }
                     }
                 }
         }

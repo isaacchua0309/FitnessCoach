@@ -7,6 +7,9 @@
 
 import Combine
 import Foundation
+#if canImport(UIKit)
+import UIKit
+#endif
 
 @MainActor
 final class TodayActionCoordinator: ObservableObject {
@@ -23,7 +26,7 @@ final class TodayActionCoordinator: ObservableObject {
     @Published var isPresentingLogWeightSheet = false
     @Published private(set) var lastErrorMessage: String?
     @Published private(set) var foodEditErrorMessage: String?
-    @Published private(set) var snackbarMessage: String?
+    @Published private(set) var snackbarMessage: TodayTransientFeedback?
 
     private let actionCenter: FitnessActionCenter
     private let analyticsLogger: any TodayAnalyticsLogging
@@ -236,7 +239,12 @@ final class TodayActionCoordinator: ObservableObject {
         do {
             _ = try actionCenter.logWater(amountMl: amountMl, date: logDate())
             lastErrorMessage = nil
-            snackbarMessage = nil
+            let feedback = TodayTransientFeedback(
+                message: FormaProductCopy.Today.Water.addedMessage(amountMl: amountMl),
+                style: .success
+            )
+            snackbarMessage = feedback
+            announce(feedback.message)
             TodayHaptics.saveSucceeded()
             log(
                 .waterAdded,
@@ -245,9 +253,20 @@ final class TodayActionCoordinator: ObservableObject {
             )
             return .success(())
         } catch {
-            snackbarMessage = FormaProductCopy.Today.Water.logFailedMessage
+            let feedback = TodayTransientFeedback(
+                message: FormaProductCopy.Today.Water.logFailedMessage,
+                style: .error
+            )
+            snackbarMessage = feedback
+            announce(feedback.message)
             return .failure(error)
         }
+    }
+
+    private func announce(_ message: String) {
+        #if canImport(UIKit)
+        UIAccessibility.post(notification: .announcement, argument: message)
+        #endif
     }
 
     // MARK: - Routing

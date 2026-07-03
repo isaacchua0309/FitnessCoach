@@ -12,8 +12,11 @@ struct TodayWaterQuickLogSection: View {
     let presetAmountsMl: [Int]
     let onAddWater: (Int) -> Bool
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @State private var pendingAddedMl = 0
     @State private var highlightedAmountMl: Int?
+    @State private var tapLockedUntil = Date.distantPast
 
     private var displayedWater: WaterSummary {
         guard pendingAddedMl > 0 else { return water }
@@ -25,6 +28,18 @@ struct TodayWaterQuickLogSection: View {
             remainingMl: consumedMl >= water.targetMl ? 0 : water.targetMl - consumedMl,
             progress: min(Double(consumedMl) / Double(targetMl), 1)
         )
+    }
+
+    private var isTapLocked: Bool {
+        Date() < tapLockedUntil
+    }
+
+    private var progressAnimation: Animation? {
+        reduceMotion ? nil : .easeOut(duration: 0.32)
+    }
+
+    private var valueAnimation: Animation? {
+        reduceMotion ? nil : .easeOut(duration: 0.22)
     }
 
     var body: some View {
@@ -39,13 +54,13 @@ struct TodayWaterQuickLogSection: View {
                         progress: displayedWater.progress,
                         subdued: false
                     )
-                    .animation(.easeOut(duration: 0.28), value: displayedWater.progress)
+                    .animation(progressAnimation, value: displayedWater.progress)
 
                     Text(remainingText)
                         .font(FormaTokens.Typography.caption)
                         .foregroundStyle(FormaTokens.Color.textSecondary)
                         .monospacedDigit()
-                        .animation(.easeOut(duration: 0.2), value: displayedWater.consumedMl)
+                        .animation(valueAnimation, value: displayedWater.consumedMl)
 
                     quickAddButtons
                 }
@@ -78,8 +93,8 @@ struct TodayWaterQuickLogSection: View {
             .font(FormaTokens.Typography.bodyMedium.weight(.semibold))
             .foregroundStyle(FormaTokens.Color.textPrimary)
             .monospacedDigit()
-            .contentTransition(.numericText())
-            .animation(.easeOut(duration: 0.2), value: displayedWater.consumedMl)
+            .modifier(WaterValueTransitionModifier(reduceMotion: reduceMotion))
+            .animation(valueAnimation, value: displayedWater.consumedMl)
         }
     }
 
@@ -120,18 +135,33 @@ struct TodayWaterQuickLogSection: View {
                         )
                         .overlay {
                             RoundedRectangle(cornerRadius: FormaTokens.Radius.button, style: .continuous)
-                                .stroke(FormaTokens.Theme.borderTint.opacity(0.28), lineWidth: 0.5)
+                                .stroke(
+                                    highlightedAmountMl == amountMl
+                                        ? FormaTokens.Theme.primary.opacity(0.5)
+                                        : FormaTokens.Theme.borderTint.opacity(0.28),
+                                    lineWidth: highlightedAmountMl == amountMl ? 1 : 0.5
+                                )
                         }
-                        .scaleEffect(highlightedAmountMl == amountMl ? 0.96 : 1)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(
+                    TodayWaterQuickAddButtonStyle(
+                        isSelected: highlightedAmountMl == amountMl,
+                        reduceMotion: reduceMotion
+                    )
+                )
+                .disabled(isTapLocked)
+                .opacity(isTapLocked ? 0.72 : 1)
                 .accessibilityLabel(FormaProductCopy.Today.QuickActions.waterAmountAccessibilityLabel(amountMl))
             }
         }
         .padding(.top, FormaTokens.Spacing.xs)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: isTapLocked)
     }
 
     private func logWater(amountMl: Int) {
+        guard !isTapLocked else { return }
+
+        lockTapsBriefly()
         pendingAddedMl += amountMl
         highlightedAmountMl = amountMl
 
@@ -139,15 +169,58 @@ struct TodayWaterQuickLogSection: View {
         if !succeeded {
             pendingAddedMl = max(pendingAddedMl - amountMl, 0)
             highlightedAmountMl = nil
+            tapLockedUntil = .distantPast
             return
         }
 
+        clearHighlightAfterDelay(for: amountMl)
+    }
+
+    private func lockTapsBriefly() {
+        tapLockedUntil = Date().addingTimeInterval(FormaProductCopy.Today.Water.tapDebounceSeconds)
+    }
+
+    private func clearHighlightAfterDelay(for amountMl: Int) {
+        let delayNanoseconds: UInt64 = reduceMotion ? 80_000_000 : 220_000_000
         Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 180_000_000)
+            try? await Task.sleep(nanoseconds: delayNanoseconds)
             if highlightedAmountMl == amountMl {
-                highlightedAmountMl = nil
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)) {
+                    highlightedAmountMl = nil
+                }
             }
         }
+    }
+}
+
+private struct WaterValueTransitionModifier: ViewModifier {
+    let reduceMotion: Bool
+
+    func body(content: Content) -> some View {
+        if reduceMotion {
+            content
+        } else {
+            content.contentTransition(.numericText())
+        }
+    }
+}
+
+private struct TodayWaterQuickAddButtonStyle: ButtonStyle {
+    let isSelected: Bool
+    let reduceMotion: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(scale(isPressed: configuration.isPressed))
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: isSelected)
+    }
+
+    private func scale(isPressed: Bool) -> CGFloat {
+        guard !reduceMotion else { return 1 }
+        if isPressed { return 0.94 }
+        if isSelected { return 0.97 }
+        return 1
     }
 }
 
