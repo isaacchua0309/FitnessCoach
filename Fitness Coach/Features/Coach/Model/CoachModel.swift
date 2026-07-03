@@ -69,6 +69,11 @@ final class CoachModel: ObservableObject {
         imageAnalysisSessionStore.sessionAwaitingClarification() != nil
     }
 
+    var photoClarificationComposerPlaceholder: String? {
+        guard awaitingPhotoClarification else { return nil }
+        return FormaProductCopy.Coach.composerPhotoClarificationPlaceholder
+    }
+
     init(
         localCommandParser: LocalCommandParser? = nil,
         actionCenter: FitnessActionCenter,

@@ -144,6 +144,8 @@ struct CoachView: View {
             attachment: model.inputState.attachment,
             attachmentError: model.inputState.error,
             canPickAttachment: model.inputState.canPickImage,
+            textFieldPlaceholder: model.photoClarificationComposerPlaceholder
+                ?? FormaProductCopy.Coach.composerPlaceholder,
             isFocused: $isInputFocused,
             isSending: model.isSending,
             onSend: {

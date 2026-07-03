@@ -15,6 +15,7 @@ struct CoachComposer: View {
     var attachment: CoachInputAttachment?
     var attachmentError: CoachInputComposerError?
     var canPickAttachment: Bool
+    var textFieldPlaceholder: String = FormaProductCopy.Coach.composerPlaceholder
     var isFocused: FocusState<Bool>.Binding
     let isSending: Bool
     let onSend: () -> Void
@@ -109,7 +110,7 @@ struct CoachComposer: View {
         HStack(alignment: .bottom, spacing: 0) {
             attachmentButton
 
-            TextField(FormaProductCopy.Coach.composerPlaceholder, text: $text, axis: .vertical)
+            TextField(textFieldPlaceholder, text: $text, axis: .vertical)
                 .font(CoachDesignTokens.Typography.composer)
                 .foregroundStyle(CoachDesignTokens.Color.primaryText)
                 .textFieldStyle(.plain)
