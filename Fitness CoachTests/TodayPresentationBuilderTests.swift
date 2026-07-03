@@ -177,9 +177,12 @@ final class TodayPresentationBuilderTests: XCTestCase {
     func testQuickActionsBuiltFromPolicy() {
         let state = build(foodEntries: [], hasPriorFoodLogs: false)
 
-        XCTAssertFalse(state.quickActions.items.isEmpty)
         XCTAssertEqual(state.quickActions.sectionTitle, FormaProductCopy.Today.QuickActions.sectionTitle)
-        XCTAssertTrue(state.quickActions.items.contains { $0.kind == .logMeal })
+        XCTAssertFalse(state.quickActions.waterPresetAmountsMl.isEmpty)
+        XCTAssertEqual(
+            state.quickActions.showsScanMeal,
+            TodayPhotoScanAvailability.isPipelineReady
+        )
     }
 
     // MARK: - Fixtures

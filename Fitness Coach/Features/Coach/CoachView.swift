@@ -88,11 +88,17 @@ struct CoachView: View {
                     model.handleCoachBecameInactive()
                 } else {
                     focusComposerIfRequested()
+                    presentCameraIfRequested()
                 }
             }
             .onChange(of: model.requestsComposerFocus) { _, shouldFocus in
                 if shouldFocus {
                     focusComposerIfRequested()
+                }
+            }
+            .onChange(of: model.requestsCameraPresentation) { _, shouldPresent in
+                if shouldPresent {
+                    presentCameraIfRequested()
                 }
             }
             .onChange(of: model.isSending) { _, isSending in
@@ -104,6 +110,7 @@ struct CoachView: View {
                 model.refreshTodayContext()
             }
             .animation(CoachDesignTokens.Motion.standard, value: showEmptyChrome)
+            .animation(CoachDesignTokens.Motion.standard, value: model.activeLaunchPresentation)
             .photosPicker(isPresented: $isPhotoPickerPresented, selection: $photoPickerItem, matching: .images)
             .onChange(of: photoPickerItem) { _, item in
                 guard let item else { return }
@@ -280,6 +287,12 @@ struct CoachView: View {
         guard isActive, model.requestsComposerFocus else { return }
         isInputFocused = true
         model.consumeComposerFocusRequest()
+    }
+
+    private func presentCameraIfRequested() {
+        guard isActive, model.requestsCameraPresentation else { return }
+        model.consumeCameraPresentationRequest()
+        handleAttachmentSelection(.takePhoto)
     }
 
     private func handleVoiceTap() {

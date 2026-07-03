@@ -88,8 +88,7 @@ final class TodayActionCoordinator: ObservableObject {
     // MARK: - Quick actions
 
     func performQuickAction(_ kind: TodayQuickActionKind) {
-        guard let item = TodayQuickActionPolicy.menuItems().first(where: { $0.kind == kind }),
-              item.isEnabled else { return }
+        guard TodayQuickActionPolicy.isVisible(kind) else { return }
 
         let route = route(for: kind)
         log(
@@ -173,6 +172,17 @@ final class TodayActionCoordinator: ObservableObject {
         }
     }
 
+    func presentLogWeight() {
+        let route = TodayNextActionRoute.presentLogWeight
+        log(
+            .quickActionTapped,
+            actionType: "quick_action",
+            route: TodayNextActionFormatting.analyticsRoute(route),
+            action: TodayQuickActionKind.logWeight.rawValue
+        )
+        perform(route)
+    }
+
     func dismissLogWeightSheet() {
         isPresentingLogWeightSheet = false
     }
@@ -221,7 +231,7 @@ final class TodayActionCoordinator: ObservableObject {
     private func route(for kind: TodayQuickActionKind) -> TodayNextActionRoute {
         switch kind {
         case .scanFood:
-            return .openCoach(.analyzePhotoMeal)
+            return .openCoach(.analyzePhotoMeal(openCameraImmediately: true))
         case .logMeal:
             return .openCoach(.logMeal(mealType: nil))
         case .addWater:

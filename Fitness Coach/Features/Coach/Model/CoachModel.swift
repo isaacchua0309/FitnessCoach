@@ -48,6 +48,7 @@ final class CoachModel: ObservableObject {
     @Published private(set) var activeLaunchPresentation: CoachLaunchPresentation?
     @Published private(set) var composerPlaceholderOverride: String?
     @Published private(set) var requestsComposerFocus = false
+    @Published private(set) var requestsCameraPresentation = false
 
     private let localCommandParser: LocalCommandParser
     private let dailyLogReader: any DailyLogReading
@@ -701,7 +702,7 @@ final class CoachModel: ObservableObject {
         case .prefill(let text):
             mutateInputState { $0.updateText(text) }
             requestsComposerFocus = true
-        case .logMeal, .analyzePhotoMeal, .logWater:
+        case .logMeal, .logWater:
             guard let presentation = CoachLaunchPresentationBuilder.presentation(for: intent) else { return }
             mutateInputState { state in
                 state.updateText("")
@@ -711,6 +712,18 @@ final class CoachModel: ObservableObject {
             activeLaunchPresentation = presentation
             composerPlaceholderOverride = presentation.composerPlaceholder
             requestsComposerFocus = presentation.focusesComposer
+            requestsCameraPresentation = false
+        case .analyzePhotoMeal(let openCameraImmediately):
+            guard let presentation = CoachLaunchPresentationBuilder.presentation(for: intent) else { return }
+            mutateInputState { state in
+                state.updateText("")
+                state.removeAttachment()
+                state.error = nil
+            }
+            activeLaunchPresentation = presentation
+            composerPlaceholderOverride = presentation.composerPlaceholder
+            requestsComposerFocus = presentation.focusesComposer
+            requestsCameraPresentation = openCameraImmediately
         }
     }
 
@@ -723,8 +736,13 @@ final class CoachModel: ObservableObject {
         requestsComposerFocus = false
     }
 
+    func consumeCameraPresentationRequest() {
+        requestsCameraPresentation = false
+    }
+
     func handleCoachBecameInactive() {
         consumeLaunchPresentation()
+        requestsCameraPresentation = false
         if inputState.trimmedText.isEmpty, inputState.attachment == nil {
             clearComposerLaunchChrome()
         }
@@ -736,6 +754,7 @@ final class CoachModel: ObservableObject {
 
     private func abandonLaunchSession() {
         consumeLaunchPresentation()
+        requestsCameraPresentation = false
         clearComposerLaunchChrome()
     }
 

@@ -35,13 +35,24 @@ final class CoachLaunchIntentTests: XCTestCase {
     }
 
     func testAnalyzePhotoMealLaunchDoesNotPrefillComposerText() {
-        model.launch(with: .analyzePhotoMeal)
+        model.launch(with: .analyzePhotoMeal())
 
         XCTAssertEqual(model.inputText, "")
         XCTAssertEqual(model.messages.count, 0)
         XCTAssertEqual(model.activeLaunchPresentation?.headline, FormaProductCopy.Coach.Launch.analyzePhotoHeadline)
         XCTAssertEqual(model.activeLaunchPresentation?.chips, [.takePhoto, .describeMeal])
         XCTAssertFalse(model.requestsComposerFocus)
+        XCTAssertFalse(model.requestsCameraPresentation)
+    }
+
+    func testAnalyzePhotoMealLaunchCanRequestCameraPresentation() {
+        model.launch(with: .analyzePhotoMeal(openCameraImmediately: true))
+
+        XCTAssertTrue(model.requestsCameraPresentation)
+
+        model.consumeCameraPresentationRequest()
+
+        XCTAssertFalse(model.requestsCameraPresentation)
     }
 
     func testLogWaterLaunchShowsWaterChip() {

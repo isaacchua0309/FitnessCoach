@@ -65,25 +65,40 @@ final class TodayActionCoordinatorTests: XCTestCase {
         XCTAssertTrue(analytics.events.contains { $0.event == .logMealStarted })
     }
 
-    func testAddWaterPresentsNativeSheet() {
-        coordinator.performQuickAction(.addWater)
+    func testAddWaterFromQuickActionsLogsNatively() throws {
+        try harness.seedProfile()
+        _ = try harness.actionCenter.ensureTodayLog()
 
-        XCTAssertTrue(coordinator.isPresentingAddWaterSheet)
+        var coachOpened = false
+        coordinator.onOpenCoach = { _ in coachOpened = true }
+
+        coordinator.addWater(amountMl: 500)
+
+        XCTAssertFalse(coachOpened)
+        XCTAssertFalse(coordinator.isPresentingAddWaterSheet)
+        let log = try XCTUnwrap(try harness.dailyLogService.getLog(for: harness.today))
+        XCTAssertEqual(log.waterConsumedMl, 500)
     }
 
-    func testLogWeightPresentsNativeSheet() {
+    func testLogWeightQuickActionIsNotAvailableFromTodayQuickActions() {
         coordinator.performQuickAction(.logWeight)
+
+        XCTAssertFalse(coordinator.isPresentingLogWeightSheet)
+    }
+
+    func testPresentLogWeightOpensNativeSheet() {
+        coordinator.presentLogWeight()
 
         XCTAssertTrue(coordinator.isPresentingLogWeightSheet)
     }
 
-    func testLogWorkoutQuickActionOpensTrainingInsights() {
+    func testLogWorkoutQuickActionIsNotAvailableFromTodayQuickActions() {
         var openedInsights = false
         coordinator.onOpenTrainingInsights = { openedInsights = true }
 
         coordinator.performQuickAction(.logWorkout)
 
-        XCTAssertTrue(openedInsights)
+        XCTAssertFalse(openedInsights)
     }
 
     func testLogWorkoutRoutesToTrainingInsights() {
@@ -139,13 +154,13 @@ final class TodayActionCoordinatorTests: XCTestCase {
         XCTAssertEqual(analytics.events.first?.properties.actionType, "next_best_action")
     }
 
-    func testScanFoodOpensCoachScanFlow() {
+    func testScanFoodOpensCoachWithCameraLaunch() {
         var launchedIntent: CoachLaunchIntent?
         coordinator.onOpenCoach = { launchedIntent = $0 }
 
         coordinator.performQuickAction(.scanFood)
 
-        XCTAssertEqual(launchedIntent, .analyzePhotoMeal)
+        XCTAssertEqual(launchedIntent, .analyzePhotoMeal(openCameraImmediately: true))
     }
 
     func testLogMealSavedDoesNotIncludeFoodName() throws {

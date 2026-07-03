@@ -1317,18 +1317,20 @@ enum FormaProductCopy {
         }
 
         enum QuickActions {
-            static let sectionTitle = "Quick Actions"
+            static let sectionTitle = "Fast log"
             static let fabAccessibilityLabel = "Quick log"
-            static let fabAccessibilityHint = "Log food, water, weight, or open Coach"
+            static let fabAccessibilityHint = "Log food or water in Coach"
             static let addWaterSheetTitle = "Add water"
             static let addWaterSheetBody = "Pick an amount to log now."
             static let scanFoodUnavailableNote = "Photo scan is coming soon — use Log Meal for now."
+            static let waterExpandAccessibilityHint = "Shows water amounts to log"
+            static let scanMealAccessibilityHint = "Opens the camera to scan your meal"
 
             static func inlineAccessibilityHint(for kind: TodayQuickActionKind) -> String {
                 switch kind {
-                case .scanFood: return "Opens food photo scan"
+                case .scanFood: return scanMealAccessibilityHint
                 case .logMeal: return "Opens meal logging in Coach"
-                case .addWater: return "Opens water logging"
+                case .addWater: return waterExpandAccessibilityHint
                 case .logWeight: return "Opens weight logging"
                 case .logWorkout: return "Opens workout logging"
                 }
@@ -1336,9 +1338,9 @@ enum FormaProductCopy {
 
             static func title(for kind: TodayQuickActionKind) -> String {
                 switch kind {
-                case .scanFood: return "Scan Food"
+                case .scanFood: return "Scan Meal"
                 case .logMeal: return "Log Meal"
-                case .addWater: return "Add Water"
+                case .addWater: return "Water"
                 case .logWeight: return "Log Weight"
                 case .logWorkout: return "Log Workout"
                 }
@@ -1347,7 +1349,7 @@ enum FormaProductCopy {
             static func symbolName(for kind: TodayQuickActionKind) -> String {
                 switch kind {
                 case .scanFood: return "camera.viewfinder"
-                case .logMeal: return "fork.knife"
+                case .logMeal: return "text.bubble.fill"
                 case .addWater: return "drop.fill"
                 case .logWeight: return "scalemass.fill"
                 case .logWorkout: return "figure.run"

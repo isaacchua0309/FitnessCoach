@@ -12,8 +12,8 @@ enum CoachLaunchIntent: Equatable, Sendable {
     case normal
     /// Meal logging via photo, text, or voice.
     case logMeal(mealType: MealType?)
-    /// Photo meal analysis (Today Scan Food and similar entry points).
-    case analyzePhotoMeal
+    /// Photo meal analysis (Today Scan Meal and similar entry points).
+    case analyzePhotoMeal(openCameraImmediately: Bool = false)
     /// Hydration logging via Coach command pipeline.
     case logWater(amountMl: Int = 500)
     /// Legacy text prefill for Journey / review / protein / weight prompts.
