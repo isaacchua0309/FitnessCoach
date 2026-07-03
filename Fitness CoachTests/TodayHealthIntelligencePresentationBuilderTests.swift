@@ -237,10 +237,77 @@ final class TodayHealthIntelligencePresentationBuilderTests: XCTestCase {
 
         let section = build(snapshot: snapshot)
 
+        XCTAssertNil(section.fallbackMessage)
+        XCTAssertEqual(section.recoveryCard.confidenceNote, FormaProductCopy.Today.HealthIntelligence.limitedEstimate)
+    }
+
+    func testPartialPermissionShowsLimitedConfidenceLabel() {
+        let section = TodayHealthIntelligencePreviewData.partialPermission
+
+        XCTAssertEqual(section.uiState?.kind, .partialPermission)
+        XCTAssertEqual(section.recoveryCard.confidenceNote, FormaProductCopy.HealthIntelligence.partialDataLabel)
+        XCTAssertNil(section.fallbackMessage)
+    }
+
+    func testSyncFailedShowsCachedDataWithStaleLabel() {
+        let section = TodayHealthIntelligencePreviewData.syncFailed
+
+        XCTAssertEqual(section.uiState?.kind, .syncFailed)
+        XCTAssertTrue(section.recoveryCard.title.contains("Moderate"))
         XCTAssertEqual(
-            section.fallbackMessage,
-            FormaProductCopy.Today.HealthIntelligence.continueLoggingFallback
+            section.staleDataLabel,
+            FormaProductCopy.Today.HealthIntelligence.syncFailedWithCacheLabel
         )
+        XCTAssertNil(section.fallbackMessage)
+    }
+
+    func testNoWorkoutHistoryShowsEmptyWorkoutCard() {
+        let section = TodayHealthIntelligencePreviewData.noWorkoutHistory
+
+        XCTAssertEqual(section.uiState?.kind, .noWorkoutHistory)
+        XCTAssertEqual(section.workoutCard?.phase, .empty)
+        XCTAssertEqual(section.workoutCard?.title, FormaProductCopy.Today.HealthIntelligence.Workout.emptyTitle)
+    }
+
+    func testNoPermissionSnapshotMissingUsesConnectHealthAction() {
+        let section = TodayHealthIntelligencePreviewData.noPermission
+
+        XCTAssertEqual(section.uiState?.kind, .noHealthPermission)
+        XCTAssertTrue(section.nextBestAction.isVisible)
+        XCTAssertEqual(section.nextBestAction.destination, .connectHealth)
+        XCTAssertFalse(section.dailyMission.detailLines.isEmpty)
+    }
+
+    func testNoSleepOrHeartRecoveryShowsLimitedEstimateCopy() {
+        let section = TodayHealthIntelligencePreviewData.noSleepOrHeart
+
+        XCTAssertTrue(
+            section.uiState?.kind == .noSleepData || section.uiState?.kind == .noHeartData
+        )
+        XCTAssertEqual(
+            section.recoveryCard.subtitle,
+            FormaProductCopy.Today.HealthIntelligence.limitedRecoveryMissingSignals
+        )
+        XCTAssertNotNil(section.recoveryCard.confidenceNote)
+    }
+
+    func testHealthKitUnavailableUsesSafeRecoveryCopy() {
+        let section = TodayHealthIntelligencePresentationBuilder.buildSection(
+            snapshot: makeReadyDaySnapshot(),
+            nutritionProgress: sampleNutritionProgress,
+            isUIEnabled: true,
+            availability: HealthDataAvailability(
+                isHealthDataAvailable: false,
+                permissionStatus: .unavailable(),
+                cachedDayCount: 0
+            ),
+            isAppleHealthConnected: false,
+            cachedDayCount: 0
+        )
+
+        XCTAssertEqual(section?.uiState?.kind, .healthKitUnavailable)
+        XCTAssertEqual(section?.recoveryCard.title, section?.uiState?.title)
+        XCTAssertNotNil(section?.recoveryCard.subtitle)
     }
 
     // MARK: - Next best action
@@ -401,6 +468,17 @@ final class TodayHealthIntelligencePresentationBuilderTests: XCTestCase {
 
     // MARK: - Helpers
 
+    private var sampleNutritionProgress: TodayHealthIntelligenceNutritionProgress {
+        TodayHealthIntelligenceNutritionProgress(
+            calorieRemaining: 620,
+            proteinRemainingGrams: 42,
+            waterRemainingMl: 800,
+            hasCalorieTarget: true,
+            hasProteinTarget: true,
+            hasWaterTarget: true
+        )
+    }
+
     private func build(
         snapshot: HealthIntelligenceSnapshot,
         nutritionProgress: TodayHealthIntelligenceNutritionProgress = .unavailable
@@ -418,7 +496,9 @@ final class TodayHealthIntelligencePresentationBuilderTests: XCTestCase {
                 workoutCard: nil,
                 adaptiveNutritionCard: nil,
                 isLoading: false,
-                fallbackMessage: nil
+                fallbackMessage: nil,
+                uiState: nil,
+                staleDataLabel: nil
             )
         }
         return section

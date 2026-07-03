@@ -68,6 +68,15 @@ struct TodayHealthWorkoutCard: View {
     }
 }
 
+#Preview("Empty workout history") {
+    TodayHealthWorkoutCard(
+        state: TodayHealthIntelligencePreviewData.noWorkoutHistory.workoutCard!
+    )
+    .padding(.horizontal, TodayLayout.horizontalPadding)
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
 #Preview("Workout complete") {
     TodayHealthWorkoutCard(
         state: TodayHealthIntelligencePreviewData.workoutDay.workoutCard!

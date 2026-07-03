@@ -419,7 +419,19 @@ final class AppContainer {
             authStateProvider: { [weak self] in
                 self?.authManager.authState ?? .unknown
             },
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+            healthSyncPhaseProvider: { [weak self] in
+                self?.healthSyncStateStore.state.phase
+            },
+            lastSuccessfulLocalSyncAtProvider: { [weak self] in
+                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
+            },
+            remoteSyncConsentDecisionProvider: { [weak self] in
+                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
+            },
+            isRemoteSyncCapabilityEnabled: {
+                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
+            }
         )
     }
 

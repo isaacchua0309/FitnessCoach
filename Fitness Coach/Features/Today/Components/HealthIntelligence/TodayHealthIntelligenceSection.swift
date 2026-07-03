@@ -14,6 +14,10 @@ struct TodayHealthIntelligenceSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: TodayLayout.loggedZoneSpacing) {
+            if let staleDataLabel = state.staleDataLabel {
+                staleDataBanner(label: staleDataLabel)
+            }
+
             TodayRecoveryCard(
                 state: state.recoveryCard,
                 isLoading: state.isLoading
@@ -77,13 +81,41 @@ struct TodayHealthIntelligenceSection: View {
         FormaPlanCard {
             Text(message)
                 .font(TodayHealthIntelligenceCardTypography.detail)
-                .foregroundStyle(FormaTokens.Color.textSecondary)
+                .foregroundStyle(fallbackForegroundColor)
                 .healthIntelligenceMultilineText()
                 .healthIntelligenceCardInnerPadding()
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(message)
         .accessibilityIdentifier("today-hi-fallback-banner")
+    }
+
+    @ViewBuilder
+    private func staleDataBanner(label: String) -> some View {
+        HStack(spacing: FormaTokens.Spacing.xs) {
+            Image(systemName: "clock.arrow.circlepath")
+                .font(FormaTokens.Typography.caption2)
+                .foregroundStyle(FormaTokens.Color.textTertiary)
+                .accessibilityHidden(true)
+
+            Text(label)
+                .font(FormaTokens.Typography.caption)
+                .foregroundStyle(FormaTokens.Color.textTertiary)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label)
+        .accessibilityIdentifier("today-hi-stale-label")
+    }
+
+    private var fallbackForegroundColor: Color {
+        switch state.uiState?.severity {
+        case .error:
+            return FormaTokens.Color.warning
+        case .warning:
+            return FormaTokens.Color.textSecondary
+        case .info, .none:
+            return FormaTokens.Color.textSecondary
+        }
     }
 }
 
@@ -146,6 +178,71 @@ struct TodayHealthIntelligenceSection: View {
         TodayHealthIntelligenceSection(state: TodayHealthIntelligencePreviewData.loading)
             .padding(.horizontal, TodayLayout.horizontalPadding)
             .padding(.vertical, FormaTokens.Spacing.md)
+    }
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
+#Preview("Partial permission") {
+    ScrollView {
+        TodayHealthIntelligenceSection(
+            state: TodayHealthIntelligencePreviewData.partialPermission,
+            onNextBestAction: { _ in }
+        )
+        .padding(.horizontal, TodayLayout.horizontalPadding)
+        .padding(.vertical, FormaTokens.Spacing.md)
+    }
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
+#Preview("No permission") {
+    ScrollView {
+        TodayHealthIntelligenceSection(
+            state: TodayHealthIntelligencePreviewData.noPermission,
+            onNextBestAction: { _ in }
+        )
+        .padding(.horizontal, TodayLayout.horizontalPadding)
+        .padding(.vertical, FormaTokens.Spacing.md)
+    }
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
+#Preview("No sleep or heart") {
+    ScrollView {
+        TodayHealthIntelligenceSection(
+            state: TodayHealthIntelligencePreviewData.noSleepOrHeart,
+            onNextBestAction: { _ in }
+        )
+        .padding(.horizontal, TodayLayout.horizontalPadding)
+        .padding(.vertical, FormaTokens.Spacing.md)
+    }
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
+#Preview("Sync failed with cache") {
+    ScrollView {
+        TodayHealthIntelligenceSection(
+            state: TodayHealthIntelligencePreviewData.syncFailed,
+            onNextBestAction: { _ in }
+        )
+        .padding(.horizontal, TodayLayout.horizontalPadding)
+        .padding(.vertical, FormaTokens.Spacing.md)
+    }
+    .background(FormaTokens.Color.canvas)
+    .formaThemePreview()
+}
+
+#Preview("No workout history") {
+    ScrollView {
+        TodayHealthIntelligenceSection(
+            state: TodayHealthIntelligencePreviewData.noWorkoutHistory,
+            onNextBestAction: { _ in }
+        )
+        .padding(.horizontal, TodayLayout.horizontalPadding)
+        .padding(.vertical, FormaTokens.Spacing.md)
     }
     .background(FormaTokens.Color.canvas)
     .formaThemePreview()

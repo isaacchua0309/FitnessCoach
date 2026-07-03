@@ -27,6 +27,10 @@ final class TodayModel: ObservableObject {
     private let healthIntelligenceLoadEnabled: () -> Bool
     private let healthIntelligenceUIEnabled: () -> Bool
     private let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
+    private let healthSyncPhaseProvider: () -> HealthSyncPhase?
+    private let lastSuccessfulLocalSyncAtProvider: () -> Date?
+    private let remoteSyncConsentDecisionProvider: () -> HealthSummarySyncConsentDecision
+    private let isRemoteSyncCapabilityEnabled: () -> Bool
 
     private var activityContext: TodayActivityContext = .default
     private var boundHydrationContext: TodayHydrationContext?
@@ -45,7 +49,11 @@ final class TodayModel: ObservableObject {
         authStateProvider: @escaping () -> AuthState = { .unknown },
         healthIntelligenceLoadEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.shouldTodayModelLoadHealthIntelligence },
         healthIntelligenceUIEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.isUIEnabled },
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
+        healthSyncPhaseProvider: @escaping () -> HealthSyncPhase? = { nil },
+        lastSuccessfulLocalSyncAtProvider: @escaping () -> Date? = { nil },
+        remoteSyncConsentDecisionProvider: @escaping () -> HealthSummarySyncConsentDecision = { .notDetermined },
+        isRemoteSyncCapabilityEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.healthSummaryRemoteSyncEnabled }
     ) {
         self.dailyLogReader = dailyLogReader
         self.foodLogReader = foodLogReader
@@ -60,6 +68,10 @@ final class TodayModel: ObservableObject {
         self.healthIntelligenceLoadEnabled = healthIntelligenceLoadEnabled
         self.healthIntelligenceUIEnabled = healthIntelligenceUIEnabled
         self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
+        self.healthSyncPhaseProvider = healthSyncPhaseProvider
+        self.lastSuccessfulLocalSyncAtProvider = lastSuccessfulLocalSyncAtProvider
+        self.remoteSyncConsentDecisionProvider = remoteSyncConsentDecisionProvider
+        self.isRemoteSyncCapabilityEnabled = isRemoteSyncCapabilityEnabled
     }
 
     // MARK: Session lifecycle
@@ -252,13 +264,12 @@ final class TodayModel: ObservableObject {
             let availability = await availabilityTask
             try Task.checkCancellation()
 
-            healthIntelligenceSectionState = TodayHealthIntelligencePresentationBuilder.buildSection(
+            healthIntelligenceSectionState = buildHealthIntelligenceSection(
                 snapshot: snapshot,
                 nutritionProgress: nutritionProgress,
-                isUIEnabled: uiEnabled,
+                uiEnabled: uiEnabled,
                 availability: availability,
-                isAppleHealthConnected: isAppleHealthConnected,
-                cachedDayCount: availability?.cachedDayCount ?? 0
+                isAppleHealthConnected: isAppleHealthConnected
             ) ?? fallbackHealthIntelligenceSection(
                 nutritionProgress: nutritionProgress,
                 uiEnabled: uiEnabled,
@@ -283,7 +294,8 @@ final class TodayModel: ObservableObject {
                 nutritionProgress: nutritionProgress,
                 uiEnabled: uiEnabled,
                 availability: nil,
-                isAppleHealthConnected: isAppleHealthConnected
+                isAppleHealthConnected: isAppleHealthConnected,
+                errorMessage: "load_failed"
             )
 
             let analyticsContext = HealthIntelligencePresentationContext(
@@ -299,21 +311,45 @@ final class TodayModel: ObservableObject {
         }
     }
 
-    private func fallbackHealthIntelligenceSection(
+    private func buildHealthIntelligenceSection(
+        snapshot: HealthIntelligenceSnapshot?,
         nutritionProgress: TodayHealthIntelligenceNutritionProgress,
         uiEnabled: Bool,
         availability: HealthDataAvailability?,
-        isAppleHealthConnected: Bool
+        isAppleHealthConnected: Bool,
+        errorMessage: String? = nil
     ) -> TodayHealthIntelligenceSectionState? {
         guard uiEnabled else { return nil }
 
         return TodayHealthIntelligencePresentationBuilder.buildSection(
-            snapshot: nil,
+            snapshot: snapshot,
             nutritionProgress: nutritionProgress,
             isUIEnabled: true,
             availability: availability,
             isAppleHealthConnected: isAppleHealthConnected,
-            cachedDayCount: availability?.cachedDayCount ?? 0
+            cachedDayCount: availability?.cachedDayCount ?? 0,
+            errorMessage: errorMessage,
+            syncPhase: healthSyncPhaseProvider(),
+            lastSuccessfulLocalSyncAt: lastSuccessfulLocalSyncAtProvider(),
+            isRemoteSyncCapabilityEnabled: isRemoteSyncCapabilityEnabled(),
+            remoteSyncConsentDecision: remoteSyncConsentDecisionProvider()
+        )
+    }
+
+    private func fallbackHealthIntelligenceSection(
+        nutritionProgress: TodayHealthIntelligenceNutritionProgress,
+        uiEnabled: Bool,
+        availability: HealthDataAvailability?,
+        isAppleHealthConnected: Bool,
+        errorMessage: String? = nil
+    ) -> TodayHealthIntelligenceSectionState? {
+        buildHealthIntelligenceSection(
+            snapshot: nil,
+            nutritionProgress: nutritionProgress,
+            uiEnabled: uiEnabled,
+            availability: availability,
+            isAppleHealthConnected: isAppleHealthConnected,
+            errorMessage: errorMessage
         )
     }
 

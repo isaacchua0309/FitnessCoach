@@ -17,6 +17,12 @@ enum TodayHealthIntelligencePreviewData {
         )
     }
 
+    private static var now: Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
+        return calendar.date(from: DateComponents(year: 2026, month: 7, day: 3, hour: 12))!
+    }
+
     static var readyDay: TodayHealthIntelligenceSectionState {
         build(from: readyDaySnapshot, nutritionProgress: sampleNutritionProgress)
     }
@@ -31,6 +37,60 @@ enum TodayHealthIntelligencePreviewData {
 
     static var noHealthData: TodayHealthIntelligenceSectionState {
         build(from: noHealthDataSnapshot)
+    }
+
+    static var partialPermission: TodayHealthIntelligenceSectionState {
+        build(
+            from: sparseSnapshot,
+            nutritionProgress: sampleNutritionProgress,
+            availability: partialAvailability,
+            isAppleHealthConnected: true,
+            cachedDayCount: 5
+        )
+    }
+
+    static var noPermission: TodayHealthIntelligenceSectionState {
+        build(
+            snapshot: nil,
+            nutritionProgress: sampleNutritionProgress,
+            availability: deniedAvailability,
+            isAppleHealthConnected: false,
+            cachedDayCount: 0
+        )
+    }
+
+    static var noSleepOrHeart: TodayHealthIntelligenceSectionState {
+        build(
+            from: missingSleepHeartSnapshot,
+            nutritionProgress: sampleNutritionProgress,
+            availability: readableAvailability,
+            isAppleHealthConnected: true,
+            cachedDayCount: 14,
+            baseline: baselineMissingSleepAndHeart
+        )
+    }
+
+    static var syncFailed: TodayHealthIntelligenceSectionState {
+        build(
+            from: activityOnlySnapshot,
+            nutritionProgress: sampleNutritionProgress,
+            availability: readableAvailability,
+            isAppleHealthConnected: true,
+            cachedDayCount: 7,
+            errorMessage: "Network unavailable",
+            syncPhase: .failed
+        )
+    }
+
+    static var noWorkoutHistory: TodayHealthIntelligenceSectionState {
+        build(
+            from: activityOnlySnapshot,
+            nutritionProgress: sampleNutritionProgress,
+            availability: readableAvailability,
+            isAppleHealthConnected: true,
+            cachedDayCount: 10,
+            baseline: baselineWithoutWorkouts
+        )
     }
 
     static var loading: TodayHealthIntelligenceSectionState {
@@ -54,12 +114,46 @@ enum TodayHealthIntelligencePreviewData {
 
     private static func build(
         from snapshot: HealthIntelligenceSnapshot,
-        nutritionProgress: TodayHealthIntelligenceNutritionProgress = .unavailable
+        nutritionProgress: TodayHealthIntelligenceNutritionProgress = .unavailable,
+        availability: HealthDataAvailability? = nil,
+        isAppleHealthConnected: Bool = false,
+        cachedDayCount: Int = 0,
+        errorMessage: String? = nil,
+        syncPhase: HealthSyncPhase? = nil,
+        baseline: HealthBaselineContext? = nil
+    ) -> TodayHealthIntelligenceSectionState {
+        build(
+            snapshot: snapshot,
+            nutritionProgress: nutritionProgress,
+            availability: availability,
+            isAppleHealthConnected: isAppleHealthConnected,
+            cachedDayCount: cachedDayCount,
+            errorMessage: errorMessage,
+            syncPhase: syncPhase,
+            baseline: baseline
+        )
+    }
+
+    private static func build(
+        snapshot: HealthIntelligenceSnapshot?,
+        nutritionProgress: TodayHealthIntelligenceNutritionProgress = .unavailable,
+        availability: HealthDataAvailability? = nil,
+        isAppleHealthConnected: Bool = false,
+        cachedDayCount: Int = 0,
+        errorMessage: String? = nil,
+        syncPhase: HealthSyncPhase? = nil,
+        baseline: HealthBaselineContext? = nil
     ) -> TodayHealthIntelligenceSectionState {
         TodayHealthIntelligencePresentationBuilder.buildSection(
             snapshot: snapshot,
             nutritionProgress: nutritionProgress,
-            isUIEnabled: true
+            isUIEnabled: true,
+            availability: availability,
+            isAppleHealthConnected: isAppleHealthConnected,
+            cachedDayCount: cachedDayCount,
+            errorMessage: errorMessage,
+            syncPhase: syncPhase,
+            baseline: baseline
         ) ?? fallbackLoadingSection
     }
 
@@ -71,9 +165,87 @@ enum TodayHealthIntelligencePreviewData {
             workoutCard: nil,
             adaptiveNutritionCard: nil,
             isLoading: true,
-            fallbackMessage: nil
+            fallbackMessage: nil,
+            uiState: nil,
+            staleDataLabel: nil
         )
     }
+
+    // MARK: - Availability fixtures
+
+    private static var readableAvailability: HealthDataAvailability {
+        HealthDataAvailability(
+            isHealthDataAvailable: true,
+            permissionStatus: .uniform(.available, isHealthDataAvailable: true),
+            cachedDayCount: 7
+        )
+    }
+
+    private static var deniedAvailability: HealthDataAvailability {
+        HealthDataAvailability(
+            isHealthDataAvailable: true,
+            permissionStatus: .uniform(.denied, isHealthDataAvailable: true),
+            cachedDayCount: 0
+        )
+    }
+
+    private static var partialAvailability: HealthDataAvailability {
+        var access: [HealthSignalKind: HealthSignalAccess] = [:]
+        for signal in HealthSignalKind.allCases {
+            access[signal] = signal == .stepCount ? .available : .denied
+        }
+        return HealthDataAvailability(
+            isHealthDataAvailable: true,
+            permissionStatus: HealthPermissionStatus(
+                isHealthDataAvailable: true,
+                signalAccess: access,
+                resolvedAt: now
+            ),
+            cachedDayCount: 5
+        )
+    }
+
+    // MARK: - Baseline fixtures
+
+    private static var baselineWithoutWorkouts: HealthBaselineContext {
+        HealthBaselineContext(
+            targetDate: referenceDay,
+            averageSteps7d: 8_000,
+            averageSteps28d: 7_500,
+            averageActiveEnergy7d: 400,
+            averageActiveEnergy28d: 380,
+            averageSleepDuration7d: 7.5,
+            averageSleepDuration28d: 7.2,
+            averageRestingHeartRate28d: 58,
+            averageHRV28d: 45,
+            averageWorkoutLoad28d: nil,
+            workoutDays7d: 0,
+            workoutDays28d: 0,
+            availableSignals: [.steps, .activeEnergy, .sleep, .restingHeartRate, .hrv],
+            missingSignals: [.workoutLoad]
+        )
+    }
+
+    private static var baselineMissingSleepAndHeart: HealthBaselineContext {
+        HealthBaselineContext(
+            targetDate: referenceDay,
+            averageSteps7d: 8_000,
+            averageSteps28d: 7_500,
+            averageActiveEnergy7d: 400,
+            averageActiveEnergy28d: 380,
+            averageSleepDuration7d: nil,
+            averageSleepDuration28d: nil,
+            averageRestingHeartRate28d: nil,
+            averageHRV28d: nil,
+            averageWorkoutLoad28d: 120,
+            workoutDays7d: 2,
+            workoutDays28d: 8,
+            availableSignals: [.steps, .activeEnergy, .workoutLoad],
+            missingSignals: [.sleep, .restingHeartRate, .hrv]
+        )
+    }
+
+    // MARK: - Snapshot fixtures
 
     private static var readyDaySnapshot: HealthIntelligenceSnapshot {
         HealthIntelligenceSnapshot(
@@ -224,6 +396,75 @@ enum TodayHealthIntelligencePreviewData {
                 createdAt: referenceDay,
                 expiresAt: nil
             )
+        )
+    }
+
+    private static var sparseSnapshot: HealthIntelligenceSnapshot {
+        HealthIntelligenceSnapshot(
+            date: referenceDay,
+            recovery: RecoverySummary(
+                score: nil,
+                status: .unknown,
+                title: "Recovery forming",
+                explanation: "Limited signals available today.",
+                recommendedTraining: "Use how you feel today.",
+                recommendedNutrition: "Keep logging meals and water.",
+                confidence: .low,
+                contributingFactors: [],
+                missingSignals: [.sleep, .hrv]
+            ),
+            workout: nil,
+            activity: ActivitySummary(steps: 4_500, activeEnergyKcal: nil, exerciseMinutes: nil),
+            nutritionAdjustment: .none,
+            weeklyReview: nil,
+            planConfidence: .unknown,
+            nextBestAction: .none
+        )
+    }
+
+    private static var missingSleepHeartSnapshot: HealthIntelligenceSnapshot {
+        HealthIntelligenceSnapshot(
+            date: referenceDay,
+            recovery: RecoverySummary(
+                score: 58,
+                status: .moderate,
+                title: "Moderate recovery",
+                explanation: "Sleep and heart signals are limited today.",
+                recommendedTraining: "Train with care.",
+                recommendedNutrition: "Prioritize protein and hydration.",
+                confidence: .moderate,
+                contributingFactors: [],
+                missingSignals: [.sleep, .restingHeartRate, .hrv]
+            ),
+            workout: .noWorkout,
+            activity: ActivitySummary(steps: 7_000, activeEnergyKcal: 350, exerciseMinutes: 25),
+            nutritionAdjustment: .none,
+            weeklyReview: nil,
+            planConfidence: PlanHealthConfidence(score: 0.5, label: "Moderate"),
+            nextBestAction: .none
+        )
+    }
+
+    private static var activityOnlySnapshot: HealthIntelligenceSnapshot {
+        HealthIntelligenceSnapshot(
+            date: referenceDay,
+            recovery: RecoverySummary(
+                score: 60,
+                status: .moderate,
+                title: "Moderate recovery",
+                explanation: "Activity signals are available.",
+                recommendedTraining: "Steady pacing may work well today.",
+                recommendedNutrition: "Keep protein on track.",
+                confidence: .moderate,
+                contributingFactors: [],
+                missingSignals: [.sleep, .hrv]
+            ),
+            workout: .noWorkout,
+            activity: ActivitySummary(steps: 8_000, activeEnergyKcal: 400, exerciseMinutes: 30),
+            nutritionAdjustment: .none,
+            weeklyReview: nil,
+            planConfidence: PlanHealthConfidence(score: 0.5, label: "Moderate"),
+            nextBestAction: .none
         )
     }
 }

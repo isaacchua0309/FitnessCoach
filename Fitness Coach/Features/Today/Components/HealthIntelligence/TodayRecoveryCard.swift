@@ -39,6 +39,10 @@ struct TodayRecoveryCard: View {
                         guidanceBlock
 
                         notesBlock
+
+                        if let staleDataLabel = state.staleDataLabel {
+                            TodayHealthIntelligenceCardNote(text: staleDataLabel)
+                        }
                     }
                     .healthIntelligenceCardInnerPadding()
                 }

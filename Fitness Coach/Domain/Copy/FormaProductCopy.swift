@@ -1284,6 +1284,8 @@ enum FormaProductCopy {
                 "Recovery estimate is unavailable because not enough signals are available yet."
             static let limitedRecoveryPartialSignals =
                 "Recovery estimate is limited because some recovery signals are incomplete."
+            static let staleDataLabel = "May be out of date"
+            static let syncFailedWithCacheLabel = "Last refresh failed — showing cached data"
 
             static func missingRecoverySignals(_ signals: [String]) -> String {
                 "Missing: \(signals.joined(separator: ", "))."
@@ -1327,6 +1329,9 @@ enum FormaProductCopy {
 
             enum Workout {
                 static let sectionTitle = "Today's workout"
+                static let emptyTitle = "No workouts yet"
+                static let emptyMessage =
+                    "Workout insights appear after Apple Health syncs a workout."
             }
 
             enum AdaptiveNutrition {

@@ -21,7 +21,12 @@ enum TodayHealthIntelligencePresentationBuilder {
         availability: HealthDataAvailability? = nil,
         isAppleHealthConnected: Bool = false,
         cachedDayCount: Int = 0,
-        errorMessage: String? = nil
+        errorMessage: String? = nil,
+        syncPhase: HealthSyncPhase? = nil,
+        lastSuccessfulLocalSyncAt: Date? = nil,
+        baseline: HealthBaselineContext? = nil,
+        isRemoteSyncCapabilityEnabled: Bool = false,
+        remoteSyncConsentDecision: HealthSummarySyncConsentDecision = .notDetermined
     ) -> TodayHealthIntelligenceSectionState? {
         guard isUIEnabled else { return nil }
 
@@ -29,20 +34,61 @@ enum TodayHealthIntelligencePresentationBuilder {
             return loadingSection()
         }
 
-        let context = presentationContext(
+        let presentationContext = presentationContext(
             snapshot: snapshot,
             isLoading: false,
             availability: availability,
             isAppleHealthConnected: isAppleHealthConnected,
             cachedDayCount: cachedDayCount,
-            errorMessage: errorMessage
+            errorMessage: errorMessage,
+            syncPhase: syncPhase
         )
 
-        guard let snapshot else {
-            return unavailableSection(context: context)
+        let uiContext = HealthIntelligenceUIContext.from(
+            presentationContext: presentationContext,
+            baseline: baseline,
+            lastSuccessfulLocalSyncAt: lastSuccessfulLocalSyncAt,
+            isRemoteSyncCapabilityEnabled: isRemoteSyncCapabilityEnabled,
+            remoteSyncConsentDecision: remoteSyncConsentDecision,
+            surface: .today
+        )
+
+        let uiState = HealthIntelligenceUIStateMapper.resolve(uiContext)
+
+        if uiState.kind == .loading {
+            return loadingSection(uiState: uiState)
         }
 
-        let recoveryCard = recoveryCard(from: snapshot.recovery)
+        guard let snapshot else {
+            return unavailableSection(
+                uiState: uiState,
+                nutritionProgress: nutritionProgress,
+                presentationContext: presentationContext
+            )
+        }
+
+        return loadedSection(
+            snapshot: snapshot,
+            nutritionProgress: nutritionProgress,
+            uiState: uiState,
+            presentationContext: presentationContext
+        )
+    }
+
+    // MARK: - Section assembly
+
+    private static func loadedSection(
+        snapshot: HealthIntelligenceSnapshot,
+        nutritionProgress: TodayHealthIntelligenceNutritionProgress,
+        uiState: HealthIntelligenceUIState,
+        presentationContext: HealthIntelligencePresentationContext
+    ) -> TodayHealthIntelligenceSectionState {
+        let staleLabel = staleDataLabel(for: uiState)
+        let recoveryCard = recoveryCard(
+            from: snapshot.recovery,
+            uiState: uiState,
+            staleDataLabel: staleLabel
+        )
         let adaptiveNutritionCard = adaptiveNutritionCard(
             from: snapshot.nutritionAdjustment,
             nutritionProgress: nutritionProgress
@@ -55,28 +101,40 @@ enum TodayHealthIntelligencePresentationBuilder {
             hasVisibleAdaptiveNutritionCard: adaptiveNutritionCard?.isVisible == true
         )
         let mappedNextBestAction = nextBestAction(from: snapshot.nextBestAction)
-        let workoutCard = workoutCard(from: snapshot.workout)
-        let fallbackMessage = fallbackMessage(for: context)
+        let workoutCard = workoutCard(from: snapshot.workout, uiState: uiState)
 
         return TodayHealthIntelligenceSectionState(
             recoveryCard: recoveryCard,
             dailyMission: dailyMission,
             nextBestAction: supplementalActionIfNeeded(
                 healthAction: mappedNextBestAction,
-                context: context
+                uiState: uiState
             ),
             workoutCard: workoutCard,
             adaptiveNutritionCard: adaptiveNutritionCard,
             isLoading: false,
-            fallbackMessage: fallbackMessage
+            fallbackMessage: fallbackMessage(for: uiState),
+            uiState: uiState,
+            staleDataLabel: staleLabel
         )
     }
 
     // MARK: - Recovery
 
-    static func recoveryCard(from recovery: RecoverySummary) -> TodayRecoveryCardState {
+    static func recoveryCard(
+        from recovery: RecoverySummary,
+        uiState: HealthIntelligenceUIState? = nil,
+        staleDataLabel: String? = nil
+    ) -> TodayRecoveryCardState {
+        if let uiState, uiState.kind == .healthKitUnavailable {
+            return safeUnavailableRecoveryCard(uiState: uiState)
+        }
+
         let phase = recoveryPhase(from: recovery)
-        let confidenceNote = confidenceNote(for: recovery.confidence)
+        let confidenceNote = mergedConfidenceNote(
+            recoveryConfidence: confidenceNote(for: recovery.confidence),
+            uiState: uiState
+        )
         let missingDataNote = missingDataNote(for: recovery)
 
         let title = recovery.title
@@ -93,41 +151,44 @@ enum TodayHealthIntelligencePresentationBuilder {
             nutritionGuidance: nutritionGuidance,
             confidenceNote: confidenceNote,
             missingDataNote: missingDataNote,
+            staleDataLabel: staleDataLabel,
             accessibilityLabel: recoveryAccessibilityLabel(
                 title: title,
                 subtitle: subtitle,
                 trainingGuidance: trainingGuidance,
                 nutritionGuidance: nutritionGuidance,
                 confidenceNote: confidenceNote,
-                missingDataNote: missingDataNote
+                missingDataNote: missingDataNote,
+                staleDataLabel: staleDataLabel
             )
         )
     }
 
+    /// Backward-compatible entry point for unit tests and direct recovery mapping.
+    static func recoveryCard(from recovery: RecoverySummary) -> TodayRecoveryCardState {
+        recoveryCard(from: recovery, uiState: nil, staleDataLabel: nil)
+    }
+
     // MARK: - Workout
 
+    static func workoutCard(
+        from workout: WorkoutSummary?,
+        uiState: HealthIntelligenceUIState? = nil
+    ) -> TodayHealthWorkoutCardState? {
+        if let workout, workout.hasWorkout {
+            return completedWorkoutCard(from: workout)
+        }
+
+        if uiState?.kind == .noWorkoutHistory {
+            return emptyWorkoutCard()
+        }
+
+        return nil
+    }
+
+    /// Backward-compatible entry point for unit tests.
     static func workoutCard(from workout: WorkoutSummary?) -> TodayHealthWorkoutCardState? {
-        guard let workout, workout.hasWorkout else { return nil }
-
-        let title = FormaProductCopy.Today.HealthIntelligence.workoutComplete
-        let subtitle = trimmed(workout.title)
-        let nutritionTip = trimmed(workout.nutritionAdvice)
-        let hydrationTip = hydrationTip(from: workout)
-
-        return TodayHealthWorkoutCardState(
-            phase: .completed,
-            sectionTitle: FormaProductCopy.Today.HealthIntelligence.Workout.sectionTitle,
-            title: title,
-            subtitle: subtitle,
-            nutritionTip: nutritionTip,
-            hydrationTip: hydrationTip,
-            accessibilityLabel: workoutAccessibilityLabel(
-                title: title,
-                subtitle: subtitle,
-                nutritionTip: nutritionTip,
-                hydrationTip: hydrationTip
-            )
-        )
+        workoutCard(from: workout, uiState: nil)
     }
 
     // MARK: - Adaptive nutrition
@@ -237,7 +298,9 @@ enum TodayHealthIntelligencePresentationBuilder {
 
     // MARK: - Private helpers
 
-    private static func loadingSection() -> TodayHealthIntelligenceSectionState {
+    private static func loadingSection(
+        uiState: HealthIntelligenceUIState? = nil
+    ) -> TodayHealthIntelligenceSectionState {
         TodayHealthIntelligenceSectionState(
             recoveryCard: .loading,
             dailyMission: .loading,
@@ -245,31 +308,37 @@ enum TodayHealthIntelligencePresentationBuilder {
             workoutCard: nil,
             adaptiveNutritionCard: nil,
             isLoading: true,
-            fallbackMessage: nil
+            fallbackMessage: nil,
+            uiState: uiState,
+            staleDataLabel: nil
         )
     }
 
     private static func unavailableSection(
-        context: HealthIntelligencePresentationContext
+        uiState: HealthIntelligenceUIState,
+        nutritionProgress: TodayHealthIntelligenceNutritionProgress,
+        presentationContext: HealthIntelligencePresentationContext
     ) -> TodayHealthIntelligenceSectionState {
-        let fallbackMessage = fallbackMessage(for: context)
-            ?? FormaProductCopy.Today.HealthIntelligence.connectHealthFallback
+        let recoveryCard = placeholderRecoveryCard(for: uiState)
+        let dailyMission = dailyMission(
+            recovery: .unknown,
+            workout: nil,
+            nutritionProgress: nutritionProgress
+        )
 
         return TodayHealthIntelligenceSectionState(
-            recoveryCard: recoveryCard(from: .unknown),
-            dailyMission: dailyMission(
-                recovery: .unknown,
-                workout: nil,
-                nutritionProgress: .unavailable
-            ),
+            recoveryCard: recoveryCard,
+            dailyMission: dailyMission,
             nextBestAction: supplementalActionIfNeeded(
                 healthAction: .hidden,
-                context: context
+                uiState: uiState
             ),
-            workoutCard: nil,
+            workoutCard: uiState.kind == .noWorkoutHistory ? emptyWorkoutCard() : nil,
             adaptiveNutritionCard: nil,
             isLoading: false,
-            fallbackMessage: fallbackMessage
+            fallbackMessage: fallbackMessage(for: uiState),
+            uiState: uiState,
+            staleDataLabel: nil
         )
     }
 
@@ -279,11 +348,13 @@ enum TodayHealthIntelligencePresentationBuilder {
         availability: HealthDataAvailability?,
         isAppleHealthConnected: Bool,
         cachedDayCount: Int,
-        errorMessage: String?
+        errorMessage: String?,
+        syncPhase: HealthSyncPhase? = nil
     ) -> HealthIntelligencePresentationContext {
         HealthIntelligencePresentationContext(
             isLoading: isLoading,
             explicitErrorMessage: errorMessage,
+            syncPhase: syncPhase,
             availability: availability,
             snapshot: snapshot,
             isAppleHealthConnected: isAppleHealthConnected,
@@ -291,65 +362,204 @@ enum TodayHealthIntelligencePresentationBuilder {
         )
     }
 
-    private static func fallbackMessage(
-        for context: HealthIntelligencePresentationContext
-    ) -> String? {
-        HealthIntelligencePresentationStateMapper.bannerMessage(for: context, surface: .today)
+    private static func fallbackMessage(for uiState: HealthIntelligenceUIState) -> String? {
+        switch uiState.kind {
+        case .ready, .loading, .staleData:
+            return nil
+        case .partialPermission, .noSleepData, .noHeartData, .noWorkoutHistory:
+            return uiState.canShowInsight ? nil : uiState.message
+        case .syncFailed:
+            return uiState.canShowInsight ? nil : uiState.message
+        case .remoteSyncDisabled:
+            return uiState.canShowInsight ? nil : uiState.message
+        case .noHealthPermission, .healthKitUnavailable, .notEnoughBaseline, .unknown:
+            return uiState.message
+        }
+    }
+
+    private static func staleDataLabel(for uiState: HealthIntelligenceUIState) -> String? {
+        switch uiState.kind {
+        case .staleData:
+            return FormaProductCopy.Today.HealthIntelligence.staleDataLabel
+        case .syncFailed where uiState.canShowInsight:
+            return FormaProductCopy.Today.HealthIntelligence.syncFailedWithCacheLabel
+        default:
+            return nil
+        }
     }
 
     private static func supplementalActionIfNeeded(
         healthAction: TodayHealthNextBestActionState,
-        context: HealthIntelligencePresentationContext
+        uiState: HealthIntelligenceUIState
     ) -> TodayHealthNextBestActionState {
         guard !healthAction.isVisible else { return healthAction }
 
-        let lifecycle = HealthIntelligencePresentationStateMapper.resolve(context)
-        let presentation = HealthIntelligencePresentationStateMapper.message(
-            for: lifecycle,
-            surface: .today
+        let copy = FormaProductCopy.HealthIntelligence.UIState.message(
+            for: uiState.kind,
+            surface: .today,
+            explicitErrorMessage: nil
         )
 
-        switch presentation.primaryAction {
-        case .connectAppleHealth:
+        switch uiState.primaryAction {
+        case .connectAppleHealth, .manageHealthPermissions, .manageHealthDataSync:
             return supplementalActionState(
-                from: presentation,
-                destination: .connectHealth
-            )
-        case .manageHealthPermissions:
-            return supplementalActionState(
-                from: presentation,
+                title: copy.primaryActionTitle ?? copy.title,
+                message: uiState.message,
+                ctaTitle: copy.primaryActionTitle,
                 destination: .connectHealth
             )
         case .askCoach:
             return supplementalActionState(
-                from: presentation,
+                title: copy.secondaryActionTitle ?? copy.title,
+                message: uiState.message,
+                ctaTitle: copy.secondaryActionTitle,
                 destination: .askCoach
             )
-        case .continueLogging, .none:
+        case .retrySync, .refreshHealthData:
+            return supplementalActionState(
+                title: copy.primaryActionTitle ?? copy.title,
+                message: uiState.message,
+                ctaTitle: copy.primaryActionTitle,
+                destination: .connectHealth
+            )
+        case .continueLogging, .openPlan, .none:
             return healthAction
         }
     }
 
     private static func supplementalActionState(
-        from presentation: HealthIntelligencePresentationMessage,
+        title: String,
+        message: String,
+        ctaTitle: String?,
         destination: TodayHealthNextBestActionDestination
     ) -> TodayHealthNextBestActionState {
-        let title = presentation.primaryActionTitle ?? presentation.title
-        let message = presentation.bannerMessage
-
-        return TodayHealthNextBestActionState(
+        TodayHealthNextBestActionState(
             isVisible: true,
             sectionTitle: FormaProductCopy.Today.HealthIntelligence.NextAction.sectionTitle,
             title: title,
             message: message,
-            ctaTitle: presentation.primaryActionTitle,
+            ctaTitle: ctaTitle,
             destination: destination,
             accessibilityLabel: nextBestActionAccessibilityLabel(
                 title: title,
                 message: message,
-                ctaTitle: presentation.primaryActionTitle
+                ctaTitle: ctaTitle
             )
         )
+    }
+
+    private static func placeholderRecoveryCard(
+        for uiState: HealthIntelligenceUIState
+    ) -> TodayRecoveryCardState {
+        switch uiState.kind {
+        case .healthKitUnavailable:
+            return safeUnavailableRecoveryCard(uiState: uiState)
+        case .noHealthPermission:
+            return TodayRecoveryCardState(
+                phase: .unknown,
+                sectionTitle: FormaProductCopy.Today.HealthIntelligence.Recovery.sectionTitle,
+                title: uiState.title,
+                subtitle: uiState.message,
+                trainingGuidance: nil,
+                nutritionGuidance: nil,
+                confidenceNote: nil,
+                missingDataNote: nil,
+                staleDataLabel: nil,
+                accessibilityLabel: "\(FormaProductCopy.Today.HealthIntelligence.Recovery.sectionTitle). \(uiState.title). \(uiState.message)"
+            )
+        case .unknown, .notEnoughBaseline, .remoteSyncDisabled:
+            return TodayRecoveryCardState(
+                phase: .unknown,
+                sectionTitle: FormaProductCopy.Today.HealthIntelligence.Recovery.sectionTitle,
+                title: uiState.title.isEmpty
+                    ? FormaProductCopy.Today.HealthIntelligence.DailyMission.unknownHeadline
+                    : uiState.title,
+                subtitle: uiState.message,
+                trainingGuidance: nil,
+                nutritionGuidance: nil,
+                confidenceNote: uiState.confidenceLabel,
+                missingDataNote: nil,
+                staleDataLabel: nil,
+                accessibilityLabel: "\(FormaProductCopy.Today.HealthIntelligence.Recovery.sectionTitle). \(uiState.title). \(uiState.message)"
+            )
+        default:
+            return .loading
+        }
+    }
+
+    private static func safeUnavailableRecoveryCard(
+        uiState: HealthIntelligenceUIState
+    ) -> TodayRecoveryCardState {
+        TodayRecoveryCardState(
+            phase: .unknown,
+            sectionTitle: FormaProductCopy.Today.HealthIntelligence.Recovery.sectionTitle,
+            title: uiState.title,
+            subtitle: uiState.message,
+            trainingGuidance: nil,
+            nutritionGuidance: nil,
+            confidenceNote: nil,
+            missingDataNote: nil,
+            staleDataLabel: nil,
+            accessibilityLabel: "\(FormaProductCopy.Today.HealthIntelligence.Recovery.sectionTitle). \(uiState.title). \(uiState.message)"
+        )
+    }
+
+    private static func completedWorkoutCard(from workout: WorkoutSummary) -> TodayHealthWorkoutCardState {
+        let title = FormaProductCopy.Today.HealthIntelligence.workoutComplete
+        let subtitle = trimmed(workout.title)
+        let nutritionTip = trimmed(workout.nutritionAdvice)
+        let hydrationTip = hydrationTip(from: workout)
+
+        return TodayHealthWorkoutCardState(
+            phase: .completed,
+            sectionTitle: FormaProductCopy.Today.HealthIntelligence.Workout.sectionTitle,
+            title: title,
+            subtitle: subtitle,
+            nutritionTip: nutritionTip,
+            hydrationTip: hydrationTip,
+            accessibilityLabel: workoutAccessibilityLabel(
+                title: title,
+                subtitle: subtitle,
+                nutritionTip: nutritionTip,
+                hydrationTip: hydrationTip
+            )
+        )
+    }
+
+    private static func emptyWorkoutCard() -> TodayHealthWorkoutCardState {
+        let title = FormaProductCopy.Today.HealthIntelligence.Workout.emptyTitle
+        let subtitle = FormaProductCopy.Today.HealthIntelligence.Workout.emptyMessage
+
+        return TodayHealthWorkoutCardState(
+            phase: .empty,
+            sectionTitle: FormaProductCopy.Today.HealthIntelligence.Workout.sectionTitle,
+            title: title,
+            subtitle: subtitle,
+            nutritionTip: nil,
+            hydrationTip: nil,
+            accessibilityLabel: workoutAccessibilityLabel(
+                title: title,
+                subtitle: subtitle,
+                nutritionTip: nil,
+                hydrationTip: nil
+            )
+        )
+    }
+
+    private static func mergedConfidenceNote(
+        recoveryConfidence: String?,
+        uiState: HealthIntelligenceUIState?
+    ) -> String? {
+        guard let uiState else { return recoveryConfidence }
+
+        switch uiState.kind {
+        case .partialPermission, .noSleepData, .noHeartData, .notEnoughBaseline, .staleData:
+            return uiState.confidenceLabel ?? recoveryConfidence
+        case .ready:
+            return recoveryConfidence ?? uiState.confidenceLabel
+        default:
+            return recoveryConfidence
+        }
     }
 
     private static func recoveryPhase(from recovery: RecoverySummary) -> TodayRecoveryCardPhase {
@@ -670,7 +880,8 @@ enum TodayHealthIntelligencePresentationBuilder {
         trainingGuidance: String?,
         nutritionGuidance: String?,
         confidenceNote: String?,
-        missingDataNote: String?
+        missingDataNote: String?,
+        staleDataLabel: String? = nil
     ) -> String {
         [
             FormaProductCopy.Today.HealthIntelligence.Recovery.sectionTitle,
@@ -679,7 +890,8 @@ enum TodayHealthIntelligencePresentationBuilder {
             trainingGuidance,
             nutritionGuidance,
             confidenceNote,
-            missingDataNote
+            missingDataNote,
+            staleDataLabel
         ]
         .compactMap { $0 }
         .filter { !$0.isEmpty }

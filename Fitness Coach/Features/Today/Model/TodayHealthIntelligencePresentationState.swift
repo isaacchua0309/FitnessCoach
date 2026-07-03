@@ -18,6 +18,8 @@ struct TodayHealthIntelligenceSectionState: Equatable, Sendable {
     var adaptiveNutritionCard: TodayAdaptiveNutritionCardState?
     var isLoading: Bool
     var fallbackMessage: String?
+    var uiState: HealthIntelligenceUIState?
+    var staleDataLabel: String?
 
     var isVisible: Bool {
         !isLoading || fallbackMessage != nil
@@ -43,6 +45,7 @@ struct TodayRecoveryCardState: Equatable, Sendable {
     var nutritionGuidance: String?
     var confidenceNote: String?
     var missingDataNote: String?
+    var staleDataLabel: String?
     var accessibilityLabel: String
 
     static let loading = TodayRecoveryCardState(
@@ -54,6 +57,7 @@ struct TodayRecoveryCardState: Equatable, Sendable {
         nutritionGuidance: nil,
         confidenceNote: nil,
         missingDataNote: nil,
+        staleDataLabel: nil,
         accessibilityLabel: FormaProductCopy.Today.HealthIntelligence.loadingAccessibilityLabel
     )
 }
@@ -122,6 +126,7 @@ enum TodayHealthNextBestActionDestination: Equatable, Sendable {
 
 enum TodayHealthWorkoutCardPhase: Equatable, Sendable {
     case completed
+    case empty
     case plannedRest
     case unknown
 }
