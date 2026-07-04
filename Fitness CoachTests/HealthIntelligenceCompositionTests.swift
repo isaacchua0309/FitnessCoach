@@ -71,9 +71,9 @@ final class HealthIntelligenceCompositionTests: XCTestCase {
         XCTAssertFalse(HealthIntelligenceFeatureFlags.isUIEnabled)
     }
 
-    func testCoachContextDisabledByDefault() {
-        XCTAssertFalse(HealthIntelligenceFeatureFlags.healthIntelligenceCoachContextEnabled)
-        XCTAssertFalse(HealthIntelligenceFeatureFlags.shouldCoachLoadHealthIntelligence)
+    func testCoachContextEnabledByDefault() {
+        XCTAssertTrue(HealthIntelligenceFeatureFlags.healthIntelligenceCoachContextEnabled)
+        XCTAssertTrue(HealthIntelligenceFeatureFlags.shouldCoachLoadHealthIntelligence)
     }
 
     func testWeeklyReviewDisabledByDefault() {
@@ -116,6 +116,9 @@ final class HealthIntelligenceCompositionTests: XCTestCase {
         XCTAssertNotNil(first)
         XCTAssertEqual(first?.activity.steps, 5_000)
         XCTAssertEqual(second?.activity.steps, 5_000)
+        XCTAssertEqual(engine.composeCallCount, 1)
+    }
+
     func testConcurrentLoadTodaySnapshotCoalescesInFlightCompose() async {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt

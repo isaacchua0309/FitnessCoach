@@ -94,7 +94,10 @@ struct CoachContextPacketV2Builder {
         _ = readWaterEntries(for: now, sources: &sources, readFailures: &readFailures)
         let weightEntries = readWeightEntries(for: now, sources: &sources, readFailures: &readFailures)
 
-        let healthSnapshot = await loadHealthSnapshot(on: now)
+        let healthSnapshot = await loadHealthSnapshot(
+            on: now,
+            healthUnavailable: &healthUnavailable
+        )
         let trainingLoad = await loadTrainingLoad(on: now)
         let workoutsResult = await readWorkouts(
             on: now,
@@ -335,9 +338,19 @@ struct CoachContextPacketV2Builder {
         }
     }
 
-    private func loadHealthSnapshot(on date: Date) async -> HealthIntelligenceSnapshot? {
+    private func loadHealthSnapshot(
+        on date: Date,
+        healthUnavailable: inout Bool
+    ) async -> HealthIntelligenceSnapshot? {
         guard loadHealthIntelligence(), let healthIntelligenceSnapshotProvider else { return nil }
-        return await healthIntelligenceSnapshotProvider.loadTodaySnapshot(for: date, calendar: calendar)
+        let snapshot = await healthIntelligenceSnapshotProvider.loadTodaySnapshot(
+            for: date,
+            calendar: calendar
+        )
+        if snapshot == nil {
+            healthUnavailable = true
+        }
+        return snapshot
     }
 
     private func loadTrainingLoad(on date: Date) async -> TrainingLoadSummary? {
@@ -515,17 +528,35 @@ struct CoachContextPacketV2Builder {
         from snapshot: HealthIntelligenceSnapshot?,
         trainingLoad: TrainingLoadSummary?
     ) -> CoachHealthIntelligenceContext? {
-        guard loadHealthIntelligence(), let snapshot else { return nil }
-        let built = CoachHealthIntelligenceContextBuilder.build(
+        guard loadHealthIntelligence() else { return nil }
+
+        let resolvedTrainingLoad = trainingLoad ?? .unknown
+        let day = calendar.startOfDay(for: dateProvider.now)
+
+        guard let snapshot else {
+            return CoachHealthIntelligenceContext.unavailable(
+                for: day,
+                missingSignals: ["health intelligence snapshot"]
+            )
+        }
+
+        let provisional = CoachHealthIntelligenceContextBuilder.build(
             from: snapshot,
-            trainingLoad: trainingLoad ?? .unknown,
+            trainingLoad: resolvedTrainingLoad,
             calendar: calendar
         )
         let awareness = CoachAIActivityContextResolver.healthIntelligenceAwarenessAvailable(
             snapshot: snapshot,
-            healthIntelligence: built
+            healthIntelligence: provisional
         )
-        return awareness ? built : nil
+        return CoachHealthIntelligenceContextBuilder.build(
+            from: snapshot,
+            trainingLoad: resolvedTrainingLoad,
+            input: CoachHealthIntelligenceContextBuilder.BuildInput(
+                awarenessAvailable: awareness
+            ),
+            calendar: calendar
+        )
     }
 
     private func makeTodayPacket(

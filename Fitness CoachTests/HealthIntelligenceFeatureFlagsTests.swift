@@ -21,7 +21,8 @@ final class HealthIntelligenceFeatureFlagsTests: XCTestCase {
         XCTAssertTrue(defaults.healthIntelligenceEnabled)
         XCTAssertTrue(defaults.healthIntelligenceEnginesEnabled)
         XCTAssertFalse(defaults.healthIntelligenceUIEnabled)
-        XCTAssertFalse(defaults.healthIntelligenceCoachContextEnabled)
+        XCTAssertTrue(defaults.healthIntelligenceCoachContextEnabled)
+        XCTAssertTrue(defaults.shouldCoachLoadHealthIntelligence)
         XCTAssertFalse(defaults.healthIntelligenceWeeklyReviewEnabled)
         XCTAssertFalse(defaults.healthSummaryRemoteSyncEnabled)
         XCTAssertTrue(defaults.isSyncEnabled)
@@ -65,16 +66,18 @@ final class HealthIntelligenceFeatureFlagsTests: XCTestCase {
         XCTAssertFalse(flags.shouldPlanModelLoadHealthIntelligence)
     }
 
-    func testCoachContextRequiresExplicitEnable() {
-        let off = HealthIntelligenceFeatureFlags.snapshot(environment: [
+    func testCoachContextEnabledByDefaultAndCanBeDisabledOperationally() {
+        XCTAssertTrue(HealthIntelligenceFeatureFlags.snapshot().shouldCoachLoadHealthIntelligence)
+
+        let disabled = HealthIntelligenceFeatureFlags.snapshot(environment: [
             HealthIntelligenceFeatureFlags.EnvironmentKey.coachContext: "0"
         ])
-        XCTAssertFalse(off.shouldCoachLoadHealthIntelligence)
+        XCTAssertFalse(disabled.shouldCoachLoadHealthIntelligence)
 
-        let on = HealthIntelligenceFeatureFlags.snapshot(environment: [
+        let explicitlyEnabled = HealthIntelligenceFeatureFlags.snapshot(environment: [
             HealthIntelligenceFeatureFlags.EnvironmentKey.coachContext: "1"
         ])
-        XCTAssertTrue(on.shouldCoachLoadHealthIntelligence)
+        XCTAssertTrue(explicitlyEnabled.shouldCoachLoadHealthIntelligence)
     }
 
     func testWeeklyReviewRequiresExplicitEnable() {
