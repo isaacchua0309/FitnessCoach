@@ -16,10 +16,14 @@ enum CoachIntentConfidenceGate {
     static let highThreshold = 0.70
     static let mediumThreshold = 0.45
 
-    static func evaluate(_ result: CoachIntentResult) -> CoachIntentConfidenceDecision {
+    static func evaluate(
+        _ result: CoachIntentResult,
+        originalText: String? = nil
+    ) -> CoachIntentConfidenceDecision {
         let result = normalizedForRouting(result)
+        let threshold = effectiveHighThreshold(for: result, originalText: originalText)
 
-        if result.confidence >= highThreshold {
+        if result.confidence >= threshold {
             return .proceed(result)
         }
 
@@ -55,8 +59,11 @@ enum CoachIntentConfidenceGate {
         return .proceed(result)
     }
 
-    static func sanitizedResult(_ result: CoachIntentResult) -> CoachIntentResult {
-        switch evaluate(result) {
+    static func sanitizedResult(
+        _ result: CoachIntentResult,
+        originalText: String? = nil
+    ) -> CoachIntentResult {
+        switch evaluate(result, originalText: originalText) {
         case .proceed(let sanitized):
             return sanitized
         case .clarify:
@@ -97,7 +104,8 @@ enum CoachIntentConfidenceGate {
     private static func shouldIgnoreAction(for intent: CoachIntent) -> Bool {
         switch intent {
         case .generalConversation, .appHelp, .calorieLookup, .macroLookup,
-             .mealDecision, .nutritionAdvice, .workoutAdvice, .weightLossAdvice,
+             .mealDecision, .nutritionEstimateQuery, .nutritionComparisonQuery,
+             .nutritionAdvice, .workoutAdvice, .weightLossAdvice,
              .dailySummary:
             return true
         default:
@@ -123,6 +131,18 @@ enum CoachIntentConfidenceGate {
     private static func shouldClarifyLowConfidenceMutation(_ result: CoachIntentResult) -> Bool {
         guard !defersMutationToDedicatedPipeline(result.intent) else { return false }
         return result.requiresAppMutation || result.action != nil
+    }
+
+    private static func effectiveHighThreshold(
+        for result: CoachIntentResult,
+        originalText: String?
+    ) -> Double {
+        guard result.intent == .logFood, let originalText else { return highThreshold }
+        if CoachIntentPhraseGuard.isQuestionForm(originalText),
+           !CoachIntentPhraseGuard.hasExplicitLoggingIntent(originalText) {
+            return CoachIntentPhraseGuard.logFoodQuestionThreshold
+        }
+        return highThreshold
     }
 
     private static func traceConfidenceGate(

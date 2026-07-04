@@ -51,6 +51,12 @@ export function classifyCoachIntentPromptRules(): string {
     "- Prefer linkedEntryId from confirmed timeline events when proposing edit_log or delete_log actions.",
     "- Ignore photoAnalysisFailed, pendingConfirmationCreated (pending), and rejected estimate events",
     "  as if the user already logged food.",
+    "- Do not classify advice or lookup questions as log_food.",
+    "- Examples that are NOT log_food: \"should I eat chicken rice?\", \"can I fit a burger today?\",",
+    "  \"how many calories in chicken rice?\", \"is sushi okay for dinner?\", \"what should I eat after workout?\",",
+    "  \"what was breakfast?\", \"same as breakfast\" (without explicit logging/consumption language).",
+    "- Examples that ARE log_food: \"I ate chicken rice\", \"log chicken rice\", \"add chicken rice to lunch\",",
+    "  \"I had sushi earlier\", \"log same as breakfast\", \"I ate the same as breakfast\".",
   ].join("\n");
 }
 

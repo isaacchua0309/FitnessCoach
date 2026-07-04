@@ -67,6 +67,13 @@ struct LocalNutritionEstimator: Sendable {
 
     func userAskedToLog(_ input: NormalizedCoachInput) -> Bool {
         let text = input.routingText
+        if CoachIntentPhraseGuard.isAmbiguousAdvicePhrase(text),
+           !CoachIntentPhraseGuard.hasExplicitLoggingIntent(text) {
+            return false
+        }
+        if CoachIntentPhraseGuard.isReferenceOnlyWithoutLogging(text) {
+            return false
+        }
         let verbs = ["log", "add", "track", "ate", "had", "eat"]
         return verbs.contains(where: { text.hasPrefix($0) || text.contains(" \($0)") })
     }

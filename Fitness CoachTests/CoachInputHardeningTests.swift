@@ -167,7 +167,7 @@ final class CoachInputRoutingHardeningTests: XCTestCase {
         XCTAssertEqual(service.classifyCoachIntentCallCount, 1)
     }
 
-    func testMediumConfidenceCalorieLookupWithSpuriousActionRoutesToMealAdvice() async throws {
+    func testMediumConfidenceCalorieLookupWithSpuriousActionRoutesToNutritionEstimate() async throws {
         try await assertClassifierRoute(
             "Help me estimate the calories in a big mac",
             stub: CoachIntentResult(
@@ -195,8 +195,48 @@ final class CoachInputRoutingHardeningTests: XCTestCase {
                     notes: nil
                 ))
             ),
-            expectedHandler: "cheap_meal_advice"
+            expectedHandler: "cheap_nutrition_estimate"
         )
+    }
+
+    func testMisclassifiedShouldIEatAtHighConfidenceDoesNotEstimateFood() async throws {
+        try await assertClassifierRoute(
+            "should I eat chicken rice?",
+            stub: CoachIntentResult(
+                intent: .logFood,
+                confidence: 0.95,
+                domain: .nutrition,
+                requiresAppMutation: true,
+                requiresUserContext: true,
+                canAnswerWithCheapModel: true,
+                requiresEscalation: false
+            ),
+            expectedHandler: "cheap_nutrition_estimate",
+            expectedIntent: .mealDecision
+        )
+    }
+
+    func testQuestionFormLogFoodBelowElevatedThresholdClarifies() async throws {
+        let service = StubClassifierAIService(
+            classifyResult: CoachIntentResult(
+                intent: .logFood,
+                confidence: 0.80,
+                domain: .nutrition,
+                requiresAppMutation: true,
+                requiresUserContext: true,
+                canAnswerWithCheapModel: true,
+                requiresEscalation: false
+            )
+        )
+        let decision = try await CoachRouteDecider().decide(
+            text: "can I eat pizza tonight?",
+            context: .hardeningTest,
+            aiService: service,
+            config: .default
+        )
+
+        XCTAssertEqual(decision.intent, .mealDecision)
+        XCTAssertEqual(decision.chosenHandler, "cheap_nutrition_estimate")
     }
 
     func testMediumConfidenceLogFoodRoutesToEstimateFood() async throws {
@@ -312,7 +352,7 @@ final class CoachInputRoutingHardeningTests: XCTestCase {
                 canAnswerWithCheapModel: true,
                 requiresEscalation: false
             ),
-            expectedHandler: "cheap_meal_advice"
+            expectedHandler: "cheap_nutrition_estimate"
         )
     }
 
@@ -336,7 +376,7 @@ final class CoachInputRoutingHardeningTests: XCTestCase {
             config: .default
         )
         XCTAssertEqual(service.classifyCoachIntentCallCount, 2)
-        XCTAssertEqual(decision.chosenHandler, "cheap_meal_advice")
+        XCTAssertEqual(decision.chosenHandler, "cheap_nutrition_estimate")
     }
 
     func testClassifierRetryFailureReturnsGracefulFallback() async throws {
@@ -520,6 +560,7 @@ final class CoachInputRoutingHardeningTests: XCTestCase {
         _ text: String,
         stub: CoachIntentResult,
         expectedHandler: String,
+        expectedIntent: CoachIntent? = nil,
         file: StaticString = #filePath,
         line: UInt = #line
     ) async throws {
@@ -532,6 +573,9 @@ final class CoachInputRoutingHardeningTests: XCTestCase {
         )
         XCTAssertEqual(service.classifyCoachIntentCallCount, 1, file: file, line: line)
         XCTAssertEqual(decision.chosenHandler, expectedHandler, file: file, line: line)
+        if let expectedIntent {
+            XCTAssertEqual(decision.intent, expectedIntent, file: file, line: line)
+        }
     }
 }
 

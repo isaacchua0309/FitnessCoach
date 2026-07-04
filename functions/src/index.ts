@@ -426,7 +426,7 @@ async function classifyCoachIntent(request: Record<string, any>, traceId?: strin
     model: resolveModel({tier: "cheap", modelName: request.modelName}),
     traceId,
   });
-  return sanitizeCoachIntentResult(raw);
+  return sanitizeCoachIntentResult(raw, String(request.text ?? ""));
 }
 
 async function parseCommand(request: Record<string, any>, traceId?: string) {
@@ -792,7 +792,12 @@ Return valid JSON only matching CoachIntentResult.
   general_conversation, unrelated_or_unsupported.
 - Prefer nutrition_estimate_query for calorie/macro estimates and meal-fit questions without logging.
 - Prefer nutrition_comparison_query for "X vs Y" food comparisons without logging.
-- Use log_food only when the user wants to log or record food. Set requiresAppMutation true.
+- Prefer meal_decision for "should I eat X?", "can I fit X today?", or "is X okay for dinner?".
+- Prefer nutrition_advice for "what should I eat?" or "recommend me something".
+- Use log_food only when the user clearly consumed food, is consuming food, or explicitly asks to log/record/add food.
+- Do not infer consumption from hypothetical, conditional, or question-form language.
+- "same as breakfast" is log_food only when the user explicitly logs or states they ate it (e.g. "log same as breakfast", "I ate the same as breakfast").
+- "what was breakfast?" is nutrition_estimate_query or meal_decision, never log_food.
 - Prefer app-domain intents for food, calories, weight, workouts, hydration, meals, and fitness.
 - Set requiresAppMutation true only when the user wants to change FitPilot data.
 - Include action only when mutation data is clear enough to validate and the matching draft object is populated.
