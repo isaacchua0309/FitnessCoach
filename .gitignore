@@ -5,3 +5,5 @@ DerivedData/
 .derivedData/
 *.xcuserstate
 xcuserdata/
+firestore-debug.log
+**/firestore-debug.log
