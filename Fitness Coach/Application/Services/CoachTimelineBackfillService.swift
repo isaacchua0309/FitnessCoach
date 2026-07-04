@@ -74,6 +74,7 @@ final class CoachTimelineBackfillService: CoachTimelineBackfilling {
 
     func runBackfill() async {
         guard let timelineStore else { return }
+        guard FormaSwiftDataMigrationGate.shouldAllowCoachDataMaintenance() else { return }
 
         let now = dateProvider.now
         if let lastBackfillAt,

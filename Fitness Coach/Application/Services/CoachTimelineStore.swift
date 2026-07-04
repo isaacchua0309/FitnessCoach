@@ -173,6 +173,7 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
     }
 
     func deleteEventsOlderThan(policy: CoachTimelineCompactionPolicy) async throws {
+        guard FormaSwiftDataMigrationGate.shouldAllowCoachDataMaintenance() else { return }
         _ = try repository.deleteEventsOlderThan(
             policy: policy,
             userId: userIdProvider(),
