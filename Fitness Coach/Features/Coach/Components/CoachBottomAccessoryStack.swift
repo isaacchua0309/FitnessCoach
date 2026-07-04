@@ -39,6 +39,7 @@ struct CoachBottomAccessoryStack: View {
                 CoachConfirmationBar(
                     confirmation: pending,
                     isConfirming: isConfirmingPending,
+                    isInputFocused: isFocused.wrappedValue,
                     onConfirm: onConfirmPending,
                     onReject: onRejectPending,
                     onEdit: onEditPending,

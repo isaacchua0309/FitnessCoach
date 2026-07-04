@@ -85,4 +85,37 @@ enum CoachPendingConfirmation: Equatable {
         if case .food(let draft) = self { return draft }
         return nil
     }
+
+    /// Short headline for the compact pending bar while the composer is focused.
+    var compactTitle: String {
+        switch self {
+        case .food:
+            return FormaProductCopy.Coach.foodEstimatePending
+        case .water, .weight, .edit, .delete, .undo:
+            return FormaProductCopy.Coach.reviewEstimate
+        }
+    }
+
+    /// Optional secondary line for the compact pending bar (e.g. calories).
+    var compactDetailLine: String? {
+        switch self {
+        case .food(let draft):
+            let meal = draft.primaryMealDraft
+            if meal.hasUsableNutritionEstimate {
+                return "~\(meal.totalCalories) kcal"
+            }
+            let name = meal.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+            return name.isEmpty ? nil : name
+        case .water(let draft, _):
+            return "\(draft.amountMl) ml"
+        case .weight(let draft, _):
+            return String(format: "%.1f kg", draft.weightKg)
+        case .edit, .delete, .undo:
+            let firstLine = summaryLine
+                .components(separatedBy: .newlines)
+                .first?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return firstLine?.isEmpty == false ? firstLine : nil
+        }
+    }
 }

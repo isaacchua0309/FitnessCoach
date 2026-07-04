@@ -167,8 +167,7 @@ struct CoachView: View {
                 model.rejectPendingFromBar()
             },
             onEditPending: model.pendingConfirmation?.supportsEdit == true ? {
-                dismissKeyboard()
-                model.openFoodEditSheet()
+                handlePendingEditTap()
             } : nil,
             onRetryPhotoAnalysis: model.pendingConfirmation?.supportsPhotoRetry == true ? {
                 dismissKeyboard()
@@ -220,6 +219,16 @@ struct CoachView: View {
                 }
             }
         )
+    }
+
+    private func handlePendingEditTap() {
+        if isInputFocused {
+            // Compact mode: keep the composer focused for clarification typing.
+            isInputFocused = true
+            return
+        }
+        dismissKeyboard()
+        model.openFoodEditSheet()
     }
 
     private func handleStarterTap(_ prompt: CoachStarterPromptSpec) {

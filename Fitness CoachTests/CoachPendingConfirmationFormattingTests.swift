@@ -74,4 +74,43 @@ final class CoachPendingConfirmationFormattingTests: XCTestCase {
             CoachPendingConfirmation.delete(action, originalText: "delete lunch", assistantMessage: nil).supportsEdit
         )
     }
+
+    func testFoodCompactPresentationCopy() {
+        let pending = CoachPendingConfirmation.food(CoachMutationTestFixtures.chickenConfirmationDraft)
+
+        XCTAssertEqual(pending.compactTitle, FormaProductCopy.Coach.foodEstimatePending)
+        XCTAssertEqual(pending.compactDetailLine, "~330 kcal")
+    }
+
+    func testFoodCompactPresentationWithoutCaloriesUsesDisplayName() {
+        var draft = CoachMutationTestFixtures.chickenConfirmationDraft
+        draft.mealDraft.components = [
+            FoodComponent(
+                name: "Mystery bowl",
+                quantity: 1,
+                unit: "bowl",
+                calories: 0,
+                protein: 0,
+                carbs: 0,
+                fat: 0,
+                confidence: .low
+            )
+        ]
+        draft.mealDraft.displayName = "Mystery bowl"
+
+        let pending = CoachPendingConfirmation.food(draft)
+
+        XCTAssertEqual(pending.compactDetailLine, "Mystery bowl")
+    }
+
+    func testWaterAndWeightCompactPresentation() {
+        XCTAssertEqual(
+            CoachPendingConfirmation.water(WaterDraft(amountMl: 500), assistantMessage: nil).compactDetailLine,
+            "500 ml"
+        )
+        XCTAssertEqual(
+            CoachPendingConfirmation.weight(WeightDraft(weightKg: 68.25, note: nil), assistantMessage: nil).compactDetailLine,
+            "68.2 kg"
+        )
+    }
 }
