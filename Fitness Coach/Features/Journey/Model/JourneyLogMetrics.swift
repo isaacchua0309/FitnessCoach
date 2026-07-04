@@ -14,7 +14,36 @@ enum JourneyLogMetrics {
     static let calorieAdherenceTolerance = 0.10
     static let weekDayCount = 7
 
-    // MARK: - Week window
+    // MARK: - Day windows
+    //
+    // Journey "This week" uses a rolling 7-day window through `asOf` (not `weekOfYear`).
+    // Health Intelligence weekly review uses `WeeklyReviewWeekPolicy` calendar weeks instead.
+
+    /// First day (inclusive) of the rolling Journey week ending on `date`.
+    static func rollingWeekStart(asOf date: Date, calendar: Calendar) -> Date {
+        inclusiveDaySpanStart(endingOn: date, dayCount: weekDayCount, calendar: calendar)
+    }
+
+    /// First day of a contiguous inclusive span of `dayCount` days ending on `date`.
+    static func inclusiveDaySpanStart(
+        endingOn date: Date,
+        dayCount: Int,
+        calendar: Calendar
+    ) -> Date {
+        let endDay = calendar.startOfDay(for: date)
+        guard dayCount > 0 else { return endDay }
+        return calendar.date(byAdding: .day, value: -(dayCount - 1), to: endDay) ?? endDay
+    }
+
+    /// Start of a lookback window `dayCount` calendar days before `date` (entries on the returned day qualify).
+    static func lookbackStart(
+        endingOn date: Date,
+        dayCount: Int,
+        calendar: Calendar
+    ) -> Date {
+        let endDay = calendar.startOfDay(for: date)
+        return calendar.date(byAdding: .day, value: -dayCount, to: endDay) ?? endDay
+    }
 
     static func rollingWeekDayStarts(
         asOf date: Date,

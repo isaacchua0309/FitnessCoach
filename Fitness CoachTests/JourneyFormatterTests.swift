@@ -85,4 +85,17 @@ final class JourneyFormatterTests: XCTestCase {
         XCTAssertEqual(JourneyFormatter.ml(2400), "2400 ml")
         XCTAssertFalse(JourneyFormatter.date(referenceDate).isEmpty)
     }
+
+    func testTimelineDateRangeLabelJoinsDayLabels() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
+        let start = calendar.date(from: DateComponents(year: 2026, month: 6, day: 27))!
+        let end = calendar.date(from: DateComponents(year: 2026, month: 7, day: 3))!
+
+        let label = JourneyFormatter.timelineDateRangeLabel(start: start, end: end, calendar: calendar)
+        let expected = "\(JourneyFormatter.timelineDayLabel(start, calendar: calendar)) – \(JourneyFormatter.timelineDayLabel(end, calendar: calendar))"
+
+        XCTAssertEqual(label, expected)
+        XCTAssertTrue(label.contains("–"))
+    }
 }
