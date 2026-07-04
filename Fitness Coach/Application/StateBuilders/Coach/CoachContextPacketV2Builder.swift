@@ -226,7 +226,23 @@ struct CoachContextPacketV2Builder {
             ]
         )
 
-        return packet
+        let validated = CoachContextCorrectnessValidator.validateAndCorrect(
+            packet,
+            calendar: calendar
+        )
+        if !validated.isValid {
+            FormaPipelineTracer.event(
+                stage: .context,
+                level: .warn,
+                message: "CoachContextPacketV2 validation corrected issues",
+                fields: [
+                    "issueCount": String(validated.issues.count),
+                    "rules": validated.issues.map(\.rule.rawValue).joined(separator: ",")
+                ]
+            )
+        }
+
+        return validated.correctedPacket
     }
 
     // MARK: Reads
