@@ -215,6 +215,10 @@ final class AccountRestoreViewModel: ObservableObject {
         return summary.allowsContinuedEntry
     }
 
+    var showsPrimaryAction: Bool {
+        phase.showsPrimaryAction
+    }
+
     var showsSecondaryRetryAction: Bool {
         switch phase {
         case .failed:
@@ -245,11 +249,21 @@ final class AccountRestoreViewModel: ObservableObject {
         startProgressPolling(uid: uid)
 
         let result: AccountRestoreSummary
+        #if DEBUG
+        if isRetry, let testingRetryHandler {
+            result = await testingRetryHandler(uid)
+        } else if isRetry {
+            result = await container.accountRestoreCoordinator.retryRestore(uid: uid)
+        } else {
+            result = await container.runAccountRestoreAfterSignIn(uid: uid, reason: reason)
+        }
+        #else
         if isRetry {
             result = await container.accountRestoreCoordinator.retryRestore(uid: uid)
         } else {
             result = await container.runAccountRestoreAfterSignIn(uid: uid, reason: reason)
         }
+        #endif
 
         progressTask?.cancel()
         progressTask = nil
@@ -291,3 +305,42 @@ final class AccountRestoreViewModel: ObservableObject {
         }
     }
 }
+
+#if DEBUG
+extension AccountRestoreViewModel {
+
+    func applyTestingState(
+        phase: AccountRestoreUIPhase,
+        summary: AccountRestoreSummary? = nil
+    ) {
+        self.phase = phase
+        self.summary = summary
+        activeUID = summary?.uid ?? activeUID ?? "test-user"
+    }
+
+    var testingRetryHandler: ((String) async -> AccountRestoreSummary)? {
+        get { AccountRestoreViewModelTestSupport.retryHandler(for: self) }
+        set { AccountRestoreViewModelTestSupport.setRetryHandler(newValue, for: self) }
+    }
+}
+
+private enum AccountRestoreViewModelTestSupport {
+    private static var retryHandlers: [ObjectIdentifier: (String) async -> AccountRestoreSummary] = [:]
+
+    static func retryHandler(for viewModel: AccountRestoreViewModel) -> ((String) async -> AccountRestoreSummary)? {
+        retryHandlers[ObjectIdentifier(viewModel)]
+    }
+
+    static func setRetryHandler(
+        _ handler: ((String) async -> AccountRestoreSummary)?,
+        for viewModel: AccountRestoreViewModel
+    ) {
+        let key = ObjectIdentifier(viewModel)
+        if let handler {
+            retryHandlers[key] = handler
+        } else {
+            retryHandlers.removeValue(forKey: key)
+        }
+    }
+}
+#endif

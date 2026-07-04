@@ -44,6 +44,9 @@ final class AuthGateCoordinator: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var onboardingModelCancellable: AnyCancellable?
     private var accountRestoreRouteTask: Task<Void, Never>?
+    #if DEBUG
+    private var testingSignedInUID: String?
+    #endif
 
     init(container: AppContainer) {
         self.container = container
@@ -724,6 +727,9 @@ final class AuthGateCoordinator: ObservableObject {
         }
 
         if wasSignedIn {
+            #if DEBUG
+            testingSignedInUID = nil
+            #endif
             container.accountSyncCoordinator.cancelPendingWork()
             container.accountRestoreSessionState.clearForSignOut()
             clearAuthenticatedSessionPresentationState()
@@ -894,7 +900,12 @@ final class AuthGateCoordinator: ObservableObject {
     }
 
     func isUIDStillCurrent(_ uid: String) -> Bool {
-        authManager.currentUID == uid
+        #if DEBUG
+        if let testingSignedInUID {
+            return testingSignedInUID == uid
+        }
+        #endif
+        return authManager.currentUID == uid
     }
 
     @MainActor
@@ -1254,3 +1265,11 @@ final class AuthGateCoordinator: ObservableObject {
         rootModel.retry(uid: uid)
     }
 }
+
+#if DEBUG
+extension AuthGateCoordinator {
+    func applyTestingSignedInUID(_ uid: String) {
+        testingSignedInUID = uid
+    }
+}
+#endif
