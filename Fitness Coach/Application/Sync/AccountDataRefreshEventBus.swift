@@ -48,8 +48,7 @@ enum AccountDataRefreshEventSupport {
         let hasMergeActivity = pullSummary.inserted + pullSummary.updated + pullSummary.deleted > 0
 
         if pullSummary.pulledProfile {
-            domains.insert(.profile)
-            domains.insert(.plan)
+            domains.formUnion([.profile, .plan, .today, .journey])
         }
         if pullSummary.pulledDailyLogs > 0 && hasMergeActivity {
             domains.insert(.today)

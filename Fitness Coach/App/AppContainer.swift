@@ -279,7 +279,8 @@ final class AppContainer {
         profileBootstrapService = ProfileBootstrapService(
             userProfileService: userProfileService,
             cloudStore: cloudUserProfileStore,
-            cloudSyncStore: profileCloudSyncStore
+            cloudSyncStore: profileCloudSyncStore,
+            dailyLogService: dailyLogService
         )
         profileBootstrapCoordinatorService = ProfileBootstrapCoordinatorService(
             profileBootstrapService: profileBootstrapService,
@@ -847,7 +848,10 @@ final class AppContainer {
             },
             isRemoteSyncCapabilityEnabled: {
                 HealthSummaryRemoteSyncGate.isCapabilityEnabled()
-            }
+            },
+            ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
+            accountDataRefreshEventBus: accountDataRefreshEventBus,
+            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator
         )
     }
 

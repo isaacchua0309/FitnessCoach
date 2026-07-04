@@ -223,6 +223,8 @@ final class CrossDeviceSyncCoordinatorTests: XCTestCase {
 
         XCTAssertTrue(received?.domains.contains(.profile) == true)
         XCTAssertTrue(received?.domains.contains(.plan) == true)
+        XCTAssertTrue(received?.domains.contains(.today) == true)
+        XCTAssertTrue(received?.domains.contains(.journey) == true)
         cancellable.cancel()
     }
 

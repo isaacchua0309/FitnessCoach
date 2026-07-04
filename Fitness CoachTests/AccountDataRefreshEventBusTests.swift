@@ -111,6 +111,42 @@ final class AccountDataRefreshEventBusTests: XCTestCase {
         XCTAssertEqual(domains, [.food, .today, .coachContext])
     }
 
+    func testDomainMappingIncludesDownstreamTabsWhenProfileChanges() {
+        let summary = CrossDeviceSyncSummary(
+            uid: ownerUID,
+            mode: .manualRefresh,
+            reason: .manualPullToRefresh,
+            status: .completed,
+            startedAt: referenceDate,
+            endedAt: referenceDate,
+            uploadedMutations: 0,
+            pulledDailyLogs: 0,
+            pulledFoodEntries: 0,
+            pulledWaterEntries: 0,
+            pulledWeightEntries: 0,
+            pulledDailyReviews: 0,
+            pulledProfile: true,
+            inserted: 0,
+            updated: 0,
+            deleted: 0,
+            skippedLocalNewer: 0,
+            conflicts: 0,
+            failed: 0,
+            didRefreshUI: false,
+            userFacingMessage: nil
+        )
+
+        let domains = AccountDataRefreshEventSupport.domains(
+            uploadedMutations: 0,
+            pullSummary: summary
+        )
+
+        XCTAssertTrue(domains.contains(.profile))
+        XCTAssertTrue(domains.contains(.plan))
+        XCTAssertTrue(domains.contains(.today))
+        XCTAssertTrue(domains.contains(.journey))
+    }
+
     func testFilterForDomainDeliversOnlyMatchingSubscribers() async {
         let bus = AccountDataRefreshEventBus(nowProvider: { self.referenceDate })
         var planEvents = 0

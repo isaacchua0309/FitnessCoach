@@ -402,7 +402,7 @@ final class AccountIncrementalPuller: AccountIncrementalPulling {
                     return .failed
                 }
 
-                if hasUnsyncedLocalProfileChanges(localProfile, uid: uid) {
+                if profileBootstrapService.hasUnsyncedLocalProfileChanges(localProfile, uid: uid) {
                     if remoteDocument.updatedAt > localProfile.updatedAt {
                         return .conflict
                     }
@@ -424,15 +424,6 @@ final class AccountIncrementalPuller: AccountIncrementalPulling {
         } catch {
             return .failed
         }
-    }
-
-    private func hasUnsyncedLocalProfileChanges(_ profile: UserProfile, uid: String) -> Bool {
-        guard profile.ownerUID == uid else { return true }
-        guard profileCloudSyncStore.isSyncedForUID(uid),
-              let lastSyncedAt = profileCloudSyncStore.lastSyncedProfileUpdatedAt else {
-            return profile.updatedAt > profile.createdAt
-        }
-        return profile.updatedAt > lastSyncedAt
     }
 
     // MARK: - Domain fetch

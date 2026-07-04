@@ -80,8 +80,7 @@ struct PlanView: View {
                     }
                 }
                 .refreshable {
-                    await trainingInsightsStore.refresh()
-                    await model.refresh()
+                    await performPullToRefresh()
                 }
                 .sheet(isPresented: $isShowingTrainingInsights) {
                     TrainingInsightsView(
@@ -163,6 +162,12 @@ struct PlanView: View {
                 }
                 .background(FormaTokens.Color.canvas)
         }
+    }
+
+    private func performPullToRefresh() async {
+        await model.performManualCrossDeviceRefresh()
+        await trainingInsightsStore.refresh()
+        await model.refresh()
     }
 
     @ViewBuilder
@@ -249,6 +254,18 @@ struct PlanView: View {
             )
         }
         .formaMainTabScrollInsets()
+        .overlay(alignment: .top) {
+            if model.isCrossDeviceRefreshing {
+                ProgressView()
+                    .controlSize(.small)
+                    .padding(.horizontal, FormaTokens.Spacing.md)
+                    .padding(.vertical, FormaTokens.Spacing.sm)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
+                    .padding(.top, FormaTokens.Spacing.sm)
+                    .accessibilityLabel("Syncing latest updates")
+            }
+        }
         .onAppear {
             model.logPlanViewed(healthConnected: healthConnected)
         }

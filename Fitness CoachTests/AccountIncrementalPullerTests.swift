@@ -24,6 +24,7 @@ final class AccountIncrementalPullerTests: XCTestCase {
     private var profileService: UserProfileService!
     private var profileBootstrapService: ProfileBootstrapService!
     private var profileCloudSyncStore: ProfileCloudSyncStore!
+    private var dailyLogService: DailyLogService!
     private var localInspector: AccountLocalDataInspector!
     private var outbox: SwiftDataAccountSyncOutboxStore!
     private var incrementalPuller: AccountIncrementalPuller!
@@ -52,10 +53,17 @@ final class AccountIncrementalPullerTests: XCTestCase {
         cursorStore = AccountSyncCursorStore(userDefaults: defaults)
         profileService = UserProfileService(store: store)
         profileCloudSyncStore = ProfileCloudSyncStore(userDefaults: defaults)
+        let dateProvider = FixedDailyLogTestDateProvider(now: referenceDate, calendar: calendar)
+        dailyLogService = DailyLogService(
+            store: store,
+            userProfileService: profileService,
+            dateProvider: dateProvider
+        )
         profileBootstrapService = ProfileBootstrapService(
             userProfileService: profileService,
             cloudStore: RestoreTestCloudProfileStore(),
-            cloudSyncStore: profileCloudSyncStore
+            cloudSyncStore: profileCloudSyncStore,
+            dailyLogService: dailyLogService
         )
         outbox = SwiftDataAccountSyncOutboxStore(store: store)
         localInspector = AccountLocalDataInspector(
@@ -84,6 +92,7 @@ final class AccountIncrementalPullerTests: XCTestCase {
         outbox = nil
         profileBootstrapService = nil
         profileCloudSyncStore = nil
+        dailyLogService = nil
         profileService = nil
         cursorStore = nil
         defaults.removePersistentDomain(forName: defaults.suiteName!)
@@ -259,6 +268,79 @@ final class AccountIncrementalPullerTests: XCTestCase {
         )
 
         XCTAssertEqual(cursorStore.loadCursor(uid: ownerUID).lastForegroundRefreshAt, referenceDate)
+    }
+
+    func testIncrementalPullMergesNewerRemoteProfileWhenLocalIsSynced() async throws {
+        _ = try profileService.createProfile(ProfileTestFixtures.sampleDraft, ownerUID: ownerUID)
+        profileCloudSyncStore.markSynced(uid: ownerUID, updatedAt: referenceDate)
+
+        var remote = ProfileTestFixtures.cloudDocument(referenceDate: referenceDate)
+        remote.targets.calorieTarget = 2_050
+        remote.updatedAt = referenceDate.addingTimeInterval(600)
+        try await remoteStore.seedCloudProfile(remote, uid: ownerUID)
+
+        let summary = await incrementalPuller.pullChanges(
+            for: ownerUID,
+            mode: .foregroundRefresh,
+            reason: .appForeground
+        )
+
+        XCTAssertTrue(summary.pulledProfile)
+        XCTAssertEqual(try profileService.getCurrentProfile()?.targets.calorieTarget, 2_050)
+        _ = try dailyLogService.getOrCreateLog(for: referenceDate)
+        XCTAssertEqual(try dailyLogService.getTodayLog().targets.calorieTarget, 2_050)
+    }
+
+    func testIncrementalPullDoesNotOverwriteUnsyncedLocalProfileEdit() async throws {
+        _ = try profileService.createProfile(ProfileTestFixtures.sampleDraft, ownerUID: ownerUID)
+        profileCloudSyncStore.markSynced(uid: ownerUID, updatedAt: referenceDate)
+        _ = try profileService.updateTargets(
+            UserTargets(
+                calorieTarget: 2_200,
+                proteinTarget: 140,
+                carbTarget: 180,
+                fatTarget: 60,
+                waterTargetMl: 2_500,
+                expectedWeeklyWeightLossKg: 0.4,
+                aggressiveness: .moderate
+            )
+        )
+
+        var remote = ProfileTestFixtures.cloudDocument(referenceDate: referenceDate)
+        remote.targets.calorieTarget = 1_600
+        remote.updatedAt = referenceDate.addingTimeInterval(900)
+        try await remoteStore.seedCloudProfile(remote, uid: ownerUID)
+
+        let summary = await incrementalPuller.pullChanges(
+            for: ownerUID,
+            mode: .foregroundRefresh,
+            reason: .appForeground
+        )
+
+        XCTAssertFalse(summary.pulledProfile)
+        XCTAssertEqual(summary.conflicts, 1)
+        XCTAssertEqual(try profileService.getCurrentProfile()?.targets.calorieTarget, 2_200)
+    }
+
+    func testIncrementalPullCancelsProfileMergeAfterAccountSwitch() async throws {
+        _ = try profileService.createProfile(ProfileTestFixtures.sampleDraft, ownerUID: ownerUID)
+        profileCloudSyncStore.markSynced(uid: ownerUID, updatedAt: referenceDate)
+
+        var remote = ProfileTestFixtures.cloudDocument(referenceDate: referenceDate)
+        remote.targets.calorieTarget = 1_900
+        remote.updatedAt = referenceDate.addingTimeInterval(600)
+        try await remoteStore.seedCloudProfile(remote, uid: ownerUID)
+
+        sessionUID = otherUID
+        let summary = await incrementalPuller.pullChanges(
+            for: ownerUID,
+            mode: .foregroundRefresh,
+            reason: .appForeground
+        )
+
+        XCTAssertEqual(summary.status, .cancelled)
+        XCTAssertFalse(summary.pulledProfile)
+        XCTAssertEqual(try profileService.getCurrentProfile()?.targets.calorieTarget, 1_800)
     }
 
     // MARK: - Helpers
