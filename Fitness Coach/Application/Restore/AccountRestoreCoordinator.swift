@@ -37,6 +37,7 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
     private let initialRestoreService: AccountInitialRestoring
     private let stateStore: AccountRestoreStateStoring
     private let syncCoordinator: AccountSyncCoordinating?
+    private let diagnostics: AccountRestoreDiagnostics?
     private let currentUIDProvider: () -> String?
     private let restoreEnabledProvider: () -> Bool
     private let dateProvider: DateProviding
@@ -54,6 +55,7 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
         initialRestoreService: AccountInitialRestoring,
         stateStore: AccountRestoreStateStoring,
         syncCoordinator: AccountSyncCoordinating? = nil,
+        diagnostics: AccountRestoreDiagnostics? = nil,
         currentUIDProvider: @escaping () -> String?,
         restoreEnabledProvider: @escaping () -> Bool = { AccountRestoreCoordinatorSupport.isRestoreEnabled },
         dateProvider: DateProviding? = nil,
@@ -66,6 +68,7 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
         self.initialRestoreService = initialRestoreService
         self.stateStore = stateStore
         self.syncCoordinator = syncCoordinator
+        self.diagnostics = diagnostics
         self.currentUIDProvider = currentUIDProvider
         self.restoreEnabledProvider = restoreEnabledProvider
         self.dateProvider = dateProvider ?? SystemDateProvider()
@@ -128,12 +131,21 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
         guard backgroundBackfillGuard.tryBegin(uid: normalizedUID) else { return }
         defer { backgroundBackfillGuard.end(uid: normalizedUID) }
 
+        let traceId = UUID().uuidString
+        AccountRestoreLogger.runStarted(
+            traceId: traceId,
+            reason: .appLaunch,
+            mode: .backgroundBackfill,
+            uid: normalizedUID
+        )
+
         let summary = await initialRestoreService.runBackgroundBackfill(
             uid: normalizedUID,
             reason: .appLaunch
         )
 
         guard isUIDStillCurrent(normalizedUID) else { return }
+        diagnostics?.recordRun(traceId: traceId, summary: summary)
         guard shouldNotifyAfterBackgroundBackfill(summary) else { return }
         onBackgroundBackfillFinished?(summary)
     }
@@ -154,6 +166,8 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
         forceBlocking: Bool
     ) async -> AccountRestoreSummary {
         let startedAt = dateProvider.now
+        let traceId = UUID().uuidString
+        var lastErrorCategory: String?
 
         let normalizedUID: String
         do {
@@ -177,21 +191,26 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
         }
         defer { runGuard.end(uid: normalizedUID) }
 
-        AccountRestoreLogger.event(
-            "restore_coordinator_started",
-            fields: [
-                "uid": normalizedUID,
-                "reason": reason.rawValue
-            ]
+        let coordinatorMode: AccountRestoreMode = forceBlocking ? .manualRetry : .blockingInitial
+        AccountRestoreLogger.runStarted(
+            traceId: traceId,
+            reason: reason,
+            mode: coordinatorMode,
+            uid: normalizedUID
         )
 
         guard await namespaceService.prepareForSignedInUID(normalizedUID) else {
-            return accountSwitchedSummary(uid: normalizedUID, reason: reason, startedAt: startedAt)
+            return finishRun(
+                traceId: traceId,
+                summary: accountSwitchedSummary(uid: normalizedUID, reason: reason, startedAt: startedAt),
+                errorCategory: lastErrorCategory
+            )
         }
 
         do {
             try await migrationService.runSafeBackfill(for: normalizedUID)
         } catch {
+            lastErrorCategory = AccountRestoreLogger.errorCategory(from: error)
             AccountRestoreLogger.error(
                 "restore_migration_backfill_failed",
                 fields: ["uid": normalizedUID],
@@ -200,16 +219,24 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
         }
 
         guard isUIDStillCurrent(normalizedUID) else {
-            return accountSwitchedSummary(uid: normalizedUID, reason: reason, startedAt: startedAt)
+            return finishRun(
+                traceId: traceId,
+                summary: accountSwitchedSummary(uid: normalizedUID, reason: reason, startedAt: startedAt),
+                errorCategory: lastErrorCategory
+            )
         }
 
         guard restoreEnabledProvider() else {
             await uploadPendingIfNeeded(for: normalizedUID)
-            return skippedSummary(
-                uid: normalizedUID,
-                reason: reason,
-                startedAt: startedAt,
-                message: AccountRestoreCoordinatorSupport.restoreDisabledMessage
+            return finishRun(
+                traceId: traceId,
+                summary: skippedSummary(
+                    uid: normalizedUID,
+                    reason: reason,
+                    startedAt: startedAt,
+                    message: AccountRestoreCoordinatorSupport.restoreDisabledMessage
+                ),
+                errorCategory: lastErrorCategory
             )
         }
 
@@ -217,21 +244,27 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
         do {
             localStatus = try await localInspector.inspectLocalData(for: normalizedUID)
         } catch {
+            lastErrorCategory = AccountRestoreLogger.errorCategory(from: error)
             AccountRestoreLogger.error(
                 "restore_local_inspection_failed",
                 fields: ["uid": normalizedUID],
                 underlying: error
             )
-            return failedSummary(
+            let summary = failedSummary(
                 uid: normalizedUID,
                 reason: reason,
                 startedAt: startedAt,
                 message: "Restore could not inspect local account data."
             )
+            return finishRun(traceId: traceId, summary: summary, errorCategory: lastErrorCategory)
         }
 
         guard isUIDStillCurrent(normalizedUID) else {
-            return accountSwitchedSummary(uid: normalizedUID, reason: reason, startedAt: startedAt)
+            return finishRun(
+                traceId: traceId,
+                summary: accountSwitchedSummary(uid: normalizedUID, reason: reason, startedAt: startedAt),
+                errorCategory: lastErrorCategory
+            )
         }
 
         let remoteStatus = await remoteInspector.inspectRemoteData(
@@ -240,16 +273,24 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
         )
 
         guard isUIDStillCurrent(normalizedUID) else {
-            return accountSwitchedSummary(uid: normalizedUID, reason: reason, startedAt: startedAt)
+            return finishRun(
+                traceId: traceId,
+                summary: accountSwitchedSummary(uid: normalizedUID, reason: reason, startedAt: startedAt),
+                errorCategory: lastErrorCategory
+            )
         }
 
         if let failure = remoteStatus.failure,
            shouldFailFast(for: failure, localStatus: localStatus) {
-            return finishPermissionFailure(
-                uid: normalizedUID,
-                reason: reason,
-                startedAt: startedAt,
-                failure: failure
+            return finishRun(
+                traceId: traceId,
+                summary: finishPermissionFailure(
+                    uid: normalizedUID,
+                    reason: reason,
+                    startedAt: startedAt,
+                    failure: failure
+                ),
+                errorCategory: failure.analyticsCategory
             )
         }
 
@@ -277,19 +318,25 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
         }
 
         guard isUIDStillCurrent(normalizedUID) else {
-            return accountSwitchedSummary(uid: normalizedUID, reason: reason, startedAt: startedAt)
+            return finishRun(
+                traceId: traceId,
+                summary: accountSwitchedSummary(uid: normalizedUID, reason: reason, startedAt: startedAt),
+                errorCategory: lastErrorCategory
+            )
         }
 
         if summary.allowsContinuedEntry {
             scheduleBackgroundBackfill(uid: normalizedUID)
         }
-        AccountRestoreLogger.event(
-            "restore_coordinator_finished",
-            fields: [
-                "uid": normalizedUID,
-                "status": summary.status.rawValue
-            ]
-        )
+        return finishRun(traceId: traceId, summary: summary, errorCategory: lastErrorCategory)
+    }
+
+    private func finishRun(
+        traceId: String,
+        summary: AccountRestoreSummary,
+        errorCategory: String? = nil
+    ) -> AccountRestoreSummary {
+        diagnostics?.recordRun(traceId: traceId, summary: summary, errorCategory: errorCategory)
         return summary
     }
 

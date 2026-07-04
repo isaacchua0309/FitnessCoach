@@ -29,6 +29,7 @@ final class AppContainer {
     let accountMigrationService: AccountMigrationService
     let accountInitialRestoreService: AccountInitialRestoreService
     let accountRestoreCoordinator: AccountRestoreCoordinator
+    let accountRestoreDiagnostics: AccountRestoreDiagnostics
     let accountRestoreSessionState: AccountRestoreSessionState
 
     let userProfileService: UserProfileService
@@ -446,6 +447,7 @@ final class AppContainer {
             dailyLogService: dailyLogService,
             currentUIDProvider: { [weak authManager] in authManager?.currentUID }
         )
+        accountRestoreDiagnostics = AccountRestoreDiagnostics()
         accountRestoreCoordinator = AccountRestoreCoordinator(
             namespaceService: accountDataNamespaceService,
             migrationService: accountMigrationService,
@@ -454,6 +456,7 @@ final class AppContainer {
             initialRestoreService: accountInitialRestoreService,
             stateStore: accountRestoreStateStore,
             syncCoordinator: accountSyncCoordinator,
+            diagnostics: accountRestoreDiagnostics,
             currentUIDProvider: { [weak authManager] in authManager?.currentUID },
             onBackgroundBackfillFinished: { [weak self] _ in
                 self?.refreshCenter.notifyBackgroundBackfillDidComplete()
@@ -545,6 +548,38 @@ final class AppContainer {
     }
 
     #if DEBUG
+    func makeAccountRestoreDebugActions() -> AccountRestoreDebugActions {
+        AccountRestoreDebugActions(
+            lastSnapshot: { [accountRestoreDiagnostics] in
+                accountRestoreDiagnostics.lastSnapshot
+            },
+            restoreStateDescription: { [authManager, accountRestoreDiagnostics, accountRestoreStateStore] in
+                guard let uid = authManager.currentUID else {
+                    return "No signed-in UID."
+                }
+                let state = accountRestoreDiagnostics.restoreState(
+                    for: uid,
+                    stateStore: accountRestoreStateStore
+                )
+                return AccountRestoreLoggerDebugSupport.redactedRestoreStateDescription(state)
+            },
+            triggerManualRetry: { [accountRestoreCoordinator, authManager, accountRestoreDiagnostics] in
+                guard let uid = authManager.currentUID else { return nil }
+                return await accountRestoreDiagnostics.triggerManualRetry(
+                    coordinator: accountRestoreCoordinator,
+                    uid: uid
+                )
+            },
+            resetRestoreMetadata: { [authManager, accountRestoreDiagnostics, accountRestoreStateStore] in
+                guard let uid = authManager.currentUID else { return }
+                accountRestoreDiagnostics.resetRestoreMetadata(
+                    stateStore: accountRestoreStateStore,
+                    uid: uid
+                )
+            }
+        )
+    }
+
     func makeAccountSyncDebugActions() -> AccountSyncDebugActions {
         AccountSyncDebugActions(
             pendingMutationCount: { [accountSyncOutboxStore, authManager] in

@@ -55,6 +55,7 @@ final class AppContainerAccountDataRemoteStoreWiringTests: XCTestCase {
         let container = try AppContainer(inMemory: true)
 
         XCTAssertNotNil(container.accountSyncDiagnostics)
+        XCTAssertNotNil(container.accountRestoreDiagnostics)
     }
 
     func testInMemoryContainerWiresAccountRestoreCoordinator() throws {
