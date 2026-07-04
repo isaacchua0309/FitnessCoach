@@ -157,6 +157,7 @@ private struct ThemeAppearanceOptionRow: View {
                         }
                 }
             }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)

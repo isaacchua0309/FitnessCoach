@@ -248,6 +248,7 @@ struct SettingsRootView: View {
             } label: {
                 FormaSettingsRowLabel(title: row.title, status: row.status)
             }
+            .buttonStyle(.plain)
             .formaSettingsRowChrome()
             .accessibilityLabel(SettingsRowAccessibilityFormatter.label(title: row.title, status: row.status))
             .accessibilityHint(SettingsRowAccessibilityFormatter.buttonHint(opensExternally: false))
@@ -280,6 +281,7 @@ struct SettingsRootView: View {
                 isDestructive: isDestructive
             )
         }
+        .buttonStyle(.plain)
         .formaSettingsRowChrome()
         .accessibilityLabel(SettingsRowAccessibilityFormatter.label(title: row.title, status: row.status))
         .accessibilityHint(accessibilityHint ?? "")
