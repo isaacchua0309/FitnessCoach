@@ -393,4 +393,4 @@ functions/test/nutritionSyncContract.test.ts
 
 ---
 
-*End of Phase 2 documentation. Sync is foundation-only until Phase 3.*
+*End of Phase 2 documentation. Sync engine: see [Phase 3 — Local-First Sync Engine](./PHASE_3_LOCAL_FIRST_SYNC_ENGINE.md).*

@@ -1,7 +1,7 @@
 # Account Persistence — Implementation Plan
 
 **Companion to:** `ACCOUNT_PERSISTENCE_RESTORE_CONTEXT_PACKET.md`  
-**Status:** Phase 2 foundation **implemented** — see `Docs/AccountPersistence/PHASE_2_CLOUD_SCHEMA_AND_RULES.md`  
+**Status:** Phases 2–3 foundation **implemented** — see `Docs/AccountPersistence/PHASE_2_CLOUD_SCHEMA_AND_RULES.md` and `Docs/AccountPersistence/PHASE_3_LOCAL_FIRST_SYNC_ENGINE.md`  
 **Generated:** 2026-07-04 · **Updated:** 2026-07-04
 
 ---
@@ -12,12 +12,14 @@
 |-------|------|--------|
 | **1** | UID hardening — stop cross-user local leakage | **In progress** ([#106](https://github.com/isaacchua0309/FitnessCoach/pull/106)) |
 | **2** | Cloud schema, DTOs, rules, remote store, tests, DI (no sync) | **Implemented** ([#108](https://github.com/isaacchua0309/FitnessCoach/pull/108)) |
-| **3** | Local-first sync engine — upload/pull/outbox | **Pending** |
+| **3** | Local-first sync engine — upload/pull/outbox | **Implemented** ([#110](https://github.com/isaacchua0309/FitnessCoach/pull/110)) |
 | **4** | Fresh install restore | **Pending** |
 | **5** | Cross-device sync + optional coach/review sync | **Pending** |
 | **6** | Account delete, export, privacy | **Pending** |
 
-**Phase 2 reminder:** Cloud DTOs and Firestore paths exist. **No app user action uploads nutrition logs yet.** **No reinstall restore exists yet.** Phase 3 will implement `AccountSyncEngine`.
+**Phase 2 reminder:** Cloud DTOs and Firestore paths exist. See Phase 2 doc for schema/rules.
+
+**Phase 3 reminder:** Signed-in users enqueue nutrition sync mutations; upload runs on debounced local changes, foreground, and sign-in. **Pull on foreground is off by default** (`pullRecentDataEnabled = false`). **No reinstall restore UI yet.** See `Docs/AccountPersistence/PHASE_3_LOCAL_FIRST_SYNC_ENGINE.md`.
 
 ---
 
@@ -28,12 +30,12 @@
 | P0 | Nutrition logs lost on reinstall | Firestore sync + restore pipeline | 2–4 |
 | P0 | Cross-user local leakage | `ownerUID` + filtered reads + switch wipe | 1 |
 | P0 | Journey empty on new device | Restore daily/weight logs before Journey load | 4 |
-| P1 | No offline upload | Sync outbox + retry | 3 |
-| P1 | Deletes don't propagate | Tombstones + pull merge | 3, 5 |
+| P1 | No offline upload | Sync outbox + retry | 3 ✅ |
+| P1 | Deletes don't propagate | Tombstones + pull merge | 3 ✅ (upload); 5 (cross-device pull enabled) |
 | P1 | Firestore rules incomplete | Expand `firestore.rules` + emulator tests | 2 |
 | P2 | Account delete stub | GDPR delete orchestration | 6 |
 | P2 | Coach nil userId rows | Backfill + strict filter | 1 |
-| P3 | Daily reviews not synced | Optional collection | 5 |
+| P3 | Daily reviews not synced | Optional collection | 3 ✅ (upload); 5 (pull enabled by default) |
 
 ---
 
@@ -403,26 +405,35 @@ See context packet §12. Add to `firestore.rules`:
 
 **Goal:** Upload local mutations; incremental pull; offline outbox.
 
-**Status:** **Pending** — Phase 3 must wire `AccountSyncEngine` to `AppContainer.accountDataRemoteStore` and enable `AccountPersistenceFeatureFlags.syncEngineEnabled`.
+**Status:** **Implemented** — documented in `Docs/AccountPersistence/PHASE_3_LOCAL_FIRST_SYNC_ENGINE.md` ([#110](https://github.com/isaacchua0309/FitnessCoach/pull/110)).
 
 | Action | Files |
 |--------|-------|
-| `SyncOutboxStore` | New + optional `SyncOutboxEntity` |
-| `AccountSyncEngine` | New |
-| Hook `FitnessActionCenter` post-mutation | `FitnessActionCenter.swift` |
-| Push on foreground | `AppContainer` / `RootModel` lifecycle |
-| `NWPathMonitor` retry | New `NetworkSyncTrigger.swift` |
-| Delete tombstones | `FoodLogService.deleteFoodEntry` sets `deletedAt` |
-| Feature flag | `FormaAbTest.Sync.nutritionSyncEnabled` |
+| Durable outbox + coalescing | `Application/Sync/AccountSyncOutboxStore.swift`, `AccountSyncMutationModels.swift`, `AccountSyncMutationEntity` |
+| Local mutation tracking | `Application/Sync/AccountLocalMutationTracker.swift`, `AccountDataSyncStamping.swift` |
+| Payload builder (Phase 2 DTOs) | `Application/Sync/AccountSyncPayloadBuilder.swift` |
+| Upload / pull | `AccountSyncUploader.swift`, `AccountSyncPuller.swift`, `AccountSyncMergePolicy.swift` |
+| Orchestration | `AccountSyncCoordinator.swift`, `AccountSyncLifecycle.swift` |
+| Hook repositories | `FoodLogService`, `WaterLogService`, `WeightLogService`, `DailyLogService`, `ReviewService` |
+| Hook action center + lifecycle | `FitnessActionCenter.swift`, `AppContainer.swift`, `MainTabView.swift`, `AuthGateCoordinator.swift` |
+| Observability | `AccountSyncLogger.swift`, `AccountSyncDiagnostics.swift`, DEBUG `AccountSyncDiagnosticsView` |
+| Feature flags | `AccountPersistenceFeatureFlags.swift`, `FormaAbTest.AccountPersistence` |
 
-**Tests:**
-- `NutritionSyncEngineTests.swift` — mock Firestore client
-- `OfflineFoodLogSyncTests.swift` — log offline, mock push
+**Tests (iOS — run on macOS):**
+- `AccountSyncOutboxStoreTests`, `AccountSyncMutationCoalescingTests`
+- `AccountSyncPayloadBuilderTests`, `AccountSyncUploaderTests`, `AccountSyncPullerTests`
+- `AccountSyncMergePolicyTests`, `AccountSyncCoordinatorTests`
+- `AccountLocalMutationTrackingTests`, `AccountSyncMutationIntegrationTests`
+- `AccountSyncRemoteIntegrationTests` (protocol round-trips via `InMemoryAccountDataRemoteStore`)
+- `AccountSyncLifecycleWiringTests`, `AccountSyncLoggerTests`, `AccountSyncDiagnosticsTests`
 
-**Acceptance:**
-- Meal logged offline → uploads when online
-- Edit/delete propagates to Firestore
-- No duplicate docs on retry (mutationId)
+**Acceptance (met by test suite; verify with `xcodebuild test`):**
+- Meal logged while signed in → outbox mutation + `pendingUpload`; uploads when coordinator runs
+- Edit/delete propagates to remote store (in-memory contract tests)
+- Offline pending mutations survive store reopen; failed uploads retry with backoff
+- UID isolation on outbox, uploader, puller, coordinator
+- No duplicate outbox rows for rapid edits (coalescing)
+- **Not met (by design):** `pullRecentDataEnabled` remains false; no restore UI; no realtime listeners; no raw images/HealthKit
 
 ---
 
@@ -524,11 +535,13 @@ See context packet §12. Add to `firestore.rules`:
 - [ ] `testCoachTranscriptIsolatedByUserId`
 - [ ] `testNilUserIdCoachRowsExcludedAfterMigration`
 
-### Offline Sync (new — Phase 3)
+### Offline Sync (Phase 3)
 
-- [ ] `testOfflineLogUploadsOnReconnect`
-- [ ] `testOfflineEditMergedCorrectly`
-- [ ] `testOutboxRetryOnTransientFailure`
+- [x] `testOfflineMutationRemainsPendingAfterStoreReopen` — `AccountSyncMutationIntegrationTests`
+- [x] `testMarkFailedAppliesRetryBackoff` / `testUploaderLeavesFailedMutationRetryable` — outbox + uploader retry
+- [x] `testFoodEditMarksPendingUploadAndEnqueuesMutation` — local-first + outbox
+- [x] `testUploadFoodThenFetchFromRemoteStore` — remote contract round-trip (`AccountSyncRemoteIntegrationTests`)
+- [ ] `testOfflineLogUploadsOnReconnect` — manual QA / future NWPathMonitor trigger (lifecycle retry covers partial case)
 
 ### Auth Lifecycle
 
@@ -563,7 +576,7 @@ Execute phases in order. **Do not skip Phase 1.**
 > Add CloudNutritionDocuments.swift DTOs and FirestoreDailyLogSyncClient following FirestoreCloudUserProfileStore patterns. Expand firestore.rules for dailyLogs, foodEntries, waterEntries, weightEntries, syncMetadata. Add emulator tests.
 
 **Phase 3:**
-> Implement SyncOutboxStore and AccountSyncEngine with local-first push/pull. Hook FitnessActionCenter mutations to enqueue sync. Add offline retry. Feature flag FormaAbTest.Sync.nutritionSyncEnabled.
+> Implemented: `AccountSyncOutboxStore`, `AccountSyncUploader`, `AccountSyncPuller`, `AccountSyncCoordinator`. Hook `FitnessActionCenter` mutations via `AccountLocalMutationTracker`. See `Docs/AccountPersistence/PHASE_3_LOCAL_FIRST_SYNC_ENGINE.md`.
 
 **Phase 4:**
 > Implement AccountRestoreCoordinator: after ProfileBootstrapService.resolve, pull last 30 days + weights, write SwiftData, show RestoreProgressView. Integrate with AuthGateCoordinator.
