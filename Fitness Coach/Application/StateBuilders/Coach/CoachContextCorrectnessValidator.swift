@@ -10,15 +10,26 @@ import OSLog
 
 enum CoachContextValidationRule: String, Codable, Equatable, Sendable, CaseIterable {
     case caloriesMatchConfirmedFood
+    case macrosMatchConfirmedFood
     case macrosNonNegative
     case waterNonNegative
     case remainingValuesConsistent
+    case overTargetFlagsConsistent
     case pendingRejectedNotInTotals
+    case assistantTextNotInStructuredFacts
     case timelineSorted
     case localDateTimezoneConsistent
+    case timelineEventLocalDateConsistent
     case stepsSourceExplicit
     case workoutSourceExplicit
+    case recentMealsSourceAttribution
+    case healthStepsNotSilentlyZero
+    case healthWorkoutsNotSilentlyZero
     case missingDataPopulated
+    case rejectedEventsExcludedFromTimeline
+    case editDeleteTimelineConsistency
+    case corruptedTimelinePayload
+    case privacySensitiveContent
     case contextSizeBelowThreshold
 }
 
@@ -42,6 +53,42 @@ enum CoachContextCorrectnessValidator {
     )
 
     private static let calorieTolerance = 5
+    private static let macroTolerance = 1.0
+
+    private static let speculativeTimelineTypes: Set<String> = [
+        CoachTimelineEventType.foodEstimateCreated.rawValue,
+        CoachTimelineEventType.foodRejected.rawValue,
+        CoachTimelineEventType.pendingConfirmationCreated.rawValue,
+        CoachTimelineEventType.pendingConfirmationRejected.rawValue,
+    ]
+
+    private static let excludedTimelineTypes: Set<String> = [
+        CoachTimelineEventType.unknown.rawValue,
+        CoachTimelineEventType.foodEstimateCreated.rawValue,
+        CoachTimelineEventType.foodRejected.rawValue,
+        CoachTimelineEventType.pendingConfirmationRejected.rawValue,
+        CoachTimelineEventType.pendingConfirmationConfirmed.rawValue,
+        CoachTimelineEventType.backendError.rawValue,
+        CoachTimelineEventType.authError.rawValue,
+        CoachTimelineEventType.systemRefresh.rawValue,
+        CoachTimelineEventType.contextGenerated.rawValue,
+        CoachTimelineEventType.healthDataUnavailable.rawValue,
+    ]
+
+    private static let nonFactMealSources: Set<String> = [
+        CoachTimelineEventSourceAttribution.aiBackend.rawValue,
+        "assistant",
+        "assistantMessage",
+    ]
+
+    private static let trustedMealSources: Set<String> = [
+        CoachTimelineEventSourceAttribution.userConfirmation.rawValue,
+        CoachTimelineEventSourceAttribution.estimateFood.rawValue,
+        "coachUI",
+        "dailyLog",
+        "manual",
+        "user",
+    ]
 
     static func validateAndCorrect(
         _ packet: CoachContextPacketV2,
@@ -52,15 +99,26 @@ enum CoachContextCorrectnessValidator {
         var issues: [CoachContextValidationIssue] = []
 
         issues.append(contentsOf: validateCaloriesAgainstConfirmedFood(corrected, calendar: calendar))
+        issues.append(contentsOf: validateMacrosAgainstConfirmedFood(corrected, calendar: calendar))
         issues.append(contentsOf: validateMacrosNonNegative(corrected))
         issues.append(contentsOf: validateWaterNonNegative(corrected))
         issues.append(contentsOf: validateRemainingValues(corrected))
+        issues.append(contentsOf: validateOverTargetFlags(corrected))
         issues.append(contentsOf: validatePendingRejectedExcluded(corrected, calendar: calendar))
+        issues.append(contentsOf: validateAssistantTextNotInStructuredFacts(corrected))
         issues.append(contentsOf: validateTimelineSorted(corrected))
         issues.append(contentsOf: validateLocalDateTimezone(corrected, calendar: calendar))
+        issues.append(contentsOf: validateTimelineEventLocalDates(corrected, calendar: calendar))
         issues.append(contentsOf: validateStepsSource(corrected))
         issues.append(contentsOf: validateWorkoutSource(corrected))
+        issues.append(contentsOf: validateRecentMealsSourceAttribution(corrected))
+        issues.append(contentsOf: validateHealthStepsNotSilentlyZero(corrected))
+        issues.append(contentsOf: validateHealthWorkoutsNotSilentlyZero(corrected))
         issues.append(contentsOf: validateMissingDataPopulated(corrected))
+        issues.append(contentsOf: validateRejectedEventsExcluded(corrected))
+        issues.append(contentsOf: validateEditDeleteConsistency(corrected))
+        issues.append(contentsOf: validateCorruptedTimelinePayload(corrected))
+        issues.append(contentsOf: validatePrivacySensitiveContent(corrected))
         issues.append(contentsOf: validateContextSize(corrected, byteLimit: byteLimit))
 
         corrected = applyCorrections(
@@ -104,15 +162,55 @@ enum CoachContextCorrectnessValidator {
     ) -> [CoachContextValidationIssue] {
         guard let consumed = packet.today?.nutrition?.caloriesConsumed else { return [] }
 
-        let confirmed = confirmedTodayFoodCalories(in: packet, calendar: calendar)
+        let confirmed = confirmedTodayFoodTotals(in: packet, calendar: calendar).calories
         guard abs(consumed - confirmed) > calorieTolerance else { return [] }
 
         return [
-            CoachContextValidationIssue(
-                rule: .caloriesMatchConfirmedFood,
-                message: "caloriesConsumed=\(consumed) but confirmed today food sum=\(confirmed)"
+            issue(
+                .caloriesMatchConfirmedFood,
+                "caloriesConsumed=\(consumed) but confirmed today food sum=\(confirmed)"
             )
         ]
+    }
+
+    private static func validateMacrosAgainstConfirmedFood(
+        _ packet: CoachContextPacketV2,
+        calendar: Calendar
+    ) -> [CoachContextValidationIssue] {
+        guard let nutrition = packet.today?.nutrition else { return [] }
+
+        let confirmed = confirmedTodayFoodTotals(in: packet, calendar: calendar)
+        var issues: [CoachContextValidationIssue] = []
+
+        if let protein = nutrition.proteinConsumed,
+           abs(protein - confirmed.protein) > macroTolerance {
+            issues.append(
+                issue(
+                    .macrosMatchConfirmedFood,
+                    "proteinConsumed=\(protein) but confirmed today protein sum=\(confirmed.protein)"
+                )
+            )
+        }
+        if let carbs = nutrition.carbsConsumed,
+           abs(carbs - confirmed.carbs) > macroTolerance {
+            issues.append(
+                issue(
+                    .macrosMatchConfirmedFood,
+                    "carbsConsumed=\(carbs) but confirmed today carbs sum=\(confirmed.carbs)"
+                )
+            )
+        }
+        if let fat = nutrition.fatConsumed,
+           abs(fat - confirmed.fat) > macroTolerance {
+            issues.append(
+                issue(
+                    .macrosMatchConfirmedFood,
+                    "fatConsumed=\(fat) but confirmed today fat sum=\(confirmed.fat)"
+                )
+            )
+        }
+
+        return issues
     }
 
     private static func validateMacrosNonNegative(_ packet: CoachContextPacketV2) -> [CoachContextValidationIssue] {
@@ -217,13 +315,46 @@ enum CoachContextCorrectnessValidator {
         return issues
     }
 
+    private static func validateOverTargetFlags(_ packet: CoachContextPacketV2) -> [CoachContextValidationIssue] {
+        guard let today = packet.today else { return [] }
+
+        var issues: [CoachContextValidationIssue] = []
+
+        if let nutrition = today.nutrition {
+            if let remaining = nutrition.caloriesRemaining,
+               (remaining < 0) != (nutrition.caloriesOverTarget == true) {
+                issues.append(issue(.overTargetFlagsConsistent, "caloriesOverTarget does not match remaining sign"))
+            }
+            if let remaining = nutrition.proteinRemaining,
+               (remaining < 0) != (nutrition.proteinOverTarget == true) {
+                issues.append(issue(.overTargetFlagsConsistent, "proteinOverTarget does not match remaining sign"))
+            }
+            if let remaining = nutrition.carbsRemaining,
+               (remaining < 0) != (nutrition.carbsOverTarget == true) {
+                issues.append(issue(.overTargetFlagsConsistent, "carbsOverTarget does not match remaining sign"))
+            }
+            if let remaining = nutrition.fatRemaining,
+               (remaining < 0) != (nutrition.fatOverTarget == true) {
+                issues.append(issue(.overTargetFlagsConsistent, "fatOverTarget does not match remaining sign"))
+            }
+        }
+
+        if let hydration = today.hydration,
+           let remaining = hydration.waterRemainingMl,
+           (remaining < 0) != (hydration.waterOverTarget == true) {
+            issues.append(issue(.overTargetFlagsConsistent, "waterOverTarget does not match remaining sign"))
+        }
+
+        return issues
+    }
+
     private static func validatePendingRejectedExcluded(
         _ packet: CoachContextPacketV2,
         calendar: Calendar
     ) -> [CoachContextValidationIssue] {
         guard let consumed = packet.today?.nutrition?.caloriesConsumed else { return [] }
 
-        let confirmed = confirmedTodayFoodCalories(in: packet, calendar: calendar)
+        let confirmed = confirmedTodayFoodTotals(in: packet, calendar: calendar).calories
         let speculative = pendingRejectedTodayFoodCalories(in: packet, calendar: calendar)
         guard speculative > 0, consumed > confirmed + calorieTolerance else { return [] }
 
@@ -233,6 +364,36 @@ enum CoachContextCorrectnessValidator {
                 "caloriesConsumed=\(consumed) may include pending/rejected estimates (\(speculative) kcal speculative)"
             )
         ]
+    }
+
+    private static func validateAssistantTextNotInStructuredFacts(
+        _ packet: CoachContextPacketV2
+    ) -> [CoachContextValidationIssue] {
+        var issues: [CoachContextValidationIssue] = []
+
+        let assistantClaims = assistantClaimedCalories(in: packet)
+        let confirmedCalories = confirmedTodayFoodTotals(in: packet, calendar: .current).calories
+
+        if assistantClaims > confirmedCalories + calorieTolerance {
+            issues.append(
+                issue(
+                    .assistantTextNotInStructuredFacts,
+                    "assistant chat implies \(assistantClaims) kcal but confirmed food totals=\(confirmedCalories)"
+                )
+            )
+        }
+
+        let orphanMeals = packet.recentMealsStructured.filter(isAssistantPromotedMeal)
+        if !orphanMeals.isEmpty {
+            issues.append(
+                issue(
+                    .assistantTextNotInStructuredFacts,
+                    "recentMealsStructured contains \(orphanMeals.count) meal(s) without confirmed log attribution"
+                )
+            )
+        }
+
+        return issues
     }
 
     private static func validateTimelineSorted(_ packet: CoachContextPacketV2) -> [CoachContextValidationIssue] {
@@ -267,6 +428,33 @@ enum CoachContextCorrectnessValidator {
                 "meta.localDate=\(packet.meta.localDate) expected \(expected) for timezone \(packet.meta.timezoneIdentifier)"
             )
         ]
+    }
+
+    private static func validateTimelineEventLocalDates(
+        _ packet: CoachContextPacketV2,
+        calendar: Calendar
+    ) -> [CoachContextValidationIssue] {
+        let localDate = packet.meta.localDate
+        var issues: [CoachContextValidationIssue] = []
+
+        for meal in packet.recentMealsStructured where meal.localDate == localDate {
+            guard let loggedAt = meal.loggedAt else { continue }
+            let derived = eventLocalDate(
+                timestamp: loggedAt,
+                timezoneIdentifier: packet.meta.timezoneIdentifier,
+                calendar: calendar
+            )
+            if derived != localDate {
+                issues.append(
+                    issue(
+                        .timelineEventLocalDateConsistent,
+                        "meal \(meal.name) localDate=\(localDate) but loggedAt maps to \(derived)"
+                    )
+                )
+            }
+        }
+
+        return issues
     }
 
     private static func validateStepsSource(_ packet: CoachContextPacketV2) -> [CoachContextValidationIssue] {
@@ -311,6 +499,66 @@ enum CoachContextCorrectnessValidator {
         return issues
     }
 
+    private static func validateRecentMealsSourceAttribution(
+        _ packet: CoachContextPacketV2
+    ) -> [CoachContextValidationIssue] {
+        let missing = packet.recentMealsStructured.filter { meal in
+            guard meal.calories != nil || meal.proteinGrams != nil else { return false }
+            let source = (meal.source ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            return meal.linkedEntryId == nil && source.isEmpty
+        }
+
+        guard !missing.isEmpty else { return [] }
+        return [
+            issue(
+                .recentMealsSourceAttribution,
+                "recentMealsStructured has \(missing.count) meal(s) missing source and linkedEntryId"
+            )
+        ]
+    }
+
+    private static func validateHealthStepsNotSilentlyZero(
+        _ packet: CoachContextPacketV2
+    ) -> [CoachContextValidationIssue] {
+        guard let steps = packet.today?.steps else { return [] }
+
+        let healthUnavailable = packet.missingData.stepsMissing
+            || packet.missingData.stepsUnavailable
+            || packet.missingData.healthKitDenied
+            || packet.missingData.healthKitUnavailable
+
+        guard steps.value == 0, healthUnavailable else { return [] }
+        return [
+            issue(
+                .healthStepsNotSilentlyZero,
+                "steps reported as 0 while health data is missing or unavailable"
+            )
+        ]
+    }
+
+    private static func validateHealthWorkoutsNotSilentlyZero(
+        _ packet: CoachContextPacketV2
+    ) -> [CoachContextValidationIssue] {
+        let healthUnavailable = packet.missingData.workoutPermissionDeniedOrUnavailable
+            || packet.missingData.workoutsUnavailable
+            || packet.missingData.healthKitDenied
+            || packet.missingData.healthKitUnavailable
+
+        guard healthUnavailable else { return [] }
+
+        if packet.training?.workoutsToday == 0,
+           packet.training?.workouts.isEmpty != false {
+            return [
+                issue(
+                    .healthWorkoutsNotSilentlyZero,
+                    "workoutsToday=0 while HealthKit workouts are unavailable or denied"
+                )
+            ]
+        }
+
+        return []
+    }
+
     private static func validateMissingDataPopulated(_ packet: CoachContextPacketV2) -> [CoachContextValidationIssue] {
         var issues: [CoachContextValidationIssue] = []
 
@@ -332,12 +580,99 @@ enum CoachContextCorrectnessValidator {
             issues.append(issue(.missingDataPopulated, "empty timeline without noTimelineHistory"))
         }
 
-        if (packet.training?.workoutsToday == nil || packet.training?.workoutsToday == 0),
-           packet.training?.workouts.isEmpty != false,
-           !packet.missingData.workoutsUnavailable,
-           !packet.missingData.workoutPermissionDeniedOrUnavailable,
-           packet.today?.workoutCaloriesBurned == nil {
-            // workouts unknown is acceptable when training context omitted entirely
+        return issues
+    }
+
+    private static func validateRejectedEventsExcluded(
+        _ packet: CoachContextPacketV2
+    ) -> [CoachContextValidationIssue] {
+        let ineligible = packet.timeline.recentEvents.filter { !isExportEligibleTimelineEvent($0) }
+        guard !ineligible.isEmpty else { return [] }
+        return [
+            issue(
+                .rejectedEventsExcludedFromTimeline,
+                "timeline contains \(ineligible.count) rejected/pending/failed export-ineligible event(s)"
+            )
+        ]
+    }
+
+    private static func validateEditDeleteConsistency(
+        _ packet: CoachContextPacketV2
+    ) -> [CoachContextValidationIssue] {
+        let deletedEntryIDs = Set(
+            packet.timeline.recentEvents
+                .filter { $0.type == CoachTimelineEventType.foodDeleted.rawValue }
+                .compactMap(\.linkedEntryId)
+        )
+
+        guard !deletedEntryIDs.isEmpty else { return [] }
+
+        let staleMeals = packet.recentMealsStructured.filter { meal in
+            guard let entryID = meal.linkedEntryId else { return false }
+            return deletedEntryIDs.contains(entryID)
+        }
+
+        guard !staleMeals.isEmpty else { return [] }
+        return [
+            issue(
+                .editDeleteTimelineConsistency,
+                "recentMealsStructured still includes \(staleMeals.count) deleted meal(s)"
+            )
+        ]
+    }
+
+    private static func validateCorruptedTimelinePayload(
+        _ packet: CoachContextPacketV2
+    ) -> [CoachContextValidationIssue] {
+        var issues: [CoachContextValidationIssue] = []
+
+        for event in packet.timeline.recentEvents where event.type == CoachTimelineEventType.foodLogged.rawValue {
+            if let raw = event.compactPayload?["kcal"], let parsed = Int(raw.trimmingCharacters(in: .whitespacesAndNewlines)), parsed < 0 {
+                issues.append(
+                    issue(
+                        .corruptedTimelinePayload,
+                        "foodLogged event \(event.id) has negative kcal payload"
+                    )
+                )
+            } else if event.compactPayload?["kcal"] != nil, parseTimelineCalories(event) == nil {
+                issues.append(
+                    issue(
+                        .corruptedTimelinePayload,
+                        "foodLogged event \(event.id) has non-numeric kcal payload"
+                    )
+                )
+            }
+        }
+
+        return issues
+    }
+
+    private static func validatePrivacySensitiveContent(
+        _ packet: CoachContextPacketV2
+    ) -> [CoachContextValidationIssue] {
+        var issues: [CoachContextValidationIssue] = []
+
+        if packet.timeline.recentEvents.contains(where: {
+            $0.type == CoachTimelineEventType.authError.rawValue
+                || $0.type == CoachTimelineEventType.backendError.rawValue
+        }) {
+            issues.append(issue(.privacySensitiveContent, "timeline includes backend/auth error events"))
+        }
+
+        if containsSensitiveString(packet.currentUserMessage) {
+            issues.append(issue(.privacySensitiveContent, "currentUserMessage contains sensitive content"))
+        }
+
+        for message in packet.recentChatMessages where containsSensitiveString(message.text) {
+            issues.append(issue(.privacySensitiveContent, "recentChatMessages contain sensitive content"))
+            break
+        }
+
+        for event in packet.timeline.recentEvents {
+            if containsSensitiveString(event.summary) || payloadContainsSensitiveData(event.compactPayload) {
+                issues.append(issue(.privacySensitiveContent, "timeline event contains sensitive content"))
+                break
+            }
         }
 
         return issues
@@ -364,9 +699,11 @@ enum CoachContextCorrectnessValidator {
         byteLimit: Int,
         calendar: Calendar
     ) -> CoachContextPacketV2 {
-        guard !issues.isEmpty else { return packet }
-
         var corrected = packet
+
+        if !issues.isEmpty {
+            corrected.generationMode = degradedMode(for: corrected.generationMode)
+        }
 
         if issues.contains(where: { $0.rule == .timelineSorted }) {
             corrected.timeline.recentEvents.sort { $0.timestamp < $1.timestamp }
@@ -385,6 +722,52 @@ enum CoachContextCorrectnessValidator {
             corrected.meta.localTime = meta.localTime
         }
 
+        if issues.contains(where: {
+            $0.rule == .rejectedEventsExcludedFromTimeline
+                || $0.rule == .privacySensitiveContent
+        }) {
+            corrected.timeline.recentEvents = corrected.timeline.recentEvents.filter(isExportEligibleTimelineEvent)
+            corrected.timeline.recentEvents = corrected.timeline.recentEvents.map(sanitizeTimelineEventForPrivacy)
+        }
+
+        if issues.contains(where: { $0.rule == .assistantTextNotInStructuredFacts }) {
+            corrected.recentMealsStructured = corrected.recentMealsStructured.filter { !isAssistantPromotedMeal($0) }
+        }
+
+        if issues.contains(where: { $0.rule == .editDeleteTimelineConsistency }) {
+            let deletedEntryIDs = Set(
+                corrected.timeline.recentEvents
+                    .filter { $0.type == CoachTimelineEventType.foodDeleted.rawValue }
+                    .compactMap(\.linkedEntryId)
+            )
+            corrected.recentMealsStructured = corrected.recentMealsStructured.filter { meal in
+                guard let entryID = meal.linkedEntryId else { return true }
+                return !deletedEntryIDs.contains(entryID)
+            }
+        }
+
+        if issues.contains(where: { $0.rule == .corruptedTimelinePayload }) {
+            corrected.timeline.recentEvents = corrected.timeline.recentEvents.map { event in
+                guard event.type == CoachTimelineEventType.foodLogged.rawValue else { return event }
+                guard let kcal = parseTimelineCalories(event), kcal < 0 else { return event }
+                var sanitized = event
+                sanitized.compactPayload?["kcal"] = "0"
+                return sanitized
+            }
+        }
+
+        if issues.contains(where: { $0.rule == .recentMealsSourceAttribution }) {
+            corrected.recentMealsStructured = corrected.recentMealsStructured.map { meal in
+                var copy = meal
+                if copy.linkedEntryId == nil,
+                   (copy.source ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                   copy.calories != nil || copy.proteinGrams != nil {
+                    copy.source = "unknown"
+                }
+                return copy
+            }
+        }
+
         if var today = corrected.today {
             if var nutrition = today.nutrition {
                 if let protein = nutrition.proteinConsumed, protein < 0 {
@@ -398,10 +781,20 @@ enum CoachContextCorrectnessValidator {
                 }
 
                 if issues.contains(where: {
-                    $0.rule == .caloriesMatchConfirmedFood || $0.rule == .pendingRejectedNotInTotals
+                    $0.rule == .caloriesMatchConfirmedFood
+                        || $0.rule == .pendingRejectedNotInTotals
+                        || $0.rule == .assistantTextNotInStructuredFacts
                 }) {
-                    let confirmed = confirmedTodayFoodCalories(in: corrected, calendar: calendar)
-                    nutrition.caloriesConsumed = confirmed
+                    let confirmed = confirmedTodayFoodTotals(in: corrected, calendar: calendar)
+                    nutrition.caloriesConsumed = confirmed.calories
+                    nutrition.proteinConsumed = confirmed.protein
+                    nutrition.carbsConsumed = confirmed.carbs
+                    nutrition.fatConsumed = confirmed.fat
+                } else if issues.contains(where: { $0.rule == .macrosMatchConfirmedFood }) {
+                    let confirmed = confirmedTodayFoodTotals(in: corrected, calendar: calendar)
+                    nutrition.proteinConsumed = confirmed.protein
+                    nutrition.carbsConsumed = confirmed.carbs
+                    nutrition.fatConsumed = confirmed.fat
                 }
 
                 nutrition = recalculatedRemaining(nutrition: nutrition, targets: today.targets)
@@ -415,6 +808,7 @@ enum CoachContextCorrectnessValidator {
                 if let target = today.targets?.waterTargetMl,
                    let consumed = hydration.waterConsumedMl {
                     hydration.waterRemainingMl = target - consumed
+                    hydration.waterOverTarget = hydration.waterRemainingMl.map { $0 < 0 }
                 }
                 today.hydration = hydration
             }
@@ -427,10 +821,14 @@ enum CoachContextCorrectnessValidator {
                 today.steps = steps
             }
 
+            if issues.contains(where: { $0.rule == .healthStepsNotSilentlyZero }) {
+                today.steps = nil
+            }
+
             corrected.today = today
         }
 
-        if issues.contains(where: { $0.rule == .remainingValuesConsistent }),
+        if issues.contains(where: { $0.rule == .remainingValuesConsistent || $0.rule == .overTargetFlagsConsistent }),
            var today = corrected.today,
            var nutrition = today.nutrition {
             nutrition = recalculatedRemaining(nutrition: nutrition, targets: today.targets)
@@ -451,8 +849,28 @@ enum CoachContextCorrectnessValidator {
             corrected.training = training
         }
 
-        if issues.contains(where: { $0.rule == .missingDataPopulated }) {
+        if issues.contains(where: { $0.rule == .healthWorkoutsNotSilentlyZero }),
+           var training = corrected.training {
+            training.workoutsToday = nil
+            corrected.training = training
+        }
+
+        if issues.contains(where: { $0.rule == .missingDataPopulated || $0.rule == .healthStepsNotSilentlyZero }) {
             corrected.missingData = correctedMissingData(for: corrected)
+        }
+
+        if issues.contains(where: { $0.rule == .healthWorkoutsNotSilentlyZero }) {
+            corrected.missingData.workoutPermissionDeniedOrUnavailable = true
+            corrected.missingData.workoutsUnavailable = true
+        }
+
+        if issues.contains(where: { $0.rule == .privacySensitiveContent }) {
+            corrected.currentUserMessage = redactSensitiveString(corrected.currentUserMessage)
+            corrected.recentChatMessages = corrected.recentChatMessages.map { message in
+                var copy = message
+                copy.text = redactSensitiveString(copy.text) ?? ""
+                return copy
+            }
         }
 
         if issues.contains(where: { $0.rule == .contextSizeBelowThreshold })
@@ -467,6 +885,7 @@ enum CoachContextCorrectnessValidator {
                 attribution.compaction = compaction
                 corrected.sourceAttribution = attribution
             }
+            corrected.generationMode = degradedMode(for: corrected.generationMode)
         }
 
         return corrected.clampedForTransport()
@@ -481,32 +900,59 @@ enum CoachContextCorrectnessValidator {
         CoachContextValidationIssue(rule: rule, message: message)
     }
 
-    private static func confirmedTodayFoodCalories(
+    private struct ConfirmedFoodTotals {
+        var calories: Int
+        var protein: Double
+        var carbs: Double
+        var fat: Double
+    }
+
+    private static func confirmedTodayFoodTotals(
         in packet: CoachContextPacketV2,
         calendar: Calendar
-    ) -> Int {
+    ) -> ConfirmedFoodTotals {
         let localDate = packet.meta.localDate
 
-        let mealSum = packet.recentMealsStructured
-            .filter { $0.localDate == localDate }
-            .compactMap(\.calories)
-            .reduce(0, +)
+        let todayMeals = packet.recentMealsStructured.filter { $0.localDate == localDate }
+        let mealTotals = ConfirmedFoodTotals(
+            calories: todayMeals.compactMap(\.calories).reduce(0, +),
+            protein: todayMeals.compactMap(\.proteinGrams).reduce(0, +),
+            carbs: todayMeals.compactMap(\.carbsGrams).reduce(0, +),
+            fat: todayMeals.compactMap(\.fatGrams).reduce(0, +)
+        )
 
-        let timelineSum = packet.timeline.recentEvents
-            .filter {
-                $0.type == CoachTimelineEventType.foodLogged.rawValue
-                    && $0.status == CoachTimelineEventStatus.confirmed.rawValue
-                    && eventLocalDate($0, timezoneIdentifier: packet.meta.timezoneIdentifier, calendar: calendar) == localDate
-            }
-            .compactMap { event -> Int? in
-                if let kcal = event.compactPayload?["kcal"] {
-                    return Int(kcal)
-                }
-                return nil
-            }
-            .reduce(0, +)
+        let timelineTotals = confirmedTimelineFoodTotals(in: packet, calendar: calendar)
 
-        return max(mealSum, timelineSum)
+        if !todayMeals.isEmpty {
+            return ConfirmedFoodTotals(
+                calories: max(mealTotals.calories, timelineTotals.calories),
+                protein: max(mealTotals.protein, timelineTotals.protein),
+                carbs: max(mealTotals.carbs, timelineTotals.carbs),
+                fat: max(mealTotals.fat, timelineTotals.fat)
+            )
+        }
+
+        return timelineTotals
+    }
+
+    private static func confirmedTimelineFoodTotals(
+        in packet: CoachContextPacketV2,
+        calendar: Calendar
+    ) -> ConfirmedFoodTotals {
+        let localDate = packet.meta.localDate
+
+        let events = packet.timeline.recentEvents.filter {
+            $0.type == CoachTimelineEventType.foodLogged.rawValue
+                && $0.status == CoachTimelineEventStatus.confirmed.rawValue
+                && eventLocalDate($0, timezoneIdentifier: packet.meta.timezoneIdentifier, calendar: calendar) == localDate
+        }
+
+        return ConfirmedFoodTotals(
+            calories: events.compactMap(parseTimelineCalories).filter { $0 > 0 }.reduce(0, +),
+            protein: events.compactMap { parseTimelineMacro($0, key: "protein") }.reduce(0, +),
+            carbs: events.compactMap { parseTimelineMacro($0, key: "carbs") }.reduce(0, +),
+            fat: events.compactMap { parseTimelineMacro($0, key: "fat") }.reduce(0, +)
+        )
     }
 
     private static func pendingRejectedTodayFoodCalories(
@@ -514,29 +960,40 @@ enum CoachContextCorrectnessValidator {
         calendar: Calendar
     ) -> Int {
         let localDate = packet.meta.localDate
-        let speculativeTypes: Set<String> = [
-            CoachTimelineEventType.foodEstimateCreated.rawValue,
-            CoachTimelineEventType.foodRejected.rawValue,
-            CoachTimelineEventType.pendingConfirmationCreated.rawValue,
-            CoachTimelineEventType.pendingConfirmationRejected.rawValue,
-        ]
 
         return packet.timeline.recentEvents
             .filter {
-                speculativeTypes.contains($0.type)
+                speculativeTimelineTypes.contains($0.type)
                     && eventLocalDate($0, timezoneIdentifier: packet.meta.timezoneIdentifier, calendar: calendar) == localDate
             }
-            .compactMap { event -> Int? in
-                if let kcal = event.compactPayload?["kcal"] {
-                    return Int(kcal)
-                }
-                return nil
-            }
+            .compactMap(parseTimelineCalories)
             .reduce(0, +)
+    }
+
+    private static func parseTimelineCalories(_ event: CoachTimelineContextEvent) -> Int? {
+        guard let raw = event.compactPayload?["kcal"] else { return nil }
+        return Int(raw.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    private static func parseTimelineMacro(_ event: CoachTimelineContextEvent, key: String) -> Double? {
+        guard let raw = event.compactPayload?[key] else { return nil }
+        return Double(raw)
     }
 
     private static func eventLocalDate(
         _ event: CoachTimelineContextEvent,
+        timezoneIdentifier: String,
+        calendar: Calendar
+    ) -> String {
+        eventLocalDate(
+            timestamp: event.timestamp,
+            timezoneIdentifier: timezoneIdentifier,
+            calendar: calendar
+        )
+    }
+
+    private static func eventLocalDate(
+        timestamp: Date,
         timezoneIdentifier: String,
         calendar: Calendar
     ) -> String {
@@ -548,7 +1005,7 @@ enum CoachContextCorrectnessValidator {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = resolvedCalendar.timeZone
         formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: event.timestamp)
+        return formatter.string(from: timestamp)
     }
 
     private static func recalculatedRemaining(
@@ -559,15 +1016,19 @@ enum CoachContextCorrectnessValidator {
 
         if let target = targets?.calorieTarget, let consumed = updated.caloriesConsumed {
             updated.caloriesRemaining = target - consumed
+            updated.caloriesOverTarget = updated.caloriesRemaining.map { $0 < 0 }
         }
         if let target = targets?.proteinTarget, let consumed = updated.proteinConsumed {
             updated.proteinRemaining = target - consumed
+            updated.proteinOverTarget = updated.proteinRemaining.map { $0 < 0 }
         }
         if let target = targets?.carbsTarget, let consumed = updated.carbsConsumed {
             updated.carbsRemaining = target - consumed
+            updated.carbsOverTarget = updated.carbsRemaining.map { $0 < 0 }
         }
         if let target = targets?.fatTarget, let consumed = updated.fatConsumed {
             updated.fatRemaining = target - consumed
+            updated.fatOverTarget = updated.fatRemaining.map { $0 < 0 }
         }
 
         return updated
@@ -590,5 +1051,97 @@ enum CoachContextCorrectnessValidator {
         }
 
         return missing
+    }
+
+    private static func isExportEligibleTimelineEvent(_ event: CoachTimelineContextEvent) -> Bool {
+        if event.status == CoachTimelineEventStatus.rejected.rawValue
+            || event.status == CoachTimelineEventStatus.failed.rawValue
+            || event.status == CoachTimelineEventStatus.superseded.rawValue {
+            return false
+        }
+        if excludedTimelineTypes.contains(event.type) {
+            return false
+        }
+        if event.status == CoachTimelineEventStatus.pending.rawValue,
+           event.type != CoachTimelineEventType.pendingConfirmationCreated.rawValue {
+            return false
+        }
+        return true
+    }
+
+    private static func isAssistantPromotedMeal(_ meal: CoachRecentMealContext) -> Bool {
+        if meal.linkedEntryId != nil { return false }
+        let source = (meal.source ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if trustedMealSources.contains(where: { source.contains($0.lowercased()) }) {
+            return false
+        }
+        return source.isEmpty || nonFactMealSources.contains(where: { source.contains($0.lowercased()) })
+    }
+
+    private static func assistantClaimedCalories(in packet: CoachContextPacketV2) -> Int {
+        let pattern = #"(\d{2,4})\s*(?:kcal|cal|calories)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+            return 0
+        }
+
+        let assistantText = packet.recentChatMessages
+            .filter { $0.role == ChatMessageRole.assistant.rawValue }
+            .map(\.text)
+            .joined(separator: " ")
+
+        let range = NSRange(assistantText.startIndex..<assistantText.endIndex, in: assistantText)
+        let matches = regex.matches(in: assistantText, options: [], range: range)
+        return matches.compactMap { match -> Int? in
+            guard let valueRange = Range(match.range(at: 1), in: assistantText) else { return nil }
+            return Int(assistantText[valueRange])
+        }.max() ?? 0
+    }
+
+    private static func containsSensitiveString(_ value: String?) -> Bool {
+        guard let value, !value.isEmpty else { return false }
+        let lowered = value.lowercased()
+        if lowered.contains("data:image") { return true }
+        if lowered.contains("imagejpegbase64") { return true }
+        if lowered.contains("bearer ") { return true }
+        if lowered.contains("sk-") { return true }
+        if lowered.contains("api_key") || lowered.contains("apikey") { return true }
+        if value.count > 512, value.unicodeScalars.allSatisfy({ $0.isASCII }) {
+            let base64Charset = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=")
+            if CharacterSet(charactersIn: value).isSubset(of: base64Charset) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private static func payloadContainsSensitiveData(_ payload: [String: String]?) -> Bool {
+        guard let payload else { return false }
+        return payload.values.contains(where: { containsSensitiveString($0) })
+    }
+
+    private static func sanitizeTimelineEventForPrivacy(_ event: CoachTimelineContextEvent) -> CoachTimelineContextEvent {
+        var copy = event
+        copy.summary = redactSensitiveString(copy.summary) ?? copy.summary
+        if let payload = copy.compactPayload {
+            copy.compactPayload = Dictionary(uniqueKeysWithValues: payload.map { key, value in
+                (key, redactSensitiveString(value) ?? value)
+            })
+        }
+        return copy
+    }
+
+    private static func redactSensitiveString(_ value: String?) -> String? {
+        guard let value else { return nil }
+        guard containsSensitiveString(value) else { return value }
+        return "<redacted>"
+    }
+
+    private static func degradedMode(for mode: CoachContextGenerationMode) -> CoachContextGenerationMode {
+        switch mode {
+        case .live, .preview:
+            return .degraded
+        default:
+            return mode
+        }
     }
 }
