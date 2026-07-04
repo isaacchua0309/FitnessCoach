@@ -181,6 +181,8 @@ struct CoachTrainingContext: Codable, Equatable, Sendable {
     var workoutsToday: Int?
     var workouts: [CoachContextWorkoutSummary]
     var trainingLoad: String?
+    var trainingLoadExplanation: String?
+    var trainingLoadConfidence: CoachContextConfidence?
     var recoveryStatus: String?
     var readiness: String?
 
@@ -188,12 +190,16 @@ struct CoachTrainingContext: Codable, Equatable, Sendable {
         workoutsToday: Int? = nil,
         workouts: [CoachContextWorkoutSummary] = [],
         trainingLoad: String? = nil,
+        trainingLoadExplanation: String? = nil,
+        trainingLoadConfidence: CoachContextConfidence? = nil,
         recoveryStatus: String? = nil,
         readiness: String? = nil
     ) {
         self.workoutsToday = workoutsToday
         self.workouts = workouts
         self.trainingLoad = trainingLoad
+        self.trainingLoadExplanation = trainingLoadExplanation
+        self.trainingLoadConfidence = trainingLoadConfidence
         self.recoveryStatus = recoveryStatus
         self.readiness = readiness
     }
@@ -206,6 +212,8 @@ struct CoachContextWorkoutSummary: Codable, Equatable, Sendable {
     var end: Date
     var durationMinutes: Int?
     var activeEnergyKcal: Int?
+    var source: String?
+    var confidence: CoachContextConfidence?
 }
 
 // MARK: - Timeline
@@ -271,6 +279,12 @@ struct CoachMissingDataContext: Codable, Equatable, Sendable {
     var weightMissing: Bool
     var noRecentMeals: Bool
     var noTimelineHistory: Bool
+    var healthKitDenied: Bool
+    var healthKitUnavailable: Bool
+    var stepsUnavailable: Bool
+    var workoutsUnavailable: Bool
+    var sleepUnavailable: Bool
+    var hrvUnavailable: Bool
 
     init(
         stepsMissing: Bool = false,
@@ -279,7 +293,13 @@ struct CoachMissingDataContext: Codable, Equatable, Sendable {
         hrvMissing: Bool = false,
         weightMissing: Bool = false,
         noRecentMeals: Bool = false,
-        noTimelineHistory: Bool = false
+        noTimelineHistory: Bool = false,
+        healthKitDenied: Bool = false,
+        healthKitUnavailable: Bool = false,
+        stepsUnavailable: Bool = false,
+        workoutsUnavailable: Bool = false,
+        sleepUnavailable: Bool = false,
+        hrvUnavailable: Bool = false
     ) {
         self.stepsMissing = stepsMissing
         self.workoutPermissionDeniedOrUnavailable = workoutPermissionDeniedOrUnavailable
@@ -288,6 +308,12 @@ struct CoachMissingDataContext: Codable, Equatable, Sendable {
         self.weightMissing = weightMissing
         self.noRecentMeals = noRecentMeals
         self.noTimelineHistory = noTimelineHistory
+        self.healthKitDenied = healthKitDenied
+        self.healthKitUnavailable = healthKitUnavailable
+        self.stepsUnavailable = stepsUnavailable
+        self.workoutsUnavailable = workoutsUnavailable
+        self.sleepUnavailable = sleepUnavailable
+        self.hrvUnavailable = hrvUnavailable
     }
 
     var hasAnyMissingSignals: Bool {
@@ -298,6 +324,12 @@ struct CoachMissingDataContext: Codable, Equatable, Sendable {
             || weightMissing
             || noRecentMeals
             || noTimelineHistory
+            || healthKitDenied
+            || healthKitUnavailable
+            || stepsUnavailable
+            || workoutsUnavailable
+            || sleepUnavailable
+            || hrvUnavailable
     }
 }
 
@@ -478,10 +510,12 @@ extension CoachMissingDataContext {
 
     var missingSignalLabels: [String] {
         var labels: [String] = []
-        if stepsMissing { labels.append("steps") }
-        if workoutPermissionDeniedOrUnavailable { labels.append("workouts") }
-        if sleepMissing { labels.append("sleep") }
-        if hrvMissing { labels.append("hrv") }
+        if stepsMissing || stepsUnavailable { labels.append("steps") }
+        if workoutPermissionDeniedOrUnavailable || workoutsUnavailable { labels.append("workouts") }
+        if sleepMissing || sleepUnavailable { labels.append("sleep") }
+        if hrvMissing || hrvUnavailable { labels.append("hrv") }
+        if healthKitDenied { labels.append("healthKitDenied") }
+        if healthKitUnavailable { labels.append("healthKitUnavailable") }
         if weightMissing { labels.append("weight") }
         if noRecentMeals { labels.append("meals") }
         if noTimelineHistory { labels.append("timeline") }
@@ -617,14 +651,49 @@ extension CoachRecentMealContext {
 
 extension CoachContextWorkoutSummary {
 
-    static func from(record: HealthWorkoutRecord) -> CoachContextWorkoutSummary {
+    static func from(
+        record: HealthWorkoutRecord,
+        source: String = "healthKit",
+        confidence: CoachContextConfidence = .medium
+    ) -> CoachContextWorkoutSummary {
         CoachContextWorkoutSummary(
             title: record.activityName,
             type: record.activityName,
             start: record.startDate,
             end: record.endDate,
             durationMinutes: record.durationMinutes,
-            activeEnergyKcal: record.activeCalories
+            activeEnergyKcal: record.activeCalories,
+            source: source,
+            confidence: confidence
+        )
+    }
+
+    static func from(
+        workout: WorkoutSummary,
+        source: String = "healthIntelligence"
+    ) -> CoachContextWorkoutSummary? {
+        guard workout.hasWorkout else { return nil }
+        guard let start = workout.latestWorkoutStart, let end = workout.latestWorkoutEnd else {
+            return nil
+        }
+
+        let confidence: CoachContextConfidence = {
+            switch workout.confidence {
+            case .high: return .high
+            case .moderate: return .medium
+            case .low: return .low
+            }
+        }()
+
+        return CoachContextWorkoutSummary(
+            title: workout.title,
+            type: workout.primaryWorkoutType?.rawValue ?? workout.title,
+            start: start,
+            end: end,
+            durationMinutes: workout.totalDurationMinutes,
+            activeEnergyKcal: workout.totalActiveCalories,
+            source: source,
+            confidence: confidence
         )
     }
 }

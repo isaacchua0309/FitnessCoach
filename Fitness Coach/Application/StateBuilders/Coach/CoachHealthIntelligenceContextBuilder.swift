@@ -280,21 +280,44 @@ enum CoachHealthIntelligenceContextBuilder {
     // MARK: - Training load
 
     static func coachSafeTrainingLoadStatus(from summary: TrainingLoadSummary) -> String {
-        let status = summary.status.rawValue
+        let status = trainingLoadStatusLabel(from: summary)
 
         guard summary.status != .unknown else {
-            return "unknown"
+            return status
         }
 
         guard summary.confidence != .low else {
             return "\(status) (limited estimate)"
         }
 
-        if let explanation = sanitizedCoachText(summary.explanation) {
+        if let explanation = trainingLoadExplanation(from: summary) {
             return "\(status) — \(explanation)"
         }
 
         return status
+    }
+
+    static func trainingLoadStatusLabel(from summary: TrainingLoadSummary) -> String {
+        summary.status.rawValue
+    }
+
+    static func trainingLoadExplanation(from summary: TrainingLoadSummary) -> String? {
+        guard summary.status != .unknown else {
+            let trimmed = summary.explanation.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+        }
+        return sanitizedCoachText(summary.explanation)
+    }
+
+    static func trainingLoadConfidence(from summary: TrainingLoadSummary) -> CoachContextConfidence {
+        switch summary.confidence {
+        case .high:
+            return .high
+        case .moderate:
+            return .medium
+        case .low:
+            return .low
+        }
     }
 
     // MARK: - Next best action

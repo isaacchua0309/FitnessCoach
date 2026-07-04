@@ -469,6 +469,8 @@ final class AppContainer {
             userProfileService: userProfileService,
             healthActivityQuery: healthActivityQueryService,
             healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
+            healthIntelligenceContextBuilder: healthIntelligenceContextBuilder,
+            trainingLoadEngine: trainingLoadEngine,
             timelineStore: coachTimelineStore,
             timelineBackfillService: coachTimelineBackfillService,
             timelineRecorder: coachTimelineRecorder

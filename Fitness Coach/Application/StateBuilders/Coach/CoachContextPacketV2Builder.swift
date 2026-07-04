@@ -27,6 +27,8 @@ struct CoachContextPacketV2Builder {
     private let userProfileService: (any UserProfileReading)?
     private let healthActivityQuery: HealthActivityQueryService?
     private let healthIntelligenceSnapshotProvider: (any HealthIntelligenceSnapshotServing)?
+    private let healthIntelligenceContextBuilder: (any HealthIntelligenceContextBuilding)?
+    private let trainingLoadEngine: (any TrainingLoadProviding)?
     private let timelineStore: (any CoachTimelineStoring)?
     private let timelineBackfillService: (any CoachTimelineBackfilling)?
     private let timelineRecorder: (any CoachTimelineRecording)?
@@ -43,6 +45,8 @@ struct CoachContextPacketV2Builder {
         userProfileService: (any UserProfileReading)? = nil,
         healthActivityQuery: HealthActivityQueryService? = nil,
         healthIntelligenceSnapshotProvider: (any HealthIntelligenceSnapshotServing)? = nil,
+        healthIntelligenceContextBuilder: (any HealthIntelligenceContextBuilding)? = nil,
+        trainingLoadEngine: (any TrainingLoadProviding)? = nil,
         timelineStore: (any CoachTimelineStoring)? = nil,
         timelineBackfillService: (any CoachTimelineBackfilling)? = nil,
         timelineRecorder: (any CoachTimelineRecording)? = nil,
@@ -57,6 +61,8 @@ struct CoachContextPacketV2Builder {
         self.userProfileService = userProfileService
         self.healthActivityQuery = healthActivityQuery
         self.healthIntelligenceSnapshotProvider = healthIntelligenceSnapshotProvider
+        self.healthIntelligenceContextBuilder = healthIntelligenceContextBuilder
+        self.trainingLoadEngine = trainingLoadEngine
         self.timelineStore = timelineStore
         self.timelineBackfillService = timelineBackfillService
         self.timelineRecorder = timelineRecorder
@@ -78,6 +84,7 @@ struct CoachContextPacketV2Builder {
         var assumptions: [CoachAssumptionContext] = []
         var sources: [String] = []
         var healthAccessDenied = false
+        var healthUnavailable = false
 
         let profile = makeProfileContext(sources: &sources)
         let dailyLog = readTodayLog(sources: &sources)
@@ -87,10 +94,25 @@ struct CoachContextPacketV2Builder {
         let weightEntries = readWeightEntries(for: now, sources: &sources)
 
         let healthSnapshot = await loadHealthSnapshot(on: now)
-        let workouts = await readWorkouts(on: now, healthAccessDenied: &healthAccessDenied, sources: &sources)
-        let stepsResult = await readSteps(on: now, snapshot: healthSnapshot, healthAccessDenied: &healthAccessDenied, sources: &sources)
+        let trainingLoad = await loadTrainingLoad(on: now)
+        let workoutsResult = await readWorkouts(
+            on: now,
+            healthAccessDenied: &healthAccessDenied,
+            healthUnavailable: &healthUnavailable,
+            sources: &sources
+        )
+        let stepsResult = await readSteps(
+            on: now,
+            snapshot: healthSnapshot,
+            healthAccessDenied: &healthAccessDenied,
+            healthUnavailable: &healthUnavailable,
+            sources: &sources
+        )
 
-        let healthIntelligence = makeHealthIntelligence(from: healthSnapshot)
+        let healthIntelligence = makeHealthIntelligence(
+            from: healthSnapshot,
+            trainingLoad: trainingLoad
+        )
         if healthIntelligence != nil {
             sources.append("healthIntelligence")
         }
@@ -100,11 +122,13 @@ struct CoachContextPacketV2Builder {
             foodEntries: foodEntries,
             weightEntries: weightEntries,
             steps: stepsResult,
-            workouts: workouts
+            workoutsResult: workoutsResult
         )
         let training = makeTrainingContext(
-            workouts: workouts,
-            healthIntelligence: healthIntelligence
+            workoutsResult: workoutsResult,
+            healthIntelligence: healthIntelligence,
+            healthSnapshot: healthSnapshot,
+            trainingLoad: trainingLoad
         )
 
         let timelineEvents = await loadTimelineEvents(
@@ -123,7 +147,9 @@ struct CoachContextPacketV2Builder {
 
         var missingData = makeMissingData(
             stepsResult: stepsResult,
+            workoutsResult: workoutsResult,
             healthAccessDenied: healthAccessDenied,
+            healthUnavailable: healthUnavailable,
             healthIntelligence: healthIntelligence,
             healthSnapshot: healthSnapshot,
             foodEntries: foodEntries,
@@ -134,7 +160,7 @@ struct CoachContextPacketV2Builder {
 
         assumptions.append(contentsOf: makeAssumptions(
             stepsResult: stepsResult,
-            workouts: workouts,
+            workoutsResult: workoutsResult,
             timelineBackfillRan: timelineBackfillService != nil
         ))
 
@@ -167,6 +193,14 @@ struct CoachContextPacketV2Builder {
 
         packet = CoachContextPacketV2SizeCompactor.compact(packet)
 
+        recordHealthTimelineEvents(
+            workoutsResult: workoutsResult,
+            stepsResult: stepsResult,
+            healthIntelligence: healthIntelligence,
+            healthAccessDenied: healthAccessDenied,
+            healthUnavailable: healthUnavailable,
+            now: now
+        )
         recordContextGenerated(packet: packet, mode: mode, now: now)
 
         FormaPipelineTracer.event(
@@ -241,32 +275,71 @@ struct CoachContextPacketV2Builder {
         return await healthIntelligenceSnapshotProvider.loadTodaySnapshot(for: date, calendar: calendar)
     }
 
+    private func loadTrainingLoad(on date: Date) async -> TrainingLoadSummary? {
+        guard loadHealthIntelligence(),
+              let healthIntelligenceContextBuilder,
+              let trainingLoadEngine else {
+            return nil
+        }
+
+        let context = await healthIntelligenceContextBuilder.buildContext(for: date, calendar: calendar)
+        return try? trainingLoadEngine.evaluate(context.trainingLoadInput)
+    }
+
+    private struct WorkoutsReadResult {
+        var workouts: [HealthWorkoutRecord]
+        var availability: HealthWorkoutsReadAvailability
+        var source: String
+
+        var isKnown: Bool { availability == .available }
+    }
+
     private func readWorkouts(
         on date: Date,
         healthAccessDenied: inout Bool,
+        healthUnavailable: inout Bool,
         sources: inout [String]
-    ) async -> [HealthWorkoutRecord] {
-        guard let healthActivityQuery else { return [] }
-        let dayStart = calendar.startOfDay(for: date)
-        let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? date
-        let workouts = await healthActivityQuery.workouts(from: dayStart, to: dayEnd)
-        if !workouts.isEmpty {
+    ) async -> WorkoutsReadResult {
+        guard let healthActivityQuery else {
+            healthUnavailable = true
+            return WorkoutsReadResult(workouts: [], availability: .unavailable, source: "none")
+        }
+
+        let result = await healthActivityQuery.readWorkoutsToday(on: date, calendar: calendar)
+        switch result.availability {
+        case .available:
+            break
+        case .accessDenied:
+            healthAccessDenied = true
+        case .unavailable:
+            healthUnavailable = true
+        }
+
+        if !result.workouts.isEmpty {
             sources.append("healthWorkouts")
         }
-        return workouts
+
+        return WorkoutsReadResult(
+            workouts: result.workouts,
+            availability: result.availability,
+            source: result.source
+        )
     }
 
     private struct StepsReadResult {
         var value: Int?
+        var source: String?
         var asOf: Date?
         var confidence: CoachContextConfidence
         var accessDenied: Bool
+        var unavailable: Bool
     }
 
     private func readSteps(
         on date: Date,
         snapshot: HealthIntelligenceSnapshot?,
         healthAccessDenied: inout Bool,
+        healthUnavailable: inout Bool,
         sources: inout [String]
     ) async -> StepsReadResult {
         if let healthActivityQuery {
@@ -275,30 +348,51 @@ struct CoachContextPacketV2Builder {
                 sources.append("healthSteps")
                 return StepsReadResult(
                     value: steps,
+                    source: "healthKit",
                     asOf: dateProvider.now,
                     confidence: .medium,
-                    accessDenied: false
+                    accessDenied: false,
+                    unavailable: false
                 )
             } catch {
                 if HealthKitOptionalAccessPolicy.isOptionalAccessFailure(error) {
                     healthAccessDenied = true
-                    return StepsReadResult(value: nil, asOf: nil, confidence: .unknown, accessDenied: true)
+                    return StepsReadResult(
+                        value: nil,
+                        source: nil,
+                        asOf: nil,
+                        confidence: .unknown,
+                        accessDenied: true,
+                        unavailable: false
+                    )
                 }
+                healthUnavailable = true
                 logReadFailure("steps", error: error)
             }
+        } else {
+            healthUnavailable = true
         }
 
         if let steps = snapshot?.activity.steps {
             sources.append("healthIntelligenceSteps")
             return StepsReadResult(
                 value: steps,
+                source: "healthIntelligence",
                 asOf: dateProvider.now,
                 confidence: .low,
-                accessDenied: false
+                accessDenied: false,
+                unavailable: healthUnavailable
             )
         }
 
-        return StepsReadResult(value: nil, asOf: nil, confidence: .unknown, accessDenied: healthAccessDenied)
+        return StepsReadResult(
+            value: nil,
+            source: nil,
+            asOf: nil,
+            confidence: .unknown,
+            accessDenied: healthAccessDenied,
+            unavailable: healthUnavailable || healthActivityQuery == nil
+        )
     }
 
     private func loadTimelineEvents(now: Date, todayLocalDate: String) async -> [CoachTimelineEvent] {
@@ -349,10 +443,15 @@ struct CoachContextPacketV2Builder {
     }
 
     private func makeHealthIntelligence(
-        from snapshot: HealthIntelligenceSnapshot?
+        from snapshot: HealthIntelligenceSnapshot?,
+        trainingLoad: TrainingLoadSummary?
     ) -> CoachHealthIntelligenceContext? {
         guard loadHealthIntelligence(), let snapshot else { return nil }
-        let built = CoachHealthIntelligenceContextBuilder.build(from: snapshot, calendar: calendar)
+        let built = CoachHealthIntelligenceContextBuilder.build(
+            from: snapshot,
+            trainingLoad: trainingLoad ?? .unknown,
+            calendar: calendar
+        )
         let awareness = CoachAIActivityContextResolver.healthIntelligenceAwarenessAvailable(
             snapshot: snapshot,
             healthIntelligence: built
@@ -365,13 +464,13 @@ struct CoachContextPacketV2Builder {
         foodEntries: [FoodEntry],
         weightEntries: [WeightEntry],
         steps: StepsReadResult,
-        workouts: [HealthWorkoutRecord]
+        workoutsResult: WorkoutsReadResult
     ) -> CoachContextTodayPacket? {
         guard let dailyLog else { return nil }
 
         let nutrition = DailyNutritionSummaryBuilder.build(from: dailyLog)
         let weightKg = weightEntries.last?.weightKg ?? dailyLog.weightKg
-        let workoutCalories = workouts.compactMap(\.activeCalories).reduce(0, +)
+        let workoutCalories = workoutsResult.workouts.compactMap(\.activeCalories).reduce(0, +)
 
         return CoachContextTodayPacket(
             targets: CoachTodayTargetsContext(
@@ -399,7 +498,7 @@ struct CoachContextPacketV2Builder {
             steps: steps.value.map {
                 CoachContextSourcedInt(
                     value: $0,
-                    source: "healthKit",
+                    source: steps.source ?? "unknown",
                     asOf: steps.asOf,
                     confidence: steps.confidence
                 )
@@ -407,27 +506,82 @@ struct CoachContextPacketV2Builder {
             workoutCaloriesBurned: workoutCalories > 0
                 ? CoachContextSourcedInt(
                     value: workoutCalories,
-                    source: "healthKit",
+                    source: workoutsResult.source,
                     asOf: dateProvider.now,
-                    confidence: .medium
+                    confidence: workoutsResult.isKnown ? .medium : .unknown
                 )
                 : nil
         )
     }
 
     private func makeTrainingContext(
-        workouts: [HealthWorkoutRecord],
-        healthIntelligence: CoachHealthIntelligenceContext?
+        workoutsResult: WorkoutsReadResult,
+        healthIntelligence: CoachHealthIntelligenceContext?,
+        healthSnapshot: HealthIntelligenceSnapshot?,
+        trainingLoad: TrainingLoadSummary?
     ) -> CoachTrainingContext? {
-        guard !workouts.isEmpty || healthIntelligence != nil else { return nil }
+        var workoutSummaries = workoutsResult.workouts.map {
+            CoachContextWorkoutSummary.from(
+                record: $0,
+                source: workoutsResult.source,
+                confidence: workoutsResult.isKnown ? .medium : .unknown
+            )
+        }
+
+        if workoutSummaries.isEmpty,
+           let snapshotWorkout = healthSnapshot?.workout,
+           let inferred = CoachContextWorkoutSummary.from(workout: snapshotWorkout, source: "healthIntelligence") {
+            workoutSummaries = [inferred]
+        }
+
+        let workoutsToday = resolveWorkoutsToday(
+            workoutsResult: workoutsResult,
+            workoutSummaries: workoutSummaries,
+            healthIntelligence: healthIntelligence
+        )
+
+        let load = trainingLoad ?? .unknown
+        let hasTrainingSignals = workoutsToday != nil
+            || !workoutSummaries.isEmpty
+            || healthIntelligence != nil
+            || load.status != .unknown
+
+        guard hasTrainingSignals else { return nil }
 
         return CoachTrainingContext(
-            workoutsToday: workouts.isEmpty ? healthIntelligence?.workoutCompletedToday == true ? 1 : 0 : workouts.count,
-            workouts: workouts.map(CoachContextWorkoutSummary.from),
-            trainingLoad: healthIntelligence?.trainingLoadStatus,
+            workoutsToday: workoutsToday,
+            workouts: workoutSummaries,
+            trainingLoad: CoachHealthIntelligenceContextBuilder.trainingLoadStatusLabel(from: load),
+            trainingLoadExplanation: CoachHealthIntelligenceContextBuilder.trainingLoadExplanation(from: load),
+            trainingLoadConfidence: CoachHealthIntelligenceContextBuilder.trainingLoadConfidence(from: load),
             recoveryStatus: healthIntelligence?.recoveryStatus,
             readiness: healthIntelligence?.recoveryConfidence
         )
+    }
+
+    private func resolveWorkoutsToday(
+        workoutsResult: WorkoutsReadResult,
+        workoutSummaries: [CoachContextWorkoutSummary],
+        healthIntelligence: CoachHealthIntelligenceContext?
+    ) -> Int? {
+        switch workoutsResult.availability {
+        case .available:
+            if !workoutsResult.workouts.isEmpty {
+                return workoutsResult.workouts.count
+            }
+            if healthIntelligence?.workoutCompletedToday == true {
+                return max(1, workoutSummaries.count)
+            }
+            return 0
+        case .accessDenied, .unavailable:
+            if !workoutSummaries.isEmpty {
+                return workoutSummaries.count
+            }
+            if healthIntelligence?.workoutCompletedToday == true {
+                return 1
+            }
+            return nil
+        }
     }
 
     private func makeChatMessages(
@@ -506,7 +660,9 @@ struct CoachContextPacketV2Builder {
 
     private func makeMissingData(
         stepsResult: StepsReadResult,
+        workoutsResult: WorkoutsReadResult,
         healthAccessDenied: Bool,
+        healthUnavailable: Bool,
         healthIntelligence: CoachHealthIntelligenceContext?,
         healthSnapshot: HealthIntelligenceSnapshot?,
         foodEntries: [FoodEntry],
@@ -517,22 +673,35 @@ struct CoachContextPacketV2Builder {
         let missingSignals = Set(healthIntelligence?.missingSignals.map { $0.lowercased() } ?? [])
         let recoverySignals = healthSnapshot?.recovery.missingSignals ?? []
 
+        let workoutsDenied = workoutsResult.availability == .accessDenied
+        let workoutsUnavailable = workoutsResult.availability == .unavailable
+        let stepsDenied = stepsResult.accessDenied
+        let stepsUnavailable = stepsResult.value == nil && (stepsResult.unavailable || healthActivityQuery == nil)
+
         return CoachMissingDataContext(
             stepsMissing: stepsResult.value == nil,
-            workoutPermissionDeniedOrUnavailable: healthAccessDenied || (healthActivityQuery == nil),
+            workoutPermissionDeniedOrUnavailable: workoutsDenied || workoutsUnavailable || healthActivityQuery == nil,
             sleepMissing: missingSignals.contains(where: { $0.contains("sleep") })
                 || recoverySignals.contains(.sleep),
             hrvMissing: missingSignals.contains(where: { $0.contains("hrv") })
                 || recoverySignals.contains(.hrv),
             weightMissing: weightEntries.isEmpty && dailyLog?.weightKg == nil,
             noRecentMeals: foodEntries.isEmpty,
-            noTimelineHistory: timelineEventCount == 0
+            noTimelineHistory: timelineEventCount == 0,
+            healthKitDenied: healthAccessDenied || workoutsDenied || stepsDenied,
+            healthKitUnavailable: healthUnavailable && !healthAccessDenied,
+            stepsUnavailable: stepsUnavailable || stepsDenied,
+            workoutsUnavailable: workoutsUnavailable || healthActivityQuery == nil,
+            sleepUnavailable: missingSignals.contains(where: { $0.contains("sleep") })
+                || recoverySignals.contains(.sleep),
+            hrvUnavailable: missingSignals.contains(where: { $0.contains("hrv") })
+                || recoverySignals.contains(.hrv)
         )
     }
 
     private func makeAssumptions(
         stepsResult: StepsReadResult,
-        workouts: [HealthWorkoutRecord],
+        workoutsResult: WorkoutsReadResult,
         timelineBackfillRan: Bool
     ) -> [CoachAssumptionContext] {
         var assumptions: [CoachAssumptionContext] = []
@@ -541,7 +710,7 @@ struct CoachContextPacketV2Builder {
             CoachAssumptionContext(
                 key: "workout_calories_source",
                 detail: "Workout calories are summed from Apple Health workout samples; legacy daily-log workout calories are excluded.",
-                confidence: workouts.isEmpty ? .unknown : .medium
+                confidence: workoutsResult.workouts.isEmpty ? .unknown : .medium
             )
         )
 
@@ -549,7 +718,7 @@ struct CoachContextPacketV2Builder {
             assumptions.append(
                 CoachAssumptionContext(
                     key: "steps_source",
-                    detail: "Steps are read from Apple Health when authorized.",
+                    detail: "Steps are read from \(stepsResult.source ?? "health") when authorized.",
                     confidence: stepsResult.confidence
                 )
             )
@@ -566,6 +735,68 @@ struct CoachContextPacketV2Builder {
         }
 
         return assumptions
+    }
+
+    private func recordHealthTimelineEvents(
+        workoutsResult: WorkoutsReadResult,
+        stepsResult: StepsReadResult,
+        healthIntelligence: CoachHealthIntelligenceContext?,
+        healthAccessDenied: Bool,
+        healthUnavailable: Bool,
+        now: Date
+    ) {
+        guard let timelineRecorder else { return }
+
+        if let steps = stepsResult.value {
+            timelineRecorder.recordStepsUpdated(
+                steps: steps,
+                previousSteps: nil,
+                occurredAt: now
+            )
+        }
+
+        if workoutsResult.availability == .available, !workoutsResult.workouts.isEmpty {
+            let totalDuration = workoutsResult.workouts.compactMap(\.durationMinutes).reduce(0, +)
+            let totalCalories = workoutsResult.workouts.compactMap(\.activeCalories).reduce(0, +)
+            timelineRecorder.recordWorkoutDetected(
+                workoutCount: workoutsResult.workouts.count,
+                totalDurationMinutes: totalDuration,
+                totalActiveCalories: totalCalories > 0 ? totalCalories : nil,
+                primaryWorkoutTitle: workoutsResult.workouts.first?.activityName,
+                demand: healthIntelligence?.workoutDemand,
+                occurredAt: now
+            )
+        }
+
+        if healthAccessDenied {
+            var missingSignals: [String] = []
+            if workoutsResult.availability == .accessDenied {
+                missingSignals.append("workouts")
+            }
+            if stepsResult.accessDenied {
+                missingSignals.append("steps")
+            }
+            timelineRecorder.recordHealthDataUnavailable(
+                missingSignals: missingSignals.isEmpty ? ["healthKit"] : missingSignals,
+                reason: "access_denied",
+                healthIntelligenceAwarenessAvailable: healthIntelligence != nil,
+                occurredAt: now
+            )
+        } else if healthUnavailable {
+            var missingSignals: [String] = []
+            if workoutsResult.availability == .unavailable {
+                missingSignals.append("workouts")
+            }
+            if stepsResult.unavailable, stepsResult.value == nil {
+                missingSignals.append("steps")
+            }
+            timelineRecorder.recordHealthDataUnavailable(
+                missingSignals: missingSignals.isEmpty ? ["healthKit"] : missingSignals,
+                reason: "unavailable",
+                healthIntelligenceAwarenessAvailable: healthIntelligence != nil,
+                occurredAt: now
+            )
+        }
     }
 
     private func recordContextGenerated(

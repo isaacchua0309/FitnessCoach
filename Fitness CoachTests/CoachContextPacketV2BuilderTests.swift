@@ -111,7 +111,136 @@ final class CoachContextPacketV2BuilderTests: XCTestCase {
 
         XCTAssertTrue(packet.missingData.stepsMissing)
         XCTAssertTrue(packet.missingData.workoutPermissionDeniedOrUnavailable)
+        XCTAssertTrue(packet.missingData.healthKitDenied)
+        XCTAssertTrue(packet.missingData.stepsUnavailable)
         XCTAssertEqual(packet.generationMode, .degraded)
+    }
+
+    func testWorkoutsIncludedInTrainingContext() async {
+        healthQuery.workouts = [
+            HealthWorkoutRecord(
+                id: UUID(),
+                activityName: "Run",
+                startDate: harness.today,
+                endDate: harness.today.addingTimeInterval(1_800),
+                durationMinutes: 30,
+                activeCalories: 260
+            )
+        ]
+        healthQuery.stepsByDay[harness.dateProvider.startOfDay(for: harness.today)] = 5_000
+
+        let packet = await makeBuilder().makeContext(recentMessages: [], mode: .live)
+
+        XCTAssertEqual(packet.training?.workoutsToday, 1)
+        XCTAssertEqual(packet.training?.workouts.count, 1)
+        XCTAssertEqual(packet.training?.workouts.first?.title, "Run")
+        XCTAssertEqual(packet.training?.workouts.first?.durationMinutes, 30)
+        XCTAssertEqual(packet.training?.workouts.first?.activeEnergyKcal, 260)
+        XCTAssertEqual(packet.training?.workouts.first?.source, "healthKit")
+    }
+
+    func testStepsIncludedWithSourceAndAsOf() async {
+        healthQuery.stepsByDay[harness.dateProvider.startOfDay(for: harness.today)] = 8_200
+
+        let packet = await makeBuilder().makeContext(recentMessages: [], mode: .live)
+
+        XCTAssertEqual(packet.today?.steps?.value, 8_200)
+        XCTAssertEqual(packet.today?.steps?.source, "healthKit")
+        XCTAssertNotNil(packet.today?.steps?.asOf)
+        XCTAssertFalse(packet.missingData.stepsMissing)
+    }
+
+    func testPermissionDeniedPopulatesGranularMissingDataFlags() async {
+        healthQuery.workoutsError = HealthKitManagerError.authorizationDenied
+        healthQuery.stepsError = HealthKitManagerError.authorizationDenied
+
+        let packet = await makeBuilder().makeContext(recentMessages: [], mode: .degraded)
+
+        XCTAssertTrue(packet.missingData.healthKitDenied)
+        XCTAssertTrue(packet.missingData.stepsUnavailable)
+        XCTAssertTrue(packet.missingData.workoutPermissionDeniedOrUnavailable)
+        XCTAssertNil(packet.training?.workoutsToday)
+    }
+
+    func testNoWorkoutDistinctFromUnknownWhenPossible() async {
+        healthQuery.workouts = []
+        healthQuery.stepsByDay[harness.dateProvider.startOfDay(for: harness.today)] = 3_000
+
+        let confirmedEmpty = await makeBuilder().makeContext(recentMessages: [], mode: .live)
+        XCTAssertEqual(confirmedEmpty.training?.workoutsToday, 0)
+        XCTAssertTrue(confirmedEmpty.training?.workouts.isEmpty == true)
+
+        healthQuery.workoutsError = HealthKitManagerError.authorizationDenied
+        let unknown = await makeBuilder().makeContext(recentMessages: [], mode: .degraded)
+        XCTAssertNil(unknown.training?.workoutsToday)
+    }
+
+    func testRecoveryMissingSignalsIncludedInHealthIntelligence() async {
+        snapshotProvider.snapshot = HealthIntelligenceSnapshot(
+            date: harness.today,
+            recovery: RecoverySummary(
+                score: nil,
+                status: .unknown,
+                title: "Recovery unclear",
+                explanation: "Sleep and HRV are missing.",
+                recommendedTraining: "Use how you feel today.",
+                recommendedNutrition: "Stay on your usual plan.",
+                confidence: .low,
+                contributingFactors: [],
+                missingSignals: [.sleep, .hrv]
+            ),
+            workout: nil,
+            activity: ActivitySummary(steps: 4_000, activeEnergyKcal: 200, exerciseMinutes: 20),
+            nutritionAdjustment: .none,
+            weeklyReview: nil,
+            planConfidence: .unknown,
+            nextBestAction: .none
+        )
+
+        let packet = await makeBuilder(loadHealthIntelligence: true).makeContext(
+            recentMessages: [],
+            mode: .live
+        )
+
+        XCTAssertNotNil(packet.healthIntelligence)
+        XCTAssertTrue(packet.healthIntelligence?.missingSignals.contains("sleep") == true)
+        XCTAssertTrue(packet.healthIntelligence?.missingSignals.contains("HRV") == true)
+        XCTAssertTrue(packet.missingData.sleepMissing)
+        XCTAssertTrue(packet.missingData.hrvMissing)
+    }
+
+    func testRecordsWorkoutDetectedAndStepsUpdatedTimelineEvents() async {
+        healthQuery.workouts = [
+            HealthWorkoutRecord(
+                id: UUID(),
+                activityName: "Strength",
+                startDate: harness.today,
+                endDate: harness.today.addingTimeInterval(2_400),
+                durationMinutes: 40,
+                activeCalories: 180
+            )
+        ]
+        healthQuery.stepsByDay[harness.dateProvider.startOfDay(for: harness.today)] = 6_500
+
+        _ = await makeBuilder().makeContext(recentMessages: [], mode: .live)
+
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertEqual(timelineRecorder.stepsUpdatedPayloads.count, 1)
+        XCTAssertEqual(timelineRecorder.stepsUpdatedPayloads.first?.steps, 6_500)
+        XCTAssertEqual(timelineRecorder.workoutDetectedPayloads.count, 1)
+        XCTAssertEqual(timelineRecorder.workoutDetectedPayloads.first?.workoutCount, 1)
+        XCTAssertEqual(timelineRecorder.workoutDetectedPayloads.first?.primaryWorkoutTitle, "Strength")
+    }
+
+    func testRecordsHealthDataUnavailableWhenPermissionDenied() async {
+        healthQuery.workoutsError = HealthKitManagerError.authorizationDenied
+        healthQuery.stepsError = HealthKitManagerError.authorizationDenied
+
+        _ = await makeBuilder().makeContext(recentMessages: [], mode: .degraded)
+
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertEqual(timelineRecorder.healthDataUnavailablePayloads.count, 1)
+        XCTAssertEqual(timelineRecorder.healthDataUnavailablePayloads.first?.reason, "access_denied")
     }
 
     func testUsesHealthWorkoutCaloriesNotLegacyDailyLogCalories() async throws {
@@ -243,7 +372,10 @@ final class CoachContextPacketV2BuilderTests: XCTestCase {
             weightLogService: weightLogService,
             userProfileService: harness.profileService,
             healthActivityQuery: HealthActivityQueryService(
-                workoutReader: StubHealthKitWorkoutReader(workouts: healthQuery.workouts),
+                workoutReader: StubHealthKitWorkoutReader(
+                    workouts: healthQuery.workouts,
+                    error: healthQuery.workoutsError
+                ),
                 stepReader: StubHealthKitStepReader(
                     stepsByDay: healthQuery.stepsByDay,
                     error: healthQuery.stepsError
@@ -299,6 +431,27 @@ final class CoachContextPacketV2BuilderTests: XCTestCase {
 @MainActor
 private final class CapturingCoachTimelineRecorder: CoachTimelineRecording, @unchecked Sendable {
     private(set) var contextGeneratedPayloads: [ContextGenerationPayload] = []
+    private(set) var workoutDetectedPayloads: [WorkoutDetectedPayload] = []
+    private(set) var stepsUpdatedPayloads: [StepsUpdatedPayload] = []
+    private(set) var healthDataUnavailablePayloads: [HealthDataUnavailablePayload] = []
+
+    struct WorkoutDetectedPayload {
+        var workoutCount: Int
+        var totalDurationMinutes: Int
+        var totalActiveCalories: Int?
+        var primaryWorkoutTitle: String?
+        var demand: String?
+    }
+
+    struct StepsUpdatedPayload {
+        var steps: Int
+        var previousSteps: Int?
+    }
+
+    struct HealthDataUnavailablePayload {
+        var missingSignals: [String]
+        var reason: String?
+    }
 
     func recordUserMessage(text: String, messageId: UUID?, hasPhotoAttachment: Bool, occurredAt: Date?) {}
     func recordAssistantMessage(text: String, messageId: UUID?, sourceAttribution: CoachTimelineEventSourceAttribution, occurredAt: Date?) {}
@@ -309,8 +462,20 @@ private final class CapturingCoachTimelineRecorder: CoachTimelineRecording, @unc
     func recordFoodDeleted(entry: FoodEntry, supersedesEventId: UUID?, occurredAt: Date?) {}
     func recordWaterLogged(entry: WaterEntry, occurredAt: Date?) {}
     func recordWeightLogged(entry: WeightEntry, occurredAt: Date?) {}
-    func recordWorkoutDetected(workoutCount: Int, totalDurationMinutes: Int, totalActiveCalories: Int?, primaryWorkoutTitle: String?, demand: String?, occurredAt: Date?) {}
-    func recordStepsUpdated(steps: Int, previousSteps: Int?, occurredAt: Date?) {}
+    func recordWorkoutDetected(workoutCount: Int, totalDurationMinutes: Int, totalActiveCalories: Int?, primaryWorkoutTitle: String?, demand: String?, occurredAt: Date?) {
+        workoutDetectedPayloads.append(
+            WorkoutDetectedPayload(
+                workoutCount: workoutCount,
+                totalDurationMinutes: totalDurationMinutes,
+                totalActiveCalories: totalActiveCalories,
+                primaryWorkoutTitle: primaryWorkoutTitle,
+                demand: demand
+            )
+        )
+    }
+    func recordStepsUpdated(steps: Int, previousSteps: Int?, occurredAt: Date?) {
+        stepsUpdatedPayloads.append(StepsUpdatedPayload(steps: steps, previousSteps: previousSteps))
+    }
     func recordPhotoAttached(payload: PhotoPayload, messageId: UUID?, occurredAt: Date?) {}
     func recordPhotoAnalysisStarted(sessionId: UUID, messageId: UUID?, occurredAt: Date?) {}
     func recordPhotoAnalysisCompleted(sessionId: UUID, messageId: UUID?, mealName: String?, estimateId: UUID?, confidence: CoachTimelineEventConfidence?, occurredAt: Date?) {}
@@ -327,7 +492,11 @@ private final class CapturingCoachTimelineRecorder: CoachTimelineRecording, @unc
     func recordUndoPerformed(entryType: String, undoneEntryId: UUID?, summary: String?, occurredAt: Date?) {}
     func recordBackendError(category: String, userMessage: String?, isRetryable: Bool, httpStatus: Int?, occurredAt: Date?) {}
     func recordAuthError(userMessage: String?, occurredAt: Date?) {}
-    func recordHealthDataUnavailable(missingSignals: [String], reason: String?, healthIntelligenceAwarenessAvailable: Bool?, occurredAt: Date?) {}
+    func recordHealthDataUnavailable(missingSignals: [String], reason: String?, healthIntelligenceAwarenessAvailable: Bool?, occurredAt: Date?) {
+        healthDataUnavailablePayloads.append(
+            HealthDataUnavailablePayload(missingSignals: missingSignals, reason: reason)
+        )
+    }
     func recordContextGenerated(payload: ContextGenerationPayload, occurredAt: Date?) {
         contextGeneratedPayloads.append(payload)
     }
@@ -345,9 +514,16 @@ private final class MockCoachContextSnapshotProvider: HealthIntelligenceSnapshot
 
 private struct StubHealthKitWorkoutReader: HealthKitWorkoutReading {
     let workouts: [HealthWorkoutRecord]
+    let error: Error?
+
+    init(workouts: [HealthWorkoutRecord], error: Error? = nil) {
+        self.workouts = workouts
+        self.error = error
+    }
 
     func fetchWorkouts(from startDate: Date, to endDate: Date) async throws -> [HealthWorkoutRecord] {
-        workouts.filter { $0.startDate >= startDate && $0.startDate < endDate }
+        if let error { throw error }
+        return workouts.filter { $0.startDate >= startDate && $0.startDate < endDate }
     }
 }
 

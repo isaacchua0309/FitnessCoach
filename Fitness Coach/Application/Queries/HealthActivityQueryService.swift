@@ -10,6 +10,18 @@
 
 import Foundation
 
+enum HealthWorkoutsReadAvailability: Equatable, Sendable {
+    case available
+    case accessDenied
+    case unavailable
+}
+
+struct HealthWorkoutsReadResult: Equatable, Sendable {
+    var workouts: [HealthWorkoutRecord]
+    var availability: HealthWorkoutsReadAvailability
+    var source: String
+}
+
 struct HealthActivityQueryService: Sendable {
 
     let workoutReader: HealthKitWorkoutReading
@@ -33,13 +45,47 @@ struct HealthActivityQueryService: Sendable {
         from startDate: Date,
         to endDate: Date
     ) async -> [HealthWorkoutRecord] {
+        await readWorkouts(from: startDate, to: endDate).workouts
+    }
+
+    func readWorkouts(
+        from startDate: Date,
+        to endDate: Date
+    ) async -> HealthWorkoutsReadResult {
         if repositoryReadRoutingEnabled, let healthDataRepository {
+            let availability = await healthDataRepository.getHealthDataAvailability()
+            if !availability.isHealthDataAvailable {
+                return HealthWorkoutsReadResult(
+                    workouts: [],
+                    availability: .unavailable,
+                    source: "healthRepository"
+                )
+            }
+            if !availability.hasTrainingReadAccess {
+                let denied = availability.permissionStatus.deniedSignals.contains(.workout)
+                    || availability.permissionStatus.deniedSignals.contains(.stepCount)
+                return HealthWorkoutsReadResult(
+                    workouts: [],
+                    availability: denied ? .accessDenied : .unavailable,
+                    source: "healthRepository"
+                )
+            }
+
             let workouts = await healthDataRepository.getWorkouts(from: startDate, to: endDate)
-            return workouts.map(\.asHealthWorkoutRecord)
+            return HealthWorkoutsReadResult(
+                workouts: workouts.map(\.asHealthWorkoutRecord),
+                availability: .available,
+                source: "healthRepository"
+            )
         }
 
         do {
-            return try await workoutReader.fetchWorkouts(from: startDate, to: endDate)
+            let workouts = try await workoutReader.fetchWorkouts(from: startDate, to: endDate)
+            return HealthWorkoutsReadResult(
+                workouts: workouts,
+                availability: .available,
+                source: "healthKit"
+            )
         } catch {
             // Deprecated fallback path — remove when isRepositoryReadRoutingEnabled flag is retired.
             let fields: [String: String] = [
@@ -48,12 +94,32 @@ struct HealthActivityQueryService: Sendable {
                 "optionalAccessFailure": String(HealthKitOptionalAccessPolicy.isOptionalAccessFailure(error))
             ]
             HealthTrainingDebugLogger.error(
-                "workouts query degraded to empty",
+                "workouts query failed",
                 fields: fields,
                 underlying: error
             )
-            return []
+            if HealthKitOptionalAccessPolicy.isOptionalAccessFailure(error) {
+                return HealthWorkoutsReadResult(
+                    workouts: [],
+                    availability: .accessDenied,
+                    source: "healthKit"
+                )
+            }
+            return HealthWorkoutsReadResult(
+                workouts: [],
+                availability: .unavailable,
+                source: "healthKit"
+            )
         }
+    }
+
+    func readWorkoutsToday(
+        on date: Date = Date(),
+        calendar: Calendar = .current
+    ) async -> HealthWorkoutsReadResult {
+        let dayStart = calendar.startOfDay(for: date)
+        let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? date
+        return await readWorkouts(from: dayStart, to: dayEnd)
     }
 
     func workoutCountToday(
