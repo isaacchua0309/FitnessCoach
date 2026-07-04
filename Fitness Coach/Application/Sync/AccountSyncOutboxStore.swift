@@ -32,6 +32,7 @@ protocol AccountSyncOutboxStore: AnyObject {
     func markFailed(_ mutationId: String, ownerUID: String, error: Error, now: Date) async throws
     func cancel(_ mutationId: String, ownerUID: String) async throws
     func pruneSucceeded(ownerUID: String, olderThan date: Date) async throws
+    func countActiveMutations(ownerUID: String) async throws -> (pending: Int, failed: Int)
 }
 
 enum AccountSyncRetryPolicy {
@@ -211,6 +212,30 @@ final class SwiftDataAccountSyncOutboxStore: AccountSyncOutboxStore {
             store.modelContext.delete(row)
         }
         try store.save()
+    }
+
+    func countActiveMutations(ownerUID: String) async throws -> (pending: Int, failed: Int) {
+        let normalizedUID = try AccountSyncMutationValidation.normalizedOwnerUID(ownerUID)
+        let pending = AccountSyncMutationStatus.pending.rawValue
+        let inFlight = AccountSyncMutationStatus.inFlight.rawValue
+        let failed = AccountSyncMutationStatus.failed.rawValue
+
+        let descriptor = FetchDescriptor<AccountSyncMutationEntity>(
+            predicate: #Predicate { mutation in
+                mutation.ownerUID == normalizedUID
+                    && (
+                        mutation.statusRawValue == pending
+                            || mutation.statusRawValue == inFlight
+                            || mutation.statusRawValue == failed
+                    )
+            }
+        )
+        let mutations = try store.fetch(descriptor)
+        let pendingCount = mutations.filter {
+            $0.status == .pending || $0.status == .inFlight
+        }.count
+        let failedCount = mutations.filter { $0.status == .failed }.count
+        return (pendingCount, failedCount)
     }
 
     // MARK: - Helpers
