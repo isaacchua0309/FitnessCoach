@@ -4,9 +4,6 @@
 //
 //  Forma — Persistence boundary for Coach chat transcript messages.
 //
-//  Coach messages (including `ChatMessageImageAttachment` JPEG bytes) are held in memory
-//  for the active session. Cross-launch persistence is not implemented yet.
-//
 
 import Foundation
 
@@ -16,7 +13,7 @@ protocol CoachChatTranscriptStore: AnyObject {
     func saveMessages(_ messages: [ChatMessage])
 }
 
-/// Default session store used by `CoachModel` today.
+/// In-memory store for tests, previews, and isolated Coach flows.
 final class CoachInMemoryChatTranscriptStore: CoachChatTranscriptStore {
     private var messages: [ChatMessage] = []
 
@@ -28,8 +25,3 @@ final class CoachInMemoryChatTranscriptStore: CoachChatTranscriptStore {
         self.messages = messages
     }
 }
-
-// TODO(CoachPersistence): Implement `CoachSwiftDataChatTranscriptStore` backed by a new
-// SwiftData entity that persists text fields plus image JPEG/thumbnail blobs (or file URLs
-// under Application Support). `ChatMessageEntity` is legacy v1-only and cannot store images.
-// Wire through `CoachModel` init once entity + migration are ready.

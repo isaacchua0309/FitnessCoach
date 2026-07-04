@@ -7,8 +7,8 @@
 //  ChatMessage is conversational display state/history only. It is not the
 //  source of truth for food, water, weight, or workout logs.
 //
-//  Image attachments are kept in memory for the active Coach session. See
-//  `CoachChatTranscriptStore` for the persistence boundary.
+//  Image attachments are persisted via `CoachChatTranscriptStore`. Large full-resolution
+//  JPEG bytes may be omitted on disk; thumbnails and metadata are always retained when possible.
 //
 
 import Foundation

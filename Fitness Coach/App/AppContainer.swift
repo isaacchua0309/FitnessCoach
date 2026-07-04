@@ -51,14 +51,10 @@ final class AppContainer {
     let healthIntelligenceContextBuilder: HealthIntelligenceContextBuilder
     let healthIntelligenceEngine: any HealthIntelligenceEngineing
     let healthIntelligenceSnapshotService: any HealthIntelligenceSnapshotServing
-    let weeklyReviewService: any WeeklyReviewServing
     let healthSyncService: HealthSyncService
     let healthSyncStateStore: HealthSyncStateStore
-    let healthSummaryRemoteSyncClient: any HealthSummaryRemoteSyncing
-    let healthSummarySyncService: HealthSummarySyncService
-    let healthSummarySyncConsentStore: HealthSummarySyncConsentStore
-    private let healthSummarySyncConsentStorage: any HealthSummarySyncConsentStoring
     let coachTimelineStore: SwiftDataCoachTimelineStore
+    let coachChatTranscriptStore: SwiftDataCoachChatTranscriptStore
     let coachTimelineBackfillService: CoachTimelineBackfillService
     let coachTimelineRecorder: DefaultCoachTimelineRecorder
     private let authUIDCache: AuthUIDCache
@@ -74,7 +70,6 @@ final class AppContainer {
     let publicEntryAnalyticsLogger: any PublicEntryAnalyticsLogging
     let themeAnalyticsLogger: any ThemeAnalyticsLogging
     let settingsAnalyticsLogger: any SettingsAnalyticsLogging
-    let healthIntelligenceAnalyticsLogger: any HealthIntelligenceAnalyticsLogging
     let onboardingRoutingConfiguration: OnboardingRoutingConfiguration
 
     let themeStore: ThemeStore
@@ -89,7 +84,6 @@ final class AppContainer {
         publicEntryAnalyticsLogger: (any PublicEntryAnalyticsLogging)? = nil,
         themeAnalyticsLogger: (any ThemeAnalyticsLogging)? = nil,
         settingsAnalyticsLogger: (any SettingsAnalyticsLogging)? = nil,
-        healthIntelligenceAnalyticsLogger: (any HealthIntelligenceAnalyticsLogging)? = nil,
         onboardingRoutingConfiguration: OnboardingRoutingConfiguration? = nil
     ) throws {
         let resolvedOnboardingRoutingConfiguration = onboardingRoutingConfiguration ?? .production
@@ -116,8 +110,6 @@ final class AppContainer {
         self.publicEntryAnalyticsLogger = publicEntryAnalyticsLogger ?? OSLogPublicEntryAnalyticsLogger()
         self.themeAnalyticsLogger = themeAnalyticsLogger ?? OSLogThemeAnalyticsLogger()
         self.settingsAnalyticsLogger = settingsAnalyticsLogger ?? OSLogSettingsAnalyticsLogger()
-        self.healthIntelligenceAnalyticsLogger = healthIntelligenceAnalyticsLogger
-            ?? OSLogHealthIntelligenceAnalyticsLogger()
         #else
         self.onboardingAnalyticsLogger = onboardingAnalyticsLogger ?? NoOpOnboardingAnalyticsLogger()
         self.todayAnalyticsLogger = todayAnalyticsLogger ?? NoOpTodayAnalyticsLogger()
@@ -126,18 +118,13 @@ final class AppContainer {
         self.publicEntryAnalyticsLogger = publicEntryAnalyticsLogger ?? NoOpPublicEntryAnalyticsLogger()
         self.themeAnalyticsLogger = themeAnalyticsLogger ?? NoOpThemeAnalyticsLogger()
         self.settingsAnalyticsLogger = settingsAnalyticsLogger ?? NoOpSettingsAnalyticsLogger()
-        self.healthIntelligenceAnalyticsLogger = healthIntelligenceAnalyticsLogger
-            ?? NoOpHealthIntelligenceAnalyticsLogger()
         #endif
-        HealthIntelligencePipelineAnalytics.register(self.healthIntelligenceAnalyticsLogger)
         self.onboardingRoutingConfiguration = resolvedOnboardingRoutingConfiguration
 
         themeStore = ThemeStore(analyticsLogger: self.themeAnalyticsLogger)
 
+        healthTrainingService = HealthTrainingService()
         let sharedHealthKitManager = HealthKitManager()
-        healthTrainingService = HealthTrainingService(
-            authorizer: SystemHealthKitTrainingAuthorization(healthKitManager: sharedHealthKitManager)
-        )
         let workoutReader = HealthTrainingReaderFactory.makeWorkoutReader(
             healthKitManager: sharedHealthKitManager
         )
@@ -165,40 +152,11 @@ final class AppContainer {
         )
         healthSyncService = HealthSyncService(
             repository: healthDataRepository,
-            permissionService: HealthPermissionService(healthKitManager: sharedHealthKitManager),
             cacheStore: healthCacheStore
-        )
-        let remoteSummarySyncCapable = HealthIntelligenceFeatureFlags.healthSummaryRemoteSyncEnabled
-        healthSummarySyncConsentStorage = inMemory
-            ? LockedHealthSummarySyncConsentStore()
-            : UserDefaultsHealthSummarySyncConsentStore()
-        healthSummarySyncConsentStore = HealthSummarySyncConsentStore(
-            storage: healthSummarySyncConsentStorage,
-            userProvider: authUIDCache
-        )
-        let remoteSyncActiveProvider: @Sendable () -> Bool = { [authUIDCache, healthSummarySyncConsentStorage] in
-            HealthSummarySyncConsentResolver.isRemoteSyncActive(
-                storage: healthSummarySyncConsentStorage,
-                userProvider: authUIDCache,
-                featureFlagEnabled: remoteSummarySyncCapable
-            )
-        }
-        healthSummaryRemoteSyncClient = (inMemory || !remoteSummarySyncCapable)
-            ? NoopHealthSummaryRemoteSyncClient()
-            : FirestoreHealthSummaryRemoteSyncClient(userProvider: authUIDCache)
-        healthSummarySyncService = HealthSummarySyncService(
-            remoteSyncClient: healthSummaryRemoteSyncClient,
-            cacheStore: healthCacheStore,
-            repository: healthDataRepository,
-            userProvider: authUIDCache,
-            localHealthSyncService: healthSyncService,
-            remoteSyncEnabled: remoteSyncActiveProvider
         )
         healthSyncStateStore = HealthSyncStateStore(
             syncService: healthSyncService,
-            remoteSummarySyncService: remoteSummarySyncCapable ? healthSummarySyncService : nil,
-            syncEnabled: HealthIntelligenceFeatureFlags.isSyncEnabled,
-            remoteSummarySyncEnabled: remoteSyncActiveProvider
+            syncEnabled: HealthIntelligenceFeatureFlags.isSyncEnabled
         )
         if HealthIntelligenceFeatureFlags.isSyncEnabled {
             refreshCenter.healthDayChangeHandler = { [healthSyncStateStore] in
@@ -284,18 +242,12 @@ final class AppContainer {
             cacheStore: healthCacheStore,
             enginesEnabled: HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled
         )
-        healthSyncStateStore.setSnapshotService(healthIntelligenceSnapshotService)
-        weeklyReviewService = WeeklyReviewService(
-            contextBuilder: healthIntelligenceContextBuilder,
-            weeklyReviewEngine: weeklyReviewEngine,
-            recoveryEngine: recoveryEngine,
-            trainingLoadEngine: trainingLoadEngine,
-            cacheStore: healthCacheStore,
-            enginesEnabled: HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled,
-            weeklyReviewEnabled: HealthIntelligenceFeatureFlags.healthIntelligenceWeeklyReviewEnabled
-        )
 
         coachTimelineStore = SwiftDataCoachTimelineStore(
+            store: store,
+            userIdProvider: { [weak authManager] in authManager?.currentUID }
+        )
+        coachChatTranscriptStore = SwiftDataCoachChatTranscriptStore(
             store: store,
             userIdProvider: { [weak authManager] in authManager?.currentUID }
         )
@@ -312,9 +264,7 @@ final class AppContainer {
         HealthIntelligenceEngineLogger.wiringRegistered(
             fields: [
                 "enginesEnabled": String(HealthIntelligenceFeatureFlags.healthIntelligenceEnginesEnabled),
-                "uiEnabled": String(HealthIntelligenceFeatureFlags.healthIntelligenceUIEnabled),
-                "coachContextEnabled": String(HealthIntelligenceFeatureFlags.healthIntelligenceCoachContextEnabled),
-                "weeklyReviewEnabled": String(HealthIntelligenceFeatureFlags.healthIntelligenceWeeklyReviewEnabled),
+                "uiEnabled": String(HealthIntelligenceFeatureFlags.isUIEnabled),
                 "repository": "HealthDataRepository",
                 "contextBuilder": "HealthIntelligenceContextBuilder"
             ]
@@ -388,11 +338,8 @@ final class AppContainer {
     }
 
     func syncHealthCacheUserID() {
-        let uidChanged = authUIDCache.updateIfChanged(uid: authManager.currentUID)
-        healthSummarySyncConsentStore.refresh()
-        if uidChanged {
-            healthSyncStateStore.cancelActiveSync()
-        }
+        authUIDCache.update(uid: authManager.currentUID)
+        healthSyncStateStore.cancelActiveSync()
     }
 
     func makeHealthIntelligenceEngine() -> any HealthIntelligenceEngineing {
@@ -404,25 +351,14 @@ final class AppContainer {
         await healthIntelligenceSnapshotService.refreshTodaySnapshot(calendar: .current)
     }
 
-    func makeHealthIntelligenceAnalyticsCoordinator() -> HealthIntelligenceAnalyticsCoordinator {
-        HealthIntelligenceAnalyticsCoordinator(
-            analyticsLogger: healthIntelligenceAnalyticsLogger
-        )
-    }
-
-    func makeTodayActionCoordinator(
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
-    ) -> TodayActionCoordinator {
+    func makeTodayActionCoordinator() -> TodayActionCoordinator {
         TodayActionCoordinator(
             actionCenter: actionCenter,
-            analyticsLogger: todayAnalyticsLogger,
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+            analyticsLogger: todayAnalyticsLogger
         )
     }
 
-    func makeTodayModel(
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
-    ) -> TodayModel {
+    func makeTodayModel() -> TodayModel {
         TodayModel(
             dailyLogReader: dailyLogService,
             foodLogReader: foodLogService,
@@ -431,7 +367,6 @@ final class AppContainer {
             userProfileReader: userProfileService,
             healthActivityQuery: healthActivityQueryService,
             healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
-            healthDataRepository: healthDataRepository,
             hydrationContextProvider: { [weak self] in
                 guard let self else { return nil }
                 return TodayHydrationGate.resolve(
@@ -441,26 +376,11 @@ final class AppContainer {
             },
             authStateProvider: { [weak self] in
                 self?.authManager.authState ?? .unknown
-            },
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
-            healthSyncPhaseProvider: { [weak self] in
-                self?.healthSyncStateStore.state.phase
-            },
-            lastSuccessfulLocalSyncAtProvider: { [weak self] in
-                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
-            },
-            remoteSyncConsentDecisionProvider: { [weak self] in
-                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
-            },
-            isRemoteSyncCapabilityEnabled: {
-                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
             }
         )
     }
 
-    func makeCoachModel(
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
-    ) -> CoachModel {
+    func makeCoachModel() -> CoachModel {
         let contextPacketBuilder = CoachContextPacketV2Builder(
             dailyLogService: dailyLogService,
             foodLogService: foodLogService,
@@ -481,28 +401,14 @@ final class AppContainer {
             dailyLogReader: dailyLogService,
             healthActivityQuery: healthActivityQueryService,
             healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
-            healthDataRepository: healthDataRepository,
-            healthIntelligenceLoadEnabled: { HealthIntelligenceFeatureFlags.shouldCoachLoadHealthIntelligence },
-            healthSyncPhaseProvider: { [weak self] in
-                self?.healthSyncStateStore.state.phase
-            },
-            lastSuccessfulLocalSyncAtProvider: { [weak self] in
-                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
-            },
-            remoteSyncConsentDecisionProvider: { [weak self] in
-                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
-            },
-            isRemoteSyncCapabilityEnabled: {
-                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
-            },
             weightLogReader: weightLogService,
             aiService: aiService,
             contextPacketBuilder: contextPacketBuilder,
             userProfileReader: userProfileService,
             aiCommandParsingEnabled: aiCommandParsingEnabled,
             trainingInsightsStore: trainingInsightsStore,
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
-timelineRecorder: coachTimelineRecorder,
+            transcriptStore: coachChatTranscriptStore,
+            timelineRecorder: coachTimelineRecorder,
             timelineStore: coachTimelineStore
         )
     }
@@ -515,40 +421,17 @@ timelineRecorder: coachTimelineRecorder,
         SettingsAnalyticsCoordinator(analyticsLogger: settingsAnalyticsLogger)
     }
 
-    func makeJourneyModel(
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
-    ) -> JourneyModel {
+    func makeJourneyModel() -> JourneyModel {
         JourneyModel(
             dailyLogReader: dailyLogService,
             weightLogReader: weightLogService,
             userProfileReader: userProfileService,
             trainingInsightsStore: trainingInsightsStore,
-            workoutReader: healthKitWorkoutReader,
-            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
-            weeklyReviewService: weeklyReviewService,
-            healthIntelligenceEngine: healthIntelligenceEngine,
-            healthCacheStore: healthCacheStore,
-            healthActivityQuery: healthActivityQueryService,
-            healthDataRepository: healthDataRepository,
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
-            healthSyncPhaseProvider: { [weak self] in
-                self?.healthSyncStateStore.state.phase
-            },
-            lastSuccessfulLocalSyncAtProvider: { [weak self] in
-                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
-            },
-            remoteSyncConsentDecisionProvider: { [weak self] in
-                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
-            },
-            isRemoteSyncCapabilityEnabled: {
-                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
-            }
+            workoutReader: healthKitWorkoutReader
         )
     }
 
-    func makePlanModel(
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
-    ) -> PlanModel {
+    func makePlanModel() -> PlanModel {
         PlanModel(
             actionCenter: actionCenter,
             userProfileReader: userProfileService,
@@ -556,23 +439,7 @@ timelineRecorder: coachTimelineRecorder,
             dailyLogReader: dailyLogService,
             weightLogReader: weightLogService,
             trainingInsightsStore: trainingInsightsStore,
-            analyticsLogger: planAnalyticsLogger,
-            healthBaselineService: healthBaselineService,
-            healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
-            healthDataRepository: healthDataRepository,
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
-            healthSyncPhaseProvider: { [weak self] in
-                self?.healthSyncStateStore.state.phase
-            },
-            lastSuccessfulLocalSyncAtProvider: { [weak self] in
-                self?.healthSyncStateStore.state.lastSuccessfulSyncAt
-            },
-            remoteSyncConsentDecisionProvider: { [weak self] in
-                self?.healthSummarySyncConsentStore.state.decision ?? .notDetermined
-            },
-            isRemoteSyncCapabilityEnabled: {
-                HealthSummaryRemoteSyncGate.isCapabilityEnabled()
-            }
+            analyticsLogger: planAnalyticsLogger
         )
     }
 

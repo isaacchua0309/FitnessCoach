@@ -10,7 +10,7 @@ import SwiftData
 
 enum FormaModelContainer {
 
-    static let schema = Schema(versionedSchema: FormaSchemaV5.self)
+    static let schema = Schema(versionedSchema: FormaSchemaV6.self)
 
     static func makeContainer(inMemory: Bool = false) throws -> ModelContainer {
         if !inMemory {
