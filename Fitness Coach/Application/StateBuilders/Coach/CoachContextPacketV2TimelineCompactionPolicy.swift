@@ -385,7 +385,7 @@ enum CoachContextPacketV2TimelineCompactionPolicy {
     }
 }
 
-private extension CoachTimelineEvent {
+extension CoachTimelineEvent {
     var linkedPhotoSessionId: UUID? {
         link.linkedPhotoSessionId
     }

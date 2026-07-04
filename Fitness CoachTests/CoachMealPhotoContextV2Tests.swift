@@ -91,7 +91,7 @@ final class CoachMealPhotoContextV2Tests: XCTestCase {
         )
 
         XCTAssertEqual(request.context.training?.workoutsToday, 1)
-        XCTAssertEqual(request.context.training?.workouts?.first?.title, "Run")
+        XCTAssertEqual(request.context.training?.workouts.first?.title, "Run")
     }
 
     func testStepsIncludedOrMissingDataPopulated() async throws {
@@ -214,7 +214,7 @@ final class CoachMealPhotoContextV2Tests: XCTestCase {
 
         let answered = try await waitForEvent { $0.type == .clarificationAnswered }
         XCTAssertEqual(answered.linkedPhotoSessionId, asked.linkedPhotoSessionId)
-        XCTAssertEqual(aiService.receivedClarifications.last??, "It was barley, not quinoa.")
+        XCTAssertEqual(aiService.receivedClarifications.last, "It was barley, not quinoa.")
 
         let photoLifecycleEvents = timelineStore.events.filter {
             [
@@ -764,5 +764,38 @@ private extension Result {
         case .success(let value): return value
         case .failure: return nil
         }
+    }
+}
+
+private struct StubHealthKitWorkoutReader: HealthKitWorkoutReading {
+    let workouts: [HealthWorkoutRecord]
+    let error: Error?
+
+    init(workouts: [HealthWorkoutRecord], error: Error? = nil) {
+        self.workouts = workouts
+        self.error = error
+    }
+
+    func fetchWorkouts(from startDate: Date, to endDate: Date) async throws -> [HealthWorkoutRecord] {
+        if let error { throw error }
+        return workouts
+    }
+}
+
+private struct StubHealthKitStepReader: HealthKitStepReading {
+    let stepsByDay: [Date: Int]
+    let error: Error?
+
+    init(stepsByDay: [Date: Int], error: Error? = nil) {
+        self.stepsByDay = stepsByDay
+        self.error = error
+    }
+
+    func fetchStepCount(from startDate: Date, to endDate: Date) async throws -> Int {
+        if let error { throw error }
+        guard let steps = stepsByDay[startDate] else {
+            throw HealthKitManagerError.authorizationDenied
+        }
+        return steps
     }
 }

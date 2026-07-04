@@ -14,7 +14,7 @@ final class CoachImageWorkflowE2ETests: XCTestCase {
 
     // MARK: - 1. Pick image from library
 
-    func testLibraryPickShowsImageInComposerWithSendEnabled() throws {
+    func testLibraryPickShowsImageInComposerWithSendEnabled() async throws {
         let container = try AppContainer(inMemory: true)
         let model = try CoachImageWorkflowTestSupport.makeCoach(
             aiService: WorkflowCapturingPhotoAIService(),
@@ -33,7 +33,7 @@ final class CoachImageWorkflowE2ETests: XCTestCase {
         XCTAssertTrue(model.messages.isEmpty)
     }
 
-    func testRemoveStagedLibraryImageClearsComposerAndDisablesSend() throws {
+    func testRemoveStagedLibraryImageClearsComposerAndDisablesSend() async throws {
         let container = try AppContainer(inMemory: true)
         let model = try CoachImageWorkflowTestSupport.makeCoach(
             aiService: WorkflowCapturingPhotoAIService(),
@@ -51,7 +51,7 @@ final class CoachImageWorkflowE2ETests: XCTestCase {
         XCTAssertFalse(model.inputState.canSend)
     }
 
-    func testEmptyComposerCannotSendWithoutTextOrImage() throws {
+    func testEmptyComposerCannotSendWithoutTextOrImage() async throws {
         let container = try AppContainer(inMemory: true)
         let model = try CoachImageWorkflowTestSupport.makeCoach(
             aiService: WorkflowCapturingPhotoAIService(),
@@ -64,7 +64,7 @@ final class CoachImageWorkflowE2ETests: XCTestCase {
 
     // MARK: - 2. Take photo
 
-    func testCameraOutputAppearsInComposer() throws {
+    func testCameraOutputAppearsInComposer() async throws {
         let container = try AppContainer(inMemory: true)
         let model = try CoachImageWorkflowTestSupport.makeCoach(
             aiService: WorkflowCapturingPhotoAIService(),

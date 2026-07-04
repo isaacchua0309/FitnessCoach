@@ -64,10 +64,9 @@ final class CoachMealImageAIRequestBuilderTests: XCTestCase {
             filename: CoachMealImageAIRequestBuilder.defaultFilename
         )
 
-        XCTAssertEqual(
-            CoachMealImageAIRequestBuilder.validate(attachment),
-            .failure(.emptyUploadData)
-        )
+        guard case .failure(.emptyUploadData) = CoachMealImageAIRequestBuilder.validate(attachment) else {
+            return XCTFail("Expected emptyUploadData validation failure")
+        }
         XCTAssertEqual(
             CoachMealImageAIRequestBuilder.mapBuildError(.emptyUploadData),
             .imageEncodingFailed
@@ -82,10 +81,10 @@ final class CoachMealImageAIRequestBuilderTests: XCTestCase {
             filename: CoachMealImageAIRequestBuilder.defaultFilename
         )
 
-        XCTAssertEqual(
-            CoachMealImageAIRequestBuilder.validate(attachment),
-            .failure(.uploadExceedsMaxBytes(byteCount: maxBytes + 1, maxBytes: maxBytes))
-        )
+        guard case .failure(.uploadExceedsMaxBytes(byteCount: maxBytes + 1, maxBytes: maxBytes)) =
+            CoachMealImageAIRequestBuilder.validate(attachment) else {
+            return XCTFail("Expected uploadExceedsMaxBytes validation failure")
+        }
         XCTAssertEqual(
             CoachMealImageAIRequestBuilder.mapBuildError(
                 .uploadExceedsMaxBytes(byteCount: maxBytes + 1, maxBytes: maxBytes)
