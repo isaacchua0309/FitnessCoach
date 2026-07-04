@@ -83,6 +83,34 @@ enum FoodCompoundDishDetector {
             minComponents: 2,
             decompositionHint: "drink base, milk/sugar, toppings"
         ),
+        CompoundDishSpec(
+            id: "buffet",
+            label: "buffet",
+            patterns: [#"\bbuffet\b"#],
+            minComponents: 2,
+            decompositionHint: "each main item or plate section"
+        ),
+        CompoundDishSpec(
+            id: "curry_rice",
+            label: "curry rice",
+            patterns: [#"\bcurry rice\b"#],
+            minComponents: 2,
+            decompositionHint: "rice, curry, protein or vegetables"
+        ),
+        CompoundDishSpec(
+            id: "char_kway_teow",
+            label: "char kway teow",
+            patterns: [#"\bchar kway teow\b"#, #"\bchar kway\b"#],
+            minComponents: 2,
+            decompositionHint: "noodles, protein, vegetables, oil"
+        ),
+        CompoundDishSpec(
+            id: "laksa",
+            label: "laksa",
+            patterns: [#"\blaksa\b"#],
+            minComponents: 3,
+            decompositionHint: "noodles, broth, protein, toppings"
+        ),
     ]
 
     static func analyze(prompt: String) -> CompoundFoodPromptAnalysis {

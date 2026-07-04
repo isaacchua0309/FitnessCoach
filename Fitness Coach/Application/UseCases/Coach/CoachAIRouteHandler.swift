@@ -61,6 +61,8 @@ final class CoachAIRouteHandler {
                 return .message(response)
             case .requiresConfirmation(let message):
                 return .message(message)
+            case .requiresClarificationBeforePending(let message):
+                return .message(message)
             case .reject(let message):
                 return .message(message)
             }
@@ -245,13 +247,6 @@ final class CoachAIRouteHandler {
             confidence: sessionResult.confidence
         )
 
-        switch ConfirmationPolicy.decision(for: sanity.mealDraft) {
-        case .reject(let message):
-            throw AIServiceError.invalidNutritionJSON(message)
-        case .requiresConfirmation, .executeImmediately:
-            break
-        }
-
         let actionResult = presentAIFoodEstimate(
             mealDraft: sanity.mealDraft,
             originalText: prompt,
@@ -265,7 +260,9 @@ final class CoachAIRouteHandler {
                 fallbackLabel: nil
             ),
             sanityWarning: sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage,
-            fromPhotoAnalysis: true
+            fromPhotoAnalysis: true,
+            clarifyingQuestion: sessionResult.clarifyingQuestion,
+            photoNeedsUserReview: response.needsUserReview
         )
 
         guard actionResult.pendingConfirmation != nil else {
@@ -447,6 +444,8 @@ final class CoachAIRouteHandler {
                 )
             }
             return .message(workingParsed.assistantMessage ?? message)
+        case .requiresClarificationBeforePending(let message):
+            return .message(message)
         case .executeImmediately:
             if workingParsed.actions.isEmpty {
                 return .message(workingParsed.assistantMessage ?? CoachResponseBuilder.aiNotUnderstood)
@@ -609,7 +608,9 @@ final class CoachAIRouteHandler {
         sanityWarning: String? = nil,
         fromPhotoAnalysis: Bool = false,
         usedClassifierMerge: Bool = false,
-        matchedCommonFood: Bool = false
+        matchedCommonFood: Bool = false,
+        clarifyingQuestion: String? = nil,
+        photoNeedsUserReview: Bool = false
     ) -> CoachActionResult {
         let sanitized = FoodLogDraftNutritionCompleter.sanitize(mealDraft, hintText: originalText)
         let sanity = NutritionSanityValidator.validate(
@@ -636,8 +637,17 @@ final class CoachAIRouteHandler {
             )
         }
 
-        switch ConfirmationPolicy.decision(for: sanity.mealDraft) {
-        case .requiresConfirmation, .executeImmediately:
+        switch ConfirmationPolicy.foodPresentation(
+            meal: sanity.mealDraft,
+            prompt: originalText,
+            confidence: sanity.confidence,
+            fromPhotoAnalysis: fromPhotoAnalysis,
+            clarifyingQuestion: clarifyingQuestion,
+            photoNeedsUserReview: photoNeedsUserReview || sanity.mealDraft.requiresClarificationBeforeLogging
+        ) {
+        case .clarifyFirst(let question):
+            return .message(question)
+        case .pending(let presentedMeal, let presentedConfidence):
             let sourceAttribution = CoachAIResponseContextAdapter.resolveFoodEstimateAttribution(
                 fromPhotoAnalysis: fromPhotoAnalysis,
                 usedClassifierMerge: usedClassifierMerge,
@@ -650,8 +660,8 @@ final class CoachAIRouteHandler {
             return CoachPendingConfirmationPresenter.presentFoodPending(
                 originalText: originalText,
                 assistantMessage: assistantMessage,
-                mealDraft: sanity.mealDraft,
-                confidence: sanity.confidence,
+                mealDraft: presentedMeal,
+                confidence: presentedConfidence,
                 sanityWarning: resolvedSanityWarning,
                 fromPhotoAnalysis: fromPhotoAnalysis,
                 sourceAttribution: sourceAttribution

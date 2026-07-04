@@ -74,6 +74,16 @@ enum CoachIntentPhraseGuard {
         return normalize(text).contains("same as")
     }
 
+    static func isEstimateOnlyWithoutLogging(_ text: String) -> Bool {
+        let normalized = normalize(text)
+        guard normalized.contains("estimate") else { return false }
+        return normalized.contains("don't log")
+            || normalized.contains("dont log")
+            || normalized.contains("do not log")
+            || normalized.contains("without logging")
+            || normalized.contains("not log")
+    }
+
     static func isQuestionForm(_ text: String) -> Bool {
         let normalized = normalize(text)
         if normalized.hasSuffix("?") { return true }
@@ -109,9 +119,10 @@ enum CoachIntentPhraseGuard {
         guard !hasExplicitLoggingIntent(text) else { return result }
 
         let needsCorrection =
-            (result.intent == .logFood && (isAmbiguousAdvicePhrase(text) || isReferenceOnlyWithoutLogging(text)))
+            (result.intent == .logFood && (isAmbiguousAdvicePhrase(text) || isReferenceOnlyWithoutLogging(text) || isEstimateOnlyWithoutLogging(text)))
             || (isAmbiguousAdvicePhrase(text) && (result.requiresAppMutation || result.action != nil))
             || (isReferenceOnlyWithoutLogging(text) && (result.intent == .logFood || result.action != nil))
+            || (isEstimateOnlyWithoutLogging(text) && (result.intent == .logFood || result.action != nil))
 
         guard needsCorrection else { return result }
 

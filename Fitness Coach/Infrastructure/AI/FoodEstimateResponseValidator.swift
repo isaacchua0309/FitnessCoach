@@ -101,10 +101,12 @@ enum FoodEstimateResponseValidator {
             }
 
             if promptAnalysis.requiresAssumptions {
+                let hasTrustMetadata = !meal.assumptions.isEmpty || !meal.uncertaintyReasons.isEmpty
                 let assumptionText = (
                     meal.assumptions + meal.warnings
                 ).joined(separator: " ").lowercased()
-                if !assumptionText.contains("assumption") && meal.assumptions.isEmpty {
+                if !hasTrustMetadata,
+                   !assumptionText.contains("assumption") {
                     errors.append(
                         "Meal \"\(meal.displayName)\" must include assumptions for portion, oil/sauce, confidence, and clarifications."
                     )

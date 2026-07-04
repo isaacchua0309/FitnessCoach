@@ -155,15 +155,7 @@ enum ImageAnalysisSessionReducer {
     }
 
     static func shouldRequestClarification(for result: ImageAnalysisSessionResult) -> Bool {
-        if result.confidence == .low {
-            return true
-        }
-        if let question = result.clarifyingQuestion?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-           !question.isEmpty {
-            return true
-        }
-        return false
+        CoachFoodAmbiguityPolicy.photoSessionShouldClarify(result: result)
     }
 
     private static func appendClarificationTurn(

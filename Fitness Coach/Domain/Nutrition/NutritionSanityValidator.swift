@@ -77,10 +77,24 @@ enum NutritionSanityValidator {
 
         let uniqueIssues = Array(Set(issues)).sorted()
         guard !uniqueIssues.isEmpty else {
+            var adjustedMeal = meal
+            if CoachFoodAmbiguityPolicy.isHighRiskAmbiguousFood(prompt: prompt, meal: meal),
+               !CoachFoodAmbiguityPolicy.hasExplicitPortion(in: prompt),
+               !CoachFoodAmbiguityPolicy.mealHasExplicitPortion(meal) {
+                if adjustedMeal.uncertaintyReasons.isEmpty {
+                    adjustedMeal.uncertaintyReasons.append("Portion size is unclear.")
+                }
+                if CoachFoodAmbiguityPolicy.likelyHiddenSauceOrOil(prompt: prompt, meal: adjustedMeal),
+                   !adjustedMeal.uncertaintyReasons.contains(where: {
+                       $0.localizedCaseInsensitiveContains("sauce") || $0.localizedCaseInsensitiveContains("oil")
+                   }) {
+                    adjustedMeal.uncertaintyReasons.append("Hidden sauce or cooking oil amount is uncertain.")
+                }
+            }
             return NutritionSanityResult(
                 isAcceptable: true,
                 issues: [],
-                mealDraft: meal,
+                mealDraft: adjustedMeal,
                 confidence: confidence
             )
         }

@@ -10,6 +10,13 @@ import Foundation
 enum ConfirmationDecision: Equatable, Sendable {
     case executeImmediately
     case requiresConfirmation(String)
+    case requiresClarificationBeforePending(String)
+    case reject(String)
+}
+
+enum FoodConfirmationPresentation: Equatable, Sendable {
+    case clarifyFirst(String)
+    case pending(FoodLogDraft, AIConfidence)
     case reject(String)
 }
 
@@ -42,6 +49,44 @@ enum ConfirmationPolicy {
             return .requiresConfirmation(CoachResponseBuilder.aiFoodPendingConfirmation)
         case .invalid(let message):
             return .reject(message.isEmpty ? CoachResponseBuilder.aiNotUnderstood : message)
+        }
+    }
+
+    /// Applies ambiguity policy, then structural validation, for AI food pending cards.
+    static func foodPresentation(
+        meal: FoodLogDraft,
+        prompt: String,
+        confidence: AIConfidence,
+        fromPhotoAnalysis: Bool = false,
+        clarifyingQuestion: String? = nil,
+        photoNeedsUserReview: Bool = false
+    ) -> FoodConfirmationPresentation {
+        let ambiguityInput = CoachFoodAmbiguityPostEstimateInput(
+            prompt: prompt,
+            meal: meal,
+            confidence: confidence,
+            fromPhotoAnalysis: fromPhotoAnalysis,
+            clarifyingQuestion: clarifyingQuestion,
+            photoNeedsUserReview: photoNeedsUserReview
+        )
+
+        switch CoachFoodAmbiguityPolicy.postEstimateOutcome(input: ambiguityInput) {
+        case .clarifyFirst(let question):
+            return .clarifyFirst(question)
+        case .proceedAmbiguous(let adjustedMeal, let adjustedConfidence):
+            switch AIResponseValidator.validateFood(adjustedMeal, confidence: adjustedConfidence) {
+            case .valid, .requiresConfirmation:
+                return .pending(adjustedMeal, adjustedConfidence)
+            case .invalid(let message):
+                return .reject(message.isEmpty ? CoachResponseBuilder.aiNotUnderstood : message)
+            }
+        case .proceed:
+            switch AIResponseValidator.validateFood(meal, confidence: confidence) {
+            case .valid, .requiresConfirmation:
+                return .pending(meal, confidence)
+            case .invalid(let message):
+                return .reject(message.isEmpty ? CoachResponseBuilder.aiNotUnderstood : message)
+            }
         }
     }
 

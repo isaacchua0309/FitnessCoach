@@ -230,7 +230,8 @@ final class CoachRouteDecider: Sendable {
             CoachRouteDebugLogger.log(decision, intentResult: intentResult)
             return decision
         case .proceed(let gatedResult):
-            let route = intentRouter.route(intentResult: gatedResult, originalText: input.originalText)
+            var route = intentRouter.route(intentResult: gatedResult, originalText: input.originalText)
+            route = applyPreEstimateAmbiguityGate(route, originalText: input.originalText)
             let requiresAPI = routeRequiresAPI(route)
             let tier = routedTier(from: route)
 
@@ -251,6 +252,20 @@ final class CoachRouteDecider: Sendable {
     }
 
     // MARK: - Local decisions
+
+    private func applyPreEstimateAmbiguityGate(_ route: CoachRoute, originalText: String) -> CoachRoute {
+        guard case .ai(.estimateFood(let prompt)) = route else { return route }
+        guard let outcome = CoachFoodAmbiguityPolicy.preEstimateOutcome(
+            prompt: prompt,
+            hasImageAttachment: false
+        ) else {
+            return route
+        }
+        if case .clarifyFirst(let message) = outcome {
+            return .clarification(message)
+        }
+        return route
+    }
 
     private func localDecision(
         route: CoachRoute,
