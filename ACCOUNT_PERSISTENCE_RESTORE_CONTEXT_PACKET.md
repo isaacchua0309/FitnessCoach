@@ -47,7 +47,7 @@ Same as reinstall for nutrition/coach data. Second device receives **profile onl
 | Logout does not wipe local logs | `SignOutHygieneTests.testSignOutPolicyPreservesLocalProfile`; `AuthLogoutPolicy` has no SwiftData wipe |
 | Coach rows with `userId == nil` visible to all users | `CoachChatTranscriptPersistenceRepository.fetchEntities` lines 78–81: `nil` userId → `return true` |
 | Profile mismatch blocks routing but not nutrition reads | `ProfileBootstrapCoordinator.showAccountMismatch` — food services have no UID filter |
-| `deletesLocalProfileOnSignOut = true` unwired | `FormaAbTest.Auth.deletesLocalProfileOnSignOut`; no implementation in sign-out path |
+| `deletesLocalProfileOnSignOut = true` unwired | `FormaAbTest.Auth.deletesLocalProfileOnSignOut` returns `true`; `AuthLogoutPolicy` only clears sync metadata — `SignOutHygieneTests.testSignOutPolicyPreservesLocalProfile` confirms profile survives sign-out |
 
 ### What should become cloud-backed (recommendation)
 
@@ -106,6 +106,44 @@ Legend: **Survives** | **Lost** | **Partial** | **Unsafe** | **Unknown**
 | Settings/theme | Survives | Survives | Survives | Survives | **Unsafe** — shared | **Lost** | **Lost** | UserDefaults `forma.theme.*` | Device-global |
 | Health sync consent | Survives | Survives | Survives | Survives | Partial — per-UID key | **Lost** | **Lost** | `forma.healthSummaryRemoteSyncConsent.{uid}` | Consent re-prompt |
 | Debug/observability | Lost (in-memory) | Lost | Lost | Lost | N/A | Lost | Lost | `FormaPipelineTracer` (DEBUG) | OK |
+
+### Extended lifecycle scenarios (§3 supplement)
+
+The main matrix above maps to the full audit checklist as follows:
+
+| Audit scenario | Matrix column / section |
+|----------------|-------------------------|
+| App backgrounding | Same as App Kill — committed SwiftData/UserDefaults survive (**Confirmed**) |
+| App force kill | App Kill column |
+| Device restart | Device Restart column |
+| Logout | Logout column |
+| Same-account re-login (same device) | Same-Device Re-login column |
+| Different-account login (same device) | Different User Login column |
+| Delete and reinstall | Delete/Reinstall column |
+| New device, same account | New Device Login column |
+| Auth token expiry / session restoration | §3.1 below |
+| Offline app launch | §3.1 below |
+| Offline logging + later reconnect | §3.1 below |
+
+### 3.1 Auth, Offline, and Session Restoration
+
+| Data Domain | App Backgrounding | Auth Token Expiry / Session Restore | Offline App Launch | Offline Log → Reconnect | Evidence |
+|------------|-------------------|-----------------------------------|--------------------|-------------------------|----------|
+| Auth session | Survives | **Survives** — Firebase SDK refreshes via `AuthManager.refreshIDToken(forceRefresh:)` | Partial — local session may exist; cloud profile fetch fails without network | N/A — no upload queue for nutrition | `AuthManager.swift` lines 260–310; `AuthTokenPolicy.eligibility` |
+| User profile | Survives | Survives locally; cloud refresh on next online bootstrap | **Survives** locally; cloud restore blocked if no local + offline | No cloud write until online | `ProfileBootstrapService.resolveCloudProfile` returns `.failed` on network error |
+| Onboarding completion | Survives | Survives | Survives locally | N/A | `CloudUserProfileDocument.onboardingCompletedAt` |
+| Plan targets | Survives | Survives | Survives locally | N/A | `UserProfileEntity` targets |
+| Food/water/weight logs | Survives | Survives | **Survives** — local-first, no network required | **Stranded on device** — no sync engine; logs persist locally only | `FoodLogService.addFoodEntry` — no network; no `SyncOutbox` |
+| Journey/progress | Survives | Survives | Survives from local data | N/A until sync exists | `JourneyModel.loadProgress()` |
+| Coach chat | Survives | Survives | Survives locally | Unsent AI replies fail; committed transcript survives | `CoachModel` offline retry path in `CoachManualImageQAExecutionTests` |
+| Health summaries | Survives | Survives | Local cache survives; remote sync skipped when offline | Upload queued implicitly in `HealthSummarySyncService` on reconnect | `HealthSummarySyncService.syncOnAppForeground` |
+| Settings/theme | Survives | Survives | Survives | N/A | `ThemeStore` → UserDefaults |
+
+**Auth token expiry (**Confirmed**):** `AuthManager.idToken(forceRefresh:)` calls `currentUser.getIDToken(forcingRefresh:)` (`AuthManager.swift` lines 296–310). Firebase Auth SDK restores session from keychain on relaunch unless fresh-install policy clears it (`AuthInstallPolicy.shouldClearPersistedSessionOnLaunch`).
+
+**Offline app launch (**Confirmed**):** Nutrition logging works offline (`FoodLogService` has no network dependency). Profile cloud bootstrap requires network — `ProfileBootstrapService.resolveCloudProfile` returns `.failed(CloudProfileResolutionFailure)` on fetch error, blocking cloud restore path. Local profile with matching `ownerUID` routes to `.main` without network (`ProfileBootstrapServiceTests` — `offline-local-user` case).
+
+**Offline log → reconnect (**Confirmed** gap):** Committed food/water/weight entries remain on device but are **never uploaded** today. Health summaries may upload on foreground via `HealthSummarySyncService.syncOnAppForeground` when consent + capability enabled. **No nutrition outbox exists.**
 
 ### Code evidence (representative)
 
