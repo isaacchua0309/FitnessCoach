@@ -725,6 +725,7 @@ final class AuthGateCoordinator: ObservableObject {
 
         if wasSignedIn {
             container.accountSyncCoordinator.cancelPendingWork()
+            container.accountRestoreSessionState.clearForSignOut()
             clearAuthenticatedSessionPresentationState()
             onboardingModel = nil
             pendingExistingUserSignIn = false
@@ -791,6 +792,7 @@ final class AuthGateCoordinator: ObservableObject {
 
     func prepareAuthenticatedSignOut(source: String) {
         guard AppRouteResolver.isSignedIn(authManager.authState) else { return }
+        container.accountRestoreSessionState.clearForSignOut()
         clearAuthenticatedSessionPresentationState()
         signedInSessionID = UUID()
         onboardingModel = nil
@@ -842,6 +844,7 @@ final class AuthGateCoordinator: ObservableObject {
             return
         }
 
+        container.accountRestoreSessionState.beginBlockingRestore()
         let viewModel = accountRestoreViewModel ?? makeAccountRestoreViewModel()
         accountRestoreViewModel = viewModel
         rootModel.beginAccountRestore(uid: uid)
@@ -850,10 +853,10 @@ final class AuthGateCoordinator: ObservableObject {
 
     private func makeAccountRestoreViewModel() -> AccountRestoreViewModel {
         let viewModel = AccountRestoreViewModel(container: container)
-        viewModel.onContinueToMain = { [weak self] in
+        viewModel.onContinueToMain = { [weak self] summary in
             guard let self, let uid = self.authManager.currentUID else { return }
             self.accountRestoreViewModel = nil
-            self.completeRouteToMain(uid: uid)
+            self.completeRouteToMain(uid: uid, restoreSummary: summary)
         }
         viewModel.onSignOut = { [weak self] in
             guard let self else { return }
@@ -864,13 +867,17 @@ final class AuthGateCoordinator: ObservableObject {
         return viewModel
     }
 
-    func completeRouteToMain(uid: String) {
+    func completeRouteToMain(uid: String, restoreSummary: AccountRestoreSummary? = nil) {
         guard isUIDStillCurrent(uid) else { return }
         awaitingCloudSync = false
         completeExistingUserSignInSuccessIfNeeded()
         pendingExistingUserSignIn = false
         try? container.actionCenter.syncTodayTargetsFromProfile()
         container.onboardingCoachingContextStore.clear()
+        if let restoreSummary {
+            container.accountRestoreSessionState.recordRestoreCompletion(restoreSummary)
+            container.refreshCenter.notifyAccountRestoreDidComplete()
+        }
         rootModel.didCompleteOnboarding()
     }
 

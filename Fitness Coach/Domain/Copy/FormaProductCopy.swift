@@ -70,6 +70,18 @@ enum FormaProductCopy {
             static let body =
                 "Restore is taking longer than expected. You can keep using Forma while we finish in the background."
         }
+
+        enum Pending {
+            static let title = "Restoring your account"
+            static let defaultBody =
+                "Your account data is still syncing. Your history will appear here shortly."
+            static let partialBody =
+                "Some data could not be restored yet. You can continue and we'll retry in the background."
+            static let offlineBody =
+                "Progress will appear after your account data restores."
+            static let todayBody =
+                "Your meals and logs are still restoring. They'll appear here once sync finishes."
+        }
     }
 
     // MARK: - Loading

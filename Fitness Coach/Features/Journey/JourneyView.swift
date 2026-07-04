@@ -100,6 +100,8 @@ struct JourneyView: View {
             FormaScreenErrorView(message: message, onRetry: {
                 Task { await model.refresh() }
             }, style: .tabRoot)
+        case .pendingAccountRestore(let message):
+            AccountRestorePendingStateView(message: message)
         case .loaded(let state):
             dashboard(state)
         }

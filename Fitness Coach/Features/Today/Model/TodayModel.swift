@@ -24,6 +24,9 @@ final class TodayModel: ObservableObject {
     private let healthDataRepository: (any HealthDataRepositorying)?
     private let hydrationContextProvider: () -> TodayHydrationContext?
     private let authStateProvider: () -> AuthState
+    private let restoreSessionState: AccountRestoreSessionState?
+    private let localDataInspector: (any AccountLocalDataInspecting)?
+    private let ownerUIDProvider: () -> String?
     private let healthIntelligenceLoadEnabled: () -> Bool
     private let healthIntelligenceUIEnabled: () -> Bool
     private let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
@@ -47,6 +50,9 @@ final class TodayModel: ObservableObject {
         healthDataRepository: (any HealthDataRepositorying)? = nil,
         hydrationContextProvider: @escaping () -> TodayHydrationContext? = { nil },
         authStateProvider: @escaping () -> AuthState = { .unknown },
+        restoreSessionState: AccountRestoreSessionState? = nil,
+        localDataInspector: (any AccountLocalDataInspecting)? = nil,
+        ownerUIDProvider: @escaping () -> String? = { nil },
         healthIntelligenceLoadEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.shouldTodayModelLoadHealthIntelligence },
         healthIntelligenceUIEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.isUIEnabled },
         healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
@@ -65,6 +71,9 @@ final class TodayModel: ObservableObject {
         self.healthDataRepository = healthDataRepository
         self.hydrationContextProvider = hydrationContextProvider
         self.authStateProvider = authStateProvider
+        self.restoreSessionState = restoreSessionState
+        self.localDataInspector = localDataInspector
+        self.ownerUIDProvider = ownerUIDProvider
         self.healthIntelligenceLoadEnabled = healthIntelligenceLoadEnabled
         self.healthIntelligenceUIEnabled = healthIntelligenceUIEnabled
         self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
@@ -116,6 +125,11 @@ final class TodayModel: ObservableObject {
     // MARK: State Building
 
     private func performLoad(isRefresh: Bool) async {
+        if restoreSessionState?.isBlockingRestoreActive == true {
+            viewState = .loading
+            return
+        }
+
         guard let context = hydrationContextProvider() else {
             let profileOwnerUID = try? userProfileReader.getCurrentProfile()?.ownerUID
             TodayHydrationDebugLogger.deferred(
@@ -196,6 +210,7 @@ final class TodayModel: ObservableObject {
         case .loading: return "loading"
         case .loaded: return "loaded"
         case .empty: return "empty"
+        case .pendingAccountRestore: return "pendingAccountRestore"
         case .error: return "error"
         }
     }
@@ -218,6 +233,14 @@ final class TodayModel: ObservableObject {
 
         let training = await trainingTask
         await healthIntelligenceTask
+
+        if await shouldPresentPendingRestore() {
+            viewState = .pendingAccountRestore(
+                message: restoreSessionState?.pendingRestoreMessage
+                    ?? FormaProductCopy.AccountRestore.Pending.todayBody
+            )
+            return
+        }
 
         viewState = .loaded(
             try await makeDashboardState(
@@ -412,6 +435,13 @@ final class TodayModel: ObservableObject {
             return .empty
         }
         return await healthActivityQuery.dailyTrainingActivity(on: date)
+    }
+
+    private func shouldPresentPendingRestore() async -> Bool {
+        await restoreSessionState?.shouldShowPendingRestoreUI(
+            ownerUID: ownerUIDProvider(),
+            localDataInspector: localDataInspector
+        ) ?? false
     }
 
     private func hasPriorFoodLogs(before date: Date) throws -> Bool {

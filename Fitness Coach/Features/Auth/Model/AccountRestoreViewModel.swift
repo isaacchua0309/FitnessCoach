@@ -96,7 +96,7 @@ final class AccountRestoreViewModel: ObservableObject {
     @Published private(set) var summary: AccountRestoreSummary?
     @Published private(set) var isRetrying = false
 
-    var onContinueToMain: (() -> Void)?
+    var onContinueToMain: ((AccountRestoreSummary) -> Void)?
     var onSignOut: (() -> Void)?
 
     private let container: AppContainer
@@ -144,7 +144,8 @@ final class AccountRestoreViewModel: ObservableObject {
     }
 
     func continueToApp() {
-        onContinueToMain?()
+        guard let summary else { return }
+        onContinueToMain?(summary)
     }
 
     func signOut() {
@@ -260,12 +261,12 @@ final class AccountRestoreViewModel: ObservableObject {
         case .completed, .skipped:
             try? await Task.sleep(nanoseconds: 350_000_000)
             guard !Task.isCancelled else { return }
-            onContinueToMain?()
+            onContinueToMain?(result)
         case .partial, .offline, .failed:
             break
         case .notStarted, .checking, .restoringProfile, .restoringRecentData,
              .restoringWeightHistory, .rebuildingLocalViews:
-            onContinueToMain?()
+            onContinueToMain?(result)
         }
     }
 }

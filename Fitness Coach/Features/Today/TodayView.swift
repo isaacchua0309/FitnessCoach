@@ -200,6 +200,9 @@ struct TodayView: View {
             FormaScreenErrorView(message: message, onRetry: {
                 Task { await refreshDashboard() }
             }, style: .tabRoot)
+        case .pendingAccountRestore(let message):
+            AccountRestorePendingStateView(message: message)
+                .formaMainTabScrollInsets()
         case .loaded(let state):
             dashboard(state)
         }

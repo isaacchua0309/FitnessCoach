@@ -180,6 +180,9 @@ struct MainTabView: View {
 
     private func bootstrapAfterEntry() async {
         container.syncHealthCacheUserID()
+        await trainingInsightsStore.refresh()
+        await todayModel.loadToday()
+        await journeyModel.loadProgress()
         coachModel.refreshTodayContext()
         await planModel.refresh()
         if HealthIntelligenceFeatureFlags.isSyncEnabled {

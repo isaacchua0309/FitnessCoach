@@ -11,5 +11,6 @@ enum JourneyViewState: Equatable {
     case loading
     case loaded(JourneyDashboardState)
     case empty
+    case pendingAccountRestore(message: String)
     case error(String)
 }

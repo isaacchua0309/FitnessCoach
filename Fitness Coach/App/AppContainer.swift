@@ -29,6 +29,7 @@ final class AppContainer {
     let accountMigrationService: AccountMigrationService
     let accountInitialRestoreService: AccountInitialRestoreService
     let accountRestoreCoordinator: AccountRestoreCoordinator
+    let accountRestoreSessionState: AccountRestoreSessionState
 
     let userProfileService: UserProfileService
     let targetService: TargetService
@@ -112,6 +113,7 @@ final class AppContainer {
     ) throws {
         let resolvedOnboardingRoutingConfiguration = onboardingRoutingConfiguration ?? .production
         refreshCenter = AppRefreshCenter()
+        accountRestoreSessionState = AccountRestoreSessionState()
         let authManager = AuthManager()
         self.authManager = authManager
         self.authUIDCache = AuthUIDCache()
@@ -629,6 +631,9 @@ final class AppContainer {
             authStateProvider: { [weak self] in
                 self?.authManager.authState ?? .unknown
             },
+            restoreSessionState: accountRestoreSessionState,
+            localDataInspector: accountLocalDataInspector,
+            ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
             healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
         )
     }
@@ -726,7 +731,10 @@ final class AppContainer {
             },
             isRemoteSyncCapabilityEnabled: {
                 HealthSummaryRemoteSyncGate.isCapabilityEnabled()
-            }
+            },
+            restoreSessionState: accountRestoreSessionState,
+            localDataInspector: accountLocalDataInspector,
+            ownerUIDProvider: { [weak authManager] in authManager?.currentUID }
         )
     }
 

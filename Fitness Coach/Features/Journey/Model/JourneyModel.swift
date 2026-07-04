@@ -32,6 +32,9 @@ final class JourneyModel: ObservableObject {
     private let lastSuccessfulLocalSyncAtProvider: () -> Date?
     private let remoteSyncConsentDecisionProvider: () -> HealthSummarySyncConsentDecision
     private let isRemoteSyncCapabilityEnabled: () -> Bool
+    private let restoreSessionState: AccountRestoreSessionState?
+    private let localDataInspector: (any AccountLocalDataInspecting)?
+    private let ownerUIDProvider: () -> String?
 
     init(
         dailyLogReader: any DailyLogReading,
@@ -51,7 +54,10 @@ final class JourneyModel: ObservableObject {
         healthSyncPhaseProvider: @escaping () -> HealthSyncPhase? = { nil },
         lastSuccessfulLocalSyncAtProvider: @escaping () -> Date? = { nil },
         remoteSyncConsentDecisionProvider: @escaping () -> HealthSummarySyncConsentDecision = { .notDetermined },
-        isRemoteSyncCapabilityEnabled: @escaping () -> Bool = { false }
+        isRemoteSyncCapabilityEnabled: @escaping () -> Bool = { false },
+        restoreSessionState: AccountRestoreSessionState? = nil,
+        localDataInspector: (any AccountLocalDataInspecting)? = nil,
+        ownerUIDProvider: @escaping () -> String? = { nil }
     ) {
         self.dailyLogReader = dailyLogReader
         self.weightLogReader = weightLogReader
@@ -71,6 +77,9 @@ final class JourneyModel: ObservableObject {
         self.lastSuccessfulLocalSyncAtProvider = lastSuccessfulLocalSyncAtProvider
         self.remoteSyncConsentDecisionProvider = remoteSyncConsentDecisionProvider
         self.isRemoteSyncCapabilityEnabled = isRemoteSyncCapabilityEnabled
+        self.restoreSessionState = restoreSessionState
+        self.localDataInspector = localDataInspector
+        self.ownerUIDProvider = ownerUIDProvider
     }
 
     // MARK: Loading
@@ -82,6 +91,11 @@ final class JourneyModel: ObservableObject {
     }
 
     func refresh(forceWeeklyReviewRefresh: Bool = false) async {
+        if restoreSessionState?.isBlockingRestoreActive == true {
+            viewState = .loading
+            return
+        }
+
         do {
             await trainingInsightsStore.refresh()
             async let dashboardTask = makeDashboardState()
@@ -90,6 +104,15 @@ final class JourneyModel: ObservableObject {
             )
             let state = try await dashboardTask
             await healthIntelligenceTask
+
+            if await shouldPresentPendingRestore() {
+                viewState = .pendingAccountRestore(
+                    message: restoreSessionState?.pendingRestoreMessage
+                        ?? FormaProductCopy.AccountRestore.Pending.offlineBody
+                )
+                return
+            }
+
             viewState = state.hasProfile ? .loaded(state) : .empty
         } catch ServiceError.missingUserProfile {
             journeyHealthIntelligenceSectionState = nil
@@ -346,6 +369,13 @@ final class JourneyModel: ObservableObject {
 
         // Deprecated fallback: remove when all JourneyModel callers inject healthActivityQuery.
         return try await workoutReader.fetchWorkouts(from: startDate, to: endDate)
+    }
+
+    private func shouldPresentPendingRestore() async -> Bool {
+        await restoreSessionState?.shouldShowPendingRestoreUI(
+            ownerUID: ownerUIDProvider(),
+            localDataInspector: localDataInspector
+        ) ?? false
     }
 
     private func meaningfulLoggedDays(from logs: [DailyLog], weights: [WeightEntry]) -> Int {
