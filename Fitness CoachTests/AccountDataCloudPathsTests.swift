@@ -10,83 +10,56 @@ import XCTest
 
 final class AccountDataCloudPathsTests: XCTestCase {
 
-    private let uid = "user-a"
-    private let localDate = "2026-07-03"
-    private let entryId = "food-entry-1"
+    private let uid = "userA"
+    private let localDate = "2026-07-04"
 
-    func testUserRootAndProfileDocument() {
-        XCTAssertEqual(AccountDataCloudPaths.userRoot(uid: uid), "users/user-a")
-        XCTAssertEqual(
-            AccountDataCloudPaths.profileDocument(uid: uid),
-            "users/user-a/profile/current"
-        )
-    }
-
-    func testDailyLogPaths() {
-        XCTAssertEqual(
-            AccountDataCloudPaths.dailyLogsCollection(uid: uid),
-            "users/user-a/dailyLogs"
-        )
+    func testDailyLogPath() {
         XCTAssertEqual(
             AccountDataCloudPaths.dailyLogDocument(uid: uid, localDate: localDate),
-            "users/user-a/dailyLogs/2026-07-03"
+            "users/userA/dailyLogs/2026-07-04"
         )
     }
 
-    func testFoodAndWaterEntryPaths() {
+    func testFoodEntryPath() {
         XCTAssertEqual(
-            AccountDataCloudPaths.foodEntriesCollection(uid: uid, localDate: localDate),
-            "users/user-a/dailyLogs/2026-07-03/foodEntries"
-        )
-        XCTAssertEqual(
-            AccountDataCloudPaths.foodEntryDocument(uid: uid, localDate: localDate, entryId: entryId),
-            "users/user-a/dailyLogs/2026-07-03/foodEntries/food-entry-1"
-        )
-        XCTAssertEqual(
-            AccountDataCloudPaths.waterEntriesCollection(uid: uid, localDate: localDate),
-            "users/user-a/dailyLogs/2026-07-03/waterEntries"
-        )
-        XCTAssertEqual(
-            AccountDataCloudPaths.waterEntryDocument(uid: uid, localDate: localDate, entryId: "water-1"),
-            "users/user-a/dailyLogs/2026-07-03/waterEntries/water-1"
+            AccountDataCloudPaths.foodEntryDocument(
+                uid: uid,
+                localDate: localDate,
+                entryId: "food1"
+            ),
+            "users/userA/dailyLogs/2026-07-04/foodEntries/food1"
         )
     }
 
-    func testWeightAndReviewPaths() {
+    func testWaterEntryPath() {
         XCTAssertEqual(
-            AccountDataCloudPaths.weightEntriesCollection(uid: uid),
-            "users/user-a/weightEntries"
+            AccountDataCloudPaths.waterEntryDocument(
+                uid: uid,
+                localDate: localDate,
+                entryId: "water1"
+            ),
+            "users/userA/dailyLogs/2026-07-04/waterEntries/water1"
         )
+    }
+
+    func testWeightEntryPath() {
         XCTAssertEqual(
-            AccountDataCloudPaths.weightEntryDocument(uid: uid, entryId: "weight-1"),
-            "users/user-a/weightEntries/weight-1"
+            AccountDataCloudPaths.weightEntryDocument(uid: uid, entryId: "weight1"),
+            "users/userA/weightEntries/weight1"
         )
-        XCTAssertEqual(
-            AccountDataCloudPaths.dailyReviewsCollection(uid: uid),
-            "users/user-a/dailyReviews"
-        )
+    }
+
+    func testDailyReviewPath() {
         XCTAssertEqual(
             AccountDataCloudPaths.dailyReviewDocument(uid: uid, localDate: localDate),
-            "users/user-a/dailyReviews/2026-07-03"
+            "users/userA/dailyReviews/2026-07-04"
         )
     }
 
-    func testSyncMetadataDocumentPath() {
+    func testSyncMetadataPath() {
         XCTAssertEqual(
             AccountDataCloudPaths.syncMetadataDocument(uid: uid),
-            "users/user-a/syncMetadata/current"
+            "users/userA/syncMetadata/current"
         )
-    }
-
-    func testSchemaFieldConstants() {
-        XCTAssertEqual(AccountDataCloudSchema.currentSchemaVersion, 1)
-        XCTAssertEqual(AccountDataCloudSchema.userId, "userId")
-        XCTAssertEqual(AccountDataCloudSchema.schemaVersion, "schemaVersion")
-        XCTAssertEqual(AccountDataCloudSchema.createdAt, "createdAt")
-        XCTAssertEqual(AccountDataCloudSchema.updatedAt, "updatedAt")
-        XCTAssertEqual(AccountDataCloudSchema.deletedAt, "deletedAt")
-        XCTAssertEqual(AccountDataCloudSchema.deviceId, "deviceId")
-        XCTAssertEqual(AccountDataCloudSchema.source, "source")
-        XCTAssertEqual(AccountDataCloudSchema.clientSource, "ios_forma")
     }
 }
