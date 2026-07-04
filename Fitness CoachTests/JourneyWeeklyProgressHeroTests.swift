@@ -111,15 +111,38 @@ final class JourneyWeeklyProgressHeroTests: XCTestCase {
 
     func testSnapshotPlanReviewRecommended() throws {
         let dashboard = JourneyPreviewData.strongMomentum
+        let base = dashboard.weeklyProgressSummary
+        let maintenance = MaintenanceEstimate(
+            method: .learnedEnergyBalance,
+            confidence: .medium,
+            estimatedMaintenanceKcal: 2_500,
+            staticTDEEKcal: 2_400,
+            averageDailyCalories: 2_100,
+            estimatedDailyEnergyBalanceKcal: -250,
+            weightChangeKg: -0.8,
+            weeklyWeightChangeKg: -1.0,
+            trendDirection: .losingFasterThanExpected,
+            sufficiency: base.maintenanceEstimate.sufficiency,
+            shouldShowWaterWeightDisclaimer: false,
+            explanation: base.maintenanceEstimate.explanation,
+            caveats: []
+        )
+        let summary = UnifiedWeeklyReviewTestFixtures.summary(
+            base: base,
+            verdict: .likelyTooAggressive,
+            confidence: .medium,
+            maintenanceEstimate: maintenance
+        )
         let state = UnifiedWeeklyReviewPresentationBuilder.build(
-            dashboard: dashboard,
-            profile: PlanMissionControlFixtures.loseProfile
+            UnifiedWeeklyReviewInput(
+                summary: summary,
+                weeklyHabit: dashboard.weeklyHabit,
+                profile: PlanMissionControlFixtures.loseProfile,
+                goalDirection: .lose
+            )
         )
-        try writeSnapshotIfEnabled(
-            name: "weekly_progress_plan_review",
-            state: state,
-            summary: dashboard.weeklyProgressSummary
-        )
+        XCTAssertNotNil(state.planRecommendationBlock)
+        try writeSnapshotIfEnabled(name: "weekly_progress_plan_review", state: state, summary: summary)
     }
 
     // MARK: - Snapshot helpers

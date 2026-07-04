@@ -133,6 +133,91 @@ final class PlanWeeklyRecommendationStateBuilderTests: XCTestCase {
         XCTAssertFalse(state.showsReviewPlanCTA)
     }
 
+    // MARK: - Named Plan weekly recommendation contract tests
+
+    func testPlanShowsFormulaMaintenanceWhenLearnedUnavailable() throws {
+        let state = buildState(summary: PlanWeeklyRecommendationTestFixtures.insufficientSummary)
+        let result = try PlanCalculationBridge.planResult(
+            from: PlanMissionControlFixtures.loseProfile,
+            referenceDate: PlanWeeklyRecommendationTestFixtures.insufficientSummary.endDate
+        )
+
+        XCTAssertNotNil(state.formulaMaintenanceKcal)
+        XCTAssertEqual(state.formulaMaintenanceKcal, result.tdeeKcal)
+        XCTAssertFalse(state.showsLearnedEstimate)
+        XCTAssertNil(state.learnedMaintenanceKcal)
+    }
+
+    func testPlanShowsLearnedMaintenanceWhenEligible() {
+        let summary = PlanWeeklyRecommendationTestFixtures.strongSummary
+        XCTAssertTrue(summary.maintenanceEstimate.sufficiency.isEligibleForKcalMaintenanceDisplay)
+
+        let state = buildState(summary: summary)
+
+        XCTAssertTrue(state.showsLearnedEstimate)
+        XCTAssertEqual(state.learnedMaintenanceKcal, summary.maintenanceEstimate.estimatedMaintenanceKcal)
+        XCTAssertNotNil(state.formulaMaintenanceKcal)
+    }
+
+    func testPlanLabelsLearnedVsFormulaMaintenance() {
+        let state = buildState(summary: PlanWeeklyRecommendationTestFixtures.strongSummary)
+
+        XCTAssertEqual(
+            state.formulaMaintenanceLabel,
+            FormaProductCopy.PlanMissionControl.formulaMaintenanceLabel
+        )
+        XCTAssertEqual(
+            state.learnedMaintenanceLabel,
+            FormaProductCopy.PlanMissionControl.learnedMaintenanceLabel
+        )
+        XCTAssertNotEqual(state.formulaMaintenanceLabel, state.learnedMaintenanceLabel)
+    }
+
+    func testPlanShowsHoldSteadyRecommendation() {
+        let state = buildState(summary: PlanWeeklyRecommendationTestFixtures.holdSteadySummary())
+
+        XCTAssertTrue(state.showsRecommendation)
+        XCTAssertEqual(state.recommendationKind, .holdSteady)
+        XCTAssertFalse(state.showsReviewPlanCTA)
+        XCTAssertNil(state.suggestedCalorieDelta)
+    }
+
+    func testPlanShowsReviewPlanRecommendation() {
+        let state = buildState(summary: PlanWeeklyRecommendationTestFixtures.reviewPlanSummary())
+
+        XCTAssertTrue(state.showsRecommendation)
+        XCTAssertEqual(state.recommendationKind, .considerSmallIncrease)
+        XCTAssertTrue(state.showsReviewPlanCTA)
+        XCTAssertNotNil(state.suggestedCalorieDelta)
+    }
+
+    func testPlanShowsImproveConsistencyRecommendation() {
+        let state = buildState(summary: PlanWeeklyRecommendationTestFixtures.improveConsistencySummary())
+
+        XCTAssertTrue(state.showsRecommendation)
+        XCTAssertEqual(state.recommendationKind, .improveConsistencyFirst)
+        XCTAssertFalse(state.showsReviewPlanCTA)
+        XCTAssertNil(state.suggestedCalorieDelta)
+    }
+
+    func testPlanShowsWaitBecauseScaleIsNoisy() {
+        let state = buildState(summary: PlanWeeklyRecommendationTestFixtures.waitBecauseNoisySummary())
+
+        XCTAssertTrue(state.showsRecommendation)
+        XCTAssertEqual(state.recommendationKind, .waitBecauseScaleIsNoisy)
+        XCTAssertFalse(state.showsReviewPlanCTA)
+        XCTAssertNil(state.suggestedCalorieDelta)
+    }
+
+    func testPlanDoesNotShowCalorieDeltaWithLowConfidence() {
+        let state = buildState(summary: PlanWeeklyRecommendationTestFixtures.lowConfidenceAggressiveSummary())
+
+        XCTAssertTrue(state.showsRecommendation)
+        XCTAssertEqual(state.recommendationKind, .reviewPlanManually)
+        XCTAssertNil(state.suggestedCalorieDelta)
+        XCTAssertTrue(state.showsReviewPlanCTA)
+    }
+
     // MARK: Helpers
 
     private func buildState(summary: WeeklyProgressSummary) -> PlanWeeklyRecommendationState {
@@ -152,20 +237,6 @@ final class PlanWeeklyRecommendationStateBuilderTests: XCTestCase {
             referenceDate: summary.endDate,
             weeklyProgressSummaryBuilder: FixedWeeklyProgressSummaryBuilder(summary: summary)
         )
-    }
-}
-
-private struct FixedWeeklyProgressSummaryBuilder: WeeklyProgressSummaryBuilding {
-    let summary: WeeklyProgressSummary
-
-    func buildSummary(
-        asOf date: Date,
-        profile: UserProfile?,
-        dailyLogs: [DailyLog],
-        weightEntries: [WeightEntry],
-        trainingDayStarts: Set<Date>?
-    ) -> WeeklyProgressSummary {
-        summary
     }
 }
 
