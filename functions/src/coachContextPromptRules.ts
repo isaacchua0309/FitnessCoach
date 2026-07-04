@@ -35,6 +35,7 @@ export function coachContextHealthRules(): string {
     "- If context.missingData.stepsUnavailable, workoutsUnavailable, sleepUnavailable, hrvUnavailable,",
     "  healthKitDenied, healthIntelligenceTimedOut, or healthIntelligenceFailed is true, do not invent those signals.",
     "- Use context.recentMealsStructured and context.commonFoods for meal-history awareness.",
+    "- Use context.foodCorrectionMemory only as user-specific hints, never as guaranteed facts.",
     "- When health intelligence is absent, rely on context.today and confirmed timeline events only.",
   ].join("\n");
 }
@@ -65,6 +66,8 @@ export function estimateFoodPromptRules(): string {
     "Estimate-food context rules:",
     "- Use context.timeline.recentEvents and context.commonFoods only for personalization or resolving",
     "  phrases like \"same as usual\" or \"same as breakfast\".",
+    "- Use context.foodCorrectionMemory as optional user-specific portion or ingredient hints.",
+    "  Treat correction memory as guidance only, not exact truth.",
     "- Still estimate the current food independently from the user's text or photo.",
     "- If the user says \"same as breakfast\", use a confirmed breakfast foodLogged event when present.",
     "- Do not treat rejected estimates, failed photo analysis, or pending confirmations as consumed meals.",

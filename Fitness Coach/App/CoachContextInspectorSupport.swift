@@ -58,7 +58,8 @@ extension AppContainer {
             trainingLoadEngine: trainingLoadEngine,
             timelineStore: coachTimelineStore,
             timelineBackfillService: coachTimelineBackfillService,
-            timelineRecorder: coachTimelineRecorder
+            timelineRecorder: coachTimelineRecorder,
+            foodCorrectionMemoryStore: foodCorrectionMemoryStore
         )
     }
 }

@@ -9,6 +9,7 @@ export const COACH_CONTEXT_LIMITS = {
   maxChatMessages: 12,
   maxRecentMeals: 10,
   maxCommonFoods: 10,
+  maxFoodCorrectionMemory: 8,
   maxAssumptions: 8,
   maxSummaryLength: 180,
   maxCompactPayloadEntries: 6,
@@ -329,6 +330,7 @@ export function validateCoachContextPacketV2(
   optionalArray(value.recentChatMessages, "recentChatMessages");
   optionalArray(value.recentMealsStructured, "recentMealsStructured");
   optionalArray(value.commonFoods, "commonFoods");
+  optionalArray(value.foodCorrectionMemory, "foodCorrectionMemory");
   optionalArray(value.assumptions, "assumptions");
 
   validateRecentChatMessages(value.recentChatMessages);
@@ -542,6 +544,28 @@ function sanitizeCommonFoods(value: unknown): Record<string, unknown>[] {
     }));
 }
 
+function sanitizeFoodCorrectionMemory(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter(isPlainObject)
+    .slice(0, COACH_CONTEXT_LIMITS.maxFoodCorrectionMemory)
+    .map((entry) => ({
+      patternSummary: clampString(
+        entry.patternSummary,
+        COACH_CONTEXT_LIMITS.maxStringFieldLength
+      ) ?? "",
+      foodKey: clampString(entry.foodKey, 80),
+      correctionType: clampString(entry.correctionType, 64),
+      componentName: clampString(entry.componentName, 80),
+      amountHint: clampString(entry.amountHint, 80),
+      useCount: typeof entry.useCount === "number" ? entry.useCount : undefined,
+      lastUsedAt: entry.lastUsedAt,
+      confidence: entry.confidence,
+    }))
+    .filter((entry) => entry.patternSummary.length > 0);
+}
+
 function sanitizeChatMessages(value: unknown): Record<string, unknown>[] {
   if (!Array.isArray(value)) return [];
 
@@ -594,6 +618,7 @@ function pickKnownTopLevelFields(
     "currentUserMessage",
     "recentMealsStructured",
     "commonFoods",
+    "foodCorrectionMemory",
     "missingData",
     "assumptions",
     "generationMode",
@@ -639,6 +664,7 @@ export function parseCoachContextForPrompt(
   }
   known.recentMealsStructured = sanitizeRecentMeals(known.recentMealsStructured);
   known.commonFoods = sanitizeCommonFoods(known.commonFoods);
+  known.foodCorrectionMemory = sanitizeFoodCorrectionMemory(known.foodCorrectionMemory);
   known.assumptions = sanitizeAssumptions(known.assumptions);
 
   if (isPlainObject(known.healthIntelligence)) {

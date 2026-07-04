@@ -77,7 +77,8 @@ extension AppContainer {
             trainingLoadEngine: trainingLoadEngine,
             timelineStore: coachTimelineStore,
             timelineBackfillService: coachTimelineBackfillService,
-            timelineRecorder: coachTimelineRecorder
+            timelineRecorder: coachTimelineRecorder,
+            foodCorrectionMemoryStore: foodCorrectionMemoryStore
         )
 
         return CoachModel(
@@ -108,7 +109,8 @@ extension AppContainer {
             transcriptStore: coachChatTranscriptStore,
             healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
             timelineRecorder: coachTimelineRecorder,
-            timelineStore: coachTimelineStore
+            timelineStore: coachTimelineStore,
+            foodCorrectionMemoryStore: foodCorrectionMemoryStore
         )
     }
 

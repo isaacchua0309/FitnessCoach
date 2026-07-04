@@ -117,6 +117,7 @@ final class AppContainer {
     let coachChatTranscriptStore: SwiftDataCoachChatTranscriptStore
     let coachTimelineBackfillService: CoachTimelineBackfillService
     let coachTimelineRecorder: DefaultCoachTimelineRecorder
+    let foodCorrectionMemoryStore: FileFoodCorrectionMemoryStore
 
     // MARK: - Onboarding & session preferences
 
@@ -288,6 +289,7 @@ final class AppContainer {
         coachChatTranscriptStore = coach.coachChatTranscriptStore
         coachTimelineBackfillService = coach.coachTimelineBackfillService
         coachTimelineRecorder = coach.coachTimelineRecorder
+        foodCorrectionMemoryStore = coach.foodCorrectionMemoryStore
 
         // Onboarding & session preferences
         onboardingUserDefaults = session.onboardingUserDefaults

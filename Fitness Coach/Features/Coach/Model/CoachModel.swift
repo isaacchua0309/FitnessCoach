@@ -68,12 +68,14 @@ final class CoachModel: ObservableObject {
     private let routeHandler: CoachAIRouteHandler
     private let mealPhotoAnalyzer: CoachMealPhotoAnalyzer
     private let transcriptStore: CoachChatTranscriptStore
+    private let foodCorrectionMemoryStore: (any FoodCorrectionMemoryStoring)?
     private let imageAnalysisSessionStore = ImageAnalysisSessionStore()
     private let pendingImageLocalSources = CoachPendingImageLocalSourceStore()
     private let coachAnalyticsLogger: any CoachAnalyticsLogging
     private let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
     private let timelineRecorder: any CoachTimelineRecording
     private var userEditedPendingBeforeConfirm = false
+    private var pendingFoodBaselineDraft: FoodLogDraft?
     private var nutritionEstimateLogPending = false
     private var lastNutritionActionTapAt: Date?
     private var recordedTimelineUserMessageIDs = Set<UUID>()
@@ -125,7 +127,8 @@ final class CoachModel: ObservableObject {
         coachAnalyticsLogger: (any CoachAnalyticsLogging)? = nil,
         healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
         timelineRecorder: (any CoachTimelineRecording)? = nil,
-        timelineStore: (any CoachTimelineStoring)? = nil
+        timelineStore: (any CoachTimelineStoring)? = nil,
+        foodCorrectionMemoryStore: (any FoodCorrectionMemoryStoring)? = nil
     ) {
         self.localCommandParser = localCommandParser ?? .standard
         self.actionCenter = actionCenter
@@ -157,7 +160,8 @@ final class CoachModel: ObservableObject {
             healthActivityQuery: healthActivityQuery,
             mutationHistory: mutationHistory,
             timelineRecorder: resolvedTimelineRecorder,
-            timelineStore: timelineStore
+            timelineStore: timelineStore,
+            foodCorrectionMemoryStore: foodCorrectionMemoryStore
         )
         self.mutationExecutor = executor
         self.routeHandler = CoachAIRouteHandler(
@@ -166,7 +170,8 @@ final class CoachModel: ObservableObject {
             dailyLogReader: dailyLogReader,
             userProfileReader: userProfileReader,
             trainingInsightsStore: trainingInsightsStore,
-            mutationExecutor: executor
+            mutationExecutor: executor,
+            foodCorrectionMemoryStore: foodCorrectionMemoryStore
         )
         self.mealPhotoAnalyzer = CoachMealPhotoAnalyzer(
             aiCommandParsingEnabled: aiCommandParsingEnabled,
@@ -174,6 +179,7 @@ final class CoachModel: ObservableObject {
             routeHandler: routeHandler
         )
         self.transcriptStore = transcriptStore
+        self.foodCorrectionMemoryStore = foodCorrectionMemoryStore
         self.timelineRecorder = resolvedTimelineRecorder
         #if DEBUG
         self.coachAnalyticsLogger = coachAnalyticsLogger ?? OSLogCoachAnalyticsLogger()
@@ -1047,10 +1053,19 @@ final class CoachModel: ObservableObject {
         }
 
         do {
+            let baseline = pendingFoodBaselineDraft ?? draft.primaryMealDraft
             let updated = try formState.makeMealDraft(original: draft.primaryMealDraft)
             draft.mealDraft = updated
             pendingConfirmation = .food(draft)
             userEditedPendingBeforeConfirm = true
+            Task {
+                await FoodCorrectionMemoryRecorder.recordIfNeeded(
+                    before: baseline,
+                    after: updated,
+                    source: draft.relatedPhotoUserMessageID == nil ? .pendingEditSheet : .photoRecommission,
+                    store: foodCorrectionMemoryStore
+                )
+            }
             if let userMessageID = draft.relatedPhotoUserMessageID {
                 _ = imageAnalysisSessionStore.apply(
                     userMessageID: userMessageID,
@@ -1187,6 +1202,7 @@ final class CoachModel: ObservableObject {
         pendingConfirmation = nil
         pendingConfirmationTimelineKey = nil
         userEditedPendingBeforeConfirm = false
+        pendingFoodBaselineDraft = nil
         foodEditErrorMessage = nil
         isShowingFoodEditSheet = false
     }
@@ -1220,6 +1236,12 @@ final class CoachModel: ObservableObject {
         pendingConfirmationTimelineKey = UUID()
         foodEditErrorMessage = nil
         isShowingFoodEditSheet = false
+        switch confirmation {
+        case .food(let draft):
+            pendingFoodBaselineDraft = draft.primaryMealDraft
+        default:
+            pendingFoodBaselineDraft = nil
+        }
         CoachAccuracyObservabilityLogger.logPendingConfirmationCreated(kind: confirmation.kindLabel)
         timelineRecordPendingCreatedIfNeeded(confirmation)
         return confirmation

@@ -16,6 +16,7 @@ final class CoachMutationExecutor {
     private let mutationHistory: CoachMutationHistory
     private let timelineRecorder: any CoachTimelineRecording
     private let timelineStore: (any CoachTimelineStoring)?
+    private let foodCorrectionMemoryStore: (any FoodCorrectionMemoryStoring)?
 
     private var completedPendingConfirmationIDs = Set<UUID>()
     private var recordedFoodLogEntryIDs = Set<UUID>()
@@ -27,7 +28,8 @@ final class CoachMutationExecutor {
         healthActivityQuery: HealthActivityQueryService,
         mutationHistory: CoachMutationHistory,
         timelineRecorder: (any CoachTimelineRecording)? = nil,
-        timelineStore: (any CoachTimelineStoring)? = nil
+        timelineStore: (any CoachTimelineStoring)? = nil,
+        foodCorrectionMemoryStore: (any FoodCorrectionMemoryStoring)? = nil
     ) {
         self.actionCenter = actionCenter
         self.dailyLogReader = dailyLogReader
@@ -35,6 +37,7 @@ final class CoachMutationExecutor {
         self.mutationHistory = mutationHistory
         self.timelineRecorder = timelineRecorder ?? NoOpCoachTimelineRecorder()
         self.timelineStore = timelineStore
+        self.foodCorrectionMemoryStore = foodCorrectionMemoryStore
     }
 
     func hasWorkoutToday() async -> Bool {
@@ -398,6 +401,11 @@ final class CoachMutationExecutor {
                 entry: updated,
                 supersedesEventId: supersededEventId,
                 occurredAt: updated.updatedAt
+            )
+            await FoodCorrectionMemoryRecorder.recordPostLogEditIfNeeded(
+                before: entry,
+                after: updated,
+                store: foodCorrectionMemoryStore
             )
             return CoachResponseBuilder.editFood(updated)
         } catch ServiceError.invalidInput(let message) {

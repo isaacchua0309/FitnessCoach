@@ -97,6 +97,7 @@ extension AppContainer {
         let coachChatTranscriptStore: SwiftDataCoachChatTranscriptStore
         let coachTimelineBackfillService: CoachTimelineBackfillService
         let coachTimelineRecorder: DefaultCoachTimelineRecorder
+        let foodCorrectionMemoryStore: FileFoodCorrectionMemoryStore
     }
 
     struct AIBundle {
@@ -523,6 +524,9 @@ extension AppContainer {
             healthActivityQuery: health.healthActivityQueryService
         )
         let coachTimelineRecorder = DefaultCoachTimelineRecorder(store: coachTimelineStore)
+        let foodCorrectionMemoryStore = FileFoodCorrectionMemoryStore(
+            userIdProvider: { [weak authManager] in authManager?.currentUID }
+        )
 
         Task { @MainActor [coachTimelineBackfillService] in
             await coachTimelineBackfillService.runBackfill()
@@ -532,7 +536,8 @@ extension AppContainer {
             coachTimelineStore: coachTimelineStore,
             coachChatTranscriptStore: coachChatTranscriptStore,
             coachTimelineBackfillService: coachTimelineBackfillService,
-            coachTimelineRecorder: coachTimelineRecorder
+            coachTimelineRecorder: coachTimelineRecorder,
+            foodCorrectionMemoryStore: foodCorrectionMemoryStore
         )
     }
 }
