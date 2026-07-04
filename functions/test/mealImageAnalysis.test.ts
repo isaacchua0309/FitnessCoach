@@ -226,7 +226,7 @@ describe("mealImageAnalysis response parsing", () => {
     })).toThrow("items must contain at least one identified food.");
   });
 
-  it("parses ambiguous analysis with clarifyingQuestion", () => {
+  it("parses ambiguous analysis with clarifyingQuestion and trust metadata", () => {
     const parsed = parseMealImageAnalysisResponse({
       ...validAnalysisResponse,
       items: [{
@@ -238,14 +238,94 @@ describe("mealImageAnalysis response parsing", () => {
         fat: 10,
         confidence: "low",
         assumptions: ["Grain type unclear"],
+        uncertaintyReasons: ["Grain type unclear"],
+        suggestedClarifications: ["Was this rice or barley?"],
+        primaryUncertainty: "Grain type",
+        calorieRangeLower: 340,
+        calorieRangeUpper: 480,
       }],
-      total: {calories: 400, protein: 16, carbs: 52, fat: 10},
+      total: {
+        calories: 400,
+        protein: 16,
+        carbs: 52,
+        fat: 10,
+        calorieRangeLower: 340,
+        calorieRangeUpper: 480,
+      },
       needsUserReview: true,
       clarifyingQuestion: "Was this rice or barley?",
+      primaryUncertainty: "Grain type",
     });
 
     expect(parsed.needsUserReview).toBe(true);
     expect(parsed.clarifyingQuestion).toBe("Was this rice or barley?");
+    expect(parsed.primaryUncertainty).toBe("Grain type");
     expect(parsed.items[0].assumptions).toContain("Grain type unclear");
+    expect(parsed.items[0].uncertaintyReasons).toContain("Grain type unclear");
+    expect(parsed.total.calorieRangeLower).toBeLessThanOrEqual(400);
+    expect(parsed.total.calorieRangeUpper).toBeGreaterThanOrEqual(400);
+  });
+
+  it("fills clarification path for low-confidence image analysis during validation", () => {
+    const result = validateMealImageAnalysisResponse({
+      summary: "Unclear hawker plate",
+      items: [{
+        name: "Mixed hawker plate",
+        calories: 650,
+        protein: 20,
+        carbs: 70,
+        fat: 25,
+        confidence: "low",
+        assumptions: ["Standard plate"],
+        uncertaintyReasons: [],
+        suggestedClarifications: [],
+        primaryUncertainty: null,
+        calorieRangeLower: null,
+        calorieRangeUpper: null,
+      }],
+      total: {
+        calories: 650,
+        protein: 20,
+        carbs: 70,
+        fat: 25,
+        calorieRangeLower: null,
+        calorieRangeUpper: null,
+      },
+      needsUserReview: true,
+      clarifyingQuestion: null,
+      primaryUncertainty: null,
+    });
+
+    expect(result.ok).toBe(true);
+    const parsed = parseMealImageAnalysisResponse({
+      summary: "Unclear hawker plate",
+      items: [{
+        name: "Mixed hawker plate",
+        calories: 650,
+        protein: 20,
+        carbs: 70,
+        fat: 25,
+        confidence: "low",
+        assumptions: ["Standard plate"],
+        uncertaintyReasons: [],
+        suggestedClarifications: [],
+        primaryUncertainty: null,
+        calorieRangeLower: null,
+        calorieRangeUpper: null,
+      }],
+      total: {
+        calories: 650,
+        protein: 20,
+        carbs: 70,
+        fat: 25,
+        calorieRangeLower: null,
+        calorieRangeUpper: null,
+      },
+      needsUserReview: true,
+      clarifyingQuestion: null,
+      primaryUncertainty: null,
+    });
+    expect(parsed.items[0].suggestedClarifications.length).toBeGreaterThan(0);
+    expect(parsed.items[0].uncertaintyReasons.length).toBeGreaterThan(0);
   });
 });

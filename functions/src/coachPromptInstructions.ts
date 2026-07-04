@@ -47,38 +47,56 @@ ${estimateFoodPromptRules()}
 Task: Extract and estimate nutrition for the described food using strict per-ingredient components.
 
 Return JSON matching the schema:
-- meals[] with meal_name, meal_type, components[], totals, confidence, assumptions, warnings
-- each component needs name, quantity, unit, state (raw|cooked|unknown), calories, protein_g, carbs_g, fat_g, confidence, source_text
+- meals[] with meal_name, meal_type, components[], totals, confidence, assumptions, warnings,
+  uncertainty_reasons, suggested_clarifications, primary_uncertainty, requires_clarification_before_logging
+- each component needs name, quantity, unit, state (raw|cooked|unknown), calories, protein_g, carbs_g, fat_g,
+  confidence, source_text, calories_range_lower, calories_range_upper, uncertainty_reasons
+- totals must include calories, macros, calories_range_lower, calories_range_upper
 
 Hard requirements:
+- Never present calories as exact truth. Provide a calorie range that brackets totals.calories.
 - Never collapse multiple listed ingredients into one generic estimate when quantities are provided.
 - Sum component nutrition to produce totals exactly.
 - Do not use the first quantity as the total meal quantity. There is no meal-level quantity field.
 - If both rice/grain and dessert are present, include both as separate components.
-- If sauce/dressing is visible or mentioned, estimate it separately.
+- If sauce/dressing is visible or mentioned, estimate it separately and call out hidden oil/sauce uncertainty.
 - Preserve each user ingredient line in component source_text.
 - For calorie estimates, prefer realistic over optimistic.
 - For fat-loss tracking, underestimation is worse than slight overestimation.
 - Single simple foods (e.g. "2 eggs", "protein shake") may use one component.
 - Set requiresConfirmation true unless the user supplied exact complete nutrition values.
+- Set requires_clarification_before_logging true when portions are vague or confidence is low.
 
 Compound dish decomposition (decompose into visible/likely components, never one collapsed item):
 ${compoundDishDecompositionPrompt()}
 
-Assumptions array (required for compound dishes, vague portions, or ambiguous servings):
+High-risk foods (usually low/medium confidence and wider ranges unless portions are explicit):
+- chicken rice, caifan/economy rice, mala xiang guo, nasi lemak, char kway teow, laksa
+- buffet plates, mixed hawker plates, curry rice, fried noodles
+- hidden sauces, creamy dressing, mixed plates with unclear portions
+
+Assumptions array (required for compound dishes, vague portions, ambiguous servings, or low confidence):
 - Portion assumption (e.g. bowl size, piece count).
 - Cooking oil/sauce assumption when relevant.
 - Confidence reason (why medium/low).
 - What the user can clarify to improve the estimate.
 
+Uncertainty metadata:
+- uncertainty_reasons[] must explain what is unclear (portion, oil/sauce, hidden ingredients).
+- suggested_clarifications[] should ask one concise question when clarification would materially improve the estimate.
+- primary_uncertainty should name the biggest unresolved factor.
+- Use wider calorie ranges for hawker/local mixed plates and low confidence estimates.
+
 Reasonableness clamps:
 - A single normal meal should stay below ~1800 kcal unless the user says huge/large/double portion.
 - Macros must be non-negative and macro calories must match displayed calories within ~15%.
 - Component sums must equal totals exactly.
+- calories_range_lower must be <= totals.calories <= calories_range_upper.
+- Range width should increase when confidence is low.
 
 Ambiguous serving size:
 - Return a reasonable medium-portion estimate with medium or low confidence.
-- Ask one concise clarification in assistantMessage only when uncertainty is very large.
+- Ask one concise clarification in suggested_clarifications or assistantMessage when uncertainty is large.
 - Still set requiresConfirmation true.`;
 }
 
@@ -92,9 +110,15 @@ ${estimateFoodPromptRules()}
 Task: Analyze the attached meal photo and estimate nutrition with strict per-item components.
 
 Return JSON matching the schema with meals[] entries.
-Each visible distinct food must be its own component with quantity, unit, state, macros, confidence, and source_text describing what was seen.
+Each visible distinct food must be its own component with quantity, unit, state, macros, confidence, source_text,
+calories_range_lower, calories_range_upper, and uncertainty_reasons describing what was seen.
 Never collapse multiple visible items into one component.
-For compound/local dishes (chicken rice, nasi lemak, cai fan, mala, prata, bubble tea), decompose into likely components.
+Never present calories as exact truth — provide ranges that bracket each component and meal totals.
+For compound/local dishes (chicken rice, nasi lemak, cai fan, mala, laksa, char kway teow, curry rice, buffet plates,
+mixed hawker plates, fried noodles), decompose into likely components and use low/medium confidence with wider ranges
+unless portion is clearly visible.
+Explicitly call out hidden oil/sauce uncertainty in assumptions and uncertainty_reasons.
+Include suggested_clarifications and primary_uncertainty when the photo is cropped, unclear, or shows multiple plates.
 Sum component nutrition into totals exactly.
 Include assumptions for portion, oil/sauce, confidence, and clarifications when uncertain.
 Prefer realistic or slightly conservative estimates.
@@ -124,7 +148,12 @@ Do not log anything. Do not write long prose or markdown articles.
 Rules:
 - Return structured fields only matching the schema.
 - foodName and caloriesKcal (or calorie range) are required when possible.
+- Never present calories as exact truth — include caloriesRangeLowerKcal and caloriesRangeUpperKcal.
 - confidenceLevel: high for branded/common foods, medium for portion assumptions, low for vague items.
+- assumptions[], uncertaintyReasons[], suggestedClarifications[], primaryUncertainty, requiresClarificationBeforeLogging, riskLevel
+  must reflect estimate trust honestly.
+- For hawker/local mixed plates, hidden sauces, creamy dressing, fried noodles, curry rice, chicken rice, caifan, mala,
+  nasi lemak, laksa, char kway teow, or buffet plates: use low/medium confidence and wider ranges unless portions are known.
 - coachSummary max 120 characters. coachTip max 140 characters. Each caveat max 90 characters, max 2 caveats.
 - Avoid phrases: "Short answer", "It depends", "In general", "If you're watching calories", "A typical".
 - Include suggestedActions: logMeal, addCommonSide when relevant, estimateAnother.

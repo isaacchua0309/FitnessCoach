@@ -2,6 +2,7 @@ import {
   sanitizeNutritionEstimateResponse,
   sanitizeNutritionPayload,
   sanitizeNutritionSuggestedActions,
+  sanitizeNutritionTrustFields,
 } from "../src/nutritionResponseSanitizer";
 
 describe("nutritionResponseSanitizer", () => {
@@ -70,5 +71,22 @@ describe("nutritionResponseSanitizer", () => {
         },
       },
     ]);
+  });
+
+  it("sanitizes trust metadata arrays and primary uncertainty", () => {
+    const sanitized = sanitizeNutritionTrustFields({
+      assumptions: [" Regular portion ", "Regular portion", ""],
+      uncertaintyReasons: ["Hidden sauce", "null"],
+      suggestedClarifications: ["  Was this a large bowl?  "],
+      primaryUncertainty: "  Portion size ",
+      requiresClarificationBeforeLogging: true,
+      caveats: ["Values may vary"],
+    });
+
+    expect(sanitized.assumptions).toEqual(["Regular portion"]);
+    expect(sanitized.uncertaintyReasons).toEqual(["Hidden sauce"]);
+    expect(sanitized.suggestedClarifications).toEqual(["Was this a large bowl?"]);
+    expect(sanitized.primaryUncertainty).toBe("Portion size");
+    expect(sanitized.requiresClarificationBeforeLogging).toBe(true);
   });
 });

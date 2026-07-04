@@ -1,7 +1,9 @@
 import * as fs from "fs";
 import * as path from "path";
+import {deriveCalorieRange} from "../../src/foodCalorieRange";
 import {
   type FoodExtractionResponse,
+  normalizeFoodExtraction,
   validateFoodExtraction,
 } from "../../src/foodEstimateExtraction";
 import {analyzeCompoundFoodPrompt} from "../../src/foodCompoundDish";
@@ -151,6 +153,7 @@ export function buildReferenceExtraction(
     if (Math.abs(componentMacroCalories - calories) / Math.max(calories, 1) > 0.15) {
       fat = Math.max(0, Math.round(((calories - protein * 4 - carbs * 4) / 9) * 10) / 10);
     }
+    const componentRange = deriveCalorieRange(calories, fixtureCase.expectedConfidence);
     return {
       name: keyword,
       quantity: 1,
@@ -162,6 +165,11 @@ export function buildReferenceExtraction(
       fat_g: fat,
       confidence: fixtureCase.expectedConfidence,
       source_text: `${fixtureCase.inputText} — ${keyword}`,
+      calories_range_lower: componentRange.lower,
+      calories_range_upper: componentRange.upper,
+      uncertainty_reasons: fixtureCase.expectedConfidence === "low" ?
+        ["Portion or preparation details were assumed."] :
+        [],
     };
   });
 
@@ -225,10 +233,24 @@ export function buildReferenceExtraction(
       meal_name: fixtureCase.inputText,
       meal_type: null,
       components,
-      totals: summed,
+      totals: {
+        ...summed,
+        calories_range_lower: fixtureCase.expectedCaloriesRange[0],
+        calories_range_upper: fixtureCase.expectedCaloriesRange[1],
+      },
       confidence: fixtureCase.expectedConfidence,
       assumptions,
       warnings: [],
+      uncertainty_reasons: fixtureCase.expectedConfidence === "low" ?
+        ["Portion or preparation details were assumed."] :
+        [],
+      suggested_clarifications: fixtureCase.expectedConfidence === "low" ?
+        ["Can you clarify the portion size?"] :
+        [],
+      primary_uncertainty: fixtureCase.expectedConfidence === "low" ?
+        "Portion size" :
+        null,
+      requires_clarification_before_logging: fixtureCase.expectedConfidence === "low",
     }],
     requiresConfirmation: fixtureCase.shouldRequireConfirmation,
     assistantMessage: null,
@@ -336,7 +358,10 @@ export function validateFixturePromptAnalysis(
 export function validateReferenceExtractionPipeline(
   fixtureCase: SingaporeFoodEstimationCase
 ): FixtureValidationResult {
-  const extraction = buildReferenceExtraction(fixtureCase);
+  const extraction = normalizeFoodExtraction(
+    buildReferenceExtraction(fixtureCase),
+    fixtureCase.inputText
+  );
   const fixtureResult = validateExtractionAgainstFixture(extraction, fixtureCase);
   if (!fixtureResult.ok) {
     return fixtureResult;

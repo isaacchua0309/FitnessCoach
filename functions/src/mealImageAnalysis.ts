@@ -7,6 +7,12 @@ import {
   coachContextHealthRules,
   coachContextV2Rules,
 } from "./coachContextPromptRules";
+import {resolveCalorieRange, validateCalorieRangeBounds} from "./foodCalorieRange";
+import {
+  isGenericFoodName,
+  normalizeTrustFields,
+  sanitizeStringList,
+} from "./foodEstimateTrust";
 
 export const MEAL_IMAGE_ANALYSIS_PATH = "/v1/ai/analyze-meal-image";
 
@@ -35,6 +41,11 @@ export interface MealImageAnalysisItem {
   fat: number;
   confidence: "low" | "medium" | "high";
   assumptions: string[];
+  uncertaintyReasons: string[];
+  suggestedClarifications: string[];
+  primaryUncertainty?: string;
+  calorieRangeLower?: number;
+  calorieRangeUpper?: number;
 }
 
 export interface MealImageAnalysisTotals {
@@ -42,6 +53,8 @@ export interface MealImageAnalysisTotals {
   protein: number;
   carbs: number;
   fat: number;
+  calorieRangeLower?: number;
+  calorieRangeUpper?: number;
 }
 
 export interface MealImageAnalysisResponse {
@@ -50,6 +63,7 @@ export interface MealImageAnalysisResponse {
   total: MealImageAnalysisTotals;
   needsUserReview: true;
   clarifyingQuestion?: string;
+  primaryUncertainty?: string;
 }
 
 export interface MealImageAnalysisValidationResult {
@@ -232,12 +246,15 @@ function decodedBytesMatchMimeType(decoded: Buffer, mimeType: AllowedMealImageMi
 
 export function mealImageAnalysisResponseSchema(): MealImageAnalysisSchema {
   const confidence = {type: "string", enum: ["low", "medium", "high"]};
+  const stringArray = {type: "array", items: {type: "string"}};
   return {
     name: "meal_image_analysis_response",
     schema: {
       type: "object",
       additionalProperties: false,
-      required: ["summary", "items", "total", "needsUserReview", "clarifyingQuestion"],
+      required: [
+        "summary", "items", "total", "needsUserReview", "clarifyingQuestion", "primaryUncertainty",
+      ],
       properties: {
         summary: {type: "string"},
         items: {
@@ -247,7 +264,8 @@ export function mealImageAnalysisResponseSchema(): MealImageAnalysisSchema {
             additionalProperties: false,
             required: [
               "name", "quantity", "calories", "protein", "carbs", "fat",
-              "confidence", "assumptions",
+              "confidence", "assumptions", "uncertaintyReasons", "suggestedClarifications",
+              "primaryUncertainty", "calorieRangeLower", "calorieRangeUpper",
             ],
             properties: {
               name: {type: "string"},
@@ -257,23 +275,31 @@ export function mealImageAnalysisResponseSchema(): MealImageAnalysisSchema {
               carbs: {type: "number"},
               fat: {type: "number"},
               confidence,
-              assumptions: {type: "array", items: {type: "string"}},
+              assumptions: stringArray,
+              uncertaintyReasons: stringArray,
+              suggestedClarifications: stringArray,
+              primaryUncertainty: {anyOf: [{type: "string"}, {type: "null"}]},
+              calorieRangeLower: {anyOf: [{type: "number"}, {type: "null"}]},
+              calorieRangeUpper: {anyOf: [{type: "number"}, {type: "null"}]},
             },
           },
         },
         total: {
           type: "object",
           additionalProperties: false,
-          required: ["calories", "protein", "carbs", "fat"],
+          required: ["calories", "protein", "carbs", "fat", "calorieRangeLower", "calorieRangeUpper"],
           properties: {
             calories: {type: "number"},
             protein: {type: "number"},
             carbs: {type: "number"},
             fat: {type: "number"},
+            calorieRangeLower: {anyOf: [{type: "number"}, {type: "null"}]},
+            calorieRangeUpper: {anyOf: [{type: "number"}, {type: "null"}]},
           },
         },
         needsUserReview: {type: "boolean"},
         clarifyingQuestion: {anyOf: [{type: "string"}, {type: "null"}]},
+        primaryUncertainty: {anyOf: [{type: "string"}, {type: "null"}]},
       },
     },
   };
@@ -287,9 +313,12 @@ export function mealImageAnalysisInstructions(): string {
     analyzeMealImagePromptRules(),
     coachContextV2Rules(),
     coachContextHealthRules(),
-    "Each distinct visible food must be its own item with realistic calories, macros, confidence, and assumptions.",
-    "Never invent a generic catch-all item such as 'unknown meal', 'mixed food', or 'generic plate'.",
-    "If the photo is unclear, set clarifyingQuestion and keep items to only what you can identify with evidence.",
+    "Each distinct visible food must be its own item with realistic calories, macros, confidence, assumptions, and uncertaintyReasons.",
+    "Never present calories as exact truth — provide calorieRangeLower and calorieRangeUpper that bracket calories.",
+    "For hawker plates, mixed local dishes, hidden sauces, creamy dressing, fried noodles, curry rice, nasi lemak, laksa, chicken rice, caifan, mala, or buffet plates: use low/medium confidence and wider ranges unless portion is clearly visible.",
+    "Explicitly call out hidden oil/sauce uncertainty in assumptions and uncertaintyReasons.",
+    "Never invent a generic catch-all item such as 'unknown meal', 'mixed food', 'food', or 'meal'.",
+    "If the photo is unclear, cropped, shows multiple plates, or portion is ambiguous: set clarifyingQuestion, primaryUncertainty, suggestedClarifications, and keep items limited to what you can identify with evidence.",
     "When previousAnalysis and clarification are provided, refine that estimate using the same image.",
     "Treat clarification as authoritative for ambiguous ingredients, sauces, grains, or portion sizes.",
     "Sum item nutrition into total exactly.",
@@ -339,7 +368,7 @@ export function validateMealImageAnalysisResponse(
       errors.push(`items[${index}].name is required.`);
       continue;
     }
-    if (GENERIC_FOOD_NAME_PATTERN.test(name)) {
+    if (GENERIC_FOOD_NAME_PATTERN.test(name) || isGenericFoodName(name)) {
       errors.push(`items[${index}].name is too generic: "${name}".`);
     }
 
@@ -355,9 +384,41 @@ export function validateMealImageAnalysisResponse(
       errors.push(`items[${index}].confidence is invalid.`);
     }
 
-    const assumptions = Array.isArray(item?.assumptions) ?
-      item.assumptions.map(String) :
-      [];
+    const assumptions = sanitizeStringList(item?.assumptions);
+    let uncertaintyReasons = sanitizeStringList(item?.uncertaintyReasons);
+    let suggestedClarifications = sanitizeStringList(item?.suggestedClarifications);
+    const itemConfidence = item?.confidence as "low" | "medium" | "high";
+    const itemRange = resolveCalorieRange(
+      calories,
+      itemConfidence,
+      item?.calorieRangeLower,
+      item?.calorieRangeUpper
+    );
+
+    const trust = normalizeTrustFields({
+      confidence: itemConfidence,
+      calories,
+      rangeLower: itemRange.lower,
+      rangeUpper: itemRange.upper,
+      assumptions,
+      uncertaintyReasons,
+      suggestedClarifications,
+      primaryUncertainty: item?.primaryUncertainty,
+      requiresClarificationBeforeLogging: itemConfidence === "low",
+      label: `items[${index}]`,
+    });
+    uncertaintyReasons = trust.uncertaintyReasons ?? uncertaintyReasons;
+    suggestedClarifications = trust.suggestedClarifications ?? suggestedClarifications;
+
+    errors.push(
+      ...validateCalorieRangeBounds(
+        calories,
+        trust.rangeLower ?? itemRange.lower,
+        trust.rangeUpper ?? itemRange.upper,
+        itemConfidence,
+        `items[${index}]`
+      )
+    );
 
     items.push({
       name,
@@ -368,8 +429,13 @@ export function validateMealImageAnalysisResponse(
       protein,
       carbs,
       fat,
-      confidence: item.confidence,
-      assumptions,
+      confidence: itemConfidence,
+      assumptions: trust.assumptions ?? assumptions,
+      uncertaintyReasons,
+      suggestedClarifications,
+      ...(trust.primaryUncertainty ? {primaryUncertainty: trust.primaryUncertainty} : {}),
+      calorieRangeLower: trust.rangeLower ?? itemRange.lower,
+      calorieRangeUpper: trust.rangeUpper ?? itemRange.upper,
     });
   }
 
@@ -408,6 +474,32 @@ export function validateMealImageAnalysisResponse(
     errors.push("total.fat does not match item sums.");
   }
 
+  const overallConfidence = overallItemConfidence(items);
+  const totalRange = resolveCalorieRange(
+    total.calories,
+    overallConfidence,
+    raw.total?.calorieRangeLower,
+    raw.total?.calorieRangeUpper
+  );
+  errors.push(
+    ...validateCalorieRangeBounds(
+      total.calories,
+      totalRange.lower,
+      totalRange.upper,
+      overallConfidence,
+      "total"
+    )
+  );
+
+  const clarifyingQuestion = typeof raw.clarifyingQuestion === "string" &&
+    raw.clarifyingQuestion.trim().length > 0 ?
+    raw.clarifyingQuestion.trim() :
+    undefined;
+  const hasSuggestedClarifications = items.some((item) => item.suggestedClarifications.length > 0);
+  if (overallConfidence === "low" && !clarifyingQuestion && !hasSuggestedClarifications) {
+    errors.push("Low-confidence photo estimates must include clarifyingQuestion or suggestedClarifications.");
+  }
+
   return {ok: errors.length === 0, errors};
 }
 
@@ -422,30 +514,73 @@ export function parseMealImageAnalysisResponse(
     );
   }
 
-  const items = (raw.items as any[]).map((item) => ({
-    name: String(item.name).trim(),
-    ...(typeof item.quantity === "string" && item.quantity.trim().length > 0 ?
-      {quantity: item.quantity.trim()} :
-      {}),
-    calories: Math.round(item.calories),
-    protein: roundMacro(item.protein),
-    carbs: roundMacro(item.carbs),
-    fat: roundMacro(item.fat),
-    confidence: item.confidence,
-    assumptions: Array.isArray(item.assumptions) ? item.assumptions.map(String) : [],
-  }));
+  const items = (raw.items as any[]).map((item) => {
+    const calories = Math.round(item.calories);
+    const itemConfidence = item.confidence as "low" | "medium" | "high";
+    const itemRange = resolveCalorieRange(
+      calories,
+      itemConfidence,
+      item.calorieRangeLower,
+      item.calorieRangeUpper
+    );
+    const trust = normalizeTrustFields({
+      confidence: itemConfidence,
+      calories,
+      rangeLower: itemRange.lower,
+      rangeUpper: itemRange.upper,
+      assumptions: item.assumptions,
+      uncertaintyReasons: item.uncertaintyReasons,
+      suggestedClarifications: item.suggestedClarifications,
+      primaryUncertainty: item.primaryUncertainty,
+      requiresClarificationBeforeLogging: itemConfidence === "low",
+      label: String(item.name),
+    });
+
+    return {
+      name: String(item.name).trim(),
+      ...(typeof item.quantity === "string" && item.quantity.trim().length > 0 ?
+        {quantity: item.quantity.trim()} :
+        {}),
+      calories,
+      protein: roundMacro(item.protein),
+      carbs: roundMacro(item.carbs),
+      fat: roundMacro(item.fat),
+      confidence: itemConfidence,
+      assumptions: trust.assumptions ?? [],
+      uncertaintyReasons: trust.uncertaintyReasons ?? [],
+      suggestedClarifications: trust.suggestedClarifications ?? [],
+      ...(trust.primaryUncertainty ? {primaryUncertainty: trust.primaryUncertainty} : {}),
+      calorieRangeLower: trust.rangeLower ?? itemRange.lower,
+      calorieRangeUpper: trust.rangeUpper ?? itemRange.upper,
+    };
+  });
+
+  const summed = sumItems(items);
+  const overallConfidence = overallItemConfidence(items);
+  const totalRange = resolveCalorieRange(
+    summed.calories,
+    overallConfidence,
+    raw.total?.calorieRangeLower,
+    raw.total?.calorieRangeUpper
+  );
 
   const total = {
     calories: Math.round(raw.total.calories),
     protein: roundMacro(raw.total.protein),
     carbs: roundMacro(raw.total.carbs),
     fat: roundMacro(raw.total.fat),
+    calorieRangeLower: totalRange.lower,
+    calorieRangeUpper: totalRange.upper,
   };
 
   const clarifyingQuestion = typeof raw.clarifyingQuestion === "string" &&
     raw.clarifyingQuestion.trim().length > 0 ?
     raw.clarifyingQuestion.trim() :
     undefined;
+  const primaryUncertainty = typeof raw.primaryUncertainty === "string" &&
+    raw.primaryUncertainty.trim().length > 0 ?
+    raw.primaryUncertainty.trim() :
+    items.find((item) => item.primaryUncertainty)?.primaryUncertainty;
 
   return {
     summary: String(raw.summary).trim(),
@@ -453,6 +588,7 @@ export function parseMealImageAnalysisResponse(
     total,
     needsUserReview: true,
     ...(clarifyingQuestion ? {clarifyingQuestion} : {}),
+    ...(primaryUncertainty ? {primaryUncertainty} : {}),
   };
 }
 
@@ -486,4 +622,12 @@ function withinTolerance(actual: number, expected: number, absolute: number): bo
 
 function roundMacro(value: number): number {
   return Math.round(value * 10) / 10;
+}
+
+function overallItemConfidence(
+  items: MealImageAnalysisItem[]
+): "low" | "medium" | "high" {
+  if (items.some((item) => item.confidence === "low")) return "low";
+  if (items.every((item) => item.confidence === "high")) return "high";
+  return "medium";
 }

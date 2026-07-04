@@ -701,6 +701,7 @@ function foodExtractionComponentSchema(): JSONSchema {
     required: [
       "name", "quantity", "unit", "state",
       "calories", "protein_g", "carbs_g", "fat_g", "confidence", "source_text",
+      "calories_range_lower", "calories_range_upper", "uncertainty_reasons",
     ],
     properties: {
       name: {type: "string"},
@@ -713,6 +714,9 @@ function foodExtractionComponentSchema(): JSONSchema {
       fat_g: {type: "number"},
       confidence,
       source_text: {type: "string"},
+      calories_range_lower: nullable({type: "number"}),
+      calories_range_upper: nullable({type: "number"}),
+      uncertainty_reasons: {type: "array", items: {type: "string"}},
     },
   };
 }
@@ -721,12 +725,14 @@ function foodExtractionTotalsSchema(): JSONSchema {
   return {
     type: "object",
     additionalProperties: false,
-    required: ["calories", "protein_g", "carbs_g", "fat_g"],
+    required: ["calories", "protein_g", "carbs_g", "fat_g", "calories_range_lower", "calories_range_upper"],
     properties: {
       calories: {type: "number"},
       protein_g: {type: "number"},
       carbs_g: {type: "number"},
       fat_g: {type: "number"},
+      calories_range_lower: nullable({type: "number"}),
+      calories_range_upper: nullable({type: "number"}),
     },
   };
 }
@@ -738,6 +744,8 @@ function foodExtractionMealSchema(): JSONSchema {
     required: [
       "meal_name", "meal_type", "components", "totals",
       "confidence", "assumptions", "warnings",
+      "uncertainty_reasons", "suggested_clarifications", "primary_uncertainty",
+      "requires_clarification_before_logging",
     ],
     properties: {
       meal_name: {type: "string"},
@@ -747,6 +755,10 @@ function foodExtractionMealSchema(): JSONSchema {
       confidence,
       assumptions: {type: "array", items: {type: "string"}},
       warnings: {type: "array", items: {type: "string"}},
+      uncertainty_reasons: {type: "array", items: {type: "string"}},
+      suggested_clarifications: {type: "array", items: {type: "string"}},
+      primary_uncertainty: nullable({type: "string"}),
+      requires_clarification_before_logging: {type: "boolean"},
     },
   };
 }
@@ -906,16 +918,20 @@ function nutritionActionPayloadSchema(): JSONSchema {
     properties: {
       foodName: stringField,
       caloriesKcal: stringField,
+      caloriesRangeLowerKcal: stringField,
+      caloriesRangeUpperKcal: stringField,
       proteinGrams: stringField,
       carbsGrams: stringField,
       fatGrams: stringField,
       leftFoodName: stringField,
       rightFoodName: stringField,
       query: stringField,
+      requiresClarificationBeforeLogging: stringField,
     },
     required: [
-      "foodName", "caloriesKcal", "proteinGrams", "carbsGrams", "fatGrams",
-      "leftFoodName", "rightFoodName", "query",
+      "foodName", "caloriesKcal", "caloriesRangeLowerKcal", "caloriesRangeUpperKcal",
+      "proteinGrams", "carbsGrams", "fatGrams",
+      "leftFoodName", "rightFoodName", "query", "requiresClarificationBeforeLogging",
     ],
   };
 }
@@ -948,6 +964,8 @@ function nutritionEstimateResponseSchema(): ResponseSchema {
         "caloriesRangeUpperKcal", "proteinGrams", "carbsGrams", "fatGrams",
         "servingDescription", "confidenceLevel", "confidenceLabel", "confidenceReason",
         "sourceType", "coachSummary", "coachTip", "caveats", "suggestedActions",
+        "assumptions", "uncertaintyReasons", "suggestedClarifications", "primaryUncertainty",
+        "requiresClarificationBeforeLogging", "riskLevel",
       ],
       properties: {
         type: {type: "string", enum: ["nutrition_estimate"]},
@@ -968,6 +986,12 @@ function nutritionEstimateResponseSchema(): ResponseSchema {
         coachTip: nullable({type: "string"}),
         caveats: {type: "array", items: {type: "string"}},
         suggestedActions: {type: "array", items: nutritionSuggestedActionSchema()},
+        assumptions: {type: "array", items: {type: "string"}},
+        uncertaintyReasons: {type: "array", items: {type: "string"}},
+        suggestedClarifications: {type: "array", items: {type: "string"}},
+        primaryUncertainty: nullable({type: "string"}),
+        requiresClarificationBeforeLogging: {type: "boolean"},
+        riskLevel: nullable(enumSchema(["low", "medium", "high"])),
       },
     },
   };

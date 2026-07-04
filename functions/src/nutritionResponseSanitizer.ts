@@ -1,4 +1,6 @@
 /* eslint-disable require-jsdoc */
+import {sanitizeStringList} from "./foodEstimateTrust";
+
 export function sanitizeNutritionPayload(
   payload: Record<string, unknown> | null | undefined
 ): Record<string, string> {
@@ -38,15 +40,34 @@ export function sanitizeNutritionSuggestedActions(
   }));
 }
 
-export function sanitizeNutritionEstimateResponse(
+export function sanitizeNutritionTrustFields(
   estimate: Record<string, unknown>
 ): Record<string, unknown> {
   return {
     ...estimate,
+    assumptions: sanitizeStringList(estimate.assumptions),
+    uncertaintyReasons: sanitizeStringList(estimate.uncertaintyReasons),
+    suggestedClarifications: sanitizeStringList(
+      estimate.suggestedClarifications
+    ),
+    caveats: sanitizeStringList(estimate.caveats),
+    primaryUncertainty: typeof estimate.primaryUncertainty === "string" ?
+      estimate.primaryUncertainty.trim() || null :
+      null,
+    requiresClarificationBeforeLogging:
+      estimate.requiresClarificationBeforeLogging === true,
+  };
+}
+
+export function sanitizeNutritionEstimateResponse(
+  estimate: Record<string, unknown>
+): Record<string, unknown> {
+  return sanitizeNutritionTrustFields({
+    ...estimate,
     suggestedActions: sanitizeNutritionSuggestedActions(
       estimate.suggestedActions as Array<Record<string, unknown>>
     ),
-  };
+  });
 }
 
 export function sanitizeNutritionComparisonResponse(

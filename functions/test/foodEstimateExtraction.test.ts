@@ -157,6 +157,56 @@ describe("foodEstimateExtraction", () => {
     expect(payload.foodLogDrafts[0].components).toHaveLength(2);
     expect(payload.foodDrafts[0].quantity).toBeNull();
     expect(payload.foodDrafts[0].calories).toBe(413);
+    expect(payload.foodLogDrafts[0].calorieRangeLower).toBeLessThanOrEqual(413);
+    expect(payload.foodLogDrafts[0].calorieRangeUpper).toBeGreaterThanOrEqual(413);
+    expect(payload.foodLogDrafts[0].assumptions).toEqual([]);
+  });
+
+  it("rejects invalid calorie ranges and missing low-confidence uncertainty", () => {
+    const extraction: FoodExtractionResponse = {
+      meals: [{
+        meal_name: "Laksa",
+        meal_type: null,
+        components: [{
+          name: "laksa noodles",
+          quantity: 1,
+          unit: "bowl",
+          state: "unknown",
+          calories: 520,
+          protein_g: 18,
+          carbs_g: 55,
+          fat_g: 24,
+          confidence: "low",
+          source_text: "1 bowl laksa",
+          calories_range_lower: 500,
+          calories_range_upper: 510,
+          uncertainty_reasons: [],
+        }],
+        totals: {
+          calories: 520,
+          protein_g: 18,
+          carbs_g: 55,
+          fat_g: 24,
+          calories_range_lower: 500,
+          calories_range_upper: 510,
+        },
+        confidence: "low",
+        assumptions: ["Regular bowl"],
+        warnings: [],
+        uncertainty_reasons: [],
+        suggested_clarifications: [],
+        primary_uncertainty: null,
+        requires_clarification_before_logging: true,
+      }],
+      requiresConfirmation: true,
+      assistantMessage: null,
+    };
+
+    const result = validateFoodExtraction(extraction, "I ate laksa");
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((error) => error.includes("too narrow"))).toBe(true);
+    expect(result.errors.some((error) => error.includes("uncertaintyReasons"))).toBe(true);
+    expect(result.errors.some((error) => error.includes("suggestedClarifications"))).toBe(true);
   });
 
   it("maps meal_type null string to null mealType", () => {
@@ -251,5 +301,7 @@ describe("foodEstimateExtraction", () => {
 
     const normalized = normalizeFoodExtraction(extraction, bowlPrompt);
     expect(normalized.meals[0].totals.calories).toBe(413);
+    expect(normalized.meals[0].totals.calories_range_lower).toBeLessThanOrEqual(413);
+    expect(normalized.meals[0].totals.calories_range_upper).toBeGreaterThanOrEqual(413);
   });
 });

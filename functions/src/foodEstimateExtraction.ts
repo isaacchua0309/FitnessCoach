@@ -5,6 +5,15 @@ import {
   componentNamesMatchCompound,
   type CompoundDishSpec,
 } from "./foodCompoundDish";
+import {resolveCalorieRange, validateCalorieRangeBounds} from "./foodCalorieRange";
+import {
+  capConfidenceForRisk,
+  deriveRiskLevel,
+  isGenericFoodName,
+  normalizeTrustFields,
+  sanitizeStringList,
+  validateTrustFields,
+} from "./foodEstimateTrust";
 
 export interface FoodExtractionComponent {
   name: string;
@@ -17,6 +26,9 @@ export interface FoodExtractionComponent {
   fat_g: number;
   confidence: "low" | "medium" | "high";
   source_text: string;
+  calories_range_lower?: number | null;
+  calories_range_upper?: number | null;
+  uncertainty_reasons?: string[];
 }
 
 export interface FoodExtractionTotals {
@@ -24,6 +36,8 @@ export interface FoodExtractionTotals {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  calories_range_lower?: number | null;
+  calories_range_upper?: number | null;
 }
 
 export interface FoodExtractionMeal {
@@ -34,6 +48,10 @@ export interface FoodExtractionMeal {
   confidence: "low" | "medium" | "high";
   assumptions: string[];
   warnings: string[];
+  uncertainty_reasons?: string[];
+  suggested_clarifications?: string[];
+  primary_uncertainty?: string | null;
+  requires_clarification_before_logging?: boolean;
 }
 
 export interface FoodExtractionResponse {
@@ -322,12 +340,62 @@ export function normalizeFoodExtraction(
     ) {
       confidence = "low";
     }
+    confidence = capConfidenceForRisk(confidence, `${userText} ${meal.meal_name}`);
+
+    const normalizedComponents = components.map((component) => {
+      const componentRange = resolveCalorieRange(
+        component.calories,
+        component.confidence,
+        component.calories_range_lower,
+        component.calories_range_upper
+      );
+      const componentUncertainty = sanitizeStringList(component.uncertainty_reasons);
+      return {
+        ...component,
+        calories_range_lower: componentRange.lower,
+        calories_range_upper: componentRange.upper,
+        uncertainty_reasons: componentUncertainty.length > 0 ?
+          componentUncertainty :
+          component.confidence === "low" ?
+            ["Portion or preparation details were assumed for this component."] :
+            [],
+      };
+    });
+
+    const calorieRange = resolveCalorieRange(
+      summed.calories,
+      confidence,
+      meal.totals?.calories_range_lower,
+      meal.totals?.calories_range_upper
+    );
+
+    const trust = normalizeTrustFields({
+      confidence,
+      calories: summed.calories,
+      rangeLower: calorieRange.lower,
+      rangeUpper: calorieRange.upper,
+      assumptions: meal.assumptions,
+      uncertaintyReasons: meal.uncertainty_reasons,
+      suggestedClarifications: meal.suggested_clarifications,
+      primaryUncertainty: meal.primary_uncertainty,
+      requiresClarificationBeforeLogging: meal.requires_clarification_before_logging,
+      label: `Meal "${meal.meal_name}"`,
+    });
 
     return {
       ...meal,
-      components,
-      totals: summed,
+      components: normalizedComponents,
+      totals: {
+        ...summed,
+        calories_range_lower: trust.rangeLower ?? calorieRange.lower,
+        calories_range_upper: trust.rangeUpper ?? calorieRange.upper,
+      },
       confidence,
+      assumptions: trust.assumptions ?? [],
+      uncertainty_reasons: trust.uncertaintyReasons ?? [],
+      suggested_clarifications: trust.suggestedClarifications ?? [],
+      primary_uncertainty: trust.primaryUncertainty ?? null,
+      requires_clarification_before_logging: trust.requiresClarificationBeforeLogging ?? false,
       warnings: Array.from(new Set(warnings)),
     };
   });
@@ -354,6 +422,10 @@ export function validateFoodExtraction(
     if (!meal.components || meal.components.length === 0) {
       errors.push(`Meal "${meal.meal_name}" is missing components.`);
       continue;
+    }
+
+    if (isGenericFoodName(meal.meal_name)) {
+      errors.push(`Meal name "${meal.meal_name}" is too generic.`);
     }
 
     if (listedIngredients >= 2 && meal.components.length < 2) {
@@ -429,6 +501,21 @@ export function validateFoodExtraction(
       );
     }
 
+    errors.push(
+      ...validateTrustFields({
+        confidence: meal.confidence,
+        calories: summed.calories,
+        rangeLower: meal.totals?.calories_range_lower,
+        rangeUpper: meal.totals?.calories_range_upper,
+        assumptions: meal.assumptions,
+        uncertaintyReasons: meal.uncertainty_reasons,
+        suggestedClarifications: meal.suggested_clarifications,
+        primaryUncertainty: meal.primary_uncertainty,
+        requiresClarificationBeforeLogging: meal.requires_clarification_before_logging,
+        label: `Meal "${meal.meal_name}"`,
+      })
+    );
+
     for (const component of meal.components) {
       if (!component.source_text?.trim()) {
         errors.push(`Component "${component.name}" is missing source_text.`);
@@ -436,7 +523,28 @@ export function validateFoodExtraction(
       if (!component.name?.trim()) {
         errors.push("A component is missing name.");
       }
+      if (isGenericFoodName(component.name)) {
+        errors.push(`Component "${component.name}" is too generic.`);
+      }
       validateComponentMacros(component, errors);
+      const componentRange = resolveCalorieRange(
+        component.calories,
+        component.confidence,
+        component.calories_range_lower,
+        component.calories_range_upper
+      );
+      errors.push(
+        ...validateCalorieRangeBounds(
+          component.calories,
+          componentRange.lower,
+          componentRange.upper,
+          component.confidence,
+          `Component "${component.name}"`
+        )
+      );
+      if (component.confidence === "low" && sanitizeStringList(component.uncertainty_reasons).length === 0) {
+        errors.push(`Component "${component.name}" must include uncertainty_reasons when confidence is low.`);
+      }
     }
   }
 
@@ -453,6 +561,10 @@ export function foodEstimateRepairInstructions(errors: string[]): string {
     "Never collapse multiple listed ingredients or compound dishes into one generic component.",
     "Do not use the first ingredient quantity as a meal-level quantity.",
     "Include assumptions for portion, oil/sauce, confidence reason, and what the user can clarify.",
+    "Include uncertainty_reasons and suggested_clarifications when confidence is low or portions are vague.",
+    "totals.calories_range_lower and totals.calories_range_upper must bracket totals.calories.",
+    "Per-component calories_range_lower/upper must bracket each component calories when provided.",
+    "Set requires_clarification_before_logging true when clarification is needed before logging.",
     "Prefer realistic or slightly conservative calorie estimates.",
     "All macros must be non-negative and macro calories must match displayed calories within 15%.",
   ].join("\n");
@@ -480,37 +592,86 @@ export function mapExtractionToGatewayPayload(
     "low";
 
   const foodLogDrafts = extraction.meals.map((meal) => {
-    const warnings = [
-      ...(meal.warnings ?? []),
-      ...(meal.assumptions ?? []).map((item) => `Assumption: ${item}`),
-    ];
+    const summed = sumComponents(meal.components);
+    const calorieRange = resolveCalorieRange(
+      summed.calories,
+      meal.confidence,
+      meal.totals?.calories_range_lower,
+      meal.totals?.calories_range_upper
+    );
+    const mealAssumptions = sanitizeStringList(meal.assumptions);
+    const uncertaintyReasons = sanitizeStringList(meal.uncertainty_reasons);
+    const suggestedClarifications = sanitizeStringList(meal.suggested_clarifications);
+    const warnings = [...(meal.warnings ?? [])];
     if (!validation.ok) {
       warnings.push(
         "Estimate failed strict extraction validation. Review portions before logging."
       );
     }
 
+    const componentTrustMetadata = meal.components.map((component) => {
+      const componentRange = resolveCalorieRange(
+        component.calories,
+        component.confidence,
+        component.calories_range_lower,
+        component.calories_range_upper
+      );
+      return {
+        componentName: component.name,
+        estimatedCalories: Math.round(component.calories),
+        rangeLower: componentRange.lower,
+        rangeUpper: componentRange.upper,
+        assumptions: mealAssumptions,
+        uncertaintyReasons: sanitizeStringList(component.uncertainty_reasons),
+      };
+    });
+
     return {
       id: null,
       displayName: meal.meal_name,
       mealType: normalizeMealType(meal.meal_type),
-      components: meal.components.map((component) => ({
-        id: null,
-        name: component.name,
-        quantity: component.quantity,
-        unit: component.unit,
-        preparationState: component.state === "unknown" ? null : component.state,
-        calories: Math.round(component.calories),
-        protein: component.protein_g,
-        carbs: component.carbs_g,
-        fat: component.fat_g,
-        confidence: component.confidence,
-        sourceText: component.source_text,
-      })),
-      confidence,
+      components: meal.components.map((component) => {
+        const componentRange = resolveCalorieRange(
+          component.calories,
+          component.confidence,
+          component.calories_range_lower,
+          component.calories_range_upper
+        );
+        return {
+          id: null,
+          name: component.name,
+          quantity: component.quantity,
+          unit: component.unit,
+          preparationState: component.state === "unknown" ? null : component.state,
+          calories: Math.round(component.calories),
+          protein: component.protein_g,
+          carbs: component.carbs_g,
+          fat: component.fat_g,
+          confidence: component.confidence,
+          sourceText: component.source_text,
+          estimateTrustMetadata: {
+            componentName: component.name,
+            estimatedCalories: Math.round(component.calories),
+            rangeLower: componentRange.lower,
+            rangeUpper: componentRange.upper,
+            assumptions: mealAssumptions,
+            uncertaintyReasons: sanitizeStringList(component.uncertainty_reasons),
+          },
+        };
+      }),
+      confidence: meal.confidence,
       source,
       notes: null,
       warnings,
+      assumptions: mealAssumptions,
+      uncertaintyReasons,
+      suggestedClarifications,
+      primaryUncertainty: meal.primary_uncertainty ?? null,
+      requiresClarificationBeforeLogging: meal.requires_clarification_before_logging ?? false,
+      riskLevel: deriveRiskLevel(meal.confidence),
+      calorieRangeLower: calorieRange.lower,
+      calorieRangeUpper: calorieRange.upper,
+      componentTrustMetadata,
       imageUrl: null,
     };
   });

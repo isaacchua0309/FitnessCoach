@@ -1,6 +1,7 @@
 import {
   countListedIngredients,
   mapExtractionToGatewayPayload,
+  normalizeFoodExtraction,
   validateFoodExtraction,
 } from "../src/foodEstimateExtraction";
 import {foodLoggingGoldenCases} from "./fixtures/foodLoggingGoldenCases";
@@ -20,11 +21,12 @@ describe("foodLoggingGoldenCases", () => {
     expectations,
   }) => {
     it("accepts the golden extraction and maps a usable gateway payload", () => {
-      const validation = validateFoodExtraction(validExtraction, prompt);
+      const normalized = normalizeFoodExtraction(validExtraction, prompt);
+      const validation = validateFoodExtraction(normalized, prompt);
       expect(validation.ok).toBe(true);
 
       const payload = mapExtractionToGatewayPayload(
-        validExtraction,
+        normalized,
         "aiTextEstimate",
         validation
       );
@@ -84,6 +86,7 @@ describe("foodLoggingGoldenCases", () => {
         const warningText = meal.warnings.join(" ").toLowerCase();
         expect(
           warningText.includes("vague") ||
+          warningText.includes("ambiguous") ||
           warningText.includes("assumption") ||
           warningText.includes("approximate") ||
           warningText.includes("estimated")
@@ -94,8 +97,13 @@ describe("foodLoggingGoldenCases", () => {
         expect(rank[payload.confidence]).toBeLessThanOrEqual(rank[expectations.maxConfidence]);
       }
       if (expectations.requiresAssumptions) {
-        const assumptionText = meal.warnings.join(" ").toLowerCase();
-        expect(assumptionText.includes("assumption")).toBe(true);
+        const assumptionText = [
+          ...meal.assumptions,
+          ...meal.warnings,
+        ].join(" ").toLowerCase();
+        expect(
+          assumptionText.includes("assumption") || meal.assumptions.length > 0
+        ).toBe(true);
       }
     });
 
