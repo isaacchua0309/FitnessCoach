@@ -185,7 +185,7 @@ final class AppRouteResolverTests: XCTestCase {
     }
 
     func testLogoutDoesNotDeleteLocalProfilePolicy() {
-        XCTAssertTrue(AuthLogoutPolicy.deletesLocalProfileOnSignOut)
+        XCTAssertTrue(AuthLogoutPolicy.preservesLocalUserDataOnSignOut)
         XCTAssertEqual(
             AppRouteResolver.resolve(
                 authState: .signedIn(uid: "returning-user"),

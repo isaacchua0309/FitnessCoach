@@ -410,25 +410,23 @@ final class AppContainer {
         }
     }
 
-    func prepareLocalUserDataNamespace(uid: String) {
-        Task {
-            await accountDataNamespaceService.prepareForSignedInUID(uid)
-            do {
-                _ = try await accountMigrationService.runSafeBackfill(for: uid)
-            } catch {
-                ProfileBootstrapDebugLogger.error(
-                    "Local user-data legacy backfill failed",
-                    fields: ["uid": uid],
-                    underlying: error
-                )
-            }
+    /// Prepares the active local data namespace and runs safe legacy ownership backfill.
+    /// Must complete before profile bootstrap loads Today/Journey/Coach for the session.
+    func prepareLocalUserDataNamespace(uid: String) async {
+        await accountDataNamespaceService.prepareForSignedInUID(uid)
+        do {
+            _ = try await accountMigrationService.runSafeBackfill(for: uid)
+        } catch {
+            ProfileBootstrapDebugLogger.error(
+                "Local user-data legacy backfill failed",
+                fields: ["uid": uid],
+                underlying: error
+            )
         }
     }
 
-    func recordSignedOutLocalUserDataNamespace() {
-        Task {
-            await accountDataNamespaceService.prepareForSignOut()
-        }
+    func recordSignedOutLocalUserDataNamespace() async {
+        await accountDataNamespaceService.prepareForSignOut()
     }
 
     func makeHealthIntelligenceEngine() -> any HealthIntelligenceEngineing {

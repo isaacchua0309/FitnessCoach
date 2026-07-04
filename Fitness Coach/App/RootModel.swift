@@ -92,6 +92,7 @@ final class RootModel: ObservableObject {
     }
 
     /// Neutral shell state after sign-out. Avoids treating signed-out users as signed-in onboarding.
+    /// User-data isolation relies on UID-filtered reads, not SwiftData deletion (Phase 1).
     func resetForSignedOutSession() {
         loadTask?.cancel()
         applyState(.loading)
