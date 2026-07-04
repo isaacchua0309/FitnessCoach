@@ -14,9 +14,14 @@ enum JourneyPresentationBuilder {
     static func buildDashboard(
         hasProfile: Bool,
         context: JourneyDashboardBuilder.Context,
-        loggedDays: Int
+        loggedDays: Int,
+        weeklyProgressSummaryBuilder: WeeklyProgressSummaryBuilding = WeeklyProgressSummaryBuilder()
     ) -> JourneyDashboardState {
         let weeklyReview = JourneyDashboardBuilder.weeklyReview(context: context)
+        let weeklyProgressSummary = JourneyDashboardBuilder.weeklyProgressSummary(
+            context: context,
+            builder: weeklyProgressSummaryBuilder
+        )
         let streakSummary = StreakCalculator.calculate(
             logs: context.maturityLogs,
             workoutDates: context.healthWorkoutDayStarts,
@@ -103,7 +108,8 @@ enum JourneyPresentationBuilder {
             insight: personalizedInsights(context: context),
             weeklyHabit: weeklyHabit,
             monthlyRecap: monthlyRecapState(from: monthlyRecap),
-            chapter: chapter
+            chapter: chapter,
+            weeklyProgressSummary: weeklyProgressSummary
         )
     }
 
@@ -289,7 +295,8 @@ enum JourneyPresentationBuilder {
         monthHealthWorkoutCount: Int = 0,
         weightTrendDirection: WeightTrendDirection = .insufficientData,
         calendar: Calendar = .current,
-        asOf: Date = Date()
+        asOf: Date = Date(),
+        weeklyProgressSummaryBuilder: WeeklyProgressSummaryBuilding = WeeklyProgressSummaryBuilder()
     ) -> JourneyDashboardState {
         let training = weeklyTraining ?? weeklyReview.training
         let weightSummary = ProgressWeightSummary(
@@ -318,6 +325,11 @@ enum JourneyPresentationBuilder {
             monthHealthWorkoutCount: monthHealthWorkoutCount,
             asOf: asOf,
             calendar: calendar
+        )
+
+        let weeklyProgressSummary = JourneyDashboardBuilder.weeklyProgressSummary(
+            context: context,
+            builder: weeklyProgressSummaryBuilder
         )
 
         let milestoneResult = JourneyNextMilestoneBuilder.build(
@@ -415,14 +427,16 @@ enum JourneyPresentationBuilder {
                     emptyMessage: chapterCopy.emptyBody,
                     totalXP: 0,
                     accessibilitySummary: "\(chapterCopy.sectionTitle). \(chapterCopy.chapterLabel(1))"
-                )
+                ),
+                weeklyProgressSummary: weeklyProgressSummary
             )
         }
 
         return buildDashboard(
             hasProfile: hasProfile,
             context: context,
-            loggedDays: loggedDays
+            loggedDays: loggedDays,
+            weeklyProgressSummaryBuilder: weeklyProgressSummaryBuilder
         )
     }
 }

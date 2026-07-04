@@ -73,9 +73,17 @@ final class JourneyCleanupTests: XCTestCase {
                 "insight",
                 "weeklyHabit",
                 "monthlyRecap",
-                "chapter"
+                "chapter",
+                "weeklyProgressSummary"
             ]
         )
+    }
+
+    func testJourneyDashboardStateIncludesWeeklyProgressSummary() {
+        let dashboard = JourneyPreviewData.strongMomentum
+
+        XCTAssertLessThanOrEqual(dashboard.weeklyProgressSummary.startDate, dashboard.weeklyProgressSummary.endDate)
+        XCTAssertFalse(dashboard.weeklyProgressSummary.headline.isEmpty)
     }
 
     func testLegacySectionAccessorsRemainAvailable() {

@@ -38,6 +38,7 @@ final class JourneyModel: ObservableObject {
     private let ownerUIDProvider: () -> String?
     private let accountDataRefreshEventBus: AccountDataRefreshEventBus?
     private let crossDeviceSyncCoordinator: CrossDeviceSyncCoordinating?
+    private let weeklyProgressSummaryBuilder: WeeklyProgressSummaryBuilding
 
     private var crossDeviceRefreshCancellable: AnyCancellable?
     private var debouncedCrossDeviceReloadTask: Task<Void, Never>?
@@ -66,7 +67,8 @@ final class JourneyModel: ObservableObject {
         localDataInspector: (any AccountLocalDataInspecting)? = nil,
         ownerUIDProvider: @escaping () -> String? = { nil },
         accountDataRefreshEventBus: AccountDataRefreshEventBus? = nil,
-        crossDeviceSyncCoordinator: CrossDeviceSyncCoordinating? = nil
+        crossDeviceSyncCoordinator: CrossDeviceSyncCoordinating? = nil,
+        weeklyProgressSummaryBuilder: WeeklyProgressSummaryBuilding = WeeklyProgressSummaryBuilder()
     ) {
         self.dailyLogReader = dailyLogReader
         self.weightLogReader = weightLogReader
@@ -91,6 +93,7 @@ final class JourneyModel: ObservableObject {
         self.ownerUIDProvider = ownerUIDProvider
         self.accountDataRefreshEventBus = accountDataRefreshEventBus
         self.crossDeviceSyncCoordinator = crossDeviceSyncCoordinator
+        self.weeklyProgressSummaryBuilder = weeklyProgressSummaryBuilder
         bindAccountDataRefreshEventsIfNeeded()
     }
 
@@ -448,7 +451,8 @@ final class JourneyModel: ObservableObject {
         return JourneyPresentationBuilder.buildDashboard(
             hasProfile: profile != nil,
             context: builderContext,
-            loggedDays: loggedDays
+            loggedDays: loggedDays,
+            weeklyProgressSummaryBuilder: weeklyProgressSummaryBuilder
         )
     }
 

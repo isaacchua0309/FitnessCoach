@@ -23,6 +23,7 @@ struct JourneyDashboardState: Equatable {
     var weeklyHabit: JourneyWeeklyHabitState
     var monthlyRecap: JourneyMonthlyRecapState
     var chapter: JourneyChapterState
+    var weeklyProgressSummary: WeeklyProgressSummary
 }
 
 extension JourneyDashboardState {
