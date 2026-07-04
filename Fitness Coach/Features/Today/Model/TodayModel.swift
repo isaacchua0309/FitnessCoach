@@ -13,6 +13,7 @@ final class TodayModel: ObservableObject {
 
     @Published private(set) var viewState: TodayViewState = .loading
     @Published private(set) var healthIntelligenceSectionState: TodayHealthIntelligenceSectionState?
+    @Published private(set) var isCrossDeviceRefreshing = false
 
     private let dailyLogReader: any DailyLogReading
     private let foodLogReader: any FoodLogReading
@@ -34,10 +35,14 @@ final class TodayModel: ObservableObject {
     private let lastSuccessfulLocalSyncAtProvider: () -> Date?
     private let remoteSyncConsentDecisionProvider: () -> HealthSummarySyncConsentDecision
     private let isRemoteSyncCapabilityEnabled: () -> Bool
+    private let accountDataRefreshEventBus: AccountDataRefreshEventBus?
+    private let crossDeviceSyncCoordinator: CrossDeviceSyncCoordinating?
 
     private var activityContext: TodayActivityContext = .default
     private var boundHydrationContext: TodayHydrationContext?
     private var activeLoadTask: Task<Void, Never>?
+    private var crossDeviceRefreshCancellable: AnyCancellable?
+    private var debouncedCrossDeviceReloadTask: Task<Void, Never>?
 
     init(
         dailyLogReader: any DailyLogReading,
@@ -59,7 +64,9 @@ final class TodayModel: ObservableObject {
         healthSyncPhaseProvider: @escaping () -> HealthSyncPhase? = { nil },
         lastSuccessfulLocalSyncAtProvider: @escaping () -> Date? = { nil },
         remoteSyncConsentDecisionProvider: @escaping () -> HealthSummarySyncConsentDecision = { .notDetermined },
-        isRemoteSyncCapabilityEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.healthSummaryRemoteSyncEnabled }
+        isRemoteSyncCapabilityEnabled: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.healthSummaryRemoteSyncEnabled },
+        accountDataRefreshEventBus: AccountDataRefreshEventBus? = nil,
+        crossDeviceSyncCoordinator: CrossDeviceSyncCoordinating? = nil
     ) {
         self.dailyLogReader = dailyLogReader
         self.foodLogReader = foodLogReader
@@ -81,6 +88,14 @@ final class TodayModel: ObservableObject {
         self.lastSuccessfulLocalSyncAtProvider = lastSuccessfulLocalSyncAtProvider
         self.remoteSyncConsentDecisionProvider = remoteSyncConsentDecisionProvider
         self.isRemoteSyncCapabilityEnabled = isRemoteSyncCapabilityEnabled
+        self.accountDataRefreshEventBus = accountDataRefreshEventBus
+        self.crossDeviceSyncCoordinator = crossDeviceSyncCoordinator
+        bindAccountDataRefreshEventsIfNeeded()
+    }
+
+    deinit {
+        crossDeviceRefreshCancellable?.cancel()
+        debouncedCrossDeviceReloadTask?.cancel()
     }
 
     // MARK: Session lifecycle
@@ -88,9 +103,60 @@ final class TodayModel: ObservableObject {
     func resetForUserContextChange() {
         activeLoadTask?.cancel()
         activeLoadTask = nil
+        debouncedCrossDeviceReloadTask?.cancel()
+        debouncedCrossDeviceReloadTask = nil
+        isCrossDeviceRefreshing = false
         boundHydrationContext = nil
         healthIntelligenceSectionState = nil
         viewState = .loading
+    }
+
+    // MARK: Cross-device refresh (Phase 5)
+
+    func bindAccountDataRefreshEventsIfNeeded() {
+        guard let accountDataRefreshEventBus else { return }
+        crossDeviceRefreshCancellable?.cancel()
+        crossDeviceRefreshCancellable = accountDataRefreshEventBus.events
+            .compactMap { [weak self] event -> AccountDataRefreshEvent? in
+                guard let self else { return nil }
+                guard TodayCrossDeviceRefreshPolicy.matchesCurrentUID(
+                    event: event,
+                    ownerUIDProvider: self.ownerUIDProvider
+                ) else {
+                    return nil
+                }
+                guard TodayCrossDeviceRefreshPolicy.shouldReload(for: event) else {
+                    return nil
+                }
+                return event
+            }
+            .sink { [weak self] _ in
+                self?.scheduleCrossDeviceReload()
+            }
+    }
+
+    func performManualCrossDeviceRefresh() async {
+        guard CrossDeviceSyncLifecycle.isManualRefreshEnabled,
+              let crossDeviceSyncCoordinator,
+              let uid = ownerUIDProvider() else {
+            return
+        }
+
+        isCrossDeviceRefreshing = true
+        defer { isCrossDeviceRefreshing = false }
+
+        _ = await crossDeviceSyncCoordinator.manualRefresh(uid: uid)
+    }
+
+    private func scheduleCrossDeviceReload() {
+        debouncedCrossDeviceReloadTask?.cancel()
+        debouncedCrossDeviceReloadTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(
+                for: .milliseconds(TodayCrossDeviceRefreshPolicy.reloadDebounceMilliseconds)
+            )
+            guard !Task.isCancelled, let self else { return }
+            await self.refresh(activityContext: self.activityContext)
+        }
     }
 
     // MARK: Loading

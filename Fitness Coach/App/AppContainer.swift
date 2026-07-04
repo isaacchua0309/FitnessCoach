@@ -713,7 +713,9 @@ final class AppContainer {
             restoreSessionState: accountRestoreSessionState,
             localDataInspector: accountLocalDataInspector,
             ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+            accountDataRefreshEventBus: accountDataRefreshEventBus,
+            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator
         )
     }
 
