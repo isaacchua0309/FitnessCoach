@@ -997,9 +997,9 @@ enum FormaProductCopy {
 
         enum Meals {
             static let title = "Ready for your first log"
-            static let body = "Pick a meal below or tap Log meal — we'll track the rest."
+            static let body = "Tell Coach with a photo, voice note, or quick description — we'll track the rest."
             static let action = "Log meal"
-            static let actionAccessibilityHint = "Opens meal logging"
+            static let actionAccessibilityHint = "Opens Coach to log a meal"
         }
 
         enum WeightTrend {
@@ -1173,10 +1173,10 @@ enum FormaProductCopy {
             static let newDayMissionStatus = "New day, fresh targets. Log your first meal when you're ready."
 
             static let newProfileMealsTitle = "Ready for your first log"
-            static let newProfileMealsBody = "Pick a meal below or tap Log meal — we'll track the rest."
+            static let newProfileMealsBody = "Tell Coach with a photo, voice note, or quick description — we'll track the rest."
 
             static let newDayMealsTitle = "Nothing logged yet today"
-            static let newDayMealsBody = "Your usual rhythm picks up with one quick log."
+            static let newDayMealsBody = "Send a photo, speak, or describe your meal in Coach."
 
             static let logMealAction = "Log meal"
             static let logWeightAction = "Log weight"
@@ -1253,9 +1253,9 @@ enum FormaProductCopy {
         enum NextAction {
             static let sectionTitle = "Next Best Action"
             static let logBreakfastTitle = "Log breakfast to start today."
-            static let logBreakfastSubtitle = "A morning log helps Forma guide the rest of your day."
+            static let logBreakfastSubtitle = "Send a photo, speak, or describe your meal."
             static let logFirstMealTitle = "Log your first meal to start today."
-            static let logFirstMealSubtitle = "A quick log helps Forma guide the rest of your day."
+            static let logFirstMealSubtitle = "Send a photo, speak, or describe your meal."
             static let eatProteinTitle = "Protein is your biggest gap."
             static let eatProteinSubtitle = "A high-protein meal will help protect muscle during your cut."
             static let hydrationBehindTitle = "Hydration is behind."
@@ -1279,7 +1279,6 @@ enum FormaProductCopy {
             static let ctaConnectHealth = "Connect Apple Health"
             static let ctaReviewToday = "Review today"
 
-            static let sheetLogMealTitle = "Log meal"
             static let sheetLogWeightTitle = "Log weight"
             static let sheetLogWeightSection = "Today's weight"
             static let sheetWeightField = "Weight (kg)"
@@ -1412,9 +1411,9 @@ enum FormaProductCopy {
             static let optionalLabel = "Optional"
             static let loggedAccessibilityValue = "Logged"
             static let loggedAccessibilityHint = "Edit this food entry"
-            static let addAccessibilityHint = "Log food for this meal"
-            static let emptyDayHint = "Log a meal to start today's picture."
-            static let editSheetTitle = "Edit food"
+            static let addAccessibilityHint = "Opens Coach to log food for this meal"
+            static let emptyDayHint = "Log with Coach to start today's picture."
+            static let editSheetTitle = "Edit nutrition"
             static let saveEditAction = "Save"
             static let deleteAction = "Delete entry"
             static let editAccessibilityHint = "Edit this food entry"
@@ -1454,45 +1453,47 @@ enum FormaProductCopy {
         }
 
         enum QuickActions {
-            static let sectionTitle = "Quick Actions"
-            static let fabAccessibilityLabel = "Quick log"
-            static let fabAccessibilityHint = "Log food, water, weight, or open Coach"
-            static let addWaterSheetTitle = "Add water"
-            static let addWaterSheetBody = "Pick an amount to log now."
-            static let scanFoodUnavailableNote = "Photo scan is coming soon — use Log Meal for now."
+            static let sectionTitle = "Fast log"
+            static let logMealMicrocopy = "Coach will estimate it from a photo, voice note, or text."
+            static let scanMealAccessibilityHint = "Opens the camera to scan your meal"
 
             static func inlineAccessibilityHint(for kind: TodayQuickActionKind) -> String {
                 switch kind {
-                case .scanFood: return "Opens food photo scan"
-                case .logMeal: return "Opens meal logging"
-                case .addWater: return "Opens water logging"
-                case .logWeight: return "Opens weight logging"
-                case .logWorkout: return "Opens workout logging"
+                case .scanFood: return scanMealAccessibilityHint
+                case .logMeal: return "Opens Coach to log your meal"
                 }
             }
 
             static func title(for kind: TodayQuickActionKind) -> String {
                 switch kind {
-                case .scanFood: return "Scan Food"
+                case .scanFood: return "Scan Meal"
                 case .logMeal: return "Log Meal"
-                case .addWater: return "Add Water"
-                case .logWeight: return "Log Weight"
-                case .logWorkout: return "Log Workout"
                 }
             }
 
             static func symbolName(for kind: TodayQuickActionKind) -> String {
                 switch kind {
                 case .scanFood: return "camera.viewfinder"
-                case .logMeal: return "fork.knife"
-                case .addWater: return "drop.fill"
-                case .logWeight: return "scalemass.fill"
-                case .logWorkout: return "figure.run"
+                case .logMeal: return "text.bubble.fill"
                 }
             }
+        }
 
-            static func waterAmountLabel(_ amountMl: Int) -> String {
-                amountMl >= 1_000 ? "\(amountMl / 1_000)L" : "\(amountMl)ml"
+        enum Water {
+            static let sectionTitle = "Water"
+            static let symbolName = "drop.fill"
+            static let logFailedMessage = "Couldn't add water. Try again."
+            static let tapDebounceSeconds = 0.35
+
+            static func quickAddLabel(_ amountMl: Int) -> String {
+                amountMl >= 1_000 ? "+1 L" : "+\(amountMl) ml"
+            }
+
+            static func addedMessage(amountMl: Int) -> String {
+                if amountMl >= 1_000 {
+                    return "Added 1 L"
+                }
+                return "Added \(amountMl) ml"
             }
 
             static func waterAmountAccessibilityLabel(_ amountMl: Int) -> String {
@@ -2303,6 +2304,24 @@ enum FormaProductCopy {
         static let quickActionsSectionTitle = "Quick actions"
         static let emptyIntro = EmptyState.CoachConversation.body
         static let composerPlaceholder = "Message Coach…"
+        static let scanMealPrefill = "Scan my meal"
+        static let mealLoggingComposerPlaceholder = "Send a photo or describe your meal."
+
+        static func mealLoggingComposerPlaceholder(mealType: MealType?) -> String {
+            switch mealType {
+            case .breakfast:
+                return "What did you eat for breakfast? Send a photo or describe your meal."
+            case .lunch:
+                return "What did you eat for lunch? Send a photo or describe your meal."
+            case .dinner:
+                return "What did you eat for dinner? Send a photo or describe your meal."
+            case .snack:
+                return "What did you eat for a snack? Send a photo or describe your meal."
+            case .unknown, nil:
+                return "What did you eat? Send a photo or describe your meal."
+            }
+        }
+
         static let composerListeningPlaceholder = "Listening…"
         static let composerPhotoClarificationPlaceholder = "Add a detail about your meal…"
         static let foodEstimatePending = "Food estimate ready"
@@ -2329,6 +2348,43 @@ enum FormaProductCopy {
 
         static func latestMealLine(name: String, calories: Int) -> String {
             "Latest: \(name) · \(calories) kcal"
+        }
+
+        enum Launch {
+            static let logMealBody = "Send a photo, speak, or describe your meal — whatever is easiest."
+            static let analyzePhotoHeadline = "Scan your meal"
+            static let analyzePhotoBody = "Take a photo or describe what you ate — Coach handles the rest."
+            static let logWaterHeadline = "Log water"
+            static let logWaterBody = "Tap below to add water, or tell Coach how much you drank."
+            static let chipSectionTitle = "Get started"
+
+            static func logMealHeadline(mealType: MealType?) -> String {
+                switch mealType {
+                case .breakfast: return "Log breakfast"
+                case .lunch: return "Log lunch"
+                case .dinner: return "Log dinner"
+                case .snack: return "Log a snack"
+                case .unknown, nil: return "Log your meal"
+                }
+            }
+
+            static func waterLogCommand(amountMl: Int) -> String {
+                "Add \(amountMl)ml water"
+            }
+
+            enum Chip {
+                static let takePhoto = "Take photo"
+                static let describeMeal = "Describe meal"
+                static let useVoice = "Use voice"
+                static let takePhotoHint = "Opens the camera to photograph your meal"
+                static let describeMealHint = "Focuses the message field to type your meal"
+                static let useVoiceHint = "Starts voice input for your meal"
+                static let addWaterHint = "Sends a water log command to Coach"
+
+                static func addWater(amountMl: Int) -> String {
+                    amountMl >= 1_000 ? "Add \(amountMl / 1_000)L water" : "Add \(amountMl)ml water"
+                }
+            }
         }
     }
 
@@ -2357,6 +2413,9 @@ enum FormaProductCopy {
         static let sodium = "Sodium"
         static let notes = "Notes"
         static let notesPlaceholder = "Optional notes"
+
+        static let editNutritionTitle = "Edit nutrition"
+        static let createCustomFoodTitle = "Create custom food"
 
         static let kcalUnit = "kcal"
         static let gramsUnit = "g"

@@ -32,6 +32,7 @@ final class TodayNextActionFormattingTests: XCTestCase {
         let display = TodayNextActionFormatting.displayModel(for: action)
 
         XCTAssertEqual(display.headline, "Log breakfast to start today.")
+        XCTAssertEqual(display.subtitle, "Send a photo, speak, or describe your meal.")
         XCTAssertEqual(display.primaryButtonTitle, "Log breakfast")
     }
 
@@ -80,10 +81,10 @@ final class TodayNextActionFormattingTests: XCTestCase {
         )
     }
 
-    func testRouteMapsLogMealToNativeSheetWithMealType() {
+    func testRouteMapsLogMealToCoachMealLoggingWithMealType() {
         XCTAssertEqual(
             TodayNextActionFormatting.route(for: .logMeal(TodayCoachPrompt.logMeal(.lunch))),
-            .presentLogMeal(mealType: .lunch)
+            .openCoach(.logMeal(mealType: .lunch))
         )
     }
 
@@ -97,7 +98,7 @@ final class TodayNextActionFormattingTests: XCTestCase {
     func testRouteMapsScanFoodToCoach() {
         XCTAssertEqual(
             TodayNextActionFormatting.route(for: .scanFood),
-            .openCoach(TodayCoachPrompt.scanFood)
+            .openCoach(.analyzePhotoMeal())
         )
     }
 

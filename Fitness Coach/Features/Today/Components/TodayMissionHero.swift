@@ -20,11 +20,18 @@ struct TodayMissionHero: View {
             metricsBlock
 
             if mission.showsLogMealCTA {
-                FormaQuickActionChip(
-                    title: FormaProductCopy.Today.Mission.logMealCTA,
-                    action: onLogMeal,
-                    accessibilityHint: FormaProductCopy.Today.mealsLogMealAccessibilityHint
-                )
+                VStack(alignment: .leading, spacing: FormaTokens.Spacing.xs) {
+                    FormaQuickActionChip(
+                        title: FormaProductCopy.Today.Mission.logMealCTA,
+                        action: onLogMeal,
+                        accessibilityHint: FormaProductCopy.Today.mealsLogMealAccessibilityHint
+                    )
+
+                    Text(FormaProductCopy.Today.QuickActions.logMealMicrocopy)
+                        .font(FormaTokens.Typography.caption)
+                        .foregroundStyle(FormaTokens.Color.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 .padding(.top, FormaTokens.Spacing.xs)
             }
         }

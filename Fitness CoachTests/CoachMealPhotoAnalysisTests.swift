@@ -332,8 +332,9 @@ final class CoachMealPhotoAnalysisTests: XCTestCase {
     func testTodayScanFoodVisibleWhenPipelineReady() {
         XCTAssertTrue(TodayPhotoScanAvailability.isPipelineReady)
         XCTAssertTrue(TodayQuickActionPolicy.isVisible(.scanFood))
-        XCTAssertTrue(
-            TodayQuickActionPolicy.menuItems().contains { $0.kind == .scanFood && $0.isEnabled }
+        XCTAssertEqual(
+            TodayQuickActionPolicy.configuration().showsScanMeal,
+            TodayPhotoScanAvailability.isPipelineReady
         )
     }
 

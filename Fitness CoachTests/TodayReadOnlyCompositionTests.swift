@@ -41,15 +41,12 @@ final class TodayReadOnlyCompositionTests: XCTestCase {
         XCTAssertEqual(state.nextBestAction.reason, .logBreakfast)
     }
 
-    func testQuickActionsSectionIncludesCoreLoggingActions() {
-        let items = TodayQuickActionPolicy.menuItems(isScanFoodAvailable: true)
-        let kinds = Set(items.map(\.kind))
+    func testQuickActionsSectionIncludesPrimaryLoggingActions() {
+        let configuration = TodayQuickActionPolicy.configuration(isScanFoodAvailable: true)
 
-        XCTAssertTrue(kinds.contains(.scanFood))
-        XCTAssertTrue(kinds.contains(.logMeal))
-        XCTAssertTrue(kinds.contains(.addWater))
-        XCTAssertTrue(kinds.contains(.logWeight))
-        XCTAssertTrue(kinds.contains(.logWorkout))
+        XCTAssertTrue(TodayQuickActionPolicy.isVisible(.logMeal, isScanFoodAvailable: true))
+        XCTAssertFalse(TodayQuickActionPolicy.isVisible(.scanFood, isScanFoodAvailable: false))
+        XCTAssertTrue(configuration.showsScanMeal)
     }
 
     func testOverTargetDayMissionOverBudget() {

@@ -61,25 +61,27 @@ final class TodayMealsSectionFormattingTests: XCTestCase {
     }
 
     @MainActor
-    func testAddMealRoutesOpenNativeLogSheet() {
+    func testAddMealRoutesToCoachMealLogging() {
+        var launchedIntents: [CoachLaunchIntent] = []
         let coordinator = TodayActionCoordinator(
             actionCenter: try! FitnessActionCenterTestSupport.makeHarness().actionCenter
         )
+        coordinator.onOpenCoach = { launchedIntents.append($0) }
 
         coordinator.logMeal(for: .breakfast)
-        XCTAssertEqual(coordinator.logMealPresentation?.mealType, .breakfast)
-
-        coordinator.dismissLogMealSheet()
         coordinator.logMeal(for: .lunch)
-        XCTAssertEqual(coordinator.logMealPresentation?.mealType, .lunch)
-
-        coordinator.dismissLogMealSheet()
         coordinator.logMeal(for: .dinner)
-        XCTAssertEqual(coordinator.logMealPresentation?.mealType, .dinner)
-
-        coordinator.dismissLogMealSheet()
         coordinator.logMeal(for: .snack)
-        XCTAssertEqual(coordinator.logMealPresentation?.mealType, .snack)
+
+        XCTAssertEqual(
+            launchedIntents,
+            [
+                .logMeal(mealType: .breakfast),
+                .logMeal(mealType: .lunch),
+                .logMeal(mealType: .dinner),
+                .logMeal(mealType: .snack)
+            ]
+        )
     }
 
     @MainActor

@@ -210,6 +210,8 @@ final class FitnessActionCenter {
 
     // MARK: - Refresh
 
+    var dataRefreshToken: Int { refreshCenter.refreshToken }
+
     func notifyDataChanged() {
         refreshCenter.notifyDataChanged()
     }

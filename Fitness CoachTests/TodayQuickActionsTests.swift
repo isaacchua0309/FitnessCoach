@@ -8,47 +8,23 @@ import XCTest
 
 final class TodayQuickActionsTests: XCTestCase {
 
-    func testScanFoodAlwaysPresentEvenWhenPipelineUnavailable() {
-        let items = TodayQuickActionPolicy.menuItems(isScanFoodAvailable: false)
+    func testConfigurationShowsScanMealOnlyWhenPipelineReady() {
+        let available = TodayQuickActionPolicy.configuration(isScanFoodAvailable: true)
+        let unavailable = TodayQuickActionPolicy.configuration(isScanFoodAvailable: false)
 
-        XCTAssertEqual(items.first?.kind, .scanFood)
-        XCTAssertFalse(items.first?.isEnabled == true)
-        XCTAssertEqual(items.map(\.kind), [.scanFood, .logMeal, .addWater, .logWeight, .logWorkout])
+        XCTAssertTrue(available.showsScanMeal)
+        XCTAssertFalse(unavailable.showsScanMeal)
     }
 
-    func testScanFoodEnabledAndFirstWhenPipelineAvailable() {
-        let items = TodayQuickActionPolicy.menuItems(isScanFoodAvailable: true)
-
-        XCTAssertEqual(items.first?.kind, .scanFood)
-        XCTAssertTrue(items.first?.isEnabled == true)
-        XCTAssertTrue(TodayQuickActionPolicy.isVisible(.scanFood, isScanFoodAvailable: true))
-    }
-
-    func testLogMealIsPrimaryQuickAction() {
-        let items = TodayQuickActionPolicy.menuItems(isScanFoodAvailable: true)
-
-        let logMeal = items.first { $0.kind == .logMeal }
-
-        XCTAssertEqual(logMeal?.presentation, .primary)
-    }
-
-    func testCoreActionsAlwaysVisibleRegardlessOfScanFood() {
+    func testLogMealAlwaysVisibleRegardlessOfScanFood() {
         for scanAvailable in [true, false] {
             XCTAssertTrue(TodayQuickActionPolicy.isVisible(.logMeal, isScanFoodAvailable: scanAvailable))
-            XCTAssertTrue(TodayQuickActionPolicy.isVisible(.addWater, isScanFoodAvailable: scanAvailable))
-            XCTAssertTrue(TodayQuickActionPolicy.isVisible(.logWeight, isScanFoodAvailable: scanAvailable))
-            XCTAssertTrue(TodayQuickActionPolicy.isVisible(.logWorkout, isScanFoodAvailable: scanAvailable))
-            XCTAssertTrue(TodayQuickActionPolicy.isVisible(.scanFood, isScanFoodAvailable: scanAvailable))
         }
     }
 
-    func testActionOrderPrioritizesHighFrequencyLogging() {
-        let items = TodayQuickActionPolicy.menuItems(isScanFoodAvailable: true)
-
-        XCTAssertEqual(
-            items.map(\.kind),
-            [.scanFood, .logMeal, .addWater, .logWeight, .logWorkout]
-        )
+    func testScanMealVisibleOnlyWhenPipelineReady() {
+        XCTAssertTrue(TodayQuickActionPolicy.isVisible(.scanFood, isScanFoodAvailable: true))
+        XCTAssertFalse(TodayQuickActionPolicy.isVisible(.scanFood, isScanFoodAvailable: false))
     }
 
     func testQuickActionTitlesUseProductCopy() {
@@ -57,19 +33,54 @@ final class TodayQuickActionsTests: XCTestCase {
             "Log Meal"
         )
         XCTAssertEqual(
-            FormaProductCopy.Today.QuickActions.title(for: .logWorkout),
-            "Log Workout"
+            FormaProductCopy.Today.QuickActions.title(for: .scanFood),
+            "Scan Meal"
         )
-        XCTAssertFalse(FormaProductCopy.Today.QuickActions.inlineAccessibilityHint(for: .logWorkout).isEmpty)
+        XCTAssertEqual(
+            FormaProductCopy.Today.QuickActions.sectionTitle,
+            "Fast log"
+        )
     }
 
-    func testProductionMenuReflectsPipelineReadiness() {
-        let productionItems = TodayQuickActionPolicy.menuItems()
-        let scanItem = productionItems.first { $0.kind == .scanFood }
+    func testWaterQuickAddLabelsUseProductCopy() {
+        XCTAssertEqual(FormaProductCopy.Today.Water.quickAddLabel(250), "+250 ml")
+        XCTAssertEqual(FormaProductCopy.Today.Water.quickAddLabel(1_000), "+1 L")
+        XCTAssertEqual(FormaProductCopy.Today.Water.addedMessage(amountMl: 500), "Added 500 ml")
+        XCTAssertEqual(FormaProductCopy.Today.Water.addedMessage(amountMl: 1_000), "Added 1 L")
+        XCTAssertEqual(
+            FormaProductCopy.Today.Water.logFailedMessage,
+            "Couldn't add water. Try again."
+        )
+        XCTAssertEqual(
+            FormaProductCopy.Today.Water.waterAmountAccessibilityLabel(500),
+            "Add 500 milliliters of water"
+        )
+    }
 
-        XCTAssertNotNil(scanItem)
-        XCTAssertEqual(scanItem?.isEnabled, TodayPhotoScanAvailability.isPipelineReady)
-        XCTAssertTrue(productionItems.contains { $0.kind == .logMeal })
-        XCTAssertTrue(productionItems.contains { $0.kind == .logWorkout })
+    func testLogMealMicrocopyPointsToCoach() {
+        XCTAssertEqual(
+            FormaProductCopy.Today.QuickActions.logMealMicrocopy,
+            "Coach will estimate it from a photo, voice note, or text."
+        )
+        XCTAssertEqual(
+            FormaProductCopy.Today.NextAction.logBreakfastSubtitle,
+            "Send a photo, speak, or describe your meal."
+        )
+        XCTAssertEqual(
+            FormaProductCopy.Today.mealsLogMealAccessibilityHint,
+            "Opens Coach to log a meal"
+        )
+    }
+
+    func testFoodFormTitlesReflectFallbackEditingRoles() {
+        XCTAssertEqual(FormaProductCopy.FoodForm.editNutritionTitle, "Edit nutrition")
+        XCTAssertEqual(FormaProductCopy.FoodForm.createCustomFoodTitle, "Create custom food")
+        XCTAssertEqual(FormaProductCopy.Today.Meals.editSheetTitle, "Edit nutrition")
+    }
+
+    func testProductionConfigurationReflectsPipelineReadiness() {
+        let configuration = TodayQuickActionPolicy.configuration()
+
+        XCTAssertEqual(configuration.showsScanMeal, TodayPhotoScanAvailability.isPipelineReady)
     }
 }

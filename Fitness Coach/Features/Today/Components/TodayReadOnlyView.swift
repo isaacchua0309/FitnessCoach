@@ -102,9 +102,20 @@ struct TodayReadOnlyView: View {
             }
 
             TodayQuickActionsSection(
-                menuItems: state.quickActions.items,
-                onSelect: { kind in
-                    actionCoordinator.performQuickAction(kind)
+                showsScanMeal: state.quickActions.showsScanMeal,
+                onLogMeal: {
+                    actionCoordinator.performQuickAction(.logMeal)
+                },
+                onScanMeal: {
+                    actionCoordinator.performQuickAction(.scanFood)
+                }
+            )
+
+            TodayWaterQuickLogSection(
+                water: state.macroHydration.waterSummary,
+                presetAmountsMl: TodayActionCoordinator.defaultWaterPresetAmountsMl,
+                onAddWater: { amountMl in
+                    actionCoordinator.addWater(amountMl: amountMl)
                 }
             )
 
@@ -154,7 +165,7 @@ struct TodayReadOnlyView: View {
                 TodayInlineEmptyCard(
                     copy: TodayEmptyStateFormatting.copy(for: .noRecentWeight),
                     onAction: {
-                        actionCoordinator.performQuickAction(.logWeight)
+                        actionCoordinator.presentLogWeight()
                     }
                 )
             }

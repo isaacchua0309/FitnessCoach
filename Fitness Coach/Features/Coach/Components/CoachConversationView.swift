@@ -11,10 +11,12 @@ struct CoachConversationView<BottomAccessory: View>: View {
     let messages: [ChatMessage]
     let isSending: Bool
     var todayContext: CoachTodayContextState?
+    var launchPresentation: CoachLaunchPresentation?
     var starterPrompts: [CoachStarterPromptSpec] = CoachStarterPrompt.defaultQuickActionSpecs
     var pendingConfirmation: CoachPendingConfirmation?
     var isInputFocused: Bool = false
     var onDismissKeyboard: (() -> Void)?
+    var onLaunchChipTap: ((CoachLaunchChip) -> Void)?
     var onStarterTap: ((CoachStarterPromptSpec) -> Void)?
     var onRetryMealPhotoAnalysis: ((UUID) -> Void)?
     var onNutritionAction: ((NutritionSuggestedAction) -> Void)?
@@ -30,8 +32,10 @@ struct CoachConversationView<BottomAccessory: View>: View {
                     if messages.isEmpty {
                         CoachEmptyState(
                             todayContext: todayContext,
+                            launchPresentation: launchPresentation,
                             starterPrompts: starterPrompts,
                             isDisabled: isSending,
+                            onLaunchChipTap: onLaunchChipTap,
                             onStarterTap: { prompt in
                                 onStarterTap?(prompt)
                             }

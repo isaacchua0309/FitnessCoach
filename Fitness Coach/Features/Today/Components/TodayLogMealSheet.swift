@@ -2,7 +2,10 @@
 //  TodayLogMealSheet.swift
 //  Fitness Coach
 //
-//  Forma — Native Today sheet for logging a meal via FitnessActionCenter.
+//  Fallback sheet for creating a custom food entry via `FoodEntryFormView`.
+//
+//  Not presented from Today UI — primary logging routes through Coach.
+//  Kept for tests, debug flows, and programmatic fallback. See Docs/TodayMealLogging.md.
 //
 
 import SwiftUI
@@ -33,7 +36,7 @@ struct TodayLogMealSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sectionSpacing) {
-                    FoodEntryFormView(formState: $formState, mode: .todayManualEntry)
+                    FoodEntryFormView(formState: $formState, mode: .createCustomFood)
 
                     if let errorMessage {
                         Text(errorMessage)
@@ -52,7 +55,7 @@ struct TodayLogMealSheet: View {
                 .padding(.bottom, FormaTokens.Spacing.lg)
             }
             .formaFormScreen()
-            .navigationTitle(FormaProductCopy.Today.NextAction.sheetLogMealTitle)
+            .navigationTitle(FormaProductCopy.FoodForm.createCustomFoodTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

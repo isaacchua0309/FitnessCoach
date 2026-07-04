@@ -7,29 +7,26 @@
 
 import Combine
 import Foundation
+#if canImport(UIKit)
+import UIKit
+#endif
 
 @MainActor
 final class TodayActionCoordinator: ObservableObject {
 
     static let defaultWaterPresetAmountsMl = [250, 500, 750, 1_000]
 
-    struct LogMealPresentation: Identifiable, Equatable {
-        let id = UUID()
-        var mealType: MealType?
-    }
-
     struct EditFoodPresentation: Identifiable, Equatable {
         var id: UUID { entry.id }
         let entry: FoodEntry
     }
 
-    @Published var logMealPresentation: LogMealPresentation?
     @Published var editFoodPresentation: EditFoodPresentation?
     @Published var pendingDeleteFoodEntry: FoodEntry?
     @Published var isPresentingLogWeightSheet = false
-    @Published var isPresentingAddWaterSheet = false
     @Published private(set) var lastErrorMessage: String?
     @Published private(set) var foodEditErrorMessage: String?
+    @Published private(set) var snackbarMessage: TodayTransientFeedback?
 
     private let actionCenter: FitnessActionCenter
     private let analyticsLogger: any TodayAnalyticsLogging
@@ -37,7 +34,7 @@ final class TodayActionCoordinator: ObservableObject {
     private let logDate: () -> Date
     private var analyticsSnapshot: TodayAnalyticsSnapshot = .empty
 
-    var onOpenCoach: ((String?) -> Void)?
+    var onOpenCoach: ((CoachLaunchIntent) -> Void)?
     var onOpenTrainingInsights: (() -> Void)?
 
     init(
@@ -118,8 +115,7 @@ final class TodayActionCoordinator: ObservableObject {
     // MARK: - Quick actions
 
     func performQuickAction(_ kind: TodayQuickActionKind) {
-        guard let item = TodayQuickActionPolicy.menuItems().first(where: { $0.kind == kind }),
-              item.isEnabled else { return }
+        guard TodayQuickActionPolicy.isVisible(kind) else { return }
 
         let route = route(for: kind)
         log(
@@ -133,7 +129,7 @@ final class TodayActionCoordinator: ObservableObject {
     }
 
     func logMeal(for mealType: MealType) {
-        perform(.presentLogMeal(mealType: mealType))
+        perform(.openCoach(.logMeal(mealType: mealType)))
     }
 
     func openEditFood(_ entry: FoodEntry) {
@@ -203,24 +199,31 @@ final class TodayActionCoordinator: ObservableObject {
         }
     }
 
-    func dismissLogMealSheet() {
-        logMealPresentation = nil
+    func presentLogWeight() {
+        let route = TodayNextActionRoute.presentLogWeight
+        log(
+            .quickActionTapped,
+            actionType: "quick_action",
+            route: TodayNextActionFormatting.analyticsRoute(route),
+            action: "log_weight"
+        )
+        perform(route)
     }
 
     func dismissLogWeightSheet() {
         isPresentingLogWeightSheet = false
     }
 
-    func dismissAddWaterSheet() {
-        isPresentingAddWaterSheet = false
+    func clearSnackbar() {
+        snackbarMessage = nil
     }
 
+    /// Fallback save path for custom food creation (tests, debug). Today UI routes new logs through Coach.
     func saveMeal(from formState: FoodEntryFormState) {
         do {
             let draft = try formState.makeFoodDraft()
             _ = try actionCenter.logFood(draft, date: logDate())
             lastErrorMessage = nil
-            logMealPresentation = nil
             TodayHaptics.saveSucceeded()
             log(
                 .logMealSaved,
@@ -246,9 +249,49 @@ final class TodayActionCoordinator: ObservableObject {
         }
     }
 
-    func addWater(amountMl: Int) {
-        perform(.logWater(amountMl: amountMl))
-        isPresentingAddWaterSheet = false
+    @discardableResult
+    func addWater(amountMl: Int) -> Bool {
+        switch logWater(amountMl: amountMl) {
+        case .success:
+            return true
+        case .failure:
+            return false
+        }
+    }
+
+    @discardableResult
+    private func logWater(amountMl: Int) -> Result<Void, Error> {
+        do {
+            _ = try actionCenter.logWater(amountMl: amountMl, date: logDate())
+            lastErrorMessage = nil
+            let feedback = TodayTransientFeedback(
+                message: FormaProductCopy.Today.Water.addedMessage(amountMl: amountMl),
+                style: .success
+            )
+            snackbarMessage = feedback
+            announce(feedback.message)
+            TodayHaptics.saveSucceeded()
+            log(
+                .waterAdded,
+                actionType: "add_water",
+                waterAmountBucket: TodayAnalyticsContextBuilder.waterAmountBucket(amountMl)
+            )
+            return .success(())
+        } catch {
+            let feedback = TodayTransientFeedback(
+                message: FormaProductCopy.Today.Water.logFailedMessage,
+                style: .error
+            )
+            snackbarMessage = feedback
+            announce(feedback.message)
+            return .failure(error)
+        }
+    }
+
+    private func announce(_ message: String) {
+        #if canImport(UIKit)
+        UIAccessibility.post(notification: .announcement, argument: message)
+        #endif
     }
 
     // MARK: - Routing
@@ -256,49 +299,32 @@ final class TodayActionCoordinator: ObservableObject {
     private func route(for kind: TodayQuickActionKind) -> TodayNextActionRoute {
         switch kind {
         case .scanFood:
-            return .openCoach(TodayCoachPrompt.scanFood)
+            return .openCoach(.analyzePhotoMeal(openCameraImmediately: true))
         case .logMeal:
-            return .presentLogMeal(mealType: nil)
-        case .addWater:
-            return .presentAddWater
-        case .logWeight:
-            return .presentLogWeight
-        case .logWorkout:
-            return .openTrainingInsights
+            return .openCoach(.logMeal(mealType: nil))
         }
     }
 
     private func perform(_ route: TodayNextActionRoute) {
         switch route {
         case .logWater(let amountMl):
-            do {
-                _ = try actionCenter.logWater(amountMl: amountMl, date: logDate())
-                lastErrorMessage = nil
-                TodayHaptics.saveSucceeded()
-                log(
-                    .waterAdded,
-                    actionType: "add_water",
-                    waterAmountBucket: TodayAnalyticsContextBuilder.waterAmountBucket(amountMl)
-                )
-            } catch {
-                lastErrorMessage = FormaProductCopy.Error.checkInputs
-            }
-        case .presentLogMeal(let mealType):
-            log(
-                .logMealStarted,
-                actionType: "log_meal",
-                mealType: TodayAnalyticsContextBuilder.mealTypeAction(mealType)
-            )
-            logMealPresentation = LogMealPresentation(mealType: mealType)
+            _ = logWater(amountMl: amountMl)
         case .presentLogWeight:
             isPresentingLogWeightSheet = true
-        case .presentAddWater:
-            isPresentingAddWaterSheet = true
-        case .openCoach(let prefill):
-            if prefill == TodayCoachPrompt.scanFood {
+        case .openCoach(let intent):
+            switch intent {
+            case .analyzePhotoMeal:
                 log(.scanFoodTapped, actionType: "scan_food", route: "open_coach")
+            case .logMeal(let mealType):
+                log(
+                    .logMealStarted,
+                    actionType: "log_meal",
+                    mealType: TodayAnalyticsContextBuilder.mealTypeAction(mealType)
+                )
+            case .normal, .logWater, .prefill:
+                break
             }
-            onOpenCoach?(prefill)
+            onOpenCoach?(intent)
         case .openTrainingInsights:
             onOpenTrainingInsights?()
         case .none:

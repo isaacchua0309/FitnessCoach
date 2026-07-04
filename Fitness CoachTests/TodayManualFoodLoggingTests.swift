@@ -58,9 +58,6 @@ final class TodayManualFoodLoggingTests: XCTestCase {
     // MARK: - Coordinator save path
 
     func testValidSaveDismissesSheetRecalculatesTotalsAndNotifiesRefresh() throws {
-        coordinator.performQuickAction(.logMeal)
-        XCTAssertNotNil(coordinator.logMealPresentation)
-
         let refreshTokenBefore = harness.refreshCenter.refreshToken
 
         coordinator.saveMeal(from: makeFormState(
@@ -72,7 +69,6 @@ final class TodayManualFoodLoggingTests: XCTestCase {
             mealType: .lunch
         ))
 
-        XCTAssertNil(coordinator.logMealPresentation)
         XCTAssertNil(coordinator.lastErrorMessage)
 
         let entries = try harness.actionCenter.getFoodEntries(for: harness.today)
@@ -94,23 +90,15 @@ final class TodayManualFoodLoggingTests: XCTestCase {
     }
 
     func testInvalidCaloriesKeepsSheetOpenWithError() {
-        coordinator.performQuickAction(.logMeal)
-        let presentationID = coordinator.logMealPresentation?.id
-
         coordinator.saveMeal(from: makeFormState(calories: "-10"))
 
-        XCTAssertEqual(coordinator.logMealPresentation?.id, presentationID)
         XCTAssertEqual(coordinator.lastErrorMessage, FoodEntryFormError.invalidCalories.localizedDescription)
         XCTAssertEqual(try harness.actionCenter.getFoodEntries(for: harness.today).count, 0)
     }
 
     func testInvalidMacrosKeepsSheetOpenWithError() {
-        coordinator.performQuickAction(.logMeal)
-        let presentationID = coordinator.logMealPresentation?.id
-
         coordinator.saveMeal(from: makeFormState(protein: "lots"))
 
-        XCTAssertEqual(coordinator.logMealPresentation?.id, presentationID)
         XCTAssertEqual(coordinator.lastErrorMessage, FoodEntryFormError.invalidProtein.localizedDescription)
         XCTAssertEqual(try harness.actionCenter.getFoodEntries(for: harness.today).count, 0)
     }

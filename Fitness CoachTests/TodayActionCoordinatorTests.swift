@@ -42,19 +42,17 @@ final class TodayActionCoordinatorTests: XCTestCase {
 
         XCTAssertFalse(coachOpened)
         XCTAssertFalse(coordinator.isPresentingLogWeightSheet)
-        XCTAssertNil(coordinator.logMealPresentation)
         let log = try XCTUnwrap(try harness.dailyLogService.getLog(for: harness.today))
         XCTAssertEqual(log.waterConsumedMl, 500)
     }
 
-    func testLogMealPresentsNativeSheet() {
-        var coachOpened = false
-        coordinator.onOpenCoach = { _ in coachOpened = true }
+    func testLogMealOpensCoachMealLogging() {
+        var launchedIntent: CoachLaunchIntent?
+        coordinator.onOpenCoach = { launchedIntent = $0 }
 
         coordinator.performQuickAction(.logMeal)
 
-        XCTAssertFalse(coachOpened)
-        XCTAssertNotNil(coordinator.logMealPresentation)
+        XCTAssertEqual(launchedIntent, .logMeal(mealType: nil))
     }
 
     func testQuickActionAnalyticsEvent() {
@@ -63,29 +61,35 @@ final class TodayActionCoordinatorTests: XCTestCase {
         let quickAction = analytics.events.first { $0.event == .quickActionTapped }
         XCTAssertNotNil(quickAction)
         XCTAssertEqual(quickAction?.properties.action, "logMeal")
-        XCTAssertEqual(quickAction?.properties.route, "native_log_meal_sheet")
+        XCTAssertEqual(quickAction?.properties.route, "open_coach")
         XCTAssertTrue(analytics.events.contains { $0.event == .logMealStarted })
     }
 
-    func testAddWaterPresentsNativeSheet() {
-        coordinator.performQuickAction(.addWater)
+    func testAddWaterFromInlineSectionLogsNatively() throws {
+        try harness.seedProfile()
+        _ = try harness.actionCenter.ensureTodayLog()
 
-        XCTAssertTrue(coordinator.isPresentingAddWaterSheet)
+        var coachOpened = false
+        coordinator.onOpenCoach = { _ in coachOpened = true }
+
+        XCTAssertTrue(coordinator.addWater(amountMl: 500))
+
+        XCTAssertFalse(coachOpened)
+        let log = try XCTUnwrap(try harness.dailyLogService.getLog(for: harness.today))
+        XCTAssertEqual(log.waterConsumedMl, 500)
+        XCTAssertEqual(
+            coordinator.snackbarMessage,
+            TodayTransientFeedback(
+                message: FormaProductCopy.Today.Water.addedMessage(amountMl: 500),
+                style: .success
+            )
+        )
     }
 
-    func testLogWeightPresentsNativeSheet() {
-        coordinator.performQuickAction(.logWeight)
+    func testPresentLogWeightOpensNativeSheet() {
+        coordinator.presentLogWeight()
 
         XCTAssertTrue(coordinator.isPresentingLogWeightSheet)
-    }
-
-    func testLogWorkoutQuickActionOpensTrainingInsights() {
-        var openedInsights = false
-        coordinator.onOpenTrainingInsights = { openedInsights = true }
-
-        coordinator.performQuickAction(.logWorkout)
-
-        XCTAssertTrue(openedInsights)
     }
 
     func testLogWorkoutRoutesToTrainingInsights() {
@@ -105,9 +109,9 @@ final class TodayActionCoordinatorTests: XCTestCase {
         XCTAssertTrue(openedInsights)
     }
 
-    func testLogBreakfastNextActionPresentsNativeSheetWithMealType() {
-        var coachOpened = false
-        coordinator.onOpenCoach = { _ in coachOpened = true }
+    func testLogBreakfastNextActionOpensCoachWithMealType() {
+        var launchedIntent: CoachLaunchIntent?
+        coordinator.onOpenCoach = { launchedIntent = $0 }
 
         let action = NextBestActionState(
             title: FormaProductCopy.Today.NextAction.logBreakfastTitle,
@@ -119,8 +123,7 @@ final class TodayActionCoordinatorTests: XCTestCase {
 
         coordinator.handleCTA(action.primaryCTA, from: action)
 
-        XCTAssertFalse(coachOpened)
-        XCTAssertEqual(coordinator.logMealPresentation?.mealType, .breakfast)
+        XCTAssertEqual(launchedIntent, .logMeal(mealType: .breakfast))
     }
 
     func testCTATappedAnalyticsEvent() {
@@ -142,13 +145,13 @@ final class TodayActionCoordinatorTests: XCTestCase {
         XCTAssertEqual(analytics.events.first?.properties.actionType, "next_best_action")
     }
 
-    func testScanFoodOpensCoachScanFlow() {
-        var coachPrefill: String?
-        coordinator.onOpenCoach = { coachPrefill = $0 }
+    func testScanFoodOpensCoachWithCameraLaunch() {
+        var launchedIntent: CoachLaunchIntent?
+        coordinator.onOpenCoach = { launchedIntent = $0 }
 
         coordinator.performQuickAction(.scanFood)
 
-        XCTAssertEqual(coachPrefill, TodayCoachPrompt.scanFood)
+        XCTAssertEqual(launchedIntent, .analyzePhotoMeal(openCameraImmediately: true))
     }
 
     func testLogMealSavedDoesNotIncludeFoodName() throws {
@@ -169,6 +172,17 @@ final class TodayActionCoordinatorTests: XCTestCase {
         XCTAssertEqual(saved.properties.mealType, "lunch")
         XCTAssertNil(saved.properties.asParameters()["foodName"])
         XCTAssertNil(saved.properties.asParameters()["name"])
+    }
+
+    func testInlineAddWaterNotifiesRefresh() throws {
+        try harness.seedProfile()
+        _ = try harness.actionCenter.ensureTodayLog()
+
+        let tokenBefore = harness.refreshCenter.refreshToken
+
+        XCTAssertTrue(coordinator.addWater(amountMl: 250))
+
+        XCTAssertEqual(harness.refreshCenter.refreshToken, tokenBefore + 1)
     }
 
     func testWaterAddedLogsAmountBucket() throws {

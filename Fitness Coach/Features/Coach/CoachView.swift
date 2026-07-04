@@ -44,11 +44,15 @@ struct CoachView: View {
                     messages: model.messages,
                     isSending: model.isSending,
                     todayContext: model.todayContext,
+                    launchPresentation: model.activeLaunchPresentation,
                     starterPrompts: model.starterPromptSpecs,
                     pendingConfirmation: model.pendingConfirmation,
                     isInputFocused: isInputFocused,
                     onDismissKeyboard: {
                         dismissKeyboard()
+                    },
+                    onLaunchChipTap: { chip in
+                        handleLaunchChip(chip)
                     },
                     onStarterTap: { prompt in
                         handleStarterTap(prompt)
@@ -67,10 +71,9 @@ struct CoachView: View {
                     }
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .onChange(of: model.shouldFocusComposer) { _, shouldFocus in
+                .onChange(of: model.requestsComposerFocus) { _, shouldFocus in
                     if shouldFocus {
-                        isInputFocused = true
-                        model.shouldFocusComposer = false
+                        focusComposerIfRequested()
                     }
                 }
             }
@@ -92,6 +95,20 @@ struct CoachView: View {
             .onChange(of: isActive) { _, active in
                 if !active {
                     speechService.stopRecording()
+                    model.handleCoachBecameInactive()
+                } else {
+                    focusComposerIfRequested()
+                    presentCameraIfRequested()
+                }
+            }
+            .onChange(of: model.requestsComposerFocus) { _, shouldFocus in
+                if shouldFocus {
+                    focusComposerIfRequested()
+                }
+            }
+            .onChange(of: model.requestsCameraPresentation) { _, shouldPresent in
+                if shouldPresent {
+                    presentCameraIfRequested()
                 }
             }
             .onChange(of: model.isSending) { _, isSending in
@@ -103,6 +120,7 @@ struct CoachView: View {
                 model.refreshTodayContext()
             }
             .animation(CoachDesignTokens.Motion.standard, value: showEmptyChrome)
+            .animation(CoachDesignTokens.Motion.standard, value: model.activeLaunchPresentation)
             .photosPicker(
                 isPresented: $imagePickFlow.isPhotoPickerPresented,
                 selection: $photoPickerItem,
@@ -194,21 +212,25 @@ struct CoachView: View {
             isVoiceInputBusy: speechService.isVoiceInputBusy,
             canPickAttachment: model.inputState.canStartImageSelection && imagePickFlow.allowsAttachmentPick,
             isProcessingImage: imagePickFlow.isProcessingImage,
-            textFieldPlaceholder: model.photoClarificationComposerPlaceholder
-                ?? FormaProductCopy.Coach.composerPlaceholder,
+            textFieldPlaceholder: model.resolvedComposerPlaceholder,
             isFocused: $isInputFocused,
             isSending: model.isSending,
             onSend: {
                 speechService.stopRecording()
+                model.noteComposerInteraction()
                 Task {
                     await model.sendCurrentMessage()
                     dismissKeyboard()
                 }
             },
             onVoiceTap: {
+                model.noteComposerInteraction()
                 handleVoiceTap()
             },
-            onAttachmentSelect: handleAttachmentSelection,
+            onAttachmentSelect: { option in
+                model.noteComposerInteraction()
+                handleAttachmentSelection(option)
+            },
             onRemoveAttachment: {
                 model.removeStagedMealPhoto()
                 imagePickFlow.handleAttachmentRemoved()
@@ -229,6 +251,25 @@ struct CoachView: View {
         }
         dismissKeyboard()
         model.openFoodEditSheet()
+    }
+
+    private func handleLaunchChip(_ chip: CoachLaunchChip) {
+        dismissKeyboard()
+        speechService.stopRecording()
+        model.consumeLaunchPresentation()
+
+        switch chip {
+        case .takePhoto:
+            handleAttachmentSelection(.takePhoto)
+        case .describeMeal:
+            isInputFocused = true
+        case .useVoice:
+            handleVoiceTap()
+        case .addWater(let amountMl):
+            Task {
+                await model.send(CoachLaunchPresentationBuilder.waterLogCommand(amountMl: amountMl))
+            }
+        }
     }
 
     private func handleStarterTap(_ prompt: CoachStarterPromptSpec) {
@@ -259,6 +300,18 @@ struct CoachView: View {
 
     private func dismissKeyboard() {
         isInputFocused = false
+    }
+
+    private func focusComposerIfRequested() {
+        guard isActive, model.requestsComposerFocus else { return }
+        isInputFocused = true
+        model.consumeComposerFocusRequest()
+    }
+
+    private func presentCameraIfRequested() {
+        guard isActive, model.requestsCameraPresentation else { return }
+        model.consumeCameraPresentationRequest()
+        handleAttachmentSelection(.takePhoto)
     }
 
     private func handleVoiceTap() {

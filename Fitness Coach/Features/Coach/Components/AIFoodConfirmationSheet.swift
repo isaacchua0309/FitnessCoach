@@ -84,7 +84,7 @@ struct AIFoodConfirmationSheet: View {
                 .padding(.bottom, FormaTokens.Spacing.lg)
             }
             .formaFormScreen()
-            .navigationTitle("Edit food")
+            .navigationTitle(FormaProductCopy.FoodForm.editNutritionTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

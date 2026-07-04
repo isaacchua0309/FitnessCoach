@@ -15,6 +15,7 @@ struct TodayView: View {
     @EnvironmentObject private var trainingInsightsModel: TrainingInsightsModel
     @EnvironmentObject private var refreshCenter: AppRefreshCenter
     @EnvironmentObject private var authManager: AuthManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let healthActivityQuery: HealthActivityQueryService
     private let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
@@ -23,8 +24,8 @@ struct TodayView: View {
     @State private var appleHealthStepsToday: Int?
     @State private var isShowingTrainingInsights = false
 
-    /// Opens Coach with optional prefill when an action requires conversational AI.
-    var onOpenCoach: ((String?) -> Void)?
+    /// Opens Coach with a launch intent when an action requires conversational AI.
+    var onOpenCoach: ((CoachLaunchIntent) -> Void)?
     var onOpenJourney: (() -> Void)?
     var onOpenPlan: (() -> Void)?
 
@@ -33,7 +34,7 @@ struct TodayView: View {
         actionCoordinator: TodayActionCoordinator,
         healthActivityQuery: HealthActivityQueryService,
         healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
-        onOpenCoach: ((String?) -> Void)? = nil,
+        onOpenCoach: ((CoachLaunchIntent) -> Void)? = nil,
         onOpenJourney: (() -> Void)? = nil,
         onOpenPlan: (() -> Void)? = nil
     ) {
@@ -60,9 +61,13 @@ struct TodayView: View {
                         await model.loadToday(activityContext: currentActivityContext)
                     }
                 }
-                .onChange(of: refreshCenter.refreshToken) { _, _ in
+                .onChange(of: refreshCenter.refreshToken) { _, newToken in
+                    CoachTodaySyncDebugLogger.todayRefreshTriggered(
+                        source: "refresh_token",
+                        refreshToken: newToken
+                    )
                     Task<Void, Never> {
-                        await refreshDashboard()
+                        await refreshDashboard(triggerSource: "refresh_token")
                     }
                 }
                 .onAppear {
@@ -83,24 +88,10 @@ struct TodayView: View {
                     )
                     .environmentObject(refreshCenter)
                 }
-                .sheet(item: $actionCoordinator.logMealPresentation) { presentation in
-                    TodayLogMealSheet(
-                        initialMealType: presentation.mealType,
-                        errorMessage: actionCoordinator.lastErrorMessage,
-                        onSave: { actionCoordinator.saveMeal(from: $0) }
-                    )
-                }
                 .sheet(isPresented: $actionCoordinator.isPresentingLogWeightSheet) {
                     TodayLogWeightSheet(
                         errorMessage: actionCoordinator.lastErrorMessage,
                         onSave: { actionCoordinator.saveWeight($0) }
-                    )
-                }
-                .sheet(isPresented: $actionCoordinator.isPresentingAddWaterSheet) {
-                    TodayAddWaterSheet(
-                        presetAmountsMl: TodayActionCoordinator.defaultWaterPresetAmountsMl,
-                        errorMessage: actionCoordinator.lastErrorMessage,
-                        onAdd: { actionCoordinator.addWater(amountMl: $0) }
                     )
                 }
                 .sheet(item: $actionCoordinator.editFoodPresentation) { presentation in
@@ -134,6 +125,30 @@ struct TodayView: View {
                     Text(FormaProductCopy.Today.Meals.deleteConfirmationMessage)
                 }
                 .background(FormaTokens.Color.canvas)
+                .overlay(alignment: .bottom) {
+                    if let feedback = actionCoordinator.snackbarMessage {
+                        FormaTransientBanner(
+                            message: feedback.message,
+                            style: feedback.style == .success ? .success : .error
+                        )
+                        .padding(.bottom, FormaTokens.Spacing.md)
+                        .transition(
+                            reduceMotion
+                                ? .opacity
+                                : .move(edge: .bottom).combined(with: .opacity)
+                        )
+                    }
+                }
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: actionCoordinator.snackbarMessage)
+                .onChange(of: actionCoordinator.snackbarMessage) { _, feedback in
+                    guard let feedback else { return }
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: feedback.autoDismissNanoseconds)
+                        if actionCoordinator.snackbarMessage == feedback {
+                            actionCoordinator.clearSnackbar()
+                        }
+                    }
+                }
         }
     }
 
@@ -149,8 +164,8 @@ struct TodayView: View {
     }
 
     private func wireActionCoordinator() {
-        actionCoordinator.onOpenCoach = { prefill in
-            onOpenCoach?(prefill)
+        actionCoordinator.onOpenCoach = { intent in
+            onOpenCoach?(intent)
         }
         actionCoordinator.onOpenTrainingInsights = {
             isShowingTrainingInsights = true
@@ -159,10 +174,10 @@ struct TodayView: View {
 
     private func performPullToRefresh() async {
         await model.performManualCrossDeviceRefresh()
-        await refreshDashboard()
+        await refreshDashboard(triggerSource: "pull_to_refresh")
     }
 
-    private func refreshDashboard() async {
+    private func refreshDashboard(triggerSource: String? = nil) async {
         await trainingInsightsStore.refresh()
         if trainingInsightsStore.integrationState.isConnected {
             appleHealthWorkoutCount = await healthActivityQuery.workoutCountToday()
@@ -174,6 +189,13 @@ struct TodayView: View {
         await model.refresh(activityContext: currentActivityContext)
         if case .loaded(let state) = model.viewState {
             syncAnalyticsContext(for: state)
+            if let triggerSource {
+                CoachTodaySyncDebugLogger.todayRefreshApplied(
+                    source: triggerSource,
+                    refreshToken: refreshCenter.refreshToken,
+                    state: state
+                )
+            }
         }
     }
 

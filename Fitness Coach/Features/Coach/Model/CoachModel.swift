@@ -47,7 +47,10 @@ final class CoachModel: ObservableObject {
     @Published private(set) var foodEditErrorMessage: String?
     @Published private(set) var todayContext: CoachTodayContextState?
     @Published private(set) var starterPromptSpecs: [CoachStarterPromptSpec] = CoachStarterPrompt.defaultQuickActionSpecs
-    @Published var shouldFocusComposer = false
+    @Published private(set) var activeLaunchPresentation: CoachLaunchPresentation?
+    @Published private(set) var composerPlaceholderOverride: String?
+    @Published private(set) var requestsComposerFocus = false
+    @Published private(set) var requestsCameraPresentation = false
 
     private let localCommandParser: LocalCommandParser
     private let actionCenter: FitnessActionCenter
@@ -95,6 +98,16 @@ final class CoachModel: ObservableObject {
     var photoClarificationComposerPlaceholder: String? {
         guard awaitingPhotoClarification else { return nil }
         return FormaProductCopy.Coach.composerPhotoClarificationPlaceholder
+    }
+
+    var resolvedComposerPlaceholder: String {
+        if let composerPlaceholderOverride {
+            return composerPlaceholderOverride
+        }
+        if let photoClarificationComposerPlaceholder {
+            return photoClarificationComposerPlaceholder
+        }
+        return FormaProductCopy.Coach.composerPlaceholder
     }
 
     init(
@@ -511,6 +524,8 @@ final class CoachModel: ObservableObject {
             guard let frozen = next.takeSendSnapshot() else { return nil }
             inputState = next
             syncInputSendingFlag()
+            clearComposerLaunchChrome()
+            consumeLaunchPresentation()
             return frozen
         }() else {
             return
@@ -1009,13 +1024,87 @@ final class CoachModel: ObservableObject {
     }
 
     func prepareInput(prefill: String?) {
-        mutateInputState { $0.updateText(prefill ?? "") }
+        guard let prefill, !prefill.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            launch(with: .normal)
+            return
+        }
+        launch(with: .prefill(prefill))
+    }
+
+    func launch(with intent: CoachLaunchIntent) {
+        abandonLaunchSession()
+
+        switch intent {
+        case .normal:
+            return
+        case .prefill(let text):
+            mutateInputState { $0.updateText(text) }
+            requestsComposerFocus = true
+        case .logMeal, .logWater:
+            guard let presentation = CoachLaunchPresentationBuilder.presentation(for: intent) else { return }
+            mutateInputState { state in
+                state.updateText("")
+                state.removeAttachment()
+                state.error = nil
+            }
+            activeLaunchPresentation = presentation
+            composerPlaceholderOverride = presentation.composerPlaceholder
+            requestsComposerFocus = presentation.focusesComposer
+            requestsCameraPresentation = false
+        case .analyzePhotoMeal(let openCameraImmediately):
+            guard let presentation = CoachLaunchPresentationBuilder.presentation(for: intent) else { return }
+            mutateInputState { state in
+                state.updateText("")
+                state.removeAttachment()
+                state.error = nil
+            }
+            activeLaunchPresentation = presentation
+            composerPlaceholderOverride = presentation.composerPlaceholder
+            requestsComposerFocus = presentation.focusesComposer
+            requestsCameraPresentation = openCameraImmediately
+        }
+    }
+
+    func consumeLaunchPresentation() {
+        activeLaunchPresentation = nil
+        requestsComposerFocus = false
+    }
+
+    func consumeComposerFocusRequest() {
+        requestsComposerFocus = false
+    }
+
+    func consumeCameraPresentationRequest() {
+        requestsCameraPresentation = false
+    }
+
+    func handleCoachBecameInactive() {
+        consumeLaunchPresentation()
+        requestsCameraPresentation = false
+        if inputState.trimmedText.isEmpty, inputState.attachment == nil {
+            clearComposerLaunchChrome()
+        }
+    }
+
+    func noteComposerInteraction() {
+        consumeLaunchPresentation()
+    }
+
+    private func abandonLaunchSession() {
+        consumeLaunchPresentation()
+        requestsCameraPresentation = false
+        clearComposerLaunchChrome()
+    }
+
+    private func clearComposerLaunchChrome() {
+        composerPlaceholderOverride = nil
     }
 
     // MARK: Pending Confirmation
 
     func confirmPendingFromBar() async {
         guard let confirmation = pendingConfirmation else { return }
+        guard !isConfirmingPending else { return }
         isConfirmingPending = true
         defer { isConfirmingPending = false }
 
@@ -1075,7 +1164,7 @@ final class CoachModel: ObservableObject {
             applyActionResult(result)
 
         case .estimateAnother:
-            shouldFocusComposer = true
+            requestsComposerFocus = true
             mutateInputState { $0.updateText("") }
 
         case .addCommonSide, .addDrink, .compareAlternative, .healthierAlternative, .askFollowUp:

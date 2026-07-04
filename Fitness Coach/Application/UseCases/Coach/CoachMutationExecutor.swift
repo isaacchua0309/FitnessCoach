@@ -188,6 +188,14 @@ final class CoachMutationExecutor {
             if let pendingId = timelineContext.pendingConfirmationId {
                 completedPendingConfirmationIDs.insert(pendingId)
             }
+            CoachTodaySyncDebugLogger.coachMealSaved(
+                entryId: entry.id,
+                name: entry.name,
+                calories: entry.calories,
+                protein: entry.protein,
+                mealType: entry.mealType.rawValue,
+                refreshToken: actionCenter.dataRefreshToken
+            )
             return CoachResponseBuilder.food(
                 entry,
                 log: log,

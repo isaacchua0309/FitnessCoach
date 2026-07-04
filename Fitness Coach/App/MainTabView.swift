@@ -43,6 +43,7 @@ struct MainTabView: View {
     @Environment(\.formaResolvedTheme) private var resolvedTheme
 
     @StateObject private var todayModel: TodayModel
+    @StateObject private var todayActionCoordinator: TodayActionCoordinator
     @StateObject private var coachModel: CoachModel
     @StateObject private var journeyModel: JourneyModel
     @StateObject private var planModel: PlanModel
@@ -88,9 +89,8 @@ struct MainTabView: View {
                 actionCoordinator: todayActionCoordinator,
                 healthActivityQuery: container.healthActivityQueryService,
                 healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
-                onOpenCoach: { prefill in
-                    coachModel.prepareInput(prefill: prefill)
-                    selectedTab = .coach
+                onOpenCoach: { intent in
+                    openCoach(with: intent)
                 },
                 onOpenJourney: {
                     selectedTab = .journey
@@ -115,8 +115,7 @@ struct MainTabView: View {
                 analyticsCoordinator: journeyAnalyticsCoordinator,
                 healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
                 onOpenCoach: { prefill in
-                    coachModel.prepareInput(prefill: prefill)
-                    selectedTab = .coach
+                    openCoach(with: coachLaunchIntent(fromLegacyPrefill: prefill))
                 },
                 onOpenPlan: {
                     selectedTab = .plan
@@ -172,10 +171,30 @@ struct MainTabView: View {
                 if HealthIntelligenceFeatureFlags.isSyncEnabled {
                     container.healthSyncStateStore.refreshOnAppForeground()
                 }
+                Task {
+                    await todayModel.refresh()
+                }
             }
         }
         .task {
             await bootstrapAfterEntry()
+        }
+        .onChange(of: selectedTab) { _, newTab in
+            guard newTab == .today else { return }
+            CoachTodaySyncDebugLogger.todayRefreshTriggered(
+                source: "tab_return",
+                refreshToken: container.refreshCenter.refreshToken
+            )
+            Task {
+                await todayModel.refresh()
+                if case .loaded(let state) = todayModel.viewState {
+                    CoachTodaySyncDebugLogger.todayRefreshApplied(
+                        source: "tab_return",
+                        refreshToken: container.refreshCenter.refreshToken,
+                        state: state
+                    )
+                }
+            }
         }
     }
 
@@ -193,6 +212,35 @@ struct MainTabView: View {
             await container.refreshHealthIntelligenceSnapshotIfNeeded()
         }
         container.healthSyncStateStore.markForegroundBootstrapComplete()
+    }
+
+    private func openCoach(with intent: CoachLaunchIntent) {
+        coachModel.launch(with: intent)
+        selectedTab = .coach
+    }
+
+    private func coachLaunchIntent(fromLegacyPrefill prefill: String?) -> CoachLaunchIntent {
+        guard let prefill, !prefill.isEmpty else { return .normal }
+        if prefill == TodayCoachPrompt.scanFood {
+            return .analyzePhotoMeal
+        }
+        if prefill == TodayCoachPrompt.logWater {
+            return .logWater(amountMl: 500)
+        }
+        if isMealLoggingPrefill(prefill) {
+            return .logMeal(mealType: TodayNextActionFormatting.mealType(from: prefill))
+        }
+        return .prefill(prefill)
+    }
+
+    private func isMealLoggingPrefill(_ prefill: String) -> Bool {
+        [
+            TodayCoachPrompt.logMeal(),
+            TodayCoachPrompt.logMeal(.breakfast),
+            TodayCoachPrompt.logMeal(.lunch),
+            TodayCoachPrompt.logMeal(.dinner),
+            TodayCoachPrompt.logMeal(.snack)
+        ].contains(prefill)
     }
 
     // MARK: - Tab selection

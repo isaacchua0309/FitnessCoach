@@ -18,7 +18,7 @@ enum TodayCoachPrompt {
         }
     }
 
-    static let scanFood = "Scan my meal"
+    static let scanFood = FormaProductCopy.Coach.scanMealPrefill
     static let logWater = "Log 500ml water"
     static let logWeight = "Log my weight"
     static let logProtein = "Log a high-protein meal"

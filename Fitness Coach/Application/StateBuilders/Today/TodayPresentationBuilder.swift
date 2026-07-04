@@ -200,9 +200,10 @@ enum TodayPresentationBuilder {
     static func quickActions(
         isScanFoodAvailable: Bool = TodayPhotoScanAvailability.isPipelineReady
     ) -> TodayQuickActionsState {
-        TodayQuickActionsState(
+        let configuration = TodayQuickActionPolicy.configuration(isScanFoodAvailable: isScanFoodAvailable)
+        return TodayQuickActionsState(
             sectionTitle: FormaProductCopy.Today.QuickActions.sectionTitle,
-            items: TodayQuickActionPolicy.menuItems(isScanFoodAvailable: isScanFoodAvailable)
+            showsScanMeal: configuration.showsScanMeal
         )
     }
 

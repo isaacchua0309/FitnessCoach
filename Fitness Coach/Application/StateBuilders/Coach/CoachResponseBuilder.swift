@@ -120,7 +120,7 @@ enum CoachResponseBuilder {
         case .noImage, .loadFailed, .encodingFailed:
             return FormaProductCopy.Coach.mealPhotoPreparationFailed
         case .cameraUnavailable:
-            return "This device can't take photos for Coach. Choose an image from your library or log the meal manually."
+            return "This device can't take photos for Coach. Choose an image from your library or describe your meal."
         case .cameraPermissionDenied:
             return "Camera access is turned off for Forma. Enable it in Settings to take meal photos, or choose from your library."
         }
@@ -144,23 +144,23 @@ enum CoachResponseBuilder {
     static func mealPhotoAnalysisFailed(_ error: AIServiceError) -> String {
         switch error {
         case .authenticationFailed:
-            return "I couldn't analyze that photo because your session expired. \(AIServiceError.coachSessionFailureMessage) You can try again or log manually."
+            return "I couldn't analyze that photo because your session expired. \(AIServiceError.coachSessionFailureMessage) You can try again or describe your meal in Coach."
         case .networkUnavailable:
             return "I couldn't reach Coach to analyze that photo. Check your connection, then try again or log manually."
         case .payloadTooLarge, .imageEncodingFailed:
             return FormaProductCopy.Coach.mealPhotoPreparationFailed
         case .backendRejectedImage:
-            return "Coach couldn't use that photo for analysis. Try another image or log the meal manually."
+            return "Coach couldn't use that photo for analysis. Try another image or describe your meal in Coach."
         case .requestTimedOut:
-            return "I couldn't analyze that photo in time. \(error.userMessage) You can try again or log manually."
+            return "I couldn't analyze that photo in time. \(error.userMessage) You can try again or describe your meal in Coach."
         case .modelUnavailable, .backendUnavailable:
-            return "Coach couldn't analyze that photo right now. \(error.userMessage) You can try again or log manually."
+            return "Coach couldn't analyze that photo right now. \(error.userMessage) You can try again or describe your meal in Coach."
         case .invalidNutritionJSON, .parsingFailed:
-            return "I couldn't read a reliable nutrition estimate from that photo. Try another shot or log manually."
+            return "I couldn't read a reliable nutrition estimate from that photo. Try another shot or describe your meal in Coach."
         case .validationFailed, .invalidResponse, .decodingFailed:
-            return "I couldn't read a reliable nutrition estimate from that photo. Try another shot or log manually."
+            return "I couldn't read a reliable nutrition estimate from that photo. Try another shot or describe your meal in Coach."
         case .requestFailed, .featureDisabled:
-            return "I couldn't analyze that photo right now. \(error.userMessage) You can try again or log manually."
+            return "I couldn't analyze that photo right now. \(error.userMessage) You can try again or describe your meal in Coach."
         }
     }
 

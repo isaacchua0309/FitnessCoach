@@ -39,7 +39,7 @@ struct TodayEditFoodEntrySheet: View {
                 VStack(alignment: .leading, spacing: FormaTokens.Spacing.sectionSpacing) {
                     FoodEntryProvenanceBanner(source: entry.source, confidence: entry.confidence)
 
-                    FoodEntryFormView(formState: $formState, mode: .todayManualEntry)
+                    FoodEntryFormView(formState: $formState, mode: .editNutrition)
 
                     if let errorMessage {
                         Text(errorMessage)
@@ -68,7 +68,7 @@ struct TodayEditFoodEntrySheet: View {
                 .padding(.bottom, FormaTokens.Spacing.lg)
             }
             .formaFormScreen()
-            .navigationTitle(FormaProductCopy.Today.Meals.editSheetTitle)
+            .navigationTitle(FormaProductCopy.FoodForm.editNutritionTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

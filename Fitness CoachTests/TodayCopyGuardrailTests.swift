@@ -29,6 +29,23 @@ final class TodayCopyGuardrailTests: XCTestCase {
         }
     }
 
+    func testTodayLoggingCopyAvoidsManualEntryQuickAction() {
+        let samples = [
+            FormaProductCopy.Today.QuickActions.sectionTitle,
+            FormaProductCopy.Today.QuickActions.title(for: .logMeal),
+            FormaProductCopy.Today.QuickActions.title(for: .scanFood),
+            FormaProductCopy.Today.QuickActions.logMealMicrocopy,
+            FormaProductCopy.Today.Water.sectionTitle,
+            FormaProductCopy.Today.mealsLogMealAccessibilityHint
+        ]
+
+        for sample in samples {
+            let lowered = sample.lowercased()
+            XCTAssertFalse(lowered.contains("manual entry"), "Unexpected manual-entry copy: \(sample)")
+            XCTAssertFalse(lowered.contains("manual meal"), "Unexpected manual-meal copy: \(sample)")
+        }
+    }
+
     private func todayCopySamples() -> [String] {
         var samples: [String] = [
             FormaProductCopy.Today.caloriesRemaining,
@@ -47,6 +64,9 @@ final class TodayCopyGuardrailTests: XCTestCase {
             FormaProductCopy.Today.Activity.healthConnectNote,
             FormaProductCopy.Today.Activity.stepsUnavailable,
             FormaProductCopy.Today.Activity.workoutNotLoggedLine,
+            FormaProductCopy.Today.QuickActions.sectionTitle,
+            FormaProductCopy.Today.QuickActions.logMealMicrocopy,
+            FormaProductCopy.Today.Water.sectionTitle,
         ]
 
         let overTarget = TodayPreviewData.overTargetDay
