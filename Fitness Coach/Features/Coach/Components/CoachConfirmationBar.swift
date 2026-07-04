@@ -18,8 +18,15 @@ struct CoachConfirmationBar: View {
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
+    private var presentation: CoachPendingFoodCardPresentation {
+        CoachPendingFoodCardPresentationResolver.presentation(
+            pendingConfirmation: confirmation,
+            isInputFocused: isInputFocused
+        )
+    }
+
     private var usesCompactPresentation: Bool {
-        isInputFocused
+        presentation == .compact
     }
 
     var body: some View {
@@ -33,6 +40,7 @@ struct CoachConfirmationBar: View {
         .padding(.horizontal, CoachDesignTokens.Layout.horizontalPadding)
         .animation(CoachDesignTokens.Motion.standard, value: usesCompactPresentation)
         .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(CoachAccessibilityIdentifier.pendingFoodCard)
         .accessibilityLabel(compactAccessibilityLabel)
     }
 
@@ -63,6 +71,7 @@ struct CoachConfirmationBar: View {
         }
         .padding(CoachDesignTokens.Spacing.md)
         .background { confirmationBackground }
+        .accessibilityIdentifier(CoachAccessibilityIdentifier.pendingFoodCardExpanded)
     }
 
     private var expandedActions: some View {
@@ -70,6 +79,7 @@ struct CoachConfirmationBar: View {
             if let onEdit {
                 Button(FormaProductCopy.Coach.editPending, action: onEdit)
                     .buttonStyle(CoachConfirmationSecondaryButtonStyle())
+                    .accessibilityIdentifier(CoachAccessibilityIdentifier.pendingFoodCardEditButton)
             }
 
             if let onRetryPhotoAnalysis, confirmation.supportsPhotoRetry {
@@ -79,6 +89,7 @@ struct CoachConfirmationBar: View {
 
             Button(FormaProductCopy.Coach.discardPending, role: .destructive, action: onReject)
                 .buttonStyle(CoachConfirmationSecondaryButtonStyle())
+                .accessibilityIdentifier(CoachAccessibilityIdentifier.pendingFoodCardDiscardButton)
 
             Spacer(minLength: 0)
 
@@ -116,6 +127,7 @@ struct CoachConfirmationBar: View {
         .padding(.horizontal, CoachDesignTokens.Spacing.md)
         .padding(.vertical, CoachDesignTokens.Spacing.sm)
         .background { confirmationBackground }
+        .accessibilityIdentifier(CoachAccessibilityIdentifier.pendingFoodCardCompact)
     }
 
     @ViewBuilder
@@ -126,11 +138,13 @@ struct CoachConfirmationBar: View {
                     Button(FormaProductCopy.Coach.editPending, action: onEdit)
                         .buttonStyle(CoachConfirmationCompactSecondaryButtonStyle())
                         .lineLimit(1)
+                        .accessibilityIdentifier(CoachAccessibilityIdentifier.pendingFoodCardEditButton)
                 }
 
                 Button(FormaProductCopy.Coach.discardPending, role: .destructive, action: onReject)
                     .buttonStyle(CoachConfirmationCompactSecondaryButtonStyle())
                     .lineLimit(1)
+                    .accessibilityIdentifier(CoachAccessibilityIdentifier.pendingFoodCardDiscardButton)
             }
         }
 
@@ -161,6 +175,7 @@ struct CoachConfirmationBar: View {
         }
         .disabled(isConfirming)
         .accessibilityLabel(confirmLabel)
+        .accessibilityIdentifier(CoachAccessibilityIdentifier.pendingFoodCardLogButton)
     }
 
     private var confirmationBackground: some View {

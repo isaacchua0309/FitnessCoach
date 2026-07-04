@@ -32,6 +32,26 @@ enum CoachLayoutGuard {
             "CoachConfirmationBar",
             "Pending confirmation and composer must share one bottom accessory stack."
         ),
+        (
+            "CoachConversationView.swift",
+            CoachAccessibilityIdentifier.chatScroll,
+            "Coach transcript scroll must expose a stable accessibility identifier."
+        ),
+        (
+            "CoachComposer.swift",
+            CoachAccessibilityIdentifier.inputTextField,
+            "Coach composer must expose a stable input accessibility identifier."
+        ),
+        (
+            "CoachConfirmationBar.swift",
+            CoachAccessibilityIdentifier.pendingFoodCard,
+            "Pending food card must expose a stable accessibility identifier."
+        ),
+        (
+            "CoachConfirmationBar.swift",
+            CoachAccessibilityIdentifier.pendingFoodCardLogButton,
+            "Pending food card Log action must remain discoverable to UI tests."
+        ),
     ]
 
     static func scan(repositoryRoot: URL) -> [String] {

@@ -42,6 +42,7 @@ struct CoachConversationView<BottomAccessory: View>: View {
                 }
                 .frame(maxWidth: .infinity)
             }
+            .accessibilityIdentifier(CoachAccessibilityIdentifier.chatScroll)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 bottomAccessory()
             }

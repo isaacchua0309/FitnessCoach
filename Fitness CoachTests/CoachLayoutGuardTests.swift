@@ -50,6 +50,23 @@ final class CoachLayoutGuardTests: XCTestCase {
         )
     }
 
+    func testProductionCoachSourcesExposePendingFoodAccessibilityIdentifiers() {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+
+        let violations = CoachLayoutGuard.scan(repositoryRoot: root)
+        if violations.isEmpty { return }
+
+        XCTFail(
+            """
+            Coach layout guard failed for production sources.
+
+            \(violations.joined(separator: "\n"))
+            """
+        )
+    }
+
     private func makeTemporaryCoachRepo(with conversationSource: String) -> URL {
         let tempRoot = FileManager.default.temporaryDirectory
             .appendingPathComponent("CoachLayoutGuardTests-\(UUID().uuidString)", isDirectory: true)

@@ -171,6 +171,7 @@ struct CoachComposer: View {
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                 .focused(isFocused)
+                .accessibilityIdentifier(CoachAccessibilityIdentifier.inputTextField)
                 .padding(.horizontal, CoachDesignTokens.Spacing.xs)
                 .submitLabel(.send)
                 .onSubmit {
