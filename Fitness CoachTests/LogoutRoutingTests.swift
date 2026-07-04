@@ -447,8 +447,16 @@ final class AuthGateCoordinatorLogoutTests: XCTestCase {
             wasSignedIn: true
         )
 
-        try await Task.sleep(nanoseconds: 100_000_000)
+        var cleared = false
+        for _ in 0..<100 {
+            if container.accountDataNamespaceService.currentDataNamespaceUID() == nil {
+                cleared = true
+                break
+            }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
 
+        XCTAssertTrue(cleared)
         XCTAssertNil(container.accountDataNamespaceService.currentDataNamespaceUID())
     }
 }

@@ -177,7 +177,6 @@ final class MultiUserNutritionIsolationTests: XCTestCase {
         let foodLogService: FoodLogService
         let waterLogService: WaterLogService
         let weightLogService: WeightLogService
-        let migrationService: AccountMigrationService
         let namespaceService: AccountDataNamespaceService
         let today: Date
     }
@@ -215,11 +214,6 @@ final class MultiUserNutritionIsolationTests: XCTestCase {
             dateProvider: dateProvider,
             currentUIDProvider: uidProvider
         )
-        let migrationService = AccountMigrationService(
-            store: store,
-            userProfileService: profileService,
-            uidProvider: StubNamespaceUIDProvider(uidProvider: uidProvider)
-        )
         let namespaceDefaults = UserDefaults(
             suiteName: "MultiUserNutritionIsolationTests.\(UUID().uuidString)"
         )!
@@ -235,7 +229,6 @@ final class MultiUserNutritionIsolationTests: XCTestCase {
             foodLogService: foodLogService,
             waterLogService: waterLogService,
             weightLogService: weightLogService,
-            migrationService: migrationService,
             namespaceService: namespaceService,
             today: dateProvider.now
         )
