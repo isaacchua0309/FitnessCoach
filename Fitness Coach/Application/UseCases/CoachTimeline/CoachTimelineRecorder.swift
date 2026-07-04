@@ -49,6 +49,7 @@ protocol CoachTimelineRecording: Sendable {
     func recordFoodLogged(
         entry: FoodEntry,
         sourceAttribution: CoachTimelineEventSourceAttribution,
+        userEditedBeforeConfirm: Bool,
         occurredAt: Date?
     )
 
@@ -62,11 +63,13 @@ protocol CoachTimelineRecording: Sendable {
 
     func recordFoodEdited(
         entry: FoodEntry,
+        supersedesEventId: UUID?,
         occurredAt: Date?
     )
 
     func recordFoodDeleted(
         entry: FoodEntry,
+        supersedesEventId: UUID?,
         occurredAt: Date?
     )
 
@@ -151,6 +154,7 @@ protocol CoachTimelineRecording: Sendable {
 
     func recordPendingConfirmationCreated(
         payload: ConfirmationPayload,
+        sourceAttribution: CoachTimelineEventSourceAttribution,
         occurredAt: Date?
     )
 
@@ -233,6 +237,7 @@ struct NoOpCoachTimelineRecorder: CoachTimelineRecording {
     func recordFoodLogged(
         entry: FoodEntry,
         sourceAttribution: CoachTimelineEventSourceAttribution,
+        userEditedBeforeConfirm: Bool,
         occurredAt: Date?
     ) {}
 
@@ -244,9 +249,17 @@ struct NoOpCoachTimelineRecorder: CoachTimelineRecording {
         occurredAt: Date?
     ) {}
 
-    func recordFoodEdited(entry: FoodEntry, occurredAt: Date?) {}
+    func recordFoodEdited(
+        entry: FoodEntry,
+        supersedesEventId: UUID?,
+        occurredAt: Date?
+    ) {}
 
-    func recordFoodDeleted(entry: FoodEntry, occurredAt: Date?) {}
+    func recordFoodDeleted(
+        entry: FoodEntry,
+        supersedesEventId: UUID?,
+        occurredAt: Date?
+    ) {}
 
     func recordWaterLogged(entry: WaterEntry, occurredAt: Date?) {}
 
@@ -299,7 +312,11 @@ struct NoOpCoachTimelineRecorder: CoachTimelineRecording {
         occurredAt: Date?
     ) {}
 
-    func recordPendingConfirmationCreated(payload: ConfirmationPayload, occurredAt: Date?) {}
+    func recordPendingConfirmationCreated(
+        payload: ConfirmationPayload,
+        sourceAttribution: CoachTimelineEventSourceAttribution,
+        occurredAt: Date?
+    ) {}
 
     func recordPendingConfirmationConfirmed(
         payload: ConfirmationPayload,
@@ -437,14 +454,18 @@ final class DefaultCoachTimelineRecorder: CoachTimelineRecording, @unchecked Sen
     func recordFoodLogged(
         entry: FoodEntry,
         sourceAttribution: CoachTimelineEventSourceAttribution = .userConfirmation,
+        userEditedBeforeConfirm: Bool = false,
         occurredAt: Date? = nil
     ) {
         append(
             type: .foodLogged,
             source: .coachUI,
             sourceAttribution: sourceAttribution,
+            confidence: CoachTimelineEventConfidence.from(entry.confidence),
             status: .confirmed,
-            payload: .foodLogged(entry.timelineLoggedPayload()),
+            payload: .foodLogged(
+                entry.timelineLoggedPayload(userEditedBeforeConfirm: userEditedBeforeConfirm)
+            ),
             occurredAt: occurredAt ?? entry.createdAt,
             link: CoachTimelineEventLink(
                 linkedEntryId: entry.id,
@@ -475,33 +496,45 @@ final class DefaultCoachTimelineRecorder: CoachTimelineRecording, @unchecked Sen
         )
     }
 
-    func recordFoodEdited(entry: FoodEntry, occurredAt: Date? = nil) {
+    func recordFoodEdited(
+        entry: FoodEntry,
+        supersedesEventId: UUID? = nil,
+        occurredAt: Date? = nil
+    ) {
         append(
             type: .foodEdited,
             source: .coachUI,
             sourceAttribution: .userConfirmation,
+            confidence: CoachTimelineEventConfidence.from(entry.confidence),
             status: .confirmed,
             payload: .foodLogged(entry.timelineLoggedPayload(isEdit: true)),
             occurredAt: occurredAt ?? entry.updatedAt,
             link: CoachTimelineEventLink(
                 linkedEntryId: entry.id,
                 linkedDailyLogId: entry.dailyLogId
-            )
+            ),
+            supersedesEventId: supersedesEventId
         )
     }
 
-    func recordFoodDeleted(entry: FoodEntry, occurredAt: Date? = nil) {
+    func recordFoodDeleted(
+        entry: FoodEntry,
+        supersedesEventId: UUID? = nil,
+        occurredAt: Date? = nil
+    ) {
         append(
             type: .foodDeleted,
             source: .coachUI,
             sourceAttribution: .userConfirmation,
+            confidence: CoachTimelineEventConfidence.from(entry.confidence),
             status: .confirmed,
             payload: .foodLogged(entry.timelineLoggedPayload(isDelete: true)),
             occurredAt: occurredAt ?? entry.updatedAt,
             link: CoachTimelineEventLink(
                 linkedEntryId: entry.id,
                 linkedDailyLogId: entry.dailyLogId
-            )
+            ),
+            supersedesEventId: supersedesEventId
         )
     }
 
@@ -737,12 +770,13 @@ final class DefaultCoachTimelineRecorder: CoachTimelineRecording, @unchecked Sen
 
     func recordPendingConfirmationCreated(
         payload: ConfirmationPayload,
+        sourceAttribution: CoachTimelineEventSourceAttribution = .estimateFood,
         occurredAt: Date? = nil
     ) {
         append(
             type: .pendingConfirmationCreated,
             source: .coachUI,
-            sourceAttribution: .estimateFood,
+            sourceAttribution: sourceAttribution,
             status: .pending,
             payload: .confirmation(payload),
             occurredAt: occurredAt,
@@ -904,7 +938,8 @@ final class DefaultCoachTimelineRecorder: CoachTimelineRecording, @unchecked Sen
         status: CoachTimelineEventStatus,
         payload: CoachTimelineEventPayload,
         occurredAt: Date?,
-        link: CoachTimelineEventLink = CoachTimelineEventLink()
+        link: CoachTimelineEventLink = CoachTimelineEventLink(),
+        supersedesEventId: UUID? = nil
     ) {
         guard let store else { return }
 
@@ -918,7 +953,8 @@ final class DefaultCoachTimelineRecorder: CoachTimelineRecording, @unchecked Sen
             payload: payload,
             occurredAt: instant,
             calendar: calendar,
-            link: link
+            link: link,
+            supersedesEventId: supersedesEventId
         )
 
         Task { @MainActor in
@@ -976,7 +1012,11 @@ private enum CoachTimelineRecorderFormatting {
 
 private extension FoodEntry {
 
-    func timelineLoggedPayload(isEdit: Bool = false, isDelete: Bool = false) -> FoodLoggedPayload {
+    func timelineLoggedPayload(
+        isEdit: Bool = false,
+        isDelete: Bool = false,
+        userEditedBeforeConfirm: Bool = false
+    ) -> FoodLoggedPayload {
         FoodLoggedPayload(
             entryId: id,
             dailyLogId: dailyLogId,
@@ -989,6 +1029,8 @@ private extension FoodEntry {
             carbsGrams: carbs,
             fatGrams: fat,
             source: source.rawValue,
+            confidence: confidence.rawValue,
+            userEditedBeforeConfirm: userEditedBeforeConfirm,
             isEdit: isEdit,
             isDelete: isDelete
         )

@@ -500,6 +500,8 @@ final class AppContainer {
             aiCommandParsingEnabled: aiCommandParsingEnabled,
             trainingInsightsStore: trainingInsightsStore,
             healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+timelineRecorder: coachTimelineRecorder,
+            timelineStore: coachTimelineStore
         )
     }
 

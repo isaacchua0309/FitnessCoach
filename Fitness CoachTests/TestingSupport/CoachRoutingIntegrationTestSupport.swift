@@ -25,16 +25,33 @@ enum CoachRoutingIntegrationTestSupport {
 
         func makeCoach(
             aiService: AIServiceProtocol,
-            includeTrainingInsights: Bool = false
+            includeTrainingInsights: Bool = false,
+            timelineStore: FakeCoachTimelineStore? = nil
         ) -> CoachModel {
-            CoachModel(
+            let recorder: (any CoachTimelineRecording)? = timelineStore.map {
+                DefaultCoachTimelineRecorder(store: $0)
+            }
+            let packetBuilder = CoachContextPacketV2Builder(
+                dailyLogService: dailyLogService,
+                foodLogService: fitness.base.foodLogService,
+                waterLogService: fitness.base.waterLogService,
+                weightLogService: fitness.weightLogService,
+                userProfileService: userProfileService,
+                healthActivityQuery: healthActivityQuery,
+                timelineStore: timelineStore,
+                timelineRecorder: recorder
+            )
+            return CoachModel(
                 actionCenter: actionCenter,
                 dailyLogReader: dailyLogService,
                 healthActivityQuery: healthActivityQuery,
                 aiService: aiService,
+                contextPacketBuilder: packetBuilder,
                 userProfileReader: userProfileService,
                 aiCommandParsingEnabled: true,
-                trainingInsightsStore: includeTrainingInsights ? trainingInsightsStore : nil
+                trainingInsightsStore: includeTrainingInsights ? trainingInsightsStore : nil,
+                timelineRecorder: recorder,
+                timelineStore: timelineStore
             )
         }
     }
