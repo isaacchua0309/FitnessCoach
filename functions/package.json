@@ -3,12 +3,18 @@
   "scripts": {
     "lint": "eslint --ext .js,.ts .",
     "build": "tsc",
+<<<<<<< HEAD
     "test": "jest",
     "test:coach": "jest --testPathPatterns=coach",
     "test:food": "jest --testPathPatterns=food",
     "test:account-persistence": "jest --testPathPatterns='accountPersistence|accountDeletion|nutritionSyncContract'",
     "test:gateway": "jest --testPathPatterns='gatewayGuardrails|aiGateway'",
     "test:firestore-rules": "npx firebase-tools emulators:exec --only firestore --project forma-account-persistence-rules-test \"npm test -- --runInBand --testPathPatterns='accountPersistenceFirestoreRules|nutritionSyncContract'\"",
+=======
+    "test": "jest --testPathIgnorePatterns='accountPersistenceFirestoreRules|nutritionSyncContract'",
+    "test:all": "jest",
+    "test:firestore-rules": "npx firebase-tools emulators:exec --only firestore --project forma-account-persistence-rules-test \"npm run test:all -- --runInBand --testPathPatterns='accountPersistenceFirestoreRules|nutritionSyncContract'\"",
+>>>>>>> origin/cursor/build-health-cleanup-6323
     "smoke:auth": "node scripts/smoke-ai-gateway-auth.mjs",
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions",
