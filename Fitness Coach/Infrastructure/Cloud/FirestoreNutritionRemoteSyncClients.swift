@@ -29,7 +29,7 @@ final class FirestoreSyncMetadataClient: SyncMetadataRemoteSyncing, @unchecked S
         } catch {
             throw FirestoreNutritionSyncSupport.mapFirestoreError(
                 error,
-                collection: NutritionRemoteSyncCollection.syncMetadata,
+                collection: AccountDataCloudPaths.Segment.syncMetadata,
                 operation: "fetch"
             )
         }
@@ -47,7 +47,7 @@ final class FirestoreSyncMetadataClient: SyncMetadataRemoteSyncing, @unchecked S
         } catch {
             throw FirestoreNutritionSyncSupport.mapFirestoreError(
                 error,
-                collection: NutritionRemoteSyncCollection.syncMetadata,
+                collection: AccountDataCloudPaths.Segment.syncMetadata,
                 operation: "write"
             )
         }
@@ -64,7 +64,7 @@ final class FirestoreDailyLogSyncClient: DailyLogRemoteSyncing, @unchecked Senda
         let sessionUID = try FirestoreNutritionSyncSupport.normalizedUID(uid)
         do {
             let snapshot = try await FirestoreNutritionSyncSupport
-                .dailyLogReference(firestore, uid: sessionUID, dayId: dayId)
+                .dailyLogReference(firestore, uid: sessionUID, localDate: dayId)
                 .getDocument()
             guard snapshot.exists else { return nil }
             return try snapshot.data(as: CloudDailyLogDocument.self)
@@ -73,7 +73,7 @@ final class FirestoreDailyLogSyncClient: DailyLogRemoteSyncing, @unchecked Senda
         } catch {
             throw FirestoreNutritionSyncSupport.mapFirestoreError(
                 error,
-                collection: NutritionRemoteSyncCollection.dailyLogs,
+                collection: AccountDataCloudPaths.Segment.dailyLogs,
                 operation: "fetch"
             )
         }
@@ -84,14 +84,14 @@ final class FirestoreDailyLogSyncClient: DailyLogRemoteSyncing, @unchecked Senda
         try FirestoreNutritionSyncSupport.validate(document, sessionUID: sessionUID)
         do {
             try await FirestoreNutritionSyncSupport
-                .dailyLogReference(firestore, uid: sessionUID, dayId: document.id)
+                .dailyLogReference(firestore, uid: sessionUID, localDate: document.id)
                 .setData(try Firestore.Encoder().encode(document), merge: true)
         } catch let error as NutritionSyncError {
             throw error
         } catch {
             throw FirestoreNutritionSyncSupport.mapFirestoreError(
                 error,
-                collection: NutritionRemoteSyncCollection.dailyLogs,
+                collection: AccountDataCloudPaths.Segment.dailyLogs,
                 operation: "write"
             )
         }
@@ -101,9 +101,9 @@ final class FirestoreDailyLogSyncClient: DailyLogRemoteSyncing, @unchecked Senda
         let sessionUID = try FirestoreNutritionSyncSupport.normalizedUID(uid)
         do {
             let snapshot = try await FirestoreNutritionSyncSupport
-                .userCollection(firestore, uid: sessionUID, name: NutritionRemoteSyncCollection.dailyLogs)
-                .whereField("userId", isEqualTo: sessionUID)
-                .whereField("updatedAt", isGreaterThan: after)
+                .userCollection(firestore, uid: sessionUID, name: AccountDataCloudPaths.Segment.dailyLogs)
+                .whereField(AccountDataCloudSchema.userId, isEqualTo: sessionUID)
+                .whereField(AccountDataCloudSchema.updatedAt, isGreaterThan: after)
                 .getDocuments()
             return try snapshot.documents.compactMap { try $0.data(as: CloudDailyLogDocument.self) }
         } catch let error as NutritionSyncError {
@@ -111,7 +111,7 @@ final class FirestoreDailyLogSyncClient: DailyLogRemoteSyncing, @unchecked Senda
         } catch {
             throw FirestoreNutritionSyncSupport.mapFirestoreError(
                 error,
-                collection: NutritionRemoteSyncCollection.dailyLogs,
+                collection: AccountDataCloudPaths.Segment.dailyLogs,
                 operation: "fetch"
             )
         }
@@ -128,7 +128,7 @@ final class FirestoreFoodEntrySyncClient: FoodEntryRemoteSyncing, @unchecked Sen
         let sessionUID = try FirestoreNutritionSyncSupport.normalizedUID(uid)
         do {
             let snapshot = try await FirestoreNutritionSyncSupport
-                .foodEntryReference(firestore, uid: sessionUID, dayId: dayId, entryId: entryId)
+                .foodEntryReference(firestore, uid: sessionUID, localDate: dayId, entryId: entryId)
                 .getDocument()
             guard snapshot.exists else { return nil }
             return try snapshot.data(as: CloudFoodEntryDocument.self)
@@ -137,7 +137,7 @@ final class FirestoreFoodEntrySyncClient: FoodEntryRemoteSyncing, @unchecked Sen
         } catch {
             throw FirestoreNutritionSyncSupport.mapFirestoreError(
                 error,
-                collection: NutritionRemoteSyncCollection.foodEntries,
+                collection: AccountDataCloudPaths.Segment.foodEntries,
                 operation: "fetch"
             )
         }
@@ -148,14 +148,14 @@ final class FirestoreFoodEntrySyncClient: FoodEntryRemoteSyncing, @unchecked Sen
         try FirestoreNutritionSyncSupport.validate(document, sessionUID: sessionUID)
         do {
             try await FirestoreNutritionSyncSupport
-                .foodEntryReference(firestore, uid: sessionUID, dayId: dayId, entryId: document.id)
+                .foodEntryReference(firestore, uid: sessionUID, localDate: dayId, entryId: document.id)
                 .setData(try Firestore.Encoder().encode(document), merge: true)
         } catch let error as NutritionSyncError {
             throw error
         } catch {
             throw FirestoreNutritionSyncSupport.mapFirestoreError(
                 error,
-                collection: NutritionRemoteSyncCollection.foodEntries,
+                collection: AccountDataCloudPaths.Segment.foodEntries,
                 operation: "write"
             )
         }
@@ -165,9 +165,9 @@ final class FirestoreFoodEntrySyncClient: FoodEntryRemoteSyncing, @unchecked Sen
         let sessionUID = try FirestoreNutritionSyncSupport.normalizedUID(uid)
         do {
             let snapshot = try await FirestoreNutritionSyncSupport
-                .dailyLogReference(firestore, uid: sessionUID, dayId: dayId)
-                .collection(NutritionRemoteSyncCollection.foodEntries)
-                .whereField("userId", isEqualTo: sessionUID)
+                .dailyLogReference(firestore, uid: sessionUID, localDate: dayId)
+                .collection(AccountDataCloudPaths.Segment.foodEntries)
+                .whereField(AccountDataCloudSchema.userId, isEqualTo: sessionUID)
                 .getDocuments()
             return try snapshot.documents.compactMap { try $0.data(as: CloudFoodEntryDocument.self) }
         } catch let error as NutritionSyncError {
@@ -175,7 +175,7 @@ final class FirestoreFoodEntrySyncClient: FoodEntryRemoteSyncing, @unchecked Sen
         } catch {
             throw FirestoreNutritionSyncSupport.mapFirestoreError(
                 error,
-                collection: NutritionRemoteSyncCollection.foodEntries,
+                collection: AccountDataCloudPaths.Segment.foodEntries,
                 operation: "fetch"
             )
         }
@@ -192,7 +192,7 @@ final class FirestoreWaterEntrySyncClient: WaterEntryRemoteSyncing, @unchecked S
         let sessionUID = try FirestoreNutritionSyncSupport.normalizedUID(uid)
         do {
             let snapshot = try await FirestoreNutritionSyncSupport
-                .waterEntryReference(firestore, uid: sessionUID, dayId: dayId, entryId: entryId)
+                .waterEntryReference(firestore, uid: sessionUID, localDate: dayId, entryId: entryId)
                 .getDocument()
             guard snapshot.exists else { return nil }
             return try snapshot.data(as: CloudWaterEntryDocument.self)
@@ -201,7 +201,7 @@ final class FirestoreWaterEntrySyncClient: WaterEntryRemoteSyncing, @unchecked S
         } catch {
             throw FirestoreNutritionSyncSupport.mapFirestoreError(
                 error,
-                collection: NutritionRemoteSyncCollection.waterEntries,
+                collection: AccountDataCloudPaths.Segment.waterEntries,
                 operation: "fetch"
             )
         }
@@ -212,14 +212,14 @@ final class FirestoreWaterEntrySyncClient: WaterEntryRemoteSyncing, @unchecked S
         try FirestoreNutritionSyncSupport.validate(document, sessionUID: sessionUID)
         do {
             try await FirestoreNutritionSyncSupport
-                .waterEntryReference(firestore, uid: sessionUID, dayId: dayId, entryId: document.id)
+                .waterEntryReference(firestore, uid: sessionUID, localDate: dayId, entryId: document.id)
                 .setData(try Firestore.Encoder().encode(document), merge: true)
         } catch let error as NutritionSyncError {
             throw error
         } catch {
             throw FirestoreNutritionSyncSupport.mapFirestoreError(
                 error,
-                collection: NutritionRemoteSyncCollection.waterEntries,
+                collection: AccountDataCloudPaths.Segment.waterEntries,
                 operation: "write"
             )
         }
@@ -229,9 +229,9 @@ final class FirestoreWaterEntrySyncClient: WaterEntryRemoteSyncing, @unchecked S
         let sessionUID = try FirestoreNutritionSyncSupport.normalizedUID(uid)
         do {
             let snapshot = try await FirestoreNutritionSyncSupport
-                .dailyLogReference(firestore, uid: sessionUID, dayId: dayId)
-                .collection(NutritionRemoteSyncCollection.waterEntries)
-                .whereField("userId", isEqualTo: sessionUID)
+                .dailyLogReference(firestore, uid: sessionUID, localDate: dayId)
+                .collection(AccountDataCloudPaths.Segment.waterEntries)
+                .whereField(AccountDataCloudSchema.userId, isEqualTo: sessionUID)
                 .getDocuments()
             return try snapshot.documents.compactMap { try $0.data(as: CloudWaterEntryDocument.self) }
         } catch let error as NutritionSyncError {
@@ -239,7 +239,7 @@ final class FirestoreWaterEntrySyncClient: WaterEntryRemoteSyncing, @unchecked S
         } catch {
             throw FirestoreNutritionSyncSupport.mapFirestoreError(
                 error,
-                collection: NutritionRemoteSyncCollection.waterEntries,
+                collection: AccountDataCloudPaths.Segment.waterEntries,
                 operation: "fetch"
             )
         }
@@ -265,7 +265,7 @@ final class FirestoreWeightEntrySyncClient: WeightEntryRemoteSyncing, @unchecked
         } catch {
             throw FirestoreNutritionSyncSupport.mapFirestoreError(
                 error,
-                collection: NutritionRemoteSyncCollection.weightEntries,
+                collection: AccountDataCloudPaths.Segment.weightEntries,
                 operation: "fetch"
             )
         }
@@ -283,7 +283,7 @@ final class FirestoreWeightEntrySyncClient: WeightEntryRemoteSyncing, @unchecked
         } catch {
             throw FirestoreNutritionSyncSupport.mapFirestoreError(
                 error,
-                collection: NutritionRemoteSyncCollection.weightEntries,
+                collection: AccountDataCloudPaths.Segment.weightEntries,
                 operation: "write"
             )
         }
@@ -293,9 +293,9 @@ final class FirestoreWeightEntrySyncClient: WeightEntryRemoteSyncing, @unchecked
         let sessionUID = try FirestoreNutritionSyncSupport.normalizedUID(uid)
         do {
             let snapshot = try await FirestoreNutritionSyncSupport
-                .userCollection(firestore, uid: sessionUID, name: NutritionRemoteSyncCollection.weightEntries)
-                .whereField("userId", isEqualTo: sessionUID)
-                .whereField("updatedAt", isGreaterThan: after)
+                .userCollection(firestore, uid: sessionUID, name: AccountDataCloudPaths.Segment.weightEntries)
+                .whereField(AccountDataCloudSchema.userId, isEqualTo: sessionUID)
+                .whereField(AccountDataCloudSchema.updatedAt, isGreaterThan: after)
                 .getDocuments()
             return try snapshot.documents.compactMap { try $0.data(as: CloudWeightEntryDocument.self) }
         } catch let error as NutritionSyncError {
@@ -303,7 +303,7 @@ final class FirestoreWeightEntrySyncClient: WeightEntryRemoteSyncing, @unchecked
         } catch {
             throw FirestoreNutritionSyncSupport.mapFirestoreError(
                 error,
-                collection: NutritionRemoteSyncCollection.weightEntries,
+                collection: AccountDataCloudPaths.Segment.weightEntries,
                 operation: "fetch"
             )
         }
@@ -320,7 +320,7 @@ final class FirestoreDailyReviewSyncClient: DailyReviewRemoteSyncing, @unchecked
         let sessionUID = try FirestoreNutritionSyncSupport.normalizedUID(uid)
         do {
             let snapshot = try await FirestoreNutritionSyncSupport
-                .dailyReviewReference(firestore, uid: sessionUID, dayId: dayId)
+                .dailyReviewReference(firestore, uid: sessionUID, localDate: dayId)
                 .getDocument()
             guard snapshot.exists else { return nil }
             return try snapshot.data(as: CloudDailyReviewDocument.self)
@@ -329,7 +329,7 @@ final class FirestoreDailyReviewSyncClient: DailyReviewRemoteSyncing, @unchecked
         } catch {
             throw FirestoreNutritionSyncSupport.mapFirestoreError(
                 error,
-                collection: NutritionRemoteSyncCollection.dailyReviews,
+                collection: AccountDataCloudPaths.Segment.dailyReviews,
                 operation: "fetch"
             )
         }
@@ -340,14 +340,14 @@ final class FirestoreDailyReviewSyncClient: DailyReviewRemoteSyncing, @unchecked
         try FirestoreNutritionSyncSupport.validate(document, sessionUID: sessionUID)
         do {
             try await FirestoreNutritionSyncSupport
-                .dailyReviewReference(firestore, uid: sessionUID, dayId: dayId)
+                .dailyReviewReference(firestore, uid: sessionUID, localDate: dayId)
                 .setData(try Firestore.Encoder().encode(document), merge: true)
         } catch let error as NutritionSyncError {
             throw error
         } catch {
             throw FirestoreNutritionSyncSupport.mapFirestoreError(
                 error,
-                collection: NutritionRemoteSyncCollection.dailyReviews,
+                collection: AccountDataCloudPaths.Segment.dailyReviews,
                 operation: "write"
             )
         }

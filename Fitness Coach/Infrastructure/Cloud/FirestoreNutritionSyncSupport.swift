@@ -41,7 +41,7 @@ enum FirestoreNutritionSyncSupport {
 
     static func usersDocument(_ firestore: Firestore, uid: String) -> DocumentReference {
         firestore
-            .collection(NutritionRemoteSyncCollection.usersRoot)
+            .collection(AccountDataCloudPaths.Segment.users)
             .document(uid)
     }
 
@@ -50,45 +50,45 @@ enum FirestoreNutritionSyncSupport {
     }
 
     static func syncMetadataReference(_ firestore: Firestore, uid: String) -> DocumentReference {
-        userCollection(firestore, uid: uid, name: NutritionRemoteSyncCollection.syncMetadata)
-            .document(NutritionRemoteSyncCollection.currentDocumentID)
+        userCollection(firestore, uid: uid, name: AccountDataCloudPaths.Segment.syncMetadata)
+            .document(AccountDataCloudPaths.Segment.currentDocumentID)
     }
 
-    static func dailyLogReference(_ firestore: Firestore, uid: String, dayId: String) -> DocumentReference {
-        userCollection(firestore, uid: uid, name: NutritionRemoteSyncCollection.dailyLogs)
-            .document(dayId)
+    static func dailyLogReference(_ firestore: Firestore, uid: String, localDate: String) -> DocumentReference {
+        userCollection(firestore, uid: uid, name: AccountDataCloudPaths.Segment.dailyLogs)
+            .document(localDate)
     }
 
     static func foodEntryReference(
         _ firestore: Firestore,
         uid: String,
-        dayId: String,
+        localDate: String,
         entryId: String
     ) -> DocumentReference {
-        dailyLogReference(firestore, uid: uid, dayId: dayId)
-            .collection(NutritionRemoteSyncCollection.foodEntries)
+        dailyLogReference(firestore, uid: uid, localDate: localDate)
+            .collection(AccountDataCloudPaths.Segment.foodEntries)
             .document(entryId)
     }
 
     static func waterEntryReference(
         _ firestore: Firestore,
         uid: String,
-        dayId: String,
+        localDate: String,
         entryId: String
     ) -> DocumentReference {
-        dailyLogReference(firestore, uid: uid, dayId: dayId)
-            .collection(NutritionRemoteSyncCollection.waterEntries)
+        dailyLogReference(firestore, uid: uid, localDate: localDate)
+            .collection(AccountDataCloudPaths.Segment.waterEntries)
             .document(entryId)
     }
 
     static func weightEntryReference(_ firestore: Firestore, uid: String, entryId: String) -> DocumentReference {
-        userCollection(firestore, uid: uid, name: NutritionRemoteSyncCollection.weightEntries)
+        userCollection(firestore, uid: uid, name: AccountDataCloudPaths.Segment.weightEntries)
             .document(entryId)
     }
 
-    static func dailyReviewReference(_ firestore: Firestore, uid: String, dayId: String) -> DocumentReference {
-        userCollection(firestore, uid: uid, name: NutritionRemoteSyncCollection.dailyReviews)
-            .document(dayId)
+    static func dailyReviewReference(_ firestore: Firestore, uid: String, localDate: String) -> DocumentReference {
+        userCollection(firestore, uid: uid, name: AccountDataCloudPaths.Segment.dailyReviews)
+            .document(localDate)
     }
 
     static func mapFirestoreError(_ error: Error, collection: String, operation: String) -> NutritionSyncError {

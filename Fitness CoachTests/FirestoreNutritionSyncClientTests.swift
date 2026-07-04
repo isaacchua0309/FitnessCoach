@@ -88,18 +88,22 @@ final class FirestoreNutritionSyncClientTests: XCTestCase {
         }
     }
 
-    func testRemoteSyncPathsMatchCollectionLayout() {
+    func testAccountDataCloudPathsMatchFirestoreLayout() {
         XCTAssertEqual(
-            NutritionRemoteSyncPaths.syncMetadataDocument(uid: "user-a"),
+            AccountDataCloudPaths.syncMetadataDocument(uid: "user-a"),
             "users/user-a/syncMetadata/current"
         )
         XCTAssertEqual(
-            NutritionRemoteSyncPaths.foodEntryDocument(
+            AccountDataCloudPaths.foodEntryDocument(
                 uid: "user-a",
-                dayId: "2026-07-03",
+                localDate: "2026-07-03",
                 entryId: "food-1"
             ),
             "users/user-a/dailyLogs/2026-07-03/foodEntries/food-1"
+        )
+        XCTAssertEqual(
+            AccountDataCloudPaths.profileDocument(uid: "user-a"),
+            "users/user-a/profile/current"
         )
     }
 }

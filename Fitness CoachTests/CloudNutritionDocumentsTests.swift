@@ -36,13 +36,13 @@ final class CloudNutritionDocumentsTests: XCTestCase {
             workoutCaloriesBurned: 250,
             weightKg: 68.2,
             dailyReviewId: nil,
-            schemaVersion: NutritionRemoteSyncCollection.schemaVersion,
+            schemaVersion: AccountDataCloudSchema.currentSchemaVersion,
             updatedAt: referenceDate,
             createdAt: referenceDate,
             deletedAt: nil,
             mutationId: UUID().uuidString,
             deviceId: "test-device",
-            source: NutritionRemoteSyncCollection.source
+            source: AccountDataCloudSchema.clientSource
         )
 
         let roundTripped = try NutritionCloudTestSupport.roundTrip(document)
@@ -70,7 +70,7 @@ final class CloudNutritionDocumentsTests: XCTestCase {
             imageUrl: nil,
             notes: "No dressing",
             componentsJSON: nil,
-            schemaVersion: NutritionRemoteSyncCollection.schemaVersion,
+            schemaVersion: AccountDataCloudSchema.currentSchemaVersion,
             updatedAt: referenceDate,
             createdAt: referenceDate,
             deletedAt: nil,

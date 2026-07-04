@@ -87,8 +87,8 @@ enum CloudNutritionDocumentMapping {
     static func makeSyncMetadataDocument(context: CloudNutritionSyncMappingContext) -> CloudSyncMetadataDocument {
         CloudSyncMetadataDocument(
             userId: context.userId,
-            schemaVersion: NutritionRemoteSyncCollection.schemaVersion,
-            clientSchemaVersion: NutritionRemoteSyncCollection.schemaVersion,
+            schemaVersion: AccountDataCloudSchema.currentSchemaVersion,
+            clientSchemaVersion: AccountDataCloudSchema.currentSchemaVersion,
             lastPushedAt: nil,
             lastPulledAt: nil,
             lastFullRestoreAt: nil,
@@ -128,13 +128,13 @@ enum CloudNutritionDocumentMapping {
             workoutCaloriesBurned: log.workoutCaloriesBurned,
             weightKg: log.weightKg,
             dailyReviewId: log.dailyReviewId?.uuidString,
-            schemaVersion: NutritionRemoteSyncCollection.schemaVersion,
+            schemaVersion: AccountDataCloudSchema.currentSchemaVersion,
             updatedAt: log.updatedAt,
             createdAt: log.createdAt,
             deletedAt: nil,
             mutationId: context.mutationId,
             deviceId: context.deviceId,
-            source: NutritionRemoteSyncCollection.source
+            source: AccountDataCloudSchema.clientSource
         )
     }
 
@@ -210,7 +210,7 @@ enum CloudNutritionDocumentMapping {
             imageUrl: entry.imageUrl,
             notes: entry.notes,
             componentsJSON: componentsJSON,
-            schemaVersion: NutritionRemoteSyncCollection.schemaVersion,
+            schemaVersion: AccountDataCloudSchema.currentSchemaVersion,
             updatedAt: entry.updatedAt,
             createdAt: entry.createdAt,
             deletedAt: nil,
@@ -255,7 +255,7 @@ enum CloudNutritionDocumentMapping {
             dailyLogId: entry.dailyLogId.uuidString,
             localDate: context.localDateString(for: logDate),
             amountMl: entry.amountMl,
-            schemaVersion: NutritionRemoteSyncCollection.schemaVersion,
+            schemaVersion: AccountDataCloudSchema.currentSchemaVersion,
             updatedAt: entry.createdAt,
             createdAt: entry.createdAt,
             deletedAt: nil,
@@ -284,7 +284,7 @@ enum CloudNutritionDocumentMapping {
             localDate: context.localDateString(for: entry.date),
             weightKg: entry.weightKg,
             note: entry.note,
-            schemaVersion: NutritionRemoteSyncCollection.schemaVersion,
+            schemaVersion: AccountDataCloudSchema.currentSchemaVersion,
             updatedAt: entry.createdAt,
             createdAt: entry.createdAt,
             deletedAt: nil,
@@ -327,7 +327,7 @@ enum CloudNutritionDocumentMapping {
             workoutSummary: review.workoutSummary,
             weightSummary: review.weightSummary,
             tomorrowRecommendation: review.tomorrowRecommendation,
-            schemaVersion: NutritionRemoteSyncCollection.schemaVersion,
+            schemaVersion: AccountDataCloudSchema.currentSchemaVersion,
             updatedAt: review.createdAt,
             createdAt: review.createdAt,
             deletedAt: nil,

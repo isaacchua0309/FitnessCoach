@@ -39,7 +39,7 @@ struct CloudUserTargets: Codable, Equatable, Sendable {
 
 extension CloudUserProfileDocument {
 
-    static let currentDocumentID = "current"
+    static let currentDocumentID = AccountDataCloudPaths.Segment.currentDocumentID
 
     init(profile: UserProfile, onboardingCompletedAt: Date, updatedAt: Date) {
         name = profile.name
