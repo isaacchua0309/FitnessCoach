@@ -4,7 +4,7 @@
     "lint": "eslint --ext .js,.ts .",
     "build": "tsc",
     "test": "jest",
-    "test:firestore-rules": "firebase emulators:exec --only firestore --project forma-nutrition-sync-rules-test \"npm test -- --testPathPatterns=nutritionSyncContract\"",
+    "test:firestore-rules": "npx firebase-tools emulators:exec --only firestore --project forma-account-persistence-rules-test \"npm test -- --runInBand --testPathPatterns='accountPersistenceFirestoreRules|nutritionSyncContract'\"",
     "smoke:auth": "node scripts/smoke-ai-gateway-auth.mjs",
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions",
