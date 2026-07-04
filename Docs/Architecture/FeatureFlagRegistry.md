@@ -3,6 +3,8 @@
 **Last updated:** 2026-07-04  
 **Sources of truth:** `Fitness Coach/Configuration/FormaAbTest.swift`, `Fitness Coach/Infrastructure/Cloud/AccountPersistenceFeatureFlags.swift`, `Fitness Coach/Health/HealthIntelligenceFeatureFlags.swift`
 
+**Tests:** `FormaAbTestProductionCriticalFlagsTests`, `AppContainerAccountDataRemoteStoreWiringTests`, `HealthIntelligenceFeatureFlagsTests`, `SettingsPrivacyDataTests`
+
 ---
 
 ## 1. Overview
@@ -13,35 +15,51 @@
 | `AccountPersistenceFeatureFlags` | `static let` constants | Compile-time |
 | `HealthIntelligenceFeatureFlags` | Facade over `FormaAbTest` | `AbTestHealthIntelligenceFeatureFlags` |
 
-**There is no Firebase Remote Config** in this repo (**Confirmed**).
+**There is no Firebase Remote Config** in this repo.
 
 ### Runtime vs production intent
 
 | Snapshot | Purpose | Used at runtime today? |
-|----------|---------|----------------------|
-| `FormaAbTestSnapshot.allEnabled` | Internal/dev — all gates on | **Yes** — default for app and tests |
-| Production intent (documented) | App Store safe defaults | **Documented** in HI header + `PHASE_20_RELEASE_READINESS.md`; **not a separate struct yet** (PRDX P0) |
+|----------|---------|------------------------|
+| `FormaAbTestSnapshot.allEnabled` | Internal/dev — all gates on | **Yes** — default for app and most tests |
+| `FormaAbTestSnapshot.production` | App Store safe defaults | **No** — documented ship intent + production-critical tests only |
 
-**Known contradiction:** `allEnabled` sets HI UI, weekly review, remote sync, and debug traces to `true`, while Health Intelligence release docs specify several as `false`. Treat **runtime behavior** as `allEnabled` until a `production` snapshot is wired (**Confirmed**).
+**Known contradiction (documented, not silent):** `allEnabled` sets HI UI, weekly review, remote sync, and debug traces to `true`, while `production` sets several to `false`. Runtime behavior remains `allEnabled` until an explicit release pass wires `production`.
+
+### Column legend
+
+| Column | Meaning |
+|--------|---------|
+| **Owner** | Team/domain responsible |
+| **Runtime default** | Value when `testOverride == nil` (`allEnabled`) |
+| **Production default** | Value in `FormaAbTestSnapshot.production` or compile-time constant |
+| **Rollout** | `shipped` / `internal` / `off` / `compile-time` |
+| **Removable?** | Safe to delete from codebase when true and no references remain |
+| **Risk if disabled** | User-facing or ops impact |
 
 ---
 
 ## 2. FormaAbTest — Health Intelligence
 
-| Flag | `allEnabled` | Production intent | Used? | User-visible when on |
-|------|--------------|-------------------|-------|----------------------|
-| `foundationEnabled` | true | true | Yes | Master HI switch |
-| `enginesEnabled` | true | true | Yes | Background engines |
-| `uiEnabled` | true | **false** | Yes | HI sections on Today/Journey/Plan |
-| `coachContextEnabled` | true | true | Yes | HI in Coach context packet |
-| `weeklyReviewEnabled` | true | **false** | Yes | HI `WeeklyReviewCard` on Journey |
-| `syncEnabled` | true | true | Yes | Local HK cache sync |
-| `remoteSummarySyncEnabled` | true | **false** | Yes | Firestore health upload (also needs consent) |
-| `repositoryReadRoutingEnabled` | true | true | Yes | HI read routing |
-| `pipelineAnalyticsEnabled` | true | false | Yes | HI pipeline analytics events |
-| `todayDebugFetchEnabled` | true | false | Yes | Load HI in Today when UI off |
-| `journeyDebugFetchEnabled` | true | false | Yes | Load HI in Journey when UI off |
-| `planDebugFetchEnabled` | true | false | Yes | Load HI in Plan when UI off |
+**Owner:** Health Intelligence platform  
+**Facade:** `HealthIntelligenceFeatureFlags`
+
+| Flag | Runtime default | Production default | Rollout | Removable? | Risk if disabled |
+|------|-----------------|-------------------|---------|------------|------------------|
+| `foundationEnabled` | true | true | shipped | No | All HI wiring off |
+| `enginesEnabled` | true | true | shipped | No | No snapshot/review composition |
+| `uiEnabled` | true | **false** | internal | No | HI sections hidden on Today/Journey/Plan |
+| `coachContextEnabled` | true | true | shipped | No | Coach omits HI from context packets |
+| `weeklyReviewEnabled` | true | **false** | internal | No | No `WeeklyReviewCard` on Journey |
+| `syncEnabled` | true | true | shipped | No | Local HK cache sync stops |
+| `remoteSummarySyncEnabled` | true | **false** | off | No | No Firestore health upload |
+| `repositoryReadRoutingEnabled` | true | true | shipped | No | HI read routing breaks |
+| `pipelineAnalyticsEnabled` | true | false | internal | No | HI pipeline analytics events stop |
+| `todayDebugFetchEnabled` | true | false | internal | Yes* | No HI load in Today when UI off |
+| `journeyDebugFetchEnabled` | true | false | internal | Yes* | No HI load in Journey when UI off |
+| `planDebugFetchEnabled` | true | false | internal | Yes* | No HI load in Plan when UI off |
+
+\* Removable only after UI ship decision and debug-fetch paths deleted.
 
 **Derived loaders:**
 
@@ -52,116 +70,144 @@
 | `shouldJourneyModelLoad` | `enginesEnabled && (uiEnabled \|\| journeyDebugFetchEnabled)` |
 | `shouldPlanModelLoad` | `enginesEnabled && (uiEnabled \|\| planDebugFetchEnabled)` |
 
-**Facade:** `HealthIntelligenceFeatureFlags` — see `Health/HealthIntelligenceFeatureFlags.swift`.
-
-**Legacy env keys (documentation only):** `FORMA_HEALTH_INTELLIGENCE_*` — listed in `EnvironmentKey` enum; resolver uses `FormaAbTest`, not process env, unless separately wired.
+**Legacy env keys (documentation only):** `FORMA_HEALTH_INTELLIGENCE_*` — listed in `EnvironmentKey` enum; resolver uses `FormaAbTest`, not process env.
 
 ---
 
 ## 3. FormaAbTest — Coach
 
-| Flag | `allEnabled` | Production intent | Risk |
-|------|--------------|-------------------|------|
-| `aiCommandParsingEnabled` | true | true | AI routing |
-| `mealPhotoPipelineReady` | true | true | Photo pipeline |
-| `pipelineTraceEnabled` | true | **false** | DEBUG tracer; logs user messages |
-| `pipelineTraceVerbose` | true | **false** | Verbose trace |
-| `imageAnalysisDebugLog` | true | **false** | Image pipeline logs |
-| `foodEstimateDebugLog` | true | **false** | Food names/calories in logs |
+**Owner:** Coach platform  
+**Do not change defaults without Coach regression suite.**
+
+| Flag | Runtime default | Production default | Rollout | Removable? | Risk if disabled |
+|------|-----------------|-------------------|---------|------------|------------------|
+| `aiCommandParsingEnabled` | true | true | shipped | No | AI routing off |
+| `mealPhotoPipelineReady` | true | true | shipped | No | Photo scan pipeline off |
+| `pipelineTraceEnabled` | true | false | internal | No | No pipeline trace (privacy win) |
+| `pipelineTraceVerbose` | true | false | internal | No | Verbose trace off |
+| `imageAnalysisDebugLog` | true | false | internal | No | Image pipeline logs off |
+| `foodEstimateDebugLog` | true | false | internal | No | Food names/calories logs off |
 
 ---
 
 ## 4. FormaAbTest — Today
 
-| Flag | `allEnabled` | Production intent |
-|------|--------------|-------------------|
-| `scanFoodEnabled` | true | true (product) |
+**Owner:** Today platform
+
+| Flag | Runtime default | Production default | Rollout | Removable? | Risk if disabled |
+|------|-----------------|-------------------|---------|------------|------------------|
+| `scanFoodEnabled` | true | true | shipped | No | Food scan entry hidden |
 
 ---
 
 ## 5. FormaAbTest — Theme
 
-| Flag | `allEnabled` | Production intent | Notes |
-|------|--------------|-------------------|-------|
-| `shipsLightAndSystemAppearance` | true | **false** until QA | `AppThemeShippingPolicy` coerces to dark when false |
-| `supportsIncreasedContrastPaletteVariants` | true | false | Not implemented — TODO in `ThemeAccessibilityAdaptationPolicy` |
-| `supportsReduceTransparencyCompositing` | true | false | Not implemented |
+**Owner:** Design system  
+**Wiring:** `AppThemeShippingPolicy`, `ThemeAccessibilityAdaptationPolicy`
+
+| Flag | Runtime default | Production default | Rollout | Removable? | Risk if disabled |
+|------|-----------------|-------------------|---------|------------|------------------|
+| `shipsLightAndSystemAppearance` | true | **false** | internal | No | Settings coerces to dark-only |
+| `supportsIncreasedContrastPaletteVariants` | true | false | off | No | Not implemented — no-op today |
+| `supportsReduceTransparencyCompositing` | true | false | off | No | Not implemented — no-op today |
 
 ---
 
 ## 6. FormaAbTest — Settings
 
-| Flag | `allEnabled` | Production intent | Actual wiring |
-|------|--------------|-------------------|---------------|
-| `dataExportEnabled` | true | false | **Unused in UI** — `SettingsDataExportCapability` uses `AccountDataExportPolicy.isEnabled` (false) |
-| `dataDeletionEnabled` | true | true | `SettingsDataDeletionCapability.isImplemented` |
-| `shipsInAppLegalWithoutPublishedURL` | true | TBD | Legal TODOs in `FormaLegalCopy` |
-| `developerSectionVisible` | true | **false** | Settings developer tools |
+**Owner:** Settings / privacy platform  
+**Wiring:** `SettingsFeatureAvailability`, `SettingsDataDeletionCapability`, `AccountDataExportPolicy`
+
+| Flag / capability | Runtime default | Production default | Rollout | Removable? | Risk if disabled |
+|-------------------|-----------------|-------------------|---------|------------|------------------|
+| ~~`dataExportEnabled`~~ | — | — | — | **Removed** | Was unused — export uses `AccountDataExportPolicy.isEnabled` |
+| `dataDeletionEnabled` | true | true | shipped | No | Delete account/local rows hidden |
+| `shipsInAppLegalWithoutPublishedURL` | true | false | internal | No | Legal rows hidden without URLs |
+| `developerSectionVisible` | true | **false** | internal | No | Developer tools hidden |
+
+**Export (not FormaAbTest):** `AccountDataExportPolicy.isEnabled` — compile-time `false`. `SettingsDataExportCapability.isImplemented` reads this policy.
 
 ---
 
 ## 7. FormaAbTest — Auth
 
-| Flag | `allEnabled` | Production intent |
-|------|--------------|-------------------|
-| `supportsAnonymousSignIn` | true | false (likely) |
-| `requiresSignInBeforeOnboarding` | true | true |
-| `preservesLocalUserDataOnSignOut` | true | true (Phase 1) |
-| `clearsCloudSyncMetadataOnSignOut` | true | true |
+**Owner:** Auth platform  
+**Wiring:** `AuthCapabilities`, `AppRouteResolver`, `WelcomeOnboardingHandoffPolicy`
+
+| Flag | Runtime default | Production default | Rollout | Removable? | Risk if disabled |
+|------|-----------------|-------------------|---------|------------|------------------|
+| `supportsAnonymousSignIn` | true | **false** | off | No | Anonymous auth path off |
+| `requiresSignInBeforeOnboarding` | true | true | shipped | No | Onboarding before sign-in breaks |
+| `preservesLocalUserDataOnSignOut` | true | true | shipped | No | Sign-out wipes local data |
+| `clearsCloudSyncMetadataOnSignOut` | true | true | shipped | No | Stale sync metadata after sign-out |
 
 ---
 
 ## 8. FormaAbTest — Build
 
-| Flag | `allEnabled` | Production intent |
-|------|--------------|-------------------|
-| `internalBuildEnabled` | true | **false** |
-| `includesDeveloperTools` | true | **false** |
+**Owner:** Platform
+
+| Flag | Runtime default | Production default | Rollout | Removable? | Risk if disabled |
+|------|-----------------|-------------------|---------|------------|------------------|
+| `internalBuildEnabled` | true | **false** | internal | No | Internal-only surfaces |
+| `includesDeveloperTools` | true | **false** | internal | No | Developer tools in build |
 
 ---
 
 ## 9. FormaAbTest — Diagnostics (trace flags)
 
-All `*Trace` flags default **true** in `allEnabled`. Production intent: **false** in Release (trace to OSLog only when enabled).
+**Owner:** Platform / diagnostics  
+**Wiring:** `FormaAbTest.Diagnostics.*` + per-domain `*AnalyticsTrace` gates
 
-| Flag | Domain |
-|------|--------|
-| `todayAnalyticsTrace` | Today analytics |
-| `journeyAnalyticsTrace` | Journey analytics |
-| `onboardingAnalyticsTrace` | Onboarding |
-| `settingsAnalyticsTrace` | Settings |
-| `themeAnalyticsTrace` | Theme |
-| `publicEntryAnalyticsTrace` | Welcome/auth |
-| `healthIntelligenceAnalyticsTrace` | HI |
-| `healthTrainingTrace` | Health training |
-| `profileBootstrapTrace` | Profile bootstrap |
-| `authSignInTrace` | Auth |
-| `todayHydrationTrace` | Today hydration gate |
-| `accountSyncTrace` | Account sync |
-| `accountRestoreTrace` | Account restore |
+| Flag | Runtime default | Production default | Rollout | Risk if disabled |
+|------|-----------------|-------------------|---------|------------------|
+| `todayAnalyticsTrace` | true | false | internal | No OSLog today analytics trace |
+| `journeyAnalyticsTrace` | true | false | internal | No journey trace |
+| `onboardingAnalyticsTrace` | true | false | internal | No onboarding trace |
+| `settingsAnalyticsTrace` | true | false | internal | No settings trace |
+| `themeAnalyticsTrace` | true | false | internal | No theme trace |
+| `publicEntryAnalyticsTrace` | true | false | internal | No welcome/auth trace |
+| `healthIntelligenceAnalyticsTrace` | true | false | internal | No HI trace |
+| `healthTrainingTrace` | true | false | internal | No health training trace |
+| `profileBootstrapTrace` | true | false | internal | No profile bootstrap trace |
+| `authSignInTrace` | true | false | internal | No auth trace |
+| `todayHydrationTrace` | true | false | internal | No hydration gate trace |
+| `accountSyncTrace` | true | false | internal | No sync trace |
+| `accountRestoreTrace` | true | false | internal | No restore trace |
+
+**Analytics logger selection (not a flag):** `AppContainer` uses `OSLog*AnalyticsLogger` in `#if DEBUG` and `NoOp*AnalyticsLogger` in Release. See [LoggingAndPrivacyContract.md](./LoggingAndPrivacyContract.md).
 
 ---
 
 ## 10. AccountPersistenceFeatureFlags (compile-time)
 
+**Owner:** Account persistence platform  
 **Do not change without account persistence regression suite.**
 
-| Flag | Value | Phase | Effect |
-|------|-------|-------|--------|
-| `cloudSchemaEnabled` | **true** | 2 | Cloud DTOs + Firestore client available |
-| `syncEngineEnabled` | **true** | 3 | `AccountSyncCoordinator` orchestration |
-| `uploadPendingMutationsEnabled` | **true** | 3 | Drain outbox on sync runs |
-| `pullRecentDataEnabled` | **false** | 3 | Bounded foreground pull (90d) — **off** |
-| `restoreOnLoginEnabled` | **true** | 4 | Blocking restore UX on sign-in |
-| `foregroundCrossDeviceRefreshEnabled` | **true** | 5 | Foreground incremental refresh |
-| `realtimeCrossDeviceSyncEnabled` | **true** | 5 | Firestore realtime hints |
-| `manualRefreshEnabled` | **true** | 5 | Pull-to-refresh sync |
+| Flag | Value | Production default | Rollout | Removable? | Risk if disabled |
+|------|-------|-------------------|---------|------------|------------------|
+| `cloudSchemaEnabled` | **true** | true | shipped | No | No cloud DTOs / Firestore client |
+| `syncEngineEnabled` | **true** | true | shipped | No | No `AccountSyncCoordinator` |
+| `uploadPendingMutationsEnabled` | **true** | true | shipped | No | Outbox never drains |
+| `pullRecentDataEnabled` | **false** | false | off | No | No bounded 90d foreground pull |
+| `restoreOnLoginEnabled` | **true** | true | shipped | No | No restore UX on sign-in |
+| `foregroundCrossDeviceRefreshEnabled` | **true** | true | shipped | No | Stale data on app active |
+| `realtimeCrossDeviceSyncEnabled` | **true** | true | shipped | No | Delayed cross-device hints |
+| `manualRefreshEnabled` | **true** | true | shipped | No | Pull-to-refresh sync no-ops |
 
 **Exposed via** `FormaAbTest.AccountPersistence.*` (read-through).
 
 ---
 
-## 11. Test Overrides
+## 11. Removed flags
+
+| Flag | Removed | Reason |
+|------|---------|--------|
+| `FormaAbTest.Settings.dataExportEnabled` | 2026-07-04 | Zero call sites; export gated by `AccountDataExportPolicy` |
+
+---
+
+## 12. Test Overrides
 
 ```swift
 // Unit tests — reset in tearDown
@@ -169,27 +215,31 @@ FormaAbTest.testOverride = FormaAbTestSnapshot(/* mutated */)
 HealthIntelligenceFeatureFlags.testOverride = TestHealthIntelligenceFeatureFlags(...)
 ```
 
-**Tests asserting current runtime:** `HealthIntelligenceFeatureFlagsTests.testDefaultsAreAllEnabled`.
+**Production-critical tests:** `FormaAbTestProductionCriticalFlagsTests`  
+**Runtime default tests:** `HealthIntelligenceFeatureFlagsTests.testDefaultsAreAllEnabled`  
+**Account persistence:** `AppContainerAccountDataRemoteStoreWiringTests.testPhase3SyncFlagsMatchRolloutPolicy`
 
 ---
 
-## 12. Production Expectations (ship checklist)
+## 13. Production Expectations (ship checklist)
 
-Before App Store release, verify or wire:
+Before App Store release, verify or wire `FormaAbTestSnapshot.production`:
 
 - [ ] HI UI off unless product explicitly ships (`uiEnabled = false`)
-- [ ] HI weekly review off (`weeklyReviewEnabled = false`) — Weekly Progress sprint may change
+- [ ] HI weekly review off (`weeklyReviewEnabled = false`)
 - [ ] Health remote sync off by default + consent UX (`remoteSummarySyncEnabled = false`)
 - [ ] Coach debug logs and pipeline trace off in Release
 - [ ] Developer section hidden (`developerSectionVisible = false`)
 - [ ] Light/system appearance gated (`shipsLightAndSystemAppearance = false`) until matrix QA
 - [ ] Account persistence flags unchanged unless ops approves
-- [ ] Analytics production sink opt-in (separate from flags — see [LoggingAndPrivacyContract.md](./LoggingAndPrivacyContract.md))
+- [ ] Analytics production sink: `NoOp*AnalyticsLogger` in Release (see Logging contract)
+- [ ] Wire runtime resolver to `production` snapshot (explicit release decision)
 
 ---
 
-## 13. Revision History
+## 14. Revision History
 
 | Date | Change |
 |------|--------|
 | 2026-07-04 | Initial registry for PRDX v1 |
+| 2026-07-04 | Added `FormaAbTestSnapshot.production`, per-flag metadata, removed `dataExportEnabled`, production-critical tests |

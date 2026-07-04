@@ -108,7 +108,7 @@ firebase emulators:exec --only firestore "cd functions && npm test -- accountPer
 | Account restore | `AccountRestoreCoordinatorTests`, `AccountRestoreEndToEndTests` | Integration |
 | Cross-device | `CrossDeviceEndToEndSyncTests`, `CrossDeviceSyncCoordinatorTests` | Integration |
 | Account deletion | `AccountDeletionCoordinatorTests`, `AccountDeletionEndToEndTests` | Integration |
-| Health Intelligence | `HealthIntelligenceEngineTests`, `HealthIntelligenceFeatureFlagsTests` | Fast-Core |
+| Health Intelligence | `HealthIntelligenceEngineTests`, `HealthIntelligenceFeatureFlagsTests`, `FormaAbTestProductionCriticalFlagsTests` | Fast-Core |
 | SwiftData migration | `FormaSchemaV7MigrationTests`, `CoachV2SwiftDataMigrationTests` | Integration |
 | Backend AI | `aiGateway.contract.test.ts`, `coachContextPacketV2.test.ts` | npm test |
 
@@ -155,6 +155,7 @@ These rules apply to **all** PRDX and maintainability refactors.
 ### PRDX P0 PRs
 
 - [ ] `HealthIntelligenceFeatureFlagsTests`
+- [ ] `FormaAbTestProductionCriticalFlagsTests`
 - [ ] `AccountSyncCoordinatorTests` (smoke)
 - [ ] `CoachRoutingTests` (unit methods)
 - [ ] `JourneyWeeklyReviewBuilderTests`

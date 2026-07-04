@@ -4,6 +4,11 @@
 //
 //  Forma — Feature flags for Settings row visibility.
 //
+//  **Owner:** Settings platform.
+//  **Registry:** `Docs/Architecture/FeatureFlagRegistry.md` § Settings.
+//
+//  `.production` derives from capability enums — not raw `FormaAbTest` accessors.
+//
 
 import Foundation
 
