@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum PlanNumericInputIssue: Equatable, Sendable {
+enum PlanNumericInputIssue: Equatable, Error, Sendable {
     case empty
     case invalidFormat
     case nonPositive

@@ -35,7 +35,8 @@ enum SettingsAnalyticsContextBuilder {
         case .appleHealth: return "apple_health"
         case .privacyPolicy: return "privacy_policy"
         case .exportData: return "export_data"
-        case .deleteData: return "delete_data"
+        case .deleteAccount: return "delete_account"
+        case .deleteLocalDeviceData: return "delete_local_device_data"
         case .sendFeedback: return "send_feedback"
         case .contactSupport: return "contact_support"
         case .reportProblem: return "report_problem"
@@ -45,6 +46,8 @@ enum SettingsAnalyticsContextBuilder {
         case .pipelineTraces: return "pipeline_traces"
         case .healthIntelligenceSnapshot: return "health_intelligence_snapshot"
         case .coachContextInspector: return "coach_context_inspector"
+        case .accountSyncDiagnostics: return "account_sync_diagnostics"
+        case .accountRestoreDiagnostics: return "account_restore_diagnostics"
         }
     }
 

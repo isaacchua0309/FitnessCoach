@@ -252,7 +252,8 @@ final class SettingsProductionQATests: XCTestCase {
 
         XCTAssertFalse(SettingsProductionVisibility.containsProhibitedPlaceholderCopy(titles))
         XCTAssertFalse(state.visibleRowIDs.contains(.exportData))
-        XCTAssertFalse(state.visibleRowIDs.contains(.deleteData))
+        XCTAssertTrue(state.visibleRowIDs.contains(.deleteAccount))
+        XCTAssertTrue(state.visibleRowIDs.contains(.deleteLocalDeviceData))
     }
 
     // MARK: - 14. No sensitive data logged in analytics

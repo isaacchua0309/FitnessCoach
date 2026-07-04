@@ -5,6 +5,7 @@
 //  Forma — User-facing restore progress and terminal outcomes (Phase 4).
 //
 
+import Combine
 import Foundation
 
 enum AccountRestoreUIPhase: Equatable {

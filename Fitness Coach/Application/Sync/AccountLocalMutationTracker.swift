@@ -155,7 +155,7 @@ final class AccountLocalMutationTracker {
         return providerUID
     }
 
-    private static var defaultCalendar: Calendar {
+    nonisolated static var defaultCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         return calendar

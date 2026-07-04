@@ -186,8 +186,7 @@ struct TodayMealsPreview: View {
         mealsEmptyKind: .hasMeals,
         onAddMeal: { _ in },
         onEditEntry: { _ in },
-        onDeleteEntry: { _ in },
-        onLogFirstMeal: {}
+        onDeleteEntry: { _ in }
     )
     .padding()
     .dynamicTypeSize(.accessibility2)

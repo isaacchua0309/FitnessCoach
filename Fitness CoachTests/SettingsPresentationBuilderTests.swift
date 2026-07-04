@@ -201,17 +201,22 @@ final class SettingsPresentationBuilderTests: XCTestCase {
                 integrationState: .notConnected,
                 featureAvailability: SettingsFeatureAvailability(
                     isDataExportEnabled: true,
-                    isDeleteDataEnabled: true
+                    isDeleteAccountEnabled: true,
+                    isDeleteLocalDeviceDataEnabled: true
                 )
             )
         )
 
         XCTAssertEqual(
             state.privacyData.rows.map(\.id),
-            [.privacyPolicy, .exportData, .deleteData]
+            [.privacyPolicy, .exportData, .deleteAccount, .deleteLocalDeviceData]
         )
         XCTAssertEqual(state.privacyData.rows.first(where: { $0.id == .exportData })?.destination, .exportData)
-        XCTAssertEqual(state.privacyData.rows.first(where: { $0.id == .deleteData })?.destination, .deleteData)
+        XCTAssertEqual(state.privacyData.rows.first(where: { $0.id == .deleteAccount })?.destination, .deleteAccount)
+        XCTAssertEqual(
+            state.privacyData.rows.first(where: { $0.id == .deleteLocalDeviceData })?.destination,
+            .deleteLocalDeviceData
+        )
     }
 
     func testSupportMailURLsUseSupportEmailAndDiagnostics() {

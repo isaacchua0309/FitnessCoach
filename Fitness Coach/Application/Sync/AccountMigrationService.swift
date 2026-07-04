@@ -9,7 +9,7 @@ import Foundation
 import SwiftData
 
 protocol AccountMigrationRunning: AnyObject {
-    func runSafeBackfill(for uid: String) async throws
+    @MainActor func runSafeBackfill(for uid: String) async throws
 }
 
 @MainActor
@@ -68,13 +68,13 @@ final class AccountMigrationService {
             uid: evaluation.uid,
             canBackfill: true,
             reason: evaluation.reason,
-            dailyLogsUpdated: applied.dailyLogsUpdated,
-            foodEntriesUpdated: applied.foodEntriesUpdated,
-            waterEntriesUpdated: applied.waterEntriesUpdated,
-            weightEntriesUpdated: applied.weightEntriesUpdated,
-            dailyReviewsUpdated: applied.dailyReviewsUpdated,
-            coachMessagesUpdated: applied.coachMessagesUpdated,
-            timelineEventsUpdated: applied.timelineEventsUpdated
+            dailyLogsUpdated: applied.dailyLogs,
+            foodEntriesUpdated: applied.foodEntries,
+            waterEntriesUpdated: applied.waterEntries,
+            weightEntriesUpdated: applied.weightEntries,
+            dailyReviewsUpdated: applied.dailyReviews,
+            coachMessagesUpdated: applied.coachMessages,
+            timelineEventsUpdated: applied.timelineEvents
         )
         AccountMigrationDebugLogger.backfillAllowed(uid: report.uid, report: report)
         return report

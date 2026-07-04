@@ -193,7 +193,7 @@ final class CoachMutationExecutor {
                 name: entry.name,
                 calories: entry.calories,
                 protein: entry.protein,
-                mealType: entry.mealType.rawValue,
+                mealType: entry.mealType?.rawValue ?? MealType.unknown.rawValue,
                 refreshToken: actionCenter.dataRefreshToken
             )
             return CoachResponseBuilder.food(

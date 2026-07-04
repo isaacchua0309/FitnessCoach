@@ -17,7 +17,8 @@ enum SettingsRowID: String, Hashable, CaseIterable, Sendable {
     case appleHealth
     case privacyPolicy
     case exportData
-    case deleteData
+    case deleteAccount
+    case deleteLocalDeviceData
     case sendFeedback
     case contactSupport
     case reportProblem
@@ -39,7 +40,8 @@ enum SettingsRowDestination: Equatable, Sendable {
     case appleHealthIntegration
     case legalDocument(FormaLegalDocument)
     case exportData
-    case deleteData
+    case deleteAccount
+    case deleteLocalDeviceData
     case supportMail(SettingsSupportMailTopic)
     case authDiagnostics
     case pipelineTraces

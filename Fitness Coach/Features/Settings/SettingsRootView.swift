@@ -26,8 +26,10 @@ struct SettingsRootView: View {
     var bodyDetailsInput: BodyDetailsSettingsPresentationInput?
     var onUpdateInPlan: (() -> Void)?
 
-    @State private var showsDeleteDataConfirmation = false
-    @State private var showsDeleteUnavailableAlert = false
+    @State private var activeDeletionScope: AccountDeletionScope?
+    @State private var showsDeletionUnavailableAlert = false
+    @StateObject private var accountDeletionViewModel = AccountDeletionViewModel()
+    @Environment(\.accountDeletionCoordinator) private var accountDeletionCoordinator
     @State private var supportMailTopic: SettingsSupportMailTopic?
 
     private var resolvedBodyDetailsInput: BodyDetailsSettingsPresentationInput {
@@ -99,29 +101,31 @@ struct SettingsRootView: View {
                     integrationState: insightsStore.integrationState
                 )
                 analyticsCoordinator.logSettingsViewed()
+                accountDeletionViewModel.configure(coordinator: accountDeletionCoordinator)
             }
-            .confirmationDialog(
-                deleteDataPresentation.confirmationTitle,
-                isPresented: $showsDeleteDataConfirmation,
-                titleVisibility: .visible
-            ) {
-                Button(deleteDataPresentation.confirmActionTitle, role: .destructive) {
-                    let result = SettingsDeleteDataActionHandler.perform()
-                    if case .notImplemented = result {
-                        showsDeleteUnavailableAlert = true
+            .sheet(item: $activeDeletionScope) { scope in
+                AccountDeletionView(
+                    viewModel: accountDeletionViewModel,
+                    scope: scope,
+                    onDismiss: {
+                        activeDeletionScope = nil
+                        accountDeletionViewModel.reset()
+                    },
+                    onSuccess: {
+                        activeDeletionScope = nil
+                        accountDeletionViewModel.reset()
+                        onDismiss()
+                        dismiss()
                     }
-                }
-                Button(FormaProductCopy.Common.cancel, role: .cancel) {}
-            } message: {
-                Text(deleteDataPresentation.confirmationMessage)
+                )
             }
             .alert(
-                deleteDataPresentation.unavailableTitle,
-                isPresented: $showsDeleteUnavailableAlert
+                FormaProductCopy.Settings.PrivacyData.deleteUnavailableTitle,
+                isPresented: $showsDeletionUnavailableAlert
             ) {
                 Button(FormaProductCopy.Common.ok, role: .cancel) {}
             } message: {
-                Text(deleteDataPresentation.unavailableMessage)
+                Text(FormaProductCopy.Settings.PrivacyData.deleteUnavailableMessage)
             }
             .sheet(item: $supportMailTopic) { topic in
                 #if canImport(MessageUI)
@@ -138,8 +142,14 @@ struct SettingsRootView: View {
         }
     }
 
-    private var deleteDataPresentation: SettingsDeleteDataPresentation {
-        SettingsDeleteDataPresentationBuilder.build()
+    private func openAccountDeletion(scope: AccountDeletionScope) {
+        switch SettingsDeleteDataActionHandler.perform(scope: scope) {
+        case .opensDeletionFlow:
+            accountDeletionViewModel.beginConfirmation(scope: scope)
+            activeDeletionScope = scope
+        case .unavailable:
+            showsDeletionUnavailableAlert = true
+        }
     }
 
     // MARK: - Sections
@@ -224,14 +234,23 @@ struct SettingsRootView: View {
                 logLegalDocumentTapped(document, sectionType: sectionType)
                 openURL(url)
             }
-        } else if case .deleteData = row.destination {
+        } else if case .deleteAccount = row.destination {
             settingsButtonRow(
                 row: row,
                 isDestructive: true,
-                accessibilityHint: "Opens confirmation"
+                accessibilityHint: "Opens account deletion confirmation"
             ) {
                 analyticsCoordinator.logRowTapped(rowID: row.id, sectionType: sectionType)
-                showsDeleteDataConfirmation = true
+                openAccountDeletion(scope: .fullAccount)
+            }
+        } else if case .deleteLocalDeviceData = row.destination {
+            settingsButtonRow(
+                row: row,
+                isDestructive: true,
+                accessibilityHint: "Opens local data deletion confirmation"
+            ) {
+                analyticsCoordinator.logRowTapped(rowID: row.id, sectionType: sectionType)
+                openAccountDeletion(scope: .localDeviceOnly)
             }
         } else if case .exportData = row.destination {
             settingsButtonRow(
@@ -330,7 +349,7 @@ struct SettingsRootView: View {
                 }
         case .supportMail:
             EmptyView()
-        case .exportData, .deleteData:
+        case .exportData, .deleteAccount, .deleteLocalDeviceData:
             EmptyView()
         case .authDiagnostics, .pipelineTraces:
             developerDestinationView(for: destination)

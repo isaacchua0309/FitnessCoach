@@ -20,8 +20,10 @@ struct AuthGateView: View {
             .environmentObject(coordinator.authManager)
             .environment(\.publicEntrySessionStore, coordinator.container.publicEntrySessionStore)
             .environment(\.performAppSignOut, coordinator.signOutFromAccount)
+            .environment(\.accountDeletionCoordinator, coordinator.container.accountDeletionCoordinator)
             .task {
                 coordinator.authManager.startListening()
+                coordinator.wireAccountDeletionRouter()
             }
             .onChange(of: coordinator.effectiveRoute, initial: true) { _, route in
                 coordinator.handleEffectiveRouteChange(route)

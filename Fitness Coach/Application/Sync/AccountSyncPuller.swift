@@ -817,7 +817,7 @@ final class AccountSyncPuller: AccountSyncPulling {
         )
     }
 
-    private static var defaultCalendar: Calendar {
+    nonisolated private static var defaultCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         return calendar

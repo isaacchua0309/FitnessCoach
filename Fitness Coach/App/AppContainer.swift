@@ -36,6 +36,11 @@ final class AppContainer {
     let accountRestoreCoordinator: AccountRestoreCoordinator
     let accountRestoreDiagnostics: AccountRestoreDiagnostics
     let accountRestoreSessionState: AccountRestoreSessionState
+    let accountDeletionGuard: AccountDeletionGuard
+    let accountDeletionRemoteClient: any AccountDeletionRemoteDeleting
+    let localAccountDataWipeService: LocalAccountDataWipeService
+    let accountDeletionRouter: DeferredAccountDeletionRouter
+    let accountDeletionCoordinator: AccountDeletionCoordinator
 
     let userProfileService: UserProfileService
     let targetService: TargetService
@@ -269,11 +274,13 @@ final class AppContainer {
             store: store
         )
         accountSyncDiagnostics = AccountSyncDiagnostics()
+        accountDeletionGuard = AccountDeletionGuard()
         accountSyncCoordinator = AccountSyncCoordinator(
             uploader: accountSyncUploader,
             puller: accountSyncPuller,
             currentUIDProvider: { [weak authManager] in authManager?.currentUID },
-            diagnostics: accountSyncDiagnostics
+            diagnostics: accountSyncDiagnostics,
+            deletionGuard: accountDeletionGuard
         )
         profileCloudSyncStore = ProfileCloudSyncStore(userDefaults: self.onboardingUserDefaults)
         profileBootstrapService = ProfileBootstrapService(
@@ -447,16 +454,20 @@ final class AppContainer {
             cursorStore: accountSyncCursorStore,
             uidProvider: ClosureAccountUIDProvider { [weak authManager] in authManager?.currentUID },
             refreshCenter: refreshCenter,
-            refreshEventBus: accountDataRefreshEventBus
+            refreshEventBus: accountDataRefreshEventBus,
+            deletionGuard: accountDeletionGuard
         )
         if inMemory {
             accountRealtimeChangeListener = NoOpAccountRealtimeChangeListener()
         } else {
-            accountRealtimeChangeListener = FirestoreAccountRealtimeChangeListener()
+            accountRealtimeChangeListener = FirestoreAccountRealtimeChangeListener(
+                deletionGuard: accountDeletionGuard
+            )
         }
         AccountRealtimeChangeListenerLifecycle.connect(
             listener: accountRealtimeChangeListener,
-            crossDeviceCoordinator: crossDeviceSyncCoordinator
+            crossDeviceCoordinator: crossDeviceSyncCoordinator,
+            deletionGuard: accountDeletionGuard
         )
         accountRemoteDataInspector = AccountRemoteDataInspector(
             cloudProfileStore: cloudUserProfileStore,
@@ -492,11 +503,49 @@ final class AppContainer {
             initialRestoreService: accountInitialRestoreService,
             stateStore: accountRestoreStateStore,
             syncCoordinator: accountSyncCoordinator,
+            deletionGuard: accountDeletionGuard,
             diagnostics: accountRestoreDiagnostics,
             currentUIDProvider: { [weak authManager] in authManager?.currentUID },
             onBackgroundBackfillFinished: { [weak self] _ in
                 self?.refreshCenter.notifyBackgroundBackfillDidComplete()
             }
+        )
+        let accountDeletionBackendURL =
+            AccountDeletionBackendConfiguration.backendURL()
+            ?? URL(string: AccountDeletionBackendConfiguration.productionURLString)!
+        accountDeletionRemoteClient = AccountDeletionRemoteClient(
+            baseURL: accountDeletionBackendURL,
+            authTokenProvider: { [weak authManager] in
+                guard let authManager else { throw AuthManagerError.notSignedIn }
+                return try await authManager.idToken()
+            }
+        )
+        localAccountDataWipeService = LocalAccountDataWipeService(
+            store: store,
+            healthCacheStore: healthCacheStore,
+            userDefaults: onboardingUserDefaults,
+            restoreStateStore: accountRestoreStateStore,
+            syncCursorStore: accountSyncCursorStore,
+            healthConsentStore: healthSummarySyncConsentStorage,
+            healthSyncStateStore: UserDefaultsHealthSummaryRemoteSyncStateStore(
+                userDefaults: onboardingUserDefaults
+            ),
+            profileCloudSyncStore: profileCloudSyncStore,
+            currentSessionUIDProvider: { [weak authManager] in authManager?.currentUID }
+        )
+        accountDeletionRouter = DeferredAccountDeletionRouter()
+        accountDeletionCoordinator = AccountDeletionCoordinator(
+            uidProvider: AuthAccountUIDProvider(authManager: authManager),
+            crossDeviceCoordinator: crossDeviceSyncCoordinator,
+            realtimeListener: accountRealtimeChangeListener,
+            accountSyncCoordinator: accountSyncCoordinator,
+            restoreCoordinator: accountRestoreCoordinator,
+            remoteDeletionClient: accountDeletionRemoteClient,
+            authDeleting: authManager,
+            localWiper: localAccountDataWipeService,
+            deletionGuard: accountDeletionGuard,
+            router: accountDeletionRouter,
+            signOutCurrentSession: { [weak authManager] in authManager?.signOut() }
         )
 
         actionCenter = FitnessActionCenter(

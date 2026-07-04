@@ -23,22 +23,11 @@ extension CoachImagePipeline {
         case .success(let loaded):
             return await processImportedImage(
                 loaded.image,
+                source: .library,
                 originalEstimatedBytes: loaded.originalEstimatedBytes,
                 localReferenceID: localReferenceID,
                 config: config
             )
-        }
-    }
-}
-
-extension CoachImagePipelineError {
-
-    var mealPhotoError: CoachMealPhotoError {
-        switch self {
-        case .invalidInput:
-            return .noImage
-        case .encodingFailed, .exceedsMaxSize:
-            return .encodingFailed
         }
     }
 }

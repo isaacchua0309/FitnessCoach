@@ -18,15 +18,18 @@ final class FirestoreAccountRealtimeChangeListener: AccountRealtimeChangeListeni
 
     private let firestoreProvider: () -> Firestore
     private let debouncer: AccountRealtimeChangeHintDebouncer
+    private let deletionGuard: AccountDeletionGuarding?
     private let lock = NSLock()
     private var sessions: [String: ListenerSession] = [:]
 
     init(
         firestore: @autoclosure @escaping () -> Firestore = Firestore.firestore(),
-        debouncer: AccountRealtimeChangeHintDebouncer = AccountRealtimeChangeHintDebouncer()
+        debouncer: AccountRealtimeChangeHintDebouncer = AccountRealtimeChangeHintDebouncer(),
+        deletionGuard: AccountDeletionGuarding? = nil
     ) {
         self.firestoreProvider = firestore
         self.debouncer = debouncer
+        self.deletionGuard = deletionGuard
     }
 
     func startListening(uid: String) async {
@@ -176,7 +179,19 @@ final class FirestoreAccountRealtimeChangeListener: AccountRealtimeChangeListeni
     }
 
     private func scheduleHint(for uid: String, source: String) {
+        guard AccountRealtimeChangeListenerSupport.shouldEmitHint(
+            for: uid,
+            deletionGuard: deletionGuard
+        ) else {
+            return
+        }
         debouncer.schedule(uid: uid) { [weak self] hintedUID in
+            guard AccountRealtimeChangeListenerSupport.shouldEmitHint(
+                for: hintedUID,
+                deletionGuard: self?.deletionGuard
+            ) else {
+                return
+            }
             CrossDeviceSyncLogger.changeHintEmitted(uid: hintedUID, source: source)
             self?.onRemoteChangeHint?(hintedUID)
         }

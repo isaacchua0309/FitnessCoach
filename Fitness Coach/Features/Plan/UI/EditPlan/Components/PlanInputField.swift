@@ -86,9 +86,9 @@ struct PlanInputField: View {
     private var valueFont: Font {
         switch model.valueStyle {
         case .title:
-            return .title.weight(.bold).design(.rounded)
+            return .system(.title, design: .rounded).weight(.bold)
         case .largeTitle:
-            return .largeTitle.weight(.bold).design(.rounded)
+            return .system(.largeTitle, design: .rounded).weight(.bold)
         }
     }
 

@@ -37,6 +37,14 @@ enum AccountRealtimeChangeListenerSupport {
     static func normalizedUID(_ uid: String) -> String? {
         try? AccountSyncMutationValidation.normalizedOwnerUID(uid)
     }
+
+    static func shouldEmitHint(
+        for uid: String,
+        deletionGuard: AccountDeletionGuarding?
+    ) -> Bool {
+        guard let normalizedUID = normalizedUID(uid) else { return false }
+        return deletionGuard?.isDeletionInProgress(for: normalizedUID) != true
+    }
 }
 
 /// Coalesces rapid Firestore snapshot callbacks before emitting a single hint.
@@ -85,10 +93,17 @@ enum AccountRealtimeChangeListenerLifecycle {
     @MainActor
     static func connect(
         listener: AccountRealtimeChangeListening,
-        crossDeviceCoordinator: CrossDeviceSyncCoordinating
+        crossDeviceCoordinator: CrossDeviceSyncCoordinating,
+        deletionGuard: AccountDeletionGuarding? = nil
     ) {
         listener.onRemoteChangeHint = { uid in
             Task { @MainActor in
+                guard AccountRealtimeChangeListenerSupport.shouldEmitHint(
+                    for: uid,
+                    deletionGuard: deletionGuard
+                ) else {
+                    return
+                }
                 _ = await crossDeviceCoordinator.handleRealtimeHint(uid: uid)
             }
         }

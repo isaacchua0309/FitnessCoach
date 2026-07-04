@@ -13,7 +13,7 @@ import GoogleSignIn
 import OSLog
 
 @MainActor
-final class AuthManager: ObservableObject {
+final class AuthManager: ObservableObject, AccountAuthDeleting {
 
     @Published private(set) var user: User?
     @Published private(set) var authState: AuthState = .unknown
@@ -310,6 +310,80 @@ final class AuthManager: ObservableObject {
         return token
     }
 
+    // MARK: - Account auth deletion
+
+    func deleteCurrentAuthAccount() async throws {
+        guard let currentUser = auth().currentUser ?? user else {
+            throw AccountAuthDeletionError.unauthenticated
+        }
+
+        guard AuthAccountDeletionPolicy.providerEligibility(
+            isGoogleUser: isGoogleUser(currentUser)
+        ) == .google else {
+            throw AuthAccountDeletionPolicy.unsupportedProviderError()
+        }
+
+        AuthSignInDebugLogger.accountDeletionStarted()
+
+        do {
+            try await currentUser.delete()
+            GIDSignIn.sharedInstance.signOut()
+            applySignedOut()
+            AuthSignInDebugLogger.accountDeletionSucceeded()
+        } catch {
+            let mapped = AuthAccountDeletionErrorClassifier.classify(error)
+            AuthSignInDebugLogger.accountDeletionFailed(
+                category: AuthAccountDeletionErrorClassifier.errorCategory(mapped)
+            )
+            throw mapped
+        }
+    }
+
+    func reauthenticateForAccountDeletion() async throws {
+        guard let currentUser = auth().currentUser ?? user else {
+            throw AccountAuthDeletionError.unauthenticated
+        }
+
+        guard AuthAccountDeletionPolicy.providerEligibility(
+            isGoogleUser: isGoogleUser(currentUser)
+        ) == .google else {
+            throw AccountAuthDeletionError.providerMismatch
+        }
+
+        guard configureGoogleSignInIfNeeded() else {
+            throw AccountAuthDeletionError.unknown("google_sign_in_unconfigured")
+        }
+
+        guard let presenter = AuthPresenter.topViewController() else {
+            throw AccountAuthDeletionError.unknown("missing_presenter")
+        }
+
+        AuthSignInDebugLogger.accountReauthStarted()
+
+        do {
+            let signInResult = try await GIDSignIn.sharedInstance.signIn(withPresenting: presenter)
+
+            guard let idToken = signInResult.user.idToken?.tokenString else {
+                throw AccountAuthDeletionError.unknown("missing_google_id_token")
+            }
+
+            let credential = GoogleAuthProvider.credential(
+                withIDToken: idToken,
+                accessToken: signInResult.user.accessToken.tokenString
+            )
+
+            try await currentUser.reauthenticate(with: credential)
+            AuthSignInDebugLogger.accountReauthSucceeded()
+        } catch let error as AccountAuthDeletionError {
+            logAccountReauthFailure(error)
+            throw error
+        } catch {
+            let mapped = AuthAccountDeletionErrorClassifier.classify(error)
+            logAccountReauthFailure(mapped)
+            throw mapped
+        }
+    }
+
     // MARK: - Private
 
     private func auth() -> Auth {
@@ -431,5 +505,16 @@ final class AuthManager: ObservableObject {
             return nil
         }
         return value
+    }
+
+    private func logAccountReauthFailure(_ error: AccountAuthDeletionError) {
+        switch error {
+        case .cancelled:
+            AuthSignInDebugLogger.accountReauthCancelled()
+        default:
+            AuthSignInDebugLogger.accountReauthFailed(
+                category: AuthAccountDeletionErrorClassifier.errorCategory(error)
+            )
+        }
     }
 }

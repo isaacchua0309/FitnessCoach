@@ -1097,3 +1097,5 @@ function coachIntentResultSchema(): ResponseSchema {
     },
   };
 }
+
+export {handleAccountDeletionRequest, accountDataDeletion} from "./accountDeletion/accountDeletionHandler";

@@ -2,7 +2,7 @@
 //  SettingsDeleteDataActionHandler.swift
 //  Fitness Coach
 //
-//  Forma — Delete data action gate (no-op until deletion is implemented).
+//  Forma — Delete data action gate for Settings row taps.
 //
 
 import Foundation
@@ -10,12 +10,22 @@ import Foundation
 enum SettingsDeleteDataActionHandler {
 
     @discardableResult
-    static func perform() -> SettingsDeleteDataResult {
+    static func perform(scope: AccountDeletionScope) -> SettingsDeleteDataResult {
         guard SettingsDataDeletionCapability.isImplemented else {
-            return .notImplemented
+            return .unavailable
         }
-        // TODO: Wire local profile wipe and auth account deletion when capability ships.
-        return .notImplemented
+
+        switch scope {
+        case .fullAccount:
+            return .opensDeletionFlow
+        case .localDeviceOnly:
+            guard SettingsDataDeletionCapability.isLocalDeviceOnlyEnabled else {
+                return .unavailable
+            }
+            return .opensDeletionFlow
+        case .remoteAccountDataOnly:
+            return .unavailable
+        }
     }
 }
 

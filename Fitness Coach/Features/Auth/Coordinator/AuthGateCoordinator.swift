@@ -253,6 +253,58 @@ final class AuthGateCoordinator: ObservableObject {
         performUserInitiatedSignOut(source: "account_settings")
     }
 
+    func wireAccountDeletionRouter() {
+        let router = container.accountDeletionRouter
+        router.onFullAccountDeletion = { [weak self] in
+            self?.handleAccountDeletionCompleted(scope: .fullAccount)
+        }
+        router.onLocalDeviceOnlyWipe = { [weak self] in
+            self?.handleAccountDeletionCompleted(scope: .localDeviceOnly)
+        }
+    }
+
+    /// Settings account deletion completed — reset shell even if Firebase auth already ended.
+    func handleAccountDeletionCompleted(scope: AccountDeletionScope) {
+        resetShellAfterAccountDeletion(source: deletionSource(for: scope))
+    }
+
+    private func deletionSource(for scope: AccountDeletionScope) -> String {
+        switch scope {
+        case .fullAccount:
+            return "account_deletion"
+        case .localDeviceOnly:
+            return "local_device_data_wipe"
+        case .remoteAccountDataOnly:
+            return "remote_account_data_deletion"
+        }
+    }
+
+    private func resetShellAfterAccountDeletion(source: String) {
+        container.publicEntrySessionStore.markUserInitiatedLogout()
+        container.stopCrossDeviceSyncSession()
+        container.accountRestoreSessionState.clearForSignOut()
+        clearAuthenticatedSessionPresentationState()
+        signedInSessionID = UUID()
+        onboardingModel = nil
+        pendingExistingUserSignIn = false
+        existingUserSignInSessionActive = false
+        pendingSignInForOnboardingCompletion = false
+        awaitingCloudSync = false
+        publicEntryDestination = AuthLogoutPolicy.publicEntryDestinationAfterSignOut(
+            returnToExistingUserSignIn: returnToExistingUserSignInAfterSignOut,
+            hasExistingUserSignInError: existingUserSignInError != nil
+        )
+        rootModel.resetForSignedOutSession()
+        AuthLogoutPolicy.prepareForSignOut(
+            sessionStore: container.publicEntrySessionStore,
+            source: source,
+            wasSignedIn: true,
+            hasLocalProfile: container.profileBootstrapService.hasLocalProfile(),
+            hasPersistedOnboardingDraft: container.onboardingDraftStore.hasDraft,
+            publicEntryDestination: publicEntryDestination
+        )
+    }
+
     private func performUserInitiatedSignOut(source: String) {
         container.publicEntrySessionStore.markUserInitiatedLogout()
         prepareAuthenticatedSignOut(source: source)

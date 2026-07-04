@@ -42,6 +42,7 @@ enum CoachMealImageAIRequestBuilder {
 
     static func buildAnalysisRequest(
         attachment: CoachMealImageUploadAttachment,
+        context: CoachContextPacketV2,
         message: String?,
         clarification: String? = nil,
         previousAnalysis: AIMealImageAnalysisPreviousAnalysis? = nil
@@ -49,6 +50,7 @@ enum CoachMealImageAIRequestBuilder {
         validate(attachment).map {
             AIMealImageAnalysisRequest(
                 message: message,
+                context: context,
                 image: AIMealImagePayload.fromCompressedUpload(
                     attachment.uploadData,
                     mimeType: attachment.mimeType,

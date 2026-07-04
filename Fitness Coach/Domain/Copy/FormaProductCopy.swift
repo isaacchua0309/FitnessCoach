@@ -3138,7 +3138,8 @@ enum FormaProductCopy {
             static let appleHealth = "Apple Health"
             static let privacyPolicy = "Privacy Policy"
             static let exportData = "Export Data"
-            static let deleteData = "Delete Data"
+            static let deleteAccount = "Delete Account"
+            static let deleteLocalDeviceData = "Delete Local Data"
             static let sendFeedback = "Send Feedback"
             static let contactSupport = "Contact Support"
             static let reportProblem = "Report a Problem"
@@ -3404,17 +3405,65 @@ enum FormaProductCopy {
         enum PrivacyData {
             static let sectionFooter =
                 "Your fitness data stays on this device unless you choose to sign in or use connected services."
-            static let deleteConfirmationTitle = "Delete your data?"
-            static let deleteConfirmationMessage =
-                """
-                This permanently removes your Forma profile, daily logs, Coach history, and weight entries from this device. Your Google sign-in account is not deleted.
 
-                This cannot be undone.
-                """
-            static let deleteConfirmActionTitle = "Delete my data"
+            static let deleteAccountConfirmationTitle = "Delete your account?"
+            static let deleteAccountConsequenceBullets: [String] = [
+                "Deleting your account removes your Forma account and app data stored with your account.",
+                "This cannot be undone.",
+                "This does not delete data stored in Apple Health.",
+                "This does not delete your Google account."
+            ]
+            static let deleteAccountConfirmActionTitle = "Delete account"
+            static let deleteAccountConfirmAccessibilityHint =
+                "Permanently deletes your Forma account and associated app data. This cannot be undone."
+
+            static let deleteLocalDeviceDataConfirmationTitle = "Delete local data on this device?"
+            static let deleteLocalDeviceDataConsequenceBullets: [String] = [
+                "This removes Forma data stored on this device only. Your cloud account and sign-in stay active.",
+                "Your cloud-backed data remains and can be restored when you sign in again on this device.",
+                "This cannot be undone.",
+                "This does not delete data stored in Apple Health.",
+                "This does not delete your Google account."
+            ]
+            static let deleteLocalDeviceDataConfirmActionTitle = "Delete local data only"
+            static let deleteLocalDeviceDataConfirmAccessibilityHint =
+                "Permanently removes Forma data from this device only. Your cloud account stays active."
+
+            static let typedConfirmationPrompt = "Type DELETE to confirm"
+            static let typedConfirmationPlaceholder = "DELETE"
+            static let typedConfirmationAccessibilityHint =
+                "Required safety confirmation. Type DELETE in capital letters to enable deletion."
+
+            static let deletionProgressPreparing = "Preparing…"
+            static let deletionProgressDeletingAccountData = "Deleting account data…"
+            static let deletionProgressDeletingAccount = "Deleting account…"
+            static let deletionProgressRemovingLocalData = "Removing local data…"
+            static let deletionProgressCompleted = "Completed"
+            static let deletionProgressAccessibilityLabel = "Account deletion in progress"
+
+            static let deletionFlowCancelTitle = "Cancel"
+            static let deletionFlowCancelAccessibilityHint = "Cancels account deletion and returns to Settings"
+            static let deletionFlowCloseTitle = "Close"
+            static let deletionFlowRetryTitle = "Retry"
+            static let deletionFlowReauthenticateTitle = "Reauthenticate and continue"
+            static let deletionReauthenticationMessage =
+                "Confirm your identity to continue account deletion."
+            static let deletionFlowReauthenticateAccessibilityHint =
+                "Confirms your identity so account deletion can continue"
+            static let deletionFlowUnavailableTitle = "Deletion isn't available"
+            static let deletionFlowUnavailableMessage =
+                "Account deletion could not start. Sign in and try again."
+
             static let deleteUnavailableTitle = "Deletion isn't available yet"
             static let deleteUnavailableMessage =
                 "Data deletion is not available in this version of Forma. Contact \(FormaProductCopy.Legal.supportEmail) for help."
+
+            static let deletionGenericErrorMessage =
+                "Account deletion could not be completed. Try again."
+            static let deletionOfflineErrorMessage =
+                "Connect to the internet to delete your account data."
+            static let deletionPermissionDeniedErrorMessage =
+                "You do not have permission to delete this account data."
         }
     }
 

@@ -9,11 +9,13 @@ import Foundation
 
 struct SettingsFeatureAvailability: Equatable, Sendable {
     let isDataExportEnabled: Bool
-    let isDeleteDataEnabled: Bool
+    let isDeleteAccountEnabled: Bool
+    let isDeleteLocalDeviceDataEnabled: Bool
 
     /// Production flags — export/delete rows appear only when capability is implemented.
     static let production = SettingsFeatureAvailability(
         isDataExportEnabled: SettingsDataExportCapability.isImplemented,
-        isDeleteDataEnabled: SettingsDataDeletionCapability.isImplemented
+        isDeleteAccountEnabled: SettingsDataDeletionCapability.isImplemented,
+        isDeleteLocalDeviceDataEnabled: SettingsDataDeletionCapability.isLocalDeviceOnlyEnabled
     )
 }

@@ -606,7 +606,7 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
             calendar: calendar
         )
 
-        stateStore.markProgress(uid: normalizedUID, status: .restoringRecentData, now: dateProvider.now())
+        stateStore.markProgress(uid: normalizedUID, status: .restoringRecentData, now: dateProvider.now)
         let recentPullSummary = await puller.pullRecentAccountData(
             for: normalizedUID,
             from: dailyRange.start,
@@ -616,7 +616,7 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
         var pullSummary = recentPullSummary
         if mode == .blockingInitial || mode == .manualRetry,
            weightRange.start != dailyRange.start || weightRange.end != dailyRange.end {
-            stateStore.markProgress(uid: normalizedUID, status: .restoringWeightHistory, now: dateProvider.now())
+            stateStore.markProgress(uid: normalizedUID, status: .restoringWeightHistory, now: dateProvider.now)
             let weightPullSummary = await puller.pullRecentAccountData(
                 for: normalizedUID,
                 from: weightRange.start,
@@ -638,7 +638,7 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
             )
         }
 
-        stateStore.markProgress(uid: normalizedUID, status: .rebuildingLocalViews, now: dateProvider.now())
+        stateStore.markProgress(uid: normalizedUID, status: .rebuildingLocalViews, now: dateProvider.now)
         refreshDailyTotals(from: dateRange.start, to: dateRange.end)
 
         return finishPullOutcome(
@@ -1067,7 +1067,7 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
         )
     }
 
-    private static var defaultCalendar: Calendar {
+    nonisolated private static var defaultCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         return calendar

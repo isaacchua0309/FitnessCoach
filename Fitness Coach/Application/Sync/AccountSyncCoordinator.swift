@@ -31,6 +31,16 @@ protocol AccountSyncCoordinating: AnyObject {
     func uploadPendingOnly(for uid: String, reason: AccountSyncReason) async -> AccountSyncRunSummary
     func pullRecentOnly(for uid: String, reason: AccountSyncReason) async -> AccountSyncRunSummary
     func cancelPendingWork()
+    func cancelAllWork(for uid: String) async
+    func reinstateWork(for uid: String)
+}
+
+extension AccountSyncCoordinating {
+    func cancelAllWork(for uid: String) async {
+        cancelPendingWork()
+    }
+
+    func reinstateWork(for uid: String) {}
 }
 
 /// Optional network gate for sync. Defaults to available when no reachability service exists.
@@ -51,6 +61,7 @@ enum AccountSyncCoordinatorSkipReason {
     static let uploadDisabled = "uploadDisabled"
     static let pullDisabled = "pullDisabled"
     static let debouncedUploadScheduled = "debouncedUploadScheduled"
+    static let deletionInProgress = "deletionInProgress"
 }
 
 @MainActor
@@ -67,10 +78,12 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
     private let uploadBatchLimit: Int
     private let pullDayCount: Int
     private let debounceInterval: Duration
+    private let deletionGuard: AccountDeletionGuarding?
     private let runGuard = AccountSyncRunGuard()
     private let diagnostics: AccountSyncDiagnostics?
 
     private var debouncedUploadTask: Task<Void, Never>?
+    private var debouncedUploadUID: String?
 
     init(
         uploader: AccountSyncUploading,
@@ -82,7 +95,8 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
         uploadBatchLimit: Int = AccountSyncCoordinator.defaultUploadBatchLimit,
         pullDayCount: Int = AccountSyncPuller.defaultRecentPullDayCount,
         debounceInterval: Duration = .seconds(2),
-        diagnostics: AccountSyncDiagnostics? = nil
+        diagnostics: AccountSyncDiagnostics? = nil,
+        deletionGuard: AccountDeletionGuarding? = nil
     ) {
         self.uploader = uploader
         self.puller = puller
@@ -94,6 +108,7 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
         self.pullDayCount = pullDayCount
         self.debounceInterval = debounceInterval
         self.diagnostics = diagnostics
+        self.deletionGuard = deletionGuard
     }
 
     func syncNow(for uid: String, reason: AccountSyncReason) async -> AccountSyncRunSummary {
@@ -152,6 +167,23 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
     func cancelPendingWork() {
         debouncedUploadTask?.cancel()
         debouncedUploadTask = nil
+        debouncedUploadUID = nil
+    }
+
+    func cancelAllWork(for uid: String) async {
+        guard let normalizedUID = normalizedUID(uid) else { return }
+        runGuard.invalidate(uid: normalizedUID)
+        if debouncedUploadUID == normalizedUID {
+            debouncedUploadTask?.cancel()
+            debouncedUploadTask = nil
+            debouncedUploadUID = nil
+        }
+        await runGuard.waitUntilIdle(uid: normalizedUID, timeout: .seconds(5))
+    }
+
+    func reinstateWork(for uid: String) {
+        guard let normalizedUID = normalizedUID(uid) else { return }
+        runGuard.reinstate(uid: normalizedUID)
     }
 
     // MARK: - Core run loop
@@ -194,6 +226,15 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
 
         AccountSyncLogger.runStarted(traceId: traceId, reason: reason, uid: normalizedUID)
 
+        if let blockedSummary = blockedSummaryIfNeeded(
+            uid: normalizedUID,
+            reason: reason,
+            startedAt: startedAt,
+            traceId: traceId
+        ) {
+            return blockedSummary
+        }
+
         guard isUIDStillCurrent(normalizedUID) else {
             return recordAndReturn(
                 traceId: traceId,
@@ -219,13 +260,17 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
         }
 
         guard runGuard.tryBegin(uid: normalizedUID) else {
+            let skipReason = runGuard.isInvalidated(uid: normalizedUID)
+                || deletionGuard?.isDeletionInProgress(for: normalizedUID) == true
+                ? AccountSyncCoordinatorSkipReason.deletionInProgress
+                : AccountSyncCoordinatorSkipReason.syncAlreadyInProgress
             return recordAndReturn(
                 traceId: traceId,
                 summary: skippedSummary(
                     uid: normalizedUID,
                     reason: reason,
                     startedAt: startedAt,
-                    skipReason: AccountSyncCoordinatorSkipReason.syncAlreadyInProgress
+                    skipReason: skipReason
                 )
             )
         }
@@ -250,26 +295,30 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
                 )
             }
 
-            guard isUIDStillCurrent(normalizedUID) else {
-                return recordAndReturn(
-                    traceId: traceId,
-                    summary: AccountSyncRunSummary(
-                        uid: normalizedUID,
-                        reason: reason,
-                        startedAt: startedAt,
-                        endedAt: nowProvider(),
-                        uploadSummary: nil,
-                        pullSummary: nil,
-                        didSkip: true,
-                        skipReason: AccountSyncCoordinatorSkipReason.uidChanged
-                    )
-                )
+            if let blockedSummary = blockedSummaryIfNeeded(
+                uid: normalizedUID,
+                reason: reason,
+                startedAt: startedAt,
+                traceId: traceId,
+                uploadSummary: nil
+            ) {
+                return blockedSummary
             }
 
             uploadSummary = await uploader.uploadDueMutations(
                 for: normalizedUID,
                 limit: uploadBatchLimit
             )
+
+            if let blockedSummary = blockedSummaryIfNeeded(
+                uid: normalizedUID,
+                reason: reason,
+                startedAt: startedAt,
+                traceId: traceId,
+                uploadSummary: uploadSummary
+            ) {
+                return blockedSummary
+            }
         }
 
         if includePull {
@@ -289,20 +338,14 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
                 )
             }
 
-            guard isUIDStillCurrent(normalizedUID) else {
-                return recordAndReturn(
-                    traceId: traceId,
-                    summary: AccountSyncRunSummary(
-                        uid: normalizedUID,
-                        reason: reason,
-                        startedAt: startedAt,
-                        endedAt: nowProvider(),
-                        uploadSummary: uploadSummary,
-                        pullSummary: nil,
-                        didSkip: true,
-                        skipReason: AccountSyncCoordinatorSkipReason.uidChanged
-                    )
-                )
+            if let blockedSummary = blockedSummaryIfNeeded(
+                uid: normalizedUID,
+                reason: reason,
+                startedAt: startedAt,
+                traceId: traceId,
+                uploadSummary: uploadSummary
+            ) {
+                return blockedSummary
             }
 
             let range = AccountSyncPuller.defaultRecentDateRange(
@@ -315,6 +358,17 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
                 from: range.start,
                 to: range.end
             )
+
+            if let blockedSummary = blockedSummaryIfNeeded(
+                uid: normalizedUID,
+                reason: reason,
+                startedAt: startedAt,
+                traceId: traceId,
+                uploadSummary: uploadSummary,
+                pullSummary: pullSummary
+            ) {
+                return blockedSummary
+            }
         }
 
         return recordAndReturn(
@@ -370,12 +424,23 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
 
         AccountSyncLogger.runStarted(traceId: traceId, reason: reason, uid: normalizedUID)
 
+        if let blockedSummary = blockedSummaryIfNeeded(
+            uid: normalizedUID,
+            reason: reason,
+            startedAt: startedAt,
+            traceId: traceId
+        ) {
+            return blockedSummary
+        }
+
         debouncedUploadTask?.cancel()
+        debouncedUploadUID = normalizedUID
         debouncedUploadTask = Task { [weak self] in
             guard let self else { return }
             try? await Task.sleep(for: debounceInterval)
             guard !Task.isCancelled else { return }
-            guard self.isUIDStillCurrent(normalizedUID) else { return }
+            guard self.debouncedUploadUID == normalizedUID else { return }
+            guard self.shouldProceed(for: normalizedUID) else { return }
             _ = await self.run(
                 for: normalizedUID,
                 reason: reason,
@@ -412,6 +477,52 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
         return (try? AccountSyncMutationValidation.normalizedOwnerUID(currentUID)) == uid
     }
 
+    private func shouldProceed(for uid: String) -> Bool {
+        if deletionGuard?.isDeletionInProgress(for: uid) == true {
+            return false
+        }
+        if runGuard.isInvalidated(uid: uid) {
+            return false
+        }
+        return isUIDStillCurrent(uid)
+    }
+
+    private func blockedSummaryIfNeeded(
+        uid: String,
+        reason: AccountSyncReason,
+        startedAt: Date,
+        traceId: String,
+        uploadSummary: AccountSyncUploadSummary? = nil,
+        pullSummary: AccountSyncPullSummary? = nil
+    ) -> AccountSyncRunSummary? {
+        guard !shouldProceed(for: uid) else { return nil }
+        return recordAndReturn(
+            traceId: traceId,
+            summary: AccountSyncRunSummary(
+                uid: uid,
+                reason: reason,
+                startedAt: startedAt,
+                endedAt: nowProvider(),
+                uploadSummary: uploadSummary,
+                pullSummary: pullSummary,
+                didSkip: true,
+                skipReason: cancellationSkipReason(for: uid)
+            )
+        )
+    }
+
+    private func cancellationSkipReason(for uid: String) -> String {
+        if deletionGuard?.isDeletionInProgress(for: uid) == true
+            || runGuard.isInvalidated(uid: uid) {
+            return AccountSyncCoordinatorSkipReason.deletionInProgress
+        }
+        return AccountSyncCoordinatorSkipReason.uidChanged
+    }
+
+    private func normalizedUID(_ uid: String) -> String? {
+        try? AccountSyncMutationValidation.normalizedOwnerUID(uid)
+    }
+
     private func skippedSummary(
         uid: String,
         reason: AccountSyncReason,
@@ -430,7 +541,7 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
         )
     }
 
-    private static var defaultCalendar: Calendar {
+    nonisolated private static var defaultCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         return calendar
@@ -443,8 +554,10 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
 private final class AccountSyncRunGuard {
 
     private var activeUIDs = Set<String>()
+    private var invalidatedUIDs = Set<String>()
 
     func tryBegin(uid: String) -> Bool {
+        guard !invalidatedUIDs.contains(uid) else { return false }
         guard !activeUIDs.contains(uid) else { return false }
         activeUIDs.insert(uid)
         return true
@@ -452,5 +565,26 @@ private final class AccountSyncRunGuard {
 
     func end(uid: String) {
         activeUIDs.remove(uid)
+    }
+
+    func invalidate(uid: String) {
+        invalidatedUIDs.insert(uid)
+    }
+
+    func reinstate(uid: String) {
+        invalidatedUIDs.remove(uid)
+    }
+
+    func isInvalidated(uid: String) -> Bool {
+        invalidatedUIDs.contains(uid)
+    }
+
+    func waitUntilIdle(uid: String, timeout: Duration) async {
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: timeout)
+        while activeUIDs.contains(uid), clock.now < deadline {
+            await Task.yield()
+            try? await Task.sleep(for: .milliseconds(20))
+        }
     }
 }

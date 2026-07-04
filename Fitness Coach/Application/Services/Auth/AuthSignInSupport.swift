@@ -212,3 +212,108 @@ enum AuthSignInPresentationPolicy {
         )
     }
 }
+
+// MARK: - Account auth deletion
+
+protocol AccountAuthDeleting: AnyObject {
+    func deleteCurrentAuthAccount() async throws
+    func reauthenticateForAccountDeletion() async throws
+}
+
+enum AccountAuthDeletionError: Error, Equatable, Sendable {
+    case unauthenticated
+    case reauthenticationRequired
+    case cancelled
+    case providerMismatch
+    case network
+    case unknown(String?)
+}
+
+enum AuthAccountDeletionPolicy {
+
+    enum ProviderEligibility: Equatable, Sendable {
+        case google
+        case unsupported
+    }
+
+    static func providerEligibility(isGoogleUser: Bool) -> ProviderEligibility {
+        isGoogleUser ? .google : .unsupported
+    }
+
+    static func unsupportedProviderError() -> AccountAuthDeletionError {
+        .providerMismatch
+    }
+}
+
+enum AuthAccountDeletionErrorClassifier {
+
+    static let firebaseAuthErrorDomain = "FIRAuthErrorDomain"
+    static let requiresRecentLoginCode = 17_014
+
+    static func classify(_ error: Error) -> AccountAuthDeletionError {
+        if AuthSignInErrorClassifier.isCancellation(error) {
+            return .cancelled
+        }
+
+        let nsError = error as NSError
+
+        if nsError.domain == firebaseAuthErrorDomain {
+            if nsError.code == requiresRecentLoginCode {
+                return .reauthenticationRequired
+            }
+        }
+
+        if nsError.domain == NSURLErrorDomain {
+            switch URLError.Code(rawValue: nsError.code) {
+            case .notConnectedToInternet,
+                 .networkConnectionLost,
+                 .cannotFindHost,
+                 .cannotConnectToHost,
+                 .dnsLookupFailed,
+                 .dataNotAllowed,
+                 .timedOut:
+                return .network
+            default:
+                break
+            }
+        }
+
+        let description = error.localizedDescription.lowercased()
+        if description.contains("recent login")
+            || description.contains("requires recent authentication")
+            || description.contains("reauthenticate") {
+            return .reauthenticationRequired
+        }
+
+        if description.contains("offline")
+            || description.contains("internet")
+            || description.contains("network") {
+            return .network
+        }
+
+        return .unknown(safeReason(from: error))
+    }
+
+    static func errorCategory(_ error: AccountAuthDeletionError) -> String {
+        switch error {
+        case .unauthenticated:
+            return "unauthenticated"
+        case .reauthenticationRequired:
+            return "reauthentication_required"
+        case .cancelled:
+            return "cancelled"
+        case .providerMismatch:
+            return "provider_mismatch"
+        case .network:
+            return "network"
+        case .unknown:
+            return "unknown"
+        }
+    }
+
+    private static func safeReason(from error: Error) -> String? {
+        let trimmed = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return String(trimmed.prefix(120))
+    }
+}

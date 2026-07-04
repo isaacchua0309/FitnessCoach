@@ -14,7 +14,8 @@ final class SettingsPrivacyDataTests: XCTestCase {
 
     func testProductionShowsExportAndDeleteWhenEnabled() {
         XCTAssertTrue(SettingsFeatureAvailability.production.isDataExportEnabled)
-        XCTAssertTrue(SettingsFeatureAvailability.production.isDeleteDataEnabled)
+        XCTAssertTrue(SettingsFeatureAvailability.production.isDeleteAccountEnabled)
+        XCTAssertTrue(SettingsFeatureAvailability.production.isDeleteLocalDeviceDataEnabled)
 
         let state = SettingsPresentationBuilder.build(
             input: SettingsPresentationInput(
@@ -30,7 +31,8 @@ final class SettingsPrivacyDataTests: XCTestCase {
         )
 
         XCTAssertTrue(state.visibleRowIDs.contains(.exportData))
-        XCTAssertTrue(state.visibleRowIDs.contains(.deleteData))
+        XCTAssertTrue(state.visibleRowIDs.contains(.deleteAccount))
+        XCTAssertTrue(state.visibleRowIDs.contains(.deleteLocalDeviceData))
     }
 
     func testFunctionalFlagsShowExportAndDeleteRows() {
@@ -42,7 +44,8 @@ final class SettingsPrivacyDataTests: XCTestCase {
                 appVersion: "1.0",
                 featureAvailability: SettingsFeatureAvailability(
                     isDataExportEnabled: true,
-                    isDeleteDataEnabled: true
+                    isDeleteAccountEnabled: true,
+                    isDeleteLocalDeviceDataEnabled: true
                 ),
                 legalAvailability: .production,
                 supportConfiguration: .production,
@@ -51,9 +54,16 @@ final class SettingsPrivacyDataTests: XCTestCase {
         )
 
         XCTAssertTrue(state.visibleRowIDs.contains(.exportData))
-        XCTAssertTrue(state.visibleRowIDs.contains(.deleteData))
-        XCTAssertEqual(state.privacyData.rows.first(where: { $0.id == .exportData })?.destination, .exportData)
-        XCTAssertEqual(state.privacyData.rows.first(where: { $0.id == .deleteData })?.destination, .deleteData)
+        XCTAssertTrue(state.visibleRowIDs.contains(.deleteAccount))
+        XCTAssertTrue(state.visibleRowIDs.contains(.deleteLocalDeviceData))
+        XCTAssertEqual(
+            state.privacyData.rows.first(where: { $0.id == .deleteAccount })?.destination,
+            .deleteAccount
+        )
+        XCTAssertEqual(
+            state.privacyData.rows.first(where: { $0.id == .deleteLocalDeviceData })?.destination,
+            .deleteLocalDeviceData
+        )
     }
 
     // MARK: - Legal availability
@@ -145,18 +155,40 @@ final class SettingsPrivacyDataTests: XCTestCase {
 
     // MARK: - Delete confirmation
 
-    func testDeleteConfirmationCopyWhenEnabled() {
-        let presentation = SettingsDeleteDataPresentationBuilder.build()
+    func testDeleteAccountConfirmationCopyWhenEnabled() {
+        let presentation = AccountDeletionPresentationBuilder.build(scope: .fullAccount)
 
-        XCTAssertEqual(presentation.confirmationTitle, FormaProductCopy.Settings.PrivacyData.deleteConfirmationTitle)
-        XCTAssertTrue(presentation.confirmationMessage.contains("permanently"))
-        XCTAssertTrue(presentation.confirmationMessage.contains("cannot be undone"))
-        XCTAssertEqual(presentation.confirmActionTitle, FormaProductCopy.Settings.PrivacyData.deleteConfirmActionTitle)
+        XCTAssertEqual(
+            presentation.navigationTitle,
+            FormaProductCopy.Settings.PrivacyData.deleteAccountConfirmationTitle
+        )
+        XCTAssertTrue(presentation.consequenceBullets.contains("cannot be undone"))
+        XCTAssertTrue(presentation.consequenceBullets.contains("Apple Health"))
+        XCTAssertEqual(
+            presentation.confirmActionTitle,
+            FormaProductCopy.Settings.PrivacyData.deleteAccountConfirmActionTitle
+        )
     }
 
-    func testDeleteActionRunsWhenEnabled() {
+    func testDeleteLocalDeviceConfirmationCopyWhenEnabled() {
+        let presentation = AccountDeletionPresentationBuilder.build(scope: .localDeviceOnly)
+
+        XCTAssertEqual(
+            presentation.navigationTitle,
+            FormaProductCopy.Settings.PrivacyData.deleteLocalDeviceDataConfirmationTitle
+        )
+        XCTAssertTrue(presentation.consequenceBullets.contains("cannot be undone"))
+        XCTAssertTrue(presentation.consequenceBullets.contains { $0.contains("cloud") })
+        XCTAssertEqual(
+            presentation.confirmActionTitle,
+            FormaProductCopy.Settings.PrivacyData.deleteLocalDeviceDataConfirmActionTitle
+        )
+    }
+
+    func testDeleteActionOpensFlowWhenEnabled() {
         XCTAssertTrue(SettingsDataDeletionCapability.isImplemented)
-        XCTAssertEqual(SettingsDeleteDataActionHandler.perform(), .notImplemented)
+        XCTAssertEqual(SettingsDeleteDataActionHandler.perform(scope: .fullAccount), .opensDeletionFlow)
+        XCTAssertEqual(SettingsDeleteDataActionHandler.perform(scope: .localDeviceOnly), .opensDeletionFlow)
     }
 
     func testExportActionRunsWhenEnabled() {

@@ -43,6 +43,34 @@ enum AuthSignInDebugLogger {
         emit("authGateRenderedSignedIn", fields: ["route": route])
     }
 
+    nonisolated static func accountDeletionStarted() {
+        emit("accountDeletionStarted")
+    }
+
+    nonisolated static func accountDeletionSucceeded() {
+        emit("accountDeletionSucceeded")
+    }
+
+    nonisolated static func accountDeletionFailed(category: String) {
+        emit("accountDeletionFailed", fields: ["category": category])
+    }
+
+    nonisolated static func accountReauthStarted() {
+        emit("accountReauthStarted")
+    }
+
+    nonisolated static func accountReauthCancelled() {
+        emit("accountReauthCancelled")
+    }
+
+    nonisolated static func accountReauthSucceeded() {
+        emit("accountReauthSucceeded")
+    }
+
+    nonisolated static func accountReauthFailed(category: String) {
+        emit("accountReauthFailed", fields: ["category": category])
+    }
+
     nonisolated private static func emit(_ event: String, fields: [String: String] = [:]) {
         guard isEnabled else { return }
 

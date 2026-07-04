@@ -12,6 +12,8 @@ protocol AccountRestoreCoordinating: AnyObject {
     func prepareAccountOnAppLaunch(uid: String) async -> AccountRestoreSummary?
     func retryRestore(uid: String) async -> AccountRestoreSummary
     func runBackgroundBackfillIfNeeded(uid: String) async
+    func cancelOnAccountSwitch()
+    func cancelAllWork(for uid: String)
 }
 
 enum AccountRestoreCoordinatorSupport {
@@ -19,6 +21,7 @@ enum AccountRestoreCoordinatorSupport {
     static let accountSwitchedMessage = "Account changed before restore could finish."
     static let restoreDisabledMessage = "Restore is not enabled for this build."
     static let concurrentRestoreMessage = "Restore is already in progress."
+    static let deletionInProgressMessage = AccountDeletionGuardSupport.deletionInProgressMessage
     static let permissionDeniedMessage = AccountInitialRestoreServiceSupport.permissionDeniedMessage
 
     static var isRestoreEnabled: Bool {
@@ -37,6 +40,7 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
     private let initialRestoreService: AccountInitialRestoring
     private let stateStore: AccountRestoreStateStoring
     private let syncCoordinator: AccountSyncCoordinating?
+    private let deletionGuard: AccountDeletionGuarding?
     private let diagnostics: AccountRestoreDiagnostics?
     private let currentUIDProvider: () -> String?
     private let restoreEnabledProvider: () -> Bool
@@ -55,6 +59,7 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
         initialRestoreService: AccountInitialRestoring,
         stateStore: AccountRestoreStateStoring,
         syncCoordinator: AccountSyncCoordinating? = nil,
+        deletionGuard: AccountDeletionGuarding? = nil,
         diagnostics: AccountRestoreDiagnostics? = nil,
         currentUIDProvider: @escaping () -> String?,
         restoreEnabledProvider: @escaping () -> Bool = { AccountRestoreCoordinatorSupport.isRestoreEnabled },
@@ -68,6 +73,7 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
         self.initialRestoreService = initialRestoreService
         self.stateStore = stateStore
         self.syncCoordinator = syncCoordinator
+        self.deletionGuard = deletionGuard
         self.diagnostics = diagnostics
         self.currentUIDProvider = currentUIDProvider
         self.restoreEnabledProvider = restoreEnabledProvider
@@ -92,7 +98,7 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
             return nil
         }
 
-        guard isUIDStillCurrent(normalizedUID) else { return nil }
+        guard shouldProceed(for: normalizedUID) else { return nil }
 
         let localStatus: AccountLocalDataStatus
         do {
@@ -126,7 +132,7 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
     func runBackgroundBackfillIfNeeded(uid: String) async {
         guard restoreEnabledProvider() else { return }
         guard let normalizedUID = normalizedUID(uid) else { return }
-        guard isUIDStillCurrent(normalizedUID) else { return }
+        guard shouldProceed(for: normalizedUID) else { return }
         guard stateStore.shouldRunBackgroundBackfill(uid: normalizedUID, now: dateProvider.now) else { return }
         guard backgroundBackfillGuard.tryBegin(uid: normalizedUID) else { return }
         defer { backgroundBackfillGuard.end(uid: normalizedUID) }
@@ -144,7 +150,7 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
             reason: .appLaunch
         )
 
-        guard isUIDStillCurrent(normalizedUID) else { return }
+        guard shouldProceed(for: normalizedUID) else { return }
         diagnostics?.recordRun(traceId: traceId, summary: summary)
         guard shouldNotifyAfterBackgroundBackfill(summary) else { return }
         onBackgroundBackfillFinished?(summary)
@@ -155,6 +161,19 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
         backgroundBackfillTask?.cancel()
         backgroundBackfillTask = nil
         backgroundBackfillGuard.cancel()
+        runGuard.cancel()
+    }
+
+    func cancelAllWork(for uid: String) {
+        guard let normalizedUID = normalizedUID(uid) else {
+            cancelOnAccountSwitch()
+            return
+        }
+        if backgroundBackfillUID == normalizedUID {
+            backgroundBackfillTask?.cancel()
+            backgroundBackfillUID = nil
+            backgroundBackfillTask = nil
+        }
         runGuard.cancel()
     }
 
@@ -178,6 +197,17 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
                 reason: reason,
                 startedAt: startedAt,
                 message: "Restore could not start for this account."
+            )
+        }
+
+        guard shouldProceed(for: normalizedUID) else {
+            return skippedSummary(
+                uid: normalizedUID,
+                reason: reason,
+                startedAt: startedAt,
+                message: deletionGuard?.isDeletionInProgress(for: normalizedUID) == true
+                    ? AccountRestoreCoordinatorSupport.deletionInProgressMessage
+                    : AccountRestoreCoordinatorSupport.accountSwitchedMessage
             )
         }
 
@@ -218,7 +248,7 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
             )
         }
 
-        guard isUIDStillCurrent(normalizedUID) else {
+        guard shouldProceed(for: normalizedUID) else {
             return finishRun(
                 traceId: traceId,
                 summary: accountSwitchedSummary(uid: normalizedUID, reason: reason, startedAt: startedAt),
@@ -671,6 +701,13 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
             return false
         }
         return (try? AccountSyncMutationValidation.normalizedOwnerUID(currentUID)) == uid
+    }
+
+    private func shouldProceed(for uid: String) -> Bool {
+        if deletionGuard?.isDeletionInProgress(for: uid) == true {
+            return false
+        }
+        return isUIDStillCurrent(uid)
     }
 }
 

@@ -11,7 +11,6 @@ enum SettingsProductionVisibility {
 
     static let hiddenRowIDs: Set<SettingsRowID> = [
         .exportData,
-        .deleteData,
         .authDiagnostics,
         .pipelineTraces,
         .coachContextInspector

@@ -99,8 +99,6 @@ final class CoachMealPhotoAnalyzer {
 
         let uploadAttachment = CoachMealImageUploadAttachment.fromUploadData(jpegData)
 
-        let uploadAttachment = CoachMealImageUploadAttachment.fromUploadData(jpegData)
-
         do {
             let presentation = try await routeHandler.analyzeMealPhoto(
                 uploadAttachment: uploadAttachment,

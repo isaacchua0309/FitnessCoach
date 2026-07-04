@@ -5,6 +5,7 @@
 //  Forma — Coordinates camera/photo-library presentation and CoachImagePipeline processing.
 //
 
+import Combine
 import PhotosUI
 import SwiftUI
 import UIKit

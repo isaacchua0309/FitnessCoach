@@ -124,12 +124,22 @@ enum SettingsPresentationBuilder {
             )
         }
 
-        if featureAvailability.isDeleteDataEnabled {
+        if featureAvailability.isDeleteAccountEnabled {
             rows.append(
                 row(
-                    id: .deleteData,
-                    title: FormaProductCopy.Settings.Rows.deleteData,
-                    destination: .deleteData
+                    id: .deleteAccount,
+                    title: FormaProductCopy.Settings.Rows.deleteAccount,
+                    destination: .deleteAccount
+                )
+            )
+        }
+
+        if featureAvailability.isDeleteLocalDeviceDataEnabled {
+            rows.append(
+                row(
+                    id: .deleteLocalDeviceData,
+                    title: FormaProductCopy.Settings.Rows.deleteLocalDeviceData,
+                    destination: .deleteLocalDeviceData
                 )
             )
         }

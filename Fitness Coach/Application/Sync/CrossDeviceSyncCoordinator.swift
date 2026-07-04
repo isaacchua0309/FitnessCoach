@@ -19,6 +19,22 @@ protocol CrossDeviceSyncCoordinating: AnyObject {
     func manualRefresh(uid: String) async -> CrossDeviceSyncSummary
 
     func handleRealtimeHint(uid: String) async -> CrossDeviceSyncSummary?
+
+    func cancelPendingWork()
+
+    func cancelAllWork(for uid: String) async
+
+    func reinstateWork(for uid: String)
+}
+
+extension CrossDeviceSyncCoordinating {
+    func cancelPendingWork() {}
+
+    func cancelAllWork(for uid: String) async {
+        cancelPendingWork()
+    }
+
+    func reinstateWork(for uid: String) {}
 }
 
 enum CrossDeviceSyncCoordinatorSupport {
@@ -27,6 +43,7 @@ enum CrossDeviceSyncCoordinatorSupport {
     static let offlineMessage = "You're offline. Your data is saved on this device."
     static let syncAlreadyInProgressMessage = "Cross-device sync is already in progress."
     static let uidChangedMessage = "Account changed before sync could finish."
+    static let deletionInProgressMessage = AccountDeletionGuardSupport.deletionInProgressMessage
 
     static func accountSyncReason(for reason: CrossDeviceSyncReason) -> AccountSyncReason {
         switch reason {
@@ -69,6 +86,7 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
     private let uidProvider: any AccountUIDProviding
     private let refreshCenter: AppRefreshCenter
     private let refreshEventBus: AccountDataRefreshPublishing?
+    private let deletionGuard: AccountDeletionGuarding?
     private let nowProvider: () -> Date
     private let runGuard = CrossDeviceSyncRunGuard()
     private var debouncedRealtimeTask: Task<Void, Never>?
@@ -82,7 +100,8 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
         uidProvider: any AccountUIDProviding,
         refreshCenter: AppRefreshCenter,
         refreshEventBus: AccountDataRefreshPublishing? = nil,
-        nowProvider: @escaping () -> Date = Date.init
+        nowProvider: @escaping () -> Date = Date.init,
+        deletionGuard: AccountDeletionGuarding? = nil
     ) {
         self.syncCoordinator = syncCoordinator
         self.incrementalPuller = incrementalPuller
@@ -92,6 +111,7 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
         self.refreshCenter = refreshCenter
         self.refreshEventBus = refreshEventBus
         self.nowProvider = nowProvider
+        self.deletionGuard = deletionGuard
     }
 
     convenience init(
@@ -102,7 +122,8 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
         currentUIDProvider: @escaping () -> String?,
         refreshCenter: AppRefreshCenter,
         refreshEventBus: AccountDataRefreshPublishing? = nil,
-        nowProvider: @escaping () -> Date = Date.init
+        nowProvider: @escaping () -> Date = Date.init,
+        deletionGuard: AccountDeletionGuarding? = nil
     ) {
         self.init(
             syncCoordinator: syncCoordinator,
@@ -112,7 +133,8 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
             uidProvider: ClosureAccountUIDProvider(currentUIDProvider),
             refreshCenter: refreshCenter,
             refreshEventBus: refreshEventBus,
-            nowProvider: nowProvider
+            nowProvider: nowProvider,
+            deletionGuard: deletionGuard
         )
     }
 
@@ -159,6 +181,15 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
             uid: normalizedUID
         )
 
+        if let cancelled = cancelledSummaryIfNeeded(
+            uid: normalizedUID,
+            mode: mode,
+            reason: reason,
+            startedAt: startedAt
+        ) {
+            return recordAndReturn(traceId: traceId, summary: cancelled)
+        }
+
         guard isUIDStillCurrent(normalizedUID) else {
             return recordAndReturn(
                 traceId: traceId,
@@ -185,6 +216,10 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
         }
 
         guard runGuard.tryBegin(uid: normalizedUID) else {
+            let message = runGuard.isInvalidated(uid: normalizedUID)
+                || deletionGuard?.isDeletionInProgress(for: normalizedUID) == true
+                ? CrossDeviceSyncCoordinatorSupport.deletionInProgressMessage
+                : CrossDeviceSyncCoordinatorSupport.syncAlreadyInProgressMessage
             return recordAndReturn(
                 traceId: traceId,
                 summary: cancelledSummary(
@@ -192,7 +227,7 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
                     mode: mode,
                     reason: reason,
                     startedAt: startedAt,
-                    message: CrossDeviceSyncCoordinatorSupport.syncAlreadyInProgressMessage
+                    message: message
                 )
             )
         }
@@ -205,17 +240,13 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
         var uploadFailed = 0
 
         if CrossDeviceSyncPolicy.shouldUploadBeforePull(for: mode) {
-            guard isUIDStillCurrent(normalizedUID) else {
-                return recordAndReturn(
-                    traceId: traceId,
-                    summary: cancelledSummary(
-                        uid: normalizedUID,
-                        mode: mode,
-                        reason: reason,
-                        startedAt: startedAt,
-                        message: CrossDeviceSyncCoordinatorSupport.uidChangedMessage
-                    )
-                )
+            if let cancelled = cancelledSummaryIfNeeded(
+                uid: normalizedUID,
+                mode: mode,
+                reason: reason,
+                startedAt: startedAt
+            ) {
+                return recordAndReturn(traceId: traceId, summary: cancelled)
             }
 
             let uploadRun = await syncCoordinator.uploadPendingOnly(
@@ -223,34 +254,26 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
                 reason: CrossDeviceSyncCoordinatorSupport.accountSyncReason(for: reason)
             )
 
-            guard isUIDStillCurrent(normalizedUID) else {
-                return recordAndReturn(
-                    traceId: traceId,
-                    summary: cancelledSummary(
-                        uid: normalizedUID,
-                        mode: mode,
-                        reason: reason,
-                        startedAt: startedAt,
-                        message: CrossDeviceSyncCoordinatorSupport.uidChangedMessage
-                    )
-                )
+            if let cancelled = cancelledSummaryIfNeeded(
+                uid: normalizedUID,
+                mode: mode,
+                reason: reason,
+                startedAt: startedAt
+            ) {
+                return recordAndReturn(traceId: traceId, summary: cancelled)
             }
 
             uploadedMutations = uploadRun.uploadSummary?.succeeded ?? 0
             uploadFailed = uploadRun.uploadSummary?.failed ?? 0
         }
 
-        guard isUIDStillCurrent(normalizedUID) else {
-            return recordAndReturn(
-                traceId: traceId,
-                summary: cancelledSummary(
-                    uid: normalizedUID,
-                    mode: mode,
-                    reason: reason,
-                    startedAt: startedAt,
-                    message: CrossDeviceSyncCoordinatorSupport.uidChangedMessage
-                )
-            )
+        if let cancelled = cancelledSummaryIfNeeded(
+            uid: normalizedUID,
+            mode: mode,
+            reason: reason,
+            startedAt: startedAt
+        ) {
+            return recordAndReturn(traceId: traceId, summary: cancelled)
         }
 
         let pullSummary = await incrementalPuller.pullChanges(
@@ -259,17 +282,13 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
             reason: reason
         )
 
-        guard isUIDStillCurrent(normalizedUID) else {
-            return recordAndReturn(
-                traceId: traceId,
-                summary: cancelledSummary(
-                    uid: normalizedUID,
-                    mode: mode,
-                    reason: reason,
-                    startedAt: startedAt,
-                    message: CrossDeviceSyncCoordinatorSupport.uidChangedMessage
-                )
-            )
+        if let cancelled = cancelledSummaryIfNeeded(
+            uid: normalizedUID,
+            mode: mode,
+            reason: reason,
+            startedAt: startedAt
+        ) {
+            return recordAndReturn(traceId: traceId, summary: cancelled)
         }
 
         let shouldRefreshUI = CrossDeviceSyncCoordinatorSupport.shouldRefreshUI(
@@ -321,11 +340,13 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
 
     func foregroundRefreshIfNeeded(uid: String) async -> CrossDeviceSyncSummary? {
         guard let normalizedUID = normalizedUID(uid) else { return nil }
-        guard isUIDStillCurrent(normalizedUID) else { return nil }
+        guard shouldProceed(for: normalizedUID) else { return nil }
         guard shouldRunForegroundRefresh(uid: normalizedUID) else { return nil }
 
         Task { [weak self] in
-            _ = await self?.refreshNow(
+            guard let self else { return }
+            guard self.shouldProceed(for: normalizedUID) else { return }
+            _ = await self.refreshNow(
                 uid: normalizedUID,
                 mode: .foregroundRefresh,
                 reason: .appForeground
@@ -345,7 +366,7 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
 
     func handleRealtimeHint(uid: String) async -> CrossDeviceSyncSummary? {
         guard let normalizedUID = normalizedUID(uid) else { return nil }
-        guard isUIDStillCurrent(normalizedUID) else { return nil }
+        guard shouldProceed(for: normalizedUID) else { return nil }
 
         debouncedRealtimeTask?.cancel()
         debouncedRealtimeUID = normalizedUID
@@ -355,7 +376,7 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
             guard !Task.isCancelled else { return }
             guard let self else { return }
             guard self.debouncedRealtimeUID == normalizedUID else { return }
-            guard self.isUIDStillCurrent(normalizedUID) else { return }
+            guard self.shouldProceed(for: normalizedUID) else { return }
             _ = await self.refreshNow(
                 uid: normalizedUID,
                 mode: .realtimeListener,
@@ -369,6 +390,22 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
         debouncedRealtimeTask?.cancel()
         debouncedRealtimeTask = nil
         debouncedRealtimeUID = nil
+    }
+
+    func cancelAllWork(for uid: String) async {
+        guard let normalizedUID = normalizedUID(uid) else { return }
+        runGuard.invalidate(uid: normalizedUID)
+        if debouncedRealtimeUID == normalizedUID {
+            cancelPendingWork()
+        }
+        await syncCoordinator.cancelAllWork(for: normalizedUID)
+        await runGuard.waitUntilIdle(uid: normalizedUID, timeout: .seconds(5))
+    }
+
+    func reinstateWork(for uid: String) {
+        guard let normalizedUID = normalizedUID(uid) else { return }
+        runGuard.reinstate(uid: normalizedUID)
+        syncCoordinator.reinstateWork(for: normalizedUID)
     }
 
     // MARK: - Helpers
@@ -412,6 +449,36 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
     private func isUIDStillCurrent(_ uid: String) -> Bool {
         guard let currentUID = uidProvider.currentUID else { return false }
         return (try? AccountSyncMutationValidation.normalizedOwnerUID(currentUID)) == uid
+    }
+
+    private func shouldProceed(for uid: String) -> Bool {
+        if deletionGuard?.isDeletionInProgress(for: uid) == true {
+            return false
+        }
+        if runGuard.isInvalidated(uid: uid) {
+            return false
+        }
+        return isUIDStillCurrent(uid)
+    }
+
+    private func cancelledSummaryIfNeeded(
+        uid: String,
+        mode: CrossDeviceSyncMode,
+        reason: CrossDeviceSyncReason,
+        startedAt: Date
+    ) -> CrossDeviceSyncSummary? {
+        guard !shouldProceed(for: uid) else { return nil }
+        let resolvedMessage = deletionGuard?.isDeletionInProgress(for: uid) == true
+            || runGuard.isInvalidated(uid: uid)
+            ? CrossDeviceSyncCoordinatorSupport.deletionInProgressMessage
+            : CrossDeviceSyncCoordinatorSupport.uidChangedMessage
+        return cancelledSummary(
+            uid: uid,
+            mode: mode,
+            reason: reason,
+            startedAt: startedAt,
+            message: resolvedMessage
+        )
     }
 
     private func shouldRunForegroundRefresh(uid: String) -> Bool {
@@ -557,8 +624,10 @@ final class CrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
 private final class CrossDeviceSyncRunGuard {
 
     private var activeUIDs = Set<String>()
+    private var invalidatedUIDs = Set<String>()
 
     func tryBegin(uid: String) -> Bool {
+        guard !invalidatedUIDs.contains(uid) else { return false }
         guard !activeUIDs.contains(uid) else { return false }
         activeUIDs.insert(uid)
         return true
@@ -566,5 +635,26 @@ private final class CrossDeviceSyncRunGuard {
 
     func end(uid: String) {
         activeUIDs.remove(uid)
+    }
+
+    func invalidate(uid: String) {
+        invalidatedUIDs.insert(uid)
+    }
+
+    func reinstate(uid: String) {
+        invalidatedUIDs.remove(uid)
+    }
+
+    func isInvalidated(uid: String) -> Bool {
+        invalidatedUIDs.contains(uid)
+    }
+
+    func waitUntilIdle(uid: String, timeout: Duration) async {
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: timeout)
+        while activeUIDs.contains(uid), clock.now < deadline {
+            await Task.yield()
+            try? await Task.sleep(for: .milliseconds(20))
+        }
     }
 }
