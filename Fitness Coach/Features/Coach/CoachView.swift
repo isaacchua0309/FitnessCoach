@@ -34,47 +34,50 @@ struct CoachView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
+            VStack(spacing: 0) {
+                if showEmptyChrome {
+                    CoachHeader()
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+
+                CoachConversationView(
+                    messages: model.messages,
+                    isSending: model.isSending,
+                    todayContext: model.todayContext,
+                    starterPrompts: model.starterPromptSpecs,
+                    pendingConfirmation: model.pendingConfirmation,
+                    isInputFocused: isInputFocused,
+                    onDismissKeyboard: {
+                        dismissKeyboard()
+                    },
+                    onStarterTap: { prompt in
+                        handleStarterTap(prompt)
+                    },
+                    onRetryMealPhotoAnalysis: { userMessageID in
+                        Task { await model.retryMealPhotoAnalysis(for: userMessageID) }
+                    },
+                    onNutritionAction: { action in
+                        Task { await model.handleNutritionEstimateAction(action) }
+                    },
+                    bottomAccessory: {
+                        VStack(spacing: 0) {
+                            coachErrorBanner
+                            bottomAccessoryStack
+                        }
+                    }
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .onChange(of: model.shouldFocusComposer) { _, shouldFocus in
+                    if shouldFocus {
+                        isInputFocused = true
+                        model.shouldFocusComposer = false
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background {
                 CoachDesignTokens.Color.background
                     .ignoresSafeArea()
-
-                VStack(spacing: 0) {
-                    if showEmptyChrome {
-                        CoachHeader()
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                    }
-
-                    CoachConversationView(
-                        messages: model.messages,
-                        isSending: model.isSending,
-                        todayContext: model.todayContext,
-                        starterPrompts: model.starterPromptSpecs,
-                        onDismissKeyboard: {
-                            dismissKeyboard()
-                        },
-                        onStarterTap: { prompt in
-                            handleStarterTap(prompt)
-                        },
-                        onRetryMealPhotoAnalysis: { userMessageID in
-                            Task { await model.retryMealPhotoAnalysis(for: userMessageID) }
-                        },
-                        onNutritionAction: { action in
-                            Task { await model.handleNutritionEstimateAction(action) }
-                        }
-                    )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .onChange(of: model.shouldFocusComposer) { _, shouldFocus in
-                        if shouldFocus {
-                            isInputFocused = true
-                            model.shouldFocusComposer = false
-                        }
-                    }
-
-                    coachErrorBanner
-                }
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    bottomChrome
-                }
             }
             .toolbar(.hidden, for: .navigationBar)
             .task {
@@ -151,38 +154,26 @@ struct CoachView: View {
         }
     }
 
-    private var bottomChrome: some View {
-        VStack(spacing: 0) {
-            if let pending = model.pendingConfirmation {
-                CoachConfirmationBar(
-                    confirmation: pending,
-                    isConfirming: model.isConfirmingPending,
-                    onConfirm: {
-                        dismissKeyboard()
-                        Task { await model.confirmPendingFromBar() }
-                    },
-                    onReject: {
-                        dismissKeyboard()
-                        model.rejectPendingFromBar()
-                    },
-                    onEdit: pending.supportsEdit ? {
-                        dismissKeyboard()
-                        model.openFoodEditSheet()
-                    } : nil,
-                    onRetryPhotoAnalysis: pending.supportsPhotoRetry ? {
-                        dismissKeyboard()
-                        guard let userMessageID = pending.relatedPhotoUserMessageID else { return }
-                        Task { await model.retryMealPhotoAnalysis(for: userMessageID) }
-                    } : nil
-                )
-            }
-
-            composerChrome
-        }
-    }
-
-    private var composerChrome: some View {
-        CoachComposer(
+    private var bottomAccessoryStack: some View {
+        CoachBottomAccessoryStack(
+            pendingConfirmation: model.pendingConfirmation,
+            isConfirmingPending: model.isConfirmingPending,
+            onConfirmPending: {
+                dismissKeyboard()
+                Task { await model.confirmPendingFromBar() }
+            },
+            onRejectPending: {
+                dismissKeyboard()
+                model.rejectPendingFromBar()
+            },
+            onEditPending: model.pendingConfirmation?.supportsEdit == true ? {
+                handlePendingEditTap()
+            } : nil,
+            onRetryPhotoAnalysis: model.pendingConfirmation?.supportsPhotoRetry == true ? {
+                dismissKeyboard()
+                guard let userMessageID = model.pendingConfirmation?.relatedPhotoUserMessageID else { return }
+                Task { await model.retryMealPhotoAnalysis(for: userMessageID) }
+            } : nil,
             text: Binding(
                 get: { model.inputState.text },
                 set: { newValue in
@@ -228,10 +219,16 @@ struct CoachView: View {
                 }
             }
         )
-        .background(
-            CoachDesignTokens.Color.background
-                .shadow(color: FormaTokens.Color.shadow, radius: 12, y: -4)
-        )
+    }
+
+    private func handlePendingEditTap() {
+        if isInputFocused {
+            // Compact mode: keep the composer focused for clarification typing.
+            isInputFocused = true
+            return
+        }
+        dismissKeyboard()
+        model.openFoodEditSheet()
     }
 
     private func handleStarterTap(_ prompt: CoachStarterPromptSpec) {
