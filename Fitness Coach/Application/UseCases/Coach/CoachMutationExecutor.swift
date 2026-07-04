@@ -211,11 +211,10 @@ final class CoachMutationExecutor {
         if let foodDraft = action.foodDraft {
             return await applyFoodEdit(
                 from: foodDraft,
-                selector: action.targetEntrySelector,
                 linkedEntryId: action.linkedEntryId
             )
         }
-        return "I couldn't find which entry to edit. Try being more specific."
+        return CoachResponseBuilder.entryReferenceClarification()
     }
 
     func executeDeleteAction(_ action: AICommandAction) async -> String {
@@ -223,16 +222,7 @@ final class CoachMutationExecutor {
             return await deleteFood(entryId: linkedEntryId)
         }
 
-        if let mealType = action.foodDraft?.mealType {
-            return await deleteFood(mealType: mealType)
-        }
-
-        let selector = (action.targetEntrySelector ?? "").lowercased()
-        for mealType in MealType.allCases where selector.contains(mealType.rawValue.lowercased()) {
-            return await deleteFood(mealType: mealType)
-        }
-
-        return "I couldn't find which entry to delete. Try naming the meal type."
+        return CoachResponseBuilder.entryReferenceClarification()
     }
 
     func executeUndoAction(_ action: AICommandAction) -> String {
@@ -332,38 +322,7 @@ final class CoachMutationExecutor {
         do {
             let entries = try actionCenter.getFoodEntries(for: Date())
             guard let entry = entries.first(where: { $0.id == entryId }) else {
-                return "I did not find that food entry for today."
-            }
-
-            let supersededEventId = await CoachMutationTimelineLookup.latestFoodMutationEventId(
-                forEntryId: entry.id,
-                store: timelineStore
-            )
-            try actionCenter.deleteFoodEntry(id: entry.id)
-            lastAffectedEntryId = entry.id
-            timelineRecorder.recordFoodDeleted(
-                entry: entry,
-                supersedesEventId: supersededEventId,
-                occurredAt: Date()
-            )
-            return CoachResponseBuilder.deleteFood(entry)
-        } catch {
-            timelineRecordMutationFailure(message: error.localizedDescription, category: "food_delete")
-            return "I could not delete that food entry. Please try again."
-        }
-    }
-
-    private func deleteFood(mealType: MealType) async -> String {
-        do {
-            let entries = try actionCenter.getFoodEntries(for: Date())
-                .filter { $0.mealType == mealType }
-
-            guard !entries.isEmpty else {
-                return "I did not find a \(mealType.rawValue) entry for today."
-            }
-
-            guard entries.count == 1, let entry = entries.first else {
-                return "I found \(entries.count) \(mealType.rawValue) entries. Which one should I delete?"
+                return CoachResponseBuilder.entryReferenceDeletedOrMissing
             }
 
             let supersededEventId = await CoachMutationTimelineLookup.latestFoodMutationEventId(
@@ -386,22 +345,16 @@ final class CoachMutationExecutor {
 
     private func applyFoodEdit(
         from draft: FoodDraft,
-        selector: String?,
         linkedEntryId: UUID?
     ) async -> String {
         do {
             let entries = try actionCenter.getFoodEntries(for: Date())
-            let entry: FoodEntry?
-            if let linkedEntryId {
-                entry = entries.first(where: { $0.id == linkedEntryId })
-            } else {
-                entry = entries.last
+            guard let linkedEntryId else {
+                return CoachResponseBuilder.entryReferenceClarification()
             }
 
-            guard let entry else {
-                return linkedEntryId == nil
-                    ? "There is no food entry to edit today."
-                    : "I did not find that food entry for today."
+            guard let entry = entries.first(where: { $0.id == linkedEntryId }) else {
+                return CoachResponseBuilder.entryReferenceDeletedOrMissing
             }
 
             let update = FoodEntryUpdate(
@@ -418,7 +371,7 @@ final class CoachMutationExecutor {
                 source: .corrected,
                 confidence: draft.confidence,
                 imageUrl: draft.imageUrl,
-                notes: draft.notes ?? selector
+                notes: draft.notes
             )
             let supersededEventId = await CoachMutationTimelineLookup.latestFoodMutationEventId(
                 forEntryId: entry.id,

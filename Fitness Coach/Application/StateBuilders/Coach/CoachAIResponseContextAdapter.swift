@@ -49,68 +49,6 @@ struct CoachResponseContextHints: Equatable, Sendable {
     }
 }
 
-enum CoachEntryReferenceResolver {
-
-    static func linkedEntryId(fromSelector selector: String?) -> UUID? {
-        guard let raw = selector?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !raw.isEmpty,
-              let uuid = UUID(uuidString: raw)
-        else {
-            return nil
-        }
-        return uuid
-    }
-
-    static func resolveLinkedEntryId(
-        explicit linkedEntryId: UUID?,
-        selector: String?,
-        meals: [CoachRecentMealContext]
-    ) -> UUID? {
-        if let linkedEntryId { return linkedEntryId }
-        if let fromSelector = Self.linkedEntryId(fromSelector: selector) { return fromSelector }
-
-        guard let selector = selector?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !selector.isEmpty
-        else {
-            return nil
-        }
-
-        let lowered = selector.lowercased()
-        return meals.last(where: { meal in
-            let name = meal.name.lowercased()
-            return !name.isEmpty && lowered.contains(name)
-        })?.linkedEntryId
-    }
-
-    static func linkedTimelineEventId(
-        forEntryId entryId: UUID?,
-        in events: [CoachTimelineContextEvent]
-    ) -> UUID? {
-        guard let entryId else { return nil }
-        return events.last(where: { event in
-            event.linkedEntryId == entryId &&
-                event.status == CoachTimelineEventStatus.confirmed.rawValue
-        })?.id
-    }
-
-    static func enrichAction(
-        _ action: AICommandAction,
-        context: CoachContextPacketV2
-    ) -> AICommandAction {
-        var enriched = action
-        enriched.linkedEntryId = resolveLinkedEntryId(
-            explicit: action.linkedEntryId,
-            selector: action.targetEntrySelector,
-            meals: context.recentMealsStructured
-        )
-        enriched.linkedTimelineEventId = linkedTimelineEventId(
-            forEntryId: enriched.linkedEntryId,
-            in: context.timeline.recentEvents
-        )
-        return enriched
-    }
-}
-
 enum CoachAIResponseContextAdapter {
 
     static func resolveFoodEstimateAttribution(
