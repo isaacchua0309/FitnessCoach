@@ -11,11 +11,7 @@ import SwiftData
 
 enum FormaSwiftDataMigrationTestSupport {
 
-    static let referenceDate: Date = {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
-        return calendar.date(from: DateComponents(year: 2026, month: 7, day: 3, hour: 12))!
-    }()
+    static let referenceDate = TestDateFixtures.migrationAnchor
 
     static func makeTemporaryStoreURL(label: String = UUID().uuidString) -> URL {
         FileManager.default.temporaryDirectory

@@ -8,17 +8,12 @@ import XCTest
 
 final class JourneyWeeklyPatternBuilderTests: XCTestCase {
 
-    private let calendar: Calendar = {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
-        return calendar
-    }()
-
-    private let asOf = ProfileTestFixtures.referenceDate
+    private let calendar = WeeklyProgressFixtures.calendar
+    private let asOf = WeeklyProgressFixtures.asOf
 
     func testWeeklyCountsAreCorrect() {
         let weekLogs = (0..<5).map { offset in
-            makeLog(
+            WeeklyProgressFixtures.makeLog(
                 daysAgo: offset,
                 calories: 1_800,
                 protein: offset < 3 ? 140 : 80,
@@ -26,8 +21,8 @@ final class JourneyWeeklyPatternBuilderTests: XCTestCase {
             )
         }
         let weights = [
-            makeWeight(daysAgo: 4, kg: 90),
-            makeWeight(daysAgo: 1, kg: 89.5)
+            WeeklyProgressFixtures.makeWeight(daysAgo: 4, kg: 90),
+            WeeklyProgressFixtures.makeWeight(daysAgo: 1, kg: 89.5)
         ]
 
         let state = build(
@@ -35,7 +30,7 @@ final class JourneyWeeklyPatternBuilderTests: XCTestCase {
             weekWeights: weights,
             maturityLogs: weekLogs,
             allWeights: weights,
-            streaks: makeStreaks(logging: 3, protein: 2, water: 0)
+            streaks: WeeklyProgressFixtures.makeStreaks(logging: 3, protein: 2, water: 0)
         )
 
         XCTAssertTrue(state.showsHabitRows)
@@ -47,13 +42,13 @@ final class JourneyWeeklyPatternBuilderTests: XCTestCase {
 
     func testStreakCalculationUsesCurrentStreaks() {
         let weekLogs = (0..<3).map { offset in
-            makeLog(daysAgo: offset, calories: 1_800, protein: 140, waterMl: 2_500)
+            WeeklyProgressFixtures.makeLog(daysAgo: offset, calories: 1_800, protein: 140, waterMl: 2_500)
         }
 
         let state = build(
             weekLogs: weekLogs,
             maturityLogs: weekLogs,
-            streaks: makeStreaks(logging: 3, protein: 2, water: 1)
+            streaks: WeeklyProgressFixtures.makeStreaks(logging: 3, protein: 2, water: 1)
         )
 
         XCTAssertEqual(
@@ -71,13 +66,13 @@ final class JourneyWeeklyPatternBuilderTests: XCTestCase {
 
     func testSupportiveCopyAppearsWhenUseful() {
         let weekLogs = (0..<2).map { offset in
-            makeLog(daysAgo: offset, calories: 1_800, protein: 80, waterMl: 400)
+            WeeklyProgressFixtures.makeLog(daysAgo: offset, calories: 1_800, protein: 80, waterMl: 400)
         }
 
         let state = build(
             weekLogs: weekLogs,
             maturityLogs: weekLogs,
-            streaks: makeStreaks(logging: 0, protein: 0, water: 0)
+            streaks: WeeklyProgressFixtures.makeStreaks(logging: 0, protein: 0, water: 0)
         )
 
         XCTAssertEqual(
@@ -99,8 +94,8 @@ final class JourneyWeeklyPatternBuilderTests: XCTestCase {
 
     func testSevenDayVisualMatchesLoggedDays() {
         let weekLogs = [
-            makeLog(daysAgo: 2, calories: 1_800, protein: 140, waterMl: 2_500),
-            makeLog(daysAgo: 0, calories: 1_800, protein: 140, waterMl: 2_500)
+            WeeklyProgressFixtures.makeLog(daysAgo: 2, calories: 1_800, protein: 140, waterMl: 2_500),
+            WeeklyProgressFixtures.makeLog(daysAgo: 0, calories: 1_800, protein: 140, waterMl: 2_500)
         ]
 
         let state = build(weekLogs: weekLogs, maturityLogs: weekLogs)
@@ -153,106 +148,18 @@ final class JourneyWeeklyPatternBuilderTests: XCTestCase {
         streaks: JourneyStreakState? = nil,
         training: JourneyWeeklyTrainingStatus = .connectedEmpty
     ) -> JourneyWeeklyHabitState {
-        let resolvedStreaks = streaks ?? makeStreaks(logging: 0, protein: 0, water: 0)
-        let review = JourneyWeeklyReviewState(
-            foodLoggedDays: JourneyLogMetrics.uniqueFoodLoggedDays(in: weekLogs, calendar: calendar),
-            foodLoggedDaysTotal: 7,
-            proteinGoalDays: JourneyLogMetrics.uniqueProteinGoalDays(in: weekLogs, calendar: calendar),
-            proteinGoalDaysTotal: 7,
-            waterGoalDays: JourneyLogMetrics.uniqueWaterGoalDays(in: weekLogs, calendar: calendar),
-            waterGoalDaysTotal: 7,
-            trainingDays: 0,
-            expectedTrainingDays: 4,
+        WeeklyProgressFixtures.buildWeeklyHabit(
+            weekLogs: weekLogs,
+            weekWeights: weekWeights,
+            maturityLogs: maturityLogs,
+            allWeights: allWeights,
+            streaks: streaks,
             training: training,
-            weightDeltaThisWeekKg: nil,
-            calorieAdherenceDays: JourneyLogMetrics.uniqueCalorieAdherenceDays(in: weekLogs, calendar: calendar),
-            calorieAdherenceDaysTotal: 7,
-            weekSummaryCopy: "",
-            rows: [],
-            weekOverWeekDetail: nil
-        )
-
-        let streakSummary = StreakCalculator.calculate(
-            logs: maturityLogs,
-            workoutDates: [],
-            asOf: asOf,
-            calendar: calendar
-        )
-
-        return JourneyWeeklyPatternBuilder.build(
-            JourneyWeeklyPatternBuilder.Input(
-                weekLogs: weekLogs,
-                weekWeights: weekWeights,
-                maturityLogs: maturityLogs,
-                allWeights: allWeights,
-                healthWorkoutDayStarts: [],
-                weeklyTraining: training,
-                expectedTrainingDays: 4,
-                streaks: resolvedStreaks,
-                streakSummary: streakSummary,
-                weeklyReview: review,
-                asOf: asOf,
-                calendar: calendar
-            )
+            asOf: asOf
         )
     }
 
     private func habit(id: String, in state: JourneyWeeklyHabitState) -> JourneyWeeklyHabitRowState? {
         state.habits.first { $0.id == id }
-    }
-
-    private func makeStreaks(logging: Int, protein: Int, water: Int) -> JourneyStreakState {
-        JourneyStreakState(
-            currentLoggingStreakDays: logging,
-            longestLoggingStreakDays: logging,
-            currentProteinStreakDays: protein,
-            currentWaterStreakDays: water,
-            currentTrainingStreakWeeks: nil,
-            isTodayLogged: logging > 0,
-            heroStreakChip: .hidden,
-            weeklyConsistencyHeadline: "",
-            weeklyConsistencyDetail: nil,
-            keepStreakAliveCopy: nil
-        )
-    }
-
-    private func makeLog(
-        daysAgo: Int,
-        calories: Int,
-        protein: Double,
-        waterMl: Int
-    ) -> DailyLog {
-        let date = calendar.date(byAdding: .day, value: -daysAgo, to: asOf)!
-        return DailyLog(
-            id: UUID(),
-            date: date,
-            weightKg: nil,
-            targets: ProfileTestFixtures.sampleTargets,
-            totals: MacroTotals(
-                calories: calories,
-                protein: protein,
-                carbs: 120,
-                fat: 50,
-                fiber: nil,
-                sodium: nil
-            ),
-            waterConsumedMl: waterMl,
-            steps: nil,
-            workoutCaloriesBurned: 0,
-            dailyReviewId: nil,
-            createdAt: date,
-            updatedAt: date
-        )
-    }
-
-    private func makeWeight(daysAgo: Int, kg: Double) -> WeightEntry {
-        let date = calendar.date(byAdding: .day, value: -daysAgo, to: asOf)!
-        return WeightEntry(
-            id: UUID(),
-            date: date,
-            weightKg: kg,
-            note: nil,
-            createdAt: date
-        )
     }
 }

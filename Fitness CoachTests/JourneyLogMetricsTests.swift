@@ -63,7 +63,7 @@ final class JourneyLogMetricsTests: XCTestCase {
     }
 
     private func makeLog(
-        date: Date = Date(),
+        date: Date = TestDateFixtures.referenceEpoch,
         protein: Double,
         target: Double
     ) -> DailyLog {

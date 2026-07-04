@@ -105,9 +105,10 @@ final class CoachCompositionPolicyTests: XCTestCase {
     // MARK: - Fixtures
 
     private var workoutHealthContext: CoachHealthIntelligenceContext {
-        CoachHealthIntelligenceContextBuilder.build(
+        let anchor = TestDateFixtures.coachContextAnchor
+        return CoachHealthIntelligenceContextBuilder.build(
             from: HealthIntelligenceSnapshot(
-                date: Date(),
+                date: anchor,
                 recovery: RecoverySummary(
                     score: 74,
                     status: .moderate,
@@ -128,8 +129,8 @@ final class CoachCompositionPolicyTests: XCTestCase {
                     totalActiveCalories: 320,
                     intensity: .moderate,
                     demand: .high,
-                    latestWorkoutStart: Date(),
-                    latestWorkoutEnd: Date(),
+                    latestWorkoutStart: anchor,
+                    latestWorkoutEnd: anchor,
                     nutritionAdvice: "Aim for 30–40g protein in your next meal.",
                     hydrationAdviceMl: 700,
                     explanation: "Strength training added meaningful load today.",
@@ -148,7 +149,7 @@ final class CoachCompositionPolicyTests: XCTestCase {
                     destination: .logMeal,
                     priority: 2,
                     reason: .postWorkoutRecovery,
-                    createdAt: Date(),
+                    createdAt: anchor,
                     expiresAt: nil
                 )
             )

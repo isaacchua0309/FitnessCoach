@@ -34,14 +34,15 @@ enum AsyncTestSupport {
     static func waitUntilWallClock(
         timeout: TimeInterval = 2.0,
         interval: TimeInterval = 0.05,
+        now: @escaping () -> Date = Date.init,
         _ condition: () -> Bool
     ) async -> Bool {
         if condition() { return true }
-        let deadline = Date().addingTimeInterval(timeout)
-        while Date() < deadline {
+        let deadline = now().addingTimeInterval(timeout)
+        while now() < deadline {
             await Task.yield()
             if condition() { return true }
-            let remaining = deadline.timeIntervalSinceNow
+            let remaining = deadline.timeIntervalSince(now())
             guard remaining > 0 else { break }
             try? await Task.sleep(nanoseconds: UInt64(min(interval, remaining) * 1_000_000_000))
         }
