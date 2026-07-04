@@ -1,0 +1,32 @@
+{
+  "meta": {
+    "schemaVersion": 2,
+    "generatedAt": "2026-07-03T12:00:00.000Z",
+    "timezoneIdentifier": "UTC",
+    "localDate": "2026-07-03",
+    "localTime": "12:00"
+  },
+  "timeline": {
+    "recentEvents": []
+  },
+  "recentChatMessages": [],
+  "recentMealsStructured": [],
+  "commonFoods": [],
+  "missingData": {
+    "stepsMissing": true,
+    "workoutPermissionDeniedOrUnavailable": true,
+    "sleepMissing": false,
+    "hrvMissing": false,
+    "weightMissing": false,
+    "noRecentMeals": true,
+    "noTimelineHistory": true,
+    "healthKitDenied": false,
+    "healthKitUnavailable": true,
+    "stepsUnavailable": false,
+    "workoutsUnavailable": false,
+    "sleepUnavailable": false,
+    "hrvUnavailable": false
+  },
+  "assumptions": [],
+  "generationMode": "degraded"
+}

@@ -1,0 +1,80 @@
+{
+  "meta": {
+    "schemaVersion": 2,
+    "generatedAt": "2026-07-03T12:00:00.000Z",
+    "timezoneIdentifier": "UTC",
+    "localDate": "2026-07-03",
+    "localTime": "12:00"
+  },
+  "training": {
+    "workoutsToday": 1,
+    "workouts": [
+      {
+        "title": "Strength",
+        "type": "traditionalStrengthTraining",
+        "durationMinutes": 45,
+        "activeEnergyKcal": 280,
+        "source": "healthKit",
+        "confidence": "medium"
+      }
+    ]
+  },
+  "timeline": {
+    "recentEvents": [
+      {
+        "id": "22222222-2222-4222-8222-222222222222",
+        "timestamp": "2026-07-03T10:00:00.000Z",
+        "type": "foodLogged",
+        "source": "coachUI",
+        "status": "confirmed",
+        "summary": "Logged eggs",
+        "linkedEntryId": "11111111-1111-4111-8111-111111111111"
+      },
+      {
+        "id": "44444444-4444-4444-8444-444444444444",
+        "timestamp": "2026-07-03T09:00:00.000Z",
+        "type": "systemRefresh",
+        "source": "system",
+        "status": "confirmed",
+        "summary": "refresh"
+      }
+    ]
+  },
+  "recentChatMessages": [
+    {
+      "id": "33333333-3333-4333-8333-333333333333",
+      "role": "user",
+      "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "timestamp": "2026-07-03T11:00:00.000Z",
+      "hasPhotoAttachment": false
+    }
+  ],
+  "recentMealsStructured": [
+    {
+      "name": "Eggs",
+      "calories": 180,
+      "proteinGrams": 14,
+      "linkedEntryId": "11111111-1111-4111-8111-111111111111"
+    }
+  ],
+  "missingData": {
+    "stepsMissing": true,
+    "workoutPermissionDeniedOrUnavailable": false,
+    "sleepMissing": false,
+    "hrvMissing": false,
+    "weightMissing": false,
+    "noRecentMeals": false,
+    "noTimelineHistory": false,
+    "healthKitDenied": false,
+    "healthKitUnavailable": false,
+    "stepsUnavailable": false,
+    "workoutsUnavailable": false,
+    "sleepUnavailable": false,
+    "hrvUnavailable": false
+  },
+  "unexpectedLargeBlob": {
+    "rawImageBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQRV42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+    "nested": "secret"
+  },
+  "generationMode": "live"
+}
