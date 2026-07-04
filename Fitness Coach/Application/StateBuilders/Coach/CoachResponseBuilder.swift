@@ -480,6 +480,31 @@ enum CoachResponseBuilder {
 
     static let backendUnavailableResponse = FormaProductCopy.Error.coachUnavailable
 
+    // MARK: Entry reference resolution
+
+    static let entryReferenceUnsupportedAction =
+        "I can only edit or delete existing food entries with this flow."
+
+    static let entryReferencePendingNotLogged =
+        "That meal is not logged yet. Confirm or cancel the pending estimate first."
+
+    static let entryReferenceRejectedOrPending =
+        "That estimate was rejected or is still pending. I cannot change it as a logged entry."
+
+    static let entryReferenceDeletedOrMissing =
+        "I could not find that food entry for today."
+
+    static let entryReferenceAssistantOnly =
+        "I need a meal name or meal type — not just my previous reply."
+
+    static func entryReferenceClarification(candidateLabels: [String] = []) -> String {
+        guard !candidateLabels.isEmpty else {
+            return "I'm not sure which entry you mean. Try naming the meal or saying something like \"delete lunch\"."
+        }
+        let joined = candidateLabels.joined(separator: "; ")
+        return "I found multiple matches (\(joined)). Which one should I change?"
+    }
+
     static let appHelpResponse =
         "Ask me about meals, calories, macros, protein, workouts, water, weight, or today's targets. You can also say things like \"log 500g chicken breast\" or \"add 600ml water\"."
 

@@ -495,6 +495,7 @@ function sanitizeRecentMeals(value: unknown): Record<string, unknown>[] {
     .map((meal) => {
       const sanitized: Record<string, unknown> = {
         name: clampString(meal.name, COACH_CONTEXT_LIMITS.maxStringFieldLength) ?? "Meal",
+        mealType: clampString(meal.mealType, 32),
         quantity: typeof meal.quantity === "number" ? meal.quantity : undefined,
         unit: clampString(meal.unit, 32),
         calories: typeof meal.calories === "number" ? Math.round(meal.calories) : undefined,

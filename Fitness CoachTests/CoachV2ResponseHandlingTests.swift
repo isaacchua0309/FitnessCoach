@@ -175,10 +175,13 @@ final class CoachV2ResponseHandlingTests: XCTestCase {
             type: .deleteEntry,
             targetEntrySelector: entryId.uuidString
         )
-        let enriched = CoachEntryReferenceResolver.enrichAction(action, context: context)
+        let enriched = CoachEntryReferenceResolver.enrichAction(
+            action,
+            context: context
+        ).enrichedAction
 
-        XCTAssertEqual(enriched.linkedEntryId, entryId)
-        XCTAssertNotNil(enriched.linkedTimelineEventId)
+        XCTAssertEqual(enriched?.linkedEntryId, entryId)
+        XCTAssertNotNil(enriched?.linkedTimelineEventId)
     }
 
     func testEditDeleteConfirmationPayloadIncludesLinkedEntryId() {

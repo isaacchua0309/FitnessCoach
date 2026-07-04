@@ -260,6 +260,7 @@ struct CoachTimelineContextEvent: Codable, Equatable, Sendable {
 
 struct CoachRecentMealContext: Codable, Equatable, Sendable {
     var name: String
+    var mealType: String?
     var quantity: Double?
     var unit: String?
     var calories: Int?
@@ -615,7 +616,11 @@ extension CoachTimelineContextEvent {
         case .foodEstimate(let value):
             return ["meal": value.mealName]
         case .foodLogged(let value):
-            return ["name": value.name, "kcal": String(value.calories)]
+            var payload = ["name": value.name, "kcal": String(value.calories)]
+            if let mealType = value.mealType {
+                payload["mealType"] = mealType
+            }
+            return payload
         case .waterLogged(let value):
             return ["ml": String(value.amountMl)]
         case .weightLogged(let value):
@@ -681,6 +686,7 @@ extension CoachRecentMealContext {
         let timestamps = CoachTimelineEvent.makeTimestamps(from: entry.createdAt, calendar: calendar)
         return CoachRecentMealContext(
             name: entry.name,
+            mealType: entry.mealType?.rawValue,
             quantity: entry.quantity,
             unit: entry.unit,
             calories: entry.calories,

@@ -38,7 +38,11 @@ final class CoachAIRouteHandler {
         self.mutationExecutor = mutationExecutor
     }
 
-    func handle(_ route: CoachRoute, context: CoachContextPacketV2) async throws -> CoachActionResult {
+    func handle(
+        _ route: CoachRoute,
+        context: CoachContextPacketV2,
+        pendingConfirmation: CoachPendingConfirmation? = nil
+    ) async throws -> CoachActionResult {
         switch route {
         case .noOp(let response):
             switch response {
@@ -159,7 +163,11 @@ final class CoachAIRouteHandler {
 
         case .editEntry(let prompt), .deleteEntry(let prompt):
             let parsed = try await aiService.parseEditOrDelete(prompt: prompt, context: context)
-            return try await handleParsedAICommand(parsed, context: context)
+            return try await handleParsedAICommand(
+                parsed,
+                context: context,
+                pendingConfirmation: pendingConfirmation
+            )
 
         case .multiAction(let prompt):
             let parsed = try await aiService.parseMultiAction(prompt: prompt, context: context)
@@ -383,32 +391,99 @@ final class CoachAIRouteHandler {
         )
     }
 
+    private enum ParsedMutationPreparation {
+        case respond(CoachActionResult)
+        case proceed(AIParsedCommand)
+    }
+
     private func handleParsedAICommand(
         _ parsed: AIParsedCommand,
-        context: CoachContextPacketV2
+        context: CoachContextPacketV2,
+        pendingConfirmation: CoachPendingConfirmation? = nil
     ) async throws -> CoachActionResult {
-        switch ConfirmationPolicy.decision(for: parsed) {
+        var workingParsed = parsed
+        if let mutationAction = parsed.actions.first,
+           mutationAction.type == .editEntry || mutationAction.type == .deleteEntry {
+            switch prepareMutationCommand(
+                mutationAction,
+                parsed: parsed,
+                context: context,
+                pendingConfirmation: pendingConfirmation
+            ) {
+            case .respond(let result):
+                return result
+            case .proceed(let enrichedParsed):
+                workingParsed = enrichedParsed
+            }
+        }
+
+        switch ConfirmationPolicy.decision(for: workingParsed) {
         case .reject(let message):
             return .message(message)
         case .requiresConfirmation(let message):
-            if let action = parsed.actions.first {
-                let enriched = CoachEntryReferenceResolver.enrichAction(action, context: context)
-                var enrichedParsed = parsed
-                enrichedParsed.actions = [enriched] + parsed.actions.dropFirst()
+            if let action = workingParsed.actions.first {
                 return try await presentAIActionConfirmation(
-                    enriched,
-                    parsed: enrichedParsed,
+                    action,
+                    parsed: workingParsed,
                     fallback: message,
                     context: context
                 )
             }
-            return .message(parsed.assistantMessage ?? message)
+            return .message(workingParsed.assistantMessage ?? message)
         case .executeImmediately:
-            if parsed.actions.isEmpty {
-                return .message(parsed.assistantMessage ?? CoachResponseBuilder.aiNotUnderstood)
+            if workingParsed.actions.isEmpty {
+                return .message(workingParsed.assistantMessage ?? CoachResponseBuilder.aiNotUnderstood)
             }
-            let response = try await executeAIActions(parsed.actions)
+            let response = try await executeAIActions(workingParsed.actions)
             return .message(response)
+        }
+    }
+
+    private func prepareMutationCommand(
+        _ action: AICommandAction,
+        parsed: AIParsedCommand,
+        context: CoachContextPacketV2,
+        pendingConfirmation: CoachPendingConfirmation?
+    ) -> ParsedMutationPreparation {
+        let resolution = CoachEntryReferenceResolver.resolve(
+            action: action,
+            context: context,
+            pendingConfirmation: pendingConfirmation
+        )
+
+        switch resolution.outcome {
+        case .clarify(let message), .blocked(let message):
+            return .respond(.message(message))
+
+        case .target(_, _, let confidence, let pendingFoodDraft):
+            if confidence == .low {
+                return .respond(.message(CoachResponseBuilder.entryReferenceClarification()))
+            }
+
+            if let pendingFoodDraft {
+                return .respond(
+                    CoachPendingConfirmationPresenter.presentFoodPending(
+                        originalText: pendingFoodDraft.originalText,
+                        assistantMessage: parsed.assistantMessage ?? pendingFoodDraft.assistantMessage,
+                        mealDraft: pendingFoodDraft.primaryMealDraft,
+                        confidence: pendingFoodDraft.confidence,
+                        sanityWarning: pendingFoodDraft.sanityWarning,
+                        sourceAttribution: pendingFoodDraft.sourceAttribution
+                    )
+                )
+            }
+
+            guard let enriched = CoachEntryReferenceResolver.enrichAction(
+                action,
+                context: context,
+                pendingConfirmation: pendingConfirmation
+            ).enrichedAction else {
+                return .respond(.message(CoachResponseBuilder.entryReferenceClarification()))
+            }
+
+            var enrichedParsed = parsed
+            enrichedParsed.actions = [enriched] + parsed.actions.dropFirst()
+            return .proceed(enrichedParsed)
         }
     }
 
