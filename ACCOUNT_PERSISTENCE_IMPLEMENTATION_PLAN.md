@@ -1,8 +1,23 @@
 # Account Persistence — Implementation Plan
 
 **Companion to:** `ACCOUNT_PERSISTENCE_RESTORE_CONTEXT_PACKET.md`  
-**Status:** Planning only — no code changes yet  
-**Generated:** 2026-07-04
+**Status:** Phase 2 foundation **implemented** — see `Docs/AccountPersistence/PHASE_2_CLOUD_SCHEMA_AND_RULES.md`  
+**Generated:** 2026-07-04 · **Updated:** 2026-07-04
+
+---
+
+## Phase status
+
+| Phase | Goal | Status |
+|-------|------|--------|
+| **1** | UID hardening — stop cross-user local leakage | **In progress** ([#106](https://github.com/isaacchua0309/FitnessCoach/pull/106)) |
+| **2** | Cloud schema, DTOs, rules, remote store, tests, DI (no sync) | **Implemented** ([#108](https://github.com/isaacchua0309/FitnessCoach/pull/108)) |
+| **3** | Local-first sync engine — upload/pull/outbox | **Pending** |
+| **4** | Fresh install restore | **Pending** |
+| **5** | Cross-device sync + optional coach/review sync | **Pending** |
+| **6** | Account delete, export, privacy | **Pending** |
+
+**Phase 2 reminder:** Cloud DTOs and Firestore paths exist. **No app user action uploads nutrition logs yet.** **No reinstall restore exists yet.** Phase 3 will implement `AccountSyncEngine`.
 
 ---
 
@@ -364,24 +379,31 @@ See context packet §12. Add to `firestore.rules`:
 
 **Goal:** Firestore structure + DTOs + rules + emulator tests (no iOS sync yet).
 
+**Status:** **Implemented** — documented in `Docs/AccountPersistence/PHASE_2_CLOUD_SCHEMA_AND_RULES.md` ([#108](https://github.com/isaacchua0309/FitnessCoach/pull/108)).
+
 | Action | Files |
 |--------|-------|
-| Define `CloudDailyLogDocument`, `CloudFoodEntryDocument`, etc. | `Infrastructure/Cloud/CloudNutritionDocuments.swift` (new) |
-| Implement read/write clients | `FirestoreDailyLogSyncClient.swift`, etc. |
+| Define `CloudDailyLogDocument`, `CloudFoodEntryDocument`, etc. | `Infrastructure/Cloud/AccountData/Cloud*.swift` |
+| Canonical paths + schema version | `AccountDataCloudPaths.swift`, `AccountDataCloudSchema.swift` |
+| Local ↔ cloud mappers | `CloudAccountDataMappers.swift` |
+| Remote store protocol + Firestore client | `AccountDataRemoteStore.swift`, `FirestoreAccountDataRemoteStore.swift` |
+| DI (dormant) | `AppContainer.accountDataRemoteStore`, `AccountPersistenceFeatureFlags.swift` |
 | Expand `firestore.rules` | `firestore.rules` |
-| Add `firebase.json` emulator config if missing | `firebase.json` |
-| Contract tests | `functions/test/nutritionSyncContract.test.ts` (new) |
+| Emulator + iOS tests | `functions/test/accountPersistenceFirestoreRules.test.ts`, `Fitness CoachTests/*AccountData*` |
 
-**Acceptance:**
-- Emulator: owner can R/W own nutrition docs
-- Emulator: user A cannot read user B docs
-- DTO round-trip tests Swift ↔ JSON
+**Acceptance (met):**
+- Emulator: owner can R/W own nutrition docs; user A cannot read user B docs (27 rules tests)
+- DTO round-trip + mapper ownership tests (iOS)
+- Remote store `userId` mismatch rejected before Firestore write
+- **Not met (by design):** no production log mutations call the remote store
 
 ---
 
 ### Phase 3 — Local-First Sync Engine
 
 **Goal:** Upload local mutations; incremental pull; offline outbox.
+
+**Status:** **Pending** — Phase 3 must wire `AccountSyncEngine` to `AppContainer.accountDataRemoteStore` and enable `AccountPersistenceFeatureFlags.syncEngineEnabled`.
 
 | Action | Files |
 |--------|-------|
@@ -408,6 +430,8 @@ See context packet §12. Add to `firestore.rules`:
 
 **Goal:** Reinstall / new device gets logging history back.
 
+**Status:** **Pending**
+
 | Action | Files |
 |--------|-------|
 | `AccountRestoreCoordinator` | New |
@@ -430,6 +454,8 @@ See context packet §12. Add to `firestore.rules`:
 
 **Goal:** Device B sees Device A changes within foreground refresh.
 
+**Status:** **Pending**
+
 | Action | Files |
 |--------|-------|
 | Foreground pull in `AccountSyncEngine` | Existing engine |
@@ -449,6 +475,8 @@ See context packet §12. Add to `firestore.rules`:
 ### Phase 6 — Deletion and Privacy
 
 **Goal:** Account delete, export, privacy copy.
+
+**Status:** **Pending**
 
 | Action | Files |
 |--------|-------|
@@ -625,4 +653,4 @@ Copy into Phase 6 PR description:
 
 ---
 
-*End of implementation plan. No application code was modified.*
+*End of implementation plan. Phase 2 foundation implemented; Phases 3–6 pending.*
