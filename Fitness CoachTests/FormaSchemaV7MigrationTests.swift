@@ -27,9 +27,8 @@ final class FormaSchemaV7MigrationTests: XCTestCase {
         super.tearDown()
     }
 
-    func testActiveSchemaIsV7WithSyncMetadataEntities() {
-        XCTAssertTrue(FormaSchemaV7AccountSyncVerification.syncMetadataEntitiesAreRegisteredInActiveSchema())
-        XCTAssertTrue(FormaSchemaCoachV2Verification.coachV2EntitiesAreRegisteredInActiveSchema())
+    func testV7SchemaRegistersSyncMetadataEntities() {
+        XCTAssertTrue(FormaSchemaV7AccountSyncVerification.syncMetadataEntitiesAreRegisteredInV7Schema())
         XCTAssertTrue(FormaSchemaV7AccountSyncVerification.coachEntitiesAreExcludedFromAccountSyncMetadata())
     }
 

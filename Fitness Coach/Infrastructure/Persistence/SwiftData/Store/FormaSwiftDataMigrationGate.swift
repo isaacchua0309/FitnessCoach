@@ -10,8 +10,8 @@ import Foundation
 
 enum FormaSwiftDataMigrationGate {
 
-    /// Active SwiftData schema version that includes Coach timeline + transcript entities.
-    static let coachV2SchemaVersion = 7
+    /// Active SwiftData schema version that includes Coach timeline + transcript + sync outbox entities.
+    static let coachV2SchemaVersion = 8
 
     private static let schemaVersionKey = "forma.swiftdata.schemaVersion"
     private static let migrationCompleteKey = "forma.swiftdata.coachV2MigrationComplete"
@@ -23,7 +23,7 @@ enum FormaSwiftDataMigrationGate {
         return storedVersion >= coachV2SchemaVersion && markedComplete
     }
 
-    /// Marks Coach v2 migration complete after `FormaSchemaV7` opens successfully.
+    /// Marks Coach v2 migration complete after the active schema opens successfully.
     static func markCoachV2MigrationComplete() {
         UserDefaults.standard.set(coachV2SchemaVersion, forKey: schemaVersionKey)
         UserDefaults.standard.set(true, forKey: migrationCompleteKey)
@@ -45,8 +45,8 @@ enum FormaSchemaCoachV2Verification {
 
     /// Compile-time list check used by tests to ensure Coach v2 entities ship in the active schema.
     static func coachV2EntitiesAreRegisteredInActiveSchema() -> Bool {
-        FormaSchemaV7.models.contains(where: { $0 == CoachTimelineEventEntity.self })
-            && FormaSchemaV7.models.contains(where: { $0 == CoachChatTranscriptMessageEntity.self })
+        FormaSchemaV8.models.contains(where: { $0 == CoachTimelineEventEntity.self })
+            && FormaSchemaV8.models.contains(where: { $0 == CoachChatTranscriptMessageEntity.self })
     }
 
     static func coachTimelineEntityRegisteredAtV5() -> Bool {
@@ -61,11 +61,7 @@ enum FormaSchemaCoachV2Verification {
 
 enum FormaSchemaV7AccountSyncVerification {
 
-    static var activeSchema: any VersionedSchema.Type {
-        FormaSchemaV7.self
-    }
-
-    static func syncMetadataEntitiesAreRegisteredInActiveSchema() -> Bool {
+    static func syncMetadataEntitiesAreRegisteredInV7Schema() -> Bool {
         let models = FormaSchemaV7.models
         return [
             DailyLogEntity.self,
@@ -76,6 +72,42 @@ enum FormaSchemaV7AccountSyncVerification {
         ].allSatisfy { entity in
             models.contains(where: { $0 == entity })
         }
+    }
+
+    static func coachEntitiesAreExcludedFromAccountSyncMetadata() -> Bool {
+        let syncEntities: [any PersistentModel.Type] = [
+            DailyLogEntity.self,
+            FoodEntryEntity.self,
+            WaterEntryEntity.self,
+            WeightEntryEntity.self,
+            DailyReviewEntity.self
+        ]
+        return !syncEntities.contains(where: { $0 == CoachTimelineEventEntity.self })
+            && !syncEntities.contains(where: { $0 == CoachChatTranscriptMessageEntity.self })
+    }
+}
+
+enum FormaSchemaV8AccountSyncVerification {
+
+    static var activeSchema: any VersionedSchema.Type {
+        FormaSchemaV8.self
+    }
+
+    static func syncMetadataEntitiesAreRegisteredInActiveSchema() -> Bool {
+        let models = FormaSchemaV8.models
+        return [
+            DailyLogEntity.self,
+            FoodEntryEntity.self,
+            WaterEntryEntity.self,
+            WeightEntryEntity.self,
+            DailyReviewEntity.self
+        ].allSatisfy { entity in
+            models.contains(where: { $0 == entity })
+        }
+    }
+
+    static func syncOutboxEntityIsRegisteredInActiveSchema() -> Bool {
+        FormaSchemaV8.models.contains(where: { $0 == AccountSyncMutationEntity.self })
     }
 
     static func coachEntitiesAreExcludedFromAccountSyncMetadata() -> Bool {
