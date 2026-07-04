@@ -1,11 +1,13 @@
-# Coach Full Context Packet — Post Timeline Context v2
+# Coach Full Context Packet — Post Timeline Context v2 + Accuracy Hardening
 
-**Generated:** 2026-07-04  
-**Scope:** Post-v2 architecture audit + context packet  
+**Generated:** 2026-07-04 (updated after Accuracy Hardening Sprint)  
+**Scope:** Post-v2 architecture audit + accuracy hardening summary  
 **Repo:** FitnessCoach / Forma / FitPilot iOS + Firebase aiGateway  
-**Purpose:** Document the current production Coach architecture after Coach Timeline Context v2, with emphasis on model accuracy, timeline context, mutation correctness, Health Intelligence, photo analysis, and backend prompt/schema behavior.
+**Purpose:** Document the current production Coach architecture after Coach Timeline Context v2 and the Accuracy Hardening Sprint, with emphasis on model accuracy, timeline context, mutation correctness, Health Intelligence, photo analysis, routing, compaction, and backend prompt/schema behavior.
 
-**Pre-v2 archive:** `Docs/Coach/archive/COACH_FULL_CONTEXT_PACKET_PRE_V2_2026-07-04.md`
+**Pre-v2 archive:** `Docs/Coach/archive/COACH_FULL_CONTEXT_PACKET_PRE_V2_2026-07-04.md`  
+**Sprint implementation:** [COACH_ACCURACY_HARDENING_IMPLEMENTATION.md](./COACH_ACCURACY_HARDENING_IMPLEMENTATION.md)  
+**Manual QA:** [COACH_ACCURACY_HARDENING_QA.md](./COACH_ACCURACY_HARDENING_QA.md)
 
 ---
 
@@ -37,7 +39,7 @@
 
 **CONFIRMED:** Backend `aiGateway` remains **stateless for context** — full packet sent per request; no server-side session store. In-memory per-UID rate limits only (`functions/src/gatewayGuardrails.ts`).
 
-**CONFIRMED:** Timeline v2 is **not AB-gated** — `AppContainer` always wires `SwiftDataCoachTimelineStore`, `CoachTimelineBackfillService`, `DefaultCoachTimelineRecorder`, and `CoachContextPacketV2Builder`. **PARTIAL:** Health Intelligence sections in the packet are gated by `FORMA_HEALTH_INTELLIGENCE_COACH_CONTEXT_ENABLED` (default **off**).
+**CONFIRMED:** Timeline v2 is **not AB-gated** — `AppContainer` always wires `SwiftDataCoachTimelineStore`, `CoachTimelineBackfillService`, `DefaultCoachTimelineRecorder`, and `CoachContextPacketV2Builder`. **CONFIRMED (Accuracy Hardening):** Feature gates centralized in **`FormaAbTest`** (`Fitness Coach/Configuration/FormaAbTest.swift`). Production resolves `FormaAbTestSnapshot.allEnabled`, which sets **`coachContextEnabled = true`** — so `shouldCoachLoadHealthIntelligence` is **on by default** unless `FormaAbTest.testOverride` is used (tests) or defaults are changed in code. Legacy `FORMA_HEALTH_INTELLIGENCE_*` env keys are documented but **not read** at runtime after the `FormaAbTest` migration (`HealthIntelligenceFeatureFlags.snapshot(environment:)` ignores the environment map).
 
 ### Main user flows after v2
 
@@ -71,16 +73,29 @@
 9. **RESOLVED:** Correction events (`foodEdited`, `foodDeleted`, `supersedesEventId`) visible to model.
 10. **RESOLVED:** Live steps via HealthKit with explicit `source`/`asOf`/`missingData` (was stale `DailyLog.steps` only).
 
+### Accuracy Hardening Sprint improvements (CONFIRMED on `main`)
+
+1. **`FormaAbTest` default-on HI Coach context** — engines + Coach context enabled in `allEnabled` snapshot.
+2. **Classifier confidence gate fix** — `log_food` / `log_workout` defer to dedicated AI + confirmation; no longer stuck in `confidence_clarify` at medium confidence.
+3. **Compound food validation** — backend `validateFoodExtraction` + iOS `blockedCompoundPatterns` (`chicken rice`, `nasi lemak`, …).
+4. **Edit/delete enrichment** — `CoachEntryReferenceResolver.enrichAction` before pending confirmation.
+5. **Deterministic daily status** — `CoachDailyStatusBuilder` local path for `daily_summary` / status commands.
+6. **Gateway/schema fixes** — nutrition estimate nullable schema, `mealType` normalization, expanded Jest contract tests.
+7. **Local guard fix** — non-water volumes (e.g. `300ml milk`) no longer misroute to water logging.
+
+See [COACH_ACCURACY_HARDENING_IMPLEMENTATION.md](./COACH_ACCURACY_HARDENING_IMPLEMENTATION.md) for file-level detail and open-PR items.
+
 ### Top remaining model accuracy risks
 
-1. **RISK:** Health Intelligence in Coach context **off by default** — recovery/training-load sections absent unless flag enabled.
-2. **RISK:** Context compaction may drop older timeline events on busy days.
-3. **RISK:** Cheap classifier misroutes food vs advice before v2 context helps.
-4. **RISK:** Compound dish estimates still depend on estimate-food quality.
+1. **RISK:** Classifier may still misroute advice vs log on ambiguous phrasing (partial test coverage).
+2. **RISK:** Context compaction may drop older low-value timeline events on busy days (protected types retained).
+3. **RISK:** Compound dish kcal accuracy still depends on estimate-food / model quality.
+4. **RISK:** Delete path retains meal-type fallback when `linkedEntryId` unresolved (`CoachMutationExecutor`).
 5. **RISK:** Chat transcript retention (30 days / 300 messages) may truncate long corrections.
 6. **RISK:** Backfill dedup window (60s) may miss edge-case duplicates.
 7. **RISK:** No emergency kill-switch for timeline-in-context (documented future item only).
 8. **RISK:** Weight undo not implemented.
+9. **RISK:** Production `CoachAccuracyObservability` not merged to `main` at sprint doc time (open PR).
 
 ### Summary table
 
@@ -91,7 +106,11 @@
 | Chat persistence | in-memory | `SwiftDataCoachChatTranscriptStore` (production) | **CONFIRMED** |
 | Photo context | no full context | v2 required on `analyze-meal-image` | **CONFIRMED** |
 | Steps | stale `DailyLog.steps` | HealthKit + HI fallback + `missingData` | **RESOLVED** |
-| Health Intelligence | not wired | wired when `FORMA_HEALTH_INTELLIGENCE_COACH_CONTEXT_ENABLED=1` | **PARTIAL** |
+| Health Intelligence | not wired | wired when `FormaAbTest.HealthIntelligence.shouldCoachLoad` (default **on** via `allEnabled`) | **CONFIRMED** |
+| Feature gates | scattered env reads | `FormaAbTest` single snapshot | **CONFIRMED** |
+| Classifier log_food | confidence_clarify loop | defers to estimate-food pipeline | **RESOLVED** |
+| Compound dishes | local catalog shortcut | blocked → AI + component validation | **PARTIAL** |
+| Edit/delete target | chat/heuristic | `CoachEntryReferenceResolver` + timeline | **PARTIAL** |
 | commonFoods | empty | populated from 30-day history | **RESOLVED** |
 | Corrections | invisible | timeline correction events + `linkedEntryId` | **RESOLVED** |
 
@@ -180,6 +199,19 @@ flowchart TD
 | `Fitness Coach/Infrastructure/AI/CoachContextPacketV2+Review.swift` | Daily review bridge | review context mapping | CTX |
 | `functions/src/coachContextPacketV2.ts` | Backend validate/sanitize | `parseCoachContextForPrompt()` | BACKEND |
 | `functions/src/coachContextPromptRules.ts` | Shared prompt rules | `coachContextV2Rules()` | BACKEND |
+
+### 3.1b Accuracy Hardening additions (CONFIRMED on `main`)
+
+| Path | Responsibility | Key types/functions | Tags |
+|------|----------------|---------------------|------|
+| `Fitness Coach/Configuration/FormaAbTest.swift` | Feature gate single source | `FormaAbTestSnapshot.allEnabled`, HI/Coach flags | FLAGS |
+| `Fitness Coach/Application/UseCases/Coach/Pipeline/CoachIntentConfidenceGate.swift` | Classifier confidence routing | `defersMutationToDedicatedPipeline` | ROUTE |
+| `Fitness Coach/Application/UseCases/Coach/Pipeline/LocalNutritionEstimator.swift` | Local vs AI food guard | `blockedCompoundPatterns` | ROUTE |
+| `Fitness Coach/Application/StateBuilders/Coach/CoachDailyStatusBuilder.swift` | Deterministic status copy | `CoachDailyStatusSnapshot` | LOCAL |
+| `functions/src/foodEstimateExtraction.ts` | Multi-component validation | `validateFoodExtraction`, `countListedIngredients` | BACKEND |
+| `functions/test/foodLoggingGolden.test.ts` | Golden extraction fixtures | compound bowl cases | TEST |
+
+**Open PR (not on `main` at doc time):** `CoachAccuracyObservability.swift`, dedicated `CoachEntryReferenceResolverTests.swift`.
 
 ### 3.2 Removed / deprecated pre-v2 files
 
@@ -615,7 +647,7 @@ flowchart TD
 | `training.workoutsToday` | `HealthActivityQueryService` | Medium | 0 + missing flags | |
 | `training.workouts[]` | HealthKit workout details | Medium | Empty array | duration, energy, source |
 | `training.trainingLoad` | `TrainingLoadEngine` + HI | Low-Medium | Omitted if HI off | |
-| `healthIntelligence` | HI snapshot builder | Medium | Omitted if flag off | 24 fields when present |
+| `healthIntelligence` | HI snapshot builder | Medium | Omitted when `shouldCoachLoadHealthIntelligence` false or snapshot fails | Included when `FormaAbTest` Coach context enabled (default **on**) |
 | `timeline.recentEvents` | Timeline store + selector | High for confirmed mutations | Empty if no history | Max 20 selected, 40 transport cap |
 | `recentChatMessages` | Transcript | Low (continuity) | Empty | Last 12, 180 char text |
 | `currentUserMessage` | In-flight turn | Medium | nil after send | Deduped vs last message |
@@ -623,7 +655,7 @@ flowchart TD
 | `commonFoods` | Aggregated food history | Medium | Empty if <2 logs | Max 10, min freq 2 |
 | `missingData` | Derived | High | Booleans default false | 13 flags |
 | `assumptions` | Builder heuristics | Low | Empty | Workout/steps source notes |
-| `generationMode` | `.live`/`.degraded`/`.backfill`/`.preview` | Meta | `.live` default | Degraded on read failures |
+| `generationMode` | `.live`/`.degraded`/`.backfill`/`.preview` | Meta | `.live` default | `.degraded` on read/Health failures; packet still sent with `missingData` |
 | `sourceAttribution` | Builder counts | Meta | Optional | Deduped source list |
 
 ### Endpoint context usage (CONFIRMED)
@@ -702,6 +734,21 @@ flowchart TD
 
 **CONFIRMED:** Validator always returns corrected packet (does not block send). Issues logged; corrections applied inline.
 
+### Context compaction guarantees (Accuracy Hardening)
+
+**File:** `CoachContextPacketV2SizeCompactor` in `CoachContextPacketV2Builder.swift`
+
+| Guarantee | Detail | Tag |
+|-----------|--------|-----|
+| Byte ceiling | `defaultMaxEncodedBytes = 24_576` after `compact()` | CONFIRMED |
+| Transport clamp | `clampedForTransport()` applied before and after compaction | CONFIRMED |
+| Protected events | Today's `foodLogged`/`waterLogged`/`weightLogged`, pending confirmation created, photo analysis chain, `workoutDetected`, `stepsUpdated` prefer retention | CONFIRMED |
+| Removable first | `systemRefresh`, `contextGenerated`, `healthDataUnavailable`, generic system-attribution events | CONFIRMED |
+| Chat truncation | Assistant messages truncated to 80 chars; timeline assistant summaries to 60 chars with `compactPayload` stripped | CONFIRMED |
+| Degraded fallback | No separate packet type — `generationMode: .degraded` with populated `missingData` when reads fail | CONFIRMED |
+
+**NOT CONFIRMED on `main`:** Production `compactionOccurred` metric in OSLog (planned observability PR).
+
 ---
 
 ## 11. AI Routing and Intent Classification — Post-v2
@@ -722,15 +769,17 @@ flowchart TD
 User text
   → LocalNoAPIGuard (deterministic water/weight/status/undo?)
   → if pass: CheapLLMIntentClassifier.classify(text, context: v2)
-  → CoachIntentConfidenceGate
+  → CoachIntentConfidenceGate (log_food/log_workout defer — not blocked at medium confidence)
   → CoachIntentRouter → CoachAIRouteHandler
 ```
+
+**CONFIRMED (2026-07-04):** `CoachIntentConfidenceGate.defersMutationToDedicatedPipeline` exempts `.logFood` and `.logWorkout` from medium/low confidence clarification because they always route through estimate/confirmation before persisting.
 
 ### Remaining risks
 
 - **RISK:** Classifier still uses current user text as primary signal — timeline helps references, not primary intent.
-- **RISK:** False `log_food` on advice phrasing still possible at classifier tier.
-- **PARTIAL:** `linkedEntryId` depends on backend returning it or client resolver finding match.
+- **RISK:** False `log_food` on advice phrasing still possible at classifier tier (mitigated by `nutrition_estimate_query` prompt rules + tests).
+- **PARTIAL:** `linkedEntryId` depends on backend returning it or `CoachEntryReferenceResolver` finding a match; meal-type delete fallback remains if unresolved.
 
 ---
 
@@ -783,14 +832,16 @@ User text → userMessage → context v2 → classifier → estimate-food (+ con
 | Steps source/asOf | Builder | Yes | Explicit in `CoachContextSourcedInt` | RESOLVED |
 | workoutsToday | HealthKit | Yes (`training`) | `workoutsUnavailable` | CONFIRMED |
 | Workout details | HealthKit | Yes (`training.workouts[]`) | Empty + missing flags | CONFIRMED |
-| Recovery score/status | HI snapshot | Only if flag on | Omitted | **RISK** default off |
-| Training load | HI + engine | Only if flag on | Omitted | **RISK** default off |
-| Adaptive nutrition | HI snapshot | Only if flag on | Omitted | **RISK** default off |
+| Recovery score/status | HI snapshot | When `FormaAbTest` Coach context enabled (default **on**) | Omitted if load fails | CONFIRMED when enabled |
+| Training load | HI + engine | When Coach context enabled | Omitted if load fails | CONFIRMED when enabled |
+| Adaptive nutrition | HI snapshot | When Coach context enabled | Omitted if load fails | CONFIRMED when enabled |
 | HealthKit denied | Builder | `missingData.healthKitDenied` | Distinguishable from no workout | CONFIRMED |
 
-**CONFIRMED:** `HealthIntelligenceEngine` / `CoachHealthIntelligenceContextBuilder` used when `shouldCoachLoadHealthIntelligence` is true (`FORMA_HEALTH_INTELLIGENCE_COACH_CONTEXT_ENABLED`, default **false**).
+**CONFIRMED:** `HealthIntelligenceEngine` / `CoachHealthIntelligenceContextBuilder` used when `shouldCoachLoadHealthIntelligence` is true (`FormaAbTest.HealthIntelligence.shouldCoachLoad`, default **on** via `FormaAbTestSnapshot.allEnabled`).
 
-**PARTIAL:** Basic workout/steps still available via `HealthActivityQueryService` without HI flag.
+**CONFIRMED:** Disable in tests via `FormaAbTest.testOverride` with `coachContextEnabled = false`.
+
+**PARTIAL:** Basic workout/steps still available via `HealthActivityQueryService` when HI section omitted.
 
 **RISK:** `DailyLog.workoutCaloriesBurned` may coexist with HK workout data — builder uses sourced ints with attribution; double-count risk mitigated by source labeling but not fully eliminated.
 
@@ -803,7 +854,7 @@ User text → userMessage → context v2 → classifier → estimate-food (+ con
 | Old `workoutsToday=0` issue fixed? | Yes — full v2 context includes `training.workoutsToday` from HealthKit | **RESOLVED** |
 | Meal image receives v2? | **Required** by backend | **CONFIRMED** |
 | Model knows goals/recent meals? | Yes — `today.targets`, `recentMealsStructured`, `commonFoods` | **CONFIRMED** |
-| Workout/recovery context? | `training` always; `healthIntelligence` if flag on | **PARTIAL** |
+| Workout/recovery context? | `training` always; `healthIntelligence` when `FormaAbTest` Coach context enabled (default **on**) | **CONFIRMED** |
 | Photo assumptions visible later? | `photoAnalysisCompleted` timeline + pending confirmation metadata | **CONFIRMED** |
 | Raw image in timeline? | **No** — metadata only | **CONFIRMED** |
 | Image bytes sent only to image field? | Yes — base64 in `image` field, not in context JSON | **CONFIRMED** |
@@ -936,17 +987,17 @@ flowchart LR
 
 | Failure Mode | Post-v2 Status | Files | Severity | Reproduce | Test Coverage | Next Fix |
 |--------------|----------------|-------|----------|-----------|---------------|----------|
-| Health Intelligence not wired | **PARTIAL** — wired but flag off | `HealthIntelligenceFeatureFlags` | Medium | Default install post-workout advice | `CoachAIHealthIntelligenceIntegrationTests` | Enable flag or default on |
-| Photo workout context | **PARTIAL** — training yes, HI no | Builder | Low | HI flag off | `CoachMealPhotoContextV2Tests` | Include baseline recovery without full HI |
-| Conversation truncation | **PARTIAL** — 12 msgs + timeline | Builder limits | Medium | Long session | Partial | Summarize older chat |
-| Compound dish errors | **PARTIAL** | estimate-food | High | "chicken rice" | `CoachFoodLoggingRegressionTests` | Better component extraction |
+| Health Intelligence not wired | **RESOLVED** — default on via `FormaAbTest` | `FormaAbTest.swift` | — | `HealthIntelligenceFeatureFlagsTests` | Tune `allEnabled` for staged rollout |
+| Photo workout context | **CONFIRMED** — training + HI when Coach context on | Builder | Low | HI disabled in test override | — |
+| Conversation truncation | **PARTIAL** — 12 msgs + compaction | Size compactor | Medium | Long session | Summarize older chat |
+| Compound dish errors | **PARTIAL** — validation + blocked local patterns | estimate-food | High | "chicken rice" | Golden fixture expansion |
 | Timezone day boundary | **PARTIAL** — localDate in meta | Builder | Medium | Travel at midnight | `CoachTimelineHardeningTests` | More TZ integration tests |
 
 ### 3. Still open after v2
 
 | Failure Mode | Files | Severity | Reproduce | Test Coverage | Next Fix |
 |--------------|-------|----------|-----------|---------------|----------|
-| Classifier misroute food vs advice | `CheapLLMIntentClassifier` | High | "should I eat pizza" | `CoachRoutingTests` | Stronger gate or examples |
+| Classifier misroute food vs advice | `CheapLLMIntentClassifier` | High | "should I eat pizza" | `CoachRoutingTests`, `NutritionEstimateIntentRoutingTests` | More golden utterances |
 | Backend timeout | `AIService` | Medium | Slow network | Partial | Offline copy + retry UX |
 | Context too large busy day | Size compactor | Medium | 50+ events/day | Partial | Smarter compaction |
 | Weight undo missing | `CoachMutationExecutor` | Low | Undo weight | None | Implement undo |
@@ -976,28 +1027,38 @@ flowchart LR
 | `CoachTimelineStoreTests.swift` | Store operations | Production `SwiftDataCoachTimelineStore` E2E |
 | `CoachTimelineBackfillServiceTests.swift` | Dedup, idempotency | Multi-user |
 | `CoachTimelineContextV2ComprehensiveTests.swift` | End-to-end packet+timeline | — |
-| `CoachMealPhotoContextV2Tests.swift` | Photo + v2 context | HI flag off matrix |
-| `CoachChatTranscriptPersistenceTests.swift` | Persist/reload/retention | Corruption recovery |
-| `CoachAIHealthIntelligenceIntegrationTests.swift` | HI flag gating | Real HealthKit device tests |
-| `CoachRoutingTests.swift` | Routing decisions | v2-specific cache keys |
+| `CoachMealPhotoContextV2Tests.swift` | Photo + v2 context, visible-food rules | — |
+| `CoachChatTranscriptPersistenceTests.swift` | Persist/reload/retention, **Schema V6** | Corruption recovery |
+| `CoachAIHealthIntelligenceIntegrationTests.swift` | HI load gating | Real HealthKit device tests |
+| `CoachRoutingTests.swift` | Handlers, **log_food at medium confidence**, chicken rice, milk≠water | Advice-vs-log golden set |
+| `CoachInputHardeningTests.swift` | Input hardening + confidence routing | — |
+| `CoachDailyStatusBuilderTests.swift` | Deterministic local status | Midnight TZ |
+| `HealthIntelligenceFeatureFlagsTests.swift` | **`FormaAbTest` all-enabled defaults** | Runtime env re-wire |
+| `CoachV2ResponseHandlingTests.swift` | **`CoachEntryReferenceResolver.enrichAction`** | Dedicated resolver matrix |
+| `FormaAIBackendClientTests.swift` | Client contract | — |
+| `FoodLogDraftTests.swift` | **`mealType` normalization** | — |
 | `CoachMutationExecutorTimelineTests.swift` | Mutation events | Weight undo |
 
 ### Backend tests
 
 | Test File | Covers | Missing |
 |-----------|--------|---------|
-| `coachContextPacketV2.test.ts` | Validate/sanitize | Swift/TS parity matrix |
-| `coachContextPromptRules.test.ts` | Rule strings exist | Prompt drift snapshots |
+| `coachContextPacketV2.test.ts` | Validate/sanitize, **`coachContextLogFields` privacy** | Swift/TS parity matrix |
+| `coachContextPromptRules.test.ts` | Rule substring presence (not full snapshots) | Prompt hash snapshots |
+| `foodEstimateExtraction.test.ts` | **Multi-component validation**, `normalizeMealType` | kcal truth |
+| `foodLoggingGolden.test.ts` | Golden extraction fixtures | SG-specific case |
+| `nutritionSchema.test.ts` | **Strict nullable nutrition payloads** | — |
+| `gatewayGuardrails.test.ts` | Auth, body limits, routing | — |
 | `aiGateway.contract.test.ts` | All endpoints + v2 400 on v1 | Load testing |
 | `mealImageAnalysis.test.ts` | Image payload validation | Full multimodal content |
 
-### Newly covered after v2
+### Newly covered after v2 + Accuracy Hardening
 
-Timeline persistence, backfill, context validator, photo v2 context, transcript persistence, pending/rejected exclusion, `linkedEntryId` resolution, backend v2 schema rejection.
+Timeline persistence, backfill, context validator, photo v2 context, transcript persistence, pending/rejected exclusion, `linkedEntryId` resolution, backend v2 schema rejection, **`FormaAbTest` HI defaults**, **classifier log_food confidence fix**, **compound extraction validation**, **deterministic daily status**, **gateway guardrail tests**.
 
-### Still missing after v2
+### Still missing after Accuracy Hardening
 
-Timeline emergency kill-switch, Swift gateway E2E from iOS, production SwiftData migration suite, HealthKit denied on physical device matrix, context compactor ordering integration test.
+Production **`CoachAccuracyObservability`** (open PR), dedicated **`CoachEntryReferenceResolverTests`** (open PR), timeline emergency kill-switch, Swift gateway E2E from iOS, full pre-V5→V6 migration E2E on device, HealthKit denied physical matrix, dedicated Coach context inspector UI, full prompt file snapshot locking.
 
 ### Critical tests to add next
 
@@ -1157,7 +1218,7 @@ HealthKit workouts/steps may be empty or simulated — use `missingData` flags t
 2. Is 24KB context cap optimal or causing silent compaction loss?
 3. Does `commonFoods` measurably improve estimate accuracy in production?
 4. Do prompt rules reduce hallucination enough without structured enforcement?
-5. Should Health Intelligence coach context default to **on**?
+5. Should Health Intelligence coach context default to **on**? → **CONFIRMED yes** via `FormaAbTestSnapshot.allEnabled`; revisit for staged App Store rollout if needed.
 6. Should more routes use deterministic local summaries instead of AI?
 7. Is 300-message transcript retention appropriate for privacy and accuracy?
 8. Are `foodEdited`/`supersedesEventId` sufficient for edit/delete audit?
@@ -1185,7 +1246,7 @@ I have completed the Coach Timeline Context v2 upgrade. Analyze this post-v2 con
 | "AIContext payload" (as current) | **Removed** — DEPRECATED/REMOVED only |
 | "commonFoods always empty" | **Removed** — marked RESOLVED |
 | "photo endpoint ignores AIContext" | **Removed** — marked RESOLVED |
-| "Health Intelligence context not wired" | **Updated** — PARTIAL (flag-gated) |
+| "Health Intelligence context not wired" | **Updated** — CONFIRMED default-on via `FormaAbTest` |
 | "Only 5 prior messages" | **Removed** — 12 confirmed |
 | "Current timeline/context limitations" | **Replaced** with post-v2 risk section |
 
@@ -1204,9 +1265,31 @@ I have completed the Coach Timeline Context v2 upgrade. Analyze this post-v2 con
 
 ---
 
+## 25. Accuracy Hardening Sprint (2026-07-04)
+
+**Implementation detail:** [COACH_ACCURACY_HARDENING_IMPLEMENTATION.md](./COACH_ACCURACY_HARDENING_IMPLEMENTATION.md)  
+**Manual QA (70 cases):** [COACH_ACCURACY_HARDENING_QA.md](./COACH_ACCURACY_HARDENING_QA.md)
+
+| Topic | Production truth (CONFIRMED unless noted) |
+|-------|------------------------------------------|
+| HI default-on | `FormaAbTestSnapshot.allEnabled` → `coachContextEnabled = true` |
+| Context fallback | `generationMode: .degraded` + `missingData`; no separate minimal packet type |
+| Classifier | `log_food`/`log_workout` exempt from low-confidence clarify; advice intents → non-mutating endpoints |
+| Compound food | iOS blocked patterns + backend component validation / golden tests |
+| Singapore dishes | Covered as compound foods (`chicken rice`, `nasi lemak`) — no SG-specific module |
+| Compaction | 24 KB ceiling; protected mutation/photo events; assistant text truncation |
+| SwiftData | V5 timeline + V6 transcript entities; lightweight migrations |
+| Edit/delete | `CoachEntryReferenceResolver.enrichAction`; meal-type delete fallback **still present** |
+| Daily status | `CoachDailyStatusBuilder` local path; ±5 kcal parity target |
+| Photo | v2 required; `needsUserReview`; visible-food prompt rules |
+| Observability | Redaction helpers + `coachContextLogFields` on **main**; `CoachAccuracy` OSLog **open PR** |
+| Tests | See §20 updated inventory |
+
+---
+
 ## Current Truth
 
-**As of 2026-07-04, the Coach Timeline Context v2 upgrade is implemented in production code paths with no AB gate on the timeline itself.**
+**As of 2026-07-04, Coach Timeline Context v2 and Accuracy Hardening Sprint changes through `main` @ `91b7e3e` are implemented in production code paths with no AB gate on the timeline itself.**
 
 | Layer | Current truth |
 |-------|---------------|
@@ -1214,11 +1297,12 @@ I have completed the Coach Timeline Context v2 upgrade. Analyze this post-v2 con
 | Timeline | Persisted `CoachTimelineEvent` ledger — audit/context, not nutrition truth |
 | Nutrition truth | SwiftData food/water/weight logs + `DailyLogService` |
 | Chat | Persisted cross-launch via SwiftData in production |
-| Photo | Full v2 context required by `analyze-meal-image` |
-| Health | Workouts/steps via HealthKit in packet; full HI when `FORMA_HEALTH_INTELLIGENCE_COACH_CONTEXT_ENABLED=1` (default off) |
-| Backend | Stateless `aiGateway`; validates/sanitizes v2 per request |
+| Photo | Full v2 context required by `analyze-meal-image`; visible-food prompt rules |
+| Health | Workouts/steps via HealthKit; full HI when `FormaAbTest.HealthIntelligence.shouldCoachLoad` (default **on**) |
+| Feature gates | **`FormaAbTest`** single snapshot (`allEnabled` unless test override) |
+| Backend | Stateless `aiGateway`; validates/sanitizes v2 per request; summary-only context logs |
 | Pre-v2 archive | `Docs/Coach/archive/COACH_FULL_CONTEXT_PACKET_PRE_V2_2026-07-04.md` |
 
-**PARTIAL / not complete:** Health Intelligence coach context rollout (flag off), weight undo, emergency timeline kill-switch, full E2E gateway tests from iOS CI.
+**PARTIAL / not complete:** Meal-type delete fallback, weight undo, emergency timeline kill-switch, production observability PR merge, dedicated context inspector UI, full prompt snapshot files.
 
-**NOT FOUND:** `CoachContextBuilder`, active `AIContext` Coach transport, timeline v2 feature flag.
+**NOT FOUND:** `CoachContextBuilder`, active `AIContext` Coach transport, timeline v2 feature flag, runtime `FORMA_HEALTH_INTELLIGENCE_*` env reads (keys documented only).
