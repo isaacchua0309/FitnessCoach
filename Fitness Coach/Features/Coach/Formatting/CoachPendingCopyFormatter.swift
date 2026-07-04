@@ -52,12 +52,21 @@ enum CoachPendingCopyFormatter {
             style: tone == .highConfidenceSimple ? .compact : .full
         )
         let componentLines = componentSummaryLines(for: mealDraft)
-        let footer = foodFooter(tone: tone, sanityWarning: sanityWarning)
+        let footer = foodFooter(
+            tone: tone,
+            sanityWarning: sanityWarning,
+            fromPhotoAnalysis: fromPhotoAnalysis,
+            confidence: confidence
+        )
 
         var sections = [headline, nutritionLine]
         if !componentLines.isEmpty {
             sections.append("")
             sections.append(contentsOf: componentLines)
+        }
+        if confidence == .low {
+            sections.append("")
+            sections.append(FormaProductCopy.Coach.pendingLowConfidenceWarning)
         }
         if let sanityWarning, !sanityWarning.isEmpty {
             sections.append("")
@@ -89,19 +98,15 @@ enum CoachPendingCopyFormatter {
     ) -> String {
         let name = naturalFoodName(mealDraft.displayName)
         if fromPhotoAnalysis {
-            switch tone {
-            case .vague:
-                return "From your meal photo, I estimated a generic \(name):"
-            case .highConfidenceSimple, .standard:
-                return "From your meal photo, I estimated \(name):"
-            }
+            return FormaProductCopy.Coach.pendingPhotoEstimateHeadline(
+                name: name,
+                vague: tone == .vague
+            )
         }
-        switch tone {
-        case .vague:
-            return "Estimated a generic \(name):"
-        case .highConfidenceSimple, .standard:
-            return "Estimated \(name):"
-        }
+        return FormaProductCopy.Coach.pendingTextEstimateHeadline(
+            name: name,
+            vague: tone == .vague
+        )
     }
 
     static func foodHeadline(
@@ -117,34 +122,38 @@ enum CoachPendingCopyFormatter {
     }
 
     static func chatNutritionLine(for mealDraft: FoodLogDraft, style: NutritionLineStyle) -> String {
-        let calories = "\(mealDraft.totalCalories) kcal"
-        let protein = "\(FoodEntryFormFormatter.formatMacro(mealDraft.totalProtein))g protein"
-
-        switch style {
-        case .compact:
-            return "\(calories) · \(protein)"
-        case .full:
-            let carbs = "\(FoodEntryFormFormatter.formatMacro(mealDraft.totalCarbs))g carbs"
-            let fat = "\(FoodEntryFormFormatter.formatMacro(mealDraft.totalFat))g fat"
-            return "\(calories) · \(protein) · \(carbs) · \(fat)"
-        }
+        FormaProductCopy.Coach.chatEstimateNutritionLine(
+            calories: mealDraft.totalCalories,
+            protein: mealDraft.totalProtein,
+            carbs: mealDraft.totalCarbs,
+            fat: mealDraft.totalFat,
+            compact: style == .compact
+        )
     }
 
     static func chatNutritionLine(for draft: FoodDraft, style: NutritionLineStyle) -> String {
         chatNutritionLine(for: FoodLogDraftMapper.fromLegacyDraft(draft), style: style)
     }
 
-    static func foodFooter(tone: FoodCopyTone, sanityWarning: String? = nil) -> String {
+    static func foodFooter(
+        tone: FoodCopyTone,
+        sanityWarning: String? = nil,
+        fromPhotoAnalysis: Bool = false,
+        confidence: AIConfidence = .medium
+    ) -> String {
+        if fromPhotoAnalysis {
+            return FormaProductCopy.Coach.photoEstimateReviewFooter
+        }
         if sanityWarning != nil {
-            return FormaProductCopy.Coach.foodEditPortionFooter
+            return "\(FormaProductCopy.Coach.foodEditPortionFooter) \(FormaProductCopy.Coach.pendingReviewBeforeLogging)"
         }
         switch tone {
         case .vague:
-            return FormaProductCopy.Coach.foodEditIngredientsFooter
+            return "\(FormaProductCopy.Coach.foodEditIngredientsFooter) \(FormaProductCopy.Coach.pendingReviewBeforeLogging)"
         case .highConfidenceSimple:
-            return FormaProductCopy.Coach.foodConfirmBelowFooter
+            return FormaProductCopy.Coach.pendingReviewBeforeLogging
         case .standard:
-            return FormaProductCopy.Coach.foodEditPortionFooter
+            return "\(FormaProductCopy.Coach.foodEditPortionFooter) \(FormaProductCopy.Coach.pendingReviewBeforeLogging)"
         }
     }
 

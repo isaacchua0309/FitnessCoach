@@ -23,17 +23,29 @@ final class CoachMutationFormattingTests: XCTestCase {
         XCTAssertTrue(message.contains(FormaProductCopy.Coach.foodLoggedTimelineNote))
     }
 
-    func testPhotoFoodLoggedMentionsPhotoSourceAndMacros() {
-        let entry = CoachMutationTestFixtures.chickenFoodEntry
+    func testPhotoFoodLoggedMentionsReviewedEstimateAndAboutMacros() {
+        var entry = CoachMutationTestFixtures.chickenFoodEntry
+        entry.source = .aiPhotoEstimate
+
         let message = CoachResponseBuilder.food(
             entry,
             log: nil,
             fromPhotoAnalysis: true
         )
 
-        XCTAssertTrue(message.contains("from your meal photo"))
-        XCTAssertTrue(message.contains("330 kcal · 62g protein · 0g carbs · 7g fat"))
+        XCTAssertTrue(message.contains(FormaProductCopy.Coach.loggedReviewedPhotoEstimate))
+        XCTAssertTrue(message.contains("About 330 kcal"))
         XCTAssertTrue(message.contains(FormaProductCopy.Coach.foodLoggedTimelineNote))
+    }
+
+    func testAIFoodLoggedMentionsReviewedEstimate() {
+        var entry = CoachMutationTestFixtures.chickenFoodEntry
+        entry.source = .aiTextEstimate
+
+        let message = CoachResponseBuilder.food(entry, log: nil)
+
+        XCTAssertTrue(message.contains(FormaProductCopy.Coach.loggedReviewedEstimate))
+        XCTAssertTrue(message.contains("About 330 kcal"))
     }
 
     func testWaterLoggedStaysConciseWhenLogPresent() {

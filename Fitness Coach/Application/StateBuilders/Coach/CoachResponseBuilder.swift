@@ -45,14 +45,27 @@ enum CoachResponseBuilder {
         log: DailyLog?,
         fromPhotoAnalysis: Bool = false
     ) -> String {
-        let leadIn = fromPhotoAnalysis
-            ? "Logged \(entry.name) from your meal photo."
-            : "Logged \(entry.name)."
+        let isPhoto = fromPhotoAnalysis || entry.source == .aiPhotoEstimate
+        let isReviewedEstimate = entry.source.isReviewedEstimate
+        let leadIn: String
+        if isReviewedEstimate {
+            leadIn = isPhoto
+                ? FormaProductCopy.Coach.loggedReviewedPhotoEstimate
+                : FormaProductCopy.Coach.loggedReviewedEstimate
+        } else {
+            leadIn = FormaProductCopy.Coach.loggedManualFood(name: entry.name)
+        }
         var response = leadIn
         response += """
 
 
-        \(entry.calories) kcal · \(FoodEntryFormFormatter.formatMacro(entry.protein))g protein · \(FoodEntryFormFormatter.formatMacro(entry.carbs))g carbs · \(FoodEntryFormFormatter.formatMacro(entry.fat))g fat
+        \(FormaProductCopy.Coach.loggedNutritionLine(
+            calories: entry.calories,
+            protein: entry.protein,
+            carbs: entry.carbs,
+            fat: entry.fat,
+            isEstimate: isReviewedEstimate
+        ))
         """
         if let log {
             response += CoachNutritionSummaryFormatter.foodLoggedSuffix(
@@ -447,7 +460,7 @@ enum CoachResponseBuilder {
     static let aiNotUnderstood = FormaProductCopy.Error.coachNotUnderstood
 
     static let aiFoodPendingConfirmation =
-        "I estimated this food, but I need your confirmation before logging it."
+        "I estimated this food — review before logging."
 
     static let aiFoodRejected =
         "No problem — I did not log that food."
@@ -512,7 +525,7 @@ enum CoachResponseBuilder {
         guard let assistantMessage, !assistantMessage.isEmpty else {
             return aiFoodPendingConfirmation
         }
-        return "\(assistantMessage)\n\nConfirm before I log it?"
+        return "\(assistantMessage)\n\n\(FormaProductCopy.Coach.pendingReviewBeforeLogging)"
     }
 
     // MARK: Formatting Helpers

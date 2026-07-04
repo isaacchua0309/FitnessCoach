@@ -57,7 +57,7 @@ final class FoodComponentDisplayFormatterTests: XCTestCase {
 
         XCTAssertEqual(
             FoodComponentDisplayFormatter.summaryLine(component),
-            "• Barley rice — 150g cooked · 165 kcal"
+            "• Barley rice — 150g cooked · ~165 kcal"
         )
     }
 }

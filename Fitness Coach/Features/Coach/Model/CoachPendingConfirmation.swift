@@ -33,7 +33,7 @@ enum CoachPendingConfirmation: Equatable {
             var lines: [String] = []
             if meal.hasUsableNutritionEstimate {
                 lines.append(
-                    "\(meal.displayName) · \(meal.totalCalories) kcal · \(AIFoodConfirmationFormatter.macroSummary(for: meal))"
+                    "\(meal.displayName) · \(FormaProductCopy.Coach.pendingEstimatedCalories(about: meal.totalCalories)) · \(AIFoodConfirmationFormatter.macroSummary(for: meal))"
                 )
             } else {
                 lines.append(meal.displayName)
@@ -102,7 +102,7 @@ enum CoachPendingConfirmation: Equatable {
         case .food(let draft):
             let meal = draft.primaryMealDraft
             if meal.hasUsableNutritionEstimate {
-                return "~\(meal.totalCalories) kcal"
+                return FormaProductCopy.Coach.estimateCardAboutCalories(about: meal.totalCalories)
             }
             let name = meal.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
             return name.isEmpty ? nil : name

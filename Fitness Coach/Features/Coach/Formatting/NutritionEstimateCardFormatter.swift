@@ -88,22 +88,22 @@ enum NutritionEstimateCardFormatter {
     // MARK: - Private
 
     private static func caloriesDisplay(for response: NutritionEstimateResponse) -> String {
-        if let kcal = response.caloriesKcal {
-            return "\(PlanDisplayFormatter.formatGroupedInteger(kcal)) kcal"
-        }
         if let lower = response.caloriesRangeLowerKcal,
            let upper = response.caloriesRangeUpperKcal {
-            return "\(PlanDisplayFormatter.formatGroupedInteger(lower))–\(PlanDisplayFormatter.formatGroupedInteger(upper)) kcal"
+            return FormaProductCopy.Coach.pendingLikelyRange(lower: lower, upper: upper)
+        }
+        if let kcal = response.caloriesKcal {
+            return FormaProductCopy.Coach.estimateCardAboutCalories(about: kcal)
         }
         return "Estimated kcal"
     }
 
     private static func itemCaloriesDisplay(_ item: NutritionComparisonItem) -> String {
-        if let kcal = item.caloriesKcal {
-            return "\(PlanDisplayFormatter.formatGroupedInteger(kcal)) kcal"
-        }
         if let lower = item.caloriesRangeLowerKcal, let upper = item.caloriesRangeUpperKcal {
-            return "\(PlanDisplayFormatter.formatGroupedInteger(lower))–\(PlanDisplayFormatter.formatGroupedInteger(upper)) kcal"
+            return FormaProductCopy.Coach.pendingLikelyRange(lower: lower, upper: upper)
+        }
+        if let kcal = item.caloriesKcal {
+            return FormaProductCopy.Coach.estimateCardAboutCalories(about: kcal)
         }
         return "— kcal"
     }

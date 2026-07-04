@@ -2348,18 +2348,89 @@ enum FormaProductCopy {
         static let composerImageRetry = "Retry"
         static let mealPhotoPreparationFailed =
             "Couldn't prepare this photo. Try taking another photo in better lighting."
-        static let photoAnalysisLeadIn = "From your meal photo:"
+        static let photoAnalysisLeadIn = "From your meal photo, I'd estimate:"
         static let foodEditPortionFooter = "Edit if the portion or cut is different."
         static let foodEditIngredientsFooter = "Edit if you know the ingredients."
-        static let foodConfirmBelowFooter = "Confirm below to add it."
+        static let foodConfirmBelowFooter = "Review before logging."
+        static let photoEstimateReviewFooter = "Review this photo estimate before logging."
         static let pendingBarHint = "Use the bar below to log, edit, or discard."
         static let foodLoggedTimelineNote = "Added to today's timeline."
-        static let pendingReviewBeforeLogging = "Please review before logging."
+        static let loggedReviewedEstimate = "Logged your reviewed estimate."
+        static let loggedReviewedPhotoEstimate = "Logged your reviewed estimate from your meal photo."
+        static let pendingReviewBeforeLogging = "Review before logging."
         static let pendingSourceMealPhoto = "Source: meal photo"
         static let pendingSourceCommonFood = "Source: usual food"
+        static let logEstimatePending = "Log estimate"
+        static let adjustPortionsPending = "Adjust portions"
+        static let pendingEditBeforeLoggingHint = "Edit before logging"
+        static let pendingLowConfidenceWarning =
+            "This is a rough estimate. Portion size or sauce may change the total meaningfully."
+        static let pendingEstimatedCaloriesUnknown = "Estimated: calories unavailable"
+
+        static func estimateCardAboutCalories(about calories: Int) -> String {
+            "About \(PlanDisplayFormatter.formatGroupedInteger(calories)) kcal"
+        }
+
+        static func pendingEstimatedCalories(about calories: Int) -> String {
+            "Estimated: about \(PlanDisplayFormatter.formatGroupedInteger(calories)) kcal"
+        }
+
+        static func pendingLikelyRange(lower: Int, upper: Int) -> String {
+            "Likely range: \(PlanDisplayFormatter.formatGroupedInteger(lower))–\(PlanDisplayFormatter.formatGroupedInteger(upper)) kcal"
+        }
 
         static func latestMealLine(name: String, calories: Int) -> String {
-            "Latest: \(name) · \(calories) kcal"
+            "Latest: \(name) · about \(PlanDisplayFormatter.formatGroupedInteger(calories)) kcal"
+        }
+
+        static func loggedManualFood(name: String) -> String {
+            "Logged \(name)."
+        }
+
+        static func pendingPhotoEstimateHeadline(name: String, vague: Bool) -> String {
+            if vague {
+                return "From your meal photo, I'd estimate a generic \(name):"
+            }
+            return "From your meal photo, I'd estimate \(name):"
+        }
+
+        static func pendingTextEstimateHeadline(name: String, vague: Bool) -> String {
+            if vague {
+                return "I'd estimate a generic \(name):"
+            }
+            return "I'd estimate \(name):"
+        }
+
+        static func chatEstimateNutritionLine(
+            calories: Int,
+            protein: Double,
+            carbs: Double,
+            fat: Double,
+            compact: Bool
+        ) -> String {
+            let caloriePart = estimateCardAboutCalories(about: calories)
+            let proteinPart = "\(FoodEntryFormFormatter.formatMacro(protein))g protein"
+            if compact {
+                return "\(caloriePart) · \(proteinPart)"
+            }
+            let carbsPart = "\(FoodEntryFormFormatter.formatMacro(carbs))g carbs"
+            let fatPart = "\(FoodEntryFormFormatter.formatMacro(fat))g fat"
+            return "\(caloriePart) · \(proteinPart) · \(carbsPart) · \(fatPart)"
+        }
+
+        static func loggedNutritionLine(
+            calories: Int,
+            protein: Double,
+            carbs: Double,
+            fat: Double,
+            isEstimate: Bool
+        ) -> String {
+            let caloriePart = isEstimate
+                ? estimateCardAboutCalories(about: calories)
+                : "\(PlanDisplayFormatter.formatGroupedInteger(calories)) kcal"
+            return """
+            \(caloriePart) · \(FoodEntryFormFormatter.formatMacro(protein))g protein · \(FoodEntryFormFormatter.formatMacro(carbs))g carbs · \(FoodEntryFormFormatter.formatMacro(fat))g fat
+            """
         }
 
         enum Launch {

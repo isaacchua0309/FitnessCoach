@@ -61,7 +61,7 @@ final class CoachMessagePresenterTests: XCTestCase {
         let userID = UUID()
         let sessionID = UUID()
         let message = ChatMessage.assistantPhotoAnalysisResult(
-            text: "From your meal photo, I estimated chicken bowl:",
+            text: "From your meal photo, I'd estimate chicken bowl:",
             sessionID: sessionID,
             relatedUserMessageID: userID
         )

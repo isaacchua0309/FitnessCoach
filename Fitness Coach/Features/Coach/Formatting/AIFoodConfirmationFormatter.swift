@@ -60,11 +60,11 @@ enum AIFoodConfirmationFormatter {
     static func confirmationWarning(confidence: AIConfidence) -> String {
         switch confidence {
         case .high:
-            return "Please review this estimate before logging."
-        case .medium:
-            return "This is a medium-confidence estimate. Please review before logging."
-        case .low:
             return FormaProductCopy.Coach.pendingReviewBeforeLogging
+        case .medium:
+            return "Medium-confidence estimate — review before logging."
+        case .low:
+            return FormaProductCopy.Coach.pendingLowConfidenceWarning
         }
     }
 
@@ -83,7 +83,7 @@ enum AIFoodConfirmationFormatter {
 
     static func pendingReviewWarning(confidence: AIConfidence) -> String? {
         guard confidence == .low else { return nil }
-        return FormaProductCopy.Coach.pendingReviewBeforeLogging
+        return FormaProductCopy.Coach.pendingLowConfidenceWarning
     }
 
     static func assumptionLines(for meal: FoodLogDraft) -> [String] {

@@ -67,10 +67,10 @@ enum CoachPreviewData {
         guard let userMessage = mealPhotoUserMessage else { return nil }
         return ChatMessage.assistantPhotoAnalysisResult(
             text: """
-            From your meal photo, I estimated lunch bowl:
-            420 kcal · 28g protein · 35g carbs · 14g fat
+            From your meal photo, I'd estimate lunch bowl:
+            About 420 kcal · 28g protein · 35g carbs · 14g fat
 
-            Edit if the portion or cut is different.
+            Review this photo estimate before logging.
             """,
             sessionID: UUID(),
             relatedUserMessageID: userMessage.id

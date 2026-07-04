@@ -209,6 +209,8 @@ struct CoachConfirmationBar: View {
 
     private var confirmLabel: String {
         switch confirmation {
+        case .food:
+            return FormaProductCopy.Coach.logEstimatePending
         case .edit, .delete, .undo:
             return FormaProductCopy.Coach.confirmPending
         default:

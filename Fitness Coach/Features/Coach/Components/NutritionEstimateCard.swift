@@ -69,7 +69,7 @@ struct NutritionEstimateCard: View {
         Text(state.caloriesDisplay)
             .font(CoachDesignTokens.Typography.largeTitle)
             .foregroundStyle(CoachDesignTokens.Color.primaryText)
-            .accessibilityLabel("Estimated calories: \(state.caloriesDisplay)")
+            .accessibilityLabel("Estimated calories, \(state.caloriesDisplay)")
     }
 
     private var macroRow: some View {

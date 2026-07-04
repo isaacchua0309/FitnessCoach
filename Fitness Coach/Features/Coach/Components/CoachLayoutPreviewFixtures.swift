@@ -81,10 +81,10 @@ enum CoachLayoutPreviewFixtures {
             id: UUID(uuidString: "A1000003-0000-4000-8000-000000000003")!,
             role: .assistant,
             text: """
-            From your meal photo, I estimated chicken rice bowl:
-            510 kcal · 35g protein · 58g carbs · 14g fat
+            From your meal photo, I'd estimate chicken rice bowl:
+            About 510 kcal · 35g protein · 58g carbs · 14g fat
 
-            Edit if the portion or cut is different.
+            Review this photo estimate before logging.
             """,
             createdAt: Date(timeIntervalSinceNow: -90),
             photoAnalysisLink: ChatMessagePhotoAnalysisLink(

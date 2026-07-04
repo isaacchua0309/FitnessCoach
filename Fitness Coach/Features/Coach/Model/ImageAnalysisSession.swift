@@ -225,7 +225,7 @@ enum ImageAnalysisPromptBuilder {
         if let result = session.latestResult {
             sections.append("Previous summary: \(result.summary)")
             sections.append(
-                "Previous estimate: \(result.mealDraft.displayName) · \(result.mealDraft.totalCalories) kcal"
+                "Previous estimate: \(result.mealDraft.displayName) · about \(result.mealDraft.totalCalories) kcal"
             )
             if !result.mealDraft.components.isEmpty {
                 let itemLines = result.mealDraft.components.map { component in
@@ -233,7 +233,7 @@ enum ImageAnalysisPromptBuilder {
                         .compactMap { $0 }
                         .joined(separator: " ")
                     let portionSuffix = portion.isEmpty ? "" : " (\(portion))"
-                    return "- \(component.name)\(portionSuffix): \(component.calories) kcal"
+                    return "- \(component.name)\(portionSuffix): ~\(component.calories) kcal"
                 }
                 sections.append("Previous items:\n\(itemLines.joined(separator: "\n"))")
             }

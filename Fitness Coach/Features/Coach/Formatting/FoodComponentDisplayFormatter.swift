@@ -21,7 +21,7 @@ enum FoodComponentDisplayFormatter {
     static func summaryLine(_ component: FoodComponent) -> String {
         let line = portionLine(component)
         guard component.calories > 0 else { return "• \(line)" }
-        return "• \(line) · \(component.calories) kcal"
+        return "• \(line) · ~\(component.calories) kcal"
     }
 
     static func displayName(_ raw: String) -> String {

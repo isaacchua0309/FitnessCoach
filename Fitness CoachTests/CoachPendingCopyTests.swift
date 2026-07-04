@@ -32,13 +32,15 @@ final class CoachPendingCopyTests: XCTestCase {
             originalText: "Log some chicken"
         )
 
-        XCTAssertTrue(message.hasPrefix("Estimated chicken:"))
-        XCTAssertTrue(message.contains("165 kcal · 31g protein · 0g carbs · 4g fat"))
-        XCTAssertTrue(message.contains(FormaProductCopy.Coach.foodEditPortionFooter))
+        XCTAssertTrue(message.hasPrefix("I'd estimate chicken:"))
+        XCTAssertTrue(message.contains("About 165 kcal"))
+        XCTAssertTrue(message.contains("31g protein"))
+        XCTAssertTrue(message.contains(FormaProductCopy.Coach.pendingReviewBeforeLogging))
         XCTAssertFalse(message.contains("Here's my estimate"))
         XCTAssertFalse(message.contains(FormaProductCopy.Coach.pendingBarHint))
         XCTAssertFalse(message.contains("P 31g"))
         XCTAssertFalse(message.contains("Please confirm or edit"))
+        XCTAssertFalse(message.lowercased().contains("exact calories"))
     }
 
     func testVagueFoodPendingUsesIngredientsFooter() {
@@ -65,23 +67,24 @@ final class CoachPendingCopyTests: XCTestCase {
             originalText: "Log a mysterious protein bowl"
         )
 
-        XCTAssertTrue(message.hasPrefix("Estimated a generic protein bowl:"))
-        XCTAssertTrue(message.contains("450 kcal · 35g protein · 30g carbs · 20g fat"))
+        XCTAssertTrue(message.hasPrefix("I'd estimate a generic protein bowl:"))
+        XCTAssertTrue(message.contains("About 450 kcal"))
         XCTAssertTrue(message.contains(FormaProductCopy.Coach.foodEditIngredientsFooter))
+        XCTAssertTrue(message.contains(FormaProductCopy.Coach.pendingReviewBeforeLogging))
         XCTAssertFalse(message.contains(FormaProductCopy.Coach.pendingBarHint))
     }
 
-    func testHighConfidenceFoodUsesCompactMacrosAndConfirmFooter() {
+    func testHighConfidenceFoodUsesCompactMacrosAndReviewFooter() {
         let message = CoachResponseBuilder.aiFoodEstimatePending(
             draft: chickenDraft,
             confidence: .high,
             originalText: "log 2 eggs"
         )
 
-        XCTAssertTrue(message.hasPrefix("Estimated chicken:"))
-        XCTAssertTrue(message.contains("165 kcal · 31g protein"))
+        XCTAssertTrue(message.hasPrefix("I'd estimate chicken:"))
+        XCTAssertTrue(message.contains("About 165 kcal · 31g protein"))
         XCTAssertFalse(message.contains("0g carbs"))
-        XCTAssertTrue(message.contains(FormaProductCopy.Coach.foodConfirmBelowFooter))
+        XCTAssertTrue(message.contains(FormaProductCopy.Coach.pendingReviewBeforeLogging))
     }
 
     func testWaterPendingIsSingleLine() {
@@ -118,7 +121,8 @@ final class CoachPendingCopyTests: XCTestCase {
         )
 
         XCTAssertTrue(message.contains(NutritionSanityResult.underEstimatedUserMessage))
-        XCTAssertFalse(message.contains(FormaProductCopy.Coach.foodConfirmBelowFooter))
+        XCTAssertTrue(message.contains(FormaProductCopy.Coach.pendingLowConfidenceWarning))
+        XCTAssertTrue(message.contains(FormaProductCopy.Coach.pendingReviewBeforeLogging))
     }
 
     func testMultiComponentPendingCopyListsIngredients() {
@@ -156,9 +160,22 @@ final class CoachPendingCopyTests: XCTestCase {
             originalText: "log this bowl"
         )
 
-        XCTAssertTrue(message.contains("413 kcal"))
+        XCTAssertTrue(message.contains("About 413 kcal"))
         XCTAssertTrue(message.contains("Chicken breast — 150g"))
         XCTAssertTrue(message.contains("Barley rice — 150g"))
+        XCTAssertTrue(message.contains("~248 kcal"))
         XCTAssertFalse(message.contains(FormaProductCopy.Coach.foodEditIngredientsFooter))
+    }
+
+    func testPhotoPendingCopyMentionsReview() {
+        let message = CoachResponseBuilder.aiFoodEstimatePending(
+            draft: chickenDraft,
+            confidence: .high,
+            originalText: "photo meal",
+            fromPhotoAnalysis: true
+        )
+
+        XCTAssertTrue(message.contains("meal photo"))
+        XCTAssertTrue(message.contains(FormaProductCopy.Coach.photoEstimateReviewFooter))
     }
 }
