@@ -94,7 +94,7 @@ enum FoodCompoundDishDetector {
 
         var minRequired = 0
         if !matched.isEmpty {
-            minRequired = matched.map { dishMinComponents(for: dish, prompt: normalized) }.max() ?? 0
+            minRequired = matched.map { dish in dishMinComponents(for: dish, prompt: normalized) }.max() ?? 0
         }
 
         let requiresAssumptions = ambiguous

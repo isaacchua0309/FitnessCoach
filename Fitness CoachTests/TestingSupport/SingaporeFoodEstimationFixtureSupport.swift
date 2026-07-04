@@ -164,7 +164,7 @@ enum SingaporeFoodEstimationFixtureSupport {
         return FoodLogDraft(
             displayName: fixtureCase.inputText,
             components: components,
-            confidence: confidence,
+            confidence: confidence.asConfidenceLevel,
             source: .aiTextEstimate,
             warnings: assumptions
         )
@@ -198,7 +198,7 @@ enum SingaporeFoodEstimationFixtureSupport {
         }
 
         if !confidenceMatches(
-            actual: meal.confidence,
+            actual: AIConfidence(rawValue: meal.confidence.rawValue) ?? .medium,
             expected: fixtureCase.expectedConfidence,
             mode: fixtureCase.expectedConfidenceMode ?? "max"
         ) {

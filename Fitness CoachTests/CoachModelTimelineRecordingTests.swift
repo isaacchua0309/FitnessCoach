@@ -132,7 +132,7 @@ final class CoachModelTimelineRecordingTests: XCTestCase {
         XCTAssertNotNil(foodLogged.linkedEntryId)
         XCTAssertTrue(timelineStore.events.contains { $0.type == .pendingConfirmationConfirmed })
         XCTAssertNil(model.pendingConfirmation)
-        XCTAssertEqual(harness.actionCenter.getFoodEntries(for: harness.today).count, 1)
+        XCTAssertEqual(try harness.actionCenter.getFoodEntries(for: harness.today).count, 1)
     }
 
     func testAuthenticationFailureRecordsAuthErrorEvent() async throws {
@@ -532,7 +532,7 @@ private extension FakeCoachTimelineStore {
     ) async throws {
         let satisfied = await AsyncTestSupport.waitUntil(
             maxYields: Int(timeout * 100),
-            predicate: predicate
+            predicate
         )
         if !satisfied {
             throw NSError(domain: "CoachModelTimelineRecordingTests", code: 1)

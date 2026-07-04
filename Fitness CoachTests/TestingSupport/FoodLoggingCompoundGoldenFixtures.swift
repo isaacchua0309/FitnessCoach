@@ -99,7 +99,7 @@ enum FoodLoggingCompoundGoldenFixtures {
         let meal = FoodLogDraft(
             displayName: components.map(\.name).joined(separator: ", "),
             components: components,
-            confidence: confidence,
+            confidence: confidence.asConfidenceLevel,
             source: .aiTextEstimate,
             warnings: assumptions.map { "Assumption: \($0)" } + warnings
         )
@@ -139,7 +139,7 @@ enum FoodLoggingCompoundGoldenFixtures {
             protein: p,
             carbs: c,
             fat: f,
-            confidence: confidence,
+            confidence: confidence.asConfidenceLevel,
             sourceText: source
         )
     }

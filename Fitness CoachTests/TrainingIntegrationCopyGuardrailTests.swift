@@ -69,7 +69,7 @@ final class TrainingIntegrationCopyGuardrailTests: XCTestCase {
         )
     }
 
-    func testSettingsDetailCopyAvoidsHealthKitTerminology() {
+    func testSettingsDetailCopyForPermissionAndFailureStates() {
         XCTAssertEqual(
             TrainingIntegrationCopy.settingsDetailDescription(for: .requestingPermission),
             TrainingIntegrationCopy.requestingMessage

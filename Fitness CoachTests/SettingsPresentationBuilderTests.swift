@@ -268,7 +268,9 @@ final class SettingsPresentationBuilderTests: XCTestCase {
         titles += state.preferences.rows.map(\.title)
         titles += state.integrations.rows.map(\.title)
         titles += state.privacyData.rows.map(\.title)
-        titles += state.support.rows.map(\.title)
+        if let support = state.support {
+            titles += support.rows.map(\.title)
+        }
         titles += state.about.rows.map(\.title)
         if let developer = state.developer {
             titles += developer.rows.map(\.title)

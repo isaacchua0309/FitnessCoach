@@ -102,8 +102,8 @@ final class ThemeSettingsViewTests: XCTestCase {
             let after = store.legacyThemePalette(resolvingWith: .dark)
 
             XCTAssertEqual(store.palette, .blossomPink)
-            XCTAssertNotEqual(before.primary, after.primary)
-            ThemeTestSupport.assertSameColor(after.primary, store.resolvedTheme(systemColorScheme: .dark).themePalette.primary)
+            XCTAssertNotEqual(before.accent, after.accent)
+            ThemeTestSupport.assertSameColor(after.accent, store.resolvedTheme(systemColorScheme: .dark).themePalette.primary)
         }
     }
 

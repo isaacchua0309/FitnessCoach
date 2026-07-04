@@ -192,4 +192,23 @@ final class CoachImagePickFlowController: ObservableObject {
         model.appendMealPhotoSelectionFailure(error)
         state = .idle
     }
+
+    #if DEBUG
+    func setStateForTests(_ newState: CoachImagePickFlowState) {
+        state = newState
+    }
+
+    func simulateProcessingFailure(_ error: CoachMealPhotoError, model: CoachModel) async {
+        state = .processingImage(.camera)
+        model.failPendingImageProcessing(error)
+        state = .failed(error)
+        state = .idle
+    }
+
+    func handleFailureForTests(_ error: CoachMealPhotoError, model: CoachModel) async {
+        state = .failed(error)
+        model.appendMealPhotoSelectionFailure(error)
+        state = .idle
+    }
+    #endif
 }

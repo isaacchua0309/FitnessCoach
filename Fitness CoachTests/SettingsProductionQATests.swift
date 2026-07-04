@@ -143,6 +143,7 @@ final class SettingsProductionQATests: XCTestCase {
 
     // MARK: - 7. Theme opens and persists selection
 
+    @MainActor
     func testQA07_ThemeRowNavigableAndStorePersistsPalette() {
         let row = productionState().preferences.rows.first { $0.id == .theme }
 
@@ -153,7 +154,7 @@ final class SettingsProductionQATests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: defaults.description) }
 
         let store = ThemeStore(userDefaults: defaults)
-        store.palette = .blossomPink
+        store.setPalette(.blossomPink)
         XCTAssertEqual(store.palette, .blossomPink)
         XCTAssertEqual(
             SettingsRowStatusFormatter.themePalette(store.palette),

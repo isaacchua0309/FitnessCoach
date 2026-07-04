@@ -18,6 +18,7 @@ jest.mock("firebase-admin/auth", () => ({
 jest.mock("firebase-functions", () => ({
   logger: {
     info: jest.fn(),
+    warn: jest.fn(),
     error: jest.fn(),
   },
   setGlobalOptions: jest.fn(),
@@ -235,7 +236,10 @@ describe("aiGateway contract", () => {
       await handleAiGatewayRequest(request, response);
 
       expect(response.statusCode).toBe(401);
-      expect(response.body).toEqual({error: "Missing Firebase ID token."});
+      expect(response.body).toEqual({
+        error: "Missing Firebase ID token.",
+        backendErrorCategory: "authentication",
+      });
       expect(verifyIdTokenMock).not.toHaveBeenCalled();
       expect(fetchMock).not.toHaveBeenCalled();
     });
@@ -274,7 +278,7 @@ describe("aiGateway contract", () => {
   });
 
   describe("OpenAI request shaping", () => {
-    it("requests minimal reasoning effort for gpt-5 classifiers", async () => {
+    it("requests low reasoning effort for gpt-5 classifiers", async () => {
       const request = createMockRequest({
         path: "/v1/ai/classify-coach-intent",
         headers: {Authorization: "Bearer test-token"},
@@ -291,7 +295,68 @@ describe("aiGateway contract", () => {
 
       expect(response.statusCode).toBe(200);
       const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
-      expect(requestBody.reasoning).toEqual({effort: "minimal"});
+      expect(requestBody.reasoning).toEqual({effort: "low"});
+    });
+
+    it("never sends minimal reasoning effort for analyze-meal-image", async () => {
+      const previousEffort = process.env.OPENAI_REASONING_EFFORT;
+      process.env.OPENAI_REASONING_EFFORT = "minimal";
+      const pngBase64 =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+      const request = createMockRequest({
+        path: "/v1/ai/analyze-meal-image",
+        headers: {Authorization: "Bearer test-token"},
+        body: {
+          message: "Lunch",
+          context: {...workoutAwareCoachContextV2},
+          image: {mimeType: "image/png", base64: pngBase64},
+        },
+      });
+      const response = createMockResponse();
+
+      await handleAiGatewayRequest(request, response);
+
+      expect(response.statusCode).toBe(200);
+      const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+      expect(requestBody.reasoning).toEqual({effort: "low"});
+      expect(requestBody.reasoning.effort).not.toBe("minimal");
+      if (previousEffort === undefined) {
+        delete process.env.OPENAI_REASONING_EFFORT;
+      } else {
+        process.env.OPENAI_REASONING_EFFORT = previousEffort;
+      }
+    });
+
+    it("returns model_config_invalid for OpenAI unsupported reasoning effort errors", async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          error: {
+            message: "Unsupported value: 'minimal' is not supported with the 'gpt-5.4-nano' model.",
+          },
+        }),
+      });
+      const pngBase64 =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+      const request = createMockRequest({
+        path: "/v1/ai/analyze-meal-image",
+        headers: {Authorization: "Bearer test-token"},
+        body: {
+          message: "Lunch",
+          context: {...workoutAwareCoachContextV2},
+          image: {mimeType: "image/png", base64: pngBase64},
+        },
+      });
+      const response = createMockResponse();
+
+      await handleAiGatewayRequest(request, response);
+
+      expect(response.statusCode).toBe(500);
+      expect(response.body).toEqual({
+        error: "Meal image analysis is temporarily unavailable due to model configuration.",
+        backendErrorCategory: "model_config_invalid",
+      });
     });
 
     it("sends multimodal Responses API input for analyze-meal-image", async () => {
@@ -390,6 +455,7 @@ describe("aiGateway contract", () => {
       expect(response.statusCode).toBe(500);
       expect(response.body).toEqual({
         error: "The model `gpt-5-nano` does not exist",
+        backendErrorCategory: "internal",
       });
       expect(JSON.stringify(response.body)).not.toContain("test-openai-key");
     });
@@ -407,7 +473,10 @@ describe("aiGateway contract", () => {
       await handleAiGatewayRequest(request, response);
 
       expect(response.statusCode).toBe(400);
-      expect(response.body).toEqual({error: "Missing or invalid text."});
+      expect(response.body).toEqual({
+        error: "Missing or invalid text.",
+        backendErrorCategory: "validation",
+      });
       expect(fetchMock).not.toHaveBeenCalled();
     });
 
@@ -458,6 +527,7 @@ describe("aiGateway contract", () => {
       expect(throttled.statusCode).toBe(429);
       expect(throttled.body).toEqual({
         error: "Too many AI requests. Please wait a moment and try again.",
+        backendErrorCategory: "rate_limited",
       });
     });
   });

@@ -447,6 +447,7 @@ enum CoachImageAnalysisDebugLogger {
         switch error {
         case .emptyUploadData: return "empty_upload"
         case .uploadExceedsMaxBytes: return "upload_exceeds_limit"
+        case .invalidContext: return "invalid_context"
         }
     }
 

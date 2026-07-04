@@ -6,7 +6,11 @@ import {
 } from "./coachContextPacketV2";
 
 export class GatewayError extends Error {
-  constructor(readonly status: number, message: string) {
+  constructor(
+    readonly status: number,
+    message: string,
+    readonly category?: string
+  ) {
     super(message);
   }
 }
@@ -14,6 +18,9 @@ export class GatewayError extends Error {
 /** Coarse backend error category for observability — no user content. */
 export function gatewayErrorCategory(error: unknown): string {
   if (error instanceof GatewayError) {
+    if (error.category) {
+      return error.category;
+    }
     switch (error.status) {
     case 401:
       return "authentication";

@@ -73,7 +73,7 @@ final class CoachTimelineContextV2DomainTests: XCTestCase {
     }
 
     func testSupersededCorrectionChainPreservesReplacementLink() async throws {
-        let store = FakeCoachTimelineStore()
+        let store = await MainActor.run { FakeCoachTimelineStore() }
         let entryId = UUID()
         let original = CoachTimelineEvent.make(
             type: .foodLogged,
@@ -124,8 +124,10 @@ final class CoachTimelineContextV2DomainTests: XCTestCase {
         XCTAssertEqual(replacement?.supersedesEventId, original.id)
         XCTAssertEqual(replacement?.type, .foodEdited)
 
-        let visible = CoachTimelineQuery(includeSuperseded: false)
-            .apply(to: store.events)
+        let visible = await MainActor.run {
+            CoachTimelineQuery(includeSuperseded: false)
+                .apply(to: store.events)
+        }
         XCTAssertEqual(visible.map(\.id), [correction.id])
     }
 
@@ -271,7 +273,7 @@ final class CoachTimelineContextV2PacketTests: XCTestCase {
             userProfileService: harness.profileService,
             healthActivityQuery: HealthActivityQueryService(
                 workoutReader: StubHealthKitWorkoutReader(workouts: []),
-                stepReader: StubHealthKitStepReader(stepsByDay: [:]),
+                stepReader: StubHealthKitStepReader(stepsByDay: [:], error: nil),
                 repositoryReadRoutingEnabled: false
             ),
             timelineStore: timelineStore,
@@ -338,6 +340,11 @@ private struct StubHealthKitWorkoutReader: HealthKitWorkoutReading {
 private struct StubHealthKitStepReader: HealthKitStepReading {
     let stepsByDay: [Date: Int]
     let error: Error?
+
+    init(stepsByDay: [Date: Int], error: Error? = nil) {
+        self.stepsByDay = stepsByDay
+        self.error = error
+    }
 
     func fetchStepCount(from startDate: Date, to endDate: Date) async throws -> Int {
         if let error { throw error }

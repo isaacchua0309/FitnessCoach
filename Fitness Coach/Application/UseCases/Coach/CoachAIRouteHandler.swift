@@ -75,11 +75,16 @@ final class CoachAIRouteHandler {
                     tier: .cheap,
                     intentResult: intentResult
                 ),
-                context: context
+                context: context,
+                pendingConfirmation: pendingConfirmation
             )
 
         case .ai(let task):
-            return try await handleAITask(task, context: context)
+            return try await handleAITask(
+                task,
+                context: context,
+                pendingConfirmation: pendingConfirmation
+            )
 
         case .trainingLogRedirect:
             let message = await trainingLogRedirectMessage()
@@ -90,7 +95,11 @@ final class CoachAIRouteHandler {
         }
     }
 
-    func handleAITask(_ routed: RoutedAITask, context: CoachContextPacketV2) async throws -> CoachActionResult {
+    func handleAITask(
+        _ routed: RoutedAITask,
+        context: CoachContextPacketV2,
+        pendingConfirmation: CoachPendingConfirmation? = nil
+    ) async throws -> CoachActionResult {
         guard aiCommandParsingEnabled, let aiService else {
             return .message(CoachResponseBuilder.backendUnavailableResponse)
         }
@@ -171,11 +180,19 @@ final class CoachAIRouteHandler {
 
         case .multiAction(let prompt):
             let parsed = try await aiService.parseMultiAction(prompt: prompt, context: context)
-            return try await handleParsedAICommand(parsed, context: context)
+            return try await handleParsedAICommand(
+                parsed,
+                context: context,
+                pendingConfirmation: pendingConfirmation
+            )
 
         case .parseCommand(let prompt):
             let parsed = try await aiService.parseCommand(prompt, context: context)
-            return try await handleParsedAICommand(parsed, context: context)
+            return try await handleParsedAICommand(
+                parsed,
+                context: context,
+                pendingConfirmation: pendingConfirmation
+            )
         }
     }
 

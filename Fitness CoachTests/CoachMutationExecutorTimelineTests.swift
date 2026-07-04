@@ -152,7 +152,10 @@ final class CoachMutationExecutorTimelineTests: XCTestCase {
                     dailyLogId: logged.dailyLogId,
                     mealType: logged.mealType?.rawValue,
                     name: logged.name,
-                    calories: logged.calories
+                    calories: logged.calories,
+                    proteinGrams: logged.protein,
+                    carbsGrams: logged.carbs,
+                    fatGrams: logged.fat
                 )
             ),
             occurredAt: harness.today,
@@ -220,7 +223,10 @@ final class CoachMutationExecutorTimelineTests: XCTestCase {
                     dailyLogId: logged.dailyLogId,
                     mealType: MealType.lunch.rawValue,
                     name: logged.name,
-                    calories: logged.calories
+                    calories: logged.calories,
+                    proteinGrams: logged.protein,
+                    carbsGrams: logged.carbs,
+                    fatGrams: logged.fat
                 )
             ),
             occurredAt: harness.today,

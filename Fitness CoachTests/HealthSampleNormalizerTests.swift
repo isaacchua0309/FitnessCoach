@@ -181,7 +181,7 @@ final class HealthSampleNormalizerTests: XCTestCase {
         let sleep = normalizer.normalizeSleepRecord(raw)
 
         XCTAssertEqual(sleep.asleepMinutes, 360, accuracy: 0.01)
-        XCTAssertEqual(sleep.inBedMinutes, 420, accuracy: 0.01)
+        XCTAssertEqual(sleep.inBedMinutes ?? 0, 420, accuracy: 0.01)
     }
 
     // MARK: - Day bundle
@@ -213,7 +213,7 @@ final class HealthSampleNormalizerTests: XCTestCase {
         XCTAssertEqual(bundle.dailyMetrics.steps, 10_000)
         XCTAssertEqual(bundle.workouts.count, 1)
         XCTAssertEqual(bundle.workouts.first?.category, .hiit)
-        XCTAssertEqual(bundle.bodyMassRecords.first?.valueKg, 72.4, accuracy: 0.001)
+        XCTAssertEqual(bundle.bodyMassRecords.first?.valueKg ?? 0, 72.4, accuracy: 0.001)
     }
 
     func testNormalizeWorkoutUsesMinimumDurationWhenZero() {

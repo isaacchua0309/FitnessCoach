@@ -90,6 +90,6 @@ enum CoachHealthIntelligenceSnapshotLoader {
 
     private static func timeoutMilliseconds(_ timeout: Duration) -> Int {
         let components = timeout.components
-        return components.seconds * 1_000 + components.attoseconds / 1_000_000_000_000_000
+        return Int(components.seconds * 1_000 + components.attoseconds / 1_000_000_000_000_000)
     }
 }

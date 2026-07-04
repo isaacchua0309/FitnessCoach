@@ -258,7 +258,7 @@ final class CoachAIHealthIntelligenceIntegrationTests: XCTestCase {
 
 // MARK: - Mocks
 
-private final class MockCoachHealthIntelligenceSnapshotService: HealthIntelligenceSnapshotServing, @unchecked Sendable {
+final class MockCoachHealthIntelligenceSnapshotService: HealthIntelligenceSnapshotServing, @unchecked Sendable {
     var snapshot: HealthIntelligenceSnapshot?
     private(set) var loadCallCount = 0
 

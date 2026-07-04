@@ -139,14 +139,14 @@ enum CoachEntryReferenceResolver {
             pendingConfirmation: pendingConfirmation,
             isUndoFlow: isUndoFlow
         )
-        guard case .target(let linkedEntryId, let linkedTimelineEventId, _, _) = resolution.outcome else {
+        guard case .target(let linkedEntryId, let resolvedTimelineEventId, _, _) = resolution.outcome else {
             return resolution
         }
 
         var enriched = action
         enriched.linkedEntryId = linkedEntryId
-        enriched.linkedTimelineEventId = linkedTimelineEventId
-            ?? linkedTimelineEventId(forEntryId: linkedEntryId, in: context.timeline.recentEvents)
+        enriched.linkedTimelineEventId = resolvedTimelineEventId
+            ?? Self.linkedTimelineEventId(forEntryId: linkedEntryId, in: context.timeline.recentEvents)
         return CoachEntryReferenceResolution(outcome: resolution.outcome, enrichedAction: enriched)
     }
 
@@ -549,10 +549,9 @@ enum CoachEntryReferenceResolver {
     ) -> AIFoodConfirmationDraft {
         var updated = base
         var meal = base.primaryMealDraft
-        let legacy = FoodLogDraftMapper.fromLegacyDraft(edit)
 
         if !edit.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            meal = FoodLogDraftNutritionCompleter.mergeExplicit(legacy, into: meal, hintText: base.originalText)
+            meal = FoodLogDraftNutritionCompleter.mergeExplicit(edit, into: meal, hintText: base.originalText)
         } else {
             meal = FoodLogDraftNutritionCompleter.mergeExplicit(
                 FoodDraft(

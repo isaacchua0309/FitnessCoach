@@ -33,7 +33,6 @@ import {
   validateFoodExtraction,
   type FoodExtractionResponse,
 } from "./foodEstimateExtraction";
-import {compoundDishDecompositionPrompt} from "./foodCompoundDish";
 import {
   sanitizeNutritionComparisonResponse,
   sanitizeNutritionEstimateResponse,
@@ -45,6 +44,11 @@ import {
   parseMealImageAnalysisResponse,
   validateAnalyzeMealImagePayload,
 } from "./mealImageAnalysis";
+import {
+  isOpenAIModelConfigError,
+  MODEL_CONFIG_INVALID_MESSAGE,
+  reasoningConfigForModel,
+} from "./openAIReasoningEffort";
 
 initializeApp();
 setGlobalOptions({maxInstances: 10});
@@ -227,7 +231,10 @@ export async function handleAiGatewayRequest(
       backendErrorCategory: gatewayErrorCategory(error),
       durationMs: Date.now() - requestStarted,
     });
-    response.status(status).json({error: message});
+    response.status(status).json({
+      error: message,
+      backendErrorCategory: gatewayErrorCategory(error),
+    });
   }
 }
 
@@ -316,15 +323,6 @@ function resolveModel({tier, modelName}: {tier?: string; modelName?: string} = {
   return configured.default;
 }
 
-function reasoningConfigForModel(model: string): {effort: string} | undefined {
-  if (!/^gpt-5/i.test(model)) {
-    return undefined;
-  }
-
-  const effort = process.env.OPENAI_REASONING_EFFORT?.trim() || "minimal";
-  return {effort};
-}
-
 async function openAIJSON({
   instructions,
   input,
@@ -388,6 +386,9 @@ async function openAIJSON({
       errorType: payload?.error?.type ?? "unknown",
       errorCode: payload?.error?.code ?? "unknown",
     });
+    if (isOpenAIModelConfigError(message)) {
+      throw new GatewayError(500, MODEL_CONFIG_INVALID_MESSAGE, "model_config_invalid");
+    }
     throw new Error(message);
   }
 

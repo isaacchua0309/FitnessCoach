@@ -242,7 +242,7 @@ final class WeeklyReviewEngineTests: XCTestCase {
         recoverySummaries: [DailyRecoverySummary] = [],
         nutritionDailySummaries: [WeeklyNutritionDailySummary] = [],
         weightRecords: [NormalizedBodyMass] = [],
-        userPlan: WeeklyReviewUserPlan = defaultPlan()
+        userPlan: WeeklyReviewUserPlan? = nil
     ) -> WeeklyHealthReview? {
         try! engine.evaluate(
             makeInput(
@@ -251,7 +251,7 @@ final class WeeklyReviewEngineTests: XCTestCase {
                 recoverySummaries: recoverySummaries,
                 nutritionDailySummaries: nutritionDailySummaries,
                 weightRecords: weightRecords,
-                userPlan: userPlan
+                userPlan: userPlan ?? defaultPlan()
             )
         )
     }

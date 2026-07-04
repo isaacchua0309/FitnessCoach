@@ -85,7 +85,7 @@ final class SingaporeFoodEstimationFixtureTests: XCTestCase {
         }
     }
 
-    func testChickenRiceFixtureExpectsDecomposition() {
+    func testChickenRiceFixtureExpectsDecomposition() throws {
         let chickenRice = try XCTUnwrap(fixture.cases.first { $0.id == "sg_01_chicken_rice" })
         XCTAssertTrue(chickenRice.expectedComponents.contains("rice"))
         XCTAssertTrue(chickenRice.expectedComponents.contains("chicken"))

@@ -29,7 +29,7 @@ final class HealthSummaryRemoteSyncTests: XCTestCase {
         self.stateStore = LockedHealthSummaryRemoteSyncStateStore()
         self.repository = SummarySyncMockRepository()
         self.context = HealthSummaryRemoteSyncTestSupport.makeMappingContext(calendar: calendar)
-        self.service = makeService(remoteSyncEnabled: true)
+        self.service = makeService(remoteSyncEnabled: { true })
     }
 
     override func tearDown() {
@@ -232,7 +232,7 @@ final class HealthSummaryRemoteSyncTests: XCTestCase {
     func testUnauthenticatedRemoteClientErrorIsHandled() async {
         let unauthenticatedService = makeService(
             userID: nil,
-            remoteSyncEnabled: true
+            remoteSyncEnabled: { true }
         )
         seedSingleDay()
 
@@ -240,7 +240,7 @@ final class HealthSummaryRemoteSyncTests: XCTestCase {
 
         XCTAssertTrue(remoteClient.uploadedDailySummaries.isEmpty)
         let state = await unauthenticatedService.getRemoteSyncState()
-        XCTAssertEqual(state.lastError, .notAuthenticated)
+        XCTAssertEqual(state.lastError, HealthSummarySyncError.notAuthenticated)
     }
 
     func testFirestoreClientSurfacesNotAuthenticatedWithoutFirebase() async {

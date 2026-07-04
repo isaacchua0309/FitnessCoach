@@ -76,7 +76,7 @@ enum CoachContextCorrectnessValidator {
     ]
 
     private static let nonFactMealSources: Set<String> = [
-        CoachTimelineEventSourceAttribution.aiBackend.rawValue,
+        CoachTimelineEventSource.aiBackend.rawValue,
         "assistant",
         "assistantMessage",
     ]

@@ -13,8 +13,8 @@ final class CoachHealthContextCopyTests: XCTestCase {
     func testMissingHealthDisclaimerDoesNotUseCoachUnavailableCopy() {
         let missing = CoachMissingDataContext(
             stepsMissing: true,
-            stepsUnavailable: true,
-            healthKitUnavailable: true
+            healthKitUnavailable: true,
+            stepsUnavailable: true
         )
 
         let disclaimer = CoachAIResponseContextAdapter.missingDataDisclaimer(missing)

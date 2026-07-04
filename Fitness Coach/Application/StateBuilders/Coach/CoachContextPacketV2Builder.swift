@@ -194,7 +194,7 @@ struct CoachContextPacketV2Builder {
             limit: Self.defaultTimelineEventLimit
         )
         let timelineContextEvents = timelineCompaction.events
-        var compactionMetadata = timelineCompaction.metadata
+        var compactionMetadata: CoachContextCompactionMetadata? = timelineCompaction.metadata
 
         let chatContext = makeChatContext(
             from: recentMessages,
@@ -1185,8 +1185,16 @@ enum CoachContextPacketV2SizeCompactor {
 
     static func compact(
         _ packet: CoachContextPacketV2,
+        byteLimit: Int = CoachContextPacketV2Limits.defaultMaxEncodedBytes
+    ) -> CoachContextPacketV2 {
+        var compaction: CoachContextCompactionMetadata?
+        return compact(packet, byteLimit: byteLimit, compaction: &compaction)
+    }
+
+    static func compact(
+        _ packet: CoachContextPacketV2,
         byteLimit: Int = CoachContextPacketV2Limits.defaultMaxEncodedBytes,
-        compaction: inout CoachContextCompactionMetadata? = nil
+        compaction: inout CoachContextCompactionMetadata?
     ) -> CoachContextPacketV2 {
         var metadata = compaction ?? CoachContextCompactionMetadata(
             originalEventCount: packet.timeline.recentEvents.count,

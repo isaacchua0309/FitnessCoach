@@ -64,7 +64,10 @@ final class HealthSyncServiceTests: XCTestCase {
         setSyncAvailability(.uniform(.available, isHealthDataAvailable: true))
         mockRepository.refreshDelayNanoseconds = 300_000_000
 
-        let service = self.service
+        guard let service = self.service else {
+            XCTFail("Missing HealthSyncService")
+            return
+        }
         async let first = Task { await service.syncLastNDays(2) }
         async let second = Task { await service.syncToday() }
         _ = await (first.value, second.value)

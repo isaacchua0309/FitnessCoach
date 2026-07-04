@@ -102,7 +102,9 @@ final class TodayMealsSectionFormattingTests: XCTestCase {
                 calories: 482,
                 protein: 38,
                 carbs: 40,
-                fat: 12
+                fat: 12,
+                source: .manual,
+                confidence: .high
             ),
             date: harness.today
         )
