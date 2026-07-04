@@ -160,12 +160,15 @@ struct MainTabView: View {
         .environment(\.healthIntelligenceDebugVerification) { [container] in
             await container.verifyTodayHealthIntelligenceSnapshot()
         }
+        .environment(\.accountSyncDebugActions, container.makeAccountSyncDebugActions())
+        .environment(\.accountRestoreDebugActions, container.makeAccountRestoreDebugActions())
         .environment(\.coachContextDebugActions, container.makeCoachContextDebugActions())
         #endif
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 container.syncHealthCacheUserID()
                 container.refreshCenter.refreshIfDayChanged()
+                container.handleAccountDataSyncOnAppForeground()
                 if HealthIntelligenceFeatureFlags.isSyncEnabled {
                     container.healthSyncStateStore.refreshOnAppForeground()
                 }
@@ -178,6 +181,9 @@ struct MainTabView: View {
 
     private func bootstrapAfterEntry() async {
         container.syncHealthCacheUserID()
+        await trainingInsightsStore.refresh()
+        await todayModel.loadToday()
+        await journeyModel.loadProgress()
         coachModel.refreshTodayContext()
         await planModel.refresh()
         if HealthIntelligenceFeatureFlags.isSyncEnabled {

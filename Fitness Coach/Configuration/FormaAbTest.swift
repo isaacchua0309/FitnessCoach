@@ -131,6 +131,26 @@ enum FormaAbTest {
         static var clearsCloudSyncMetadataOnSignOut: Bool { resolved.clearsCloudSyncMetadataOnSignOut }
     }
 
+    // MARK: Account persistence
+
+    enum AccountPersistence {
+        static var syncEngineEnabled: Bool { AccountPersistenceFeatureFlags.syncEngineEnabled }
+        static var uploadPendingMutationsEnabled: Bool {
+            AccountPersistenceFeatureFlags.uploadPendingMutationsEnabled
+        }
+        static var pullRecentDataEnabled: Bool { AccountPersistenceFeatureFlags.pullRecentDataEnabled }
+        static var restoreOnLoginEnabled: Bool { AccountPersistenceFeatureFlags.restoreOnLoginEnabled }
+        static var foregroundCrossDeviceRefreshEnabled: Bool {
+            AccountPersistenceFeatureFlags.foregroundCrossDeviceRefreshEnabled
+        }
+        static var realtimeCrossDeviceSyncEnabled: Bool {
+            AccountPersistenceFeatureFlags.realtimeCrossDeviceSyncEnabled
+        }
+        static var manualRefreshEnabled: Bool {
+            AccountPersistenceFeatureFlags.manualRefreshEnabled
+        }
+    }
+
     // MARK: Build
 
     enum Build {
@@ -152,6 +172,8 @@ enum FormaAbTest {
         static var profileBootstrapTrace: Bool { resolved.profileBootstrapTrace }
         static var authSignInTrace: Bool { resolved.authSignInTrace }
         static var todayHydrationTrace: Bool { resolved.todayHydrationTrace }
+        static var accountSyncTrace: Bool { resolved.accountSyncTrace }
+        static var accountRestoreTrace: Bool { resolved.accountRestoreTrace }
     }
 
     // MARK: Snapshot
@@ -218,6 +240,8 @@ struct FormaAbTestSnapshot: Equatable, Sendable {
     var profileBootstrapTrace: Bool
     var authSignInTrace: Bool
     var todayHydrationTrace: Bool
+    var accountSyncTrace: Bool
+    var accountRestoreTrace: Bool
 
     static let allEnabled = FormaAbTestSnapshot(
         foundationEnabled: true,
@@ -262,6 +286,8 @@ struct FormaAbTestSnapshot: Equatable, Sendable {
         healthTrainingTrace: true,
         profileBootstrapTrace: true,
         authSignInTrace: true,
-        todayHydrationTrace: true
+        todayHydrationTrace: true,
+        accountSyncTrace: true,
+        accountRestoreTrace: true
     )
 }

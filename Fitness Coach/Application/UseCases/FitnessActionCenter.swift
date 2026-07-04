@@ -30,6 +30,7 @@ final class FitnessActionCenter {
     private let profileBootstrapService: ProfileBootstrapService?
     private let cloudUploadFailureNotifier: ProfileCloudUploadFailureNotifier?
     private let currentUIDProvider: (() -> String?)?
+    private let scheduleAccountSyncAfterMutation: (() -> Void)?
 
     init(
         foodLogService: FoodLogService,
@@ -42,7 +43,8 @@ final class FitnessActionCenter {
         refreshCenter: AppRefreshCenter,
         profileBootstrapService: ProfileBootstrapService? = nil,
         cloudUploadFailureNotifier: ProfileCloudUploadFailureNotifier? = nil,
-        currentUIDProvider: (() -> String?)? = nil
+        currentUIDProvider: (() -> String?)? = nil,
+        scheduleAccountSyncAfterMutation: (() -> Void)? = nil
     ) {
         self.foodLogService = foodLogService
         self.waterLogService = waterLogService
@@ -55,6 +57,7 @@ final class FitnessActionCenter {
         self.profileBootstrapService = profileBootstrapService
         self.cloudUploadFailureNotifier = cloudUploadFailureNotifier
         self.currentUIDProvider = currentUIDProvider
+        self.scheduleAccountSyncAfterMutation = scheduleAccountSyncAfterMutation
     }
 
     // MARK: - Food (canonical: Coach + food capture flow)
@@ -68,7 +71,7 @@ final class FitnessActionCenter {
     func logFood(_ meal: FoodLogDraft, date: Date = Date()) throws -> FoodEntry {
         _ = try requireCurrentUID(for: "log food")
         let entry = try foodLogService.addFoodEntry(meal, date: date)
-        notifyDataChanged()
+        notifyAccountDataChanged()
         return entry
     }
 
@@ -76,14 +79,14 @@ final class FitnessActionCenter {
     func editFoodEntry(id: UUID, update: FoodEntryUpdate) throws -> FoodEntry {
         _ = try requireCurrentUID(for: "edit food")
         let entry = try foodLogService.editFoodEntry(id: id, update: update)
-        notifyDataChanged()
+        notifyAccountDataChanged()
         return entry
     }
 
     func deleteFoodEntry(id: UUID) throws {
         _ = try requireCurrentUID(for: "delete food")
         try foodLogService.deleteFoodEntry(id: id)
-        notifyDataChanged()
+        notifyAccountDataChanged()
     }
 
     func getFoodEntries(for date: Date = Date()) throws -> [FoodEntry] {
@@ -93,7 +96,7 @@ final class FitnessActionCenter {
     func undoLastFoodEntry(date: Date = Date()) throws -> FoodEntry? {
         _ = try requireCurrentUID(for: "undo food")
         let entry = try foodLogService.undoLastFoodEntry(date: date)
-        notifyDataChanged()
+        notifyAccountDataChanged()
         return entry
     }
 
@@ -103,7 +106,7 @@ final class FitnessActionCenter {
     func logWater(amountMl: Int, date: Date = Date()) throws -> WaterEntry {
         _ = try requireCurrentUID(for: "log water")
         let entry = try waterLogService.addWater(amountMl: amountMl, date: date)
-        notifyDataChanged()
+        notifyAccountDataChanged()
         return entry
     }
 
@@ -111,21 +114,21 @@ final class FitnessActionCenter {
     func logWater(_ draft: WaterDraft, date: Date = Date()) throws -> WaterEntry {
         _ = try requireCurrentUID(for: "log water")
         let entry = try waterLogService.addWater(draft, date: date)
-        notifyDataChanged()
+        notifyAccountDataChanged()
         return entry
     }
 
     func undoLastWaterEntry(date: Date = Date()) throws -> WaterEntry? {
         _ = try requireCurrentUID(for: "undo water")
         let entry = try waterLogService.undoLastWaterEntry(date: date)
-        notifyDataChanged()
+        notifyAccountDataChanged()
         return entry
     }
 
     func deleteWaterEntry(id: UUID) throws {
         _ = try requireCurrentUID(for: "delete water")
         try waterLogService.deleteWaterEntry(id: id)
-        notifyDataChanged()
+        notifyAccountDataChanged()
     }
 
     // MARK: - Weight (canonical: daily weigh-in — not Plan baseline edits)
@@ -134,7 +137,7 @@ final class FitnessActionCenter {
     func logDailyWeight(_ weightKg: Double, date: Date = Date()) throws -> WeightEntry {
         _ = try requireCurrentUID(for: "log weight")
         let entry = try weightLogService.logWeight(weightKg, date: date)
-        notifyDataChanged()
+        notifyAccountDataChanged()
         return entry
     }
 
@@ -142,7 +145,7 @@ final class FitnessActionCenter {
     func logDailyWeight(_ draft: WeightDraft, date: Date = Date()) throws -> WeightEntry {
         _ = try requireCurrentUID(for: "log weight")
         let entry = try weightLogService.logWeight(draft, date: date)
-        notifyDataChanged()
+        notifyAccountDataChanged()
         return entry
     }
 
@@ -156,7 +159,7 @@ final class FitnessActionCenter {
 
     func syncTodayTargetsFromProfile() throws {
         try dailyLogService.syncTodayTargetsFromProfile()
-        notifyDataChanged()
+        notifyAccountDataChanged()
     }
 
     // MARK: - Reviews
@@ -164,7 +167,7 @@ final class FitnessActionCenter {
     func generateDailyReview(for date: Date = Date()) async throws -> DailyReview {
         _ = try requireCurrentUID(for: "generate daily review")
         let review = try await reviewService.generateDailyReview(for: date)
-        notifyDataChanged()
+        notifyAccountDataChanged()
         return review
     }
 
@@ -209,6 +212,11 @@ final class FitnessActionCenter {
 
     func notifyDataChanged() {
         refreshCenter.notifyDataChanged()
+    }
+
+    private func notifyAccountDataChanged() {
+        notifyDataChanged()
+        scheduleAccountSyncAfterMutation?()
     }
 
     private func syncProfileToCloudIfPossible() {

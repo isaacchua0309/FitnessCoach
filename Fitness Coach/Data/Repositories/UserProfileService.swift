@@ -56,10 +56,19 @@ final class UserProfileService {
         with document: CloudUserProfileDocument,
         ownerUID: String
     ) throws -> UserProfile {
+        let normalizedOwnerUID = try AccountSyncMutationValidation.normalizedOwnerUID(ownerUID)
+        if let existing = try latestProfileEntity(),
+           let existingOwnerUID = existing.ownerUID,
+           existingOwnerUID != normalizedOwnerUID {
+            throw ServiceError.invalidInput(
+                "Cannot apply cloud profile for a different signed-in account."
+            )
+        }
+
         if let existing = try latestProfileEntity() {
             try store.delete(existing)
         }
-        return try insertProfile(from: document, ownerUID: ownerUID)
+        return try insertProfile(from: document, ownerUID: normalizedOwnerUID)
     }
 
     /// Replaces the on-device profile with onboarding draft data (re-commit during onboarding).
@@ -82,6 +91,20 @@ final class UserProfileService {
         let entity = UserProfileEntity(model: profile)
         try store.insert(entity)
         return entity.toModel()
+    }
+
+    /// Whether the current profile has local edits newer than the last confirmed cloud snapshot.
+    func hasUnsyncedCloudChanges(
+        syncStore: ProfileCloudSyncStore,
+        uid: String
+    ) throws -> Bool {
+        guard let profile = try getCurrentProfile() else { return false }
+        guard profile.ownerUID == uid else { return false }
+        guard syncStore.isSyncedForUID(uid),
+              let lastSyncedAt = syncStore.lastSyncedProfileUpdatedAt else {
+            return profile.updatedAt > profile.createdAt
+        }
+        return profile.updatedAt > lastSyncedAt
     }
 
     // MARK: Create

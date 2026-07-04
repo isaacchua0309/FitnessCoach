@@ -13,6 +13,7 @@ final class PlanModel: ObservableObject {
 
     @Published private(set) var viewState: PlanViewState = .loading
     @Published private(set) var planHealthIntelligenceSectionState: PlanHealthIntelligenceSectionState?
+    @Published private(set) var isCrossDeviceRefreshing = false
     @Published var isShowingEditSheet = false
     @Published var isShowingSettingsSheet = false
     @Published var isShowingTargetRegenerationSheet = false
@@ -21,6 +22,11 @@ final class PlanModel: ObservableObject {
     @Published var editFormState: PlanFormState?
     @Published var editPlanInitialStep: PlanEditWizardStep = .goalAndTargetWeight
     @Published private(set) var editBaselineProfile: UserProfile?
+
+    private var settingsBaselineProfile: UserProfile?
+    private var crossDeviceRefreshCancellable: AnyCancellable?
+    private var debouncedCrossDeviceReloadTask: Task<Void, Never>?
+    private var activeRefreshTask: Task<Void, Never>?
 
     private var loggedSectionImpressions = Set<PlanAnalyticsSectionImpression>()
 
@@ -41,6 +47,9 @@ final class PlanModel: ObservableObject {
     private let lastSuccessfulLocalSyncAtProvider: () -> Date?
     private let remoteSyncConsentDecisionProvider: () -> HealthSummarySyncConsentDecision
     private let isRemoteSyncCapabilityEnabled: () -> Bool
+    private let ownerUIDProvider: () -> String?
+    private let accountDataRefreshEventBus: AccountDataRefreshEventBus?
+    private let crossDeviceSyncCoordinator: CrossDeviceSyncCoordinating?
 
     init(
         actionCenter: FitnessActionCenter,
@@ -59,7 +68,10 @@ final class PlanModel: ObservableObject {
         healthSyncPhaseProvider: @escaping () -> HealthSyncPhase? = { nil },
         lastSuccessfulLocalSyncAtProvider: @escaping () -> Date? = { nil },
         remoteSyncConsentDecisionProvider: @escaping () -> HealthSummarySyncConsentDecision = { .notDetermined },
-        isRemoteSyncCapabilityEnabled: @escaping () -> Bool = { false }
+        isRemoteSyncCapabilityEnabled: @escaping () -> Bool = { false },
+        ownerUIDProvider: @escaping () -> String? = { nil },
+        accountDataRefreshEventBus: AccountDataRefreshEventBus? = nil,
+        crossDeviceSyncCoordinator: CrossDeviceSyncCoordinating? = nil
     ) {
         self.actionCenter = actionCenter
         self.userProfileReader = userProfileReader
@@ -78,6 +90,79 @@ final class PlanModel: ObservableObject {
         self.lastSuccessfulLocalSyncAtProvider = lastSuccessfulLocalSyncAtProvider
         self.remoteSyncConsentDecisionProvider = remoteSyncConsentDecisionProvider
         self.isRemoteSyncCapabilityEnabled = isRemoteSyncCapabilityEnabled
+        self.ownerUIDProvider = ownerUIDProvider
+        self.accountDataRefreshEventBus = accountDataRefreshEventBus
+        self.crossDeviceSyncCoordinator = crossDeviceSyncCoordinator
+        bindAccountDataRefreshEventsIfNeeded()
+    }
+
+    deinit {
+        crossDeviceRefreshCancellable?.cancel()
+        debouncedCrossDeviceReloadTask?.cancel()
+        activeRefreshTask?.cancel()
+    }
+
+    // MARK: Cross-device refresh (Phase 5)
+
+    func bindAccountDataRefreshEventsIfNeeded() {
+        guard let accountDataRefreshEventBus else { return }
+        crossDeviceRefreshCancellable?.cancel()
+        crossDeviceRefreshCancellable = accountDataRefreshEventBus.events
+            .compactMap { [weak self] event -> AccountDataRefreshEvent? in
+                guard let self else { return nil }
+                guard PlanCrossDeviceRefreshPolicy.matchesCurrentUID(
+                    event: event,
+                    ownerUIDProvider: self.ownerUIDProvider
+                ) else {
+                    return nil
+                }
+                guard PlanCrossDeviceRefreshPolicy.shouldReload(for: event) else {
+                    return nil
+                }
+                return event
+            }
+            .sink { [weak self] _ in
+                self?.scheduleCrossDeviceReload()
+            }
+    }
+
+    func performManualCrossDeviceRefresh() async {
+        guard CrossDeviceSyncLifecycle.isManualRefreshEnabled,
+              let crossDeviceSyncCoordinator,
+              let uid = ownerUIDProvider() else {
+            return
+        }
+
+        isCrossDeviceRefreshing = true
+        defer { isCrossDeviceRefreshing = false }
+
+        _ = await crossDeviceSyncCoordinator.manualRefresh(uid: uid)
+    }
+
+    private func scheduleCrossDeviceReload() {
+        debouncedCrossDeviceReloadTask?.cancel()
+        debouncedCrossDeviceReloadTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(
+                for: .milliseconds(PlanCrossDeviceRefreshPolicy.reloadDebounceMilliseconds)
+            )
+            guard !Task.isCancelled, let self else { return }
+            await self.refresh()
+        }
+    }
+
+    func resetForUserContextChange() {
+        activeRefreshTask?.cancel()
+        activeRefreshTask = nil
+        debouncedCrossDeviceReloadTask?.cancel()
+        debouncedCrossDeviceReloadTask = nil
+        isCrossDeviceRefreshing = false
+        planHealthIntelligenceSectionState = nil
+        settingsBaselineProfile = nil
+        editFormState = nil
+        editBaselineProfile = nil
+        isShowingEditSheet = false
+        isShowingSettingsSheet = false
+        viewState = .loading
     }
 
     // MARK: Loading
@@ -89,25 +174,64 @@ final class PlanModel: ObservableObject {
     }
 
     func refresh() async {
-        do {
-            guard let profile = try userProfileReader.getCurrentProfile() else {
-                planHealthIntelligenceSectionState = nil
-                viewState = .empty
+        let wasLoaded = viewState.isLoaded
+
+        activeRefreshTask?.cancel()
+        let task = Task { @MainActor in
+            do {
+                guard let profile = try userProfileReader.getCurrentProfile() else {
+                    guard !Task.isCancelled else { return }
+                    planHealthIntelligenceSectionState = nil
+                    if !wasLoaded {
+                        viewState = .empty
+                    }
+                    return
+                }
+                let context = try await makePlanDashboardContext(profile: profile)
+                async let healthIntelligenceTask = refreshPlanHealthIntelligenceSection(
+                    profile: profile,
+                    context: context
+                )
+                guard !Task.isCancelled else { return }
+                viewState = .loaded(
+                    PlanStateBuilder.dashboardState(profile: profile, context: context)
+                )
+                loggedSectionImpressions.removeAll()
+                syncOpenSheetsAfterCrossDeviceRefresh()
+                await healthIntelligenceTask
+            } catch is CancellationError {
                 return
+            } catch {
+                guard !Task.isCancelled else { return }
+                planHealthIntelligenceSectionState = nil
+                if !wasLoaded {
+                    viewState = .error(FormaProductCopy.Error.loadPlan)
+                }
             }
-            let context = try await makePlanDashboardContext(profile: profile)
-            async let healthIntelligenceTask = refreshPlanHealthIntelligenceSection(
-                profile: profile,
-                context: context
-            )
-            viewState = .loaded(
-                PlanStateBuilder.dashboardState(profile: profile, context: context)
-            )
-            loggedSectionImpressions.removeAll()
-            await healthIntelligenceTask
-        } catch {
-            planHealthIntelligenceSectionState = nil
-            viewState = .error(FormaProductCopy.Error.loadPlan)
+        }
+
+        activeRefreshTask = task
+        await task.value
+    }
+
+    private func syncOpenSheetsAfterCrossDeviceRefresh() {
+        guard case .loaded(let state) = viewState else { return }
+
+        if isShowingSettingsSheet,
+           let form = editFormState,
+           let baseline = settingsBaselineProfile,
+           form == PlanFormState(profile: baseline) {
+            editFormState = PlanFormState(profile: state.profile)
+            settingsBaselineProfile = state.profile
+        }
+
+        if isShowingEditSheet,
+           let form = editFormState,
+           let baseline = editBaselineProfile,
+           form == PlanFormState(profile: baseline) {
+            let refreshedForm = PlanFormState(profile: state.profile)
+            editFormState = refreshedForm
+            editBaselineProfile = state.profile
         }
     }
 
@@ -302,6 +426,7 @@ final class PlanModel: ObservableObject {
         guard case .loaded(let state) = viewState else { return }
         formErrorMessage = nil
         editFormState = PlanFormState(profile: state.profile)
+        settingsBaselineProfile = state.profile
         isShowingSettingsSheet = true
     }
 
@@ -315,6 +440,7 @@ final class PlanModel: ObservableObject {
 
     func dismissSettings() {
         formErrorMessage = nil
+        settingsBaselineProfile = nil
         isShowingSettingsSheet = false
     }
 

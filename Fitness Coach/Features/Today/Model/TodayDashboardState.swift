@@ -13,6 +13,7 @@ enum TodayViewState: Equatable {
     case loading
     case loaded(TodayDashboardState)
     case empty
+    case pendingAccountRestore(message: String)
     case error(String)
 
     var isLoaded: Bool {

@@ -12,4 +12,9 @@ enum PlanViewState: Equatable {
     case loaded(PlanDashboardState)
     case empty
     case error(String)
+
+    var isLoaded: Bool {
+        if case .loaded = self { return true }
+        return false
+    }
 }

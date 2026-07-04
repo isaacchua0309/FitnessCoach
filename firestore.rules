@@ -1,8 +1,143 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function hasMatchingUserId(userId) {
+      return request.resource.data.userId == userId;
+    }
+
+    function hasSchemaVersion() {
+      return request.resource.data.schemaVersion is int
+        && request.resource.data.schemaVersion > 0;
+    }
+
+    function validOptionalTimestamp(field) {
+      return !(field in request.resource.data)
+        || request.resource.data[field] == null
+        || request.resource.data[field] is timestamp;
+    }
+
+    function validAccountTimestamps() {
+      return request.resource.data.updatedAt is timestamp
+        && validOptionalTimestamp('createdAt')
+        && validOptionalTimestamp('deletedAt');
+    }
+
+    function isLocalDateId(dateId) {
+      return dateId.matches('^\\d{4}-\\d{2}-\\d{2}$');
+    }
+
+    function validAccountWrite(userId) {
+      return isOwner(userId)
+        && hasMatchingUserId(userId)
+        && hasSchemaVersion()
+        && validAccountTimestamps();
+    }
+
+    function validDailyLogWrite(userId, dateId) {
+      return validAccountWrite(userId)
+        && isLocalDateId(dateId)
+        && request.resource.data.localDate == dateId;
+    }
+
+    function validDailyReviewWrite(userId, dateId) {
+      return validAccountWrite(userId)
+        && isLocalDateId(dateId)
+        && request.resource.data.localDate == dateId;
+    }
+
+    function validDatedEntryWrite(userId, dateId) {
+      return validAccountWrite(userId)
+        && isLocalDateId(dateId)
+        && request.resource.data.localDate == dateId;
+    }
+
+    function validHealthWrite(userId) {
+      return isOwner(userId)
+        && hasMatchingUserId(userId)
+        && hasSchemaVersion()
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    // Profile snapshot (existing behavior)
     match /users/{userId}/profile/{docId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isOwner(userId);
+    }
+
+    // Account persistence — nutrition (Phase 2)
+    match /users/{userId}/syncMetadata/{docId} {
+      allow read: if isOwner(userId);
+      allow create, update: if validAccountWrite(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/dailyLogs/{dateId} {
+      allow read: if isOwner(userId);
+      allow create, update: if validDailyLogWrite(userId, dateId);
+      allow delete: if isOwner(userId);
+
+      match /foodEntries/{entryId} {
+        allow read: if isOwner(userId);
+        allow create, update: if validDatedEntryWrite(userId, dateId);
+        allow delete: if isOwner(userId);
+      }
+
+      match /waterEntries/{entryId} {
+        allow read: if isOwner(userId);
+        allow create, update: if validDatedEntryWrite(userId, dateId);
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    match /users/{userId}/weightEntries/{entryId} {
+      allow read: if isOwner(userId);
+      allow create, update: if validAccountWrite(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/dailyReviews/{dateId} {
+      allow read: if isOwner(userId);
+      allow create, update: if validDailyReviewWrite(userId, dateId);
+      allow delete: if isOwner(userId);
+    }
+
+    // Health summary sync (owner-only; written by HealthSummaryRemoteSyncClient)
+    match /users/{userId}/healthDaily/{dayId} {
+      allow read: if isOwner(userId);
+      allow create, update: if validHealthWrite(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/healthWorkouts/{workoutId} {
+      allow read: if isOwner(userId);
+      allow create, update: if validHealthWrite(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/healthRecovery/{dayId} {
+      allow read: if isOwner(userId);
+      allow create, update: if validHealthWrite(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/healthWeeklyReviews/{reviewId} {
+      allow read: if isOwner(userId);
+      allow create, update: if validHealthWrite(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/healthSyncMetadata/{docId} {
+      allow read: if isOwner(userId);
+      allow create, update: if validHealthWrite(userId);
+      allow delete: if isOwner(userId);
     }
   }
 }

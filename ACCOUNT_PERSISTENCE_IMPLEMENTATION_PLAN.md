@@ -1,8 +1,29 @@
 # Account Persistence — Implementation Plan
 
 **Companion to:** `ACCOUNT_PERSISTENCE_RESTORE_CONTEXT_PACKET.md`  
-**Status:** Planning only — no code changes yet  
-**Generated:** 2026-07-04
+**Status:** Phases 2–5 foundation **implemented** — see `Docs/AccountPersistence/PHASE_2_CLOUD_SCHEMA_AND_RULES.md`, `Docs/AccountPersistence/PHASE_3_LOCAL_FIRST_SYNC_ENGINE.md`, `Docs/AccountPersistence/PHASE_4_FRESH_INSTALL_RESTORE.md`, and `Docs/AccountPersistence/PHASE_5_CROSS_DEVICE_REFRESH.md`  
+**Generated:** 2026-07-04 · **Updated:** 2026-07-04
+
+---
+
+## Phase status
+
+| Phase | Goal | Status |
+|-------|------|--------|
+| **1** | UID hardening — stop cross-user local leakage | **In progress** ([#106](https://github.com/isaacchua0309/FitnessCoach/pull/106)) |
+| **2** | Cloud schema, DTOs, rules, remote store, tests, DI (no sync) | **Implemented** ([#108](https://github.com/isaacchua0309/FitnessCoach/pull/108)) |
+| **3** | Local-first sync engine — upload/pull/outbox | **Implemented** ([#110](https://github.com/isaacchua0309/FitnessCoach/pull/110)) |
+| **4** | Fresh install restore + bootstrap UX | **Implemented** — verify with `xcodebuild test` before enabling `restoreOnLoginEnabled` ([#113](https://github.com/isaacchua0309/FitnessCoach/pull/113)–[#117](https://github.com/isaacchua0309/FitnessCoach/pull/117)) |
+| **5** | Cross-device refresh + near-realtime sync | **Implemented** — verify with `xcodebuild test` before production rollout ([#122](https://github.com/isaacchua0309/FitnessCoach/pull/122)–[#125](https://github.com/isaacchua0309/FitnessCoach/pull/125)) |
+| **6** | Account delete, export, privacy | **Pending** |
+
+**Phase 2 reminder:** Cloud DTOs and Firestore paths exist. See Phase 2 doc for schema/rules.
+
+**Phase 3 reminder:** Signed-in users enqueue nutrition sync mutations; upload runs on debounced local changes, foreground, and sign-in. **Pull on foreground is off by default** (`pullRecentDataEnabled = false`). See `Docs/AccountPersistence/PHASE_3_LOCAL_FIRST_SYNC_ENGINE.md`.
+
+**Phase 4 reminder:** Blocking restore after sign-in pulls profile + bounded nutrition history from Firestore; background backfill extends windows. **Restore UX is off by default** (`restoreOnLoginEnabled = false`) until CI/manual QA passes. **No realtime cross-device listeners.** See `Docs/AccountPersistence/PHASE_4_FRESH_INSTALL_RESTORE.md`.
+
+**Phase 5 reminder:** Incremental cross-device refresh (foreground, manual, realtime hints) makes same-account changes visible across devices. **Does not** implement account deletion, raw meal images, raw HealthKit, or push notifications. See `Docs/AccountPersistence/PHASE_5_CROSS_DEVICE_REFRESH.md`.
 
 ---
 
@@ -13,12 +34,12 @@
 | P0 | Nutrition logs lost on reinstall | Firestore sync + restore pipeline | 2–4 |
 | P0 | Cross-user local leakage | `ownerUID` + filtered reads + switch wipe | 1 |
 | P0 | Journey empty on new device | Restore daily/weight logs before Journey load | 4 |
-| P1 | No offline upload | Sync outbox + retry | 3 |
-| P1 | Deletes don't propagate | Tombstones + pull merge | 3, 5 |
+| P1 | No offline upload | Sync outbox + retry | 3 ✅ |
+| P1 | Deletes don't propagate | Tombstones + pull merge | 3 ✅ (upload); 5 ✅ (cross-device pull) |
 | P1 | Firestore rules incomplete | Expand `firestore.rules` + emulator tests | 2 |
 | P2 | Account delete stub | GDPR delete orchestration | 6 |
 | P2 | Coach nil userId rows | Backfill + strict filter | 1 |
-| P3 | Daily reviews not synced | Optional collection | 5 |
+| P3 | Daily reviews not synced | Optional collection | 3 ✅ (upload); 5 ✅ (incremental pull) |
 
 ---
 
@@ -364,18 +385,23 @@ See context packet §12. Add to `firestore.rules`:
 
 **Goal:** Firestore structure + DTOs + rules + emulator tests (no iOS sync yet).
 
+**Status:** **Implemented** — documented in `Docs/AccountPersistence/PHASE_2_CLOUD_SCHEMA_AND_RULES.md` ([#108](https://github.com/isaacchua0309/FitnessCoach/pull/108)).
+
 | Action | Files |
 |--------|-------|
-| Define `CloudDailyLogDocument`, `CloudFoodEntryDocument`, etc. | `Infrastructure/Cloud/CloudNutritionDocuments.swift` (new) |
-| Implement read/write clients | `FirestoreDailyLogSyncClient.swift`, etc. |
+| Define `CloudDailyLogDocument`, `CloudFoodEntryDocument`, etc. | `Infrastructure/Cloud/AccountData/Cloud*.swift` |
+| Canonical paths + schema version | `AccountDataCloudPaths.swift`, `AccountDataCloudSchema.swift` |
+| Local ↔ cloud mappers | `CloudAccountDataMappers.swift` |
+| Remote store protocol + Firestore client | `AccountDataRemoteStore.swift`, `FirestoreAccountDataRemoteStore.swift` |
+| DI (dormant) | `AppContainer.accountDataRemoteStore`, `AccountPersistenceFeatureFlags.swift` |
 | Expand `firestore.rules` | `firestore.rules` |
-| Add `firebase.json` emulator config if missing | `firebase.json` |
-| Contract tests | `functions/test/nutritionSyncContract.test.ts` (new) |
+| Emulator + iOS tests | `functions/test/accountPersistenceFirestoreRules.test.ts`, `Fitness CoachTests/*AccountData*` |
 
-**Acceptance:**
-- Emulator: owner can R/W own nutrition docs
-- Emulator: user A cannot read user B docs
-- DTO round-trip tests Swift ↔ JSON
+**Acceptance (met):**
+- Emulator: owner can R/W own nutrition docs; user A cannot read user B docs (27 rules tests)
+- DTO round-trip + mapper ownership tests (iOS)
+- Remote store `userId` mismatch rejected before Firestore write
+- **Not met (by design):** no production log mutations call the remote store
 
 ---
 
@@ -383,24 +409,35 @@ See context packet §12. Add to `firestore.rules`:
 
 **Goal:** Upload local mutations; incremental pull; offline outbox.
 
+**Status:** **Implemented** — documented in `Docs/AccountPersistence/PHASE_3_LOCAL_FIRST_SYNC_ENGINE.md` ([#110](https://github.com/isaacchua0309/FitnessCoach/pull/110)).
+
 | Action | Files |
 |--------|-------|
-| `SyncOutboxStore` | New + optional `SyncOutboxEntity` |
-| `AccountSyncEngine` | New |
-| Hook `FitnessActionCenter` post-mutation | `FitnessActionCenter.swift` |
-| Push on foreground | `AppContainer` / `RootModel` lifecycle |
-| `NWPathMonitor` retry | New `NetworkSyncTrigger.swift` |
-| Delete tombstones | `FoodLogService.deleteFoodEntry` sets `deletedAt` |
-| Feature flag | `FormaAbTest.Sync.nutritionSyncEnabled` |
+| Durable outbox + coalescing | `Application/Sync/AccountSyncOutboxStore.swift`, `AccountSyncMutationModels.swift`, `AccountSyncMutationEntity` |
+| Local mutation tracking | `Application/Sync/AccountLocalMutationTracker.swift`, `AccountDataSyncStamping.swift` |
+| Payload builder (Phase 2 DTOs) | `Application/Sync/AccountSyncPayloadBuilder.swift` |
+| Upload / pull | `AccountSyncUploader.swift`, `AccountSyncPuller.swift`, `AccountSyncMergePolicy.swift` |
+| Orchestration | `AccountSyncCoordinator.swift`, `AccountSyncLifecycle.swift` |
+| Hook repositories | `FoodLogService`, `WaterLogService`, `WeightLogService`, `DailyLogService`, `ReviewService` |
+| Hook action center + lifecycle | `FitnessActionCenter.swift`, `AppContainer.swift`, `MainTabView.swift`, `AuthGateCoordinator.swift` |
+| Observability | `AccountSyncLogger.swift`, `AccountSyncDiagnostics.swift`, DEBUG `AccountSyncDiagnosticsView` |
+| Feature flags | `AccountPersistenceFeatureFlags.swift`, `FormaAbTest.AccountPersistence` |
 
-**Tests:**
-- `NutritionSyncEngineTests.swift` — mock Firestore client
-- `OfflineFoodLogSyncTests.swift` — log offline, mock push
+**Tests (iOS — run on macOS):**
+- `AccountSyncOutboxStoreTests`, `AccountSyncMutationCoalescingTests`
+- `AccountSyncPayloadBuilderTests`, `AccountSyncUploaderTests`, `AccountSyncPullerTests`
+- `AccountSyncMergePolicyTests`, `AccountSyncCoordinatorTests`
+- `AccountLocalMutationTrackingTests`, `AccountSyncMutationIntegrationTests`
+- `AccountSyncRemoteIntegrationTests` (protocol round-trips via `InMemoryAccountDataRemoteStore`)
+- `AccountSyncLifecycleWiringTests`, `AccountSyncLoggerTests`, `AccountSyncDiagnosticsTests`
 
-**Acceptance:**
-- Meal logged offline → uploads when online
-- Edit/delete propagates to Firestore
-- No duplicate docs on retry (mutationId)
+**Acceptance (met by test suite; verify with `xcodebuild test`):**
+- Meal logged while signed in → outbox mutation + `pendingUpload`; uploads when coordinator runs
+- Edit/delete propagates to remote store (in-memory contract tests)
+- Offline pending mutations survive store reopen; failed uploads retry with backoff
+- UID isolation on outbox, uploader, puller, coordinator
+- No duplicate outbox rows for rapid edits (coalescing)
+- **Not met (by design):** `pullRecentDataEnabled` remains false; no restore UI; no realtime listeners; no raw images/HealthKit
 
 ---
 
@@ -408,47 +445,81 @@ See context packet §12. Add to `firestore.rules`:
 
 **Goal:** Reinstall / new device gets logging history back.
 
+**Status:** **Implemented** — documented in `Docs/AccountPersistence/PHASE_4_FRESH_INSTALL_RESTORE.md` ([#113](https://github.com/isaacchua0309/FitnessCoach/pull/113)–[#117](https://github.com/isaacchua0309/FitnessCoach/pull/117)).
+
 | Action | Files |
 |--------|-------|
-| `AccountRestoreCoordinator` | New |
-| Integrate after `ProfileBootstrapService.resolve` | `ProfileBootstrapCoordinatorService` |
-| Restore UI | `Features/Auth/` or `Features/Restore/RestoreProgressView.swift` |
-| Block main until recent window restored | `RootModel`, `AuthGateCoordinator` |
-| Migration backfill upload prompt | `Features/Settings/` or one-time modal |
+| `AccountRestoreCoordinator` + `AccountInitialRestoreService` | `Application/Restore/*.swift` |
+| Restore state + session awareness | `AccountRestoreStateStore`, `AccountRestoreSessionState` |
+| Integrate after sign-in | `AuthGateCoordinator.routeToMainWithAccountRestore`, `AppContainer` |
+| Restore UI | `AccountRestoreView`, `AccountRestoreViewModel` |
+| Background backfill (365d/730d) | `AccountInitialRestoreService.runBackgroundBackfill` |
+| Tab refresh | `AppRefreshCenter.notifyAccountRestoreDidComplete` |
+| Privacy-safe diagnostics | `AccountRestoreLogger`, DEBUG `AccountRestoreDiagnosticsView` |
+| Feature flags | `restoreOnLoginEnabled = false` until QA |
 
-**Tests:**
-- `ReinstallRestoreIntegrationTests.swift` — in-memory Firestore + SwiftData
-- `ProfileBootstrapService` + restore pipeline
+**Tests (iOS — run on macOS):**
+- `AccountRestoreCoordinatorTests`, `AccountInitialRestoreServiceTests`
+- `AccountRestoreStateStoreTests`, `AccountLocalDataInspectorTests`, `AccountRemoteDataInspectorTests`
+- `AccountRestoreOutcomeSupportTests`, `AccountRestorePolicyTests`, `AccountRestoreSessionStateTests`
+- `AccountRestoreLoggerTests`, `AccountBackgroundBackfillCoordinatorTests`
+- `AccountRestoreViewModelTests`, `AuthRestoreRoutingTests`
+- `TodayRestoreAwarenessTests`, `JourneyRestoreAwarenessTests`, `PlanRestoreAwarenessTests`
+- `AccountRestoreEndToEndTests` (reinstall / new-device simulations via in-memory store)
 
-**Acceptance:**
-- Delete app → reinstall → sign in → Today shows restored meals (from mock cloud)
-- Journey weight chart populated
+**Acceptance (met by test suite; verify with `xcodebuild test` before flag enable):**
+- Delete app → reinstall → sign in → Today shows restored meals (in-memory cloud fixtures)
+- Journey weight / log history populated after restore
+- UID isolation — user B never receives user A rows
+- Pending local edits not overwritten by older remote
+- Offline / partial terminal states allow safe main-shell entry
+- **Not met (by design):** `restoreOnLoginEnabled` remains false; no realtime listeners; no raw images/HealthKit; no account deletion
 
 ---
 
-### Phase 5 — Cross-Device Sync
+### Phase 5 — Cross-Device Refresh & Near-Realtime Sync
 
-**Goal:** Device B sees Device A changes within foreground refresh.
+**Goal:** Same-account changes visible across devices after foreground refresh, manual refresh, or realtime hint.
+
+**Status:** **Implemented** — verify with `xcodebuild test` before production rollout. See `Docs/AccountPersistence/PHASE_5_CROSS_DEVICE_REFRESH.md`.
 
 | Action | Files |
 |--------|-------|
-| Foreground pull in `AccountSyncEngine` | Existing engine |
-| Conflict UI (rare) | Optional toast |
+| Upload-then-pull orchestration | `CrossDeviceSyncCoordinator.swift` |
+| Incremental cursor pull + merge | `AccountIncrementalPuller.swift`, `AccountSyncCursorStore.swift` |
+| Policy (lookback, throttle, exclusions) | `CrossDeviceSyncPolicy.swift` |
+| App lifecycle hooks | `CrossDeviceSyncLifecycle.swift`, `AppContainer` |
+| Realtime change hints (no push) | `AccountRealtimeChangeListener.swift`, `FirestoreAccountRealtimeChangeListener.swift` |
+| Domain refresh events | `AccountDataRefreshEventBus.swift` |
+| Tab reload policies | `TodayCrossDeviceRefreshPolicy`, `JourneyCrossDeviceRefreshPolicy`, `PlanCrossDeviceRefreshPolicy` |
+| Privacy-safe logging | `CrossDeviceSyncLogger.swift` |
+| Feature flags | `foregroundCrossDeviceRefreshEnabled`, `realtimeCrossDeviceSyncEnabled`, `manualRefreshEnabled` |
+| Conflict UI (rare) | Optional toast — not shipped |
 | Coach chat/timeline sync (optional flag) | Phase 5b |
-| Daily review sync | Phase 5b |
-| Sync status in Settings | `SettingsRootView` |
+| Sync status in Settings (production) | Phase 5b / polish |
 
-**Tests:** Cross-device test matrix (§11 of context packet)
+**Tests (iOS — run on macOS):**
+- `AccountSyncCursorStoreTests`, `AccountIncrementalPullerTests`
+- `CrossDeviceSyncCoordinatorTests`, `AccountRealtimeChangeListenerTests`, `AppLifecycleCrossDeviceSyncTests`
+- `TodayCrossDeviceRefreshTests`, `JourneyCrossDeviceRefreshTests`, `PlanCrossDeviceRefreshTests`
+- `CrossDeviceEndToEndSyncTests`, `CrossDeviceSyncLoggerTests`, `AccountDataRefreshEventBusTests`
 
-**Acceptance:**
-- Device A logs → Device B foreground → B sees entry
-- Delete on A removes on B
+**Acceptance (met by test suite; verify with `xcodebuild test`):**
+- Device A logs → Device B foreground / realtime hint → B sees entry
+- Edit on A → updated on B
+- Delete on A → removed on B after refresh
+- Pending local edit on B not overwritten by older remote
+- UID isolation — account switch does not leak prior user data
+- Offline refresh preserves local data
+- **Not met (by design):** account deletion; raw meal images; raw HealthKit; push notifications
 
 ---
 
 ### Phase 6 — Deletion and Privacy
 
 **Goal:** Account delete, export, privacy copy.
+
+**Status:** **Pending**
 
 | Action | Files |
 |--------|-------|
@@ -475,19 +546,28 @@ See context packet §12. Add to `firestore.rules`:
 - [ ] `testWeightSurvivesForceQuit`
 - [ ] `testUncommittedImageAnalysisLostOnKill`
 
-### Reinstall Restore (new — Phase 4)
+### Reinstall Restore (Phase 4)
 
-- [ ] `testReinstallRestoresProfileFromCloud`
-- [ ] `testReinstallRestoresFoodLogsFromCloud`
-- [ ] `testReinstallEmptyCloudShowsOnboarding`
-- [ ] `testReinstallOfflineShowsCachedOrRetry`
+- [x] `testReinstallSameAccountRestoresNutritionHistory` — `AccountRestoreEndToEndTests`
+- [x] `testReinstallSameAccountJourneyCanRebuild` — `AccountRestoreEndToEndTests`
+- [x] `testNewDeviceLoginRestoresToday` — `AccountRestoreEndToEndTests`
+- [x] `testRestoreDoesNotPullOtherUserData` — `AccountRestoreEndToEndTests`
+- [x] `testOfflineFreshInstallShowsOfflineRestoreState` — `AccountRestoreEndToEndTests`
+- [x] `testPartialRestoreStillAllowsMainApp` — `AccountRestoreEndToEndTests`
+- [x] `testFreshInstallRestoresProfileAndRecentLogs` — `AccountInitialRestoreServiceTests`
+- [ ] Manual QA on device with production Firestore before `restoreOnLoginEnabled = true`
 
-### Cross-Device (new — Phase 5)
+### Cross-Device (Phase 5)
 
-- [ ] `testDeviceBReceivesDeviceAMeal`
-- [ ] `testDeviceBReceivesEdit`
-- [ ] `testDeviceBReceivesDelete`
-- [ ] `testPlanUpdatePropagates`
+- [x] `testDeviceALogsFoodDeviceBReceivesIt` — `CrossDeviceEndToEndSyncTests`
+- [x] `testDeviceAEditsFoodDeviceBUpdatesIt` — `CrossDeviceEndToEndSyncTests`
+- [x] `testDeviceADeletesFoodDeviceBRemovesIt` — `CrossDeviceEndToEndSyncTests`
+- [x] `testDeviceAUpdatesPlanDeviceBPlanTodayJourneyUpdate` — `CrossDeviceEndToEndSyncTests`
+- [x] `testDeviceBPendingLocalEditNotOverwrittenByDeviceAOlderRemoteChange` — `CrossDeviceEndToEndSyncTests`
+- [x] `testDifferentUIDDoesNotReceiveOtherAccountData` — `CrossDeviceEndToEndSyncTests`
+- [x] `testRealtimeHintCausesDeviceBToPullChanges` — `CrossDeviceEndToEndSyncTests`
+- [x] `testOfflineDeviceBRefreshKeepsExistingLocalData` — `CrossDeviceEndToEndSyncTests`
+- [ ] Manual QA on two physical devices with production Firestore before wide rollout
 
 ### Multi-User (new — Phase 1)
 
@@ -496,11 +576,13 @@ See context packet §12. Add to `firestore.rules`:
 - [ ] `testCoachTranscriptIsolatedByUserId`
 - [ ] `testNilUserIdCoachRowsExcludedAfterMigration`
 
-### Offline Sync (new — Phase 3)
+### Offline Sync (Phase 3)
 
-- [ ] `testOfflineLogUploadsOnReconnect`
-- [ ] `testOfflineEditMergedCorrectly`
-- [ ] `testOutboxRetryOnTransientFailure`
+- [x] `testOfflineMutationRemainsPendingAfterStoreReopen` — `AccountSyncMutationIntegrationTests`
+- [x] `testMarkFailedAppliesRetryBackoff` / `testUploaderLeavesFailedMutationRetryable` — outbox + uploader retry
+- [x] `testFoodEditMarksPendingUploadAndEnqueuesMutation` — local-first + outbox
+- [x] `testUploadFoodThenFetchFromRemoteStore` — remote contract round-trip (`AccountSyncRemoteIntegrationTests`)
+- [ ] `testOfflineLogUploadsOnReconnect` — manual QA / future NWPathMonitor trigger (lifecycle retry covers partial case)
 
 ### Auth Lifecycle
 
@@ -535,13 +617,13 @@ Execute phases in order. **Do not skip Phase 1.**
 > Add CloudNutritionDocuments.swift DTOs and FirestoreDailyLogSyncClient following FirestoreCloudUserProfileStore patterns. Expand firestore.rules for dailyLogs, foodEntries, waterEntries, weightEntries, syncMetadata. Add emulator tests.
 
 **Phase 3:**
-> Implement SyncOutboxStore and AccountSyncEngine with local-first push/pull. Hook FitnessActionCenter mutations to enqueue sync. Add offline retry. Feature flag FormaAbTest.Sync.nutritionSyncEnabled.
+> Implemented: `AccountSyncOutboxStore`, `AccountSyncUploader`, `AccountSyncPuller`, `AccountSyncCoordinator`. Hook `FitnessActionCenter` mutations via `AccountLocalMutationTracker`. See `Docs/AccountPersistence/PHASE_3_LOCAL_FIRST_SYNC_ENGINE.md`.
 
 **Phase 4:**
-> Implement AccountRestoreCoordinator: after ProfileBootstrapService.resolve, pull last 30 days + weights, write SwiftData, show RestoreProgressView. Integrate with AuthGateCoordinator.
+> Implemented: `AccountRestoreCoordinator`, blocking restore UI, tab awareness, background backfill. See `Docs/AccountPersistence/PHASE_4_FRESH_INSTALL_RESTORE.md`. Enable `restoreOnLoginEnabled` only after `xcodebuild test` + manual QA.
 
 **Phase 5:**
-> Foreground pull on UIApplication.willEnterForeground. Cross-device integration tests with shared mock Firestore.
+> Implemented: `CrossDeviceSyncCoordinator`, `AccountIncrementalPuller`, realtime change hints, tab refresh policies. See `Docs/AccountPersistence/PHASE_5_CROSS_DEVICE_REFRESH.md`. Verify with `xcodebuild test` + two-device manual QA.
 
 **Phase 6:**
 > Wire SettingsDeleteDataActionHandler to delete local SwiftData, Firestore collections, Firebase Auth user.
@@ -589,7 +671,7 @@ Copy into Phase 6 PR description:
 | New file | Phase |
 |----------|-------|
 | `Application/Sync/AccountSyncEngine.swift` | 3 |
-| `Application/Sync/AccountRestoreCoordinator.swift` | 4 |
+| `Application/Restore/AccountRestoreCoordinator.swift` | 4 |
 | `Application/Sync/AccountDataNamespaceService.swift` | 1 |
 | `Application/Sync/SyncOutboxStore.swift` | 3 |
 | `Application/Sync/AccountMigrationService.swift` | 1 |
@@ -600,9 +682,9 @@ Copy into Phase 6 PR description:
 | `Infrastructure/Cloud/FirestoreWeightEntrySyncClient.swift` | 2 |
 | `Infrastructure/Cloud/FirestoreSyncMetadataClient.swift` | 2 |
 | `Domain/Sync/SyncMutation.swift` | 3 |
-| `Features/Restore/RestoreProgressView.swift` | 4 |
+| `Features/Auth/Views/AccountRestoreView.swift` | 4 |
 | `Fitness CoachTests/MultiUserNutritionIsolationTests.swift` | 1 |
-| `Fitness CoachTests/ReinstallRestoreIntegrationTests.swift` | 4 |
+| `Fitness CoachTests/AccountRestoreEndToEndTests.swift` | 4 |
 | `Fitness CoachTests/NutritionSyncEngineTests.swift` | 3 |
 
 ---
@@ -625,4 +707,4 @@ Copy into Phase 6 PR description:
 
 ---
 
-*End of implementation plan. No application code was modified.*
+*End of implementation plan. Phases 2–4 implemented; Phases 5–6 pending. Phase 4 rollout gated by `restoreOnLoginEnabled`.*

@@ -159,3 +159,17 @@ enum ProfileTestFixtures {
         )
     }
 }
+
+extension UserTargets {
+    func withCalories(_ calories: Int) -> UserTargets {
+        UserTargets(
+            calorieTarget: calories,
+            proteinTarget: proteinTarget,
+            carbTarget: carbTarget,
+            fatTarget: fatTarget,
+            waterTargetMl: waterTargetMl,
+            expectedWeeklyWeightLossKg: expectedWeeklyWeightLossKg,
+            aggressiveness: aggressiveness
+        )
+    }
+}

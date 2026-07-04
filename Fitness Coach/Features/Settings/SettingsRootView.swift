@@ -338,6 +338,10 @@ struct SettingsRootView: View {
             developerDestinationView(for: destination)
         case .coachContextInspector:
             developerDestinationView(for: destination)
+        case .accountSyncDiagnostics:
+            developerDestinationView(for: destination)
+        case .accountRestoreDiagnostics:
+            developerDestinationView(for: destination)
         }
     }
 
@@ -355,6 +359,10 @@ struct SettingsRootView: View {
                 HealthIntelligenceDiagnosticsView()
             case .coachContextInspector:
                 CoachContextInspectorView()
+            case .accountSyncDiagnostics:
+                AccountSyncDiagnosticsView()
+            case .accountRestoreDiagnostics:
+                AccountRestoreDiagnosticsView()
             default:
                 EmptyView()
             }

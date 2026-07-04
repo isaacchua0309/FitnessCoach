@@ -14,18 +14,18 @@ final class WeightLogService {
     private let store: SwiftDataStore
     private let dailyLogService: DailyLogService
     private let dateProvider: DateProviding
-    private let currentUIDProvider: () -> String?
+    private let mutationTracker: AccountLocalMutationTracker?
 
     init(
         store: SwiftDataStore,
         dailyLogService: DailyLogService,
         dateProvider: DateProviding? = nil,
-        currentUIDProvider: @escaping () -> String? = { nil }
+        mutationTracker: AccountLocalMutationTracker? = nil
     ) {
         self.store = store
         self.dailyLogService = dailyLogService
         self.dateProvider = dateProvider ?? SystemDateProvider()
-        self.currentUIDProvider = currentUIDProvider
+        self.mutationTracker = mutationTracker
     }
 
     // MARK: Create
@@ -33,20 +33,18 @@ final class WeightLogService {
     func logWeight(_ weightKg: Double, date: Date) throws -> WeightEntry {
         guard weightKg > 0 else { throw ServiceError.invalidInput("Weight must be greater than zero.") }
 
-        let ownerUID = try UserDataOwnerScope.requiredSessionUID(
-            currentUIDProvider(),
-            operation: "log weight"
-        )
         let dayStart = dateProvider.startOfDay(for: date)
-        let now = dateProvider.now
+        let mutationGroupId = mutationTracker?.makeMutationGroupId()
 
-        // Same-day policy: update the existing entry for this day if present,
-        // otherwise create a new one.
         if let existing = try weightEntity(forDayStart: dayStart) {
             existing.weightKg = weightKg
-            UserDataOwnerScope.touchNutritionWrite(on: existing, now: now)
             try save()
-            try updateDailyLogWeightIfPresent(date: dayStart, weightKg: weightKg)
+            let dailyLogUpdated = try updateDailyLogWeightIfPresent(date: dayStart, weightKg: weightKg, mutationGroupId: mutationGroupId)
+            try trackWeightUpsert(existing, mutationGroupId: mutationGroupId)
+            if dailyLogUpdated, let log = try dailyLogService.dailyLogEntity(for: dayStart) {
+                try mutationTracker?.trackDailyLogUpsert(log, mutationGroupId: mutationGroupId)
+                try save()
+            }
             return existing.toModel()
         }
 
@@ -55,31 +53,35 @@ final class WeightLogService {
             date: dayStart,
             weightKg: weightKg,
             note: nil,
-            createdAt: now
+            createdAt: dateProvider.now
         )
         let entity = WeightEntryEntity(model: model)
-        UserDataOwnerScope.stampNewNutritionWrite(on: entity, ownerUID: ownerUID, now: now)
         try store.insert(entity)
-        try updateDailyLogWeightIfPresent(date: dayStart, weightKg: weightKg)
+        let dailyLogUpdated = try updateDailyLogWeightIfPresent(date: dayStart, weightKg: weightKg, mutationGroupId: mutationGroupId)
+        try trackWeightUpsert(entity, mutationGroupId: mutationGroupId)
+        if dailyLogUpdated, let log = try dailyLogService.dailyLogEntity(for: dayStart) {
+            try mutationTracker?.trackDailyLogUpsert(log, mutationGroupId: mutationGroupId)
+            try save()
+        }
         return entity.toModel()
     }
 
     func logWeight(_ draft: WeightDraft, date: Date) throws -> WeightEntry {
         guard draft.weightKg > 0 else { throw ServiceError.invalidInput("Weight must be greater than zero.") }
 
-        let ownerUID = try UserDataOwnerScope.requiredSessionUID(
-            currentUIDProvider(),
-            operation: "log weight"
-        )
         let dayStart = dateProvider.startOfDay(for: date)
-        let now = dateProvider.now
+        let mutationGroupId = mutationTracker?.makeMutationGroupId()
 
         if let existing = try weightEntity(forDayStart: dayStart) {
             existing.weightKg = draft.weightKg
             existing.note = draft.note
-            UserDataOwnerScope.touchNutritionWrite(on: existing, now: now)
             try save()
-            try updateDailyLogWeightIfPresent(date: dayStart, weightKg: draft.weightKg)
+            let dailyLogUpdated = try updateDailyLogWeightIfPresent(date: dayStart, weightKg: draft.weightKg, mutationGroupId: mutationGroupId)
+            try trackWeightUpsert(existing, mutationGroupId: mutationGroupId)
+            if dailyLogUpdated, let log = try dailyLogService.dailyLogEntity(for: dayStart) {
+                try mutationTracker?.trackDailyLogUpsert(log, mutationGroupId: mutationGroupId)
+                try save()
+            }
             return existing.toModel()
         }
 
@@ -88,26 +90,37 @@ final class WeightLogService {
             date: dayStart,
             weightKg: draft.weightKg,
             note: draft.note,
-            createdAt: now
+            createdAt: dateProvider.now
         )
         let entity = WeightEntryEntity(model: model)
-        UserDataOwnerScope.stampNewNutritionWrite(on: entity, ownerUID: ownerUID, now: now)
         try store.insert(entity)
-        try updateDailyLogWeightIfPresent(date: dayStart, weightKg: draft.weightKg)
+        let dailyLogUpdated = try updateDailyLogWeightIfPresent(date: dayStart, weightKg: draft.weightKg, mutationGroupId: mutationGroupId)
+        try trackWeightUpsert(entity, mutationGroupId: mutationGroupId)
+        if dailyLogUpdated, let log = try dailyLogService.dailyLogEntity(for: dayStart) {
+            try mutationTracker?.trackDailyLogUpsert(log, mutationGroupId: mutationGroupId)
+            try save()
+        }
         return entity.toModel()
     }
 
     // MARK: Read
 
     func getLatestWeight() throws -> WeightEntry? {
-        let sessionUID = currentUIDProvider()
-        let entities = try fetchWeightEntities(sessionUID: sessionUID)
-        return entities.first?.toModel()
+        var descriptor = FetchDescriptor<WeightEntryEntity>(
+            sortBy: [SortDescriptor(\.date, order: .reverse)]
+        )
+        return try store.fetch(descriptor)
+            .first(where: AccountDataSyncReadFilter.isVisible)?
+            .toModel()
     }
 
     func getWeightEntries(from startDate: Date?, to endDate: Date?) throws -> [WeightEntry] {
-        let sessionUID = currentUIDProvider()
-        var entries = try fetchWeightEntities(sessionUID: sessionUID).map { $0.toModel() }
+        let descriptor = FetchDescriptor<WeightEntryEntity>(
+            sortBy: [SortDescriptor(\.date, order: .forward)]
+        )
+        var entries = try store.fetch(descriptor)
+            .filter(AccountDataSyncReadFilter.isVisible)
+            .map { $0.toModel() }
         if let startDate {
             entries = entries.filter { $0.date >= startDate }
         }
@@ -125,52 +138,39 @@ final class WeightLogService {
 
     // MARK: Helpers
 
-    private func fetchWeightEntities(sessionUID: String?) throws -> [WeightEntryEntity] {
-        if let sessionUID {
-            let descriptor = FetchDescriptor<WeightEntryEntity>(
-                predicate: #Predicate { $0.ownerUID == sessionUID },
-                sortBy: [SortDescriptor(\.date, order: .reverse)]
-            )
-            return try store.fetch(descriptor)
-        }
-
-        let descriptor = FetchDescriptor<WeightEntryEntity>(
-            predicate: #Predicate { $0.ownerUID == nil },
-            sortBy: [SortDescriptor(\.date, order: .reverse)]
-        )
-        return try store.fetch(descriptor)
-    }
-
     private func weightEntity(forDayStart dayStart: Date) throws -> WeightEntryEntity? {
-        let sessionUID = currentUIDProvider()
-
-        if let sessionUID {
-            var descriptor = FetchDescriptor<WeightEntryEntity>(
-                predicate: #Predicate {
-                    $0.date == dayStart && $0.ownerUID == sessionUID
-                }
-            )
-            descriptor.fetchLimit = 1
-            return try store.fetch(descriptor).first
-        }
-
         var descriptor = FetchDescriptor<WeightEntryEntity>(
-            predicate: #Predicate {
-                $0.date == dayStart && $0.ownerUID == nil
-            }
+            predicate: #Predicate { $0.date == dayStart }
         )
         descriptor.fetchLimit = 1
-        return try store.fetch(descriptor).first
+        guard let entity = try store.fetch(descriptor).first else { return nil }
+        guard AccountDataSyncReadFilter.isVisible(entity) else { return nil }
+        return entity
     }
 
-    /// Updates the day's log weight only if a log already exists; this avoids
-    /// requiring a user profile just to log weight.
-    private func updateDailyLogWeightIfPresent(date: Date, weightKg: Double) throws {
-        guard let log = try dailyLogService.dailyLogEntity(for: date) else { return }
-        let now = dateProvider.now
+    @discardableResult
+    private func updateDailyLogWeightIfPresent(
+        date: Date,
+        weightKg: Double,
+        mutationGroupId: String?
+    ) throws -> Bool {
+        guard let log = try dailyLogService.dailyLogEntity(for: date) else { return false }
         log.weightKg = weightKg
-        log.updatedAt = now
-        UserDataOwnerScope.touchNutritionWrite(on: log, now: now)
+        log.updatedAt = dateProvider.now
+        try save()
+        return true
+    }
+
+    private func trackWeightUpsert(_ entity: WeightEntryEntity, mutationGroupId: String?) throws {
+        guard let mutationTracker else { return }
+        let localDate = mutationTracker.dailyLogCloudID(for: entity.date)
+        try mutationTracker.trackUpsert(
+            entity: entity,
+            entityType: .weightEntry,
+            entityId: entity.id.uuidString,
+            localDate: localDate,
+            mutationGroupId: mutationGroupId
+        )
         try save()
     }
 

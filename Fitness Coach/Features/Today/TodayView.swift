@@ -74,7 +74,7 @@ struct TodayView: View {
                     }
                 }
                 .refreshable {
-                    await refreshDashboard()
+                    await performPullToRefresh()
                 }
                 .sheet(isPresented: $isShowingTrainingInsights) {
                     TrainingInsightsView(
@@ -157,6 +157,11 @@ struct TodayView: View {
         }
     }
 
+    private func performPullToRefresh() async {
+        await model.performManualCrossDeviceRefresh()
+        await refreshDashboard()
+    }
+
     private func refreshDashboard() async {
         await trainingInsightsStore.refresh()
         if trainingInsightsStore.integrationState.isConnected {
@@ -200,6 +205,9 @@ struct TodayView: View {
             FormaScreenErrorView(message: message, onRetry: {
                 Task { await refreshDashboard() }
             }, style: .tabRoot)
+        case .pendingAccountRestore(let message):
+            AccountRestorePendingStateView(message: message)
+                .formaMainTabScrollInsets()
         case .loaded(let state):
             dashboard(state)
         }
@@ -236,6 +244,18 @@ struct TodayView: View {
             .padding(.bottom, TodayLayout.bottomScrollPadding)
         }
         .formaMainTabScrollInsets()
+        .overlay(alignment: .top) {
+            if model.isCrossDeviceRefreshing {
+                ProgressView()
+                    .controlSize(.small)
+                    .padding(.horizontal, FormaTokens.Spacing.md)
+                    .padding(.vertical, FormaTokens.Spacing.sm)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
+                    .padding(.top, FormaTokens.Spacing.sm)
+                    .accessibilityLabel("Syncing latest updates")
+            }
+        }
         .onAppear {
             syncAnalyticsContext(for: state)
             actionCoordinator.logTodayViewed()

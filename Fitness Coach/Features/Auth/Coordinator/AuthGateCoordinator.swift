@@ -38,10 +38,15 @@ final class AuthGateCoordinator: ObservableObject {
     @Published var didLogColdStartWelcome = false
     @Published var suppressSignOutEntrySourceAnnotation = false
     @Published var lastExistingUserResolutionResult: ExistingUserSignInResolutionResult?
+    @Published var accountRestoreViewModel: AccountRestoreViewModel?
 
     private var loggedAuthGatePhase: AuthGateLoggedPhase?
     private var cancellables = Set<AnyCancellable>()
     private var onboardingModelCancellable: AnyCancellable?
+    private var accountRestoreRouteTask: Task<Void, Never>?
+    #if DEBUG
+    private var testingSignedInUID: String?
+    #endif
 
     init(container: AppContainer) {
         self.container = container
@@ -183,7 +188,7 @@ final class AuthGateCoordinator: ObservableObject {
                 container.onboardingCoachingContextStore.clear()
                 isResolvingAccountMismatch = false
                 awaitingCloudSync = false
-                rootModel.didCompleteOnboarding()
+                scheduleRouteToMainWithAccountRestore(uid: uid, reason: .accountSwitch)
             case .missingCloudProfile:
                 isResolvingAccountMismatch = false
                 onboardingModel = nil
@@ -229,7 +234,7 @@ final class AuthGateCoordinator: ObservableObject {
                 _ = try container.profileBootstrapCoordinatorService.confirmLinkLocalProfileToAccount(uid: uid)
                 isResolvingAccountMismatch = false
                 awaitingCloudSync = false
-                rootModel.didCompleteOnboarding()
+                scheduleRouteToMainWithAccountRestore(uid: uid, reason: .accountSwitch)
             } catch {
                 isResolvingAccountMismatch = false
                 retryFromAccountMismatch = true
@@ -256,6 +261,9 @@ final class AuthGateCoordinator: ObservableObject {
 
     /// Clears in-flight authenticated UI and session-scoped onboarding hints (not local profile).
     private func clearAuthenticatedSessionPresentationState() {
+        accountRestoreRouteTask?.cancel()
+        accountRestoreRouteTask = nil
+        accountRestoreViewModel = nil
         isResolvingAccountMismatch = false
         isResolvingProfileConflict = false
         showUseDeviceProfileConfirmation = false
@@ -409,6 +417,8 @@ final class AuthGateCoordinator: ObservableObject {
 
     /// Signed-in onboarding completion: probe cloud, then sync or show conflict UI.
     func resolveOnboardingCompletionAfterSignIn(uid: String) async {
+        await container.prepareSignedInAccountNamespace(uid: uid)
+        guard isUIDStillCurrent(uid) else { return }
         rootModel.beginOnboardingCompletionCloudCheck()
 
         let outcome = await container.profileBootstrapCoordinatorService.resolveOnboardingCompletion(uid: uid)
@@ -439,13 +449,14 @@ final class AuthGateCoordinator: ObservableObject {
         onboardingModel?.markSignInSucceededForHandoff()
 
         Task { @MainActor in
+            guard let uid = authManager.currentUID else { return }
             let handoffDelayNanoseconds: UInt64 = UIAccessibility.isReduceMotionEnabled
                 ? 280_000_000
                 : 720_000_000
             try? await Task.sleep(nanoseconds: handoffDelayNanoseconds)
             clearOnboardingCompletionState()
             awaitingCloudSync = false
-            rootModel.didCompleteOnboarding()
+            scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
         }
     }
 
@@ -528,7 +539,8 @@ final class AuthGateCoordinator: ObservableObject {
             completeExistingUserSignInSuccessIfNeeded()
         }
         awaitingCloudSync = false
-        rootModel.didCompleteOnboarding()
+        guard let uid = authManager.currentUID else { return }
+        scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
     }
 
     func finishProfileConflictAfterUpload() {
@@ -543,7 +555,8 @@ final class AuthGateCoordinator: ObservableObject {
             completeExistingUserSignInSuccessIfNeeded()
         }
         awaitingCloudSync = false
-        rootModel.didCompleteOnboarding()
+        guard let uid = authManager.currentUID else { return }
+        scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
     }
 
     func retryOnboardingCompletionCloudCheck() {
@@ -555,7 +568,8 @@ final class AuthGateCoordinator: ObservableObject {
         onboardingModel?.finalizeAfterSuccessfulSignIn()
         onboardingModel = nil
         awaitingCloudSync = false
-        rootModel.didCompleteOnboarding()
+        guard let uid = authManager.currentUID else { return }
+        scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
     }
 
     func syncUnsyncedLocalProfile(uid: String) {
@@ -567,7 +581,7 @@ final class AuthGateCoordinator: ObservableObject {
                 try await container.profileBootstrapCoordinatorService.syncLocalProfileToCloud(uid: uid)
                 awaitingCloudSync = false
                 rootModel.endCloudSync()
-                rootModel.didCompleteOnboarding()
+                scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
             } catch {
                 awaitingCloudSync = false
                 rootModel.endCloudSync()
@@ -619,12 +633,14 @@ final class AuthGateCoordinator: ObservableObject {
             finishOnboardingCompletionAfterSuccessfulSync()
         case .reconcileUpload:
             awaitingCloudSync = false
-            rootModel.didCompleteOnboarding()
+            guard let uid = authManager.currentUID else { return }
+            scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
         case .conflictReplace:
             finishProfileConflictAfterUpload()
         case .profileEdit:
             awaitingCloudSync = false
-            rootModel.continueDespiteCloudUploadFailure()
+            guard let uid = authManager.currentUID else { return }
+            scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
         }
     }
 
@@ -645,7 +661,8 @@ final class AuthGateCoordinator: ObservableObject {
         }
 
         awaitingCloudSync = false
-        rootModel.continueDespiteCloudUploadFailure()
+        guard let uid = authManager.currentUID else { return }
+        scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
     }
 
     // MARK: - Auth / root reactions
@@ -664,7 +681,7 @@ final class AuthGateCoordinator: ObservableObject {
                 signedInSessionID = UUID()
             }
             if isSignedInNow, case .signedIn(let uid) = state {
-                Task { await reconcileSignedInProfile(uid: uid, isFreshSignIn: isFreshSignIn) }
+                reconcileSignedInProfile(uid: uid, isFreshSignIn: isFreshSignIn)
             }
         } else {
             handleSignedOutTransition(from: previous, to: state, wasSignedIn: wasSignedIn)
@@ -710,6 +727,11 @@ final class AuthGateCoordinator: ObservableObject {
         }
 
         if wasSignedIn {
+            #if DEBUG
+            testingSignedInUID = nil
+            #endif
+            container.accountSyncCoordinator.cancelPendingWork()
+            container.accountRestoreSessionState.clearForSignOut()
             clearAuthenticatedSessionPresentationState()
             onboardingModel = nil
             pendingExistingUserSignIn = false
@@ -777,6 +799,8 @@ final class AuthGateCoordinator: ObservableObject {
 
     func prepareAuthenticatedSignOut(source: String) {
         guard AppRouteResolver.isSignedIn(authManager.authState) else { return }
+        container.stopCrossDeviceSyncSession()
+        container.accountRestoreSessionState.clearForSignOut()
         clearAuthenticatedSessionPresentationState()
         signedInSessionID = UUID()
         onboardingModel = nil
@@ -799,22 +823,93 @@ final class AuthGateCoordinator: ObservableObject {
         )
     }
 
-    func reconcileSignedInProfile(uid: String, isFreshSignIn: Bool) async {
-        await container.prepareLocalUserDataNamespace(uid: uid)
+    func reconcileSignedInProfile(uid: String, isFreshSignIn: Bool) {
+        Task {
+            await container.prepareSignedInAccountNamespace(uid: uid)
+            guard isUIDStillCurrent(uid) else { return }
 
-        if existingUserSignInSessionActive, !pendingSignInForOnboardingCompletion {
-            Task { await runExistingUserSignInResolution(uid: uid, isFreshSignIn: isFreshSignIn) }
+            if existingUserSignInSessionActive, !pendingSignInForOnboardingCompletion {
+                await runExistingUserSignInResolution(uid: uid, isFreshSignIn: isFreshSignIn)
+                return
+            }
+
+            let decision = container.profileBootstrapCoordinatorService.reconcileDecision(
+                uid: uid,
+                pendingOnboardingCompletion: pendingSignInForOnboardingCompletion,
+                pendingExistingUserSignIn: pendingExistingUserSignIn,
+                isFreshSignIn: isFreshSignIn,
+                rootState: rootModel.state
+            )
+            applyReconcileDecision(decision, uid: uid, isFreshSignIn: isFreshSignIn)
+        }
+    }
+
+    // MARK: - Account restore routing
+
+    func routeToMainWithAccountRestore(uid: String, reason: AccountRestoreReason) {
+        guard AccountRestoreCoordinatorSupport.isRestoreEnabled else {
+            completeRouteToMain(uid: uid)
             return
         }
 
-        let decision = container.profileBootstrapCoordinatorService.reconcileDecision(
-            uid: uid,
-            pendingOnboardingCompletion: pendingSignInForOnboardingCompletion,
-            pendingExistingUserSignIn: pendingExistingUserSignIn,
-            isFreshSignIn: isFreshSignIn,
-            rootState: rootModel.state
-        )
-        applyReconcileDecision(decision, uid: uid, isFreshSignIn: isFreshSignIn)
+        container.accountRestoreSessionState.beginBlockingRestore()
+        let viewModel = accountRestoreViewModel ?? makeAccountRestoreViewModel()
+        accountRestoreViewModel = viewModel
+        rootModel.beginAccountRestore(uid: uid)
+        viewModel.start(uid: uid, reason: reason)
+    }
+
+    private func makeAccountRestoreViewModel() -> AccountRestoreViewModel {
+        let viewModel = AccountRestoreViewModel(container: container)
+        viewModel.onContinueToMain = { [weak self] summary in
+            guard let self, let uid = self.authManager.currentUID else { return }
+            self.accountRestoreViewModel = nil
+            self.completeRouteToMain(uid: uid, restoreSummary: summary)
+        }
+        viewModel.onSignOut = { [weak self] in
+            guard let self else { return }
+            self.accountRestoreViewModel = nil
+            self.prepareAuthenticatedSignOut(source: "account_restore_failed_sign_out")
+            self.authManager.signOut()
+        }
+        return viewModel
+    }
+
+    func completeRouteToMain(uid: String, restoreSummary: AccountRestoreSummary? = nil) {
+        guard isUIDStillCurrent(uid) else { return }
+        awaitingCloudSync = false
+        completeExistingUserSignInSuccessIfNeeded()
+        pendingExistingUserSignIn = false
+        try? container.actionCenter.syncTodayTargetsFromProfile()
+        container.onboardingCoachingContextStore.clear()
+        if let restoreSummary {
+            container.accountRestoreSessionState.recordRestoreCompletion(restoreSummary)
+            container.refreshCenter.notifyAccountRestoreDidComplete()
+        }
+        rootModel.didEnterSignedInMainShell(uid: uid)
+        container.handleSignedInSessionReady(uid: uid)
+        rootModel.didCompleteOnboarding()
+    }
+
+    func scheduleRouteToMainWithAccountRestore(uid: String, reason: AccountRestoreReason) {
+        accountRestoreRouteTask?.cancel()
+        accountRestoreRouteTask = Task { @MainActor in
+            guard isUIDStillCurrent(uid) else { return }
+            routeToMainWithAccountRestore(uid: uid, reason: reason)
+        }
+    }
+
+    func retryAccountRestore() {
+        accountRestoreViewModel?.retry()
+    }
+
+    func isUIDStillCurrent(_ uid: String) -> Bool {
+        #if DEBUG
+        if let testingSignedInUID {
+            return testingSignedInUID == uid
+        }
+        #endif
+        return authManager.currentUID == uid
     }
 
     @MainActor
@@ -847,12 +942,7 @@ final class AuthGateCoordinator: ObservableObject {
         case .profileFound:
             clearStaleOnboardingDraftIfSafe()
             onboardingModel = nil
-            awaitingCloudSync = false
-            completeExistingUserSignInSuccessIfNeeded()
-            pendingExistingUserSignIn = false
-            try? container.actionCenter.syncTodayTargetsFromProfile()
-            container.onboardingCoachingContextStore.clear()
-            rootModel.didCompleteOnboarding()
+            scheduleRouteToMainWithAccountRestore(uid: uid, reason: .afterSignIn)
         case .noProfileFound:
             onboardingModel = nil
             awaitingCloudSync = false
@@ -881,7 +971,11 @@ final class AuthGateCoordinator: ObservableObject {
         guard let uid = authManager.currentUID else { return }
         existingUserSignInSessionActive = true
         existingUserSignInError = nil
-        Task { await runExistingUserSignInResolution(uid: uid, isFreshSignIn: false) }
+        Task {
+            await container.prepareSignedInAccountNamespace(uid: uid)
+            guard isUIDStillCurrent(uid) else { return }
+            await runExistingUserSignInResolution(uid: uid, isFreshSignIn: false)
+        }
     }
 
     func clearStaleOnboardingDraftIfSafe() {
@@ -902,10 +996,10 @@ final class AuthGateCoordinator: ObservableObject {
         case .resolveOnboardingCompletion(let uid):
             Task { await resolveOnboardingCompletionAfterSignIn(uid: uid) }
         case .routeToMain:
-            awaitingCloudSync = false
-            completeExistingUserSignInSuccessIfNeeded()
-            pendingExistingUserSignIn = false
-            rootModel.didCompleteOnboarding()
+            scheduleRouteToMainWithAccountRestore(
+                uid: uid,
+                reason: isFreshSignIn ? .afterSignIn : .appLaunch
+            )
         case .syncLocalProfileToCloud(let uid):
             syncUnsyncedLocalProfile(uid: uid)
         case .loadCloudProfile(let uid):
@@ -913,7 +1007,22 @@ final class AuthGateCoordinator: ObservableObject {
                 onboardingModel = nil
             }
             awaitingCloudSync = false
-            rootModel.load(uid: uid)
+            Task {
+                let bootstrapState = await rootModel.loadAwaitingCompletion(uid: uid)
+                guard isUIDStillCurrent(uid) else { return }
+                switch bootstrapState {
+                case .main:
+                    await routeToMainWithAccountRestore(
+                        uid: uid,
+                        reason: isFreshSignIn ? .afterSignIn : .appLaunch
+                    )
+                case .missingCloudProfile:
+                    completeExistingUserSignInNoProfileIfNeeded()
+                    pendingExistingUserSignIn = false
+                default:
+                    break
+                }
+            }
         case .requireOwnershipCloudLookup(let uid):
             performOwnershipCloudLookup(uid: uid, isFreshSignIn: isFreshSignIn)
         case .showAccountMismatch:
@@ -1160,3 +1269,11 @@ final class AuthGateCoordinator: ObservableObject {
         rootModel.retry(uid: uid)
     }
 }
+
+#if DEBUG
+extension AuthGateCoordinator {
+    func applyTestingSignedInUID(_ uid: String) {
+        testingSignedInUID = uid
+    }
+}
+#endif

@@ -57,7 +57,7 @@ struct JourneyView: View {
                     }
                 }
                 .refreshable {
-                    await model.refresh(forceWeeklyReviewRefresh: true)
+                    await performPullToRefresh()
                 }
                 .background(FormaTokens.Color.canvas)
                 .sheet(item: $presentedWeeklyReviewDetail) { presentation in
@@ -82,6 +82,11 @@ struct JourneyView: View {
         }
     }
 
+    private func performPullToRefresh() async {
+        await model.performManualCrossDeviceRefresh()
+        await model.refresh(forceWeeklyReviewRefresh: true)
+    }
+
     @ViewBuilder
     private var content: some View {
         switch model.viewState {
@@ -100,6 +105,8 @@ struct JourneyView: View {
             FormaScreenErrorView(message: message, onRetry: {
                 Task { await model.refresh() }
             }, style: .tabRoot)
+        case .pendingAccountRestore(let message):
+            AccountRestorePendingStateView(message: message)
         case .loaded(let state):
             dashboard(state)
         }
@@ -131,6 +138,18 @@ struct JourneyView: View {
             )
         }
         .formaMainTabScrollInsets()
+        .overlay(alignment: .top) {
+            if model.isCrossDeviceRefreshing {
+                ProgressView()
+                    .controlSize(.small)
+                    .padding(.horizontal, FormaTokens.Spacing.md)
+                    .padding(.vertical, FormaTokens.Spacing.sm)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
+                    .padding(.top, FormaTokens.Spacing.sm)
+                    .accessibilityLabel("Syncing latest updates")
+            }
+        }
         .accessibilityIdentifier("journey-scroll")
         .onAppear {
             syncAnalyticsContext(for: state)

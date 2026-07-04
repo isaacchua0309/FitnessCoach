@@ -2,68 +2,78 @@
 //  AccountDataNamespaceService.swift
 //  Fitness Coach
 //
-//  Forma — Tracks the active local data namespace UID for multi-user safety (Phase 1).
-//
-//  Phase 1 relies on strict read filtering — this service does not delete SwiftData rows.
+//  Forma — UID namespace preparation for multi-user safety and account restore (Phase 1 / Phase 4).
 //
 
 import Foundation
-import OSLog
+import SwiftData
+
+protocol AccountDataNamespacePreparing: AnyObject {
+    @discardableResult
+    func prepareForSignedInUID(_ uid: String) async -> Bool
+}
+
+enum AccountDataNamespaceServiceSupport {
+    static let lastActiveUIDKey = "forma.accountDataNamespace.lastActiveUID"
+}
 
 @MainActor
-final class AccountDataNamespaceService {
+final class AccountDataNamespaceService: AccountDataNamespacePreparing {
 
-    static let lastActiveUIDKey = "forma.accountDataNamespace.lastActiveUID"
+    static let lastActiveUIDKey = AccountDataNamespaceServiceSupport.lastActiveUIDKey
 
+    private let store: SwiftDataStore
+    private let healthCacheStore: LocalHealthCacheStore
     private let userDefaults: UserDefaults
-    private let uidProvider: any AccountUIDProviding
-    private let logger = Logger(subsystem: "FitPilot", category: "AccountDataNamespace")
+    private let syncCoordinator: AccountSyncCoordinating?
 
     init(
+        store: SwiftDataStore,
+        healthCacheStore: LocalHealthCacheStore,
         userDefaults: UserDefaults = .standard,
-        uidProvider: any AccountUIDProviding
+        syncCoordinator: AccountSyncCoordinating? = nil
     ) {
+        self.store = store
+        self.healthCacheStore = healthCacheStore
         self.userDefaults = userDefaults
-        self.uidProvider = uidProvider
+        self.syncCoordinator = syncCoordinator
     }
 
-    /// Records the signed-in account as the active local data namespace.
-    func prepareForSignedInUID(_ uid: String) async {
-        let trimmed = uid.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-
-        let previousUID = currentDataNamespaceUID()
-        if isAccountSwitch(from: previousUID, to: trimmed) {
-            logEvent(
-                "account_data_namespace_switch",
-                fields: [
-                    "fromUID": redactedUID(previousUID),
-                    "toUID": redactedUID(trimmed)
-                ]
-            )
-        } else {
-            logEvent(
-                "account_data_namespace_prepared",
-                fields: ["uid": redactedUID(trimmed)]
-            )
+    @discardableResult
+    func prepareForSignedInUID(_ uid: String) async -> Bool {
+        let normalizedUID: String
+        do {
+            normalizedUID = try AccountSyncMutationValidation.normalizedOwnerUID(uid)
+        } catch {
+            return false
         }
 
-        userDefaults.set(trimmed, forKey: Self.lastActiveUIDKey)
+        let previousUID = userDefaults.string(forKey: Self.lastActiveUIDKey)
+        if previousUID == normalizedUID {
+            return true
+        }
 
-        if uidProvider.currentUID != trimmed {
-            logEvent(
-                "account_data_namespace_uid_provider_mismatch",
-                fields: [
-                    "namespaceUID": redactedUID(trimmed),
-                    "providerUID": redactedUID(uidProvider.currentUID)
-                ]
+        syncCoordinator?.cancelPendingWork()
+
+        do {
+            try quarantineForeignOwnedData(excluding: normalizedUID)
+            if previousUID != nil {
+                healthCacheStore.clearAll()
+            }
+            userDefaults.set(normalizedUID, forKey: Self.lastActiveUIDKey)
+            return true
+        } catch {
+            AccountRestoreLogger.error(
+                "namespace_prepare_failed",
+                fields: ["uid": normalizedUID],
+                underlying: error
             )
+            return false
         }
     }
 
     /// Clears the active namespace when the session ends.
     func prepareForSignOut() async {
-        logEvent("account_data_namespace_sign_out", fields: [:])
         userDefaults.removeObject(forKey: Self.lastActiveUIDKey)
     }
 
@@ -78,27 +88,53 @@ final class AccountDataNamespaceService {
         return oldUID != newUID
     }
 
-    // MARK: - Logging
-
-    private func logEvent(_ message: String, fields: [String: String]) {
-        #if DEBUG
-        guard FormaAbTest.Diagnostics.profileBootstrapTrace else { return }
-        #endif
-
-        let fieldLine = fields
-            .sorted { $0.key < $1.key }
-            .map { "\($0.key)=\($0.value)" }
-            .joined(separator: " ")
-
-        let line = fieldLine.isEmpty
-            ? "[AccountDataNamespace] \(message)"
-            : "[AccountDataNamespace] \(message) \(fieldLine)"
-
-        logger.info("\(line, privacy: .public)")
+    private func quarantineForeignOwnedData(excluding uid: String) throws {
+        try deleteEntities(
+            DailyLogEntity.self,
+            excluding: uid
+        )
+        try deleteEntities(
+            FoodEntryEntity.self,
+            excluding: uid
+        )
+        try deleteEntities(
+            WaterEntryEntity.self,
+            excluding: uid
+        )
+        try deleteEntities(
+            WeightEntryEntity.self,
+            excluding: uid
+        )
+        try deleteEntities(
+            DailyReviewEntity.self,
+            excluding: uid
+        )
+        try deleteForeignProfiles(excluding: uid)
+        try store.save()
     }
 
-    private func redactedUID(_ uid: String?) -> String {
-        guard let uid else { return "none" }
-        return ProfileBootstrapDebugLogger.redactedUID(uid)
+    private func deleteEntities<T: PersistentModel & AccountDataSyncOwnable>(
+        _ type: T.Type,
+        excluding uid: String
+    ) throws {
+        let descriptor = FetchDescriptor<T>(
+            predicate: #Predicate { entity in
+                entity.ownerUID != nil && entity.ownerUID != uid
+            }
+        )
+        for entity in try store.fetch(descriptor) {
+            store.modelContext.delete(entity)
+        }
+    }
+
+    private func deleteForeignProfiles(excluding uid: String) throws {
+        let descriptor = FetchDescriptor<UserProfileEntity>(
+            predicate: #Predicate { profile in
+                profile.ownerUID != nil && profile.ownerUID != uid
+            }
+        )
+        for profile in try store.fetch(descriptor) {
+            store.modelContext.delete(profile)
+        }
     }
 }

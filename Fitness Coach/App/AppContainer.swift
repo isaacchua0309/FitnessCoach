@@ -14,6 +14,29 @@ final class AppContainer {
     let modelContainer: ModelContainer
     let store: SwiftDataStore
 
+    /// Phase 3 durable sync outbox — enqueues mutations; drained by `accountSyncUploader`.
+    let accountSyncOutboxStore: SwiftDataAccountSyncOutboxStore
+    let accountLocalMutationTracker: AccountLocalMutationTracker
+    let accountSyncUploader: AccountSyncUploader
+    let accountSyncPuller: AccountSyncPuller
+    let accountSyncCoordinator: AccountSyncCoordinator
+    let accountSyncDiagnostics: AccountSyncDiagnostics
+    let accountSyncCursorStore: AccountSyncCursorStore
+    let accountIncrementalPuller: AccountIncrementalPuller
+    let crossDeviceSyncCoordinator: CrossDeviceSyncCoordinator
+    let accountDataRefreshEventBus: AccountDataRefreshEventBus
+    let accountRealtimeChangeListener: AccountRealtimeChangeListening
+
+    let accountRestoreStateStore: AccountRestoreStateStore
+    let accountLocalDataInspector: AccountLocalDataInspector
+    let accountRemoteDataInspector: AccountRemoteDataInspector
+    let accountDataNamespaceService: AccountDataNamespaceService
+    let accountMigrationService: AccountMigrationService
+    let accountInitialRestoreService: AccountInitialRestoreService
+    let accountRestoreCoordinator: AccountRestoreCoordinator
+    let accountRestoreDiagnostics: AccountRestoreDiagnostics
+    let accountRestoreSessionState: AccountRestoreSessionState
+
     let userProfileService: UserProfileService
     let targetService: TargetService
     let dailyLogService: DailyLogService
@@ -25,6 +48,8 @@ final class AppContainer {
 
     let authManager: AuthManager
     let cloudUserProfileStore: CloudUserProfileStoring
+    /// Phase 2 cloud log store — constructed and injectable; not wired to log mutations yet.
+    let accountDataRemoteStore: any AccountDataRemoteStore
     let profileBootstrapService: ProfileBootstrapService
     let profileCloudSyncStore: ProfileCloudSyncStore
     let profileBootstrapCoordinatorService: ProfileBootstrapCoordinatorService
@@ -62,8 +87,6 @@ final class AppContainer {
     let coachChatTranscriptStore: SwiftDataCoachChatTranscriptStore
     let coachTimelineBackfillService: CoachTimelineBackfillService
     let coachTimelineRecorder: DefaultCoachTimelineRecorder
-    let accountMigrationService: AccountMigrationService
-    let accountDataNamespaceService: AccountDataNamespaceService
     private let authUIDCache: AuthUIDCache
 
     let onboardingUserDefaults: UserDefaults
@@ -91,10 +114,12 @@ final class AppContainer {
         publicEntryAnalyticsLogger: (any PublicEntryAnalyticsLogging)? = nil,
         themeAnalyticsLogger: (any ThemeAnalyticsLogging)? = nil,
         settingsAnalyticsLogger: (any SettingsAnalyticsLogging)? = nil,
-        onboardingRoutingConfiguration: OnboardingRoutingConfiguration? = nil
+        onboardingRoutingConfiguration: OnboardingRoutingConfiguration? = nil,
+        accountDataRemoteStore: (any AccountDataRemoteStore)? = nil
     ) throws {
         let resolvedOnboardingRoutingConfiguration = onboardingRoutingConfiguration ?? .production
         refreshCenter = AppRefreshCenter()
+        accountRestoreSessionState = AccountRestoreSessionState()
         let authManager = AuthManager()
         self.authManager = authManager
         self.authUIDCache = AuthUIDCache()
@@ -216,15 +241,46 @@ final class AppContainer {
         modelContainer = try FormaModelContainer.makeContainer(inMemory: inMemory)
         store = SwiftDataStore(container: modelContainer)
 
+        accountSyncOutboxStore = SwiftDataAccountSyncOutboxStore(store: store)
+        accountLocalMutationTracker = AccountLocalMutationTracker(
+            outbox: accountSyncOutboxStore,
+            ownerUIDProvider: { [weak authManager] in authManager?.currentUID }
+        )
+
         userProfileService = UserProfileService(store: store)
         cloudUserProfileStore = inMemory
             ? NoOpCloudUserProfileStore()
             : FirestoreCloudUserProfileStore()
+        if let accountDataRemoteStore {
+            self.accountDataRemoteStore = accountDataRemoteStore
+        } else if inMemory || !AccountPersistenceFeatureFlags.cloudSchemaEnabled {
+            self.accountDataRemoteStore = InMemoryAccountDataRemoteStore()
+        } else {
+            self.accountDataRemoteStore = FirestoreAccountDataRemoteStore()
+        }
+        accountSyncUploader = AccountSyncUploader(
+            outbox: accountSyncOutboxStore,
+            payloadBuilder: SwiftDataAccountSyncPayloadBuilder(store: store),
+            remoteStore: accountDataRemoteStore,
+            store: store
+        )
+        accountSyncPuller = AccountSyncPuller(
+            remoteStore: accountDataRemoteStore,
+            store: store
+        )
+        accountSyncDiagnostics = AccountSyncDiagnostics()
+        accountSyncCoordinator = AccountSyncCoordinator(
+            uploader: accountSyncUploader,
+            puller: accountSyncPuller,
+            currentUIDProvider: { [weak authManager] in authManager?.currentUID },
+            diagnostics: accountSyncDiagnostics
+        )
         profileCloudSyncStore = ProfileCloudSyncStore(userDefaults: self.onboardingUserDefaults)
         profileBootstrapService = ProfileBootstrapService(
             userProfileService: userProfileService,
             cloudStore: cloudUserProfileStore,
-            cloudSyncStore: profileCloudSyncStore
+            cloudSyncStore: profileCloudSyncStore,
+            dailyLogService: dailyLogService
         )
         profileBootstrapCoordinatorService = ProfileBootstrapCoordinatorService(
             profileBootstrapService: profileBootstrapService,
@@ -236,7 +292,7 @@ final class AppContainer {
         dailyLogService = DailyLogService(
             store: store,
             userProfileService: userProfileService,
-            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
+            mutationTracker: accountLocalMutationTracker
         )
         targetService = TargetService(
             userProfileService: userProfileService,
@@ -245,29 +301,18 @@ final class AppContainer {
         foodLogService = FoodLogService(
             store: store,
             dailyLogService: dailyLogService,
-            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
+            mutationTracker: accountLocalMutationTracker
         )
         waterLogService = WaterLogService(
             store: store,
             dailyLogService: dailyLogService,
-            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
+            mutationTracker: accountLocalMutationTracker
         )
         weightLogService = WeightLogService(
             store: store,
             dailyLogService: dailyLogService,
-            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
+            mutationTracker: accountLocalMutationTracker
         )
-        accountMigrationService = AccountMigrationService(
-            store: store,
-            userProfileService: userProfileService,
-            uidProvider: AuthAccountUIDProvider(authManager: authManager)
-        )
-        accountDataNamespaceService = AccountDataNamespaceService(
-            userDefaults: onboardingUserDefaults,
-            uidProvider: AuthAccountUIDProvider(authManager: authManager)
-        )
-
-        try? accountMigrationService.backfillSchemaV7BookkeepingIfNeeded()
 
         let healthIntelligenceContextBuilder = HealthIntelligenceContextBuilder(
             repository: healthDataRepository,
@@ -375,7 +420,83 @@ final class AppContainer {
             healthActivityQuery: healthActivityQueryService,
             userProfileService: userProfileService,
             aiService: aiService,
+            mutationTracker: accountLocalMutationTracker
+        )
+
+        accountRestoreStateStore = AccountRestoreStateStore(userDefaults: onboardingUserDefaults)
+        accountLocalDataInspector = AccountLocalDataInspector(
+            store: store,
+            userProfileService: userProfileService,
+            outboxStore: accountSyncOutboxStore
+        )
+        accountSyncCursorStore = AccountSyncCursorStore(userDefaults: onboardingUserDefaults)
+        accountIncrementalPuller = AccountIncrementalPuller(
+            remoteStore: accountDataRemoteStore,
+            mergePuller: accountSyncPuller,
+            cursorStore: accountSyncCursorStore,
+            profileBootstrapService: profileBootstrapService,
+            userProfileService: userProfileService,
+            profileCloudSyncStore: profileCloudSyncStore,
+            localInspector: accountLocalDataInspector,
             currentUIDProvider: { [weak authManager] in authManager?.currentUID }
+        )
+        accountDataRefreshEventBus = AccountDataRefreshEventBus()
+        crossDeviceSyncCoordinator = CrossDeviceSyncCoordinator(
+            syncCoordinator: accountSyncCoordinator,
+            incrementalPuller: accountIncrementalPuller,
+            cursorStore: accountSyncCursorStore,
+            uidProvider: ClosureAccountUIDProvider { [weak authManager] in authManager?.currentUID },
+            refreshCenter: refreshCenter,
+            refreshEventBus: accountDataRefreshEventBus
+        )
+        if inMemory {
+            accountRealtimeChangeListener = NoOpAccountRealtimeChangeListener()
+        } else {
+            accountRealtimeChangeListener = FirestoreAccountRealtimeChangeListener()
+        }
+        AccountRealtimeChangeListenerLifecycle.connect(
+            listener: accountRealtimeChangeListener,
+            crossDeviceCoordinator: crossDeviceSyncCoordinator
+        )
+        accountRemoteDataInspector = AccountRemoteDataInspector(
+            cloudProfileStore: cloudUserProfileStore,
+            remoteStore: accountDataRemoteStore
+        )
+        accountDataNamespaceService = AccountDataNamespaceService(
+            store: store,
+            healthCacheStore: healthCacheStore,
+            userDefaults: onboardingUserDefaults,
+            syncCoordinator: accountSyncCoordinator
+        )
+        accountMigrationService = AccountMigrationService(
+            store: store,
+            userProfileService: userProfileService,
+            uidProvider: AuthAccountUIDProvider(authManager: authManager)
+        )
+        accountInitialRestoreService = AccountInitialRestoreService(
+            profileBootstrapService: profileBootstrapService,
+            puller: accountSyncPuller,
+            localInspector: accountLocalDataInspector,
+            remoteInspector: accountRemoteDataInspector,
+            stateStore: accountRestoreStateStore,
+            syncCoordinator: accountSyncCoordinator,
+            dailyLogService: dailyLogService,
+            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
+        )
+        accountRestoreDiagnostics = AccountRestoreDiagnostics()
+        accountRestoreCoordinator = AccountRestoreCoordinator(
+            namespaceService: accountDataNamespaceService,
+            migrationService: accountMigrationService,
+            localInspector: accountLocalDataInspector,
+            remoteInspector: accountRemoteDataInspector,
+            initialRestoreService: accountInitialRestoreService,
+            stateStore: accountRestoreStateStore,
+            syncCoordinator: accountSyncCoordinator,
+            diagnostics: accountRestoreDiagnostics,
+            currentUIDProvider: { [weak authManager] in authManager?.currentUID },
+            onBackgroundBackfillFinished: { [weak self] _ in
+                self?.refreshCenter.notifyBackgroundBackfillDidComplete()
+            }
         )
 
         actionCenter = FitnessActionCenter(
@@ -389,7 +510,13 @@ final class AppContainer {
             refreshCenter: refreshCenter,
             profileBootstrapService: profileBootstrapService,
             cloudUploadFailureNotifier: cloudUploadFailureNotifier,
-            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
+            currentUIDProvider: { [weak authManager] in authManager?.currentUID },
+            scheduleAccountSyncAfterMutation: { [authManager, accountSyncCoordinator] in
+                AccountSyncLifecycle.scheduleAfterLocalMutation(
+                    coordinator: accountSyncCoordinator,
+                    uidProvider: { authManager.currentUID }
+                )
+            }
         )
 
         #if DEBUG
@@ -407,27 +534,153 @@ final class AppContainer {
         healthSummarySyncConsentStore.refresh()
         if uidChanged {
             healthSyncStateStore.cancelActiveSync()
-        }
-    }
-
-    /// Prepares the active local data namespace and runs safe legacy ownership backfill.
-    /// Must complete before profile bootstrap loads Today/Journey/Coach for the session.
-    func prepareLocalUserDataNamespace(uid: String) async {
-        await accountDataNamespaceService.prepareForSignedInUID(uid)
-        do {
-            _ = try await accountMigrationService.runSafeBackfill(for: uid)
-        } catch {
-            ProfileBootstrapDebugLogger.error(
-                "Local user-data legacy backfill failed",
-                fields: ["uid": uid],
-                underlying: error
+            AccountSyncLifecycle.cancelOnAccountSwitch(coordinator: accountSyncCoordinator)
+            accountRestoreCoordinator.cancelOnAccountSwitch()
+            CrossDeviceSyncLifecycle.cancelOnAccountSwitch(
+                crossDeviceCoordinator: crossDeviceSyncCoordinator,
+                realtimeListener: accountRealtimeChangeListener
             )
         }
     }
 
+    func handleAccountDataSyncOnAppForeground() {
+        guard let uid = authManager.currentUID else { return }
+        if AccountRestoreCoordinatorSupport.isRestoreEnabled {
+            Task {
+                _ = await accountRestoreCoordinator.prepareAccountOnAppLaunch(uid: uid)
+            }
+        } else {
+            AccountSyncLifecycle.handleAppForeground(
+                coordinator: accountSyncCoordinator,
+                uidProvider: { [authManager] in authManager.currentUID }
+            )
+        }
+        CrossDeviceSyncLifecycle.handleAppForeground(
+            coordinator: crossDeviceSyncCoordinator,
+            uidProvider: { [authManager] in authManager.currentUID }
+        )
+    }
+
+    func handleSignedInSessionReady(uid: String) {
+        CrossDeviceSyncLifecycle.startRealtimeListenerIfEnabled(
+            listener: accountRealtimeChangeListener,
+            uid: uid
+        )
+    }
+
+    func stopCrossDeviceSyncSession() {
+        crossDeviceSyncCoordinator.cancelPendingWork()
+        Task {
+            await CrossDeviceSyncLifecycle.stopRealtimeListener(listener: accountRealtimeChangeListener)
+        }
+    }
+
+    @discardableResult
+    func performManualCrossDeviceRefresh() async -> CrossDeviceSyncSummary? {
+        guard let uid = authManager.currentUID else { return nil }
+        return await CrossDeviceSyncLifecycle.handleManualRefresh(
+            coordinator: crossDeviceSyncCoordinator,
+            uid: uid
+        )
+    }
+
+    /// Prepares UID namespace and legacy ownerUID backfill before profile bootstrap.
+    func prepareSignedInAccountNamespace(uid: String) async {
+        try? await profileBootstrapService.prepareSignedInAccountNamespace(
+            uid: uid,
+            namespaceService: accountDataNamespaceService,
+            migrationService: accountMigrationService
+        )
+    }
+
+    /// Phase 1 compatibility — records active local namespace for the signed-in UID.
+    func prepareLocalUserDataNamespace(uid: String) async {
+        _ = await accountDataNamespaceService.prepareForSignedInUID(uid)
+    }
+
+    /// Phase 1 compatibility — clears namespace tracking on sign-out without deleting SwiftData rows.
     func recordSignedOutLocalUserDataNamespace() async {
         await accountDataNamespaceService.prepareForSignOut()
     }
+
+    /// Runs blocking account restore; timeout policy is enforced by the coordinator.
+    func runAccountRestoreAfterSignIn(
+        uid: String,
+        reason: AccountRestoreReason
+    ) async -> AccountRestoreSummary {
+        await accountRestoreCoordinator.prepareAccountAfterSignIn(
+            uid: uid,
+            reason: reason
+        )
+    }
+
+    func handleAccountRestoreAfterSignIn(uid: String) {
+        Task {
+            _ = await runAccountRestoreAfterSignIn(uid: uid, reason: .afterSignIn)
+        }
+    }
+
+    func handleAccountDataSyncAfterSignIn(uid: String) {
+        handleAccountRestoreAfterSignIn(uid: uid)
+    }
+
+    #if DEBUG
+    func makeAccountRestoreDebugActions() -> AccountRestoreDebugActions {
+        AccountRestoreDebugActions(
+            lastSnapshot: { [accountRestoreDiagnostics] in
+                accountRestoreDiagnostics.lastSnapshot
+            },
+            restoreStateDescription: { [authManager, accountRestoreDiagnostics, accountRestoreStateStore] in
+                guard let uid = authManager.currentUID else {
+                    return "No signed-in UID."
+                }
+                let state = accountRestoreDiagnostics.restoreState(
+                    for: uid,
+                    stateStore: accountRestoreStateStore
+                )
+                return AccountRestoreLoggerDebugSupport.redactedRestoreStateDescription(state)
+            },
+            triggerManualRetry: { [accountRestoreCoordinator, authManager, accountRestoreDiagnostics] in
+                guard let uid = authManager.currentUID else { return nil }
+                return await accountRestoreDiagnostics.triggerManualRetry(
+                    coordinator: accountRestoreCoordinator,
+                    uid: uid
+                )
+            },
+            resetRestoreMetadata: { [authManager, accountRestoreDiagnostics, accountRestoreStateStore] in
+                guard let uid = authManager.currentUID else { return }
+                accountRestoreDiagnostics.resetRestoreMetadata(
+                    stateStore: accountRestoreStateStore,
+                    uid: uid
+                )
+            }
+        )
+    }
+
+    func makeAccountSyncDebugActions() -> AccountSyncDebugActions {
+        AccountSyncDebugActions(
+            pendingMutationCount: { [accountSyncOutboxStore, authManager] in
+                await accountSyncDiagnostics.pendingMutationCount(
+                    outbox: accountSyncOutboxStore,
+                    ownerUID: authManager.currentUID ?? ""
+                )
+            },
+            lastSnapshot: { [accountSyncDiagnostics] in
+                accountSyncDiagnostics.lastSnapshot
+            },
+            triggerManualSync: { [accountSyncCoordinator, authManager, accountSyncDiagnostics] in
+                guard let uid = authManager.currentUID else { return nil }
+                return await accountSyncDiagnostics.triggerManualSync(
+                    coordinator: accountSyncCoordinator,
+                    ownerUID: uid
+                )
+            },
+            triggerManualCrossDeviceRefresh: { [weak self] in
+                await self?.performManualCrossDeviceRefresh()
+            }
+        )
+    }
+    #endif
 
     func makeHealthIntelligenceEngine() -> any HealthIntelligenceEngineing {
         healthIntelligenceEngine
@@ -469,7 +722,12 @@ final class AppContainer {
             authStateProvider: { [weak self] in
                 self?.authManager.authState ?? .unknown
             },
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+            restoreSessionState: accountRestoreSessionState,
+            localDataInspector: accountLocalDataInspector,
+            ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+            accountDataRefreshEventBus: accountDataRefreshEventBus,
+            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator
         )
     }
 
@@ -566,7 +824,12 @@ final class AppContainer {
             },
             isRemoteSyncCapabilityEnabled: {
                 HealthSummaryRemoteSyncGate.isCapabilityEnabled()
-            }
+            },
+            restoreSessionState: accountRestoreSessionState,
+            localDataInspector: accountLocalDataInspector,
+            ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
+            accountDataRefreshEventBus: accountDataRefreshEventBus,
+            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator
         )
     }
 
@@ -596,7 +859,10 @@ final class AppContainer {
             },
             isRemoteSyncCapabilityEnabled: {
                 HealthSummaryRemoteSyncGate.isCapabilityEnabled()
-            }
+            },
+            ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
+            accountDataRefreshEventBus: accountDataRefreshEventBus,
+            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator
         )
     }
 

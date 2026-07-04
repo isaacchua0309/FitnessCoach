@@ -16,16 +16,16 @@ final class WaterLogService {
 
     private let store: SwiftDataStore
     private let dailyLogService: DailyLogService
-    private let currentUIDProvider: () -> String?
+    private let mutationTracker: AccountLocalMutationTracker?
 
     init(
         store: SwiftDataStore,
         dailyLogService: DailyLogService,
-        currentUIDProvider: @escaping () -> String? = { nil }
+        mutationTracker: AccountLocalMutationTracker? = nil
     ) {
         self.store = store
         self.dailyLogService = dailyLogService
-        self.currentUIDProvider = currentUIDProvider
+        self.mutationTracker = mutationTracker
     }
 
     // MARK: Create
@@ -33,26 +33,21 @@ final class WaterLogService {
     func addWater(amountMl: Int, date: Date) throws -> WaterEntry {
         try validate(amountMl: amountMl)
 
-        let ownerUID = try UserDataOwnerScope.requiredSessionUID(
-            currentUIDProvider(),
-            operation: "log water"
-        )
         let log = try dailyLogService.getOrCreateLogEntity(for: date)
-        try UserDataOwnerScope.requireMatchingDailyLogOwner(log, sessionUID: ownerUID)
-
-        let now = Date()
         let model = WaterEntry(
             id: UUID(),
             dailyLogId: log.id,
             amountMl: amountMl,
-            createdAt: now
+            createdAt: Date()
         )
 
         let entity = WaterEntryEntity(model: model)
-        UserDataOwnerScope.stampNewNutritionWrite(on: entity, ownerUID: ownerUID, now: now)
         entity.dailyLog = log
         try store.insert(entity)
-        try dailyLogService.recalculateDailyTotals(for: log.date)
+
+        let mutationGroupId = mutationTracker?.makeMutationGroupId()
+        try dailyLogService.recalculateDailyTotals(for: log.date, mutationGroupId: mutationGroupId)
+        try trackWaterUpsert(entity, dailyLog: log, mutationGroupId: mutationGroupId)
         return entity.toModel()
     }
 
@@ -66,15 +61,14 @@ final class WaterLogService {
         guard let log = try dailyLogService.dailyLogEntity(for: date) else {
             return nil
         }
-        let sessionUID = currentUIDProvider()
-        guard let last = log.waterEntries
-            .filter({ UserDataOwnerScope.isVisible(entityOwnerUID: $0.ownerUID, sessionUID: sessionUID) })
-            .max(by: { $0.createdAt < $1.createdAt }) else {
+        guard let last = visibleWaterEntries(in: log).max(by: { $0.createdAt < $1.createdAt }) else {
             return nil
         }
         let model = last.toModel()
-        try store.delete(last)
-        try dailyLogService.recalculateDailyTotals(for: log.date)
+        let mutationGroupId = mutationTracker?.makeMutationGroupId()
+        try deleteWaterEntity(last, dailyLog: log, mutationGroupId: mutationGroupId)
+        try save()
+        try dailyLogService.recalculateDailyTotals(for: log.date, mutationGroupId: mutationGroupId)
         return model
     }
 
@@ -83,9 +77,11 @@ final class WaterLogService {
             throw ServiceError.waterEntryNotFound
         }
         let logDate = entity.dailyLog?.date
-        try store.delete(entity)
+        let mutationGroupId = mutationTracker?.makeMutationGroupId()
+        try deleteWaterEntity(entity, dailyLog: entity.dailyLog, mutationGroupId: mutationGroupId)
+        try save()
         if let logDate {
-            try dailyLogService.recalculateDailyTotals(for: logDate)
+            try dailyLogService.recalculateDailyTotals(for: logDate, mutationGroupId: mutationGroupId)
         }
     }
 
@@ -95,8 +91,7 @@ final class WaterLogService {
         guard let log = try dailyLogService.dailyLogEntity(for: date) else {
             return []
         }
-        let sessionUID = currentUIDProvider()
-        return UserDataOwnerScope.filterVisibleNutritionEntities(log.waterEntries, sessionUID: sessionUID)
+        return visibleWaterEntries(in: log)
             .sorted { $0.createdAt < $1.createdAt }
             .map { $0.toModel() }
     }
@@ -105,25 +100,12 @@ final class WaterLogService {
         guard let log = try dailyLogService.dailyLogEntity(for: date) else {
             return 0
         }
-        let sessionUID = currentUIDProvider()
-        return UserDataOwnerScope.filterVisibleNutritionEntities(log.waterEntries, sessionUID: sessionUID)
-            .reduce(0) { $0 + $1.amountMl }
+        return visibleWaterEntries(in: log).reduce(0) { $0 + $1.amountMl }
     }
 
     // MARK: Helpers
 
     private func waterEntity(id: UUID) throws -> WaterEntryEntity? {
-        guard let entity = try fetchWaterEntity(id: id) else { return nil }
-        guard UserDataOwnerScope.isVisible(
-            entityOwnerUID: entity.ownerUID,
-            sessionUID: currentUIDProvider()
-        ) else {
-            return nil
-        }
-        return entity
-    }
-
-    private func fetchWaterEntity(id: UUID) throws -> WaterEntryEntity? {
         var descriptor = FetchDescriptor<WaterEntryEntity>(
             predicate: #Predicate { $0.id == id }
         )
@@ -131,10 +113,61 @@ final class WaterLogService {
         return try store.fetch(descriptor).first
     }
 
+    private func visibleWaterEntries(in log: DailyLogEntity) -> [WaterEntryEntity] {
+        log.waterEntries.filter(AccountDataSyncReadFilter.isVisible)
+    }
+
+    private func deleteWaterEntity(
+        _ entity: WaterEntryEntity,
+        dailyLog: DailyLogEntity?,
+        mutationGroupId: String?
+    ) throws {
+        let localDate = dailyLog.map { mutationTracker?.dailyLogCloudID(for: $0.date) }
+        if let mutationTracker {
+            try mutationTracker.trackDelete(
+                entity: entity,
+                entityType: .waterEntry,
+                entityId: entity.id.uuidString,
+                localDate: localDate,
+                mutationGroupId: mutationGroupId,
+                hardDelete: { [store] in
+                    store.delete(entity)
+                }
+            )
+        } else {
+            try store.delete(entity)
+        }
+    }
+
+    private func trackWaterUpsert(
+        _ entity: WaterEntryEntity,
+        dailyLog: DailyLogEntity,
+        mutationGroupId: String?
+    ) throws {
+        guard let mutationTracker else { return }
+        try save()
+        try mutationTracker.trackUpsert(
+            entity: entity,
+            entityType: .waterEntry,
+            entityId: entity.id.uuidString,
+            localDate: mutationTracker.dailyLogCloudID(for: dailyLog.date),
+            mutationGroupId: mutationGroupId
+        )
+        try save()
+    }
+
     private func validate(amountMl: Int) throws {
         guard amountMl > 0 else { throw ServiceError.invalidInput("Water amount must be greater than zero.") }
         guard amountMl <= Self.maxSingleEntryMl else {
             throw ServiceError.invalidInput("That water amount looks too large for a single entry.")
+        }
+    }
+
+    private func save() throws {
+        do {
+            try store.save()
+        } catch {
+            throw ServiceError.persistenceFailed("Could not save the water entry.")
         }
     }
 }

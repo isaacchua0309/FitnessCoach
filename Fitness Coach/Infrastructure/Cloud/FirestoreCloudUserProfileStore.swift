@@ -68,13 +68,13 @@ final class FirestoreCloudUserProfileStore: CloudUserProfileStoring, @unchecked 
 
     private func documentReference(uid: String) -> DocumentReference {
         firestore
-            .collection("users")
+            .collection(AccountDataCloudPaths.Segment.users)
             .document(uid)
-            .collection("profile")
-            .document(CloudUserProfileDocument.currentDocumentID)
+            .collection(AccountDataCloudPaths.Segment.profile)
+            .document(AccountDataCloudPaths.Segment.currentDocumentID)
     }
 
     private func documentPath(uid: String) -> String {
-        "users/\(uid)/profile/\(CloudUserProfileDocument.currentDocumentID)"
+        AccountDataCloudPaths.profileDocument(uid: uid)
     }
 }

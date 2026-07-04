@@ -94,6 +94,10 @@ enum AppShellRoutingLogger {
         switch state {
         case .loading:
             return "loading"
+        case .restoringAccount:
+            return "restoringAccount"
+        case .accountRestoreFailed:
+            return "accountRestoreFailed"
         case .missingCloudProfile:
             return "missingCloudProfile"
         case .onboardingCloudProfileConflict:

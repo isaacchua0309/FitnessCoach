@@ -19,13 +19,24 @@ struct AuthGateRouteView: View {
                         coordinator.bootstrapOnboardingIfNeeded()
                     }
             case .signedInProfileLoading:
-                if coordinator.pendingExistingUserSignIn {
+                if let viewModel = coordinator.accountRestoreViewModel {
+                    AccountRestoreView(viewModel: viewModel)
+                } else if coordinator.pendingExistingUserSignIn {
                     ExistingUserSignInResolvingView()
                 } else {
                     LaunchLoadingView()
                         .onAppear {
                             coordinator.bootstrapOnboardingIfNeeded()
                         }
+                }
+            case .accountRestoreFailed(_):
+                if let viewModel = coordinator.accountRestoreViewModel {
+                    AccountRestoreView(viewModel: viewModel)
+                } else {
+                    AccountRestoreFailedView(
+                        message: FormaProductCopy.AccountRestore.Failed.body,
+                        onRetry: coordinator.retryAccountRestore
+                    )
                 }
             case .welcome:
                 PublicWelcomeView(

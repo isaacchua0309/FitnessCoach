@@ -19,15 +19,18 @@ final class ProfileBootstrapService {
     private let userProfileService: UserProfileService
     private let cloudStore: CloudUserProfileStoring
     private let cloudSyncStore: ProfileCloudSyncStore?
+    private let dailyLogService: DailyLogService?
 
     init(
         userProfileService: UserProfileService,
         cloudStore: CloudUserProfileStoring,
-        cloudSyncStore: ProfileCloudSyncStore? = nil
+        cloudSyncStore: ProfileCloudSyncStore? = nil,
+        dailyLogService: DailyLogService? = nil
     ) {
         self.userProfileService = userProfileService
         self.cloudStore = cloudStore
         self.cloudSyncStore = cloudSyncStore
+        self.dailyLogService = dailyLogService
     }
 
     /// Synchronous local profile presence check for pre-auth shell routing.
@@ -49,12 +52,18 @@ final class ProfileBootstrapService {
         try userProfileService.assignOwnerUID(uid)
     }
 
-    /// Resolves signed-in profile routing (local match, ownership conflict, or cloud restore).
-    ///
-    /// Callers must finish `AccountDataNamespaceService.prepareForSignedInUID` and
-    /// `AccountMigrationService.runSafeBackfill` before this runs so nutrition/coach reads
-    /// see correctly namespaced rows. `AuthGateCoordinator.reconcileSignedInProfile` enforces
-    /// that ordering.
+    /// Prepares UID namespace and legacy ownerUID backfill before profile bootstrap or restore.
+    func prepareSignedInAccountNamespace(
+        uid: String,
+        namespaceService: AccountDataNamespacePreparing,
+        migrationService: AccountMigrationRunning
+    ) async throws {
+        guard await namespaceService.prepareForSignedInUID(uid) else {
+            throw ServiceError.invalidInput("Signed-in account changed during namespace preparation.")
+        }
+        try await migrationService.runSafeBackfill(for: uid)
+    }
+
     func resolve(uid: String) async throws -> ProfileBootstrapResult {
         ProfileBootstrapDebugLogger.event("profile_bootstrap_started", fields: ["uid": uid])
         ProfileBootstrapDebugLogger.event("Resolving profile route", fields: ["uid": uid])
@@ -90,6 +99,7 @@ final class ProfileBootstrapService {
             _ = try userProfileService.restoreProfile(from: cloudDocument, ownerUID: uid)
 
             cloudSyncStore?.markSynced(uid: uid, updatedAt: cloudDocument.updatedAt)
+            try? dailyLogService?.syncTodayTargetsFromProfile()
 
             ProfileBootstrapDebugLogger.event(
                 "cloud_profile_restore_completed",
@@ -162,7 +172,19 @@ final class ProfileBootstrapService {
     func adoptCloudProfile(_ document: CloudUserProfileDocument, uid: String) throws -> UserProfile {
         let profile = try userProfileService.replaceLocalProfile(with: document, ownerUID: uid)
         cloudSyncStore?.markSynced(uid: uid, updatedAt: document.updatedAt)
+        try? dailyLogService?.syncTodayTargetsFromProfile()
         return profile
+    }
+
+    /// True when the on-device profile has local edits not yet confirmed in cloud sync metadata.
+    func hasUnsyncedLocalProfileChanges(_ profile: UserProfile, uid: String) -> Bool {
+        guard profile.ownerUID == uid else { return true }
+        guard let cloudSyncStore,
+              cloudSyncStore.isSyncedForUID(uid),
+              let lastSyncedAt = cloudSyncStore.lastSyncedProfileUpdatedAt else {
+            return profile.updatedAt > profile.createdAt
+        }
+        return profile.updatedAt > lastSyncedAt
     }
 
     func saveProfileToCloud(uid: String, intent: CloudProfileWriteIntent) async throws {
@@ -177,6 +199,7 @@ final class ProfileBootstrapService {
             fields: ["uid": uid, "intent": intent.logLabel]
         )
         try await cloudStore.save(profile: profile, uid: uid)
+        cloudSyncStore?.markSynced(uid: uid, updatedAt: profile.updatedAt)
     }
 
     /// Uploads a locally committed profile after explicit write authorization.

@@ -60,10 +60,14 @@ enum FitnessActionCenterTestSupport {
     ) throws -> Harness {
         let base = try DailyLogServiceTestSupport.makeHarness(
             referenceNow: referenceNow,
-            sessionUID: cloudUID
+            ownerUID: cloudUID
         )
-        let uidProvider = { [base] in base.sessionUID.uid }
-        let weightLogService = base.weightLogService
+        let weightLogService = WeightLogService(
+            store: base.store,
+            dailyLogService: base.dailyLogService,
+            dateProvider: base.dateProvider,
+            mutationTracker: base.accountLocalMutationTracker
+        )
         let targetService = TargetService(
             userProfileService: base.profileService,
             dailyLogService: base.dailyLogService
@@ -90,7 +94,7 @@ enum FitnessActionCenterTestSupport {
             healthActivityQuery: healthActivityQuery,
             userProfileService: base.profileService,
             aiService: AIService(llmClient: MockLLMClient()),
-            currentUIDProvider: uidProvider
+            mutationTracker: base.accountLocalMutationTracker
         )
 
         let actionCenter = FitnessActionCenter(
@@ -104,7 +108,7 @@ enum FitnessActionCenterTestSupport {
             refreshCenter: refreshCenter,
             profileBootstrapService: cloudUID == nil ? nil : profileBootstrapService,
             cloudUploadFailureNotifier: cloudUID == nil ? nil : cloudUploadFailureNotifier,
-            currentUIDProvider: uidProvider
+            currentUIDProvider: cloudUID.map { uid in { uid } }
         )
 
         return Harness(

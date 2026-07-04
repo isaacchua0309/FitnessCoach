@@ -13,6 +13,7 @@ enum ProfileBootstrapPhase: Equatable, Sendable {
     case waitingForAuth
     case checkingCloud(redactedUID: String)
     case restoringCloud(redactedUID: String)
+    case restoringAccountData(redactedUID: String)
     case uploadingCloud(redactedUID: String)
     case localProfileReady
     case cloudProfileReady
@@ -91,10 +92,12 @@ enum ProfileBootstrapCoordinator {
         switch rootState {
         case .loading:
             return .checkingCloud(redactedUID: redacted)
+        case .restoringAccount:
+            return .restoringAccountData(redactedUID: redacted)
         case .missingCloudProfile:
             return .needsOnboardingAfterCloudMiss
         case .onboardingCloudProfileConflict, .onboardingCloudCheckFailed, .existingUserProfileLookupFailed,
-             .cloudProfileUploadFailed, .accountProfileMismatch:
+             .cloudProfileUploadFailed, .accountProfileMismatch, .accountRestoreFailed:
             return .checkingCloud(redactedUID: redacted)
         case .onboarding:
             return .needsOnboardingAfterCloudMiss

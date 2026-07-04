@@ -2,19 +2,19 @@
 //  AccountUIDProviding.swift
 //  Fitness Coach
 //
-//  Forma — Abstraction for the active Firebase account UID (Phase 1).
+//  Forma — Active signed-in account UID for sync coordinators (Phase 1 / Phase 5).
 //
 
 import Foundation
 
-/// Supplies the current Firebase UID for local user-data ownership scoping.
+/// Supplies the currently signed-in Firebase UID for sync, restore, and namespace services.
 protocol AccountUIDProviding {
     var currentUID: String? { get }
 }
 
 /// Production adapter backed by `AuthManager` — the single auth session source.
 @MainActor
-struct AuthAccountUIDProvider: AccountUIDProviding {
+final class AuthAccountUIDProvider: AccountUIDProviding {
 
     private let authManager: AuthManager
 
@@ -24,5 +24,19 @@ struct AuthAccountUIDProvider: AccountUIDProviding {
 
     var currentUID: String? {
         authManager.currentUID
+    }
+}
+
+/// Closure-backed UID provider used by coordinators and lifecycle hooks.
+final class ClosureAccountUIDProvider: AccountUIDProviding {
+
+    private let provider: () -> String?
+
+    init(_ provider: @escaping () -> String?) {
+        self.provider = provider
+    }
+
+    var currentUID: String? {
+        provider()
     }
 }

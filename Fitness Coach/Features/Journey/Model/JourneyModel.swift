@@ -13,6 +13,7 @@ final class JourneyModel: ObservableObject {
 
     @Published private(set) var viewState: JourneyViewState = .loading
     @Published private(set) var journeyHealthIntelligenceSectionState: JourneyHealthIntelligenceSectionState?
+    @Published private(set) var isCrossDeviceRefreshing = false
 
     private let dailyLogReader: any DailyLogReading
     private let weightLogReader: any WeightLogReading
@@ -32,6 +33,15 @@ final class JourneyModel: ObservableObject {
     private let lastSuccessfulLocalSyncAtProvider: () -> Date?
     private let remoteSyncConsentDecisionProvider: () -> HealthSummarySyncConsentDecision
     private let isRemoteSyncCapabilityEnabled: () -> Bool
+    private let restoreSessionState: AccountRestoreSessionState?
+    private let localDataInspector: (any AccountLocalDataInspecting)?
+    private let ownerUIDProvider: () -> String?
+    private let accountDataRefreshEventBus: AccountDataRefreshEventBus?
+    private let crossDeviceSyncCoordinator: CrossDeviceSyncCoordinating?
+
+    private var crossDeviceRefreshCancellable: AnyCancellable?
+    private var debouncedCrossDeviceReloadTask: Task<Void, Never>?
+    private var activeRefreshTask: Task<Void, Never>?
 
     init(
         dailyLogReader: any DailyLogReading,
@@ -51,7 +61,12 @@ final class JourneyModel: ObservableObject {
         healthSyncPhaseProvider: @escaping () -> HealthSyncPhase? = { nil },
         lastSuccessfulLocalSyncAtProvider: @escaping () -> Date? = { nil },
         remoteSyncConsentDecisionProvider: @escaping () -> HealthSummarySyncConsentDecision = { .notDetermined },
-        isRemoteSyncCapabilityEnabled: @escaping () -> Bool = { false }
+        isRemoteSyncCapabilityEnabled: @escaping () -> Bool = { false },
+        restoreSessionState: AccountRestoreSessionState? = nil,
+        localDataInspector: (any AccountLocalDataInspecting)? = nil,
+        ownerUIDProvider: @escaping () -> String? = { nil },
+        accountDataRefreshEventBus: AccountDataRefreshEventBus? = nil,
+        crossDeviceSyncCoordinator: CrossDeviceSyncCoordinating? = nil
     ) {
         self.dailyLogReader = dailyLogReader
         self.weightLogReader = weightLogReader
@@ -71,6 +86,76 @@ final class JourneyModel: ObservableObject {
         self.lastSuccessfulLocalSyncAtProvider = lastSuccessfulLocalSyncAtProvider
         self.remoteSyncConsentDecisionProvider = remoteSyncConsentDecisionProvider
         self.isRemoteSyncCapabilityEnabled = isRemoteSyncCapabilityEnabled
+        self.restoreSessionState = restoreSessionState
+        self.localDataInspector = localDataInspector
+        self.ownerUIDProvider = ownerUIDProvider
+        self.accountDataRefreshEventBus = accountDataRefreshEventBus
+        self.crossDeviceSyncCoordinator = crossDeviceSyncCoordinator
+        bindAccountDataRefreshEventsIfNeeded()
+    }
+
+    deinit {
+        crossDeviceRefreshCancellable?.cancel()
+        debouncedCrossDeviceReloadTask?.cancel()
+        activeRefreshTask?.cancel()
+    }
+
+    // MARK: Cross-device refresh (Phase 5)
+
+    func bindAccountDataRefreshEventsIfNeeded() {
+        guard let accountDataRefreshEventBus else { return }
+        crossDeviceRefreshCancellable?.cancel()
+        crossDeviceRefreshCancellable = accountDataRefreshEventBus.events
+            .compactMap { [weak self] event -> AccountDataRefreshEvent? in
+                guard let self else { return nil }
+                guard JourneyCrossDeviceRefreshPolicy.matchesCurrentUID(
+                    event: event,
+                    ownerUIDProvider: self.ownerUIDProvider
+                ) else {
+                    return nil
+                }
+                guard JourneyCrossDeviceRefreshPolicy.shouldReload(for: event) else {
+                    return nil
+                }
+                return event
+            }
+            .sink { [weak self] _ in
+                self?.scheduleCrossDeviceReload()
+            }
+    }
+
+    func performManualCrossDeviceRefresh() async {
+        guard CrossDeviceSyncLifecycle.isManualRefreshEnabled,
+              let crossDeviceSyncCoordinator,
+              let uid = ownerUIDProvider() else {
+            return
+        }
+
+        isCrossDeviceRefreshing = true
+        defer { isCrossDeviceRefreshing = false }
+
+        _ = await crossDeviceSyncCoordinator.manualRefresh(uid: uid)
+    }
+
+    private func scheduleCrossDeviceReload() {
+        debouncedCrossDeviceReloadTask?.cancel()
+        debouncedCrossDeviceReloadTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(
+                for: .milliseconds(JourneyCrossDeviceRefreshPolicy.reloadDebounceMilliseconds)
+            )
+            guard !Task.isCancelled, let self else { return }
+            await self.refresh(forceWeeklyReviewRefresh: false)
+        }
+    }
+
+    func resetForUserContextChange() {
+        activeRefreshTask?.cancel()
+        activeRefreshTask = nil
+        debouncedCrossDeviceReloadTask?.cancel()
+        debouncedCrossDeviceReloadTask = nil
+        isCrossDeviceRefreshing = false
+        journeyHealthIntelligenceSectionState = nil
+        viewState = .loading
     }
 
     // MARK: Loading
@@ -82,22 +167,56 @@ final class JourneyModel: ObservableObject {
     }
 
     func refresh(forceWeeklyReviewRefresh: Bool = false) async {
-        do {
-            await trainingInsightsStore.refresh()
-            async let dashboardTask = makeDashboardState()
-            async let healthIntelligenceTask = refreshHealthIntelligenceSection(
-                forceWeeklyReviewRefresh: forceWeeklyReviewRefresh
-            )
-            let state = try await dashboardTask
-            await healthIntelligenceTask
-            viewState = state.hasProfile ? .loaded(state) : .empty
-        } catch ServiceError.missingUserProfile {
-            journeyHealthIntelligenceSectionState = nil
-            viewState = .empty
-        } catch {
-            journeyHealthIntelligenceSectionState = nil
-            viewState = .error(FormaProductCopy.Error.loadJourney)
+        if restoreSessionState?.isBlockingRestoreActive == true {
+            if !viewState.isLoaded {
+                viewState = .loading
+            }
+            return
         }
+
+        let wasLoaded = viewState.isLoaded
+
+        activeRefreshTask?.cancel()
+        let task = Task { @MainActor in
+            do {
+                await trainingInsightsStore.refresh()
+                async let dashboardTask = makeDashboardState()
+                async let healthIntelligenceTask = refreshHealthIntelligenceSection(
+                    forceWeeklyReviewRefresh: forceWeeklyReviewRefresh
+                )
+                let state = try await dashboardTask
+                await healthIntelligenceTask
+
+                guard !Task.isCancelled else { return }
+
+                if await shouldPresentPendingRestore() {
+                    viewState = .pendingAccountRestore(
+                        message: restoreSessionState?.pendingRestoreMessage
+                            ?? FormaProductCopy.AccountRestore.Pending.offlineBody
+                    )
+                    return
+                }
+
+                viewState = state.hasProfile ? .loaded(state) : .empty
+            } catch is CancellationError {
+                return
+            } catch ServiceError.missingUserProfile {
+                guard !Task.isCancelled else { return }
+                journeyHealthIntelligenceSectionState = nil
+                if !wasLoaded {
+                    viewState = .empty
+                }
+            } catch {
+                guard !Task.isCancelled else { return }
+                journeyHealthIntelligenceSectionState = nil
+                if !wasLoaded {
+                    viewState = .error(FormaProductCopy.Error.loadJourney)
+                }
+            }
+        }
+
+        activeRefreshTask = task
+        await task.value
     }
 
     // MARK: Health Intelligence
@@ -346,6 +465,13 @@ final class JourneyModel: ObservableObject {
 
         // Deprecated fallback: remove when all JourneyModel callers inject healthActivityQuery.
         return try await workoutReader.fetchWorkouts(from: startDate, to: endDate)
+    }
+
+    private func shouldPresentPendingRestore() async -> Bool {
+        await restoreSessionState?.shouldShowPendingRestoreUI(
+            ownerUID: ownerUIDProvider(),
+            localDataInspector: localDataInspector
+        ) ?? false
     }
 
     private func meaningfulLoggedDays(from logs: [DailyLog], weights: [WeightEntry]) -> Int {

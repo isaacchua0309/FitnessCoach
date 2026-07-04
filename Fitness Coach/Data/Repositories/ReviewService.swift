@@ -23,7 +23,7 @@ final class ReviewService {
     private let healthActivityQuery: HealthActivityQueryService
     private let userProfileService: UserProfileService
     private let aiService: AIServiceProtocol
-    private let currentUIDProvider: () -> String?
+    private let mutationTracker: AccountLocalMutationTracker?
 
     init(
         store: SwiftDataStore,
@@ -34,7 +34,7 @@ final class ReviewService {
         healthActivityQuery: HealthActivityQueryService,
         userProfileService: UserProfileService,
         aiService: AIServiceProtocol,
-        currentUIDProvider: @escaping () -> String? = { nil }
+        mutationTracker: AccountLocalMutationTracker? = nil
     ) {
         self.store = store
         self.dailyLogService = dailyLogService
@@ -44,7 +44,7 @@ final class ReviewService {
         self.healthActivityQuery = healthActivityQuery
         self.userProfileService = userProfileService
         self.aiService = aiService
-        self.currentUIDProvider = currentUIDProvider
+        self.mutationTracker = mutationTracker
     }
 
     // MARK: Read
@@ -53,7 +53,11 @@ final class ReviewService {
         guard let dailyLog = try dailyLogService.dailyLogEntity(for: date) else {
             return nil
         }
-        return try dailyReviewEntity(dailyLogId: dailyLog.id, dailyLogOwnerUID: dailyLog.ownerUID)?.toModel()
+        guard let entity = try dailyReviewEntity(dailyLogId: dailyLog.id),
+              AccountDataSyncReadFilter.isVisible(entity) else {
+            return nil
+        }
+        return entity.toModel()
     }
 
     // MARK: Generate
@@ -64,10 +68,8 @@ final class ReviewService {
     ) async throws -> DailyReview {
         let dailyLogEntity = try dailyLogService.getOrCreateLogEntity(for: date)
 
-        if !forceRegenerate, let existing = try dailyReviewEntity(
-            dailyLogId: dailyLogEntity.id,
-            dailyLogOwnerUID: dailyLogEntity.ownerUID
-        ) {
+        if !forceRegenerate, let existing = try dailyReviewEntity(dailyLogId: dailyLogEntity.id),
+           AccountDataSyncReadFilter.isVisible(existing) {
             return existing.toModel()
         }
 
@@ -146,57 +148,39 @@ final class ReviewService {
         _ review: DailyReview,
         dailyLogEntity: DailyLogEntity
     ) throws -> DailyReview {
-        let ownerUID = try UserDataOwnerScope.requiredSessionUID(
-            currentUIDProvider(),
-            operation: "save daily review"
-        )
-        try UserDataOwnerScope.requireMatchingDailyLogOwner(dailyLogEntity, sessionUID: ownerUID)
-        let now = Date()
-
-        if let existing = try dailyReviewEntity(
-            dailyLogId: dailyLogEntity.id,
-            dailyLogOwnerUID: dailyLogEntity.ownerUID
-        ) {
+        if let existing = try dailyReviewEntity(dailyLogId: dailyLogEntity.id) {
             apply(review, to: existing)
             existing.dailyLog = dailyLogEntity
             dailyLogEntity.dailyReview = existing
             dailyLogEntity.dailyReviewId = existing.id
-            UserDataOwnerScope.touchNutritionWrite(on: existing, now: now)
             try save()
+            try trackReviewUpsert(existing, dailyLog: dailyLogEntity)
             return existing.toModel()
         }
 
         let entity = DailyReviewEntity(model: review)
-        UserDataOwnerScope.stampNewNutritionWrite(on: entity, ownerUID: ownerUID, now: now)
         entity.dailyLog = dailyLogEntity
         dailyLogEntity.dailyReview = entity
         dailyLogEntity.dailyReviewId = review.id
         try store.insert(entity)
         try save()
+        try trackReviewUpsert(entity, dailyLog: dailyLogEntity)
         return entity.toModel()
     }
 
-    private func dailyReviewEntity(
-        dailyLogId: UUID,
-        dailyLogOwnerUID: String?
-    ) throws -> DailyReviewEntity? {
+    private func trackReviewUpsert(_ entity: DailyReviewEntity, dailyLog: DailyLogEntity) throws {
+        guard let mutationTracker else { return }
+        let mutationGroupId = mutationTracker.makeMutationGroupId()
+        try mutationTracker.trackDailyReviewUpsert(entity, dailyLog: dailyLog, mutationGroupId: mutationGroupId)
+        try save()
+    }
+
+    private func dailyReviewEntity(dailyLogId: UUID) throws -> DailyReviewEntity? {
         var descriptor = FetchDescriptor<DailyReviewEntity>(
             predicate: #Predicate { $0.dailyLogId == dailyLogId }
         )
         descriptor.fetchLimit = 1
-        guard let entity = try store.fetch(descriptor).first else { return nil }
-        guard UserDataOwnerScope.isVisible(
-            entityOwnerUID: entity.ownerUID,
-            sessionUID: currentUIDProvider()
-        ) else {
-            return nil
-        }
-        if let dailyLogOwnerUID,
-           let reviewOwnerUID = entity.ownerUID,
-           reviewOwnerUID != dailyLogOwnerUID {
-            return nil
-        }
-        return entity
+        return try store.fetch(descriptor).first
     }
 
     private func apply(_ review: DailyReview, to entity: DailyReviewEntity) {

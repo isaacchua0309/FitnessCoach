@@ -12,14 +12,17 @@ import XCTest
 @MainActor
 final class AccountDataNamespaceServiceTests: XCTestCase {
 
-    func testPrepareForSignedInUIDStoresLastActiveUID() async {
+    func testPrepareForSignedInUIDStoresLastActiveUID() async throws {
         let defaults = UserDefaults(suiteName: "AccountDataNamespaceServiceTests.\(UUID().uuidString)")!
+        let container = try FormaModelContainer.makeContainer(inMemory: true)
+        let store = SwiftDataStore(container: container)
         let service = AccountDataNamespaceService(
-            userDefaults: defaults,
-            uidProvider: StubAccountUIDProvider(currentUID: "user-a")
+            store: store,
+            healthCacheStore: LocalHealthCacheStore(userProvider: AuthUIDCache()),
+            userDefaults: defaults
         )
 
-        await service.prepareForSignedInUID("user-a")
+        _ = await service.prepareForSignedInUID("user-a")
 
         XCTAssertEqual(service.currentDataNamespaceUID(), "user-a")
         XCTAssertEqual(
@@ -28,10 +31,12 @@ final class AccountDataNamespaceServiceTests: XCTestCase {
         )
     }
 
-    func testIsAccountSwitchDetectsDifferentUID() {
+    func testIsAccountSwitchDetectsDifferentUID() throws {
+        let container = try FormaModelContainer.makeContainer(inMemory: true)
         let service = AccountDataNamespaceService(
-            userDefaults: UserDefaults(suiteName: "AccountDataNamespaceServiceTests.\(UUID().uuidString)")!,
-            uidProvider: StubAccountUIDProvider(currentUID: "user-b")
+            store: SwiftDataStore(container: container),
+            healthCacheStore: LocalHealthCacheStore(userProvider: AuthUIDCache()),
+            userDefaults: UserDefaults(suiteName: "AccountDataNamespaceServiceTests.\(UUID().uuidString)")!
         )
 
         XCTAssertFalse(service.isAccountSwitch(from: nil, to: "user-a"))
@@ -41,12 +46,13 @@ final class AccountDataNamespaceServiceTests: XCTestCase {
 
     func testPrepareForSignOutClearsActiveNamespaceButDoesNotDeleteRows() async throws {
         let defaults = UserDefaults(suiteName: "AccountDataNamespaceServiceTests.\(UUID().uuidString)")!
-        let service = AccountDataNamespaceService(
-            userDefaults: defaults,
-            uidProvider: StubAccountUIDProvider(currentUID: "user-a")
-        )
         let container = try FormaModelContainer.makeContainer(inMemory: true)
         let store = SwiftDataStore(container: container)
+        let service = AccountDataNamespaceService(
+            store: store,
+            healthCacheStore: LocalHealthCacheStore(userProvider: AuthUIDCache()),
+            userDefaults: defaults
+        )
         let profileService = UserProfileService(store: store)
         _ = try profileService.createProfile(
             ProfileTestFixtures.sampleDraft,
@@ -77,7 +83,7 @@ final class AccountDataNamespaceServiceTests: XCTestCase {
         store.modelContext.insert(food)
         try store.save()
 
-        await service.prepareForSignedInUID("user-a")
+        _ = await service.prepareForSignedInUID("user-a")
         await service.prepareForSignOut()
 
         XCTAssertNil(service.currentDataNamespaceUID())
@@ -92,9 +98,4 @@ final class AccountDataNamespaceServiceTests: XCTestCase {
 
         XCTAssertNil(provider.currentUID)
     }
-}
-
-@MainActor
-private struct StubAccountUIDProvider: AccountUIDProviding {
-    let currentUID: String?
 }

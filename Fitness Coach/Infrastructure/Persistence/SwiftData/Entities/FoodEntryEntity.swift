@@ -17,11 +17,7 @@ final class FoodEntryEntity {
     /// Firebase UID that owns this food entry, when known.
     var ownerUID: String?
 
-    // MARK: Account persistence (Phase 1)
-
-    /// Local mutation timestamp for account persistence bookkeeping.
-    var localUpdatedAt: Date?
-    /// Per-entity schema version for future lightweight migrations.
+    /// Per-entity schema version for future lightweight migrations (Phase 1).
     var entitySchemaVersion: Int = UserDataEntitySchema.currentEntitySchemaVersion
 
     var dailyLogId: UUID
@@ -56,6 +52,19 @@ final class FoodEntryEntity {
     var createdAt: Date
     var updatedAt: Date
 
+    // MARK: Account persistence sync metadata (Phase 3)
+
+    var cloudId: String?
+    var cloudUpdatedAt: Date?
+    var lastSyncedAt: Date?
+    var syncStatusRawValue: String = AccountDataSyncStatus.localOnly.rawValue
+    var lastSyncError: String?
+    var deletedAt: Date?
+    var lastMutationId: String?
+    var syncAttemptCount: Int = 0
+    var nextRetryAt: Date?
+    var localUpdatedAt: Date?
+
     // MARK: Relationships
 
     var dailyLog: DailyLogEntity?
@@ -81,7 +90,6 @@ final class FoodEntryEntity {
         componentsJSON: String? = nil,
         createdAt: Date,
         updatedAt: Date,
-        localUpdatedAt: Date? = nil,
         entitySchemaVersion: Int = UserDataEntitySchema.currentEntitySchemaVersion
     ) {
         self.id = id
@@ -104,7 +112,7 @@ final class FoodEntryEntity {
         self.componentsJSON = componentsJSON
         self.createdAt = createdAt
         self.updatedAt = updatedAt
-        self.localUpdatedAt = localUpdatedAt ?? updatedAt
+        self.localUpdatedAt = updatedAt
         self.entitySchemaVersion = entitySchemaVersion
     }
 }

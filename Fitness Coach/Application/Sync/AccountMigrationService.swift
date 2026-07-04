@@ -8,6 +8,10 @@
 import Foundation
 import SwiftData
 
+protocol AccountMigrationRunning: AnyObject {
+    func runSafeBackfill(for uid: String) async throws
+}
+
 @MainActor
 private protocol UserDataBookkeepingPersistable: AnyObject {
     var localUpdatedAt: Date? { get set }
@@ -311,3 +315,5 @@ final class AccountMigrationService {
         return didChange
     }
 }
+
+extension AccountMigrationService: AccountMigrationRunning {}

@@ -28,6 +28,62 @@ enum FormaProductCopy {
         static let completeRequiredFields = "Fill in the required fields to continue."
     }
 
+    // MARK: - Account restore (Phase 4)
+
+    enum AccountRestore {
+        static let restoringMessage = "Restoring your logs and progress…"
+
+        enum Progress {
+            static let checkingAccount = "Checking account…"
+            static let restoringProfile = "Restoring your plan…"
+            static let restoringRecentLogs = "Restoring your recent meals and water…"
+            static let restoringWeightHistory = "Restoring your weight history…"
+            static let preparingDashboard = "Preparing your dashboard…"
+        }
+
+        enum Partial {
+            static let title = "Some data is still syncing"
+            static let body =
+                "Some data could not be restored yet. You can continue and we'll retry in the background."
+            static let continueCTA = "Continue to Forma"
+        }
+
+        enum Offline {
+            static let title = "You're offline"
+            static let body =
+                "You're offline. You can continue with local data, and we'll restore your account when you're back online."
+            static let continueCTA = "Continue to Forma"
+        }
+
+        enum Completed {
+            static let message = "Your account is ready."
+        }
+
+        enum Failed {
+            static let title = "Couldn't restore your account data"
+            static let body = "We couldn't restore your account data. Please try again."
+            static let retryCTA = "Try again"
+            static let signOutCTA = "Sign out"
+        }
+
+        enum TimedOut {
+            static let body =
+                "Restore is taking longer than expected. You can keep using Forma while we finish in the background."
+        }
+
+        enum Pending {
+            static let title = "Restoring your account"
+            static let defaultBody =
+                "Your account data is still syncing. Your history will appear here shortly."
+            static let partialBody =
+                "Some data could not be restored yet. You can continue and we'll retry in the background."
+            static let offlineBody =
+                "Progress will appear after your account data restores."
+            static let todayBody =
+                "Your meals and logs are still restoring. They'll appear here once sync finishes."
+        }
+    }
+
     // MARK: - Loading
 
     enum Loading {
@@ -2873,6 +2929,8 @@ enum FormaProductCopy {
             static let pipelineTraces = "Pipeline traces"
             static let healthIntelligenceSnapshot = "Health intelligence snapshot"
             static let coachContextInspector = "Coach context inspector"
+            static let accountSyncDiagnostics = "Account sync diagnostics"
+            static let accountRestoreDiagnostics = "Account restore diagnostics"
         }
 
         enum Developer {
