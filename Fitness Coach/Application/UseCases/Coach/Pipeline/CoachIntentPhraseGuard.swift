@@ -40,13 +40,14 @@ enum CoachIntentPhraseGuard {
         let normalized = normalize(text)
         let patterns = [
             #"^(should i|can i|could i|may i)\b"#,
-            #"\bshould i (eat|have|order|get|try)\b"#,
-            #"\bcan i (eat|have|fit|afford|order|get)\b"#,
-            #"\bcould i (eat|have|fit)\b"#,
+            #"\bshould i (eat|have|order|get|try|drink)\b"#,
+            #"\bcan i (eat|have|fit|afford|order|get|drink)\b"#,
+            #"\bcould i (eat|have|fit|drink)\b"#,
             #"\bwould it be okay\b"#,
             #"\bis it okay (to|if|for me)\b"#,
             #"\bis .+ okay\b"#,
             #"\bis .+ healthy\b"#,
+            #"\btoo much\b"#,
             #"^how many calories\b"#,
             #"\bcalories in\b"#,
             #"\bhow much (protein|carbs|fat|calories) in\b"#,
@@ -55,6 +56,10 @@ enum CoachIntentPhraseGuard {
             #"\brecommend (me|a|something)\b"#,
             #"\bwould .+ fit\b"#,
             #"\bfit my (calories|macros|calorie|protein)\b"#,
+            #"\bfit my remaining calories\b"#,
+            #"\b vs \b"#,
+            #"\bversus\b"#,
+            #"\bwhich has more\b"#,
             #"^what was (breakfast|lunch|dinner|my breakfast|my lunch|my dinner)\b"#,
             #"\bwhat did i (eat|have) (for )?(breakfast|lunch|dinner)\b"#
         ]
@@ -78,7 +83,7 @@ enum CoachIntentPhraseGuard {
     static func suggestedIntent(for text: String) -> CoachIntent {
         let normalized = normalize(text)
 
-        if normalized.contains(" vs ") || normalized.contains(" versus ") {
+        if normalized.contains(" vs ") || normalized.contains(" versus ") || normalized.contains("which has more") {
             return .nutritionComparisonQuery
         }
         if normalized.contains("recommend")
@@ -86,13 +91,16 @@ enum CoachIntentPhraseGuard {
             || normalized.contains("what should i have") {
             return .nutritionAdvice
         }
-        if normalized.contains("calories")
-            || normalized.contains("how many")
+        if normalized.contains("how many")
             || normalized.contains("how much")
+            || (normalized.contains("calories in"))
             || normalized.hasPrefix("what was")
             || normalized.contains("what did i eat")
             || normalized.contains("what did i have") {
             return .nutritionEstimateQuery
+        }
+        if normalized.contains("calories") && normalized.contains("fit") {
+            return .mealDecision
         }
         return .mealDecision
     }
