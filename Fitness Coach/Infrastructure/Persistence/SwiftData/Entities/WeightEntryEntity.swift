@@ -12,6 +12,8 @@ import SwiftData
 final class WeightEntryEntity {
 
     @Attribute(.unique) var id: UUID
+    /// Firebase UID that owns this weight entry, when known.
+    var ownerUID: String?
     var date: Date
     var weightKg: Double
     var note: String?
@@ -19,12 +21,14 @@ final class WeightEntryEntity {
 
     init(
         id: UUID,
+        ownerUID: String? = nil,
         date: Date,
         weightKg: Double,
         note: String?,
         createdAt: Date
     ) {
         self.id = id
+        self.ownerUID = ownerUID
         self.date = date
         self.weightKg = weightKg
         self.note = note

@@ -29,7 +29,7 @@ final class FirestoreNutritionSyncClientTests: XCTestCase {
     func testMockClientRecordsSavedDocuments() async throws {
         let mock = MockNutritionRemoteSyncClient()
         let context = CloudNutritionSyncMappingContext(userId: "signed-in-user", now: referenceDate)
-        let food = CloudNutritionDocumentMapping.makeCloudFoodEntryDocument(
+        let food = try CloudNutritionDocumentMapping.makeCloudFoodEntryDocument(
             from: FoodEntry(
                 id: UUID(),
                 dailyLogId: UUID(),

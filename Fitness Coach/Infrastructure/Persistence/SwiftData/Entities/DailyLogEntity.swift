@@ -14,6 +14,8 @@ final class DailyLogEntity {
     // MARK: Identity
 
     @Attribute(.unique) var id: UUID
+    /// Firebase UID that owns this daily log, when known.
+    var ownerUID: String?
     var date: Date
 
     // MARK: Summary
@@ -64,6 +66,7 @@ final class DailyLogEntity {
 
     init(
         id: UUID,
+        ownerUID: String? = nil,
         date: Date,
         weightKg: Double?,
         calorieTarget: Int,
@@ -87,6 +90,7 @@ final class DailyLogEntity {
         updatedAt: Date
     ) {
         self.id = id
+        self.ownerUID = ownerUID
         self.date = date
         self.weightKg = weightKg
         self.calorieTarget = calorieTarget

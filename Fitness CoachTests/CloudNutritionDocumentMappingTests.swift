@@ -45,16 +45,14 @@ final class CloudNutritionDocumentMappingTests: XCTestCase {
             updatedAt: referenceDate
         )
 
-        let cloud = CloudNutritionDocumentMapping.makeCloudDailyLogDocument(from: log, context: context)
+        let cloud = try CloudNutritionDocumentMapping.makeCloudDailyLogDocument(from: log, context: context)
         XCTAssertEqual(cloud.userId, "signed-in-user")
         XCTAssertEqual(cloud.localDate, context.localDateString(for: referenceDate))
         XCTAssertEqual(cloud.caloriesConsumed, 500)
         XCTAssertEqual(cloud.waterConsumedMl, 600)
         XCTAssertEqual(cloud.mutationId, "mutation-1")
 
-        let restored = try XCTUnwrap(
-            CloudNutritionDocumentMapping.makeDailyLog(from: cloud, calendar: calendar)
-        )
+        let restored = try CloudNutritionDocumentMapping.makeDailyLog(from: cloud, calendar: calendar)
         XCTAssertEqual(restored.totals.calories, 500)
         XCTAssertEqual(restored.targets.calorieTarget, ProfileTestFixtures.sampleTargets.calorieTarget)
         XCTAssertEqual(restored.waterConsumedMl, 600)
@@ -86,7 +84,7 @@ final class CloudNutritionDocumentMappingTests: XCTestCase {
             updatedAt: referenceDate
         )
 
-        let cloud = CloudNutritionDocumentMapping.makeCloudFoodEntryDocument(
+        let cloud = try CloudNutritionDocumentMapping.makeCloudFoodEntryDocument(
             from: entry,
             logDate: referenceDate,
             context: context
@@ -94,13 +92,13 @@ final class CloudNutritionDocumentMappingTests: XCTestCase {
         XCTAssertEqual(cloud.userId, "signed-in-user")
         XCTAssertNotNil(cloud.componentsJSON)
 
-        let restored = CloudNutritionDocumentMapping.makeFoodEntry(from: cloud)
+        let restored = try CloudNutritionDocumentMapping.makeFoodEntry(from: cloud)
         XCTAssertEqual(restored.name, "Combo bowl")
         XCTAssertEqual(restored.calories, 650)
         XCTAssertEqual(restored.components?.count, 2)
     }
 
-    func testWeightAndWaterMappingsPreserveValues() {
+    func testWeightAndWaterMappingsPreserveValues() throws {
         let water = WaterEntry(
             id: UUID(),
             dailyLogId: UUID(),
@@ -115,12 +113,12 @@ final class CloudNutritionDocumentMappingTests: XCTestCase {
             createdAt: referenceDate
         )
 
-        let cloudWater = CloudNutritionDocumentMapping.makeCloudWaterEntryDocument(
+        let cloudWater = try CloudNutritionDocumentMapping.makeCloudWaterEntryDocument(
             from: water,
             logDate: referenceDate,
             context: context
         )
-        let cloudWeight = CloudNutritionDocumentMapping.makeCloudWeightEntryDocument(
+        let cloudWeight = try CloudNutritionDocumentMapping.makeCloudWeightEntryDocument(
             from: weight,
             context: context
         )
@@ -130,12 +128,12 @@ final class CloudNutritionDocumentMappingTests: XCTestCase {
             350
         )
         XCTAssertEqual(
-            CloudNutritionDocumentMapping.makeWeightEntry(from: cloudWeight, calendar: calendar)?.weightKg,
+            try CloudNutritionDocumentMapping.makeWeightEntry(from: cloudWeight, calendar: calendar).weightKg,
             68.4
         )
     }
 
-    func testDailyReviewMappingPreservesTextFields() {
+    func testDailyReviewMappingPreservesTextFields() throws {
         let review = DailyReview(
             id: UUID(),
             dailyLogId: UUID(),
@@ -149,7 +147,7 @@ final class CloudNutritionDocumentMappingTests: XCTestCase {
             createdAt: referenceDate
         )
 
-        let cloud = CloudNutritionDocumentMapping.makeCloudDailyReviewDocument(
+        let cloud = try CloudNutritionDocumentMapping.makeCloudDailyReviewDocument(
             from: review,
             logDate: referenceDate,
             context: context
