@@ -127,7 +127,14 @@ enum CoachIntentPhraseGuard {
         guard needsCorrection else { return result }
 
         var copy = result
-        if copy.intent == .logFood || copy.action != nil {
+        if isEstimateOnlyWithoutLogging(text) {
+            copy.intent = .nutritionEstimateQuery
+            copy.requiresAppMutation = false
+            copy.action = nil
+            if copy.reason?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false {
+                copy.reason = "Estimate-only phrasing without logging intent."
+            }
+        } else if copy.intent == .logFood || copy.action != nil {
             copy.intent = suggestedIntent(for: text)
             copy.requiresAppMutation = false
             copy.action = nil
