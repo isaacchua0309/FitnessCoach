@@ -131,10 +131,10 @@ final class AppContainer {
 
         themeStore = ThemeStore(analyticsLogger: self.themeAnalyticsLogger)
 
+        let sharedHealthKitManager = HealthKitManager()
         healthTrainingService = HealthTrainingService(
             authorizer: SystemHealthKitTrainingAuthorization(healthKitManager: sharedHealthKitManager)
         )
-        let sharedHealthKitManager = HealthKitManager()
         let workoutReader = HealthTrainingReaderFactory.makeWorkoutReader(
             healthKitManager: sharedHealthKitManager
         )
