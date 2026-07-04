@@ -79,6 +79,13 @@ struct PlanDashboardContent: View {
         case .planStatus:
             PlanStatusSection(state: state.status)
 
+        case .weeklyRecommendation:
+            PlanWeeklyRecommendationSection(
+                state: state.weeklyRecommendation,
+                onReviewPlan: onAdjustPlan
+            )
+            .onAppear { onSectionAppear?(.weeklyRecommendation) }
+
         case .whyThisWorks:
             PlanRationaleSection(
                 explanation: state.explanation,

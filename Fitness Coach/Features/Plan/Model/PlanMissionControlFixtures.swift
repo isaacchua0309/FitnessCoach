@@ -185,9 +185,11 @@ enum PlanMissionControlFixtures {
         let context = PlanDashboardContext(
             profile: profile,
             weekLogs: weekLogs,
+            maturityLogs: weekLogs,
             allWeights: allWeights,
             integrationState: integrationState,
             dataSource: .appleHealth,
+            healthWorkoutDayStarts: [],
             asOf: referenceDate,
             calendar: calendar
         )

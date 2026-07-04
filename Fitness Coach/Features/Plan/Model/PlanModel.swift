@@ -376,17 +376,46 @@ final class PlanModel: ObservableObject {
         let allTimeStart = calendar.date(byAdding: .day, value: -365, to: endDate) ?? endDate
 
         let weekLogs = try dailyLogReader.getLogs(from: weekStart, to: endDate)
+        let maturityLogs = try dailyLogReader.getLogs(from: allTimeStart, to: endDate)
         let allWeights = try weightLogReader.getWeightEntries(from: allTimeStart, to: endDate)
+
+        let integrationState = trainingInsightsStore.integrationState
+        let healthWorkoutDayStarts = await fetchHealthWorkoutDayStarts(
+            from: allTimeStart,
+            to: endDate,
+            integrationState: integrationState,
+            calendar: calendar
+        )
 
         return PlanDashboardContext(
             profile: profile,
             weekLogs: weekLogs,
+            maturityLogs: maturityLogs,
             allWeights: allWeights,
-            integrationState: trainingInsightsStore.integrationState,
+            integrationState: integrationState,
             dataSource: trainingInsightsStore.dataSource,
+            healthWorkoutDayStarts: healthWorkoutDayStarts,
             asOf: endDate,
             calendar: calendar
         )
+    }
+
+    private func fetchHealthWorkoutDayStarts(
+        from startDate: Date,
+        to endDate: Date,
+        integrationState: TrainingIntegrationState,
+        calendar: Calendar
+    ) async -> Set<Date> {
+        guard integrationState.isConnected, let healthDataRepository else {
+            return []
+        }
+
+        let workouts = await healthDataRepository.getWorkouts(
+            from: startDate,
+            to: endDate,
+            calendar: calendar
+        )
+        return Set(workouts.map { calendar.startOfDay(for: $0.startDate) })
     }
 
     // MARK: Sheets

@@ -60,6 +60,10 @@ enum PlanAdjustmentRulesStateBuilder {
             AdjustmentRuleItem(
                 id: "highHunger",
                 text: FormaProductCopy.PlanMissionControl.adjustmentRuleHighHunger
+            ),
+            AdjustmentRuleItem(
+                id: "waitForWeeklySignal",
+                text: FormaProductCopy.PlanMissionControl.adjustmentRuleWaitForWeeklySignal
             )
         ]
     }

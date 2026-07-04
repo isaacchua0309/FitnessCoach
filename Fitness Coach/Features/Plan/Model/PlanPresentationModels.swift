@@ -166,6 +166,28 @@ struct PlanConfidenceState: Equatable, Sendable {
     var accessibilitySummary: String
 }
 
+// MARK: - Weekly recommendation
+
+struct PlanWeeklyRecommendationState: Equatable, Sendable {
+    var sectionTitle: String
+    var formulaMaintenanceLabel: String
+    var formulaMaintenanceKcal: Int?
+    var learnedMaintenanceLabel: String
+    var learnedMaintenanceKcal: Int?
+    var learnedMaintenanceUnavailableCopy: String
+    var showsLearnedEstimate: Bool
+    var recommendationTitle: String?
+    var recommendationMessage: String?
+    var suggestedCalorieDelta: Int?
+    var suggestedTargetKcal: Int?
+    var confidenceLabel: String?
+    var showsRecommendation: Bool
+    var reviewPlanButtonTitle: String
+    var showsReviewPlanCTA: Bool
+    var safetyCopy: String
+    var accessibilitySummary: String
+}
+
 // MARK: - Adjustment rules
 
 struct AdjustmentRuleItem: Equatable, Sendable, Identifiable {

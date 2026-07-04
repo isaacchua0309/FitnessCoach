@@ -33,7 +33,8 @@ final class PlanAdjustmentRulesStateTests: XCTestCase {
             FormaProductCopy.PlanMissionControl.adjustmentRuleWeightFlat,
             FormaProductCopy.PlanMissionControl.adjustmentRulePoorEnergy,
             FormaProductCopy.PlanMissionControl.adjustmentRuleTrainingDrops,
-            FormaProductCopy.PlanMissionControl.adjustmentRuleHighHunger
+            FormaProductCopy.PlanMissionControl.adjustmentRuleHighHunger,
+            FormaProductCopy.PlanMissionControl.adjustmentRuleWaitForWeeklySignal
         ])
     }
 
@@ -132,6 +133,7 @@ final class PlanAdjustmentRulesStateTests: XCTestCase {
                 FormaProductCopy.PlanMissionControl.adjustmentRulePoorEnergy,
                 FormaProductCopy.PlanMissionControl.adjustmentRuleTrainingDrops,
                 FormaProductCopy.PlanMissionControl.adjustmentRuleHighHunger,
+                FormaProductCopy.PlanMissionControl.adjustmentRuleWaitForWeeklySignal,
                 FormaProductCopy.PlanMissionControl.adjustmentRuleAggressiveRecoveryNote,
                 FormaProductCopy.PlanMissionControl.adjustmentTrendTooEarly,
                 FormaProductCopy.PlanMissionControl.adjustmentTrendStable(days: 10)

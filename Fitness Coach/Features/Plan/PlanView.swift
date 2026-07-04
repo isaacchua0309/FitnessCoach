@@ -302,9 +302,11 @@ struct PlanView: View {
             model.logSectionImpression(.strategy, healthConnected: healthConnected)
         case .planStatus:
             model.logSectionImpression(.status, healthConnected: healthConnected)
+        case .weeklyRecommendation:
+            break
         case .planConfidence:
             model.logSectionImpression(.confidence, healthConnected: healthConnected)
-        case .header, .todayMission, .whyThisWorks, .whenToAdjust, .planAssumptions, .nextReview, .adjustPlanCTA:
+        case .header, .todayMission, .whyThisWorks, .whenToAdjust, .planAssumptions, .nextReview, .adjustPlanCTA, .weeklyRecommendation:
             break
         }
     }

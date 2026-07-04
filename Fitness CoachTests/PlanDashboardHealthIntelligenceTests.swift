@@ -14,7 +14,7 @@ final class PlanDashboardHealthIntelligenceTests: XCTestCase {
         let confidenceIndex = order.firstIndex(of: .planConfidence)
 
         XCTAssertEqual(strategyIndex, 1)
-        XCTAssertEqual(confidenceIndex, 5)
+        XCTAssertEqual(confidenceIndex, 6)
         XCTAssertLessThan(strategyIndex!, confidenceIndex!)
     }
 

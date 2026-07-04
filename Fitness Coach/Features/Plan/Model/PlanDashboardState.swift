@@ -13,6 +13,7 @@ struct PlanDashboardState: Equatable, Sendable {
     var strategy: PlanStrategyState
     var dailyTargets: DailyTargetsState
     var status: PlanStatusState
+    var weeklyRecommendation: PlanWeeklyRecommendationState
     var explanation: PlanExplanationState
     var confidence: PlanConfidenceState
     var adjustmentRules: AdjustmentRulesState

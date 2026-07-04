@@ -3003,7 +3003,17 @@ enum FormaProductCopy {
         static let adjustPlan = "Adjust Plan"
         static let adjustPlanCTAHeading = "Need to change direction?"
         static let adjustPlanCTABody =
-            "Update your goal, target weight, activity, or calories."
+            "Update your goal, target weight, activity, or calories. "
+            + "Forma will not change your targets without confirmation."
+
+        static let weeklyRecommendationSectionTitle = "Weekly recommendation"
+        static let formulaMaintenanceLabel = "Initial estimate"
+        static let learnedMaintenanceLabel = "Learned maintenance"
+        static let learnedMaintenanceUnavailable =
+            "Keep logging to learn your maintenance"
+        static let weeklyRecommendationSafetyCopy =
+            "Forma will not change your targets without confirmation."
+        static let weeklyRecommendationReviewPlan = "Review plan"
 
         static let planAssumptionsSectionTitle = "Plan Assumptions"
         static let planAssumptionsAge = "Age"
@@ -3084,6 +3094,8 @@ enum FormaProductCopy {
         static let adjustmentRulePoorEnergy = "Energy is poor for 3+ days"
         static let adjustmentRuleTrainingDrops = "Training performance drops"
         static let adjustmentRuleHighHunger = "Hunger is consistently high"
+        static let adjustmentRuleWaitForWeeklySignal =
+            "Wait for a clear weekly trend before changing calories"
         static let adjustmentRuleAggressiveRecoveryNote =
             "Because this is an aggressive plan, recovery matters."
         static let adjustmentTrendTooEarly = "Your trend is still too early to judge."
