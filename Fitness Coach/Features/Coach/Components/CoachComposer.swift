@@ -67,6 +67,7 @@ struct CoachComposer: View {
                 .padding(.top, CoachDesignTokens.Spacing.xs)
                 .padding(.bottom, CoachDesignTokens.Spacing.sm)
         }
+        .background(CoachDesignTokens.Color.background)
         .animation(CoachDesignTokens.Motion.spring, value: pendingImage?.id)
         .animation(CoachDesignTokens.Motion.standard, value: canSend)
         .animation(CoachDesignTokens.Motion.standard, value: showVoiceButton)
@@ -380,13 +381,14 @@ private struct CoachComposerPreviewHost: View {
     static var samplePendingImage: CoachPendingImageState? {
         guard let data = UIImage(systemName: "fork.knife")?
             .jpegData(compressionQuality: 0.9),
-            let thumbnail = CoachMealPhotoPipeline.makeThumbnailJPEGSync(from: data) else {
+              let image = UIImage(data: data),
+              case .success(let processed) = CoachImagePipeline.process(image: image) else {
             return nil
         }
-        return CoachPendingImageState.legacyReady(
-            uploadData: data,
-            thumbnail: thumbnail,
-            source: .library
+        return CoachPendingImageState.from(
+            processed: processed,
+            source: .library,
+            originalEstimatedBytes: data.count
         )
     }
 

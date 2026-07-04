@@ -241,20 +241,15 @@ enum CoachImageAnalysisDebugLogFormatter {
 
 enum CoachImageAnalysisDebugLogger {
 
-    static func logImageSelected(
+    static func logPipelineProcessed(
         source: CoachInputAttachmentSource,
-        rawBytes: Int,
-        compressedBytes: Int,
-        mimeType: String = CoachImageUploadConfig.default.mimeType
+        processed: CoachProcessedImage,
+        originalEstimatedBytes: Int?
     ) {
-        emit(
-            message: "Meal image selected",
-            context: CoachImageAnalysisDebugContext(
-                source: source,
-                mimeType: mimeType,
-                rawBytes: rawBytes,
-                compressedBytes: compressedBytes
-            )
+        CoachImageProcessingLogger.logPipelineSuccess(
+            source: source,
+            processed: processed,
+            processingDurationMs: 0
         )
     }
 
@@ -447,7 +442,6 @@ enum CoachImageAnalysisDebugLogger {
         switch error {
         case .emptyUploadData: return "empty_upload"
         case .uploadExceedsMaxBytes: return "upload_exceeds_limit"
-        case .invalidContext: return "invalid_context"
         }
     }
 

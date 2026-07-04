@@ -6,7 +6,6 @@
 //
 
 import PhotosUI
-import SwiftUI
 import UIKit
 
 extension CoachImagePipeline {
@@ -50,14 +49,23 @@ extension CoachImagePipeline {
 
     static func processImportedImage(
         _ image: UIImage,
+        source: CoachInputAttachmentSource,
         originalEstimatedBytes: Int?,
         localReferenceID: UUID,
         config: CoachImageProcessingConfig = .default
     ) async -> Result<ProcessedImageImport, CoachMealPhotoError> {
+        let started = Date()
+        let originalPixelSize = CoachImagePipelineEncoding.displayPixelSize(of: image)
         let pipelineResult = await processAsync(image: image, config: config)
+        let durationMs = Int(Date().timeIntervalSince(started) * 1_000)
 
         switch pipelineResult {
         case .success(let processed):
+            CoachImageProcessingLogger.logPipelineSuccess(
+                source: source,
+                processed: processed,
+                processingDurationMs: durationMs
+            )
             return .success(
                 ProcessedImageImport(
                     processed: processed,
@@ -66,6 +74,12 @@ extension CoachImagePipeline {
                 )
             )
         case .failure(let error):
+            CoachImageProcessingLogger.logPipelineFailure(
+                source: source,
+                originalSize: originalPixelSize,
+                error: error,
+                processingDurationMs: durationMs
+            )
             return .failure(error.mealPhotoError)
         }
     }

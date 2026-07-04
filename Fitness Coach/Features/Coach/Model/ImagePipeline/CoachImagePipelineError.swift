@@ -12,3 +12,15 @@ enum CoachImagePipelineError: Equatable, Error, Sendable {
     case encodingFailed
     case exceedsMaxSize(maxBytes: Int)
 }
+
+extension CoachImagePipelineError {
+
+    var mealPhotoError: CoachMealPhotoError {
+        switch self {
+        case .invalidInput:
+            return .noImage
+        case .encodingFailed, .exceedsMaxSize:
+            return .encodingFailed
+        }
+    }
+}

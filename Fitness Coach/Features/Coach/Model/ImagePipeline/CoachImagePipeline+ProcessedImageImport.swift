@@ -24,7 +24,4 @@ extension CoachImagePipeline {
             self.localReferenceID = localReferenceID
         }
     }
-
-    /// Backward-compatible alias for photo-library imports.
-    typealias PhotoLibraryImport = ProcessedImageImport
 }

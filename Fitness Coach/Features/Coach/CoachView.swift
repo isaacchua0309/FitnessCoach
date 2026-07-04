@@ -120,7 +120,6 @@ struct CoachView: View {
                 model.refreshTodayContext()
             }
             .animation(CoachDesignTokens.Motion.standard, value: showEmptyChrome)
-            .animation(CoachDesignTokens.Motion.standard, value: model.activeLaunchPresentation)
             .photosPicker(
                 isPresented: $imagePickFlow.isPhotoPickerPresented,
                 selection: $photoPickerItem,
@@ -134,6 +133,7 @@ struct CoachView: View {
             .onChange(of: photoPickerItem) { _, item in
                 guard let item else { return }
                 photoPickerItem = nil
+                imagePickFlow.markLibrarySelectionReceived()
                 Task {
                     await imagePickFlow.handlePhotoLibrarySelection(item, model: model)
                 }
@@ -212,7 +212,8 @@ struct CoachView: View {
             isVoiceInputBusy: speechService.isVoiceInputBusy,
             canPickAttachment: model.inputState.canStartImageSelection && imagePickFlow.allowsAttachmentPick,
             isProcessingImage: imagePickFlow.isProcessingImage,
-            textFieldPlaceholder: model.resolvedComposerPlaceholder,
+            textFieldPlaceholder: model.photoClarificationComposerPlaceholder
+                ?? FormaProductCopy.Coach.composerPlaceholder,
             isFocused: $isInputFocused,
             isSending: model.isSending,
             onSend: {

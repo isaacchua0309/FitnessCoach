@@ -5,7 +5,6 @@
 //  Forma — Coordinates camera/photo-library presentation and CoachImagePipeline processing.
 //
 
-import Combine
 import PhotosUI
 import SwiftUI
 import UIKit
@@ -17,6 +16,11 @@ final class CoachImagePickFlowController: ObservableObject {
     @Published var isPhotoPickerPresented = false
     @Published var isCameraPresented = false
 
+    /// Set before `fullScreenCover` dismiss runs so a delivered capture is not dropped.
+    private var cameraDeliveredResult = false
+    /// Set when `PhotosPicker` hands off an item before the dismiss callback runs.
+    private var librarySelectionReceived = false
+
     var allowsAttachmentPick: Bool {
         !state.isBusy
     }
@@ -26,7 +30,12 @@ final class CoachImagePickFlowController: ObservableObject {
     }
 
     func handleAttachmentRemoved() {
+        librarySelectionReceived = false
         state = .idle
+    }
+
+    func markLibrarySelectionReceived() {
+        librarySelectionReceived = true
     }
 
     @discardableResult
@@ -43,6 +52,7 @@ final class CoachImagePickFlowController: ObservableObject {
         guard state == .idle else { return }
         guard model.requestPhotoPick() else { return }
 
+        cameraDeliveredResult = false
         state = .requestingPermission(.camera)
 
         let permission = await CoachCameraAccess.resolveForCapture()
@@ -53,12 +63,16 @@ final class CoachImagePickFlowController: ObservableObject {
             state = .pickerPresented(.camera)
             isCameraPresented = true
         case .failure(let error):
-            await handleFailure(error, model: model)
+            await handleFailure(error, model: model, requiresActiveImport: false)
         }
     }
 
     func handlePhotoLibraryPickerDismissed() {
         guard case .pickerPresented(.library) = state else { return }
+        if librarySelectionReceived {
+            librarySelectionReceived = false
+            return
+        }
         state = .idle
         isPhotoPickerPresented = false
     }
@@ -67,7 +81,8 @@ final class CoachImagePickFlowController: ObservableObject {
         _ item: PhotosPickerItem,
         model: CoachModel
     ) async {
-        guard state == .pickerPresented(.library) || state == .idle else { return }
+        librarySelectionReceived = false
+        guard case .pickerPresented(.library) = state else { return }
 
         isPhotoPickerPresented = false
         state = .processingImage(.library)
@@ -75,16 +90,23 @@ final class CoachImagePickFlowController: ObservableObject {
 
         switch await CoachImagePipeline.loadImageFromPhotoLibrary(item) {
         case .failure(let error):
+            CoachImageProcessingLogger.logSelectionFailure(source: .library, originalSize: nil, error: error)
             await handleFailure(error, model: model)
         case .success(let loaded):
             let localReferenceID = model.storePendingImageLocalSource(loaded.image)
             model.attachPendingImageLocalReference(localReferenceID)
             let importResult = await CoachImagePipeline.processImportedImage(
                 loaded.image,
+                source: .library,
                 originalEstimatedBytes: loaded.originalEstimatedBytes,
                 localReferenceID: localReferenceID
             )
-            await completeImport(importResult, source: .library, model: model)
+            await completeImport(
+                importResult,
+                source: .library,
+                model: model,
+                localReferenceID: localReferenceID
+            )
         }
     }
 
@@ -92,6 +114,8 @@ final class CoachImagePickFlowController: ObservableObject {
         _ result: Result<UIImage, CoachMealPhotoError>,
         model: CoachModel
     ) async {
+        cameraDeliveredResult = true
+        defer { cameraDeliveredResult = false }
         isCameraPresented = false
 
         switch result {
@@ -114,9 +138,15 @@ final class CoachImagePickFlowController: ObservableObject {
             model.attachPendingImageLocalReference(localReferenceID)
             let importResult = await CoachImagePipeline.importFromCamera(
                 image,
+                source: .camera,
                 localReferenceID: localReferenceID
             )
-            await completeImport(importResult, source: .camera, model: model)
+            await completeImport(
+                importResult,
+                source: .camera,
+                model: model,
+                localReferenceID: localReferenceID
+            )
         }
     }
 
@@ -136,10 +166,16 @@ final class CoachImagePickFlowController: ObservableObject {
             let originalEstimatedBytes = model.inputState.pendingImage?.originalEstimatedBytes
             let importResult = await CoachImagePipeline.processImportedImage(
                 image,
+                source: source,
                 originalEstimatedBytes: originalEstimatedBytes,
                 localReferenceID: localReferenceID
             )
-            await completeImport(importResult, source: source, model: model)
+            await completeImport(
+                importResult,
+                source: source,
+                model: model,
+                localReferenceID: localReferenceID
+            )
             return
         }
 
@@ -152,6 +188,7 @@ final class CoachImagePickFlowController: ObservableObject {
     }
 
     func handleCameraPickerDismissedWithoutResult() {
+        guard !cameraDeliveredResult else { return }
         guard case .pickerPresented(.camera) = state else { return }
         state = .idle
         isCameraPresented = false
@@ -160,15 +197,24 @@ final class CoachImagePickFlowController: ObservableObject {
     private func completeImport(
         _ result: Result<CoachImagePipeline.ProcessedImageImport, CoachMealPhotoError>,
         source: CoachInputAttachmentSource,
-        model: CoachModel
+        model: CoachModel,
+        localReferenceID: UUID
     ) async {
         switch result {
         case .failure(.userCancelled):
+            guard model.hasActivePendingImageImport() else {
+                state = .idle
+                return
+            }
             model.revertPendingImageProcessingCancel()
             state = .idle
         case .failure(let error):
             await handleFailure(error, model: model)
         case .success(let imported):
+            guard model.shouldAcceptImportSuccess(localReferenceID: localReferenceID) else {
+                state = .idle
+                return
+            }
             let staged = await model.stagePipelineProcessedPhoto(imported, source: source)
             if staged {
                 state = .imageReady
@@ -179,9 +225,18 @@ final class CoachImagePickFlowController: ObservableObject {
         }
     }
 
-    private func handleFailure(_ error: CoachMealPhotoError, model: CoachModel) async {
+    private func handleFailure(
+        _ error: CoachMealPhotoError,
+        model: CoachModel,
+        requiresActiveImport: Bool = true
+    ) async {
         guard error != .userCancelled else {
             model.revertPendingImageProcessingCancel()
+            state = .idle
+            return
+        }
+
+        if requiresActiveImport, !model.hasActivePendingImageImport() {
             state = .idle
             return
         }
@@ -192,23 +247,4 @@ final class CoachImagePickFlowController: ObservableObject {
         model.appendMealPhotoSelectionFailure(error)
         state = .idle
     }
-
-    #if DEBUG
-    func setStateForTests(_ newState: CoachImagePickFlowState) {
-        state = newState
-    }
-
-    func simulateProcessingFailure(_ error: CoachMealPhotoError, model: CoachModel) async {
-        state = .processingImage(.camera)
-        model.failPendingImageProcessing(error)
-        state = .failed(error)
-        state = .idle
-    }
-
-    func handleFailureForTests(_ error: CoachMealPhotoError, model: CoachModel) async {
-        state = .failed(error)
-        model.appendMealPhotoSelectionFailure(error)
-        state = .idle
-    }
-    #endif
 }

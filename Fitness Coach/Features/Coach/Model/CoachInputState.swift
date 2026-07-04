@@ -77,21 +77,6 @@ struct CoachInputState: Equatable {
         return true
     }
 
-    @discardableResult
-    mutating func applyLegacyPreparedImage(
-        uploadData: Data,
-        thumbnail: Data,
-        source: CoachInputAttachmentSource
-    ) -> Bool {
-        imageError = nil
-        pendingImage = CoachPendingImageState.legacyReady(
-            uploadData: uploadData,
-            thumbnail: thumbnail,
-            source: source
-        )
-        return true
-    }
-
     mutating func failImageProcessing(_ error: CoachMealPhotoError) {
         imageError = error
         if var current = pendingImage {
@@ -132,12 +117,6 @@ struct CoachInputState: Equatable {
     mutating func restore(from snapshot: CoachInputSendSnapshot) {
         text = snapshot.text
         pendingImage = snapshot.pendingImage
-        imageError = nil
-    }
-
-    mutating func clearAfterSuccessfulSend() {
-        text = ""
-        pendingImage = nil
         imageError = nil
     }
 

@@ -209,7 +209,6 @@ final class CoachAIRouteHandler {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         let requestResult = CoachMealImageAIRequestBuilder.buildAnalysisRequest(
             attachment: uploadAttachment,
-            context: context,
             message: trimmedPrompt.isEmpty ? nil : trimmedPrompt,
             clarification: recommission?.clarification,
             previousAnalysis: recommission?.previousResult.map(MealImageAnalysisMapper.previousAnalysis)

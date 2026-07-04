@@ -49,15 +49,23 @@ final class CoachInputStateTests: XCTestCase {
         let second = try makeTestJPEG()
         XCTAssertTrue(stageTestImage(&state, jpeg: first, source: .camera))
         let firstID = try XCTUnwrap(state.pendingImage?.id)
+        let firstUpload = try XCTUnwrap(state.pendingImage?.uploadData)
 
         state.beginProcessingNewSelection(source: .library)
         XCTAssertEqual(state.pendingImage?.id, firstID)
-        XCTAssertEqual(state.pendingImage?.uploadData, first)
+        XCTAssertEqual(state.pendingImage?.uploadData, firstUpload)
 
-        let thumbnail = CoachMealPhotoPipeline.makeThumbnailJPEGSync(from: second) ?? second
-        XCTAssertTrue(state.applyLegacyPreparedImage(uploadData: second, thumbnail: thumbnail, source: .library))
+        guard let secondImage = UIImage(data: second),
+              case .success(let processed) = CoachImagePipeline.process(image: secondImage) else {
+            return XCTFail("Expected processed second image")
+        }
+        XCTAssertTrue(state.applyProcessedImage(
+            processed,
+            source: .library,
+            originalEstimatedBytes: second.count
+        ))
         XCTAssertNotEqual(state.pendingImage?.id, firstID)
-        XCTAssertEqual(state.pendingImage?.uploadData, second)
+        XCTAssertEqual(state.pendingImage?.uploadData, processed.uploadData)
     }
 
     func testFailedProcessingPreservesReadyPendingImage() throws {
@@ -94,6 +102,7 @@ final class CoachInputStateTests: XCTestCase {
         var state = CoachInputState.empty
         let jpeg = try makeTestJPEG()
         state.updateText("  Lunch bowl  ")
+        let uploadData = try processedUploadData(from: jpeg)
         XCTAssertTrue(stageTestImage(&state, jpeg: jpeg, source: .library))
 
         let snapshot = state.takeSendSnapshot()
@@ -101,7 +110,7 @@ final class CoachInputStateTests: XCTestCase {
 
         XCTAssertEqual(frozen.text, "  Lunch bowl  ")
         XCTAssertEqual(frozen.trimmedText, "Lunch bowl")
-        XCTAssertEqual(frozen.pendingImage?.uploadData, jpeg)
+        XCTAssertEqual(frozen.pendingImage?.uploadData, uploadData)
         XCTAssertEqual(frozen.pendingImage?.source, .library)
         XCTAssertTrue(state.text.isEmpty)
         XCTAssertNil(state.pendingImage)
@@ -113,24 +122,26 @@ final class CoachInputStateTests: XCTestCase {
         var state = CoachInputState.empty
         let jpeg = try makeTestJPEG()
         state.updateText("  Lunch bowl  ")
+        let uploadData = try processedUploadData(from: jpeg)
         XCTAssertTrue(stageTestImage(&state, jpeg: jpeg, source: .library))
 
         let snapshot = try XCTUnwrap(state.takeSendSnapshot())
         state.restore(from: snapshot)
 
         XCTAssertEqual(state.text, "  Lunch bowl  ")
-        XCTAssertEqual(state.pendingImage?.uploadData, jpeg)
+        XCTAssertEqual(state.pendingImage?.uploadData, uploadData)
         XCTAssertEqual(state.pendingImage?.source, .library)
         XCTAssertTrue(state.canSend)
     }
 
     func testSendSnapshotPayloadVariants() throws {
         let jpeg = try makeTestJPEG()
+        let uploadData = try processedUploadData(from: jpeg)
 
         var imageOnly = CoachInputState.empty
         _ = stageTestImage(&imageOnly, jpeg: jpeg, source: .camera)
         if case .imageOnly(let data) = imageOnly.takeSendSnapshot()?.sendPayload {
-            XCTAssertEqual(data, jpeg)
+            XCTAssertEqual(data, uploadData)
         } else {
             XCTFail("Expected image-only payload")
         }
@@ -148,7 +159,7 @@ final class CoachInputStateTests: XCTestCase {
         _ = stageTestImage(&combined, jpeg: jpeg, source: .library)
         if case .textAndImage(let text, let data) = combined.takeSendSnapshot()?.sendPayload {
             XCTAssertEqual(text, "caption")
-            XCTAssertEqual(data, jpeg)
+            XCTAssertEqual(data, uploadData)
         } else {
             XCTFail("Expected text+image payload")
         }
@@ -183,8 +194,23 @@ final class CoachInputStateTests: XCTestCase {
         jpeg: Data,
         source: CoachInputAttachmentSource
     ) -> Bool {
-        let thumbnail = CoachMealPhotoPipeline.makeThumbnailJPEGSync(from: jpeg) ?? jpeg
-        return state.applyLegacyPreparedImage(uploadData: jpeg, thumbnail: thumbnail, source: source)
+        guard let image = UIImage(data: jpeg),
+              case .success(let processed) = CoachImagePipeline.process(image: image) else {
+            return false
+        }
+        return state.applyProcessedImage(
+            processed,
+            source: source,
+            originalEstimatedBytes: jpeg.count
+        )
+    }
+
+    private func processedUploadData(from jpeg: Data) throws -> Data {
+        guard let image = UIImage(data: jpeg),
+              case .success(let processed) = CoachImagePipeline.process(image: image) else {
+            throw XCTSkip("Expected processed upload data")
+        }
+        return processed.uploadData
     }
 
     private func makeTestJPEG() throws -> Data {
