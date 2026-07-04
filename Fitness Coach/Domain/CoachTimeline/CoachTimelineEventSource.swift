@@ -46,4 +46,6 @@ enum CoachTimelineEventSourceAttribution: String, Codable, CaseIterable, Equatab
     case healthIntelligence
     /// System-generated events (refresh, compaction, context assembly).
     case system
+    /// One-time or idempotent hydration from persisted logs or Health reads.
+    case systemBackfill
 }
