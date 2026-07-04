@@ -14,9 +14,10 @@ final class AppContainer {
     let modelContainer: ModelContainer
     let store: SwiftDataStore
 
-    /// Phase 3 durable sync outbox — enqueues mutations; upload engine not wired yet.
+    /// Phase 3 durable sync outbox — enqueues mutations; drained by `accountSyncUploader`.
     let accountSyncOutboxStore: SwiftDataAccountSyncOutboxStore
     let accountLocalMutationTracker: AccountLocalMutationTracker
+    let accountSyncUploader: AccountSyncUploader
 
     let userProfileService: UserProfileService
     let targetService: TargetService
@@ -238,6 +239,12 @@ final class AppContainer {
         } else {
             self.accountDataRemoteStore = FirestoreAccountDataRemoteStore()
         }
+        accountSyncUploader = AccountSyncUploader(
+            outbox: accountSyncOutboxStore,
+            payloadBuilder: SwiftDataAccountSyncPayloadBuilder(store: store),
+            remoteStore: accountDataRemoteStore,
+            store: store
+        )
         profileCloudSyncStore = ProfileCloudSyncStore(userDefaults: self.onboardingUserDefaults)
         profileBootstrapService = ProfileBootstrapService(
             userProfileService: userProfileService,

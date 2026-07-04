@@ -29,4 +29,10 @@ final class AppContainerAccountDataRemoteStoreWiringTests: XCTestCase {
         XCTAssertFalse(AccountPersistenceFeatureFlags.syncEngineEnabled)
         XCTAssertFalse(AccountPersistenceFeatureFlags.restoreOnLoginEnabled)
     }
+
+    func testInMemoryContainerWiresAccountSyncUploader() throws {
+        let container = try AppContainer(inMemory: true)
+
+        XCTAssertNotNil(container.accountSyncUploader)
+    }
 }
