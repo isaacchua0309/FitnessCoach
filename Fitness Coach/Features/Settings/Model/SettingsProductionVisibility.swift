@@ -13,7 +13,8 @@ enum SettingsProductionVisibility {
         .exportData,
         .deleteData,
         .authDiagnostics,
-        .pipelineTraces
+        .pipelineTraces,
+        .coachContextInspector
     ]
 
     static let prohibitedTitleTerms = [

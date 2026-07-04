@@ -29,6 +29,11 @@ enum SettingsDeveloperPresentationBuilder {
                     id: .healthIntelligenceSnapshot,
                     title: FormaProductCopy.Settings.Rows.healthIntelligenceSnapshot,
                     destination: .healthIntelligenceSnapshot
+                ),
+                row(
+                    id: .coachContextInspector,
+                    title: FormaProductCopy.Settings.Rows.coachContextInspector,
+                    destination: .coachContextInspector
                 )
             ],
             footer: FormaProductCopy.Settings.Developer.sectionFooter
