@@ -160,11 +160,16 @@ struct CoachTodayNutritionContext: Codable, Equatable, Sendable {
     var carbsRemaining: Double?
     var fatConsumed: Double?
     var fatRemaining: Double?
+    var caloriesOverTarget: Bool?
+    var proteinOverTarget: Bool?
+    var carbsOverTarget: Bool?
+    var fatOverTarget: Bool?
 }
 
 struct CoachTodayHydrationContext: Codable, Equatable, Sendable {
     var waterConsumedMl: Int?
     var waterRemainingMl: Int?
+    var waterOverTarget: Bool?
 }
 
 struct CoachTodayWeightContext: Codable, Equatable, Sendable {
