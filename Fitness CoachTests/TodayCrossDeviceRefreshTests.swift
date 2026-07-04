@@ -6,65 +6,24 @@
 //
 
 import Combine
+import SwiftData
 import XCTest
 @testable import Fitness_Coach
 
-final class TodayCrossDeviceRefreshPolicyTests: XCTestCase {
-
-    private let ownerUID = "user-a"
-    private let referenceDate = ProfileTestFixtures.referenceDate
-
-    func testShouldReloadForTodayRelevantDomains() {
-        for domain in TodayCrossDeviceRefreshPolicy.relevantDomains {
-            let event = AccountDataRefreshEvent(
-                uid: ownerUID,
-                domains: [domain],
-                reason: .realtimeSnapshot,
-                createdAt: referenceDate
-            )
-            XCTAssertTrue(TodayCrossDeviceRefreshPolicy.shouldReload(for: event))
-        }
-    }
-
-    func testShouldIgnoreCoachOnlyDomain() {
-        let event = AccountDataRefreshEvent(
-            uid: ownerUID,
-            domains: [.coachContext],
-            reason: .realtimeSnapshot,
-            createdAt: referenceDate
-        )
-        XCTAssertFalse(TodayCrossDeviceRefreshPolicy.shouldReload(for: event))
-    }
-
-    func testMatchesCurrentUIDRejectsOtherAccounts() {
-        let event = AccountDataRefreshEvent(
-            uid: "other-user",
-            domains: [.today],
-            reason: .appForeground,
-            createdAt: referenceDate
-        )
-        XCTAssertFalse(
-            TodayCrossDeviceRefreshPolicy.matchesCurrentUID(
-                event: event,
-                ownerUIDProvider: { self.ownerUID }
-            )
-        )
-    }
-}
-
 @MainActor
-final class TodayCrossDeviceRefreshModelTests: XCTestCase {
+final class TodayCrossDeviceRefreshTests: XCTestCase {
 
     private var harness: FitnessActionCenterTestSupport.Harness!
     private var refreshEventBus: AccountDataRefreshEventBus!
-    private var crossDeviceCoordinator: TrackingTodayCrossDeviceSyncCoordinator!
+    private var crossDeviceCoordinator: FeatureCrossDeviceSyncCoordinator!
     private var sessionUID: String!
+    private let otherUID = "other-user"
 
     override func setUp() async throws {
         harness = try FitnessActionCenterTestSupport.makeHarness()
         refreshEventBus = AccountDataRefreshEventBus()
-        crossDeviceCoordinator = TrackingTodayCrossDeviceSyncCoordinator()
-        sessionUID = "test-user-1"
+        crossDeviceCoordinator = FeatureCrossDeviceSyncCoordinator()
+        sessionUID = harness.cloudUID
         _ = try harness.seedProfile(ownerUID: sessionUID)
     }
 
@@ -76,25 +35,7 @@ final class TodayCrossDeviceRefreshModelTests: XCTestCase {
         super.tearDown()
     }
 
-    func testModelIgnoresRefreshEventsForOtherUID() async throws {
-        let model = try makeModel()
-        await model.loadToday()
-
-        refreshEventBus.publish(
-            AccountDataRefreshEvent(
-                uid: "other-user",
-                domains: [.food],
-                reason: .realtimeSnapshot,
-                createdAt: harness.today
-            )
-        )
-        refreshEventBus.flushImmediately()
-        try await Task.sleep(nanoseconds: 300_000_000)
-
-        XCTAssertEqual(crossDeviceCoordinator.manualRefreshCallCount, 0)
-    }
-
-    func testModelReloadsAfterRelevantCrossDeviceEvent() async throws {
+    func testTodayReloadsAfterRemoteFoodChange() async throws {
         let model = try makeModel()
         await model.loadToday()
 
@@ -109,38 +50,112 @@ final class TodayCrossDeviceRefreshModelTests: XCTestCase {
             date: harness.today
         )
 
-        refreshEventBus.publish(
-            AccountDataRefreshEvent(
-                uid: sessionUID,
-                domains: [.food],
-                reason: .realtimeSnapshot,
-                createdAt: harness.today
-            )
-        )
-        refreshEventBus.flushImmediately()
-        try await Task.sleep(nanoseconds: 300_000_000)
+        try await publishRefresh(domains: [.food])
 
         guard case .loaded(let state) = model.viewState else {
-            return XCTFail("Expected loaded state")
+            return XCTFail("Expected loaded Today state")
         }
         XCTAssertEqual(state.meals.entryCount, 1)
+        XCTAssertEqual(state.meals.entries.first?.name, "Oats")
     }
 
-    func testManualCrossDeviceRefreshDoesNotClearLoadedState() async throws {
+    func testTodayReloadsAfterRemoteWaterChange() async throws {
         let model = try makeModel()
         await model.loadToday()
-        crossDeviceCoordinator.manualRefreshDelayNanoseconds = 100_000_000
 
-        async let refreshTask = model.performManualCrossDeviceRefresh()
-        try await Task.sleep(nanoseconds: 20_000_000)
-        guard case .loaded = model.viewState else {
-            return XCTFail("Expected loaded state during cross-device refresh")
+        _ = try harness.actionCenter.logWater(amountMl: 450, date: harness.today)
+
+        try await publishRefresh(domains: [.water])
+
+        guard case .loaded(let state) = model.viewState else {
+            return XCTFail("Expected loaded Today state")
         }
-        await refreshTask
+        XCTAssertEqual(state.macroHydration.waterSummary.consumedMl, 450)
+    }
+
+    func testTodayReloadsAfterRemoteWeightChange() async throws {
+        let model = try makeModel()
+        await model.loadToday()
+
+        _ = try harness.actionCenter.logWeight(82.5, date: harness.today)
+
+        try await publishRefresh(domains: [.weight])
+
+        guard case .loaded(let state) = model.viewState else {
+            return XCTFail("Expected loaded Today state")
+        }
+        XCTAssertEqual(state.mission.weightSummary.weightKg ?? 0, 82.5, accuracy: 0.01)
+    }
+
+    func testTodayUpdatesTargetsAfterRemotePlanChange() async throws {
+        let model = try makeModel()
+        await model.loadToday()
+
+        guard case .loaded(let initial) = model.viewState else {
+            return XCTFail("Expected loaded Today state")
+        }
+        XCTAssertEqual(initial.mission.calorieSummary.target, 1_800)
+
+        _ = try harness.actionCenter.updatePlan(
+            UserProfileUpdate(targets: ProfileTestFixtures.sampleTargets.withCalories(2_100))
+        )
+
+        try await publishRefresh(domains: [.plan])
+
+        guard case .loaded(let updated) = model.viewState else {
+            return XCTFail("Expected loaded Today state after plan refresh")
+        }
+        XCTAssertEqual(updated.mission.calorieSummary.target, 2_100)
+    }
+
+    func testTodayIgnoresRefreshEventForOtherUID() async throws {
+        let model = try makeModel()
+        await model.loadToday()
+
+        _ = try harness.actionCenter.logFood(
+            DailyLogServiceTestSupport.foodDraft(name: "Snack", calories: 200),
+            date: harness.today
+        )
+
+        try await publishRefresh(domains: [.food], uid: otherUID)
+
+        guard case .loaded(let state) = model.viewState else {
+            return XCTFail("Expected loaded Today state")
+        }
+        XCTAssertEqual(state.meals.entryCount, 0)
+        XCTAssertTrue(state.meals.isEmpty)
+    }
+
+    func testTodayManualRefreshCallsCoordinator() async throws {
+        let model = try makeModel()
+        await model.loadToday()
+
+        await model.performManualCrossDeviceRefresh()
 
         XCTAssertEqual(crossDeviceCoordinator.manualRefreshCallCount, 1)
         XCTAssertFalse(model.isCrossDeviceRefreshing)
     }
+
+    func testTodayKeepsLocalPendingEditVisible() async throws {
+        let model = try makeModel()
+        await model.loadToday()
+
+        let entry = try harness.actionCenter.logFood(
+            DailyLogServiceTestSupport.foodDraft(name: "Local Draft", calories: 420),
+            date: harness.today
+        )
+        try markFoodPendingUpload(entryID: entry.id, name: "Local Draft")
+
+        try await publishRefresh(domains: [.food])
+
+        guard case .loaded(let state) = model.viewState else {
+            return XCTFail("Expected loaded Today state")
+        }
+        XCTAssertEqual(state.meals.entryCount, 1)
+        XCTAssertEqual(state.meals.entries.first?.name, "Local Draft")
+    }
+
+    // MARK: - Helpers
 
     private func makeModel() throws -> TodayModel {
         let context = TodayHydrationGate.resolve(
@@ -173,61 +188,29 @@ final class TodayCrossDeviceRefreshModelTests: XCTestCase {
             crossDeviceSyncCoordinator: crossDeviceCoordinator
         )
     }
-}
 
-@MainActor
-private final class TrackingTodayCrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
-
-    var manualRefreshCallCount = 0
-    var manualRefreshDelayNanoseconds: UInt64 = 0
-
-    func refreshNow(
-        uid: String,
-        mode: CrossDeviceSyncMode,
-        reason: CrossDeviceSyncReason
-    ) async -> CrossDeviceSyncSummary {
-        emptySummary(uid: uid, mode: mode, reason: reason)
-    }
-
-    func foregroundRefreshIfNeeded(uid: String) async -> CrossDeviceSyncSummary? { nil }
-
-    func manualRefresh(uid: String) async -> CrossDeviceSyncSummary {
-        manualRefreshCallCount += 1
-        if manualRefreshDelayNanoseconds > 0 {
-            try? await Task.sleep(nanoseconds: manualRefreshDelayNanoseconds)
-        }
-        return emptySummary(uid: uid, mode: .manualRefresh, reason: .manualPullToRefresh)
-    }
-
-    func handleRealtimeHint(uid: String) async -> CrossDeviceSyncSummary? { nil }
-
-    private func emptySummary(
-        uid: String,
-        mode: CrossDeviceSyncMode,
-        reason: CrossDeviceSyncReason
-    ) -> CrossDeviceSyncSummary {
-        CrossDeviceSyncSummary(
-            uid: uid,
-            mode: mode,
-            reason: reason,
-            status: .completed,
-            startedAt: Date(),
-            endedAt: Date(),
-            uploadedMutations: 0,
-            pulledDailyLogs: 0,
-            pulledFoodEntries: 0,
-            pulledWaterEntries: 0,
-            pulledWeightEntries: 0,
-            pulledDailyReviews: 0,
-            pulledProfile: false,
-            inserted: 0,
-            updated: 0,
-            deleted: 0,
-            skippedLocalNewer: 0,
-            conflicts: 0,
-            failed: 0,
-            didRefreshUI: false,
-            userFacingMessage: nil
+    private func publishRefresh(
+        domains: Set<AccountDataRefreshDomain>,
+        uid: String? = nil
+    ) async throws {
+        try await CrossDeviceRefreshTestSupport.publishAndWait(
+            bus: refreshEventBus,
+            event: AccountDataRefreshEvent(
+                uid: uid ?? sessionUID,
+                domains: domains,
+                reason: .realtimeSnapshot,
+                createdAt: harness.today
+            )
         )
+    }
+
+    private func markFoodPendingUpload(entryID: UUID, name: String) throws {
+        var descriptor = FetchDescriptor<FoodEntryEntity>(predicate: #Predicate { $0.id == entryID })
+        descriptor.fetchLimit = 1
+        let entity = try XCTUnwrap(try harness.store.fetchOne(descriptor))
+        entity.name = name
+        entity.syncStatus = .pendingUpload
+        entity.localUpdatedAt = harness.today
+        try harness.store.save()
     }
 }

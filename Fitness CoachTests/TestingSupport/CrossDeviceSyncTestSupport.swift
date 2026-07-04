@@ -225,3 +225,36 @@ enum CrossDeviceSyncTestSupport {
         )
     }
 }
+
+@MainActor
+final class FeatureCrossDeviceSyncCoordinator: CrossDeviceSyncCoordinating {
+
+    var manualRefreshCallCount = 0
+    var manualRefreshDelayNanoseconds: UInt64 = 0
+
+    func refreshNow(
+        uid: String,
+        mode: CrossDeviceSyncMode,
+        reason: CrossDeviceSyncReason
+    ) async -> CrossDeviceSyncSummary {
+        CrossDeviceSyncTestSupport.makePullSummary(
+            uid: uid,
+            referenceDate: Date()
+        )
+    }
+
+    func foregroundRefreshIfNeeded(uid: String) async -> CrossDeviceSyncSummary? { nil }
+
+    func manualRefresh(uid: String) async -> CrossDeviceSyncSummary {
+        manualRefreshCallCount += 1
+        if manualRefreshDelayNanoseconds > 0 {
+            try? await Task.sleep(nanoseconds: manualRefreshDelayNanoseconds)
+        }
+        return CrossDeviceSyncTestSupport.makePullSummary(
+            uid: uid,
+            referenceDate: Date()
+        )
+    }
+
+    func handleRealtimeHint(uid: String) async -> CrossDeviceSyncSummary? { nil }
+}
