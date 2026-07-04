@@ -4,6 +4,10 @@
 //
 //  FitPilot AI — Owns food entry creation, editing, deletion, and undo.
 //
+//  Write ownership: user mutations go through FitnessActionCenter only.
+//  Cloud merge writes go through AccountSyncPuller (documented bypass).
+//  SSOT: Docs/Architecture/SourceOfTruthMap.md §3.
+//
 
 import Foundation
 import SwiftData

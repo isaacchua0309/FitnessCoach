@@ -4,6 +4,11 @@
 //
 //  FitPilot AI — Owns the daily log lifecycle and summary state.
 //
+//  Write ownership: user-facing mutations arrive via log services (FitnessActionCenter)
+//  or target sync (FitnessActionCenter.syncTodayTargetsFromProfile). Direct entity
+//  writes from feature models are not supported.
+//  SSOT: Docs/Architecture/SourceOfTruthMap.md §3.
+//
 
 import Foundation
 import SwiftData

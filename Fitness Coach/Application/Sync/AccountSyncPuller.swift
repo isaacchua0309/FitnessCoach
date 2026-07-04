@@ -4,6 +4,11 @@
 //
 //  Forma — Fetches cloud account data and merges into local SwiftData (Phase 3).
 //
+//  Write ownership: documented bypass of FitnessActionCenter. Merges remote
+//  snapshots into SwiftData with ownerUID + sync metadata. Does not enqueue
+//  outbox rows for merged entities.
+//  SSOT: Docs/Architecture/SourceOfTruthMap.md §5.
+//
 
 import Foundation
 import SwiftData

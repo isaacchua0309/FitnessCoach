@@ -4,6 +4,12 @@
 //
 //  FitPilot AI — Owns user profile creation, reading, and updating.
 //
+//  Write ownership:
+//  - User plan edits → FitnessActionCenter (createProfile / updatePlan / applyPlanTargets)
+//  - Restore / conflict resolution → ProfileBootstrapService
+//  - Cloud merge → AccountSyncPuller + bootstrap helpers
+//  SSOT: Docs/Architecture/SourceOfTruthMap.md §3.
+//
 
 import Foundation
 import SwiftData

@@ -8,6 +8,10 @@
 //  text, then persists DailyReview through SwiftData. It does not call LLMClient
 //  directly and does not trust AI for final numbers.
 //
+//  Write ownership: user-triggered generation goes through FitnessActionCenter
+//  .generateDailyReview. Cloud merge writes go through AccountSyncPuller.
+//  SSOT: Docs/Architecture/SourceOfTruthMap.md §3.
+//
 
 import Foundation
 import SwiftData

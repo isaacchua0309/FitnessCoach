@@ -3,6 +3,7 @@
 //  Fitness Coach
 //
 //  FitPilot AI — Feature model for the user's fitness plan strategy.
+//  Plan/profile writes go through FitnessActionCenter. See SourceOfTruthMap.md §3.
 //
 
 import Combine

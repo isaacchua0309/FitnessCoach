@@ -119,6 +119,22 @@ final class FitnessActionCenterTests: XCTestCase {
         XCTAssertEqual(log.weightKg, 71.4)
     }
 
+    // MARK: - Daily review
+
+    func testGenerateDailyReviewPersistsReviewForDay() async throws {
+        try harness.seedProfile()
+        _ = try harness.actionCenter.ensureTodayLog()
+        _ = try harness.actionCenter.logFood(
+            DailyLogServiceTestSupport.foodDraft(name: "Lunch", calories: 500, protein: 30),
+            date: harness.today
+        )
+
+        let review = try await harness.actionCenter.generateDailyReview(for: harness.today)
+
+        XCTAssertFalse(review.summaryText.isEmpty)
+        XCTAssertEqual(try harness.actionCenter.generateDailyReview(for: harness.today).id, review.id)
+    }
+
     // MARK: - Plan targets
 
     func testApplyPlanTargetsUpdatesProfileAndTodayDailyLogTargets() async throws {

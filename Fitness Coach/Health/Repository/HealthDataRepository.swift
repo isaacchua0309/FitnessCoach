@@ -4,7 +4,10 @@
 //
 //  Forma — Repository boundary for normalized Health Intelligence data.
 //
-//  Architecture notes:
+//  Read ownership: Health Intelligence engines and tab models consume normalized
+//  metrics and snapshots. Feature models must not write SwiftData through this type.
+//  Persisted health cache: LocalHealthCacheStore (see SourceOfTruthMap §2).
+//  SSOT: Docs/Architecture/SourceOfTruthMap.md §2–§4.
 //  - Raw HealthKit samples (HKSample, statistics handles) are never persisted. They are
 //    fetched, normalized into stable domain models, and discarded to limit PHI surface
 //    area, keep cache size bounded, and avoid schema coupling to HealthKit revisions.

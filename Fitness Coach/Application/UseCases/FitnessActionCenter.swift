@@ -4,6 +4,8 @@
 //
 //  FitPilot AI — Canonical mutation layer for all fitness logging and plan edits.
 //
+//  Write ownership: see Docs/Architecture/SourceOfTruthMap.md §3.
+//
 //  Action ownership:
 //  - Food / water / weight daily logs → Quick Capture (Today shortcuts, Coach parser)
 //  - Training → Apple Health via Training Insights (read-only; Coach redirects workout intents)

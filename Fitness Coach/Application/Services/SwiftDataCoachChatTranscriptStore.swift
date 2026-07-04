@@ -4,6 +4,10 @@
 //
 //  Forma — SwiftData-backed Coach chat transcript store.
 //
+//  Write ownership: CoachModel persists via CoachChatTranscriptStore protocol.
+//  Not routed through FitnessActionCenter. Dual SSOT with in-memory messages.
+//  SSOT: Docs/Architecture/SourceOfTruthMap.md §3.
+//
 
 import Foundation
 

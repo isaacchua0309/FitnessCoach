@@ -3,6 +3,7 @@
 //  Fitness Coach
 //
 //  FitPilot AI — Read-only Journey transformation state.
+//  Does not mutate nutrition data; see SourceOfTruthMap.md §3.
 //
 
 import Combine

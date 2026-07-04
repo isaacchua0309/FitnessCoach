@@ -7,6 +7,10 @@
 //  Feature and AI layers depend on `CoachTimelineStoring` only. SwiftData types
 //  never leak past `SwiftDataCoachTimelineStore`.
 //
+//  Write ownership: CoachTimelineRecorder and backfill services append events.
+//  Not routed through FitnessActionCenter.
+//  SSOT: Docs/Architecture/SourceOfTruthMap.md §3.
+//
 
 import Foundation
 

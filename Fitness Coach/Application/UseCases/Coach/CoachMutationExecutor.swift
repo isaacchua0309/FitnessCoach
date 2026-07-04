@@ -3,6 +3,8 @@
 //  Fitness Coach
 //
 //  Canonical Coach mutation execution — food, water, weight, undo, edit, delete, status.
+//  All account nutrition/review writes go through FitnessActionCenter.
+//  See Docs/Architecture/SourceOfTruthMap.md §3.
 //
 
 import Foundation

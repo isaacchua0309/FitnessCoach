@@ -2,7 +2,10 @@
 //  TargetService.swift
 //  Fitness Coach
 //
-//  FitPilot AI — Generates and updates calorie, macro, and water targets.
+//  Forma — Generates and updates calorie, macro, and water targets.
+//
+//  Write ownership: called only from FitnessActionCenter.applyPlanTargets.
+//  SSOT: Docs/Architecture/SourceOfTruthMap.md §3.
 //
 
 import Foundation

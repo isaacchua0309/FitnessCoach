@@ -4,6 +4,10 @@
 //
 //  FitPilot AI — Owns water entry creation, undo, and hydration totals.
 //
+//  Write ownership: user mutations go through FitnessActionCenter only.
+//  Cloud merge writes go through AccountSyncPuller (documented bypass).
+//  SSOT: Docs/Architecture/SourceOfTruthMap.md §3.
+//
 
 import Foundation
 import SwiftData

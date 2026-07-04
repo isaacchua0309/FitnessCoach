@@ -3,6 +3,7 @@
 //  Fitness Coach
 //
 //  Forma — Routes Today actions to native mutations or Coach when required.
+//  All nutrition writes go through FitnessActionCenter. See SourceOfTruthMap.md §3.
 //
 
 import Combine
