@@ -44,6 +44,7 @@ enum SettingsAnalyticsContextBuilder {
         case .authDiagnostics: return "auth_diagnostics"
         case .pipelineTraces: return "pipeline_traces"
         case .healthIntelligenceSnapshot: return "health_intelligence_snapshot"
+        case .coachContextInspector: return "coach_context_inspector"
         }
     }
 

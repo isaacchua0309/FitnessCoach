@@ -39,7 +39,7 @@ final class SettingsDeveloperTests: XCTestCase {
         let section = SettingsDeveloperPresentationBuilder.buildSection(isVisible: true)
 
         XCTAssertNotNil(section)
-        XCTAssertEqual(section?.rows.map(\.id), [.authDiagnostics, .pipelineTraces, .healthIntelligenceSnapshot])
+        XCTAssertEqual(section?.rows.map(\.id), [.authDiagnostics, .pipelineTraces, .healthIntelligenceSnapshot, .coachContextInspector])
         XCTAssertEqual(section?.footer, FormaProductCopy.Settings.Developer.sectionFooter)
 
         let state = SettingsPresentationBuilder.build(

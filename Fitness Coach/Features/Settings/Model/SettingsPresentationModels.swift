@@ -26,6 +26,7 @@ enum SettingsRowID: String, Hashable, CaseIterable, Sendable {
     case authDiagnostics
     case pipelineTraces
     case healthIntelligenceSnapshot
+    case coachContextInspector
 }
 
 enum SettingsRowDestination: Equatable, Sendable {
@@ -41,6 +42,7 @@ enum SettingsRowDestination: Equatable, Sendable {
     case authDiagnostics
     case pipelineTraces
     case healthIntelligenceSnapshot
+    case coachContextInspector
 }
 
 enum SettingsSupportMailTopic: String, CaseIterable, Sendable, Identifiable {

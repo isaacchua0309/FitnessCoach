@@ -180,6 +180,26 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
         )
     }
 
+    #if DEBUG
+    /// Removes low-value system timeline rows for a day. Never deletes confirmed food/water/weight logs.
+    func deleteDebugArtifactEvents(forLocalDate localDate: String) async throws -> Int {
+        let debugTypes: Set<CoachTimelineEventType> = [
+            .systemRefresh,
+            .contextGenerated,
+            .healthDataUnavailable
+        ]
+
+        let events = try await events(forLocalDate: localDate)
+        let ids = Set(
+            events
+                .filter { debugTypes.contains($0.type) }
+                .map(\.id)
+        )
+        guard !ids.isEmpty else { return 0 }
+        return try repository.deleteEvents(withIDs: ids, userId: userIdProvider())
+    }
+    #endif
+
     private static func localDateString(for date: Date, calendar: Calendar) -> String {
         CoachTimelineEvent.makeTimestamps(from: date, calendar: calendar).localDate
     }

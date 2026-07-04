@@ -239,4 +239,26 @@ final class CoachTimelinePersistenceRepository {
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: date)
     }
+
+    #if DEBUG
+    @discardableResult
+    func deleteEvents(withIDs ids: Set<UUID>, userId: String? = nil) throws -> Int {
+        guard !ids.isEmpty else { return 0 }
+
+        var deletedCount = 0
+        for id in ids {
+            guard let entity = try entity(id: id) else { continue }
+            if let userId, let entityUserId = entity.userId, entityUserId != userId {
+                continue
+            }
+            try store.delete(entity)
+            deletedCount += 1
+        }
+
+        if deletedCount > 0 {
+            try store.save()
+        }
+        return deletedCount
+    }
+    #endif
 }

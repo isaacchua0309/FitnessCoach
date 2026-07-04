@@ -283,6 +283,46 @@ final class CoachTimelineStoreTests: XCTestCase {
         XCTAssertEqual(remaining.map(\.id), [todaySteps.id])
     }
 
+    #if DEBUG
+    func testDeleteDebugArtifactEventsRemovesOnlySystemRows() async throws {
+        let food = CoachTimelineEvent.make(
+            type: .foodLogged,
+            source: .coachUI,
+            sourceAttribution: .userConfirmation,
+            status: .confirmed,
+            payload: .foodLogged(
+                FoodLoggedPayload(
+                    entryId: UUID(),
+                    name: "Eggs",
+                    calories: 180,
+                    proteinGrams: 12,
+                    carbsGrams: 1,
+                    fatGrams: 10
+                )
+            ),
+            occurredAt: now,
+            calendar: calendar
+        )
+        let refresh = CoachTimelineEvent.make(
+            type: .systemRefresh,
+            source: .system,
+            sourceAttribution: .system,
+            status: .confirmed,
+            payload: .empty,
+            occurredAt: now,
+            calendar: calendar
+        )
+        try await store.appendMany([food, refresh])
+
+        let localDate = CoachTimelineEvent.makeTimestamps(from: now, calendar: calendar).localDate
+        let deleted = try await store.deleteDebugArtifactEvents(forLocalDate: localDate)
+
+        XCTAssertEqual(deleted, 1)
+        let remaining = try await store.recentEvents(limit: 20, before: nil)
+        XCTAssertEqual(remaining.map(\.type), [.foodLogged])
+    }
+    #endif
+
     // MARK: Helpers
 
     private func day(offset: Int) -> Date {
