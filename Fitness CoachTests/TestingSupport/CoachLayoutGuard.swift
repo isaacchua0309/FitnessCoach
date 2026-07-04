@@ -52,6 +52,11 @@ enum CoachLayoutGuard {
             CoachAccessibilityIdentifier.pendingFoodCardLogButton,
             "Pending food card Log action must remain discoverable to UI tests."
         ),
+        (
+            "CoachConfirmationBar.swift",
+            CoachAccessibilityIdentifier.pendingFoodCardDiscardButton,
+            "Pending food card Discard action must remain discoverable to UI tests."
+        ),
     ]
 
     static func scan(repositoryRoot: URL) -> [String] {

@@ -110,12 +110,14 @@ struct CoachConfirmationBar: View {
                     .font(CoachDesignTokens.Typography.confirmationValue)
                     .foregroundStyle(CoachDesignTokens.Color.primaryText)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
 
                 if let detail = confirmation.compactDetailLine {
                     Text(detail)
                         .font(CoachDesignTokens.Typography.confirmationMetric)
                         .foregroundStyle(CoachDesignTokens.Color.confirmationLabel)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
             }
             .layoutPriority(1)
@@ -132,27 +134,26 @@ struct CoachConfirmationBar: View {
 
     @ViewBuilder
     private var compactActions: some View {
-        if showsCompactSecondaryActions {
-            HStack(spacing: CoachDesignTokens.Spacing.xs) {
-                if let onEdit {
-                    Button(FormaProductCopy.Coach.editPending, action: onEdit)
-                        .buttonStyle(CoachConfirmationCompactSecondaryButtonStyle())
-                        .lineLimit(1)
-                        .accessibilityIdentifier(CoachAccessibilityIdentifier.pendingFoodCardEditButton)
-                }
-
-                Button(FormaProductCopy.Coach.discardPending, role: .destructive, action: onReject)
+        HStack(spacing: CoachDesignTokens.Spacing.xs) {
+            if showsCompactEditAction, let onEdit {
+                Button(FormaProductCopy.Coach.editPending, action: onEdit)
                     .buttonStyle(CoachConfirmationCompactSecondaryButtonStyle())
                     .lineLimit(1)
-                    .accessibilityIdentifier(CoachAccessibilityIdentifier.pendingFoodCardDiscardButton)
+                    .accessibilityIdentifier(CoachAccessibilityIdentifier.pendingFoodCardEditButton)
             }
-        }
 
-        confirmButton
-            .buttonStyle(CoachConfirmationPrimaryButtonStyle(compact: true))
+            Button(FormaProductCopy.Coach.discardPending, role: .destructive, action: onReject)
+                .buttonStyle(CoachConfirmationCompactSecondaryButtonStyle())
+                .lineLimit(1)
+                .accessibilityIdentifier(CoachAccessibilityIdentifier.pendingFoodCardDiscardButton)
+
+            confirmButton
+                .buttonStyle(CoachConfirmationPrimaryButtonStyle(compact: true))
+        }
     }
 
-    private var showsCompactSecondaryActions: Bool {
+    /// Edit is optional in compact mode; Discard and Log stay reachable at all Dynamic Type sizes.
+    private var showsCompactEditAction: Bool {
         !dynamicTypeSize.isAccessibilitySize
     }
 

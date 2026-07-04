@@ -16,7 +16,7 @@ enum CoachLayoutPreviewScreens {
         palette: AppThemePalette = .oceanBlue,
         appearance: AppAppearanceMode = .dark
     ) -> some View {
-        CoachPendingFoodLayoutPreviewHost(isInputFocused: isInputFocused)
+        CoachPendingFoodLayoutPreviewHost(startsFocused: isInputFocused)
             .formaThemePreview(appearance: appearance, palette: palette)
     }
 }
@@ -73,5 +73,10 @@ private struct CoachPendingFoodLayoutPreviewHost: View {
 
 #Preview("Pending Food Layout - Compact") {
     CoachLayoutPreviewScreens.pendingFoodLayout(isInputFocused: true)
+}
+
+#Preview("Pending Food Layout - Compact Accessibility Type") {
+    CoachLayoutPreviewScreens.pendingFoodLayout(isInputFocused: true)
+        .dynamicTypeSize(.accessibility3)
 }
 #endif
