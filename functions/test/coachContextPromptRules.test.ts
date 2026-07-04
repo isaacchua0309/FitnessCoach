@@ -17,6 +17,8 @@ describe("coachContextPromptRules", () => {
     expect(rules).toContain("must not be treated as logged facts");
     expect(rules).toContain("localDate and context.meta.timezoneIdentifier");
     expect(rules).toContain("recentEvents for chronological ordering");
+    expect(rules).toContain("recentChatMessages and currentUserMessage for conversational continuity only");
+    expect(rules).toContain("timeline.recentEvents and context.today aggregates for factual claims");
     expect(rules).toContain("recentMealsStructured");
     expect(rules).toContain("missingData");
     expect(rules).toContain("Do not diagnose medical conditions");
@@ -35,6 +37,8 @@ describe("coachContextPromptRules", () => {
     expect(rules).toContain("current user text as the primary intent signal");
     expect(rules).toContain("linkedEntryId");
     expect(rules).toContain("Do not copy nutrition values from context.recentChatMessages");
+    expect(rules).toContain("currentUserMessage");
+    expect(rules).toContain("timeline.recentEvents and context.today aggregates for factual claims");
   });
 
   it("includes estimate-food endpoint rules", () => {

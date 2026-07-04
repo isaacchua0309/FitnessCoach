@@ -34,6 +34,47 @@ describe("coachContextPacketV2", () => {
     }
   });
 
+  it("sanitizes chat messages with text and timestamp fields", () => {
+    const sanitized = parseCoachContextForPrompt({
+      meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},
+      recentChatMessages: [
+        {
+          id: "msg-1",
+          role: "user",
+          text: "  How am I doing?  ",
+          timestamp: "2026-07-03T10:00:00.000Z",
+          hasPhotoAttachment: false,
+        },
+      ],
+      currentUserMessage: "  Log lunch  ",
+    });
+
+    const messages = sanitized?.recentChatMessages as Array<Record<string, unknown>>;
+    expect(messages).toHaveLength(1);
+    expect(messages[0].text).toBe("How am I doing?");
+    expect(messages[0].timestamp).toBe("2026-07-03T10:00:00.000Z");
+    expect(messages[0]).not.toHaveProperty("textPreview");
+    expect(sanitized?.currentUserMessage).toBe("Log lunch");
+  });
+
+  it("accepts legacy chat preview fields during sanitization", () => {
+    const sanitized = parseCoachContextForPrompt({
+      meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},
+      recentChatMessages: [
+        {
+          id: "msg-1",
+          role: "assistant",
+          textPreview: "You have room for a snack.",
+          sentAt: "2026-07-03T10:05:00.000Z",
+        },
+      ],
+    });
+
+    const messages = sanitized?.recentChatMessages as Array<Record<string, unknown>>;
+    expect(messages[0].text).toBe("You have room for a snack.");
+    expect(messages[0].timestamp).toBe("2026-07-03T10:05:00.000Z");
+  });
+
   it("sanitizes timeline summaries and preserves protected events", () => {
     const sanitized = parseCoachContextForPrompt({
       meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},
