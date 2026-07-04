@@ -20,6 +20,7 @@ final class AppContainer {
     let accountSyncUploader: AccountSyncUploader
     let accountSyncPuller: AccountSyncPuller
     let accountSyncCoordinator: AccountSyncCoordinator
+    let accountSyncDiagnostics: AccountSyncDiagnostics
 
     let userProfileService: UserProfileService
     let targetService: TargetService
@@ -251,10 +252,12 @@ final class AppContainer {
             remoteStore: accountDataRemoteStore,
             store: store
         )
+        accountSyncDiagnostics = AccountSyncDiagnostics()
         accountSyncCoordinator = AccountSyncCoordinator(
             uploader: accountSyncUploader,
             puller: accountSyncPuller,
-            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
+            currentUIDProvider: { [weak authManager] in authManager?.currentUID },
+            diagnostics: accountSyncDiagnostics
         )
         profileCloudSyncStore = ProfileCloudSyncStore(userDefaults: self.onboardingUserDefaults)
         profileBootstrapService = ProfileBootstrapService(
@@ -455,6 +458,29 @@ final class AppContainer {
             uid: uid
         )
     }
+
+    #if DEBUG
+    func makeAccountSyncDebugActions() -> AccountSyncDebugActions {
+        AccountSyncDebugActions(
+            pendingMutationCount: { [accountSyncOutboxStore, authManager] in
+                await accountSyncDiagnostics.pendingMutationCount(
+                    outbox: accountSyncOutboxStore,
+                    ownerUID: authManager.currentUID ?? ""
+                )
+            },
+            lastSnapshot: { [accountSyncDiagnostics] in
+                accountSyncDiagnostics.lastSnapshot
+            },
+            triggerManualSync: { [accountSyncCoordinator, authManager, accountSyncDiagnostics] in
+                guard let uid = authManager.currentUID else { return nil }
+                return await accountSyncDiagnostics.triggerManualSync(
+                    coordinator: accountSyncCoordinator,
+                    ownerUID: uid
+                )
+            }
+        )
+    }
+    #endif
 
     func makeHealthIntelligenceEngine() -> any HealthIntelligenceEngineing {
         healthIntelligenceEngine

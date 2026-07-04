@@ -2873,6 +2873,7 @@ enum FormaProductCopy {
             static let pipelineTraces = "Pipeline traces"
             static let healthIntelligenceSnapshot = "Health intelligence snapshot"
             static let coachContextInspector = "Coach context inspector"
+            static let accountSyncDiagnostics = "Account sync diagnostics"
         }
 
         enum Developer {

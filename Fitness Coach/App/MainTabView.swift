@@ -160,6 +160,7 @@ struct MainTabView: View {
         .environment(\.healthIntelligenceDebugVerification) { [container] in
             await container.verifyTodayHealthIntelligenceSnapshot()
         }
+        .environment(\.accountSyncDebugActions, container.makeAccountSyncDebugActions())
         .environment(\.coachContextDebugActions, container.makeCoachContextDebugActions())
         #endif
         .onChange(of: scenePhase) { _, phase in

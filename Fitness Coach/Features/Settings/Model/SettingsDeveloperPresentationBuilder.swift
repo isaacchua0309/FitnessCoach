@@ -34,6 +34,11 @@ enum SettingsDeveloperPresentationBuilder {
                     id: .coachContextInspector,
                     title: FormaProductCopy.Settings.Rows.coachContextInspector,
                     destination: .coachContextInspector
+                ),
+                row(
+                    id: .accountSyncDiagnostics,
+                    title: FormaProductCopy.Settings.Rows.accountSyncDiagnostics,
+                    destination: .accountSyncDiagnostics
                 )
             ],
             footer: FormaProductCopy.Settings.Developer.sectionFooter

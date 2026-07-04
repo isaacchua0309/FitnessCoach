@@ -68,6 +68,7 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
     private let pullDayCount: Int
     private let debounceInterval: Duration
     private let runGuard = AccountSyncRunGuard()
+    private let diagnostics: AccountSyncDiagnostics?
 
     private var debouncedUploadTask: Task<Void, Never>?
 
@@ -80,7 +81,8 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
         nowProvider: @escaping () -> Date = Date.init,
         uploadBatchLimit: Int = AccountSyncCoordinator.defaultUploadBatchLimit,
         pullDayCount: Int = AccountSyncPuller.defaultRecentPullDayCount,
-        debounceInterval: Duration = .seconds(2)
+        debounceInterval: Duration = .seconds(2),
+        diagnostics: AccountSyncDiagnostics? = nil
     ) {
         self.uploader = uploader
         self.puller = puller
@@ -91,6 +93,7 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
         self.uploadBatchLimit = uploadBatchLimit
         self.pullDayCount = pullDayCount
         self.debounceInterval = debounceInterval
+        self.diagnostics = diagnostics
     }
 
     func syncNow(for uid: String, reason: AccountSyncReason) async -> AccountSyncRunSummary {
@@ -159,14 +162,18 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
         includeUpload: Bool,
         includePull: Bool
     ) async -> AccountSyncRunSummary {
+        let traceId = UUID().uuidString
         let startedAt = nowProvider()
 
         guard AccountPersistenceFeatureFlags.syncEngineEnabled else {
-            return skippedSummary(
-                uid: uid,
-                reason: reason,
-                startedAt: startedAt,
-                skipReason: AccountSyncCoordinatorSkipReason.syncEngineDisabled
+            return recordAndReturn(
+                traceId: traceId,
+                summary: skippedSummary(
+                    uid: uid,
+                    reason: reason,
+                    startedAt: startedAt,
+                    skipReason: AccountSyncCoordinatorSkipReason.syncEngineDisabled
+                )
             )
         }
 
@@ -174,38 +181,52 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
         do {
             normalizedUID = try AccountSyncMutationValidation.normalizedOwnerUID(uid)
         } catch {
-            return skippedSummary(
-                uid: uid.trimmingCharacters(in: .whitespacesAndNewlines),
-                reason: reason,
-                startedAt: startedAt,
-                skipReason: AccountSyncCoordinatorSkipReason.missingUID
+            return recordAndReturn(
+                traceId: traceId,
+                summary: skippedSummary(
+                    uid: uid.trimmingCharacters(in: .whitespacesAndNewlines),
+                    reason: reason,
+                    startedAt: startedAt,
+                    skipReason: AccountSyncCoordinatorSkipReason.missingUID
+                )
             )
         }
 
+        AccountSyncLogger.runStarted(traceId: traceId, reason: reason, uid: normalizedUID)
+
         guard isUIDStillCurrent(normalizedUID) else {
-            return skippedSummary(
-                uid: normalizedUID,
-                reason: reason,
-                startedAt: startedAt,
-                skipReason: AccountSyncCoordinatorSkipReason.uidChanged
+            return recordAndReturn(
+                traceId: traceId,
+                summary: skippedSummary(
+                    uid: normalizedUID,
+                    reason: reason,
+                    startedAt: startedAt,
+                    skipReason: AccountSyncCoordinatorSkipReason.uidChanged
+                )
             )
         }
 
         guard networkChecker.isNetworkAvailable else {
-            return skippedSummary(
-                uid: normalizedUID,
-                reason: reason,
-                startedAt: startedAt,
-                skipReason: AccountSyncCoordinatorSkipReason.networkUnavailable
+            return recordAndReturn(
+                traceId: traceId,
+                summary: skippedSummary(
+                    uid: normalizedUID,
+                    reason: reason,
+                    startedAt: startedAt,
+                    skipReason: AccountSyncCoordinatorSkipReason.networkUnavailable
+                )
             )
         }
 
         guard runGuard.tryBegin(uid: normalizedUID) else {
-            return skippedSummary(
-                uid: normalizedUID,
-                reason: reason,
-                startedAt: startedAt,
-                skipReason: AccountSyncCoordinatorSkipReason.syncAlreadyInProgress
+            return recordAndReturn(
+                traceId: traceId,
+                summary: skippedSummary(
+                    uid: normalizedUID,
+                    reason: reason,
+                    startedAt: startedAt,
+                    skipReason: AccountSyncCoordinatorSkipReason.syncAlreadyInProgress
+                )
             )
         }
 
@@ -218,20 +239,30 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
 
         if includeUpload {
             guard AccountPersistenceFeatureFlags.uploadPendingMutationsEnabled else {
-                return skippedSummary(
-                    uid: normalizedUID,
-                    reason: reason,
-                    startedAt: startedAt,
-                    skipReason: AccountSyncCoordinatorSkipReason.uploadDisabled
+                return recordAndReturn(
+                    traceId: traceId,
+                    summary: skippedSummary(
+                        uid: normalizedUID,
+                        reason: reason,
+                        startedAt: startedAt,
+                        skipReason: AccountSyncCoordinatorSkipReason.uploadDisabled
+                    )
                 )
             }
 
             guard isUIDStillCurrent(normalizedUID) else {
-                return skippedSummary(
-                    uid: normalizedUID,
-                    reason: reason,
-                    startedAt: startedAt,
-                    skipReason: AccountSyncCoordinatorSkipReason.uidChanged
+                return recordAndReturn(
+                    traceId: traceId,
+                    summary: AccountSyncRunSummary(
+                        uid: normalizedUID,
+                        reason: reason,
+                        startedAt: startedAt,
+                        endedAt: nowProvider(),
+                        uploadSummary: nil,
+                        pullSummary: nil,
+                        didSkip: true,
+                        skipReason: AccountSyncCoordinatorSkipReason.uidChanged
+                    )
                 )
             }
 
@@ -243,28 +274,34 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
 
         if includePull {
             guard AccountPersistenceFeatureFlags.pullRecentDataEnabled else {
-                return AccountSyncRunSummary(
-                    uid: normalizedUID,
-                    reason: reason,
-                    startedAt: startedAt,
-                    endedAt: nowProvider(),
-                    uploadSummary: uploadSummary,
-                    pullSummary: nil,
-                    didSkip: true,
-                    skipReason: AccountSyncCoordinatorSkipReason.pullDisabled
+                return recordAndReturn(
+                    traceId: traceId,
+                    summary: AccountSyncRunSummary(
+                        uid: normalizedUID,
+                        reason: reason,
+                        startedAt: startedAt,
+                        endedAt: nowProvider(),
+                        uploadSummary: uploadSummary,
+                        pullSummary: nil,
+                        didSkip: true,
+                        skipReason: AccountSyncCoordinatorSkipReason.pullDisabled
+                    )
                 )
             }
 
             guard isUIDStillCurrent(normalizedUID) else {
-                return AccountSyncRunSummary(
-                    uid: normalizedUID,
-                    reason: reason,
-                    startedAt: startedAt,
-                    endedAt: nowProvider(),
-                    uploadSummary: uploadSummary,
-                    pullSummary: nil,
-                    didSkip: true,
-                    skipReason: AccountSyncCoordinatorSkipReason.uidChanged
+                return recordAndReturn(
+                    traceId: traceId,
+                    summary: AccountSyncRunSummary(
+                        uid: normalizedUID,
+                        reason: reason,
+                        startedAt: startedAt,
+                        endedAt: nowProvider(),
+                        uploadSummary: uploadSummary,
+                        pullSummary: nil,
+                        didSkip: true,
+                        skipReason: AccountSyncCoordinatorSkipReason.uidChanged
+                    )
                 )
             }
 
@@ -280,15 +317,18 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
             )
         }
 
-        return AccountSyncRunSummary(
-            uid: normalizedUID,
-            reason: reason,
-            startedAt: startedAt,
-            endedAt: nowProvider(),
-            uploadSummary: uploadSummary,
-            pullSummary: pullSummary,
-            didSkip: false,
-            skipReason: nil
+        return recordAndReturn(
+            traceId: traceId,
+            summary: AccountSyncRunSummary(
+                uid: normalizedUID,
+                reason: reason,
+                startedAt: startedAt,
+                endedAt: nowProvider(),
+                uploadSummary: uploadSummary,
+                pullSummary: pullSummary,
+                didSkip: false,
+                skipReason: nil
+            )
         )
     }
 
@@ -298,14 +338,18 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
         for uid: String,
         reason: AccountSyncReason
     ) -> AccountSyncRunSummary {
+        let traceId = UUID().uuidString
         let startedAt = nowProvider()
 
         guard AccountPersistenceFeatureFlags.syncEngineEnabled else {
-            return skippedSummary(
-                uid: uid,
-                reason: reason,
-                startedAt: startedAt,
-                skipReason: AccountSyncCoordinatorSkipReason.syncEngineDisabled
+            return recordAndReturn(
+                traceId: traceId,
+                summary: skippedSummary(
+                    uid: uid,
+                    reason: reason,
+                    startedAt: startedAt,
+                    skipReason: AccountSyncCoordinatorSkipReason.syncEngineDisabled
+                )
             )
         }
 
@@ -313,13 +357,18 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
         do {
             normalizedUID = try AccountSyncMutationValidation.normalizedOwnerUID(uid)
         } catch {
-            return skippedSummary(
-                uid: uid.trimmingCharacters(in: .whitespacesAndNewlines),
-                reason: reason,
-                startedAt: startedAt,
-                skipReason: AccountSyncCoordinatorSkipReason.missingUID
+            return recordAndReturn(
+                traceId: traceId,
+                summary: skippedSummary(
+                    uid: uid.trimmingCharacters(in: .whitespacesAndNewlines),
+                    reason: reason,
+                    startedAt: startedAt,
+                    skipReason: AccountSyncCoordinatorSkipReason.missingUID
+                )
             )
         }
+
+        AccountSyncLogger.runStarted(traceId: traceId, reason: reason, uid: normalizedUID)
 
         debouncedUploadTask?.cancel()
         debouncedUploadTask = Task { [weak self] in
@@ -335,15 +384,23 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
             )
         }
 
-        return skippedSummary(
-            uid: normalizedUID,
-            reason: reason,
-            startedAt: startedAt,
-            skipReason: AccountSyncCoordinatorSkipReason.debouncedUploadScheduled
+        return recordAndReturn(
+            traceId: traceId,
+            summary: skippedSummary(
+                uid: normalizedUID,
+                reason: reason,
+                startedAt: startedAt,
+                skipReason: AccountSyncCoordinatorSkipReason.debouncedUploadScheduled
+            )
         )
     }
 
     // MARK: - Helpers
+
+    private func recordAndReturn(traceId: String, summary: AccountSyncRunSummary) -> AccountSyncRunSummary {
+        diagnostics?.recordRun(traceId: traceId, summary: summary)
+        return summary
+    }
 
     private var shouldPullAfterSignIn: Bool {
         AccountPersistenceFeatureFlags.pullRecentDataEnabled

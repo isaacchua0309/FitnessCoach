@@ -118,6 +118,7 @@ final class AccountSyncUploader: AccountSyncUploading {
         var succeeded = 0
         var failed = 0
         var cancelled = 0
+        let batchId = String(UUID().uuidString.prefix(8))
 
         for mutation in due {
             guard mutation.ownerUID == normalizedUID else {
@@ -130,11 +131,29 @@ final class AccountSyncUploader: AccountSyncUploading {
                 switch outcome {
                 case .succeeded:
                     succeeded += 1
+                    AccountSyncLogger.mutationProcessed(
+                        batchId: batchId,
+                        entityType: mutation.entityType,
+                        operation: mutation.operation,
+                        outcome: "succeeded"
+                    )
                 case .cancelled:
                     cancelled += 1
+                    AccountSyncLogger.mutationProcessed(
+                        batchId: batchId,
+                        entityType: mutation.entityType,
+                        operation: mutation.operation,
+                        outcome: "cancelled"
+                    )
                 }
             } catch {
                 failed += 1
+                AccountSyncLogger.mutationFailed(
+                    batchId: batchId,
+                    entityType: mutation.entityType,
+                    operation: mutation.operation,
+                    error: error
+                )
                 try? applyEntityFailure(for: mutation, error: error)
                 try? await outbox.markFailed(
                     mutation.id,

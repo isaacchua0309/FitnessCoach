@@ -165,6 +165,7 @@ enum FormaAbTest {
         static var profileBootstrapTrace: Bool { resolved.profileBootstrapTrace }
         static var authSignInTrace: Bool { resolved.authSignInTrace }
         static var todayHydrationTrace: Bool { resolved.todayHydrationTrace }
+        static var accountSyncTrace: Bool { resolved.accountSyncTrace }
     }
 
     // MARK: Snapshot
@@ -231,6 +232,7 @@ struct FormaAbTestSnapshot: Equatable, Sendable {
     var profileBootstrapTrace: Bool
     var authSignInTrace: Bool
     var todayHydrationTrace: Bool
+    var accountSyncTrace: Bool
 
     static let allEnabled = FormaAbTestSnapshot(
         foundationEnabled: true,
@@ -275,6 +277,7 @@ struct FormaAbTestSnapshot: Equatable, Sendable {
         healthTrainingTrace: true,
         profileBootstrapTrace: true,
         authSignInTrace: true,
-        todayHydrationTrace: true
+        todayHydrationTrace: true,
+        accountSyncTrace: true
     )
 }
