@@ -1,0 +1,1832 @@
+{
+  "schemaVersion": 1,
+  "description": "Durable Coach intent classification regression fixtures. Source of truth for iOS routing/phrase-guard tests and backend sanitizer tests. Live OpenAI classifier behavior requires manual verification (see COACH_INTENT_REGRESSION_FIXTURE.md).",
+  "minimumCaseCount": 80,
+  "categories": [
+    "should_not_log_food",
+    "should_log_food",
+    "nutrition_lookup",
+    "meal_decision",
+    "daily_summary",
+    "edit_delete_reference",
+    "water_logging",
+    "weight_logging",
+    "workout_redirect",
+    "unsupported"
+  ],
+  "categoryCounts": {
+    "should_not_log_food": 21,
+    "should_log_food": 17,
+    "nutrition_lookup": 15,
+    "meal_decision": 10,
+    "daily_summary": 6,
+    "edit_delete_reference": 7,
+    "water_logging": 8,
+    "weight_logging": 6,
+    "workout_redirect": 6,
+    "unsupported": 8
+  },
+  "caseCount": 104,
+  "cases": [
+    {
+      "id": "should_not_log_chicken_rice",
+      "category": "should_not_log_food",
+      "input": "should I eat chicken rice?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Question about Hainanese chicken rice, not consumption.",
+      "edgeReason": "question_or_lookup_not_consumption",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ]
+    },
+    {
+      "id": "should_not_log_nasi_lemak",
+      "category": "should_not_log_food",
+      "input": "can I fit nasi lemak today?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Meal-fit question for coconut rice dish.",
+      "edgeReason": "question_or_lookup_not_consumption",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ]
+    },
+    {
+      "id": "should_not_log_cai_fan",
+      "category": "should_not_log_food",
+      "input": "is cai fan okay for lunch?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Economy rice fit question.",
+      "edgeReason": "question_or_lookup_not_consumption",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ]
+    },
+    {
+      "id": "should_not_log_mala",
+      "category": "should_not_log_food",
+      "input": "would mala fit my calories?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Spicy hotpot fit question.",
+      "edgeReason": "question_or_lookup_not_consumption",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ]
+    },
+    {
+      "id": "should_not_log_fish_soup",
+      "category": "should_not_log_food",
+      "input": "is fish soup healthy for dinner?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Health/fit phrasing without logging.",
+      "edgeReason": "question_or_lookup_not_consumption",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ]
+    },
+    {
+      "id": "should_not_log_ban_mian",
+      "category": "should_not_log_food",
+      "input": "should I order ban mian tonight?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Noodle meal decision.",
+      "edgeReason": "question_or_lookup_not_consumption",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ]
+    },
+    {
+      "id": "should_not_log_yong_tau_foo",
+      "category": "should_not_log_food",
+      "input": "can I have yong tau foo?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Mixed item plate question.",
+      "edgeReason": "question_or_lookup_not_consumption",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ]
+    },
+    {
+      "id": "should_not_log_prata",
+      "category": "should_not_log_food",
+      "input": "is prata okay after workout?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Post-workout meal decision.",
+      "edgeReason": "question_or_lookup_not_consumption",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ]
+    },
+    {
+      "id": "should_not_log_kaya_toast",
+      "category": "should_not_log_food",
+      "input": "should I eat kaya toast?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Local breakfast advice.",
+      "edgeReason": "question_or_lookup_not_consumption",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ]
+    },
+    {
+      "id": "should_not_log_kopi",
+      "category": "should_not_log_food",
+      "input": "can I drink kopi with my calories left?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Beverage fit question.",
+      "edgeReason": "question_or_lookup_not_consumption",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ]
+    },
+    {
+      "id": "should_not_log_bubble_tea",
+      "category": "should_not_log_food",
+      "input": "is bubble tea okay?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Sugar drink meal decision.",
+      "edgeReason": "question_or_lookup_not_consumption",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ]
+    },
+    {
+      "id": "should_not_log_sushi",
+      "category": "should_not_log_food",
+      "input": "is sushi okay for dinner?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Common misclassification target.",
+      "edgeReason": "question_or_lookup_not_consumption",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ]
+    },
+    {
+      "id": "should_not_log_ramen",
+      "category": "should_not_log_food",
+      "input": "can I eat ramen tonight?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Evening meal decision.",
+      "edgeReason": "question_or_lookup_not_consumption",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ]
+    },
+    {
+      "id": "should_not_log_mcspicy",
+      "category": "should_not_log_food",
+      "input": "is McSpicy too much for today?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Branded fast food fit.",
+      "edgeReason": "question_or_lookup_not_consumption",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ]
+    },
+    {
+      "id": "should_not_log_subway",
+      "category": "should_not_log_food",
+      "input": "can I fit a Subway footlong?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Branded portion fit.",
+      "edgeReason": "question_or_lookup_not_consumption",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ]
+    },
+    {
+      "id": "should_not_log_protein_shake",
+      "category": "should_not_log_food",
+      "input": "is a protein shake too much now?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Supplement timing question.",
+      "edgeReason": "question_or_lookup_not_consumption",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ]
+    },
+    {
+      "id": "should_not_log_same_as_breakfast",
+      "category": "should_not_log_food",
+      "input": "same as breakfast",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Reference only without logging verb.",
+      "edgeReason": "question_or_lookup_not_consumption",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ]
+    },
+    {
+      "id": "should_not_log_what_was_breakfast",
+      "category": "should_not_log_food",
+      "input": "what was breakfast?",
+      "expectedIntent": "nutrition_estimate_query",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Lookup past meal, not logging.",
+      "edgeReason": "question_or_lookup_not_consumption",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ]
+    },
+    {
+      "id": "should_log_chicken_rice",
+      "category": "should_log_food",
+      "input": "I ate chicken rice",
+      "expectedIntent": "log_food",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Explicit consumption or logging language.",
+      "edgeReason": "explicit_logging_intent",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "expectedRouteHandler": "ai_estimate_food",
+      "misclassifiedIntent": "log_food"
+    },
+    {
+      "id": "should_log_nasi_lemak",
+      "category": "should_log_food",
+      "input": "log nasi lemak",
+      "expectedIntent": "log_food",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": true,
+      "notes": "Explicit consumption or logging language.",
+      "edgeReason": "explicit_logging_intent",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "expectedRouteHandler": "ai_estimate_food",
+      "misclassifiedIntent": "log_food"
+    },
+    {
+      "id": "should_log_cai_fan",
+      "category": "should_log_food",
+      "input": "add cai fan to lunch",
+      "expectedIntent": "log_food",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": true,
+      "notes": "Explicit consumption or logging language.",
+      "edgeReason": "explicit_logging_intent",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "expectedRouteHandler": "ai_estimate_food",
+      "misclassifiedIntent": "log_food"
+    },
+    {
+      "id": "should_log_mala",
+      "category": "should_log_food",
+      "input": "I had mala for dinner",
+      "expectedIntent": "log_food",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Explicit consumption or logging language.",
+      "edgeReason": "explicit_logging_intent",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "expectedRouteHandler": "ai_estimate_food",
+      "misclassifiedIntent": "log_food"
+    },
+    {
+      "id": "should_log_fish_soup",
+      "category": "should_log_food",
+      "input": "log fish soup",
+      "expectedIntent": "log_food",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": true,
+      "notes": "Explicit consumption or logging language.",
+      "edgeReason": "explicit_logging_intent",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "expectedRouteHandler": "ai_estimate_food",
+      "misclassifiedIntent": "log_food"
+    },
+    {
+      "id": "should_log_ban_mian",
+      "category": "should_log_food",
+      "input": "I ate ban mian",
+      "expectedIntent": "log_food",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Explicit consumption or logging language.",
+      "edgeReason": "explicit_logging_intent",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "expectedRouteHandler": "ai_estimate_food",
+      "misclassifiedIntent": "log_food"
+    },
+    {
+      "id": "should_log_yong_tau_foo",
+      "category": "should_log_food",
+      "input": "log yong tau foo",
+      "expectedIntent": "log_food",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": true,
+      "notes": "Explicit consumption or logging language.",
+      "edgeReason": "explicit_logging_intent",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "expectedRouteHandler": "ai_estimate_food",
+      "misclassifiedIntent": "log_food"
+    },
+    {
+      "id": "should_log_prata_kopi",
+      "category": "should_log_food",
+      "input": "I had prata and kopi",
+      "expectedIntent": "log_food",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Explicit consumption or logging language.",
+      "edgeReason": "explicit_logging_intent",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "expectedRouteHandler": "ai_estimate_food",
+      "misclassifiedIntent": "log_food"
+    },
+    {
+      "id": "should_log_kaya_toast",
+      "category": "should_log_food",
+      "input": "log kaya toast",
+      "expectedIntent": "log_food",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": true,
+      "notes": "Explicit consumption or logging language.",
+      "edgeReason": "explicit_logging_intent",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "expectedRouteHandler": "ai_estimate_food",
+      "misclassifiedIntent": "log_food"
+    },
+    {
+      "id": "should_log_bubble_tea",
+      "category": "should_log_food",
+      "input": "log bubble tea",
+      "expectedIntent": "log_food",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": true,
+      "notes": "Explicit consumption or logging language.",
+      "edgeReason": "explicit_logging_intent",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "expectedRouteHandler": "ai_estimate_food",
+      "misclassifiedIntent": "log_food"
+    },
+    {
+      "id": "should_log_sushi",
+      "category": "should_log_food",
+      "input": "I ate sushi earlier",
+      "expectedIntent": "log_food",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Explicit consumption or logging language.",
+      "edgeReason": "explicit_logging_intent",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "expectedRouteHandler": "ai_estimate_food",
+      "misclassifiedIntent": "log_food"
+    },
+    {
+      "id": "should_log_ramen",
+      "category": "should_log_food",
+      "input": "log ramen bowl",
+      "expectedIntent": "log_food",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": true,
+      "notes": "Explicit consumption or logging language.",
+      "edgeReason": "explicit_logging_intent",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "expectedRouteHandler": "ai_estimate_food",
+      "misclassifiedIntent": "log_food"
+    },
+    {
+      "id": "should_log_mcspicy",
+      "category": "should_log_food",
+      "input": "log McSpicy meal",
+      "expectedIntent": "log_food",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": true,
+      "notes": "Explicit consumption or logging language.",
+      "edgeReason": "explicit_logging_intent",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "expectedRouteHandler": "ai_estimate_food",
+      "misclassifiedIntent": "log_food"
+    },
+    {
+      "id": "should_log_subway",
+      "category": "should_log_food",
+      "input": "add Subway sandwich to lunch",
+      "expectedIntent": "log_food",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": true,
+      "notes": "Explicit consumption or logging language.",
+      "edgeReason": "explicit_logging_intent",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "expectedRouteHandler": "ai_estimate_food",
+      "misclassifiedIntent": "log_food"
+    },
+    {
+      "id": "should_log_protein_shake",
+      "category": "should_log_food",
+      "input": "I had a protein shake",
+      "expectedIntent": "log_food",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Explicit consumption or logging language.",
+      "edgeReason": "explicit_logging_intent",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "expectedRouteHandler": "ai_estimate_food",
+      "misclassifiedIntent": "log_food"
+    },
+    {
+      "id": "should_log_same_as_breakfast",
+      "category": "should_log_food",
+      "input": "log same as breakfast",
+      "expectedIntent": "log_food",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": true,
+      "notes": "Explicit consumption or logging language.",
+      "edgeReason": "explicit_logging_intent",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "expectedRouteHandler": "ai_estimate_food",
+      "misclassifiedIntent": "log_food"
+    },
+    {
+      "id": "should_log_chicken_breast_catalog",
+      "category": "should_log_food",
+      "input": "log 500g chicken breast",
+      "expectedIntent": "log_food",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": true,
+      "notes": "High-confidence local catalog match.",
+      "edgeReason": "local_catalog_food",
+      "verificationLayers": [
+        "local_guard",
+        "phrase_guard"
+      ],
+      "expectedRouteHandler": "local_food_estimate"
+    },
+    {
+      "id": "lookup_chicken_rice",
+      "category": "nutrition_lookup",
+      "input": "how many calories in chicken rice?",
+      "expectedIntent": "nutrition_estimate_query",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Calorie/macro lookup without logging.",
+      "edgeReason": "nutrition_lookup_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "lookup_nasi_lemak",
+      "category": "nutrition_lookup",
+      "input": "calories in nasi lemak",
+      "expectedIntent": "nutrition_estimate_query",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Calorie/macro lookup without logging.",
+      "edgeReason": "nutrition_lookup_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "lookup_cai_fan",
+      "category": "nutrition_lookup",
+      "input": "how much protein in cai fan?",
+      "expectedIntent": "nutrition_estimate_query",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Calorie/macro lookup without logging.",
+      "edgeReason": "nutrition_lookup_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "lookup_mala",
+      "category": "nutrition_lookup",
+      "input": "how many calories in mala hotpot?",
+      "expectedIntent": "nutrition_estimate_query",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Calorie/macro lookup without logging.",
+      "edgeReason": "nutrition_lookup_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "lookup_fish_soup",
+      "category": "nutrition_lookup",
+      "input": "calories in fish soup",
+      "expectedIntent": "nutrition_estimate_query",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Calorie/macro lookup without logging.",
+      "edgeReason": "nutrition_lookup_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "lookup_ban_mian",
+      "category": "nutrition_lookup",
+      "input": "how many calories in ban mian?",
+      "expectedIntent": "nutrition_estimate_query",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Calorie/macro lookup without logging.",
+      "edgeReason": "nutrition_lookup_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "lookup_prata",
+      "category": "nutrition_lookup",
+      "input": "how much protein in prata?",
+      "expectedIntent": "nutrition_estimate_query",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Calorie/macro lookup without logging.",
+      "edgeReason": "nutrition_lookup_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "lookup_kopi",
+      "category": "nutrition_lookup",
+      "input": "calories in kopi o",
+      "expectedIntent": "nutrition_estimate_query",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Calorie/macro lookup without logging.",
+      "edgeReason": "nutrition_lookup_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "lookup_bubble_tea",
+      "category": "nutrition_lookup",
+      "input": "how many calories in bubble tea?",
+      "expectedIntent": "nutrition_estimate_query",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Calorie/macro lookup without logging.",
+      "edgeReason": "nutrition_lookup_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "lookup_mcspicy",
+      "category": "nutrition_lookup",
+      "input": "how many calories in a McSpicy?",
+      "expectedIntent": "nutrition_estimate_query",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Calorie/macro lookup without logging.",
+      "edgeReason": "nutrition_lookup_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "lookup_subway",
+      "category": "nutrition_lookup",
+      "input": "calories in a Subway turkey sub",
+      "expectedIntent": "nutrition_estimate_query",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Calorie/macro lookup without logging.",
+      "edgeReason": "nutrition_lookup_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "lookup_protein_shake",
+      "category": "nutrition_lookup",
+      "input": "how much protein in a protein shake?",
+      "expectedIntent": "nutrition_estimate_query",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Calorie/macro lookup without logging.",
+      "edgeReason": "nutrition_lookup_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "local_food_estimate"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "meal_chicken_rice_gym",
+      "category": "meal_decision",
+      "input": "should I eat chicken rice after gym?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Meal-fit decision without mutation.",
+      "edgeReason": "meal_fit_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "meal_nasi_lemak_cut",
+      "category": "meal_decision",
+      "input": "can I fit nasi lemak if I'm cutting?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Meal-fit decision without mutation.",
+      "edgeReason": "meal_fit_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "meal_cai_fan_lunch",
+      "category": "meal_decision",
+      "input": "is cai fan okay for lunch?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Meal-fit decision without mutation.",
+      "edgeReason": "meal_fit_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "meal_mala_calories",
+      "category": "meal_decision",
+      "input": "would mala fit my remaining calories?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Meal-fit decision without mutation.",
+      "edgeReason": "meal_fit_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "meal_sushi_night",
+      "category": "meal_decision",
+      "input": "can I eat sushi tonight?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Meal-fit decision without mutation.",
+      "edgeReason": "meal_fit_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "meal_ramen_dinner",
+      "category": "meal_decision",
+      "input": "is ramen okay for dinner?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Meal-fit decision without mutation.",
+      "edgeReason": "meal_fit_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "meal_subway_today",
+      "category": "meal_decision",
+      "input": "can I afford a Subway today?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Meal-fit decision without mutation.",
+      "edgeReason": "meal_fit_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "meal_protein_shake_now",
+      "category": "meal_decision",
+      "input": "should I drink a protein shake now?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Meal-fit decision without mutation.",
+      "edgeReason": "meal_fit_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "meal_prata_breakfast",
+      "category": "meal_decision",
+      "input": "can I eat prata for breakfast?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Meal-fit decision without mutation.",
+      "edgeReason": "meal_fit_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "meal_bubble_tea_afternoon",
+      "category": "meal_decision",
+      "input": "should I get bubble tea this afternoon?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Meal-fit decision without mutation.",
+      "edgeReason": "meal_fit_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "routing_stub",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate"
+    },
+    {
+      "id": "daily_status",
+      "category": "daily_summary",
+      "input": "status",
+      "expectedIntent": "daily_summary",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Deterministic local status/review command.",
+      "edgeReason": "local_status_command",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "daily_calories_left",
+      "category": "daily_summary",
+      "input": "how many calories left",
+      "expectedIntent": "daily_summary",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Deterministic local status/review command.",
+      "edgeReason": "local_status_command",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "daily_review",
+      "category": "daily_summary",
+      "input": "daily review",
+      "expectedIntent": "daily_summary",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Deterministic local status/review command.",
+      "edgeReason": "local_status_command",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "daily_calories_remaining",
+      "category": "daily_summary",
+      "input": "calories remaining",
+      "expectedIntent": "daily_summary",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Deterministic local status/review command.",
+      "edgeReason": "local_status_command",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "daily_review_today",
+      "category": "daily_summary",
+      "input": "review today",
+      "expectedIntent": "daily_summary",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Deterministic local status/review command.",
+      "edgeReason": "local_status_command",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "daily_summarize",
+      "category": "daily_summary",
+      "input": "summarize today",
+      "expectedIntent": "daily_summary",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Deterministic local status/review command.",
+      "edgeReason": "local_status_command",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "edit_delete_lunch",
+      "category": "edit_delete_reference",
+      "input": "delete lunch",
+      "expectedIntent": "delete_log",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Edit/delete/reference resolution case.",
+      "edgeReason": "reference_or_mutation_command",
+      "verificationLayers": [
+        "routing_stub"
+      ],
+      "expectedRouteHandler": "ai_delete_entry",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food"
+      ]
+    },
+    {
+      "id": "edit_delete_chicken_rice",
+      "category": "edit_delete_reference",
+      "input": "delete the chicken rice",
+      "expectedIntent": "delete_log",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Edit/delete/reference resolution case.",
+      "edgeReason": "reference_or_mutation_command",
+      "verificationLayers": [
+        "routing_stub"
+      ],
+      "expectedRouteHandler": "ai_delete_entry",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food"
+      ]
+    },
+    {
+      "id": "edit_delete_nasi",
+      "category": "edit_delete_reference",
+      "input": "remove my nasi lemak entry",
+      "expectedIntent": "delete_log",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Edit/delete/reference resolution case.",
+      "edgeReason": "reference_or_mutation_command",
+      "verificationLayers": [
+        "routing_stub"
+      ],
+      "expectedRouteHandler": "ai_delete_entry",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food"
+      ]
+    },
+    {
+      "id": "edit_edit_breakfast",
+      "category": "edit_delete_reference",
+      "input": "edit my breakfast",
+      "expectedIntent": "edit_log",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Edit/delete/reference resolution case.",
+      "edgeReason": "reference_or_mutation_command",
+      "verificationLayers": [
+        "routing_stub"
+      ],
+      "expectedRouteHandler": "ai_edit_entry",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food"
+      ]
+    },
+    {
+      "id": "edit_undo_water",
+      "category": "edit_delete_reference",
+      "input": "undo water",
+      "expectedIntent": "undo",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Edit/delete/reference resolution case.",
+      "edgeReason": "reference_or_mutation_command",
+      "verificationLayers": [
+        "routing_stub"
+      ],
+      "expectedRouteHandler": "local_command",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food"
+      ]
+    },
+    {
+      "id": "edit_reference_what_breakfast",
+      "category": "nutrition_lookup",
+      "input": "what was breakfast?",
+      "expectedIntent": "nutrition_estimate_query",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Edit/delete/reference resolution case.",
+      "edgeReason": "reference_or_mutation_command",
+      "verificationLayers": [
+        "phrase_guard",
+        "backend_sanitizer"
+      ],
+      "expectedRouteHandler": "cheap_nutrition_estimate",
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food"
+      ]
+    },
+    {
+      "id": "edit_delete_last_meal",
+      "category": "edit_delete_reference",
+      "input": "delete last meal",
+      "expectedIntent": "delete_log",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Edit/delete/reference resolution case.",
+      "edgeReason": "reference_or_mutation_command",
+      "verificationLayers": [
+        "routing_stub"
+      ],
+      "expectedRouteHandler": "ai_delete_entry",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food"
+      ]
+    },
+    {
+      "id": "edit_undo_food",
+      "category": "edit_delete_reference",
+      "input": "undo food",
+      "expectedIntent": "undo",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Undo food mutation locally when authorized.",
+      "edgeReason": "undo_reference",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "water_500ml",
+      "category": "water_logging",
+      "input": "add 500ml water",
+      "expectedIntent": "log_water",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Local deterministic hydration command.",
+      "edgeReason": "local_water_command",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "water_1l",
+      "category": "water_logging",
+      "input": "drank 1L water",
+      "expectedIntent": "log_water",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Local deterministic hydration command.",
+      "edgeReason": "local_water_command",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "water_log_250",
+      "category": "water_logging",
+      "input": "log 250ml water",
+      "expectedIntent": "log_water",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Local deterministic hydration command.",
+      "edgeReason": "local_water_command",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "water_bare",
+      "category": "water_logging",
+      "input": "500ml water",
+      "expectedIntent": "log_water",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Local deterministic hydration command.",
+      "edgeReason": "local_water_command",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "water_750",
+      "category": "water_logging",
+      "input": "add 750 ml water",
+      "expectedIntent": "log_water",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Local deterministic hydration command.",
+      "edgeReason": "local_water_command",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "water_1_5l",
+      "category": "water_logging",
+      "input": "drank 1.5L",
+      "expectedIntent": "log_water",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Local deterministic hydration command.",
+      "edgeReason": "local_water_command",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "water_undo",
+      "category": "water_logging",
+      "input": "undo water",
+      "expectedIntent": "undo",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Local deterministic hydration command.",
+      "edgeReason": "local_water_command",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "water_gallon_phrase",
+      "category": "water_logging",
+      "input": "add 1000ml water",
+      "expectedIntent": "log_water",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Local deterministic hydration command.",
+      "edgeReason": "local_water_command",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "weight_90",
+      "category": "weight_logging",
+      "input": "weight 90",
+      "expectedIntent": "log_weight",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Local deterministic weight command.",
+      "edgeReason": "local_weight_command",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "weight_decimal",
+      "category": "weight_logging",
+      "input": "weight 75.5",
+      "expectedIntent": "log_weight",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Local deterministic weight command.",
+      "edgeReason": "local_weight_command",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "weight_log",
+      "category": "weight_logging",
+      "input": "log weight 82",
+      "expectedIntent": "log_weight",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Local deterministic weight command.",
+      "edgeReason": "local_weight_command",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "weight_weigh",
+      "category": "weight_logging",
+      "input": "weigh 68.2",
+      "expectedIntent": "log_weight",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Local deterministic weight command.",
+      "edgeReason": "local_weight_command",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "weight_precise",
+      "category": "weight_logging",
+      "input": "weight 90.15",
+      "expectedIntent": "log_weight",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Local deterministic weight command.",
+      "edgeReason": "local_weight_command",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "weight_phrase",
+      "category": "weight_logging",
+      "input": "my weight is 88",
+      "expectedIntent": "log_weight",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Local deterministic weight command.",
+      "edgeReason": "local_weight_command",
+      "verificationLayers": [
+        "local_guard"
+      ],
+      "expectedRouteHandler": "local_command"
+    },
+    {
+      "id": "workout_run",
+      "category": "workout_redirect",
+      "input": "ran 5km in 30 minutes",
+      "expectedIntent": "log_workout",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Workout descriptions redirect to Training tab.",
+      "edgeReason": "workout_not_coach_food",
+      "verificationLayers": [
+        "routing_stub"
+      ],
+      "expectedRouteHandler": "training_log_redirect",
+      "misclassifiedIntent": "log_workout"
+    },
+    {
+      "id": "workout_bench",
+      "category": "workout_redirect",
+      "input": "bench press 5x5 90kg",
+      "expectedIntent": "log_workout",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Workout descriptions redirect to Training tab.",
+      "edgeReason": "workout_not_coach_food",
+      "verificationLayers": [
+        "routing_stub"
+      ],
+      "expectedRouteHandler": "training_log_redirect",
+      "misclassifiedIntent": "log_workout"
+    },
+    {
+      "id": "workout_log_run",
+      "category": "workout_redirect",
+      "input": "log run 45 minutes",
+      "expectedIntent": "log_workout",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Workout descriptions redirect to Training tab.",
+      "edgeReason": "workout_not_coach_food",
+      "verificationLayers": [
+        "routing_stub"
+      ],
+      "expectedRouteHandler": "training_log_redirect",
+      "misclassifiedIntent": "log_workout"
+    },
+    {
+      "id": "workout_cycling",
+      "category": "workout_redirect",
+      "input": "cycling 20km",
+      "expectedIntent": "log_workout",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Workout descriptions redirect to Training tab.",
+      "edgeReason": "workout_not_coach_food",
+      "verificationLayers": [
+        "routing_stub"
+      ],
+      "expectedRouteHandler": "training_log_redirect",
+      "misclassifiedIntent": "log_workout"
+    },
+    {
+      "id": "workout_gym",
+      "category": "workout_redirect",
+      "input": "gym session 1 hour",
+      "expectedIntent": "log_workout",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Workout descriptions redirect to Training tab.",
+      "edgeReason": "workout_not_coach_food",
+      "verificationLayers": [
+        "routing_stub"
+      ],
+      "expectedRouteHandler": "training_log_redirect",
+      "misclassifiedIntent": "log_workout"
+    },
+    {
+      "id": "workout_squat",
+      "category": "workout_redirect",
+      "input": "squats 3x10 100kg",
+      "expectedIntent": "log_workout",
+      "shouldCreateMutation": true,
+      "shouldRequireConfirmation": false,
+      "notes": "Workout descriptions redirect to Training tab.",
+      "edgeReason": "workout_not_coach_food",
+      "verificationLayers": [
+        "routing_stub"
+      ],
+      "expectedRouteHandler": "training_log_redirect",
+      "misclassifiedIntent": "log_workout"
+    },
+    {
+      "id": "unsupported_weather",
+      "category": "unsupported",
+      "input": "what's the weather",
+      "expectedIntent": "unrelated_or_unsupported",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Out-of-scope request should not mutate nutrition data.",
+      "edgeReason": "unsupported_scope",
+      "verificationLayers": [
+        "routing_stub"
+      ],
+      "expectedRouteHandler": "unsupported",
+      "misclassifiedIntent": "unrelated_or_unsupported"
+    },
+    {
+      "id": "unsupported_joke",
+      "category": "unsupported",
+      "input": "tell me a joke",
+      "expectedIntent": "unrelated_or_unsupported",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Out-of-scope request should not mutate nutrition data.",
+      "edgeReason": "unsupported_scope",
+      "verificationLayers": [
+        "routing_stub"
+      ],
+      "expectedRouteHandler": "unsupported",
+      "misclassifiedIntent": "unrelated_or_unsupported"
+    },
+    {
+      "id": "unsupported_president",
+      "category": "unsupported",
+      "input": "who is the president",
+      "expectedIntent": "unrelated_or_unsupported",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Out-of-scope request should not mutate nutrition data.",
+      "edgeReason": "unsupported_scope",
+      "verificationLayers": [
+        "routing_stub"
+      ],
+      "expectedRouteHandler": "unsupported",
+      "misclassifiedIntent": "unrelated_or_unsupported"
+    },
+    {
+      "id": "unsupported_flight",
+      "category": "unsupported",
+      "input": "book me a flight",
+      "expectedIntent": "unrelated_or_unsupported",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Out-of-scope request should not mutate nutrition data.",
+      "edgeReason": "unsupported_scope",
+      "verificationLayers": [
+        "routing_stub"
+      ],
+      "expectedRouteHandler": "unsupported",
+      "misclassifiedIntent": "unrelated_or_unsupported"
+    },
+    {
+      "id": "unsupported_homework",
+      "category": "unsupported",
+      "input": "write my homework",
+      "expectedIntent": "unrelated_or_unsupported",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Out-of-scope request should not mutate nutrition data.",
+      "edgeReason": "unsupported_scope",
+      "verificationLayers": [
+        "routing_stub"
+      ],
+      "expectedRouteHandler": "unsupported",
+      "misclassifiedIntent": "unrelated_or_unsupported"
+    },
+    {
+      "id": "unsupported_stock",
+      "category": "unsupported",
+      "input": "what's the stock price of apple",
+      "expectedIntent": "unrelated_or_unsupported",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Out-of-scope request should not mutate nutrition data.",
+      "edgeReason": "unsupported_scope",
+      "verificationLayers": [
+        "routing_stub"
+      ],
+      "expectedRouteHandler": "unsupported",
+      "misclassifiedIntent": "unrelated_or_unsupported"
+    },
+    {
+      "id": "unsupported_recipe_unrelated",
+      "category": "unsupported",
+      "input": "fix my wifi router",
+      "expectedIntent": "unrelated_or_unsupported",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Out-of-scope request should not mutate nutrition data.",
+      "edgeReason": "unsupported_scope",
+      "verificationLayers": [
+        "routing_stub"
+      ],
+      "expectedRouteHandler": "unsupported",
+      "misclassifiedIntent": "unrelated_or_unsupported"
+    },
+    {
+      "id": "unsupported_gibberish",
+      "category": "unsupported",
+      "input": "asdf qwerty zxcv",
+      "expectedIntent": "unrelated_or_unsupported",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Out-of-scope request should not mutate nutrition data.",
+      "edgeReason": "unsupported_scope",
+      "verificationLayers": [
+        "routing_stub"
+      ],
+      "expectedRouteHandler": "unsupported",
+      "misclassifiedIntent": "unrelated_or_unsupported"
+    },
+    {
+      "id": "advice_what_eat_post_workout",
+      "category": "should_not_log_food",
+      "input": "what should I eat after workout?",
+      "expectedIntent": "nutrition_advice",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Open-ended meal advice.",
+      "edgeReason": "nutrition_advice_question",
+      "verificationLayers": [
+        "phrase_guard",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food"
+      ]
+    },
+    {
+      "id": "advice_recommend_dinner",
+      "category": "should_not_log_food",
+      "input": "recommend me a healthy dinner",
+      "expectedIntent": "nutrition_advice",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Recommendation phrasing.",
+      "edgeReason": "recommend_me",
+      "verificationLayers": [
+        "phrase_guard",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food"
+      ]
+    },
+    {
+      "id": "compare_bubble_kopi",
+      "category": "nutrition_lookup",
+      "input": "bubble tea vs kopi calories",
+      "expectedIntent": "nutrition_comparison_query",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Side-by-side food comparison.",
+      "edgeReason": "comparison_lookup",
+      "verificationLayers": [
+        "phrase_guard",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food",
+      "expectedRouteHandler": "cheap_nutrition_comparison"
+    },
+    {
+      "id": "compare_mcspicy_subway",
+      "category": "nutrition_lookup",
+      "input": "McSpicy vs Subway which has more protein?",
+      "expectedIntent": "nutrition_comparison_query",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Branded comparison.",
+      "edgeReason": "branded_comparison",
+      "verificationLayers": [
+        "phrase_guard",
+        "backend_sanitizer"
+      ],
+      "misclassifiedIntent": "log_food"
+    },
+    {
+      "id": "confidence_gate_question_log",
+      "category": "should_not_log_food",
+      "input": "should I eat chicken rice for lunch?",
+      "expectedIntent": "meal_decision",
+      "shouldCreateMutation": false,
+      "shouldRequireConfirmation": false,
+      "notes": "Phrase guard should correct before estimate route.",
+      "edgeReason": "confidence_gate_bypass_via_phrase_guard",
+      "verificationLayers": [
+        "phrase_guard",
+        "confidence_gate",
+        "routing_stub"
+      ],
+      "misclassifiedIntent": "log_food",
+      "classifierConfidence": 0.8,
+      "forbiddenRouteHandlers": [
+        "ai_estimate_food",
+        "confidence_clarify"
+      ]
+    }
+  ]
+}

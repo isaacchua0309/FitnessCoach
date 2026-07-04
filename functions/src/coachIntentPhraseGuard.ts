@@ -14,13 +14,14 @@ const EXPLICIT_LOGGING_PATTERNS = [
 
 const ADVICE_LOOKUP_PATTERNS = [
   /^(should i|can i|could i|may i)\b/i,
-  /\bshould i (eat|have|order|get|try)\b/i,
-  /\bcan i (eat|have|fit|afford|order|get)\b/i,
-  /\bcould i (eat|have|fit)\b/i,
+  /\bshould i (eat|have|order|get|try|drink)\b/i,
+  /\bcan i (eat|have|fit|afford|order|get|drink)\b/i,
+  /\bcould i (eat|have|fit|drink)\b/i,
   /\bwould it be okay\b/i,
   /\bis it okay (to|if|for me)\b/i,
   /\bis .+ okay\b/i,
   /\bis .+ healthy\b/i,
+  /\btoo much\b/i,
   /^how many calories\b/i,
   /\bcalories in\b/i,
   /\bhow much (protein|carbs|fat|calories) in\b/i,
@@ -29,6 +30,10 @@ const ADVICE_LOOKUP_PATTERNS = [
   /\brecommend (me|a|something)\b/i,
   /\bwould .+ fit\b/i,
   /\bfit my (calories|macros|calorie|protein)\b/i,
+  /\bfit my remaining calories\b/i,
+  /\b vs \b/i,
+  /\bversus\b/i,
+  /\bwhich has more\b/i,
   /^what was (breakfast|lunch|dinner|my breakfast|my lunch|my dinner)\b/i,
   /\bwhat did i (eat|have) (for )?(breakfast|lunch|dinner)\b/i,
 ];
@@ -60,7 +65,7 @@ export function isReferenceOnlyWithoutLogging(text: string): boolean {
 export function suggestedIntentForText(text: string): string {
   const normalized = normalizeText(text);
 
-  if (normalized.includes(" vs ") || normalized.includes(" versus ")) {
+  if (normalized.includes(" vs ") || normalized.includes(" versus ") || normalized.includes("which has more")) {
     return "nutrition_comparison_query";
   }
   if (normalized.includes("recommend") ||
@@ -68,13 +73,16 @@ export function suggestedIntentForText(text: string): string {
     normalized.includes("what should i have")) {
     return "nutrition_advice";
   }
-  if (normalized.includes("calories") ||
-    normalized.includes("how many") ||
+  if (normalized.includes("how many") ||
     normalized.includes("how much") ||
+    normalized.includes("calories in") ||
     normalized.startsWith("what was") ||
     normalized.includes("what did i eat") ||
     normalized.includes("what did i have")) {
     return "nutrition_estimate_query";
+  }
+  if (normalized.includes("calories") && normalized.includes("fit")) {
+    return "meal_decision";
   }
   return "meal_decision";
 }
