@@ -303,6 +303,10 @@ final class AppContainer {
         )
         coachTimelineRecorder = DefaultCoachTimelineRecorder(store: coachTimelineStore)
 
+        Task { @MainActor [coachTimelineBackfillService] in
+            await coachTimelineBackfillService.runBackfill()
+        }
+
         #if DEBUG
         HealthIntelligenceEngineLogger.wiringRegistered(
             fields: [
