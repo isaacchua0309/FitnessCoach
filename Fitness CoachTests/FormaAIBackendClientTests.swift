@@ -441,13 +441,13 @@ private extension FormaAIBackendClientTests {
 
     static let validNutritionEstimateResponseData = Data(
         """
-        {"estimate":{"type":"nutrition_estimate","foodName":"Big Mac","displayEmoji":"🍔","caloriesKcal":550,"caloriesRangeLowerKcal":null,"caloriesRangeUpperKcal":null,"proteinGrams":25,"carbsGrams":45,"fatGrams":30,"servingDescription":"1 burger","confidenceLevel":"high","confidenceLabel":"High","confidenceReason":"Common item.","sourceType":"branded","coachSummary":"Estimate summary.","coachTip":"Tip.","caveats":[],"suggestedActions":[{"id":"log","title":"Log meal","type":"logMeal","payload":{"foodName":"Big Mac"}}]}}
+        {"estimate":{"type":"nutrition_estimate","foodName":"Big Mac","displayEmoji":"🍔","caloriesKcal":550,"caloriesRangeLowerKcal":null,"caloriesRangeUpperKcal":null,"proteinGrams":25,"carbsGrams":45,"fatGrams":30,"servingDescription":"1 burger","confidenceLevel":"high","confidenceLabel":"High","confidenceReason":"Common item.","sourceType":"branded","coachSummary":"Estimate summary.","coachTip":"Tip.","caveats":[],"suggestedActions":[{"id":"log","title":"Log meal","type":"logMeal","payload":{"foodName":"Big Mac","caloriesKcal":"550","proteinGrams":null,"carbsGrams":null,"fatGrams":null,"leftFoodName":null,"rightFoodName":null,"query":null}}]}}
         """.utf8
     )
 
     static let validNutritionComparisonResponseData = Data(
         """
-        {"comparison":{"type":"nutrition_comparison","leftItem":{"id":"left","foodName":"Big Mac","displayEmoji":"🍔","caloriesKcal":550,"caloriesRangeLowerKcal":null,"caloriesRangeUpperKcal":null,"proteinGrams":25,"carbsGrams":45,"fatGrams":30,"servingDescription":"1 burger"},"rightItem":{"id":"right","foodName":"McSpicy","displayEmoji":"🍔","caloriesKcal":540,"caloriesRangeLowerKcal":null,"caloriesRangeUpperKcal":null,"proteinGrams":27,"carbsGrams":43,"fatGrams":29,"servingDescription":"1 burger"},"coachPick":"McSpicy has slightly more protein.","suggestedActions":[{"id":"estimate","title":"Estimate another","type":"estimateAnother","payload":{}}]}}
+        {"comparison":{"type":"nutrition_comparison","leftItem":{"id":"left","foodName":"Big Mac","displayEmoji":"🍔","caloriesKcal":550,"caloriesRangeLowerKcal":null,"caloriesRangeUpperKcal":null,"proteinGrams":25,"carbsGrams":45,"fatGrams":30,"servingDescription":"1 burger"},"rightItem":{"id":"right","foodName":"McSpicy","displayEmoji":"🍔","caloriesKcal":540,"caloriesRangeLowerKcal":null,"caloriesRangeUpperKcal":null,"proteinGrams":27,"carbsGrams":43,"fatGrams":29,"servingDescription":"1 burger"},"coachPick":"McSpicy has slightly more protein.","suggestedActions":[{"id":"estimate","title":"Estimate another","type":"estimateAnother","payload":{"foodName":null,"caloriesKcal":null,"proteinGrams":null,"carbsGrams":null,"fatGrams":null,"leftFoodName":null,"rightFoodName":null,"query":null}}]}}
         """.utf8
     )
 

@@ -42,7 +42,31 @@ struct NutritionSuggestedAction: Codable, Equatable, Sendable, Identifiable {
         id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
         title = try container.decode(String.self, forKey: .title)
         type = try container.decode(NutritionSuggestedActionType.self, forKey: .type)
-        payload = try container.decodeIfPresent([String: String].self, forKey: .payload) ?? [:]
+        payload = Self.decodePayload(from: container)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, title, type, payload
+    }
+
+    /// Decodes strict-schema payload objects that include nullable string keys.
+    private static func decodePayload(
+        from container: KeyedDecodingContainer<CodingKeys>
+    ) -> [String: String] {
+        let rawPayload: [String: String?]?
+        do {
+            rawPayload = try container.decodeIfPresent([String: String?].self, forKey: .payload)
+        } catch {
+            return [:]
+        }
+        guard let rawPayload else { return [:] }
+
+        return rawPayload.reduce(into: [String: String]()) { result, entry in
+            guard let value = entry.value else { return }
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty, trimmed.lowercased() != "null" else { return }
+            result[entry.key] = trimmed
+        }
     }
 }
 

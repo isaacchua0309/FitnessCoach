@@ -28,6 +28,10 @@ import {
   type FoodExtractionResponse,
 } from "./foodEstimateExtraction";
 import {
+  sanitizeNutritionComparisonResponse,
+  sanitizeNutritionEstimateResponse,
+} from "./nutritionResponseSanitizer";
+import {
   mealImageAnalysisInstructions,
   mealImageAnalysisResponseSchema,
   MEAL_IMAGE_ANALYSIS_PATH,
@@ -143,7 +147,9 @@ export async function handleAiGatewayRequest(
         modelName: body.modelName,
       });
       payload = {
-        estimate: await nutritionEstimateResponse(body, traceId),
+        estimate: sanitizeNutritionEstimateResponse(
+          await nutritionEstimateResponse(body, traceId) as Record<string, unknown>
+        ),
       };
       break;
     case "/v1/ai/generate-nutrition-comparison":
@@ -152,7 +158,9 @@ export async function handleAiGatewayRequest(
         modelName: body.modelName,
       });
       payload = {
-        comparison: await nutritionComparisonResponse(body, traceId),
+        comparison: sanitizeNutritionComparisonResponse(
+          await nutritionComparisonResponse(body, traceId) as Record<string, unknown>
+        ),
       };
       break;
     case "/v1/ai/generate-daily-review":

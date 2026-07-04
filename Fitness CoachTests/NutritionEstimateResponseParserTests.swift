@@ -78,4 +78,52 @@ final class NutritionEstimateResponseParserTests: XCTestCase {
         }
         XCTAssertEqual(text.components(separatedBy: "\n").count, 4)
     }
+
+    func testDecodesStrictSchemaPayloadWithNullKeys() throws {
+        let json = """
+        {
+          "estimate": {
+            "type": "nutrition_estimate",
+            "foodName": "Big Mac",
+            "displayEmoji": "🍔",
+            "caloriesKcal": 550,
+            "caloriesRangeLowerKcal": null,
+            "caloriesRangeUpperKcal": null,
+            "proteinGrams": 25,
+            "carbsGrams": 45,
+            "fatGrams": 30,
+            "servingDescription": "1 burger",
+            "confidenceLevel": "high",
+            "confidenceLabel": "High",
+            "confidenceReason": "Common item.",
+            "sourceType": "branded",
+            "coachSummary": "Estimate summary.",
+            "coachTip": "Tip.",
+            "caveats": [],
+            "suggestedActions": [{
+              "id": "log",
+              "title": "Log meal",
+              "type": "logMeal",
+              "payload": {
+                "foodName": "Big Mac",
+                "caloriesKcal": "550",
+                "proteinGrams": null,
+                "carbsGrams": null,
+                "fatGrams": null,
+                "leftFoodName": null,
+                "rightFoodName": null,
+                "query": null
+              }
+            }]
+          }
+        }
+        """.data(using: .utf8)!
+
+        let response = try JSONDecoder().decode(AINutritionEstimateResponse.self, from: json)
+        XCTAssertEqual(response.estimate.foodName, "Big Mac")
+        XCTAssertEqual(response.estimate.suggestedActions.count, 1)
+        XCTAssertEqual(response.estimate.suggestedActions[0].payload["foodName"], "Big Mac")
+        XCTAssertEqual(response.estimate.suggestedActions[0].payload["caloriesKcal"], "550")
+        XCTAssertNil(response.estimate.suggestedActions[0].payload["proteinGrams"])
+    }
 }
