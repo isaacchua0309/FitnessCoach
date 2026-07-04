@@ -1,5 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, require-jsdoc, max-len, valid-jsdoc */
 
+import {
+  coachContextLogFields,
+  parseCoachContextForPrompt,
+} from "./coachContextPacketV2";
+
 export class GatewayError extends Error {
   constructor(readonly status: number, message: string) {
     super(message);
@@ -97,6 +102,19 @@ function requireObject(value: unknown, field: string): Record<string, any> {
   return value as Record<string, any>;
 }
 
+function validateAndSanitizeCoachContext(body: Record<string, any>, required = false): void {
+  if (body.context === undefined || body.context === null) {
+    if (required) {
+      throw new GatewayError(400, "Missing or invalid context.");
+    }
+    return;
+  }
+
+  body.context = parseCoachContextForPrompt(body.context, {required: true});
+}
+
+export {coachContextLogFields};
+
 export function validatePayload(path: string, body: Record<string, any>): void {
   const maxText = intEnv("FORMA_AI_MAX_TEXT_CHARS", DEFAULT_MAX_TEXT_CHARS);
   const maxQuestion = intEnv("FORMA_AI_MAX_QUESTION_CHARS", DEFAULT_MAX_QUESTION_CHARS);
@@ -107,11 +125,11 @@ export function validatePayload(path: string, body: Record<string, any>): void {
   case "/v1/ai/generate-nutrition-estimate":
   case "/v1/ai/generate-nutrition-comparison":
     body.question = requireString(body.question, "question", maxQuestion);
-    if (body.context !== undefined) requireObject(body.context, "context");
+    validateAndSanitizeCoachContext(body);
     return;
   case "/v1/ai/generate-daily-review":
     requireObject(body.input, "input");
-    if (body.context !== undefined) requireObject(body.context, "context");
+    validateAndSanitizeCoachContext(body);
     return;
   case "/v1/ai/estimate-food":
     if (typeof body.imageJPEGBase64 === "string" &&
@@ -126,11 +144,11 @@ export function validatePayload(path: string, body: Record<string, any>): void {
     } else {
       body.text = requireString(body.text, "text", maxText);
     }
-    if (body.context !== undefined) requireObject(body.context, "context");
+    validateAndSanitizeCoachContext(body);
     return;
   default:
     body.text = requireString(body.text, "text", maxText);
-    if (body.context !== undefined) requireObject(body.context, "context");
+    validateAndSanitizeCoachContext(body);
   }
 }
 

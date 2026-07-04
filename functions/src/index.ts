@@ -6,8 +6,18 @@ import {defineSecret} from "firebase-functions/params";
 import {onRequest} from "firebase-functions/v2/https";
 import {sanitizeCoachIntentResult} from "./coachIntentSanitizer";
 import {
+  classifyCoachIntentPromptRules,
+  coachContextHealthRules,
+  coachContextV2Rules,
+  dailyReviewPromptRules,
+  editDeletePromptRules,
+  estimateFoodPromptRules,
+  mealAdvicePromptRules,
+} from "./coachContextPromptRules";
+import {
   GatewayError,
   assertBodySizeWithinLimit,
+  coachContextLogFields,
   enforceRequestQuota,
   validatePayload,
 } from "./gatewayGuardrails";
@@ -87,6 +97,7 @@ export async function handleAiGatewayRequest(
       path,
       uid: authUID,
       bodyBytes,
+      ...coachContextLogFields(body.context),
     });
 
     let payload: Record<string, unknown>;
@@ -111,7 +122,7 @@ export async function handleAiGatewayRequest(
       break;
     case MEAL_IMAGE_ANALYSIS_PATH:
       modelUsed = resolveModel({tier: "strong"});
-      payload = await analyzeMealImage(body, traceId);
+      payload = await analyzeMealImage(body, traceId) as unknown as Record<string, unknown>;
       break;
     case "/v1/ai/generate-meal-advice":
       modelUsed = resolveModel({
@@ -660,20 +671,10 @@ function sharedRules(): string {
   ].join("\n");
 }
 
-function healthIntelligenceRules(): string {
-  return [
-    "Health intelligence context rules:",
-    "- When context.healthIntelligenceAwarenessAvailable is true, use context.healthIntelligence before asking whether the user worked out today.",
-    "- Treat Apple Health workout calories and active energy as estimates, not precise facts.",
-    "- If health signals are missing, mention limitations only when relevant to the user's question.",
-    "- Tailor nutrition advice to today's workout and recovery signals when available.",
-    "- Do not state or imply medical diagnoses.",
-    "- When context.healthIntelligenceAwarenessAvailable is false, do not claim Apple Health awareness, recovery scores, or synced workout insights. Rely on logged app data and what the user tells you.",
-  ].join("\n");
-}
-
 function commandInstructions(): string {
   return `${sharedRules()}
+
+${coachContextV2Rules()}
 
 Task: Parse the user's text into AIParsedCommand.
 Allowed intents: logFood, logWater, logWeight, logWorkout, startNewDay, mealAdvice, status, dailyReview, editEntry, deleteEntry, undo, multiAction, casual, unknown.
@@ -682,6 +683,10 @@ Use actions for logging/status/review/advice. For edits/deletes, include targetE
 
 function foodEstimateInstructions(): string {
   return `${sharedRules()}
+
+${coachContextV2Rules()}
+
+${estimateFoodPromptRules()}
 
 Task: Extract and estimate nutrition for the described food using strict per-ingredient components.
 
@@ -705,6 +710,10 @@ Hard requirements:
 function foodPhotoEstimateInstructions(): string {
   return `${sharedRules()}
 
+${coachContextV2Rules()}
+
+${estimateFoodPromptRules()}
+
 Task: Analyze the attached meal photo and estimate nutrition with strict per-item components.
 
 Return JSON matching the schema with meals[] entries.
@@ -718,7 +727,11 @@ Set requiresConfirmation true.`;
 function mealAdviceInstructions(): string {
   return `${sharedRules()}
 
-${healthIntelligenceRules()}
+${coachContextV2Rules()}
+
+${coachContextHealthRules()}
+
+${mealAdvicePromptRules()}
 
 Task: Give brief meal advice using the provided fitness context.
 Do not log anything. Mention practical portions or tradeoffs when helpful.`;
@@ -726,6 +739,8 @@ Do not log anything. Mention practical portions or tradeoffs when helpful.`;
 
 function nutritionEstimateInstructions(): string {
   return `${sharedRules()}
+
+${coachContextV2Rules()}
 
 Task: Return a structured nutrition estimate card for the user's food question.
 Do not log anything. Do not write long prose or markdown articles.
@@ -742,6 +757,8 @@ Rules:
 function nutritionComparisonInstructions(): string {
   return `${sharedRules()}
 
+${coachContextV2Rules()}
+
 Task: Compare two foods side-by-side for calories and macros.
 Do not log anything. Do not write long prose.
 Rules:
@@ -753,7 +770,11 @@ Rules:
 function coachIntentClassificationInstructions(): string {
   return `${sharedRules()}
 
-${healthIntelligenceRules()}
+${coachContextV2Rules()}
+
+${coachContextHealthRules()}
+
+${classifyCoachIntentPromptRules()}
 
 Task: Classify the user's Coach message. You are not answering the user yet.
 Return valid JSON only matching CoachIntentResult.
@@ -779,12 +800,18 @@ Return valid JSON only matching CoachIntentResult.
 function dailyReviewInstructions(): string {
   return `${sharedRules()}
 
+${coachContextV2Rules()}
+
+${dailyReviewPromptRules()}
+
 Task: Write a concise daily review using only the provided deterministic input.
 Use numbers as provided. Highlight one win and one next move.`;
 }
 
 function workoutParseInstructions(): string {
   return `${sharedRules()}
+
+${coachContextV2Rules()}
 
 Task: Parse the workout description into a WorkoutDraft plus a short assistantMessage.
 Infer duration, calories burned, intensity, recovery demand, and exercise sets when possible.
@@ -794,6 +821,10 @@ Always require user confirmation before logging.`;
 function editDeleteInstructions(): string {
   return `${sharedRules()}
 
+${coachContextV2Rules()}
+
+${editDeletePromptRules()}
+
 Task: Parse an edit or delete request into AIParsedCommand.
 Use editEntry or deleteEntry intent. Include targetEntrySelector and require confirmation.
 Never guess destructive deletes when ambiguous — ask for clarification in assistantMessage.`;
@@ -801,6 +832,10 @@ Never guess destructive deletes when ambiguous — ask for clarification in assi
 
 function multiActionInstructions(): string {
   return `${sharedRules()}
+
+${coachContextV2Rules()}
+
+${editDeletePromptRules()}
 
 Task: Parse a multi-action command into AIParsedCommand with intent multiAction.
 Return all proposed actions and require confirmation.`;
@@ -891,52 +926,6 @@ function aiFoodExtractionResponseSchema(): ResponseSchema {
         requiresConfirmation: {type: "boolean"},
         assistantMessage: nullable({type: "string"}),
       },
-    },
-  };
-}
-
-function foodComponentSchema(): JSONSchema {
-  return {
-    type: "object",
-    additionalProperties: false,
-    required: [
-      "id", "name", "quantity", "unit", "preparationState",
-      "calories", "protein", "carbs", "fat", "confidence", "sourceText",
-    ],
-    properties: {
-      id: nullable({type: "string"}),
-      name: {type: "string"},
-      quantity: nullable({type: "number"}),
-      unit: nullable({type: "string"}),
-      preparationState: nullable({type: "string"}),
-      calories: {type: "integer"},
-      protein: {type: "number"},
-      carbs: {type: "number"},
-      fat: {type: "number"},
-      confidence,
-      sourceText: nullable({type: "string"}),
-    },
-  };
-}
-
-function foodLogDraftSchema(): JSONSchema {
-  return {
-    type: "object",
-    additionalProperties: false,
-    required: [
-      "id", "displayName", "mealType", "components", "confidence",
-      "source", "notes", "warnings", "imageUrl",
-    ],
-    properties: {
-      id: nullable({type: "string"}),
-      displayName: {type: "string"},
-      mealType: nullable(mealType),
-      components: {type: "array", items: foodComponentSchema()},
-      confidence,
-      source,
-      notes: nullable({type: "string"}),
-      warnings: {type: "array", items: {type: "string"}},
-      imageUrl: nullable({type: "string"}),
     },
   };
 }
@@ -1051,26 +1040,6 @@ function aiParsedCommandSchema(): ResponseSchema {
         requiresConfirmation: {type: "boolean"},
         assistantMessage: nullable({type: "string"}),
         reasoningSummary: nullable({type: "string"}),
-      },
-    },
-  };
-}
-
-function aiFoodEstimateResponseSchema(): ResponseSchema {
-  return {
-    name: "ai_food_estimate_response",
-    schema: {
-      type: "object",
-      additionalProperties: false,
-      required: [
-        "foodLogDrafts", "foodDrafts", "confidence", "requiresConfirmation", "assistantMessage",
-      ],
-      properties: {
-        foodLogDrafts: {type: "array", items: foodLogDraftSchema()},
-        foodDrafts: {type: "array", items: foodDraftSchema()},
-        confidence,
-        requiresConfirmation: {type: "boolean"},
-        assistantMessage: nullable({type: "string"}),
       },
     },
   };

@@ -1,6 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, require-jsdoc, max-len, valid-jsdoc */
 
 import {GatewayError} from "./gatewayGuardrails";
+import {parseCoachContextForPrompt} from "./coachContextPacketV2";
+import {
+  analyzeMealImagePromptRules,
+  coachContextHealthRules,
+  coachContextV2Rules,
+} from "./coachContextPromptRules";
 
 export const MEAL_IMAGE_ANALYSIS_PATH = "/v1/ai/analyze-meal-image";
 
@@ -155,9 +161,7 @@ export function validateAnalyzeMealImagePayload(body: Record<string, any>): void
     }
   }
 
-  if (!body.context || typeof body.context !== "object" || Array.isArray(body.context)) {
-    throw new GatewayError(400, "Missing or invalid context.");
-  }
+  body.context = parseCoachContextForPrompt(body.context, {required: true});
 
   if (body.message !== undefined) {
     if (typeof body.message !== "string") {
@@ -280,20 +284,16 @@ export function mealImageAnalysisInstructions(): string {
     "You are FitPilot's meal photo analysis assistant.",
     "Return JSON only, matching the supplied schema.",
     "Analyze the attached meal image and estimate nutrition per visible food item.",
-    "Use the provided CoachContextPacketV2 context for workout-aware, timeline-aware estimates.",
-    "Use context.training.workoutsToday and context.healthIntelligence before assuming the user did not work out today.",
-    "Use context.today for consumed nutrition, hydration, and remaining targets when relevant.",
-    "Use context.recentMealsStructured and context.timeline.recentEvents for recent meal history.",
-    "When context.missingData indicates unavailable signals, do not invent steps, workouts, or weight.",
+    coachContextV2Rules(),
+    coachContextHealthRules(),
+    analyzeMealImagePromptRules(),
     "Each distinct visible food must be its own item with realistic calories and macros.",
     "Never invent a generic catch-all item such as 'unknown meal', 'mixed food', or 'generic plate'.",
     "If the photo is unclear, set a clarifyingQuestion and keep items to only what you can identify with evidence.",
     "When previousAnalysis and clarification are provided, refine that estimate using the same image.",
     "Treat clarification as authoritative for ambiguous ingredients, sauces, grains, or portion sizes.",
     "Sum item nutrition into total exactly.",
-    "Always set needsUserReview to true.",
     "Prefer realistic or slightly conservative estimates.",
-    "Do not diagnose medical conditions.",
   ].join("\n");
 }
 
