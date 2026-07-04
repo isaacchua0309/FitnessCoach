@@ -21,11 +21,7 @@ final class CoachContextHealthIntelligenceDefaultOnTests: XCTestCase {
     override func setUp() async throws {
         harness = try DailyLogServiceTestSupport.makeHarness()
         try harness.seedProfile()
-        weightLogService = WeightLogService(
-            store: harness.store,
-            dailyLogService: harness.dailyLogService,
-            dateProvider: harness.dateProvider
-        )
+        weightLogService = harness.weightLogService
         healthQuery = FakeCoachTimelineHealthActivityQuery()
         snapshotProvider = MockCoachHealthIntelligenceSnapshotProvider()
         trainingLoadEngine = StubCoachTrainingLoadEngine()

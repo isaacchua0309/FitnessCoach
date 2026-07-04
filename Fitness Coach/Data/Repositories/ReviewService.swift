@@ -23,6 +23,7 @@ final class ReviewService {
     private let healthActivityQuery: HealthActivityQueryService
     private let userProfileService: UserProfileService
     private let aiService: AIServiceProtocol
+    private let currentUIDProvider: () -> String?
 
     init(
         store: SwiftDataStore,
@@ -32,7 +33,8 @@ final class ReviewService {
         weightLogService: WeightLogService,
         healthActivityQuery: HealthActivityQueryService,
         userProfileService: UserProfileService,
-        aiService: AIServiceProtocol
+        aiService: AIServiceProtocol,
+        currentUIDProvider: @escaping () -> String? = { nil }
     ) {
         self.store = store
         self.dailyLogService = dailyLogService
@@ -42,6 +44,7 @@ final class ReviewService {
         self.healthActivityQuery = healthActivityQuery
         self.userProfileService = userProfileService
         self.aiService = aiService
+        self.currentUIDProvider = currentUIDProvider
     }
 
     // MARK: Read
@@ -50,7 +53,7 @@ final class ReviewService {
         guard let dailyLog = try dailyLogService.dailyLogEntity(for: date) else {
             return nil
         }
-        return try dailyReviewEntity(dailyLogId: dailyLog.id)?.toModel()
+        return try dailyReviewEntity(dailyLogId: dailyLog.id, dailyLogOwnerUID: dailyLog.ownerUID)?.toModel()
     }
 
     // MARK: Generate
@@ -61,7 +64,10 @@ final class ReviewService {
     ) async throws -> DailyReview {
         let dailyLogEntity = try dailyLogService.getOrCreateLogEntity(for: date)
 
-        if !forceRegenerate, let existing = try dailyReviewEntity(dailyLogId: dailyLogEntity.id) {
+        if !forceRegenerate, let existing = try dailyReviewEntity(
+            dailyLogId: dailyLogEntity.id,
+            dailyLogOwnerUID: dailyLogEntity.ownerUID
+        ) {
             return existing.toModel()
         }
 
@@ -140,16 +146,28 @@ final class ReviewService {
         _ review: DailyReview,
         dailyLogEntity: DailyLogEntity
     ) throws -> DailyReview {
-        if let existing = try dailyReviewEntity(dailyLogId: dailyLogEntity.id) {
+        let ownerUID = try UserDataOwnerScope.requiredSessionUID(
+            currentUIDProvider(),
+            operation: "save daily review"
+        )
+        try UserDataOwnerScope.requireMatchingDailyLogOwner(dailyLogEntity, sessionUID: ownerUID)
+        let now = Date()
+
+        if let existing = try dailyReviewEntity(
+            dailyLogId: dailyLogEntity.id,
+            dailyLogOwnerUID: dailyLogEntity.ownerUID
+        ) {
             apply(review, to: existing)
             existing.dailyLog = dailyLogEntity
             dailyLogEntity.dailyReview = existing
             dailyLogEntity.dailyReviewId = existing.id
+            UserDataOwnerScope.touchNutritionWrite(on: existing, now: now)
             try save()
             return existing.toModel()
         }
 
         let entity = DailyReviewEntity(model: review)
+        UserDataOwnerScope.stampNewNutritionWrite(on: entity, ownerUID: ownerUID, now: now)
         entity.dailyLog = dailyLogEntity
         dailyLogEntity.dailyReview = entity
         dailyLogEntity.dailyReviewId = review.id
@@ -158,12 +176,27 @@ final class ReviewService {
         return entity.toModel()
     }
 
-    private func dailyReviewEntity(dailyLogId: UUID) throws -> DailyReviewEntity? {
+    private func dailyReviewEntity(
+        dailyLogId: UUID,
+        dailyLogOwnerUID: String?
+    ) throws -> DailyReviewEntity? {
         var descriptor = FetchDescriptor<DailyReviewEntity>(
             predicate: #Predicate { $0.dailyLogId == dailyLogId }
         )
         descriptor.fetchLimit = 1
-        return try store.fetch(descriptor).first
+        guard let entity = try store.fetch(descriptor).first else { return nil }
+        guard UserDataOwnerScope.isVisible(
+            entityOwnerUID: entity.ownerUID,
+            sessionUID: currentUIDProvider()
+        ) else {
+            return nil
+        }
+        if let dailyLogOwnerUID,
+           let reviewOwnerUID = entity.ownerUID,
+           reviewOwnerUID != dailyLogOwnerUID {
+            return nil
+        }
+        return entity
     }
 
     private func apply(_ review: DailyReview, to entity: DailyReviewEntity) {

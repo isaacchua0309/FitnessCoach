@@ -90,6 +90,8 @@ extension CoachTimelineEventEntity {
     func applySummaryAndPayload(from event: CoachTimelineEvent) {
         summary = CoachTimelineEventSummaryBuilder.summary(for: event)
         payloadJSON = CoachTimelineEventPayloadCodec.encode(event: event)
-        updatedAt = Date()
+        let now = Date()
+        updatedAt = now
+        localUpdatedAt = now
     }
 }

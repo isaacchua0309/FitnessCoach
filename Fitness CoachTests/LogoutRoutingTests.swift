@@ -431,4 +431,32 @@ final class AuthGateCoordinatorLogoutTests: XCTestCase {
         XCTAssertNil(coordinator.onboardingModel)
         XCTAssertEqual(coordinator.effectiveRoute, .welcome)
     }
+
+    func testSignedOutTransitionClearsDataNamespaceTracking() async throws {
+        let container = try AppContainer(inMemory: true)
+        await container.prepareLocalUserDataNamespace(uid: "signed-in-user")
+        XCTAssertEqual(
+            container.accountDataNamespaceService.currentDataNamespaceUID(),
+            "signed-in-user"
+        )
+
+        let coordinator = AuthGateCoordinator(container: container)
+        coordinator.handleSignedOutTransition(
+            from: .signedIn(uid: "signed-in-user"),
+            to: .signedOut,
+            wasSignedIn: true
+        )
+
+        var cleared = false
+        for _ in 0..<100 {
+            if container.accountDataNamespaceService.currentDataNamespaceUID() == nil {
+                cleared = true
+                break
+            }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        XCTAssertTrue(cleared)
+        XCTAssertNil(container.accountDataNamespaceService.currentDataNamespaceUID())
+    }
 }

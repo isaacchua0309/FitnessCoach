@@ -14,15 +14,18 @@ final class DailyLogService {
     private let store: SwiftDataStore
     private let userProfileService: UserProfileService
     private let dateProvider: DateProviding
+    private let currentUIDProvider: () -> String?
 
     init(
         store: SwiftDataStore,
         userProfileService: UserProfileService,
-        dateProvider: DateProviding? = nil
+        dateProvider: DateProviding? = nil,
+        currentUIDProvider: @escaping () -> String? = { nil }
     ) {
         self.store = store
         self.userProfileService = userProfileService
         self.dateProvider = dateProvider ?? SystemDateProvider()
+        self.currentUIDProvider = currentUIDProvider
     }
 
     // MARK: Read
@@ -46,11 +49,28 @@ final class DailyLogService {
     func getLogs(from startDate: Date, to endDate: Date) throws -> [DailyLog] {
         let lowerBound = dateProvider.startOfDay(for: startDate)
         let upperBound = dateProvider.startOfDay(for: endDate)
-        let descriptor = FetchDescriptor<DailyLogEntity>(
-            predicate: #Predicate { $0.date >= lowerBound && $0.date <= upperBound },
-            sortBy: [SortDescriptor(\.date, order: .forward)]
-        )
-        return try store.fetch(descriptor).map { $0.toModel() }
+        let sessionUID = currentUIDProvider()
+        let entities: [DailyLogEntity]
+
+        if let sessionUID {
+            let descriptor = FetchDescriptor<DailyLogEntity>(
+                predicate: #Predicate {
+                    $0.date >= lowerBound && $0.date <= upperBound && $0.ownerUID == sessionUID
+                },
+                sortBy: [SortDescriptor(\.date, order: .forward)]
+            )
+            entities = try store.fetch(descriptor)
+        } else {
+            let descriptor = FetchDescriptor<DailyLogEntity>(
+                predicate: #Predicate {
+                    $0.date >= lowerBound && $0.date <= upperBound && $0.ownerUID == nil
+                },
+                sortBy: [SortDescriptor(\.date, order: .forward)]
+            )
+            entities = try store.fetch(descriptor)
+        }
+
+        return entities.map { $0.toModel() }
     }
 
     // MARK: New Day
@@ -69,10 +89,16 @@ final class DailyLogService {
             throw ServiceError.dailyLogNotFound
         }
 
-        let foodModels = entity.foodEntries.map { $0.toModel() }
+        let foodModels = UserDataOwnerScope.filterVisibleNutritionEntities(
+            entity.foodEntries,
+            sessionUID: currentUIDProvider()
+        ).map { $0.toModel() }
         let totals = MacroCalculator.totals(from: foodModels)
 
-        let waterTotal = entity.waterEntries.reduce(0) { $0 + $1.amountMl }
+        let waterTotal = UserDataOwnerScope.filterVisibleNutritionEntities(
+            entity.waterEntries,
+            sessionUID: currentUIDProvider()
+        ).reduce(0) { $0 + $1.amountMl }
         // Legacy manual workout rows are retired; training reads use Apple Health.
         // Preserve any stored summary value when recalculating food/water totals.
         let workoutCalories = entity.workoutCaloriesBurned
@@ -85,7 +111,9 @@ final class DailyLogService {
         entity.sodiumConsumed = totals.sodium
         entity.waterConsumedMl = waterTotal
         entity.workoutCaloriesBurned = workoutCalories
-        entity.updatedAt = dateProvider.now
+        let now = dateProvider.now
+        entity.updatedAt = now
+        UserDataOwnerScope.touchNutritionWrite(on: entity, now: now)
 
         try save()
         return entity.toModel()
@@ -97,8 +125,22 @@ final class DailyLogService {
     /// log services to attach relationships. Not exposed to the feature layer.
     func dailyLogEntity(for date: Date) throws -> DailyLogEntity? {
         let dayStart = dateProvider.startOfDay(for: date)
+        let sessionUID = currentUIDProvider()
+
+        if let sessionUID {
+            var descriptor = FetchDescriptor<DailyLogEntity>(
+                predicate: #Predicate {
+                    $0.date == dayStart && $0.ownerUID == sessionUID
+                }
+            )
+            descriptor.fetchLimit = 1
+            return try store.fetch(descriptor).first
+        }
+
         var descriptor = FetchDescriptor<DailyLogEntity>(
-            predicate: #Predicate { $0.date == dayStart }
+            predicate: #Predicate {
+                $0.date == dayStart && $0.ownerUID == nil
+            }
         )
         descriptor.fetchLimit = 1
         return try store.fetch(descriptor).first
@@ -111,6 +153,11 @@ final class DailyLogService {
             }
             return existing
         }
+
+        let ownerUID = try UserDataOwnerScope.requiredSessionUID(
+            currentUIDProvider(),
+            operation: "create daily log"
+        )
 
         guard let profile = try userProfileService.getCurrentProfile() else {
             throw ServiceError.missingUserProfile
@@ -133,6 +180,7 @@ final class DailyLogService {
         )
 
         let entity = DailyLogEntity(model: log)
+        UserDataOwnerScope.stampNewNutritionWrite(on: entity, ownerUID: ownerUID, now: now)
         try store.insert(entity)
         return entity
     }
@@ -161,7 +209,9 @@ final class DailyLogService {
         entity.waterTargetMl = targets.waterTargetMl
         entity.expectedWeeklyWeightLossKg = targets.expectedWeeklyWeightLossKg
         entity.aggressivenessRawValue = targets.aggressiveness.rawValue
-        entity.updatedAt = dateProvider.now
+        let now = dateProvider.now
+        entity.updatedAt = now
+        UserDataOwnerScope.touchNutritionWrite(on: entity, now: now)
         try save()
     }
 

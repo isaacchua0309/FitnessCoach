@@ -62,6 +62,8 @@ final class AppContainer {
     let coachChatTranscriptStore: SwiftDataCoachChatTranscriptStore
     let coachTimelineBackfillService: CoachTimelineBackfillService
     let coachTimelineRecorder: DefaultCoachTimelineRecorder
+    let accountMigrationService: AccountMigrationService
+    let accountDataNamespaceService: AccountDataNamespaceService
     private let authUIDCache: AuthUIDCache
 
     let onboardingUserDefaults: UserDefaults
@@ -233,7 +235,8 @@ final class AppContainer {
         )
         dailyLogService = DailyLogService(
             store: store,
-            userProfileService: userProfileService
+            userProfileService: userProfileService,
+            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
         )
         targetService = TargetService(
             userProfileService: userProfileService,
@@ -241,16 +244,30 @@ final class AppContainer {
         )
         foodLogService = FoodLogService(
             store: store,
-            dailyLogService: dailyLogService
+            dailyLogService: dailyLogService,
+            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
         )
         waterLogService = WaterLogService(
             store: store,
-            dailyLogService: dailyLogService
+            dailyLogService: dailyLogService,
+            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
         )
         weightLogService = WeightLogService(
             store: store,
-            dailyLogService: dailyLogService
+            dailyLogService: dailyLogService,
+            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
         )
+        accountMigrationService = AccountMigrationService(
+            store: store,
+            userProfileService: userProfileService,
+            uidProvider: AuthAccountUIDProvider(authManager: authManager)
+        )
+        accountDataNamespaceService = AccountDataNamespaceService(
+            userDefaults: onboardingUserDefaults,
+            uidProvider: AuthAccountUIDProvider(authManager: authManager)
+        )
+
+        try? accountMigrationService.backfillSchemaV7BookkeepingIfNeeded()
 
         let healthIntelligenceContextBuilder = HealthIntelligenceContextBuilder(
             repository: healthDataRepository,
@@ -357,7 +374,8 @@ final class AppContainer {
             weightLogService: weightLogService,
             healthActivityQuery: healthActivityQueryService,
             userProfileService: userProfileService,
-            aiService: aiService
+            aiService: aiService,
+            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
         )
 
         actionCenter = FitnessActionCenter(
@@ -390,6 +408,25 @@ final class AppContainer {
         if uidChanged {
             healthSyncStateStore.cancelActiveSync()
         }
+    }
+
+    /// Prepares the active local data namespace and runs safe legacy ownership backfill.
+    /// Must complete before profile bootstrap loads Today/Journey/Coach for the session.
+    func prepareLocalUserDataNamespace(uid: String) async {
+        await accountDataNamespaceService.prepareForSignedInUID(uid)
+        do {
+            _ = try await accountMigrationService.runSafeBackfill(for: uid)
+        } catch {
+            ProfileBootstrapDebugLogger.error(
+                "Local user-data legacy backfill failed",
+                fields: ["uid": uid],
+                underlying: error
+            )
+        }
+    }
+
+    func recordSignedOutLocalUserDataNamespace() async {
+        await accountDataNamespaceService.prepareForSignOut()
     }
 
     func makeHealthIntelligenceEngine() -> any HealthIntelligenceEngineing {

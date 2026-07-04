@@ -126,7 +126,8 @@ enum FormaAbTest {
     enum Auth {
         static var supportsAnonymousSignIn: Bool { resolved.supportsAnonymousSignIn }
         static var requiresSignInBeforeOnboarding: Bool { resolved.requiresSignInBeforeOnboarding }
-        static var deletesLocalProfileOnSignOut: Bool { resolved.deletesLocalProfileOnSignOut }
+        /// When true, sign-out retains on-device SwiftData (Phase 1). Reads are UID-filtered instead of wiping.
+        static var preservesLocalUserDataOnSignOut: Bool { resolved.preservesLocalUserDataOnSignOut }
         static var clearsCloudSyncMetadataOnSignOut: Bool { resolved.clearsCloudSyncMetadataOnSignOut }
     }
 
@@ -200,7 +201,7 @@ struct FormaAbTestSnapshot: Equatable, Sendable {
 
     var supportsAnonymousSignIn: Bool
     var requiresSignInBeforeOnboarding: Bool
-    var deletesLocalProfileOnSignOut: Bool
+    var preservesLocalUserDataOnSignOut: Bool
     var clearsCloudSyncMetadataOnSignOut: Bool
 
     var internalBuildEnabled: Bool
@@ -247,7 +248,7 @@ struct FormaAbTestSnapshot: Equatable, Sendable {
         developerSectionVisible: true,
         supportsAnonymousSignIn: true,
         requiresSignInBeforeOnboarding: true,
-        deletesLocalProfileOnSignOut: true,
+        preservesLocalUserDataOnSignOut: true,
         clearsCloudSyncMetadataOnSignOut: true,
         internalBuildEnabled: true,
         includesDeveloperTools: true,

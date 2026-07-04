@@ -18,7 +18,9 @@ enum DailyLogServiceTestSupport {
         let dailyLogService: DailyLogService
         let foodLogService: FoodLogService
         let waterLogService: WaterLogService
+        let weightLogService: WeightLogService
         let dateProvider: FixedDailyLogTestDateProvider
+        let sessionUID: DailyLogTestSessionUID
 
         var today: Date { dateProvider.now }
 
@@ -63,19 +65,37 @@ enum DailyLogServiceTestSupport {
     }
 
     static func makeHarness(
-        referenceNow: Date = DailyLogServiceTestSupport.referenceNow
+        referenceNow: Date = DailyLogServiceTestSupport.referenceNow,
+        sessionUID: String? = "signed-in-user"
     ) throws -> Harness {
         let dateProvider = FixedDailyLogTestDateProvider(now: referenceNow)
         let container = try FormaModelContainer.makeContainer(inMemory: true)
         let store = SwiftDataStore(container: container)
         let profileService = UserProfileService(store: store, dateProvider: dateProvider)
+        let uidHolder = DailyLogTestSessionUID(uid: sessionUID)
+        let uidProvider = { [uidHolder] in uidHolder.uid }
         let dailyLogService = DailyLogService(
             store: store,
             userProfileService: profileService,
-            dateProvider: dateProvider
+            dateProvider: dateProvider,
+            currentUIDProvider: uidProvider
         )
-        let foodLogService = FoodLogService(store: store, dailyLogService: dailyLogService)
-        let waterLogService = WaterLogService(store: store, dailyLogService: dailyLogService)
+        let foodLogService = FoodLogService(
+            store: store,
+            dailyLogService: dailyLogService,
+            currentUIDProvider: uidProvider
+        )
+        let waterLogService = WaterLogService(
+            store: store,
+            dailyLogService: dailyLogService,
+            currentUIDProvider: uidProvider
+        )
+        let weightLogService = WeightLogService(
+            store: store,
+            dailyLogService: dailyLogService,
+            dateProvider: dateProvider,
+            currentUIDProvider: uidProvider
+        )
 
         return Harness(
             store: store,
@@ -83,7 +103,9 @@ enum DailyLogServiceTestSupport {
             dailyLogService: dailyLogService,
             foodLogService: foodLogService,
             waterLogService: waterLogService,
-            dateProvider: dateProvider
+            weightLogService: weightLogService,
+            dateProvider: dateProvider,
+            sessionUID: uidHolder
         )
     }
 
@@ -126,5 +148,14 @@ struct FixedDailyLogTestDateProvider: DateProviding {
 
     func startOfDay(for date: Date) -> Date {
         calendar.startOfDay(for: date)
+    }
+}
+
+@MainActor
+final class DailyLogTestSessionUID {
+    var uid: String?
+
+    init(uid: String?) {
+        self.uid = uid
     }
 }

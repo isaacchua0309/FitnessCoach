@@ -16,10 +16,16 @@ final class WaterLogService {
 
     private let store: SwiftDataStore
     private let dailyLogService: DailyLogService
+    private let currentUIDProvider: () -> String?
 
-    init(store: SwiftDataStore, dailyLogService: DailyLogService) {
+    init(
+        store: SwiftDataStore,
+        dailyLogService: DailyLogService,
+        currentUIDProvider: @escaping () -> String? = { nil }
+    ) {
         self.store = store
         self.dailyLogService = dailyLogService
+        self.currentUIDProvider = currentUIDProvider
     }
 
     // MARK: Create
@@ -27,15 +33,23 @@ final class WaterLogService {
     func addWater(amountMl: Int, date: Date) throws -> WaterEntry {
         try validate(amountMl: amountMl)
 
+        let ownerUID = try UserDataOwnerScope.requiredSessionUID(
+            currentUIDProvider(),
+            operation: "log water"
+        )
         let log = try dailyLogService.getOrCreateLogEntity(for: date)
+        try UserDataOwnerScope.requireMatchingDailyLogOwner(log, sessionUID: ownerUID)
+
+        let now = Date()
         let model = WaterEntry(
             id: UUID(),
             dailyLogId: log.id,
             amountMl: amountMl,
-            createdAt: Date()
+            createdAt: now
         )
 
         let entity = WaterEntryEntity(model: model)
+        UserDataOwnerScope.stampNewNutritionWrite(on: entity, ownerUID: ownerUID, now: now)
         entity.dailyLog = log
         try store.insert(entity)
         try dailyLogService.recalculateDailyTotals(for: log.date)
@@ -52,7 +66,10 @@ final class WaterLogService {
         guard let log = try dailyLogService.dailyLogEntity(for: date) else {
             return nil
         }
-        guard let last = log.waterEntries.max(by: { $0.createdAt < $1.createdAt }) else {
+        let sessionUID = currentUIDProvider()
+        guard let last = log.waterEntries
+            .filter({ UserDataOwnerScope.isVisible(entityOwnerUID: $0.ownerUID, sessionUID: sessionUID) })
+            .max(by: { $0.createdAt < $1.createdAt }) else {
             return nil
         }
         let model = last.toModel()
@@ -78,7 +95,8 @@ final class WaterLogService {
         guard let log = try dailyLogService.dailyLogEntity(for: date) else {
             return []
         }
-        return log.waterEntries
+        let sessionUID = currentUIDProvider()
+        return UserDataOwnerScope.filterVisibleNutritionEntities(log.waterEntries, sessionUID: sessionUID)
             .sorted { $0.createdAt < $1.createdAt }
             .map { $0.toModel() }
     }
@@ -87,12 +105,25 @@ final class WaterLogService {
         guard let log = try dailyLogService.dailyLogEntity(for: date) else {
             return 0
         }
-        return log.waterEntries.reduce(0) { $0 + $1.amountMl }
+        let sessionUID = currentUIDProvider()
+        return UserDataOwnerScope.filterVisibleNutritionEntities(log.waterEntries, sessionUID: sessionUID)
+            .reduce(0) { $0 + $1.amountMl }
     }
 
     // MARK: Helpers
 
     private func waterEntity(id: UUID) throws -> WaterEntryEntity? {
+        guard let entity = try fetchWaterEntity(id: id) else { return nil }
+        guard UserDataOwnerScope.isVisible(
+            entityOwnerUID: entity.ownerUID,
+            sessionUID: currentUIDProvider()
+        ) else {
+            return nil
+        }
+        return entity
+    }
+
+    private func fetchWaterEntity(id: UUID) throws -> WaterEntryEntity? {
         var descriptor = FetchDescriptor<WaterEntryEntity>(
             predicate: #Predicate { $0.id == id }
         )

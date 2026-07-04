@@ -204,7 +204,11 @@ enum SignedOutAppShellPhase: Equatable, Sendable {
 }
 
 enum AuthLogoutPolicy {
-    static var deletesLocalProfileOnSignOut: Bool { FormaAbTest.Auth.deletesLocalProfileOnSignOut }
+    /// Phase 1: SwiftData rows (profile, nutrition, coach) stay on disk after sign-out.
+    /// The next session cannot read them because all user-data queries are UID-filtered.
+    static var preservesLocalUserDataOnSignOut: Bool {
+        FormaAbTest.Auth.preservesLocalUserDataOnSignOut
+    }
     /// Session-scoped cloud sync hints must not survive sign-out; `ownerUID` remains authoritative.
     static var clearsCloudSyncMetadataOnSignOut: Bool { FormaAbTest.Auth.clearsCloudSyncMetadataOnSignOut }
 

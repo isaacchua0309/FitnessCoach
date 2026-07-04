@@ -66,6 +66,7 @@ final class FitnessActionCenter {
 
     @discardableResult
     func logFood(_ meal: FoodLogDraft, date: Date = Date()) throws -> FoodEntry {
+        _ = try requireCurrentUID(for: "log food")
         let entry = try foodLogService.addFoodEntry(meal, date: date)
         notifyDataChanged()
         return entry
@@ -73,12 +74,14 @@ final class FitnessActionCenter {
 
     @discardableResult
     func editFoodEntry(id: UUID, update: FoodEntryUpdate) throws -> FoodEntry {
+        _ = try requireCurrentUID(for: "edit food")
         let entry = try foodLogService.editFoodEntry(id: id, update: update)
         notifyDataChanged()
         return entry
     }
 
     func deleteFoodEntry(id: UUID) throws {
+        _ = try requireCurrentUID(for: "delete food")
         try foodLogService.deleteFoodEntry(id: id)
         notifyDataChanged()
     }
@@ -88,6 +91,7 @@ final class FitnessActionCenter {
     }
 
     func undoLastFoodEntry(date: Date = Date()) throws -> FoodEntry? {
+        _ = try requireCurrentUID(for: "undo food")
         let entry = try foodLogService.undoLastFoodEntry(date: date)
         notifyDataChanged()
         return entry
@@ -97,6 +101,7 @@ final class FitnessActionCenter {
 
     @discardableResult
     func logWater(amountMl: Int, date: Date = Date()) throws -> WaterEntry {
+        _ = try requireCurrentUID(for: "log water")
         let entry = try waterLogService.addWater(amountMl: amountMl, date: date)
         notifyDataChanged()
         return entry
@@ -104,18 +109,21 @@ final class FitnessActionCenter {
 
     @discardableResult
     func logWater(_ draft: WaterDraft, date: Date = Date()) throws -> WaterEntry {
+        _ = try requireCurrentUID(for: "log water")
         let entry = try waterLogService.addWater(draft, date: date)
         notifyDataChanged()
         return entry
     }
 
     func undoLastWaterEntry(date: Date = Date()) throws -> WaterEntry? {
+        _ = try requireCurrentUID(for: "undo water")
         let entry = try waterLogService.undoLastWaterEntry(date: date)
         notifyDataChanged()
         return entry
     }
 
     func deleteWaterEntry(id: UUID) throws {
+        _ = try requireCurrentUID(for: "delete water")
         try waterLogService.deleteWaterEntry(id: id)
         notifyDataChanged()
     }
@@ -124,6 +132,7 @@ final class FitnessActionCenter {
 
     @discardableResult
     func logDailyWeight(_ weightKg: Double, date: Date = Date()) throws -> WeightEntry {
+        _ = try requireCurrentUID(for: "log weight")
         let entry = try weightLogService.logWeight(weightKg, date: date)
         notifyDataChanged()
         return entry
@@ -131,6 +140,7 @@ final class FitnessActionCenter {
 
     @discardableResult
     func logDailyWeight(_ draft: WeightDraft, date: Date = Date()) throws -> WeightEntry {
+        _ = try requireCurrentUID(for: "log weight")
         let entry = try weightLogService.logWeight(draft, date: date)
         notifyDataChanged()
         return entry
@@ -140,7 +150,8 @@ final class FitnessActionCenter {
 
     @discardableResult
     func ensureTodayLog() throws -> DailyLog {
-        try dailyLogService.ensureTodayLog()
+        _ = try requireCurrentUID(for: "ensure today log")
+        return try dailyLogService.ensureTodayLog()
     }
 
     func syncTodayTargetsFromProfile() throws {
@@ -151,6 +162,7 @@ final class FitnessActionCenter {
     // MARK: - Reviews
 
     func generateDailyReview(for date: Date = Date()) async throws -> DailyReview {
+        _ = try requireCurrentUID(for: "generate daily review")
         let review = try await reviewService.generateDailyReview(for: date)
         notifyDataChanged()
         return review
@@ -221,5 +233,9 @@ final class FitnessActionCenter {
                 cloudUploadFailureNotifier?.reportFailure(.profileEdit)
             }
         }
+    }
+
+    private func requireCurrentUID(for operation: String) throws -> String {
+        try UserDataOwnership.requireUID(currentUIDProvider?(), operation: operation)
     }
 }

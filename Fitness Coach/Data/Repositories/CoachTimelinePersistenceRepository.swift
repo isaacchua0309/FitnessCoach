@@ -26,23 +26,36 @@ final class CoachTimelinePersistenceRepository {
 
     /// Inserts the event when no row exists for `event.id`. Duplicate ids are ignored.
     func appendIdempotent(_ event: CoachTimelineEvent, userId: String?) throws {
-        if try entity(id: event.id) != nil {
+        let userId = try UserDataOwnerScope.requiredSessionUID(
+            userId,
+            operation: "append coach timeline event"
+        )
+        if try entity(id: event.id, userId: userId) != nil {
             return
         }
+        let now = dateProvider.now
         let entity = CoachTimelineEventEntity(model: event, userId: userId)
+        UserDataOwnerScope.stampNewCoachWrite(on: entity, userId: userId, now: now)
         try store.insert(entity)
     }
 
     func appendManyIdempotent(_ events: [CoachTimelineEvent], userId: String?) throws {
+        let userId = try UserDataOwnerScope.requiredSessionUID(
+            userId,
+            operation: "append coach timeline events"
+        )
         let existingIDs = Set(try fetchEntities(
             query: CoachTimelineQuery(includeSuperseded: true),
             userId: userId
         ).map(\.id))
 
         var inserted = false
+        let now = dateProvider.now
         for event in events {
             guard !existingIDs.contains(event.id) else { continue }
-            store.modelContext.insert(CoachTimelineEventEntity(model: event, userId: userId))
+            let entity = CoachTimelineEventEntity(model: event, userId: userId)
+            UserDataOwnerScope.stampNewCoachWrite(on: entity, userId: userId, now: now)
+            store.modelContext.insert(entity)
             inserted = true
         }
 
@@ -51,15 +64,23 @@ final class CoachTimelinePersistenceRepository {
         }
     }
 
-    func updateStatus(id: UUID, status: CoachTimelineEventStatus) throws {
-        guard let entity = try entity(id: id) else { return }
+    func updateStatus(id: UUID, status: CoachTimelineEventStatus, userId: String?) throws {
+        guard let entity = try entity(id: id, userId: userId) else { return }
+        let now = dateProvider.now
         entity.statusRaw = status.rawValue
-        entity.updatedAt = dateProvider.now
+        entity.updatedAt = now
+        UserDataOwnerScope.touchCoachWrite(on: entity, now: now)
         try store.save()
     }
 
     func insert(_ event: CoachTimelineEvent, userId: String?) throws {
+        let userId = try UserDataOwnerScope.requiredSessionUID(
+            userId,
+            operation: "insert coach timeline event"
+        )
+        let now = dateProvider.now
         let entity = CoachTimelineEventEntity(model: event, userId: userId)
+        UserDataOwnerScope.stampNewCoachWrite(on: entity, userId: userId, now: now)
         try store.insert(entity)
     }
 
@@ -75,11 +96,16 @@ final class CoachTimelinePersistenceRepository {
     }
 
     func event(id: UUID, userId: String?) throws -> CoachTimelineEvent? {
+        guard let entity = try entity(id: id, userId: userId) else { return nil }
+        return entity.toModelSafe()
+    }
+
+    func entity(id: UUID, userId: String?) throws -> CoachTimelineEventEntity? {
         guard let entity = try entity(id: id) else { return nil }
-        if let userId, let entityUserId = entity.userId, entityUserId != userId {
+        guard UserDataOwnerScope.isCoachRowVisible(entityUserId: entity.userId, sessionUID: userId) else {
             return nil
         }
-        return entity.toModelSafe()
+        return entity
     }
 
     func entity(id: UUID) throws -> CoachTimelineEventEntity? {
@@ -101,6 +127,8 @@ final class CoachTimelinePersistenceRepository {
         userId: String? = nil,
         calendar: Calendar = .current
     ) throws -> Int {
+        guard userId != nil else { return 0 }
+
         let todayLocalDate = Self.localDateString(for: dateProvider.now, calendar: calendar)
         guard let cutoffDate = calendar.date(
             byAdding: .day,
@@ -159,12 +187,8 @@ final class CoachTimelinePersistenceRepository {
     ) throws -> [CoachTimelineEventEntity] {
         let base = try store.fetch(FetchDescriptor<CoachTimelineEventEntity>())
 
-        let filtered = base.filter { entity in
-            if let userId, let entityUserId = entity.userId, entityUserId != userId {
-                return false
-            }
-            return query.matches(entity.toModelSafe())
-        }
+        let filtered = UserDataOwnerScope.filterVisibleCoachEntities(base, sessionUID: userId)
+            .filter { query.matches($0.toModelSafe()) }
 
         if let limit = query.limit {
             let sorted = filtered.sorted { $0.utcCreatedAt > $1.utcCreatedAt }
@@ -247,10 +271,7 @@ final class CoachTimelinePersistenceRepository {
 
         var deletedCount = 0
         for id in ids {
-            guard let entity = try entity(id: id) else { continue }
-            if let userId, let entityUserId = entity.userId, entityUserId != userId {
-                continue
-            }
+            guard let entity = try entity(id: id, userId: userId) else { continue }
             try store.delete(entity)
             deletedCount += 1
         }

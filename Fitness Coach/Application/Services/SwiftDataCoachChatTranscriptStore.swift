@@ -38,7 +38,7 @@ final class SwiftDataCoachChatTranscriptStore: CoachChatTranscriptStore {
     }
 
     func loadMessages() -> [ChatMessage] {
-        let userId = userIdProvider()
+        guard let userId = userIdProvider() else { return [] }
         do {
             if FormaSwiftDataMigrationGate.shouldAllowCoachDataMaintenance() {
                 try repository.pruneRetainedOnly(userId: userId)
@@ -56,7 +56,11 @@ final class SwiftDataCoachChatTranscriptStore: CoachChatTranscriptStore {
 
     func saveMessages(_ messages: [ChatMessage]) {
         do {
-            try repository.replaceAll(messages, userId: userIdProvider())
+            let userId = try UserDataOwnerScope.requiredSessionUID(
+                userIdProvider(),
+                operation: "save coach transcript"
+            )
+            try repository.replaceAll(messages, userId: userId)
         } catch {
             FormaPipelineTracer.logError(
                 stage: .error,

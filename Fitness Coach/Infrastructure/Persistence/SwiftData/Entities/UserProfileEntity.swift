@@ -17,6 +17,13 @@ final class UserProfileEntity {
     /// Firebase UID that owns this on-device profile, when known.
     var ownerUID: String?
 
+    // MARK: Account persistence (Phase 1)
+
+    /// Local mutation timestamp for account persistence bookkeeping.
+    var localUpdatedAt: Date?
+    /// Per-entity schema version for future lightweight migrations.
+    var entitySchemaVersion: Int = UserDataEntitySchema.currentEntitySchemaVersion
+
     // MARK: Baseline
 
     var name: String?
@@ -80,7 +87,9 @@ final class UserProfileEntity {
         aggressivenessRawValue: String,
         createdAt: Date,
         updatedAt: Date,
-        lastPlanUpdateReasonRawValue: String? = nil
+        lastPlanUpdateReasonRawValue: String? = nil,
+        localUpdatedAt: Date? = nil,
+        entitySchemaVersion: Int = UserDataEntitySchema.currentEntitySchemaVersion
     ) {
         self.id = id
         self.ownerUID = ownerUID
@@ -107,5 +116,7 @@ final class UserProfileEntity {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.lastPlanUpdateReasonRawValue = lastPlanUpdateReasonRawValue
+        self.localUpdatedAt = localUpdatedAt ?? updatedAt
+        self.entitySchemaVersion = entitySchemaVersion
     }
 }

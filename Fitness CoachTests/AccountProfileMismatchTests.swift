@@ -181,7 +181,7 @@ final class AccountProfileMismatchTests: XCTestCase {
     }
 
     func testSignOutPolicyPreservesLocalProfile() throws {
-        XCTAssertTrue(AuthLogoutPolicy.deletesLocalProfileOnSignOut)
+        XCTAssertTrue(AuthLogoutPolicy.preservesLocalUserDataOnSignOut)
 
         let harness = try makeHarness()
         _ = try harness.container.userProfileService.createProfile(

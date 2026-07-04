@@ -12,6 +12,16 @@ import SwiftData
 final class DailyReviewEntity {
 
     @Attribute(.unique) var id: UUID
+    /// Firebase UID that owns this daily review, when known.
+    var ownerUID: String?
+
+    // MARK: Account persistence (Phase 1)
+
+    /// Local mutation timestamp for account persistence bookkeeping.
+    var localUpdatedAt: Date?
+    /// Per-entity schema version for future lightweight migrations.
+    var entitySchemaVersion: Int = UserDataEntitySchema.currentEntitySchemaVersion
+
     var dailyLogId: UUID
     var summaryText: String
     var caloriesSummary: String
@@ -28,6 +38,7 @@ final class DailyReviewEntity {
 
     init(
         id: UUID,
+        ownerUID: String? = nil,
         dailyLogId: UUID,
         summaryText: String,
         caloriesSummary: String,
@@ -36,9 +47,12 @@ final class DailyReviewEntity {
         workoutSummary: String?,
         weightSummary: String?,
         tomorrowRecommendation: String,
-        createdAt: Date
+        createdAt: Date,
+        localUpdatedAt: Date? = nil,
+        entitySchemaVersion: Int = UserDataEntitySchema.currentEntitySchemaVersion
     ) {
         self.id = id
+        self.ownerUID = ownerUID
         self.dailyLogId = dailyLogId
         self.summaryText = summaryText
         self.caloriesSummary = caloriesSummary
@@ -48,5 +62,7 @@ final class DailyReviewEntity {
         self.weightSummary = weightSummary
         self.tomorrowRecommendation = tomorrowRecommendation
         self.createdAt = createdAt
+        self.localUpdatedAt = localUpdatedAt ?? createdAt
+        self.entitySchemaVersion = entitySchemaVersion
     }
 }

@@ -108,6 +108,26 @@ enum FormaSchemaV6: VersionedSchema {
     }
 }
 
+enum FormaSchemaV7: VersionedSchema {
+    static var versionIdentifier = Schema.Version(7, 0, 0)
+
+    /// Account persistence Phase 1: optional `ownerUID` on nutrition entities plus
+    /// `localUpdatedAt` / `entitySchemaVersion` bookkeeping on all active user-data rows.
+    /// Coach entities continue to use `userId` as the owner field.
+    static var models: [any PersistentModel.Type] {
+        [
+            UserProfileEntity.self,
+            DailyLogEntity.self,
+            FoodEntryEntity.self,
+            WaterEntryEntity.self,
+            WeightEntryEntity.self,
+            DailyReviewEntity.self,
+            CoachTimelineEventEntity.self,
+            CoachChatTranscriptMessageEntity.self
+        ]
+    }
+}
+
 enum FormaMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
         [
@@ -116,7 +136,8 @@ enum FormaMigrationPlan: SchemaMigrationPlan {
             FormaSchemaV3.self,
             FormaSchemaV4.self,
             FormaSchemaV5.self,
-            FormaSchemaV6.self
+            FormaSchemaV6.self,
+            FormaSchemaV7.self
         ]
     }
 
@@ -141,6 +162,10 @@ enum FormaMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(
                 fromVersion: FormaSchemaV5.self,
                 toVersion: FormaSchemaV6.self
+            ),
+            MigrationStage.lightweight(
+                fromVersion: FormaSchemaV6.self,
+                toVersion: FormaSchemaV7.self
             )
         ]
     }

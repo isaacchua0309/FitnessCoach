@@ -56,6 +56,7 @@ extension CoachChatTranscriptMessageEntity {
     }
 
     func update(from model: ChatMessage, updatedAt: Date = Date()) {
+        // `userId` is intentionally preserved — ownership must not change on edit.
         let imagePayload = Self.imagePersistencePayload(from: model.imageAttachment)
         let link = model.photoAnalysisLink
 
@@ -75,6 +76,7 @@ extension CoachChatTranscriptMessageEntity {
         photoAnalysisLinkKindRaw = link?.kind.rawValue
         structuredContentJSON = CoachChatTranscriptStructuredContentCoding.encode(model.structuredContent)
         self.updatedAt = updatedAt
+        self.localUpdatedAt = updatedAt
     }
 
     func toModel() -> ChatMessage {

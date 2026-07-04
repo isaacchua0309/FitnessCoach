@@ -49,6 +49,12 @@ final class ProfileBootstrapService {
         try userProfileService.assignOwnerUID(uid)
     }
 
+    /// Resolves signed-in profile routing (local match, ownership conflict, or cloud restore).
+    ///
+    /// Callers must finish `AccountDataNamespaceService.prepareForSignedInUID` and
+    /// `AccountMigrationService.runSafeBackfill` before this runs so nutrition/coach reads
+    /// see correctly namespaced rows. `AuthGateCoordinator.reconcileSignedInProfile` enforces
+    /// that ordering.
     func resolve(uid: String) async throws -> ProfileBootstrapResult {
         ProfileBootstrapDebugLogger.event("profile_bootstrap_started", fields: ["uid": uid])
         ProfileBootstrapDebugLogger.event("Resolving profile route", fields: ["uid": uid])
