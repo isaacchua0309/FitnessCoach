@@ -96,7 +96,9 @@ only for temporary emulator testing.
 | `/v1/ai/classify-coach-intent` | Cheap model Coach intent classification |
 | `/v1/ai/parse-command` | AI command parsing |
 | `/v1/ai/estimate-food` | Text or photo food estimate |
-| `/v1/ai/generate-meal-advice` | Meal, calorie, macro, and coaching text |
+| `/v1/ai/generate-meal-advice` | Meal, calorie, macro, and coaching text (`question` field) |
+| `/v1/ai/generate-nutrition-estimate` | Structured nutrition estimate card (`question` field) |
+| `/v1/ai/generate-nutrition-comparison` | Structured nutrition comparison card (`question` field) |
 | `/v1/ai/generate-daily-review` | Daily review narrative |
 | `/v1/ai/parse-workout` | Workout parsing |
 | `/v1/ai/parse-edit-delete` | Edit/delete intent parsing |

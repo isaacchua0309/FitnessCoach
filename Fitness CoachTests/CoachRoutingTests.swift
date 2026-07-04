@@ -28,6 +28,7 @@ final class CoachRoutingTests: XCTestCase {
 
     func testDeterministicCommandsRouteLocally() async throws {
         try await assertLocalGuard("add 500ml water", expectedHandler: "local_command")
+        try await assertLocalGuard("500ml of water", expectedHandler: "local_command")
         try await assertLocalGuard("drank 1.5L water", expectedHandler: "local_command")
         try await assertLocalGuard("weight 90.15", expectedHandler: "local_command")
         try await assertLocalGuard("status", expectedHandler: "local_command")
@@ -167,6 +168,14 @@ final class CoachRoutingTests: XCTestCase {
 
     func testCaloriesLeftStaysLocal() async throws {
         try await assertLocalGuard("how many calories left", expectedHandler: "local_command")
+    }
+
+    func testMilkVolumeDoesNotRouteToLocalWater() async throws {
+        try await assertDoesNotRouteToLocalWater("300ml of milk")
+    }
+
+    func testJuiceVolumeDoesNotRouteToLocalWater() async throws {
+        try await assertDoesNotRouteToLocalWater("300ml of strawberry juice")
     }
 
     // MARK: - Cheap classifier routing
@@ -601,6 +610,23 @@ final class CoachRoutingTests: XCTestCase {
     }
 
     // MARK: - Helpers
+
+    private func assertDoesNotRouteToLocalWater(
+        _ text: String,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) async throws {
+        let service = RecordingAIService()
+        let decision = try await CoachRouteDecider().decide(
+            text: text,
+            context: .test,
+            aiService: service,
+            config: .default
+        )
+
+        XCTAssertNotEqual(decision.chosenHandler, "local_command", file: file, line: line)
+        XCTAssertEqual(service.classifyCoachIntentCallCount, 1, file: file, line: line)
+    }
 
     private func assertLocalGuard(
         _ text: String,

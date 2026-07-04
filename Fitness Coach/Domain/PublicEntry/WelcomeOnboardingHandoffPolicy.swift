@@ -25,7 +25,9 @@ enum WelcomeOnboardingHandoffPolicy {
     }
 
     /// Pre-auth onboarding from welcome never requires sign-in before the flow starts.
-    static let requiresSignInBeforeOnboarding = false
+    static var requiresSignInBeforeOnboarding: Bool {
+        FormaAbTest.Auth.requiresSignInBeforeOnboarding
+    }
 
     /// Save-plan completion for pre-auth onboarding still uses Google sign-in at the tail.
     static var requiresGoogleSignInAtSavePlan: Bool { true }

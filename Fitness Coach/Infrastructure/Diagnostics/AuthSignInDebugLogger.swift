@@ -12,12 +12,9 @@ import OSLog
 enum AuthSignInDebugLogger {
 
     #if DEBUG
-    /// Enabled in DEBUG unless `FITPILOT_AUTH_SIGN_IN_TRACE=0`.
-    nonisolated static var isEnabled: Bool {
-        ProcessInfo.processInfo.environment["FITPILOT_AUTH_SIGN_IN_TRACE"] != "0"
-    }
+    nonisolated static var isEnabled: Bool { FormaAbTest.Diagnostics.authSignInTrace }
     #else
-    nonisolated static var isEnabled: Bool { false }
+    nonisolated static var isEnabled: Bool { FormaAbTest.Diagnostics.authSignInTrace }
     #endif
 
     nonisolated private static let logger = Logger(subsystem: "FitPilot", category: "AuthSignIn")

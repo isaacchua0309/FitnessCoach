@@ -25,7 +25,7 @@ final class CoachTimelineRegressionTests: XCTestCase {
         await model.send("log chicken rice bowl")
 
         XCTAssertNotNil(model.pendingConfirmation)
-        XCTAssertEqual(harness.actionCenter.getFoodEntries(for: harness.today).count, 0)
+        XCTAssertEqual(try harness.actionCenter.getFoodEntries(for: harness.today).count, 0)
 
         let pendingEvent = timelineStore.events.first { $0.type == .pendingConfirmationCreated }
         XCTAssertNotNil(pendingEvent)
@@ -67,7 +67,7 @@ final class CoachTimelineRegressionTests: XCTestCase {
         await model.send("weight 72.5")
 
         XCTAssertNil(model.pendingConfirmation)
-        XCTAssertEqual(try harness.dailyLogService.getTodayLog().weightKg, 72.5, accuracy: 0.01)
+        XCTAssertEqual(try harness.dailyLogService.getTodayLog().weightKg ?? 0, 72.5, accuracy: 0.01)
         XCTAssertTrue(model.messages.last?.text.contains("72.50") == true)
     }
 
@@ -76,7 +76,7 @@ final class CoachTimelineRegressionTests: XCTestCase {
     func testDailyReviewStillWorksWithTimeline() async throws {
         let harness = try CoachRoutingIntegrationTestSupport.makeHarness()
         try CoachRoutingIntegrationTestSupport.seedCoachProfile(in: harness)
-        _ = try harness.actionCenter.foodLogService.addFoodEntry(
+        _ = try harness.actionCenter.logFood(
             DailyLogServiceTestSupport.foodDraft(name: "Eggs", calories: 140, protein: 12),
             date: harness.today
         )

@@ -141,8 +141,6 @@ final class AppleHealthSettingsPresentationBuilderTests: XCTestCase {
         let remoteDate = Date()
         let presentation = build(
             integrationState: .connected,
-            isRemoteSyncCapabilityEnabled: true,
-            remoteSyncConsent: HealthSummarySyncConsentState(decision: .optedIn, updatedAt: remoteDate),
             remoteSyncState: HealthSummaryRemoteSyncState(
                 phase: .succeeded,
                 trigger: .manual,
@@ -153,11 +151,13 @@ final class AppleHealthSettingsPresentationBuilderTests: XCTestCase {
                 backoffUntil: nil,
                 updatedAt: remoteDate
             ),
+            isRemoteSyncCapabilityEnabled: true,
+            remoteSyncConsent: HealthSummarySyncConsentState(decision: .optedIn, updatedAt: remoteDate),
             now: remoteDate
         )
 
         XCTAssertNotNil(rowValue("last-remote-sync", in: presentation.healthDataDetailRows))
-        XCTAssertTrue(presentation.actions.contains(where: { $0.kind == .deleteRemoteHealthSummaries }))
+        XCTAssertTrue(presentation.actions.contains(where: { $0.kind == AppleHealthSettingsActionKind.deleteRemoteHealthSummaries }))
     }
 
     func testRemoteSyncActionsHiddenWhenCapabilityDisabled() {

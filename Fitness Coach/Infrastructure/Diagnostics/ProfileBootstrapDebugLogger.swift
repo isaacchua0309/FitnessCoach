@@ -46,12 +46,9 @@ enum ProfileBootstrapDebugLogger {
     }
 
     #if DEBUG
-    /// Enabled in DEBUG unless `FITPILOT_PROFILE_BOOTSTRAP_TRACE=0`.
-    nonisolated static var isVerboseEnabled: Bool {
-        ProcessInfo.processInfo.environment["FITPILOT_PROFILE_BOOTSTRAP_TRACE"] != "0"
-    }
+    nonisolated static var isVerboseEnabled: Bool { FormaAbTest.Diagnostics.profileBootstrapTrace }
     #else
-    nonisolated static var isVerboseEnabled: Bool { true }
+    nonisolated static var isVerboseEnabled: Bool { FormaAbTest.Diagnostics.profileBootstrapTrace }
     #endif
 
     nonisolated private static func emit(

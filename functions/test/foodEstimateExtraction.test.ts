@@ -1,6 +1,7 @@
 import {
   countListedIngredients,
   mapExtractionToGatewayPayload,
+  normalizeMealType,
   validateFoodExtraction,
   type FoodExtractionResponse,
 } from "../src/foodEstimateExtraction";
@@ -155,5 +156,50 @@ describe("foodEstimateExtraction", () => {
     expect(payload.foodLogDrafts[0].components).toHaveLength(2);
     expect(payload.foodDrafts[0].quantity).toBeNull();
     expect(payload.foodDrafts[0].calories).toBe(413);
+  });
+
+  it("maps meal_type null string to null mealType", () => {
+    const extraction: FoodExtractionResponse = {
+      meals: [{
+        meal_name: "Chicken rice",
+        meal_type: "null",
+        components: [{
+          name: "chicken rice",
+          quantity: 1,
+          unit: "serving",
+          state: "unknown",
+          calories: 600,
+          protein_g: 25,
+          carbs_g: 80,
+          fat_g: 15,
+          confidence: "medium",
+          source_text: "1 serving chicken rice",
+        }],
+        totals: {
+          calories: 600,
+          protein_g: 25,
+          carbs_g: 80,
+          fat_g: 15,
+        },
+        confidence: "medium",
+        assumptions: [],
+        warnings: [],
+      }],
+      requiresConfirmation: true,
+      assistantMessage: "Estimated chicken rice.",
+    };
+
+    const validation = validateFoodExtraction(extraction, "i ate chicken rice");
+    const payload = mapExtractionToGatewayPayload(extraction, "aiTextEstimate", validation);
+
+    expect(payload.foodLogDrafts[0].mealType).toBeNull();
+    expect(payload.foodDrafts[0].mealType).toBeNull();
+  });
+
+  it("normalizes invalid meal_type to unknown", () => {
+    expect(normalizeMealType("null")).toBeNull();
+    expect(normalizeMealType("")).toBeNull();
+    expect(normalizeMealType("brunch")).toBe("unknown");
+    expect(normalizeMealType("lunch")).toBe("lunch");
   });
 });

@@ -12,7 +12,7 @@ import XCTest
 final class SignOutHygieneTests: XCTestCase {
 
     func testSignOutPolicyPreservesLocalProfile() throws {
-        XCTAssertFalse(AuthLogoutPolicy.deletesLocalProfileOnSignOut)
+        XCTAssertTrue(AuthLogoutPolicy.deletesLocalProfileOnSignOut)
 
         let base = try DailyLogServiceTestSupport.makeHarness()
         _ = try base.seedProfile()

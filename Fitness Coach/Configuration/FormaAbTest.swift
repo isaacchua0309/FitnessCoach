@@ -1,0 +1,266 @@
+//
+//  FormaAbTest.swift
+//  Fitness Coach
+//
+//  Forma — Single source of truth for feature gates and rollout toggles.
+//  Change defaults here to flip behavior app-wide.
+//
+
+import Foundation
+
+// MARK: - FormaAbTest
+
+enum FormaAbTest {
+
+    /// Injectable override for unit tests. Reset to `nil` in `tearDown`.
+    nonisolated(unsafe) static var testOverride: FormaAbTestSnapshot?
+
+    // MARK: Health Intelligence
+
+    enum HealthIntelligence {
+        static var foundationEnabled: Bool { resolved.foundationEnabled }
+
+        static var enginesEnabled: Bool {
+            guard foundationEnabled else { return false }
+            return resolved.enginesEnabled
+        }
+
+        static var uiEnabled: Bool {
+            guard foundationEnabled else { return false }
+            return resolved.uiEnabled
+        }
+
+        static var coachContextEnabled: Bool {
+            guard foundationEnabled else { return false }
+            return resolved.coachContextEnabled
+        }
+
+        static var weeklyReviewEnabled: Bool {
+            guard foundationEnabled else { return false }
+            return resolved.weeklyReviewEnabled
+        }
+
+        static var syncEnabled: Bool {
+            guard foundationEnabled else { return false }
+            return resolved.syncEnabled
+        }
+
+        static var remoteSummarySyncEnabled: Bool {
+            guard foundationEnabled, syncEnabled else { return false }
+            return resolved.remoteSummarySyncEnabled
+        }
+
+        static var repositoryReadRoutingEnabled: Bool {
+            guard foundationEnabled else { return false }
+            return resolved.repositoryReadRoutingEnabled
+        }
+
+        static var pipelineAnalyticsEnabled: Bool {
+            guard foundationEnabled else { return false }
+            return resolved.pipelineAnalyticsEnabled
+        }
+
+        static var todayDebugFetchEnabled: Bool { resolved.todayDebugFetchEnabled }
+        static var journeyDebugFetchEnabled: Bool { resolved.journeyDebugFetchEnabled }
+        static var planDebugFetchEnabled: Bool { resolved.planDebugFetchEnabled }
+
+        static var shouldTodayModelLoad: Bool {
+            enginesEnabled && (uiEnabled || todayDebugFetchEnabled)
+        }
+
+        static var shouldCoachLoad: Bool {
+            enginesEnabled && coachContextEnabled
+        }
+
+        static var shouldJourneyModelLoad: Bool {
+            enginesEnabled && (uiEnabled || journeyDebugFetchEnabled)
+        }
+
+        static var shouldPlanModelLoad: Bool {
+            enginesEnabled && (uiEnabled || planDebugFetchEnabled)
+        }
+    }
+
+    // MARK: Coach
+
+    enum Coach {
+        static var aiCommandParsingEnabled: Bool { resolved.aiCommandParsingEnabled }
+        static var mealPhotoPipelineReady: Bool { resolved.mealPhotoPipelineReady }
+        static var pipelineTraceEnabled: Bool { resolved.pipelineTraceEnabled }
+        static var pipelineTraceVerbose: Bool { resolved.pipelineTraceVerbose }
+        static var imageAnalysisDebugLog: Bool { resolved.imageAnalysisDebugLog }
+        static var foodEstimateDebugLog: Bool { resolved.foodEstimateDebugLog }
+    }
+
+    // MARK: Today
+
+    enum Today {
+        static var scanFoodEnabled: Bool { resolved.scanFoodEnabled }
+    }
+
+    // MARK: Theme
+
+    enum Theme {
+        static var shipsLightAndSystemAppearance: Bool { resolved.shipsLightAndSystemAppearance }
+        static var supportsIncreasedContrastPaletteVariants: Bool {
+            resolved.supportsIncreasedContrastPaletteVariants
+        }
+        static var supportsReduceTransparencyCompositing: Bool {
+            resolved.supportsReduceTransparencyCompositing
+        }
+    }
+
+    // MARK: Settings
+
+    enum Settings {
+        static var dataExportEnabled: Bool { resolved.dataExportEnabled }
+        static var dataDeletionEnabled: Bool { resolved.dataDeletionEnabled }
+        static var shipsInAppLegalWithoutPublishedURL: Bool {
+            resolved.shipsInAppLegalWithoutPublishedURL
+        }
+        static var developerSectionVisible: Bool { resolved.developerSectionVisible }
+    }
+
+    // MARK: Auth
+
+    enum Auth {
+        static var supportsAnonymousSignIn: Bool { resolved.supportsAnonymousSignIn }
+        static var requiresSignInBeforeOnboarding: Bool { resolved.requiresSignInBeforeOnboarding }
+        static var deletesLocalProfileOnSignOut: Bool { resolved.deletesLocalProfileOnSignOut }
+        static var clearsCloudSyncMetadataOnSignOut: Bool { resolved.clearsCloudSyncMetadataOnSignOut }
+    }
+
+    // MARK: Build
+
+    enum Build {
+        static var internalBuildEnabled: Bool { resolved.internalBuildEnabled }
+        static var includesDeveloperTools: Bool { resolved.includesDeveloperTools }
+    }
+
+    // MARK: Diagnostics
+
+    enum Diagnostics {
+        static var todayAnalyticsTrace: Bool { resolved.todayAnalyticsTrace }
+        static var journeyAnalyticsTrace: Bool { resolved.journeyAnalyticsTrace }
+        static var onboardingAnalyticsTrace: Bool { resolved.onboardingAnalyticsTrace }
+        static var settingsAnalyticsTrace: Bool { resolved.settingsAnalyticsTrace }
+        static var themeAnalyticsTrace: Bool { resolved.themeAnalyticsTrace }
+        static var publicEntryAnalyticsTrace: Bool { resolved.publicEntryAnalyticsTrace }
+        static var healthIntelligenceAnalyticsTrace: Bool { resolved.healthIntelligenceAnalyticsTrace }
+        static var healthTrainingTrace: Bool { resolved.healthTrainingTrace }
+        static var profileBootstrapTrace: Bool { resolved.profileBootstrapTrace }
+        static var authSignInTrace: Bool { resolved.authSignInTrace }
+        static var todayHydrationTrace: Bool { resolved.todayHydrationTrace }
+    }
+
+    // MARK: Snapshot
+
+    static func snapshot() -> FormaAbTestSnapshot {
+        testOverride ?? .allEnabled
+    }
+
+    private static var resolved: FormaAbTestSnapshot {
+        testOverride ?? .allEnabled
+    }
+}
+
+// MARK: - Snapshot
+
+struct FormaAbTestSnapshot: Equatable, Sendable {
+    var foundationEnabled: Bool
+    var enginesEnabled: Bool
+    var uiEnabled: Bool
+    var coachContextEnabled: Bool
+    var weeklyReviewEnabled: Bool
+    var syncEnabled: Bool
+    var remoteSummarySyncEnabled: Bool
+    var repositoryReadRoutingEnabled: Bool
+    var pipelineAnalyticsEnabled: Bool
+    var todayDebugFetchEnabled: Bool
+    var journeyDebugFetchEnabled: Bool
+    var planDebugFetchEnabled: Bool
+
+    var aiCommandParsingEnabled: Bool
+    var mealPhotoPipelineReady: Bool
+    var pipelineTraceEnabled: Bool
+    var pipelineTraceVerbose: Bool
+    var imageAnalysisDebugLog: Bool
+    var foodEstimateDebugLog: Bool
+
+    var scanFoodEnabled: Bool
+
+    var shipsLightAndSystemAppearance: Bool
+    var supportsIncreasedContrastPaletteVariants: Bool
+    var supportsReduceTransparencyCompositing: Bool
+
+    var dataExportEnabled: Bool
+    var dataDeletionEnabled: Bool
+    var shipsInAppLegalWithoutPublishedURL: Bool
+    var developerSectionVisible: Bool
+
+    var supportsAnonymousSignIn: Bool
+    var requiresSignInBeforeOnboarding: Bool
+    var deletesLocalProfileOnSignOut: Bool
+    var clearsCloudSyncMetadataOnSignOut: Bool
+
+    var internalBuildEnabled: Bool
+    var includesDeveloperTools: Bool
+
+    var todayAnalyticsTrace: Bool
+    var journeyAnalyticsTrace: Bool
+    var onboardingAnalyticsTrace: Bool
+    var settingsAnalyticsTrace: Bool
+    var themeAnalyticsTrace: Bool
+    var publicEntryAnalyticsTrace: Bool
+    var healthIntelligenceAnalyticsTrace: Bool
+    var healthTrainingTrace: Bool
+    var profileBootstrapTrace: Bool
+    var authSignInTrace: Bool
+    var todayHydrationTrace: Bool
+
+    static let allEnabled = FormaAbTestSnapshot(
+        foundationEnabled: true,
+        enginesEnabled: true,
+        uiEnabled: true,
+        coachContextEnabled: true,
+        weeklyReviewEnabled: true,
+        syncEnabled: true,
+        remoteSummarySyncEnabled: true,
+        repositoryReadRoutingEnabled: true,
+        pipelineAnalyticsEnabled: true,
+        todayDebugFetchEnabled: true,
+        journeyDebugFetchEnabled: true,
+        planDebugFetchEnabled: true,
+        aiCommandParsingEnabled: true,
+        mealPhotoPipelineReady: true,
+        pipelineTraceEnabled: true,
+        pipelineTraceVerbose: true,
+        imageAnalysisDebugLog: true,
+        foodEstimateDebugLog: true,
+        scanFoodEnabled: true,
+        shipsLightAndSystemAppearance: true,
+        supportsIncreasedContrastPaletteVariants: true,
+        supportsReduceTransparencyCompositing: true,
+        dataExportEnabled: true,
+        dataDeletionEnabled: true,
+        shipsInAppLegalWithoutPublishedURL: true,
+        developerSectionVisible: true,
+        supportsAnonymousSignIn: true,
+        requiresSignInBeforeOnboarding: true,
+        deletesLocalProfileOnSignOut: true,
+        clearsCloudSyncMetadataOnSignOut: true,
+        internalBuildEnabled: true,
+        includesDeveloperTools: true,
+        todayAnalyticsTrace: true,
+        journeyAnalyticsTrace: true,
+        onboardingAnalyticsTrace: true,
+        settingsAnalyticsTrace: true,
+        themeAnalyticsTrace: true,
+        publicEntryAnalyticsTrace: true,
+        healthIntelligenceAnalyticsTrace: true,
+        healthTrainingTrace: true,
+        profileBootstrapTrace: true,
+        authSignInTrace: true,
+        todayHydrationTrace: true
+    )
+}

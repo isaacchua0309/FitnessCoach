@@ -343,7 +343,7 @@ final class AppContainer {
             #endif
         }
         aiService = AIService(llmClient: llmClient)
-        aiCommandParsingEnabled = true
+        aiCommandParsingEnabled = FormaAbTest.Coach.aiCommandParsingEnabled
 
         reviewService = ReviewService(
             store: store,

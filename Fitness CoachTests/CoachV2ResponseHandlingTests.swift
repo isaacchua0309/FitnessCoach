@@ -118,7 +118,7 @@ final class CoachV2ResponseHandlingTests: XCTestCase {
             sourceAttribution: .commonFoodReference
         )
 
-        guard case .pending(let confirmation, _) = result,
+        guard let confirmation = result.pendingConfirmation,
               case .food(let draft) = confirmation else {
             return XCTFail("Expected food pending confirmation")
         }
@@ -361,7 +361,7 @@ private final class MutationTimelineCapturingRecorder: CoachTimelineRecording, @
     func recordFoodEdited(entry: FoodEntry, supersedesEventId: UUID?, occurredAt: Date?) {}
 
     func recordFoodDeleted(entry: FoodEntry, supersedesEventId: UUID?, occurredAt: Date?) {
-        foodDeletedCalls.append(FoodDeletedCall(entry: entry, supersedesEventId: supersededEventId))
+        foodDeletedCalls.append(FoodDeletedCall(entry: entry, supersedesEventId: supersedesEventId))
     }
 
     func recordWaterLogged(entry: WaterEntry, occurredAt: Date?) {}

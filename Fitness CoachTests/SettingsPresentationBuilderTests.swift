@@ -159,9 +159,11 @@ final class SettingsPresentationBuilderTests: XCTestCase {
     }
 
     func testPrivacyPolicyRowHiddenWhenURLAndInAppContentUnavailable() {
-        let original = FormaLegalShippingPolicy.shipsInAppLegalDocumentsWithoutPublishedURL
-        defer { FormaLegalShippingPolicy.shipsInAppLegalDocumentsWithoutPublishedURL = original }
-        FormaLegalShippingPolicy.shipsInAppLegalDocumentsWithoutPublishedURL = false
+        let original = FormaAbTest.testOverride
+        defer { FormaAbTest.testOverride = original }
+        var snapshot = FormaAbTestSnapshot.allEnabled
+        snapshot.shipsInAppLegalWithoutPublishedURL = false
+        FormaAbTest.testOverride = snapshot
 
         let state = SettingsPresentationBuilder.build(
             input: makeInput(

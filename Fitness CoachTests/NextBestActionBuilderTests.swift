@@ -145,12 +145,12 @@ final class NextBestActionBuilderTests: XCTestCase {
             foodEntries: [foodEntry(mealType: .breakfast), foodEntry(mealType: .lunch)],
             proteinProgress: 0.95,
             waterProgress: 0.9,
-            calorieSummary: inProgressCalories,
-            trainingFrequencyPerWeek: 0
+            trainingFrequencyPerWeek: 0,
+            calorieSummary: inProgressCalories
         )
 
-        XCTAssertEqual(action.reason, .allTargetsMet)
-        XCTAssertEqual(action.primaryCTA, .none)
+        XCTAssertEqual(action.reason, TodayNextBestActionReason.allTargetsMet)
+        XCTAssertEqual(action.primaryCTA, TodayNextBestActionCTA.none)
         XCTAssertEqual(action.title, FormaProductCopy.Today.NextAction.allTargetsMetTitle)
     }
 

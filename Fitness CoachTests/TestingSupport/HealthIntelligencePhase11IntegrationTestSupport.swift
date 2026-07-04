@@ -314,6 +314,7 @@ enum HealthIntelligencePhase11IntegrationTestSupport {
         )
     }
 
+    @MainActor
     static func makeReviewService(harness: FitnessActionCenterTestSupport.Harness) -> ReviewService {
         ReviewService(
             store: harness.store,
@@ -327,6 +328,7 @@ enum HealthIntelligencePhase11IntegrationTestSupport {
         )
     }
 
+    @MainActor
     static func makeTrainingStore(connected: Bool) -> TrainingInsightsStore {
         TrainingInsightsStore(
             integration: StubTrainingIntegrationProvider(

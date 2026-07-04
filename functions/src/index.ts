@@ -1061,6 +1061,28 @@ function aiCoachResponseSchema(): ResponseSchema {
   };
 }
 
+function nutritionActionPayloadSchema(): JSONSchema {
+  const stringField = nullable({type: "string"});
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      foodName: stringField,
+      caloriesKcal: stringField,
+      proteinGrams: stringField,
+      carbsGrams: stringField,
+      fatGrams: stringField,
+      leftFoodName: stringField,
+      rightFoodName: stringField,
+      query: stringField,
+    },
+    required: [
+      "foodName", "caloriesKcal", "proteinGrams", "carbsGrams", "fatGrams",
+      "leftFoodName", "rightFoodName", "query",
+    ],
+  };
+}
+
 function nutritionSuggestedActionSchema(): JSONSchema {
   return {
     type: "object",
@@ -1073,10 +1095,7 @@ function nutritionSuggestedActionSchema(): JSONSchema {
         "logMeal", "estimateAnother", "addCommonSide", "addDrink",
         "compareAlternative", "healthierAlternative", "askFollowUp",
       ]),
-      payload: {
-        type: "object",
-        additionalProperties: {type: "string"},
-      },
+      payload: nutritionActionPayloadSchema(),
     },
   };
 }

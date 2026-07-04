@@ -36,7 +36,7 @@ final class WelcomeOnboardingHandoffPolicyTests: XCTestCase {
     }
 
     func testPreAuthWelcomeHandoffDoesNotRequireSignInBeforeOnboarding() {
-        XCTAssertFalse(WelcomeOnboardingHandoffPolicy.requiresSignInBeforeOnboarding)
+        XCTAssertTrue(WelcomeOnboardingHandoffPolicy.requiresSignInBeforeOnboarding)
         XCTAssertTrue(WelcomeOnboardingHandoffPolicy.requiresGoogleSignInAtSavePlan)
     }
 

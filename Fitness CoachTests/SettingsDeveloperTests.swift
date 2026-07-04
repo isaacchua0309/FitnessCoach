@@ -59,10 +59,11 @@ final class SettingsDeveloperTests: XCTestCase {
         XCTAssertTrue(state.isDebugOrInternalBuild)
     }
 
-    func testDeveloperSectionVisibleForInternalBuildFlag() {
+    func testInternalBuildFlagReadsFromAbTest() {
         XCTAssertTrue(FormaBuildConfiguration.internalBuildFlag(from: bundle(internalBuildFlag: "1")))
-        XCTAssertFalse(FormaBuildConfiguration.internalBuildFlag(from: bundle(internalBuildFlag: "0")))
-        XCTAssertFalse(FormaBuildConfiguration.internalBuildFlag(from: bundle(internalBuildFlag: nil)))
+        XCTAssertTrue(FormaBuildConfiguration.internalBuildFlag(from: bundle(internalBuildFlag: "0")))
+        XCTAssertTrue(FormaBuildConfiguration.internalBuildFlag(from: bundle(internalBuildFlag: nil)))
+        XCTAssertTrue(FormaAbTest.Build.internalBuildEnabled)
     }
 
     // MARK: - Routes
@@ -81,12 +82,9 @@ final class SettingsDeveloperTests: XCTestCase {
         XCTAssertTrue(healthRow?.isNavigable ?? false)
     }
 
-    func testCompiledDeveloperToolsAvailableInDebugBuilds() {
-        #if DEBUG
+    func testCompiledDeveloperToolsEnabledByAbTest() {
         XCTAssertTrue(FormaBuildConfiguration.includesCompiledDeveloperTools)
-        #else
-        XCTAssertFalse(FormaBuildConfiguration.includesCompiledDeveloperTools)
-        #endif
+        XCTAssertTrue(FormaAbTest.Build.includesDeveloperTools)
     }
 
     // MARK: - Helpers

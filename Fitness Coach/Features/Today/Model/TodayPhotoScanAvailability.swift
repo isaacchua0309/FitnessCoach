@@ -11,9 +11,6 @@ enum TodayPhotoScanAvailability {
 
     /// True when meal photos reach the AI photo pipeline with image bytes attached.
     static var isPipelineReady: Bool {
-        if ProcessInfo.processInfo.environment["FORMA_TODAY_SCAN_FOOD_DISABLED"] == "1" {
-            return false
-        }
-        return CoachMealPhotoPipeline.isClientPipelineReady
+        FormaAbTest.Today.scanFoodEnabled && FormaAbTest.Coach.mealPhotoPipelineReady
     }
 }

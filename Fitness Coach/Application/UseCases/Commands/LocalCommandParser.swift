@@ -121,12 +121,11 @@ struct LocalCommandParser {
     // MARK: Water
 
     private func parseWater(normalized: String, original: String) -> CommandParseResult? {
-        let explicitMl = CommandParserUtilities.extractWaterAmountMl(from: normalized)
-        let mentionsWater = CommandParserUtilities.containsWord("water", in: normalized)
-        guard explicitMl != nil || mentionsWater else { return nil }
+        guard CommandParserUtilities.containsWord("water", in: normalized) else { return nil }
 
         // Prefer an explicit unit; otherwise assume a bare number is millilitres.
-        let amountMl = explicitMl ?? CommandParserUtilities.firstInt(in: normalized)
+        let amountMl = CommandParserUtilities.extractWaterAmountMl(from: normalized)
+            ?? CommandParserUtilities.firstInt(in: normalized)
         guard let amountMl else {
             return .invalid(
                 originalText: original,

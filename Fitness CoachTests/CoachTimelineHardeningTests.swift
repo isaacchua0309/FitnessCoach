@@ -205,7 +205,7 @@ final class CoachContextDegradedModeTests: XCTestCase {
         guard let harness else { return XCTFail("Harness failed") }
         try? harness.seedProfile()
 
-        let healthQuery = FakeCoachTimelineHealthActivityQuery()
+        var healthQuery = FakeCoachTimelineHealthActivityQuery()
         healthQuery.stepsError = HealthKitManagerError.authorizationDenied
         healthQuery.workoutsError = HealthKitManagerError.authorizationDenied
 

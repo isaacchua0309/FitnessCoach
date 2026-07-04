@@ -89,10 +89,7 @@ enum CoachFoodEstimateDebugLogger {
     #if DEBUG
     private static let logger = Logger(subsystem: "Forma", category: "CoachFoodEstimate")
 
-    /// Disable with `FORMA_FOOD_ESTIMATE_DEBUG=0`.
-    static var isEnabled: Bool {
-        ProcessInfo.processInfo.environment["FORMA_FOOD_ESTIMATE_DEBUG"] != "0"
-    }
+    static var isEnabled: Bool { FormaAbTest.Coach.foodEstimateDebugLog }
 
     private static func emit(_ snapshot: CoachFoodEstimateDebugSnapshot) {
         let parsedMeal = snapshot.llmMealDraft ?? snapshot.fallbackMealDraft ?? snapshot.sanitizedMealDraft

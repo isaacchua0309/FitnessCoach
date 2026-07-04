@@ -85,6 +85,36 @@ final class FoodLogDraftTests: XCTestCase {
         XCTAssertNil(entry.quantity)
     }
 
+    func testDecodesLiteralNullMealTypeStringAsNil() throws {
+        let json = """
+        {
+          "displayName": "Chicken rice",
+          "mealType": "null",
+          "components": [],
+          "confidence": "medium",
+          "source": "aiTextEstimate"
+        }
+        """.data(using: .utf8)!
+
+        let draft = try JSONDecoder().decode(FoodLogDraft.self, from: json)
+        XCTAssertNil(draft.mealType)
+    }
+
+    func testDecodesEmptyMealTypeStringAsNil() throws {
+        let json = """
+        {
+          "displayName": "Chicken rice",
+          "mealType": "  ",
+          "components": [],
+          "confidence": "medium",
+          "source": "aiTextEstimate"
+        }
+        """.data(using: .utf8)!
+
+        let draft = try JSONDecoder().decode(FoodLogDraft.self, from: json)
+        XCTAssertNil(draft.mealType)
+    }
+
     private func sampleBowlMeal() -> FoodLogDraft {
         FoodLogDraft(
             displayName: "Chicken barley bowl",

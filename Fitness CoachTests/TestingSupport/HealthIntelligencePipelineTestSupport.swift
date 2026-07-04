@@ -41,7 +41,7 @@ final class HealthIntelligencePipelineTestHarness {
             nutritionProvider: nutritionProvider,
             weightProvider: weightProvider,
             userPlanProvider: userPlanProvider,
-            clock: FixedPipelineClock(now: clockDay, calendar: calendar)
+            clock: FixedPipelineClock(nowValue: clockDay, calendarValue: calendar)
         )
         self.engine = HealthIntelligenceEngine(
             contextBuilder: contextBuilder,
@@ -372,8 +372,8 @@ enum HealthIntelligencePipelineFixtures {
                 makeWorkout(
                     on: date,
                     duration: 40,
-                    energy: 300,
                     category: .running,
+                    energy: 300,
                     calendar: calendar
                 )
             )

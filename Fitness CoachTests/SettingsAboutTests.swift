@@ -55,9 +55,11 @@ final class SettingsAboutTests: XCTestCase {
     }
 
     func testTermsRowHiddenWhenUnavailable() {
-        let original = FormaLegalShippingPolicy.shipsInAppLegalDocumentsWithoutPublishedURL
-        defer { FormaLegalShippingPolicy.shipsInAppLegalDocumentsWithoutPublishedURL = original }
-        FormaLegalShippingPolicy.shipsInAppLegalDocumentsWithoutPublishedURL = false
+        let original = FormaAbTest.testOverride
+        defer { FormaAbTest.testOverride = original }
+        var snapshot = FormaAbTestSnapshot.allEnabled
+        snapshot.shipsInAppLegalWithoutPublishedURL = false
+        FormaAbTest.testOverride = snapshot
 
         let section = SettingsAboutPresentationBuilder.buildSection(
             input: makeAboutInput(
@@ -93,9 +95,6 @@ final class SettingsAboutTests: XCTestCase {
     // MARK: - Missing URL fallback
 
     func testMissingURLFallbackDoesNotCrash() {
-        let original = FormaLegalShippingPolicy.shipsInAppLegalDocumentsWithoutPublishedURL
-        defer { FormaLegalShippingPolicy.shipsInAppLegalDocumentsWithoutPublishedURL = original }
-
         let availability = SettingsLegalAvailability(termsURL: nil, privacyPolicyURL: nil)
         XCTAssertTrue(availability.isTermsAvailable)
 

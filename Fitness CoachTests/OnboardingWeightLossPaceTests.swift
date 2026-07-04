@@ -313,10 +313,10 @@ final class OnboardingWeightLossPaceNavigationTests: XCTestCase {
     }
 
     func testCutGoalAdvancesFromTargetWeightToPaceStep() throws {
-        let model = try makePostAuthModel()
-        prepareHeightWeight(&model.formState)
-        model.currentStep = .targetWeight
-        OnboardingTargetWeightValues.setGoalFromDeltaKg(-5, in: &model.formState)
+        var formState = OnboardingFormState()
+        prepareHeightWeight(&formState)
+        OnboardingTargetWeightValues.setGoalFromDeltaKg(-5, in: &formState)
+        let model = try makePostAuthModel(at: .targetWeight, formState: formState)
 
         model.goNext()
 
@@ -324,10 +324,10 @@ final class OnboardingWeightLossPaceNavigationTests: XCTestCase {
     }
 
     func testMaintainGoalAdvancesFromTargetWeightToTargetEncouragementSkippingPace() throws {
-        let model = try makePostAuthModel()
-        prepareHeightWeight(&model.formState)
-        model.currentStep = .targetWeight
-        OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &model.formState)
+        var formState = OnboardingFormState()
+        prepareHeightWeight(&formState)
+        OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &formState)
+        let model = try makePostAuthModel(at: .targetWeight, formState: formState)
 
         model.goNext()
 
@@ -335,10 +335,10 @@ final class OnboardingWeightLossPaceNavigationTests: XCTestCase {
     }
 
     func testGainGoalAdvancesFromTargetWeightToTargetEncouragementSkippingPace() throws {
-        let model = try makePostAuthModel()
-        prepareHeightWeight(&model.formState)
-        model.currentStep = .targetWeight
-        OnboardingTargetWeightValues.setGoalWeightKg(75, in: &model.formState)
+        var formState = OnboardingFormState()
+        prepareHeightWeight(&formState)
+        OnboardingTargetWeightValues.setGoalWeightKg(75, in: &formState)
+        let model = try makePostAuthModel(at: .targetWeight, formState: formState)
 
         model.goNext()
 
@@ -346,9 +346,8 @@ final class OnboardingWeightLossPaceNavigationTests: XCTestCase {
     }
 
     func testCutGoalBackFromTargetEncouragementReturnsToPaceStep() throws {
-        let model = try makePostAuthModel()
-        prepareCutGoalForm(&model.formState)
-        model.currentStep = .targetEncouragement
+        var formState = prepareCutGoalFormState()
+        let model = try makePostAuthModel(at: .targetEncouragement, formState: formState)
 
         model.goBack()
 
@@ -356,10 +355,10 @@ final class OnboardingWeightLossPaceNavigationTests: XCTestCase {
     }
 
     func testMaintainGoalBackFromTargetEncouragementSkipsPaceStep() throws {
-        let model = try makePostAuthModel()
-        prepareHeightWeight(&model.formState)
-        OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &model.formState)
-        model.currentStep = .targetEncouragement
+        var formState = OnboardingFormState()
+        prepareHeightWeight(&formState)
+        OnboardingTargetWeightValues.applyDefaultsIfNeeded(to: &formState)
+        let model = try makePostAuthModel(at: .targetEncouragement, formState: formState)
 
         model.goBack()
 
@@ -368,7 +367,11 @@ final class OnboardingWeightLossPaceNavigationTests: XCTestCase {
 
     // MARK: - Helpers
 
-    private func makePostAuthModel() throws -> OnboardingModel {
+    private func makePostAuthModel(
+        at step: OnboardingStep,
+        formState: OnboardingFormState
+    ) throws -> OnboardingModel {
+        draftStore.saveDraft(OnboardingDraft(formState: formState, step: step))
         let container = try AppContainer(inMemory: true)
         return OnboardingModel(
             actionCenter: container.actionCenter,
@@ -381,9 +384,19 @@ final class OnboardingWeightLossPaceNavigationTests: XCTestCase {
         )
     }
 
+    private func makePostAuthModel() throws -> OnboardingModel {
+        try makePostAuthModel(at: .targetWeight, formState: OnboardingFormState())
+    }
+
     private func prepareHeightWeight(_ formState: inout OnboardingFormState) {
         OnboardingHeightWeightValues.applyDefaultsIfNeeded(to: &formState)
         formState.sex = .female
+    }
+
+    private func prepareCutGoalFormState() -> OnboardingFormState {
+        var formState = OnboardingFormState()
+        prepareCutGoalForm(&formState)
+        return formState
     }
 
     private func prepareCutGoalForm(_ formState: inout OnboardingFormState) {

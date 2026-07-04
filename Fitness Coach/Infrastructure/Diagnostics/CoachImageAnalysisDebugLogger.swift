@@ -472,9 +472,6 @@ enum CoachImageAnalysisDebugLogger {
     #if DEBUG
     private static let logger = Logger(subsystem: "Forma", category: "CoachImageAnalysis")
 
-    /// Disable with `FORMA_COACH_IMAGE_ANALYSIS_DEBUG=0`.
-    static var isEnabled: Bool {
-        ProcessInfo.processInfo.environment["FORMA_COACH_IMAGE_ANALYSIS_DEBUG"] != "0"
-    }
+    static var isEnabled: Bool { FormaAbTest.Coach.imageAnalysisDebugLog }
     #endif
 }

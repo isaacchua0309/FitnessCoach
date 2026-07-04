@@ -49,7 +49,7 @@ struct PipelineDiagnosticsView: View {
             } header: {
                 FormaSettingsSectionHeader(title: "Recent traces")
             } footer: {
-                Text("Set FORMA_PIPELINE_TRACE_VERBOSE=1 (or legacy FITPILOT_PIPELINE_TRACE_VERBOSE=1) in the Xcode scheme for request/response body snippets. Disable tracing with FORMA_PIPELINE_TRACE=0.")
+                Text("Toggle verbose pipeline traces in FormaAbTest.Coach.pipelineTraceVerbose.")
                     .font(FormaTokens.Typography.caption)
                     .foregroundStyle(FormaTokens.Color.textTertiary)
             }

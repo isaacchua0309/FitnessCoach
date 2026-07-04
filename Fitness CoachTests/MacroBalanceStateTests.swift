@@ -22,7 +22,7 @@ final class MacroBalanceStateTests: XCTestCase {
         XCTAssertEqual(row.ratioText, "92 / 180g")
         XCTAssertEqual(row.remainingText, "88g remaining")
         XCTAssertEqual(row.barProgress, 92 / 180, accuracy: accuracy)
-        XCTAssertTrue(row.isProteinPriority)
+        XCTAssertEqual(row.emphasis, .primary)
         XCTAssertEqual(row.accessibilityLabel, "Protein")
         XCTAssertTrue(row.accessibilityValue.contains("92 / 180g"))
         XCTAssertTrue(row.accessibilityValue.contains("88g remaining"))

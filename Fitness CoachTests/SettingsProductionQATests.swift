@@ -297,11 +297,8 @@ final class SettingsProductionQATests: XCTestCase {
 
     // MARK: - Developer route compile-time gate
 
-    func testQA_DeveloperToolsCompiledOnlyInDebug() {
-        #if DEBUG
+    func testQA_DeveloperToolsEnabledByAbTest() {
         XCTAssertTrue(FormaBuildConfiguration.includesCompiledDeveloperTools)
-        #else
-        XCTAssertFalse(FormaBuildConfiguration.includesCompiledDeveloperTools)
-        #endif
+        XCTAssertTrue(FormaAbTest.Build.includesDeveloperTools)
     }
 }

@@ -32,7 +32,7 @@ enum SettingsPresentationBuilder {
                 )
             ),
             developer: SettingsDeveloperPresentationBuilder.buildSection(
-                isVisible: input.isDebugOrInternalBuild
+                isVisible: FormaAbTest.Settings.developerSectionVisible && input.isDebugOrInternalBuild
             ),
             legalAvailability: input.legalAvailability,
             isDebugOrInternalBuild: input.isDebugOrInternalBuild

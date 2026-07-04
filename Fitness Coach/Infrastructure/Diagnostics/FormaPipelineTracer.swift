@@ -74,16 +74,9 @@ enum FormaPipelineTracer {
 
     static var debugRecordHandler: ((DebugRecord) -> Void)?
 
-    static var isEnabled: Bool {
-        FormaEnvironment.isTracingEnabled(
-            primary: "FORMA_PIPELINE_TRACE",
-            legacy: "FITPILOT_PIPELINE_TRACE"
-        )
-    }
+    static var isEnabled: Bool { FormaAbTest.Coach.pipelineTraceEnabled }
 
-    static var isVerbose: Bool {
-        FormaEnvironment.string(primary: "FORMA_PIPELINE_TRACE_VERBOSE", legacy: "FITPILOT_PIPELINE_TRACE_VERBOSE") == "1"
-    }
+    static var isVerbose: Bool { FormaAbTest.Coach.pipelineTraceVerbose }
 
     static var usesExtendedHTTPTimeout: Bool {
         isEnabled

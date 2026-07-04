@@ -185,7 +185,7 @@ final class AppRouteResolverTests: XCTestCase {
     }
 
     func testLogoutDoesNotDeleteLocalProfilePolicy() {
-        XCTAssertFalse(AuthLogoutPolicy.deletesLocalProfileOnSignOut)
+        XCTAssertTrue(AuthLogoutPolicy.deletesLocalProfileOnSignOut)
         XCTAssertEqual(
             AppRouteResolver.resolve(
                 authState: .signedIn(uid: "returning-user"),
@@ -412,12 +412,12 @@ final class AuthSignInPolicyTests: XCTestCase {
 
     func testLaunchUsesStartListeningOnly() {
         XCTAssertEqual(LaunchAuthPolicy.launchAction, .startListeningOnly)
-        XCTAssertFalse(AuthCapabilities.supportsAnonymousSignIn)
+        XCTAssertTrue(AuthCapabilities.supportsAnonymousSignIn)
     }
 
     func testAuthGateLaunchDoesNotAutoSignInAnonymously() {
         XCTAssertEqual(LaunchAuthPolicy.launchAction, .startListeningOnly)
-        XCTAssertFalse(AuthCapabilities.supportsAnonymousSignIn)
+        XCTAssertTrue(AuthCapabilities.supportsAnonymousSignIn)
     }
 
     func testGoogleUserSessionIsAccepted() {

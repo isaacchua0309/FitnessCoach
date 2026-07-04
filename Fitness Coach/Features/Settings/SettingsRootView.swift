@@ -340,6 +340,7 @@ struct SettingsRootView: View {
     @ViewBuilder
     private func developerDestinationView(for destination: SettingsRowDestination) -> some View {
         if presentationState.isDebugOrInternalBuild,
+           FormaAbTest.Settings.developerSectionVisible,
            FormaBuildConfiguration.includesCompiledDeveloperTools {
             switch destination {
             case .authDiagnostics:

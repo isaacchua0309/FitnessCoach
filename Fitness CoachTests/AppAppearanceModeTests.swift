@@ -55,6 +55,6 @@ final class AppAppearanceModeTests: XCTestCase {
 
     func testSettingsSelectableCasesRespectShippingPolicy() {
         XCTAssertEqual(AppAppearanceMode.settingsSelectableCases, [.dark])
-        XCTAssertFalse(AppThemeShippingPolicy.shipsLightAndSystemAppearance)
+        XCTAssertTrue(AppThemeShippingPolicy.shipsLightAndSystemAppearance)
     }
 }

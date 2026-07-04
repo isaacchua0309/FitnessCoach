@@ -127,10 +127,7 @@ enum HealthTrainingDebugLogger {
     #if DEBUG
     nonisolated private static let logger = Logger(subsystem: "FitPilot", category: "HealthTraining")
 
-    /// Enabled in DEBUG unless `FITPILOT_HEALTH_TRACE=0`.
-    nonisolated static var isEnabled: Bool {
-        ProcessInfo.processInfo.environment["FITPILOT_HEALTH_TRACE"] != "0"
-    }
+    nonisolated static var isEnabled: Bool { FormaAbTest.Diagnostics.healthTrainingTrace }
     #endif
 }
 

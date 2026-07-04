@@ -3,6 +3,7 @@ import {
   resetGatewayGuardrailsForTests,
 } from "../src/gatewayGuardrails";
 import {minimalCoachContextV2} from "./fixtures/coachContextPacketV2";
+import {openAIOutputTextForSchema} from "./fixtures/openaiFixtures";
 import {createMockRequest, createMockResponse} from "./helpers/mockHttp";
 
 const verifyIdTokenMock = jest.fn();
@@ -51,6 +52,70 @@ describe("gatewayGuardrails normalization", () => {
       status: 200,
       json: async () => ({output_text: "{}"}),
     });
+  });
+
+  it("accepts nutrition estimate requests with question field", async () => {
+    fetchMock.mockImplementation(async (_url, init) => {
+      const requestBody = JSON.parse(String(init?.body));
+      const schemaName = requestBody?.text?.format?.name as string;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          output_text: openAIOutputTextForSchema(schemaName),
+        }),
+      };
+    });
+
+    const request = createMockRequest({
+      path: "/v1/ai/generate-nutrition-estimate",
+      headers: {Authorization: "Bearer test-token"},
+      body: {
+        question: "Calories in a Big Mac",
+        context: {...minimalCoachContextV2},
+      },
+    });
+    const response = createMockResponse();
+
+    await handleAiGatewayRequest(request, response);
+
+    expect(response.statusCode).toBe(200);
+    expect(fetchMock).toHaveBeenCalled();
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    const input = JSON.parse(requestBody.input);
+    expect(input.question).toBe("Calories in a Big Mac");
+  });
+
+  it("accepts nutrition estimate requests with legacy text field", async () => {
+    fetchMock.mockImplementation(async (_url, init) => {
+      const requestBody = JSON.parse(String(init?.body));
+      const schemaName = requestBody?.text?.format?.name as string;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          output_text: openAIOutputTextForSchema(schemaName),
+        }),
+      };
+    });
+
+    const request = createMockRequest({
+      path: "/v1/ai/generate-nutrition-estimate",
+      headers: {Authorization: "Bearer test-token"},
+      body: {
+        text: "Calories in a Big Mac",
+        context: {...minimalCoachContextV2},
+      },
+    });
+    const response = createMockResponse();
+
+    await handleAiGatewayRequest(request, response);
+
+    expect(response.statusCode).toBe(200);
+    expect(fetchMock).toHaveBeenCalled();
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    const input = JSON.parse(requestBody.input);
+    expect(input.question).toBe("Calories in a Big Mac");
   });
 
   it("strips zero-width characters and normalizes full-width digits", () => {

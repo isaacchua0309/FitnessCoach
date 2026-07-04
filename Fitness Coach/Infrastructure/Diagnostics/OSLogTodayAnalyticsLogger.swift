@@ -25,9 +25,7 @@ enum TodayAnalyticsDebugLogger {
 
     nonisolated private static let logger = Logger(subsystem: "FitPilot", category: "TodayAnalytics")
 
-    nonisolated static var isEnabled: Bool {
-        ProcessInfo.processInfo.environment["FITPILOT_TODAY_ANALYTICS_TRACE"] != "0"
-    }
+    nonisolated static var isEnabled: Bool { FormaAbTest.Diagnostics.todayAnalyticsTrace }
 
     nonisolated static func event(_ message: String, fields: [String: String] = [:]) {
         guard isEnabled else { return }

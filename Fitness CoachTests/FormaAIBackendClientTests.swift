@@ -336,6 +336,20 @@ private extension FormaAIBackendClientTests {
             _ = try await client.generateMealAdvice(
                 request: AIMealAdviceRequest(question: "Pasta tonight?", context: Self.sampleCoachContext)
             )
+        case .nutritionEstimate:
+            _ = try await client.generateNutritionEstimate(
+                request: AINutritionEstimateRequest(
+                    question: "Calories in a Big Mac",
+                    context: Self.sampleCoachContext
+                )
+            )
+        case .nutritionComparison:
+            _ = try await client.generateNutritionComparison(
+                request: AINutritionComparisonRequest(
+                    question: "Big Mac vs McSpicy",
+                    context: Self.sampleCoachContext
+                )
+            )
         case .dailyReview:
             _ = try await client.generateDailyReview(
                 request: AIDailyReviewRequest(input: Self.sampleDailyReviewInput, context: Self.sampleCoachContext)
@@ -384,6 +398,10 @@ private extension FormaAIBackendClientTests {
             return validFoodEstimateResponseData
         case .mealAdvice, .dailyReview:
             return validCoachResponseData
+        case .nutritionEstimate:
+            return validNutritionEstimateResponseData
+        case .nutritionComparison:
+            return validNutritionComparisonResponseData
         case .parseWorkout:
             return validWorkoutParseResponseData
         case .analyzeMealImage:
@@ -418,6 +436,18 @@ private extension FormaAIBackendClientTests {
     static let validCoachResponseData = Data(
         """
         {"response":{"message":"Looks good.","confidence":"high","followUpSuggestions":[]}}
+        """.utf8
+    )
+
+    static let validNutritionEstimateResponseData = Data(
+        """
+        {"estimate":{"type":"nutrition_estimate","foodName":"Big Mac","displayEmoji":"🍔","caloriesKcal":550,"caloriesRangeLowerKcal":null,"caloriesRangeUpperKcal":null,"proteinGrams":25,"carbsGrams":45,"fatGrams":30,"servingDescription":"1 burger","confidenceLevel":"high","confidenceLabel":"High","confidenceReason":"Common item.","sourceType":"branded","coachSummary":"Estimate summary.","coachTip":"Tip.","caveats":[],"suggestedActions":[{"id":"log","title":"Log meal","type":"logMeal","payload":{"foodName":"Big Mac"}}]}}
+        """.utf8
+    )
+
+    static let validNutritionComparisonResponseData = Data(
+        """
+        {"comparison":{"type":"nutrition_comparison","leftItem":{"id":"left","foodName":"Big Mac","displayEmoji":"🍔","caloriesKcal":550,"caloriesRangeLowerKcal":null,"caloriesRangeUpperKcal":null,"proteinGrams":25,"carbsGrams":45,"fatGrams":30,"servingDescription":"1 burger"},"rightItem":{"id":"right","foodName":"McSpicy","displayEmoji":"🍔","caloriesKcal":540,"caloriesRangeLowerKcal":null,"caloriesRangeUpperKcal":null,"proteinGrams":27,"carbsGrams":43,"fatGrams":29,"servingDescription":"1 burger"},"coachPick":"McSpicy has slightly more protein.","suggestedActions":[{"id":"estimate","title":"Estimate another","type":"estimateAnother","payload":{}}]}}
         """.utf8
     )
 

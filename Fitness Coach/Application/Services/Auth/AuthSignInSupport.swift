@@ -16,7 +16,7 @@ enum LaunchAuthPolicy {
 }
 
 enum AuthCapabilities {
-    static let supportsAnonymousSignIn = false
+    static var supportsAnonymousSignIn: Bool { FormaAbTest.Auth.supportsAnonymousSignIn }
 }
 
 enum AuthSignInUserMessage {

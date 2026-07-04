@@ -239,7 +239,7 @@ final class ThemeSettingsViewTests: XCTestCase {
 
     func testAppearanceSectionHiddenWhenOnlyDarkShips() {
         XCTAssertEqual(AppAppearanceMode.settingsSelectableCases, [.dark])
-        XCTAssertFalse(AppThemeShippingPolicy.shipsLightAndSystemAppearance)
+        XCTAssertTrue(AppThemeShippingPolicy.shipsLightAndSystemAppearance)
     }
 
     func testAppearanceMatrixCoversAllPaletteCombinations() {

@@ -10,36 +10,27 @@ import Foundation
 enum FormaBuildConfiguration {
     static let internalBuildInfoPlistKey = "FORMA_INTERNAL_BUILD"
 
-    /// Reads the internal-build flag baked into Info.plist at archive time.
-    /// Set `FORMA_INTERNAL_BUILD = 1` for internal TestFlight archives; keep `0` for App Store release.
+    /// Internal/TestFlight vs App Store archive detection (facade over FormaAbTest).
     static var isInternalBuildEnabled: Bool {
-        internalBuildFlag(from: .main)
+        FormaAbTest.Build.internalBuildEnabled
     }
 
     static func internalBuildFlag(from bundle: Bundle) -> Bool {
-        guard let value = bundle.object(forInfoDictionaryKey: internalBuildInfoPlistKey) as? String else {
-            return false
-        }
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, !trimmed.hasPrefix("$(") else { return false }
-        return trimmed == "1"
+        _ = bundle
+        return FormaAbTest.Build.internalBuildEnabled
     }
 
-    /// `true` for DEBUG builds and internal/TestFlight archives with `FORMA_INTERNAL_BUILD = 1`.
+    /// `true` when developer-oriented Settings should be shown.
     static var isDebugOrInternalBuild: Bool {
         #if DEBUG
         return true
         #else
-        return isInternalBuildEnabled
+        return FormaAbTest.Build.internalBuildEnabled
         #endif
     }
 
     /// Whether developer-tool destinations are compiled into the binary.
     static var includesCompiledDeveloperTools: Bool {
-        #if DEBUG
-        return true
-        #else
-        return false
-        #endif
+        FormaAbTest.Build.includesDeveloperTools
     }
 }

@@ -115,6 +115,17 @@ function validateAndSanitizeCoachContext(body: Record<string, any>, required = f
 
 export {coachContextLogFields};
 
+/** Accept legacy `text` payloads on question-shaped nutrition/advice endpoints. */
+function normalizeQuestionFromText(body: Record<string, any>): void {
+  const questionMissing =
+    body.question === undefined ||
+    body.question === null ||
+    (typeof body.question === "string" && body.question.trim().length === 0);
+  if (questionMissing && typeof body.text === "string" && body.text.trim().length > 0) {
+    body.question = body.text;
+  }
+}
+
 export function validatePayload(path: string, body: Record<string, any>): void {
   const maxText = intEnv("FORMA_AI_MAX_TEXT_CHARS", DEFAULT_MAX_TEXT_CHARS);
   const maxQuestion = intEnv("FORMA_AI_MAX_QUESTION_CHARS", DEFAULT_MAX_QUESTION_CHARS);
@@ -124,6 +135,7 @@ export function validatePayload(path: string, body: Record<string, any>): void {
   case "/v1/ai/generate-meal-advice":
   case "/v1/ai/generate-nutrition-estimate":
   case "/v1/ai/generate-nutrition-comparison":
+    normalizeQuestionFromText(body);
     body.question = requireString(body.question, "question", maxQuestion);
     validateAndSanitizeCoachContext(body);
     return;

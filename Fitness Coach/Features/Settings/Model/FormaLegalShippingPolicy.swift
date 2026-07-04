@@ -11,11 +11,9 @@ enum FormaLegalShippingPolicy {
 
     /// When `false`, Privacy Policy and Terms rows hide until `FormaLegalURLs` are published.
     /// In-app legal copy exists; flip to `false` to require external URLs in production.
-    #if DEBUG
-    static var shipsInAppLegalDocumentsWithoutPublishedURL = true
-    #else
-    static let shipsInAppLegalDocumentsWithoutPublishedURL = true
-    #endif
+    static var shipsInAppLegalDocumentsWithoutPublishedURL: Bool {
+        FormaAbTest.Settings.shipsInAppLegalWithoutPublishedURL
+    }
 
     static func isDocumentAvailableInSettings(
         _ document: FormaLegalDocument,

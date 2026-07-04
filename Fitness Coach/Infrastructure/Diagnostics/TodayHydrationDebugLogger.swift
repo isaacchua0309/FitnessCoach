@@ -96,11 +96,7 @@ enum TodayHydrationDebugLogger {
         )
     }
 
-    #if DEBUG
-    nonisolated static var isVerboseEnabled: Bool {
-        ProcessInfo.processInfo.environment["FITPILOT_TODAY_HYDRATION_TRACE"] != "0"
-    }
-    #endif
+    nonisolated static var isVerboseEnabled: Bool { FormaAbTest.Diagnostics.todayHydrationTrace }
 
     nonisolated private static func authStateLabel(_ authState: AuthState) -> String {
         switch authState {

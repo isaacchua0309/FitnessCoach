@@ -44,7 +44,7 @@ struct FoodLogDraft: Codable, Equatable, Identifiable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
         displayName = try container.decode(String.self, forKey: .displayName)
-        mealType = try container.decodeIfPresent(MealType.self, forKey: .mealType)
+        mealType = MealType.fromOptionalRawValue(try container.decodeIfPresent(String.self, forKey: .mealType))
         components = try container.decode([FoodComponent].self, forKey: .components)
         confidence = try container.decodeIfPresent(ConfidenceLevel.self, forKey: .confidence) ?? .medium
         source = try container.decodeIfPresent(FoodEntrySource.self, forKey: .source) ?? .aiTextEstimate

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any, require-jsdoc, max-len, operator-linebreak */
 
 export interface FoodExtractionComponent {
   name: string;
@@ -357,6 +357,18 @@ export function foodEstimateRepairInstructions(errors: string[]): string {
   ].join("\n");
 }
 
+export function normalizeMealType(value: string | null | undefined): string | null {
+  if (value == null) {
+    return null;
+  }
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed || trimmed === "null") {
+    return null;
+  }
+  const allowed = new Set(["breakfast", "lunch", "dinner", "snack", "unknown"]);
+  return allowed.has(trimmed) ? trimmed : "unknown";
+}
+
 export function mapExtractionToGatewayPayload(
   extraction: FoodExtractionResponse,
   source: "aiTextEstimate" | "aiPhotoEstimate",
@@ -380,7 +392,7 @@ export function mapExtractionToGatewayPayload(
     return {
       id: null,
       displayName: meal.meal_name,
-      mealType: meal.meal_type,
+      mealType: normalizeMealType(meal.meal_type),
       components: meal.components.map((component) => ({
         id: null,
         name: component.name,

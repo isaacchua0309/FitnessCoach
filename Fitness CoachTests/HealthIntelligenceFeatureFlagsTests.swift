@@ -10,22 +10,25 @@ final class HealthIntelligenceFeatureFlagsTests: XCTestCase {
 
     override func tearDown() {
         HealthIntelligenceFeatureFlags.testOverride = nil
+        FormaAbTest.testOverride = nil
         super.tearDown()
     }
 
-    // MARK: - Production defaults
+    // MARK: - Defaults
 
-    func testProductionDefaultsAreSafeForRelease() {
+    func testDefaultsAreAllEnabled() {
         let defaults = HealthIntelligenceFeatureFlags.snapshot()
 
         XCTAssertTrue(defaults.healthIntelligenceEnabled)
         XCTAssertTrue(defaults.healthIntelligenceEnginesEnabled)
-        XCTAssertFalse(defaults.healthIntelligenceUIEnabled)
-        XCTAssertFalse(defaults.healthIntelligenceCoachContextEnabled)
-        XCTAssertFalse(defaults.healthIntelligenceWeeklyReviewEnabled)
-        XCTAssertFalse(defaults.healthSummaryRemoteSyncEnabled)
+        XCTAssertTrue(defaults.healthIntelligenceUIEnabled)
+        XCTAssertTrue(defaults.healthIntelligenceCoachContextEnabled)
+        XCTAssertTrue(defaults.healthIntelligenceWeeklyReviewEnabled)
+        XCTAssertTrue(defaults.healthSummaryRemoteSyncEnabled)
         XCTAssertTrue(defaults.isSyncEnabled)
         XCTAssertTrue(defaults.isRepositoryReadRoutingEnabled)
+        XCTAssertTrue(defaults.shouldTodayModelLoadHealthIntelligence)
+        XCTAssertTrue(defaults.shouldCoachLoadHealthIntelligence)
     }
 
     func testDocumentedDefaultConstantsMatchSnapshot() {
@@ -54,9 +57,9 @@ final class HealthIntelligenceFeatureFlagsTests: XCTestCase {
     // MARK: - Independent toggles
 
     func testEnginesCanRunWhileUIIsOff() {
-        let flags = HealthIntelligenceFeatureFlags.snapshot(environment: [
-            HealthIntelligenceFeatureFlags.EnvironmentKey.ui: "0"
-        ])
+        applyAbTestOverride { $0.uiEnabled = false }
+
+        let flags = HealthIntelligenceFeatureFlags.snapshot()
 
         XCTAssertTrue(flags.healthIntelligenceEnginesEnabled)
         XCTAssertFalse(flags.healthIntelligenceUIEnabled)
@@ -66,54 +69,46 @@ final class HealthIntelligenceFeatureFlagsTests: XCTestCase {
     }
 
     func testCoachContextRequiresExplicitEnable() {
-        let off = HealthIntelligenceFeatureFlags.snapshot(environment: [
-            HealthIntelligenceFeatureFlags.EnvironmentKey.coachContext: "0"
-        ])
-        XCTAssertFalse(off.shouldCoachLoadHealthIntelligence)
+        applyAbTestOverride { $0.coachContextEnabled = false }
+        XCTAssertFalse(HealthIntelligenceFeatureFlags.snapshot().shouldCoachLoadHealthIntelligence)
 
-        let on = HealthIntelligenceFeatureFlags.snapshot(environment: [
-            HealthIntelligenceFeatureFlags.EnvironmentKey.coachContext: "1"
-        ])
-        XCTAssertTrue(on.shouldCoachLoadHealthIntelligence)
+        applyAbTestOverride { $0.coachContextEnabled = true }
+        XCTAssertTrue(HealthIntelligenceFeatureFlags.snapshot().shouldCoachLoadHealthIntelligence)
     }
 
     func testWeeklyReviewRequiresExplicitEnable() {
-        let off = HealthIntelligenceFeatureFlags.snapshot(environment: [
-            HealthIntelligenceFeatureFlags.EnvironmentKey.weeklyReview: "0"
-        ])
-        XCTAssertFalse(off.healthIntelligenceWeeklyReviewEnabled)
+        applyAbTestOverride { $0.weeklyReviewEnabled = false }
+        XCTAssertFalse(HealthIntelligenceFeatureFlags.snapshot().healthIntelligenceWeeklyReviewEnabled)
 
-        let on = HealthIntelligenceFeatureFlags.snapshot(environment: [
-            HealthIntelligenceFeatureFlags.EnvironmentKey.weeklyReview: "1"
-        ])
-        XCTAssertTrue(on.healthIntelligenceWeeklyReviewEnabled)
+        applyAbTestOverride { $0.weeklyReviewEnabled = true }
+        XCTAssertTrue(HealthIntelligenceFeatureFlags.snapshot().healthIntelligenceWeeklyReviewEnabled)
     }
 
     func testUIControlsSurfaceLoading() {
-        let on = HealthIntelligenceFeatureFlags.snapshot(environment: [
-            HealthIntelligenceFeatureFlags.EnvironmentKey.ui: "1"
-        ])
-        XCTAssertTrue(on.shouldTodayModelLoadHealthIntelligence)
-        XCTAssertTrue(on.shouldJourneyModelLoadHealthIntelligence)
-        XCTAssertTrue(on.shouldPlanModelLoadHealthIntelligence)
+        applyAbTestOverride { $0.uiEnabled = true }
+        var flags = HealthIntelligenceFeatureFlags.snapshot()
+        XCTAssertTrue(flags.shouldTodayModelLoadHealthIntelligence)
+        XCTAssertTrue(flags.shouldJourneyModelLoadHealthIntelligence)
+        XCTAssertTrue(flags.shouldPlanModelLoadHealthIntelligence)
 
-        let off = HealthIntelligenceFeatureFlags.snapshot(environment: [
-            HealthIntelligenceFeatureFlags.EnvironmentKey.ui: "0"
-        ])
-        XCTAssertFalse(off.shouldTodayModelLoadHealthIntelligence)
-        XCTAssertFalse(off.shouldJourneyModelLoadHealthIntelligence)
-        XCTAssertFalse(off.shouldPlanModelLoadHealthIntelligence)
+        applyAbTestOverride { $0.uiEnabled = false; $0.todayDebugFetchEnabled = false; $0.journeyDebugFetchEnabled = false; $0.planDebugFetchEnabled = false }
+        flags = HealthIntelligenceFeatureFlags.snapshot()
+        XCTAssertFalse(flags.shouldTodayModelLoadHealthIntelligence)
+        XCTAssertFalse(flags.shouldJourneyModelLoadHealthIntelligence)
+        XCTAssertFalse(flags.shouldPlanModelLoadHealthIntelligence)
     }
 
     // MARK: - Master switch
 
     func testFoundationDisabledTurnsOffAllDerivedFlags() {
-        let flags = HealthIntelligenceFeatureFlags.snapshot(environment: [
-            HealthIntelligenceFeatureFlags.EnvironmentKey.foundation: "0",
-            HealthIntelligenceFeatureFlags.EnvironmentKey.ui: "1",
-            HealthIntelligenceFeatureFlags.EnvironmentKey.coachContext: "1",
-            HealthIntelligenceFeatureFlags.EnvironmentKey.weeklyReview: "1"
-        ])
+        applyAbTestOverride {
+            $0.foundationEnabled = false
+            $0.uiEnabled = true
+            $0.coachContextEnabled = true
+            $0.weeklyReviewEnabled = true
+        }
+
+        let flags = HealthIntelligenceFeatureFlags.snapshot()
 
         XCTAssertFalse(flags.healthIntelligenceEnabled)
         XCTAssertFalse(flags.healthIntelligenceEnginesEnabled)
@@ -125,29 +120,17 @@ final class HealthIntelligenceFeatureFlagsTests: XCTestCase {
     }
 
     func testEnginesDisabledTurnsOffCompositionAndSurfaces() {
-        let flags = HealthIntelligenceFeatureFlags.snapshot(environment: [
-            HealthIntelligenceFeatureFlags.EnvironmentKey.engines: "0",
-            HealthIntelligenceFeatureFlags.EnvironmentKey.ui: "1",
-            HealthIntelligenceFeatureFlags.EnvironmentKey.coachContext: "1"
-        ])
+        applyAbTestOverride {
+            $0.enginesEnabled = false
+            $0.uiEnabled = true
+            $0.coachContextEnabled = true
+        }
+
+        let flags = HealthIntelligenceFeatureFlags.snapshot()
 
         XCTAssertFalse(flags.healthIntelligenceEnginesEnabled)
         XCTAssertFalse(flags.shouldTodayModelLoadHealthIntelligence)
         XCTAssertFalse(flags.shouldCoachLoadHealthIntelligence)
-    }
-
-    // MARK: - Legacy keys
-
-    func testLegacyEnvironmentKeysAreHonored() {
-        let flags = HealthIntelligenceFeatureFlags.snapshot(environment: [
-            HealthIntelligenceFeatureFlags.EnvironmentKey.uiLegacy: "1",
-            HealthIntelligenceFeatureFlags.EnvironmentKey.coachContextLegacy: "1",
-            HealthIntelligenceFeatureFlags.EnvironmentKey.weeklyReviewLegacy: "1"
-        ])
-
-        XCTAssertTrue(flags.healthIntelligenceUIEnabled)
-        XCTAssertTrue(flags.healthIntelligenceCoachContextEnabled)
-        XCTAssertTrue(flags.healthIntelligenceWeeklyReviewEnabled)
     }
 
     // MARK: - Injectable override
@@ -201,5 +184,13 @@ final class HealthIntelligenceFeatureFlagsTests: XCTestCase {
         let review = await harness.service.getLatestCompletedWeeklyReview(calendar: calendar)
 
         XCTAssertNotNil(review)
+    }
+
+    // MARK: - Helpers
+
+    private func applyAbTestOverride(_ mutate: (inout FormaAbTestSnapshot) -> Void) {
+        var snapshot = FormaAbTestSnapshot.allEnabled
+        mutate(&snapshot)
+        FormaAbTest.testOverride = snapshot
     }
 }

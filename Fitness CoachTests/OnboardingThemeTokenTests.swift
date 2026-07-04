@@ -118,7 +118,7 @@ final class OnboardingThemeTokenTests: XCTestCase {
     }
 
     func testNoHardcodedColorsRemainInOnboardingProductionFiles() {
-        let violations = HardcodedColorGuard.scan(repositoryRoot: ThemeTestSupport.repositoryRoot)
+        let violations = HardcodedColorGuard.scan(repositoryRoot: ThemeTestSupport.repositoryRoot())
         let onboardingViolations = violations.filter { violation in
             onboardingSourcePrefixes.contains { violation.relativePath.hasPrefix($0) }
         }

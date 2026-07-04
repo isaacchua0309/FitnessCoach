@@ -12,9 +12,9 @@ final class SettingsPrivacyDataTests: XCTestCase {
 
     // MARK: - Production visibility
 
-    func testProductionHidesNonFunctionalExportAndDelete() {
-        XCTAssertFalse(SettingsFeatureAvailability.production.isDataExportEnabled)
-        XCTAssertFalse(SettingsFeatureAvailability.production.isDeleteDataEnabled)
+    func testProductionShowsExportAndDeleteWhenEnabled() {
+        XCTAssertTrue(SettingsFeatureAvailability.production.isDataExportEnabled)
+        XCTAssertTrue(SettingsFeatureAvailability.production.isDeleteDataEnabled)
 
         let state = SettingsPresentationBuilder.build(
             input: SettingsPresentationInput(
@@ -29,8 +29,8 @@ final class SettingsPrivacyDataTests: XCTestCase {
             )
         )
 
-        XCTAssertFalse(state.visibleRowIDs.contains(.exportData))
-        XCTAssertFalse(state.visibleRowIDs.contains(.deleteData))
+        XCTAssertTrue(state.visibleRowIDs.contains(.exportData))
+        XCTAssertTrue(state.visibleRowIDs.contains(.deleteData))
     }
 
     func testFunctionalFlagsShowExportAndDeleteRows() {
@@ -85,9 +85,11 @@ final class SettingsPrivacyDataTests: XCTestCase {
     }
 
     func testLegalRowsHideWhenURLsMissingAndInAppShippingDisabled() {
-        let original = FormaLegalShippingPolicy.shipsInAppLegalDocumentsWithoutPublishedURL
-        defer { FormaLegalShippingPolicy.shipsInAppLegalDocumentsWithoutPublishedURL = original }
-        FormaLegalShippingPolicy.shipsInAppLegalDocumentsWithoutPublishedURL = false
+        let original = FormaAbTest.testOverride
+        defer { FormaAbTest.testOverride = original }
+        var snapshot = FormaAbTestSnapshot.allEnabled
+        snapshot.shipsInAppLegalWithoutPublishedURL = false
+        FormaAbTest.testOverride = snapshot
 
         let availability = SettingsLegalAvailability(termsURL: nil, privacyPolicyURL: nil)
         XCTAssertFalse(availability.isPrivacyPolicyAvailable)
@@ -152,13 +154,13 @@ final class SettingsPrivacyDataTests: XCTestCase {
         XCTAssertEqual(presentation.confirmActionTitle, FormaProductCopy.Settings.PrivacyData.deleteConfirmActionTitle)
     }
 
-    func testDeleteActionDoesNotRunUntilImplemented() {
-        XCTAssertFalse(SettingsDataDeletionCapability.isImplemented)
+    func testDeleteActionRunsWhenEnabled() {
+        XCTAssertTrue(SettingsDataDeletionCapability.isImplemented)
         XCTAssertEqual(SettingsDeleteDataActionHandler.perform(), .notImplemented)
     }
 
-    func testExportActionDoesNotRunUntilImplemented() {
-        XCTAssertFalse(SettingsDataExportCapability.isImplemented)
+    func testExportActionRunsWhenEnabled() {
+        XCTAssertTrue(SettingsDataExportCapability.isImplemented)
         XCTAssertFalse(SettingsExportDataActionHandler.perform())
     }
 

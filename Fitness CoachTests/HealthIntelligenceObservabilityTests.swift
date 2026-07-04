@@ -13,6 +13,7 @@ final class HealthIntelligenceObservabilityTests: XCTestCase {
     override func tearDown() {
         HealthIntelligencePipelineAnalytics.resetForTesting()
         HealthIntelligenceFeatureFlags.testOverride = nil
+        FormaAbTest.testOverride = nil
         super.tearDown()
     }
 

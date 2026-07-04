@@ -20,10 +20,14 @@ enum ThemeAccessibilityAdaptationPolicy {
     static let supportsReduceMotion = true
 
     /// Palette tokens do not yet branch on `colorSchemeContrast == .increased`.
-    static let supportsIncreasedContrastPaletteVariants = false
+    static var supportsIncreasedContrastPaletteVariants: Bool {
+        FormaAbTest.Theme.supportsIncreasedContrastPaletteVariants
+    }
 
     /// Semi-transparent surfaces/borders are not recomposited when Reduce Transparency is on.
-    static let supportsReduceTransparencyCompositing = false
+    static var supportsReduceTransparencyCompositing: Bool {
+        FormaAbTest.Theme.supportsReduceTransparencyCompositing
+    }
 
     // MARK: - Follow-ups
 

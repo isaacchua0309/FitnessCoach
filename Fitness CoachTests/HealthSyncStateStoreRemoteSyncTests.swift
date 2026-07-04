@@ -95,6 +95,10 @@ final class HealthSyncStateStoreRemoteSyncTests: XCTestCase {
         store.syncToday()
         try? await Task.sleep(nanoseconds: 300_000_000)
 
+        XCTAssertEqual(remoteSyncService.syncAfterLocalHealthRefreshCallCount, 0)
+        XCTAssertEqual(store.state.phase, .failed)
+    }
+
     func testRemoteSummarySyncDebouncesRapidLocalSyncs() async {
         remoteSyncService.syncAfterLocalHealthRefreshDelayNanoseconds = 400_000_000
         let store = HealthSyncStateStore(

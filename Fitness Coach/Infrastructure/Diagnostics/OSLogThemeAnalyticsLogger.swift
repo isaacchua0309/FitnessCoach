@@ -25,9 +25,7 @@ enum ThemeAnalyticsDebugLogger {
 
     nonisolated private static let logger = Logger(subsystem: "FitPilot", category: "ThemeAnalytics")
 
-    nonisolated static var isEnabled: Bool {
-        ProcessInfo.processInfo.environment["FITPILOT_THEME_ANALYTICS_TRACE"] != "0"
-    }
+    nonisolated static var isEnabled: Bool { FormaAbTest.Diagnostics.themeAnalyticsTrace }
 
     nonisolated static func event(_ message: String, fields: [String: String] = [:]) {
         guard isEnabled else { return }

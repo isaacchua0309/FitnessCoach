@@ -105,6 +105,27 @@ const scenarios = [
     },
   },
   {
+    name: "Nutrition estimate",
+    path: "/v1/ai/generate-nutrition-estimate",
+    body: {
+      question: "How many calories are in a Big Mac?",
+      context: sampleContext,
+      modelTier: "cheap",
+    },
+    assert(json) {
+      const estimate = json?.estimate;
+      if (!estimate || typeof estimate !== "object") {
+        throw new Error("Missing estimate");
+      }
+      if (typeof estimate.foodName !== "string" || !estimate.foodName.length) {
+        throw new Error("Missing estimate.foodName");
+      }
+      if (!Array.isArray(estimate.suggestedActions)) {
+        throw new Error("Missing estimate.suggestedActions");
+      }
+    },
+  },
+  {
     name: "Parse workout (optional)",
     path: "/v1/ai/parse-workout",
     body: {

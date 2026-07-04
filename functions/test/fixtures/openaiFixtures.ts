@@ -26,6 +26,17 @@ const sampleFoodExtractionMeal = {
   warnings: [],
 };
 
+const emptyNutritionActionPayload = {
+  foodName: null,
+  caloriesKcal: null,
+  proteinGrams: null,
+  carbsGrams: null,
+  fatGrams: null,
+  leftFoodName: null,
+  rightFoodName: null,
+  query: null,
+};
+
 export const openAIOutputBySchemaName: Record<string, Record<string, unknown>> = {
   coach_intent_result: {
     intent: "general_conversation",
@@ -108,13 +119,22 @@ export const openAIOutputBySchemaName: Record<string, Record<string, unknown>> =
         id: "log",
         title: "Log Big Mac",
         type: "logMeal",
-        payload: {foodName: "Big Mac", caloriesKcal: "550"},
+        payload: {
+          foodName: "Big Mac",
+          caloriesKcal: "550",
+          proteinGrams: null,
+          carbsGrams: null,
+          fatGrams: null,
+          leftFoodName: null,
+          rightFoodName: null,
+          query: null,
+        },
       },
       {
         id: "another",
         title: "Estimate another food",
         type: "estimateAnother",
-        payload: {},
+        payload: {...emptyNutritionActionPayload},
       },
     ],
   },
@@ -150,7 +170,7 @@ export const openAIOutputBySchemaName: Record<string, Record<string, unknown>> =
         id: "estimate",
         title: "Estimate another food",
         type: "estimateAnother",
-        payload: {},
+        payload: {...emptyNutritionActionPayload},
       },
     ],
   },

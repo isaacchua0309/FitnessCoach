@@ -13,7 +13,9 @@ enum AppThemeShippingPolicy {
     ///
     /// Token-level light palettes exist and pass `FormaPaletteCatalogTests`; this flag gates
     /// user-facing Settings until full-screen light review is complete.
-    static let shipsLightAndSystemAppearance = false
+    static var shipsLightAndSystemAppearance: Bool {
+        FormaAbTest.Theme.shipsLightAndSystemAppearance
+    }
 
     /// Appearance modes exposed in Theme settings.
     static var settingsAppearanceOptions: [AppAppearanceMode] {

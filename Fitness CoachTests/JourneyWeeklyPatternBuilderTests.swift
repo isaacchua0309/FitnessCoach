@@ -139,7 +139,7 @@ final class JourneyWeeklyPatternBuilderTests: XCTestCase {
         XCTAssertEqual(goals.map(\.label), [
             FormaProductCopy.Today.actionLogWeight,
             FormaProductCopy.Today.actionPlanProteinMeal,
-            FormaProductCopy.Today.actionLogWater
+            FormaProductCopy.Today.actionDrinkWater
         ])
     }
 
@@ -150,9 +150,10 @@ final class JourneyWeeklyPatternBuilderTests: XCTestCase {
         weekWeights: [WeightEntry] = [],
         maturityLogs: [DailyLog],
         allWeights: [WeightEntry] = [],
-        streaks: JourneyStreakState = makeStreaks(logging: 0, protein: 0, water: 0),
+        streaks: JourneyStreakState? = nil,
         training: JourneyWeeklyTrainingStatus = .connectedEmpty
     ) -> JourneyWeeklyHabitState {
+        let resolvedStreaks = streaks ?? makeStreaks(logging: 0, protein: 0, water: 0)
         let review = JourneyWeeklyReviewState(
             foodLoggedDays: JourneyLogMetrics.uniqueFoodLoggedDays(in: weekLogs, calendar: calendar),
             foodLoggedDaysTotal: 7,
@@ -187,7 +188,7 @@ final class JourneyWeeklyPatternBuilderTests: XCTestCase {
                 healthWorkoutDayStarts: [],
                 weeklyTraining: training,
                 expectedTrainingDays: 4,
-                streaks: streaks,
+                streaks: resolvedStreaks,
                 streakSummary: streakSummary,
                 weeklyReview: review,
                 asOf: asOf,

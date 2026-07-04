@@ -204,9 +204,9 @@ enum SignedOutAppShellPhase: Equatable, Sendable {
 }
 
 enum AuthLogoutPolicy {
-    static let deletesLocalProfileOnSignOut = false
+    static var deletesLocalProfileOnSignOut: Bool { FormaAbTest.Auth.deletesLocalProfileOnSignOut }
     /// Session-scoped cloud sync hints must not survive sign-out; `ownerUID` remains authoritative.
-    static let clearsCloudSyncMetadataOnSignOut = true
+    static var clearsCloudSyncMetadataOnSignOut: Bool { FormaAbTest.Auth.clearsCloudSyncMetadataOnSignOut }
 
     static func clearTransientSessionMetadata(cloudSyncStore: ProfileCloudSyncStore) {
         guard clearsCloudSyncMetadataOnSignOut else { return }

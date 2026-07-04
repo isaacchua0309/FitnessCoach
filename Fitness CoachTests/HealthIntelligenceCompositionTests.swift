@@ -66,22 +66,22 @@ final class HealthIntelligenceCompositionTests: XCTestCase {
         XCTAssertNil(cache.intelligenceSnapshot(for: Date(), calendar: .current))
     }
 
-    func testUIEnabledRemainsFalseByDefault() {
-        XCTAssertFalse(HealthIntelligenceFeatureFlags.healthIntelligenceUIEnabled)
-        XCTAssertFalse(HealthIntelligenceFeatureFlags.isUIEnabled)
+    func testUIEnabledByDefault() {
+        XCTAssertTrue(HealthIntelligenceFeatureFlags.healthIntelligenceUIEnabled)
+        XCTAssertTrue(HealthIntelligenceFeatureFlags.isUIEnabled)
     }
 
-    func testCoachContextDisabledByDefault() {
-        XCTAssertFalse(HealthIntelligenceFeatureFlags.healthIntelligenceCoachContextEnabled)
-        XCTAssertFalse(HealthIntelligenceFeatureFlags.shouldCoachLoadHealthIntelligence)
+    func testCoachContextEnabledByDefault() {
+        XCTAssertTrue(HealthIntelligenceFeatureFlags.healthIntelligenceCoachContextEnabled)
+        XCTAssertTrue(HealthIntelligenceFeatureFlags.shouldCoachLoadHealthIntelligence)
     }
 
-    func testWeeklyReviewDisabledByDefault() {
-        XCTAssertFalse(HealthIntelligenceFeatureFlags.healthIntelligenceWeeklyReviewEnabled)
+    func testWeeklyReviewEnabledByDefault() {
+        XCTAssertTrue(HealthIntelligenceFeatureFlags.healthIntelligenceWeeklyReviewEnabled)
     }
 
-    func testTodayModelLoadDisabledByDefaultWhenUIIsOff() {
-        XCTAssertFalse(HealthIntelligenceFeatureFlags.shouldTodayModelLoadHealthIntelligence)
+    func testTodayModelLoadEnabledByDefault() {
+        XCTAssertTrue(HealthIntelligenceFeatureFlags.shouldTodayModelLoadHealthIntelligence)
     }
 
     func testLoadTodaySnapshotUsesCacheWithoutRecomposing() async {
@@ -116,6 +116,9 @@ final class HealthIntelligenceCompositionTests: XCTestCase {
         XCTAssertNotNil(first)
         XCTAssertEqual(first?.activity.steps, 5_000)
         XCTAssertEqual(second?.activity.steps, 5_000)
+        XCTAssertEqual(engine.composeCallCount, 1)
+    }
+
     func testConcurrentLoadTodaySnapshotCoalescesInFlightCompose() async {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt

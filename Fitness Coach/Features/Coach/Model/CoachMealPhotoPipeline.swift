@@ -19,7 +19,7 @@ enum CoachMealPhotoPipeline {
     static let userMessageLabel = "Meal photo"
 
     /// Client wiring is complete when image bytes can reach `photoFoodAnalysis`.
-    static let isClientPipelineReady = true
+    static var isClientPipelineReady: Bool { FormaAbTest.Coach.mealPhotoPipelineReady }
 
     static let photoAnalysisIntentResult = CoachIntentResult(
         intent: .logFood,
