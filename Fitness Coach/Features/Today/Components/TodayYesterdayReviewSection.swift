@@ -90,6 +90,7 @@ struct TodayYesterdayReviewSection: View {
                 tomorrowRecommendation: "Prioritize lean protein earlier tomorrow.",
                 createdAt: Date()
             ),
+            analyticsFoodEntryCount: 3,
             accessibilityLabel: "Yesterday's review"
         ),
         isGenerating: false,

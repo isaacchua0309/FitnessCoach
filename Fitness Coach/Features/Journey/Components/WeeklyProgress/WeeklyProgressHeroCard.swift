@@ -21,8 +21,11 @@ enum WeeklyProgressCardSupport {
 
 struct WeeklyProgressHeroSection: View {
     let state: UnifiedWeeklyReviewState
+    var summary: WeeklyProgressSummary
     var foodLoggedDays: Int = 0
     var totalDays: Int = 7
+    var weeklyProgressAnalyticsCoordinator: WeeklyProgressAnalyticsCoordinator?
+    var freshnessInput: WeeklyProgressFreshnessInput?
     var onPrimaryCTA: ((WeeklyProgressCTA) -> Void)?
     var onSecondaryCTA: ((WeeklyProgressCTA) -> Void)?
     var onOpenWeeklyReviewDetail: (() -> Void)?
@@ -33,8 +36,11 @@ struct WeeklyProgressHeroSection: View {
 
             WeeklyProgressHeroCard(
                 state: state,
+                summary: summary,
                 foodLoggedDays: foodLoggedDays,
                 totalDays: totalDays,
+                weeklyProgressAnalyticsCoordinator: weeklyProgressAnalyticsCoordinator,
+                freshnessInput: freshnessInput,
                 onPrimaryCTA: onPrimaryCTA,
                 onSecondaryCTA: onSecondaryCTA,
                 onOpenWeeklyReviewDetail: onOpenWeeklyReviewDetail
@@ -46,8 +52,11 @@ struct WeeklyProgressHeroSection: View {
 
 struct WeeklyProgressHeroCard: View {
     let state: UnifiedWeeklyReviewState
+    var summary: WeeklyProgressSummary
     var foodLoggedDays: Int = 0
     var totalDays: Int = 7
+    var weeklyProgressAnalyticsCoordinator: WeeklyProgressAnalyticsCoordinator?
+    var freshnessInput: WeeklyProgressFreshnessInput?
     var onPrimaryCTA: ((WeeklyProgressCTA) -> Void)?
     var onSecondaryCTA: ((WeeklyProgressCTA) -> Void)?
     var onOpenWeeklyReviewDetail: (() -> Void)?
@@ -69,14 +78,36 @@ struct WeeklyProgressHeroCard: View {
 
                 if let maintenanceBlock = state.maintenanceBlock {
                     WeeklyMaintenanceBlockView(state: maintenanceBlock)
+                        .onAppear {
+                            weeklyProgressAnalyticsCoordinator?.logMaintenanceBlockViewed(
+                                summary: summary,
+                                showsLearnedEstimate: maintenanceBlock.showsLearnedEstimate,
+                                surface: .journeyCard
+                            )
+                        }
                 }
 
                 if let planBlock = state.planRecommendationBlock {
                     WeeklyPlanRecommendationBlockView(state: planBlock)
+                        .onAppear {
+                            weeklyProgressAnalyticsCoordinator?.logPlanRecommendationShown(
+                                summary: summary,
+                                recommendationKind: planBlock.recommendationKind,
+                                surface: .journeyCard
+                            )
+                        }
                 }
 
                 if let weightBlock = state.weightTrendBlock {
                     WeeklyWeightTrendBlockView(state: weightBlock)
+                        .onAppear {
+                            if weightBlock.hasSuddenSpike {
+                                weeklyProgressAnalyticsCoordinator?.logWeightSpikeExplanationShown(
+                                    summary: summary,
+                                    surface: .journeyCard
+                                )
+                            }
+                        }
                 }
 
                 if !topHabitRows.isEmpty {
@@ -97,6 +128,12 @@ struct WeeklyProgressHeroCard: View {
         .contentShape(Rectangle())
         .onTapGesture {
             onOpenWeeklyReviewDetail?()
+        }
+        .onAppear {
+            weeklyProgressAnalyticsCoordinator?.logCardViewed(
+                summary: summary,
+                freshnessInput: freshnessInput
+            )
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilitySummary)
@@ -426,6 +463,7 @@ enum WeeklyProgressCTAHandler {
 
     WeeklyProgressHeroSection(
         state: unified,
+        summary: dashboard.weeklyProgressSummary,
         foodLoggedDays: dashboard.weeklyProgressSummary.foodLoggedDays,
         totalDays: dashboard.weeklyProgressSummary.totalDays
     )
@@ -440,6 +478,7 @@ enum WeeklyProgressCTAHandler {
 
     WeeklyProgressHeroSection(
         state: unified,
+        summary: dashboard.weeklyProgressSummary,
         foodLoggedDays: dashboard.weeklyProgressSummary.foodLoggedDays,
         totalDays: dashboard.weeklyProgressSummary.totalDays
     )
@@ -452,7 +491,7 @@ enum WeeklyProgressCTAHandler {
     let dashboard = JourneyPreviewData.strongMomentum
     let unified = UnifiedWeeklyReviewPresentationBuilder.build(dashboard: dashboard)
 
-    WeeklyProgressHeroSection(state: unified)
+    WeeklyProgressHeroSection(state: unified, summary: dashboard.weeklyProgressSummary)
         .padding()
         .background(FormaTokens.Color.canvas)
         .formaThemePreview()

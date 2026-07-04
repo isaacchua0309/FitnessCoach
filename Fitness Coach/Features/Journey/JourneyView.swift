@@ -16,6 +16,7 @@ struct JourneyView: View {
     @State private var presentedWeeklyReviewDetail: WeeklyReviewDetailPresentation?
 
     let analyticsCoordinator: JourneyAnalyticsCoordinator
+    let weeklyProgressAnalyticsCoordinator: WeeklyProgressAnalyticsCoordinator?
     let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
 
     /// Optional prefill text for Coach input. `nil` opens Coach without prefilling.
@@ -30,6 +31,7 @@ struct JourneyView: View {
     init(
         model: JourneyModel,
         analyticsCoordinator: JourneyAnalyticsCoordinator,
+        weeklyProgressAnalyticsCoordinator: WeeklyProgressAnalyticsCoordinator? = nil,
         healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
         onOpenCoach: ((String?) -> Void)? = nil,
         onOpenPlan: (() -> Void)? = nil,
@@ -38,6 +40,7 @@ struct JourneyView: View {
     ) {
         self.model = model
         self.analyticsCoordinator = analyticsCoordinator
+        self.weeklyProgressAnalyticsCoordinator = weeklyProgressAnalyticsCoordinator
         self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
         self.onOpenCoach = onOpenCoach
         self.onOpenPlan = onOpenPlan
@@ -68,6 +71,7 @@ struct JourneyView: View {
                     NavigationStack {
                         WeeklyReviewDetailView(
                             detail: presentation.detail,
+                            weeklyProgressAnalyticsCoordinator: weeklyProgressAnalyticsCoordinator,
                             onPrimaryCTA: handleWeeklyProgressCTA,
                             onSecondaryCTA: handleWeeklyProgressCTA
                         )
@@ -76,6 +80,9 @@ struct JourneyView: View {
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
                                 Button(FormaProductCopy.Common.done) {
+                                    weeklyProgressAnalyticsCoordinator?.logReviewCompleted(
+                                        summary: presentation.detail.summary
+                                    )
                                     presentedWeeklyReviewDetail = nil
                                 }
                             }
@@ -85,6 +92,9 @@ struct JourneyView: View {
                     .formaThemeReactive()
                     .onAppear {
                         healthIntelligenceAnalyticsCoordinator?.logWeeklyReviewDetailOpened()
+                        weeklyProgressAnalyticsCoordinator?.logReviewOpened(
+                            summary: presentation.detail.summary
+                        )
                     }
                 }
         }
@@ -115,6 +125,9 @@ struct JourneyView: View {
             }, style: .tabRoot)
         case .pendingAccountRestore(let message):
             AccountRestorePendingStateView(message: message)
+                .onAppear {
+                    weeklyProgressAnalyticsCoordinator?.logRestorePending()
+                }
         case .loaded(let state):
             dashboard(state)
         }
@@ -133,6 +146,7 @@ struct JourneyView: View {
                     ? model.journeyHealthIntelligenceSectionState
                     : nil,
                 analyticsCoordinator: analyticsCoordinator,
+                weeklyProgressAnalyticsCoordinator: weeklyProgressAnalyticsCoordinator,
                 healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
                 weeklyProgressFreshnessInput: model.weeklyProgressFreshnessInput,
                 onCTA: handleCTA,
@@ -172,6 +186,7 @@ struct JourneyView: View {
         .onAppear {
             syncAnalyticsContext(for: state)
             analyticsCoordinator.logViewed()
+            weeklyProgressAnalyticsCoordinator?.updateContext(from: state.weeklyProgressSummary)
         }
     }
 
@@ -181,6 +196,22 @@ struct JourneyView: View {
     }
 
     private func handleWeeklyProgressCTA(_ cta: WeeklyProgressCTA) {
+        if cta.kind == .reviewPlan, case .loaded(let state) = model.viewState {
+            let unified = UnifiedWeeklyReviewPresentationBuilder.build(
+                dashboard: state,
+                healthIntelligence: healthIntelligenceUIEnabled
+                    ? model.journeyHealthIntelligenceSectionState
+                    : nil,
+                freshnessInput: model.weeklyProgressFreshnessInput
+            )
+            weeklyProgressAnalyticsCoordinator?.logPlanRecommendationTapped(
+                summary: state.weeklyProgressSummary,
+                recommendationKind: unified.planRecommendationBlock?.recommendationKind,
+                surface: presentedWeeklyReviewDetail == nil ? .journeyCard : .journeyDetail,
+                entryPoint: presentedWeeklyReviewDetail == nil ? .journeyCard : .journeyDetail
+            )
+        }
+
         WeeklyProgressCTAHandler.perform(
             cta,
             onOpenToday: onOpenToday,

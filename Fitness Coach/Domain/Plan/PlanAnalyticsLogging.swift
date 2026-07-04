@@ -3,6 +3,7 @@
 //  Fitness Coach
 //
 //  Forma — Typed Plan analytics events and safe property bag.
+//  Weekly progress plan recommendation events live in `WeeklyProgressAnalyticsLogging.swift`.
 //
 
 import Foundation

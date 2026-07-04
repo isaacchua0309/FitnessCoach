@@ -9,6 +9,27 @@ import Foundation
 
 enum PlanWeeklyRecommendationStateBuilder {
 
+    static func weeklyProgressSummary(
+        context: PlanDashboardContext,
+        referenceDate: Date,
+        weeklyProgressSummaryBuilder: WeeklyProgressSummaryBuilding = WeeklyProgressSummaryBuilder(
+            calendar: context.calendar
+        )
+    ) -> WeeklyProgressSummary {
+        let logs = context.maturityLogs.isEmpty ? context.weekLogs : context.maturityLogs
+        let trainingDays = context.healthWorkoutDayStarts.isEmpty
+            ? nil
+            : context.healthWorkoutDayStarts
+
+        return weeklyProgressSummaryBuilder.buildSummary(
+            asOf: referenceDate,
+            profile: context.profile,
+            dailyLogs: logs,
+            weightEntries: context.allWeights,
+            trainingDayStarts: trainingDays
+        )
+    }
+
     static func build(
         context: PlanDashboardContext,
         planResult: PlanCalculationResult?,
@@ -23,12 +44,10 @@ enum PlanWeeklyRecommendationStateBuilder {
             ? nil
             : context.healthWorkoutDayStarts
 
-        let summary = weeklyProgressSummaryBuilder.buildSummary(
-            asOf: referenceDate,
-            profile: profile,
-            dailyLogs: logs,
-            weightEntries: context.allWeights,
-            trainingDayStarts: trainingDays
+        let summary = weeklyProgressSummary(
+            context: context,
+            referenceDate: referenceDate,
+            weeklyProgressSummaryBuilder: weeklyProgressSummaryBuilder
         )
 
         let maintenance = summary.maintenanceEstimate
@@ -72,6 +91,7 @@ enum PlanWeeklyRecommendationStateBuilder {
             reviewPlanButtonTitle: FormaProductCopy.PlanMissionControl.weeklyRecommendationReviewPlan,
             showsReviewPlanCTA: recommendation?.shouldShowPlanCTA == true,
             safetyCopy: FormaProductCopy.PlanMissionControl.weeklyRecommendationSafetyCopy,
+            recommendationKind: recommendation?.kind,
             accessibilitySummary: ""
         )
         state.accessibilitySummary = accessibilitySummary(for: state, summary: summary)

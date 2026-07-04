@@ -16,11 +16,20 @@ struct WeeklyReviewDetailView: View {
 
     let presentation: Presentation
     var isLoading: Bool = false
+    var weeklyProgressAnalyticsCoordinator: WeeklyProgressAnalyticsCoordinator?
     var onPrimaryCTA: ((WeeklyProgressCTA) -> Void)?
     var onSecondaryCTA: ((WeeklyProgressCTA) -> Void)?
 
     init(detail: WeeklyProgressDetailState) {
         self.presentation = .loaded(detail)
+    }
+
+    init(
+        detail: WeeklyProgressDetailState,
+        weeklyProgressAnalyticsCoordinator: WeeklyProgressAnalyticsCoordinator?
+    ) {
+        self.presentation = .loaded(detail)
+        self.weeklyProgressAnalyticsCoordinator = weeklyProgressAnalyticsCoordinator
     }
 
     init(presentation: Presentation, isLoading: Bool = false) {
@@ -169,6 +178,13 @@ struct WeeklyReviewDetailView: View {
                 sectionDivider
                 WeeklyReviewDetailSection(title: "Maintenance") {
                     WeeklyMaintenanceBlockView(state: maintenanceBlock)
+                        .onAppear {
+                            weeklyProgressAnalyticsCoordinator?.logMaintenanceBlockViewed(
+                                summary: detail.summary,
+                                showsLearnedEstimate: maintenanceBlock.showsLearnedEstimate,
+                                surface: .journeyDetail
+                            )
+                        }
                 }
             }
 
@@ -193,6 +209,14 @@ struct WeeklyReviewDetailView: View {
                         state: weightBlock,
                         spikeCopyStyle: .detail
                     )
+                    .onAppear {
+                        if weightBlock.hasSuddenSpike {
+                            weeklyProgressAnalyticsCoordinator?.logWeightSpikeExplanationShown(
+                                summary: detail.summary,
+                                surface: .journeyDetail
+                            )
+                        }
+                    }
                 }
             }
 
@@ -200,6 +224,13 @@ struct WeeklyReviewDetailView: View {
                 sectionDivider
                 WeeklyReviewDetailSection(title: "Plan recommendation") {
                     WeeklyPlanRecommendationBlockView(state: planBlock)
+                        .onAppear {
+                            weeklyProgressAnalyticsCoordinator?.logPlanRecommendationShown(
+                                summary: detail.summary,
+                                recommendationKind: planBlock.recommendationKind,
+                                surface: .journeyDetail
+                            )
+                        }
                 }
             }
 

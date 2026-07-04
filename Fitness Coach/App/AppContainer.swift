@@ -103,6 +103,7 @@ final class AppContainer {
     let todayAnalyticsLogger: any TodayAnalyticsLogging
     let planAnalyticsLogger: any PlanAnalyticsLogging
     let journeyAnalyticsLogger: any JourneyAnalyticsLogging
+    let weeklyProgressAnalyticsLogger: any WeeklyProgressAnalyticsLogging
     let publicEntryAnalyticsLogger: any PublicEntryAnalyticsLogging
     let themeAnalyticsLogger: any ThemeAnalyticsLogging
     let settingsAnalyticsLogger: any SettingsAnalyticsLogging
@@ -117,6 +118,7 @@ final class AppContainer {
         todayAnalyticsLogger: (any TodayAnalyticsLogging)? = nil,
         planAnalyticsLogger: (any PlanAnalyticsLogging)? = nil,
         journeyAnalyticsLogger: (any JourneyAnalyticsLogging)? = nil,
+        weeklyProgressAnalyticsLogger: (any WeeklyProgressAnalyticsLogging)? = nil,
         publicEntryAnalyticsLogger: (any PublicEntryAnalyticsLogging)? = nil,
         themeAnalyticsLogger: (any ThemeAnalyticsLogging)? = nil,
         settingsAnalyticsLogger: (any SettingsAnalyticsLogging)? = nil,
@@ -145,6 +147,7 @@ final class AppContainer {
         self.todayAnalyticsLogger = todayAnalyticsLogger ?? OSLogTodayAnalyticsLogger()
         self.planAnalyticsLogger = planAnalyticsLogger ?? OSLogPlanAnalyticsLogger()
         self.journeyAnalyticsLogger = journeyAnalyticsLogger ?? OSLogJourneyAnalyticsLogger()
+        self.weeklyProgressAnalyticsLogger = weeklyProgressAnalyticsLogger ?? OSLogWeeklyProgressAnalyticsLogger()
         self.publicEntryAnalyticsLogger = publicEntryAnalyticsLogger ?? OSLogPublicEntryAnalyticsLogger()
         self.themeAnalyticsLogger = themeAnalyticsLogger ?? OSLogThemeAnalyticsLogger()
         self.settingsAnalyticsLogger = settingsAnalyticsLogger ?? OSLogSettingsAnalyticsLogger()
@@ -153,6 +156,7 @@ final class AppContainer {
         self.todayAnalyticsLogger = todayAnalyticsLogger ?? NoOpTodayAnalyticsLogger()
         self.planAnalyticsLogger = planAnalyticsLogger ?? NoOpPlanAnalyticsLogger()
         self.journeyAnalyticsLogger = journeyAnalyticsLogger ?? NoOpJourneyAnalyticsLogger()
+        self.weeklyProgressAnalyticsLogger = weeklyProgressAnalyticsLogger ?? NoOpWeeklyProgressAnalyticsLogger()
         self.publicEntryAnalyticsLogger = publicEntryAnalyticsLogger ?? NoOpPublicEntryAnalyticsLogger()
         self.themeAnalyticsLogger = themeAnalyticsLogger ?? NoOpThemeAnalyticsLogger()
         self.settingsAnalyticsLogger = settingsAnalyticsLogger ?? NoOpSettingsAnalyticsLogger()
@@ -750,12 +754,14 @@ final class AppContainer {
     }
 
     func makeTodayActionCoordinator(
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
+        weeklyProgressAnalyticsCoordinator: WeeklyProgressAnalyticsCoordinator? = nil
     ) -> TodayActionCoordinator {
         TodayActionCoordinator(
             actionCenter: actionCenter,
             analyticsLogger: todayAnalyticsLogger,
-            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator
+            healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+            weeklyProgressAnalyticsCoordinator: weeklyProgressAnalyticsCoordinator
         )
     }
 
@@ -843,6 +849,18 @@ final class AppContainer {
         JourneyAnalyticsCoordinator(analyticsLogger: journeyAnalyticsLogger)
     }
 
+    func makeWeeklyProgressAnalyticsCoordinator() -> WeeklyProgressAnalyticsCoordinator {
+        WeeklyProgressAnalyticsCoordinator(analyticsLogger: weeklyProgressAnalyticsLogger)
+    }
+
+    func makePlanAnalyticsCoordinator(
+        weeklyProgressAnalyticsCoordinator: WeeklyProgressAnalyticsCoordinator
+    ) -> PlanAnalyticsCoordinator {
+        PlanAnalyticsCoordinator(
+            weeklyProgressAnalyticsCoordinator: weeklyProgressAnalyticsCoordinator
+        )
+    }
+
     func makeSettingsPrivacyDataEnvironment() -> SettingsPrivacyDataEnvironment {
         let provider = SettingsPrivacyDataStatusProvider(
             authManager: authManager,
@@ -910,7 +928,8 @@ final class AppContainer {
     }
 
     func makePlanModel(
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
+        planAnalyticsCoordinator: PlanAnalyticsCoordinator? = nil
     ) -> PlanModel {
         PlanModel(
             actionCenter: actionCenter,
@@ -920,6 +939,7 @@ final class AppContainer {
             weightLogReader: weightLogService,
             trainingInsightsStore: trainingInsightsStore,
             analyticsLogger: planAnalyticsLogger,
+            planAnalyticsCoordinator: planAnalyticsCoordinator,
             healthBaselineService: healthBaselineService,
             healthIntelligenceSnapshotProvider: healthIntelligenceSnapshotService,
             healthDataRepository: healthDataRepository,

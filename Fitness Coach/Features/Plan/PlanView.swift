@@ -226,6 +226,7 @@ struct PlanView: View {
                         model.showEditPlan(entryPoint: .adjustPlanCTA)
                     },
                     onReviewWeeklyRecommendation: {
+                        model.logWeeklyRecommendationTapped(healthConnected: healthConnected)
                         model.showEditPlanFromWeeklyReview(entryPoint: .weeklyReview)
                     },
                     onCalculationDetailsOpened: {
@@ -320,10 +321,10 @@ struct PlanView: View {
         case .planStatus:
             model.logSectionImpression(.status, healthConnected: healthConnected)
         case .weeklyRecommendation:
-            break
+            model.logWeeklyRecommendationShown(healthConnected: healthConnected)
         case .planConfidence:
             model.logSectionImpression(.confidence, healthConnected: healthConnected)
-        case .header, .todayMission, .whyThisWorks, .whenToAdjust, .planAssumptions, .nextReview, .adjustPlanCTA, .weeklyRecommendation:
+        case .header, .todayMission, .whyThisWorks, .whenToAdjust, .planAssumptions, .nextReview, .adjustPlanCTA:
             break
         }
     }

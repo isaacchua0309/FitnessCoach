@@ -52,6 +52,7 @@ struct WeeklyPlanRecommendationBlockState: Equatable {
     let suggestedCalorieDelta: Int?
     let suggestedTargetKcal: Int?
     let confidenceLabel: String
+    let recommendationKind: WeeklyPlanRecommendationKind?
     let reasons: [String]
     let safetyNotes: [String]
     let accessibilityLabel: String
@@ -289,6 +290,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
         let maintenance = summary.maintenanceEstimate
 
         return WeeklyProgressDetailState(
+            summary: summary,
             unified: unified,
             verdictTitle: verdictTitle(for: summary.verdict),
             primaryInsight: summary.primaryInsight,
@@ -610,6 +612,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             suggestedCalorieDelta: recommendation.suggestedCalorieDelta,
             suggestedTargetKcal: suggestedTarget,
             confidenceLabel: confidenceLabel,
+            recommendationKind: recommendation.kind,
             reasons: recommendation.reasons,
             safetyNotes: recommendation.safetyNotes,
             accessibilityLabel: accessibility

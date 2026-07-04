@@ -33,8 +33,11 @@ final class TodayActionCoordinator: ObservableObject {
     private let actionCenter: FitnessActionCenter
     private let analyticsLogger: any TodayAnalyticsLogging
     private let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
+    private let weeklyProgressAnalyticsCoordinator: WeeklyProgressAnalyticsCoordinator?
     private let logDate: () -> Date
     private var analyticsSnapshot: TodayAnalyticsSnapshot = .empty
+
+    private var dailyReviewTeaserFoodLoggedDays: Int = 0
 
     var onOpenCoach: ((CoachLaunchIntent) -> Void)?
     var onOpenTrainingInsights: (() -> Void)?
@@ -43,11 +46,13 @@ final class TodayActionCoordinator: ObservableObject {
         actionCenter: FitnessActionCenter,
         analyticsLogger: any TodayAnalyticsLogging = NoOpTodayAnalyticsLogger(),
         healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
+        weeklyProgressAnalyticsCoordinator: WeeklyProgressAnalyticsCoordinator? = nil,
         logDate: @escaping () -> Date = { Date() }
     ) {
         self.actionCenter = actionCenter
         self.analyticsLogger = analyticsLogger
         self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
+        self.weeklyProgressAnalyticsCoordinator = weeklyProgressAnalyticsCoordinator
         self.logDate = logDate
     }
 
@@ -58,6 +63,9 @@ final class TodayActionCoordinator: ObservableObject {
             from: state,
             healthConnected: healthConnected
         )
+        dailyReviewTeaserFoodLoggedDays = state.yesterdayReview.isVisible
+            ? state.yesterdayReview.analyticsFoodEntryCount
+            : 0
     }
 
     func logTodayViewed() {
@@ -93,11 +101,17 @@ final class TodayActionCoordinator: ObservableObject {
 
     func logYesterdayReviewViewed() {
         log(.yesterdayReviewViewed)
+        weeklyProgressAnalyticsCoordinator?.logDailyReviewTeaserViewed(
+            foodLoggedDays: dailyReviewTeaserFoodLoggedDays
+        )
     }
 
     func viewYesterdayReview(_ review: DailyReview) {
         presentedDailyReview = review
         log(.yesterdayReviewTapped, actionType: "view_review")
+        weeklyProgressAnalyticsCoordinator?.logDailyReviewOpenedFromToday(
+            foodLoggedDays: dailyReviewTeaserFoodLoggedDays
+        )
     }
 
     func generateYesterdayReview(for date: Date) {

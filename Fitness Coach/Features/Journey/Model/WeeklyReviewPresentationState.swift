@@ -132,6 +132,7 @@ struct WeeklyProgressTDEEComparisonState: Equatable {
 }
 
 struct WeeklyProgressDetailState: Equatable {
+    var summary: WeeklyProgressSummary
     var unified: UnifiedWeeklyReviewState
     var verdictTitle: String
     var primaryInsight: String

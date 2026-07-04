@@ -321,6 +321,7 @@ struct TodayYesterdayReviewState: Equatable {
     var cta: TodayYesterdayReviewCTA
     var reviewDate: Date
     var review: DailyReview?
+    var analyticsFoodEntryCount: Int
     var accessibilityLabel: String
 
     static let hidden = TodayYesterdayReviewState(
@@ -332,6 +333,7 @@ struct TodayYesterdayReviewState: Equatable {
         cta: .viewReview,
         reviewDate: .distantPast,
         review: nil,
+        analyticsFoodEntryCount: 0,
         accessibilityLabel: ""
     )
 }

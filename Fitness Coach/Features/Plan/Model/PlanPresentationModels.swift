@@ -185,6 +185,7 @@ struct PlanWeeklyRecommendationState: Equatable, Sendable {
     var reviewPlanButtonTitle: String
     var showsReviewPlanCTA: Bool
     var safetyCopy: String
+    var recommendationKind: WeeklyPlanRecommendationKind?
     var accessibilitySummary: String
 }
 

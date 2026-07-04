@@ -362,6 +362,7 @@ enum TodayPresentationBuilder {
                 cta: .viewReview,
                 reviewDate: context.date,
                 review: review,
+                analyticsFoodEntryCount: context.foodEntryCount,
                 accessibilityLabel: accessibilityLabel(
                     sectionTitle: copy.sectionTitle,
                     previewLines: previewLines,
@@ -380,6 +381,7 @@ enum TodayPresentationBuilder {
             cta: .generateReview,
             reviewDate: context.date,
             review: nil,
+            analyticsFoodEntryCount: context.foodEntryCount,
             accessibilityLabel: accessibilityLabel(
                 sectionTitle: copy.sectionTitle,
                 previewLines: [],

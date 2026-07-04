@@ -12,6 +12,7 @@ struct JourneyDashboardContent: View {
     var healthIntelligenceUIEnabled: Bool = HealthIntelligenceFeatureFlags.isUIEnabled
     var healthIntelligenceSectionState: JourneyHealthIntelligenceSectionState?
     var analyticsCoordinator: JourneyAnalyticsCoordinator?
+    var weeklyProgressAnalyticsCoordinator: WeeklyProgressAnalyticsCoordinator?
     var healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
     var onCTA: (JourneyCTA) -> Void = { _ in }
     var onWeeklyProgressCTA: (WeeklyProgressCTA) -> Void = { _ in }
@@ -116,8 +117,11 @@ struct JourneyDashboardContent: View {
         case .weeklyProgress:
             WeeklyProgressHeroSection(
                 state: unifiedWeeklyReview,
+                summary: state.weeklyProgressSummary,
                 foodLoggedDays: state.weeklyProgressSummary.foodLoggedDays,
                 totalDays: state.weeklyProgressSummary.totalDays,
+                weeklyProgressAnalyticsCoordinator: weeklyProgressAnalyticsCoordinator,
+                freshnessInput: weeklyProgressFreshnessInput,
                 onPrimaryCTA: onWeeklyProgressCTA,
                 onSecondaryCTA: onWeeklyProgressCTA,
                 onOpenWeeklyReviewDetail: weeklyReviewDetailAction

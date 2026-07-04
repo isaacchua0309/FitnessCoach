@@ -18,6 +18,7 @@ enum HealthIntelligenceAnalyticsEvent: String, Sendable {
     case journeyWorkoutHistoryViewed = "journey_workout_history_viewed"
     case weeklyReviewCardViewed = "weekly_review_card_viewed"
     case weeklyReviewDetailOpened = "weekly_review_detail_opened"
+    // Weekly Progress Loop v1 product events: see `WeeklyProgressAnalyticsLogging.swift`.
     case planHealthConfidenceViewed = "plan_health_confidence_viewed"
     case healthPermissionCTATapped = "health_permission_cta_tapped"
     case healthPermissionConnected = "health_permission_connected"
