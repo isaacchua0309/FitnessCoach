@@ -14,14 +14,11 @@ enum CoachTodayContextBuilder {
         latestFoodEntry: FoodEntry?,
         weightLogged: Bool,
         hasWorkout: Bool,
-<<<<<<< HEAD
+        steps: Int?,
+        healthActivityNote: String?,
         healthIntelligence: CoachHealthIntelligenceContext? = nil,
         healthIntelligenceAwarenessAvailable: Bool = false,
         isCoachContextEnabled: Bool = HealthIntelligenceFeatureFlags.shouldCoachLoadHealthIntelligence,
-=======
-        steps: Int?,
-        healthActivityNote: String?,
->>>>>>> origin/cursor/coach-ui-accuracy-1b75
         trainingIntegration: TrainingIntegrationState = .connected,
         trainingDataSource: TrainingDataSource = .appleHealth
     ) -> CoachTodayContextState {
@@ -43,16 +40,10 @@ enum CoachTodayContextBuilder {
                 consumedMl: waterSummary.consumedMl,
                 targetMl: waterSummary.targetMl
             ),
-<<<<<<< HEAD
-            // Legacy hasWorkout focus duplicates CoachHealthIntelligenceContext —
-            // pending removal after Health Intelligence coach rollout.
-            suggestedFocus: CoachCompositionPolicy.suggestedFocus(
-                healthIntelligence: healthIntelligence,
-=======
             activityLines: activity.lines,
             activityHintLine: activity.hintLine,
-            suggestedFocus: TodayFocusBuilder.focus(
->>>>>>> origin/cursor/coach-ui-accuracy-1b75
+            suggestedFocus: CoachCompositionPolicy.suggestedFocus(
+                healthIntelligence: healthIntelligence,
                 proteinProgress: macroSummary.protein.progress,
                 waterProgress: waterSummary.progress,
                 weightLogged: weightLogged,

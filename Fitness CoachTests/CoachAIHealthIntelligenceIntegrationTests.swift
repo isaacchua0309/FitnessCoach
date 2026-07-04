@@ -156,19 +156,10 @@ final class CoachAIHealthIntelligenceIntegrationTests: XCTestCase {
 
         let packet = await builder.makeContext(recentMessages: [])
 
-<<<<<<< HEAD
-        let context = builder.makeContext(recentMessages: [], activity: activity)
-
-        XCTAssertTrue(context.healthIntelligenceAwarenessAvailable)
-        XCTAssertEqual(context.todaySummary?.workoutsToday, 0)
-        XCTAssertEqual(context.healthIntelligence?.workoutDemand, WorkoutDemand.high.rawValue)
-        XCTAssertEqual(context.healthIntelligence?.recoveryStatus, RecoveryStatus.moderate.rawValue)
-=======
         XCTAssertEqual(packet.training?.workoutsToday, 1)
         XCTAssertNotNil(packet.healthIntelligence)
         XCTAssertEqual(packet.healthIntelligence?.workoutDemand, WorkoutDemand.high.rawValue)
         XCTAssertEqual(packet.healthIntelligence?.recoveryStatus, RecoveryStatus.moderate.rawValue)
->>>>>>> origin/cursor/coach-remove-aicontext-1b75
     }
 
     func testContextPacketV2BuilderUsesHealthSnapshotWorkoutCount() async throws {

@@ -78,7 +78,7 @@ final class CoachModel: ObservableObject {
     private let pendingImageLocalSources = CoachPendingImageLocalSourceStore()
     private let coachAnalyticsLogger: any CoachAnalyticsLogging
     private let healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator?
-private let timelineRecorder: any CoachTimelineRecording
+    private let timelineRecorder: any CoachTimelineRecording
     private var userEditedPendingBeforeConfirm = false
     private var nutritionEstimateLogPending = false
     private var lastNutritionActionTapAt: Date?
@@ -119,8 +119,8 @@ private let timelineRecorder: any CoachTimelineRecording
         trainingInsightsStore: TrainingInsightsStore? = nil,
         transcriptStore: CoachChatTranscriptStore = CoachInMemoryChatTranscriptStore(),
         coachAnalyticsLogger: (any CoachAnalyticsLogging)? = nil,
-        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil
-timelineRecorder: (any CoachTimelineRecording)? = nil,
+        healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
+        timelineRecorder: (any CoachTimelineRecording)? = nil,
         timelineStore: (any CoachTimelineStoring)? = nil
     ) {
         self.localCommandParser = localCommandParser ?? .standard
@@ -209,6 +209,8 @@ timelineRecorder: (any CoachTimelineRecording)? = nil,
                 latestFoodEntry: latestFoodEntry,
                 weightLogged: weightLogged,
                 hasWorkout: activity.hasWorkoutToday,
+                steps: resolvedSteps,
+                healthActivityNote: healthNote,
                 healthIntelligence: activity.healthIntelligence,
                 healthIntelligenceAwarenessAvailable: activity.healthIntelligenceAwarenessAvailable,
                 isCoachContextEnabled: healthIntelligenceLoadEnabled(),

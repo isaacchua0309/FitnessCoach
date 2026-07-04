@@ -113,17 +113,8 @@ final class CoachWorkoutAwareResponsesTests: XCTestCase {
 
         let packet = await builder.makeContext(recentMessages: [])
 
-<<<<<<< HEAD
-        let context = builder.makeContext(recentMessages: [], activity: activity)
-
-        XCTAssertNotNil(context.healthIntelligence)
-        XCTAssertEqual(context.healthIntelligence?.healthContextStatus, .unavailable)
-        XCTAssertFalse(context.healthIntelligenceAwarenessAvailable)
-        XCTAssertNotNil(context.todaySummary)
-=======
         XCTAssertNil(packet.healthIntelligence)
         XCTAssertNotNil(packet.today)
->>>>>>> origin/cursor/coach-remove-aicontext-1b75
     }
 
     func testWorkoutAwareHealthIntelligenceAppearsInPromptContext() throws {
