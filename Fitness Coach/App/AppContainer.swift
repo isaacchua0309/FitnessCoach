@@ -414,7 +414,13 @@ final class AppContainer {
             refreshCenter: refreshCenter,
             profileBootstrapService: profileBootstrapService,
             cloudUploadFailureNotifier: cloudUploadFailureNotifier,
-            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
+            currentUIDProvider: { [weak authManager] in authManager?.currentUID },
+            scheduleAccountSyncAfterMutation: { [authManager, accountSyncCoordinator] in
+                AccountSyncLifecycle.scheduleAfterLocalMutation(
+                    coordinator: accountSyncCoordinator,
+                    uidProvider: { authManager.currentUID }
+                )
+            }
         )
 
         #if DEBUG
@@ -432,7 +438,22 @@ final class AppContainer {
         healthSummarySyncConsentStore.refresh()
         if uidChanged {
             healthSyncStateStore.cancelActiveSync()
+            AccountSyncLifecycle.cancelOnAccountSwitch(coordinator: accountSyncCoordinator)
         }
+    }
+
+    func handleAccountDataSyncOnAppForeground() {
+        AccountSyncLifecycle.handleAppForeground(
+            coordinator: accountSyncCoordinator,
+            uidProvider: { [authManager] in authManager.currentUID }
+        )
+    }
+
+    func handleAccountDataSyncAfterSignIn(uid: String) {
+        AccountSyncLifecycle.handleAfterSignIn(
+            coordinator: accountSyncCoordinator,
+            uid: uid
+        )
     }
 
     func makeHealthIntelligenceEngine() -> any HealthIntelligenceEngineing {

@@ -125,12 +125,14 @@ final class AccountSyncCoordinatorTests: XCTestCase {
         XCTAssertNil(summary.pullSummary)
     }
 
-    func testAppForegroundUploadsWithoutPullWhenPullFlagDisabled() async {
-        let summary = await coordinator.syncNow(for: ownerUID, reason: .appForeground)
+    func testCancelPendingWorkPreventsDebouncedUpload() async {
+        let summary = await coordinator.uploadPendingOnly(for: ownerUID, reason: .afterLocalMutation)
+        XCTAssertEqual(summary.skipReason, AccountSyncCoordinatorSkipReason.debouncedUploadScheduled)
 
-        XCTAssertFalse(summary.didSkip)
-        XCTAssertEqual(uploader.uploadCallCount, 1)
-        XCTAssertNil(summary.pullSummary)
+        coordinator.cancelPendingWork()
+
+        try? await Task.sleep(nanoseconds: 120_000_000)
+        XCTAssertEqual(uploader.uploadCallCount, 0)
     }
 }
 
@@ -153,6 +155,8 @@ private final class MockAccountSyncUploader: AccountSyncUploading {
             cancelled: 0
         )
     }
+
+    func cancelPendingWork() {}
 }
 
 @MainActor
@@ -180,6 +184,8 @@ private final class MockAccountSyncPuller: AccountSyncPulling {
             failed: 0
         )
     }
+
+    func cancelPendingWork() {}
 }
 
 private final class MockAccountSyncNetworkChecker: AccountSyncNetworkChecking, @unchecked Sendable {

@@ -664,6 +664,9 @@ final class AuthGateCoordinator: ObservableObject {
                 signedInSessionID = UUID()
             }
             if isSignedInNow, case .signedIn(let uid) = state {
+                if isFreshSignIn {
+                    container.handleAccountDataSyncAfterSignIn(uid: uid)
+                }
                 reconcileSignedInProfile(uid: uid, isFreshSignIn: isFreshSignIn)
             }
         } else {
@@ -710,6 +713,7 @@ final class AuthGateCoordinator: ObservableObject {
         }
 
         if wasSignedIn {
+            container.accountSyncCoordinator.cancelPendingWork()
             clearAuthenticatedSessionPresentationState()
             onboardingModel = nil
             pendingExistingUserSignIn = false

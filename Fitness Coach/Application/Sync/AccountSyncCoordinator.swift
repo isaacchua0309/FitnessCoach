@@ -30,6 +30,7 @@ protocol AccountSyncCoordinating: AnyObject {
     func syncNow(for uid: String, reason: AccountSyncReason) async -> AccountSyncRunSummary
     func uploadPendingOnly(for uid: String, reason: AccountSyncReason) async -> AccountSyncRunSummary
     func pullRecentOnly(for uid: String, reason: AccountSyncReason) async -> AccountSyncRunSummary
+    func cancelPendingWork()
 }
 
 /// Optional network gate for sync. Defaults to available when no reachability service exists.
@@ -143,6 +144,11 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
             includeUpload: false,
             includePull: true
         )
+    }
+
+    func cancelPendingWork() {
+        debouncedUploadTask?.cancel()
+        debouncedUploadTask = nil
     }
 
     // MARK: - Core run loop
@@ -320,6 +326,7 @@ final class AccountSyncCoordinator: AccountSyncCoordinating {
             guard let self else { return }
             try? await Task.sleep(for: debounceInterval)
             guard !Task.isCancelled else { return }
+            guard self.isUIDStillCurrent(normalizedUID) else { return }
             _ = await self.run(
                 for: normalizedUID,
                 reason: reason,

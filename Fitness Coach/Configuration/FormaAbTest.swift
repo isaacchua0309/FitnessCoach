@@ -130,6 +130,20 @@ enum FormaAbTest {
         static var clearsCloudSyncMetadataOnSignOut: Bool { resolved.clearsCloudSyncMetadataOnSignOut }
     }
 
+    // MARK: Account persistence
+
+    enum AccountPersistence {
+        static var syncEngineEnabled: Bool { AccountPersistenceFeatureFlags.syncEngineEnabled }
+        static var uploadPendingMutationsEnabled: Bool {
+            AccountPersistenceFeatureFlags.uploadPendingMutationsEnabled
+        }
+        static var pullRecentDataEnabled: Bool { AccountPersistenceFeatureFlags.pullRecentDataEnabled }
+        static var restoreOnLoginEnabled: Bool { AccountPersistenceFeatureFlags.restoreOnLoginEnabled }
+        static var realtimeCrossDeviceSyncEnabled: Bool {
+            AccountPersistenceFeatureFlags.realtimeCrossDeviceSyncEnabled
+        }
+    }
+
     // MARK: Build
 
     enum Build {

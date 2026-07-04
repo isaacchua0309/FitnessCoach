@@ -166,6 +166,7 @@ struct MainTabView: View {
             if phase == .active {
                 container.syncHealthCacheUserID()
                 container.refreshCenter.refreshIfDayChanged()
+                container.handleAccountDataSyncOnAppForeground()
                 if HealthIntelligenceFeatureFlags.isSyncEnabled {
                     container.healthSyncStateStore.refreshOnAppForeground()
                 }
