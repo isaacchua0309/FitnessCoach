@@ -81,6 +81,11 @@ actor SelectiveFailingAccountDataRemoteStore: AccountDataRemoteStore {
         case fetchWaterEntries
         case fetchWeightEntries
         case fetchDailyReview
+        case fetchDailyLogsUpdatedSince
+        case fetchFoodEntriesUpdatedSince
+        case fetchWaterEntriesUpdatedSince
+        case fetchWeightEntriesUpdatedSince
+        case fetchDailyReviewsUpdatedSince
     }
 
     private let backing: InMemoryAccountDataRemoteStore
@@ -188,7 +193,8 @@ actor SelectiveFailingAccountDataRemoteStore: AccountDataRemoteStore {
         since: Date?,
         limit: Int
     ) async throws -> [CloudDailyLogDocument] {
-        try await backing.fetchDailyLogsUpdatedSince(uid: uid, since: since, limit: limit)
+        try throwIfNeeded(.fetchDailyLogsUpdatedSince)
+        return try await backing.fetchDailyLogsUpdatedSince(uid: uid, since: since, limit: limit)
     }
 
     func fetchFoodEntriesUpdatedSince(
@@ -198,7 +204,8 @@ actor SelectiveFailingAccountDataRemoteStore: AccountDataRemoteStore {
         to endDate: String,
         limit: Int
     ) async throws -> [CloudFoodEntryDocument] {
-        try await backing.fetchFoodEntriesUpdatedSince(
+        try throwIfNeeded(.fetchFoodEntriesUpdatedSince)
+        return try await backing.fetchFoodEntriesUpdatedSince(
             uid: uid,
             since: since,
             from: startDate,
@@ -214,7 +221,8 @@ actor SelectiveFailingAccountDataRemoteStore: AccountDataRemoteStore {
         to endDate: String,
         limit: Int
     ) async throws -> [CloudWaterEntryDocument] {
-        try await backing.fetchWaterEntriesUpdatedSince(
+        try throwIfNeeded(.fetchWaterEntriesUpdatedSince)
+        return try await backing.fetchWaterEntriesUpdatedSince(
             uid: uid,
             since: since,
             from: startDate,
@@ -228,7 +236,8 @@ actor SelectiveFailingAccountDataRemoteStore: AccountDataRemoteStore {
         since: Date?,
         limit: Int
     ) async throws -> [CloudWeightEntryDocument] {
-        try await backing.fetchWeightEntriesUpdatedSince(uid: uid, since: since, limit: limit)
+        try throwIfNeeded(.fetchWeightEntriesUpdatedSince)
+        return try await backing.fetchWeightEntriesUpdatedSince(uid: uid, since: since, limit: limit)
     }
 
     func fetchDailyReviewsUpdatedSince(
@@ -236,7 +245,8 @@ actor SelectiveFailingAccountDataRemoteStore: AccountDataRemoteStore {
         since: Date?,
         limit: Int
     ) async throws -> [CloudDailyReviewDocument] {
-        try await backing.fetchDailyReviewsUpdatedSince(uid: uid, since: since, limit: limit)
+        try throwIfNeeded(.fetchDailyReviewsUpdatedSince)
+        return try await backing.fetchDailyReviewsUpdatedSince(uid: uid, since: since, limit: limit)
     }
 
     func fetchCloudProfileUpdatedSince(uid: String, since: Date?) async throws -> CloudUserProfileDocument? {

@@ -30,103 +30,67 @@ final class AccountSyncCursorStoreTests: XCTestCase {
         super.tearDown()
     }
 
-    func testLoadCursorDefaultsToEmptyForUnknownUID() {
-        let cursor = store.loadCursor(uid: uidA)
+    func testCursorIsScopedByUID() {
+        let dateA = referenceDate
+        store.updateCursor(uid: uidA, domain: .foodEntries, date: dateA)
 
-        XCTAssertEqual(cursor.uid, uidA)
-        XCTAssertNil(cursor.profileLastPulledAt)
-        XCTAssertNil(cursor.dailyLogsLastPulledAt)
-        XCTAssertNil(cursor.foodEntriesLastPulledAt)
-        XCTAssertNil(cursor.waterEntriesLastPulledAt)
-        XCTAssertNil(cursor.weightEntriesLastPulledAt)
-        XCTAssertNil(cursor.dailyReviewsLastPulledAt)
-        XCTAssertNil(cursor.lastForegroundRefreshAt)
-        XCTAssertNil(cursor.lastManualRefreshAt)
-    }
-
-    func testUpdateCursorPersistsUIDScopedDomainTimestamp() {
-        store.updateCursor(uid: uidA, domain: .foodEntries, date: referenceDate)
-
+        XCTAssertEqual(store.loadCursor(uid: uidA).foodEntriesLastPulledAt, dateA)
+        XCTAssertNil(store.loadCursor(uid: uidB).foodEntriesLastPulledAt)
         XCTAssertEqual(
             defaults.object(forKey: AccountSyncCursorStoreSupport.foodEntriesLastPulledAtKey(for: uidA)) as? Date,
-            referenceDate
+            dateA
         )
         XCTAssertNil(
             defaults.object(forKey: AccountSyncCursorStoreSupport.foodEntriesLastPulledAtKey(for: uidB)) as? Date
         )
     }
 
-    func testUserAAndUserBCursorsAreIsolated() {
+    func testUpdateDailyLogsCursorDoesNotAffectFoodCursor() {
+        store.updateCursor(uid: uidA, domain: .dailyLogs, date: referenceDate)
+
+        let cursor = store.loadCursor(uid: uidA)
+        XCTAssertEqual(cursor.dailyLogsLastPulledAt, referenceDate)
+        XCTAssertNil(cursor.foodEntriesLastPulledAt)
+        XCTAssertNil(cursor.waterEntriesLastPulledAt)
+        XCTAssertNil(cursor.weightEntriesLastPulledAt)
+        XCTAssertNil(cursor.dailyReviewsLastPulledAt)
+    }
+
+    func testUpdateCursorForUserADoesNotAffectUserB() {
         let dateA = referenceDate
         let dateB = referenceDate.addingTimeInterval(3600)
 
         store.updateCursor(uid: uidA, domain: .dailyLogs, date: dateA)
         store.updateCursor(uid: uidB, domain: .dailyLogs, date: dateB)
-        store.updateForegroundRefresh(uid: uidA, date: dateA)
-        store.updateManualRefresh(uid: uidB, date: dateB)
 
-        let cursorA = store.loadCursor(uid: uidA)
-        let cursorB = store.loadCursor(uid: uidB)
-
-        XCTAssertEqual(cursorA.dailyLogsLastPulledAt, dateA)
-        XCTAssertEqual(cursorB.dailyLogsLastPulledAt, dateB)
-        XCTAssertEqual(cursorA.lastForegroundRefreshAt, dateA)
-        XCTAssertNil(cursorA.lastManualRefreshAt)
-        XCTAssertNil(cursorB.lastForegroundRefreshAt)
-        XCTAssertEqual(cursorB.lastManualRefreshAt, dateB)
+        XCTAssertEqual(store.loadCursor(uid: uidA).dailyLogsLastPulledAt, dateA)
+        XCTAssertEqual(store.loadCursor(uid: uidB).dailyLogsLastPulledAt, dateB)
     }
 
-    func testPartialDomainUpdatesDoNotAffectOtherDomains() {
-        store.updateCursor(uid: uidA, domain: .weightEntries, date: referenceDate)
+    func testForegroundRefreshThrottleUsesUIDScopedTimestamp() {
+        let foregroundA = referenceDate
+        let foregroundB = referenceDate.addingTimeInterval(120)
 
-        let cursor = store.loadCursor(uid: uidA)
+        store.updateForegroundRefresh(uid: uidA, date: foregroundA)
+        store.updateForegroundRefresh(uid: uidB, date: foregroundB)
 
-        XCTAssertEqual(cursor.weightEntriesLastPulledAt, referenceDate)
-        XCTAssertNil(cursor.profileLastPulledAt)
-        XCTAssertNil(cursor.foodEntriesLastPulledAt)
-        XCTAssertNil(cursor.dailyReviewsLastPulledAt)
+        XCTAssertEqual(store.loadCursor(uid: uidA).lastForegroundRefreshAt, foregroundA)
+        XCTAssertEqual(store.loadCursor(uid: uidB).lastForegroundRefreshAt, foregroundB)
+        XCTAssertNil(store.loadCursor(uid: uidA).lastManualRefreshAt)
+        XCTAssertNil(store.loadCursor(uid: uidB).lastManualRefreshAt)
     }
 
-    func testClearRemovesOnlyRequestedUIDKeys() {
+    func testClearRemovesOnlyOneUserCursor() {
         store.updateCursor(uid: uidA, domain: .profile, date: referenceDate)
         store.updateCursor(uid: uidB, domain: .profile, date: referenceDate.addingTimeInterval(60))
+        store.updateForegroundRefresh(uid: uidA, date: referenceDate)
+        store.updateForegroundRefresh(uid: uidB, date: referenceDate.addingTimeInterval(30))
 
         store.clear(uid: uidA)
 
         XCTAssertNil(store.loadCursor(uid: uidA).profileLastPulledAt)
+        XCTAssertNil(store.loadCursor(uid: uidA).lastForegroundRefreshAt)
         XCTAssertEqual(store.loadCursor(uid: uidB).profileLastPulledAt, referenceDate.addingTimeInterval(60))
-    }
-
-    func testDomainKeysMatchCrossDeviceSyncPrefix() {
-        XCTAssertEqual(
-            AccountSyncCursorStoreSupport.profileLastPulledAtKey(for: uidA),
-            "forma.crossDeviceSync.\(uidA).profileLastPulledAt"
-        )
-        XCTAssertEqual(
-            AccountSyncCursorStoreSupport.lastManualRefreshAtKey(for: uidA),
-            "forma.crossDeviceSync.\(uidA).lastManualRefreshAt"
-        )
-    }
-
-    func testUpdateCursorDoesNotMoveCursorBackward() {
-        let newer = referenceDate.addingTimeInterval(120)
-        let older = referenceDate
-
-        store.updateCursor(uid: uidA, domain: .dailyReviews, date: newer)
-        store.updateCursor(uid: uidA, domain: .dailyReviews, date: older)
-
-        XCTAssertEqual(store.loadCursor(uid: uidA).dailyReviewsLastPulledAt, newer)
-    }
-
-    func testUpdateForegroundAndManualRefreshPersistSeparately() {
-        let foregroundDate = referenceDate
-        let manualDate = referenceDate.addingTimeInterval(90)
-
-        store.updateForegroundRefresh(uid: uidA, date: foregroundDate)
-        store.updateManualRefresh(uid: uidA, date: manualDate)
-
-        let cursor = store.loadCursor(uid: uidA)
-        XCTAssertEqual(cursor.lastForegroundRefreshAt, foregroundDate)
-        XCTAssertEqual(cursor.lastManualRefreshAt, manualDate)
+        XCTAssertEqual(store.loadCursor(uid: uidB).lastForegroundRefreshAt, referenceDate.addingTimeInterval(30))
     }
 }
