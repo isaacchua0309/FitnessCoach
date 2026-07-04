@@ -1,7 +1,7 @@
 # Account Persistence — Implementation Plan
 
 **Companion to:** `ACCOUNT_PERSISTENCE_RESTORE_CONTEXT_PACKET.md`  
-**Status:** Phases 2–4 foundation **implemented** — see `Docs/AccountPersistence/PHASE_2_CLOUD_SCHEMA_AND_RULES.md`, `Docs/AccountPersistence/PHASE_3_LOCAL_FIRST_SYNC_ENGINE.md`, and `Docs/AccountPersistence/PHASE_4_FRESH_INSTALL_RESTORE.md`  
+**Status:** Phases 2–5 foundation **implemented** — see `Docs/AccountPersistence/PHASE_2_CLOUD_SCHEMA_AND_RULES.md`, `Docs/AccountPersistence/PHASE_3_LOCAL_FIRST_SYNC_ENGINE.md`, `Docs/AccountPersistence/PHASE_4_FRESH_INSTALL_RESTORE.md`, and `Docs/AccountPersistence/PHASE_5_CROSS_DEVICE_REFRESH.md`  
 **Generated:** 2026-07-04 · **Updated:** 2026-07-04
 
 ---
@@ -14,7 +14,7 @@
 | **2** | Cloud schema, DTOs, rules, remote store, tests, DI (no sync) | **Implemented** ([#108](https://github.com/isaacchua0309/FitnessCoach/pull/108)) |
 | **3** | Local-first sync engine — upload/pull/outbox | **Implemented** ([#110](https://github.com/isaacchua0309/FitnessCoach/pull/110)) |
 | **4** | Fresh install restore + bootstrap UX | **Implemented** — verify with `xcodebuild test` before enabling `restoreOnLoginEnabled` ([#113](https://github.com/isaacchua0309/FitnessCoach/pull/113)–[#117](https://github.com/isaacchua0309/FitnessCoach/pull/117)) |
-| **5** | Cross-device sync + optional coach/review sync | **Pending** |
+| **5** | Cross-device refresh + near-realtime sync | **Implemented** — verify with `xcodebuild test` before production rollout ([#122](https://github.com/isaacchua0309/FitnessCoach/pull/122)–[#125](https://github.com/isaacchua0309/FitnessCoach/pull/125)) |
 | **6** | Account delete, export, privacy | **Pending** |
 
 **Phase 2 reminder:** Cloud DTOs and Firestore paths exist. See Phase 2 doc for schema/rules.
@@ -22,6 +22,8 @@
 **Phase 3 reminder:** Signed-in users enqueue nutrition sync mutations; upload runs on debounced local changes, foreground, and sign-in. **Pull on foreground is off by default** (`pullRecentDataEnabled = false`). See `Docs/AccountPersistence/PHASE_3_LOCAL_FIRST_SYNC_ENGINE.md`.
 
 **Phase 4 reminder:** Blocking restore after sign-in pulls profile + bounded nutrition history from Firestore; background backfill extends windows. **Restore UX is off by default** (`restoreOnLoginEnabled = false`) until CI/manual QA passes. **No realtime cross-device listeners.** See `Docs/AccountPersistence/PHASE_4_FRESH_INSTALL_RESTORE.md`.
+
+**Phase 5 reminder:** Incremental cross-device refresh (foreground, manual, realtime hints) makes same-account changes visible across devices. **Does not** implement account deletion, raw meal images, raw HealthKit, or push notifications. See `Docs/AccountPersistence/PHASE_5_CROSS_DEVICE_REFRESH.md`.
 
 ---
 
@@ -33,11 +35,11 @@
 | P0 | Cross-user local leakage | `ownerUID` + filtered reads + switch wipe | 1 |
 | P0 | Journey empty on new device | Restore daily/weight logs before Journey load | 4 |
 | P1 | No offline upload | Sync outbox + retry | 3 ✅ |
-| P1 | Deletes don't propagate | Tombstones + pull merge | 3 ✅ (upload); 5 (cross-device pull enabled) |
+| P1 | Deletes don't propagate | Tombstones + pull merge | 3 ✅ (upload); 5 ✅ (cross-device pull) |
 | P1 | Firestore rules incomplete | Expand `firestore.rules` + emulator tests | 2 |
 | P2 | Account delete stub | GDPR delete orchestration | 6 |
 | P2 | Coach nil userId rows | Backfill + strict filter | 1 |
-| P3 | Daily reviews not synced | Optional collection | 3 ✅ (upload); 5 (pull enabled by default) |
+| P3 | Daily reviews not synced | Optional collection | 3 ✅ (upload); 5 ✅ (incremental pull) |
 
 ---
 
@@ -475,25 +477,41 @@ See context packet §12. Add to `firestore.rules`:
 
 ---
 
-### Phase 5 — Cross-Device Sync
+### Phase 5 — Cross-Device Refresh & Near-Realtime Sync
 
-**Goal:** Device B sees Device A changes within foreground refresh.
+**Goal:** Same-account changes visible across devices after foreground refresh, manual refresh, or realtime hint.
 
-**Status:** **Pending**
+**Status:** **Implemented** — verify with `xcodebuild test` before production rollout. See `Docs/AccountPersistence/PHASE_5_CROSS_DEVICE_REFRESH.md`.
 
 | Action | Files |
 |--------|-------|
-| Foreground pull in `AccountSyncEngine` | Existing engine |
-| Conflict UI (rare) | Optional toast |
+| Upload-then-pull orchestration | `CrossDeviceSyncCoordinator.swift` |
+| Incremental cursor pull + merge | `AccountIncrementalPuller.swift`, `AccountSyncCursorStore.swift` |
+| Policy (lookback, throttle, exclusions) | `CrossDeviceSyncPolicy.swift` |
+| App lifecycle hooks | `CrossDeviceSyncLifecycle.swift`, `AppContainer` |
+| Realtime change hints (no push) | `AccountRealtimeChangeListener.swift`, `FirestoreAccountRealtimeChangeListener.swift` |
+| Domain refresh events | `AccountDataRefreshEventBus.swift` |
+| Tab reload policies | `TodayCrossDeviceRefreshPolicy`, `JourneyCrossDeviceRefreshPolicy`, `PlanCrossDeviceRefreshPolicy` |
+| Privacy-safe logging | `CrossDeviceSyncLogger.swift` |
+| Feature flags | `foregroundCrossDeviceRefreshEnabled`, `realtimeCrossDeviceSyncEnabled`, `manualRefreshEnabled` |
+| Conflict UI (rare) | Optional toast — not shipped |
 | Coach chat/timeline sync (optional flag) | Phase 5b |
-| Daily review sync | Phase 5b |
-| Sync status in Settings | `SettingsRootView` |
+| Sync status in Settings (production) | Phase 5b / polish |
 
-**Tests:** Cross-device test matrix (§11 of context packet)
+**Tests (iOS — run on macOS):**
+- `AccountSyncCursorStoreTests`, `AccountIncrementalPullerTests`
+- `CrossDeviceSyncCoordinatorTests`, `AccountRealtimeChangeListenerTests`, `AppLifecycleCrossDeviceSyncTests`
+- `TodayCrossDeviceRefreshTests`, `JourneyCrossDeviceRefreshTests`, `PlanCrossDeviceRefreshTests`
+- `CrossDeviceEndToEndSyncTests`, `CrossDeviceSyncLoggerTests`, `AccountDataRefreshEventBusTests`
 
-**Acceptance:**
-- Device A logs → Device B foreground → B sees entry
-- Delete on A removes on B
+**Acceptance (met by test suite; verify with `xcodebuild test`):**
+- Device A logs → Device B foreground / realtime hint → B sees entry
+- Edit on A → updated on B
+- Delete on A → removed on B after refresh
+- Pending local edit on B not overwritten by older remote
+- UID isolation — account switch does not leak prior user data
+- Offline refresh preserves local data
+- **Not met (by design):** account deletion; raw meal images; raw HealthKit; push notifications
 
 ---
 
@@ -539,12 +557,17 @@ See context packet §12. Add to `firestore.rules`:
 - [x] `testFreshInstallRestoresProfileAndRecentLogs` — `AccountInitialRestoreServiceTests`
 - [ ] Manual QA on device with production Firestore before `restoreOnLoginEnabled = true`
 
-### Cross-Device (new — Phase 5)
+### Cross-Device (Phase 5)
 
-- [ ] `testDeviceBReceivesDeviceAMeal`
-- [ ] `testDeviceBReceivesEdit`
-- [ ] `testDeviceBReceivesDelete`
-- [ ] `testPlanUpdatePropagates`
+- [x] `testDeviceALogsFoodDeviceBReceivesIt` — `CrossDeviceEndToEndSyncTests`
+- [x] `testDeviceAEditsFoodDeviceBUpdatesIt` — `CrossDeviceEndToEndSyncTests`
+- [x] `testDeviceADeletesFoodDeviceBRemovesIt` — `CrossDeviceEndToEndSyncTests`
+- [x] `testDeviceAUpdatesPlanDeviceBPlanTodayJourneyUpdate` — `CrossDeviceEndToEndSyncTests`
+- [x] `testDeviceBPendingLocalEditNotOverwrittenByDeviceAOlderRemoteChange` — `CrossDeviceEndToEndSyncTests`
+- [x] `testDifferentUIDDoesNotReceiveOtherAccountData` — `CrossDeviceEndToEndSyncTests`
+- [x] `testRealtimeHintCausesDeviceBToPullChanges` — `CrossDeviceEndToEndSyncTests`
+- [x] `testOfflineDeviceBRefreshKeepsExistingLocalData` — `CrossDeviceEndToEndSyncTests`
+- [ ] Manual QA on two physical devices with production Firestore before wide rollout
 
 ### Multi-User (new — Phase 1)
 
@@ -600,7 +623,7 @@ Execute phases in order. **Do not skip Phase 1.**
 > Implemented: `AccountRestoreCoordinator`, blocking restore UI, tab awareness, background backfill. See `Docs/AccountPersistence/PHASE_4_FRESH_INSTALL_RESTORE.md`. Enable `restoreOnLoginEnabled` only after `xcodebuild test` + manual QA.
 
 **Phase 5:**
-> Foreground pull on UIApplication.willEnterForeground. Cross-device integration tests with shared mock Firestore.
+> Implemented: `CrossDeviceSyncCoordinator`, `AccountIncrementalPuller`, realtime change hints, tab refresh policies. See `Docs/AccountPersistence/PHASE_5_CROSS_DEVICE_REFRESH.md`. Verify with `xcodebuild test` + two-device manual QA.
 
 **Phase 6:**
 > Wire SettingsDeleteDataActionHandler to delete local SwiftData, Firestore collections, Firebase Auth user.
