@@ -17,6 +17,13 @@ struct FoodLogDraft: Codable, Equatable, Identifiable, Sendable {
     var notes: String?
     var warnings: [String]
     var imageUrl: String?
+    var assumptions: [String]
+    var uncertaintyReasons: [String]
+    var suggestedClarifications: [String]
+    var primaryUncertainty: String?
+    var requiresClarificationBeforeLogging: Bool
+    var calorieRangeLower: Int?
+    var calorieRangeUpper: Int?
 
     init(
         id: UUID = UUID(),
@@ -27,7 +34,14 @@ struct FoodLogDraft: Codable, Equatable, Identifiable, Sendable {
         source: FoodEntrySource = .aiTextEstimate,
         notes: String? = nil,
         warnings: [String] = [],
-        imageUrl: String? = nil
+        imageUrl: String? = nil,
+        assumptions: [String] = [],
+        uncertaintyReasons: [String] = [],
+        suggestedClarifications: [String] = [],
+        primaryUncertainty: String? = nil,
+        requiresClarificationBeforeLogging: Bool = false,
+        calorieRangeLower: Int? = nil,
+        calorieRangeUpper: Int? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -38,6 +52,13 @@ struct FoodLogDraft: Codable, Equatable, Identifiable, Sendable {
         self.notes = notes
         self.warnings = warnings
         self.imageUrl = imageUrl
+        self.assumptions = assumptions
+        self.uncertaintyReasons = uncertaintyReasons
+        self.suggestedClarifications = suggestedClarifications
+        self.primaryUncertainty = primaryUncertainty
+        self.requiresClarificationBeforeLogging = requiresClarificationBeforeLogging
+        self.calorieRangeLower = calorieRangeLower
+        self.calorieRangeUpper = calorieRangeUpper
     }
 
     init(from decoder: Decoder) throws {
@@ -51,6 +72,16 @@ struct FoodLogDraft: Codable, Equatable, Identifiable, Sendable {
         notes = try container.decodeIfPresent(String.self, forKey: .notes)
         warnings = try container.decodeIfPresent([String].self, forKey: .warnings) ?? []
         imageUrl = try container.decodeIfPresent(String.self, forKey: .imageUrl)
+        assumptions = try container.decodeIfPresent([String].self, forKey: .assumptions) ?? []
+        uncertaintyReasons = try container.decodeIfPresent([String].self, forKey: .uncertaintyReasons) ?? []
+        suggestedClarifications = try container.decodeIfPresent([String].self, forKey: .suggestedClarifications) ?? []
+        primaryUncertainty = try container.decodeIfPresent(String.self, forKey: .primaryUncertainty)
+        requiresClarificationBeforeLogging = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .requiresClarificationBeforeLogging
+        ) ?? false
+        calorieRangeLower = try container.decodeIfPresent(Int.self, forKey: .calorieRangeLower)
+        calorieRangeUpper = try container.decodeIfPresent(Int.self, forKey: .calorieRangeUpper)
     }
 
     var totalCalories: Int {
@@ -82,6 +113,22 @@ struct FoodLogDraft: Codable, Equatable, Identifiable, Sendable {
         return totalProtein > 0 || totalCarbs > 0 || totalFat > 0
     }
 
+    var resolvedCalorieRange: FoodCalorieRange {
+        FoodCalorieRangePolicy.resolve(
+            calories: totalCalories,
+            confidence: AIConfidence(rawValue: confidence.rawValue) ?? .medium,
+            explicitLower: calorieRangeLower,
+            explicitUpper: calorieRangeUpper
+        )
+    }
+
+    var hasVisibleTrustMetadata: Bool {
+        !assumptions.isEmpty
+            || !uncertaintyReasons.isEmpty
+            || !suggestedClarifications.isEmpty
+            || primaryUncertainty?.isEmpty == false
+    }
+
     /// Portion for legacy single-item display. Mixed meals intentionally omit a scalar amount.
     var legacyQuantity: Double? {
         guard !isMultiComponent else { return nil }
@@ -103,5 +150,12 @@ struct FoodLogDraft: Codable, Equatable, Identifiable, Sendable {
         case notes
         case warnings
         case imageUrl
+        case assumptions
+        case uncertaintyReasons
+        case suggestedClarifications
+        case primaryUncertainty
+        case requiresClarificationBeforeLogging
+        case calorieRangeLower
+        case calorieRangeUpper
     }
 }

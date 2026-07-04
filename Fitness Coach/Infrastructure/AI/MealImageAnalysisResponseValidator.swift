@@ -74,7 +74,20 @@ enum MealImageAnalysisResponseValidator {
         }
 
         let mealDraft = MealImageAnalysisMapper.foodLogDraft(from: response)
-        switch AIResponseValidator.validateFood(mealDraft, confidence: overallConfidence(from: response)) {
+        let confidence = overallConfidence(from: response)
+        if response.needsUserReview, confidence == .high {
+            errors.append("needsUserReview responses must not claim high confidence.")
+        }
+        for (index, item) in response.items.enumerated() where item.confidence == .low {
+            if item.assumptions.isEmpty {
+                errors.append("items[\(index)] must include assumptions when confidence is low.")
+            }
+        }
+
+        switch AIResponseValidator.validateFood(
+            mealDraft,
+            confidence: ConfirmationPolicy.presentationConfidence(for: mealDraft)
+        ) {
         case .invalid(let message):
             errors.append(message)
         case .valid, .requiresConfirmation:
