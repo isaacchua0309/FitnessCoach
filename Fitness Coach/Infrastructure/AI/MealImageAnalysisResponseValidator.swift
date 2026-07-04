@@ -32,7 +32,12 @@ enum MealImageAnalysisResponseValidator {
         options: [.caseInsensitive]
     )
 
+    static func sanitize(_ response: AIMealImageAnalysisResponse) -> AIMealImageAnalysisResponse {
+        FoodEstimateTrustNormalizer.normalize(response)
+    }
+
     static func validate(response: AIMealImageAnalysisResponse) -> MealImageAnalysisValidationResult {
+        let response = sanitize(response: response)
         var errors: [String] = []
 
         let summary = response.summary.trimmingCharacters(in: .whitespacesAndNewlines)

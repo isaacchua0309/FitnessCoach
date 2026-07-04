@@ -100,6 +100,7 @@ final class AIService: AIServiceProtocol {
                 imageJPEGBase64: imageJPEGData.map { $0.base64EncodedString() }
             )
             var response = try await llmClient.estimateFood(request: initialRequest)
+            response = FoodEstimateResponseValidator.sanitize(response: response, prompt: prompt)
 
             let validation = FoodEstimateResponseValidator.validate(response: response, prompt: prompt)
             guard case .invalid(let errors) = validation else {
@@ -120,6 +121,7 @@ final class AIService: AIServiceProtocol {
                 repairErrors: errors
             )
             response = try await llmClient.estimateFood(request: repairRequest)
+            response = FoodEstimateResponseValidator.sanitize(response: response, prompt: prompt)
 
             let secondValidation = FoodEstimateResponseValidator.validate(response: response, prompt: prompt)
             if case .invalid(let secondErrors) = secondValidation {
@@ -163,7 +165,8 @@ final class AIService: AIServiceProtocol {
 
         return try await traced(method: "analyzeMealImage", mapError: AICommandParser.mapFoodEstimate) {
             let response = try await llmClient.analyzeMealImage(request: request)
-            let validation = MealImageAnalysisResponseValidator.validate(response: response)
+            let sanitized = MealImageAnalysisResponseValidator.sanitize(response)
+            let validation = MealImageAnalysisResponseValidator.validate(response: sanitized)
             guard validation.isValid else {
                 let error = AIServiceError.invalidNutritionJSON(validation.errors.joined(separator: " | "))
                 CoachImageAnalysisDebugLogger.logResponseParsed(
@@ -175,10 +178,10 @@ final class AIService: AIServiceProtocol {
             }
             CoachImageAnalysisDebugLogger.logResponseParsed(
                 success: true,
-                itemCount: response.items.count,
-                summaryLength: response.summary.count
+                itemCount: sanitized.items.count,
+                summaryLength: sanitized.summary.count
             )
-            return response
+            return sanitized
         }
     }
 

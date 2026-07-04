@@ -23,6 +23,10 @@ enum MealImageAnalysisMapper {
     }
 
     static func foodLogDraft(from response: AIMealImageAnalysisResponse) -> FoodLogDraft {
+        FoodEstimateTrustNormalizer.normalize(buildFoodLogDraft(from: response))
+    }
+
+    static func buildFoodLogDraft(from response: AIMealImageAnalysisResponse) -> FoodLogDraft {
         let components = response.items.map { item in
             let quantityValue = parseLeadingNumber(from: item.quantity)
             return FoodComponent(
@@ -60,16 +64,19 @@ enum MealImageAnalysisMapper {
             notes: response.summary,
             warnings: warnings
         )
-        return CoachEstimateTrustMapper.enrich(draft, from: response)
+        let enriched = CoachEstimateTrustMapper.enrich(draft, from: response)
+        return enriched
     }
 
     static func previousAnalysis(
         from result: ImageAnalysisSessionResult
     ) -> AIMealImageAnalysisPreviousAnalysis {
-        AIMealImageAnalysisPreviousAnalysis(
+        let draft = result.mealDraft
+        return AIMealImageAnalysisPreviousAnalysis(
             summary: result.summary,
-            items: result.mealDraft.components.map { component in
-                AIMealImageAnalysisPreviousItem(
+            items: draft.components.map { component in
+                let metadata = component.estimateTrustMetadata
+                return AIMealImageAnalysisPreviousItem(
                     name: component.name,
                     quantity: portionLabel(for: component),
                     calories: component.calories,
@@ -77,14 +84,21 @@ enum MealImageAnalysisMapper {
                     carbs: component.carbs,
                     fat: component.fat,
                     confidence: aiConfidence(from: component.confidence),
-                    assumptions: [component.sourceText].compactMap { $0 }.filter { !$0.isEmpty }
+                    assumptions: metadata?.assumptions ?? [component.sourceText].compactMap { $0 }.filter { !$0.isEmpty },
+                    uncertaintyReasons: metadata?.uncertaintyReasons ?? draft.uncertaintyReasons,
+                    suggestedClarifications: draft.suggestedClarifications,
+                    primaryUncertainty: metadata?.uncertaintyReasons.first ?? draft.primaryUncertainty,
+                    calorieRangeLower: metadata?.rangeLower,
+                    calorieRangeUpper: metadata?.rangeUpper
                 )
             },
             total: AIMealImageAnalysisTotals(
-                calories: result.mealDraft.totalCalories,
-                protein: result.mealDraft.totalProtein,
-                carbs: result.mealDraft.totalCarbs,
-                fat: result.mealDraft.totalFat
+                calories: draft.totalCalories,
+                protein: draft.totalProtein,
+                carbs: draft.totalCarbs,
+                fat: draft.totalFat,
+                calorieRangeLower: draft.calorieRangeLower,
+                calorieRangeUpper: draft.calorieRangeUpper
             )
         )
     }

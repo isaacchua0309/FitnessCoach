@@ -63,6 +63,19 @@ struct FoodComponent: Codable, Equatable, Identifiable, Sendable {
         confidence = try container.decodeIfPresent(ConfidenceLevel.self, forKey: .confidence) ?? .medium
         sourceText = try container.decodeIfPresent(String.self, forKey: .sourceText)
         estimateTrustMetadata = try container.decodeIfPresent(ComponentEstimateTrustMetadata.self, forKey: .estimateTrustMetadata)
+
+        if estimateTrustMetadata == nil {
+            let rangeLower = try container.decodeIfPresent(Int.self, forKey: .calorieRangeLower)
+            let rangeUpper = try container.decodeIfPresent(Int.self, forKey: .calorieRangeUpper)
+            if rangeLower != nil || rangeUpper != nil {
+                estimateTrustMetadata = ComponentEstimateTrustMetadata(
+                    componentName: name,
+                    estimatedCalories: calories,
+                    rangeLower: rangeLower,
+                    rangeUpper: rangeUpper
+                )
+            }
+        }
     }
 
     func encode(to encoder: Encoder) throws {
@@ -105,5 +118,7 @@ struct FoodComponent: Codable, Equatable, Identifiable, Sendable {
         case confidence
         case sourceText
         case estimateTrustMetadata
+        case calorieRangeLower
+        case calorieRangeUpper
     }
 }

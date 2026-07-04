@@ -413,6 +413,64 @@ struct AIMealImageAnalysisPreviousItem: Codable, Equatable, Sendable {
     var fat: Double
     var confidence: AIConfidence
     var assumptions: [String]
+    var uncertaintyReasons: [String]
+    var suggestedClarifications: [String]
+    var primaryUncertainty: String?
+    var calorieRangeLower: Int?
+    var calorieRangeUpper: Int?
+
+    init(
+        name: String,
+        quantity: String? = nil,
+        calories: Int,
+        protein: Double,
+        carbs: Double,
+        fat: Double,
+        confidence: AIConfidence,
+        assumptions: [String] = [],
+        uncertaintyReasons: [String] = [],
+        suggestedClarifications: [String] = [],
+        primaryUncertainty: String? = nil,
+        calorieRangeLower: Int? = nil,
+        calorieRangeUpper: Int? = nil
+    ) {
+        self.name = name
+        self.quantity = quantity
+        self.calories = calories
+        self.protein = protein
+        self.carbs = carbs
+        self.fat = fat
+        self.confidence = confidence
+        self.assumptions = assumptions
+        self.uncertaintyReasons = uncertaintyReasons
+        self.suggestedClarifications = suggestedClarifications
+        self.primaryUncertainty = primaryUncertainty
+        self.calorieRangeLower = calorieRangeLower
+        self.calorieRangeUpper = calorieRangeUpper
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = try container.decode(String.self, forKey: .name)
+        quantity = try container.decodeIfPresent(String.self, forKey: .quantity)
+        calories = try container.decode(Int.self, forKey: .calories)
+        protein = try container.decode(Double.self, forKey: .protein)
+        carbs = try container.decode(Double.self, forKey: .carbs)
+        fat = try container.decode(Double.self, forKey: .fat)
+        confidence = try container.decode(AIConfidence.self, forKey: .confidence)
+        assumptions = try container.decodeIfPresent([String].self, forKey: .assumptions) ?? []
+        uncertaintyReasons = try container.decodeIfPresent([String].self, forKey: .uncertaintyReasons) ?? []
+        suggestedClarifications = try container.decodeIfPresent([String].self, forKey: .suggestedClarifications) ?? []
+        primaryUncertainty = try container.decodeIfPresent(String.self, forKey: .primaryUncertainty)
+        calorieRangeLower = try container.decodeIfPresent(Int.self, forKey: .calorieRangeLower)
+        calorieRangeUpper = try container.decodeIfPresent(Int.self, forKey: .calorieRangeUpper)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case name, quantity, calories, protein, carbs, fat, confidence, assumptions
+        case uncertaintyReasons, suggestedClarifications, primaryUncertainty
+        case calorieRangeLower, calorieRangeUpper
+    }
 }
 
 struct AIMealImageAnalysisPreviousAnalysis: Codable, Equatable, Sendable {

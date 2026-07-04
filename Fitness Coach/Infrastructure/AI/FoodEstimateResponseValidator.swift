@@ -31,8 +31,13 @@ enum FoodEstimateResponseValidator {
     private static let normalMealCalorieMax = 1800.0
     private static let singleItemCalorieMax = 900.0
 
+    static func sanitize(response: AIFoodEstimateResponse, prompt: String) -> AIFoodEstimateResponse {
+        FoodEstimateTrustNormalizer.normalize(response: response, prompt: prompt)
+    }
+
     static func validate(response: AIFoodEstimateResponse, prompt: String) -> FoodEstimateValidationResult {
-        let meals = response.foodLogDrafts
+        let sanitized = sanitize(response: response, prompt: prompt)
+        let meals = sanitized.foodLogDrafts
         guard !meals.isEmpty else {
             return .invalid(["Response is missing food log drafts."])
         }
@@ -96,8 +101,10 @@ enum FoodEstimateResponseValidator {
             }
 
             if promptAnalysis.requiresAssumptions {
-                let assumptionText = meal.warnings.joined(separator: " ").lowercased()
-                if !assumptionText.contains("assumption") {
+                let assumptionText = (
+                    meal.assumptions + meal.warnings
+                ).joined(separator: " ").lowercased()
+                if !assumptionText.contains("assumption") && meal.assumptions.isEmpty {
                     errors.append(
                         "Meal \"\(meal.displayName)\" must include assumptions for portion, oil/sauce, confidence, and clarifications."
                     )

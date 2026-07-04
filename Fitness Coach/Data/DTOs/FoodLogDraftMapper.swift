@@ -122,8 +122,20 @@ enum FoodLogDraftMapper {
         return response.foodDrafts.map(fromLegacyDraft)
     }
 
-    static func primaryMeal(from response: AIFoodEstimateResponse) -> FoodLogDraft? {
-        meals(from: response).first
+    static func meals(from response: AIFoodEstimateResponse, prompt: String?) -> [FoodLogDraft] {
+        if !response.foodLogDrafts.isEmpty {
+            return response.foodLogDrafts.map {
+                normalizeEstimateTrust(recalculateTotals($0), prompt: prompt)
+            }
+        }
+        return response.foodDrafts.map(fromLegacyDraft)
+    }
+
+    static func primaryMeal(from response: AIFoodEstimateResponse, prompt: String? = nil) -> FoodLogDraft? {
+        if let prompt {
+            return meals(from: response, prompt: prompt).first
+        }
+        return meals(from: response).first
     }
 
     static func recalculateTotals(_ meal: FoodLogDraft) -> FoodLogDraft {
@@ -143,17 +155,9 @@ enum FoodLogDraftMapper {
         return normalized
     }
 
-    /// Splits assumption-prefixed warnings into structured trust fields when the API omits them.
-    static func normalizeEstimateTrust(_ meal: FoodLogDraft) -> FoodLogDraft {
-        var normalized = meal
-        if normalized.assumptions.isEmpty {
-            normalized.assumptions = CoachEstimateTrustMapper.assumptions(from: normalized.warnings)
-        }
-        let nonAssumptionWarnings = CoachEstimateTrustMapper.nonAssumptionWarnings(from: normalized.warnings)
-        if nonAssumptionWarnings.count != normalized.warnings.count {
-            normalized.warnings = nonAssumptionWarnings
-        }
-        return normalized
+    /// Splits assumption-prefixed warnings and repairs trust metadata for presentation.
+    static func normalizeEstimateTrust(_ meal: FoodLogDraft, prompt: String? = nil) -> FoodLogDraft {
+        FoodEstimateTrustNormalizer.normalize(meal, prompt: prompt)
     }
 
     static func reconcileTotals(_ meal: FoodLogDraft) -> FoodLogDraft {

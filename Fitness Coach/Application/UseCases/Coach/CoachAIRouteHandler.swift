@@ -348,7 +348,7 @@ final class CoachAIRouteHandler {
             return nil
         }()
 
-        guard var meal = FoodLogDraftMapper.primaryMeal(from: response) else {
+        guard var meal = FoodLogDraftMapper.primaryMeal(from: response, prompt: prompt) else {
             if photoAnalysis {
                 return .message(CoachResponseBuilder.mealPhotoAnalysisFailed(
                     .invalidNutritionJSON("Response is missing food log drafts.")

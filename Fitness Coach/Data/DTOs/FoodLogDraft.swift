@@ -87,7 +87,9 @@ struct FoodLogDraft: Codable, Equatable, Identifiable, Sendable {
             calorieRangeUpper = nestedRange.upperBound
         } else {
             calorieRangeLower = try container.decodeIfPresent(Int.self, forKey: .calorieRangeLower)
+                ?? container.decodeIfPresent(Int.self, forKey: .totalCaloriesRangeLower)
             calorieRangeUpper = try container.decodeIfPresent(Int.self, forKey: .calorieRangeUpper)
+                ?? container.decodeIfPresent(Int.self, forKey: .totalCaloriesRangeUpper)
         }
 
         if let nestedTrust = try container.decodeIfPresent(CoachEstimateTrustMetadata.self, forKey: .estimateTrust) {
@@ -189,6 +191,8 @@ struct FoodLogDraft: Codable, Equatable, Identifiable, Sendable {
         case calorieRange
         case calorieRangeLower
         case calorieRangeUpper
+        case totalCaloriesRangeLower
+        case totalCaloriesRangeUpper
         case assumptions
         case uncertaintyReasons
         case suggestedClarifications
