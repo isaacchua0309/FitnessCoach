@@ -4,6 +4,8 @@
 //
 //  Forma — Maps WeeklyHealthReview into presentation-friendly weekly review state.
 //
+//  `weekStartDate` / `weekEndDate` follow `WeeklyReviewWeekPolicy` calendar weeks (not Journey rolling week).
+//
 
 import Foundation
 
@@ -309,9 +311,7 @@ enum WeeklyReviewPresentationBuilder {
     }
 
     private static func dateRangeLabel(start: Date, end: Date, calendar: Calendar) -> String {
-        let startLabel = JourneyFormatter.timelineDayLabel(start, calendar: calendar)
-        let endLabel = JourneyFormatter.timelineDayLabel(end, calendar: calendar)
-        return "\(startLabel) – \(endLabel)"
+        JourneyFormatter.timelineDateRangeLabel(start: start, end: end, calendar: calendar)
     }
 
     private static func trimmed(_ value: String?) -> String? {

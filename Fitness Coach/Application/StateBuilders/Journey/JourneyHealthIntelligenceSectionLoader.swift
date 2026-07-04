@@ -122,6 +122,7 @@ enum JourneyHealthIntelligenceSectionLoader {
         let endDay = calendar.startOfDay(for: referenceDate)
         var recoveryDays: [JourneyHealthIntelligenceRecoveryDayInput] = []
 
+        // Inclusive span of `dayCount` days ending on referenceDate (today = offset 0).
         for offset in 0..<dayCount {
             guard let date = calendar.date(byAdding: .day, value: -offset, to: endDay) else {
                 continue
@@ -185,7 +186,12 @@ enum JourneyHealthIntelligenceSectionLoader {
         calendar: Calendar
     ) async -> [JourneyHealthIntelligenceWorkoutRecordInput] {
         let endDay = calendar.startOfDay(for: referenceDate)
-        let startDay = calendar.date(byAdding: .day, value: -windowDays, to: endDay) ?? endDay
+        // Exclusive lookback: workouts from `windowDays` before endDay through end of reference day.
+        let startDay = JourneyLogMetrics.lookbackStart(
+            endingOn: referenceDate,
+            dayCount: windowDays,
+            calendar: calendar
+        )
         let queryEnd = calendar.date(byAdding: .day, value: 1, to: endDay) ?? referenceDate
 
         let records = await healthActivityQuery.workouts(from: startDay, to: queryEnd)

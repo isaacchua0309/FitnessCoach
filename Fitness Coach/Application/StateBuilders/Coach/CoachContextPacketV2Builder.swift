@@ -365,14 +365,12 @@ struct CoachContextPacketV2Builder {
     private func loadFoodHistory(endingOn date: Date, sources: inout [String]) -> [FoodEntry] {
         guard let foodLogService else { return [] }
 
-        let todayStart = calendar.startOfDay(for: date)
-        guard let lookbackStart = calendar.date(
-            byAdding: .day,
-            value: -(Self.commonFoodLookbackDays - 1),
-            to: todayStart
-        ) else {
-            return []
-        }
+        // Inclusive span: common food memory covers `commonFoodLookbackDays` through today.
+        let lookbackStart = JourneyLogMetrics.inclusiveDaySpanStart(
+            endingOn: date,
+            dayCount: Self.commonFoodLookbackDays,
+            calendar: calendar
+        )
 
         do {
             let entries = try foodLogService.getFoodEntries(
@@ -601,11 +599,12 @@ struct CoachContextPacketV2Builder {
             let todayCount = todayEvents.count
 
             if todayCount < Self.sparseTodayEventThreshold {
-                let lookbackStart = calendar.date(
-                    byAdding: .day,
-                    value: -Self.crossDayLookbackDays,
-                    to: calendar.startOfDay(for: now)
-                ) ?? now
+                // Exclusive lookback when today's timeline is sparse (not the rolling Journey week).
+                let lookbackStart = JourneyLogMetrics.lookbackStart(
+                    endingOn: now,
+                    dayCount: Self.crossDayLookbackDays,
+                    calendar: calendar
+                )
                 let rangeEnd = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) ?? now
                 let ranged = try await timelineStore.events(from: lookbackStart, to: rangeEnd)
 

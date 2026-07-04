@@ -35,7 +35,10 @@ final class WeeklyReviewPresentationBuilderTests: XCTestCase {
         XCTAssertEqual(card.phase, .loaded)
         XCTAssertEqual(card.title, "Solid training week")
         XCTAssertEqual(card.confidenceLabel, FormaProductCopy.WeeklyReviewPresentation.confidenceModerate)
-        XCTAssertFalse(card.dateRangeLabel.isEmpty)
+        XCTAssertEqual(
+            card.dateRangeLabel,
+            JourneyFormatter.timelineDateRangeLabel(start: weekStart, end: weekEnd, calendar: calendar)
+        )
         XCTAssertEqual(card.headlineStatLabel, "4 workouts")
 
         XCTAssertNotNil(detail)
