@@ -325,6 +325,9 @@ struct NutritionEstimateCardState: Equatable, Sendable, Identifiable, Codable {
     var logMealPayload: NutritionSuggestedAction?
     var calorieRange: CalorieEstimateRange?
     var estimateTrust: CoachEstimateTrustMetadata?
+    var trustPresentation: NutritionEstimateCardPresentation?
+    var sourceResponse: NutritionEstimateResponse?
+    var allowsLogging: Bool
 
     init(
         id: UUID,
@@ -348,7 +351,10 @@ struct NutritionEstimateCardState: Equatable, Sendable, Identifiable, Codable {
         hasTodayContext: Bool = false,
         logMealPayload: NutritionSuggestedAction? = nil,
         calorieRange: CalorieEstimateRange? = nil,
-        estimateTrust: CoachEstimateTrustMetadata? = nil
+        estimateTrust: CoachEstimateTrustMetadata? = nil,
+        trustPresentation: NutritionEstimateCardPresentation? = nil,
+        sourceResponse: NutritionEstimateResponse? = nil,
+        allowsLogging: Bool = true
     ) {
         self.id = id
         self.foodName = foodName
@@ -372,6 +378,9 @@ struct NutritionEstimateCardState: Equatable, Sendable, Identifiable, Codable {
         self.logMealPayload = logMealPayload
         self.calorieRange = calorieRange
         self.estimateTrust = estimateTrust
+        self.trustPresentation = trustPresentation
+        self.sourceResponse = sourceResponse
+        self.allowsLogging = allowsLogging
     }
 
     init(from decoder: Decoder) throws {
@@ -398,12 +407,16 @@ struct NutritionEstimateCardState: Equatable, Sendable, Identifiable, Codable {
         logMealPayload = try container.decodeIfPresent(NutritionSuggestedAction.self, forKey: .logMealPayload)
         calorieRange = try container.decodeIfPresent(CalorieEstimateRange.self, forKey: .calorieRange)
         estimateTrust = try container.decodeIfPresent(CoachEstimateTrustMetadata.self, forKey: .estimateTrust)
+        trustPresentation = try container.decodeIfPresent(NutritionEstimateCardPresentation.self, forKey: .trustPresentation)
+        sourceResponse = try container.decodeIfPresent(NutritionEstimateResponse.self, forKey: .sourceResponse)
+        allowsLogging = try container.decodeIfPresent(Bool.self, forKey: .allowsLogging) ?? true
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, foodName, displayEmoji, servingDescription, caloriesDisplay, proteinDisplay, carbsDisplay, fatDisplay
         case confidenceTitle, confidenceSubtitle, coachSummary, coachTip, caveats, todayContext, suggestedActions
         case sourceType, confidenceLevel, hasMacros, hasTodayContext, logMealPayload, calorieRange, estimateTrust
+        case trustPresentation, sourceResponse, allowsLogging
     }
 }
 

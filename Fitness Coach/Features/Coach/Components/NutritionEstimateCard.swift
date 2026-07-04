@@ -9,16 +9,23 @@ import SwiftUI
 
 struct NutritionEstimateCard: View {
     let state: NutritionEstimateCardState
-    var onAction: ((NutritionSuggestedAction) -> Void)?
+    var onAction: ((NutritionEstimateCardState, NutritionSuggestedAction) -> Void)?
+
+    private var trustPresentation: NutritionEstimateCardPresentation? {
+        state.trustPresentation
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.sm) {
             headerSection
-            heroCalories
+            if let trust = trustPresentation {
+                trustSummarySection(trust)
+            } else {
+                legacyTrustSection
+            }
             if state.hasMacros {
                 macroRow
             }
-            confidenceSection
             if let today = state.todayContext {
                 todaySection(today)
             }
@@ -31,7 +38,7 @@ struct NutritionEstimateCard: View {
             if let tip = state.coachTip, !tip.isEmpty {
                 tipSection(tip)
             }
-            if !state.caveats.isEmpty {
+            if trustPresentation == nil, !state.caveats.isEmpty {
                 caveatsSection
             }
             if !state.suggestedActions.isEmpty {
@@ -65,11 +72,88 @@ struct NutritionEstimateCard: View {
         }
     }
 
-    private var heroCalories: some View {
-        Text(state.caloriesDisplay)
-            .font(CoachDesignTokens.Typography.largeTitle)
-            .foregroundStyle(CoachDesignTokens.Color.primaryText)
-            .accessibilityLabel("Estimated calories: \(state.caloriesDisplay)")
+    private func trustSummarySection(_ trust: NutritionEstimateCardPresentation) -> some View {
+        VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.xs) {
+            trustMetricLine(trust.aboutCaloriesLine, style: .hero)
+
+            if let rangeLine = trust.likelyRangeLine {
+                trustMetricLine(rangeLine, style: .metric)
+            }
+
+            trustMetricLine(trust.confidenceLine, style: .metric)
+
+            if !trust.assumptionLines.isEmpty {
+                assumptionsSection(trust)
+            }
+
+            if let biggestUncertainty = trust.biggestUncertaintyLine {
+                trustMetricLine(biggestUncertainty, style: .metric)
+            }
+
+            if let accuracyHint = trust.accuracyHintLine {
+                accuracyHintSection(accuracyHint)
+            }
+
+            if let lowWarning = trust.lowConfidenceWarning {
+                Text(lowWarning)
+                    .font(CoachDesignTokens.Typography.confirmationMetric.weight(.semibold))
+                    .foregroundStyle(CoachDesignTokens.Color.warning)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .accessibilityLabel(trust.accessibilityLabel)
+    }
+
+    private func assumptionsSection(_ trust: NutritionEstimateCardPresentation) -> some View {
+        VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.xxs) {
+            Text(FormaProductCopy.Coach.pendingAssumptionsTitle)
+                .font(CoachDesignTokens.Typography.hintLabel.weight(.semibold))
+                .foregroundStyle(CoachDesignTokens.Color.confirmationLabel)
+
+            ForEach(Array(trust.assumptionLines.enumerated()), id: \.offset) { _, line in
+                bulletLine(line)
+            }
+
+            if trust.hiddenAssumptionCount > 0 {
+                Text(String(
+                    format: FormaProductCopy.Coach.pendingMoreAssumptions,
+                    trust.hiddenAssumptionCount
+                ))
+                .font(CoachDesignTokens.Typography.hint)
+                .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
+            }
+        }
+    }
+
+    private func accuracyHintSection(_ hint: String) -> some View {
+        VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.xxs) {
+            Text(FormaProductCopy.Coach.estimateCardAccuracyHintTitle)
+                .font(CoachDesignTokens.Typography.hintLabel.weight(.semibold))
+                .foregroundStyle(CoachDesignTokens.Color.confirmationLabel)
+            Text(hint)
+                .font(CoachDesignTokens.Typography.hint)
+                .foregroundStyle(CoachDesignTokens.Color.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var legacyTrustSection: some View {
+        VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.xxs) {
+            Text(state.caloriesDisplay)
+                .font(CoachDesignTokens.Typography.largeTitle)
+                .foregroundStyle(CoachDesignTokens.Color.primaryText)
+                .accessibilityLabel("Estimated calories: \(state.caloriesDisplay)")
+
+            Text(state.confidenceTitle)
+                .font(CoachDesignTokens.Typography.hintLabel.weight(.semibold))
+                .foregroundStyle(confidenceColor)
+            if let subtitle = state.confidenceSubtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(CoachDesignTokens.Typography.hint)
+                    .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 
     private var macroRow: some View {
@@ -91,20 +175,6 @@ struct NutritionEstimateCard: View {
         Text(text)
             .font(CoachDesignTokens.Typography.confirmationMetric)
             .foregroundStyle(CoachDesignTokens.Color.secondaryText)
-    }
-
-    private var confidenceSection: some View {
-        VStack(alignment: .leading, spacing: CoachDesignTokens.Spacing.xxs) {
-            Text(state.confidenceTitle)
-                .font(CoachDesignTokens.Typography.hintLabel.weight(.semibold))
-                .foregroundStyle(confidenceColor)
-            if let subtitle = state.confidenceSubtitle, !subtitle.isEmpty {
-                Text(subtitle)
-                    .font(CoachDesignTokens.Typography.hint)
-                    .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
     }
 
     private func todaySection(_ today: NutritionEstimateTodayContext) -> some View {
@@ -157,7 +227,7 @@ struct NutritionEstimateCard: View {
             HStack(spacing: CoachDesignTokens.Spacing.xs) {
                 ForEach(state.suggestedActions) { action in
                     Button(action.title) {
-                        onAction?(action)
+                        onAction?(state, action)
                     }
                     .buttonStyle(NutritionEstimateActionChipStyle())
                 }
@@ -171,6 +241,39 @@ struct NutritionEstimateCard: View {
             CoachDesignTokens.Color.warning
         case .medium, .high:
             CoachDesignTokens.Color.primary
+        }
+    }
+
+    private enum TrustMetricStyle {
+        case hero
+        case metric
+    }
+
+    @ViewBuilder
+    private func trustMetricLine(_ text: String, style: TrustMetricStyle) -> some View {
+        switch style {
+        case .hero:
+            Text(text)
+                .font(CoachDesignTokens.Typography.largeTitle)
+                .foregroundStyle(CoachDesignTokens.Color.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        case .metric:
+            Text(text)
+                .font(CoachDesignTokens.Typography.confirmationMetric)
+                .foregroundStyle(CoachDesignTokens.Color.confirmationLabel)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func bulletLine(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: CoachDesignTokens.Spacing.xs) {
+            Text("•")
+                .font(CoachDesignTokens.Typography.hint)
+                .foregroundStyle(CoachDesignTokens.Color.tertiaryText)
+            Text(text)
+                .font(CoachDesignTokens.Typography.hint)
+                .foregroundStyle(CoachDesignTokens.Color.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
@@ -199,11 +302,11 @@ private struct NutritionEstimateActionChipStyle: ButtonStyle {
             foodName: "Big Mac",
             displayEmoji: "🍔",
             servingDescription: "1 standard burger",
-            caloriesDisplay: "550 kcal",
+            caloriesDisplay: "About 550 kcal",
             proteinDisplay: "Protein 25g",
             carbsDisplay: "Carbs 45g",
             fatDisplay: "Fat 30g",
-            confidenceTitle: "High confidence",
+            confidenceTitle: "Confidence: High",
             confidenceSubtitle: "Known/common food estimate",
             coachSummary: "A Big Mac can fit into today's calories if the rest of the meal stays lighter.",
             coachTip: "Skip fries or choose water to keep this easier to fit.",
@@ -214,7 +317,7 @@ private struct NutritionEstimateActionChipStyle: ButtonStyle {
                 proteinLine: "Protein: 112 / 198g"
             ),
             suggestedActions: [
-                NutritionSuggestedAction(title: "Log Meal", type: .logMeal),
+                NutritionSuggestedAction(title: "Log estimate", type: .logMeal),
                 NutritionSuggestedAction(title: "Add fries", type: .addCommonSide),
                 NutritionSuggestedAction(title: "Estimate another", type: .estimateAnother)
             ],
@@ -222,7 +325,18 @@ private struct NutritionEstimateActionChipStyle: ButtonStyle {
             confidenceLevel: .high,
             hasMacros: true,
             hasTodayContext: true,
-            logMealPayload: nil
+            logMealPayload: nil,
+            trustPresentation: NutritionEstimateCardPresentation(
+                aboutCaloriesLine: "About 550 kcal",
+                likelyRangeLine: "Likely range: 520–580 kcal",
+                confidenceLine: "Confidence: High",
+                assumptionLines: ["Standard US recipe"],
+                hiddenAssumptionCount: 0,
+                biggestUncertaintyLine: "Main uncertainty: Country variation",
+                accuracyHintLine: "Which country?",
+                lowConfidenceWarning: nil,
+                accessibilityLabel: "Big Mac. About 550 kcal. Confidence: High"
+            )
         )
     )
     .padding()

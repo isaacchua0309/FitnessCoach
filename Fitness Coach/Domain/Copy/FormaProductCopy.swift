@@ -2368,6 +2368,12 @@ enum FormaProductCopy {
         static let pendingMoreComponents = "+%d more components"
         static let pendingAssumptionsTitle = "Assumptions"
         static let pendingComponentsTitle = "Component breakdown"
+        static let estimateCardAccuracyHintTitle = "What would make this more accurate"
+        static let estimateCardBiggestUncertaintyTitle = "Biggest uncertainty"
+
+        static func estimateCardAboutCalories(about calories: Int) -> String {
+            "About \(PlanDisplayFormatter.formatGroupedInteger(calories)) kcal"
+        }
 
         static func pendingEstimatedCalories(about calories: Int) -> String {
             "Estimated: about \(calories) kcal"

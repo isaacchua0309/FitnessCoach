@@ -689,7 +689,7 @@ final class CoachAIRouteHandler {
                 intentResult: routed.intentResult,
                 tier: routed.tier
             )
-            switch NutritionEstimateResponseParser.parseEstimate(response, dailyLog: dailyLog) {
+            switch NutritionEstimateResponseParser.parseEstimate(response, dailyLog: dailyLog, prompt: prompt) {
             case .estimate(let card):
                 return .structured(
                     .nutritionEstimate(card),

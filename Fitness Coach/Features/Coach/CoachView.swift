@@ -60,8 +60,8 @@ struct CoachView: View {
                     onRetryMealPhotoAnalysis: { userMessageID in
                         Task { await model.retryMealPhotoAnalysis(for: userMessageID) }
                     },
-                    onNutritionAction: { action in
-                        Task { await model.handleNutritionEstimateAction(action) }
+                    onNutritionAction: { cardState, action in
+                        Task { await model.handleNutritionEstimateAction(action, cardState: cardState) }
                     },
                     bottomAccessory: {
                         VStack(spacing: 0) {

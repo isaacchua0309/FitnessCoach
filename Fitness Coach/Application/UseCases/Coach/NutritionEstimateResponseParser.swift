@@ -18,9 +18,15 @@ enum NutritionEstimateResponseParser {
     static func parseEstimate(
         _ response: NutritionEstimateResponse,
         dailyLog: DailyLog?,
+        prompt: String? = nil,
         parseFailedHandler: (() -> Void)? = nil
     ) -> NutritionEstimateParseOutcome {
-        let card = NutritionEstimateCardFormatter.cardState(from: response, dailyLog: dailyLog)
+        let suppressLogAction = prompt.map(CoachIntentPhraseGuard.isEstimateOnlyWithoutLogging) ?? false
+        let card = NutritionEstimateCardFormatter.cardState(
+            from: response,
+            dailyLog: dailyLog,
+            suppressLogAction: suppressLogAction
+        )
         guard !card.foodName.isEmpty else {
             parseFailedHandler?()
             return .plainText("Could not estimate that food. Try a more specific name.")
@@ -49,7 +55,7 @@ enum NutritionEstimateResponseParser {
         parseFailedHandler?()
 
         if let extracted = extractEstimate(from: rawText, prompt: prompt) {
-            return parseEstimate(extracted, dailyLog: dailyLog)
+            return parseEstimate(extracted, dailyLog: dailyLog, prompt: prompt)
         }
 
         let compact = NutritionEstimateCopyValidator.compactFallbackLines(from: rawText)

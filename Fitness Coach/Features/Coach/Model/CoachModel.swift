@@ -995,7 +995,10 @@ final class CoachModel: ObservableObject {
         appendAssistantMessage(CoachResponseBuilder.pendingRejected)
     }
 
-    func handleNutritionEstimateAction(_ action: NutritionSuggestedAction) async {
+    func handleNutritionEstimateAction(
+        _ action: NutritionSuggestedAction,
+        cardState: NutritionEstimateCardState? = nil
+    ) async {
         if let lastTap = lastNutritionActionTapAt, Date().timeIntervalSince(lastTap) < 0.6 {
             return
         }
@@ -1008,17 +1011,53 @@ final class CoachModel: ObservableObject {
 
         switch action.type {
         case .logMeal:
-            guard let mealDraft = NutritionSuggestedActionHandler.mealDraft(from: action) else { return }
+            guard cardState?.allowsLogging != false else { return }
+
+            let originalText = "Log \(action.payload["foodName"] ?? action.title)"
+            let rawDraft: FoodLogDraft?
+            let responseConfidence: AIConfidence
+
+            if let response = cardState?.sourceResponse {
+                rawDraft = NutritionSuggestedActionHandler.mealDraft(from: response, action: action)
+                responseConfidence = response.confidenceLevel
+            } else {
+                rawDraft = NutritionSuggestedActionHandler.mealDraft(from: action)
+                responseConfidence = cardState?.confidenceLevel ?? .medium
+            }
+
+            guard var mealDraft = rawDraft else { return }
+
+            mealDraft = FoodEstimateTrustNormalizer.normalize(mealDraft, prompt: originalText)
             let sanitized = FoodLogDraftNutritionCompleter.sanitize(mealDraft, hintText: mealDraft.displayName)
-            let result = CoachPendingConfirmationPresenter.presentFoodPending(
-                originalText: "Log \(sanitized.displayName)",
-                assistantMessage: nil,
-                mealDraft: sanitized,
-                confidence: .medium
+            let sanity = NutritionSanityValidator.validate(
+                meal: sanitized,
+                prompt: originalText,
+                confidence: responseConfidence
             )
-            nutritionEstimateLogPending = true
-            logCoachAnalytics(.nutritionEstimateLogStarted, properties: CoachAnalyticsProperties())
-            applyActionResult(result)
+            let resolvedSanityWarning = sanity.isAcceptable ? nil : NutritionSanityResult.underEstimatedUserMessage
+
+            switch ConfirmationPolicy.foodPresentation(
+                meal: sanity.mealDraft,
+                prompt: originalText,
+                confidence: sanity.confidence,
+                photoNeedsUserReview: sanity.mealDraft.requiresClarificationBeforeLogging
+            ) {
+            case .clarifyFirst(let question):
+                appendAssistantMessage(question)
+            case .pending(let presentedMeal, let presentedConfidence):
+                let result = CoachPendingConfirmationPresenter.presentFoodPending(
+                    originalText: originalText,
+                    assistantMessage: nil,
+                    mealDraft: presentedMeal,
+                    confidence: presentedConfidence,
+                    sanityWarning: resolvedSanityWarning
+                )
+                nutritionEstimateLogPending = true
+                logCoachAnalytics(.nutritionEstimateLogStarted, properties: CoachAnalyticsProperties())
+                applyActionResult(result)
+            case .reject(let message):
+                appendAssistantMessage(message)
+            }
 
         case .estimateAnother:
             requestsComposerFocus = true

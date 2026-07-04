@@ -19,7 +19,7 @@ struct CoachConversationView<BottomAccessory: View>: View {
     var onLaunchChipTap: ((CoachLaunchChip) -> Void)?
     var onStarterTap: ((CoachStarterPromptSpec) -> Void)?
     var onRetryMealPhotoAnalysis: ((UUID) -> Void)?
-    var onNutritionAction: ((NutritionSuggestedAction) -> Void)?
+    var onNutritionAction: ((NutritionEstimateCardState?, NutritionSuggestedAction) -> Void)?
     @ViewBuilder var bottomAccessory: () -> BottomAccessory
 
     @State private var isNearBottom = true
