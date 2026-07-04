@@ -22,12 +22,30 @@ struct AccountSyncPullSummary: Equatable, Sendable {
     let failed: Int
 }
 
+struct AccountSyncMergeBatchResult: Equatable, Sendable {
+    let inserted: Int
+    let updated: Int
+    let deleted: Int
+    let skippedLocalNewer: Int
+    let conflicts: Int
+    let failed: Int
+}
+
 protocol AccountSyncPulling: AnyObject {
     func pullRecentAccountData(
         for uid: String,
         from startDate: String,
         to endDate: String
     ) async -> AccountSyncPullSummary
+
+    func mergeFetchedDocuments(
+        for uid: String,
+        dailyLogs: [CloudDailyLogDocument],
+        foodEntries: [CloudFoodEntryDocument],
+        waterEntries: [CloudWaterEntryDocument],
+        weightEntries: [CloudWeightEntryDocument],
+        dailyReviews: [CloudDailyReviewDocument]
+    ) throws -> AccountSyncMergeBatchResult
 }
 
 enum AccountSyncPullerError: Error, Equatable, Sendable {
@@ -138,6 +156,37 @@ final class AccountSyncPuller: AccountSyncPulling {
         return stats.summary(uid: normalizedUID)
     }
 
+    func mergeFetchedDocuments(
+        for uid: String,
+        dailyLogs: [CloudDailyLogDocument],
+        foodEntries: [CloudFoodEntryDocument],
+        waterEntries: [CloudWaterEntryDocument],
+        weightEntries: [CloudWeightEntryDocument],
+        dailyReviews: [CloudDailyReviewDocument]
+    ) throws -> AccountSyncMergeBatchResult {
+        let normalizedUID = try AccountSyncMutationValidation.normalizedOwnerUID(uid)
+        var stats = PullStats()
+
+        for document in dailyLogs {
+            mergeDailyLog(document, uid: normalizedUID, stats: &stats)
+        }
+        for document in foodEntries {
+            mergeFoodEntry(document, uid: normalizedUID, stats: &stats)
+        }
+        for document in waterEntries {
+            mergeWaterEntry(document, uid: normalizedUID, stats: &stats)
+        }
+        for document in weightEntries {
+            mergeWeightEntry(document, uid: normalizedUID, stats: &stats)
+        }
+        for document in dailyReviews {
+            mergeDailyReview(document, uid: normalizedUID, stats: &stats)
+        }
+
+        try store.save()
+        return stats.mergeBatchResult
+    }
+
     // MARK: - Merge handlers
 
     private func mergeDailyLog(_ document: CloudDailyLogDocument, uid: String, stats: inout PullStats) {
@@ -191,7 +240,7 @@ final class AccountSyncPuller: AccountSyncPulling {
                     now: now
                 )
                 entity.cloudId = cloudId
-                stats.updated += 1
+                stats.deleted += 1
 
             case .skipStaleRemote, .skipRemoteDeletedNoLocal:
                 break
@@ -271,7 +320,7 @@ final class AccountSyncPuller: AccountSyncPulling {
                     now: now
                 )
                 entity.cloudId = cloudId
-                stats.updated += 1
+                stats.deleted += 1
 
             case .skipStaleRemote, .skipRemoteDeletedNoLocal:
                 break
@@ -351,7 +400,7 @@ final class AccountSyncPuller: AccountSyncPulling {
                     now: now
                 )
                 entity.cloudId = cloudId
-                stats.updated += 1
+                stats.deleted += 1
 
             case .skipStaleRemote, .skipRemoteDeletedNoLocal:
                 break
@@ -426,7 +475,7 @@ final class AccountSyncPuller: AccountSyncPulling {
                     now: now
                 )
                 entity.cloudId = cloudId
-                stats.updated += 1
+                stats.deleted += 1
 
             case .skipStaleRemote, .skipRemoteDeletedNoLocal:
                 break
@@ -508,7 +557,7 @@ final class AccountSyncPuller: AccountSyncPulling {
                     now: now
                 )
                 entity.cloudId = cloudId
-                stats.updated += 1
+                stats.deleted += 1
 
             case .skipStaleRemote, .skipRemoteDeletedNoLocal:
                 break
@@ -543,6 +592,7 @@ final class AccountSyncPuller: AccountSyncPulling {
         var dailyReviewsFetched = 0
         var inserted = 0
         var updated = 0
+        var deleted = 0
         var skippedLocalNewer = 0
         var conflicts = 0
         var failed = 0
@@ -557,6 +607,17 @@ final class AccountSyncPuller: AccountSyncPulling {
                 dailyReviewsFetched: dailyReviewsFetched,
                 inserted: inserted,
                 updated: updated,
+                skippedLocalNewer: skippedLocalNewer,
+                conflicts: conflicts,
+                failed: failed
+            )
+        }
+
+        var mergeBatchResult: AccountSyncMergeBatchResult {
+            AccountSyncMergeBatchResult(
+                inserted: inserted,
+                updated: updated,
+                deleted: deleted,
                 skippedLocalNewer: skippedLocalNewer,
                 conflicts: conflicts,
                 failed: failed

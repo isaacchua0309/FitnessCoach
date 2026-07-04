@@ -195,6 +195,24 @@ private final class MockAccountSyncPuller: AccountSyncPulling {
         )
     }
 
+    func mergeFetchedDocuments(
+        for uid: String,
+        dailyLogs: [CloudDailyLogDocument],
+        foodEntries: [CloudFoodEntryDocument],
+        waterEntries: [CloudWaterEntryDocument],
+        weightEntries: [CloudWeightEntryDocument],
+        dailyReviews: [CloudDailyReviewDocument]
+    ) throws -> AccountSyncMergeBatchResult {
+        AccountSyncMergeBatchResult(
+            inserted: 0,
+            updated: 0,
+            deleted: 0,
+            skippedLocalNewer: 0,
+            conflicts: 0,
+            failed: 0
+        )
+    }
+
     func cancelPendingWork() {}
 }
 

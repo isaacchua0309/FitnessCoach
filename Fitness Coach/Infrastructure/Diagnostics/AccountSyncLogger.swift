@@ -32,6 +32,31 @@ enum AccountSyncLogger {
         return "unknown"
     }
 
+    nonisolated static func incrementalPullCompleted(
+        traceId: String,
+        summary: CrossDeviceSyncSummary
+    ) {
+        emit(
+            levelName: "info",
+            osLogType: .info,
+            message: "incremental_pull_completed",
+            fields: [
+                "traceId": traceId,
+                "mode": summary.mode.rawValue,
+                "reason": summary.reason.rawValue,
+                "status": summary.status.rawValue,
+                "uidHash": hashedUID(summary.uid),
+                "inserted": String(summary.inserted),
+                "updated": String(summary.updated),
+                "deleted": String(summary.deleted),
+                "skippedLocalNewer": String(summary.skippedLocalNewer),
+                "conflicts": String(summary.conflicts),
+                "failed": String(summary.failed),
+                "pulledProfile": summary.pulledProfile ? "true" : "false"
+            ]
+        )
+    }
+
     nonisolated static func runStarted(
         traceId: String,
         reason: AccountSyncReason,
