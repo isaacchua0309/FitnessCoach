@@ -18,6 +18,7 @@ final class AppContainer {
     let accountSyncOutboxStore: SwiftDataAccountSyncOutboxStore
     let accountLocalMutationTracker: AccountLocalMutationTracker
     let accountSyncUploader: AccountSyncUploader
+    let accountSyncPuller: AccountSyncPuller
 
     let userProfileService: UserProfileService
     let targetService: TargetService
@@ -242,6 +243,10 @@ final class AppContainer {
         accountSyncUploader = AccountSyncUploader(
             outbox: accountSyncOutboxStore,
             payloadBuilder: SwiftDataAccountSyncPayloadBuilder(store: store),
+            remoteStore: accountDataRemoteStore,
+            store: store
+        )
+        accountSyncPuller = AccountSyncPuller(
             remoteStore: accountDataRemoteStore,
             store: store
         )
