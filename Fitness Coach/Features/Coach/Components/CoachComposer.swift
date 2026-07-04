@@ -67,7 +67,6 @@ struct CoachComposer: View {
                 .padding(.top, CoachDesignTokens.Spacing.xs)
                 .padding(.bottom, CoachDesignTokens.Spacing.sm)
         }
-        .background(CoachDesignTokens.Color.background)
         .animation(CoachDesignTokens.Motion.spring, value: pendingImage?.id)
         .animation(CoachDesignTokens.Motion.standard, value: canSend)
         .animation(CoachDesignTokens.Motion.standard, value: showVoiceButton)

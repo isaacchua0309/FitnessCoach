@@ -49,6 +49,8 @@ struct CoachView: View {
                         isSending: model.isSending,
                         todayContext: model.todayContext,
                         starterPrompts: model.starterPromptSpecs,
+                        pendingConfirmation: model.pendingConfirmation,
+                        isInputFocused: isInputFocused,
                         onDismissKeyboard: {
                             dismissKeyboard()
                         },
@@ -60,6 +62,12 @@ struct CoachView: View {
                         },
                         onNutritionAction: { action in
                             Task { await model.handleNutritionEstimateAction(action) }
+                        },
+                        bottomAccessory: {
+                            VStack(spacing: 0) {
+                                coachErrorBanner
+                                bottomAccessoryStack
+                            }
                         }
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -69,11 +77,6 @@ struct CoachView: View {
                             model.shouldFocusComposer = false
                         }
                     }
-
-                    coachErrorBanner
-                }
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    bottomChrome
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -151,38 +154,27 @@ struct CoachView: View {
         }
     }
 
-    private var bottomChrome: some View {
-        VStack(spacing: 0) {
-            if let pending = model.pendingConfirmation {
-                CoachConfirmationBar(
-                    confirmation: pending,
-                    isConfirming: model.isConfirmingPending,
-                    onConfirm: {
-                        dismissKeyboard()
-                        Task { await model.confirmPendingFromBar() }
-                    },
-                    onReject: {
-                        dismissKeyboard()
-                        model.rejectPendingFromBar()
-                    },
-                    onEdit: pending.supportsEdit ? {
-                        dismissKeyboard()
-                        model.openFoodEditSheet()
-                    } : nil,
-                    onRetryPhotoAnalysis: pending.supportsPhotoRetry ? {
-                        dismissKeyboard()
-                        guard let userMessageID = pending.relatedPhotoUserMessageID else { return }
-                        Task { await model.retryMealPhotoAnalysis(for: userMessageID) }
-                    } : nil
-                )
-            }
-
-            composerChrome
-        }
-    }
-
-    private var composerChrome: some View {
-        CoachComposer(
+    private var bottomAccessoryStack: some View {
+        CoachBottomAccessoryStack(
+            pendingConfirmation: model.pendingConfirmation,
+            isConfirmingPending: model.isConfirmingPending,
+            onConfirmPending: {
+                dismissKeyboard()
+                Task { await model.confirmPendingFromBar() }
+            },
+            onRejectPending: {
+                dismissKeyboard()
+                model.rejectPendingFromBar()
+            },
+            onEditPending: model.pendingConfirmation?.supportsEdit == true ? {
+                dismissKeyboard()
+                model.openFoodEditSheet()
+            } : nil,
+            onRetryPhotoAnalysis: model.pendingConfirmation?.supportsPhotoRetry == true ? {
+                dismissKeyboard()
+                guard let userMessageID = model.pendingConfirmation?.relatedPhotoUserMessageID else { return }
+                Task { await model.retryMealPhotoAnalysis(for: userMessageID) }
+            } : nil,
             text: Binding(
                 get: { model.inputState.text },
                 set: { newValue in
@@ -227,10 +219,6 @@ struct CoachView: View {
                     await imagePickFlow.retryFailedImageSelection(model: model)
                 }
             }
-        )
-        .background(
-            CoachDesignTokens.Color.background
-                .shadow(color: FormaTokens.Color.shadow, radius: 12, y: -4)
         )
     }
 
