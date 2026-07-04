@@ -815,7 +815,9 @@ final class AppContainer {
             },
             restoreSessionState: accountRestoreSessionState,
             localDataInspector: accountLocalDataInspector,
-            ownerUIDProvider: { [weak authManager] in authManager?.currentUID }
+            ownerUIDProvider: { [weak authManager] in authManager?.currentUID },
+            accountDataRefreshEventBus: accountDataRefreshEventBus,
+            crossDeviceSyncCoordinator: crossDeviceSyncCoordinator
         )
     }
 
