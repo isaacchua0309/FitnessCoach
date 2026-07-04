@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import SwiftData
 @testable import Fitness_Coach
 
 @MainActor
