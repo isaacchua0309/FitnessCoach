@@ -5,7 +5,6 @@
 //  Forma — Privacy-safe OSLog tracing for account data sync (Phase 3).
 //
 
-import CryptoKit
 import Foundation
 import OSLog
 
@@ -15,8 +14,7 @@ enum AccountSyncLogger {
 
     /// Short stable hash for correlating logs without logging full Firebase UIDs.
     nonisolated static func hashedUID(_ uid: String) -> String {
-        let digest = SHA256.hash(data: Data(uid.utf8))
-        return digest.prefix(4).map { String(format: "%02x", $0) }.joined()
+        LogRedactor.hashedUID(uid)
     }
 
     nonisolated static func errorCategory(from error: Error) -> String {
@@ -126,7 +124,7 @@ enum AccountSyncLogger {
         return
         #endif
 
-        var merged = sanitizeFields(fields)
+        var merged = LogRedactor.sanitizeLogFields(fields)
         merged["level"] = levelName
 
         let fieldLine = merged
@@ -139,30 +137,5 @@ enum AccountSyncLogger {
             : "[AccountSync] \(message) \(fieldLine)"
 
         logger.log(level: osLogType, "\(line, privacy: .public)")
-    }
-
-    nonisolated private static func sanitizeFields(_ fields: [String: String]) -> [String: String] {
-        var result: [String: String] = [:]
-        result.reserveCapacity(fields.count)
-        for (key, value) in fields {
-            let lowered = key.lowercased()
-            if lowered.contains("uid"), lowered != "uidhash" {
-                continue
-            }
-            if isSensitiveFieldKey(lowered) {
-                continue
-            }
-            result[key] = value
-        }
-        return result
-    }
-
-    nonisolated private static func isSensitiveFieldKey(_ key: String) -> Bool {
-        let blocked = [
-            "name", "food", "calorie", "protein", "carb", "fat", "fiber", "sodium",
-            "water", "weight", "review", "summary", "message", "note", "image", "base64",
-            "coach", "text", "quantity", "amount"
-        ]
-        return blocked.contains { key.contains($0) }
     }
 }

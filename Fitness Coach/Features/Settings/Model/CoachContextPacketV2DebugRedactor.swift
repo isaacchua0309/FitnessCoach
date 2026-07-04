@@ -10,16 +10,6 @@ import Foundation
 
 enum CoachContextPacketV2DebugRedactor {
 
-    private static let secretPatterns: [NSRegularExpression] = {
-        let rawPatterns = [
-            #"(?i)bearer\s+[A-Za-z0-9\-._~+/]+=*"#,
-            #"eyJ[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+"#,
-            #"(?i)(api[_-]?key|token|secret|password)\s*[:=]\s*\S+"#,
-            #"[A-Za-z0-9+/]{120,}={0,2}"#
-        ]
-        return rawPatterns.compactMap { try? NSRegularExpression(pattern: $0) }
-    }()
-
     static func redactedJSONString(from packet: CoachContextPacketV2) throws -> String {
         let sanitized = sanitize(packet)
         let encoder = CoachContextPacketV2.makeJSONEncoder()
@@ -27,7 +17,7 @@ enum CoachContextPacketV2DebugRedactor {
         let data = try encoder.encode(sanitized)
         var json = String(data: data, encoding: .utf8) ?? "{}"
         json = redactSecrets(in: json)
-        return json
+        return LogRedactor.redactSensitiveJSONFields(json)
     }
 
     static func sanitize(_ packet: CoachContextPacketV2) -> CoachContextPacketV2 {
@@ -73,24 +63,11 @@ enum CoachContextPacketV2DebugRedactor {
     }
 
     static func redactSecrets(in text: String) -> String {
-        var result = text
-        for pattern in secretPatterns {
-            let range = NSRange(result.startIndex..<result.endIndex, in: result)
-            result = pattern.stringByReplacingMatches(
-                in: result,
-                options: [],
-                range: range,
-                withTemplate: "[REDACTED]"
-            )
-        }
-        return result
+        LogRedactor.redactSecrets(in: text)
     }
 
     private static func truncate(_ value: String, maxLength: Int) -> String {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.count > maxLength else { return trimmed }
-        let index = trimmed.index(trimmed.startIndex, offsetBy: maxLength)
-        return String(trimmed[..<index]) + "…"
+        LogRedactor.truncate(value, maxLength: maxLength)
     }
 }
 #endif

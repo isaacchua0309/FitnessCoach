@@ -1,7 +1,7 @@
 {
   "configurations": [
     {
-      "id": "E838B60E-0582-4C12-BD84-9C0ECA6329F7",
+      "id": "62A42738-EBC2-4685-A93C-4696E53DB693",
       "name": "Configuration 1",
       "options": {}
     }
@@ -321,6 +321,7 @@
         "JourneyWeeklyReviewBuilderTests",
         "LocalAccountDataWipeServiceTests",
         "LocalHealthCacheStoreTests",
+        "LogRedactorTests",
         "LogoutRoutingTests",
         "LogoutSessionStoreTests",
         "MainTabThemeSmokeTests",

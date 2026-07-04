@@ -4,6 +4,8 @@
 //
 //  Forma — Privacy-safe account deletion coordinator diagnostics (Phase 6).
 //
+//  Logs scope, status, and hashed UID only. Never logs food, profile, or payload bodies.
+//
 
 import Foundation
 import OSLog
@@ -15,7 +17,7 @@ enum AccountDeletionCoordinatorLogger {
     static func flowStarted(scope: AccountDeletionScope, uidField: String) {
         log("flow_started", fields: [
             "scope": scope.rawValue,
-            "uid": uidField,
+            "uidHash": uidField,
         ])
     }
 
@@ -28,7 +30,7 @@ enum AccountDeletionCoordinatorLogger {
         log("flow_finished", fields: [
             "scope": scope.rawValue,
             "status": status.rawValue,
-            "uid": uidField,
+            "uidHash": uidField,
             "durationMs": String(durationMs),
         ])
     }
@@ -41,7 +43,7 @@ enum AccountDeletionCoordinatorLogger {
         log("flow_failed", level: .error, fields: [
             "scope": scope.rawValue,
             "category": category,
-            "uid": uidField,
+            "uidHash": uidField,
         ])
     }
 
@@ -53,7 +55,7 @@ enum AccountDeletionCoordinatorLogger {
         log("phase_changed", fields: [
             "scope": scope.rawValue,
             "status": status.rawValue,
-            "uid": uidField,
+            "uidHash": uidField,
         ])
     }
 
@@ -62,7 +64,8 @@ enum AccountDeletionCoordinatorLogger {
         level: OSLogType = .info,
         fields: [String: String]
     ) {
-        let fieldLine = fields
+        let sanitized = LogRedactor.sanitizeLogFields(fields)
+        let fieldLine = sanitized
             .sorted { $0.key < $1.key }
             .map { "\($0.key)=\($0.value)" }
             .joined(separator: " ")

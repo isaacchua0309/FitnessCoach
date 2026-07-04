@@ -214,28 +214,7 @@ enum CoachImageAnalysisDebugLogFormatter {
     }
 
     static func redactSensitiveJSONFields(_ raw: String) -> String {
-        raw
-            .replacingOccurrences(of: #"Bearer\s+\S+"#, with: "Bearer <redacted>", options: .regularExpression)
-            .replacingOccurrences(
-                of: #""Authorization"\s*:\s*"[^"]*""#,
-                with: "\"Authorization\":\"<redacted>\"",
-                options: .regularExpression
-            )
-            .replacingOccurrences(
-                of: #""base64"\s*:\s*"[^"]*""#,
-                with: "\"base64\":\"<redacted>\"",
-                options: .regularExpression
-            )
-            .replacingOccurrences(
-                of: #""message"\s*:\s*"[^"]*""#,
-                with: "\"message\":\"<redacted>\"",
-                options: .regularExpression
-            )
-            .replacingOccurrences(
-                of: #""clarification"\s*:\s*"[^"]*""#,
-                with: "\"clarification\":\"<redacted>\"",
-                options: .regularExpression
-            )
+        LogRedactor.redactSensitiveJSONFields(raw)
     }
 }
 

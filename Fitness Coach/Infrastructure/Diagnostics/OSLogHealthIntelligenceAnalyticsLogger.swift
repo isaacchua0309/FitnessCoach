@@ -32,14 +32,12 @@ enum HealthIntelligenceAnalyticsDebugLogger {
 
     nonisolated static func event(_ message: String, fields: [String: String] = [:]) {
         guard isEnabled else { return }
-        let fieldLine = fields
-            .sorted { $0.key < $1.key }
-            .map { "\($0.key)=\($0.value)" }
-            .joined(separator: " ")
-        let line = fieldLine.isEmpty
-            ? "[HealthIntelligenceAnalytics] \(message)"
-            : "[HealthIntelligenceAnalytics] \(message) \(fieldLine)"
-        logger.info("\(line, privacy: .public)")
+        LogRedactor.emitOSLogTrace(
+            prefix: "HealthIntelligenceAnalytics",
+            logger: logger,
+            message: message,
+            fields: fields
+        )
     }
 }
 #endif

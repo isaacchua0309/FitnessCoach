@@ -411,17 +411,7 @@ final class FormaAIBackendClient: LLMClient {
         let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
 
-        let redacted = trimmed
-            .replacingOccurrences(
-                of: #"Bearer\s+\S+"#,
-                with: "Bearer <redacted>",
-                options: .regularExpression
-            )
-            .replacingOccurrences(
-                of: #"(?i)(api[_-]?key|authorization|secret)\s*[:=]\s*\S+"#,
-                with: "<redacted>",
-                options: .regularExpression
-            )
+        let redacted = LogRedactor.redactSecrets(in: trimmed)
 
         if redacted.localizedCaseInsensitiveContains("openai") {
             return "Upstream model provider error"

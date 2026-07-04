@@ -1,27 +1,29 @@
 # Logging and Privacy Contract
 
 **Last updated:** 2026-07-04  
-**Related:** [FeatureFlagRegistry.md](./FeatureFlagRegistry.md), [AppArchitectureOverview.md](./AppArchitectureOverview.md)
+**Related:** [FeatureFlagRegistry.md](./FeatureFlagRegistry.md), [AppArchitectureOverview.md](./AppArchitectureOverview.md)  
+**Implementation:** `Fitness Coach/Infrastructure/Diagnostics/LogRedactor.swift`, `PrivacySafeLogValue.swift`
 
 ---
 
 ## 1. Purpose
 
-Define what the app may log, where, and which data classes must never appear in **Release** logs or analytics. This contract supports PRDX v1 logging redaction work (`FormaLogRedactor` — planned).
+Define what the app may log, where, and which data classes must never appear in **Release** logs or analytics. All new diagnostics must use `LogRedactor` or `PrivacySafeLogValue`.
 
 ---
 
 ## 2. Logging Layers
 
 | Layer | Technology | Release behavior today |
-|-------|------------|------------------------|
+|-------|------------|----------------------|
 | **Product analytics** | `*AnalyticsLogging` protocols | **NoOp** in Release (`AppContainer` `#else`) |
-| **Diagnostics / trace** | `OSLog` / `Logger` | Mostly `#if DEBUG`; some subsystem loggers gated by flag |
+| **Diagnostics / trace** | `OSLog` / `Logger` | Mostly `#if DEBUG`; sync/restore DEBUG-gated |
 | **Coach pipeline trace** | `FormaPipelineTracer` | **DEBUG-only** entire type |
-| **Health / sync** | `AccountSyncLogger`, `HealthSyncLogger`, etc. | DEBUG-gated emit |
-| **AI client** | `FormaAIBackendClient` | Partial DEBUG request logging |
+| **Coach accuracy observability** | `CoachAccuracyObservabilityLogger` | Metadata only; fields sanitized via `LogRedactor` |
+| **Health / sync** | `HealthSyncLogger`, `AccountSyncLogger`, etc. | Release logs counts/categories only |
+| **AI client** | `FormaAIBackendClient` | Partial DEBUG request logging; gateway errors redacted |
 
-**Firebase Analytics SDK:** Present in SPM; **no Swift references** in domain code (**Confirmed**). Analytics are not persisted to a production backend today.
+**Firebase Analytics SDK:** Present in SPM; **no Swift references** in domain code. Analytics are not persisted to a production backend today.
 
 ---
 
@@ -31,34 +33,33 @@ Define what the app may log, where, and which data classes must never appear in 
 
 | Logger | Protocol | DEBUG | Release |
 |--------|----------|-------|---------|
-| `OSLogTodayAnalyticsLogger` | `TodayAnalyticsLogging` | Active | NoOp |
-| `OSLogJourneyAnalyticsLogger` | `JourneyAnalyticsLogging` | Active | NoOp |
-| `OSLogPlanAnalyticsLogger` | `PlanAnalyticsLogging` | Active | NoOp |
-| `OSLogOnboardingAnalyticsLogger` | `OnboardingAnalyticsLogging` | Active | NoOp |
-| `OSLogSettingsAnalyticsLogger` | `SettingsAnalyticsLogging` | Active | NoOp |
-| `OSLogThemeAnalyticsLogger` | `ThemeAnalyticsLogging` | Active | NoOp |
-| `OSLogPublicEntryAnalyticsLogger` | `PublicEntryAnalyticsLogging` | Active | NoOp |
-| `OSLogHealthIntelligenceAnalyticsLogger` | `HealthIntelligenceAnalyticsLogging` | Active | NoOp |
-| `OSLogCoachAnalyticsLogger` | `CoachAnalyticsLogging` | In Domain file | Limited / NoOp |
+| `OSLogTodayAnalyticsLogger` | `TodayAnalyticsLogging` | Active + redacted | NoOp |
+| `OSLogJourneyAnalyticsLogger` | `JourneyAnalyticsLogging` | Active + redacted | NoOp |
+| `OSLogPlanAnalyticsLogger` | `PlanAnalyticsLogging` | Active + redacted | NoOp |
+| `OSLogOnboardingAnalyticsLogger` | `OnboardingAnalyticsLogging` | Active + redacted | NoOp |
+| `OSLogSettingsAnalyticsLogger` | `SettingsAnalyticsLogging` | Active + redacted | NoOp |
+| `OSLogThemeAnalyticsLogger` | `ThemeAnalyticsLogging` | Active + redacted | NoOp |
+| `OSLogPublicEntryAnalyticsLogger` | `PublicEntryAnalyticsLogging` | Active + redacted | NoOp |
+| `OSLogHealthIntelligenceAnalyticsLogger` | `HealthIntelligenceAnalyticsLogging` | Active + redacted | NoOp |
+
+DEBUG analytics traces call `LogRedactor.emitOSLogTrace` before writing to OSLog.
 
 ### Debug / diagnostics loggers
 
 | Logger | Sensitive data risk | Release guard |
 |--------|---------------------|---------------|
-| `CoachFoodEstimateDebugLogger` | **High** — food names, calories, macros, user text | `#if DEBUG` emit |
-| `FormaPipelineTracer` | **High** — user messages, HTTP metadata | `#if DEBUG` type |
+| `CoachFoodEstimateDebugLogger` | **High** — food names, calories, macros | `#if DEBUG` emit only |
+| `FormaPipelineTracer` | **High** — user messages, HTTP metadata | `#if DEBUG` type; OSLog fields sanitized |
 | `CoachImageAnalysisDebugLogger` | Medium — image pipeline | `#if DEBUG` |
-| `CoachImageProcessingLogger` | Medium | `#if DEBUG` |
-| `AccountSyncLogger` | Medium — UIDs, mutation metadata | `#if DEBUG` |
-| `AccountRestoreLogger` | Medium — restore phases | `#if DEBUG` |
-| `AccountDeletionCoordinatorLogger` | Medium — deletion steps | Audit — may log in Release |
-| `AuthSignInDebugLogger` | Medium | `#if DEBUG` |
-| `ProfileBootstrapDebugLogger` | Low–medium | `#if DEBUG` |
-| `TodayHydrationDebugLogger` | Low | `#if DEBUG` |
-| `HealthDataRepositoryLogger` | Low — no raw HK samples | `#if DEBUG` |
-| `HealthSummarySyncDebugLogger` | Medium — payload summaries | `#if DEBUG` |
-| `CrossDeviceSyncLogger` | Medium | `#if DEBUG` |
-| `CoachAccuracyObservability` | Medium | `#if DEBUG` |
+| `CoachAccuracyObservability` | Medium — context metadata | Release-safe counts; `LogRedactor.sanitizeLogFields` |
+| `AccountSyncLogger` | Medium — UIDs, mutation metadata | DEBUG-gated; `LogRedactor` |
+| `AccountRestoreLogger` | Medium — restore phases | DEBUG-gated; `LogRedactor` |
+| `AccountDeletionCoordinatorLogger` | Medium — deletion steps | **Release** — hashed UID + status only |
+| `CrossDeviceSyncLogger` | Medium — sync counts | DEBUG-gated; `LogRedactor` |
+| `HealthSyncLogger` | Low — signal categories | Release — no raw HK samples or error bodies |
+| `HealthSummarySyncDebugLogger` | Medium — payload counts | Release — counts only |
+| `HealthDataRepositoryLogger` | Low | Error description DEBUG-only |
+| `ProfileBootstrapDebugLogger` | Low–medium | `LogRedactor` on all fields |
 
 ---
 
@@ -69,56 +70,69 @@ The following **must not** appear in Release `Logger` / `print` / OSLog output:
 | Class | Examples |
 |-------|----------|
 | **Food content** | Meal names, ingredient lists, per-item calories/macros |
-| **Body metrics** | Weight values, goal weight (prefer deltas or buckets if needed) |
+| **Body metrics** | Raw weight values, goal weight (use buckets via `LogRedactor.weightBucketKg`) |
 | **User-generated text** | Coach chat messages, daily review narrative, onboarding free text |
 | **Images** | Base64, JPEG bytes, file paths to meal photos |
 | **Auth secrets** | ID tokens, refresh tokens, Bearer headers, API keys |
-| **Full Firebase UID** | Prefer truncated hash or `uid.prefix(8)` if identifier needed |
+| **Full Firebase UID** | Use `LogRedactor.hashedUID` or `LogRedactor.redactUID` |
 | **Firestore document bodies** | Full nutrition payloads |
 | **HealthKit raw samples** | Heart rate series, HRV raw, location |
+| **Email addresses** | Redacted by `LogRedactor.redactSecrets` |
 
 **Allowed in Release (metadata only):**
 
 - Sync phase enums (upload started, restore completed)
-- Error categories without payload bodies
+- Error categories without payload bodies (`errorCategory`, `errorDomain` + `errorCode`)
 - Feature flag state (boolean)
 - Network error codes (not response bodies)
-- Aggregated counts (e.g. `mutationCount=3`)
+- Aggregated counts (e.g. `pulledFoodEntries=3`, `mutationCount=3`)
+- Durations, buckets, status enums, event names
 
 ---
 
-## 5. Redaction Rules
+## 5. Redaction Rules (`LogRedactor`)
 
-### Existing implementation (DEBUG only)
+### Shared API
 
-`CoachContextPacketV2DebugRedactor` (`Features/Settings/Model/`) — patterns:
+| API | Purpose |
+|-----|---------|
+| `hashedUID(_:)` | 8-char SHA-256 prefix for correlation |
+| `redactUID(_:)` | Suffix-only UID (`***suffix`) |
+| `redactSecrets(in:)` | Bearer/JWT/base64/email in free text → `[REDACTED]` |
+| `redactSensitiveJSONFields(_:)` | JSON field redaction → `"<redacted>"` |
+| `sanitizeLogFields(_:options:)` | Drop/strip sensitive keys and values |
+| `calorieBucket(_:)` / `weightBucketKg(_:)` | Production-safe numeric buckets |
+| `safeErrorFields(from:includeDescription:)` | NSError domain/code; description DEBUG-only |
+| `emitOSLogTrace(prefix:logger:message:fields:)` | Sanitized OSLog line for DEBUG traces |
 
-| Pattern | Replacement |
-|---------|-------------|
-| Bearer tokens | Redacted |
-| JWT (`eyJ…`) | Redacted |
-| `api_key` / `token` / `secret` / `password` assignments | Redacted |
-| Base64 blobs ≥120 chars | Redacted |
-| Chat text / timeline summaries | Truncated (80–120 chars) + secret pass |
+### Typed safe values (`PrivacySafeLogValue`)
 
-### Planned shared utility (PRDX P0)
+Use `PrivacySafeLogFields.make` / `.sanitized` when building production log dictionaries from typed values (counts, categories, uid hashes).
 
-`FormaLogRedactor` should centralize:
+### Field key policy
 
-```text
-redactSecrets(in: String) -> String
-truncate(_ string: String, maxLength: Int) -> String
-redactUID(_ uid: String) -> String          // e.g. first 8 chars + "…"
-redactNutritionSummary(calories:protein:…)  // bucketed or omitted
-```
+`LogRedactor.isSensitiveFieldKey` blocks keys containing sensitive tokens (`name`, `message`, `calorie`, etc.) **except** aggregate sync/restore metrics (`pulled*`, `*Restored`, `*Fetched`, `*Count`).
 
 ### UID logging
 
 | Context | Rule |
 |---------|------|
-| Sync/restore diagnostics | `redactUID` or omit |
+| Sync/restore/deletion diagnostics | `uidHash` via `LogRedactor.hashedUID` |
+| Profile bootstrap / auth DEBUG | `LogRedactor.redactUID` |
 | Analytics | No UID in event properties unless hashed |
-| DEBUG inspector | Full UID allowed in DEBUG builds only |
+| DEBUG pipeline inspector UI | Full message visible in-memory only; OSLog uses `userMessageLength` |
+
+### JSON redaction patterns
+
+| Pattern | Replacement |
+|---------|-------------|
+| Bearer tokens | `<redacted>` |
+| `base64`, `imageJPEGBase64` | `<redacted>` |
+| `message`, `text`, `name`, `summary`, `review` | `<redacted>` |
+| `context`, `payload`, `document` objects | `<redacted>` |
+| `email`, `token`, `password` | `<redacted>` |
+
+`CoachImageAnalysisDebugLogFormatter`, `CoachAccuracyObservabilityLogFormatter`, and `FormaPipelineTracer` delegate JSON redaction to `LogRedactor`.
 
 ---
 
@@ -130,7 +144,7 @@ redactNutritionSummary(calories:protein:…)  // bucketed or omitted
 | Meal image base64 | Yes — meal analysis endpoint | **No** |
 | User chat text | Yes — classify/parse endpoints | **No** |
 
-**Client responsibility:** `CoachContextPacketV2.clampedForTransport()` before encode.
+**Client responsibility:** `CoachContextPacketV2.clampedForTransport()` before encode. DEBUG inspection uses `CoachContextPacketV2DebugRedactor` + `LogRedactor`.
 
 ---
 
@@ -139,7 +153,7 @@ redactNutritionSummary(calories:protein:…)  // bucketed or omitted
 ### Current state
 
 - Events defined per domain protocol (`Domain/*/AnalyticsLogging.swift`)
-- DEBUG: OSLog subsystem logging
+- DEBUG: OSLog subsystem logging through `LogRedactor.emitOSLogTrace`
 - Release: **dropped** (NoOp)
 
 ### Property rules (when production sink ships)
@@ -147,15 +161,10 @@ redactNutritionSummary(calories:protein:…)  // bucketed or omitted
 | Allowed | Disallowed |
 |---------|------------|
 | Screen names, funnel step enums | Food names, meal text |
-| Error codes | Weight values |
+| Error codes | Raw weight values |
 | Flag states | Full UID |
 | Aggregated buckets (`calorie_band`) | Free-text coach messages |
 | `schemaVersion` ints | Firestore payloads |
-
-### Consent
-
-- Health summary **remote** sync requires explicit user consent (`HealthSummarySyncConsentStore`) — separate from analytics.
-- App Store privacy nutrition labels must cover analytics when sink enabled (**Unknown** — legal review).
 
 ---
 
@@ -163,41 +172,54 @@ redactNutritionSummary(calories:protein:…)  // bucketed or omitted
 
 | Mechanism | Controls |
 |-----------|----------|
-| `#if DEBUG` | Entire debug loggers, pipeline tracer, context inspector |
+| `#if DEBUG` | Entire debug loggers, pipeline tracer, food estimate logger |
 | `FormaAbTest.Coach.pipelineTraceEnabled` | In-DEBUG tracer verbosity |
 | `FormaAbTest.Coach.foodEstimateDebugLog` | Food estimate debug logger |
 | `FormaAbTest.Diagnostics.*Trace` | Per-domain analytics trace to OSLog |
-| `FormaAbTest.Build.internalBuildEnabled` | Internal tooling (future) |
+| `LogRedactor.sanitizeLogFields` | Final guard on structured log fields |
 
-**Rule:** New loggers must default **off** in Release or behind `#if DEBUG`.
+**Rule:** New loggers must default **off** in Release or sanitize through `LogRedactor`.
 
 ---
 
-## 9. Release Audit Checklist (PRDX)
+## 9. Release Audit Checklist
 
 Before merging logging changes:
 
-- [ ] `rg 'Logger\(' Fitness Coach/` — every hit reviewed for `#if DEBUG` or redaction
+- [ ] `rg 'Logger\(' Fitness Coach/` — every hit reviewed for `#if DEBUG` or `LogRedactor`
 - [ ] No `print(` with user data in Release paths
 - [ ] Coach food estimate logger never compiled into Release emit paths
 - [ ] `FormaPipelineTracer` not linked in Release
-- [ ] Account deletion logs contain no PII bodies
-- [ ] Add `ReleaseLoggingGuardTests` allowlist for approved Release log sites
+- [ ] Account deletion logs use `uidHash` only
+- [ ] `LogRedactorTests` pass
+- [ ] `CoachAccuracyObservabilityTests` / `CoachImageAnalysisDebugLogFormatterTests` pass
 
 ---
 
-## 10. Incident Response
+## 10. Tests
+
+| Test class | Covers |
+|------------|--------|
+| `LogRedactorTests` | UID hashing, JSON/secret redaction, field sanitization, buckets |
+| `CoachAccuracyObservabilityTests` | Production log lines, JSON redaction |
+| `CoachImageAnalysisDebugLogFormatterTests` | Image pipeline field omission |
+| `AccountSyncLoggerTests` | Hashed UID stability |
+
+---
+
+## 11. Incident Response
 
 If PII is logged in Release:
 
-1. Revert offending commit or hotfix guard with `#if DEBUG`
+1. Revert offending commit or hotfix guard with `#if DEBUG` + `LogRedactor`
 2. Rotate keys only if tokens were exposed (rare in local OSLog)
-3. Update this contract + allowlist test
+3. Update this contract and add regression test in `LogRedactorTests`
 
 ---
 
-## 11. Revision History
+## 12. Revision History
 
 | Date | Change |
 |------|--------|
 | 2026-07-04 | Initial logging and privacy contract for PRDX v1 |
+| 2026-07-04 | Added `LogRedactor`, `PrivacySafeLogValue`, centralized redaction across loggers |

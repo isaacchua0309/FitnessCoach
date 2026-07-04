@@ -153,33 +153,7 @@ enum CoachAccuracyObservabilityLogFormatter {
 
     /// Redacts JSON snippets for DEBUG traces — strips tokens, images, user text, and context payloads.
     static func redactSensitiveJSONFields(_ raw: String) -> String {
-        var sanitized = CoachImageAnalysisDebugLogFormatter.redactSensitiveJSONFields(raw)
-        sanitized = sanitized.replacingOccurrences(
-            of: #""imageJPEGBase64"\s*:\s*"[^"]*""#,
-            with: "\"imageJPEGBase64\":\"<redacted>\"",
-            options: .regularExpression
-        )
-        sanitized = sanitized.replacingOccurrences(
-            of: #""context"\s*:\s*\{[\s\S]*?\}(?=,\s*"|\s*\})"#,
-            with: "\"context\":\"<redacted>\"",
-            options: .regularExpression
-        )
-        sanitized = sanitized.replacingOccurrences(
-            of: #""text"\s*:\s*"[^"]*""#,
-            with: "\"text\":\"<redacted>\"",
-            options: .regularExpression
-        )
-        sanitized = sanitized.replacingOccurrences(
-            of: #""name"\s*:\s*"[^"]*""#,
-            with: "\"name\":\"<redacted>\"",
-            options: .regularExpression
-        )
-        sanitized = sanitized.replacingOccurrences(
-            of: #""summary"\s*:\s*"[^"]*""#,
-            with: "\"summary\":\"<redacted>\"",
-            options: .regularExpression
-        )
-        return sanitized
+        LogRedactor.redactSensitiveJSONFields(raw)
     }
 
     /// Privacy-safe production log line — never includes raw user content.
@@ -284,7 +258,8 @@ enum CoachAccuracyObservabilityLogger {
     // MARK: - Private
 
     private static func emit(event: String, fields: [String: String]) {
-        let line = CoachAccuracyObservabilityLogFormatter.productionLogLine(event: event, fields: fields)
+        let sanitized = LogRedactor.sanitizeLogFields(fields)
+        let line = CoachAccuracyObservabilityLogFormatter.productionLogLine(event: event, fields: sanitized)
         logger.info("\(line, privacy: .public)")
     }
 }

@@ -27,12 +27,10 @@ enum HealthDataRepositoryLogger {
         var merged = fields
         merged["context"] = context
         if let underlying {
-            merged["errorDomain"] = (underlying as NSError).domain
-            merged["errorCode"] = String((underlying as NSError).code)
-            let description = underlying.localizedDescription
-            if !description.isEmpty {
-                merged["errorDescription"] = description
-            }
+            merged.merge(LogRedactor.safeErrorFields(from: underlying, includeDescription: false)) { _, new in new }
+            #if DEBUG
+            merged.merge(LogRedactor.safeErrorFields(from: underlying, includeDescription: true)) { _, new in new }
+            #endif
         }
         log(level: level, message: "Health repository fetch degraded", fields: merged)
     }

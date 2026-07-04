@@ -110,9 +110,7 @@ enum AccountDeletionPolicy {
 
     /// Privacy-safe diagnostics field: UID prefix only, never full payload contents.
     static func privacySafeUIDField(_ uid: String) -> String {
-        let trimmed = uid.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.count > 8 else { return "uid_redacted" }
-        return String(trimmed.prefix(8)) + "…"
+        LogRedactor.hashedUID(uid)
     }
 
     // MARK: - Product copy guardrails
