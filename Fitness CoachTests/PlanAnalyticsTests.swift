@@ -165,7 +165,7 @@ final class PlanAnalyticsEventTests: XCTestCase {
         model.showEditPlan()
 
         XCTAssertEqual(analytics.events.last?.event, .adjustStarted)
-        XCTAssertEqual(analytics.events.last?.properties.entryPoint, PlanAdjustPlanEntryPoint.dashboard)
+        XCTAssertEqual(analytics.events.last?.properties.entryPoint, PlanAdjustPlanEntryPoint.dashboard.rawValue)
         XCTAssertEqual(analytics.events.last?.properties.planType, "aggressive_cut")
         XCTAssertNotNil(analytics.events.last?.properties.confidenceBucket)
     }

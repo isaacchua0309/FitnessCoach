@@ -101,6 +101,7 @@ struct PlanView: View {
                             ),
                             baselineProfile: baselineProfile,
                             initialStep: model.editPlanInitialStep,
+                            weeklyReviewContext: model.editWeeklyReviewContext,
                             errorMessage: model.formErrorMessage,
                             onSave: { state in
                                 try await model.savePlanFromWizard(state)
@@ -202,61 +203,77 @@ struct PlanView: View {
         let healthConnected = trainingInsightsStore.integrationState.isConnected
         let healthIntelligenceUIEnabled = HealthIntelligenceFeatureFlags.isUIEnabled
 
-        ScrollView {
-            PlanDashboardContent(
-                state: state,
-                healthIntelligenceUIEnabled: healthIntelligenceUIEnabled,
-                planHealthIntelligenceSectionState: healthIntelligenceUIEnabled
-                    ? model.planHealthIntelligenceSectionState
-                    : nil,
-                onGoToToday: onGoToToday.map { handler in
-                    {
-                        model.logPlanTodayTapped(healthConnected: healthConnected)
-                        handler()
+        ScrollViewReader { scrollProxy in
+            ScrollView {
+                PlanDashboardContent(
+                    state: state,
+                    healthIntelligenceUIEnabled: healthIntelligenceUIEnabled,
+                    planHealthIntelligenceSectionState: healthIntelligenceUIEnabled
+                        ? model.planHealthIntelligenceSectionState
+                        : nil,
+                    highlightWeeklyRecommendation: model.shouldHighlightWeeklyRecommendation,
+                    onGoToToday: onGoToToday.map { handler in
+                        {
+                            model.logPlanTodayTapped(healthConnected: healthConnected)
+                            handler()
+                        }
+                    },
+                    onAdjustActivity: {
+                        model.showEditPlanActivity()
+                    },
+                    onAdjustPlan: {
+                        model.logPlanAdjustCTATapped(healthConnected: healthConnected)
+                        model.showEditPlan(entryPoint: .adjustPlanCTA)
+                    },
+                    onReviewWeeklyRecommendation: {
+                        model.showEditPlanFromWeeklyReview(entryPoint: .weeklyReview)
+                    },
+                    onCalculationDetailsOpened: {
+                        model.logPlanCalculationTapped(healthConnected: healthConnected)
+                    },
+                    onAppleHealthTap: state.confidence.showsAppleHealthAction
+                        ? {
+                            model.logPlanHealthConnectTapped(
+                                entryPoint: .planConfidence,
+                                healthConnected: healthConnected
+                            )
+                            isShowingTrainingInsights = true
+                        }
+                        : nil,
+                    onConnectHealth: healthIntelligenceUIEnabled
+                        ? {
+                            model.logPlanHealthConnectTapped(
+                                entryPoint: .planConfidence,
+                                healthConnected: healthConnected
+                            )
+                            healthIntelligenceAnalyticsCoordinator?.logHealthPermissionCTATapped(surface: .plan)
+                            isShowingTrainingInsights = true
+                        }
+                        : nil,
+                    onPlanHealthMissingDataAction: healthIntelligenceUIEnabled
+                        ? { action in
+                            handlePlanHealthMissingDataAction(
+                                action,
+                                healthConnected: healthConnected
+                            )
+                        }
+                        : nil,
+                    healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
+                    onSectionAppear: { section in
+                        logSectionImpression(section, healthConnected: healthConnected)
                     }
-                },
-                onAdjustActivity: {
-                    model.showEditPlanActivity()
-                },
-                onAdjustPlan: {
-                    model.logPlanAdjustCTATapped(healthConnected: healthConnected)
-                    model.showEditPlan()
-                },
-                onCalculationDetailsOpened: {
-                    model.logPlanCalculationTapped(healthConnected: healthConnected)
-                },
-                onAppleHealthTap: state.confidence.showsAppleHealthAction
-                    ? {
-                        model.logPlanHealthConnectTapped(
-                            entryPoint: .planConfidence,
-                            healthConnected: healthConnected
-                        )
-                        isShowingTrainingInsights = true
-                    }
-                    : nil,
-                onConnectHealth: healthIntelligenceUIEnabled
-                    ? {
-                        model.logPlanHealthConnectTapped(
-                            entryPoint: .planConfidence,
-                            healthConnected: healthConnected
-                        )
-                        healthIntelligenceAnalyticsCoordinator?.logHealthPermissionCTATapped(surface: .plan)
-                        isShowingTrainingInsights = true
-                    }
-                    : nil,
-                onPlanHealthMissingDataAction: healthIntelligenceUIEnabled
-                    ? { action in
-                        handlePlanHealthMissingDataAction(
-                            action,
-                            healthConnected: healthConnected
-                        )
-                    }
-                    : nil,
-                healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
-                onSectionAppear: { section in
-                    logSectionImpression(section, healthConnected: healthConnected)
+                )
+            }
+            .onChange(of: model.shouldHighlightWeeklyRecommendation) { _, shouldHighlight in
+                guard shouldHighlight else { return }
+                withAnimation {
+                    scrollProxy.scrollTo(
+                        PlanDashboardContent.weeklyRecommendationScrollID,
+                        anchor: .center
+                    )
                 }
-            )
+                model.clearWeeklyRecommendationHighlight()
+            }
         }
         .formaMainTabScrollInsets()
         .overlay(alignment: .top) {

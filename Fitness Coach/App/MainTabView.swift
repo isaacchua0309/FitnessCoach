@@ -119,6 +119,12 @@ struct MainTabView: View {
                 onOpenPlan: {
                     selectedTab = .plan
                 },
+                onOpenPlanForWeeklyReview: {
+                    selectedTab = .plan
+                    planModel.showEditPlanFromWeeklyReview(
+                        entryPoint: .journeyRecommendation
+                    )
+                },
                 onOpenToday: {
                     selectedTab = .today
                 }

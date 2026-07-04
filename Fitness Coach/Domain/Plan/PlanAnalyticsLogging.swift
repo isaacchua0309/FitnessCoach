@@ -64,11 +64,17 @@ protocol PlanAnalyticsLogging: Sendable {
     func log(_ event: PlanAnalyticsEvent, properties: PlanAnalyticsProperties)
 }
 
-enum PlanAdjustPlanEntryPoint {
-    static let dashboard = "plan_dashboard"
-    static let planAssumptions = "plan_assumptions"
-    static let adjustPlanCTA = "plan_adjust_cta"
-    static let settingsBodyDetails = "settings_body_details"
+enum PlanAdjustPlanEntryPoint: String, Sendable {
+    case planTab = "plan_dashboard"
+    case onboarding = "onboarding"
+    case weeklyReview = "weekly_review"
+    case journeyRecommendation = "journey_recommendation"
+    case planAssumptions = "plan_assumptions"
+    case adjustPlanCTA = "plan_adjust_cta"
+    case settingsBodyDetails = "settings_body_details"
+
+    /// Legacy alias used by toolbar and bottom CTA entry points.
+    static let dashboard = PlanAdjustPlanEntryPoint.planTab
 }
 
 extension PlanAnalyticsProperties {

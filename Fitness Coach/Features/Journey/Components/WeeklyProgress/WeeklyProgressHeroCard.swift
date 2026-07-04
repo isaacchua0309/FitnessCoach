@@ -361,10 +361,17 @@ enum WeeklyProgressCTAHandler {
         _ cta: WeeklyProgressCTA,
         onOpenToday: (() -> Void)?,
         onOpenPlan: (() -> Void)?,
+        onOpenPlanForWeeklyReview: (() -> Void)? = nil,
         onOpenCoach: ((String?) -> Void)? = nil
     ) {
         switch cta.kind {
-        case .reviewPlan, .holdSteady, .connectAppleHealth:
+        case .reviewPlan:
+            if let onOpenPlanForWeeklyReview {
+                onOpenPlanForWeeklyReview()
+            } else {
+                onOpenPlan?()
+            }
+        case .holdSteady, .connectAppleHealth:
             onOpenPlan?()
         case .keepLogging, .improveLoggingConsistency:
             onOpenToday?()

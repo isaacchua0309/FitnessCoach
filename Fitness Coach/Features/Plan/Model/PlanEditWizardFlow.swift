@@ -57,4 +57,7 @@ enum PlanEditWizardFlow {
         guard flow.indices.contains(index) else { return nil }
         return flow[index]
     }
+
+    /// Safe entry for weekly review CTAs — lands on review without prefilled target changes.
+    static let weeklyReviewEntryStep: PlanEditWizardStep = .reviewChanges
 }

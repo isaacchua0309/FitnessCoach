@@ -2838,6 +2838,17 @@ enum FormaProductCopy {
         }
     }
 
+    enum PlanEditWeeklyReview {
+        static let defaultTitle = "Review your weekly progress"
+        static let defaultMessage =
+            "Use this context to decide whether to adjust your plan. Nothing changes until you confirm."
+        static let contextCardTitle = "Weekly recommendation"
+        static let currentTargetLabel = "Current calorie target"
+        static let suggestedChangeLabel = "Optional review"
+        static let confidenceLabel = "Confidence"
+        static let caveatsTitle = "Keep in mind"
+    }
+
     // MARK: - Plan Target Regeneration
 
     enum PlanTargetRegeneration {

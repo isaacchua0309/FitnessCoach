@@ -15,6 +15,7 @@ struct PlanEditWizard: View {
     @Binding var formState: PlanFormState
     let baselineProfile: UserProfile
     var initialStep: PlanEditWizardStep = .goalAndTargetWeight
+    var weeklyReviewContext: PlanEditWeeklyReviewContext?
     let errorMessage: String?
     let onSave: (PlanFormState) async throws -> Void
     let onCancel: () -> Void
@@ -459,10 +460,16 @@ struct PlanEditWizard: View {
         )
 
         return Section {
-            PlanEditReviewStepView(summary: summary)
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
+            VStack(alignment: .leading, spacing: FormaTokens.Spacing.lg) {
+                if let weeklyReviewContext {
+                    PlanEditWeeklyReviewContextCard(state: weeklyReviewContext)
+                }
+
+                PlanEditReviewStepView(summary: summary)
+            }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
         }
     }
 

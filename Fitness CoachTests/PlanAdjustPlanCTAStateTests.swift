@@ -57,6 +57,6 @@ final class PlanAdjustPlanCTAStateTests: XCTestCase {
         XCTAssertTrue(model.isShowingEditSheet)
         XCTAssertNotNil(model.editFormState)
         XCTAssertEqual(model.editPlanInitialStep, .goalAndTargetWeight)
-        XCTAssertEqual(analytics.events.last?.properties.entryPoint, PlanAdjustPlanEntryPoint.dashboard)
+        XCTAssertEqual(analytics.events.last?.properties.entryPoint, PlanAdjustPlanEntryPoint.dashboard.rawValue)
     }
 }

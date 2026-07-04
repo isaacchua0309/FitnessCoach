@@ -29,7 +29,7 @@ final class PlanAdjustPlanEntryTests: XCTestCase {
         XCTAssertEqual(model.editPlanInitialStep, .goalAndTargetWeight)
         XCTAssertEqual(analytics.events.count, 1)
         XCTAssertEqual(analytics.events[0].event, .adjustStarted)
-        XCTAssertEqual(analytics.events[0].properties.entryPoint, PlanAdjustPlanEntryPoint.dashboard)
+        XCTAssertEqual(analytics.events[0].properties.entryPoint, PlanAdjustPlanEntryPoint.dashboard.rawValue)
         XCTAssertEqual(analytics.events[0].properties.initialStep, 0)
     }
 
@@ -41,7 +41,7 @@ final class PlanAdjustPlanEntryTests: XCTestCase {
         XCTAssertEqual(analytics.events.count, 2)
         XCTAssertEqual(analytics.events[0].event, .activityUpdateTapped)
         XCTAssertEqual(analytics.events[1].event, .adjustStarted)
-        XCTAssertEqual(analytics.events[1].properties.entryPoint, PlanAdjustPlanEntryPoint.planAssumptions)
+        XCTAssertEqual(analytics.events[1].properties.entryPoint, PlanAdjustPlanEntryPoint.planAssumptions.rawValue)
         guard let formState = model.editFormState else {
             return XCTFail("Expected edit form state")
         }
@@ -60,6 +60,47 @@ final class PlanAdjustPlanEntryTests: XCTestCase {
 
         XCTAssertFalse(emptyModel.isShowingEditSheet)
         XCTAssertTrue(localAnalytics.events.isEmpty)
+    }
+
+    func testShowEditPlanFromWeeklyReviewOpensReviewStepWithContext() {
+        model.showEditPlanFromWeeklyReview(entryPoint: .weeklyReview)
+
+        XCTAssertTrue(model.isShowingEditSheet)
+        XCTAssertEqual(model.editPlanInitialStep, PlanEditWizardFlow.weeklyReviewEntryStep)
+        XCTAssertNotNil(model.editWeeklyReviewContext)
+        XCTAssertEqual(model.editWeeklyReviewContext?.currentCalorieTargetKcal, PlanMissionControlFixtures.loseProfile.targets.calorieTarget)
+        XCTAssertEqual(analytics.events.count, 1)
+        XCTAssertEqual(analytics.events[0].event, .adjustStarted)
+        XCTAssertEqual(analytics.events[0].properties.entryPoint, PlanAdjustPlanEntryPoint.weeklyReview.rawValue)
+        guard let formState = model.editFormState else {
+            return XCTFail("Expected edit form state")
+        }
+        XCTAssertEqual(
+            analytics.events[0].properties.initialStep,
+            PlanEditWizardFlow.index(of: .reviewChanges, formState: formState)
+        )
+    }
+
+    func testShowEditPlanFromWeeklyReviewHighlightsSectionWhenNotLoaded() async throws {
+        let localAnalytics = CapturingPlanAnalyticsLogger()
+        let freshContainer = try AppContainer(inMemory: true, planAnalyticsLogger: localAnalytics)
+        let emptyModel = freshContainer.makePlanModel()
+
+        emptyModel.showEditPlanFromWeeklyReview(entryPoint: .journeyRecommendation)
+
+        XCTAssertFalse(emptyModel.isShowingEditSheet)
+        XCTAssertTrue(emptyModel.shouldHighlightWeeklyRecommendation)
+        XCTAssertTrue(localAnalytics.events.isEmpty)
+    }
+
+    func testDismissEditPlanClearsWeeklyReviewContext() {
+        model.showEditPlanFromWeeklyReview(entryPoint: .weeklyReview)
+        XCTAssertNotNil(model.editWeeklyReviewContext)
+
+        model.dismissEditPlan()
+
+        XCTAssertNil(model.editWeeklyReviewContext)
+        XCTAssertFalse(model.isShowingEditSheet)
     }
 
     private func seedProfile() async throws {

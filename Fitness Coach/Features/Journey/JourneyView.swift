@@ -22,6 +22,8 @@ struct JourneyView: View {
     var onOpenCoach: ((String?) -> Void)?
     /// Opens the Plan tab for goal edits or Apple Health connection.
     var onOpenPlan: (() -> Void)?
+    /// Opens Plan review flow with weekly recommendation context (no auto-apply).
+    var onOpenPlanForWeeklyReview: (() -> Void)?
     /// Opens the Today tab for daily logging actions.
     var onOpenToday: (() -> Void)?
 
@@ -31,6 +33,7 @@ struct JourneyView: View {
         healthIntelligenceAnalyticsCoordinator: HealthIntelligenceAnalyticsCoordinator? = nil,
         onOpenCoach: ((String?) -> Void)? = nil,
         onOpenPlan: (() -> Void)? = nil,
+        onOpenPlanForWeeklyReview: (() -> Void)? = nil,
         onOpenToday: (() -> Void)? = nil
     ) {
         self.model = model
@@ -38,6 +41,7 @@ struct JourneyView: View {
         self.healthIntelligenceAnalyticsCoordinator = healthIntelligenceAnalyticsCoordinator
         self.onOpenCoach = onOpenCoach
         self.onOpenPlan = onOpenPlan
+        self.onOpenPlanForWeeklyReview = onOpenPlanForWeeklyReview
         self.onOpenToday = onOpenToday
     }
 
@@ -179,6 +183,7 @@ struct JourneyView: View {
             cta,
             onOpenToday: onOpenToday,
             onOpenPlan: onOpenPlan,
+            onOpenPlanForWeeklyReview: onOpenPlanForWeeklyReview,
             onOpenCoach: onOpenCoach
         )
     }

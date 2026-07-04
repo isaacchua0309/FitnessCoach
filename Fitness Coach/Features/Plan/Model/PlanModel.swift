@@ -21,6 +21,8 @@ final class PlanModel: ObservableObject {
     @Published private(set) var formErrorMessage: String?
     @Published var editFormState: PlanFormState?
     @Published var editPlanInitialStep: PlanEditWizardStep = .goalAndTargetWeight
+    @Published private(set) var editWeeklyReviewContext: PlanEditWeeklyReviewContext?
+    @Published var shouldHighlightWeeklyRecommendation = false
     @Published private(set) var editBaselineProfile: UserProfile?
 
     private var settingsBaselineProfile: UserProfile?
@@ -160,6 +162,8 @@ final class PlanModel: ObservableObject {
         settingsBaselineProfile = nil
         editFormState = nil
         editBaselineProfile = nil
+        editWeeklyReviewContext = nil
+        shouldHighlightWeeklyRecommendation = false
         isShowingEditSheet = false
         isShowingSettingsSheet = false
         viewState = .loading
@@ -422,7 +426,8 @@ final class PlanModel: ObservableObject {
 
     func showEditPlan(
         initialStep: PlanEditWizardStep = .goalAndTargetWeight,
-        entryPoint: String = PlanAdjustPlanEntryPoint.dashboard
+        entryPoint: PlanAdjustPlanEntryPoint = .planTab,
+        weeklyReviewContext: PlanEditWeeklyReviewContext? = nil
     ) {
         guard case .loaded(let state) = viewState else { return }
         let formState = PlanFormState(profile: state.profile)
@@ -430,7 +435,7 @@ final class PlanModel: ObservableObject {
         analyticsLogger.log(
             .adjustStarted,
             properties: makeAnalyticsProperties(healthConnected: trainingInsightsStore.integrationState.isConnected) {
-                $0.entryPoint = entryPoint
+                $0.entryPoint = entryPoint.rawValue
                 $0.initialStep = stepIndex
             }
         )
@@ -438,7 +443,31 @@ final class PlanModel: ObservableObject {
         editFormState = formState
         editBaselineProfile = state.profile
         editPlanInitialStep = initialStep
+        editWeeklyReviewContext = weeklyReviewContext
         isShowingEditSheet = true
+    }
+
+    /// Opens the edit wizard at review with weekly progress context — no target changes are applied.
+    func showEditPlanFromWeeklyReview(entryPoint: PlanAdjustPlanEntryPoint) {
+        guard case .loaded(let state) = viewState else {
+            highlightWeeklyRecommendationSection()
+            return
+        }
+
+        let context = PlanEditWeeklyReviewContextBuilder.build(from: state)
+        showEditPlan(
+            initialStep: PlanEditWizardFlow.weeklyReviewEntryStep,
+            entryPoint: entryPoint,
+            weeklyReviewContext: context
+        )
+    }
+
+    func highlightWeeklyRecommendationSection() {
+        shouldHighlightWeeklyRecommendation = true
+    }
+
+    func clearWeeklyRecommendationHighlight() {
+        shouldHighlightWeeklyRecommendation = false
     }
 
     func showEditPlanActivity() {
@@ -463,6 +492,7 @@ final class PlanModel: ObservableObject {
         formErrorMessage = nil
         editFormState = nil
         editBaselineProfile = nil
+        editWeeklyReviewContext = nil
         editPlanInitialStep = .goalAndTargetWeight
         isShowingEditSheet = false
     }
