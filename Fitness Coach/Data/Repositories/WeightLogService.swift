@@ -101,22 +101,13 @@ final class WeightLogService {
 
     func getLatestWeight() throws -> WeightEntry? {
         let sessionUID = currentUIDProvider()
-        let descriptor = FetchDescriptor<WeightEntryEntity>(
-            sortBy: [SortDescriptor(\.date, order: .reverse)]
-        )
-        return try store.fetch(descriptor)
-            .first { UserDataOwnerScope.isVisible(entityOwnerUID: $0.ownerUID, sessionUID: sessionUID) }?
-            .toModel()
+        let entities = try fetchWeightEntities(sessionUID: sessionUID)
+        return entities.first?.toModel()
     }
 
     func getWeightEntries(from startDate: Date?, to endDate: Date?) throws -> [WeightEntry] {
         let sessionUID = currentUIDProvider()
-        let descriptor = FetchDescriptor<WeightEntryEntity>(
-            sortBy: [SortDescriptor(\.date, order: .forward)]
-        )
-        var entries = try store.fetch(descriptor)
-            .filter { UserDataOwnerScope.isVisible(entityOwnerUID: $0.ownerUID, sessionUID: sessionUID) }
-            .map { $0.toModel() }
+        var entries = try fetchWeightEntities(sessionUID: sessionUID).map { $0.toModel() }
         if let startDate {
             entries = entries.filter { $0.date >= startDate }
         }
@@ -133,6 +124,22 @@ final class WeightLogService {
     }
 
     // MARK: Helpers
+
+    private func fetchWeightEntities(sessionUID: String?) throws -> [WeightEntryEntity] {
+        if let sessionUID {
+            let descriptor = FetchDescriptor<WeightEntryEntity>(
+                predicate: #Predicate { $0.ownerUID == sessionUID },
+                sortBy: [SortDescriptor(\.date, order: .reverse)]
+            )
+            return try store.fetch(descriptor)
+        }
+
+        let descriptor = FetchDescriptor<WeightEntryEntity>(
+            predicate: #Predicate { $0.ownerUID == nil },
+            sortBy: [SortDescriptor(\.date, order: .reverse)]
+        )
+        return try store.fetch(descriptor)
+    }
 
     private func weightEntity(forDayStart dayStart: Date) throws -> WeightEntryEntity? {
         let sessionUID = currentUIDProvider()

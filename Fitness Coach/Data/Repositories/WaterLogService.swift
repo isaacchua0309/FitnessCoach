@@ -96,8 +96,7 @@ final class WaterLogService {
             return []
         }
         let sessionUID = currentUIDProvider()
-        return log.waterEntries
-            .filter { UserDataOwnerScope.isVisible(entityOwnerUID: $0.ownerUID, sessionUID: sessionUID) }
+        return UserDataOwnerScope.filterVisibleNutritionEntities(log.waterEntries, sessionUID: sessionUID)
             .sorted { $0.createdAt < $1.createdAt }
             .map { $0.toModel() }
     }
@@ -107,8 +106,7 @@ final class WaterLogService {
             return 0
         }
         let sessionUID = currentUIDProvider()
-        return log.waterEntries
-            .filter { UserDataOwnerScope.isVisible(entityOwnerUID: $0.ownerUID, sessionUID: sessionUID) }
+        return UserDataOwnerScope.filterVisibleNutritionEntities(log.waterEntries, sessionUID: sessionUID)
             .reduce(0) { $0 + $1.amountMl }
     }
 

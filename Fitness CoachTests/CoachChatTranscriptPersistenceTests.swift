@@ -31,7 +31,7 @@ final class CoachChatTranscriptPersistenceTests: XCTestCase {
 
         harness.transcriptStore.saveMessages(messages)
 
-        let entities = try harness.repository.persistedEntities(userId: nil)
+        let entities = try harness.repository.persistedEntities(userId: Harness.testUserId)
         XCTAssertEqual(entities.count, 2)
         XCTAssertEqual(Set(entities.map(\.id)), Set(messages.map(\.id)))
     }
@@ -45,7 +45,10 @@ final class CoachChatTranscriptPersistenceTests: XCTestCase {
         )
         harness.transcriptStore.saveMessages([message])
 
-        let reloadedStore = SwiftDataCoachChatTranscriptStore(store: harness.swiftDataStore)
+        let reloadedStore = SwiftDataCoachChatTranscriptStore(
+            store: harness.swiftDataStore,
+            userIdProvider: { Harness.testUserId }
+        )
         let loaded = reloadedStore.loadMessages()
 
         XCTAssertEqual(loaded.count, 1)
@@ -114,7 +117,7 @@ final class CoachChatTranscriptPersistenceTests: XCTestCase {
 
         harness.transcriptStore.saveMessages([message])
 
-        let entity = try XCTUnwrap(try harness.repository.persistedEntities(userId: nil).first)
+        let entity = try XCTUnwrap(try harness.repository.persistedEntities(userId: Harness.testUserId).first)
         XCTAssertTrue(entity.hasImageAttachment)
         XCTAssertEqual(entity.originalImageByteSize, largeJPEG.count)
         XCTAssertEqual(entity.thumbnailJPEG, thumbnail)
@@ -244,6 +247,8 @@ final class CoachChatTranscriptRetentionPolicyTests: XCTestCase {
 @MainActor
 private final class Harness {
 
+    static let testUserId = "test-user"
+
     let swiftDataStore: SwiftDataStore
     let repository: CoachChatTranscriptPersistenceRepository
     let timelineStore: SwiftDataCoachTimelineStore
@@ -266,9 +271,13 @@ private final class Harness {
         transcriptStore = SwiftDataCoachChatTranscriptStore(
             store: swiftDataStore,
             dateProvider: dateProvider,
-            calendar: dateProvider.calendar
+            calendar: dateProvider.calendar,
+            userIdProvider: { Self.testUserId }
         )
-        timelineStore = SwiftDataCoachTimelineStore(store: swiftDataStore)
+        timelineStore = SwiftDataCoachTimelineStore(
+            store: swiftDataStore,
+            userIdProvider: { Self.testUserId }
+        )
         calendar = dateProvider.calendar
         now = dateProvider.now
     }

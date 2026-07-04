@@ -43,6 +43,25 @@ enum UserDataOwnerScope {
         UserDataOwnership.canRead(ownerUID: entityOwnerUID, currentUID: sessionUID)
     }
 
+    /// Whether a coach row is visible to the current session (`userId` ownership field).
+    static func isCoachRowVisible(entityUserId: String?, sessionUID: String?) -> Bool {
+        isVisible(entityOwnerUID: entityUserId, sessionUID: sessionUID)
+    }
+
+    static func filterVisibleNutritionEntities<T: UserDataNutritionOwnershipEntity>(
+        _ entities: [T],
+        sessionUID: String?
+    ) -> [T] {
+        entities.filter { isVisible(entityOwnerUID: $0.ownerUID, sessionUID: sessionUID) }
+    }
+
+    static func filterVisibleCoachEntities<T: UserDataCoachOwnershipEntity>(
+        _ entities: [T],
+        sessionUID: String?
+    ) -> [T] {
+        entities.filter { isCoachRowVisible(entityUserId: $0.userId, sessionUID: sessionUID) }
+    }
+
     /// Resolves a non-empty UID for user-data writes.
     static func requiredSessionUID(_ sessionUID: String?, operation: String) throws -> String {
         try UserDataOwnership.requireUID(sessionUID, operation: operation)

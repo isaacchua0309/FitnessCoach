@@ -96,11 +96,16 @@ final class CoachTimelinePersistenceRepository {
     }
 
     func event(id: UUID, userId: String?) throws -> CoachTimelineEvent? {
-        guard let entity = try entity(id: id) else { return nil }
-        if let userId {
-            guard let entityUserId = entity.userId, entityUserId == userId else { return nil }
-        }
+        guard let entity = try entity(id: id, userId: userId) else { return nil }
         return entity.toModelSafe()
+    }
+
+    func entity(id: UUID, userId: String?) throws -> CoachTimelineEventEntity? {
+        guard let entity = try entity(id: id) else { return nil }
+        guard UserDataOwnerScope.isCoachRowVisible(entityUserId: entity.userId, sessionUID: userId) else {
+            return nil
+        }
+        return entity
     }
 
     func entity(id: UUID) throws -> CoachTimelineEventEntity? {
@@ -180,12 +185,8 @@ final class CoachTimelinePersistenceRepository {
     ) throws -> [CoachTimelineEventEntity] {
         let base = try store.fetch(FetchDescriptor<CoachTimelineEventEntity>())
 
-        let filtered = base.filter { entity in
-            if let userId {
-                guard let entityUserId = entity.userId, entityUserId == userId else { return false }
-            }
-            return query.matches(entity.toModelSafe())
-        }
+        let filtered = UserDataOwnerScope.filterVisibleCoachEntities(base, sessionUID: userId)
+            .filter { query.matches($0.toModelSafe()) }
 
         if let limit = query.limit {
             let sorted = filtered.sorted { $0.utcCreatedAt > $1.utcCreatedAt }
@@ -268,10 +269,7 @@ final class CoachTimelinePersistenceRepository {
 
         var deletedCount = 0
         for id in ids {
-            guard let entity = try entity(id: id) else { continue }
-            if let userId {
-                guard let entityUserId = entity.userId, entityUserId == userId else { continue }
-            }
+            guard let entity = try entity(id: id, userId: userId) else { continue }
             try store.delete(entity)
             deletedCount += 1
         }

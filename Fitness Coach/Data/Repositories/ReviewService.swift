@@ -53,7 +53,7 @@ final class ReviewService {
         guard let dailyLog = try dailyLogService.dailyLogEntity(for: date) else {
             return nil
         }
-        return try dailyReviewEntity(dailyLogId: dailyLog.id)?.toModel()
+        return try dailyReviewEntity(dailyLogId: dailyLog.id, dailyLogOwnerUID: dailyLog.ownerUID)?.toModel()
     }
 
     // MARK: Generate
@@ -64,7 +64,10 @@ final class ReviewService {
     ) async throws -> DailyReview {
         let dailyLogEntity = try dailyLogService.getOrCreateLogEntity(for: date)
 
-        if !forceRegenerate, let existing = try dailyReviewEntity(dailyLogId: dailyLogEntity.id) {
+        if !forceRegenerate, let existing = try dailyReviewEntity(
+            dailyLogId: dailyLogEntity.id,
+            dailyLogOwnerUID: dailyLogEntity.ownerUID
+        ) {
             return existing.toModel()
         }
 
@@ -150,7 +153,10 @@ final class ReviewService {
         try UserDataOwnerScope.requireMatchingDailyLogOwner(dailyLogEntity, sessionUID: ownerUID)
         let now = Date()
 
-        if let existing = try dailyReviewEntity(dailyLogId: dailyLogEntity.id) {
+        if let existing = try dailyReviewEntity(
+            dailyLogId: dailyLogEntity.id,
+            dailyLogOwnerUID: dailyLogEntity.ownerUID
+        ) {
             apply(review, to: existing)
             existing.dailyLog = dailyLogEntity
             dailyLogEntity.dailyReview = existing
@@ -170,7 +176,10 @@ final class ReviewService {
         return entity.toModel()
     }
 
-    private func dailyReviewEntity(dailyLogId: UUID) throws -> DailyReviewEntity? {
+    private func dailyReviewEntity(
+        dailyLogId: UUID,
+        dailyLogOwnerUID: String?
+    ) throws -> DailyReviewEntity? {
         var descriptor = FetchDescriptor<DailyReviewEntity>(
             predicate: #Predicate { $0.dailyLogId == dailyLogId }
         )
@@ -180,6 +189,11 @@ final class ReviewService {
             entityOwnerUID: entity.ownerUID,
             sessionUID: currentUIDProvider()
         ) else {
+            return nil
+        }
+        if let dailyLogOwnerUID,
+           let reviewOwnerUID = entity.ownerUID,
+           reviewOwnerUID != dailyLogOwnerUID {
             return nil
         }
         return entity

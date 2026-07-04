@@ -144,14 +144,19 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
     }
 
     func markEventStatus(id: UUID, status: CoachTimelineEventStatus) async throws {
-        guard try repository.entity(id: id) != nil else {
+        let userId = userIdProvider()
+        guard try repository.entity(id: id, userId: userId) != nil else {
             throw CoachTimelineStoreError.eventNotFound(id)
         }
         try repository.updateStatus(id: id, status: status)
     }
 
     func supersedeEvent(id: UUID, by newEvent: CoachTimelineEvent) async throws {
-        guard try repository.entity(id: id) != nil else {
+        let userId = try UserDataOwnerScope.requiredSessionUID(
+            userIdProvider(),
+            operation: "supersede coach timeline event"
+        )
+        guard try repository.entity(id: id, userId: userId) != nil else {
             throw CoachTimelineStoreError.eventNotFound(id)
         }
 
@@ -177,10 +182,6 @@ final class SwiftDataCoachTimelineStore: CoachTimelineStoring {
             )
         }
 
-        let userId = try UserDataOwnerScope.requiredSessionUID(
-            userIdProvider(),
-            operation: "supersede coach timeline event"
-        )
         try repository.appendIdempotent(replacement, userId: userId)
     }
 

@@ -89,14 +89,16 @@ final class DailyLogService {
             throw ServiceError.dailyLogNotFound
         }
 
-        let foodModels = entity.foodEntries
-            .filter { UserDataOwnerScope.isVisible(entityOwnerUID: $0.ownerUID, sessionUID: currentUIDProvider()) }
-            .map { $0.toModel() }
+        let foodModels = UserDataOwnerScope.filterVisibleNutritionEntities(
+            entity.foodEntries,
+            sessionUID: currentUIDProvider()
+        ).map { $0.toModel() }
         let totals = MacroCalculator.totals(from: foodModels)
 
-        let waterTotal = entity.waterEntries
-            .filter { UserDataOwnerScope.isVisible(entityOwnerUID: $0.ownerUID, sessionUID: currentUIDProvider()) }
-            .reduce(0) { $0 + $1.amountMl }
+        let waterTotal = UserDataOwnerScope.filterVisibleNutritionEntities(
+            entity.waterEntries,
+            sessionUID: currentUIDProvider()
+        ).reduce(0) { $0 + $1.amountMl }
         // Legacy manual workout rows are retired; training reads use Apple Health.
         // Preserve any stored summary value when recalculating food/water totals.
         let workoutCalories = entity.workoutCaloriesBurned

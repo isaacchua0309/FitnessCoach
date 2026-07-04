@@ -82,11 +82,7 @@ final class CoachChatTranscriptPersistenceRepository {
 
     private func fetchEntities(userId: String?) throws -> [CoachChatTranscriptMessageEntity] {
         let entities = try store.fetch(FetchDescriptor<CoachChatTranscriptMessageEntity>())
-        guard let userId else { return entities }
-        return entities.filter { entity in
-            guard let entityUserId = entity.userId else { return false }
-            return entityUserId == userId
-        }
+        return UserDataOwnerScope.filterVisibleCoachEntities(entities, sessionUID: userId)
     }
 
     private func entity(id: UUID, userId: String?) throws -> CoachChatTranscriptMessageEntity? {
@@ -95,8 +91,9 @@ final class CoachChatTranscriptPersistenceRepository {
         )
         descriptor.fetchLimit = 1
         guard let entity = try store.fetch(descriptor).first else { return nil }
-        guard let userId else { return entity }
-        guard let entityUserId = entity.userId, entityUserId == userId else { return nil }
+        guard UserDataOwnerScope.isCoachRowVisible(entityUserId: entity.userId, sessionUID: userId) else {
+            return nil
+        }
         return entity
     }
 }

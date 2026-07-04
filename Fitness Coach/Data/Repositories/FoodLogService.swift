@@ -142,8 +142,7 @@ final class FoodLogService {
             return []
         }
         let sessionUID = currentUIDProvider()
-        return log.foodEntries
-            .filter { UserDataOwnerScope.isVisible(entityOwnerUID: $0.ownerUID, sessionUID: sessionUID) }
+        return UserDataOwnerScope.filterVisibleNutritionEntities(log.foodEntries, sessionUID: sessionUID)
             .sorted { $0.createdAt < $1.createdAt }
             .map { $0.toModel() }
     }
@@ -159,13 +158,25 @@ final class FoodLogService {
         let sessionUID = currentUIDProvider()
         let logs = try dailyLogService.getLogs(from: lowerBound, to: upperBound)
         let logIDs = Set(logs.map(\.id))
+        guard !logIDs.isEmpty else { return [] }
 
-        let descriptor = FetchDescriptor<FoodEntryEntity>(
-            sortBy: [SortDescriptor(\.createdAt, order: .forward)]
-        )
-        return try store.fetch(descriptor)
+        let entities: [FoodEntryEntity]
+        if let sessionUID {
+            let descriptor = FetchDescriptor<FoodEntryEntity>(
+                predicate: #Predicate { $0.ownerUID == sessionUID },
+                sortBy: [SortDescriptor(\.createdAt, order: .forward)]
+            )
+            entities = try store.fetch(descriptor)
+        } else {
+            let descriptor = FetchDescriptor<FoodEntryEntity>(
+                predicate: #Predicate { $0.ownerUID == nil },
+                sortBy: [SortDescriptor(\.createdAt, order: .forward)]
+            )
+            entities = try store.fetch(descriptor)
+        }
+
+        return entities
             .filter { logIDs.contains($0.dailyLogId) }
-            .filter { UserDataOwnerScope.isVisible(entityOwnerUID: $0.ownerUID, sessionUID: sessionUID) }
             .map { $0.toModel() }
     }
 
