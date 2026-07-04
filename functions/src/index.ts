@@ -49,6 +49,7 @@ import {
   MODEL_CONFIG_INVALID_MESSAGE,
   reasoningConfigForModel,
 } from "./openAIReasoningEffort";
+import {readModelConfig, resolveModel} from "./modelConfig";
 
 initializeApp();
 setGlobalOptions({maxInstances: 10});
@@ -70,13 +71,6 @@ interface OpenAIJSONRequest {
   model?: string;
   traceId?: string;
 }
-
-const DEFAULT_MODELS = {
-  cheap: "gpt-5-nano",
-  default: "gpt-5-nano",
-  strong: "gpt-5.4-nano",
-  fallback: "gpt-5.4-mini",
-};
 
 export async function handleAiGatewayRequest(
   request: any,
@@ -301,28 +295,6 @@ async function verifyFirebaseAuth(request: any): Promise<string | null> {
   }
 }
 
-function models() {
-  return {
-    cheap: process.env.OPENAI_CLASSIFIER_MODEL || process.env.OPENAI_MODEL || DEFAULT_MODELS.cheap,
-    default: process.env.OPENAI_MODEL || DEFAULT_MODELS.default,
-    strong: process.env.OPENAI_STRONG_MODEL || DEFAULT_MODELS.strong,
-    fallback: process.env.OPENAI_FALLBACK_MODEL || DEFAULT_MODELS.fallback,
-  };
-}
-
-function resolveModel({tier, modelName}: {tier?: string; modelName?: string} = {}): string {
-  const configured = models();
-  if (tier === "cheap") return configured.cheap;
-  if (tier === "strong") return configured.strong;
-
-  const allowedModels = new Set(Object.values(configured));
-  if (typeof modelName === "string" && allowedModels.has(modelName)) {
-    return modelName;
-  }
-
-  return configured.default;
-}
-
 async function openAIJSON({
   instructions,
   input,
@@ -336,7 +308,7 @@ async function openAIJSON({
     throw new GatewayError(500, "OPENAI_API_KEY is not configured.");
   }
 
-  const selectedModel = model || models().default;
+  const selectedModel = model || readModelConfig().default;
   const started = Date.now();
   logger.info("OpenAI request started", {
     traceId,
