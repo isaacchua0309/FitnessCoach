@@ -368,7 +368,10 @@ Each tab:
 | `CrossDeviceSyncLifecycle.cancelOnAccountSwitch` | Coordinator cancel + listener stop |
 | `AccountSyncCursorStore.clear(uid)` | Per-UID cursor wipe on namespace prepare |
 | `AccountDataNamespaceService` | Quarantine foreign `ownerUID` rows (Phase 1) |
+| `AccountSyncCursorStore` | Per-UID keys — no cross-user cursor leakage |
 | Refresh events | `matchesCurrentUID` drops stale UID events |
+
+Cursors are **UID-namespaced** in `UserDefaults` (`forma.crossDeviceSync.{uid}.*`). Switching accounts loads the new UID's cursors automatically; `clear(uid:)` exists for tests and manual reset but is not required on every switch for safety.
 
 `testOldUIDResultIgnoredAfterAccountSwitch`, `testAccountSwitchDoesNotLeakOldUserChanges`, `testDifferentUIDDoesNotReceiveOtherAccountData` — automated coverage.
 
@@ -460,6 +463,45 @@ Phase 5 and Phase 6 are **orthogonal**: Phase 5 keeps devices in sync while the 
 
 ---
 
+## Firestore indexes (Phase 5 incremental queries)
+
+Phase 5 incremental fetch uses **per-collection** queries (no collection group):
+
+```
+where userId == sessionUID
+  [and where updatedAt > since]
+order by updatedAt
+limit N
+```
+
+Food/water use **bounded per-day subcollection** queries over the mode lookback window — not collection-group scans.
+
+### Required composite indexes
+
+Deployed via `firestore.indexes.json` (referenced from `firebase.json`):
+
+| Collection path | Fields |
+|-----------------|--------|
+| `users/{uid}/dailyLogs` | `userId` ASC, `updatedAt` ASC |
+| `users/{uid}/weightEntries` | `userId` ASC, `updatedAt` ASC |
+| `users/{uid}/dailyReviews` | `userId` ASC, `updatedAt` ASC |
+| `users/{uid}/dailyLogs/{date}/foodEntries` | `userId` ASC, `updatedAt` ASC |
+| `users/{uid}/dailyLogs/{date}/waterEntries` | `userId` ASC, `updatedAt` ASC |
+
+Profile incremental fetch reads `users/{uid}/profile/current` directly (single document) — no composite index.
+
+### Rules
+
+`firestore.rules` already validates `updatedAt` timestamps on writes. Incremental reads are owner-scoped (`isOwner(userId)`).
+
+Deploy indexes before enabling production cross-device sync:
+
+```bash
+firebase deploy --only firestore:indexes
+```
+
+---
+
 ## Test coverage
 
 Phase 5 tests use **`InMemoryAccountDataRemoteStore`**, in-memory SwiftData, fake clocks, and injected UID providers — **no production Firebase network required**.
@@ -478,7 +520,8 @@ xcodebuild test -scheme "Fitness Coach CI" \
   -only-testing:"Fitness CoachTests/PlanCrossDeviceRefreshTests" \
   -only-testing:"Fitness CoachTests/CrossDeviceEndToEndSyncTests" \
   -only-testing:"Fitness CoachTests/CrossDeviceSyncLoggerTests" \
-  -only-testing:"Fitness CoachTests/AccountDataRefreshEventBusTests"
+  -only-testing:"Fitness CoachTests/AccountDataRefreshEventBusTests" \
+  -only-testing:"Fitness CoachTests/AccountDataRemoteStoreIncrementalFetchTests"
 ```
 
 ### Layer summary
@@ -493,6 +536,7 @@ xcodebuild test -scheme "Fitness Coach CI" \
 | Tab refresh | `TodayCrossDeviceRefreshTests` (7), `JourneyCrossDeviceRefreshTests` (6), `PlanCrossDeviceRefreshTests` (4) |
 | End-to-end two-device | `CrossDeviceEndToEndSyncTests` (10) |
 | Observability | `CrossDeviceSyncLoggerTests`, `AccountDataRefreshEventBusTests` |
+| Remote incremental fetch contract | `AccountDataRemoteStoreIncrementalFetchTests` (8) |
 
 ---
 
