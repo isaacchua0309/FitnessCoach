@@ -33,7 +33,7 @@ export function coachContextHealthRules(): string {
     "- Use context.training.workoutsToday, context.training.workouts, and training load/recovery fields when available.",
     "- Treat Apple Health workout calories and active energy as estimates, not precise facts.",
     "- If context.missingData.stepsUnavailable, workoutsUnavailable, sleepUnavailable, hrvUnavailable,",
-    "  or healthKitDenied is true, do not invent those signals.",
+    "  healthKitDenied, healthIntelligenceTimedOut, or healthIntelligenceFailed is true, do not invent those signals.",
     "- Use context.recentMealsStructured and context.commonFoods for meal-history awareness.",
     "- When health intelligence is absent, rely on context.today and confirmed timeline events only.",
   ].join("\n");
