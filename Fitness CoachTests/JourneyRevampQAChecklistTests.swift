@@ -186,6 +186,9 @@ final class JourneyRevampQAChecklistTests: XCTestCase {
 
         for dashboard in samples {
             JourneyRevampQAChecklistSupport.assertAccessibilityContract(for: dashboard)
+            if dashboard.showsWeeklyProgressSection {
+                JourneyRevampQAChecklistSupport.assertWeeklyProgressAccessibility(for: dashboard)
+            }
         }
 
         let weightLoss = JourneyPreviewData.strongMomentum
@@ -198,6 +201,33 @@ final class JourneyRevampQAChecklistTests: XCTestCase {
         XCTAssertEqual(
             FormaProductCopy.Journey.StartingEmptyState.action,
             "Go to Today"
+        )
+    }
+
+    func testQA09_WeeklyProgressSection_ShowsUnifiedReviewForStrongMomentum() {
+        let dashboard = JourneyPreviewData.strongMomentum
+
+        XCTAssertTrue(dashboard.showsWeeklyProgressSection)
+        JourneyRevampQAChecklistSupport.assertWeeklyProgressAccessibility(for: dashboard)
+
+        let unified = UnifiedWeeklyReviewPresentationBuilder.build(dashboard: dashboard)
+        XCTAssertTrue(unified.isReady)
+        XCTAssertFalse(unified.headline.isEmpty)
+        XCTAssertEqual(unified.id, dashboard.weeklyProgressSummary.id)
+    }
+
+    func testQA10_WeeklyProgress_DoesNotDuplicateLegacyWeeklyReview() {
+        let dashboard = JourneyPreviewData.strongMomentum
+        let sections = JourneyRevampQAChecklistSupport.visibleSections(for: dashboard)
+
+        XCTAssertTrue(sections.contains(.weeklyProgress))
+        XCTAssertFalse(
+            JourneyDashboardCompositionPolicy.showsLegacyWeeklyReviewSection(
+                dashboard: dashboard,
+                showsWeeklyProgressHero: true,
+                isHealthIntelligenceUIEnabled: false,
+                healthIntelligenceSectionState: nil
+            )
         )
     }
 

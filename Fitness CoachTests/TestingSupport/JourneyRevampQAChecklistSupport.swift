@@ -213,6 +213,28 @@ enum JourneyRevampQAChecklistSupport {
         }
     }
 
+    static func assertWeeklyProgressAccessibility(
+        for dashboard: JourneyDashboardState,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let unified = UnifiedWeeklyReviewPresentationBuilder.build(dashboard: dashboard)
+        let detail = UnifiedWeeklyReviewPresentationBuilder.buildDetail(dashboard: dashboard)
+
+        XCTAssertFalse(unified.confidenceAccessibilityLabel.isEmpty, file: file, line: line)
+        XCTAssertFalse(unified.headline.isEmpty, file: file, line: line)
+        XCTAssertFalse(detail.accessibilityLabel.isEmpty, file: file, line: line)
+        XCTAssertTrue(
+            detail.accessibilityLabel.contains(unified.confidenceAccessibilityLabel),
+            file: file,
+            line: line
+        )
+
+        if let primary = unified.primaryCTA {
+            XCTAssertFalse(primary.accessibilityLabel.isEmpty, file: file, line: line)
+        }
+    }
+
     static func assertSmallScreenLayoutContract(
         file: StaticString = #filePath,
         line: UInt = #line

@@ -229,6 +229,120 @@ final class UnifiedWeeklyReviewPresentationBuilderTests: XCTestCase {
         XCTAssertNil(detail.staticTDEEComparison)
     }
 
+    // MARK: - Named presentation contract tests
+
+    func testUnifiedBuilderShowsInsufficientDataState() {
+        let state = UnifiedWeeklyReviewPresentationBuilder.build(
+            dashboard: JourneyPreviewData.brandNewUser
+        )
+
+        XCTAssertTrue(state.isInsufficientData)
+        XCTAssertEqual(state.primaryCTA?.kind, .keepLogging)
+        XCTAssertNil(state.planRecommendationBlock)
+        XCTAssertNil(state.maintenanceBlock?.estimatedMaintenanceKcal)
+    }
+
+    func testUnifiedBuilderShowsMaintenanceWhenEligible() {
+        let dashboard = JourneyPreviewData.strongMomentum
+        let state = UnifiedWeeklyReviewPresentationBuilder.build(dashboard: dashboard)
+
+        XCTAssertNotNil(state.maintenanceBlock)
+        XCTAssertTrue(state.maintenanceBlock?.showsLearnedEstimate == true)
+        XCTAssertNotNil(state.maintenanceBlock?.estimatedMaintenanceKcal)
+        XCTAssertFalse(state.maintenanceBlock?.accessibilityLabel.isEmpty ?? true)
+    }
+
+    func testUnifiedBuilderHidesMaintenanceWhenLowConfidence() {
+        let dashboard = JourneyPreviewData.strongMomentum
+        let lowConfidenceSummary = UnifiedWeeklyReviewTestFixtures.summary(
+            base: dashboard.weeklyProgressSummary,
+            confidence: .low,
+            maintenanceEstimate: UnifiedWeeklyReviewTestFixtures.lowConfidenceMaintenanceEstimate(
+                from: dashboard.weeklyProgressSummary.maintenanceEstimate
+            )
+        )
+
+        let state = UnifiedWeeklyReviewPresentationBuilder.build(
+            UnifiedWeeklyReviewInput(
+                summary: lowConfidenceSummary,
+                weeklyHabit: dashboard.weeklyHabit
+            )
+        )
+
+        XCTAssertFalse(state.maintenanceBlock?.showsLearnedEstimate ?? true)
+        XCTAssertNil(state.maintenanceBlock?.estimatedMaintenanceKcal)
+    }
+
+    func testUnifiedBuilderShowsPlanRecommendationWhenEligible() {
+        let dashboard = JourneyPreviewData.strongMomentum
+        let state = UnifiedWeeklyReviewPresentationBuilder.build(
+            dashboard: dashboard,
+            profile: PlanMissionControlFixtures.loseProfile
+        )
+
+        XCTAssertNotNil(state.planRecommendationBlock)
+        XCTAssertFalse(state.planRecommendationBlock?.title.isEmpty ?? true)
+        XCTAssertFalse(state.planRecommendationBlock?.accessibilityLabel.isEmpty ?? true)
+    }
+
+    func testUnifiedBuilderShowsWeightSpikeCopyWhenDetected() {
+        let dashboard = JourneyPreviewData.strongMomentum
+        let summary = UnifiedWeeklyReviewTestFixtures.summary(
+            base: dashboard.weeklyProgressSummary,
+            verdict: .noisyButLikelyOkay,
+            hasSuddenSpike: true
+        )
+
+        let state = UnifiedWeeklyReviewPresentationBuilder.build(
+            UnifiedWeeklyReviewInput(summary: summary)
+        )
+
+        XCTAssertEqual(state.weightTrendBlock?.spikeShortBody, FormaProductCopy.WeightSpikeEducation.shortBody)
+        XCTAssertEqual(state.weightTrendBlock?.spikeDetailBody, FormaProductCopy.WeightSpikeEducation.detailBody)
+        XCTAssertTrue(state.weightTrendBlock?.hasSuddenSpike == true)
+    }
+
+    func testUnifiedBuilderWorksWithoutHealthIntelligence() {
+        let dashboard = JourneyPreviewData.strongMomentum
+        let state = UnifiedWeeklyReviewPresentationBuilder.build(dashboard: dashboard)
+
+        XCTAssertTrue(state.healthInsights.isEmpty)
+        XCTAssertTrue(state.isReady)
+        XCTAssertFalse(state.headline.isEmpty)
+    }
+
+    func testUnifiedBuilderIncludesHealthInsightsWhenAvailable() {
+        let dashboard = JourneyPreviewData.strongMomentum
+        let healthSection = UnifiedWeeklyReviewTestFixtures.makeHealthIntelligenceSection()
+
+        let state = UnifiedWeeklyReviewPresentationBuilder.build(
+            dashboard: dashboard,
+            healthIntelligence: healthSection
+        )
+
+        XCTAssertFalse(state.healthInsights.isEmpty)
+        XCTAssertTrue(state.healthInsights.contains { $0.kind == .win })
+        XCTAssertEqual(state.headline, dashboard.weeklyProgressSummary.headline)
+    }
+
+    func testUnifiedBuilderDoesNotDuplicateHabitRows() {
+        let dashboard = JourneyPreviewData.strongMomentum
+        let state = UnifiedWeeklyReviewPresentationBuilder.build(dashboard: dashboard)
+
+        let ids = state.habitRows.map(\.id)
+        XCTAssertEqual(Set(ids).count, ids.count)
+        XCTAssertEqual(state.habitRows.count, dashboard.weeklyHabit.habits.count)
+
+        let habitTitles = Set(state.habitRows.map(\.title))
+        let insightMessages = state.healthInsights.map(\.message)
+        for title in habitTitles {
+            XCTAssertFalse(
+                insightMessages.contains { $0.localizedCaseInsensitiveContains(title) },
+                "Health insight duplicated habit row title: \(title)"
+            )
+        }
+    }
+
     // MARK: - Fixtures
 
     private func makeHealthReview() -> WeeklyHealthReview {
