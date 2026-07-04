@@ -48,7 +48,7 @@ struct DailyReviewAIInput: Codable, Equatable, Sendable {
 
 struct AIParseCommandRequest: Codable, Equatable, Sendable {
     var text: String
-    var context: AIContext
+    var context: CoachContextPacketV2
 }
 
 struct AIParseCommandResponse: Codable, Equatable, Sendable {
@@ -308,7 +308,7 @@ struct AIDailyReviewResponse: Codable, Equatable, Sendable {
 
 struct AIWorkoutParseRequest: Codable, Equatable, Sendable {
     var text: String
-    var context: AIContext
+    var context: CoachContextPacketV2
 }
 
 struct AIWorkoutParseResponse: Codable, Equatable, Sendable {

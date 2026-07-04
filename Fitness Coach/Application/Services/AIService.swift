@@ -38,7 +38,7 @@ protocol AIServiceProtocol: Sendable {
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> NutritionComparisonResponse
-    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse
+    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse
     func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand
     func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand
     func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse
@@ -236,7 +236,7 @@ final class AIService: AIServiceProtocol {
         }
     }
 
-    func parseWorkout(prompt: String, context: AIContext) async throws -> AIWorkoutParseResponse {
+    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
         let request = AIWorkoutParseRequest(text: prompt, context: context)
         return try await traced(method: "parseWorkout") {
             try await llmClient.parseWorkout(request: request)
@@ -283,10 +283,7 @@ final class AIService: AIServiceProtocol {
 
     func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
         try await traced(method: "parseCommand") {
-            try await commandParser.parseCommand(
-                text,
-                context: AIContext.legacyCompact(from: context)
-            )
+            try await commandParser.parseCommand(text, context: context)
         }
     }
 

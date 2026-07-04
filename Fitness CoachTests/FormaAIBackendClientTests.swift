@@ -325,7 +325,7 @@ private extension FormaAIBackendClientTests {
             _ = try await client.parseCommand(
                 request: AIParseCommandRequest(
                     text: "log water",
-                    context: Self.sampleLegacyContext
+                    context: Self.sampleCoachContext
                 )
             )
         case .estimateFood:
@@ -342,7 +342,7 @@ private extension FormaAIBackendClientTests {
             )
         case .parseWorkout:
             _ = try await client.parseWorkout(
-                request: AIWorkoutParseRequest(text: "ran 30 minutes", context: Self.sampleLegacyContext)
+                request: AIWorkoutParseRequest(text: "ran 30 minutes", context: Self.sampleCoachContext)
             )
         case .parseEditDelete:
             _ = try await client.parseEditOrDelete(
@@ -364,11 +364,6 @@ private extension FormaAIBackendClientTests {
     }
 
     static let sampleCoachContext = CoachContextPacketV2.test
-
-    static let sampleLegacyContext = AIContext(
-        date: Date(timeIntervalSince1970: 0),
-        timezoneIdentifier: "UTC"
-    )
 
     static func sampleClassifyRequest() -> AICoachIntentClassificationRequest {
         AICoachIntentClassificationRequest(

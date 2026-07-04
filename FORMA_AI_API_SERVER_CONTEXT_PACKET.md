@@ -83,7 +83,7 @@ iOS Coach UI (CoachView)
 
 ## Request payload construction
 
-- **Context:** `CoachContextBuilder.makeContext(recentMessages:workoutsToday:)` (`CoachAIContextBuilder.swift`).
+- **Context:** `CoachContextPacketV2Builder.makeContext(recentMessages:)` (`CoachContextPacketV2Builder.swift`).
 - **Classify (first hop for `"hello are you working?"`):**
   - `AIService.classifyCoachIntent` builds `AICoachIntentClassificationRequest` with `text`, `context`, `modelName` (`CoachModelConfig.cheapClassifierModel`), `modelConfig` (`CoachIntentResult.swift`).
   - POST body to `/v1/ai/classify-coach-intent`.

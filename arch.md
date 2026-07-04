@@ -1274,9 +1274,9 @@ Provide structured AI capabilities behind a stable interface.
 ### Public Methods
 
 ```swift
-func parseCommand(_ text: String, context: AIContext) async throws -> ParsedCommand
-func estimateFood(from text: String, context: AIContext) async throws -> FoodEstimateDraft
-func estimateFood(from image: Data, context: AIContext) async throws -> FoodEstimateDraft
+func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> ParsedCommand
+func estimateFood(from text: String, context: CoachContextPacketV2) async throws -> FoodEstimateDraft
+func estimateFood(from image: Data, context: CoachContextPacketV2) async throws -> FoodEstimateDraft
 func generateMealAdvice(request: MealAdviceRequest) async throws -> CoachingResponse
 func generateDailyReview(_ summary: DailyReviewInput) async throws -> String
 func generateWeeklyReview(_ summary: WeeklyReviewInput) async throws -> String

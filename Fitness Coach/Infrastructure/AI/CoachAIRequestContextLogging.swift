@@ -43,6 +43,14 @@ extension AIMultiActionParseRequest: CoachAIRequestContextLogging {
     var coachContextPacketForLogging: CoachContextPacketV2? { context }
 }
 
+extension AIParseCommandRequest: CoachAIRequestContextLogging {
+    var coachContextPacketForLogging: CoachContextPacketV2? { context }
+}
+
+extension AIWorkoutParseRequest: CoachAIRequestContextLogging {
+    var coachContextPacketForLogging: CoachContextPacketV2? { context }
+}
+
 extension AIMealImageAnalysisRequest: CoachAIRequestContextLogging {
     var coachContextPacketForLogging: CoachContextPacketV2? { context }
 }
