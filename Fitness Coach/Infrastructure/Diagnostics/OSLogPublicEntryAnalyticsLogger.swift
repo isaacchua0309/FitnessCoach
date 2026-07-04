@@ -15,7 +15,7 @@ struct OSLogPublicEntryAnalyticsLogger: PublicEntryAnalyticsLogging {
 
     func log(_ event: PublicEntryAnalyticsEvent, properties: PublicEntryAnalyticsProperties) {
         #if DEBUG
-        PublicEntryAnalyticsDebugLogger.event(event.rawValue, fields: properties.asParameters())
+        PublicEntryAnalyticsDebugLogger.event(event.rawValue, fields: properties.privacySafeParameters())
         #endif
     }
 }

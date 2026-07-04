@@ -4,6 +4,8 @@
 //
 //  Forma — Typed Journey analytics events and safe property bag.
 //
+//  Contract: Docs/Architecture/AnalyticsReadinessChecklist.md
+//
 
 import Foundation
 

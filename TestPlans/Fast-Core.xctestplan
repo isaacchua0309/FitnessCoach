@@ -1,7 +1,7 @@
 {
   "configurations": [
     {
-      "id": "62A42738-EBC2-4685-A93C-4696E53DB693",
+      "id": "12DA5C0D-9FEF-4CEB-857F-08C74A56EE90",
       "name": "Configuration 1",
       "options": {}
     }
@@ -99,6 +99,7 @@
         "ActionRowBehaviorTests",
         "ActivityTrainingDefaultsResolverTests",
         "AdaptiveNutritionEngineTests",
+        "AnalyticsInfrastructureTests",
         "AppAppearanceModeTests",
         "AppContainerAccountDataRemoteStoreWiringTests",
         "AppLifecycleCrossDeviceSyncTests",

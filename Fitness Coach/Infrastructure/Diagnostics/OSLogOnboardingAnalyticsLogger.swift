@@ -15,7 +15,7 @@ struct OSLogOnboardingAnalyticsLogger: OnboardingAnalyticsLogging {
 
     func log(_ event: OnboardingAnalyticsEvent, properties: OnboardingAnalyticsProperties) {
         #if DEBUG
-        OnboardingAnalyticsDebugLogger.event(event.rawValue, fields: properties.asParameters())
+        OnboardingAnalyticsDebugLogger.event(event.rawValue, fields: properties.privacySafeParameters())
         #endif
     }
 }

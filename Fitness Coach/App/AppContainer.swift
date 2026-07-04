@@ -106,6 +106,7 @@ final class AppContainer {
     let publicEntryAnalyticsLogger: any PublicEntryAnalyticsLogging
     let themeAnalyticsLogger: any ThemeAnalyticsLogging
     let settingsAnalyticsLogger: any SettingsAnalyticsLogging
+    let healthIntelligenceAnalyticsLogger: any HealthIntelligenceAnalyticsLogging
     let onboardingRoutingConfiguration: OnboardingRoutingConfiguration
 
     let themeStore: ThemeStore
@@ -120,6 +121,7 @@ final class AppContainer {
         publicEntryAnalyticsLogger: (any PublicEntryAnalyticsLogging)? = nil,
         themeAnalyticsLogger: (any ThemeAnalyticsLogging)? = nil,
         settingsAnalyticsLogger: (any SettingsAnalyticsLogging)? = nil,
+        healthIntelligenceAnalyticsLogger: (any HealthIntelligenceAnalyticsLogging)? = nil,
         onboardingRoutingConfiguration: OnboardingRoutingConfiguration? = nil,
         accountDataRemoteStore: (any AccountDataRemoteStore)? = nil
     ) throws {
@@ -148,6 +150,8 @@ final class AppContainer {
         self.publicEntryAnalyticsLogger = publicEntryAnalyticsLogger ?? OSLogPublicEntryAnalyticsLogger()
         self.themeAnalyticsLogger = themeAnalyticsLogger ?? OSLogThemeAnalyticsLogger()
         self.settingsAnalyticsLogger = settingsAnalyticsLogger ?? OSLogSettingsAnalyticsLogger()
+        self.healthIntelligenceAnalyticsLogger = healthIntelligenceAnalyticsLogger
+            ?? OSLogHealthIntelligenceAnalyticsLogger()
         #else
         self.onboardingAnalyticsLogger = onboardingAnalyticsLogger ?? NoOpOnboardingAnalyticsLogger()
         self.todayAnalyticsLogger = todayAnalyticsLogger ?? NoOpTodayAnalyticsLogger()
@@ -156,6 +160,8 @@ final class AppContainer {
         self.publicEntryAnalyticsLogger = publicEntryAnalyticsLogger ?? NoOpPublicEntryAnalyticsLogger()
         self.themeAnalyticsLogger = themeAnalyticsLogger ?? NoOpThemeAnalyticsLogger()
         self.settingsAnalyticsLogger = settingsAnalyticsLogger ?? NoOpSettingsAnalyticsLogger()
+        self.healthIntelligenceAnalyticsLogger = healthIntelligenceAnalyticsLogger
+            ?? NoOpHealthIntelligenceAnalyticsLogger()
         #endif
         self.onboardingRoutingConfiguration = resolvedOnboardingRoutingConfiguration
 
@@ -863,11 +869,7 @@ final class AppContainer {
     }
 
     func makeHealthIntelligenceAnalyticsCoordinator() -> HealthIntelligenceAnalyticsCoordinator {
-        #if DEBUG
-        HealthIntelligenceAnalyticsCoordinator(analyticsLogger: OSLogHealthIntelligenceAnalyticsLogger())
-        #else
-        HealthIntelligenceAnalyticsCoordinator(analyticsLogger: NoOpHealthIntelligenceAnalyticsLogger())
-        #endif
+        HealthIntelligenceAnalyticsCoordinator(analyticsLogger: healthIntelligenceAnalyticsLogger)
     }
 
     func makeJourneyModel(

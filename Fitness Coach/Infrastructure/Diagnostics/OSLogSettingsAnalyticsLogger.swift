@@ -15,7 +15,7 @@ struct OSLogSettingsAnalyticsLogger: SettingsAnalyticsLogging {
 
     func log(_ event: SettingsAnalyticsEvent, properties: SettingsAnalyticsProperties) {
         #if DEBUG
-        SettingsAnalyticsDebugLogger.event(event.rawValue, fields: properties.asParameters())
+        SettingsAnalyticsDebugLogger.event(event.rawValue, fields: properties.privacySafeParameters())
         #endif
     }
 }

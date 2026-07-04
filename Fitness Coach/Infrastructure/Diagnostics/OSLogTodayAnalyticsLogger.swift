@@ -15,7 +15,7 @@ struct OSLogTodayAnalyticsLogger: TodayAnalyticsLogging {
 
     func log(_ event: TodayAnalyticsEvent, properties: TodayAnalyticsProperties) {
         #if DEBUG
-        TodayAnalyticsDebugLogger.event(event.rawValue, fields: properties.asParameters())
+        TodayAnalyticsDebugLogger.event(event.rawValue, fields: properties.privacySafeParameters())
         #endif
     }
 }

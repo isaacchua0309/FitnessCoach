@@ -15,7 +15,7 @@ struct OSLogThemeAnalyticsLogger: ThemeAnalyticsLogging {
 
     func log(_ event: ThemeAnalyticsEvent, properties: ThemeAnalyticsProperties) {
         #if DEBUG
-        ThemeAnalyticsDebugLogger.event(event.rawValue, fields: properties.asParameters())
+        ThemeAnalyticsDebugLogger.event(event.rawValue, fields: properties.privacySafeParameters())
         #endif
     }
 }

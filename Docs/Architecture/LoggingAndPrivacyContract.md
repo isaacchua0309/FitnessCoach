@@ -150,6 +150,8 @@ Use `PrivacySafeLogFields.make` / `.sanitized` when building production log dict
 
 ## 7. Analytics Privacy
 
+**See also:** [AnalyticsReadinessChecklist.md](./AnalyticsReadinessChecklist.md) — full protocol registry and production sink TODO.
+
 ### Current state
 
 - Events defined per domain protocol (`Domain/*/AnalyticsLogging.swift`)

@@ -110,6 +110,7 @@ firebase emulators:exec --only firestore "cd functions && npm test -- accountPer
 | Account deletion | `AccountDeletionCoordinatorTests`, `AccountDeletionEndToEndTests` | Integration |
 | Health Intelligence | `HealthIntelligenceEngineTests`, `HealthIntelligenceFeatureFlagsTests`, `FormaAbTestProductionCriticalFlagsTests` | Fast-Core |
 | Logging / privacy | `LogRedactorTests`, `CoachAccuracyObservabilityTests`, `CoachImageAnalysisDebugLogFormatterTests` | Fast-Core |
+| Analytics infrastructure | `AnalyticsInfrastructureTests`, domain `*Analytics*Tests` | Fast-Core |
 | SwiftData migration | `FormaSchemaV7MigrationTests`, `CoachV2SwiftDataMigrationTests` | Integration |
 | Backend AI | `aiGateway.contract.test.ts`, `coachContextPacketV2.test.ts` | npm test |
 

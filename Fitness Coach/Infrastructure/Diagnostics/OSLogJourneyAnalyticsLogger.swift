@@ -15,7 +15,7 @@ struct OSLogJourneyAnalyticsLogger: JourneyAnalyticsLogging {
 
     func log(_ event: JourneyAnalyticsEvent, properties: JourneyAnalyticsProperties) {
         #if DEBUG
-        JourneyAnalyticsDebugLogger.event(event.rawValue, fields: properties.asParameters())
+        JourneyAnalyticsDebugLogger.event(event.rawValue, fields: properties.privacySafeParameters())
         #endif
     }
 }

@@ -15,7 +15,10 @@ struct OSLogHealthIntelligenceAnalyticsLogger: HealthIntelligenceAnalyticsLoggin
 
     func log(_ event: HealthIntelligenceAnalyticsEvent, properties: HealthIntelligenceAnalyticsProperties) {
         #if DEBUG
-        HealthIntelligenceAnalyticsDebugLogger.event(event.rawValue, fields: properties.asParameters())
+        HealthIntelligenceAnalyticsDebugLogger.event(
+            event.rawValue,
+            fields: properties.privacySafeParameters()
+        )
         #endif
     }
 }
