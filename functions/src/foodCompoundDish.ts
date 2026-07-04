@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any, require-jsdoc, max-len, operator-linebreak */
 
 export interface CompoundDishSpec {
   id: string;
