@@ -80,7 +80,27 @@ enum CoachDailyStatusBuilder {
         CoachTimelineEventType.photoAnalysisFailed.rawValue,
     ]
 
-    static func message(from snapshot: CoachDailyStatusSnapshot) -> String {
+    static func message(
+        from snapshot: CoachDailyStatusSnapshot,
+        focus: CoachDailyStatusFocus = .summary
+    ) -> String {
+        switch focus {
+        case .summary:
+            return summaryMessage(from: snapshot)
+        case .caloriesRemaining:
+            return focusedMessage(from: snapshot, body: caloriesLine(from: snapshot))
+        case .proteinRemaining:
+            return focusedMessage(from: snapshot, body: proteinLine(from: snapshot))
+        case .waterRemaining:
+            return focusedMessage(from: snapshot, body: waterLine(from: snapshot))
+        case .mealsToday:
+            return focusedMessage(from: snapshot, body: mealsTodayBody(from: snapshot))
+        case .lastMeal:
+            return focusedMessage(from: snapshot, body: lastMealBody(from: snapshot))
+        }
+    }
+
+    private static func summaryMessage(from snapshot: CoachDailyStatusSnapshot) -> String {
         let nutrition = snapshot.nutrition
         let remainingCalories = max(nutrition.remaining.calories, 0)
         let remainingProtein = max(nutrition.remaining.protein, 0)
@@ -127,9 +147,75 @@ enum CoachDailyStatusBuilder {
                 missingData: snapshot.missingData,
                 timelineEvents: snapshot.timelineEvents
             ),
-            includeSteps: true,
-            includeWorkouts: true
+            includeSteps: false,
+            includeWorkouts: false
         )
+    }
+
+    private static func focusedMessage(from snapshot: CoachDailyStatusSnapshot, body: String) -> String {
+        var lines = [body.trimmingCharacters(in: .whitespacesAndNewlines)]
+        if let nextAction = nextUsefulAction(from: snapshot) {
+            lines.append("Next: \(nextAction)")
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    private static func caloriesLine(from snapshot: CoachDailyStatusSnapshot) -> String {
+        let nutrition = snapshot.nutrition
+        if nutrition.isOverCalories {
+            let overBy = nutrition.totals.calories - nutrition.targets.calories
+            return "You are \(PlanDisplayFormatter.formatGroupedInteger(overBy)) kcal over target today (\(nutrition.totals.calories) / \(nutrition.targets.calories) kcal logged)."
+        }
+        let remaining = max(nutrition.remaining.calories, 0)
+        return "You have \(PlanDisplayFormatter.formatGroupedInteger(remaining)) kcal remaining today (\(nutrition.totals.calories) / \(nutrition.targets.calories) kcal logged)."
+    }
+
+    private static func proteinLine(from snapshot: CoachDailyStatusSnapshot) -> String {
+        let nutrition = snapshot.nutrition
+        if nutrition.hasMetProteinTarget {
+            return "Protein target met for today (\(formatMacro(nutrition.totals.protein))g / \(formatMacro(nutrition.targets.protein))g logged)."
+        }
+        let remaining = max(nutrition.remaining.protein, 0)
+        return "You have \(formatMacro(remaining))g protein remaining today (\(formatMacro(nutrition.totals.protein))g / \(formatMacro(nutrition.targets.protein))g logged)."
+    }
+
+    private static func waterLine(from snapshot: CoachDailyStatusSnapshot) -> String {
+        let nutrition = snapshot.nutrition
+        let remaining = max(nutrition.water.remainingMl, 0)
+        return "You have \(formatWater(remaining))ml water remaining today (\(formatWater(nutrition.water.consumedMl)) / \(formatWater(nutrition.water.targetMl))ml logged)."
+    }
+
+    private static func mealsTodayBody(from snapshot: CoachDailyStatusSnapshot) -> String {
+        let meals = consumedMealLabels(from: snapshot)
+        guard !meals.isEmpty else {
+            return "No meals logged yet today."
+        }
+        if meals.count == 1 {
+            return "Today's logged meal: \(meals[0])"
+        }
+        return "Today's logged meals:\n" + meals.map { "• \($0)" }.joined(separator: "\n")
+    }
+
+    private static func lastMealBody(from snapshot: CoachDailyStatusSnapshot) -> String {
+        if let lastMeal = lastLoggedMealLabel(
+            timelineEvents: snapshot.timelineEvents,
+            recentMeals: snapshot.recentMeals
+        ) {
+            return "Last logged meal: \(lastMeal)"
+        }
+        return "No meals logged yet today."
+    }
+
+    private static func consumedMealLabels(from snapshot: CoachDailyStatusSnapshot) -> [String] {
+        let timelineMeals = confirmedEvents(snapshot.timelineEvents)
+            .filter { $0.type == CoachTimelineEventType.foodLogged.rawValue }
+            .map { formatFoodEventLabel($0) }
+
+        if !timelineMeals.isEmpty {
+            return timelineMeals
+        }
+
+        return snapshot.recentMeals.map { formatRecentMealLabel($0) }
     }
 
     // MARK: Timeline helpers
@@ -137,7 +223,12 @@ enum CoachDailyStatusBuilder {
     private static func confirmedEvents(
         _ events: [CoachTimelineContextEvent]
     ) -> [CoachTimelineContextEvent] {
-        events.filter { $0.status == CoachTimelineEventStatus.confirmed.rawValue }
+        events.filter { event in
+            guard event.status == CoachTimelineEventStatus.confirmed.rawValue else {
+                return false
+            }
+            return !nonConsumedFoodTimelineTypes.contains(event.type)
+        }
     }
 
     private static func hasConfirmedFoodLogged(in events: [CoachTimelineContextEvent]) -> Bool {

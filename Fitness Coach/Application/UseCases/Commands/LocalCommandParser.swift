@@ -179,17 +179,77 @@ struct LocalCommandParser {
     // MARK: Status
 
     private func parseStatus(normalized: String, original: String) -> CommandParseResult? {
-        let phrases = [
-            "status",
-            "how am i doing",
-            "how many calories left",
-            "calories left",
-            "remaining calories",
-            "calories remaining"
-        ]
-        guard phrases.contains(where: { normalized.contains($0) }) else { return nil }
+        guard let focus = matchStatusFocus(in: normalized) else { return nil }
+        return .success(ParsedCommand(intent: .status(focus: focus), originalText: original))
+    }
 
-        return .success(ParsedCommand(intent: .status, originalText: original))
+    private func matchStatusFocus(in normalized: String) -> CoachDailyStatusFocus? {
+        let lastMealPhrases = [
+            "what was my last meal",
+            "what did i last eat",
+            "last meal",
+            "last thing i ate",
+        ]
+        if lastMealPhrases.contains(where: { normalized.contains($0) }) {
+            return .lastMeal
+        }
+
+        let mealsTodayPhrases = [
+            "what did i eat today",
+            "what have i eaten today",
+            "what did i eat",
+            "meals today",
+            "food today",
+        ]
+        if mealsTodayPhrases.contains(where: { normalized.contains($0) }) {
+            return .mealsToday
+        }
+
+        let proteinPhrases = [
+            "protein left",
+            "how much protein left",
+            "protein remaining",
+            "remaining protein",
+            "grams of protein left",
+        ]
+        if proteinPhrases.contains(where: { normalized.contains($0) }) {
+            return .proteinRemaining
+        }
+
+        let waterPhrases = [
+            "water left",
+            "how much water left",
+            "water remaining",
+            "remaining water",
+        ]
+        if waterPhrases.contains(where: { normalized.contains($0) }) {
+            return .waterRemaining
+        }
+
+        let caloriePhrases = [
+            "calories left",
+            "how many calories left",
+            "remaining calories",
+            "calories remaining",
+            "kcal left",
+        ]
+        if caloriePhrases.contains(where: { normalized.contains($0) }) {
+            return .caloriesRemaining
+        }
+
+        let summaryPhrases = [
+            "status",
+            "how am i doing today",
+            "how am i doing",
+            "what do i have left",
+            "what's left today",
+            "whats left today",
+        ]
+        if summaryPhrases.contains(where: { normalized.contains($0) }) {
+            return .summary
+        }
+
+        return nil
     }
 
     // MARK: Daily Review

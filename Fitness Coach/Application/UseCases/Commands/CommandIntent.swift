@@ -18,12 +18,22 @@ enum UndoTarget: String, Codable, Equatable, Sendable {
     case weight
 }
 
+/// Which slice of today's authoritative state a local status query should answer.
+enum CoachDailyStatusFocus: String, Codable, Equatable, Sendable {
+    case summary
+    case caloriesRemaining
+    case proteinRemaining
+    case waterRemaining
+    case mealsToday
+    case lastMeal
+}
+
 enum CommandIntent: Codable, Equatable, Sendable {
     case logWeight(WeightDraft)
     case logWater(WaterDraft)
     case logSteps(Int)
     case logFood(FoodDraft)
-    case status
+    case status(focus: CoachDailyStatusFocus)
     case dailyReview
     case undo(target: UndoTarget)
     case unsupported

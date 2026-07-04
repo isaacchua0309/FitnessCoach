@@ -226,7 +226,7 @@ final class CoachV2ResponseHandlingTests: XCTestCase {
         )
 
         let response = await executor.execute(
-            ParsedCommand(intent: .status, originalText: "how am I doing today?")
+            ParsedCommand(intent: .status(focus: .summary), originalText: "how am I doing today?")
         )
 
         XCTAssertTrue(response.contains("180 /"))

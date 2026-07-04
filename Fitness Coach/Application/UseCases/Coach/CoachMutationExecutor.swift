@@ -55,8 +55,9 @@ final class CoachMutationExecutor {
             return executeLogFood(FoodLogDraftMapper.fromLegacyDraft(draft))
         case .undo(let target):
             return executeUndo(target)
-        case .status:
+        case .status(let focus):
             return await executeStatus(
+                focus: focus,
                 healthIntelligence: healthIntelligence,
                 contextHints: contextHints
             )
@@ -443,6 +444,7 @@ final class CoachMutationExecutor {
     }
 
     private func executeStatus(
+        focus: CoachDailyStatusFocus = .summary,
         healthIntelligence: CoachHealthIntelligenceContext? = nil,
         contextHints: CoachResponseContextHints? = nil
     ) async -> String {
@@ -474,7 +476,9 @@ final class CoachMutationExecutor {
             if hints.timelineEvents.isEmpty, let timelineStore {
                 let localDate = CoachContextMeta.make(generatedAt: log.date).localDate
                 if let events = try? await timelineStore.events(forLocalDate: localDate) {
-                    hints.timelineEvents = events.map { event in
+                    hints.timelineEvents = events
+                        .filter { CoachContextPacketV2TimelineSelector.isContextEligible($0) }
+                        .map { event in
                         CoachTimelineContextEvent.from(
                             event: event,
                             summary: CoachTimelineEventSummaryBuilder.summary(for: event)
@@ -489,6 +493,7 @@ final class CoachMutationExecutor {
 
             return CoachResponseBuilder.status(
                 log,
+                focus: focus,
                 healthIntelligence: healthIntelligence ?? hints.healthIntelligence,
                 contextHints: hints,
                 training: training

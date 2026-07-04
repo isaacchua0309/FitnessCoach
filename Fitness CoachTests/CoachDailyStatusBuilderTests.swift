@@ -214,6 +214,166 @@ final class CoachDailyStatusBuilderTests: XCTestCase {
         XCTAssertTrue(message.contains("Steps: 8,450"))
     }
 
+    func testWeightLoggedStatusIncludesWeightLine() {
+        let log = makeLog()
+        let weightEvent = timelineEvent(
+            type: .weightLogged,
+            status: .confirmed,
+            summary: "Logged weight: 68.2kg",
+            payload: .weightLogged(WeightLoggedPayload(entryId: UUID(), weightKg: 68.2))
+        )
+        let message = CoachResponseBuilder.status(
+            from: CoachDailyStatusSnapshot.make(
+                log: log,
+                timelineEvents: [contextEvent(from: weightEvent)]
+            )
+        )
+
+        XCTAssertTrue(message.contains("68.2kg"))
+    }
+
+    func testPendingFoodLoggedEventExcludedFromConsumedStatus() {
+        let log = makeLog()
+        let pendingFood = timelineEvent(
+            type: .foodLogged,
+            status: .pending,
+            summary: "Logged food: Pizza",
+            payload: .foodLogged(
+                FoodLoggedPayload(
+                    entryId: UUID(),
+                    name: "Pizza",
+                    calories: 800,
+                    proteinGrams: 30,
+                    carbsGrams: 90,
+                    fatGrams: 35
+                )
+            )
+        )
+        let message = CoachResponseBuilder.status(
+            from: CoachDailyStatusSnapshot.make(
+                log: log,
+                timelineEvents: [contextEvent(from: pendingFood)]
+            )
+        )
+
+        XCTAssertTrue(message.contains("No meals logged yet today."))
+        XCTAssertFalse(message.contains("Pizza"))
+    }
+
+    func testCaloriesRemainingFocusWhenOverTarget() {
+        let log = makeLog(
+            totals: MacroTotals(calories: 2_050, protein: 90, carbs: 180, fat: 70, fiber: nil, sodium: nil)
+        )
+        let message = CoachResponseBuilder.status(
+            from: CoachDailyStatusSnapshot.make(log: log),
+            focus: .caloriesRemaining
+        )
+
+        XCTAssertTrue(message.contains("over target"))
+        XCTAssertTrue(message.contains("2,050"))
+    }
+
+    func testProteinRemainingFocusWhenTargetMet() {
+        let log = makeLog(
+            totals: MacroTotals(calories: 1_200, protein: 145, carbs: 120, fat: 40, fiber: nil, sodium: nil)
+        )
+        let message = CoachResponseBuilder.status(
+            from: CoachDailyStatusSnapshot.make(log: log),
+            focus: .proteinRemaining
+        )
+
+        XCTAssertTrue(message.contains("Protein target met"))
+    }
+
+    func testWaterRemainingFocus() {
+        let log = makeLog(waterConsumedMl: 1_800)
+        let message = CoachResponseBuilder.status(
+            from: CoachDailyStatusSnapshot.make(log: log),
+            focus: .waterRemaining
+        )
+
+        XCTAssertTrue(message.contains("600ml water remaining"))
+    }
+
+    func testMealsTodayFocusListsConfirmedMealsOnly() {
+        let log = makeLog(
+            totals: MacroTotals(calories: 800, protein: 50, carbs: 70, fat: 25, fiber: nil, sodium: nil)
+        )
+        let breakfast = timelineEvent(
+            type: .foodLogged,
+            status: .confirmed,
+            summary: "Logged food: Oatmeal",
+            payload: .foodLogged(
+                FoodLoggedPayload(
+                    entryId: UUID(),
+                    name: "Oatmeal",
+                    calories: 300,
+                    proteinGrams: 12,
+                    carbsGrams: 45,
+                    fatGrams: 6
+                )
+            )
+        )
+        let lunch = timelineEvent(
+            type: .foodLogged,
+            status: .confirmed,
+            summary: "Logged food: Salad",
+            payload: .foodLogged(
+                FoodLoggedPayload(
+                    entryId: UUID(),
+                    name: "Salad",
+                    calories: 500,
+                    proteinGrams: 38,
+                    carbsGrams: 25,
+                    fatGrams: 19
+                )
+            )
+        )
+        let message = CoachResponseBuilder.status(
+            from: CoachDailyStatusSnapshot.make(
+                log: log,
+                timelineEvents: [
+                    contextEvent(from: breakfast),
+                    contextEvent(from: lunch),
+                ]
+            ),
+            focus: .mealsToday
+        )
+
+        XCTAssertTrue(message.contains("Oatmeal"))
+        XCTAssertTrue(message.contains("Salad"))
+    }
+
+    func testLastMealFocus() {
+        let log = makeLog(
+            totals: MacroTotals(calories: 420, protein: 28, carbs: 30, fat: 14, fiber: nil, sodium: nil)
+        )
+        let foodEvent = timelineEvent(
+            type: .foodLogged,
+            status: .confirmed,
+            summary: "Logged food: Salad",
+            payload: .foodLogged(
+                FoodLoggedPayload(
+                    entryId: UUID(),
+                    name: "Salad",
+                    calories: 420,
+                    proteinGrams: 28,
+                    carbsGrams: 30,
+                    fatGrams: 14
+                )
+            )
+        )
+        let message = CoachResponseBuilder.status(
+            from: CoachDailyStatusSnapshot.make(
+                log: log,
+                timelineEvents: [contextEvent(from: foodEvent)]
+            ),
+            focus: .lastMeal
+        )
+
+        XCTAssertTrue(message.contains("Last logged meal: Salad (420 kcal)"))
+    }
+
     // MARK: Helpers
 
     private func makeLog(

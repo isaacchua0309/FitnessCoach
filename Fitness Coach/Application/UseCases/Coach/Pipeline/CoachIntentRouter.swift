@@ -35,7 +35,7 @@ struct CoachIntentRouter: Sendable {
             route = .noOp(.casual(CoachResponseBuilder.greetingResponse))
 
         case .dailySummary:
-            route = .localCommand(ParsedCommand(intent: .status, originalText: originalText))
+            route = .localCommand(ParsedCommand(intent: .status(focus: .summary), originalText: originalText))
 
         case .logWater, .logWeight, .undo:
             if let command = parsedCommand(from: intentResult.action, originalText: originalText) {
@@ -157,7 +157,7 @@ struct CoachIntentRouter: Sendable {
         case .undo(let target):
             return ParsedCommand(intent: .undo(target: target), originalText: originalText)
         case .status:
-            return ParsedCommand(intent: .status, originalText: originalText)
+            return ParsedCommand(intent: .status(focus: .summary), originalText: originalText)
         case .dailyReview:
             return ParsedCommand(intent: .dailyReview, originalText: originalText)
         case .logFood, .logWorkout, .editLog, .deleteLog:

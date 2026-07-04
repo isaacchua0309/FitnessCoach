@@ -117,6 +117,25 @@ final class CoachRoutingTests: XCTestCase {
 
     func testCaloriesLeftStaysLocal() async throws {
         try await assertLocalGuard("how many calories left", expectedHandler: "local_command")
+        try await assertLocalGuard("calories left", expectedHandler: "local_command")
+        try await assertLocalGuard("protein left", expectedHandler: "local_command")
+        try await assertLocalGuard("water left", expectedHandler: "local_command")
+        try await assertLocalGuard("how am I doing today?", expectedHandler: "local_command")
+        try await assertLocalGuard("what do I have left?", expectedHandler: "local_command")
+        try await assertLocalGuard("what did I eat today?", expectedHandler: "local_command")
+        try await assertLocalGuard("what was my last meal?", expectedHandler: "local_command")
+    }
+
+    func testSimpleStatusQuestionsDoNotCallBackend() async throws {
+        let phrases = [
+            "how am I doing today?",
+            "what do I have left?",
+            "protein left",
+            "what did I eat today?",
+        ]
+        for phrase in phrases {
+            try await assertLocalGuard(phrase, expectedHandler: "local_command")
+        }
     }
 
     // MARK: - Cheap classifier routing

@@ -209,6 +209,7 @@ enum CoachResponseBuilder {
 
     static func status(
         _ log: DailyLog,
+        focus: CoachDailyStatusFocus = .summary,
         healthIntelligence: CoachHealthIntelligenceContext? = nil,
         contextHints: CoachResponseContextHints? = nil,
         training: DailyTrainingActivity? = nil
@@ -219,11 +220,11 @@ enum CoachResponseBuilder {
             healthIntelligence: healthIntelligence,
             training: training
         )
-        return CoachDailyStatusBuilder.message(from: snapshot)
+        return CoachDailyStatusBuilder.message(from: snapshot, focus: focus)
     }
 
-    static func status(from snapshot: CoachDailyStatusSnapshot) -> String {
-        CoachDailyStatusBuilder.message(from: snapshot)
+    static func status(from snapshot: CoachDailyStatusSnapshot, focus: CoachDailyStatusFocus = .summary) -> String {
+        CoachDailyStatusBuilder.message(from: snapshot, focus: focus)
     }
 
     // MARK: Daily Review
