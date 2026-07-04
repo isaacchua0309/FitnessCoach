@@ -19,6 +19,7 @@ struct FoodComponent: Codable, Equatable, Identifiable, Sendable {
     var fat: Double
     var confidence: ConfidenceLevel
     var sourceText: String?
+    var estimateTrustMetadata: ComponentEstimateTrustMetadata?
 
     init(
         id: UUID = UUID(),
@@ -31,7 +32,8 @@ struct FoodComponent: Codable, Equatable, Identifiable, Sendable {
         carbs: Double,
         fat: Double,
         confidence: ConfidenceLevel = .medium,
-        sourceText: String? = nil
+        sourceText: String? = nil,
+        estimateTrustMetadata: ComponentEstimateTrustMetadata? = nil
     ) {
         self.id = id
         self.name = name
@@ -44,6 +46,7 @@ struct FoodComponent: Codable, Equatable, Identifiable, Sendable {
         self.fat = fat
         self.confidence = confidence
         self.sourceText = sourceText
+        self.estimateTrustMetadata = estimateTrustMetadata
     }
 
     init(from decoder: Decoder) throws {
@@ -59,6 +62,25 @@ struct FoodComponent: Codable, Equatable, Identifiable, Sendable {
         fat = try container.decode(Double.self, forKey: .fat)
         confidence = try container.decodeIfPresent(ConfidenceLevel.self, forKey: .confidence) ?? .medium
         sourceText = try container.decodeIfPresent(String.self, forKey: .sourceText)
+        estimateTrustMetadata = try container.decodeIfPresent(ComponentEstimateTrustMetadata.self, forKey: .estimateTrustMetadata)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(quantity, forKey: .quantity)
+        try container.encodeIfPresent(unit, forKey: .unit)
+        try container.encodeIfPresent(preparationState, forKey: .preparationState)
+        try container.encode(calories, forKey: .calories)
+        try container.encode(protein, forKey: .protein)
+        try container.encode(carbs, forKey: .carbs)
+        try container.encode(fat, forKey: .fat)
+        try container.encode(confidence, forKey: .confidence)
+        try container.encodeIfPresent(sourceText, forKey: .sourceText)
+        if let estimateTrustMetadata {
+            try container.encode(estimateTrustMetadata, forKey: .estimateTrustMetadata)
+        }
     }
 
     var hasUsableNutritionEstimate: Bool {
@@ -82,5 +104,6 @@ struct FoodComponent: Codable, Equatable, Identifiable, Sendable {
         case fat
         case confidence
         case sourceText
+        case estimateTrustMetadata
     }
 }

@@ -46,6 +46,38 @@ final class FoodLogEditFormStateTests: XCTestCase {
         XCTAssertEqual(saved.source, .corrected)
     }
 
+    func testSavePreservesEstimateTrustFields() throws {
+        let original = FoodLogDraft(
+            displayName: "Laksa",
+            components: [
+                FoodComponent(name: "Laksa", calories: 520, protein: 18, carbs: 55, fat: 24)
+            ],
+            confidence: .low,
+            calorieRangeLower: 450,
+            calorieRangeUpper: 620,
+            assumptions: ["Regular coconut broth"],
+            uncertaintyReasons: ["Portion size unclear"],
+            suggestedClarifications: ["Was this a large bowl?"],
+            primaryUncertainty: "Portion size",
+            requiresClarificationBeforeLogging: true,
+            riskLevel: .high
+        )
+        var form = FoodLogEditFormState(mealDraft: original)
+        form.componentStates[0].caloriesText = "540"
+
+        let saved = try form.makeMealDraft(original: original)
+
+        XCTAssertEqual(saved.totalCalories, 540)
+        XCTAssertEqual(saved.calorieRangeLower, 450)
+        XCTAssertEqual(saved.calorieRangeUpper, 620)
+        XCTAssertEqual(saved.assumptions, ["Regular coconut broth"])
+        XCTAssertEqual(saved.uncertaintyReasons, ["Portion size unclear"])
+        XCTAssertEqual(saved.suggestedClarifications, ["Was this a large bowl?"])
+        XCTAssertEqual(saved.primaryUncertainty, "Portion size")
+        XCTAssertTrue(saved.requiresClarificationBeforeLogging)
+        XCTAssertEqual(saved.riskLevel, .high)
+    }
+
     func testSingleComponentSaveStillEditsPortionAndMacros() throws {
         let original = FoodLogDraft(
             displayName: "Chicken rice",

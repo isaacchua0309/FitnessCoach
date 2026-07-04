@@ -25,6 +25,27 @@ final class NutritionSuggestedActionHandlerTests: XCTestCase {
         let draft = NutritionSuggestedActionHandler.mealDraft(from: action)
         XCTAssertEqual(draft?.displayName, "Big Mac")
         XCTAssertEqual(draft?.totalCalories, 550)
+        XCTAssertEqual(draft?.committedCalorieTotal, 550)
+    }
+
+    func testLogMealPayloadParsesOptionalRangeFields() {
+        let action = NutritionSuggestedAction(
+            title: "Log Laksa",
+            type: .logMeal,
+            payload: [
+                "foodName": "Laksa",
+                "caloriesKcal": "520",
+                "caloriesRangeLowerKcal": "450",
+                "caloriesRangeUpperKcal": "620",
+                "requiresClarificationBeforeLogging": "true"
+            ]
+        )
+
+        let draft = NutritionSuggestedActionHandler.mealDraft(from: action)
+
+        XCTAssertEqual(draft?.calorieRangeLower, 450)
+        XCTAssertEqual(draft?.calorieRangeUpper, 620)
+        XCTAssertTrue(draft?.requiresClarificationBeforeLogging == true)
     }
 
     func testAddSideFollowUpQuery() {

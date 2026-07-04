@@ -105,6 +105,12 @@ struct NutritionEstimateResponse: Codable, Equatable, Sendable {
     var coachTip: String?
     var caveats: [String]
     var suggestedActions: [NutritionSuggestedAction]
+    var assumptions: [String]
+    var uncertaintyReasons: [String]
+    var suggestedClarifications: [String]
+    var primaryUncertainty: String?
+    var requiresClarificationBeforeLogging: Bool
+    var riskLevel: EstimateRiskLevel?
 
     init(
         type: String = "nutrition_estimate",
@@ -130,7 +136,13 @@ struct NutritionEstimateResponse: Codable, Equatable, Sendable {
         coachSummary: String? = nil,
         coachTip: String? = nil,
         caveats: [String] = [],
-        suggestedActions: [NutritionSuggestedAction] = []
+        suggestedActions: [NutritionSuggestedAction] = [],
+        assumptions: [String] = [],
+        uncertaintyReasons: [String] = [],
+        suggestedClarifications: [String] = [],
+        primaryUncertainty: String? = nil,
+        requiresClarificationBeforeLogging: Bool = false,
+        riskLevel: EstimateRiskLevel? = nil
     ) {
         self.type = type
         self.foodName = foodName
@@ -156,6 +168,56 @@ struct NutritionEstimateResponse: Codable, Equatable, Sendable {
         self.coachTip = coachTip
         self.caveats = caveats
         self.suggestedActions = suggestedActions
+        self.assumptions = assumptions
+        self.uncertaintyReasons = uncertaintyReasons
+        self.suggestedClarifications = suggestedClarifications
+        self.primaryUncertainty = primaryUncertainty
+        self.requiresClarificationBeforeLogging = requiresClarificationBeforeLogging
+        self.riskLevel = riskLevel
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        type = try container.decodeIfPresent(String.self, forKey: .type) ?? "nutrition_estimate"
+        foodName = try container.decode(String.self, forKey: .foodName)
+        displayEmoji = try container.decodeIfPresent(String.self, forKey: .displayEmoji)
+        caloriesKcal = try container.decodeIfPresent(Int.self, forKey: .caloriesKcal)
+        caloriesRangeLowerKcal = try container.decodeIfPresent(Int.self, forKey: .caloriesRangeLowerKcal)
+        caloriesRangeUpperKcal = try container.decodeIfPresent(Int.self, forKey: .caloriesRangeUpperKcal)
+        proteinGrams = try container.decodeIfPresent(Double.self, forKey: .proteinGrams)
+        carbsGrams = try container.decodeIfPresent(Double.self, forKey: .carbsGrams)
+        fatGrams = try container.decodeIfPresent(Double.self, forKey: .fatGrams)
+        servingDescription = try container.decodeIfPresent(String.self, forKey: .servingDescription)
+        confidenceLevel = try container.decodeIfPresent(AIConfidence.self, forKey: .confidenceLevel) ?? .medium
+        confidenceLabel = try container.decodeIfPresent(String.self, forKey: .confidenceLabel)
+        confidenceReason = try container.decodeIfPresent(String.self, forKey: .confidenceReason)
+        sourceType = try container.decodeIfPresent(NutritionEstimateSourceType.self, forKey: .sourceType)
+        todayCaloriesTarget = try container.decodeIfPresent(Int.self, forKey: .todayCaloriesTarget)
+        todayCaloriesConsumed = try container.decodeIfPresent(Int.self, forKey: .todayCaloriesConsumed)
+        todayCaloriesRemainingAfterEstimate = try container.decodeIfPresent(Int.self, forKey: .todayCaloriesRemainingAfterEstimate)
+        todayProteinTarget = try container.decodeIfPresent(Double.self, forKey: .todayProteinTarget)
+        todayProteinConsumed = try container.decodeIfPresent(Double.self, forKey: .todayProteinConsumed)
+        todayProteinRemainingAfterEstimate = try container.decodeIfPresent(Double.self, forKey: .todayProteinRemainingAfterEstimate)
+        coachSummary = try container.decodeIfPresent(String.self, forKey: .coachSummary)
+        coachTip = try container.decodeIfPresent(String.self, forKey: .coachTip)
+        caveats = try container.decodeIfPresent([String].self, forKey: .caveats) ?? []
+        suggestedActions = try container.decodeIfPresent([NutritionSuggestedAction].self, forKey: .suggestedActions) ?? []
+        assumptions = try container.decodeIfPresent([String].self, forKey: .assumptions) ?? []
+        uncertaintyReasons = try container.decodeIfPresent([String].self, forKey: .uncertaintyReasons) ?? []
+        suggestedClarifications = try container.decodeIfPresent([String].self, forKey: .suggestedClarifications) ?? []
+        primaryUncertainty = try container.decodeIfPresent(String.self, forKey: .primaryUncertainty)
+        requiresClarificationBeforeLogging = try container.decodeIfPresent(Bool.self, forKey: .requiresClarificationBeforeLogging) ?? false
+        riskLevel = try container.decodeIfPresent(EstimateRiskLevel.self, forKey: .riskLevel)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case type, foodName, displayEmoji, caloriesKcal, caloriesRangeLowerKcal, caloriesRangeUpperKcal
+        case proteinGrams, carbsGrams, fatGrams, servingDescription, confidenceLevel, confidenceLabel
+        case confidenceReason, sourceType, todayCaloriesTarget, todayCaloriesConsumed
+        case todayCaloriesRemainingAfterEstimate, todayProteinTarget, todayProteinConsumed
+        case todayProteinRemainingAfterEstimate, coachSummary, coachTip, caveats, suggestedActions
+        case assumptions, uncertaintyReasons, suggestedClarifications, primaryUncertainty
+        case requiresClarificationBeforeLogging, riskLevel
     }
 }
 
@@ -261,6 +323,88 @@ struct NutritionEstimateCardState: Equatable, Sendable, Identifiable, Codable {
     var hasMacros: Bool
     var hasTodayContext: Bool
     var logMealPayload: NutritionSuggestedAction?
+    var calorieRange: CalorieEstimateRange?
+    var estimateTrust: CoachEstimateTrustMetadata?
+
+    init(
+        id: UUID,
+        foodName: String,
+        displayEmoji: String? = nil,
+        servingDescription: String? = nil,
+        caloriesDisplay: String,
+        proteinDisplay: String? = nil,
+        carbsDisplay: String? = nil,
+        fatDisplay: String? = nil,
+        confidenceTitle: String,
+        confidenceSubtitle: String? = nil,
+        coachSummary: String? = nil,
+        coachTip: String? = nil,
+        caveats: [String] = [],
+        todayContext: NutritionEstimateTodayContext? = nil,
+        suggestedActions: [NutritionSuggestedAction] = [],
+        sourceType: NutritionEstimateSourceType? = nil,
+        confidenceLevel: AIConfidence = .medium,
+        hasMacros: Bool = false,
+        hasTodayContext: Bool = false,
+        logMealPayload: NutritionSuggestedAction? = nil,
+        calorieRange: CalorieEstimateRange? = nil,
+        estimateTrust: CoachEstimateTrustMetadata? = nil
+    ) {
+        self.id = id
+        self.foodName = foodName
+        self.displayEmoji = displayEmoji
+        self.servingDescription = servingDescription
+        self.caloriesDisplay = caloriesDisplay
+        self.proteinDisplay = proteinDisplay
+        self.carbsDisplay = carbsDisplay
+        self.fatDisplay = fatDisplay
+        self.confidenceTitle = confidenceTitle
+        self.confidenceSubtitle = confidenceSubtitle
+        self.coachSummary = coachSummary
+        self.coachTip = coachTip
+        self.caveats = caveats
+        self.todayContext = todayContext
+        self.suggestedActions = suggestedActions
+        self.sourceType = sourceType
+        self.confidenceLevel = confidenceLevel
+        self.hasMacros = hasMacros
+        self.hasTodayContext = hasTodayContext
+        self.logMealPayload = logMealPayload
+        self.calorieRange = calorieRange
+        self.estimateTrust = estimateTrust
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        foodName = try container.decode(String.self, forKey: .foodName)
+        displayEmoji = try container.decodeIfPresent(String.self, forKey: .displayEmoji)
+        servingDescription = try container.decodeIfPresent(String.self, forKey: .servingDescription)
+        caloriesDisplay = try container.decode(String.self, forKey: .caloriesDisplay)
+        proteinDisplay = try container.decodeIfPresent(String.self, forKey: .proteinDisplay)
+        carbsDisplay = try container.decodeIfPresent(String.self, forKey: .carbsDisplay)
+        fatDisplay = try container.decodeIfPresent(String.self, forKey: .fatDisplay)
+        confidenceTitle = try container.decode(String.self, forKey: .confidenceTitle)
+        confidenceSubtitle = try container.decodeIfPresent(String.self, forKey: .confidenceSubtitle)
+        coachSummary = try container.decodeIfPresent(String.self, forKey: .coachSummary)
+        coachTip = try container.decodeIfPresent(String.self, forKey: .coachTip)
+        caveats = try container.decodeIfPresent([String].self, forKey: .caveats) ?? []
+        todayContext = try container.decodeIfPresent(NutritionEstimateTodayContext.self, forKey: .todayContext)
+        suggestedActions = try container.decodeIfPresent([NutritionSuggestedAction].self, forKey: .suggestedActions) ?? []
+        sourceType = try container.decodeIfPresent(NutritionEstimateSourceType.self, forKey: .sourceType)
+        confidenceLevel = try container.decodeIfPresent(AIConfidence.self, forKey: .confidenceLevel) ?? .medium
+        hasMacros = try container.decodeIfPresent(Bool.self, forKey: .hasMacros) ?? false
+        hasTodayContext = try container.decodeIfPresent(Bool.self, forKey: .hasTodayContext) ?? false
+        logMealPayload = try container.decodeIfPresent(NutritionSuggestedAction.self, forKey: .logMealPayload)
+        calorieRange = try container.decodeIfPresent(CalorieEstimateRange.self, forKey: .calorieRange)
+        estimateTrust = try container.decodeIfPresent(CoachEstimateTrustMetadata.self, forKey: .estimateTrust)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, foodName, displayEmoji, servingDescription, caloriesDisplay, proteinDisplay, carbsDisplay, fatDisplay
+        case confidenceTitle, confidenceSubtitle, coachSummary, coachTip, caveats, todayContext, suggestedActions
+        case sourceType, confidenceLevel, hasMacros, hasTodayContext, logMealPayload, calorieRange, estimateTrust
+    }
 }
 
 struct NutritionComparisonCardState: Equatable, Sendable, Identifiable, Codable {

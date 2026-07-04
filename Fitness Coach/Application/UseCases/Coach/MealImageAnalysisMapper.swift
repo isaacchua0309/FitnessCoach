@@ -52,7 +52,7 @@ enum MealImageAnalysisMapper {
             .filter { !$0.isEmpty }
         warnings.append(contentsOf: assumptionLines.prefix(4))
 
-        return FoodLogDraft(
+        let draft = FoodLogDraft(
             displayName: displayName(for: response),
             components: components,
             confidence: confidenceLevel(from: overallConfidence(from: response)),
@@ -60,6 +60,7 @@ enum MealImageAnalysisMapper {
             notes: response.summary,
             warnings: warnings
         )
+        return CoachEstimateTrustMapper.enrich(draft, from: response)
     }
 
     static func previousAnalysis(

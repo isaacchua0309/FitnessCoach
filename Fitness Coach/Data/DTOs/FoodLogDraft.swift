@@ -18,6 +18,18 @@ struct FoodLogDraft: Codable, Equatable, Identifiable, Sendable {
     var warnings: [String]
     var imageUrl: String?
 
+    // MARK: Estimate trust (additive — optional for backward-compatible decoding)
+
+    var calorieRangeLower: Int?
+    var calorieRangeUpper: Int?
+    var assumptions: [String]
+    var uncertaintyReasons: [String]
+    var suggestedClarifications: [String]
+    var primaryUncertainty: String?
+    var requiresClarificationBeforeLogging: Bool
+    var riskLevel: EstimateRiskLevel?
+    var componentTrustMetadata: [ComponentEstimateTrustMetadata]
+
     init(
         id: UUID = UUID(),
         displayName: String,
@@ -27,7 +39,16 @@ struct FoodLogDraft: Codable, Equatable, Identifiable, Sendable {
         source: FoodEntrySource = .aiTextEstimate,
         notes: String? = nil,
         warnings: [String] = [],
-        imageUrl: String? = nil
+        imageUrl: String? = nil,
+        calorieRangeLower: Int? = nil,
+        calorieRangeUpper: Int? = nil,
+        assumptions: [String] = [],
+        uncertaintyReasons: [String] = [],
+        suggestedClarifications: [String] = [],
+        primaryUncertainty: String? = nil,
+        requiresClarificationBeforeLogging: Bool = false,
+        riskLevel: EstimateRiskLevel? = nil,
+        componentTrustMetadata: [ComponentEstimateTrustMetadata] = []
     ) {
         self.id = id
         self.displayName = displayName
@@ -38,6 +59,15 @@ struct FoodLogDraft: Codable, Equatable, Identifiable, Sendable {
         self.notes = notes
         self.warnings = warnings
         self.imageUrl = imageUrl
+        self.calorieRangeLower = calorieRangeLower
+        self.calorieRangeUpper = calorieRangeUpper
+        self.assumptions = assumptions
+        self.uncertaintyReasons = uncertaintyReasons
+        self.suggestedClarifications = suggestedClarifications
+        self.primaryUncertainty = primaryUncertainty
+        self.requiresClarificationBeforeLogging = requiresClarificationBeforeLogging
+        self.riskLevel = riskLevel
+        self.componentTrustMetadata = componentTrustMetadata
     }
 
     init(from decoder: Decoder) throws {
@@ -51,6 +81,59 @@ struct FoodLogDraft: Codable, Equatable, Identifiable, Sendable {
         notes = try container.decodeIfPresent(String.self, forKey: .notes)
         warnings = try container.decodeIfPresent([String].self, forKey: .warnings) ?? []
         imageUrl = try container.decodeIfPresent(String.self, forKey: .imageUrl)
+
+        if let nestedRange = try container.decodeIfPresent(CalorieEstimateRange.self, forKey: .calorieRange) {
+            calorieRangeLower = nestedRange.lowerBound
+            calorieRangeUpper = nestedRange.upperBound
+        } else {
+            calorieRangeLower = try container.decodeIfPresent(Int.self, forKey: .calorieRangeLower)
+            calorieRangeUpper = try container.decodeIfPresent(Int.self, forKey: .calorieRangeUpper)
+        }
+
+        if let nestedTrust = try container.decodeIfPresent(CoachEstimateTrustMetadata.self, forKey: .estimateTrust) {
+            assumptions = nestedTrust.assumptions
+            uncertaintyReasons = nestedTrust.uncertaintyReasons
+            suggestedClarifications = nestedTrust.suggestedClarifications
+            primaryUncertainty = nestedTrust.primaryUncertainty
+            requiresClarificationBeforeLogging = nestedTrust.requiresClarificationBeforeLogging
+            riskLevel = nestedTrust.riskLevel
+            if let nestedConfidence = Optional(nestedTrust.confidence) {
+                confidence = nestedConfidence
+            }
+        } else {
+            assumptions = try container.decodeIfPresent([String].self, forKey: .assumptions) ?? []
+            uncertaintyReasons = try container.decodeIfPresent([String].self, forKey: .uncertaintyReasons) ?? []
+            suggestedClarifications = try container.decodeIfPresent([String].self, forKey: .suggestedClarifications) ?? []
+            primaryUncertainty = try container.decodeIfPresent(String.self, forKey: .primaryUncertainty)
+            requiresClarificationBeforeLogging = try container.decodeIfPresent(Bool.self, forKey: .requiresClarificationBeforeLogging) ?? false
+            riskLevel = try container.decodeIfPresent(EstimateRiskLevel.self, forKey: .riskLevel)
+        }
+
+        componentTrustMetadata = try container.decodeIfPresent([ComponentEstimateTrustMetadata].self, forKey: .componentTrustMetadata) ?? []
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(displayName, forKey: .displayName)
+        try container.encodeIfPresent(mealType?.rawValue, forKey: .mealType)
+        try container.encode(components, forKey: .components)
+        try container.encode(confidence, forKey: .confidence)
+        try container.encode(source, forKey: .source)
+        try container.encodeIfPresent(notes, forKey: .notes)
+        try container.encode(warnings, forKey: .warnings)
+        try container.encodeIfPresent(imageUrl, forKey: .imageUrl)
+        try container.encodeIfPresent(calorieRangeLower, forKey: .calorieRangeLower)
+        try container.encodeIfPresent(calorieRangeUpper, forKey: .calorieRangeUpper)
+        try container.encode(assumptions, forKey: .assumptions)
+        try container.encode(uncertaintyReasons, forKey: .uncertaintyReasons)
+        try container.encode(suggestedClarifications, forKey: .suggestedClarifications)
+        try container.encodeIfPresent(primaryUncertainty, forKey: .primaryUncertainty)
+        try container.encode(requiresClarificationBeforeLogging, forKey: .requiresClarificationBeforeLogging)
+        try container.encodeIfPresent(riskLevel, forKey: .riskLevel)
+        if !componentTrustMetadata.isEmpty {
+            try container.encode(componentTrustMetadata, forKey: .componentTrustMetadata)
+        }
     }
 
     var totalCalories: Int {
@@ -103,5 +186,16 @@ struct FoodLogDraft: Codable, Equatable, Identifiable, Sendable {
         case notes
         case warnings
         case imageUrl
+        case calorieRange
+        case calorieRangeLower
+        case calorieRangeUpper
+        case assumptions
+        case uncertaintyReasons
+        case suggestedClarifications
+        case primaryUncertainty
+        case requiresClarificationBeforeLogging
+        case riskLevel
+        case estimateTrust
+        case componentTrustMetadata
     }
 }

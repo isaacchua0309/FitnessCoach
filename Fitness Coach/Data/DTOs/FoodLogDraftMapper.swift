@@ -117,7 +117,7 @@ enum FoodLogDraftMapper {
     /// Normalizes AI responses: prefers structured meal drafts, falls back to legacy food drafts.
     static func meals(from response: AIFoodEstimateResponse) -> [FoodLogDraft] {
         if !response.foodLogDrafts.isEmpty {
-            return response.foodLogDrafts.map(recalculateTotals)
+            return response.foodLogDrafts.map { normalizeEstimateTrust(recalculateTotals($0)) }
         }
         return response.foodDrafts.map(fromLegacyDraft)
     }
@@ -139,6 +139,19 @@ enum FoodLogDraftMapper {
                 continue
             }
             normalized.components[index] = component
+        }
+        return normalized
+    }
+
+    /// Splits assumption-prefixed warnings into structured trust fields when the API omits them.
+    static func normalizeEstimateTrust(_ meal: FoodLogDraft) -> FoodLogDraft {
+        var normalized = meal
+        if normalized.assumptions.isEmpty {
+            normalized.assumptions = CoachEstimateTrustMapper.assumptions(from: normalized.warnings)
+        }
+        let nonAssumptionWarnings = CoachEstimateTrustMapper.nonAssumptionWarnings(from: normalized.warnings)
+        if nonAssumptionWarnings.count != normalized.warnings.count {
+            normalized.warnings = nonAssumptionWarnings
         }
         return normalized
     }

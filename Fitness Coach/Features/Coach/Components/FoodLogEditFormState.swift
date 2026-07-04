@@ -179,6 +179,7 @@ struct FoodLogEditFormState: Equatable {
             warnings: original.warnings,
             imageUrl: original.imageUrl
         )
+        meal = meal.preservingEstimateTrustFields(from: original)
         return FoodLogDraftMapper.reconcileTotals(meal)
     }
 

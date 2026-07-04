@@ -20,6 +20,9 @@ enum NutritionSuggestedActionHandler {
         let protein = Double(action.payload["proteinGrams"] ?? "")
         let carbs = Double(action.payload["carbsGrams"] ?? "")
         let fat = Double(action.payload["fatGrams"] ?? "")
+        let rangeLower = Int(action.payload["caloriesRangeLowerKcal"] ?? "")
+        let rangeUpper = Int(action.payload["caloriesRangeUpperKcal"] ?? "")
+        let requiresClarification = Bool(action.payload["requiresClarificationBeforeLogging"] ?? "") ?? false
 
         let component = FoodComponent(
             name: foodName,
@@ -28,7 +31,13 @@ enum NutritionSuggestedActionHandler {
             carbs: carbs ?? 0,
             fat: fat ?? 0,
             confidence: .medium,
-            sourceText: "Nutrition estimate card"
+            sourceText: "Nutrition estimate card",
+            estimateTrustMetadata: ComponentEstimateTrustMetadata(
+                componentName: foodName,
+                estimatedCalories: calories ?? 0,
+                rangeLower: rangeLower,
+                rangeUpper: rangeUpper
+            )
         )
 
         return FoodLogDraft(
@@ -36,8 +45,20 @@ enum NutritionSuggestedActionHandler {
             components: [component],
             confidence: .medium,
             source: .aiTextEstimate,
-            notes: "Estimated from Coach nutrition card."
+            notes: "Estimated from Coach nutrition card.",
+            calorieRangeLower: rangeLower,
+            calorieRangeUpper: rangeUpper,
+            requiresClarificationBeforeLogging: requiresClarification,
+            componentTrustMetadata: [component.estimateTrustMetadata].compactMap { $0 }
         )
+    }
+
+    static func mealDraft(
+        from response: NutritionEstimateResponse,
+        action: NutritionSuggestedAction
+    ) -> FoodLogDraft? {
+        guard action.type == .logMeal else { return nil }
+        return CoachEstimateTrustMapper.mealDraft(from: response, action: action)
     }
 
     static func followUpQuery(for action: NutritionSuggestedAction) -> String? {

@@ -115,6 +115,163 @@ final class FoodLogDraftTests: XCTestCase {
         XCTAssertNil(draft.mealType)
     }
 
+    func testCreatesWithoutRangeOrTrustFields() {
+        let meal = sampleBowlMeal()
+
+        XCTAssertNil(meal.calorieRangeLower)
+        XCTAssertNil(meal.calorieRangeUpper)
+        XCTAssertTrue(meal.assumptions.isEmpty)
+        XCTAssertTrue(meal.uncertaintyReasons.isEmpty)
+        XCTAssertTrue(meal.suggestedClarifications.isEmpty)
+        XCTAssertNil(meal.primaryUncertainty)
+        XCTAssertFalse(meal.requiresClarificationBeforeLogging)
+        XCTAssertNil(meal.riskLevel)
+        XCTAssertTrue(meal.componentTrustMetadata.isEmpty)
+        XCTAssertTrue(meal.isSafeToPresentDirectly)
+        XCTAssertNil(meal.calorieRange)
+    }
+
+    func testCarriesRangeAndTrustFields() {
+        let meal = FoodLogDraft(
+            displayName: "Laksa",
+            components: [
+                FoodComponent(name: "Laksa", calories: 520, protein: 18, carbs: 55, fat: 24)
+            ],
+            confidence: .low,
+            calorieRangeLower: 450,
+            calorieRangeUpper: 620,
+            assumptions: ["Regular coconut broth"],
+            uncertaintyReasons: ["Portion size unclear"],
+            suggestedClarifications: ["Was this a large bowl?"],
+            primaryUncertainty: "Portion size",
+            requiresClarificationBeforeLogging: true,
+            riskLevel: .high,
+            componentTrustMetadata: [
+                ComponentEstimateTrustMetadata(
+                    componentName: "Laksa",
+                    estimatedCalories: 520,
+                    rangeLower: 450,
+                    rangeUpper: 620,
+                    assumptions: ["Regular coconut broth"],
+                    uncertaintyReasons: ["Portion size unclear"]
+                )
+            ]
+        )
+
+        XCTAssertEqual(meal.calorieRangeLower, 450)
+        XCTAssertEqual(meal.calorieRangeUpper, 620)
+        XCTAssertEqual(meal.assumptions, ["Regular coconut broth"])
+        XCTAssertEqual(meal.uncertaintyReasons, ["Portion size unclear"])
+        XCTAssertEqual(meal.suggestedClarifications, ["Was this a large bowl?"])
+        XCTAssertEqual(meal.primaryUncertainty, "Portion size")
+        XCTAssertTrue(meal.requiresClarificationBeforeLogging)
+        XCTAssertFalse(meal.isSafeToPresentDirectly)
+        XCTAssertEqual(meal.riskLevel, .high)
+        XCTAssertEqual(meal.estimateTrust.confidence, .low)
+        XCTAssertEqual(meal.calorieRange?.displayText, "450–620 kcal")
+    }
+
+    func testDecodesLegacyJSONWithoutTrustFields() throws {
+        let json = """
+        {
+          "displayName": "Chicken rice",
+          "components": [
+            {
+              "name": "Chicken rice",
+              "calories": 650,
+              "protein": 35,
+              "carbs": 75,
+              "fat": 20,
+              "confidence": "medium"
+            }
+          ],
+          "confidence": "medium",
+          "source": "aiTextEstimate"
+        }
+        """.data(using: .utf8)!
+
+        let draft = try JSONDecoder().decode(FoodLogDraft.self, from: json)
+
+        XCTAssertEqual(draft.totalCalories, 650)
+        XCTAssertEqual(draft.committedCalorieTotal, 650)
+        XCTAssertNil(draft.calorieRangeLower)
+        XCTAssertFalse(draft.requiresClarificationBeforeLogging)
+    }
+
+    func testRoundTripsRangeAndTrustFields() throws {
+        let original = FoodLogDraft(
+            displayName: "Nasi lemak",
+            components: [
+                FoodComponent(name: "Nasi lemak", calories: 600, protein: 15, carbs: 70, fat: 28)
+            ],
+            confidence: .medium,
+            calorieRangeLower: 520,
+            calorieRangeUpper: 700,
+            assumptions: ["Standard plate"],
+            uncertaintyReasons: ["Sambal amount unknown"],
+            suggestedClarifications: ["How spicy was the sambal?"],
+            primaryUncertainty: "Sambal amount",
+            requiresClarificationBeforeLogging: false,
+            riskLevel: .medium
+        )
+
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(FoodLogDraft.self, from: data)
+
+        XCTAssertEqual(decoded, original)
+        XCTAssertEqual(decoded.committedCalorieTotal, 600)
+        XCTAssertEqual(decoded.totalCalories, 600)
+    }
+
+    func testDecodesNestedEstimateTrustPayload() throws {
+        let json = """
+        {
+          "displayName": "Bubble tea",
+          "components": [],
+          "confidence": "medium",
+          "source": "aiTextEstimate",
+          "calorieRange": {
+            "estimated": 350,
+            "lowerBound": 300,
+            "upperBound": 420
+          },
+          "estimateTrust": {
+            "confidence": "low",
+            "assumptions": ["Regular sugar"],
+            "uncertaintyReasons": ["Topping count unclear"],
+            "suggestedClarifications": ["Which toppings?"],
+            "requiresClarificationBeforeLogging": true,
+            "primaryUncertainty": "Toppings",
+            "riskLevel": "high"
+          }
+        }
+        """.data(using: .utf8)!
+
+        let draft = try JSONDecoder().decode(FoodLogDraft.self, from: json)
+
+        XCTAssertEqual(draft.calorieRangeLower, 300)
+        XCTAssertEqual(draft.calorieRangeUpper, 420)
+        XCTAssertEqual(draft.confidence, .low)
+        XCTAssertEqual(draft.assumptions, ["Regular sugar"])
+        XCTAssertTrue(draft.requiresClarificationBeforeLogging)
+        XCTAssertEqual(draft.riskLevel, .high)
+    }
+
+    func testCommittedCalorieTotalUsesScalarComponentSum() {
+        let meal = FoodLogDraft(
+            displayName: "Range-only meal",
+            components: [
+                FoodComponent(name: "Meal", calories: 500, protein: 20, carbs: 50, fat: 15)
+            ],
+            calorieRangeLower: 400,
+            calorieRangeUpper: 650
+        )
+
+        XCTAssertEqual(meal.totalCalories, 500)
+        XCTAssertEqual(meal.committedCalorieTotal, 500)
+        XCTAssertNotEqual(meal.committedCalorieTotal, meal.calorieRangeUpper)
+    }
+
     private func sampleBowlMeal() -> FoodLogDraft {
         FoodLogDraft(
             displayName: "Chicken barley bowl",
