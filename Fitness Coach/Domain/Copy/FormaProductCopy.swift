@@ -1161,6 +1161,16 @@ enum FormaProductCopy {
             static let coachReviewAction = "Review with Coach"
         }
 
+        enum YesterdayReview {
+            static let sectionTitle = "Yesterday's review"
+            static let viewAction = "View review"
+            static let viewHint = "Opens yesterday's daily review"
+            static let generateAction = "Generate yesterday's review"
+            static let generateHint = "Creates a daily review for yesterday"
+            static let generatedSuccess = "Yesterday's review is ready."
+            static let generateFailed = "Couldn't generate the review. Try again in Coach."
+        }
+
         enum EndOfDay {
             static let sectionTitle = "Today's Wrap-Up"
             static let overallGreatWork = "Great work"
@@ -3633,6 +3643,12 @@ enum FormaProductCopy {
 
         static func dayCountValue(_ count: Int, total: Int = 7) -> String {
             "\(count) of \(total) days"
+        }
+
+        static let dailyReviewsTitle = "Daily reviews"
+
+        static func dailyReviewsValue(_ count: Int, total: Int = 7) -> String {
+            dayCountValue(count, total: total)
         }
 
         static func weightTrendValue(_ changeKg: Double) -> String {

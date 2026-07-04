@@ -186,6 +186,79 @@ final class TodayPresentationBuilderTests: XCTestCase {
         XCTAssertGreaterThan(state.macroHydration.waterSummary.targetMl, 0)
     }
 
+    func testYesterdayReviewHiddenWithoutEnoughLogs() {
+        let state = build(
+            foodEntries: [],
+            hasPriorFoodLogs: true,
+            yesterdayReviewInput: TodayYesterdayReviewInput(
+                date: TodayDashboardFixtures.date(hour: 14).addingTimeInterval(-86_400),
+                review: nil,
+                foodEntryCount: 0,
+                waterConsumedMl: 0,
+                workoutCaloriesBurned: 0,
+                weightLogged: false
+            )
+        )
+
+        XCTAssertFalse(state.yesterdayReview.isVisible)
+    }
+
+    func testYesterdayReviewShowsExistingReviewWithPreviewLines() {
+        let review = DailyReview(
+            id: UUID(),
+            dailyLogId: UUID(),
+            summaryText: "Nice consistency yesterday.",
+            caloriesSummary: "Calories: 1,650 / 1,800 kcal.",
+            proteinSummary: "Protein: 160 / 170g.",
+            hydrationSummary: "Water: 2,500 / 3,500ml.",
+            workoutSummary: nil,
+            weightSummary: nil,
+            tomorrowRecommendation: "Keep it up.",
+            createdAt: Date()
+        )
+        let yesterday = TodayDashboardFixtures.date(hour: 14).addingTimeInterval(-86_400)
+
+        let state = build(
+            foodEntries: [],
+            hasPriorFoodLogs: true,
+            yesterdayReviewInput: TodayYesterdayReviewInput(
+                date: yesterday,
+                review: review,
+                foodEntryCount: 2,
+                waterConsumedMl: 500,
+                workoutCaloriesBurned: 0,
+                weightLogged: false
+            )
+        )
+
+        XCTAssertTrue(state.yesterdayReview.isVisible)
+        XCTAssertEqual(state.yesterdayReview.sectionTitle, FormaProductCopy.Today.YesterdayReview.sectionTitle)
+        XCTAssertEqual(state.yesterdayReview.cta, .viewReview)
+        XCTAssertEqual(state.yesterdayReview.actionTitle, FormaProductCopy.Today.YesterdayReview.viewAction)
+        XCTAssertFalse(state.yesterdayReview.previewLines.isEmpty)
+    }
+
+    func testYesterdayReviewOffersGenerateWhenEligibleWithoutReview() {
+        let yesterday = TodayDashboardFixtures.date(hour: 14).addingTimeInterval(-86_400)
+        let state = build(
+            foodEntries: [],
+            hasPriorFoodLogs: true,
+            yesterdayReviewInput: TodayYesterdayReviewInput(
+                date: yesterday,
+                review: nil,
+                foodEntryCount: 3,
+                waterConsumedMl: 1_000,
+                workoutCaloriesBurned: 0,
+                weightLogged: false
+            )
+        )
+
+        XCTAssertTrue(state.yesterdayReview.isVisible)
+        XCTAssertEqual(state.yesterdayReview.cta, .generateReview)
+        XCTAssertEqual(state.yesterdayReview.actionTitle, FormaProductCopy.Today.YesterdayReview.generateAction)
+        XCTAssertTrue(state.yesterdayReview.previewLines.isEmpty)
+    }
+
     // MARK: - Fixtures
 
     private func build(
@@ -203,7 +276,8 @@ final class TodayPresentationBuilderTests: XCTestCase {
         waterTargetMl: Int = 3_500,
         hasWorkout: Bool = false,
         appleHealthWorkoutCount: Int? = nil,
-        activityContext: TodayActivityContext = .default
+        activityContext: TodayActivityContext = .default,
+        yesterdayReviewInput: TodayYesterdayReviewInput? = nil
     ) -> TodayDashboardState {
         let proteinRemaining = max(proteinTarget - proteinConsumed, 0)
         let waterRemaining = max(waterTargetMl - waterConsumedMl, 0)
@@ -247,7 +321,7 @@ final class TodayPresentationBuilderTests: XCTestCase {
                 ),
                 foodEntries: foodEntries,
                 hasPriorFoodLogs: hasPriorFoodLogs,
-                dailyReview: nil,
+                yesterdayReviewInput: yesterdayReviewInput,
                 goalWeightKg: 75,
                 profileWeightKg: 80,
                 latestWeightKg: nil,

@@ -333,6 +333,12 @@ struct WeeklyReviewDetailView: View {
             if let trainingLabel = consistency.trainingLabel {
                 consistencyRow(title: FormaProductCopy.Journey.WeeklyReview.trainingTitle, value: trainingLabel)
             }
+            if let dailyReviewsLabel = consistency.dailyReviewsLabel {
+                consistencyRow(
+                    title: FormaProductCopy.WeeklyReviewPresentation.dailyReviewsTitle,
+                    value: dailyReviewsLabel
+                )
+            }
         }
     }
 

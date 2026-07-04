@@ -138,4 +138,51 @@ final class DailyReviewSummaryBuilderTests: XCTestCase {
         XCTAssertEqual(review.waterRemainingMl, nutrition.water.remainingMl)
         XCTAssertEqual(review.hasMetWaterTarget, nutrition.hasMetWaterTarget)
     }
+
+    func testHasEnoughLogsForReviewRequiresMeaningfulSignal() {
+        XCTAssertFalse(
+            DailyReviewSummaryBuilder.hasEnoughLogsForReview(
+                foodEntryCount: 0,
+                waterConsumedMl: 0,
+                workoutCaloriesBurned: 0,
+                weightLogged: false
+            )
+        )
+        XCTAssertTrue(
+            DailyReviewSummaryBuilder.hasEnoughLogsForReview(
+                foodEntryCount: 1,
+                waterConsumedMl: 0,
+                workoutCaloriesBurned: 0,
+                weightLogged: false
+            )
+        )
+        XCTAssertTrue(
+            DailyReviewSummaryBuilder.hasEnoughLogsForReview(
+                foodEntryCount: 0,
+                waterConsumedMl: 250,
+                workoutCaloriesBurned: 0,
+                weightLogged: false
+            )
+        )
+    }
+
+    func testTeaserLinesPreferSummaryAndSections() {
+        let review = DailyReview(
+            id: UUID(),
+            dailyLogId: UUID(),
+            summaryText: "Strong protein day.",
+            caloriesSummary: "Calories: 1,700 / 1,800 kcal.",
+            proteinSummary: "Protein: 165 / 170g.",
+            hydrationSummary: "Water: 2,800 / 3,500ml.",
+            workoutSummary: nil,
+            weightSummary: nil,
+            tomorrowRecommendation: "Repeat tomorrow.",
+            createdAt: Date()
+        )
+
+        let lines = DailyReviewSummaryBuilder.teaserLines(from: review)
+        XCTAssertEqual(lines.count, 2)
+        XCTAssertEqual(lines[0], "Strong protein day.")
+        XCTAssertEqual(lines[1], "Calories: 1,700 / 1,800 kcal.")
+    }
 }

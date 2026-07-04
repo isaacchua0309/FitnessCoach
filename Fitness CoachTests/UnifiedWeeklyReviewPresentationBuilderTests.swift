@@ -146,6 +146,21 @@ final class UnifiedWeeklyReviewPresentationBuilderTests: XCTestCase {
         XCTAssertFalse(detail.accessibilityLabel.isEmpty)
     }
 
+    func testBuildDetailIncludesDailyReviewsCountWhenPresent() {
+        let dashboard = JourneyPreviewData.strongMomentum
+        let detail = UnifiedWeeklyReviewPresentationBuilder.buildDetail(
+            UnifiedWeeklyReviewInput(
+                summary: dashboard.weeklyProgressSummary,
+                dailyReviewsThisWeekCount: 4
+            )
+        )
+
+        XCTAssertEqual(
+            detail.consistency.dailyReviewsLabel,
+            FormaProductCopy.WeeklyReviewPresentation.dailyReviewsValue(4)
+        )
+    }
+
     func testBuildDetailMergesHealthIntelligenceFocusItems() {
         let dashboard = JourneyPreviewData.strongMomentum
         let review = makeHealthReview()

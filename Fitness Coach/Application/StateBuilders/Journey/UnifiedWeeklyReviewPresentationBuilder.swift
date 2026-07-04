@@ -116,6 +116,7 @@ struct UnifiedWeeklyReviewInput: Equatable {
     var healthReviewDetail: WeeklyReviewDetailState?
     var profile: UserProfile?
     var goalDirection: JourneyGoalDirection?
+    var dailyReviewsThisWeekCount: Int
     var calendar: Calendar
 
     init(
@@ -126,6 +127,7 @@ struct UnifiedWeeklyReviewInput: Equatable {
         healthReviewDetail: WeeklyReviewDetailState? = nil,
         profile: UserProfile? = nil,
         goalDirection: JourneyGoalDirection? = nil,
+        dailyReviewsThisWeekCount: Int = 0,
         calendar: Calendar = .current
     ) {
         self.summary = summary
@@ -135,6 +137,7 @@ struct UnifiedWeeklyReviewInput: Equatable {
         self.healthReviewDetail = healthReviewDetail
         self.profile = profile
         self.goalDirection = goalDirection
+        self.dailyReviewsThisWeekCount = dailyReviewsThisWeekCount
         self.calendar = calendar
     }
 }
@@ -215,6 +218,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
                 healthReviewDetail: healthIntelligence?.weeklyReviewDetail,
                 profile: profile,
                 goalDirection: dashboard.baseline.goalDirection,
+                dailyReviewsThisWeekCount: dashboard.dailyReviewsThisWeekCount,
                 calendar: calendar
             )
         )
@@ -233,6 +237,7 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             healthReviewDetail: healthIntelligence?.weeklyReviewDetail,
             profile: profile,
             goalDirection: dashboard.baseline.goalDirection,
+            dailyReviewsThisWeekCount: dashboard.dailyReviewsThisWeekCount,
             calendar: calendar
         )
         return buildDetail(input)
@@ -247,7 +252,10 @@ enum UnifiedWeeklyReviewPresentationBuilder {
             unified: unified,
             verdictTitle: verdictTitle(for: summary.verdict),
             primaryInsight: summary.primaryInsight,
-            consistency: consistencySection(from: summary),
+            consistency: consistencySection(
+                from: summary,
+                dailyReviewsThisWeekCount: input.dailyReviewsThisWeekCount
+            ),
             staticTDEEComparison: staticTDEEComparison(from: summary),
             nextWeekFocus: nextWeekFocus(
                 unified: unified,
@@ -297,7 +305,8 @@ enum UnifiedWeeklyReviewPresentationBuilder {
     }
 
     private static func consistencySection(
-        from summary: WeeklyProgressSummary
+        from summary: WeeklyProgressSummary,
+        dailyReviewsThisWeekCount: Int = 0
     ) -> WeeklyProgressConsistencySectionState {
         let copy = FormaProductCopy.WeeklyReviewPresentation.self
         let total = max(summary.totalDays, JourneyLogMetrics.weekDayCount)
@@ -320,7 +329,10 @@ enum UnifiedWeeklyReviewPresentationBuilder {
                 : nil,
             trainingLabel: summary.trainingDays.map { days in
                 "\(FormaProductCopy.Journey.WeeklyReview.trainingTitle): \(FormaProductCopy.Journey.WeeklyReview.trainingDays(days))"
-            }
+            },
+            dailyReviewsLabel: dailyReviewsThisWeekCount > 0
+                ? copy.dailyReviewsValue(dailyReviewsThisWeekCount, total: total)
+                : nil
         )
     }
 

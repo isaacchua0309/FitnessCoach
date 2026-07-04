@@ -103,4 +103,39 @@ struct DailyReviewSummaryBuilder {
         updated.deterministicNotes = notes
         return updated
     }
+
+    // MARK: - Today teaser
+
+    /// Minimum signal to offer a daily review for a completed day (mirrors end-of-day "any log").
+    static func hasEnoughLogsForReview(
+        foodEntryCount: Int,
+        waterConsumedMl: Int,
+        workoutCaloriesBurned: Int,
+        weightLogged: Bool
+    ) -> Bool {
+        foodEntryCount > 0
+            || waterConsumedMl > 0
+            || workoutCaloriesBurned > 0
+            || weightLogged
+    }
+
+    /// Up to two short lines for the Today yesterday-review teaser.
+    static func teaserLines(from review: DailyReview, maxLines: Int = 2) -> [String] {
+        var lines: [String] = []
+
+        let summary = review.summaryText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !summary.isEmpty {
+            lines.append(summary)
+        }
+
+        for section in [review.caloriesSummary, review.proteinSummary, review.hydrationSummary] {
+            let trimmed = section.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            guard !lines.contains(trimmed) else { continue }
+            lines.append(trimmed)
+            if lines.count >= maxLines { break }
+        }
+
+        return Array(lines.prefix(maxLines))
+    }
 }

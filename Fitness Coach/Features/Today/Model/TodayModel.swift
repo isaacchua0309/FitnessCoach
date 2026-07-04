@@ -285,7 +285,7 @@ final class TodayModel: ObservableObject {
         let dailyLog = try dailyLogReader.getTodayLog()
         let foodEntries = try foodLogReader.getFoodEntries(for: dailyLog.date)
         let latestWeight = dailyLog.weightKg == nil ? try weightLogReader.getLatestWeight() : nil
-        let dailyReview = try dailyReviewReader.getDailyReview(for: dailyLog.date)
+        let yesterdayReviewInput = try makeYesterdayReviewInput(relativeTo: dailyLog.date)
         let nutrition = DailyNutritionSummaryBuilder.build(from: dailyLog)
         let (calorieSummary, macroSummary, waterSummary) = TodayDashboardNutritionMapper.maps(from: nutrition)
 
@@ -314,7 +314,7 @@ final class TodayModel: ObservableObject {
                 foodEntries: foodEntries,
                 training: training,
                 latestWeight: latestWeight,
-                dailyReview: dailyReview
+                yesterdayReviewInput: yesterdayReviewInput
             )
         )
     }
@@ -447,7 +447,7 @@ final class TodayModel: ObservableObject {
         foodEntries: [FoodEntry],
         training: DailyTrainingActivity,
         latestWeight: WeightEntry?,
-        dailyReview: DailyReview?
+        yesterdayReviewInput: TodayYesterdayReviewInput?
     ) async throws -> TodayDashboardState {
         let nutrition = DailyNutritionSummaryBuilder.build(from: dailyLog)
         let (calorieSummary, macroSummary, waterSummary) = TodayDashboardNutritionMapper.maps(from: nutrition)
@@ -485,7 +485,7 @@ final class TodayModel: ObservableObject {
                 workoutSummary: workoutSummary,
                 foodEntries: foodEntries,
                 hasPriorFoodLogs: hasPriorFoodLogs,
-                dailyReview: dailyReview,
+                yesterdayReviewInput: yesterdayReviewInput,
                 goalWeightKg: profile?.goalWeightKg,
                 profileWeightKg: profile?.currentWeightKg,
                 latestWeightKg: displayWeight,
@@ -524,5 +524,30 @@ final class TodayModel: ObservableObject {
         return logs.contains { log in
             calendar.startOfDay(for: log.date) < todayStart && log.totals.calories > 0
         }
+    }
+
+    private func makeYesterdayReviewInput(relativeTo date: Date) throws -> TodayYesterdayReviewInput? {
+        let calendar = Calendar.current
+        let todayStart = calendar.startOfDay(for: date)
+        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: todayStart) else {
+            return nil
+        }
+
+        let yesterdayLog = try dailyLogReader.getLog(for: yesterday)
+        let foodEntries = try foodLogReader.getFoodEntries(for: yesterday)
+        let review = try dailyReviewReader.getDailyReview(for: yesterday)
+
+        let waterConsumedMl = yesterdayLog?.waterConsumedMl ?? 0
+        let workoutCaloriesBurned = yesterdayLog?.workoutCaloriesBurned ?? 0
+        let weightLogged = yesterdayLog?.weightKg != nil
+
+        return TodayYesterdayReviewInput(
+            date: yesterday,
+            review: review,
+            foodEntryCount: foodEntries.count,
+            waterConsumedMl: waterConsumedMl,
+            workoutCaloriesBurned: workoutCaloriesBurned,
+            weightLogged: weightLogged
+        )
     }
 }

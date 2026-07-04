@@ -111,6 +111,7 @@ struct WeeklyProgressConsistencySectionState: Equatable {
     var waterLabel: String?
     var calorieAdherenceLabel: String?
     var trainingLabel: String?
+    var dailyReviewsLabel: String?
 
     var hasContent: Bool {
         foodLoggedLabel != nil
@@ -119,6 +120,7 @@ struct WeeklyProgressConsistencySectionState: Equatable {
             || waterLabel != nil
             || calorieAdherenceLabel != nil
             || trainingLabel != nil
+            || dailyReviewsLabel != nil
     }
 }
 

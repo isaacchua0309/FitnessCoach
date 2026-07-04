@@ -7,6 +7,15 @@
 
 import Foundation
 
+struct TodayYesterdayReviewInput: Equatable {
+    var date: Date
+    var review: DailyReview?
+    var foodEntryCount: Int
+    var waterConsumedMl: Int
+    var workoutCaloriesBurned: Int
+    var weightLogged: Bool
+}
+
 struct TodayMissionControlInputs: Equatable {
     var date: Date
     var calorieSummary: CalorieSummary
@@ -18,7 +27,7 @@ struct TodayMissionControlInputs: Equatable {
     var workoutSummary: TodayWorkoutSummary
     var foodEntries: [FoodEntry]
     var hasPriorFoodLogs: Bool
-    var dailyReview: DailyReview?
+    var yesterdayReviewInput: TodayYesterdayReviewInput?
     var goalWeightKg: Double?
     var profileWeightKg: Double?
     var latestWeightKg: Double?

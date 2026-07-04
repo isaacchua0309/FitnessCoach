@@ -109,7 +109,8 @@ enum JourneyPresentationBuilder {
             weeklyHabit: weeklyHabit,
             monthlyRecap: monthlyRecapState(from: monthlyRecap),
             chapter: chapter,
-            weeklyProgressSummary: weeklyProgressSummary
+            weeklyProgressSummary: weeklyProgressSummary,
+            dailyReviewsThisWeekCount: context.weekLogs.filter { $0.dailyReviewId != nil }.count
         )
     }
 
@@ -428,7 +429,8 @@ enum JourneyPresentationBuilder {
                     totalXP: 0,
                     accessibilitySummary: "\(chapterCopy.sectionTitle). \(chapterCopy.chapterLabel(1))"
                 ),
-                weeklyProgressSummary: weeklyProgressSummary
+                weeklyProgressSummary: weeklyProgressSummary,
+                dailyReviewsThisWeekCount: 0
             )
         }
 
