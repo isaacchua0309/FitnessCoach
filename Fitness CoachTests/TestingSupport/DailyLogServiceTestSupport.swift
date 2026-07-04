@@ -50,7 +50,7 @@ enum DailyLogServiceTestSupport {
         }
     }
 
-    static let referenceNow = ProfileTestFixtures.referenceDate
+    static let referenceNow = TestDateFixtures.referenceEpoch
 
     static var alternateTargets: UserTargets {
         UserTargets(
@@ -68,8 +68,8 @@ enum DailyLogServiceTestSupport {
         referenceNow: Date = DailyLogServiceTestSupport.referenceNow,
         ownerUID: String? = nil
     ) throws -> Harness {
-        let dateProvider = FixedDailyLogTestDateProvider(now: referenceNow)
-        let container = try FormaModelContainer.makeContainer(inMemory: true)
+        let dateProvider = FakeClock(now: referenceNow)
+        let container = try InMemorySwiftDataTestStore.makeContainer()
         let store = SwiftDataStore(container: container)
         let outbox = SwiftDataAccountSyncOutboxStore(store: store)
         let mutationTracker = ownerUID.map { uid in
@@ -117,35 +117,14 @@ enum DailyLogServiceTestSupport {
         fiber: Double? = nil,
         sodium: Double? = nil
     ) -> FoodDraft {
-        FoodDraft(
-            mealType: .lunch,
+        CoachFoodFixtures.foodDraft(
             name: name,
-            quantity: 1,
-            unit: "serving",
             calories: calories,
             protein: protein,
             carbs: carbs,
             fat: fat,
             fiber: fiber,
-            sodium: sodium,
-            source: .manual,
-            confidence: .high,
-            imageUrl: nil,
-            notes: nil
+            sodium: sodium
         )
-    }
-}
-
-struct FixedDailyLogTestDateProvider: DateProviding {
-    let now: Date
-    let calendar: Calendar
-
-    init(now: Date, calendar: Calendar = .current) {
-        self.now = calendar.startOfDay(for: now)
-        self.calendar = calendar
-    }
-
-    func startOfDay(for date: Date) -> Date {
-        calendar.startOfDay(for: date)
     }
 }

@@ -201,7 +201,7 @@ final class CoachChatTranscriptPersistenceTests: XCTestCase {
 final class CoachChatTranscriptRetentionPolicyTests: XCTestCase {
 
     func testRetainedMessagesAppliesCountCap() {
-        let now = Date()
+        let now = TestDateFixtures.referenceEpoch
         let messages = (0..<305).map { index in
             ChatMessage(
                 role: .user,

@@ -41,7 +41,7 @@ final class HealthIntelligencePipelineTestHarness {
             nutritionProvider: nutritionProvider,
             weightProvider: weightProvider,
             userPlanProvider: userPlanProvider,
-            clock: FixedPipelineClock(nowValue: clockDay, calendarValue: calendar)
+            clock: FakeClock(now: clockDay, calendar: calendar)
         )
         self.engine = HealthIntelligenceEngine(
             contextBuilder: contextBuilder,
@@ -539,15 +539,6 @@ final class PipelineMockUserPlanProvider: HealthIntelligenceUserPlanProviding, @
     func userPlan(referenceDate: Date) async -> HealthIntelligenceUserPlanSnapshot? {
         plan
     }
-}
-
-struct FixedPipelineClock: HealthIntelligenceClockProviding {
-    let nowValue: Date
-    let calendarValue: Calendar
-
-    func now() -> Date { nowValue }
-
-    func calendar() -> Calendar { calendarValue }
 }
 
 struct PipelineFailingTrainingLoadProvider: TrainingLoadProviding {

@@ -2,6 +2,8 @@
 
 Tests are grouped with **Xcode Test Plans** under `TestPlans/`. The default **Fitness Coach** scheme runs the fast suite; CI should use the **Fitness Coach CI** scheme.
 
+**Focused commands by domain:** [`Docs/Testing/TestCommandCheatsheet.md`](../Docs/Testing/TestCommandCheatsheet.md)
+
 ## Test plans
 
 | Plan | Purpose | ~Classes | Typical runtime |

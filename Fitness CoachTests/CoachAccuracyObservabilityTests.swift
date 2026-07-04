@@ -35,7 +35,7 @@ final class CoachAccuracyObservabilityTests: XCTestCase {
 
     func testContextSnapshotFieldsIncludeRequiredMetrics() {
         let packet = CoachContextPacketV2(
-            meta: CoachContextMeta.make(generatedAt: Date()),
+            meta: CoachContextMeta.make(generatedAt: TestDateFixtures.coachContextAnchor),
             timeline: CoachContextTimelinePacket(recentEvents: []),
             recentMealsStructured: [],
             commonFoods: [],
@@ -78,7 +78,7 @@ final class CoachAccuracyObservabilityTests: XCTestCase {
 
     func testRedactedDebugDescriptionExcludesFoodNamesAndTokens() {
         let packet = CoachContextPacketV2(
-            meta: CoachContextMeta.make(generatedAt: Date()),
+            meta: CoachContextMeta.make(generatedAt: TestDateFixtures.coachContextAnchor),
             timeline: CoachContextTimelinePacket(recentEvents: []),
             recentMealsStructured: [
                 CoachRecentMealContext(
