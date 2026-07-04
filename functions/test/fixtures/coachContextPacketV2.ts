@@ -52,3 +52,75 @@ export const workoutAwareCoachContextV2 = {
     confidence: "high",
   }],
 } as const;
+
+export const richCoachContextV2 = {
+  ...workoutAwareCoachContextV2,
+  profile: {
+    age: 32,
+    sex: "female",
+    heightCm: 168,
+    currentWeightKg: 68,
+    goalWeightKg: 64,
+    activityLevel: "moderatelyActive",
+    trainingFrequencyPerWeek: 4,
+    goalType: "Lose Fat",
+  },
+  recentChatMessages: [
+    {
+      id: "msg-1",
+      role: "user",
+      text: "How am I doing today?",
+      timestamp: "2026-07-03T10:00:00.000Z",
+    },
+    {
+      id: "msg-2",
+      role: "assistant",
+      text: "You are on track for protein.",
+      timestamp: "2026-07-03T10:01:00.000Z",
+    },
+  ],
+  currentUserMessage: "What should I eat next?",
+  timeline: {
+    recentEvents: [
+      {
+        id: "evt-food",
+        type: "foodLogged",
+        status: "confirmed",
+        source: "coachUI",
+        summary: "Logged salad",
+        timestamp: "2026-07-03T09:00:00.000Z",
+        linkedEntryId: "cccccccc-dddd-4eee-8fff-000000000001",
+      },
+      {
+        id: "evt-steps",
+        type: "stepsUpdated",
+        status: "confirmed",
+        source: "healthKit",
+        summary: "Steps updated: 8000",
+        timestamp: "2026-07-03T08:00:00.000Z",
+      },
+    ],
+  },
+  commonFoods: [{
+    name: "salad",
+    displayName: "Salad",
+    frequency: 4,
+    typicalCalories: 420,
+  }],
+  assumptions: [{
+    key: "stepsSource",
+    detail: "Steps sourced from HealthKit.",
+    confidence: "medium",
+  }],
+  missingData: {
+    sleepMissing: true,
+  },
+  healthIntelligence: {
+    recoveryStatus: "moderate",
+    workoutSummaryText: "Moderate run this morning.",
+  },
+  sourceAttribution: {
+    generationMode: "live",
+    sources: ["dailyLog", "healthKit"],
+  },
+} as const;

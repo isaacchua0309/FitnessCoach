@@ -346,7 +346,7 @@ describe("aiGateway contract", () => {
       await handleAiGatewayRequest(request, response);
 
       expect(response.statusCode).toBe(400);
-      expect((response.body as {error: string}).error).toContain("schemaVersion");
+      expect((response.body as {error: string}).error).toBe("Invalid context.");
       expect(fetchMock).not.toHaveBeenCalled();
     });
 

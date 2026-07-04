@@ -1,5 +1,7 @@
 import {GatewayError} from "../src/gatewayGuardrails";
 import {
+  assertCoachContextEncodedSizeWithinLimit,
+  assertNoImageDataInCoachContext,
   COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION,
   coachContextLogFields,
   parseCoachContextForPrompt,
@@ -7,17 +9,30 @@ import {
 } from "../src/coachContextPacketV2";
 import {
   minimalCoachContextV2,
+  richCoachContextV2,
   workoutAwareCoachContextV2,
 } from "./fixtures/coachContextPacketV2";
 
+const mealEntryId = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+const timelineEntryId = "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff";
+
 describe("coachContextPacketV2", () => {
-  it("accepts partial but valid v2 context", () => {
+  it("accepts valid minimal v2 context", () => {
     expect(() => validateCoachContextPacketV2(minimalCoachContextV2)).not.toThrow();
+    const sanitized = parseCoachContextForPrompt(minimalCoachContextV2);
+    expect(sanitized?.meta.schemaVersion).toBe(COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION);
+  });
+
+  it("accepts valid rich v2 context", () => {
+    expect(() => validateCoachContextPacketV2(richCoachContextV2)).not.toThrow();
+    const sanitized = parseCoachContextForPrompt(richCoachContextV2);
+    expect(sanitized).toHaveProperty("training");
+    expect(sanitized).toHaveProperty("recentMealsStructured");
   });
 
   it("rejects empty context objects", () => {
     expect(() => validateCoachContextPacketV2({}))
-      .toThrow("Missing or invalid context.meta.");
+      .toThrow("Missing or invalid context.");
   });
 
   it("rejects invalid schema version with 400", () => {
@@ -30,8 +45,13 @@ describe("coachContextPacketV2", () => {
     } catch (error) {
       expect(error).toBeInstanceOf(GatewayError);
       expect((error as GatewayError).status).toBe(400);
-      expect((error as GatewayError).message).toContain("schemaVersion");
+      expect((error as GatewayError).message).toBe("Invalid context.");
     }
+  });
+
+  it("rejects v1 context where v2 is required", () => {
+    expect(() => parseCoachContextForPrompt({meta: {schemaVersion: 1}}, {required: true}))
+      .toThrow("Invalid context.");
   });
 
   it("sanitizes chat messages with text and timestamp fields", () => {
@@ -107,7 +127,7 @@ describe("coachContextPacketV2", () => {
     expect(events[0].summary.length).toBeLessThanOrEqual(181);
   });
 
-  it("limits recent meals and common foods for prompt embedding", () => {
+  it("truncates oversized list fields during sanitization", () => {
     const sanitized = parseCoachContextForPrompt({
       meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},
       recentMealsStructured: Array.from({length: 12}, (_, index) => ({
@@ -119,10 +139,102 @@ describe("coachContextPacketV2", () => {
         name: `food-${index}`,
         frequency: index,
       })),
+      recentChatMessages: Array.from({length: 15}, (_, index) => ({
+        id: `msg-${index}`,
+        role: "user",
+        text: `Message ${index}`,
+      })),
+      timeline: {
+        recentEvents: Array.from({length: 25}, (_, index) => ({
+          id: String(index),
+          type: "foodLogged",
+          status: "confirmed",
+          source: "coachUI",
+          summary: `Meal ${index}`,
+          timestamp: "2026-07-03T10:00:00.000Z",
+        })),
+      },
     });
 
     expect((sanitized?.recentMealsStructured as unknown[]).length).toBe(10);
     expect((sanitized?.commonFoods as unknown[]).length).toBe(10);
+    expect((sanitized?.recentChatMessages as unknown[]).length).toBe(12);
+    expect((sanitized?.timeline as {recentEvents: unknown[]}).recentEvents.length)
+      .toBeLessThanOrEqual(20);
+  });
+
+  it("rejects oversized encoded context with 413", () => {
+    const oversized = {
+      meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},
+      profile: {
+        goalType: "x".repeat(30_000),
+      },
+    };
+
+    expect(() => assertCoachContextEncodedSizeWithinLimit(oversized)).toThrow(GatewayError);
+    try {
+      validateCoachContextPacketV2(oversized);
+    } catch (error) {
+      expect(error).toBeInstanceOf(GatewayError);
+      expect((error as GatewayError).status).toBe(413);
+      expect((error as GatewayError).message).toBe("Context payload too large.");
+    }
+  });
+
+  it("rejects raw image bytes inside context", () => {
+    expect(() => assertNoImageDataInCoachContext({
+      meta: {schemaVersion: 2},
+      imageJPEGBase64: "abc",
+    })).toThrow("Invalid context.");
+
+    expect(() => validateCoachContextPacketV2({
+      meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},
+      timeline: {
+        recentEvents: [{
+          id: "1",
+          type: "photoAttached",
+          status: "confirmed",
+          source: "coachUI",
+          summary: "photo",
+          compactPayload: {
+            base64: "/9j/" + "A".repeat(300),
+          },
+        }],
+      },
+    })).toThrow("Invalid context.");
+  });
+
+  it("allows image bytes only outside context validation path", () => {
+    expect(() => assertNoImageDataInCoachContext({
+      meta: {schemaVersion: 2},
+      note: "no image here",
+    })).not.toThrow();
+  });
+
+  it("sanitizes unknown event compact payload values", () => {
+    const sanitized = parseCoachContextForPrompt({
+      meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},
+      timeline: {
+        recentEvents: [{
+          id: "1",
+          type: "foodLogged",
+          status: "confirmed",
+          source: "coachUI",
+          summary: "Logged meal",
+          timestamp: "2026-07-03T10:00:00.000Z",
+          compactPayload: {
+            nested: {secret: "value"},
+            ok: "yes",
+          },
+        }],
+      },
+    });
+
+    const payload = (sanitized?.timeline as {
+      recentEvents: Array<{compactPayload?: Record<string, string>}>;
+    }).recentEvents[0].compactPayload;
+    expect(payload?.nested).toBe("[sanitized]");
+    expect(payload?.ok).toBe("yes");
   });
 
   it("strips unknown top-level payloads before prompt embedding", () => {
@@ -136,29 +248,36 @@ describe("coachContextPacketV2", () => {
   });
 
   it("coachContextLogFields avoids raw health/nutrition payloads", () => {
-    const fields = coachContextLogFields(workoutAwareCoachContextV2);
+    const fields = coachContextLogFields({
+      ...workoutAwareCoachContextV2,
+      missingData: {
+        stepsMissing: true,
+        contextGenerationFailed: true,
+      },
+    });
 
     expect(fields.contextPresent).toBe(true);
     expect(fields.contextSchemaVersion).toBe(2);
     expect(fields.contextRecentMeals).toBe(1);
+    expect(fields.contextMissingDataFlags).toBe("contextGenerationFailed,stepsMissing");
+    expect(fields.contextGenerationFailed).toBe(true);
     expect(JSON.stringify(fields)).not.toContain("Salad");
     expect(JSON.stringify(fields)).not.toContain("8000");
   });
 
   it("preserves linkedEntryId on recent meals during sanitization", () => {
-    const entryId = "meal-entry-42";
     const sanitized = parseCoachContextForPrompt({
       meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},
       recentMealsStructured: [{
         name: "Salad",
         calories: 420,
         proteinGrams: 28,
-        linkedEntryId: entryId,
+        linkedEntryId: mealEntryId,
       }],
     });
 
     const meals = sanitized?.recentMealsStructured as Array<{linkedEntryId?: string}>;
-    expect(meals[0].linkedEntryId).toBe(entryId);
+    expect(meals[0].linkedEntryId).toBe(mealEntryId);
   });
 
   it("preserves linkedEntryId on timeline events during sanitization", () => {
@@ -172,14 +291,14 @@ describe("coachContextPacketV2", () => {
           source: "coachUI",
           summary: "Logged salad",
           timestamp: "2026-07-03T10:00:00.000Z",
-          linkedEntryId: "entry-salad",
+          linkedEntryId: timelineEntryId,
         }],
       },
     });
 
     const events = (sanitized?.timeline as {recentEvents: Array<{linkedEntryId?: string}>})
       .recentEvents;
-    expect(events[0].linkedEntryId).toBe("entry-salad");
+    expect(events[0].linkedEntryId).toBe(timelineEntryId);
   });
 
   it("filters rejected and failed timeline events from prompt embedding", () => {
@@ -196,13 +315,21 @@ describe("coachContextPacketV2", () => {
             timestamp: "2026-07-03T09:00:00.000Z",
           },
           {
+            id: "failed-food",
+            type: "foodLogged",
+            status: "failed",
+            source: "coachUI",
+            summary: "Failed log attempt",
+            timestamp: "2026-07-03T09:30:00.000Z",
+          },
+          {
             id: "confirmed-1",
             type: "foodLogged",
             status: "confirmed",
             source: "coachUI",
             summary: "Logged eggs",
             timestamp: "2026-07-03T10:00:00.000Z",
-            linkedEntryId: "entry-eggs",
+            linkedEntryId: timelineEntryId,
           },
         ],
       },
@@ -212,6 +339,24 @@ describe("coachContextPacketV2", () => {
       .recentEvents;
     expect(events).toHaveLength(1);
     expect(events[0].type).toBe("foodLogged");
+  });
+
+  it("does not treat rejected-status foodLogged events as consumed facts", () => {
+    const sanitized = parseCoachContextForPrompt({
+      meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},
+      timeline: {
+        recentEvents: [{
+          id: "pending-food",
+          type: "foodLogged",
+          status: "pending",
+          source: "coachUI",
+          summary: "Pending food",
+          timestamp: "2026-07-03T10:00:00.000Z",
+        }],
+      },
+    });
+
+    expect((sanitized?.timeline as {recentEvents: unknown[]}).recentEvents).toHaveLength(0);
   });
 
   it("retains pending confirmation events with pending status", () => {
@@ -250,6 +395,26 @@ describe("coachContextPacketV2", () => {
     expect(() => validateCoachContextPacketV2({
       meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},
       timeline: {recentEvents: "not-an-array"},
-    })).toThrow("timeline.recentEvents");
+    })).toThrow("Invalid context.");
+  });
+
+  it("rejects invalid linkedEntryId format during validation", () => {
+    expect(() => validateCoachContextPacketV2({
+      meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},
+      recentMealsStructured: [{
+        name: "Salad",
+        linkedEntryId: "not-a-uuid",
+      }],
+    })).toThrow("Invalid context.");
+  });
+
+  it("rejects assumptions detail that exceeds max length", () => {
+    expect(() => validateCoachContextPacketV2({
+      meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},
+      assumptions: [{
+        key: "test",
+        detail: "x".repeat(300),
+      }],
+    })).toThrow("Invalid context.");
   });
 });
