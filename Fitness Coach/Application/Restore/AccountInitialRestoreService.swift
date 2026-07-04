@@ -87,10 +87,11 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
         uid: String,
         reason: AccountRestoreReason
     ) async -> AccountRestoreSummary {
-        await runRestore(
+        let mode: AccountRestoreMode = reason == .manualRetry ? .manualRetry : .blockingInitial
+        return await runRestore(
             uid: uid,
             reason: reason,
-            mode: .blockingInitial
+            mode: mode
         )
     }
 
@@ -200,7 +201,7 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
             )
         }
 
-        if mode == .blockingInitial,
+        if mode == .blockingInitial || mode == .manualRetry,
            !stateStore.shouldRunBlockingRestore(
                uid: normalizedUID,
                localDataStatus: localStatus,
@@ -230,6 +231,16 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
             )
         }
 
+        if Task.isCancelled {
+            return finishCancelled(
+                uid: normalizedUID,
+                reason: reason,
+                mode: mode,
+                startedAt: startedAt,
+                localStatus: localStatus
+            )
+        }
+
         if !networkChecker.isNetworkAvailable,
            mode == .blockingInitial,
            localStatus.needsInitialRestore,
@@ -241,7 +252,8 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
                 mode: mode,
                 startedAt: startedAt,
                 profileRestored: false,
-                pullSummary: nil
+                pullSummary: nil,
+                localStatus: localStatus
             )
         }
 
@@ -272,7 +284,7 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
         let hadLocalProfile = localStatus.hasProfile
         var profileRestored = false
 
-        if mode == .blockingInitial || !hadLocalProfile {
+        if mode == .blockingInitial || mode == .manualRetry || !hadLocalProfile {
             stateStore.markProgress(uid: normalizedUID, status: .restoringProfile, now: dateProvider.now)
             do {
                 switch try await profileBootstrapService.resolve(uid: normalizedUID) {
@@ -302,7 +314,8 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
                         mode: mode,
                         startedAt: startedAt,
                         profileRestored: localStatus.hasProfile,
-                        pullSummary: nil
+                        pullSummary: nil,
+                        localStatus: localStatus
                     )
                 }
                 return finishFailed(
@@ -315,7 +328,8 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
             }
         }
 
-        if !remoteStatus.hasAnyRestorableData, mode == .blockingInitial {
+        if !remoteStatus.hasAnyRestorableData,
+           mode == .blockingInitial || mode == .manualRetry {
             return finishCompletedEmpty(
                 uid: normalizedUID,
                 reason: reason,
@@ -326,26 +340,60 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
         }
 
         guard networkChecker.isNetworkAvailable else {
+            let refreshedLocalStatus = try? await localInspector.inspectLocalData(for: normalizedUID)
             return finishOffline(
                 uid: normalizedUID,
                 reason: reason,
                 mode: mode,
                 startedAt: startedAt,
                 profileRestored: profileRestored || localStatus.hasProfile,
-                pullSummary: nil
+                pullSummary: nil,
+                localStatus: refreshedLocalStatus ?? localStatus
             )
         }
 
         let dateRange = dateRange(for: mode, referenceDate: today)
-        stateStore.markProgress(uid: normalizedUID, status: .restoringRecentData, now: dateProvider.now())
-        let pullSummary = await puller.pullRecentAccountData(
-            for: normalizedUID,
-            from: dateRange.start,
-            to: dateRange.end
+        let dailyRange = AccountRestorePolicy.dailyLogDateRange(
+            for: mode,
+            referenceDate: today,
+            calendar: calendar
+        )
+        let weightRange = AccountRestorePolicy.weightDateRange(
+            for: mode,
+            referenceDate: today,
+            calendar: calendar
         )
 
-        if mode == .blockingInitial || mode == .manualRetry {
+        stateStore.markProgress(uid: normalizedUID, status: .restoringRecentData, now: dateProvider.now())
+        let recentPullSummary = await puller.pullRecentAccountData(
+            for: normalizedUID,
+            from: dailyRange.start,
+            to: dailyRange.end
+        )
+
+        var pullSummary = recentPullSummary
+        if mode == .blockingInitial || mode == .manualRetry,
+           weightRange.start != dailyRange.start || weightRange.end != dailyRange.end {
             stateStore.markProgress(uid: normalizedUID, status: .restoringWeightHistory, now: dateProvider.now())
+            let weightPullSummary = await puller.pullRecentAccountData(
+                for: normalizedUID,
+                from: weightRange.start,
+                to: weightRange.end
+            )
+            pullSummary = AccountRestoreOutcomeSupport.mergePullSummaries(
+                recentPullSummary,
+                weightPullSummary
+            )
+        }
+
+        if Task.isCancelled {
+            return finishCancelled(
+                uid: normalizedUID,
+                reason: reason,
+                mode: mode,
+                startedAt: startedAt,
+                localStatus: try? await localInspector.inspectLocalData(for: normalizedUID)
+            )
         }
 
         stateStore.markProgress(uid: normalizedUID, status: .rebuildingLocalViews, now: dateProvider.now())
@@ -434,8 +482,22 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
         mode: AccountRestoreMode,
         startedAt: Date,
         profileRestored: Bool,
-        pullSummary: AccountSyncPullSummary?
+        pullSummary: AccountSyncPullSummary?,
+        localStatus: AccountLocalDataStatus? = nil
     ) -> AccountRestoreSummary {
+        if let localStatus,
+           !AccountRestoreOutcomeSupport.hasMeaningfulLocalRestoreProgress(localStatus),
+           !profileRestored,
+           mode == .blockingInitial || mode == .manualRetry {
+            return finishFailed(
+                uid: uid,
+                reason: reason,
+                mode: mode,
+                startedAt: startedAt,
+                message: FormaProductCopy.AccountRestore.Failed.body
+            )
+        }
+
         let endedAt = dateProvider.now
         let summary = AccountRestoreSummary(
             uid: uid,
@@ -509,7 +571,8 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
                 mode: mode,
                 startedAt: startedAt,
                 profileRestored: localStatus.hasProfile,
-                pullSummary: nil
+                pullSummary: nil,
+                localStatus: localStatus
             )
         case .permissionDenied, .unauthenticated:
             return finishFailed(
@@ -525,7 +588,7 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
                 reason: reason,
                 mode: mode,
                 startedAt: startedAt,
-                message: "Some account data could not be read. You can retry restore later."
+                message: AccountRestoreOutcomeSupport.safeFailureMessage(for: remoteFailure)
             )
         case .unknown:
             return finishFailed(
@@ -533,9 +596,40 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
                 reason: reason,
                 mode: mode,
                 startedAt: startedAt,
-                message: "Restore could not reach your account data."
+                message: AccountRestoreOutcomeSupport.safeFailureMessage(for: remoteFailure)
             )
         }
+    }
+
+    private func finishCancelled(
+        uid: String,
+        reason: AccountRestoreReason,
+        mode: AccountRestoreMode,
+        startedAt: Date,
+        localStatus: AccountLocalDataStatus?
+    ) -> AccountRestoreSummary {
+        let endedAt = dateProvider.now
+        if let localStatus,
+           AccountRestoreOutcomeSupport.hasMeaningfulLocalRestoreProgress(localStatus) {
+            let summary = AccountRestoreOutcomeSupport.timedOutSummary(
+                uid: uid,
+                reason: reason,
+                startedAt: startedAt,
+                endedAt: endedAt,
+                localStatus: localStatus,
+                remoteFailure: nil
+            )
+            stateStore.markPartial(uid: uid, summary: summary, now: endedAt)
+            return summary
+        }
+
+        return finishFailed(
+            uid: uid,
+            reason: reason,
+            mode: mode,
+            startedAt: startedAt,
+            message: FormaProductCopy.AccountRestore.Failed.body
+        )
     }
 
     private func finishPullOutcome(
@@ -551,10 +645,29 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
         let restoredAnything = pullSummary.inserted > 0
             || pullSummary.updated > 0
             || profileRestored
-        let isPartial = pullSummary.failed > 0
-            || pullSummary.conflicts > 0
-            || remoteFailure == .decodingFailed
+        let isPartial = AccountRestoreOutcomeSupport.isPartialPullOutcome(
+            profileRestored: profileRestored,
+            pullSummary: pullSummary,
+            remoteFailure: remoteFailure
+        )
         let status: AccountRestoreStatus = isPartial ? .partial : .completed
+
+        let userFacingMessage: String?
+        if isPartial {
+            if profileRestored,
+               pullSummary.inserted == 0,
+               pullSummary.updated == 0 {
+                userFacingMessage = FormaProductCopy.AccountRestore.Partial.body
+            } else if pullSummary.weightEntriesFetched == 0,
+                      pullSummary.failed > 0,
+                      restoredAnything {
+                userFacingMessage = FormaProductCopy.AccountRestore.Partial.body
+            } else {
+                userFacingMessage = FormaProductCopy.AccountRestore.Partial.body
+            }
+        } else {
+            userFacingMessage = restoredAnything ? nil : AccountInitialRestoreServiceSupport.emptyRestoreMessage
+        }
 
         let summary = AccountRestoreSummary(
             uid: uid,
@@ -573,7 +686,7 @@ final class AccountInitialRestoreService: AccountInitialRestoring {
             conflicts: pullSummary.conflicts,
             failed: pullSummary.failed,
             isPartial: isPartial,
-            userFacingMessage: restoredAnything ? nil : AccountInitialRestoreServiceSupport.emptyRestoreMessage
+            userFacingMessage: userFacingMessage
         )
 
         if isPartial {

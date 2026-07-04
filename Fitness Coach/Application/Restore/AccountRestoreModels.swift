@@ -107,30 +107,26 @@ extension AccountRestoreSummary {
         return endedAt.timeIntervalSince(startedAt)
     }
 
-    static func timedOutPartial(
-        uid: String,
-        reason: AccountRestoreReason,
-        startedAt: Date,
-        endedAt: Date
-    ) -> AccountRestoreSummary {
-        AccountRestoreSummary(
-            uid: uid,
-            reason: reason,
-            mode: .blockingInitial,
-            status: .partial,
-            startedAt: startedAt,
-            endedAt: endedAt,
-            profileRestored: false,
-            dailyLogsRestored: 0,
-            foodEntriesRestored: 0,
-            waterEntriesRestored: 0,
-            weightEntriesRestored: 0,
-            dailyReviewsRestored: 0,
-            skippedLocalNewer: 0,
-            conflicts: 0,
-            failed: 0,
-            isPartial: true,
-            userFacingMessage: FormaProductCopy.AccountRestore.TimedOut.body
-        )
+    var allowsContinuedEntry: Bool {
+        switch status {
+        case .completed, .skipped, .partial, .offline:
+            return true
+        case .failed:
+            return profileRestored || totalEntitiesRestored > 0
+        case .notStarted, .checking, .restoringProfile, .restoringRecentData,
+             .restoringWeightHistory, .rebuildingLocalViews:
+            return false
+        }
+    }
+
+    var shouldScheduleBackgroundBackfill: Bool {
+        switch status {
+        case .partial, .offline:
+            return true
+        case .completed:
+            return isPartial
+        default:
+            return false
+        }
     }
 }

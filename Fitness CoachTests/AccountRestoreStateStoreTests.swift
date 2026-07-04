@@ -265,6 +265,29 @@ final class AccountRestoreStateStoreTests: XCTestCase {
         XCTAssertFalse(joined.contains("salad"))
     }
 
+    func testPrepareForManualRetryClearsFailureMessage() {
+        store.markFailed(uid: uidA, reason: .afterSignIn, message: "Restore failed.", now: referenceDate)
+
+        store.prepareForManualRetry(uid: uidA, now: referenceDate)
+
+        XCTAssertNil(store.loadState(uid: uidA).lastFailureMessage)
+    }
+
+    func testShouldRunBackgroundBackfillAfterPartialRestore() {
+        store.markPartial(
+            uid: uidA,
+            summary: makeSummary(uid: uidA, mode: .blockingInitial, status: .partial),
+            now: referenceDate
+        )
+
+        XCTAssertTrue(
+            store.shouldRunBackgroundBackfill(
+                uid: uidA,
+                now: referenceDate.addingTimeInterval(60)
+            )
+        )
+    }
+
     // MARK: - Fixtures
 
     private func makeSummary(

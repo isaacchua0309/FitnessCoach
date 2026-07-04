@@ -103,7 +103,16 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
     }
 
     func retryRestore(uid: String) async -> AccountRestoreSummary {
-        await prepareAccount(uid: uid, reason: .manualRetry, forceBlocking: true)
+        guard let normalizedUID = normalizedUID(uid) else {
+            return failedSummary(
+                uid: uid.trimmingCharacters(in: .whitespacesAndNewlines),
+                reason: .manualRetry,
+                startedAt: dateProvider.now,
+                message: "Restore could not start for this account."
+            )
+        }
+        stateStore.prepareForManualRetry(uid: normalizedUID, now: dateProvider.now)
+        return await prepareAccount(uid: normalizedUID, reason: .manualRetry, forceBlocking: true)
     }
 
     func runBackgroundBackfillIfNeeded(uid: String) async {
@@ -239,7 +248,7 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
 
         let summary: AccountRestoreSummary
         if shouldBlock {
-            summary = await initialRestoreService.runBlockingInitialRestore(
+            summary = await runBlockingRestoreWithTimeout(
                 uid: normalizedUID,
                 reason: reason
             )
@@ -266,6 +275,110 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
                 "status": summary.status.rawValue
             ]
         )
+        return summary
+    }
+
+    // MARK: - Blocking timeout
+
+    private enum BlockingRestoreWaitResult {
+        case finished(AccountRestoreSummary)
+        case timedOut
+    }
+
+    private func runBlockingRestoreWithTimeout(
+        uid: String,
+        reason: AccountRestoreReason
+    ) async -> AccountRestoreSummary {
+        let startedAt = dateProvider.now
+        let timeoutNanoseconds = UInt64(
+            AccountRestorePolicy.preferredBlockingRestoreTimeoutSeconds * 1_000_000_000
+        )
+
+        let result = await withTaskGroup(of: BlockingRestoreWaitResult.self) { group in
+            group.addTask { [initialRestoreService] in
+                let summary = await initialRestoreService.runBlockingInitialRestore(
+                    uid: uid,
+                    reason: reason
+                )
+                return .finished(summary)
+            }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: timeoutNanoseconds)
+                return .timedOut
+            }
+
+            let first = await group.next()
+            group.cancelAll()
+            return first
+        }
+
+        switch result {
+        case .finished(let summary):
+            return summary
+        case .timedOut, .none:
+            return await resolveTimedOutBlockingRestore(
+                uid: uid,
+                reason: reason,
+                startedAt: startedAt
+            )
+        }
+    }
+
+    private func resolveTimedOutBlockingRestore(
+        uid: String,
+        reason: AccountRestoreReason,
+        startedAt: Date
+    ) async -> AccountRestoreSummary {
+        let endedAt = dateProvider.now
+        let localStatus: AccountLocalDataStatus
+        do {
+            localStatus = try await localInspector.inspectLocalData(for: uid)
+        } catch {
+            AccountRestoreLogger.error(
+                "restore_timeout_local_inspection_failed",
+                fields: ["uid": uid],
+                underlying: error
+            )
+            return failedSummary(
+                uid: uid,
+                reason: reason,
+                startedAt: startedAt,
+                message: FormaProductCopy.AccountRestore.Failed.body
+            )
+        }
+
+        let remoteStatus = await remoteInspector.inspectRemoteData(
+            for: uid,
+            today: endedAt
+        )
+        let summary = AccountRestoreOutcomeSupport.timedOutSummary(
+            uid: uid,
+            reason: reason,
+            startedAt: startedAt,
+            endedAt: endedAt,
+            localStatus: localStatus,
+            remoteFailure: remoteStatus.failure
+        )
+
+        switch summary.status {
+        case .partial:
+            stateStore.markPartial(uid: uid, summary: summary, now: endedAt)
+            AccountRestoreLogger.warn("restore_timed_out_partial", fields: ["uid": uid])
+        case .offline:
+            stateStore.markOffline(uid: uid, reason: reason, now: endedAt)
+            AccountRestoreLogger.warn("restore_timed_out_offline", fields: ["uid": uid])
+        case .failed:
+            stateStore.markFailed(
+                uid: uid,
+                reason: reason,
+                message: summary.userFacingMessage ?? FormaProductCopy.AccountRestore.Failed.body,
+                now: endedAt
+            )
+            AccountRestoreLogger.warn("restore_timed_out_failed", fields: ["uid": uid])
+        default:
+            break
+        }
+
         return summary
     }
 
@@ -347,11 +460,11 @@ final class AccountRestoreCoordinator: AccountRestoreCoordinating {
         case .permissionDenied, .unauthenticated:
             message = AccountRestoreCoordinatorSupport.permissionDeniedMessage
         case .decodingFailed:
-            message = "Some account data could not be read. You can retry restore later."
+            message = AccountRestoreOutcomeSupport.safeFailureMessage(for: failure)
         case .offline, .unavailable:
             message = AccountInitialRestoreServiceSupport.offlineRestoreMessage
         case .unknown:
-            message = "Restore could not reach your account data."
+            message = FormaProductCopy.AccountRestore.Failed.body
         }
 
         let endedAt = dateProvider.now

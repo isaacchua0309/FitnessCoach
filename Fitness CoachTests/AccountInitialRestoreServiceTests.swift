@@ -69,7 +69,21 @@ final class AccountInitialRestoreServiceTests: XCTestCase {
         XCTAssertNotNil(summary.userFacingMessage)
     }
 
-    func testOfflineRestoreMarksOfflineWithoutCreatingLocalLogs() async {
+    func testOfflineRestoreWithoutProfileOrLocalDataReturnsFailed() async {
+        harness.networkChecker.isNetworkAvailable = false
+
+        let summary = await harness.service.runBlockingInitialRestore(
+            uid: ownerUID,
+            reason: .afterSignIn
+        )
+
+        XCTAssertEqual(summary.status, .failed)
+        XCTAssertEqual(harness.stateStore.loadState(uid: ownerUID).status, .failed)
+        XCTAssertTrue(try harness.store.fetch(FetchDescriptor<FoodEntryEntity>()).isEmpty)
+    }
+
+    func testOfflineRestoreWithLocalProfileAllowsContinue() async throws {
+        _ = try harness.seedLocalProfile(ownerUID: ownerUID)
         harness.networkChecker.isNetworkAvailable = false
 
         let summary = await harness.service.runBlockingInitialRestore(
@@ -78,8 +92,7 @@ final class AccountInitialRestoreServiceTests: XCTestCase {
         )
 
         XCTAssertEqual(summary.status, .offline)
-        XCTAssertEqual(harness.stateStore.loadState(uid: ownerUID).status, .offline)
-        XCTAssertTrue(try harness.store.fetch(FetchDescriptor<FoodEntryEntity>()).isEmpty)
+        XCTAssertTrue(summary.allowsContinuedEntry)
     }
 
     func testExistingLocalUnsyncedEditsArePreservedDuringBackfill() async throws {
@@ -327,6 +340,13 @@ private final class RestoreServiceHarness {
         food.calories = calories
         food.updatedAt = updated
         try await remoteStore.saveFoodEntry(food, uid: ownerUID)
+    }
+
+    @discardableResult
+    func seedLocalProfile(ownerUID: String) throws -> UserProfile {
+        var draft = ProfileTestFixtures.sampleDraft
+        draft.targets = ProfileTestFixtures.sampleTargets
+        return try profileService.createProfile(draft, ownerUID: ownerUID)
     }
 
     @discardableResult

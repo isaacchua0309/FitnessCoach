@@ -169,11 +169,14 @@ final class AccountRestoreViewModel: ObservableObject {
         case .completed:
             return FormaProductCopy.AccountRestore.Completed.message
         case .partialContinue:
-            return FormaProductCopy.AccountRestore.Partial.body
+            if summary?.userFacingMessage == FormaProductCopy.AccountRestore.TimedOut.body {
+                return FormaProductCopy.AccountRestore.TimedOut.body
+            }
+            return summary?.userFacingMessage ?? FormaProductCopy.AccountRestore.Partial.body
         case .offlineContinue:
-            return FormaProductCopy.AccountRestore.Offline.body
+            return summary?.userFacingMessage ?? FormaProductCopy.AccountRestore.Offline.body
         case .failed:
-            return FormaProductCopy.AccountRestore.Failed.body
+            return summary?.userFacingMessage ?? FormaProductCopy.AccountRestore.Failed.body
         }
     }
 
@@ -198,10 +201,28 @@ final class AccountRestoreViewModel: ObservableObject {
         case .offlineContinue:
             return FormaProductCopy.AccountRestore.Offline.continueCTA
         case .failed:
-            return FormaProductCopy.AccountRestore.Failed.retryCTA
+            return failedAllowsContinue
+                ? FormaProductCopy.AccountRestore.Offline.continueCTA
+                : FormaProductCopy.AccountRestore.Failed.retryCTA
         case .checkingAccount, .restoringProfile, .restoringRecentLogs,
              .restoringWeightHistory, .preparingDashboard, .completed:
             return FormaProductCopy.Common.continueAction
+        }
+    }
+
+    var failedAllowsContinue: Bool {
+        guard phase == .failed, let summary else { return false }
+        return summary.allowsContinuedEntry
+    }
+
+    var showsSecondaryRetryAction: Bool {
+        switch phase {
+        case .failed:
+            return failedAllowsContinue
+        case .offlineContinue:
+            return true
+        default:
+            return false
         }
     }
 

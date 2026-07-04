@@ -145,6 +145,15 @@ struct AccountRestoreView: View {
             )
             .disabled(viewModel.isRetrying)
 
+            if viewModel.showsSecondaryRetryAction {
+                PublicEntrySecondaryLink(
+                    title: FormaProductCopy.AccountRestore.Failed.retryCTA,
+                    palette: palette,
+                    action: viewModel.retry
+                )
+                .disabled(viewModel.isRetrying)
+            }
+
             if viewModel.phase.showsSignOutAction {
                 PublicEntrySecondaryLink(
                     title: FormaProductCopy.AccountRestore.Failed.signOutCTA,
@@ -158,7 +167,11 @@ struct AccountRestoreView: View {
     private func primaryAction() {
         switch viewModel.phase {
         case .failed:
-            viewModel.retry()
+            if viewModel.failedAllowsContinue {
+                viewModel.continueToApp()
+            } else {
+                viewModel.retry()
+            }
         case .partialContinue, .offlineContinue:
             viewModel.continueToApp()
         case .checkingAccount, .restoringProfile, .restoringRecentLogs,

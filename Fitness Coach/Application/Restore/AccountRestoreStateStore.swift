@@ -31,6 +31,7 @@ protocol AccountRestoreStateStoring {
     func markOffline(uid: String, reason: AccountRestoreReason, now: Date)
     func markFailed(uid: String, reason: AccountRestoreReason, message: String, now: Date)
     func markSkipped(uid: String, reason: AccountRestoreReason, now: Date)
+    func prepareForManualRetry(uid: String, now: Date)
     func shouldRunBlockingRestore(uid: String, localDataStatus: AccountLocalDataStatus, now: Date) -> Bool
     func shouldRunBackgroundBackfill(uid: String, now: Date) -> Bool
     func clear(uid: String)
@@ -231,6 +232,17 @@ struct AccountRestoreStateStore: AccountRestoreStateStoring {
         removeValue(forKey: AccountRestoreStateStoreSupport.lastFailureMessageKey(for: normalizedUID))
     }
 
+    func prepareForManualRetry(uid: String, now: Date) {
+        guard let normalizedUID = AccountRestoreStateStoreSupport.normalizedUID(uid) else { return }
+        _ = now
+
+        let state = loadState(uid: normalizedUID)
+        if state.status.isInProgress {
+            setStatus(.notStarted, uid: normalizedUID)
+        }
+        removeValue(forKey: AccountRestoreStateStoreSupport.lastFailureMessageKey(for: normalizedUID))
+    }
+
     func shouldRunBlockingRestore(
         uid: String,
         localDataStatus: AccountLocalDataStatus,
@@ -254,6 +266,10 @@ struct AccountRestoreStateStore: AccountRestoreStateStoring {
         let state = loadState(uid: normalizedUID)
         guard !state.status.isInProgress else { return false }
         guard blockingRestoreRequirementSatisfied(state) else { return false }
+
+        if state.status == .partial || state.status == .offline {
+            return true
+        }
 
         if state.lastSuccessfulBackgroundBackfillAt == nil {
             return true
