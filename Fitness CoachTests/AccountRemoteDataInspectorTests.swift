@@ -151,10 +151,12 @@ final class AccountRemoteDataInspectorTests: XCTestCase {
     }
 
     func testOutOfRangeWeightHistoryIsIgnored() async throws {
+        let oldDate = try XCTUnwrap(calendar.date(byAdding: .day, value: -200, to: referenceDate))
+        let oldLocalDate = CloudAccountDataDateCodec.localDateString(from: oldDate, calendar: calendar)
         try await remoteStore.saveWeightEntry(
             FirestoreAccountDataRemoteStoreTestFixtures.weightEntry(
                 userId: uidA,
-                localDate: "2025-01-01",
+                localDate: oldLocalDate,
                 referenceDate: referenceDate,
                 entryId: "old-weight"
             ),

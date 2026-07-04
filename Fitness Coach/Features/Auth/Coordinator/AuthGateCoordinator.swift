@@ -665,7 +665,7 @@ final class AuthGateCoordinator: ObservableObject {
             }
             if isSignedInNow, case .signedIn(let uid) = state {
                 if isFreshSignIn {
-                    container.handleAccountDataSyncAfterSignIn(uid: uid)
+                    container.handleAccountRestoreAfterSignIn(uid: uid)
                 }
                 reconcileSignedInProfile(uid: uid, isFreshSignIn: isFreshSignIn)
             }

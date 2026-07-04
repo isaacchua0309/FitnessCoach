@@ -22,6 +22,14 @@ final class AppContainer {
     let accountSyncCoordinator: AccountSyncCoordinator
     let accountSyncDiagnostics: AccountSyncDiagnostics
 
+    let accountRestoreStateStore: AccountRestoreStateStore
+    let accountLocalDataInspector: AccountLocalDataInspector
+    let accountRemoteDataInspector: AccountRemoteDataInspector
+    let accountDataNamespaceService: AccountDataNamespaceService
+    let accountMigrationService: AccountMigrationService
+    let accountInitialRestoreService: AccountInitialRestoreService
+    let accountRestoreCoordinator: AccountRestoreCoordinator
+
     let userProfileService: UserProfileService
     let targetService: TargetService
     let dailyLogService: DailyLogService
@@ -406,6 +414,47 @@ final class AppContainer {
             mutationTracker: accountLocalMutationTracker
         )
 
+        accountRestoreStateStore = AccountRestoreStateStore(userDefaults: onboardingUserDefaults)
+        accountLocalDataInspector = AccountLocalDataInspector(
+            store: store,
+            userProfileService: userProfileService,
+            outboxStore: accountSyncOutboxStore
+        )
+        accountRemoteDataInspector = AccountRemoteDataInspector(
+            cloudProfileStore: cloudUserProfileStore,
+            remoteStore: accountDataRemoteStore
+        )
+        accountDataNamespaceService = AccountDataNamespaceService(
+            store: store,
+            healthCacheStore: healthCacheStore,
+            userDefaults: onboardingUserDefaults,
+            syncCoordinator: accountSyncCoordinator
+        )
+        accountMigrationService = AccountMigrationService(
+            store: store,
+            userProfileService: userProfileService
+        )
+        accountInitialRestoreService = AccountInitialRestoreService(
+            profileBootstrapService: profileBootstrapService,
+            puller: accountSyncPuller,
+            localInspector: accountLocalDataInspector,
+            remoteInspector: accountRemoteDataInspector,
+            stateStore: accountRestoreStateStore,
+            syncCoordinator: accountSyncCoordinator,
+            dailyLogService: dailyLogService,
+            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
+        )
+        accountRestoreCoordinator = AccountRestoreCoordinator(
+            namespaceService: accountDataNamespaceService,
+            migrationService: accountMigrationService,
+            localInspector: accountLocalDataInspector,
+            remoteInspector: accountRemoteDataInspector,
+            initialRestoreService: accountInitialRestoreService,
+            stateStore: accountRestoreStateStore,
+            syncCoordinator: accountSyncCoordinator,
+            currentUIDProvider: { [weak authManager] in authManager?.currentUID }
+        )
+
         actionCenter = FitnessActionCenter(
             foodLogService: foodLogService,
             waterLogService: waterLogService,
@@ -442,21 +491,35 @@ final class AppContainer {
         if uidChanged {
             healthSyncStateStore.cancelActiveSync()
             AccountSyncLifecycle.cancelOnAccountSwitch(coordinator: accountSyncCoordinator)
+            accountRestoreCoordinator.cancelOnAccountSwitch()
         }
     }
 
     func handleAccountDataSyncOnAppForeground() {
+        guard let uid = authManager.currentUID else { return }
+        if AccountRestoreCoordinatorSupport.isRestoreEnabled {
+            Task {
+                _ = await accountRestoreCoordinator.prepareAccountOnAppLaunch(uid: uid)
+            }
+            return
+        }
         AccountSyncLifecycle.handleAppForeground(
             coordinator: accountSyncCoordinator,
             uidProvider: { [authManager] in authManager.currentUID }
         )
     }
 
+    func handleAccountRestoreAfterSignIn(uid: String) {
+        Task {
+            _ = await accountRestoreCoordinator.prepareAccountAfterSignIn(
+                uid: uid,
+                reason: .afterSignIn
+            )
+        }
+    }
+
     func handleAccountDataSyncAfterSignIn(uid: String) {
-        AccountSyncLifecycle.handleAfterSignIn(
-            coordinator: accountSyncCoordinator,
-            uid: uid
-        )
+        handleAccountRestoreAfterSignIn(uid: uid)
     }
 
     #if DEBUG
