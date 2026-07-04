@@ -23,6 +23,7 @@ final class ReviewService {
     private let healthActivityQuery: HealthActivityQueryService
     private let userProfileService: UserProfileService
     private let aiService: AIServiceProtocol
+    private let currentUIDProvider: () -> String?
 
     init(
         store: SwiftDataStore,
@@ -32,7 +33,8 @@ final class ReviewService {
         weightLogService: WeightLogService,
         healthActivityQuery: HealthActivityQueryService,
         userProfileService: UserProfileService,
-        aiService: AIServiceProtocol
+        aiService: AIServiceProtocol,
+        currentUIDProvider: @escaping () -> String? = { nil }
     ) {
         self.store = store
         self.dailyLogService = dailyLogService
@@ -42,6 +44,7 @@ final class ReviewService {
         self.healthActivityQuery = healthActivityQuery
         self.userProfileService = userProfileService
         self.aiService = aiService
+        self.currentUIDProvider = currentUIDProvider
     }
 
     // MARK: Read
@@ -142,6 +145,7 @@ final class ReviewService {
     ) throws -> DailyReview {
         if let existing = try dailyReviewEntity(dailyLogId: dailyLogEntity.id) {
             apply(review, to: existing)
+            existing.ownerUID = UserDataOwnerScope.ownerUIDForNewWrite(sessionUID: currentUIDProvider())
             existing.dailyLog = dailyLogEntity
             dailyLogEntity.dailyReview = existing
             dailyLogEntity.dailyReviewId = existing.id
@@ -150,6 +154,7 @@ final class ReviewService {
         }
 
         let entity = DailyReviewEntity(model: review)
+        entity.ownerUID = UserDataOwnerScope.ownerUIDForNewWrite(sessionUID: currentUIDProvider())
         entity.dailyLog = dailyLogEntity
         dailyLogEntity.dailyReview = entity
         dailyLogEntity.dailyReviewId = review.id
@@ -163,7 +168,14 @@ final class ReviewService {
             predicate: #Predicate { $0.dailyLogId == dailyLogId }
         )
         descriptor.fetchLimit = 1
-        return try store.fetch(descriptor).first
+        guard let entity = try store.fetch(descriptor).first else { return nil }
+        guard UserDataOwnerScope.isVisible(
+            entityOwnerUID: entity.ownerUID,
+            sessionUID: currentUIDProvider()
+        ) else {
+            return nil
+        }
+        return entity
     }
 
     private func apply(_ review: DailyReview, to entity: DailyReviewEntity) {

@@ -12,6 +12,8 @@ import SwiftData
 final class DailyReviewEntity {
 
     @Attribute(.unique) var id: UUID
+    /// Firebase UID that owns this daily review, when known.
+    var ownerUID: String?
     var dailyLogId: UUID
     var summaryText: String
     var caloriesSummary: String
@@ -28,6 +30,7 @@ final class DailyReviewEntity {
 
     init(
         id: UUID,
+        ownerUID: String? = nil,
         dailyLogId: UUID,
         summaryText: String,
         caloriesSummary: String,
@@ -39,6 +42,7 @@ final class DailyReviewEntity {
         createdAt: Date
     ) {
         self.id = id
+        self.ownerUID = ownerUID
         self.dailyLogId = dailyLogId
         self.summaryText = summaryText
         self.caloriesSummary = caloriesSummary

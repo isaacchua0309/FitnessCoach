@@ -76,8 +76,8 @@ final class CoachTimelinePersistenceRepository {
 
     func event(id: UUID, userId: String?) throws -> CoachTimelineEvent? {
         guard let entity = try entity(id: id) else { return nil }
-        if let userId, let entityUserId = entity.userId, entityUserId != userId {
-            return nil
+        if let userId {
+            guard let entityUserId = entity.userId, entityUserId == userId else { return nil }
         }
         return entity.toModelSafe()
     }
@@ -160,8 +160,8 @@ final class CoachTimelinePersistenceRepository {
         let base = try store.fetch(FetchDescriptor<CoachTimelineEventEntity>())
 
         let filtered = base.filter { entity in
-            if let userId, let entityUserId = entity.userId, entityUserId != userId {
-                return false
+            if let userId {
+                guard let entityUserId = entity.userId, entityUserId == userId else { return false }
             }
             return query.matches(entity.toModelSafe())
         }
@@ -248,8 +248,8 @@ final class CoachTimelinePersistenceRepository {
         var deletedCount = 0
         for id in ids {
             guard let entity = try entity(id: id) else { continue }
-            if let userId, let entityUserId = entity.userId, entityUserId != userId {
-                continue
+            if let userId {
+                guard let entityUserId = entity.userId, entityUserId == userId else { continue }
             }
             try store.delete(entity)
             deletedCount += 1

@@ -14,6 +14,8 @@ final class FoodEntryEntity {
     // MARK: Identity
 
     @Attribute(.unique) var id: UUID
+    /// Firebase UID that owns this food entry, when known.
+    var ownerUID: String?
     var dailyLogId: UUID
 
     // MARK: Description
@@ -52,6 +54,7 @@ final class FoodEntryEntity {
 
     init(
         id: UUID,
+        ownerUID: String? = nil,
         dailyLogId: UUID,
         mealTypeRawValue: String?,
         name: String,
@@ -72,6 +75,7 @@ final class FoodEntryEntity {
         updatedAt: Date
     ) {
         self.id = id
+        self.ownerUID = ownerUID
         self.dailyLogId = dailyLogId
         self.mealTypeRawValue = mealTypeRawValue
         self.name = name

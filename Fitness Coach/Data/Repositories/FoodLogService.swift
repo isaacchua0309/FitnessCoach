@@ -13,10 +13,16 @@ final class FoodLogService {
 
     private let store: SwiftDataStore
     private let dailyLogService: DailyLogService
+    private let currentUIDProvider: () -> String?
 
-    init(store: SwiftDataStore, dailyLogService: DailyLogService) {
+    init(
+        store: SwiftDataStore,
+        dailyLogService: DailyLogService,
+        currentUIDProvider: @escaping () -> String? = { nil }
+    ) {
         self.store = store
         self.dailyLogService = dailyLogService
+        self.currentUIDProvider = currentUIDProvider
     }
 
     // MARK: Create
@@ -33,6 +39,7 @@ final class FoodLogService {
         let model = FoodLogDraftMapper.toFoodEntry(meal, dailyLogId: log.id, createdAt: now, updatedAt: now)
 
         let entity = FoodEntryEntity(model: model)
+        entity.ownerUID = UserDataOwnerScope.ownerUIDForNewWrite(sessionUID: currentUIDProvider())
         entity.dailyLog = log
         try store.insert(entity)
         try dailyLogService.recalculateDailyTotals(for: log.date)
@@ -108,7 +115,10 @@ final class FoodLogService {
         guard let log = try dailyLogService.dailyLogEntity(for: date) else {
             return nil
         }
-        guard let last = log.foodEntries.max(by: { $0.createdAt < $1.createdAt }) else {
+        let sessionUID = currentUIDProvider()
+        guard let last = log.foodEntries
+            .filter({ UserDataOwnerScope.isVisible(entityOwnerUID: $0.ownerUID, sessionUID: sessionUID) })
+            .max(by: { $0.createdAt < $1.createdAt }) else {
             return nil
         }
         let model = last.toModel()
@@ -123,7 +133,9 @@ final class FoodLogService {
         guard let log = try dailyLogService.dailyLogEntity(for: date) else {
             return []
         }
+        let sessionUID = currentUIDProvider()
         return log.foodEntries
+            .filter { UserDataOwnerScope.isVisible(entityOwnerUID: $0.ownerUID, sessionUID: sessionUID) }
             .sorted { $0.createdAt < $1.createdAt }
             .map { $0.toModel() }
     }
@@ -136,21 +148,33 @@ final class FoodLogService {
     ) throws -> [FoodEntry] {
         let lowerBound = calendar.startOfDay(for: startDate)
         let upperBound = calendar.startOfDay(for: endDate)
-        let descriptor = FetchDescriptor<DailyLogEntity>(
-            predicate: #Predicate { $0.date >= lowerBound && $0.date <= upperBound },
-            sortBy: [SortDescriptor(\.date, order: .forward)]
+        let sessionUID = currentUIDProvider()
+        let logs = try dailyLogService.getLogs(from: lowerBound, to: upperBound)
+        let logIDs = Set(logs.map(\.id))
+
+        let descriptor = FetchDescriptor<FoodEntryEntity>(
+            sortBy: [SortDescriptor(\.createdAt, order: .forward)]
         )
-        let logs = try store.fetch(descriptor)
-        return logs.flatMap { log in
-            log.foodEntries
-                .sorted { $0.createdAt < $1.createdAt }
-                .map { $0.toModel() }
-        }
+        return try store.fetch(descriptor)
+            .filter { logIDs.contains($0.dailyLogId) }
+            .filter { UserDataOwnerScope.isVisible(entityOwnerUID: $0.ownerUID, sessionUID: sessionUID) }
+            .map { $0.toModel() }
     }
 
     // MARK: Helpers
 
     private func foodEntity(id: UUID) throws -> FoodEntryEntity? {
+        guard let entity = try fetchFoodEntity(id: id) else { return nil }
+        guard UserDataOwnerScope.isVisible(
+            entityOwnerUID: entity.ownerUID,
+            sessionUID: currentUIDProvider()
+        ) else {
+            return nil
+        }
+        return entity
+    }
+
+    private func fetchFoodEntity(id: UUID) throws -> FoodEntryEntity? {
         var descriptor = FetchDescriptor<FoodEntryEntity>(
             predicate: #Predicate { $0.id == id }
         )

@@ -77,7 +77,7 @@ final class CoachChatTranscriptPersistenceRepository {
         let entities = try store.fetch(FetchDescriptor<CoachChatTranscriptMessageEntity>())
         guard let userId else { return entities }
         return entities.filter { entity in
-            guard let entityUserId = entity.userId else { return true }
+            guard let entityUserId = entity.userId else { return false }
             return entityUserId == userId
         }
     }
@@ -88,7 +88,8 @@ final class CoachChatTranscriptPersistenceRepository {
         )
         descriptor.fetchLimit = 1
         guard let entity = try store.fetch(descriptor).first else { return nil }
-        guard let userId, let entityUserId = entity.userId else { return entity }
-        return entityUserId == userId ? entity : nil
+        guard let userId else { return entity }
+        guard let entityUserId = entity.userId, entityUserId == userId else { return nil }
+        return entity
     }
 }

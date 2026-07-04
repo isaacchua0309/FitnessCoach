@@ -14,15 +14,18 @@ final class WeightLogService {
     private let store: SwiftDataStore
     private let dailyLogService: DailyLogService
     private let dateProvider: DateProviding
+    private let currentUIDProvider: () -> String?
 
     init(
         store: SwiftDataStore,
         dailyLogService: DailyLogService,
-        dateProvider: DateProviding? = nil
+        dateProvider: DateProviding? = nil,
+        currentUIDProvider: @escaping () -> String? = { nil }
     ) {
         self.store = store
         self.dailyLogService = dailyLogService
         self.dateProvider = dateProvider ?? SystemDateProvider()
+        self.currentUIDProvider = currentUIDProvider
     }
 
     // MARK: Create
@@ -49,6 +52,7 @@ final class WeightLogService {
             createdAt: dateProvider.now
         )
         let entity = WeightEntryEntity(model: model)
+        entity.ownerUID = UserDataOwnerScope.ownerUIDForNewWrite(sessionUID: currentUIDProvider())
         try store.insert(entity)
         try updateDailyLogWeightIfPresent(date: dayStart, weightKg: weightKg)
         return entity.toModel()
@@ -75,6 +79,7 @@ final class WeightLogService {
             createdAt: dateProvider.now
         )
         let entity = WeightEntryEntity(model: model)
+        entity.ownerUID = UserDataOwnerScope.ownerUIDForNewWrite(sessionUID: currentUIDProvider())
         try store.insert(entity)
         try updateDailyLogWeightIfPresent(date: dayStart, weightKg: draft.weightKg)
         return entity.toModel()
@@ -83,18 +88,23 @@ final class WeightLogService {
     // MARK: Read
 
     func getLatestWeight() throws -> WeightEntry? {
-        var descriptor = FetchDescriptor<WeightEntryEntity>(
+        let sessionUID = currentUIDProvider()
+        let descriptor = FetchDescriptor<WeightEntryEntity>(
             sortBy: [SortDescriptor(\.date, order: .reverse)]
         )
-        descriptor.fetchLimit = 1
-        return try store.fetch(descriptor).first?.toModel()
+        return try store.fetch(descriptor)
+            .first { UserDataOwnerScope.isVisible(entityOwnerUID: $0.ownerUID, sessionUID: sessionUID) }?
+            .toModel()
     }
 
     func getWeightEntries(from startDate: Date?, to endDate: Date?) throws -> [WeightEntry] {
+        let sessionUID = currentUIDProvider()
         let descriptor = FetchDescriptor<WeightEntryEntity>(
             sortBy: [SortDescriptor(\.date, order: .forward)]
         )
-        var entries = try store.fetch(descriptor).map { $0.toModel() }
+        var entries = try store.fetch(descriptor)
+            .filter { UserDataOwnerScope.isVisible(entityOwnerUID: $0.ownerUID, sessionUID: sessionUID) }
+            .map { $0.toModel() }
         if let startDate {
             entries = entries.filter { $0.date >= startDate }
         }
@@ -113,8 +123,22 @@ final class WeightLogService {
     // MARK: Helpers
 
     private func weightEntity(forDayStart dayStart: Date) throws -> WeightEntryEntity? {
+        let sessionUID = currentUIDProvider()
+
+        if let sessionUID {
+            var descriptor = FetchDescriptor<WeightEntryEntity>(
+                predicate: #Predicate {
+                    $0.date == dayStart && $0.ownerUID == sessionUID
+                }
+            )
+            descriptor.fetchLimit = 1
+            return try store.fetch(descriptor).first
+        }
+
         var descriptor = FetchDescriptor<WeightEntryEntity>(
-            predicate: #Predicate { $0.date == dayStart }
+            predicate: #Predicate {
+                $0.date == dayStart && $0.ownerUID == nil
+            }
         )
         descriptor.fetchLimit = 1
         return try store.fetch(descriptor).first

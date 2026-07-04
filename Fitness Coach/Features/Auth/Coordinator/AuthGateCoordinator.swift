@@ -723,6 +723,7 @@ final class AuthGateCoordinator: ObservableObject {
             awaitingCloudSync = false
             signedInSessionID = UUID()
             container.cloudUploadFailureNotifier.clear()
+            container.recordSignedOutLocalUserDataNamespace()
             AuthLogoutPolicy.clearTransientSessionMetadata(
                 cloudSyncStore: container.profileCloudSyncStore
             )
@@ -799,6 +800,8 @@ final class AuthGateCoordinator: ObservableObject {
     }
 
     func reconcileSignedInProfile(uid: String, isFreshSignIn: Bool) {
+        container.prepareLocalUserDataNamespace(uid: uid, isFreshSignIn: isFreshSignIn)
+
         if existingUserSignInSessionActive, !pendingSignInForOnboardingCompletion {
             Task { await runExistingUserSignInResolution(uid: uid, isFreshSignIn: isFreshSignIn) }
             return
