@@ -45,7 +45,7 @@ final class AccountSyncOutboxStoreTests: XCTestCase {
         try await super.tearDown()
     }
 
-    func testEnqueuePersistsIdentityOnlyMutation() async throws {
+    func testEnqueueUpsertCreatesPendingMutation() async throws {
         try await outbox.enqueue(
             ownerUID: ownerUID,
             entityType: .foodEntry,
@@ -65,7 +65,25 @@ final class AccountSyncOutboxStoreTests: XCTestCase {
         XCTAssertEqual(due.first?.attemptCount, 0)
     }
 
-    func testUpsertCoalescesIntoSinglePendingMutation() async throws {
+    func testEnqueueScopesMutationByOwnerUID() async throws {
+        try await outbox.enqueue(
+            ownerUID: ownerUID,
+            entityType: .foodEntry,
+            entityId: entityId,
+            localDate: localDate,
+            operation: .upsert,
+            mutationGroupId: nil
+        )
+
+        let dueForOwner = try await outbox.fetchDueMutations(ownerUID: ownerUID, limit: 10, now: referenceDate)
+        let dueForOther = try await outbox.fetchDueMutations(ownerUID: otherOwnerUID, limit: 10, now: referenceDate)
+
+        XCTAssertEqual(dueForOwner.count, 1)
+        XCTAssertEqual(dueForOwner.first?.ownerUID, ownerUID)
+        XCTAssertTrue(dueForOther.isEmpty)
+    }
+
+    func testUpsertCoalescesWithPreviousPendingUpsert() async throws {
         try await outbox.enqueue(
             ownerUID: ownerUID,
             entityType: .foodEntry,
@@ -194,7 +212,41 @@ final class AccountSyncOutboxStoreTests: XCTestCase {
         XCTAssertEqual(dueAfter.first?.id, mutationID)
     }
 
-    func testFetchDueMutationsNeverReturnsAnotherUsersMutations() async throws {
+    func testDeleteDoesNotCoalesceAcrossDifferentUsers() async throws {
+        let remoteOutbox = SwiftDataAccountSyncOutboxStore(
+            store: swiftDataStore,
+            remotePresenceChecker: { _ in true }
+        )
+
+        try await remoteOutbox.enqueue(
+            ownerUID: ownerUID,
+            entityType: .foodEntry,
+            entityId: entityId,
+            localDate: localDate,
+            operation: .delete,
+            mutationGroupId: nil
+        )
+
+        try await remoteOutbox.enqueue(
+            ownerUID: otherOwnerUID,
+            entityType: .foodEntry,
+            entityId: entityId,
+            localDate: localDate,
+            operation: .delete,
+            mutationGroupId: nil
+        )
+
+        let ownerDue = try await remoteOutbox.fetchDueMutations(ownerUID: ownerUID, limit: 10, now: referenceDate)
+        let otherDue = try await remoteOutbox.fetchDueMutations(ownerUID: otherOwnerUID, limit: 10, now: referenceDate)
+
+        XCTAssertEqual(ownerDue.count, 1)
+        XCTAssertEqual(otherDue.count, 1)
+        XCTAssertEqual(ownerDue.first?.ownerUID, ownerUID)
+        XCTAssertEqual(otherDue.first?.ownerUID, otherOwnerUID)
+        XCTAssertNotEqual(ownerDue.first?.id, otherDue.first?.id)
+    }
+
+    func testFetchDueMutationsDoesNotReturnOtherUserMutations() async throws {
         try await outbox.enqueue(
             ownerUID: ownerUID,
             entityType: .foodEntry,
@@ -216,6 +268,52 @@ final class AccountSyncOutboxStoreTests: XCTestCase {
         let due = try await outbox.fetchDueMutations(ownerUID: ownerUID, limit: 10, now: referenceDate)
         XCTAssertEqual(due.count, 1)
         XCTAssertEqual(due.first?.ownerUID, ownerUID)
+    }
+
+    func testMarkFailedAppliesRetryBackoff() async throws {
+        try await outbox.enqueue(
+            ownerUID: ownerUID,
+            entityType: .dailyLog,
+            entityId: localDate,
+            localDate: localDate,
+            operation: .upsert,
+            mutationGroupId: nil
+        )
+
+        let mutationID = try XCTUnwrap(
+            try await outbox.fetchDueMutations(ownerUID: ownerUID, limit: 1, now: referenceDate).first?.id
+        )
+        try await outbox.markInFlight([mutationID], ownerUID: ownerUID)
+
+        try await outbox.markFailed(
+            mutationID,
+            ownerUID: ownerUID,
+            error: AccountSyncOutboxError.mutationNotFound,
+            now: referenceDate
+        )
+
+        let failedEntity = try XCTUnwrap(fetchMutationEntity(id: mutationID))
+        XCTAssertEqual(failedEntity.status, .failed)
+        XCTAssertEqual(failedEntity.attemptCount, 1)
+        XCTAssertEqual(
+            failedEntity.nextRetryAt,
+            AccountSyncRetryPolicy.nextRetryDate(afterFailureWithAttemptCount: 1, from: referenceDate)
+        )
+        XCTAssertNotNil(failedEntity.lastError)
+
+        let beforeBackoff = try await outbox.fetchDueMutations(
+            ownerUID: ownerUID,
+            limit: 10,
+            now: referenceDate.addingTimeInterval(10)
+        )
+        XCTAssertTrue(beforeBackoff.isEmpty)
+
+        let afterBackoff = try await outbox.fetchDueMutations(
+            ownerUID: ownerUID,
+            limit: 10,
+            now: referenceDate.addingTimeInterval(31)
+        )
+        XCTAssertEqual(afterBackoff.count, 1)
     }
 
     func testMarkInFlightSucceededFailedAndCancelRequireOwnerUID() async throws {
@@ -312,7 +410,7 @@ final class AccountSyncOutboxStoreTests: XCTestCase {
         )
     }
 
-    func testPruneSucceededRemovesOnlyMatchingOwnerRows() async throws {
+    func testSucceededMutationsCanBePruned() async throws {
         let remoteOutbox = SwiftDataAccountSyncOutboxStore(
             store: swiftDataStore,
             remotePresenceChecker: { _ in true }

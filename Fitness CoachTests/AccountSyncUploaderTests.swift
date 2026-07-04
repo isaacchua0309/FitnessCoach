@@ -46,7 +46,57 @@ final class AccountSyncUploaderTests: XCTestCase {
         )
     }
 
-    func testUploadsDueFoodUpsertAndMarksEntitySynced() async throws {
+    func testUploaderUploadsDueFoodMutation() async throws {
+        let foodID = UUID()
+        let dailyLog = try seedDailyLog(ownerUID: ownerUID)
+        _ = try seedFood(id: foodID, dailyLog: dailyLog, ownerUID: ownerUID)
+
+        try outbox.enqueueLocalMutation(
+            ownerUID: ownerUID,
+            entityType: .foodEntry,
+            entityId: foodID.uuidString,
+            localDate: localDate,
+            operation: .upsert,
+            mutationGroupId: nil
+        )
+
+        let summary = await uploader.uploadDueMutations(for: ownerUID, limit: 10)
+
+        XCTAssertEqual(summary.succeeded, 1)
+        XCTAssertEqual(summary.failed, 0)
+        let remoteEntries = try await remoteStore.fetchFoodEntries(uid: ownerUID, localDate: localDate)
+        XCTAssertEqual(remoteEntries.count, 1)
+        XCTAssertEqual(remoteEntries.first?.id, foodID.uuidString)
+        XCTAssertEqual(remoteEntries.first?.userId, ownerUID)
+    }
+
+    func testUploaderMarksMutationSucceeded() async throws {
+        let foodID = UUID()
+        let dailyLog = try seedDailyLog(ownerUID: ownerUID)
+        _ = try seedFood(id: foodID, dailyLog: dailyLog, ownerUID: ownerUID)
+
+        try outbox.enqueueLocalMutation(
+            ownerUID: ownerUID,
+            entityType: .foodEntry,
+            entityId: foodID.uuidString,
+            localDate: localDate,
+            operation: .upsert,
+            mutationGroupId: nil
+        )
+
+        let mutationID = try XCTUnwrap(
+            try await outbox.fetchDueMutations(ownerUID: ownerUID, limit: 1, now: referenceDate).first?.id
+        )
+
+        _ = await uploader.uploadDueMutations(for: ownerUID, limit: 10)
+
+        let entity = try XCTUnwrap(fetchMutationEntity(id: mutationID))
+        XCTAssertEqual(entity.status, .succeeded)
+        XCTAssertNil(entity.lastError)
+        XCTAssertNil(entity.nextRetryAt)
+    }
+
+    func testUploaderMarksEntitySynced() async throws {
         let foodID = UUID()
         let dailyLog = try seedDailyLog(ownerUID: ownerUID)
         let food = try seedFood(id: foodID, dailyLog: dailyLog, ownerUID: ownerUID)
@@ -60,29 +110,52 @@ final class AccountSyncUploaderTests: XCTestCase {
             mutationGroupId: nil
         )
 
-        let summary = await uploader.uploadDueMutations(for: ownerUID, limit: 10)
+        _ = await uploader.uploadDueMutations(for: ownerUID, limit: 10)
 
-        XCTAssertEqual(summary, AccountSyncUploadSummary(
-            uid: ownerUID,
-            attempted: 1,
-            succeeded: 1,
-            failed: 0,
-            cancelled: 0
-        ))
         XCTAssertEqual(food.syncStatus, .synced)
         XCTAssertNotNil(food.lastSyncedAt)
         XCTAssertNotNil(food.cloudUpdatedAt)
         XCTAssertEqual(food.cloudId, foodID.uuidString)
         XCTAssertNil(food.lastSyncError)
         XCTAssertEqual(food.syncAttemptCount, 0)
-
-        let remoteEntries = try await remoteStore.fetchFoodEntries(uid: ownerUID, localDate: localDate)
-        XCTAssertEqual(remoteEntries.count, 1)
-        XCTAssertEqual(remoteEntries.first?.id, foodID.uuidString)
-        XCTAssertEqual(remoteEntries.first?.userId, ownerUID)
     }
 
-    func testOnlyProcessesMutationsForRequestedUID() async throws {
+    func testUploaderLeavesFailedMutationRetryable() async throws {
+        let foodID = UUID()
+        let dailyLog = try seedDailyLog(ownerUID: ownerUID)
+        _ = try seedFood(id: foodID, dailyLog: dailyLog, ownerUID: otherUID)
+
+        try outbox.enqueueLocalMutation(
+            ownerUID: ownerUID,
+            entityType: .foodEntry,
+            entityId: foodID.uuidString,
+            localDate: localDate,
+            operation: .upsert,
+            mutationGroupId: nil
+        )
+
+        let mutationID = try XCTUnwrap(
+            try await outbox.fetchDueMutations(ownerUID: ownerUID, limit: 1, now: referenceDate).first?.id
+        )
+
+        let summary = await uploader.uploadDueMutations(for: ownerUID, limit: 10)
+
+        XCTAssertEqual(summary.failed, 1)
+        let mutationEntity = try XCTUnwrap(fetchMutationEntity(id: mutationID))
+        XCTAssertEqual(mutationEntity.status, .failed)
+        XCTAssertEqual(mutationEntity.attemptCount, 1)
+        XCTAssertNotNil(mutationEntity.nextRetryAt)
+        XCTAssertNotNil(mutationEntity.lastError)
+
+        let beforeRetry = try await outbox.fetchDueMutations(
+            ownerUID: ownerUID,
+            limit: 10,
+            now: referenceDate.addingTimeInterval(10)
+        )
+        XCTAssertTrue(beforeRetry.isEmpty)
+    }
+
+    func testUploaderNeverUploadsOtherUserMutation() async throws {
         let foodA = UUID()
         let foodB = UUID()
         let logA = try seedDailyLog(ownerUID: ownerUID)
@@ -118,7 +191,7 @@ final class AccountSyncUploaderTests: XCTestCase {
         XCTAssertEqual(try await remoteStore.fetchFoodEntries(uid: otherUID, localDate: otherLocalDate).count, 0)
     }
 
-    func testContinuesAfterSingleMutationFailure() async throws {
+    func testUploaderContinuesAfterOneFailure() async throws {
         let successID = UUID()
         let failureID = UUID()
         let dailyLog = try seedDailyLog(ownerUID: ownerUID)
@@ -151,7 +224,7 @@ final class AccountSyncUploaderTests: XCTestCase {
         XCTAssertEqual(try await remoteStore.fetchFoodEntries(uid: ownerUID, localDate: localDate).first?.name, "Good")
     }
 
-    func testSuccessfulDeleteHardDeletesLocalTombstone() async throws {
+    func testUploaderDeletesRemoteFoodEntryForPendingDelete() async throws {
         let foodID = UUID()
         let dailyLog = try seedDailyLog(ownerUID: ownerUID)
         let food = try seedFood(id: foodID, dailyLog: dailyLog, ownerUID: ownerUID)
@@ -344,6 +417,14 @@ final class AccountSyncUploaderTests: XCTestCase {
         var descriptor = FetchDescriptor<FoodEntryEntity>(predicate: #Predicate { $0.id == id })
         descriptor.fetchLimit = 1
         return try store.fetchOne(descriptor)
+    }
+
+    private func fetchMutationEntity(id: String) -> AccountSyncMutationEntity? {
+        var descriptor = FetchDescriptor<AccountSyncMutationEntity>(
+            predicate: #Predicate { $0.id == id }
+        )
+        descriptor.fetchLimit = 1
+        return try? store.fetchOne(descriptor)
     }
 }
 

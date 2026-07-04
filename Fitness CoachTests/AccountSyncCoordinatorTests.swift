@@ -36,7 +36,7 @@ final class AccountSyncCoordinatorTests: XCTestCase {
         )
     }
 
-    func testSyncNowUploadsAndSkipsPullWhenPullFlagDisabled() async {
+    func testCoordinatorDoesNotPullWhenPullRecentFlagDisabled() async {
         let summary = await coordinator.syncNow(for: ownerUID, reason: .manual)
 
         XCTAssertFalse(summary.didSkip)
@@ -54,7 +54,7 @@ final class AccountSyncCoordinatorTests: XCTestCase {
         XCTAssertEqual(puller.pullCallCount, 0)
     }
 
-    func testSkipsWhenUIDMissing() async {
+    func testCoordinatorSkipsWhenUIDMissing() async {
         let summary = await coordinator.syncNow(for: "   ", reason: .manual)
 
         XCTAssertTrue(summary.didSkip)
@@ -82,7 +82,7 @@ final class AccountSyncCoordinatorTests: XCTestCase {
         XCTAssertEqual(uploader.uploadCallCount, 0)
     }
 
-    func testPreventsConcurrentRunsForSameUID() async {
+    func testCoordinatorPreventsConcurrentRunsForSameUID() async {
         uploader.delayNanoseconds = 200_000_000
 
         async let first = coordinator.syncNow(for: ownerUID, reason: .manual)
@@ -117,12 +117,22 @@ final class AccountSyncCoordinatorTests: XCTestCase {
         XCTAssertEqual(puller.pullCallCount, 0)
     }
 
-    func testUploadPendingOnlyRunsImmediatelyForManualReason() async {
+    func testCoordinatorUploadPendingOnlyProcessesOutbox() async {
         let summary = await coordinator.uploadPendingOnly(for: ownerUID, reason: .manual)
 
         XCTAssertFalse(summary.didSkip)
         XCTAssertEqual(uploader.uploadCallCount, 1)
         XCTAssertNil(summary.pullSummary)
+    }
+
+    func testAccountSwitchCancelsOrIgnoresOldUIDResult() async {
+        _ = await coordinator.uploadPendingOnly(for: ownerUID, reason: .afterLocalMutation)
+        XCTAssertEqual(uploader.uploadCallCount, 0)
+
+        currentUID = "userB"
+        try? await Task.sleep(nanoseconds: 120_000_000)
+
+        XCTAssertEqual(uploader.uploadCallCount, 0)
     }
 
     func testCancelPendingWorkPreventsDebouncedUpload() async {

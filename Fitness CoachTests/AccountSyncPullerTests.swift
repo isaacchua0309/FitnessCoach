@@ -40,7 +40,28 @@ final class AccountSyncPullerTests: XCTestCase {
         )
     }
 
-    func testPullInsertsCloudFoodEntryIntoLocalStore() async throws {
+    func testPullerInsertsRemoteDailyLog() async throws {
+        let dailyLogDocument = makeDailyLogDocument(caloriesConsumed: 640, proteinConsumed: 48)
+        try await remoteStore.saveDailyLog(dailyLogDocument, uid: ownerUID)
+
+        let summary = await puller.pullRecentAccountData(
+            for: ownerUID,
+            from: localDate,
+            to: localDate
+        )
+
+        XCTAssertEqual(summary.dailyLogsFetched, 1)
+        XCTAssertEqual(summary.inserted, 1)
+        XCTAssertEqual(summary.failed, 0)
+
+        let dailyLog = try XCTUnwrap(try store.fetch(FetchDescriptor<DailyLogEntity>()).first)
+        XCTAssertEqual(dailyLog.ownerUID, ownerUID)
+        XCTAssertEqual(dailyLog.caloriesConsumed, 640)
+        XCTAssertEqual(dailyLog.proteinConsumed, 48)
+        XCTAssertEqual(dailyLog.syncStatus, .synced)
+    }
+
+    func testPullerInsertsRemoteFoodEntries() async throws {
         let foodID = UUID().uuidString
         let dailyLogDocument = makeDailyLogDocument(caloriesConsumed: 100)
         let foodDocument = makeFoodDocument(entryId: foodID, name: "Cloud Meal", updatedAt: referenceDate)
@@ -65,7 +86,7 @@ final class AccountSyncPullerTests: XCTestCase {
         XCTAssertEqual(food.cloudId, foodID)
     }
 
-    func testPullSkipsNewerUnsyncedLocalFoodEdit() async throws {
+    func testPullerDoesNotOverwritePendingLocalEdit() async throws {
         let foodID = UUID()
         let dailyLog = try seedDailyLog(ownerUID: ownerUID)
         let food = try seedFood(
@@ -134,7 +155,7 @@ final class AccountSyncPullerTests: XCTestCase {
         XCTAssertEqual(food.syncStatus, .conflict)
     }
 
-    func testPullUpdatesSyncedLocalWhenRemoteIsNewer() async throws {
+    func testPullerUpdatesSyncedLocalEntityWhenRemoteNewer() async throws {
         let foodID = UUID()
         let dailyLog = try seedDailyLog(ownerUID: ownerUID)
         let food = try seedFood(
@@ -168,7 +189,7 @@ final class AccountSyncPullerTests: XCTestCase {
         XCTAssertEqual(food.syncStatus, .synced)
     }
 
-    func testPullNeverMergesAnotherUsersLocalRow() async throws {
+    func testPullerSkipsOwnerMismatch() async throws {
         let foodID = UUID()
         let dailyLog = try seedDailyLog(ownerUID: otherUID)
         _ = try seedFood(
@@ -197,6 +218,67 @@ final class AccountSyncPullerTests: XCTestCase {
         XCTAssertEqual(summary.failed, 1)
         XCTAssertEqual(try fetchFoodEntity(id: foodID.uuidString)?.name, "Other User Meal")
         XCTAssertEqual(try fetchFoodEntity(id: foodID.uuidString)?.ownerUID, otherUID)
+    }
+
+    func testPullerAppliesRemoteDeletedAtWhenSafe() async throws {
+        let foodID = UUID()
+        let dailyLog = try seedDailyLog(ownerUID: ownerUID)
+        let food = try seedFood(
+            id: foodID,
+            dailyLog: dailyLog,
+            ownerUID: ownerUID,
+            name: "Synced Meal",
+            updatedAt: referenceDate
+        )
+        food.syncStatus = .synced
+        food.cloudId = foodID.uuidString
+        try store.save()
+
+        let deletedAt = referenceDate.addingTimeInterval(120)
+        let remoteDailyLog = makeDailyLogDocument(caloriesConsumed: 100)
+        var remoteFood = makeFoodDocument(
+            entryId: foodID.uuidString,
+            name: "Synced Meal",
+            updatedAt: deletedAt
+        )
+        remoteFood.deletedAt = deletedAt
+        try await remoteStore.saveDailyLog(remoteDailyLog, uid: ownerUID)
+        try await remoteStore.saveFoodEntry(remoteFood, uid: ownerUID)
+
+        let summary = await puller.pullRecentAccountData(
+            for: ownerUID,
+            from: localDate,
+            to: localDate
+        )
+
+        XCTAssertEqual(summary.updated, 1)
+        XCTAssertEqual(food.deletedAt, deletedAt)
+        XCTAssertEqual(food.syncStatus, .synced)
+        XCTAssertNotNil(food.cloudUpdatedAt)
+    }
+
+    func testPullerReturnsSummaryCounts() async throws {
+        let foodID = UUID().uuidString
+        let dailyLogDocument = makeDailyLogDocument(caloriesConsumed: 520)
+        let foodDocument = makeFoodDocument(entryId: foodID, name: "Remote Meal", updatedAt: referenceDate)
+
+        try await remoteStore.saveDailyLog(dailyLogDocument, uid: ownerUID)
+        try await remoteStore.saveFoodEntry(foodDocument, uid: ownerUID)
+
+        let summary = await puller.pullRecentAccountData(
+            for: ownerUID,
+            from: localDate,
+            to: localDate
+        )
+
+        XCTAssertEqual(summary.uid, ownerUID)
+        XCTAssertEqual(summary.dailyLogsFetched, 1)
+        XCTAssertEqual(summary.foodEntriesFetched, 1)
+        XCTAssertEqual(summary.inserted, 2)
+        XCTAssertEqual(summary.updated, 0)
+        XCTAssertEqual(summary.skippedLocalNewer, 0)
+        XCTAssertEqual(summary.conflicts, 0)
+        XCTAssertEqual(summary.failed, 0)
     }
 
     func testPullDoesNotFetchAnotherUsersRemoteData() async throws {
@@ -238,7 +320,8 @@ final class AccountSyncPullerTests: XCTestCase {
 
     private func makeDailyLogDocument(
         userId: String = "userA",
-        caloriesConsumed: Int = 520
+        caloriesConsumed: Int = 520,
+        proteinConsumed: Int = 35
     ) -> CloudDailyLogDocument {
         FirestoreAccountDataRemoteStoreTestFixtures.dailyLog(
             userId: userId,
@@ -246,6 +329,7 @@ final class AccountSyncPullerTests: XCTestCase {
             referenceDate: referenceDate
         ).with {
             $0.caloriesConsumed = caloriesConsumed
+            $0.proteinConsumed = proteinConsumed
         }
     }
 

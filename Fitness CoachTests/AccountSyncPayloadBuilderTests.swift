@@ -80,7 +80,7 @@ final class AccountSyncPayloadBuilderTests: XCTestCase {
         XCTAssertNil(payload.dailyReview)
     }
 
-    func testBuildDailyLogUpsertPayload() async throws {
+    func testBuildDailyLogPayloadPreservesTotals() async throws {
         let dailyLog = try seedDailyLog()
         dailyLog.caloriesConsumed = 610
         dailyLog.proteinConsumed = 45
@@ -101,7 +101,7 @@ final class AccountSyncPayloadBuilderTests: XCTestCase {
         XCTAssertEqual(document.proteinConsumed, 45)
     }
 
-    func testBuildWaterUpsertPayload() async throws {
+    func testBuildWaterPayloadPreservesAmount() async throws {
         let waterID = UUID()
         let dailyLog = try seedDailyLog()
         let water = WaterEntryEntity(
@@ -127,7 +127,7 @@ final class AccountSyncPayloadBuilderTests: XCTestCase {
         XCTAssertEqual(document.userId, ownerUID)
     }
 
-    func testBuildWeightUpsertPayload() async throws {
+    func testBuildWeightPayloadPreservesWeight() async throws {
         let weightID = UUID()
         let weight = WeightEntryEntity(
             id: weightID,
@@ -187,7 +187,7 @@ final class AccountSyncPayloadBuilderTests: XCTestCase {
         XCTAssertEqual(document.localDate, localDate)
     }
 
-    func testDeletePayloadDoesNotRequireEntity() async throws {
+    func testBuildDeletePayloadDoesNotRequireRawEntityWhenAllowed() async throws {
         let mutation = makeMutation(
             entityType: .foodEntry,
             entityId: UUID().uuidString,
@@ -244,7 +244,7 @@ final class AccountSyncPayloadBuilderTests: XCTestCase {
         XCTAssertNil(payload.foodEntry)
     }
 
-    func testRejectsOwnerMismatch() async throws {
+    func testBuildFoodPayloadRejectsOwnerMismatch() async throws {
         let foodID = UUID()
         let dailyLog = try seedDailyLog()
         let food = FoodEntryEntity(
@@ -283,7 +283,7 @@ final class AccountSyncPayloadBuilderTests: XCTestCase {
         }
     }
 
-    func testRejectsMissingOwnerUIDOnMutation() async throws {
+    func testBuildFoodPayloadRejectsNilOwner() async throws {
         let mutation = AccountSyncMutation(
             id: UUID().uuidString,
             ownerUID: "   ",
