@@ -29,6 +29,7 @@ protocol AccountRestoreStateStoring {
     func markPartial(uid: String, summary: AccountRestoreSummary, now: Date)
     func markOffline(uid: String, reason: AccountRestoreReason, now: Date)
     func markFailed(uid: String, reason: AccountRestoreReason, message: String, now: Date)
+    func markSkipped(uid: String, reason: AccountRestoreReason, now: Date)
     func shouldRunBlockingRestore(uid: String, localDataStatus: AccountLocalDataStatus, now: Date) -> Bool
     func shouldRunBackgroundBackfill(uid: String, now: Date) -> Bool
     func clear(uid: String)
@@ -211,6 +212,15 @@ struct AccountRestoreStateStore: AccountRestoreStateStoring {
             AccountRestoreStateStoreSupport.sanitizedFailureMessage(message),
             forKey: AccountRestoreStateStoreSupport.lastFailureMessageKey(for: normalizedUID)
         )
+    }
+
+    func markSkipped(uid: String, reason: AccountRestoreReason, now: Date) {
+        guard let normalizedUID = AccountRestoreStateStoreSupport.normalizedUID(uid) else { return }
+        _ = reason
+
+        setStatus(.skipped, uid: normalizedUID)
+        setDate(now, forKey: AccountRestoreStateStoreSupport.lastCompletedAtKey(for: normalizedUID))
+        removeValue(forKey: AccountRestoreStateStoreSupport.lastFailureMessageKey(for: normalizedUID))
     }
 
     func shouldRunBlockingRestore(

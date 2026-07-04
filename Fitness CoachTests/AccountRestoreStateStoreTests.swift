@@ -220,6 +220,13 @@ final class AccountRestoreStateStoreTests: XCTestCase {
         XCTAssertTrue(upgradedStore.shouldRunBackgroundBackfill(uid: uidA, now: referenceDate))
     }
 
+    func testMarkSkippedPersistsSkippedStatus() {
+        store.markSkipped(uid: uidA, reason: .appLaunch, now: referenceDate)
+
+        XCTAssertEqual(store.loadState(uid: uidA).status, .skipped)
+        XCTAssertEqual(store.loadState(uid: uidA).lastCompletedAt, referenceDate)
+    }
+
     func testRestoreMetadataDoesNotPersistSensitiveSummaryFields() {
         let summary = AccountRestoreSummary(
             uid: uidA,
