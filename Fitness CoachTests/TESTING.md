@@ -292,7 +292,7 @@ Onboarding selectors use checkmarks and/or borders; sex pills now show a checkma
 | VoiceOver | Per-screen labels; theme tokens do not block |
 | Dynamic Type | `FormaTokens.Typography` where used |
 | Reduce Motion | Onboarding defers to `accessibilityReduceMotion` |
-| Increased Contrast | **Not yet** — see `ThemeAccessibilityAdaptationPolicy.increasedContrastTODO` |
+| Increased Contrast | **Not yet** — see `ThemeAccessibilityAdaptationPolicy.increasedContrastFollowUp` |
 | Reduce Transparency | **Not yet** — see `ThemeAccessibilityAdaptationPolicy.reduceTransparencyTODO` |
 
 Run locally:

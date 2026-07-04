@@ -86,10 +86,6 @@ When product approves a backend (Firebase Analytics, Amplitude, internal gateway
 
 All `*AnalyticsEvent` raw values must pass `AnalyticsLoggingSupport.isValidEventName`.
 
-### Deprecated events
-
-`JourneyAnalyticsEvent` cases marked deprecated (pre-revamp) must not be emitted from current Journey UI.
-
 ---
 
 ## 6. Property Privacy Rules

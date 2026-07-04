@@ -324,3 +324,45 @@ xcodebuild -scheme "Fitness Coach" \
 |-------|--------|
 | `functions` Jest (`npm test`) | 57/57 passed |
 | Swift build + Fast-Core tests | Run on merge CI / local `xcodebuild` |
+
+---
+
+## Batch 6 deletions (2026-07-04)
+
+Dead-code pass per `PRODUCTION_READINESS_MAINTAINABILITY_CONTEXT_PACKET.md` §15. Open TODOs moved to [TechnicalDebt/TechnicalDebtRegister.md](./TechnicalDebt/TechnicalDebtRegister.md).
+
+### Deleted symbols
+
+| Location | Symbol | Why safe |
+|----------|--------|----------|
+| `JourneyAnalyticsLogging.swift` | 10 deprecated `JourneyAnalyticsEvent` cases (pre-revamp) | Zero production emitters; revamp events supersede |
+| `JourneyAnalyticsCoordinator.swift` | 7 deprecated shim methods (`logScreenViewed`, etc.) | Zero production callers |
+| `AccountDataExportService.swift` | `InMemoryAccountDataExportService` | `#if DEBUG` stub with zero references |
+| `OnboardingProofCards.swift` | `OnboardingWeightMaintenanceProof*`, `OnboardingFormaProofComparison*`, `OnboardingComparisonBarProof*`, chart helpers | Preview/test only; production uses `OnboardingWeightTrajectoryHeroChart` |
+
+### Test updates
+
+| Test | Change |
+|------|--------|
+| `JourneyAnalyticsLoggingTests` | Removed `testDeprecatedStartingEmptyStateViewedDoesNotEmit` |
+| `AnalyticsInfrastructureTests` | Trimmed `JourneyAnalyticsEvent.allCases` |
+| `OnboardingComponentsTests` | Removed 3 legacy proof model tests |
+| `FormaPaletteAccessibilityTests` | Renamed follow-up constants |
+
+### Preserved (not deleted)
+
+| Item | Reason |
+|------|--------|
+| `AIContext` | Test mocks still reference — tracked as TD-AI-001 |
+| Migration entities (`WeeklyReviewEntity`, etc.) | Schema migration required |
+| `SettingsExportDataActionHandler` | Active hide-until-ship gate — TD-SETTINGS-002 |
+| Weekly review Journey/HI duplication | Live product surfaces — TD-HI-001 |
+| `USER_DATA_STORAGE_CONTEXT_PACKET.md` | Staleness banner added; canonical docs linked |
+
+### Documentation
+
+| Doc | Change |
+|-----|--------|
+| `Docs/TechnicalDebt/TechnicalDebtRegister.md` | **Created** — tracked debt registry |
+| `USER_DATA_STORAGE_CONTEXT_PACKET.md` | Staleness banner → `SourceOfTruthMap` |
+| `Docs/Architecture/AnalyticsReadinessChecklist.md` | Removed deprecated Journey events section |

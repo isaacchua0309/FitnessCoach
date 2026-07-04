@@ -157,8 +157,8 @@ final class FormaPaletteAccessibilityTests: XCTestCase {
     func testThemeSystemDocumentsUnsupportedAccessibilityAdaptations() {
         XCTAssertTrue(ThemeAccessibilityAdaptationPolicy.supportsIncreasedContrastPaletteVariants)
         XCTAssertTrue(ThemeAccessibilityAdaptationPolicy.supportsReduceTransparencyCompositing)
-        XCTAssertNotNil(ThemeAccessibilityAdaptationPolicy.increasedContrastTODO)
-        XCTAssertNotNil(ThemeAccessibilityAdaptationPolicy.reduceTransparencyTODO)
+        XCTAssertNotNil(ThemeAccessibilityAdaptationPolicy.increasedContrastFollowUp)
+        XCTAssertNotNil(ThemeAccessibilityAdaptationPolicy.reduceTransparencyFollowUp)
     }
 
     // MARK: - Helpers

@@ -196,10 +196,7 @@ private extension JourneyAnalyticsEvent: CaseIterable {
     static var allCases: [JourneyAnalyticsEvent] { [
         .viewed, .heroViewed, .projectionViewed, .milestoneViewed, .milestoneCTATapped,
         .weeklyConsistencyViewed, .storyViewed, .insightsViewed, .monthlyRecapViewed,
-        .chapterViewed, .goToTodayTapped, .weightCTATapped, .coachCTATapped,
-        .screenViewed, .transformationViewed, .goalProjectionViewed, .weeklyReviewViewed,
-        .milestoneRailViewed, .timelineViewed, .startingEmptyStateViewed,
-        .habitInsightViewed, .analyticsExpanded, .rangeChanged
+        .chapterViewed, .goToTodayTapped, .weightCTATapped, .coachCTATapped
     ] }
 }
 
