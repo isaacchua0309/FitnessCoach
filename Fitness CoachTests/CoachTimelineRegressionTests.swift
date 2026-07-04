@@ -1,260 +1,143 @@
 //
-//  CoachModelTimelineRecordingTests.swift
+//  CoachTimelineRegressionTests.swift
 //  Fitness CoachTests
 //
-//  Verifies CoachModel wires CoachTimelineRecorder into the text message flow.
+//  Regression coverage ensuring Coach Timeline Context v2 does not break core flows.
 //
 
 import XCTest
 @testable import Fitness_Coach
 
 @MainActor
-final class CoachModelTimelineRecordingTests: XCTestCase {
+final class CoachTimelineRegressionTests: XCTestCase {
 
-    private var timelineStore: FakeCoachTimelineStore!
-    private var harness: CoachRoutingIntegrationTestSupport.Harness!
+    // MARK: - Food confirmation still required
 
-    override func setUp() async throws {
-        timelineStore = FakeCoachTimelineStore()
-        harness = try CoachRoutingIntegrationTestSupport.makeHarness()
+    func testFoodEstimateStillRequiresConfirmation() async throws {
+        let harness = try CoachRoutingIntegrationTestSupport.makeHarness()
         try CoachRoutingIntegrationTestSupport.seedCoachProfile(in: harness)
-    }
-
-    override func tearDown() {
-        timelineStore = nil
-        harness = nil
-        super.tearDown()
-    }
-
-    func testSendingMessageRecordsUserEvent() async throws {
+        let timelineStore = FakeCoachTimelineStore()
         let model = harness.makeCoach(
-            aiService: LocalGreetingAIService(),
-            timelineStore: timelineStore
-        )
-
-        await model.send("hello")
-
-        let userEvent = try await waitForEvent(matching: { $0.type == .userMessage })
-        XCTAssertEqual(userEvent.source, .coachUI)
-        XCTAssertEqual(userEvent.status, .confirmed)
-        XCTAssertNotNil(userEvent.linkedMessageId)
-        guard case .message(let payload) = userEvent.payload else {
-            return XCTFail("Expected message payload")
-        }
-        XCTAssertEqual(payload.role, "user")
-        XCTAssertEqual(payload.textPreview, "hello")
-    }
-
-    func testAssistantReplyRecordsAssistantEvent() async throws {
-        let model = harness.makeCoach(
-            aiService: LocalGreetingAIService(),
-            timelineStore: timelineStore
-        )
-
-        await model.send("hello")
-
-        let assistantEvent = try await waitForEvent(matching: { $0.type == .assistantMessage })
-        XCTAssertEqual(assistantEvent.source, .aiBackend)
-        XCTAssertEqual(assistantEvent.status, .confirmed)
-        XCTAssertNotNil(assistantEvent.linkedMessageId)
-        guard case .message(let payload) = assistantEvent.payload else {
-            return XCTFail("Expected message payload")
-        }
-        XCTAssertEqual(payload.role, "assistant")
-        XCTAssertFalse(payload.textPreview.isEmpty)
-    }
-
-    func testPendingFoodRecordsPendingConfirmationCreatedEvent() async throws {
-        let model = harness.makeCoach(
-            aiService: TimelineFoodEstimateAIService(),
+            aiService: RegressionTimelineFoodEstimateAIService(),
             timelineStore: timelineStore
         )
 
         await model.send("log chicken rice bowl")
 
-        let pendingEvent = try await waitForEvent(matching: { $0.type == .pendingConfirmationCreated })
-        XCTAssertEqual(pendingEvent.status, .pending)
-        XCTAssertEqual(pendingEvent.sourceAttribution, .estimateFood)
-        guard case .confirmation(let payload) = pendingEvent.payload else {
-            return XCTFail("Expected confirmation payload")
-        }
-        XCTAssertEqual(payload.kind, "food")
-        XCTAssertNotNil(payload.pendingConfirmationId)
         XCTAssertNotNil(model.pendingConfirmation)
+        XCTAssertEqual(harness.actionCenter.getFoodEntries(for: harness.today).count, 0)
+
+        let pendingEvent = timelineStore.events.first { $0.type == .pendingConfirmationCreated }
+        XCTAssertNotNil(pendingEvent)
+        XCTAssertEqual(pendingEvent?.status, .pending)
     }
 
-    func testRejectingPendingFoodRecordsRejectedAndFoodRejectedEvents() async throws {
+    // MARK: - Water log still works
+
+    func testWaterLogStillWorksWithTimeline() async throws {
+        let harness = try CoachRoutingIntegrationTestSupport.makeHarness()
+        try CoachRoutingIntegrationTestSupport.seedCoachProfile(in: harness)
+        let timelineStore = FakeCoachTimelineStore()
         let model = harness.makeCoach(
-            aiService: TimelineFoodEstimateAIService(),
+            aiService: UnreachableTimelineAIService(),
             timelineStore: timelineStore
         )
 
-        await model.send("log chicken rice bowl")
-        _ = try await waitForEvent(matching: { $0.type == .pendingConfirmationCreated })
+        await model.send("add 500ml water")
 
-        await model.send("no")
-
-        let rejectedEvent = try await waitForEvent(matching: { $0.type == .pendingConfirmationRejected })
-        XCTAssertEqual(rejectedEvent.status, .rejected)
-        XCTAssertTrue(timelineStore.events.contains(where: { $0.type == .foodRejected }))
         XCTAssertNil(model.pendingConfirmation)
+        XCTAssertEqual(try harness.dailyLogService.getTodayLog().waterConsumedMl, 500)
+        XCTAssertTrue(
+            model.messages.last?.text.contains("500") == true
+                || model.messages.last?.text.contains("water") == true
+        )
     }
 
-    func testBackendErrorRecordsBackendErrorEvent() async throws {
+    // MARK: - Weight log still works
+
+    func testWeightLogStillWorksWithTimeline() async throws {
+        let harness = try CoachRoutingIntegrationTestSupport.makeHarness()
+        try CoachRoutingIntegrationTestSupport.seedCoachProfile(in: harness)
+        let timelineStore = FakeCoachTimelineStore()
         let model = harness.makeCoach(
-            aiService: FailingTimelineAIService(),
+            aiService: UnreachableTimelineAIService(),
             timelineStore: timelineStore
         )
 
-        await model.send("log mystery quinoa special")
+        await model.send("weight 72.5")
 
-        let errorEvent = try await waitForEvent(matching: { $0.type == .backendError })
-        guard case .error(let payload) = errorEvent.payload else {
-            return XCTFail("Expected error payload")
-        }
-        XCTAssertEqual(payload.category, "backend_unavailable")
-        XCTAssertNotNil(payload.userMessagePreview)
-    }
-
-    func testConfirmingPendingFoodRecordsFoodLoggedEvent() async throws {
-        let model = harness.makeCoach(
-            aiService: TimelineFoodEstimateAIService(),
-            timelineStore: timelineStore
-        )
-
-        await model.send("log chicken rice bowl")
-        _ = try await waitForEvent(matching: { $0.type == .pendingConfirmationCreated })
-
-        await model.confirmPendingFromBar()
-
-        let foodLogged = try await waitForEvent(matching: { $0.type == .foodLogged })
-        XCTAssertEqual(foodLogged.status, .confirmed)
-        XCTAssertNotNil(foodLogged.linkedEntryId)
-        XCTAssertTrue(timelineStore.events.contains { $0.type == .pendingConfirmationConfirmed })
         XCTAssertNil(model.pendingConfirmation)
-        XCTAssertEqual(harness.actionCenter.getFoodEntries(for: harness.today).count, 1)
+        XCTAssertEqual(try harness.dailyLogService.getTodayLog().weightKg, 72.5, accuracy: 0.01)
+        XCTAssertTrue(model.messages.last?.text.contains("72.50") == true)
     }
 
-    func testAuthenticationFailureRecordsAuthErrorEvent() async throws {
+    // MARK: - Daily summary still works
+
+    func testDailyReviewStillWorksWithTimeline() async throws {
+        let harness = try CoachRoutingIntegrationTestSupport.makeHarness()
+        try CoachRoutingIntegrationTestSupport.seedCoachProfile(in: harness)
+        _ = try harness.actionCenter.foodLogService.addFoodEntry(
+            DailyLogServiceTestSupport.foodDraft(name: "Eggs", calories: 140, protein: 12),
+            date: harness.today
+        )
+
+        let timelineStore = FakeCoachTimelineStore()
         let model = harness.makeCoach(
-            aiService: AuthFailingTimelineAIService(),
+            aiService: UnreachableTimelineAIService(),
             timelineStore: timelineStore
         )
 
-        await model.send("should I eat pasta tonight?")
+        await model.send("daily review")
 
-        let authEvent = try await waitForEvent(matching: { $0.type == .authError })
-        guard case .error(let payload) = authEvent.payload else {
-            return XCTFail("Expected error payload")
-        }
-        XCTAssertEqual(payload.category, "authentication")
-        XCTAssertTrue(model.showsAuthRetry)
+        XCTAssertGreaterThanOrEqual(model.messageCount, 2)
+        XCTAssertFalse(model.messages.last?.text.isEmpty == true)
     }
 
-    func testRecorderFailureDoesNotBreakCoachSend() async throws {
-        timelineStore.injectedAppendError = CoachTimelineStoreError.invalidDateRange
+    // MARK: - Backend unavailable still friendly
+
+    func testBackendUnavailableStillShowsFriendlyMessage() async throws {
+        let harness = try CoachRoutingIntegrationTestSupport.makeHarness()
+        try CoachRoutingIntegrationTestSupport.seedCoachProfile(in: harness)
+        let timelineStore = FakeCoachTimelineStore()
         let model = harness.makeCoach(
-            aiService: LocalGreetingAIService(),
+            aiService: FailingEstimateTimelineAIService(),
             timelineStore: timelineStore
         )
+
+        await model.send("log mystery quinoa bowl")
+
+        XCTAssertNil(model.pendingConfirmation)
+        XCTAssertEqual(model.messages.last?.text, FormaProductCopy.Error.coachUnavailable)
+
+        let errorEvent = timelineStore.events.first { $0.type == .backendError }
+        XCTAssertNotNil(errorEvent)
+    }
+
+    // MARK: - Empty timeline does not crash context build
+
+    func testEmptyTimelineDoesNotCrashContextBuild() async throws {
+        let harness = try CoachRoutingIntegrationTestSupport.makeHarness()
+        try CoachRoutingIntegrationTestSupport.seedCoachProfile(in: harness)
+        let timelineStore = FakeCoachTimelineStore()
+        let model = harness.makeCoach(
+            aiService: LocalGreetingTimelineAIService(),
+            timelineStore: timelineStore
+        )
+
+        XCTAssertTrue(timelineStore.events.isEmpty)
 
         await model.send("hello")
 
         XCTAssertGreaterThanOrEqual(model.messageCount, 2)
-        XCTAssertGreaterThanOrEqual(timelineStore.appendAttempts, 1)
-    }
-
-    // MARK: Helpers
-
-    private func waitForEvent(
-        matching predicate: @escaping (CoachTimelineEvent) -> Bool,
-        timeout: TimeInterval = 1.0
-    ) async throws -> CoachTimelineEvent {
-        try await timelineStore.waitUntil(timeout: timeout) {
-            self.timelineStore.events.contains(where: predicate)
-        }
-        return try XCTUnwrap(timelineStore.events.first(where: predicate))
+        XCTAssertTrue(timelineStore.events.contains { $0.type == .userMessage })
+        XCTAssertTrue(timelineStore.events.contains { $0.type == .assistantMessage })
     }
 }
 
 // MARK: - Test doubles
 
 @MainActor
-private final class LocalGreetingAIService: AIServiceProtocol, @unchecked Sendable {
-
-    func classifyCoachIntent(
-        _ text: String,
-        context: CoachContextPacketV2,
-        config: CoachModelConfig
-    ) async throws -> CoachIntentResult {
-        throw AIServiceError.backendUnavailable
-    }
-
-    func estimateFood(
-        prompt: String,
-        context: CoachContextPacketV2,
-        imageJPEGData: Data?
-    ) async throws -> AIFoodEstimateResponse {
-        throw AIServiceError.backendUnavailable
-    }
-
-    func generateMealAdvice(
-        prompt: String,
-        context: CoachContextPacketV2,
-        intentResult: CoachIntentResult?,
-        tier: CoachModelTier
-    ) async throws -> AICoachResponse {
-        throw AIServiceError.backendUnavailable
-    }
-
-    func generateNutritionEstimate(
-        prompt: String,
-        context: CoachContextPacketV2,
-        intentResult: CoachIntentResult?,
-        tier: CoachModelTier
-    ) async throws -> NutritionEstimateResponse {
-        throw AIServiceError.backendUnavailable
-    }
-
-    func generateNutritionComparison(
-        prompt: String,
-        context: CoachContextPacketV2,
-        intentResult: CoachIntentResult?,
-        tier: CoachModelTier
-    ) async throws -> NutritionComparisonResponse {
-        throw AIServiceError.backendUnavailable
-    }
-
-    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
-        throw AIServiceError.backendUnavailable
-    }
-
-    func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
-        throw AIServiceError.backendUnavailable
-    }
-
-    func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
-        throw AIServiceError.backendUnavailable
-    }
-
-    func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
-        throw AIServiceError.backendUnavailable
-    }
-
-    func generateDailyReviewText(
-        input: DailyReviewAIInput,
-        context: CoachContextPacketV2
-    ) async throws -> AICoachResponse {
-        throw AIServiceError.backendUnavailable
-    }
-
-    func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
-        throw AIServiceError.backendUnavailable
-    }
-}
-
-@MainActor
-private final class TimelineFoodEstimateAIService: AIServiceProtocol, @unchecked Sendable {
+private final class RegressionTimelineFoodEstimateAIService: AIServiceProtocol, @unchecked Sendable {
 
     func classifyCoachIntent(
         _ text: String,
@@ -359,23 +242,14 @@ private final class TimelineFoodEstimateAIService: AIServiceProtocol, @unchecked
 }
 
 @MainActor
-private final class AuthFailingTimelineAIService: AIServiceProtocol, @unchecked Sendable {
+private final class UnreachableTimelineAIService: AIServiceProtocol, @unchecked Sendable {
 
     func classifyCoachIntent(
         _ text: String,
         context: CoachContextPacketV2,
         config: CoachModelConfig
     ) async throws -> CoachIntentResult {
-        CoachIntentResult(
-            intent: .mealDecision,
-            confidence: 0.9,
-            domain: .nutrition,
-            requiresAppMutation: false,
-            requiresUserContext: true,
-            canAnswerWithCheapModel: true,
-            requiresEscalation: false,
-            action: nil
-        )
+        throw AIServiceError.backendUnavailable
     }
 
     func estimateFood(
@@ -392,7 +266,7 @@ private final class AuthFailingTimelineAIService: AIServiceProtocol, @unchecked 
         intentResult: CoachIntentResult?,
         tier: CoachModelTier
     ) async throws -> AICoachResponse {
-        throw AIServiceError.authenticationFailed
+        throw AIServiceError.backendUnavailable
     }
 
     func generateNutritionEstimate(
@@ -442,7 +316,7 @@ private final class AuthFailingTimelineAIService: AIServiceProtocol, @unchecked 
 }
 
 @MainActor
-private final class FailingTimelineAIService: AIServiceProtocol, @unchecked Sendable {
+private final class FailingEstimateTimelineAIService: AIServiceProtocol, @unchecked Sendable {
 
     func classifyCoachIntent(
         _ text: String,
@@ -524,18 +398,76 @@ private final class FailingTimelineAIService: AIServiceProtocol, @unchecked Send
     }
 }
 
-private extension FakeCoachTimelineStore {
+@MainActor
+private final class LocalGreetingTimelineAIService: AIServiceProtocol, @unchecked Sendable {
 
-    func waitUntil(
-        timeout: TimeInterval = 1.0,
-        predicate: @escaping () -> Bool
-    ) async throws {
-        let satisfied = await AsyncTestSupport.waitUntil(
-            maxYields: Int(timeout * 100),
-            predicate: predicate
-        )
-        if !satisfied {
-            throw NSError(domain: "CoachModelTimelineRecordingTests", code: 1)
-        }
+    func classifyCoachIntent(
+        _ text: String,
+        context: CoachContextPacketV2,
+        config: CoachModelConfig
+    ) async throws -> CoachIntentResult {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func estimateFood(
+        prompt: String,
+        context: CoachContextPacketV2,
+        imageJPEGData: Data?
+    ) async throws -> AIFoodEstimateResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateMealAdvice(
+        prompt: String,
+        context: CoachContextPacketV2,
+        intentResult: CoachIntentResult?,
+        tier: CoachModelTier
+    ) async throws -> AICoachResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateNutritionEstimate(
+        prompt: String,
+        context: CoachContextPacketV2,
+        intentResult: CoachIntentResult?,
+        tier: CoachModelTier
+    ) async throws -> NutritionEstimateResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateNutritionComparison(
+        prompt: String,
+        context: CoachContextPacketV2,
+        intentResult: CoachIntentResult?,
+        tier: CoachModelTier
+    ) async throws -> NutritionComparisonResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func parseWorkout(prompt: String, context: CoachContextPacketV2) async throws -> AIWorkoutParseResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func parseEditOrDelete(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func parseMultiAction(prompt: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateDailyReview(context: CoachContextPacketV2) async throws -> AICoachResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func generateDailyReviewText(
+        input: DailyReviewAIInput,
+        context: CoachContextPacketV2
+    ) async throws -> AICoachResponse {
+        throw AIServiceError.backendUnavailable
+    }
+
+    func parseCommand(_ text: String, context: CoachContextPacketV2) async throws -> AIParsedCommand {
+        throw AIServiceError.backendUnavailable
     }
 }

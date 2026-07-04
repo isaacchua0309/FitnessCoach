@@ -144,4 +144,93 @@ describe("coachContextPacketV2", () => {
     expect(JSON.stringify(fields)).not.toContain("Salad");
     expect(JSON.stringify(fields)).not.toContain("8000");
   });
+
+  it("preserves linkedEntryId on recent meals during sanitization", () => {
+    const entryId = "meal-entry-42";
+    const sanitized = parseCoachContextForPrompt({
+      meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},
+      recentMealsStructured: [{
+        name: "Salad",
+        calories: 420,
+        proteinGrams: 28,
+        linkedEntryId: entryId,
+      }],
+    });
+
+    const meals = sanitized?.recentMealsStructured as Array<{linkedEntryId?: string}>;
+    expect(meals[0].linkedEntryId).toBe(entryId);
+  });
+
+  it("preserves linkedEntryId on timeline events during sanitization", () => {
+    const sanitized = parseCoachContextForPrompt({
+      meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},
+      timeline: {
+        recentEvents: [{
+          id: "evt-1",
+          type: "foodLogged",
+          status: "confirmed",
+          source: "coachUI",
+          summary: "Logged salad",
+          timestamp: "2026-07-03T10:00:00.000Z",
+          linkedEntryId: "entry-salad",
+        }],
+      },
+    });
+
+    const events = (sanitized?.timeline as {recentEvents: Array<{linkedEntryId?: string}>})
+      .recentEvents;
+    expect(events[0].linkedEntryId).toBe("entry-salad");
+  });
+
+  it("retains rejected timeline events for ordering while status marks non-facts", () => {
+    const sanitized = parseCoachContextForPrompt({
+      meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},
+      timeline: {
+        recentEvents: [
+          {
+            id: "rejected-1",
+            type: "foodRejected",
+            status: "rejected",
+            source: "aiBackend",
+            summary: "Rejected chicken estimate",
+            timestamp: "2026-07-03T09:00:00.000Z",
+          },
+          {
+            id: "pending-1",
+            type: "pendingConfirmationCreated",
+            status: "pending",
+            source: "aiBackend",
+            summary: "Pending bowl estimate",
+            timestamp: "2026-07-03T09:30:00.000Z",
+          },
+          {
+            id: "confirmed-1",
+            type: "foodLogged",
+            status: "confirmed",
+            source: "coachUI",
+            summary: "Logged eggs",
+            timestamp: "2026-07-03T10:00:00.000Z",
+            linkedEntryId: "entry-eggs",
+          },
+        ],
+      },
+    });
+
+    const events = (sanitized?.timeline as {recentEvents: Array<{type: string; status: string}>})
+      .recentEvents;
+    expect(events).toHaveLength(3);
+    expect(events.some((event) => event.type === "foodRejected" && event.status === "rejected"))
+      .toBe(true);
+    expect(events.some((event) => event.type === "pendingConfirmationCreated" && event.status === "pending"))
+      .toBe(true);
+    expect(events.some((event) => event.type === "foodLogged" && event.status === "confirmed"))
+      .toBe(true);
+  });
+
+  it("rejects malformed timeline recentEvents type", () => {
+    expect(() => validateCoachContextPacketV2({
+      meta: {schemaVersion: COACH_CONTEXT_PACKET_V2_SCHEMA_VERSION},
+      timeline: {recentEvents: "not-an-array"},
+    })).toThrow("timeline.recentEvents");
+  });
 });
