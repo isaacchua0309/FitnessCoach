@@ -28,6 +28,7 @@ struct CoachContextPacketV2: Codable, Equatable, Sendable {
     var currentUserMessage: String?
     var recentMealsStructured: [CoachRecentMealContext]
     var commonFoods: [CoachCommonFoodContext]
+    var foodCorrectionMemory: [CoachFoodCorrectionContext]
     var missingData: CoachMissingDataContext
     var assumptions: [CoachAssumptionContext]
     var generationMode: CoachContextGenerationMode
@@ -44,6 +45,7 @@ struct CoachContextPacketV2: Codable, Equatable, Sendable {
         currentUserMessage: String? = nil,
         recentMealsStructured: [CoachRecentMealContext] = [],
         commonFoods: [CoachCommonFoodContext] = [],
+        foodCorrectionMemory: [CoachFoodCorrectionContext] = [],
         missingData: CoachMissingDataContext = CoachMissingDataContext(),
         assumptions: [CoachAssumptionContext] = [],
         generationMode: CoachContextGenerationMode = .live,
@@ -59,10 +61,62 @@ struct CoachContextPacketV2: Codable, Equatable, Sendable {
         self.currentUserMessage = currentUserMessage
         self.recentMealsStructured = recentMealsStructured
         self.commonFoods = commonFoods
+        self.foodCorrectionMemory = foodCorrectionMemory
         self.missingData = missingData
         self.assumptions = assumptions
         self.generationMode = generationMode
         self.sourceAttribution = sourceAttribution
+    }
+}
+
+extension CoachContextPacketV2 {
+
+    private enum CodingKeys: String, CodingKey {
+        case meta, profile, today, training, healthIntelligence, timeline, recentChatMessages
+        case currentUserMessage, recentMealsStructured, commonFoods, foodCorrectionMemory
+        case missingData, assumptions, generationMode, sourceAttribution
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        meta = try container.decode(CoachContextMeta.self, forKey: .meta)
+        profile = try container.decodeIfPresent(CoachUserProfileContext.self, forKey: .profile)
+        today = try container.decodeIfPresent(CoachContextTodayPacket.self, forKey: .today)
+        training = try container.decodeIfPresent(CoachTrainingContext.self, forKey: .training)
+        healthIntelligence = try container.decodeIfPresent(CoachHealthIntelligenceContext.self, forKey: .healthIntelligence)
+        timeline = try container.decodeIfPresent(CoachContextTimelinePacket.self, forKey: .timeline) ?? CoachContextTimelinePacket()
+        recentChatMessages = try container.decodeIfPresent([CoachChatMessageContext].self, forKey: .recentChatMessages) ?? []
+        currentUserMessage = try container.decodeIfPresent(String.self, forKey: .currentUserMessage)
+        recentMealsStructured = try container.decodeIfPresent([CoachRecentMealContext].self, forKey: .recentMealsStructured) ?? []
+        commonFoods = try container.decodeIfPresent([CoachCommonFoodContext].self, forKey: .commonFoods) ?? []
+        foodCorrectionMemory = try container.decodeIfPresent([CoachFoodCorrectionContext].self, forKey: .foodCorrectionMemory) ?? []
+        missingData = try container.decodeIfPresent(CoachMissingDataContext.self, forKey: .missingData) ?? CoachMissingDataContext()
+        assumptions = try container.decodeIfPresent([CoachAssumptionContext].self, forKey: .assumptions) ?? []
+        generationMode = try container.decodeIfPresent(CoachContextGenerationMode.self, forKey: .generationMode) ?? .live
+        sourceAttribution = try container.decodeIfPresent(CoachContextSourceAttribution.self, forKey: .sourceAttribution)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(meta, forKey: .meta)
+        try container.encodeIfPresent(profile, forKey: .profile)
+        try container.encodeIfPresent(today, forKey: .today)
+        try container.encodeIfPresent(training, forKey: .training)
+        try container.encodeIfPresent(healthIntelligence, forKey: .healthIntelligence)
+        try container.encode(timeline, forKey: .timeline)
+        try container.encode(recentChatMessages, forKey: .recentChatMessages)
+        try container.encodeIfPresent(currentUserMessage, forKey: .currentUserMessage)
+        try container.encode(recentMealsStructured, forKey: .recentMealsStructured)
+        try container.encode(commonFoods, forKey: .commonFoods)
+        if !foodCorrectionMemory.isEmpty {
+            try container.encode(foodCorrectionMemory, forKey: .foodCorrectionMemory)
+        }
+        try container.encode(missingData, forKey: .missingData)
+        if !assumptions.isEmpty {
+            try container.encode(assumptions, forKey: .assumptions)
+        }
+        try container.encode(generationMode, forKey: .generationMode)
+        try container.encodeIfPresent(sourceAttribution, forKey: .sourceAttribution)
     }
 }
 
@@ -427,6 +481,7 @@ enum CoachContextPacketV2Limits {
     static let maxChatTextLength = 180
     static let maxRecentMeals = 10
     static let maxCommonFoods = 10
+    static let maxFoodCorrectionMemory = 8
     static let maxAssumptions = 8
     static let maxSummaryLength = 180
     static let maxCompactPayloadEntries = 6
@@ -483,6 +538,9 @@ extension CoachContextPacketV2 {
         copy.commonFoods = Array(
             commonFoods.prefix(CoachContextPacketV2Limits.maxCommonFoods)
         )
+        copy.foodCorrectionMemory = Array(
+            foodCorrectionMemory.prefix(CoachContextPacketV2Limits.maxFoodCorrectionMemory)
+        )
         copy.assumptions = Array(
             assumptions.prefix(CoachContextPacketV2Limits.maxAssumptions)
         )
@@ -524,6 +582,7 @@ extension CoachContextPacketV2 {
             "chatMessages=\(recentChatMessages.count)",
             "meals=\(recentMealsStructured.count)",
             "commonFoods=\(commonFoods.count)",
+            "foodCorrectionMemory=\(foodCorrectionMemory.count)",
             "missing=\(missingData.missingSignalLabels.joined(separator: ","))",
             "bytes~\(estimatedEncodedByteCount())"
         ]

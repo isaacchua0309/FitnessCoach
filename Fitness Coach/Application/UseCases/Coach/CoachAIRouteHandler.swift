@@ -21,6 +21,7 @@ final class CoachAIRouteHandler {
     private let userProfileReader: (any UserProfileReading)?
     private let trainingInsightsStore: TrainingInsightsStore?
     private let mutationExecutor: CoachMutationExecutor
+    private let foodCorrectionMemoryStore: (any FoodCorrectionMemoryStoring)?
 
     init(
         aiService: AIServiceProtocol?,
@@ -28,7 +29,8 @@ final class CoachAIRouteHandler {
         dailyLogReader: any DailyLogReading,
         userProfileReader: (any UserProfileReading)?,
         trainingInsightsStore: TrainingInsightsStore?,
-        mutationExecutor: CoachMutationExecutor
+        mutationExecutor: CoachMutationExecutor,
+        foodCorrectionMemoryStore: (any FoodCorrectionMemoryStoring)? = nil
     ) {
         self.aiService = aiService
         self.aiCommandParsingEnabled = aiCommandParsingEnabled
@@ -36,6 +38,7 @@ final class CoachAIRouteHandler {
         self.userProfileReader = userProfileReader
         self.trainingInsightsStore = trainingInsightsStore
         self.mutationExecutor = mutationExecutor
+        self.foodCorrectionMemoryStore = foodCorrectionMemoryStore
     }
 
     func handle(
@@ -477,6 +480,16 @@ final class CoachAIRouteHandler {
             }
 
             if let pendingFoodDraft {
+                if case .food(let existingDraft) = pendingConfirmation {
+                    Task {
+                        await FoodCorrectionMemoryRecorder.recordIfNeeded(
+                            before: existingDraft.primaryMealDraft,
+                            after: pendingFoodDraft.primaryMealDraft,
+                            source: .naturalLanguageCorrection,
+                            store: foodCorrectionMemoryStore
+                        )
+                    }
+                }
                 return .respond(
                     CoachPendingConfirmationPresenter.presentFoodPending(
                         originalText: pendingFoodDraft.originalText,
@@ -613,8 +626,25 @@ final class CoachAIRouteHandler {
         photoNeedsUserReview: Bool = false
     ) -> CoachActionResult {
         let sanitized = FoodLogDraftNutritionCompleter.sanitize(mealDraft, hintText: originalText)
+        let correctionApplication = FoodCorrectionMemoryApplier.apply(
+            to: sanitized,
+            corrections: context?.foodCorrectionMemory ?? [],
+            prompt: originalText
+        )
+        let mealForValidation = correctionApplication.mealDraft
+        let enrichedAssistantMessage: String?
+        if correctionApplication.appliedSummaries.isEmpty {
+            enrichedAssistantMessage = assistantMessage
+        } else {
+            let hints = correctionApplication.appliedSummaries.joined(separator: " ")
+            enrichedAssistantMessage = [assistantMessage, hints]
+                .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .joined(separator: "\n\n")
+        }
+
         let sanity = NutritionSanityValidator.validate(
-            meal: sanitized,
+            meal: mealForValidation,
             prompt: originalText,
             confidence: confidence
         )
@@ -659,7 +689,7 @@ final class CoachAIRouteHandler {
             )
             return CoachPendingConfirmationPresenter.presentFoodPending(
                 originalText: originalText,
-                assistantMessage: assistantMessage,
+                assistantMessage: enrichedAssistantMessage,
                 mealDraft: presentedMeal,
                 confidence: presentedConfidence,
                 sanityWarning: resolvedSanityWarning,

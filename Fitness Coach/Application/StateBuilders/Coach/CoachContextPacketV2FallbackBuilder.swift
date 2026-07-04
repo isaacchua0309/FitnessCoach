@@ -108,6 +108,7 @@ enum CoachContextPacketV2FallbackBuilder {
             currentUserMessage: chatContext.currentUserMessage,
             recentMealsStructured: [],
             commonFoods: [],
+            foodCorrectionMemory: [],
             missingData: missingData,
             assumptions: assumptions,
             generationMode: .degraded,

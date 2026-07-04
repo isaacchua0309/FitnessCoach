@@ -32,6 +32,7 @@ struct CoachContextPacketV2Builder {
     private let timelineStore: (any CoachTimelineStoring)?
     private let timelineBackfillService: (any CoachTimelineBackfilling)?
     private let timelineRecorder: (any CoachTimelineRecording)?
+    private let foodCorrectionMemoryStore: (any FoodCorrectionMemoryStoring)?
     private let dateProvider: DateProviding
     private let calendar: Calendar
     private let loadHealthIntelligence: () -> Bool
@@ -52,6 +53,7 @@ struct CoachContextPacketV2Builder {
         timelineStore: (any CoachTimelineStoring)? = nil,
         timelineBackfillService: (any CoachTimelineBackfilling)? = nil,
         timelineRecorder: (any CoachTimelineRecording)? = nil,
+        foodCorrectionMemoryStore: (any FoodCorrectionMemoryStoring)? = nil,
         dateProvider: DateProviding? = nil,
         calendar: Calendar = .current,
         loadHealthIntelligence: @escaping () -> Bool = { HealthIntelligenceFeatureFlags.shouldCoachLoadHealthIntelligence },
@@ -70,6 +72,7 @@ struct CoachContextPacketV2Builder {
         self.timelineStore = timelineStore
         self.timelineBackfillService = timelineBackfillService
         self.timelineRecorder = timelineRecorder
+        self.foodCorrectionMemoryStore = foodCorrectionMemoryStore
         self.dateProvider = dateProvider ?? SystemDateProvider()
         self.calendar = calendar
         self.loadHealthIntelligence = loadHealthIntelligence
@@ -208,6 +211,10 @@ struct CoachContextPacketV2Builder {
             calendar: calendar
         )
         let commonFoods = CoachContextFoodMemoryBuilder.makeCommonFoods(from: foodHistory)
+        let correctionEntries = await loadFoodCorrectionMemory()
+        let foodCorrectionMemory = CoachContextFoodCorrectionMemoryBuilder.makeContextEntries(
+            from: correctionEntries
+        )
 
         var missingData = makeMissingData(
             stepsResult: stepsResult,
@@ -231,6 +238,9 @@ struct CoachContextPacketV2Builder {
             healthIntelligenceTimedOut: healthIntelligenceTimedOut,
             healthIntelligenceFailed: healthIntelligenceFailed
         ))
+        if !foodCorrectionMemory.isEmpty {
+            assumptions.append(CoachContextFoodCorrectionMemoryBuilder.hintsNotFactsAssumption())
+        }
 
         if dailyLog != nil { sources.append("swiftData") }
         if timelineStore != nil { sources.append("coachTimeline") }
@@ -258,6 +268,7 @@ struct CoachContextPacketV2Builder {
             currentUserMessage: chatContext.currentUserMessage,
             recentMealsStructured: Array(recentMeals),
             commonFoods: commonFoods,
+            foodCorrectionMemory: foodCorrectionMemory,
             missingData: missingData,
             assumptions: assumptions,
             generationMode: effectiveMode,
@@ -386,6 +397,18 @@ struct CoachContextPacketV2Builder {
             return entries
         } catch {
             logReadFailure("foodLogHistory", error: error)
+            return []
+        }
+    }
+
+    private func loadFoodCorrectionMemory() async -> [FoodCorrectionMemoryEntry] {
+        guard let foodCorrectionMemoryStore else { return [] }
+        do {
+            return try await foodCorrectionMemoryStore.recentEntries(
+                limit: FoodCorrectionMemoryLimits.maxStoredEntries
+            )
+        } catch {
+            logReadFailure("foodCorrectionMemory", error: error)
             return []
         }
     }
@@ -1278,6 +1301,16 @@ enum CoachContextPacketV2SizeCompactor {
                 previousExportedCount: metadata.exportedEventCount,
                 newExportedCount: result.timeline.recentEvents.count,
                 reason: "trimmed_common_foods"
+            )
+        }
+
+        if bytes > byteLimit, result.foodCorrectionMemory.count > 4 {
+            result.foodCorrectionMemory = Array(result.foodCorrectionMemory.prefix(4))
+            bytes = result.estimatedEncodedByteCount()
+            metadata.recordSizeCompaction(
+                previousExportedCount: metadata.exportedEventCount,
+                newExportedCount: result.timeline.recentEvents.count,
+                reason: "trimmed_food_correction_memory"
             )
         }
 

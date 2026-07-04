@@ -212,6 +212,7 @@ final class LocalAccountDataWipeService: LocalAccountDataWiping {
 
         let preferencesResult = clearUIDScopedPreferences(for: normalizedUID)
         let healthCacheDeleted = clearHealthCache(for: normalizedUID)
+        _ = FileFoodCorrectionMemoryStore.deleteFile(for: normalizedUID, fileManager: fileManager)
         clearInMemoryStateIfCurrentSession(matches: normalizedUID)
 
         if let swiftDataError {

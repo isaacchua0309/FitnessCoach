@@ -102,8 +102,7 @@ enum NutritionEstimateCardPresentationBuilder {
 
     private static func aboutCaloriesLine(for calories: Int) -> String {
         guard calories > 0 else {
-            return FormaProductCopy.Coach.pendingEstimatedCaloriesUnknown
-                .replacingOccurrences(of: "Estimated: ", with: "")
+            return "Calories unavailable"
         }
         return FormaProductCopy.Coach.estimateCardAboutCalories(about: calories)
     }

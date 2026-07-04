@@ -93,6 +93,7 @@ final class AppContainer {
     let coachChatTranscriptStore: SwiftDataCoachChatTranscriptStore
     let coachTimelineBackfillService: CoachTimelineBackfillService
     let coachTimelineRecorder: DefaultCoachTimelineRecorder
+    let foodCorrectionMemoryStore: FileFoodCorrectionMemoryStore
     private let authUIDCache: AuthUIDCache
 
     let onboardingUserDefaults: UserDefaults
@@ -372,6 +373,9 @@ final class AppContainer {
             healthActivityQuery: healthActivityQueryService
         )
         coachTimelineRecorder = DefaultCoachTimelineRecorder(store: coachTimelineStore)
+        foodCorrectionMemoryStore = FileFoodCorrectionMemoryStore(
+            userIdProvider: { [weak authManager] in authManager?.currentUID }
+        )
 
         Task { @MainActor [coachTimelineBackfillService] in
             await coachTimelineBackfillService.runBackfill()
@@ -804,7 +808,8 @@ final class AppContainer {
             trainingLoadEngine: trainingLoadEngine,
             timelineStore: coachTimelineStore,
             timelineBackfillService: coachTimelineBackfillService,
-            timelineRecorder: coachTimelineRecorder
+            timelineRecorder: coachTimelineRecorder,
+            foodCorrectionMemoryStore: foodCorrectionMemoryStore
         )
 
         return CoachModel(
@@ -835,7 +840,8 @@ final class AppContainer {
             transcriptStore: coachChatTranscriptStore,
             healthIntelligenceAnalyticsCoordinator: healthIntelligenceAnalyticsCoordinator,
             timelineRecorder: coachTimelineRecorder,
-            timelineStore: coachTimelineStore
+            timelineStore: coachTimelineStore,
+            foodCorrectionMemoryStore: foodCorrectionMemoryStore
         )
     }
 
