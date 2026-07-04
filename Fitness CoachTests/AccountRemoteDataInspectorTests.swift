@@ -44,7 +44,7 @@ final class AccountRemoteDataInspectorTests: XCTestCase {
         try await super.tearDown()
     }
 
-    func testNoCloudDataReturnsEmptyStatusWithoutFailure() async {
+    func testRemoteInspectorDetectsNoCloudData() async {
         let status = await inspector.inspectRemoteData(for: uidA, today: referenceDate)
 
         XCTAssertEqual(status.uid, uidA)
@@ -59,9 +59,9 @@ final class AccountRemoteDataInspectorTests: XCTestCase {
         XCTAssertNil(status.failure)
     }
 
-    func testCloudProfileIsDetected() async throws {
+    func testRemoteInspectorDetectsCloudProfile() async throws {
         profileStore.document = CloudUserProfileDocument(
-            profile: try makeProfile(ownerUID: uidA),
+            profile: AccountRestoreTestSupport.makeProfile(ownerUID: uidA, referenceDate: referenceDate),
             onboardingCompletedAt: referenceDate,
             updatedAt: referenceDate
         )
@@ -74,9 +74,72 @@ final class AccountRemoteDataInspectorTests: XCTestCase {
         XCTAssertNil(status.failure)
     }
 
+    func testRemoteInspectorDetectsRecentDailyLogs() async throws {
+        try await remoteStore.saveDailyLog(
+            FirestoreAccountDataRemoteStoreTestFixtures.dailyLog(
+                userId: uidA,
+                localDate: localDate,
+                referenceDate: referenceDate
+            ),
+            uid: uidA
+        )
+
+        let status = await inspector.inspectRemoteData(for: uidA, today: referenceDate)
+
+        XCTAssertTrue(status.hasRecentDailyLogs)
+        XCTAssertTrue(status.hasAnyRestorableData)
+        XCTAssertNil(status.failure)
+    }
+
+    func testRemoteInspectorClassifiesOffline() async {
+        profileStore.fetchError = URLError(.notConnectedToInternet)
+        remoteStore = ThrowingAccountDataRemoteStore(error: URLError(.notConnectedToInternet))
+        inspector = AccountRemoteDataInspector(
+            cloudProfileStore: profileStore,
+            remoteStore: remoteStore,
+            calendar: calendar
+        )
+
+        let status = await inspector.inspectRemoteData(for: uidA, today: referenceDate)
+
+        XCTAssertFalse(status.hasAnyRestorableData)
+        XCTAssertEqual(status.failure, .offline)
+    }
+
+    func testRemoteInspectorClassifiesPermissionDenied() async {
+        profileStore.fetchError = NSError(
+            domain: "FIRFirestoreErrorDomain",
+            code: 7,
+            userInfo: [NSLocalizedDescriptionKey: "Missing or insufficient permissions."]
+        )
+        remoteStore = ThrowingAccountDataRemoteStore(error: NSError(
+            domain: "FIRFirestoreErrorDomain",
+            code: 7,
+            userInfo: [NSLocalizedDescriptionKey: "Missing or insufficient permissions."]
+        ))
+        inspector = AccountRemoteDataInspector(
+            cloudProfileStore: profileStore,
+            remoteStore: remoteStore,
+            calendar: calendar
+        )
+
+        let status = await inspector.inspectRemoteData(for: uidA, today: referenceDate)
+
+        XCTAssertEqual(status.failure, .permissionDenied)
+    }
+
+    func testNoCloudDataReturnsEmptyStatusWithoutFailure() async {
+        let status = await inspector.inspectRemoteData(for: uidA, today: referenceDate)
+
+        XCTAssertEqual(status.uid, uidA)
+        XCTAssertFalse(status.hasCloudProfile)
+        XCTAssertFalse(status.hasAnyRestorableData)
+        XCTAssertNil(status.failure)
+    }
+
     func testRecentNutritionDataIsDetectedWithinBoundedRanges() async throws {
         profileStore.document = CloudUserProfileDocument(
-            profile: try makeProfile(ownerUID: uidA),
+            profile: AccountRestoreTestSupport.makeProfile(ownerUID: uidA, referenceDate: referenceDate),
             onboardingCompletedAt: referenceDate,
             updatedAt: referenceDate
         )
@@ -224,7 +287,7 @@ final class AccountRemoteDataInspectorTests: XCTestCase {
 
     func testFailureIsSuppressedWhenRestorableDataExists() async throws {
         profileStore.document = CloudUserProfileDocument(
-            profile: try makeProfile(ownerUID: uidA),
+            profile: AccountRestoreTestSupport.makeProfile(ownerUID: uidA, referenceDate: referenceDate),
             onboardingCompletedAt: referenceDate,
             updatedAt: referenceDate
         )

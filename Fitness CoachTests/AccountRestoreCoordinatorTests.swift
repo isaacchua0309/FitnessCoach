@@ -31,6 +31,102 @@ final class AccountRestoreCoordinatorTests: XCTestCase {
         try await super.tearDown()
     }
 
+    func testPrepareAfterSignInRunsBlockingRestoreForEmptyLocalStore() async throws {
+        harness.restoreEnabled = true
+        try await harness.seedCloudNutritionData()
+
+        let summary = await harness.coordinator.prepareAccountAfterSignIn(
+            uid: ownerUID,
+            reason: .afterSignIn
+        )
+
+        XCTAssertEqual(summary.status, .completed)
+        XCTAssertEqual(harness.initialRestore.blockingCallCount, 1)
+        XCTAssertEqual(try harness.foodCount(), 1)
+    }
+
+    func testPrepareAfterSignInSkipsBlockingRestoreForPopulatedStore() async throws {
+        harness.restoreEnabled = true
+        let dailyLog = try harness.seedLocalDailyLog(ownerUID: ownerUID)
+        _ = try harness.seedLocalFood(dailyLog: dailyLog)
+        harness.stateStore.markCompleted(
+            uid: ownerUID,
+            summary: completedSummary(),
+            now: referenceDate
+        )
+        try await harness.seedCloudNutritionData()
+
+        let summary = await harness.coordinator.prepareAccountAfterSignIn(
+            uid: ownerUID,
+            reason: .afterSignIn
+        )
+
+        XCTAssertEqual(summary.status, .skipped)
+        XCTAssertEqual(harness.initialRestore.blockingCallCount, 0)
+    }
+
+    func testPrepareAfterSignInRunsSafeBackfillBeforeRestore() async throws {
+        harness.restoreEnabled = true
+        try await harness.seedCloudNutritionData()
+
+        let summary = await harness.coordinator.prepareAccountAfterSignIn(
+            uid: ownerUID,
+            reason: .afterSignIn
+        )
+
+        XCTAssertEqual(harness.migrationService.callCount, 1)
+        XCTAssertEqual(harness.migrationService.lastUID, ownerUID)
+        XCTAssertEqual(summary.status, .completed)
+    }
+
+    func testAccountSwitchIgnoresOldRestoreResult() async throws {
+        harness.restoreEnabled = true
+        harness.initialRestore.blockingUIDProvider = { [weak harness] in
+            harness?.currentUID = self.otherUID
+            return self.ownerUID
+        }
+        try await harness.seedCloudNutritionData()
+
+        let summary = await harness.coordinator.prepareAccountAfterSignIn(
+            uid: ownerUID,
+            reason: .afterSignIn
+        )
+
+        XCTAssertEqual(summary.status, .skipped)
+        XCTAssertEqual(summary.userFacingMessage, AccountRestoreCoordinatorSupport.accountSwitchedMessage)
+        XCTAssertEqual(try harness.foodCount(), 0)
+    }
+
+    func testRetryRestoreRunsManualRetry() async throws {
+        harness.restoreEnabled = true
+        harness.stateStore.markCompleted(
+            uid: ownerUID,
+            summary: completedSummary(),
+            now: referenceDate
+        )
+        try await harness.seedCloudNutritionData()
+
+        let summary = await harness.coordinator.retryRestore(uid: ownerUID)
+
+        XCTAssertEqual(harness.initialRestore.blockingCallCount, 1)
+        XCTAssertNotEqual(summary.status, .skipped)
+        XCTAssertEqual(summary.mode, .blockingInitial)
+    }
+
+    func testBackgroundBackfillRunsAfterBlockingRestore() async throws {
+        harness.restoreEnabled = true
+        try await harness.seedCloudNutritionData()
+
+        let summary = await harness.coordinator.prepareAccountAfterSignIn(
+            uid: ownerUID,
+            reason: .afterSignIn
+        )
+
+        XCTAssertTrue(summary.allowsContinuedEntry)
+        try await Task.sleep(nanoseconds: 200_000_000)
+        XCTAssertEqual(harness.initialRestore.backgroundCallCount, 1)
+    }
+
     func testPrepareAccountAfterSignInRunsBlockingRestoreWhenCloudDataExists() async throws {
         harness.restoreEnabled = true
         try await harness.seedCloudNutritionData()
@@ -177,6 +273,7 @@ private final class RestoreCoordinatorHarness {
     let profileStore: RestoreCoordinatorProfileStore
     let stateStore: AccountRestoreStateStore
     let namespaceService: AccountDataNamespaceService
+    let migrationService: RecordingAccountMigrationService
     let initialRestore: RecordingInitialRestoreService
     let syncCoordinator: RecordingSyncCoordinator
     let remoteInspector: StubRemoteInspector
@@ -209,10 +306,7 @@ private final class RestoreCoordinatorHarness {
             userDefaults: defaults,
             syncCoordinator: syncCoordinator
         )
-        let migrationService = AccountMigrationService(
-            store: store,
-            userProfileService: profileService
-        )
+        let migrationService = RecordingAccountMigrationService()
         let localInspector = AccountLocalDataInspector(
             store: store,
             userProfileService: profileService,
@@ -243,6 +337,7 @@ private final class RestoreCoordinatorHarness {
             profileStore: profileStore,
             stateStore: stateStore,
             namespaceService: namespaceService,
+            migrationService: migrationService,
             initialRestore: initialRestore,
             syncCoordinator: syncCoordinator,
             remoteInspector: remoteInspector,
@@ -251,8 +346,38 @@ private final class RestoreCoordinatorHarness {
         )
     }
 
+    @discardableResult
+    func seedLocalFood(dailyLog: DailyLogEntity) throws -> FoodEntryEntity {
+        let food = FoodEntryEntity(
+            id: UUID(),
+            ownerUID: ownerUID,
+            dailyLogId: dailyLog.id,
+            mealTypeRawValue: MealType.lunch.rawValue,
+            name: "Existing Meal",
+            quantity: 1,
+            unit: "bowl",
+            calories: 450,
+            protein: 20,
+            carbs: 30,
+            fat: 12,
+            fiber: nil,
+            sodium: nil,
+            sourceRawValue: FoodEntrySource.manual.rawValue,
+            confidenceRawValue: ConfidenceLevel.high.rawValue,
+            imageUrl: nil,
+            notes: nil,
+            createdAt: referenceDate,
+            updatedAt: referenceDate
+        )
+        food.dailyLog = dailyLog
+        food.syncStatus = .synced
+        food.localUpdatedAt = referenceDate
+        try store.insert(food)
+        return food
+    }
+
     func seedCloudNutritionData() async throws {
-        let profile = try makeProfile(ownerUID: currentUID)
+        let profile = AccountRestoreTestSupport.makeProfile(ownerUID: currentUID, referenceDate: referenceDate)
         profileStore.document = CloudUserProfileDocument(
             profile: profile,
             onboardingCompletedAt: referenceDate,
@@ -321,32 +446,6 @@ private final class RestoreCoordinatorHarness {
 
     func foodCount() throws -> Int {
         try store.fetch(FetchDescriptor<FoodEntryEntity>()).count
-    }
-
-    private func makeProfile(ownerUID: String) throws -> UserProfile {
-        var draft = ProfileTestFixtures.sampleDraft
-        draft.targets = ProfileTestFixtures.sampleTargets
-        return UserProfile(
-            id: UUID(),
-            ownerUID: ownerUID,
-            name: draft.name,
-            birthDate: draft.birthDate,
-            age: draft.age,
-            sex: draft.sex,
-            heightCm: draft.heightCm,
-            currentWeightKg: draft.currentWeightKg,
-            goalWeightKg: draft.goalWeightKg,
-            estimatedBodyFatPercentage: draft.estimatedBodyFatPercentage,
-            activityLevel: draft.activityLevel,
-            trainingFrequencyPerWeek: draft.trainingFrequencyPerWeek,
-            averageSteps: draft.averageSteps,
-            dietPreference: draft.dietPreference,
-            unitSystem: draft.unitSystem,
-            targets: draft.targets,
-            createdAt: referenceDate,
-            updatedAt: referenceDate,
-            lastPlanUpdateReason: .onboarding
-        )
     }
 }
 

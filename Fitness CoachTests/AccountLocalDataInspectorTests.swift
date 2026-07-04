@@ -48,7 +48,7 @@ final class AccountLocalDataInspectorTests: XCTestCase {
         try await super.tearDown()
     }
 
-    func testEmptyFreshInstallReportsNeedsInitialRestore() async throws {
+    func testEmptyStoreIsEffectivelyEmpty() async throws {
         let status = try await inspector.inspectLocalData(for: ownerUID)
 
         XCTAssertEqual(status.uid, ownerUID)
@@ -68,7 +68,77 @@ final class AccountLocalDataInspectorTests: XCTestCase {
         XCTAssertTrue(status.needsInitialRestore)
     }
 
-    func testPopulatedAccountDoesNotNeedInitialRestore() async throws {
+    func testOtherUserDataDoesNotCountAsLocalData() async throws {
+        _ = try seedProfile(ownerUID: otherUID)
+        let otherLog = try seedDailyLog(ownerUID: otherUID, date: referenceDate)
+        _ = try seedFood(dailyLog: otherLog, ownerUID: otherUID, name: "Other Meal")
+        _ = try seedLegacyFoodWithoutOwner(dailyLog: otherLog, name: "Legacy Meal")
+
+        let status = try await inspector.inspectLocalData(for: ownerUID)
+
+        XCTAssertFalse(status.hasProfile)
+        XCTAssertFalse(status.hasAnyDailyLogs)
+        XCTAssertEqual(status.foodEntryCount, 0)
+        XCTAssertTrue(status.isEffectivelyEmpty)
+        XCTAssertTrue(status.needsInitialRestore)
+    }
+
+    func testCurrentUserFoodMakesStoreNonEmpty() async throws {
+        _ = try seedProfile(ownerUID: ownerUID)
+        let dailyLog = try seedDailyLog(ownerUID: ownerUID, date: referenceDate)
+        _ = try seedFood(dailyLog: dailyLog, ownerUID: ownerUID, name: "Oats")
+
+        let status = try await inspector.inspectLocalData(for: ownerUID)
+
+        XCTAssertEqual(status.foodEntryCount, 1)
+        XCTAssertFalse(status.isEffectivelyEmpty)
+        XCTAssertFalse(status.needsInitialRestore)
+    }
+
+    func testPendingMutationsAreDetected() async throws {
+        try await outbox.enqueue(
+            ownerUID: ownerUID,
+            entityType: .foodEntry,
+            entityId: UUID().uuidString,
+            localDate: CloudAccountDataDateCodec.localDateString(from: referenceDate, calendar: calendar),
+            operation: .upsert,
+            mutationGroupId: nil
+        )
+
+        let status = try await inspector.inspectLocalData(for: ownerUID)
+
+        XCTAssertTrue(status.isEffectivelyEmpty)
+        XCTAssertEqual(status.pendingMutationCount, 1)
+        XCTAssertEqual(status.failedMutationCount, 0)
+        XCTAssertFalse(status.needsInitialRestore)
+    }
+
+    func testTombstonedRowsDoNotMakeStorePopulated() async throws {
+        let dailyLog = try seedDailyLog(ownerUID: ownerUID, date: referenceDate)
+        let food = try seedFood(dailyLog: dailyLog, ownerUID: ownerUID, name: "Deleted Meal")
+        food.deletedAt = referenceDate
+        food.syncStatus = .pendingDelete
+        try store.save()
+
+        try await outbox.enqueue(
+            ownerUID: ownerUID,
+            entityType: .foodEntry,
+            entityId: food.id.uuidString,
+            localDate: CloudAccountDataDateCodec.localDateString(from: referenceDate, calendar: calendar),
+            operation: .delete,
+            mutationGroupId: nil
+        )
+
+        let status = try await inspector.inspectLocalData(for: ownerUID)
+
+        XCTAssertEqual(status.foodEntryCount, 0)
+        XCTAssertTrue(status.hasAnyDailyLogs)
+        XCTAssertTrue(status.isEffectivelyEmpty)
+        XCTAssertEqual(status.pendingMutationCount, 1)
+        XCTAssertFalse(status.needsInitialRestore)
+    }
+
+    func testEmptyFreshInstallReportsNeedsInitialRestore() async throws {
         _ = try seedProfile(ownerUID: ownerUID)
         let dailyLog = try seedDailyLog(ownerUID: ownerUID, date: referenceDate)
         _ = try seedFood(dailyLog: dailyLog, ownerUID: ownerUID, name: "Oats")

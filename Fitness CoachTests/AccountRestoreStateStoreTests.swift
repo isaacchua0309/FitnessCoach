@@ -124,7 +124,7 @@ final class AccountRestoreStateStoreTests: XCTestCase {
         XCTAssertEqual(message?.count, 240)
     }
 
-    func testStateIsUIDScoped() {
+    func testRestoreStateIsScopedByUID() {
         store.markStarted(uid: uidA, reason: .afterSignIn, mode: .blockingInitial, now: referenceDate)
         store.markCompleted(
             uid: uidB,
@@ -134,6 +134,56 @@ final class AccountRestoreStateStoreTests: XCTestCase {
 
         XCTAssertEqual(store.loadState(uid: uidA).status, .checking)
         XCTAssertEqual(store.loadState(uid: uidB).status, .completed)
+    }
+
+    func testMarkCompletedStoresCompletionDate() {
+        let summary = makeSummary(uid: uidA, mode: .blockingInitial, status: .completed)
+
+        store.markCompleted(uid: uidA, summary: summary, now: referenceDate)
+
+        XCTAssertEqual(store.loadState(uid: uidA).lastCompletedAt, referenceDate)
+        XCTAssertEqual(store.loadState(uid: uidA).status, .completed)
+    }
+
+    func testMarkPartialStoresPartialStatus() {
+        let summary = makeSummary(uid: uidA, mode: .blockingInitial, status: .partial)
+
+        store.markPartial(uid: uidA, summary: summary, now: referenceDate)
+
+        XCTAssertEqual(store.loadState(uid: uidA).status, .partial)
+        XCTAssertEqual(store.loadState(uid: uidA).lastSuccessfulBlockingRestoreAt, referenceDate)
+    }
+
+    func testMarkOfflineDoesNotClearCompletion() {
+        store.markCompleted(
+            uid: uidA,
+            summary: makeSummary(uid: uidA, mode: .blockingInitial, status: .completed),
+            now: referenceDate
+        )
+
+        store.markOffline(uid: uidA, reason: .appLaunch, now: referenceDate.addingTimeInterval(60))
+
+        let state = store.loadState(uid: uidA)
+        XCTAssertEqual(state.status, .offline)
+        XCTAssertEqual(state.lastSuccessfulBlockingRestoreAt, referenceDate)
+        XCTAssertEqual(state.lastCompletedAt, referenceDate.addingTimeInterval(60))
+    }
+
+    func testShouldRunBlockingRestoreForEmptyLocalData() {
+        let localStatus = emptyLocalStatus(uid: uidA, needsInitialRestore: true)
+
+        XCTAssertTrue(store.shouldRunBlockingRestore(uid: uidA, localDataStatus: localStatus, now: referenceDate))
+    }
+
+    func testShouldSkipBlockingRestoreAfterRecentCompletion() {
+        store.markCompleted(
+            uid: uidA,
+            summary: makeSummary(uid: uidA, mode: .blockingInitial, status: .completed),
+            now: referenceDate
+        )
+        let localStatus = emptyLocalStatus(uid: uidA, needsInitialRestore: true)
+
+        XCTAssertFalse(store.shouldRunBlockingRestore(uid: uidA, localDataStatus: localStatus, now: referenceDate))
     }
 
     func testClearOnlyRemovesRequestedUID() {
